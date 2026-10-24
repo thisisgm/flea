@@ -15,7 +15,8 @@ FIXTURE=${2:-}
 
 FLEA_REPO=${FLEA_REPO:-$HOME/Work/claude/flea}
 FLEA_BIN=${FLEA_BIN:-$FLEA_REPO/target/release/flea}
-STRATA_SRC=${STRATA_SRC:-$HOME/Work/strata}
+STRATA_SRC=${STRATA_SRC:-}
+STRATA_BIN=${STRATA_STABLE_BIN:-${STRATA_BIN:-}}
 # The terminal the TUI group runs in, named here because a TUI's image capability is the
 # terminal's before it is the program's.
 TUI_TERMINAL=${TUI_TERMINAL:-kitty}
@@ -270,11 +271,15 @@ say "- fixture kind: ${FIXTURE_KIND:-btrfs}"
 say "- fixture payload: $(ls -U "$FIXTURE" | wc -l) visible entries, filesystem $(findmnt -no FSTYPE -T "$FIXTURE")"
 say "- TUI terminal: $TUI_TERMINAL $(pkg_version "$TUI_TERMINAL")"
 say "- flea launch line: ${FLEA_LAUNCH_LINE:-not recorded by the caller}"
+say "- flea frontend: ${FLEA_FRONTEND:-qml}; anchor frontend: qml"
+for binary in "$FLEA_BIN" "$(dirname "$FLEA_BIN")/flea-gui" "${ANCHOR_BIN:-}" "${STRATA_BIN:-}" "${STRATA_NIGHTLY_BIN:-}"; do
+  [ -f "$binary" ] && say "- binary sha256: $(sha256sum "$binary")"
+done
 say "- harness: $(harness_marker)"
 say "- manifest tool: $(manifest_tool_marker)"
 say "- anchor arm (flea-anchor): $(anchor_line)"
 if [ -x "${STRATA_BIN:-}" ]; then
-  say "- strata binary: $STRATA_BIN reports '$("$STRATA_BIN" --version 2>&1 | head -1)', built from ${STRATA_SRC:-an unrecorded source tree}"
+  say "- strata binary: $STRATA_BIN reports '$("$STRATA_BIN" --version 2>&1 | head -1)'"
 fi
 # Each kind's rows rotate one place a run, so the place an entrant held is recorded beside the numbers.
 say "- launch order: each kind's rows rotate one place a run and reverse every other full cycle; place N is the Nth entrant of its kind that launched in that run, after ONLY and absence"
@@ -371,17 +376,29 @@ for row in "${ENTRANT_ROWS[@]}"; do
   kind=${kind//[[:space:]]/}
   comm=${comm//[[:space:]]/}
   [ -n "${id:-}" ] || continue
+  if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
+    binary=
+    case $id in
+      strata-stable) binary=$STRATA_BIN ;;
+      strata-nightly) binary=${STRATA_NIGHTLY_BIN:-} ;;
+      xplr) binary=$(command -v xplr) || exit 1 ;;
+    esac
+    case $id in strata-stable|strata-nightly|xplr)
+      python3 -B "$(dirname "$0")/flea_bench_product.py" "$B5_RIVAL_MANIFEST" "$id" "$binary" --row "$kind" >> "$OUT" || exit 1
+      continue ;;
+    esac
+  fi
   case $id in
-    flea|flea-tui|flea-anchor)
+    flea|flea-tui|flea-anchor|flea-tui-anchor)
       # flea-tui is the arm's own binary run with --tui and flea-anchor the anchor arm, never the installed package.
       repo=$FLEA_REPO bin=$FLEA_BIN
-      [ "$id" = flea-anchor ] && repo=${ANCHOR_REPO:-} bin=${ANCHOR_BIN:-}
+      { [ "$id" = flea-anchor ] || [ "$id" = flea-tui-anchor ]; } && repo=${ANCHOR_REPO:-} bin=${ANCHOR_BIN:-}
       # An empty repo names no git at all: git -C "" would read the caller's directory.
       if [ -z "$repo" ]; then
         sha=absent tag=absent dirty=absent
       # Product, instrument and package paths count; session-only files elsewhere in the tree do not.
       elif sha=$(git -C "$repo" rev-parse --short HEAD 2>/dev/null) \
-        && changes=$(git -C "$repo" status --porcelain -- src ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null); then
+        && changes=$(git -C "$repo" status --porcelain -- src crates ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null); then
         tag=$(git -C "$repo" describe --tags --exact-match HEAD 2>/dev/null) || tag="untagged"
         dirty=clean
         [ -z "$changes" ] || dirty=DIRTY
@@ -398,19 +415,22 @@ for row in "${ENTRANT_ROWS[@]}"; do
       printf '%-10s %-4s source %s %s (%s), release binary built %s, %s bytes\n' \
         "$id" "$kind" "${sha:-absent}" "$tag" "$dirty" "$built" "$size" >> "$OUT"
       ;;
-    strata)
+    strata|strata-nightly)
+      source_tree=$STRATA_SRC
+      binary=${STRATA_BIN:-}
+      if [ "$id" = strata-nightly ]; then source_tree=${STRATA_NIGHTLY_SRC:-}; binary=${STRATA_NIGHTLY_BIN:-}; fi
       # The one unpackaged entrant. A tag is what a user installs, so the tag is what the row records
       # and a bare sha is called out as not being a release.
-      desc=$(git -C "$STRATA_SRC" describe --tags --always 2>/dev/null)
+      desc=$(git -C "$source_tree" describe --tags --always 2>/dev/null)
       # The prose below names the tag the row records, so the two cannot drift apart.
       strata_tag=$desc
-      when=$(git -C "$STRATA_SRC" log -1 --format=%cs 2>/dev/null)
+      when=$(git -C "$source_tree" log -1 --format=%cs 2>/dev/null)
       note=""
       case $desc in
         *-g*) note=" NOT A RELEASE, this is a mid-stream commit" ;;
       esac
       printf '%-10s %-4s source %s committed %s, built locally from this checkout%s\n' \
-        "$id" "$kind" "${desc:-absent}" "${when:-unknown}" "$note" >> "$OUT"
+        "$id" "$kind" "${desc:-absent}" "${when:-unknown}" "$note; binary reports $("$binary" --version 2>&1 | head -1)" >> "$OUT"
       ;;
     *)
       path=$(command -v "$comm" 2>/dev/null)
@@ -430,12 +450,16 @@ for row in "${ENTRANT_ROWS[@]}"; do
 done
 say '```'
 say ""
-say "strata is the one entrant pacman did not install. It is built here from the ${strata_tag:-unknown} tag in a"
-say "local checkout. **The project also publishes a prebuilt x86_64 binary for that tag and it was"
-say "not used**: this harness does not download and execute a third-party binary unattended, and"
-say "every packaged entrant is itself built from source by the distribution, so building from the"
-say "tag is more consistent with the field than fetching one binary would be. Build flags may differ"
-say "from the published release, which is equally true of every AUR entrant in the list."
+say "Archive rows record the executed binary's version and SHA-256, upstream URL, archive SHA-256, tag and embedded source commit. Source rows describe explicitly selected local builds."
+if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
+  say ""
+  say "## B5 rival receipt"
+  say ""
+  say "Receipt: $B5_RIVAL_MANIFEST, $(sha256sum "$B5_RIVAL_MANIFEST")"
+  say '```json'
+  cat "$B5_RIVAL_MANIFEST" >> "$OUT" || exit 1
+  say '```'
+fi
 say ""
 
 # 12e directive 2: every config recorded verbatim beside its version, so a reader reproduces the

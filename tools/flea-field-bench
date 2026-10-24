@@ -22,7 +22,7 @@ case "$(cut -d: -f3 /proc/self/cgroup)" in
     fi
     export FLEA_BENCH_REENTERED=1
     # A scope execs in this same process and never reads stdin, measured, so the password below still arrives.
-    exec systemd-run --user --scope --quiet -p Delegate=yes "--unit=flea-field-bench-$$" -- bash "$0" "$@"
+    exec systemd-run --user --scope --quiet --working-directory="$PWD" -p Delegate=yes "--unit=flea-field-bench-$$" -- bash "$0" "$@"
     ;;
 esac
 
@@ -35,7 +35,7 @@ if [ "$SUDO_NOPASSWD" = yes ]; then exec </dev/null; else
   [ -n "${SUDO_PW:-}" ] || { printf 'FAIL: no sudo password arrived on stdin\n' >&2; exit 1; }
 fi
 
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="${B5_BENCH_PATH:-$HOME/.local/bin:$PATH}"
 eval "$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env)"
 # omarchy-drive env omits the Qt platform theme, so without this the field benches a Flea that resolves no icon.
 export QT_QPA_PLATFORMTHEME="$(LC_ALL=C.UTF-8 LANGUAGE= systemctl --user show-environment | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-)"
@@ -57,7 +57,9 @@ FIXTURE_KIND=${FIXTURE_KIND:-}
 EXPECT_FILES=${EXPECT_FILES:-100000}
 DROP_THUMBS=${DROP_THUMBS:-no}
 export FLEA_UI="$FLEA_REPO/ui"
-export FLEA_BIN="$FLEA_REPO/target/release/flea"
+export FLEA_BIN="${FLEA_BIN:-$FLEA_REPO/target/release/flea}"
+export FLEA_FRONTEND="${FLEA_FRONTEND:-qml}"
+case $FLEA_FRONTEND in gpui|qml) ;; *) printf 'FAIL: invalid FLEA_FRONTEND\n' >&2; exit 1 ;; esac
 # The tested Flea's own QML disk cache, in its build tree: a sandbox arm never grows the user's ~/.cache/quickshell/qmlcache.
 export FLEA_QMLCACHE="$FLEA_REPO/target/qmlcache"
 # The anchor entrant runs only against a separate tree, so a default run never benches one build twice.
@@ -69,7 +71,7 @@ if [ -n "$ANCHOR_REPO" ]; then
 fi
 WITH_ANCHOR=no
 if [ -n "$ANCHOR_REPO" ] && [ "$ANCHOR_REPO" != "$FLEA_REPO" ]; then WITH_ANCHOR=yes; fi
-export ANCHOR_BIN="$ANCHOR_REPO/target/release/flea"
+export ANCHOR_BIN="${ANCHOR_BIN:-$ANCHOR_REPO/target/release/flea}"
 export ANCHOR_UI="$ANCHOR_REPO/ui"
 export ANCHOR_QMLCACHE="$ANCHOR_REPO/target/qmlcache"
 # anchor setup end
@@ -82,9 +84,11 @@ MANIFEST_TOOL=$(dirname "$0")/flea-bench-manifest
 MANIFEST_TOOL=$(readlink -f "$MANIFEST_TOOL")
 # manifest selection end
 
-# Strata's binary path is explicit because it is built from source; STRATA_SRC names its build tree, checked by strata_provenance.
-STRATA_BIN=${STRATA_BIN:-$HOME/Work/strata/target/release/strata}
+# Archive runs use B5's receipt; an explicitly selected source build keeps its source check.
+export STRATA_BIN=${STRATA_STABLE_BIN:-${STRATA_BIN:-}}
 STRATA_SRC=${STRATA_SRC:-}
+export STRATA_NIGHTLY_BIN=${STRATA_NIGHTLY_BIN:-}
+export STRATA_NIGHTLY_SRC=${STRATA_NIGHTLY_SRC:-}
 # The harness's own file, so the manifest can record its sha256 and whether a copy was patched.
 HARNESS_TOOL=$(readlink -f "$0")
 export ANCHOR_REPO ANCHOR_BIN ANCHOR_UI ANCHOR_QMLCACHE HARNESS_TOOL MANIFEST_TOOL
@@ -931,17 +935,21 @@ kill_entrant() {
 
 # The same roster scopes ONLY before setup and builds launch commands again once the temporary paths exist.
 build_entrants() {
+  local strata_id=strata
+  [ -z "${B5_RIVAL_MANIFEST:-}" ] || strata_id=strata-stable
+  local FLEA_FRONTEND=${FLEA_FRONTEND:-qml}
+  local flea_class=com.thisisgm.flea flea_comm=qs flea_token=$FLEA_UI
+  if [ "$FLEA_FRONTEND" = gpui ]; then flea_class=flea; flea_comm=flea-gui; flea_token=$(dirname "$FLEA_BIN")/flea-gui; fi
   # Fields: id|kind|class|comm|token|helper_comm|helper_token|command; the command holds any later pipe, and its \$TUI_DUMP_FLAG is read by each launch's eval.
   declare -ga ENTRANTS=(
     # Flea's real launcher sets prctl before exec; FLEA_UI avoids an installed shell overriding the checkout, and rows name any helper doing their work, Flea's backend or thunar's D-Bus activated tumblerd.
-    "flea|gui|com.thisisgm.flea|qs|$FLEA_UI|flea|--backend|FLEA_BIN=$FLEA_BIN FLEA_UI=$FLEA_UI QML_DISK_CACHE_PATH=$FLEA_QMLCACHE XDG_STATE_HOME=$FLEA_STATE setsid nohup $FLEA_BIN --gui $FIXTURE"
+    "flea|gui|$flea_class|$flea_comm|$flea_token|flea|--backend|FLEA_FRONTEND=$FLEA_FRONTEND FLEA_BIN=$FLEA_BIN FLEA_UI=$FLEA_UI QML_DISK_CACHE_PATH=$FLEA_QMLCACHE XDG_STATE_HOME=$FLEA_STATE setsid nohup $FLEA_BIN --gui $FIXTURE"
     "nautilus|gui|org.gnome.Nautilus|nautilus||||setsid nohup nautilus --new-window $FIXTURE"
     "thunar|gui|thunar|thunar||tumblerd||setsid nohup thunar $FIXTURE"
     "pcmanfm|gui|pcmanfm|pcmanfm||||setsid nohup pcmanfm $FIXTURE"
     "nemo|gui|nemo|nemo||||setsid nohup nemo $FIXTURE"
     "dolphin|gui|org.kde.dolphin|dolphin||||setsid nohup dolphin $FIXTURE"
-    # Built from source at ~/Work/strata, not packaged: the row is skipped when that binary is absent.
-    "strata|gui|io.github.lgse.Strata|strata||||setsid nohup $STRATA_BIN $FIXTURE"
+    "$strata_id|gui|io.github.lgse.Strata|strata||||setsid nohup $STRATA_BIN $FIXTURE"
     # Every previewing entrant prefers Kitty's protocol to foot's sixel, which caused the old zero across all eight; flea-tui uses the same terminal and the bench's own XDG_CONFIG_HOME.
     "flea-tui|tui|$TUI_CLASS|flea||||XDG_CONFIG_HOME=$TUI_CONF XDG_STATE_HOME=$FLEA_STATE setsid nohup $TUI_TERM --class $TUI_CLASS \$TUI_DUMP_FLAG $FLEA_BIN --tui $FIXTURE"
     "yazi|tui|$TUI_CLASS|yazi||||XDG_CONFIG_HOME=$TUI_CONF setsid nohup $TUI_TERM --class $TUI_CLASS \$TUI_DUMP_FLAG yazi $FIXTURE"
@@ -955,13 +963,20 @@ build_entrants() {
     "superfile|tui|$TUI_CLASS|spf||||XDG_CONFIG_HOME=$TUI_CONF setsid nohup $TUI_TERM --class $TUI_CLASS \$TUI_DUMP_FLAG spf $FIXTURE"
   )
   # The anchor entrant is the flea row with the anchor tree in place of the Flea tree, interleaved for the rank.
-  if [ "$WITH_ANCHOR" = yes ]; then ENTRANTS=("${ENTRANTS[0]}" "flea-anchor|gui|com.thisisgm.flea|qs|$ANCHOR_UI|flea|--backend|FLEA_BIN=$ANCHOR_BIN FLEA_UI=$ANCHOR_UI QML_DISK_CACHE_PATH=$ANCHOR_QMLCACHE XDG_STATE_HOME=$ANCHOR_STATE setsid nohup $ANCHOR_BIN --gui $FIXTURE" "${ENTRANTS[@]:1}"); fi
+  if [ "$WITH_ANCHOR" = yes ]; then ENTRANTS=("${ENTRANTS[0]}" "flea-anchor|gui|com.thisisgm.flea|qs|$ANCHOR_UI|flea|--backend|FLEA_FRONTEND=qml FLEA_BIN=$ANCHOR_BIN FLEA_UI=$ANCHOR_UI QML_DISK_CACHE_PATH=$ANCHOR_QMLCACHE XDG_STATE_HOME=$ANCHOR_STATE setsid nohup $ANCHOR_BIN --gui $FIXTURE" "${ENTRANTS[@]:1}"); fi
+  if [ "$WITH_ANCHOR" = yes ]; then
+    ENTRANTS+=("flea-tui-anchor|tui|$TUI_CLASS|flea||||XDG_CONFIG_HOME=$TUI_CONF XDG_STATE_HOME=$ANCHOR_STATE setsid nohup $TUI_TERM --class $TUI_CLASS \$TUI_DUMP_FLAG $ANCHOR_BIN --tui $FIXTURE")
+  fi
+  if [ -n "${STRATA_NIGHTLY_BIN:-}" ]; then
+    ENTRANTS+=("strata-nightly|gui|io.github.lgse.Strata|strata||||setsid nohup $STRATA_NIGHTLY_BIN $FIXTURE")
+  fi
 }
 build_entrants
 
 # Fields: comm|token, in kill order, so clean_bench and the start-up refusal read one list and cannot drift apart.
 declare -a KILL_TARGETS=(
   "qs|$FLEA_UI"
+  "flea-gui|$(dirname "${FLEA_BIN:-/nonexistent-flea-bench/flea}")/flea-gui"
   "flea|--backend"
   # The group's terminal, matched by the class this run gives it: a bare kitty target would name
   # every terminal the operator has open.
@@ -1004,14 +1019,16 @@ if [ "$WITH_ANCHOR" = yes ]; then KILL_TARGETS=("${KILL_TARGETS[0]}" "qs|$ANCHOR
 # The processes in KILL_TARGETS one entrant owns. Two ids are not named after their own process.
 kill_comms_for() {
   case $1 in
-    flea|flea-anchor) printf 'qs\nflea\n' ;;
+    flea) if [ "${FLEA_FRONTEND:-qml}" = gpui ]; then printf 'flea-gui\nflea\n'; else printf 'qs\nflea\n'; fi ;;
+    flea-anchor) printf 'qs\nflea\n' ;;
     # tumblerd outlives thunar by 300 s, and a full-field start refuses to begin beside it.
     thunar) printf 'thunar\ntumblerd\n' ;;
     # The indexer nautilus starts outlives it the same way, so ONLY=nautilus ends it too.
     nautilus) printf 'nautilus\nlocalsearch-3\nlocalsearch-ext\n' ;;
     superfile) printf 'spf\n' ;;
+    strata-stable|strata-nightly) printf 'strata\n' ;;
     # The Flea TUI front end runs as comm flea, so ONLY=flea-tui scopes the flea kill row.
-    flea-tui) printf 'flea\n' ;;
+    flea-tui|flea-tui-anchor) printf 'flea\n' ;;
     *) printf '%s\n' "$1" ;;
   esac
 }
@@ -1035,7 +1052,7 @@ validate_only() {
 # only scope begin
 
 # An ONLY naming the anchor without an anchor tree would silently run nothing of it.
-for one_only in "${ONLY_IDS[@]}"; do [ "$one_only" = flea-anchor ] && [ "$WITH_ANCHOR" = no ] && fail "ONLY names flea-anchor but ANCHOR_REPO is not a separate tree, so that arm would never launch"; done
+for one_only in "${ONLY_IDS[@]}"; do { [ "$one_only" = flea-anchor ] || [ "$one_only" = flea-tui-anchor ]; } && [ "$WITH_ANCHOR" = no ] && fail "ONLY names $one_only but ANCHOR_REPO is not a separate tree, so that arm would never launch"; done
 validate_only
 # ONLY scopes both the kill list and the startup refusal, so the operator's other windows are never this run's to close.
 if [ ${#ONLY_IDS[@]} -gt 0 ]; then
@@ -1075,6 +1092,7 @@ WARM_KILL_POLLS=100
 WARM_JOIN_POLL_S=0.01
 WARM_MAP_MS=60000
 warm_qml_cache() {
+  [ "${FLEA_FRONTEND:-qml}" = gpui ] && return 0
   local state quiet=0 polls=0 n pid cg="$BENCH_CG/run-warm"
   [ -e "$PREFETCH" ] && fail "a prefetch list is already at $PREFETCH before the warm launch, so the warm guard could pass from a stale list"
   mkdir -p "$FLEA_QMLCACHE" || fail "cannot make $FLEA_QMLCACHE"
@@ -1277,6 +1295,8 @@ net_rx_bytes() {
 # One run of one entrant: cold caches, launch, then poll until neither the watched set nor its live descendants earn a tick for a whole gap.
 run_one() {
   local id=$1 kind=$2 class=$3 comm=$4 token=$5 shift_cmd=$8
+  local TRANSIENT_ID=${TRANSIENT_ID:-strata}
+  case "$id" in strata-stable|strata-nightly) TRANSIENT_ID=$id ;; esac
   local t0 deadline mapped=-1 settled=-1 last_settle=-1 last_change=0 best_pss=0 pid
   # A GUI entrant is judged on its thumbnails and never enters the preview pass, so its column reads
   # not-applicable rather than -1, which in a TUI row means the preview never arrived.
@@ -1299,7 +1319,7 @@ run_one() {
   # The build's own list is in place before its launch, and the cache drop below does not touch it.
   case $id in
     flea|flea-tui) prefetch_for "$FLEA_PREFETCH_SLOT" ;;
-    flea-anchor) prefetch_for "$ANCHOR_PREFETCH_SLOT" ;;
+    flea-anchor|flea-tui-anchor) prefetch_for "$ANCHOR_PREFETCH_SLOT" ;;
   esac
   drop_caches
   drop_thumbs
@@ -1693,7 +1713,11 @@ run_order() {
       IFS='|' read -r id row_kind _ comm _ <<< "${ENTRANTS[$i]}"
       [ "$row_kind" = "$kind" ] || continue
       only_has "$id" || continue
-      if [ "$id" = strata ]; then
+      if [ "$id" = flea ] && [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
+        [ -x "$(dirname "$FLEA_BIN")/flea-gui" ] || { absent+=("$i"); continue; }
+      elif [ "$id" = strata-nightly ]; then
+        [ -x "$STRATA_NIGHTLY_BIN" ] || { absent+=("$i"); continue; }
+      elif [ "$id" = strata ] || [ "$id" = strata-stable ]; then
         [ -x "${STRATA_BIN:-}" ] || { absent+=("$i"); continue; }
       else
         command -v "$comm" >/dev/null 2>&1 || { absent+=("$i"); continue; }
@@ -1726,6 +1750,12 @@ fi
 # that was measuring exactly the change it had just been handed.
 [ -x "$FLEA_BIN" ] || fail "$FLEA_BIN is missing, so run cargo build --release before benching"
 stale_src=$(LC_ALL=C.UTF-8 LANGUAGE= find "$FLEA_REPO/src" "$FLEA_REPO/Cargo.toml" "$FLEA_REPO/Cargo.lock" -newer "$FLEA_BIN" -print -quit)
+if [ "$FLEA_FRONTEND" = gpui ]; then
+  gui_bin=$(dirname "$FLEA_BIN")/flea-gui
+  [ -x "$gui_bin" ] || fail "GPUI binary is absent: $gui_bin"
+  gui_stale=$(LC_ALL=C.UTF-8 LANGUAGE= find "$FLEA_REPO/crates/flea-gui" "$FLEA_REPO/src" "$FLEA_REPO/Cargo.toml" "$FLEA_REPO/Cargo.lock" -newer "$gui_bin" -print -quit)
+  [ -z "$gui_stale" ] || fail "$gui_stale is newer than $gui_bin"
+fi
 [ -z "$stale_src" ] || fail "$stale_src is newer than $FLEA_BIN, so this run would bench a stale build"
 # strata provenance begin
 # STRATA_SRC defaults to the cargo target/release tree that built STRATA_BIN; the binary must report that tree's version exactly.
@@ -1747,7 +1777,25 @@ strata_provenance() {
   export STRATA_SRC
 }
 # strata provenance end
-if only_has strata && [ -x "$STRATA_BIN" ]; then strata_provenance; fi
+# archive provenance begin
+if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
+  for archive_id in strata-stable strata-nightly xplr; do
+    only_has "$archive_id" || continue
+    case $archive_id in
+      strata-stable) archive_binary=$STRATA_BIN ;;
+      strata-nightly) archive_binary=$STRATA_NIGHTLY_BIN ;;
+      xplr) archive_binary=$(command -v xplr) || fail 'B5 xplr is absent from benchmark PATH' ;;
+    esac
+    python3 -B "$(dirname "$MANIFEST_TOOL")/flea_bench_product.py" "$B5_RIVAL_MANIFEST" "$archive_id" "$archive_binary" >/dev/null \
+      || fail "archive provenance refused for $archive_id"
+  done
+else
+  if only_has strata && [ -x "$STRATA_BIN" ]; then strata_provenance; fi
+  if only_has strata-nightly && [ -n "$STRATA_NIGHTLY_BIN" ]; then
+    ( STRATA_BIN=$STRATA_NIGHTLY_BIN STRATA_SRC=$STRATA_NIGHTLY_SRC strata_provenance ) || exit 1
+  fi
+fi
+# archive provenance end
 
 # What was benched, written beside the numbers before the first one is taken: a timing figure with
 # no version behind it is not citable, and a run that produced numbers without this is wasted.
@@ -1805,7 +1853,7 @@ if [ "$WITH_ANCHOR" = yes ] && only_has flea-anchor; then
   set -m
   WARM_PREVIOUS_PID=${!:-}
   WARM_STARTING=yes
-  ( set +m; FLEA_BIN=$ANCHOR_BIN FLEA_UI=$ANCHOR_UI FLEA_QMLCACHE=$ANCHOR_QMLCACHE FLEA_STATE=$ANCHOR_STATE warm_qml_cache ) &
+  ( set +m; FLEA_FRONTEND=qml FLEA_BIN=$ANCHOR_BIN FLEA_UI=$ANCHOR_UI FLEA_QMLCACHE=$ANCHOR_QMLCACHE FLEA_STATE=$ANCHOR_STATE warm_qml_cache ) &
   WARM_PID=$!
   WARM_STARTING=""
   set +m
@@ -1825,7 +1873,11 @@ for RUN_INDEX in $(seq 1 "$RUNS"); do
     IFS='|' read -r id kind class comm token helper_comm helper_token cmd <<< "${ENTRANTS[$i]}"
     only_has "$id" || continue
     # An absent entrant is named and skipped, never silently dropped from the table, see hard rule 7.
-    if [ "$id" = strata ]; then
+    if [ "$id" = flea ] && [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
+      [ -x "$(dirname "$FLEA_BIN")/flea-gui" ] || fail "GPUI binary is absent beside $FLEA_BIN"
+    elif [ "$id" = strata-nightly ]; then
+      [ -x "$STRATA_NIGHTLY_BIN" ] || fail "Strata nightly binary is absent: $STRATA_NIGHTLY_BIN"
+    elif [ "$id" = strata ] || [ "$id" = strata-stable ]; then
       [ -x "$STRATA_BIN" ] || { printf 'SKIP: strata is not built at %s\n' "$STRATA_BIN" >&2; continue; }
     else
       command -v "$comm" >/dev/null 2>&1 || { printf 'SKIP: %s is not installed\n' "$id" >&2; continue; }
