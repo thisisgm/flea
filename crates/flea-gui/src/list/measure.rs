@@ -55,6 +55,19 @@ impl ListState {
         advance
     }
 
+    /// Already resolved by normal frame preparation; observers never measure a font.
+    pub(crate) fn observed_column_tokens(&self) -> Option<Tokens> {
+        let advance = self.advance?;
+        let metrics = Metrics::for_typeface(&self.typeface);
+        Some(Tokens::measure(
+            metrics.pad,
+            metrics.slot,
+            metrics.gap,
+            advance.small,
+            f32::from(self.typeface.body_small),
+        ))
+    }
+
     /// The geometry and column tokens at this face.
     pub fn measure(&mut self, window: &Window) -> (Metrics, Tokens) {
         let metrics = self.file_metrics();
