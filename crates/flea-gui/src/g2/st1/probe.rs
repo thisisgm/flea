@@ -39,6 +39,11 @@ impl Probe {
         }
     }
 
+    /// The box an id was laid out in on the latest frame.
+    pub fn bounds(&self, id: &str) -> Option<Bounds<Pixels>> {
+        self.0.borrow().get(id).copied()
+    }
+
     pub fn rect(&self, id: &str) -> String {
         self.0
             .borrow()

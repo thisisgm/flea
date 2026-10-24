@@ -13,6 +13,7 @@ use flea::ui_logic_st1::{
 };
 use std::sync::Arc;
 
+mod scroll;
 mod search_keys;
 
 /// What a pointer pressed on a pane row.
@@ -42,6 +43,11 @@ pub struct Panel {
     pub query: Option<String>,
     /// The highlighted result while a query stands, counted across every group's hits.
     pub hit: usize,
+    /// The results' scroll while a query stands, and their drawn height that holds it.
+    pub results_scroll: f32,
+    pub results_height: f32,
+    /// A key moved the highlight, so the next frame brings that result into view.
+    pub hit_moved: bool,
     pub rows: Vec<Row>,
     pub results: Vec<Group>,
     pub save_error: Option<Text>,
@@ -69,6 +75,9 @@ impl Panel {
             scroll: 0.,
             query: None,
             hit: 0,
+            results_scroll: 0.,
+            results_height: 0.,
+            hit_moved: false,
             rows: Vec::new(),
             results: Vec::new(),
             save_error: None,
@@ -219,12 +228,6 @@ impl Panel {
         );
     }
 
-    /// A wheel turn over the pane, kept inside the content.
-    pub fn wheel(&mut self, delta: f32) {
-        let most = (self.heights().iter().sum::<f32>() - self.pane.1).max(0.);
-        self.scroll = (self.scroll - delta).clamp(0., most);
-    }
-
     /// The pointer moved over a row: the pane takes the keys and the cursor goes where the pointer is.
     pub fn pointer(&mut self, index: usize) {
         if self.rows.get(index).is_some_and(focusable) {
@@ -358,6 +361,7 @@ impl Panel {
         if text == "/" {
             self.query = Some(String::new());
             self.hit = 0;
+            self.results_scroll = 0.;
             return;
         }
         let row = self.rows.get(self.cursor).cloned();
