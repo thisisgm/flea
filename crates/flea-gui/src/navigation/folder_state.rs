@@ -1,7 +1,9 @@
 //! Per-folder sort and view memory in the existing ui.json schema, written only by a user choice.
 use super::history::trim_slash;
 use flea::{json::escape, jsondoc::Json};
-use std::{process::Command, sync::mpsc, thread};
+
+mod writer;
+pub use writer::Writer;
 
 pub const MAX: usize = 500;
 pub const ORDERS: [&str; 4] = ["name", "size", "mtime", "kind"];
@@ -266,52 +268,6 @@ pub fn newest_paths(body: &str, home: &str) -> Vec<String> {
         }
     }
     paths
-}
-
-// One worker writes patches in order off the UI thread; a default writer only counts, so no test reaches the real state file.
-#[derive(Default)]
-pub struct Writer {
-    queue: Option<mpsc::Sender<(String, String)>>,
-    live: bool,
-    pub sent: usize,
-}
-
-impl Writer {
-    pub fn live() -> Self {
-        Self {
-            live: true,
-            ..Self::default()
-        }
-    }
-
-    pub fn write(&mut self, patch: String, failure: String) {
-        self.sent += 1;
-        if !self.live {
-            return;
-        }
-        if self.queue.is_none() {
-            let (queue, patches) = mpsc::channel::<(String, String)>();
-            let spawned = thread::Builder::new()
-                .name("flea-folder-state".into())
-                .spawn(move || {
-                    for (patch, failure) in patches {
-                        let ok = Command::new(crate::window::startup::binary())
-                            .args(["--ui-state", &patch])
-                            .output()
-                            .is_ok_and(|output| output.status.success());
-                        if !ok {
-                            eprintln!("flea-gui: {failure}");
-                        }
-                    }
-                });
-            if spawned.is_ok() {
-                self.queue = Some(queue);
-            }
-        }
-        if let Some(queue) = &self.queue {
-            let _ = queue.send((patch, failure));
-        }
-    }
 }
 
 #[cfg(test)]
