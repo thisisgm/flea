@@ -1,9 +1,9 @@
 //! The window root: the shell as one cached view, with each frame's pane probes and loading marks painted over it.
 use crate::{feedback::spinner::Arm, palette::Theme, pane::states::Kind, state::Shell};
 use gpui::{
-    deferred, div, prelude::*, relative, size, App, Bounds, Context, Element, ElementId, Entity,
-    GlobalElementId, InspectorElementId, IntoElement, LayoutId, Pixels, Position, Render, Style,
-    StyleRefinement, Window,
+    deferred, div, point, prelude::*, relative, size, App, Bounds, ContentMask, Context, Element,
+    ElementId, Entity, GlobalElementId, InspectorElementId, IntoElement, LayoutId, Pixels,
+    Position, Render, Style, StyleRefinement, Window,
 };
 
 pub struct Root {
@@ -173,6 +173,27 @@ impl Element for Overlay {
             super::gcomp_tests::operations::submit(&self.0, window, cx);
             return;
         }
+        // PaneRail.qml: an overlay rail hides the rows under it the way a menu does, so pane marks stop at its edge.
+        let uncovered = cx
+            .read_entity(&self.0, |shell, cx| {
+                shell
+                    .rail
+                    .as_ref()
+                    .and_then(|join| join.host.read(cx).cover())
+            })
+            .map(|cover| ContentMask {
+                bounds: Bounds::from_corners(
+                    point(cover.right(), Pixels::ZERO),
+                    point(window.viewport_size().width, window.viewport_size().height),
+                ),
+            });
+        window.with_content_mask(uncovered, |window| self.paint_marks(window, cx));
+    }
+}
+
+impl Overlay {
+    // The pane marks and the frame feedback bookkeeping, inside whatever mask the caller set.
+    fn paint_marks(&self, window: &mut Window, cx: &mut App) {
         cx.read_entity(&self.0, |shell, cx| {
             for mark in crate::g2::fb1::empty_omi::marks(shell, cx)
                 .into_iter()
