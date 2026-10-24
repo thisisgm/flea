@@ -597,10 +597,33 @@ the listing swap already follows for `list`:
 
 `scanned` is the index size the query scored over. `walking` is true while
 the walk is still running: the answer comes from the partial index, and the
-standing query is re-run once when the walk lands, with its own gen, only if
-no newer query has been answered since; the landing answer has `walking`
+standing query is refreshed from completed directory blocks at most once per
+100 ms after its initial hold, and once when the walk lands, with its own gen,
+only if no newer query has replaced it; the landing answer has `walking`
 false and `ms` the walk's time. A newer query's answer replaces the window
-whole: no blank listing stands between two queries.
+whole: no blank listing stands between two queries. Scoring runs on one retained
+session execution worker; the loop alone publishes answers and discards an
+in-flight answer superseded by a newer query or navigation. Ordinary requests
+retain their position relative to collapsed queries. Collapse reports its highest
+drained generation to the execution gate before a buffered readiness event can
+publish an older answer. The published pageable
+remainder survives a discarded answer only while its index row IDs remain valid;
+a pending patch or a recursive watch delta that renumbers the index discards
+that remainder as usual. The newest query rebuilds it. A watch delta that lands
+while an answer is out waits behind it, then is reconciled and re-answered on the
+same worker. Closing releases the execution worker.
+
+Requested local rich rows can reuse metadata, MIME and tag results across query
+generations, keyed by unchanged path identity rather than row index. Reuse holds
+at most 350 currently requested rows, with bounded payload and independent
+directory and file-inode watches armed before reading misses. Inode changes,
+including writes through hard links in other directories, invalidate metadata
+and serialized rows together. Ancestor moves and path replacements also
+invalidate reuse. Each watch set holds at most 350 paths; changing the inode set
+briefly retains one old set until its replacement is armed and checked, so
+intersecting identities stay covered. Overflow or failed watch coverage forces
+fresh reads, as do remote paths, symlinks and names requiring lossy display
+conversion. Reuse changes no row fields or response-local kind indices.
 
 A query asked while the walk still runs waits for the walk to land, up to
 150 ms after the first query held, the search hold (`ui/js/Swap.js`

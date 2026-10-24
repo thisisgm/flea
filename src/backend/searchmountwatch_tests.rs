@@ -1,5 +1,6 @@
 use super::*;
 use crate::backend::searchindex::Index;
+use crate::backend::searchwalkhold::{is_delta, wait_walk_landed};
 
 #[test]
 fn search_mount_patch_and_replacement_never_arm_nested_remote_directories() {
@@ -44,7 +45,7 @@ fn search_mount_unplug_mid_walk_stops_enumeration_and_invalidates_coverage() {
     assert!(core.state.lock().unwrap().fd.is_none());
     let opened = probes.opened.load(Ordering::Relaxed);
     release.send(()).unwrap();
-    crate::backend::searchwalkhold::wait_landed(&rx, Duration::from_secs(10));
+    wait_walk_landed(&rx, &session, Duration::from_secs(10), is_delta);
     session.join_walk();
     assert_eq!(probes.opened.load(Ordering::Relaxed), opened);
     assert_eq!(session.answer("needle", 10).total, 0);
@@ -130,7 +131,7 @@ fn search_unmount_discards_waiting_patches_at_walk_landing() {
     parked.recv_timeout(Duration::from_secs(10)).unwrap();
     assert!(!session.patch_after_write(&d.join("usb/before")));
     release.send(()).unwrap();
-    crate::backend::searchwalkhold::wait_landed(&rx, Duration::from_secs(10));
+    wait_walk_landed(&rx, &session, Duration::from_secs(10), is_delta);
     let core = Arc::clone(&session.watch.as_ref().unwrap().core);
     let wd = core.state.lock().unwrap().paths[Path::new("usb")];
     core.ingest(&event(wd, UNMOUNT, 0, b""));
@@ -183,7 +184,8 @@ fn check_empty_unmount(walking: bool) {
     crate::backend::searchdelta::on_delta(&mut out, &mut state, &tables, &pool, core.token);
     if let Some((_, release)) = held {
         release.send(()).unwrap();
-        crate::backend::searchwalkhold::wait_landed(&rx, Duration::from_secs(10));
+        let walking = state.search_session.as_ref().expect("a session stands");
+        wait_walk_landed(&rx, walking, Duration::from_secs(10), is_delta);
     }
     let session = state.search_session.as_mut().unwrap();
     let later_landing = session.poll_walked();
@@ -248,6 +250,6 @@ fn search_user_cancel_still_reconciles_own_writes_and_open_directory_changes() {
     assert!(session.patch_open_dir(&d.join("usb")));
     assert_eq!(session.answer("after-cancel", 10).total, 2);
     release.send(()).unwrap();
-    crate::backend::searchwalkhold::wait_landed(&rx, Duration::from_secs(10));
+    wait_walk_landed(&rx, &session, Duration::from_secs(10), is_delta);
     assert_eq!(session.answer("after-cancel", 10).total, 2);
 }

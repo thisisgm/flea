@@ -33,7 +33,7 @@ pub(super) fn opened(d: &TestDir) -> (Session, Receiver<Event>) {
     let (tx, rx) = channel();
     let mut s = Session::open_async(&root, &root, false, tx);
     s.join_walk();
-    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
+    crate::backend::searchwalkhold::take_joined_walk(&rx, DEADLINE);
     (s, rx)
 }
 

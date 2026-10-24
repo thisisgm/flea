@@ -53,6 +53,24 @@ fn rows_line_in(
     thumbs: &Thumbnailers,
     kinds: &mut Kinds,
 ) -> String {
+    rows_line_body(base, body, l, metas, start, ms, mime, icons, aliases, thumbs, kinds, None)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn rows_line_cached(
+    base: &Path, body: &str, l: &Listing, metas: &[Meta], start: usize, ms: f64,
+    mime: &Db, icons: &Names, aliases: &Aliases, thumbs: &Thumbnailers, kinds: &mut Kinds,
+    cache: &mut super::searchrowcache::Cache,
+) -> String {
+    rows_line_body(base, body, l, metas, start, ms, mime, icons, aliases, thumbs, kinds, Some(cache))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn rows_line_body(
+    base: &Path, body: &str, l: &Listing, metas: &[Meta], start: usize, ms: f64,
+    mime: &Db, icons: &Names, aliases: &Aliases, thumbs: &Thumbnailers, kinds: &mut Kinds,
+    mut cache: Option<&mut super::searchrowcache::Cache>,
+) -> String {
     // Field names stay one character: a window serialises on every scroll.
     let mut s = String::with_capacity(metas.len() * ROW_BYTES_ESTIMATE);
     s.push_str(&format!(r#"{{"t":"rows","start":{},"rows":["#, start));
@@ -72,6 +90,24 @@ fn rows_line_in(
             s.push(',');
         }
         let name = l.name(start + i);
+        if let Some((row, kind)) = cache.as_deref().and_then(|cache| cache.rendered(&base.join(name))) {
+            let k = match kind_index.get(kind) {
+                Some(&idx) => idx,
+                None => {
+                    let idx = kind_list.len();
+                    kind_index.insert(kind.clone(), idx);
+                    kind_list.push(kind.clone());
+                    idx
+                }
+            };
+            // Only the response-local kind index changes when a cached row moves to another window.
+            let at = row.find(",\"k\":").expect("cached row kind") + 5;
+            let end = at + row[at..].bytes().take_while(u8::is_ascii_digit).count();
+            s.push_str(&row[..at]);
+            s.push_str(&k.to_string());
+            s.push_str(&row[end..]);
+            continue;
+        }
         let gvfs_modes = if name.contains('/') { crate::backend::gvfsroot::gvfs_modes_are_real(&base.join(name)) } else { gvfs_modes };
         // The stat's dev names the filesystem through symlinks; unlisted devices cache lexical decisions by device and parent without another stat.
         let real_modes = gvfs_modes.unwrap_or_else(|| {
@@ -102,7 +138,7 @@ fn rows_line_in(
             None => {
                 let idx = kind_list.len();
                 kind_index.insert(kind.clone(), idx);
-                kind_list.push(kind);
+                kind_list.push(kind.clone());
                 idx
             }
         };
@@ -132,6 +168,7 @@ fn rows_line_in(
             String::new()
         };
         // The icon is escaped like every other field: the escape is the contract, not an optimisation.
+        let row_at = s.len();
         s.push_str(&format!(
             r#"{{"n":"{}","d":{},"s":{},"m":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}}}"#,
             escape(name),
@@ -148,6 +185,9 @@ fn rows_line_in(
             appimage,
             if real_modes { "" } else { r#","x":false"# }
         ));
+        if let Some(cache) = cache.as_deref_mut() {
+            cache.remember(&base.join(name), &s[row_at..], &kind);
+        }
     }
     let kinds_json: String = kind_list.iter().map(|k| format!(r#""{}""#, escape(k))).collect::<Vec<_>>().join(",");
     s.push_str(&format!(r#"],"kinds":[{}],"ms":{:.3}}}"#, kinds_json, ms));

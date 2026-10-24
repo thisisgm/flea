@@ -233,9 +233,25 @@ impl Session {
         let watch = (!remote).then(|| super::searchwatch::Watch::new(&scope_buf, hidden, walked.clone()));
         *probes.watch.lock().unwrap() = watch.as_ref().map(|watch| Arc::clone(&watch.core));
         let tags = crate::backend::searchtags::Tags::new(walked.clone());
+        let progress_stop = Arc::new((Mutex::new(false), Condvar::new()));
+        let progress_wait = Arc::clone(&progress_stop);
+        let progress_cancel = Arc::clone(&probes);
+        let progress_events = walked.clone();
+        let progress = std::thread::spawn(move || {
+            let (lock, ready) = &*progress_wait;
+            let mut stop = lock.lock().unwrap();
+            while !*stop && !progress_cancel.cancel.load(Ordering::Relaxed) {
+                let waited = ready.wait_timeout(stop, Duration::from_millis(super::searchsession::BATCH_MS)).unwrap();
+                stop = waited.0;
+                if !*stop && waited.1.timed_out() && progress_events.send(crate::backend::events::Event::SearchWalked).is_err() { break; }
+            }
+        });
         let handle = std::thread::spawn(move || {
             let dirs = fill(&thread_index, &thread_scope, hidden, remote, &thread_body, &thread_probes);
-            thread_done.store(true, Ordering::Relaxed);
+            *progress_stop.0.lock().unwrap() = true;
+            progress_stop.1.notify_all();
+            let _ = progress.join();
+            thread_done.store(true, Ordering::Release);
             let _ = walked.send(crate::backend::events::Event::SearchWalked);
             dirs
         });
@@ -272,6 +288,7 @@ impl Session {
             last_batch: Instant::now(),
             sizes: crate::backend::answersizes::AnswerSizes::new(remote),
             tags,
+            row_cache: Default::default(),
             #[cfg(test)]
             counters,
         }
@@ -295,9 +312,11 @@ impl Session {
         if self.tags.poll_read() {
             return true;
         }
-        if self.announced || !self.walk_done.load(Ordering::Relaxed) {
-            return false;
+        if !self.walk_done.load(Ordering::Relaxed) {
+            return self.standing_while_walking && self.held.is_none() && self.batch_due()
+                && self.index.lock().unwrap().len() != self.matched_index_len;
         }
+        if self.announced { return false; }
         self.announced = true;
         if let Some(handle) = self.handle.take() {
             // The event arrived, so the walker already sent and joining ends at once.

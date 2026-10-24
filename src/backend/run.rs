@@ -1,8 +1,6 @@
-use crate::backend::meta::stat_range;
 #[cfg(test)]
 #[path = "trashthumb_protocol_tests.rs"]
 mod trashthumb_protocol_tests;
-use crate::backend::meta::Meta;
 use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
 use crate::backend::peekwatch::PeekWatch;
@@ -18,8 +16,12 @@ use crate::backend::listpaths;
 use crate::backend::listwork::{self, Gate};
 use crate::backend::proto::{error_line, listed_line, parse_request, paths_line, thumbed_line, Request};
 use crate::backend::proto::with_anchor;
+pub use super::windowreq::{write_window, write_window_gen};
+pub(crate) use super::windowreq::window_metas;
+use super::windowreq::window_line;
 use crate::backend::listing::Listing;
 use crate::backend::search::Search;
+use crate::backend::searchjobs::route_delta;
 use crate::backend::searchsession::{Session, FIRST_WINDOW_DEFAULT};
 use crate::backend::state::{Held, State, Tables};
 use crate::backend::searchreq::{collapse_query_burst, emit_session_answer, finish_search, is_search_query_line,
@@ -94,6 +96,7 @@ pub fn run() -> i32 {
     let mut gate = Gate::new(loop_tx.clone());
     // Drained events wait here in order, so a collapsed query burst loses no sibling line.
     let mut buffered: VecDeque<Event> = VecDeque::new();
+    let mut search_jobs = super::searchjobs::Gate::default();
     loop {
         start_next(&mut st);
         // Size results wake this receiver; only search still needs idle ticks.
@@ -115,8 +118,9 @@ pub fn run() -> i32 {
                 Err(TryRecvError::Disconnected) => break,
             }
         };
-        let Some(event) = collapse_burst(&rx, event, &mut buffered, st.search_session.is_some(), gate.holds()) else { continue };
-        if dispatch(event, &mut out, &mut st, &tb, &pool, &cache, &mut ops, &mut flash, &mut watch, &mut peeks, &mut fsinfo, &poller, &loop_tx, &mut gate) == Control::Quit {
+        let Some(event) = collapse_burst(&rx, event, &mut buffered, st.search_session.is_some() || search_jobs.busy(), gate.holds(), &mut search_jobs) else { continue };
+        let Some(event) = search_jobs.route(event, &mut st, &mut out, &tb, &pool, &loop_tx, &mut buffered, gate.holds()) else { continue };
+        if dispatch_inner(event, &mut out, &mut st, &tb, &pool, &cache, &mut ops, &mut flash, &mut watch, &mut peeks, &mut fsinfo, &poller, &loop_tx, &mut gate, Some(&mut search_jobs)) == Control::Quit {
             break;
         }
     }
@@ -127,18 +131,31 @@ pub fn run() -> i32 {
 }
 
 // A burst answers only its newest query, in its own place; a held burst collapses too, as the session a deferred searchopen opens is not visible yet.
-fn collapse_burst(rx: &Receiver<Event>, event: Event, buffered: &mut VecDeque<Event>, session: bool, held: bool) -> Option<Event> {
+fn collapse_burst(rx: &Receiver<Event>, event: Event, buffered: &mut VecDeque<Event>, session: bool, held: bool, jobs: &mut super::searchjobs::Gate) -> Option<Event> {
     match event {
-        Event::Request(line) if is_search_query_line(&line) && (session || held) => collapse_query_burst(rx, line, buffered).map(Event::Request),
+        Event::Request(line) if is_search_query_line(&line) && (session || held) => {
+            let (now, gen) = collapse_query_burst(rx, line, buffered);
+            jobs.supersede(gen);
+            now.map(Event::Request)
+        },
         other => Some(other),
     }
 }
 
 // One event against everything the loop owns, so a test drives the arms the loop runs; Quit ends the loop.
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache, ops: &mut Ops,
                       flash: &mut flashslot::Ctx, watch: &mut Watch, peeks: &mut PeekWatch, fsinfo: &mut FsInfo,
                       poller: &super::watchpoll::Poller, loop_tx: &Sender<Event>, gate: &mut Gate) -> Control {
+    dispatch_inner(event, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, None)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache, ops: &mut Ops,
+                      flash: &mut flashslot::Ctx, watch: &mut Watch, peeks: &mut PeekWatch, fsinfo: &mut FsInfo,
+                      poller: &super::watchpoll::Poller, loop_tx: &Sender<Event>, gate: &mut Gate,
+                      mut search_jobs: Option<&mut super::searchjobs::Gate>) -> Control {
     match event {
         Event::Request(line) => {
             if super::nearby::is_request(&line) {
@@ -146,9 +163,9 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
             }
             // A list for another folder takes the place of a plain list scan still out, after the requests that waited replay against the listing still current.
             while gate.holds() && listwork::list_path(&line).is_some_and(|path| gate.let_go(&path)) {
-                let quit = listwork::replay(gate, |waiting, gate| handle_line(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate) == Control::Quit);
+                let quit = listwork::replay(gate, |waiting, gate| handle_with_jobs(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut()) == Control::Quit);
                 gate.release_late().into_iter().for_each(|late| watch.abandon_wd(late)); // a local list answers inline, with no Event::List to release them
-                for held in gate.take_held() { dispatch(held, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate); }
+                for held in gate.take_held() { dispatch_inner(held, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut()); }
                 if quit { return Control::Quit; }
             }
             // A scan is out, so a later request cannot be answered against a listing it will replace.
@@ -156,7 +173,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                 gate.defer(line);
                 return Control::Continue;
             }
-            return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate);
+            return handle_with_jobs(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut());
         }
         // The scan answered: it becomes the listing, then every request that waited replays in order.
         Event::List(done) => {
@@ -168,17 +185,21 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                 }
                 gate.take_unmounts().into_iter().for_each(|wd| leave_mount(out, &st.base, watch, poller, wd));
                 // A poll or a probe seen during the scan is judged against the folder that landed.
-                for held in gate.take_held() { dispatch(held, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate); }
-                // A walk that landed during a session's folder scan is announced after that folder answer.
-                on_search_walked(out, st, tb, pool);
+                for held in gate.take_held() { dispatch_inner(held, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut()); }
+                // An empty query's landing carries no scored rows and follows its folder answer immediately.
+                let empty = st.search_session.as_ref().is_some_and(|session| session.held.is_none()
+                    && session.standing.as_ref().is_some_and(|(_, query, _)| query.is_empty()));
+                if empty { on_search_walked(out, st, tb, pool); }
+                else { let _ = loop_tx.send(Event::SearchWalked); }
             }
             gate.release_late().into_iter().for_each(|late| watch.abandon_wd(late)); // judged against the watch that landed
-            if listwork::replay(gate, |waiting, gate| handle_line(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate) == Control::Quit) {
+            if listwork::replay(gate, |waiting, gate| handle_with_jobs(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut()) == Control::Quit) {
                 return Control::Quit;
             }
             // stdin closed while the scan was out: the listing was answered first, so now leave.
             if gate.closed() && gate.idle() {
-                return Control::Quit;
+                if let Some(jobs) = search_jobs.filter(|jobs| jobs.busy()) { jobs.close_after_waiting(); }
+                else { return Control::Quit; }
             }
         }
         Event::Git(line) => say(out, &line),
@@ -226,13 +247,12 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
             if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_begin"); }
             if let Some(session) = st.search_session.as_mut() {
                 // An own write under the scope patches the index, and a due batch re-runs the standing query.
+                session.row_cache.clear();
                 let patched = session.patch_after_writes(&op_write_paths(&m));
                 // A late or redone tag write changes names only: the cache swaps them, and the landing re-runs the query.
                 session.note_tags_written(&op_tag_paths(&m));
                 if patched && session.batch_due() {
-                    if let Some(answer) = session.re_answer_now() {
-                        emit_session_answer(out, st, tb, pool, &answer);
-                    }
+                    let _ = loop_tx.send(Event::SearchRefresh);
                 }
             }
             #[cfg(test)]
@@ -248,7 +268,9 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         Event::SearchHeld => super::searchhold::on_search_held(out, st, tb, pool),
         Event::SearchDelta(token) if gate.holds() => gate.hold(Event::SearchDelta(token)),
-        Event::SearchDelta(token) => super::searchdelta::on_delta(out, st, tb, pool, token),
+        // A delta replayed from the listing gate enters the execution gate at once, so the requests replayed after it queue behind it.
+        Event::SearchDelta(token) => route_delta(search_jobs, token, st, out, tb, pool, loop_tx),
+        Event::SearchReady | Event::SearchRefresh => {},
         Event::ReadError(e) => {
             st.nearby.close();
             // The framing cannot be trusted past a decode failure, so this reports at once and the reader reads no further.
@@ -295,6 +317,7 @@ fn land<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: 
 // The listed folder's change line, after an open search session patches that folder's own entries.
 fn say_changed(out: &mut impl Write, st: &mut State) {
     if let Some(session) = st.search_session.as_mut() {
+        session.row_cache.clear();
         let folder = session.folder.clone();
         session.patch_open_dir(&folder);
     }
@@ -305,6 +328,21 @@ fn say_changed(out: &mut impl Write, st: &mut State) {
 pub(crate) fn say(out: &mut impl Write, line: &str) {
     writeln!(out, "{}", line).ok();
     out.flush().ok();
+}
+
+// Listing-gate replays enter the same execution gate as requests read by the main loop.
+#[allow(clippy::too_many_arguments)]
+fn handle_with_jobs(line: &str, out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache, ops: &mut Ops,
+    flash: &mut flashslot::Ctx, watch: &mut Watch, peeks: &mut PeekWatch, fsinfo: &mut FsInfo,
+    poller: &super::watchpoll::Poller, loop_tx: &Sender<Event>, gate: &mut Gate,
+    search_jobs: Option<&mut super::searchjobs::Gate>) -> Control {
+    if let Some(jobs) = search_jobs {
+        let mut buffered = VecDeque::new();
+        if jobs.route(Event::Request(line.to_string()), st, out, tb, pool, loop_tx, &mut buffered, gate.holds()).is_none() {
+            return Control::Continue;
+        }
+    }
+    handle_line(line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate)
 }
 
 fn handle_line(
@@ -420,7 +458,7 @@ fn handle_line(
             }
             match window_metas(st, start, count) {
                 Ok((metas, ms)) => {
-                    let line = tb.rows_line(&st.base, &st.listing, &metas, start, ms);
+                    let line = window_line(st, tb, &metas, start, ms);
                     writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok();
                 }
                 Err(e) => {
@@ -1009,56 +1047,12 @@ pub(crate) fn drain(
     out.flush().ok();
 }
 
-pub fn write_window(out: &mut impl Write, st: &mut State, start: usize, count: usize, tb: &Tables) {
-    write_window_gen(out, st, start, count, tb, None);
-}
-
-// A session answer's window, stamped with the query gen beside the listing stamp.
-pub fn write_window_gen(
-    out: &mut impl Write,
-    st: &mut State,
-    start: usize,
-    count: usize,
-    tb: &Tables,
-    gen: Option<usize>,
-) {
-    let start = st.window_start(start);
-    let (metas, ms) = if count == 0 { (Vec::new(), 0.0) } else { stat_range(&st.base, &st.listing, start, count) };
-    for (i, m) in metas.iter().enumerate() {
-        st.window_meta.insert(start + i, (m.mode, m.mtime, m.target_is_dir));
-    }
-    // Sample window: start 0 with 3 metas keeps keys 0..3, so a scrolled-past window never grows the map.
-    let end = start.saturating_add(metas.len());
-    st.window_meta.retain(|&row, _| row >= start && row < end);
-    let line = tb.rows_line(&st.base, &st.listing, &metas, start, ms);
-    match gen {
-        Some(gen) => writeln!(out, "{}", super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, start..end)).ok(),
-        None => writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok(),
-    };
-}
-
 // The walk root's figures, statted through the bound so a dead server answers instead of hanging.
 pub(crate) fn search_root_info(base: &Path) -> Result<(u64, bool), FleaError> {
     let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
     let owned = base.to_path_buf();
     let key = owned.clone();
     super::iomount::call(&key, &body, "search", move || (super::fsinfo::dev_of(&owned), super::ops::dir_writable(&owned)))
-}
-
-// One window's metas: remoteness is decided before anything is moved, so a local window stats inline with no clone and a remote one moves only its rows to the worker.
-pub(crate) fn window_metas(st: &State, start: usize, count: usize) -> Result<(Vec<Meta>, f64), FleaError> {
-    if count == 0 {
-        return Ok((Vec::new(), 0.0));
-    }
-    let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-    if super::iomount::is_remote(&st.base, &body) {
-        let rows = super::meta::window_rows(&st.listing, start, count);
-        let threaded = st.listing.threaded_cached_with(&body);
-        let base = st.base.clone();
-        super::iomount::call(&base.clone(), &body, "window", move || super::meta::stat_window_rows(&base, &rows, threaded))
-    } else {
-        Ok(super::meta::stat_range(&st.base, &st.listing, start, count))
-    }
 }
 
 #[cfg(test)]
@@ -1207,7 +1201,7 @@ mod tests {
         st.base = d.path().to_path_buf();
         st.listing.push("a.txt", false);
         st.listing.push("b.txt", false);
-        let (metas, _) = window_metas(&st, 0, 10).expect("a local window answers");
+        let (metas, _) = window_metas(&mut st, 0, 10).expect("a local window answers");
         assert_eq!(metas.len(), 2, "the window carries its rows");
         assert_eq!(crate::backend::iomount::test_calls(), 0, "a local window takes no bound call and clones no listing");
     }
@@ -1256,3 +1250,7 @@ mod git_wire_tests;
 #[cfg(test)]
 #[path = "run_emptytrash_tests.rs"]
 mod emptytrash_tests;
+
+#[cfg(test)]
+#[path = "run_searchorder_tests.rs"]
+mod searchorder_tests;
