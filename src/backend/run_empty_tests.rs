@@ -18,7 +18,7 @@ fn run_search_empty_windows_leave_tables_unloaded_and_preserve_rich_rows() {
     assert!(tb.mime.get().is_none() && tb.icons.get().is_none());
     assert!(tb.aliases.get().is_none() && tb.thumbs.get().is_none() && tb.formats.get().is_none());
     assert_eq!(rows_needed(&Request::Window { start: 999, count: 0 }), 0);
-    let (metas, _) = window_metas(&st, 0, 2).unwrap();
+    let (metas, _) = window_metas(&mut st, 0, 2).unwrap();
     let mime = super::super::mime::Db::load();
     let icons = super::super::icons::Names::load();
     let aliases = super::super::aliases::Aliases::load();
@@ -38,7 +38,7 @@ fn run_search_empty_remote_window_never_enters_the_mount_worker() {
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events));
     st.base = PathBuf::from("/run/user/flea-empty-test/gvfs/smb-share:server=test,share=wire");
     let before = super::super::iomount::test_calls();
-    let (metas, ms) = window_metas(&st, 0, 0).unwrap();
+    let (metas, ms) = window_metas(&mut st, 0, 0).unwrap();
     assert!(metas.is_empty());
     assert_eq!(ms, 0.0);
     assert_eq!(super::super::iomount::test_calls(), before);

@@ -77,7 +77,7 @@ fn a_list_behind_a_search_sessions_scan_waits_for_its_answer() {
     let _body = crate::backend::iomount::test_hold_body(remote_body(l.dir.path()));
     let named = crate::json::escape(&text(&folder));
     assert!(l.request(&format!(r#"{{"c":"searchopen","path":"{named}","folder":"{named}"}}"#)) == Control::Continue);
-    let walked = l.wait(is_walked);
+    let walked = l.landing();
     assert!(l.feed(walked) == Control::Continue);
     l.said();
     let hold = scanhold::hold(&text(&folder), Stage::Read);
