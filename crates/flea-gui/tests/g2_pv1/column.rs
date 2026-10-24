@@ -15,7 +15,7 @@ struct Host {
 
 impl Render for Host {
     fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        let look = Look::of_text(&window.text_style());
+        let look = Look::of_text(&window.text_style(), flea_gui::palette::Theme::default());
         // The third column of the boards: 192 px of rail, two 302 px columns, the chrome and status bars.
         let slot = div()
             .absolute()
