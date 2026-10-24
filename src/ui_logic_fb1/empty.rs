@@ -1,7 +1,7 @@
-//! The empty folder's hero: three phrase beats per appearance, then rest on the third, all on a caller's millisecond clock.
+//! The empty folder's hero on a caller's millisecond clock. Captions loop while shown; the QML front end is not the reference.
 use super::{out_cubic, CLOSE_MS, OPEN_MS, TRANSLATE_UP_PX};
 
-/// The rotating phrases in order; the index carries over from one appearance to the next.
+/// The rotating phrases in order; each appearance starts with the first phrase.
 pub const PHRASES: [&str; 7] = [
     "feedback.empty.phrase_1",
     "feedback.empty.phrase_2",
@@ -13,8 +13,6 @@ pub const PHRASES: [&str; 7] = [
 ];
 /// The OEM phrase timer's interval.
 pub const ROTATE_MS: u64 = 2800;
-/// Beats per appearance before the hero rests.
-pub const BEAT_LIMIT: usize = 3;
 /// The mark's draw: a hold before the stroke, then the stroke itself.
 pub const DRAW_DELAY_MS: u64 = 200;
 pub const DRAW_MS: u64 = 1800;
@@ -67,7 +65,10 @@ impl Rotation {
     /// An appearance: beats start over and the entrance rises in with the mark replaying; a held landing draws both whole.
     pub fn show(&mut self, now: u64, animate_entrance: bool) {
         self.visible = true;
+        self.index = 0;
         self.beats = 0;
+        self.fade_at = None;
+        self.swapped = false;
         self.landed = false;
         self.shown_at = now;
         self.entrance_at = (animate_entrance && !self.reduced).then_some(now);
@@ -98,7 +99,7 @@ impl Rotation {
             self.fade_at = None;
             self.mark_at = None;
         } else if self.visible {
-            // The beat timer restarts one interval from now; beats already spent stay spent.
+            // The next beat waits one full interval after motion resumes.
             self.shown_at = now.saturating_sub(ROTATE_MS * self.beats as u64);
         }
     }
@@ -108,8 +109,7 @@ impl Rotation {
     }
 
     fn next_beat(&self) -> Option<u64> {
-        (self.visible && !self.reduced && self.beats < BEAT_LIMIT)
-            .then(|| self.shown_at + ROTATE_MS * (self.beats as u64 + 1))
+        (self.visible && !self.reduced).then(|| self.shown_at + ROTATE_MS * (self.beats as u64 + 1))
     }
 
     /// Applies every beat and swap due by `now`, in order.
@@ -178,18 +178,27 @@ impl Rotation {
         self.mark_at.is_none()
     }
 
-    /// Whether a frame loop is needed now; between beats the hero waits on a timer instead.
+    /// The entrance is rising in, which moves the whole hero's layout.
+    pub fn entering(&self) -> bool {
+        self.visible && self.entrance_at.is_some()
+    }
+
+    /// Caption and entrance motion; a separately animated mark supplies its own frame loop.
+    pub fn caption_animating(&self) -> bool {
+        self.visible && (self.entrance_at.is_some() || self.fade_at.is_some())
+    }
+
+    /// Whether any part of the legacy spiral hero is moving.
     pub fn animating(&self) -> bool {
-        self.visible
-            && (self.entrance_at.is_some() || self.fade_at.is_some() || self.mark_at.is_some())
+        self.caption_animating() || (self.visible && self.mark_at.is_some())
     }
 
-    /// The third beat drawn whole: no fade, the entrance done and the mark settled; reduced motion is always at rest.
+    /// No animation is active now; a visible hero still schedules its next beat unless motion is reduced.
     pub fn at_rest(&self) -> bool {
-        self.reduced || (!self.animating() && self.beats >= BEAT_LIMIT)
+        self.reduced || !self.animating()
     }
 
-    /// When the next beat lands, for a timer; None once the hero rests or while hidden.
+    /// When the next beat lands, for a timer; None while hidden or motion is reduced.
     pub fn next_deadline(&self) -> Option<u64> {
         self.next_beat()
     }

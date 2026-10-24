@@ -32,16 +32,19 @@ impl Shell {
         self.panes.get(side)?.as_ref().map(|host| &host.state_text)
     }
 
+    /// Steps a pane's caption words only while that pane is drawn in a visible window.
     pub fn pane_empty_beat(
         &mut self,
         side: usize,
         reduced_motion: bool,
+        window: &Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        let shown = self.shown_pane(side).is_some() && window.is_visible();
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return false;
         };
-        if host.pane.busy() || !host.pane.state.empty_beat(reduced_motion) {
+        if host.pane.busy() || !host.pane.state.empty_beat(reduced_motion, shown) {
             return false;
         }
         host.changed(&self.locale);

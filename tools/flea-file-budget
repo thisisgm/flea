@@ -37,8 +37,7 @@ crates/flea-gui/src/g2/pl3/pane.rs 456
 crates/flea-gui/src/g2/pl3/tests.rs 524
 crates/flea-gui/src/g2/sr1/contents.rs 403
 crates/flea-gui/src/grid/element/paint.rs 444
-crates/flea-gui/src/list.rs 439
-crates/flea-gui/src/list/element.rs 697
+crates/flea-gui/src/list/element.rs 667
 crates/flea-gui/src/list/header.rs 478
 crates/flea-gui/src/path/paint.rs 451
 crates/flea-gui/tests/g1_07/cols_pwid.rs 420

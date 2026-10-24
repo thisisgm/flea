@@ -1,24 +1,24 @@
 //! The List Element: one custom Element for the whole pane, fixed-height rows painted as quads, marks and pre-shaped lines.
+pub use super::row_text::drawn_name;
+use super::row_text::{bold_name, prepare, run_of};
 use super::{
     columns::{Column, Layout},
     pane::Held,
-    ListState, ListView, Metrics, Palette, RowState, RowStates, CACHE_SCREENS, CURSOR_WASH,
-    CUT_DIM, GREY_CURSOR, HOVER, MATCH_WASH, TRACK,
+    ListState, Metrics, Palette, RowState, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM,
+    GREY_CURSOR, HOVER, MATCH_WASH, TRACK,
 };
 use crate::palette::Theme;
 use crate::row::{
-    self,
     cache::{Extra, Prepared, Shaping},
     format,
     marks::{ClipMark, Mark},
 };
-use flea::protocol::RowFacts;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
-    GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, LineLayout, Pixels,
-    SharedString, Style, TextRun, TransformationMatrix, Window,
+    GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels,
+    SharedString, Style, TransformationMatrix, Window,
 };
-use std::{borrow::Cow, cell::OnceCell, cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
 // Row.qml's loading bar draws at a fifth of the muted frame, so scrolling reads as loading.
 const LOADING: f32 = 0.2;
@@ -68,6 +68,39 @@ pub struct Shown {
     pub prepared: Option<Rc<Prepared>>,
     pub clip: Option<ClipMark>,
     pub state: RowState,
+}
+
+impl Shown {
+    fn name_line(&self) -> Option<&GlyphRun> {
+        let prepared = self.prepared.as_ref()?;
+        Some(
+            prepared
+                .bold
+                .get()
+                .filter(|_| self.state.cursor)
+                .unwrap_or(&prepared.name),
+        )
+    }
+
+    fn name_slot(&self, mut name: Bounds<Pixels>, metrics: &Metrics) -> Bounds<Pixels> {
+        if self.clip.is_some() {
+            name.size.width = (name.size.width - px(metrics.gap + metrics.clip)).max(px(0.));
+        }
+        name
+    }
+
+    /// The clipboard bounds used by paint, following the same run and mask as the visible name.
+    pub fn clip_bounds(&self, name: Bounds<Pixels>, metrics: &Metrics) -> Option<Bounds<Pixels>> {
+        if self.state.renaming {
+            return None;
+        }
+        Some(self.clip?.bounds(
+            self.name_slot(name, metrics),
+            self.name_line()?.line().width,
+            px(metrics.clip),
+            px(metrics.gap),
+        ))
+    }
 }
 
 // The list surface's fixed row height: the scroll model and every reader share it from here.
@@ -135,126 +168,6 @@ fn cells(width: f32, advance: f32) -> usize {
     } else {
         0
     }
-}
-
-fn run_of(len: usize, font: &Font) -> TextRun {
-    TextRun {
-        len,
-        font: font.clone(),
-        color: Hsla::default(),
-        background_color: None,
-        underline: None,
-        strikethrough: None,
-    }
-}
-
-/// The name as drawn: middle-elided to its budget, or right-elided around a match run so the run stays in its head.
-pub fn drawn_name(
-    facts: &RowFacts,
-    extra: Extra,
-    shaping: &Shaping,
-    query: &str,
-) -> (String, Option<(usize, usize)>) {
-    let name = row::decorated_name(facts);
-    let budget = if extra.clipped {
-        shaping.clip_cells
-    } else {
-        shaping.name_cells
-    };
-    let budget = extra.drop.map_or(budget, |drop| drop.min(budget));
-    let Some((start, end)) = format::match_run(&facts.name, query) else {
-        return (row::middle_elide(&name, budget).into_owned(), None);
-    };
-    let (drawn, kept) = match row::right_elide(&name, budget) {
-        Cow::Borrowed(_) => (name.clone(), name.len()),
-        Cow::Owned(text) => {
-            let kept = text.len() - '\u{2026}'.len_utf8();
-            (text, kept)
-        }
-    };
-    (drawn, (start < kept).then_some((start, end.min(kept))))
-}
-
-/// Shapes one row's cells once, each elided to its own budget, so no long name is shaped whole and no hidden column at all.
-fn prepare(
-    facts: &RowFacts,
-    extra: Extra,
-    shaping: &Shaping,
-    view: &ListView,
-    layout: &Layout,
-    blank: &Arc<LineLayout>,
-    window: &Window,
-) -> Prepared {
-    let text = window.text_system();
-    let shape = |value: &str, size: Pixels| {
-        GlyphRun::new(text.layout_line(value, size, &[run_of(value.len(), &shaping.font)], None))
-    };
-    let cell = |column: Column, value: &dyn Fn() -> String| {
-        if layout.shown(column) {
-            shape(
-                &row::right_elide(&value(), shaping.cells[column.slot()]),
-                shaping.caption,
-            )
-        } else {
-            GlyphRun::new(Arc::clone(blank))
-        }
-    };
-    let mut display = Cow::Borrowed(facts);
-    let mut name_shaping = Cow::Borrowed(shaping);
-    let location = if view.searching {
-        display.to_mut().name = facts
-            .name
-            .rsplit('/')
-            .next()
-            .unwrap_or(&facts.name)
-            .to_owned();
-        let location =
-            crate::g2::sr1::run::location(&facts.name, "", "", flea::ui_logic_sr1::Scope::Folder);
-        let location = row::right_elide(&location, shaping.name_cells / 2).into_owned();
-        if !location.is_empty() {
-            let reserved = location.chars().map(row::cells_of).sum::<usize>();
-            let shaped = name_shaping.to_mut();
-            shaped.name_cells = shaped.name_cells.saturating_sub(reserved + 1);
-            shaped.clip_cells = shaped.name_cells;
-        }
-        location
-    } else {
-        String::new()
-    };
-    let (name, run) = drawn_name(&display, extra, &name_shaping, &view.query);
-    let words = &view.words;
-    Prepared {
-        label: name.clone(),
-        size_text: format::size_text(facts, extra.walked, words),
-        date_text: format::date_text(facts.mtime, words),
-        location: if location.is_empty() {
-            GlyphRun::new(Arc::clone(blank))
-        } else {
-            shape(&location, shaping.caption)
-        },
-        name: shape(&name, shaping.body),
-        size: cell(Column::Size, &|| {
-            format::size_text(facts, extra.walked, words)
-        }),
-        date: cell(Column::Date, &|| format::date_text(facts.mtime, words)),
-        mode: cell(Column::Mode, &|| format::permissions(facts.mode)),
-        // The rows reply carries no kind names on this protocol yet, so the cell is empty, as Row.kindText() is without row.k.
-        kind: cell(Column::Kind, &String::new),
-        mark: Mark::for_facts(facts, shaping.languages),
-        ink: row::name_ink(facts),
-        run,
-        bold: OnceCell::new(),
-    }
-}
-
-/// The cursor row's name with its match run in bold, the board's cursor treatment for a marked name.
-fn bold_name(prepared: &Prepared, shaping: &Shaping, window: &Window) -> GlyphRun {
-    let runs = crate::g2::sr1::run::text_runs(&prepared.label, prepared.run, true, &shaping.font);
-    GlyphRun::new(
-        window
-            .text_system()
-            .layout_line(&prepared.label, shaping.body, &runs, None),
-    )
 }
 
 /// Row.qml's loading bar for a row the pane does not hold yet: 30 percent of the row, caption high, right of the mark slot.
@@ -672,12 +585,20 @@ impl Element for ListElement {
                                 continue;
                             }
                             let ink = palette.name(prepared.ink, shown.state.lifted());
-                            let line = prepared
-                                .bold
-                                .get()
-                                .filter(|_| shown.state.cursor)
-                                .unwrap_or(&prepared.name);
-                            paint_line(line, names.origin.x, top_of(shown.index), row, ink, window);
+                            let line = shown.name_line().expect("prepared above");
+                            let name_mask = ContentMask {
+                                bounds: shown.name_slot(names, &metrics),
+                            };
+                            window.with_content_mask(Some(name_mask), |window| {
+                                paint_line(
+                                    line,
+                                    names.origin.x,
+                                    top_of(shown.index),
+                                    row,
+                                    ink,
+                                    window,
+                                );
+                            });
                             if view.searching && f32::from(prepared.location.line().width) > 0. {
                                 let x =
                                     names.origin.x + prepared.name.line().width + px(metrics.gap);
@@ -710,20 +631,24 @@ impl Element for ListElement {
                     }
                     // RowDropTarget.qml: the clip mark sits a gap past the drawn name, one pixel above the row's centre line.
                     for shown in &state.visible {
-                        let (Some(prepared), Some(clip)) = (&shown.prepared, shown.clip) else {
+                        let Some(clip) = shown.clip else {
                             continue;
                         };
                         if shown.state.renaming || view.searching {
                             continue;
                         }
-                        let drawn = prepared.name.line().width.min(px(layout.name.width));
-                        let x = left + px(layout.name.x) + drawn + px(metrics.gap);
-                        let y = top_of(shown.index) + px((row - metrics.clip) / 2. - 1.);
+                        let name = Bounds::new(
+                            point(names.origin.x, top_of(shown.index)),
+                            size(names.size.width, px(row)),
+                        );
+                        let Some(mark) = shown.clip_bounds(name, &metrics) else {
+                            continue;
+                        };
                         let (key, data) = clip.svg();
                         paint_mark(
                             key,
                             data,
-                            point(x, y),
+                            mark.origin,
                             metrics.clip,
                             palette.muted_frame,
                             window,
