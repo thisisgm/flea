@@ -515,5 +515,105 @@
       "sha256": "26ec3ca7352e9a7875303b2d577636e86a162fd5dcf7a9eb1471a9efa6578b59",
       "size": 31089
     }
+  },
+  "inventory": {
+    "schema": 1,
+    "state_manifest_sha256": "1107a80e46b3086e15a415540f32d88ce9493e167e5f4aec4611bba6346f7f94",
+    "terminals": [
+      "alacritty",
+      "foot",
+      "ghostty",
+      "kitty",
+      "tmux"
+    ],
+    "original_states": [
+      "tui-list-text",
+      "tui-no-icons",
+      "tui-list-folder",
+      "tui-no-preview",
+      "tui-tabs",
+      "tui-sort-size",
+      "tui-long",
+      "tui-marked",
+      "tui-small",
+      "tui-empty",
+      "tui-locked-peek",
+      "tui-locked",
+      "tui-list-image",
+      "tui-image-chafa",
+      "tui-list-symlink",
+      "tui-list-code",
+      "tui-list-archive",
+      "tui-list-blob",
+      "tui-list-plain",
+      "tui-list-pdf",
+      "tui-list-video",
+      "tui-list-audio",
+      "tui-quicklook-text",
+      "tui-quicklook-image",
+      "tui-3d-column",
+      "tui-3d-chafa",
+      "tui-3d-quicklook",
+      "tui-menu",
+      "tui-menu-send",
+      "tui-send-taildrop",
+      "tui-plugin-rows",
+      "tui-keys",
+      "tui-properties",
+      "tui-delete",
+      "tui-delete-focus",
+      "tui-filter-typing",
+      "tui-filter",
+      "tui-filter-nomatch",
+      "tui-search-typing",
+      "tui-search-here",
+      "tui-search-results",
+      "tui-path",
+      "tui-new-folder",
+      "tui-rename",
+      "tui-rename-error",
+      "tui-trash-arm",
+      "tui-trashed",
+      "tui-undone",
+      "tui-copied",
+      "tui-progress",
+      "tui-collision",
+      "tui-trash-view",
+      "tui-detail",
+      "tui-office",
+      "tui-print",
+      "tui-print-sent",
+      "tui-combine",
+      "tui-lang-ja",
+      "tui-lang-ja-menu",
+      "tui-lang-ar",
+      "tui-lang-ru-keys"
+    ],
+    "additional_states": [
+      "tui-convert",
+      "tui-convert-pdf"
+    ],
+    "excluded": [
+      {
+        "id": "tui-send-with",
+        "reason": "Provider submenu not selected; providers are separate file-menu rows."
+      }
+    ],
+    "counts": {
+      "required_boards": 63,
+      "excluded_boards": 1,
+      "reference_inputs": 128,
+      "terminal_state_pairs": 315,
+      "variant_captures": 325
+    },
+    "variant_extras": {
+      "tui-long": "rest",
+      "tui-small": "narrow"
+    },
+    "authority": {
+      "decisions.json": "2ab1935febb6afd24f9326291cf8834696aff58a9cc541f27a481e55ba4eb1e0",
+      "CHANGES.md": "ed33f44c03e360808f9c7e231c7600b7ce2b1c5674ad225ccef259501e83958e",
+      "specs/TUI-SPEC.md": "dec4245db07a3702b06801e4cccafc48a4fd2a6095c14aa8567a0894a98afd75"
+    }
   }
 }
