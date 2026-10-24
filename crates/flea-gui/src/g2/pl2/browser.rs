@@ -250,7 +250,13 @@ impl Element for Rows {
                 generation: view.model.generation,
                 start: view.model.start,
                 count,
-                lines: lines::build(&rows, &env, window),
+                lines: lines::build(
+                    &rows,
+                    &env,
+                    window,
+                    f32::from(bounds.size.width),
+                    f32::from(bounds.size.width),
+                ),
             });
         });
     }

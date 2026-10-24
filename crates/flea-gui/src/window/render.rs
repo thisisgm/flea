@@ -319,5 +319,6 @@ impl Render for Shell {
         )
         .children(self.settings_surface())
         .children(self.trash_menu_layer(cx))
+        .children(self.network_layers(window, cx))
     }
 }

@@ -12,6 +12,7 @@ impl Shell {
     pub(crate) fn card_holds_keyboard(&self, cx: &App) -> bool {
         self.settings.opened
             || self.settings.sheet.is_some()
+            || self.network_holds_keyboard(cx)
             || self
                 .overlay
                 .as_ref()
