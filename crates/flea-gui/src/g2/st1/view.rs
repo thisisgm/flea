@@ -286,7 +286,7 @@ impl SettingsView {
             .collect()
     }
 
-    fn pane(&self, ink: &Ink, window: &Window, cx: &mut Context<Self>) -> Stateful<Div> {
+    fn pane(&mut self, ink: &Ink, window: &Window, cx: &mut Context<Self>) -> Stateful<Div> {
         if self.panel.section == "plugins" {
             if let Some(view) = &self.plugins {
                 return div()
@@ -310,14 +310,26 @@ impl SettingsView {
             self.panel.heights()
         };
         let (_, height) = self.panel.pane;
-        let scroll = if searching { 0. } else { self.panel.scroll };
-        let fade = g::fade_shown(&heights, scroll, height);
+        // The highlighted result's lines, from its group's heading when it is the group's first hit.
+        let hit = lines
+            .iter()
+            .position(|line| searching && line.hit == Some(self.panel.hit))
+            .map(|at| {
+                let heading = at > 0 && lines[at - 1].hit.is_none();
+                (if heading { at - 1 } else { at }, at)
+            });
         let body = Rows {
             view: self,
             ink,
             heights: &heights,
         }
         .draw(&lines, cx);
+        let scroll = if searching {
+            self.panel.results_laid_out(&heights, hit)
+        } else {
+            self.panel.scroll
+        };
+        let fade = g::fade_shown(&heights, scroll, height);
         self.probe
             .attach(div(), "pane")
             .id("settings-pane")
@@ -325,9 +337,8 @@ impl SettingsView {
             .flex_1()
             .h_full()
             .pb(px(g::PANE_FOOT))
-            .on_scroll_wheel(cx.listener(|view, event: &ScrollWheelEvent, window, cx| {
-                let delta = event.delta.pixel_delta(window.line_height()).y;
-                view.panel.wheel(f32::from(delta));
+            .on_scroll_wheel(cx.listener(|view, event: &ScrollWheelEvent, _, cx| {
+                view.panel.wheel(super::wheel::travel(event.delta));
                 cx.notify();
             }))
             .child(

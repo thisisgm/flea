@@ -15,10 +15,16 @@ mod overlay_tests;
 pub mod panel;
 mod plugins;
 pub mod probe;
+#[cfg(test)]
+mod scroll_mounted_tests;
+#[cfg(test)]
+mod scroll_tests;
 pub mod seams;
 pub mod sheet;
 #[cfg(test)]
 mod sheet_board_tests;
+#[cfg(test)]
+mod sheet_scroll_tests;
 #[cfg(test)]
 mod sheet_tests;
 mod sheet_view;
@@ -28,6 +34,7 @@ pub mod view;
 mod view_head;
 #[cfg(test)]
 mod view_tests;
+pub(crate) mod wheel;
 
 pub use panel::{Panel, Press, Side};
 pub use seams::{Facts, Ink, MemoryStore, Request, Store};

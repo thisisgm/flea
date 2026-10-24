@@ -71,9 +71,11 @@ impl Panel {
             _ => return,
         }
         if matches!(key, "up" | "down") {
+            self.hit_moved = true;
             return;
         }
         self.hit = 0;
+        self.results_scroll = 0.;
         self.rebuild();
     }
 }
