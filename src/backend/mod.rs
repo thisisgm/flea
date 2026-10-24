@@ -105,6 +105,9 @@ mod searchbits;
 mod searchmatch;
 mod searchtypo;
 mod searchprior;
+mod searchrowcache;
+mod searchrowinodes;
+mod searchjobs;
 pub mod searchsession;
 pub mod searchtags;
 #[cfg(test)]
@@ -139,6 +142,8 @@ pub mod model3dreq;
 mod model3dadmit;
 mod model3dcache;
 pub mod meta;
+mod metarow;
+mod windowreq;
 pub mod metareq;
 pub mod metasort;
 pub mod owner;
@@ -176,6 +181,7 @@ pub mod rows;
 pub mod rowguard;
 // Dolphin-compatible file tags in user.xdg.tags, read per viewport row and never swept.
 pub mod tags;
+mod tagsedit;
 pub mod tagsreq;
 pub mod tagsundo;
 pub mod filegen;

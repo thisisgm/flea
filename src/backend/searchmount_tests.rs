@@ -1,4 +1,5 @@
 use super::*;
+use crate::backend::searchwalkhold::{is_delta, wait_walk_landed};
 use crate::backend::{iomount, testdir::TestDir};
 use std::time::Duration;
 
@@ -73,7 +74,7 @@ fn search_mount_cancel_during_nested_remote_read_closes_without_waiting_for_it()
     assert_eq!(session.partial_reason(), Some("cancelled"));
     assert!(session.watch.is_none());
     release.send(()).unwrap();
-    crate::backend::searchwalkhold::wait_landed(&rx, Duration::from_secs(10));
+    wait_walk_landed(&rx, &session, Duration::from_secs(10), is_delta);
     assert_eq!(probes.remote_reads.load(Ordering::Relaxed), 1);
     assert_eq!(session.answer("never-read", 10).total, 0);
 }

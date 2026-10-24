@@ -1,5 +1,6 @@
 use crate::backend::searchsession::Session;
 use crate::backend::searchwalk::WalkProbes;
+use crate::backend::searchwalkhold::{is_delta, wait_walk_landed};
 use crate::backend::testdir::TestDir;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
@@ -28,7 +29,7 @@ fn a_query_asked_while_a_cancelled_walk_winds_down_does_not_claim_a_landing() {
     let answer = s.query(1, "bench", 100).expect("generation 1 answers");
     assert!(!answer.walking, "a cancelled walk never lands a re-run, so no answer may say it still runs");
     release.send(()).expect("the parked walk takes its release");
-    walked_rx.recv_timeout(Duration::from_secs(30)).expect("the cancelled walk still lands");
+    wait_walk_landed(&walked_rx, &s, Duration::from_secs(30), is_delta);
     assert!(!s.poll_walked(), "the landing of a cancelled walk is swallowed");
     assert!(s.landing().is_none(), "nothing is left to re-run, so the client would wait for ever");
 }
@@ -47,7 +48,7 @@ fn an_own_write_into_a_directory_the_walk_has_not_read_adds_its_rows_once() {
     let added = d.file("sub/new.txt", "");
     s.patch_after_write(&added);
     release.send(()).expect("the parked walk takes its release");
-    crate::backend::searchwalkhold::wait_landed(&walked_rx, Duration::from_secs(30));
+    wait_walk_landed(&walked_rx, &s, Duration::from_secs(30), is_delta);
     assert!(s.poll_walked(), "the landing announces once");
     let answer = s.query(1, "txt", 100).expect("generation 1 answers");
     assert_eq!(answer.total, 2, "the walk and the patch both read sub, and each file is one row");
@@ -110,7 +111,7 @@ fn renamed_behind_a_parked_walk(
 fn a_patch_that_waited_for_the_walk_applies_at_its_landing() {
     let (_d, mut s, walked_rx, release) = renamed_behind_a_parked_walk("patchlanding");
     release.send(()).expect("the parked walk takes its release");
-    crate::backend::searchwalkhold::wait_landed(&walked_rx, Duration::from_secs(30));
+    wait_walk_landed(&walked_rx, &s, Duration::from_secs(30), is_delta);
     assert!(s.poll_walked(), "the landing announces once");
     assert_eq!(s.query(1, "new", 100).expect("generation 1 answers").total, 1, "the renamed file is indexed");
     assert_eq!(s.query(2, "old", 100).expect("generation 2 answers").total, 0, "the old name is gone");
@@ -140,7 +141,7 @@ fn a_walker_that_has_read_a_directory_pushes_nothing_once_the_walk_is_cancelled(
     s.patch_after_write(&added);
     s.cancel_walk().expect("a running walk cancels");
     release.send(()).expect("the parked walk takes its release");
-    walked_rx.recv_timeout(Duration::from_secs(30)).expect("the cancelled walk still lands");
+    wait_walk_landed(&walked_rx, &s, Duration::from_secs(30), is_delta);
     let answer = s.query(1, "txt", 100).expect("generation 1 answers");
     assert_eq!(answer.total, 2, "the patch read sub once and the cancelled walk added nothing to it");
     assert_eq!(s.indexed(), 3, "sub, sub/x.txt and sub/new.txt");

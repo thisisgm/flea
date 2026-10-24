@@ -67,6 +67,49 @@ pub(crate) fn wait_landed(rx: &std::sync::mpsc::Receiver<crate::backend::events:
     }
 }
 
+// Walk progress shares the landing event, so a walk's landing is a SearchWalked once its walk reports itself done; `skip` passes the other events a caller expects.
+pub(crate) fn wait_walk_landed(
+    rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>,
+    session: &crate::backend::searchsession::Session,
+    timeout: std::time::Duration,
+    skip: fn(&crate::backend::events::Event) -> bool,
+) {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        let event = rx
+            .recv_timeout(deadline.saturating_duration_since(std::time::Instant::now()))
+            .expect("the walk lands");
+        if !matches!(event, crate::backend::events::Event::SearchWalked) {
+            assert!(skip(&event), "the walk announces itself");
+        } else if session.walk_done.load(std::sync::atomic::Ordering::Acquire) {
+            return;
+        }
+    }
+}
+
+// The `skip` for a landing wait that may meet the walk's own recursive notifications.
+pub(crate) fn is_delta(event: &crate::backend::events::Event) -> bool {
+    matches!(event, crate::backend::events::Event::SearchDelta(_))
+}
+
+// A joined walk has sent every event, so its landing and any progress queued before it are taken together.
+pub(crate) fn take_joined_walk(
+    rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>,
+    timeout: std::time::Duration,
+) {
+    wait_landed(rx, timeout);
+    while let Ok(event) = rx.try_recv() {
+        assert!(
+            matches!(
+                event,
+                crate::backend::events::Event::SearchWalked
+                    | crate::backend::events::Event::SearchDelta(_)
+            ),
+            "only walk events follow a joined walk"
+        );
+    }
+}
+
 pub(crate) fn assert_no_landing(rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>, timeout: std::time::Duration) {
     let deadline = std::time::Instant::now() + timeout;
     loop {

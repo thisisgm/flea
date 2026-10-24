@@ -105,13 +105,8 @@ fn review_job_undo_patches_the_session() {
         &mut st,
         &mut ops,
     );
-    let landed = events_rx
-        .recv_timeout(WIRE_DEADLINE)
-        .expect("the walk lands");
-    assert!(
-        matches!(landed, Event::SearchWalked),
-        "the walk announces itself"
-    );
+    let session = st.search_session.as_ref().expect("a session stands");
+    crate::backend::searchwalkhold::wait_walk_landed(&events_rx, session, WIRE_DEADLINE, |_| false);
     let total =
         |lines: &[String]| crate::json::field_usize(lines.last().expect("a searched line"), "n");
     assert_eq!(
