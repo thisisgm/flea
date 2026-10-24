@@ -22,6 +22,15 @@ pub struct RowsAdapter<'a> {
     pub states: &'a RowStates,
 }
 
+pub(super) fn describe_row(facts: &flea::protocol::RowFacts, words: &format::Words) -> String {
+    let kind = if facts.dir { "dir" } else { "file" };
+    format!(
+        "{}|{kind}|{}",
+        facts.name,
+        words.locale.format_size(facts.size)
+    )
+}
+
 // Math.round(): half rounds up, so a negative half lands where QML's does.
 fn round(value: f32) -> i64 {
     (value + 0.5).floor() as i64
@@ -177,14 +186,7 @@ impl RowsAdapter<'_> {
                 .and_then(|_| self.list.drawn_rows.row(index))
                 .map_or_else(
                     || "loading".into(),
-                    |facts| {
-                        let kind = if facts.dir { "dir" } else { "file" };
-                        format!(
-                            "{}|{kind}|{}",
-                            facts.name,
-                            view.words.locale.format_size(facts.size)
-                        )
-                    },
+                    |facts| describe_row(facts, &view.words),
                 ),
             "rowNamePx" => self
                 .shown(index)
