@@ -8,10 +8,10 @@ use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::path::{Path, PathBuf};
 
 /// A scratch folder holding its marker; every removal checks the marker and an absolute, non-root path first.
-struct Root(PathBuf);
+pub(super) struct Root(pub(super) PathBuf);
 impl Root {
-    fn new() -> Self {
-        let path = std::env::temp_dir().join(format!("flea-previewtypes-{}", std::process::id()));
+    pub(super) fn new(tag: &str) -> Self {
+        let path = std::env::temp_dir().join(format!("flea-previewtypes-{tag}-{}", std::process::id()));
         std::fs::create_dir_all(&path).unwrap();
         std::fs::write(path.join(".flea-test-sandbox"), b"").unwrap();
         Self(path)
@@ -48,7 +48,7 @@ fn doc_name(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) -> 
 fn markdown_csv_html_archive_symlink_and_data_rows_draw_their_own_preview(cx: &mut TestAppContext) {
     // The markdown parse and picture threads are real, so their wakes come from outside the deterministic scheduler.
     cx.executor().allow_parking();
-    let root = Root::new();
+    let root = Root::new("kinds");
     let dir = root.0.to_string_lossy().into_owned();
     std::fs::write(root.0.join("notes.md"), "# Notes\n\nbody text\n").unwrap();
     let (shell, cx) = open(cx, &dir);

@@ -179,22 +179,29 @@ impl Render for SelectionPreview {
                     h,
                     limit,
                 ) as f32;
-                div().size_full().flex().items_center().justify_center().child(
-                    img(image)
-                        .w(px((w as f32 * scale).round()))
-                        .h(px((h as f32 * scale).round()))
-                        .object_fit(gpui::ObjectFit::Fill),
-                )
+                div()
+                    .debug_selector(|| "column-preview-picture".into())
+                    .size_full()
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(
+                        img(image)
+                            .w(px((w as f32 * scale).round()))
+                            .h(px((h as f32 * scale).round()))
+                            .object_fit(gpui::ObjectFit::Fill),
+                    )
             });
             media = match &frame.mounted {
                 Mounted::Pdf(pdf) => media.child(pdf.clone()),
                 Mounted::Model(model) => media.child(model.clone()),
                 Mounted::Doc(doc) => media.child(doc.element()),
-                Mounted::Media(None) if frame.kind == Kind::Audio && fitted.is_some() => {
+                // v0.3.12 keeps an audio file's cover in the frame through play, pause and seek.
+                Mounted::Media(_) if frame.kind == Kind::Audio && fitted.is_some() => {
                     media.children(fitted)
                 }
                 Mounted::Media(player) => {
-                    let picture = if let Some(player) = player {
+                    let picture = column_picture(if let Some(player) = player {
                         pv3::surface::picture(
                             player.read(cx),
                             &pv3::surface::Facts::default(),
@@ -211,7 +218,7 @@ impl Render for SelectionPreview {
                             name: frame.subject.row.name.clone(),
                             facts: kind + &tail,
                         }
-                    };
+                    });
                     media.child(MediaElement {
                         picture,
                         reserve: 0.,
@@ -296,6 +303,7 @@ impl Render for SelectionPreview {
                 .overflow_hidden()
                 .whitespace_nowrap()
                 .text_ellipsis()
+                .h(px(name_row))
                 .text_size(self.face.body)
                 .line_height(px(name_row))
                 .child(if frame.kind == Kind::Multi {
@@ -306,24 +314,22 @@ impl Render for SelectionPreview {
                 }),
         );
         if full {
-            let longest = facts
-                .iter()
-                .map(|(label, _)| label.chars().count())
-                .max()
-                .unwrap_or(0);
-            let label_width = longest as f32 * f32::from(self.face.caption) * 0.6 + metrics.gap;
+            let (line, label_width, gap) = self.fact_grid();
             let mut table = div()
                 .debug_selector(|| "column-preview-facts".into())
                 .flex()
                 .flex_col()
-                .flex_none();
-            for (label, value) in facts {
+                .flex_none()
+                .gap(px(gap));
+            for (index, (label, value)) in facts.into_iter().enumerate() {
                 table = table.child(
                     div()
+                        .debug_selector(move || format!("column-preview-fact-{index}"))
                         .flex()
                         .w_full()
                         .h(px(row))
-                        .line_height(px(row))
+                        .pt(px(1.))
+                        .line_height(px(line))
                         .child(
                             div()
                                 .w(px(label_width))
@@ -333,6 +339,7 @@ impl Render for SelectionPreview {
                         )
                         .child(
                             div()
+                                .debug_selector(move || format!("column-preview-value-{index}"))
                                 .flex_1()
                                 .min_w_0()
                                 .overflow_hidden()
@@ -352,7 +359,7 @@ impl Render for SelectionPreview {
                     .flex_none()
                     .w_full()
                     .h(px(row))
-                    .line_height(px(row))
+                    .line_height(px(self.fact_grid().0))
                     .text_color(roles.metadata)
                     .child(
                         div()
@@ -366,5 +373,13 @@ impl Render for SelectionPreview {
             );
         }
         root
+    }
+}
+
+/// cols-preview-video.html draws no play mark over the frame; the strip under it carries play.
+pub(crate) fn column_picture(picture: Picture) -> Picture {
+    match picture {
+        Picture::Video { frame, .. } => Picture::Video { frame, poster: false },
+        other => other,
     }
 }
