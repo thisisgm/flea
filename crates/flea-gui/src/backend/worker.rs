@@ -293,6 +293,9 @@ impl<'a> Worker<'a> {
             Ok(event) => event,
             Err(error) => Event::Failed(failure("window.backend_protocol", error)),
         };
+        if let Some(changed) = transport::reload_changed(&event, line) {
+            let _ = self.output.try_send(Event::ReloadChanged(changed));
+        }
         let _ = self.output.try_send(event);
         Ok(())
     }

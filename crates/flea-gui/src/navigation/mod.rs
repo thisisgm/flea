@@ -104,6 +104,13 @@ pub struct Navigator {
     pub preserve_sort: bool,
     pub pending_sort: Option<sort::Request>,
     pub pending_select: Option<String>,
+    /// The listing and row a navigation selected on landing, which Escape climbs through as no mark.
+    pub landed: Option<(usize, usize)>,
+    /// A manual reload out: its folder and the count it left, then the changed count the backend named.
+    pub reload_from: Option<(String, usize)>,
+    pub reload_changed: Option<usize>,
+    /// The rows a landed reload changed, owed to the status line as its notice.
+    pub reloaded: Option<usize>,
     pub menus: Deferred,
     pub background_at: Option<(f32, f32)>,
     pub folders: Rc<RefCell<Folders>>,

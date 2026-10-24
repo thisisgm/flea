@@ -91,6 +91,7 @@ fn real_backend_pipes_drain_on_quit_and_report_unexpected_eof() {
                 | Ok(Event::Refused { .. })
                 | Ok(Event::Session { .. })
                 | Ok(Event::Changed { .. })
+                | Ok(Event::ReloadChanged(_))
                 | Ok(Event::Peeked(_))
                 | Ok(Event::Located(_))
                 | Ok(Event::TrashLine(_))

@@ -49,6 +49,8 @@ mod families_tests;
 #[cfg(test)]
 mod guard_tests;
 #[cfg(test)]
+mod listing_tests;
+#[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]
 mod refusal_tests;

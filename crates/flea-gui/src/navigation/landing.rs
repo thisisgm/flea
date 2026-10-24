@@ -21,6 +21,7 @@ impl Navigator {
             }
             self.land_restore(pane);
             self.landing_select(pane, selected);
+            self.land_reload(pane);
             self.land_anchor(pane, selected);
             if let Some(at) = self.menus.landed(pane) {
                 self.background_at = Some(at);

@@ -3,12 +3,12 @@ use crate::{
     backend::Backend,
     g2::op1::press::Press,
     state::{tests::shell_with, Shell},
-    window::{input::ActionEvent, root::Root},
+    window::root::Root,
 };
 use gpui::{
     AppContext, Bounds, Pixels, Quad, TestAppContext, VisualTestContext, Window, WindowHandle,
 };
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 fn open(cx: &mut TestAppContext, backend: Backend) -> WindowHandle<Root> {
     cx.add_window(|_, cx| {
@@ -121,23 +121,22 @@ fn escape_after_a_mouse_cancel_leaves_no_overlay(cx: &mut TestAppContext) {
     let (backend, _receiver) = Backend::test_channel();
     let handle = open(cx, backend);
     frame(cx, handle);
-    let entity = handle
-        .update(cx, |root, _, _| root.shell.clone())
-        .expect("the window is open");
-    let seen = Rc::new(RefCell::new(Vec::<&'static str>::new()));
-    let log = seen.clone();
-    let _subscription = cx.update(|cx| {
-        cx.subscribe(&entity, move |_, event: &ActionEvent, _| {
-            log.borrow_mut().push(event.action)
+    // The listing family runs a plain Escape: with no mark it clears the notice.
+    let say = |cx: &mut TestAppContext| {
+        shell(cx, handle, |shell, _, cx| {
+            shell.status_messages(cx, |messages, now| {
+                messages.say("Copied 1 item", false, "", flea::ui_logic_fb1::status::Hint::None, now)
+            })
         })
-    });
+    };
+    let notice = |cx: &mut TestAppContext| {
+        shell(cx, handle, |shell, _, cx| {
+            shell.status_messages(cx, |messages, _| messages.notice().to_owned())
+        })
+    };
+    say(cx);
     escape(cx, handle);
-    let plain = seen
-        .borrow()
-        .iter()
-        .filter(|action| **action == "escape")
-        .count();
-    assert!(plain > 0, "a plain Escape reaches the window's action");
+    assert_eq!(notice(cx), "", "a plain Escape reaches the window's action");
     open_copy_to(cx, handle);
     frame(cx, handle);
     // A pointer press on Cancel is what a mouse Cancel does; the entity lingers with no card.
@@ -157,20 +156,16 @@ fn escape_after_a_mouse_cancel_leaves_no_overlay(cx: &mut TestAppContext) {
         shell(cx, handle, |shell, _, _| shell.overlay.is_some()),
         "the entity lingers after a mouse Cancel"
     );
+    say(cx);
     escape(cx, handle);
     frame(cx, handle);
     assert!(
         !shell(cx, handle, |shell, _, _| shell.overlay.is_some()),
         "Escape drops the cardless entity instead of swallowing the key"
     );
-    let total = seen
-        .borrow()
-        .iter()
-        .filter(|action| **action == "escape")
-        .count();
     assert_eq!(
-        total - plain,
-        plain,
+        notice(cx),
+        "",
         "an Escape after a mouse Cancel reaches the window as it does with no card"
     );
 }
