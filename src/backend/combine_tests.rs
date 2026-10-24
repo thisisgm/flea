@@ -55,9 +55,9 @@ fn defaults_follow_the_first_format_and_jpeg_refuses_transparency() {
     let ask = Ask::parse(r#"{"paths":["/photos/first.jpg","/photos/next.png"]}"#);
     assert_eq!(ask.format, "jpg");
     assert_eq!(ask.background, "White");
-    assert!(Settings::parse(&ask).is_ok());
+    assert!(Settings::parse(&ask.layout, &ask.spacing, &ask.background, &ask.format, ask.columns).is_ok());
     let bad = Ask::parse(r#"{"format":"jpg","background":"Transparent"}"#);
-    assert!(Settings::parse(&bad).is_err());
+    assert!(Settings::parse(&bad.layout, &bad.spacing, &bad.background, &bad.format, bad.columns).is_err());
     let bad = Ask::parse(r#"{"layout":"Grid","columns":0}"#);
-    assert!(Settings::parse(&bad).is_err());
+    assert!(Settings::parse(&bad.layout, &bad.spacing, &bad.background, &bad.format, bad.columns).is_err());
 }

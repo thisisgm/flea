@@ -15,6 +15,7 @@ impl Render for Root {
         self.shell.update(cx, |shell, cx| {
             shell.sync_font_settings(cx);
             shell.observe_operations(window, cx);
+            shell.observe_output(window, cx);
             shell.focus_operation_mount(window, cx);
             if shell.card_holds_keyboard(cx) && shell.menu.captured.is_some() {
                 shell.retire_menu(window, cx);
@@ -39,6 +40,18 @@ impl Render for Root {
             deferred(div().absolute().top_0().left_0().size_full().child(view))
                 .with_priority(priority)
         });
+        // The output card draws above everything while it shows; a closed card mounts nothing.
+        let output = self
+            .shell
+            .read(cx)
+            .output
+            .view
+            .clone()
+            .filter(|view| view.read(cx).model.card.is_some())
+            .map(|view| {
+                deferred(div().absolute().top_0().left_0().size_full().child(view))
+                    .with_priority(usize::MAX)
+            });
         let shell = self.shell.clone();
         div()
             .size_full()
@@ -66,6 +79,7 @@ impl Render for Root {
             .children(menu)
             .child(Overlay(self.shell.clone(), true))
             .children(overlay)
+            .children(output)
     }
 }
 

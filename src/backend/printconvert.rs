@@ -1,23 +1,10 @@
 // Shared visibility, menu wording and output names for the window and terminal clients.
 use super::{aliases::Aliases, mime::Db, officepdf};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(test)]
+use std::path::Path;
 
-pub const IMAGE_FORMATS: &[&str] = &["jpg", "png", "webp", "avif", "heic", "tiff", "bmp", "pdf"];
-pub const PDF_FORMATS: &[&str] = &["png", "jpg", "webp", "tiff"];
-pub const COMBINE_FORMATS: &[&str] = &["png", "jpg", "webp"];
-pub const MAX_ITEMS: usize = 256;
-pub const MIN_ITEMS: usize = 1;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Kind { Image, Pdf, Office, Text, Other }
-
-impl Kind {
-    pub fn printable(self) -> bool { self != Self::Other }
-    pub fn paged(self) -> bool { matches!(self, Self::Pdf | Self::Office) }
-    pub fn formats(self) -> &'static [&'static str] {
-        match self { Self::Image => IMAGE_FORMATS, Self::Pdf => PDF_FORMATS, Self::Office => &["pdf"], _ => &[] }
-    }
-}
+pub use flea::ui_logic_op4::output::*;
 
 pub fn classify(path: &str, mime: &Db, aliases: &Aliases) -> Kind {
     if officepdf::is_office(path, mime, aliases) { return Kind::Office; }
@@ -31,18 +18,6 @@ pub fn classify(path: &str, mime: &Db, aliases: &Aliases) -> Kind {
     else { Kind::Other }
 }
 
-pub fn can_print(kinds: &[Kind]) -> bool {
-    !kinds.is_empty() && kinds.iter().all(|kind| kind.printable())
-}
-
-pub fn can_convert(kinds: &[Kind]) -> bool {
-    matches!(kinds, [Kind::Pdf | Kind::Office]) || (!kinds.is_empty() && kinds.iter().all(|kind| *kind == Kind::Image))
-}
-
-pub fn can_combine(kinds: &[Kind]) -> bool {
-    kinds.len() >= 2 && kinds.iter().all(|kind| *kind == Kind::Image)
-}
-
 #[cfg(test)]
 pub fn print_label(count: usize) -> String {
     if count > 1 { format!("Print {count} Items…") } else { "Print…".into() }
@@ -51,31 +26,6 @@ pub fn print_label(count: usize) -> String {
 pub fn title(verb: &str, paths: &[PathBuf]) -> String {
     if paths.len() == 1 { format!("{verb} {}", paths[0].file_name().unwrap_or_default().to_string_lossy()) }
     else { format!("{verb} {} Items", paths.len()) }
-}
-
-pub fn extension(path: &Path) -> String {
-    path.extension().unwrap_or_default().to_string_lossy().to_ascii_lowercase()
-}
-
-pub fn converted_name(source: &Path, format: &str) -> String {
-    let word = if extension(source) == format { "stripped" } else { "converted" };
-    format!("{} ({word}).{format}", source.file_stem().unwrap_or_default().to_string_lossy())
-}
-
-pub fn page_name(source: &Path, page: u32, format: &str) -> String {
-    format!("{} (page {page}).{format}", source.file_stem().unwrap_or_default().to_string_lossy())
-}
-
-pub fn combined_format(source: &Path) -> &'static str {
-    match extension(source).as_str() { "jpg" | "jpeg" => "jpg", "webp" => "webp", _ => "png" }
-}
-
-pub fn combined_name(source: &Path, format: &str) -> String {
-    format!("{} (combined).{format}", source.file_stem().unwrap_or_default().to_string_lossy())
-}
-
-pub fn bare_name(name: &str) -> bool {
-    !name.is_empty() && name != "." && name != ".." && !name.contains(['/', '\0'])
 }
 
 #[cfg(test)]

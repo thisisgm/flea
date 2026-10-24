@@ -2,6 +2,7 @@
 extern crate self as flea;
 
 pub mod colours;
+pub mod error;
 pub mod i18n;
 pub mod ipc;
 pub mod json;
@@ -21,6 +22,7 @@ pub mod ui_logic_fb1;
 pub mod ui_logic_mn1;
 pub mod ui_logic_op1;
 pub mod ui_logic_op3;
+pub mod ui_logic_op4;
 pub mod ui_logic_pk1;
 pub mod ui_logic_pl1;
 pub mod ui_logic_pl3;
