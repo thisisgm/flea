@@ -168,7 +168,8 @@ impl PaneHost {
         if self.pane.state.kind != crate::pane::states::Kind::Ready {
             grid.state.borrow_mut().clear_frame();
         }
-        let shown = Shown::All(self.pane.held.total);
+        let filtered = self.filter.shown.clone();
+        let shown = filtered.as_deref().map_or(Shown::All(self.pane.held.total), Shown::Only);
         let focus = grid.next_view.as_ref().map_or_else(
             || GridHost::focus(&self.pane),
             |pending| pending.focus.clone(),
@@ -211,7 +212,8 @@ impl PaneHost {
     ) {
         self.grid_ready(size, data, locale);
         let grid = self.grid.as_mut().expect("a Grid host");
-        let shown = Shown::All(self.pane.held.total);
+        let filtered = self.filter.shown.clone();
+        let shown = filtered.as_deref().map_or(Shown::All(self.pane.held.total), Shown::Only);
         if !self.stopped && grid.next_view.is_none() {
             if let (Some((start, count)), Some(backend)) =
                 (grid.request(&mut self.pane), &self.backend)
@@ -234,7 +236,8 @@ impl PaneHost {
     ) -> AnyElement {
         self.grid_ready(size, data, locale);
         let grid = self.grid.as_mut().expect("a Grid host");
-        let shown = Shown::All(self.pane.held.total);
+        let filtered = self.filter.shown.clone();
+        let shown = filtered.as_deref().map_or(Shown::All(self.pane.held.total), Shown::Only);
         let mut focus = grid.next_view.as_ref().map_or_else(
             || GridHost::focus(&self.pane),
             |pending| pending.focus.clone(),
@@ -243,6 +246,7 @@ impl PaneHost {
             .view
             .layout(shown)
             .drawn(grid.view.scroll)
+            .filter_map(|view| shown.at(view))
             .filter(|row| self.selected.binary_search(row).is_ok())
             .collect();
         if grid.view.landing_wait || grid.next_view.is_some() {
@@ -263,7 +267,7 @@ impl PaneHost {
                     .as_ref()
                     .map_or(&self.pane.held, |pending| &pending.held),
             ),
-            None,
+            filtered.clone(),
             grid.view.clone(),
             Rc::new(focus),
             Rc::clone(&grid.decor),

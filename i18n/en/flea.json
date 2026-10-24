@@ -1511,6 +1511,19 @@
   "prompt.newFile": "New File",
   "filter.shown": "%1 of %2 shown",
   "filter.nothing": "NOTHING MATCHES %1",
+  "filter.shown_close": {
+    "one": "%2 of %3 shown · %1 close match",
+    "other": "%2 of %3 shown · %1 close matches"
+  },
+  "filter.shown_subfolders": "%1 of %2 shown in %3 and subfolders",
+  "filter.shown_subfolders_close": {
+    "one": "%2 of %3 shown in %4 and subfolders · %1 close match",
+    "other": "%2 of %3 shown in %4 and subfolders · %1 close matches"
+  },
+  "filter.esc_clears": "esc clears",
+  "filter.nothing_matches": "NOTHING MATCHES %1",
+  "filter.row_hidden": "That row is hidden by the filter.",
+  "filter.nothing_to_act_on": "There is nothing to act on.",
   "find.status": "Find “%1” in %2",
   "find.scanning": "%1 found · %2 scanned",
   "find.found": "%1 found",
