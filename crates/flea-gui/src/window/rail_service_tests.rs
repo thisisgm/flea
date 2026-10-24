@@ -40,13 +40,23 @@ fn u08_rename_commits_the_captured_share_and_rebuild_cancels_a_stale_editor(
         ipc(&shell, "railRenameEditorText", &[], cx).stdout.trim(),
         "x"
     );
+    // The NETWORK join now consumes the commit: it writes the captured share's label into a sandboxed bookmarks file.
+    let sandbox = crate::window::network::tests::sandbox_bookmarks(&shell, cx);
     cx.simulate_keystrokes("enter");
     frame(cx);
-    assert!(heard.borrow().iter().any(|request| request.event
-        == Event::Rename {
-            entry: share.clone(),
-            label: "x".into()
-        }));
+    let written = crate::window::network::tests::written_bookmarks(sandbox, cx);
+    assert_eq!(
+        written.trim_end(),
+        "smb://nas/share x",
+        "the commit names the captured share and its new label"
+    );
+    assert!(
+        !heard
+            .borrow()
+            .iter()
+            .any(|request| matches!(request.event, Event::Rename { .. })),
+        "a consumed rename is not re-emitted as an unowned request"
+    );
     assert_eq!(
         ipc(&shell, "railRenamingIndex", &[], cx).stdout.trim(),
         "-1"

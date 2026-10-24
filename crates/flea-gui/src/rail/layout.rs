@@ -48,11 +48,24 @@ pub(super) fn layout(
                 text_width,
                 top_padding + text_height + metrics.gap,
             );
+            let network = section
+                .rows
+                .first()
+                .is_some_and(|row| row.group == flea::ui_logic_pl4::rail::Group::Network);
+            let add = network.then(|| {
+                Rect::new(
+                    width - metrics.pad - metrics.slot,
+                    y + top_padding + (text_height - metrics.slot) / 2.,
+                    metrics.slot,
+                    metrics.slot,
+                )
+            });
             laid.headers.push(LaidHeader {
                 text: section.heading.to_string(),
                 rect,
                 top_padding,
                 font_size: f32::from(typeface.caption),
+                add,
             });
             y += rect.height;
         }

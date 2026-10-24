@@ -77,6 +77,10 @@ impl Element for RailElement {
         for header in &mut laid.headers {
             header.rect.x += dx;
             header.rect.y += dy;
+            if let Some(add) = &mut header.add {
+                add.x += dx;
+                add.y += dy;
+            }
         }
         for row in &mut laid.rows {
             row.rect.x += dx;
@@ -223,6 +227,20 @@ impl Element for RailElement {
                     palette.metadata,
                     window,
                 );
+                if let Some((add, (key, data))) = header.add.zip(super::glyph::svg("plus")) {
+                    let _ = window.paint_svg(
+                        Bounds::new(
+                            point(px(add.x), px(add.y)),
+                            size(px(add.width), px(add.height)),
+                        ),
+                        key,
+                        Some(data),
+                        TransformationMatrix::unit(),
+                        palette.muted_frame,
+                        cx,
+                    );
+                    self.listen_add(add, window);
+                }
             }
             for (at, row) in laid.rows.iter().enumerate() {
                 if row.rect.y + metrics.row <= f32::from(bounds.top())

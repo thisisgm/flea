@@ -69,6 +69,8 @@ pub struct LaidHeader {
     pub rect: Rect,
     pub top_padding: f32,
     pub font_size: f32,
+    /// The NETWORK heading's plus, in the rows' trailing slot, Sidebar.qml's addGlyph.
+    pub add: Option<Rect>,
 }
 
 /// One rail row as painted, in window coordinates; IPC reads these and never recomputes a row.
@@ -133,6 +135,8 @@ pub struct RowsModel {
     cache: text::Cache,
     pub hovered: Option<usize>,
     pub corner: f32,
+    /// Presses on the NETWORK heading's plus; the window opens Add a Network Share once per new press.
+    pub add_presses: u64,
 }
 
 pub struct RailElement {
@@ -227,6 +231,8 @@ fn indicator_slot(
         || (group == Group::Device && matches!(kind, Kind::Volume | Kind::Phone))
 }
 
+#[path = "add.rs"]
+mod add;
 #[path = "element.rs"]
 mod element;
 #[path = "layout.rs"]

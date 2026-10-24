@@ -9,6 +9,7 @@ pub mod lifecycle;
 mod list_join;
 pub mod locale;
 pub mod navigate;
+pub mod network;
 pub mod overlay;
 pub(crate) mod pane;
 mod presentation;

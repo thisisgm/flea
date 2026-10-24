@@ -81,6 +81,10 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
+        if self.network_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
         if self.menu_key(event, window, cx) {
             return;
         }
@@ -207,6 +211,8 @@ impl Shell {
             self.chrome_action(action, window, cx);
         } else if action == "windowNew" {
             self.new_window();
+        } else if action == "addNetwork" {
+            self.network_add(self.focus_side, window, cx);
         } else if let Some(view) = match action {
             "viewList" => Some(startup::View::List),
             "viewColumns" => Some(startup::View::Columns),
