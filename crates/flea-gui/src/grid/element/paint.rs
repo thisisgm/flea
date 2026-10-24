@@ -100,7 +100,7 @@ impl GridElement {
             let row = self.held.row(listing);
             let cell = layout.cell(scroll, at);
             let slot = layout.slot(cell);
-            let clip = self.decor.clip(listing);
+            let clip = self.decor.clip_row(listing, row);
             let drop = self
                 .overlay
                 .drop

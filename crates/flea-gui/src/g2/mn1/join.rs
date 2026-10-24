@@ -186,6 +186,11 @@ impl Shell {
             kinds: Vec::new(),
             background,
         };
+        let (clipboard_available, clipboard_watch_failed, can_link) =
+            self.clipboard_menu_facts(side);
+        let Some(host) = &self.panes[side] else {
+            return;
+        };
         let facts = row.and_then(|row| host.pane.held.row(row));
         self.menu.context = MenuContext {
             has_row: !background,
@@ -207,6 +212,9 @@ impl Shell {
                 .and_then(Json::as_bool)
                 != Some(false),
             open_with_loaded: background,
+            clipboard_available,
+            clipboard_watch_failed,
+            can_link,
             ..MenuContext::default()
         };
         self.menu.captured = Some(capture.clone());

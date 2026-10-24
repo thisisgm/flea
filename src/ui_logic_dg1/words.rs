@@ -2,7 +2,7 @@
 use crate::i18n::I18n;
 use super::Said;
 
-// Sample input: "Copied %1" with "1 item" reads "Copied 1 item".
+// Sample input: count 1 reads "Copied 1 item"; both keys are the shared plural catalog rows the TUI also reads.
 pub const COPIED: &str = "clipboard.copied";
 pub const CUT: &str = "clipboard.cut";
 pub const SET_FAILED: &str = "clipboard.set_failed";
@@ -15,9 +15,8 @@ pub const RECENT_PASTE: &str = "clipboard.recent_paste";
 
 // Sample input: 3 items; copy reads "Copied 3 items", cut reads "Cut 3 items". The line is hint-marked, so the status slot appends the paste key as Ops.copied wraps Status.withPaste.
 pub fn landed(i18n: &I18n, moving: bool, count: usize) -> Said {
-    let items = i18n.trn("items.count", count as i64);
     Said {
-        text: i18n.tr_args(if moving { CUT } else { COPIED }, &[&items]),
+        text: i18n.trn(if moving { CUT } else { COPIED }, count as i64),
         error: false,
         paste_hint: true,
     }

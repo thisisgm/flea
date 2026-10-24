@@ -65,6 +65,46 @@ pub struct Stamp {
     pub second: u32,
 }
 
+// glibc's struct tm, which localtime_r fills whole; the stamp reads the six clock fields.
+#[repr(C)]
+struct Tm {
+    sec: i32,
+    min: i32,
+    hour: i32,
+    mday: i32,
+    mon: i32,
+    year: i32,
+    _wday: i32,
+    _yday: i32,
+    _isdst: i32,
+    _gmtoff: i64,
+    _zone: *const u8,
+}
+
+extern "C" {
+    fn localtime_r(time: *const i64, out: *mut Tm) -> *mut Tm;
+}
+
+// Sample input: the local wall clock at a Unix second, as the image name's stamp; None when libc cannot place it.
+pub fn stamp_at(seconds: i64) -> Option<Stamp> {
+    let mut tm = std::mem::MaybeUninit::<Tm>::uninit();
+    // SAFETY: both pointers are valid for the call, and a non-null return means tm was written whole.
+    let tm = unsafe {
+        if localtime_r(&seconds, tm.as_mut_ptr()).is_null() {
+            return None;
+        }
+        tm.assume_init()
+    };
+    Some(Stamp {
+        year: tm.year + 1900,
+        month: (tm.mon + 1) as u32,
+        day: tm.mday as u32,
+        hour: tm.hour as u32,
+        minute: tm.min as u32,
+        second: tm.sec as u32,
+    })
+}
+
 // Sample input: 2026-09-23 at 10.14.32 reads "Pasted image 2026-09-23 at 10.14.32.png".
 pub fn image_name(stamp: Stamp) -> String {
     format!(

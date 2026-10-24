@@ -103,6 +103,9 @@ impl Shell {
         {
             self.retire_menu(window, cx);
         }
+        if self.clipboard_receive(side, &event, window, cx) {
+            return;
+        }
         if let BackendEvent::Producer(line) = &event {
             if self.search_line(side, line, window, cx) {
                 return;

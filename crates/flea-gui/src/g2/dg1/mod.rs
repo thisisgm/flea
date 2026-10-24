@@ -1,6 +1,8 @@
 //! Clipboard file selections over the G1 shell: one selection, one queue per pane backend and the cut marks rows draw; the core flea::ui_logic_dg1 decides, and this host drains its outbox to the wire, sink, owner and status slot.
 pub mod host;
+pub mod join;
 pub mod keys;
+pub mod marks;
 pub mod seams;
 
 #[cfg(test)]
@@ -15,6 +17,8 @@ mod host_marks_tests;
 mod rig;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod join_tests;
 
 use flea::i18n::I18n;
 use flea::ui_logic_dg1::{self as core};
@@ -92,6 +96,27 @@ impl Clipboard {
         if self.watched.insert(backend) {
             wire.send(core::clip_watch_line());
         }
+    }
+
+    // A watch begun at first use: until its first changed line the backend reads as down, so a paste reads the system selection first and the menu keeps Paste enabled.
+    pub fn watch_unknown(&mut self, backend: u64, wire: &dyn Wire) {
+        if !self.watched.contains(&backend) {
+            let _ = self.session.on_changed(backend, "none", Vec::new(), String::new(), "unwatched");
+            self.watch(backend, wire);
+        }
+    }
+
+    pub fn watching(&self, backend: u64) -> bool {
+        self.watched.contains(&backend)
+    }
+
+    pub fn current(&self) -> &core::Clip {
+        self.session.current()
+    }
+
+    /// Moves with every change of the selection's paths or cut intent.
+    pub fn revision(&self) -> u64 {
+        self.session.revision()
     }
 
     pub fn unwatch(&mut self, backend: u64) {

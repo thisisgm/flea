@@ -286,6 +286,7 @@ impl Shell {
             if let Some(host) = &mut self.panes[side] {
                 host.selected = (0..host.pane.held.total).collect();
             }
+        } else if self.clipboard_menu(&capture, &action, &leaf, &paths, window, cx) {
         } else if action == "runScript" {
             let request = format!(
                 "{{\"c\":\"actions\",\"op\":\"run\",\"id\":{},\"action\":\"{}\",\"paths\":[{}]}}",
