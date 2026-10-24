@@ -68,6 +68,7 @@ impl Shell {
     }
 
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.providers_menu_closed();
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
         self.menu.pending = None;
@@ -127,6 +128,12 @@ impl Shell {
             if let Some(host) = &mut self.panes[capture.side] {
                 host.nav.gate.menu_pending = true;
             }
+            // Dropbox rows name the account root the backend already took as this menu's destination.
+            let dest = if matches!(action.as_str(), "dropbox" | "sharelink") {
+                format!(",\"dest\":\"{}\"", escape(&self.provider_destination(capture.side)))
+            } else {
+                String::new()
+            };
             let chosen = if leaf.is_empty() {
                 action
             } else {
@@ -135,7 +142,7 @@ impl Shell {
             self.menu_send(
                 capture.side,
                 format!(
-                    "{{\"c\":\"menuaction\",\"op\":\"validate\",\"id\":{},\"action\":\"{}\"}}",
+                    "{{\"c\":\"menuaction\",\"op\":\"validate\",\"id\":{},\"action\":\"{}\"{dest}}}",
                     capture.id,
                     escape(&chosen)
                 ),

@@ -4,6 +4,9 @@
 //! list geometry to G1. This host feeds all three and spawns nothing: every process runs through
 //! the host's facility via Action, so tests drive the whole picker against a fake wire.
 pub mod ipc;
+pub(crate) mod join;
+#[cfg(test)]
+mod join_tests;
 mod picker;
 pub mod seams;
 #[cfg(test)]
