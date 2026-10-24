@@ -192,6 +192,26 @@ impl Navigator {
         self.emit(Command::Persist(patch));
     }
 
+    // Reload.js begin: a listing out refuses the reload, and an idle pane re-reads in place.
+    pub fn reload(&mut self, pane: &mut Pane, selected: &[usize]) -> Result<bool, Refusal> {
+        if pane.busy() {
+            return Err(Refusal::Busy);
+        }
+        Ok(self.reread(pane, selected, true, false))
+    }
+
+    // Reload.js begin past the wait: the stalled listing lets go as Anchor.clearWaiting does, then the folder waited on is asked again.
+    pub fn retry(&mut self, pane: &mut Pane, selected: &[usize]) -> Result<bool, Refusal> {
+        let waited = pane.place().to_owned();
+        let now = pane.now();
+        pane.swap.end(now, "retried");
+        pane.state.kind = Kind::Loading;
+        if waited != pane.path() {
+            return self.open_without_history(pane, &waited, Options::default(), None, false);
+        }
+        self.reload(pane, selected)
+    }
+
     // The owed re-read: the anchor rides the list so its first rows hold the cursor's file.
     pub fn reread(
         &mut self,

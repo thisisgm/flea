@@ -38,6 +38,14 @@ impl Shell {
 }
 
 #[cfg(test)]
+mod effect_tests;
+#[cfg(test)]
 mod guard_tests;
 #[cfg(test)]
 mod navigation_tests;
+#[cfg(test)]
+mod refusal_tests;
+#[cfg(test)]
+mod search_open_tests;
+#[cfg(test)]
+mod test_shell;
