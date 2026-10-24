@@ -1,6 +1,7 @@
 //! Draws the keyboard sheet to the keymap boards: two columns of groups, or the query field over ranked results.
 use super::geometry::{CLAMP, GAP};
 use super::marks::{self, spaced, washed};
+use super::probe::Probe;
 use super::seams::{Ink, Request};
 use super::sheet::Sheet;
 use super::view::SettingsView;
@@ -9,9 +10,10 @@ use flea::keys::SHEET_GROUPS;
 use flea::ui_logic_st1::{caps, sheet::match_of};
 use gpui::{
     div, linear_color_stop, linear_gradient, prelude::*, px, AnyElement, Context, Div,
-    EventEmitter, FocusHandle, FontWeight, KeyDownEvent, Render, ScrollWheelEvent, SharedString,
-    Stateful, Window,
+    EventEmitter, FocusHandle, FontWeight, KeyDownEvent, Render, SharedString, Stateful, Window,
 };
+
+mod scroll;
 
 // Board keymap: a 628 by 684 card padded 16, the key column 117 plus a 5px margin, columns 14 apart, 19px headings over 25px rows.
 pub const SHEET_W: f32 = 628.;
@@ -33,6 +35,8 @@ pub struct SheetView {
     pub typeface: Typeface,
     /// The compositor's rounding, a seam for the theme service as Facts.corner is for Settings.
     pub corner: f32,
+    /// The scrolled body and its content as the latest frame laid them out.
+    pub probe: Probe,
 }
 
 impl EventEmitter<Request> for SheetView {}
@@ -44,6 +48,7 @@ impl SheetView {
             focus: cx.focus_handle(),
             typeface: Typeface::omarchy_default(),
             corner: 8.,
+            probe: Probe::default(),
         }
     }
 
@@ -85,7 +90,7 @@ impl SheetView {
     }
 
     /// The groups split into two columns at the first group that would pass half the rows, each faded at its foot.
-    fn columns(&self, ink: &Ink) -> Div {
+    fn columns(&self, ink: &Ink, cx: &mut Context<Self>) -> Stateful<Div> {
         let catalog = &self.sheet.catalog;
         let mut columns: [Vec<AnyElement>; 2] = [Vec::new(), Vec::new()];
         let half = self.sheet.rows.len().div_ceil(2);
@@ -133,38 +138,30 @@ impl SheetView {
                 );
             }
         }
-        let fade = || {
-            div()
-                .absolute()
-                .left_0()
-                .right_0()
-                .bottom_0()
-                .h(px(COLUMN_FADE))
-                .bg(linear_gradient(
-                    180.,
-                    linear_color_stop(ink.surface.opacity(0.), 0.),
-                    linear_color_stop(ink.surface, 1.),
-                ))
-        };
         let [left, right] = columns;
-        let column = |rows: Vec<AnyElement>| {
-            div()
-                .relative()
-                .flex_1()
-                .min_w_0()
-                .h_full()
-                .overflow_hidden()
-                .child(div().flex().flex_col().children(rows))
-                .child(fade())
-        };
-        div()
-            .flex_1()
-            .min_h_0()
+        let column =
+            |rows: Vec<AnyElement>| div().flex_1().min_w_0().flex().flex_col().children(rows);
+        let grid = div()
             .flex()
             .items_start()
             .gap(px(COL_GAP))
             .child(column(left))
-            .child(column(right))
+            .child(column(right));
+        let fade = div()
+            .absolute()
+            .left_0()
+            .right_0()
+            .bottom_0()
+            .h(px(COLUMN_FADE))
+            .bg(linear_gradient(
+                180.,
+                linear_color_stop(ink.surface.opacity(0.), 0.),
+                linear_color_stop(ink.surface, 1.),
+            ));
+        let below = self.most() - self.sheet.scroll > 1.;
+        self.body(grid, cx)
+            .id("sheet-rest")
+            .when(below, |body| body.child(fade))
     }
 
     /// The ranked rows at the card's full width: the hit row hovered with its run bold, a dead row dimmed with its reason.
@@ -232,31 +229,9 @@ impl SheetView {
                     )
                 })
         });
-        let scroll = self.sheet.scroll;
-        div()
-            .id("sheet-results")
-            .flex_1()
-            .min_h_0()
+        self.body(div().flex().flex_col().children(rows), cx)
             .mx(px(-PAD))
-            .relative()
-            .overflow_hidden()
-            .on_scroll_wheel(cx.listener(|view, event: &ScrollWheelEvent, window, cx| {
-                let delta = f32::from(event.delta.pixel_delta(window.line_height()).y);
-                let most =
-                    (view.sheet.ranked.len() as f32 * KEY_ROW - view.viewport(window)).max(0.);
-                view.sheet.scroll = (view.sheet.scroll - delta).clamp(0., most);
-                cx.notify();
-            }))
-            .child(
-                div()
-                    .absolute()
-                    .left_0()
-                    .right_0()
-                    .top(px(-scroll))
-                    .flex()
-                    .flex_col()
-                    .children(rows),
-            )
+            .id("sheet-results")
     }
 
     /// The results' height inside a card fitted to this window.
@@ -292,10 +267,7 @@ impl Render for SheetView {
             .unwrap_or_default();
         let ink = Ink::inherited(&window.text_style(), theme);
         let searching = !self.sheet.query.is_empty();
-        if searching {
-            let viewport = self.viewport(window);
-            self.sheet.reveal(viewport, KEY_ROW);
-        }
+        self.laid_out(window);
         let viewport = window.viewport_size();
         let (left, top, card_w, card_h) =
             card_rect(f32::from(viewport.width), f32::from(viewport.height));
@@ -350,7 +322,7 @@ impl Render for SheetView {
             )
             .child(self.results(&ink, cx))
         } else {
-            card.child(self.columns(&ink))
+            card.child(self.columns(&ink, cx))
         };
         let card = marks::card(card);
         marks::ground(

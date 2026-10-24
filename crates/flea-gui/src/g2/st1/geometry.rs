@@ -117,11 +117,11 @@ pub fn card_size(window_w: f32, window_h: f32, view_h: f32) -> (f32, f32) {
     )
 }
 
-/// The pane's inside: the card less its frame and the rail across, less the head and the foot down.
+/// The pane's inside: the card less its frame and the rail across, less the head, whose rule it holds, and the foot down.
 pub fn pane_size(card_w: f32, card_h: f32) -> (f32, f32) {
     (
         card_w - 2. * BORDER - RAIL_W,
-        card_h - 2. * BORDER - HEAD_H - BORDER - PANE_FOOT,
+        card_h - 2. * BORDER - HEAD_H - PANE_FOOT,
     )
 }
 
