@@ -12,6 +12,7 @@ pub mod locale;
 #[cfg(test)]
 mod locale_tests;
 pub mod navigate;
+pub mod network;
 pub(crate) mod output;
 pub mod overlay;
 pub(crate) mod pane;
