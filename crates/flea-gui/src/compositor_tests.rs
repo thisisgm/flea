@@ -157,3 +157,80 @@ fn m9_corner_socket_loss_returns_to_square_and_drop_closes_reader() {
     drop(service);
     assert_eq!(stream.read(&mut [0]).unwrap(), 0);
 }
+
+fn accept(listener: &std::os::unix::net::UnixListener) -> UnixStream {
+    listener.set_nonblocking(true).unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        match listener.accept() {
+            Ok((stream, _)) => return stream,
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "subscription must reconnect"
+                );
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Err(error) => panic!("{error}"),
+        }
+    }
+}
+
+#[test]
+fn m9_corner_non_utf8_event_does_not_lose_reload() {
+    use std::{io::Write, os::unix::net::UnixListener, sync::mpsc};
+    let root = Fixture::new();
+    root.answer(r#"{"int":0}"#);
+    let socket = root.socket();
+    let listener = UnixListener::bind(&socket).unwrap();
+    let (send, updates) = mpsc::channel();
+    let _service = Service::at(Some(socket), root.command(0), move |value| {
+        send.send(value).is_ok()
+    })
+    .unwrap();
+    let mut stream = accept(&listener);
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 0.);
+    root.answer(r#"{"int":8}"#);
+    stream
+        .write_all(b"activewindow>>caf\xe9\nconfigreloaded>>\n")
+        .unwrap();
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 8.);
+    assert!(
+        updates.try_recv().is_err(),
+        "invalid text must not publish a socket-loss default"
+    );
+}
+
+#[test]
+fn m9_corner_missing_and_lost_socket_reconnects_and_rereads() {
+    use std::{
+        io::{Read, Write},
+        os::unix::net::UnixListener,
+        sync::mpsc,
+    };
+    let root = Fixture::new();
+    root.answer(r#"{"int":0}"#);
+    let socket = root.socket();
+    let (send, updates) = mpsc::channel();
+    let service = Service::at(Some(socket.clone()), root.command(0), move |value| {
+        send.send(value).is_ok()
+    })
+    .unwrap();
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 0.);
+    root.answer(r#"{"int":8}"#);
+    let listener = UnixListener::bind(&socket).unwrap();
+    let stream = accept(&listener);
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 8.);
+    drop(stream);
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 0.);
+    let mut stream = accept(&listener);
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 8.);
+    root.answer(r#"{"int":0}"#);
+    stream.write_all(b"configreloaded>>\n").unwrap();
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 0.);
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    drop(service);
+    assert_eq!(stream.read(&mut [0]).unwrap(), 0);
+}

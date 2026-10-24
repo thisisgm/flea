@@ -1,6 +1,6 @@
-use super::{frames, painted};
+use super::{frames, mounted, painted};
 use crate::g2::{op1, op3::shell::*, pl1};
-use gpui::{point, prelude::*, px, Context, Render, TestAppContext, Window};
+use gpui::{point, prelude::*, px, AppContext, Context, Render, TestAppContext, Window};
 use std::{rc::Rc, sync::Arc};
 
 struct Idle;
@@ -10,16 +10,16 @@ impl pl1::process::Runner for Idle {
     }
 }
 
-struct Operations(Card, f32, f32);
+struct Operations(Card, gpui::Entity<crate::state::Shell>, f32);
 impl Render for Operations {
-    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let palette =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         let face = crate::list::Typeface {
             body: px(self.2),
             ..crate::list::Typeface::omarchy_default()
         };
-        StandIn.present(&self.0, &palette, &face, self.1, 1100.)
+        StandIn.present(&self.0, &palette, &face, self.1.read(cx).corner, 1100.)
     }
 }
 
@@ -68,8 +68,9 @@ fn controls() -> Card {
 }
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
-    let (view, vcx) =
-        cx.add_window_view(|_, cx| pl1::view::UnlockView::new(Arc::default(), Rc::new(Idle), cx));
+    let (shell, view, vcx) = mounted(cx, |_, _, cx| {
+        cx.new(|cx| pl1::view::UnlockView::new(Arc::default(), Rc::new(Idle), cx))
+    });
     vcx.update(|window, cx| {
         view.update(cx, |view, cx| {
             view.open_for("/dev/test", "Encrypted", 0, "crypto_LUKS", window, cx);
@@ -79,7 +80,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             cx.notify();
         })
     });
-    frames("unlock-card-password-buttons", vcx, corner, &[]);
+    frames("unlock-card-password-buttons", &shell, vcx, corner, &[]);
     let (scale, quads) = painted(vcx);
     let button = quads
         .iter()
@@ -103,7 +104,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         None,
         gpui::Modifiers::default(),
     );
-    frames("unlock-pointer-wash", vcx, corner, &[]);
+    frames("unlock-pointer-wash", &shell, vcx, corner, &[]);
     let (_, quads) = painted(vcx);
     assert!(
         quads.iter().any(|quad| {
@@ -143,22 +144,29 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     ];
     for body in [14., 18.] {
         for (name, card) in &cards {
-            let (_, vcx) = cx.add_window_view(|_, _| Operations(card.clone(), corner, body));
+            let (shell, _, vcx) = mounted(cx, |_, _, cx| {
+                let shell = cx.entity();
+                cx.new(|_| Operations(card.clone(), shell, body))
+            });
             let side = CHECK * body / BOARD_BODY;
-            frames(name, vcx, corner, &[side, side + 4.]);
+            frames(name, &shell, vcx, corner, &[side, side + 4.]);
         }
     }
-    let (view, vcx) = cx.add_window_view(|window, _| {
+    let (shell, view, vcx) = mounted(cx, |shell, window, cx| {
         let palette =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
-        op1::host::Overlay::new(
-            Arc::default(),
-            op1::palette::CardPalette::from_list(&palette, corner),
-            "default",
-        )
+        let view = cx.new(|_| {
+            op1::host::Overlay::new(
+                Arc::default(),
+                op1::palette::CardPalette::from_list(&palette, shell.corner),
+                "default",
+            )
+        });
+        shell.overlay = Some(view.clone());
+        view
     });
     view.update(vcx, |view, cx| view.copy_to(0, false, "/files", cx));
-    frames("copy-to-card-field-buttons", vcx, corner, &[]);
+    frames("copy-to-card-field-buttons", &shell, vcx, corner, &[]);
     view.update(vcx, |view, cx| {
         view.model.dialog = None;
         view.model.jobs.update(flea::ui_logic_op1::JobRow {
@@ -173,5 +181,5 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     painted(vcx);
     vcx.executor()
         .advance_clock(std::time::Duration::from_millis(200));
-    frames("operation-jobs-card", vcx, corner, &[]);
+    frames("operation-jobs-card", &shell, vcx, corner, &[]);
 }

@@ -13,7 +13,7 @@ mod plugins;
 mod review_tests;
 #[cfg(test)]
 mod service_tests;
-mod store;
+pub(crate) mod store;
 mod update;
 pub(crate) use store::SessionStore;
 
@@ -114,13 +114,16 @@ impl Shell {
         }));
     }
 
-    pub(super) fn apply_corner(
+    pub(crate) fn apply_corner(
         &mut self,
         corner: f32,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let corner = crate::compositor::valid_corner(f64::from(corner));
+        let corner = self
+            .visual
+            .scene_corner
+            .unwrap_or_else(|| crate::compositor::valid_corner(f64::from(corner)));
         self.corner = corner;
         cx.set_global(crate::compositor::Corner(corner));
         if let Some(view) = &self.settings.panel {
@@ -148,6 +151,29 @@ impl Shell {
         if let Some(view) = &self.overlay {
             view.update(cx, |view, cx| {
                 view.palette.radius = corner;
+                cx.notify();
+            });
+        }
+        if let Some(view) = &self.chrome.view {
+            let path = view.read(cx).path.clone();
+            path.update(cx, |view, cx| {
+                view.corner = corner;
+                cx.notify();
+            });
+            view.update(cx, |view, cx| {
+                view.inputs.corner = corner;
+                cx.notify();
+            });
+        }
+        if let Some(join) = &self.rail {
+            join.places.update(cx, |view, cx| {
+                view.model.borrow_mut().corner = corner;
+                cx.notify();
+            });
+        }
+        if let Some(host) = &self.trash {
+            host.pane.update(cx, |view, cx| {
+                view.paint.borrow_mut().ink.radius = gpui::px(corner);
                 cx.notify();
             });
         }

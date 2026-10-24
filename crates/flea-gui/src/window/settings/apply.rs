@@ -83,7 +83,7 @@ impl Shell {
         }
     }
 
-    pub(super) fn receive_settings(
+    pub(crate) fn receive_settings(
         &mut self,
         update: store::Update,
         window: &mut Window,

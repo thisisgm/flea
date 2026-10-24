@@ -84,3 +84,12 @@ fn m9_corner_tui_zero_is_square() {
 fn m9_corner_tui_eight_is_rounded() {
     assert!(rounding(r#"{"int":8,"set":true}"#));
 }
+
+#[test]
+fn m9_corner_tui_successful_command_is_rounded() {
+    let root = Fixture::new();
+    let program = root.0.join("hyprctl");
+    std::fs::write(&program, "#!/bin/sh\nprintf '{\"int\":8}'\nexit 0\n").unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(read_rounding(&mut Command::new(program)));
+}

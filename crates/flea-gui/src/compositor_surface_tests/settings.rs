@@ -1,10 +1,10 @@
-use super::frames;
-use crate::g2::{st1, st2};
+use super::{frames, mounted};
+use crate::g2::st2;
 use flea::ui_logic_st2::{
     builtin, schema, store,
     wire::{self, Listing, Plugin, Source},
 };
-use gpui::{px, size, TestAppContext};
+use gpui::{px, size, AppContext, TestAppContext};
 use std::{rc::Rc, sync::Arc};
 
 struct Wire;
@@ -15,43 +15,34 @@ impl st2::seam::PluginsWire for Wire {
 }
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
-    let (_, vcx) = cx.add_window_view(|_, cx| {
-        let mut panel = st1::Panel::new(
-            Box::new(st1::MemoryStore::new(flea::uischema::defaults())),
-            st1::Facts {
-                corner,
-                ..Default::default()
-            },
-            Arc::default(),
-        );
-        panel.show_section("display");
-        st1::SettingsView::new(panel, cx)
-    });
-    vcx.simulate_resize(size(px(1100.), px(700.)));
-    frames("settings-card-chips-checkboxes", vcx, corner, &[18.]);
-    let (_, vcx) = cx.add_window_view(|_, cx| {
-        let mut panel = st1::Panel::new(
-            Box::new(st1::MemoryStore::new(flea::uischema::defaults())),
-            st1::Facts {
-                corner,
-                ..Default::default()
-            },
-            Arc::default(),
-        );
-        panel.query = Some("font".into());
-        st1::SettingsView::new(panel, cx)
-    });
-    frames("settings-search-field", vcx, corner, &[18.]);
-    let (_, vcx) = cx.add_window_view(|_, cx| {
-        let mut view = st1::SheetView::new(
-            st1::Sheet::new("default", Arc::default(), st1::Sources::default()),
-            cx,
-        );
-        view.corner = corner;
-        view.sheet.query = "copy".into();
+    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+        shell.open_settings(window, cx);
+        let view = shell.settings.panel.clone().unwrap();
+        view.update(cx, |view, _| view.panel.show_section("display"));
         view
     });
-    frames("keyboard-sheet-and-query", vcx, corner, &[]);
+    vcx.simulate_resize(size(px(1100.), px(700.)));
+    frames(
+        "settings-card-chips-checkboxes",
+        &shell,
+        vcx,
+        corner,
+        &[18.],
+    );
+    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+        shell.open_settings(window, cx);
+        let view = shell.settings.panel.clone().unwrap();
+        view.update(cx, |view, _| view.panel.query = Some("font".into()));
+        view
+    });
+    frames("settings-search-field", &shell, vcx, corner, &[18.]);
+    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+        shell.open_sheet(window, cx);
+        let view = shell.settings.sheet.clone().unwrap();
+        view.update(cx, |view, _| view.sheet.query = "copy".into());
+        view
+    });
+    frames("keyboard-sheet-and-query", &shell, vcx, corner, &[]);
     let state = flea::uischema::defaults();
     let mut plugins: Vec<Plugin> = builtin::manifests()
         .into_iter()
@@ -76,22 +67,26 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         shelf: None,
     });
     let listing = wire::listing_line(&Listing { id: 1, plugins });
-    let (view, vcx) = cx.add_window_view(|window, cx| {
+    let (shell, view, vcx) = mounted(cx, |shell, window, cx| {
         let theme = crate::palette::Theme::default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        st2::view::PluginsPane::new(
-            Arc::default(),
-            Rc::new(Wire),
-            st2::seam::Tokens::interim(&palette),
-            corner,
-            cx,
-        )
+        let view = cx.new(|cx| {
+            st2::view::PluginsPane::new(
+                Arc::default(),
+                Rc::new(Wire),
+                st2::seam::Tokens::interim(&palette),
+                shell.corner,
+                cx,
+            )
+        });
+        shell.settings.plugins = Some(view.clone());
+        view
     });
     vcx.simulate_resize(size(px(462.), px(656.)));
     view.update(vcx, |view, cx| view.receive(&listing, cx));
-    frames("plugins-checkboxes", vcx, corner, &[18.]);
+    frames("plugins-checkboxes", &shell, vcx, corner, &[18.]);
     view.update(vcx, |view, cx| view.key(st2::page::Key::Enter, cx));
-    frames("plugins-add-card-field-buttons", vcx, corner, &[]);
+    frames("plugins-add-card-field-buttons", &shell, vcx, corner, &[]);
     view.update(vcx, |view, cx| {
         view.key(st2::page::Key::Escape, cx);
         for _ in 0..view.page().rows().len() {
@@ -108,7 +103,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             .iter()
             .any(|row| matches!(row, flea::ui_logic_st2::pages::Row::Choice { .. })));
     });
-    frames("plugins-choice-chips", vcx, corner, &[18.]);
+    frames("plugins-choice-chips", &shell, vcx, corner, &[18.]);
     view.update(vcx, |view, cx| {
         for _ in 0..view.page().rows().len() {
             if view.page().cursor().is_some_and(|at| {
@@ -125,5 +120,5 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         view.key(st2::page::Key::Enter, cx);
         assert!(matches!(view.page().card(), st2::page::Card::Remove { .. }));
     });
-    frames("plugins-remove-card-buttons", vcx, corner, &[]);
+    frames("plugins-remove-card-buttons", &shell, vcx, corner, &[]);
 }
