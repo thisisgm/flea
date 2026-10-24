@@ -187,6 +187,13 @@ impl Shell {
             background,
         };
         let facts = row.and_then(|row| host.pane.held.row(row));
+        // Print, Convert and Combine Images read the marked rows' output kinds.
+        let kinds = capture
+            .rows
+            .iter()
+            .filter_map(|&row| host.pane.held.row(row).map(crate::window::output::kind))
+            .collect::<Vec<_>>();
+        let image = flea::ui_logic_op4::output::Kind::Image;
         self.menu.context = MenuContext {
             has_row: !background,
             selection_count: capture.rows.len(),
@@ -194,6 +201,11 @@ impl Shell {
             row_is_file: facts.is_some_and(|r| !r.dir),
             row_is_symlink: facts.is_some_and(|r| r.link.is_some()),
             row_name: facts.map_or_else(String::new, |r| r.name.clone()),
+            row_is_image: facts.is_some_and(|r| crate::window::output::kind(r) == image),
+            selection_images: kinds.iter().filter(|&&kind| kind == image).count(),
+            printable: kinds.len() == capture.rows.len()
+                && flea::ui_logic_op4::output::can_print(&kinds),
+            can_convert: self.output.convert[side] != Some(false),
             selection_modes: capture
                 .rows
                 .iter()

@@ -79,6 +79,7 @@ impl Shell {
             host.translated(&locale);
         }
         self.locale = locale;
+        self.output_translated(cx);
         self.settings_translated(cx);
         if let Some(chrome) = &self.chrome.view {
             let path = chrome.read_with(cx, |view, _| view.path.clone());
@@ -107,6 +108,9 @@ impl Shell {
             if self.search_line(side, line, window, cx) {
                 return;
             }
+        }
+        if self.output_event(side, &event, cx) {
+            return;
         }
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained) {
             self.search_leave(side, window, cx);
