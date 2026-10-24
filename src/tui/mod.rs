@@ -229,7 +229,9 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             // A held frame's deadline may cut the input wait short, never lengthen it.
             let input_wait = wait::poll_wait_ms(terminal.decoder.waiting(), last_input.elapsed(), timeout);
             let input_wait = terminal.decoder.negotiation.wait_ms(std::time::Instant::now(), input_wait);
-            let bytes = terminal.read(wire.wake_fd(), hold.wait_ms(&model, std::time::Instant::now(), started, input_wait))?;
+            let now = std::time::Instant::now();
+            let input_wait = hold.wait_ms(&model, now, started, input_wait);
+            let bytes = terminal.read(wire.wake_fd(), wait::next_wait_ms(&model, size, now, input_wait))?;
             if terminal.take_resumed() { frame.clear(); }
             wire.drain_wake();
             if !bytes.is_empty() {

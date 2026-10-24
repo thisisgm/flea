@@ -121,3 +121,6 @@ mod u07_tap_tests;
 
 #[cfg(test)]
 mod native31_tests;
+
+#[cfg(test)]
+mod caption_loop_tests;
