@@ -27,7 +27,7 @@ impl Render for Menu {
 }
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
-    let (shell, view, vcx) = mounted(cx, |shell, _, cx| {
+    let (shell, view, vcx) = mounted(cx, corner, |shell, _, cx| {
         let path = cx.new(|cx| {
             let mut path = path::view::PathView::new(
                 Arc::default(),
@@ -81,7 +81,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             ..Default::default()
         }],
     }];
-    let (shell, view, vcx) = mounted(cx, |shell, _, cx| {
+    let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.mount_rail(cx);
         let view = cx.new(|cx| {
             pl4::producer::Producer::from_sections(
@@ -92,13 +92,15 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             )
         });
         shell.rail.as_mut().unwrap().places = view.clone();
+        // Shell render syncs the rail before its first paint; run that production step here.
+        shell.sync_rail(window, cx);
         view
     });
     view.update(vcx, |view, cx| {
         assert!(view.start_rename(0, cx));
     });
     frames("rail-rename-field", &shell, vcx, corner, &[]);
-    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+    let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         let menu = shell.menu.menu.clone();
         let catalog = flea::i18n::I18n::default();
         let typeface = Typeface::omarchy_default();
@@ -133,7 +135,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         cx.new(|_| Menu(shell, false))
     });
     frames("context-menu-and-flyout", &shell, vcx, corner, &[]);
-    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+    let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.mount_trash(window, cx);
         let view = shell.trash.as_ref().unwrap().pane.clone();
         view.update(cx, |view, cx| {
@@ -143,7 +145,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         view
     });
     frames("trash-strip-button", &shell, vcx, corner, &[]);
-    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+    let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.mount_trash(window, cx);
         shell.trash.as_ref().unwrap().pane.update(cx, |pane, cx| {
             pane.monitor_start = None;
@@ -200,7 +202,7 @@ impl Render for Scroller {
 }
 
 fn scrollbar(cx: &mut TestAppContext, corner: f32) {
-    let (shell, view, vcx) = mounted(cx, |shell, _, cx| {
+    let (shell, view, vcx) = mounted(cx, corner, |shell, _, cx| {
         shell.panes[0]
             .as_mut()
             .unwrap()
@@ -212,13 +214,17 @@ fn scrollbar(cx: &mut TestAppContext, corner: f32) {
             height: 600.,
         })
     });
+    let mut mount = true;
     for height in [600., 4.] {
         view.update(vcx, |view, cx| {
             view.height = height;
             cx.notify();
         });
-        for radius in [8. - corner, corner] {
-            update(&shell, vcx, radius);
+        for radius in [corner, 8. - corner, corner] {
+            // The first paint uses the corner the thumb took at mount.
+            if !std::mem::take(&mut mount) {
+                update(&shell, vcx, radius);
+            }
             let (scale, quads) = painted(vcx);
             let thumbs: Vec<_> = quads
                 .iter()

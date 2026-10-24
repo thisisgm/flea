@@ -11,6 +11,10 @@ use std::{
 };
 
 pub(crate) const CORNER_DEFAULT: f32 = 0.;
+// The first wait before a lost or missing socket2 subscription is retried.
+const RECONNECT_FIRST: Duration = Duration::from_millis(50);
+// The longest wait between subscription retries.
+const RECONNECT_CAP: Duration = Duration::from_secs(1);
 
 #[derive(Default)]
 pub(crate) struct Corner(pub f32);
@@ -89,7 +93,7 @@ impl Service {
             .name("flea-compositor".into())
             .spawn(move || {
                 let mut first = true;
-                let mut backoff = Duration::from_millis(50);
+                let mut backoff = RECONNECT_FIRST;
                 loop {
                     // Subscribe before reading so a reload racing the query is not lost.
                     let stream = path
@@ -107,19 +111,22 @@ impl Service {
                     }
                     first = false;
                     if let Some(stream) = stream {
-                        backoff = Duration::from_millis(50);
+                        backoff = RECONNECT_FIRST;
                         let mut reader = BufReader::new(stream);
                         let mut line = Vec::new();
                         loop {
                             line.clear();
                             match reader.read_until(b'\n', &mut line) {
                                 Ok(0) | Err(_) => break,
-                                Ok(_) => {
-                                    if reload(&line) && !publish(read(&mut Command::new(&command)))
+                                Ok(_) if reload(&line) => {
+                                    // A reload still buffered after Drop is never acted on.
+                                    if control.0.lock().unwrap().stopped
+                                        || !publish(read(&mut Command::new(&command)))
                                     {
                                         return;
                                     }
                                 }
+                                Ok(_) => {}
                             }
                         }
                         let mut state = control.0.lock().unwrap();
@@ -143,7 +150,7 @@ impl Service {
                     if state.stopped {
                         return;
                     }
-                    backoff = (backoff * 2).min(Duration::from_secs(1));
+                    backoff = (backoff * 2).min(RECONNECT_CAP);
                 }
             })?;
         Ok(service)

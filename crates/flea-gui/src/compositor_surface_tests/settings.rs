@@ -15,7 +15,7 @@ impl st2::seam::PluginsWire for Wire {
 }
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
-    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+    let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.open_settings(window, cx);
         let view = shell.settings.panel.clone().unwrap();
         view.update(cx, |view, _| view.panel.show_section("display"));
@@ -29,14 +29,14 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         corner,
         &[18.],
     );
-    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+    let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.open_settings(window, cx);
         let view = shell.settings.panel.clone().unwrap();
         view.update(cx, |view, _| view.panel.query = Some("font".into()));
         view
     });
     frames("settings-search-field", &shell, vcx, corner, &[18.]);
-    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+    let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.open_sheet(window, cx);
         let view = shell.settings.sheet.clone().unwrap();
         view.update(cx, |view, _| view.sheet.query = "copy".into());
@@ -67,7 +67,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         shelf: None,
     });
     let listing = wire::listing_line(&Listing { id: 1, plugins });
-    let (shell, view, vcx) = mounted(cx, |shell, window, cx| {
+    let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
         let theme = crate::palette::Theme::default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let view = cx.new(|cx| {

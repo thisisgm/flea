@@ -68,7 +68,7 @@ fn controls() -> Card {
 }
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
-    let (shell, view, vcx) = mounted(cx, |_, _, cx| {
+    let (shell, view, vcx) = mounted(cx, corner, |_, _, cx| {
         cx.new(|cx| pl1::view::UnlockView::new(Arc::default(), Rc::new(Idle), cx))
     });
     vcx.update(|window, cx| {
@@ -144,7 +144,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     ];
     for body in [14., 18.] {
         for (name, card) in &cards {
-            let (shell, _, vcx) = mounted(cx, |_, _, cx| {
+            let (shell, _, vcx) = mounted(cx, corner, |_, _, cx| {
                 let shell = cx.entity();
                 cx.new(|_| Operations(card.clone(), shell, body))
             });
@@ -152,7 +152,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             frames(name, &shell, vcx, corner, &[side, side + 4.]);
         }
     }
-    let (shell, view, vcx) = mounted(cx, |shell, window, cx| {
+    let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
         let palette =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         let view = cx.new(|_| {

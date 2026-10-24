@@ -25,8 +25,11 @@ fn frames(
     corner: f32,
     checks: &[f32],
 ) {
-    for value in [8. - corner, corner] {
-        update(shell, cx, value);
+    // The first frame is the corner the surface took at mount, before any live update.
+    for (index, value) in [corner, 8. - corner, corner].into_iter().enumerate() {
+        if index > 0 {
+            update(shell, cx, value);
+        }
         assert_frames(name, cx, value, checks);
     }
 }
@@ -93,6 +96,7 @@ impl<V: Render> Render for Mounted<V> {
 
 fn mounted<V: Render>(
     cx: &mut TestAppContext,
+    corner: f32,
     build: impl FnOnce(&mut Shell, &mut Window, &mut Context<Shell>) -> Entity<V>,
 ) -> (Entity<Shell>, Entity<V>, &mut VisualTestContext) {
     let (backend, _requests) = crate::backend::Backend::test_channel();
@@ -102,7 +106,15 @@ fn mounted<V: Render>(
             shell.launch.settings.data = flea::uischema::defaults();
             shell
         });
-        let view = shell.update(cx, |shell, cx| build(shell, window, cx));
+        // The compositor answers before the surface mounts, as in production.
+        let view = shell.update(cx, |shell, cx| {
+            shell.receive_settings(
+                crate::window::settings::store::Update::Corner(corner),
+                window,
+                cx,
+            );
+            build(shell, window, cx)
+        });
         let watch = cx.observe(&shell, |_, _, cx| cx.notify());
         Mounted {
             shell,
