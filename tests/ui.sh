@@ -1,17 +1,30 @@
 #!/usr/bin/env bash
-. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
-. "$(dirname "${BASH_SOURCE[0]}")/lib/flea-transport.sh"
 # Drives the selected frontend's real window and asserts through its read-only IPC seam.
 # Usage: ./tests/ui.sh [case ...]; with no args it runs the default wanted list below; every case_* here or in a sourced tests/ui-*.sh outside it runs only by name (touchpad, networklive and xwdrag among them).
 set -u
 set -o pipefail
-# Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
-. "$(dirname "$0")/../tools/flea-sandbox-guard"
 
 fail() {
     printf 'FAIL: %s\n' "$*" >&2
     exit 1
 }
+
+# Select the driver before any compositor, session, fixture or native evidence setup.
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+test_frontend=${FLEA_TEST_FRONTEND:-qml}
+ui_driver=${FLEA_UI_DRIVER:-native}
+case "$test_frontend" in qml|gpui) ;; *) fail "unknown test frontend: $test_frontend" ;; esac
+case "$ui_driver" in
+    native) ;;
+    headless)
+        exec python3 -B "$repo/tests/lib/flea_uish_inventory.py" --repo "$repo" --headless -- "$@"
+        ;;
+    *) fail "unknown UI driver: $ui_driver" ;;
+esac
+. "$repo/tools/flea-ipc"
+. "$repo/tests/lib/flea-transport.sh"
+# Hard rule 9's guard owns every fixture create and delete in the native suite.
+. "$repo/tools/flea-sandbox-guard"
 
 . "$(dirname "$0")/lib/hypr-dispatch.sh"
 hypr_pointer_frame_offset=1
@@ -19,8 +32,6 @@ hypr_center_divisor=2
 
 export PATH="$HOME/.local/bin:$PATH"
 eval "$(omarchy-drive env)"
-test_frontend=${FLEA_TEST_FRONTEND:-qml}
-case "$test_frontend" in qml|gpui) ;; *) fail "unknown test frontend: $test_frontend" ;; esac
 # omarchy-drive env omits the Qt platform theme, without which no icon name resolves; the session publishes it here.
 # Omarchy sets this with hl.env in /usr/share/omarchy/default/hypr/envs.lua, so it reaches a client
 # Hyprland launched and is not necessarily in the systemd user environment at all. Both are read, and
@@ -46,7 +57,6 @@ fi
 [[ -n "$QT_QPA_PLATFORMTHEME" ]] || fail "no session, and no running client, published QT_QPA_PLATFORMTHEME, so every row would draw no icon at all"
 fi
 
-repo="$(cd "$(dirname "$0")/.." && pwd)"
 flea_ui="$repo/ui"
 # QML windows announce WorkerScript starts so the log gate can match Qt's null connect lines.
 . "$repo/tests/qslog-gate.sh"
@@ -92,7 +102,9 @@ drain_wait_s=30
 # Hard rule 9 covers writes, not only deletes: an overridable path that is truncated or written into
 # is the same hazard as one that is deleted, so both of these are pinned rather than taken from the
 # environment. Neither override had a caller.
-run_root=$(mktemp -d /tmp/flea-ui-run.XXXXXXXX) || fail "cannot create native evidence sandbox"
+[[ ! -L "$repo/.superpowers" && ! -L "$repo/.superpowers/m9-uish-01" ]] || fail "native evidence parent is a symlink"
+mkdir -p "$repo/.superpowers/m9-uish-01" || fail "cannot create run parent"
+run_root=$(mktemp -d "$repo/.superpowers/m9-uish-01/flea-ui-run.XXXXXXXX") || fail "cannot create native evidence sandbox"
 printf 'flea native evidence\n' > "$run_root/.flea-test-sandbox"
 export FLEA_TEST_RUN_ROOT="$run_root"
 export FLEA_TEST_WINDOWS_ROOT="$run_root/windows"
@@ -16002,10 +16014,17 @@ case_readme() {
 . "$repo/tests/ui-captures-b72.sh"
 . "$repo/tests/ui-captures-collide.sh"
 # ui:cap_gm_rail and ui:cap_gm_nethold run only by name: native display, uinput holds and screenshots cannot run headless.
+# GPUI modules load after every original oracle source; QML never loads overrides.
+. "$repo/tests/ui-uish/manifest.sh"
+flea_uish_load || fail "invalid GPUI override inventory"
 declare -a wanted=("$@")
 default_run=0
 [[ ${#wanted[@]} -ne 0 ]] || default_run=1
 [[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click clickedge ctrlclick shiftscroll querypaste viewrestart dd ddclick griddrop collide sortrestart foldersort duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden xwsettings selection watch xwwatch reload optical select colour lifted icons thumbs hashcache stale nosweep oem header columnresize columnautofit overflow focus railpointer dualautohidereveal preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject poweroff rename renamefirst renamelife renamefar taildrop providers grid columns columnsbackground operations tabs tabdrag openterminal makeexec renderer settings makedefault scrolllane clickthrough wheelunder overlays views formats previewviews reclick colroot colwatch hangshare hanglisting hanginspect openwithdesign noblank previewswap searchnoblank lookopen transferlive recent middleclick opentab xwundo folderviews hiddenlast marqueemargin relstart userthumbnailer dualtab dualdivider)
+
+for name in "${wanted[@]}"; do
+    declare -F "case_$name" >/dev/null || fail "unknown UI case: $name"
+done
 
 : > "$run_log"
 : > "$flea_log"
