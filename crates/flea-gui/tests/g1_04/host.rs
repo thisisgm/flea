@@ -128,16 +128,17 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.launch.settings.data = flea::jsondoc::parse(r#"{"keys":"vim"}"#).unwrap();
-            shell.key(&event("escape", None, false), window, cx);
+            // Eject has no runner yet, so its emission carries the pair state Escape used to show.
+            shell.key(&event("e", None, true), window, cx);
             shell.key(&event("y", Some("y"), false), window, cx);
-            shell.key(&event("escape", None, false), window, cx);
-            shell.key(&event("escape", None, false), window, cx);
+            shell.key(&event("e", None, true), window, cx);
+            shell.key(&event("e", None, true), window, cx);
         })
     });
     cx.run_until_parked();
     assert_eq!(
         *observed.borrow(),
-        vec![("escape", false), ("escape", true), ("escape", false),]
+        vec![("eject", false), ("eject", true), ("eject", false),]
     );
 }
 
@@ -251,14 +252,27 @@ fn a_busy_pane_swallows_a_plain_row_action(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn a_busy_pane_still_acts_on_the_answered_keys(cx: &mut TestAppContext) {
-    // Escape emits its action while a listing is out, F5 answers that one is loading, and Ctrl-3 switches the view inline.
+    // Escape runs while a listing is out, F5 answers that one is loading, and Ctrl-3 switches the view inline.
     let (cx, shell, observed, _subscription) = key_shell(cx, true);
     assert_busy(cx, &shell, true);
+    cx.update(|_, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.status_messages(cx, |messages, now| {
+                messages.say("Copied 1 item", false, "", flea::ui_logic_fb1::status::Hint::None, now)
+            })
+        })
+    });
     press(cx, &shell, "escape", None, Modifiers::default());
-    assert_eq!(*observed.borrow(), vec!["escape"]);
+    let notice = cx.update(|_, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.status_messages(cx, |messages, _| messages.notice().to_owned())
+        })
+    });
+    assert_eq!(notice, "", "Escape clears the notice on a busy pane");
+    assert!(observed.borrow().is_empty(), "the listing family runs Escape");
     assert_busy(cx, &shell, true);
     press(cx, &shell, "f5", None, Modifiers::default());
-    assert_eq!(*observed.borrow(), vec!["escape"]);
+    assert!(observed.borrow().is_empty());
     cx.update(|_, cx| {
         let shell = shell.read(cx);
         assert_eq!(

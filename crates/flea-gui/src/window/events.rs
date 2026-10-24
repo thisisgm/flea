@@ -255,6 +255,10 @@ impl Shell {
                 }
                 self.status_refused(&operation, &message, named, cx);
             }
+            BackendEvent::ReloadChanged(changed) => {
+                host.nav.reload_changed = Some(changed);
+                return;
+            }
             BackendEvent::Changed { path } => {
                 let now = host.pane.now();
                 host.nav.changed(&host.pane, &path, now);

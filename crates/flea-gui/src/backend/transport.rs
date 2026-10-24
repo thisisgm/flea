@@ -57,6 +57,14 @@ pub(super) fn parse(line: &str) -> Result<Event, String> {
     }
 }
 
+// The changed count a wantChanged re-list carries on its listed line.
+pub(super) fn reload_changed(event: &Event, line: &str) -> Option<usize> {
+    match event {
+        Event::Reply(Reply::Listed { .. }) => flea::json::field_usize(line, "changed"),
+        _ => None,
+    }
+}
+
 pub(super) fn write_rows(
     output: &mut impl Write,
     command: &str,

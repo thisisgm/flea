@@ -54,6 +54,7 @@ impl Shell {
         if self.keyboard.context != flea::keys::Context::Listing {
             return false;
         }
+        let climbs = action == "escape" && self.escape_climbs();
         let Some(host) = &mut self.panes[self.focus_side] else {
             return false;
         };
@@ -152,8 +153,10 @@ impl Shell {
                 host.input.shown.as_deref(),
                 true,
             ),
-            // Focus.js:187-193 unwinds filter, search, Recent, status and escape-up before escapePressed clears marks last; a later owner hooks in `key` before `input_action` (window/input.rs).
-            "escape" if !host.selected.is_empty() => host.input.selection.clear(&mut host.selected),
+            // Focus.js:187-193 unwinds filter, search, Recent, status and escape-up before escapePressed clears marks last; the climb is the listing family's (window/dispatch/listing.rs).
+            "escape" if !host.selected.is_empty() && !climbs => {
+                host.input.selection.clear(&mut host.selected)
+            }
             _ => return false,
         }
         host.input.pulled = None;

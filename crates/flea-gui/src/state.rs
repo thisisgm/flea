@@ -253,6 +253,8 @@ impl Shell {
         host.nav = crate::navigation::Navigator::new(folders, writer);
         let mut listing = host.nav.listing(&host.pane, &host.path.clone(), false);
         listing.select = host.select.clone();
+        // Pane.qml selects the asked row on load: the first landing selects and reveals it.
+        host.nav.pending_select = host.select.clone();
         #[cfg(test)]
         let started = constructor_fixture::start_backend(&listing, cx);
         #[cfg(not(test))]

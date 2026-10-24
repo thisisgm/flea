@@ -21,8 +21,17 @@ pub(super) fn open<'a>(
     cx: &'a mut TestAppContext,
     keys: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    open_with(cx, &format!(r#""keys":"{keys}","view":"list""#), None)
+}
+
+// The same launch with its own settings fields and a --select path.
+pub(super) fn open_with<'a>(
+    cx: &'a mut TestAppContext,
+    settings: &str,
+    select: Option<&str>,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
     let document = flea::jsondoc::parse(&format!(
-        r#"{{"keys":"{keys}","view":"list","places":{{"rail":"shown","showHome":true,"showTrash":true}}}}"#
+        r#"{{{settings},"places":{{"rail":"shown","showHome":true,"showTrash":true}}}}"#
     ))
     .unwrap();
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
@@ -30,7 +39,7 @@ pub(super) fn open<'a>(
         Settings::from_json(document, true),
         Arguments {
             path: Some("/files".into()),
-            select: None,
+            select: select.map(str::to_owned),
         },
         &home,
     );

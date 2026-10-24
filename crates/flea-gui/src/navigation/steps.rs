@@ -197,7 +197,24 @@ impl Navigator {
         if pane.busy() {
             return Err(Refusal::Busy);
         }
-        Ok(self.reread(pane, selected, true, false))
+        let asked = self.reread(pane, selected, true, false);
+        if asked {
+            self.reload_from = Some((pane.path().to_owned(), pane.held.total));
+            self.reload_changed = None;
+        }
+        Ok(asked)
+    }
+
+    // Reload.js landed: the backend's added plus removed count, else the net change, owes a notice when not zero.
+    pub(crate) fn land_reload(&mut self, pane: &Pane) {
+        let Some((path, from)) = self.reload_from.take() else {
+            return;
+        };
+        let changed = self.reload_changed.take();
+        if path == pane.path() {
+            let changed = changed.unwrap_or_else(|| pane.held.total.abs_diff(from));
+            self.reloaded = (changed > 0).then_some(changed);
+        }
     }
 
     // Reload.js begin past the wait: the stalled listing lets go as Anchor.clearWaiting does, then the folder waited on is asked again.
@@ -293,7 +310,9 @@ impl Navigator {
             return;
         }
         if let Some(target) = self.pending_select.take() {
-            anchor::apply_select(pane, &target, selected);
+            if anchor::apply_select(pane, &target, selected) {
+                self.landed = Some((pane.held.listing, pane.cursor));
+            }
         }
     }
 }

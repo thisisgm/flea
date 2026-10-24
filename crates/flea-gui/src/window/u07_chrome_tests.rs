@@ -119,10 +119,17 @@ fn u07_each_visible_toolbar_control_delivers_the_action_its_owner_knows(cx: &mut
         "owned filter is not dispatched twice"
     );
     let centre = read(&shell, cx, "chromeButtonCentre", &["sort"]);
+    let sorts = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().nav.counters.sorts
+    });
     press(cx, &centre, 1);
+    // The listing family runs sortNext, so the control's effect is the next order asked for.
     assert_eq!(
-        seen.borrow().last(),
-        Some(&"sortNext"),
+        shell.read_with(cx, |shell, _| {
+            let nav = &shell.panes[0].as_ref().unwrap().nav;
+            (nav.sort_mark(), nav.counters.sorts)
+        }),
+        ("size:asc".to_owned(), sorts + 1),
         "the sort control must deliver the action keys.toml names"
     );
     let up = read(&shell, cx, "chromeButtonCentre", &["arrow-up"]);
