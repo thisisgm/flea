@@ -41,8 +41,8 @@ impl Look {
     }
 
     /// The inherited roles of a window's text style, for a host with no theme tokens yet.
-    pub fn of_text(style: &gpui::TextStyle) -> Self {
-        Self::inherited(&Palette::inherited(style))
+    pub fn of_text(style: &gpui::TextStyle, theme: crate::palette::Theme) -> Self {
+        Self::inherited(&Palette::inherited(style, theme))
     }
 
     /// var(--hair): the foreground at 12%.
