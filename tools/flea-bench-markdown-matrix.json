@@ -745,7 +745,11 @@
       "files": [
         "notes.md",
         "bench.png"
-      ]
+      ],
+      "outputs": {
+        "notes.md": "c28522f780d0940fbd86bf66b54cf74d5e5c9522c5a6fb7442713a049f71645b",
+        "bench.png": "ee8a31a14c616779566a01c34bb9b9f4ab021ff07cf4216a189bc47edb3d93a4"
+      }
     },
     "kinds": {
       "source": "capture-recipes",
@@ -758,7 +762,16 @@
         "figures.md",
         "logo.png",
         "bands.png"
-      ]
+      ],
+      "outputs": {
+        "tables.md": "dbc83f506911c33d3412dfc5e6b6e303705c85a9a213d671f35fc5b9d54ebc9f",
+        "readme.md": "ec115a18c1389c8192b341e4313c3468135fbc4a24191487f61c1ecf1643c0c1",
+        "badges.md": "4139fa5809b94adfac2c4af1d3e3bc3aaed7eb1aafb575a124bc5d777218ccab",
+        "nesting.md": "a0b098644613cc7eed6f8e4cce203ee11fb6f7c66bef49b33c76cf49a2d7b2f3",
+        "figures.md": "4d106ec5b8aadcadc823277776fae9ffaa86be37e214a98605dfba1e8a3da9c8",
+        "logo.png": "2e6d3c3d8deb64cb6b3fed8e809423b77dd2fbb9118bd473691ac8945f35f746",
+        "bands.png": "2e6d3c3d8deb64cb6b3fed8e809423b77dd2fbb9118bd473691ac8945f35f746"
+      }
     },
     "fences": {
       "source": "capture-recipes",
@@ -774,7 +787,16 @@
       ],
       "source_dependencies": [
         "fixture-readme"
-      ]
+      ],
+      "outputs": {
+        "fence-lf.md": "2b252fefc82d29046f0a872815a59bd47998da35755dcadef1805537ac0eaa4a",
+        "fence-crlf.md": "796fcbcc752a5a6b0215c14c53dbc6504df542fa12eaf45fb474306c14be4457",
+        "fence-four.md": "03b07e1d0536eae50bc5765ee18d1aa5b66f39b5690cb0150a1bce0ce4b3020c",
+        "fence-item.md": "9ef6536db113693a0b35b729c24ab70b758620fa7d462da51aba1a9a896926bc",
+        "fence-readme.md": "620489093fb7a171ecd6277c1700dfb4b4dcae845d7e3b56e1a3099148369c43",
+        "fence-big.md": "bd0ab190083ae9c2d9c47cacf1afd13d34cd32016d47e1a5ccb6a91c517eddcf",
+        "fence-bigcrlf.md": "23e858b3c662595b60ff8efcf3783203947f06e14b66cd9b501666fa4bc9de4f"
+      }
     },
     "fences14": {
       "source": "capture-recipes",
@@ -787,7 +809,16 @@
         "fence14-tight.md",
         "fence14-indent.md",
         "fence14-long.md"
-      ]
+      ],
+      "outputs": {
+        "fence14-wide.md": "81f769dc889b9098ea894966e875eeb35365c0166af20b09107e540d1d7f8051",
+        "fence14-tags.md": "d6bc042a497ce9b319739fad840954b87054377ebb7ea2275d559c3c868e32bf",
+        "fence14-tabs.md": "3c9c72af83e7457dbf06b31de7429b75aefd8a1e15b32aba58226c2e30f53d15",
+        "fence14-open.md": "110c5a9aa6ff1786713eb5751069b575820480774a6f420cdad8951d3af1bc3e",
+        "fence14-tight.md": "30571eadb6da2f801c0d3d8f31bda50a6ede24d3d70801d79fc285749a053baa",
+        "fence14-indent.md": "0bd7be504735de73a57d2149a67ec1821e23fd931f6452ddc878445df83dd06b",
+        "fence14-long.md": "4f6bc302afdbfbc6eca13deb5f5c61ad24829fc3a7f017d5b45d343496181b2a"
+      }
     },
     "table-assets": {
       "source": "table-assets",
@@ -799,7 +830,15 @@
         "rows500.md",
         "chunkwide.md",
         "pair.md"
-      ]
+      ],
+      "outputs": {
+        "dot.png": "680660ec45d1a46a04bc420495333c392b14d118aabf42211e6914bc1fff8cb9",
+        "wide.png": "a7975003181d14b3373360974d53076202f93a74b2916228ff0f50fadf313b64",
+        "huge.png": "288d8d033f80e5e48f97139c79ec15ddbdede57c59a1c4eb037336740409fbcc",
+        "rows500.md": "378ccfb2cf1feb4d20c8d0ee1fff562e7d6d88c28b724dcc4b50a37426247c00",
+        "chunkwide.md": "b418983c49139f53731e4a65bd7c9b097baeb6eac209eaef3102efdd46566fd4",
+        "pair.md": "0aaa81570a8d2bf6b5c1b401fcd2d97efc897c9ffdd0ac3bb024864b2c410a8d"
+      }
     },
     "table-control": {
       "source": "nav-fixture",
@@ -818,7 +857,12 @@
         "math",
         "flowchart",
         "sequence"
-      ]
+      ],
+      "outputs": {
+        "math": "596da5fff611ba59c5ebf41f9735f265565876d055dfe392bb9390e85ec13215",
+        "flowchart": "f8b3b53d2c48fa87686b2bd1d9986567f164627b388f60b42bb34ded8bfb3306",
+        "sequence": "970695ee0505e3375c8ff06361b6230852cf318fdd948c64dc13a7dc3dfcb65d"
+      }
     },
     "specimen/preview-column": {
       "source": "preview-column-html",
