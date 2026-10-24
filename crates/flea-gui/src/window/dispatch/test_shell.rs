@@ -13,13 +13,30 @@ use flea::{
     protocol::{Reply, RowFacts},
 };
 use gpui::{
-    px, size, Entity, KeyDownEvent, Keystroke, Modifiers, TestAppContext, VisualTestContext,
+    px, size, AppContext, Entity, KeyDownEvent, Keystroke, Modifiers, TestAppContext,
+    VisualTestContext,
 };
 use std::{sync::Arc, time::Duration};
 
 pub(super) fn open<'a>(
     cx: &'a mut TestAppContext,
     keys: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    open_in(cx, keys, false)
+}
+
+// The same Shell under the window root, so the deferred cards over the panes draw as they do natively.
+pub(super) fn open_root<'a>(
+    cx: &'a mut TestAppContext,
+    keys: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    open_in(cx, keys, true)
+}
+
+fn open_in<'a>(
+    cx: &'a mut TestAppContext,
+    keys: &str,
+    root: bool,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
     let document = flea::jsondoc::parse(&format!(
         r#"{{"keys":"{keys}","view":"list","places":{{"rail":"shown","showHome":true,"showTrash":true}}}}"#
@@ -50,8 +67,14 @@ pub(super) fn open<'a>(
             monitor: None,
         })
     });
-    let (shell, cx) =
-        cx.add_window_view(|window, cx| Shell::new(launch, locale, events, window, cx));
+    let (shell, cx) = if root {
+        let (root, cx) = cx.add_window_view(|window, cx| crate::window::root::Root {
+            shell: cx.new(|cx| Shell::new(launch, locale, events, window, cx)),
+        });
+        (root.read_with(cx, |root, _| root.shell.clone()), cx)
+    } else {
+        cx.add_window_view(|window, cx| Shell::new(launch, locale, events, window, cx))
+    };
     // The folder memory writer only counts here, so no step reaches the real state file.
     shell.update(cx, |shell, _| {
         let writer = &shell.panes[0].as_ref().unwrap().nav.writer;

@@ -25,6 +25,7 @@ pub mod selection_preview;
 mod preview_text;
 mod preview_facts;
 mod preview_input;
+pub(crate) mod quick_look;
 pub mod root;
 pub(crate) mod search;
 pub mod settings;

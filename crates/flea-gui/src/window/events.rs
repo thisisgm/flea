@@ -51,6 +51,9 @@ impl Shell {
         {
             self.retire_menu(window, cx);
         }
+        if self.quick_look_line(side, &event, cx) {
+            return;
+        }
         if self.selection_preview_event(side, &event, window, cx) {
             return;
         }
