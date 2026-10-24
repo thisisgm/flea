@@ -57,10 +57,10 @@ pub const DEFAULTS: &str = r#"{
   "display": { "textSize": { "mode": "system" }, "hyprlandIcons": false },
   "menu": { "hidden": ["delete", "openTerminal", "placeMenu", "runScript",
             "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs",
-            "invertSelection", "extThumbs", "run", "openAsText"] },
+            "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "actions"] },
   "updates": { "autoCheck": true },
   "plugins": {},
-  "stateVersion": 3
+  "stateVersion": 4
 }"#;
 
 // The list row's optional columns in the order ui/js/Columns.js lays them out; name is never optional.
@@ -314,7 +314,7 @@ mod tests {
                 "display", "menu", "updates", "plugins", "stateVersion"
             ]
         );
-        assert_eq!(d.get(STATE_VERSION).and_then(Json::as_f64), Some(3.0), "a fresh document is already stamped");
+        assert_eq!(d.get(STATE_VERSION).and_then(Json::as_f64), Some(4.0), "a fresh document is already stamped");
         assert_eq!(d.get("view").and_then(Json::as_str), Some("list"));
         assert_eq!(d.get("pickerView").and_then(Json::as_str), Some("list"));
         assert_eq!(d.get("density").and_then(Json::as_str), Some("compact"));
@@ -411,9 +411,8 @@ mod tests {
             .collect();
         assert_eq!(
             hidden,
-            // Directive 38: every feature this release adds ships with its own id hidden, so a fresh
-            // ui.json behaves as 0.2.1 did. placeMenu is the Places rows' own menu.
-            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText"]
+            // Directive 38: every feature this release adds ships with its own id hidden, so a fresh ui.json behaves as 0.2.1 did; placeMenu is the Places rows' own menu, openAgent (CHANGES 655) and actions (DESIGN-040) ship off.
+            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "actions"]
         );
     }
 

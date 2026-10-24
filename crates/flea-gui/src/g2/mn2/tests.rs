@@ -323,7 +323,7 @@ fn mn2_every_emitted_mark_is_drawn_or_handed_to_the_join(cx: &mut TestAppContext
                 typeface: &typeface,
                 inset: 4.,
             };
-            let built = lines::build(&entries, &env, window);
+            let built = lines::build(&entries, &env, window, flea::ui_logic_mn1::fit::MENU_W, 1100.);
             assert_eq!(built.lines.len(), entries.len());
             for (entry, line) in entries.iter().zip(built.lines.iter()) {
                 let Some(name) = entry.glyph else { continue };
@@ -333,6 +333,9 @@ fn mn2_every_emitted_mark_is_drawn_or_handed_to_the_join(cx: &mut TestAppContext
                 assert!(drawn || handed, "{name} draws nowhere");
                 if entry.id.as_ref() == "openAgent" {
                     assert!(handed, "the bot mark reaches the join");
+                }
+                if matches!(entry.id.as_ref(), "openAgent" | "actions") {
+                    assert!(drawn, "{name} is in the menu's own cut table");
                 }
             }
         })

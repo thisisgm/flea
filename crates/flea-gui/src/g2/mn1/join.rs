@@ -76,7 +76,13 @@ pub struct Joined {
     pub pointer_armed: bool,
     pub presentation: super::presentation::Presentation,
     pub shebang: super::shebang::Shebang,
+    // Open in Agent and the Actions flyout keep their listing, replies and refusals here.
+    pub actions: crate::g2::mn2::model::Actions,
+    // A test's stand-in for the detached Open in Agent spawn; None spawns the real agent.
+    pub agent: Option<AgentLaunch>,
 }
+
+pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
 
 fn identity(host: &PaneHost, side: usize, background: bool) -> String {
     format!(
@@ -139,7 +145,33 @@ impl Shell {
         context.sort_by = host.nav.order.key.into();
         context.has_folder_sort =
             !host.pane.swap.session.open && host.nav.folders.borrow().has(&host.path);
-        build::listing_entries(&context)
+        // Actions takes Run Script's place under Run Script's switch, so the build is asked for that row whenever the listing holds an action.
+        let actions = (!capture.background)
+            .then(|| self.menu.actions.actions_entry(&[], None))
+            .flatten();
+        if actions.is_some() && context.scripts.is_empty() {
+            context.scripts.push(build::Peer {
+                id: String::new(),
+                label: String::new(),
+            });
+        }
+        let mut entries = build::listing_entries(&context);
+        if let (Some(at), Some(row)) = (
+            entries.iter().position(|e| e.id.as_ref() == "runScript"),
+            actions,
+        ) {
+            entries[at] = row;
+        }
+        if capture.background {
+            if let Some(row) = self.menu.actions.agent_entry(&context.hidden) {
+                let at = entries
+                    .iter()
+                    .position(|e| e.id.as_ref() == "openTerminal")
+                    .map_or(entries.len(), |at| at + 1);
+                entries.insert(at, row);
+            }
+        }
+        entries
     }
 
     pub(crate) fn open_menu(
@@ -174,6 +206,7 @@ impl Shell {
             host.selected.clone()
         };
         self.menu.sequence += 1;
+        self.menu.actions.listing_forgotten();
         let capture = Captured {
             side,
             listing: host.pane.held.listing,
