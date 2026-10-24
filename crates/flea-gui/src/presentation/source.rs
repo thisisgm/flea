@@ -32,6 +32,11 @@ pub(super) struct Sources {
 }
 
 impl Sources {
+    #[cfg(test)]
+    pub fn at(inputs: [PathBuf; 5], cache: PathBuf) -> Self {
+        Self { inputs, cache }
+    }
+
     pub fn current() -> Self {
         let home = PathBuf::from(std::env::var_os("HOME").unwrap_or_default());
         let config = std::env::var_os("XDG_CONFIG_HOME")

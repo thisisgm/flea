@@ -1,7 +1,4 @@
 // Shared theme core, kept independent of the drawing layer and of external crates.
-#![allow(dead_code)]
-// These shared API exports become callers' imports when the GUI integration lands.
-#![allow(unused_imports)]
 
 mod color;
 mod export;

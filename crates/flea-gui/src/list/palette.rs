@@ -18,12 +18,23 @@ pub struct Palette {
 }
 
 impl Palette {
-    /// An inherited background keeps its own text colour; otherwise Omarchy's theme sets both.
+    /// An inherited background keeps its own text colour and derived inks; otherwise Omarchy's theme sets every role.
     pub fn inherited(style: &TextStyle, theme: Theme) -> Self {
-        let (background, foreground) = match style.background_color {
-            Some(background) => (background, style.color),
-            None => (theme.background, theme.foreground),
+        let Some(background) = style.background_color else {
+            return Self {
+                background: theme.background,
+                foreground: theme.foreground,
+                metadata: theme.metadata,
+                metadata_frame: theme.metadata_frame,
+                accent: theme.accent,
+                accent_frame: theme.accent_frame,
+                symlink: theme.symlink,
+                executable: theme.executable,
+                marked: theme.foreground.opacity(MARK_FILL),
+                muted_frame: theme.muted_frame,
+            };
         };
+        let foreground = style.color;
         Self {
             background,
             foreground,
