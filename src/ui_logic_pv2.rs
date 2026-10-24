@@ -13,3 +13,10 @@ pub mod contrast;
 pub mod font;
 pub mod html;
 pub mod refusal;
+// Office documents and the CSV table view.
+pub mod csv_feed;
+pub mod csv_geometry;
+pub mod csv_wire;
+pub mod office;
+pub mod office_sniff;
+pub mod table_warm;

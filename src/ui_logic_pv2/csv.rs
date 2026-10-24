@@ -17,7 +17,7 @@ pub struct Held {
     pub record: Option<usize>,
 }
 
-/// A table row: its first physical line, record ordinal, line span and padded cells.
+/// A table row: its first physical line, record ordinal, line span and cells.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Row {
     pub line: usize,
@@ -34,15 +34,27 @@ pub struct OpenRecord {
     pub record: usize,
 }
 
-/// The parsed table: header, body rows, lookups by line and by record, column count and open records.
+/// The parsed table: header, body rows held once, indexes of rows by line and by record, column count and open records.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Table {
     pub header: Option<Vec<String>>,
     pub rows: Vec<Row>,
-    pub by_line: BTreeMap<usize, Row>,
-    pub by_record: BTreeMap<usize, Row>,
+    pub by_line: BTreeMap<usize, usize>,
+    pub by_record: BTreeMap<usize, usize>,
     pub cols: usize,
     pub open: Vec<OpenRecord>,
+}
+
+impl Table {
+    /// The body row whose first physical line is `line`.
+    pub fn at_line(&self, line: usize) -> Option<&Row> {
+        self.by_line.get(&line).map(|&i| &self.rows[i])
+    }
+
+    /// The body row with record ordinal `record`.
+    pub fn at_record(&self, record: usize) -> Option<&Row> {
+        self.by_record.get(&record).map(|&i| &self.rows[i])
+    }
 }
 
 /// The field separator for a table by extension, in any case; None for any other name.
@@ -103,29 +115,23 @@ pub fn record(lines: &[String], at: usize, delim: Option<char>) -> Record {
         }
         if !quoting {
             cells.push(field);
-            return Record { cells, span: i - at + 1, open: false };
+            return Record {
+                cells,
+                span: i - at + 1,
+                open: false,
+            };
         }
         i += 1;
         if i >= lines.len() {
             cells.push(field);
-            return Record { cells, span: i - at, open: true };
+            return Record {
+                cells,
+                span: i - at,
+                open: true,
+            };
         }
         field.push('\n');
     }
-}
-
-/// The row padded with empty cells to the table width; a longer row keeps every cell.
-pub fn padded(cells: &[String], width: usize) -> Vec<String> {
-    let mut out = cells.to_vec();
-    while out.len() < width {
-        out.push(String::new());
-    }
-    out
-}
-
-/// The widest row's cell count, which is the table's column count.
-pub fn column_count(rows: &[Vec<String>]) -> usize {
-    rows.iter().map(|row| row.len()).max().unwrap_or(0)
 }
 
 /// Parses the held lines into a table; each record-aligned block carries its starting ordinal.
@@ -160,7 +166,11 @@ pub fn table(held: &BTreeMap<usize, Held>, total: usize, delim: Option<char>) ->
         let last_line = start + lines.len() - 1;
         for (ordinal, rec) in (from..).zip(records(&lines, delim)) {
             if rec.open && last_line < total {
-                open.push(OpenRecord { line: at, to: last_line, record: ordinal });
+                open.push(OpenRecord {
+                    line: at,
+                    to: last_line,
+                    record: ordinal,
+                });
                 break;
             }
             all.push(Row {
@@ -182,26 +192,18 @@ pub fn table(held: &BTreeMap<usize, Held>, total: usize, delim: Option<char>) ->
             open,
         };
     }
-    let widths: Vec<Vec<String>> = all.iter().map(|row| row.cells.clone()).collect();
-    let cols = column_count(&widths);
-    let header = padded(&all[0].cells, cols);
-    let rows: Vec<Row> = all[1..]
-        .iter()
-        .map(|row| Row {
-            line: row.line,
-            record: row.record,
-            span: row.span,
-            cells: padded(&row.cells, cols),
-        })
-        .collect();
+    // Rows are never padded: a missing cell reads as empty, and each row is kept once.
+    let cols = all.iter().map(|row| row.cells.len()).max().unwrap_or(0);
+    let rows = all.split_off(1);
+    let header = all.pop().map(|row| row.cells);
     let mut by_line = BTreeMap::new();
     let mut by_record = BTreeMap::new();
-    for row in &rows {
-        by_line.insert(row.line, row.clone());
-        by_record.insert(row.record, row.clone());
+    for (i, row) in rows.iter().enumerate() {
+        by_line.insert(row.line, i);
+        by_record.insert(row.record, i);
     }
     Table {
-        header: Some(header),
+        header,
         rows,
         by_line,
         by_record,
@@ -237,7 +239,7 @@ pub fn one_line(text: &str) -> String {
 
 #[path = "csv_number.rs"]
 mod number;
-pub use number::{is_number, numeric_columns};
+pub use number::{is_number, numeric_column, numeric_columns};
 #[path = "csv_layout.rs"]
 mod layout;
 pub use layout::{data_rows, fit, grid, row_number, Slot};
@@ -245,3 +247,7 @@ pub use layout::{data_rows, fit, grid, row_number, Slot};
 #[cfg(test)]
 #[path = "csv_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "csv_table_tests.rs"]
+mod table_tests;
