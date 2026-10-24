@@ -6,12 +6,14 @@ license = "MIT"
 
 [dependencies]
 flea = { path = "../.." }
+flate2 = "=1.1.10"
 gpui = { workspace = true }
 gpui_platform = { workspace = true }
 async-channel = "=2.5.0"
 omi = "=1.0.0"
-# The frame container GPUI's RenderImage takes; already in the lock through gpui, default features off.
-image = { version = "=0.25.10", default-features = false }
+# The frame container GPUI's RenderImage takes; already in the lock through gpui, default features off but PNG,
+# which the HTML and font helpers write and gpui's own build already compiles.
+image = { version = "=0.25.10", default-features = false, features = ["png"] }
 
 [features]
 # Bench-only: a benchmark driver's markers and scroll test, never enabled by packaging or any default build.

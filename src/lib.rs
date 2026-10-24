@@ -8,6 +8,7 @@ pub mod ipc;
 pub mod json;
 pub mod jsondoc;
 pub mod favourites;
+pub mod ui_logic_pv1;
 pub mod uischema;
 pub mod uistate;
 pub mod uistore;
