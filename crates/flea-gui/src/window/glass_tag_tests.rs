@@ -1,0 +1,213 @@
+//! Tests for the transparent tag, covering the decision table, the PROBE parser, address checks and the hyprctl-absent path.
+use super::glass_tag::events::socket2_path;
+use super::glass_tag::run::{Sources, Tagger};
+use super::glass_tag::{
+    decide, lua_tag, own_addresses, parse_props, plan, retags, uses_default, valid_address, Action,
+    Mode, TAG,
+};
+use std::collections::BTreeSet;
+use std::ffi::{OsStr, OsString};
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
+
+fn set(items: &[&str]) -> BTreeSet<String> {
+    items.iter().map(|item| (*item).to_owned()).collect()
+}
+
+#[test]
+fn glass_tag_decision_table_matches_the_0_3_12_rows() {
+    use Action::{Add, Keep, Remove};
+    use Mode::{Glassy, Opaque, Transparent};
+    // Mode, uses default, opacity, inactive, tagged by Flea, expected action.
+    let rows = [
+        (Transparent, true, 1., 1., false, Add),
+        (Transparent, true, 1., 1., true, Add),
+        (Transparent, true, 0.985, 1., false, Keep),
+        (Transparent, true, 0.985, 1., true, Keep),
+        (Transparent, true, 1., 0.96, false, Keep),
+        (Transparent, false, 1., 1., false, Keep),
+        (Transparent, false, 1., 1., true, Remove),
+        (Glassy, true, 1., 1., false, Keep),
+        (Glassy, true, 1., 1., true, Remove),
+        (Opaque, true, 1., 1., false, Keep),
+        (Opaque, true, 0.985, 1., true, Remove),
+        (Glassy, false, 0.985, 0.96, true, Remove),
+        (Transparent, false, 0.985, 0.96, false, Keep),
+    ];
+    for (mode, uses, opacity, inactive, tagged, want) in rows {
+        assert_eq!(
+            decide(mode, uses, opacity, inactive, tagged),
+            want,
+            "{mode:?} default={uses} opacity={opacity} inactive={inactive} tagged={tagged}"
+        );
+    }
+}
+
+#[test]
+fn glass_tag_adds_and_removes_only_where_the_rules_allow() {
+    for mode in [Mode::Opaque, Mode::Glassy, Mode::Transparent] {
+        for uses in [false, true] {
+            for (opacity, inactive) in [(1., 1.), (0.985, 1.), (1., 0.96), (f64::NAN, 1.)] {
+                for tagged in [false, true] {
+                    let action = decide(mode, uses, opacity, inactive, tagged);
+                    let wanted = mode == Mode::Transparent && uses;
+                    if action == Action::Add {
+                        assert!(wanted && opacity == 1. && inactive == 1.);
+                    }
+                    if action == Action::Remove {
+                        assert!(tagged && !wanted);
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn glass_tag_probe_line_takes_three_fields_and_a_lowercase_address() {
+    let props = parse_props("0x55bacb0a1f80 0.985 0.96").unwrap();
+    assert_eq!(props.address, "0x55bacb0a1f80");
+    assert_eq!(props.opacity, 0.985);
+    assert_eq!(props.inactive, 0.96);
+    assert_eq!(
+        parse_props("  0x1 1 1  ").map(|p| p.address),
+        Some("0x1".to_owned())
+    );
+    for line in [
+        "",
+        "0x1 1",
+        "0x1 1 1 1",
+        "0x1G 1 1",
+        "0X1 1 1",
+        "0xABC 1 1",
+        "0x 1 1",
+        "55bacb 1 1",
+    ] {
+        assert!(parse_props(line).is_none(), "{line:?} must not parse");
+    }
+    assert!(parse_props("0x1 abc 1").is_some_and(|p| p.opacity.is_nan()));
+}
+
+#[test]
+fn glass_tag_nan_opacity_never_adds_a_tag() {
+    let text = "0x1 abc 1\n";
+    let outcome = plan(text, Mode::Transparent, true, &BTreeSet::new());
+    assert!(outcome.changes.is_empty());
+}
+
+#[test]
+fn glass_tag_only_lowercase_hex_addresses_reach_a_dispatch() {
+    for good in ["0x1", "0x55bacb0a1f80", "0xdeadbeef"] {
+        assert!(valid_address(good), "{good} must be valid");
+    }
+    for bad in [
+        "", "0x", "0X1", "0xG", "0x1 ", " 0x1", "0x1;rm", "55bacb", "0xABC", "0x1\n",
+    ] {
+        assert!(!valid_address(bad), "{bad:?} must be refused");
+    }
+}
+
+#[test]
+fn glass_tag_takes_only_this_process_windows_with_valid_addresses() {
+    let json = r#"[{"address":"0x55bacb0a1f80","pid":4211,"class":"flea"},{"address":"0x2","pid":99},{"address":"0xBAD","pid":4211},{"address":"0x3","pid":"4211"},{"address":"0x4"}]"#;
+    assert_eq!(own_addresses(json, 4211), vec!["0x55bacb0a1f80".to_owned()]);
+    assert!(own_addresses("{}", 4211).is_empty());
+    assert!(own_addresses("not json", 4211).is_empty());
+    assert!(own_addresses("", 4211).is_empty());
+}
+
+#[test]
+fn glass_tag_plan_tags_new_windows_and_drops_closed_ones() {
+    let first = plan(
+        "0x1 1 1\n0x2 0.985 1\n",
+        Mode::Transparent,
+        true,
+        &BTreeSet::new(),
+    );
+    assert_eq!(first.changes, vec![("0x1".to_owned(), Action::Add)]);
+    assert_eq!(first.tagged, set(&["0x1"]));
+    // 0x1 has closed, so its record drops out, and 0x2 stays untagged.
+    let later = plan("0x2 0.985 1\n", Mode::Transparent, true, &first.tagged);
+    assert!(later.changes.is_empty());
+    assert!(later.tagged.is_empty());
+}
+
+#[test]
+fn glass_tag_glassy_takes_flea_tag_off_and_keeps_a_user_tag() {
+    let glassy = plan("0x1 1 1\n0x3 1 1\n", Mode::Glassy, true, &set(&["0x1"]));
+    assert_eq!(glassy.changes, vec![("0x1".to_owned(), Action::Remove)]);
+    assert!(glassy.tagged.is_empty());
+}
+
+#[test]
+fn glass_tag_dispatch_strings_name_the_window_and_the_tag() {
+    assert_eq!(
+        lua_tag("address:0x1", "+transparent"),
+        r#"hl.dsp.window.tag({ window = "address:0x1", tag = "+transparent" })"#
+    );
+    assert_eq!(TAG, "transparent");
+}
+
+#[test]
+fn glass_tag_uses_default_unless_a_flea_alpha_is_set() {
+    assert!(uses_default("", ""));
+    assert!(uses_default("[font]\nbackground-alpha = 0.5\n", ""));
+    assert!(uses_default("[flea]\nbackground-alpha = \"\"\n", ""));
+    assert!(!uses_default("[flea]\nbackground-alpha = 0.34\n", ""));
+    assert!(!uses_default(
+        "",
+        "[flea]\nbackground-alpha = 0.34 # theme\n"
+    ));
+    assert!(!uses_default("[flea]\nbackground-alpha = nope\n", ""));
+}
+
+#[test]
+fn glass_tag_mode_follows_the_toggle_files() {
+    assert_eq!(Mode::from_toggles(false, false), Mode::Transparent);
+    assert_eq!(Mode::from_toggles(false, true), Mode::Opaque);
+    assert_eq!(Mode::from_toggles(true, false), Mode::Glassy);
+    assert_eq!(Mode::from_toggles(true, true), Mode::Glassy);
+}
+
+#[test]
+fn glass_tag_reruns_on_config_reload_and_on_its_own_window_only() {
+    assert!(retags("configreloaded>>"));
+    assert!(retags("openwindow>>55bacb0a1f80,1,flea,Flea, with commas"));
+    assert!(!retags("openwindow>>55bacb0a1f80,1,com.thisisgm.flea,Flea"));
+    assert!(!retags("activewindow>>flea,Flea"));
+    assert!(!retags("configreloaded"));
+}
+
+#[test]
+fn glass_tag_event_socket_sits_where_hyprland_puts_it() {
+    assert_eq!(
+        socket2_path(Some(OsStr::new("/run/user/1000")), OsStr::new("sig")),
+        PathBuf::from("/run/user/1000/hypr/sig/.socket2.sock")
+    );
+    assert_eq!(
+        socket2_path(None, OsStr::new("sig")),
+        PathBuf::from("/tmp/hypr/sig/.socket2.sock")
+    );
+    assert_eq!(
+        socket2_path(Some(OsStr::new("")), OsStr::new("sig")),
+        PathBuf::from("/tmp/hypr/sig/.socket2.sock")
+    );
+}
+
+#[test]
+fn glass_tag_without_hyprctl_leaves_windows_alone_and_frees_the_tagger() {
+    let missing = OsString::from("/nonexistent/flea-no-hyprctl");
+    let tagger = Tagger::new(std::process::id(), missing, Sources::from_env());
+    tagger.pass();
+    assert!(tagger.lock().tagged.is_empty());
+    tagger.retag();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while tagger.lock().busy && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(
+        !tagger.lock().busy,
+        "a pass must clear busy when hyprctl is absent"
+    );
+    assert!(tagger.lock().tagged.is_empty());
+}
