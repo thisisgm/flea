@@ -8,6 +8,8 @@ pub mod lifecycle;
 #[path = "../list/join.rs"]
 mod list_join;
 pub mod locale;
+#[cfg(test)]
+mod locale_tests;
 pub mod navigate;
 pub mod overlay;
 pub(crate) mod pane;

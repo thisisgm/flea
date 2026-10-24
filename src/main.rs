@@ -29,7 +29,6 @@ mod tearoff;
 mod runfile;
 mod runid;
 mod terminal;
-mod theme;
 mod tui;
 mod thp;
 mod unlock;
