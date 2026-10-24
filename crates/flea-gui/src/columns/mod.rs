@@ -11,6 +11,7 @@ pub mod peeks;
 pub mod preview_host;
 pub mod sets;
 mod tracks;
+pub(crate) mod walks;
 
 /// The listing window and face the active track reads, re-exported read-only for the shell and the unit tests.
 pub use crate::list::{pane::Held, Typeface};
