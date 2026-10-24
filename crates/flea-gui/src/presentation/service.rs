@@ -13,6 +13,8 @@ struct Subscriber {
 
 struct State {
     current: Snapshot,
+    #[cfg(test)]
+    published: u64,
     subscribers: Vec<Subscriber>,
 }
 
@@ -44,6 +46,8 @@ impl Service {
         }
         let state = Arc::new(Mutex::new(State {
             current: initial.clone(),
+            #[cfg(test)]
+            published: 0,
             subscribers: Vec::new(),
         }));
         let worker = state.clone();
@@ -106,6 +110,10 @@ impl Service {
                         continue;
                     }
                     state.current = snapshot.clone();
+                    #[cfg(test)]
+                    {
+                        state.published += 1;
+                    }
                     state.subscribers.retain(|subscriber| {
                         if subscriber.sender.receiver_count() <= 1 {
                             return false;
@@ -127,6 +135,14 @@ impl Service {
             },
             initial,
         )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn publications(&self) -> u64 {
+        self.state
+            .lock()
+            .expect("presentation subscribers")
+            .published
     }
 
     pub(crate) fn subscribe(&self) -> Receiver<Snapshot> {

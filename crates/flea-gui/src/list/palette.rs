@@ -2,11 +2,14 @@ use super::MARK_FILL;
 use crate::{palette::Theme, row::NameInk};
 use gpui::{Hsla, TextStyle};
 
-/// The palette roles a row draws with, to be filled from Omarchy's theme.
+/// The resolved theme roles shared by viewport rows and window chrome.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Palette {
     pub background: Hsla,
     pub foreground: Hsla,
+    pub muted: Hsla,
+    pub error: Hsla,
+    pub error_on_surface: Hsla,
     pub metadata: Hsla,
     pub metadata_frame: Hsla,
     pub accent: Hsla,
@@ -24,17 +27,25 @@ impl Palette {
             Some(background) => (background, style.color),
             None => (theme.background, theme.foreground),
         };
+        let roles = if background == theme.background && foreground == theme.foreground {
+            theme.roles
+        } else {
+            crate::palette::Roles::for_inherited(background, foreground)
+        };
         Self {
             background,
             foreground,
-            metadata: foreground.opacity(0.62),
-            metadata_frame: foreground.opacity(0.5),
+            muted: roles.muted,
+            error: roles.error,
+            error_on_surface: roles.error_on_surface,
+            metadata: roles.metadata,
+            metadata_frame: roles.metadata_frame,
             accent: theme.accent,
             accent_frame: theme.accent_frame,
-            symlink: foreground,
-            executable: foreground,
+            symlink: roles.symlink,
+            executable: roles.executable,
             marked: foreground.opacity(MARK_FILL),
-            muted_frame: foreground.opacity(0.5),
+            muted_frame: roles.muted_frame,
         }
     }
 
