@@ -8,8 +8,9 @@ fn search_a_subtree_gone_before_its_read_is_not_unreadable() {
     for watched in [false, true] {
         for replacement in ["absent", "file", "symlink"] {
             let d = TestDir::new("subtreegone");
+            let target = TestDir::new("subtreegone-target");
             if replacement == "file" { d.file("gone", ""); }
-            if replacement == "symlink" { std::os::unix::fs::symlink(d.path(), d.join("gone")).unwrap(); }
+            if replacement == "symlink" { std::os::unix::fs::symlink(target.path(), d.join("gone")).unwrap(); }
             let (events, _receiver) = std::sync::mpsc::channel();
             let watch = watched.then(|| Watch::new(d.path(), false, events));
             let core = watch.as_ref().map(|watch| watch.core.as_ref());
@@ -26,6 +27,15 @@ fn search_a_subtree_gone_before_its_read_is_not_unreadable() {
             assert_eq!(index.len(), usize::from(replacement != "absent"));
             if index.len() != 0 { assert!(!index.is_dir(0), "the parent reconciles the new kind"); }
             assert_eq!(index.partial, None);
+            if let Some(core) = core {
+                core.drain();
+                if replacement == "file" { std::fs::write(d.join("gone"), "x").unwrap(); }
+                if replacement == "symlink" { target.file("probe", ""); }
+                d.file("probe", "");
+                core.flush();
+                let dirs = core.drain().dirs;
+                assert_eq!(dirs, [std::path::PathBuf::new()].into(), "{replacement}: no watch was registered on gone, so events stay the root's");
+            }
         }
     }
 }
@@ -54,6 +64,10 @@ fn search_a_permission_denied_local_subtree_stays_partial() {
         assert!(d.join(".flea-test-sandbox").is_file());
         d.assert_contains(&denied);
         std::fs::set_permissions(&denied, std::fs::Permissions::from_mode(0o000)).unwrap();
+        if std::fs::read_dir(&denied).is_ok() {
+            eprintln!("skipped: this process overrides directory permissions, so mode 000 cannot produce EACCES");
+            return;
+        }
         let error = crate::backend::searchread::read(&denied).err().expect("chmod 000 must refuse the real directory read");
         assert_eq!(error.raw_os_error(), Some(13), "this fixture must exercise EACCES");
         assert!(read_bounded(&denied, "", false).is_err(), "EACCES must not become a vanished directory");
@@ -67,6 +81,5 @@ fn search_a_permission_denied_local_subtree_stays_partial() {
         assert_eq!(index.partial, Some(reason), "the first real failure stays reported");
         assert_eq!(index.len(), 1, "the unreadable subtree's descendants were not invented");
         d.assert_contains(&denied);
-        std::fs::set_permissions(&denied, std::fs::Permissions::from_mode(0o700)).unwrap();
     }
 }
