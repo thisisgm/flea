@@ -109,6 +109,17 @@ fn gcomp_operations_first_submission_settles_queued_modal_after_backend_failure(
     cx.update(|cx| cx.set_global(Probe(Rc::clone(&probe))));
     drop(first_lines);
     visual.simulate_keystrokes("enter");
+    assert_eq!(
+        call(&mut cx, handle, "lastMessage"),
+        Reply::value("The backend stopped accepting requests")
+    );
+    assert_eq!(call(&mut cx, handle, "statusError"), Reply::value("true"));
+    assert_eq!(
+        json(&mut cx, handle, "statusActivityState")
+            .get("errors")
+            .and_then(Json::as_f64),
+        Some(1.)
+    );
 
     let first_submission = probe.submitted.get().expect("the producer submitted Root");
     assert_eq!(first_submission.captured, Some(second.entity_id()));
@@ -123,8 +134,20 @@ fn gcomp_operations_first_submission_settles_queued_modal_after_backend_failure(
         overlay.drawn_dialog(),
         Some(Dialog::Delete { .. })
     )));
-    edit(&mut cx, handle, |shell, _, _| {
+    edit(&mut cx, handle, |shell, _, cx| {
         assert_eq!(shell.overlay.as_ref(), Some(&second));
+        let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
+        let line = footer.line.read(cx);
+        let primary = line
+            .painted
+            .get("primary")
+            .expect("a painted error sentence");
+        assert_eq!(
+            primary.text.as_ref(),
+            "The backend stopped accepting requests"
+        );
+        assert!(primary.bounds.size.width > gpui::px(0.));
+        assert!(primary.bounds.size.height > gpui::px(0.));
     });
     println!("first Root submission: {first_submission:?}");
 }
