@@ -7,6 +7,10 @@ use super::{
 use flea::i18n::I18n;
 use flea::ui_logic_op3::bulkrename::{self as logic, Reloaded, Stop};
 
+#[cfg(test)]
+#[path = "m9_g2rows_04_tests.rs"]
+mod m9_g2rows_04_tests;
+
 pub const WIDTH: f32 = 640.;
 
 #[derive(Clone, Debug)]
