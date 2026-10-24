@@ -1,7 +1,7 @@
 //! The live rail join: one lazy host and one places producer per window, and the producer's requests routed to the shell.
 use crate::g2::pl1::{
     process::Runner,
-    source::{Request as DeviceRequest, Source},
+    source::{Activation, Request as DeviceRequest, Source},
 };
 pub use crate::g2::pl4::producer::Request;
 use crate::g2::pl4::producer::{Event, Producer};
@@ -13,7 +13,7 @@ use crate::window::navigate::Step;
 use flea::i18n::I18n;
 use flea::jsondoc::Json;
 use gpui::{
-    AnyView, AppContext, Context, Entity, EventEmitter, KeyDownEvent, Subscription, Window,
+    AnyView, AppContext, Context, Entity, EventEmitter, Subscription, Window,
 };
 use std::rc::Rc;
 use std::sync::Arc;
@@ -37,10 +37,10 @@ pub struct Join {
 /// Builds the producer from Settings.data and the host over it; the host is the only lazy owner.
 pub fn mount(catalog: Arc<I18n>, state: &Json, side: usize, cx: &mut Context<Shell>) -> Join {
     #[cfg(not(test))]
-    let runner = Rc::new(crate::g2::pl1::process::ThreadRunner);
+    let (runner, hostname) = (Rc::new(crate::g2::pl1::process::ThreadRunner), None);
     #[cfg(test)]
-    let runner = Rc::new(crate::g2::pl1::source::EmptyRunner);
-    mount_with_source(catalog, state, side, runner, None, cx)
+    let (runner, hostname) = crate::g2::pl1::source::fixture::services(cx);
+    mount_with_source(catalog, state, side, runner, hostname, cx)
 }
 
 fn mount_with_source(
@@ -228,11 +228,19 @@ impl Shell {
                 Event::Activate(entry)
                     if entry.group == flea::ui_logic_pl4::rail::Group::Device =>
                 {
-                    if let Some(join) = &self.rail {
+                    let owned = self.rail.as_ref().map(|join| {
                         join.devices
-                            .update(cx, |source, cx| source.activate(&entry, side, cx));
+                            .update(cx, |source, cx| source.activate(&entry, side, cx))
+                    });
+                    if owned != Some(Activation::Handled) {
+                        cx.emit(Request {
+                            side,
+                            id,
+                            event: Event::Activate(entry),
+                        });
                     }
                 }
+                Event::Release(entry) => self.release_rail_row(side, &entry, cx),
                 event => self.dispatch(Order::Place(Request { side, id, event }), window, cx),
             }
         }
@@ -278,6 +286,7 @@ impl Shell {
             producer.side = self.focus_side;
             producer.model.borrow_mut().focused = focused;
             if !focused {
+                producer.model.borrow_mut().mark_focused = false;
                 producer.cancel_rename(cx);
             }
             cx.notify();
@@ -315,92 +324,12 @@ impl Shell {
         self.network_publish(None, cx);
         cx.notify();
     }
-
-    pub(crate) fn rail_key(
-        &mut self,
-        event: &KeyDownEvent,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> Option<bool> {
-        use super::input::{event_input, Dispatch};
-        use flea::keys::{self, sequence::Seat, Frontend, Match};
-        let Some(join) = &self.rail else {
-            return None;
-        };
-        let focused =
-            self.dual_focus.rail.contains_focused(window, cx) || join.focus_pending == Some(true);
-        let producer = join.places.clone();
-        if focused && producer.read(cx).rename_index().is_some() {
-            producer.update(cx, |producer, _| producer.side = self.focus_side);
-            return Some(producer.update(cx, |producer, cx| producer.rename_key(event, cx)));
-        }
-        let name = self
-            .launch
-            .settings
-            .data
-            .get("keys")
-            .and_then(Json::as_str)
-            .unwrap_or("default");
-        let action = keys::lookup(
-            name,
-            self.keyboard.context,
-            Frontend::Gui,
-            event_input(event, window.modifiers()),
-        );
-        if action == Match::Action("sidebar") {
-            if join.host.read(cx).rail.mode() == Mode::Overlay {
-                return Some(true);
-            }
-            let hide = join.host.read(cx).rail.mode() != Mode::Hidden;
-            let patch = Json::Obj(vec![(
-                "places".into(),
-                Json::Obj(vec![(
-                    "rail".into(),
-                    Json::Str(if hide { "hidden" } else { "shown" }.into()),
-                )]),
-            )]);
-            self.change_settings(patch, window, cx);
-            return Some(true);
-        }
-        if matches!(action, Match::Action(name) if matches!(name,
-            "focusNext" | "focusPrevious" | "focusPreview" | "keymapSheet" |
-            "pathBar" | "windowNew" | "reload" | "openTerminal" | "settings" |
-            "copydirpath") || name.starts_with("tab") || name.starts_with("textSize"))
-        {
-            // U03/U26 retain the registered stop order and consecutive dual pane stops.
-            return None;
-        }
-        if !focused {
-            return None;
-        }
-        if action == Match::Action("addNetwork") {
-            let event = super::input::ActionEvent::bare("addNetwork", flea::keys::Context::Rail);
-            self.dispatch(Order::Action(event), window, cx);
-            return Some(true);
-        }
-        producer.update(cx, |producer, _| producer.side = self.focus_side);
-        let seat = Seat {
-            focus: 2,
-            cursor: producer.read(cx).cursor().unwrap_or(0),
-            ..Seat::default()
-        };
-        if let Dispatch::Action(action) =
-            self.keyboard.resolve(name, event, window.modifiers(), seat)
-        {
-            if action == "escape" {
-                self.rail_focus(false, cx);
-                window.focus(&self.focus, cx);
-                self.keyboard.context = flea::keys::Context::Listing;
-            } else {
-                producer.update(cx, |producer, cx| producer.key_action(action, cx));
-            }
-        }
-        Some(true)
-    }
 }
 
 #[path = "rail_compose.rs"]
 mod compose;
+#[path = "rail_keys.rs"]
+mod keys;
 
 #[cfg(test)]
 #[path = "rail_tests.rs"]

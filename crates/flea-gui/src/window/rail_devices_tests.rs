@@ -101,18 +101,10 @@ fn frame(cx: &mut VisualTestContext) {
     cx.run_until_parked();
 }
 
-fn ready(shell: &Entity<Shell>, service: &FakeDevices, cx: &mut VisualTestContext) {
+// Production readiness: the device answers alone, with no network snapshot injected.
+fn ready(service: &FakeDevices, cx: &mut VisualTestContext) {
     service.answer("lsblk", 0, BLOCKS);
     service.answer("gio", 0, PHONE);
-    source(shell, cx).update(cx, |source, cx| {
-        source.set_network(
-            NetworkSnapshot {
-                answered: true,
-                rows: Vec::new(),
-            },
-            cx,
-        )
-    });
     frame(cx);
 }
 
@@ -229,7 +221,7 @@ fn rail_devices_mounts_exact_shipped_group_and_flat_row_order(cx: &mut TestAppCo
 #[gpui::test]
 fn rail_devices_show_devices_false_removes_rows_and_heading(cx: &mut TestAppContext) {
     let (shell, service, cx) = open(r#"{"places":{"showDevices":false}}"#, cx);
-    ready(&shell, &service, cx);
+    ready(&service, cx);
     assert_eq!(labels(&shell, cx), ["Home", "Downloads", "Trash"]);
     producer(&shell, cx).read_with(cx, |producer, _| {
         assert_eq!(
@@ -263,7 +255,7 @@ fn rail_devices_show_devices_false_removes_rows_and_heading(cx: &mut TestAppCont
 #[gpui::test]
 fn rail_devices_periodic_disappearance_is_gone_in_next_frame(cx: &mut TestAppContext) {
     let (shell, service, cx) = open(SETTINGS, cx);
-    ready(&shell, &service, cx);
+    ready(&service, cx);
     assert!(labels(&shell, cx).iter().any(|label| label == "Backup"));
     cx.executor().advance_clock(Duration::from_millis(5_000));
     cx.run_until_parked();
@@ -304,7 +296,7 @@ fn rail_devices_periodic_disappearance_is_gone_in_next_frame(cx: &mut TestAppCon
 #[gpui::test]
 fn rail_devices_saved_favourites_keep_labels_paths_order_and_folder_marks(cx: &mut TestAppContext) {
     let (shell, service, cx) = open(SETTINGS, cx);
-    ready(&shell, &service, cx);
+    ready(&service, cx);
     producer(&shell, cx).read_with(cx, |producer, _| {
         let favourites = &producer.sections[1];
         assert_eq!(favourites.heading, Heading::Key("places.heading.favorites"));
@@ -340,3 +332,12 @@ mod gates;
 
 #[path = "rail_devices_source_tests.rs"]
 mod sources;
+
+#[path = "rail_devices_constructor_tests.rs"]
+mod constructor;
+
+#[path = "rail_devices_eject_tests.rs"]
+mod eject;
+
+#[path = "rail_devices_release_tests.rs"]
+mod release;

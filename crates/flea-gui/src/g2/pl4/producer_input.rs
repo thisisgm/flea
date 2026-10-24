@@ -193,6 +193,10 @@ impl Producer {
         let index = cursor.unwrap_or(0);
         let last = self.count().saturating_sub(1);
         self.model.borrow_mut().pointer_focus = false;
+        // A cursor key leaves the mark for the rows, even where the cursor cannot move.
+        if action.starts_with("cursor") {
+            self.model.borrow_mut().mark_focused = false;
+        }
         match action {
             "cursorDown" => {
                 self.model.borrow_mut().cursor = Some(cursor.map_or(0, |i| (i + 1).min(last)))

@@ -150,7 +150,10 @@ impl Shell {
                     search: &host.search.owner,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 19] = [
+                let devices = crate::ipc::devices::DeviceAdapter {
+                    source: self.rail.as_ref().map(|join| join.devices.read(cx)),
+                };
+                let adapters: [&dyn crate::ipc::Adapter; 20] = [
                     &search,
                     &query,
                     &rail,
@@ -169,15 +172,16 @@ impl Shell {
                     &menu,
                     &view,
                     &operations,
+                    &devices,
                     &rows,
                 ];
                 let count = if matches!(
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    19
+                    20
                 } else {
-                    18
+                    19
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

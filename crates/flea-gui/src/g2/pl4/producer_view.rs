@@ -18,8 +18,12 @@ impl Render for Producer {
                 cx.listener(|producer, event: &gpui::MouseMoveEvent, _, cx| {
                     producer.editor_drag(event, cx);
                     let row = producer.row_at(event.position);
-                    if producer.model.borrow().hovered != row {
-                        producer.model.borrow_mut().hovered = row;
+                    let mark = producer.mark_at(event.position);
+                    let mut model = producer.model.borrow_mut();
+                    if model.hovered != row || model.mark_hovered != mark {
+                        model.hovered = row;
+                        model.mark_hovered = mark;
+                        drop(model);
                         cx.notify();
                     }
                 }),
@@ -65,14 +69,16 @@ impl Render for Producer {
             }))
             .on_mouse_up(
                 MouseButton::Left,
-                cx.listener(|producer, _, _, _| {
+                cx.listener(|producer, event: &gpui::MouseUpEvent, _, cx| {
                     producer.editor_dragging = false;
+                    producer.mark_release(event, cx);
                 }),
             )
             .on_mouse_up_out(
                 MouseButton::Left,
                 cx.listener(|producer, _, _, _| {
                     producer.editor_dragging = false;
+                    producer.mark_cancel();
                 }),
             )
             .child(element)

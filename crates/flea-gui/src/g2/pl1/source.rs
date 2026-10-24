@@ -15,6 +15,12 @@ use std::{cell::RefCell, rc::Rc, time::Duration};
 
 #[path = "source_jobs.rs"]
 mod jobs;
+#[path = "source_release.rs"]
+mod release;
+
+#[cfg(test)]
+#[path = "source_fixture.rs"]
+pub(crate) mod fixture;
 
 pub const SETTLE_MS: u64 = 800;
 
@@ -32,8 +38,13 @@ pub struct Request {
 
 pub enum Event {
     Device(Effect),
-    /// Mount and resolve the GVFS bridge through U20's network owner before opening a pane.
-    OpenPhone(String),
+}
+
+/// Whether the source acted on a rail activation or the window's rail request owner keeps it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Activation {
+    Handled,
+    Unowned,
 }
 
 /// The original pl1 rows retain eject, unlock and size metadata that pl4's row type cannot carry.
@@ -50,10 +61,15 @@ pub struct Source {
     active: bool,
     epoch: Clock,
     runner: Rc<dyn Runner>,
-    slots: [Slot; 6],
+    slots: [Slot; jobs::SLOTS],
     readers: Vec<Task<()>>,
     timer: Option<Task<()>>,
     mount_side: usize,
+    /// The effects after a Quiesce, held until the window has quiesced the releasing pane.
+    after_quiesce: Vec<Effect>,
+    quiesce_side: usize,
+    /// Ctrl+E with the rail hidden waits for one listing: folder, system flag and side.
+    hidden_release: Option<(String, bool, usize)>,
     events: RefCell<Vec<Request>>,
 }
 
@@ -61,11 +77,15 @@ impl Source {
     /// A supplied hostname is the deterministic service seam; production reads /etc/hostname off thread.
     pub fn new(runner: Rc<dyn Runner>, hostname: Option<String>, state: &Json) -> Self {
         let mut source = Self {
-            devices: Devices::new(hostname.as_deref().unwrap_or("")),
+            devices: Devices::new(&hostname_of(hostname.as_deref().unwrap_or(""))),
             phones: Phones::default(),
             sections: Vec::new(),
             listing: Listing::new(),
-            network: NetworkSnapshot::default(),
+            // No NETWORK producer is joined yet, so its empty section has already finished discovery.
+            network: NetworkSnapshot {
+                answered: true,
+                ..NetworkSnapshot::default()
+            },
             show_devices: true,
             show_network: true,
             hostname_ready: hostname.is_some(),
@@ -77,6 +97,9 @@ impl Source {
             readers: Vec::new(),
             timer: None,
             mount_side: 0,
+            after_quiesce: Vec::new(),
+            quiesce_side: 0,
+            hidden_release: None,
             events: RefCell::default(),
         };
         source.settings(state);
@@ -120,9 +143,9 @@ impl Source {
             self.epoch = Clock::default();
             self.now(cx);
             if !self.hostname_ready {
-                let read = cx
-                    .background_executor()
-                    .spawn(async { std::fs::read_to_string("/etc/hostname").unwrap_or_default() });
+                let read = cx.background_executor().spawn(async {
+                    hostname_of(&std::fs::read_to_string("/etc/hostname").unwrap_or_default())
+                });
                 self.readers.push(cx.spawn(async move |this, cx| {
                     let hostname = read.await;
                     let _ = this.update(cx, |source, cx| {
@@ -153,9 +176,9 @@ impl Source {
         row: &places::RailEntry,
         side: usize,
         cx: &mut Context<Self>,
-    ) -> bool {
+    ) -> Activation {
         if row.group != places::Group::Device {
-            return false;
+            return Activation::Unowned;
         }
         let index = self
             .devices
@@ -164,24 +187,22 @@ impl Source {
             .position(|entry| entry.device == row.device && !entry.device.is_empty());
         if let Some(index) = index {
             let entry = &self.devices.entries[index];
-            if !entry.mounted && !entry.locked && !self.devices.running(Proc::Mount) {
+            // The unlock card's owner keeps a locked row, as it did before this source existed.
+            if entry.locked {
+                return Activation::Unowned;
+            }
+            if !entry.mounted && !self.devices.running(Proc::Mount) {
                 self.mount_side = side;
             }
             let effects = self.devices.activate(index);
             self.apply_at(effects, side, cx);
-        } else if let Some(phone) = self
-            .phones
-            .entries
-            .iter()
-            .find(|entry| entry.uri == row.uri)
-        {
-            self.events.borrow_mut().push(Request {
-                side,
-                event: Event::OpenPhone(phone.uri.clone()),
-            });
-            cx.notify();
+            return Activation::Handled;
         }
-        true
+        // A phone opens through the GVFS owner, which takes the rail request unchanged.
+        if self.phones.entries.iter().any(|entry| entry.uri == row.uri) {
+            return Activation::Unowned;
+        }
+        Activation::Handled
     }
 
     fn publish(&mut self, cx: &mut Context<Self>) {
@@ -250,6 +271,11 @@ impl Source {
     }
 }
 
+/// Both hostname sources pass here, so the machine row never carries the file's newline.
+pub(super) fn hostname_of(text: &str) -> String {
+    text.trim().to_owned()
+}
+
 fn rail_row(entry: &RailEntry) -> places::RailEntry {
     places::RailEntry {
         group: places::Group::Device,
@@ -263,6 +289,7 @@ fn rail_row(entry: &RailEntry) -> places::RailEntry {
         uri: entry.uri.clone(),
         device: entry.device.clone(),
         mounted: Some(entry.mounted),
+        releasable: flea::ui_logic_pl1::eject::releasable(entry),
         glyph: match entry.glyph.as_str() {
             "lock" => "lock",
             "smartphone" => "smartphone",
@@ -279,10 +306,18 @@ pub(crate) struct EmptyRunner;
 
 #[cfg(test)]
 impl Runner for EmptyRunner {
-    fn start(&self, _: super::process::Job) -> super::process::Handle {
+    fn start(&self, job: super::process::Job) -> super::process::Handle {
         use super::process::{Event, Handle, Outcome};
         let (handle, sender) = Handle::detached();
-        let _ = sender.try_send(Event::Exited(Outcome::default()));
+        let stdout = if job.argv.first().is_some_and(|program| program == "lsblk") {
+            r#"{"blockdevices":[]}"#.into()
+        } else {
+            String::new()
+        };
+        let _ = sender.try_send(Event::Exited(Outcome {
+            stdout,
+            ..Outcome::default()
+        }));
         handle
     }
 }
