@@ -161,6 +161,9 @@ pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
                 matches,
             }))
         }
+        Some(jsondoc::Json::Str(kind)) if kind == "peeked" || kind == "jumped" => {
+            Some(Event::Path(crate::path::answer(&document).ok_or("path answer is malformed")?))
+        }
         _ => None,
     })
 }

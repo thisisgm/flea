@@ -193,7 +193,7 @@ ui/ColumnPane.qml 463
 ui/ContextMenu.qml 740
 ui/ConvertDialog.qml 456
 ui/GridArea.qml 667
-ui/Ipc.qml 993
+ui/Ipc.qml 1005
 tests/gridprebuild.qml 457
 tests/code-column.qml 416
 tests/preview-pdf-flow.qml 439

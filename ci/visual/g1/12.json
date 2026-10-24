@@ -89,6 +89,8 @@
         "preset": "default",
         "disk_free": "64.1 MB",
         "query": "Med",
+        "jump": "work",
+        "suggestions": 1,
         "input": [
           {
             "type": "physical",
@@ -151,6 +153,24 @@
         "preset": "default",
         "disk_free": "64.1 MB",
         "query": "o",
+        "jump": "board",
+        "places": {
+          "favourites": [
+            {
+              "label": "Projects",
+              "path": "/fx/j/Projects"
+            },
+            {
+              "label": "flea",
+              "path": "/fx/j/Documents/claude/flea"
+            },
+            {
+              "label": "omarchy",
+              "path": "/fx/j/Documents/claude/omarchy"
+            }
+          ]
+        },
+        "suggestions": 7,
         "input": [
           {
             "type": "physical",
@@ -214,6 +234,24 @@
         "preset": "default",
         "disk_free": "64.1 MB",
         "query": "s",
+        "jump": "board",
+        "places": {
+          "favourites": [
+            {
+              "label": "Projects",
+              "path": "/fx/j/Projects"
+            },
+            {
+              "label": "flea",
+              "path": "/fx/j/Documents/claude/flea"
+            },
+            {
+              "label": "omarchy",
+              "path": "/fx/j/Documents/claude/omarchy"
+            }
+          ]
+        },
+        "suggestions": 9,
         "input": [
           {
             "type": "physical",
@@ -276,6 +314,24 @@
         "preset": "default",
         "disk_free": "64.1 MB",
         "query": "s",
+        "jump": "board",
+        "places": {
+          "favourites": [
+            {
+              "label": "Projects",
+              "path": "/fx/j/Projects"
+            },
+            {
+              "label": "flea",
+              "path": "/fx/j/Documents/claude/flea"
+            },
+            {
+              "label": "omarchy",
+              "path": "/fx/j/Documents/claude/omarchy"
+            }
+          ]
+        },
+        "suggestions": 8,
         "input": [
           {
             "type": "physical",
@@ -339,6 +395,24 @@
         "preset": "default",
         "disk_free": "64.1 MB",
         "query": "s",
+        "jump": "board",
+        "places": {
+          "favourites": [
+            {
+              "label": "Projects",
+              "path": "/fx/j/Projects"
+            },
+            {
+              "label": "flea",
+              "path": "/fx/j/Documents/claude/flea"
+            },
+            {
+              "label": "omarchy",
+              "path": "/fx/j/Documents/claude/omarchy"
+            }
+          ]
+        },
+        "suggestions": 8,
         "input": [
           {
             "type": "physical",
