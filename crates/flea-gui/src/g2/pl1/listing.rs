@@ -72,6 +72,14 @@ impl Listing {
         out
     }
 
+    /// The first poll, periodic poll or in-flight timeout, whichever needs the driver next.
+    pub fn due(&self, now: u64) -> Option<u64> {
+        let poll = self
+            .active
+            .then_some(if self.armed { self.next_poll } else { now });
+        poll.into_iter().chain(self.deadline).min()
+    }
+
     pub fn exited(&mut self, outcome: &Outcome, now: u64) -> Vec<Effect> {
         self.running = false;
         self.deadline = None;
