@@ -71,7 +71,7 @@ fn destination(source: &Path, name: String, collision_suffix: bool) -> Result<Pa
     let parent = source.parent().ok_or("the source has no parent folder")?;
     let mut output = parent.join(name);
     if collision_suffix && vacant(&output).is_err() {
-        output = parent.join(format!("{} (converted).{}", output.file_stem().unwrap_or_default().to_string_lossy(), printconvert::extension(&output)));
+        output = parent.join(printconvert::page_fallback(&output));
     }
     vacant(&output)?;
     Ok(output)

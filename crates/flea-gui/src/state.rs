@@ -32,6 +32,7 @@ pub struct Shell {
     pub(crate) menu: crate::g2::mn1::join::Joined,
     pub(crate) operations: crate::g2::op1::join::Sessions,
     pub(crate) overlay: Option<gpui::Entity<crate::g2::op1::host::Overlay>>,
+    pub(crate) output: crate::window::output::Join,
     pub(crate) trash: Option<crate::g2::pl3::join::TrashHost>,
     pub(crate) rail: Option<crate::window::rail::Join>,
     /// Live compositor rounding, square until it is readable; visual scenes can override it.
@@ -113,6 +114,7 @@ impl Shell {
             surfaces: Default::default(),
             menu: Default::default(),
             overlay: None,
+            output: Default::default(),
             operations: Default::default(),
             settings: Default::default(),
             trash: None,

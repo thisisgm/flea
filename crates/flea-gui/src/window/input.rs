@@ -103,6 +103,18 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
+        // Ctrl+P is the listing's Print; the keymap leaves it unbound, so it is read here like Ctrl+Q.
+        if self.keyboard.context == flea::keys::Context::Listing
+            && event.keystroke.key == "p"
+            && event.keystroke.modifiers.control
+            && !event.keystroke.modifiers.shift
+            && !event.keystroke.modifiers.alt
+            && !event.keystroke.modifiers.platform
+            && self.output_print_key(window, cx)
+        {
+            cx.stop_propagation();
+            return;
+        }
         if let Some(stop) = self.rail_key(event, window, cx) {
             if stop {
                 cx.stop_propagation();
