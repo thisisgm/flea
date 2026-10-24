@@ -28,9 +28,13 @@ impl Render for QuickLook {
         if self.subject.is_none() {
             return div().into_any_element();
         }
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
         let look = self
             .look
-            .unwrap_or_else(|| Look::inherited(&Palette::inherited(&window.text_style())));
+            .unwrap_or_else(|| Look::inherited(&Palette::inherited(&window.text_style(), theme)));
         let card = self.card(window.viewport_size());
         match self.viewport(card, window) {
             Some(view) => self.scroll.fit(view),
