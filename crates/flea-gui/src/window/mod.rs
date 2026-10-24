@@ -9,6 +9,7 @@ pub mod lifecycle;
 mod list_join;
 pub mod locale;
 pub mod navigate;
+pub(crate) mod output;
 pub mod overlay;
 pub(crate) mod pane;
 mod presentation;
@@ -88,6 +89,8 @@ mod modal_tests;
 mod native_reader_tests;
 #[cfg(test)]
 mod overlay_escape_tests;
+#[cfg(test)]
+mod output_tests;
 #[cfg(test)]
 mod overlay_tests;
 #[cfg(test)]
