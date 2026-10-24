@@ -3,13 +3,16 @@ pub mod chrome;
 pub mod crumbs;
 pub mod entry;
 pub mod field;
+pub mod history;
 mod input;
 pub mod join;
 pub mod mark;
 pub mod menu;
 pub mod paint;
 mod probe;
+pub mod rank;
 pub mod render;
+pub mod scale;
 pub mod strip;
 pub mod suggestions;
 mod tap;
@@ -18,7 +21,7 @@ mod wire;
 
 use crate::pane::Kind;
 use flea::i18n::I18n;
-pub use wire::{answer, jump_line, peek_line, Answer, Jumped, Peeked};
+pub use wire::{answer, is_jump_line, jump_line, peek_line, Answer, Jumped, Peeked};
 
 // The one place a path is made canonical: "." and ".." resolve here, so the bar draws the path the backend lists.
 pub fn normalize(path: &str) -> String {

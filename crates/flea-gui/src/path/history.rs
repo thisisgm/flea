@@ -9,8 +9,17 @@ pub const LIMIT: usize = 500;
 
 /// The places favourites' paths, in the order the sidebar lists them.
 pub fn favourites(state: &Json) -> Vec<String> {
-    let records = state.get("places").and_then(|places| places.get("favourites")).and_then(Json::as_array).unwrap_or(&[]);
-    records.iter().filter_map(|record| record.get("path").and_then(Json::as_str)).filter(|path| path.starts_with('/')).map(str::to_owned).collect()
+    let records = state
+        .get("places")
+        .and_then(|places| places.get("favourites"))
+        .and_then(Json::as_array)
+        .unwrap_or(&[]);
+    records
+        .iter()
+        .filter_map(|record| record.get("path").and_then(Json::as_str))
+        .filter(|path| path.starts_with('/'))
+        .map(str::to_owned)
+        .collect()
 }
 
 /// Recent.historyPath: an XDG_DATA_HOME that is not absolute is no data home, so home's default answers for it.
@@ -23,7 +32,9 @@ pub fn history_path(data_home: Option<&str>, home: &str) -> PathBuf {
 
 /// Recent.pathOf: a local file URI's path, refusing other schemes, foreign hosts, bad escapes and control characters.
 pub fn path_of(href: &str) -> Option<String> {
-    let scheme = href.get(..7).filter(|scheme| scheme.eq_ignore_ascii_case("file://"))?;
+    let scheme = href
+        .get(..7)
+        .filter(|scheme| scheme.eq_ignore_ascii_case("file://"))?;
     let rest = &href[scheme.len()..];
     let cut = rest.find('/')?;
     let authority = &rest[..cut];
@@ -74,9 +85,14 @@ fn attribute(tag: &str, name: &str) -> Option<String> {
         if !before.is_some_and(char::is_whitespace) {
             continue;
         }
-        let Some(value) = after.strip_prefix('=') else { continue };
+        let Some(value) = after.strip_prefix('=') else {
+            continue;
+        };
         let value = value.trim_start();
-        let quote = value.chars().next().filter(|quote| *quote == '"' || *quote == '\'')?;
+        let quote = value
+            .chars()
+            .next()
+            .filter(|quote| *quote == '"' || *quote == '\'')?;
         let end = value[1..].find(quote)?;
         return unescape(&value[1..=end]);
     }
@@ -94,13 +110,21 @@ pub fn read(text: &str) -> Vec<String> {
         let Some(end) = rest.find('>') else { break };
         let tag = &rest[..end];
         rest = &rest[end..];
-        let Some(path) = attribute(tag, "href").as_deref().and_then(path_of) else { continue };
+        let Some(path) = attribute(tag, "href").as_deref().and_then(path_of) else {
+            continue;
+        };
         // visited is when the file was last opened; the other two stand in for a writer that left it out.
-        let stamp = ["visited", "modified", "added"].iter().find_map(|name| attribute(tag, name).filter(|stamp| !stamp.is_empty()));
+        let stamp = ["visited", "modified", "added"]
+            .iter()
+            .find_map(|name| attribute(tag, name).filter(|stamp| !stamp.is_empty()));
         rows.push((stamp.unwrap_or_default(), path));
     }
     // A stable sort keeps the file's own order between two bookmarks that share a stamp.
     rows.sort_by(|a, b| b.0.cmp(&a.0));
     let mut seen = std::collections::HashSet::new();
-    rows.into_iter().map(|(_, path)| path).filter(|path| seen.insert(path.clone())).take(LIMIT).collect()
+    rows.into_iter()
+        .map(|(_, path)| path)
+        .filter(|path| seen.insert(path.clone()))
+        .take(LIMIT)
+        .collect()
 }

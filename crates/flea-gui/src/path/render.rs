@@ -3,7 +3,7 @@ use super::{
     field::FieldElement,
     menu::MenuElement,
     paint::{CrumbElement, Place},
-    suggestions::{Popup, ROW},
+    suggestions::Popup,
     view::PathView,
 };
 use crate::window::input::{clean_paste, modifiers, paste_key};
@@ -27,6 +27,7 @@ impl Render for PathView {
                 .child(FieldElement::new(view.clone()));
             let root = root.child(field);
             if !self.jump.shown() {
+                self.paint.borrow_mut().drawn = 0;
                 return super::probe::wrap(root, view, 0, probe);
             }
             if self.pointer.settling {
@@ -38,7 +39,14 @@ impl Render for PathView {
                 .borrow()
                 .area
                 .map_or(0., |area| f32::from(area.size.width));
-            let popup = Popup::measure(f32::from(window.viewport_size().height), 0., width, rows);
+            let scale = self.paint.borrow().scale();
+            let popup = Popup::measure(
+                scale,
+                f32::from(window.viewport_size().height),
+                0.,
+                width,
+                rows,
+            );
             let menu = div()
                 .absolute()
                 .left(px(0.))
@@ -56,6 +64,7 @@ impl Render for PathView {
                 .child(MenuElement::new(view.clone()));
             return super::probe::wrap(root.child(deferred(menu).with_priority(1)), view, 0, probe);
         }
+        self.paint.borrow_mut().drawn = 0;
         if self.inputs.dual {
             return super::probe::wrap(
                 root.child(CrumbElement::new(view.clone(), Place::Chrome)),
@@ -87,11 +96,7 @@ fn strip(view: Entity<PathView>, place: Place, cx: &mut Context<PathView>) -> im
     let slot = place.slot();
     let origin = move |view: &PathView, x: gpui::Pixels| {
         let bounds = view.paint.borrow().strips[slot];
-        let pad = if place == Place::Chrome {
-            0.
-        } else {
-            super::paint::STRIP_PAD
-        };
+        let pad = super::paint::strip_pad(place != Place::Chrome, &view.paint.borrow().scale());
         bounds.map(|bounds| f32::from(x - bounds.origin.x) - pad)
     };
     div()
@@ -282,7 +287,8 @@ impl PathView {
     // The popup steps its highlight like a menu: one row a notch, one row per row height of touchpad travel.
     fn menu_wheel(&mut self, event: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {
         cx.stop_propagation();
-        self.wheel -= f32::from(event.delta.pixel_delta(px(ROW)).y) / ROW;
+        let row = self.paint.borrow().scale().row;
+        self.wheel -= f32::from(event.delta.pixel_delta(px(row)).y) / row;
         let mut moved = false;
         while self.wheel.abs() >= 1. {
             let step = self.wheel.signum();

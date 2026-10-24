@@ -27,13 +27,18 @@ fn fold(text: &str) -> Vec<Folded> {
     text.chars()
         .map(|c| {
             let lower = c.to_lowercase().next().unwrap_or(c);
-            Folded { lower, upper: lower != c }
+            Folded {
+                lower,
+                upper: lower != c,
+            }
         })
         .collect()
 }
 
 fn base_start(hay: &[Folded]) -> usize {
-    hay.iter().rposition(|c| c.lower == '/').map_or(0, |at| at + 1)
+    hay.iter()
+        .rposition(|c| c.lower == '/')
+        .map_or(0, |at| at + 1)
 }
 
 fn is_separator(c: char) -> bool {
@@ -60,8 +65,14 @@ fn character_score(hay: &[Folded], at: usize, base: usize, previous: Option<usiz
 }
 
 // Greedy from one start: every query character takes the next candidate character that matches it.
-fn align_from(hay: &[Folded], needle: &[char], start: usize, base: usize) -> Option<(i32, Vec<usize>)> {
-    let (mut total, mut at, mut previous, mut positions) = (0, start, None, Vec::with_capacity(needle.len()));
+fn align_from(
+    hay: &[Folded],
+    needle: &[char],
+    start: usize,
+    base: usize,
+) -> Option<(i32, Vec<usize>)> {
+    let (mut total, mut at, mut previous, mut positions) =
+        (0, start, None, Vec::with_capacity(needle.len()));
     for (k, &wanted) in needle.iter().enumerate() {
         if k > 0 {
             at += 1 + hay.get(at + 1..)?.iter().position(|c| c.lower == wanted)?;
@@ -75,11 +86,21 @@ fn align_from(hay: &[Folded], needle: &[char], start: usize, base: usize) -> Opt
 
 // None when the needle is not a subsequence; otherwise the best of the first MAX_STARTS alignments.
 fn match_folded(hay: &[Folded], base: usize, needle: &[char]) -> Option<(i32, Vec<usize>)> {
-    let Some(&first) = needle.first() else { return Some((0, Vec::new())) };
+    let Some(&first) = needle.first() else {
+        return Some((0, Vec::new()));
+    };
     let mut best: Option<(i32, Vec<usize>)> = None;
-    for start in hay.iter().enumerate().filter(|(_, c)| c.lower == first).map(|(at, _)| at).take(MAX_STARTS) {
+    for start in hay
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| c.lower == first)
+        .map(|(at, _)| at)
+        .take(MAX_STARTS)
+    {
         // A start that cannot finish means no later start can either, the greedy scan's own guarantee.
-        let Some(found) = align_from(hay, needle, start, base) else { return best };
+        let Some(found) = align_from(hay, needle, start, base) else {
+            return best;
+        };
         if best.as_ref().is_none_or(|best| found.0 > best.0) {
             best = Some(found);
         }
@@ -120,7 +141,9 @@ pub fn is_query(line: &str) -> bool {
 /// Jump.display: the path as the chrome writes it, a tilde for home.
 pub fn display(path: &str, home: &str) -> String {
     match path.strip_prefix(home) {
-        Some(rest) if !home.is_empty() && (rest.is_empty() || rest.starts_with('/')) => format!("~{rest}"),
+        Some(rest) if !home.is_empty() && (rest.is_empty() || rest.starts_with('/')) => {
+            format!("~{rest}")
+        }
         _ => path.to_owned(),
     }
 }
@@ -165,10 +188,23 @@ impl Jump {
         }
         let named = match_folded(&entry.whole[entry.leaf..], entry.base_leaf, needle);
         let positions = named.as_ref().map_or(&whole, |(_, named)| named);
-        let runs = positions.windows(2).filter(|pair| pair[1] != pair[0] + 1).count() + usize::from(!positions.is_empty());
+        let runs = positions
+            .windows(2)
+            .filter(|pair| pair[1] != pair[0] + 1)
+            .count()
+            + usize::from(!positions.is_empty());
         let (start, length) = run(positions).unwrap_or((0, 0));
-        let start = if named.is_some() { start + entry.leaf } else { start };
-        Some(Found { entry, own: named.is_some(), runs, wash: (start, length) })
+        let start = if named.is_some() {
+            start + entry.leaf
+        } else {
+            start
+        };
+        Some(Found {
+            entry,
+            own: named.is_some(),
+            runs,
+            wash: (start, length),
+        })
     }
 }
 
@@ -183,18 +219,38 @@ fn before(a: &Found<'_>, b: &Found<'_>) -> Ordering {
 
 impl Ranker for Jump {
     fn prepare(&mut self, answer: &Jumped, home: &str) {
-        let frecency: HashMap<&str, f64> = answer.frecency.iter().map(|(path, score)| (path.as_str(), *score)).collect();
+        let frecency: HashMap<&str, f64> = answer
+            .frecency
+            .iter()
+            .map(|(path, score)| (path.as_str(), *score))
+            .collect();
         self.entries.clear();
-        for (source, paths) in [&answer.favourites, &answer.zoxide, &answer.recent].into_iter().enumerate() {
+        for (source, paths) in [&answer.favourites, &answer.zoxide, &answer.recent]
+            .into_iter()
+            .enumerate()
+        {
             for (at, path) in paths.iter().enumerate() {
                 let text = display(path, home);
                 let mut bytes: Vec<usize> = text.char_indices().map(|(at, _)| at).collect();
                 bytes.push(text.len());
-                let leaf = text.rfind('/').map_or(0, |cut| text[..=cut].chars().count());
+                let leaf = text
+                    .rfind('/')
+                    .map_or(0, |cut| text[..=cut].chars().count());
                 let whole = fold(&text);
                 let (base_whole, base_leaf) = (base_start(&whole), base_start(&whole[leaf..]));
                 let frecency = frecency.get(path.as_str()).copied().unwrap_or(0.);
-                self.entries.push(Entry { path: path.clone(), text, bytes, leaf, whole, base_whole, base_leaf, source, at, frecency });
+                self.entries.push(Entry {
+                    path: path.clone(),
+                    text,
+                    bytes,
+                    leaf,
+                    whole,
+                    base_whole,
+                    base_leaf,
+                    source,
+                    at,
+                    frecency,
+                });
             }
         }
     }
@@ -206,7 +262,11 @@ impl Ranker for Jump {
         let query = line.trim();
         let needle: Vec<char> = query.to_lowercase().chars().collect();
         let floor = (query.chars().count() as i32 - 1) * MIN_SCORE_PER_CHARACTER;
-        let mut found: Vec<Found<'_>> = self.entries.iter().filter_map(|entry| Self::ranked(entry, &needle, floor)).collect();
+        let mut found: Vec<Found<'_>> = self
+            .entries
+            .iter()
+            .filter_map(|entry| Self::ranked(entry, &needle, floor))
+            .collect();
         found.sort_by(before);
         let mut taken = [0; 3];
         for row in found {
@@ -214,9 +274,20 @@ impl Ranker for Jump {
                 continue;
             }
             taken[row.entry.source] += 1;
-            let Entry { path, text, bytes, leaf, .. } = row.entry;
+            let Entry {
+                path,
+                text,
+                bytes,
+                leaf,
+                ..
+            } = row.entry;
             let (start, length) = row.wash;
-            out.push(Suggestion { path: path.clone(), text: text.clone(), leaf_start: bytes[*leaf], wash: bytes[start]..bytes[start + length] });
+            out.push(Suggestion {
+                path: path.clone(),
+                text: text.clone(),
+                leaf_start: bytes[*leaf],
+                wash: bytes[start]..bytes[start + length],
+            });
         }
     }
 

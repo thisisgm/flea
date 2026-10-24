@@ -210,6 +210,7 @@ impl Shell {
     /// U11's accepted document updates both placement and content atomically.
     pub fn rail_state(&mut self, state: &Json, cx: &mut Context<Self>) {
         self.launch.settings.data = state.clone();
+        self.path_favourites(state, cx);
         if let Some(join) = &self.rail {
             let places = state.get("places").unwrap_or(&Json::Null);
             join.host.update(cx, |host, cx| {

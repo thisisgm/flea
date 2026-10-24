@@ -81,7 +81,7 @@ impl Shell {
             .filter_map(|(_, host)| host.as_ref())
             .map(|host| host.pane.pending() + usize::from(host.error.is_some() || host.stopped))
             .sum::<usize>()
-            + self.path_waiting
+            + self.chrome.waiting
     }
 
     pub(crate) fn visual_state(&self, window: &Window) -> Json {
