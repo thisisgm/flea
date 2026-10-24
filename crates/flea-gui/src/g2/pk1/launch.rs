@@ -119,11 +119,11 @@ pub fn serve_ipc(
     })
 }
 
-// The listing worker is the listing owner's to drive; until it joins it is started and reaped under the same lifetime.
+// The listing worker draws the chooser's folder and answers its typed paths, reaped under the same lifetime as the checks.
 pub fn children() -> Children {
     Children {
         checks: Box::new(PickerProcess::checks()),
-        listing: Box::new(PickerProcess::checks()),
+        listing: Box::new(PickerProcess::listing()),
     }
 }
 

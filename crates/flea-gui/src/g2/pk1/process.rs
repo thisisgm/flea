@@ -15,6 +15,8 @@ extern "C" {
 }
 const SIGKILL: i32 = 9;
 const REAP_POLL: Duration = Duration::from_millis(5);
+pub(super) const CHECKS: &[&str] = &["picker", "formats"];
+pub(super) const LISTING: &[&str] = &["list", "window", "filter", "peek", "locate", "sort"];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Line {
@@ -38,6 +40,7 @@ struct Reaper {
 }
 
 pub struct PickerProcess {
+    allowed: &'static [&'static str],
     requests: Option<mpsc::Sender<String>>,
     quitting: Arc<AtomicBool>,
     reaper: Arc<Mutex<Reaper>>,
@@ -46,9 +49,20 @@ pub struct PickerProcess {
 
 impl PickerProcess {
     pub fn checks() -> Self {
+        Self::backend(CHECKS)
+    }
+
+    // The listing worker takes only the read-only listing and path lines the chooser draws from.
+    pub fn listing() -> Self {
+        Self::backend(LISTING)
+    }
+
+    fn backend(allowed: &'static [&'static str]) -> Self {
         let mut command = Command::new(crate::window::startup::binary());
         command.arg("--backend");
-        Self::start(command)
+        let mut process = Self::start(command);
+        process.allowed = allowed;
+        process
     }
 
     // A start that fails still answers: one failure and one stop, so the lifetime never waits on it.
@@ -66,6 +80,7 @@ impl PickerProcess {
                 let _ = sender.try_send(Line::Failed(error.to_string()));
                 let _ = sender.try_send(Line::Stopped);
                 return Self {
+                    allowed: CHECKS,
                     requests: None,
                     quitting,
                     reaper: Arc::new(Mutex::new(Reaper {
@@ -94,6 +109,7 @@ impl PickerProcess {
             .name("flea-picker-out".into())
             .spawn(move || read_lines(stdout, &sender, &reaper_out, &quitting_out));
         Self {
+            allowed: CHECKS,
             requests: Some(requests),
             quitting,
             reaper,
@@ -116,11 +132,9 @@ impl PickerProcess {
 }
 
 impl PickerChild for PickerProcess {
-    // A chooser's checks child takes only picker and formats lines.
+    // Each child takes only its own role's lines: checks picker and formats, the listing its read-only listing lines.
     fn send(&self, line: &str) -> bool {
-        if self.quitting.load(Ordering::Acquire)
-            || !matches!(field_str(line, "c").as_deref(), Some("picker" | "formats"))
-        {
+        if self.quitting.load(Ordering::Acquire) || !admits(self.allowed, line) {
             return false;
         }
         self.requests
@@ -137,6 +151,11 @@ impl PickerChild for PickerProcess {
     fn lines(&self) -> Receiver<Line> {
         self.lines.clone()
     }
+}
+
+// A line goes to a child only when its command is one the child's role takes.
+pub(super) fn admits(allowed: &[&str], line: &str) -> bool {
+    field_str(line, "c").is_some_and(|command| allowed.contains(&command.as_str()))
 }
 
 impl Drop for PickerProcess {
