@@ -237,6 +237,7 @@ fn clipboard_bounds_follow_the_drawn_name_and_leave_a_reserved_strip() {
             assert!(prepared.bold.set(shape(20.)).is_ok());
             let mut shown = Shown {
                 index: 0,
+                view: 0,
                 prepared: Some(Rc::new(prepared)),
                 clip: Some(ClipMark::Copy),
                 state: RowState {
