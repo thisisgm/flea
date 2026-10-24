@@ -1,4 +1,4 @@
-//! The window root: the shell as one cached view, with each frame's pane probes and loading marks painted over it.
+//! The window root: the shell as one cached view, with each frame's pane probes, loading marks and hero captions painted over it.
 use crate::{feedback::spinner::Arm, palette::Theme, pane::states::Kind, state::Shell};
 use gpui::{
     deferred, div, prelude::*, relative, size, App, Bounds, Context, Element, ElementId, Entity,
@@ -29,10 +29,7 @@ impl Render for Root {
             .unwrap_or_default()
             .foreground;
         // The modal scrim and card share the highest deferred layer, above menus and pane marks.
-        let overlay = self.shell.read(cx).overlay.clone();
-        #[cfg(test)]
-        super::gcomp_tests::operations::capture(overlay.as_ref().map(Entity::entity_id), cx);
-        let overlay = overlay.map(|view| {
+        let overlay = self.shell.read(cx).overlay.clone().map(|view| {
             view.update(cx, |overlay, cx| overlay.sync_focus(window, cx));
             let priority = if view.read(cx).modal(cx) {
                 usize::MAX
@@ -48,7 +45,7 @@ impl Render for Root {
             .capture_any_mouse_down(move |event, window, cx| {
                 if event.button == gpui::MouseButton::Right {
                     shell.update(cx, |shell, cx| {
-                        if shell.shown_view() != crate::window::startup::View::Columns {
+                        if shell.view != crate::window::startup::View::Columns {
                             for side in 0..2 {
                                 shell.menu_pointer_open(side, event, window, cx);
                             }
@@ -126,6 +123,10 @@ impl Element for Overlay {
         for mark in empty_marks.into_iter().flatten() {
             mark.prepare(!cx.reduce_motion(), None, window, cx);
         }
+        let heroes = cx.read_entity(&self.0, crate::g2::fb1::empty_omi::heroes);
+        for hero in heroes.into_iter().flatten() {
+            hero.update(cx, |hero, cx| hero.prepare_caption(window, cx));
+        }
         let column_marks =
             cx.read_entity(&self.0, |shell, cx| shell.column_loading_marks(window, cx));
         for mark in column_marks.into_iter().flatten() {
@@ -169,8 +170,6 @@ impl Element for Overlay {
             cx.read_entity(&self.0, |shell, _| {
                 shell.menu.presentation.mark.paint(window)
             });
-            #[cfg(test)]
-            super::gcomp_tests::operations::submit(&self.0, window, cx);
             return;
         }
         cx.read_entity(&self.0, |shell, cx| {
@@ -179,6 +178,12 @@ impl Element for Overlay {
                 .flatten()
             {
                 mark.paint(window);
+            }
+            for hero in crate::g2::fb1::empty_omi::heroes(shell, cx)
+                .into_iter()
+                .flatten()
+            {
+                hero.read(cx).paint_caption(window);
             }
             shell.paint_column_loading(window, cx);
             let arm = shell.seam.mark();

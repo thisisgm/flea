@@ -1,4 +1,4 @@
-//! The empty folder's hero: captions loop while shown, on a caller's millisecond clock.
+//! The empty folder's hero on a caller's millisecond clock. Captions loop while shown; the QML front end is not the reference.
 use super::{out_cubic, CLOSE_MS, OPEN_MS, TRANSLATE_UP_PX};
 
 /// The rotating phrases in order; each appearance starts with the first phrase.
@@ -176,6 +176,11 @@ impl Rotation {
 
     pub fn mark_settled(&self) -> bool {
         self.mark_at.is_none()
+    }
+
+    /// The entrance is rising in, which moves the whole hero's layout.
+    pub fn entering(&self) -> bool {
+        self.visible && self.entrance_at.is_some()
     }
 
     /// Caption and entrance motion; a separately animated mark supplies its own frame loop.

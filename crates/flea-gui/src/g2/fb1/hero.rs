@@ -1,15 +1,19 @@
-//! The empty folder's hero view: captions loop while shown, with a timer between beats and frames only while something moves.
-use super::caption::{caseless, tracking_for, Tracked, TRACKING};
+//! The empty folder's hero view: captions loop while shown; a fade repaints only the caption, and a timer waits between beats.
+use super::caption::{caseless, tracking_for, Place, Slot, TRACKING};
 use super::{bump, empty_omi, now_ms, Counters, Ink};
 use crate::feedback::spinner::Crawl;
 use crate::list::{Palette, Typeface};
 use flea::i18n::I18n;
 use flea::ui_logic_fb1::empty::{Rotation, PHRASES};
 use gpui::{
-    div, prelude::*, px, Context, FontWeight, IntoElement, Render, SharedString, Subscription,
-    Task, Window,
+    div, prelude::*, px, App, Context, EntityId, FontWeight, IntoElement, Render, ShapedLine,
+    SharedString, Subscription, Task, Window,
 };
 use std::{rc::Rc, time::Instant};
+
+#[path = "hero_paint.rs"]
+mod paint;
+use paint::{Face, Layer};
 
 /// The gap from the mark to its caption and the caption's line box, which each hero board states on its own.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -56,6 +60,10 @@ pub struct EmptyHero {
     tracking: f32,
     timer: Option<(u64, Task<()>)>,
     visibility: Option<Subscription>,
+    overlaid: bool,
+    place: Place,
+    face: Option<Face>,
+    shaped: Option<(usize, ShapedLine)>,
     pub counters: Rc<Counters>,
     pub painted: super::observe::Paint,
     pub shown_frame: Option<flea::ui_logic_fb1::empty::Frame>,
@@ -82,6 +90,10 @@ impl EmptyHero {
             tracking: TRACKING,
             timer: None,
             visibility: None,
+            overlaid: false,
+            place: Rc::default(),
+            face: None,
+            shaped: None,
             counters: Rc::default(),
             painted: Default::default(),
             shown_frame: None,
@@ -94,6 +106,7 @@ impl EmptyHero {
 
     /// Phrases are translated, raised and tracked once per language (caseless scripts neither), never in render or paint.
     pub fn translated(&mut self, catalog: &I18n) {
+        self.shaped = None;
         let raised = !caseless(catalog.language());
         self.tracking = tracking_for(catalog.language());
         self.phrases = PHRASES
@@ -150,6 +163,11 @@ impl EmptyHero {
         }
     }
 
+    /// A pane's hero: under the window root its overlay paints this caption above the cached pane, so a fade never renders the hero.
+    pub(crate) fn set_overlaid(&mut self) {
+        self.overlaid = true;
+    }
+
     pub fn rotation(&self) -> &Rotation {
         &self.rotation
     }
@@ -178,7 +196,7 @@ impl EmptyHero {
         cx.notify();
     }
 
-    fn arm(&mut self, deadline: u64, now: u64, cx: &mut Context<Self>) {
+    fn arm(&mut self, deadline: u64, now: u64, wake: EntityId, cx: &mut Context<Self>) {
         if self
             .timer
             .as_ref()
@@ -192,10 +210,19 @@ impl EmptyHero {
             cx.background_executor().timer(wait).await;
             let _ = this.update(cx, |hero, cx| {
                 hero.timer = None;
-                cx.notify();
+                let app: &mut App = cx;
+                app.notify(wake);
             });
         });
         self.timer = Some((deadline, task));
+    }
+
+    fn sync_motion(&mut self, now: u64, cx: &mut Context<Self>) {
+        if cx.reduce_motion() != self.reduced {
+            self.reduced = cx.reduce_motion();
+            self.timer = None;
+            self.rotation.set_reduced(self.reduced, now);
+        }
     }
 
     fn follow_visibility(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -220,23 +247,15 @@ impl Render for EmptyHero {
         bump(&self.counters.renders);
         self.follow_visibility(window, cx);
         let now = now_ms(self.base, cx);
-        if cx.reduce_motion() != self.reduced {
-            self.reduced = cx.reduce_motion();
-            self.timer = None;
-            self.rotation.set_reduced(self.reduced, now);
-        }
+        self.sync_motion(now, cx);
         self.rotation.advance(now);
         let frame = self.rotation.frame(now);
         self.shown_frame = Some(frame);
         self.painted.clear();
         self.column_painted = Some((self.rotation.visible(), frame.opacity, 1.));
-        if !window.is_visible() {
-            self.timer = None;
-        } else if self.rotation.caption_animating() {
+        if window.is_visible() && self.rotation.entering() {
             bump(&self.counters.frames);
             window.request_animation_frame();
-        } else if let Some(deadline) = self.rotation.next_deadline() {
-            self.arm(deadline, now, cx);
         }
         let theme = cx
             .try_global::<crate::palette::Theme>()
@@ -250,10 +269,39 @@ impl Render for EmptyHero {
         );
         self.typeface = Typeface::for_window(window, cx);
         self.painted_ink = Some(ink);
-        let caption = self.phrases.get(frame.phrase).cloned().unwrap_or_default();
+        // Only the shipped window root carries the overlay that paints a mounted pane's caption.
+        let overlay = self.overlaid
+            && window
+                .root::<crate::window::root::Root>()
+                .flatten()
+                .is_some();
         let metrics = self.metrics();
         let mut font = self.typeface.font.clone();
         font.weight = FontWeight::BOLD;
+        let face = Face {
+            font,
+            size: self.typeface.caption,
+            line: px(metrics.caption_line),
+            tracking: px(self.tracking),
+            color: ink.foreground,
+        };
+        if self.face.as_ref() != Some(&face) {
+            self.face = Some(face.clone());
+            self.shaped = None;
+        }
+        let widest = self
+            .phrases
+            .iter()
+            .map(|phrase| {
+                super::caption::measure(
+                    phrase.clone(),
+                    face.font.clone(),
+                    face.size,
+                    face.tracking,
+                    window,
+                )
+            })
+            .fold(0., f32::max);
         let root = div()
             .relative()
             .size_full()
@@ -285,25 +333,18 @@ impl Render for EmptyHero {
                             ),
                         )
                         .child(
-                            self.painted.watch_tracked(
-                                div()
-                                    .relative()
-                                    .text_color(ink.foreground)
-                                    .debug_selector(|| "fb1-hero-caption".into())
-                                    .opacity(frame.caption),
-                                "caption",
-                                Tracked {
-                                    text: caption,
-                                    font,
-                                    size: self.typeface.caption,
-                                    line: px(metrics.caption_line),
-                                    tracking: px(self.tracking),
-                                    color: ink.foreground,
-                                },
-                            ),
+                            div()
+                                .relative()
+                                .debug_selector(|| "fb1-hero-caption".into())
+                                .child(Slot {
+                                    place: Rc::clone(&self.place),
+                                    width: widest,
+                                    line: face.line,
+                                }),
                         ),
                 )
-            });
+            })
+            .when(!overlay, |root| root.child(Layer(cx.entity())));
         self.painted.watch(root, "frame", SharedString::default())
     }
 }

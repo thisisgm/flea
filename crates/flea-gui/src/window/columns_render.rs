@@ -305,8 +305,13 @@ fn sync_tile(
         hero.update(cx, |hero, cx| hero.hide(cx));
     }
     if view.state == TrackState::Empty {
-        let hero = columns.heroes[at]
-            .get_or_insert_with(|| cx.new(|cx| crate::g2::fb1::hero::EmptyHero::new(catalog, cx)));
+        let hero = columns.heroes[at].get_or_insert_with(|| {
+            cx.new(|cx| {
+                let mut hero = crate::g2::fb1::hero::EmptyHero::new(catalog, cx);
+                hero.set_overlaid();
+                hero
+            })
+        });
         hero.update(cx, |hero, cx| {
             hero.translated(catalog);
             hero.show(columns.area.hero_settled.as_deref() != Some(&view.path), cx);

@@ -87,10 +87,19 @@ fn empty_omi_keeps_looping_between_caption_beats_without_rendering_the_panes(
             "each Omi animates between caption beats"
         );
         if hold < 3 {
+            // The next beat's whole fade repaints only the captions, never a hero or the cached Shell.
+            let renders = counts(cx);
+            let shell = cx.update(|cx| Shell::empty_omi_shell_renders(cx));
             for _ in 0..ROTATE_MS / super::hero_tests::FRAME - 16 {
                 frame(cx, handle);
                 sample_players(cx, handle, &mut players);
             }
+            assert_eq!(counts(cx), renders, "a caption fade renders no hero");
+            assert_eq!(
+                cx.update(|cx| Shell::empty_omi_shell_renders(cx)),
+                shell,
+                "a caption fade renders no Shell"
+            );
         }
     }
 

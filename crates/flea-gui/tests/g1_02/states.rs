@@ -63,14 +63,16 @@ fn empty_words_loop_three_cycles_without_advancing_hidden_or_reduced_states() {
         for expected in phrases {
             assert_eq!(state.text(&catalog, 0).message, expected);
             assert_eq!(state.text(&catalog, 0).status, "0 items");
-            assert!(state.empty_beat(false));
+            assert!(state.empty_beat(false, true));
         }
     }
     state.beat = 0;
-    assert!(!state.empty_beat(true));
+    assert!(!state.empty_beat(true, true));
+    assert_eq!(state.beat, 0);
+    assert!(!state.empty_beat(false, false));
     assert_eq!(state.beat, 0);
     state.kind = Kind::Ready;
-    assert!(!state.empty_beat(false));
+    assert!(!state.empty_beat(false, true));
     assert_eq!(state.beat, 0);
 }
 

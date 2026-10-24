@@ -21,7 +21,7 @@ fn at(hero: &mut Rotation, now: u64) -> usize {
     hero.index()
 }
 
-/// Every phrase repeats in order while shown, with one deadline between beats.
+/// Captions loop while shown; the QML front end is not the reference.
 #[test]
 fn captions_loop_for_three_full_cycles_while_shown() {
     let mut hero = Rotation::default();

@@ -5,6 +5,7 @@ use gpui::{
     fill, point, px, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId, Hsla,
     InspectorElementId, IntoElement, LayoutId, Pixels, Style, Window,
 };
+pub(crate) use player::request_frame;
 pub use player::{device_side, Mode, Motion};
 use std::{
     cell::{Cell, RefCell},

@@ -115,8 +115,9 @@ impl State {
         (self.kind == Kind::Locked).then_some(self.target.as_str())
     }
 
-    pub fn empty_beat(&mut self, reduced_motion: bool) -> bool {
-        if self.kind != Kind::Empty || reduced_motion {
+    /// One caption beat; the words loop while the pane is Empty and drawn, and nothing advances otherwise.
+    pub fn empty_beat(&mut self, reduced_motion: bool, shown: bool) -> bool {
+        if self.kind != Kind::Empty || reduced_motion || !shown {
             return false;
         }
         self.beat = (self.beat + 1) % 4;
