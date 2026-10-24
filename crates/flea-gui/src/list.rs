@@ -79,8 +79,8 @@ const LINE_BOX_RATIO: f32 = 1.8;
 const CHROME_ROW_RATIO: f32 = 0.72;
 // Density's Compact keeps half the control padding, Omarchy's 6 px at its stock base of 12.
 const COMPACT_PADDING: f32 = 0.5;
-const CONTROL_PADDING_Y: f32 = 6.;
-const STOCK_BASE: f32 = 12.;
+pub(crate) const CONTROL_PADDING_Y: f32 = 6.;
+pub(crate) const STOCK_BASE: f32 = 12.;
 // Theme.markSize: a mark is sized from the type scale, and Glyph.qml caps it at its slot.
 const MARK_RATIO: f32 = 1.45;
 

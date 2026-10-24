@@ -72,6 +72,7 @@ impl Shell {
         window.presented_frames()
     }
 
+    /// Work whose answer still draws a frame: the shown panes' requests and the path bar's asks and history reads.
     pub(crate) fn pending_requests(&self) -> usize {
         self.panes
             .iter()
@@ -79,7 +80,8 @@ impl Shell {
             .filter(|(side, _)| *side == 0 || self.view == View::Dual)
             .filter_map(|(_, host)| host.as_ref())
             .map(|host| host.pane.pending() + usize::from(host.error.is_some() || host.stopped))
-            .sum()
+            .sum::<usize>()
+            + self.path_waiting
     }
 
     pub(crate) fn visual_state(&self, window: &Window) -> Json {
