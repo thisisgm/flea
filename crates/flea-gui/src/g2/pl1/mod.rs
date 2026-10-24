@@ -11,6 +11,7 @@ pub mod phones;
 pub mod process;
 pub mod seams;
 pub mod secret;
+pub mod source;
 pub mod unlock;
 pub mod view;
 pub mod words;

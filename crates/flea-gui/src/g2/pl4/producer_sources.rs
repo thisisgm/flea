@@ -48,7 +48,25 @@ impl Producer {
                 saved.shown,
                 favourites,
                 &[false; 7],
-                self.tail.clone(),
+                self.tail
+                    .iter()
+                    .filter_map(|section| {
+                        let mut section = section.clone();
+                        section.rows.retain(|row| {
+                            let key = match row.group {
+                                Group::Device => "showDevices",
+                                Group::Network => "showNetwork",
+                                _ => return true,
+                            };
+                            self.state
+                                .get("places")
+                                .and_then(|places| places.get(key))
+                                .and_then(Json::as_bool)
+                                != Some(false)
+                        });
+                        (!section.rows.is_empty()).then_some(section)
+                    })
+                    .collect(),
                 &[],
             ),
             cx,
@@ -58,6 +76,14 @@ impl Producer {
     /// U19 and U20 publish complete device and network sections through this seam.
     pub fn set_tail(&mut self, sections: Vec<RailSection>, cx: &mut Context<Self>) {
         self.tail = sections;
+        self.rebuild(cx);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fixture_home(&mut self, home: &str, dirs: &str, cx: &mut Context<Self>) {
+        self.home = home.to_owned();
+        self.dirs = dirs.to_owned();
+        self.loaded = true;
         self.rebuild(cx);
     }
 

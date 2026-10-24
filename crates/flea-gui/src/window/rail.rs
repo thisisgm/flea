@@ -1,4 +1,8 @@
 //! The live rail join: one lazy host and one places producer per window, and the producer's requests routed to the shell.
+use crate::g2::pl1::{
+    process::Runner,
+    source::{Request as DeviceRequest, Source},
+};
 pub use crate::g2::pl4::producer::Request;
 use crate::g2::pl4::producer::{Event, Producer};
 use crate::rail::host::{self, Host};
@@ -10,11 +14,14 @@ use flea::jsondoc::Json;
 use gpui::{
     AnyView, AppContext, Context, Entity, EventEmitter, KeyDownEvent, Subscription, Window,
 };
+use std::rc::Rc;
 use std::sync::Arc;
 
 pub struct Join {
     pub host: Entity<Host>,
     pub places: Entity<Producer>,
+    pub devices: Entity<Source>,
+    _devices: Subscription,
     _observe: Subscription,
     _host: Subscription,
     pub(crate) focus_pending: Option<bool>,
@@ -23,6 +30,21 @@ pub struct Join {
 
 /// Builds the producer from Settings.data and the host over it; the host is the only lazy owner.
 pub fn mount(catalog: Arc<I18n>, state: &Json, side: usize, cx: &mut Context<Shell>) -> Join {
+    #[cfg(not(test))]
+    let runner = Rc::new(crate::g2::pl1::process::ThreadRunner);
+    #[cfg(test)]
+    let runner = Rc::new(crate::g2::pl1::source::EmptyRunner);
+    mount_with_source(catalog, state, side, runner, None, cx)
+}
+
+fn mount_with_source(
+    catalog: Arc<I18n>,
+    state: &Json,
+    side: usize,
+    runner: Rc<dyn Runner>,
+    hostname: Option<String>,
+    cx: &mut Context<Shell>,
+) -> Join {
     let places = state.get("places").unwrap_or(&Json::Null);
     let mode = Mode::from_places(places);
     let width = geometry::width_stop(places.get("sidebarWidth").and_then(Json::as_f64));
@@ -39,6 +61,16 @@ pub fn mount(catalog: Arc<I18n>, state: &Json, side: usize, cx: &mut Context<She
         producer.side = side;
     });
     let observe = cx.observe(&producer, |_, _, cx| cx.notify());
+    let devices = cx.new(|_| Source::new(runner, hostname, state));
+    let target = producer.clone();
+    let device_observe = cx.observe(&devices, move |_, source, cx| {
+        let sections = source.read(cx).sections.clone();
+        target.update(cx, |producer, cx| producer.set_tail(sections, cx));
+        cx.notify();
+    });
+    devices.update(cx, |source, cx| {
+        source.set_polling(mode == Mode::Docked, cx)
+    });
     let built = producer.clone();
     let host = cx.new(|cx| {
         Host::new(
@@ -66,6 +98,8 @@ pub fn mount(catalog: Arc<I18n>, state: &Json, side: usize, cx: &mut Context<She
     Join {
         host,
         places: producer,
+        devices,
+        _devices: device_observe,
         _observe: observe,
         _host: host_subscription,
         focus_pending: None,
@@ -83,6 +117,8 @@ impl Shell {
             host::Event::Polling(polling) => {
                 join.places
                     .update(cx, |producer, cx| producer.set_polling(polling, cx));
+                join.devices
+                    .update(cx, |source, cx| source.set_polling(polling, cx));
             }
             host::Event::Focus(handoff) => {
                 join.focus_pending = Some(handoff == crate::rail::Handoff::Rail);
@@ -93,6 +129,7 @@ impl Shell {
 
     /// A row's request is applied once the frame can still run: opens route through the pane's own step.
     pub(crate) fn route_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.route_device_events(window, cx);
         if let Some(held) = self
             .rail
             .as_mut()
@@ -150,6 +187,14 @@ impl Shell {
                     self.focus_pane(side, cx);
                     self.trash_action("openTrash", window, cx);
                 }
+                Event::Activate(entry)
+                    if entry.group == flea::ui_logic_pl4::rail::Group::Device =>
+                {
+                    if let Some(join) = &self.rail {
+                        join.devices
+                            .update(cx, |source, cx| source.activate(&entry, side, cx));
+                    }
+                }
                 event => cx.emit(Request { side, id, event }),
             }
         }
@@ -176,6 +221,7 @@ impl Shell {
 }
 
 impl EventEmitter<Request> for Shell {}
+impl EventEmitter<DeviceRequest> for Shell {}
 
 impl Shell {
     pub fn rail_focus(&mut self, focused: bool, cx: &mut Context<Self>) {
@@ -219,8 +265,14 @@ impl Shell {
                 );
                 host.set_mode(Mode::from_places(places), cx);
             });
-            join.places
-                .update(cx, |producer, cx| producer.adopt_state(state, cx));
+            let tail = join.devices.update(cx, |source, cx| {
+                source.adopt_state(state, cx);
+                source.sections.clone()
+            });
+            join.places.update(cx, |producer, cx| {
+                producer.set_tail(tail, cx);
+                producer.adopt_state(state, cx);
+            });
         }
         cx.notify();
     }
@@ -309,3 +361,10 @@ mod compose;
 #[cfg(test)]
 #[path = "rail_tests.rs"]
 mod u08;
+
+#[cfg(test)]
+#[path = "rail_devices_tests.rs"]
+mod device_tests;
+
+#[path = "../g2/pl1/rail_events.rs"]
+mod device_events;
