@@ -135,6 +135,11 @@ impl Flash {
         &self.press
     }
 
+    /// The image the view names, so the host can match a flashimage reply to it.
+    pub fn image_path(&self) -> Option<&str> {
+        self.image.as_ref().map(|image| image.path.as_str())
+    }
+
     pub fn shown(&self) -> bool {
         self.shown
     }

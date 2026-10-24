@@ -20,6 +20,7 @@ pub mod protocol;
 pub mod ui_logic_fb1;
 pub mod ui_logic_mn1;
 pub mod ui_logic_op1;
+pub mod ui_logic_op2;
 pub mod ui_logic_op3;
 pub mod ui_logic_pk1;
 pub mod ui_logic_pl1;

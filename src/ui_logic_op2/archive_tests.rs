@@ -223,4 +223,3 @@ fn menu_extract_row_read_through_mn1() {
     assert!(rows::extract_entry(&mut row, &p, 1), "a 7z archive with no reader keeps its Extract row");
     assert_eq!(row.hint, Some(Text::Key("menu.extract.no_tool")), "a bare archive blames neither tool by name");
 }
-
