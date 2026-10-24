@@ -9,6 +9,8 @@ use std::sync::Arc;
 
 #[path = "../tests/g1_04/host.rs"]
 mod g1_04;
+#[path = "../tests/g1_12/host.rs"]
+mod g1_12;
 
 #[path = "state_test_fixture.rs"]
 mod fixture;

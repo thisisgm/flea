@@ -1,11 +1,18 @@
 //! The folder jump behind the bar, through a test ranker, and the popup's board geometry, clip and pointer rule.
-use flea_gui::path::{
-    menu::{cuts, layers},
-    suggestions::{
-        step, Ask, Enter, Jump, Pointer, Popup, Ranker, Suggestion, FADE, ROW, STATUS, TOP,
+use flea_gui::{
+    list::Typeface,
+    path::{
+        menu::{cuts, layers},
+        scale::Scale,
+        suggestions::{step, Ask, Enter, Jump, Pointer, Popup, Ranker, Suggestion},
+        Jumped,
     },
-    Jumped,
 };
+
+/// The geometry at the board's text size, body 14, where every number is the board's pixel.
+pub fn board() -> Scale {
+    Scale::at(&Typeface::omarchy_default())
+}
 
 /// A stand-in scorer for the seam: every answered folder whose leaf holds the typed name, in answer order.
 #[derive(Default)]
@@ -240,34 +247,37 @@ fn keyboard_steps_clamp_and_tab_turns_the_line_into_a_path() {
 
 #[test]
 fn the_popup_sits_three_pixels_under_the_rule_and_nineteen_over_the_status_bar() {
-    let tall = Popup::measure(700., 80., 788., 7);
+    let s = board();
+    let tall = Popup::measure(s, 700., 80., 788., 7);
     assert_eq!(
         (tall.x, tall.y, tall.width, tall.height),
         (80., 30., 788., 271.)
     );
-    assert_eq!(tall.y - 27., 3., "3 px below the toolbar rule");
+    assert_eq!(tall.y - s.chrome, 3., "3 px below the toolbar rule");
     assert_eq!(tall.max_scroll(), 0.);
     assert_eq!(tall.fades(0.), (false, false));
-    let short = Popup::measure(360., 80., 788., 9);
+    let short = Popup::measure(s, 360., 80., 788., 9);
     assert_eq!(
         (short.x, short.y, short.width, short.height),
-        (80., TOP, 788., 284.)
+        (80., 30., 788., 284.)
     );
     assert_eq!(short.y + short.height, 314.);
-    assert_eq!(360. - STATUS, 333.);
-    assert_eq!(360. - STATUS - (short.y + short.height), 19.);
+    assert_eq!(360. - s.chrome, 333.);
+    assert_eq!(360. - s.chrome - (short.y + short.height), 19.);
     assert_eq!(short.max_scroll(), 61.);
 }
 
 #[test]
 fn the_clipped_row_shows_exactly_half_and_all_of_it_under_the_fade() {
-    let popup = Popup::measure(360., 80., 788., 9);
-    let half = (ROW / 2.).floor();
+    let s = board();
+    let (row, pad) = (s.row, s.pad);
+    let popup = Popup::measure(s, 360., 80., 788., 9);
+    let half = (row / 2.).floor();
     assert_eq!(popup.visible(0., 9), (0, 8));
-    let bottom_row_top = 5. + 7. * ROW;
+    let bottom_row_top = pad + 7. * row;
     assert_eq!(popup.inner - bottom_row_top, half, "half bottom row");
     assert!(
-        popup.inner - FADE <= bottom_row_top,
+        popup.inner - s.fade <= bottom_row_top,
         "the clipped half sits wholly under the fade"
     );
     assert_eq!(popup.fades(0.), (false, true));
@@ -278,9 +288,9 @@ fn the_clipped_row_shows_exactly_half_and_all_of_it_under_the_fade() {
         "End shows the last row and its padding"
     );
     assert_eq!(popup.visible(end, 9), (1, 9));
-    let top_row_bottom = 5. + 2. * ROW;
+    let top_row_bottom = pad + 2. * row;
     assert_eq!(top_row_bottom - end, half, "half top row");
-    assert!(top_row_bottom - end <= FADE);
+    assert!(top_row_bottom - end <= s.fade);
     assert_eq!(popup.fades(end), (true, false));
     assert_eq!(
         popup.reveal(end, 0, 9),
@@ -288,21 +298,25 @@ fn the_clipped_row_shows_exactly_half_and_all_of_it_under_the_fade() {
         "the first row brings its padding"
     );
     assert_eq!(popup.reveal(0., 3, 9), 0.);
-    assert_eq!(popup.reveal(0., 7, 9), 5. + 8. * ROW - popup.inner);
+    assert_eq!(popup.reveal(0., 7, 9), pad + 8. * row - popup.inner);
     let (first, last) = popup.visible(30., 9);
     assert!(
-        last - first <= (popup.inner / ROW).ceil() as usize + 1,
+        last - first <= (popup.inner / row).ceil() as usize + 1,
         "only the visible rows are shaped"
     );
 }
 
 #[test]
 fn a_press_reads_the_row_under_it_and_padding_reads_none() {
-    let popup = Popup::measure(360., 80., 788., 9);
+    let s = board();
+    let popup = Popup::measure(s, 360., 80., 788., 9);
     let y = |content: f32| 30. + 1. + content;
-    assert_eq!(popup.row_at(100., y(5. + 2. * ROW + 10.), 0., 9), Some(2));
     assert_eq!(
-        popup.row_at(100., y(5. + 2. * ROW + 10.), 61., 9),
+        popup.row_at(100., y(s.pad + 2. * s.row + 10.), 0., 9),
+        Some(2)
+    );
+    assert_eq!(
+        popup.row_at(100., y(s.pad + 2. * s.row + 10.), 61., 9),
         Some(3),
         "61 px of scroll moves the press down one row"
     );

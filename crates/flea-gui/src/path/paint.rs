@@ -1,5 +1,5 @@
 //! What the path surfaces draw with: the inks, the face's advances, a bounded cache of shaped pieces and the crumb strip Element.
-use super::{menu::Piece, strip::Strip, suggestions::Popup, view::PathView};
+use super::{menu::Piece, scale::Scale, strip::Strip, suggestions::Popup, view::PathView};
 use crate::list::{Palette, Typeface};
 use crate::palette::Theme;
 use gpui::{
@@ -138,6 +138,8 @@ pub struct Paint {
     pub frame: Option<Bounds<Pixels>>,
     pub strips: [Option<Bounds<Pixels>>; 3],
     pub popup: Option<Popup>,
+    /// The suggestion rows the last frame laid and painted, 0 while no popup draws.
+    pub drawn: usize,
     pub field_origin: Pixels,
     /// Each strip's shaped crumbs and the popup's shaped pieces, kept across frames so a redraw reuses their buffers.
     pub runs: [Vec<Rc<GlyphRun>>; 3],
@@ -157,6 +159,7 @@ impl Paint {
             frame: None,
             strips: [None; 3],
             popup: None,
+            drawn: 0,
             field_origin: px(0.),
             runs: Default::default(),
             pieces: Vec::new(),
@@ -165,6 +168,11 @@ impl Paint {
 
     pub fn pixels(&self, size: Size) -> Pixels {
         pixels(&self.typeface, size)
+    }
+
+    /// The text size's geometry for the field, the popup and its rows.
+    pub fn scale(&self) -> Scale {
+        Scale::at(&self.typeface)
     }
 
     // One advance of "0" per size, measured once: it turns a strip's room into the fit's character budget.
@@ -224,7 +232,7 @@ impl Paint {
 fn pixels(typeface: &Typeface, size: Size) -> Pixels {
     match size {
         Size::Caption => typeface.caption,
-        Size::Field => px(13.),
+        Size::Field => typeface.body_small,
         Size::Body => typeface.body,
     }
 }
@@ -287,8 +295,14 @@ impl Place {
     }
 }
 
-// A dual pane's strip starts its first crumb a row's padding in, the chrome's at its slot's edge.
-pub const STRIP_PAD: f32 = 14.;
+/// A strip's first-crumb inset: none on the chrome, a dual pane's row padding (PanePath's rowPaddingX) on a pane.
+pub fn strip_pad(pane: bool, scale: &Scale) -> f32 {
+    if pane {
+        scale.pad_x
+    } else {
+        0.
+    }
+}
 
 pub struct CrumbElement {
     view: Entity<PathView>,
@@ -300,12 +314,8 @@ impl CrumbElement {
         Self { view, place }
     }
 
-    fn pad(&self) -> f32 {
-        if self.place == Place::Chrome {
-            0.
-        } else {
-            STRIP_PAD
-        }
+    fn pad(&self, scale: &Scale) -> f32 {
+        strip_pad(self.place != Place::Chrome, scale)
     }
 }
 
@@ -352,9 +362,9 @@ impl Element for CrumbElement {
     ) -> (Hitbox, Ink, bool) {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let slot = self.place.slot();
-        let pad = self.pad();
         let paint = self.view.read(cx).paint.clone();
         let mut paint = paint.borrow_mut();
+        let pad = self.pad(&paint.scale());
         let ink = Ink::of(Palette::inherited(&window.text_style(), theme));
         // Dual draws each path on its own pane, so the chrome keeps its slot and builds no crumbs.
         if self.place == Place::Chrome && self.view.read(cx).inputs.dual {
@@ -427,7 +437,7 @@ impl Element for CrumbElement {
             _ => CursorStyle::IBeam,
         };
         window.set_cursor_style(style, hitbox);
-        let left = bounds.origin.x + px(self.pad());
+        let left = bounds.origin.x + px(self.pad(&paint.scale()));
         let height = if pane {
             bounds.size.height - px(1.)
         } else {

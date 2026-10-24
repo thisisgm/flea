@@ -35,11 +35,7 @@ impl PathAdapter<'_> {
         let Some((left, width)) = self.view.strips[slot].extent(index) else {
             return String::new();
         };
-        let pad = if slot == 0 {
-            0.
-        } else {
-            crate::path::paint::STRIP_PAD
-        };
+        let pad = crate::path::paint::strip_pad(slot != 0, &paint.scale());
         let x = f32::from(bounds.origin.x) + pad + left;
         if x < f32::from(bounds.origin.x) || x + width > f32::from(bounds.right()) {
             return String::new();
@@ -77,6 +73,20 @@ impl Adapter for PathAdapter<'_> {
         let value = match function {
             "pathBarOpen" => view.editing().to_string(),
             "pathBarText" => view.entry.text.clone(),
+            "pathSuggestionRows" => view.paint.borrow().drawn.to_string(),
+            "pathSuggestionCursor" => view
+                .jump
+                .cursor
+                .map_or_else(|| "-1".to_string(), |at| at.to_string()),
+            "pathSuggestionPointer" => {
+                let paint = view.paint.borrow();
+                match (view.jump.shown(), paint.popup, view.pointer.last_seen()) {
+                    (true, Some(popup), Some((x, y))) => {
+                        format!("{} {}", round(x - popup.x), round(y - popup.y))
+                    }
+                    _ => "none".to_string(),
+                }
+            }
             "pathCentre" => view.paint.borrow().area.map_or_else(String::new, |area| {
                 centre(
                     f32::from(area.origin.x),

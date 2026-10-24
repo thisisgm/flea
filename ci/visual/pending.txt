@@ -754,6 +754,8 @@ ipc:flea.panePathRect pending G1
 ipc:flea.path pending G1
 ipc:flea.pathBarOpen pending G1
 ipc:flea.pathBarText pending G1
+ipc:flea.pathSuggestionRows pending G1
+ipc:flea.pathSuggestionCursor pending G1
 ipc:flea.pathCentre pending G1
 ipc:flea.pathFrameRect pending G1
 ipc:flea.pdfState pending G2-previews
