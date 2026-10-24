@@ -156,7 +156,9 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
         cx.set_reduce_motion(true);
     });
     let handle = open(&mut cx);
+    let (backend, _requests) = Backend::test_lines();
     edit(&mut cx, handle, |shell, window, cx| {
+        shell.panes[0].as_mut().unwrap().backend = Some(backend);
         shell.launch.settings =
             crate::window::startup::Settings::from_json(flea::uistate::from_file("{}"), true);
         shell.set_view(View::List, window, cx);

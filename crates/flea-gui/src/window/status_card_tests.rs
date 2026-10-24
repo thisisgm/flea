@@ -37,7 +37,7 @@ pub(super) fn draw(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
 
 #[gpui::test]
 fn u05_transfer_observer_reads_the_painted_job_block_and_its_fold(cx: &mut TestAppContext) {
-    let (backend, _requests) = Backend::test_channel();
+    let (backend, mut requests) = Backend::test_lines();
     let handle = cx.add_window(|_, cx| Root {
         shell: cx.new(|cx| crate::state::tests::shell_with(backend, cx)),
     });
@@ -105,30 +105,23 @@ fn u05_transfer_observer_reads_the_painted_job_block_and_its_fold(cx: &mut TestA
     assert_eq!(bounds.len(), 4);
     assert!(centre[0] >= bounds[0] && centre[0] <= bounds[0] + bounds[2]);
     assert!(centre[1] >= bounds[1] && centre[1] <= bounds[1] + bounds[3]);
+    while requests().is_some() {}
     gpui::VisualTestContext::from_window(handle.into(), cx).simulate_click(
         gpui::point(gpui::px(centre[0]), gpui::px(centre[1])),
         gpui::Modifiers::none(),
     );
-    handle
-        .update(cx, |root, _, cx| {
-            root.shell.update(cx, |shell, cx| {
-                assert!(shell
-                    .overlay
-                    .as_ref()
-                    .unwrap()
-                    .read(cx)
-                    .model
-                    .outbox
-                    .iter()
-                    .any(|line| {
-                        let value = flea::jsondoc::parse(line).unwrap();
-                        value.get("c").and_then(flea::jsondoc::Json::as_str) == Some("jobs")
-                            && value.get("op").and_then(flea::jsondoc::Json::as_str)
-                                == Some("cancel")
-                    }));
-            })
-        })
-        .unwrap();
+    let cancel = requests().expect("the painted Cancel reaches its backend");
+    let value = flea::jsondoc::parse(&cancel).unwrap();
+    assert_eq!(
+        value.get("c").and_then(flea::jsondoc::Json::as_str),
+        Some("jobs")
+    );
+    assert_eq!(
+        value.get("op").and_then(flea::jsondoc::Json::as_str),
+        Some("cancel")
+    );
+    assert_eq!(cancel, r#"{"c":"jobs","op":"cancel","id":12}"#);
+    assert!(requests().is_none(), "one press sends one cancellation");
     handle
         .update(cx, |root, _, cx| {
             root.shell.update(cx, |shell, cx| {

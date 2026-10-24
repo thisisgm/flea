@@ -190,6 +190,8 @@ impl Shell {
         self.menu.context = MenuContext {
             has_row: !background,
             selection_count: capture.rows.len(),
+            has_shebang: false,
+            cursor_is_target: capture.rows.as_slice() == [capture.cursor],
             row_mode: facts.map_or(0, |r| r.mode),
             row_is_file: facts.is_some_and(|r| !r.dir),
             row_is_symlink: facts.is_some_and(|r| r.link.is_some()),
@@ -210,6 +212,7 @@ impl Shell {
             ..MenuContext::default()
         };
         self.menu.captured = Some(capture.clone());
+        self.check_menu_shebang(window, cx);
         self.menu.presentation.at = Some(at);
         self.menu.pointer = Some((
             window.mouse_position().x.into(),

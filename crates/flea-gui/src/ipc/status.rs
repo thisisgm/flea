@@ -324,6 +324,16 @@ impl Adapter for StatusAdapter<'_> {
             snapshot: &snapshot,
         };
         let value = match function {
+            "lastMessage"
+                if !shown.is_error && !shown.text.is_empty() && !line.drawn().undo.is_empty() =>
+            {
+                format!(
+                    "{}{}{}",
+                    shown.text,
+                    flea::ui_logic_fb1::status::SEP,
+                    line.drawn().undo
+                )
+            }
             "lastMessage" => shown.text,
             "stickyMessage" => messages
                 .activities()

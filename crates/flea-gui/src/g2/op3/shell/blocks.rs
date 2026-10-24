@@ -123,7 +123,7 @@ impl Draw<'_> {
             } else {
                 t.muted_frame
             })
-            .rounded(self.px(RADIUS));
+            .rounded(px(self.corner));
         for name in new {
             let row = line().text_color(t.ink(name.ink)).child(
                 div()
