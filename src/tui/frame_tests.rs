@@ -148,20 +148,34 @@ fn caption_loop_paints_three_cycles_and_writes_nothing_between_beats() {
     let initial = render::frame_at(&m, &theme, &map, 130, 31, Duration::ZERO, start);
     let mut last = initial.clone();
     let mut terminal = Vec::new();
+    let beat = Duration::from_millis(crate::tui::empty::ROTATE_MS as u64);
+    let phrases = crate::tui::empty::PHRASES.len();
+    let timeout = beat * (phrases as u32 * 2);
+    let mut now = start;
     for cycle in 0..3 {
         let mut paints = 0;
-        for step in 1..=84 {
-            let millis = cycle * 8400 + step * 100;
-            let out = render::frame_at(&m, &theme, &map, 130, 31, Duration::ZERO, start + Duration::from_millis(millis));
+        let mut idle_paints = 0;
+        let mut wakes = 0;
+        for _ in 0..phrases {
+            let input_wait = crate::tui::wait::poll_wait_ms(false, now.duration_since(start), timeout);
+            let wait = crate::tui::wait::next_wait_ms(&m, (130, 31), now, input_wait);
+            assert_eq!(wait, beat.as_millis() as i32);
+            let idle = render::frame_at(&m, &theme, &map, 130, 31, Duration::ZERO, now + beat / 2);
+            idle_paints += usize::from(render::present(idle, &mut last, &mut terminal).unwrap());
+            now += Duration::from_millis(wait as u64);
+            wakes += 1;
+            let out = render::frame_at(&m, &theme, &map, 130, 31, Duration::ZERO, now);
             let before = terminal.len();
             let painted = render::present(out, &mut last, &mut terminal).unwrap();
-            assert_eq!(painted, millis % 2800 == 0, "terminal paint at {millis}ms");
+            assert!(painted, "terminal paint at {:?}", now.duration_since(start));
             assert_eq!(terminal.len() > before, painted);
             paints += usize::from(painted);
         }
-        assert_eq!(paints, 3);
+        assert_eq!(paints, phrases);
+        assert_eq!(wakes, phrases);
+        assert_eq!(idle_paints, 0);
         assert_eq!(last, initial, "each cycle wraps to the first complete frame");
-        eprintln!("TUI_FRAME_CAPTION_CYCLE cycle={} paints={paints} idle_paints=0 frame_requests=0", cycle + 1);
+        eprintln!("TUI_FRAME_CAPTION_CYCLE cycle={} wakes={wakes} paints={paints} idle_paints={idle_paints}", cycle + 1);
     }
 }
 #[test]

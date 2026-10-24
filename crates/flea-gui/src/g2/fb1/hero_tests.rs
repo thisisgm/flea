@@ -338,8 +338,12 @@ fn caption_observer_uses_the_painted_font_size_and_tracking(cx: &mut TestAppCont
             "caption implicit_width {} differs from explicit shape {expected}",
             seen.implicit_width
         );
-        let drawn = bounds(cx, handle, &["fb1-hero-caption"])[0];
-        assert_eq!(seen.bounds, drawn);
-        assert!((f32::from(drawn.size.width) - expected).abs() <= 0.5 / scale);
+        let slot = bounds(cx, handle, &["fb1-hero-caption"])[0];
+        assert_eq!(
+            (seen.bounds.origin.y, seen.bounds.size.height),
+            (slot.origin.y, slot.size.height)
+        );
+        assert!((seen.bounds.center().x - slot.center().x).abs() <= px(0.5 / scale));
+        assert!((f32::from(seen.bounds.size.width) - expected).abs() <= 0.5 / scale);
     }
 }

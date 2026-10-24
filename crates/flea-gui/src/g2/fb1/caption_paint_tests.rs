@@ -1,7 +1,7 @@
 use super::caption::{origins, tracking_for, Tracked, TRACKING};
 use super::caption_tests::{painted, shaped};
 use super::hero::EmptyHero;
-use super::hero_tests::{bounds, frame};
+use super::hero_tests::frame;
 use super::test_root::root;
 use crate::list::{bench::allocations, Typeface};
 use flea::i18n::{I18n, Paths};
@@ -177,6 +177,8 @@ fn a_caseless_language_draws_the_caption_untracked(cx: &mut TestAppContext) {
     assert_eq!(phrase.as_ref(), "Nothing here yet");
     let line = shaped(cx, handle, phrase);
     assert_eq!(painted(cx, handle), origins(&line, px(0.)));
-    let caption = bounds(cx, handle, &["fb1-hero-caption"])[0];
+    let caption = handle
+        .update(cx, |hero, _, _| hero.painted.get("caption").unwrap().bounds)
+        .unwrap();
     assert!((caption.size.width - line.width).abs() < px(0.5));
 }

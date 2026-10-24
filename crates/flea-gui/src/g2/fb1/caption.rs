@@ -1,8 +1,10 @@
 //! A one-line caption drawn glyph by glyph with letter spacing, which GPUI's text style cannot express.
 use gpui::{
-    point, size, App, Bounds, Element, ElementId, Font, GlobalElementId, Hsla, InspectorElementId,
-    IntoElement, LayoutId, LineLayout, Pixels, ShapedLine, SharedString, Style, TextRun, Window,
+    point, px, size, App, Bounds, ContentMask, Element, ElementId, Font, GlobalElementId, Hsla,
+    InspectorElementId, IntoElement, LayoutId, LineLayout, Pixels, Point, ShapedLine, SharedString,
+    Style, TextRun, Window,
 };
+use std::{cell::Cell, rc::Rc};
 
 /// The hero caption's letter spacing, `.statecap` at 1.2px on every hero board.
 pub const TRACKING: f32 = 1.2;
@@ -143,26 +145,113 @@ impl Element for Tracked {
         window: &mut Window,
         _: &mut App,
     ) {
-        let baseline =
-            bounds.origin.y + (self.line - shaped.ascent - shaped.descent) / 2. + shaped.ascent;
-        let mut i = 0;
-        for run in shaped.runs.iter() {
-            for glyph in run.glyphs.iter() {
-                let x = glyph.position.x + self.tracking * i as f32;
-                i += 1;
-                #[cfg(test)]
-                PAINTED.with(|painted| {
-                    if let Some(xs) = painted.borrow_mut().as_mut() {
-                        xs.push(x);
-                    }
-                });
-                let origin = point(bounds.origin.x + x, baseline + glyph.position.y);
-                let _ = if glyph.is_emoji {
-                    window.paint_emoji(origin, run.font_id, glyph.id, shaped.font_size)
-                } else {
-                    window.paint_glyph(origin, run.font_id, glyph.id, shaped.font_size, self.color)
-                };
-            }
+        paint_line(
+            shaped,
+            bounds.origin,
+            self.line,
+            self.tracking,
+            self.color,
+            window,
+        );
+    }
+}
+
+/// Paints a shaped line's glyphs with `tracking` after each one, vertically centred in a `line` box at `origin`.
+pub fn paint_line(
+    shaped: &ShapedLine,
+    origin: Point<Pixels>,
+    line: Pixels,
+    tracking: Pixels,
+    color: Hsla,
+    window: &mut Window,
+) {
+    let baseline = origin.y + (line - shaped.ascent - shaped.descent) / 2. + shaped.ascent;
+    let mut i = 0;
+    for run in shaped.runs.iter() {
+        for glyph in run.glyphs.iter() {
+            let x = glyph.position.x + tracking * i as f32;
+            i += 1;
+            #[cfg(test)]
+            PAINTED.with(|painted| {
+                if let Some(xs) = painted.borrow_mut().as_mut() {
+                    xs.push(x);
+                }
+            });
+            let at = point(origin.x + x, baseline + glyph.position.y);
+            let _ = if glyph.is_emoji {
+                window.paint_emoji(at, run.font_id, glyph.id, shaped.font_size)
+            } else {
+                window.paint_glyph(at, run.font_id, glyph.id, shaped.font_size, color)
+            };
         }
+    }
+}
+
+/// The caption box and its pane's clip, as the last layout placed them.
+pub type Place = Rc<Cell<Option<(Bounds<Pixels>, ContentMask<Pixels>)>>>;
+
+/// Where the hero's caption goes: lays out the widest phrase's box and records it with its clip, painting nothing itself.
+pub struct Slot {
+    pub place: Place,
+    pub width: f32,
+    pub line: Pixels,
+}
+
+impl IntoElement for Slot {
+    type Element = Self;
+    fn into_element(self) -> Self {
+        self
+    }
+}
+
+impl Element for Slot {
+    type RequestLayoutState = ();
+    type PrepaintState = ();
+
+    fn id(&self) -> Option<ElementId> {
+        None
+    }
+
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+        None
+    }
+
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let style = Style {
+            size: size(px(self.width).into(), self.line.into()),
+            flex_shrink: 0.,
+            ..Style::default()
+        };
+        (window.request_layout(style, None, cx), ())
+    }
+
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        window: &mut Window,
+        _: &mut App,
+    ) {
+        self.place.set(Some((bounds, window.content_mask())));
+    }
+
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        _: &mut Window,
+        _: &mut App,
+    ) {
     }
 }

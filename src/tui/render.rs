@@ -90,7 +90,7 @@ pub(super) fn frame_at(m: &Model, theme: &Theme, map: &Map, columns: usize, line
         if let Some((index, entry)) = visible.get(y).and_then(|index| m.rows.get(index).map(|entry| (*index, entry))) {
             let style = RowStyle { cursor: index == m.cursor, focused: layout::focused(m), marked: m.selected.contains(&index), dimmed: entry.mode == 0, ..Default::default() };
             out.push_str(&cells::row(entry, middle, Some(&super::trashview::detail(m, index, entry)), m.marks(), style, theme, &m.filter));
-        } else if m.total == 0 && m.pending.is_none() && super::trashview::settled(m) {
+        } else if super::empty::shown(m, columns, lines) {
             out.push_str(&theme.meta);
             out.push_str(&super::empty::line(y, body, middle, m.marks(), now.saturating_duration_since(m.empty_at)));
         } else if !m.filter.is_empty() && visible.is_empty() {

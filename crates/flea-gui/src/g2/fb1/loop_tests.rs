@@ -79,9 +79,19 @@ fn enabling_reduced_motion_cancels_the_waiting_beat(cx: &mut TestAppContext) {
 #[gpui::test]
 fn a_hidden_window_cancels_caption_work_until_a_fresh_appearance(cx: &mut TestAppContext) {
     let handle = open(cx);
-    run(cx, handle, ROTATE_MS + 2400);
+    run(cx, handle, ROTATE_MS + CLOSE_MS / 2);
+    assert!(
+        read(cx, handle, |hero| hero.rotation().caption_animating()),
+        "the hide lands mid-fade"
+    );
+    let asked = read(cx, handle, |hero| hero.counters.frames.get());
     cx.simulate_window_visibility_change(handle.into(), gpui::WindowVisibility::Hidden);
     frame(cx, handle);
+    assert_eq!(
+        read(cx, handle, |hero| hero.counters.frames.get()),
+        asked,
+        "no animation frame is requested after the hide"
+    );
     let counts = |cx: &mut TestAppContext| {
         read(cx, handle, |hero| {
             (
