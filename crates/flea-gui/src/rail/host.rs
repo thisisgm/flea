@@ -1,9 +1,10 @@
 //! The GPUI rail host: draws the places producer's view where the rail stands, feeds the pointer to Rail and arms its one timer.
 use super::{geometry::EDGE, Handoff, Mode, Rail};
 use gpui::{
-    div, prelude::*, px, AnyView, App, Context, EventEmitter, HoverListenerMode, Task, Window,
+    canvas, div, prelude::*, px, AnyView, App, Bounds, Context, EventEmitter, HoverListenerMode,
+    Pixels, Task, Window,
 };
-use std::time::Instant;
+use std::{cell::Cell, rc::Rc, time::Instant};
 
 /// What the window's focus owner and the places producer hear from the host.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -22,6 +23,8 @@ pub struct Host {
     content: Option<AnyView>,
     timer: Option<Task<()>>,
     polling: bool,
+    /// The overlay body's window bounds as this frame laid it out, none while no overlay is drawn.
+    cover: Rc<Cell<Option<Bounds<Pixels>>>>,
     /// Rows views the producer was asked to build.
     pub constructed: u32,
 }
@@ -39,6 +42,7 @@ impl Host {
             content: None,
             timer: None,
             polling,
+            cover: Rc::default(),
             constructed: 0,
         }
     }
@@ -97,6 +101,11 @@ impl Host {
         self.content.as_ref()
     }
 
+    /// Where the overlay rail covers the panes in the frame last laid out, so what paints over the shell can stay under it.
+    pub fn cover(&self) -> Option<Bounds<Pixels>> {
+        self.cover.get()
+    }
+
     // Rows that are no longer alive go with their producer state; the poll gate follows; one timer covers the next due change.
     fn after(&mut self, cx: &mut Context<Self>) {
         let at = now(cx);
@@ -137,6 +146,7 @@ impl Render for Host {
             self.constructed += 1;
         }
         let overlay = self.rail.mode() == Mode::Overlay;
+        self.cover.set(None);
         let mut root = div().size_full().relative();
         if overlay {
             // No press handler: a click on the listing under the strip still lands on the listing.
@@ -179,6 +189,12 @@ impl Render for Host {
                 body = body.capture_any_mouse_down(cx.listener(|_, _, _, cx| {
                     cx.emit(Event::Focus(Handoff::Rail));
                 }));
+                let cover = Rc::clone(&self.cover);
+                body = body.child(
+                    canvas(move |bounds, _, _| cover.set(Some(bounds)), |_, _, _, _| {})
+                        .absolute()
+                        .size_full(),
+                );
             }
             root = root.child(body);
         }
