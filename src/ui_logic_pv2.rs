@@ -5,3 +5,11 @@ pub mod csv;
 pub mod markdown;
 pub mod pdf;
 pub mod viewer;
+// The web part: the code view, HTML, font and archive pages, and the refusal classes they share.
+pub mod archive;
+pub mod code_text;
+pub mod code_view;
+pub mod contrast;
+pub mod font;
+pub mod html;
+pub mod refusal;

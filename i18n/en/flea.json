@@ -1715,6 +1715,29 @@
   "document.markdown_too_deep": "This file nests deeper than %1 levels, so Flea shows its source.",
   "document.markdown_binary": "binary file",
   "document.markdown_large": "too large to preview",
+  "document.too_large": "This file is too large to preview.",
+  "document.unreadable": "This file could not be read.",
+  "document.too_large_frame": "too large to preview",
+  "document.binary_frame": "binary file",
+  "document.font_unsupported": "This file cannot be previewed.",
+  "document.archive_unreadable": "This archive could not be read.",
+  "document.line_count": {
+    "one": "%1 line",
+    "other": "%1 lines"
+  },
+  "document.facts_pair": "%1 · %2",
+  "document.font_glyphs": {
+    "one": "%1 glyph",
+    "other": "%1 glyphs"
+  },
+  "document.archive_entries": {
+    "one": "%1 entry",
+    "other": "%1 entries"
+  },
+  "document.archive_unpacked": "%1 unpacked",
+  "document.archive_more": "+ %1 more",
+  "document.view_rendered": "Rendered",
+  "document.view_source": "Source",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",
