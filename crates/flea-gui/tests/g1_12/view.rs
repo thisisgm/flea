@@ -9,7 +9,7 @@ use flea_gui::path::{
     paint::Size,
     peek_line,
     render::pane_strip,
-    suggestions::{Ranker, Unranked, ROW},
+    suggestions::{Ranker, Unranked},
     view::{Inputs, Out, PathView},
     Answer, Peeked,
 };
@@ -62,7 +62,7 @@ pub struct Bar<'a> {
     pub view: Entity<PathView>,
     pub cx: &'a mut VisualTestContext,
     pub said: Rc<RefCell<Vec<Out>>>,
-    _events: Subscription,
+    pub _events: Subscription,
 }
 
 impl Bar<'_> {
@@ -299,7 +299,7 @@ fn tab_asks_the_focused_backend_and_its_peek_completes_the_line(cx: &mut TestApp
 }
 
 // Opens the bar with the test ranker, answers both asks and types the query.
-fn ranked<'a>(cx: &'a mut TestAppContext, query: &str) -> Bar<'a> {
+pub fn ranked<'a>(cx: &'a mut TestAppContext, query: &str) -> Bar<'a> {
     let mut bar = bar(cx, Box::new(Folders::default()), inputs(HOME));
     bar.update(|view, window, cx| view.open(window, cx));
     let asks = bar.take();
@@ -361,11 +361,12 @@ fn a_suggestion_is_chosen_by_the_pointer_and_a_resting_pointer_takes_no_row(
     let popup = bar
         .read(|view| view.paint.borrow().popup)
         .expect("the popup drew");
+    let s = super::jump::board();
     assert_eq!(
         (popup.x, popup.y, popup.width, popup.height),
-        (0., 30., 788., 3. * ROW + 12.)
+        (0., 30., 788., 3. * s.row + 12.)
     );
-    let row = |index: f32| 30. + 1. + 5. + index * ROW + ROW / 2.;
+    let row = |index: f32| 30. + 1. + 5. + index * s.row + s.row / 2.;
     bar.cx
         .simulate_mouse_move(point(px(200.), px(row(2.))), None, Modifiers::none());
     assert_eq!(
