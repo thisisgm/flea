@@ -109,7 +109,24 @@ fn u05_refused_sort_is_a_notice_that_expires_without_dismissing_errors(cx: &mut 
 #[gpui::test]
 fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut TestAppContext) {
     use flea::keys::Context as KeyContext;
-    for context in [KeyContext::Rail, KeyContext::Menu, KeyContext::Panel] {
+    const DRIVEN: [KeyContext; 3] = [KeyContext::Rail, KeyContext::Menu, KeyContext::Panel];
+    // These contexts have no production Shell host to activate or cancel yet.
+    const UNHOSTED: [KeyContext; 4] = [
+        KeyContext::Preview,
+        KeyContext::Pdf,
+        KeyContext::Media,
+        KeyContext::Editor,
+    ];
+    let accounted = [KeyContext::Listing]
+        .into_iter()
+        .chain(DRIVEN)
+        .chain(UNHOSTED)
+        .collect::<Vec<_>>();
+    assert_eq!(KeyContext::ALL.as_slice(), accounted.as_slice());
+    for context in KeyContext::ALL {
+        if context == KeyContext::Listing {
+            continue;
+        }
         let (backend, mut requests) = crate::backend::Backend::test_lines();
         let handle = cx.add_window(|window, cx| {
             let shell = crate::state::tests::shell_with(backend, cx);
@@ -148,6 +165,7 @@ fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut Te
                         assert_eq!(shell.focus_view(window, cx), "chrome");
                         assert!(shell.dual_focus.chrome.is_focused(window));
                     }
+                    _ if UNHOSTED.contains(&context) => shell.keyboard.context = context,
                     _ => unreachable!(),
                 }
                 assert_eq!(shell.keyboard.context, context);
@@ -184,6 +202,10 @@ fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut Te
                     KeyContext::Panel => {
                         assert!(!shell.dual_focus.chrome.is_focused(window));
                         assert_eq!(shell.focus_view(window, cx), "list");
+                    }
+                    _ if UNHOSTED.contains(&context) => {
+                        assert_eq!(shell.keyboard.context, context);
+                        shell.keyboard.context = KeyContext::Listing;
                     }
                     _ => unreachable!(),
                 }
