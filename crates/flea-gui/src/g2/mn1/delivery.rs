@@ -55,7 +55,7 @@ impl Shell {
         self.menu_notice(side, self.locale.catalog.tr(key), cx);
     }
 
-    fn menu_notice(&mut self, side: usize, sentence: String, cx: &mut Context<Self>) {
+    pub(crate) fn menu_notice(&mut self, side: usize, sentence: String, cx: &mut Context<Self>) {
         if let Some(host) = &mut self.panes[side] {
             host.status = sentence.clone().into();
         }
@@ -159,7 +159,10 @@ impl Shell {
         let Ok(reply) = flea::jsondoc::parse(line) else {
             return false;
         };
-        if self.menu_discovery_reply(side, &reply, window, cx) {
+        if self.actions_reply(side, line, cx) {
+            return true;
+        }
+        if self.menu_discovery_reply(side, line, &reply, window, cx) {
             return true;
         }
         if string(&reply, "t") != "menuaction" {
@@ -273,6 +276,9 @@ impl Shell {
             return;
         };
         let side = capture.side;
+        if self.deliver_actions(&capture, &action, &leaf, paths.clone(), window, cx) {
+            return;
+        }
         let step = match action.as_str() {
             "open" if !self.menu.context.row_is_file => {
                 paths.first().map(|path| Step::Open(path.clone()))
