@@ -86,10 +86,45 @@ fn gcomp_owner_drain_releases_modal_focus_and_refusal_escape_restores_listing(
             shell.focus.is_focused(window),
             "the retired card kept keyboard focus"
         );
+    });
+    let check_error = |cx: &mut TestAppContext, expected: &str| {
+        assert_eq!(call(cx, handle, "statusError"), Reply::value("true"));
+        assert_eq!(call(cx, handle, "lastMessage"), Reply::value(expected));
+        edit(cx, handle, |shell, _, cx| {
+            let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
+            let line = footer.line.read(cx);
+            assert_eq!(line.messages().errors().len(), 1);
+            assert_eq!(line.painted.get("primary").unwrap().text.as_ref(), expected);
+        });
+    };
+    let dismiss_error = |cx: &mut TestAppContext| {
+        edit(cx, handle, |shell, window, cx| {
+            shell.key(
+                &gpui::KeyDownEvent {
+                    keystroke: gpui::Keystroke::parse("escape").unwrap(),
+                    is_held: false,
+                    prefer_character_input: false,
+                },
+                window,
+                cx,
+            );
+            assert!(shell.focus.is_focused(window));
+        });
+        frame(cx, handle);
+        assert_eq!(call(cx, handle, "statusError"), Reply::value("false"));
+        edit(cx, handle, |shell, _, cx| {
+            let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
+            assert!(footer.line.read(cx).messages().errors().is_empty());
+        });
+    };
+    frame(cx, handle);
+    check_error(cx, "The backend stopped accepting requests");
+    dismiss_error(cx);
+    edit(cx, handle, |shell, window, cx| {
         shell.receive(
             0,
             BackendEvent::Refused {
-                operation: "open".into(),
+                operation: "window".into(),
                 path: "/files".into(),
                 message: "permission denied".into(),
                 mode: 0,
@@ -99,32 +134,8 @@ fn gcomp_owner_drain_releases_modal_focus_and_refusal_escape_restores_listing(
         );
     });
     frame(cx, handle);
-    assert_eq!(call(cx, handle, "statusError"), Reply::value("true"));
-    edit(cx, handle, |shell, _, cx| {
-        let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
-        assert!(!footer
-            .line
-            .read(cx)
-            .painted
-            .get("primary")
-            .unwrap()
-            .text
-            .is_empty());
-    });
-    edit(cx, handle, |shell, window, cx| {
-        shell.key(
-            &gpui::KeyDownEvent {
-                keystroke: gpui::Keystroke::parse("escape").unwrap(),
-                is_held: false,
-                prefer_character_input: false,
-            },
-            window,
-            cx,
-        );
-        assert!(shell.focus.is_focused(window));
-    });
-    frame(cx, handle);
-    assert_eq!(call(cx, handle, "statusError"), Reply::value("false"));
+    check_error(cx, "Permission denied.");
+    dismiss_error(cx);
 }
 
 #[gpui::test]
