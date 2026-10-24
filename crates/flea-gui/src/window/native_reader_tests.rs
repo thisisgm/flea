@@ -145,12 +145,167 @@ fn u01_native_readers_refuse_unavailable_producers_and_report_parse_failure(
                 Reply::value("false")
             );
             assert_eq!(call(shell, "fileRowHeight", window, cx), Reply::value("31"));
-            for verb in ["palette", "tokens", "wheelLines"] {
-                assert_eq!(
-                    call(shell, verb, window, cx),
-                    Reply::error(3, format!("FLEA_IPC_NOT_PORTED flea.{verb}"))
-                );
-            }
+            assert_eq!(
+                call(shell, "palette", window, cx),
+                Reply::error(3, "FLEA_IPC_UNAVAILABLE flea.palette: theme not loaded")
+            );
+            assert_eq!(
+                call(shell, "tokens", window, cx),
+                Reply::error(3, "FLEA_IPC_UNAVAILABLE flea.tokens: theme not loaded")
+            );
+            assert_eq!(call(shell, "wheelLines", window, cx), Reply::value("3"));
+            assert_eq!(
+                call(shell, "glass", window, cx),
+                Reply::error(3, "FLEA_IPC_NOT_PORTED flea.glass")
+            );
+        });
+    });
+}
+
+#[gpui::test]
+fn uish_04_mounted_palette_follows_runtime_theme_without_producer_work(cx: &mut TestAppContext) {
+    let (backend, mut requests) = Backend::test_channel();
+    let handle = cx.add_window(|_, cx| super::root::Root {
+        shell: cx.new(|cx| shell_with(backend, cx)),
+    });
+    let mut replies = Vec::new();
+    let mut token_replies = Vec::new();
+    for (base, corner, text) in [
+        (
+            12,
+            0.,
+            "background='#101315'\nforeground='#c1c497'\naccent='#e5a55b'",
+        ),
+        (
+            16,
+            9.,
+            "background='#eff1f5'\nforeground='#4c4f69'\naccent='#1e66f5'",
+        ),
+    ] {
+        handle
+            .update(cx, |root, _, cx| {
+                let (theme, parsed) = Theme::from_text_observed(text);
+                cx.set_global(theme);
+                cx.set_global(parsed);
+                root.shell.update(cx, |shell, _| {
+                    shell.corner = corner;
+                    shell.launch.settings.data =
+                        flea::jsondoc::parse(r#"{"columnWidths":{"size":117}}"#).unwrap();
+                    let fonts = Fonts::from_sources(
+                        &format!("[font]\nbase-size={base}"),
+                        "",
+                        shell.active_typeface().font.family.to_string(),
+                    );
+                    let mut list = shell.panes[0].as_ref().unwrap().list.borrow_mut();
+                    list.set_typeface(fonts.typeface(&flea::jsondoc::Json::Null));
+                });
+            })
+            .unwrap();
+        cx.update_window(handle.into(), |_, window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        })
+        .unwrap();
+        handle
+            .update(cx, |root, window, cx| {
+                root.shell.update(cx, |shell, cx| {
+                    let list = shell.panes[0].as_ref().unwrap().list.clone();
+                    let (frames, misses, reads, drawn) = {
+                        let list = list.borrow();
+                        (
+                            list.drawn.frames,
+                            list.rows.misses,
+                            list.palette_reads,
+                            list.drawn.palette.expect("the mounted list painted"),
+                        )
+                    };
+                    let _ = requests();
+                    let reply = call(shell, "palette", window, cx);
+                    assert_eq!(reply.code, 0, "{reply:?}");
+                    let roles: Vec<_> = reply.stdout.split_whitespace().collect();
+                    assert_eq!(roles.len(), 10, "the QML palette shape");
+                    for (index, expected) in [
+                        (0, drawn.background),
+                        (2, drawn.foreground),
+                        (4, drawn.accent),
+                        (6, drawn.symlink),
+                        (7, drawn.executable),
+                        (8, drawn.accent_frame),
+                        (9, drawn.muted_frame),
+                    ] {
+                        assert_eq!(roles[index], crate::ipc::rows::colour(expected));
+                    }
+                    let tokens = call(shell, "tokens", window, cx);
+                    assert_eq!(tokens.code, 0, "{tokens:?}");
+                    let lines: Vec<_> = tokens.stdout.lines().collect();
+                    assert_eq!(lines.len(), 34);
+                    for wanted in [
+                        format!("baseSize={base}"),
+                        format!("cornerRadius={corner}"),
+                        "columnSize=117".into(),
+                    ] {
+                        assert!(
+                            lines.contains(&wanted.as_str()),
+                            "missing {wanted}: {tokens:?}"
+                        );
+                    }
+                    assert_eq!(call(shell, "wheelLines", window, cx), Reply::value("3"));
+                    let list = list.borrow();
+                    assert_eq!(
+                        (list.drawn.frames, list.rows.misses, list.palette_reads),
+                        (frames, misses, reads)
+                    );
+                    assert!(requests().is_none(), "observation starts no backend work");
+                    replies.push(reply.stdout);
+                    token_replies.push(tokens.stdout);
+                });
+            })
+            .unwrap();
+    }
+    assert_ne!(replies[0], replies[1], "a live theme change must reach IPC");
+    assert_ne!(
+        token_replies[0], token_replies[1],
+        "effective fonts and corners change the mounted tokens"
+    );
+}
+
+#[gpui::test]
+fn uish_04_wheel_readback_matches_applied_listing_scroll(cx: &mut TestAppContext) {
+    let (backend, _requests) = Backend::test_channel();
+    let (shell, cx) = cx.add_window_view(|window, cx| {
+        let shell = shell_with(backend, cx);
+        window.focus(&shell.focus, cx);
+        shell
+    });
+    cx.simulate_resize(gpui::size(gpui::px(900.), gpui::px(600.)));
+    cx.run_until_parked();
+    let frame = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().input.frame.unwrap()
+    });
+    assert!(frame.max_scroll() > 480.);
+    let at = gpui::point(
+        frame.bounds.left() + gpui::px(60.),
+        frame.bounds.top() + gpui::px(frame.row * 2.5),
+    );
+    cx.simulate_mouse_move(at, None, gpui::Modifiers::none());
+    let before = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().pane.scroll_y
+    });
+    // One physical notch arrives as the platform's three normalized lines in both policy controls.
+    cx.simulate_event(gpui::ScrollWheelEvent {
+        position: at,
+        delta: gpui::ScrollDelta::Lines(gpui::point(0., -3.)),
+        ..Default::default()
+    });
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let reply = call(shell, "wheelLines", window, cx);
+            assert_eq!(reply.code, 0, "{reply:?}");
+            let lines: f32 = reply.stdout.trim().parse().unwrap();
+            let after = shell.panes[0].as_ref().unwrap().pane.scroll_y;
+            assert_eq!(after - before, lines * 24. * 4.);
+            println!("UISH_04 WHEEL lines={lines} offset={}", after - before);
         });
     });
 }
