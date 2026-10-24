@@ -1,6 +1,6 @@
 //! The listing and window families run their orders on the production Shell, and an order nobody ran is still emitted.
 use super::{
-    navigation_tests::{land, open, row},
+    test_shell::{land, open, row},
     Order,
 };
 use crate::window::input::ActionEvent;
