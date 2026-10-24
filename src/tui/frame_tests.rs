@@ -138,6 +138,32 @@ fn t3_empty_and_locked_states_match_reference_cells_without_preview_side_effects
     assert_eq!(m.path, std::path::Path::new("/fx/v/work"));
     drop(w); reader.join().unwrap();
 }
+
+#[test]
+fn caption_loop_paints_three_cycles_and_writes_nothing_between_beats() {
+    let mut m = model(); let theme = Theme::from_text(""); let map = Map::load();
+    m.total = 0; m.rows.clear(); m.path.push("Empty");
+    let start = std::time::Instant::now();
+    m.empty_at = start;
+    let initial = render::frame_at(&m, &theme, &map, 130, 31, Duration::ZERO, start);
+    let mut last = initial.clone();
+    let mut terminal = Vec::new();
+    for cycle in 0..3 {
+        let mut paints = 0;
+        for step in 1..=84 {
+            let millis = cycle * 8400 + step * 100;
+            let out = render::frame_at(&m, &theme, &map, 130, 31, Duration::ZERO, start + Duration::from_millis(millis));
+            let before = terminal.len();
+            let painted = render::present(out, &mut last, &mut terminal).unwrap();
+            assert_eq!(painted, millis % 2800 == 0, "terminal paint at {millis}ms");
+            assert_eq!(terminal.len() > before, painted);
+            paints += usize::from(painted);
+        }
+        assert_eq!(paints, 3);
+        assert_eq!(last, initial, "each cycle wraps to the first complete frame");
+        eprintln!("TUI_FRAME_CAPTION_CYCLE cycle={} paints={paints} idle_paints=0 frame_requests=0", cycle + 1);
+    }
+}
 #[test]
 fn t3_prepared_text_is_viewport_bounded_and_rest_frames_remain_identical() {
     let mut m = model(); let theme = Theme::from_text(""); let map = Map::load();

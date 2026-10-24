@@ -1,5 +1,5 @@
 use super::english;
-use crate::ui_logic_fb1::empty::{Rotation, BEAT_LIMIT, PHRASES, ROTATE_MS};
+use crate::ui_logic_fb1::empty::{Rotation, PHRASES, ROTATE_MS};
 use crate::ui_logic_fb1::{CLOSE_MS, OPEN_MS};
 
 fn rest(hero: &mut Rotation, now: u64, index: usize) {
@@ -10,7 +10,7 @@ fn rest(hero: &mut Rotation, now: u64, index: usize) {
             frame.phrase,
             frame.caption,
             hero.mark_settled(),
-            hero.at_rest()
+            !hero.animating()
         ),
         (index, 1., true, true)
     );
@@ -21,34 +21,40 @@ fn at(hero: &mut Rotation, now: u64) -> usize {
     hero.index()
 }
 
-/// tests/emptybeats.qml's plan on a test clock: each step is ms after the last show or hide.
+/// Every phrase repeats in order while shown, with one deadline between beats.
 #[test]
-fn three_beats_per_appearance_then_rest_on_the_third() {
+fn captions_loop_for_three_full_cycles_while_shown() {
     let mut hero = Rotation::default();
     hero.show(0, true);
-    assert_eq!(at(&mut hero, 2000), 0);
-    assert_eq!(at(&mut hero, 9300), 3);
-    rest(&mut hero, 12500, 3);
-    rest(&mut hero, 14600, 3);
+    for beat in 1..=3 * PHRASES.len() {
+        let now = beat as u64 * ROTATE_MS;
+        assert_eq!(at(&mut hero, now), (beat - 1) % PHRASES.len());
+        assert_eq!(hero.beats(), beat);
+        assert!(hero.animating());
+        assert_eq!(at(&mut hero, now + CLOSE_MS), beat % PHRASES.len());
+        rest(&mut hero, now + 2400, beat % PHRASES.len());
+        assert_eq!(hero.next_deadline(), Some(now + ROTATE_MS));
+    }
+}
+
+#[test]
+fn each_appearance_starts_at_the_first_phrase_even_after_a_cut_fade() {
+    let mut hero = Rotation::default();
+    hero.show(0, true);
+    hero.advance(5 * ROTATE_MS + 10);
     hero.hide();
-    let t = 14600 + 3500;
-    assert_eq!(at(&mut hero, t), 3);
-    hero.show(t, true);
-    assert_eq!(at(&mut hero, t + 2000), 3);
-    assert_eq!(at(&mut hero, t + 9300), 6);
-    rest(&mut hero, t + 12500, 6);
-    hero.hide();
-    let t = t + 12500 + 500;
-    hero.show(t, true);
-    assert_eq!(at(&mut hero, t + 3500), 7 % PHRASES.len());
-    let hidden = hero.index();
-    hero.hide();
-    let t = t + 3500 + 6500;
-    assert_eq!(at(&mut hero, t), hidden);
-    hero.show(t, true);
-    assert_eq!(at(&mut hero, t + 2000), hidden);
-    assert_eq!(at(&mut hero, t + 9300), (hidden + 3) % PHRASES.len());
-    rest(&mut hero, t + 12500, (hidden + 3) % PHRASES.len());
+    assert_eq!(hero.next_deadline(), None);
+    assert!(!hero.animating());
+    hero.advance(30 * ROTATE_MS);
+    for entrance in [false, true] {
+        let now = 30 * ROTATE_MS;
+        hero.show(now, entrance);
+        assert_eq!((hero.index(), hero.beats(), hero.landed()), (0, 0, false));
+        assert_eq!(hero.next_deadline(), Some(now + ROTATE_MS));
+        assert_eq!(at(&mut hero, now + ROTATE_MS - 1), 0);
+        assert_eq!(at(&mut hero, now + ROTATE_MS + CLOSE_MS), 1);
+        hero.hide();
+    }
 }
 
 #[test]
@@ -74,6 +80,10 @@ fn a_beat_fades_out_swaps_then_fades_in_and_replays_the_mark() {
     let mark = hero.frame(ROTATE_MS + CLOSE_MS + 200);
     assert_eq!((mark.mark_opacity, mark.mark_drawn), (1., 0.));
     assert!(hero.animating());
+    assert!(
+        !hero.caption_animating(),
+        "the caption is whole while the legacy mark finishes drawing"
+    );
 }
 
 #[test]
@@ -151,16 +161,17 @@ fn motion_back_on_waits_one_interval_for_the_next_beat() {
 }
 
 #[test]
-fn between_beats_a_timer_wakes_the_hero_and_at_rest_nothing_does() {
+fn between_beats_a_timer_waits_and_hidden_heroes_have_no_deadline() {
     let mut hero = Rotation::default();
     hero.show(0, true);
     hero.advance(5000);
     assert!(!hero.animating());
     assert_eq!(hero.next_deadline(), Some(2 * ROTATE_MS));
-    hero.advance(30000);
+    let beat = 10;
+    hero.advance(beat * ROTATE_MS + 2400);
     assert_eq!(
         (hero.beats(), hero.next_deadline(), hero.animating()),
-        (BEAT_LIMIT, None, false)
+        (beat as usize, Some((beat + 1) * ROTATE_MS), false)
     );
     hero.hide();
     assert_eq!(hero.next_deadline(), None);

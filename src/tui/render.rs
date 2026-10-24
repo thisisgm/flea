@@ -56,13 +56,20 @@ pub use super::calendar::modified;
 pub fn draw(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,
     _cell_pixels: Option<(usize, usize)>, elapsed: std::time::Duration, last: &mut String) -> io::Result<bool> {
     let out = super::look::frame(m, theme, map, columns, lines, elapsed);
+    present(out, last, &mut io::stdout().lock())
+}
+pub(super) fn present(out: String, last: &mut String, writer: &mut impl Write) -> io::Result<bool> {
     if *last == out { return Ok(false); }
-    print!("{}\x1b[0m", out);
-    io::stdout().flush()?;
+    write!(writer, "{}\x1b[0m", out)?;
+    writer.flush()?;
     *last = out;
     Ok(true)
 }
 pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize, elapsed: std::time::Duration) -> String {
+    frame_at(m, theme, map, columns, lines, elapsed, std::time::Instant::now())
+}
+pub(super) fn frame_at(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,
+    elapsed: std::time::Duration, now: std::time::Instant) -> String {
     if columns < 12 || lines <= CHROME_ROWS { return layout::small(columns, lines, theme) + &super::prompts::caret(None, lines); }
     // A card or the keys sheet is the one lit surface: everything behind it draws in the scrim's inks.
     let lit = theme;
@@ -85,7 +92,7 @@ pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: 
             out.push_str(&cells::row(entry, middle, Some(&super::trashview::detail(m, index, entry)), m.marks(), style, theme, &m.filter));
         } else if m.total == 0 && m.pending.is_none() && super::trashview::settled(m) {
             out.push_str(&theme.meta);
-            out.push_str(&super::empty::line(y, body, middle, m.marks(), m.empty_at.elapsed()));
+            out.push_str(&super::empty::line(y, body, middle, m.marks(), now.saturating_duration_since(m.empty_at)));
         } else if !m.filter.is_empty() && visible.is_empty() {
             out.push_str(&theme.meta);
             out.push_str(&super::empty::no_match(y, body, middle, m.marks(), &m.prompts.i18n.tr_args("filter.nothing", &[&m.filter])));

@@ -50,7 +50,7 @@ impl State {
             Kind::Error => "pane.unread",
             Kind::Waiting => "window.waiting",
             Kind::Ready => "",
-            Kind::Empty => match self.beat.min(3) {
+            Kind::Empty => match self.beat % 4 {
                 0 => "pane.empty.initial",
                 1 => "pane.empty.beat_one",
                 2 => "pane.empty.beat_two",
@@ -116,10 +116,10 @@ impl State {
     }
 
     pub fn empty_beat(&mut self, reduced_motion: bool) -> bool {
-        if self.kind != Kind::Empty || reduced_motion || self.beat >= 3 {
+        if self.kind != Kind::Empty || reduced_motion {
             return false;
         }
-        self.beat += 1;
+        self.beat = (self.beat + 1) % 4;
         true
     }
 }

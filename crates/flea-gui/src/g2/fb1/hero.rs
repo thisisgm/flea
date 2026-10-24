@@ -1,4 +1,4 @@
-//! The empty folder's hero view: mark over a rotating caption, a frame loop only while something moves and a timer between beats.
+//! The empty folder's hero view: captions loop while shown, with a timer between beats and frames only while something moves.
 use super::caption::{caseless, tracking_for, Tracked, TRACKING};
 use super::{bump, empty_omi, now_ms, Counters, Ink};
 use crate::feedback::spinner::Crawl;
@@ -6,7 +6,8 @@ use crate::list::{Palette, Typeface};
 use flea::i18n::I18n;
 use flea::ui_logic_fb1::empty::{Rotation, PHRASES};
 use gpui::{
-    div, prelude::*, px, Context, FontWeight, IntoElement, Render, SharedString, Task, Window,
+    div, prelude::*, px, Context, FontWeight, IntoElement, Render, SharedString, Subscription,
+    Task, Window,
 };
 use std::{rc::Rc, time::Instant};
 
@@ -54,6 +55,7 @@ pub struct EmptyHero {
     in_list: bool,
     tracking: f32,
     timer: Option<(u64, Task<()>)>,
+    visibility: Option<Subscription>,
     pub counters: Rc<Counters>,
     pub painted: super::observe::Paint,
     pub shown_frame: Option<flea::ui_logic_fb1::empty::Frame>,
@@ -79,6 +81,7 @@ impl EmptyHero {
             in_list: false,
             tracking: TRACKING,
             timer: None,
+            visibility: None,
             counters: Rc::default(),
             painted: Default::default(),
             shown_frame: None,
@@ -159,6 +162,7 @@ impl EmptyHero {
     /// The pane reached the empty state; a folder that landed held draws whole.
     pub fn show(&mut self, animate_entrance: bool, cx: &mut Context<Self>) {
         let now = now_ms(self.base, cx);
+        self.timer = None;
         self.rotation.show(now, animate_entrance);
         cx.notify();
     }
@@ -193,14 +197,32 @@ impl EmptyHero {
         });
         self.timer = Some((deadline, task));
     }
+
+    fn follow_visibility(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.visibility.is_some() {
+            return;
+        }
+        let weak = cx.entity().downgrade();
+        self.visibility = Some(window.observe_window_visibility(move |_, window, cx| {
+            let _ = weak.update(cx, |hero, cx| {
+                hero.timer = None;
+                if window.is_visible() && hero.rotation.visible() {
+                    hero.rotation.show(now_ms(hero.base, cx), false);
+                    cx.notify();
+                }
+            });
+        }));
+    }
 }
 
 impl Render for EmptyHero {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         bump(&self.counters.renders);
+        self.follow_visibility(window, cx);
         let now = now_ms(self.base, cx);
         if cx.reduce_motion() != self.reduced {
             self.reduced = cx.reduce_motion();
+            self.timer = None;
             self.rotation.set_reduced(self.reduced, now);
         }
         self.rotation.advance(now);
@@ -208,7 +230,9 @@ impl Render for EmptyHero {
         self.shown_frame = Some(frame);
         self.painted.clear();
         self.column_painted = Some((self.rotation.visible(), frame.opacity, 1.));
-        if self.rotation.animating() {
+        if !window.is_visible() {
+            self.timer = None;
+        } else if self.rotation.caption_animating() {
             bump(&self.counters.frames);
             window.request_animation_frame();
         } else if let Some(deadline) = self.rotation.next_deadline() {
