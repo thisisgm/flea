@@ -6,10 +6,8 @@ use std::{
     os::unix::net::UnixStream,
     path::PathBuf,
     process::Command,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
-    },
+    sync::{Arc, Condvar, Mutex},
+    time::Duration,
 };
 
 pub(crate) const CORNER_DEFAULT: f32 = 0.;
@@ -31,6 +29,7 @@ pub(crate) fn valid_corner(value: f64) -> f32 {
     }
 }
 
+// Sample input: {"option":"decoration:rounding","int":8,"set":true}.
 fn rounding(answer: &str) -> f32 {
     jsondoc::parse(answer)
         .ok()
@@ -50,9 +49,17 @@ fn read(command: &mut Command) -> f32 {
         })
 }
 
-pub(crate) struct Service {
-    stopped: Arc<AtomicBool>,
-    socket: Arc<Mutex<Option<UnixStream>>>,
+#[derive(Default)]
+struct Control {
+    stopped: bool,
+    socket: Option<UnixStream>,
+}
+
+pub(crate) struct Service(Arc<(Mutex<Control>, Condvar)>);
+
+// Sample input: configreloaded>> followed by a newline; unrelated socket2 events are ignored.
+fn reload(line: &[u8]) -> bool {
+    line.strip_suffix(b"\n").unwrap_or(line) == b"configreloaded>>"
 }
 
 impl Service {
@@ -76,43 +83,67 @@ impl Service {
         command: PathBuf,
         mut publish: impl FnMut(f32) -> bool + Send + 'static,
     ) -> std::io::Result<Self> {
-        let service = Self {
-            stopped: Arc::new(AtomicBool::new(false)),
-            socket: Arc::new(Mutex::new(None)),
-        };
-        let stopped = service.stopped.clone();
-        let socket = service.socket.clone();
+        let service = Self(Arc::default());
+        let control = service.0.clone();
         std::thread::Builder::new()
             .name("flea-compositor".into())
             .spawn(move || {
-                // Subscribe before reading so a reload racing the initial query is not lost.
-                let stream = path.and_then(|path| UnixStream::connect(path).ok());
-                {
-                    let mut socket = socket.lock().unwrap();
-                    if stopped.load(Ordering::Acquire) {
-                        return;
-                    }
-                    *socket = stream.as_ref().and_then(|stream| stream.try_clone().ok());
-                }
-                if !publish(read(&mut Command::new(&command))) {
-                    return;
-                }
-                let Some(stream) = stream else { return };
-                for line in BufReader::new(stream).lines() {
-                    if stopped.load(Ordering::Acquire) {
-                        return;
-                    }
-                    let Ok(line) = line else { break };
-                    if line
-                        .split_once(">>")
-                        .is_some_and(|(event, _)| event == "configreloaded")
-                        && !publish(read(&mut Command::new(&command)))
+                let mut first = true;
+                let mut backoff = Duration::from_millis(50);
+                loop {
+                    // Subscribe before reading so a reload racing the query is not lost.
+                    let stream = path
+                        .as_ref()
+                        .and_then(|path| UnixStream::connect(path).ok());
                     {
+                        let mut state = control.0.lock().unwrap();
+                        if state.stopped {
+                            return;
+                        }
+                        state.socket = stream.as_ref().and_then(|stream| stream.try_clone().ok());
+                    }
+                    if (first || stream.is_some()) && !publish(read(&mut Command::new(&command))) {
                         return;
                     }
-                }
-                if !stopped.load(Ordering::Acquire) {
-                    publish(CORNER_DEFAULT);
+                    first = false;
+                    if let Some(stream) = stream {
+                        backoff = Duration::from_millis(50);
+                        let mut reader = BufReader::new(stream);
+                        let mut line = Vec::new();
+                        loop {
+                            line.clear();
+                            match reader.read_until(b'\n', &mut line) {
+                                Ok(0) | Err(_) => break,
+                                Ok(_) => {
+                                    if reload(&line) && !publish(read(&mut Command::new(&command)))
+                                    {
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                        let mut state = control.0.lock().unwrap();
+                        state.socket = None;
+                        if state.stopped {
+                            return;
+                        }
+                        drop(state);
+                        if !publish(CORNER_DEFAULT) {
+                            return;
+                        }
+                    }
+                    let Some(_) = path else { return };
+                    // Retry the subscription, never poll the rounding option; Drop wakes this wait.
+                    let (state, _) = control
+                        .1
+                        .wait_timeout_while(control.0.lock().unwrap(), backoff, |state| {
+                            !state.stopped
+                        })
+                        .unwrap();
+                    if state.stopped {
+                        return;
+                    }
+                    backoff = (backoff * 2).min(Duration::from_secs(1));
                 }
             })?;
         Ok(service)
@@ -121,10 +152,12 @@ impl Service {
 
 impl Drop for Service {
     fn drop(&mut self) {
-        self.stopped.store(true, Ordering::Release);
-        if let Some(socket) = self.socket.lock().unwrap().take() {
+        let mut state = self.0 .0.lock().unwrap();
+        state.stopped = true;
+        if let Some(socket) = state.socket.take() {
             let _ = socket.shutdown(Shutdown::Both);
         }
+        self.0 .1.notify_all();
     }
 }
 

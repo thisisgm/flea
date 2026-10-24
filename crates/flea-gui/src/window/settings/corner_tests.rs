@@ -50,7 +50,7 @@ fn m9_corner_configreloaded_repaints_settings_controls(cx: &mut TestAppContext) 
         if index > 0 {
             fixture.answer(answer);
             stream
-                .write_all(b"activewindow>>ignored\nconfigreloaded>>\n")
+                .write_all(b"activewindow>>caf\xe9\nconfigreloaded>>\n")
                 .unwrap();
         }
         let update = updates.recv_timeout(Duration::from_secs(5)).unwrap();
@@ -104,8 +104,30 @@ fn m9_corner_configreloaded_repaints_settings_controls(cx: &mut TestAppContext) 
         })
     });
     cx.run_until_parked();
-    let (scale, quads) = cx.update(|window, _| (window.scale_factor(), window.painted_quads()));
-    assert!(quads
+    let frame = cx
+        .debug_bounds("sheet-card")
+        .expect("sheet must draw its card");
+    let (scale, quads) = cx.update(|window, cx| {
+        window.draw(cx).clear(cx);
+        (window.scale_factor(), window.painted_quads())
+    });
+    let own: Vec<_> = quads
         .iter()
-        .any(|quad| quad.corner_radii.top_left.0 / scale == 8.));
+        .filter(|quad| quad.bounds == frame.scale(scale) && quad.border_widths.top.0 > 0.)
+        .collect();
+    assert!(
+        !own.is_empty(),
+        "the sheet must paint its own framed bounds"
+    );
+    for quad in own {
+        let radii = quad.corner_radii;
+        for radius in [
+            radii.top_left,
+            radii.top_right,
+            radii.bottom_left,
+            radii.bottom_right,
+        ] {
+            assert_eq!(radius.0 / scale, 8.);
+        }
+    }
 }

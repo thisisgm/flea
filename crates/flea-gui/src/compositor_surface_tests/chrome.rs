@@ -1,4 +1,4 @@
-use super::{frames, painted};
+use super::{frames, mounted, painted, update};
 use crate::{
     g2::{mn1, pl3, pl4},
     list::{Palette, Typeface},
@@ -12,61 +12,51 @@ use flea::{
     },
 };
 use gpui::{div, prelude::*, px, AppContext, Context, Render, TestAppContext, Window};
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::sync::Arc;
 
-struct Menu(Rc<RefCell<mn1::menu::Menu>>, f32);
+struct Menu(gpui::Entity<crate::state::Shell>, bool);
 impl Render for Menu {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .size_full()
-            .child(mn1::element::MenuElement::new(self.0.clone(), px(self.1)))
-    }
-}
-
-struct Outside;
-impl pl3::seams::Outside for Outside {
-    fn send(&mut self, _: String) {}
-    fn card(&mut self, _: Option<pl3::seams::Card>) {}
-    fn menu(&mut self, _: Vec<flea::ui_logic_pl3::host::Item>, _: pl3::seams::At) {}
-    fn status(&mut self, _: String, _: bool) {}
-    fn result(&mut self, _: String, _: String, _: bool) {}
-    fn count(&mut self, _: usize) {}
-    fn focus_rail(&mut self) {}
-    fn back(&mut self) {}
-    fn action(&mut self, _: String) {}
-    fn escape_taken(&mut self) -> bool {
-        false
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let layer = if self.1 {
+            self.0.update(cx, |shell, cx| shell.trash_menu_layer(cx))
+        } else {
+            mn1::host_input::layer(&self.0, window, cx).map(IntoElement::into_any_element)
+        };
+        div().size_full().children(layer)
     }
 }
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
-    let (view, vcx) = cx.add_window_view(|_, cx| {
+    let (shell, view, vcx) = mounted(cx, |shell, _, cx| {
         let path = cx.new(|cx| {
             let mut path = path::view::PathView::new(
                 Arc::default(),
                 Box::new(path::suggestions::Unranked),
                 cx,
             );
-            path.corner = corner;
             path.inputs.paths[0] = "/files".into();
             path
         });
-        path::chrome::ChromeView::new(
-            path,
-            path::chrome::Inputs {
-                view: crate::window::startup::View::List,
-                back: true,
-                up: true,
-                filter: true,
-                sort: true,
-                live: true,
-                corner,
-            },
-            cx,
-        )
+        let view = cx.new(|cx| {
+            path::chrome::ChromeView::new(
+                path,
+                path::chrome::Inputs {
+                    view: crate::window::startup::View::List,
+                    back: true,
+                    up: true,
+                    filter: true,
+                    sort: true,
+                    live: true,
+                    corner: shell.corner,
+                },
+                cx,
+            )
+        });
+        shell.chrome.view = Some(view.clone());
+        view
     });
     vcx.update(|window, cx| view.update(cx, |view, cx| window.focus(&view.focus[0], cx)));
-    frames("chrome-focus-ring", vcx, corner, &[]);
+    frames("chrome-focus-ring", &shell, vcx, corner, &[]);
     vcx.update(|window, cx| {
         let path = view.read(cx).path.clone();
         path.update(cx, |view, cx| {
@@ -79,7 +69,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             cx.notify();
         });
     });
-    frames("path-entry-and-jump-popup", vcx, corner, &[]);
+    frames("path-entry-and-jump-popup", &shell, vcx, corner, &[]);
     let sections = vec![RailSection {
         heading: Heading::None,
         rows: vec![RailEntry {
@@ -91,16 +81,25 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             ..Default::default()
         }],
     }];
-    let (view, vcx) = cx.add_window_view(|_, cx| {
-        pl4::producer::Producer::from_sections(Arc::default(), sections, "/missing/flea".into(), cx)
+    let (shell, view, vcx) = mounted(cx, |shell, _, cx| {
+        shell.mount_rail(cx);
+        let view = cx.new(|cx| {
+            pl4::producer::Producer::from_sections(
+                Arc::default(),
+                sections,
+                "/missing/flea".into(),
+                cx,
+            )
+        });
+        shell.rail.as_mut().unwrap().places = view.clone();
+        view
     });
     view.update(vcx, |view, cx| {
-        view.model.borrow_mut().corner = corner;
         assert!(view.start_rename(0, cx));
     });
-    frames("rail-rename-field", vcx, corner, &[]);
-    let menu = Rc::new(RefCell::new(mn1::menu::Menu::default()));
-    let (_, vcx) = cx.add_window_view(|window, _| {
+    frames("rail-rename-field", &shell, vcx, corner, &[]);
+    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+        let menu = shell.menu.menu.clone();
         let catalog = flea::i18n::I18n::default();
         let typeface = Typeface::omarchy_default();
         let env = mn1::lines::Env {
@@ -130,24 +129,44 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         menu.borrow_mut()
             .open_submenu_for("copyAs", true, &env, window);
         assert!(menu.borrow().flyout.is_some());
-        Menu(menu.clone(), corner)
+        let shell = cx.entity();
+        cx.new(|_| Menu(shell, false))
     });
-    frames("context-menu-and-flyout", vcx, corner, &[]);
-    let (_, vcx) = cx.add_window_view(|window, cx| {
-        let palette = Palette::inherited(&window.text_style(), crate::palette::Theme::default());
-        let mut view = pl3::pane::TrashPane::new(
-            Arc::default(),
-            Box::new(Outside),
-            pl3::ink::Ink::interim(&palette, px(corner)),
-            "default",
-            "/files".into(),
-            cx,
-        );
-        view.monitor_start = None;
-        view.resize(1100., 700., cx);
+    frames("context-menu-and-flyout", &shell, vcx, corner, &[]);
+    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+        shell.mount_trash(window, cx);
+        let view = shell.trash.as_ref().unwrap().pane.clone();
+        view.update(cx, |view, cx| {
+            view.monitor_start = None;
+            view.resize(1100., 700., cx);
+        });
         view
     });
-    frames("trash-strip-button", vcx, corner, &[]);
+    frames("trash-strip-button", &shell, vcx, corner, &[]);
+    let (shell, _, vcx) = mounted(cx, |shell, window, cx| {
+        shell.mount_trash(window, cx);
+        shell.trash.as_ref().unwrap().pane.update(cx, |pane, cx| {
+            pane.monitor_start = None;
+            pane.host.view.opened = true;
+            pane.outside.menu(
+                vec![flea::ui_logic_pl3::host::Item::Entry(
+                    flea::ui_logic_pl3::host::Entry {
+                        id: "restore",
+                        action: "restore",
+                        label_key: "trash.action.restore",
+                        glyph: "folder",
+                        disabled: false,
+                        danger: false,
+                    },
+                )],
+                pl3::seams::At { x: 100., y: 100. },
+            );
+            cx.notify();
+        });
+        let shell = cx.entity();
+        cx.new(|_| Menu(shell, true))
+    });
+    frames("trash-context-menu", &shell, vcx, corner, &[]);
     scrollbar(cx, corner);
 }
 
@@ -181,50 +200,48 @@ impl Render for Scroller {
 }
 
 fn scrollbar(cx: &mut TestAppContext, corner: f32) {
-    let (backend, _requests) = crate::backend::Backend::test_channel();
-    let (view, vcx) = cx.add_window_view(|_, cx| {
-        let shell = cx.new(|cx| {
-            let mut shell = crate::state::tests::shell_with(backend, cx);
-            shell.corner = corner;
-            shell.panes[0]
-                .as_mut()
-                .unwrap()
-                .input
-                .moved(cx.background_executor().now());
-            shell
-        });
-        Scroller {
+    let (shell, view, vcx) = mounted(cx, |shell, _, cx| {
+        shell.panes[0]
+            .as_mut()
+            .unwrap()
+            .input
+            .moved(cx.background_executor().now());
+        let shell = cx.entity();
+        cx.new(|_| Scroller {
             shell,
             height: 600.,
-        }
+        })
     });
     for height in [600., 4.] {
         view.update(vcx, |view, cx| {
             view.height = height;
             cx.notify();
         });
-        let (scale, quads) = painted(vcx);
-        let thumbs: Vec<_> = quads
-            .iter()
-            .filter(|quad| {
-                let width = quad.bounds.size.width.0 / scale;
-                (width - 6.).abs() < 0.1
-                    && quad.bounds.size.height.0 / scale > 0.
-                    && quad
-                        .background
-                        .as_solid()
-                        .is_some_and(|ink| (ink.a - 0.5).abs() < 0.01)
-            })
-            .collect();
-        assert!(
-            !thumbs.is_empty(),
-            "the scrolling listing must paint a thumb"
-        );
-        for thumb in thumbs {
-            let expected =
-                corner.min(thumb.bounds.size.width.0.min(thumb.bounds.size.height.0) / scale / 2.);
-            assert_eq!(thumb.corner_radii.top_left.0 / scale, expected);
+        for radius in [8. - corner, corner] {
+            update(&shell, vcx, radius);
+            let (scale, quads) = painted(vcx);
+            let thumbs: Vec<_> = quads
+                .iter()
+                .filter(|quad| {
+                    let width = quad.bounds.size.width.0 / scale;
+                    (width - 6.).abs() < 0.1
+                        && quad.bounds.size.height.0 / scale > 0.
+                        && quad
+                            .background
+                            .as_solid()
+                            .is_some_and(|ink| (ink.a - 0.5).abs() < 0.01)
+                })
+                .collect();
+            assert!(
+                !thumbs.is_empty(),
+                "the scrolling listing must paint a thumb"
+            );
+            for thumb in thumbs {
+                let expected = radius
+                    .min(thumb.bounds.size.width.0.min(thumb.bounds.size.height.0) / scale / 2.);
+                assert_eq!(thumb.corner_radii.top_left.0 / scale, expected);
+            }
+            println!("M9_CORNER surface=scrollbar corner={corner} track_height={height} live_radius={radius} PASS");
         }
-        println!("M9_CORNER surface=scrollbar corner={corner} track_height={height} PASS");
     }
 }

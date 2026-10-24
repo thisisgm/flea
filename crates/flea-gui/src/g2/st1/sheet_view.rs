@@ -302,6 +302,7 @@ impl Render for SheetView {
         let title = self.sheet.catalog.tr("keys.action.keymapSheet");
         let mut card = div()
             .id("sheet-card")
+            .debug_selector(|| "sheet-card".into())
             .absolute()
             .left(px(left))
             .top(px(top))

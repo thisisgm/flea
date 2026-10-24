@@ -1,5 +1,9 @@
 //! Every rounded surface is painted with the same compositor value at zero and eight.
-use gpui::{Quad, TestAppContext, VisualTestContext};
+use crate::state::Shell;
+use gpui::{
+    prelude::*, AppContext, Context, Entity, Quad, Render, Subscription, TestAppContext,
+    VisualTestContext, Window,
+};
 
 mod chrome;
 mod dialogs;
@@ -14,7 +18,20 @@ fn painted(cx: &mut VisualTestContext) -> (f32, Vec<Quad>) {
     })
 }
 
-fn frames(name: &str, cx: &mut VisualTestContext, corner: f32, checks: &[f32]) {
+fn frames(
+    name: &str,
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+    corner: f32,
+    checks: &[f32],
+) {
+    for value in [8. - corner, corner] {
+        update(shell, cx, value);
+        assert_frames(name, cx, value, checks);
+    }
+}
+
+fn assert_frames(name: &str, cx: &mut VisualTestContext, corner: f32, checks: &[f32]) {
     let (scale, quads) = painted(cx);
     assert!(!quads.is_empty(), "{name} must paint");
     let mut count = 0;
@@ -62,8 +79,54 @@ fn frames(name: &str, cx: &mut VisualTestContext, corner: f32, checks: &[f32]) {
     println!("M9_CORNER surface={name} corner={corner} frames={count} PASS");
 }
 
+struct Mounted<V: Render> {
+    shell: Entity<Shell>,
+    view: Entity<V>,
+    _watch: Subscription,
+}
+
+impl<V: Render> Render for Mounted<V> {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        gpui::div().size_full().child(self.view.clone())
+    }
+}
+
+fn mounted<V: Render>(
+    cx: &mut TestAppContext,
+    build: impl FnOnce(&mut Shell, &mut Window, &mut Context<Shell>) -> Entity<V>,
+) -> (Entity<Shell>, Entity<V>, &mut VisualTestContext) {
+    let (backend, _requests) = crate::backend::Backend::test_channel();
+    let (root, cx) = cx.add_window_view(|window, cx| {
+        let shell = cx.new(|cx| {
+            let mut shell = crate::state::tests::shell_with(backend, cx);
+            shell.launch.settings.data = flea::uischema::defaults();
+            shell
+        });
+        let view = shell.update(cx, |shell, cx| build(shell, window, cx));
+        let watch = cx.observe(&shell, |_, _, cx| cx.notify());
+        Mounted {
+            shell,
+            view,
+            _watch: watch,
+        }
+    });
+    let (shell, view) = root.read_with(cx, |root, _| (root.shell.clone(), root.view.clone()));
+    (shell, view, cx)
+}
+
+fn update(shell: &Entity<Shell>, cx: &mut VisualTestContext, corner: f32) {
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.receive_settings(
+                crate::window::settings::store::Update::Corner(corner),
+                window,
+                cx,
+            );
+        })
+    });
+}
+
 fn all(cx: &mut TestAppContext, corner: f32) {
-    cx.update(|cx| cx.set_global(crate::compositor::Corner(corner)));
     settings::check(cx, corner);
     dialogs::check(cx, corner);
     chrome::check(cx, corner);
