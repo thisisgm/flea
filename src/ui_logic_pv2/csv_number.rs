@@ -77,23 +77,29 @@ fn is_decimal_literal(body: &str) -> bool {
 }
 
 /// Whether each column is right-aligned: every non-empty body cell in it is a number. Row 0 is the header and is not read.
+/// True when the column's non-empty values all read as numbers and at least one is non-empty.
+pub fn numeric_column<'a>(values: impl Iterator<Item = &'a str>) -> bool {
+    let mut seen = false;
+    for text in values {
+        if text.trim().is_empty() {
+            continue;
+        }
+        seen = true;
+        if !is_number(text) {
+            return false;
+        }
+    }
+    seen
+}
+
 pub fn numeric_columns(rows: &[Vec<String>], columns: usize) -> Vec<bool> {
     (0..columns)
         .map(|c| {
-            let mut seen = false;
-            let mut numeric = true;
-            for row in rows.iter().skip(1) {
-                if !numeric {
-                    break;
-                }
-                let text = row.get(c).map(String::as_str).unwrap_or("");
-                if text.trim().is_empty() {
-                    continue;
-                }
-                seen = true;
-                numeric = is_number(text);
-            }
-            seen && numeric
+            numeric_column(
+                rows.iter()
+                    .skip(1)
+                    .map(|row| row.get(c).map_or("", String::as_str)),
+            )
         })
         .collect()
 }

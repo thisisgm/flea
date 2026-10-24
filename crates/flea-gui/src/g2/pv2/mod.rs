@@ -12,3 +12,7 @@ pub mod font;
 pub mod html;
 
 pub use view::{Bar, CopyHost, Metrics, Palette, PdfView};
+
+// Office documents and the CSV table view.
+pub mod csv;
+pub mod office;
