@@ -199,9 +199,14 @@ impl Index {
             if let Some(watch) = watch {
                 if !watch.arm_local(rel, body) { self.mark_partial("watch_failed"); }
             }
-            let Ok(Some(entries)) = read_bounded(&root.join(rel), body, rel.as_os_str().is_empty()) else {
-                self.mark_partial("unreadable");
-                continue;
+            let entries = match read_bounded(&root.join(rel), body, rel.as_os_str().is_empty()) {
+                Ok(Some(entries)) => entries,
+                // The walk's rule: a local directory gone since its parent was read is not unreadable, and the parent's watch reports it.
+                Ok(None) if !rel.as_os_str().is_empty() && !super::super::iomount::is_remote(&root.join(rel), body) => continue,
+                _ => {
+                    self.mark_partial("unreadable");
+                    continue;
+                }
             };
             if let Some(reason) = entries.partial { self.mark_partial(reason); }
             let entries: Vec<_> = entries.entries.into_iter().filter(|(name, _)| hidden || !is_hidden(name)).collect();
@@ -212,3 +217,7 @@ impl Index {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "searchindexpatch_tests.rs"]
+mod tests;

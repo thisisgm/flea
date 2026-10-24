@@ -1242,6 +1242,10 @@ mod session_wire_tests;
 mod hold_wire_tests;
 
 #[cfg(test)]
+#[path = "run_search_landing_tests.rs"]
+mod search_landing_tests;
+
+#[cfg(test)]
 #[path = "viewerorder_tests.rs"]
 mod viewerorder_tests;
 
