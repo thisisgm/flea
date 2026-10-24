@@ -83,9 +83,13 @@ mod columns_tests;
 #[path = "../list/join_tests.rs"]
 mod list_tests;
 #[cfg(test)]
+mod ipc_cold_tests;
+#[cfg(test)]
 mod modal_tests;
 #[cfg(test)]
 mod native_reader_tests;
+#[cfg(test)]
+mod omi_views_tests;
 #[cfg(test)]
 mod overlay_escape_tests;
 #[cfg(test)]

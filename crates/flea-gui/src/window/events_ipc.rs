@@ -6,8 +6,36 @@ use crate::{
 use gpui::{Context, Window};
 
 impl Shell {
+    /// The first listing answered or gave up waiting, so calls from here on reach the window's readers.
+    pub(crate) fn ensure_ipc_reader(&mut self, window: &Window, cx: &mut Context<Self>) {
+        self.ipc_cold = false;
+        self.start_ipc_reader(window, cx);
+    }
+
+    pub(crate) fn start_ipc_reader(&mut self, window: &Window, cx: &mut Context<Self>) {
+        let Some(events) = self.ipc_events.take() else {
+            return;
+        };
+        self._ipc_reader = Some(cx.spawn_in(window, async move |this, cx| {
+            while let Ok(event) = events.recv().await {
+                if cx
+                    .update(|window, cx| this.update(cx, |shell, cx| shell.ipc(event, window, cx)))
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        }));
+    }
+
     pub(crate) fn ipc(&mut self, event: Event, window: &mut Window, cx: &mut Context<Self>) {
         match event {
+            Event::Call { answer, .. } if self.ipc_cold => {
+                let _ = answer.try_send(crate::ipc::server::Answer {
+                    reply: flea::ipc::registry::no_target(),
+                    quit: false,
+                });
+            }
             Event::Call { request, answer } => {
                 let (request, answer) = match self.visual_call(request, answer, window, cx) {
                     Some(call) => call,
