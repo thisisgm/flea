@@ -7,6 +7,8 @@ use gpui::{TestAppContext, VisualTestContext};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
+#[path = "browse_tests.rs"]
+mod browse_tests;
 #[path = "fixture.rs"]
 mod fixture;
 #[path = "ipc_tests.rs"]

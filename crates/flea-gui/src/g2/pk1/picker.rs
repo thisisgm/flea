@@ -79,7 +79,7 @@ pub struct Picker {
     pub(super) locale: Snapshot,
     pub labels: Labels,
     pub(super) checks: Box<dyn PickerChild>,
-    listing_child: Box<dyn PickerChild>,
+    pub(super) listing_child: Box<dyn PickerChild>,
     reply_path: PathBuf,
     pub focus: FocusHandle,
     exit: Rc<dyn Fn(&mut App)>,
@@ -92,6 +92,8 @@ pub struct Picker {
     pub selection_notice: Option<logic::CheckResult>,
     // Bumped when a taken save name starts its review, so the save field's owner selects the stem.
     pub stem_requests: u64,
+    // The folder, path strip and Filename the listing child feeds.
+    pub browse: super::browse::Browse,
 }
 
 pub struct Children {
@@ -109,11 +111,12 @@ impl Picker {
         cx: &mut Context<Self>,
     ) -> Self {
         let labels = Labels::new(&locale.catalog, &req);
+        let browse = super::browse::Browse::new(&req, home, &locale.catalog, cx);
         let watchers = [
             Self::watch(children.checks.lines(), Child::Checks, cx),
             Self::watch(children.listing.lines(), Child::Listing, cx),
         ];
-        Self {
+        let mut picker = Self {
             listing: ListingFacts::start(&req, home),
             req,
             lifetime: Lifetime::default(),
@@ -142,7 +145,14 @@ impl Picker {
             filter: None,
             selection_notice: None,
             stem_requests: 0,
-        }
+            browse,
+        };
+        picker.body = Some(picker.browse.body(cx));
+        picker.filter = picker.browse.filename.clone().map(AnyView::from);
+        let start = picker.listing.location.clone();
+        picker.open_folder(&start, cx);
+        picker.sync_path(cx);
+        picker
     }
 
     // Tests and hosts that own their own process exit replace the default quit.
@@ -169,9 +179,9 @@ impl Picker {
                             picker.received(result, cx);
                         }
                     }
-                    Line::Reply(_) => {}
+                    Line::Reply(text) => picker.listing_line(&text, cx),
                     Line::Failed(_) if child == Child::Checks => picker.backend_failed(cx),
-                    Line::Failed(_) => {}
+                    Line::Failed(_) => picker.listing_failed(cx),
                     Line::Stopped => picker.child_stopped(child, cx),
                 });
                 if stop || kept.is_err() {
