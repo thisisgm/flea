@@ -8,8 +8,9 @@ fn search_a_subtree_gone_before_its_read_is_not_unreadable() {
     for watched in [false, true] {
         for replacement in ["absent", "file", "symlink"] {
             let d = TestDir::new("subtreegone");
+            let target = TestDir::new("subtreegone-target");
             if replacement == "file" { d.file("gone", ""); }
-            if replacement == "symlink" { std::os::unix::fs::symlink(d.path(), d.join("gone")).unwrap(); }
+            if replacement == "symlink" { std::os::unix::fs::symlink(target.path(), d.join("gone")).unwrap(); }
             let (events, _receiver) = std::sync::mpsc::channel();
             let watch = watched.then(|| Watch::new(d.path(), false, events));
             let core = watch.as_ref().map(|watch| watch.core.as_ref());
@@ -29,6 +30,7 @@ fn search_a_subtree_gone_before_its_read_is_not_unreadable() {
             if let Some(core) = core {
                 core.drain();
                 if replacement == "file" { std::fs::write(d.join("gone"), "x").unwrap(); }
+                if replacement == "symlink" { target.file("probe", ""); }
                 d.file("probe", "");
                 core.flush();
                 let dirs = core.drain().dirs;
@@ -62,10 +64,11 @@ fn search_a_permission_denied_local_subtree_stays_partial() {
         assert!(d.join(".flea-test-sandbox").is_file());
         d.assert_contains(&denied);
         std::fs::set_permissions(&denied, std::fs::Permissions::from_mode(0o000)).unwrap();
-        let Err(error) = crate::backend::searchread::read(&denied) else {
+        if std::fs::read_dir(&denied).is_ok() {
             eprintln!("skipped: this process overrides directory permissions, so mode 000 cannot produce EACCES");
             return;
-        };
+        }
+        let error = crate::backend::searchread::read(&denied).err().expect("chmod 000 must refuse the real directory read");
         assert_eq!(error.raw_os_error(), Some(13), "this fixture must exercise EACCES");
         assert!(read_bounded(&denied, "", false).is_err(), "EACCES must not become a vanished directory");
         let (events, _receiver) = std::sync::mpsc::channel();
