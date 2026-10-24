@@ -16,17 +16,17 @@ pub struct CardInk {
 }
 
 impl CardInk {
-    /// Interim roles from the row palette; error and accent stand in as foreground until the tokens arrive.
+    /// Reads the resolved row palette, including independent muted, frame and error roles.
     pub fn inherited(palette: &Palette) -> Self {
         Self {
             surface: palette.background,
             ground: palette.background,
             foreground: palette.foreground,
-            muted: palette.metadata,
-            frame: palette.metadata_frame,
+            muted: palette.muted,
+            frame: palette.muted_frame,
             accent_frame: palette.accent_frame,
-            error: palette.foreground,
-            rule: palette.metadata_frame.opacity(0.4),
+            error: palette.error,
+            rule: palette.muted_frame.opacity(0.4),
             wash: palette.accent.opacity(0.14),
         }
     }

@@ -201,6 +201,10 @@ impl Element for RailElement {
         cx: &mut App,
     ) {
         let palette = ready.palette;
+        #[cfg(test)]
+        {
+            self.laid.borrow_mut().palette = Some(palette);
+        }
         let metrics = RailMetrics::for_typeface(&self.typeface);
         let model = self.model.borrow();
         let laid = self.laid.borrow();

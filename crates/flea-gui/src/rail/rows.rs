@@ -98,6 +98,8 @@ pub struct LaidRow {
 /// Everything one paint put on the rail: the loaded boxes, never an expected rectangle.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Laid {
+    #[cfg(test)]
+    pub palette: Option<Palette>,
     pub painted: bool,
     pub width: f32,
     pub height: f32,

@@ -32,12 +32,12 @@ impl Ink {
             background: palette.background,
             surface: palette.background,
             foreground: palette.foreground,
-            muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted: palette.muted,
+            muted_frame: palette.muted_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
-            // The error role is not on the interim palette; the theme service fills it.
-            error: palette.foreground,
+            // Error ink was lifted against the inherited ground by the palette resolver.
+            error: palette.error,
             ..Self::default()
         })
     }

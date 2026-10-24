@@ -30,8 +30,8 @@ fn tile_ink_takes_the_style_ground_and_the_style_colour() {
     );
     assert_eq!(
         ink.muted_frame,
-        colour.opacity(0.5),
-        "the tile muted frame is the style colour at 0.5"
+        crate::palette::Roles::for_inherited(background, colour).muted_frame,
+        "the tile muted frame follows the inherited ground contrast lift"
     );
     let list = Palette::inherited(&style, theme);
     assert_eq!(
@@ -79,8 +79,7 @@ fn tile_ink_falls_back_to_the_theme_without_a_style_ground() {
         "the tile accent frame is the theme foreground"
     );
     assert_eq!(
-        ink.muted_frame,
-        theme.foreground.opacity(0.5),
-        "the tile muted frame is the theme foreground at 0.5"
+        ink.muted_frame, theme.roles.muted_frame,
+        "the tile muted frame is the resolved theme frame role"
     );
 }
