@@ -1,12 +1,11 @@
 //! Every listing action the key table binds is run by a handler, or is named here by the family that will run it.
-use super::navigation_tests::{land, open, row};
+use super::test_shell::{keystroke, land, open, row};
 use crate::window::input::{event_input, ActionEvent};
 use flea::keys::{self, Context, Frontend, Match};
 use gpui::{KeyDownEvent, Keystroke, Modifiers, TestAppContext};
 use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 
-// Actions a key still hands to nobody, by the family that will run them; a family removes its line when it lands.
-// v0.3.12 refs are in ui/js/Focus.js unless named.
+// Actions a key still hands to nobody, by the family that will run them, cited in v0.3.12 ui/js/Focus.js unless another file is named; a family removes its line when it lands.
 #[rustfmt::skip]
 const NOT_YET: &[(&str, &[&str])] = &[
     // On a file row: ui/js/Nav.js:231 hands it to ui/Opener.qml, Focus.js:133-139 sends pageForward to the preview.
@@ -31,44 +30,6 @@ const NAVIGATION: &[&str] = &["parent", "historyBack", "historyForward", "reload
 
 // Never handed to nobody on a folder row; on a file row they belong to the opener.
 const FOLDER_ROW: &[&str] = &["open", "pageForward"];
-
-// The keystroke the platform delivers for a table row, Shift on a cased letter as Linux sends it.
-fn keystroke(binding: &keys::Binding) -> KeyDownEvent {
-    let text = binding.mods == "text";
-    let key = match binding.key {
-        _ if text => binding.key.to_lowercase(),
-        "Return" | "Enter" => "enter".into(),
-        "Backtab" => "tab".into(),
-        "BracketLeft" => "[".into(),
-        "BracketRight" => "]".into(),
-        "Comma" => ",".into(),
-        "Period" => ".".into(),
-        "Equal" => "=".into(),
-        "Plus" => "+".into(),
-        "Minus" => "-".into(),
-        "Underscore" => "_".into(),
-        "Greater" => ">".into(),
-        key => key.to_lowercase(),
-    };
-    let mask = binding.mask;
-    KeyDownEvent {
-        keystroke: Keystroke {
-            key,
-            key_char: text.then(|| binding.key.to_owned()),
-            modifiers: Modifiers {
-                control: mask & keys::CONTROL != 0,
-                alt: mask & keys::ALT != 0,
-                shift: mask & keys::SHIFT != 0
-                    || (text && binding.key.chars().any(char::is_uppercase)),
-                platform: mask & keys::SUPER != 0,
-                function: false,
-            },
-            is_keypad: binding.key == "Enter",
-        },
-        is_held: false,
-        prefer_character_input: false,
-    }
-}
 
 // One fresh production Shell per press, so no earlier key's state decides a later one.
 fn handed_to_nobody(
