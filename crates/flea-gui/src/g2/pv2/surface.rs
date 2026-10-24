@@ -91,34 +91,21 @@ impl Surface {
         }
     }
 
+    /// Cancels this surface's document before its retained view leaves the mount.
+    pub fn close(&mut self) {
+        if let Some(doc) = self.doc.take() {
+            self.commands.push(Command::Close(doc));
+        }
+        self.opener = Opener::default();
+        self.active = false;
+        self.cache.clear();
+        self.inflight.clear();
+        self.slots.clear();
+        self.cap.reset();
+    }
+
     pub fn take_commands(&mut self) -> Vec<Command> {
         std::mem::take(&mut self.commands)
-    }
-
-    pub fn page_count(&self) -> usize {
-        self.sizes.len()
-    }
-
-    /// The page on screen, None before the first render of this document; the host's swap waits for it.
-    pub fn shown_page(&self) -> Option<usize> {
-        self.cap.shown_page
-    }
-
-    pub fn drawn_page(&self) -> usize {
-        self.cap.drawn_page(self.page)
-    }
-
-    pub fn failed(&self) -> bool {
-        self.open_failed || matches!(self.fetch, Fetch::Failed { .. }) || self.page_failed
-    }
-
-    /// A render in flight for what the frame shows; the single page's neighbours render ahead without holding a press.
-    pub fn render_busy(&self) -> bool {
-        if self.continuous {
-            !self.inflight.is_empty()
-        } else {
-            self.inflight.iter().any(|&(page, _)| page == self.page)
-        }
     }
 
     /// The page's proportions from the document, 1 while it loads, never from a rendered image.

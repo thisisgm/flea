@@ -15,6 +15,18 @@ pub struct ActionEvent {
 
 impl gpui::EventEmitter<ActionEvent> for Shell {}
 
+impl ActionEvent {
+    /// An action with no seat and no armed pair, as a menu or a modal key resolves it.
+    pub(crate) fn bare(action: &'static str, context: flea::keys::Context) -> Self {
+        Self {
+            action,
+            context,
+            seat: Default::default(),
+            pair_armed: false,
+        }
+    }
+}
+
 impl Shell {
     pub fn new_window(&self) {
         let Some(host) = &self.panes[self.focus_side] else {
@@ -193,31 +205,40 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
-        if self.filter_action(action, window, cx) || self.search_action(action, window, cx) {
+        // A standing filter takes its keys ahead of the key-only handlers; the listing family runs them.
+        if !self.filter_claims(action, cx) && self.key_only_action(action, window, cx) {
             cx.stop_propagation();
             return;
         }
-        if self.trash_action(action, window, cx) {
-            cx.stop_propagation();
-            return;
-        }
-        if self.settings_action(action, window, cx) {
-            cx.stop_propagation();
-            return;
-        }
-        if self.grid_key(action, cx) {
-            cx.stop_propagation();
-            return;
-        }
-        if (action == "escape" || self.view != startup::View::Dual || self.focus.is_focused(window))
-            && self.input_action(action, window, cx)
+        let context = self.keyboard.context;
+        let event = ActionEvent {
+            action,
+            seat,
+            context,
+            pair_armed,
+        };
+        self.dispatch(Order::Action(event), window, cx);
+        cx.stop_propagation();
+    }
+
+    /// The key-only handlers that run before the dispatch point; true when one took the action.
+    fn key_only_action(
+        &mut self,
+        action: &'static str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if self.search_action(action, window, cx)
+            || self.trash_action(action, window, cx)
+            || self.settings_action(action, window, cx)
+            || self.grid_key(action, cx)
+            || ((action == "escape"
+                || self.view != startup::View::Dual
+                || self.focus.is_focused(window))
+                && self.input_action(action, window, cx))
+            || self.operation_action(action, cx)
         {
-            cx.stop_propagation();
-            return;
-        }
-        if self.operation_action(action, cx) {
-            cx.stop_propagation();
-            return;
+            return true;
         }
         if action == "menu" {
             self.menu_keyboard_open(window, cx);
@@ -227,8 +248,6 @@ impl Shell {
             self.chrome_action(action, window, cx);
         } else if action == "windowNew" {
             self.new_window();
-        } else if action == "addNetwork" {
-            self.network_add(self.focus_side, window, cx);
         } else if let Some(view) = match action {
             "viewList" => Some(startup::View::List),
             "viewColumns" => Some(startup::View::Columns),
@@ -238,16 +257,9 @@ impl Shell {
         } {
             self.set_view(view, window, cx);
         } else {
-            let context = self.keyboard.context;
-            let event = ActionEvent {
-                action,
-                seat,
-                context,
-                pair_armed,
-            };
-            self.dispatch(Order::Action(event), window, cx);
+            return false;
         }
-        cx.stop_propagation();
+        true
     }
 
     pub(crate) fn wheel(

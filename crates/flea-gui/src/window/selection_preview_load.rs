@@ -1,0 +1,350 @@
+//! Backend work and renderer lifetime for a single generation.
+use super::*;
+use crate::g2::{
+    pv2::{
+        self,
+        view::{Metrics, Palette},
+    },
+    pv4::{
+        self,
+        seam::{CacheReader, Wire},
+    },
+};
+use flea::{json::escape, ui_logic_pv4::control::Surface};
+use gpui::{AppContext, ImageAssetLoader, Window};
+
+struct ModelWire(Outbox);
+impl Wire for ModelWire {
+    fn send(&self, line: String) -> bool {
+        self.0.borrow_mut().push(line);
+        true
+    }
+}
+struct CopyWire(Outbox);
+impl pv2::view::CopyHost for CopyWire {
+    fn pdf_copy(&self, path: &str, slot: &str) -> u64 {
+        let id = token();
+        self.0.borrow_mut().push(format!(
+            r#"{{"c":"pdfcopy","id":{id},"slot":"{slot}","path":"{}"}}"#,
+            escape(path)
+        ));
+        id
+    }
+}
+
+impl SelectionPreview {
+    pub(crate) fn follow(
+        &mut self,
+        subject: Option<Subject>,
+        manual: bool,
+        force: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(subject) = subject else {
+            self.cancel_pending(window, cx);
+            if let Some(frame) = &mut self.drawn {
+                if let Mounted::Media(player) = &mut frame.mounted {
+                    if let Some(player) = player.take() {
+                        if let Some(image) = player.read(cx).frame.clone() {
+                            frame.image = Some(image);
+                        }
+                        player.update(cx, |player, cx| player.close(cx));
+                    }
+                }
+            }
+            return;
+        };
+        if force {
+            self.manual_subject = Some(subject.clone());
+        }
+        let manual = manual && self.manual_subject.as_ref() != Some(&subject);
+        if self
+            .manual_subject
+            .as_ref()
+            .is_some_and(|old| old != &subject)
+        {
+            self.manual_subject = None;
+        }
+        let same = self
+            .pending
+            .as_ref()
+            .or(self.drawn.as_ref())
+            .is_some_and(|f| f.subject == subject && (f.manual == manual || force));
+        if same && !force {
+            self.poll(window, cx);
+            return;
+        }
+        self.cancel_pending(window, cx);
+        if let Some(frame) = &mut self.drawn {
+            if let Mounted::Media(player) = &mut frame.mounted {
+                if let Some(player) = player.take() {
+                    if let Some(image) = player.read(cx).frame.clone() {
+                        frame.image = Some(image);
+                    }
+                    player.update(cx, |player, cx| player.close(cx));
+                }
+            }
+        }
+        let now = self.now(cx);
+        {
+            let mut swap = self.port.0.borrow_mut();
+            swap.now = now;
+            swap.ready = false;
+            swap.folder = false;
+        }
+        self.port.hold("");
+        self.port.start(false);
+        let generation = token();
+        let kind = subject.kind();
+        let path = subject.path();
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let metrics = crate::list::Metrics::for_typeface(&self.face);
+        let mut watch = None;
+        let mounted = match kind {
+            Kind::Pdf if !manual => {
+                let pdf = cx.new(|cx| {
+                    PdfView::new(
+                        true,
+                        Palette {
+                            background: theme.background,
+                        },
+                        Metrics {
+                            gap: metrics.gap,
+                            margin: 2. * metrics.pad,
+                            row_height: metrics.row,
+                        },
+                        cx,
+                    )
+                });
+                watch = Some(cx.observe(&pdf, |_, _, cx| cx.notify()));
+                let outbox = self.outbox.clone();
+                let slow = self
+                    .class
+                    .as_ref()
+                    .is_some_and(|(_, class)| class != "local" && !class.is_empty());
+                let (width, height) = self.frame_size(kind, if self.full_facts { 3 } else { 1 });
+                pdf.update(cx, |pdf, cx| {
+                    pdf.set_copy_host(Box::new(CopyWire(outbox)), "column", slow);
+                    pdf.surface.set_frame(
+                        (width - 2.).max(1.).into(),
+                        (height - 2.).max(1.).into(),
+                        window.scale_factor().into(),
+                        metrics.gap.into(),
+                    );
+                    pdf.set_path(&path, window, cx);
+                    pdf.set_active(true, window, cx);
+                });
+                Mounted::Pdf(pdf)
+            }
+            Kind::Model if !manual => {
+                let wire = Rc::new(ModelWire(self.outbox.clone()));
+                let model = cx.new(|cx| {
+                    Model3dView::new(
+                        Surface::Column,
+                        wire,
+                        Arc::new(CacheReader),
+                        self.catalog.clone(),
+                        cx,
+                    )
+                });
+                watch = Some(cx.observe(&model, |_, _, cx| cx.notify()));
+                model.update(cx, |model, cx| {
+                    model.host.animations = false;
+                    model.show(&path, 0, cx);
+                });
+                Mounted::Model(model)
+            }
+            Kind::Audio | Kind::Video => Mounted::Media(None),
+            _ => Mounted::Basic,
+        };
+        let frame = Frame {
+            subject,
+            generation,
+            kind,
+            mounted,
+            meta: None,
+            lines: Rc::from([]),
+            text_cache: Rc::default(),
+            text_answered: kind != Kind::Text,
+            thumb_answered: !matches!(kind, Kind::Image | Kind::Video),
+            source: None,
+            image: None,
+            failed: false,
+            manual,
+            _watch: watch,
+        };
+        if !manual && kind != Kind::Multi {
+            self.outbox.borrow_mut().push(format!(r#"{{"c":"meta","row":{},"token":{generation},"text":{},"media":{},"archive":false}}"#, frame.subject.index, kind == Kind::Text, matches!(kind, Kind::Audio | Kind::Video)));
+            if kind == Kind::Text {
+                self.outbox.borrow_mut().push(format!(r#"{{"c":"code","slot":"column","token":{generation},"path":"{}","first":1,"count":400,"raw":true}}"#, escape(&path)));
+            }
+            if matches!(kind, Kind::Image | Kind::Video) {
+                self.outbox.borrow_mut().push(format!(
+                    r#"{{"c":"thumb","rows":[{}]}}"#,
+                    frame.subject.index
+                ));
+            }
+        }
+        self.pending = Some(frame);
+        self.poll(window, cx);
+    }
+
+    pub(crate) fn on_line(&mut self, doc: &Json, line: &str, cx: &mut Context<Self>) -> bool {
+        let text = |key| doc.get(key).and_then(Json::as_str).unwrap_or("");
+        let number = |key| doc.get(key).and_then(Json::as_f64).unwrap_or(-1.) as u64;
+        let Some(frame) = self.pending.as_mut() else {
+            return false;
+        };
+        match text("t") {
+            "meta" if number("token") == frame.generation => frame.meta = Some(doc.clone()),
+            "code" if text("slot") == "column" && number("token") == frame.generation => {
+                frame.text_answered = true;
+                frame.failed = !matches!(text("state"), "plain" | "styled");
+                frame.lines = doc
+                    .get("lines")
+                    .and_then(Json::as_array)
+                    .unwrap_or(&[])
+                    .iter()
+                    .take(400)
+                    .map(|runs| {
+                        runs.as_array()
+                            .unwrap_or(&[])
+                            .iter()
+                            .filter_map(Json::as_str)
+                            .collect::<String>()
+                    })
+                    .collect::<Vec<_>>()
+                    .into();
+            }
+            "thumbed" if number("row") as usize == frame.subject.index => {
+                frame.thumb_answered = true;
+                if text("file").starts_with('/') {
+                    frame.source = Some(std::path::PathBuf::from(text("file")).into());
+                }
+            }
+            "model3d" => {
+                if let Mounted::Model(model) = &frame.mounted {
+                    let accepted = model.update(cx, |model, cx| model.on_line(line, cx));
+                    if accepted && text("thumbnail").starts_with('/') {
+                        frame.source = Some(std::path::PathBuf::from(text("thumbnail")).into());
+                    }
+                    return accepted;
+                }
+                return false;
+            }
+            "pdfcopied" => {
+                if let Mounted::Pdf(pdf) = &frame.mounted {
+                    pdf.update(cx, |pdf, cx| {
+                        pdf.copied(
+                            number("id"),
+                            text("path"),
+                            text("err"),
+                            doc.get("stalled").and_then(Json::as_bool) == Some(true),
+                            cx,
+                        )
+                    });
+                } else {
+                    return false;
+                }
+            }
+            _ => return false,
+        }
+        cx.notify();
+        true
+    }
+
+    pub(crate) fn poll(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let now = self.now(cx);
+        let (width, height) = self.frame_size(
+            self.pending.as_ref().map_or(Kind::Facts, |f| f.kind),
+            if self.full_facts { 3 } else { 1 },
+        );
+        let Some(frame) = self.pending.as_mut() else {
+            return;
+        };
+        if frame.image.is_none() {
+            if let Some(source) = &frame.source {
+                if let Some(loaded) = window.use_asset::<ImageAssetLoader>(source, cx) {
+                    frame.failed |= loaded.is_err();
+                    frame.image = loaded.ok();
+                    if frame.image.is_none() {
+                        frame.source = None;
+                        if let Mounted::Model(model) = &frame.mounted {
+                            model.read(cx).live.borrow_mut().thumbnail = false;
+                            frame.failed = false;
+                        }
+                    }
+                }
+            }
+        }
+        let renderer_ready = match &frame.mounted {
+            Mounted::Pdf(pdf) => {
+                let pdf = pdf.read(cx);
+                frame.failed |= pdf.surface.failed();
+                pdf.surface.shown_page().is_some() || pdf.surface.failed()
+            }
+            Mounted::Model(model) => {
+                let theme = cx
+                    .try_global::<crate::palette::Theme>()
+                    .copied()
+                    .unwrap_or_default();
+                model.update(cx, |model, cx| {
+                    model.prepare_column(
+                        ((width - 2.).max(1.), (height - 2.).max(1.)),
+                        window,
+                        theme,
+                        cx,
+                    )
+                });
+                let model = model.read(cx);
+                frame.failed |= matches!(model.phase, pv4::view::Phase::Failed(_));
+                matches!(model.phase, pv4::view::Phase::Failed(_))
+                    || (model.phase == pv4::view::Phase::Ready
+                        && ((model.live.borrow().thumbnail && frame.image.is_some())
+                            || model.presented.borrow().image.is_some()))
+            }
+            _ => {
+                frame.text_answered
+                    && frame.thumb_answered
+                    && (frame.source.is_none() || frame.image.is_some())
+            }
+        };
+        let ready =
+            frame.manual || frame.kind == Kind::Multi || (frame.meta.is_some() && renderer_ready);
+        let mut swap = self.port.0.borrow_mut();
+        swap.now = now;
+        let minimum = swap
+            .loading_at
+            .map(|at| at + crate::pane::swap::MIN_SHOW_MS);
+        if ready && minimum.is_none_or(|at| at <= now) {
+            swap.ready = true;
+            swap.holding = false;
+            swap.cap = None;
+            swap.loading_at = None;
+            drop(swap);
+            let next = self.pending.take();
+            if let Some(old) = self.drawn.take() {
+                self.dispose(old, window, cx);
+            }
+            self.drawn = next;
+            self.timer = None;
+            cx.notify();
+            return;
+        }
+        if !ready && swap.cap.is_some_and(|at| at <= now) {
+            swap.fallbacks += 1;
+            swap.cap = None;
+            swap.holding = false;
+        }
+        let due = swap
+            .cap
+            .filter(|at| *at > now)
+            .or(minimum.filter(|at| *at > now));
+        drop(swap);
+        self.arm(due, cx);
+    }
+}

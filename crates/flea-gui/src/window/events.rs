@@ -1,10 +1,7 @@
-use super::{
-    lifecycle::Phase,
-    locale::{self, Snapshot},
-};
+use super::lifecycle::Phase;
 use crate::{
     backend::{Event as BackendEvent, Failure},
-    state::{labels, Shell},
+    state::Shell,
 };
 use gpui::{Context, Window};
 #[path = "events_filesystem.rs"]
@@ -38,40 +35,6 @@ impl Shell {
         }
     }
 
-    pub fn follow_locale(&mut self, service: &locale::Service, cx: &mut Context<Self>) {
-        self.locale_service = Some(service.clone());
-        let updates = service.subscribe();
-        self._locale_reader = Some(cx.spawn(async move |this, cx| {
-            while let Ok(snapshot) = updates.recv().await {
-                if this
-                    .update(cx, |shell, cx| shell.apply_locale(snapshot, cx))
-                    .is_err()
-                {
-                    break;
-                }
-            }
-        }));
-    }
-
-    pub(crate) fn apply_locale(&mut self, locale: Snapshot, cx: &mut Context<Self>) {
-        if self.locale.revision == locale.revision {
-            return;
-        }
-        self.rail_locale(&locale.catalog, cx);
-        self.labels = labels(&locale);
-        for host in self.panes.iter_mut().flatten() {
-            host.translated(&locale);
-        }
-        self.locale = locale;
-        self.output_translated(cx);
-        self.settings_translated(cx);
-        if let Some(chrome) = &self.chrome.view {
-            let path = chrome.read_with(cx, |view, _| view.path.clone());
-            path.update(cx, |view, _| view.set_catalog(self.locale.catalog.clone()));
-        }
-        cx.notify();
-    }
-
     pub(crate) fn receive(
         &mut self,
         side: usize,
@@ -87,6 +50,9 @@ impl Shell {
                 .is_some_and(|capture| capture.side == side)
         {
             self.retire_menu(window, cx);
+        }
+        if self.selection_preview_event(side, &event, window, cx) {
+            return;
         }
         if let BackendEvent::Producer(line) = &event {
             if self.filter_line(side, line, cx) || self.search_line(side, line, window, cx) {
