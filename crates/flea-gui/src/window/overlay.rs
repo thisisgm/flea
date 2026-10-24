@@ -67,7 +67,12 @@ impl Shell {
     /// Closes whatever card the overlay shows; the window draws its own frame again.
     pub(crate) fn close_overlay(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(overlay) = self.overlay.take() {
-            overlay.update(cx, |overlay, cx| overlay.release_focus(window, cx));
+            overlay.update(cx, |overlay, cx| {
+                overlay.model.key(&overlay.catalog, "escape", false);
+                overlay.schedule(cx);
+                overlay.release_focus(window, cx);
+                cx.notify();
+            });
         }
         cx.notify();
     }

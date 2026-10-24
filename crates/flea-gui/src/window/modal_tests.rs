@@ -2,7 +2,8 @@
 use crate::{
     backend::Backend,
     g2::op1::{
-        model::{CopyFocus, Dialog},
+        join::OperationUpdate,
+        model::{CopyFocus, Dialog, Said},
         press::Press,
     },
     palette::Theme,
@@ -138,7 +139,7 @@ fn a_modal_paints_after_a_deferred_menu(cx: &mut TestAppContext) {
 }
 
 fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
-    let (backend, mut requests) = Backend::test_channel();
+    let (backend, mut requests) = Backend::test_lines();
     let handle = open(cx, backend, false);
     frame(cx, handle);
     let entity = handle.update(cx, |root, _, _| root.shell.clone()).unwrap();
@@ -147,6 +148,13 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
     let _subscription = cx.update(|cx| {
         cx.subscribe(&entity, move |_, event: &ActionEvent, _| {
             seen.borrow_mut().push(event.action);
+        })
+    });
+    let notices = Rc::new(RefCell::new(Vec::<Said>::new()));
+    let published = notices.clone();
+    let _updates = cx.update(|cx| {
+        cx.subscribe(&entity, move |_, update: &OperationUpdate, _| {
+            published.borrow_mut().extend(update.said.clone());
         })
     });
     let before = shell(cx, handle, |shell, window, cx| {
@@ -158,6 +166,7 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
             host.pane.held.clone(),
             host.path.clone(),
             shell.focus_side,
+            host.pane.requests.sent,
         )
     });
     frame(cx, handle);
@@ -181,6 +190,7 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
         }
         VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes(key);
         frame(cx, handle);
+        let delivered: Vec<_> = std::iter::from_fn(&mut requests).collect();
         shell(cx, handle, |shell, window, cx| {
             let host = shell.panes[0].as_ref().unwrap();
             assert_eq!(
@@ -204,9 +214,14 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
                 actions.borrow().is_empty(),
                 "{key} must not dispatch a listing action"
             );
-            assert!(
-                requests().is_none(),
-                "{key} must not send a backend file operation"
+            assert_eq!(
+                host.pane.requests.sent, before.5,
+                "{key} must not ask for another viewport window"
+            );
+            assert_eq!(
+                delivered.len(),
+                usize::from(submitted),
+                "{key} sends only the submitted destination validation"
             );
             assert!(
                 !shell.focus.is_focused(window),
@@ -239,18 +254,23 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
             );
             assert_eq!(*busy, submitted, "only Return on a full path submits");
             if key == "enter" && expected_path == "j" {
-                let said = card.model.said.last().expect("relative paths are refused");
+                let notices = notices.borrow();
+                let said = notices.last().expect("relative paths are refused");
                 assert!(said.error);
                 assert_eq!(said.text, card.catalog.tr("jobs.copyto.relative"));
             }
             assert_eq!(
-                card.model.outbox.len(),
+                delivered.len(),
                 usize::from(submitted),
                 "{key} reaches the card exactly when it acts"
             );
+            assert!(
+                card.model.outbox.is_empty(),
+                "the composer drains each command"
+            );
             if submitted {
                 assert_eq!(
-                    card.model.outbox[0],
+                    delivered[0],
                     r#"{"c":"menuaction","op":"validate","id":0,"action":"copyTo","dest":"/j"}"#,
                     "Return validates the edited destination exactly once"
                 );
