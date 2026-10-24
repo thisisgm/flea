@@ -3,11 +3,12 @@ use super::{arrow, host::GridHost, Arrow, Shown};
 use crate::{
     state::Shell,
     window::{
+        dispatch::Order,
         input::{modifiers, pointer, ActionEvent},
         startup::View,
     },
 };
-use gpui::{Context, KeyDownEvent, MouseDownEvent, MouseMoveEvent};
+use gpui::{Context, KeyDownEvent, MouseDownEvent, MouseMoveEvent, Window};
 
 impl Shell {
     pub(crate) fn grid_sideways(&self, event: &KeyDownEvent) -> Option<&'static str> {
@@ -125,6 +126,7 @@ impl Shell {
         &mut self,
         side: usize,
         event: &MouseDownEvent,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         if self.view != View::Grid
@@ -190,7 +192,7 @@ impl Shell {
         }
         self.focus_side = side;
         if matches!(binding.effect, "open" | "menu" | "openTab") {
-            cx.emit(ActionEvent {
+            let event = ActionEvent {
                 action: binding.effect,
                 context: flea::keys::Context::Listing,
                 seat: flea::keys::sequence::Seat {
@@ -201,7 +203,8 @@ impl Shell {
                     ..Default::default()
                 },
                 pair_armed: false,
-            });
+            };
+            self.dispatch(Order::Action(event), window, cx);
         }
         cx.notify();
     }

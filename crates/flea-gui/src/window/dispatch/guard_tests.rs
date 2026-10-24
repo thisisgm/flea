@@ -1,0 +1,189 @@
+//! Every listing action the key table binds is run by a handler, or is named here by the family that will run it.
+use super::navigation_tests::{land, open, row};
+use crate::window::input::{event_input, ActionEvent};
+use flea::keys::{self, Context, Frontend, Match};
+use gpui::{KeyDownEvent, Keystroke, Modifiers, TestAppContext};
+use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
+
+// Actions a key still hands to nobody, by the family that will run them; a family removes its line when it lands.
+// v0.3.12 refs are in ui/js/Focus.js unless named.
+#[rustfmt::skip]
+const NOT_YET: &[(&str, &[&str])] = &[
+    // On a file row: ui/js/Nav.js:231 hands it to ui/Opener.qml, Focus.js:133-139 sends pageForward to the preview.
+    ("opener", &["open", "pageForward"]),
+    // Focus.js:126-127, 175-180 and 196.
+    ("preview", &["togglePreview", "previewPageForward", "previewPageBack", "factsToggle", "loadPreview", "focusPreview", "preview", "zoomIn", "zoomOut", "expand"]),
+    // Focus.js:171 and 290, ui/js/Tabs.js:392.
+    ("tabs", &["openTab", "tabNew", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "tab1", "tab2", "tab3", "tab4", "tab5", "tab6", "tab7", "tab8", "tab9"]),
+    // Focus.js:207-240 and 271, ui/Pane.qml:599-602.
+    ("operations", &["copy", "cut", "paste", "movePaste", "copyAs", "pasteAs", "copyPath", "copydirpath", "duplicate", "trash", "trashArm", "deletePermanently", "newFolder", "rename", "properties"]),
+    // Focus.js:143-148, 187-195, 204-205 and 257-258; reveal is quiet outside results.
+    ("listing state", &["filter", "sortNext", "sortReverse", "escape", "reveal"]),
+    // Focus.js:250, 264-265 and 273.
+    ("window", &["openTerminal", "eject", "addNetwork", "tags"]),
+];
+
+// Spawns a real window process, so the guard reads it from the table instead of pressing it.
+const SPAWNS: &[&str] = &["windowNew"];
+
+// Never handed to nobody, on any row.
+const NAVIGATION: &[&str] = &["parent", "historyBack", "historyForward", "reload"];
+
+// Never handed to nobody on a folder row; on a file row they belong to the opener.
+const FOLDER_ROW: &[&str] = &["open", "pageForward"];
+
+// The keystroke the platform delivers for a table row, Shift on a cased letter as Linux sends it.
+fn keystroke(binding: &keys::Binding) -> KeyDownEvent {
+    let text = binding.mods == "text";
+    let key = match binding.key {
+        _ if text => binding.key.to_lowercase(),
+        "Return" | "Enter" => "enter".into(),
+        "Backtab" => "tab".into(),
+        "BracketLeft" => "[".into(),
+        "BracketRight" => "]".into(),
+        "Comma" => ",".into(),
+        "Period" => ".".into(),
+        "Equal" => "=".into(),
+        "Plus" => "+".into(),
+        "Minus" => "-".into(),
+        "Underscore" => "_".into(),
+        "Greater" => ">".into(),
+        key => key.to_lowercase(),
+    };
+    let mask = binding.mask;
+    KeyDownEvent {
+        keystroke: Keystroke {
+            key,
+            key_char: text.then(|| binding.key.to_owned()),
+            modifiers: Modifiers {
+                control: mask & keys::CONTROL != 0,
+                alt: mask & keys::ALT != 0,
+                shift: mask & keys::SHIFT != 0
+                    || (text && binding.key.chars().any(char::is_uppercase)),
+                platform: mask & keys::SUPER != 0,
+                function: false,
+            },
+            is_keypad: binding.key == "Enter",
+        },
+        is_held: false,
+        prefer_character_input: false,
+    }
+}
+
+// One fresh production Shell per press, so no earlier key's state decides a later one.
+fn handed_to_nobody(
+    cx: &mut TestAppContext,
+    preset: &str,
+    event: &KeyDownEvent,
+    twice: bool,
+    cursor: usize,
+) -> Vec<&'static str> {
+    let (shell, cx) = open(cx, preset);
+    let rows = vec![
+        row("alpha", true),
+        row("beta", true),
+        row("notes.txt", false),
+    ];
+    land(&shell, cx, "/files", rows, 1);
+    cx.update(|_, cx| {
+        shell.update(cx, |shell, _| {
+            shell.panes[0].as_mut().unwrap().pane.cursor = cursor
+        })
+    });
+    let emitted = Rc::new(RefCell::new(Vec::new()));
+    let sink = emitted.clone();
+    let _subscription = cx.update(|_, cx| {
+        cx.subscribe(&shell, move |_, event: &ActionEvent, _| {
+            sink.borrow_mut().push(event.action)
+        })
+    });
+    for _ in 0..1 + usize::from(twice) {
+        cx.simulate_event(event.clone());
+        cx.run_until_parked();
+    }
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+    cx.update(|window, _| window.remove_window());
+    cx.run_until_parked();
+    let emitted = emitted.borrow().clone();
+    emitted
+}
+
+#[gpui::test]
+fn every_bound_listing_action_has_a_handler_or_a_named_family(cx: &mut TestAppContext) {
+    let mut pressed = BTreeSet::new();
+    let mut unreachable = Vec::new();
+    let mut folder = BTreeSet::new();
+    let mut file = BTreeSet::new();
+    for preset in keys::PRESETS {
+        for binding in keys::binding_rows(preset, Frontend::Gui) {
+            if SPAWNS.contains(&binding.action) {
+                continue;
+            }
+            let event = keystroke(binding);
+            let input = event_input(&event, Modifiers::none());
+            if keys::lookup(preset, Context::Listing, Frontend::Gui, input)
+                != Match::Action(binding.action)
+            {
+                unreachable.push(format!("{preset} {} {}", binding.keys, binding.action));
+                continue;
+            }
+            let stamp = (
+                event.keystroke.key.clone(),
+                event.keystroke.key_char.clone(),
+                binding.mask,
+                event.keystroke.is_keypad,
+                binding.action,
+            );
+            if !pressed.insert(stamp) {
+                continue;
+            }
+            let twice = keys::SEQUENCES
+                .iter()
+                .any(|sequence| sequence.paired && sequence.arm == binding.action);
+            folder.extend(handed_to_nobody(cx, preset, &event, twice, 0));
+            file.extend(handed_to_nobody(cx, preset, &event, twice, 2));
+        }
+    }
+    for digit in keys::DIGITS {
+        let event = KeyDownEvent {
+            keystroke: Keystroke {
+                key: digit.text.into(),
+                key_char: Some(digit.text.into()),
+                modifiers: Modifiers::none(),
+                is_keypad: false,
+            },
+            is_held: false,
+            prefer_character_input: false,
+        };
+        folder.extend(handed_to_nobody(cx, "default", &event, false, 0));
+    }
+    assert_eq!(
+        unreachable,
+        Vec::<String>::new(),
+        "a row no keystroke reaches"
+    );
+    for action in NAVIGATION {
+        assert!(
+            !folder.contains(action) && !file.contains(action),
+            "{action} is the navigation family's"
+        );
+    }
+    for action in FOLDER_ROW {
+        assert!(!folder.contains(action), "{action} opens a folder row");
+    }
+    let named: BTreeSet<&str> = NOT_YET
+        .iter()
+        .flat_map(|(_, actions)| actions.iter().copied())
+        .collect();
+    let emitted: BTreeSet<&str> = folder.union(&file).copied().collect();
+    assert_eq!(
+        emitted.difference(&named).collect::<Vec<_>>(),
+        Vec::<&&str>::new(),
+        "a bound action runs nowhere: give it a handler or name its family"
+    );
+    assert_eq!(
+        named.difference(&emitted).collect::<Vec<_>>(),
+        Vec::<&&str>::new(),
+        "a named action now runs: remove it from NOT_YET"
+    );
+}

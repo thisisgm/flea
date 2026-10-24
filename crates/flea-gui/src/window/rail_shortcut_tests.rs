@@ -62,11 +62,10 @@ fn gcomp36_focused_rail_passes_window_handlers_and_swallows_listing_actions(
         cx.simulate_keystrokes(key);
         frame(cx);
     }
+    // The window runs reload itself now, so only the actions with no owner yet reach observers; dispatch/navigation_tests.rs proves the rail reload lists.
     assert_eq!(
         seen.borrow().as_slice(),
         &[
-            ("reload", flea::keys::Context::Rail),
-            ("reload", flea::keys::Context::Rail),
             ("openTerminal", flea::keys::Context::Rail),
             ("tabNew", flea::keys::Context::Rail),
         ],

@@ -1,7 +1,10 @@
 //! Trash owns one raw arm key per press and returns all other native keys through the shipped table.
 use crate::{
     state::Shell,
-    window::input::{event_input, ActionEvent},
+    window::{
+        dispatch::Order,
+        input::{event_input, ActionEvent},
+    },
 };
 use flea::keys::{self, Context as KeyContext, Frontend, Match};
 use gpui::{Context, KeyDownEvent, Window};
@@ -98,11 +101,12 @@ impl Shell {
         else {
             return;
         };
-        cx.emit(ActionEvent {
+        let event = ActionEvent {
             action: action.action,
             context: KeyContext::Listing,
             seat: Default::default(),
             pair_armed: false,
-        });
+        };
+        self.dispatch(Order::Action(event), window, cx);
     }
 }

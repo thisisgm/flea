@@ -42,7 +42,7 @@ impl Shell {
                         )
                     });
                 }
-                _ => cx.emit(request),
+                _ => self.dispatch(Order::Device(request), window, cx),
             }
         }
     }

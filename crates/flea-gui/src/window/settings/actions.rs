@@ -1,6 +1,6 @@
 use crate::{
     state::Shell,
-    window::{input::ActionEvent, startup::View},
+    window::{dispatch::Order, input::ActionEvent, startup::View},
 };
 use flea::{
     jsondoc::Json,
@@ -133,13 +133,13 @@ impl Shell {
                 return;
             };
             if !self.settings_action(action.action, window, cx) {
-                let seat = flea::keys::sequence::Seat::default();
-                cx.emit(ActionEvent {
+                let event = ActionEvent {
                     action: action.action,
                     context: self.keyboard.context,
-                    seat,
+                    seat: flea::keys::sequence::Seat::default(),
                     pair_armed: false,
-                });
+                };
+                self.dispatch(Order::Action(event), window, cx);
             }
         }
     }

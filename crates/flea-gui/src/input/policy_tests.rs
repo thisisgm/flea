@@ -161,7 +161,7 @@ fn u03_release_never_retargets_a_reordered_row_in_the_same_listing(cx: &mut Test
 
 #[gpui::test]
 fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppContext) {
-    let (backend, _) = Backend::test_channel();
+    let (backend, _requests) = Backend::test_channel();
     let (shell, cx) = cx.add_window_view(|window, cx| {
         let mut shell = shell_with(backend, cx);
         shell.launch.settings.data = flea::jsondoc::parse(r#"{"singleClick":true}"#).unwrap();
@@ -214,6 +214,7 @@ fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppCon
         let host = shell.panes[0].as_mut().unwrap();
         let mut rows = host.pane.held.rows.clone();
         rows[3].dir = true;
+        rows[3].name = "sub".into();
         host.pane.held = Rc::new(crate::list::pane::Held {
             listing: host.pane.held.listing,
             total: host.pane.held.total,
@@ -223,6 +224,9 @@ fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppCon
         cx.notify();
     });
     cx.run_until_parked();
+    let lists = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().nav.counters.lists
+    });
     let position = point(position.x, frame.bounds.top() + px(frame.row * 3.5));
     cx.simulate_mouse_move(position, None, Modifiers::none());
     for click_count in 1..=2 {
@@ -235,5 +239,18 @@ fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppCon
         cx.simulate_mouse_up(position, MouseButton::Left, Modifiers::none());
         cx.run_until_parked();
     }
-    assert_eq!(*observed.borrow(), ["open", "open"]);
+    // The column's folder open is run by the window, once, so it is no longer handed to observers.
+    assert_eq!(*observed.borrow(), ["open"]);
+    assert_eq!(
+        shell.read_with(cx, |shell, _| shell.panes[0]
+            .as_ref()
+            .unwrap()
+            .nav
+            .counters
+            .lists),
+        lists + 1
+    );
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(shell.panes[0].as_ref().unwrap().pane.place(), "/files/sub")
+    });
 }
