@@ -808,6 +808,18 @@ QtObject {
         // opens it on, which is the pointer's half of ":" and Ctrl+L.
         function pathBarOpen(): bool { return root.chrome.editing }
         function pathBarText(): string { return String(root.chrome.editText) }
+        // How many folder jump rows the dropdown draws, a clipped one included; 0 while it shows none.
+        function pathSuggestionRows(): int { return root.chrome.jump !== null ? root.chrome.jump.drawnRows : 0 }
+        // The highlighted folder row's index, 0 for the first row and -1 while no popup stands.
+        function pathSuggestionCursor(): int { return root.chrome.jump !== null ? root.chrome.jump.cursor : -1 }
+        // The last pointer point the open suggestion popup has seen, in popup coordinates; "none" while it has seen none.
+        function pathSuggestionPointer(): string {
+            if (root.chrome.jump === null || root.chrome.jump.dropItem === null) return "none"
+            var at = root.chrome.jump.pointerGlobal
+            if (at.x < 0) return "none"
+            var frame = root.fleaWindow.rectOf(root.chrome.jump.dropItem).split(" ")
+            return Math.round(at.x - Number(frame[0])) + " " + Math.round(at.y - Number(frame[1]))
+        }
         function pathCentre(): string { return root.fleaWindow.centreOf(root.chrome.pathArea) }
         // The open path field's frame, "x y width height", the accent hairline a native capture is read against.
         function pathFrameRect(): string { return root.fleaWindow.rectOf(root.chrome.pathFrame) }

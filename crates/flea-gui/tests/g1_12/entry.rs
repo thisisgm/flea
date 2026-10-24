@@ -222,3 +222,37 @@ fn composing_text_stays_marked_until_the_input_method_commits_it() {
         "an emptied composition leaves nothing marked"
     );
 }
+
+#[test]
+fn the_text_and_its_wash_start_inside_the_frame_border_and_the_caret_sits_one_past_the_text() {
+    use super::jump::board;
+    use flea_gui::path::field::{band_top, caret_left, frame, text_origin};
+    use gpui::{point, px, size, Bounds};
+    let s = board();
+    let frame = frame(Bounds::new(point(px(80.), px(0.)), size(px(788.), px(26.))));
+    assert_eq!(
+        (f32::from(frame.origin.y), f32::from(frame.size.height)),
+        (2., 23.),
+        "the board's field frame"
+    );
+    assert_eq!(
+        f32::from(text_origin(frame, &s)),
+        90.,
+        "the 1 px border, then the 9 px inset"
+    );
+    assert_eq!(
+        (s.wash, f32::from(band_top(frame, s.wash))),
+        (16., 5.),
+        "the 16 px wash on rows 5 to 20"
+    );
+    assert_eq!(
+        (s.caret, f32::from(band_top(frame, s.caret))),
+        (17., 5.),
+        "the 17 px caret on rows 5 to 21"
+    );
+    assert_eq!(
+        f32::from(caret_left(px(90.), px(23.4))),
+        114.4,
+        "1 px past the advance of Med at 13 px"
+    );
+}

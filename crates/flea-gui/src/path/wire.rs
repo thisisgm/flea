@@ -38,6 +38,11 @@ pub fn peek_line(dir: &str, first: usize, hidden: bool) -> String {
     )
 }
 
+/// Whether a line the bar sends is a jump ask, the one kind whose reply the window counts.
+pub fn is_jump_line(line: &str) -> bool {
+    line.starts_with("{\"c\":\"jump\"")
+}
+
 // ranking names the provisional ask a whole ask follows, or 0.
 pub fn jump_line(id: u64, ranking: u64, favourites: &[String], recent: &[String]) -> String {
     format!(
