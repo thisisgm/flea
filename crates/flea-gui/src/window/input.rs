@@ -240,6 +240,10 @@ impl Shell {
         {
             return true;
         }
+        if self.clipboard_action(action, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
         if action == "menu" {
             self.menu_keyboard_open(window, cx);
         } else if action == "autofitColumns" {

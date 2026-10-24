@@ -223,6 +223,13 @@
     "one": "%2 could not be ejected because %3 on the same drive is still mounted. Eject that instead.",
     "other": "%2 could not be ejected because %3 on the same drive are still mounted. Eject those instead."
   },
+  "clipboard.set_failed": "Copied in this window only: %1",
+  "clipboard.clear_failed": "Could not clear the system clipboard: %1",
+  "clipboard.dest_changed": "The paste destination changed; try again.",
+  "clipboard.reading": "Still reading the clipboard; try again.",
+  "clipboard.recent_paste": "Recent cannot take a paste. Open a folder first",
+  "clipboard.resolving": "Still resolving the last selection; try again.",
+  "clipboard.stale": "Selected items changed; copy or cut again.",
   "columns.peek_path": "A column reply names no folder",
   "columns.peek_rows": "A column reply carries no row list",
   "columns.peek_row_name": "A column reply row has no name",

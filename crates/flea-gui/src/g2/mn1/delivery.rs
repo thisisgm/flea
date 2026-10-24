@@ -305,6 +305,7 @@ impl Shell {
             }
         } else if action == "makeExecutable" {
             self.make_executable(&capture, &paths, window, cx);
+        } else if self.clipboard_menu(&capture, &action, &leaf, &paths, window, cx) {
         } else if action == "runScript" {
             let request = format!(
                 "{{\"c\":\"actions\",\"op\":\"run\",\"id\":{},\"action\":\"{}\",\"paths\":[{}]}}",

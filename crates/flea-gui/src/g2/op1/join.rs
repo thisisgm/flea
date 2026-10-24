@@ -253,7 +253,13 @@ impl Shell {
                 std::mem::take(&mut overlay.model.spent_cut),
             ))
         });
+        // An ask that ended without spending its cut releases the clipboard entry it captured.
+        let idle = {
+            let model = &Entity::read(&view, cx).model;
+            model.collide.pending.is_none() && !model.open() && !model.spent_cut
+        };
         let Some((outbox, mut said, mut sticky, spent_cut)) = pending else {
+            self.clipboard_operations(side, false, idle, cx);
             if self.settle_overlay_mount(cx) {
                 cx.notify();
             }
@@ -293,6 +299,7 @@ impl Shell {
         }
         changed |= host.status != before;
         let spent_cut = spent_cut && sent;
+        self.clipboard_operations(side, spent_cut, idle, cx);
         // An empty frame publishes nothing, so the shell's cached view stays untouched.
         if !said.is_empty() || spent_cut || self.operations.sticky[side] != sticky {
             self.operations.sticky[side].clone_from(&sticky);
