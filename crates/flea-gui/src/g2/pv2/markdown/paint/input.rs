@@ -1,0 +1,123 @@
+//! The frame's input: the wheel and keys scroll the document, or a wide table under the wheel, and a click opens an allowed link.
+use super::super::{MarkdownView, View};
+use super::{inside, Hit, Pointer};
+use flea::ui_logic_pv2::markdown::{
+    markdown_keys::{across, sideways},
+    markdown_layout::Metrics,
+    markdown_resolve::is_external_link,
+};
+use gpui::{px, Context, MouseUpEvent, Pixels, ScrollWheelEvent, TouchPhase};
+
+impl MarkdownView {
+    fn local(&self, at: gpui::Point<Pixels>) -> (f32, f32) {
+        (
+            f32::from(at.x) - self.bounds.0,
+            f32::from(at.y) - self.bounds.1,
+        )
+    }
+
+    pub(super) fn wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
+        let delta = event.delta.pixel_delta(px(Metrics::line(self.tokens.body)));
+        let (dx, dy) = (f32::from(delta.x), f32::from(delta.y));
+        if self.shown_view() == View::Source {
+            self.source.scroll_by(-dy);
+            self.source_pump(cx);
+            cx.notify();
+            return;
+        }
+        let at = self.local(event.position);
+        let table = self.hits.iter().find_map(|hit| match hit {
+            Hit::Table { rect, id, most } if *most > 0. && inside(*rect, at) => Some((*id, *most)),
+            _ => None,
+        });
+        let (shift, control) = (event.modifiers.shift, event.modifiers.control);
+        let touchpad = matches!(event.delta, gpui::ScrollDelta::Pixels(_));
+        let taker = if !touchpad {
+            table.filter(|_| sideways(dx, dy, shift, control))
+        } else {
+            match event.touch_phase {
+                TouchPhase::Started => {
+                    self.pointer = Pointer::default();
+                    None
+                }
+                phase => {
+                    if self.pointer.held.is_none()
+                        && !self.pointer.document
+                        && phase != TouchPhase::Ended
+                    {
+                        match table.filter(|_| sideways(dx, dy, shift, control)) {
+                            Some(found) => self.pointer.held = Some(found),
+                            None => self.pointer.document = dx != 0. || dy != 0.,
+                        }
+                    }
+                    let held = self.pointer.held;
+                    if phase == TouchPhase::Ended {
+                        self.pointer = Pointer::default();
+                    }
+                    held
+                }
+            }
+        };
+        match taker {
+            Some((id, most)) => {
+                let x = self.tables.entry(id).or_insert(0.);
+                *x = (*x - across(dx, dy, shift)).clamp(0., most);
+                cx.notify();
+            }
+            None => self.scroll_to(self.scroll - dy, cx),
+        }
+    }
+
+    pub(super) fn click(&mut self, event: &MouseUpEvent, cx: &mut Context<Self>) {
+        let at = self.local(event.position);
+        self.open_link_at(at, cx);
+    }
+
+    /// Opens the link under a point of the frame in the default application, true when one opened.
+    /// Only a link that names an allowed scheme opens.
+    pub fn open_link_at(&mut self, at: (f32, f32), cx: &mut Context<Self>) -> bool {
+        let url = self.hits.iter().find_map(|hit| match hit {
+            Hit::Link { rect, url } if inside(*rect, at) => Some(url.clone()),
+            _ => None,
+        });
+        match url.filter(|url| is_external_link(url)) {
+            Some(url) => {
+                cx.open_url(&url);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// The last frame's links: each one's rect in the frame and its address.
+    pub fn links(&self) -> Vec<((f32, f32, f32, f32), String)> {
+        self.hits
+            .iter()
+            .filter_map(|hit| match hit {
+                Hit::Link { rect, url } => Some((*rect, url.clone())),
+                Hit::Table { .. } => None,
+            })
+            .collect()
+    }
+
+    fn scroll_to(&mut self, top: f32, cx: &mut Context<Self>) {
+        let most = (self.content_height() - self.frame.1).max(0.);
+        let top = top.clamp(0., most);
+        if top != self.scroll {
+            self.scroll = top;
+            self.pump(cx);
+            cx.notify();
+        }
+    }
+
+    pub(in crate::g2::pv2::markdown) fn scroll_rows(&mut self, rows: i64, cx: &mut Context<Self>) {
+        let step = Metrics::line(self.tokens.body);
+        if self.shown_view() == View::Source {
+            self.source.scroll_by(rows as f32 * step);
+            self.source_pump(cx);
+            cx.notify();
+        } else {
+            self.scroll_to(self.scroll + rows as f32 * step, cx);
+        }
+    }
+}
