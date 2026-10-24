@@ -480,7 +480,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
             String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect()
         };
         ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut st, &mut ops);
-        while !matches!(events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands"), Event::SearchWalked) {}
+        walk_landed(&events_rx, &st, |_| false);
         let last = |lines: &[String], key: &str| crate::json::field_usize(lines.last().expect("a searched line"), key);
         let first = ask(r#"{"c":"searchquery","query":"zz","gen":1,"count":100}"#, &mut st, &mut ops);
         assert_eq!((last(&first, "n"), last(&first, "gen")), (Some(0), Some(1)), "the first query finds no zz: {first:?}");

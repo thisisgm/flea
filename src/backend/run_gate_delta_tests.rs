@@ -121,3 +121,61 @@ fn a_delta_held_behind_the_folder_scan_patches_the_index_before_the_query_that_w
         .expect("the session stands")
         .close();
 }
+
+// Steps every event the loop meets until `done` holds with the execution gate idle, so the test reads what run() would publish.
+fn run_until(l: &mut Loop, jobs: &mut Jobs, buffered: &mut VecDeque<Event>, done: &dyn Fn(&Loop, &Jobs) -> bool) {
+    let deadline = std::time::Instant::now() + EVENT_DEADLINE;
+    while !(buffered.is_empty() && !jobs.busy() && done(l, jobs)) {
+        let event = match buffered.pop_front() {
+            Some(event) => event,
+            None => l.rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())).expect("the loop meets its next event"),
+        };
+        step(l, jobs, buffered, event);
+    }
+}
+
+// Walk progress, a newer generation and a watch change met mid-walk all pass the production execution gate; only the newest generation answers after the landing, with the change in it.
+#[test]
+fn m9_integ_stream_progress_and_watch_landing_preserve_generation() {
+    let mut l = Loop::new("m9integ-streamgen");
+    l.dir.dir("scope/a");
+    l.dir.dir("scope/b");
+    for i in 0..4 {
+        l.dir.file(&format!("scope/a/alpha{i}.txt"), "a");
+    }
+    l.dir.file("scope/b/alpha_b.txt", "a");
+    let scope = text(&l.dir.join("scope"));
+    let probes = Arc::new(crate::backend::searchwalk::WalkProbes::new());
+    let (parked, release) = probes.test_hold_walk_in("b");
+    let session = Session::open_async_with_probes(&scope, &scope, false, l.tx.clone(), probes);
+    let walk_done = Arc::clone(&session.walk_done);
+    l.st.search_session = Some(session);
+    parked.recv_timeout(EVENT_DEADLINE).expect("the walk parks in b");
+    let (mut jobs, mut buffered) = (Jobs::default(), VecDeque::new());
+    let query = |gen: usize| Event::Request(format!(r#"{{"c":"searchquery","query":"alpha","gen":{gen},"count":20}}"#));
+    step(&mut l, &mut jobs, &mut buffered, query(1));
+    run_until(&mut l, &mut jobs, &mut buffered, &|l, _| l.st.search_session.as_ref().is_some_and(|s| s.last_answered_gen == 1));
+    // Progress shares the landing event; it reaches the gate while the walk is still parked.
+    let progress = l.wait(|event| matches!(event, Event::SearchWalked));
+    assert!(!walk_done.load(std::sync::atomic::Ordering::Acquire), "the walk is still parked, so this SearchWalked is progress");
+    step(&mut l, &mut jobs, &mut buffered, progress);
+    run_until(&mut l, &mut jobs, &mut buffered, &|_, _| true);
+    let walking = l.said();
+    let first: Vec<&str> = walking.lines().filter(|line| field_str(line, "t").as_deref() == Some("searched")).collect();
+    assert!(!first.is_empty(), "gen 1 answers through the gate while walking: {walking}");
+    assert!(first.iter().all(|line| crate::json::field_usize(line, "gen") == Some(1) && line.contains(r#""walking":true"#)), "{walking}");
+    step(&mut l, &mut jobs, &mut buffered, query(2));
+    l.dir.file("scope/alpha_new.txt", "a");
+    let _ = release.send(());
+    run_until(&mut l, &mut jobs, &mut buffered, &|l, _| {
+        walk_done.load(std::sync::atomic::Ordering::Acquire)
+            && l.st.search_session.as_ref().is_some_and(|s| s.announced && s.last_answered_gen == 2 && !s.standing_while_walking)
+    });
+    let said = l.said();
+    let searched: Vec<&str> = said.lines().filter(|line| field_str(line, "t").as_deref() == Some("searched")).collect();
+    assert!(searched.iter().all(|line| crate::json::field_usize(line, "gen") == Some(2)), "no stale gen 1 publishes after gen 2 is asked: {said}");
+    let last = searched.last().unwrap_or_else(|| panic!("gen 2 answers: {said}"));
+    assert!(last.contains(r#""walking":false"#), "the landing answers gen 2 settled: {said}");
+    assert_eq!(crate::json::field_usize(last, "n"), Some(6), "the landed answer holds every walked row and the mid-walk change: {said}");
+    l.st.search_session.take().expect("the session stands").close();
+}
