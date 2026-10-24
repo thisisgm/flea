@@ -16,17 +16,27 @@ pub fn corners(m: &Model) -> [&'static str; 4] {
 }
 // Asks Hyprland for decoration:rounding off the input path; the next frame draws whatever it answered.
 pub fn probe(rounded: &Arc<AtomicBool>) {
-    if cfg!(test) || std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").map_or(true, |value| value.is_empty()) { return; }
+    if cfg!(test) { return; }
+    if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").map_or(true, |value| value.is_empty()) {
+        rounded.store(false, Ordering::Relaxed);
+        return;
+    }
     let rounded = Arc::clone(rounded);
     std::thread::spawn(move || {
         let mut command = std::process::Command::new("hyprctl");
         command.args(["-j", "getoption", "decoration:rounding"]);
-        if let Some(answer) = crate::tui::icons::output(&mut command, &AtomicBool::new(false)) { rounded.store(rounding(&answer), Ordering::Relaxed); }
+        rounded.store(read_rounding(&mut command), Ordering::Relaxed);
     });
+}
+fn read_rounding(command: &mut std::process::Command) -> bool {
+    crate::tui::icons::output(command, &AtomicBool::new(false)).as_deref().is_some_and(rounding)
 }
 // Sample input: {"option":"decoration:rounding","int":8,"set":true}; any radius above zero rounds.
 fn rounding(answer: &str) -> bool {
-    crate::jsondoc::parse(answer).ok().and_then(|value| value.get("int").and_then(Json::as_f64)).is_some_and(|radius| radius > 0.0)
+    crate::jsondoc::parse(answer).ok()
+        .filter(|value| value.get("set").and_then(Json::as_bool) != Some(false))
+        .and_then(|value| value.get("int").and_then(Json::as_f64))
+        .is_some_and(|radius| radius.is_finite() && radius > 0.0)
 }
 
 pub struct Button { pub label: String, pub default: bool, pub focused: bool, pub enabled: bool }
@@ -249,3 +259,6 @@ pub(crate) mod tests;
 #[cfg(test)]
 #[path = "cards_sheet_tests.rs"]
 mod sheet_tests;
+#[cfg(test)]
+#[path = "cards_corner_tests.rs"]
+mod corner_tests;

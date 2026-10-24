@@ -17,7 +17,7 @@ pub(super) fn language(file: &str) -> I18n {
     })
 }
 
-pub(super) fn english() -> I18n {
+pub(crate) fn english() -> I18n {
     language("/nonexistent/language")
 }
 
@@ -59,7 +59,7 @@ pub(super) fn sent(effects: &[Effect]) -> Vec<String> {
 
 pub(super) const APPLICATIONS: &str = r#"{"t":"menuaction","id":4,"op":"applications","ok":true,"path":"/fx/v/work/notes.txt","kind":"Plain text document","mime":"text/plain","applications":[{"id":"nvim.desktop","label":"Neovim","icon":"nvim","default":true}],"installed":[{"id":"xfce4-about.desktop","label":"About Xfce","icon":"org.xfce.about","default":false},{"id":"bssh.desktop","label":"Avahi SSH Server Browser","icon":"network-wired","default":false},{"id":"bvnc.desktop","label":"Avahi VNC Server Browser","icon":"network-wired","default":false},{"id":"avahi-discover.desktop","label":"Avahi Zeroconf Browser","icon":"network-wired","default":false},{"id":"basecamp.desktop","label":"Basecamp","icon":"","default":false},{"id":"btop.desktop","label":"btop++","icon":"btop","default":false},{"id":"chromium.desktop","label":"Chromium","icon":"chromium","default":false}]}"#;
 
-pub(super) fn open_with() -> OpenWith {
+pub(crate) fn open_with() -> OpenWith {
     let (mut card, effects) = OpenWith::open(4, "notes.txt");
     assert_eq!(
         sent(&effects),
@@ -281,7 +281,7 @@ fn open_with_search_filters_and_the_always_box_rides_the_open() {
 
 pub(super) const INSPECT: &str = r#"{"t":"permissions","id":7,"op":"inspect","ok":true,"path":"/fx/v/work/notes.txt","directory":false,"mode":"0644","uid":1000,"gid":1000,"owner":"gm","group":"gm","reason":""}"#;
 
-pub(super) fn permissions() -> Permissions {
+pub(crate) fn permissions() -> Permissions {
     let (mut card, effects) = Permissions::open(
         7,
         vec!["/fx/v/work/notes.txt".into()],
