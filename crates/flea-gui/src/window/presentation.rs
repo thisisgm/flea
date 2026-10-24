@@ -1,12 +1,47 @@
+use super::locale::{self, Snapshot as LocaleSnapshot};
 use crate::{
     list::Typeface,
     presentation::{Fonts, Service, Snapshot},
-    state::Shell,
+    state::{labels, Shell},
 };
 use flea::ui_logic_st1::textsize;
 use gpui::{Context, Window};
 
 impl Shell {
+    pub fn follow_locale(&mut self, service: &locale::Service, cx: &mut Context<Self>) {
+        self.locale_service = Some(service.clone());
+        let updates = service.subscribe();
+        self._locale_reader = Some(cx.spawn(async move |this, cx| {
+            while let Ok(snapshot) = updates.recv().await {
+                if this
+                    .update(cx, |shell, cx| shell.apply_locale(snapshot, cx))
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        }));
+    }
+
+    pub(crate) fn apply_locale(&mut self, locale: LocaleSnapshot, cx: &mut Context<Self>) {
+        if self.locale.revision == locale.revision {
+            return;
+        }
+        self.rail_locale(&locale.catalog, cx);
+        self.labels = labels(&locale);
+        for host in self.panes.iter_mut().flatten() {
+            host.translated(&locale);
+        }
+        self.locale = locale;
+        self.output_translated(cx);
+        self.settings_translated(cx);
+        if let Some(chrome) = &self.chrome.view {
+            let path = chrome.read_with(cx, |view, _| view.path.clone());
+            path.update(cx, |view, _| view.set_catalog(self.locale.catalog.clone()));
+        }
+        cx.notify();
+    }
+
     pub fn follow_presentation(
         &mut self,
         service: &Service,

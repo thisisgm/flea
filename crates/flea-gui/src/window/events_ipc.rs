@@ -80,6 +80,19 @@ impl Shell {
                     visible: host.drawn_view == Some(crate::window::startup::View::Columns),
                     cx,
                 };
+                let preview =
+                    crate::window::selection_preview::readers::Reader {
+                        view: host.preview.as_ref().map(|view| view.read(cx)),
+                        window,
+                        active: host.drawn_view == Some(crate::window::startup::View::Columns)
+                            && host.columns.as_ref().is_some_and(|columns| {
+                                columns.preview_hosted
+                                    && columns.area.tracks().iter().any(|t| {
+                                        matches!(t.rows, crate::columns::TrackRows::Preview)
+                                    })
+                            }),
+                        cx,
+                    };
                 let settings = crate::ipc::settings::SettingsAdapter {
                     host: &self.settings,
                     document: &self.launch.settings.data,
@@ -136,7 +149,7 @@ impl Shell {
                     search: &host.search.owner,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 18] = [
+                let adapters: [&dyn crate::ipc::Adapter; 19] = [
                     &search,
                     &query,
                     &rail,
@@ -150,6 +163,7 @@ impl Shell {
                     &trash,
                     &omi,
                     &columns,
+                    &preview,
                     &grid,
                     &menu,
                     &view,
@@ -160,9 +174,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    18
+                    19
                 } else {
-                    17
+                    18
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
