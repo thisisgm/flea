@@ -210,6 +210,7 @@ impl Shell {
             ..MenuContext::default()
         };
         self.menu.captured = Some(capture.clone());
+        self.archive_menu_context(side);
         self.menu.presentation.at = Some(at);
         self.menu.pointer = Some((
             window.mouse_position().x.into(),

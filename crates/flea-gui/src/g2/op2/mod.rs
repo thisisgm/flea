@@ -7,6 +7,7 @@ mod draw_press;
 pub mod draw_step;
 pub mod extract;
 pub mod flash;
+pub mod host;
 pub mod keys;
 
 #[cfg(test)]
@@ -27,6 +28,8 @@ mod draw_tests;
 mod extract_tests;
 #[cfg(test)]
 mod flash_tests;
+#[cfg(test)]
+mod host_tests;
 #[cfg(test)]
 mod scene_tests;
 #[cfg(test)]

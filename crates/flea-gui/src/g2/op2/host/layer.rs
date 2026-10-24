@@ -1,0 +1,191 @@
+//! The keys and the highest layer the open card or flash view holds.
+use super::*;
+
+impl Shell {
+    /// The open card or the flash view holds every key; Escape and the card's own keys answer, the rest stop here.
+    pub(crate) fn archive_key(
+        &mut self,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.operations.archive.showing() {
+            return false;
+        }
+        let Some(key) = keys::key_of(event) else {
+            return true;
+        };
+        let catalog = self.locale.catalog.clone();
+        let archive = &mut self.operations.archive;
+        let (side, effects) =
+            if let Some(card) = archive.compress.as_mut().filter(|card| card.opened()) {
+                (archive.card_side, card.key(&catalog, key))
+            } else if archive.extract.opened() {
+                (archive.card_side, archive.extract.key(&catalog, key))
+            } else {
+                (archive.flash_side, archive.flash.key(key))
+            };
+        self.archive_effects(side, effects, window, cx);
+        true
+    }
+
+    /// The cards over a scrim, or the flash view over the window, drawn on the highest layer while showing.
+    pub(crate) fn archive_layer(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<AnyElement> {
+        if !self.operations.archive.showing() {
+            return None;
+        }
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let palette = crate::list::Palette::inherited(&window.text_style(), theme);
+        let typeface = self.active_typeface();
+        let catalog = self.locale.catalog.clone();
+        let room = f32::from(window.viewport_size().width);
+        let radius = self.corner;
+        let archive = &mut self.operations.archive;
+        if archive.card_open() {
+            let card = match archive.compress.as_ref().filter(|card| card.opened()) {
+                Some(card) => card.card(&catalog),
+                None => archive.extract.card(&catalog),
+            };
+            let drawn = StandIn.present(&card, &palette, &typeface, room, radius);
+            let ground = cx.listener(|shell: &mut Shell, _: &MouseDownEvent, window, cx| {
+                let archive = &mut shell.operations.archive;
+                let side = archive.card_side;
+                let effects = match archive.compress.as_mut().filter(|card| card.opened()) {
+                    Some(card) => card.press(&shell.locale.catalog.clone(), compress::Stop::Cancel),
+                    None => archive.extract.press(
+                        &shell.locale.catalog.clone(),
+                        super::super::extract::Stop::Cancel,
+                    ),
+                };
+                shell.archive_effects(side, effects, window, cx);
+            });
+            return Some(
+                div()
+                    .id("op2-scrim")
+                    .debug_selector(|| "op2-scrim".into())
+                    .absolute()
+                    .top_0()
+                    .left_0()
+                    .size_full()
+                    .occlude()
+                    .bg(palette
+                        .background
+                        .opacity(flea::ui_logic_op1::card::scrim_alpha(0)))
+                    .on_mouse_down(MouseButton::Left, ground)
+                    .child(
+                        div()
+                            .size_full()
+                            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                            .child(drawn),
+                    )
+                    .into_any_element(),
+            );
+        }
+        let view = archive.flash.view(&catalog);
+        let drives = (0..view.drives.len())
+            .map(|at| {
+                Rc::new(
+                    cx.listener(move |shell: &mut Shell, _: &ClickEvent, window, cx| {
+                        let effects = shell.operations.archive.flash.choose_drive(at);
+                        shell.archive_effects(
+                            shell.operations.archive.flash_side,
+                            effects,
+                            window,
+                            cx,
+                        );
+                    }),
+                ) as ClickTap
+            })
+            .collect();
+        let image: ClickTap = Rc::new(cx.listener(
+            |shell: &mut Shell, _: &ClickEvent, window, cx| {
+                let effects = shell.operations.archive.flash.choose_image();
+                shell.archive_effects(shell.operations.archive.flash_side, effects, window, cx);
+            },
+        ));
+        let step: StepTap = Rc::new(cx.listener(
+            |shell: &mut Shell, _: &MouseUpEvent, window, cx| {
+                let effects = shell.operations.archive.flash.press_step();
+                shell.archive_effects(shell.operations.archive.flash_side, effects, window, cx);
+            },
+        ));
+        let hover: HoverTap = Rc::new(cx.listener(|shell: &mut Shell, over: &bool, _, cx| {
+            shell
+                .operations
+                .archive
+                .flash
+                .set_action_hover(*over, cx.background_executor().now());
+            cx.notify();
+        }));
+        let down: DownTap = Rc::new(cx.listener(|shell: &mut Shell, _: &MouseDownEvent, _, cx| {
+            shell
+                .operations
+                .archive
+                .flash
+                .set_action_pressed(true, cx.background_executor().now());
+            cx.notify();
+        }));
+        let up: UpTap = Rc::new(cx.listener(|shell: &mut Shell, _: &MouseUpEvent, _, cx| {
+            shell
+                .operations
+                .archive
+                .flash
+                .set_action_pressed(false, cx.background_executor().now());
+            cx.notify();
+        }));
+        let released = cx.listener(|shell: &mut Shell, _: &(), _, cx| {
+            shell
+                .operations
+                .archive
+                .flash
+                .set_action_pressed(false, cx.background_executor().now());
+            cx.notify();
+        });
+        let cancel: CancelTap = Rc::new(move |window, cx| released(&(), window, cx));
+        let taps = FlashTaps {
+            image: Some(image),
+            drives,
+            step: Some(step),
+            hover: Some(hover),
+            down: Some(down),
+            up: Some(up),
+            cancel: Some(cancel),
+        };
+        let now = cx.background_executor().now();
+        let reduced = cx.reduce_motion();
+        let press = *archive.flash.press_anim(now);
+        if press.at(now) != press.to {
+            window.request_animation_frame();
+        }
+        let drawn = StandIn.present_flash(FlashFrame {
+            view: &view,
+            i18n: &catalog,
+            palette: &palette,
+            typeface: &typeface,
+            radius,
+            taps: &taps,
+            press: &press,
+            now,
+            reduced,
+            window,
+        });
+        Some(
+            div()
+                .id("op2-flash-layer")
+                .absolute()
+                .top_0()
+                .left_0()
+                .size_full()
+                .occlude()
+                .child(drawn)
+                .into_any_element(),
+        )
+    }
+}

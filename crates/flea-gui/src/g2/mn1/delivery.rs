@@ -152,6 +152,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        // The archive and flash host answers its own lines first, so none is forwarded as an unclaimed reply.
+        if self.archive_line(side, line, window, cx) {
+            return true;
+        }
         let Ok(reply) = flea::jsondoc::parse(line) else {
             return false;
         };
