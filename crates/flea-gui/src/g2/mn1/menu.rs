@@ -178,7 +178,7 @@ impl Menu {
         if entries.is_empty() {
             return Outcome::Nothing;
         }
-        let built = lines::build(&entries, env, window);
+        let built = lines::build(&entries, env, window, fit::MENU_W, work.w);
         let width = fit::fit_width(built.widest, work.w);
         let frame = fit::place(at, width, fit::content_height(&entries), work, env.inset);
         // Every open lands on the first live row, the pointer's included, as v0.3.12 place() does.
@@ -245,7 +245,7 @@ impl Menu {
         if leaves.is_empty() {
             return;
         }
-        let built = lines::build(&leaves, env, window);
+        let built = lines::build(&leaves, env, window, card.frame.w, self.work.w);
         let width = fit::flyout_width(card.frame.w, built.widest, self.work.w);
         let top = parent.map_or(card.frame.y + PAD as f32, |row| card.row_screen_top(row));
         let frame = fit::place_flyout(
@@ -522,7 +522,7 @@ impl Menu {
             sub_cursor,
         );
         let pointer = card.cursor.is_none();
-        let built = lines::build(&entries, env, window);
+        let built = lines::build(&entries, env, window, fit::MENU_W, self.work.w);
         let width = fit::fit_width(built.widest, self.work.w);
         // A new width or height places the card again from its opening point, as v0.3.12 clampFrame does.
         let frame = fit::place(

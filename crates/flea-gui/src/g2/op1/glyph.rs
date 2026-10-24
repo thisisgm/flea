@@ -6,7 +6,7 @@ use gpui::{
     InspectorElementId, IntoElement, LayoutId, Pixels, ShapedLine, SharedString, Style, TextRun,
     TransformationMatrix, Window,
 };
-use std::time::Instant;
+use std::{rc::Rc, time::Instant};
 
 /// The alert triangle a failed job carries, Lucide's cut at the board's path data.
 pub const ALERT: (&str, &[u8]) = (
@@ -14,15 +14,16 @@ pub const ALERT: (&str, &[u8]) = (
     br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 2 23 21H1z"/><path d="M12 10v4"/><path d="M12 18L12.01 18"/></svg>"#,
 );
 
-/// The still frame every board draws a job's spiral at: dash offset 30 stroke widths, phase 27 of 57.
-pub const BOARD_PHASE: f32 = 27. / spinner::TRAVEL;
-
 /// What one mark paints.
 #[derive(Clone)]
 pub enum Paint {
     Svg(SharedString, &'static [u8]),
-    // The spiral: still at a phase, or crawling from the instant the card first drew it; the host asks the one frame for all of them.
-    Spiral { still: Option<f32>, since: Instant },
+    // One persistent Omi per job, at a fixed time or playing its mode.
+    Spiral {
+        id: u64,
+        mode: spinner::Mode,
+        still: Option<f32>,
+    },
 }
 
 pub struct Glyph {
@@ -50,10 +51,21 @@ impl IntoElement for Glyph {
 
 impl Element for Glyph {
     type RequestLayoutState = ();
-    type PrepaintState = ();
+    type PrepaintState = Option<Rc<spinner::Crawl>>;
 
     fn id(&self) -> Option<ElementId> {
-        None
+        match self.paint {
+            Paint::Spiral { id, .. } => Some(("omi-job", id).into()),
+            _ => None,
+        }
+    }
+    fn a11y_role(&self) -> Option<gpui::Role> {
+        matches!(self.paint, Paint::Spiral { .. }).then_some(gpui::Role::Image)
+    }
+    fn write_a11y_info(&self, node: &mut gpui::accesskit::Node) {
+        if let Paint::Spiral { mode, .. } = self.paint {
+            node.set_label(mode.label());
+        }
     }
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
         None
@@ -65,8 +77,12 @@ impl Element for Glyph {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, ()) {
+        let side = match self.paint {
+            Paint::Spiral { .. } => self.side.max(22. / window.scale_factor()),
+            _ => self.side,
+        };
         let style = Style {
-            size: size(px(self.side).into(), px(self.side).into()),
+            size: size(px(side).into(), px(side).into()),
             flex_shrink: 0.,
             ..Style::default()
         };
@@ -74,13 +90,27 @@ impl Element for Glyph {
     }
     fn prepaint(
         &mut self,
-        _: Option<&GlobalElementId>,
+        id: Option<&GlobalElementId>,
         _: Option<&InspectorElementId>,
-        _: Bounds<Pixels>,
+        bounds: Bounds<Pixels>,
         _: &mut (),
-        _: &mut Window,
-        _: &mut App,
-    ) {
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Self::PrepaintState {
+        let Paint::Spiral { mode, still, .. } = self.paint else {
+            return None;
+        };
+        window.with_element_state(
+            id.expect("Omi job id"),
+            |state: Option<Rc<spinner::Crawl>>, window| {
+                let mark = state.unwrap_or_default();
+                mark.set(mode);
+                mark.show(true, self.ink);
+                mark.place(bounds, window);
+                mark.prepare(!cx.reduce_motion(), still, window, cx);
+                (Some(Rc::clone(&mark)), mark)
+            },
+        )
     }
     fn paint(
         &mut self,
@@ -88,7 +118,7 @@ impl Element for Glyph {
         _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
         _: &mut (),
-        _: &mut (),
+        prepared: &mut Self::PrepaintState,
         window: &mut Window,
         cx: &mut App,
     ) {
@@ -103,29 +133,10 @@ impl Element for Glyph {
                     cx,
                 );
             }
-            Paint::Spiral { still, since } => {
-                let phase = match still {
-                    Some(phase) => *phase,
-                    None => spinner::phase(
-                        cx.background_executor()
-                            .now()
-                            .saturating_duration_since(*since),
-                    ),
-                };
-                let scale = window.scale_factor();
-                let unit = self.side * scale / spinner::GRID;
-                let (left, top) = (
-                    (f32::from(bounds.origin.x) * scale).round(),
-                    (f32::from(bounds.origin.y) * scale).round(),
-                );
-                let ink = self.ink;
-                spinner::cells(phase, unit, |[x0, y0, x1, y1], coverage| {
-                    let quad = Bounds::from_corners(
-                        point(px((left + x0) / scale), px((top + y0) / scale)),
-                        point(px((left + x1) / scale), px((top + y1) / scale)),
-                    );
-                    window.paint_quad(fill(quad, ink.opacity(coverage)));
-                });
+            Paint::Spiral { .. } => {
+                if let Some(mark) = prepared {
+                    mark.paint(window);
+                }
             }
         }
     }

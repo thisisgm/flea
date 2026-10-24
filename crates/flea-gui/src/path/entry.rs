@@ -81,6 +81,11 @@ impl Entry {
         Tab::Asked(ask)
     }
 
+    /// Whether a peeked reply answers this entry's own outstanding ask.
+    pub fn asked(&self, peeked: &Peeked) -> bool {
+        self.pending.as_ref() == Some(&request_key(&peeked.path, peeked.hidden))
+    }
+
     /// A peek came back: only the asked (dir, hidden) pair answers, and only while the line still reads that directory.
     pub fn complete_with(
         &mut self,

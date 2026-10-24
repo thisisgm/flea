@@ -193,7 +193,8 @@ impl GridElement {
             *bold = None;
         }
         // GridTile.qml nameTip: only on the hovered tile, not editing, not a drop target, and elided.
-        let shown_tip = drawn.iter().find(|drawn| {
+        self.prepare_hover(state, layout, scroll, bounds);
+        let shown_tip = state.drawn.iter().find(|drawn| {
             drawn.hovered && !drawn.editing && drawn.drop.is_none() && drawn.elided()
         });
         let kept = state.tip.take();
@@ -208,8 +209,6 @@ impl GridElement {
                 window,
             ))
         });
-        state.layout = Some(layout);
-        state.scroll = scroll;
     }
 
     fn paint_tile(
@@ -352,7 +351,8 @@ impl Element for GridElement {
                 .map(|kind| label_run(state.label(kind), &state, size, window));
             state.shaped_labels = Some([move_, copy, link]);
         }
-        Ink::inherited(&window.text_style(), theme)
+        state.frame_held = Some(Rc::clone(&self.held));
+        state.record_frame(bounds, Ink::inherited(&window.text_style(), theme))
     }
 
     fn paint(

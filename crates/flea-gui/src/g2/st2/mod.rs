@@ -2,6 +2,7 @@
 mod act;
 mod card;
 pub mod glyphs;
+mod load;
 pub mod mark;
 pub mod page;
 pub mod seam;

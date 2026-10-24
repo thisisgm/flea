@@ -1,9 +1,33 @@
 //! The Grid view: one tile Element over the pane's held window, with the scroll, landing and window policy of ui/GridArea.qml.
 pub mod captions;
 pub mod element;
+#[cfg(test)]
+mod fix1_tests;
+#[cfg(test)]
+mod fix2_tests;
+#[cfg(test)]
+mod fix3_tests;
 pub mod geometry;
+pub(crate) mod host;
+mod input;
+#[cfg(test)]
+mod join_landing_tests;
+#[cfg(test)]
+mod join_tests;
+#[cfg(test)]
+mod join_transition_tests;
+#[cfg(test)]
+mod join_window_tests;
 pub mod layout;
+pub(crate) mod pane_view;
+#[cfg(test)]
+mod rev_u10_r1_tests;
+#[cfg(test)]
+mod rev_u10_r2_tests;
+#[cfg(test)]
+mod rev_u10_r3_tests;
 mod tile;
+mod transition;
 
 use crate::pane::{requests::WindowRequest, Pane};
 use geometry::{window_for, Density, Metrics, ThumbSize, WindowPlan};
@@ -49,36 +73,8 @@ impl Shown<'_> {
     }
 }
 
-/// What the focus and selection owner tells the grid each frame; the grid reads it and never writes it.
-pub trait FocusFacts {
-    /// The cursor's listing row.
-    fn cursor(&self) -> usize;
-    fn selected(&self, listing: usize) -> bool;
-    /// False while a band sweeps, so hover draws no wash.
-    fn hover_shown(&self) -> bool {
-        true
-    }
-}
-
-/// A plain copy of the focus facts, for a host that has no live owner to lend.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct FocusSnapshot {
-    pub cursor: usize,
-    pub selected: Vec<usize>,
-    pub band: bool,
-}
-
-impl FocusFacts for FocusSnapshot {
-    fn cursor(&self) -> usize {
-        self.cursor
-    }
-    fn selected(&self, listing: usize) -> bool {
-        self.selected.contains(&listing)
-    }
-    fn hover_shown(&self) -> bool {
-        !self.band
-    }
-}
+mod focus;
+pub use focus::{FocusFacts, FocusSnapshot};
 
 /// The four grid arrows of keys.toml; Page, Home and End are the shared cursor moves.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -145,6 +141,8 @@ pub struct GridView {
     pub landing_held: Option<(usize, usize)>,
     pub rename_extra: f32,
     pub hovered: Option<usize>,
+    /// The live pointer in window pixels, so a scroll re-tests the freshly drawn tile mask.
+    pub pointer: Option<(f32, f32)>,
     pub zoom_travel: f32,
     pub counters: Counters,
 }
@@ -164,6 +162,7 @@ impl GridView {
             landing_held: None,
             rename_extra: 0.,
             hovered: None,
+            pointer: None,
             zoom_travel: 0.,
             counters: Counters::default(),
         }

@@ -68,7 +68,9 @@ impl Adapter for GridAdapter<'_> {
                     |layout| layout.columns,
                 )
                 .to_string(),
-            "gridCaptionState" => self.caption_state(arguments.first()?.parse().ok()?),
+            "gridCaptionState" => {
+                self.caption_state(arguments.first()?.parse().unwrap_or(usize::MAX))
+            }
             _ => return None,
         };
         Some(Reply::value(value))

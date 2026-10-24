@@ -95,3 +95,6 @@ mod track_frames_3;
 mod track_frames_4;
 #[path = "g1_07/track_frames_5.rs"]
 mod track_frames_5;
+
+#[path = "g1_07/theme.rs"]
+mod theme;

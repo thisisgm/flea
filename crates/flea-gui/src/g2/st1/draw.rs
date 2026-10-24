@@ -14,6 +14,8 @@ use gpui::{
     MouseMoveEvent, SharedString,
 };
 
+mod hint;
+
 /// One pane line: a section row at its index, or a search result with its typed run and its hit number.
 pub struct Line<'a> {
     pub row: &'a Row,
@@ -118,7 +120,7 @@ impl Rows<'_> {
         let row = line.row;
         let height = self.heights.get(at).copied().unwrap_or(g::ROW_H);
         let greyed = !row.available || (row.kind == Kind::Check && row.inert);
-        let base = div()
+        let base = super::probe::row_probe(self.view, &row.id)
             .id(("settings-line", at))
             .relative()
             .flex_none()
@@ -249,32 +251,6 @@ impl Rows<'_> {
             Role::Foreground => self.ink.foreground,
             _ => self.ink.muted,
         }
-    }
-
-    fn hint(&self, base: gpui::Stateful<Div>, line: &Line<'_>) -> gpui::Stateful<Div> {
-        let row = line.row;
-        let ink = self.role_ink(row.role);
-        let text = self.label(line, ink).flex_wrap().whitespace_normal();
-        let base = base.text_size(self.view.typeface.caption).text_color(ink);
-        if row.footer {
-            return base.child(
-                div()
-                    .mt(px(10.))
-                    .border_t_1()
-                    .border_color(self.ink.hair)
-                    .pt(px(10.))
-                    .px(px(PAD_X))
-                    .pb(px(12.))
-                    .line_height(px(g::FOOTER_LINE))
-                    .child(text),
-            );
-        }
-        base.pt(px(4.))
-            .pl(px(LABEL_X))
-            .pr(px(PAD_X))
-            .pb(px(2.))
-            .line_height(px(g::HINT_LINE))
-            .child(text)
     }
 
     fn ruler(

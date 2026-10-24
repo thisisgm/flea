@@ -1,11 +1,22 @@
+pub mod chrome;
 pub mod columns;
+pub mod dual;
+pub mod focus;
 pub mod grid;
+pub(crate) mod grid_rows;
+pub mod native_window;
 pub mod navigation;
 pub mod pane;
 pub mod path;
+pub mod rail;
 pub mod rows;
 pub mod server;
+pub(crate) mod settings;
+pub(crate) mod status;
+mod status_card;
+pub mod strips;
 mod surface;
 pub mod tabs;
+pub mod view;
 
 pub use surface::{Adapter, Surface};

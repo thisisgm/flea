@@ -298,7 +298,7 @@ fn is_column_widths(value: &Json) -> bool {
     match value.as_object() {
         Some(pairs) => pairs.iter().all(|(key, width)| {
             COLUMN_WIDTH_KEYS.contains(&key.as_str())
-                && width.as_f64().is_some_and(|n| n.is_finite() && n.fract() == 0.0 && n >= COLUMN_WIDTH_MIN && n <= COLUMN_WIDTH_MAX)
+                && width.as_f64().is_some_and(|n| n.is_finite() && n.fract() == 0.0 && (COLUMN_WIDTH_MIN..=COLUMN_WIDTH_MAX).contains(&n))
         }),
         None => false,
     }

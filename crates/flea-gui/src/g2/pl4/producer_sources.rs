@@ -1,0 +1,113 @@
+//! Background source loading and complete snapshot adoption for the live rail.
+use super::*;
+
+impl Producer {
+    pub(super) fn load(&mut self, cx: &mut Context<Self>) {
+        if self.loaded || self.loading || !self.polling {
+            return;
+        }
+        self.loading = true;
+        self.directory_reads += 1;
+        let home = self.home.clone();
+        let read = cx
+            .background_executor()
+            .spawn(async move { dirs_text(&home) });
+        cx.spawn(async move |this, cx| {
+            let dirs = read.await;
+            let _ = this.update(cx, |producer, cx| {
+                producer.dirs = dirs;
+                producer.loaded = true;
+                producer.loading = false;
+                producer.rebuild(cx);
+            });
+        })
+        .detach();
+    }
+
+    pub(super) fn rebuild(&mut self, cx: &mut Context<Self>) {
+        if !self.loaded || self.state == Json::Null {
+            return;
+        }
+        let saved = saved_places(&self.state);
+        let rows = home_entries(&self.home, &self.dirs, home_glyph);
+        let records = &self.places.read(cx).favourites.records;
+        let mut favourites = stored_entries(records, &self.home);
+        let statuses = &self.places.read(cx).favourites.statuses;
+        for entry in &mut favourites {
+            if let Some(status) = entry.favourite_index.and_then(|index| statuses.get(&index)) {
+                if !status.is_empty() {
+                    entry.error = Some(flea::ui_logic_pl4::rail::FavouriteError::Status(
+                        status.clone(),
+                    ));
+                }
+            }
+        }
+        self.replace_sections(
+            rail_sections(
+                &rows,
+                saved.shown,
+                favourites,
+                &[false; 7],
+                self.tail.clone(),
+                &[],
+            ),
+            cx,
+        );
+    }
+
+    /// U19 and U20 publish complete device and network sections through this seam.
+    pub fn set_tail(&mut self, sections: Vec<RailSection>, cx: &mut Context<Self>) {
+        self.tail = sections;
+        self.rebuild(cx);
+    }
+
+    pub fn read_recent(&mut self, path: String, cx: &mut Context<Self>) {
+        // Places accepts only its newest read; a new ask cancels the older pending ticket.
+        self.recent_pending = Some(self.request(Event::Recent(Vec::new())));
+        self.history_seen = self.places.read(cx).history_reads;
+        self.places
+            .update(cx, |places, cx| places.reread_history(path, cx));
+    }
+
+    pub fn replace_sections(&mut self, sections: Vec<RailSection>, cx: &mut Context<Self>) {
+        if sections == self.sections {
+            return;
+        }
+        self.cancel_rename(cx);
+        let after = flat(&sections);
+        let cursor = flea::ui_logic_pl4::placeview::rail_cursor_after(
+            &self.entries(),
+            &after,
+            self.cursor(),
+        )
+        .filter(|index| *index < after.len());
+        self.sections = sections;
+        self.provider.update(
+            &self.catalog,
+            self.sections.clone(),
+            theme_tags(&self.theme),
+        );
+        let mut model = self.model.borrow_mut();
+        model.sections = Rc::new(self.provider.drawn.clone());
+        model.reveal_cursor |= cursor.is_some() && model.cursor != cursor;
+        model.cursor = cursor;
+        *self.laid.borrow_mut() = Laid::default();
+        drop(model);
+        cx.notify();
+    }
+
+    pub(super) fn service_changed(&mut self, cx: &mut Context<Self>) {
+        let service = self.places.read(cx);
+        let reads = service.history_reads;
+        let visits = service.history.clone();
+        self.rebuild(cx);
+        if reads > self.history_seen {
+            self.history_seen = reads;
+            if let Some(mut request) = self.recent_pending.take() {
+                request.event = Event::Recent(visits);
+                self.events.borrow_mut().push(request);
+            }
+        }
+        cx.notify();
+    }
+}

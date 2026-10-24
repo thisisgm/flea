@@ -3,7 +3,7 @@ use super::Adapter;
 use crate::{
     list::{
         columns::{Cell, Column, Layout},
-        header::{self, HeaderState},
+        header::HeaderState,
         pane::Held,
         ListState, Metrics, Palette, RowState, RowStates, Shown,
     },
@@ -96,6 +96,9 @@ pub fn header_cell(layout: &Layout, metrics: &Metrics, row: f32, name: &str) -> 
 
 impl RowsAdapter<'_> {
     fn shown(&self, index: usize) -> Option<&Shown> {
+        if self.list.drawn.listing != self.held.listing {
+            return None;
+        }
         self.list
             .visible()
             .iter()
@@ -108,7 +111,9 @@ impl RowsAdapter<'_> {
 
     // A row the pane holds, and the states its owners give it.
     fn state(&self, index: usize) -> RowState {
-        self.states.row(index, self.held.listing)
+        self.shown(index)
+            .map(|shown| shown.state)
+            .unwrap_or_default()
     }
 
     // Row.cellInk: the metadata ink, the foreground on a lifted row; a cut row ghosts only its mark, never its cells.
@@ -166,30 +171,39 @@ impl RowsAdapter<'_> {
         let facts = self.held.row(index);
         let view = &self.list.view;
         let value = match function {
-            "rowAt" => facts.map_or_else(
-                || "loading".into(),
-                |facts| {
-                    let kind = if facts.dir { "dir" } else { "file" };
-                    format!(
-                        "{}|{kind}|{}",
-                        facts.name,
-                        view.words.locale.format_size(facts.size)
-                    )
-                },
-            ),
-            "rowNamePx" => facts
-                .map_or(-1, |_| round(f32::from(self.list.typeface.body)))
-                .to_string(),
-            "rowNameText" => facts.map(row::decorated_name).unwrap_or_default(),
-            "rowSizeText" => facts
-                .map(|facts| {
-                    let walked = if facts.dir {
-                        view.walked_for(self.held.listing, index)
-                    } else {
-                        None
-                    };
-                    format::size_text(facts, walked, &view.words)
+            "rowAt" => self
+                .shown(index)
+                .and_then(|shown| shown.prepared.as_ref())
+                .and_then(|_| self.list.drawn_rows.row(index))
+                .map_or_else(
+                    || "loading".into(),
+                    |facts| {
+                        let kind = if facts.dir { "dir" } else { "file" };
+                        format!(
+                            "{}|{kind}|{}",
+                            facts.name,
+                            view.words.locale.format_size(facts.size)
+                        )
+                    },
+                ),
+            "rowNamePx" => self
+                .shown(index)
+                .and_then(|shown| shown.prepared.as_ref())
+                .map_or(-1, |prepared| {
+                    round(f32::from(prepared.name.line().font_size))
                 })
+                .to_string(),
+            "rowNameText" => self
+                .shown(index)
+                .filter(|shown| shown.prepared.is_some())
+                .and_then(|_| self.list.rows.facts(index))
+                .map(row::decorated_name)
+                .unwrap_or_default(),
+            "rowSizeText" => self
+                .shown(index)
+                .filter(|_| self.list.drawn.layout.shown(Column::Size))
+                .and_then(|shown| shown.prepared.as_ref())
+                .map(|prepared| prepared.size_text.clone())
                 .unwrap_or_default(),
             "rowClipMark" => match facts {
                 None => "unavailable".into(),
@@ -199,20 +213,34 @@ impl RowsAdapter<'_> {
                     Some(ClipMark::Cut) => "scissors".into(),
                 },
             },
-            "rowGlyph" => facts
-                .map(|facts| Mark::for_row(&facts.icon, facts.mode).name().to_owned())
+            "rowGlyph" => self
+                .shown(index)
+                .map(|shown| {
+                    if shown.prepared.is_none() {
+                        Mark::File.name().to_owned()
+                    } else {
+                        self.list
+                            .rows
+                            .facts(index)
+                            .map(|facts| Mark::for_row(&facts.icon, facts.mode).name().to_owned())
+                            .unwrap_or_default()
+                    }
+                })
                 .unwrap_or_default(),
             "rowNameColor" | "rowCellColor" | "rowDateColor" => {
-                let (Some(facts), Some(palette)) = (facts, self.palette()) else {
+                let (Some(prepared), Some(palette)) = (
+                    self.shown(index).and_then(|shown| shown.prepared.as_ref()),
+                    self.palette(),
+                ) else {
                     return Some(String::new());
                 };
                 let lifted = self.state(index).lifted();
                 let ink = match function {
-                    "rowNameColor" => palette.name(row::name_ink(facts), lifted),
+                    "rowNameColor" => palette.name(prepared.ink, lifted),
                     "rowDateColor"
-                        if view
-                            .today
-                            .is_some_and(|today| format::is_recent(facts.mtime, today)) =>
+                        if view.today.is_some_and(|today| {
+                            facts.is_some_and(|facts| format::is_recent(facts.mtime, today))
+                        }) =>
                     {
                         palette.foreground
                     }
@@ -289,7 +317,7 @@ impl Adapter for RowsAdapter<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         let list = self.list;
         let value = match function {
-            "headerTitles" => header::titles(&list.view),
+            "headerTitles" => list.header.painted_titles.clone(),
             "headerCellRect" => self
                 .header_cell(arguments.first()?)
                 .map(|cell| format!("{}|{}", round(cell.x), round(cell.width)))

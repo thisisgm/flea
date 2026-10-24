@@ -1,13 +1,18 @@
 //! The path bar's meaning, the line a typist writes and what it resolves to, with no window and no backend.
+pub mod chrome;
 pub mod crumbs;
 pub mod entry;
 pub mod field;
 mod input;
+pub mod join;
+pub mod mark;
 pub mod menu;
 pub mod paint;
+mod probe;
 pub mod render;
 pub mod strip;
 pub mod suggestions;
+mod tap;
 pub mod view;
 mod wire;
 

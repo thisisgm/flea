@@ -167,7 +167,7 @@ fn a_row_the_pane_does_not_hold_draws_the_loading_bar() {
 }
 
 #[test]
-fn a_fit_on_kind_stores_nothing_while_rows_carry_no_kind_names() {
+fn u04_kind_autofit_measures_empty_held_cells_and_an_empty_window_writes_nothing() {
     let mut view = ListView::default();
     view.apply_settings(&parse("{}").unwrap(), 0);
     let holding = held(vec![row("a", "text-plain", 26, false)], 1);
@@ -175,6 +175,16 @@ fn a_fit_on_kind_stores_nothing_while_rows_carry_no_kind_names() {
         fitted_width(Column::Kind, &holding, &view, 120., |text| text.len()
             as f32
             * 10.),
+        Some(48)
+    );
+    assert_eq!(
+        fitted_width(
+            Column::Kind,
+            &held(Vec::new(), 2),
+            &view,
+            120.,
+            |text| text.len() as f32 * 10.
+        ),
         None
     );
     let mut cx = real_cx();
@@ -182,11 +192,28 @@ fn a_fit_on_kind_stores_nothing_while_rows_carry_no_kind_names() {
     pane.list.borrow_mut().view.switched = Switched::default().with(Column::Kind, true);
     pane.frame(&mut cx, 0.);
     assert!(pane.list.borrow().drawn.layout.shown(Column::Kind));
+    assert_eq!(
+        pane.list.borrow().visible()[0]
+            .prepared
+            .as_ref()
+            .unwrap()
+            .kind
+            .line()
+            .width,
+        px(0.)
+    );
     let patch = pane.with_window(&mut cx, |list, held, window| {
         list.autofit(Column::Kind, held, window)
     });
-    assert_eq!(patch, None, "a fit on Kind wrote a width");
-    assert_eq!(pane.list.borrow().view.stored.get(Column::Kind), None);
+    assert_eq!(
+        patch,
+        Some(flea_gui::list::header::width_patch(Column::Kind, 48))
+    );
+    assert_eq!(pane.list.borrow().view.stored.get(Column::Kind), Some(48));
+    let again = pane.with_window(&mut cx, |list, held, window| {
+        list.autofit(Column::Kind, held, window)
+    });
+    assert_eq!(again, None, "the fitted empty cells wrote a second time");
 }
 
 #[test]

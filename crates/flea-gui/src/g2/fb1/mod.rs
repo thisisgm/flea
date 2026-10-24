@@ -7,6 +7,9 @@ mod caption_paint_tests;
 mod caption_tests;
 #[cfg(test)]
 mod detail_tests;
+pub(crate) mod empty_omi;
+#[cfg(test)]
+mod empty_omi_tests;
 #[cfg(test)]
 mod fix9_tests;
 pub mod hero;
@@ -16,6 +19,7 @@ pub mod line;
 #[cfg(test)]
 mod line_tests;
 pub mod mark;
+pub mod observe;
 pub mod state;
 #[cfg(test)]
 mod state_tests;

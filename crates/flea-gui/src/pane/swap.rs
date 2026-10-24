@@ -1,10 +1,25 @@
 //! The listing's cap and minimum drawn time, with a complete pair retained until one commit.
 use super::{states::State, Held};
-use std::{cell::Cell, collections::VecDeque, rc::Rc, time::Duration};
+use std::{
+    cell::{Cell, RefCell},
+    collections::VecDeque,
+    rc::Rc,
+    time::Duration,
+};
+
+mod progress;
+pub use progress::{Clock, Progress};
 
 pub const CAP_MS: u64 = 66;
+pub const HOLD_MS: u64 = 150;
 pub const MIN_SHOW_MS: u64 = 100;
 pub const PARKED_WAIT_MS: u64 = crate::window::startup::LISTING_WAIT_MS;
+
+pub fn show_left(since: Option<u64>, now: u64) -> u64 {
+    since.map_or(0, |since| {
+        since.saturating_add(MIN_SHOW_MS).saturating_sub(now)
+    })
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct Options {
@@ -105,6 +120,7 @@ pub struct Swap {
     pub fell_back: bool,
     pub since: u64,
     pub mark_since: Option<u64>,
+    pub(crate) observed: Rc<RefCell<super::presentation::Observed>>,
     pub counters: Counters,
     pub frames: Rc<Frames>,
     pub mark: Rc<crate::feedback::spinner::Crawl>,
@@ -124,6 +140,12 @@ impl Swap {
         if self.busy() && !options.supersede {
             return false;
         }
+        self.mark_shown(false, now);
+        let available = self.observed.borrow().available;
+        self.observed = Rc::new(RefCell::new(super::presentation::Observed {
+            available,
+            ..Default::default()
+        }));
         self.holding = !options.clear_at_once
             && state.kind != super::states::Kind::Loading
             && (!state.search || options.hold_walk);
@@ -169,9 +191,16 @@ impl Swap {
     }
 
     pub fn show_left(&self, now: u64) -> u64 {
-        self.mark_since.map_or(0, |since| {
-            since.saturating_add(MIN_SHOW_MS).saturating_sub(now)
-        })
+        show_left(self.mark_since, now)
+    }
+
+    pub fn awaiting_visibility(&self) -> bool {
+        let observed = self.observed.borrow();
+        self.mark_since.is_none() && !observed.wait_unavailable && observed.outstanding_loading > 0
+    }
+
+    pub fn can_land(&self, now: u64) -> bool {
+        !self.awaiting_visibility() && self.show_left(now) == 0
     }
 
     pub fn mark_shown(&mut self, shown: bool, now: u64) {
@@ -187,7 +216,7 @@ impl Swap {
 
     // The crawl starts with the first frame that draws the mark; reduced motion keeps it at rest.
     pub fn crawling(&self, reduced_motion: bool) -> bool {
-        !reduced_motion && self.mark_since.is_some()
+        !reduced_motion && self.mark.shown()
     }
 
     pub fn deadline(&self, now: u64) -> Option<Duration> {
@@ -195,6 +224,9 @@ impl Swap {
             return None;
         }
         let pending = self.pending.as_ref()?;
+        if pending.ready.is_some() && self.awaiting_visibility() {
+            return None; // The window's existing transition timer owns the feedback deadline.
+        }
         if pending.ready.is_some() && pending.parked_until.is_none() {
             return Some(Duration::from_millis(self.show_left(now)));
         }
@@ -207,6 +239,9 @@ impl Swap {
     }
 
     pub fn end(&mut self, now: u64, reason: &'static str) {
+        if self.mark_since.is_none() && self.observed.borrow().loading_submissions > 0 {
+            self.observed.borrow_mut().unobserved_releases += 1;
+        }
         self.pending = None;
         self.unheld_total = None;
         self.sorts_out.clear();

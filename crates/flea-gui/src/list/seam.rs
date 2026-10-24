@@ -39,10 +39,7 @@ mod off {
 
 #[cfg(feature = "bench-seam")]
 mod bench {
-    use super::super::{
-        pane::{Pane, ROW_HEIGHT},
-        ListState,
-    };
+    use super::super::{pane::Pane, ListState};
     use crate::feedback::spinner::Arm;
     use gpui::{px, size, Pixels, Size};
     use std::{
@@ -87,7 +84,7 @@ mod bench {
         Some(size(px(side(width)?), px(side(height)?)))
     }
 
-    /// FLEA_GUI_BENCH_MARK "none" leaves the loading mark undrawn for the floor arm; a number pins its dash offset.
+    /// FLEA_GUI_BENCH_MARK "none" leaves the loading mark undrawn for the floor arm; a number pins its mode time in seconds.
     fn mark(value: &str) -> Option<Arm> {
         match value {
             "none" => Some(Arm::Hidden),
@@ -121,6 +118,12 @@ mod bench {
             eprintln!("{message}");
             std::process::exit(2)
         })
+    }
+
+    impl Default for Seam {
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl Seam {
@@ -204,7 +207,7 @@ mod bench {
             run.last = now;
             run.y += SPEED * dt;
             pane.scroll_to(run.y);
-            let first = (pane.scroll_y / ROW_HEIGHT).floor() as usize;
+            let first = (pane.scroll_y / pane.row_height()).floor() as usize;
             let last = (first + pane.visible_rows()).min(pane.held.total);
             run.misses += (first..last)
                 .filter(|&index| pane.held.row(index).is_none())

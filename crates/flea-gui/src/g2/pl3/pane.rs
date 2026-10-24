@@ -1,10 +1,13 @@
 //! The Trash pane entity: the core session, its seams, its settle timers and the paint state its Elements read.
 use super::board::{HEADER_H, MENU_DROP, PAD_X, ROW_H, STRIP_H};
 use super::ink::Ink;
-use super::list::{Line, ListPaint};
+use super::list::ListPaint;
 use super::monitor::{Heard, Monitor, Started};
+#[path = "connection.rs"]
+mod connection;
+#[path = "paint_sync.rs"]
+mod paint_sync;
 use super::seams::{At, Card, Outside};
-use crate::row::marks::Mark;
 use flea::i18n::I18n;
 use flea::jsondoc::{self, Json};
 use flea::ui_logic_pl3::host::{self, Host};
@@ -37,6 +40,9 @@ pub struct TrashPane {
     pub button: Button,
     pub menu_open: bool,
     pub width: f32,
+    pub presentation_loading: bool,
+    pub loading_at: Option<Instant>,
+    rows_request: u64,
     /// Menu rows hidden by the menu settings; Delete permanently is hidden by default.
     pub hidden: Vec<String>,
     keys: (String, String),
@@ -47,7 +53,7 @@ pub struct TrashPane {
     timer: Option<Task<()>>,
     // TrashView's 2500 ms check, armed while a card is open and nothing is in flight, so it restarts after each reply.
     checker: Option<Task<()>>,
-    monitor: Option<(Monitor, Task<()>)>,
+    monitor: Option<Task<()>>,
     decoded: HashSet<Resource>,
     pub(super) retired: Vec<Resource>,
     epoch: Instant,
@@ -78,6 +84,9 @@ impl TrashPane {
             button: Button::default(),
             menu_open: false,
             width: 0.,
+            presentation_loading: false,
+            loading_at: None,
+            rows_request: 0,
             hidden: vec!["delete".into()],
             keys: words::prompt_keys(preset),
             home,
@@ -109,27 +118,6 @@ impl TrashPane {
         self.pump(cx);
     }
 
-    // The watch outlives a close, as the rail's TrashMonitor does; it starts with the first open.
-    fn watch(&mut self, cx: &mut Context<Self>) {
-        let Some(start) = self.monitor_start.filter(|_| self.monitor.is_none()) else {
-            return;
-        };
-        match start() {
-            Ok((monitor, heard)) => {
-                let listener = cx.spawn(async move |this, cx| {
-                    while let Ok(message) = heard.recv().await {
-                        if this.update(cx, |pane, cx| pane.heard(message, cx)).is_err() {
-                            break;
-                        }
-                    }
-                });
-                self.monitor = Some((monitor, listener));
-            }
-            Err(_) => self
-                .outside
-                .status(self.catalog.tr("trash.monitor.watch_failed"), true),
-        }
-    }
     pub fn close(&mut self, cx: &mut Context<Self>) {
         self.host.close();
         self.pump(cx);
@@ -154,6 +142,7 @@ impl TrashPane {
                 self.pump(cx);
             }
         }
+        cx.notify();
     }
 
     /// One backend line on this session: a trashbrowse reply or a trashthumbed answer.
@@ -164,6 +153,13 @@ impl TrashPane {
         match message.get("t").and_then(Json::as_str) {
             Some("trashbrowse") => {
                 if let Some(reply) = Reply::read(message) {
+                    if reply.id == self.host.view.request_id
+                        && reply.op == self.host.view.pending_op
+                        && reply.ok
+                        && matches!(reply.op.as_str(), "list" | "window")
+                    {
+                        self.rows_request = reply.id;
+                    }
                     let now = self.now();
                     let _ = self.host.receive(&reply, &self.catalog, now);
                 }
@@ -188,6 +184,11 @@ impl TrashPane {
 
     /// A key action from the generated table, while Trash holds the keyboard.
     pub fn action(&mut self, name: &str, repeat: bool, cx: &mut Context<Self>) {
+        if self.interaction_held()
+            && !matches!(name, "escape" | "parent" | "back" | "quit" | "windowNew")
+        {
+            return;
+        }
         if self.host.view.strip_focus && matches!(name, "open" | "activate") {
             if self.empty_available() {
                 self.host.view.prepare(true);
@@ -219,6 +220,9 @@ impl TrashPane {
 
     /// Tab moves the keyboard between the list and Empty Trash…, the strip's one live stop.
     pub fn focus_strip(&mut self, on: bool, cx: &mut Context<Self>) {
+        if self.interaction_held() {
+            return;
+        }
         self.host.view.strip_focus = on && self.empty_available();
         self.pump(cx);
     }
@@ -230,6 +234,10 @@ impl TrashPane {
     }
 
     pub fn click_row(&mut self, index: usize, toggle: bool, cx: &mut Context<Self>) {
+        if self.interaction_held() {
+            return;
+        }
+        self.outside.focus();
         let extend = if toggle {
             flea::ui_logic_pl3::selection::Extend::Toggle
         } else {
@@ -240,6 +248,10 @@ impl TrashPane {
         self.pump(cx);
     }
     pub fn right_click(&mut self, index: Option<usize>, x: f32, y: f32, cx: &mut Context<Self>) {
+        if self.interaction_held() {
+            return;
+        }
+        self.outside.focus();
         let view = &mut self.host.view;
         if let Some(index) = index {
             let marked = view
@@ -260,6 +272,9 @@ impl TrashPane {
         }
     }
     pub fn wheel(&mut self, dy: f32, cx: &mut Context<Self>) {
+        if self.interaction_held() {
+            return;
+        }
         let (y, h) = (self.host.view.scroll_y + dy, self.host.view.height);
         self.host.view.set_viewport(y, h);
         self.pump(cx);
@@ -289,6 +304,9 @@ impl TrashPane {
     /// The menu primitive closed, with the picked row's action or none.
     pub fn menu_action(&mut self, action: Option<&str>, cx: &mut Context<Self>) {
         self.menu_open = false;
+        if self.interaction_held() {
+            return self.pump(cx);
+        }
         match action {
             Some("open") => self.host.open(""),
             Some(action) => self.host.action(action),
@@ -309,6 +327,14 @@ impl TrashPane {
         self.pump(cx);
     }
 
+    /// Only the host's tagged, still-displayed card can cancel while its replacement is pending.
+    pub(crate) fn cancel_held_card(&mut self, cx: &mut Context<Self>) {
+        if self.card.is_none() && self.host.view.confirming {
+            self.host.view.confirmed(None);
+            self.pump(cx);
+        }
+    }
+
     /// Sends what the session queued, hands every signal to its seam and refreshes the paint inputs.
     pub fn pump(&mut self, cx: &mut Context<Self>) {
         for line in self.host.drain() {
@@ -321,7 +347,7 @@ impl TrashPane {
                     delay_ms,
                 } => self.settle(generation, delay_ms, cx),
                 Signal::Status { text, error } => self.outside.status(text, error),
-                Signal::Arm(text) => self.outside.status(text, false),
+                Signal::Arm(text) => self.outside.arm(text),
                 Signal::Result {
                     headline,
                     detail,
@@ -402,46 +428,6 @@ impl TrashPane {
         };
         self.card = Some(snapshot);
         self.outside.card(Some(card));
-    }
-
-    fn sync_paint(&mut self) {
-        let view = &self.host.view;
-        let mut paint = self.paint.borrow_mut();
-        let lines: Vec<Line> = view
-            .rows
-            .iter()
-            .enumerate()
-            .map(|(at, row)| Line {
-                name: row.name().to_string(),
-                location: words::location_text(&self.catalog, &row.original, &self.home),
-                deleted: words::deleted_text(&self.catalog, row.deleted.as_deref()),
-                mark: if row.directory {
-                    Mark::Folder
-                } else {
-                    Mark::for_row(&row.icon, 0o100644)
-                },
-                marked: view.is_selected(&row.uri),
-                thumb: Some(view.thumbs.file_for(view.first + at, view.policy))
-                    .filter(|file| !file.is_empty())
-                    .map(|file| Resource::Path(Arc::from(Path::new(file)))),
-            })
-            .collect();
-        let same_text = lines.len() == paint.lines.len()
-            && lines.iter().zip(&paint.lines).all(|(a, b)| {
-                a.name == b.name && a.location == b.location && a.deleted == b.deleted
-            });
-        if !same_text || paint.first != view.first {
-            paint.revision += 1;
-        }
-        let live: HashSet<Resource> = lines.iter().filter_map(|line| line.thumb.clone()).collect();
-        self.retired.extend(self.decoded.difference(&live).cloned());
-        self.decoded = live;
-        paint.lines = lines;
-        paint.first = view.first;
-        paint.total = view.total;
-        paint.scroll_y = view.scroll_y;
-        paint.cursor = view.cursor;
-        paint.edge = !view.strip_focus && !self.menu_open && self.card.is_none();
     }
 
     /// Images no row draws any more leave GPUI's asset cache and the sprite atlas, so memory follows the viewport.

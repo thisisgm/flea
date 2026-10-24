@@ -63,7 +63,6 @@ pub(super) struct Tracks {
     pub height: f32,
     pub constructed: usize,
     pub dropped: usize,
-    loading: Vec<Slot>,
     /// Each peek slot's scroll and the path and lifted row it was last contained for.
     scrolls: [(String, Option<usize>, f32); 5],
 }
@@ -75,7 +74,6 @@ impl Tracks {
             height,
             constructed: 0,
             dropped: 0,
-            loading: Vec::new(),
             scrolls: Default::default(),
         }
     }
@@ -85,13 +83,14 @@ impl Tracks {
     }
 
     /// A peeked track's rows and tile: the landing's stand-in first, then the answered rows, a denial or the empty tile.
+    /// `stands`: the landing may hold a stand-in for this path, an ancestor's or the child's at entry.
     fn peek(
         path: &str,
         shown: bool,
         lens: &Lens<'_>,
         peeks: &Peeks,
         landing: &Landing,
-        ancestor: bool,
+        stands: bool,
     ) -> (TrackRows, TrackState, bool) {
         let here = lens.here;
         let key = lens.key(path);
@@ -102,13 +101,13 @@ impl Tracks {
             Rc::from([])
         };
         let waiting = landing.waiting(path, here);
-        let loading = ancestor && landing.loading(path, here);
+        let loading = stands && landing.loading(path, here);
         let mode = if shown {
             landing.mode(path, here, peeks.denied(&key))
         } else {
             None
         };
-        let empty = shown && peeks.answered(&key, path) && (!ancestor || !waiting);
+        let empty = shown && peeks.answered(&key, path) && (!stands || !waiting);
         let state = match mode {
             _ if loading => TrackState::Loading,
             Some(mode) => TrackState::Locked(mode),
@@ -120,10 +119,10 @@ impl Tracks {
         } else {
             TrackRows::Blank
         };
-        (rows, state, !ancestor || !waiting)
+        (rows, state, !stands || !waiting)
     }
 
-    /// Rebuild every drawn track; answers the paths whose slot just showed its loading tile, so the landing starts its minimum.
+    /// Rebuild every drawn track without publishing a loading mark before the renderer draws it.
     pub fn rebuild(
         &mut self,
         layout: &Layout,
@@ -131,7 +130,7 @@ impl Tracks {
         peeks: &Peeks,
         landing: &Landing,
         shown: Shown<'_>,
-    ) -> Vec<String> {
+    ) {
         let here = lens.here;
         let mut views = Vec::with_capacity(layout.count);
         for track in layout.tracks() {
@@ -146,14 +145,14 @@ impl Tracks {
                     dim: false,
                     lifted: None,
                     lifted_at: None,
-                    divider: shown.host.third_shown(shown.settings),
+                    divider: shown.host.third_shown(shown.settings) || shown.host.shown.has_row,
                     state: TrackState::Rows,
                     enabled: true,
                 },
                 Slot::Child if shown.host.shown.is_dir => {
                     let path = shown.host.shown.child.clone();
                     let (rows, state, enabled) =
-                        Self::peek(&path, !path.is_empty(), &lens, peeks, landing, false);
+                        Self::peek(&path, !path.is_empty(), &lens, peeks, landing, true);
                     TrackView {
                         slot: track.slot,
                         x: track.x,
@@ -222,25 +221,12 @@ impl Tracks {
         let after = views.len();
         self.constructed += after.saturating_sub(before);
         self.dropped += before.saturating_sub(after);
-        let loading: Vec<(Slot, String)> = views
-            .iter()
-            .filter(|view| view.state == TrackState::Loading)
-            .map(|view| (view.slot, view.path.clone()))
-            .collect();
-        // A slot's tile stays shown across a path change, so only a slot newly loading starts the minimum.
-        let fresh = loading
-            .iter()
-            .filter(|(slot, _)| !self.loading.contains(slot))
-            .map(|(_, path)| path.clone())
-            .collect();
-        self.loading = loading.into_iter().map(|(slot, _)| slot).collect();
         for view in views.iter().filter(|view| view.slot != Slot::Active) {
             self.contain(view);
         }
         if *self.views != *views {
             self.views = Rc::from(views);
         }
-        fresh
     }
 
     /// A share or width change over the same slots moves each drawn track in place, its rows untouched.

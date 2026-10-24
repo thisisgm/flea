@@ -238,7 +238,7 @@ impl Pane {
                 .expect("pending listing")
                 .options
                 .search
-                && self.swap.show_left(now) > 0
+                && !self.swap.can_land(now)
             {
                 self.swap.counters.waits += 1;
                 return Ok(false);
@@ -291,11 +291,11 @@ impl Pane {
             // Its own window lands the view at its first row (ui/PaneSwap.qml land); a scroll's answer leaves it (takeRows).
             if own != Own::Asked {
                 self.cursor = start;
-                self.scroll_y = start as f32 * super::ROW_HEIGHT;
+                self.scroll_y = start as f32 * self.row_height();
             }
             self.scroll_by(0.);
             self.requests.initial_first =
-                Some((self.scroll_y / super::ROW_HEIGHT).floor() as usize);
+                Some((self.scroll_y / self.row_height()).floor() as usize);
             self.swap.counters.commits += 1;
             self.swap.rows_at = now;
             return Ok(true);

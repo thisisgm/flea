@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import tomllib
 import unittest
 from contextlib import contextmanager
 from contextlib import redirect_stdout
@@ -67,6 +68,144 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(licenses.chosen_license(package, policy), {"ISC"})
         with self.assertRaises(ValueError):
             licenses.chosen_license(dict(package, version="0.8.10"), policy)
+
+    def test_clarified_file_only_license_keeps_its_complete_notice_and_exact_version(self):
+        scratch = ROOT / ".superpowers/third-party-licenses"
+        with owned_fixture(scratch) as root:
+            (root / "Cargo.toml").write_text('[package]\nname="flea"\nversion="1"\nlicense="MIT"\n')
+            (root / "Cargo.lock").write_text('version = 4\n')
+            (root / "deny.toml").write_text('[licenses]\nallow=["MIT"]\n[[licenses.clarify]]\nname="omi"\nversion="=1.0.0"\nexpression="MIT"\nlicense-files=[{path="LICENSE",hash=0x9a5bab21}]\n')
+            (root / "LICENSE").write_text("workspace license\n")
+            (root / "ui/vendor/LICENSES").mkdir(parents=True)
+            crate = root / "omi"
+            crate.mkdir()
+            complete = (ROOT / "tests/fixtures/license-fingerprint/omi-1.0.0-LICENSE").read_text()
+            (crate / "LICENSE").write_text(complete)
+            packages = [{"id": "flea", "name": "flea", "version": "1", "license": "MIT",
+                         "source": None, "manifest_path": str(root / "Cargo.toml"), "targets": [{"kind": ["bin"]}]},
+                        {"id": "omi", "name": "omi", "version": "1.0.0", "license": None,
+                         "license_file": "LICENSE", "source": "registry+fixture",
+                         "manifest_path": str(crate / "Cargo.toml"), "targets": [{"kind": ["lib"]}]}]
+            graph = {"packages": packages, "workspace_members": ["flea"], "workspace_root": str(root),
+                     "resolve": {"nodes": [{"id": "flea", "deps": [{"pkg": "omi", "dep_kinds": [{"kind": None}]}]},
+                                            {"id": "omi", "deps": []}]}}
+            text, selected = licenses.render(root, {target: graph for target in licenses.TARGETS})
+            self.assertEqual(selected, {"MIT"})
+            self.assertIn(complete, text)
+            self.assertEqual(text.count(complete), 1)
+            self.assertIn("Expression source: deny.toml version-pinned clarification", text)
+            (crate / "LICENSE").write_text("Changed license terms.\n")
+            with self.assertRaisesRegex(ValueError, "license clarification fingerprint mismatch for LICENSE"):
+                licenses.render(root, {target: graph for target in licenses.TARGETS})
+            (crate / "LICENSE").write_text(complete)
+            (crate / "LICENSE").rename(crate / "COPYING")
+            packages[1].update(license="GPL-3.0-only", license_file="COPYING")
+            with self.assertRaisesRegex(ValueError, "cannot read license-file LICENSE"):
+                licenses.render(root, {target: graph for target in licenses.TARGETS})
+            (crate / "COPYING").rename(crate / "LICENSE")
+            packages[1].update(license=None, license_file="LICENSE")
+            packages[1]["version"] = "1.0.1"
+            with self.assertRaisesRegex(ValueError, "has no SPDX license"):
+                licenses.render(root, {target: graph for target in licenses.TARGETS})
+
+    def clarification_fixture(self, root):
+        crate = root / "omi"
+        crate.mkdir()
+        notice = crate / "LICENSE"
+        notice.write_bytes((ROOT / "tests/fixtures/license-fingerprint/omi-1.0.0-LICENSE").read_bytes())
+        package = {"name": "omi", "version": "1.0.0", "license": None,
+                   "manifest_path": str(crate / "Cargo.toml")}
+        policy = tomllib.loads((ROOT / "deny.toml").read_text())["licenses"]
+        return package, policy, notice
+
+    def test_clarification_rejects_changed_notice_through_real_api(self):
+        with owned_fixture(ROOT / ".superpowers/third-party-licenses") as root:
+            package, policy, notice = self.clarification_fixture(root)
+            notice.write_text("GPL-3.0-only\nChanged terms at the same version.\n")
+            for declared in (None, "GPL-3.0-only", "MIT"):
+                package["license"] = declared
+                for api in (licenses.license_expression, licenses.chosen_license):
+                    with self.subTest(declared=declared, api=api.__name__):
+                        with self.assertRaisesRegex(ValueError, "license clarification fingerprint mismatch for LICENSE"):
+                            api(package, policy)
+
+    def test_clarification_requires_the_configured_file_not_another_notice(self):
+        with owned_fixture(ROOT / ".superpowers/third-party-licenses") as root:
+            package, policy, notice = self.clarification_fixture(root)
+            notice.rename(notice.with_name("COPYING"))
+            package.update(license="GPL-3.0-only", license_file="COPYING")
+            with self.assertRaisesRegex(ValueError, "cannot read license-file LICENSE"):
+                licenses.chosen_license(package, policy)
+            notice.write_text("Different terms.\n")
+            with self.assertRaisesRegex(ValueError, "fingerprint mismatch for LICENSE"):
+                licenses.chosen_license(package, policy)
+
+    def test_clarification_rejects_missing_guards_and_paths_outside_the_crate(self):
+        with owned_fixture(ROOT / ".superpowers/third-party-licenses") as root:
+            package, policy, notice = self.clarification_fixture(root)
+            clarification = policy["clarify"][0]
+            configured = clarification["license-files"][0]
+            for files in ([], [{"path": "LICENSE"}], [dict(configured, hash=-1)],
+                          [dict(configured, hash=True)], [dict(configured, hash=2**32)],
+                          [dict(configured, path=str(notice))], [dict(configured, path="")]):
+                clarification["license-files"] = files
+                with self.subTest(files=files), self.assertRaises(ValueError):
+                    licenses.chosen_license(package, policy)
+            clarification["license-files"] = [configured]
+            with self.assertRaisesRegex(ValueError, "requires license-files and a manifest_path"):
+                licenses.chosen_license({key: value for key, value in package.items() if key != "manifest_path"}, policy)
+            outside = root / "outside-LICENSE"
+            notice.rename(outside)
+            notice.symlink_to(outside)
+            with self.assertRaisesRegex(ValueError, "must stay inside the crate"):
+                licenses.chosen_license(package, policy)
+            clarification["license-files"] = [dict(configured, path="../outside-LICENSE")]
+            with self.assertRaisesRegex(ValueError, "must stay inside the crate"):
+                licenses.chosen_license(package, policy)
+
+    def test_clarification_checks_every_configured_file_and_preserves_exact_version(self):
+        with owned_fixture(ROOT / ".superpowers/third-party-licenses") as root:
+            package, policy, notice = self.clarification_fixture(root)
+            self.assertEqual(licenses.license_expression(package, policy), ("MIT", True))
+            self.assertEqual(licenses.chosen_license(package, policy), {"MIT"})
+            for field, value in (("name", "other"), ("version", "1.0.1")):
+                with self.subTest(field=field), self.assertRaisesRegex(ValueError, "has no SPDX license"):
+                    licenses.chosen_license(dict(package, **{field: value}), policy)
+            with self.assertRaisesRegex(ValueError, "does not allow GPL-3.0-only"):
+                licenses.chosen_license(dict(package, version="1.0.1", license="GPL-3.0-only"), policy)
+            policy["clarify"][0]["license-files"].append({"path": "NOTICE", "hash": 0x9a5bab21})
+            with self.assertRaisesRegex(ValueError, "cannot read license-file NOTICE"):
+                licenses.chosen_license(package, policy)
+            notice.with_name("NOTICE").write_bytes(notice.read_bytes())
+            self.assertEqual(licenses.chosen_license(package, policy), {"MIT"})
+
+    def test_cargo_deny_hash_matches_c_reference_vectors(self):
+        # twox-hash 2.1.2 src/xxhash32.rs names these as C-implementation vectors.
+        for raw, expected in ((b"", 0x02cc5d05), (bytes([42]), 0xe0fe705f),
+                              (b"Hello, world!\0", 0x9e5e7e93), (bytes(range(100)), 0x7f89ba44)):
+            with self.subTest(raw=raw):
+                self.assertEqual(licenses.xxhash32(raw), expected)
+
+    def test_cargo_deny_normalization_preserves_pinned_omi_and_notice_content(self):
+        with owned_fixture(ROOT / ".superpowers/third-party-licenses") as root:
+            package, policy, notice = self.clarification_fixture(root)
+            original = notice.read_bytes()
+            for content in (original, original.replace(b"\n", b"\r\n"), original.replace(b"\n", b"\r\r\n")):
+                notice.write_bytes(content)
+                with self.subTest(content=content[:30]):
+                    self.assertEqual(licenses.license_file_hash(notice), 0x9a5bab21)
+                    self.assertEqual(licenses.chosen_license(package, policy), {"MIT"})
+            def fingerprint(content):
+                notice.write_bytes(content)
+                return licenses.license_file_hash(notice)
+            self.assertEqual(fingerprint(b"last line"), fingerprint(b"last line\n"))
+            self.assertEqual(fingerprint(b"last line\r\r"), fingerprint(b"last line\n"))
+            self.assertNotEqual(fingerprint(b"last line \n"), fingerprint(b"last line\n"))
+            self.assertNotEqual(fingerprint(b"one\rtwo"), fingerprint(b"one\ntwo"))
+            self.assertNotEqual(fingerprint(b""), fingerprint(b"\n"))
+            notice.write_bytes(original + b"\xff")
+            with self.assertRaisesRegex(ValueError, "cannot read license-file LICENSE"):
+                licenses.chosen_license(package, policy)
 
     def test_binary_and_source_tarball_artifacts_carry_the_inventory(self):
         scratch = ROOT / ".superpowers/third-party-licenses"

@@ -42,7 +42,7 @@ const ROW_PAD_Y: f32 = 8.;
 
 /// A row's height with its wrapped line count; only hints wrap.
 pub fn row_height(row: &Row, first: bool, lines: usize) -> f32 {
-    let lines = lines.max(1) as f32;
+    let lines = if row.elide_right { 1 } else { lines.max(1) } as f32;
     match row.kind {
         Kind::Group if first => GROUP_FIRST_H,
         Kind::Group => GROUP_H,

@@ -8,7 +8,7 @@ use flea::{
     jsondoc,
 };
 use gpui::{px, Context, Window};
-use std::{sync::mpsc::SyncSender, time::Duration};
+use std::sync::mpsc::SyncSender;
 
 impl Shell {
     fn visual_error(&self, key: &str) -> Reply {
@@ -30,6 +30,12 @@ impl Shell {
         else {
             return Some((request, answer));
         };
+        if target == "flea"
+            && function == "visibleRowName"
+            && self.view == crate::window::startup::View::Grid
+        {
+            return Some((request, answer));
+        }
         if target != "flea"
             || ![
                 "scene",
@@ -38,9 +44,7 @@ impl Shell {
                 "previewReadiness",
                 "sceneState",
                 "presentedFrame",
-                "viewMode",
                 "listInFlight",
-                "visibleRowName",
             ]
             .contains(&function.as_str())
         {
@@ -99,30 +103,13 @@ impl Shell {
                     Some(frames) => Reply::value(frames.presented.to_string()),
                     None => self.visual_error("visual.unpresented"),
                 },
-                "viewMode" => Reply::value(super::view_name(self.view)),
-                // Ipc.qml: the focused pane's listing in flight, and a name only for a row the list draws.
+                // Ipc.qml: the focused pane's listing in flight.
                 "listInFlight" => Reply::value(
                     self.panes[self.focus_side]
                         .as_ref()
                         .is_some_and(|host| host.pane.listing_in_flight())
                         .to_string(),
                 ),
-                "visibleRowName" => {
-                    let name = arguments[0].trim().parse::<usize>().ok().and_then(|i| {
-                        let host = self.panes[self.focus_side].as_ref()?;
-                        let drawn = host
-                            .list
-                            .borrow()
-                            .visible()
-                            .iter()
-                            .any(|shown| shown.index == i && shown.prepared.is_some());
-                        if !drawn {
-                            return None;
-                        }
-                        host.pane.held.row(i).map(|row| row.name.clone())
-                    });
-                    Reply::value(name.as_deref().unwrap_or(""))
-                }
                 _ => unreachable!(),
             },
         };
@@ -157,7 +144,8 @@ impl Shell {
             let Some(host) = host else { continue };
             if host.path != spec.path {
                 host.path.clone_from(&spec.path);
-                host.pane = Pane::new(spec.path.clone(), height);
+                host.pane = Pane::at_row_height(spec.path.clone(), height, host.pane.row_height());
+                host.pane.use_executor(cx.background_executor().clone());
                 host.answered = false;
                 if let Some(backend) = &host.backend {
                     if let Err(error) =
@@ -176,6 +164,7 @@ impl Shell {
             host.pane.cursor = cursor.min(host.pane.held.total.saturating_sub(1));
             host.pane.reveal_cursor();
             host.selected = selection;
+            host.input.selection.sync(&host.selected);
             self.path_labels[side] = spec.path.clone().into();
         }
         // A later scene starts with no card open; the reset runs before any scene's own setup.
@@ -200,9 +189,7 @@ impl Shell {
         window.set_rem_size(px(spec.text_size as f32));
         self.visual.pending = Some(Pending { spec, answer });
         self.visual.deadline = Some(cx.spawn_in(window, async move |this, cx| {
-            cx.background_executor()
-                .timer(Duration::from_millis(1500))
-                .await;
+            cx.background_executor().timer(super::FRAME_WAIT).await;
             let _ = cx.update(|_, cx| {
                 this.update(cx, |shell, _| {
                     if let Some(pending) = shell.visual.pending.take() {

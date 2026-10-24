@@ -1,0 +1,88 @@
+//! Legacy transfer-card observations come from the Jobs block the operations overlay actually paints.
+use crate::{
+    state::Shell,
+    visual::{number, object},
+};
+use flea::{jsondoc::Json, ui_logic_op1::jobs::Action};
+use gpui::App;
+
+fn control(text: Option<crate::g2::fb1::observe::Text>, enabled: bool) -> Json {
+    let centre = text
+        .as_ref()
+        .map(|t| {
+            let b = t.bounds;
+            crate::ipc::rows::centre_of(
+                f32::from(b.origin.x),
+                f32::from(b.origin.y),
+                f32::from(b.size.width),
+                f32::from(b.size.height),
+            )
+        })
+        .unwrap_or_default();
+    let label = text
+        .as_ref()
+        .map(|t| t.text.to_string())
+        .unwrap_or_default();
+    let rect = text.as_ref().map(super::status::rect).unwrap_or_default();
+    let Json::Obj(mut state) = super::status::text_state(text, 0.) else {
+        unreachable!()
+    };
+    state.extend([
+        ("label".into(), Json::Str(label)),
+        ("enabled".into(), Json::Bool(enabled)),
+        ("centre".into(), Json::Str(centre)),
+        ("rect".into(), Json::Str(rect)),
+    ]);
+    Json::Obj(state)
+}
+
+pub(super) fn read(shell: &Shell, cx: &App, line: &crate::g2::fb1::line::MessageLine) -> Json {
+    let overlay = shell.overlay.as_ref().map(|overlay| overlay.read(cx));
+    let frame = overlay.and_then(|overlay| overlay.feedback_paint.get("frame"));
+    let visible =
+        frame.is_some() && overlay.is_some_and(|o| !o.model.jobs.folded && o.model.jobs.visible());
+    let block = overlay
+        .filter(|_| visible)
+        .and_then(|o| o.model.blocks.first());
+    let cancelling = block.is_some_and(|(_, block)| {
+        line.messages().activities().iter().any(|a| {
+            a.transfer == block.id
+                && Some(a.owner) == overlay.and_then(|o| o.owner).map(|owner| owner as u64)
+                && a.cancelling
+        })
+    });
+    let can_cancel = visible && block.is_some_and(|(_, b)| b.buttons.contains(&Action::Cancel));
+    let cancel = overlay
+        .filter(|_| visible)
+        .and_then(|o| o.feedback_paint.get("cancel"));
+    let painted_text = |name| {
+        overlay
+            .filter(|_| visible)
+            .and_then(|overlay| overlay.feedback_paint.get(name))
+            .map(|text| text.text.to_string())
+            .unwrap_or_default()
+    };
+    object([
+        ("visible", Json::Bool(visible)),
+        ("cancelling", Json::Bool(cancelling)),
+        ("byteLine", Json::Str(painted_text("byte-line"))),
+        ("headline", Json::Str(painted_text("headline"))),
+        (
+            "writing",
+            Json::Bool(overlay.is_some_and(|o| o.model.wire.transfer.writing)),
+        ),
+        (
+            "rect",
+            Json::Str(frame.as_ref().map(super::status::rect).unwrap_or_default()),
+        ),
+        ("cancel", control(cancel, can_cancel)),
+        (
+            "undo",
+            control(line.painted.get("undo"), !line.drawn().undo.is_empty()),
+        ),
+        (
+            "blocks",
+            number(overlay.map_or(0, |o| o.model.blocks.len())),
+        ),
+    ])
+}

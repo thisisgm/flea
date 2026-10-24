@@ -5,7 +5,7 @@ use crate::pane::{
     swap::{Options, Own, Swap},
 };
 use flea::protocol::{Reply, RowFacts};
-use std::{rc::Rc, time::Instant};
+use std::rc::Rc;
 
 pub use super::element::ROW_HEIGHT;
 
@@ -47,30 +47,38 @@ pub struct Pane {
     path: String,
     pub held: Rc<Held>,
     pub scroll_y: f32,
+    pub scroll_extent: Option<f32>,
     pub cursor: usize,
     height: f32,
+    row_height: f32,
     pub state: State,
     pub swap: Swap,
     pub requests: Requests,
     pub list_requests: usize,
     pub(crate) greatest_listing: usize,
-    clock: Instant,
+    pub(crate) clock: crate::pane::clock::Clock,
 }
 
 impl Pane {
     pub fn new(path: String, height: f32) -> Self {
+        Self::at_row_height(path, height, ROW_HEIGHT)
+    }
+
+    pub fn at_row_height(path: String, height: f32, row_height: f32) -> Self {
         let mut pane = Self {
             path: path.clone(),
             held: Rc::default(),
             scroll_y: 0.,
+            scroll_extent: None,
             cursor: 0,
             height,
+            row_height,
             state: State::default(),
             swap: Swap::default(),
             requests: Requests::default(),
             list_requests: 0,
             greatest_listing: 0,
-            clock: Instant::now(),
+            clock: Default::default(),
         };
         pane.begin(path, Options::default(), 0);
         pane
@@ -78,6 +86,12 @@ impl Pane {
 
     pub fn now(&self) -> u64 {
         self.clock.elapsed().as_millis() as u64
+    }
+    pub(crate) fn use_executor(&mut self, executor: gpui::BackgroundExecutor) {
+        self.clock.bind(executor);
+    }
+    pub(crate) fn identity(&self) -> u64 {
+        self.clock.identity
     }
     pub fn path(&self) -> &str {
         &self.path
@@ -104,7 +118,7 @@ impl Pane {
         window_size(self.visible_rows())
     }
     pub fn visible_rows(&self) -> usize {
-        visible_rows(self.height)
+        ((self.height / self.row_height).ceil() as usize).max(1)
     }
     pub fn set_height(&mut self, height: f32) {
         self.height = height;
@@ -133,6 +147,7 @@ impl Pane {
     }
 
     fn clear_rows(&mut self) {
+        self.scroll_extent = None;
         self.held = Rc::default();
         self.cursor = 0;
         self.scroll_y = 0.;
@@ -185,11 +200,12 @@ impl Pane {
             return false;
         };
         let held = pending.following.take().unwrap_or(held);
+        self.scroll_extent = None;
         self.path = pending.path;
         self.swap.listing_first = pending.first;
         self.greatest_listing = held.listing;
         self.cursor = held.start;
-        self.scroll_y = held.start as f32 * ROW_HEIGHT;
+        self.scroll_y = held.start as f32 * self.row_height;
         self.state = State {
             kind: if held.total == 0 {
                 Kind::Empty
@@ -203,7 +219,7 @@ impl Pane {
         };
         self.held = Rc::new(held);
         self.scroll_by(0.);
-        self.requests.initial_first = Some((self.scroll_y / ROW_HEIGHT).floor() as usize);
+        self.requests.initial_first = Some((self.scroll_y / self.row_height).floor() as usize);
         self.swap.counters.commits += 1;
         self.swap.rows_at = now;
         self.swap.end(now, "landed");
@@ -213,7 +229,7 @@ impl Pane {
     pub fn tick(&mut self, now: u64) -> bool {
         if self.swap.pending.as_ref().is_some_and(|pending| {
             pending.ready.is_some() && pending.parked_until.is_none_or(|until| now >= until)
-        }) && self.swap.show_left(now) == 0
+        }) && self.swap.can_land(now)
         {
             if self
                 .swap
@@ -277,7 +293,7 @@ impl Pane {
                 .as_mut()
                 .expect("parked listing")
                 .parked_until = None;
-            return self.swap.show_left(now) == 0 && self.commit(now);
+            return self.swap.can_land(now) && self.commit(now);
         }
         // A protocol error while a pair is ready came from its anchor's answer; the complete pair still lands.
         if operation == "protocol"
@@ -288,7 +304,7 @@ impl Pane {
                 .is_some_and(|pending| pending.ready.is_some())
         {
             self.retire_anchor();
-            return self.swap.show_left(now) == 0 && self.commit(now);
+            return self.swap.can_land(now) && self.commit(now);
         }
         if operation == "window" {
             if path == self.path && !self.busy() {
@@ -332,52 +348,11 @@ impl Pane {
     pub fn accepts_work(&self, listing: usize) -> bool {
         self.swap.pending.is_none() && listing > 0 && listing == self.held.listing
     }
-    pub fn wanted_window(&mut self) -> Option<(usize, usize)> {
-        if self.swap.pending.is_some() {
-            return None;
-        }
-        let first = (self.scroll_y / ROW_HEIGHT).floor() as usize;
-        self.requests
-            .wanted(&self.held, first, self.visible_rows())
-            .map(|request| (request.start, request.count))
-    }
-    fn max_scroll(&self) -> f32 {
-        (self.held.total as f32 * ROW_HEIGHT - self.height).max(0.)
-    }
-    pub fn scroll_by(&mut self, delta: f32) {
-        self.scroll_y = (self.scroll_y + delta).clamp(0., self.max_scroll());
-    }
-    pub fn scroll_to(&mut self, y: f32) {
-        self.scroll_y = y.clamp(0., self.max_scroll());
-    }
-    pub fn move_cursor(&mut self, step: Move) -> bool {
-        let total = self.held.total;
-        if self.busy() || total == 0 {
-            return false;
-        }
-        let page = ((self.height / ROW_HEIGHT).floor() as usize).max(1);
-        let last = total - 1;
-        self.cursor = match step {
-            Move::Up => self.cursor.saturating_sub(1),
-            Move::Down => (self.cursor + 1).min(last),
-            Move::PageUp => self.cursor.saturating_sub(page),
-            Move::PageDown => (self.cursor + page).min(last),
-            Move::Home => 0,
-            Move::End => last,
-        };
-        self.reveal_cursor();
-        true
-    }
-    pub fn reveal_cursor(&mut self) {
-        let top = self.cursor as f32 * ROW_HEIGHT;
-        if top < self.scroll_y {
-            self.scroll_to(top);
-        } else if top + ROW_HEIGHT > self.scroll_y + self.height {
-            self.scroll_to(top + ROW_HEIGHT - self.height);
-        }
-    }
 }
 
 #[cfg(test)]
 #[path = "pane_tests.rs"]
 mod tests;
+
+#[path = "pane_geometry.rs"]
+mod geometry;

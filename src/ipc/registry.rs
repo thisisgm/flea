@@ -28,6 +28,7 @@ pub const LIFECYCLE: &[Function] = &[
 ];
 
 pub const VISUAL: &[Function] = &[
+    function!("flea", "omiState", "string", &[]),
     function!(
         "flea",
         "scene",

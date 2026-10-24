@@ -64,7 +64,9 @@ fn fix9_copy_to_geometry_follows_the_theme_ladder(cx: &mut TestAppContext) {
             px(button),
             "button at {base}"
         );
-        let title_line = cx.update(|window, _| window.pixel_snap(px(title * 1.2_f32)));
+        let title_line = cx.update(|window, _| {
+            px((title * 1.2_f32 * window.scale_factor()).ceil() / window.scale_factor())
+        });
         assert_eq!(bounds(cx, "op1-title").size.height, title_line);
         assert!((f32::from(card.center().y) - 350.).abs() <= 0.5);
     }

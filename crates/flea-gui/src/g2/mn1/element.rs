@@ -167,13 +167,15 @@ fn paint_row(
         ));
     }
     let dim = if line.disabled { DIM } else { 1. };
+    let frame = px(1. - line.frame_inset());
+    let (left, right) = (left - frame, right + frame);
     let red = matches!(line.ink, Ink::Errored | Ink::Danger);
     let label_ink = if red { ink.error } else { ink.label }.opacity(dim);
     let mark_ink = if red { ink.error } else { ink.mark }.opacity(dim);
     paint_lead(&line.lead, mark_ink, ink, left, top, window, cx);
     // Trailing parts end on one edge: the chevron's column, which a state word keeps, then the key, then the word.
     let mut edge = right - px(PAD_X);
-    if line.chevron || line.word.is_some() {
+    if line.has_trailing_column() {
         if line.chevron {
             let (key, data) = glyphs::mark("chevron-right");
             let bounds = Bounds::new(
@@ -184,16 +186,29 @@ fn paint_row(
         }
         edge -= px(CHEVRON + GAP);
     }
-    for part in [&line.key, &line.word].into_iter().flatten() {
-        let x = edge - px(part.width());
-        paint_text(part, x, top, ink.muted.opacity(dim), window);
+    for (part, width) in line
+        .key
+        .iter()
+        .map(|key| (key, key.width()))
+        .chain(line.word.iter().map(|word| (word, line.word_width())))
+    {
+        let x = edge - px(width);
+        if let Some(caption) = &line.wrapped {
+            caption.paint(
+                point(x, top),
+                if line.disabled { ink.label } else { ink.muted },
+                window,
+            );
+        } else {
+            paint_text(part, x, top, ink.muted.opacity(dim), window);
+        }
         edge = x - px(GAP);
     }
     let Some(label) = &line.label else { return };
     let start = left + px(PAD_X + SLOT + GAP);
     let column = Bounds::new(
         point(start, top),
-        size((edge - start + px(GAP)).max(px(0.)), px(ROW as f32)),
+        size(px(line.label_room(width.into())), px(ROW as f32)),
     );
     window.with_content_mask(Some(ContentMask { bounds: column }), |window| {
         paint_text(label, start, top, label_ink, window)

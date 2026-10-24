@@ -2,6 +2,7 @@
 use super::check::Checks;
 use super::fixture::{peek_row, row};
 use super::frames::{frame, held, open, read, real_cx, set, typeface, View};
+pub use super::theme::test_theme;
 use flea::protocol::RowFacts;
 use flea_gui::columns::{
     geometry::{cells, name_budget, Slot, GAP},
@@ -10,7 +11,6 @@ use flea_gui::columns::{
     peeks::PeekRow,
     TrackRows, TrackState, TrackView,
 };
-use flea_gui::palette::Theme;
 use gpui::{GlyphRun, Hsla, TestAppContext, TextRun, Window, WindowHandle};
 use std::{
     cell::{Cell, RefCell},
@@ -112,12 +112,6 @@ pub fn visible(cx: &mut TestAppContext, window: WindowHandle<View>, slot: Slot) 
 }
 
 /// A theme distinct from Theme::default, so a palette that ignores the installed theme cannot match it.
-pub fn test_theme() -> Theme {
-    let mut theme = Theme::default();
-    std::mem::swap(&mut theme.background, &mut theme.foreground);
-    theme
-}
-
 /// Installs test_theme before the window opens, the way the app installs its theme at startup.
 pub fn install_theme(cx: &mut TestAppContext) {
     cx.update(|cx| cx.set_global(test_theme()));

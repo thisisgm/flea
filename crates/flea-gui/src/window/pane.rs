@@ -9,13 +9,22 @@ use gpui::{SharedString, Task};
 use std::{cell::RefCell, rc::Rc};
 
 pub(crate) struct PaneHost {
+    pub search: super::search::Runtime,
+    pub columns: Option<super::columns::Columns>,
     pub path: String,
     pub pane: Pane,
     pub list: Rc<RefCell<ListState>>,
+    pub drawn_view: Option<super::startup::View>,
+    pub drawn_list: bool,
+    pub grid: Option<crate::grid::host::GridHost>,
     pub backend: Option<Backend>,
     pub reader: Option<Task<()>>,
     pub transition: Option<Task<()>>,
+    pub transition_at: Option<std::time::Instant>,
+    /// Ascending, unique row indices; producers normalize once when the selection changes.
     pub selected: Vec<usize>,
+    pub sizes: crate::list::sizes::State,
+    pub input: crate::input::PaneInput,
     pub select: Option<String>,
     pub error: Option<String>,
     pub failure: Option<Failure>,
@@ -30,19 +39,42 @@ pub(crate) struct PaneHost {
 }
 
 impl PaneHost {
+    #[cfg(test)]
     pub fn new(path: String, select: Option<String>, height: f32, locale: &Snapshot) -> Self {
+        Self::with_typeface(path, select, height, locale, Typeface::omarchy_default())
+    }
+
+    pub fn with_typeface(
+        path: String,
+        select: Option<String>,
+        height: f32,
+        locale: &Snapshot,
+        typeface: Typeface,
+    ) -> Self {
         Self {
-            pane: Pane::new(path.clone(), height),
+            search: super::search::Runtime::new(typeface.clone()),
+            columns: None,
+            pane: Pane::at_row_height(
+                path.clone(),
+                height,
+                crate::list::Metrics::for_typeface(&typeface).row,
+            ),
             path,
             select,
             list: Rc::new(RefCell::new(ListState::with_words(
-                Typeface::omarchy_default(),
+                typeface,
                 Words::from_catalog(&locale.catalog),
             ))),
+            drawn_view: None,
+            drawn_list: false,
+            grid: None,
             backend: None,
             reader: None,
             transition: None,
+            transition_at: None,
             selected: Vec::new(),
+            sizes: Default::default(),
+            input: Default::default(),
             error: None,
             failure: None,
             status: locale.catalog.tr("window.loading").into(),
@@ -113,6 +145,12 @@ impl PaneHost {
     pub fn changed(&mut self, locale: &Snapshot) {
         let generation = self.pane.held.listing;
         if generation != self.applied_listing {
+            // A replacement listing cannot restore the previous band's cursor.
+            self.input.band = None;
+            self.input.cancel(&mut self.selected, &mut self.pane.cursor);
+            self.input.selection.reset();
+            self.input.pulled = None;
+            self.input.press = None;
             self.selected.clear();
             self.applied_listing = generation;
         }
@@ -127,3 +165,7 @@ impl PaneHost {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "pane_generation_cursor_tests.rs"]
+mod generation_cursor_tests;

@@ -1,9 +1,5 @@
 use super::{lifecycle::Phase, startup};
-use crate::{
-    list::pane::{Move, ROW_HEIGHT},
-    pane::requests,
-    state::Shell,
-};
+use crate::{pane::requests, state::Shell};
 use gpui::{px, Context, KeyDownEvent, ScrollWheelEvent, Window};
 #[path = "keyboard.rs"]
 mod keyboard;
@@ -51,17 +47,13 @@ impl Shell {
         }
         // Every modal key belongs to the card; a cardless Escape still reaches the window.
         if let Some(overlay) = self.overlay.clone() {
-            let modal = overlay.read_with(cx, |card, _| card.model.open());
+            let modal = overlay.read_with(cx, |card, cx| card.modal(cx));
             if modal
                 || (event.keystroke.key == "escape" && modifiers(event.keystroke.modifiers) == 0)
             {
-                let showing = overlay.read_with(cx, |card, _| {
-                    card.model.open() || (card.model.jobs.visible() && !card.model.jobs.folded)
-                });
+                let showing = overlay.read_with(cx, |card, cx| card.showing(cx));
                 overlay.update(cx, |card, cx| card.key(event, window, cx));
-                let still = overlay.read_with(cx, |card, _| {
-                    card.model.open() || (card.model.jobs.visible() && !card.model.jobs.folded)
-                });
+                let still = overlay.read_with(cx, |card, cx| card.showing(cx));
                 if !still {
                     self.overlay = None;
                 }
@@ -72,12 +64,54 @@ impl Shell {
                 }
             }
         }
+        if event.keystroke.key == "escape" && self.dual_drag.is_some() {
+            self.dual_cancel(cx);
+            cx.stop_propagation();
+            return;
+        }
         if event.keystroke.modifiers.control && event.keystroke.key == "q" {
             self.close(window, cx);
             cx.stop_propagation();
             return;
         }
-        if modifiers(event.keystroke.modifiers) == 0 {
+        if self.settings_dismiss(event, cx) {
+            return;
+        }
+        if self.trash_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        if self.menu_key(event, window, cx) {
+            return;
+        }
+        if self.path_holds_keyboard(window, cx) {
+            return;
+        }
+        if event.keystroke.key == "escape"
+            && modifiers(event.keystroke.modifiers) == 0
+            && self.keyboard.context == flea::keys::Context::Listing
+            && self.status_escape(cx)
+        {
+            cx.stop_propagation();
+            return;
+        }
+        if !self.input_blocked(cx) && self.search_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        if self.input_blocked(cx) {
+            cx.stop_propagation();
+            return;
+        }
+        if let Some(stop) = self.rail_key(event, window, cx) {
+            if stop {
+                cx.stop_propagation();
+            }
+            return;
+        }
+        if modifiers(event.keystroke.modifiers) == 0
+            && (self.view != startup::View::Dual || self.focus.is_focused(window))
+        {
             if let Some(host) = &mut self.panes[self.focus_side] {
                 // The seam acts only while idle, so no plain key touches a listing being replaced.
                 if !host.pane.busy() && self.seam.key(&event.keystroke.key, &mut host.pane) {
@@ -105,7 +139,15 @@ impl Shell {
             .and_then(flea::jsondoc::Json::as_str)
             .unwrap_or("default");
         let pair_armed = self.keyboard.pair_armed(name, seat);
-        let action = match self.keyboard.resolve(name, event, window.modifiers(), seat) {
+        let resolved = self.keyboard.resolve(name, event, window.modifiers(), seat);
+        let dispatch = if resolved == Dispatch::Composition {
+            resolved
+        } else {
+            self.grid_sideways(event)
+                .map(Dispatch::Action)
+                .unwrap_or(resolved)
+        };
+        let action = match dispatch {
             Dispatch::Unbound | Dispatch::Composition => return,
             Dispatch::Suppressed | Dispatch::Armed => {
                 cx.stop_propagation();
@@ -113,12 +155,57 @@ impl Shell {
             }
             Dispatch::Action(action) => action,
         };
-        // A listing out swallows every row action, modified or not, but the answered list.
-        if requests::swallows(host.pane.busy(), action) {
+        let busy = host.pane.busy();
+        if matches!(action, "focusNext" | "focusPrevious")
+            && self.dual_tab(action == "focusNext", window, cx)
+        {
             cx.stop_propagation();
             return;
         }
-        if action == "windowNew" {
+        // A listing out swallows every row action, modified or not, but the answered list.
+        if matches!(action, "focusNext" | "focusPrevious") {
+            self.input_action(action, window, cx);
+            cx.stop_propagation();
+            return;
+        }
+        if self.keyboard.context == flea::keys::Context::Listing && requests::swallows(busy, action)
+        {
+            cx.stop_propagation();
+            return;
+        }
+        if self.search_action(action, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        if self.trash_action(action, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        if self.settings_action(action, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        if self.grid_key(action, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        if (action == "escape" || self.view != startup::View::Dual || self.focus.is_focused(window))
+            && self.input_action(action, window, cx)
+        {
+            cx.stop_propagation();
+            return;
+        }
+        if self.operation_action(action, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        if action == "menu" {
+            self.menu_keyboard_open(window, cx);
+        } else if action == "autofitColumns" {
+            self.fit_list_columns(window, cx);
+        } else if action == "pathBar" {
+            self.chrome_action(action, window, cx);
+        } else if action == "windowNew" {
             self.new_window();
         } else if let Some(view) = match action {
             "viewList" => Some(startup::View::List),
@@ -129,31 +216,12 @@ impl Shell {
         } {
             self.set_view(view, window, cx);
         } else {
-            let step = match action {
-                "cursorUp" => Some(Move::Up),
-                "cursorDown" => Some(Move::Down),
-                "pageUp" => Some(Move::PageUp),
-                "pageDown" => Some(Move::PageDown),
-                "cursorFirst" => Some(Move::Home),
-                "cursorLast" => Some(Move::End),
-                _ => None,
-            };
-            if let Some(step) =
-                step.filter(|_| self.keyboard.context == flea::keys::Context::Listing)
-            {
-                let host = self.panes[self.focus_side].as_mut().expect("focused pane");
-                if host.pane.move_cursor(step) {
-                    self.seam.selected(host.pane.cursor);
-                    cx.notify();
-                }
-            } else {
-                cx.emit(ActionEvent {
-                    action,
-                    seat,
-                    context: self.keyboard.context,
-                    pair_armed,
-                });
-            }
+            cx.emit(ActionEvent {
+                action,
+                seat,
+                context: self.keyboard.context,
+                pair_armed,
+            });
         }
         cx.stop_propagation();
     }
@@ -161,19 +229,28 @@ impl Shell {
     pub(crate) fn wheel(
         &mut self,
         event: &ScrollWheelEvent,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.lifecycle.phase() != Phase::Open {
+        if self.menu_wheel(event, window, cx) {
             return;
         }
-        if let Some(host) = &mut self.panes[self.focus_side] {
-            if host.pane.busy() {
-                return;
-            }
-            host.pane
-                .scroll_by(-f32::from(event.delta.pixel_delta(px(ROW_HEIGHT)).y));
-            cx.notify();
+        if self.input_blocked(cx) || self.view != startup::View::Grid {
+            return;
         }
+        let Some(host) = self.panes[self.focus_side].as_ref() else {
+            return;
+        };
+        // The root hears chrome and status wheels too; only the painted Grid owns scrolling.
+        if host.drawn_view != Some(startup::View::Grid)
+            || host.grid.as_ref().is_none_or(|grid| {
+                let drawn = grid.state.borrow();
+                drawn.layout.is_none() || !drawn.bounds.contains(&event.position)
+            })
+        {
+            return;
+        }
+        let row = host.pane.row_height();
+        self.grid_scroll(-f32::from(event.delta.pixel_delta(px(row)).y), cx);
     }
 }

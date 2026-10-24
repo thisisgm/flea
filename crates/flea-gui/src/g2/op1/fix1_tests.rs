@@ -216,7 +216,7 @@ fn six_jobs(overlay: &gpui::Entity<Overlay>, vcx: &mut gpui::VisualTestContext) 
             o.line(&job(id, 1), cx);
         }
     });
-    vcx.run_until_parked();
+    super::draw_fixture::settle_progress(vcx);
 }
 
 fn frames(
@@ -282,7 +282,7 @@ fn copy_to_validates_through_the_menu_and_refuses_a_relative_path() {
             r#"{"c":"menuaction","op":"validate","id":7,"action":"moveTo","dest":"/home/u/work"}"#
         ]
     );
-    ops.key(&cat, "enter", false);
+    ops.press(&cat, super::press::Press::CopyConfirm);
     assert_eq!(ops.outbox.len(), 1);
     ops.line(&cat, r#"{"t":"menuaction","id":7,"op":"validate","ok":true,"action":"moveTo","paths":["/a/x"],"dest":"/home/u/work"}"#, 0);
     assert_eq!(

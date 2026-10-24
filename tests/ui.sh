@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 . "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 . "$(dirname "${BASH_SOURCE[0]}")/lib/flea-transport.sh"
-# Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
+# Drives the selected frontend's real window and asserts through its read-only IPC seam.
 # Usage: ./tests/ui.sh [case ...]; with no args it runs the default wanted list below; every case_* here or in a sourced tests/ui-*.sh outside it runs only by name (touchpad, networklive and xwdrag among them).
 set -u
 set -o pipefail
@@ -19,6 +19,8 @@ hypr_center_divisor=2
 
 export PATH="$HOME/.local/bin:$PATH"
 eval "$(omarchy-drive env)"
+test_frontend=${FLEA_TEST_FRONTEND:-qml}
+case "$test_frontend" in qml|gpui) ;; *) fail "unknown test frontend: $test_frontend" ;; esac
 # omarchy-drive env omits the Qt platform theme, without which no icon name resolves; the session publishes it here.
 # Omarchy sets this with hl.env in /usr/share/omarchy/default/hypr/envs.lua, so it reaches a client
 # Hyprland launched and is not necessarily in the systemd user environment at all. Both are read, and
@@ -34,6 +36,7 @@ platform_theme_from_a_live_client() {
     tr '\0' '\n' < "/proc/$pid/environ" | grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
 }
 
+if [[ "$test_frontend" == qml ]]; then
 if [[ -z "${QT_QPA_PLATFORMTHEME:-}" ]]; then
     export QT_QPA_PLATFORMTHEME="$(platform_theme)"
 fi
@@ -41,12 +44,15 @@ if [[ -z "$QT_QPA_PLATFORMTHEME" ]]; then
     export QT_QPA_PLATFORMTHEME="$(platform_theme_from_a_live_client)"
 fi
 [[ -n "$QT_QPA_PLATFORMTHEME" ]] || fail "no session, and no running client, published QT_QPA_PLATFORMTHEME, so every row would draw no icon at all"
+fi
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 flea_ui="$repo/ui"
-# Every Flea this run launches announces its WorkerScript starts, so the log check below can match them to Qt's null connect lines.
+# QML windows announce WorkerScript starts so the log gate can match Qt's null connect lines.
 . "$repo/tests/qslog-gate.sh"
+if [[ "$test_frontend" == qml ]]; then
 export QT_LOGGING_RULES="$(qslog_rules "${QT_LOGGING_RULES:-}")"
+fi
 flea_bin="${FLEA_BIN:-$repo/target/release/flea}"
 flea_ipc_init "$flea_bin"
 # Sample input: let finished = Command::new("gio")
@@ -215,6 +221,7 @@ ipc() {
 
 # Window class used by every preflight, focus check and injected keystroke.
 flea_window_class=com.thisisgm.flea
+[[ "$test_frontend" != gpui ]] || flea_window_class=flea
 
 settle() {
     sleep "$settle_s"
@@ -481,11 +488,12 @@ window_addr_of_pid() {
 # Positive equality against the expected class: a negated test reads an empty class as a pass; with ipc_pid set the pid is the identity, since two Flea windows share a class.
 assert_focus() {
     local seen
+    [[ "${test_frontend:-qml}" != gpui || -n "$ipc_pid" ]] || fail "native input has no owned PID"
     if [[ -n "$ipc_pid" ]]; then
         seen=$(focused_pid)
         [[ "$seen" == "$ipc_pid" ]] \
             || fail "focus is on qs pid '$seen', not $ipc_pid, so this case sends no more keys"
-        return
+        [[ "${test_frontend:-qml}" == gpui ]] || return
     fi
     seen=$(focused_class || true)
     [[ "$seen" == "$flea_window_class" ]] \
@@ -531,7 +539,9 @@ real_accent=$(grep -E '^accent' "$real_state_dir/theme/colors.toml" | grep -oE '
 assert_theme() {
     local loaded seen
     # The seam is built after the first listing, so a window that has just mapped may not answer yet.
-    flea_ipc_wait -p "$flea_ui/boot" flea ready true --timeout 20 >/dev/null \
+    local -a route=(-p "$flea_ui/boot")
+    [[ "${test_frontend:-qml}" != gpui || -z "$ipc_pid" ]] || route=(--pid "$ipc_pid")
+    flea_ipc_wait "${route[@]}" flea ready true --timeout 20 >/dev/null \
         || fail "the IPC seam never answered ready, so no reader of this window can be trusted"
     for _attempt in $(seq 1 100); do
         seen=$(ipc themeForeground 2>/dev/null || true)
@@ -560,12 +570,33 @@ fixture_home_make() {
         mkdir -p "$home/.config/omarchy"
         cp "$real_user_shell_toml" "$home/.config/omarchy/shell.toml"
     fi
+    if [[ "${test_frontend:-qml}" == gpui ]]; then
+        python3 -B "$repo/tests/lib/flea_native_inputs.py" "${real_user_shell_toml%/.config/omarchy/shell.toml}" "$home" \
+            || fail "cannot copy native fixture font inputs"
+    fi
 }
 
 assert_window() {
     # A window behind a heavy writeback sets its title within async_wait_ms, the bound every other async answer gets.
-    local count class deadline
+    local count class deadline clients
     deadline=$(( $(date +%s%3N) + async_wait_ms ))
+    if [[ "${test_frontend:-qml}" == gpui ]]; then
+        [[ "$ipc_pid" =~ ^[1-9][0-9]*$ ]] || fail "native launch has no owned PID"
+        while :; do
+            clients=$(hyprctl clients -j) || fail "cannot inspect native launch ownership"
+            count=$(jq --argjson pid "$ipc_pid" '[.[] | select(.pid == $pid)] | length' <<< "$clients") \
+                || fail "cannot parse native compositor clients"
+            [[ "$count" == 0 ]] || break
+            (( $(date +%s%3N) < deadline )) || break
+            sleep 0.05
+        done
+        [[ "$count" == 1 ]] || fail "expected one native window for owned PID $ipc_pid, got $count"
+        class=$(jq -r --argjson pid "$ipc_pid" '.[] | select(.pid == $pid) | .class' <<< "$clients")
+        [[ "$class" == "$flea_window_class" ]] || fail "unexpected native Flea class '$class'"
+        assert_focus
+        assert_theme
+        return
+    fi
     # The window can map before its title is set, and more so behind a heavy writeback: wait for the title, never a sleep.
     while :; do
         count=$(omarchy-drive windows --json | jq '[.windows[] | select(.title == "Flea")] | length')
@@ -611,6 +642,16 @@ launch_window() {
     flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$flea_bin" "${wrap_args[@]}" \
         || fail "owned window launch failed"
     ipc_pid=$FLEA_TEST_PID
+    if [[ "${test_frontend:-qml}" == gpui ]]; then
+        local addr deadline=$(( $(date +%s%3N) + async_wait_ms ))
+        while ! addr=$(window_addr_of_pid "$ipc_pid" 2>/dev/null); do
+            (( $(date +%s%3N) < deadline )) || fail "owned native PID $ipc_pid never mapped"
+            sleep 0.05
+        done
+        omarchy-drive focus "$addr" >/dev/null || fail "cannot focus owned native window $addr"
+        assert_focus
+        return
+    fi
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
 }
@@ -15962,10 +16003,20 @@ case_readme() {
 . "$repo/tests/ui-captures-collide.sh"
 # ui:cap_gm_rail and ui:cap_gm_nethold run only by name: native display, uinput holds and screenshots cannot run headless.
 declare -a wanted=("$@")
+default_run=0
+[[ ${#wanted[@]} -ne 0 ]] || default_run=1
 [[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click clickedge ctrlclick shiftscroll querypaste viewrestart dd ddclick griddrop collide sortrestart foldersort duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden xwsettings selection watch xwwatch reload optical select colour lifted icons thumbs hashcache stale nosweep oem header columnresize columnautofit overflow focus railpointer dualautohidereveal preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject poweroff rename renamefirst renamelife renamefar taildrop providers grid columns columnsbackground operations tabs tabdrag openterminal makeexec renderer settings makedefault scrolllane clickthrough wheelunder overlays views formats previewviews reclick colroot colwatch hangshare hanglisting hanginspect openwithdesign noblank previewswap searchnoblank lookopen transferlive recent middleclick opentab xwundo folderviews hiddenlast marqueemargin relstart userthumbnailer dualtab dualdivider)
 
 : > "$run_log"
 : > "$flea_log"
+native_started_ms=$(date +%s%3N)
+if [[ "$test_frontend" == gpui && "$default_run" == 1 ]]; then
+    python3 -B "$repo/tests/lib/flea_native_wallpaper.py" > "$run_root/wallpaper-before.json" \
+        || fail "full native run requires a verified still wallpaper"
+fi
+if [[ "$test_frontend" == gpui ]]; then
+    printf 'NATIVE_RUN frontend=%s default=%s cases=%s started_ms=%s\n' "$test_frontend" "$default_run" "${#wanted[@]}" "$native_started_ms"
+fi
 failures=0
 # A refusal and an assertion failure mean different things: a failure says a test is wrong, a refusal
 # says the environment is unsafe and every case after it is running against that. Every case runs in
@@ -16032,6 +16083,7 @@ unreadable_state_warning="/flea/ui.json) failed: (Permission denied)"
 # Qt 6.12's Wayland text-input-v3 warns when focus leaves a text field while no surface holds text focus; typing still works.
 textinput_warning="virtual void QtWaylandClient::QWaylandTextInputv3::disableSurface(wl_surface*) Trying to disable "
 # A case registers a warning once for each time it causes it. Sample input, one uniq -c line: "      2 Process failed to start, ..."
+if [[ "$test_frontend" == qml ]]; then
 while read -r want warning; do
     count=$(grep -F -c -- "$warning" "$run_log" || true)
     if [[ "$count" != "$want" ]]; then
@@ -16039,18 +16091,30 @@ while read -r want warning; do
         failures=$((failures + 1))
     fi
 done < <(sort "$expected_warnings" | uniq -c)
+fi
 # Qt 6.11.2 prints one null connect warning per WorkerScript started with a source: they leave the grep below only when they equal the WORKER_STARTED lines.
 checked_log="$run_root/run-checked.log"
-if ! qslog_filter "native run" < "$run_log" 2>&1 > "$checked_log"; then
+if [[ "$test_frontend" == gpui ]]; then
+    cp "$run_log" "$checked_log" || fail "cannot retain native diagnostic log"
+elif ! qslog_filter "native run" < "$run_log" 2>&1 > "$checked_log"; then
     failures=$((failures + 1))
 fi
-if grep -F -v -e "$expected_warning" -e "$vaapi_warning" -e "$dmabuf_warning" -e "$unreadable_warning" -e "$unreadable_warning2" \
+if [[ "$test_frontend" == gpui ]]; then
+    if ! python3 -B "$repo/tests/lib/flea_native_log.py" "$expected_warnings" "$checked_log"; then
+        printf 'FAIL log\n'
+        failures=$((failures + 1))
+    fi
+elif grep -F -v -e "$expected_warning" -e "$vaapi_warning" -e "$dmabuf_warning" -e "$unreadable_warning" -e "$unreadable_warning2" \
     -e "$unreadable_warning3" -e "$unreadable_warning4" -e "$unreadable_state_warning" -e "$textinput_warning" "$checked_log" \
     | grep -F -v -f "$expected_warnings" | grep -E 'WARN|ERROR|TypeError|ReferenceError|Cannot open'; then
     printf 'FAIL log\n'
     failures=$((failures + 1))
 fi
 printf 'LOG_CHECK_END\n'
+if [[ "$test_frontend" == gpui && "$default_run" == 1 ]]; then
+    python3 -B "$repo/tests/lib/flea_native_wallpaper.py" > "$run_root/wallpaper-after.json" \
+        || fail "full native run ended without a verified still wallpaper"
+fi
 cache_restore
 # The redirect is what makes this structural rather than a promise, so the run asserts it held.
 if [[ "$(ls -A "$real_cache_large" 2>/dev/null | wc -l)" != "$real_cache_before" ]]; then
@@ -16058,6 +16122,10 @@ if [[ "$(ls -A "$real_cache_large" 2>/dev/null | wc -l)" != "$real_cache_before"
     failures=$((failures + 1))
 fi
 printf '%s of %s checks failed\n' "$failures" "$(( ${#wanted[@]} + 3 ))"
+if [[ "$test_frontend" == gpui ]]; then
+    printf 'NATIVE_RUN_END frontend=%s default=%s cases=%s failures=%s wall_ms=%s evidence=%s\n' \
+        "$test_frontend" "$default_run" "${#wanted[@]}" "$failures" "$(( $(date +%s%3N) - native_started_ms ))" "$run_root"
+fi
 # Loud and on its own line: a refused case means the guard stopped something, not that a test is wrong.
 if [[ "$refusals" -gt 0 ]]; then
     printf '%s cases were REFUSED by the sandbox guard, so the environment is unsafe\n' "$refusals"

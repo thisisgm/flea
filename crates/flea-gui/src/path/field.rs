@@ -157,10 +157,10 @@ impl Element for FieldElement {
         let focus = view.focus.clone();
         let frame = frame(bounds);
         window.set_cursor_style(CursorStyle::IBeam, hitbox);
-        // Radius 0 until the theme's corner token lands; the board takes half of Hyprland's.
+        // The small field follows half of the compositor's corner radius.
         window.paint_quad(quad(
             frame,
-            px(0.),
+            px(view.corner / 2.),
             ink.background,
             px(1.),
             ink.accent_frame,

@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 mod transport;
 pub use transport::list_line;
 
+pub mod status;
 mod worker;
 
 #[derive(Clone, Debug)]
@@ -24,6 +25,14 @@ pub struct Failure {
 
 #[derive(Debug)]
 pub enum Event {
+    Filesystem(status::Filesystem),
+    /// One wire reply belongs to both the footer and the folder-size planner.
+    FilesystemDetails {
+        facts: status::Filesystem,
+        class: String,
+    },
+    Plugins(String),
+    Path(crate::path::Answer),
     Reply(Reply),
     Session {
         generation: usize,
@@ -42,6 +51,11 @@ pub enum Event {
     },
     Located(Located),
     Paths(Vec<String>),
+    Operations(String),
+    ListDetails(crate::list::sizes::Reply),
+    Peeked(flea::jsondoc::Json),
+    TrashLine(String),
+    Producer(String),
 }
 
 // Both locate forms: the single path with its index, and the batch with its id and matches.
@@ -104,6 +118,22 @@ fn failure(key: &'static str, detail: impl ToString) -> Failure {
 }
 
 impl Backend {
+    /// Operations use the same ordered backend pipe and shutdown contract.
+    pub fn operation(&self, line: String) -> Result<(), Failure> {
+        self.line(line)
+    }
+    /// Menu producer requests share the ordered backend pipe.
+    pub fn line(&self, line: String) -> Result<(), Failure> {
+        self.send(Control::Line(line))
+    }
+    /// A Columns-owned request, already encoded by its peek producer.
+    pub(crate) fn columns_line(&self, line: String) -> Result<(), Failure> {
+        self.send(Control::Line(line))
+    }
+    /// Only the path producer writes these bounded completion requests.
+    pub fn path_line(&self, line: String) -> Result<(), Failure> {
+        self.send(Control::Line(line))
+    }
     pub fn start(path: String, select: Option<String>, first: usize) -> io::Result<Self> {
         Self::start_command(command(), path, select, first)
     }
@@ -159,8 +189,31 @@ impl Backend {
         })
     }
 
+    // Sample input: {"c":"plugins","op":"enable","id":4,"plugin":"mtorvik.checksums"}
+    pub fn plugins(&self, line: String) -> Result<(), Failure> {
+        let document = flea::jsondoc::parse(&line).map_err(|_| failure("pane.row_request", ""))?;
+        if document.get("c").and_then(flea::jsondoc::Json::as_str) != Some("plugins") {
+            return Err(failure("pane.row_request", ""));
+        }
+        self.send(Control::Line(line))
+    }
+
     pub fn window(&self, start: usize, count: usize) -> Result<(), Failure> {
         self.send(Control::Window { start, count })
+    }
+
+    /// Trash owns these serialized requests; the existing pipe worker owns their lifetime and I/O.
+    pub fn trash_line(&self, line: String) -> Result<(), Failure> {
+        let document = flea::jsondoc::parse(&line).map_err(|_| failure("pane.row_request", ""))?;
+        if line.contains(['\n', '\r'])
+            || !matches!(
+                document.get("c").and_then(flea::jsondoc::Json::as_str),
+                Some("trashbrowse" | "trashthumb" | "trashthumbcancel")
+            )
+        {
+            return Err(failure("pane.row_request", ""));
+        }
+        self.send(Control::Line(line))
     }
 
     pub fn list(&self, path: String, select: Option<String>, first: usize) -> Result<(), Failure> {
@@ -172,7 +225,10 @@ impl Backend {
     }
 
     pub fn rows(&self, command: &'static str, action: RowAction) -> Result<(), Failure> {
-        if !matches!(command, "paths" | "trash") || action.listing == 0 || action.rows.is_empty() {
+        if !matches!(command, "paths" | "trash" | "dirsize")
+            || action.listing == 0
+            || action.rows.is_empty()
+        {
             return Err(failure("pane.row_request", ""));
         }
         self.send(Control::Rows { command, action })
@@ -187,6 +243,10 @@ impl Backend {
             Some(line) => self.send(Control::Line(line)),
             None => Ok(()),
         }
+    }
+
+    pub(crate) fn list_details(&self, line: &'static str) -> Result<(), Failure> {
+        self.send(Control::Line(line.into()))
     }
 
     fn send(&self, control: Control) -> Result<(), Failure> {
@@ -226,13 +286,58 @@ impl Backend {
     }
 
     #[cfg(test)]
+    pub(crate) fn test_reply_line(line: &str) -> Event {
+        transport::parse(line).expect("valid fixture wire")
+    }
+
+    #[cfg(test)]
     pub(crate) fn test_channel() -> (Self, impl FnMut() -> Option<(usize, usize)>) {
+        let (backend, receiver) = Self::test_controls();
+        let receive = move || loop {
+            if let Control::Window { start, count } = receiver.try_recv().ok()? {
+                return Some((start, count));
+            }
+        };
+        (backend, receive)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_lines() -> (Self, impl FnMut() -> Option<String>) {
+        let (backend, receiver) = Self::test_controls();
+        let receive = move || loop {
+            if let Control::Line(line) = receiver.try_recv().ok()? {
+                return Some(line);
+            }
+        };
+        (backend, receive)
+    }
+
+    #[cfg(test)]
+    fn test_controls() -> (Self, mpsc::Receiver<Control>) {
+        let (requests, receiver) = mpsc::channel();
+        let (wake, _) = UnixStream::pair().unwrap();
+        let (_, replies) = async_channel::unbounded();
+        let (_, drained) = async_channel::bounded(1);
+        (
+            Self {
+                requests,
+                closing: Arc::new(Mutex::new(Closing::Open)),
+                wake,
+                replies,
+                drained,
+            },
+            receiver,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_operation_channel() -> (Self, impl FnMut() -> Option<String>) {
         let (requests, receiver) = mpsc::channel();
         let (wake, _) = UnixStream::pair().unwrap();
         let (_, replies) = async_channel::unbounded();
         let (_, drained) = async_channel::bounded(1);
         let receive = move || match receiver.try_recv().ok()? {
-            Control::Window { start, count } => Some((start, count)),
+            Control::Line(line) => Some(line),
             _ => None,
         };
         (
@@ -261,14 +366,9 @@ impl Drop for Backend {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+#[path = "backend/tests.rs"]
+mod tests;
 
-    #[test]
-    fn backend_argv_and_environment_match_the_qml_child() {
-        let command = command();
-        assert_eq!(command.get_args().collect::<Vec<_>>(), ["--backend"]);
-        assert_eq!(command.get_envs().count(), 0);
-        assert!(command.get_current_dir().is_none());
-    }
-}
+#[cfg(test)]
+#[path = "backend/native31_fixture.rs"]
+mod native31_fixture;

@@ -1,4 +1,4 @@
-//! columndividers.qml and columnnarrow.qml: an edge per shown column but the rightmost; narrowing.
+//! columndividers.qml and columnnarrow.qml: populated track edges and the empty-active exception; narrowing.
 use super::check::Checks;
 use super::fixture::{reply, row, Pane, Producers, SETTINGS};
 use flea_gui::columns::geometry::{Slot, DIVIDER};
@@ -60,7 +60,7 @@ fn edges(area: &Area) -> Vec<f32> {
         .collect()
 }
 
-/// checkActive: the active track's divider follows the third column, its edge at x 599 at 900 px.
+/// checkActive: the populated active track keeps its edge at x 599 at 900 px, including with previews off.
 fn check_active(c: &mut Checks, area: &Area, want: bool, label: &str) {
     let active = area
         .tracks()
@@ -130,7 +130,7 @@ fn check_wide(c: &mut Checks, area: &Area, label: &str, ancestors: &[f32]) {
 }
 
 #[test]
-fn the_active_column_draws_its_edge_only_while_the_third_draws() {
+fn the_active_column_keeps_its_edge_with_a_file_and_previews_off() {
     let mut c = Checks::new(DIVIDERS);
     let mut area = Area::new(900., 600., None, 0., SETTINGS);
     let mut producers = Producers::default();
@@ -218,7 +218,16 @@ fn the_active_column_draws_its_edge_only_while_the_third_draws() {
         third_shown(&area),
         false,
     );
-    check_active(&mut c, &area, false, "preview column off");
+    check_active(
+        &mut c,
+        &area,
+        true,
+        "populated file with preview column off",
+    );
+    assert!(matches!(
+        area.tracks().last().unwrap().rows,
+        TrackRows::Blank
+    ));
 
     // A new View state names limit 5 alone, so the preview column reads its default again.
     area.settings = SETTINGS;

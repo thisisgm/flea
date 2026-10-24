@@ -1,4 +1,6 @@
 //! Shared pane transitions; views consume the same committed snapshot and request policy.
+pub(crate) mod clock;
+pub(crate) mod presentation;
 pub mod requests;
 pub mod states;
 pub mod swap;

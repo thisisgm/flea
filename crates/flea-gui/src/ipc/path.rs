@@ -95,6 +95,14 @@ impl Adapter for PathAdapter<'_> {
             "crumbText" => self.crumb_text(0),
             "crumbCentre" if view.editing() || view.inputs.dual => String::new(),
             "crumbCentre" => self.crumb_centre(0, index(0)),
+            "elisionCentre" if view.editing() || view.inputs.dual => String::new(),
+            "elisionCentre" => self.crumb_centre(
+                0,
+                view.strips[0]
+                    .crumbs()
+                    .iter()
+                    .position(|crumb| crumb.elided),
+            ),
             "paneCrumbCount" => self
                 .pane(arguments)
                 .map_or(0, |slot| view.strips[slot].crumbs().len())

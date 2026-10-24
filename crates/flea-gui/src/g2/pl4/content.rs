@@ -2,7 +2,7 @@
 use super::seams::ThemeRoles;
 use flea::i18n::I18n;
 use flea::ui_logic_pl4::order::{Heading, RailSection};
-use flea::ui_logic_pl4::rail::{RailEntry, Square};
+use flea::ui_logic_pl4::rail::{Group, Kind, RailEntry, Square};
 use flea::ui_logic_pl4::tags;
 use flea::ui_logic_pl4::tagtheme::{tag_theme, TagTheme};
 use gpui::{Hsla, Rgba, SharedString};
@@ -27,6 +27,10 @@ pub struct DrawnRow {
     pub label: SharedString,
     pub glyph: &'static str,
     pub mark: RowMark,
+    /// The row's place in the flat rail, so the host can read its mount dot without re-reading the data.
+    pub group: Group,
+    pub kind: Kind,
+    pub mounted: Option<bool>,
     /// A favourite's diagnostic, carried for its tooltip; the row still draws.
     pub error: Option<SharedString>,
 }
@@ -101,6 +105,9 @@ fn row(catalog: &I18n, theme: &TagTheme, entry: &RailEntry) -> DrawnRow {
         label: row_label(catalog, entry),
         glyph: entry.glyph,
         mark,
+        group: entry.group,
+        kind: entry.kind,
+        mounted: entry.mounted,
         error,
     }
 }

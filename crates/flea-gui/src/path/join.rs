@@ -1,0 +1,236 @@
+//! One window joins the path and toolbar producers to its pane navigation and action owners.
+use super::{
+    chrome::{ChromeView, Inputs, PanePath},
+    suggestions::Unranked,
+    view::{Out, PathView},
+};
+use crate::{
+    state::Shell,
+    window::{input::ActionEvent, navigate::Step, startup::View},
+};
+use gpui::{AppContext, Context, Entity, Subscription, Window};
+
+#[derive(Default)]
+pub struct Chrome {
+    pub view: Option<Entity<ChromeView>>,
+    pub panes: [Option<Entity<PanePath>>; 2],
+    pub aliases: Vec<super::crumbs::Alias>,
+    /// The network service sets this when it subscribes to `NetworkPath`; until then a typed address is refused with a sentence.
+    pub network: bool,
+    home: gpui::SharedString,
+    subscriptions: Vec<Subscription>,
+}
+
+/// A typed network address keeps the originating pane when the network service takes it.
+#[derive(Clone, Debug)]
+pub struct NetworkPath {
+    pub side: usize,
+    pub uri: String,
+}
+
+impl gpui::EventEmitter<NetworkPath> for Shell {}
+
+impl Shell {
+    pub(crate) fn path_holds_keyboard(&self, window: &Window, cx: &gpui::App) -> bool {
+        self.chrome.view.as_ref().is_some_and(|chrome| {
+            chrome.read_with(cx, |chrome, cx| {
+                chrome
+                    .path
+                    .read_with(cx, |path, _| path.holds_keyboard(window))
+            })
+        })
+    }
+
+    pub(crate) fn sync_chrome(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let side = self.focus_side;
+        let Some(host) = self.panes[side].as_ref() else {
+            return;
+        };
+        let inputs = Inputs {
+            view: self.view,
+            back: !host.nav.history.back.is_empty(),
+            up: host.nav.can_go_up(&host.pane),
+            filter: !host.pane.state.search,
+            sort: !host.pane.state.search,
+            live: !self.card_holds_keyboard(cx)
+                && self.overlay.as_ref().is_none_or(|overlay| {
+                    overlay.read_with(cx, |card, _| {
+                        !(card.model.open()
+                            || (card.model.jobs.visible() && !card.model.jobs.folded))
+                    })
+                }),
+            corner: self.corner,
+        };
+        if self.chrome.view.is_none() {
+            self.chrome.home = std::env::var("HOME").unwrap_or_default().into();
+            let path =
+                cx.new(|cx| PathView::new(self.locale.catalog.clone(), Box::new(Unranked), cx));
+            self.chrome.subscriptions.push(cx.subscribe_in(
+                &path,
+                window,
+                |shell, _, out, window, cx| shell.path_out(out, window, cx),
+            ));
+            let view = cx.new(|cx| ChromeView::new(path, inputs, cx));
+            self.chrome.subscriptions.push(cx.subscribe_in(
+                &view,
+                window,
+                |shell, _, action, window, cx| shell.chrome_action(action, window, cx),
+            ));
+            self.slots.chrome = Some(view.clone().into());
+            self.chrome.view = Some(view);
+        }
+        let chrome = self.chrome.view.clone().expect("mounted chrome");
+        let path = chrome.read_with(cx, |view, _| view.path.clone());
+        let host = self.panes[side].as_ref().expect("focused pane");
+        let path_inputs = super::view::Inputs {
+            paths: self.path_labels.clone(),
+            home: self.chrome.home.clone(),
+            aliases: self.chrome.aliases.clone(),
+            side,
+            dual: self.view == View::Dual,
+            failed: host.nav.path_failed(&host.pane),
+            show_hidden: host.nav.folders.borrow().hidden,
+            first: host.pane.first_count(),
+        };
+        path.update(cx, |view, cx| {
+            if view.inputs.side != path_inputs.side || view.inputs.dual != path_inputs.dual {
+                view.close(cx);
+            }
+            if view.corner != self.corner {
+                view.corner = self.corner;
+            }
+            view.sync_frame(path_inputs);
+        });
+        chrome.update(cx, |view, _| view.inputs = inputs);
+        for side in 0..2 {
+            if self.view == View::Dual && self.chrome.panes[side].is_none() {
+                let strip = cx.new(|_| PanePath {
+                    path: path.clone(),
+                    side,
+                });
+                self.slots.paths[side] = Some(strip.clone().into());
+                self.chrome.panes[side] = Some(strip);
+            }
+        }
+    }
+
+    pub(crate) fn sync_chrome_probe(&self, cx: &mut Context<Self>) {
+        let Some(chrome) = &self.chrome.view else {
+            return;
+        };
+        let path = chrome.read_with(cx, |view, _| view.path.clone());
+        let probe = self
+            .visual
+            .pending
+            .as_ref()
+            .map(|_| self.visual.probe.clone());
+        path.update(cx, |view, _| view.probe = probe);
+    }
+
+    pub(crate) fn chrome_action(
+        &mut self,
+        action: &'static str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.search_action(action, window, cx) {
+            return;
+        }
+        if self.settings_action(action, window, cx) {
+            return;
+        }
+        if action == "pathBar" {
+            self.sync_chrome(window, cx);
+            if let Some(chrome) = &self.chrome.view {
+                let path = chrome.read_with(cx, |view, _| view.path.clone());
+                path.update(cx, |view, cx| view.open(window, cx));
+            }
+            return;
+        } else if let Some(step) = match action {
+            "back" => Some(Step::Back),
+            "up" => Some(Step::Up),
+            _ => None,
+        } {
+            let _ = self.step(self.focus_side, step, window, cx);
+        } else {
+            let Some(host) = &self.panes[self.focus_side] else {
+                return;
+            };
+            cx.emit(ActionEvent {
+                action,
+                context: self.keyboard.context,
+                pair_armed: false,
+                seat: flea::keys::sequence::Seat {
+                    listing: host.pane.held.listing as u64,
+                    cursor: host.pane.cursor,
+                    view: self.view as u64,
+                    focus: self.focus_side as u64,
+                    ..Default::default()
+                },
+            });
+        }
+        window.focus(&self.focus, cx);
+    }
+
+    fn path_out(&mut self, out: &Out, window: &mut Window, cx: &mut Context<Self>) {
+        match out {
+            Out::Open { side, path } => {
+                let _ = self.step(*side, Step::Open(path.clone()), window, cx);
+            }
+            Out::Focus(side) => self.focus_pane(*side, cx),
+            Out::Network(uri) if self.chrome.network => cx.emit(NetworkPath {
+                side: self.focus_side,
+                uri: uri.clone(),
+            }),
+            Out::Network(_) => {
+                if let Some(host) = self.panes[self.focus_side].as_mut() {
+                    host.status = super::Said::NetworkUnavailable
+                        .text(&self.locale.catalog)
+                        .into();
+                }
+                cx.notify();
+            }
+            Out::Said(message) => {
+                if let Some(host) = self.panes[self.focus_side].as_mut() {
+                    host.status = message.clone().into();
+                }
+                cx.notify();
+            }
+            Out::Closed => {
+                self.focus_pane(self.focus_side, cx);
+                window.focus(&self.focus, cx);
+            }
+            Out::Send { side, line } => {
+                if let Some(host) = self.panes.get_mut(*side).and_then(Option::as_mut) {
+                    if let Some(backend) = &host.backend {
+                        if let Err(error) = backend.path_line(line.clone()) {
+                            host.record_error(error, &self.locale);
+                        }
+                    }
+                }
+            }
+            Out::ReadHistory => {}
+        }
+    }
+
+    /// The path producer takes its own reply; any other peeked answer comes back for the next peek consumer (the columns view shares the wire, ui/WindowBody.qml:232-237).
+    pub(crate) fn path_answer(
+        &mut self,
+        side: usize,
+        answer: super::Answer,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<super::Answer> {
+        let Some(chrome) = &self.chrome.view else {
+            return Some(answer);
+        };
+        let path = chrome.read_with(cx, |view, _| view.path.clone());
+        if !path.read_with(cx, |view, _| {
+            view.inputs.side == side && view.claims(&answer)
+        }) {
+            return Some(answer);
+        }
+        path.update(cx, |view, cx| view.receive(answer, window, cx));
+        None
+    }
+}

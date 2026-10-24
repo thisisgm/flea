@@ -108,6 +108,11 @@ fn the_busy_menu_card_draws_cancel_only(cx: &mut TestAppContext) {
         cx.notify();
     });
     vcx.run_until_parked();
+    // A busy card is progress, so it draws once the shared 150 ms hold has run.
+    assert!(vcx.debug_bounds("op1-button-0").is_none());
+    vcx.executor()
+        .advance_clock(std::time::Duration::from_millis(150));
+    vcx.run_until_parked();
     assert!(vcx.debug_bounds("op1-button-0").is_some());
     assert!(
         vcx.debug_bounds("op1-button-1").is_none(),

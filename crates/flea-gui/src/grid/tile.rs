@@ -17,7 +17,7 @@ pub struct Line {
 
 /// A tile's caption as GridNames breaks it, shaped once, with its mark; colour is chosen at paint.
 pub struct Tile {
-    name: String,
+    pub(super) name: String,
     icon: String,
     mode: u32,
     per_line: usize,

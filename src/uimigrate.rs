@@ -3,7 +3,8 @@ use crate::jsondoc::Json;
 use crate::uischema::STATE_VERSION;
 
 // Each change by the stateVersion it arrived in, oldest first; a file stamped below one has not had it.
-const STEPS: &[(f64, fn(Json) -> Json)] =
+type Step = fn(Json) -> Json;
+const STEPS: &[(f64, Step)] =
     &[(1.0, show_unmounted_drives), (2.0, hide_new_menu_rows), (3.0, hide_run_rows)];
 
 // The file as found carries the stamp: the merged document already holds the shipped one in its place.

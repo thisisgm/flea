@@ -14,13 +14,13 @@ struct Strip {
 }
 
 impl Render for Strip {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .size_full()
             .flex()
             .flex_col()
             .child(div().h(px(27.)).child(self.line.clone()))
-            .children(self.line.read(cx).detail())
+            .children(self.line.read(cx).detail(window, cx))
     }
 }
 
@@ -92,3 +92,6 @@ fn an_error_detail_is_drawn_wrapped_and_capped_at_a_third_of_the_window(cx: &mut
         "no error, no detail"
     );
 }
+
+#[path = "detail_typography_tests.rs"]
+pub(super) mod typography;

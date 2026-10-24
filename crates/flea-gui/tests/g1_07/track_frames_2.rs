@@ -175,7 +175,17 @@ fn each_track_draws_one_divider_where_its_edge_is() {
     );
     area.settings.column = false;
     pane.with(|view| area.sync(&view, &mut producers.ports(), 2));
-    c.eq(90, "the preview column off draws none", active(&area), None);
+    c.eq(
+        90,
+        "a populated file track keeps its edge with previews off",
+        active(&area),
+        Some(599.),
+    );
+    assert!(!area.host.third_shown(area.settings));
+    assert!(matches!(
+        area.tracks().last().unwrap().rows,
+        flea_gui::columns::TrackRows::Blank
+    ));
     pane.go("/a/b/c", Vec::new());
     area.settings.column = true;
     pane.with(|view| area.sync(&view, &mut producers.ports(), 3));

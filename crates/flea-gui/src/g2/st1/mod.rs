@@ -3,15 +3,18 @@
 mod board_strings;
 #[cfg(test)]
 mod board_tests;
+pub mod claim;
 mod draw;
 pub mod geometry;
 #[cfg(test)]
 mod geometry_tests;
-mod glyphs;
+pub(crate) mod glyphs;
 mod marks;
 #[cfg(test)]
 mod overlay_tests;
 pub mod panel;
+mod plugins;
+pub mod probe;
 pub mod seams;
 pub mod sheet;
 #[cfg(test)]
@@ -22,6 +25,7 @@ mod sheet_view;
 #[cfg(test)]
 mod tests;
 pub mod view;
+mod view_head;
 #[cfg(test)]
 mod view_tests;
 

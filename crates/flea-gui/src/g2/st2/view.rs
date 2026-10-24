@@ -17,14 +17,12 @@ pub struct PluginsPane {
     wire: Rc<dyn PluginsWire>,
     pub(super) tokens: Tokens,
     pub(super) radius: f32,
-    marks: HashMap<String, Option<Arc<[u8]>>>,
+    pub(super) marks: HashMap<String, Option<Arc<[u8]>>>,
     focus: FocusHandle,
+    pub probe: crate::g2::st1::probe::Probe,
 }
 
 impl EventEmitter<Effect> for PluginsPane {}
-
-// A community mark.svg over this size is not a mark.
-const MARK_BYTES: u64 = 64 * 1024;
 
 impl PluginsPane {
     /// radius is the compositor's corner radius in pixels, the boards' --r.
@@ -44,6 +42,7 @@ impl PluginsPane {
             radius,
             marks: HashMap::new(),
             focus: cx.focus_handle(),
+            probe: Default::default(),
         }
     }
 
@@ -84,6 +83,11 @@ impl PluginsPane {
         cx.notify();
     }
 
+    pub fn refresh(&mut self, cx: &mut Context<Self>) {
+        self.page.start(self.wire.as_ref());
+        cx.notify();
+    }
+
     pub fn key(&mut self, key: Key, cx: &mut Context<Self>) {
         let effect = self.page.key(key, self.wire.as_ref());
         self.after(effect, cx);
@@ -96,36 +100,14 @@ impl PluginsPane {
         cx.notify();
     }
 
-    // A community plugin's mark.svg is read once, off the UI thread.
-    fn load_marks(&mut self, cx: &mut Context<Self>) {
-        let wanted: Vec<String> = self
-            .page
-            .plugins()
-            .iter()
-            .map(|p| p.mark_path.clone())
-            .filter(|p| !p.is_empty() && !self.marks.contains_key(p))
-            .collect();
-        for path in wanted {
-            self.marks.insert(path.clone(), None);
-            let read = path.clone();
-            cx.spawn(async move |this, cx| {
-                let data = cx
-                    .background_executor()
-                    .spawn(async move { read_mark(&read) })
-                    .await;
-                let _ = this.update(cx, |pane, cx| {
-                    if let Some(data) = data {
-                        pane.marks.insert(path, Some(data));
-                        cx.notify();
-                    }
-                });
-            })
-            .detach();
-        }
-    }
-
     fn on_key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
         let keystroke = &event.keystroke;
+        if keystroke.key == "tab" {
+            if *self.page.card() != Card::None {
+                cx.stop_propagation();
+            }
+            return;
+        }
         let plain = !keystroke.modifiers.control
             && !keystroke.modifiers.alt
             && !keystroke.modifiers.platform;
@@ -199,7 +181,10 @@ impl PluginsPane {
         cx: &mut Context<Self>,
     ) -> AnyRow {
         let (t, first) = (&self.tokens, index == 0);
-        let mut row = div()
+        let mut row = self
+            .probe
+            .attach(div(), format!("row:{}", self.page.rows()[index].id()))
+            .relative()
             .id(("st2-row", index))
             .flex()
             .items_center()
@@ -273,7 +258,9 @@ impl PluginsPane {
     }
 
     fn line(&self, index: usize) -> Stateful<Div> {
-        div()
+        self.probe
+            .attach(div(), format!("row:{}", self.page.rows()[index].id()))
+            .relative()
             .id(("st2-row", index))
             .h(px(m::ROW))
             .flex()
@@ -514,19 +501,9 @@ impl PluginsPane {
 
 type AnyRow = Stateful<Div>;
 
-fn read_mark(path: &str) -> Option<Arc<[u8]>> {
-    use std::io::Read;
-    let mut data = Vec::new();
-    std::fs::File::open(path)
-        .ok()?
-        .take(MARK_BYTES + 1)
-        .read_to_end(&mut data)
-        .ok()?;
-    (data.len() as u64 <= MARK_BYTES).then(|| Arc::from(data))
-}
-
 impl Render for PluginsPane {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.probe.clear();
         let cursor = if self.focus.is_focused(window) || *self.page.card() != Card::None {
             self.page.cursor()
         } else {
@@ -538,7 +515,8 @@ impl Render for PluginsPane {
             .enumerate()
             .map(|(index, row)| self.row(index, row, cursor == Some(index), cx))
             .collect();
-        div()
+        self.probe
+            .attach(div(), "pane")
             .id("st2-plugins")
             .size_full()
             .relative()

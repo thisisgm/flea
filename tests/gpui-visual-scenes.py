@@ -21,6 +21,14 @@ spec.loader.exec_module(capture)
 root, logs = map(Path, sys.argv[1:])
 windows = []
 
+# viewMode answers the mode the focused pane drew; grid and columns change to their own name when their GPUI views mount.
+DRAWN = {'list': 'list', 'dual': 'list', 'grid': 'list', 'columns': 'columns'}
+
+
+def require_scene_views(status, mode, view):
+    scenes.require(status.get('view') == view, f'scene view {status.get("view")!r} is not {view}')
+    scenes.require(mode == DRAWN[view], f'drawn view {mode!r} is not {DRAWN[view]}')
+
 
 def run(*command):
     result = subprocess.run(command, capture_output=True, timeout=15)
@@ -75,6 +83,7 @@ def control(window, name, scene, settings):
 
 try:
     registered = scenes.manifest(REPO / 'ci/visual/scenes/g1-01.json')
+    scenes.require({scene['view'] for scene in registered} <= set(DRAWN), 'scene view without a drawn row')
     control_manifest = root / 'manifest.json'
     shutil.copyfile(REPO / 'ci/visual/scenes/g1-01.json', control_manifest)
     scenes.controls(control_manifest)
@@ -94,11 +103,19 @@ try:
         settings = dict(path=str(root / 'fixture'), width=1100, height=700)
         receipt = json.loads(call(window, 'scene', window.pid, name, json.dumps(settings)))
         scenes.require(receipt['window'] == window.pid and receipt['scene'] == name and receipt['frame'] > 0, 'missing scene receipt')
-        scenes.require(call(window, 'viewMode') == scene['view'], 'wrong view')
         scenes.require(call(window, 'path') == settings['path'] and call(window, 'cursor') == '0', 'stale native rows')
         scenes.require(call(window, 'previewReadiness') == 'absent', 'unexpected preview claim')
         status = json.loads(call(window, 'sceneState'))
         scenes.require(status['receipt'] == receipt and status['pending'] == 0, 'incomplete native requests')
+        require_scene_views(status, call(window, 'viewMode'), scene['view'])
+        if name == registered[0]['id']:
+            other = 'grid' if scene['view'] != 'grid' else 'list'
+            try:
+                require_scene_views(dict(status, view=other), DRAWN[scene['view']], scene['view'])
+            except ValueError:
+                print('GPUI_SCENE_CONTROL name=scene-view rejected=true', flush=True)
+            else:
+                raise ValueError('a sceneState view that differs from the scene was accepted')
         frame = int(call(window, 'presentedFrame'))
         scenes.require(frame == receipt['frame'], 'stale presented receipt')
         sidecar = json.loads(call(window, 'nativeGeometry', window.pid, name, frame))
@@ -140,7 +157,7 @@ try:
             else:
                 raise ValueError('empty sidecar was accepted')
         window.quit()
-    print('GPUI_SCENES PASS scenes=8 controls=4', flush=True)
+    print('GPUI_SCENES PASS scenes=8 controls=5', flush=True)
 finally:
     for window in windows:
         window.stop()

@@ -34,9 +34,16 @@ pub struct ListPaint {
     pub ink: Ink,
     pub first: usize,
     pub total: usize,
+    pub bytes: Option<(u64, bool)>,
+    pub error_text: Option<String>,
     pub lines: Vec<Line>,
     /// Bumped whenever a line's text changes, so shaped text is rebuilt only then; marks and images never reshape.
     pub revision: u64,
+    pub source_request: u64,
+    /// Bumped when layout inputs change; prepaint copies it into laid_out, so equal means the frame drew them.
+    pub committed: u64,
+    pub laid_out: u64,
+    surface_drawn: bool,
     pub scroll_y: f32,
     pub cursor: usize,
     pub hover: Option<usize>,
@@ -48,6 +55,8 @@ pub struct ListPaint {
     images: Vec<Option<Arc<RenderImage>>>,
     /// Rows the last prepaint laid out, and which of them drew a decoded image.
     pub painted: Vec<usize>,
+    pub bounds: Option<Bounds<Pixels>>,
+    pub visible_bounds: Option<Bounds<Pixels>>,
     pub drawn_images: Vec<usize>,
     pub shapes: u64,
 }
@@ -60,8 +69,14 @@ impl ListPaint {
             ink,
             first: 0,
             total: 0,
+            bytes: None,
+            error_text: None,
             lines: Vec::new(),
             revision: 0,
+            source_request: 0,
+            committed: 0,
+            laid_out: 0,
+            surface_drawn: false,
             scroll_y: 0.,
             cursor: 0,
             hover: None,
@@ -71,9 +86,20 @@ impl ListPaint {
             advance: None,
             images: Vec::new(),
             painted: Vec::new(),
+            bounds: None,
+            visible_bounds: None,
             drawn_images: Vec::new(),
             shapes: 0,
         }
+    }
+
+    /// Whether this surface has prepainted the committed snapshot since its last removal or opening.
+    pub fn drawn(&self) -> bool {
+        self.surface_drawn && self.committed == self.laid_out
+    }
+
+    pub(super) fn invalidate_surface(&mut self) {
+        self.surface_drawn = false;
     }
 
     pub fn line(&self, index: usize) -> Option<&Line> {
@@ -181,6 +207,19 @@ impl Element for TrashList {
         cx: &mut App,
     ) {
         let mut state = self.0.borrow_mut();
+        state.bounds = Some(bounds);
+        let visible = bounds
+            .intersect(&window.content_mask().bounds)
+            .intersect(&Bounds::new(point(px(0.), px(0.)), window.viewport_size()));
+        state.visible_bounds = Some(visible);
+        state.surface_drawn = visible.size.width > px(0.) && visible.size.height > px(0.);
+        if !state.surface_drawn {
+            state.painted.clear();
+            state.images.clear();
+            state.drawn_images.clear();
+            return;
+        }
+        state.laid_out = state.committed;
         let advance = state.advance(window);
         let (_, name_w, _, _) = columns(f32::from(bounds.size.width));
         let name_cells = (px(name_w) / advance).floor().max(0.) as usize;

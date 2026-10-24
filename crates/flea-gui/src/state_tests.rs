@@ -10,63 +10,9 @@ use std::sync::Arc;
 #[path = "../tests/g1_04/host.rs"]
 mod g1_04;
 
-pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
-    let locale = Snapshot {
-        revision: 1,
-        catalog: Arc::new(flea::i18n::I18n::default()),
-    };
-    let settings = Settings::from_json(flea::jsondoc::parse("{}").unwrap(), false);
-    let launch = Launch::resolve(
-        settings,
-        Arguments {
-            path: Some("/files".into()),
-            select: None,
-        },
-        "/home/test",
-    );
-    let mut host = PaneHost::new("/files".into(), None, 620., &locale);
-    host.backend = Some(backend);
-    host.pane
-        .receive(Reply::Listed {
-            path: "/files".into(),
-            total: 1000,
-        })
-        .unwrap();
-    host.pane
-        .receive(Reply::Rows {
-            start: 0,
-            rows: vec![flea::protocol::RowFacts::default(); 320],
-            listing: 2,
-        })
-        .unwrap();
-    let mut lifecycle = Lifecycle::default();
-    lifecycle.attach(0);
-    Shell {
-        capture: crate::capture::Capture::default(),
-        visual: crate::visual::Visual::default(),
-        path_labels: launch.paths.clone().map(SharedString::from),
-        launch,
-        locale: locale.clone(),
-        labels: labels(&locale),
-        slots: Slots::default(),
-        lifecycle,
-        view: View::List,
-        focus_side: 0,
-        keyboard: Default::default(),
-        panes: [Some(host), None],
-        surfaces: Default::default(),
-        overlay: None,
-        corner: crate::g2::st1::seams::COMPOSITOR_CORNER_DEFAULT,
-        focus: cx.focus_handle(),
-        seam: Seam::new(),
-        ipc_events: None,
-        _ipc_reader: None,
-        _locale_reader: None,
-        locale_service: None,
-        _app_quit: None,
-        deadlines: [None, None],
-    }
-}
+#[path = "state_test_fixture.rs"]
+mod fixture;
+pub(crate) use fixture::shell_with;
 
 #[gpui::test]
 fn adv_e_r1_dead_backend_prints_once_across_many_renders(cx: &mut TestAppContext) {
@@ -388,3 +334,6 @@ fn platform_quit_stops_window_tasks_and_releases_backend_ownership(cx: &mut Test
         assert!(host.stopped && host.reader.is_none() && host.backend.is_none());
     });
 }
+
+#[path = "input/join_tests.rs"]
+mod u03;

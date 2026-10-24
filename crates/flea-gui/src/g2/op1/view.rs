@@ -1,16 +1,18 @@
 //! The dialog shell, its scrim and every operations card, drawn from the model with theme roles only.
+use super::feedback::{label, runs};
 use super::geometry::Metrics;
 use super::glyph::{self, Chrome, Glyph, Paint};
+use super::line::Line;
 use super::model::{Dialog, Operations};
 use super::palette::CardPalette;
 use super::press::Press;
-use crate::row::marks::Mark;
+use crate::{feedback::spinner::Mode, row::marks::Mark};
 use flea::i18n::I18n;
 use flea::ui_logic_op1::{
     card::{self, ButtonState, Kind},
     collide::{self, Choice},
     jobs::{self, Block, State},
-    trash, Part,
+    trash,
 };
 use gpui::{
     div, prelude::*, px, relative, AnyElement, Div, ElementId, FontWeight, Hsla, SharedString,
@@ -29,14 +31,25 @@ pub struct Pointer {
 
 /// What every draw call reads: the roles, the words, the pointer, and how a button is wired to its press.
 pub struct Scene<'a> {
+    pub copy_field: Option<gpui::Entity<super::host::Overlay>>,
+    pub(crate) frame: Option<&'a super::measured::Frame>,
     pub typeface: &'a crate::list::Typeface,
     pub palette: &'a CardPalette,
     pub catalog: &'a I18n,
     pub pointer: &'a Pointer,
     pub wire: &'a dyn Fn(Press, Stateful<Div>) -> Stateful<Div>,
-    // A still phase for every running spiral, as a capture pins it; None crawls.
+    // Fixed mode seconds for a capture; None animates.
     pub pinned: Option<f32>,
-    pub since: Instant,
+    pub feedback: Option<(u64, &'a crate::g2::fb1::observe::Paint)>,
+}
+
+impl Scene<'_> {
+    pub(super) fn track<D: ParentElement>(&self, div: D, name: &str, text: String) -> D {
+        match self.frame {
+            Some(frame) => frame.track(div, name.into(), text),
+            None => div,
+        }
+    }
 }
 
 // One button, with its look decided by the shared rule before any colour is picked.
@@ -76,21 +89,9 @@ pub fn button(scene: &Scene, press: Press, label: String, mut state: ButtonState
         .text_color(palette.ink(look.label).unwrap_or(palette.foreground))
         .opacity(look.alpha)
         .child(chrome)
-        .child(div().relative().child(label));
+        .child(div().relative().child(Line::new(label.clone())));
+    let out = scene.track(out, &format!("button-{}", press.code()), label);
     (scene.wire)(press, out)
-}
-
-fn runs(palette: &CardPalette, parts: &[Part]) -> Div {
-    parts
-        .iter()
-        .fold(div().flex().flex_row().whitespace_nowrap(), |row, part| {
-            let ink = if part.figure {
-                palette.foreground
-            } else {
-                palette.muted
-            };
-            row.child(div().text_color(ink).child(part.text.clone()))
-        })
 }
 
 fn rule(palette: &CardPalette) -> Div {
@@ -100,7 +101,7 @@ fn rule(palette: &CardPalette) -> Div {
         .bg(palette.muted_frame.opacity(card::RULE_ALPHA))
 }
 
-fn mark(icon: &str, dir: bool, ink: Hsla) -> Glyph {
+pub(super) fn mark(icon: &str, dir: bool, ink: Hsla) -> Glyph {
     let (key, data) = Mark::for_row(if dir { "folder" } else { icon }, 0).svg();
     Glyph {
         paint: Paint::Svg(key, data),
@@ -129,21 +130,26 @@ pub fn shell(
         .gap(px(card::NAME_GAP))
         .line_height(relative(card::LINE))
         .child(
-            div()
-                .flex_1()
-                .min_w_0()
-                .truncate()
-                .text_size(px(m.title))
-                .font_weight(FontWeight::BOLD)
-                .text_color(palette.foreground)
-                .child(title),
+            scene.track(
+                div()
+                    .relative()
+                    .flex_1()
+                    .min_w_0()
+                    .truncate()
+                    .text_size(px(m.title))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(palette.foreground)
+                    .child(Line::new(title.clone())),
+                "title",
+                title,
+            ),
         )
         .child(
             div()
                 .flex_none()
                 .text_size(px(m.caption))
                 .text_color(palette.muted)
-                .child(scene.catalog.tr("jobs.esc")),
+                .child(Line::new(scene.catalog.tr("jobs.esc"))),
         );
     let row = buttons.into_iter().enumerate().fold(
         div()
@@ -156,6 +162,7 @@ pub fn shell(
             .mt(px(m.buttons_margin)),
         |row, (at, b)| row.child(b.debug_selector(move || format!("op1-button-{at}"))),
     );
+    let row = scene.track(row.relative(), "buttons", String::new());
     let room = m.body_room(window.1);
     let body = div()
         .id("op1-body")
@@ -166,7 +173,9 @@ pub fn shell(
         .max_h(px(room))
         .overflow_y_scroll()
         .children(body);
-    div()
+    let body = scene.track(body.relative(), "body", String::new());
+    let card = div()
+        .relative()
         .debug_selector(|| "op1-card".into())
         .w(px(m.width(kind, window.0)))
         .p(px(m.padding))
@@ -184,7 +193,8 @@ pub fn shell(
         .child(header)
         .child(rule(palette).debug_selector(|| "op1-rule".into()))
         .child(body)
-        .child(row)
+        .child(row);
+    scene.track(card, "card", String::new())
 }
 
 // The scrim dims the window once and takes hover, both buttons and the wheel; the card sits centred on it.
@@ -220,7 +230,7 @@ pub(super) fn state(
 }
 
 // The Delete card's title: the oracle's own while a menu refresh is out, the review's otherwise.
-pub(super) fn delete_title(catalog: &I18n, review: &trash::Review, busy: bool) -> String {
+pub(crate) fn delete_title(catalog: &I18n, review: &trash::Review, busy: bool) -> String {
     if busy {
         catalog.tr("jobs.delete.busy_title")
     } else {
@@ -228,7 +238,21 @@ pub(super) fn delete_title(catalog: &I18n, review: &trash::Review, busy: bool) -
     }
 }
 
-fn caption(text: String, ink: Hsla) -> Div {
+// The Delete card's body sentence: the working note while a menu refresh is out, the reviewed facts otherwise.
+pub(crate) fn delete_body(
+    catalog: &I18n,
+    review: &trash::Review,
+    scope: trash::Scope,
+    busy: bool,
+) -> String {
+    if busy {
+        catalog.tr("jobs.working")
+    } else {
+        trash::confirm_body(catalog, review, scope)
+    }
+}
+
+pub(super) fn caption(text: String, ink: Hsla) -> Div {
     div()
         .text_size(px(card::EXPLAIN_SIZE))
         .line_height(px(card::EXPLAIN_LINE))
@@ -237,62 +261,19 @@ fn caption(text: String, ink: Hsla) -> Div {
 }
 
 pub fn dialog(model: &Operations, scene: &Scene, window: (f32, f32)) -> Option<Div> {
+    dialog_snapshot(model.dialog.as_ref(), model.emptying.running, scene, window)
+}
+
+pub(super) fn dialog_snapshot(
+    dialog: Option<&Dialog>,
+    emptying: bool,
+    scene: &Scene,
+    window: (f32, f32),
+) -> Option<Div> {
     let (palette, catalog) = (scene.palette, scene.catalog);
-    let dialog = model.dialog.as_ref()?;
+    let dialog = dialog?;
     let card = match dialog {
-        Dialog::Collide {
-            title,
-            names,
-            more,
-            merge,
-            focus,
-        } => {
-            // The names and the count of the rest sit together; the explanation takes the card's gap below them.
-            let mut list = div().flex().flex_col();
-            for (at, name) in names.iter().enumerate() {
-                list = list.child(
-                    div()
-                        .debug_selector(move || format!("op1-name-{at}"))
-                        .flex()
-                        .flex_row()
-                        .items_center()
-                        .gap(px(card::NAME_GAP))
-                        .child(mark(&name.icon, name.dir, palette.foreground))
-                        .child(div().flex_1().min_w_0().truncate().child(name.name.clone())),
-                );
-            }
-            if !more.is_empty() {
-                list = list.child(
-                    div()
-                        .text_size(px(card::EXPLAIN_SIZE))
-                        .truncate()
-                        .child(more.clone()),
-                );
-            }
-            let body = vec![
-                list.into_any_element(),
-                caption(collide::explain(catalog), palette.foreground)
-                    .debug_selector(|| "op1-explain".into())
-                    .into_any_element(),
-            ];
-            let buttons = collide::shown(*merge)
-                .into_iter()
-                .map(|b| {
-                    button(
-                        scene,
-                        Press::Collide(b),
-                        catalog.tr(b.label_key()),
-                        state(
-                            b == collide::PRIMARY,
-                            b == *focus,
-                            b == collide::DESTRUCTIVE,
-                            false,
-                        ),
-                    )
-                })
-                .collect();
-            shell(scene, Kind::Collide, window, title.clone(), body, buttons)
-        }
+        Dialog::Collide { .. } => super::collision::draw(dialog, scene, window),
         Dialog::Fat {
             title,
             renames,
@@ -349,16 +330,20 @@ pub fn dialog(model: &Operations, scene: &Scene, window: (f32, f32)) -> Option<D
             scope,
             focus,
             busy,
+            ..
         } => {
-            let enabled = !busy && trash::delete_enabled(review, model.emptying.running);
+            let enabled = !busy && trash::delete_enabled(review, emptying);
             // A menu's refresh shows the working note in place of the reviewed facts, as v0.3.12 does.
             let body = if *busy {
-                vec![caption(catalog.tr("jobs.working"), palette.muted).into_any_element()]
+                vec![
+                    caption(delete_body(catalog, review, *scope, true), palette.muted)
+                        .into_any_element(),
+                ]
             } else {
                 vec![div()
                     .text_size(px(card::BODY_SIZE))
                     .line_height(px(card::BODY_LINE))
-                    .child(trash::confirm_body(catalog, review, *scope))
+                    .child(delete_body(catalog, review, *scope, false))
                     .into_any_element()]
             };
             // While a menu refresh is out only Cancel is drawn, under the oracle's own title, as v0.3.12 does.
@@ -433,25 +418,24 @@ fn small(text: String, ink: Hsla) -> Div {
         .child(text)
 }
 
-pub fn block(scene: &Scene, track: f32, block: &Block) -> Div {
+pub fn block(scene: &Scene, track: f32, block: &Block, mode: Mode) -> Div {
     let (palette, id) = (scene.palette, block.id);
+    let paint = scene
+        .feedback
+        .filter(|(observed, _)| *observed == id)
+        .map(|(_, paint)| paint);
+    let still = (block.state == State::Waiting)
+        .then_some(0.)
+        .or(scene.pinned);
     let (head_ink, mark): (Hsla, Glyph) = match block.state {
         // A failed head and its alert take the error role as text on the card's surface.
         State::Failed => (
             palette.error_on_surface,
             Glyph::svg(glyph::ALERT, card::JOBS_MARK, palette.error_on_surface),
         ),
-        State::Waiting => (
-            palette.foreground,
-            spiral(
-                Some(glyph::BOARD_PHASE),
-                scene.since,
-                palette.muted_frame.opacity(card::JOBS_WAITING_ALPHA),
-            ),
-        ),
         _ => (
             palette.foreground,
-            spiral(scene.pinned, scene.since, palette.muted_frame),
+            spiral(still, block.id, mode, palette.accent),
         ),
     };
     let head = div()
@@ -468,7 +452,7 @@ pub fn block(scene: &Scene, track: f32, block: &Block) -> Div {
                 .child(mark),
         )
         .child(
-            div()
+            label(paint)
                 .flex_1()
                 .min_w_0()
                 .truncate()
@@ -495,7 +479,8 @@ pub fn block(scene: &Scene, track: f32, block: &Block) -> Div {
         out = out.child(
             runs(palette, &block.line)
                 .text_size(px(card::JOBS_SMALL))
-                .line_height(px(card::JOBS_SMALL_LINE)),
+                .line_height(px(card::JOBS_SMALL_LINE))
+                .observed(paint),
         );
     }
     let buttons = block.buttons.iter().fold(
@@ -516,9 +501,9 @@ pub fn block(scene: &Scene, track: f32, block: &Block) -> Div {
     out.child(buttons)
 }
 
-fn spiral(still: Option<f32>, since: Instant, ink: Hsla) -> Glyph {
+fn spiral(still: Option<f32>, id: u64, mode: Mode, ink: Hsla) -> Glyph {
     Glyph {
-        paint: Paint::Spiral { still, since },
+        paint: Paint::Spiral { id, mode, still },
         side: card::JOBS_MARK,
         ink,
     }
@@ -526,7 +511,16 @@ fn spiral(still: Option<f32>, since: Instant, ink: Hsla) -> Glyph {
 
 // The Jobs card: every unfinished or failed job as its own block, newest on top, full-width hairlines between.
 pub fn jobs_card(model: &Operations, scene: &Scene, window: (f32, f32)) -> Option<Div> {
-    if model.jobs.folded || !model.jobs.visible() {
+    jobs_snapshot(&model.jobs, &model.blocks, scene, window)
+}
+
+pub(super) fn jobs_snapshot(
+    jobs: &flea::ui_logic_op1::jobs::Jobs,
+    blocks: &[(flea::ui_logic_op1::JobRow, Block)],
+    scene: &Scene,
+    window: (f32, f32),
+) -> Option<Div> {
+    if jobs.folded || !jobs.visible() {
         return None;
     }
     let palette = scene.palette;
@@ -545,7 +539,7 @@ pub fn jobs_card(model: &Operations, scene: &Scene, window: (f32, f32)) -> Optio
         .border_color(palette.muted_frame)
         .rounded(px(palette.radius))
         .text_color(palette.foreground);
-    for (at, (_, built)) in model.blocks.iter().enumerate() {
+    for (at, (row, built)) in blocks.iter().enumerate() {
         if at > 0 {
             out = out.child(
                 rule(palette)
@@ -554,7 +548,7 @@ pub fn jobs_card(model: &Operations, scene: &Scene, window: (f32, f32)) -> Optio
                     .debug_selector(move || format!("op1-jobs-rule-{at}")),
             );
         }
-        out = out.child(block(scene, track, built));
+        out = out.child(block(scene, track, built, Mode::for_job(&row.kind)));
     }
     Some(out)
 }

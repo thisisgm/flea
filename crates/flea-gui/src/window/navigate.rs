@@ -33,6 +33,15 @@ impl Shell {
         if self.lifecycle.phase() != super::lifecycle::Phase::Open {
             return Ok(false);
         }
+        if matches!(step, Step::Back | Step::MouseBack)
+            && self.panes[side]
+                .as_ref()
+                .is_some_and(|host| host.search.owner.active())
+        {
+            self.search_update(side, None, |search, host| search.back(host), window, cx);
+            return Ok(true);
+        }
+        self.search_leave(side, window, cx);
         let failure = self.locale.catalog.tr("navigation.save_failed");
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return Ok(false);
@@ -78,6 +87,7 @@ impl Shell {
         };
         host.nav.gate = Gate {
             paths_pending: host.nav.gate.paths_pending,
+            search: gate.search || host.search.owner.active(),
             ..gate
         };
         let _ = host
@@ -87,6 +97,8 @@ impl Shell {
         host.nav.settle(&host.pane, now);
         self.run_navigation(side, window, cx);
         self.arm_watch(side, window, cx);
+        self.columns_landed(side, window, cx);
+        self.settle_settings(window, cx);
     }
 
     pub(crate) fn after_navigation(
@@ -99,10 +111,22 @@ impl Shell {
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return;
         };
+        self.surfaces[side].filesystem.enter(&host.path);
         host.nav
             .after_reply(&mut host.pane, before, &mut host.selected);
         self.run_navigation(side, window, cx);
         self.arm_watch(side, window, cx);
+        if self.panes[side]
+            .as_ref()
+            .is_some_and(|host| host.path != before && !host.pane.busy())
+        {
+            self.remember_dual();
+        }
+        if side == self.focus_side {
+            self.settings_folder_arrived(window, cx);
+        }
+        self.columns_landed(side, window, cx);
+        self.settle_settings(window, cx);
     }
 
     pub(crate) fn run_navigation(
@@ -114,10 +138,12 @@ impl Shell {
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return;
         };
+        host.input.selection.sync(&host.selected);
         let commands = host.nav.take();
         let mut listed = false;
         for command in &commands {
-            if let Command::List(_) = command {
+            if let Command::List(listing) = command {
+                super::columns::requested(host, listing);
                 listed = true;
                 host.waiting = false;
                 host.changed(&self.locale);

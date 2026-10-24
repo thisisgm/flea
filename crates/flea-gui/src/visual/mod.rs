@@ -5,11 +5,13 @@ mod ipc;
 #[cfg(test)]
 mod tests;
 
-use crate::{ipc::server::Answer, list::pane::ROW_HEIGHT, state::Shell, window::startup::View};
+use crate::{ipc::server::Answer, state::Shell, window::startup::View};
 use flea::{ipc::wire::Reply, jsondoc::Json};
 pub(crate) use geometry::Probe;
 use gpui::{App, Context, PresentedFrames, Subscription, Task, Window};
 use std::sync::mpsc::SyncSender;
+
+pub(crate) const FRAME_WAIT: std::time::Duration = std::time::Duration::from_millis(1500);
 
 pub(crate) struct Pending {
     pub spec: contract::Spec,
@@ -101,6 +103,7 @@ impl Shell {
             ("width", number(f32::from(window.viewport_size().width))),
             ("height", number(f32::from(window.viewport_size().height))),
             ("receipt", self.visual.receipt.clone().unwrap_or(Json::Null)),
+            ("presentation", self.presentation.json()),
         ])
     }
 
@@ -110,7 +113,7 @@ impl Shell {
         contract::Live {
             scale: window.scale_factor(),
             text_size: host.map_or(0., |host| f32::from(host.list.borrow().typeface.body)),
-            row_height: ROW_HEIGHT,
+            row_height: host.map_or(0., |host| host.list.borrow().drawn.metrics.row),
             reduced_motion: cx.reduce_motion(),
             cursor: host.map_or(0, |host| {
                 host.list.borrow().drawn_cursor.unwrap_or(host.pane.cursor)
@@ -250,5 +253,6 @@ pub(crate) fn apply_marks(
     }
     if host.selected != selection {
         host.selected = selection.to_vec();
+        host.input.selection.sync(&host.selected);
     }
 }

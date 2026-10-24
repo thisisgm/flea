@@ -1,0 +1,205 @@
+//! Settings writes use the core CLI's locked merge; polling and child processes stay off the UI thread.
+use crate::g2::st1::seams::Store;
+use flea::{jsondoc::Json, ui_logic_st1::Text};
+use std::{
+    cell::RefCell, io::Read, path::PathBuf, process::Command, rc::Rc, sync::mpsc, time::Duration,
+};
+
+pub type Patches = Rc<RefCell<Vec<Json>>>;
+
+pub struct SessionStore {
+    pub document: Json,
+    pub patches: Patches,
+}
+
+impl Store for SessionStore {
+    fn document(&self) -> &Json {
+        &self.document
+    }
+    fn write(&mut self, patch: &Json) -> Result<(), Text> {
+        self.document = flea::uistate::patched(&self.document, patch)
+            .map_err(|_| Text::Key("settings.error.not_saved"))?;
+        self.patches.borrow_mut().push(patch.clone());
+        Ok(())
+    }
+}
+
+pub enum Update {
+    Corner(f32),
+    Unreadable,
+    Loaded {
+        document: Json,
+        through: u64,
+        saved: bool,
+    },
+    Failed {
+        through: u64,
+        keep: bool,
+    },
+}
+
+pub struct Worker {
+    pub writes: mpsc::Sender<(u64, Json, Option<Json>)>,
+    pub updates: async_channel::Receiver<Update>,
+}
+
+// Retry only failed fields, using any newer queued choice instead of resending an obsolete value.
+pub(super) fn overlay_retry(retry: &mut Json, pending: &Json) {
+    match (retry, pending) {
+        (Json::Obj(fields), Json::Obj(changes)) => {
+            for (key, value) in fields {
+                if let Some((_, next)) = changes.iter().find(|(name, _)| name == key) {
+                    overlay_retry(value, next);
+                }
+            }
+        }
+        (retry, pending) => *retry = pending.clone(),
+    }
+}
+
+// A newer successful patch supersedes only the fields it wrote, including nested preference fields.
+pub(super) fn unwritten(patch: &mut Json, written: &Json) {
+    let (Json::Obj(fields), Json::Obj(changes)) = (patch, written) else {
+        return;
+    };
+    fields.retain_mut(|(key, value)| {
+        let Some((_, next)) = changes.iter().find(|(name, _)| name == key) else {
+            return true;
+        };
+        if value.as_object().is_some() && next.as_object().is_some() {
+            unwritten(value, next);
+            value.as_object().is_some_and(|fields| !fields.is_empty())
+        } else {
+            false
+        }
+    });
+}
+
+impl Worker {
+    pub fn start() -> std::io::Result<Self> {
+        let home = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_default();
+        let state = std::env::var_os("XDG_STATE_HOME")
+            .filter(|p| !p.is_empty())
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join(".local/state"));
+        Self::at(state.join("flea/ui.json"), crate::window::startup::binary())
+    }
+
+    pub fn at(path: PathBuf, binary: PathBuf) -> std::io::Result<Self> {
+        let (writes, queue) = mpsc::channel::<(u64, Json, Option<Json>)>();
+        let (send, updates) = async_channel::unbounded();
+        std::thread::Builder::new()
+            .name("flea-settings".into())
+            .spawn(move || {
+                let corner = Command::new("hyprctl")
+                    .args(["getoption", "decoration:rounding", "-j"])
+                    .output()
+                    .ok()
+                    .filter(|out| out.status.success())
+                    .and_then(|out| {
+                        flea::jsondoc::parse(&String::from_utf8_lossy(&out.stdout)).ok()
+                    })
+                    .and_then(|value| value.get("int").and_then(Json::as_f64))
+                    .filter(|value| value.is_finite() && *value >= 0.);
+                if let Some(corner) = corner {
+                    let _ = send.send_blocking(Update::Corner(corner as f32));
+                }
+                let mut last = None;
+                let mut through = 0;
+                let mut read_failed = false;
+                let mut initial = true;
+                loop {
+                    let request = if std::mem::take(&mut initial) {
+                        Err(mpsc::RecvTimeoutError::Timeout)
+                    } else {
+                        queue.recv_timeout(Duration::from_millis(200))
+                    };
+                    match request {
+                        Ok((id, patch, operation)) => {
+                            through = id;
+                            let (mode, value) = match &operation {
+                                Some(op) => ("--favourites", op),
+                                None => ("--ui-state", &patch),
+                            };
+                            let output = Command::new(&binary)
+                                .args([mode, flea::jsondoc::render(value).trim_end()])
+                                .output();
+                            let document =
+                                output.ok().filter(|o| o.status.success()).and_then(|o| {
+                                    flea::jsondoc::parse(&String::from_utf8_lossy(&o.stdout)).ok()
+                                });
+                            let update = match document {
+                                Some(document) => Update::Loaded {
+                                    document,
+                                    through,
+                                    saved: operation.is_none(),
+                                },
+                                None => Update::Failed {
+                                    through,
+                                    keep: operation.is_none(),
+                                },
+                            };
+                            last = None;
+                            if send.send_blocking(update).is_err() {
+                                break;
+                            }
+                        }
+                        Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                        Err(mpsc::RecvTimeoutError::Timeout) => {
+                            let body = match read_document(&path) {
+                                Ok(body) => body,
+                                Err(()) => {
+                                    if !read_failed {
+                                        let _ = send.send_blocking(Update::Unreadable);
+                                        read_failed = true;
+                                    }
+                                    continue;
+                                }
+                            };
+                            read_failed = false;
+                            if body == last {
+                                continue;
+                            }
+                            last = body.clone();
+                            let Some(body) = body else { continue };
+                            let document = flea::uistate::from_file(&body);
+                            if send
+                                .send_blocking(Update::Loaded {
+                                    document,
+                                    through,
+                                    saved: false,
+                                })
+                                .is_err()
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            })?;
+        Ok(Self { writes, updates })
+    }
+}
+
+fn read_document(path: &std::path::Path) -> Result<Option<String>, ()> {
+    match std::fs::symlink_metadata(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(_) => return Err(()),
+        Ok(_) => {}
+    }
+    let file = flea::backend::regfile::open_regular(path).ok_or(())?;
+    let mut body = String::new();
+    file.take(4 * 1024 * 1024 + 1)
+        .read_to_string(&mut body)
+        .map_err(|_| ())?;
+    if body.len() > 4 * 1024 * 1024
+        || flea::jsondoc::parse(&body)
+            .ok()
+            .is_none_or(|value| value.as_object().is_none())
+    {
+        return Err(());
+    }
+    Ok(Some(body))
+}

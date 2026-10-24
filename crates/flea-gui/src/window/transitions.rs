@@ -61,6 +61,7 @@ impl Shell {
         if self.lifecycle.phase() != super::lifecycle::Phase::Open {
             return false;
         }
+        self.search_leave(side, window, cx);
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return false;
         };
@@ -133,33 +134,109 @@ impl Shell {
     }
 
     pub(crate) fn arm_transition(&mut self, side: usize, window: &Window, cx: &mut Context<Self>) {
+        if self.lifecycle.phase() != super::lifecycle::Phase::Open {
+            if let Some(host) = &mut self.panes[side] {
+                host.transition = None;
+            }
+            return;
+        }
+        let feedback = self.presentation.deadline();
+        let deadline_side = self.panes.iter().position(Option::is_some);
         let Some(host) = &mut self.panes[side] else {
             return;
         };
-        let delay = host.pane.swap.deadline(host.pane.now());
-        host.transition = delay.map(|delay| {
+        let pane_now = host.pane.now();
+        let pane = host.pane.swap.deadline(pane_now).map(|delay| {
+            host.pane
+                .clock
+                .at(pane_now.saturating_add(delay.as_millis() as u64))
+        });
+        let at = match (pane, feedback.filter(|_| deadline_side == Some(side))) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (a, b) => a.or(b),
+        };
+        if host.transition_at == at && (at.is_none() || host.transition.is_some()) {
+            return;
+        }
+        host.transition_at = at;
+        host.transition = at.map(|at| {
             cx.spawn_in(window, async move |this, cx| {
+                let delay = at.saturating_duration_since(cx.background_executor().now());
                 cx.background_executor().timer(delay).await;
                 let _ = cx.update(|window, cx| {
                     this.update(cx, |shell, cx| {
                         if let Some(host) = &mut shell.panes[side] {
-                            let before = host.pane.path().to_owned();
-                            if host.pane.tick(host.pane.now()) {
-                                host.changed(&shell.locale);
-                                shell.path_labels[side] = host.path.clone().into();
-                                shell.seam.rows(&host.pane);
-                                if host.answered {
-                                    shell.deadlines[side] = None;
-                                }
-                                cx.notify();
-                            }
-                            shell.after_navigation(side, &before, window, cx);
+                            host.transition_at = None;
+                            host.transition = None;
                         }
-                        shell.arm_transition(side, window, cx);
+                        shell.presentation.expire(cx.background_executor().now());
+                        // One window deadline may retire associations for either pane.
+                        for side in 0..2 {
+                            shell.advance_transition(side, window, cx);
+                            shell.arm_transition(side, window, cx);
+                        }
                     })
                 });
             })
         });
+    }
+
+    pub(crate) fn advance_transition(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.tick_transition(side, true, window, cx);
+    }
+
+    pub(crate) fn retick_feedback(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.pane(side).is_some_and(|pane| {
+            pane.swap
+                .pending
+                .as_ref()
+                .is_some_and(|pending| pending.ready.is_some())
+        }) {
+            self.tick_transition(side, false, window, cx);
+        }
+        self.arm_transition(side, window, cx);
+    }
+
+    fn tick_transition(
+        &mut self,
+        side: usize,
+        timer: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.lifecycle.phase() != super::lifecycle::Phase::Open {
+            return;
+        }
+        let Some(host) = &mut self.panes[side] else {
+            return;
+        };
+        let before = host.pane.path().to_owned();
+        let changed = host.pane.tick(host.pane.now());
+        if changed {
+            host.changed(&self.locale);
+            self.path_labels[side] = host.path.clone().into();
+            self.seam.rows(&host.pane);
+            if host.answered {
+                self.deadlines[side] = None;
+            }
+            cx.notify();
+        }
+        let path_changed = host.pane.path() != before;
+        if timer || changed || path_changed {
+            self.search_landed(side, false, window, cx);
+            self.settle_dual(window, cx);
+            self.after_navigation(side, &before, window, cx);
+        }
     }
 
     pub fn pane_mark_shown(

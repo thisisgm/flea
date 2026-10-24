@@ -78,6 +78,23 @@ fn trash_view_through_the_pane() {
     );
     answer(&mut cx, window, &calls, "list", &listed(&rows[1..]));
     window
+        .update(&mut cx, |pane, _, _| {
+            assert_eq!(
+                pane.paint.borrow().line(0).unwrap().name,
+                "photo.png",
+                "the previous complete snapshot remains until the summary joins its rows"
+            );
+        })
+        .unwrap();
+    answer(
+        &mut cx,
+        window,
+        &calls,
+        "summary",
+        r#","bytes":26,"partial":false"#,
+    );
+
+    window
         .update(&mut cx, |pane, _, cx| {
             assert_eq!(
                 pane.paint.borrow().line(0).unwrap().name,

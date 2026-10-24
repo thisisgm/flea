@@ -1,5 +1,6 @@
 //! One build of a menu card: every row's words resolved and shaped once, and the card's width read from them once.
 use super::glyphs;
+use super::wrap::Caption;
 use crate::list::Typeface;
 use flea::i18n::I18n;
 use flea::ui_logic_mn1::{
@@ -54,11 +55,67 @@ pub struct Line {
     // The key the row's action is bound to, while key hints are on.
     pub key: Option<Shaped>,
     pub chevron: bool,
+    // The entry's own wrap flag, which the producers' wrapped captions set and the readers report.
+    pub hint_wrap: bool,
+    pub wrapped: Option<Caption>,
     pub lead: Lead,
     pub ink: Ink,
     pub disabled: bool,
     // The width this row needs whole, the parts summed once at build.
     pub wanted: f32,
+}
+
+impl Line {
+    pub fn wraps_hint(&self) -> bool {
+        self.hint_wrap && self.word.is_some()
+    }
+
+    pub fn frame_inset(&self) -> f32 {
+        if self.wraps_hint() {
+            0.
+        } else {
+            1.
+        }
+    }
+
+    pub fn has_trailing_column(&self) -> bool {
+        self.chevron || (!self.wraps_hint() && self.word.is_some())
+    }
+
+    fn wrapped_minimum(label: f32, chevron: bool) -> f32 {
+        2. * fit::PAD_X
+            + fit::SLOT
+            + 2. * fit::GAP
+            + label
+            + if chevron { fit::CHEVRON + fit::GAP } else { 0. }
+    }
+
+    pub fn word_width(&self) -> f32 {
+        self.wrapped.as_ref().map_or_else(
+            || self.word.as_ref().map_or(0., Shaped::width),
+            |caption| caption.width,
+        )
+    }
+
+    /// The label's clip after the trailing parts the painter actually shapes.
+    pub fn label_room(&self, width: f32) -> f32 {
+        if self.wraps_hint() {
+            let label = self.label.as_ref().map_or(0., Shaped::width);
+            let remaining = width + 2. - Self::wrapped_minimum(label, self.chevron);
+            return (label + (remaining - self.word_width())).max(0.);
+        }
+        let mut edge = width - fit::PAD_X;
+        if self.has_trailing_column() {
+            edge -= fit::CHEVRON + fit::GAP;
+        }
+        if let Some(key) = &self.key {
+            edge -= key.width() + fit::GAP;
+        }
+        if self.word.is_some() {
+            edge -= self.word_width() + fit::GAP;
+        }
+        (edge - fit::PAD_X - fit::SLOT).max(0.)
+    }
 }
 
 /// What a build reads besides the rows: the catalog, the key preset and whether key hints are shown.
@@ -76,6 +133,21 @@ pub struct Built {
     pub widest: f32,
 }
 
+impl Built {
+    pub(super) fn wrap(&mut self, width: f32, env: &Env, window: &Window) {
+        for line in &mut self.lines {
+            if !line.hint_wrap {
+                continue;
+            }
+            if let Some(word) = &line.word {
+                let label = line.label.as_ref().map_or(0., Shaped::width);
+                let room = (width - Line::wrapped_minimum(label, line.chevron)).max(0.);
+                line.wrapped = Some(Caption::new(word, room, env, window));
+            }
+        }
+    }
+}
+
 thread_local! {
     // Width computations since start, so a test can pin one per build.
     static BUILDS: Cell<u64> = const { Cell::new(0) };
@@ -85,7 +157,7 @@ pub fn builds() -> u64 {
     BUILDS.with(Cell::get)
 }
 
-fn shape(text: String, size: Pixels, typeface: &Typeface, window: &Window) -> Shaped {
+pub(super) fn shape(text: String, size: Pixels, typeface: &Typeface, window: &Window) -> Shaped {
     let run = TextRun {
         len: text.len(),
         font: typeface.font.clone(),
@@ -98,7 +170,7 @@ fn shape(text: String, size: Pixels, typeface: &Typeface, window: &Window) -> Sh
     Shaped { text, run }
 }
 
-fn lead(entry: &Entry) -> Lead {
+pub(super) fn lead(entry: &Entry) -> Lead {
     if let Some(check) = entry.check {
         return Lead::Check(check);
     }
@@ -117,7 +189,7 @@ fn lead(entry: &Entry) -> Lead {
         .map_or(Lead::None, Lead::Cut)
 }
 
-pub fn build(entries: &[Entry], env: &Env, window: &Window) -> Built {
+pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximum: f32) -> Built {
     BUILDS.with(|count| count.set(count.get() + 1));
     let body = env.typeface.body;
     let caption = env.typeface.caption;
@@ -134,6 +206,8 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window) -> Built {
                     word: None,
                     key: None,
                     chevron: false,
+                    hint_wrap: false,
+                    wrapped: None,
                     lead: Lead::None,
                     ink: Ink::Plain,
                     disabled: false,
@@ -148,16 +222,26 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window) -> Built {
                 .hint
                 .as_ref()
                 .map(|text| shape(text.resolve(env.catalog), caption, env.typeface, window));
-            let key = Some(entry.key_text(env.preset, env.key_hints))
+            let wrapping = entry.hint_wrap && word.is_some();
+            let key = (!wrapping)
+                .then_some(entry.key_text(env.preset, env.key_hints))
                 .filter(|k| !k.is_empty())
                 .map(|k| shape(k.to_owned(), caption, env.typeface, window));
             let parts = RowParts {
                 label: label.as_ref().map_or(0., Shaped::width),
-                word: word.as_ref().map_or(0., Shaped::width),
+                word: if wrapping {
+                    0.
+                } else {
+                    word.as_ref().map_or(0., Shaped::width)
+                },
                 key: key.as_ref().map_or(0., Shaped::width),
                 chevron: entry.has_submenu(),
             };
-            let wanted = fit::row_width(parts);
+            let wanted = if wrapping {
+                Line::wrapped_minimum(parts.label, parts.chevron)
+            } else {
+                fit::row_width(parts)
+            };
             widest = widest.max(wanted);
             let ink = if entry.errored {
                 Ink::Errored
@@ -174,6 +258,8 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window) -> Built {
                 word,
                 key,
                 chevron: entry.has_submenu(),
+                hint_wrap: entry.hint_wrap,
+                wrapped: None,
                 lead: lead(entry),
                 ink,
                 disabled: entry.disabled,
@@ -181,5 +267,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window) -> Built {
             }
         })
         .collect();
-    Built { lines, widest }
+    let mut built = Built { lines, widest };
+    built.wrap(fit::flyout_width(minimum, widest, maximum), env, window);
+    built
 }
