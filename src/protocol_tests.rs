@@ -68,6 +68,7 @@ fn parses_the_initial_pair_and_preserves_escaped_names() {
             icon: "text-x-script".into(),
             link: Some("../t\"x".into()),
             real_modes: true,
+            kind: "Script".into(),
             ..RowFacts::default()
         },
         RowFacts {
@@ -76,6 +77,7 @@ fn parses_the_initial_pair_and_preserves_escaped_names() {
             mtime: 1700000000,
             mode: 16877,
             icon: "folder".into(),
+            kind: "Folder".into(),
             ..RowFacts::default()
         },
     ];

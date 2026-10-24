@@ -3,7 +3,11 @@ use crate::{
     columns::preview_host::{PreviewProducer, ThirdSwap},
     g2::{pv2::PdfView, pv3::player::MediaPlayer, pv4::view::Model3dView},
 };
-use flea::{jsondoc::Json, protocol::RowFacts};
+use flea::{
+    jsondoc::Json,
+    protocol::RowFacts,
+    ui_logic_pv1::{facts, kinds, kinds::State, meta::Meta},
+};
 use gpui::{Context, Entity, RenderImage, Subscription, Task};
 use std::{
     cell::RefCell,
@@ -15,6 +19,10 @@ use std::{
     time::Instant,
 };
 
+#[path = "selection_preview_docs.rs"]
+pub(crate) mod docs;
+#[path = "selection_preview_wire.rs"]
+pub(crate) mod wire;
 #[path = "selection_preview_frames.rs"]
 mod frame_feedback;
 #[path = "selection_preview_host.rs"]
@@ -23,67 +31,119 @@ pub(crate) mod host;
 mod lifetime;
 #[path = "selection_preview_load.rs"]
 mod load;
+#[path = "selection_preview_play.rs"]
+mod play;
 #[path = "selection_preview_readers.rs"]
 pub(crate) mod readers;
 #[path = "selection_preview_render.rs"]
 mod render;
-pub(crate) use render::number;
 
 static NEXT: AtomicU64 = AtomicU64::new(1);
 fn token() -> u64 {
     NEXT.fetch_add(1, Ordering::Relaxed)
 }
 
-/// Later document hosts extend this enum and Mounted, sharing this owner's lifecycle and backend.
+/// What the frame draws for a row: the state Facts.js names it, with the document kinds the column mounts a view for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     Image,
     Text,
+    Code,
+    Markdown,
+    Table,
+    Html,
     Pdf,
     Video,
     Audio,
     Model,
+    Archive,
+    Office,
+    Symlink,
     Facts,
     Multi,
 }
 impl Kind {
+    /// The state ui/Ipc.qml previewColumnState reads: a document row keeps its row state's word.
     pub fn name(self) -> &'static str {
         match self {
             Self::Image => "image",
-            Self::Text => "text",
+            Self::Text | Self::Markdown | Self::Table => "text",
+            Self::Code | Self::Html => "code",
             Self::Pdf => "pdf",
             Self::Video => "video",
             Self::Audio => "audio",
             Self::Model => "model3d",
+            Self::Archive => "archive",
+            Self::Office => "office",
+            Self::Symlink => "symlink",
             Self::Facts => "unsupported",
             Self::Multi => "multi",
         }
     }
+    /// Facts.js tall(): text, code, an archive list and a PDF fill the column down to the name.
     pub(crate) fn tall(self) -> bool {
-        matches!(self, Self::Text | Self::Pdf)
+        matches!(
+            self,
+            Self::Text | Self::Code | Self::Markdown | Self::Table | Self::Html | Self::Archive | Self::Pdf
+        )
+    }
+    /// PreviewColumn.qml wantsThumb: the states whose frame draws a thumbnail when one exists.
+    pub(crate) fn thumbed(self) -> bool {
+        matches!(self, Self::Image | Self::Video | Self::Audio | Self::Symlink | Self::Facts)
+    }
+    /// The row's Facts.js state, then the document view its name picks.
+    pub(crate) fn state(self) -> State {
+        match self {
+            Self::Image => State::Image,
+            Self::Text | Self::Markdown | Self::Table => State::Text,
+            Self::Code | Self::Html => State::Code,
+            Self::Pdf => State::Pdf,
+            Self::Video => State::Video,
+            Self::Audio => State::Audio,
+            Self::Archive => State::Archive,
+            Self::Symlink => State::Symlink,
+            Self::Multi => State::Multi,
+            Self::Model | Self::Office | Self::Facts => State::Unsupported,
+        }
     }
     fn of(row: &RowFacts) -> Self {
-        let ext = row
-            .name
-            .rsplit('.')
-            .next()
-            .unwrap_or("")
-            .to_ascii_lowercase();
-        match ext.as_str() {
-            "pdf" => Self::Pdf,
-            "stl" | "3mf" | "obj" | "ply" | "amf" | "gcode" | "gco" | "bgcode" => Self::Model,
-            "mp4" | "mkv" | "webm" | "mov" | "avi" | "m4v" => Self::Video,
-            "mp3" | "ogg" | "oga" | "opus" | "wav" | "flac" | "m4a" | "aac" => Self::Audio,
-            "png" | "jpg" | "jpeg" | "webp" | "gif" | "avif" | "bmp" | "svg" | "svgz" | "tiff"
-            | "tif" => Self::Image,
-            "txt" | "rs" | "py" | "c" | "h" | "cpp" | "js" | "ts" | "json" | "toml" | "yaml"
-            | "yml" | "sh" | "css" | "log" => Self::Text,
-            _ if row.icon.starts_with("image-") => Self::Image,
-            _ if row.icon.starts_with("audio-") => Self::Audio,
-            _ if row.icon.starts_with("video-") => Self::Video,
-            _ if row.icon.starts_with("text-") => Self::Text,
+        let state = facts::state(Some(&fact_row(row)), 1, false, "", &row.kind);
+        let name = row.name.to_ascii_lowercase();
+        let ext = name.rsplit('.').next().unwrap_or("");
+        if state == State::Symlink {
+            return Self::Symlink;
+        }
+        if matches!(ext, "stl" | "3mf" | "obj" | "ply" | "amf" | "gcode" | "gco" | "bgcode") {
+            return Self::Model;
+        }
+        if flea::ui_logic_pv2::office::Group::of(&name).is_some() {
+            return Self::Office;
+        }
+        match state {
+            State::Image => Self::Image,
+            State::Video => Self::Video,
+            State::Audio => Self::Audio,
+            State::Pdf => Self::Pdf,
+            State::Archive => Self::Archive,
+            State::Text if kinds::is_markdown(&name) => Self::Markdown,
+            State::Text if matches!(ext, "csv" | "tsv") => Self::Table,
+            State::Text => Self::Text,
+            State::Code if kinds::is_html(&name) => Self::Html,
+            State::Code => Self::Code,
             _ => Self::Facts,
         }
+    }
+}
+
+/// The listing's row as Facts.js reads it.
+pub(crate) fn fact_row(row: &RowFacts) -> facts::Row {
+    facts::Row {
+        name: row.name.clone(),
+        is_dir: row.dir,
+        size: row.size,
+        mtime: row.mtime,
+        mode: row.mode,
+        icon: row.icon.clone(),
     }
 }
 
@@ -141,6 +201,7 @@ pub enum Mounted {
     Pdf(Entity<PdfView>),
     Media(Option<Entity<MediaPlayer>>),
     Model(Entity<Model3dView>),
+    Doc(docs::Doc),
 }
 
 pub(crate) struct Frame {
@@ -149,9 +210,8 @@ pub(crate) struct Frame {
     pub kind: Kind,
     pub mounted: Mounted,
     pub meta: Option<Json>,
-    pub lines: Rc<[String]>,
-    pub text_cache: Rc<RefCell<super::preview_text::Cache>>,
-    pub text_answered: bool,
+    /// The meta reply as Facts.js reads it.
+    pub facts: Option<Meta>,
     pub thumb_answered: bool,
     pub source: Option<gpui::Resource>,
     pub image: Option<Arc<RenderImage>>,

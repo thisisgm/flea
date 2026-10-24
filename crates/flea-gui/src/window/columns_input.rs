@@ -80,7 +80,10 @@ impl Shell {
             {
                 return None;
             }
-            if !drawn.bounds.contains(&event.position) {
+            // The preview track's own views take their pointer: its play mark, links and scroll.
+            if !drawn.bounds.contains(&event.position)
+                || matches!(drawn.view().rows, TrackRows::Preview)
+            {
                 return None;
             }
             let y = f32::from(event.position.y - drawn.bounds.origin.y) + drawn.scroll;
@@ -184,12 +187,10 @@ impl Shell {
         };
         let slot = columns.area.tracks().iter().find_map(|view| {
             let paint = columns.painters.get(view.slot)?.borrow();
-            paint
-                .drawn
-                .as_ref()?
-                .bounds
-                .contains(&event.position)
-                .then_some(view.slot)
+            let drawn = paint.drawn.as_ref()?;
+            (drawn.bounds.contains(&event.position)
+                && !matches!(drawn.view().rows, TrackRows::Preview))
+            .then_some(view.slot)
         });
         let Some(slot) = slot else { return };
         let dy = -f32::from(

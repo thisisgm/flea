@@ -2,56 +2,12 @@
 use super::*;
 use crate::g2::pv3::{
     self,
-    strip::{StripElement, StripInput},
+    strip::StripElement,
     view::{MediaElement, Picture},
 };
-use gpui::{div, img, prelude::*, px, AppContext, IntoElement, Render, Window};
-
-impl SelectionPreview {
-    /// A host may provide the decoder seam while this owner keeps playback lifetime.
-    pub fn set_media_backend(&mut self, backend: Rc<dyn pv3::engine::Backend>) {
-        self.media_backend = Some(backend);
-    }
-
-    /// The transport and preview keymap share this entry point.
-    pub fn play_pause(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.play(StripInput::Toggle, window, cx);
-    }
-
-    pub(crate) fn play(&mut self, input: StripInput, window: &mut Window, cx: &mut Context<Self>) {
-        if !self.visible || self.pending.is_some() {
-            return;
-        }
-        let Some(frame) = self.drawn.as_mut().filter(|f| !f.manual) else {
-            return;
-        };
-        let Mounted::Media(player) = &mut frame.mounted else {
-            return;
-        };
-        if player.is_none() && input == StripInput::Toggle {
-            let backend = self.media_backend.clone().or_else(|| {
-                pv3::sandbox::Sandbox::current()
-                    .ok()
-                    .map(|b| Rc::new(b) as Rc<dyn pv3::engine::Backend>)
-            });
-            let Some(backend) = backend else { return };
-            let entity = cx.new(|cx| MediaPlayer::new(backend, None, cx));
-            let subject = pv3::player::Subject {
-                path: frame.subject.path().into(),
-                video: frame.kind == Kind::Video,
-                box_w: (self.width * window.scale_factor()).max(1.) as u32,
-                box_h: (self.height * window.scale_factor()).max(1.) as u32,
-                autoplay: true,
-            };
-            frame._watch = Some(cx.observe(&entity, |_, _, cx| cx.notify()));
-            entity.update(cx, |player, cx| player.open(subject, cx));
-            *player = Some(entity);
-        } else if let Some(player) = player {
-            player.update(cx, |player, cx| player.strip_input(input, window, cx));
-        }
-        cx.notify();
-    }
-}
+use crate::{g2::pv1::glyph::Glyph, row::marks::Mark};
+use flea::ui_logic_pv1::thumbs;
+use gpui::{div, img, prelude::*, px, IntoElement, Render, Window};
 
 pub(crate) fn number(meta: Option<&Json>, key: &str) -> i64 {
     meta.and_then(|meta| meta.get(key))
@@ -98,7 +54,25 @@ impl Render for SelectionPreview {
             .font_family(self.face.font.family.clone())
             .text_size(self.face.caption)
             .track_focus(&self.focus)
+            .debug_selector(|| "column-preview".into())
             .child(outer);
+        // A pending document lays out unseen at its frame's size, so the view sends the asks its first screen needs.
+        if let Some(frame) = self.pending.as_ref().filter(|f| !f.manual) {
+            if let Mounted::Doc(doc) = &frame.mounted {
+                let rows = if frame.kind.tall() && !self.full_facts { 1 } else { 3 };
+                let (width, height) = self.frame_size(frame.kind, rows);
+                root = root.child(
+                    div()
+                        .absolute()
+                        .top(px(metrics.pad + 1.))
+                        .left(px(metrics.pad + 1.))
+                        .w(px((width - 2.).max(1.)))
+                        .h(px((height - 2.).max(1.)))
+                        .invisible()
+                        .child(doc.element()),
+                );
+            }
+        }
         let loading =
             self.pending.is_some() && (!self.port.0.borrow().holding || self.drawn.is_none());
         if loading || self.drawn.is_none() {
@@ -137,13 +111,9 @@ impl Render for SelectionPreview {
             *self.play_rect.borrow_mut() = None;
         }
         let full = !frame.kind.tall() || self.full_facts;
-        let groups = self.facts(frame, cx);
-        let rows = if full {
-            groups.iter().map(Vec::len).sum()
-        } else {
-            1
-        };
-        let (width, height) = self.frame_size(frame.kind, rows);
+        let facts = self.facts(frame, cx);
+        let (row, name_row) = self.fact_row();
+        let (width, height) = self.frame_size(frame.kind, if full { facts.len() } else { 1 });
         let bounds = self.frame_rect.clone();
         let frame_probe = gpui::canvas(
             |bounds, _, _| bounds,
@@ -151,16 +121,33 @@ impl Render for SelectionPreview {
         )
         .absolute()
         .size_full();
+        // PreviewColumn.qml: a tall kind fills the column down to the name, so the name and facts are never cut.
         let mut media = div()
             .relative()
             .w_full()
-            .h(px(height))
-            .flex_none()
             .border_1()
             .border_color(roles.metadata_frame)
             .rounded(px(self.corner))
             .overflow_hidden()
             .child(frame_probe);
+        media = if frame.kind.tall() {
+            media.flex_1().min_h_0()
+        } else {
+            media.h(px(height)).flex_none()
+        };
+        let mark_size = (40. * f32::from(self.face.base) / 14.).round();
+        let state_mark = |glyph: Glyph, ink: gpui::Hsla, note: Option<String>| {
+            div()
+                .size_full()
+                .flex()
+                .flex_col()
+                .items_center()
+                .justify_center()
+                .gap(px(metrics.gap))
+                .child(crate::g2::pv1::bar::mark(glyph, mark_size, ink))
+                .children(note.map(|note| div().text_color(roles.metadata).child(note)))
+        };
+        let failure = self.failure(frame, cx);
         if frame.manual {
             media = media.child(
                 div()
@@ -170,11 +157,9 @@ impl Render for SelectionPreview {
                     .justify_center()
                     .child(self.catalog.tr_args("preview.loadHint", &["Ctrl+Space"])),
             );
-        } else if frame.failed {
+        } else if let Some(sentence) = failure {
             media = media.child(MediaElement {
-                picture: Picture::Failed {
-                    sentence: self.catalog.tr("document.pdf_unreadable"),
-                },
+                picture: Picture::Failed { sentence },
                 reserve: 0.,
                 ink,
                 typeface: self.face.clone(),
@@ -182,12 +167,31 @@ impl Render for SelectionPreview {
                 painted: Default::default(),
             });
         } else {
+            let fitted = frame.image.clone().map(|image| {
+                let size = image.size(0);
+                let (w, h) = (size.width.0 as f64, size.height.0 as f64);
+                let original = frame.facts.as_ref().map_or((0., 0.), |m| (m.w as f64, m.h as f64));
+                let limit = thumbs::poster_limit(frame.kind == Kind::Video, w, h, original.0, original.1);
+                let scale = thumbs::fit_scale(
+                    (width - 2.).max(1.) as f64,
+                    (height - 2.).max(1.) as f64,
+                    w,
+                    h,
+                    limit,
+                ) as f32;
+                div().size_full().flex().items_center().justify_center().child(
+                    img(image)
+                        .w(px((w as f32 * scale).round()))
+                        .h(px((h as f32 * scale).round()))
+                        .object_fit(gpui::ObjectFit::Fill),
+                )
+            });
             media = match &frame.mounted {
-                Mounted::Pdf(pdf) if !pdf.read(cx).surface.failed() => media.child(pdf.clone()),
-                Mounted::Model(model)
-                    if !matches!(model.read(cx).phase, crate::g2::pv4::view::Phase::Failed(_)) =>
-                {
-                    media.child(model.clone())
+                Mounted::Pdf(pdf) => media.child(pdf.clone()),
+                Mounted::Model(model) => media.child(model.clone()),
+                Mounted::Doc(doc) => media.child(doc.element()),
+                Mounted::Media(None) if frame.kind == Kind::Audio && fitted.is_some() => {
+                    media.children(fitted)
                 }
                 Mounted::Media(player) => {
                     let picture = if let Some(player) = player {
@@ -202,9 +206,10 @@ impl Render for SelectionPreview {
                             poster: true,
                         }
                     } else {
+                        let (kind, tail) = self.compact(frame, cx);
                         Picture::Audio {
                             name: frame.subject.row.name.clone(),
-                            facts: self.compact(frame, cx),
+                            facts: kind + &tail,
                         }
                     };
                     media.child(MediaElement {
@@ -229,28 +234,24 @@ impl Render for SelectionPreview {
                                 .trn("items.count", frame.subject.selected_count as i64),
                         ),
                 ),
-                _ if frame.image.is_some() => media.child(
-                    img(frame.image.clone().unwrap())
-                        .size_full()
-                        .object_fit(gpui::ObjectFit::Contain),
-                ),
-                _ if frame.kind == Kind::Text => {
-                    media.child(super::super::preview_text::Text::new(
-                        frame.lines.clone(),
-                        frame.text_cache.clone(),
-                        self.face.clone(),
-                        roles.foreground,
-                    ))
-                }
-                _ => media.child(
-                    div()
-                        .size_full()
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .text_color(roles.metadata)
-                        .child(self.catalog.tr("model3d.cannot_preview")),
-                ),
+                _ if fitted.is_some() => media.children(fitted),
+                _ if frame.kind == Kind::Symlink => media.child(state_mark(
+                    Glyph::Row(Mark::Symlink),
+                    roles.symlink.opacity(0.7),
+                    None,
+                )),
+                _ if frame.kind == Kind::Facts => media.child(state_mark(
+                    Glyph::Row(Mark::File),
+                    roles.muted_frame,
+                    Some(self.catalog.tr("preview.no_preview")),
+                )),
+                _ => media.child(state_mark(
+                    Glyph::kind(&frame.subject.row.icon, frame.subject.row.mode),
+                    roles.muted_frame.opacity(0.7),
+                    frame
+                        .thumb_answered
+                        .then(|| self.catalog.tr("preview.no_thumb")),
+                )),
             };
         }
         root = root.flex().flex_col().gap(px(metrics.gap)).child(media);
@@ -265,12 +266,14 @@ impl Render for SelectionPreview {
                 move |_, bounds, _, _| *at.borrow_mut() = Some(bounds),
             )
             .absolute()
+            .top_0()
+            .left_0()
             .size_full();
             root = root.child(
                 div()
                     .relative()
                     .w_full()
-                    .h(px(metrics.header))
+                    .h(px(pv3::ink::size::STRIP))
                     .child(StripElement {
                         view: pv3::surface::column_view(
                             player.as_ref().map(|p| p.read(cx)),
@@ -287,11 +290,14 @@ impl Render for SelectionPreview {
         }
         root = root.child(
             div()
+                .debug_selector(|| "column-preview-name".into())
                 .w_full()
                 .flex_none()
                 .overflow_hidden()
                 .whitespace_nowrap()
+                .text_ellipsis()
                 .text_size(self.face.body)
+                .line_height(px(name_row))
                 .child(if frame.kind == Kind::Multi {
                     self.catalog
                         .trn("items.count", frame.subject.selected_count as i64)
@@ -300,47 +306,65 @@ impl Render for SelectionPreview {
                 }),
         );
         if full {
-            let longest = groups
+            let longest = facts
                 .iter()
-                .flatten()
                 .map(|(label, _)| label.chars().count())
                 .max()
                 .unwrap_or(0);
-            let label_width = longest as f32 * f32::from(self.face.caption) * 0.6 + 15.;
-            for group in groups {
-                let mut table = div().flex().flex_col().gap(px(3.));
-                for (label, value) in group.into_iter().filter(|(_, value)| !value.is_empty()) {
-                    table = table.child(
-                        div()
-                            .flex()
-                            .w_full()
-                            .child(
-                                div()
-                                    .w(px(label_width))
-                                    .flex_none()
-                                    .text_color(roles.metadata)
-                                    .child(label),
-                            )
-                            .child(
-                                div()
-                                    .flex_1()
-                                    .overflow_hidden()
-                                    .whitespace_nowrap()
-                                    .child(value),
-                            ),
-                    );
-                }
-                root = root.child(table);
+            let label_width = longest as f32 * f32::from(self.face.caption) * 0.6 + metrics.gap;
+            let mut table = div()
+                .debug_selector(|| "column-preview-facts".into())
+                .flex()
+                .flex_col()
+                .flex_none();
+            for (label, value) in facts {
+                table = table.child(
+                    div()
+                        .flex()
+                        .w_full()
+                        .h(px(row))
+                        .line_height(px(row))
+                        .child(
+                            div()
+                                .w(px(label_width))
+                                .flex_none()
+                                .text_color(roles.metadata)
+                                .child(label),
+                        )
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .overflow_hidden()
+                                .whitespace_nowrap()
+                                .text_ellipsis()
+                                .child(value),
+                        ),
+                );
             }
+            root = root.child(table);
         } else {
+            let (kind, tail) = self.compact(frame, cx);
             root = root.child(
                 div()
-                    .overflow_hidden()
-                    .whitespace_nowrap()
-                    .child(self.compact(frame, cx)),
+                    .debug_selector(|| "column-preview-facts".into())
+                    .flex()
+                    .flex_none()
+                    .w_full()
+                    .h(px(row))
+                    .line_height(px(row))
+                    .text_color(roles.metadata)
+                    .child(
+                        div()
+                            .min_w_0()
+                            .overflow_hidden()
+                            .whitespace_nowrap()
+                            .text_ellipsis()
+                            .child(kind),
+                    )
+                    .child(div().flex_none().whitespace_nowrap().child(tail)),
             );
         }
-        let _ = width;
         root
     }
 }

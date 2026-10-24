@@ -49,7 +49,8 @@ fn landed() -> Listing {
                 mode: 0o040755,
                 icon: String::new(),
                 link: None,
-                real_modes: true
+                real_modes: true,
+                kind: String::new(),
             },
             RowFacts {
                 name: "a.txt".into(),
@@ -59,7 +60,8 @@ fn landed() -> Listing {
                 mode: 0o100644,
                 icon: String::new(),
                 link: None,
-                real_modes: true
+                real_modes: true,
+                kind: String::new(),
             },
         ]
     ));

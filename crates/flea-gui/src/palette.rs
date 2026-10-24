@@ -21,6 +21,10 @@ pub struct Theme {
     pub muted_frame: Hsla,
     pub symlink: Hsla,
     pub executable: Hsla,
+    /// The code reply's roles 1 to 6, each the theme's own colour lifted to 4.5:1 (ui/js/CodeRuns.js inks).
+    pub code_inks: [Hsla; 6],
+    /// The line numbers' ink, the metadata role lifted to 4.5:1 on both grounds.
+    pub gutter: Hsla,
 }
 
 fn role(color: flea::theme::Color) -> Hsla {
@@ -87,6 +91,27 @@ impl Theme {
         let frame = u32::from_str_radix(&raised[1..], 16).unwrap_or(accent);
         // The colour roles need no shell or font input, so an empty shell and the stock family resolve them.
         let core = flea::theme::Theme::resolve(text, "", "", None, "monospace").colors;
+        let hex = |value: u32| format!("#{value:06x}");
+        let (ground, plane) = (hex(background), hex(surface));
+        let named: Vec<(&str, String)> = values.iter().map(|(name, value)| (*name, hex(*value))).collect();
+        let lifted = flea::ui_logic_pv2::code::inks(
+            |key| named.iter().rev().find(|(name, _)| *name == key).map(|(_, value)| value.as_str()),
+            &ground,
+            &plane,
+            &hex(foreground),
+        );
+        let ink = |text: &str| -> Hsla {
+            u32::from_str_radix(text.trim_start_matches('#'), 16)
+                .map_or(gpui::rgb(foreground).into(), |value| gpui::rgb(value).into())
+        };
+        let metadata = Rgba::from(role(core.metadata));
+        let muted = format!(
+            "#{:02x}{:02x}{:02x}",
+            (metadata.r * 255.).round() as u8,
+            (metadata.g * 255.).round() as u8,
+            (metadata.b * 255.).round() as u8
+        );
+        let gutter = ink(&flea::ui_logic_pv2::code::gutter_ink(&muted, &ground, &plane));
         let theme = Self {
             background: gpui::rgb(background).into(),
             foreground: gpui::rgb(foreground).into(),
@@ -98,6 +123,15 @@ impl Theme {
             muted_frame: role(core.mutedFrame),
             symlink: role(core.symlink),
             executable: role(core.executable),
+            code_inks: [
+                ink(&lifted[1]),
+                ink(&lifted[2]),
+                ink(&lifted[3]),
+                ink(&lifted[4]),
+                ink(&lifted[5]),
+                ink(&lifted[6]),
+            ],
+            gutter,
         };
         // ui/js/Palette.js:31-33 isPalette: any parsed colour makes the theme ready, ui/Theme.qml:357.
         let loaded = !values.is_empty();
