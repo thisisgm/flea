@@ -21,6 +21,8 @@ mod input;
 mod live;
 #[path = "gcomp_menu_tests.rs"]
 mod menu;
+#[path = "gcomp_operation_tests.rs"]
+pub(super) mod operations;
 #[path = "gcomp_path_tests.rs"]
 mod path;
 #[path = "gcomp_presentation_tests.rs"]
