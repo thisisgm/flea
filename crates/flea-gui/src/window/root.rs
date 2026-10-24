@@ -1,4 +1,4 @@
-//! The window root: the shell as one cached view, with each frame's pane probes and loading marks painted over it.
+//! The window root: the shell as one cached view, with each frame's pane probes, loading marks and hero captions painted over it.
 use crate::{feedback::spinner::Arm, palette::Theme, pane::states::Kind, state::Shell};
 use gpui::{
     deferred, div, prelude::*, relative, size, App, Bounds, Context, Element, ElementId, Entity,
@@ -123,6 +123,10 @@ impl Element for Overlay {
         for mark in empty_marks.into_iter().flatten() {
             mark.prepare(!cx.reduce_motion(), None, window, cx);
         }
+        let heroes = cx.read_entity(&self.0, crate::g2::fb1::empty_omi::heroes);
+        for hero in heroes.into_iter().flatten() {
+            hero.update(cx, |hero, cx| hero.prepare_caption(window, cx));
+        }
         let column_marks =
             cx.read_entity(&self.0, |shell, cx| shell.column_loading_marks(window, cx));
         for mark in column_marks.into_iter().flatten() {
@@ -174,6 +178,12 @@ impl Element for Overlay {
                 .flatten()
             {
                 mark.paint(window);
+            }
+            for hero in crate::g2::fb1::empty_omi::heroes(shell, cx)
+                .into_iter()
+                .flatten()
+            {
+                hero.read(cx).paint_caption(window);
             }
             shell.paint_column_loading(window, cx);
             let arm = shell.seam.mark();

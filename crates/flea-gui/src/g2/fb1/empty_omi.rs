@@ -1,4 +1,5 @@
 //! Empty-folder Omi slots, painted by the existing root overlay above the cached pane.
+use super::hero::EmptyHero;
 use crate::{
     columns::{geometry::Slot as TrackSlot, TrackState},
     feedback::spinner::Crawl,
@@ -6,14 +7,22 @@ use crate::{
     window::startup::View,
 };
 use gpui::{
-    px, size, App, Bounds, Element, ElementId, GlobalElementId, InspectorElementId, IntoElement,
-    LayoutId, Pixels, Style, Window,
+    px, size, App, Bounds, Element, ElementId, Entity, GlobalElementId, InspectorElementId,
+    IntoElement, LayoutId, Pixels, Style, Window,
 };
 use std::rc::Rc;
 
 /// Two pane heroes and five possible peek slots per pane, without a per-frame allocation.
 pub(crate) fn marks(shell: &Shell, cx: &App) -> [Option<Rc<Crawl>>; 12] {
-    let mut marks = std::array::from_fn(|_| None);
+    heroes(shell, cx).map(|hero| {
+        hero.map(|hero| Rc::clone(&hero.read(cx).omi))
+            .filter(|mark| mark.shown())
+    })
+}
+
+/// The heroes this frame draws, in the same slots as their marks; the root overlay paints their captions.
+pub(crate) fn heroes(shell: &Shell, cx: &App) -> [Option<Entity<EmptyHero>>; 12] {
+    let mut heroes = std::array::from_fn(|_| None);
     for side in 0..2 {
         let Some(host) = shell.shown_pane(side) else {
             continue;
@@ -26,9 +35,8 @@ pub(crate) fn marks(shell: &Shell, cx: &App) -> [Option<Rc<Crawl>>; 12] {
             .as_ref()
             .filter(|_| shell.slots.states[side].is_some())
         {
-            let hero = hero.read(cx);
-            if hero.omi.shown() {
-                marks[side * 6] = Some(Rc::clone(&hero.omi));
+            if hero.read(cx).rotation().visible() {
+                heroes[side * 6] = Some(hero.clone());
             }
         }
         if shell.shown_view() != View::Columns {
@@ -45,14 +53,13 @@ pub(crate) fn marks(shell: &Shell, cx: &App) -> [Option<Rc<Crawl>>; 12] {
         {
             let slot = track.slot.index();
             if let Some(hero) = &columns.heroes[slot] {
-                let hero = hero.read(cx);
-                if hero.omi.shown() {
-                    marks[side * 6 + slot + 1] = Some(Rc::clone(&hero.omi));
+                if hero.read(cx).rotation().visible() {
+                    heroes[side * 6 + slot + 1] = Some(hero.clone());
                 }
             }
         }
     }
-    marks
+    heroes
 }
 
 pub(super) struct Slot {

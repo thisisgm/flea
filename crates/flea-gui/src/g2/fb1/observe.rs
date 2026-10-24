@@ -1,5 +1,4 @@
 //! Read-only observations written by the elements that paint the feedback surfaces.
-use super::caption::{measure, Tracked};
 use gpui::{canvas, prelude::*, px, Bounds, Hsla, Pixels, SharedString, Window};
 use std::{cell::RefCell, rc::Rc};
 
@@ -48,6 +47,13 @@ impl Paint {
         self.0.borrow()[slot(name)?].clone()
     }
 
+    /// Records what a painter outside the element tree drew, as a watched element would.
+    pub fn set(&self, name: &str, text: Text) {
+        if let Some(index) = slot(name) {
+            self.0.borrow_mut()[index] = Some(text);
+        }
+    }
+
     pub fn watch<E: ParentElement>(&self, div: E, name: &'static str, text: SharedString) -> E {
         self.watch_with(div, name, move |bounds, window| {
             let style = window.text_style();
@@ -65,27 +71,6 @@ impl Paint {
                 color: style.color,
                 font_size: f32::from(font_size),
             }
-        })
-    }
-
-    /// Observe the same explicit typography as the caption that this wrapper draws.
-    pub(super) fn watch_tracked<E: ParentElement>(
-        &self,
-        div: E,
-        name: &'static str,
-        caption: Tracked,
-    ) -> E {
-        let text = caption.text.clone();
-        let font = caption.font.clone();
-        let size = caption.size;
-        let tracking = caption.tracking;
-        let color = caption.color;
-        self.watch_with(div.child(caption), name, move |bounds, window| Text {
-            bounds,
-            implicit_width: measure(text.clone(), font, size, tracking, window),
-            text,
-            color,
-            font_size: f32::from(size),
         })
     }
 

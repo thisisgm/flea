@@ -11,7 +11,7 @@ use gpui::{
     px, size, AppContext, Bounds, Context, Hsla, Pixels, Quad, TestAppContext, Window, WindowHandle,
 };
 
-fn edit<R>(
+pub(super) fn edit<R>(
     cx: &mut TestAppContext,
     handle: WindowHandle<Root>,
     update: impl FnOnce(&mut Shell, &mut Window, &mut Context<Shell>) -> R,
@@ -208,7 +208,7 @@ fn upstream_frame_clock_is_not_a_mode_loop_phase() {
     assert_ne!(player.rects(), player.mode_rects("thinking", 1.).unwrap());
 }
 
-fn sample_players(
+pub(super) fn sample_players(
     cx: &mut TestAppContext,
     handle: WindowHandle<Root>,
     players: &mut [omi::Player; 2],
@@ -223,7 +223,7 @@ fn sample_players(
 }
 
 // Each hero retains its own painted layout; the shared static selector names the last slot.
-fn dual_scenes(
+pub(super) fn dual_scenes(
     cx: &mut TestAppContext,
     handle: WindowHandle<Root>,
     players: &[omi::Player; 2],
@@ -272,85 +272,6 @@ fn dual_scenes(
             })
         })
         .unwrap()
-}
-
-#[gpui::test]
-fn empty_omi_keeps_looping_after_caption_rest_without_rendering_the_panes(cx: &mut TestAppContext) {
-    cx.update(Shell::observe_empty_omi_shell_renders);
-    let mut players = std::array::from_fn(|_| {
-        let mut player = omi::Player::with_options(
-            &omi::Kit::bundled(),
-            omi::Options {
-                mode: Some("thinking".into()),
-                ..Default::default()
-            },
-        );
-        player.frame(0.);
-        player
-    });
-    let handle = open(cx, true);
-    edit(cx, handle, |shell, _, cx| {
-        for surface in &shell.surfaces {
-            let mark = &surface.hero.as_ref().unwrap().read(cx).omi;
-            assert!(
-                mark.offset() <= 0.016,
-                "startup samples precede one platform frame"
-            );
-        }
-    });
-    sample_players(cx, handle, &mut players);
-    // Player::frame integrates clamped deltas; replay samples rather than treating wall time as phase.
-    for _ in 0..11000 / super::hero_tests::FRAME {
-        frame(cx, handle);
-        sample_players(cx, handle, &mut players);
-    }
-    let counts = |cx: &mut TestAppContext| {
-        edit(cx, handle, |shell, _, cx| {
-            [0, 1].map(|side| {
-                let hero = shell.surfaces[side].hero.as_ref().unwrap().read(cx);
-                assert!(hero.rotation().at_rest());
-                hero.counters.renders.get()
-            })
-        })
-    };
-    let before = counts(cx);
-    let pane_renders = cx.update(|cx| Shell::empty_omi_shell_renders(cx));
-    assert!(
-        pane_renders > 0,
-        "opening the real Shell exercises the probe"
-    );
-    let scene = dual_scenes(cx, handle, &players);
-    let mut changed = [false; 2];
-    for _ in 0..64 {
-        assert_eq!(frame(cx, handle), 1, "both empty Omis share one callback");
-        sample_players(cx, handle, &mut players);
-        let next = dual_scenes(cx, handle, &players);
-        for side in 0..2 {
-            changed[side] |= next[side] != scene[side];
-        }
-    }
-    assert_eq!(
-        cx.update(|cx| Shell::empty_omi_shell_renders(cx)),
-        pane_renders,
-        "Omi ticks must not re-enter the cached Shell/pane renderer"
-    );
-    assert_eq!(
-        counts(cx),
-        before,
-        "Omi ticks leave both heroes and captions cached"
-    );
-    assert!(
-        changed.into_iter().all(|side| side),
-        "each Omi animates after captions stop"
-    );
-
-    // A genuine Shell invalidation must be visible to this independent render observer.
-    edit(cx, handle, |_, _, cx| cx.notify());
-    frame(cx, handle);
-    assert!(
-        cx.update(|cx| Shell::empty_omi_shell_renders(cx)) > pane_renders,
-        "Shell invalidation must increment the actual render probe"
-    );
 }
 
 #[gpui::test]
