@@ -2,7 +2,7 @@
 use async_channel::{Receiver, Sender};
 use flea::i18n::{I18n, Paths};
 use std::io;
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex, PoisonError};
 use std::thread;
 use std::time::Duration;
 
@@ -22,6 +22,20 @@ struct Subscriber {
     pending: Receiver<Snapshot>,
 }
 
+// Clears the subscribers when the worker ends, so a receiver waiting on a dead worker's publish closes.
+struct Closing(Arc<Mutex<State>>);
+
+impl Drop for Closing {
+    fn drop(&mut self) {
+        // A poisoned lock still holds the subscribers, so a panic does not keep them open.
+        self.0
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .subscribers
+            .clear();
+    }
+}
+
 #[derive(Clone)]
 pub struct Service {
     state: Arc<Mutex<State>>,
@@ -30,6 +44,14 @@ pub struct Service {
 
 impl Service {
     pub fn start(paths: Paths) -> io::Result<(Self, Receiver<Snapshot>)> {
+        Self::start_with(paths, || {})
+    }
+
+    // `before_first` runs on the worker before its first load; a test passes one that panics.
+    pub(crate) fn start_with(
+        paths: Paths,
+        before_first: impl FnOnce() + Send + 'static,
+    ) -> io::Result<(Self, Receiver<Snapshot>)> {
         let (send, initial) = async_channel::bounded(1);
         let state = Arc::new(Mutex::new(State {
             current: None,
@@ -43,6 +65,8 @@ impl Service {
         thread::Builder::new()
             .name("flea-catalogs".into())
             .spawn(move || {
+                let _closing = Closing(worker_state.clone());
+                before_first();
                 let mut catalog = I18n::load(paths);
                 let _ = catalog.locale().format_date(0);
                 let mut revision = 1;
@@ -83,6 +107,23 @@ impl Service {
             },
             initial,
         ))
+    }
+
+    /// The service and its first snapshot, or Err when the worker could not start or died before publishing.
+    pub fn launch(paths: Paths) -> io::Result<(Self, Snapshot)> {
+        Self::launch_with(paths, || {})
+    }
+
+    pub(crate) fn launch_with(
+        paths: Paths,
+        before_first: impl FnOnce() + Send + 'static,
+    ) -> io::Result<(Self, Snapshot)> {
+        let (service, initial) = Self::start_with(paths, before_first)?;
+        // A worker that ended before publishing closed the channel; main refuses the launch with exit 2.
+        let first = initial
+            .recv_blocking()
+            .map_err(|_| io::Error::from(io::ErrorKind::BrokenPipe))?;
+        Ok((service, first))
     }
 
     pub fn subscribe(&self) -> Receiver<Snapshot> {

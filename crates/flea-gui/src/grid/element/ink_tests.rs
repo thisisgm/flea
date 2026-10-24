@@ -79,8 +79,7 @@ fn tile_ink_falls_back_to_the_theme_without_a_style_ground() {
         "the tile accent frame is the theme foreground"
     );
     assert_eq!(
-        ink.muted_frame,
-        theme.foreground.opacity(0.5),
-        "the tile muted frame is the theme foreground at 0.5"
+        ink.muted_frame, theme.muted_frame,
+        "the tile muted frame is the theme's muted frame role"
     );
 }
