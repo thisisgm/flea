@@ -5,5 +5,10 @@ pub mod poppler;
 pub mod render;
 pub mod surface;
 pub mod view;
+// The web part: the code view, HTML, font and archive pages.
+pub mod archive;
+pub mod code;
+pub mod font;
+pub mod html;
 
 pub use view::{Bar, CopyHost, Metrics, Palette, PdfView};
