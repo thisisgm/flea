@@ -3,6 +3,7 @@ pub mod columns;
 pub mod composition;
 mod events;
 pub(crate) mod frame_feedback;
+pub mod glass_tag;
 pub mod input;
 pub mod lifecycle;
 #[path = "../list/join.rs"]
@@ -34,6 +35,9 @@ use gpui::{px, size, App, AppContext, TitlebarOptions, WindowBounds, WindowHandl
 use root::Root;
 use startup::Launch;
 
+/// The app id, which Hyprland reports as the class of this app's windows.
+pub const APP_ID: &str = "flea";
+
 pub fn open(
     launch: Launch,
     locale: locale::Snapshot,
@@ -42,7 +46,7 @@ pub fn open(
 ) -> Result<WindowHandle<Root>, String> {
     let title = locale.catalog.tr("app.name");
     let options = WindowOptions {
-        app_id: Some("flea".into()),
+        app_id: Some(APP_ID.into()),
         window_bounds: Some(WindowBounds::centered(size(px(900.), px(600.)), cx)),
         titlebar: Some(TitlebarOptions {
             title: Some(title.into()),
@@ -121,3 +125,5 @@ mod u07_tap_tests;
 
 #[cfg(test)]
 mod native31_tests;
+#[cfg(test)]
+mod glass_tag_tests;
