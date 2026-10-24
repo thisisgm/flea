@@ -47,25 +47,30 @@ fn locked_and_error_use_board_copy_and_only_the_proven_mode() {
 }
 
 #[test]
-fn empty_words_and_three_beats_stop_at_rest_without_a_frame_loop() {
+fn empty_words_loop_three_cycles_without_advancing_hidden_or_reduced_states() {
     let catalog = I18n::default();
     let mut state = State {
         kind: Kind::Empty,
         ..State::default()
     };
-    for expected in [
+    let phrases = [
         "NOTHING HERE YET",
         "A VERY TIDY FOLDER",
         "NOT A FILE IN SIGHT",
         "QUIET IN HERE",
-    ] {
-        assert_eq!(state.text(&catalog, 0).message, expected);
-        assert_eq!(state.text(&catalog, 0).status, "0 items");
-        state.empty_beat(false);
+    ];
+    for _ in 0..3 {
+        for expected in phrases {
+            assert_eq!(state.text(&catalog, 0).message, expected);
+            assert_eq!(state.text(&catalog, 0).status, "0 items");
+            assert!(state.empty_beat(false));
+        }
     }
-    assert!(!state.empty_beat(false));
     state.beat = 0;
     assert!(!state.empty_beat(true));
+    assert_eq!(state.beat, 0);
+    state.kind = Kind::Ready;
+    assert!(!state.empty_beat(false));
     assert_eq!(state.beat, 0);
 }
 

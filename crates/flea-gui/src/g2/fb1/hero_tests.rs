@@ -3,7 +3,7 @@ use super::mark::HERO;
 use super::state_tests::centred;
 use crate::list::Typeface;
 use flea::i18n::{I18n, Paths};
-use flea::ui_logic_fb1::empty::{BEAT_LIMIT, ROTATE_MS};
+use flea::ui_logic_fb1::empty::ROTATE_MS;
 use gpui::{
     div, font, prelude::*, px, size, AppContext, Bounds, Context, Entity, FontWeight, Pixels,
     Render, TestAppContext, TextRun, VisualTestContext, Window, WindowHandle,
@@ -60,13 +60,14 @@ pub(super) fn read<R>(
 }
 
 #[gpui::test]
-fn the_entrance_and_mark_draw_on_frames_then_a_timer_waits_for_the_beat(cx: &mut TestAppContext) {
+fn the_entrance_and_caption_draw_on_frames_then_a_timer_waits_for_the_beat(
+    cx: &mut TestAppContext,
+) {
     let handle = open(cx);
-    assert!(
-        run(cx, handle, 2400) > 0,
-        "the entrance and the mark's draw ask for frames"
-    );
-    assert!(read(cx, handle, |hero| !hero.rotation().animating()));
+    assert!(run(cx, handle, 2400) > 0, "the entrance asks for frames");
+    assert!(read(cx, handle, |hero| !hero
+        .rotation()
+        .caption_animating()));
     let renders = read(cx, handle, |hero| hero.counters.renders.get());
     assert_eq!(
         run(cx, handle, 320),
@@ -82,34 +83,9 @@ fn the_entrance_and_mark_draw_on_frames_then_a_timer_waits_for_the_beat(cx: &mut
     assert_eq!(
         read(cx, handle, |hero| (
             hero.rotation().beats(),
-            hero.rotation().animating()
+            hero.rotation().caption_animating()
         )),
         (1, true)
-    );
-}
-
-#[gpui::test]
-fn after_three_beats_the_hero_rests_with_no_frame_and_no_timer(cx: &mut TestAppContext) {
-    let handle = open(cx);
-    run(cx, handle, 3 * ROTATE_MS + 2400);
-    assert_eq!(
-        read(cx, handle, |hero| (
-            hero.rotation().beats(),
-            hero.rotation().index(),
-            hero.rotation().at_rest()
-        )),
-        (BEAT_LIMIT, 3, true)
-    );
-    let (renders, timers) = read(cx, handle, |hero| {
-        (hero.counters.renders.get(), hero.counters.timers.get())
-    });
-    assert_eq!(run(cx, handle, 10_000), 0);
-    assert_eq!(
-        read(cx, handle, |hero| (
-            hero.counters.renders.get(),
-            hero.counters.timers.get()
-        )),
-        (renders, timers)
     );
 }
 
@@ -129,7 +105,7 @@ fn reduced_motion_draws_the_first_phrase_whole_and_never_wakes(cx: &mut TestAppC
 }
 
 #[gpui::test]
-fn a_hide_drops_the_timer_and_the_next_show_carries_the_phrase_on(cx: &mut TestAppContext) {
+fn a_hide_drops_the_timer_and_the_next_show_starts_at_the_first_phrase(cx: &mut TestAppContext) {
     let handle = open(cx);
     run(cx, handle, ROTATE_MS + 400);
     handle.update(cx, |hero, _, cx| hero.hide(cx)).unwrap();
@@ -142,8 +118,10 @@ fn a_hide_drops_the_timer_and_the_next_show_carries_the_phrase_on(cx: &mut TestA
     handle
         .update(cx, |hero, _, cx| hero.show(false, cx))
         .unwrap();
-    run(cx, handle, 3 * ROTATE_MS + 2400);
-    assert_eq!(read(cx, handle, |hero| hero.rotation().index()), 4);
+    run(cx, handle, ROTATE_MS - FRAME);
+    assert_eq!(read(cx, handle, |hero| hero.rotation().index()), 0);
+    run(cx, handle, 2400 + FRAME);
+    assert_eq!(read(cx, handle, |hero| hero.rotation().index()), 1);
 }
 
 /// Wall time of each moving frame on the headless platform, printed as a range for the report and held under the 8.33 ms budget.
@@ -152,10 +130,15 @@ fn a_moving_frame_stays_inside_the_frame_budget(cx: &mut TestAppContext) {
     let handle = open(cx);
     let mut spent = Vec::new();
     for _ in 0..(2400 / FRAME) {
+        let before = read(cx, handle, |hero| hero.counters.renders.get());
         let start = std::time::Instant::now();
         frame(cx, handle);
-        spent.push(start.elapsed().as_secs_f64() * 1000.);
+        let ms = start.elapsed().as_secs_f64() * 1000.;
+        if read(cx, handle, |hero| hero.counters.renders.get()) > before {
+            spent.push(ms);
+        }
     }
+    assert!(spent.len() >= (flea::ui_logic_fb1::OPEN_MS / FRAME) as usize);
     spent.sort_by(f64::total_cmp);
     let (low, median, high) = (spent[0], spent[spent.len() / 2], spent[spent.len() - 1]);
     eprintln!(

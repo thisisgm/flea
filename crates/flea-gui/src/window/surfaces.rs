@@ -71,6 +71,17 @@ impl Surfaces {
 impl Shell {
     /// Mounts or drops one pane's state surface to match its state; a pane that shows no state builds nothing.
     pub(crate) fn sync_surfaces(&mut self, side: usize, cx: &mut Context<Self>) {
+        if side == 1 && self.view != View::Dual {
+            let surfaces = &mut self.surfaces[side];
+            if let Some(hero) = &surfaces.hero {
+                if hero.read(cx).rotation().visible() {
+                    hero.update(cx, |hero, cx| hero.hide(cx));
+                }
+            }
+            surfaces.shown = None;
+            self.slots.states[side] = None;
+            return;
+        }
         let Some(host) = &self.panes[side] else {
             return;
         };
