@@ -1,5 +1,7 @@
 use super::*;
+use crate::backend::searchwalkhold::wait_walk_landed;
 use crate::backend::testdir::TestDir;
+use std::time::Duration;
 
 // One session, ten queries typed character by character on nested directories.
 fn fixture() -> TestDir {
@@ -226,7 +228,7 @@ fn a_query_while_walking_re_runs_with_its_own_gen_at_landing() {
     assert!(partial.walking, "the answer says walking over {} indexed rows", partial.indexed);
     assert_eq!(partial.total, 0, "no match yet over the partial index");
     let _ = release.send(());
-    walked_rx.recv_timeout(std::time::Duration::from_secs(30)).expect("the walk lands");
+    wait_walk_landed(&walked_rx, &s, Duration::from_secs(30), |_| false);
     assert!(s.poll_walked(), "the landing announces once");
     assert!(!s.poll_walked(), "the landing never announces twice");
     let landed = s.re_answer_standing().expect("the standing query re-runs at landing");
@@ -370,7 +372,7 @@ fn an_empty_standing_query_lands_one_searched_line() {
     s.note_folder_count(7);
     s.claim_gen(1, "", 100);
     let _ = release.send(());
-    walked_rx.recv_timeout(std::time::Duration::from_secs(30)).expect("the walk lands");
+    wait_walk_landed(&walked_rx, &s, Duration::from_secs(30), |_| false);
     assert!(s.poll_walked(), "the landing announces once");
     let (gen, n, scanned, _) = s.landing_empty().expect("the empty query lands one line");
     assert_eq!((gen, n, scanned), (1, 7, 7), "the standing gen with the remembered folder count");

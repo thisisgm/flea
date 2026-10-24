@@ -108,19 +108,20 @@ pub fn parse_search_query(line: &str) -> (String, usize, Option<usize>) {
 }
 
 // The collapsed newest query back on the wire, so it answers through the one query arm.
+#[cfg(test)]
 pub fn render_search_query(query: &(String, usize, Option<usize>)) -> String {
     let count = query.2.map(|count| format!(r#","count":{}"#, count)).unwrap_or_default();
     format!(r#"{{"c":"searchquery","query":"{}","gen":{}{}}}"#, crate::json::escape(&query.0), query.1, count)
 }
 
-// Drains a query burst into `buffered` in arrival order, older queries dropped; answers the line to run now, if any.
+// Drains a burst in arrival order, returning its highest generation even when its newest line waits behind a sibling.
 pub fn collapse_query_burst(
     rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>,
     line: String,
     buffered: &mut std::collections::VecDeque<crate::backend::events::Event>,
-) -> Option<String> {
-    let first = parse_search_query(&line);
-    let mut newest = first.clone();
+) -> (Option<String>, usize) {
+    let mut newest = parse_search_query(&line);
+    let mut newest_line = line.clone();
     let mut rest = Vec::new();
     // How many drained siblings arrived before the newest query, so it answers in its own place.
     let mut at = 0;
@@ -130,6 +131,7 @@ pub fn collapse_query_burst(
                 let query = parse_search_query(&next);
                 if query.1 >= newest.1 {
                     newest = query;
+                    newest_line = next;
                     at = rest.len();
                 }
             }
@@ -137,15 +139,15 @@ pub fn collapse_query_burst(
         }
     }
     let after = rest.split_off(at);
-    let now = if at == 0 && newest == first {
+    let now = if at == 0 && newest_line == line {
         Some(line)
     } else {
         buffered.extend(rest);
-        buffered.push_back(crate::backend::events::Event::Request(render_search_query(&newest)));
+        buffered.push_back(crate::backend::events::Event::Request(newest_line));
         None
     };
     buffered.extend(after);
-    now
+    (now, newest.1)
 }
 
 // Materialises one answered query as the listing: listed with the count, the first window, then searched with the gen.
@@ -294,7 +296,7 @@ mod tests {
             .expect("the burst queues");
         }
         let mut buffered = std::collections::VecDeque::new();
-        let now = collapse_query_burst(&rx, r#"{"c":"searchquery","query":"bench0","gen":0}"#.to_string(), &mut buffered);
+        let now = collapse_query_burst(&rx, r#"{"c":"searchquery","query":"bench0","gen":0}"#.to_string(), &mut buffered).0;
         assert!(now.is_none(), "the first query is superseded");
         assert_eq!(queued(&buffered), [r#"{"c":"searchquery","query":"bench5","gen":5}"#], "only the last of the 5 answers");
     }
@@ -306,7 +308,7 @@ mod tests {
             tx.send(crate::backend::events::Event::Request(line.to_string())).expect("the burst queues");
         }
         let mut buffered = std::collections::VecDeque::new();
-        let now = collapse_query_burst(&rx, r#"{"c":"searchquery","query":"b1","gen":1}"#.to_string(), &mut buffered);
+        let now = collapse_query_burst(&rx, r#"{"c":"searchquery","query":"b1","gen":1}"#.to_string(), &mut buffered).0;
         assert!(now.is_none(), "the newer generation wins");
         assert_eq!(queued(&buffered), [r#"{"c":"thumbcancel","rows":[]}"#, r#"{"c":"searchquery","query":"b2","gen":2}"#, r#"{"c":"searchclose"}"#],
             "the sibling sent before b2 runs before it, the close sent after runs after it");
@@ -318,7 +320,7 @@ mod tests {
         tx.send(crate::backend::events::Event::Request(r#"{"c":"searchopen","path":"/other"}"#.to_string())).expect("the open queues");
         let mut buffered = std::collections::VecDeque::new();
         let first = r#"{"c":"searchquery","query":"b5","gen":5}"#.to_string();
-        let now = collapse_query_burst(&rx, first.clone(), &mut buffered);
+        let now = collapse_query_burst(&rx, first.clone(), &mut buffered).0;
         assert_eq!(now, Some(first), "gen 5 answers now, against the scope it was sent for");
         assert_eq!(queued(&buffered), [r#"{"c":"searchopen","path":"/other"}"#], "the open sent after it waits");
     }

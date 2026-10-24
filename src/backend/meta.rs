@@ -3,18 +3,7 @@ use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::time::Instant;
 
-pub struct Meta {
-    pub size: u64,
-    pub mtime: i64,
-    pub mode: u32,
-    pub target_is_dir: bool,
-    // Where a symlink points, verbatim and unresolved, empty for every other kind of row; see
-    // docs/protocol.md "rows". The link's own bytes, so a relative target stays relative.
-    pub target: String,
-    // The filesystem this row lives on, so a drop can tell a move within one volume from a copy
-    // across two the way Finder does. Free here: the stat that fills the fields above already read it.
-    pub dev: u64,
-}
+pub use super::metarow::Meta;
 
 // The st_mode file-type bits, plus the two types a thumbnail request can reach: a regular file, or a symlink whose target is stat'd when the row is asked for.
 const S_IFMT: u32 = 0o170000;
@@ -111,7 +100,12 @@ fn stat_parallel(start: usize, end: usize, row: &(impl Fn(usize) -> Meta + Sync)
     })
 }
 
+#[cfg(test)]
+thread_local! { pub(crate) static SEARCH_STAT_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
+
 fn meta_one(base: &Path, name: &str) -> Meta {
+    #[cfg(test)]
+    SEARCH_STAT_CALLS.with(|calls| calls.set(calls.get() + 1));
     // corner: a row that vanished between listing and stat reports zeroes, see AGENTS.md.
     match base.join(name).symlink_metadata() {
         Ok(m) => {

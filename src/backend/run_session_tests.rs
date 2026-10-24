@@ -3,6 +3,12 @@ use crate::backend::testdir::TestDir;
 
 const WIRE_DEADLINE: Duration = Duration::from_secs(30);
 
+// The walk's landing as the loop meets it, past the walk progress that shares its event.
+fn walk_landed(rx: &Receiver<Event>, st: &State, skip: fn(&Event) -> bool) {
+    let session = st.search_session.as_ref().expect("a session stands");
+    crate::backend::searchwalkhold::wait_walk_landed(rx, session, WIRE_DEADLINE, skip);
+}
+
 // Opens the session with its walk hold armed first, so the walk can never pass `at` before the test parks it.
 fn open_held(st: &mut State, root: &str, events: &Sender<Event>, at: usize) -> (Receiver<()>, Sender<()>) {
     let probes = Arc::new(crate::backend::searchwalk::WalkProbes::new());
@@ -49,8 +55,7 @@ fn a_session_answers_listed_rows_and_searched_with_its_generation() {
 
     ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     // The walk lands on its own event; the query below must score the whole scope.
-    let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-    assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+    walk_landed(&events_rx, &st, |_| false);
     let lines: Vec<String> = String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect();
     assert_eq!(lines.len(), 1, "open answers one line, no rows change: {lines:?}");
     assert_eq!(crate::json::field_str(&lines[0], "t").as_deref(), Some("searchopened"));
@@ -141,8 +146,7 @@ fn a_window_past_the_head_returns_the_full_ranked_order() {
 
     ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     // The walk lands on its own event; the queries below must score the whole scope.
-    let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-    assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+    walk_landed(&events_rx, &st, |_| false);
     out.clear();
     // Two bench matches over the fixture, asked with a window of one.
     ask(r#"{"c":"searchquery","query":"bench","gen":1,"count":1}"#, &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
@@ -216,8 +220,7 @@ fn a_menu_select_all_resolves_every_match_in_ranked_order() {
 
     ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     // The walk lands on its own event; the queries below must score the whole scope.
-    let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-    assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+    walk_landed(&events_rx, &st, |_| false);
     out.clear();
     // Two bench matches over the fixture, asked with a window of one.
     ask(r#"{"c":"searchquery","query":"bench","gen":1,"count":1}"#, &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
@@ -285,8 +288,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
 
     ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     // The walk lands on its own event; the queries below must score the whole scope.
-    let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-    assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+    walk_landed(&events_rx, &st, |_| false);
     out.clear();
     // Four hundred bench matches over the fixture, asked with a window of one.
     ask(r#"{"c":"searchquery","query":"bench","gen":1,"count":1}"#, &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
@@ -386,8 +388,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         assert_eq!(lines.len(), 3, "the walking query answers: {lines:?}");
         assert!(lines[2].contains(r#""walking":true"#), "the partial answer says walking");
         let _ = release.send(());
-        let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-        assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+        walk_landed(&events_rx, &st, |_| false);
         on_search_walked(&mut out, &mut st, &tb, &pool);
         let lines: Vec<String> = String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect();
         assert_eq!(lines.len(), 3, "the landing re-runs once: {lines:?}");
@@ -435,8 +436,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         ops.journal.push(Entry { op: "rename".to_string(), steps: vec![moved("alpha-old.txt", "alpha-new.txt"), moved("beta-old.txt", "beta-new.txt")] });
         ops.journal.push(Entry { op: "rename".to_string(), steps: vec![moved("gamma-old.txt", "gamma-new.txt")] });
         ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut st, &mut ops);
-        let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-        assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+        walk_landed(&events_rx, &st, |_| false);
         let total = |lines: &[String]| crate::json::field_usize(lines.last().expect("a searched line"), "n");
         assert_eq!(total(&ask(r#"{"c":"searchquery","query":"gamma-new","gen":1,"count":100}"#, &mut st, &mut ops)), Some(1));
         let opened = st.search_session.as_ref().expect("a session stands").probes_opened();
@@ -541,7 +541,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         assert!(st.search_session.is_some(), "the session stands after a cancel");
         // The landing event still arrives, perhaps behind the held key's cap event; the cancel swallowed the landing, so no re-run follows it.
         let _ = release.send(());
-        while !matches!(events_rx.recv_timeout(WIRE_DEADLINE).expect("the stopped walk still announces"), Event::SearchWalked) {}
+        walk_landed(&events_rx, &st, |_| true);
         on_search_walked(&mut out, &mut st, &tb, &pool);
         assert!(out.is_empty(), "no landing re-run after a cancel");
         std::thread::sleep(std::time::Duration::from_millis(300));

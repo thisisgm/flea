@@ -62,6 +62,7 @@ pub(crate) struct Session {
     pub(crate) last_batch: Instant,
     // Folder sizes this session's answers carry inline; see src/backend/answersizes.rs.
     pub(crate) sizes: crate::backend::answersizes::AnswerSizes,
+    pub(crate) row_cache: crate::backend::searchrowcache::Cache,
     // The tag terms' names, read once per row off the loop thread; see src/backend/searchtags.rs.
     pub(crate) tags: crate::backend::searchtags::Tags,
     #[cfg(test)]
@@ -183,7 +184,7 @@ impl Session {
         self.last_matches.clear();
         let mut answer = self.answer(&query, count);
         answer.gen = gen;
-        answer.ms = self.walk_ms;
+        if !answer.walking { answer.ms = self.walk_ms; }
         // A tagged query whose names are still being read stands for one more re-run.
         self.standing_while_walking = answer.walking;
         self.last_query = query;
@@ -211,6 +212,7 @@ impl Session {
         if gen <= self.last_answered_gen {
             return false;
         }
+        self.row_cache.clear();
         self.last_answered_gen = gen;
         self.standing = Some((gen, query.to_string(), count));
         self.standing_while_walking = self.walking();
@@ -271,6 +273,7 @@ impl Session {
         let indexed = index.len();
         self.matched_index_len = indexed;
         let partial = index.partial;
+        let walking = self.walking() || unread;
         drop(index);
         Answer {
             gen: 0,
@@ -278,7 +281,7 @@ impl Session {
             rows,
             total,
             indexed,
-            walking: self.walking() || unread,
+            walking,
             partial,
             ms: started.elapsed().as_secs_f64() * 1000.0,
             count,

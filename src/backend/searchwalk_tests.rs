@@ -1,4 +1,5 @@
 use super::*;
+use crate::backend::searchwalkhold::wait_walk_landed;
 use crate::backend::testdir::TestDir;
 use std::time::Duration;
 
@@ -53,7 +54,7 @@ fn a_cancelled_walk_that_lands_keeps_every_row_id() {
     s.query(1, "bench", 100).expect("generation 1 answers");
     s.cancel_walk().expect("a running walk cancels");
     release.send(()).expect("the parked walk takes its release");
-    walked_rx.recv_timeout(Duration::from_secs(30)).expect("the cancelled walk still lands");
+    wait_walk_landed(&walked_rx, &s, Duration::from_secs(30), |_| false);
     let narrowed = s.query(2, "bench-1", 100).expect("generation 2 answers");
     let mut names: Vec<String> = narrowed.rows.iter().map(|(path, _)| path.clone()).collect();
     names.sort();

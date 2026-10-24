@@ -32,3 +32,24 @@ fn search_published_growth_invalidates_narrowing_even_after_cancellation() {
     session.probes.cancel.store(true, Ordering::Relaxed);
     assert_eq!(session.query(2, "ab", 10).unwrap().total, 2);
 }
+
+#[test]
+fn search_streams_completed_blocks_before_the_last_directory_lands() {
+    let root = TestDir::new("searchstream");
+    root.dir("held");
+    root.file("alpha.txt", "a");
+    let scope = root.path().to_str().unwrap();
+    let probes = Arc::new(WalkProbes::new());
+    let (parked, release) = probes.test_hold_walk_in("held");
+    let (events, _received) = std::sync::mpsc::channel();
+    let mut session = Session::open_async_with_probes(scope, scope, false, events, probes);
+    parked.recv_timeout(std::time::Duration::from_secs(30)).unwrap();
+    let answer = session.query(1, "a", 10).unwrap();
+    assert!(answer.walking);
+    session.index.lock().unwrap().push("another.txt", false);
+    session.test_set_last_batch(Instant::now() - std::time::Duration::from_millis(101));
+    let streamed = session.poll_walked();
+    release.send(()).unwrap();
+    session.join_walk();
+    assert!(streamed, "completed blocks must refresh the standing partial query before final readiness");
+}

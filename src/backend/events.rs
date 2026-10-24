@@ -47,6 +47,8 @@ pub enum Event {
     SearchDelta(usize),
     // A query held while a session walk runs reached the listing swap's cap; the loop answers it from the partial index.
     SearchHeld,
+    SearchReady,
+    SearchRefresh,
     ReadError(FleaError),
     Closed,
 }
