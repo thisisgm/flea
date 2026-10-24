@@ -172,8 +172,21 @@ fn a_change_the_landing_applies_re_runs_an_answer_given_after_the_walk() {
         assert_eq!((answered.gen, answered.total, answered.walking), (41, 0, false));
         assert!(s.landing().is_none(), "the completed answer does not itself need a re-run");
         d.file("deep/child/needle-a", "a");
+        let deadline = std::time::Instant::now() + Duration::from_secs(30);
+        loop {
+            match rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())) {
+                Ok(crate::backend::events::Event::SearchDelta(token)) => {
+                    assert_eq!(token, s.watch_token(), "the pending change belongs to this session");
+                    break;
+                }
+                Ok(crate::backend::events::Event::SearchHeld) => {},
+                _ => panic!("the external create did not publish its watch delta"),
+            }
+        }
         assert!(s.poll_walked(), "the landing announces once");
-        let landed = s.answer_held().or_else(|| s.re_answer_standing()).expect("the landing's change re-runs the standing query");
+        assert_eq!(s.landing(), Some((41, "needle".to_string(), 3)), "the landing arms the standing re-run branch");
+        assert!(s.answer_held().is_none(), "the already answered query is no longer held");
+        let landed = s.re_answer_standing().expect("the landing's change re-runs the standing query");
         assert_eq!((landed.gen, landed.total, landed.walking), (41, 1, false));
         assert_eq!(landed.rows[0].0, "deep/child/needle-a");
         assert!(s.landing().is_none(), "one re-run");
