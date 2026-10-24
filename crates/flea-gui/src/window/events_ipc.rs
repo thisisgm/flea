@@ -150,7 +150,14 @@ impl Shell {
                     search: &host.search.owner,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 19] = [
+                // Quick Look answers before the column, so previewState reads the card while it is open.
+                let look = crate::window::quick_look::readers::Reader {
+                    host: self.quick_look.as_ref(),
+                    view: self.quick_look.as_ref().map(|host| host.view.read(cx)),
+                    viewport: window.viewport_size(),
+                };
+                let adapters: [&dyn crate::ipc::Adapter; 20] = [
+                    &look,
                     &search,
                     &query,
                     &rail,
@@ -175,9 +182,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    19
+                    20
                 } else {
-                    18
+                    19
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

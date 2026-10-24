@@ -43,6 +43,8 @@ impl Shell {
 }
 
 #[cfg(test)]
+mod compare_tests;
+#[cfg(test)]
 mod effect_tests;
 #[cfg(test)]
 mod families_tests;
@@ -50,6 +52,8 @@ mod families_tests;
 mod guard_tests;
 #[cfg(test)]
 mod navigation_tests;
+#[cfg(test)]
+mod preview_tests;
 #[cfg(test)]
 mod refusal_tests;
 #[cfg(test)]

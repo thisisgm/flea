@@ -103,6 +103,11 @@ impl Shell {
         if self.path_holds_keyboard(window, cx) {
             return;
         }
+        // An open Quick Look card takes every key through the dispatch point.
+        if self.quick_look_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
         if event.keystroke.key == "escape"
             && modifiers(event.keystroke.modifiers) == 0
             && self.keyboard.context == flea::keys::Context::Listing
