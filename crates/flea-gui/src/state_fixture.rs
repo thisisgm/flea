@@ -59,6 +59,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         seam: Seam::new(),
         ipc_events: None,
         _ipc_reader: None,
+        ipc_cold: false,
         _locale_reader: None,
         locale_service: None,
         presentation_service: None,
