@@ -159,6 +159,23 @@ impl SelectionPreview {
                 Mounted::Model(model)
             }
             Kind::Audio | Kind::Video => Mounted::Media(None),
+            _ if !manual => {
+                let look = docs::Look {
+                    theme,
+                    face: self.face.clone(),
+                    metrics,
+                    muted: crate::list::Palette::inherited(&window.text_style(), theme).metadata,
+                    mark: crate::g2::pv1::glyph::Glyph::kind(&subject.row.icon, subject.row.mode).svg(),
+                };
+                let wire = wire::Wire(self.outbox.clone());
+                match docs::Doc::mount(kind, &subject, &look, &wire, &self.catalog, window, cx) {
+                    Some(doc) => {
+                        watch = Some(doc.observe(cx));
+                        Mounted::Doc(doc)
+                    }
+                    None => Mounted::Basic,
+                }
+            }
             _ => Mounted::Basic,
         };
         let frame = Frame {
@@ -167,10 +184,8 @@ impl SelectionPreview {
             kind,
             mounted,
             meta: None,
-            lines: Rc::from([]),
-            text_cache: Rc::default(),
-            text_answered: kind != Kind::Text,
-            thumb_answered: !matches!(kind, Kind::Image | Kind::Video),
+            facts: None,
+            thumb_answered: !kind.thumbed(),
             source: None,
             image: None,
             failed: false,
@@ -178,11 +193,15 @@ impl SelectionPreview {
             _watch: watch,
         };
         if !manual && kind != Kind::Multi {
-            self.outbox.borrow_mut().push(format!(r#"{{"c":"meta","row":{},"token":{generation},"text":{},"media":{},"archive":false}}"#, frame.subject.index, kind == Kind::Text, matches!(kind, Kind::Audio | Kind::Video)));
-            if kind == Kind::Text {
-                self.outbox.borrow_mut().push(format!(r#"{{"c":"code","slot":"column","token":{generation},"path":"{}","first":1,"count":400,"raw":true}}"#, escape(&path)));
-            }
-            if matches!(kind, Kind::Image | Kind::Video) {
+            // PreviewColumn.qml: the meta reply carries the line count, the media probe and an archive's own index.
+            let text = matches!(kind, Kind::Text | Kind::Code | Kind::Markdown | Kind::Table | Kind::Html);
+            let media = matches!(kind, Kind::Audio | Kind::Video);
+            self.outbox.borrow_mut().push(format!(
+                r#"{{"c":"meta","row":{},"token":{generation},"text":{text},"media":{media},"archive":{}}}"#,
+                frame.subject.index,
+                kind == Kind::Archive
+            ));
+            if kind.thumbed() {
                 self.outbox.borrow_mut().push(format!(
                     r#"{{"c":"thumb","rows":[{}]}}"#,
                     frame.subject.index
@@ -193,37 +212,41 @@ impl SelectionPreview {
         self.poll(window, cx);
     }
 
-    pub(crate) fn on_line(&mut self, doc: &Json, line: &str, cx: &mut Context<Self>) -> bool {
+    pub(crate) fn on_line(
+        &mut self,
+        doc: &Json,
+        line: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
         let text = |key| doc.get(key).and_then(Json::as_str).unwrap_or("");
         let number = |key| doc.get(key).and_then(Json::as_f64).unwrap_or(-1.) as u64;
+        // A drawn document keeps asking as it scrolls, so its later replies go to it as well as the pending one.
+        let mut taken = false;
+        for frame in [self.drawn.as_ref(), self.pending.as_ref()].into_iter().flatten() {
+            if let Mounted::Doc(view) = &frame.mounted {
+                let path = frame.subject.path();
+                let mine = text("t") != "meta" || number("token") == frame.generation;
+                taken |= mine && view.on_line(doc, line, &path, window, cx);
+            }
+        }
         let Some(frame) = self.pending.as_mut() else {
-            return false;
+            return taken;
         };
         match text("t") {
-            "meta" if number("token") == frame.generation => frame.meta = Some(doc.clone()),
-            "code" if text("slot") == "column" && number("token") == frame.generation => {
-                frame.text_answered = true;
-                frame.failed = !matches!(text("state"), "plain" | "styled");
-                frame.lines = doc
-                    .get("lines")
-                    .and_then(Json::as_array)
-                    .unwrap_or(&[])
-                    .iter()
-                    .take(400)
-                    .map(|runs| {
-                        runs.as_array()
-                            .unwrap_or(&[])
-                            .iter()
-                            .filter_map(Json::as_str)
-                            .collect::<String>()
-                    })
-                    .collect::<Vec<_>>()
-                    .into();
+            "meta" if number("token") == frame.generation => {
+                frame.meta = Some(doc.clone());
+                frame.facts = flea::ui_logic_pv1::meta::parse(line);
             }
             "thumbed" if number("row") as usize == frame.subject.index => {
                 frame.thumb_answered = true;
-                if text("file").starts_with('/') {
-                    frame.source = Some(std::path::PathBuf::from(text("file")).into());
+                // PreviewColumn.qml frameSource: an image with no cache file decodes the original, never enlarged.
+                let file = match text("file") {
+                    "" if frame.kind == Kind::Image => frame.subject.path(),
+                    file => file.to_owned(),
+                };
+                if file.starts_with('/') {
+                    frame.source = Some(std::path::PathBuf::from(file).into());
                 }
             }
             "model3d" => {
@@ -234,7 +257,7 @@ impl SelectionPreview {
                     }
                     return accepted;
                 }
-                return false;
+                return taken;
             }
             "pdfcopied" => {
                 if let Mounted::Pdf(pdf) = &frame.mounted {
@@ -248,10 +271,10 @@ impl SelectionPreview {
                         )
                     });
                 } else {
-                    return false;
+                    return taken;
                 }
             }
-            _ => return false,
+            _ => return taken,
         }
         cx.notify();
         true
@@ -307,11 +330,11 @@ impl SelectionPreview {
                         && ((model.live.borrow().thumbnail && frame.image.is_some())
                             || model.presented.borrow().image.is_some()))
             }
-            _ => {
-                frame.text_answered
-                    && frame.thumb_answered
-                    && (frame.source.is_none() || frame.image.is_some())
+            Mounted::Doc(doc) => {
+                frame.failed |= doc.failure(&self.catalog, cx).is_some();
+                doc.ready(cx)
             }
+            _ => frame.thumb_answered && (frame.source.is_none() || frame.image.is_some()),
         };
         let ready =
             frame.manual || frame.kind == Kind::Multi || (frame.meta.is_some() && renderer_ready);
