@@ -40,8 +40,10 @@ mod protocol_tests {
 
     const BINARY_LENGTH_BYTES: usize = std::mem::size_of::<u64>();
 
+    type Fields<'a> = Vec<(&'a [u8], &'a [u8])>;
+
     // Sample input: b"MESSAGE=ok\nMESSAGE\n\x02\0\0\0\0\0\0\0a\n\n".
-    fn fields(mut payload: &[u8]) -> Result<Vec<(&[u8], &[u8])>, &'static str> {
+    fn fields(mut payload: &[u8]) -> Result<Fields<'_>, &'static str> {
         let mut result = Vec::new();
         while !payload.is_empty() {
             let end = payload

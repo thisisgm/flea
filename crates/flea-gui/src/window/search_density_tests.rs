@@ -296,9 +296,9 @@ fn joined_dual_independent_search_density_draw() {
     density(&mut cx, handle, "compact");
     frame(&mut cx, handle);
     let mut headers = [0; 2];
-    for side in 0..2 {
+    for (side, header) in headers.iter_mut().enumerate() {
         edit(&mut cx, handle, |shell, _, _| {
-            headers[side] = shell.panes[side]
+            *header = shell.panes[side]
                 .as_ref()
                 .unwrap()
                 .list
@@ -311,12 +311,12 @@ fn joined_dual_independent_search_density_draw() {
         type_query(&mut cx, handle, side, Scope::Home);
         results(&mut cx, handle, side);
     }
-    for side in 0..2 {
+    for (side, header) in headers.into_iter().enumerate() {
         observe(
             &mut cx,
             handle,
             side,
-            headers[side],
+            header,
             "dual-both-query-results-compact",
         );
     }
