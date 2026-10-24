@@ -175,3 +175,11 @@ fn the_stamped_image_name_matches_the_oracle_sample() {
     assert_eq!(LinkKind::parse("pasteHardLink"), Some(LinkKind::Hard));
     assert_eq!(LinkKind::parse("transfer"), None);
 }
+
+#[test]
+fn the_local_stamp_reads_a_whole_wall_clock() {
+    let stamp = super::paste::stamp_at(1_790_000_000).expect("libc places the second");
+    assert!(stamp.year >= 2026 && (1..=12).contains(&stamp.month) && (1..=31).contains(&stamp.day));
+    assert!(stamp.hour < 24 && stamp.minute < 60 && stamp.second < 61);
+    assert!(image_name(stamp).starts_with("Pasted image 2026-"));
+}

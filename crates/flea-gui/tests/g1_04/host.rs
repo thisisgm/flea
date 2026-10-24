@@ -233,6 +233,7 @@ fn a_busy_pane_swallows_a_modified_row_action(cx: &mut TestAppContext) {
         "ctrl-c: {:?}",
         observed.borrow()
     );
+    shell.read_with(cx, |shell, _| assert!(!shell.clipboard.board.paths_pending(0), "ctrl-c reached the clipboard on a busy pane"));
 }
 
 #[gpui::test]
@@ -320,8 +321,7 @@ fn an_idle_pane_emits_the_row_actions_the_busy_tests_hold(cx: &mut TestAppContex
     press(cx, &shell, "delete", None, shifted());
     press(cx, &shell, "f2", None, Modifiers::default());
     press(cx, &shell, "c", None, controlled());
-    assert_eq!(
-        *observed.borrow(),
-        vec!["deletePermanently", "rename", "copy"]
-    );
+    // Copy has an in-process owner now: it asks the backend for its rows instead of leaving an emit nobody hears.
+    assert_eq!(*observed.borrow(), vec!["deletePermanently", "rename"]);
+    shell.read_with(cx, |shell, _| assert!(shell.clipboard.board.paths_pending(0)));
 }

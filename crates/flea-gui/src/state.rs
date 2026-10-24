@@ -31,6 +31,7 @@ pub struct Shell {
     pub(crate) settings: crate::window::settings::Host,
     pub(crate) menu: crate::g2::mn1::join::Joined,
     pub(crate) operations: crate::g2::op1::join::Sessions,
+    pub(crate) clipboard: crate::g2::dg1::join::Joined,
     pub(crate) overlay: Option<gpui::Entity<crate::g2::op1::host::Overlay>>,
     pub(crate) trash: Option<crate::g2::pl3::join::TrashHost>,
     pub(crate) rail: Option<crate::window::rail::Join>,
@@ -114,6 +115,7 @@ impl Shell {
             menu: Default::default(),
             overlay: None,
             operations: Default::default(),
+            clipboard: Default::default(),
             settings: Default::default(),
             trash: None,
             rail: None,
@@ -266,6 +268,8 @@ impl Shell {
                         }
                     }
                 }));
+                // Each backend watches the clipboard from its start, as Backend.qml does.
+                self.clipboard.board.watch(side as u64, &crate::g2::dg1::join::PaneWire(Some(&backend)));
                 host.backend = Some(backend);
             }
             Err(error) => {

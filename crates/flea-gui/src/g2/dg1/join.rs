@@ -1,0 +1,433 @@
+//! The clipboard joined to the live Shell: key verbs and menu picks call the Clipboard directly, clip and paths replies reach their one owner, a paste goes through op1's collision host holding its captured entry until the transfer spends it or ends, and List, Columns and Grid rows draw the marks.
+use super::{
+    keys::Verb,
+    marks::{GridMarks, ViewMarks},
+    seams::{Captured, Foreign, MenuAction, Owner, Publish, Sink, Wire},
+    Clipboard, Landing, Take,
+};
+use crate::{backend::Backend, state::Shell, window::pane::PaneHost};
+use flea::i18n::I18n;
+use flea::ui_logic_dg1::{self as core, PasteAsk};
+use flea::ui_logic_fb1::status::Hint;
+use flea::ui_logic_op1::collide::{text, texts, Request};
+use gpui::{ClipboardItem, Context, Window};
+use std::rc::Rc;
+
+/// The window's clipboard state beside the Shell: the one Clipboard, each side's captured paste and the marks the views draw.
+#[derive(Default)]
+pub struct Joined {
+    pub board: Clipboard,
+    /// The entry a side's paste captured, held until op1 sends the transfer or the ask ends.
+    pub captured: [Option<Captured>; 2],
+    marks: Option<(u64, Rc<ViewMarks>)>,
+    drawn: [Option<(u64, String, bool)>; 2],
+}
+
+impl Joined {
+    /// The marks Columns tracks read this frame; None while the clipboard is empty, so a track asks nothing.
+    pub fn column_marks(&self) -> Option<Rc<dyn crate::columns::paint::ClipMarks>> {
+        let (_, marks) = self.marks.as_ref()?;
+        (!marks.is_empty()).then(|| Rc::clone(marks) as Rc<dyn crate::columns::paint::ClipMarks>)
+    }
+}
+
+// The pane backend's ordered pipe; a stopped backend takes nothing.
+pub(crate) struct PaneWire<'a>(pub(crate) Option<&'a Backend>);
+
+impl Wire for PaneWire<'_> {
+    fn send(&self, line: String) -> bool {
+        self.0.is_some_and(|backend| backend.line(line).is_ok())
+    }
+}
+
+#[derive(Default)]
+struct Asks(Vec<(PasteAsk, Captured)>);
+
+impl Sink for Asks {
+    fn paste(&mut self, ask: PasteAsk, captured: Captured) {
+        self.0.push((ask, captured));
+    }
+}
+
+// The backend's clipSet stays the one claim until the fork's validate-only authority is published, so the file owner publishes nothing and only Copy As text reaches the system clipboard.
+#[derive(Default)]
+struct Texts(Vec<String>);
+
+impl Owner for Texts {
+    fn publish(&mut self, _item: Publish) -> bool {
+        false
+    }
+
+    fn publish_text(&mut self, text: String) -> bool {
+        self.0.push(text);
+        true
+    }
+
+    fn clear_if_owned(&mut self, _token: &str, _cut_paths: &[String]) -> bool {
+        false
+    }
+
+    fn drain_foreign(&mut self) -> Vec<Foreign> {
+        Vec::new()
+    }
+}
+
+// The rows a verb acts on: the selection, else the cursor row; an empty listing has none.
+fn picks(host: &PaneHost) -> Vec<usize> {
+    if host.pane.held.total == 0 {
+        Vec::new()
+    } else if host.selected.is_empty() {
+        vec![host.pane.cursor]
+    } else {
+        host.selected.clone()
+    }
+}
+
+// Sample input: a cut transfer of ["/a/f"] into "/b" reads {"c":"transfer","op":"move","paths":["/a/f"],"dest":"/b"}, as Clipboard.paste asks.
+pub fn request(ask: &PasteAsk) -> Option<(Request, bool)> {
+    fn refs(paths: &[String]) -> Vec<&str> {
+        paths.iter().map(String::as_str).collect()
+    }
+    Some(match ask {
+        PasteAsk::Transfer { op, paths, dest, spends_cut } => (
+            Request::new()
+                .with("c", &text("transfer"))
+                .with("op", &text(op))
+                .with("paths", &texts(&refs(paths)))
+                .with("dest", &text(dest)),
+            *spends_cut,
+        ),
+        PasteAsk::Link { kind, paths, dest } => (
+            Request::new()
+                .with("c", &text("link"))
+                .with("op", &text(kind.op()))
+                .with("paths", &texts(&refs(paths)))
+                .with("dest", &text(dest)),
+            false,
+        ),
+        PasteAsk::Image { .. } => return None,
+    })
+}
+
+type Step<'a, R> = dyn FnOnce(&mut Clipboard, &I18n, u64, Take<'_>, Landing<'_>, &dyn Wire, &mut dyn Sink, &mut dyn Owner) -> (R, Vec<core::Said>) + 'a;
+
+impl Shell {
+    // One clipboard step on a side: its facts in, then said lines to the footer, pastes to op1 and Copy As text to the system clipboard.
+    fn clipboard_run<R: Default>(
+        &mut self,
+        side: usize,
+        step: Box<Step<'_, R>>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> R {
+        let Some(host) = self.panes[side].as_ref() else {
+            return R::default();
+        };
+        let backend = side as u64;
+        let busy = host.pane.busy();
+        let take = Take {
+            path: &host.path,
+            listing: host.pane.held.listing as u64,
+            paths_busy: host.nav.gate.paths_pending,
+            list_in_flight: busy,
+        };
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.as_secs() as i64);
+        let landing = Landing {
+            path: &host.path,
+            list_in_flight: busy,
+            recent: flea::ui_logic_pk1::is_recent(host.pane.place()),
+            stamp: core::stamp_at(now).unwrap_or(core::Stamp {
+                year: 1970,
+                month: 1,
+                day: 1,
+                hour: 0,
+                minute: 0,
+                second: 0,
+            }),
+        };
+        let wire = PaneWire(host.backend.as_ref());
+        let mut asks = Asks::default();
+        let mut texts = Texts::default();
+        let board = &mut self.clipboard.board;
+        if wire.0.is_some() {
+            board.watch_unknown(backend, &wire);
+        }
+        let (result, said) = step(board, &self.locale.catalog, backend, take, landing, &wire, &mut asks, &mut texts);
+        let pending = board.paths_pending(backend);
+        if let Some(host) = self.panes[side].as_mut() {
+            host.nav.gate.clip_pending = pending;
+        }
+        for line in said {
+            let hint = if line.paste_hint { Hint::Paste } else { Hint::None };
+            if let Some(host) = self.panes[side].as_mut() {
+                host.status = line.text.clone().into();
+            }
+            self.status_messages(cx, |messages, now| {
+                messages.say(&line.text, line.error, "", hint, now);
+            });
+        }
+        for text in texts.0 {
+            cx.write_to_clipboard(ClipboardItem::new_string(text));
+        }
+        for (ask, captured) in asks.0 {
+            let Some((request, cut)) = request(&ask) else {
+                continue;
+            };
+            if self.ask_operation(side, &request, &[], cut, window, cx) {
+                self.clipboard.captured[side] = Some(captured);
+            }
+        }
+        cx.notify();
+        result
+    }
+
+    /// A key verb: copy, cut, paste, forced move and the link pastes call the Clipboard here, never through an emitted action.
+    pub(crate) fn clipboard_action(
+        &mut self,
+        action: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let Some(verb) = Verb::parse(action) else {
+            return false;
+        };
+        let side = self.focus_side;
+        let Some(host) = self.panes[side].as_ref() else {
+            return false;
+        };
+        let rows = picks(host);
+        self.clipboard_run(
+            side,
+            Box::new(move |board, i18n, backend, take, landing, wire, sink, owner| {
+                let said = board.act(i18n, backend, verb, None, rows, take, landing, wire, sink, owner);
+                ((), said.unwrap_or_default())
+            }),
+            window,
+            cx,
+        );
+        true
+    }
+
+    /// A rows-menu pick the Clipboard owns: Copy, Cut, Paste, Copy As and Paste As over the validated snapshot.
+    pub(crate) fn clipboard_menu(
+        &mut self,
+        capture: &crate::g2::mn1::join::Captured,
+        action: &str,
+        leaf: &str,
+        paths: &[String],
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let chosen = if leaf.is_empty() { action.to_owned() } else { format!("{action}:{leaf}") };
+        let verb = Verb::parse(action).filter(|_| leaf.is_empty());
+        if verb.is_none() && MenuAction::parse(&chosen) == MenuAction::Unhandled {
+            return false;
+        }
+        self.retire_menu(window, cx);
+        let side = capture.side;
+        let Some(host) = self.panes[side].as_ref() else {
+            return true;
+        };
+        let rows = capture.rows.clone();
+        let cursor_path = host
+            .pane
+            .held
+            .row(capture.cursor)
+            .map(|row| core::row_path(&host.path, &row.name))
+            .unwrap_or_default();
+        let snapshot = paths.to_vec();
+        self.clipboard_run(
+            side,
+            Box::new(move |board, i18n, backend, take, landing, wire, sink, owner| {
+                let said = match verb {
+                    Some(verb) => {
+                        let paths = (!snapshot.is_empty()).then_some(snapshot);
+                        board.act(i18n, backend, verb, paths, rows, take, landing, wire, sink, owner).unwrap_or_default()
+                    }
+                    None => board.menu_action(i18n, backend, &chosen, &snapshot, &cursor_path, rows, take, landing, wire, sink, owner),
+                };
+                ((), said)
+            }),
+            window,
+            cx,
+        );
+        true
+    }
+
+    /// The clipboard's claim on one backend event, ahead of every other reader: clip lines, its own paths answers and their refusals; an ended backend drops its watch.
+    pub(crate) fn clipboard_receive(
+        &mut self,
+        side: usize,
+        event: &crate::backend::Event,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        use crate::backend::Event;
+        match event {
+            Event::Failed(_) | Event::Drained => {
+                self.clipboard_backend_ended(side);
+                false
+            }
+            Event::Producer(line) => self.clipboard_line(side, line, window, cx),
+            Event::Paths(paths) => self.clipboard_paths(side, paths, window, cx),
+            Event::Refused { operation, .. } if operation == "paths" => {
+                self.clipboard_paths_failed(side, window, cx)
+            }
+            _ => false,
+        }
+    }
+
+    /// A backend clip line; true when the Clipboard took it.
+    pub(crate) fn clipboard_line(
+        &mut self,
+        side: usize,
+        line: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !line.contains(r#""t":"clip""#) {
+            return false;
+        }
+        let line = line.to_owned();
+        self.clipboard_run(
+            side,
+            Box::new(move |board, i18n, backend, take, landing, wire, sink, owner| {
+                board.line(i18n, backend, &line, take, landing, wire, sink, owner)
+            }),
+            window,
+            cx,
+        )
+    }
+
+    /// A paths answer, claimed only while this side's take or Copy As holds the shared slot.
+    pub(crate) fn clipboard_paths(
+        &mut self,
+        side: usize,
+        paths: &[String],
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.clipboard.board.paths_pending(side as u64) {
+            return false;
+        }
+        let list = paths.to_vec();
+        self.clipboard_run(
+            side,
+            Box::new(move |board, i18n, backend, take, _, wire, sink, owner| {
+                (true, board.paths_resolved(i18n, backend, list, take, wire, sink, owner))
+            }),
+            window,
+            cx,
+        )
+    }
+
+    /// A refused paths request ends the claim, so the next copy is never blocked.
+    pub(crate) fn clipboard_paths_failed(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.clipboard.board.paths_pending(side as u64) {
+            return false;
+        }
+        self.clipboard_run(
+            side,
+            Box::new(move |board, i18n, backend, take, _, wire, sink, owner| {
+                (true, board.paths_failed(i18n, backend, take, wire, sink, owner))
+            }),
+            window,
+            cx,
+        )
+    }
+
+    /// A drained or failed backend loses its watch, its queue and its captured paste; the next backend watches again at first use.
+    pub(crate) fn clipboard_backend_ended(&mut self, side: usize) {
+        self.clipboard.board.unwatch(side as u64);
+        self.clipboard.captured[side] = None;
+        if let Some(host) = self.panes[side].as_mut() {
+            host.nav.gate.clip_pending = false;
+        }
+    }
+
+    /// op1 published a frame: a sent cut transfer spends exactly the captured cut, and an ask that ended without one releases its capture.
+    pub(crate) fn clipboard_operations(
+        &mut self,
+        side: usize,
+        spent: bool,
+        idle: bool,
+        cx: &mut Context<Self>,
+    ) {
+        if spent {
+            if let Some(captured) = self.clipboard.captured[side].take() {
+                let Some(host) = self.panes[side].as_ref() else {
+                    return;
+                };
+                let wire = PaneWire(host.backend.as_ref());
+                let mut asks = Asks::default();
+                let mut texts = Texts::default();
+                let said = self
+                    .clipboard
+                    .board
+                    .spent(side as u64, &captured, true, &wire, &mut asks, &mut texts);
+                drop(said);
+                cx.notify();
+            }
+        } else if idle {
+            self.clipboard.captured[side] = None;
+        }
+    }
+
+    /// The menu's clipboard facts: Paste shows while files are held or the watch is down, Paste As only where links are possible; a pane never watched (a test shell) reads as up.
+    pub(crate) fn clipboard_menu_facts(&self, side: usize) -> (bool, bool, bool) {
+        let backend = side as u64;
+        let board = &self.clipboard.board;
+        let can_link = self.surfaces[side]
+            .filesystem
+            .facts
+            .as_ref()
+            .is_none_or(|facts| !matches!(facts.name.as_str(), "vfat" | "exfat"));
+        (
+            board.available(),
+            board.watch_failed(backend),
+            can_link,
+        )
+    }
+
+    /// Once per frame: a new selection revision builds one mark set, and a side whose folder or Grid changed rescopes; a still frame compares and returns.
+    pub(crate) fn sync_clip_marks(&mut self) {
+        let revision = self.clipboard.board.revision();
+        if self.clipboard.marks.as_ref().is_none_or(|(seen, _)| *seen != revision) {
+            let marks = ViewMarks::new(revision, self.clipboard.board.current());
+            self.clipboard.marks = Some((revision, Rc::new(marks)));
+        }
+        let Some((_, marks)) = self.clipboard.marks.clone() else {
+            return;
+        };
+        for side in 0..2 {
+            let Some(host) = self.panes[side].as_mut() else {
+                continue;
+            };
+            let grid = host.grid.is_some();
+            let drawn = &mut self.clipboard.drawn[side];
+            if drawn.as_ref().is_some_and(|(seen, path, had)| *seen == revision && *path == host.path && *had == grid) {
+                continue;
+            }
+            let fresh = drawn.as_ref().is_none_or(|(seen, _, _)| *seen != revision);
+            {
+                let mut list = host.list.borrow_mut();
+                if fresh {
+                    let current = self.clipboard.board.current();
+                    list.view.clip.set(&current.paths, current.moving);
+                }
+                list.view.clip.scope(&host.path);
+            }
+            if let Some(grid) = host.grid.as_mut() {
+                grid.decor = Rc::new(GridMarks { marks: Rc::clone(&marks), base: host.path.clone() });
+            }
+            *drawn = Some((revision, host.path.clone(), grid));
+        }
+    }
+}

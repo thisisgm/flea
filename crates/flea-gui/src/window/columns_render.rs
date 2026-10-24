@@ -47,6 +47,7 @@ impl Shell {
             ..Focus::default()
         });
         drop(list);
+        let clip = self.clipboard.column_marks();
         let mut area = div().size_full().relative().overflow_hidden();
         let child = super::with_pane(&host.pane, &host.nav, |pane| pane.child());
         columns.counters.blank_frames += usize::from(tracks.iter().any(|view| {
@@ -77,7 +78,7 @@ impl Shell {
                 Some(Rc::clone(&host.pane.held)),
                 Rc::clone(&focus),
                 scroll,
-                None,
+                clip.clone(),
                 paint,
                 Rc::clone(&words),
             );
