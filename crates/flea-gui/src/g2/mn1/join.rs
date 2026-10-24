@@ -275,6 +275,7 @@ impl Shell {
         };
         self.menu.captured = Some(capture.clone());
         self.check_menu_shebang(window, cx);
+        self.archive_menu_context(side);
         self.menu.presentation.at = Some(at);
         self.menu.pointer = Some((
             window.mouse_position().x.into(),

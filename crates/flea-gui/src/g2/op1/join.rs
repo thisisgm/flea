@@ -36,6 +36,7 @@ pub(crate) struct Sessions {
     pub(crate) origins: [Option<crate::g2::mn1::join::Chosen>; 2],
     chosen_subscription: Option<Subscription>,
     status_subscription: Option<Subscription>,
+    pub(crate) archive: crate::g2::op2::host::Archive,
 }
 
 impl Shell {
@@ -204,6 +205,9 @@ impl Shell {
         message: &str,
         cx: &mut Context<Self>,
     ) {
+        if place == "backend" {
+            self.archive_failed(side, cx);
+        }
         let related = flea::ui_logic_op1::collide::dropped_pending(place, input)
             || (place == "stale" && input == "transfer")
             || matches!(

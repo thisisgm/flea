@@ -300,6 +300,8 @@ impl Shell {
             }
         }
         self.panes[side] = Some(host);
+        #[cfg(not(test))]
+        self.archive_ask_formats(side, cx);
         self.arm_transition(side, window, cx);
         self.arm_listing_wait(side, window, cx);
     }
