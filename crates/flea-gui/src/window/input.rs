@@ -241,12 +241,9 @@ impl Shell {
                 || self.focus.is_focused(window))
                 && self.input_action(action, window, cx))
             || self.operation_action(action, cx)
+            || self.clipboard_action(action, window, cx)
         {
             return true;
-        }
-        if self.clipboard_action(action, window, cx) {
-            cx.stop_propagation();
-            return;
         }
         if action == "menu" {
             self.menu_keyboard_open(window, cx);
