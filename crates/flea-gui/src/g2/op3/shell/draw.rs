@@ -34,7 +34,7 @@ impl Draw<'_> {
             .justify_center()
             .border_2()
             .border_color(frame)
-            .rounded(self.px(RADIUS / 2.))
+            .rounded(px(self.corner / 2.))
             .when(on, |d| d.bg(t.fg));
         box_ = match check.value {
             Tri::On => box_.child(glyph(Glyph::Check, 12. * self.s, t.surface)),
@@ -51,7 +51,7 @@ impl Draw<'_> {
                 .bottom(px(-2.))
                 .border_1()
                 .border_color(t.fg)
-                .rounded(self.px(RADIUS / 2.));
+                .rounded(px(self.corner / 2.));
             return div()
                 .relative()
                 .flex_none()
@@ -86,7 +86,7 @@ impl Draw<'_> {
             } else {
                 t.muted_frame
             })
-            .rounded(self.px(RADIUS))
+            .rounded(px(self.corner))
             .text_color(t.fg)
             .whitespace_nowrap();
         if let Some(mark) = field.glyph {
@@ -133,7 +133,7 @@ impl Draw<'_> {
             .items_center()
             .border_1()
             .border_color(frame)
-            .rounded(self.px(RADIUS))
+            .rounded(px(self.corner))
             .text_color(t.fg)
             .when(primary, |d| d.bg(t.accent.opacity(WASH_DEFAULT)))
             .when(!button.enabled, |d| d.opacity(DISABLED))
@@ -147,10 +147,12 @@ impl DialogShell for StandIn {
         card: &Card,
         palette: &Palette,
         typeface: &Typeface,
+        corner: f32,
         room: f32,
     ) -> AnyElement {
         let s = f32::from(typeface.body) / BOARD_BODY;
         let draw = Draw {
+            corner: crate::compositor::valid_corner(f64::from(corner)),
             t: Tokens::of(palette),
             s,
             typeface,
@@ -187,7 +189,7 @@ impl DialogShell for StandIn {
             .bg(t.surface)
             .border_1()
             .border_color(t.muted_frame)
-            .rounded(draw.px(RADIUS))
+            .rounded(px(draw.corner))
             .font_family(draw.typeface.font.family.clone())
             .text_size(draw.px(BOARD_BODY))
             .line_height(relative(1.2))

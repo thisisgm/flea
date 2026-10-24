@@ -43,7 +43,7 @@ impl SheetView {
             sheet,
             focus: cx.focus_handle(),
             typeface: Typeface::omarchy_default(),
-            corner: 8.,
+            corner: super::seams::COMPOSITOR_CORNER_DEFAULT,
         }
     }
 

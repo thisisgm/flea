@@ -93,7 +93,7 @@ pub fn surface_with(
                     };
                     let mut quad = fill(knob, palette.foreground.opacity(alpha * opacity));
                     quad.corner_radii =
-                        gpui::Corners::all(px(shell.corner.min(width / 2.).max(0.)));
+                        gpui::Corners::all(px(shell.corner.min(width.min(bar.handle) / 2.).max(0.)));
                     window.paint_quad(quad);
                 }
                 if let Some(band) = &host.input.band.as_ref().filter(|band| band.active) {
