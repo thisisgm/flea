@@ -808,7 +808,7 @@ class Session:
 
 # The shipped menu.hidden (src/uischema.rs DEFAULTS) hides Properties; op.size.recursive's session shows it and hides the rest.
 MENU_HIDDEN = ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions",
-               "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText"]
+               "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "actions"]
 SIZE_UI = {"menu": {"hidden": [a for a in MENU_HIDDEN if a != "properties"]}}
 
 

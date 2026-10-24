@@ -15,8 +15,10 @@ pub fn terminal(path: &Path, window: bool) -> io::Result<Child> {
 }
 
 pub fn agent(path: &Path) -> io::Result<Child> {
-    let mut command = Command::new("omarchy");
-    command.arg("agent").current_dir(path);
+    // One argv for the menu row, the A key and the TUI: ui_logic_mn2 owns it.
+    let argv = flea::ui_logic_mn2::agent::argv();
+    let mut command = Command::new(&argv[0]);
+    command.args(&argv[1..]).current_dir(path);
     detached(command)
 }
 
