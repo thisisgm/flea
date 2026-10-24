@@ -75,6 +75,21 @@ pub(super) fn unwritten(patch: &mut Json, written: &Json) {
     });
 }
 
+// A reread keeps this window's own global sort, a per-window key, and then every patch it still owes.
+pub(super) fn keep_own<'a>(document: &mut Json, own: &Json, owed: impl Iterator<Item = &'a Json>) {
+    if let Json::Obj(fields) = document {
+        fields.retain(|(key, _)| key != "sort");
+        if let Some(sort) = own.get("sort") {
+            fields.push(("sort".into(), sort.clone()));
+        }
+    }
+    for patch in owed {
+        if let Ok(next) = flea::uistate::patched(document, patch) {
+            *document = next;
+        }
+    }
+}
+
 impl Worker {
     pub fn start() -> std::io::Result<Self> {
         let home = std::env::var_os("HOME")
