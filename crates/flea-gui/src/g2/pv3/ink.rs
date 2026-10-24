@@ -26,11 +26,11 @@ impl MediaInk {
             background: palette.background,
             surface: palette.background,
             foreground: palette.foreground,
-            muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted: palette.muted,
+            muted_frame: palette.muted_frame,
             accent_frame: palette.accent_frame,
             hair: palette.foreground.opacity(HAIR),
-            error: palette.foreground,
+            error: palette.error,
         }
     }
 }

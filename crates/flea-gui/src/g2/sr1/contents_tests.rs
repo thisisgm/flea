@@ -67,6 +67,9 @@ fn distinct_palette() -> ListPalette {
     ListPalette {
         background: theme.background,
         foreground,
+        muted: foreground.opacity(0.65),
+        error: foreground.opacity(0.95),
+        error_on_surface: foreground.opacity(0.96),
         metadata: foreground.opacity(0.62),
         metadata_frame: foreground.opacity(0.5),
         accent: foreground.opacity(0.9),

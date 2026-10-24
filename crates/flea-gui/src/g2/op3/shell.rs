@@ -252,12 +252,12 @@ impl Tokens {
             surface: palette.background,
             ground: palette.background,
             fg: palette.foreground,
-            muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted: palette.muted,
+            muted_frame: palette.muted_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
             error: palette.accent,
-            rule: palette.metadata_frame.opacity(RULE),
+            rule: palette.muted_frame.opacity(RULE),
         }
     }
 

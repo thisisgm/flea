@@ -39,14 +39,14 @@ pub struct Palette {
 }
 
 impl Palette {
-    /// Interim roles from the list's palette until the theme tokens land; muted has no list role yet.
+    /// Reads the row and caption roles from the shared window palette.
     pub fn from_list(list: &crate::list::Palette) -> Self {
         Self {
             background: list.background,
             foreground: list.foreground,
             metadata: list.metadata,
             metadata_frame: list.metadata_frame,
-            muted: list.metadata,
+            muted: list.muted,
             accent: list.accent,
             accent_frame: list.accent_frame,
         }

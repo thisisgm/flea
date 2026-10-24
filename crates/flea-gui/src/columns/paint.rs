@@ -39,7 +39,7 @@ impl Palette {
             background: base.background,
             foreground: base.foreground,
             muted: base.metadata,
-            muted_frame: base.metadata_frame,
+            muted_frame: base.muted_frame,
             accent: base.accent,
             accent_frame: base.accent_frame,
         }

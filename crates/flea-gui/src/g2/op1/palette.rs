@@ -1,4 +1,4 @@
-//! The roles a card draws with, taken from the window's palette until the theme tokens land.
+//! The roles a card draws with, taken from the immutable window theme.
 use crate::list::Palette;
 use flea::ui_logic_op1::card::Ink;
 use gpui::Hsla;
@@ -12,7 +12,7 @@ pub struct CardPalette {
     pub muted_frame: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
-    // Seam: the theme's error role; until it lands the foreground stands in, so nothing invents a red.
+    // Theme.qml lifts the palette red separately against the listing and card grounds.
     pub error: Hsla,
     pub error_on_surface: Hsla,
     pub radius: f32,
@@ -22,6 +22,10 @@ impl CardPalette {
     pub fn from_theme(style: &gpui::TextStyle, theme: crate::palette::Theme, radius: f32) -> Self {
         Self {
             surface: theme.surface,
+            muted: theme.muted,
+            muted_frame: theme.muted_frame,
+            error: theme.error,
+            error_on_surface: theme.error_on_surface,
             accent: theme.accent,
             accent_frame: theme.accent_frame,
             ..Self::from_list(&Palette::inherited(style, theme), radius)
@@ -33,12 +37,12 @@ impl CardPalette {
             background: palette.background,
             surface: palette.background,
             foreground: palette.foreground,
-            muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted: palette.muted,
+            muted_frame: palette.muted_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
-            error: palette.foreground,
-            error_on_surface: palette.foreground,
+            error: palette.error,
+            error_on_surface: palette.error_on_surface,
             radius,
         }
     }
