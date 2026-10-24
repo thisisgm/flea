@@ -53,6 +53,8 @@ pub struct PathView {
     pub line: RefCell<Line>,
     /// The field was opened at least once, so its frame has a place to report.
     pub built: bool,
+    pub corner: f32,
+    pub(crate) probe: Option<crate::visual::Probe>,
     pub(super) pointer: Pointer,
     ranker: Box<dyn Ranker>,
     favourites: Vec<String>,
@@ -79,6 +81,8 @@ impl PathView {
             paint: Rc::new(RefCell::new(Paint::new())),
             line: RefCell::new(Line::default()),
             built: false,
+            corner: 0.,
+            probe: None,
             pointer: Pointer::default(),
             ranker,
             favourites: Vec::new(),
@@ -91,15 +95,22 @@ impl PathView {
     }
 
     pub fn sync(&mut self, inputs: Inputs, cx: &mut Context<Self>) {
+        if self.sync_frame(inputs) {
+            cx.notify();
+        }
+    }
+
+    /// The parent is already rebuilding this frame, so no second frame is requested.
+    pub(crate) fn sync_frame(&mut self, inputs: Inputs) -> bool {
         if self.inputs == inputs {
-            return;
+            return false;
         }
         if !inputs.dual {
             self.strips[1].clear();
             self.strips[2].clear();
         }
         self.inputs = inputs;
-        cx.notify();
+        true
     }
 
     pub fn set_catalog(&mut self, catalog: Arc<I18n>) {
@@ -262,6 +273,14 @@ impl PathView {
             }
         }
         cx.notify();
+    }
+
+    /// Whether this view owns the answer: a jump always, a peek only when it is the reply to the view's own ask.
+    pub fn claims(&self, answer: &Answer) -> bool {
+        match answer {
+            Answer::Peeked(peeked) => self.entry.asked(peeked),
+            Answer::Jumped(_) => true,
+        }
     }
 
     /// A peeked or jumped line from the focused pane's backend, parsed on its reader thread.

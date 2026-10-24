@@ -16,8 +16,8 @@ crates/flea-gui/src/g2/mn1/menu.rs 569
 crates/flea-gui/src/g2/mn1/tests.rs 678
 crates/flea-gui/src/g2/op1/draw_tests.rs 404
 crates/flea-gui/src/g2/op1/fix1_tests.rs 433
-crates/flea-gui/src/g2/op1/model.rs 594
-crates/flea-gui/src/g2/op1/view.rs 667
+crates/flea-gui/src/g2/op1/model.rs 599
+crates/flea-gui/src/g2/op1/view.rs 684
 crates/flea-gui/src/g2/pv2/surface.rs 440
 crates/flea-gui/src/g2/pl1/devices.rs 419
 crates/flea-gui/src/g2/pl1/unlock.rs 421
@@ -37,9 +37,9 @@ crates/flea-gui/src/g2/pl3/pane.rs 456
 crates/flea-gui/src/g2/pl3/tests.rs 524
 crates/flea-gui/src/g2/sr1/contents.rs 403
 crates/flea-gui/src/grid/element/paint.rs 444
-crates/flea-gui/src/list.rs 538
-crates/flea-gui/src/list/element.rs 695
-crates/flea-gui/src/list/header.rs 487
+crates/flea-gui/src/list.rs 439
+crates/flea-gui/src/list/element.rs 697
+crates/flea-gui/src/list/header.rs 478
 crates/flea-gui/src/path/paint.rs 451
 crates/flea-gui/tests/g1_07/cols_pwid.rs 420
 crates/flea-gui/tests/g1_07/track_frames.rs 429
@@ -224,7 +224,7 @@ ui/DeviceMounts.qml 540
 ui/js/Facts.js 402
 ui/PreviewPdf.qml 482
 ui/PickerChrome.qml 295
-ui/PreviewMarkdown.qml 684
+ui/PreviewMarkdown.qml 676
 tests/markdown-code.qml 477
 ui/Row.qml 469
 ui/SettingsPanel.qml 547

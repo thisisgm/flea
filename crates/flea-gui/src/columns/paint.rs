@@ -152,6 +152,7 @@ impl FolderSizes for DirSizes {
 
 /// Paint state one track keeps across frames: its shaped rows, the face's advance and this frame's rows.
 pub struct TrackPaint {
+    pub drawn: Option<Drawn>,
     pub typeface: Typeface,
     pub cache: TrackCache,
     advance: Option<Pixels>,
@@ -163,6 +164,7 @@ pub struct TrackPaint {
 impl TrackPaint {
     pub fn new(typeface: Typeface) -> Self {
         Self {
+            drawn: None,
             typeface,
             cache: TrackCache::default(),
             advance: None,
@@ -197,6 +199,8 @@ impl TrackPaint {
     pub fn park(&mut self) {
         let live: Vec<usize> = self.visible().collect();
         self.cache.keep(&live);
+        self.drawn = None;
+        self.visible.clear();
     }
 
     /// One advance of "0" at the body size, Theme.bodyAdvance, which turns a name width into cells.
@@ -211,6 +215,22 @@ impl TrackPaint {
             .map_or(self.typeface.body * 0.6, |advance| advance.width);
         self.advance = Some(advance);
         advance
+    }
+}
+
+/// The last frame's geometry and snapshot, shared by hit testing and IPC.
+pub struct Drawn {
+    pub bounds: gpui::Bounds<Pixels>,
+    /// The tracks the frame drew and this one's place among them: a frame copies no track.
+    pub tracks: Rc<[TrackView]>,
+    pub at: usize,
+    pub scroll: f32,
+    pub held: Option<Rc<crate::list::pane::Held>>,
+}
+
+impl Drawn {
+    pub fn view(&self) -> &TrackView {
+        &self.tracks[self.at]
     }
 }
 

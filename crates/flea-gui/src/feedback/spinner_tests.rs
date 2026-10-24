@@ -1,4 +1,4 @@
-use super::spinner::{phase, Crawl, HERO, TRAVEL};
+use super::spinner::{Crawl, HERO};
 use crate::{
     backend::{Backend, Event as BackendEvent},
     pane::swap::{Options, CAP_MS, MIN_SHOW_MS},
@@ -145,7 +145,7 @@ fn notices<T: 'static>(
 }
 
 #[gpui::test]
-fn the_crawl_moves_on_the_second_frame_after_show(cx: &mut TestAppContext) {
+fn omi_advances_on_the_second_frame_after_show(cx: &mut TestAppContext) {
     let (handle, _keep) = open(cx, false);
     let mark = load(cx, handle);
     assert_eq!(
@@ -154,12 +154,12 @@ fn the_crawl_moves_on_the_second_frame_after_show(cx: &mut TestAppContext) {
     );
     assert_eq!(frame(cx, handle), 1);
     assert_eq!(drawn(cx, handle), 2);
-    assert!(mark.offset() < 0.);
-    assert_eq!(mark.offset(), -TRAVEL * phase(FRAME));
+    assert!(mark.offset() > 0.);
+    assert_eq!(mark.offset(), FRAME.as_secs_f32());
 }
 
 #[gpui::test]
-fn every_drawn_frame_writes_the_offset_once_and_asks_for_one_more(cx: &mut TestAppContext) {
+fn every_painted_frame_writes_one_sample_and_asks_for_one_more(cx: &mut TestAppContext) {
     let (handle, _keep) = open(cx, true);
     let mark = load(cx, handle);
     for frames in 1..=120 {
@@ -177,7 +177,7 @@ fn every_drawn_frame_writes_the_offset_once_and_asks_for_one_more(cx: &mut TestA
             (frames, (frames, frames, frames))
         );
     }
-    assert!(mark.offset() < 0. && mark.offset() > -TRAVEL);
+    assert!(mark.offset() > 0.);
 }
 
 #[gpui::test]
@@ -220,19 +220,19 @@ fn nothing_asks_for_a_frame_while_the_mark_is_hidden(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn a_hide_puts_the_dash_back_to_rest_and_the_next_show_starts_there(cx: &mut TestAppContext) {
+fn a_hide_resets_omi_and_the_next_show_starts_at_rest(cx: &mut TestAppContext) {
     let (handle, _keep) = open(cx, false);
     let mark = load(cx, handle);
     for _ in 0..50 {
         frame(cx, handle);
     }
-    assert!(mark.offset() < -1.);
+    assert!(mark.offset() > 0.5);
     land(cx, handle);
     assert_eq!((mark.shown(), mark.offset()), (false, 0.));
     load(cx, handle);
     assert_eq!((mark.shown(), mark.offset()), (true, 0.));
     frame(cx, handle);
-    assert_eq!(mark.offset(), -TRAVEL * phase(FRAME));
+    assert_eq!(mark.offset(), FRAME.as_secs_f32());
 }
 
 #[gpui::test]
@@ -240,7 +240,9 @@ fn reduced_motion_draws_the_mark_at_rest_and_asks_for_no_frames(cx: &mut TestApp
     cx.update(|cx| cx.set_reduce_motion(true));
     let (handle, _keep) = open(cx, false);
     let mark = load(cx, handle);
-    assert_eq!(frame(cx, handle), 0);
+    for _ in 0..64 {
+        assert_eq!(frame(cx, handle), 0);
+    }
     let counters = &mark.counters;
     let counted = (
         counters.frames.get(),
@@ -268,6 +270,14 @@ fn the_pane_describe_reports_the_marks_counters(cx: &mut TestAppContext) {
     });
     let data = flea::jsondoc::parse(reply.stdout.trim()).unwrap();
     let described = data.get("mark").unwrap();
+    assert_eq!(
+        described.get("mode").and_then(flea::jsondoc::Json::as_str),
+        Some("thinking")
+    );
+    assert_eq!(
+        described.get("label").and_then(flea::jsondoc::Json::as_str),
+        Some(mark.label())
+    );
     let count = |key: &str| described.get(key).and_then(flea::jsondoc::Json::as_f64);
     assert_eq!(
         described
@@ -286,8 +296,8 @@ fn the_pane_describe_reports_the_marks_counters(cx: &mut TestAppContext) {
 fn a_narrow_dual_pane_clips_its_mark_at_the_pane_edge(cx: &mut TestAppContext) {
     for side in 0..2 {
         let (handle, _keep) = open(cx, true);
-        // A 192 px rail, two 30 px panes and the 1 px between them make each pane narrower than the centred 48 px mark.
-        cx.simulate_window_resize(handle.into(), size(px(253.), px(400.)));
+        // A 192 px rail, two 20 px panes and the 1 px between them make each pane narrower than the centred 44 px mark.
+        cx.simulate_window_resize(handle.into(), size(px(233.), px(400.)));
         let mark = load_side(cx, handle, side);
         let mut past = false;
         for frames in 0..25 {
@@ -341,3 +351,6 @@ fn inside(bounds: Bounds<ScaledPixels>, pane: Bounds<ScaledPixels>) -> bool {
         && near(pane.right(), bounds.right())
         && near(pane.bottom(), bounds.bottom())
 }
+
+#[path = "spinner_surface_tests.rs"]
+mod surfaces;

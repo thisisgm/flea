@@ -69,13 +69,15 @@ impl Render for Card {
         let typeface = Typeface::for_window(window, cx);
         let palette = CardPalette::from_theme(&window.text_style(), Theme::default(), 8.);
         let scene = Scene {
+            copy_field: None,
+            frame: None,
             typeface: &typeface,
             palette: &palette,
             catalog: &I18n::default(),
             pointer: &Pointer::default(),
             wire: &|_, button| button,
             pinned: None,
-            since: cx.background_executor().now(),
+            feedback: None,
         };
         view::shell(
             &scene,

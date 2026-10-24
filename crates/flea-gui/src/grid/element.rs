@@ -156,6 +156,9 @@ pub struct Drawn {
 }
 
 impl Drawn {
+    pub fn name(&self) -> Option<&str> {
+        self.tile.as_ref().map(|tile| tile.name.as_str())
+    }
     pub fn caption_text(&self) -> Option<&str> {
         self.tile.as_ref().map(|tile| tile.caption.as_str())
     }
@@ -182,6 +185,7 @@ struct Bold {
 /// Paint state the grid keeps across frames: shaped tiles, the drop labels, and what the last frame drew.
 pub struct GridState {
     pub font: Font,
+    pub(crate) frame_held: Option<Rc<Held>>,
     tiles: TileCache,
     labels: [String; 3],
     shaped_labels: Option<[GlyphRun; 3]>,
@@ -192,12 +196,15 @@ pub struct GridState {
     pub layout: Option<Layout>,
     pub scroll: f32,
     pub frames: u64,
+    pub bounds: gpui::Bounds<Pixels>,
+    pub ink: Option<Ink>,
 }
 
 impl GridState {
     pub fn new(font: Font) -> Self {
         Self {
             font,
+            frame_held: None,
             tiles: TileCache::default(),
             labels: Default::default(),
             shaped_labels: None,
@@ -208,6 +215,8 @@ impl GridState {
             layout: None,
             scroll: 0.,
             frames: 0,
+            bounds: gpui::Bounds::default(),
+            ink: None,
         }
     }
     /// Omarchy's default face until the pane follows the live font-set.
@@ -230,6 +239,19 @@ impl GridState {
 
     pub fn drawn(&self) -> &[Drawn] {
         &self.drawn
+    }
+    pub(super) fn record_frame(&mut self, bounds: gpui::Bounds<Pixels>, ink: Ink) -> Ink {
+        self.bounds = bounds;
+        self.ink = Some(ink);
+        ink
+    }
+    pub(crate) fn clear_frame(&mut self) {
+        self.drawn.clear();
+        self.frame_held = None;
+        self.scroll = 0.;
+        self.tip = None;
+        self.layout = None;
+        self.ink = None;
     }
     pub fn drawn_row(&self, listing: usize) -> Option<&Drawn> {
         self.drawn.iter().find(|drawn| drawn.listing == listing)
@@ -287,6 +309,26 @@ pub struct GridElement {
 }
 
 impl GridElement {
+    fn prepare_hover(
+        &self,
+        state: &mut GridState,
+        layout: Layout,
+        scroll: f32,
+        bounds: gpui::Bounds<Pixels>,
+    ) {
+        state.layout = Some(layout);
+        state.scroll = scroll;
+        if let Some((x, y)) = self.view.pointer {
+            let hit = state.tile_at(
+                x - f32::from(bounds.origin.x),
+                y - f32::from(bounds.origin.y),
+            );
+            for drawn in &mut state.drawn {
+                drawn.hovered = hit == Some(drawn.view) && self.focus.hover_shown();
+            }
+        }
+    }
+
     /// shown is the filter's kept rows, None for every row; the view is the host's GridView for this frame.
     pub fn new(
         held: Rc<Held>,

@@ -21,30 +21,6 @@ pub(super) fn card(
     let m = Metrics::new(scene.typeface);
     let in_field = focus == CopyFocus::Field;
     // The chooser's path opens selected on the 24% accent wash; an empty field shows only the caret.
-    let content = if path.is_empty() {
-        let caret = in_field.then(|| {
-            div()
-                .debug_selector(|| "op1-caret".into())
-                .w(px(card::RULE))
-                .h(px(m.caret))
-                .bg(palette.foreground)
-        });
-        div().flex().items_center().children(caret)
-    } else {
-        let text = div()
-            .debug_selector(|| "op1-selection".into())
-            .h(px(m.selection))
-            .flex()
-            .items_center()
-            .min_w_0()
-            .truncate()
-            .child(path.to_owned());
-        if in_field {
-            text.bg(palette.accent.opacity(card::FIELD_WASH))
-        } else {
-            text
-        }
-    };
     let field = div()
         .debug_selector(|| "op1-field".into())
         .h(px(m.button))
@@ -59,8 +35,11 @@ pub(super) fn card(
             palette.muted_frame
         })
         .rounded(px(palette.radius))
-        .bg(palette.background)
-        .child(content);
+        .bg(palette.background);
+    let field = match &scene.copy_field {
+        Some(view) => super::field::mount(view.clone(), field, scene.typeface).into_any_element(),
+        None => field.into_any_element(),
+    };
     // The field name keeps its source case in the catalog and draws in capitals, as the boards' CSS does.
     let tracked = Tracked {
         text: catalog.tr("jobs.copyto.field").to_uppercase().into(),

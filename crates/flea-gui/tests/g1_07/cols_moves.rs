@@ -172,6 +172,14 @@ impl Sim {
         let now = self.now;
         let Self { area, pane, p, .. } = &mut *self;
         pane.with(|view| area.tick(&view, &mut p.ports(), now));
+        // This model fixture draws each timer step immediately; real-window probes exercise delayed painting.
+        let tracks = std::rc::Rc::clone(area.tracks());
+        for track in tracks
+            .iter()
+            .filter(|track| track.state == flea_gui::columns::TrackState::Loading)
+        {
+            area.landing.mark_shown(&track.path, true, &pane.here, now);
+        }
         self.drain();
     }
 

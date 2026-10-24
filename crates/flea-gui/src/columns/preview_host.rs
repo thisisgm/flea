@@ -2,8 +2,7 @@
 use super::geometry::{folder_data_hold, Layout};
 use crate::pane::swap::CAP_MS;
 
-/// Swap.js HOLD_MS: an unanswered folder shows its pending state here, the hold-off of a mark nothing else keeps.
-pub const HOLD_MS: u64 = 150;
+pub use crate::pane::swap::HOLD_MS;
 /// Qt's platform startDragDistance: a press moved this far or less is a click, never a drag.
 pub const START_DRAG_DISTANCE: f32 = 10.;
 /// ResizeHandle's zone width, centred on the hairline just left of the edge.

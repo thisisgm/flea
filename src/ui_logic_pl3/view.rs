@@ -314,7 +314,7 @@ impl View {
             return;
         }
         let top = (self.scroll_y / self.row_height).floor() as usize;
-        let end = self.total.min(top + (self.height / self.row_height).ceil() as usize);
+        let end = self.total.min(((self.scroll_y + self.height) / self.row_height).ceil() as usize);
         if top < self.first || end > self.first + self.rows.len() {
             let count = self.window_rows();
             self.send("window", Self::browse().number("start", top).number("count", count));

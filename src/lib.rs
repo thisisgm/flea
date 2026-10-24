@@ -1,10 +1,18 @@
 //! Shared, dependency-free protocol primitives for Flea frontends.
+extern crate self as flea;
 
 pub mod colours;
 pub mod i18n;
 pub mod ipc;
 pub mod json;
 pub mod jsondoc;
+pub mod favourites;
+pub mod uischema;
+pub mod uistate;
+pub mod uistore;
+pub mod userfile;
+mod uimigrate;
+mod uiplugins;
 pub mod keys;
 mod jsonstring;
 pub mod oflags;

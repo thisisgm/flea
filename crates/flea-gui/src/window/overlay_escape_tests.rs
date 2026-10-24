@@ -61,12 +61,16 @@ fn open_copy_to(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
     });
 }
 
-fn escape(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
+fn focus_shell(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
     let focus = shell(cx, handle, |shell, _, _| shell.focus.clone());
     cx.update_window(handle.into(), |_, window, cx| {
         window.focus(&focus, cx);
     })
     .expect("the window is open");
+}
+
+fn escape(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
+    focus_shell(cx, handle);
     let mut vcx = VisualTestContext::from_window(handle.into(), cx);
     vcx.simulate_keystrokes("escape");
 }
@@ -75,6 +79,8 @@ fn escape(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
 fn escape_closes_the_copy_card_through_its_close(cx: &mut TestAppContext) {
     let (backend, _receiver) = Backend::test_channel();
     let handle = open(cx, backend);
+    // The list draws its focused cursor once the window has focus, so the own frame is taken focused.
+    focus_shell(cx, handle);
     let own = frame(cx, handle);
     open_copy_to(cx, handle);
     frame(cx, handle);
@@ -197,3 +203,146 @@ fn escape_queues_the_cards_menu_close(cx: &mut TestAppContext) {
         "Escape queues the card's menu_close, not a bare drop: {outbox:?}"
     );
 }
+
+// Exercise the actual menu producer, which obtains its pane-bound operation session.
+fn chosen_copy_to(cx: &mut TestAppContext, handle: WindowHandle<Root>, side: usize, id: u64) {
+    use crate::g2::mn1::join::{Captured, Chosen};
+    shell(cx, handle, |shell, _, cx| {
+        shell.focus_pane(side, cx);
+        let host = shell.panes[side].as_ref().unwrap();
+        cx.emit(Chosen {
+            captured: Captured {
+                side,
+                listing: host.pane.held.listing,
+                rows: vec![0],
+                cursor: 0,
+                path: host.path.clone(),
+                identity: String::new(),
+                id,
+                ready: true,
+                kinds: vec![0],
+                background: false,
+            },
+            action: "copyTo".into(),
+            leaf: String::new(),
+            paths: vec![format!("{}/a.txt", host.path)],
+            claimed: Rc::new(std::cell::Cell::new(false)),
+        });
+    });
+    cx.run_until_parked();
+    frame(cx, handle);
+}
+
+#[gpui::test]
+fn g70_menu_copy_keeps_its_owner_after_other_backend_retires(cx: &mut TestAppContext) {
+    use crate::{
+        backend::{Event, Failure},
+        g2::op1::model::Dialog,
+        window::{pane::PaneHost, startup::View},
+    };
+    for dead in [0, 1] {
+        for failed in [false, true] {
+            let (backend, mut first_lines) = Backend::test_lines();
+            let (other_backend, mut second_lines) = Backend::test_lines();
+            let handle = open(cx, backend);
+            shell(cx, handle, |shell, window, cx| {
+                let mut other = PaneHost::new("/other".into(), None, 620., &shell.locale);
+                other.backend = Some(other_backend);
+                other.pane.use_executor(cx.background_executor().clone());
+                other
+                    .pane
+                    .receive(flea::protocol::Reply::Listed {
+                        path: "/other".into(),
+                        total: 1,
+                    })
+                    .unwrap();
+                other
+                    .pane
+                    .receive(flea::protocol::Reply::Rows {
+                        start: 0,
+                        rows: vec![Default::default()],
+                        listing: 3,
+                    })
+                    .unwrap();
+                shell.panes[1] = Some(other);
+                shell.lifecycle.attach(1);
+                shell.set_view(View::Dual, window, cx);
+            });
+            focus_shell(cx, handle);
+            frame(cx, handle);
+            chosen_copy_to(cx, handle, dead, 71);
+            let old = shell(cx, handle, |shell, _, _| {
+                shell.operation_view(dead).unwrap()
+            });
+            let mut visual = VisualTestContext::from_window(handle.into(), cx);
+            let cancel = visual.debug_bounds("op1-button-0").unwrap().center();
+            visual.simulate_click(cancel, gpui::Modifiers::none());
+            visual.run_until_parked();
+            frame(cx, handle);
+            shell(cx, handle, |shell, _, cx| {
+                assert!(!old.read(cx).model.open());
+                assert_eq!(
+                    shell.overlay.as_ref(),
+                    Some(&old),
+                    "mouse Cancel retains the mount"
+                );
+            });
+            let survivor = 1 - dead;
+            chosen_copy_to(cx, handle, survivor, 72);
+            let live = shell(cx, handle, |shell, _, cx| {
+                let live = shell.operation_view(survivor).unwrap();
+                assert_ne!(old, live, "menu sessions have distinct entities");
+                assert_eq!(old.read(cx).owner, Some(dead));
+                assert_eq!(live.read(cx).owner, Some(survivor));
+                assert_eq!(shell.overlay.as_ref(), Some(&live));
+                live
+            });
+            // A real mounted submission leaves a validation pending on the surviving backend.
+            while first_lines().is_some() {}
+            while second_lines().is_some() {}
+            let mut visual = VisualTestContext::from_window(handle.into(), cx);
+            visual.simulate_input("/destination");
+            visual.simulate_keystrokes("enter");
+            visual.run_until_parked();
+            frame(cx, handle);
+            let first: Vec<_> = std::iter::from_fn(&mut first_lines).collect();
+            let second: Vec<_> = std::iter::from_fn(&mut second_lines).collect();
+            let validate =
+                |line: &String| line.contains("\"op\":\"validate\"") && line.contains("\"id\":72");
+            assert_eq!(first.iter().any(validate), survivor == 0);
+            assert_eq!(second.iter().any(validate), survivor == 1);
+            let pending = shell(cx, handle, |_, _, cx| live.read(cx).model.dialog.clone());
+            assert!(
+                matches!(&pending, Some(Dialog::CopyTo { menu: 72, path, busy: true, .. })
+                if path == "/destination")
+            );
+            shell(cx, handle, |shell, window, cx| {
+                let event = if failed {
+                    Event::Failed(Failure {
+                        key: "window.backend_eof",
+                        detail: String::new(),
+                    })
+                } else {
+                    Event::Drained
+                };
+                shell.receive(dead, event, window, cx);
+                if failed {
+                    shell.receive(dead, Event::Drained, window, cx);
+                }
+            });
+            frame(cx, handle);
+            assert!(marks(cx, handle, "op1-scrim").is_some());
+            shell(cx, handle, |shell, window, cx| {
+                assert_eq!(shell.overlay.as_ref(), Some(&live));
+                assert_eq!(shell.operation_view(dead).as_ref(), Some(&old));
+                assert_eq!(live.read(cx).model.dialog, pending);
+                assert_eq!(live.read(cx).owner, Some(survivor));
+                assert!(live.read(cx).focus_handle().unwrap().is_focused(window));
+                assert!(!old.read(cx).model.open());
+            });
+        }
+    }
+}
+
+#[path = "overlay_owner_tests.rs"]
+mod owners;

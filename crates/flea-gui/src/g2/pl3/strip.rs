@@ -84,9 +84,9 @@ impl TrashPane {
     fn strip(&self, cx: &mut Context<Self>) -> AnyElement {
         let ink = self.paint.borrow().ink;
         let catalog = &self.catalog;
-        let view = &self.host.view;
         let look = self.button_look();
-        let count: SharedString = words::strip_count(catalog, view.total, view.bytes).into();
+        let paint = self.paint.borrow();
+        let count: SharedString = words::strip_count(catalog, paint.total, paint.bytes).into();
         let label: SharedString = catalog.tr("trash.empty_action").into();
         let mut button = div()
             .id("trash-empty")
@@ -213,10 +213,11 @@ impl TrashPane {
     /// TrashView.qml's centred line while nothing lists: an error, Reading Trash…, or Trash is empty.
     pub fn empty_line(&self) -> Option<(String, bool)> {
         let view = &self.host.view;
-        if view.total > 0 || !view.opened {
+        let paint = self.paint.borrow();
+        if paint.total > 0 || !view.opened {
             return None;
         }
-        Some(match &view.error_text {
+        Some(match &paint.error_text {
             Some(text) => (text.clone(), true),
             None if view.busy() => (self.catalog.tr("trash.reading"), false),
             None => (self.catalog.tr("trash.is_empty"), false),
@@ -224,6 +225,11 @@ impl TrashPane {
     }
 
     fn row_at(&self, y: Pixels) -> Option<usize> {
+        let bounds = self.paint.borrow().bounds?;
+        let y = y - bounds.origin.y;
+        if y < px(0.) || y >= bounds.size.height {
+            return None;
+        }
         let at = ((f32::from(y) + self.host.view.scroll_y) / ROW_H).floor();
         (at >= 0. && (at as usize) < self.host.view.total).then_some(at as usize)
     }
@@ -233,6 +239,22 @@ impl Render for TrashPane {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.evict(window, cx);
         let ink = self.paint.borrow().ink;
+        if self.presentation_loading {
+            self.loading_at
+                .get_or_insert(cx.background_executor().now());
+            return div()
+                .size_full()
+                .flex()
+                .items_center()
+                .justify_center()
+                .bg(ink.background)
+                .font_family(self.paint.borrow().font.family.clone())
+                .text_size(px(BODY))
+                .text_color(ink.muted)
+                .track_focus(&self.focus)
+                .child(SharedString::from(self.catalog.tr("trash.reading")))
+                .into_any_element();
+        }
         let empty = self.empty_line().map(|(text, error)| {
             div()
                 .absolute()
@@ -244,20 +266,20 @@ impl Render for TrashPane {
                 .text_color(if error { ink.error } else { ink.muted })
                 .child(SharedString::from(text))
         });
-        let top = px(STRIP_H + HEADER_H);
         let list = div()
             .relative()
             .flex_1()
             .min_h(px(0.))
             .child(TrashList(self.paint.clone()))
             .on_mouse_move(cx.listener(move |pane, event: &MouseMoveEvent, _, cx| {
-                let index = pane.row_at(event.position.y - top);
+                let index = pane.row_at(event.position.y);
                 pane.hover(index, cx);
             }))
             .on_mouse_down(
                 MouseButton::Left,
-                cx.listener(move |pane, event: &MouseDownEvent, _, cx| {
-                    if let Some(index) = pane.row_at(event.position.y - top) {
+                cx.listener(move |pane, event: &MouseDownEvent, window, cx| {
+                    window.focus(&pane.focus, cx);
+                    if let Some(index) = pane.row_at(event.position.y) {
                         pane.click_row(index, event.modifiers.control, cx);
                     }
                 }),
@@ -265,17 +287,25 @@ impl Render for TrashPane {
             .on_mouse_down(
                 MouseButton::Right,
                 cx.listener(move |pane, event: &MouseDownEvent, _, cx| {
-                    let index = pane.row_at(event.position.y - top);
+                    let index = pane.row_at(event.position.y);
+                    let bounds = pane.paint.borrow().bounds;
+                    let (x, y) = bounds.map_or((0., 0.), |bounds| {
+                        (
+                            f32::from(bounds.origin.x),
+                            f32::from(bounds.origin.y) - STRIP_H - HEADER_H,
+                        )
+                    });
                     pane.right_click(
                         index,
-                        f32::from(event.position.x),
-                        f32::from(event.position.y),
+                        f32::from(event.position.x) - x,
+                        f32::from(event.position.y) - y,
                         cx,
                     );
                 }),
             )
             .on_scroll_wheel(cx.listener(|pane, event: &ScrollWheelEvent, _, cx| {
                 pane.wheel(-f32::from(event.delta.pixel_delta(px(ROW_H)).y), cx);
+                cx.stop_propagation();
             }))
             .children(empty);
         div()
@@ -288,5 +318,6 @@ impl Render for TrashPane {
             .child(self.strip(cx))
             .child(self.header())
             .child(list)
+            .into_any_element()
     }
 }

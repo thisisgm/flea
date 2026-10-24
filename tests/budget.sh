@@ -57,22 +57,51 @@ case $dup_out in
   *) echo "FAIL duplicate is named: got '$dup_out'"; fail=1 ;;
 esac
 
-# The crates scanner reads the index, so the scratch list.rs is staged and counted at the tool's recorded 538 lines.
-mkdir -p "$scratch/crates/flea-gui/src"
+# Exercise measured source bytes at each ratcheted debt, without reading the registry into the expected result.
 git -C "$scratch" init -q || exit 1
-seq 1 538 | sed 's/^/\/\/ line /' > "$scratch/crates/flea-gui/src/list.rs"
-git -C "$scratch" add crates || exit 1
-( cd "$scratch" && "$repo/tools/flea-file-budget" > crates-control.log 2>&1 )
-check "a tracked crates file at its recorded 538 lines passes" 0 $?
-printf '// growth\n' >> "$scratch/crates/flea-gui/src/list.rs"
-( cd "$scratch" && "$repo/tools/flea-file-budget" > crates-mutant.log 2>&1 )
-check "a tracked crates file past its record fails" 1 $?
-if grep -qF 'GREW      crates/flea-gui/src/list.rs: 539 lines, recorded 538' "$scratch/crates-mutant.log"; then
-  echo "ok   crates growth names its measured record"
+for file in crates/flea-gui/src/list.rs crates/flea-gui/src/list/header.rs ui/PreviewMarkdown.qml; do
+  measured=$(wc -l < "$repo/$file") || exit 1
+  if [ "$measured" -le 400 ]; then
+    echo "FAIL measured-debt fixture: $file no longer exceeds the 400-line hard cap"
+    exit 1
+  fi
+  mkdir -p "$scratch/$(dirname "$file")" || exit 1
+  cp "$repo/$file" "$scratch/$file" || exit 1
+  git -C "$scratch" add -- "$file" || exit 1
+  ( cd "$scratch" && "$repo/tools/flea-file-budget" > measured-control.log 2>&1 )
+  check "$file at its measured $measured lines passes" 0 $?
+  printf '// growth\n' >> "$scratch/$file"
+  ( cd "$scratch" && "$repo/tools/flea-file-budget" > measured-mutant.log 2>&1 )
+  check "$file one line past its measured record fails" 1 $?
+  if grep -qF "GREW      $file: $((measured + 1)) lines, recorded $measured, cap 400" "$scratch/measured-mutant.log"; then
+    echo "ok   $file growth names its measured record"
+  else
+    echo "FAIL $file growth did not name its measured record"
+    fail=1
+  fi
+  cp "$repo/$file" "$scratch/$file" || exit 1
+done
+
+# This former exemption is now below the hard cap, so it receives the ordinary 400-line boundary.
+state_tests=crates/flea-gui/src/state_tests.rs
+cp "$repo/$state_tests" "$scratch/$state_tests" || exit 1
+git -C "$scratch" add -- "$state_tests" || exit 1
+( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
+check "the measured state test file passes" 0 $?
+seq 1 400 | sed 's/^/\/\/ line /' > "$scratch/$state_tests"
+( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
+check "the state test file at the unchanged hard cap passes" 0 $?
+printf '// growth\n' >> "$scratch/$state_tests"
+( cd "$scratch" && "$repo/tools/flea-file-budget" > state-mutant.log 2>&1 )
+check "the state test file past the hard cap fails" 1 $?
+if grep -qFx 'OVER CAP  crates/flea-gui/src/state_tests.rs: 401 lines, cap 400' "$scratch/state-mutant.log"; then
+  echo "ok   state test growth receives the ordinary hard cap"
 else
-  echo "FAIL crates growth did not name its measured record"
+  echo "FAIL state test growth did not name the ordinary hard cap"
   fail=1
 fi
+cp "$repo/$state_tests" "$scratch/$state_tests" || exit 1
+
 seq 1 400 | sed 's/^/\/\/ line /' > "$scratch/crates/flea-gui/src/new.rs"
 printf '// line\n' > "$scratch/crates/flea-gui/src/list.rs"
 git -C "$scratch" add crates || exit 1

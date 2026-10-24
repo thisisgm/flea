@@ -5,21 +5,53 @@ use flea::ipc::{
     endpoint,
 };
 use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::{Child, Command};
 
 fn root() -> PathBuf {
-    let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.superpowers/g04e");
-    fs::create_dir_all(&parent).unwrap();
     let output = Command::new("mktemp")
         .arg("-d")
-        .arg(parent.join("server.XXXXXX"))
+        .arg("/tmp/flea-ipc-server.XXXXXX")
         .output()
         .unwrap();
     assert!(output.status.success());
     let root = fs::canonicalize(String::from_utf8(output.stdout).unwrap().trim()).unwrap();
+    fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
     fs::write(root.join(".flea-test-sandbox"), "IPC test root\n").unwrap();
     root
+}
+
+#[test]
+fn short_fixture_roots_fit_real_ipc_endpoints() {
+    use std::os::unix::{ffi::OsStrExt, fs::MetadataExt, net::SocketAddr};
+    let root = root();
+    let temporary = fs::canonicalize("/tmp").unwrap();
+    assert_eq!(root.parent(), Some(temporary.as_path()));
+    let metadata = fs::symlink_metadata(&root).unwrap();
+    assert_eq!(metadata.uid(), endpoint::uid());
+    assert_eq!(metadata.permissions().mode() & 0o7777, 0o700);
+    assert!(root.join(".flea-test-sandbox").is_file());
+    let nested = root.join("r");
+    fs::create_dir(&nested).unwrap();
+    fs::set_permissions(&nested, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::write(nested.join(".flea-test-sandbox"), "private IPC fixture runtime\n").unwrap();
+    for runtime in [&root, &nested] {
+        let server = Server::bind(runtime).unwrap();
+        let path = server.path();
+        let expected = endpoint::directory(runtime)
+            .unwrap()
+            .join(format!("{}.sock", std::process::id()));
+        assert_eq!(path, expected.as_path());
+        let address = SocketAddr::from_pathname(path).unwrap();
+        assert_eq!(address.as_pathname(), Some(path));
+        println!(
+            "IPC_SHORT_FIXTURE root={} endpoint={} bytes={}",
+            root.display(),
+            path.display(),
+            path.as_os_str().as_bytes().len()
+        );
+    }
 }
 
 fn request(function: &str) -> Request {

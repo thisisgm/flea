@@ -163,13 +163,21 @@ fn prepare(words: &Words, width: f32, typeface: &Typeface, window: &Window) -> P
     let way_out = shape(&words.way_out, caption, typeface, window);
     let full = shape(&words.scope, caption, typeface, window);
     let natural = f32::from(full.line().width);
-    let boxes = layout(
-        width,
-        f32::from(query.line().width),
-        natural,
-        f32::from(note.line().width),
-        f32::from(way_out.line().width),
+    let scale = crate::list::Metrics::for_typeface(typeface).header / HEIGHT;
+    let mut boxes = layout(
+        width / scale,
+        f32::from(query.line().width) / scale,
+        natural / scale,
+        f32::from(note.line().width) / scale,
+        f32::from(way_out.line().width) / scale,
     );
+    boxes.mark_x *= scale;
+    boxes.query_x *= scale;
+    boxes.caret_x *= scale;
+    boxes.scope_x *= scale;
+    boxes.scope_w *= scale;
+    boxes.note_x *= scale;
+    boxes.way_x *= scale;
     let (scope, scope_text) = if boxes.scope_w + 0.5 >= natural {
         (full, words.scope.clone())
     } else {
@@ -192,10 +200,17 @@ fn prepare(words: &Words, width: f32, typeface: &Typeface, window: &Window) -> P
     }
 }
 
-fn paint_line(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
+fn paint_line(
+    run: &GlyphRun,
+    x: Pixels,
+    top: Pixels,
+    color: Hsla,
+    height: f32,
+    window: &mut Window,
+) {
     let line = run.line();
     let baseline =
-        window.pixel_snap(top + (px(HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
+        window.pixel_snap(top + (px(height) - line.ascent - line.descent) / 2. + line.ascent);
     let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
@@ -225,7 +240,10 @@ impl Element for StripElement {
         cx: &mut App,
     ) -> (LayoutId, ()) {
         let style = Style {
-            size: size(relative(1.).into(), px(HEIGHT).into()),
+            size: size(
+                relative(1.).into(),
+                px(crate::list::Metrics::for_typeface(&self.state.borrow().typeface).header).into(),
+            ),
             ..Style::default()
         };
         (window.request_layout(style, None, cx), ())
@@ -269,17 +287,22 @@ impl Element for StripElement {
             return;
         };
         let palette = self.palette;
+        let height = crate::list::Metrics::for_typeface(&state.typeface).header;
+        let scale = height / HEIGHT;
         let (left, top) = (bounds.origin.x, bounds.origin.y);
         let boxes = prepared.boxes;
         window.paint_quad(fill(bounds, palette.surface));
         let rule = Bounds::new(
-            point(left, top + px(HEIGHT - HAIRLINE)),
+            point(left, top + px(height - HAIRLINE)),
             size(bounds.size.width, px(HAIRLINE)),
         );
         window.paint_quad(fill(rule, palette.foreground.opacity(RULE_OPACITY)));
         let mark = Bounds::new(
-            point(left + px(boxes.mark_x), top + px((HEIGHT - MARK) / 2.)),
-            size(px(MARK), px(MARK)),
+            point(
+                left + px(boxes.mark_x),
+                top + px((height - MARK * scale) / 2.),
+            ),
+            size(px(MARK * scale), px(MARK * scale)),
         );
         let _ = window.paint_svg(
             mark,
@@ -294,12 +317,16 @@ impl Element for StripElement {
             left + px(boxes.query_x),
             top,
             palette.foreground,
+            height,
             window,
         );
         if self.words.typing {
             let caret = Bounds::new(
-                point(left + px(boxes.caret_x), top + px((HEIGHT - CARET_H) / 2.)),
-                size(px(CARET_W), px(CARET_H)),
+                point(
+                    left + px(boxes.caret_x),
+                    top + px((height - CARET_H * scale) / 2.),
+                ),
+                size(px(CARET_W * scale), px(CARET_H * scale)),
             );
             window.paint_quad(fill(caret, palette.accent));
         }
@@ -309,6 +336,7 @@ impl Element for StripElement {
                 left + px(boxes.scope_x),
                 top,
                 palette.muted,
+                height,
                 window,
             );
         }
@@ -317,6 +345,7 @@ impl Element for StripElement {
             left + px(boxes.note_x),
             top,
             palette.muted,
+            height,
             window,
         );
         paint_line(
@@ -324,6 +353,7 @@ impl Element for StripElement {
             left + px(boxes.way_x),
             top,
             palette.muted,
+            height,
             window,
         );
     }

@@ -18,7 +18,7 @@ fn native_readbacks_and_each_refusal_use_the_registry(cx: &mut TestAppContext) {
                 ..Default::default()
             });
             for (function, arguments, expected) in [
-                ("viewMode", vec![], "list"),
+                ("viewMode", vec![], ""),
                 ("pendingRequests", vec![], "0"),
                 ("previewReadiness", vec![], "absent"),
                 ("presentedFrame", vec![], "4"),

@@ -53,8 +53,7 @@ impl Navigator {
         pane.cursor = super::anchor::index_of(pane, name)
             .unwrap_or_else(|| restore.entry.index.min(total - 1));
         pane.reveal_cursor();
-        pane.requests.initial_first =
-            Some((pane.scroll_y / crate::pane::ROW_HEIGHT).floor() as usize);
+        pane.requests.initial_first = Some((pane.scroll_y / pane.row_height()).floor() as usize);
     }
 
     fn land_anchor(&mut self, pane: &mut Pane, selected: &mut Vec<usize>) {

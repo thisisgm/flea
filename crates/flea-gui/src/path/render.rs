@@ -15,6 +15,7 @@ use gpui::{
 impl Render for PathView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let view = cx.entity();
+        let probe = self.probe.clone();
         let root = div().size_full().relative();
         if self.entry.editing {
             let field = div()
@@ -26,7 +27,7 @@ impl Render for PathView {
                 .child(FieldElement::new(view.clone()));
             let root = root.child(field);
             if !self.jump.shown() {
-                return root;
+                return super::probe::wrap(root, view, 0, probe);
             }
             if self.pointer.settling {
                 cx.on_next_frame(window, |view, _, _| view.pointer.settling = false);
@@ -52,13 +53,23 @@ impl Render for PathView {
                 )
                 .on_mouse_move(cx.listener(Self::menu_move))
                 .on_scroll_wheel(cx.listener(Self::menu_wheel))
-                .child(MenuElement::new(view));
-            return root.child(deferred(menu).with_priority(1));
+                .child(MenuElement::new(view.clone()));
+            return super::probe::wrap(root.child(deferred(menu).with_priority(1)), view, 0, probe);
         }
         if self.inputs.dual {
-            return root.child(CrumbElement::new(view, Place::Chrome));
+            return super::probe::wrap(
+                root.child(CrumbElement::new(view.clone(), Place::Chrome)),
+                view,
+                0,
+                probe,
+            );
         }
-        root.child(strip(view, Place::Chrome, cx))
+        super::probe::wrap(
+            root.child(strip(view.clone(), Place::Chrome, cx)),
+            view,
+            0,
+            probe,
+        )
     }
 }
 

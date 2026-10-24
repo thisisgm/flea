@@ -1,10 +1,12 @@
 //! Confirmation, transfers and Jobs: one host, one dialog shell, the cards and the Jobs strip.
 mod cards;
 mod copy_to;
+mod feedback;
 mod geometry;
 pub mod glyph;
 pub mod host;
 pub mod ipc;
+mod line;
 pub mod model;
 pub mod palette;
 pub mod press;
@@ -12,6 +14,12 @@ pub mod view;
 
 #[cfg(test)]
 mod draw_tests;
+#[cfg(test)]
+mod fix10_tests;
+#[cfg(test)]
+mod fix11_overflow_tests;
+#[cfg(test)]
+mod fix11_paint_tests;
 #[cfg(test)]
 mod fix1_tests;
 #[cfg(test)]
@@ -31,4 +39,59 @@ mod font_tests;
 #[cfg(test)]
 mod join_tests;
 #[cfg(test)]
+mod line_tests;
+#[cfg(test)]
 mod tests;
+
+mod collision;
+
+mod editor;
+
+mod field;
+
+mod focus;
+
+mod input;
+
+pub mod join;
+
+mod measured;
+
+mod progress;
+
+#[cfg(test)]
+mod atomic_dialog_tests;
+
+#[cfg(test)]
+mod atomic_tests;
+
+#[cfg(test)]
+mod draw_fixture;
+
+#[cfg(test)]
+mod field_fix4_tests;
+
+#[cfg(test)]
+mod field_input_tests;
+
+#[cfg(test)]
+mod field_tests;
+
+#[cfg(test)]
+mod focus_async_tests;
+
+#[cfg(test)]
+mod publish_tests;
+
+#[cfg(test)]
+#[rustfmt::skip]
+mod review_round2_tests;
+
+#[cfg(test)]
+mod routing_tests;
+
+#[cfg(test)]
+mod u13_draw_tests;
+
+#[cfg(test)]
+mod u13_join_tests;

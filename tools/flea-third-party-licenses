@@ -72,8 +72,83 @@ def alternatives(expression):
     return result
 
 
+def xxhash32(data):
+    """cargo-deny uses twox-hash's XXHash32 with seed zero, not a notice SHA256."""
+    mask = 0xffffffff
+    p1, p2, p3, p4, p5 = 0x9e3779b1, 0x85ebca77, 0xc2b2ae3d, 0x27d4eb2f, 0x165667b1
+
+    def rotate(value, count):
+        value &= mask
+        return ((value << count) | (value >> (32 - count))) & mask
+
+    position = 0
+    if len(data) >= 16:
+        lanes = [(p1 + p2) & mask, p2, 0, (-p1) & mask]
+        while position + 16 <= len(data):
+            for index in range(4):
+                start = position + index * 4
+                word = int.from_bytes(data[start:start + 4], "little")
+                lanes[index] = (rotate(lanes[index] + word * p2, 13) * p1) & mask
+            position += 16
+        result = sum(rotate(lane, count) for lane, count in zip(lanes, (1, 7, 12, 18))) & mask
+    else:
+        result = p5
+    result = (result + len(data)) & mask
+    while position + 4 <= len(data):
+        word = int.from_bytes(data[position:position + 4], "little")
+        result = (rotate(result + word * p3, 17) * p4) & mask
+        position += 4
+    for byte in data[position:]:
+        result = (rotate(result + byte * p5, 11) * p1) & mask
+    result ^= result >> 15
+    result = (result * p2) & mask
+    result ^= result >> 13
+    result = (result * p3) & mask
+    return result ^ (result >> 16)
+
+
+def license_file_hash(path):
+    """Match cargo-deny 0.20.2 get_file_source: trim CR/LF per line, append LF."""
+    lines = path.read_bytes().decode("utf-8").split("\n")
+    if lines[-1] == "":
+        lines.pop()
+    content = "".join(line.rstrip("\r") + "\n" for line in lines)
+    return xxhash32(content.encode("utf-8"))
+
+
+def license_expression(package, policy):
+    clarifications = [item for item in policy.get("clarify", [])
+                      if (item["name"], item.get("version")) == (package["name"], "=" + package["version"])]
+    if len(clarifications) > 1:
+        raise ValueError(f"{package['name']} {package['version']}: duplicate license clarifications")
+    if clarifications:
+        clarification = clarifications[0]
+        owner = f"{package['name']} {package['version']}: license clarification"
+        files = clarification.get("license-files", [])
+        if not files or not package.get("manifest_path"):
+            raise ValueError(f"{owner} requires license-files and a manifest_path")
+        directory = Path(package["manifest_path"]).parent.resolve(strict=True)
+        for item in files:
+            name, expected = item.get("path"), item.get("hash")
+            if not isinstance(name, str) or not name or Path(name).is_absolute():
+                raise ValueError(f"{owner} requires a relative license-file path")
+            if type(expected) is not int or not 0 <= expected <= 0xffffffff:
+                raise ValueError(f"{owner} requires a 32-bit license-file hash: {name}")
+            try:
+                path = (directory / name).resolve(strict=True)
+                if not path.is_relative_to(directory) or not path.is_file():
+                    raise ValueError(f"{owner} license-file must stay inside the crate: {name}")
+                actual = license_file_hash(path)
+            except (OSError, UnicodeError) as error:
+                raise ValueError(f"{owner} cannot read license-file {name}: {error}") from error
+            if actual != expected:
+                raise ValueError(f"{owner} fingerprint mismatch for {name}: expected {expected:#010x}, got {actual:#010x}")
+        return clarification["expression"], True
+    return package.get("license"), False
+
+
 def chosen_license(package, policy):
-    expression = package.get("license")
+    expression, _clarified = license_expression(package, policy)
     if not expression:
         raise ValueError(f"{package['name']} {package['version']} has no SPDX license")
     allowed = set(policy["allow"])
@@ -166,8 +241,9 @@ def render(root, metadata_by_target):
             owner = f"{package['name']} {package['version']} ({source})"
             selected = chosen_license(package, policy)
             licenses.update(selected)
-            record = records.setdefault(key, {"expression": package["license"], "selected": selected,
-                                              "targets": set(), "texts": set()})
+            expression, clarified = license_expression(package, policy)
+            record = records.setdefault(key, {"expression": expression, "selected": selected,
+                                              "clarified": clarified, "targets": set(), "texts": set()})
             record["targets"].add(target)
             for path, label in crate_notices(package, Path(metadata["workspace_root"]), root):
                 record["texts"].add(add_text(path, owner, label))
@@ -198,6 +274,8 @@ def render(root, metadata_by_target):
         lines += ["SPDX: " + record["expression"].replace("/", " OR "),
                   "Selected: " + " AND ".join(sorted(record["selected"])),
                   "Targets: " + " ".join(sorted(record["targets"]))]
+        if record["clarified"]:
+            lines.append("Expression source: deny.toml version-pinned clarification; full upstream notice retained.")
         lines += ["Texts: " + " ".join(sorted(record["texts"]))] if record["texts"] else [
             "No license or notice file supplied by this crate; see its SPDX expression above."]
         lines.append("")

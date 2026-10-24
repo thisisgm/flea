@@ -78,6 +78,7 @@ pub struct ListElement {
     scroll_y: f32,
     states: RowStates,
     state: Rc<RefCell<ListState>>,
+    search_feedback: Option<crate::window::search::Draw>,
 }
 
 impl ListElement {
@@ -103,7 +104,16 @@ impl ListElement {
             scroll_y,
             states,
             state,
+            search_feedback: None,
         }
+    }
+
+    pub(crate) fn with_search_feedback(
+        mut self,
+        draw: Option<crate::window::search::Draw>,
+    ) -> Self {
+        self.search_feedback = draw;
+        self
     }
 }
 
@@ -189,12 +199,39 @@ fn prepare(
             GlyphRun::new(Arc::clone(blank))
         }
     };
-    let (name, run) = drawn_name(facts, extra, shaping, &view.query);
+    let mut display = Cow::Borrowed(facts);
+    let mut name_shaping = Cow::Borrowed(shaping);
+    let location = if view.searching {
+        display.to_mut().name = facts
+            .name
+            .rsplit('/')
+            .next()
+            .unwrap_or(&facts.name)
+            .to_owned();
+        let location =
+            crate::g2::sr1::run::location(&facts.name, "", "", flea::ui_logic_sr1::Scope::Folder);
+        let location = row::right_elide(&location, shaping.name_cells / 2).into_owned();
+        if !location.is_empty() {
+            let reserved = location.chars().map(row::cells_of).sum::<usize>();
+            let shaped = name_shaping.to_mut();
+            shaped.name_cells = shaped.name_cells.saturating_sub(reserved + 1);
+            shaped.clip_cells = shaped.name_cells;
+        }
+        location
+    } else {
+        String::new()
+    };
+    let (name, run) = drawn_name(&display, extra, &name_shaping, &view.query);
     let words = &view.words;
     Prepared {
         label: name.clone(),
         size_text: format::size_text(facts, extra.walked, words),
         date_text: format::date_text(facts.mtime, words),
+        location: if location.is_empty() {
+            GlyphRun::new(Arc::clone(blank))
+        } else {
+            shape(&location, shaping.caption)
+        },
         name: shape(&name, shaping.body),
         size: cell(Column::Size, &|| {
             format::size_text(facts, extra.walked, words)
@@ -211,29 +248,12 @@ fn prepare(
 }
 
 /// The cursor row's name with its match run in bold, the board's cursor treatment for a marked name.
-fn bold_name(
-    facts: &RowFacts,
-    extra: Extra,
-    shaping: &Shaping,
-    query: &str,
-    window: &Window,
-) -> GlyphRun {
-    let (name, run) = drawn_name(facts, extra, shaping, query);
-    let (start, end) = run.unwrap_or((name.len(), name.len()));
-    let heavy = shaping.font.clone().bold();
-    let runs: Vec<TextRun> = [
-        (start, &shaping.font),
-        (end - start, &heavy),
-        (name.len() - end, &shaping.font),
-    ]
-    .into_iter()
-    .filter(|(len, _)| *len > 0)
-    .map(|(len, font)| run_of(len, font))
-    .collect();
+fn bold_name(prepared: &Prepared, shaping: &Shaping, window: &Window) -> GlyphRun {
+    let runs = crate::g2::sr1::run::text_runs(&prepared.label, prepared.run, true, &shaping.font);
     GlyphRun::new(
         window
             .text_system()
-            .layout_line(&name, shaping.body, &runs, None),
+            .layout_line(&prepared.label, shaping.body, &runs, None),
     )
 }
 
@@ -336,6 +356,8 @@ impl Element for ListElement {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let palette = state.palette(window, theme);
         state.drawn_cursor = self.states.cursor;
+        state.drawn_focused = self.states.focused;
+        state.drawn_rows = Rc::clone(&self.held);
         let held = &*self.held;
         let ListState {
             typeface,
@@ -430,14 +452,14 @@ impl Element for ListElement {
                     clip,
                 )
             };
-            let (prepared, extra, clip) =
+            let (prepared, _extra, clip) =
                 rows.get_or_prepare_marked(index, facts, revision, drop, resolve, |extra| {
                     prepare(facts, extra, &shaping, view, &layout, blank, window)
                 });
             if marks.cursor && prepared.run.is_some() {
                 prepared
                     .bold
-                    .get_or_init(|| bold_name(facts, extra, &shaping, &view.query, window));
+                    .get_or_init(|| bold_name(&prepared, &shaping, window));
             }
             visible.push(Shown {
                 index,
@@ -557,8 +579,13 @@ impl Element for ListElement {
                     let limit = x + px(layout.name.width);
                     let height = line.ascent + line.descent;
                     let y = top + (px(row) - height) / 2.;
-                    let from = (x + line.x_for_index(start)).min(limit);
-                    let to = (x + line.x_for_index(end)).min(limit);
+                    let Some((run_start, run_end)) =
+                        crate::g2::sr1::run::wash_span(line, Some((start, end)), false)
+                    else {
+                        continue;
+                    };
+                    let from = (x + run_start).min(limit);
+                    let to = (x + run_end).min(limit);
                     window.paint_quad(fill(
                         Bounds::from_corners(point(from, y), point(to, y + height)),
                         palette.accent.opacity(MATCH_WASH),
@@ -651,6 +678,23 @@ impl Element for ListElement {
                                 .filter(|_| shown.state.cursor)
                                 .unwrap_or(&prepared.name);
                             paint_line(line, names.origin.x, top_of(shown.index), row, ink, window);
+                            if view.searching && f32::from(prepared.location.line().width) > 0. {
+                                let x =
+                                    names.origin.x + prepared.name.line().width + px(metrics.gap);
+                                let caption_ink = if shown.state.lifted() {
+                                    palette.foreground
+                                } else {
+                                    palette.metadata
+                                };
+                                paint_line(
+                                    &prepared.location,
+                                    x,
+                                    top_of(shown.index),
+                                    row,
+                                    caption_ink,
+                                    window,
+                                );
+                            }
                         }
                     });
                     // RowDropTarget.qml: the label is an accent caption at the row's right padding, in place of the hidden cells.
@@ -691,5 +735,8 @@ impl Element for ListElement {
                 state.painted_cells.set(cells_painted);
             },
         );
+        if let Some(draw) = &self.search_feedback {
+            draw.painted(&state.visible, cx);
+        }
     }
 }

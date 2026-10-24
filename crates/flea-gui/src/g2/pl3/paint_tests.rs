@@ -164,9 +164,27 @@ fn a_thumbnail_draws_in_the_mark_slot_and_leaves_with_its_row() {
     draw(&mut cx, window);
     window
         .update(&mut cx, |pane, _, cx| {
+            assert_eq!(
+                pane.paint.borrow().drawn_images,
+                [0],
+                "the retained row keeps its decoded image until the complete replacement"
+            );
+            assert!(cx.has_asset::<ImageAssetLoader>(&source));
+        })
+        .unwrap();
+    answer(
+        &mut cx,
+        window,
+        &calls,
+        "summary",
+        r#","bytes":13,"partial":false"#,
+    );
+    draw(&mut cx, window);
+    window
+        .update(&mut cx, |pane, _, cx| {
             assert!(
                 pane.paint.borrow().drawn_images.is_empty(),
-                "a refresh clears every image at once"
+                "the complete replacement retires its previous thumbnail at once"
             );
             assert!(
                 !cx.has_asset::<ImageAssetLoader>(&source),

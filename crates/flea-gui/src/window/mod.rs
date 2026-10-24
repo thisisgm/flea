@@ -1,17 +1,33 @@
 //! Native window host and composition interfaces shared by later surfaces.
+pub mod columns;
 pub mod composition;
 mod events;
+pub(crate) mod frame_feedback;
 pub mod input;
 pub mod lifecycle;
+#[path = "../list/join.rs"]
+mod list_join;
 pub mod locale;
 pub mod navigate;
 pub mod overlay;
 pub(crate) mod pane;
+mod presentation;
+pub mod rail;
 mod render;
 pub mod root;
+pub(crate) mod search;
+pub mod settings;
 pub mod startup;
+pub(crate) mod status;
 pub(crate) mod surfaces;
 mod transitions;
+
+#[cfg(test)]
+mod u07_chrome_tests;
+#[cfg(test)]
+mod u07_motion_tests;
+#[cfg(test)]
+mod u07_tests;
 
 use crate::{ipc::server::Event, state::Shell};
 use gpui::{px, size, App, AppContext, TitlebarOptions, WindowBounds, WindowHandle, WindowOptions};
@@ -48,6 +64,7 @@ pub fn open(
         }
         window.set_rem_size(crate::list::Typeface::omarchy_default().body);
         let shell = cx.new(|cx| Shell::new(launch, locale, events, window, cx));
+        shell.update(cx, |shell, cx| shell.follow_settings(window, cx));
         let weak = shell.downgrade();
         window.on_window_should_close(cx, move |window, cx| {
             weak.update(cx, |shell, cx| {
@@ -61,12 +78,46 @@ pub fn open(
 }
 
 #[cfg(test)]
+mod columns_tests;
+#[cfg(test)]
+#[path = "../list/join_tests.rs"]
+mod list_tests;
+#[cfg(test)]
 mod modal_tests;
+#[cfg(test)]
+mod native_reader_tests;
 #[cfg(test)]
 mod overlay_escape_tests;
 #[cfg(test)]
 mod overlay_tests;
 #[cfg(test)]
+mod presentation_fault_tests;
+#[cfg(test)]
+mod presentation_tests;
+#[cfg(test)]
+mod rate_atomic_tests;
+#[cfg(test)]
+mod settings_tests;
+#[cfg(test)]
+mod status_tests;
+#[cfg(test)]
 mod surfaces_tests;
 #[cfg(test)]
 mod transition_tests;
+
+#[cfg(test)]
+mod dual_join_tests;
+
+#[cfg(test)]
+mod gcomp_tests;
+#[cfg(test)]
+mod view_tests;
+#[cfg(test)]
+#[rustfmt::skip]
+mod u07_drag_review_tests;
+
+#[cfg(test)]
+mod u07_tap_tests;
+
+#[cfg(test)]
+mod native31_tests;

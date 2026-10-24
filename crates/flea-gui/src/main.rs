@@ -1,6 +1,6 @@
 use flea_gui::{
     ipc::server::Server,
-    palette::Theme,
+    presentation,
     window::{
         self,
         locale::Service,
@@ -15,15 +15,14 @@ mod renderer;
 #[cfg(test)]
 mod renderer_tests;
 
-fn finish_opening<T, E>(opened: Result<T, E>) -> T {
-    let Ok(window) = opened else {
-        renderer::unavailable();
+fn finish_opening<T>(opened: Result<T, String>) -> T {
+    opened.unwrap_or_else(|error| {
+        renderer::unavailable(&error);
         let _ = std::io::stdout().flush();
         let _ = std::io::stderr().flush();
         // The startup callback precedes the event loop, which clears an earlier quit request.
         std::process::exit(renderer::UNAVAILABLE);
-    };
-    window
+    })
 }
 
 fn main() {
@@ -72,7 +71,7 @@ fn main() {
             Ok::<_, (&str, String)>((
                 Launch::resolve(settings, args, &home),
                 server,
-                Theme::load(),
+                presentation::Service::start(),
             ))
         })
         .unwrap_or_else(|error| {
@@ -84,7 +83,7 @@ fn main() {
             );
             std::process::exit(2);
         });
-    let (launch, server, theme) = worker
+    let (launch, server, (presentation_service, presentation)) = worker
         .join()
         .unwrap_or_else(|_| std::process::exit(2))
         .unwrap_or_else(|(key, error)| {
@@ -94,7 +93,7 @@ fn main() {
     let events = server.events.clone();
     gpui_platform::application().run(move |cx: &mut App| {
         cx.set_text_rendering_mode(gpui::TextRenderingMode::Grayscale);
-        cx.set_global(theme);
+        presentation.install(cx);
         cx.on_window_closed(|cx, _| {
             if cx.windows().is_empty() {
                 cx.quit();
@@ -102,9 +101,11 @@ fn main() {
         })
         .detach();
         let window = finish_opening(window::open(launch, locale, events, cx));
-        let _ = window.update(cx, |root, _, cx| {
-            root.shell
-                .update(cx, |shell, cx| shell.follow_locale(&service, cx))
+        let _ = window.update(cx, |root, window, cx| {
+            root.shell.update(cx, |shell, cx| {
+                shell.follow_locale(&service, cx);
+                shell.follow_presentation(&presentation_service, window, cx);
+            })
         });
         cx.activate(true);
     });

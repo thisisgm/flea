@@ -18,7 +18,23 @@ pub(super) fn parse(line: &str) -> Result<Event, String> {
             message,
             mode,
         }),
-        Reply::Other => Ok(other(line)?.unwrap_or(Event::Reply(Reply::Other))),
+        Reply::Other => Ok(other(line)?.unwrap_or_else(|| {
+            if flea::ui_logic_op1::parse(line).is_some()
+                && flea::jsondoc::parse(line)
+                    .ok()
+                    .and_then(|doc| {
+                        doc.get("t")
+                            .and_then(flea::jsondoc::Json::as_str)
+                            .map(str::to_owned)
+                    })
+                    .as_deref()
+                    != Some("menuaction")
+            {
+                Event::Operations(line.into())
+            } else {
+                Event::Producer(line.to_owned())
+            }
+        })),
         reply => {
             // Canonical plain windows have no gen; escaped keys still take the structural parser.
             if !line.contains("\"gen\"") && !line.contains("\\u") {
@@ -64,6 +80,26 @@ pub(super) fn write_rows(
 // Unsolicited and pathed replies the listing parser has no variant for.
 pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
     let document = jsondoc::parse(line)?;
+    if let Some(reply) = crate::list::sizes::parse(&document)? {
+        return Ok(Some(match reply {
+            crate::list::sizes::Reply::Filesystem { class, .. }
+                if document.get("fs").is_some() || document.get("free").is_some() =>
+            {
+                Event::FilesystemDetails {
+                    facts: super::status::Filesystem::parse(&document)?,
+                    class,
+                }
+            }
+            reply => Event::ListDetails(reply),
+        }));
+    }
+    // Preserve every peek field for the path-to-Columns claim chain in Shell::receive.
+    if document.get("t").and_then(jsondoc::Json::as_str) == Some("peeked") {
+        return Ok(Some(Event::Peeked(document)));
+    }
+    if let Some(answer) = crate::path::answer(&document) {
+        return Ok(Some(Event::Path(answer)));
+    }
     let text = |key| match document.get(key) {
         Some(jsondoc::Json::Str(value)) => Ok(value.clone()),
         _ => Err(format!("{key} must be a string")),
@@ -73,6 +109,21 @@ pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
         _ => None,
     };
     Ok(match document.get("t") {
+        Some(jsondoc::Json::Str(kind)) if kind == "fsinfo" => Some(Event::Filesystem(
+            super::status::Filesystem::parse(&document)?,
+        )),
+        Some(jsondoc::Json::Str(kind)) if matches!(kind.as_str(), "plugins" | "pluginop") => {
+            Some(Event::Plugins(line.into()))
+        }
+        Some(jsondoc::Json::Str(kind)) if kind == "peeked" => Some(Event::Peeked(document)),
+        Some(jsondoc::Json::Str(kind))
+            if matches!(
+                kind.as_str(),
+                "trashbrowse" | "trashthumbed" | "trashdeletestarted"
+            ) =>
+        {
+            Some(Event::TrashLine(line.to_owned()))
+        }
         Some(jsondoc::Json::Str(kind)) if kind == "changed" => Some(Event::Changed {
             path: text("path")?,
         }),

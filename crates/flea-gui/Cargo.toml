@@ -9,6 +9,7 @@ flea = { path = "../.." }
 gpui = { workspace = true }
 gpui_platform = { workspace = true }
 async-channel = "=2.5.0"
+omi = "=1.0.0"
 # The frame container GPUI's RenderImage takes; already in the lock through gpui, default features off.
 image = { version = "=0.25.10", default-features = false }
 
@@ -18,3 +19,4 @@ bench-seam = []
 
 [dev-dependencies]
 gpui = { workspace = true, features = ["test-support"] }
+gpui_platform = { workspace = true, features = ["test-support"] }

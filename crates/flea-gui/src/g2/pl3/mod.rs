@@ -9,12 +9,38 @@ mod fix_tests;
 mod flow_tests;
 mod glyph;
 pub mod ink;
+pub mod join;
+mod join_atomic;
+mod join_cards;
+mod join_input;
+mod join_menu;
+#[cfg(test)]
+mod join_r4_tests;
+#[cfg(test)]
+mod join_r5_tests;
+#[cfg(test)]
+mod join_readiness_tests;
+#[cfg(test)]
+mod join_review_tests;
+mod join_status;
+#[cfg(test)]
+mod join_tests;
 pub mod list;
+#[cfg(test)]
+mod list_readiness_tests;
 pub mod monitor;
 #[cfg(test)]
 mod paint_tests;
 pub mod pane;
+pub mod presentation;
+pub mod readers;
 pub mod seams;
 mod strip;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod join_atomic_tests;
+
+#[cfg(test)]
+mod gcomp_join_tests;

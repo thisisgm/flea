@@ -124,6 +124,12 @@ pub struct StateMessage {
 }
 
 impl StateMessage {
+    pub fn set_typeface(&mut self, typeface: Typeface, cx: &mut Context<Self>) {
+        if self.typeface != typeface {
+            self.typeface = typeface;
+            cx.notify();
+        }
+    }
     pub fn new() -> Self {
         Self {
             facts: None,
@@ -147,6 +153,20 @@ impl StateMessage {
 
     pub fn metrics(&self) -> Metrics {
         self.metrics
+    }
+
+    /// The pane's shared state surface clears the ancestor tracks before it is centred.
+    pub fn natural_width(&self, window: &Window) -> f32 {
+        let Some(facts) = &self.facts else { return 0. };
+        [
+            (facts.sentence.clone(), self.typeface.body),
+            (facts.detail.clone(), self.typeface.caption),
+        ]
+        .into_iter()
+        .map(|(text, size)| {
+            super::caption::measure(text, self.typeface.font.clone(), size, px(0.), window)
+        })
+        .fold(super::mark::STATE, f32::max)
     }
 
     /// Shows a failure, or clears the surface with None; an unchanged value repaints nothing.

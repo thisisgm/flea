@@ -1,6 +1,6 @@
 //! Re-reading the open listing without moving the user off it: cursor, marks and view by filename.
 use super::history::{join, select_match};
-use crate::pane::{Pane, ROW_HEIGHT};
+use crate::pane::Pane;
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -62,7 +62,7 @@ impl Anchor {
             name: cursor_name(pane),
             index: pane.cursor,
             start: pane.held.start,
-            offset: pane.cursor as f32 * ROW_HEIGHT - pane.scroll_y,
+            offset: pane.cursor as f32 * pane.row_height() - pane.scroll_y,
             select,
             want_changed,
             had_marks: !marks.is_empty(),
@@ -115,9 +115,9 @@ impl Anchor {
 
     pub fn land(&mut self, pane: &mut Pane, index: usize) {
         pane.cursor = index.min(pane.held.total.saturating_sub(1));
-        let y = pane.cursor as f32 * ROW_HEIGHT - self.offset;
+        let y = pane.cursor as f32 * pane.row_height() - self.offset;
         pane.scroll_to(y);
-        pane.requests.initial_first = Some((pane.scroll_y / ROW_HEIGHT).floor() as usize);
+        pane.requests.initial_first = Some((pane.scroll_y / pane.row_height()).floor() as usize);
         self.landed = true;
     }
 
@@ -213,6 +213,8 @@ impl Preference {
         }
         selected.clear();
         selected.extend(marks);
+        selected.sort_unstable();
+        selected.dedup();
     }
 }
 
@@ -225,7 +227,7 @@ pub fn apply_select(pane: &mut Pane, target: &str, selected: &mut Vec<usize>) ->
     };
     pane.cursor = pane.held.start + at;
     pane.reveal_cursor();
-    pane.requests.initial_first = Some((pane.scroll_y / ROW_HEIGHT).floor() as usize);
+    pane.requests.initial_first = Some((pane.scroll_y / pane.row_height()).floor() as usize);
     selected.clear();
     selected.push(pane.cursor);
     true

@@ -70,6 +70,7 @@ pub struct Row {
     pub footer: bool,
     pub url: &'static str,
     pub elide_head: bool,
+    pub elide_right: bool,
     pub inert: bool,
     pub action: &'static str,
     pub error: Text,
@@ -84,7 +85,7 @@ impl Default for Row {
             value: Text::Empty, caption: Text::Empty, role: Role::None, on: false, available: true,
             master: false, state: Master::Absent, ids: Vec::new(), values: Vec::new(), labels: Vec::new(),
             selected: String::new(), stops: Vec::new(), index: 0, items: Vec::new(), footer: false, url: "",
-            elide_head: false, inert: false, action: "", error: Text::Empty, display: String::new(), favourite: None,
+            elide_head: false, elide_right: false, inert: false, action: "", error: Text::Empty, display: String::new(), favourite: None,
         }
     }
 }

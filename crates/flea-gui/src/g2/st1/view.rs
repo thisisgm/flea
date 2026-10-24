@@ -1,6 +1,6 @@
 //! Draws the Settings card over its ground: the head, the rail with its search field, and the pane's rows or results.
 use super::draw::{Line, Rows};
-use super::geometry::{self as g, BORDER, FADE, HEAD_H, PAD_X, RAIL_W};
+use super::geometry::{self as g, BORDER, FADE, PAD_X, RAIL_W};
 use super::marks::{self, mark, washed};
 use super::panel::{Panel, Press, Side};
 use super::seams::{Ink, Request};
@@ -13,14 +13,16 @@ use flea::ui_logic_st1::{
 };
 use gpui::{
     div, linear_color_stop, linear_gradient, prelude::*, px, Context, Div, EventEmitter,
-    FocusHandle, FontWeight, KeyDownEvent, MouseButton, MouseUpEvent, Render, ScrollWheelEvent,
-    SharedString, Stateful, TextRun, Window,
+    FocusHandle, KeyDownEvent, MouseButton, MouseUpEvent, Render, ScrollWheelEvent, SharedString,
+    Stateful, TextRun, Window,
 };
 
 pub struct SettingsView {
     pub panel: Panel,
     pub focus: FocusHandle,
     pub typeface: Typeface,
+    pub probe: super::probe::Probe,
+    pub plugins: Option<gpui::Entity<crate::g2::st2::view::PluginsPane>>,
 }
 
 impl EventEmitter<Request> for SettingsView {}
@@ -29,12 +31,18 @@ impl SettingsView {
     pub fn new(panel: Panel, cx: &mut Context<Self>) -> Self {
         Self {
             panel,
+            plugins: None,
+            probe: super::probe::Probe::default(),
             focus: cx.focus_handle(),
             typeface: Typeface::omarchy_default(),
         }
     }
 
     fn key_down(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
+        if super::plugins::key(self, event, cx) {
+            cx.stop_propagation();
+            return;
+        }
         let stroke = &event.keystroke;
         let text = stroke.key_char.as_deref().unwrap_or("");
         self.panel.key(&stroke.key, text, stroke.modifiers.shift);
@@ -55,44 +63,6 @@ impl SettingsView {
             .query
             .as_deref()
             .is_some_and(|query| !query.is_empty())
-    }
-
-    /// The head: the title's sliders mark in its own ink, the pane's name, esc and the close mark.
-    fn head(&self, ink: &Ink, cx: &mut Context<Self>) -> Div {
-        div()
-            .h(px(HEAD_H))
-            .flex_none()
-            .flex()
-            .items_center()
-            .gap(px(g::GAP))
-            .px(px(PAD_X))
-            .border_b_1()
-            .border_color(ink.rule)
-            .text_size(self.typeface.caption)
-            .text_color(ink.foreground)
-            .child(mark("sliders", 16., ink.foreground))
-            .child(
-                div()
-                    .flex_1()
-                    .font_weight(FontWeight::BOLD)
-                    .whitespace_nowrap()
-                    .child(SharedString::from(self.panel.title())),
-            )
-            .child(div().text_color(ink.muted).child("esc"))
-            .child(
-                div()
-                    .id("settings-close")
-                    .size(px(24.))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .cursor_pointer()
-                    .child(mark("x", 16., ink.foreground))
-                    .on_click(cx.listener(|view, _, _, cx| {
-                        view.panel.requests.push(Request::Close);
-                        view.flush(cx);
-                    })),
-            )
     }
 
     /// The search field the sheet uses: magnifier, the typed text and caret, and the clear mark at its end.
@@ -147,7 +117,8 @@ impl SettingsView {
                     || (self.panel.section == "columns" && section.id == "view"));
             let keys = current && self.panel.side == Side::Rail;
             let id = section.id;
-            div()
+            self.probe
+                .attach(div(), format!("rail:{id}"))
                 .id(SharedString::from(format!("settings-rail-{id}")))
                 .relative()
                 .h(px(g::RAIL_ROW_H))
@@ -279,7 +250,7 @@ impl SettingsView {
         let font = self.typeface.font.clone();
         rows.iter()
             .map(|row| {
-                if row.kind != Kind::Hint {
+                if row.kind != Kind::Hint || row.elide_right {
                     return 1;
                 }
                 let text = SharedString::from(row.label.resolve(&self.panel.catalog));
@@ -316,6 +287,16 @@ impl SettingsView {
     }
 
     fn pane(&self, ink: &Ink, window: &Window, cx: &mut Context<Self>) -> Stateful<Div> {
+        if self.panel.section == "plugins" {
+            if let Some(view) = &self.plugins {
+                return div()
+                    .id("settings-pane")
+                    .relative()
+                    .flex_1()
+                    .h_full()
+                    .child(view.clone());
+            }
+        }
         let mut lines = self.lines();
         let searching = self.searching();
         let width = self.panel.pane.0;
@@ -337,7 +318,8 @@ impl SettingsView {
             heights: &heights,
         }
         .draw(&lines, cx);
-        div()
+        self.probe
+            .attach(div(), "pane")
             .id("settings-pane")
             .relative()
             .flex_1()
@@ -421,6 +403,7 @@ impl SettingsView {
 
 impl Render for SettingsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.probe.clear();
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -439,7 +422,9 @@ impl Render for SettingsView {
         let left = ((f32::from(viewport.width) - card_w) / 2.).round();
         let top = ((f32::from(viewport.height) - card_h) / 2.).round();
         marks::ground(
-            div().id("settings-ground"),
+            div()
+                .on_children_prepainted(self.probe.first_child("card"))
+                .id("settings-ground"),
             cx.listener(|view, _, _, cx| {
                 view.panel.requests.push(Request::Close);
                 view.flush(cx);

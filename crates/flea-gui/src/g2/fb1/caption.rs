@@ -56,6 +56,26 @@ pub fn width(layout: &LineLayout, tracking: Pixels) -> Pixels {
     layout.width + tracking * glyphs as f32
 }
 
+/// Measure a producer's own text with the same shaping and tracking as its painted line.
+pub fn measure(
+    text: SharedString,
+    font: Font,
+    size: Pixels,
+    tracking: Pixels,
+    window: &Window,
+) -> f32 {
+    let run = TextRun {
+        len: text.len(),
+        font,
+        color: window.text_style().color,
+        background_color: None,
+        underline: None,
+        strikethrough: None,
+    };
+    let shaped = window.text_system().shape_line(text, size, &[run], None);
+    f32::from(width(&shaped, tracking))
+}
+
 impl IntoElement for Tracked {
     type Element = Self;
     fn into_element(self) -> Self {

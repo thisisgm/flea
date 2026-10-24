@@ -66,6 +66,20 @@ impl Sheet {
         }
     }
 
+    pub fn set_catalog(&mut self, catalog: Arc<I18n>) {
+        self.rows = presentation::sheet(&self.preset, Frontend::Gui, &catalog);
+        self.catalog = catalog;
+        self.requery();
+    }
+
+    pub fn set_preset(&mut self, preset: &str) {
+        if self.preset != preset {
+            self.preset = preset.into();
+            self.rows = presentation::sheet(preset, Frontend::Gui, &self.catalog);
+            self.requery();
+        }
+    }
+
     fn candidates(&self) -> Vec<Candidate> {
         let mut all = sheet::action_candidates(&self.rows);
         all.extend(sheet::menu_candidates(&self.sources.menus, |action| {

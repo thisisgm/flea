@@ -45,7 +45,7 @@ pub struct PaneView<'a> {
 }
 
 impl PaneView<'_> {
-    fn child(&self) -> String {
+    pub(crate) fn child(&self) -> String {
         self.cursor_row
             .filter(|row| row.dir)
             .map(|row| join(self.base, &row.name))
@@ -299,7 +299,7 @@ impl Area {
         if self.seen.shown_child != seen.shown_child {
             self.refresh(pane, ports);
         }
-        self.rebuild(pane, now);
+        self.rebuild(pane);
     }
 
     /// onPeeked: a reply this view asked for under the folder's current order lands, the rest drop.
@@ -389,16 +389,12 @@ impl Area {
             .min()
     }
 
-    fn rebuild(&mut self, pane: &PaneView<'_>, now: u64) {
+    fn rebuild(&mut self, pane: &PaneView<'_>) {
         let shown = tracks::Shown {
             host: &self.host,
             settings: self.settings,
         };
-        let loading =
-            self.tracks
-                .rebuild(&self.layout, pane.lens, &self.peeks, &self.landing, shown);
-        for path in loading {
-            self.landing.mark_shown(&path, true, pane.lens.here, now);
-        }
+        self.tracks
+            .rebuild(&self.layout, pane.lens, &self.peeks, &self.landing, shown);
     }
 }

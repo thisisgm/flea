@@ -29,6 +29,7 @@ pub enum Dialog {
     },
     // Busy while a menu's refreshDelete is out: the card stays drawn, Cancel is live and Delete is out of reach.
     Delete {
+        session: u64,
         review: Review,
         scope: Scope,
         focus: trash::Button,
@@ -80,6 +81,10 @@ pub struct Operations {
     pub arm: trash::Arm,
     // The permanent-delete card's session, kept while its delete or a fresh review is out.
     pub confirm: Option<Confirm>,
+    pub review_session: u64,
+    /// A reviewed card owned by another producer; answers return to that producer without a second request counter.
+    pub external_delete: Option<u64>,
+    pub external_answers: Vec<(u64, Option<u64>)>,
     // A delete already out, moved aside when another card replaced its confirmation; one slot per channel, so a menu delete never drops a held Trash delete and vice versa.
     pub trash_held: Option<Confirm>,
     pub menu_held: Option<Confirm>,
@@ -110,6 +115,9 @@ impl Operations {
             jobs: Jobs::default(),
             arm: trash::Arm::default(),
             confirm: None,
+            review_session: 0,
+            external_delete: None,
+            external_answers: Vec::new(),
             trash_held: None,
             menu_held: None,
             outbox: Vec::new(),
@@ -127,25 +135,12 @@ impl Operations {
 
     // The Jobs card's blocks: an unchanged row keeps the block already built from it.
     pub fn refresh_blocks(&mut self, catalog: &I18n) {
-        let mut rows = self.jobs.blocks();
-        if self
-            .blocks
-            .iter()
-            .all(|(built, _)| rows.next() == Some(built))
-            && rows.next().is_none()
-        {
-            return;
-        }
-        let mut kept = std::mem::take(&mut self.blocks);
-        for row in self.jobs.blocks() {
-            match kept.iter().position(|(built, _)| built == row) {
-                Some(at) => self.blocks.push(kept.swap_remove(at)),
-                None => {
-                    self.blocks_built += 1;
-                    self.blocks.push((row.clone(), jobs::block(catalog, row)));
-                }
-            }
-        }
+        super::progress::blocks(
+            &mut self.blocks,
+            &mut self.blocks_built,
+            &self.jobs,
+            catalog,
+        );
     }
 
     pub fn open(&self) -> bool {
@@ -476,13 +471,8 @@ impl Operations {
                 Key::Activate if focus == CopyFocus::Field && name == "space" => {}
                 Key::Activate if focus == CopyFocus::Cancel => self.close_copy(),
                 Key::Activate => self.confirm_copy(catalog),
-                Key::Tab | Key::Backtab => {
-                    let order = [CopyFocus::Field, CopyFocus::Cancel, CopyFocus::Confirm];
-                    if let Some(Dialog::CopyTo { focus: f, .. }) = &mut self.dialog {
-                        *f = collide::walk(&order, focus, key, CopyFocus::Field);
-                    }
-                }
-                // Seam: the text field owns typing; until it lands only the path set by the chooser is edited.
+                Key::Tab | Key::Backtab => self.walk_copy_focus(key),
+                // Typing and selection belong to the mounted platform input handler.
                 _ => {}
             },
         }
@@ -530,6 +520,15 @@ impl Operations {
 
     // Each block's own button names only its job.
     pub fn job_action(&mut self, id: u64, action: jobs::Action) {
+        if action == jobs::Action::Cancel
+            && !self
+                .jobs
+                .rows
+                .iter()
+                .any(|row| row.id == id && jobs::unfinished(row))
+        {
+            return;
+        }
         self.outbox.push(jobs::request(action.op(), id));
     }
 

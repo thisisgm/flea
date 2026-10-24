@@ -21,13 +21,46 @@ pub(crate) struct Refusal {
 /// One pane's state surfaces, built the first time its pane shows the matching state and kept after.
 #[derive(Default)]
 pub(crate) struct Surfaces {
-    hero: Option<Entity<EmptyHero>>,
+    pub(crate) footer: Option<Entity<super::status::Footer>>,
+    pub(crate) footer_watch: Option<gpui::Subscription>,
+    pub(crate) detail_height: f32,
+    pub(crate) detail_text: gpui::SharedString,
+    pub(crate) filesystem: super::status::Filesystem,
+    pub(crate) hero: Option<Entity<EmptyHero>>,
     notice: Option<Entity<StateMessage>>,
     refusal: Option<Refusal>,
     shown: Option<(Kind, View, u64)>,
 }
 
 impl Surfaces {
+    pub(crate) fn restyle(&self, face: &crate::list::Typeface, cx: &mut Context<Shell>) {
+        if let Some(hero) = &self.hero {
+            hero.update(cx, |hero, cx| {
+                hero.set_typeface(face.clone(), cx);
+                cx.notify();
+            });
+        }
+        if let Some(notice) = &self.notice {
+            notice.update(cx, |notice, cx| {
+                notice.set_typeface(face.clone(), cx);
+                cx.notify();
+            });
+        }
+    }
+    pub(crate) fn natural_width(&self, window: &gpui::Window, cx: &gpui::App) -> Option<f32> {
+        match self.shown?.0 {
+            Kind::Empty => self
+                .hero
+                .as_ref()
+                .map(|hero| hero.read(cx).natural_width(window)),
+            Kind::Locked | Kind::Error | Kind::Waiting => self
+                .notice
+                .as_ref()
+                .map(|notice| notice.read(cx).natural_width(window)),
+            _ => None,
+        }
+    }
+
     /// A refused listing lands its message; the next sync redraws the state even when the kind stays put.
     pub(crate) fn refuse(&mut self, refusal: Refusal) {
         self.refusal = Some(refusal);
@@ -41,6 +74,21 @@ impl Shell {
         let Some(host) = &self.panes[side] else {
             return;
         };
+        let session = &host.search.owner.session;
+        if session.live()
+            && !session.running
+            && !session.leaving
+            && host.pane.held.total == 0
+            && host.pane.state.search
+        {
+            let surfaces = &mut self.surfaces[side];
+            if let Some(hero) = &surfaces.hero {
+                hero.update(cx, |hero, cx| hero.hide(cx));
+            }
+            surfaces.shown = None;
+            self.slots.states[side] = None;
+            return;
+        }
         let kind = host.pane.state.kind;
         let key = (kind, self.view, self.locale.revision);
         let surfaces = &mut self.surfaces[side];
@@ -53,6 +101,7 @@ impl Shell {
             surfaces.refusal = None;
         }
         let catalog = self.locale.catalog.clone();
+        let typeface = host.list.borrow().typeface.clone();
         let in_list = self.view == View::List;
         let metrics = if self.view == View::Grid { GRID } else { LIST };
         let facts = match kind {
@@ -69,6 +118,7 @@ impl Shell {
                 .get_or_insert_with(|| cx.new(|cx| EmptyHero::new(&catalog, cx)))
                 .clone();
             hero.update(cx, |hero, cx| {
+                hero.set_typeface(typeface.clone(), cx);
                 hero.translated(&catalog);
                 hero.set_in_list(in_list, cx);
                 if entered {
@@ -87,6 +137,7 @@ impl Shell {
                 .get_or_insert_with(|| cx.new(|_| StateMessage::new()))
                 .clone();
             notice.update(cx, |notice, cx| {
+                notice.set_typeface(typeface.clone(), cx);
                 notice.set_metrics(metrics, cx);
                 notice.set(Some(facts), cx);
             });

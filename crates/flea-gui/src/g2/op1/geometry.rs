@@ -57,7 +57,7 @@ impl Metrics {
     pub fn body_room(&self, window: f32) -> f32 {
         let chrome = 2. * card::BORDER
             + 2. * self.padding
-            + self.title * card::LINE
+            + (self.title * card::LINE).ceil()
             + 3. * self.gap
             + card::RULE
             + self.buttons_margin

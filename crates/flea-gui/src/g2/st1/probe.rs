@@ -1,0 +1,80 @@
+//! IPC geometry comes from the controls' laid-out boxes in the latest frame.
+use gpui::{canvas, div, prelude::*, px, Bounds, Div, Pixels};
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+
+#[derive(Clone, Default)]
+pub struct Probe(Rc<RefCell<BTreeMap<String, Bounds<Pixels>>>>);
+
+impl Probe {
+    pub fn clear(&self) {
+        self.0.borrow_mut().clear();
+    }
+
+    pub fn attach(&self, div: Div, id: impl Into<String>) -> Div {
+        let probe = self.clone();
+        let id = id.into();
+        div.child(
+            canvas(
+                move |bounds, _, _| {
+                    probe.0.borrow_mut().insert(id, bounds);
+                },
+                |_, _, _, _| {},
+            )
+            .absolute()
+            .left_0()
+            .top_0()
+            .size_full(),
+        )
+    }
+
+    pub fn first_child(
+        &self,
+        id: &'static str,
+    ) -> impl Fn(Vec<Bounds<Pixels>>, &mut gpui::Window, &mut gpui::App) {
+        let probe = self.clone();
+        move |bounds, _, _| {
+            if let Some(bounds) = bounds.first() {
+                probe.0.borrow_mut().insert(id.into(), *bounds);
+            }
+        }
+    }
+
+    pub fn rect(&self, id: &str) -> String {
+        self.0
+            .borrow()
+            .get(id)
+            .map(|b| {
+                crate::ipc::rows::rect_of(
+                    b.origin.x.into(),
+                    b.origin.y.into(),
+                    b.size.width.into(),
+                    b.size.height.into(),
+                )
+            })
+            .unwrap_or_default()
+    }
+
+    pub fn centre(&self, id: &str, clip: &str) -> String {
+        let boxes = self.0.borrow();
+        let Some(b) = boxes.get(id) else {
+            return String::new();
+        };
+        let Some(clip) = boxes.get(clip) else {
+            return String::new();
+        };
+        let b = b.intersect(clip);
+        if b.size.width <= px(0.) || b.size.height <= px(0.) {
+            return String::new();
+        }
+        crate::ipc::rows::centre_of(
+            b.origin.x.into(),
+            b.origin.y.into(),
+            b.size.width.into(),
+            b.size.height.into(),
+        )
+    }
+}
+
+pub(super) fn row_probe(view: &super::SettingsView, id: &str) -> Div {
+    view.probe.attach(div(), format!("row:{id}"))
+}

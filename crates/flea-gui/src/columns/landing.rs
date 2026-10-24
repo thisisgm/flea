@@ -2,7 +2,10 @@
 use super::carry::Plan;
 use super::peeks::{Lens, PeekRow, Peeks};
 use crate::pane::swap::{CAP_MS, MIN_SHOW_MS};
-use std::{collections::HashMap, rc::Rc};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    rc::Rc,
+};
 
 /// One incoming ancestor slot's stand-in: the rows the slot drew before, until its own reply or the cap.
 #[derive(Clone, Debug, PartialEq)]
@@ -137,6 +140,59 @@ impl Landing {
         self.version += 1;
     }
 
+    /// The Columns view shown with replies still out: each such column stands in empty until its reply or the cap.
+    pub fn enter(&mut self, here: &str, out: &[String], now: u64) {
+        if out.is_empty() {
+            return;
+        }
+        let stand = || Stand {
+            rows: Rc::from([]),
+            mode: None,
+            ready: false,
+            loading: false,
+            shown_at: None,
+        };
+        self.previous = None;
+        self.current = State {
+            target: here.to_owned(),
+            held: out.iter().map(|path| (path.clone(), stand())).collect(),
+            started_at: now,
+            ..State::default()
+        };
+        self.version += 1;
+    }
+
+    /// The held List remains interactive: replace its outstanding paths without restarting the entry cap.
+    pub fn retarget_entry(&mut self, here: &str, out: &[String]) {
+        if self.current.target != here {
+            return;
+        }
+        let held = &mut self.current.held;
+        let before = held.len();
+        held.retain(|path, _| out.contains(path));
+        let mut changed = held.len() != before;
+        for path in out {
+            if let Entry::Vacant(entry) = held.entry(path.clone()) {
+                entry.insert(Stand {
+                    rows: Rc::from([]),
+                    mode: None,
+                    ready: false,
+                    loading: false,
+                    shown_at: None,
+                });
+                changed = true;
+            }
+        }
+        if changed {
+            self.version += 1;
+        }
+    }
+
+    /// A stand-in is still owed, answered or past its cap.
+    pub fn standing(&self) -> bool {
+        !self.current.held.is_empty()
+    }
+
     /// True while a slot draws a stand-in, which the column takes no input on.
     pub fn waiting(&self, path: &str, here: &str) -> bool {
         self.which_for(path, here).is_some()
@@ -224,11 +280,19 @@ impl Landing {
         if !shown || !state.loading(path) {
             return;
         }
+        if state
+            .held
+            .get(path)
+            .is_some_and(|stand| stand.shown_at.is_some())
+        {
+            return;
+        }
         if let Some(stand) = state.held.get_mut(path) {
             stand.shown_at = Some(now);
         }
-        state.mark_since = now;
+        state.mark_since = state.mark_since.max(now);
         state.minimum = true;
+        self.version += 1;
     }
 
     fn states(&self) -> impl Iterator<Item = &State> {
@@ -279,6 +343,7 @@ impl Landing {
                 .filter(|(_, stand)| stand.ready)
                 .map(|(path, _)| path.clone())
                 .collect();
+            self.version += 1;
             for path in ready {
                 self.remove(&path, which);
             }

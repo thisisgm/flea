@@ -13,6 +13,7 @@ pub struct Prepared {
     pub label: String,
     pub size_text: String,
     pub date_text: String,
+    pub location: GlyphRun,
     pub name: GlyphRun,
     pub size: GlyphRun,
     pub date: GlyphRun,
@@ -33,6 +34,7 @@ impl Default for Prepared {
             label: String::new(),
             size_text: String::new(),
             date_text: String::new(),
+            location: GlyphRun::new(Arc::clone(&empty)),
             name: GlyphRun::new(Arc::clone(&empty)),
             size: GlyphRun::new(Arc::clone(&empty)),
             date: GlyphRun::new(Arc::clone(&empty)),
@@ -99,6 +101,11 @@ pub struct RowCache {
 }
 
 impl RowCache {
+    /// The facts retained for a prepared row, so observations never mix its frame with a newer reply.
+    pub(crate) fn facts(&self, index: usize) -> Option<&RowFacts> {
+        self.entries.get(&index).map(|entry| &entry.facts)
+    }
+
     /// Starts a frame: a new shaping clears the rows, and the bound follows the viewport.
     pub fn begin(&mut self, shaping: &Shaping, capacity: usize) {
         if self.shaping.as_ref() != Some(shaping) {

@@ -1,6 +1,7 @@
 """End-to-end IPC contract, including unchanged QML forwarding and fixed selection."""
 import os
 from pathlib import Path
+import re
 import socket
 import subprocess
 import sys
@@ -42,6 +43,33 @@ def value(pid, function, expected, *arguments, target="flea"):
     result = call(pid, function, *arguments, target=target)
     check((result.returncode, result.stdout, result.stderr) == (0, expected, b""),
           (function, result.returncode, result.stdout, result.stderr))
+
+
+def registry_inventory():
+    # Sample declaration: function!("flea", "show", "void", &[]).
+    declaration = re.compile(
+        r'function!\(\s*"([^"]+)",\s*"([^"]+)",\s*"([^"]+)",\s*&\[(.*?)\]\s*,?\s*\)',
+        re.DOTALL,
+    )
+    parameter = re.compile(r'\(\s*"([^"]+)",\s*"([^"]+)"\s*\)')
+    functions = []
+    for path in ("src/ipc/functions.rs", "src/ipc/registry.rs"):
+        source = (repo / path).read_text()
+        entries = list(declaration.finditer(source))
+        check(len(entries) == source.count("function!("), (path, "unparsed registry declaration"))
+        for entry in entries:
+            target, name, result, arguments = entry.groups()
+            check(target in ("flea", "fleapicker", "fleatab"), (path, target))
+            check(not parameter.sub("", arguments).strip(" \t\r\n,"),
+                  (path, name, "unparsed registry parameters"))
+            arguments = ", ".join(f"{name}: {kind}" for name, kind in parameter.findall(arguments))
+            functions.append((target, name, f"  function {name}({arguments}): {result}\n"))
+    check(len({(target, name) for target, name, _ in functions}) == len(functions),
+          "duplicate registry function")
+    return "".join(
+        f"target {target}\n" + "".join(signature for owner, _, signature in functions if owner == target)
+        for target in ("flea", "fleapicker", "fleatab")
+    ).encode()
 
 
 def helper_forwarding():
@@ -102,7 +130,8 @@ try:
     show = subprocess.run([str(binary), "ipc", "--pid", str(first.pid), "show"], env=environment, capture_output=True, timeout=6)
     check(show.returncode == 0 and b"target flea\n" in show.stdout and b"target fleapicker\n" in show.stdout
           and b"target fleatab\n  function taken(token: string): bool\n" in show.stdout, show)
-    check(sum(line.startswith(b"  function ") for line in show.stdout.splitlines()) == 335, "registry inventory")
+    expected_registry = registry_inventory()
+    check(show.stdout == expected_registry, "exact registry targets, signatures and declaration order")
     for name in (b"scene(", b"nativeGeometry(", b"pendingRequests(", b"previewReadiness(", b"sceneState(", b"presentedFrame("):
         check(b"function " + name in show.stdout, "native visual registry signature")
     idle = socket.socket(socket.AF_UNIX)

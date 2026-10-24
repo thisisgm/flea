@@ -95,8 +95,33 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.key(&event(">", Some(">"), true), window, cx);
+            assert_eq!(
+                shell
+                    .launch
+                    .settings
+                    .data
+                    .get("hidden")
+                    .and_then(flea::jsondoc::Json::as_bool),
+                Some(true)
+            );
             shell.key(&event("+", Some("+"), true), window, cx);
+            assert_eq!(
+                flea::ui_logic_st1::pages::at(
+                    &shell.launch.settings.data,
+                    &["display", "textSize", "mode"]
+                )
+                .and_then(flea::jsondoc::Json::as_f64),
+                Some(16.)
+            );
             shell.key(&event("_", None, true), window, cx);
+            assert_eq!(
+                flea::ui_logic_st1::pages::at(
+                    &shell.launch.settings.data,
+                    &["display", "textSize", "mode"]
+                )
+                .and_then(flea::jsondoc::Json::as_f64),
+                Some(14.)
+            );
         })
     });
     cx.simulate_modifiers_change(Modifiers::default());
@@ -112,14 +137,7 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
     cx.run_until_parked();
     assert_eq!(
         *observed.borrow(),
-        vec![
-            ("toggleHidden", false),
-            ("textSizeUp", false),
-            ("textSizeDown", false),
-            ("escape", false),
-            ("escape", true),
-            ("escape", false),
-        ]
+        vec![("escape", false), ("escape", true), ("escape", false),]
     );
 }
 
@@ -279,14 +297,21 @@ fn a_busy_pane_holds_its_cursor_against_down_and_shift_down(cx: &mut TestAppCont
 }
 
 #[gpui::test]
-fn an_idle_pane_moves_on_down_and_emits_shift_down(cx: &mut TestAppContext) {
+fn an_idle_pane_moves_and_extends_selection_on_shift_down(cx: &mut TestAppContext) {
     // The control for the busy cursor test: the same two keys act on an idle pane.
     let (cx, shell, observed, _subscription) = key_shell(cx, false);
     let start = cursor(cx, &shell);
     press(cx, &shell, "down", None, Modifiers::default());
     assert_eq!(cursor(cx, &shell), start + 1);
     press(cx, &shell, "down", None, shifted());
-    assert_eq!(*observed.borrow(), vec!["extendDown"]);
+    assert_eq!(cursor(cx, &shell), start + 2);
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(
+            shell.panes[0].as_ref().unwrap().selected,
+            [start + 1, start + 2]
+        );
+    });
+    assert!(observed.borrow().is_empty());
 }
 
 #[gpui::test]

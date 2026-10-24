@@ -10,6 +10,9 @@ import tempfile
 import time
 
 from flea_transport import MARKER, REPO, TransportError, Window, load
+from flea_native_inputs_controls import check_inputs, check_launch_inputs
+from flea_native_harness_controls import check_harness
+from flea_native_envelope_controls import check_envelope
 
 root = Path(tempfile.mkdtemp(prefix="controls.", dir=REPO / ".superpowers/g010t"))
 (root / MARKER).touch()
@@ -97,6 +100,10 @@ def start(**environment):
 
 
 try:
+    check_inputs(root)
+    check_launch_inputs(root, Window)
+    check_harness(root)
+    check_envelope(root)
     stub = root / "clients"
     stub.mkdir()
     for name in ("qs", "omarchy-drive"):

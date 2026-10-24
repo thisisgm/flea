@@ -2,7 +2,7 @@
 use super::model::{CopyFocus, Dialog, Operations};
 use flea::i18n::I18n;
 use flea::ui_logic_op1::{
-    collide::{self, Choice, Fat, Request},
+    collide::{self, Choice, Fat, Key, Request},
     confirm::{Answer, Confirm, Source},
     host::Step,
     trash::{self, Review, Scope},
@@ -10,11 +10,27 @@ use flea::ui_logic_op1::{
 };
 
 impl Operations {
+    /// Present another producer's review after ending or holding the previous card's session.
+    pub fn present_external_delete(&mut self, review: Review, scope: Scope, token: u64) {
+        self.clear_card();
+        self.external_delete = Some(token);
+        self.review_session += 1;
+        self.dialog = Some(Dialog::Delete {
+            session: self.review_session,
+            review,
+            scope,
+            focus: trash::PRIMARY,
+            busy: false,
+        });
+    }
+
     // The permanent card, for the menu's Delete permanently or the Trash view's own delete, from its prepare reply.
     pub fn confirm_delete(&mut self, review: Review, scope: Scope, source: Source, now: u64) {
         self.clear_card();
+        self.review_session += 1;
         self.confirm = Some(Confirm::new(source, scope, review.clone(), now));
         self.dialog = Some(Dialog::Delete {
+            session: self.review_session,
             review,
             scope,
             focus: trash::PRIMARY,
@@ -36,6 +52,9 @@ impl Operations {
 
     // A card another card replaces is answered as dismissed, so no session is left waiting on it.
     pub(super) fn clear_card(&mut self) {
+        if let Some(token) = self.external_delete.take() {
+            self.external_answers.push((token, None));
+        }
         let step = match self.dialog.take() {
             Some(Dialog::Collide { .. }) => self.collide.chosen(Choice::Cancel),
             Some(Dialog::Fat { .. }) => self.collide.decide_fat(Fat::Cancel),
@@ -69,6 +88,7 @@ impl Operations {
     fn hold_delete_card(&mut self, review: Review, scope: Scope) {
         if matches!(self.dialog, None | Some(Dialog::Delete { .. })) {
             self.dialog = Some(Dialog::Delete {
+                session: self.review_session,
                 review,
                 scope,
                 focus: trash::Button::Cancel,
@@ -82,6 +102,18 @@ impl Operations {
     // Delete sends the reviewed token once and hides the card; Cancel, the default, tells the session it was dismissed.
     pub fn press_delete(&mut self, button: trash::Button) {
         if !matches!(self.dialog, Some(Dialog::Delete { .. })) {
+            return;
+        }
+        if let Some(token) = self.external_delete {
+            if button == trash::Button::Delete
+                && !matches!(&self.dialog, Some(Dialog::Delete { review, busy: false, .. }) if trash::delete_enabled(review, self.emptying.running))
+            {
+                return;
+            }
+            self.external_delete = None;
+            self.external_answers
+                .push((token, (button == trash::Button::Delete).then_some(token)));
+            self.dialog = None;
             return;
         }
         if button == trash::Button::Cancel {
@@ -100,7 +132,24 @@ impl Operations {
     }
 
     pub fn copy_enabled(path: &str) -> bool {
-        path.starts_with('/')
+        !path.is_empty()
+    }
+
+    pub(super) fn walk_copy_focus(&mut self, key: Key) {
+        let Some(Dialog::CopyTo {
+            focus, busy, path, ..
+        }) = &mut self.dialog
+        else {
+            return;
+        };
+        let order: &[_] = if *busy {
+            &[CopyFocus::Cancel]
+        } else if Self::copy_enabled(path) {
+            &[CopyFocus::Field, CopyFocus::Cancel, CopyFocus::Confirm]
+        } else {
+            &[CopyFocus::Field, CopyFocus::Cancel]
+        };
+        *focus = collide::walk(order, *focus, key, CopyFocus::Field);
     }
 
     pub(super) fn close_copy(&mut self) {
@@ -124,12 +173,13 @@ impl Operations {
         if path.is_empty() {
             return;
         }
-        if !Self::copy_enabled(&path) {
+        if !path.starts_with('/') {
             self.say(catalog.tr("jobs.copyto.relative"), true);
             return;
         }
-        if let Some(Dialog::CopyTo { busy, .. }) = &mut self.dialog {
+        if let Some(Dialog::CopyTo { busy, focus, .. }) = &mut self.dialog {
             *busy = true;
+            *focus = CopyFocus::Cancel;
         }
         let action = if moving { "moveTo" } else { "copyTo" };
         self.outbox.push(format!("{{\"c\":\"menuaction\",\"op\":\"validate\",\"id\":{menu},\"action\":\"{action}\",\"dest\":{}}}", collide::text(&path)));
@@ -162,6 +212,7 @@ impl Operations {
             // A review that lands under another card is never drawn later out of context: it ends here.
             Answer::Shown if matches!(self.dialog, None | Some(Dialog::Delete { .. })) => {
                 self.dialog = Some(Dialog::Delete {
+                    session: self.review_session,
                     review,
                     scope,
                     focus: trash::PRIMARY,

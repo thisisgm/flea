@@ -1,0 +1,89 @@
+//! The toolbar's drawn marks: the SVG glyph, the focused ink and the press tween.
+use super::chrome::Frame;
+use gpui::{canvas, div, prelude::*, px, Bounds, Div};
+use std::{cell::RefCell, rc::Rc, time::Instant};
+
+/// ui/js/Buttons.js:21 and :22: a pressed chrome mark scales to 0.96 over 150 ms, OutCubic (ui/ChromeButton.qml:50-59).
+const PRESS_SCALE: f32 = 0.96;
+const PRESS_MS: f32 = 150.;
+
+/// ui/ChromeButton.qml:85-87: a focused, live mark lifts to the foreground, the same ink as its ring.
+pub fn mark_ink(
+    enabled: bool,
+    focused: bool,
+    resting: gpui::Hsla,
+    foreground: gpui::Hsla,
+) -> gpui::Hsla {
+    if enabled && focused {
+        foreground
+    } else {
+        resting
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Press {
+    pub down: bool,
+    pub since: Instant,
+    pub from: f32,
+}
+
+/// The mark's scale and whether its bounded, elapsed-time tween still needs frames.
+pub fn press_scale(press: Option<Press>, now: Instant, reduced: bool) -> (f32, bool) {
+    if reduced {
+        return (1., false);
+    }
+    let Some(Press { down, since, from }) = press else {
+        return (1., false);
+    };
+    let target = if down { PRESS_SCALE } else { 1. };
+    let t = (now.saturating_duration_since(since).as_secs_f32() * 1000. / PRESS_MS).min(1.);
+    let eased = 1. - (1. - t).powi(3);
+    (from + (target - from) * eased, from != target && t < 1.)
+}
+
+pub fn divider(ink: gpui::Hsla) -> Div {
+    div().w(px(1.)).h(px(15.)).flex_none().bg(ink.opacity(0.12))
+}
+
+pub fn mark(name: &str, ink: gpui::Hsla, frame: Rc<RefCell<Frame>>, index: usize) -> Div {
+    let own = match name {
+        "arrow-left" => Some(("flea-chrome:arrow-left".into(), br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M19 12H5 M12 19l-7-7 7-7"/></svg>"#.as_slice())),
+        "filter" => Some(("flea-chrome:filter".into(), br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 4h18l-7 8v7l-4 2v-9z"/></svg>"#.as_slice())),
+        _ => crate::g2::st1::glyphs::svg(name),
+    };
+    let slot = div().size(px(16.)).flex_none();
+    let Some((key, data)) = own else { return slot };
+    slot.child(
+        canvas(
+            |_, _, _| {},
+            move |bounds, _, window, cx| {
+                let (scale, moving) = press_scale(
+                    frame.borrow().controls[index].press,
+                    cx.background_executor().now(),
+                    cx.reduce_motion(),
+                );
+                if moving {
+                    window.request_animation_frame();
+                }
+                let size = gpui::size(bounds.size.width * scale, bounds.size.height * scale);
+                let bounds = Bounds::new(
+                    gpui::point(
+                        bounds.origin.x + (bounds.size.width - size.width) / 2.,
+                        bounds.origin.y + (bounds.size.height - size.height) / 2.,
+                    ),
+                    size,
+                );
+                let _ = window.paint_svg(
+                    bounds,
+                    key,
+                    Some(data),
+                    gpui::TransformationMatrix::unit(),
+                    ink,
+                    cx,
+                );
+            },
+        )
+        .size_full(),
+    )
+}

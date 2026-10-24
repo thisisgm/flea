@@ -21,6 +21,7 @@ pub struct At {
 
 /// Everything outside the Trash pane it talks to; each method names the unit that owns the real contract.
 pub trait Outside {
+    fn focus(&mut self) {}
     /// G1 backend session: one raw trashbrowse, trashthumb or trashthumbcancel line.
     fn send(&mut self, line: String);
     /// op1 ConfirmedOperation: open the one delete card, or close it with None; a close from here is not an answer, so op1 never echoes it as Cancel.
@@ -29,6 +30,9 @@ pub trait Outside {
     fn menu(&mut self, items: Vec<Item>, at: At);
     /// G1.13 status slot: an arm prompt, a refusal or a finished operation.
     fn status(&mut self, text: String, error: bool);
+    fn arm(&mut self, text: String) {
+        self.status(text, false);
+    }
     fn result(&mut self, headline: String, detail: String, error: bool);
     /// G1.13 status slot: Escape is offered here first; true when it dismissed a showing message, so Trash stays open.
     fn escape_taken(&mut self) -> bool;

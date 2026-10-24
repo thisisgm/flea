@@ -45,6 +45,7 @@ pub struct Panel {
     pub rows: Vec<Row>,
     pub results: Vec<Group>,
     pub save_error: Option<Text>,
+    pub make_default: Vec<Row>,
     pub requests: Vec<Request>,
     pub catalog: Arc<I18n>,
     pub facts: Facts,
@@ -71,6 +72,7 @@ impl Panel {
             rows: Vec::new(),
             results: Vec::new(),
             save_error: None,
+            make_default: Vec::new(),
             requests: Vec::new(),
             catalog,
             facts,
@@ -84,6 +86,11 @@ impl Panel {
         panel.rebuild();
         panel.cursor = first_row(&panel.rows);
         panel
+    }
+
+    pub fn replace_store(&mut self, store: Box<dyn Store>) {
+        self.store = store;
+        self.rebuild();
     }
 
     pub fn document(&self) -> &Json {
@@ -113,7 +120,7 @@ impl Panel {
                 &self.facts.about,
                 about::auto_check(checks),
                 &self.facts.language,
-                Vec::new(),
+                self.make_default.clone(),
             )
         })
     }
@@ -175,7 +182,7 @@ impl Panel {
             .rows
             .iter()
             .map(|row| match row.kind {
-                Kind::Hint => {
+                Kind::Hint if !row.elide_right => {
                     let (size, inset) = if row.footer {
                         (12., 2. * geometry::PAD_X)
                     } else {
@@ -202,7 +209,7 @@ impl Panel {
         }
     }
 
-    fn reveal(&mut self) {
+    pub(crate) fn reveal(&mut self) {
         self.scroll = geometry::reveal(
             &self.rows,
             &self.heights(),

@@ -188,7 +188,7 @@ pub(crate) fn lock_exclusive(file: &fs::File) -> std::io::Result<()> {
 }
 
 // File::try_lock needs Rust 1.89 over the 1.77 floor; true is locked, false is held elsewhere.
-pub(crate) fn try_lock_exclusive(file: &fs::File) -> std::io::Result<bool> {
+pub fn try_lock_exclusive(file: &fs::File) -> std::io::Result<bool> {
     use std::os::fd::AsRawFd;
     if unsafe { flock(file.as_raw_fd(), LOCK_EXCLUSIVE | LOCK_NONBLOCKING) } == 0 {
         return Ok(true);

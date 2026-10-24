@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Crawl the GPUI loading mark headless, count its frames, writes, requests and shell renders, and match its quads to the board.
+# Exercise the Omi Rust player, snapped quads, shared frames and pane-render counters headless.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p "$PWD/.superpowers/gpui-spinner"
@@ -23,9 +23,9 @@ grep -E '^(SPINNER_BOARD|SPINNER_ALLOCS|test |test result)' "$log" || true
 # Every check is one test; a filter that matched nothing would pass with zero, so the count is required.
 # Reads cargo's summary line, for example "test result: ok. 11 passed; 0 failed; 2 ignored; 0 measured; 33 filtered out; finished in 0.05s".
 checks=$(sed -n 's/^test result: ok\. \([0-9]*\) passed; 0 failed.*/\1/p' "$log" | head -1)
-[ "${checks:-0}" -ge 11 ] || { printf 'gpui-spinner: FAIL only %s checks ran\n' "${checks:-0}"; exit 1; }
+[ "${checks:-0}" -ge 20 ] || { printf 'gpui-spinner: FAIL only %s checks ran\n' "${checks:-0}"; exit 1; }
 shots=$(find "$unit_root/specimens" -name 'spinner-*.pgm' | wc -l)
-[ "$shots" -eq 9 ] || { printf 'gpui-spinner: FAIL %s board specimens, want 9\n' "$shots"; exit 1; }
+[ "$shots" -eq 12 ] || { printf 'gpui-spinner: FAIL %s Omi specimens, want 12\n' "$shots"; exit 1; }
 printf 'gpui-spinner: specimens in %s\n' "$unit_root/specimens"
 clippy_root=$(mktemp -d "$PWD/.superpowers/gpui-spinner/clippy.XXXXXXXX")
 : > "$clippy_root/.flea-test-sandbox"

@@ -1,9 +1,13 @@
 use super::hero::{EmptyHero, BOARDS, LIST_FIRST};
 use super::mark::HERO;
 use super::state_tests::centred;
+use crate::list::Typeface;
 use flea::i18n::{I18n, Paths};
 use flea::ui_logic_fb1::empty::{BEAT_LIMIT, ROTATE_MS};
-use gpui::{px, size, AppContext, Bounds, Pixels, TestAppContext, VisualTestContext, WindowHandle};
+use gpui::{
+    div, font, prelude::*, px, size, AppContext, Bounds, Context, Entity, FontWeight, Pixels,
+    Render, TestAppContext, TextRun, VisualTestContext, Window, WindowHandle,
+};
 use std::{path::Path, time::Duration};
 
 pub(super) const FRAME: u64 = 16;
@@ -224,4 +228,135 @@ fn the_drawn_hero_has_the_boards_mark_gap_and_caption_line(cx: &mut TestAppConte
         mark.origin.y + (caption.bottom() - mark.origin.y) / 2.,
         px(619. / 2.)
     );
+}
+
+/// The real hero under a deliberately different inherited font and size; generic watch still observes that parent.
+struct CaptionHost {
+    hero: Entity<EmptyHero>,
+    parent: super::observe::Paint,
+}
+
+impl Render for CaptionHost {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.parent.watch(
+            div()
+                .relative()
+                .size_full()
+                .font_family("DejaVu Serif")
+                .font_weight(FontWeight::NORMAL)
+                .text_size(px(31.))
+                .child(self.hero.clone()),
+            "caption",
+            self.hero.read(cx).phrases()[0].clone(),
+        )
+    }
+}
+
+#[gpui::test]
+fn caption_observer_uses_the_painted_font_size_and_tracking(cx: &mut TestAppContext) {
+    let root = super::test_root::root();
+    std::fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
+    std::fs::write(
+        root.join("omarchy/default/i18n/locales.json"),
+        r#"{"en":{},"ja":{"name":"Japanese"}}"#,
+    )
+    .unwrap();
+    std::fs::write(root.join("language"), "ja").unwrap();
+    let caseless = I18n::load(Paths {
+        omarchy: root.join("omarchy"),
+        language_file: root.join("language"),
+        catalogs: vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+    });
+    assert_eq!(caseless.language(), "ja");
+    cx.update(|cx| cx.set_reduce_motion(true));
+    let handle = cx.add_window(|window, cx| {
+        window.set_rem_size(px(14.));
+        let hero = cx.new(|cx| EmptyHero::new(&english(), cx));
+        hero.update(cx, |hero, cx| hero.show(false, cx));
+        CaptionHost {
+            hero,
+            parent: Default::default(),
+        }
+    });
+    cx.simulate_window_resize(handle.into(), size(px(908.), px(619.)));
+    let changed = Typeface {
+        font: font("DejaVu Sans"),
+        ..Typeface::omarchy_default()
+    };
+    for (catalog, face, base, caption_size, tracking, phrase) in [
+        (
+            english(),
+            Typeface::omarchy_default(),
+            14.,
+            12.,
+            1.2,
+            "NOTHING HERE YET",
+        ),
+        (
+            english(),
+            changed.clone(),
+            16.,
+            13.,
+            1.2,
+            "NOTHING HERE YET",
+        ),
+        (caseless, changed, 16., 13., 0., "Nothing here yet"),
+    ] {
+        handle
+            .update(cx, |host, window, cx| {
+                cx.set_global(face.clone());
+                window.set_rem_size(px(base));
+                host.hero.update(cx, |hero, cx| {
+                    hero.translated(&catalog);
+                    cx.notify();
+                });
+                cx.notify();
+            })
+            .unwrap();
+        frame(cx, handle);
+        frame(cx, handle);
+        let (seen, parent, expected, scale) = handle
+            .update(cx, |host, window, cx| {
+                let mut font = face.font.clone();
+                font.weight = FontWeight::BOLD;
+                let run = TextRun {
+                    len: phrase.len(),
+                    font,
+                    color: crate::palette::Theme::default().foreground,
+                    background_color: None,
+                    underline: None,
+                    strikethrough: None,
+                };
+                let line =
+                    window
+                        .text_system()
+                        .shape_line(phrase.into(), px(caption_size), &[run], None);
+                let glyphs: usize = line.runs.iter().map(|run| run.glyphs.len()).sum();
+                (
+                    host.hero.read(cx).painted.get("caption").unwrap(),
+                    host.parent.get("caption").unwrap(),
+                    f32::from(line.width) + tracking * glyphs as f32,
+                    window.scale_factor(),
+                )
+            })
+            .unwrap();
+        assert_eq!(
+            parent.font_size, 31.,
+            "the mismatched parent style reached paint"
+        );
+        assert!((parent.implicit_width - expected).abs() > 1.);
+        assert_eq!(
+            seen.font_size, caption_size,
+            "caption font_size at base {base}"
+        );
+        assert_eq!(seen.text.as_ref(), phrase);
+        assert!(
+            (seen.implicit_width - expected).abs() < 0.001,
+            "caption implicit_width {} differs from explicit shape {expected}",
+            seen.implicit_width
+        );
+        let drawn = bounds(cx, handle, &["fb1-hero-caption"])[0];
+        assert_eq!(seen.bounds, drawn);
+        assert!((f32::from(drawn.size.width) - expected).abs() <= 0.5 / scale);
+    }
 }

@@ -135,6 +135,15 @@ impl Search {
         self.apply(effects, host);
     }
 
+    /// Back leaves the search immediately; Escape retains its separate stop-then-return behavior.
+    pub fn back(&mut self, host: &mut dyn Host) {
+        let path = self.session.from.clone();
+        let select = self.session.pending_select.clone();
+        let mut effects = self.session.leave_walk();
+        effects.push(Effect::Relist { path, select });
+        self.apply(effects, host);
+    }
+
     /// Any navigation the pane makes drops the session first; results keep their strip until the next listing lands.
     pub fn leave(&mut self, host: &mut dyn Host) {
         let effects = self.session.leave_walk();

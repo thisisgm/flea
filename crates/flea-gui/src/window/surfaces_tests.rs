@@ -18,8 +18,18 @@ fn open(cx: &mut TestAppContext, backend: Backend) -> WindowHandle<Shell> {
     cx.add_window(|_, cx| shell_with(backend, cx))
 }
 
-// The window through its real startup constructor, as `window::open` builds it.
+// The real startup constructor with controlled external services.
 fn open_startup(cx: &mut TestAppContext) -> WindowHandle<Shell> {
+    cx.update(|cx| {
+        cx.set_global(crate::state::constructor_fixture::Services {
+            backend: |_, cx| {
+                let (backend, requests) = Backend::test_channel();
+                cx.on_release(move |_, _| drop(requests)).detach();
+                Ok(backend)
+            },
+            monitor: None,
+        })
+    });
     cx.add_window(|window, cx| {
         let (_events_tx, events) = async_channel::bounded(1);
         let locale = Snapshot {
@@ -116,6 +126,15 @@ fn catalog_sentence(cx: &mut TestAppContext, handle: WindowHandle<Shell>, key: &
 #[gpui::test]
 fn a_window_that_shows_no_state_builds_no_state_surface(cx: &mut TestAppContext) {
     let handle = open_startup(cx);
+    handle
+        .update(cx, |shell, _, cx| {
+            let host = shell.panes[0].as_ref().unwrap();
+            assert!(host.backend.is_some() && !host.stopped);
+            assert_eq!(host.pane.state.kind, Kind::Loading);
+            let trash = shell.trash.as_ref().unwrap();
+            assert!(trash.pane.read(cx).monitor_start.is_none());
+        })
+        .unwrap();
     frame(cx, handle);
     assert_eq!(built(cx, handle), 0, "startup builds no surface");
     set_kind(cx, handle, Kind::Loading);

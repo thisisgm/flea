@@ -1,0 +1,235 @@
+//! Native input policy shared by the mounted view and the window's read-only observers.
+mod actions;
+mod band;
+mod element;
+pub mod focus;
+mod pointer;
+pub mod scroll;
+pub mod selection;
+mod wheel;
+pub use band::{update_band, EDGE_RATE};
+
+pub use element::{surface, surface_with, Painted};
+use gpui::{Bounds, Pixels, Point};
+use selection::Selection;
+
+/// Filter.js:241-251: the row a wheel pull left, valid while its cursor and listing are unchanged.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Pull {
+    pub from: usize,
+    pub to: usize,
+    pub listing: usize,
+}
+
+pub type HitBoxes = std::rc::Rc<[(usize, Bounds<Pixels>)]>;
+
+#[derive(Default)]
+pub struct PaneInput {
+    pub selection: Selection,
+    pub shown: Option<std::rc::Rc<[usize]>>,
+    pub hit_boxes: Option<HitBoxes>,
+    pub hovered: Option<usize>,
+    pub pointer_origin: bool,
+    pub pulled: Option<Pull>,
+    prepared: Option<Frame>,
+    pub frame: Option<Frame>,
+    pub drawn: Option<element::Painted>,
+    pub band: Option<Band>,
+    pub grab: Option<f32>,
+    pub(crate) press: Option<pointer::Press>,
+    pub(crate) tap: Option<pointer::Tap>,
+    pub last_pointer: Option<Point<Pixels>>,
+    pub in_lane: bool,
+    pub moved_at: Option<std::time::Instant>,
+    pub timer: Option<gpui::Task<()>>,
+    pub stepped_at: Option<std::time::Instant>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Frame {
+    pub bounds: Bounds<Pixels>,
+    pub row: f32,
+    pub lane: f32,
+    pub content: f32,
+    pub scroll: f32,
+    pub listing: usize,
+    pub total: usize,
+    pub columns: usize,
+    pub cell_width: f32,
+}
+
+impl Frame {
+    /// The list's own frame: one row per cell, the header and rows below the bounds' top.
+    pub fn list(
+        bounds: Bounds<Pixels>,
+        metrics: &crate::list::Metrics,
+        pane: &crate::list::pane::Pane,
+    ) -> Self {
+        Self {
+            bounds,
+            row: metrics.row,
+            lane: metrics.lane,
+            content: pane.held.total as f32 * metrics.row + metrics.header,
+            scroll: pane.scroll_y,
+            listing: pane.held.listing,
+            total: pane.held.total,
+            columns: 1,
+            cell_width: f32::from(bounds.size.width) - metrics.lane,
+        }
+    }
+    pub fn viewport(self) -> f32 {
+        self.bounds.size.height.into()
+    }
+    pub fn max_scroll(self) -> f32 {
+        (self.content - self.viewport()).max(0.)
+    }
+    pub fn local(self, point: Point<Pixels>) -> (f32, f32) {
+        (
+            (point.x - self.bounds.left()).into(),
+            (point.y - self.bounds.top()).into(),
+        )
+    }
+    pub fn in_lane(self, point: Point<Pixels>) -> bool {
+        self.bounds.contains(&point) && point.x >= self.bounds.right() - gpui::px(self.lane)
+    }
+    pub fn row_at(self, point: Point<Pixels>) -> Option<usize> {
+        if !self.bounds.contains(&point) || self.in_lane(point) || self.row <= 0. {
+            return None;
+        }
+        let (_, y) = self.local(point);
+        let (x, _) = self.local(point);
+        let column = (x / self.cell_width.max(1.)).floor() as usize;
+        if column >= self.columns {
+            return None;
+        }
+        let row = ((y + self.scroll) / self.row).floor() as usize * self.columns + column;
+        (row < self.total).then_some(row)
+    }
+}
+
+pub struct Band {
+    pub start: Point<Pixels>,
+    pub anchor: (f32, f32),
+    pub end: (f32, f32),
+    pub before: Vec<usize>,
+    pub cursor: usize,
+    pub active: bool,
+    pub additive: bool,
+    pub direction: f32,
+    pub last: Option<usize>,
+    pub cells: Option<(usize, usize, usize, usize)>,
+    pub pointer: Point<Pixels>,
+}
+
+impl PaneInput {
+    /// Call before preparing a view's row states so rollback and the new geometry present together.
+    pub fn prepare(&mut self, frame: Frame, selected: &mut Vec<usize>, cursor: &mut usize) {
+        if self.prepared.is_some_and(|old| {
+            old.bounds != frame.bounds
+                || old.listing != frame.listing
+                || old.total != frame.total
+                || old.row != frame.row
+                || old.columns != frame.columns
+                || old.cell_width != frame.cell_width
+                || old.lane != frame.lane
+                || old.content != frame.content
+        }) {
+            self.cancel(selected, cursor);
+            self.press = None;
+            self.hovered = None;
+            self.pointer_origin = false;
+            self.moved_at = None;
+        }
+        self.prepared = Some(frame);
+    }
+    /// Filter.js:254-259: the pulled-from row, only while no move, mark or new listing came since.
+    pub fn take_pull(&mut self, cursor: usize, listing: usize) -> Option<usize> {
+        let pull = self.pulled.take()?;
+        (pull.to == cursor && pull.listing == listing).then_some(pull.from)
+    }
+    /// List.qml:213-231 and Filter.js:241-251: after a scroll outside a band the cursor stays in the viewport rows.
+    pub fn scrolled(&mut self, scroll: f32, cursor: &mut usize) {
+        let Some(mut frame) = self.frame.filter(|frame| frame.total > 0) else {
+            return;
+        };
+        frame.scroll = scroll;
+        let columns = frame.columns.max(1);
+        let first = (scroll / frame.row).floor() as usize * columns;
+        let visible = ((frame.viewport() / frame.row).ceil() as usize).max(1);
+        let last = ((first / columns + visible) * columns - 1).min(frame.total - 1);
+        let first = first.min(last);
+        let was = self.view_index(*cursor);
+        let to = was.clamp(first, last);
+        if to != was {
+            let from = self.take_pull(*cursor, frame.listing).unwrap_or(*cursor);
+            *cursor = self.index(to);
+            self.pulled = Some(Pull {
+                from,
+                to: *cursor,
+                listing: frame.listing,
+            });
+        }
+    }
+    pub fn index(&self, view: usize) -> usize {
+        self.shown
+            .as_ref()
+            .and_then(|shown| shown.get(view))
+            .copied()
+            .unwrap_or(view)
+    }
+    pub fn view_index(&self, row: usize) -> usize {
+        self.shown.as_ref().map_or(row, |shown| {
+            shown.binary_search(&row).unwrap_or_else(|at| at)
+        })
+    }
+    pub fn hit(&self, point: Point<Pixels>) -> Option<usize> {
+        let frame = self.frame?;
+        if !frame.bounds.contains(&point) || frame.in_lane(point) {
+            return None;
+        }
+        if let Some(boxes) = &self.hit_boxes {
+            return boxes
+                .iter()
+                .find(|(_, rect)| rect.contains(&point))
+                .map(|(row, _)| *row);
+        }
+        frame.row_at(point).map(|row| self.index(row))
+    }
+    pub fn keyboard(&mut self) {
+        self.pointer_origin = false;
+        self.hovered = None;
+    }
+    pub fn moved(&mut self, now: std::time::Instant) {
+        self.moved_at = Some(now);
+    }
+    pub fn shown(&self, now: std::time::Instant) -> bool {
+        self.frame.is_some_and(|frame| frame.max_scroll() > 0.5)
+            && (self.in_lane
+                || self.grab.is_some()
+                || self
+                    .moved_at
+                    .is_some_and(|at| now.saturating_duration_since(at).as_millis() < 1000))
+    }
+    pub fn opacity(&self, now: std::time::Instant, reduced: bool) -> f32 {
+        if self.shown(now) {
+            return 1.;
+        }
+        if reduced {
+            return 0.;
+        }
+        self.moved_at.map_or(0., |at| {
+            let elapsed = now.saturating_duration_since(at).as_millis() as f32;
+            ((1300. - elapsed) / 300.).clamp(0., 1.)
+        })
+    }
+    pub fn cancel(&mut self, selected: &mut Vec<usize>, cursor: &mut usize) {
+        if let Some(band) = self.band.take().filter(|band| band.active) {
+            *selected = band.before;
+            *cursor = band.cursor;
+            self.selection.changed(selected);
+        }
+        self.grab = None;
+        self.timer = None;
+        self.stepped_at = None;
+    }
+}

@@ -6,7 +6,7 @@ use super::{
     ListState, ListView, Metrics, Palette, HAIRLINE, NORMAL,
 };
 use crate::{
-    navigation::{folder_state::Order, sort},
+    navigation::folder_state::Order,
     palette::Theme,
     row::{format, is_symlink},
 };
@@ -134,8 +134,8 @@ pub fn cell_text(column: Column, held: &Held, index: usize, view: &ListView) -> 
             format::size_text(facts, walked, &view.words)
         }
         Column::Date => format::date_text(facts.mtime, &view.words),
-        // The rows reply carries no kind names on this protocol yet, so a fit has nothing to measure and stores nothing.
-        Column::Kind => return None,
+        // The rows reply carries no kind names, so the held row's painted Kind cell is empty.
+        Column::Kind => String::new(),
     })
 }
 
@@ -163,10 +163,15 @@ struct TitleKey {
     scale: f32,
 }
 
+struct Title {
+    run: GlyphRun,
+    text: String,
+}
+
 struct Titles {
     key: TitleKey,
-    name: GlyphRun,
-    columns: [GlyphRun; 4],
+    name: Title,
+    columns: [Title; 4],
 }
 
 /// What the last header frame drew, read by IPC and tests.
@@ -183,9 +188,12 @@ pub struct HeaderDrawn {
 #[derive(Default)]
 pub struct HeaderState {
     titles: Option<Titles>,
+    pub painted_titles: String,
     pub drag: Drag,
     /// The zone the pointer is over, whose accent line shows at rest.
     pub hot: Option<Column>,
+    /// A title pressed and not yet released: its sort key and the pointer's window position, a tap if it stays put.
+    pub press: Option<(&'static str, f32, f32)>,
     pub drawn: HeaderDrawn,
 }
 
@@ -266,28 +274,17 @@ fn sort_key(column: Option<Column>) -> Option<&'static str> {
     }
 }
 
-fn label(view: &ListView, column: Option<Column>) -> &str {
-    let words = &view.words;
-    match column {
-        None => &words.name,
-        Some(Column::Mode) => &words.mode,
-        Some(Column::Size) => &words.size,
-        Some(Column::Date) => &words.modified,
-        Some(Column::Kind) => &words.kind,
-    }
-}
+#[path = "header_words.rs"]
+mod words;
+pub use words::titles;
 
-/// Header.titles(): every title's plain word, whatever is drawn, as the header case reads them.
-pub fn titles(view: &ListView) -> String {
-    [
-        None,
-        Some(Column::Mode),
-        Some(Column::Size),
-        Some(Column::Date),
-        Some(Column::Kind),
-    ]
-    .map(|column| label(view, column))
-    .join("|")
+#[path = "header_probe.rs"]
+mod probe;
+pub(crate) use probe::element as probe_element;
+
+/// The header slot's own height source (window/composition.rs), so the element never asks for more than the slot holds.
+pub(crate) fn element_height(face: &super::Typeface) -> f32 {
+    Metrics::for_typeface(face).header
 }
 
 pub struct HeaderElement {
@@ -334,7 +331,7 @@ impl Element for HeaderElement {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, ()) {
-        let height = Metrics::at(self.state.borrow().typeface.body).header;
+        let height = element_height(&self.state.borrow().typeface);
         let style = Style {
             size: size(relative(1.).into(), px(height).into()),
             flex_shrink: 0.,
@@ -381,18 +378,18 @@ impl Element for HeaderElement {
         {
             let text = window.text_system();
             let shape = |column: Option<Column>| {
-                let word = label(view, column);
-                let title = match sort_key(column) {
-                    Some(sorted) if sorted == view.order.key => sort::title(word, view.order.desc),
-                    _ => word.to_owned(),
-                };
-                GlyphRun::new(text.layout_line(
-                    &title,
-                    key.caption,
-                    &[title_run(title.len(), &key.font)],
-                    None,
-                ))
+                let title = words::painted(view, column);
+                Title {
+                    run: GlyphRun::new(text.layout_line(
+                        &title,
+                        key.caption,
+                        &[title_run(title.len(), &key.font)],
+                        None,
+                    )),
+                    text: title,
+                }
             };
+            header.painted_titles = titles(view);
             header.titles = Some(Titles {
                 name: shape(None),
                 columns: Column::ALL.map(|column| shape(Some(column))),
@@ -450,18 +447,12 @@ impl Element for HeaderElement {
         let text_top = top + px(metrics.header_top);
         let text_height = metrics.header - metrics.header_top;
         window.paint_layer(bounds, |window| {
-            let cells = [
-                None,
-                Some(Column::Mode),
-                Some(Column::Size),
-                Some(Column::Date),
-                Some(Column::Kind),
-            ];
-            for column in cells {
+            for column in words::CELLS {
                 let Some(cell) = HeaderState::title_cell(&layout, &metrics, column) else {
                     continue;
                 };
-                let run = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);
+                let title = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);
+                let run = &title.run;
                 let x = match column {
                     Some(Column::Size | Column::Date) => left + px(cell.right()) - run.line().width,
                     _ => left + px(cell.x),

@@ -89,13 +89,15 @@ impl Spec {
             .get("cursor")
             .and_then(index)
             .ok_or("visual.settings")?;
-        let selection = scene
+        let mut selection = scene
             .get("selection")
             .and_then(Json::as_array)
             .ok_or("visual.settings")?
             .iter()
             .map(|value| index(value).ok_or("visual.settings"))
             .collect::<Result<Vec<_>, _>>()?;
+        selection.sort_unstable();
+        selection.dedup();
         let text_size = scene
             .get("text_size")
             .and_then(index)

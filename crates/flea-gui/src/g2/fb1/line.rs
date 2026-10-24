@@ -53,6 +53,7 @@ pub struct MessageLine {
     timer: Option<(u64, Task<()>)>,
     undo: Option<Undo>,
     pub counters: Rc<Counters>,
+    pub painted: super::observe::Paint,
 }
 
 impl EventEmitter<ArmLost> for MessageLine {}
@@ -69,6 +70,7 @@ impl MessageLine {
             timer: None,
             undo: None,
             counters: Rc::default(),
+            painted: Default::default(),
         }
     }
 
@@ -85,10 +87,10 @@ impl MessageLine {
     }
 
     /// The head error's detail for the status composition to draw under the strip; None when there is none.
-    pub fn detail(&self) -> Option<Detail> {
+    pub fn detail(&self, window: &Window, cx: &App) -> Option<Detail> {
         (!self.drawn.detail.is_empty()).then(|| Detail {
             text: self.drawn.detail.clone(),
-            typeface: self.typeface.clone(),
+            typeface: Typeface::for_window(window, cx),
         })
     }
 
@@ -165,6 +167,7 @@ impl MessageLine {
 
 impl Render for MessageLine {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.typeface = Typeface::for_window(window, cx);
         bump(&self.counters.renders);
         let theme = cx
             .try_global::<crate::palette::Theme>()
@@ -172,15 +175,23 @@ impl Render for MessageLine {
             .unwrap_or_default();
         let ink = Ink::interim(&Palette::inherited(&window.text_style(), theme));
         let drawn = &self.drawn;
-        let text = |value: SharedString| {
-            div()
-                .font_family(self.typeface.font.family.clone())
-                .text_size(self.typeface.caption)
-                .whitespace_nowrap()
-                .child(value)
+        self.painted.clear();
+        let text = |name, value: SharedString, color| {
+            self.painted.watch(
+                div()
+                    .relative()
+                    .font_family(self.typeface.font.family.clone())
+                    .text_size(self.typeface.caption)
+                    .text_color(color)
+                    .whitespace_nowrap()
+                    .child(value.clone()),
+                name,
+                value,
+            )
         };
         let undo = self.undo.clone();
         div()
+            .size_full()
             .flex()
             .flex_row()
             .items_center()
@@ -189,35 +200,42 @@ impl Render for MessageLine {
             .overflow_hidden()
             .when(!drawn.primary.is_empty(), |row| {
                 row.child(
-                    text(drawn.primary.clone())
-                        .flex_shrink(1.)
-                        .min_w_0()
-                        .overflow_hidden()
-                        .text_ellipsis_middle()
-                        .text_color(if drawn.error {
+                    text(
+                        "primary",
+                        drawn.primary.clone(),
+                        if drawn.error {
                             ink.error
                         } else {
                             ink.foreground
-                        }),
+                        },
+                    )
+                    .flex_shrink(1.)
+                    .min_w_0()
+                    .overflow_hidden()
+                    .text_ellipsis_middle()
+                    .text_color(if drawn.error {
+                        ink.error
+                    } else {
+                        ink.foreground
+                    }),
                 )
             })
             .when(!drawn.hint.is_empty(), |row| {
-                row.child(text(drawn.hint.clone()).flex_none().text_color(ink.muted))
+                row.child(text("hint", drawn.hint.clone(), ink.muted).flex_none())
             })
             .when(!drawn.extra.is_empty(), |row| {
                 row.child(
-                    text(drawn.extra.clone())
+                    text("extra", drawn.extra.clone(), ink.muted)
                         .flex_shrink(1.)
                         .min_w_0()
                         .overflow_hidden()
-                        .text_ellipsis()
-                        .text_color(ink.muted),
+                        .text_ellipsis(),
                 )
             })
             .when(!drawn.undo.is_empty(), |row| {
-                row.child(text(SEP.into()).flex_none().text_color(ink.muted))
+                row.child(text("undo-dot", SEP.into(), ink.muted).flex_none())
                     .child(
-                        text(drawn.undo.clone())
+                        text("undo", drawn.undo.clone(), ink.muted)
                             .id("fb1-undo")
                             .debug_selector(|| "fb1-undo".into())
                             .flex_none()
@@ -257,6 +275,19 @@ impl RenderOnce for Detail {
         let palette = Palette::inherited(&window.text_style(), theme);
         let ink = Ink::interim(&palette);
         let cap = window.viewport_size().height / 3.;
+        #[cfg(test)]
+        let observed_text = self.text.clone();
+        let text = div()
+            .debug_selector(|| "fb1-detail-text".into())
+            .mx(px(DETAIL_PAD_X))
+            .my(px(DETAIL_PAD_Y))
+            .font_family(self.typeface.font.family.clone())
+            .text_size(self.typeface.caption)
+            .line_height(px(DETAIL_LINE))
+            .text_color(ink.error)
+            .child(self.text);
+        #[cfg(test)]
+        let text = super::detail_tests::typography::watch(text, observed_text, cx);
         div()
             .id("fb1-detail")
             .debug_selector(|| "fb1-detail".into())
@@ -264,16 +295,6 @@ impl RenderOnce for Detail {
             .max_h(cap)
             .overflow_y_scroll()
             .bg(palette.background)
-            .child(
-                div()
-                    .debug_selector(|| "fb1-detail-text".into())
-                    .mx(px(DETAIL_PAD_X))
-                    .my(px(DETAIL_PAD_Y))
-                    .font_family(self.typeface.font.family.clone())
-                    .text_size(self.typeface.caption)
-                    .line_height(px(DETAIL_LINE))
-                    .text_color(ink.error)
-                    .child(self.text),
-            )
+            .child(text)
     }
 }

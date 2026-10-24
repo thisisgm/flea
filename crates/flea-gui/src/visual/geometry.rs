@@ -120,6 +120,8 @@ pub(crate) fn rows(
     window: &Window,
 ) {
     let Some(probe) = &state.probe else { return };
+    let metrics = state.drawn.metrics;
+    let layout = state.drawn.layout;
     let surface = format!("list-{}", f32::from(bounds.origin.x));
     probe.push(&surface, "", "surface", bounds, "", window);
     for shown in state.visible() {
@@ -144,7 +146,7 @@ pub(crate) fn rows(
             &format!("{id}-glyph"),
             &id,
             "glyph",
-            rect_at(list::PAD_X, 0., list::MARK_SLOT, row),
+            rect_at(metrics.pad, 0., metrics.slot, row),
             "",
             window,
         );
@@ -152,33 +154,38 @@ pub(crate) fn rows(
             &format!("{id}-ink"),
             &format!("{id}-glyph"),
             "ink",
-            list::mark_bounds(bounds.origin.x, top),
+            list::mark_bounds_at(bounds.origin.x, top, &metrics),
             "",
             window,
         );
         for (role, x, line, text) in [
             (
                 "label",
-                list::LABEL_X,
+                Some(layout.name.x),
                 &prepared.name,
                 prepared.label.as_str(),
             ),
             (
                 "value",
-                f32::from(bounds.size.width)
-                    - (list::END_W + list::DATE_W)
-                    - f32::from(prepared.size.line().width),
+                layout
+                    .cell(list::columns::Column::Size)
+                    .map(|cell| cell.right() - f32::from(prepared.size.line().width)),
                 &prepared.size,
                 prepared.size_text.as_str(),
             ),
             (
                 "value",
-                f32::from(bounds.size.width) - list::END_W - f32::from(prepared.date.line().width),
+                layout
+                    .cell(list::columns::Column::Date)
+                    .map(|cell| cell.right() - f32::from(prepared.date.line().width)),
                 &prepared.date,
                 prepared.date_text.as_str(),
             ),
         ] {
-            let text_bounds = list::line_bounds(line, bounds.origin.x + px(x), top, window);
+            let Some(x) = x else {
+                continue;
+            };
+            let text_bounds = list::line_bounds(line, bounds.origin.x + px(x), top, row, window);
             let key = format!("{id}-{role}-{x}");
             probe.push(&key, &id, role, text_bounds, text, window);
         }

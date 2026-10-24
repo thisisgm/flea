@@ -5,6 +5,8 @@ use crate::ipc::Adapter;
 use flea::ipc::wire::Reply;
 use flea::json::escape;
 use flea::ui_logic_mn1::{fit, Brand};
+mod joined;
+pub(crate) use joined::JoinedAdapter;
 
 pub struct MenuAdapter<'a> {
     pub menu: &'a Menu,
@@ -20,9 +22,16 @@ fn label(line: &Line) -> &str {
     }
 }
 
-fn glyph(line: &Line) -> &str {
-    match &line.lead {
-        _ if line.separator => "-",
+pub(super) fn glyph(line: &Line) -> &str {
+    if line.separator {
+        "-"
+    } else {
+        lead_name(&line.lead)
+    }
+}
+
+pub(super) fn lead_name(lead: &Lead) -> &str {
+    match lead {
         Lead::Cut(name) => name,
         Lead::Brand(Brand::Tailscale) => "tailscale",
         Lead::Brand(Brand::Dropbox) => "dropbox",
@@ -110,7 +119,12 @@ impl Adapter for MenuAdapter<'_> {
         let value = match function {
             "contextMenuVisible" => menu.opened().to_string(),
             "contextMenuEntries" => joined(card, label),
-            "contextMenuHints" => joined(card, |l| l.key.as_ref().map_or("", |k| k.text.as_str())),
+            "contextMenuHints" => joined(card, |l| {
+                l.word
+                    .as_ref()
+                    .or(l.key.as_ref())
+                    .map_or("", |k| k.text.as_str())
+            }),
             "contextMenuGlyphs" => joined(card, glyph),
             "contextMenuSubmenuEntries" => joined(flyout, label),
             "contextMenuSubmenuGlyphs" => joined(flyout, glyph),

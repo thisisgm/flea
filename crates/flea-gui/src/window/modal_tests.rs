@@ -156,11 +156,24 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
             host.pane.cursor,
             host.selected.clone(),
             host.pane.held.clone(),
+            host.path.clone(),
+            shell.focus_side,
         )
     });
     frame(cx, handle);
     while requests().is_some() {}
-    for key in ["j", "delete", "enter"] {
+    // Typing replaces the opening selection; Delete at the end is inert, and at Home it erases.
+    for (key, expected_path, submitted) in [
+        ("j", "j", false),
+        ("delete", "j", false),
+        ("enter", "j", false),
+        ("home", "j", false),
+        ("delete", "", false),
+        ("enter", "", false),
+        ("/", "/", false),
+        ("j", "/j", false),
+        ("enter", "/j", true),
+    ] {
         if steal_focus {
             shell(cx, handle, |shell, window, cx| {
                 window.focus(&shell.focus, cx)
@@ -181,6 +194,11 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
             assert!(
                 Rc::ptr_eq(&host.pane.held, &before.2),
                 "{key} must not change the held files"
+            );
+            assert_eq!(host.path, before.3, "{key} must not navigate the pane");
+            assert_eq!(
+                shell.focus_side, before.4,
+                "{key} must not change the active pane"
             );
             assert!(
                 actions.borrow().is_empty(),
@@ -203,29 +221,38 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
                 "the card's own handle owns keyboard focus"
             );
             assert_eq!(window.focused(cx), Some(handle), "nothing else is focused");
-            // No text input exists yet, so the field text is the path the card opened with and only Return acts on it.
-            let submitted = key == "enter";
             let Some(Dialog::CopyTo {
-                path,
-                focus: CopyFocus::Field,
-                busy,
-                ..
+                path, focus, busy, ..
             }) = &card.model.dialog
             else {
-                panic!("the path field keeps focus after {key}");
+                panic!("the Copy To card remains open after {key}");
             };
-            assert_eq!(path, "/files", "{key} must leave the field text as it was");
-            assert_eq!(*busy, submitted, "only Return submits the field, not {key}");
+            assert_eq!(path, expected_path, "{key} must reach the path editor");
+            assert_eq!(
+                *focus,
+                if submitted {
+                    CopyFocus::Cancel
+                } else {
+                    CopyFocus::Field
+                },
+                "{key} must leave focus on the enabled card control"
+            );
+            assert_eq!(*busy, submitted, "only Return on a full path submits");
+            if key == "enter" && expected_path == "j" {
+                let said = card.model.said.last().expect("relative paths are refused");
+                assert!(said.error);
+                assert_eq!(said.text, card.catalog.tr("jobs.copyto.relative"));
+            }
             assert_eq!(
                 card.model.outbox.len(),
                 usize::from(submitted),
                 "{key} reaches the card exactly when it acts"
             );
             if submitted {
-                let line = &card.model.outbox[0];
-                assert!(
-                    line.contains("\"op\":\"validate\"") && line.contains("\"dest\":\"/files\""),
-                    "Return validates the field's path: {line}"
+                assert_eq!(
+                    card.model.outbox[0],
+                    r#"{"c":"menuaction","op":"validate","id":0,"action":"copyTo","dest":"/j"}"#,
+                    "Return validates the edited destination exactly once"
                 );
             }
         });

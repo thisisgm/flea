@@ -23,12 +23,15 @@ impl Adapter for PaneAdapter<'_> {
             "listingWindowState" => format!(
                 "{{\"held\":{},\"loaded\":{},\"windowSize\":{},\"total\":{},\"shownTotal\":{}}}",
                 pane.held.start, pane.held.rows.len(), pane.first_count(), pane.held.total, pane.held.total),
+            // Legacy frame names and paint aliases do not count terminal feedback.
             "swapState" => format!(
-                "{{\"holding\":{},\"fellBack\":{},\"holds\":{},\"fallbacks\":{},\"waits\":{},\"blankFrames\":{},\"loadingFrames\":{},\"last\":{{\"ms\":{},\"end\":\"{}\"}},\"shownMs\":{},\"commits\":{},\"mark\":{{\"shown\":{},\"offset\":{:.3},\"frames\":{},\"writes\":{},\"requests\":{},\"others\":{}}}}}",
+                "{{\"holding\":{},\"fellBack\":{},\"holds\":{},\"fallbacks\":{},\"waits\":{},\"blankFrames\":{},\"loadingFrames\":{},\"blinkBacks\":null,\"legacyFrameCounterSemantics\":\"paint-invocations\",\"legacyFrameCounterCoverage\":\"paint-only\",\"paintBlankFrames\":{},\"paintLoadingFrames\":{},\"last\":{{\"ms\":{},\"end\":\"{}\"}},\"shownMs\":{},\"commits\":{},\"mark\":{{\"shown\":{},\"offset\":{:.3},\"mode\":\"{}\",\"label\":\"{}\",\"frames\":{},\"writes\":{},\"requests\":{},\"others\":{}}},\"presentation\":{}}}",
                 swap.holding, swap.fell_back, count.holds, count.fallbacks, count.waits,
+                count.blank_frames + swap.frames.blank.get(), count.loading_frames + swap.frames.loading.get(),
                 count.blank_frames + swap.frames.blank.get(), count.loading_frames + swap.frames.loading.get(), count.last_ms, escape(count.last_end),
-                count.shown_ms, count.commits, mark.shown(), mark.offset(), mark.counters.frames.get(),
-                mark.counters.writes.get(), mark.counters.requests.get(), mark.counters.others.get()),
+                count.shown_ms, count.commits, mark.shown(), mark.offset(), mark.mode().id(), escape(mark.label()), mark.counters.frames.get(),
+                mark.counters.writes.get(), mark.counters.requests.get(), mark.counters.others.get(),
+                flea::jsondoc::render(&swap.observed.borrow().json()).trim()),
             _ => return None,
         };
         Some(Reply::value(value))

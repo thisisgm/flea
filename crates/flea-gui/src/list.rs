@@ -5,39 +5,40 @@ pub mod columns;
 pub mod element;
 pub mod header;
 mod locale;
+mod measure;
+mod palette;
+#[cfg(test)]
+mod palette_tests;
+pub use measure::Density;
 pub mod pane;
 #[cfg(test)]
 mod probe_tests;
 pub mod seam;
 #[cfg(test)]
 pub(crate) mod size_tests;
+pub(crate) mod sizes;
 #[cfg(test)]
 mod tests;
 mod typeface;
 
 pub use element::{ListElement, Shown};
 pub use header::HeaderElement;
+pub use palette::Palette;
+pub use typeface::Typeface;
 
 use crate::{
     navigation::{folder_state::Order, sort::Size},
     palette::Theme,
-    row::{cache::RowCache, format::Words, marks::ClipMarks, NameInk},
+    row::{cache::RowCache, format::Words, marks::ClipMarks},
 };
 use columns::{Layout, StoredWidths, Switched, Tokens};
 use flea::jsondoc::Json;
-use gpui::{
-    point, px, size, Bounds, Font, GlyphRun, Hsla, LineLayout, Pixels, SharedString, TextStyle,
-    Window,
-};
-use pane::ROW_HEIGHT;
+use gpui::{point, px, size, Bounds, GlyphRun, LineLayout, Pixels, SharedString, Window};
 use std::{cell::Cell, collections::HashMap, rc::Rc, sync::Arc};
 
-// Board list.html: 14 padding, a 23 mark slot and 9 gap, a 17 mark, Size 70, Modified 134, a 28 end, a 2 edge.
+// The standalone contents-results Element still uses the reference board's fixed columns.
 pub(crate) const PAD_X: f32 = 14.;
-pub(crate) const MARK_SLOT: f32 = 23.;
-pub(crate) const MARK: f32 = 17.;
-pub(crate) const LABEL_X: f32 = PAD_X + MARK_SLOT + 9.;
-pub(crate) const DATE_W: f32 = 134.;
+pub(crate) const LABEL_X: f32 = PAD_X + 23. + 9.;
 pub(crate) const END_W: f32 = 28.;
 // Rows kept shaped past the viewport, so a short scroll back reshapes nothing.
 const CACHE_SCREENS: usize = 3;
@@ -54,19 +55,11 @@ pub const CUT_DIM: f32 = 0.55;
 // Omarchy's selection plate is the foreground at 0.35, which the theme tokens ease per palette for 4.5:1 text.
 const MARK_FILL: f32 = 0.35;
 
-/// Omarchy's default face at the board's body, small-body and caption sizes, until the pane follows the live font-set.
-#[derive(Clone)]
-pub struct Typeface {
-    pub font: Font,
-    pub body: Pixels,
-    pub body_small: Pixels,
-    pub caption: Pixels,
-}
-
 /// The pane's geometry at the face's body size, from v0.3.12 Theme.qml's formulas, which list.html and list-textsize.html draw.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Metrics {
     pub row: f32,
+    pub nominal_row: f32,
     pub header: f32,
     pub header_top: f32,
     pub pad: f32,
@@ -93,15 +86,25 @@ const MARK_RATIO: f32 = 1.45;
 
 impl Metrics {
     pub fn at(body: Pixels) -> Self {
+        Self::sized(body, px((f32::from(body) * BODY_SMALL_RATIO).round()))
+    }
+
+    pub fn for_typeface(face: &Typeface) -> Self {
+        Self::sized(face.base, face.body_small)
+    }
+
+    fn sized(body: Pixels, small: Pixels) -> Self {
         let body = f32::from(body);
         let board = |value: f32| (value * body / 14.).round();
-        let small = (body * BODY_SMALL_RATIO).round();
+        let small = f32::from(small);
         let line = (small * LINE_BOX_RATIO).round();
         let padding = (CONTROL_PADDING_Y * body / STOCK_BASE).round();
         let slot = line;
+        let nominal_row = line + 2. * padding;
         Self {
             row: line + 2. * (padding * COMPACT_PADDING).round(),
-            header: ((line + 2. * padding) * CHROME_ROW_RATIO).round(),
+            nominal_row,
+            header: (nominal_row * CHROME_ROW_RATIO).round(),
             header_top: board(4.),
             pad: board(14.),
             slot,
@@ -118,51 +121,6 @@ impl Metrics {
 
     pub fn label_x(&self) -> f32 {
         self.pad + self.slot + self.gap
-    }
-}
-
-/// The palette roles a row draws with, to be filled from Omarchy's theme.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Palette {
-    pub background: Hsla,
-    pub foreground: Hsla,
-    pub metadata: Hsla,
-    pub metadata_frame: Hsla,
-    pub accent: Hsla,
-    pub accent_frame: Hsla,
-    pub symlink: Hsla,
-    pub executable: Hsla,
-    pub marked: Hsla,
-    pub muted_frame: Hsla,
-}
-
-impl Palette {
-    /// An inherited background keeps its own text colour; otherwise Omarchy's theme sets both.
-    pub fn inherited(style: &TextStyle, theme: Theme) -> Self {
-        let (background, foreground) = match style.background_color {
-            Some(background) => (background, style.color),
-            None => (theme.background, theme.foreground),
-        };
-        Self {
-            background,
-            foreground,
-            metadata: foreground.opacity(0.62),
-            metadata_frame: foreground.opacity(0.5),
-            accent: foreground,
-            accent_frame: foreground,
-            symlink: foreground,
-            executable: foreground,
-            marked: foreground.opacity(MARK_FILL),
-            muted_frame: foreground.opacity(0.5),
-        }
-    }
-
-    pub fn name(&self, ink: NameInk, lifted: bool) -> Hsla {
-        match (lifted, ink) {
-            (true, _) | (false, NameInk::Foreground) => self.foreground,
-            (false, NameInk::Symlink) => self.symlink,
-            (false, NameInk::Executable) => self.executable,
-        }
     }
 }
 
@@ -290,6 +248,13 @@ impl ListView {
             .then_some(today_start);
     }
 
+    pub fn set_searching(&mut self, searching: bool) {
+        if self.searching != searching {
+            self.searching = searching;
+            self.text += 1;
+        }
+    }
+
     pub fn set_query(&mut self, query: &str) {
         if self.query != query {
             self.query.clear();
@@ -300,27 +265,6 @@ impl ListView {
 
     pub fn text_revision(&self) -> u64 {
         self.text
-    }
-
-    /// A folder's walked size for one row; a new listing forgets the last one's.
-    pub fn folder_size(&mut self, listing: usize, row: usize, size: Size) {
-        if listing != self.walked_listing {
-            self.walked.clear();
-            self.walked_listing = listing;
-        }
-        self.walked.insert(row, size);
-        self.walked_revision += 1;
-    }
-
-    /// What a cached row's clip mark and walked size were resolved against in this listing.
-    pub fn mark_revision(&self, listing: usize) -> crate::row::cache::Revision {
-        (self.clip.revision, self.walked_revision, listing)
-    }
-
-    pub fn walked_for(&self, listing: usize, row: usize) -> Option<Size> {
-        (listing == self.walked_listing)
-            .then(|| self.walked.get(&row).copied())
-            .flatten()
     }
 }
 
@@ -370,14 +314,19 @@ struct Advance {
 /// Paint state a pane keeps across frames: shaped rows, the face's metrics, the owners' view and this frame's rows.
 pub struct ListState {
     pub typeface: Typeface,
+    pub density: Density,
     pub rows: RowCache,
     advance: Option<Advance>,
     visible: Vec<Shown>,
     pub(crate) probe: Option<crate::visual::Probe>,
     // The cursor the last prepaint laid out, the one a presented frame drew.
     pub(crate) drawn_cursor: Option<usize>,
+    // Whether that frame drew the cursor as the keyboard's accent rung, or as the grey of a pane without it.
+    pub(crate) drawn_focused: bool,
     pub view: ListView,
     pub drawn: Drawn,
+    /// The bounded snapshot the last frame drew, retained until its replacement is painted.
+    pub drawn_rows: Rc<pane::Held>,
     pub header: header::HeaderState,
     // The one empty line every hidden cell shares, so a column that is not drawn shapes nothing.
     blank: Arc<LineLayout>,
@@ -396,13 +345,16 @@ impl ListState {
     pub fn new(typeface: Typeface) -> Self {
         Self {
             typeface,
+            density: Density::Compact,
             rows: RowCache::default(),
             advance: None,
             visible: Vec::new(),
             probe: None,
             drawn_cursor: None,
+            drawn_focused: false,
             view: ListView::default(),
             drawn: Drawn::default(),
+            drawn_rows: Rc::default(),
             header: header::HeaderState::default(),
             blank: Arc::new(LineLayout::default()),
             palette_reads: 0,
@@ -448,57 +400,12 @@ impl ListState {
     pub fn park(&mut self) {
         self.rows = RowCache::default();
         self.visible = Vec::new();
+        self.drawn_rows = Rc::default();
         self.header.forget_titles();
     }
 
     pub fn visible(&self) -> &[Shown] {
         &self.visible
-    }
-
-    // Measured once per face; a language or font change drops it with the shaped rows.
-    fn advance(&mut self, window: &Window) -> Advance {
-        if let Some(advance) = self.advance {
-            return advance;
-        }
-        let text = window.text_system();
-        let id = text.resolve_font(&self.typeface.font);
-        let of = |size: Pixels| {
-            text.advance(id, size, '0')
-                .map_or(f32::from(size) * 0.6, |advance| f32::from(advance.width))
-        };
-        let advance = Advance {
-            body: of(self.typeface.body),
-            small: of(self.typeface.body_small),
-            caption: of(self.typeface.caption),
-        };
-        self.advance = Some(advance);
-        advance
-    }
-
-    /// The geometry and column tokens at this face.
-    pub fn measure(&mut self, window: &Window) -> (Metrics, Tokens) {
-        let metrics = Metrics::at(self.typeface.body);
-        let advance = self.advance(window);
-        let tokens = Tokens::measure(
-            metrics.pad,
-            metrics.slot,
-            metrics.gap,
-            advance.small,
-            f32::from(self.typeface.body_small),
-        );
-        (metrics, tokens)
-    }
-
-    /// The drawn columns for a list this wide: the row is the list less its scroll lane.
-    pub fn layout(&mut self, width: f32, window: &Window) -> (Metrics, Tokens, Layout) {
-        let (metrics, tokens) = self.measure(window);
-        let layout = columns::resolve(
-            (width - metrics.lane).max(0.),
-            &tokens,
-            self.view.switched,
-            self.view.stored,
-        );
-        (metrics, tokens, layout)
     }
 }
 
@@ -506,11 +413,12 @@ pub(crate) fn line_bounds(
     run: &GlyphRun,
     x: Pixels,
     top: Pixels,
+    row: f32,
     window: &Window,
 ) -> Bounds<Pixels> {
     let line = run.line();
     let baseline =
-        window.pixel_snap(top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
+        window.pixel_snap(top + (px(row) - line.ascent - line.descent) / 2. + line.ascent);
     Bounds::new(
         point(x, baseline - line.ascent),
         size(line.width, line.ascent + line.descent),
@@ -520,9 +428,19 @@ pub(crate) fn line_bounds(
 pub(crate) fn mark_bounds(left: Pixels, top: Pixels) -> Bounds<Pixels> {
     Bounds::new(
         point(
-            left + px(PAD_X + (MARK_SLOT - MARK) / 2.),
-            top + px((ROW_HEIGHT - MARK) / 2.),
+            left + px(PAD_X + (23. - 17.) / 2.),
+            top + px((31. - 17.) / 2.),
         ),
-        size(px(MARK), px(MARK)),
+        size(px(17.), px(17.)),
+    )
+}
+
+pub(crate) fn mark_bounds_at(left: Pixels, top: Pixels, metrics: &Metrics) -> Bounds<Pixels> {
+    Bounds::new(
+        point(
+            left + px(metrics.pad + (metrics.slot - metrics.mark) / 2.),
+            top + px((metrics.row - metrics.mark) / 2.),
+        ),
+        size(px(metrics.mark), px(metrics.mark)),
     )
 }

@@ -1,0 +1,73 @@
+use super::{Move, Pane};
+
+impl Pane {
+    pub fn row_height(&self) -> f32 {
+        self.row_height
+    }
+
+    pub fn set_row_height(&mut self, row: f32) {
+        if !row.is_finite() || row <= 0. || row == self.row_height {
+            return;
+        }
+        // List/Dual publish rows plus header; Grid owns its separate scroll geometry.
+        if let Some(extent) = &mut self.scroll_extent {
+            *extent += self.held.total as f32 * (row - self.row_height);
+        }
+        self.scroll_y = self.scroll_y / self.row_height * row;
+        self.row_height = row;
+        self.scroll_by(0.);
+    }
+
+    pub fn wanted_window(&mut self) -> Option<(usize, usize)> {
+        if self.swap.pending.is_some() {
+            return None;
+        }
+        let first = (self.scroll_y / self.row_height).floor() as usize;
+        self.requests
+            .wanted(&self.held, first, self.visible_rows())
+            .map(|request| (request.start, request.count))
+    }
+    fn max_scroll(&self) -> f32 {
+        (self
+            .scroll_extent
+            .unwrap_or(self.held.total as f32 * self.row_height)
+            - self.height)
+            .max(0.)
+    }
+    pub fn scroll_by(&mut self, delta: f32) {
+        self.scroll_y = (self.scroll_y + delta).clamp(0., self.max_scroll());
+    }
+    pub fn scroll_to(&mut self, y: f32) {
+        self.scroll_y = y.clamp(0., self.max_scroll());
+    }
+    pub fn move_cursor(&mut self, step: Move) -> bool {
+        let total = self.held.total;
+        if self.busy() || total == 0 {
+            return false;
+        }
+        let page = ((self.height / self.row_height).floor() as usize).max(1);
+        let last = total - 1;
+        self.cursor = match step {
+            Move::Up => self.cursor.saturating_sub(1),
+            Move::Down => (self.cursor + 1).min(last),
+            Move::PageUp => self.cursor.saturating_sub(page),
+            Move::PageDown => (self.cursor + page).min(last),
+            Move::Home => 0,
+            Move::End => last,
+        };
+        self.reveal_cursor();
+        true
+    }
+    pub fn reveal_cursor(&mut self) {
+        let top = self.cursor as f32 * self.row_height;
+        if top < self.scroll_y {
+            self.scroll_to(top);
+        } else if top + self.row_height > self.scroll_y + self.height {
+            self.scroll_to(top + self.row_height - self.height);
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "pane_geometry_tests.rs"]
+mod tests;

@@ -177,6 +177,13 @@ impl Element for TrackElement {
         let mut paint = self.paint.borrow_mut();
         let advance = f32::from(paint.body_advance(window));
         let view = &self.tracks[self.at];
+        paint.drawn = Some(super::paint::Drawn {
+            bounds,
+            tracks: Rc::clone(&self.tracks),
+            at: self.at,
+            scroll: self.scroll_y,
+            held: self.held.clone(),
+        });
         let width = f32::from(bounds.size.width);
         let shows_size = view.slot == Slot::Active;
         let shaping = Shaping {

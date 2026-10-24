@@ -20,10 +20,13 @@ fn tile_ink_takes_the_style_ground_and_the_style_colour() {
         "the tile ground is the style background"
     );
     assert_eq!(ink.foreground, colour, "the tile text is the style colour");
-    assert_eq!(ink.accent, colour, "the tile accent is the style colour");
     assert_eq!(
-        ink.accent_frame, colour,
-        "the tile accent frame is the style colour"
+        ink.accent, theme.accent,
+        "the tile accent is the theme role"
+    );
+    assert_eq!(
+        ink.accent_frame, theme.accent_frame,
+        "the tile accent frame is the theme role"
     );
     assert_eq!(
         ink.muted_frame,

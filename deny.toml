@@ -154,3 +154,10 @@ ignore = [
     { id = "RUSTSEC-2026-0371", reason = "Unmaintained only, no vulnerability or patched release: flea-gui -> gpui-pre-platform -> gpui-pre-linux -> accesskit_unix 0.22.1 -> zbus 5.19.0 -> zbus_names 4.3.5; maintained names live in zbus 6, requiring upstream migrations." },
     { id = "RUSTSEC-2026-0372", reason = "Unmaintained only, no vulnerability or patched release: flea-gui -> gpui-pre-platform -> gpui-pre-linux -> oo7 0.6.0 -> zvariant 5.15.1 -> zvariant_derive 5.15.1; maintained derives live in zbus 6, requiring upstream migrations." },
 ]
+
+[[licenses.clarify]]
+name = "omi"
+version = "=1.0.0"
+# GM approved shipping Omi on 2026-10-22; MIT covers code only, not its reserved design.
+expression = "MIT"
+license-files = [{ path = "LICENSE", hash = 0x9a5bab21 }]

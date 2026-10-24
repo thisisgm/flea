@@ -20,8 +20,23 @@ fn fix9_composed_copy_to_keeps_live_geometry_and_focus(cx: &mut TestAppContext) 
     let shell = view.update(cx, |root, _, _| root.shell.clone()).unwrap();
     for (base, width) in [(12., 473.), (16., 630.), (14., 552.)] {
         view.update(cx, |root, window, cx| {
-            window.set_rem_size(px(base));
+            assert_eq!(window.rem_size(), px(14.));
             root.shell.update(cx, |shell, cx| {
+                let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+                let fonts = crate::presentation::Fonts::from_sources(
+                    &format!("[font]\nbase-size={base}"),
+                    "",
+                    shell.active_typeface().font.family.to_string(),
+                );
+                shell.apply_presentation(
+                    crate::presentation::Snapshot {
+                        theme,
+                        parsed: crate::palette::ParsedTheme(true),
+                        fonts,
+                    },
+                    window,
+                    cx,
+                );
                 shell
                     .overlay
                     .as_ref()
@@ -39,7 +54,20 @@ fn fix9_composed_copy_to_keeps_live_geometry_and_focus(cx: &mut TestAppContext) 
             px(width)
         );
         visual.update(|window, cx| {
-            let overlay = shell.read(cx).overlay.as_ref().unwrap().read(cx);
+            assert_eq!(window.rem_size(), px(14.));
+            let shell = shell.read(cx);
+            let active = shell.active_typeface();
+            assert_eq!(active.base, px(base));
+            assert_eq!(active.body, px(base));
+            assert_eq!(crate::list::Typeface::for_window(window, cx), active);
+            let overlay = shell.overlay.as_ref().unwrap().read(cx);
+            let drawn = overlay.editor.drawn.borrow();
+            assert_eq!(drawn.font.as_ref(), Some(&active.font));
+            assert_eq!(drawn.pixels, active.body);
+            assert_eq!(
+                drawn.line.run.as_ref().unwrap().line().font_size,
+                active.body
+            );
             assert!(overlay.focus_handle().unwrap().is_focused(window));
         });
     }
