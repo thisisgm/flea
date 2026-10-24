@@ -79,6 +79,7 @@ impl Shell {
                     mode: host.drawn_view,
                     shown: host.drawn_list,
                 };
+                let view = view.mounted(host);
                 let rows = crate::ipc::rows::RowsAdapter {
                     list: &list,
                     held: &host.pane.held,
