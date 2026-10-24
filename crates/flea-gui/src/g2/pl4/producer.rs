@@ -1,4 +1,6 @@
 //! pl4's places producer in the live rail: saved places become the drawn rows, and activation, menus and renaming leave as requests.
+#[path = "producer_eject.rs"]
+mod producer_eject;
 #[path = "producer_ime.rs"]
 mod producer_ime;
 #[path = "producer_input.rs"]
@@ -38,6 +40,8 @@ pub enum Event {
     Menu(RailEntry),
     Tab(RailEntry),
     Rename { entry: RailEntry, label: String },
+    /// The eject mark's click or its keyboard frame: the row's own release, as Sidebar.ejectRow.
+    Release(RailEntry),
 }
 
 /// A captured rail request; deferred delivery never consults the later pane focus.
@@ -212,6 +216,7 @@ impl Producer {
         if !polling {
             self.cancel_rename(cx);
             self.model.borrow_mut().focused = false;
+            self.model.borrow_mut().mark_focused = false;
         }
         self.load(cx);
         cx.notify();
@@ -346,6 +351,10 @@ impl Producer {
             return;
         };
         self.queue(Event::Focus);
+        // A press on the eject mark is the mark's own; it releases on a release inside its hit box.
+        if event.button == MouseButton::Left && self.mark_press(event.position, cx) {
+            return;
+        }
         if self.model.borrow().renaming == Some(index) {
             self.editor_press(event, cx);
             cx.stop_propagation();

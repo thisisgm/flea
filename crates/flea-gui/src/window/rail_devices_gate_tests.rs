@@ -32,7 +32,7 @@ fn rail_devices_waits_for_both_sources_then_obeys_shipped_deadline(cx: &mut Test
 #[gpui::test]
 fn rail_devices_unmounted_setting_keeps_optical_and_removable_rows(cx: &mut TestAppContext) {
     let (shell, service, cx) = open(r#"{"places":{"showUnmounted":false}}"#, cx);
-    ready(&shell, &service, cx);
+    ready(&service, cx);
     assert_eq!(
         labels(&shell, cx),
         [
@@ -56,7 +56,7 @@ fn rail_devices_hidden_host_starts_no_jobs_and_withdrawal_parks_polling(cx: &mut
     shell.update(cx, |shell, cx| shell.rail_state(&state, cx));
     frame(cx);
     assert_eq!(service.jobs.borrow().len(), 2);
-    ready(&shell, &service, cx);
+    ready(&service, cx);
     let hidden = flea::jsondoc::parse(r#"{"places":{"rail":"hidden"}}"#).unwrap();
     shell.update(cx, |shell, cx| shell.rail_state(&hidden, cx));
     frame(cx);

@@ -216,6 +216,12 @@ impl Backend {
         self.send(Control::Line(line))
     }
 
+    /// A release quiesces the pane first: thumbnails and folder sizes stop reading the volume.
+    pub fn quiesce(&self) -> Result<(), Failure> {
+        self.send(Control::Line("{\"c\":\"thumbcancel\",\"rows\":[]}".into()))?;
+        self.send(Control::Line("{\"c\":\"dirsizecancel\"}".into()))
+    }
+
     pub fn list(&self, path: String, select: Option<String>, first: usize) -> Result<(), Failure> {
         self.send(Control::List {
             path,
