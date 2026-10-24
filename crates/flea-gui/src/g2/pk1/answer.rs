@@ -84,7 +84,7 @@ impl Picker {
         action
     }
 
-    fn accept_mark(&mut self, path: &str, directory: bool, multiple: bool) {
+    pub(super) fn accept_mark(&mut self, path: &str, directory: bool, multiple: bool) {
         self.accept_marks = true;
         self.mark_request = self.check(&Check::Mark {
             path,
