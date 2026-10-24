@@ -30,13 +30,10 @@ fn main() {
     if let Some(status) = flea_gui::g2::pv3::dispatch(&words) {
         std::process::exit(status);
     }
-    let (service, initial) = Service::start(flea::i18n::Paths::default()).unwrap_or_else(|error| {
+    let (service, locale) = Service::launch(flea::i18n::Paths::default()).unwrap_or_else(|error| {
         eprintln!("flea-gui: {error}");
         std::process::exit(2);
     });
-    let locale = initial
-        .recv_blocking()
-        .unwrap_or_else(|_| std::process::exit(2));
     let argv: Vec<String> = std::env::args().skip(1).collect();
     if argv.first().map(String::as_str) == Some("--pick") {
         let reply = if argv.len() == 2 {

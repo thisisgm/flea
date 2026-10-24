@@ -11,7 +11,7 @@ case "${1:-}" in
     [ "$(id -u)" -eq 0 ] || elevate=(sudo)
     "${elevate[@]}" apt-get update -o Acquire::Retries=3
     "${elevate[@]}" apt-get install -y -o Acquire::Retries=3 \
-      build-essential ca-certificates curl git pkg-config \
+      build-essential ca-certificates curl fontconfig git pkg-config \
       libfontconfig1-dev libfreetype6-dev libwayland-dev libxcb1-dev \
       libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libegl1-mesa-dev libvulkan-dev \
       libarchive-tools libglib2.0-bin libvulkan1 bubblewrap zstd
