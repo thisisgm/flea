@@ -8,6 +8,7 @@ use crate::grid::{
     Shown,
 };
 use crate::palette::Theme;
+use crate::row::marks::ClipMark;
 use gpui::{
     fill, outline, point, px, relative, size, App, BorderStyle, Bounds, ContentMask, Corners,
     Element, ElementId, GlobalElementId, GlyphRun, Hsla, InspectorElementId, LayoutId, Pixels,
@@ -57,6 +58,56 @@ fn plate(drawn: &Drawn, ink: &Ink) -> Option<Hsla> {
         Some(ink.foreground.opacity(HOVER))
     } else {
         None
+    }
+}
+
+fn caption_line<'a>(state: &'a GridState, drawn: &'a Drawn, at: usize) -> Option<&'a tile::Line> {
+    let plain = drawn.tile.as_ref()?.lines.get(at)?;
+    Some(
+        state
+            .bold
+            .as_ref()
+            .filter(|_| drawn.bold)
+            .and_then(|bold| bold.lines[at].as_ref())
+            .unwrap_or(plain),
+    )
+}
+
+impl Drawn {
+    /// The clipboard bounds paint uses, after the actual last drawn caption line, including its fallback face.
+    pub fn clip_bounds(&self, state: &GridState) -> Option<Rect> {
+        if self.editing {
+            return None;
+        }
+        let clip = self.clip.as_ref()?;
+        let metrics = state.layout.as_ref()?.metrics;
+        let last = self.lines.checked_sub(1)?;
+        let width = caption_line(state, self, last)?.centred;
+        let name = bounds_of(
+            point(px(0.), px(0.)),
+            Rect {
+                y: self.caption.y + last as f32 * metrics.caption_line,
+                height: metrics.caption_line,
+                ..self.caption
+            },
+        );
+        let mark = if clip.cut {
+            ClipMark::Cut
+        } else {
+            ClipMark::Copy
+        }
+        .bounds(
+            name,
+            px((self.caption.width + width) / 2.),
+            px(metrics.clip_mark),
+            px(metrics.gap),
+        );
+        Some(Rect {
+            x: f32::from(mark.origin.x),
+            y: f32::from(mark.origin.y),
+            width: f32::from(mark.size.width),
+            height: f32::from(mark.size.height),
+        })
     }
 }
 
@@ -253,39 +304,20 @@ impl GridElement {
         };
         let line = layout.metrics.caption_line;
         let caption = bounds_of(origin, drawn.caption);
-        for (at, shaped) in tile.lines.iter().take(drawn.lines).enumerate() {
-            let held = state
-                .bold
-                .as_ref()
-                .filter(|_| drawn.bold)
-                .and_then(|bold| bold.lines[at].as_ref());
-            let (run, centred) = held.map_or((&shaped.run, shaped.centred), |bold| {
-                (&bold.run, bold.centred)
-            });
-            let top = caption.origin.y + px(at as f32 * line);
-            let x = caption.origin.x + px((drawn.caption.width - centred) / 2.);
-            let _ = window.paint_glyph_run(
-                point(x, baseline(run, top, line, window)),
-                run,
-                ink.foreground.opacity(dim),
-            );
-        }
-        if let Some(clip) = &drawn.clip {
-            let side = layout.metrics.clip_mark;
-            let gap = layout.metrics.gap;
-            let end = drawn.caption.x
-                + (drawn.caption.width
-                    + tile.last_cells as f32 * state.advance.map_or(0., |seen| seen.1))
-                    / 2.
-                + gap;
-            let x = end.min(drawn.caption.right() + gap);
-            let y = drawn.caption.y + drawn.lines as f32 * line - (line + side) / 2. - 1.;
-            let mark = Rect {
-                x,
-                y,
-                width: side,
-                height: side,
-            };
+        window.with_content_mask(Some(ContentMask { bounds: caption }), |window| {
+            for at in 0..tile.lines.len().min(drawn.lines) {
+                let shaped = caption_line(state, drawn, at).expect("prepared caption line");
+                let (run, centred) = (&shaped.run, shaped.centred);
+                let top = caption.origin.y + px(at as f32 * line);
+                let x = caption.origin.x + px((drawn.caption.width - centred) / 2.);
+                let _ = window.paint_glyph_run(
+                    point(x, baseline(run, top, line, window)),
+                    run,
+                    ink.foreground,
+                );
+            }
+        });
+        if let (Some(clip), Some(mark)) = (&drawn.clip, drawn.clip_bounds(state)) {
             let _ = window.paint_svg(
                 bounds_of(origin, mark),
                 clip.key.clone(),

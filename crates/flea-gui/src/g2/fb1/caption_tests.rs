@@ -78,7 +78,9 @@ fn the_drawn_caption_tracks_every_glyph_by_the_boards_1_2px(cx: &mut TestAppCont
             "painted glyph {i} advance grows {advance:?}"
         );
     }
-    let caption = bounds(cx, handle, &["fb1-hero-caption"])[0];
+    let caption = read(cx, handle, |hero| {
+        hero.painted.get("caption").unwrap().bounds
+    });
     let (grown, want) = (
         caption.size.width - line.width,
         px(TRACKING) * plain.len() as f32,

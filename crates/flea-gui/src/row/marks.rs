@@ -1,7 +1,7 @@
 //! Row marks: Lucide 1.38.0 path data (ISC), the Omarchy cut ui/js/Icons.js carries, drawn as alpha masks.
 //! Language logos are simple-icons geometry (CC0 1.0), trademarks of their owners, as ui/js/LangMarkPaths.js carries them.
 use flea::protocol::RowFacts;
-use gpui::SharedString;
+use gpui::{point, px, size, Bounds, Pixels, SharedString};
 use std::{cell::Cell, collections::HashSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -279,7 +279,7 @@ static LOGOS: [(&str, &[u8]); 35] = [
     logo!("zsh", "M7.65875 11.938833 A0.338333 0.338333 0 0 0 7.342 12.05375 L1.07875 19.51225 A0.338333 0.338333 0 0 0 1.120167 19.987083 A0.338333 0.338333 0 0 0 1.595583 19.94625 L7.85825 12.48775 A0.338333 0.338333 0 0 0 7.817417 12.012333 A0.35 0.35 0 0 0 7.65875 11.938833 M2.926167 12.12375 A1.827583 1.827583 0 0 0 1.106167 13.94375 A1.825833 1.825833 0 0 0 2.926167 15.763167 A1.827583 1.827583 0 0 0 4.745 13.94375 A1.825833 1.825833 0 0 0 2.925583 12.124333 M2.925583 13.177833 A0.758333 0.758333 0 0 1 3.692083 13.94375 A0.758333 0.758333 0 0 1 2.925583 14.709083 A0.758333 0.758333 0 0 1 2.160833 13.94375 A0.758333 0.758333 0 0 1 2.926167 13.17725 M5.990417 16.2415 A1.825833 1.825833 0 0 0 4.171 18.060917 A1.825833 1.825833 0 0 0 5.991 19.87975 A1.827583 1.827583 0 0 0 7.809833 18.05975 A1.827583 1.827583 0 0 0 5.990417 16.240917 M5.990417 17.293833 A0.758333 0.758333 0 0 1 6.756333 18.060333 C6.756333 18.489083 6.41975 18.825667 5.991 18.825667 A0.758333 0.758333 0 0 1 5.2245 18.060333 A0.758333 0.758333 0 0 1 5.990417 17.293833 M10.191 19.204833 A0.338333 0.338333 0 0 0 9.853833 19.542 A0.338333 0.338333 0 0 0 10.191 19.879167 L14.662833 19.879167 A0.338333 0.338333 0 0 0 15.000583 19.542 A0.338333 0.338333 0 0 0 14.662833 19.204833 Z"),
 ];
 
-/// The clipboard slot beside a name: a copied row shows the copy mark, a cut row the scissors and draws dimmed.
+/// The clipboard slot beside a name: copy and scissors share one anchor; a cut ghosts only the file mark.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ClipMark {
     Copy,
@@ -287,6 +287,23 @@ pub enum ClipMark {
 }
 
 impl ClipMark {
+    /// Both glyphs follow the drawn name, capped at its reserved strip, one pixel above the line's centre.
+    pub fn bounds(
+        self,
+        name: Bounds<Pixels>,
+        drawn_width: Pixels,
+        side: Pixels,
+        gap: Pixels,
+    ) -> Bounds<Pixels> {
+        Bounds::new(
+            point(
+                name.origin.x + drawn_width.max(px(0.)).min(name.size.width) + gap,
+                name.origin.y + (name.size.height - side) / 2. - px(1.),
+            ),
+            size(side, side),
+        )
+    }
+
     pub fn svg(self) -> (SharedString, &'static [u8]) {
         let (key, data) = match self {
             Self::Copy => ("flea-mark:copy", svg!("M9 8h12v13H9z M4 16V3h13")),

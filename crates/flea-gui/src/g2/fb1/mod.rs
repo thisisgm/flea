@@ -9,6 +9,8 @@ mod caption_tests;
 mod detail_tests;
 pub(crate) mod empty_omi;
 #[cfg(test)]
+mod empty_omi_loop_tests;
+#[cfg(test)]
 mod empty_omi_tests;
 #[cfg(test)]
 mod fix9_tests;
@@ -18,6 +20,8 @@ mod hero_tests;
 pub mod line;
 #[cfg(test)]
 mod line_tests;
+#[cfg(test)]
+mod loop_tests;
 pub mod mark;
 pub mod observe;
 pub mod state;

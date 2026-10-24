@@ -69,8 +69,25 @@ impl Surfaces {
 }
 
 impl Shell {
+    /// Cuts a side's hero away and unmounts its state surface.
+    fn drop_surfaces(&mut self, side: usize, cx: &mut Context<Self>) {
+        let surfaces = &mut self.surfaces[side];
+        if let Some(hero) = &surfaces.hero {
+            if hero.read(cx).rotation().visible() {
+                hero.update(cx, |hero, cx| hero.hide(cx));
+            }
+        }
+        surfaces.shown = None;
+        self.slots.states[side] = None;
+    }
+
     /// Mounts or drops one pane's state surface to match its state; a pane that shows no state builds nothing.
     pub(crate) fn sync_surfaces(&mut self, side: usize, cx: &mut Context<Self>) {
+        // The pane the renderer draws on this side, so a pane left out of the frame keeps no caption running.
+        if self.shown_pane(side).is_none() {
+            self.drop_surfaces(side, cx);
+            return;
+        }
         let Some(host) = &self.panes[side] else {
             return;
         };
@@ -81,12 +98,7 @@ impl Shell {
             && host.pane.held.total == 0
             && host.pane.state.search
         {
-            let surfaces = &mut self.surfaces[side];
-            if let Some(hero) = &surfaces.hero {
-                hero.update(cx, |hero, cx| hero.hide(cx));
-            }
-            surfaces.shown = None;
-            self.slots.states[side] = None;
+            self.drop_surfaces(side, cx);
             return;
         }
         let kind = host.pane.state.kind;
@@ -115,7 +127,13 @@ impl Shell {
         if kind == Kind::Empty {
             let hero = surfaces
                 .hero
-                .get_or_insert_with(|| cx.new(|cx| EmptyHero::new(&catalog, cx)))
+                .get_or_insert_with(|| {
+                    cx.new(|cx| {
+                        let mut hero = EmptyHero::new(&catalog, cx);
+                        hero.set_overlaid();
+                        hero
+                    })
+                })
                 .clone();
             hero.update(cx, |hero, cx| {
                 hero.set_typeface(typeface.clone(), cx);
