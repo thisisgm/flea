@@ -42,6 +42,67 @@ pub(super) fn columns(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Optio
 }
 
 #[test]
+fn gcomp_batch_columns_entry_right_click_captures_fallback_list_menu() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, _requests) = columns(&mut cx);
+    frame(&mut cx, handle);
+    let at = edit(&mut cx, handle, |shell, _, _| {
+        assert_eq!(shell.view, View::Columns);
+        assert_eq!(shell.shown_view(), View::List);
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.drawn_view, Some(View::List));
+        let frame = host.input.drawn.as_ref().unwrap().frame;
+        gpui::point(
+            frame.bounds.left() + gpui::px(40.),
+            frame.bounds.top() + gpui::px(frame.row * 0.5),
+        )
+    });
+    gpui::VisualTestContext::from_window(handle.into(), &cx).simulate_mouse_down(
+        at,
+        gpui::MouseButton::Right,
+        gpui::Modifiers::default(),
+    );
+    edit(&mut cx, handle, |shell, _, _| {
+        assert!(
+            shell.menu.captured.is_some(),
+            "fallback List right-click must capture menu"
+        );
+    });
+}
+
+#[test]
+fn gcomp_batch_list_right_click_control_captures_menu() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, _requests) = columns(&mut cx);
+    edit(&mut cx, handle, |shell, window, cx| {
+        shell.set_view(View::List, window, cx)
+    });
+    frame(&mut cx, handle);
+    let at = edit(&mut cx, handle, |shell, _, _| {
+        assert_eq!(shell.view, View::List);
+        assert_eq!(shell.shown_view(), View::List);
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.drawn_view, Some(View::List));
+        let frame = host.input.drawn.as_ref().unwrap().frame;
+        gpui::point(
+            frame.bounds.left() + gpui::px(40.),
+            frame.bounds.top() + gpui::px(frame.row * 0.5),
+        )
+    });
+    gpui::VisualTestContext::from_window(handle.into(), &cx).simulate_mouse_down(
+        at,
+        gpui::MouseButton::Right,
+        gpui::Modifiers::default(),
+    );
+    edit(&mut cx, handle, |shell, _, _| {
+        assert!(
+            shell.menu.captured.is_some(),
+            "List control must capture menu"
+        );
+    });
+}
+
+#[test]
 fn gcomp_batch_u02_drawn_mode_follows_the_actual_u09_columns_not_the_selected_view() {
     let mut cx = crate::list::bench::real_cx();
     let (handle, _requests) = columns(&mut cx);

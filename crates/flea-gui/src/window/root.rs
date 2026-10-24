@@ -29,7 +29,10 @@ impl Render for Root {
             .unwrap_or_default()
             .foreground;
         // The modal scrim and card share the highest deferred layer, above menus and pane marks.
-        let overlay = self.shell.read(cx).overlay.clone().map(|view| {
+        let overlay = self.shell.read(cx).overlay.clone();
+        #[cfg(test)]
+        super::gcomp_tests::operations::capture(overlay.as_ref().map(Entity::entity_id), cx);
+        let overlay = overlay.map(|view| {
             view.update(cx, |overlay, cx| overlay.sync_focus(window, cx));
             let priority = if view.read(cx).modal(cx) {
                 usize::MAX
@@ -45,7 +48,7 @@ impl Render for Root {
             .capture_any_mouse_down(move |event, window, cx| {
                 if event.button == gpui::MouseButton::Right {
                     shell.update(cx, |shell, cx| {
-                        if shell.view != crate::window::startup::View::Columns {
+                        if shell.shown_view() != crate::window::startup::View::Columns {
                             for side in 0..2 {
                                 shell.menu_pointer_open(side, event, window, cx);
                             }
@@ -166,6 +169,8 @@ impl Element for Overlay {
             cx.read_entity(&self.0, |shell, _| {
                 shell.menu.presentation.mark.paint(window)
             });
+            #[cfg(test)]
+            super::gcomp_tests::operations::submit(&self.0, window, cx);
             return;
         }
         cx.read_entity(&self.0, |shell, cx| {
