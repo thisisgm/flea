@@ -1,6 +1,7 @@
 //! Native window host and composition interfaces shared by later surfaces.
 pub mod columns;
 pub mod composition;
+pub(crate) mod dispatch;
 mod events;
 pub(crate) mod frame_feedback;
 pub mod input;

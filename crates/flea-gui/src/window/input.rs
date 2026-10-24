@@ -1,4 +1,4 @@
-use super::{lifecycle::Phase, startup};
+use super::{dispatch::Order, lifecycle::Phase, startup};
 use crate::{pane::requests, state::Shell};
 use gpui::{px, Context, KeyDownEvent, ScrollWheelEvent, Window};
 #[path = "keyboard.rs"]
@@ -216,12 +216,14 @@ impl Shell {
         } {
             self.set_view(view, window, cx);
         } else {
-            cx.emit(ActionEvent {
+            let context = self.keyboard.context;
+            let event = ActionEvent {
                 action,
                 seat,
-                context: self.keyboard.context,
+                context,
                 pair_armed,
-            });
+            };
+            self.dispatch(Order::Action(event), window, cx);
         }
         cx.stop_propagation();
     }

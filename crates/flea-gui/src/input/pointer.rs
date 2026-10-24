@@ -2,7 +2,10 @@
 use super::{scroll::Bar, Band};
 use crate::{
     state::Shell,
-    window::input::{pointer, ActionEvent},
+    window::{
+        dispatch::Order,
+        input::{pointer, ActionEvent},
+    },
 };
 use gpui::{Context, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Window};
 
@@ -362,7 +365,7 @@ impl Shell {
                     self.focus_side = side;
                     self.search_action("reveal", window, cx);
                 } else {
-                    cx.emit(event);
+                    self.dispatch(Order::Action(event), window, cx);
                 }
             }
         }

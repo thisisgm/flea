@@ -1,6 +1,10 @@
 //! Snapshot retirement, backend validation and captured choices delivered to their producer owners.
 use super::{join::Chosen, menu::Outcome};
-use crate::{backend::Failure, state::Shell, window::navigate::Step};
+use crate::{
+    backend::Failure,
+    state::Shell,
+    window::{dispatch::Order, navigate::Step},
+};
 use flea::{
     json::escape,
     jsondoc::Json,
@@ -304,13 +308,15 @@ impl Shell {
             self.menu.activating = false;
             self.menu.reading = false;
             let claimed = std::rc::Rc::new(std::cell::Cell::new(false));
-            cx.emit(Chosen {
+            let chosen = Chosen {
                 captured: capture.clone(),
                 action,
                 leaf,
                 paths,
                 claimed: claimed.clone(),
-            });
+            };
+            // A family that runs the choice claims it; the deferred check below refuses one nobody claimed.
+            self.dispatch(Order::Menu(chosen), window, cx);
             cx.defer_in(window, move |shell, window, cx| {
                 if shell
                     .menu

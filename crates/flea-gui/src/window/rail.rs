@@ -8,6 +8,7 @@ use crate::g2::pl4::producer::{Event, Producer};
 use crate::rail::host::{self, Host};
 use crate::rail::{geometry, Mode};
 use crate::state::Shell;
+use crate::window::dispatch::Order;
 use crate::window::navigate::Step;
 use flea::i18n::I18n;
 use flea::jsondoc::Json;
@@ -195,7 +196,7 @@ impl Shell {
                             .update(cx, |source, cx| source.activate(&entry, side, cx));
                     }
                 }
-                event => cx.emit(Request { side, id, event }),
+                event => self.dispatch(Order::Place(Request { side, id, event }), window, cx),
             }
         }
     }

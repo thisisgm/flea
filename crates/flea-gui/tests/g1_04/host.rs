@@ -251,14 +251,21 @@ fn a_busy_pane_swallows_a_plain_row_action(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn a_busy_pane_still_acts_on_the_answered_keys(cx: &mut TestAppContext) {
-    // Escape and F5 emit their actions while a listing is out; Ctrl-3 switches the view inline.
+    // Escape emits its action while a listing is out, F5 answers that one is loading, and Ctrl-3 switches the view inline.
     let (cx, shell, observed, _subscription) = key_shell(cx, true);
     assert_busy(cx, &shell, true);
     press(cx, &shell, "escape", None, Modifiers::default());
     assert_eq!(*observed.borrow(), vec!["escape"]);
     assert_busy(cx, &shell, true);
     press(cx, &shell, "f5", None, Modifiers::default());
-    assert_eq!(*observed.borrow(), vec!["escape", "reload"]);
+    assert_eq!(*observed.borrow(), vec!["escape"]);
+    cx.update(|_, cx| {
+        let shell = shell.read(cx);
+        assert_eq!(
+            shell.panes[0].as_ref().unwrap().status.as_ref(),
+            shell.locale.catalog.tr("pane.busy")
+        );
+    });
     assert_busy(cx, &shell, true);
     cx.update(|_, cx| assert_ne!(shell.read(cx).view, View::Grid));
     press(cx, &shell, "3", None, controlled());

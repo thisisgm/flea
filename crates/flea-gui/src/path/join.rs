@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{
     state::Shell,
-    window::{input::ActionEvent, navigate::Step, startup::View},
+    window::{dispatch::Order, input::ActionEvent, navigate::Step, startup::View},
 };
 use gpui::{AppContext, Context, Entity, Subscription, Window};
 
@@ -156,7 +156,7 @@ impl Shell {
             let Some(host) = &self.panes[self.focus_side] else {
                 return;
             };
-            cx.emit(ActionEvent {
+            let event = ActionEvent {
                 action,
                 context: self.keyboard.context,
                 pair_armed: false,
@@ -167,7 +167,8 @@ impl Shell {
                     focus: self.focus_side as u64,
                     ..Default::default()
                 },
-            });
+            };
+            self.dispatch(Order::Action(event), window, cx);
         }
         window.focus(&self.focus, cx);
     }

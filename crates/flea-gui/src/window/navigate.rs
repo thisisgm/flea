@@ -8,6 +8,7 @@ use gpui::{Context, Window};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Step {
     Open(String),
+    OpenCursor,
     OpenPlace(String),
     Back,
     Forward,
@@ -41,7 +42,14 @@ impl Shell {
             self.search_update(side, None, |search, host| search.back(host), window, cx);
             return Ok(true);
         }
-        self.search_leave(side, window, cx);
+        // A refused or file row Enter keeps the search it was pressed in; only a folder it opens leaves it.
+        let leaves = step != Step::OpenCursor
+            || self.panes[side].as_ref().is_some_and(|host| {
+                !host.pane.busy() && host.pane.held.row(host.pane.cursor).is_some_and(|row| row.dir)
+            });
+        if leaves {
+            self.search_leave(side, window, cx);
+        }
         let failure = self.locale.catalog.tr("navigation.save_failed");
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return Ok(false);
@@ -52,6 +60,7 @@ impl Shell {
         let (nav, pane, selected) = (&mut host.nav, &mut host.pane, &mut host.selected);
         let result = match step {
             Step::Open(path) => nav.open(pane, &path),
+            Step::OpenCursor => nav.open_cursor(pane).map(|file| file.is_none()),
             Step::OpenPlace(path) => nav.open_place(pane, &path),
             Step::Back => nav.back(pane),
             Step::Forward => nav.forward(pane),

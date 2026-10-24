@@ -41,7 +41,9 @@ impl PaneHost {
                 cx.listener(move |shell, event, _, cx| shell.grid_hover(side, event, cx)),
             )
             .on_any_mouse_down(
-                cx.listener(move |shell, event, _, cx| shell.grid_press(side, event, cx)),
+                cx.listener(move |shell, event, window, cx| {
+                    shell.grid_press(side, event, window, cx)
+                }),
             )
             .when(
                 self.pane.state.kind == crate::pane::states::Kind::Ready,
