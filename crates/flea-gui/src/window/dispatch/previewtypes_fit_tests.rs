@@ -61,8 +61,45 @@ fn a_code_preview_keeps_its_name_and_facts_inside_the_column_at_every_height(cx:
             cx.simulate_resize(size(px(w), px(h)));
             pump(cx);
             assert_fits(&shell, cx, &format!("{facts} {w}x{h}"));
+            if facts == "compact" {
+                let line = bounds(cx, "column-preview-facts").size.height;
+                assert_eq!(f32::from(line), 18., "the board's compact facts line is 18 px");
+            }
         }
         cx.simulate_keystrokes("i->i");
         pump(cx);
     }
+}
+
+/// cols-preview-video.html at text 14: 18 px rows 21 px apart, values at the 71 px label column, no play mark on the frame.
+#[gpui::test]
+fn video_facts_take_the_board_pitch_and_the_frame_draws_no_play_mark(cx: &mut TestAppContext) {
+    use crate::g2::pv3::view::Picture;
+    let (shell, cx) = open_at(cx, "/files", Some(14.));
+    let rows = vec![file("clip.webm", "video-webm", "WebM video", 0o100644)];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    let lines = local(&shell, cx, "/files");
+    meta(&shell, cx, &lines, r#","w":640,"h":360,"ms":4000"#);
+    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    cx.simulate_resize(size(px(1500.), px(1013.)));
+    pump(cx);
+    assert_eq!(read(&shell, cx, "previewColumnState", &[]), "video");
+    let count = read(&shell, cx, "previewFacts", &[]).split('|').count();
+    assert!(count >= 5, "Kind, Size, Modified, Duration and Pixels");
+    const ROWS: [&str; 5] = ["column-preview-fact-0", "column-preview-fact-1", "column-preview-fact-2", "column-preview-fact-3", "column-preview-fact-4"];
+    let tops: Vec<f32> = ROWS.iter().map(|row| f32::from(bounds(cx, row).top())).collect();
+    for (row, pair) in ROWS.iter().zip(tops.windows(2)) {
+        assert_eq!(f32::from(bounds(cx, row).size.height), 18., "{row} is 18 px tall");
+        assert_eq!(pair[1] - pair[0], 21., "fact rows are 21 px apart: {tops:?}");
+    }
+    let label = f32::from(bounds(cx, "column-preview-value-0").left()) - f32::from(bounds(cx, ROWS[0]).left());
+    assert_eq!(label, 71., "values start at the board's 71 px label column");
+    let name = bounds(cx, "column-preview-name");
+    assert_eq!(f32::from(name.size.height), 20., "the name is the board's 20 px line");
+    let poster = Picture::Video { frame: None, poster: true };
+    assert_eq!(
+        crate::window::selection_preview::render::column_picture(poster),
+        Picture::Video { frame: None, poster: false },
+        "the column frame carries no play mark"
+    );
 }

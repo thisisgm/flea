@@ -2,12 +2,18 @@
 use super::selection_preview::*;
 use flea::ui_logic_pv1::{facts, kinds::State};
 impl SelectionPreview {
-    /// One caption row of the facts table, and the name's own row.
+    /// cols-preview-video.html: an 18 px fact row at caption 12, the name's 20 px line at body 14.
     pub(crate) fn fact_row(&self) -> (f32, f32) {
         (
-            (f32::from(self.face.caption) * 1.3).round(),
-            (f32::from(self.face.body) * 1.3).round(),
+            (f32::from(self.face.caption) * 1.5).round(),
+            (f32::from(self.face.body) * 20. / 14.).round(),
         )
+    }
+
+    /// The board's 16 px text line inside a fact row, its 71 px label column, and FactsTable.qml's hairline * 3 row gap.
+    pub(crate) fn fact_grid(&self) -> (f32, f32, f32) {
+        let caption = f32::from(self.face.caption);
+        ((caption * 16. / 12.).round(), (caption * 71. / 12.).round(), 3.)
     }
 
     /// Facts.js tallHeight for a tall kind, else the 16 by 10 frame every other state shares.
@@ -20,7 +26,7 @@ impl SelectionPreview {
                 self.height as f64,
                 metrics.pad as f64,
                 name as f64,
-                (row * facts as f32) as f64,
+                (row * facts as f32 + self.fact_grid().2 * facts.saturating_sub(1) as f32) as f64,
                 metrics.gap as f64,
             )
             .max(1.) as f32

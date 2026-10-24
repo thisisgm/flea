@@ -36,7 +36,7 @@ mod play;
 #[path = "selection_preview_readers.rs"]
 pub(crate) mod readers;
 #[path = "selection_preview_render.rs"]
-mod render;
+pub(crate) mod render;
 
 static NEXT: AtomicU64 = AtomicU64::new(1);
 fn token() -> u64 {
