@@ -104,7 +104,7 @@ impl Shell {
             self.retire_menu(window, cx);
         }
         if let BackendEvent::Producer(line) = &event {
-            if self.search_line(side, line, window, cx) {
+            if self.filter_line(side, line, cx) || self.search_line(side, line, window, cx) {
                 return;
             }
         }

@@ -30,6 +30,7 @@ pub mod ui_logic_pv3;
 pub mod ui_logic_pv4;
 pub mod ui_logic_sd2;
 pub mod ui_logic_sr1;
+pub mod ui_logic_sr2;
 pub mod ui_logic_st1;
 pub mod ui_logic_st2;
 

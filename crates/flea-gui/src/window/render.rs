@@ -158,8 +158,11 @@ impl Render for Shell {
                 continue;
             }
             if !host.stopped {
-                if let (Some((start, count)), Some(backend)) =
-                    (host.pane.wanted_window(), &host.backend)
+                let wanted = match host.filter.shown.clone() {
+                    Some(shown) => host.pane.wanted_filtered_window(&shown),
+                    None => host.pane.wanted_window(),
+                };
+                if let (Some((start, count)), Some(backend)) = (wanted, &host.backend)
                 {
                     if let Err(error) = backend.window(start, count) {
                         host.stopped = true;
@@ -176,10 +179,12 @@ impl Render for Shell {
             }
             host.drawn_view = Some(View::List);
             host.drawn_list = host.pane.state.kind == crate::pane::states::Kind::Ready;
-            host.list
-                .borrow_mut()
-                .view
-                .set_query(&host.pane.state.query);
+            // A standing filter's query marks its run in each drawn name, as a search's does.
+            let query = match host.filter.shown {
+                Some(_) if !host.pane.state.search => host.filter.owner.query(),
+                _ => &host.pane.state.query,
+            };
+            host.list.borrow_mut().view.set_query(query);
             host.list
                 .borrow_mut()
                 .view
@@ -204,6 +209,7 @@ impl Render for Shell {
                 lists.states[side].take().expect("a mounted pane"),
                 Rc::clone(&host.list),
             )
+            .with_filter(host.filter.shown.clone())
             .with_search_feedback(
                 (host.search.owner.session.stamps.first_rows_at == 0
                     && host.search.rows_generation == host.pane.swap.session.generation)

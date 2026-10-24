@@ -65,6 +65,8 @@ impl DropLine {
 #[derive(Clone)]
 pub struct Shown {
     pub index: usize,
+    /// The position the row is drawn at: its index, or its place in a filter's drawn rows.
+    pub view: usize,
     pub prepared: Option<Rc<Prepared>>,
     pub clip: Option<ClipMark>,
     pub state: RowState,
@@ -79,6 +81,7 @@ pub struct ListElement {
     states: RowStates,
     state: Rc<RefCell<ListState>>,
     search_feedback: Option<crate::window::search::Draw>,
+    shown: Option<Rc<[usize]>>,
 }
 
 impl ListElement {
@@ -105,7 +108,14 @@ impl ListElement {
             states,
             state,
             search_feedback: None,
+            shown: None,
         }
+    }
+
+    /// A filter's drawn rows, None for every row; a view position then draws the listing row at that place.
+    pub(crate) fn with_filter(mut self, shown: Option<Rc<[usize]>>) -> Self {
+        self.shown = shown;
+        self
     }
 
     pub(crate) fn with_search_feedback(
@@ -413,8 +423,9 @@ impl Element for ListElement {
         });
         let height = f32::from(bounds.size.height);
         let first = (self.scroll_y / metrics.row).floor().max(0.) as usize;
+        let drawn_total = self.shown.as_ref().map_or(held.total, |rows| rows.len());
         let last =
-            (((self.scroll_y + height) / metrics.row).ceil().max(0.) as usize).min(held.total);
+            (((self.scroll_y + height) / metrics.row).ceil().max(0.) as usize).min(drawn_total);
         rows.begin(
             &shaping,
             ((height / metrics.row).ceil() as usize).max(1) * CACHE_SCREENS,
@@ -422,12 +433,14 @@ impl Element for ListElement {
         visible.clear();
         let revision = view.mark_revision(held.listing);
         let mut loading = 0;
-        for index in first..last.max(first) {
+        for view_at in first..last.max(first) {
+            let index = self.shown.as_ref().map_or(view_at, |rows| rows[view_at]);
             let marks = self.states.row(index, held.listing);
             let Some(facts) = held.row(index) else {
                 loading += 1;
                 visible.push(Shown {
                     index,
+                    view: view_at,
                     prepared: None,
                     clip: None,
                     state: marks,
@@ -463,6 +476,7 @@ impl Element for ListElement {
             }
             visible.push(Shown {
                 index,
+                view: view_at,
                 prepared: Some(prepared),
                 clip,
                 state: marks,
@@ -530,7 +544,7 @@ impl Element for ListElement {
             }),
             |window| {
                 for shown in &state.visible {
-                    let top = top_of(shown.index);
+                    let top = top_of(shown.view);
                     let ground = Bounds::new(point(left, top), size(bounds.size.width, px(row)));
                     let s = shown.state;
                     // The cursor draws its rung alone on a marked row, so no plate stacks into a brighter band.
@@ -602,7 +616,7 @@ impl Element for ListElement {
                         } else {
                             1.
                         };
-                        let top = top_of(shown.index);
+                        let top = top_of(shown.view);
                         let at = point(
                             left + px(metrics.pad + (metrics.slot - metrics.mark) / 2.),
                             top + px((row - metrics.mark) / 2.),
@@ -677,7 +691,7 @@ impl Element for ListElement {
                                 .get()
                                 .filter(|_| shown.state.cursor)
                                 .unwrap_or(&prepared.name);
-                            paint_line(line, names.origin.x, top_of(shown.index), row, ink, window);
+                            paint_line(line, names.origin.x, top_of(shown.view), row, ink, window);
                             if view.searching && f32::from(prepared.location.line().width) > 0. {
                                 let x =
                                     names.origin.x + prepared.name.line().width + px(metrics.gap);
@@ -689,7 +703,7 @@ impl Element for ListElement {
                                 paint_line(
                                     &prepared.location,
                                     x,
-                                    top_of(shown.index),
+                                    top_of(shown.view),
                                     row,
                                     caption_ink,
                                     window,
@@ -718,7 +732,7 @@ impl Element for ListElement {
                         }
                         let drawn = prepared.name.line().width.min(px(layout.name.width));
                         let x = left + px(layout.name.x) + drawn + px(metrics.gap);
-                        let y = top_of(shown.index) + px((row - metrics.clip) / 2. - 1.);
+                        let y = top_of(shown.view) + px((row - metrics.clip) / 2. - 1.);
                         let (key, data) = clip.svg();
                         paint_mark(
                             key,

@@ -60,7 +60,8 @@ impl Shell {
             // Clamp against the current header before capturing this frame's scroll.
             if matches!(view, View::List | View::Dual) && host.pane.scroll_extent.is_some() {
                 let metrics = host.list.borrow().file_metrics();
-                let extent = host.pane.held.total as f32 * metrics.row + metrics.header;
+                let total = host.filter.shown_total(host.pane.held.total);
+                let extent = total as f32 * metrics.row + metrics.header;
                 host.pane.scroll_extent = Some(extent);
             }
             host.pane.set_height(height);
