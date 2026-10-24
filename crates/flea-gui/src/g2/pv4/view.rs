@@ -90,6 +90,46 @@ impl Model3dView {
         }
     }
 
+    /// Prepares the resting column's first complete frame before the host swaps it on screen.
+    pub fn prepare_column(
+        &mut self,
+        size: (f32, f32),
+        window: &Window,
+        theme: crate::palette::Theme,
+        cx: &mut Context<Self>,
+    ) {
+        if self.phase != Phase::Ready
+            || self.live.borrow().thumbnail
+            || self.presented.borrow().image.is_some()
+        {
+            return;
+        }
+        let roles = Roles::inherited(&window.text_style(), theme);
+        let palette = super::seam::palette(&roles, theme.background);
+        let frame =
+            self.live
+                .borrow_mut()
+                .frame(0., &self.host, size, window.scale_factor(), palette);
+        let Some(job) = frame.job else { return };
+        let job = cx.background_executor().spawn(async move {
+            let mut drawn = job.draw();
+            let image = drawn.picture();
+            (drawn, image)
+        });
+        cx.spawn(async move |this, cx| {
+            let (drawn, image) = job.await;
+            let _ = this.update(cx, |view, cx| {
+                if view.live.borrow_mut().finish(drawn) {
+                    if let Some(image) = image {
+                        view.presented.borrow_mut().present(image);
+                    }
+                }
+                cx.notify();
+            });
+        })
+        .detach();
+    }
+
     pub fn session(&self) -> &Session {
         &self.session
     }
@@ -120,6 +160,10 @@ impl Model3dView {
 
     /// The preview closed: the request is cancelled, a build in flight is dropped and the model is released.
     pub fn hide(&mut self, cx: &mut Context<Self>) {
+        let picture = self.presented.borrow().image.clone();
+        if let Some(picture) = picture {
+            cx.defer(move |cx| cx.drop_image(picture, None));
+        }
         self.cancel();
         self.clear();
         self.path = None;

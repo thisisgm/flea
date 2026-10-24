@@ -62,7 +62,7 @@ fn native31_registered_column_active_rect_is_actual_mounted_track() {
             );
             assert_eq!(
                 call(shell, "columnPdfPages", window, cx),
-                Reply::error(3, "FLEA_IPC_NOT_PORTED flea.columnPdfPages")
+                Reply::value("0")
             );
         });
     }
@@ -97,6 +97,7 @@ fn native31_file_without_preview_paints_its_mounted_right_hairline() {
     let mut cx = host::context();
     let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
     host::change(&mut cx, handle, |shell, window, cx| {
+        shell.launch.settings.data = flea::jsondoc::parse(r#"{"preview":{"column":false}}"#).unwrap();
         host::settle(shell, window, cx)
     });
     host::frame(&mut cx, handle);

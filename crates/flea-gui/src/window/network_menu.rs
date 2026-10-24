@@ -5,7 +5,10 @@ use crate::{
     g2::pl2::{bookmarks, menus},
     list::Typeface,
     state::Shell,
-    window::input::event_input,
+    window::{
+        dispatch::Order,
+        input::{event_input, ActionEvent},
+    },
 };
 use flea::keys::{self, Context as KeyContext, Frontend, Match};
 use flea::ui_logic_mn1::fit::Rect;
@@ -157,14 +160,32 @@ impl Shell {
         ) else {
             return true;
         };
-        if menu_open {
+        let event = ActionEvent::bare(action, context);
+        self.dispatch(Order::Network(event), window, cx);
+        true
+    }
+
+    /// Runs a key the network menu or share browser resolved, while either one is open.
+    pub(crate) fn network_run(
+        &mut self,
+        action: &'static str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let Some(network) = self.rail.as_ref().and_then(|join| join.network.as_ref()) else {
+            return false;
+        };
+        let menu = network.menu.clone();
+        let shares = network.shares.clone();
+        if menu.borrow().opened() {
             let typeface = Typeface::omarchy_default();
             let env = self.menu_env(&typeface);
-            let menu = network.menu.clone();
             let outcome = menu.borrow_mut().act(action, None, "", &env, window);
             self.network_menu_outcome(outcome, window, cx);
-        } else {
+        } else if shares.read(cx).model.open {
             shares.update(cx, |shares, cx| shares.action(action, cx));
+        } else {
+            return false;
         }
         true
     }

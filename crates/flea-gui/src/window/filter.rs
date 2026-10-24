@@ -159,24 +159,40 @@ impl Shell {
         self.slots.strip_height = strip::HEIGHT;
     }
 
+    /// Whether "/" or a standing filter owns this action on the focused pane, ahead of the pane's own moves.
+    pub(crate) fn filter_claims(&self, action: &str, cx: &gpui::App) -> bool {
+        if self.input_blocked(cx) {
+            return false;
+        }
+        let Some(host) = self.panes[self.focus_side].as_ref() else {
+            return false;
+        };
+        if host.search.owner.active() || host.pane.state.search {
+            return false;
+        }
+        let drawn = host.filter.owner.drawn(host.pane.held.listing).is_some();
+        match action {
+            "search" => host.filter.owner.up(),
+            "filter" => true,
+            "selectAll" => drawn,
+            _ => MOVES.contains(&action) && drawn,
+        }
+    }
+
     /// "/" and the actions a standing filter owns: steps through the drawn rows and Ctrl+A over its exact rows.
     pub(crate) fn filter_action(&mut self, action: &str, window: &mut Window, cx: &mut Context<Self>) -> bool {
-        if self.input_blocked(cx) {
+        if !self.filter_claims(action, cx) {
             return false;
         }
         let side = self.focus_side;
         let Some(host) = self.panes[side].as_mut() else {
             return false;
         };
-        if host.search.owner.active() || host.pane.state.search {
-            return false;
-        }
-        let listing = host.pane.held.listing;
         match action {
             // Search takes the pane: a standing filter closes first, and search goes on.
-            "search" if host.filter.owner.up() => {
+            "search" => {
                 self.filter_update(side, |filter, pane| { filter.close(pane); None }, cx);
-                false
+                self.search_action(action, window, cx)
             }
             "filter" => {
                 if host.pane.busy() || host.stopped {
@@ -186,11 +202,11 @@ impl Shell {
                 window.focus(&self.focus, cx);
                 true
             }
-            "selectAll" if host.filter.owner.drawn(listing).is_some() => {
+            "selectAll" => {
                 self.filter_update(side, |filter, pane| { filter.select_all(pane); None }, cx);
                 true
             }
-            _ if MOVES.contains(&action) && host.filter.owner.drawn(listing).is_some() => {
+            _ => {
                 let page = host.pane.visible_rows().max(1) as isize;
                 self.filter_update(side, |filter, pane| {
                     match action {
@@ -209,7 +225,6 @@ impl Shell {
                 }
                 true
             }
-            _ => false,
         }
     }
 

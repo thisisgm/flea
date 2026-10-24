@@ -154,6 +154,7 @@ impl MediaPlayer {
 
     /// Ends the subject: the decoder, the MPRIS player and the inhibitor go; the picture leaves the atlas.
     pub fn close(&mut self, cx: &mut Context<Self>) {
+        self.generation += 1;
         self.end(cx);
         self.subject = None;
         let frame = self.frame.take();

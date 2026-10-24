@@ -11,16 +11,16 @@ use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 const NOT_YET: &[(&str, &[&str])] = &[
     // On a file row: ui/js/Nav.js:231 hands it to ui/Opener.qml, Focus.js:133-139 sends pageForward to the preview.
     ("opener", &["open", "pageForward"]),
-    // Focus.js:126-127, 175-180 and 196.
-    ("preview", &["togglePreview", "previewPageForward", "previewPageBack", "factsToggle", "loadPreview", "focusPreview", "preview", "zoomIn", "zoomOut", "expand"]),
+    // Focus.js:196, PreviewKeys.open on a row whose preview is not focused.
+    ("preview", &["preview"]),
     // Focus.js:171 and 290, ui/js/Tabs.js:392.
     ("tabs", &["openTab", "tabNew", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "tab1", "tab2", "tab3", "tab4", "tab5", "tab6", "tab7", "tab8", "tab9"]),
     // Focus.js:207-240 and 271, ui/Pane.qml:599-602.
     ("operations", &["copy", "cut", "paste", "movePaste", "copyAs", "pasteAs", "copyPath", "copydirpath", "duplicate", "trash", "trashArm", "deletePermanently", "newFolder", "rename", "properties"]),
-    // Focus.js:143-148, 187-195, 204-205 and 257-258; reveal is quiet outside results.
-    ("listing state", &["filter", "sortNext", "sortReverse", "escape", "reveal"]),
-    // Focus.js:250, 264-265 and 273.
-    ("window", &["openTerminal", "eject", "addNetwork", "tags"]),
+    // Focus.js:143-148, 187-195, 205 and 257-258; reveal is quiet outside results.
+    ("listing state", &["sortNext", "sortReverse", "escape", "reveal"]),
+    // Focus.js:250, 265 and 273.
+    ("window", &["openTerminal", "eject", "tags"]),
 ];
 
 // Spawns a real window process, so the guard reads it from the table instead of pressing it.

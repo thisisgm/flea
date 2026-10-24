@@ -5,7 +5,7 @@ use crate::{
         carry::{Leaving, ListOrder},
         paint::Painters,
         peeks::{Facts, Lens},
-        preview_host::{PreviewProducer, PreviewSettings, ThirdSwap},
+        preview_host::ThirdSwap,
         Area, PaneView, Ports,
     },
     g2::fb1::{hero::EmptyHero, state::StateMessage},
@@ -31,6 +31,7 @@ mod review_r2;
 
 pub(crate) struct Columns {
     pub area: Area,
+    pub preview_hosted: bool,
     pub painters: Painters,
     pub heroes: [Option<Entity<EmptyHero>>; 5],
     pub notices: [Option<Entity<StateMessage>>; 5],
@@ -73,19 +74,16 @@ struct Seen {
 
 impl Columns {
     fn new(width: f32, height: f32, settings: &super::startup::Settings) -> Self {
-        let share = settings
-            .data
-            .get("previewWidth")
-            .and_then(flea::jsondoc::Json::as_f64)
-            .unwrap_or(0.);
+        let share = f64::from(super::selection_preview::host::share(&settings.data));
         Self {
             area: Area::new(
                 width,
                 height,
                 Some(settings.columns as f64),
                 share,
-                PreviewSettings::default(),
+                super::selection_preview::host::settings(&settings.data),
             ),
+            preview_hosted: false,
             painters: Painters::default(),
             heroes: Default::default(),
             notices: Default::default(),
@@ -141,29 +139,6 @@ impl Columns {
     }
 }
 
-/// Folder-only hosting has no preview or held file frame; file readers keep their capability refusal.
-struct FoldersOnly;
-impl ThirdSwap for FoldersOnly {
-    fn idle(&self) -> bool {
-        true
-    }
-    fn hold(&mut self, _: &str) {}
-    fn start(&mut self, _: bool) {}
-    fn stop_cap(&mut self) {}
-    fn cancel(&mut self) {}
-}
-impl PreviewProducer for FoldersOnly {
-    fn ready(&self) -> bool {
-        false
-    }
-    fn follow_selection(&mut self) {}
-    fn arm_settle(&mut self) {}
-    fn ask_cursor_thumb(&mut self) {}
-    fn ipc(&self, _: &str, _: &[String]) -> Option<String> {
-        None
-    }
-}
-
 fn with_pane<R>(pane: &Pane, nav: &Navigator, read: impl FnOnce(PaneView<'_>) -> R) -> R {
     let folders = nav.folders.borrow();
     let orders = |path: &str| folders.peek_order(path);
@@ -190,8 +165,8 @@ fn with_area<R>(
 ) -> Option<R> {
     let now = host.pane.now();
     let columns = host.columns.as_mut()?;
-    let mut swap = FoldersOnly;
-    let mut preview = FoldersOnly;
+    let mut swap = host.preview_port.clone();
+    let mut preview = host.preview_port.clone();
     Some(with_pane(&host.pane, &host.nav, |pane| {
         let revision = columns.area.landing.version;
         let tracks = std::rc::Rc::clone(columns.area.tracks());
@@ -207,11 +182,27 @@ fn with_area<R>(
             }
         }
         columns.area.landing.tick(now);
+        if swap.idle()
+            && pane.cursor_row.is_some_and(|row| !row.dir)
+            && (columns.area.host.shown.is_dir || !columns.area.host.shown.has_row)
+        {
+            columns.area.host.show_cursor_row(
+                crate::columns::preview_host::Cursor {
+                    row: true,
+                    is_dir: false,
+                    child: "",
+                },
+                true,
+                false,
+            );
+            columns.seen = None;
+        }
         let mut ports = Ports {
             swap: &mut swap,
             preview: &mut preview,
         };
         let done = change(columns, pane, &mut ports);
+        columns.preview_hosted = ports.preview.ipc("previewColumnState", &[]).is_some();
         columns.settle_entry(&pane, &mut ports, now);
         // A draw can win the deadline race: publish its landing transition before the timer is discarded.
         if columns.area.landing.version != revision {
@@ -297,6 +288,10 @@ impl Shell {
     pub(crate) fn sync_columns(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let geometry = self.geometry(window);
         let visible = self.view == View::Columns;
+        let preview_settings = super::selection_preview::host::settings(&self.launch.settings.data);
+        let preview_share = f64::from(super::selection_preview::host::share(
+            &self.launch.settings.data,
+        ));
         let width = geometry.panes[0].width;
         let height = (geometry.panes[0].height - self.slots.strip_height).max(0.);
         let Some(host) = self.panes[0].as_mut() else {
@@ -316,6 +311,16 @@ impl Shell {
         }
         if host.columns.is_none() && visible {
             host.columns = Some(Columns::new(width, height, &self.launch.settings));
+        }
+        if let Some(columns) = &mut host.columns {
+            if columns.area.share != preview_share {
+                columns.area.set_share(preview_share);
+                columns.seen = None;
+            }
+            if columns.area.settings != preview_settings {
+                columns.area.settings = preview_settings;
+                columns.seen = None;
+            }
         }
         let revision = self.locale.revision;
         let now = host.pane.now();

@@ -374,7 +374,8 @@ impl Shell {
             return None;
         }
         if action == Match::Action("addNetwork") {
-            self.network_add(self.focus_side, window, cx);
+            let event = super::input::ActionEvent::bare("addNetwork", flea::keys::Context::Rail);
+            self.dispatch(Order::Action(event), window, cx);
             return Some(true);
         }
         producer.update(cx, |producer, _| producer.side = self.focus_side);
