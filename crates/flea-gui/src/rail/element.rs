@@ -40,7 +40,7 @@ impl Element for RailElement {
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
-        let palette = Palette::inherited(&window.text_style(), theme);
+        let palette = rail_palette(&window.text_style(), theme);
         let metrics = RailMetrics::for_typeface(&self.typeface);
         let mut model = self.model.borrow_mut();
         let mut cache = std::mem::take(&mut model.cache);
@@ -205,6 +205,10 @@ impl Element for RailElement {
         cx: &mut App,
     ) {
         let palette = ready.palette;
+        #[cfg(test)]
+        {
+            self.laid.borrow_mut().palette = Some(palette);
+        }
         let metrics = RailMetrics::for_typeface(&self.typeface);
         let model = self.model.borrow();
         let laid = self.laid.borrow();
@@ -373,10 +377,14 @@ impl Element for RailElement {
             .hairline
             .min(f32::from(bounds.size.width));
         if hairline > 0. {
+            // The hair's left edge snaps to a device pixel so a fractional scale never smears it over two.
+            let scale = window.scale_factor();
+            let right = f32::from(bounds.right());
+            let left = ((right - hairline) * scale).round() / scale;
             window.paint_quad(fill(
                 Bounds::new(
-                    point(bounds.right() - px(hairline), bounds.top()),
-                    size(px(hairline), bounds.size.height),
+                    point(px(left), bounds.top()),
+                    size(px(right - left), bounds.size.height),
                 ),
                 palette.foreground.opacity(crate::list::HAIRLINE),
             ));

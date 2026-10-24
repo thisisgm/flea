@@ -23,3 +23,6 @@ pub mod strips;
 pub mod tabs;
 mod visual;
 pub mod window;
+
+#[cfg(test)]
+mod theme_gate;

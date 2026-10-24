@@ -34,7 +34,7 @@ use crate::list::Palette;
 use gpui::{App, Hsla};
 use std::time::Instant;
 
-/// The roles these surfaces draw in; a seam until the theme service publishes muted and error roles.
+/// The resolved palette roles these feedback surfaces draw in.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ink {
     pub foreground: Hsla,
@@ -46,15 +46,15 @@ pub struct Ink {
 }
 
 impl Ink {
-    /// Interim roles from the list palette; error and muted stand in as foreground and metadata until the tokens land.
+    /// Maps the shared window palette to feedback roles.
     pub fn interim(palette: &Palette) -> Self {
         Self {
             foreground: palette.foreground,
             metadata: palette.metadata,
             metadata_frame: palette.metadata_frame,
-            muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
-            error: palette.foreground,
+            muted: palette.muted,
+            muted_frame: palette.muted_frame,
+            error: palette.error,
         }
     }
 }

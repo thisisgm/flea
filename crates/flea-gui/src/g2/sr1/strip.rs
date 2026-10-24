@@ -49,7 +49,7 @@ impl Palette {
         Self {
             surface: list.background,
             foreground: list.foreground,
-            muted: list.metadata,
+            muted: list.muted,
             accent: list.accent,
         }
     }
