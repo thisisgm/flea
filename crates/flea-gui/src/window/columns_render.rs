@@ -71,7 +71,7 @@ impl Shell {
             } else {
                 columns.area.scroll(view.slot)
             };
-            let element = TrackElement::new(
+            let mut element = TrackElement::new(
                 Rc::clone(&tracks),
                 at,
                 Some(Rc::clone(&host.pane.held)),
@@ -81,6 +81,12 @@ impl Shell {
                 paint,
                 Rc::clone(&words),
             );
+            if view.slot == Slot::Active {
+                element = element.with_sizes(Rc::new(crate::columns::walks::Walked {
+                    list: Rc::clone(&host.list),
+                    listing: host.pane.held.listing,
+                }));
+            }
             let mut track = div()
                 .absolute()
                 .left(px(view.x))
