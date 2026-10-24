@@ -145,3 +145,39 @@ fn a_walker_that_has_read_a_directory_pushes_nothing_once_the_walk_is_cancelled(
     assert_eq!(answer.total, 2, "the patch read sub once and the cancelled walk added nothing to it");
     assert_eq!(s.indexed(), 3, "sub, sub/x.txt and sub/new.txt");
 }
+
+#[test]
+fn a_change_the_landing_applies_re_runs_an_answer_given_after_the_walk() {
+    for held in [false, true] {
+        let d = TestDir::new("landingdelta");
+        d.dir("deep/child");
+        let scope = scope_of(&d);
+        let (tx, rx) = std::sync::mpsc::channel();
+        let probes = Arc::new(WalkProbes::new());
+        let (parked, release) = probes.test_hold_walk_in("child");
+        let mut s = Session::open_async_with_probes(&scope, &scope, false, tx.clone(), probes);
+        parked.recv_timeout(Duration::from_secs(30)).expect("the walk parks before reading child");
+        if held { assert!(s.ask(41, "needle", 3, &tx).is_none()); }
+        release.send(()).unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(30);
+        loop {
+            match rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())) {
+                Ok(crate::backend::events::Event::SearchWalked) => break,
+                Ok(crate::backend::events::Event::SearchHeld | crate::backend::events::Event::SearchDelta(_)) => {},
+                _ => panic!("the walk did not land"),
+            }
+        }
+        // A hold timer can answer after the walk finishes but before the loop processes its landing.
+        let answered = if held { s.answer_held() } else { s.ask(41, "needle", 3, &tx) }.unwrap();
+        assert_eq!((answered.gen, answered.total, answered.walking), (41, 0, false));
+        assert!(s.landing().is_none(), "the completed answer does not itself need a re-run");
+        d.file("deep/child/needle-a", "a");
+        assert!(s.poll_walked(), "the landing announces once");
+        let landed = s.answer_held().or_else(|| s.re_answer_standing()).expect("the landing's change re-runs the standing query");
+        assert_eq!((landed.gen, landed.total, landed.walking), (41, 1, false));
+        assert_eq!(landed.rows[0].0, "deep/child/needle-a");
+        assert!(s.landing().is_none(), "one re-run");
+        assert!(!s.poll_walked(), "one landing");
+        assert!(!s.apply_watch_deltas(), "the landing already took the delta");
+    }
+}

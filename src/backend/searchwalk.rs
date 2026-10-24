@@ -284,8 +284,7 @@ impl Session {
             self.walk_dirs = handle.join().unwrap_or(0);
         }
         self.walk_done.store(true, Ordering::Relaxed);
-        self.apply_watch_deltas();
-        self.flush_patches();
+        self.land_changes();
         self.announced = true;
         self.walk_ms = self.opened_at.elapsed().as_secs_f64() * 1000.0;
     }
@@ -305,9 +304,16 @@ impl Session {
             self.walk_dirs = handle.join().unwrap_or(0);
         }
         self.walk_ms = self.opened_at.elapsed().as_secs_f64() * 1000.0;
-        self.apply_watch_deltas();
-        self.flush_patches();
+        self.land_changes();
         true
+    }
+
+    // A standing answer given once the walk finished predates what the landing applies, so a change re-runs it like one given while walking.
+    fn land_changes(&mut self) {
+        let changed = self.apply_watch_deltas() | self.flush_patches();
+        if changed && self.standing.as_ref().is_some_and(|(_, query, _)| !query.is_empty()) {
+            self.standing_while_walking = true;
+        }
     }
 
     // Stops a running walk and keeps the session with its partial index; None when no walk runs.
