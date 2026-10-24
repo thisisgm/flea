@@ -1,6 +1,6 @@
 //! The navigation family: Enter, the folder keys, history and reload on the focused pane, through its navigator.
 use super::Order;
-use crate::{navigation::Refusal, state::Shell, window::navigate::Step};
+use crate::{state::Shell, window::navigate::Step};
 use gpui::{Context, Window};
 
 pub(super) fn run(
@@ -22,6 +22,8 @@ pub(super) fn run(
         return false;
     };
     let busy = host.pane.busy();
+    // Reload.js begin: a listing past its wait is let go, so a reload asks for its folder again.
+    let waited = busy && host.waiting;
     let searching = host.search.owner.active();
     let folder = host.pane.held.row(host.pane.cursor).map(|row| row.dir);
     let step = match event.action {
@@ -35,18 +37,11 @@ pub(super) fn run(
         "historyForward" => Step::Forward,
         // Focus.js: a reload goes quiet while a walk owns the header.
         "reload" if searching => return true,
-        // Reload.js begin: a reload while a listing is out says so instead of listing.
-        "reload" if busy => {
-            let said = shell.locale.catalog.tr(Refusal::Busy.key()).into();
-            if let Some(host) = shell.panes[side].as_mut() {
-                host.status = said;
-            }
-            cx.notify();
-            return true;
-        }
+        "reload" if waited => Step::Retry,
         "reload" => Step::Reload,
         _ => return false,
     };
+    // Shell::step puts a refusal's own sentence in the pane status, so its result is spent here.
     let _ = shell.step(side, step, window, cx);
     true
 }
