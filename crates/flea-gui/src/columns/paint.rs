@@ -46,7 +46,7 @@ impl Palette {
     }
 }
 
-/// One row's inks: a cut row dims its mark, name and size to CUT; the chevron and the clip glyph keep theirs.
+/// A cut row ghosts only its file mark; the name, size, chevron and clipboard glyph keep their roles.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RowInk {
     pub mark: Hsla,
@@ -59,7 +59,7 @@ impl Palette {
     pub fn row_ink(&self, clip: Clip, cursor: bool, lifted: bool, dim: bool) -> RowInk {
         let cut = |ink: Hsla| {
             if clip == Clip::Cut {
-                Hsla { a: CUT, ..ink }
+                ink.opacity(CUT)
             } else {
                 ink
             }
@@ -71,11 +71,11 @@ impl Palette {
         };
         RowInk {
             mark: cut(frame),
-            name: cut(if cursor || lifted || !dim {
+            name: if cursor || lifted || !dim {
                 self.foreground
             } else {
                 self.muted
-            }),
+            },
             chevron: frame,
             clip: self.muted_frame,
         }

@@ -121,3 +121,151 @@ fn glyph_names_follow_icons_js() {
         "file"
     );
 }
+
+#[test]
+fn clipboard_bounds_follow_the_drawn_name_and_leave_a_reserved_strip() {
+    use super::harness::{held, open, real_cx, row};
+    use flea_gui::list::RowStates;
+    use flea_gui::list::{RowState, Shown};
+    use flea_gui::row::{cache::Prepared, marks::ClipMark};
+    use gpui::{point, px, size, Bounds, GlyphRun, Hsla, TextRun};
+    use std::rc::Rc;
+
+    let names = [
+        "a.txt".to_owned(),
+        "very-long-name-".repeat(12),
+        "文書-e\u{301}.txt".into(),
+    ];
+    let mut cx = real_cx();
+    let mut saw_bold_advance = false;
+    for width in [260., 900.] {
+        let pane = open(
+            &mut cx,
+            held(
+                names
+                    .iter()
+                    .map(|name| row(name, "text-plain", 26, false))
+                    .collect(),
+                1,
+            ),
+            width,
+            5.,
+        );
+        let mut copied = Vec::new();
+        for moving in [false, true] {
+            {
+                let mut state = pane.list.borrow_mut();
+                state.view.clip.scope("/w");
+                state.view.clip.set(
+                    &names
+                        .iter()
+                        .map(|name| format!("/w/{name}"))
+                        .collect::<Vec<_>>(),
+                    moving,
+                );
+                state.view.set_query("a");
+            }
+            for rung in 0..4 {
+                pane.update(&mut cx, |view| {
+                    view.states = RowStates {
+                        listing: 1,
+                        cursor: (rung == 2).then_some(0),
+                        hovered: (rung == 1).then_some(0),
+                        selected: (rung == 3).then(|| Rc::from([0, 1, 2])),
+                        ..RowStates::default()
+                    }
+                });
+                pane.draw(&mut cx);
+                let state = pane.list.borrow();
+                let metrics = state.drawn.metrics;
+                let layout = state.drawn.layout;
+                for shown in state.visible() {
+                    let prepared = shown.prepared.as_ref().unwrap();
+                    let name = Bounds::new(
+                        point(px(layout.name.x), px(0.)),
+                        size(px(layout.name.width), px(metrics.row)),
+                    );
+                    let bounds = shown.clip_bounds(name, &metrics).unwrap();
+                    let run = prepared
+                        .bold
+                        .get()
+                        .filter(|_| shown.state.cursor)
+                        .unwrap_or(&prepared.name);
+                    let available = (layout.name.width - metrics.gap - metrics.clip).max(0.);
+                    let right = f32::from(run.line().width).min(available);
+                    saw_bold_advance |= shown.state.cursor
+                        && (f32::from(run.line().width - prepared.name.line().width)).abs() > 0.01;
+                    assert!(
+                        (f32::from(bounds.left()) - layout.name.x - right - metrics.gap).abs()
+                            < 0.001
+                    );
+                    assert!(bounds.right() <= name.right());
+                    assert_eq!(bounds.size, size(px(12.), px(12.)));
+                    if moving {
+                        assert_eq!(bounds, copied[rung * names.len() + shown.index]);
+                    } else {
+                        copied.push(bounds);
+                    }
+                }
+            }
+        }
+        let misses = pane.list.borrow().rows.misses;
+        pane.draw(&mut cx);
+        assert_eq!(pane.list.borrow().rows.misses, misses);
+        assert!(pane.list.borrow().rows.peak <= 15);
+        // Unequal cached advances discriminate cursor-run selection even when the installed mono face gives bold equal widths.
+        pane.with_window(&mut cx, |state, _, window| {
+            let shape = |body| {
+                GlyphRun::new(window.text_system().layout_line(
+                    "a.txt",
+                    px(body),
+                    &[TextRun {
+                        len: 5,
+                        font: state.typeface.font.clone(),
+                        color: Hsla::default(),
+                        background_color: None,
+                        underline: None,
+                        strikethrough: None,
+                    }],
+                    None,
+                ))
+            };
+            let prepared = Prepared {
+                name: shape(14.),
+                ..Prepared::default()
+            };
+            assert!(prepared.bold.set(shape(20.)).is_ok());
+            let mut shown = Shown {
+                index: 0,
+                prepared: Some(Rc::new(prepared)),
+                clip: Some(ClipMark::Copy),
+                state: RowState {
+                    cursor: true,
+                    ..RowState::default()
+                },
+            };
+            let name = Bounds::new(point(px(46.), px(0.)), size(px(200.), px(31.)));
+            let cursor = shown.clip_bounds(name, &state.drawn.metrics).unwrap();
+            let want = shown
+                .prepared
+                .as_ref()
+                .unwrap()
+                .bold
+                .get()
+                .unwrap()
+                .line()
+                .width;
+            assert_eq!(
+                cursor.left(),
+                name.left() + want + px(state.drawn.metrics.gap)
+            );
+            shown.state.cursor = false;
+            let plain = shown.clip_bounds(name, &state.drawn.metrics).unwrap();
+            saw_bold_advance |= (f32::from(cursor.left() - plain.left())).abs() > 0.01;
+        });
+    }
+    assert!(
+        saw_bold_advance,
+        "the cursor fixture must distinguish the drawn bold run from the plain run"
+    );
+}
