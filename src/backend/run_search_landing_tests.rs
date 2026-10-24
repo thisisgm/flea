@@ -76,6 +76,15 @@ impl Wire {
             self.pending.push_back(event);
         }
     }
+
+    fn delta_queue_is_empty(&mut self) -> bool {
+        let core = &self.st.search_session.as_ref().unwrap().watch.as_ref().unwrap().core;
+        core.flush();
+        let delta = core.drain();
+        self.pending.extend(self.receiver.try_iter());
+        delta.dirs.is_empty() && delta.resets.is_empty() && !delta.failed && !delta.overflow
+            && !self.pending.iter().any(|event| matches!(event, Event::SearchDelta(_)))
+    }
 }
 
 fn check_answer(lines: &[String], n: usize) {
@@ -91,9 +100,9 @@ fn check_answer(lines: &[String], n: usize) {
 }
 
 #[test]
-fn m9_integ_watch_delta_after_walk_lands_once() {
+fn a_watch_delta_after_walk_landing_is_published_once() {
     for held in [false, true] {
-        let d = TestDir::new("m9-integ-landing");
+        let d = TestDir::new("watch-landing");
         let mut wire = Wire::parked(&d);
         let request = r#"{"c":"searchquery","query":"needle","gen":41,"count":3,"sizes":0}"#;
         if held { assert!(wire.ask(request).is_empty(), "the running walk holds the query"); }
@@ -135,7 +144,8 @@ fn m9_integ_watch_delta_after_walk_lands_once() {
         assert!(wire.ask(r#"{"c":"searchquery","query":"bench","gen":40}"#).is_empty(), "a stale query cannot replace the standing owner");
         assert_eq!(wire.st.listing.name(0), "docs/needle-a");
 
-        d.file("docs/needle-b", "b");
+        assert!(wire.delta_queue_is_empty(), "all kernel, channel and buffered deltas precede needle-b");
+        let second = d.file("docs/needle-b", "b");
         let later_delta = wire.next(|event| matches!(event, Event::SearchDelta(_)));
         assert!(matches!(&later_delta, Event::SearchDelta(later_token) if *later_token == token));
         assert!(wire.event(Event::SearchDelta(wrong_owner)).is_empty());
@@ -144,7 +154,24 @@ fn m9_integ_watch_delta_after_walk_lands_once() {
         check_answer(&later, 2);
         assert!(later[1].contains("docs/needle-a") && later[1].contains("docs/needle-b"));
         assert_eq!(wire.st.listing.len(), 2);
+        assert!((0..wire.st.listing.len()).any(|row| wire.st.base.join(wire.st.listing.name(row)) == second));
         assert!(wire.event(Event::SearchDelta(token)).is_empty(), "the later delta also publishes once");
         wire.st.search_session.take().unwrap().close();
     }
+}
+
+#[test]
+fn a_stale_delta_cannot_pass_the_external_change_barrier() {
+    let d = TestDir::new("watch-delta-barrier");
+    let mut wire = Wire::parked(&d);
+    wire.release.send(()).unwrap();
+    let walked = wire.next(|event| matches!(event, Event::SearchWalked));
+    assert!(wire.event(walked).is_empty());
+    assert!(wire.delta_queue_is_empty());
+    let token = wire.st.search_session.as_ref().unwrap().watch_token();
+    wire.pending.push_back(Event::SearchDelta(token));
+    assert!(!wire.delta_queue_is_empty(), "a stale wakeup cannot certify the next mutation");
+    wire.pending.clear();
+    assert!(wire.delta_queue_is_empty());
+    wire.st.search_session.take().unwrap().close();
 }
