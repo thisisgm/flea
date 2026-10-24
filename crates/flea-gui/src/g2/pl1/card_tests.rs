@@ -109,6 +109,7 @@ fn the_pointer_washes_are_the_oracle_dialog_buttons() {
 fn distinct_ink() -> super::ink::CardInk {
     let theme = crate::palette::Theme::default();
     let ink = super::ink::CardInk {
+        radius: 0.,
         surface: theme.background,
         ground: theme.background.opacity(0.9),
         foreground: theme.foreground,

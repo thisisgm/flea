@@ -91,21 +91,7 @@ impl Shell {
     ) {
         match update {
             store::Update::Unreadable => self.settings_error("settings.error.unreadable", cx),
-            store::Update::Corner(corner) => {
-                self.corner = corner;
-                if let Some(view) = &self.settings.panel {
-                    view.update(cx, |view, cx| {
-                        view.panel.facts.corner = corner;
-                        cx.notify();
-                    });
-                }
-                if let Some(view) = &self.settings.sheet {
-                    view.update(cx, |view, cx| {
-                        view.corner = corner;
-                        cx.notify();
-                    });
-                }
-            }
+            store::Update::Corner(corner) => self.apply_corner(corner, window, cx),
             store::Update::Failed { through, keep } => {
                 if self
                     .settings

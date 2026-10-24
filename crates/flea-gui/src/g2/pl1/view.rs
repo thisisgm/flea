@@ -28,6 +28,7 @@ pub struct UnlockView {
     focus: FocusHandle,
     _readers: Vec<Task<()>>,
     _timer: Option<Task<()>>,
+    _corner: gpui::Subscription,
 }
 
 impl EventEmitter<HostEvent> for UnlockView {}
@@ -46,6 +47,7 @@ impl UnlockView {
             focus: cx.focus_handle(),
             _readers: Vec::new(),
             _timer: None,
+            _corner: cx.observe_global::<crate::compositor::Corner>(|_, cx| cx.notify()),
         }
     }
 
@@ -294,7 +296,8 @@ impl Render for UnlockView {
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
-        let ink = CardInk::inherited(&Palette::inherited(&window.text_style(), theme));
+        let mut ink = CardInk::inherited(&Palette::inherited(&window.text_style(), theme));
+        ink.radius = crate::compositor::corner(cx);
         let width = f32::from(window.viewport_size().width);
         let cancel = cx.listener(|view: &mut Self, _, _, cx| view.close(cx));
         let unlock = cx.listener(|view: &mut Self, _, _, cx| view.submit(cx));

@@ -173,6 +173,7 @@ impl Shell {
         }
         // The window holds the rounding every scene names.
         self.corner = spec.corner as f32;
+        cx.set_global(crate::compositor::Corner(self.corner));
         // The operations scenes open their card on the overlay slot; copy_to needs no backend reply.
         if matches!(
             spec.name.as_str(),

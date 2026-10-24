@@ -3,6 +3,8 @@ mod actions;
 mod apply;
 mod claim;
 #[cfg(test)]
+mod corner_tests;
+#[cfg(test)]
 mod fix1_tests;
 mod locale;
 mod messages;
@@ -110,6 +112,46 @@ impl Shell {
                 }
             }
         }));
+    }
+
+    pub(super) fn apply_corner(
+        &mut self,
+        corner: f32,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let corner = crate::compositor::valid_corner(f64::from(corner));
+        self.corner = corner;
+        cx.set_global(crate::compositor::Corner(corner));
+        if let Some(view) = &self.settings.panel {
+            view.update(cx, |view, cx| {
+                view.panel.facts.corner = corner;
+                cx.notify();
+            });
+        }
+        if let Some(view) = &self.settings.sheet {
+            view.update(cx, |view, cx| {
+                view.corner = corner;
+                cx.notify();
+            });
+        }
+        if let Some(view) = &self.settings.plugins {
+            let theme = cx
+                .try_global::<crate::palette::Theme>()
+                .copied()
+                .unwrap_or_default();
+            let palette = crate::list::Palette::inherited(&window.text_style(), theme);
+            view.update(cx, |view, cx| {
+                view.set_tokens(crate::g2::st2::seam::Tokens::interim(&palette), corner, cx);
+            });
+        }
+        if let Some(view) = &self.overlay {
+            view.update(cx, |view, cx| {
+                view.palette.radius = corner;
+                cx.notify();
+            });
+        }
+        cx.notify();
     }
 
     pub(crate) fn stop_settings(&mut self) {

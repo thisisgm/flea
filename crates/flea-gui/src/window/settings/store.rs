@@ -90,22 +90,14 @@ impl Worker {
     pub fn at(path: PathBuf, binary: PathBuf) -> std::io::Result<Self> {
         let (writes, queue) = mpsc::channel::<(u64, Json, Option<Json>)>();
         let (send, updates) = async_channel::unbounded();
+        let corners = send.clone();
+        let compositor = crate::compositor::Service::start(move |corner| {
+            corners.send_blocking(Update::Corner(corner)).is_ok()
+        })?;
         std::thread::Builder::new()
             .name("flea-settings".into())
             .spawn(move || {
-                let corner = Command::new("hyprctl")
-                    .args(["getoption", "decoration:rounding", "-j"])
-                    .output()
-                    .ok()
-                    .filter(|out| out.status.success())
-                    .and_then(|out| {
-                        flea::jsondoc::parse(&String::from_utf8_lossy(&out.stdout)).ok()
-                    })
-                    .and_then(|value| value.get("int").and_then(Json::as_f64))
-                    .filter(|value| value.is_finite() && *value >= 0.);
-                if let Some(corner) = corner {
-                    let _ = send.send_blocking(Update::Corner(corner as f32));
-                }
+                let _compositor = compositor;
                 let mut last = None;
                 let mut through = 0;
                 let mut read_failed = false;

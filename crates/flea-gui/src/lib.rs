@@ -1,6 +1,9 @@
 pub mod backend;
 mod capture;
 pub mod columns;
+pub(crate) mod compositor;
+#[cfg(test)]
+mod compositor_surface_tests;
 pub mod dual;
 pub mod feedback;
 pub mod g2;

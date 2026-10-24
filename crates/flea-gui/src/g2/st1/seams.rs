@@ -114,8 +114,8 @@ impl Store for MemoryStore {
     }
 }
 
-/// Hyprland's decoration rounding until G1's compositor service reads the live value.
-pub const COMPOSITOR_CORNER_DEFAULT: f32 = 8.;
+/// Unreadable compositor rounding is square until the live service answers.
+pub const COMPOSITOR_CORNER_DEFAULT: f32 = crate::compositor::CORNER_DEFAULT;
 
 /// What Settings reads but never writes. Seam for G1's Omarchy font and compositor services and the About facts.
 #[derive(Clone, Debug)]

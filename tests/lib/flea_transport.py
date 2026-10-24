@@ -319,6 +319,9 @@ def serve(root):
         runtime = Path(tempfile.mkdtemp(prefix="runtime", dir=root))
         runtime.rename(root / "runtime")
         (root / "runtime" / MARKER).touch()
+        real_runtime = os.environ.get("XDG_RUNTIME_DIR")
+        if real_runtime and (Path(real_runtime) / "hypr").is_dir():
+            (root / "runtime" / "hypr").symlink_to((Path(real_runtime) / "hypr").resolve(), target_is_directory=True)
         fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
         alias = f"/proc/{os.getpid()}/fd/{fd}/runtime"
         environment = dict(os.environ, XDG_RUNTIME_DIR=alias, FLEA_BIN=options["backend"],

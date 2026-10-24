@@ -10,7 +10,6 @@ pub const GAP: f32 = 12.;
 pub const ABOVE_BUTTONS: f32 = 10.;
 pub const TITLE: f32 = 16.;
 pub const CAPTION: f32 = 12.;
-pub const RADIUS: f32 = 8.;
 pub const BUTTON_HEIGHT: f32 = 30.;
 pub const BUTTON_PAD: f32 = 9.;
 pub const ROW_GAP: f32 = 9.;
@@ -221,8 +220,14 @@ impl Card {
 
 /// op1's shell owns the scrim, placement and focus trap; a card only hands it plain data.
 pub trait DialogShell {
-    fn present(&self, card: &Card, palette: &Palette, typeface: &Typeface, room: f32)
-        -> AnyElement;
+    fn present(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        corner: f32,
+        room: f32,
+    ) -> AnyElement;
 }
 
 /// The board tokens a card draws with, read from the palette roles the theme fills.
@@ -267,6 +272,7 @@ impl Tokens {
 }
 
 struct Draw<'a> {
+    corner: f32,
     t: Tokens,
     s: f32,
     typeface: &'a Typeface,

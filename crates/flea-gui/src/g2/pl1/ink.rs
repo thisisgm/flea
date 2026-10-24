@@ -4,6 +4,7 @@ use gpui::Hsla;
 
 #[derive(Clone, Copy, Debug)]
 pub struct CardInk {
+    pub radius: f32,
     pub surface: Hsla,
     pub ground: Hsla,
     pub foreground: Hsla,
@@ -19,6 +20,7 @@ impl CardInk {
     /// Interim roles from the row palette; error and accent stand in as foreground until the tokens arrive.
     pub fn inherited(palette: &Palette) -> Self {
         Self {
+            radius: crate::compositor::CORNER_DEFAULT,
             surface: palette.background,
             ground: palette.background,
             foreground: palette.foreground,
