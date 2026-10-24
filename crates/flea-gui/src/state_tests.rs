@@ -218,10 +218,21 @@ fn ipc_executor_is_cold_until_first_answer_and_then_serves_the_committed_pane(
     let entity = window.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
     window.update(|window, cx| {
         entity.update(cx, |shell, cx| {
+            shell.ipc_cold = true;
             shell.ipc_events = Some(events);
+            shell.start_ipc_reader(window, cx);
             shell.receive(0, BackendEvent::Reply(Reply::Other), window, cx);
-            assert!(shell._ipc_reader.is_none());
-            assert!(receive.try_recv().is_err());
+            assert!(shell.ipc_cold);
+        })
+    });
+    window.run_until_parked();
+    // A call before the first answer is refused at once, never run after the listing lands.
+    assert_eq!(
+        receive.try_recv().unwrap().reply,
+        flea::ipc::registry::no_target()
+    );
+    window.update(|window, cx| {
+        entity.update(cx, |shell, cx| {
             shell.panes[0].as_mut().unwrap().pane.begin(
                 "/files".into(),
                 crate::pane::swap::Options::default(),
@@ -248,8 +259,19 @@ fn ipc_executor_is_cold_until_first_answer_and_then_serves_the_committed_pane(
             );
             assert!(shell._ipc_reader.is_some());
             assert!(shell.ipc_events.is_none());
+            assert!(!shell.ipc_cold);
         })
     });
+    let (answer, receive) = std::sync::mpsc::sync_channel(1);
+    send.try_send(Event::Call {
+        request: flea::ipc::wire::Request::Call {
+            target: "flea".into(),
+            function: "total".into(),
+            arguments: vec![],
+        },
+        answer,
+    })
+    .unwrap();
     cx.run_until_parked();
     assert_eq!(
         receive.try_recv().unwrap().reply,
