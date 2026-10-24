@@ -172,7 +172,8 @@ impl Shell {
             self.close_overlay(window, cx);
         }
         // The window holds the rounding every scene names.
-        self.corner = spec.corner as f32;
+        self.visual.scene_corner = Some(spec.corner as f32);
+        self.apply_corner(spec.corner as f32, window, cx);
         // The operations scenes open their card on the overlay slot; copy_to needs no backend reply.
         if matches!(
             spec.name.as_str(),

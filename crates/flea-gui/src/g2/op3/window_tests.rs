@@ -16,6 +16,7 @@ impl Render for Probe {
             &self.0,
             &palette,
             &self.1,
+            crate::compositor::corner(cx),
             f32::from(window.viewport_size().width),
         )
     }
