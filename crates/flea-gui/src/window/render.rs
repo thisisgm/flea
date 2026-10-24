@@ -111,6 +111,8 @@ impl Render for Shell {
             // A failed Grid send ends the pane before this frame builds any surface or pane element.
             self.finish_grid_failures(window, cx);
         }
+        // Every frame, so a Grid pane that is hidden or covered lets its pictures go.
+        self.sync_grid_pictures(window, cx);
         for side in 0..2 {
             self.sync_surfaces(side, cx);
         }
