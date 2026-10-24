@@ -51,6 +51,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         overlay: None,
         output: Default::default(),
         operations: Default::default(),
+        clipboard: Default::default(),
         settings: Default::default(),
         trash: None,
         rail: None,

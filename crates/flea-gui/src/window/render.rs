@@ -60,6 +60,7 @@ impl Render for Shell {
         for side in 0..2 {
             self.flush_operations(side, cx);
         }
+        self.sync_clip_marks();
         self.finish_grid_view(window, cx);
         self.capture.report(window, cx);
         if self.seam.viewport().is_none() {
