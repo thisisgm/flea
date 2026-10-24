@@ -30,7 +30,7 @@ pub const GROUPS: &[Group] = &[
 
 // src/uischema.rs DEFAULTS menu.hidden, which ViewState.defaultMenuHidden copies for a document that stores none.
 pub const SHIPPED_HIDDEN: &[&str] = &["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties",
-    "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText"];
+    "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "actions"];
 
 // Open and Show Hidden Files draw the lock mark instead of a box: no switch governs them.
 pub const LOCKED: &[&str] = &["open", "toggleHidden"];

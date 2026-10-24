@@ -47,6 +47,18 @@ impl Actions {
         Some(wire::list_request(id, &paths))
     }
 
+    // The window's menu join sends discovery itself under its snapshot id once the backend has resolved the rows, so the wait is armed for that id.
+    pub fn listing_requested(&mut self, id: usize) {
+        self.pending_list = Some(id);
+        self.listing = None;
+    }
+
+    // A new menu snapshot forgets the last menu's listing before anything is asked.
+    pub fn listing_forgotten(&mut self) {
+        self.pending_list = None;
+        self.listing = None;
+    }
+
     // The plugin host's latest enabled and healthy contributions.
     pub fn set_contributions(&mut self, contributions: Vec<plugins::Contribution>) {
         self.contributions = contributions;

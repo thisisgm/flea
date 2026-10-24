@@ -31,7 +31,7 @@ set -e
 core=$(count "$unit_root/core.log")
 gui=$(count "$unit_root/gui.log")
 [ "${core:-0}" -ge 39 ] || { printf 'g2-mn2: FAIL only %s core checks ran\n' "${core:-0}"; exit 1; }
-[ "${gui:-0}" -ge 21 ] || { printf 'g2-mn2: FAIL only %s GPUI checks ran\n' "${gui:-0}"; exit 1; }
+[ "${gui:-0}" -ge 25 ] || { printf 'g2-mn2: FAIL only %s GPUI checks ran\n' "${gui:-0}"; exit 1; }
 clippy_root=$(mktemp -d "$PWD/.superpowers/g2-mn2/clippy.XXXXXXXX")
 : > "$clippy_root/.flea-test-sandbox"
 tools/flea-clippy tools/clippy-baseline.txt "$clippy_root"
