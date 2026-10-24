@@ -63,35 +63,139 @@ fn u05_refused_sort_is_a_notice_that_expires_without_dismissing_errors(cx: &mut 
     frame(cx, handle);
     refuse(cx, handle, "sort", "/files");
     assert_eq!(read(cx, handle, "statusError"), Reply::value("false"));
-    assert!(!read(cx, handle, "lastMessage").stdout.trim().is_empty());
+    let notice = read(cx, handle, "lastMessage");
+    assert!(!notice.stdout.trim().is_empty());
     for _ in 0..260 {
         frame(cx, handle);
     }
+    assert_eq!(read(cx, handle, "lastMessage"), Reply::value(""));
+
+    refuse(cx, handle, "window", "/files");
+    let error = read(cx, handle, "lastMessage");
+    assert_eq!(error, Reply::value("Permission denied."));
+    let errors = |cx: &mut TestAppContext| {
+        json(cx, handle, "statusActivityState")
+            .get("errors")
+            .unwrap()
+            .as_f64()
+    };
+    assert_eq!(errors(cx), Some(1.));
+    refuse(cx, handle, "sort", "/files");
+    assert_eq!(read(cx, handle, "lastMessage"), error);
+    assert_eq!(read(cx, handle, "statusError"), Reply::value("true"));
+    assert_eq!(errors(cx), Some(1.));
+    for _ in 0..260 {
+        frame(cx, handle);
+    }
+    assert_eq!(read(cx, handle, "lastMessage"), error);
+    assert_eq!(read(cx, handle, "statusError"), Reply::value("true"));
+    assert_eq!(errors(cx), Some(1.));
+
+    escape(cx, handle);
+    assert_eq!(errors(cx), Some(0.));
+    assert_eq!(read(cx, handle, "statusError"), Reply::value("false"));
+    assert_eq!(read(cx, handle, "lastMessage"), notice);
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_millis(
+        flea::ui_logic_fb1::messages::MESSAGE_MS - 1,
+    ));
+    cx.run_until_parked();
+    assert_eq!(read(cx, handle, "lastMessage"), notice);
+    cx.executor().advance_clock(Duration::from_millis(1));
+    cx.run_until_parked();
     assert_eq!(read(cx, handle, "lastMessage"), Reply::value(""));
 }
 
 #[gpui::test]
 fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut TestAppContext) {
-    let handle = open(cx);
-    frame(cx, handle);
-    refuse(cx, handle, "window", "/files");
-    for context in flea::keys::Context::ALL {
-        if context == flea::keys::Context::Listing {
-            continue;
-        }
+    use flea::keys::Context as KeyContext;
+    for context in [KeyContext::Rail, KeyContext::Menu, KeyContext::Panel] {
+        let (backend, mut requests) = crate::backend::Backend::test_lines();
+        let handle = cx.add_window(|window, cx| {
+            let shell = crate::state::tests::shell_with(backend, cx);
+            window.focus(&shell.focus, cx);
+            shell
+        });
+        frame(cx, handle);
+        refuse(cx, handle, "window", "/files");
+        let error = read(cx, handle, "lastMessage");
         handle
-            .update(cx, |shell, _, _| shell.keyboard.context = context)
+            .update(cx, |shell, window, cx| {
+                match context {
+                    KeyContext::Rail => {
+                        shell.mount_rail(cx);
+                        shell.rail_focus(true, cx);
+                        shell.route_rail(window, cx);
+                        assert!(shell.rail.as_ref().unwrap().places.read(cx).model.borrow().focused);
+                        assert_eq!(shell.focus_view(window, cx), "rail");
+                    }
+                    KeyContext::Menu => {
+                        shell.open_menu(0, Some(0), (20., 60.), window, cx);
+                        let id = shell.menu.captured.as_ref().unwrap().id;
+                        for line in [
+                            format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[32768]}}"#),
+                            format!(r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[]}}"#),
+                        ] {
+                            shell.receive(0, crate::backend::Event::Producer(line), window, cx);
+                        }
+                        assert!(shell.menu_opened());
+                        assert!(shell.panes[0].as_ref().unwrap().nav.gate.menu_open);
+                    }
+                    KeyContext::Panel => {
+                        shell.view = crate::window::startup::View::Dual;
+                        assert!(shell.chrome.view.is_some());
+                        assert!(shell.dual_tab(false, window, cx));
+                        assert_eq!(shell.focus_view(window, cx), "chrome");
+                        assert!(shell.dual_focus.chrome.is_focused(window));
+                    }
+                    _ => unreachable!(),
+                }
+                assert_eq!(shell.keyboard.context, context);
+            })
             .unwrap();
         escape(cx, handle);
+        cx.run_until_parked();
+        handle
+            .update(cx, |shell, window, cx| {
+                match context {
+                    KeyContext::Rail => {
+                        assert!(
+                            !shell
+                                .rail
+                                .as_ref()
+                                .unwrap()
+                                .places
+                                .read(cx)
+                                .model
+                                .borrow()
+                                .focused
+                        );
+                        assert_eq!(shell.focus_view(window, cx), "list");
+                    }
+                    KeyContext::Menu => {
+                        assert!(!shell.menu_opened());
+                        assert!(shell.menu.captured.is_none());
+                        assert!(!shell.panes[0].as_ref().unwrap().nav.gate.menu_open);
+                        assert!(std::iter::from_fn(&mut requests).any(|line| {
+                            let doc = flea::jsondoc::parse(&line).unwrap();
+                            doc.get("op").and_then(flea::jsondoc::Json::as_str) == Some("close")
+                        }));
+                    }
+                    KeyContext::Panel => {
+                        assert!(!shell.dual_focus.chrome.is_focused(window));
+                        assert_eq!(shell.focus_view(window, cx), "list");
+                    }
+                    _ => unreachable!(),
+                }
+                assert!(shell.focus.is_focused(window));
+                assert_eq!(shell.keyboard.context, KeyContext::Listing);
+            })
+            .unwrap();
         assert_eq!(read(cx, handle, "statusError"), Reply::value("true"));
+        assert_eq!(read(cx, handle, "lastMessage"), error);
+        escape(cx, handle);
+        assert_eq!(read(cx, handle, "statusError"), Reply::value("false"));
     }
-    handle
-        .update(cx, |shell, _, _| {
-            shell.keyboard.context = flea::keys::Context::Listing
-        })
-        .unwrap();
-    escape(cx, handle);
-    assert_eq!(read(cx, handle, "statusError"), Reply::value("false"));
 }
 
 #[gpui::test]
