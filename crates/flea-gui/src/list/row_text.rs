@@ -1,0 +1,134 @@
+//! Name elision and prepared text shared by the List Element's retained rows.
+use super::{
+    columns::{Column, Layout},
+    ListView,
+};
+use crate::row::{
+    self,
+    cache::{Extra, Prepared, Shaping},
+    format,
+    marks::Mark,
+};
+use flea::protocol::RowFacts;
+use gpui::{Font, GlyphRun, Hsla, LineLayout, Pixels, TextRun, Window};
+use std::{borrow::Cow, cell::OnceCell, sync::Arc};
+
+pub(super) fn run_of(len: usize, font: &Font) -> TextRun {
+    TextRun {
+        len,
+        font: font.clone(),
+        color: Hsla::default(),
+        background_color: None,
+        underline: None,
+        strikethrough: None,
+    }
+}
+
+/// The name as drawn: middle-elided to its budget, or right-elided around a match run so the run stays in its head.
+pub fn drawn_name(
+    facts: &RowFacts,
+    extra: Extra,
+    shaping: &Shaping,
+    query: &str,
+) -> (String, Option<(usize, usize)>) {
+    let name = row::decorated_name(facts);
+    let budget = if extra.clipped {
+        shaping.clip_cells
+    } else {
+        shaping.name_cells
+    };
+    let budget = extra.drop.map_or(budget, |drop| drop.min(budget));
+    let Some((start, end)) = format::match_run(&facts.name, query) else {
+        return (row::middle_elide(&name, budget).into_owned(), None);
+    };
+    let (drawn, kept) = match row::right_elide(&name, budget) {
+        Cow::Borrowed(_) => (name.clone(), name.len()),
+        Cow::Owned(text) => {
+            let kept = text.len() - '\u{2026}'.len_utf8();
+            (text, kept)
+        }
+    };
+    (drawn, (start < kept).then_some((start, end.min(kept))))
+}
+
+/// Shapes one row's cells once, each elided to its own budget, so no long name is shaped whole and no hidden column at all.
+pub(super) fn prepare(
+    facts: &RowFacts,
+    extra: Extra,
+    shaping: &Shaping,
+    view: &ListView,
+    layout: &Layout,
+    blank: &Arc<LineLayout>,
+    window: &Window,
+) -> Prepared {
+    let text = window.text_system();
+    let shape = |value: &str, size: Pixels| {
+        GlyphRun::new(text.layout_line(value, size, &[run_of(value.len(), &shaping.font)], None))
+    };
+    let cell = |column: Column, value: &dyn Fn() -> String| {
+        if layout.shown(column) {
+            shape(
+                &row::right_elide(&value(), shaping.cells[column.slot()]),
+                shaping.caption,
+            )
+        } else {
+            GlyphRun::new(Arc::clone(blank))
+        }
+    };
+    let mut display = Cow::Borrowed(facts);
+    let mut name_shaping = Cow::Borrowed(shaping);
+    let location = if view.searching {
+        display.to_mut().name = facts
+            .name
+            .rsplit('/')
+            .next()
+            .unwrap_or(&facts.name)
+            .to_owned();
+        let location =
+            crate::g2::sr1::run::location(&facts.name, "", "", flea::ui_logic_sr1::Scope::Folder);
+        let location = row::right_elide(&location, shaping.name_cells / 2).into_owned();
+        if !location.is_empty() {
+            let reserved = location.chars().map(row::cells_of).sum::<usize>();
+            let shaped = name_shaping.to_mut();
+            shaped.name_cells = shaped.name_cells.saturating_sub(reserved + 1);
+            shaped.clip_cells = shaped.name_cells;
+        }
+        location
+    } else {
+        String::new()
+    };
+    let (name, run) = drawn_name(&display, extra, &name_shaping, &view.query);
+    let words = &view.words;
+    Prepared {
+        label: name.clone(),
+        size_text: format::size_text(facts, extra.walked, words),
+        date_text: format::date_text(facts.mtime, words),
+        location: if location.is_empty() {
+            GlyphRun::new(Arc::clone(blank))
+        } else {
+            shape(&location, shaping.caption)
+        },
+        name: shape(&name, shaping.body),
+        size: cell(Column::Size, &|| {
+            format::size_text(facts, extra.walked, words)
+        }),
+        date: cell(Column::Date, &|| format::date_text(facts.mtime, words)),
+        mode: cell(Column::Mode, &|| format::permissions(facts.mode)),
+        // The rows reply carries no kind names on this protocol yet, so the cell is empty, as Row.kindText() is without row.k.
+        kind: cell(Column::Kind, &String::new),
+        mark: Mark::for_facts(facts, shaping.languages),
+        ink: row::name_ink(facts),
+        run,
+        bold: OnceCell::new(),
+    }
+}
+
+/// The cursor row's name with its match run in bold, the board's cursor treatment for a marked name.
+pub(super) fn bold_name(prepared: &Prepared, shaping: &Shaping, window: &Window) -> GlyphRun {
+    let runs = crate::g2::sr1::run::text_runs(&prepared.label, prepared.run, true, &shaping.font);
+    GlyphRun::new(
+        window
+            .text_system()
+            .layout_line(&prepared.label, shaping.body, &runs, None),
+    )
+}
