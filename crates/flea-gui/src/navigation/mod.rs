@@ -12,7 +12,7 @@ use crate::pane::{requests::RowAction, swap::Options, Pane};
 use anchor::{Anchor, Preference};
 use folder_state::{Folders, Order, Writer};
 use history::{History, Restore};
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 use watch::{Gate, Watch};
 
 // Locate ids for the anchor sit above the signed menu ids, keeping the reply askers disjoint.
@@ -80,6 +80,19 @@ pub struct Counters {
 }
 
 #[derive(Default)]
+struct Orders {
+    path: String,
+    preferences: Option<(Order, bool)>,
+    drawn: Option<(usize, Order)>,
+    requests: VecDeque<RequestedOrder>,
+}
+
+struct RequestedOrder {
+    order: Order,
+    sort: bool,
+}
+
+#[derive(Default)]
 pub struct Navigator {
     pub history: History,
     pub restore: Option<Restore>,
@@ -97,6 +110,7 @@ pub struct Navigator {
     pub writer: Rc<RefCell<Writer>>,
     pub counters: Counters,
     pub out: Vec<Command>,
+    orders: Orders,
     seen: usize,
     locate_seq: u64,
     relist_owed: bool,
@@ -144,17 +158,72 @@ impl Navigator {
                 .is_some_and(|anchor| anchor.path == pane.path())
     }
 
-    // The order the listing is actually in, which the header's mark draws.
+    // The latest requested order, retained for the existing command and IPC contract.
     pub fn sort_mark(&self) -> String {
         sort::mark(self.order)
+    }
+
+    // The header follows the retained row generation, never a command still waiting for rows.
+    pub fn drawn_order(&self) -> Order {
+        self.orders.drawn.map_or(self.order, |(_, order)| order)
+    }
+
+    fn sync_orders(&mut self, pane: &Pane) {
+        let landed = pane.held.listing != 0
+            && self
+                .orders
+                .drawn
+                .is_none_or(|(listing, _)| listing != pane.held.listing);
+        if landed {
+            let order = self
+                .orders
+                .requests
+                .pop_front()
+                .map(|request| request.order)
+                .unwrap_or(self.order);
+            self.orders.drawn = Some((pane.held.listing, order));
+        }
+        if !pane.busy()
+            && matches!(
+                pane.state.kind,
+                crate::pane::Kind::Error | crate::pane::Kind::Locked
+            )
+        {
+            self.orders.requests.clear();
+        }
+    }
+
+    fn start_sort(&mut self, pane: &Pane, order: Order) {
+        self.sync_orders(pane);
+        self.orders.path = pane.path().into();
+        let folders = self.folders.borrow();
+        self.orders.preferences = Some((folders.global, folders.remember_sort));
+        self.orders
+            .requests
+            .push_back(RequestedOrder { order, sort: true });
     }
 
     // The listing every navigation and re-read submits, in the folder's own order.
     pub fn listing(&mut self, pane: &Pane, path: &str, want_changed: bool) -> Listing {
         let folders = self.folders.borrow();
-        if !self.preserve_sort {
+        let preferences = (folders.global, folders.remember_sort);
+        if !self.preserve_sort
+            && (self.orders.path != path || self.orders.preferences != Some(preferences))
+        {
             self.order = folders.order_for(path);
         }
+        if self.orders.path != path {
+            self.orders.requests.clear();
+        } else {
+            // A superseded scan may be cancelled, while earlier sorts still answer in command order.
+            self.orders.requests.retain(|request| request.sort);
+        }
+        self.orders.path = path.into();
+        self.orders.preferences = Some(preferences);
+        self.orders.requests.push_back(RequestedOrder {
+            order: self.order,
+            sort: false,
+        });
         Listing {
             path: path.into(),
             first: pane.first_count(),
@@ -199,6 +268,25 @@ impl Navigator {
             .map(|restore| restore.entry.name.clone())
             .filter(|name| !name.is_empty());
         let relisting = options.relist;
+        self.sync_orders(pane);
+        if pane.swap.unheld_total.is_some() {
+            let sorts = self
+                .orders
+                .requests
+                .iter()
+                .filter(|request| request.sort)
+                .count();
+            let mut listed = sorts.saturating_sub(pane.swap.sorts_out.len());
+            // Begin drops an already listed pair, so its remaining window cannot commit this navigation.
+            self.orders.requests.retain(|request| {
+                if request.sort && listed > 0 {
+                    listed -= 1;
+                    false
+                } else {
+                    true
+                }
+            });
+        }
         let now = pane.now();
         if !pane.begin(path.into(), options, now) {
             return Ok(false);
@@ -210,5 +298,84 @@ impl Navigator {
         let listing = self.listing(pane, path, want_changed);
         self.emit(Command::List(listing));
         Ok(true)
+    }
+}
+
+#[cfg(test)]
+mod order_tests {
+    use super::*;
+    use flea::protocol::{Reply, RowFacts};
+
+    fn pair(nav: &mut Navigator, pane: &mut Pane, listing: usize) {
+        let before = pane.path().to_owned();
+        for reply in [
+            Reply::Listed {
+                path: "/A".into(),
+                total: 1,
+            },
+            Reply::Rows {
+                start: 0,
+                rows: vec![RowFacts::default()],
+                listing,
+            },
+        ] {
+            pane.receive(reply).unwrap();
+            nav.after_reply(pane, &before, &mut Vec::new());
+        }
+    }
+
+    #[test]
+    fn m9_g1rows_05_forget_joins_the_old_sort_and_default_list_to_their_own_rows() {
+        for listed in [false, true] {
+            let data = flea::uistate::from_file("{}");
+            let mut nav = Navigator::new(
+                Rc::new(RefCell::new(Folders::from_settings(&data, Vec::new()))),
+                Rc::default(),
+            );
+            let mut pane = Pane::new("/A".into(), 620.);
+            nav.listing(&pane, "/A", false);
+            pair(&mut nav, &mut pane, 1);
+            let size = Order {
+                key: "size",
+                desc: true,
+            };
+            assert_eq!(
+                nav.resort(&mut pane, size, &mut Vec::new(), String::new()),
+                Ok(true)
+            );
+            nav.take();
+            if listed {
+                pane.receive(Reply::Listed {
+                    path: "/A".into(),
+                    total: 1,
+                })
+                .unwrap();
+                nav.after_reply(&mut pane, "/A", &mut Vec::new());
+            }
+            assert_eq!(nav.forget_sort(&mut pane, String::new()), Ok(true));
+            if listed {
+                assert!(!pane
+                    .receive(Reply::Rows {
+                        start: 0,
+                        rows: vec![RowFacts::default()],
+                        listing: 2
+                    })
+                    .unwrap());
+                nav.after_reply(&mut pane, "/A", &mut Vec::new());
+                assert_eq!(nav.drawn_order(), Order::default());
+            } else {
+                pair(&mut nav, &mut pane, 2);
+                assert_eq!(
+                    nav.drawn_order(),
+                    size,
+                    "the earlier sort's rows arrive before the default list"
+                );
+            }
+            assert_eq!(nav.sort_snapshot(&pane), Err(Refusal::Busy));
+            pair(&mut nav, &mut pane, 3);
+            assert_eq!(nav.drawn_order(), Order::default());
+            assert_eq!(nav.order, Order::default());
+            assert_eq!(nav.sort_snapshot(&pane).unwrap().order, Order::default());
+        }
     }
 }
