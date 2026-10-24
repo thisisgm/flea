@@ -77,7 +77,7 @@ fn escape(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
 
 #[gpui::test]
 fn escape_closes_the_copy_card_through_its_close(cx: &mut TestAppContext) {
-    let (backend, _receiver) = Backend::test_channel();
+    let (backend, mut requests) = Backend::test_lines();
     let handle = open(cx, backend);
     // The list draws its focused cursor once the window has focus, so the own frame is taken focused.
     focus_shell(cx, handle);
@@ -88,10 +88,11 @@ fn escape_closes_the_copy_card_through_its_close(cx: &mut TestAppContext) {
         marks(cx, handle, "op1-scrim").is_some(),
         "the card is open before Escape"
     );
-    // Clone the entity before the window takes it, so the close line stays readable after the drop.
+    // Retain the model to check closure, and observe the command on its owning backend.
     let overlay = shell(cx, handle, |shell, _, _| {
         shell.overlay.clone().expect("an open overlay")
     });
+    while requests().is_some() {}
     escape(cx, handle);
     let back = frame(cx, handle);
     assert_eq!(
@@ -103,9 +104,8 @@ fn escape_closes_the_copy_card_through_its_close(cx: &mut TestAppContext) {
         same_frame(&back, &own),
         "the window draws its own frame after Escape"
     );
-    let (outbox, open) = shell(cx, handle, |_, _, cx| {
-        overlay.read_with(cx, |card, _| (card.model.outbox.clone(), card.model.open()))
-    });
+    let open = shell(cx, handle, |_, _, cx| overlay.read(cx).model.open());
+    let outbox: Vec<_> = std::iter::from_fn(&mut requests).collect();
     assert!(!open, "Escape closes the copy card");
     assert!(
         outbox
@@ -113,6 +113,7 @@ fn escape_closes_the_copy_card_through_its_close(cx: &mut TestAppContext) {
             .any(|line| line.contains("\"menuaction\"") && line.contains("\"op\":\"close\"")),
         "Escape queues the card's menu_close, not a bare drop: {outbox:?}"
     );
+    assert_eq!(outbox, [r#"{"c":"menuaction","op":"close","id":0}"#]);
 }
 
 #[gpui::test]
@@ -176,15 +177,16 @@ fn escape_after_a_mouse_cancel_leaves_no_overlay(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn escape_queues_the_cards_menu_close(cx: &mut TestAppContext) {
-    let (backend, _receiver) = Backend::test_channel();
+    let (backend, mut requests) = Backend::test_lines();
     let handle = open(cx, backend);
     frame(cx, handle);
     open_copy_to(cx, handle);
     frame(cx, handle);
-    // Escape goes through the window branch; the clone keeps the card readable after the slot drops.
+    // Retain the model while Escape delivers the close through the owning backend.
     let overlay = shell(cx, handle, |shell, _, _| {
         shell.overlay.clone().expect("an open overlay")
     });
+    while requests().is_some() {}
     escape(cx, handle);
     frame(cx, handle);
     assert_eq!(
@@ -192,9 +194,8 @@ fn escape_queues_the_cards_menu_close(cx: &mut TestAppContext) {
         None,
         "Escape closes the card"
     );
-    let (outbox, open) = shell(cx, handle, |_, _, cx| {
-        overlay.read_with(cx, |card, _| (card.model.outbox.clone(), card.model.open()))
-    });
+    let open = shell(cx, handle, |_, _, cx| overlay.read(cx).model.open());
+    let outbox: Vec<_> = std::iter::from_fn(&mut requests).collect();
     assert!(!open, "Escape closes the copy card");
     assert!(
         outbox
@@ -202,6 +203,7 @@ fn escape_queues_the_cards_menu_close(cx: &mut TestAppContext) {
             .any(|line| line.contains("\"menuaction\"") && line.contains("\"op\":\"close\"")),
         "Escape queues the card's menu_close, not a bare drop: {outbox:?}"
     );
+    assert_eq!(outbox, [r#"{"c":"menuaction","op":"close","id":0}"#]);
 }
 
 // Exercise the actual menu producer, which obtains its pane-bound operation session.

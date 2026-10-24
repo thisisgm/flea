@@ -191,10 +191,9 @@ impl Element for MenuElement {
         let paint = view.paint.borrow();
         let Some(popup) = paint.popup else { return };
         let scroll = view.scroll;
-        // Radius 0 until the theme's corner token lands.
         window.paint_quad(quad(
             bounds,
-            px(0.),
+            px(view.corner),
             ink.surface,
             px(FRAME),
             ink.muted_frame,

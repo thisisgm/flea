@@ -34,7 +34,7 @@ pub struct Shell {
     pub(crate) overlay: Option<gpui::Entity<crate::g2::op1::host::Overlay>>,
     pub(crate) trash: Option<crate::g2::pl3::join::TrashHost>,
     pub(crate) rail: Option<crate::window::rail::Join>,
-    /// The corner rounding scenes drive and cards draw; the compositor seam default until a scene sets it.
+    /// Live compositor rounding, square until it is readable; visual scenes can override it.
     pub(crate) corner: f32,
     pub(crate) locale: Snapshot,
     pub(crate) labels: Labels,

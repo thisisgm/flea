@@ -3,6 +3,8 @@ mod actions;
 mod apply;
 mod claim;
 #[cfg(test)]
+mod corner_tests;
+#[cfg(test)]
 mod fix1_tests;
 mod locale;
 mod messages;
@@ -11,7 +13,7 @@ mod plugins;
 mod review_tests;
 #[cfg(test)]
 mod service_tests;
-mod store;
+pub(crate) mod store;
 mod update;
 pub(crate) use store::SessionStore;
 
@@ -110,6 +112,71 @@ impl Shell {
                 }
             }
         }));
+    }
+
+    pub(crate) fn apply_corner(
+        &mut self,
+        corner: f32,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let live = crate::compositor::valid_corner(f64::from(corner));
+        // The app global carries only the compositor value; a scene corner stays in this window.
+        cx.set_global(crate::compositor::Corner(live));
+        let corner = self.visual.scene_corner.unwrap_or(live);
+        self.corner = corner;
+        if let Some(view) = &self.settings.panel {
+            view.update(cx, |view, cx| {
+                view.panel.facts.corner = corner;
+                cx.notify();
+            });
+        }
+        if let Some(view) = &self.settings.sheet {
+            view.update(cx, |view, cx| {
+                view.corner = corner;
+                cx.notify();
+            });
+        }
+        if let Some(view) = &self.settings.plugins {
+            let theme = cx
+                .try_global::<crate::palette::Theme>()
+                .copied()
+                .unwrap_or_default();
+            let palette = crate::list::Palette::inherited(&window.text_style(), theme);
+            view.update(cx, |view, cx| {
+                view.set_tokens(crate::g2::st2::seam::Tokens::interim(&palette), corner, cx);
+            });
+        }
+        if let Some(view) = &self.overlay {
+            view.update(cx, |view, cx| {
+                view.palette.radius = corner;
+                cx.notify();
+            });
+        }
+        if let Some(view) = &self.chrome.view {
+            let path = view.read(cx).path.clone();
+            path.update(cx, |view, cx| {
+                view.corner = corner;
+                cx.notify();
+            });
+            view.update(cx, |view, cx| {
+                view.inputs.corner = corner;
+                cx.notify();
+            });
+        }
+        if let Some(join) = &self.rail {
+            join.places.update(cx, |view, cx| {
+                view.model.borrow_mut().corner = corner;
+                cx.notify();
+            });
+        }
+        if let Some(host) = &self.trash {
+            host.pane.update(cx, |view, cx| {
+                view.paint.borrow_mut().ink.radius = gpui::px(corner);
+                cx.notify();
+            });
+        }
+        cx.notify();
     }
 
     pub(crate) fn stop_settings(&mut self) {

@@ -1,5 +1,7 @@
 //! Presented scene receipts and on-demand viewport geometry for native capture clients.
 pub(crate) mod contract;
+#[cfg(test)]
+mod corner_tests;
 pub(crate) mod geometry;
 mod ipc;
 #[cfg(test)]
@@ -20,6 +22,8 @@ pub(crate) struct Pending {
 
 #[derive(Default)]
 pub(crate) struct Visual {
+    /// Explicit scene rounding stays authoritative for this window until another scene replaces it.
+    pub scene_corner: Option<f32>,
     pub revision: u64,
     pub receipt: Option<Json>,
     pub pending: Option<Pending>,

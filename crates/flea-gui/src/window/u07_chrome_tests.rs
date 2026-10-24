@@ -4,7 +4,7 @@ use super::{
     u07_tests::{open, press, read},
 };
 use crate::path::{join::NetworkPath, Answer, Peeked};
-use gpui::{point, px, Modifiers, TestAppContext};
+use gpui::{point, px, size, Modifiers, TestAppContext};
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 fn drawn(centre: &str) -> gpui::Point<gpui::Pixels> {
@@ -14,7 +14,10 @@ fn drawn(centre: &str) -> gpui::Point<gpui::Pixels> {
 
 #[gpui::test]
 fn u07_each_visible_toolbar_control_delivers_the_action_its_owner_knows(cx: &mut TestAppContext) {
-    let (shell, cx) = open(cx);
+    let (backend, mut requests) = crate::backend::Backend::test_lines();
+    let (shell, cx) = cx.add_window_view(|_, cx| crate::state::tests::shell_with(backend, cx));
+    cx.simulate_resize(size(px(1100.), px(700.)));
+    cx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
     let seen = Rc::new(RefCell::new(Vec::<&'static str>::new()));
     let emitted = Rc::new(RefCell::new(Vec::<&'static str>::new()));
     cx.run_until_parked();
@@ -38,9 +41,7 @@ fn u07_each_visible_toolbar_control_delivers_the_action_its_owner_knows(cx: &mut
         "a disabled Back never emits: {:?}",
         emitted.borrow()
     );
-    let up = read(&shell, cx, "chromeButtonCentre", &["arrow-up"]);
-    press(cx, &up, 1);
-    assert_eq!(emitted.borrow().as_slice(), ["up"], "an enabled Up emits");
+    while requests().is_some() {}
     for (name, action) in [("search", "search"), ("sliders", "settings")] {
         let centre = read(&shell, cx, "chromeButtonCentre", &[name]);
         press(cx, &centre, 1);
@@ -54,7 +55,26 @@ fn u07_each_visible_toolbar_control_delivers_the_action_its_owner_knows(cx: &mut
             cx.run_until_parked();
             assert!(!shell.read_with(cx, |shell, _| shell.settings.opened));
         } else {
-            assert_eq!(seen.borrow().last(), Some(&action));
+            assert!(
+                shell.read_with(cx, |shell, _| {
+                    shell.panes[0].as_ref().unwrap().search.owner.typing()
+                }),
+                "the real search owner consumed the toolbar action"
+            );
+            assert_eq!(
+                requests().as_deref(),
+                Some(r#"{"c":"searchopen","path":"/files","folder":"/files","hidden":false}"#)
+            );
+            assert!(requests().is_none(), "one press opens one search session");
+            assert!(
+                seen.borrow().is_empty(),
+                "owned search is not dispatched twice"
+            );
+            cx.simulate_keystrokes("escape");
+            cx.run_until_parked();
+            assert!(!shell.read_with(cx, |shell, _| {
+                shell.panes[0].as_ref().unwrap().search.owner.active()
+            }));
         }
     }
     let centre = read(&shell, cx, "chromeButtonCentre", &["grid"]);
@@ -68,6 +88,25 @@ fn u07_each_visible_toolbar_control_delivers_the_action_its_owner_knows(cx: &mut
             "the {name} control must deliver the action keys.toml names"
         );
     }
+    let up = read(&shell, cx, "chromeButtonCentre", &["arrow-up"]);
+    press(cx, &up, 1);
+    assert_eq!(emitted.borrow().last(), Some(&"up"), "an enabled Up emits");
+    assert_eq!(
+        shell
+            .read_with(cx, |shell, _| {
+                shell.panes[0]
+                    .as_ref()
+                    .unwrap()
+                    .pane
+                    .swap
+                    .pending
+                    .as_ref()
+                    .map(|pending| pending.path.clone())
+            })
+            .as_deref(),
+        Some("/"),
+        "Up reaches the real navigation owner"
+    );
 }
 
 #[gpui::test]

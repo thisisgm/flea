@@ -48,6 +48,8 @@ while True:
         reply = {"code": 0, "stdout": "owned\\n", "stderr": ""}
         if function == "palette":
             reply.update(code=3, stdout="", stderr="FLEA_IPC_NOT_PORTED flea.palette\\n")
+        if function == "hypr-runtime":
+            reply["stdout"] = str((runtime / "hypr/control/.socket.sock").is_socket()) + "\\n"
         if function == "quit":
             reply["stdout"] = ""
         connection.sendall((json.dumps(reply) + "\\n").encode())
@@ -136,6 +138,28 @@ try:
     record = load(first.root)
     runtime_info = os.lstat(record["runtime"])
     check(stat.S_ISDIR(runtime_info.st_mode) and runtime_info.st_mode & 0o077 == 0, "native-runtime-contract")
+    compositor_runtime = root / "compositor-runtime"
+    (compositor_runtime / "hypr/control").mkdir(parents=True)
+    with socket.socket(socket.AF_UNIX) as compositor_socket:
+        runtime_fd = os.open(compositor_runtime, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            compositor_socket.bind(f"/proc/self/fd/{runtime_fd}/hypr/control/.socket.sock")
+        finally:
+            os.close(runtime_fd)
+        saved_runtime = os.environ.get("XDG_RUNTIME_DIR")
+        try:
+            os.environ["XDG_RUNTIME_DIR"] = str(compositor_runtime)
+            compositor_window = Window.start(root, parent=root, frontend="gpui", timeout=1)
+            windows.append(compositor_window)
+        finally:
+            if saved_runtime is None:
+                os.environ.pop("XDG_RUNTIME_DIR", None)
+            else:
+                os.environ["XDG_RUNTIME_DIR"] = saved_runtime
+        hypr = compositor_window.root / "runtime/hypr"
+        check(hypr.is_symlink() and hypr.resolve() == compositor_runtime / "hypr", "private-runtime-exposes-hypr")
+        check(compositor_window.call("call", "flea", "hypr-runtime").stdout == b"True\n", "owned-child-sees-hypr-socket")
+        compositor_window.quit()
     environment = dict(os.environ, FLEA_TEST_WINDOWS_ROOT=str(root), FLEA_IPC_KIND="gpui",
                        FLEA_IPC_BIN=str(root / "target/debug/flea"), FLEA_IPC_HELPER=str(REPO / "tools/flea-ipc"))
     helper = str(REPO / "tools/flea-ipc")

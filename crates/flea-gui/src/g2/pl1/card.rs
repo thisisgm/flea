@@ -28,8 +28,6 @@ const PAD: f32 = 16.;
 const GAP: f32 = 12.;
 const FIELD_H: f32 = 30.;
 const NOTE_H: f32 = 16.;
-/// The board's --r corner.
-pub const RADIUS: f32 = 8.;
 /// The oracle dialog button's pointer washes in the label's ink, 8% hover and 14% press (v0.3.12 Buttons.js).
 pub const WASH_HOVER: f32 = 0.08;
 pub const WASH_PRESS: f32 = 0.14;
@@ -101,7 +99,7 @@ pub fn card(
         .bg(ink.surface)
         .border_1()
         .border_color(ink.frame)
-        .rounded(px(RADIUS))
+        .rounded(px(ink.radius))
         .text_color(ink.foreground)
         .child(
             div()
@@ -167,7 +165,7 @@ pub fn card(
                         .bg(ink.ground)
                         .border_1()
                         .border_color(field_frame)
-                        .rounded(px(RADIUS))
+                        .rounded(px(ink.radius))
                         .when(!dots.is_empty(), |d| d.child(dots))
                         .when(card.focus == Some(Part::Field) && !unlocking, |d| {
                             let tuck = if card.field.dots() > 0 { -7. } else { 0. };
@@ -270,7 +268,7 @@ fn button(
         .id(SharedString::from(format!("{id}-wash")))
         .absolute()
         .inset_0()
-        .rounded(px(RADIUS - if ring { RING } else { 1. }))
+        .rounded(px((ink.radius - if ring { RING } else { 1. }).max(0.)))
         .opacity(0.)
         .when_some(wash.hover, |d, c| {
             d.group_hover(id, move |s| s.opacity(1.).bg(c))
@@ -293,7 +291,7 @@ fn button(
         .whitespace_nowrap()
         .map(|d| if ring { d.border_2() } else { d.border_1() })
         .border_color(frame)
-        .rounded(px(RADIUS))
+        .rounded(px(ink.radius))
         .when_some(wash.rest, |d, c| d.bg(c))
         .opacity(if enabled { 1. } else { DISABLED_OPACITY })
         .child(if enabled {
