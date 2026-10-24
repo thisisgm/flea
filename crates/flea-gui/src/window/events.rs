@@ -54,6 +54,9 @@ impl Shell {
         if self.selection_preview_event(side, &event, window, cx) {
             return;
         }
+        if self.grid_pictures_event(side, &event, window, cx) {
+            return;
+        }
         if let BackendEvent::Producer(line) = &event {
             if self.filter_line(side, line, cx) || self.search_line(side, line, window, cx) {
                 return;
