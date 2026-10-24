@@ -80,6 +80,7 @@ pub struct Joined {
     pub actions: crate::g2::mn2::model::Actions,
     // A test's stand-in for the detached Open in Agent spawn; None spawns the real agent.
     pub agent: Option<AgentLaunch>,
+    pub(crate) providers: crate::g2::sd1::join::Senders,
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
@@ -112,14 +113,8 @@ impl Shell {
             .unwrap_or_default()
     }
 
-    pub(crate) fn menu_entries(&self) -> Vec<Entry> {
-        let mut context = self.menu.context.clone();
-        let Some(capture) = &self.menu.captured else {
-            return Vec::new();
-        };
-        let Some(host) = &self.panes[capture.side] else {
-            return Vec::new();
-        };
+    /// The rows Settings hides, which the menu and the provider gating read alike.
+    pub(crate) fn menu_hidden(&self) -> Vec<String> {
         let stored = self
             .launch
             .settings
@@ -133,14 +128,28 @@ impl Shell {
                     .map(str::to_owned)
                     .collect::<Vec<_>>()
             });
-        context.hidden = inventory::effective_hidden(
+        inventory::effective_hidden(
             stored.as_deref(),
             self.launch
                 .settings
                 .data
                 .get("shelf")
                 .is_some_and(|s| flag(s, "enabled")),
-        );
+        )
+    }
+
+    pub(crate) fn menu_entries(&self) -> Vec<Entry> {
+        let mut context = self.menu.context.clone();
+        let Some(capture) = &self.menu.captured else {
+            return Vec::new();
+        };
+        let Some(host) = &self.panes[capture.side] else {
+            return Vec::new();
+        };
+        context.hidden = self.menu_hidden();
+        if !capture.background {
+            self.provider_context(capture.side, &host.path, &mut context);
+        }
         context.show_hidden = host.nav.folders.borrow().hidden;
         context.sort_by = host.nav.order.key.into();
         context.has_folder_sort =
@@ -279,6 +288,9 @@ impl Shell {
                 .collect::<Vec<_>>()
                 .join(",");
             self.menu_send(side, format!("{{\"c\":\"menuaction\",\"op\":\"snapshot\",\"id\":{},\"listing\":{},\"rows\":[{rows}],\"cursor\":{}}}", capture.id, capture.listing, capture.cursor), cx);
+            if self.menu.captured.is_some() {
+                self.providers_menu_opened(side, capture.id, window, cx);
+            }
             if self.menu.captured.is_some() {
                 self.arm_menu_loading(window, cx);
             }
