@@ -364,6 +364,7 @@ impl Shell {
 
     pub fn close(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
         if self.lifecycle.begin_close() {
+            self.network_shutdown(cx);
             self.presentation.close();
             self.deadlines = [None, None];
             for host in self.panes.iter_mut().flatten() {

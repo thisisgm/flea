@@ -27,6 +27,11 @@ pub struct Join {
     _host: Subscription,
     pub(crate) focus_pending: Option<bool>,
     _trash: Subscription,
+    /// The NETWORK service, card and rows, built on the first frame that can carry them.
+    pub(crate) network: Option<crate::window::network::Network>,
+    pub(crate) network_runner: std::rc::Rc<dyn crate::g2::pl1::process::Runner>,
+    /// NETWORK heading plus presses already routed.
+    pub(crate) add_seen: u64,
 }
 
 /// Builds the producer from Settings.data and the host over it; the host is the only lazy owner.
@@ -105,6 +110,9 @@ fn mount_with_source(
         _host: host_subscription,
         focus_pending: None,
         _trash: trash_subscription,
+        network: None,
+        network_runner: crate::window::network::default_runner(),
+        add_seen: 0,
     }
 }
 
@@ -151,6 +159,18 @@ impl Shell {
                 flea::keys::Context::Listing
             };
         }
+        self.ensure_network(window, cx);
+        let added = self.rail.as_mut().and_then(|join| {
+            let model = join.places.read(cx).model.borrow().add_presses;
+            let side = join.places.read(cx).side;
+            (model != join.add_seen).then(|| {
+                join.add_seen = model;
+                side
+            })
+        });
+        if let Some(side) = added {
+            self.network_add(side, window, cx);
+        }
         let events = self
             .rail
             .as_ref()
@@ -158,6 +178,23 @@ impl Shell {
             .unwrap_or_default();
         for Request { side, id, event } in events {
             match event {
+                Event::Activate(entry)
+                    if entry.group == flea::ui_logic_pl4::rail::Group::Network =>
+                {
+                    self.network_activate(side, &entry, window, cx);
+                }
+                Event::Menu(entry) if entry.group == flea::ui_logic_pl4::rail::Group::Network => {
+                    self.network_menu(side, &entry, window, cx);
+                }
+                Event::Rename { entry, label }
+                    if entry.group == flea::ui_logic_pl4::rail::Group::Network =>
+                {
+                    let edit = crate::g2::pl2::bookmarks::Edit::Rename {
+                        uri: entry.uri.clone(),
+                        label,
+                    };
+                    self.network_save(edit, None, cx);
+                }
                 Event::Focus => {
                     if side == self.focus_side {
                         self.focus_rail(true, cx);
@@ -275,6 +312,7 @@ impl Shell {
                 producer.adopt_state(state, cx);
             });
         }
+        self.network_publish(None, cx);
         cx.notify();
     }
 
@@ -334,6 +372,10 @@ impl Shell {
         }
         if !focused {
             return None;
+        }
+        if action == Match::Action("addNetwork") {
+            self.network_add(self.focus_side, window, cx);
+            return Some(true);
         }
         producer.update(cx, |producer, _| producer.side = self.focus_side);
         let seat = Seat {
