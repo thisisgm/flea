@@ -128,8 +128,8 @@ impl Element for StripElement {
         (window.request_layout(style, None, cx), ())
     }
 
-    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, _: &mut App) -> Palette {
-        let palette = Palette::inherited(&window.text_style());
+    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, cx: &mut App) -> Palette {
+        let palette = Palette::inherited(&window.text_style(), cx.try_global::<crate::palette::Theme>().copied().unwrap_or_default());
         let mut state = self.state.borrow_mut();
         let StripState { text, typeface, query, summary, way_out, cut_for, cut, elided, ellipsis, laid, shaped } = &mut *state;
         let before = [&query.key, &summary.key, &way_out.key, &elided.key].map(Clone::clone);

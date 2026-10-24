@@ -95,6 +95,10 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
+        if !self.input_blocked(cx) && self.filter_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
         if !self.input_blocked(cx) && self.search_key(event, window, cx) {
             cx.stop_propagation();
             return;
@@ -173,7 +177,7 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
-        if self.search_action(action, window, cx) {
+        if self.filter_action(action, window, cx) || self.search_action(action, window, cx) {
             cx.stop_propagation();
             return;
         }

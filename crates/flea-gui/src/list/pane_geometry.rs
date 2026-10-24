@@ -58,6 +58,32 @@ impl Pane {
         self.reveal_cursor();
         true
     }
+    /// A filtered window: the listing run the drawn rows on screen span, cut to a few windows when matches lie far apart.
+    pub fn wanted_filtered_window(&mut self, shown: &[usize]) -> Option<(usize, usize)> {
+        if self.swap.pending.is_some() || shown.is_empty() {
+            return None;
+        }
+        let visible = self.visible_rows();
+        let first = ((self.scroll_y / self.row_height).floor() as usize).min(shown.len() - 1);
+        let last = (first + visible).min(shown.len() - 1);
+        let drawn = &shown[first..=last];
+        let (lo, hi) = (*drawn.iter().min()?, *drawn.iter().max()?);
+        let span = (hi - lo + 1).min(4 * super::window_size(visible));
+        // Only the capped run is owed, so a held capped answer never asks the same window again.
+        if lo >= self.held.start && lo + span <= self.held.start + self.held.rows.len() {
+            return None;
+        }
+        self.requests.wanted(&self.held, lo, span).map(|request| (request.start, request.count))
+    }
+    /// Scroll so a view position is on screen, the filter's showRow.
+    pub fn reveal_view(&mut self, view: usize) {
+        let top = view as f32 * self.row_height;
+        if top < self.scroll_y {
+            self.scroll_to(top);
+        } else if top + self.row_height > self.scroll_y + self.height {
+            self.scroll_to(top + self.row_height - self.height);
+        }
+    }
     pub fn reveal_cursor(&mut self) {
         let top = self.cursor as f32 * self.row_height;
         if top < self.scroll_y {
