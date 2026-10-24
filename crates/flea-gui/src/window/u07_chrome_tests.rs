@@ -79,15 +79,52 @@ fn u07_each_visible_toolbar_control_delivers_the_action_its_owner_knows(cx: &mut
     }
     let centre = read(&shell, cx, "chromeButtonCentre", &["grid"]);
     press(cx, &centre, 1);
-    for (name, action) in [("filter", "filter"), ("sort", "sortNext")] {
-        let centre = read(&shell, cx, "chromeButtonCentre", &[name]);
-        press(cx, &centre, 1);
-        assert_eq!(
-            seen.borrow().last(),
-            Some(&action),
-            "the {name} control must deliver the action keys.toml names"
-        );
+    // The search's Escape re-lists the folder; its answer lands so the filter owner may start.
+    shell.update(cx, |shell, cx| {
+        let host = shell.panes[0].as_mut().unwrap();
+        let path = host.pane.place().to_owned();
+        let rows = vec![flea::protocol::RowFacts::default(); 320];
+        let listed = flea::protocol::Reply::Listed { path, total: 1000 };
+        host.pane.receive(listed).unwrap();
+        let rows = flea::protocol::Reply::Rows {
+            start: 0,
+            rows,
+            listing: 3,
+        };
+        host.pane.receive(rows).unwrap();
+        host.changed(&shell.locale);
+        cx.notify();
+    });
+    for _ in 0..4 {
+        cx.executor()
+            .advance_clock(std::time::Duration::from_millis(400));
+        cx.update(|window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        });
+        cx.run_until_parked();
     }
+    assert!(!shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.busy()));
+    let before = seen.borrow().len();
+    let centre = read(&shell, cx, "chromeButtonCentre", &["filter"]);
+    press(cx, &centre, 1);
+    assert_eq!(emitted.borrow().last(), Some(&"filter"));
+    let up = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().filter.owner.up()
+    });
+    assert!(up, "the real filter owner consumed the toolbar action");
+    assert_eq!(
+        seen.borrow().len(),
+        before,
+        "owned filter is not dispatched twice"
+    );
+    let centre = read(&shell, cx, "chromeButtonCentre", &["sort"]);
+    press(cx, &centre, 1);
+    assert_eq!(
+        seen.borrow().last(),
+        Some(&"sortNext"),
+        "the sort control must deliver the action keys.toml names"
+    );
     let up = read(&shell, cx, "chromeButtonCentre", &["arrow-up"]);
     press(cx, &up, 1);
     assert_eq!(emitted.borrow().last(), Some(&"up"), "an enabled Up emits");

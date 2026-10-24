@@ -11,6 +11,9 @@ use std::{cell::RefCell, rc::Rc};
 pub(crate) struct PaneHost {
     pub search: super::search::Runtime,
     pub filter: super::filter::Runtime,
+    pub preview: Option<gpui::Entity<super::selection_preview::SelectionPreview>>,
+    pub preview_port: super::selection_preview::Port,
+    pub preview_watch: Option<gpui::Subscription>,
     pub columns: Option<super::columns::Columns>,
     pub path: String,
     pub pane: Pane,
@@ -55,6 +58,9 @@ impl PaneHost {
         Self {
             search: super::search::Runtime::new(typeface.clone()),
             filter: super::filter::Runtime::new(typeface.clone()),
+            preview: None,
+            preview_port: Default::default(),
+            preview_watch: None,
             columns: None,
             pane: Pane::at_row_height(
                 path.clone(),

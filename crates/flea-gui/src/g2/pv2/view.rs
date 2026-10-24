@@ -65,6 +65,36 @@ pub struct PdfView {
     pub painted: Cell<usize>,
 }
 
+impl Surface {
+    pub fn page_count(&self) -> usize {
+        self.sizes.len()
+    }
+
+    /// The page on screen, None before the first render of this document; the host's swap waits for it.
+    pub fn shown_page(&self) -> Option<usize> {
+        self.cap.shown_page
+    }
+
+    pub fn drawn_page(&self) -> usize {
+        self.cap.drawn_page(self.page)
+    }
+
+    pub fn failed(&self) -> bool {
+        self.open_failed
+            || matches!(self.fetch, flea::ui_logic_pv2::pdf::Fetch::Failed { .. })
+            || self.page_failed
+    }
+
+    /// A render in flight for what the frame shows; the single page's neighbours render ahead without holding a press.
+    pub fn render_busy(&self) -> bool {
+        if self.continuous {
+            !self.inflight.is_empty()
+        } else {
+            self.inflight.iter().any(|&(page, _)| page == self.page)
+        }
+    }
+}
+
 impl PdfView {
     /// A surface with its own render thread; replies land on the foreground as they come.
     pub fn new(
@@ -96,6 +126,16 @@ impl PdfView {
             frame_asked: false,
             _pump: pump,
             painted: Cell::new(0),
+        }
+    }
+
+    /// Ends pending work and releases cached pictures after existing draw references retire.
+    pub fn close(&mut self, cx: &mut Context<Self>) {
+        self.timer = None;
+        self.surface.close();
+        self.flush(cx);
+        for image in self.surface.cache.take_released() {
+            cx.defer(move |cx| cx.drop_image(image, None));
         }
     }
 

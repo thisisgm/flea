@@ -1,5 +1,8 @@
 //! The one place the window runs what a producer hands it: key and pointer actions, menu choices and rail requests.
+mod listing;
 mod navigation;
+mod preview;
+mod window;
 
 use super::input::ActionEvent;
 use crate::{g2::mn1::join::Chosen, state::Shell};
@@ -11,13 +14,15 @@ pub(crate) enum Order {
     Menu(Chosen),
     Place(crate::g2::pl4::producer::Request),
     Device(crate::g2::pl1::source::Request),
+    /// A key the network menu or share browser resolved while one of them is open.
+    Network(ActionEvent),
 }
 
 /// A family runs the orders it owns and answers whether it ran this one.
 type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
 
 /// Each family keeps its handlers in its own file beside this one and adds one line here.
-const FAMILIES: &[Family] = &[navigation::run];
+const FAMILIES: &[Family] = &[navigation::run, preview::run, listing::run, window::run];
 
 impl Shell {
     /// Runs the order through its family; one nobody ran is emitted for observers, and an unclaimed menu choice is refused.
@@ -29,7 +34,7 @@ impl Shell {
             return;
         }
         match order {
-            Order::Action(event) => cx.emit(event),
+            Order::Action(event) | Order::Network(event) => cx.emit(event),
             Order::Menu(chosen) => cx.emit(chosen),
             Order::Place(request) => cx.emit(request),
             Order::Device(request) => cx.emit(request),
@@ -37,6 +42,8 @@ impl Shell {
     }
 }
 
+#[cfg(test)]
+mod families_tests;
 #[cfg(test)]
 mod guard_tests;
 #[cfg(test)]

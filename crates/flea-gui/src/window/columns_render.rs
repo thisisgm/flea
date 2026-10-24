@@ -89,7 +89,13 @@ impl Shell {
                 .h_full()
                 .overflow_hidden()
                 .child(element);
-            if view.slot != Slot::Active {
+            if matches!(view.rows, TrackRows::Preview) {
+                if columns.preview_hosted {
+                    if let Some(preview) = &host.preview {
+                        track = track.child(tile().child(preview.clone()));
+                    }
+                }
+            } else if view.slot != Slot::Active {
                 sync_tile(
                     columns,
                     view,

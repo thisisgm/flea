@@ -60,3 +60,11 @@ pub fn palette(roles: &crate::list::Palette, ground: Hsla) -> Palette {
         frame: rgb(roles.metadata_frame),
     }
 }
+
+/// The production reader consumes the bounded sandbox cache, off the UI thread.
+pub struct CacheReader;
+impl ModelReader for CacheReader {
+    fn read(&self, file: &Path, _: &Data) -> Result<Scene, String> {
+        flea::preview_model::read(file)
+    }
+}

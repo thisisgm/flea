@@ -178,7 +178,7 @@ fn u09_live_columns_root_slots_are_blank_but_real_ancestors_paint() {
 }
 
 #[gpui::test]
-fn u09_live_columns_readers_are_registered_without_faking_preview_readers(cx: &mut TestAppContext) {
+fn u09_live_columns_readers_forward_the_retained_preview_state(cx: &mut TestAppContext) {
     let (backend, _) = Backend::test_channel();
     let cx = cx.add_empty_window();
     cx.update(|window, cx| {
@@ -230,7 +230,7 @@ fn u09_live_columns_readers_are_registered_without_faking_preview_readers(cx: &m
             );
             assert_eq!(
                 receive.try_recv().unwrap().reply,
-                Reply::error(3, "FLEA_IPC_NOT_PORTED flea.columnPdfPages")
+                Reply::value("0")
             );
         });
     });

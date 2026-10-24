@@ -18,6 +18,7 @@ pub mod keys;
 mod jsonstring;
 pub mod oflags;
 pub mod protocol;
+pub mod preview_model;
 pub mod theme;
 pub mod ui_logic_fb1;
 pub mod ui_logic_mn1;
