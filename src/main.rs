@@ -4,7 +4,7 @@ mod claims;
 mod clip;
 mod defaults;
 mod desktopid;
-mod error;
+use flea::error;
 mod gui;
 mod heap;
 mod hyprkeys;
