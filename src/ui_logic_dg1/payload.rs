@@ -1,0 +1,183 @@
+//! The clipboard payload bytes, one place for every front end: GNOME's copy/cut form, the URI list, plain paths, KDE's cut mark and Flea's token; byte for byte the backend shapes (src/clip/format.rs) and the fork MIME contract. X11 stays out.
+use std::collections::HashSet;
+
+pub const GNOME: &str = "x-special/gnome-copied-files";
+pub const URILIST: &str = "text/uri-list";
+pub const KDE_CUT: &str = "application/x-kde-cutselection";
+pub const PLAIN_UTF8: &str = "text/plain;charset=utf-8";
+pub const PLAIN: &str = "text/plain";
+pub const UTF8_STRING: &str = "UTF8_STRING";
+pub const FLEA: &str = "application/x-flea-clip";
+
+// A path as a file:// URI: every byte outside the unreserved set and '/' is percent-encoded, so a name never reads as a fragment or query.
+fn encode_uri(path: &str) -> String {
+    let mut out = String::from("file://");
+    for byte in path.as_bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~' | b'/') {
+            out.push(*byte as char);
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    out
+}
+
+// Only file:// with an empty or localhost host becomes a path; anything else, a NUL, a relative path or a dot component is refused, never failed.
+fn decode_uri(uri: &[u8]) -> Option<String> {
+    let rest = uri.strip_prefix(b"file://")?;
+    let slash = rest.iter().position(|byte| *byte == b'/')?;
+    let (host, path) = rest.split_at(slash);
+    if !host.is_empty() && host != b"localhost" {
+        return None;
+    }
+    let mut raw = Vec::with_capacity(path.len());
+    let mut at = 0;
+    while at < path.len() {
+        if path[at] == b'%' {
+            let hex = path.get(at + 1..at + 3)?;
+            raw.push(u8::from_str_radix(std::str::from_utf8(hex).ok()?, 16).ok()?);
+            at += 3;
+        } else {
+            raw.push(path[at]);
+            at += 1;
+        }
+    }
+    if raw.contains(&0) {
+        return None;
+    }
+    let path = String::from_utf8(raw).ok()?;
+    if !path.starts_with('/') || path.split('/').any(|part| part == "." || part == "..") {
+        return None;
+    }
+    Some(path)
+}
+
+pub fn is_op(word: &str) -> bool {
+    word == "copy" || word == "cut"
+}
+
+// The token rule both validators share: 32 hex chars, the form make_token writes.
+pub fn is_token(token: &str) -> bool {
+    token.len() == 32 && token.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+pub fn build_gnome(op: &str, paths: &[String]) -> Vec<u8> {
+    let mut out = op.to_string();
+    for path in paths {
+        out.push('\n');
+        out.push_str(&encode_uri(path));
+    }
+    out.into_bytes()
+}
+
+// Sample input "copy\nfile:///tmp/a\n" gives ("copy", ["/tmp/a"], 0); a first line other than copy or cut is None.
+pub fn parse_gnome(bytes: &[u8]) -> Option<(String, Vec<String>, usize)> {
+    let mut lines = bytes.split(|byte| *byte == b'\n');
+    let op = match lines.next()? {
+        b"copy" => "copy",
+        b"cut" => "cut",
+        _ => return None,
+    };
+    let (paths, skipped) = collect(lines.filter(|line| !line.is_empty()));
+    Some((op.to_string(), paths, skipped))
+}
+
+pub fn build_urilist(paths: &[String]) -> Vec<u8> {
+    let mut out = Vec::new();
+    for path in paths {
+        out.extend_from_slice(encode_uri(path).as_bytes());
+        out.extend_from_slice(b"\r\n");
+    }
+    out
+}
+
+// CRLF and LF both read; '#' lines are comments and never files.
+pub fn parse_urilist(bytes: &[u8]) -> (Vec<String>, usize) {
+    collect(bytes.split(|byte| *byte == b'\n').filter_map(|line| {
+        let line = line.strip_suffix(b"\r").unwrap_or(line);
+        if line.is_empty() || line.starts_with(b"#") {
+            return None;
+        }
+        Some(line)
+    }))
+}
+
+// The absolute paths, one a line, the form ui/js/Drag.js offers beside its uri-list.
+pub fn build_plain(paths: &[String]) -> Vec<u8> {
+    paths.join("\n").into_bytes()
+}
+
+pub fn build_kde_cut() -> Vec<u8> {
+    b"1".to_vec()
+}
+
+pub fn parse_kde_cut(bytes: &[u8]) -> bool {
+    String::from_utf8_lossy(bytes).trim_matches(|c: char| c == '\0' || c.is_whitespace()) == "1"
+}
+
+pub fn build_flea(op: &str, token: &str) -> Vec<u8> {
+    format!("{op} {token} {}", std::process::id()).into_bytes()
+}
+
+// The token is 32 hex chars; anything else is another owner's bytes, not a refusal.
+pub fn parse_flea(bytes: &[u8]) -> Option<(String, String)> {
+    let text = std::str::from_utf8(bytes).ok()?;
+    let text = text.trim_matches(|c: char| c == '\0' || c.is_whitespace());
+    let (op, token) = text.split_once(' ')?;
+    let token = token.split_once(' ').map_or(token, |(token, _)| token);
+    if !is_op(op) || !is_token(token) {
+        return None;
+    }
+    Some((op.to_string(), token.to_string()))
+}
+
+// Shared by both list shapes: refused URIs count as skipped, never fail the read.
+fn collect<'a>(lines: impl Iterator<Item = &'a [u8]>) -> (Vec<String>, usize) {
+    let mut paths = Vec::new();
+    let mut seen = HashSet::new();
+    let mut skipped = 0;
+    for line in lines {
+        match decode_uri(line) {
+            Some(path) if seen.insert(path.clone()) => paths.push(path),
+            _ => skipped += 1,
+        }
+    }
+    (paths, skipped)
+}
+
+/// One offered MIME representation read off a foreign selection.
+pub struct Offer<'a> {
+    pub mime: &'a str,
+    pub bytes: &'a [u8],
+}
+
+/// A foreign file selection: GNOME first for its cut intent, then a URI list with KDE's cut mark, then nothing; plain text alone is never files, so the text clipboard and the URI identity stay distinct.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ForeignSel {
+    pub clip: String,
+    pub paths: Vec<String>,
+    pub token: String,
+}
+
+// Sample input: GNOME cut bytes with our token read ("cut", paths, token).
+pub fn choose(offers: &[Offer<'_>]) -> Option<ForeignSel> {
+    let bytes_of = |mime: &str| offers.iter().find(|offer| offer.mime == mime).map(|offer| offer.bytes);
+    let token = bytes_of(FLEA).and_then(parse_flea).map_or(String::new(), |(_, token)| token);
+    if let Some(bytes) = bytes_of(GNOME) {
+        let (op, paths, _) = parse_gnome(bytes)?;
+        if paths.is_empty() {
+            return None;
+        }
+        return Some(ForeignSel { clip: op, paths, token });
+    }
+    if let Some(bytes) = bytes_of(URILIST) {
+        let (paths, _) = parse_urilist(bytes);
+        if paths.is_empty() {
+            return None;
+        }
+        let cut = bytes_of(KDE_CUT).is_some_and(parse_kde_cut);
+        let clip = if cut { "cut" } else { "copy" };
+        return Some(ForeignSel { clip: clip.into(), paths, token });
+    }
+    None
+}
