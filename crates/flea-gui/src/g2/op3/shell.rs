@@ -56,6 +56,11 @@ pub enum Glyph {
     Code,
     AppWindow,
     Check,
+    Eye,
+    Alert,
+    Drive,
+    Cross,
+    FolderOpen,
 }
 
 /// The board roles a line takes.
