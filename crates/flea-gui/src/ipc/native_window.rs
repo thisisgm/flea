@@ -9,8 +9,7 @@ use crate::{
 use flea::ipc::wire::Reply;
 use gpui::{Pixels, Size};
 
-// Theme.qml's token formulas, by their Theme.qml names: stateMarkSize and heroMarkSize scale bodySmall,
-// chromeMarkSize is Style.font.icon (16 at base 14, 14 x 1.167), and the boards use one two-unit stroke.
+// Theme.qml mark ratios: state and hero scale bodySmall, chrome is Style.font.icon (14 x 1.167); one 2-unit stroke.
 const STATE_MARK_RATIO: f64 = 3.1;
 const HERO_MARK_RATIO: f64 = 3.7;
 const CHROME_MARK_RATIO: f64 = 1.167;

@@ -70,6 +70,15 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def monitor_geometry(monitors):
+    rows = []
+    for monitor in monitors:
+        missing = [key for key in MONITOR_GEOMETRY if key not in monitor]
+        require(not missing, "hyprctl -j monitors: monitor %s lacks %s" % (monitor.get("name", "<unnamed>"), ", ".join(missing)))
+        rows.append({key: monitor[key] for key in MONITOR_GEOMETRY})
+    return rows
+
+
 def load_module(name, path):
     sys.dont_write_bytecode = True
     loader = importlib.machinery.SourceFileLoader(name, str(path))
@@ -660,7 +669,7 @@ def run(root, only=None, installed=False, raw_corpus=None):
     native = load_module("strata_field_search", REPO / "tools/flea-field-search")
     native.ENV = native.session_env()
     os.environ.update(native.ENV)
-    data["monitors"] = [{key: monitor[key] for key in MONITOR_GEOMETRY} for monitor in json.loads(native.hypr("-j", "monitors"))]
+    data["monitors"] = monitor_geometry(json.loads(native.hypr("-j", "monitors")))
     data["fixture_manifest_sha256"] = sha(root / "fixtures.json")
     manifest_file = root / "manifest.json"
     if manifest_file.exists():
@@ -917,4 +926,7 @@ if __name__ == "__main__":
         sys.exit(main())
     except (OSError, ValueError, KeyError, ImportError, subprocess.SubprocessError) as error:
         print("strata-bench: " + str(error), file=sys.stderr)
+        sys.exit(3)
+    except Exception as error:
+        print("strata-bench: %s: %s" % (type(error).__name__, error), file=sys.stderr)
         sys.exit(3)

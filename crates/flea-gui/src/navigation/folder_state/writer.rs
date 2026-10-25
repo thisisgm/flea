@@ -15,14 +15,25 @@ pub struct Writer {
     queue: Option<mpsc::Sender<(String, String)>>,
     live: bool,
     pub sent: usize,
-    // Patches handed to the worker, the same set `done` counts as it finishes them.
+    // Patches handed to the current worker, the same set its `done` counts as it finishes them.
     queued: usize,
-    // Patches the worker has not finished yet, which a settings reread must not undo.
-    owed: Vec<(usize, Json)>,
+    // Patches no worker has finished yet, which a settings reread must not undo and a new worker resends.
+    owed: Vec<Owed>,
     done: Arc<AtomicUsize>,
     // A held writer keeps its worker's end open, so its sends succeed without a worker.
     #[cfg(test)]
     held: Option<mpsc::Receiver<(String, String)>>,
+    // A held writer's replacement worker is another held channel, never the real binary.
+    #[cfg(test)]
+    hold: bool,
+}
+
+// `seq` is the patch's place in its worker's queue, 0 while no live worker has it.
+struct Owed {
+    seq: usize,
+    json: Option<Json>,
+    patch: String,
+    failure: String,
 }
 
 impl Writer {
@@ -42,6 +53,7 @@ impl Writer {
             live: true,
             done,
             held: Some(patches),
+            hold: true,
             ..Self::default()
         }
     }
@@ -51,49 +63,103 @@ impl Writer {
         if !self.live {
             return;
         }
-        let owed = flea::jsondoc::parse(&patch).ok();
-        if self.queue.is_none() {
-            let (queue, patches) = mpsc::channel::<(String, String)>();
-            let done = self.done.clone();
-            let spawned = thread::Builder::new()
-                .name("flea-folder-state".into())
-                .spawn(move || {
-                    for (patch, failure) in patches {
-                        let ok = Command::new(crate::window::startup::binary())
-                            .args(["--ui-state", &patch])
-                            .output()
-                            .is_ok_and(|output| output.status.success());
-                        if !ok {
-                            eprintln!("flea-gui: {failure}");
-                        }
-                        done.fetch_add(1, Ordering::Release);
-                    }
-                });
-            match spawned {
-                Ok(_) => self.queue = Some(queue),
-                Err(error) => eprintln!("flea-gui: folder state worker did not start: {error}"),
+        self.retire();
+        self.owed.push(Owed {
+            seq: 0,
+            json: flea::jsondoc::parse(&patch).ok(),
+            patch,
+            failure,
+        });
+        if self.queue.is_some() {
+            if self.send(self.owed.len() - 1) {
+                return;
             }
+            eprintln!("flea-gui: folder state worker is gone; starting another");
         }
-        let Some(queue) = &self.queue else {
-            return;
-        };
-        // Only a patch the worker received is owed, so `owed` and `done` count the same patches.
-        if queue.send((patch, failure)).is_err() {
-            eprintln!("flea-gui: folder state worker is gone; the next write starts another");
-            self.queue = None;
+        self.restart();
+    }
+
+    // A new worker counts from zero, so the dead one's finishes never retire its patches.
+    fn restart(&mut self) {
+        self.queue = None;
+        self.queued = 0;
+        self.done = Arc::new(AtomicUsize::new(0));
+        for owed in &mut self.owed {
+            owed.seq = 0;
+        }
+        if !self.start() {
             return;
         }
-        self.queued += 1;
-        if let Some(owed) = owed {
-            self.owed.push((self.queued, owed));
+        for index in 0..self.owed.len() {
+            if !self.send(index) {
+                eprintln!("flea-gui: folder state worker is gone; the next write starts another");
+                self.queue = None;
+                return;
+            }
         }
     }
 
-    // Unfinished patches in write order; a finished one drops, because the file now holds its outcome.
-    pub fn owed(&mut self) -> Vec<Json> {
+    fn start(&mut self) -> bool {
+        #[cfg(test)]
+        if self.hold {
+            let (queue, patches) = mpsc::channel();
+            self.queue = Some(queue);
+            self.held = Some(patches);
+            return true;
+        }
+        let (queue, patches) = mpsc::channel::<(String, String)>();
+        let done = self.done.clone();
+        let spawned = thread::Builder::new()
+            .name("flea-folder-state".into())
+            .spawn(move || {
+                for (patch, failure) in patches {
+                    let ok = Command::new(crate::window::startup::binary())
+                        .args(["--ui-state", &patch])
+                        .output()
+                        .is_ok_and(|output| output.status.success());
+                    if !ok {
+                        eprintln!("flea-gui: {failure}");
+                    }
+                    done.fetch_add(1, Ordering::Release);
+                }
+            });
+        match spawned {
+            Ok(_) => self.queue = Some(queue),
+            Err(error) => eprintln!("flea-gui: folder state worker did not start: {error}"),
+        }
+        self.queue.is_some()
+    }
+
+    // Only a patch the worker received gets a place, so `seq` and `done` count the same patches.
+    fn send(&mut self, index: usize) -> bool {
+        let Some(queue) = &self.queue else {
+            return false;
+        };
+        let owed = &mut self.owed[index];
+        if queue
+            .send((owed.patch.clone(), owed.failure.clone()))
+            .is_err()
+        {
+            return false;
+        }
+        self.queued += 1;
+        owed.seq = self.queued;
+        true
+    }
+
+    // A finished patch drops, because the file now holds its outcome.
+    fn retire(&mut self) {
         let done = self.done.load(Ordering::Acquire);
-        self.owed.retain(|(seq, _)| *seq > done);
-        self.owed.iter().map(|(_, patch)| patch.clone()).collect()
+        self.owed.retain(|owed| owed.seq == 0 || owed.seq > done);
+    }
+
+    // Unfinished patches in write order.
+    pub fn owed(&mut self) -> Vec<Json> {
+        self.retire();
+        self.owed
+            .iter()
+            .filter_map(|owed| owed.json.clone())
+            .collect()
     }
 }
 
@@ -127,21 +193,44 @@ mod tests {
     }
 
     #[test]
-    fn m9_fix_j2_writer_owes_nothing_for_a_patch_its_worker_never_received() {
-        let done = Arc::new(AtomicUsize::new(0));
-        let mut writer = Writer::held(done.clone());
-        writer.held = None;
+    fn m9_fix_r2_j2_writer_resends_a_dead_workers_unfinished_patches() {
+        let first = Arc::new(AtomicUsize::new(0));
+        let mut writer = Writer::held(first.clone());
         writer.write(r#"{"folderSorts":{"/A":null}}"#.into(), String::new());
-        assert_eq!(writer.sent, 1);
+        writer.write(r#"{"folderSorts":{"/B":null}}"#.into(), String::new());
+        first.store(1, Ordering::Release);
+        writer.held = None;
+        writer.write(r#"{"folderSorts":{"/C":null}}"#.into(), String::new());
+        let parse = |text| flea::jsondoc::parse(text).unwrap();
+        let (b, c) = (
+            parse(r#"{"folderSorts":{"/B":null}}"#),
+            parse(r#"{"folderSorts":{"/C":null}}"#),
+        );
+        assert_eq!(writer.owed(), vec![b.clone(), c.clone()]);
+        let received: Vec<String> = writer
+            .held
+            .as_ref()
+            .unwrap()
+            .try_iter()
+            .map(|(p, _)| p)
+            .collect();
         assert_eq!(
-            writer.queued,
-            done.load(Ordering::Acquire),
-            "a failed send is not queued"
+            received,
+            [
+                r#"{"folderSorts":{"/B":null}}"#,
+                r#"{"folderSorts":{"/C":null}}"#
+            ],
+            "the new worker gets the unfinished patch, then the new one"
         );
-        assert!(writer.owed().is_empty(), "a failed send owes nothing");
-        assert!(
-            writer.queue.is_none(),
-            "a dead worker is replaced on the next write"
+        first.store(3, Ordering::Release);
+        assert_eq!(
+            writer.owed().len(),
+            2,
+            "the dead worker's count retires nothing"
         );
+        writer.done.store(1, Ordering::Release);
+        assert_eq!(writer.owed(), vec![c]);
+        writer.done.store(2, Ordering::Release);
+        assert!(writer.owed().is_empty());
     }
 }

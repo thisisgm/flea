@@ -47,8 +47,7 @@ impl Properties {
         }
     }
 
-    /// Sends the snapshot and the Properties request at once, snapshot first; neither waits for the other's reply.
-    /// The backend's menu slot holds one pending request, so Properties is refused as busy if the snapshot still waits there.
+    /// Sends the snapshot and the Properties request at once, snapshot first; Properties may come back busy.
     pub fn open(id: u64, rows: &[usize]) -> (Self, Vec<Effect>) {
         (
             Self::new(id, rows.len()),
