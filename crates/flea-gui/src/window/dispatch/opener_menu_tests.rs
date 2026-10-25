@@ -1,17 +1,27 @@
 //! The menu's Open on a file runs Enter's own path on the cursor row through the production Shell.
 use super::opener_tests::{home, launched, quit, shell};
-use super::test_shell::{land, set_cursor};
+use super::test_shell::{asked, asked_on, land, land_on, row, set_cursor};
 use super::Order;
 use crate::g2::mn1::join::{Captured, Chosen};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::rc::Rc;
 
-// The menu's Open chosen on the cursor row with these marked paths; answers whether the opener claimed it.
+// The menu's Open chosen on the left pane's cursor row with these marked paths; answers whether the opener claimed it.
 fn menu_open(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext, cursor: usize, paths: &[&str]) -> bool {
+    menu_open_on(shell, cx, 0, cursor, paths)
+}
+
+fn menu_open_on(
+    shell: &Entity<crate::state::Shell>,
+    cx: &mut VisualTestContext,
+    side: usize,
+    cursor: usize,
+    paths: &[&str],
+) -> bool {
     let claimed = Rc::new(std::cell::Cell::new(false));
     let chosen = Chosen {
         captured: Captured {
-            side: 0,
+            side,
             listing: 1,
             rows: vec![cursor],
             cursor,
@@ -75,5 +85,21 @@ fn the_menu_open_in_a_busy_pane_launches_nothing(cx: &mut TestAppContext) {
     assert!(menu_open(&shell, cx, 1, &["/files/notes.txt"]));
     assert_eq!(launched(), Vec::<String>::new(), "a busy pane hands nothing to flea --open");
     land(&shell, cx, "/files", home(), 2);
+    quit(&shell, cx);
+}
+
+#[gpui::test]
+fn the_menu_open_on_the_unfocused_dual_pane_opens_that_panes_row(cx: &mut TestAppContext) {
+    let (shell, cx, _, _keep) = shell(cx);
+    cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(crate::window::startup::View::Dual, window, cx)));
+    let right = asked_on(&shell, cx, 1);
+    land_on(&shell, cx, 1, &right, vec![row("beta", true), row("report.pdf", false)], 2, 1);
+    shell.update(cx, |shell, _| shell.panes[1].as_mut().unwrap().pane.cursor = 1);
+    // The left pane keeps the focus on its folder row, so a focused-pane open would enter /files/alpha.
+    assert_eq!(shell.read_with(cx, |shell, _| shell.focus_side), 0);
+    let file = format!("{}/report.pdf", right.trim_end_matches('/'));
+    assert!(menu_open_on(&shell, cx, 1, 1, &[&file]));
+    assert_eq!(launched(), [file], "the menu's own pane opens its row");
+    assert_eq!(asked(&shell, cx), "/files", "the focused pane did not move");
     quit(&shell, cx);
 }
