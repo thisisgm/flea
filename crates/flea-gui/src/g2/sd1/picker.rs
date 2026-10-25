@@ -8,7 +8,7 @@ use flea::ui_logic_sd1::providers::{Facts, Role};
 use flea::ui_logic_sd1::{dropbox, localsend, share, taildrop, wire, Send};
 
 // The OEM Tailscale service bounds status queries at fifteen seconds, as ui/Taildrop.qml does.
-const STATUS_TIMEOUT_SECS: &str = "15";
+pub(super) const STATUS_TIMEOUT_SECS: usize = 15;
 
 impl ProviderSend {
     // The file menu opened: refresh LocalSend discovery by its warm policy and Taildrop machines
@@ -56,9 +56,13 @@ impl ProviderSend {
             if self.td_checking {
                 self.td_waiting = true;
             } else if let Some(argv) = self.start_status() {
-                out.push(Action::Run(RunKind::TaildropStatus(self.td_generation), argv));
+                out.push(Action::Run(
+                    RunKind::TaildropStatus(self.td_generation),
+                    argv,
+                ));
             }
         }
+        out.extend(self.dropbox_refresh());
         out
     }
 
@@ -100,7 +104,7 @@ impl ProviderSend {
         Some(vec![
             "timeout".into(),
             "--signal=KILL".into(),
-            STATUS_TIMEOUT_SECS.into(),
+            STATUS_TIMEOUT_SECS.to_string(),
             self.facts.tailscale_command.clone(),
             "status".into(),
             "--json".into(),
@@ -119,15 +123,26 @@ impl ProviderSend {
                 self.builds.set(self.builds.get() + 1);
                 self.ls_peers = peers
                     .iter()
-                    .map(|peer| Peer { id: localsend::row_id(&peer.name).into(), label: peer.name.clone() })
+                    .map(|peer| Peer {
+                        id: localsend::row_id(&peer.name).into(),
+                        label: peer.name.clone(),
+                    })
                     .collect();
                 self.ls_reason = reason;
             }
             Some(wire::Event::Peers { .. }) => {}
             Some(wire::Event::Sent { id, ok, reason }) => {
                 let mut said = None;
-                if let Some(send) = self.sends.iter_mut().find(|send| send.request == id && send.running()) {
-                    if send.apply(&wire::Event::Sent { id, ok, reason: reason.clone() }) {
+                if let Some(send) = self
+                    .sends
+                    .iter_mut()
+                    .find(|send| send.request == id && send.running())
+                {
+                    if send.apply(&wire::Event::Sent {
+                        id,
+                        ok,
+                        reason: reason.clone(),
+                    }) {
                         said = Some(localsend::verdict(i18n, ok, &reason));
                     }
                 }
@@ -157,7 +172,11 @@ impl ProviderSend {
         }
         self.td_checking = false;
         let timeout = i18n.tr("send.providers.taildrop_timeout");
-        let error = if exit_code == 137 || exit_code == 9 { timeout.as_str() } else { stderr };
+        let error = if super::dropbox_status::killed(exit_code) {
+            timeout.as_str()
+        } else {
+            stderr
+        };
         let state = taildrop::status(stdout, exit_code, error);
         self.builds.set(self.builds.get() + 1);
         self.td_peers = state
@@ -168,8 +187,11 @@ impl ProviderSend {
                 label: taildrop::label_or_unknown(i18n, &peer.label),
             })
             .collect();
-        self.td_addresses =
-            state.peers.iter().map(|peer| (peer.id.clone(), peer.address.clone())).collect();
+        self.td_addresses = state
+            .peers
+            .iter()
+            .map(|peer| (peer.id.clone(), peer.address.clone()))
+            .collect();
         self.td_reason = state.reason;
         self.td_code = state.code;
         let mut out = Vec::new();
@@ -177,7 +199,10 @@ impl ProviderSend {
         self.td_waiting = false;
         if waited {
             if let Some(argv) = self.start_status() {
-                out.push(Action::Run(RunKind::TaildropStatus(self.td_generation), argv));
+                out.push(Action::Run(
+                    RunKind::TaildropStatus(self.td_generation),
+                    argv,
+                ));
             }
         }
         out
@@ -199,7 +224,8 @@ impl ProviderSend {
         // LocalSend.qml send() refuses an empty peer; LocalSend.js words that refusal as missing().
         if peer.is_empty() || !self.provider(Role::LocalSend).installed {
             // The provider's own reason words the refusal, as LocalSend.js missing() reads it.
-            let reason = (!self.facts.localsend_reason.is_empty()).then_some(self.facts.localsend_reason.as_str());
+            let reason = (!self.facts.localsend_reason.is_empty())
+                .then_some(self.facts.localsend_reason.as_str());
             return vec![Action::Say(localsend::missing(i18n, reason), true)];
         }
         // A disabled, failed or hidden provider row never writes its send line.
@@ -224,16 +250,28 @@ impl ProviderSend {
             return vec![Action::Say(i18n.tr("send.providers.menu_stale"), true)];
         }
         let Some(peer) = self.td_peers.iter().find(|peer| peer.id == peer_id) else {
-            return vec![Action::Say(share::taildrop_refusal(i18n, &self.td_code, &self.td_reason), true)];
+            return vec![Action::Say(
+                share::taildrop_refusal(i18n, &self.td_code, &self.td_reason),
+                true,
+            )];
         };
         if self.send_command.is_empty() || self.td_checking {
-            return vec![Action::Say(share::taildrop_refusal(i18n, &self.td_code, &self.td_reason), true)];
+            return vec![Action::Say(
+                share::taildrop_refusal(i18n, &self.td_code, &self.td_reason),
+                true,
+            )];
         }
         let Some(address) = self.td_addresses.get(peer_id).cloned() else {
-            return vec![Action::Say(share::taildrop_refusal(i18n, &self.td_code, &self.td_reason), true)];
+            return vec![Action::Say(
+                share::taildrop_refusal(i18n, &self.td_code, &self.td_reason),
+                true,
+            )];
         };
         let argv = vec![self.send_command.clone(), address, paths[0].clone()];
-        vec![Action::Spawn(argv), Action::Say(share::taildrop_sending(i18n, &peer.label, &paths[0]), false)]
+        vec![
+            Action::Spawn(argv),
+            Action::Say(share::taildrop_sending(i18n, &peer.label, &paths[0]), false),
+        ]
     }
 
     // Move to Dropbox routes through the ordinary transfer, refusing a stale membership first.
@@ -252,25 +290,46 @@ impl ProviderSend {
             return vec![Action::Say(i18n.tr("send.providers.menu_stale"), true)];
         }
         match self.link.copy(path) {
-            Err(_) if self.link.pending.is_some() => vec![Action::Say(share::ShareLink::busy_reason(i18n), true)],
+            Err(_) if self.link.pending.is_some() => {
+                vec![Action::Say(share::ShareLink::busy_reason(i18n), true)]
+            }
             Err(_) => vec![Action::Say(share::ShareLink::no_file_reason(i18n), true)],
-            Ok(()) => vec![Action::Run(RunKind::ShareLink, vec!["dropbox-cli".into(), "sharelink".into(), path.into()])],
+            Ok(()) => vec![Action::Run(
+                RunKind::ShareLink,
+                vec!["dropbox-cli".into(), "sharelink".into(), path.into()],
+            )],
         }
     }
 
     // Started and exit code apart: a run that never started says "asked", a non-zero exit "make".
-    pub fn sharelink_done(&mut self, started: bool, exit_code: i32, output: &str, i18n: &I18n) -> Vec<Action> {
+    pub fn sharelink_done(
+        &mut self,
+        started: bool,
+        exit_code: i32,
+        output: &str,
+        i18n: &I18n,
+    ) -> Vec<Action> {
         match self.link.share_done(started, exit_code, output) {
-            share::ShareStep::CopyClipboard(url) => vec![Action::Run(RunKind::Clipboard, vec!["wl-copy".into(), url])],
-            share::ShareStep::Fail(step) => vec![Action::Say(share::ShareLink::fail_reason(i18n, &step), true)],
+            share::ShareStep::CopyClipboard(url) => {
+                vec![Action::Run(RunKind::Clipboard, vec!["wl-copy".into(), url])]
+            }
+            share::ShareStep::Fail(step) => vec![Action::Say(
+                share::ShareLink::fail_reason(i18n, &step),
+                true,
+            )],
             share::ShareStep::Idle | share::ShareStep::Copied(_) => Vec::new(),
         }
     }
 
     pub fn clipboard_done(&mut self, ok: bool, i18n: &I18n) -> Vec<Action> {
         match self.link.clipboard_done(ok) {
-            share::ShareStep::Copied(_) => vec![Action::Say(i18n.tr("send.providers.share_copied"), false)],
-            share::ShareStep::Fail(step) => vec![Action::Say(share::ShareLink::fail_reason(i18n, &step), true)],
+            share::ShareStep::Copied(_) => {
+                vec![Action::Say(i18n.tr("send.providers.share_copied"), false)]
+            }
+            share::ShareStep::Fail(step) => vec![Action::Say(
+                share::ShareLink::fail_reason(i18n, &step),
+                true,
+            )],
             share::ShareStep::Idle | share::ShareStep::CopyClipboard(_) => Vec::new(),
         }
     }
