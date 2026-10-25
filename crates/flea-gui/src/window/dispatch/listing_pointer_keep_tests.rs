@@ -1,10 +1,15 @@
 //! A pointer gesture that calls no Selection.js toggle, only, extendTo, all or clear keeps the landing (Selection.js:32-35, 47-67).
 use super::listing_pointer_tests::{click, landed_on_beta_in, row_point, selected};
-use super::test_shell::row;
+use super::test_shell::{asked, lists, row};
 use crate::backend::{Backend, Event as BackendEvent};
 use crate::state::Shell;
+use crate::window::input::ActionEvent;
 use flea::protocol::{Reply, RowFacts};
-use gpui::{Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext};
+use gpui::{
+    Entity, Modifiers, MouseButton, MouseDownEvent, Pixels, Point, TestAppContext,
+    VisualTestContext,
+};
+use std::{cell::RefCell, rc::Rc};
 
 fn rows() -> Vec<RowFacts> {
     vec![
@@ -18,6 +23,34 @@ fn landed(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (Option<(usize, 
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
         (host.nav.landed, host.pane.held.listing)
+    })
+}
+
+// The actions the click hands on to a family this branch has not joined, as guard_tests reads them.
+fn handed_on(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+    at: Point<Pixels>,
+    button: MouseButton,
+    count: usize,
+    modifiers: Modifiers,
+) -> Vec<&'static str> {
+    let emitted = Rc::new(RefCell::new(Vec::new()));
+    let sink = emitted.clone();
+    let _subscription = cx.update(|_, cx| {
+        cx.subscribe(shell, move |_, event: &ActionEvent, _| {
+            sink.borrow_mut().push(event.action)
+        })
+    });
+    click(shell, cx, at, button, count, modifiers);
+    let actions = emitted.borrow().clone();
+    actions
+}
+
+// Whether a release has been counted as a tap on a row, which the click path does before it reads the binding.
+fn tapped(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> bool {
+    shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().input.tap.is_some()
     })
 }
 
@@ -37,15 +70,58 @@ fn keeps_the_landing(shell: &Entity<Shell>, cx: &mut VisualTestContext, gesture:
 fn a_right_click_on_the_selected_landed_row_keeps_the_landing(cx: &mut TestAppContext) {
     let (shell, cx) = landed_on_beta_in(cx, rows());
     let beta = row_point(&shell, cx, 1);
+    // The window root (window/root.rs:60-70) opens the menu in the capture phase, before the pane reads the click.
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let down = MouseDownEvent {
+                position: beta,
+                button: MouseButton::Right,
+                click_count: 1,
+                modifiers: Modifiers::none(),
+                first_mouse: false,
+            };
+            shell.menu_pointer_open(0, &down, window, cx);
+        })
+    });
     click(&shell, cx, beta, MouseButton::Right, 1, Modifiers::none());
+    // The menu draws on the backend's inventory reply; the press's part is capturing the rows it addresses.
+    let captured = shell.read_with(cx, |shell, _| {
+        let capture = shell
+            .menu
+            .captured
+            .as_ref()
+            .expect("the right click asks for the menu");
+        (capture.side, capture.rows.clone(), capture.cursor)
+    });
+    assert_eq!(
+        captured,
+        (0, vec![1], 1),
+        "the menu addresses the selected row"
+    );
     keeps_the_landing(&shell, cx, "a menu on a selected row");
+}
+
+// The pane's own menu arm, reached when the root opens no menu over the press.
+#[gpui::test]
+fn the_pane_menu_arm_on_the_selected_landed_row_keeps_the_landing(cx: &mut TestAppContext) {
+    let (shell, cx) = landed_on_beta_in(cx, rows());
+    let beta = row_point(&shell, cx, 1);
+    assert!(!tapped(&shell, cx), "no tap is counted before the click");
+    click(&shell, cx, beta, MouseButton::Right, 1, Modifiers::none());
+    assert!(tapped(&shell, cx), "the release reached the row's binding");
+    keeps_the_landing(&shell, cx, "the pane's menu arm on a selected row");
 }
 
 #[gpui::test]
 fn a_middle_click_that_opens_a_tab_keeps_the_landing(cx: &mut TestAppContext) {
     let (shell, cx) = landed_on_beta_in(cx, rows());
     let alpha = row_point(&shell, cx, 0);
-    click(&shell, cx, alpha, MouseButton::Middle, 1, Modifiers::none());
+    let actions = handed_on(&shell, cx, alpha, MouseButton::Middle, 1, Modifiers::none());
+    assert_eq!(
+        actions,
+        ["openTab"],
+        "the middle click on a folder asks for a tab"
+    );
     keeps_the_landing(&shell, cx, "openTab");
 }
 
@@ -53,7 +129,15 @@ fn a_middle_click_that_opens_a_tab_keeps_the_landing(cx: &mut TestAppContext) {
 fn a_middle_click_on_a_file_does_nothing_and_keeps_the_landing(cx: &mut TestAppContext) {
     let (shell, cx) = landed_on_beta_in(cx, rows());
     let notes = row_point(&shell, cx, 2);
-    click(&shell, cx, notes, MouseButton::Middle, 1, Modifiers::none());
+    let before = lists(&shell, cx);
+    assert!(!tapped(&shell, cx), "no tap is counted before the click");
+    let actions = handed_on(&shell, cx, notes, MouseButton::Middle, 1, Modifiers::none());
+    assert!(tapped(&shell, cx), "the release reached the row's binding");
+    assert_eq!(actions, Vec::<&str>::new(), "the click asks for nothing");
+    assert_eq!(
+        (asked(&shell, cx), lists(&shell, cx)),
+        ("/files".into(), before)
+    );
     keeps_the_landing(&shell, cx, "an effect-less click");
 }
 
@@ -61,7 +145,16 @@ fn a_middle_click_on_a_file_does_nothing_and_keeps_the_landing(cx: &mut TestAppC
 fn second_tap(cx: &mut TestAppContext, modifiers: Modifiers, gesture: &str) {
     let (shell, cx) = landed_on_beta_in(cx, rows());
     let alpha = row_point(&shell, cx, 0);
-    click(&shell, cx, alpha, MouseButton::Left, 2, modifiers);
+    let before = lists(&shell, cx);
+    let actions = handed_on(&shell, cx, alpha, MouseButton::Left, 2, modifiers);
+    let cursor = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.cursor);
+    assert_eq!(cursor, 0, "{gesture} moves the cursor to the clicked row");
+    assert_eq!(actions, Vec::<&str>::new(), "{gesture} asks for nothing");
+    assert_eq!(
+        (asked(&shell, cx), lists(&shell, cx)),
+        ("/files".into(), before),
+        "{gesture} opens nothing"
+    );
     keeps_the_landing(&shell, cx, gesture);
 }
 
@@ -108,6 +201,11 @@ fn a_tap_that_reveals_a_search_result_keeps_the_landing(cx: &mut TestAppContext)
     });
     let deep = row_point(&shell, cx, 1);
     click(&shell, cx, deep, MouseButton::Left, 1, Modifiers::none());
+    assert_eq!(
+        asked(&shell, cx),
+        "/files/sub",
+        "the tap reveals the result's folder"
+    );
     assert_eq!(landed(&shell, cx).0, armed, "reveal keeps the landing");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
