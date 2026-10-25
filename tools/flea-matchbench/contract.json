@@ -1,0 +1,42 @@
+{
+  "name": "flea-matchbench",
+  "reference": "flea-search/native",
+  "entrants": ["flea-search/native", "flea-current/native", "frizbee/native", "frizbee/typo", "neo_frizbee/native", "neo_frizbee/typo", "nucleo/native", "fuzzy-matcher/native", "sublime_fuzzy/native", "fzf/native"],
+  "stage": "engine: matching and ranking over a fixed path corpus; no walk, no watcher, no GUI",
+  "entry_point": "cargo run --release --locked --manifest-path tools/flea-matchbench/Cargo.toml -- bench [--dry] [--fixtures 100000,1000000,source] [--runs 30] [--noise-runs 5] [--threads 2] [--entrants NAME/PROFILE,...] [--source-commit 0ebbcffae] [--fzf PATH]",
+  "hosts": ["ultra-27 (West)", "ultra-36 (East2)"],
+  "host_rule": "runner.py refuses every other hostname before it writes anything",
+  "protocol": {
+    "framing": "one command per stdin line, tab separated; one JSON object per stdout line",
+    "boot": "{t:boot, cpus, engine, profile, version, licence, parallel}; cpus must equal the thread budget set by taskset",
+    "O\tCORPUS": "load one path per line; reply {t:ready, n, build_ms, read_ms, build_cpu_ns}",
+    "Q\tGEN\tLIMIT\tOFFSET\tMODE\tTEXT": "top-k answer; reply {t:result, gen, n (total matches), paths, core_ms, cpu_ns}",
+    "A\tGEN\tTARGET\tTEXT": "full rank audit; reply {t:audit, gen, n, rank (0 = no match)}",
+    "P": "reply {t:pong}",
+    "X": "exit",
+    "compatibility": "boot, Q, P and X match the findbench1 driver protocol; O takes the corpus file and A is new"
+  },
+  "fixtures": {
+    "100000 and 1000000": "the findbench1 synthetic formula replayed on paths only; runner output equals fixtures.synthetic file for file (checked at 3000 and 100000)",
+    "source": "git ls-tree -r -t of the Flea tree at --source-commit, hidden components, symlinks and submodules excluded",
+    "corpus": "every directory and file as a relative path, sorted bytewise; the corpus sha256 is printed per fixture"
+  },
+  "queries": "per fixture five targets (exact, typo, path, extension, deep), typed one prefix at a time after one no-match query, then one full rank audit per target",
+  "clocks": {
+    "match_core_ms": "Rust entrants: monotonic time around the library call and top-k selection, before path materialisation. fzf: observed from POST change-query to the first GET that reports the query final, 0.5 ms polls",
+    "match_observed_ms": "client round trip including JSON and pipes",
+    "match_cpu_ms": "Rust entrants: CLOCK_PROCESS_CPUTIME_ID delta (all threads, exited ones too). fzf: sum of /proc/PID/task/*/schedstat on-CPU time, which includes its HTTP server",
+    "index_build_ms": "time to hold the corpus ready for the first query (nucleo injection and settle, fzf --sync read)",
+    "process_total_cpu_ms": "wait4 rusage of the adapter process"
+  },
+  "quality": "final_rank_top_k (K=350) and intended_rank_full per target; mrr.tsv is the mean reciprocal top-k rank over the five targets; quality.tsv flags any rank that differs between runs",
+  "statistics": "noise-a and noise-b batches of five, then N=30 measured runs; each run starts every entrant as a fresh process in a rotated order reversed every other run; per-run reductions are bootstrapped (10000 resamples, seed 20261025) for a 95% interval of the median, and paired.tsv bootstraps the per-run ratio against flea-search/native",
+  "threads": "every entrant gets the same CPU budget (default 2, pinned with taskset) and the client takes one more CPU; libraries without a parallel entry point are scored on that many scoped threads by the adapter",
+  "known_differences": [
+    "flea-search/native is the production reference: the pinned backend compressed Index and Session::query run through the bench-only stage entry, with empty stage priors; flea-current/native remains a separate legacy standalone fuzzy comparison",
+    "flea-current compiles src/backend/fuzzy.rs unchanged; its last tie-break uses byte order instead of the Finder order of src/backend/sort.rs, and it folds each candidate per call where the product index pre-folds",
+    "nucleo uses its incremental append path when a query extends the previous one, as its own picker does",
+    "fzf runs under a pseudo-terminal with --scheme=path --sync and answers through --listen with an API key; its clock includes HTTP and polling"
+  ],
+  "dry_run": "--dry runs one measured run and no noise batches; its tables are labelled DRY RUN and are not evidence"
+}

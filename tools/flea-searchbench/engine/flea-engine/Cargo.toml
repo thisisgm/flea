@@ -1,0 +1,23 @@
+[package]
+name = "flea"
+version = "0.3.10"
+edition = "2021"
+rust-version = "1.77"
+publish = false
+
+[workspace]
+
+[dependencies]
+
+[features]
+flash-test-seam = []
+
+[[bin]]
+name = "flea-engine"
+path = "../../../../src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1
