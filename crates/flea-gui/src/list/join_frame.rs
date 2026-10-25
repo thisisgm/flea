@@ -55,6 +55,8 @@ impl Shell {
             if !matches!(view, View::List | View::Dual) {
                 host.input.advance(now, &mut host.pane, &mut host.selected);
             }
+            // Resolve shared font metrics during frame preparation, never inside an observer.
+            host.list.borrow_mut().measure(window);
             let header = Metrics::for_typeface(&host.list.borrow().typeface).header;
             let height = heights[side] + chrome.map_or(0., |chrome| chrome - header);
             // Clamp against the current header before capturing this frame's scroll.

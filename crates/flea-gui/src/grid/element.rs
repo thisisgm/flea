@@ -2,6 +2,11 @@
 #[cfg(test)]
 mod ink_tests;
 mod paint;
+#[path = "pictures.rs"]
+pub mod pictures;
+#[cfg(test)]
+#[path = "pictures_tests.rs"]
+mod pictures_tests;
 mod tip;
 
 use super::{
@@ -83,6 +88,10 @@ pub trait Decor {
     fn language(&self, _row: &RowFacts) -> Option<(SharedString, &'static [u8])> {
         None
     }
+    /// The production lender's own state, which the Shell feeds; a test lender has none.
+    fn pictures(&self) -> Option<&pictures::Pictures> {
+        None
+    }
 }
 
 /// No pictures, no clipboard and no language marks.
@@ -161,6 +170,10 @@ impl Drawn {
     }
     pub fn caption_text(&self) -> Option<&str> {
         self.tile.as_ref().map(|tile| tile.caption.as_str())
+    }
+    /// The atlas key of the language mark this tile draws in place of its kind mark, None when it draws a picture or a kind mark.
+    pub fn language_key(&self) -> Option<&str> {
+        self.language.as_ref().map(|(key, _)| key.as_ref())
     }
     /// GridTile.qml captionElided: the caption differs from the name or is cut, so the hover tip shows the whole name.
     pub fn elided(&self) -> bool {

@@ -20,6 +20,8 @@ pub struct PluginsPane {
     pub(super) marks: HashMap<String, Option<Arc<[u8]>>>,
     focus: FocusHandle,
     pub probe: crate::g2::st1::probe::Probe,
+    /// How far the rows are scrolled up under the pane.
+    pub scroll: f32,
 }
 
 impl EventEmitter<Effect> for PluginsPane {}
@@ -43,6 +45,7 @@ impl PluginsPane {
             marks: HashMap::new(),
             focus: cx.focus_handle(),
             probe: Default::default(),
+            scroll: 0.,
         }
     }
 
@@ -89,7 +92,9 @@ impl PluginsPane {
     }
 
     pub fn key(&mut self, key: Key, cx: &mut Context<Self>) {
+        let title = self.page.title();
         let effect = self.page.key(key, self.wire.as_ref());
+        self.keyed(&title);
         self.after(effect, cx);
     }
 
@@ -503,7 +508,7 @@ type AnyRow = Stateful<Div>;
 
 impl Render for PluginsPane {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        self.probe.clear();
+        self.laid_out(window, cx);
         let cursor = if self.focus.is_focused(window) || *self.page.card() != Card::None {
             self.page.cursor()
         } else {
@@ -515,14 +520,28 @@ impl Render for PluginsPane {
             .enumerate()
             .map(|(index, row)| self.row(index, row, cursor == Some(index), cx))
             .collect();
+        let rows = self.probe.attach(
+            div()
+                .absolute()
+                .left_0()
+                .right_0()
+                .top(px(-self.scroll))
+                .flex()
+                .flex_col()
+                .pb(px(8.))
+                .children(drawn),
+            "rows",
+        );
         self.probe
             .attach(div(), "pane")
             .id("st2-plugins")
             .size_full()
             .relative()
+            .overflow_hidden()
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::on_key))
-            .child(div().flex().flex_col().pb(px(8.)).children(drawn))
+            .on_scroll_wheel(cx.listener(Self::wheel))
+            .child(rows)
             .children(self.card().map(|card| {
                 div()
                     .absolute()

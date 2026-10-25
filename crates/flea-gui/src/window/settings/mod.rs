@@ -8,6 +8,8 @@ mod corner_tests;
 mod fix1_tests;
 mod locale;
 mod messages;
+#[cfg(test)]
+mod m9_g1rows_05_tests;
 mod plugins;
 #[cfg(test)]
 mod review_tests;

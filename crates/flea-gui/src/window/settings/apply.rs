@@ -141,11 +141,16 @@ impl Shell {
                 }
                 self.settings.pending.retain(|(id, _)| *id > through);
                 self.settings.retried.retain(|(id, _)| *id > through);
-                for (_, patch) in self.settings.failed.iter().chain(&self.settings.pending) {
-                    if let Ok(next) = flea::uistate::patched(&document, patch) {
-                        document = next;
-                    }
-                }
+                // Folder choices the folder writer has not finished stay as this window chose them.
+                let owed = self
+                    .panes
+                    .iter()
+                    .flatten()
+                    .next()
+                    .map_or_else(Vec::new, |host| host.nav.writer.borrow_mut().owed());
+                let saving = self.settings.failed.iter().chain(&self.settings.pending);
+                let patches = owed.iter().chain(saving.map(|(_, patch)| patch));
+                store::keep_own(&mut document, &self.launch.settings.data, patches);
                 self.apply_settings(document, window, cx);
                 if self
                     .settings

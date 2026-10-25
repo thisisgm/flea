@@ -1,6 +1,7 @@
 //! Draws the keyboard sheet to the keymap boards: two columns of groups, or the query field over ranked results.
 use super::geometry::{CLAMP, GAP};
 use super::marks::{self, spaced, washed};
+use super::probe::Probe;
 use super::seams::{Ink, Request};
 use super::sheet::Sheet;
 use super::view::SettingsView;
@@ -9,9 +10,11 @@ use flea::keys::SHEET_GROUPS;
 use flea::ui_logic_st1::{caps, sheet::match_of};
 use gpui::{
     div, linear_color_stop, linear_gradient, prelude::*, px, AnyElement, Context, Div,
-    EventEmitter, FocusHandle, FontWeight, KeyDownEvent, Render, ScrollWheelEvent, SharedString,
-    Stateful, Window,
+    EventEmitter, FocusHandle, FontWeight, KeyDownEvent, Render, SharedString, Stateful, Window,
 };
+
+mod scroll;
+use scroll::{Measured, COLUMNS, LAST_ROWS};
 
 // Board keymap: a 628 by 684 card padded 16, the key column 117 plus a 5px margin, columns 14 apart, 19px headings over 25px rows.
 pub const SHEET_W: f32 = 628.;
@@ -33,6 +36,8 @@ pub struct SheetView {
     pub typeface: Typeface,
     /// The compositor's rounding, a seam for the theme service as Facts.corner is for Settings.
     pub corner: f32,
+    /// The scrolled body and its content as the latest frame laid them out.
+    pub probe: Probe,
 }
 
 impl EventEmitter<Request> for SheetView {}
@@ -44,6 +49,7 @@ impl SheetView {
             focus: cx.focus_handle(),
             typeface: Typeface::omarchy_default(),
             corner: super::seams::COMPOSITOR_CORNER_DEFAULT,
+            probe: Probe::default(),
         }
     }
 
@@ -84,12 +90,12 @@ impl SheetView {
         column
     }
 
-    /// The groups split into two columns at the first group that would pass half the rows, each faded at its foot.
-    fn columns(&self, ink: &Ink) -> Div {
+    /// The groups split into two columns at the first group that would pass half the rows, each faded at its own foot.
+    fn columns(&self, measured: &Measured, ink: &Ink, cx: &mut Context<Self>) -> Stateful<Div> {
         let catalog = &self.sheet.catalog;
-        let mut columns: [Vec<AnyElement>; 2] = [Vec::new(), Vec::new()];
         let half = self.sheet.rows.len().div_ceil(2);
         let mut used = 0;
+        let mut groups = Vec::new();
         for group in SHEET_GROUPS {
             let rows: Vec<_> = self
                 .sheet
@@ -102,6 +108,12 @@ impl SheetView {
             }
             let side = usize::from(used > 0 && used + rows.len() > half);
             used += rows.len();
+            groups.push((side, group, rows));
+        }
+        let last = [0, 1].map(|side| groups.iter().rposition(|(on, ..)| *on == side));
+        let mut columns: [Vec<AnyElement>; 2] = [Vec::new(), Vec::new()];
+        for (index, (side, group, rows)) in groups.iter().enumerate() {
+            let side = *side;
             let label = caps::heading(&catalog.tr(group.label_key), catalog.language());
             columns[side].push(
                 div()
@@ -115,56 +127,77 @@ impl SheetView {
                     .child(spaced(&label, 1.))
                     .into_any_element(),
             );
-            for row in rows {
-                columns[side].push(
-                    div()
-                        .h(px(KEY_ROW))
-                        .flex_none()
-                        .flex()
-                        .items_center()
-                        .gap(px(GAP))
-                        .child(self.keys(&row.keys, None, false, ink))
-                        .child(
-                            div()
-                                .whitespace_nowrap()
-                                .child(SharedString::from(row.label.clone())),
-                        )
-                        .into_any_element(),
-                );
+            for (at, row) in rows.iter().enumerate() {
+                let line = div()
+                    .h(px(KEY_ROW))
+                    .flex_none()
+                    .flex()
+                    .items_center()
+                    .gap(px(GAP))
+                    .child(self.keys(&row.keys, None, false, ink))
+                    .child(
+                        div()
+                            .whitespace_nowrap()
+                            .child(SharedString::from(row.label.clone())),
+                    );
+                let line = if last[side] == Some(index) && at + 1 == rows.len() {
+                    self.probe.masked(line, LAST_ROWS[side])
+                } else {
+                    line
+                };
+                columns[side].push(line.into_any_element());
             }
         }
-        let fade = || {
-            div()
-                .absolute()
-                .left_0()
-                .right_0()
-                .bottom_0()
-                .h(px(COLUMN_FADE))
-                .bg(linear_gradient(
-                    180.,
-                    linear_color_stop(ink.surface.opacity(0.), 0.),
-                    linear_color_stop(ink.surface, 1.),
-                ))
-        };
-        let [left, right] = columns;
-        let column = |rows: Vec<AnyElement>| {
-            div()
-                .relative()
+        let below = measured.most - self.sheet.scroll > 1.;
+        let foot = self.sheet.scroll + measured.body;
+        let mut grid = div().flex().items_start().gap(px(COL_GAP));
+        for (side, rows) in columns.into_iter().enumerate() {
+            let rows = self.probe.attach(
+                div().flex_none().flex().flex_col().children(rows),
+                COLUMNS[side],
+            );
+            let column = div()
                 .flex_1()
                 .min_w_0()
-                .h_full()
-                .overflow_hidden()
-                .child(div().flex().flex_col().children(rows))
-                .child(fade())
-        };
+                .relative()
+                .debug_selector(move || format!("sheet-column-{side}"));
+            // Board keymap: a column running past the body's foot is cut there, one ending within a row of it on its last row's half.
+            let cut = measured.feet[side]
+                .filter(|_| below)
+                .filter(|end| end.end > foot - 2. * (end.end - end.half))
+                .map(|end| (end.end, if end.end > foot { foot } else { end.half }));
+            // The rows are clipped at the cut rather than painted over, so a translucent ground never shows them under the fade.
+            grid = grid.child(match cut {
+                Some((end, cut)) => column
+                    .h(px(end))
+                    .child(
+                        div()
+                            .h(px(cut))
+                            .overflow_hidden()
+                            .debug_selector(move || format!("sheet-clip-{side}"))
+                            .child(rows),
+                    )
+                    .child(Self::fade(side, cut, ink)),
+                None => column.child(rows),
+            });
+        }
+        self.body(grid, cx).id("sheet-rest")
+    }
+
+    /// The 18px fade over a column's cut, as each clipped menu ends to say it scrolls.
+    fn fade(side: usize, cut: f32, ink: &Ink) -> Div {
         div()
-            .flex_1()
-            .min_h_0()
-            .flex()
-            .items_start()
-            .gap(px(COL_GAP))
-            .child(column(left))
-            .child(column(right))
+            .absolute()
+            .left_0()
+            .right_0()
+            .top(px(cut - COLUMN_FADE))
+            .h(px(COLUMN_FADE))
+            .debug_selector(move || format!("sheet-fade-{side}"))
+            .bg(linear_gradient(
+                180.,
+                linear_color_stop(ink.surface.opacity(0.), 0.),
+                linear_color_stop(ink.surface, 1.),
+            ))
     }
 
     /// The ranked rows at the card's full width: the hit row hovered with its run bold, a dead row dimmed with its reason.
@@ -232,31 +265,9 @@ impl SheetView {
                     )
                 })
         });
-        let scroll = self.sheet.scroll;
-        div()
-            .id("sheet-results")
-            .flex_1()
-            .min_h_0()
+        self.body(div().flex().flex_col().children(rows), cx)
             .mx(px(-PAD))
-            .relative()
-            .overflow_hidden()
-            .on_scroll_wheel(cx.listener(|view, event: &ScrollWheelEvent, window, cx| {
-                let delta = f32::from(event.delta.pixel_delta(window.line_height()).y);
-                let most =
-                    (view.sheet.ranked.len() as f32 * KEY_ROW - view.viewport(window)).max(0.);
-                view.sheet.scroll = (view.sheet.scroll - delta).clamp(0., most);
-                cx.notify();
-            }))
-            .child(
-                div()
-                    .absolute()
-                    .left_0()
-                    .right_0()
-                    .top(px(-scroll))
-                    .flex()
-                    .flex_col()
-                    .children(rows),
-            )
+            .id("sheet-results")
     }
 
     /// The results' height inside a card fitted to this window.
@@ -292,10 +303,7 @@ impl Render for SheetView {
             .unwrap_or_default();
         let ink = Ink::inherited(&window.text_style(), theme);
         let searching = !self.sheet.query.is_empty();
-        if searching {
-            let viewport = self.viewport(window);
-            self.sheet.reveal(viewport, KEY_ROW);
-        }
+        let measured = self.laid_out(window, cx);
         let viewport = window.viewport_size();
         let (left, top, card_w, card_h) =
             card_rect(f32::from(viewport.width), f32::from(viewport.height));
@@ -351,7 +359,7 @@ impl Render for SheetView {
             )
             .child(self.results(&ink, cx))
         } else {
-            card.child(self.columns(&ink))
+            card.child(self.columns(&measured, &ink, cx))
         };
         let card = marks::card(card);
         marks::ground(

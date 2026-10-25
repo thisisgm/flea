@@ -9,6 +9,10 @@ use flea::jsondoc::Json;
 use flea::ui_logic_op3::openwith::close_request;
 use flea::ui_logic_op3::properties::{self as logic, Facts, Label, Name, Several, Walk};
 
+#[cfg(test)]
+#[path = "m9_g2rows_05_tests.rs"]
+mod tests;
+
 /// The board's card width at its 14 body.
 pub const WIDTH: f32 = 552.;
 
@@ -23,7 +27,8 @@ enum Shown {
 #[derive(Clone, Debug)]
 pub struct Properties {
     id: u64,
-    several: bool,
+    count: usize,
+    closed: bool,
     shown: Shown,
     /// The facts view's extra pairs (photo, codecs) and the MIME database's kind word, filled by their own producers.
     extras: Vec<(String, String)>,
@@ -31,17 +36,21 @@ pub struct Properties {
 }
 
 impl Properties {
-    /// The snapshot captures the selection first, so a later cursor move cannot change what is described.
-    pub fn open(id: u64, rows: &[usize]) -> (Self, Vec<Effect>) {
-        let card = Self {
+    fn new(id: u64, count: usize) -> Self {
+        Self {
             id,
-            several: rows.len() > 1,
+            count,
+            closed: false,
             shown: Shown::Asking,
             extras: Vec::new(),
             mime_kind: String::new(),
-        };
+        }
+    }
+
+    /// The snapshot captures the selection first; the host must await its acknowledgement before sending Properties.
+    pub fn open(id: u64, rows: &[usize]) -> (Self, Vec<Effect>) {
         (
-            card,
+            Self::new(id, rows.len()),
             vec![
                 Effect::Send(logic::snapshot_request(id, rows)),
                 Effect::Send(logic::properties_request(id)),
@@ -49,13 +58,33 @@ impl Properties {
         )
     }
 
+    /// Reuse the menu's acknowledged snapshot; the host retains its side and sends effects through that backend.
+    pub fn from_captured(captured: &crate::g2::mn1::join::Captured) -> Option<(Self, Vec<Effect>)> {
+        if !captured.ready || captured.id == 0 || captured.rows.is_empty() {
+            return None;
+        }
+        Some((
+            Self::new(captured.id, captured.rows.len()),
+            vec![Effect::Send(logic::properties_request(captured.id))],
+        ))
+    }
+
+    /// A complete card snapshot the host can prepare before its atomic presentation swap.
+    pub fn ready(&self) -> bool {
+        !self.closed && !matches!(self.shown, Shown::Asking)
+    }
+
     pub fn set_extras(&mut self, extras: Vec<(String, String)>, mime_kind: &str) {
+        if self.closed {
+            return;
+        }
         self.extras = extras;
         self.mime_kind = mime_kind.to_string();
     }
 
     /// Closing cancels the old id, so a late reply for it cannot reopen anything.
-    fn close(&self) -> Vec<Effect> {
+    pub fn close(&mut self) -> Vec<Effect> {
+        self.closed = true;
         vec![Effect::Send(close_request(self.id)), Effect::Close]
     }
 
@@ -68,7 +97,7 @@ impl Properties {
 
     /// Sample input: a properties reply, then a folder's contents progress lines; a reply for another id is ignored.
     pub fn reply(&mut self, i18n: &I18n, reply: &Json) -> Vec<Effect> {
-        if reply.get("id").and_then(Json::as_f64) != Some(self.id as f64) {
+        if self.closed || reply.get("id").and_then(Json::as_f64) != Some(self.id as f64) {
             return Vec::new();
         }
         let ok = reply.get("ok").and_then(Json::as_bool) == Some(true);
@@ -79,11 +108,13 @@ impl Properties {
             }
             // A cancelled several-item walk ends quietly, never as an error toast.
             (Some("properties"), _)
-                if self.several && reply.get("cancelled").and_then(Json::as_bool) == Some(true) =>
+                if self.count > 1
+                    && reply.get("cancelled").and_then(Json::as_bool) == Some(true) =>
             {
-                return vec![Effect::Close]
+                self.closed = true;
+                return vec![Effect::Close];
             }
-            (Some("properties"), _) if self.several => {
+            (Some("properties"), _) if self.count > 1 => {
                 self.shown = Shown::Several(Several::from_reply(reply))
             }
             (Some("properties"), _) => {
@@ -150,7 +181,11 @@ impl Properties {
             body.push(Block::Facts(facts));
         }
         Card {
-            title: i18n.tr("dialogs.file.properties.title"),
+            title: if self.count > 1 {
+                i18n.trn("items.count", self.count as i64)
+            } else {
+                i18n.tr("dialogs.file.properties.title")
+            },
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,
             bleed: false,
