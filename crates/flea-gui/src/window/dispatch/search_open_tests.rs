@@ -4,7 +4,7 @@ use crate::backend::{Backend, Event as BackendEvent};
 use flea::protocol::{Reply, RowFacts};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
-fn line(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext, wire: &str) {
+pub(super) fn line(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext, wire: &str) {
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.receive(0, Backend::test_reply_line(wire), window, cx)
@@ -13,7 +13,7 @@ fn line(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext, wire: &
 }
 
 // One search generation's answer: its listed line, its rows and the searched line that ends the walk.
-fn answer(
+pub(super) fn answer(
     shell: &Entity<crate::state::Shell>,
     cx: &mut VisualTestContext,
     generation: usize,
