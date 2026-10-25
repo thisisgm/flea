@@ -4,7 +4,7 @@ use super::surface::{Command, Surface};
 use crate::pane::swap::{CAP_MS, MIN_SHOW_MS};
 use flea::i18n::I18n;
 use flea::ui_logic_pv2::viewer;
-use gpui::{px, App, Context, Hsla, ScrollWheelEvent, Task, Window};
+use gpui::{App, Context, Hsla, ScrollWheelEvent, Task, Window};
 use std::{cell::Cell, time::Instant};
 
 /// The theme roles the surface reads: the window ground decides whether the white page takes its veil.
@@ -339,7 +339,7 @@ impl PdfView {
     }
 
     fn wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
-        let delta = f64::from(event.delta.pixel_delta(px(self.metrics.row_height)).y);
+        let delta = f64::from(crate::input::scroll::wheel_delta(&event.delta).y);
         if self.surface.continuous {
             let top = self.surface.view_top - delta;
             self.surface.scroll_to(top);
@@ -354,3 +354,7 @@ impl PdfView {
 
 #[path = "view_paint.rs"]
 mod paint;
+
+#[cfg(test)]
+#[path = "view_wheel_tests.rs"]
+mod wheel_tests;
