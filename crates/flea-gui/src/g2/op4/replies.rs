@@ -11,6 +11,31 @@ use flea::{
 };
 
 impl Model {
+    pub fn can_cancel(&self) -> bool {
+        !self.busy
+            || self
+                .run
+                .as_ref()
+                .is_some_and(|run| run.action != Action::Print && !run.cancel_requested)
+    }
+
+    pub fn cancel(&mut self) -> bool {
+        if !self.busy {
+            return self.close();
+        }
+        let Some(run) = &mut self.run else {
+            return false;
+        };
+        if run.action == Action::Print || run.cancel_requested {
+            return false;
+        }
+        run.cancel_requested = true;
+        if let Some(id) = run.operation {
+            self.effects.push(Effect::Send(wire::cancel(id)));
+        }
+        true
+    }
+
     pub fn can_submit(&self) -> bool {
         if !self.editable() || !self.error.is_empty() {
             return false;
@@ -69,6 +94,7 @@ impl Model {
         self.run = Some(Run {
             ticket,
             operation: None,
+            cancel_requested: false,
             action,
             source: self.selection.as_ref().unwrap().files[0].path.clone(),
             last_receipt: None,
@@ -144,6 +170,9 @@ impl Model {
                 return false;
             }
             run.operation = Some(id);
+            if run.cancel_requested {
+                self.effects.push(Effect::Send(wire::cancel(id)));
+            }
             if run.action == Action::Print {
                 self.card = None;
                 self.focus = None;

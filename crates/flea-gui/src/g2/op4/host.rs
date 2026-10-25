@@ -187,7 +187,7 @@ impl OutputView {
     pub fn activate(&mut self, control: Control, window: &Window, cx: &mut Context<Self>) {
         match control {
             Control::Cancel => {
-                self.model.close();
+                self.model.cancel();
             }
             Control::Submit => self.model.submit(&self.catalog),
             _ if !self.model.editable() => return,

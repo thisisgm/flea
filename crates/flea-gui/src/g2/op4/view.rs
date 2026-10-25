@@ -92,7 +92,7 @@ pub fn card(view: &OutputView, room: (f32, f32), cx: &mut Context<OutputView>) -
             view.catalog.tr("dialogs.output.cancel"),
             false,
             model.focus == Some(Focus::Cancel),
-            !model.busy,
+            model.can_cancel(),
             cx,
         ))
         .child(c::button(
