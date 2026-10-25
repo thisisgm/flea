@@ -26,7 +26,6 @@ pub struct Tile {
     pub lines: Vec<Line>,
     pub mark: Mark,
     pub elided: bool,
-    pub last_cells: usize,
     pub widest: f32,
 }
 
@@ -106,7 +105,6 @@ pub fn prepare(
         mode: row.mode,
         per_line,
         count,
-        last_cells: captions::last_line_cells(&caption),
         widest: lines.iter().map(|line| line.centred).fold(0., f32::max),
         caption,
         lines,
@@ -306,7 +304,6 @@ mod tests {
             lines: Vec::new(),
             mark: Mark::File,
             elided: false,
-            last_cells: 0,
             widest: 0.,
         }
     }
