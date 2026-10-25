@@ -3,7 +3,11 @@ use crate::i18n::{I18n, Paths};
 
 fn english() -> I18n {
     let none = std::path::PathBuf::from("/nonexistent/flea-dg2");
-    I18n::load(Paths { omarchy: none.clone(), language_file: none, catalogs: Vec::new() })
+    I18n::load(Paths {
+        omarchy: none.clone(),
+        language_file: none,
+        catalogs: Vec::new(),
+    })
 }
 
 fn s(items: &[&str]) -> Vec<String> {
@@ -42,7 +46,10 @@ fn marker_round_trips_with_a_percent_encoded_source() {
 fn legacy_markers_parse_and_malformed_ones_refuse() {
     let five = Marker::parse("x\n0\ncopy\n/raw/src\n9").expect("five fields");
     assert!(five.copy && five.deletable && !five.shift);
-    assert_eq!((five.source.as_str(), five.dev, five.listing), ("/raw/src", 9, 0));
+    assert_eq!(
+        (five.source.as_str(), five.dev, five.listing),
+        ("/raw/src", 9, 0)
+    );
     let six = Marker::parse("x\n0\nmove\n/raw\n9\n0").expect("six fields");
     assert!(!six.deletable);
     for bad in [
@@ -62,7 +69,10 @@ fn legacy_markers_parse_and_malformed_ones_refuse() {
 #[test]
 fn uri_encodes_each_component_and_keeps_the_separators() {
     assert_eq!(uri_for("/d/a b#c?.txt"), "file:///d/a%20b%23c%3F.txt");
-    assert_eq!(file_path("file:///d/a%20b.txt").as_deref(), Some("/d/a b.txt"));
+    assert_eq!(
+        file_path("file:///d/a%20b.txt").as_deref(),
+        Some("/d/a b.txt")
+    );
     assert_eq!(file_path("file://localhost/d/x").as_deref(), Some("/d/x"));
     assert_eq!(file_path("file://host/d/x"), None);
     assert_eq!(file_path("http://e/y"), None);
@@ -79,10 +89,16 @@ fn foreign_plain_text_adds_absolute_lines_but_an_own_drag_never_rereads_it() {
 #[test]
 fn refusals_come_in_the_oracle_order() {
     let paths = s(&["/a/dir", "/a/f"]);
-    assert_eq!(refusal(&paths, "/a/dir/sub", false), Some(Refusal::InsideDrag));
+    assert_eq!(
+        refusal(&paths, "/a/dir/sub", false),
+        Some(Refusal::InsideDrag)
+    );
     assert_eq!(refusal(&paths, "/a/dir", false), Some(Refusal::InsideDrag));
     assert_eq!(refusal(&paths, "/a", false), Some(Refusal::AlreadyHere));
-    assert_eq!(refusal(&s(&["/top"]), "/", false), Some(Refusal::AlreadyHere));
+    assert_eq!(
+        refusal(&s(&["/top"]), "/", false),
+        Some(Refusal::AlreadyHere)
+    );
     assert_eq!(refusal(&[], "/b", false), Some(Refusal::NoLocalFiles));
     assert_eq!(refusal(&[], "/b", true), None);
     assert_eq!(refusal(&paths, "/b", false), None);
@@ -92,9 +108,15 @@ fn refusals_come_in_the_oracle_order() {
 #[test]
 fn refusal_sentences_are_the_frozen_ones() {
     let i18n = english();
-    assert_eq!(Refusal::InsideDrag.say(&i18n), "That folder is inside the drag.");
+    assert_eq!(
+        Refusal::InsideDrag.say(&i18n),
+        "That folder is inside the drag."
+    );
     assert_eq!(Refusal::AlreadyHere.say(&i18n), "Already in this folder.");
-    assert_eq!(Refusal::NoLocalFiles.say(&i18n), "That drag has no local files.");
+    assert_eq!(
+        Refusal::NoLocalFiles.say(&i18n),
+        "That drag has no local files."
+    );
 }
 
 #[test]
@@ -130,12 +152,31 @@ fn foreign_drag_reads_the_platform_action() {
 fn drop_verb_uses_the_marker_then_the_platform() {
     let own = marker("me");
     let none = Proposed::default();
-    assert_eq!(drop_verb(Some(&own), none, 42, Seen::Unseen, Seen::Unseen), Verb::Move);
-    assert_eq!(drop_verb(Some(&own), none, 43, Seen::Unseen, Seen::Unseen), Verb::Copy);
-    assert_eq!(drop_verb(Some(&own), none, 42, Seen::Held, Seen::Unseen), Verb::Copy);
-    let move_only = Proposed { copy: false, move_: true, link: false };
-    assert_eq!(drop_verb(None, move_only, 9, Seen::Unseen, Seen::Unseen), Verb::Move);
-    assert_eq!(drop_verb(None, none, 9, Seen::Unseen, Seen::Unseen), Verb::Copy);
+    assert_eq!(
+        drop_verb(Some(&own), none, 42, Seen::Unseen, Seen::Unseen),
+        Verb::Move
+    );
+    assert_eq!(
+        drop_verb(Some(&own), none, 43, Seen::Unseen, Seen::Unseen),
+        Verb::Copy
+    );
+    assert_eq!(
+        drop_verb(Some(&own), none, 42, Seen::Held, Seen::Unseen),
+        Verb::Copy
+    );
+    let move_only = Proposed {
+        copy: false,
+        move_: true,
+        link: false,
+    };
+    assert_eq!(
+        drop_verb(None, move_only, 9, Seen::Unseen, Seen::Unseen),
+        Verb::Move
+    );
+    assert_eq!(
+        drop_verb(None, none, 9, Seen::Unseen, Seen::Unseen),
+        Verb::Copy
+    );
 }
 
 #[test]
@@ -143,7 +184,10 @@ fn lift_offers_the_marker_always_and_paths_only_when_every_row_resolved() {
     let own = marker("me");
     let whole = lift_payload(&own, Some(&s(&["/d/a b", "/d/c"])));
     assert_eq!(whole[0], (ROWS_MIME, own.encode().into_bytes()));
-    assert_eq!(whole[1], (URILIST, b"file:///d/a%20b\r\nfile:///d/c\r\n".to_vec()));
+    assert_eq!(
+        whole[1],
+        (URILIST, b"file:///d/a%20b\r\nfile:///d/c\r\n".to_vec())
+    );
     assert_eq!(whole[2], (PLAIN, b"/d/a b\n/d/c".to_vec()));
     let wide = lift_payload(&own, None);
     assert_eq!(wide, vec![(ROWS_MIME, own.encode().into_bytes())]);
@@ -170,9 +214,22 @@ fn a_drop_becomes_one_transfer_or_one_link_into_the_folder() {
             spends_cut: false,
         }
     );
-    let linked = Dropped { ctrl: Seen::Held, shift: Seen::Held, ..dropped };
-    assert!(matches!(drop_into(&linked, "/home/u/c", 42), Ok(PasteAsk::Link { kind: LinkKind::Relative, .. })));
-    assert_eq!(drop_into(&dropped, "/home/u/a b", 42), Err(Some(Refusal::AlreadyHere)));
+    let linked = Dropped {
+        ctrl: Seen::Held,
+        shift: Seen::Held,
+        ..dropped
+    };
+    assert!(matches!(
+        drop_into(&linked, "/home/u/c", 42),
+        Ok(PasteAsk::Link {
+            kind: LinkKind::Relative,
+            ..
+        })
+    ));
+    assert_eq!(
+        drop_into(&dropped, "/home/u/a b", 42),
+        Err(Some(Refusal::AlreadyHere))
+    );
     assert_eq!(drop_into(&dropped, "", 42), Err(None));
 }
 
@@ -191,12 +248,19 @@ fn a_malformed_marker_never_drops() {
         ctrl: Seen::Unseen,
         shift: Seen::Unseen,
     };
-    assert!(drop_into(&dropped, "/b", 1).is_ok(), "an absent marker is a foreign drag");
+    assert!(
+        drop_into(&dropped, "/b", 1).is_ok(),
+        "an absent marker is a foreign drag"
+    );
 }
 
 #[test]
 fn offer_is_one_action_so_a_receiver_takes_the_lift_verb() {
-    assert_eq!(offer(false, false), (true, false, Verb::Copy), "a plain lift never offers move");
+    assert_eq!(
+        offer(false, false),
+        (true, false, Verb::Copy),
+        "a plain lift never offers move"
+    );
     assert_eq!(offer(true, false), (true, false, Verb::Copy));
     assert_eq!(offer(false, true), (false, true, Verb::Move));
     assert_eq!(offer(true, true), (true, false, Verb::Copy));
@@ -205,19 +269,38 @@ fn offer_is_one_action_so_a_receiver_takes_the_lift_verb() {
 #[test]
 fn too_wide_reads_the_frozen_drag_line_and_reach_note() {
     let i18n = english();
-    assert_eq!(too_wide(&i18n, 400, false, false), "Move 400 items to a folder · Ctrl copies, Shift moves · too wide to drag out");
-    assert_eq!(too_wide(&i18n, 1, true, false), "Copy 1 item to a folder · too wide to drag out");
-    assert_eq!(too_wide(&i18n, 2, true, true), "Link 2 items to a folder · too wide to drag out");
+    assert_eq!(
+        too_wide(&i18n, 400, false, false),
+        "Move 400 items to a folder · Ctrl copies, Shift moves · too wide to drag out"
+    );
+    assert_eq!(
+        too_wide(&i18n, 1, true, false),
+        "Copy 1 item to a folder · too wide to drag out"
+    );
+    assert_eq!(
+        too_wide(&i18n, 2, true, true),
+        "Link 2 items to a folder · too wide to drag out"
+    );
 }
 
 #[test]
 fn rail_destination_names_only_mounted_local_folders() {
     let urls = s(&["file:///home/u/x"]);
     let at = |kind, path: &str, mounted| rail_destination(kind, path, mounted, &urls, None, false);
-    assert_eq!(at(RailKind::Folder, "/run/media/u/USB/", true), "/run/media/u/USB");
+    assert_eq!(
+        at(RailKind::Folder, "/run/media/u/USB/", true),
+        "/run/media/u/USB"
+    );
     assert_eq!(at(RailKind::Folder, "/run/media/u/USB", false), "");
     assert_eq!(at(RailKind::Other, "/home/u", true), "");
-    assert_eq!(at(RailKind::Folder, "/run/user/1000/gvfs/mtp:host=Phone", true), "");
-    assert_eq!(at(RailKind::Folder, "/home/u", true), "", "already in this folder");
+    assert_eq!(
+        at(RailKind::Folder, "/run/user/1000/gvfs/mtp:host=Phone", true),
+        ""
+    );
+    assert_eq!(
+        at(RailKind::Folder, "/home/u", true),
+        "",
+        "already in this folder"
+    );
     assert_eq!(at(RailKind::Folder, "relative", true), "");
 }

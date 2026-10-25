@@ -1,14 +1,14 @@
 //! The drag owner joined to the live Shell: the pane's on_drag lifts the pressed row's carried rows, its own drops and every native drop the router hands this window resolve their folder, read the disk facts off the UI thread, and send one ask through op1.
-use super::router::{self, Client, Native, Offered, Registration};
+use super::files::{Arrived, Files, Held};
+use super::router::{self, Registration};
 use super::{decide, facts, lift, spot, Dropping, Facts, Landing, Lift, Rows};
 use crate::{state::Shell, window::pane::PaneHost};
-use flea::ui_logic_dg2::{self as core, PLAIN, ROWS_MIME, URILIST};
+use flea::ui_logic_dg2 as core;
 use flea::ui_logic_fb1::status::Hint;
 use gpui::{
-    App, AppContext, Context, Empty, ExternalDragPayload, Global, IntoElement, NativeDragAction,
-    NativeDragActions, Point, Render, Window,
+    App, AppContext, Context, Empty, ExternalDragPayload, Global, IntoElement, Point, Render,
+    Window,
 };
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -22,11 +22,30 @@ impl Rows for HostRows<'_> {
         self.0.pane.held.listing
     }
     fn row(&self, index: usize) -> Option<(&str, bool)> {
-        self.0.pane.held.row(index).map(|row| (row.name.as_str(), row.dir))
+        self.0
+            .pane
+            .held
+            .row(index)
+            .map(|row| (row.name.as_str(), row.dir))
     }
     fn selected(&self) -> &[usize] {
         &self.0.selected
     }
+}
+
+/// The folder a landing at `point` in a List pane resolves to, as a drop does: the folder row under it unless
+/// `carried` holds that row, else the pane's own folder.
+pub(crate) fn pane_spot(host: &PaneHost, point: Point<gpui::Pixels>, carried: &[usize]) -> String {
+    row_spot(host, host.input.hit(point), carried)
+}
+
+/// The same for a row another view has already hit-tested and validated (a Grid tile), None for its background.
+pub(crate) fn row_spot(host: &PaneHost, row: Option<usize>, carried: &[usize]) -> String {
+    spot(
+        &HostRows(host),
+        row.filter(|row| !carried.contains(row)),
+        None,
+    )
 }
 
 /// The value a pane's on_drag carries; the lift is captured from the press when the drag starts.
@@ -42,18 +61,6 @@ impl Render for Flock {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         Empty
     }
-}
-
-/// A native drop this window's client accepted, owned so it can wait for the disk facts.
-#[derive(Clone, Debug)]
-pub struct Arrived {
-    pub position: (f32, f32),
-    pub marker: Option<String>,
-    pub urls: Vec<String>,
-    pub plain: Option<String>,
-    pub action: Option<NativeDragAction>,
-    pub ctrl: bool,
-    pub shift: bool,
 }
 
 // What waits for the facts: this window's own lift or an arrived native drop.
@@ -90,77 +97,27 @@ impl Owned {
 pub struct Drags {
     lifts: HashMap<u64, Lift>,
     clients: HashMap<u64, Registration>,
-    /// Whether each window holds a lift, shared with its file client.
-    held: HashMap<u64, Rc<Cell<bool>>>,
+    /// The marker tag and serial of each window's current lift, shared with its file client.
+    held: HashMap<u64, Held>,
     serial: u64,
 }
 
 impl Drags {
     fn put(&mut self, key: u64, lift: Lift) {
+        *self.held.entry(key).or_default().borrow_mut() =
+            Some((lift.marker.instance.clone(), lift.serial));
         self.lifts.insert(key, lift);
-        self.held.entry(key).or_default().set(true);
     }
 
     fn take(&mut self, key: u64) -> Option<Lift> {
         if let Some(held) = self.held.get(&key) {
-            held.set(false);
+            *held.borrow_mut() = None;
         }
         self.lifts.remove(&key)
     }
 }
 
 impl Global for Drags {}
-
-// The window's file client: it claims drags carrying files, Flea's marker or plain text over this window only; text without a local path is refused with its sentence.
-pub(super) struct Files {
-    pub(super) window: u64,
-    pub(super) send: async_channel::Sender<Arrived>,
-    pub(super) held: Rc<Cell<bool>>,
-}
-
-// A tab lift is the tab strip's alone, whatever else it offers.
-fn carries_files(types: &[String]) -> bool {
-    !types.iter().any(|kind| kind == crate::tabs::transfer::TAB_MIME)
-        && types.iter().any(|kind| kind == URILIST || kind == ROWS_MIME || kind == PLAIN || kind == core::PLAIN_UTF8)
-}
-
-impl Client for Files {
-    fn offer(&self, offered: &Offered<'_>) -> Option<NativeDragActions> {
-        // Copy preferred, as DropInto accepts CopyAction; move too, so a move-only (Shift) source still negotiates, and the transfer stays this window's.
-        (offered.window == self.window && carries_files(offered.types)).then_some(NativeDragActions {
-            copy: true,
-            move_: true,
-            preferred: NativeDragAction::Copy,
-        })
-    }
-
-    fn land(&self, native: &Native<'_>) -> Option<bool> {
-        if native.window != self.window || !carries_files(native.types) {
-            return None;
-        }
-        if !native.dropped {
-            return Some(true);
-        }
-        let text = |mime: &str| native.get(mime).map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
-        // This window's own drag came back in: GPUI restores it and its pane on_drop lands it, so the native copy is not landed twice.
-        let own = text(ROWS_MIME)
-            .and_then(|marker| flea::ui_logic_dg2::Marker::parse(&marker))
-            .is_some_and(|marker| marker.instance == super::instance());
-        if own && self.held.get() && native.get(URILIST).is_some() {
-            return Some(true);
-        }
-        let arrived = Arrived {
-            position: native.position,
-            marker: text(ROWS_MIME),
-            urls: native.get(URILIST).map_or(Vec::new(), |bytes| core::uri_lines(&bytes)),
-            plain: text(PLAIN).or_else(|| text(core::PLAIN_UTF8)),
-            action: native.action,
-            ctrl: native.ctrl,
-            shift: native.shift,
-        };
-        Some(self.send.try_send(arrived).is_ok())
-    }
-}
 
 // File lifts number from here, so a tab strip filtering native source events by its own serial never takes one.
 const FILE_SERIALS: u64 = 1 << 62;
@@ -181,20 +138,36 @@ impl Shell {
             return;
         }
         let (send, receive) = async_channel::unbounded();
-        let held = cx.global_mut::<Drags>().held.entry(key).or_default().clone();
+        let held = cx
+            .global_mut::<Drags>()
+            .held
+            .entry(key)
+            .or_default()
+            .clone();
         let shared = router::shared(cx);
-        let registration = shared.register(Rc::new(Files { window: key, send, held }));
+        let registration = shared.register(Rc::new(Files {
+            window: key,
+            send,
+            held,
+        }));
         cx.global_mut::<Drags>().clients.insert(key, registration);
         cx.spawn_in(window, async move |this, cx| {
             while let Ok(arrived) = receive.recv().await {
-                let _ = this.update_in(cx, |shell, window, cx| shell.land_arrived(arrived, window, cx));
+                let _ = this.update_in(cx, |shell, window, cx| {
+                    shell.land_arrived(arrived, window, cx)
+                });
             }
         })
         .detach();
     }
 
     /// The drag's start: lift the rows the press carries, or nothing when the press is not a live left press on a row; a selection reaching past the held rows refuses with its line.
-    pub fn begin_file_drag(&mut self, side: usize, window: &Window, cx: &mut Context<Self>) -> bool {
+    pub fn begin_file_drag(
+        &mut self,
+        side: usize,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
         let key = window_key(window);
         // A drag that lifts nothing must never land an earlier drag's rows.
         cx.default_global::<Drags>().take(key);
@@ -226,7 +199,12 @@ impl Shell {
             return false;
         };
         if lifted.paths.is_none() {
-            let text = core::too_wide(&self.locale.catalog, lifted.rows.len(), modifiers.control, modifiers.shift);
+            let text = core::too_wide(
+                &self.locale.catalog,
+                lifted.rows.len(),
+                modifiers.control,
+                modifiers.shift,
+            );
             self.say_drop(side, text, cx);
             return false;
         }
@@ -236,7 +214,10 @@ impl Shell {
 
     /// What the platform gets when this window's drag leaves it.
     pub fn file_drag_payload(&self, window: &Window, cx: &App) -> Option<ExternalDragPayload> {
-        cx.try_global::<Drags>()?.lifts.get(&window_key(window)).map(Lift::payload)
+        cx.try_global::<Drags>()?
+            .lifts
+            .get(&window_key(window))
+            .map(Lift::payload)
     }
 
     /// Escape during this window's own drag: the drag ends where it started and nothing moves.
@@ -266,7 +247,11 @@ impl Shell {
             return;
         }
         let modifiers = window.modifiers();
-        let owned = Owned::Own { lift, ctrl: modifiers.control, shift: modifiers.shift };
+        let owned = Owned::Own {
+            lift,
+            ctrl: modifiers.control,
+            shift: modifiers.shift,
+        };
         self.land_at(side, window.mouse_position(), owned, window, cx);
     }
 
@@ -299,15 +284,22 @@ impl Shell {
             self.say_drop(side, text, cx);
             return;
         }
-        let own = match &owned {
-            Owned::Own { lift, .. } if lift.side == side => Some(lift),
-            _ => None,
+        // Only this pane's own lift, in the listing it was lifted from, carries rows a drop must skip.
+        let carried = match &owned {
+            Owned::Own { lift, .. }
+                if lift.side == side && lift.listing == host.pane.held.listing =>
+            {
+                lift.rows.as_slice()
+            }
+            _ => &[],
         };
-        let dest = spot(&HostRows(host), host.input.hit(point), own);
+        let dest = pane_spot(host, point, carried);
         let path = host.path.clone();
         let first = owned.first_source();
         let read_dest = dest.clone();
-        let facts = cx.background_executor().spawn(async move { facts::read(first.as_deref(), &read_dest) });
+        let facts = cx
+            .background_executor()
+            .spawn(async move { facts::read(first.as_deref(), &read_dest) });
         cx.spawn_in(window, async move |this, cx| {
             let facts = facts.await;
             let _ = this.update_in(cx, |shell, window, cx| {
@@ -329,7 +321,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.panes[side].as_ref().is_none_or(|host| host.path != path) {
+        if self.panes[side]
+            .as_ref()
+            .is_none_or(|host| host.path != path)
+        {
             return;
         }
         match decide(&owned.dropping(), dest, facts) {
@@ -350,7 +345,9 @@ impl Shell {
         if let Some(host) = self.panes[side].as_mut() {
             host.status = text.clone().into();
         }
-        self.status_messages(cx, |messages, now| messages.say(&text, false, "", Hint::None, now));
+        self.status_messages(cx, |messages, now| {
+            messages.say(&text, false, "", Hint::None, now)
+        });
         cx.notify();
     }
 }

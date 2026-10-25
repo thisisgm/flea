@@ -1,8 +1,11 @@
 //! Native file drag and drop over the G1 shell: a lift captures the carried rows' real paths, a drop resolves the folder under the pointer and hands one transfer or link to op1's collision host; flea::ui_logic_dg2 decides.
 pub mod facts;
+pub mod files;
 pub mod join;
 pub mod router;
 
+#[cfg(test)]
+mod router_tests;
 #[cfg(test)]
 mod tests;
 
@@ -66,13 +69,17 @@ pub fn lift(
     let carried = core::carried(rows.selected(), index);
     let paths = carried
         .iter()
-        .map(|row| rows.row(*row).map(|(name, _)| row_path(rows.folder(), name)))
+        .map(|row| {
+            rows.row(*row)
+                .map(|(name, _)| row_path(rows.folder(), name))
+        })
         .collect::<Option<Vec<_>>>();
     Some(Lift {
         side,
         listing: rows.listing(),
         marker: Marker {
-            instance: instance().to_owned(),
+            // This process and this lift, so a window tells its current lift from any earlier one.
+            instance: format!("{}#{serial}", instance()),
             rows: carried.clone(),
             copy: ctrl,
             source: rows.folder().to_owned(),
@@ -110,7 +117,11 @@ impl Lift {
             actions: NativeDragActions {
                 copy,
                 move_,
-                preferred: if preferred == core::Verb::Move { NativeDragAction::Move } else { NativeDragAction::Copy },
+                preferred: if preferred == core::Verb::Move {
+                    NativeDragAction::Move
+                } else {
+                    NativeDragAction::Copy
+                },
             },
             source_id: self.serial,
         })
@@ -148,7 +159,15 @@ pub struct Dropping<'a> {
 
 impl<'a> Dropping<'a> {
     pub fn own(lift: &'a Lift, ctrl: bool, shift: bool) -> Self {
-        Self { own: Some(lift), marker: None, urls: &[], plain: None, proposed: Proposed::default(), ctrl, shift }
+        Self {
+            own: Some(lift),
+            marker: None,
+            urls: &[],
+            plain: None,
+            proposed: Proposed::default(),
+            ctrl,
+            shift,
+        }
     }
 
     pub fn native(
@@ -161,16 +180,36 @@ impl<'a> Dropping<'a> {
     ) -> Self {
         // Keys held at the drop stand for the action they ask for, as a Qt proposedAction does; else the negotiated action.
         let proposed = match (ctrl, shift) {
-            (true, true) => Proposed { copy: false, move_: false, link: true },
-            (false, true) => Proposed { copy: false, move_: true, link: false },
-            (true, false) => Proposed { copy: true, move_: false, link: false },
+            (true, true) => Proposed {
+                copy: false,
+                move_: false,
+                link: true,
+            },
+            (false, true) => Proposed {
+                copy: false,
+                move_: true,
+                link: false,
+            },
+            (true, false) => Proposed {
+                copy: true,
+                move_: false,
+                link: false,
+            },
             _ => Proposed {
                 copy: action == Some(NativeDragAction::Copy),
                 move_: action == Some(NativeDragAction::Move),
                 link: false,
             },
         };
-        Self { own: None, marker, urls, plain, proposed, ctrl, shift }
+        Self {
+            own: None,
+            marker,
+            urls,
+            plain,
+            proposed,
+            ctrl,
+            shift,
+        }
     }
 }
 
@@ -210,7 +249,11 @@ pub fn decide(dropping: &Dropping<'_>, dest: &str, facts: Facts) -> Landing {
             None => (None, dropping.urls),
         },
     };
-    let marker = marker.map(|marker| Marker { dev: facts.src_dev, deletable: facts.deletable, ..marker });
+    let marker = marker.map(|marker| Marker {
+        dev: facts.src_dev,
+        deletable: facts.deletable,
+        ..marker
+    });
     let input = Dropped {
         marker: marker.as_ref(),
         urls,
@@ -225,5 +268,7 @@ pub fn decide(dropping: &Dropping<'_>, dest: &str, facts: Facts) -> Landing {
         Err(None) => Landing::Silent,
     }
 }
+#[cfg(test)]
+mod mounted_negative_tests;
 #[cfg(test)]
 mod mounted_tests;

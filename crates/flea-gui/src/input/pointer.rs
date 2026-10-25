@@ -129,7 +129,9 @@ impl Shell {
         }
         // A row press bubbles on to the pane's on_drag, which lifts the row once the press travels.
         let row_press = event.button == MouseButton::Left
-            && self.panes[side].as_ref().is_some_and(|host| host.input.press.is_some());
+            && self.panes[side]
+                .as_ref()
+                .is_some_and(|host| host.input.press.is_some());
         self.focus_pane(side, cx);
         window.focus(&self.focus, cx);
         self.keyboard.context = flea::keys::Context::Listing;
