@@ -1,6 +1,6 @@
 //! Header geometry reads the title run's text and clipping, including its cached sort direction.
 use super::{frame, open};
-use crate::{list::bench, visual::Probe};
+use crate::{list::bench, visual::Probe, window::startup::View};
 use flea::jsondoc::Json;
 
 fn role(probe: &Probe, key: &str) -> Option<Json> {
@@ -68,5 +68,38 @@ fn u04_header_probe_reads_the_painted_sorted_titles_and_only_drawn_cells() {
     );
     for hidden in ["mode", "modified", "kind"] {
         assert!(role(&probe, &format!("header-0-{hidden}")).is_none());
+    }
+}
+
+#[test]
+fn m9_dual_header_name_starts_at_the_label_column() {
+    let mut cx = bench::real_cx();
+    let handle = open(&mut cx);
+    for (view, dual) in [(View::List, false), (View::Dual, true)] {
+        let probe = Probe::default();
+        handle
+            .update(&mut cx, |shell, _, _| {
+                shell.view = view;
+                shell.panes[0].as_ref().unwrap().list.borrow_mut().probe = Some(probe.clone());
+            })
+            .unwrap();
+        frame(&mut cx, handle);
+        let name = role(&probe, "header-0-name").expect("the custom header lost its label role");
+        handle
+            .update(&mut cx, |shell, _, _| {
+                let list = shell.panes[0].as_ref().unwrap().list.borrow();
+                assert_eq!(list.view.dual, dual);
+                let bounds = list.header.drawn.bounds;
+                let metrics = list.file_metrics();
+                let at = if dual { metrics.label_x() } else { metrics.pad };
+                let rect = name.get("rect").and_then(Json::as_array).unwrap();
+                let x = rect[0].as_f64().unwrap() as f32;
+                assert!(
+                    (x - (f32::from(bounds.left()) + at)).abs() < 1.,
+                    "header name at x {x}, expected {} (dual {dual})",
+                    f32::from(bounds.left()) + at
+                );
+            })
+            .unwrap();
     }
 }
