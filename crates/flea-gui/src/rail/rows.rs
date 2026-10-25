@@ -101,6 +101,8 @@ pub struct LaidRow {
 /// Everything one paint put on the rail: the loaded boxes, never an expected rectangle.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Laid {
+    #[cfg(test)]
+    pub palette: Option<Palette>,
     pub painted: bool,
     pub width: f32,
     pub height: f32,
@@ -214,6 +216,15 @@ fn box_of(rect: Rect) -> Bounds<Pixels> {
 #[path = "text.rs"]
 mod text;
 
+/// The rail stands on the theme surface, as Sidebar.qml and every HIG board draw it; an inherited ground keeps its own.
+pub fn rail_palette(style: &gpui::TextStyle, theme: crate::palette::Theme) -> Palette {
+    let mut palette = Palette::inherited(style, theme);
+    if style.background_color.is_none() {
+        palette.background = theme.surface;
+    }
+    palette
+}
+
 pub struct Ready {
     palette: Palette,
     headers: Vec<Rc<text::Prepared>>,
@@ -240,3 +251,6 @@ mod element;
 mod layout;
 #[path = "paint.rs"]
 mod paint;
+#[cfg(test)]
+#[path = "ground_tests.rs"]
+mod ground_tests;

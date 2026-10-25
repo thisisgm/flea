@@ -39,13 +39,13 @@ impl MenuInk {
     pub fn from_palette(palette: &Palette) -> Self {
         Self {
             surface: palette.background,
-            frame: palette.metadata_frame,
-            rule: palette.metadata_frame.opacity(RULE),
+            frame: palette.muted_frame,
+            rule: palette.muted_frame.opacity(RULE),
             wash: palette.foreground.opacity(WASH),
             label: palette.foreground,
-            muted: palette.metadata,
+            muted: palette.muted,
             mark: palette.metadata_frame,
-            error: palette.accent,
+            error: palette.error,
             tag: palette.accent,
         }
     }

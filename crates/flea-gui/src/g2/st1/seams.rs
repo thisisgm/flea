@@ -28,16 +28,21 @@ pub struct Ink {
 impl Ink {
     pub fn inherited(style: &TextStyle, theme: crate::palette::Theme) -> Self {
         let palette = Palette::inherited(style, theme);
+        // HIG settings-view and keymap draw .card on --surface, so its red is the one lifted there.
+        let (surface, error) = if palette.background == theme.background {
+            (theme.surface, palette.error_on_surface)
+        } else {
+            (palette.background, palette.error)
+        };
         Self::mixed(Self {
             background: palette.background,
-            surface: palette.background,
+            surface,
             foreground: palette.foreground,
-            muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted: palette.muted,
+            muted_frame: palette.muted_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
-            // The error role is not on the interim palette; the theme service fills it.
-            error: palette.foreground,
+            error,
             ..Self::default()
         })
     }

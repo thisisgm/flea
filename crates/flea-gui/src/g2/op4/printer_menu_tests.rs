@@ -123,3 +123,63 @@ fn op4_printer_popup_uses_shared_menu_without_resizing_or_dismissing_the_card(
     vcx.simulate_keystrokes("escape");
     assert!(view.read_with(vcx, |view, _| view.model.card.is_none()));
 }
+
+#[gpui::test]
+fn op4_printer_menu_resolves_its_inherited_roles_once_across_frames(cx: &mut TestAppContext) {
+    let theme = crate::palette::Theme::default();
+    assert_ne!(
+        theme.surface, theme.background,
+        "the menu must stand on an inherited ground"
+    );
+    let (view, vcx) = cx.add_window_view(|window, cx| {
+        OutputView::new(
+            Arc::new(I18n::default()),
+            crate::g2::op1::palette::CardPalette::from_theme(&window.text_style(), theme, 8.),
+            cx,
+        )
+    });
+    vcx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
+    view.update_in(vcx, |view, window, cx| {
+        view.open(
+            Action::Print,
+            selected(Kind::Pdf, &["report.pdf"]),
+            window,
+            cx,
+        );
+        let Some(Card::Print(p)) = &mut view.model.card else {
+            panic!()
+        };
+        p.queried = true;
+        p.pending = None;
+        p.printer = "Printer0".into();
+        p.printer_name = p.printer.clone();
+        p.destinations = (0..2)
+            .map(|i| Destination {
+                name: format!("Printer{i}"),
+                default: i == 0,
+            })
+            .collect();
+        cx.notify();
+    });
+    vcx.run_until_parked();
+    crate::palette::forget_inherited();
+    // Debug selectors are compiled out of release tests, so open through the control, as a key would.
+    view.update_in(vcx, |view, window, cx| {
+        view.activate(Control::Field(Focus::Printer), window, cx)
+    });
+    vcx.run_until_parked();
+    assert!(view.read_with(vcx, |view, _| view.printer_menu.opened()));
+    let resolves = || crate::palette::INHERITED_RESOLVES.get();
+    assert_eq!(
+        resolves(),
+        1,
+        "opening the menu resolves its inherited roles exactly once"
+    );
+    for _ in 0..5 {
+        vcx.update(|window, cx| {
+            window.refresh();
+            window.simulate_next_frame(cx)
+        });
+    }
+    assert_eq!(resolves(), 1, "a repaint resolved the theme again");
+}

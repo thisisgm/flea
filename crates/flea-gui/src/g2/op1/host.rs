@@ -383,6 +383,8 @@ impl Render for Overlay {
                 .on_scroll_wheel(|_, _, cx| cx.stop_propagation());
             root = root.child(scrim);
         }
+        #[cfg(test)]
+        let root = root.children(crate::theme_gate::frame::card_probe(self.palette, cx));
         root
     }
 }

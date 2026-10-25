@@ -55,6 +55,10 @@ impl Render for Root {
                 deferred(div().absolute().top_0().left_0().size_full().child(view))
                     .with_priority(usize::MAX)
             });
+        #[cfg(test)]
+        let audit = crate::theme_gate::frame::probe(self.shell.clone(), cx);
+        #[cfg(not(test))]
+        let audit: Option<gpui::AnyElement> = None;
         let shell = self.shell.clone();
         div()
             .size_full()
@@ -83,6 +87,7 @@ impl Render for Root {
             .child(Overlay(self.shell.clone(), true))
             .children(overlay)
             .children(output)
+            .children(audit)
     }
 }
 

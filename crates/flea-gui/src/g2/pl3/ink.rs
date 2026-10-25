@@ -25,12 +25,12 @@ impl Ink {
             background: palette.background,
             surface: palette.background,
             foreground: palette.foreground,
-            muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted: palette.muted,
+            muted_frame: palette.muted_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
             mark_fill: palette.metadata_frame,
-            error: palette.foreground,
+            error: palette.error,
             radius,
         }
     }
