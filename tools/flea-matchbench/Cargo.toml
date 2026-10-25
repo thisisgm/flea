@@ -1,0 +1,25 @@
+# Bench-only adapters for the Findbest matching roster; never a dependency of flea or flea-gui.
+[package]
+name = "flea-matchbench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+rust-version = "1.89"
+
+# Its own workspace, so the flea package keeps zero dependencies and its lock stays untouched.
+[workspace]
+
+[dependencies]
+frizbee = "=0.13.0"
+neo_frizbee = "=0.13.3"
+nucleo = "=0.5.0"
+fuzzy-matcher = "=0.3.7"
+sublime_fuzzy = "=0.7.0"
+libc = "0.2"
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1

@@ -1,0 +1,29 @@
+[package]
+name = "flea-walkbench"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+publish = false
+description = "Engine-stage traversal and index-build comparison harness for Flea search"
+
+[[bin]]
+name = "flea-walkbench"
+path = "src/main.rs"
+
+# Exact pins: each entrant is measured at the version recorded in ROSTER.tsv.
+[dependencies]
+dua-core = "=5.0.0"
+ignore = "=0.4.33"
+jwalk = "=0.9.0"
+libc = "0.2"
+sha2 = "0.10"
+serde_json = "=1.0.154"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+# Standalone: the Flea workspace never builds or links this harness.
+[workspace]
