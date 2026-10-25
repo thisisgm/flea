@@ -109,14 +109,14 @@ fn u05_refused_sort_is_a_notice_that_expires_without_dismissing_errors(cx: &mut 
 #[gpui::test]
 fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut TestAppContext) {
     use flea::keys::Context as KeyContext;
-    const DRIVEN: [KeyContext; 3] = [KeyContext::Rail, KeyContext::Menu, KeyContext::Panel];
-    // These contexts have no production Shell host to activate or cancel yet.
-    const UNHOSTED: [KeyContext; 4] = [
+    const DRIVEN: [KeyContext; 4] = [
+        KeyContext::Rail,
+        KeyContext::Menu,
+        KeyContext::Panel,
         KeyContext::Preview,
-        KeyContext::Pdf,
-        KeyContext::Media,
-        KeyContext::Editor,
     ];
+    // These contexts have no production Shell host to activate or cancel yet.
+    const UNHOSTED: [KeyContext; 3] = [KeyContext::Pdf, KeyContext::Media, KeyContext::Editor];
     let accounted = [KeyContext::Listing]
         .into_iter()
         .chain(DRIVEN)
@@ -165,6 +165,40 @@ fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut Te
                         assert_eq!(shell.focus_view(window, cx), "chrome");
                         assert!(shell.dual_focus.chrome.is_focused(window));
                     }
+                    KeyContext::Preview => {
+                        let pane = &mut shell.panes[0].as_mut().unwrap().pane;
+                        assert!(pane.begin("/files".into(), Default::default(), pane.now()));
+                        for reply in [
+                            flea::protocol::Reply::Listed {
+                                path: "/files".into(),
+                                total: 1,
+                            },
+                            flea::protocol::Reply::Rows {
+                                start: 0,
+                                listing: 5,
+                                rows: vec![flea::protocol::RowFacts {
+                                    name: "notes.txt".into(),
+                                    ..Default::default()
+                                }],
+                            },
+                        ] {
+                            shell.receive(0, crate::backend::Event::Reply(reply), window, cx);
+                        }
+                        shell.view = crate::window::startup::View::Columns;
+                        shell.sync_selection_previews(window, cx);
+                        let preview = shell.selection_preview(0).expect("the Columns preview host");
+                        assert!(preview.read(cx).visible);
+                        shell.key(
+                            &gpui::KeyDownEvent {
+                                keystroke: gpui::Keystroke::parse("ctrl-tab").unwrap(),
+                                is_held: false,
+                                prefer_character_input: false,
+                            },
+                            window,
+                            cx,
+                        );
+                        assert!(preview.read(cx).focus.is_focused(window));
+                    }
                     _ if UNHOSTED.contains(&context) => shell.keyboard.context = context,
                     _ => unreachable!(),
                 }
@@ -202,6 +236,11 @@ fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut Te
                     KeyContext::Panel => {
                         assert!(!shell.dual_focus.chrome.is_focused(window));
                         assert_eq!(shell.focus_view(window, cx), "list");
+                    }
+                    KeyContext::Preview => {
+                        let preview = shell.selection_preview(0).unwrap();
+                        assert!(preview.read(cx).visible);
+                        assert!(!preview.read(cx).focus.is_focused(window));
                     }
                     _ if UNHOSTED.contains(&context) => {
                         assert_eq!(shell.keyboard.context, context);

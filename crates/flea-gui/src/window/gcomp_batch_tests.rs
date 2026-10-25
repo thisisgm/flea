@@ -135,7 +135,46 @@ fn gcomp_batch_u02_drawn_mode_follows_the_actual_u09_columns_not_the_selected_vi
         assert!(!host.drawn_list);
     });
     edit(&mut cx, handle, |shell, window, cx| {
-        shell.set_view(View::Grid, window, cx)
+        shell.set_view(View::Grid, window, cx);
+        assert_eq!(shell.view, View::Grid, "Grid destination was requested");
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.drawn_view, Some(View::Columns));
+        assert!(!host.drawn_list);
+        assert_eq!(
+            host.grid
+                .as_ref()
+                .map_or(0, |grid| grid.state.borrow().frames),
+            0,
+            "Grid must not paint before the ownership query"
+        );
+        let (answer, receive) = std::sync::mpsc::sync_channel(1);
+        shell.ipc(
+            Event::Call {
+                request: Request::Call {
+                    target: "flea".into(),
+                    function: "viewMode".into(),
+                    arguments: vec![],
+                },
+                answer,
+            },
+            window,
+            cx,
+        );
+        assert_eq!(
+            receive.try_recv().unwrap().reply,
+            Reply::value("columns"),
+            "IPC must retain the last painted Columns owner before Grid paints"
+        );
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.drawn_view, Some(View::Columns));
+        assert!(!host.drawn_list);
+        assert_eq!(
+            host.grid
+                .as_ref()
+                .map_or(0, |grid| grid.state.borrow().frames),
+            0,
+            "Grid must not paint during the ownership query"
+        );
     });
     frame(&mut cx, handle);
     assert_eq!(
@@ -175,53 +214,97 @@ fn gcomp_batch_u02_drawn_mode_follows_the_actual_u09_columns_not_the_selected_vi
 
 #[test]
 fn gcomp_batch_u09_loading_uses_omi_preparation_and_paint_then_stops_when_hidden() {
-    let mut cx = crate::list::bench::real_cx();
-    cx.update(|cx| cx.set_reduce_motion(true));
-    let (handle, _requests) = columns(&mut cx);
-    frame(&mut cx, handle);
-    cx.run_until_parked();
-    cx.executor()
-        .advance_clock(Duration::from_millis(crate::pane::swap::CAP_MS));
-    cx.run_until_parked();
-    frame(&mut cx, handle);
-    assert_eq!(call(&mut cx, handle, "viewMode"), Reply::value("columns"));
-    let mark = edit(&mut cx, handle, |shell, _, _| {
-        Rc::clone(
-            shell.panes[0]
+    for reduced in [false, true] {
+        let mut cx = crate::list::bench::real_cx();
+        cx.update(|cx| cx.set_reduce_motion(reduced));
+        let (handle, _requests) = columns(&mut cx);
+        frame(&mut cx, handle);
+        cx.run_until_parked();
+        cx.executor()
+            .advance_clock(Duration::from_millis(crate::pane::swap::CAP_MS));
+        cx.run_until_parked();
+        frame(&mut cx, handle);
+        assert_eq!(call(&mut cx, handle, "viewMode"), Reply::value("columns"));
+        let mark = edit(&mut cx, handle, |shell, _, _| {
+            Rc::clone(
+                shell.panes[0]
+                    .as_ref()
+                    .unwrap()
+                    .columns
+                    .as_ref()
+                    .unwrap()
+                    .loading[Slot::Child.index()]
                 .as_ref()
-                .unwrap()
-                .columns
-                .as_ref()
-                .unwrap()
-                .loading[Slot::Child.index()]
-            .as_ref()
-            .unwrap(),
-        )
-    });
-    assert_eq!(mark.mode(), Mode::Thinking);
-    assert!(mark.slot().size.width > gpui::px(0.));
-    assert!(
-        mark.counters.frames.get() > 0,
-        "the mounted loading tile painted nothing"
-    );
-    assert_eq!(
-        mark.counters.writes.get(),
-        mark.counters.frames.get(),
-        "the root must prepare each painted Omi sample exactly once"
-    );
-    assert_eq!(
-        mark.counters.requests.get(),
-        0,
-        "reduced motion must not schedule"
-    );
-    assert_eq!(mark.ink(), crate::palette::Theme::default().accent_frame);
-    let before = (mark.counters.writes.get(), mark.counters.frames.get());
-    edit(&mut cx, handle, |shell, window, cx| {
-        shell.set_view(View::List, window, cx)
-    });
-    frame(&mut cx, handle);
-    assert_eq!(
-        (mark.counters.writes.get(), mark.counters.frames.get()),
-        before
-    );
+                .unwrap(),
+            )
+        });
+        assert_eq!(mark.mode(), Mode::Thinking);
+        assert!(mark.slot().size.width > gpui::px(0.));
+        assert!(
+            mark.counters.frames.get() > 0,
+            "the mounted loading tile painted nothing"
+        );
+        assert_eq!(
+            mark.counters.writes.get(),
+            mark.counters.frames.get(),
+            "the root must prepare each painted Omi sample exactly once"
+        );
+        let before_motion = (mark.counters.frames.get(), mark.counters.requests.get());
+        for _ in 0..4 {
+            tick(&mut cx, handle);
+        }
+        if reduced {
+            assert_eq!(
+                mark.counters.requests.get(),
+                0,
+                "reduced motion must not schedule"
+            );
+            assert_eq!(
+                (mark.counters.frames.get(), mark.counters.requests.get()),
+                before_motion
+            );
+        } else {
+            assert!(
+                mark.counters.frames.get() > before_motion.0,
+                "visible Omi must animate first"
+            );
+            assert!(
+                mark.counters.requests.get() > before_motion.1,
+                "visible Omi must request real frames"
+            );
+            assert!(mark.offset() > 0.);
+        }
+        assert_eq!(mark.counters.writes.get(), mark.counters.frames.get());
+        assert_eq!(mark.ink(), crate::palette::Theme::default().accent_frame);
+        let before = (
+            mark.counters.writes.get(),
+            mark.counters.frames.get(),
+            mark.counters.requests.get(),
+        );
+        edit(&mut cx, handle, |shell, window, cx| {
+            shell.set_view(View::List, window, cx)
+        });
+        frame(&mut cx, handle);
+        for _ in 0..8 {
+            tick(&mut cx, handle);
+        }
+        assert_eq!(
+            (
+                mark.counters.writes.get(),
+                mark.counters.frames.get(),
+                mark.counters.requests.get()
+            ),
+            before
+        );
+    }
+}
+
+fn tick(cx: &mut TestAppContext, handle: Handle) {
+    cx.executor().advance_clock(Duration::from_millis(16));
+    cx.run_until_parked();
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.simulate_next_frame(cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
 }

@@ -2,9 +2,13 @@
 use super::*;
 use crate::presentation::{fixture::Fixture, Service};
 use gpui::{px, VisualTestContext};
+
+#[path = "gcomp_live_fixture.rs"]
+mod mounted;
+use mounted::{assert_rows, populate, wait_for_base};
 use std::{
     process::{Command, Stdio},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 const TEST: &str =
@@ -25,6 +29,7 @@ fn assert_received_surfaces(
     card_width: f32,
     listing: usize,
 ) {
+    assert_rows(cx, handle, base);
     edit(cx, handle, |shell, _, _| {
         for host in shell.panes.iter().flatten() {
             assert_eq!(f32::from(host.list.borrow().typeface.base), base as f32);
@@ -170,22 +175,9 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
         (14, 48., 40., 552.),
         (16, 56., 47., 630.),
     ] {
+        populate(&mut cx, handle, base as usize + 100);
         fixture.write(&font_file, format!("[font]\nbase-size={base}\n"));
-        let until = Instant::now() + Duration::from_secs(3);
-        loop {
-            cx.run_until_parked();
-            if edit(&mut cx, handle, |shell, _, _| {
-                f32::from(shell.active_typeface().base)
-            }) == base as f32
-            {
-                break;
-            }
-            assert!(
-                Instant::now() < until,
-                "the actual OEM subscription did not deliver {base}"
-            );
-            std::thread::sleep(Duration::from_millis(10));
-        }
+        wait_for_base(&mut cx, handle, base);
         assert_received_surfaces(
             &mut cx,
             handle,
@@ -193,7 +185,7 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
             hero_mark,
             lock_mark,
             card_width,
-            base as usize + 20,
+            base as usize + 101,
         );
     }
     for (base, hero_mark, lock_mark, card_width) in [
@@ -201,6 +193,7 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
         (14, 48., 40., 552.),
         (16, 56., 47., 630.),
     ] {
+        populate(&mut cx, handle, base as usize + 200);
         let document = edit(&mut cx, handle, |shell, _, _| {
             let patch = flea::jsondoc::parse(&format!(
                 r#"{{"display":{{"textSize":{{"mode":{base}}}}}}}"#
@@ -212,21 +205,7 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
             &home.join(".local/state/flea/ui.json"),
             flea::jsondoc::render(&document),
         );
-        let until = Instant::now() + Duration::from_secs(3);
-        loop {
-            cx.run_until_parked();
-            if edit(&mut cx, handle, |shell, _, _| {
-                f32::from(shell.active_typeface().base)
-            }) == base as f32
-            {
-                break;
-            }
-            assert!(
-                Instant::now() < until,
-                "the actual settings subscription did not deliver textSize={base}"
-            );
-            std::thread::sleep(Duration::from_millis(10));
-        }
+        wait_for_base(&mut cx, handle, base);
         assert_received_surfaces(
             &mut cx,
             handle,
@@ -234,7 +213,7 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
             hero_mark,
             lock_mark,
             card_width,
-            base as usize + 40,
+            base as usize + 201,
         );
         assert_eq!(call(&mut cx, handle, "uiSettings").code, 0);
     }
