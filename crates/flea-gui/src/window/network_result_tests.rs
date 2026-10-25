@@ -101,3 +101,52 @@ fn followup_network_result_keeps_cancelled_and_missing_credential(cx: &mut TestA
     cx.update(|_, cx| service.update(cx, |service, cx| service.cancel(8, 0, cx)));
     assert_eq!(result(&shell, cx), Reply::value("cancelled"));
 }
+
+#[gpui::test]
+fn followup_network_result_direct_open_preserves_the_last_mount_result(cx: &mut TestAppContext) {
+    let recorder = Rc::new(Recorder::default());
+    let (shell, cx, mut lines) = open(recorder.clone(), cx);
+    let mut entry = share();
+    entry.path = "/fixture/already-mounted".into();
+    entry.mounted = true;
+    drain(&mut lines[0]);
+    let producer = cx.update(|_, cx| shell.read(cx).rail.as_ref().unwrap().places.clone());
+    cx.update(|_, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.network_publish(Some(vec![entry.clone()]), cx);
+            let service = shell
+                .rail
+                .as_ref()
+                .unwrap()
+                .network
+                .as_ref()
+                .unwrap()
+                .service
+                .clone();
+            service.update(cx, |service, _| {
+                service.result = crate::g2::pl2::result::ResultState::Failed
+            });
+        });
+        producer.update(cx, |producer, cx| {
+            let index = producer
+                .entries()
+                .iter()
+                .position(|row| row.group == Group::Network && row.path == entry.path)
+                .expect("the published mounted row");
+            producer.side = 0;
+            producer.activate(index, cx);
+        });
+    });
+    frame(cx);
+    assert_eq!(
+        result(&shell, cx),
+        Reply::value("failed"),
+        "opening an existing path does not invent a mount result"
+    );
+    assert!(
+        recorder.mounts().is_empty(),
+        "an existing mount starts no gio mount"
+    );
+    let sent = drain(&mut lines[0]);
+    assert!(sent.iter().any(|line| line.contains(r#""c":"list""#) && line.contains("/fixture/already-mounted")), "direct activation must still navigate: {sent:?}");
+}
