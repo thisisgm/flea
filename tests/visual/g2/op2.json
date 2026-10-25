@@ -209,7 +209,9 @@
       "setup": {
         "card": "compress",
         "focus": "password",
-        "second_request": "compress",
+        "second_request": {
+          "card": "compress"
+        },
         "path": "/fx/v/work"
       },
       "assertions": [
@@ -328,7 +330,8 @@
         "card": "compress",
         "format": "7z",
         "focus": "encrypt",
-        "encrypt_names": false,
+        "encrypt_names": true,
+        "press": "space",
         "path": "/fx/v/work"
       },
       "assertions": [
