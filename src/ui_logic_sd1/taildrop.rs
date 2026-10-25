@@ -62,7 +62,7 @@ pub fn parse_peers(raw: &str) -> Vec<Peer> {
     out
 }
 
-// Sample input: {"BackendState":"Running","Self":{"CapMap":{...:"file-sharing":[]}},"Peer":{}}.
+// Sample input: {"BackendState":"Running","Self":{"CapMap":{"https://tailscale.com/cap/file-sharing":[]}},"Peer":{}}; an older CLI lists the same URL in Self.Capabilities.
 pub fn status(raw: &str, exit_code: i32, error: &str) -> Status {
     if exit_code != 0 {
         // The CLI's diagnostic rides the reason slot; the caller words an empty one through the catalog.

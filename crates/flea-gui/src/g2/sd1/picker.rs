@@ -8,6 +8,8 @@ use flea::ui_logic_sd1::{dropbox, localsend, share, taildrop, wire, Send};
 
 // The OEM Tailscale service bounds status queries at fifteen seconds, as ui/Taildrop.qml does.
 const STATUS_TIMEOUT_SECS: &str = "15";
+const TIMEOUT_KILLED: i32 = 137; // timeout --signal=KILL dies by SIGKILL, which exit_code() reads as 128 + 9
+const RAW_SIGKILL: i32 = 9; // a raw SIGKILL number, as v0.3.12's Process reported a killed run
 
 impl ProviderSend {
     // A file menu open refreshes LocalSend by its warm policy and Taildrop now; nothing polls while shut.
@@ -152,7 +154,7 @@ impl ProviderSend {
         }
         self.td_checking = false;
         let timeout = i18n.tr("send.providers.taildrop_timeout");
-        let error = if exit_code == 137 || exit_code == 9 { timeout.as_str() } else { stderr };
+        let error = if exit_code == TIMEOUT_KILLED || exit_code == RAW_SIGKILL { timeout.as_str() } else { stderr };
         let state = taildrop::status(stdout, exit_code, error);
         self.builds.set(self.builds.get() + 1);
         self.td_peers = state
