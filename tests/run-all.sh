@@ -41,6 +41,7 @@ headless="$headless ui-uish-inventory ui-uish-fixtures ui-uish-native-admission 
 headless="$headless bench-fleet-contract strata-bench bench-markdown-matrix g2-sr2 search-fb5"
 headless="$headless bench-field-work bench-gate-provenance"
 headless="$headless g1-05"
+headless="$headless fs-instrument"
 fail_line='(^|[: ])FAIL[: ]'
 failed=0
 ran=0

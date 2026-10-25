@@ -1,0 +1,17 @@
+entrant	stage	status	profiles	pin	licence	how_built	adapter	fit_reason
+flea-search	matching	adapted (reference)	native	Flea 0ebbcffae14609a3663c90db6d5f73c5e86c97a4 plus recorded bench stage	MIT	tools/flea-searchbench builds the pinned backend with its recorded stage seam	production compressed Index and Session::query through FLEA_SEARCH_BIN --search-stage match, empty stage priors	production reference for paired ratios; separate from the legacy flea-current arm
+frizbee	matching	adapted	native,typo	crates.io frizbee =0.13.0 (lock checksum)	MIT	cargo release build of tools/flea-matchbench on West, fat LTO	Matcher::match_list_parallel with the thread budget; typo profile sets max_typos to needle chars / 4	none
+neo_frizbee	matching	adapted	native,typo	crates.io neo_frizbee =0.13.3 (lock checksum)	MIT	same build as frizbee	same adapter as frizbee, crate swapped	none; the roster pairs it with fff, whose product row stays in the B3 harness
+nucleo	matching	adapted	native	crates.io nucleo =0.5.0 with nucleo-matcher 0.3.1	MPL-2.0	same build	Nucleo worker pool with the thread budget, Config::DEFAULT.match_paths(), smart case and normalisation, incremental append when a query extends the last one	licence: bench use is fine; MPL-2.0 code cannot enter flea, so only its mechanism may be studied
+fuzzy-matcher	matching	adapted	native	crates.io fuzzy-matcher =0.3.7	MIT	same build	SkimMatcherV2::default() per thread, adapter splits the corpus over the thread budget, score then corpus order	none; the crate has no parallel entry point, so the split is the adapter
+sublime_fuzzy	matching	adapted	native	crates.io sublime_fuzzy =0.7.0	Apache-2.0	same build	best_match per candidate, adapter splits the corpus over the thread budget, score then corpus order	none; the crate has no parallel entry point, so the split is the adapter
+fzf	matching	adapted	native	fzf 0.74.5 release tarball linux_amd64, sha256 d47d7f882972c7d674dbbba998ffa4116e68379616ffac7695d0671e9a722c5f	MIT	upstream release binary fetched by runner.py and checksum verified; no Go toolchain on the hosts	fzf_driver.py runs fzf under a pseudo-terminal with --scheme=path --sync --listen and an API key, one process per run holding the corpus	semantic: Go process behind HTTP, so match_core_ms is observed with 0.5 ms polls and match CPU includes its HTTP server
+flea-current	matching	adapted (legacy comparison)	native	src/backend/fuzzy.rs of the built tree	MIT	compiled unchanged into tools/flea-matchbench by #[path]	Fuzzy::score per candidate over the thread budget, rank_order for the result order	separate legacy comparison against flea-search/native; last tie-break is byte order, not the Finder order
+fff	matching (product)	listed	-	B3 harness pin	MIT	-	-	no adapter here: fff bare and rich are whole-engine rows owned by BENCH-06 and BENCH-07
+FSearch	matching (product)	listed	-	B3 harness pin	GPL	-	-	no adapter here: whole-engine B3 row owned by BENCH-06 and BENCH-07; licence: no code may be used
+fsearch-nd	matching (product)	listed	-	B3 harness pin	MIT	-	-	no adapter here: whole-engine B3 row owned by BENCH-06 and BENCH-07
+ignore	traversal	listed	-	-	-	-	-	other stage: owned by m9-bench-walk-adapters
+ripgrep	traversal	listed	-	-	-	-	-	other stage: owned by m9-bench-walk-adapters
+jwalk	traversal	listed	-	-	-	-	-	other stage: owned by m9-bench-walk-adapters
+dua-core	traversal	listed	-	-	-	-	-	other stage: owned by m9-bench-walk-adapters
+fd	traversal	listed	-	-	-	-	-	other stage: owned by m9-bench-walk-adapters
