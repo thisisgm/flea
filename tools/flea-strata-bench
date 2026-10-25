@@ -53,6 +53,16 @@ METHOD = {
     "repetition": "three runs per entrant, including CPU (the published CPU chart used one); requested medians replace single-run figures",
     "limitations": "upstream publishes no corpus, hardware, cache state or visual run count; generated non-RAW media and pinned real RAW files define this rerun",
 }
+BUSY_FRACTION = 0.05
+QUIET_S = 1
+REBOUND_S = 2
+CPU_TAIL_MARGIN_S = 3
+POLL_S = 0.05
+CLEANUP_TIMEOUT_S = 10
+MAP_TIMEOUT_S = 30
+KEY_SETTLE_S = 0.3
+TYPE_SETTLE_S = 0.2
+MONITOR_GEOMETRY = ("name", "width", "height", "refreshRate", "x", "y", "scale", "transform")
 
 
 def require(condition, message):
@@ -191,6 +201,7 @@ def load_raw_corpus(value):
     require(root.is_absolute() and root == root.resolve(strict=True) and root.is_dir(), "RAW corpus root must be canonical")
     helper, manifest_path = REPO / "tools/flea-raw-corpus", REPO / "tools/flea-raw-corpus.tsv"
     require(helper.is_file() and os.access(helper, os.X_OK) and manifest_path.is_file(), "stage tools/flea-raw-corpus and tools/flea-raw-corpus.tsv first")
+    # Sample input: "set\tsuffix\tmake\tmodel\turl\tsha256\tbytes\tlicence\tmime"
     with manifest_path.open() as source:
         rows = list(csv.DictReader((line for line in source if not line.startswith("#")), delimiter="\t"))
     result = {"root": str(root), "manifest_sha256": sha(manifest_path), "sets": {}}
@@ -377,6 +388,7 @@ def validate_fixtures(root):
 
 class AppGroup:
     def __init__(self, name):
+        # Sample input: "0::/user.slice/flea-strata-bench-1.service/controller"
         cgroup = Path("/sys/fs/cgroup" + Path("/proc/self/cgroup").read_text().strip().split(":", 2)[2])
         require("flea-strata-bench-" in str(cgroup), "run in a delegated flea-strata-bench-* systemd unit")
         if cgroup.name == "controller":
@@ -399,9 +411,11 @@ class AppGroup:
         (self.path / "cgroup.procs").write_text(str(os.getpid()))
 
     def cpu(self):
+        # Sample input: "usage_usec 123456\nuser_usec 100000"
         return int(dict(line.split() for line in (self.path / "cpu.stat").read_text().splitlines())["usage_usec"]) / 1e6
 
     def memory(self):
+        # Sample input: "52428800"
         return int((self.path / "memory.current").read_text()) / (1024 * 1024)
 
     def pids(self):
@@ -409,9 +423,9 @@ class AppGroup:
 
     def close(self):
         (self.path / "cgroup.kill").write_text("1")
-        deadline = time.monotonic() + 10
+        deadline = time.monotonic() + CLEANUP_TIMEOUT_S
         while self.pids() and time.monotonic() < deadline:
-            time.sleep(0.05)
+            time.sleep(POLL_S)
         require(not self.pids(), "app-group processes outlived cleanup")
         for path in sorted(self.path.rglob("*"), reverse=True):
             if path.is_dir():
@@ -423,22 +437,22 @@ def quiet_result(samples, end_s):
     start = None
     for i in range(1, len(samples)):
         a, b = samples[i - 1], samples[i]
-        if b[0] > 60:
+        if b[0] > METHOD["cpu_timeout_s"]:
             break
-        busy = (b[1] - a[1]) / (b[0] - a[0]) >= 0.05
+        busy = (b[1] - a[1]) / (b[0] - a[0]) >= BUSY_FRACTION
         if busy:
             start = None
             continue
         if start is None:
             start = a[0]
-        if b[0] - start < 1:
+        if b[0] - start < QUIET_S:
             continue
-        if end_s < b[0] + 2:
+        if end_s < b[0] + REBOUND_S:
             return None
-        follow = [s for s in samples[i:] if s[0] <= b[0] + 2]
-        rebound = any((y[1] - x[1]) / (y[0] - x[0]) >= 0.05 for x, y in zip(follow, follow[1:]))
+        follow = [s for s in samples[i:] if s[0] <= b[0] + REBOUND_S]
+        rebound = any((y[1] - x[1]) / (y[0] - x[0]) >= BUSY_FRACTION for x, y in zip(follow, follow[1:]))
         return {"seconds": start, "confirmed_s": b[0], "rebound": rebound, "timeout": False}
-    return {"seconds": None, "rebound": False, "timeout": True} if end_s >= 60 else None
+    return {"seconds": None, "rebound": False, "timeout": True} if end_s >= METHOD["cpu_timeout_s"] else None
 
 
 class Sampler:
@@ -537,30 +551,30 @@ def run_trial(root, plan, spec, native, binaries):
                                     preexec_fn=group.join, start_new_session=True)
         sampler = Sampler(group)
         sampler.thread.start()
-        deadline = time.monotonic() + 30
+        deadline = time.monotonic() + MAP_TIMEOUT_S
         window = None
         while time.monotonic() < deadline:
             window = next((c for c in native.clients() if c.get("pid") in group.pids() and c.get("mapped", True)), None)
             if window:
                 break
             require(proc.poll() is None, "entrant exited before mapping, see " + str(trial / "app.log"))
-            time.sleep(0.05)
+            time.sleep(POLL_S)
         require(window, "no owned window mapped")
         native.focus_window(window["address"])
         keys = native.Keys()
         for chord in entrant["setup_keys"]:
             keys.chord(*chord)
-            time.sleep(0.3)
+            time.sleep(KEY_SETTLE_S)
         time.sleep(plan["warmup_s"])
         window = next(c for c in native.clients() if c["address"] == window["address"])
         region = "%d,%d %dx%d" % (*window["at"], *window["size"])
         keys.chord(*entrant["navigation_keys"])
-        time.sleep(0.2)
+        time.sleep(TYPE_SETTLE_S)
         keys.chord("ctrl", "a")
         fixture = root / "fixtures" / ("large-folder" if spec["workload"] == "cpu-entries" else spec["workload"])
         for ch in str(fixture):
             keys.type_char(ch)
-        time.sleep(0.2)
+        time.sleep(TYPE_SETTLE_S)
         frame_dir = trial / "frames"
         frame_dir.mkdir()
         before = capture(frame_dir / "before.jpg", region)
@@ -568,7 +582,7 @@ def run_trial(root, plan, spec, native, binaries):
         keys.chord("enter")
         nav_end = time.monotonic()
         frames, prior_digest, prior_name = [], None, None
-        end_after = 63 if spec["workload"] in CPU else plan["visual_timeout_s"]
+        end_after = METHOD["cpu_timeout_s"] + CPU_TAIL_MARGIN_S if spec["workload"] in CPU else plan["visual_timeout_s"]
         until = nav_start + end_after
         index = 0
         while time.monotonic() < until:
@@ -646,7 +660,7 @@ def run(root, only=None, installed=False, raw_corpus=None):
     native = load_module("strata_field_search", REPO / "tools/flea-field-search")
     native.ENV = native.session_env()
     os.environ.update(native.ENV)
-    data["monitors"] = json.loads(native.hypr("-j", "monitors"))
+    data["monitors"] = [{key: monitor[key] for key in MONITOR_GEOMETRY} for monitor in json.loads(native.hypr("-j", "monitors"))]
     data["fixture_manifest_sha256"] = sha(root / "fixtures.json")
     manifest_file = root / "manifest.json"
     if manifest_file.exists():
@@ -690,7 +704,7 @@ def bounds(trial, pair):
 
 
 def judge(trial, annotation):
-    require(annotation["reviewer"].strip() and annotation["navigation_verified"] is True and
+    require(isinstance(annotation["reviewer"], str) and annotation["reviewer"].strip() and annotation["navigation_verified"] is True and
             annotation["settings_verified"] is True, "visual/navigation/settings review is missing")
     workload = trial["workload"]
     samples = [s for s in trial["samples"] if s[0] >= 0]
@@ -902,4 +916,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except (OSError, ValueError, KeyError, ImportError, subprocess.SubprocessError) as error:
-        sys.exit("strata-bench: " + str(error))
+        print("strata-bench: " + str(error), file=sys.stderr)
+        sys.exit(3)

@@ -10,7 +10,7 @@ import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from flea_transport import TransportError, endpoint
+from flea_transport import TransportError, endpoint, exchange
 from flea_transport_lifecycle import identity
 from flea_uish_headless import Host
 
@@ -197,6 +197,8 @@ def rejects_stale_or_foreign(driver):
             saved.rename(original)
         first.close()
         refused(lambda: first.value("cursor"), TransportError, "closed window still readable")
+        refused(lambda: exchange(record, ["call", "flea", "cursor"], 1), FileNotFoundError,
+                "closed window socket still served production IPC")
         refused(lambda: host.send(dict(op="key", window=first.id, key="down")), TransportError, "closed host identity accepted")
         check(second.value("total") == "7", "closing one window closed its neighbour")
         second.close()

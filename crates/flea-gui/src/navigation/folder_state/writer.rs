@@ -15,9 +15,14 @@ pub struct Writer {
     queue: Option<mpsc::Sender<(String, String)>>,
     live: bool,
     pub sent: usize,
+    // Patches handed to the worker, the same set `done` counts as it finishes them.
+    queued: usize,
     // Patches the worker has not finished yet, which a settings reread must not undo.
     owed: Vec<(usize, Json)>,
     done: Arc<AtomicUsize>,
+    // A held writer keeps its worker's end open, so its sends succeed without a worker.
+    #[cfg(test)]
+    held: Option<mpsc::Receiver<(String, String)>>,
 }
 
 impl Writer {
@@ -31,11 +36,12 @@ impl Writer {
     // A live writer whose worker never runs; the test finishes writes through `done`.
     #[cfg(test)]
     pub fn held(done: Arc<AtomicUsize>) -> Self {
-        let (queue, _) = mpsc::channel();
+        let (queue, patches) = mpsc::channel();
         Self {
             queue: Some(queue),
             live: true,
             done,
+            held: Some(patches),
             ..Self::default()
         }
     }
@@ -45,9 +51,7 @@ impl Writer {
         if !self.live {
             return;
         }
-        if let Ok(owed) = flea::jsondoc::parse(&patch) {
-            self.owed.push((self.sent, owed));
-        }
+        let owed = flea::jsondoc::parse(&patch).ok();
         if self.queue.is_none() {
             let (queue, patches) = mpsc::channel::<(String, String)>();
             let done = self.done.clone();
@@ -65,12 +69,23 @@ impl Writer {
                         done.fetch_add(1, Ordering::Release);
                     }
                 });
-            if spawned.is_ok() {
-                self.queue = Some(queue);
+            match spawned {
+                Ok(_) => self.queue = Some(queue),
+                Err(error) => eprintln!("flea-gui: folder state worker did not start: {error}"),
             }
         }
-        if let Some(queue) = &self.queue {
-            let _ = queue.send((patch, failure));
+        let Some(queue) = &self.queue else {
+            return;
+        };
+        // Only a patch the worker received is owed, so `owed` and `done` count the same patches.
+        if queue.send((patch, failure)).is_err() {
+            eprintln!("flea-gui: folder state worker is gone; the next write starts another");
+            self.queue = None;
+            return;
+        }
+        self.queued += 1;
+        if let Some(owed) = owed {
+            self.owed.push((self.queued, owed));
         }
     }
 
@@ -109,5 +124,24 @@ mod tests {
         counting.write(r#"{"hidden":true}"#.into(), String::new());
         assert_eq!(counting.sent, 1);
         assert!(counting.owed().is_empty(), "a counting writer owes nothing");
+    }
+
+    #[test]
+    fn m9_fix_j2_writer_owes_nothing_for_a_patch_its_worker_never_received() {
+        let done = Arc::new(AtomicUsize::new(0));
+        let mut writer = Writer::held(done.clone());
+        writer.held = None;
+        writer.write(r#"{"folderSorts":{"/A":null}}"#.into(), String::new());
+        assert_eq!(writer.sent, 1);
+        assert_eq!(
+            writer.queued,
+            done.load(Ordering::Acquire),
+            "a failed send is not queued"
+        );
+        assert!(writer.owed().is_empty(), "a failed send owes nothing");
+        assert!(
+            writer.queue.is_none(),
+            "a dead worker is replaced on the next write"
+        );
     }
 }

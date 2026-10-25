@@ -176,6 +176,7 @@ impl Shell {
             Event::ListDetails(crate::list::sizes::Reply::Filesystem { path, class }) => {
                 (path, class)
             }
+            // {"t":"thumbed","row":2,"file":"/home/u/.cache/thumbnails/large/b98fa408.png","ms":75.823}
             Event::Producer(line) if flea::json::field_str(line, "t").as_deref() == Some("thumbed") => {
                 if let Ok(document) = flea::jsondoc::parse(line) {
                     let row = document.get("row").and_then(|row| match row {

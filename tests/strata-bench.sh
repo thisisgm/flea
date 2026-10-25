@@ -6,6 +6,7 @@ mkdir -p "$repo/.superpowers/m9-integ-07"
 scratch=$(mktemp -d "$repo/.superpowers/m9-integ-07/contracts.XXXXXXXX")
 [[ -n "$scratch" && "$scratch" == /* ]] || exit 1
 touch "$scratch/.flea-test-sandbox"
+trap 'case $scratch in "$repo"/.superpowers/m9-integ-07/contracts.?*) [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
 python3 -B "$repo/tools/flea-strata-bench" selftest "$scratch"
 python3 -B "$repo/tools/flea-strata-bench" init "$scratch"
 python3 -B "$repo/tools/flea-strata-bench" dry-run "$scratch"
@@ -100,6 +101,14 @@ assert not summary['gate_passed']
 raw = next(row for row in summary['rows'] if row['entrant'] == 'flea' and row['workload'] == 'raw' and row['metric'] == 'ready_s')
 assert raw['score'] is None and '11/12 verified' in raw['status']
 print('strata-bench: synthetic complete matrix aggregates three runs and gates all 33 measures')
+annotations['flea.raw.1'].update(verified=12, ready=[0, 1])
+annotations['flea.cpu-raw.1'].update(visible_total=100, verified=50)
+tool.write_json(complete / 'annotations.json', annotations, replace=True)
+assert tool.report(complete) == 1
+summary = json.loads((complete / 'results.json').read_text())
+assert not summary['gate_passed']
+assert [(loss['workload'], loss['metric']) for loss in summary['flea_not_first']] == [('cpu-raw', 'quiet_s')]
+print('strata-bench: a Flea CPU run with 50 of 100 previews verified loses its quiet_s column')
 
 early = root / 'installed-only'
 early.mkdir()
@@ -261,7 +270,8 @@ if [[ -x "$repo/target/release/flea" ]]; then
         timeout 10 "$repo/target/release/flea" --gui "$scratch/empty" > "$scratch/headless-product.log" 2>&1
     rc=$?
     set -e
-    [[ "$rc" == 2 ]] && rg -q 'there is no graphical session' "$scratch/headless-product.log"
+    [[ "$rc" == 2 ]] && grep -q 'there is no graphical session' "$scratch/headless-product.log" ||
+        { printf 'strata-bench: FAIL flea --gui headless rc=%s\n' "$rc" >&2; exit 1; }
     printf 'strata-bench: flea --gui headless refusal verified, rc=2, no native timing claimed\n'
 fi
 printf 'strata-bench: PASS capture/CPU/coverage/report contracts\n'

@@ -23,9 +23,11 @@ impl Shell {
             return;
         };
         let delta = match event.delta {
-            ScrollDelta::Pixels(p) => -f32::from(p.y) * 2.5,
+            ScrollDelta::Pixels(p) => -f32::from(p.y) * super::TOUCH_GAIN,
             ScrollDelta::Lines(p) => {
-                -p.y * (super::WHEEL_LINES as f32 / super::PLATFORM_SCROLL_GAIN) * 24. * 4.
+                -p.y * (super::WHEEL_LINES as f32 / super::PLATFORM_SCROLL_GAIN)
+                    * super::NOTCH_PX
+                    * super::WHEEL_MULTIPLIER
             }
         };
         if event.modifiers.control {

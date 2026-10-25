@@ -27,8 +27,9 @@ pub const DOT: f32 = 6.;
 pub const SLOT: f32 = 12.;
 // SidebarRow.qml: railIconSize is 15, the tag swatch is 14 and the dot is 6 inside a caption slot.
 pub const TAG: f32 = 14.;
-const RAIL_ROW_SCALE: f32 = 0.78;
-const TEXT_LINE_HEIGHT_FACTOR: f32 = 1.8;
+// f64, as Theme.qml computes, so flea.tokens reports the QML value; `as f32` yields the same f32 literal.
+pub(crate) const RAIL_ROW_SCALE: f64 = 0.78;
+pub(crate) const TEXT_LINE_HEIGHT_FACTOR: f64 = 1.8;
 const OEM_BASE: f32 = 12.;
 
 /// Theme.qml rail formulas scale the approved body-14 geometry with the accepted Typeface.
@@ -46,8 +47,8 @@ struct RailMetrics {
 impl RailMetrics {
     fn for_typeface(face: &Typeface) -> Self {
         let list = crate::list::Metrics::for_typeface(face);
-        let row = (list.nominal_row * RAIL_ROW_SCALE).round();
-        let line = (f32::from(face.body_small) * TEXT_LINE_HEIGHT_FACTOR).round();
+        let row = (list.nominal_row * RAIL_ROW_SCALE as f32).round();
+        let line = (f32::from(face.body_small) * TEXT_LINE_HEIGHT_FACTOR as f32).round();
         let board = |value: f32| (value * f32::from(face.base) / BODY).round();
         Self {
             row,

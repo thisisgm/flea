@@ -56,7 +56,7 @@ fn open(
     (handle, lines)
 }
 
-// One frame as production runs it once the pictures sync is joined to the frame: settle, sync, draw.
+// One frame as production runs it, where render.rs syncs the pictures every frame: settle, sync, draw.
 fn step(cx: &mut TestAppContext, handle: WindowHandle<Shell>) {
     frame(cx, handle);
     handle

@@ -156,6 +156,18 @@ class Controls(unittest.TestCase):
         self.assertIn("attempted a native receipt", result.stderr)
         self.assertNotIn("NATIVE_RUN", result.stdout)
 
+    def test_execute_only_driver_refused_before_spawn(self):
+        import flea_uish_headless as headless
+        from unittest import mock
+        driver = self.root / "execute-only-driver"
+        driver.write_text("#!/bin/sh\n")
+        driver.chmod(0o111)
+        with mock.patch.object(headless.subprocess, "Popen") as spawn, \
+                mock.patch.dict(os.environ, {"FLEA_BIN": "/bin/true"}):
+            with self.assertRaises(PermissionError):
+                headless.Host(driver)
+        spawn.assert_not_called()
+
     def test_headless_qml_refused(self):
         result = self.ui("cursor", driver="headless", frontend="qml")
         self.assertEqual(result.returncode, 2)

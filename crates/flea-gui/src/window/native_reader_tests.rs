@@ -304,7 +304,10 @@ fn uish_04_wheel_readback_matches_applied_listing_scroll(cx: &mut TestAppContext
             assert_eq!(reply.code, 0, "{reply:?}");
             let lines: f32 = reply.stdout.trim().parse().unwrap();
             let after = shell.panes[0].as_ref().unwrap().pane.scroll_y;
-            assert_eq!(after - before, lines * 24. * 4.);
+            assert_eq!(
+                after - before,
+                lines * crate::input::NOTCH_PX * crate::input::WHEEL_MULTIPLIER
+            );
             println!("UISH_04 WHEEL lines={lines} offset={}", after - before);
         });
     });
