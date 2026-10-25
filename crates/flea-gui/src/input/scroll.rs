@@ -141,6 +141,20 @@ pub fn continuous_angle(raw: f64) -> f64 {
     (raw * CONTINUOUS_ANGLE).round()
 }
 
+/// A wheel event as content pixels in GPUI's sign: a notch is the list's distance, a touchpad delta passes through.
+pub fn wheel_delta(delta: &gpui::ScrollDelta) -> gpui::Point<gpui::Pixels> {
+    match delta {
+        gpui::ScrollDelta::Lines(lines) => {
+            let notch = |lines: f32| {
+                let angle = f64::from(lines) / FORK_NOTCH_LINES * NOTCH_UNITS;
+                gpui::px(distance(0., angle, 0., NOTCH_PX, MULTIPLIER) as f32)
+            };
+            gpui::point(notch(lines.x), notch(lines.y))
+        }
+        gpui::ScrollDelta::Pixels(pixels) => *pixels,
+    }
+}
+
 pub fn touch_distance(pixel: f64) -> f64 {
     if pixel == 0. {
         0.

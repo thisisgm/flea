@@ -6,7 +6,7 @@ use flea::ui_logic_pv2::markdown::{
     markdown_layout::Metrics,
     markdown_resolve::is_external_link,
 };
-use gpui::{px, Context, MouseUpEvent, Pixels, ScrollWheelEvent, TouchPhase};
+use gpui::{Context, MouseUpEvent, Pixels, ScrollWheelEvent, TouchPhase};
 
 impl MarkdownView {
     fn local(&self, at: gpui::Point<Pixels>) -> (f32, f32) {
@@ -17,7 +17,7 @@ impl MarkdownView {
     }
 
     pub(super) fn wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
-        let delta = event.delta.pixel_delta(px(Metrics::line(self.tokens.body)));
+        let delta = crate::input::scroll::wheel_delta(&event.delta);
         let (dx, dy) = (f32::from(delta.x), f32::from(delta.y));
         if self.shown_view() == View::Source {
             self.source.scroll_by(-dy);

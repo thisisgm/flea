@@ -8,7 +8,7 @@ pub use bar::{KindBar, ViewWords};
 use flea::i18n::I18n;
 use flea::ui_logic_pv2::code_view::{self, Answer, Lines, Reply, Window as View, BYTE_GATE};
 use flea::ui_logic_pv2::refusal::Refusal;
-use gpui::{px, Context, Font, Hsla, Pixels, ScrollWheelEvent, SharedString};
+use gpui::{Context, Font, Hsla, Pixels, ScrollWheelEvent, SharedString};
 pub use shape::RowCache;
 use shape::{Lru, Prepared};
 use std::cell::{Cell, RefCell};
@@ -390,7 +390,7 @@ impl CodeView {
     }
 
     fn wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
-        let delta = f32::from(event.delta.pixel_delta(px(self.metrics.row)).y);
+        let delta = f32::from(crate::input::scroll::wheel_delta(&event.delta).y);
         self.scroll_by(-delta, cx);
     }
 }

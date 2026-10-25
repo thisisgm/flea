@@ -108,6 +108,14 @@ impl Shell {
             if host.input.animating(now, cx.reduce_motion()) {
                 window.request_animation_frame();
             }
+            if view == View::Grid
+                && host
+                    .grid
+                    .as_mut()
+                    .is_some_and(|grid| grid.view.step_glide(now))
+            {
+                window.request_animation_frame();
+            }
         }
         if let (Some((cursor, selection)), Some(host)) =
             (self.visual_marks(), self.panes[self.focus_side].as_mut())

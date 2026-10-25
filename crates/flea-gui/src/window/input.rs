@@ -1,6 +1,6 @@
 use super::{dispatch::Order, lifecycle::Phase, startup};
 use crate::{pane::requests, state::Shell};
-use gpui::{px, Context, KeyDownEvent, ScrollWheelEvent, Window};
+use gpui::{Context, KeyDownEvent, ScrollWheelEvent, Window};
 #[path = "keyboard.rs"]
 mod keyboard;
 pub use keyboard::*;
@@ -309,7 +309,10 @@ impl Shell {
         {
             return;
         }
-        let row = host.pane.row_height();
-        self.grid_scroll(-f32::from(event.delta.pixel_delta(px(row)).y), cx);
+        let delta = -f32::from(crate::input::scroll::wheel_delta(&event.delta).y);
+        // A notch glides as List's does; a touchpad delta, or reduced motion, lands at once.
+        let glide_at = (matches!(event.delta, gpui::ScrollDelta::Lines(_)) && !cx.reduce_motion())
+            .then(|| cx.background_executor().now());
+        self.grid_scroll_at(delta, glide_at, cx);
     }
 }

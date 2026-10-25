@@ -140,9 +140,10 @@ impl Shell {
         if host.pane.busy() {
             return;
         }
-        let Some(grid) = host.grid.as_ref() else {
+        let Some(grid) = host.grid.as_mut() else {
             return;
         };
+        grid.view.land_glide();
         if grid.next_view.is_some() {
             return;
         }
@@ -209,7 +210,19 @@ impl Shell {
         cx.notify();
     }
 
+    // Tests drive a scroll with no glide; production scrolls come through grid_scroll_at.
+    #[cfg(test)]
     pub(crate) fn grid_scroll(&mut self, delta: f32, cx: &mut Context<Self>) -> bool {
+        self.grid_scroll_at(delta, None, cx)
+    }
+
+    /// A scroll by `delta`, gliding from `glide_at` when a wheel notch asks for it.
+    pub(crate) fn grid_scroll_at(
+        &mut self,
+        delta: f32,
+        glide_at: Option<std::time::Instant>,
+        cx: &mut Context<Self>,
+    ) -> bool {
         if self.view != View::Grid {
             return false;
         }
@@ -221,10 +234,11 @@ impl Shell {
                 if grid.next_view.is_some() {
                     return true;
                 }
-                grid.view.scroll_by(
+                grid.view.wheel_by(
                     Shown::All(host.pane.held.total),
                     &GridHost::focus(&host.pane),
                     delta,
+                    glide_at,
                 );
                 cx.notify();
             }
