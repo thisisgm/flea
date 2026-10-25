@@ -221,6 +221,11 @@ impl Shell {
         }
     }
 
+    /// A stopped backend ends the side's Delete permanently, so the next Delete says why it cannot run.
+    pub(crate) fn fileops_reset(&mut self, side: usize) {
+        self.operations.fileops.deleting[side] = None;
+    }
+
     pub(super) fn fileops_say(&mut self, side: usize, text: &str, error: bool, cx: &mut Context<Self>) {
         if let Some(host) = self.panes[side].as_mut() {
             host.status = text.to_owned().into();

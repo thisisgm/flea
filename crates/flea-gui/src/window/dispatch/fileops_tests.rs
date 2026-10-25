@@ -1,8 +1,12 @@
 //! Ctrl+Shift+N, Delete, dd, Shift+Delete and Duplicate run on the production Shell, and their replies land in the pane.
 use super::test_shell::{keystroke, land, lists, open, row, set_cursor, status};
-use crate::{backend::Backend, state::Shell};
+use crate::{
+    backend::{Backend, Event as BackendEvent},
+    state::Shell,
+};
 use flea::{
     keys::{self, Frontend},
+    protocol::Reply,
     ui_logic_op1::{lines, trash},
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
@@ -144,6 +148,57 @@ fn the_dd_pair_arms_then_trashes_and_a_move_or_the_clock_ends_the_arm(cx: &mut T
     assert_eq!(sent(), Vec::<String>::new());
     cx.simulate_keystrokes("d");
     assert_eq!(sent(), [r#"{"c":"trash","rows":[1],"menuId":0,"listing":1}"#]);
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn a_new_listing_between_the_presses_ends_the_dd_pair(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", home(), 1);
+    let mut sent = wire(&shell, cx);
+    set_cursor(&shell, cx, 2);
+    cx.simulate_keystrokes("d");
+    // The listing lands again inside ARM_MS with no key between, so only the seat can end the arm.
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let listed = Reply::Listed {
+                path: "/files".into(),
+                total: 3,
+            };
+            let rows = Reply::Rows {
+                start: 0,
+                rows: home(),
+                listing: 2,
+            };
+            for reply in [listed, rows] {
+                shell.receive(0, BackendEvent::Reply(reply), window, cx);
+            }
+        })
+    });
+    cx.run_until_parked();
+    // The cursor goes back to the armed row, so the listing number is all that differs.
+    set_cursor(&shell, cx, 2);
+    cx.simulate_keystrokes("d");
+    assert_eq!(sent(), Vec::<String>::new(), "the d on the new listing arms again");
+    cx.simulate_keystrokes("d");
+    assert_eq!(sent(), [r#"{"c":"trash","rows":[2],"menuId":0,"listing":2}"#]);
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn a_stopped_backend_ends_the_delete_in_flight(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", home(), 1);
+    let mut sent = wire(&shell, cx);
+    let catalog = catalog(&shell, cx);
+    cx.simulate_keystrokes("shift-delete");
+    assert_eq!(sent().len(), 1, "the snapshot is out");
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| shell.receive(0, BackendEvent::Drained, window, cx))
+    });
+    cx.run_until_parked();
+    cx.simulate_keystrokes("shift-delete");
+    assert_eq!(status(&shell, cx), catalog.tr_args("window.backend_stopped", &[""]));
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

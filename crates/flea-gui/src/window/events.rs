@@ -126,6 +126,7 @@ impl Shell {
         }
         match &event {
             BackendEvent::Drained | BackendEvent::Failed(_) => {
+                self.fileops_reset(side);
                 self.operation_failed(side, "backend", "", "", cx)
             }
             BackendEvent::Refused {
