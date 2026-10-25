@@ -179,9 +179,9 @@ class Controls(unittest.TestCase):
         before = set(parent.glob("host.*")) if parent.is_dir() else set()
         seen, remove = [], headless.Host.remove_root
 
-        def removing(host):
+        def removing(host, error=None):
             seen.append((host.root, host.root.is_dir() and host.root not in before))
-            remove(host)
+            remove(host, error)
 
         with mock.patch.object(headless, "identity", side_effect=FileNotFoundError("gone")) as identity, \
                 mock.patch.object(headless.Host, "remove_root", removing), \
@@ -199,22 +199,49 @@ class Controls(unittest.TestCase):
         parent = REPO / ".superpowers/m9-uish-02"
         before = set(parent.glob("host.*")) if parent.is_dir() else set()
         hello = 'UISH\t{"sequence": null, "result": {"ok": true, "value": {"protocol": "flea-uish-headless-v1"}}}'
-        drivers = (("start", "printf 'driver said this\\n'\nexec sleep 30\n", TimeoutError, "driver said this"),
-                   ("teardown", "printf '%s\\n' '" + hello + "'\nread -r line\nexit 1\n",
-                    headless.TransportError, "flea-uish-headless-v1"))
-        for name, body, kind, said in drivers:
-            driver = self.root / (name + "-driver")
-            driver.write_text("#!/bin/sh\n" + body)
-            driver.chmod(0o700)
-            stderr = io.StringIO()
-            with mock.patch.dict(os.environ, {"FLEA_BIN": "/bin/true"}), contextlib.redirect_stderr(stderr):
-                with self.assertRaises(kind) as raised:
-                    with headless.Host(driver, timeout=1):
-                        pass
-            notes = "\n".join(getattr(raised.exception, "__notes__", ()))
-            self.assertIn(said, notes, f"{name}: the error lost the driver.log tail")
-            self.assertIn(said, stderr.getvalue(), f"{name}: the log tail was not printed")
+        greet = "printf '%s\\n' '" + hello + "'\nread -r line\n"
+        said = "flea-uish-headless-v1"
+
+        def body_raises():
+            raise RuntimeError("body failed")
+
+        # A failed start, a failed teardown and a raise inside the body each carry the tail exactly once.
+        cases = (("start", "printf 'driver said this\\n'\nexec sleep 30\n", TimeoutError, "driver said this", None),
+                 ("teardown", greet + "exit 1\n", headless.TransportError, said, None),
+                 ("body", greet + "exec sleep 30\n", RuntimeError, said, body_raises))
+        for name, script, kind, said_here, body in cases:
+            stderr, error = self.host_run(headless, mock, name, script, body, kind)
+            notes = "\n".join(getattr(error, "__notes__", ()))
+            self.assertEqual(notes.count(said_here), 1, f"{name}: the tail is not on the error exactly once")
+            self.assertEqual(stderr.count(said_here), 1, f"{name}: the tail is not printed exactly once")
             self.assertEqual(set(parent.glob("host.*")), before, f"{name}: the marked root was kept")
+        # A clean host inside an unrelated handler leaves that exception and stderr alone.
+        try:
+            raise ValueError("unrelated")
+        except ValueError as foreign:
+            stderr, error = self.host_run(headless, mock, "clean", greet + "exit 0\n", None, None)
+            self.assertIsNone(error)
+            self.assertEqual(getattr(foreign, "__notes__", []), [], "a clean host noted a foreign exception")
+            self.assertEqual(stderr, "", "a clean host printed a log tail")
+        self.assertEqual(set(parent.glob("host.*")), before, "clean: the marked root was kept")
+
+    def host_run(self, headless, mock, name, script, body, kind):
+        driver = self.root / (name + "-driver")
+        driver.write_text("#!/bin/sh\n" + script)
+        driver.chmod(0o700)
+        stderr, error = io.StringIO(), None
+        with mock.patch.dict(os.environ, {"FLEA_BIN": "/bin/true"}), contextlib.redirect_stderr(stderr):
+            try:
+                with headless.Host(driver, timeout=1):
+                    if body:
+                        body()
+            except BaseException as raised:
+                error = raised
+        if kind is None:
+            self.assertIsNone(error, f"{name}: {error!r}")
+        else:
+            self.assertIsInstance(error, kind, f"{name}: {error!r}")
+        return stderr.getvalue(), error
 
     def test_headless_qml_refused(self):
         result = self.ui("cursor", driver="headless", frontend="qml")

@@ -89,9 +89,27 @@ fn uish_driver_second_capture_of_a_window_keeps_the_first() {
             ("path", text(fixture.display())),
         ]))
         .unwrap();
-    let identity = opened.get("window").and_then(Json::as_str).unwrap();
-    let (first, second) = (host.capture_file(identity), host.capture_file(identity));
-    assert_ne!(first, second, "a second capture overwrote the first");
-    assert!(first.starts_with(&host.root) && second.starts_with(&host.root));
+    let identity = opened
+        .get("window")
+        .and_then(Json::as_str)
+        .unwrap()
+        .to_owned();
+    let window_id = identity.rsplit(':').next().unwrap().to_owned();
+    let capture = object([("op", text("capabilities")), ("window", text(&identity))]);
+    let paths: Vec<_> = (0..2)
+        .map(|_| {
+            let reply = host.command(&capture).unwrap();
+            let raster = reply.get("raster").unwrap().clone();
+            raster.get("path").and_then(Json::as_str).map(PathBuf::from)
+        })
+        .collect();
+    assert_eq!(
+        host.capture_file(&identity),
+        host.root.join(format!("capture-{window_id}-3.rgba")),
+        "each capabilities op takes the next capture name"
+    );
+    if let [Some(first), Some(second)] = paths.as_slice() {
+        assert!(first.exists() && second.exists() && first != second);
+    }
     host.teardown().unwrap();
 }
