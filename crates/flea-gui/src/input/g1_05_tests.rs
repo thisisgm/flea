@@ -188,10 +188,10 @@ fn g1_05_a_press_mid_glide_lands_the_view_where_drawn_and_takes_the_row_under_it
     let at = inside(&shell, cx);
     cx.simulate_event(wheel(at, ScrollDelta::Lines(point(0., -3.)), TouchPhase::Moved));
     frames(&shell, cx, 1, 90);
-    let drawn = shell.read_with(cx, |shell, _| {
+    let (target, drawn) = shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert!(host.input.glide.is_some());
-        host.input.drawn(host.pane.scroll_y)
+        (host.pane.scroll_y, host.input.drawn(host.pane.scroll_y))
     });
     cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
     shell.read_with(cx, |shell, _| {
@@ -201,15 +201,13 @@ fn g1_05_a_press_mid_glide_lands_the_view_where_drawn_and_takes_the_row_under_it
         assert_eq!(host.pane.scroll_y, drawn, "the view stays where it was drawn");
         let (_, y) = frame.local(at);
         let under = ((y + drawn) / frame.row).floor() as usize;
-        assert_ne!(under, ((y + 288.) / frame.row).floor() as usize, "the probe tells the two positions apart");
+        assert_ne!(under, ((y + target) / frame.row).floor() as usize, "the probe tells the two positions apart");
         assert_eq!(host.input.press.as_ref().unwrap().row, under, "the press takes the row drawn under the pointer");
     });
 }
 
-#[gpui::test]
-fn g1_05_a_release_returns_an_overscroll_a_press_held(cx: &mut TestAppContext) {
-    let (shell, cx) = mounted(cx);
-    let at = inside(&shell, cx);
+/// Strokes past the end, lifts, lets the return run two frames and presses; the press holds the view past the end.
+fn held_past_end(shell: &Entity<Shell>, cx: &mut gpui::VisualTestContext, at: gpui::Point<gpui::Pixels>) -> f32 {
     let max = shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         let max = host.input.frame.unwrap().max_scroll();
@@ -221,7 +219,7 @@ fn g1_05_a_release_returns_an_overscroll_a_press_held(cx: &mut TestAppContext) {
     cx.simulate_event(wheel(at, pixels(-120.), TouchPhase::Moved));
     cx.executor().advance_clock(Duration::from_millis(200));
     cx.simulate_event(wheel(at, pixels(0.), TouchPhase::Ended));
-    frames(&shell, cx, 2, 16);
+    frames(shell, cx, 2, 16);
     cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
     let held = shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
@@ -229,6 +227,14 @@ fn g1_05_a_release_returns_an_overscroll_a_press_held(cx: &mut TestAppContext) {
         host.input.drawn(host.pane.scroll_y)
     });
     assert!(held > max, "the press holds the view past the end");
+    max
+}
+
+#[gpui::test]
+fn g1_05_a_release_returns_an_overscroll_a_press_held(cx: &mut TestAppContext) {
+    let (shell, cx) = mounted(cx);
+    let at = inside(&shell, cx);
+    let max = held_past_end(&shell, cx, at);
     cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
     shell.read_with(cx, |shell, _| {
         assert!(shell.panes[0].as_ref().unwrap().input.kinetic.return_active(), "the release starts the return");
@@ -239,6 +245,25 @@ fn g1_05_a_release_returns_an_overscroll_a_press_held(cx: &mut TestAppContext) {
         assert!(!host.input.moving());
         assert_eq!(host.input.over, 0.);
         assert_eq!(host.input.drawn(host.pane.scroll_y), max);
+    });
+}
+
+#[gpui::test]
+fn g1_05_a_release_a_busy_pane_refuses_still_returns_the_overscroll(cx: &mut TestAppContext) {
+    let (shell, cx) = mounted(cx);
+    let at = inside(&shell, cx);
+    held_past_end(&shell, cx, at);
+    shell.update(cx, |shell, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        let now = host.pane.now();
+        assert!(host.pane.begin("/next".into(), Default::default(), now));
+        assert!(host.pane.busy());
+    });
+    cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(host.input.press.is_none(), "the busy pane refused the click");
+        assert!(host.input.kinetic.return_active(), "the refused release still starts the return");
     });
 }
 
