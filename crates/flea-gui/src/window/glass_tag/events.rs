@@ -46,17 +46,14 @@ fn listen(tagger: &Tagger, socket: &Path) {
         }
     };
     tagger.retag();
-    for line in BufReader::new(stream).split(b'\n') {
-        let line = match line.map(String::from_utf8) {
-            Ok(Ok(line)) => line,
-            Ok(Err(bad)) => {
-                eprintln!(
-                    "flea-gui: window transparency tag stopped: a {}-byte line on {} is not UTF-8",
-                    bad.as_bytes().len(),
-                    socket.display()
-                );
-                return;
-            }
+    read_events(BufReader::new(stream), socket, || tagger.retag());
+}
+
+/// Asks for a pass on each line that retags; a title Hyprland passed as raw bytes decodes lossily, and only a read error stops.
+pub(crate) fn read_events(reader: impl BufRead, socket: &Path, mut retag: impl FnMut()) {
+    for line in reader.split(b'\n') {
+        let line = match line {
+            Ok(line) => line,
             Err(error) => {
                 eprintln!(
                     "flea-gui: window transparency tag stopped: reading {}: {error}",
@@ -65,8 +62,8 @@ fn listen(tagger: &Tagger, socket: &Path) {
                 return;
             }
         };
-        if retags(&line) {
-            tagger.retag();
+        if retags(&String::from_utf8_lossy(&line)) {
+            retag();
         }
     }
 }
