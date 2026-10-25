@@ -74,6 +74,14 @@ pub fn plan(text: &str, mode: Mode, uses_default: bool, tagged: &BTreeSet<String
     let mut changes = Vec::new();
     for line in text.lines() {
         let Some(window) = parse_props(line) else {
+            // A probe whose getprop failed still names a window Flea tagged, so a later switch can take the tag off.
+            if let Some(address) = line
+                .split_whitespace()
+                .next()
+                .filter(|a| tagged.contains(*a))
+            {
+                next.insert(address.to_owned());
+            }
             continue;
         };
         let mine = tagged.contains(&window.address);
@@ -130,6 +138,7 @@ pub fn valid_address(text: &str) -> bool {
 }
 
 /// The addresses of this process's windows in `hyprctl clients -j` output, valid addresses only.
+/// Sample input: `[{"address":"0x55bacb0a1f80","pid":4211,"class":"flea"}]`.
 pub fn own_addresses(json: &str, pid: u32) -> Vec<String> {
     let Ok(clients) = jsondoc::parse(json) else {
         return Vec::new();
@@ -146,12 +155,19 @@ pub fn own_addresses(json: &str, pid: u32) -> Vec<String> {
         .collect()
 }
 
+/// Whether a `hyprctl dispatch` reply says the dispatcher ran; a refused one still exits 0.
+/// Sample input: `ok` (ran), `Invalid dispatcher` or `warning: =[C]:-1: hl.focus: window not found` (did not).
+pub fn dispatch_ran(reply: &str) -> bool {
+    reply.trim() == "ok"
+}
+
 /// The Lua dispatch Omarchy's hotkey runs for one window argument and one tag argument.
 pub fn lua_tag(window: &str, tag: &str) -> String {
     format!("hl.dsp.window.tag({{ window = \"{window}\", tag = \"{tag}\" }})")
 }
 
 /// Whether a shell.toml sets [flea] background-alpha to a value the font reader accepts.
+/// Sample input: `[flea]` on one line, then `background-alpha = 0.34`.
 fn sets_alpha(text: &str) -> bool {
     let mut section = "";
     for line in text.lines() {
@@ -176,6 +192,7 @@ pub fn uses_default(user_shell: &str, theme_shell: &str) -> bool {
 }
 
 /// Whether a Hyprland socket2 line asks for a pass, as a config reload or this app's window opening does.
+/// Sample input: `openwindow>>55bacb0a1f80,1,flea,Flea` or `configreloaded>>`.
 pub fn retags(line: &str) -> bool {
     let Some((event, data)) = line.split_once(">>") else {
         return false;

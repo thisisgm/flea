@@ -46,9 +46,24 @@ fn listen(tagger: &Tagger, socket: &Path) {
         }
     };
     tagger.retag();
-    for line in BufReader::new(stream).lines() {
-        let Ok(line) = line else {
-            return;
+    for line in BufReader::new(stream).split(b'\n') {
+        let line = match line.map(String::from_utf8) {
+            Ok(Ok(line)) => line,
+            Ok(Err(bad)) => {
+                eprintln!(
+                    "flea-gui: window transparency tag stopped: a {}-byte line on {} is not UTF-8",
+                    bad.as_bytes().len(),
+                    socket.display()
+                );
+                return;
+            }
+            Err(error) => {
+                eprintln!(
+                    "flea-gui: window transparency tag stopped: reading {}: {error}",
+                    socket.display()
+                );
+                return;
+            }
         };
         if retags(&line) {
             tagger.retag();

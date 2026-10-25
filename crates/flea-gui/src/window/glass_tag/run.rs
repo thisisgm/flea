@@ -1,5 +1,5 @@
 //! The hyprctl chain and Hyprland's event socket, run off the UI thread; the decisions come from glass_tag.
-use super::{lua_tag, own_addresses, plan, uses_default, Action, Mode, TAG};
+use super::{dispatch_ran, lua_tag, own_addresses, plan, uses_default, Action, Mode, TAG};
 use std::collections::BTreeSet;
 use std::ffi::OsString;
 use std::fs;
@@ -186,19 +186,29 @@ impl Tagger {
         let tag = format!("{}{TAG}", if add { '+' } else { '-' });
         let window = format!("address:{address}");
         let lua = lua_tag(&window, &tag);
-        if !self.dispatched(&["dispatch", lua.as_str()]) {
-            self.dispatched(&["dispatch", "tagwindow", tag.as_str(), window.as_str()]);
+        // The Lua form is refused on Hyprland builds that only know tagwindow, so only a second refusal warns.
+        if self.dispatched(&["dispatch", lua.as_str()]).is_ok() {
+            return;
+        }
+        let classic = ["dispatch", "tagwindow", tag.as_str(), window.as_str()];
+        if let Err(reply) = self.dispatched(&classic) {
+            warn_once(&format!("hyprctl did not tag {window} {tag}: {reply}"));
         }
     }
 
-    // Silent on purpose, since the Lua form fails on Hyprland builds that only know tagwindow.
-    fn dispatched(&self, args: &[&str]) -> bool {
-        Command::new(&self.hyprctl)
+    // The reply decides, never the exit status: hyprctl exits 0 when a dispatcher refuses.
+    fn dispatched(&self, args: &[&str]) -> Result<(), String> {
+        let output = Command::new(&self.hyprctl)
             .args(args)
-            .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .status()
-            .is_ok_and(|status| status.success())
+            .output()
+            .map_err(|error| error.to_string())?;
+        let reply = String::from_utf8_lossy(&output.stdout);
+        if dispatch_ran(&reply) {
+            Ok(())
+        } else {
+            Err(reply.trim().to_owned())
+        }
     }
 }
 

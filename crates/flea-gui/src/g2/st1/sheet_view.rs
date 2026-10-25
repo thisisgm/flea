@@ -90,7 +90,7 @@ impl SheetView {
     }
 
     /// The groups split into two columns at the first group that would pass half the rows, each faded at its foot.
-    fn columns(&self, ink: &Ink, cx: &mut Context<Self>) -> Stateful<Div> {
+    fn columns(&self, most: f32, ink: &Ink, cx: &mut Context<Self>) -> Stateful<Div> {
         let catalog = &self.sheet.catalog;
         let mut columns: [Vec<AnyElement>; 2] = [Vec::new(), Vec::new()];
         let half = self.sheet.rows.len().div_ceil(2);
@@ -153,12 +153,13 @@ impl SheetView {
             .right_0()
             .bottom_0()
             .h(px(COLUMN_FADE))
+            .debug_selector(|| "sheet-fade".into())
             .bg(linear_gradient(
                 180.,
                 linear_color_stop(ink.surface.opacity(0.), 0.),
                 linear_color_stop(ink.surface, 1.),
             ));
-        let below = self.most() - self.sheet.scroll > 1.;
+        let below = most - self.sheet.scroll > 1.;
         self.body(grid, cx)
             .id("sheet-rest")
             .when(below, |body| body.child(fade))
@@ -267,7 +268,7 @@ impl Render for SheetView {
             .unwrap_or_default();
         let ink = Ink::inherited(&window.text_style(), theme);
         let searching = !self.sheet.query.is_empty();
-        self.laid_out(window);
+        let most = self.laid_out(window, cx);
         let viewport = window.viewport_size();
         let (left, top, card_w, card_h) =
             card_rect(f32::from(viewport.width), f32::from(viewport.height));
@@ -323,7 +324,7 @@ impl Render for SheetView {
             )
             .child(self.results(&ink, cx))
         } else {
-            card.child(self.columns(&ink, cx))
+            card.child(self.columns(most, &ink, cx))
         };
         let card = marks::card(card);
         marks::ground(

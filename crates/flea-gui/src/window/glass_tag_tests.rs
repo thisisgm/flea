@@ -2,8 +2,8 @@
 use super::glass_tag::events::socket2_path;
 use super::glass_tag::run::{Sources, Tagger};
 use super::glass_tag::{
-    decide, lua_tag, own_addresses, parse_props, plan, retags, uses_default, valid_address, Action,
-    Mode, TAG,
+    decide, dispatch_ran, lua_tag, own_addresses, parse_props, plan, retags, uses_default,
+    valid_address, Action, Mode, TAG,
 };
 use std::collections::BTreeSet;
 use std::ffi::{OsStr, OsString};
@@ -140,6 +140,30 @@ fn glass_tag_glassy_takes_flea_tag_off_and_keeps_a_user_tag() {
 }
 
 #[test]
+fn glass_tag_keeps_its_record_of_a_window_whose_probe_failed() {
+    let failed = plan("0x1  1\n", Mode::Glassy, true, &set(&["0x1"]));
+    assert!(failed.changes.is_empty());
+    assert_eq!(failed.tagged, set(&["0x1"]));
+    let glassy = plan("0x1 1 1\n", Mode::Glassy, true, &failed.tagged);
+    assert_eq!(glassy.changes, vec![("0x1".to_owned(), Action::Remove)]);
+    // A failed probe of a window Flea never tagged adds no record.
+    assert!(plan("0x2\n", Mode::Glassy, true, &set(&["0x1"]))
+        .tagged
+        .is_empty());
+}
+
+#[test]
+fn glass_tag_dispatch_counts_only_an_ok_reply() {
+    assert!(dispatch_ran("ok"));
+    assert!(dispatch_ran("ok\n"));
+    assert!(!dispatch_ran("Invalid dispatcher"));
+    assert!(!dispatch_ran(
+        "warning: =[C]:-1: hl.focus: window not found"
+    ));
+    assert!(!dispatch_ran(""));
+}
+
+#[test]
 fn glass_tag_dispatch_strings_name_the_window_and_the_tag() {
     assert_eq!(
         lua_tag("address:0x1", "+transparent"),
@@ -198,8 +222,10 @@ fn glass_tag_event_socket_sits_where_hyprland_puts_it() {
 fn glass_tag_without_hyprctl_leaves_windows_alone_and_frees_the_tagger() {
     let missing = OsString::from("/nonexistent/flea-no-hyprctl");
     let tagger = Tagger::new(std::process::id(), missing, Sources::from_env());
+    // A pass that wrote its plan after a failed query would drop this record.
+    tagger.lock().tagged.insert("0x1".into());
     tagger.pass();
-    assert!(tagger.lock().tagged.is_empty());
+    assert_eq!(tagger.lock().tagged, set(&["0x1"]));
     tagger.retag();
     let deadline = Instant::now() + Duration::from_secs(5);
     while tagger.lock().busy && Instant::now() < deadline {
@@ -209,5 +235,5 @@ fn glass_tag_without_hyprctl_leaves_windows_alone_and_frees_the_tagger() {
         !tagger.lock().busy,
         "a pass must clear busy when hyprctl is absent"
     );
-    assert!(tagger.lock().tagged.is_empty());
+    assert_eq!(tagger.lock().tagged, set(&["0x1"]));
 }

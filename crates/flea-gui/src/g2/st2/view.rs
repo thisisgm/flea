@@ -508,9 +508,7 @@ type AnyRow = Stateful<Div>;
 
 impl Render for PluginsPane {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        // Rows that shrank since the last frame pull the scroll back before that frame's boxes are cleared.
-        self.scroll = self.scroll.min(self.most());
-        self.probe.clear();
+        self.laid_out(window, cx);
         let cursor = if self.focus.is_focused(window) || *self.page.card() != Card::None {
             self.page.cursor()
         } else {
