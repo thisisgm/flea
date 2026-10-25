@@ -24,7 +24,7 @@ pub(super) fn typing(query: &str) -> Session {
 }
 
 fn searched(n: usize, gen: u64, walking: bool) -> Line {
-    Line::Searched { n, scanned: 400, ms: 33.1, cancelled: false, gen, walking }
+    Line::Searched { n, scanned: 400, ms: 33.1, cancelled: false, gen, walking, partial: None }
 }
 
 #[test]
@@ -221,10 +221,10 @@ fn the_stopwatch_and_kept_index() {
     // search.js:242
     assert_eq!(stamped.stamps, Stamps { gen: 1, key_at: 1000, first_rows_at: 0, settled_at: 0 });
     stamped.rows_landed(1, 1002);
-    stamped.searched(&Line::Searched { n: 1, scanned: 10, ms: 5.5, cancelled: false, gen: 1, walking: false }, 1004);
+    stamped.searched(&Line::Searched { n: 1, scanned: 10, ms: 5.5, cancelled: false, gen: 1, walking: false, partial: None }, 1004);
     // search.js:245
     assert_eq!((stamped.stamps.first_rows_at, stamped.stamps.settled_at), (1002, 1004));
-    stamped.searched(&Line::Searched { n: 9, scanned: 10, ms: 5.5, cancelled: false, gen: 0, walking: false }, 2000);
+    stamped.searched(&Line::Searched { n: 9, scanned: 10, ms: 5.5, cancelled: false, gen: 0, walking: false, partial: None }, 2000);
     // search.js:248
     assert_eq!((stamped.total, stamped.stamps.settled_at), (1, 1004));
 }

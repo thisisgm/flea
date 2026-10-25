@@ -16,6 +16,9 @@ pub struct Session {
     pub cancelled: bool,
     pub leaving: bool,
     pub scanned: usize,
+    pub partial: Option<String>,
+    // The gen whose answer scanned, total, running, cancelled and partial now hold.
+    pub answered: u64,
     pub ms: f64,
     pub total: usize,
     pub from: String,
@@ -96,6 +99,8 @@ impl Session {
         self.running = true;
         self.cancelled = false;
         self.scanned = 0;
+        self.partial = None;
+        self.answered = 0;
         self.send_open(pane, out);
     }
 
@@ -108,6 +113,7 @@ impl Session {
     fn send_query(&mut self, pane: &Pane, out: &mut Vec<Effect>) {
         self.gen += 1;
         self.stamps = Stamps { gen: self.gen, key_at: pane.now.max(1), first_rows_at: 0, settled_at: 0 };
+        self.partial = None;
         out.push(Effect::Send(Request::Query { query: self.query.clone(), gen: self.gen, count: pane.count, sizes: pane.sizes }));
     }
 
@@ -243,6 +249,8 @@ impl Session {
         self.running = false;
         self.cancelled = false;
         self.scanned = 0;
+        self.partial = None;
+        self.answered = 0;
         self.from.clear();
         self.base.clear();
     }
@@ -259,7 +267,7 @@ impl Session {
 
     // The answered counts land; the first window rides its own rows line, so nothing is asked for.
     pub fn searched(&mut self, line: &Line, now: u64) -> Vec<Effect> {
-        let Line::Searched { n: total, scanned, ms, cancelled, gen, walking } = *line else { return Vec::new() };
+        let Line::Searched { n: total, scanned, ms, cancelled, gen, walking, ref partial } = *line else { return Vec::new() };
         if self.leaving || !self.accepts(gen) {
             return Vec::new();
         }
@@ -270,6 +278,8 @@ impl Session {
         }
         self.total = total;
         self.scanned = scanned;
+        self.partial.clone_from(partial);
+        self.answered = gen;
         self.ms = ms;
         vec![Effect::RestartSettle]
     }

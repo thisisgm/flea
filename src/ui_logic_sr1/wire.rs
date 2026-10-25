@@ -43,7 +43,8 @@ impl Request {
 // The lines only a search writes; listed and rows stay the listing's own and carry the gen beside them.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Line {
-    Searched { n: usize, scanned: usize, ms: f64, cancelled: bool, gen: u64, walking: bool },
+    // partial names the producer's reason when its index was incomplete, None for a complete one.
+    Searched { n: usize, scanned: usize, ms: f64, cancelled: bool, gen: u64, walking: bool, partial: Option<String> },
     Searching { n: usize, scanned: usize, ms: f64 },
     Opened { path: String },
     Closed { path: String },
@@ -71,6 +72,17 @@ fn text(value: &Json, key: &str) -> Result<String, String> {
     value.get(key).and_then(Json::as_str).map(str::to_owned).ok_or_else(|| format!("{key} must be a string"))
 }
 
+// A partial answer must say why; an older producer's line without the field is a complete one.
+fn partial(value: &Json) -> Result<Option<String>, String> {
+    if !flag(value, "partial")? {
+        return Ok(None);
+    }
+    match value.get("partial_reason").and_then(Json::as_str) {
+        Some(reason) if !reason.is_empty() => Ok(Some(reason.to_owned())),
+        _ => Err("a partial answer needs a partial_reason".into()),
+    }
+}
+
 // None for a line that is not a search's own; a malformed search line is an error, never a guess.
 // Sample input: {"t":"searched","n":11,"scanned":1040,"ms":12.400,"cancelled":false,"gen":7,"walking":false}
 pub fn parse_line(line: &str) -> Result<Option<Line>, String> {
@@ -91,6 +103,7 @@ pub fn parse_line(line: &str) -> Result<Option<Line>, String> {
                 Some(_) => uint(&document, "gen")? as u64,
             },
             walking: flag(&document, "walking")?,
+            partial: partial(&document)?,
         },
         "searching" => Line::Searching {
             n: uint(&document, "n")?,

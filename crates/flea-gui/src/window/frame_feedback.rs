@@ -262,6 +262,7 @@ impl Shell {
                             identity: host.pane.identity(),
                             generation: host.pane.list_requests,
                             search_generation: host.pane.swap.session.generation,
+                            search_scene: host.search_scene(),
                             held: host.pane.held.clone(),
                             path: self.path_labels[side].clone(),
                             cursor: host.pane.cursor,
@@ -306,6 +307,7 @@ impl Shell {
             return;
         }
         let now = cx.background_executor().now();
+        self.sync_search_coverage();
         self.presentation.expire(now);
         match event {
             FrameFeedbackEvent::Submitted { draw_id, frame_id } => {
@@ -327,6 +329,7 @@ impl Shell {
                 }
             }
         }
+        self.sync_search_coverage();
         for side in 0..2 {
             self.retick_feedback(side, window, cx);
         }
@@ -349,6 +352,9 @@ impl Shell {
         self.presentation.frames += 1;
         for (side, frame) in submitted.draw.panes.into_iter().enumerate() {
             let Some(frame) = frame else { continue };
+            if submitted.visible {
+                self.search_presented(side, &frame.content, submitted.id, time);
+            }
             {
                 let mut observed = frame.observed.borrow_mut();
                 observed.frames += 1;

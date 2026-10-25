@@ -19,12 +19,12 @@ fn reply_lines_parse_and_others_pass_through() {
     let searched = r#"{"t":"searched","n":11,"scanned":1040,"ms":12.400,"cancelled":false,"gen":7,"walking":true}"#;
     assert_eq!(
         parse_line(searched),
-        Ok(Some(Line::Searched { n: 11, scanned: 1040, ms: 12.4, cancelled: false, gen: 7, walking: true }))
+        Ok(Some(Line::Searched { n: 11, scanned: 1040, ms: 12.4, cancelled: false, gen: 7, walking: true, partial: None }))
     );
     let walk = r#"{"t":"searched","n":6252,"scanned":45807,"ms":48.711,"cancelled":true}"#;
     assert_eq!(
         parse_line(walk),
-        Ok(Some(Line::Searched { n: 6252, scanned: 45807, ms: 48.711, cancelled: true, gen: 0, walking: false }))
+        Ok(Some(Line::Searched { n: 6252, scanned: 45807, ms: 48.711, cancelled: true, gen: 0, walking: false, partial: None }))
     );
     assert_eq!(
         parse_line(r#"{"t":"searching","n":812,"scanned":41200,"ms":300.114}"#),
@@ -50,5 +50,20 @@ fn malformed_search_lines_are_refused_never_guessed() {
         "",
     ] {
         assert!(parse_line(line).is_err(), "{line}");
+    }
+}
+
+#[test]
+fn a_partial_answer_keeps_its_reason_and_a_complete_one_has_none() {
+    let base = r#"{"t":"searched","n":1,"scanned":9,"ms":1.000,"cancelled":false,"gen":2,"walking":false"#;
+    let line = |tail: &str| format!("{base}{tail}}}");
+    let answer = |partial: Option<&str>| {
+        Ok(Some(Line::Searched { n: 1, scanned: 9, ms: 1., cancelled: false, gen: 2, walking: false, partial: partial.map(Into::into) }))
+    };
+    assert_eq!(parse_line(&line(r#","partial":true,"partial_reason":"unreadable""#)), answer(Some("unreadable")));
+    assert_eq!(parse_line(&line(r#","partial":false,"partial_reason":"""#)), answer(None));
+    assert_eq!(parse_line(&line("")), answer(None), "an older producer's line names no partial");
+    for tail in [r#","partial":true"#, r#","partial":true,"partial_reason":"""#, r#","partial":"yes","partial_reason":"x""#] {
+        assert!(parse_line(&line(tail)).is_err(), "{tail}");
     }
 }

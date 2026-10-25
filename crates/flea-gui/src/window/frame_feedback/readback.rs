@@ -41,3 +41,13 @@ impl Presentation {
         ])
     }
 }
+
+impl Presentation {
+    /// Lost submissions or terminals so far, and the oldest submission still awaiting its terminal.
+    pub(crate) fn search_coverage(&self) -> (usize, Option<u64>) {
+        (
+            self.lost_metadata + self.unmatched_terminals,
+            self.pending.front().map(|frame| frame.id),
+        )
+    }
+}
