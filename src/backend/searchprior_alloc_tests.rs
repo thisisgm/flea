@@ -52,3 +52,11 @@ fn searchprior_fix1_no_per_match_path_allocations() {
     assert_eq!(hits.len(), 100_000);
     assert!(hits.iter().all(|(score, _)| *score == 3_500_000 * SCALE + 23));
 }
+
+// Counts the calling thread only, so unrelated workers cannot move an allocation gate.
+pub(crate) fn count_allocations<T>(work: impl FnOnce() -> T) -> (T, usize) {
+    ALLOCATIONS.with(|count| assert!(count.replace(Some(0)).is_none()));
+    let result = work();
+    let allocations = ALLOCATIONS.with(|count| count.replace(None).unwrap());
+    (result, allocations)
+}

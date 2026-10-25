@@ -118,3 +118,34 @@ fn close_mid_walk_frees_nothing_until_the_detached_walk_exits() {
         std::thread::sleep(Duration::from_millis(10));
     }
 }
+
+#[test]
+fn search_memtime_watch_registration_has_no_mount_proportional_allocations() {
+    use crate::backend::searchprior::alloc_tests::count_allocations;
+    const UNRELATED_MOUNTS: usize = 256;
+    // Permit bounded watch bookkeeping while excluding the measured 1,809-allocation mount reparse.
+    const MAX_WATCH_ALLOCATIONS: usize = 32;
+    let d = TestDir::new("walkmountalloc");
+    let child = d.dir("watched");
+    let mut body = String::from("1 0 8:1 / / rw - ext4 /dev/a rw\n");
+    for i in 0..UNRELATED_MOUNTS {
+        body.push_str(&format!("{} 1 8:2 / /unrelated/{i} rw - ext4 /dev/b rw\n", i + 2));
+    }
+    let reader = super::super::searchwalkread::Reader::new(&body);
+    let probes = WalkProbes::new();
+    let (tx, _rx) = std::sync::mpsc::channel();
+    let watch = super::super::searchwatch::Watch::new(d.path(), false, tx);
+    *probes.watch.lock().unwrap() = Some(Arc::clone(&watch.core));
+    let index = Mutex::new(Index::new());
+    let (opened, allocations) = count_allocations(|| {
+        open_directory(&index, d.path(), &child, false, Some(&body), &reader, &probes)
+    });
+    assert!(opened.is_some());
+    eprintln!("SEARCH_WALK_MOUNT_ALLOCATIONS mounts={} allocations={allocations}", UNRELATED_MOUNTS + 1);
+    assert!(allocations <= MAX_WATCH_ALLOCATIONS, "the walk already parsed mounts; watch registration reparsed them with {allocations} allocations");
+    d.file("watched/new", "");
+    watch.core.flush();
+    let delta = watch.core.drain();
+    assert!(!delta.failed, "a registration failure cannot stand in for the child event");
+    assert!(delta.dirs.contains(Path::new("watched")), "the allocation bound must still register the child watch");
+}
