@@ -101,8 +101,7 @@ fn a_right_click_on_the_selected_landed_row_keeps_the_landing(cx: &mut TestAppCo
     keeps_the_landing(&shell, cx, "a menu on a selected row");
 }
 
-// The pane's own menu arm, reached when the root opens no menu over the press. No family on this branch runs
-// a pointer "menu" order (window/dispatch/mod.rs FAMILIES), so the arm's effect is the menu order it hands on.
+// The pane's own menu arm (root opens no menu over the press); its effect is the menu order it hands on.
 #[gpui::test]
 fn the_pane_menu_arm_on_the_selected_landed_row_keeps_the_landing(cx: &mut TestAppContext) {
     let (shell, cx) = landed_on_beta_in(cx, rows());
