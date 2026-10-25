@@ -8,11 +8,13 @@ use crate::{
 use flea::ipc::wire::{Reply, Request};
 use gpui::{AppContext, TestAppContext, Window, WindowHandle};
 
-fn open(cx: &mut TestAppContext) -> WindowHandle<Root> {
-    let (backend, _receive) = Backend::test_channel();
-    cx.add_window(|_, cx| Root {
+// The receiver stays with the caller, so the card's own collision request reaches a live backend.
+fn open(cx: &mut TestAppContext) -> (WindowHandle<Root>, impl FnMut() -> Option<(usize, usize)>) {
+    let (backend, receive) = Backend::test_channel();
+    let handle = cx.add_window(|_, cx| Root {
         shell: cx.new(|cx| shell_with(backend, cx)),
-    })
+    });
+    (handle, receive)
 }
 
 fn shell<R>(
@@ -48,7 +50,7 @@ fn call(cx: &mut TestAppContext, handle: WindowHandle<Root>, function: &str) -> 
 
 #[gpui::test]
 fn u13_live_collision_reader_answers_before_any_card(cx: &mut TestAppContext) {
-    let handle = open(cx);
+    let (handle, _backend) = open(cx);
     let reply = call(cx, handle, "collideState");
     assert_eq!(reply.code, 0, "a closed collision card is observable");
     let state = flea::jsondoc::parse(reply.stdout.trim()).unwrap();
@@ -64,7 +66,7 @@ fn u13_live_collision_reader_answers_before_any_card(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn u13_live_collision_reader_reports_the_drawn_card(cx: &mut TestAppContext) {
-    let handle = open(cx);
+    let (handle, _backend) = open(cx);
     shell(cx, handle, |shell, window, cx| {
         shell.open_overlay_copy_to(false, "/files", window, cx);
         let overlay = shell.overlay.clone().unwrap();
@@ -100,7 +102,7 @@ fn u13_live_collision_reader_reports_the_drawn_card(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn u13_closed_operations_never_impersonate_the_network_form(cx: &mut TestAppContext) {
-    let handle = open(cx);
+    let (handle, _backend) = open(cx);
     shell(cx, handle, |shell, window, cx| {
         shell.open_overlay_copy_to(false, "/files", window, cx)
     });
@@ -113,7 +115,7 @@ fn u13_closed_operations_never_impersonate_the_network_form(cx: &mut TestAppCont
 
 #[gpui::test]
 fn u13_collision_measurements_detect_real_clipping(cx: &mut TestAppContext) {
-    let handle = open(cx);
+    let (handle, _backend) = open(cx);
     shell(cx, handle, |shell, window, cx| {
         shell.open_overlay_copy_to(false, "/files", window, cx);
         shell.overlay.clone().unwrap().update(cx, |overlay, cx| {

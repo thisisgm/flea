@@ -169,12 +169,17 @@ fn a_cut_row_dims_its_content_and_an_uncut_row_keeps_its_roles() {
         palette.row_ink(Clip::None, false, false, false),
     );
     let near = |a: f32, b: f32| (a - b).abs() < 0.01;
+    // drag-cut-move: a cut row ghosts its mark alone, so its name keeps the contrast an uncut one has.
     c.ok(
         296,
-        "a cut row's name inks at the board opacity, an uncut one at its own",
-        near(cut.name.a, CUT) && near(plain.name.a, palette.foreground.a),
+        "a cut row's name inks in its own role, as an uncut one does",
+        cut.name == plain.name && near(plain.name.a, palette.foreground.a),
     );
-    c.ok(299, "its size shares the name's ink", near(cut.name.a, CUT));
+    c.ok(
+        299,
+        "its size shares the name's undimmed ink",
+        cut.name == palette.foreground,
+    );
     c.ok(
         302,
         "its kind mark dims with it",

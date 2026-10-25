@@ -84,13 +84,14 @@ fn the_clipboard_is_asked_per_row_only_while_it_holds_something() {
     );
     let palette = palette(&mut cx, window);
     let inks = palette.row_ink(Clip::Cut, false, false, false);
-    let content = [inks.mark, inks.name]
-        .iter()
-        .all(|ink| (ink.a - CUT).abs() < 0.01);
+    let uncut = palette.row_ink(Clip::None, false, false, false);
+    // drag-cut-move: only the file mark ghosts; the name and size keep their contrast.
     c.ok(
         200,
-        "a cut row's mark, name and size dim to the board opacity, its scissors stay whole",
-        content && inks.clip == palette.muted_frame,
+        "a cut row's mark dims to the board opacity, its name, size and scissors stay whole",
+        (inks.mark.a - CUT).abs() < 0.01
+            && inks.name == uncut.name
+            && inks.clip == palette.muted_frame,
     );
     *marks.held.borrow_mut() = None;
     let asked = marks.asked.get();
@@ -304,9 +305,20 @@ fn a_peek_row_with_no_clip_paints_whole_and_still() {
         (copied, x),
         (Clip::Copy, 0.),
     );
-    for (line, ink) in [
-        (310, name_ink as fn(&Palette, Clip) -> Hsla),
-        (312, mark_ink),
+    // drag-cut-move: a cut ghosts the file mark alone, so the name keeps its alpha on every row.
+    for (line, ink, label, cut_alpha) in [
+        (
+            310,
+            name_ink as fn(&Palette, Clip) -> Hsla,
+            "none, scissors, none, copy: the name never dims",
+            name_ink(&palette, Clip::None).a,
+        ),
+        (
+            312,
+            mark_ink,
+            "none, scissors, none, copy: only the cut mark dims",
+            CUT,
+        ),
     ] {
         let alphas: Vec<f32> = [Clip::None, Clip::Cut, Clip::None, Clip::Copy]
             .into_iter()
@@ -314,13 +326,13 @@ fn a_peek_row_with_no_clip_paints_whole_and_still() {
             .collect();
         let want = [
             ink(&palette, Clip::None).a,
-            CUT,
+            cut_alpha,
             ink(&palette, Clip::None).a,
             ink(&palette, Clip::None).a,
         ];
         c.ok(
             line,
-            "none, scissors, none, copy: only the cut dims",
+            label,
             alphas
                 .iter()
                 .zip(want)
@@ -330,8 +342,8 @@ fn a_peek_row_with_no_clip_paints_whole_and_still() {
     let cut = palette.row_ink(Clip::Cut, false, false, true);
     c.ok(
         311,
-        "the cut alpha replaces the ink's, with no layer on top",
-        (cut.name.a - CUT).abs() < 0.01,
+        "the cut alpha replaces the mark's, with no layer on top, and the name keeps its own ink",
+        (cut.mark.a - CUT).abs() < 0.01 && cut.name == plain.name,
     );
     c.finish();
 }
