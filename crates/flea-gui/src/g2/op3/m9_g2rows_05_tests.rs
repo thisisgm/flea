@@ -70,6 +70,7 @@ fn m9_g2rows_05_captured_selection_survives_cursor_change() {
         "3 items",
         "the count is the selection open captured, not the live one"
     );
+    assert_eq!(selection, [7]);
 
     let mut captured = captured();
     let (mut properties, effects) = Properties::from_captured(&captured).unwrap();
@@ -86,6 +87,7 @@ fn m9_g2rows_05_captured_selection_survives_cursor_change() {
     properties.reply(&i18n, &parse(SUMMARY).unwrap());
     assert_eq!(properties.card(&i18n).title, "3 items");
     assert_eq!(facts(&properties.card(&i18n))[0].1, "2 images, 1 video");
+    assert_eq!((captured.cursor, captured.side, captured.id), (7, 0, 10));
 }
 
 #[test]

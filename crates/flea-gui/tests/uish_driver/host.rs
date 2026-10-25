@@ -45,6 +45,7 @@ pub(super) struct Mounted {
     identity: String,
     socket: PathBuf,
     draws: u64,
+    captures: u64,
 }
 
 pub(super) struct Host {
@@ -153,6 +154,7 @@ impl Host {
                 identity: identity.clone(),
                 socket,
                 draws: 0,
+                captures: 0,
             },
         );
         self.pump();
@@ -178,7 +180,7 @@ impl Host {
             };
         }
         match op {
-            "capabilities" => return Ok(self.capture(window)),
+            "capabilities" => return Ok(self.capture(identity, window)),
             "describe" => return self.describe(identity),
             "close" => {
                 self.cx

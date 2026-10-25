@@ -9,6 +9,7 @@ use gpui::{VisualTestContext, WindowHandle};
 use std::{
     fs,
     os::{fd::AsRawFd, unix::fs::MetadataExt},
+    path::PathBuf,
 };
 
 impl Host {
@@ -45,11 +46,20 @@ impl Host {
         ]))
     }
 
-    // One raster of the target window, named after that window so two captures never collide.
-    pub(super) fn capture(&mut self, window: WindowHandle<Root>) -> Json {
-        let file = self
-            .root
-            .join(format!("capture-{}.rgba", window.window_id().as_u64()));
+    // The next raster file of one window, named by the window and its own capture count so none is overwritten.
+    fn capture_file(&mut self, identity: &str) -> PathBuf {
+        let mounted = self.windows.get_mut(identity).expect("a mounted window");
+        mounted.captures += 1;
+        self.root.join(format!(
+            "capture-{}-{}.rgba",
+            mounted.window.window_id().as_u64(),
+            mounted.captures
+        ))
+    }
+
+    // One raster of the target window, in a file no earlier capture used.
+    pub(super) fn capture(&mut self, identity: &str, window: WindowHandle<Root>) -> Json {
+        let file = self.capture_file(identity);
         let mut visual = VisualTestContext::from_window(window.into(), &self.cx);
         let raster = visual.update(|window, _| match window.render_to_image() {
             Ok(image) => match fs::write(&file, image.as_raw()) {
@@ -65,4 +75,23 @@ impl Host {
         });
         capabilities(raster)
     }
+}
+
+#[test]
+fn uish_driver_second_capture_of_a_window_keeps_the_first() {
+    let sandbox = super::super::Sandbox::new("capture-names");
+    let fixture = sandbox.0.join("fixture");
+    fs::create_dir(&fixture).unwrap();
+    let mut host = Host::at(&sandbox.0);
+    let opened = host
+        .command(&object([
+            ("op", text("open")),
+            ("path", text(fixture.display())),
+        ]))
+        .unwrap();
+    let identity = opened.get("window").and_then(Json::as_str).unwrap();
+    let (first, second) = (host.capture_file(identity), host.capture_file(identity));
+    assert_ne!(first, second, "a second capture overwrote the first");
+    assert!(first.starts_with(&host.root) && second.starts_with(&host.root));
+    host.teardown().unwrap();
 }

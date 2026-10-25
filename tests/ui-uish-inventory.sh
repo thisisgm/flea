@@ -193,6 +193,29 @@ class Controls(unittest.TestCase):
         self.assertTrue(seen[0][0].name.startswith("host.") and not seen[0][0].exists())
         self.assertEqual(set(parent.glob("host.*")), before, "a failed start left its host root")
 
+    def test_failed_host_keeps_its_log_tail(self):
+        import flea_uish_headless as headless
+        from unittest import mock
+        parent = REPO / ".superpowers/m9-uish-02"
+        before = set(parent.glob("host.*")) if parent.is_dir() else set()
+        hello = 'UISH\t{"sequence": null, "result": {"ok": true, "value": {"protocol": "flea-uish-headless-v1"}}}'
+        drivers = (("start", "printf 'driver said this\\n'\nexec sleep 30\n", TimeoutError, "driver said this"),
+                   ("teardown", "printf '%s\\n' '" + hello + "'\nread -r line\nexit 1\n",
+                    headless.TransportError, "flea-uish-headless-v1"))
+        for name, body, kind, said in drivers:
+            driver = self.root / (name + "-driver")
+            driver.write_text("#!/bin/sh\n" + body)
+            driver.chmod(0o700)
+            stderr = io.StringIO()
+            with mock.patch.dict(os.environ, {"FLEA_BIN": "/bin/true"}), contextlib.redirect_stderr(stderr):
+                with self.assertRaises(kind) as raised:
+                    with headless.Host(driver, timeout=1):
+                        pass
+            notes = "\n".join(getattr(raised.exception, "__notes__", ()))
+            self.assertIn(said, notes, f"{name}: the error lost the driver.log tail")
+            self.assertIn(said, stderr.getvalue(), f"{name}: the log tail was not printed")
+            self.assertEqual(set(parent.glob("host.*")), before, f"{name}: the marked root was kept")
+
     def test_headless_qml_refused(self):
         result = self.ui("cursor", driver="headless", frontend="qml")
         self.assertEqual(result.returncode, 2)
