@@ -224,4 +224,5 @@ fn an_image_that_fails_to_decode_keeps_its_image_facts(cx: &mut TestAppContext) 
     // The column's own state and Kind readers; previewState and previewKind are the Quick Look's.
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "image", "the state stays the row's kind");
     assert!(facts.starts_with("Kind=PNG image|"), "Kind is the row's description: {facts}");
+    assert_eq!(read(&shell, cx, "columnFailure", &[]), "", "a failed picture draws no read failure");
 }
