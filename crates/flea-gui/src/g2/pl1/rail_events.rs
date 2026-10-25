@@ -1,4 +1,4 @@
-//! Device replies enter the existing pane and status owners; unsupported hosts retain typed requests.
+//! Device replies enter the existing pane, status and unlock owners; a Quiesce runs before its release child starts.
 use super::*;
 
 impl Shell {
@@ -41,6 +41,19 @@ impl Shell {
                             now,
                         )
                     });
+                }
+                Event::Device(Effect::UnlockRequested {
+                    device,
+                    label,
+                    size,
+                    fstype,
+                }) => {
+                    let (device, label, fstype) = (device.clone(), label.clone(), fstype.clone());
+                    self.open_unlock(request.side, &device, &label, *size, &fstype, window, cx);
+                }
+                Event::Device(Effect::Quiesce(volume)) => {
+                    let volume = volume.clone();
+                    self.quiesce_volume(request.side, &volume, window, cx);
                 }
                 _ => self.dispatch(Order::Device(request), window, cx),
             }

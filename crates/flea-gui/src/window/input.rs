@@ -257,6 +257,8 @@ impl Shell {
             self.chrome_action(action, window, cx);
         } else if action == "windowNew" {
             self.new_window();
+        } else if action == "eject" {
+            self.release_device(false, cx);
         } else if let Some(view) = match action {
             "viewList" => Some(startup::View::List),
             "viewColumns" => Some(startup::View::Columns),

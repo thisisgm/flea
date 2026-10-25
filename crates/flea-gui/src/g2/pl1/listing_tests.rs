@@ -1,5 +1,5 @@
 //! tests/mount-listing.qml: a populated listing then an empty one, and nothing of the first carried into the second.
-use super::listing::{Effect, Listing, TIMEOUT_MS};
+use super::listing::{Effect, Listing, POLL_MS, TIMEOUT_MS};
 use super::process::Outcome;
 
 fn listed(body: &str) -> Outcome {
@@ -57,4 +57,29 @@ fn a_timed_out_listing_keeps_the_last_good_one() {
     );
     assert_eq!(listing.text, "good");
     assert!(listing.answered);
+}
+
+#[test]
+fn running_listing_waits_only_on_its_timeout_and_never_starts_a_second_poll() {
+    let mut listing = Listing::new();
+    assert!(matches!(&listing.tick(0)[..], [Effect::Start(_)]));
+    let late = POLL_MS + 1;
+    assert_eq!(
+        listing.due(late),
+        Some(TIMEOUT_MS),
+        "a running listing schedules nothing before its own timeout"
+    );
+    assert!(listing.poll(1).is_empty(), "no second gio while one runs");
+    // The exit lands well before POLL_MS, so only the poll asked for mid-listing can start the next one.
+    let effects = listing.exited(&listed(""), 2);
+    assert!(
+        matches!(&effects[..], [Effect::Listed, Effect::Start(_)]),
+        "the poll asked for mid-listing runs as the listing ends"
+    );
+    let mut quiet = Listing::new();
+    quiet.tick(0);
+    assert!(
+        matches!(&quiet.exited(&listed(""), 2)[..], [Effect::Listed]),
+        "with no ask, an exit before POLL_MS starts nothing"
+    );
 }

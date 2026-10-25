@@ -126,11 +126,14 @@ impl Mounts {
         if let Some(effects) = super::validate::refused(&request) {
             return effects;
         }
-        let address = logic::form::Form::saved_address(&request.uri).expect("validated address");
-        request.uri = address.uri;
-        if address.scheme == "nfs" {
-            request.password.clear();
-            request.authenticated = false;
+        if !super::validate::phone(&request.uri) {
+            let address =
+                logic::form::Form::saved_address(&request.uri).expect("validated address");
+            request.uri = address.uri;
+            if address.scheme == "nfs" {
+                request.password.clear();
+                request.authenticated = false;
+            }
         }
         if self.busy() {
             return if request.id == 0 {

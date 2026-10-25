@@ -16,8 +16,8 @@ const NOT_YET: &[(&str, &[&str])] = &[
     ("operations", &["copy", "cut", "paste", "movePaste", "copyAs", "pasteAs", "copyPath", "copydirpath", "duplicate", "trash", "trashArm", "deletePermanently", "newFolder", "properties"]),
     // Focus.js:143-148, 187-195, 205 and 257-258; reveal is quiet outside results.
     ("listing state", &["sortNext", "sortReverse", "escape", "reveal"]),
-    // Focus.js:250, 265 and 273.
-    ("window", &["openTerminal", "eject", "tags"]),
+    // Focus.js:250 and 273.
+    ("window", &["openTerminal", "tags"]),
 ];
 
 // Spawns a real window process, so the guard reads it from the table instead of pressing it.

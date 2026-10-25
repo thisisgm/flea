@@ -1,5 +1,6 @@
 pub mod chrome;
 pub mod columns;
+pub mod devices;
 pub mod dual;
 pub mod focus;
 pub mod grid;

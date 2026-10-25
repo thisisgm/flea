@@ -84,6 +84,8 @@ pub struct LaidRow {
     pub detail_rect: Rect,
     pub indicator_rect: Rect,
     pub indicator_visible: bool,
+    /// The slot draws the eject mark rather than the mount square.
+    pub eject: bool,
     pub label_width: f32,
     pub label_needs: f32,
     pub elided: bool,
@@ -96,6 +98,22 @@ pub struct LaidRow {
     pub error: bool,
     pub mounted: Option<bool>,
     pub editor: Option<Rect>,
+}
+
+impl LaidRow {
+    /// SidebarRow.qml's eject hit box: the WCAG floor, centred on the caption-sized ink in the slot.
+    pub fn eject_hit(&self) -> Option<Rect> {
+        if !self.eject {
+            return None;
+        }
+        let side = crate::tabs::bar::HIT_MIN.max(self.indicator_rect.height);
+        Some(Rect::new(
+            self.indicator_rect.x + (self.indicator_rect.width - side) / 2.,
+            self.indicator_rect.y + (self.indicator_rect.height - side) / 2.,
+            side,
+            side,
+        ))
+    }
 }
 
 /// Everything one paint put on the rail: the loaded boxes, never an expected rectangle.
@@ -137,6 +155,12 @@ pub struct RowsModel {
     pub scroll: f32,
     cache: text::Cache,
     pub hovered: Option<usize>,
+    /// The row whose eject mark's hit box holds the pointer.
+    pub mark_hovered: Option<usize>,
+    /// The row whose eject mark holds a left press that has not been released.
+    pub mark_pressed: Option<usize>,
+    /// The keyboard stands on the cursor row's eject mark, which draws its frame.
+    pub mark_focused: bool,
     pub corner: f32,
     /// Presses on the NETWORK heading's plus; the window opens Add a Network Share once per new press.
     pub add_presses: u64,

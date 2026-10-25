@@ -67,7 +67,7 @@ pub struct Devices {
     pending_open_device: String,
     pending_open_label: String,
     pub(super) unmount_label: String,
-    unmount_device: String,
+    pub(super) unmount_device: String,
     pub(super) unmounting: bool,
     pub(super) eject_device: String,
     pub(super) eject_label: String,
@@ -258,37 +258,6 @@ impl Devices {
         self.pending_open_device = e.device.clone();
         self.pending_open_label = e.label.clone();
         vec![self.start(Proc::Mount, Job::plain(&["gio", "mount", "-d", &e.device]))]
-    }
-
-    /// Unmount, which is not Eject: a fixed disk stays and only its filesystem goes away.
-    pub fn unmount(&mut self, index: usize) -> Vec<Effect> {
-        if !self.power_disk.is_empty() {
-            return vec![Effect::Message(
-                Note::new("device.still_ejecting", &[&self.eject_label]),
-                false,
-            )];
-        }
-        let Some(e) = self
-            .entries
-            .get(index)
-            .filter(|e| e.kind == Kind::Volume && e.mounted)
-            .cloned()
-        else {
-            return Vec::new();
-        };
-        if self.running(Proc::Unmount) {
-            return vec![Effect::Message(
-                Note::new("device.still_unmounting", &[&self.unmount_label]),
-                false,
-            )];
-        }
-        self.unmount_label = e.label.clone();
-        self.unmount_device = e.device.clone();
-        self.unmounting = true;
-        vec![
-            Effect::Quiesce(e.path.clone()),
-            self.start(Proc::Unmount, Job::plain(&["gio", "mount", "-u", &e.path])),
-        ]
     }
 
     pub fn mount_exited(&mut self, outcome: &Outcome, now: u64) -> Vec<Effect> {
