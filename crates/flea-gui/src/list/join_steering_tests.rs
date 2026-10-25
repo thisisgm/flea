@@ -145,6 +145,7 @@ fn u04_folder_size_requests_settle_on_visible_directories_and_cancel_stale_answe
     settle(&mut cx);
     let command = request(&mut cx, handle);
     assert_eq!(command.get("c").and_then(Json::as_str), Some("dirsize"));
+    assert_eq!(ask(&mut cx, handle, "dirSizeRequests", &[]), "1");
     assert_eq!(command.get("listing").and_then(Json::as_f64), Some(2.));
     let rows = command.get("rows").and_then(Json::as_array).unwrap();
     assert_eq!(
@@ -184,6 +185,11 @@ fn u04_folder_size_requests_settle_on_visible_directories_and_cancel_stale_answe
     assert_eq!(
         request(&mut cx, handle).get("c").and_then(Json::as_str),
         Some("dirsize")
+    );
+    assert_eq!(
+        ask(&mut cx, handle, "dirSizeRequests", &[]),
+        "2",
+        "a dirsizecancel is not a size request"
     );
     let replies: Vec<_> = (0..8).map(|_| next(&mut cx, handle)).collect();
     handle

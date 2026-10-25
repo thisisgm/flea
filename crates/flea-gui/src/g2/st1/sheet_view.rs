@@ -327,7 +327,9 @@ impl Render for SheetView {
         };
         let card = marks::card(card);
         marks::ground(
-            div().id("sheet-ground"),
+            div()
+                .on_children_prepainted(self.probe.first_child("card"))
+                .id("sheet-ground"),
             cx.listener(|view, _, _, cx| {
                 view.sheet.requests.push(Request::Close);
                 view.flush(cx);

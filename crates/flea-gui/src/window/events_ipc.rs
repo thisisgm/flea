@@ -54,9 +54,18 @@ impl Shell {
                     grid: host.grid.as_ref(),
                     active: host.drawn_view == Some(crate::window::startup::View::Grid),
                 };
+                let chrome_glyph = self.chrome.view.as_ref().and_then(|chrome| {
+                    let frame = chrome.read(cx).frame.borrow();
+                    frame
+                        .controls
+                        .iter()
+                        .position(|control| control.focused)
+                        .map(|at| crate::path::chrome::GLYPHS[at])
+                });
                 let focus = crate::ipc::focus::FocusAdapter {
                     view: Some(self.focus_view(window, cx)).filter(|view| !view.is_empty()),
                     input: &host.input,
+                    chrome_glyph,
                 };
                 let pane = crate::ipc::pane::PaneAdapter {
                     pane: &host.pane,
@@ -101,6 +110,7 @@ impl Shell {
                 };
                 let status = crate::ipc::status::StatusAdapter { shell: self, cx };
                 let dual = self.dual_adapter(window, cx);
+                let drag = crate::ipc::dual::DragGeometry { shell: self };
                 let list = host.list.borrow();
                 let native = crate::ipc::native_window::NativeWindowAdapter {
                     list: &list,
@@ -143,6 +153,17 @@ impl Shell {
                     focus_side: self.focus_side,
                     now: cx.background_executor().now(),
                 };
+                let card = self
+                    .rail
+                    .as_ref()
+                    .and_then(|join| join.network.as_ref())
+                    .map(|network| network.card.read(cx));
+                let network = crate::ipc::network::NetworkAdapter {
+                    card,
+                    inside: card.is_some_and(|card| card.holds_focus(window, cx)),
+                    built: self.network_built(),
+                    rail: &rail,
+                };
                 let search = crate::g2::sr1::SearchAdapter {
                     search: &host.search.owner,
                 };
@@ -150,7 +171,8 @@ impl Shell {
                     search: &host.search.owner,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 19] = [
+                let adapters: [&dyn crate::ipc::Adapter; 21] = [
+                    &drag,
                     &search,
                     &query,
                     &rail,
@@ -169,15 +191,16 @@ impl Shell {
                     &menu,
                     &view,
                     &operations,
+                    &network,
                     &rows,
                 ];
                 let count = if matches!(
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    19
+                    21
                 } else {
-                    18
+                    20
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

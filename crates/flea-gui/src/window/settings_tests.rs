@@ -79,7 +79,12 @@ fn u11_closed_settings_never_expose_a_control_rectangle(cx: &mut TestAppContext)
                 read(shell, "keymapSheetResults", window, cx),
                 Reply::value("[]")
             );
-            assert_eq!(read(shell, "settingsScrollState", window, cx).code, 3);
+            assert_eq!(read(shell, "providerState", window, cx).code, 3);
+            assert_eq!(
+                read(shell, "settingsScrollState", window, cx),
+                Reply::value("{}")
+            );
+            assert_eq!(read(shell, "settingsScroll", window, cx), Reply::value(""));
         });
     });
 }
@@ -100,6 +105,32 @@ fn u11_drawn_geometry_moves_with_the_real_window(cx: &mut TestAppContext) {
         read(shell, "settingsCardRect", window, cx).stdout
     });
     assert_eq!(first.trim(), "235 8 630 684");
+    shell.update_in(cx, |shell, window, cx| {
+        let state =
+            flea::jsondoc::parse(read(shell, "settingsScrollState", window, cx).stdout.trim())
+                .unwrap();
+        let at = |path: &[&str]| {
+            path.iter()
+                .try_fold(&state, |value, key| value.get(key))
+                .and_then(flea::jsondoc::Json::as_f64)
+                .unwrap()
+        };
+        assert!(at(&["compactHeight"]) > 0.);
+        assert!(at(&["pane", "height"]) > 0. && at(&["pane", "contentHeight"]) > 0.);
+        assert_eq!(at(&["pane", "y"]), 0.);
+        assert!(
+            at(&["rail", "contentHeight"]) > 0.
+                && at(&["rail", "contentHeight"]) <= at(&["rail", "height"])
+        );
+        assert_eq!(
+            read(shell, "settingsScroll", window, cx).stdout.trim(),
+            format!(
+                "{}|{}",
+                at(&["pane", "contentHeight"]).round(),
+                at(&["pane", "height"]).round()
+            )
+        );
+    });
     cx.simulate_resize(size(px(800.), px(500.)));
     cx.update(|window, cx| window.draw(cx).clear(cx));
     shell.update_in(cx, |shell, window, cx| {
