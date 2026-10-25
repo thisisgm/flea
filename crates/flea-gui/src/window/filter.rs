@@ -18,6 +18,10 @@ use std::{cell::RefCell, rc::Rc};
 #[path = "filter_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "filter_views_tests.rs"]
+mod views_tests;
+
 // ui/js/Focus.js LEAVES_LINE and the pane's own moves: under a filter each one steps through the drawn rows.
 const MOVES: [&str; 6] = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp"];
 

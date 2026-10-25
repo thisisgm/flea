@@ -35,6 +35,8 @@ pub(crate) struct Footer {
     pub kind: Kind,
     pub counts: SharedString,
     pub filesystem: SharedString,
+    // The search receipt last handed to the message line, so a frame at rest says nothing new.
+    search: String,
     pub border_width: gpui::Pixels,
     pub width: f32,
     pub zone_width: f32,
@@ -60,6 +62,7 @@ impl Footer {
             kind: Kind::Loading,
             counts: SharedString::default(),
             filesystem: SharedString::default(),
+            search: String::new(),
             border_width: px(0.),
             width: 0.,
             zone_width: 0.,
@@ -178,6 +181,14 @@ impl Shell {
             Kind::Error => Listing::Error,
             Kind::Loading | Kind::Waiting => Listing::Loading,
         };
+        // HIG filter.png and grid-filter-matches.png: a standing filter's count, 1 of 10 shown, takes the left.
+        let filtered = host
+            .filter
+            .owner
+            .up()
+            .then(|| host.filter.owner.counts(held.listing))
+            .flatten()
+            .map(|counts| crate::g2::sr2::present::status(&counts, catalog));
         let counts = status_host::left(
             catalog,
             listing,
@@ -187,8 +198,10 @@ impl Shell {
                 bytes,
                 catalog.locale().format_size(bytes.max(0) as u64),
             )),
-            None,
+            filtered.as_deref(),
         );
+        // HIG search.png: the landed receipt, 2 found in 0.0 s, stands before the disk facts while search lives.
+        let search = host.search.owner.status(catalog).0;
         let path = host.path.clone();
         let state_message = host.state_text.message.clone();
         let revision = self.locale.revision;
@@ -226,7 +239,11 @@ impl Shell {
                     }
                 }
                 line.set_state_message(&state_message, cx);
+                if footer.search != search {
+                    line.update(cx, |m, now| m.set_search(&search, now));
+                }
             });
+            footer.search = search;
             footer.revision = revision;
         });
         self.slots.status = Some(footer.into());

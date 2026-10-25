@@ -157,6 +157,8 @@ pub struct TrackPaint {
     pub cache: TrackCache,
     advance: Option<Pixels>,
     pub(super) visible: Vec<(usize, Option<Rc<Prepared>>, Clip)>,
+    // The view position of visible[0]; each later entry is the next position.
+    pub(super) first: usize,
     /// The palette the last frame drew with, for a test that checks the installed theme reached the track.
     pub painted: Option<Palette>,
 }
@@ -169,6 +171,7 @@ impl TrackPaint {
             cache: TrackCache::default(),
             advance: None,
             visible: Vec::new(),
+            first: 0,
             painted: None,
         }
     }
@@ -226,11 +229,29 @@ pub struct Drawn {
     pub at: usize,
     pub scroll: f32,
     pub held: Option<Rc<crate::list::pane::Held>>,
+    /// A standing filter's drawn rows on the active track, None while every row is drawn.
+    pub shown: Option<Rc<[usize]>>,
 }
 
 impl Drawn {
     pub fn view(&self) -> &TrackView {
         &self.tracks[self.at]
+    }
+
+    /// The listing row drawn at a view position: the position itself, or its place in the filter's rows.
+    pub fn row_at(&self, position: usize) -> Option<usize> {
+        match &self.shown {
+            Some(rows) => rows.get(position).copied(),
+            None => Some(position),
+        }
+    }
+
+    /// The view position a listing row is drawn at, None when the filter hides it.
+    pub fn position_of(&self, row: usize) -> Option<usize> {
+        match &self.shown {
+            Some(rows) => rows.iter().position(|&at| at == row),
+            None => Some(row),
+        }
     }
 }
 

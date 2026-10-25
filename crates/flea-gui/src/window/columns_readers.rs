@@ -150,8 +150,8 @@ impl crate::state::Shell {
             .borrow();
         let drawn = paint.drawn.as_ref()?;
         let row = crate::list::pane::ROW_HEIGHT;
-        let y = f32::from(drawn.bounds.origin.y) + host.pane.cursor as f32 * row - drawn.scroll
-            + row / 2.;
+        let at = drawn.position_of(host.pane.cursor)?;
+        let y = f32::from(drawn.bounds.origin.y) + at as f32 * row - drawn.scroll + row / 2.;
         Some((f32::from(drawn.bounds.origin.x) + 14., y))
     }
 }

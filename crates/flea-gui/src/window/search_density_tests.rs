@@ -229,7 +229,8 @@ fn joined_folder_home_list_density_draw() {
         density(&mut cx, handle, "compact");
         frame(&mut cx, handle);
         let header = edit(&mut cx, handle, |shell, _, _| {
-            shell.view = View::Columns;
+            // Columns searches in its own active column, so the List density runs from the List.
+            shell.view = View::List;
             shell.panes[0]
                 .as_ref()
                 .unwrap()
@@ -239,7 +240,7 @@ fn joined_folder_home_list_density_draw() {
                 .drawn
                 .frames
         });
-        start_search(&mut cx, handle, 0, View::Columns);
+        start_search(&mut cx, handle, 0, View::List);
         let generation = type_query(&mut cx, handle, 0, scope);
         results(&mut cx, handle, 0);
         edit(&mut cx, handle, |shell, _, _| {
@@ -261,7 +262,7 @@ fn joined_folder_home_list_density_draw() {
             "list-density-applied-query-results",
         );
         assert_ne!(before.0, after.0);
-        exit(&mut cx, handle, 0, View::Columns);
+        exit(&mut cx, handle, 0, View::List);
     }
 }
 

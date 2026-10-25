@@ -68,8 +68,14 @@ impl Shell {
                 None,
             )
             .third_width;
-            let height =
-                geometry.content_height_for(side, self.view, self.slots.strip_height_for(side));
+            // The search strip over Columns, as columns_search_strip reads it, from the host already borrowed.
+            let search = if self.view == View::Columns && host.search.owner.active() {
+                crate::list::Metrics::for_typeface(&host.list.borrow().typeface).header
+            } else {
+                0.
+            };
+            let strip = self.slots.strip_height_for(side) + search;
+            let height = geometry.content_height_for(side, self.view, strip);
             let folder_wait = self.view == View::Columns
                 && entity.read(cx).drawn.is_some()
                 && host.columns.as_ref().is_some_and(|columns| {
