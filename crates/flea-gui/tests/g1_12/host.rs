@@ -118,6 +118,17 @@ fn a_lost_backend_owes_no_jump_answer(cx: &mut TestAppContext) {
     assert_eq!(jumps(cx), [0, 0], "a drained backend never answers its jump");
     // No second pane runs here, so side 1's earlier owed ask is seeded; a fresh second pane owes none.
     edit(cx, handle, |shell, _, _| shell.chrome.jumps[1] = 1);
+    // The second pane gets a recording backend, so no real backend thread wakes the test scheduler.
+    cx.update(|cx| {
+        cx.set_global(crate::state::constructor_fixture::Services {
+            backend: |_, cx| {
+                let (backend, requests) = Backend::test_channel();
+                cx.on_release(move |_, _| drop(requests)).detach();
+                Ok(backend)
+            },
+            monitor: None,
+        })
+    });
     edit(cx, handle, |shell, window, cx| shell.request_dual(window, cx));
     assert_eq!(jumps(cx)[1], 0, "request_dual starts side 1 owing no jump");
 }

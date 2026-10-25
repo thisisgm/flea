@@ -195,7 +195,9 @@ fn r2_g_a_status_answer_after_a_backend_death_still_lands() {
 fn a_missing_send_script_never_reads_as_checking() {
     let mut send = ProviderSend::default();
     let facts = Facts { send_command: String::new(), ..facts() };
-    send.menu_opened(&Fake::default(), &facts, Some(&states()), &[], 0);
+    let opened = send.menu_opened(&Fake::default(), &facts, Some(&states()), &[], 0);
+    assert_eq!(status_runs(&opened), 0, "a missing send script starts no status run");
+    assert!(!send.taildrop_refreshing(), "a missing send script leaves no run in flight");
     let i18n = english();
     assert_eq!(
         send.send_taildrop("nodekey:owned", &["/home/gm/a.txt".to_string()], &i18n),
