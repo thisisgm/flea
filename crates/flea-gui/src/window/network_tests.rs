@@ -285,3 +285,6 @@ pub(crate) fn written_bookmarks(sandbox: PathBuf, cx: &mut VisualTestContext) ->
     std::fs::remove_dir_all(&sandbox).unwrap();
     written
 }
+
+#[path = "network_release_tests.rs"]
+mod release;
