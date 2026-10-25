@@ -1,6 +1,7 @@
 //! The stand-in frame: the card, its title, its controls and its buttons, drawn to the boards.
 use super::*;
-use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight, Pixels};
+use gpui::{div, prelude::*, px, relative, AnyElement, App, Div, FontWeight, Pixels, Window};
+use std::rc::Rc;
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
 pub struct StandIn;
@@ -141,6 +142,9 @@ impl Draw<'_> {
     }
 }
 
+/// A click on the button at an index, as the card listed them.
+type Press = Rc<dyn Fn(&usize, &mut Window, &mut App)>;
+
 impl DialogShell for StandIn {
     fn present(
         &self,
@@ -149,6 +153,33 @@ impl DialogShell for StandIn {
         typeface: &Typeface,
         corner: f32,
         room: f32,
+    ) -> AnyElement {
+        self.frame(card, palette, typeface, corner, room, None)
+    }
+}
+
+impl StandIn {
+    /// The same card with live buttons: a click on one reports its index, as Enter on it would press it.
+    pub fn present_pressable(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        corner: f32,
+        room: f32,
+        press: impl Fn(&usize, &mut Window, &mut App) + 'static,
+    ) -> AnyElement {
+        self.frame(card, palette, typeface, corner, room, Some(Rc::new(press)))
+    }
+
+    fn frame(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        corner: f32,
+        room: f32,
+        press: Option<Press>,
     ) -> AnyElement {
         let s = f32::from(typeface.body) / BOARD_BODY;
         let draw = Draw {
@@ -205,10 +236,21 @@ impl DialogShell for StandIn {
             .items_center()
             .gap(draw.px(ROW_GAP));
         for (at, button) in card.buttons.iter().enumerate() {
-            buttons = buttons.child(
-                draw.button(button)
-                    .debug_selector(|| format!("op3-button-{at}")),
-            );
+            let drawn = draw
+                .button(button)
+                .debug_selector(|| format!("op3-button-{at}"));
+            // A disabled button draws as before but takes no click.
+            buttons = match &press {
+                Some(press) if button.enabled => {
+                    let press = press.clone();
+                    buttons.child(
+                        drawn
+                            .id(("op3-button", at))
+                            .on_click(move |_, window, cx| press(&at, window, cx)),
+                    )
+                }
+                _ => buttons.child(drawn),
+            };
         }
         div()
             .size_full()
