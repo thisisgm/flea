@@ -19,8 +19,7 @@ use flea_gui::{
 use gpui::{div, point, prelude::*, px, size, Context, Entity, Modifiers, TestAppContext, Window};
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-/// The same composition with the path slot at the chrome offset, so readers
-/// that subtract the popup origin are checked against a non-zero x.
+/// The path slot at the chrome offset, so origin-subtracting readers see a non-zero x.
 pub struct OffsetHost {
     pub path: Entity<PathView>,
     pub x: f32,
@@ -235,8 +234,7 @@ fn the_hover_takes_the_cursor_only_on_a_second_distinct_move(cx: &mut TestAppCon
 
 #[gpui::test]
 fn the_pointer_reader_reports_the_last_seen_point_or_none(cx: &mut TestAppContext) {
-    // The popup stands at the chrome slot (80, 30), so the scene's entry (200, 92) reads (120, 62):
-    // with the popup at x 80, dropping the x origin would read (200, 62) instead.
+    // The popup stands at (80, 30), so entry (200, 92) reads (120, 62); a dropped x origin reads (200, 62).
     let mut bar = bar_at(cx, Box::new(Jump::default()), inputs(HOME), 80.);
     let pointer = |bar: &mut super::view::Bar<'_>| {
         bar.read(|view| PathAdapter { view }.call("pathSuggestionPointer", &[]))

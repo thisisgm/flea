@@ -9,6 +9,8 @@ use gpui::{Context, Window};
 impl Shell {
     pub(crate) fn request_dual(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.dual_pending = true;
+        // A fresh second pane owes no jump answers its earlier backend left out.
+        self.chrome.jumps[1] = 0;
         self.start_pane(1, window, cx);
         self.settle_dual(window, cx);
     }

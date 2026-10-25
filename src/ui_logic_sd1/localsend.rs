@@ -1,10 +1,7 @@
-//! LocalSend wording and discovery policy, ported from ui/js/LocalSend.js and ui/LocalSend.qml.
-//! The sentences carrying a name or a reason are catalog keys under send.providers.; the CLI's own
-//! refusal stays a diagnostic parameter, never a translated word.
+//! LocalSend wording and discovery policy, from ui/js/LocalSend.js; the CLI's refusal stays an untranslated parameter.
 use crate::i18n::I18n;
 
-// The list is asked for when a menu opens and kept while warm: discovery costs a CLI run of over
-// a second, and a right click is not a reason to announce this box on the LAN again.
+// Discovery costs over a second of CLI, so a list stays warm this long between menu opens.
 pub const WARM_MS: u64 = 15000;
 
 // One file names the file and the device; several are counted, grouped past three figures.

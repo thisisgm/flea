@@ -61,8 +61,7 @@ fn draw(visual: &mut VisualTestContext) {
     });
 }
 
-// r4-1: ui/MenuRow.qml picks through a TapHandler with gesturePolicy ReleaseWithinBounds, so a press
-// dragged off the overlay disarms and a press that started off the overlay never picks a row.
+// r4-1: ui/MenuRow.qml ReleaseWithinBounds: a press dragged off or started off the overlay never picks a row.
 #[test]
 fn r4_a_a_press_that_started_off_the_overlay_never_picks_a_row() {
     let mut cx = real_cx();

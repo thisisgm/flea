@@ -1420,6 +1420,7 @@
   "send.providers.taildrop_gone": "That Taildrop peer is no longer available.",
   "send.providers.taildrop_signed_out": "Taildrop · signed out",
   "send.providers.taildrop_no_peers": "Taildrop · no peers",
+  "send.providers.taildrop_failed": "Taildrop could not send %1 to %2.",
   "send.providers.taildrop_disabled": "Taildrop · disabled for this account",
   "send.providers.taildrop_invalid": "Taildrop · invalid status",
   "send.providers.taildrop_timeout": "Tailscale did not answer in time",

@@ -208,6 +208,7 @@ impl Shell {
             BackendEvent::Drained => {
                 host.stopped = true;
                 host.backend = None;
+                self.chrome.jumps[side] = 0;
                 self.retire_status_owner(side, window, cx);
                 self.lifecycle.drained(side);
                 if self.lifecycle.phase() == Phase::Closed {
@@ -224,6 +225,7 @@ impl Shell {
                 }
                 host.changed(&self.locale);
                 host.record_error(error, &self.locale);
+                self.chrome.jumps[side] = 0;
                 self.retire_status_owner(side, window, cx);
                 self.status_refused("backend", "", "", cx);
             }

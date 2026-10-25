@@ -100,7 +100,7 @@ pub struct ArchiveDone {
     pub dest: String,
 }
 
-// Sample input: the encrypted done line arrives with its path and dest.
+// Sample input: {"t":"archivedone","id":7,"ok":false,"verified":true,"err":"encrypted","path":"/a/backup.7z","dest":"/a/backup"}.
 pub fn parse_archivedone(reply: &Json) -> ArchiveDone {
     ArchiveDone {
         id: number(reply, "id"),
@@ -121,7 +121,7 @@ pub struct FlashImage {
     pub member: String,
 }
 
-// Sample input: a reply for another path is not taken.
+// Sample input: {"t":"flashimage","path":"/d/a.img.xz","kind":"xz","bytes":10,"unpacked":20,"known":true,"member":""}.
 pub fn parse_flashimage(reply: &Json, path: &str) -> Option<FlashImage> {
     if text(reply, "path") != path {
         return None;
@@ -147,7 +147,7 @@ pub struct TargetRow {
     pub refused: String,
 }
 
-// Sample input: two drives arrive in /sys/block order with their refusal codes.
+// Sample input: {"t":"flashtargets","drives":[{"dev":"sdb","seq":4,"serial":"S1","label":"STICK","model":"Ultra","bytes":32000000000,"refused":""}]}.
 pub fn parse_flashtargets(reply: &Json) -> Vec<TargetRow> {
     reply
         .get("drives")

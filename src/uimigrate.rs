@@ -312,6 +312,13 @@ mod tests {
         assert_eq!(hidden(&again), ["delete"], "a stamped file that shows the agent row keeps it shown");
     }
 
+    // A hidden list holding a non-string is not a list this step understands, so it passes through untouched.
+    #[test]
+    fn a_hidden_list_with_a_non_string_is_left_as_it_is() {
+        let state = patch(r#"{"stateVersion":3,"menu":{"hidden":["delete",7]}}"#);
+        assert_eq!(super::hide_0_4_0_rows(state.clone()), state);
+    }
+
     // Actions ships off with Run Script's place, so a 0.3.7 file that kept Run Script hidden hides it too.
     #[test]
     fn a_0_3_7_file_that_hid_run_script_gains_actions_hidden_once() {

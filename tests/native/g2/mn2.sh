@@ -67,20 +67,25 @@ set_hidden() {
     env HOME="$E/gpui/home" XDG_CONFIG_HOME="$E/gpui/config" XDG_STATE_HOME="$E/gpui/state" \
         XDG_DATA_HOME="$E/gpui/data" "$G_BIN" --ui-state "{\"menu\":{\"hidden\":$1}}" >/dev/null
 }
+# An absent row counts only beside a row the scene always draws, so an empty log is a failure, never a pass.
+absent() {
+    grep -qF "$2" "$1" || { printf '%s: no %s row drawn to anchor the check\n' "$4" "$2" >> "$E/failures"; return 0; }
+    ! grep -qF "$3" "$1" || printf '%s: %s row while switched off\n' "$4" "$3" >> "$E/failures"
+}
 # Actions switch off (no row) then on: the row follows the Menus switch each way.
 set_hidden "$shown"
 scene g2.mn2.actions-menu.primary "$E/scene-actions.log"
 grep -F 'Actions' "$E/scene-actions.log" || printf 'gpui actions-menu: no Actions row while shown\n' >> "$E/failures"
 set_hidden "$off"
 scene g2.mn2.actions-menu.primary "$E/scene-actions.log"
-grep -F 'Actions' "$E/scene-actions.log" && printf 'gpui actions-menu: Actions row while switched off\n' >> "$E/failures"
+absent "$E/scene-actions.log" 'Tags' 'Actions' 'gpui actions-menu'
 set_hidden "$shown"
 scene g2.mn2.actions-menu.primary "$E/scene-actions.log"
 grep -F 'Actions' "$E/scene-actions.log" || printf 'gpui actions-menu: no Actions row after switching back on\n' >> "$E/failures"
 # The switched-off state lives in its own scene: shipped hidden, no agent row.
 set_hidden "$off"
 scene g2.mn2.extra.agent-off "$E/scene-agent-off.log"
-grep -F 'Open in Agent' "$E/scene-agent-off.log" && printf 'gpui agent-off: agent row while switched off\n' >> "$E/failures"
+absent "$E/scene-agent-off.log" 'Open in Terminal' 'Open in Agent' 'gpui agent-off'
 set_hidden "$shown"
 for arm in qml gpui; do
     tools/flea-ci-visual --frontend "$arm" --manifest tests/visual/g2/mn2.json --output "$E/visual/$arm"

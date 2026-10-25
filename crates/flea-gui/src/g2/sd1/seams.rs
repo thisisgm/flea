@@ -6,8 +6,7 @@ pub trait Wire {
     fn send(&self, line: String) -> bool;
 }
 
-// One provider's enable state as the st2 listing reports it; the host maps st2 Plugin to this.
-// None (no listing yet) means the st2 join has not landed and gating stays off, as BASE draws.
+// One provider's st2 enable state; None means the st2 listing has not landed and gating stays off.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProviderState {
     pub plugin: String,
@@ -15,9 +14,7 @@ pub struct ProviderState {
     pub failed: bool,
 }
 
-// A host-spawned process the unit cannot run itself: the tailscale status check and the two
-// ShareLink steps run captured so the host reports their outcome; a Taildrop send runs detached,
-// its own desktop notification the only result, as ui/Taildrop.qml runs it.
+// A host-spawned process: status and ShareLink runs are captured, a Taildrop send reports only its exit status.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RunKind {
     // One status ask carries its generation, so a result is only ever read by the ask that made it.
@@ -31,8 +28,8 @@ pub enum RunKind {
 pub enum Action {
     // Run captured; the host reports back through the matching done() call.
     Run(RunKind, Vec<String>),
-    // Run detached; nothing reports back.
-    Spawn(Vec<String>),
+    // Run on its own thread; a start failure or non-zero exit says the sentence it carries.
+    Spawn(Vec<String>, String),
     // Say on the status bar, error-styled when true.
     Say(String, bool),
 }

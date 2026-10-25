@@ -101,6 +101,16 @@ fn rows(cx: &mut TestAppContext, path: &Entity<PathView>) -> Vec<String> {
 }
 
 #[gpui::test]
+fn a_lost_backend_owes_no_jump_answer(cx: &mut TestAppContext) {
+    let (handle, _lines) = open(cx);
+    edit(cx, handle, |shell, window, cx| shell.chrome_action("pathBar", window, cx));
+    cx.run_until_parked();
+    assert_eq!(edit(cx, handle, |shell, _, _| shell.chrome.jumps), [1, 0], "the provisional ask is out on side 0");
+    edit(cx, handle, |shell, window, cx| shell.receive(0, BackendEvent::Drained, window, cx));
+    assert_eq!(edit(cx, handle, |shell, _, _| shell.chrome.jumps), [0, 0], "a drained backend never answers its jump");
+}
+
+#[gpui::test]
 fn m9_integ_path_rank_survives_live_composer_focus(cx: &mut TestAppContext) {
     let (handle, mut lines) = open(cx);
     let value = |n: usize| flea::ipc::wire::Reply::value(n.to_string());
@@ -248,4 +258,13 @@ fn the_history_worker_reads_the_recent_file_and_stamps_it() {
         stamp.map(|(_, len)| len),
         Some(std::fs::metadata(&file).unwrap().len())
     );
+    let unreadable = root.join("unreadable.xbel");
+    std::fs::create_dir(&unreadable).unwrap();
+    assert_eq!(
+        crate::window::path_host::load(&unreadable),
+        (None, Vec::new()),
+        "a failed read keeps no stamp, so the next open reads again"
+    );
+    assert!(root.starts_with(&parent) && root.join(".flea-test-sandbox").is_file());
+    std::fs::remove_dir_all(&root).unwrap();
 }

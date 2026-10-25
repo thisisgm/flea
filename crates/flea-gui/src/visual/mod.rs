@@ -86,6 +86,7 @@ impl Shell {
             .map(|host| host.pane.pending() + usize::from(host.error.is_some() || host.stopped))
             .sum::<usize>()
             + self.chrome.waiting
+            + self.chrome.jumps.iter().sum::<usize>()
     }
 
     pub(crate) fn visual_state(&self, window: &Window) -> Json {

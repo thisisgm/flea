@@ -22,7 +22,7 @@ pub struct Status {
 // The file-sharing capability the account must carry before any peer can send.
 const FILE_SHARING: &str = "https://tailscale.com/cap/file-sharing";
 
-// Sample input: the five-branch Peer map of tests/js/taildrop.js, synthetic names and ids.
+// Sample input: {"Self":{"UserID":1},"Peer":{"nodekey:a":{"HostName":"laptop","Online":true,"TaildropTarget":1,"UserID":1}}}.
 pub fn parse_peers(raw: &str) -> Vec<Peer> {
     let text = raw.trim();
     if text.is_empty() {
@@ -65,8 +65,7 @@ pub fn parse_peers(raw: &str) -> Vec<Peer> {
 // Sample input: {"BackendState":"Running","Self":{"CapMap":{...:"file-sharing":[]}},"Peer":{}}.
 pub fn status(raw: &str, exit_code: i32, error: &str) -> Status {
     if exit_code != 0 {
-        // The CLI's own diagnostic rides the reason slot; the empty case is resolved by the caller
-        // through the catalog, as Taildrop.qml's refresh waits for the run before it words it.
+        // The CLI's diagnostic rides the reason slot; the caller words an empty one through the catalog.
         return Status { peers: Vec::new(), reason: error.trim().into(), code: "statusFailed".into() };
     }
     let data = match jsondoc::parse(raw) {
@@ -143,8 +142,7 @@ fn display_host_name(peer: &Json) -> String {
     if short.is_empty() { host.into() } else { short }
 }
 
-// ui/js/Taildrop.js:83 ends its own name chain on this reserved word: a peer with only a
-// TailscaleIPs address still draws a named row, so the caller resolves one catalog word for it.
+// ui/js/Taildrop.js:83 ends its name chain on this word, so an address-only peer still draws a named row.
 pub fn label_or_unknown(i18n: &I18n, label: &str) -> String {
     if label.is_empty() { i18n.tr("send.providers.unknown_peer") } else { label.into() }
 }
@@ -186,6 +184,9 @@ pub fn peer_address(peer: &Json) -> String {
         .unwrap_or_default()
 }
 
+// 2^53, past which JS String(n) and an i64 print a whole number differently.
+const JS_SAFE_LIMIT: f64 = 9007199254740992.0;
+
 // JSON numbers stringify the way JS String() does for whole ids under 2^53; strings pass through.
 fn id_string(value: &Json) -> String {
     match value {
@@ -193,7 +194,7 @@ fn id_string(value: &Json) -> String {
         Json::Num(n) => match n.parse::<i64>() {
             Ok(v) => v.to_string(),
             Err(_) => match n.parse::<f64>() {
-                Ok(v) if v.fract() == 0.0 && v.abs() < 9007199254740992.0 => format!("{}", v as i64),
+                Ok(v) if v.fract() == 0.0 && v.abs() < JS_SAFE_LIMIT => format!("{}", v as i64),
                 _ => n.clone(),
             },
         },
@@ -255,6 +256,20 @@ mod tests {
         assert_eq!(peers.len(), 2);
         assert_eq!(format!("{},{}", peers[0].label, peers[1].label), "DEVICE-A,laptop");
         assert_eq!(peers[0].id, "nodekey:sameowner");
+        let folded = r#"{"Self":{"UserID":1},"Peer":{
+"nodekey:z":{"HostName":"Zeta","Online":true,"TaildropTarget":1},
+"nodekey:a":{"HostName":"apple","Online":true,"TaildropTarget":1}}}"#;
+        let labels: Vec<_> = parse_peers(folded).into_iter().map(|peer| peer.label).collect();
+        assert_eq!(labels, ["apple", "Zeta"], "the order folds case, where byte order puts Zeta first");
+    }
+
+    #[test]
+    fn an_unset_target_falls_back_to_the_numeric_owner() {
+        let fixture = r#"{"Self":{"UserID":1000000000000001},"Peer":{
+"nodekey:mine":{"HostName":"mine","Online":true,"TaildropTarget":0,"UserID":1000000000000001},
+"nodekey:theirs":{"HostName":"theirs","Online":true,"TaildropTarget":0,"UserID":1000000000000002}}}"#;
+        let ids: Vec<_> = parse_peers(fixture).into_iter().map(|peer| peer.id).collect();
+        assert_eq!(ids, ["nodekey:mine"]);
     }
 
     #[test]
@@ -308,8 +323,7 @@ mod tests {
         assert!(by_id(&peers, "nope").is_none());
     }
 
-    // The reasons and codes of tests/js/taildrop.js:66-74, one case per branch; the empty
-    // diagnostic stays empty here, because its catalog word belongs to the caller.
+    // The reasons and codes of tests/js/taildrop.js:66-74; the empty diagnostic's catalog word is the caller's.
     #[test]
     fn failed_malformed_signed_out_and_stopped_statuses_keep_code_and_reason() {
         assert_eq!(status("", 1, "Permission denied").reason, "Permission denied");
