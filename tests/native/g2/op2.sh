@@ -3,6 +3,7 @@
 set -euo pipefail
 : "${W:?absolute staged candidate tree}" "${Q_BIN:?verified v0.3.12 launcher}" "${G_BIN:?verified GPUI flea binary}"
 [[ $W == /* && -d $W ]] || { printf 'W must be an absolute tree\n' >&2; exit 2; }
+[[ $Q_BIN == /* && -x $Q_BIN && $G_BIN == /* && -x $G_BIN ]] || { printf 'Q_BIN and G_BIN must be absolute executables\n' >&2; exit 2; }
 cd "$W"
 mkdir -p "$W/.superpowers/g2-op2"
 E=$(mktemp -d "$W/.superpowers/g2-op2/native.XXXXXXXX")
@@ -12,6 +13,10 @@ runtime=${XDG_RUNTIME_DIR:?native compositor runtime}
 for arm in qml gpui; do
     mkdir -p -m 700 "$E/$arm"/{config,state,cache,runtime,home}
     if [ -d "$runtime/hypr" ]; then ln -s "$runtime/hypr" "$E/$arm/runtime/hypr"; fi
+    if [[ ${WAYLAND_DISPLAY:-} != /* && -S "$runtime/${WAYLAND_DISPLAY:-}" ]]; then
+        ln -s "$runtime/$WAYLAND_DISPLAY" "$E/$arm/runtime/$WAYLAND_DISPLAY"
+    fi
+    if [ -S "$runtime/.ydotool_socket" ]; then ln -s "$runtime/.ydotool_socket" "$E/$arm/runtime/.ydotool_socket"; fi
     bin=$Q_BIN
     [ "$arm" != gpui ] || bin=$G_BIN
     env WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-}" FLEA_FRONTEND="$arm" FLEA_BIN="$bin" HOME="$E/$arm/home" \

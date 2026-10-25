@@ -33,7 +33,7 @@ headless="$headless g1-01 g1-02 g1-03 g1-04 g1-06 g1-07 g1-08 g1-10 g1-11 g1-12 
 # Sample input: "FAIL x", "suite: FAIL x" and "a FAIL: x" match, "ok FAILED" and "xFAIL x" do not; the flea-ci contract.
 headless="$headless third-party-licenses gpui-capture-smoke gpui-visual-scenes gui-render-fallback g2-op1 g2-pv2 g2-pl1 g2-st2 field-product field-localsearch"
 # A UISH suite is registered here when its file lands, so the full run never names a missing suite.
-headless="$headless ui-uish-inventory ui-uish-fixtures ui-uish-native-admission"
+headless="$headless ui-uish-inventory ui-uish-fixtures ui-uish-native-admission native-runtime"
 fail_line='(^|[: ])FAIL[: ]'
 failed=0
 ran=0

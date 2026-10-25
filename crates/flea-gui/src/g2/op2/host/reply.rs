@@ -144,13 +144,7 @@ impl Shell {
             if !asked {
                 return Vec::new();
             }
-            if self
-                .operations
-                .archive
-                .compress
-                .as_ref()
-                .is_some_and(Compress::opened)
-            {
+            if self.operations.archive.card_open() {
                 return vec![Effect::Say {
                     text: super::super::busy_sentence(&catalog),
                     error: true,
