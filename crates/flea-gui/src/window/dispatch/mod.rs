@@ -58,6 +58,8 @@ mod guard_tests;
 #[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]
+mod opener_menu_tests;
+#[cfg(test)]
 mod opener_tests;
 #[cfg(test)]
 mod refusal_tests;

@@ -84,16 +84,8 @@ pub(super) fn run(
                 shell.menu_send(side, close, cx);
             }
             shell.keyboard.context = Keys::Listing;
-            let Some(target) = chosen.paths.first().cloned() else {
-                return true;
-            };
-            match file_row(shell, side) {
-                Some((path, true)) if path == target => {
-                    let preview = ActionEvent::bare("preview", Keys::Listing);
-                    shell.dispatch(Order::Action(preview), window, cx);
-                }
-                _ => shell.open_file(side, target, window, cx),
-            }
+            // Nav.js openCursor: open_menu put the cursor on the clicked row, so Enter's own path runs on it.
+            shell.dispatch(Order::Action(ActionEvent::bare("open", Keys::Listing)), window, cx);
             true
         }
         _ => false,

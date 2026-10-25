@@ -1,9 +1,8 @@
-//! Enter, l, Right, a double click, a search result and the menu's Open on a file run the opener through the production Shell.
+//! Enter, l, Right, a double click and a search result on a file run the opener through the production Shell.
 use super::opener::Asked;
 use super::search_open_tests::answer;
 use super::test_shell::{asked, land, open, row, set_cursor, status};
 use super::Order;
-use crate::g2::mn1::join::{Captured, Chosen};
 use crate::window::input::ActionEvent;
 use crate::window::u07_tests::{press, read};
 use flea::protocol::RowFacts;
@@ -27,7 +26,7 @@ fn answering(status: Option<i32>, stdout: &str) {
 }
 
 // The paths flea --open was handed since the last call.
-fn launched() -> Vec<String> {
+pub(super) fn launched() -> Vec<String> {
     LAUNCHED.with(|launched| std::mem::take(&mut *launched.borrow_mut()))
         .into_iter()
         .map(|argv| {
@@ -37,7 +36,7 @@ fn launched() -> Vec<String> {
         .collect()
 }
 
-fn home() -> Vec<RowFacts> {
+pub(super) fn home() -> Vec<RowFacts> {
     let mut archive = row("backup.tar.zst", false);
     archive.icon = "package-x-generic".into();
     vec![
@@ -48,10 +47,10 @@ fn home() -> Vec<RowFacts> {
     ]
 }
 
-type Seen = (Rc<RefCell<Vec<&'static str>>>, Rc<RefCell<Vec<Asked>>>);
+pub(super) type Seen = (Rc<RefCell<Vec<&'static str>>>, Rc<RefCell<Vec<Asked>>>);
 
 // The production Shell on /files with the test launcher on both panes, and what it emits for observers.
-fn shell(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &mut VisualTestContext, Seen, Vec<gpui::Subscription>) {
+pub(super) fn shell(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &mut VisualTestContext, Seen, Vec<gpui::Subscription>) {
     let (shell, cx) = open(cx, "default");
     land(&shell, cx, "/files", home(), 1);
     shell.update(cx, |shell, _| {
@@ -74,7 +73,7 @@ fn shell(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &mut VisualTe
     (shell, cx, (actions, asks), subscriptions)
 }
 
-fn quit(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) {
+pub(super) fn quit(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) {
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
@@ -195,40 +194,5 @@ fn enter_on_a_search_result_file_opens_that_result(cx: &mut TestAppContext) {
     answer(&shell, cx, 1, vec![row("sub/deep", true), row("sub/found.txt", false)]);
     cx.simulate_keystrokes("enter down enter");
     assert_eq!(launched(), ["/files/sub/found.txt"], "the result under the cursor opens");
-    quit(&shell, cx);
-}
-
-#[gpui::test]
-fn the_menu_open_on_a_file_runs_the_opener(cx: &mut TestAppContext) {
-    let (shell, cx, _, _keep) = shell(cx);
-    set_cursor(&shell, cx, 1);
-    let claimed = Rc::new(std::cell::Cell::new(false));
-    let chosen = Chosen {
-        captured: Captured {
-            side: 0,
-            listing: 1,
-            rows: vec![1],
-            cursor: 1,
-            path: "/files".into(),
-            identity: String::new(),
-            id: 7,
-            ready: true,
-            kinds: Vec::new(),
-            background: false,
-        },
-        action: "open".into(),
-        leaf: String::new(),
-        paths: vec!["/files/notes.txt".into()],
-        claimed: claimed.clone(),
-    };
-    cx.update(|window, cx| {
-        shell.update(cx, |shell, cx| {
-            shell.menu.context.row_is_file = true;
-            shell.dispatch(Order::Menu(chosen), window, cx);
-        })
-    });
-    cx.run_until_parked();
-    assert!(claimed.get(), "the opener claims the choice, so no refusal follows");
-    assert_eq!(launched(), ["/files/notes.txt"]);
     quit(&shell, cx);
 }
