@@ -1,7 +1,7 @@
 //! Every tab key, Ctrl+Return, a middle click on a folder row and on a rail place run the strip on the production Shell.
 use super::{
     effect_tests::{close, hit, strokes},
-    test_shell::{asked, land, open, open_in, row, set_cursor},
+    test_shell::{asked, land, open, open_in, open_with, row, set_cursor},
 };
 use crate::{state::Shell, window::u07_tests::read};
 use flea::keys::{self, Context};
@@ -70,13 +70,37 @@ fn middle(cx: &mut VisualTestContext, centre: &str) {
     cx.run_until_parked();
 }
 
-// What each strip key leaves from two_tabs: tab count, current index, labels, and the folder asked for.
+// From two_tabs, a third tab with the second current again, so next and previous land on different tabs.
+fn middle_of_three(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.open_tab(0, "/files/beta".into(), window, cx)
+        })
+    });
+    land(shell, cx, "/files/beta", Vec::new(), 3);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            assert!(shell.tab_action("tabPrevious", window, cx))
+        })
+    });
+    land(shell, cx, "/files/alpha", vec![row("inner", true)], 4);
+    assert_eq!(
+        strip(shell, cx),
+        ("3".into(), "1".into(), "files|alpha|beta".into())
+    );
+}
+
+// The presets that bind no key for a strip action in a context the sweep visits.
+const UNBOUND: &[(&str, &str, Context)] = &[];
+
+// What each strip key leaves from its start: tab count, current index, labels, and the folder asked for.
 fn expected(action: &str) -> (&'static str, &'static str, &'static str, &'static str) {
     match action {
         "tabNew" => ("3", "2", "files|alpha|alpha", "/files/alpha"),
         "openTab" => ("3", "2", "files|alpha|inner", "/files/alpha/inner"),
         "tabClose" => ("1", "0", "files", "/files"),
-        "tabNext" | "tabPrevious" => ("2", "0", "files|alpha", "/files"),
+        "tabNext" => ("3", "2", "files|alpha|beta", "/files/beta"),
+        "tabPrevious" => ("3", "0", "files|alpha|beta", "/files"),
         "tabMoveLeft" => ("2", "0", "alpha|files", "/files/alpha"),
         "tabMoveRight" => ("2", "1", "files|alpha", "/files/alpha"),
         _ => unreachable!(),
@@ -101,8 +125,18 @@ fn every_strip_binding_runs_the_tab_model_on_the_production_shell(cx: &mut TestA
                 if context == Context::Rail && !rail {
                     continue;
                 }
-                for event in strokes(preset, action, context) {
+                let events = strokes(preset, action, context);
+                assert_eq!(
+                    events.is_empty(),
+                    UNBOUND.contains(&(preset, action, context)),
+                    "{preset} {context:?} {action}: bound keys and the skip list disagree"
+                );
+                let cycle = matches!(action, "tabNext" | "tabPrevious");
+                for event in events {
                     let (shell, cx) = two_tabs(cx, preset);
+                    if cycle {
+                        middle_of_three(&shell, cx);
+                    }
                     // Tabs.js moveCurrent clamps at the end, so a right move starts one place in.
                     if action == "tabMoveRight" {
                         cx.update(|window, cx| {
@@ -127,7 +161,7 @@ fn every_strip_binding_runs_the_tab_model_on_the_production_shell(cx: &mut TestA
                     assert_eq!(asked(&shell, cx), path, "{at}");
                     // The current tab draws its landed folder, so a folder asked for lands first.
                     if path != "/files/alpha" {
-                        land(&shell, cx, path, home(), 3);
+                        land(&shell, cx, path, home(), if cycle { 5 } else { 3 });
                     }
                     assert_eq!(
                         strip(&shell, cx),
@@ -241,19 +275,22 @@ fn a_middle_click_opens_a_folder_row_in_a_new_tab_and_a_file_row_does_nothing(
     close(&shell, cx);
 }
 
+// The drawn centre of the rail row with this label.
+fn rail_centre(shell: &Entity<Shell>, cx: &mut VisualTestContext, name: &str) -> String {
+    let labels = read(shell, cx, "railLabels", &[]);
+    let index = labels
+        .split('|')
+        .position(|label| label == name)
+        .unwrap_or_else(|| panic!("the rail draws {name}: {labels}"))
+        .to_string();
+    read(shell, cx, "railRowCentre", &[&index])
+}
+
 #[gpui::test]
 fn a_middle_click_on_home_opens_a_tab_and_on_trash_does_nothing(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
     land(&shell, cx, "/files", home(), 1);
-    let labels = read(&shell, cx, "railLabels", &[]);
-    let index = |name: &str| {
-        labels
-            .split('|')
-            .position(|label| label == name)
-            .unwrap_or_else(|| panic!("the rail draws {name}: {labels}"))
-            .to_string()
-    };
-    let trash = read(&shell, cx, "railRowCentre", &[&index("Trash")]);
+    let trash = rail_centre(&shell, cx, "Trash");
     middle(cx, &trash);
     assert_eq!(
         read(&shell, cx, "tabCount", &[]),
@@ -261,13 +298,65 @@ fn a_middle_click_on_home_opens_a_tab_and_on_trash_does_nothing(cx: &mut TestApp
         "PlaceMenu.js: Trash is not a tab"
     );
     assert_eq!(asked(&shell, cx), "/files");
-    let centre = read(&shell, cx, "railRowCentre", &[&index("Home")]);
+    let centre = rail_centre(&shell, cx, "Home");
     middle(cx, &centre);
     assert_eq!(read(&shell, cx, "tabCount", &[]), "2");
     assert_eq!(read(&shell, cx, "tabIndex", &[]), "1");
     assert_eq!(
         asked(&shell, cx),
         std::env::var("HOME").unwrap_or_else(|_| "/".into())
+    );
+    close(&shell, cx);
+}
+
+// Places.js openEntry: a bad record says why as an error, a remote place opens only here, a file URL opens decoded.
+#[gpui::test]
+fn a_middle_click_on_a_favourite_refuses_a_bad_or_remote_record_and_decodes_a_file_url(
+    cx: &mut TestAppContext,
+) {
+    let places = r#","favourites":[{"label":"Bad","path":"relative"},{"label":"Share","path":"smb://host/share"},{"label":"Space","path":"file:///tmp/a%20b"}]"#;
+    for (name, said, error) in [
+        (
+            "Bad",
+            "Could not open Bad · use a full path, a path that starts with ~/, or a network address",
+            "true",
+        ),
+        ("Share", "Share opens in this tab only", "false"),
+    ] {
+        let (shell, cx) = open_with(cx, "default", "list", places);
+        land(&shell, cx, "/files", home(), 1);
+        let centre = rail_centre(&shell, cx, name);
+        middle(cx, &centre);
+        assert_eq!(message(&shell, cx), said, "{name}");
+        assert_eq!(read(&shell, cx, "statusError", &[]), error, "{name}");
+        assert_eq!(read(&shell, cx, "tabCount", &[]), "1", "{name}");
+        assert_eq!(asked(&shell, cx), "/files", "{name}");
+        close(&shell, cx);
+    }
+    let (shell, cx) = open_with(cx, "default", "list", places);
+    land(&shell, cx, "/files", home(), 1);
+    let centre = rail_centre(&shell, cx, "Space");
+    middle(cx, &centre);
+    assert_eq!(read(&shell, cx, "tabCount", &[]), "2");
+    assert_eq!(asked(&shell, cx), "/tmp/a b");
+    close(&shell, cx);
+}
+
+// Ipc.qml tabLabels reads the model, so the dual view, which draws no strip, still names every tab.
+#[gpui::test]
+fn the_dual_view_names_every_tab_though_it_draws_no_strip(cx: &mut TestAppContext) {
+    let (shell, cx) = open_in(cx, "default", "dual");
+    land(&shell, cx, "/files", home(), 1);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.open_tab(0, "/files/alpha".into(), window, cx)
+        })
+    });
+    land(&shell, cx, "/files/alpha", vec![row("inner", true)], 2);
+    assert_eq!(read(&shell, cx, "tabBarVisible", &[]), "false");
+    assert_eq!(
+        strip(&shell, cx),
+        ("2".into(), "1".into(), "files|alpha".into())
     );
     close(&shell, cx);
 }

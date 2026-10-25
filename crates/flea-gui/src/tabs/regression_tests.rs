@@ -148,3 +148,37 @@ fn u25_unrelated_peek_leaves_the_tab_check_pending() {
     assert_eq!(bar.pending.as_ref().unwrap().token, "pending");
     assert_eq!(bar.pump_taken(), None);
 }
+
+// Tabs.js tearOff refuses only a listing in flight or a rename; a live search still tears off with the tab's sort.
+#[test]
+fn u25_a_current_tab_under_a_live_search_tears_off_with_its_sort() {
+    let mut world = World::new(2);
+    world.pane.search = true;
+    let mut bar = world.bar();
+    bar.tab_lift_began(&mut world, 1, 1);
+    let sort = transfer::parse(&bar.out_payload)
+        .and_then(|info| info.sort)
+        .expect("the payload carries a sort");
+    assert_eq!(sort.path, "/files/1");
+    assert_eq!(sort.order, world.pane.order);
+    assert!(bar.tab_lift_moved(&mut world, 900., true));
+    assert!(world.pane.said.is_empty(), "{:?}", world.pane.said);
+}
+
+// A cancelled lift keeps no rectangle, even when its query answers with a matching window.
+#[test]
+fn u25_a_cancelled_geometry_query_answers_nothing() {
+    let mut geometry = transfer::Geometry::default();
+    let strip = transfer::Rect {
+        x: 0.,
+        y: 0.,
+        width: 600.,
+        height: 40.,
+    };
+    assert!(geometry.begin("1-1", strip));
+    geometry.cancel();
+    let clients = r#"[{"pid":111,"at":[0,0],"size":[900,500],"mapped":true,"hidden":false}]"#;
+    assert!(!geometry.finished(clients, 111));
+    assert_eq!(geometry.rect, None);
+    assert_eq!(geometry.asked, None);
+}

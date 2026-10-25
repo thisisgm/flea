@@ -311,11 +311,24 @@ fn u25_a_peeked_line_for_another_owner_does_not_disturb_the_strip(cx: &mut TestA
     cx.update(|window, cx| {
         let entity = cx.new(|cx| shell_with(backend, cx));
         entity.update(cx, |shell, cx| {
-            let columns = flea::jsondoc::parse(
-                r#"{"t":"peeked","path":"/files/child","first":320,"n":1,"rows":[{"n":"seed.txt","d":false}],"hidden":false,"hiddenLast":false}"#,
-            )
+            // A receive waits on its folder check; this peek differs only in path, so the path filter alone keeps it out.
+            let payload = transfer::payload(
+                "987654321",
+                "receive-token",
+                "/received",
+                "list",
+                "cursor.txt",
+            );
+            let now = shell.tab_now();
+            assert!(shell.with_tabs(|bar, panes| bar.strip_drop(panes, &payload, 0., now)));
+            assert!(shell.strip.bar.pending.is_some());
+            let columns = flea::jsondoc::parse(&format!(
+                r#"{{"t":"peeked","path":"/files/child","first":{},"n":1,"rows":[{{"n":"seed.txt","d":false}}],"hidden":false,"hiddenLast":false}}"#,
+                transfer::PEEK_FIRST
+            ))
             .unwrap();
             shell.receive(0, BackendEvent::Peeked(columns), window, cx);
+            assert!(shell.strip.bar.pending.is_some(), "the folder check still waits");
             assert_eq!(shell.strip.tabs[0].count(), 1);
             assert!(shell.strip.bar.taken_queue.is_empty());
         });

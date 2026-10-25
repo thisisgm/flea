@@ -193,7 +193,7 @@ fn u25_swap_state_carries_the_strip_counters_beside_the_pane_counters(cx: &mut T
     });
 }
 
-// Every view uses the row geometry it actually painted.
+// A middle click on a list row uses the row geometry the list painted.
 #[gpui::test]
 fn u25_middle_click_list_row_uses_its_drawn_geometry(cx: &mut TestAppContext) {
     use crate::{pane::Kind, window::startup::View};

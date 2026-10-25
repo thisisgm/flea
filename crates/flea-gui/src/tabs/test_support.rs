@@ -15,6 +15,7 @@ pub struct Pane {
     pub selected: Vec<usize>,
     pub cursor: usize,
     pub requests: usize,
+    pub search: bool,
     pub said: Vec<Say>,
 }
 
@@ -28,6 +29,7 @@ impl Pane {
             selected: Vec::new(),
             cursor: 0,
             requests: 0,
+            search: false,
             said: Vec::new(),
         }
     }
@@ -41,7 +43,7 @@ impl Live for Pane {
         self.path.clone()
     }
     fn search_live(&self) -> bool {
-        false
+        self.search
     }
     fn search_base(&self) -> String {
         self.path.clone()
@@ -126,8 +128,13 @@ impl Live for Pane {
     fn select_only(&mut self, index: usize) {
         self.selected = vec![index];
     }
+    // The live pane's toggle: a selected row drops, any other joins.
     fn toggle(&mut self, index: usize) {
-        self.selected.push(index);
+        if let Some(at) = self.selected.iter().position(|row| *row == index) {
+            self.selected.remove(at);
+        } else {
+            self.selected.push(index);
+        }
     }
     fn selection_changed(&mut self) {}
     fn resort(&mut self, order: Order) {

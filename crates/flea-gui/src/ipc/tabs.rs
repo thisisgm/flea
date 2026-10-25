@@ -127,24 +127,14 @@ pub struct MountedTabsAdapter<'a> {
 
 impl Adapter for MountedTabsAdapter<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
-        if function == "tabLabels" {
-            let labels = self.frame.map_or_else(
-                || {
-                    crate::tabs::state::label(
-                        self.model.path,
-                        self.model.home,
-                        self.model.home_label,
-                    )
-                },
-                |frame| {
-                    frame
-                        .labels
-                        .iter()
-                        .map(|label| label.as_ref())
-                        .collect::<Vec<_>>()
-                        .join("|")
-                },
-            );
+        // A drawn strip answers its painted labels; an undrawn one (one tab, the dual view) the model's (Ipc.qml tabLabels).
+        if let (Some(frame), "tabLabels") = (self.frame, function) {
+            let labels = frame
+                .labels
+                .iter()
+                .map(|label| label.as_ref())
+                .collect::<Vec<_>>()
+                .join("|");
             return Some(Reply::value(labels));
         }
         if function != "tabCentre" {

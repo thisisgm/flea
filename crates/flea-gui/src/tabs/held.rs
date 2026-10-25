@@ -2,6 +2,9 @@
 use crate::state::Shell;
 use std::cell::Cell;
 
+// Caps the submitted frames that still wait for their terminal feedback.
+const PENDING_FRAMES: usize = 64;
+
 impl Shell {
     /// Resolve the held tab's identity to its current slot, so a close or a receive during the drag never moves another tab.
     pub(crate) fn resolve_held_tab(&mut self) {
@@ -67,7 +70,7 @@ impl StripFrames {
                     painted.holding = self.holding;
                 }
                 self.retained = Some(painted);
-                if self.pending.len() == 64 {
+                if self.pending.len() == PENDING_FRAMES {
                     self.pending.pop_front();
                     self.lost += 1;
                 }

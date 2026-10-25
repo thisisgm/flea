@@ -342,9 +342,16 @@ impl TabState {
     pub fn tab_payload(&mut self, pane: &dyn Live, index: usize, pid: &str, token: &str) -> String {
         match self.tab_info(pane, index) {
             Some((path, view, cursor)) => {
+                // A current tab the pane cannot snapshot carries its path and the pane's order, as other tabs do.
                 let snapshot = if index == self.current() {
-                    pane.sort_snapshot()
-                        .filter(|snapshot| snapshot.path == path)
+                    Some(
+                        pane.sort_snapshot()
+                            .filter(|snapshot| snapshot.path == path)
+                            .unwrap_or_else(|| Snapshot {
+                                path: path.clone(),
+                                order: pane.order(),
+                            }),
+                    )
                 } else {
                     self.tabs
                         .as_ref()
@@ -574,10 +581,6 @@ impl Bar {
         let mut refusal = None;
         panes.visit(side, &mut |_, pane| {
             refusal = tear_refusal(pane);
-            if refusal.is_none() && parse(&self.out_payload).is_none_or(|info| info.sort.is_none())
-            {
-                refusal = Some(Say::Busy);
-            }
             if let Some(say) = refusal.clone().filter(|_| !refused) {
                 pane.say(say);
             }
