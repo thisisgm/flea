@@ -1,13 +1,14 @@
 //! Compare opens the Quick Look card on two selected regular files: the patch, each refusal, a still cursor, Copy Patch and Escape.
 use super::{
-    preview_tests::{answer, body, close, context, draw, file, opened, sent, token, Lines},
-    test_shell::{land, row},
+    preview_tests::{answer, body, close, context, drain, draw, file, opened, sent, token, Lines},
+    test_shell::{land, land_on, row},
 };
 use crate::{g2::pv1::Body, state::Shell, window::u07_tests::read};
 use flea::{
     json::escape,
     jsondoc::{self, Json},
     keys::Context,
+    protocol::RowFacts,
 };
 use gpui::{Entity, VisualTestContext};
 
@@ -18,6 +19,11 @@ fn pair(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
         file("notes-a.txt", "text-plain"),
         file("notes-b.txt", "text-plain"),
         row("folder", true),
+        file("notes-c.txt", "text-plain"),
+        RowFacts {
+            mode: 0o120777,
+            ..file("link", "inode-symlink")
+        },
     ];
     land(shell, cx, "/files", rows, 1);
     select(shell, cx, &[0, 1]);
@@ -109,7 +115,14 @@ fn compare_shows_the_patch_keeps_the_cursor_still_copies_and_closes(cx: &mut gpu
     cx.simulate_keystrokes("down");
     draw(cx);
     assert_eq!(read(&shell, cx, "cursor", &[]), cursor);
-    assert!(sent(&mut requests, "code").is_empty() && sent(&mut requests, "meta").is_empty());
+    // One drain, so a meta ask is never consumed by the read that looks for a code ask.
+    let after = drain(&mut requests);
+    assert!(
+        after
+            .iter()
+            .all(|doc| !matches!(doc.get("c").and_then(Json::as_str), Some("code" | "meta"))),
+        "the card follows nothing: {after:?}"
+    );
     assert_eq!(read(&shell, cx, "previewKind", &[]), "compare");
     // y copies the whole patch, headers included.
     cx.simulate_keystrokes("y");
@@ -130,6 +143,13 @@ fn compare_shows_the_patch_keeps_the_cursor_still_copies_and_closes(cx: &mut gpu
             })
     };
     assert!(focused(&state_of(&shell, cx), "copy"));
+    cx.simulate_keystrokes("tab");
+    draw(cx);
+    let walked = state_of(&shell, cx);
+    assert!(
+        focused(&walked, "close") && !focused(&walked, "copy"),
+        "the second Tab reaches Close"
+    );
     cx.simulate_keystrokes("escape");
     draw(cx);
     assert_eq!(read(&shell, cx, "previewOpen", &[]), "false");
@@ -178,7 +198,8 @@ fn a_binary_identical_or_large_pair_shows_its_refusal_bar(cx: &mut gpui::TestApp
 fn compare_refuses_anything_but_two_regular_files(cx: &mut gpui::TestAppContext) {
     let (shell, cx, mut requests) = opened(cx);
     pair(&shell, cx);
-    for rows in [&[0][..], &[0, 2], &[0, 1, 2]] {
+    // One file, a folder, three files, three with a folder, and a file with a link.
+    for rows in [&[0][..], &[0, 2], &[0, 1, 3], &[0, 1, 2], &[0, 4]] {
         select(&shell, cx, rows);
         let opened =
             cx.update(|window, cx| shell.update(cx, |shell, cx| shell.open_compare(0, window, cx)));
@@ -187,4 +208,120 @@ fn compare_refuses_anything_but_two_regular_files(cx: &mut gpui::TestAppContext)
         assert_eq!(read(&shell, cx, "previewOpen", &[]), "false");
     }
     close(&shell, cx);
+}
+
+fn menu(requests: &mut Lines, op: &str) -> Vec<Json> {
+    sent(requests, "menuaction")
+        .into_iter()
+        .filter(|doc| text(doc, "op") == op)
+        .collect()
+}
+
+fn reply(shell: &Entity<Shell>, cx: &mut VisualTestContext, id: u64, op: &str, fields: &str) {
+    answer(
+        shell,
+        cx,
+        format!(r#"{{"t":"menuaction","id":{id},"op":"{op}","ok":true,{fields}}}"#),
+    );
+}
+
+// Ops.js menuKinds: a row outside the held window is named by the backend's snapshot, never refused for being unheld.
+#[gpui::test]
+fn compare_names_rows_outside_the_held_window_through_the_backend(cx: &mut gpui::TestAppContext) {
+    let (shell, cx, mut requests) = opened(cx);
+    // Ten rows more than the first window, so row `far` is one the window has not read.
+    let first = shell.read_with(cx, |shell, _| {
+        let pending = shell.panes[0].as_ref().unwrap().pane.swap.pending.as_ref();
+        pending.unwrap().first
+    });
+    let mut rows = vec![file("notes-a.txt", "text-plain"), row("folder", true)];
+    rows.extend((2..first).map(|at| file(&format!("file{at}.txt"), "text-plain")));
+    land_on(&shell, cx, 0, "/files", rows, first + 10, 1);
+    let far = first + 5;
+    drain(&mut requests);
+    let open = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        cx.update(|window, cx| shell.update(cx, |shell, cx| shell.open_compare(0, window, cx)))
+    };
+    // A held folder refuses at once, whatever the unheld row is.
+    select(&shell, cx, &[1, far]);
+    assert!(!open(&shell, cx));
+    assert!(drain(&mut requests).is_empty());
+    // Two files the backend names regular: snapshot, validate, close, then the one diff.
+    select(&shell, cx, &[0, far]);
+    assert!(open(&shell, cx), "the snapshot is asked for");
+    draw(cx);
+    let snapshot = menu(&mut requests, "snapshot");
+    assert_eq!(snapshot.len(), 1);
+    let rows: Vec<f64> = snapshot[0]
+        .get("rows")
+        .and_then(Json::as_array)
+        .unwrap()
+        .iter()
+        .filter_map(Json::as_f64)
+        .collect();
+    assert_eq!(rows, [0., far as f64]);
+    assert_eq!(snapshot[0].get("listing").and_then(Json::as_f64), Some(1.));
+    assert_eq!(read(&shell, cx, "previewOpen", &[]), "false");
+    let id = token_of(&snapshot[0]);
+    reply(
+        &shell,
+        cx,
+        id,
+        "snapshot",
+        r#""count":2,"kinds":[32768,32768]"#,
+    );
+    let validate = menu(&mut requests, "validate");
+    assert_eq!(validate.len(), 1);
+    assert_eq!(text(&validate[0], "action"), "compare");
+    assert_eq!(token_of(&validate[0]), id);
+    reply(
+        &shell,
+        cx,
+        id,
+        "validate",
+        r#""action":"compare","paths":["/files/notes-a.txt","/files/far.txt"],"dest":"""#,
+    );
+    let after = drain(&mut requests);
+    let ops: Vec<&str> = after.iter().map(|doc| text(doc, "c")).collect();
+    assert_eq!(ops, ["menuaction", "compare"], "close, then the diff");
+    assert_eq!(text(&after[0], "op"), "close");
+    assert_eq!(text(&after[1], "a"), "/files/notes-a.txt");
+    assert_eq!(text(&after[1], "b"), "/files/far.txt");
+    assert_eq!(read(&shell, cx, "previewKind", &[]), "compare");
+    cx.simulate_keystrokes("escape");
+    draw(cx);
+    // A pair the backend names a file and a link closes the snapshot and opens nothing.
+    assert!(open(&shell, cx));
+    draw(cx);
+    let id = token_of(&menu(&mut requests, "snapshot")[0]);
+    reply(
+        &shell,
+        cx,
+        id,
+        "snapshot",
+        r#""count":2,"kinds":[32768,40960]"#,
+    );
+    let after = drain(&mut requests);
+    assert_eq!(after.len(), 1);
+    assert_eq!(text(&after[0], "op"), "close");
+    assert_eq!(read(&shell, cx, "previewOpen", &[]), "false");
+    // A selection that moved while the snapshot was out opens nothing either.
+    assert!(open(&shell, cx));
+    draw(cx);
+    let id = token_of(&menu(&mut requests, "snapshot")[0]);
+    select(&shell, cx, &[0, far + 1]);
+    reply(
+        &shell,
+        cx,
+        id,
+        "snapshot",
+        r#""count":2,"kinds":[32768,32768]"#,
+    );
+    assert!(menu(&mut requests, "validate").is_empty());
+    assert_eq!(read(&shell, cx, "previewOpen", &[]), "false");
+    close(&shell, cx);
+}
+
+fn token_of(doc: &Json) -> u64 {
+    doc.get("id").and_then(Json::as_f64).expect("an id") as u64
 }
