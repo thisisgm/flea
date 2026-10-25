@@ -276,6 +276,8 @@ impl Panel {
 
     /// A click on a rail section: the rail takes the keys and the section opens.
     pub fn choose(&mut self, section: &'static str) {
+        self.query = None;
+        self.results.clear();
         self.side = Side::Rail;
         self.show_section(section);
     }

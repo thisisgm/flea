@@ -17,6 +17,10 @@ use gpui::{
     Stateful, TextRun, Window,
 };
 
+#[cfg(test)]
+#[path = "m9_g2rows_02_view_tests.rs"]
+mod m9_g2rows_02;
+
 pub struct SettingsView {
     pub panel: Panel,
     pub focus: FocusHandle,
@@ -58,13 +62,6 @@ impl SettingsView {
         cx.notify();
     }
 
-    fn searching(&self) -> bool {
-        self.panel
-            .query
-            .as_deref()
-            .is_some_and(|query| !query.is_empty())
-    }
-
     /// The search field the sheet uses: magnifier, the typed text and caret, and the clear mark at its end.
     pub(super) fn field(text: &str, ink: &Ink, corner: f32, typeface: &Typeface) -> Div {
         div()
@@ -92,7 +89,7 @@ impl SettingsView {
     }
 
     fn rail(&self, ink: &Ink, cx: &mut Context<Self>) -> Div {
-        let searching = self.searching();
+        let searching = self.panel.searching();
         let mut rail = div()
             .w(px(RAIL_W))
             .h_full()
@@ -103,12 +100,13 @@ impl SettingsView {
             .flex()
             .flex_col();
         if let Some(query) = &self.panel.query {
-            rail = rail.child(div().px(px(PAD_X)).pb(px(g::GAP)).child(Self::field(
-                query,
-                ink,
-                self.panel.facts.corner,
-                &self.typeface,
-            )));
+            rail = rail.child(
+                div().px(px(PAD_X)).pb(px(g::GAP)).child(
+                    Self::field(query, ink, self.panel.facts.corner, &self.typeface)
+                        .relative()
+                        .child(self.search_clear(cx)),
+                ),
+            );
         }
         rail.children(SECTIONS.iter().map(|section| {
             // While a query stands no section is current; Columns is View's own page.
@@ -168,7 +166,7 @@ impl SettingsView {
 
     /// The pane's lines: the section's rows, or while a query stands each result group's heading and hits.
     fn lines(&self) -> Vec<Line<'_>> {
-        if !self.searching() {
+        if !self.panel.searching() {
             let lifted = |index: usize| index == self.panel.cursor && self.panel.side == Side::Pane;
             return self
                 .panel
@@ -206,6 +204,9 @@ impl SettingsView {
                 ));
                 hit += 1;
             }
+        }
+        if let Some(footer) = self.search_footer(&out) {
+            out.push(footer);
         }
         out
     }
@@ -287,7 +288,7 @@ impl SettingsView {
     }
 
     fn pane(&mut self, ink: &Ink, window: &Window, cx: &mut Context<Self>) -> Stateful<Div> {
-        if self.panel.section == "plugins" {
+        if self.panel.section == "plugins" && !self.panel.searching() {
             if let Some(view) = &self.plugins {
                 return div()
                     .id("settings-pane")
@@ -298,7 +299,7 @@ impl SettingsView {
             }
         }
         let mut lines = self.lines();
-        let searching = self.searching();
+        let searching = self.panel.searching();
         let width = self.panel.pane.0;
         for line in &mut lines {
             line.segment = line.row.kind == Kind::Choice && self.fits(line.row, width, window);
@@ -442,6 +443,7 @@ impl Render for SettingsView {
             }),
         )
         .track_focus(&self.focus)
+        .capture_key_down(cx.listener(Self::search_capture))
         .on_key_down(cx.listener(Self::key_down))
         .size_full()
         .relative()
