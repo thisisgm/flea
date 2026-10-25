@@ -230,3 +230,6 @@ fn m9_integ_open_in_agent_ships_off(cx: &mut TestAppContext) {
     assert!(shown.iter().any(|id| id == "openTerminal"));
     assert!(!shown.iter().any(|id| id == "openAgent"), "{shown:?}");
 }
+
+#[path = "m9_g2rows_18_tests.rs"]
+mod m9_g2rows_18_tests;
