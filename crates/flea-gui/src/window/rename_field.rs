@@ -51,6 +51,8 @@ impl IntoElement for FieldElement {
 pub(crate) struct Laid {
     frame: Bounds<Pixels>,
     error: Option<Bounds<Pixels>>,
+    /// The list's viewport: a row scrolled partly out draws and takes presses only inside it.
+    clip: Bounds<Pixels>,
     hitbox: Hitbox,
     ink: crate::path::paint::Ink,
     corner: f32,
@@ -113,7 +115,7 @@ impl Element for FieldElement {
             .copied()
             .unwrap_or_default();
         let side = self.side;
-        self.shell.update(cx, |shell, _| {
+        self.shell.update(cx, |shell, cx| {
             let index = shell.renaming_row(side)?;
             let corner = shell.corner;
             let host = shell.panes[side].as_ref()?;
@@ -132,7 +134,18 @@ impl Element for FieldElement {
                 size(px(drawn.layout.name.width.max(0.)), px(metrics.slot)),
             );
             let inset = px(metrics.gap);
+            let clip = drawn.bounds;
             drop(list);
+            // RenameField.qml: a row scrolled wholly out of the list drops the edit, with no commit; a list not yet drawn drops nothing.
+            if clip.size.height <= px(0.) {
+                return None;
+            }
+            if frame.bottom() <= clip.top() || frame.top() >= clip.bottom() {
+                cx.defer_in(window, move |shell, window, cx| {
+                    shell.rename_scrolled_out(side, index, window, cx)
+                });
+                return None;
+            }
             let edit = shell.rename.edit.as_mut()?;
             let line = &mut edit.line.line;
             if line.run.is_none() || line.revision != edit.entry.revision {
@@ -170,7 +183,8 @@ impl Element for FieldElement {
             Some(Laid {
                 frame,
                 error,
-                hitbox: window.insert_hitbox(frame, HitboxBehavior::Normal),
+                clip,
+                hitbox: window.insert_hitbox(frame.intersect(&clip), HitboxBehavior::Normal),
                 ink: crate::path::paint::Ink::of(palette),
                 corner,
             })
@@ -190,99 +204,101 @@ impl Element for FieldElement {
         let Some(laid) = laid else {
             return;
         };
-        let (ink, frame) = (laid.ink, laid.frame);
+        let (ink, frame, clip) = (laid.ink, laid.frame, laid.clip);
         window.set_cursor_style(CursorStyle::IBeam, &laid.hitbox);
         let shell = self.shell.read(cx);
         let Some(edit) = shell.rename.edit.as_ref() else {
             return;
         };
-        // The small field follows half of the compositor's corner radius.
-        window.paint_quad(quad(
-            frame,
-            px(laid.corner / 2.),
-            ink.background,
-            px(1.),
-            ink.accent_frame,
-            BorderStyle::Solid,
-        ));
-        let shaped = &edit.line;
-        let line = &shaped.line;
-        let origin = shaped.origin();
-        let band = Bounds::new(
-            point(frame.origin.x + px(1.), frame.origin.y + px(1.)),
-            size(
-                (frame.size.width - px(2.)).max(px(0.)),
-                (frame.size.height - px(2.)).max(px(0.)),
-            ),
-        );
-        let entry = &edit.entry;
-        let text = &entry.text;
-        // The extension starts at the last dot past the first character, read off the draft as it stands.
-        let stem = text.rfind('.').filter(|&at| at > 0).unwrap_or(text.len());
-        let boundary = origin + line.x_for(stem);
-        window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
-            if !entry.selected.is_empty() {
-                let from = origin + line.x_for(entry.selected.start);
-                let to = origin + line.x_for(entry.selected.end);
-                window.paint_quad(fill(
-                    Bounds::new(
-                        point(from, band.origin.y),
-                        size(to - from, band.size.height),
-                    ),
-                    ink.wash(SELECTION),
-                ));
-            }
-            if let Some(run) = &line.run {
-                let ends = |from: Pixels, to: Pixels| {
-                    Bounds::from_corners(point(from, band.top()), point(to, band.bottom()))
-                };
-                for (part, color) in [
-                    (ends(band.left(), boundary.max(band.left())), ink.foreground),
-                    (ends(boundary.min(band.right()), band.right()), ink.muted),
-                ] {
-                    window.with_content_mask(Some(ContentMask { bounds: part }), |window| {
-                        paint_run(
-                            run,
-                            origin,
-                            frame.origin.y,
-                            frame.size.height,
-                            color,
-                            window,
-                        );
-                    });
+        window.with_content_mask(Some(ContentMask { bounds: clip }), |window| {
+            // The small field follows half of the compositor's corner radius.
+            window.paint_quad(quad(
+                frame,
+                px(laid.corner / 2.),
+                ink.background,
+                px(1.),
+                ink.accent_frame,
+                BorderStyle::Solid,
+            ));
+            let shaped = &edit.line;
+            let line = &shaped.line;
+            let origin = shaped.origin();
+            let band = Bounds::new(
+                point(frame.origin.x + px(1.), frame.origin.y + px(1.)),
+                size(
+                    (frame.size.width - px(2.)).max(px(0.)),
+                    (frame.size.height - px(2.)).max(px(0.)),
+                ),
+            );
+            let entry = &edit.entry;
+            let text = &entry.text;
+            // The extension starts at the last dot past the first character, read off the draft as it stands.
+            let stem = text.rfind('.').filter(|&at| at > 0).unwrap_or(text.len());
+            let boundary = origin + line.x_for(stem);
+            window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
+                if !entry.selected.is_empty() {
+                    let from = origin + line.x_for(entry.selected.start);
+                    let to = origin + line.x_for(entry.selected.end);
+                    window.paint_quad(fill(
+                        Bounds::new(
+                            point(from, band.origin.y),
+                            size(to - from, band.size.height),
+                        ),
+                        ink.wash(SELECTION),
+                    ));
                 }
-            }
-            if let Some(marked) = &entry.marked {
-                let from = origin + line.x_for(marked.start);
-                let to = origin + line.x_for(marked.end);
-                window.paint_quad(fill(
-                    Bounds::new(point(from, band.bottom() - px(1.)), size(to - from, px(1.))),
-                    ink.foreground,
-                ));
-            }
-            if entry.selected.is_empty() {
-                let at = origin + line.x_for(entry.cursor());
-                window.paint_quad(fill(
-                    Bounds::new(
-                        point(at, band.origin.y + px(2.)),
-                        size(px(1.), band.size.height - px(4.)),
-                    ),
-                    ink.foreground,
-                ));
+                if let Some(run) = &line.run {
+                    let ends = |from: Pixels, to: Pixels| {
+                        Bounds::from_corners(point(from, band.top()), point(to, band.bottom()))
+                    };
+                    for (part, color) in [
+                        (ends(band.left(), boundary.max(band.left())), ink.foreground),
+                        (ends(boundary.min(band.right()), band.right()), ink.muted),
+                    ] {
+                        window.with_content_mask(Some(ContentMask { bounds: part }), |window| {
+                            paint_run(
+                                run,
+                                origin,
+                                frame.origin.y,
+                                frame.size.height,
+                                color,
+                                window,
+                            );
+                        });
+                    }
+                }
+                if let Some(marked) = &entry.marked {
+                    let from = origin + line.x_for(marked.start);
+                    let to = origin + line.x_for(marked.end);
+                    window.paint_quad(fill(
+                        Bounds::new(point(from, band.bottom() - px(1.)), size(to - from, px(1.))),
+                        ink.foreground,
+                    ));
+                }
+                if entry.selected.is_empty() {
+                    let at = origin + line.x_for(entry.cursor());
+                    window.paint_quad(fill(
+                        Bounds::new(
+                            point(at, band.origin.y + px(2.)),
+                            size(px(1.), band.size.height - px(4.)),
+                        ),
+                        ink.foreground,
+                    ));
+                }
+            });
+            // The refusal takes the band under the row, on the window ground, in the error role.
+            if let (Some(area), Some((_, run))) = (laid.error, &shaped.error) {
+                window.paint_quad(fill(area, ink.background));
+                paint_run(
+                    run,
+                    frame.origin.x,
+                    area.origin.y,
+                    area.size.height,
+                    ink.accent,
+                    window,
+                );
             }
         });
-        // The refusal takes the band under the row, on the window ground, in the error role.
-        if let (Some(area), Some((_, run))) = (laid.error, &shaped.error) {
-            window.paint_quad(fill(area, ink.background));
-            paint_run(
-                run,
-                frame.origin.x,
-                area.origin.y,
-                area.size.height,
-                ink.accent,
-                window,
-            );
-        }
         let entity = self.shell.clone();
         let focus = shell.focus.clone();
         window.handle_input(&focus, ElementInputHandler::new(frame, entity.clone()), cx);
@@ -296,7 +312,7 @@ impl Element for FieldElement {
                 else {
                     return;
                 };
-                if !frame.contains(&event.position) {
+                if !frame.intersect(&clip).contains(&event.position) {
                     shell.rename_commit(cx);
                     shell.rename_sync_gate(window, cx);
                     return;

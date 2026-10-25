@@ -25,16 +25,16 @@ impl Shell {
                 return true;
             }
         }
-        if self.rename.sent == Some(side) {
+        if self.rename.sent[side] {
             match event {
                 BackendEvent::Refused {
                     operation, message, ..
                 } if operation == "bulkrename" => {
-                    self.rename.sent = None;
+                    self.rename.sent[side] = false;
                     self.rename_say(errors::capitalised(message), true, cx);
                     return true;
                 }
-                BackendEvent::Drained | BackendEvent::Failed(_) => self.rename.sent = None,
+                BackendEvent::Drained | BackendEvent::Failed(_) => self.rename.sent[side] = false,
                 _ => {}
             }
         }

@@ -119,7 +119,7 @@ fn a_bulk_rename_the_backend_never_took_says_so_as_the_card_closes(cx: &mut Test
     cx.simulate_input("x");
     cx.simulate_keystrokes("enter");
     assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
-    assert_eq!(shell.read_with(cx, |shell, _| shell.rename.sent), None);
+    assert_eq!(shell.read_with(cx, |shell, _| shell.rename.sent), [false; 2]);
     draw(cx);
     assert_eq!(pane_error(&shell, cx), Some(stopped(&shell, cx)));
     close(&shell, cx);
