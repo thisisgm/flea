@@ -109,7 +109,7 @@ fn a_notch_writes_inside_the_bounds_and_is_consumed_only_when_it_moved() {
 }
 
 #[test]
-fn a_touchpad_lift_coasts_on_the_closed_form_and_a_foreign_write_ends_it() {
+fn a_touchpad_lift_coasts_on_the_closed_form() {
     let mut kinetic = Kinetic::default();
     let mut view = axis(20_000., 90_000.);
     let mut now = 1000.;
@@ -130,18 +130,6 @@ fn a_touchpad_lift_coasts_on_the_closed_form_and_a_foreign_write_ends_it() {
         frames += 1;
     }
     assert!((view.at - lifted - scroll::tail_total(speed)).abs() < 1., "the tail travelled its closed form");
-    kinetic.wheel(&mut view, wheel(Phase::Begin, 0., 0.), now, false);
-    for _ in 0..12 {
-        now += 8.;
-        kinetic.wheel(&mut view, wheel(Phase::Update, -40., 0.), now, false);
-    }
-    kinetic.wheel(&mut view, wheel(Phase::End, 0., 0.), now, false);
-    kinetic.advance(&mut view, 16.7, false);
-    assert!(kinetic.tail_active());
-    view.at = 10.;
-    kinetic.observe(&mut view);
-    assert!(!kinetic.running(), "a cursor reveal ends the tail where it wrote");
-    assert_eq!(view.at, 10.);
 }
 
 #[test]

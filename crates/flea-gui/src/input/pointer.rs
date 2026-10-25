@@ -84,6 +84,8 @@ impl Shell {
         }
         host.input.keyboard();
         host.input.hold(&mut host.pane);
+        // The hold may land a glide where it is drawn, so the row and band read the frame it left.
+        let frame = host.input.frame.unwrap_or(frame);
         // A press stops the slow-click timer without clearing it, so a held press never renames.
         host.input.slow_task = None;
         if frame.in_lane(event.position)
@@ -212,6 +214,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.pointer_release(side, cx);
         if event.button != MouseButton::Left
             && self.panes[side].as_ref().is_some_and(|host| {
                 host.input

@@ -43,13 +43,12 @@ struct Glide {
     elapsed: f64,
 }
 
-/// One tail per scrolled view; every value it writes is remembered, so any other write is foreign and ends it.
+/// One tail per scrolled view; the pane input ends it on any position it did not write.
 #[derive(Debug)]
 pub struct Kinetic {
     samples: Vec<Sample>,
     velocity: f64,
     active: bool,
-    last: Option<f64>,
     over: f64,
     glide: Option<Glide>,
 }
@@ -60,7 +59,6 @@ impl Default for Kinetic {
             samples: Vec::with_capacity(SAMPLE_ROOM),
             velocity: 0.,
             active: false,
-            last: None,
             over: 0.,
             glide: None,
         }
@@ -95,7 +93,6 @@ impl Kinetic {
         self.stop_tail();
         self.glide = None;
         self.over = 0.;
-        self.last = None;
     }
 
     /// Ends the return; a snap pulls a position left past its bound back onto it.
@@ -116,18 +113,6 @@ impl Kinetic {
         self.stop_return(axis, false);
     }
 
-    /// Any position the tail or return did not write ends it: a cursor reveal, a restore, a band.
-    pub fn observe(&mut self, axis: &mut Axis) {
-        if self.last == Some(axis.at) {
-            return;
-        }
-        if self.active {
-            self.stop_tail();
-        } else if self.glide.is_some() {
-            self.stop_return(axis, false);
-        }
-    }
-
     pub fn overscrolled(&self, axis: &Axis) -> bool {
         self.over != 0. || axis.outside()
     }
@@ -138,7 +123,6 @@ impl Kinetic {
     }
 
     fn write_raw(&mut self, axis: &mut Axis, at: f64) {
-        self.last = Some(at);
         axis.at = at;
     }
 

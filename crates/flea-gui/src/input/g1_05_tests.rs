@@ -1,5 +1,5 @@
 use super::*;
-use crate::input::{scroll, slow, Band};
+use crate::input::{scroll, slow};
 use gpui::{point, Entity, Modifiers, MouseButton, ScrollDelta, ScrollWheelEvent, TouchPhase};
 use std::time::Duration;
 
@@ -164,29 +164,81 @@ fn g1_05_a_lift_a_busy_pane_drops_still_closes_the_stroke(cx: &mut TestAppContex
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         assert!(host.input.stroke);
-        host.input.band = Some(Band {
-            start: at,
-            anchor: (0., 0.),
-            end: (0., 0.),
-            before: Vec::new(),
-            cursor: 0,
-            active: false,
-            additive: false,
-            direction: 0.,
-            last: None,
-            cells: None,
-            pointer: at,
-        });
+        let now = host.pane.now();
+        assert!(host.pane.begin("/next".into(), Default::default(), now));
+        assert!(host.pane.busy());
     });
     cx.simulate_event(wheel(at, pixels(0.), TouchPhase::Ended));
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
-        assert!(!host.input.stroke, "membership reads the refused lift");
-        host.input.band = None;
+        assert!(!host.input.stroke, "membership reads the lift the busy pane refused");
+        let now = host.pane.now();
+        host.pane.swap.end(now, "test");
+        assert!(!host.pane.busy());
     });
     cx.simulate_event(wheel(at, pixels(-30.), TouchPhase::Moved));
     shell.read_with(cx, |shell, _| {
         assert_eq!(shell.panes[0].as_ref().unwrap().pane.scroll_y, 288., "a later frame alone is a notch again");
+    });
+}
+
+#[gpui::test]
+fn g1_05_a_press_mid_glide_lands_the_view_where_drawn_and_takes_the_row_under_it(cx: &mut TestAppContext) {
+    let (shell, cx) = mounted(cx);
+    let at = inside(&shell, cx);
+    cx.simulate_event(wheel(at, ScrollDelta::Lines(point(0., -3.)), TouchPhase::Moved));
+    frames(&shell, cx, 1, 90);
+    let drawn = shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(host.input.glide.is_some());
+        host.input.drawn(host.pane.scroll_y)
+    });
+    cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        let frame = host.input.frame.unwrap();
+        assert!(host.input.glide.is_none(), "a press ends the glide");
+        assert_eq!(host.pane.scroll_y, drawn, "the view stays where it was drawn");
+        let (_, y) = frame.local(at);
+        let under = ((y + drawn) / frame.row).floor() as usize;
+        assert_ne!(under, ((y + 288.) / frame.row).floor() as usize, "the probe tells the two positions apart");
+        assert_eq!(host.input.press.as_ref().unwrap().row, under, "the press takes the row drawn under the pointer");
+    });
+}
+
+#[gpui::test]
+fn g1_05_a_release_returns_an_overscroll_a_press_held(cx: &mut TestAppContext) {
+    let (shell, cx) = mounted(cx);
+    let at = inside(&shell, cx);
+    let max = shell.update(cx, |shell, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        let max = host.input.frame.unwrap().max_scroll();
+        host.pane.scroll_to(max);
+        max
+    });
+    cx.simulate_event(wheel(at, pixels(0.), TouchPhase::Started));
+    cx.executor().advance_clock(Duration::from_millis(8));
+    cx.simulate_event(wheel(at, pixels(-120.), TouchPhase::Moved));
+    cx.executor().advance_clock(Duration::from_millis(200));
+    cx.simulate_event(wheel(at, pixels(0.), TouchPhase::Ended));
+    frames(&shell, cx, 2, 16);
+    cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
+    let held = shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(!host.input.moving(), "a press holds the return");
+        host.input.drawn(host.pane.scroll_y)
+    });
+    assert!(held > max, "the press holds the view past the end");
+    cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.panes[0].as_ref().unwrap().input.kinetic.return_active(), "the release starts the return");
+    });
+    frames(&shell, cx, 12, 16);
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(!host.input.moving());
+        assert_eq!(host.input.over, 0.);
+        assert_eq!(host.input.drawn(host.pane.scroll_y), max);
     });
 }
 
