@@ -32,6 +32,9 @@ pub(crate) struct WalkProbes {
     pub(crate) body: Mutex<Option<String>>,
     #[cfg(test)]
     pub(crate) landing_sent: AtomicBool,
+    // Test seam: the prior load this open reads instead of the process's own.
+    #[cfg(test)]
+    pub(crate) prior_load: Mutex<Option<&'static crate::backend::searchprior::Load>>,
 }
 
 // The whole walk: one mountinfo read, then the local or the remote walk.
@@ -247,6 +250,10 @@ impl Session {
         });
         #[cfg(test)]
         let counters = Counters { walks_started: 1, rows_scored: 0, rank_compares: 0 };
+        #[cfg(test)]
+        let priors = probes.prior_load.lock().unwrap().map_or_else(crate::backend::searchprior::loaded, |load| load.loaded());
+        #[cfg(not(test))]
+        let priors = crate::backend::searchprior::loaded();
         Session {
             scope: scope_buf,
             folder: PathBuf::from(folder),
@@ -279,6 +286,7 @@ impl Session {
             sizes: crate::backend::answersizes::AnswerSizes::new(remote),
             tags,
             row_cache: Default::default(),
+            priors,
             #[cfg(test)]
             counters,
         }

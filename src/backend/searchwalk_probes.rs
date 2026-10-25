@@ -17,6 +17,8 @@ impl WalkProbes {
             body: Mutex::new(None),
             #[cfg(test)]
             landing_sent: AtomicBool::new(false),
+            #[cfg(test)]
+            prior_load: Mutex::new(None),
         }
     }
 }
