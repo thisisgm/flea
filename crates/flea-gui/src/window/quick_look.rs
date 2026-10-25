@@ -5,7 +5,6 @@ use crate::{
 };
 use flea::keys::Context as Keys;
 use flea::{
-    json::escape,
     protocol::RowFacts,
     ui_logic_pv1::{
         kinds::{self, State},
@@ -18,12 +17,18 @@ use std::time::Duration;
 
 #[path = "quick_look_compare.rs"]
 mod compare_open;
+#[path = "quick_look_docs.rs"]
+mod docs;
 #[path = "quick_look_keys.rs"]
 mod keys;
+#[path = "quick_look_mount.rs"]
+mod mount;
 #[path = "quick_look_readers.rs"]
 pub(crate) mod readers;
 #[path = "quick_look_replies.rs"]
 mod replies;
+#[path = "quick_look_wire.rs"]
+pub(crate) mod wire;
 
 // Its own token range, so a reply the column asked for never reads as one of these.
 static NEXT: AtomicU64 = AtomicU64::new(1 << 40);
@@ -31,14 +36,10 @@ fn token() -> u64 {
     NEXT.fetch_add(1, Ordering::Relaxed)
 }
 
-/// The most lines one code ask returns (src/backend/codereq.rs MAX_COUNT).
-const PAGE: usize = 400;
-
 /// What the open card still waits for from the backend.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Ask {
     Nothing,
-    Code { path: String, lines: Vec<String> },
     Meta { path: String, link: Option<String> },
     Compare { a: String, b: String },
 }
@@ -54,8 +55,14 @@ pub(crate) struct Host {
     pub answer: String,
     pub patch: String,
     pub prior: Keys,
+    /// The mounted view's outbox and the token of its meta ask, 0 once answered.
+    pub wire: wire::Wire,
+    pub meta: u64,
+    /// The decoder media plays through; None uses the sandboxed helper.
+    pub backend: Option<std::rc::Rc<dyn crate::g2::pv3::engine::Backend>>,
     cap: Option<Task<()>>,
     _events: Subscription,
+    _drain: Task<()>,
 }
 
 impl Shell {
@@ -78,6 +85,18 @@ impl Shell {
             let events = cx.subscribe_in(&view, window, |shell, _, event: &Event, window, cx| {
                 shell.quick_look_event(*event, window, cx)
             });
+            // A mounted view asks as it lays out and scrolls; each ask wakes this drain, which sends it.
+            let (wire, woken) = wire::Wire::new();
+            let drain = cx.spawn(async move |this, cx| {
+                while woken.recv().await.is_ok() {
+                    if this
+                        .update(cx, |shell, _| shell.quick_look_drain())
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+            });
             self.quick_look = Some(Host {
                 view,
                 side,
@@ -87,8 +106,12 @@ impl Shell {
                 answer: String::new(),
                 patch: String::new(),
                 prior: Keys::Listing,
+                wire,
+                meta: 0,
+                backend: None,
                 cap: None,
                 _events: events,
+                _drain: drain,
             });
         }
         let host = self.quick_look.as_mut().expect("built above");
@@ -145,28 +168,12 @@ impl Shell {
             shape: Shape::unknown(state),
             body,
         };
-        let (subject, revealed, line, ask) = match state {
-            State::Text => {
-                let state = if kinds::is_code(&row.name) {
-                    State::Code
-                } else {
-                    State::Text
-                };
-                let body = Body::Text {
-                    lines: Vec::new(),
-                    count: String::new(),
-                };
-                let line = code_line(token, &path, 1);
-                (
-                    subject(state, body),
-                    false,
-                    Some(line),
-                    Ask::Code {
-                        path,
-                        lines: Vec::new(),
-                    },
-                )
+        if let Some(mount) = mount::Mount::of(row) {
+            if self.show_doc(side, index, row, &path, mount, window, cx) {
+                return;
             }
+        }
+        let (subject, revealed, line, ask) = match state {
             State::Image => {
                 let body = Body::Image {
                     path: path.clone().into(),
@@ -307,11 +314,4 @@ impl Shell {
             Event::Follow(_) | Event::OpenWith => {}
         }
     }
-}
-
-fn code_line(token: u64, path: &str, first: usize) -> String {
-    format!(
-        r#"{{"c":"code","slot":"quicklook","token":{token},"path":"{}","first":{first},"count":{PAGE},"raw":true}}"#,
-        escape(path)
-    )
 }

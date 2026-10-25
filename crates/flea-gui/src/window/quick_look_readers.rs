@@ -15,6 +15,8 @@ pub(crate) struct Reader<'a> {
     pub host: Option<&'a Host>,
     pub view: Option<&'a QuickLook>,
     pub viewport: Size<Pixels>,
+    /// The mounted view's refusal or failure sentence, read where the App is at hand.
+    pub failure: Option<String>,
 }
 
 impl Reader<'_> {
@@ -29,6 +31,9 @@ impl Reader<'_> {
         };
         if subject.body.is_compare() {
             return "compare";
+        }
+        if let Some(doc) = subject.body.doc() {
+            return doc.kind();
         }
         match subject.state {
             State::Image | State::Symlink => "image",
@@ -53,6 +58,9 @@ impl Reader<'_> {
         match view.subject().map(|s| &s.body) {
             Some(Body::CannotShow { sentence, .. } | Body::Refused { sentence, .. }) => {
                 sentence.clone()
+            }
+            Some(Body::Doc(_)) if self.failure.is_some() => {
+                self.failure.clone().unwrap_or_default()
             }
             _ => self.kind().into(),
         }
