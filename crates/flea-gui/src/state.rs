@@ -62,6 +62,7 @@ pub struct Shell {
     pub(crate) dual_hover: bool,
     pub(crate) dual_blur: Option<gpui::Subscription>,
     pub(crate) deadlines: [Option<Task<()>>; 2],
+    pub(crate) opener: [crate::window::dispatch::opener::Lane; 2],
 }
 
 pub(crate) fn labels(locale: &Snapshot) -> Labels {
@@ -135,6 +136,7 @@ impl Shell {
             font_key: None,
             _app_quit: None,
             deadlines: [None, None],
+            opener: Default::default(),
             dual_focus,
             dual_pending: false,
             dual_written: None,

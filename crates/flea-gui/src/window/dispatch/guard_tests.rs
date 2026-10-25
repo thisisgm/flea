@@ -8,8 +8,6 @@ use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 // Actions a key still hands to nobody, by the family that will run them, cited in v0.3.12 ui/js/Focus.js unless another file is named; a family removes its line when it lands.
 #[rustfmt::skip]
 const NOT_YET: &[(&str, &[&str])] = &[
-    // On a file row: ui/js/Nav.js:231 hands it to ui/Opener.qml, Focus.js:133-139 sends pageForward to the preview.
-    ("opener", &["open", "pageForward"]),
     // Focus.js:196, PreviewKeys.open on a row whose preview is not focused.
     ("preview", &["preview"]),
     // Focus.js:171 and 290, ui/js/Tabs.js:392.
@@ -28,7 +26,7 @@ const SPAWNS: &[&str] = &["windowNew"];
 // Never handed to nobody, on any row.
 const NAVIGATION: &[&str] = &["parent", "historyBack", "historyForward", "reload"];
 
-// Never handed to nobody on a folder row; on a file row they belong to the opener.
+// Never handed to nobody on a folder row; on a file row the opener runs open and turns pageForward into preview.
 const FOLDER_ROW: &[&str] = &["open", "pageForward"];
 
 // One fresh production Shell per press, so no earlier key's state decides a later one.
@@ -131,6 +129,7 @@ fn every_bound_listing_action_has_a_handler_or_a_named_family(cx: &mut TestAppCo
     }
     for action in FOLDER_ROW {
         assert!(!folder.contains(action), "{action} opens a folder row");
+        assert!(!file.contains(action), "{action} on a file row is the opener's");
     }
     let named: BTreeSet<&str> = NOT_YET
         .iter()
