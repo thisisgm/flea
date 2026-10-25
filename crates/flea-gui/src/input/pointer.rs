@@ -1,5 +1,5 @@
 //! Native pointer delivery owns the gesture until release and never retargets it after a listing swap.
-use super::{scroll::Bar, Band};
+use super::scroll::Bar;
 use crate::{
     state::Shell,
     window::{
@@ -52,87 +52,6 @@ impl super::PaneInput {
 }
 
 impl Shell {
-    pub(crate) fn input_blocked(&self, cx: &gpui::App) -> bool {
-        self.lifecycle.phase() != crate::window::lifecycle::Phase::Open
-            || self.card_holds_keyboard(cx)
-            || self.menu_opened()
-            || self.menu.presentation.at.is_some()
-            || self.input.blocked
-            || self
-                .overlay
-                .as_ref()
-                .is_some_and(|overlay| overlay.read_with(cx, |overlay, _| overlay.model.open()))
-    }
-    pub(crate) fn pointer_down(
-        &mut self,
-        side: usize,
-        event: &MouseDownEvent,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        if self.input_blocked(cx) {
-            return;
-        }
-        let Some(host) = &mut self.panes[side] else {
-            return;
-        };
-        let Some(frame) = host.input.frame else {
-            return;
-        };
-        if host.pane.busy() || frame.listing != host.pane.held.listing {
-            return;
-        }
-        host.input.keyboard();
-        if frame.in_lane(event.position)
-            && frame.max_scroll() > 0.5
-            && event.button == MouseButton::Left
-        {
-            let bar = Bar::new(frame);
-            let (_, y) = frame.local(event.position);
-            let start = if y < bar.offset || y > bar.offset + bar.handle {
-                (y - bar.handle / 2.).clamp(0., bar.travel)
-            } else {
-                bar.offset
-            };
-            host.pane.scroll_to(bar.position(frame, start));
-            host.input.grab = Some(y - start);
-            if host.pane.scroll_y != frame.scroll {
-                host.input
-                    .scrolled(host.pane.scroll_y, &mut host.pane.cursor);
-                host.input.moved(cx.background_executor().now());
-            }
-        } else if let Some(row) = host.input.hit(event.position) {
-            self.rename.slow_press();
-            host.input.press = Some(Press {
-                row,
-                listing: frame.listing,
-                name: host.pane.held.row(row).map(|row| row.name.clone()),
-                event: event.clone(),
-                dragged: false,
-            });
-        } else if event.button == MouseButton::Left && !frame.in_lane(event.position) {
-            let (x, y) = frame.local(event.position);
-            host.input.band = Some(Band {
-                start: event.position,
-                pointer: event.position,
-                anchor: (x, y + frame.scroll),
-                end: (x, y + frame.scroll),
-                before: host.selected.clone(),
-                cursor: host.pane.cursor,
-                active: false,
-                additive: event.modifiers.control,
-                direction: 0.,
-                last: None,
-                cells: None,
-            });
-        }
-        self.focus_pane(side, cx);
-        window.focus(&self.focus, cx);
-        self.keyboard.context = flea::keys::Context::Listing;
-        self.keyboard.disarm();
-        cx.stop_propagation();
-        cx.notify();
-    }
     pub(crate) fn pointer_move(
         &mut self,
         side: usize,
@@ -210,6 +129,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.pointer_release(side, cx);
         if event.button != MouseButton::Left
             && self.panes[side].as_ref().is_some_and(|host| {
                 host.input
@@ -304,7 +224,11 @@ impl Shell {
                 return;
             }
             let from = host.pane.cursor;
-            let was_sole = host.selected == [row] && from == row;
+            let was_sole = super::slow::was_sole_selection(
+                host.selected.len(),
+                host.selected.binary_search(&row).is_ok(),
+                from == row,
+            );
             let pulled = host.input.take_pull(from, host.pane.held.listing);
             let selection = &mut host.input.selection;
             let mut marked = true;
@@ -374,7 +298,7 @@ impl Shell {
             // List.qml: only a lone left tap on the drawn name can arm the slow click.
             let on_name = event.button == MouseButton::Left
                 && count == 1
-                && crate::window::rename::slow::on_name(&host.list.borrow(), row, event.position.x);
+                && host.list.borrow().on_name(row, event.position.x);
             slow = Some(crate::window::rename::slow::Tap {
                 row,
                 on_name,

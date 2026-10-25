@@ -37,6 +37,7 @@ headless="$headless third-party-licenses gpui-capture-smoke gpui-visual-scenes g
 headless="$headless ui-uish-inventory ui-uish-fixtures ui-uish-native-admission ui-uish-common-observers ui-gpui-headless"
 # Bench, filter and search contracts that need no display.
 headless="$headless bench-fleet-contract strata-bench bench-markdown-matrix g2-sr2 search-fb5"
+headless="$headless g1-05"
 fail_line='(^|[: ])FAIL[: ]'
 failed=0
 ran=0

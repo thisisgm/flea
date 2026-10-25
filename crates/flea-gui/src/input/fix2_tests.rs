@@ -25,13 +25,24 @@ fn wheeled(cx: &mut TestAppContext) -> (Entity<Shell>, &mut gpui::VisualTestCont
         ..Default::default()
     });
     cx.run_until_parked();
+    // The notch's OutCubic glide owns frames until it lands; the hold below starts from the notch.
+    cx.executor().advance_clock(GLIDE);
+    cx.update(|window, cx| window.simulate_next_frame(cx));
+    cx.run_until_parked();
+    let moving = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().input.moving()
+    });
+    assert!(!moving);
     (shell, cx)
 }
+
+const GLIDE: Duration = Duration::from_millis(crate::input::scroll::RETURN_MS as u64);
 
 #[gpui::test]
 fn fix2_deadline_drives_the_whole_fade_without_refresh(cx: &mut TestAppContext) {
     let (shell, cx) = wheeled(cx);
-    cx.executor().advance_clock(Duration::from_millis(999));
+    let rest = Duration::from_millis(999) - GLIDE;
+    cx.executor().advance_clock(rest);
     cx.run_until_parked();
     assert_eq!(cx.update(|window, cx| window.simulate_next_frame(cx)), 0);
     cx.executor().advance_clock(Duration::from_millis(1));
@@ -71,7 +82,7 @@ fn fix2_hover_stays_idle_across_hold_and_fade_deadlines(cx: &mut TestAppContext)
     });
     cx.simulate_mouse_move(lane, None, Modifiers::none());
     cx.run_until_parked();
-    for delay in [0, 1000, 300, 200] {
+    for delay in [0, 1000 - GLIDE.as_millis() as u64, 300, 200] {
         cx.executor().advance_clock(Duration::from_millis(delay));
         cx.run_until_parked();
         shell.read_with(cx, |shell, cx| {

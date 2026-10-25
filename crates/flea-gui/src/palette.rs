@@ -154,8 +154,7 @@ impl Theme {
         // src/theme/tokens.rs takes the last red or color1 line, else #a55555, as Commons.Color.urgent.
         let urgent = values
             .iter()
-            .filter(|(key, _)| *key == "red" || *key == "color1")
-            .last()
+            .rfind(|(key, _)| *key == "red" || *key == "color1")
             .map_or(0xa55555, |(_, value)| *value);
         // ui/Theme.qml:342 lifts the accent to 3:1 on that surface for every theme, an empty file included.
         let raised = flea::ui_logic_pl4::tagtheme::ensure_ratio(
