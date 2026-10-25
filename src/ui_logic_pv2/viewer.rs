@@ -12,8 +12,14 @@ pub enum Control {
     Close,
 }
 
-pub const CONTROLS: [Control; 6] =
-    [Control::Previous, Control::Next, Control::ZoomOut, Control::ZoomIn, Control::Expand, Control::Close];
+pub const CONTROLS: [Control; 6] = [
+    Control::Previous,
+    Control::Next,
+    Control::ZoomOut,
+    Control::ZoomIn,
+    Control::Expand,
+    Control::Close,
+];
 
 impl Control {
     /// The chrome glyph each control draws.
@@ -109,7 +115,11 @@ pub struct Viewer {
 
 impl Default for Viewer {
     fn default() -> Self {
-        Viewer { zoom: ZOOM_MIN, expanded: false, control: None }
+        Viewer {
+            zoom: ZOOM_MIN,
+            expanded: false,
+            control: None,
+        }
     }
 }
 
@@ -163,7 +173,11 @@ impl Viewer {
     pub fn action(&mut self, action: Action, page: usize, count: usize) -> Effect {
         match action {
             Action::FocusNext | Action::FocusPrevious => {
-                let step: i64 = if action == Action::FocusPrevious { -1 } else { 1 };
+                let step: i64 = if action == Action::FocusPrevious {
+                    -1
+                } else {
+                    1
+                };
                 let len = CONTROLS.len() as i64;
                 let mut next = match self.control {
                     Some(at) => at as i64,
@@ -181,7 +195,9 @@ impl Viewer {
                 Effect::Focus(self.control)
             }
             Action::Open | Action::Preview => match self.control.map(|at| CONTROLS[at]) {
-                Some(control) if self.enabled(control, page, count) && Viewer::visible(control, count) => {
+                Some(control)
+                    if self.enabled(control, page, count) && Viewer::visible(control, count) =>
+                {
                     self.activate(control)
                 }
                 _ => Effect::None,
@@ -236,8 +252,16 @@ pub fn column_action(action: Action) -> Effect {
 }
 
 /// The scroll offset after `delta` rows in a frame, held inside the content.
-pub fn scroll_by(top: f64, delta: i64, row_height: f64, content_height: f64, view_height: f64) -> f64 {
-    (top + delta as f64 * row_height).min(content_height - view_height).max(0.)
+pub fn scroll_by(
+    top: f64,
+    delta: i64,
+    row_height: f64,
+    content_height: f64,
+    view_height: f64,
+) -> f64 {
+    (top + delta as f64 * row_height)
+        .min(content_height - view_height)
+        .max(0.)
 }
 
 #[cfg(test)]

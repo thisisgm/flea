@@ -3,10 +3,14 @@ use std::{
     process::Command,
 };
 
+#[path = "g2_pv2/fix1.rs"]
+mod fix1;
 #[path = "g2_pv2/fixture.rs"]
 mod fixture;
 #[path = "g2_pv2/renderer.rs"]
 mod renderer;
+#[path = "g2_pv2/renderer_drop.rs"]
+mod renderer_drop;
 #[path = "g2_pv2/view.rs"]
 mod view;
 
@@ -51,6 +55,12 @@ pub fn root() -> Root {
     assert!(root.is_absolute());
     std::fs::write(root.join(".flea-test-sandbox"), "g2-pv2\n").unwrap();
     Root(root)
+}
+
+/// Serializes every test that drops a renderer or calls reap, since the reaper is one list for the whole process.
+pub fn reaper_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 /// Writes a fixture document into the root and answers its path.

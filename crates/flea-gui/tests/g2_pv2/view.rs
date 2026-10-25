@@ -1,18 +1,19 @@
 //! The PDF view as a real GPUI entity in a test window, rendering real documents through its own thread.
 use super::fixture::{Page, LANDSCAPE, LETTER, TURNED};
-use super::{document, root};
+use super::{document, reaper_lock, root};
 use flea::ui_logic_pv2::{pdf, viewer};
+use flea_gui::g2::pv2::render::{reap, reaper_len};
 use flea_gui::g2::pv2::{Metrics, Palette, PdfView};
 use gpui::{AppContext as _, TestAppContext, WindowHandle};
 use std::time::{Duration, Instant};
 
-const METRICS: Metrics = Metrics {
+pub(super) const METRICS: Metrics = Metrics {
     gap: 9.,
     margin: 28.,
     row_height: 28.,
 };
 
-fn palette(light: bool) -> Palette {
+pub(super) fn palette(light: bool) -> Palette {
     let theme = flea_gui::palette::Theme::default();
     Palette {
         background: if light {
@@ -24,12 +25,12 @@ fn palette(light: bool) -> Palette {
 }
 
 // The render thread is real, so its wakes come from outside the deterministic scheduler, the case parking exists for.
-fn open(cx: &mut TestAppContext, continuous: bool) -> WindowHandle<PdfView> {
+pub(super) fn open(cx: &mut TestAppContext, continuous: bool) -> WindowHandle<PdfView> {
     cx.executor().allow_parking();
     cx.add_window(|_, cx| PdfView::new(continuous, palette(false), METRICS, cx))
 }
 
-fn with<R>(
+pub(super) fn with<R>(
     cx: &mut TestAppContext,
     view: WindowHandle<PdfView>,
     f: impl FnOnce(&mut PdfView) -> R,
@@ -37,19 +38,19 @@ fn with<R>(
     view.update(cx, |view, _, _| f(view)).unwrap()
 }
 
-fn draw(cx: &mut TestAppContext, view: WindowHandle<PdfView>) {
+pub(super) fn draw(cx: &mut TestAppContext, view: WindowHandle<PdfView>) {
     cx.update_window(view.into(), |_, window, _| window.refresh())
         .unwrap();
     cx.run_until_parked();
 }
 
-fn next_frame(cx: &mut TestAppContext, view: WindowHandle<PdfView>) -> usize {
+pub(super) fn next_frame(cx: &mut TestAppContext, view: WindowHandle<PdfView>) -> usize {
     cx.update_window(view.into(), |_, window, cx| window.simulate_next_frame(cx))
         .unwrap()
 }
 
 // Real renders land from another thread, so the test runs the foreground until the condition holds.
-fn until(
+pub(super) fn until(
     cx: &mut TestAppContext,
     view: WindowHandle<PdfView>,
     what: &str,
@@ -68,7 +69,20 @@ fn until(
     }
 }
 
-fn show(cx: &mut TestAppContext, view: WindowHandle<PdfView>, path: &std::path::Path) {
+/// Closes the window so its view and renderer drop, then reaps the renderer thread as main does before it returns.
+pub(super) fn finish(cx: &mut TestAppContext, view: WindowHandle<PdfView>) {
+    cx.update_window(view.into(), |_, window, _| window.remove_window())
+        .unwrap();
+    cx.run_until_parked();
+    assert!(
+        reaper_len() >= 1,
+        "the closed window's renderer waits in the reaper"
+    );
+    reap();
+    assert_eq!(reaper_len(), 0, "the reap joined every dropped renderer");
+}
+
+pub(super) fn show(cx: &mut TestAppContext, view: WindowHandle<PdfView>, path: &std::path::Path) {
     let path = path.to_str().unwrap().to_owned();
     view.update(cx, |v, window, cx| {
         v.set_active(true, window, cx);
@@ -78,8 +92,8 @@ fn show(cx: &mut TestAppContext, view: WindowHandle<PdfView>, path: &std::path::
 }
 
 #[gpui::test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_column_stack_fills_the_frame_and_builds_pages_near_it(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "report.pdf", &[LETTER; 12]);
     let view = open(cx, true);
@@ -144,11 +158,12 @@ fn pv2_column_stack_fills_the_frame_and_builds_pages_near_it(cx: &mut TestAppCon
         "at rest only the pages near the frame are built: {near} slots, {cached} images"
     );
     assert!(with(cx, view, |v| v.painted.get()) > 0, "the view painted");
+    finish(cx, view);
 }
 
 #[gpui::test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_column_scroll_follows_the_offset_and_keeps_the_window_bounded(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "big.pdf", &[LETTER; 500]);
     let view = open(cx, true);
@@ -188,11 +203,12 @@ fn pv2_column_scroll_follows_the_offset_and_keeps_the_window_bounded(cx: &mut Te
         "a 500-page document builds only near the frame: {slots} slots, {images} images"
     );
     assert_eq!(reads, 500, "and reads its 500 page sizes once");
+    finish(cx, view);
 }
 
 #[gpui::test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_quick_look_turns_from_its_cache_and_counts_the_drawn_page(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "pages.pdf", &[LETTER, LANDSCAPE, TURNED]);
     let view = open(cx, false);
@@ -257,11 +273,12 @@ fn pv2_quick_look_turns_from_its_cache_and_counts_the_drawn_page(cx: &mut TestAp
         pdf::ZOOM_MIN,
         "the subject opens fitted again"
     );
+    finish(cx, view);
 }
 
 #[gpui::test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_a_walk_waits_for_the_settle_and_a_switch_drops_the_old_pages(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let a = document(&root, "a.pdf", &[LETTER]);
     let b = document(&root, "b.pdf", &[LANDSCAPE]);
@@ -301,6 +318,7 @@ fn pv2_a_walk_waits_for_the_settle_and_a_switch_drops_the_old_pages(cx: &mut Tes
     until(cx, view, "b lands", |v| v.surface.shown_page() == Some(0));
     let rect = with(cx, view, |v| v.single_rect()).unwrap();
     assert!(rect.2 > rect.3, "the landed page is b's landscape page");
+    finish(cx, view);
 }
 
 #[test]
@@ -323,6 +341,7 @@ fn pv2_the_veil_is_for_dark_grounds_only() {
 fn pv2_quick_look_strip_reads_the_catalog_and_a_failed_open_gets_one_sentence(
     cx: &mut TestAppContext,
 ) {
+    let _reaper = reaper_lock();
     let i18n = flea::i18n::I18n::default();
     let root = root();
     let view = open(cx, false);
@@ -376,4 +395,6 @@ fn pv2_quick_look_strip_reads_the_catalog_and_a_failed_open_gets_one_sentence(
         with(cx, column, |v| v.bar(&i18n)).is_none(),
         "the column has no strip"
     );
+    finish(cx, view);
+    finish(cx, column);
 }
