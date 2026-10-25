@@ -1,4 +1,5 @@
 //! The chooser's own bands, title, answers and status, drawn to the picker boards; the body belongs to the listing owner.
+use super::drawn::{Painted, Slot};
 use super::filename::FieldKey;
 use super::picker::Picker;
 use crate::list::Palette;
@@ -30,10 +31,28 @@ fn answer(
     default: bool,
     available: bool,
     palette: &Palette,
+    drawn: &super::drawn::Drawn,
+    slot: Slot,
 ) -> Stateful<Div> {
     let lit = default && available;
+    let hover = drawn.clone();
+    let down = drawn.clone();
+    let up = drawn.clone();
+    let outside = drawn.clone();
     div()
         .id(id)
+        .relative()
+        .children(drawn.probe(slot, [1.; 4]))
+        .on_hover(move |hovered, _, _| hover.pointer(slot, Some(*hovered), None))
+        .on_mouse_down(MouseButton::Left, move |_, _, _| {
+            down.pointer(slot, None, Some(true))
+        })
+        .on_mouse_up(MouseButton::Left, move |_, _, _| {
+            up.pointer(slot, None, Some(false))
+        })
+        .on_mouse_up_out(MouseButton::Left, move |_, _, _| {
+            outside.pointer(slot, None, Some(false))
+        })
         .flex_none()
         .flex()
         .items_center()
@@ -170,6 +189,16 @@ impl Render for Picker {
         } else {
             self.can_accept()
         };
+        self.drawn.render(Painted {
+            cancel: self.labels.cancel.clone(),
+            answer: self.answer_label(),
+            answer_enabled: available,
+            foreground: palette.foreground,
+            themed: cx
+                .try_global::<crate::palette::ParsedTheme>()
+                .is_some_and(|loaded| loaded.0),
+            sizes: (TEXT, STATUS_TEXT + 1.),
+        });
         let message = self.message.clone();
         let rule = palette.foreground.opacity(RULE);
         // Only a portal identity follows the title, in caption size after a muted dot, the way PickerChrome.qml draws it.
@@ -188,6 +217,8 @@ impl Render for Picker {
                 .child(div().min_w_0().text_ellipsis().child(requester))
         });
         let title = div()
+            .relative()
+            .children(self.drawn.probe(Slot::Title, [0., 0., 1., 0.]))
             .flex_none()
             .flex()
             .items_center()
@@ -229,6 +260,8 @@ impl Render for Picker {
                     false,
                     true,
                     &palette,
+                    &self.drawn,
+                    Slot::Cancel,
                 )
                 .on_click(cx.listener(|picker, _: &ClickEvent, _, cx| picker.cancel(cx))),
             )
@@ -239,6 +272,8 @@ impl Render for Picker {
                     self.answer_is_default(),
                     available,
                     &palette,
+                    &self.drawn,
+                    Slot::Answer,
                 )
                 // A refused answer is drawn and its press does nothing, as DialogButton.qml says.
                 .on_click(cx.listener(
@@ -250,6 +285,8 @@ impl Render for Picker {
                 )),
             );
         let footer = div()
+            .relative()
+            .children(self.drawn.probe(Slot::Footer, [1., 0., 0., 0.]))
             .flex_none()
             .flex()
             .flex_row()
@@ -269,6 +306,7 @@ impl Render for Picker {
             )
             .child(div().flex_none().whitespace_nowrap().child(self.hints()));
         div()
+            .relative()
             .size_full()
             .flex()
             .flex_col()
@@ -282,8 +320,16 @@ impl Render for Picker {
                 cx.listener(|picker, _, window, cx| window.focus(&picker.focus, cx)),
             )
             .child(title)
-            .child(div().flex_1().overflow_hidden().children(self.body.clone()))
+            .child(
+                div()
+                    .relative()
+                    .flex_1()
+                    .overflow_hidden()
+                    .children(self.body.clone())
+                    .children(self.drawn.probe(Slot::Body, [0.; 4])),
+            )
             .child(answers)
             .child(footer)
+            .children(self.drawn.probe(Slot::Window, [0.; 4]))
     }
 }

@@ -1,0 +1,203 @@
+// The real endpoint must read the controls and rows the picker actually drew.
+use super::*;
+use crate::ipc::server::Event;
+use flea::ipc::wire::{Reply, Request};
+
+fn endpoint(f: &mut Fixture, function: &str, arguments: &[&str]) -> Reply {
+    let (send, receive) = async_channel::unbounded();
+    f.update(|picker, cx| {
+        let task = launch::serve_ipc(receive, (), cx);
+        picker.keep(task);
+    });
+    let (answer, answered) = std::sync::mpsc::sync_channel(1);
+    send.send_blocking(Event::Call {
+        request: Request::Call {
+            target: "fleapicker".into(),
+            function: function.into(),
+            arguments: arguments.iter().map(|text| text.to_string()).collect(),
+        },
+        answer,
+    })
+    .unwrap();
+    f.cx.run_until_parked();
+    answered.try_recv().expect("the endpoint answered").reply
+}
+
+fn seeded(f: &mut Fixture) {
+    f.listing.say(Line::Reply(
+        r#"{"t":"listed","n":1,"v":1,"w":true,"path":"/d"}"#.into(),
+    ));
+    f.listing.say(Line::Reply(r#"{"t":"rows","start":0,"listing":1,"rows":[{"n":"notes.txt","d":false,"s":3,"m":0,"p":33188,"i":"text-x-generic"}]}"#.into()));
+    f.cx.run_until_parked();
+}
+
+#[gpui::test]
+fn followup_picker_controls_use_the_live_endpoint(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    seeded(&mut f);
+    let reply = endpoint(&mut f, "controls", &[]);
+    assert_eq!(reply.code, 0, "{reply:?}");
+    let rows = flea::jsondoc::parse(&reply.stdout).unwrap();
+    let controls = rows.as_array().unwrap();
+    assert!(controls.len() >= 2, "answers and the drawn header titles");
+    assert!(
+        controls
+            .iter()
+            .all(|control| !control.get("centre").unwrap().as_str().unwrap().is_empty())
+    );
+}
+
+#[gpui::test]
+fn followup_picker_row_centre_reads_drawn_rows_only(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    f.cx.simulate_resize(gpui::size(gpui::px(720.), gpui::px(440.)));
+    let rows = (0..80)
+        .map(|index| {
+            format!(
+                r#"{{"n":"note-{index}.txt","d":false,"s":3,"m":0,"p":33188,"i":"text-x-generic"}}"#
+            )
+        })
+        .collect::<Vec<_>>();
+    f.listing.say(Line::Reply(
+        r#"{"t":"listed","n":80,"v":1,"w":true,"path":"/d"}"#.into(),
+    ));
+    f.listing.say(Line::Reply(format!(
+        r#"{{"t":"rows","start":0,"listing":1,"rows":[{}]}}"#,
+        rows.join(",")
+    )));
+    f.cx.run_until_parked();
+    let reply = endpoint(&mut f, "rowCentre", &["0"]);
+    assert_eq!(reply.code, 0, "{reply:?}");
+    assert_eq!(reply.stdout.split_whitespace().count(), 2);
+    assert!(
+        endpoint(&mut f, "rowCentre", &["79"])
+            .stdout
+            .trim()
+            .is_empty(),
+        "held but off-screen is not drawn"
+    );
+    f.update(|picker, cx| picker.move_cursor(79, cx));
+    assert_eq!(
+        endpoint(&mut f, "rowCentre", &["79"])
+            .stdout
+            .split_whitespace()
+            .count(),
+        2
+    );
+    assert!(
+        endpoint(&mut f, "rowCentre", &["0"])
+            .stdout
+            .trim()
+            .is_empty()
+    );
+    assert!(
+        endpoint(&mut f, "rowCentre", &["80"])
+            .stdout
+            .trim()
+            .is_empty()
+    );
+}
+
+#[gpui::test]
+fn followup_picker_cohesion_reads_drawn_controls(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, "{}", None);
+    f.cx.run_until_parked();
+    let reply = endpoint(&mut f, "cohesionControls", &[]);
+    assert_eq!(reply.code, 0, "{reply:?}");
+    let state = flea::jsondoc::parse(&reply.stdout).unwrap();
+    assert_eq!(state.get("controls").unwrap().as_array().unwrap().len(), 2);
+}
+
+#[gpui::test]
+fn followup_picker_save_field_uses_its_painted_box(cx: &mut TestAppContext) {
+    let mut f = fixture(
+        cx,
+        r#"{"mode":"save","folder":"/d","name":"notes.txt"}"#,
+        None,
+    );
+    f.cx.run_until_parked();
+    let reply = endpoint(&mut f, "saveState", &[]);
+    assert_eq!(reply.code, 0, "{reply:?}");
+    let state = flea::jsondoc::parse(&reply.stdout).unwrap();
+    let field = state.get("field").unwrap().as_str().unwrap();
+    assert_eq!(field.split_whitespace().count(), 2);
+    assert_eq!(state.get("name").unwrap().as_str(), Some("notes.txt"));
+}
+
+#[gpui::test]
+fn followup_picker_snapshot_matches_the_same_live_frame(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    seeded(&mut f);
+    let reply = endpoint(&mut f, "snapshot", &[]);
+    assert_eq!(reply.code, 0, "{reply:?}");
+    let state = flea::jsondoc::parse(&reply.stdout).unwrap();
+    assert_eq!(state.get("view").unwrap().as_str(), Some("list"));
+    assert_eq!(state.get("cursorName").unwrap().as_str(), Some("notes.txt"));
+    assert!(state.get("width").unwrap().as_f64().unwrap() > 0.);
+    assert!(state.get("controls").unwrap().as_array().unwrap().len() >= 2);
+}
+
+#[gpui::test]
+fn followup_picker_queued_geometry_calls_all_answer_after_resize(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, "{}", None);
+    let (send, receive) = async_channel::unbounded();
+    f.update(|picker, cx| {
+        let task = launch::serve_ipc(receive, (), cx);
+        picker.keep(task);
+    });
+    f.cx.simulate_resize(gpui::size(gpui::px(900.), gpui::px(600.)));
+    let mut answers = Vec::new();
+    for function in ["controls", "cohesionControls", "saveState", "snapshot"] {
+        let (answer, reply) = std::sync::mpsc::sync_channel(1);
+        send.send_blocking(Event::Call {
+            request: Request::Call {
+                target: "fleapicker".into(),
+                function: function.into(),
+                arguments: vec![],
+            },
+            answer,
+        })
+        .unwrap();
+        answers.push(reply);
+    }
+    f.cx.run_until_parked();
+    for answer in answers {
+        let reply = answer
+            .try_recv()
+            .expect("every queued reader is answered")
+            .reply;
+        assert_eq!(reply.code, 0, "{reply:?}");
+    }
+}
+
+#[gpui::test]
+fn followup_picker_cohesion_reports_the_answer_pressed_state(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, "{}", None);
+    let reply = endpoint(&mut f, "controls", &[]);
+    let controls = flea::jsondoc::parse(&reply.stdout).unwrap();
+    let bounds = controls.as_array().unwrap()[1]
+        .get("bounds")
+        .unwrap()
+        .as_array()
+        .unwrap();
+    let at = gpui::point(
+        gpui::px((bounds[0].as_f64().unwrap() + bounds[2].as_f64().unwrap() / 2.) as f32),
+        gpui::px((bounds[1].as_f64().unwrap() + bounds[3].as_f64().unwrap() / 2.) as f32),
+    );
+    f.cx.simulate_mouse_down(at, gpui::MouseButton::Left, gpui::Modifiers::default());
+    let reply = endpoint(&mut f, "cohesionControls", &[]);
+    let state = flea::jsondoc::parse(&reply.stdout).unwrap();
+    let buttons = state.get("controls").unwrap().as_array().unwrap();
+    assert_eq!(buttons[1].get("pressed").unwrap().as_bool(), Some(true));
+    assert_eq!(buttons[1].get("enabled").unwrap().as_bool(), Some(false));
+    f.cx.simulate_mouse_up(at, gpui::MouseButton::Left, gpui::Modifiers::default());
+    let reply = endpoint(&mut f, "cohesionControls", &[]);
+    let state = flea::jsondoc::parse(&reply.stdout).unwrap();
+    assert_eq!(
+        state.get("controls").unwrap().as_array().unwrap()[1]
+            .get("pressed")
+            .unwrap()
+            .as_bool(),
+        Some(false)
+    );
+}
