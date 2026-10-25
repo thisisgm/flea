@@ -64,3 +64,31 @@ fn a_reload_listed_line_carries_its_changed_count_and_others_carry_none() {
     let event = transport::parse(watch).unwrap();
     assert_eq!(transport::reload_changed(&event, watch), None);
 }
+
+#[test]
+fn a_reload_listed_line_from_the_child_sends_its_count_before_the_reply() {
+    let mut command = Command::new("/bin/bash");
+    command.args([
+        "-c",
+        r#"IFS= read -r line
+printf '%s\n' '{"t":"listed","path":"/files","n":4,"changed":2}'
+while IFS= read -r line; do :; done
+"#,
+    ]);
+    let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let first = backend.replies.recv_blocking().unwrap();
+    assert!(
+        matches!(first, Event::ReloadChanged(2)),
+        "the count goes first: {first:?}"
+    );
+    let second = backend.replies.recv_blocking().unwrap();
+    assert!(
+        matches!(
+            &second,
+            Event::Reply(flea::protocol::Reply::Listed { path, total: 4 }) if path == "/files"
+        ),
+        "then the listed reply itself: {second:?}"
+    );
+    backend.close_stdin();
+    backend.drained().recv_blocking().unwrap();
+}
