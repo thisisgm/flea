@@ -226,3 +226,74 @@ fn an_image_that_fails_to_decode_keeps_its_image_facts(cx: &mut TestAppContext) 
     assert!(facts.starts_with("Kind=PNG image|"), "Kind is the row's description: {facts}");
     assert_eq!(read(&shell, cx, "columnFailure", &[]), "", "a failed picture draws no read failure");
 }
+
+#[gpui::test]
+fn a_markdown_fence_colour_reply_reaches_the_column_and_releases_the_first_screen(
+    cx: &mut TestAppContext,
+) {
+    // The markdown parse thread is real, so its wake comes from outside the deterministic scheduler.
+    cx.executor().allow_parking();
+    let root = Root::new("mdfence");
+    let dir = root.0.to_string_lossy().into_owned();
+    let text = "# Fence\n\n```python\ndef sweep():\n    return 1\n```\n";
+    std::fs::write(root.0.join("fence.md"), text).unwrap();
+    let (shell, cx) = open(cx, &dir);
+    let rows = vec![file(
+        "fence.md",
+        "text-markdown",
+        "Markdown document",
+        0o100644,
+    )];
+    super::test_shell::land(&shell, cx, &dir, rows, 1);
+    let mut lines = local(&shell, cx, &dir);
+    meta(&shell, cx, &lines, r#","lines":6"#);
+    // The fence asks once the parse thread hands back its blocks, under its own slot; the reply echoes it (EY-34).
+    for _ in 0..40 {
+        lines.extend(pump(cx));
+        if lines.iter().any(|line| line.contains(r#""c":"code""#)) {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    let fence = ask(&lines, "code").to_owned();
+    assert!(fence.contains(r#""slot":"column:fence:0""#), "{fence}");
+    let state = |cx: &mut VisualTestContext| {
+        shell.read_with(cx, |shell, cx| {
+            let preview = shell.selection_preview(0).expect("the column is mounted");
+            let preview = preview.read(cx);
+            match preview
+                .pending
+                .as_ref()
+                .or(preview.drawn.as_ref())
+                .map(|frame| &frame.mounted)
+            {
+                Some(Mounted::Doc(Doc::Markdown(view))) => {
+                    let doc = &view.read(cx).doc;
+                    (doc.fences.get(&0).is_some_and(|f| f.done), doc.shown)
+                }
+                _ => panic!("the markdown document is mounted"),
+            }
+        })
+    };
+    // A named fence holds the first screen with no time limit, so only its reply can release it.
+    assert_eq!(
+        state(cx),
+        (false, false),
+        "the first screen holds for the fence"
+    );
+    answer(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"code","token":{},"slot":"column:fence:0","state":"styled","first":1,"total":2,"lines":[[5,"def sweep():"],[0,"    return 1"]]}}"#,
+            field(&fence, "token")
+        ),
+    );
+    pump(cx);
+    let (done, shown) = state(cx);
+    assert!(done, "the column takes the fence's colour reply");
+    assert!(
+        shown,
+        "the first screen stops holding once its fence is coloured"
+    );
+}

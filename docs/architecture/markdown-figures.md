@@ -128,6 +128,11 @@ Measured 2026-10-19 in the suite lane, both bundles on one binary and helper. A 
 40 to 48 ms median against 100 to 106 ms, a warm render 1.0 ms against 13 to 17 ms, a qjs 7.8 MB at its peak against 16.9 MB, `mermaid.bc` is
 1037608 bytes against 2585187, and of a 147-source corpus (every Mermaid fence in `tests/` plus one docs example per type) Pele draws 146 and the
 old bundle 115.
+sequence-defaults 2026-10-25: Pele drew a sequence's participants 64 px wide and 40 apart over solid lifelines, where v0.3.12 and the Quick Look
+figures board draw them 80 by 40, 60 apart, over lifelines dashed `6 4` at 0.75. For a sequence source the entry writes those three numbers as
+the first `init` directive, after any front matter and leaving out a key its `sequence` section names, because Pele merges directives key by key but a
+`render` config whole; every key a source sets still wins. It dashes the `pele-lifelines` group, and the store moves to `flea-figure-svg 3` so no
+format 2 sequence is served again. Flowchart nodes keep Pele's own size, which no config reaches.
 
 mathsize 2026-10-04: a display formula's ex equals the body font's x-height, so maths and prose letters stand level.
 `ui/MarkdownFigure.qml` measures `FontMetrics.xHeight` on its own family at `bodyPx` and sends it in the theme as `exPx`;

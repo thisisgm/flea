@@ -68,11 +68,8 @@ impl pv2::archive::ArchiveHost for Wire {
 impl pv2::html::HtmlHost for Wire {
     fn ask_html(&self, slot: &str, path: &str, width: u32, height: u32) -> u64 {
         let id = token();
-        self.send(format!(
-            r#"{{"c":"html","token":{id},"slot":"{}","path":"{}","width":{width},"height":{height}}}"#,
-            escape(slot),
-            escape(path)
-        ));
+        let line = flea::ui_logic_pv2::html::ask_line(id, slot, path, width, height);
+        self.send(line);
         id
     }
     fn cancel_html(&self, slot: &str, width: u32) {
