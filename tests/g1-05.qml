@@ -82,6 +82,7 @@ Item {
             var failed = 0
             var kinds = {}
             for (var i = 0; i < lines.length; i++) {
+                // Sample rows: {"kind": "fn", "m": "Scroll", "f": "distance", "args": [...], "out": 288} and {"kind": "slow", "steps": [...], "answers": [[true, 2]]}.
                 var row = JSON.parse(lines[i])
                 var problem
                 if (row.kind === "fn") {
@@ -102,7 +103,10 @@ Item {
             }
             var names = Object.keys(kinds).sort()
             console.log("G1_05 oracle kinds " + names.map(function (kind) { return kind + "=" + kinds[kind] }).join(" "))
-            if (checked < 7000 || names.length < 15) { console.log("FAIL empty or incomplete vector matrix " + checked + " rows, " + names.length + " kinds"); Qt.exit(1); return }
+            // vectors.rs ROW_FLOOR writes at least this many rows; 15 kinds is every scroll function plus the slow replay.
+            var rowFloor = 7000
+            var kindFloor = 15
+            if (checked < rowFloor || names.length < kindFloor) { console.log("FAIL empty or incomplete vector matrix " + checked + " rows, " + names.length + " kinds"); Qt.exit(1); return }
             if (failed) { console.log("FAIL native/oracle mismatches " + failed + " of " + checked); Qt.exit(1); return }
             console.log("G1_05_ORACLE PASS " + checked + " decisions and replayed sequences over " + names.length + " kinds")
             Qt.exit(0)
