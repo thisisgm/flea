@@ -110,3 +110,90 @@ fn a_panicking_search_worker_still_answers_so_the_gate_is_free_and_says_why() {
     assert_eq!(crate::json::field_usize(&after[2], "n"), Some(3), "{after:?}");
     lp.close();
 }
+
+#[test]
+fn search_fb5_typed_generations_reuse_the_requested_rich_rows() {
+    use crate::jsondoc::{self, Json};
+    fn rich_rows(said: &[String], gen: usize) -> (Vec<Json>, Vec<Json>) {
+        assert!(said.iter().all(|line| crate::json::field_usize(line, "gen") == Some(gen)), "{said:?}");
+        let document = jsondoc::parse(&said[1]).unwrap();
+        let kinds = document.get("kinds").and_then(Json::as_array).unwrap().to_vec();
+        let mut rows = document.get("rows").and_then(Json::as_array).unwrap().to_vec();
+        rows.sort_by_key(|row| row.get("n").and_then(Json::as_str).unwrap().to_owned());
+        assert_eq!(rows.len(), 2, "the reused window must carry both complete rows");
+        for (row, (name, size)) in rows.iter().zip([("alpha.txt", "1"), ("alphabet.txt", "2")]) {
+            assert_eq!(row.get("n").and_then(Json::as_str), Some(name));
+            assert_eq!(row.get("s"), Some(&Json::Num(size.into())));
+            let Some(Json::Num(kind)) = row.get("k") else { panic!("a row carries its kind index") };
+            let kind: usize = kind.parse().expect("a kind index is an unsigned integer");
+            assert!(kinds.get(kind).and_then(Json::as_str).is_some_and(|name| !name.is_empty()), "a kind index names a nonempty response-local kind");
+            assert_eq!(row.get("d"), Some(&Json::Bool(false)));
+        }
+        (rows, kinds)
+    }
+    let root = TestDir::new("search-generation-cache");
+    root.dir("scope");
+    root.file("scope/alpha.txt", "a");
+    root.file("scope/alphabet.txt", "ab");
+    let mut lp = Loop::open(&root, "alpha", 2);
+    let mut previous_rows = None;
+    for (gen, query) in [(2, "alpha"), (3, "alph")] {
+        super::super::meta::SEARCH_STAT_CALLS.with(|calls| calls.set(0));
+        super::super::tags::SEARCH_TAG_CALLS.with(|calls| calls.set(0));
+        lp.route(Event::Request(format!(
+            r#"{{"c":"searchquery","query":"{query}","gen":{gen},"count":2}}"#
+        )));
+        lp.ready();
+        let said = lp.said();
+        assert_eq!(kinds(&said), ["listed", "rows", "searched"], "{said:?}");
+        let rows = rich_rows(&said, gen);
+        if let Some(previous) = &previous_rows {
+            assert_eq!(&rows, previous, "cached row metadata stays identical across typed generations");
+        }
+        previous_rows = Some(rows);
+        assert_eq!(lp.session().row_cache.misses, 2, "the second generation reuses both metadata entries");
+        assert_eq!(lp.session().row_cache.renders, 2, "the second generation reuses both serialized rows");
+        if gen == 3 {
+            assert_eq!(super::super::meta::SEARCH_STAT_CALLS.with(|calls| calls.get()), 0);
+            assert_eq!(super::super::tags::SEARCH_TAG_CALLS.with(|calls| calls.get()), 0);
+        }
+    }
+    lp.close();
+}
+
+#[test]
+fn search_fb5_empty_standing_progress_answers_only_at_the_final_landing() {
+    use super::super::searchwalk::WalkProbes;
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+    let root = TestDir::new("search-empty-progress");
+    root.dir("held");
+    let scope = root.path().to_str().unwrap();
+    let probes = Arc::new(WalkProbes::new());
+    let (parked, release) = probes.test_hold_walk_in("held");
+    let (events, received) = channel();
+    let mut session = Session::open_async_with_probes(scope, scope, false, events.clone(), Arc::clone(&probes));
+    parked.recv_timeout(Duration::from_secs(30)).unwrap();
+    assert!(session.claim_gen(1, "", 1));
+    session.note_folder_count(7);
+    session.index.lock().unwrap().push("another.txt", false);
+    session.test_set_last_batch(Instant::now() - Duration::from_millis(101));
+    assert!(session.poll_walked(), "the progress tick must take the changed-index branch");
+    let Worker { tx, rx, handle } = Worker::new(events);
+    tx.send((session, Work::Walked)).unwrap_or_else(|_| panic!("send progress"));
+    let progress = rx.recv_timeout(Duration::from_secs(30)).unwrap();
+    assert!(progress.session.walking());
+    assert!(progress.answer.is_none() && progress.empty.is_none(), "progress cannot publish a terminal answer");
+    release.send(()).unwrap();
+    super::super::searchwalkhold::wait_walk_landed(&received, &progress.session, Duration::from_secs(30), |_| true);
+    tx.send((progress.session, Work::Walked)).unwrap_or_else(|_| panic!("send landing"));
+    let landed = rx.recv_timeout(Duration::from_secs(30)).unwrap();
+    assert_eq!(landed.empty.map(|(gen, n, scanned, _)| (gen, n, scanned)), Some((1, 7, 7)));
+    tx.send((landed.session, Work::Walked)).unwrap_or_else(|_| panic!("send trailing wake"));
+    let trailing = rx.recv_timeout(Duration::from_secs(30)).unwrap();
+    assert!(trailing.answer.is_none() && trailing.empty.is_none(), "the landing answers once");
+    trailing.session.close();
+    drop(tx);
+    drop(rx);
+    handle.join().unwrap();
+}
