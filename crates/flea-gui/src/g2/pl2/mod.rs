@@ -62,4 +62,6 @@ mod fix1_tests;
 #[cfg(test)]
 mod fix2_tests;
 #[cfg(test)]
+mod m9_g2rows_19_tests;
+#[cfg(test)]
 mod review_tests;
