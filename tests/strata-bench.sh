@@ -25,14 +25,16 @@ printf 'strata-bench: a wrong-typed plan field exits 3 naming the field and the 
 injected="$scratch/injected"
 mkdir -p "$injected/tools"
 sed 's/^def dry_run(root):$/&\n    raise TypeError("injected harness bug")/' "$repo/tools/flea-strata-bench" > "$injected/tools/flea-strata-bench"
-grep -q 'injected harness bug' "$injected/tools/flea-strata-bench"
+grep -q 'injected harness bug' "$injected/tools/flea-strata-bench" ||
+    { printf 'strata-bench: FAIL sed anchor ^def dry_run(root):$ no longer matches tools/flea-strata-bench\n' >&2; exit 1; }
 set +e
 python3 -B "$injected/tools/flea-strata-bench" dry-run "$scratch" 2> "$injected/stderr"
 rc=$?
 set -e
-[[ "$rc" == 1 ]] && grep -q '^Traceback' "$injected/stderr" && grep -qxF 'TypeError: injected harness bug' "$injected/stderr" ||
+[[ "$rc" == 3 ]] && grep -q '^Traceback' "$injected/stderr" && grep -qxF 'TypeError: injected harness bug' "$injected/stderr" &&
+    grep -qxF 'strata-bench: harness error, not a result' "$injected/stderr" ||
     { printf 'strata-bench: FAIL injected harness bug rc=%s\n' "$rc" >&2; exit 1; }
-printf 'strata-bench: an unexpected harness error keeps its traceback and exits 1\n'
+printf 'strata-bench: an unexpected harness error prints its traceback and exits 3, never a result\n'
 python3 -B - "$repo" "$scratch" <<'PY'
 import importlib.machinery
 import importlib.util
@@ -50,6 +52,20 @@ spec = importlib.util.spec_from_loader(loader.name, loader)
 tool = importlib.util.module_from_spec(spec)
 loader.exec_module(tool)
 plan = tool.read_plan(root)
+for name, entrant, broken, field in (('archive', 'strata-stable', {'binary_path': '/x', 'expected_version': '1'}, 'binary_sha256'),
+                                     ('package', 'dolphin', {'sha256': 7}, 'sha256')):
+    nested = root / ('nested-' + name)
+    nested.mkdir()
+    bad = copy.deepcopy(plan)
+    bad['entrants'][entrant][name] = broken
+    tool.write_json(nested / 'plan.json', bad)
+    try:
+        tool.read_plan(nested)
+    except ValueError as error:
+        assert 'field entrants.%s.%s.%s must be a string' % (entrant, name, field) in str(error), error
+    else:
+        raise AssertionError('a broken %s key was accepted' % name)
+print('strata-bench: archive and package keys the inventory reads are named on refusal')
 expected_trials = len(tool.IDS) * 3 * 14
 assert len(list(tool.trial_specs(plan))) == expected_trials
 fixture = root / 'fixtures.json'
