@@ -12,17 +12,17 @@ const CAP: u64 = crate::pane::swap::CAP_MS;
 
 fn page(token: u64, first: usize, count: usize, total: usize) -> String {
     let lines: Vec<String> = (first..first + count)
-        .map(|n| format!(r#"["line {n}"]"#))
+        .map(|n| format!(r#"[0,"line {n}"]"#))
         .collect();
     format!(
-        r#"{{"t":"code","token":{token},"slot":"quicklook","state":"plain","first":{first},"total":{total},"lines":[{}]}}"#,
+        r#"{{"t":"code","token":{token},"slot":"look","state":"plain","first":{first},"total":{total},"lines":[{}]}}"#,
         lines.join(",")
     )
 }
 
 fn refused(token: u64, state: &str) -> String {
     format!(
-        r#"{{"t":"code","token":{token},"slot":"quicklook","state":"{state}","first":1,"total":0,"lines":[]}}"#
+        r#"{{"t":"code","token":{token},"slot":"look","state":"{state}","first":1,"total":0,"lines":[]}}"#
     )
 }
 
@@ -32,20 +32,29 @@ fn meta_reply(token: u64) -> String {
     )
 }
 
-fn lines(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
+fn code(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+) -> Entity<crate::g2::pv2::code::CodeView> {
     shell.read_with(cx, |shell, cx| {
-        match shell
-            .quick_look
-            .as_ref()
-            .and_then(|h| h.view.read(cx).subject())
-        {
-            Some(subject) => match &subject.body {
-                Body::Text { lines, .. } => lines.clone(),
-                _ => Vec::new(),
-            },
-            None => Vec::new(),
-        }
+        let host = shell.quick_look.as_ref().expect("the card is open");
+        let subject = host
+            .view
+            .read(cx)
+            .subject()
+            .expect("the card has a subject");
+        let Body::Doc(doc) = &subject.body else {
+            panic!("the card mounts a document")
+        };
+        let crate::g2::pv1::doc::View::Code(code) = &doc.view else {
+            panic!("the card mounts CodeView")
+        };
+        code.clone()
     })
+}
+
+fn lines(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
+    code(shell, cx).read_with(cx, |code, _| code.lines.plain_lines())
 }
 
 fn advance(cx: &mut VisualTestContext, ms: u64) {
@@ -142,7 +151,7 @@ fn a_stale_or_column_reply_is_left_alone(cx: &mut TestAppContext) {
     close(&shell, cx);
 }
 
-// A read longer than one page asks for the next page from the first line it lacks and joins the two.
+// A longer read fetches only the visible pages; scrolling asks for the later lines with a fresh token.
 #[gpui::test]
 fn a_two_page_read_asks_from_the_next_line_and_joins_the_pages(cx: &mut TestAppContext) {
     let (shell, cx, mut requests) = opened(cx);
@@ -150,33 +159,63 @@ fn a_two_page_read_asks_from_the_next_line_and_joins_the_pages(cx: &mut TestAppC
     set_cursor(&shell, cx, 1);
     press(cx, "space");
     let asked = sent(&mut requests, "code");
-    assert_eq!(asked[0].get("first").and_then(Json::as_f64), Some(1.));
-    answer(&shell, cx, page(token(&asked[0]), 1, 400, 401));
+    assert_eq!(asked.len(), 1, "one initial page");
+    let first = asked[0].get("first").and_then(Json::as_f64).unwrap() as usize;
+    let count = asked[0].get("count").and_then(Json::as_f64).unwrap() as usize;
+    assert_eq!(first, 1);
+    assert!(
+        count > 0 && count < 401,
+        "the first ask is bounded to the view"
+    );
+    answer(&shell, cx, page(token(&asked[0]), first, count, 401));
     assert_eq!(
         read(&shell, cx, "previewState", &[]),
         "text",
         "the first page reveals the card"
     );
-    assert_eq!(lines(&shell, cx).len(), 400);
+    let code = code(&shell, cx);
+    assert_eq!(code.read_with(cx, |code, _| code.lines.held()), count);
+    assert!(
+        sent(&mut requests, "code").is_empty(),
+        "off-screen lines are not read eagerly"
+    );
+    code.update(cx, |code, cx| code.scroll_rows(400, cx));
+    draw(cx);
     let next = sent(&mut requests, "code");
-    assert_eq!(next.len(), 1, "one more page");
-    assert_eq!(next[0].get("first").and_then(Json::as_f64), Some(401.));
+    assert_eq!(next.len(), 1, "one more page for the scrolled view");
+    let later = next[0].get("first").and_then(Json::as_f64).unwrap() as usize;
+    let count = next[0].get("count").and_then(Json::as_f64).unwrap() as usize;
+    assert!(
+        later > first,
+        "the later page starts after the original line"
+    );
+    assert_eq!(
+        later + count - 1,
+        401,
+        "the requested window reaches the file's last line"
+    );
     assert_ne!(
         token(&next[0]),
         token(&asked[0]),
         "each page has its own token"
     );
-    answer(&shell, cx, page(token(&next[0]), 401, 1, 401));
+    answer(&shell, cx, page(token(&next[0]), later, count, 401));
     let joined = lines(&shell, cx);
     assert_eq!(joined.len(), 401);
     assert_eq!(
         (joined[0].as_str(), joined[400].as_str()),
         ("line 1", "line 401")
     );
-    assert!(
-        matches!(super::preview_tests::body(&shell, cx), Some(Body::Text { count, .. }) if count == "401 lines")
+    assert_eq!(
+        shell.read_with(cx, |shell, cx| code
+            .read(cx)
+            .count_label(&shell.locale.catalog)),
+        Some("401 lines".into())
     );
-    assert!(sent(&mut requests, "code").is_empty(), "the read is whole");
+    assert!(
+        sent(&mut requests, "code").is_empty(),
+        "the requested view is whole"
+    );
     close(&shell, cx);
 }
 
@@ -260,7 +299,7 @@ fn space_in_the_focused_preview_column_opens_the_card_and_escape_returns_to_it(
     assert!(
         asked
             .iter()
-            .any(|ask| ask.get("slot").and_then(Json::as_str) == Some("quicklook")),
+            .any(|ask| ask.get("slot").and_then(Json::as_str) == Some("look")),
         "the card asks for the cursor file"
     );
     press(cx, "escape");
@@ -321,7 +360,11 @@ fn space_in_the_focused_preview_column_on_a_clip_opens_no_card(cx: &mut TestAppC
     let video = cx.update(|_, cx| matches!(column.read(cx).mounted_kind(), Some((Kind::Video, _))));
     assert!(video, "the column mounted the clip");
     press(cx, "ctrl-tab");
-    assert_eq!(context(&shell, cx), Context::Media, "a mounted clip holds the media keys");
+    assert_eq!(
+        context(&shell, cx),
+        Context::Media,
+        "a mounted clip holds the media keys"
+    );
     sent(&mut requests, "code");
     press(cx, "space");
     assert_eq!(
@@ -331,7 +374,7 @@ fn space_in_the_focused_preview_column_on_a_clip_opens_no_card(cx: &mut TestAppC
     );
     let quick = sent(&mut requests, "code")
         .iter()
-        .any(|ask| ask.get("slot").and_then(Json::as_str) == Some("quicklook"));
+        .any(|ask| ask.get("slot").and_then(Json::as_str) == Some("look"));
     assert!(!quick, "no quicklook ask for the clip");
     close(&shell, cx);
 }

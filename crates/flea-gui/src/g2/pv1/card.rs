@@ -54,8 +54,12 @@ impl Render for QuickLook {
             .absolute()
             .size_full()
             .child(Shield::new(card, ground, on_pointer).dragging(self.scroll.drag.is_some()));
-        if self.revealed {
-            overlay = overlay.child(self.surface(card, &look, window, cx));
+        // A mounted view lays out unseen while held back, so it can ask for its first screen before the reveal.
+        let laying = self.has_doc();
+        if self.revealed || laying {
+            let shown = if self.revealed { 1. } else { 0. };
+            let surface = self.surface(card, &look, window, cx);
+            overlay = overlay.child(div().absolute().size_full().opacity(shown).child(surface));
         }
         overlay.into_any_element()
     }
@@ -302,6 +306,7 @@ impl QuickLook {
                 }
                 parts
             }
+            Body::Doc(doc) => self.doc_parts(subject, doc, look, window, cx),
             Body::Refused { title, sentence } => vec![
                 bar::refusal_bar(mark_of, title, look, self, cx),
                 recipe(
@@ -319,7 +324,7 @@ impl QuickLook {
 }
 
 /// The can't-show recipe: the 40 px mark, the 14 px sentence 9 px under it, and the button 9 px more down.
-fn recipe(
+pub(super) fn recipe(
     glyph: Glyph,
     mark_ink: Hsla,
     sentence: &str,

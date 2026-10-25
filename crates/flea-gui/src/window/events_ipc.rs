@@ -155,6 +155,8 @@ impl Shell {
                     host: self.quick_look.as_ref(),
                     view: self.quick_look.as_ref().map(|host| host.view.read(cx)),
                     viewport: window.viewport_size(),
+                    failure: self.quick_look_failure(cx),
+                    cx,
                 };
                 let rename = crate::window::rename::ipc::Reader { shell: self };
                 let devices = crate::ipc::devices::DeviceAdapter {

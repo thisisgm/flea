@@ -105,6 +105,14 @@ mod previewtypes_tests;
 #[cfg(test)]
 mod preview_tests;
 #[cfg(test)]
+mod quick_look_body_tests;
+#[cfg(test)]
+mod quick_look_clock_tests;
+#[cfg(test)]
+mod quick_look_media_tests;
+#[cfg(test)]
+mod quick_look_body_reply_tests;
+#[cfg(test)]
 mod quick_look_reply_tests;
 #[cfg(test)]
 mod refusal_tests;
