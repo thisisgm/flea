@@ -10,8 +10,9 @@ import tempfile
 
 repo = Path(__file__).resolve().parents[3]
 parent = Path(sys.argv[1]).resolve()
-assert parent.is_relative_to(repo / ".superpowers/g2-mn2")
-assert (parent / ".flea-test-sandbox").is_file()
+if not (parent.is_relative_to(repo / ".superpowers/g2-mn2")
+        and (parent / ".flea-test-sandbox").is_file()):
+    sys.exit(f"mn2-boundary: refusing unmarked root {parent}")
 root = Path(tempfile.mkdtemp(prefix="native-boundary.", dir=parent))
 (root / ".flea-test-sandbox").touch()
 names = ("fixture_root", "thumb_fixture", "hash_fixture", "stale_fixture")
