@@ -49,6 +49,8 @@ impl Shell {
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         #[cfg(test)]
+        super::frame_feedback::perf_tests::shell_built();
+        #[cfg(test)]
         if let Some(renders) = cx.try_global::<EmptyOmiShellRenders>() {
             renders.0.set(renders.0.get() + 1);
         }
@@ -166,8 +168,7 @@ impl Render for Shell {
                     Some(shown) => host.pane.wanted_filtered_window(&shown),
                     None => host.pane.wanted_window(),
                 };
-                if let (Some((start, count)), Some(backend)) = (wanted, &host.backend)
-                {
+                if let (Some((start, count)), Some(backend)) = (wanted, &host.backend) {
                     if let Err(error) = backend.window(start, count) {
                         host.stopped = true;
                         host.record_error(error, &self.locale);
