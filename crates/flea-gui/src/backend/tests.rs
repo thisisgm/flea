@@ -51,3 +51,16 @@ fn u32_trash_transport_retains_opaque_identity_and_refuses_other_commands() {
         .trash_line("{\"c\":\"trashbrowse\"}\n{\"c\":\"quit\"}".into())
         .is_err());
 }
+
+#[test]
+fn a_reload_listed_line_carries_its_changed_count_and_others_carry_none() {
+    let reload = r#"{"t":"listed","path":"/files","n":4,"changed":2}"#;
+    let event = transport::parse(reload).unwrap();
+    assert_eq!(transport::reload_changed(&event, reload), Some(2));
+    let plain = r#"{"t":"listed","path":"/files","n":4}"#;
+    let event = transport::parse(plain).unwrap();
+    assert_eq!(transport::reload_changed(&event, plain), None);
+    let watch = r#"{"t":"changed","path":"/files"}"#;
+    let event = transport::parse(watch).unwrap();
+    assert_eq!(transport::reload_changed(&event, watch), None);
+}
