@@ -1,5 +1,4 @@
-//! The picker's lifecycle: what a menu open asks, what a reply lands, and what a pick dispatches.
-//! Every process here is an Action for the host; nothing in this module spawns or blocks.
+//! The picker's lifecycle: menu open, reply and pick, each process an Action for the host.
 use super::seams::{Action, ProviderState, RunKind, Wire};
 use super::ProviderSend;
 use flea::i18n::I18n;
@@ -11,8 +10,7 @@ use flea::ui_logic_sd1::{dropbox, localsend, share, taildrop, wire, Send};
 const STATUS_TIMEOUT_SECS: &str = "15";
 
 impl ProviderSend {
-    // The file menu opened: refresh LocalSend discovery by its warm policy and Taildrop machines
-    // now, as the QML services do; nothing runs before a menu opens and nothing polls while shut.
+    // A file menu open refreshes LocalSend by its warm policy and Taildrop now; nothing polls while shut.
     pub fn menu_opened(
         &mut self,
         wire: &dyn Wire,
@@ -27,8 +25,7 @@ impl ProviderSend {
         self.menu_open = true;
         self.derive_providers(states);
         self.send_command = facts.send_command.clone();
-        // A row that left the menu keeps no peers from an earlier open, as Taildrop.qml empties
-        // its list on every refresh and LocalSend.qml empties it when its CLI leaves.
+    // A row that left the menu keeps no peers from an earlier open, as Taildrop.qml and LocalSend.qml empty theirs.
         if !self.row_on(Role::LocalSend) {
             self.ls_peers.clear();
         }
@@ -63,8 +60,7 @@ impl ProviderSend {
     }
 
     pub fn menu_closed(&mut self) {
-        // The status service outlives the menu, as the QML singleton does: an in-flight run still
-        // lands, and only a menu that stays open asks again after it.
+    // The status run outlives the menu, as the QML singleton does; only a menu still open asks again.
         self.menu_open = false;
     }
 
@@ -83,18 +79,18 @@ impl ProviderSend {
         }
     }
 
-    // The one status ask: empties the old peers first, as Taildrop.qml refresh() does, and takes
-    // the next generation so this run's exit is the only one that can answer it.
+    // The one status ask empties the old peers, as Taildrop.qml refresh() does, and takes a new generation.
     fn start_status(&mut self) -> Option<Vec<String>> {
         self.td_peers.clear();
         self.td_addresses.clear();
-        self.td_reason = "checking".into();
         self.td_code.clear();
         self.td_waiting = false;
         if self.facts.tailscale_command.is_empty() || self.send_command.is_empty() {
+            self.td_reason.clear();
             self.td_checking = false;
             return None;
         }
+        self.td_reason = "checking".into();
         self.td_generation += 1;
         self.td_checking = true;
         Some(vec![
@@ -142,8 +138,7 @@ impl ProviderSend {
         out
     }
 
-    // The Taildrop status run the host captured came back; a KILL-timed-out run reads statusFailed.
-    // A stale generation is dropped; a current one applies, then re-asks if a menu waited on it.
+    // The captured Taildrop status run came back; a stale generation drops, a KILL timeout reads statusFailed.
     pub fn taildrop_done(
         &mut self,
         generation: u64,
@@ -183,9 +178,7 @@ impl ProviderSend {
         out
     }
 
-    // The menu chose a LocalSend peer: refuse an empty pick and a gone CLI each in its sentence,
-    // else queue the backend send and say the dispatch once, as ui/js/LocalSend.js send() does.
-    // A dead wire is the host's lost-backend path, never a claim that the CLI left.
+    // A LocalSend pick: an empty pick and a gone CLI each say their sentence; a dead wire is the host's lost backend.
     pub fn send_localsend(
         &mut self,
         wire: &dyn Wire,
@@ -226,14 +219,15 @@ impl ProviderSend {
         let Some(peer) = self.td_peers.iter().find(|peer| peer.id == peer_id) else {
             return vec![Action::Say(share::taildrop_refusal(i18n, &self.td_code, &self.td_reason), true)];
         };
-        if self.send_command.is_empty() || self.td_checking {
+        if self.send_command.is_empty() {
             return vec![Action::Say(share::taildrop_refusal(i18n, &self.td_code, &self.td_reason), true)];
         }
         let Some(address) = self.td_addresses.get(peer_id).cloned() else {
             return vec![Action::Say(share::taildrop_refusal(i18n, &self.td_code, &self.td_reason), true)];
         };
         let argv = vec![self.send_command.clone(), address, paths[0].clone()];
-        vec![Action::Spawn(argv), Action::Say(share::taildrop_sending(i18n, &peer.label, &paths[0]), false)]
+        let failed = share::taildrop_failed(i18n, &peer.label, &paths[0]);
+        vec![Action::Spawn(argv, failed), Action::Say(share::taildrop_sending(i18n, &peer.label, &paths[0]), false)]
     }
 
     // Move to Dropbox routes through the ordinary transfer, refusing a stale membership first.
@@ -241,8 +235,7 @@ impl ProviderSend {
         dropbox::contains(root, path)
     }
 
-    // Copy Share Link: one sharelink run, then the clipboard run, each through the host.
-    // An empty pick is a stale menu, as Pane.qml answers it, not a missing file.
+    // Copy Share Link: sharelink then the clipboard run; an empty pick is a stale menu, as Pane.qml answers it.
     pub fn copy_share_link(&mut self, path: &str, i18n: &I18n) -> Vec<Action> {
         // ShareLink rides the Dropbox provider, so its row gates the run the same way.
         if !self.row_on(Role::Dropbox) {
@@ -275,10 +268,7 @@ impl ProviderSend {
         }
     }
 
-    // The backend ended: discovery stops asking and every live send is lost, as its id is gone.
-    // The Taildrop status run is a host process, not a backend request, so it keeps checking and
-    // keeps waiting: its answer still lands after the backend dies, as ui/Taildrop.qml's own
-    // statusProcess outlives the pane's backend.
+    // The backend ended: live sends are lost, while the Taildrop status run is a host process and still lands.
     pub fn backend_dead(&mut self) {
         self.ls_asking = None;
         self.ls_checking = false;

@@ -1,5 +1,4 @@
-//! ProviderSend against a fake backend: every discovery, send, link and browser transition.
-//! Each review round 1 finding (r1-1 to r1-13) has its own named case; FIX1 NOTES.md names the red log of each.
+//! ProviderSend against a fake backend; review round 1 findings with a unit shape have a named case.
 use super::seams::{Action, ProviderState, RunKind, Wire};
 use super::ProviderSend;
 use flea::i18n::{I18n, Paths};

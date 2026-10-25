@@ -1553,6 +1553,7 @@
     "flea:send.providers.share_no_file": "e6a15804cd35",
     "flea:send.providers.taildrop_checking": "3e27b16d9269",
     "flea:send.providers.taildrop_disabled": "502faa2e71a8",
+    "flea:send.providers.taildrop_failed": "948fd1730ec3",
     "flea:send.providers.taildrop_gone": "b1e7be31c5bf",
     "flea:send.providers.taildrop_invalid": "15b064061198",
     "flea:send.providers.taildrop_no_peers": "8b3736af2ab9",

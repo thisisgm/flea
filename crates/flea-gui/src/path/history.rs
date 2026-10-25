@@ -25,11 +25,12 @@ pub fn favourites(state: &Json) -> Vec<String> {
 /// Recent.historyPath: an XDG_DATA_HOME that is not absolute is no data home, so home's default answers for it.
 pub fn history_path(data_home: Option<&str>, home: &str) -> PathBuf {
     match data_home.filter(|root| root.starts_with('/')) {
-        Some(root) => Path::new(root.trim_end_matches('/')).join(HISTORY_LEAF),
+        Some(root) => Path::new(root).join(HISTORY_LEAF),
         None => Path::new(home).join(".local/share").join(HISTORY_LEAF),
     }
 }
 
+// Sample input: "file:///home/gm/a%20b.png" becomes "/home/gm/a b.png".
 /// Recent.pathOf: a local file URI's path, refusing other schemes, foreign hosts, bad escapes and control characters.
 pub fn path_of(href: &str) -> Option<String> {
     let scheme = href
@@ -45,6 +46,7 @@ pub fn path_of(href: &str) -> Option<String> {
     (path != "/" && !path.chars().any(|c| c.is_control() && (c as u32) < 0x80)).then_some(path)
 }
 
+// Sample input: "a&amp;b&#x41;" becomes "a&bA".
 // The five predefined entities and character references; any other reference refuses the value.
 fn unescape(raw: &str) -> Option<String> {
     let mut out = String::with_capacity(raw.len());
@@ -74,6 +76,7 @@ fn unescape(raw: &str) -> Option<String> {
     Some(out)
 }
 
+// Sample input: tag ' href="a&amp;b" visited="x"' and name "href" give "a&b".
 // One start tag's attribute, unescaped; None when the tag does not carry it.
 fn attribute(tag: &str, name: &str) -> Option<String> {
     let mut rest = tag;
@@ -98,6 +101,7 @@ fn attribute(tag: &str, name: &str) -> Option<String> {
     }
 }
 
+// Sample input: <bookmark href="file:///srv/a.txt" visited="2026-01-01T00:00:00Z"/>
 /// Recent.entries over one xbel file: each bookmark's path, newest visit first, the file's order on a tie, each path once.
 pub fn read(text: &str) -> Vec<String> {
     let mut rows: Vec<(String, String)> = Vec::new();

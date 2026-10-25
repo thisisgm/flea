@@ -15,12 +15,20 @@ lane() {
         CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$PWD/target}" \
         CARGO_PROFILE_TEST_DEBUG=line-tables-only CARGO_PROFILE_DEV_DEBUG=line-tables-only "$@" < /dev/null
 }
-core_out=$(lane cargo test --locked -p flea --lib -- ui_logic_op2 2>&1)
-printf '%s\n' "$core_out" | tail -3
-core_n=$(printf '%s\n' "$core_out" | grep -E '^test result: ok' | sed -E 's/.* ([0-9]+) passed.*/\1/' | head -1)
-gui_out=$(lane cargo test --locked -p flea-gui --lib -- g2::op2 2>&1)
-printf '%s\n' "$gui_out" | tail -3
-gui_n=$(printf '%s\n' "$gui_out" | grep -E '^test result: ok' | sed -E 's/.* ([0-9]+) passed.*/\1/' | head -1)
+# A failing run still prints its tail and a FAIL line, so the rc is captured with errexit off.
+count() { sed -n 's/^test result: ok\. \([0-9]*\) passed.*/\1/p' "$1" | head -1; }
+set +e
+lane cargo test --locked -p flea --lib -- ui_logic_op2 > "$unit_root/core.log" 2>&1
+core_rc=$?
+lane cargo test --locked -p flea-gui --lib -- g2::op2 > "$unit_root/gui.log" 2>&1
+gui_rc=$?
+set -e
+tail -3 "$unit_root/core.log"
+tail -3 "$unit_root/gui.log"
+[ "$core_rc" -eq 0 ] || { tail -40 "$unit_root/core.log" >&2; printf 'g2-op2: FAIL core tests exited %s\n' "$core_rc"; exit 1; }
+[ "$gui_rc" -eq 0 ] || { tail -40 "$unit_root/gui.log" >&2; printf 'g2-op2: FAIL GPUI tests exited %s\n' "$gui_rc"; exit 1; }
+core_n=$(count "$unit_root/core.log")
+gui_n=$(count "$unit_root/gui.log")
 [ "${core_n:-0}" -ge 57 ] || { printf 'g2-op2: FAIL core cases %s, want at least 57\n' "${core_n:-0}"; exit 1; }
 [ "${gui_n:-0}" -ge 22 ] || { printf 'g2-op2: FAIL GPUI cases %s, want at least 22\n' "${gui_n:-0}"; exit 1; }
 clippy_root=$(mktemp -d "$scratch/clippy.XXXXXXXX")

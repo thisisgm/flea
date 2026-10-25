@@ -20,8 +20,10 @@ pub struct Chrome {
     pub network: bool,
     /// The recent history file as the jump last read it.
     pub history: crate::window::path_host::Stamp,
-    /// Jump asks and history reads not answered yet, each a frame still to come.
+    /// History reads not answered yet, each a frame still to come.
     pub waiting: usize,
+    /// Each side's jump asks not answered yet; a lost backend owes none.
+    pub jumps: [usize; 2],
     home: gpui::SharedString,
     subscriptions: Vec<Subscription>,
 }
@@ -217,7 +219,7 @@ impl Shell {
                     if let Some(backend) = &host.backend {
                         match backend.path_line(line.clone()) {
                             // Every jump line earns exactly one jumped reply, so the scene waits for it.
-                            Ok(()) if super::is_jump_line(line) => self.chrome.waiting += 1,
+                            Ok(()) if super::is_jump_line(line) => self.chrome.jumps[*side] += 1,
                             Ok(()) => {}
                             Err(error) => host.record_error(error, &self.locale),
                         }
@@ -287,7 +289,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> Option<super::Answer> {
         if matches!(answer, super::Answer::Jumped(_)) {
-            self.chrome.waiting = self.chrome.waiting.saturating_sub(1);
+            self.chrome.jumps[side] = self.chrome.jumps[side].saturating_sub(1);
         }
         let Some(chrome) = &self.chrome.view else {
             return Some(answer);

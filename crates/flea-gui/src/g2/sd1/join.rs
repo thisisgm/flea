@@ -1,5 +1,4 @@
-//! The window's provider sends: one ProviderSend per pane backend, fed by file menu opens, that
-//! backend's replies and the host runs its Actions name. Rows reach mn1 through the menu Context.
+//! The window's provider sends: one ProviderSend per pane backend, its rows reaching mn1 through the menu Context.
 use super::{
     seams::{Action, ProviderState, RunKind, Wire},
     ProviderSend,
@@ -77,8 +76,7 @@ impl Shell {
         }
     }
 
-    // One backend event: the facts and destination replies for this menu are taken here, LocalSend
-    // replies feed their own side and still reach Jobs, and a dead backend loses its live sends.
+    // Sample input: {"t":"menuaction","id":7,"op":"providerDestination","ok":true} (dead backend: sends lost).
     pub(crate) fn provider_event(
         &mut self,
         side: usize,
@@ -274,7 +272,7 @@ impl Shell {
     }
 
     // Says go to the footer; runs leave the UI thread and answer back on this side's sender.
-    fn provider_actions(&mut self, side: usize, actions: Vec<Action>, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn provider_actions(&mut self, side: usize, actions: Vec<Action>, window: &mut Window, cx: &mut Context<Self>) {
         for action in actions {
             match action {
                 Action::Say(text, error) => {
@@ -282,15 +280,22 @@ impl Shell {
                         messages.say(&text, error, "", flea::ui_logic_fb1::status::Hint::None, now);
                     });
                 }
-                // A send may run for minutes, so it waits on its own thread, never an executor worker.
-                Action::Spawn(argv) => {
+                // A send may run for minutes, so it waits on its own thread and answers through a channel.
+                Action::Spawn(argv, failed) => {
+                    let (done, outcome) = async_channel::bounded(1);
                     std::thread::spawn(move || {
-                        command(&argv)
-                            .stdin(Stdio::null())
-                            .stdout(Stdio::null())
-                            .stderr(Stdio::null())
-                            .status()
+                        let status =
+                            command(&argv).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status();
+                        let _ = done.send_blocking(status.is_ok_and(|status| status.success()));
                     });
+                    cx.spawn_in(window, async move |this, cx| {
+                        if outcome.recv().await != Ok(true) {
+                            let _ = this.update_in(cx, |shell, window, cx| {
+                                shell.provider_actions(side, vec![Action::Say(failed, true)], window, cx);
+                            });
+                        }
+                    })
+                    .detach();
                 }
                 Action::Run(kind, argv) => self.provider_run(side, kind, argv, window, cx),
             }

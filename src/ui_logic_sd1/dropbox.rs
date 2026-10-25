@@ -37,7 +37,7 @@ pub fn account(raw: &str, error: &str) -> Account {
             continue;
         }
         match value.get("path").and_then(Json::as_str) {
-            Some(path) if valid_root(path) => {
+            Some(path) if valid_root(path.trim_end_matches('/')) => {
                 let path = path.trim_end_matches('/').to_string();
                 return Account { path, reason: String::new(), code: String::new() };
             }
@@ -123,6 +123,7 @@ mod tests {
         assert_eq!(account(r#"{"personal":{"path":"relative"}}"#, "").path, "");
         assert_eq!(account(r#"{"personal":{"path":"relative"}}"#, "").code, "invalid");
         assert_eq!(account(r#"{"personal":{},"business":{"path":"/other"}}"#, "").path, "");
+        assert_eq!(account(r#"{"personal":{"path":"//"}}"#, "").code, "invalid", "a slash-only root is the filesystem root");
     }
 
     #[test]

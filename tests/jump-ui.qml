@@ -40,6 +40,9 @@ ShellRoot {
     function rows() {
         return chrome.jump.entries.filter(function (e) { return e.separator !== true }).map(function (e) { return e.path })
     }
+    // The real ui/Ipc.qml seam over this chrome, so pathSuggestionRows and pathSuggestionCursor are the shipped readers.
+    function suggestionRows() { return ipc.seam.pathSuggestionRows() }
+    function suggestionCursor() { return ipc.seam.pathSuggestionCursor() }
     function type(text) {
         for (var i = 0; i < text.length; i++)
             keys.keyClickChar(text.charAt(i), Qt.NoModifier, -1)
@@ -215,8 +218,17 @@ ShellRoot {
         function () {
             root.answer(0)
             root.type("o")
+            return true
+        },
+        // The seam counts laid-out rows, so it is read once the dropdown has drawn.
+        function () { return root.suggestionRows() > 0 },
+        function () {
+            root.check("pathSuggestionRows and pathSuggestionCursor read the drawn rows and the first row", [root.suggestionRows(), root.suggestionCursor()], [7, 0])
+            root.press(Qt.Key_Down)
+            root.check("a Down moves pathSuggestionCursor one row", [root.suggestionRows(), root.suggestionCursor()], [7, 1])
             root.press(Qt.Key_Escape)
             root.check("esc closes the dropdown with the bar and opens nothing", [chrome.editing, chrome.jump.shown, root.entered.length], [false, false, 7])
+            root.check("and the seam reads no rows and no cursor once it closes", [root.suggestionRows(), root.suggestionCursor()], [0, -1])
             // The recent history is read once and kept: every open so far read nothing more.
             var before = root.asked.length
             chrome.startEdit()
@@ -330,4 +342,6 @@ ShellRoot {
                 console.log("jump-ui: " + root.checks + " checks, " + root.failures + " failed")
         }
     }
+
+    Flea.Ipc { id: ipc; chrome: chrome }
 }
