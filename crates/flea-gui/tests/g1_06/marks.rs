@@ -244,6 +244,7 @@ fn clipboard_bounds_follow_the_drawn_name_and_leave_a_reserved_strip() {
                     cursor: true,
                     ..RowState::default()
                 },
+                picture: None,
             };
             let name = Bounds::new(point(px(46.), px(0.)), size(px(200.), px(31.)));
             let cursor = shown.clip_bounds(name, &state.drawn.metrics).unwrap();

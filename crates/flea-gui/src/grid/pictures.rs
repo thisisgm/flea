@@ -1,12 +1,16 @@
-//! The Grid's production pictures and marks: Thumbs.js's viewport asks, the thumbed answers decoded off the UI thread, and LangMarks.js's slugs.
+//! A pane's production pictures and the Grid's marks: Thumbs.js's viewport asks from the Grid, the List or the active Columns track, the thumbed answers decoded off the UI thread, and LangMarks.js's slugs.
+#[path = "pictures/surface.rs"]
+mod surface;
 #[path = "pictures/wire.rs"]
 mod wire;
+#[path = "pictures/readers.rs"]
+mod readers;
 
 use super::{Decor, Identity, Thumbnail};
 use crate::list::pane::Held;
 use crate::row::marks::{Language, Mark};
 use flea::{jsondoc::Json, protocol::RowFacts};
-use gpui::{RenderImage, SharedString, Task};
+use gpui::{Bounds, Corners, ObjectFit, Pixels, RenderImage, SharedString, Task, Window};
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
@@ -109,8 +113,13 @@ enum Slot {
         _task: Task<()>,
     },
     Ready {
+        file: String,
         picture: Arc<Thumbnail>,
         image: bool,
+    },
+    Failed {
+        identity: Identity,
+        file: String,
     },
     // Answered with nothing, or with a file that would not decode: the mark stays.
     Refused,
@@ -121,7 +130,7 @@ enum Slot {
 impl Slot {
     fn identity(&self) -> Option<&Identity> {
         match self {
-            Self::Asked { identity, .. } | Self::Decoding { identity, .. } => Some(identity),
+            Self::Asked { identity, .. } | Self::Decoding { identity, .. } | Self::Failed { identity, .. } => Some(identity),
             Self::Ready { picture, .. } => Some(&picture.identity),
             Self::Refused | Self::Missed => None,
         }
@@ -133,6 +142,8 @@ impl Slot {
 struct Key {
     listing: usize,
     span: (usize, usize),
+    // A List filter's drawn view positions and the identity of its shown rows, Filter.cut; None asks the whole span.
+    only: Option<(usize, usize, usize)>,
     mode: Mode,
     // None until fsinfo names the folder's class.
     cache: Option<bool>,
@@ -155,6 +166,8 @@ struct Map {
     names: HashMap<Box<str>, Option<Language>>,
     retired: Vec<Arc<RenderImage>>,
     counters: Counters,
+    // A cut row's faded copy of each picture, keyed by the source image and kept at one level.
+    faded: HashMap<usize, (u32, Arc<Thumbnail>)>,
 }
 
 impl Map {
@@ -167,10 +180,18 @@ impl Map {
 
     fn forget(&mut self, row: usize) {
         if let Some(Slot::Ready { picture, .. }) = self.slots.remove(&row) {
-            self.retired.push(Arc::clone(&picture.image));
-            self.counters.retired += 1;
+            self.retire(&picture);
         }
         self.order.retain(|kept| *kept != row);
+    }
+
+    // A picture leaves the listing: its texture and its faded copy go to the atlas drop.
+    fn retire(&mut self, picture: &Thumbnail) {
+        self.retired.push(Arc::clone(&picture.image));
+        self.counters.retired += 1;
+        if let Some((_, faded)) = self.faded.remove(&image_key(&picture.image)) {
+            self.retired.push(Arc::clone(&faded.image));
+        }
     }
 
     // Thumbs.remember: the oldest record goes once the cap is passed.
@@ -209,17 +230,14 @@ impl Map {
                 .map(|(at, row)| (row.name.as_str(), held.start + at))
                 .collect();
             for row in std::mem::take(&mut self.order) {
-                if let Some(Slot::Ready { picture, image }) = self.slots.remove(&row) {
+                if let Some(Slot::Ready { picture, image, file }) = self.slots.remove(&row) {
                     let moved = at
                         .get(picture.identity.name.as_str())
                         .copied()
                         .filter(|&to| held.row(to).is_some_and(|facts| picture.identity.is(facts)));
                     match moved {
-                        Some(to) => carried.push((to, Slot::Ready { picture, image })),
-                        None => {
-                            self.retired.push(Arc::clone(&picture.image));
-                            self.counters.retired += 1;
-                        }
+                        Some(to) => carried.push((to, Slot::Ready { picture, image, file })),
+                        None => self.retire(&picture),
                     }
                 }
             }
@@ -248,7 +266,28 @@ impl Map {
     }
 }
 
-/// The production Decor: the thumbnails and language marks one Grid pane lends its tiles.
+/// Paints a lent picture whole inside a row's mark slot, the way Row.qml and ColumnRow.qml fit it.
+pub fn paint_in_slot(picture: &Thumbnail, slot: Bounds<Pixels>, window: &mut Window) {
+    let fit = ObjectFit::Contain.get_bounds(slot, picture.image.size(0));
+    let _ = window.paint_image(slot, fit, Corners::default(), Arc::clone(&picture.image), 0, false);
+}
+
+fn image_key(image: &Arc<RenderImage>) -> usize {
+    Arc::as_ptr(image) as usize
+}
+
+// The decoded picture with every texel's straight alpha scaled, Row.qml's dimOpacity, since GPUI keeps element opacity crate-private.
+fn fade(image: &RenderImage, level: f32) -> Option<Arc<RenderImage>> {
+    let size = image.size(0);
+    let mut bytes = image.as_bytes(0)?.to_vec();
+    for texel in bytes.as_chunks_mut::<4>().0 {
+        texel[3] = (f32::from(texel[3]) * level).round() as u8;
+    }
+    let buffer = image::RgbaImage::from_raw(size.width.0 as u32, size.height.0 as u32, bytes)?;
+    Some(Arc::new(RenderImage::new(vec![image::Frame::new(buffer)])))
+}
+
+/// The production Decor: the thumbnails one pane lends its Grid tiles, List rows and active Columns track, and the Grid's language marks.
 #[derive(Default)]
 pub struct Pictures {
     map: RefCell<Map>,
@@ -277,6 +316,31 @@ impl Pictures {
     pub fn waiting(&self) -> Vec<usize> {
         self.map.borrow().pending().collect()
     }
+    /// A cut row's picture at the row's dimmed share, made once per picture and level and retired with its source.
+    pub fn faded(&self, picture: Arc<Thumbnail>, level: f32) -> Arc<Thumbnail> {
+        let mut map = self.map.borrow_mut();
+        let key = image_key(&picture.image);
+        if let Some((_, faded)) = map.faded.get(&key).filter(|(at, _)| *at == level.to_bits()) {
+            return Arc::clone(faded);
+        }
+        let Some(image) = fade(&picture.image, level) else {
+            return picture;
+        };
+        let faded = Arc::new(Thumbnail {
+            identity: picture.identity.clone(),
+            kind: picture.kind,
+            image,
+        });
+        if let Some((_, old)) = map.faded.insert(key, (level.to_bits(), Arc::clone(&faded))) {
+            map.retired.push(Arc::clone(&old.image));
+        }
+        faded
+    }
+
+    /// The picture a List row or the active Columns track draws, only while the row's facts are the ones it was made from.
+    pub fn lend(&self, listing: usize, row: &RowFacts) -> Option<Arc<Thumbnail>> {
+        self.thumbnail(listing).filter(|picture| picture.identity.is(row))
+    }
 }
 
 impl Decor for Pictures {
@@ -284,7 +348,7 @@ impl Decor for Pictures {
         let map = self.map.borrow();
         let mode = map.policy.map_or(Mode::Off, |policy| policy.mode);
         match map.slots.get(&listing)? {
-            Slot::Ready { picture, image } if mode == Mode::Media || (mode == Mode::Images && *image) => {
+            Slot::Ready { picture, image, .. } if mode == Mode::Media || (mode == Mode::Images && *image) => {
                 Some(Arc::clone(picture))
             }
             _ => None,

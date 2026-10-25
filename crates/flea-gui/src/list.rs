@@ -274,6 +274,10 @@ pub struct ListState {
     /// Marks and cell lines the last paint drew, so a test can see what paint skipped.
     pub painted_marks: Cell<usize>,
     pub painted_cells: Cell<usize>,
+    /// Thumbnails the last paint drew in mark slots.
+    pub painted_pictures: Cell<usize>,
+    /// The pane's one thumbnail lender, shared by Grid tiles, List rows and the active Columns track.
+    pub pictures: Rc<crate::grid::element::pictures::Pictures>,
 }
 
 impl ListState {
@@ -297,6 +301,8 @@ impl ListState {
             drop_line: None,
             painted_marks: Cell::new(0),
             painted_cells: Cell::new(0),
+            painted_pictures: Cell::new(0),
+            pictures: Rc::default(),
         }
     }
 

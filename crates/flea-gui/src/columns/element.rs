@@ -2,9 +2,10 @@
 use super::cache::{Row, Shaping};
 use super::geometry::{cells, name_budget, Slot, CHEVRON, DIVIDER, GAP, MARK, MARK_SLOT, PAD_X};
 use super::paint::{
-    Clip, ClipMarks, Focus, FolderSizes, Palette, TrackPaint, CACHE_SCREENS, CLIP, EDGE,
+    Clip, ClipMarks, Focus, FolderSizes, Palette, TrackPaint, CACHE_SCREENS, CLIP, CUT, EDGE,
 };
 use super::tracks::{TrackRows, TrackView};
+use crate::grid::element::pictures::{paint_in_slot, Pictures};
 use crate::list::pane::{visible_rows, Held, ROW_HEIGHT};
 use crate::palette::Theme;
 use gpui::{
@@ -22,6 +23,7 @@ pub struct TrackElement {
     scroll_y: f32,
     clip: Option<Rc<dyn ClipMarks>>,
     sizes: Option<Rc<dyn FolderSizes>>,
+    pictures: Option<Rc<Pictures>>,
     paint: Rc<RefCell<TrackPaint>>,
     words: Rc<crate::row::format::Words>,
 }
@@ -47,6 +49,7 @@ impl TrackElement {
             scroll_y,
             clip,
             sizes: None,
+            pictures: None,
             paint,
             words,
         }
@@ -55,6 +58,12 @@ impl TrackElement {
     /// The folder walks the active track's size cells read; a peek track never shows a size.
     pub fn with_sizes(mut self, sizes: Rc<dyn FolderSizes>) -> Self {
         self.sizes = Some(sizes);
+        self
+    }
+
+    /// The pane's thumbnail lender, which only the active track's listing rows draw from.
+    pub fn with_pictures(mut self, pictures: Rc<Pictures>) -> Self {
+        self.pictures = Some(pictures);
         self
     }
 
@@ -204,9 +213,17 @@ impl Element for TrackElement {
         // An empty clipboard costs one question a frame, never one a row.
         let clip = self.clip.as_ref().filter(|clip| !clip.is_empty());
         let held = self.held.as_deref();
-        let TrackPaint { cache, visible, .. } = &mut *paint;
+        let TrackPaint {
+            cache,
+            visible,
+            pictures,
+            ..
+        } = &mut *paint;
         cache.begin(&shaping, visible_rows(height) * CACHE_SCREENS);
         visible.clear();
+        pictures.clear();
+        // ColumnRow.qml: only the listing's own column draws thumbnails, never a peek.
+        let lender = self.pictures.as_deref().filter(|_| view.slot == Slot::Active);
         for index in first..last.max(first) {
             let row = row_at(&view.rows, held, index);
             let mark = match (clip, row) {
@@ -221,6 +238,17 @@ impl Element for TrackElement {
             };
             let prepared =
                 row.map(|row| cache.get(index, row, mark != Clip::None, walk, &shaping, window));
+            // ColumnRow.qml dims a cut row's thumbnail with the rest of its mark.
+            pictures.push(match (lender, row) {
+                (Some(lender), Some(Row::Listing(facts))) => lender.lend(index, facts).map(|picture| {
+                    if mark == Clip::Cut {
+                        lender.faded(picture, CUT)
+                    } else {
+                        picture
+                    }
+                }),
+                _ => None,
+            });
             visible.push((index, prepared, mark));
         }
         let palette = Palette::inherited(&window.text_style(), theme);
@@ -266,8 +294,9 @@ impl Element for TrackElement {
                 }
             }
             // One layer for every mark and glyph, so the scene orders the whole track once rather than once a line.
+            let mut pictures_painted = 0;
             window.paint_layer(bounds, |window| {
-                for (index, prepared, clip) in &paint.visible {
+                for ((index, prepared, clip), picture) in paint.visible.iter().zip(&paint.pictures) {
                     let Some(prepared) = prepared else { continue };
                     let top = top_of(*index);
                     let cursor = active && self.focus.cursor == Some(*index);
@@ -279,15 +308,25 @@ impl Element for TrackElement {
                         left + px(PAD_X + (MARK_SLOT - MARK) / 2.),
                         top + px((ROW_HEIGHT - MARK) / 2.),
                     );
-                    let (key, data) = prepared.mark.svg();
-                    let _ = window.paint_svg(
-                        Bounds::new(mark_at, size(px(MARK), px(MARK))),
-                        key,
-                        Some(data),
-                        TransformationMatrix::unit(),
-                        inks.mark,
-                        cx,
-                    );
+                    // ColumnRow.qml: a thumbnail fills the whole mark slot, fitted whole, in place of the glyph.
+                    if let Some(picture) = picture {
+                        let slot = Bounds::new(
+                            point(left + px(PAD_X), top + px((ROW_HEIGHT - MARK_SLOT) / 2.)),
+                            size(px(MARK_SLOT), px(MARK_SLOT)),
+                        );
+                        paint_in_slot(picture, slot, window);
+                        pictures_painted += 1;
+                    } else {
+                        let (key, data) = prepared.mark.svg();
+                        let _ = window.paint_svg(
+                            Bounds::new(mark_at, size(px(MARK), px(MARK))),
+                            key,
+                            Some(data),
+                            TransformationMatrix::unit(),
+                            inks.mark,
+                            cx,
+                        );
+                    }
                     let name = prepared.name(chevron);
                     let name_x = left + px(geometry.name_x);
                     paint_line(name, name_x, top, inks.name, window);
@@ -322,6 +361,7 @@ impl Element for TrackElement {
                     }
                 }
             });
+            paint.painted_pictures.set(pictures_painted);
             if let Some(x) = view.divider_x() {
                 let at = point(bounds.origin.x + px(x - view.x), bounds.origin.y);
                 window.paint_quad(fill(
