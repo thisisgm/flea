@@ -12,9 +12,11 @@ use std::{cell::RefCell, collections::VecDeque, rc::Rc, time::Instant};
 
 #[cfg(test)]
 pub(crate) mod perf_tests;
+mod activity;
 mod policy;
 mod readback;
 mod snapshot;
+pub(crate) mod timing;
 
 const RETAINED: usize = 512;
 
@@ -39,6 +41,7 @@ struct Submitted {
     id: u64,
     draw: Draw,
     at: Instant,
+    monotonic: std::time::Duration,
     visible: bool,
     waiting: bool,
 }
@@ -92,6 +95,8 @@ pub(crate) struct Presentation {
     discarded: u64,
     #[cfg(test)]
     snapshot_builds: std::cell::Cell<u64>,
+    pub(crate) timing: timing::Timing,
+    pub(crate) activity: activity::Activity,
 }
 
 impl Presentation {
@@ -115,6 +120,7 @@ impl Presentation {
         self.retained = None;
         self.observer = None;
         self.visibility = None;
+        self.activity.notified = None;
         self.window = None;
         self.legacy_loading = [false; 2];
     }
@@ -179,6 +185,7 @@ impl Presentation {
             id,
             draw,
             at: now,
+            monotonic: self.timing.now(),
             visible,
             waiting,
         });
@@ -216,6 +223,7 @@ impl Shell {
         }
         self.presentation.window = Some(window.window_handle().window_id());
         self.presentation.pending = VecDeque::with_capacity(RETAINED);
+        self.presentation.activity.follow(cx);
         let weak = cx.entity().downgrade();
         self.presentation.observer = window.observe_frame_feedback(cx, move |event, window, cx| {
             let _ = weak.update(cx, |shell, cx| {
@@ -343,6 +351,9 @@ impl Shell {
             return;
         };
         self.presentation.frames += 1;
+        self.presentation
+            .timing
+            .presented(submitted.id, submitted.monotonic, time);
         for (side, frame) in submitted.draw.panes.into_iter().enumerate() {
             let Some(frame) = frame else { continue };
             {

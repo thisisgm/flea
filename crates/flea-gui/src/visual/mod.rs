@@ -111,6 +111,12 @@ impl Shell {
             ("height", number(f32::from(window.viewport_size().height))),
             ("receipt", self.visual.receipt.clone().unwrap_or(Json::Null)),
             ("presentation", self.presentation.json()),
+            (
+                "activity",
+                self.presentation
+                    .activity
+                    .json(window, self.presented_frames(window)),
+            ),
         ])
     }
 

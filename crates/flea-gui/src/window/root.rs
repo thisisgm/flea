@@ -15,6 +15,7 @@ impl Render for Root {
         #[cfg(test)]
         super::frame_feedback::perf_tests::root_built();
         self.shell.update(cx, |shell, cx| {
+            shell.presentation.activity.draws += 1;
             shell.sync_font_settings(cx);
             shell.observe_operations(window, cx);
             shell.observe_output(window, cx);
