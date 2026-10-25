@@ -80,3 +80,30 @@ fn every_primary_scene_keeps_its_setup_and_board() {
         assert!(scene.get("sha256").and_then(Json::as_object).is_some(), "{scene_name} carries board hashes");
     }
 }
+
+/// A setup `press` names a control the card draws; a keystroke goes in `key`, so one word never means both.
+const PRESS_TARGETS: [&str; 4] = ["action", "cancel", "compress", "extract"];
+const KEYS: [&str; 4] = ["enter", "escape", "space", "tab"];
+
+#[test]
+fn every_press_names_a_control_and_every_key_a_keystroke() {
+    let manifest = jsondoc::parse(REGISTRY).expect("the op2 visual registry parses");
+    for scene in scenes(&manifest) {
+        let scene_name = name(scene);
+        let setup = scene.get("setup").and_then(Json::as_object).expect("setup");
+        for (key, value) in setup.iter() {
+            let value = value.as_str();
+            match key.as_str() {
+                "press" => assert!(
+                    value.is_some_and(|target| PRESS_TARGETS.contains(&target)),
+                    "{scene_name} presses an unknown control {value:?}"
+                ),
+                "key" => assert!(
+                    value.is_some_and(|stroke| KEYS.contains(&stroke)),
+                    "{scene_name} sends an unknown keystroke {value:?}"
+                ),
+                _ => {}
+            }
+        }
+    }
+}

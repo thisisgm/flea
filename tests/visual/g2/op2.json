@@ -304,7 +304,7 @@
     {
       "scene": "g2.op2.extra.compress-encrypt",
       "unit": "g2-op2",
-      "title": "Compress, compress-encrypt: 7z shows Encrypt file names, toggled off by Space it draws unchecked",
+      "title": "Compress, compress-encrypt: Encrypt file names opens checked on 7z; Space on its focused checkbox draws it unchecked",
       "board_png": "design-hig/boards/compress.png",
       "board_html": "design-hig/boards/compress.html",
       "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
@@ -330,12 +330,11 @@
         "card": "compress",
         "format": "7z",
         "focus": "encrypt",
-        "encrypt_names": true,
-        "press": "space",
+        "key": "space",
         "path": "/fx/v/work"
       },
       "assertions": [
-        "7z shows Encrypt file names, toggled off by Space it draws unchecked"
+        "Encrypt file names opens checked on 7z; Space on its focused checkbox draws it unchecked"
       ],
       "parity_ids": [],
       "producer_owner": [
