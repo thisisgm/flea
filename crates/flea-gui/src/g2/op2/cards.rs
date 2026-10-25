@@ -33,6 +33,9 @@ pub const STEP_ROW: f32 = 37.;
 /// The wash under a FLASH row's cursor or selection, and the running bar's empty track.
 pub const ROW_WASH: f32 = 0.18;
 pub const TRACK_WASH: f32 = 0.25;
+/// The running bar's gap under the step and its height.
+pub const BAR_GAP: f32 = 6.;
+pub const BAR_HEIGHT: f32 = 6.;
 
 /// The board's marks, drawn by the one shared painter in op3's shell.
 pub use crate::g2::op3::shell::Glyph;

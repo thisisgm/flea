@@ -163,14 +163,14 @@ impl StandIn {
         div()
             .flex()
             .flex_col()
-            .gap(draw.px(6.))
+            .gap(draw.px(BAR_GAP))
             .pl(draw.px(MARK_INDENT))
             .pr(draw.px(PAD))
             .child(
                 div()
                     .debug_selector(|| SEL_STEP_BAR.into())
                     .w_full()
-                    .h(draw.px(6.))
+                    .h(draw.px(BAR_HEIGHT))
                     .bg(t.muted_frame.opacity(TRACK_WASH))
                     .child(div().w(relative(share)).h_full().bg(t.accent_frame)),
             )

@@ -123,6 +123,7 @@ impl Flash {
         if bytes < self.runner.rate_bytes {
             self.runner.rate_at = now_ms;
             self.runner.rate_bytes = bytes;
+            self.runner.rate = 0;
             return;
         }
         if now_ms.saturating_sub(self.runner.rate_at) >= RATE_WINDOW_MS && bytes >= self.runner.rate_bytes {
@@ -250,6 +251,7 @@ fn a_count_that_goes_back_restarts_the_rate_window() {
     assert_eq!(view.runner.rate, 4_000, "the write reads 8000 bytes over two seconds");
     view.note_rate(1_000, RATE_WINDOW_MS + 500);
     assert_eq!(view.runner.rate_bytes, 1_000, "verify's first chunk restarts the window");
+    assert_eq!(view.runner.rate, 0, "the write's rate is not drawn while verify fills its first window");
     view.note_rate(3_000, 2 * RATE_WINDOW_MS + 500);
     assert_eq!(view.runner.rate, 1_000, "verify reads its own 2000 bytes over two seconds, not the write's rate");
 }
