@@ -14,6 +14,20 @@ mod guard;
 #[path = "contentsorder.rs"]
 mod order;
 
+const METADATA_CHUNK_BYTES: usize = 128 * 1024;
+// One text byte may become six bytes in a JSON Unicode escape.
+const JSON_TEXT_ESCAPE_BYTES: usize = 6;
+// The path appears as hexadecimal bytes plus display text with JSON escaping.
+const RAW_PATH_ENVELOPE_BYTES: usize = 8;
+const MATCH_ENVELOPE_BYTES: usize = 256;
+
+// Contents publications keep their own worker, generation and raw identity while invalidating row indices.
+pub fn forget_rows(st: &mut State, pool: &Pool) {
+    let contents = std::mem::take(&mut st.contents);
+    super::run::forget_rows(st, pool);
+    st.contents = contents;
+}
+
 pub fn start(line: &str, out: &mut impl Write, st: &mut State, tx: &Sender<Event>) {
     match Ask::parse(line) {
         Err(reason) => error(out, None, &reason),
@@ -108,7 +122,7 @@ pub fn done(
             let _ = super::searchreq::finish_search(out, st, true);
             watches.0.stop();
             watches.1.clear();
-            super::run::forget_rows(st, pool);
+            forget_rows(st, pool);
             st.base = PathBuf::from(&ask.path);
             st.held = Held::Walk;
             st.listing = super::listing::Listing::new();
@@ -194,8 +208,10 @@ fn metadata(out: &mut impl Write, st: &State, start: usize, count: usize) {
     while from < end {
         let mut to = from;
         let mut bytes = 0;
-        while to < end && (to == from || bytes < 128 * 1024) {
-            bytes += held.matches[to].line.len() * 6 + held.matches[to].path_bytes.len() * 8 + 256;
+        while to < end && (to == from || bytes < METADATA_CHUNK_BYTES) {
+            bytes += held.matches[to].line.len() * JSON_TEXT_ESCAPE_BYTES
+                + held.matches[to].path_bytes.len() * RAW_PATH_ENVELOPE_BYTES
+                + MATCH_ENVELOPE_BYTES;
             to += 1;
         }
         super::run::say(

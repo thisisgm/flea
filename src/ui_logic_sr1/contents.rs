@@ -65,6 +65,7 @@ fn text(value: &Json, key: &str) -> Result<String, String> {
 }
 
 impl ContentsMatches {
+    // Sample input: {"t":"contentsmatches","gen":1,"listing":1,"start":0,"matches":[]}
     pub(crate) fn parse(document: &Json) -> Result<Self, String> {
         let gen = uint(document, "gen")?;
         let listing = uint(document, "listing")?;

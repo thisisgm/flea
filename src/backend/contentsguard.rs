@@ -1,8 +1,7 @@
 use crate::jsondoc::{self, Json};
 use std::collections::HashSet;
 
-// Handlers use first-match field readers, whereas jsondoc folds repeats into the last.
-// Validate once, then reject decoded duplicate keys at every object depth.
+// Sample input: {"c":"paths","rows":[0]}; reject duplicate decoded keys before first-match handlers read them.
 pub fn document(line: &str) -> Result<Json, String> {
     let document = jsondoc::parse(line)?;
     let bytes = line.as_bytes();

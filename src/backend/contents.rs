@@ -27,6 +27,7 @@ pub struct Ask {
 }
 
 impl Ask {
+    // Sample input: {"c":"searchcontents","path":"/tmp/example","query":"needle","gen":1,"count":10}
     pub fn parse(line: &str) -> Result<Self, String> {
         let doc = jsondoc::parse(line)?;
         let text = |key| {

@@ -3064,7 +3064,7 @@ duplicate generations and stale completion tickets publish nothing. Replacement
 queries serialize after cleanup. Navigation discards the old worker's result.
 On missing ripgrep, sandbox refusal, permission/exit failure, malformed output,
 output limits or the 30-second wall deadline, the backend emits a generation-keyed
-`error` and preserves the previous listing, with no success receipt. Individual
+`error` and preserves the previous listing, with no success receipt.
 Retained match data and a single pending rg JSON record each have an independent
 64 MiB bound. Both stores may coexist, in addition to transient parser and wire
 allocations. Exceeding either bound fails the request rather than returning an

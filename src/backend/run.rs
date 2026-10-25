@@ -951,6 +951,7 @@ fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Po
 
 // A new row order invalidates every outstanding index, so the queue goes and no result can be reported against the new listing.
 pub fn forget_rows(st: &mut State, pool: &Pool) {
+    st.contents.clear();
     st.generation += 1;
     cancel_all(st, pool);
     st.asked.clear();
