@@ -4,8 +4,10 @@ use super::searchreq::{Answer, Cancelled};
 use super::searchsession::Session;
 use super::state::{State, Tables};
 use super::thumbs::Pool;
+use crate::error::FleaError;
 use std::collections::VecDeque;
 use std::io::Write;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
 use std::thread::JoinHandle;
 
@@ -18,11 +20,16 @@ pub(crate) enum Work {
     Cancel,
 }
 
+// The test query that mutates the locked index and panics inside Session::ask.
+#[cfg(test)]
+pub(crate) const INJECTED_PANIC_QUERY: &str = "injected-worker-panic";
+
 struct Done {
     session: Session,
     answer: Option<Answer>,
     cancelled: Option<Cancelled>,
     empty: Option<(usize, usize, usize, f64)>,
+    failed: Option<FleaError>,
 }
 
 struct Worker {
@@ -39,7 +46,7 @@ impl Worker {
             while let Ok((mut session, work)) = jobs.recv() {
                 let mut cancelled = None;
                 let mut empty = None;
-                let answer = match work {
+                let ran = catch_unwind(AssertUnwindSafe(|| match work {
                     Work::Query(query, gen, count, sizes) => {
                         session.wish_sizes(sizes);
                         session.ask(gen, &query, count, &events)
@@ -73,8 +80,23 @@ impl Worker {
                         cancelled = session.cancel_walk();
                         None
                     }
+                }));
+                // A panic answers nothing, but Done and SearchReady still go out, so the loop's gate frees and says why.
+                let (answer, failed) = match ran {
+                    Ok(answer) => (answer, None),
+                    Err(_) => {
+                        let error = super::iomount::internal_failure("search", &session.scope);
+                        let (scope, folder, hidden) = (session.scope.clone(), session.folder.clone(), session.hidden);
+                        session.probes.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+                        // A poisoned watch can panic on drop too; none of the failed session's state is reused.
+                        let _ = catch_unwind(AssertUnwindSafe(|| drop(session)));
+                        session = Session::open_async(&scope.to_string_lossy(), &folder.to_string_lossy(), hidden, events.clone());
+                        cancelled = None;
+                        empty = None;
+                        (None, Some(error))
+                    }
                 };
-                if done.send(Done { session, answer, cancelled, empty }).is_err() { break; }
+                if done.send(Done { session, answer, cancelled, empty, failed }).is_err() { break; }
                 if events.send(Event::SearchReady).is_err() { break; }
             }
         });
@@ -88,6 +110,7 @@ struct Previous {
     walking: bool,
     gen: usize,
     epoch: u64,
+    announced: bool,
 }
 
 #[derive(Default)]
@@ -128,7 +151,8 @@ impl Gate {
             if let Event::Request(line) = &event {
                 let command = crate::json::field_str(line, "c").unwrap_or_default();
                 let newer = command == "searchquery" && crate::json::field_usize(line, "gen").unwrap_or(0) > self.gen;
-                if newer || matches!(command.as_str(), "searchclose" | "searchopen" | "list" | "listpaths" | "sort" | "search" | "quit") {
+                // A sort replays after the query in flight, so that query publishes first and is never dropped.
+                if newer || matches!(command.as_str(), "searchclose" | "searchopen" | "list" | "listpaths" | "search" | "quit") {
                     self.discard = true;
                 }
             }
@@ -162,6 +186,7 @@ impl Gate {
                 walking: session.standing_while_walking,
                 gen: session.last_answered_gen,
                 epoch,
+                announced: session.announced,
             });
             self.discard = false;
             let worker = self.worker.get_or_insert_with(|| Worker::new(events.clone()));
@@ -182,16 +207,19 @@ impl Gate {
         let mut done = self.worker.as_ref().unwrap().rx.recv().expect("search result before its wake");
         let previous = self.previous.take().unwrap();
         // Pending patches, a landing's watch deltas and a delta job all renumber through the same epoch.
-        let rest_ids_valid = done.session.index.lock().unwrap().epoch == previous.epoch;
-        if self.discard {
+        let rest_ids_valid = done.failed.is_none() && done.session.index.lock().unwrap().epoch == previous.epoch;
+        if done.failed.is_some() {
+            // Only the accepted generation is trustworthy after rebuilding; old row ids and queries are gone.
+            done.session.last_answered_gen = previous.gen;
+        } else if self.discard {
             done.session.pending_rest = if rest_ids_valid { previous.rest } else { None };
             done.session.standing = previous.standing;
             done.session.standing_while_walking = previous.walking;
             done.session.last_answered_gen = previous.gen;
             done.session.last_query.clear();
             done.session.last_matches.clear();
-            // A discarded landing still owes the standing generation its final answer after queued requests replay.
-            done.session.announced = false;
+            // Only a landing not yet announced owes the standing generation an answer after replay.
+            done.session.announced = previous.announced;
         } else if done.answer.is_none() && done.cancelled.is_none() {
             done.session.pending_rest = if rest_ids_valid { previous.rest } else { None };
         }
@@ -207,6 +235,9 @@ impl Gate {
                     super::run::say(out, &super::searchreq::searched_cancelled_line(st.listing.len(), cancelled.indexed, 0.0, cancelled.gen));
                 }
             }
+            if let Some(error) = done.failed {
+                super::run::say(out, &super::proto::error_line(&error));
+            }
             if let Some((gen, n, scanned, ms)) = done.empty {
                 let reason = st.search_session.as_ref().and_then(Session::partial_reason);
                 super::run::say(out, &super::searchreq::searched_status_line(n, scanned, ms, gen, false, reason));
@@ -214,7 +245,14 @@ impl Gate {
         }
         self.waiting.append(buffered);
         std::mem::swap(buffered, &mut self.waiting);
-        if self.discard { buffered.push_back(Event::SearchWalked); }
+        if self.discard && !previous.announced { buffered.push_back(Event::SearchWalked); }
+    }
+}
+
+// A refresh that reaches the loop's dispatch enters the execution gate, or queues behind the answer out; with no session there is nothing to re-run.
+pub(crate) fn route_refresh(jobs: Option<&mut Gate>, st: &mut State, out: &mut impl Write, tb: &Tables, pool: &Pool, events: &Sender<Event>) {
+    if let Some(jobs) = jobs {
+        jobs.route(Event::SearchRefresh, st, out, tb, pool, events, &mut VecDeque::new(), false);
     }
 }
 
@@ -258,3 +296,7 @@ mod tests;
 #[cfg(test)]
 #[path = "searchjobs_delta_tests.rs"]
 mod delta_tests;
+
+#[cfg(test)]
+#[path = "searchjobs_fix_tests.rs"]
+mod fix_tests;

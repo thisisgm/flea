@@ -190,7 +190,9 @@ fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tabl
                 let empty = st.search_session.as_ref().is_some_and(|session| session.held.is_none()
                     && session.standing.as_ref().is_some_and(|(_, query, _)| query.is_empty()));
                 if empty { on_search_walked(out, st, tb, pool); }
-                else { let _ = loop_tx.send(Event::SearchWalked); }
+                else if let Some(jobs) = search_jobs.as_deref_mut() {
+                    jobs.route(Event::SearchWalked, st, out, tb, pool, loop_tx, &mut VecDeque::new(), false);
+                } else { on_search_walked(out, st, tb, pool); }
             }
             gate.release_late().into_iter().for_each(|late| watch.abandon_wd(late)); // judged against the watch that landed
             if listwork::replay(gate, |waiting, gate| handle_with_jobs(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut()) == Control::Quit) {
@@ -270,7 +272,9 @@ fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tabl
         Event::SearchDelta(token) if gate.holds() => gate.hold(Event::SearchDelta(token)),
         // A delta replayed from the listing gate enters the execution gate at once, so the requests replayed after it queue behind it.
         Event::SearchDelta(token) => route_delta(search_jobs, token, st, out, tb, pool, loop_tx),
-        Event::SearchReady | Event::SearchRefresh => {},
+        Event::SearchRefresh if gate.holds() => gate.hold(Event::SearchRefresh),
+        Event::SearchRefresh => super::searchjobs::route_refresh(search_jobs, st, out, tb, pool, loop_tx),
+        Event::SearchReady => {},
         Event::ReadError(e) => {
             st.nearby.close();
             // The framing cannot be trusted past a decode failure, so this reports at once and the reader reads no further.

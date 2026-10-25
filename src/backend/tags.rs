@@ -65,10 +65,10 @@ fn io_err(where_: &str, path: &Path, code: i32) -> FleaError {
     crate::error::from_io(where_, &path.to_string_lossy(), &std::io::Error::from_raw_os_error(code))
 }
 
-// Sample input: a file Dolphin tagged "Red,Blue" answers Some of those bytes; untagged answers None.
 #[cfg(test)]
 thread_local! { pub(crate) static SEARCH_TAG_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
 
+// Sample input: a file Dolphin tagged "Red,Blue" answers Some of those bytes; untagged answers None.
 pub fn read_raw(path: &Path) -> Result<Option<Vec<u8>>, FleaError> {
     #[cfg(test)]
     SEARCH_TAG_CALLS.with(|calls| calls.set(calls.get() + 1));

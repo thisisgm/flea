@@ -614,7 +614,11 @@ while an answer is out waits behind it, then is reconciled and re-answered on th
 same worker. Closing releases the execution worker.
 
 Requested local rich rows can reuse metadata, MIME and tag results across query
-generations, keyed by unchanged path identity rather than row index. Reuse holds
+generations, keyed by unchanged path identity rather than row index. The cache
+clears when a folder answer claims a new generation, when an own write under the
+scope patches the index, and when a change line for the open folder is said; a
+typed query clears it when its requested rows change the watched directories or
+are not covered by the inode watches, and keeps it otherwise. Reuse holds
 at most 350 currently requested rows, with bounded payload and independent
 directory and file-inode watches armed before reading misses. Inode changes,
 including writes through hard links in other directories, invalidate metadata

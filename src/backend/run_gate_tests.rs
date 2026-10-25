@@ -356,6 +356,8 @@ mod alias;
 mod poll;
 #[path = "run_gate_delta_tests.rs"]
 mod delta;
+#[path = "run_eof_tests.rs"]
+mod eof;
 
 #[test]
 fn search_listing_gate_replays_enter_the_worker_and_keep_ordinary_request_order() {
