@@ -22,6 +22,9 @@ pub(crate) mod path_host;
 mod presentation;
 pub mod rail;
 mod render;
+mod dual_edge;
+#[cfg(test)]
+mod dual_edge_tests;
 pub mod selection_preview;
 mod preview_text;
 mod preview_facts;
