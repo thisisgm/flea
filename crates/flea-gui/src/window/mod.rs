@@ -24,6 +24,9 @@ mod presentation;
 pub mod rail;
 mod render;
 pub(crate) mod rename;
+mod dual_edge;
+#[cfg(test)]
+mod dual_edge_tests;
 pub mod selection_preview;
 mod preview_facts;
 mod preview_input;
