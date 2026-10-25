@@ -20,6 +20,7 @@ impl Shell {
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
+        let no_match = self.no_match_hero(side, window, cx);
         let host = self.panes[side].as_mut()?;
         let columns = host.columns.as_mut()?;
         let tracks = Rc::clone(columns.area.tracks());
@@ -49,7 +50,12 @@ impl Shell {
         drop(list);
         let clip = self.clipboard.column_marks();
         let mut area = div().size_full().relative().overflow_hidden();
-        let child = super::with_pane(&host.pane, &host.nav, |pane| pane.child());
+        let child = super::with_pane(
+            &host.pane,
+            &host.nav,
+            host.filter.shown.as_deref(),
+            |pane| pane.child(),
+        );
         columns.counters.blank_frames += usize::from(tracks.iter().any(|view| {
             let requested = if view.slot == Slot::Child {
                 !child.is_empty() && columns.area.drawn.contains(&child)
@@ -66,6 +72,10 @@ impl Shell {
                 }
         }));
         for (at, view) in tracks.iter().enumerate() {
+            // HIG cols-filter-nomatch and cols4-hero-search: nothing stands right of an active column that matched nothing.
+            if no_match.is_some() && view.slot.index() > Slot::Active.index() {
+                continue;
+            }
             let paint = columns.painters.painter(view.slot, &typeface);
             let scroll = if view.slot == Slot::Active {
                 host.pane.scroll_y
@@ -83,10 +93,12 @@ impl Shell {
                 Rc::clone(&words),
             );
             if view.slot == Slot::Active {
-                element = element.with_sizes(Rc::new(crate::columns::walks::Walked {
-                    list: Rc::clone(&host.list),
-                    listing: host.pane.held.listing,
-                }));
+                element = element
+                    .with_sizes(Rc::new(crate::columns::walks::Walked {
+                        list: Rc::clone(&host.list),
+                        listing: host.pane.held.listing,
+                    }))
+                    .with_filter(host.filter.shown.clone());
             }
             let mut track = div()
                 .absolute()
@@ -174,7 +186,23 @@ impl Shell {
             }
             area = area.child(track);
         }
-        if let Some(state) = self.slots.states[side].clone() {
+        if let Some((hero, natural)) = no_match {
+            let (x, width) = crate::pane::states::hero_span(
+                columns.area.layout.width,
+                columns.area.layout.active_x(),
+                natural,
+            );
+            area = area.child(
+                div()
+                    .absolute()
+                    .left(px(x))
+                    .top_0()
+                    .w(px(width))
+                    .h_full()
+                    .debug_selector(|| "columns-no-match".into())
+                    .child(hero),
+            );
+        } else if let Some(state) = self.slots.states[side].clone() {
             if let Some(natural) = self.surfaces[side].natural_width(window, cx) {
                 let (x, width) = crate::pane::states::hero_span(
                     columns.area.layout.width,

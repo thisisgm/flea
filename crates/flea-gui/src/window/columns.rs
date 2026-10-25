@@ -70,6 +70,8 @@ struct Seen {
     width: f32,
     height: f32,
     revision: u64,
+    // The filter's drawn rows by identity, so a new answer under an unmoved cursor re-lays the columns.
+    filter: Option<*const usize>,
 }
 
 impl Columns {
@@ -139,8 +141,15 @@ impl Columns {
     }
 }
 
-fn with_pane<R>(pane: &Pane, nav: &Navigator, read: impl FnOnce(PaneView<'_>) -> R) -> R {
+fn with_pane<R>(
+    pane: &Pane,
+    nav: &Navigator,
+    shown: Option<&[usize]>,
+    read: impl FnOnce(PaneView<'_>) -> R,
+) -> R {
     let folders = nav.folders.borrow();
+    // ColumnsArea.qml cursorRow: a cursor the filter hides has no row, so no third column follows it.
+    let hidden = shown.is_some_and(|rows| !rows.contains(&pane.cursor));
     let orders = |path: &str| folders.peek_order(path);
     read(PaneView {
         lens: Lens {
@@ -151,11 +160,11 @@ fn with_pane<R>(pane: &Pane, nav: &Navigator, read: impl FnOnce(PaneView<'_>) ->
             orders: &orders,
         },
         base: pane.path(),
-        cursor_row: pane.held.row(pane.cursor),
+        cursor_row: pane.held.row(pane.cursor).filter(|_| !hidden),
         cursor: pane.cursor,
         listing: pane.held.listing,
         in_flight: pane.busy(),
-        filter_hid_cursor: false,
+        filter_hid_cursor: hidden && shown.is_some_and(|rows| !rows.is_empty()),
     })
 }
 
@@ -167,7 +176,8 @@ fn with_area<R>(
     let columns = host.columns.as_mut()?;
     let mut swap = host.preview_port.clone();
     let mut preview = host.preview_port.clone();
-    Some(with_pane(&host.pane, &host.nav, |pane| {
+    let shown = host.filter.shown.clone();
+    Some(with_pane(&host.pane, &host.nav, shown.as_deref(), |pane| {
         let revision = columns.area.landing.version;
         let tracks = std::rc::Rc::clone(columns.area.tracks());
         for track in tracks
@@ -272,6 +282,16 @@ pub(crate) fn requested(host: &mut PaneHost, listing: &Listing) {
 }
 
 impl Shell {
+    /// The search strip's height over a Columns pane, which draws it in the header slot List leaves it.
+    pub(crate) fn columns_search_strip(&self, side: usize) -> f32 {
+        self.panes[side]
+            .as_ref()
+            .filter(|host| self.view == View::Columns && host.search.owner.active())
+            .map_or(0., |host| {
+                crate::list::Metrics::for_typeface(&host.list.borrow().typeface).header
+            })
+    }
+
     /// The view whose content this frame draws: an entry into Columns still waiting on its columns draws the List.
     pub(crate) fn shown_view(&self) -> View {
         let entering = self.panes[0]
@@ -293,7 +313,9 @@ impl Shell {
             &self.launch.settings.data,
         ));
         let width = geometry.panes[0].width;
-        let height = (geometry.panes[0].height - self.slots.strip_height).max(0.);
+        let height =
+            (geometry.panes[0].height - self.slots.strip_height - self.columns_search_strip(0))
+                .max(0.);
         let Some(host) = self.panes[0].as_mut() else {
             return;
         };
@@ -325,6 +347,7 @@ impl Shell {
         let revision = self.locale.revision;
         let now = host.pane.now();
         let held = host.pane.held.clone();
+        let filter = host.filter.shown.as_ref().map(|rows| rows.as_ptr());
         with_area(host, |columns, pane, ports| {
             let key = Seen {
                 cursor: pane.cursor,
@@ -337,6 +360,7 @@ impl Shell {
                 width,
                 height,
                 revision,
+                filter,
             };
             if columns.seen == Some(key)
                 && columns.path == pane.lens.here

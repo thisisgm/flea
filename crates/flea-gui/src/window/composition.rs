@@ -351,6 +351,9 @@ pub(crate) fn render(
                         true,
                     )),
             });
+        } else if let Some((element, _)) = headers[side].take() {
+            // HIG cols4-hero-search: Columns has no list header, so only a search strip arrives here, above the columns.
+            pane = pane.child(header.child(element));
         }
         if let Some(view) = &slots.strips[side] {
             pane = pane.child(

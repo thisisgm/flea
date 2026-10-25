@@ -24,6 +24,7 @@ pub struct TrackElement {
     sizes: Option<Rc<dyn FolderSizes>>,
     paint: Rc<RefCell<TrackPaint>>,
     words: Rc<crate::row::format::Words>,
+    shown: Option<Rc<[usize]>>,
 }
 
 impl TrackElement {
@@ -49,7 +50,14 @@ impl TrackElement {
             sizes: None,
             paint,
             words,
+            shown: None,
         }
+    }
+
+    /// A standing filter's drawn rows: the active track then draws the listing row at each view position.
+    pub fn with_filter(mut self, shown: Option<Rc<[usize]>>) -> Self {
+        self.shown = shown;
+        self
     }
 
     /// The folder walks the active track's size cells read; a peek track never shows a size.
@@ -65,7 +73,10 @@ impl TrackElement {
     fn total(&self) -> usize {
         match &self.view().rows {
             TrackRows::Peek(rows) => rows.len(),
-            TrackRows::Listing => self.held.as_ref().map_or(0, |held| held.total),
+            TrackRows::Listing => match &self.shown {
+                Some(rows) => rows.len(),
+                None => self.held.as_ref().map_or(0, |held| held.total),
+            },
             TrackRows::Preview | TrackRows::Blank => 0,
         }
     }
@@ -183,6 +194,7 @@ impl Element for TrackElement {
             at: self.at,
             scroll: self.scroll_y,
             held: self.held.clone(),
+            shown: self.shown.clone(),
         });
         let width = f32::from(bounds.size.width);
         let shows_size = view.slot == Slot::Active;
@@ -204,10 +216,17 @@ impl Element for TrackElement {
         // An empty clipboard costs one question a frame, never one a row.
         let clip = self.clip.as_ref().filter(|clip| !clip.is_empty());
         let held = self.held.as_deref();
-        let TrackPaint { cache, visible, .. } = &mut *paint;
+        let TrackPaint {
+            cache,
+            visible,
+            first: start,
+            ..
+        } = &mut *paint;
         cache.begin(&shaping, visible_rows(height) * CACHE_SCREENS);
         visible.clear();
-        for index in first..last.max(first) {
+        *start = first;
+        for position in first..last.max(first) {
+            let index = self.shown.as_ref().map_or(position, |rows| rows[position]);
             let row = row_at(&view.rows, held, index);
             let mark = match (clip, row) {
                 (Some(clip), Some(row)) => clip.mark(&view.path, row.name()),
@@ -245,17 +264,18 @@ impl Element for TrackElement {
         let active = view.slot == Slot::Active;
         let width = f32::from(bounds.size.width);
         let left = bounds.origin.x;
-        let top_of =
-            |index: usize| bounds.origin.y + px(index as f32 * ROW_HEIGHT - self.scroll_y.max(0.));
+        let top_of = |at: usize| {
+            bounds.origin.y + px((paint.first + at) as f32 * ROW_HEIGHT - self.scroll_y.max(0.))
+        };
         let row_box =
             |top: Pixels, w: f32| Bounds::new(point(left, top), size(px(w), px(ROW_HEIGHT)));
         window.paint_quad(fill(bounds, palette.background));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
-            for (index, prepared, _) in &paint.visible {
+            for (at, (index, prepared, _)) in paint.visible.iter().enumerate() {
                 if prepared.is_none() {
                     continue;
                 }
-                let top = top_of(*index);
+                let top = top_of(at);
                 let cursor = active && self.focus.cursor == Some(*index);
                 let lifted = !cursor && self.lifted(view, held, *index);
                 if let Some(plate) = self.focus.plate(&palette, view.slot, *index, lifted) {
@@ -267,9 +287,9 @@ impl Element for TrackElement {
             }
             // One layer for every mark and glyph, so the scene orders the whole track once rather than once a line.
             window.paint_layer(bounds, |window| {
-                for (index, prepared, clip) in &paint.visible {
+                for (at, (index, prepared, clip)) in paint.visible.iter().enumerate() {
                     let Some(prepared) = prepared else { continue };
-                    let top = top_of(*index);
+                    let top = top_of(at);
                     let cursor = active && self.focus.cursor == Some(*index);
                     let lifted = !cursor && self.lifted(view, held, *index);
                     let chevron = prepared.dir && (cursor || lifted);
