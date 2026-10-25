@@ -246,6 +246,7 @@ impl Shell {
                 || self.focus.is_focused(window))
                 && self.input_action(action, window, cx))
             || self.operation_action(action, cx)
+            || self.tab_action(action, window, cx)
             || self.clipboard_action(action, window, cx)
         {
             return true;

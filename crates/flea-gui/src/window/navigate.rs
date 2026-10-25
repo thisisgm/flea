@@ -46,7 +46,12 @@ impl Shell {
         // A refused or file row Enter keeps the search it was pressed in; only a folder it opens leaves it.
         let leaves = step != Step::OpenCursor
             || self.panes[side].as_ref().is_some_and(|host| {
-                !host.pane.busy() && host.pane.held.row(host.pane.cursor).is_some_and(|row| row.dir)
+                !host.pane.busy()
+                    && host
+                        .pane
+                        .held
+                        .row(host.pane.cursor)
+                        .is_some_and(|row| row.dir)
             });
         if leaves {
             self.search_leave(side, window, cx);
@@ -125,6 +130,7 @@ impl Shell {
         self.surfaces[side].filesystem.enter(&host.path);
         host.nav
             .after_reply(&mut host.pane, before, &mut host.selected);
+        self.tab_landed(side, window, cx);
         self.run_navigation(side, window, cx);
         self.arm_watch(side, window, cx);
         if self.panes[side]
