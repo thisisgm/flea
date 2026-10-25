@@ -205,3 +205,24 @@ fn a_click_on_the_undo_target_runs_undo_once(cx: &mut TestAppContext) {
     vcx.simulate_mouse_up(point(px(1.), px(1.)), MouseButton::Left, Modifiers::none());
     assert_eq!(undone.get(), 1);
 }
+
+#[gpui::test]
+fn the_status_line_draws_an_error_in_the_red_lifted_on_the_surface(cx: &mut TestAppContext) {
+    let theme = crate::palette::Theme::from_text(crate::window::settings::ink_tests::SPLIT);
+    let palette = crate::list::Palette::inherited(&gpui::TextStyle::default(), theme);
+    assert_ne!(palette.error, palette.error_on_surface);
+    cx.update(|cx| cx.set_global(theme));
+    let handle = open(cx);
+    handle
+        .update(cx, |line, _, cx| {
+            line.update(cx, |m, now| m.say("Copy failed", true, "", Hint::None, now))
+        })
+        .unwrap();
+    run(cx, handle, 32);
+    let ink = handle
+        .update(cx, |line, _, _| {
+            line.painted.get("primary").map(|text| text.color)
+        })
+        .unwrap();
+    assert_eq!(ink, Some(palette.error_on_surface));
+}

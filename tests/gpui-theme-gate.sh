@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # Stock contrast and real GPUI startup/theme subscription, always in a marked child HOME.
 set -euo pipefail
+# Cargo starts the test binary through --runner; env -i leaves it only PATH, LD_LIBRARY_PATH, the sandbox dirs and the gate's FLEA_ variables.
+if [[ ${1-} == --runner ]]; then
+    shift
+    root=${FLEA_THEME_GATE_ROOT:?runner without the gate root}
+    pass=(PATH="$PATH" HOME="$root/home" XDG_CONFIG_HOME="$root/config" XDG_CACHE_HOME="$root/cache" XDG_STATE_HOME="$root/state"
+        XDG_DATA_HOME="$root/home/.local/share" XDG_RUNTIME_DIR="$root/runtime" FLEA_THEME_GATE_ROOT="$root"
+        FLEA_BIN="$FLEA_BIN" FLEA_THEME_STOCK_DIR="$FLEA_THEME_STOCK_DIR" FLEA_FIXTURE_ROOT="$FLEA_FIXTURE_ROOT")
+    [[ ! -v LD_LIBRARY_PATH ]] || pass+=(LD_LIBRARY_PATH="$LD_LIBRARY_PATH")
+    exec env -i "${pass[@]}" "$@"
+fi
 repo=$(cd "$(dirname "$0")/.." && pwd)
 cd "$repo"
 # This suite owns only /tmp fixtures; build products stay in the caller's target directory.
@@ -31,12 +41,9 @@ export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$repo/target}
 # Build while the operator HOME is still available to rustup; no app is started here.
 cargo build --offline --locked -p flea --bin flea
 cargo test --offline --locked -p flea-gui --lib theme_gate --no-run
-# env -i clears every operator variable; only PATH, FLEA_FIXTURE_ROOT, cargo/rustup settings and the sandbox dirs below pass in.
-keep=(PATH="$PATH" FLEA_FIXTURE_ROOT="$FLEA_FIXTURE_ROOT" CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}" RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}")
-while IFS= read -r var; do keep+=("$var=${!var}"); done < <(compgen -e | grep -E '^(CARGO_|RUSTC|RUSTFLAGS$|RUSTDOCFLAGS$|RUSTUP_TOOLCHAIN$)' | grep -vxE 'CARGO_HOME')
-env -i "${keep[@]}" \
-    HOME="$test_root/home" XDG_CONFIG_HOME="$test_root/config" XDG_CACHE_HOME="$test_root/cache" \
-    XDG_STATE_HOME="$test_root/state" XDG_DATA_HOME="$test_root/home/.local/share" XDG_RUNTIME_DIR="$test_root/runtime" \
-    FLEA_BIN="$CARGO_TARGET_DIR/debug/flea" FLEA_THEME_GATE_ROOT="$test_root" FLEA_THEME_STOCK_DIR="$stock" \
-    cargo test --offline --locked -p flea-gui --lib theme_gate -- --ignored --nocapture --test-threads=1
+# Cargo keeps the caller's environment, as the --no-run build above did, so nothing it fingerprinted changes.
+[[ $repo != *"'"* ]] || { echo "FAIL gpui-theme-gate: the runner path cannot hold a quote: $repo" >&2; exit 1; }
+export FLEA_BIN="$CARGO_TARGET_DIR/debug/flea" FLEA_THEME_GATE_ROOT="$test_root" FLEA_THEME_STOCK_DIR="$stock"
+cargo test --offline --locked -p flea-gui --lib theme_gate --config "target.'cfg(all())'.runner = ['/bin/bash', '$repo/tests/gpui-theme-gate.sh', '--runner']" \
+    -- --ignored --nocapture --test-threads=1
 printf 'GPUI_THEME_GATE PASS stock=%s contrast and live atomic replacement\n' "$expected"

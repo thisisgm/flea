@@ -6,10 +6,12 @@ mod claim;
 mod corner_tests;
 #[cfg(test)]
 mod fix1_tests;
+#[cfg(test)]
+pub(crate) mod ink_tests;
 mod locale;
-mod messages;
 #[cfg(test)]
 mod m9_g1rows_05_tests;
+mod messages;
 mod plugins;
 #[cfg(test)]
 mod review_tests;
