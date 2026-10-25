@@ -1,0 +1,4 @@
+# host lane kind [args]
+east prep prep
+west prep prep
+west qml qmllint-gate
