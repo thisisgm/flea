@@ -20,6 +20,9 @@ pub struct Writer {
     // Patches no worker has finished yet, which a settings reread must not undo and a new worker resends.
     owed: Vec<Owed>,
     done: Arc<AtomicUsize>,
+    // Every patch in write order, so a test can tell a sort write from a path or tab strip write.
+    #[cfg(test)]
+    pub patches: Vec<String>,
     // A held writer keeps its worker's end open, so its sends succeed without a worker.
     #[cfg(test)]
     held: Option<mpsc::Receiver<(String, String)>>,
@@ -66,6 +69,8 @@ impl Writer {
 
     pub fn write(&mut self, patch: String, failure: String) {
         self.sent += 1;
+        #[cfg(test)]
+        self.patches.push(patch.clone());
         if !self.live {
             return;
         }
@@ -157,6 +162,15 @@ impl Writer {
     fn retire(&mut self) {
         let done = self.done.load(Ordering::Acquire);
         self.owed.retain(|owed| owed.seq == 0 || owed.seq > done);
+    }
+
+    // The patches that write a folder or global sort; lastPath and lastTabs writes are not sort writes.
+    #[cfg(test)]
+    pub fn sort_writes(&self) -> usize {
+        self.patches
+            .iter()
+            .filter(|patch| patch.contains("\"folderSorts\"") || patch.contains("\"sort\""))
+            .count()
     }
 
     // Unfinished patches in write order.

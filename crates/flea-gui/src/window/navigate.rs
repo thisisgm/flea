@@ -131,6 +131,7 @@ impl Shell {
                 messages.say(&notice, false, "", flea::ui_logic_fb1::status::Hint::None, now)
             });
         }
+        self.tab_landed(side, window, cx);
         self.run_navigation(side, window, cx);
         self.arm_watch(side, window, cx);
         if self.panes[side]

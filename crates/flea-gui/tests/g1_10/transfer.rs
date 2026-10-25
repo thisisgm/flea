@@ -879,7 +879,12 @@ fn a_tear_off_hands_its_window_the_lift_and_a_new_window_inherits_none_of_it() {
         .collect();
     assert_eq!(
         names,
-        ["FLEA_TAB_CURSOR", "FLEA_TAB_SOURCE_PID", "FLEA_TAB_TOKEN"],
+        [
+            "FLEA_TAB_CURSOR",
+            "FLEA_TAB_SORT",
+            "FLEA_TAB_SOURCE_PID",
+            "FLEA_TAB_TOKEN",
+        ],
         "tearoff sets exactly the names a fresh launch drops"
     );
     let args: Vec<&str> = command.get_args().filter_map(|arg| arg.to_str()).collect();
@@ -1244,34 +1249,5 @@ fn the_compositor_answer_names_the_one_mapped_window_of_this_pid_and_the_latest_
     );
 }
 
-#[test]
-fn the_folder_check_goes_out_as_one_reserved_peek_and_its_answer_reads_back() {
-    assert_eq!(
-        peek_line("/tmp/a\"b", PEEK_FIRST, false, false),
-        r#"{"c":"peek","path":"/tmp/a\"b","first":2,"hidden":false,"hiddenLast":false}"#,
-        "the request carries the reserved discriminator and both flags off"
-    );
-    let answer = jsondoc::parse(r#"{"t":"peeked","path":"/tmp/a","n":0,"rows":[],"hidden":false,"hiddenLast":false,"first":2,"failed":true}"#).unwrap();
-    let read = peeked(&answer).unwrap();
-    assert_eq!(
-        (
-            read.path.as_str(),
-            read.hidden,
-            read.read_failed,
-            read.hidden_last,
-            read.first
-        ),
-        ("/tmp/a", false, true, false, 2),
-        "a peeked line reads back its four discriminating fields"
-    );
-    assert_eq!(
-        peeked(&jsondoc::parse(r#"{"t":"listed","path":"/tmp/a"}"#).unwrap()),
-        None,
-        "any other line is not a peek answer"
-    );
-    assert_eq!(
-        peeked(&jsondoc::parse(r#"{"t":"peeked","path":"/tmp/a","first":-1}"#).unwrap()),
-        None,
-        "and a peek answer without a row count is refused"
-    );
-}
+#[path = "transfer_peek.rs"]
+mod peek;

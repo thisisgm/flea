@@ -158,3 +158,69 @@ fn owner_parity_dual_edge_hides_under_cover_and_for_absent_pane(cx: &mut TestApp
         })
         .unwrap();
 }
+
+struct OverlayGround;
+
+impl gpui::Render for OverlayGround {
+    fn render(
+        &mut self,
+        _: &mut gpui::Window,
+        _: &mut gpui::Context<Self>,
+    ) -> impl gpui::IntoElement {
+        use gpui::Styled;
+        gpui::div().size_full().bg(gpui::rgb(0x123456))
+    }
+}
+
+#[gpui::test]
+fn the_focused_dual_edge_paints_below_an_overlapping_overlay_rail(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    handle
+        .update(cx, |shell, _, cx| {
+            shell.launch.settings = crate::window::startup::Settings::from_json(
+                flea::jsondoc::parse(r#"{"places":{"autoHide":true}}"#).unwrap(),
+                false,
+            );
+            shell.slots.rail = Some(cx.new(|_| OverlayGround).into());
+        })
+        .unwrap();
+    for side in [0, 1] {
+        handle
+            .update(cx, |shell, _, cx| shell.focus_pane(side, cx))
+            .unwrap();
+        let (quads, geometry, palette, header, scale) = draw(cx, handle);
+        assert!(geometry.rail_overlay, "the rail must overlap the panes");
+        assert_eq!(
+            edges(
+                &quads,
+                &geometry,
+                palette.accent_frame.into(),
+                header,
+                scale
+            ),
+            [side],
+            "the focused pane keeps its complete edge below the rail"
+        );
+        let edge = quads
+            .iter()
+            .find(|quad| {
+                quad.background == Background::from(palette.accent_frame)
+                    && (quad.bounds.size.height.0 / scale - (geometry.panes[side].height - header))
+                        .abs()
+                        < 0.1
+            })
+            .expect("the full-pane edge is painted");
+        let ground = quads
+            .iter()
+            .find(|quad| quad.background == Background::from(gpui::rgb(0x123456)))
+            .expect("the overlay rail paints its ground");
+        assert!(
+            edge.bounds.intersects(&ground.bounds),
+            "the stacking assertion must cover an overlap"
+        );
+        assert!(
+            edge.order < ground.order,
+            "the overlay ground must cover the pane edge"
+        );
+    }
+}

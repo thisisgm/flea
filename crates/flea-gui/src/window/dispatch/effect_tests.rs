@@ -16,7 +16,7 @@ fn home() -> Vec<flea::protocol::RowFacts> {
 }
 
 // The keystrokes a preset binds to an action, each checked to resolve to it in that context.
-fn strokes(preset: &str, action: &'static str, context: Context) -> Vec<KeyDownEvent> {
+pub(super) fn strokes(preset: &str, action: &'static str, context: Context) -> Vec<KeyDownEvent> {
     keys::binding_rows(preset, Frontend::Gui)
         .filter(|binding| binding.action == action)
         .map(keystroke)
@@ -31,7 +31,7 @@ fn strokes(preset: &str, action: &'static str, context: Context) -> Vec<KeyDownE
         .collect()
 }
 
-fn hit(cx: &mut VisualTestContext, event: &KeyDownEvent, action: &str) {
+pub(super) fn hit(cx: &mut VisualTestContext, event: &KeyDownEvent, action: &str) {
     let paired = keys::SEQUENCES
         .iter()
         .any(|sequence| sequence.paired && sequence.arm == action);
@@ -47,7 +47,7 @@ fn step(shell: &Entity<Shell>, cx: &mut VisualTestContext, step: Step) {
     assert_eq!(done, Ok(true));
 }
 
-fn close(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+pub(super) fn close(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
     cx.update(|window, _| window.remove_window());
     cx.run_until_parked();

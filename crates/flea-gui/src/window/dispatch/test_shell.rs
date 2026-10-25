@@ -22,7 +22,13 @@ pub(super) fn open<'a>(
     cx: &'a mut TestAppContext,
     keys: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
-    open_in(cx, &format!(r#""keys":"{keys}","view":"list""#), None, false)
+    build(
+        cx,
+        &format!(r#""keys":"{keys}","view":"list""#),
+        None,
+        false,
+        "",
+    )
 }
 
 // The same launch with its own settings fields and a --select path.
@@ -31,7 +37,7 @@ pub(super) fn open_with<'a>(
     settings: &str,
     select: Option<&str>,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
-    open_in(cx, settings, select, false)
+    build(cx, settings, select, false, "")
 }
 
 // The native window's own root, which mounts the menu layer and the deferred cards and takes the right click before the panes.
@@ -39,17 +45,49 @@ pub(super) fn open_root<'a>(
     cx: &'a mut TestAppContext,
     keys: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
-    open_in(cx, &format!(r#""keys":"{keys}","view":"list""#), None, true)
+    build(
+        cx,
+        &format!(r#""keys":"{keys}","view":"list""#),
+        None,
+        true,
+        "",
+    )
 }
 
-fn open_in<'a>(
+// The same launch in a named view.
+pub(super) fn open_in<'a>(
+    cx: &'a mut TestAppContext,
+    keys: &str,
+    view: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    open_places(cx, keys, view, "")
+}
+
+// The same launch with more places members, written as `,"name":value`.
+pub(super) fn open_places<'a>(
+    cx: &'a mut TestAppContext,
+    keys: &str,
+    view: &str,
+    places: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    build(
+        cx,
+        &format!(r#""keys":"{keys}","view":"{view}""#),
+        None,
+        false,
+        places,
+    )
+}
+
+fn build<'a>(
     cx: &'a mut TestAppContext,
     settings: &str,
     select: Option<&str>,
     root: bool,
+    places: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
     let document = flea::jsondoc::parse(&format!(
-        r#"{{{settings},"places":{{"rail":"shown","showHome":true,"showTrash":true}}}}"#
+        r#"{{{settings},"places":{{"rail":"shown","showHome":true,"showTrash":true{places}}}}}"#
     ))
     .unwrap();
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());

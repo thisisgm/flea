@@ -65,12 +65,17 @@ fn gcomp36_focused_rail_passes_window_handlers_and_swallows_listing_actions(
     // The window runs reload itself now, so only the actions with no owner yet reach observers; dispatch/navigation_tests.rs proves the rail reload lists.
     assert_eq!(
         seen.borrow().as_slice(),
-        &[
-            ("openTerminal", flea::keys::Context::Rail),
-            ("tabNew", flea::keys::Context::Rail),
-        ],
+        &[("openTerminal", flea::keys::Context::Rail),],
         "focused rail swallowed a real window action handler"
     );
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(
+            shell.strip.tabs[0].count(),
+            2,
+            "T reached the mounted tab owner"
+        );
+        assert_eq!(shell.strip.tabs[0].current(), 1);
+    });
     let before = seen.borrow().clone();
     for key in ["ctrl-c", "delete", "ctrl-x", "y"] {
         cx.simulate_keystrokes(key);

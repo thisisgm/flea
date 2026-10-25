@@ -69,6 +69,7 @@ impl Render for Shell {
             self.sync_footer_owner(cx);
         }
         self.sync_footer_height(window, cx);
+        self.sync_tabs(window, cx);
         let geometry = self.geometry(window);
         self.size_trash(&geometry, cx);
         self.trash_frame(window, cx);
@@ -288,6 +289,7 @@ impl Render for Shell {
                 .bg(background)
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key))
+                .capture_any_mouse_down(cx.listener(Self::middle_tab_pointer))
                 .child(
                     div()
                         .w(viewport.width)
@@ -318,6 +320,7 @@ impl Render for Shell {
                     labels: &self.labels,
                     typeface: self.active_typeface(),
                     focus: &self.dual_focus,
+                    pane_edge: self.dual_edge(&geometry, palette),
                 },
                 view,
                 self.visual
@@ -325,13 +328,13 @@ impl Render for Shell {
                     .as_ref()
                     .map(|_| self.visual.probe.clone()),
             )
-            .children(self.dual_edge(&geometry, palette))
             .children(self.dual_divider(&geometry, palette, cx))
             .bg(background)
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key))
             .on_scroll_wheel(cx.listener(Self::wheel))
             .capture_any_mouse_down(cx.listener(Self::side_button))
+            .capture_any_mouse_down(cx.listener(Self::middle_tab_pointer))
             .child(Self::list_header_input(cx)),
             cx,
         )

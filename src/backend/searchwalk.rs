@@ -10,6 +10,9 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
+#[path = "searchwalk_probes.rs"]
+mod probes;
+
 // How long an idle walk thread waits before it rechecks the cancel flag; every queue change notifies sooner.
 const CANCEL_RECHECK: Duration = Duration::from_millis(50);
 
@@ -29,26 +32,6 @@ pub(crate) struct WalkProbes {
     pub(crate) body: Mutex<Option<String>>,
     #[cfg(test)]
     pub(crate) landing_sent: AtomicBool,
-}
-
-impl WalkProbes {
-    pub(crate) fn new() -> WalkProbes {
-        WalkProbes {
-            opened: AtomicUsize::new(0),
-            cancel: Arc::new(AtomicBool::new(false)),
-            watch: Mutex::new(None),
-            #[cfg(test)]
-            hold: Mutex::new(None),
-            #[cfg(test)]
-            read_hold: Arc::new(Mutex::new(None)),
-            #[cfg(test)]
-            remote_reads: AtomicUsize::new(0),
-            #[cfg(test)]
-            body: Mutex::new(None),
-            #[cfg(test)]
-            landing_sent: AtomicBool::new(false),
-        }
-    }
 }
 
 // The whole walk: one mountinfo read, then the local or the remote walk.

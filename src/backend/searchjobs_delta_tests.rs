@@ -102,7 +102,11 @@ impl Loop {
         loop {
             self.ready();
             let said = self.said();
-            if said.get(2).and_then(|line| crate::json::field_usize(line, "n")) == Some(count) {
+            if said
+                .get(2)
+                .and_then(|line| crate::json::field_usize(line, "n"))
+                == Some(count)
+            {
                 return said;
             }
             let delta = self.delta();

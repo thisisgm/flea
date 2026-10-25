@@ -80,7 +80,7 @@ impl Outside for Recorder {
 pub(super) fn english() -> Arc<I18n> {
     let none = std::path::PathBuf::from("/nonexistent/flea-pl3");
     Arc::new(I18n::load(Paths {
-        omarchy: none.clone(),
+        omarchy: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/i18n/fixtures/omarchy"),
         language_file: none,
         catalogs: Vec::new(),
     }))

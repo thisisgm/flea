@@ -6,7 +6,11 @@ use flea::{
 
 #[test]
 fn sheet_hints_are_bounded_mirrored_and_use_the_active_preset() {
-    let catalog = I18n::default();
+    let catalog = I18n::load(Paths {
+        omarchy: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/i18n/fixtures/omarchy"),
+        language_file: "/nonexistent/flea-g1-04-language".into(),
+        catalogs: Vec::new(),
+    });
     for row in keys::PRESET_KEYS.iter().chain(keys::SHARED_KEYS) {
         assert_ne!(catalog.tr(row.label_key), row.label_key);
     }

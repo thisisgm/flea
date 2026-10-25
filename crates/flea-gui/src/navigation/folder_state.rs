@@ -299,7 +299,7 @@ mod window_tests {
                     Err(crate::navigation::Refusal::Busy)
                 );
                 let host = shell.panes[0].as_ref().unwrap();
-                assert_eq!(host.nav.writer.borrow().sent, 0);
+                assert_eq!(host.nav.writer.borrow().sort_writes(), 0);
                 assert!(host.nav.folders.borrow().has("/files"));
                 for reply in [
                     Reply::Listed {
@@ -327,10 +327,13 @@ mod window_tests {
                 let host = shell.panes[0].as_ref().unwrap();
                 assert_eq!(host.path, "/files");
                 assert_eq!(host.nav.order, Order { key: "size", desc: true });
-                assert_eq!(host.nav.writer.borrow().sent, 0);
+                assert_eq!(host.nav.writer.borrow().sort_writes(), 0);
                 host.nav.folders.borrow_mut().remember_sort = false;
                 assert_eq!(shell.step(0, Step::ForgetSort, window, cx), Ok(true));
-                assert_eq!(shell.panes[0].as_ref().unwrap().nav.writer.borrow().sent, 0);
+                assert_eq!(
+                    shell.panes[0].as_ref().unwrap().nav.writer.borrow().sort_writes(),
+                    0
+                );
             })
         });
     }

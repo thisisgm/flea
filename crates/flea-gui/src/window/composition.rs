@@ -208,6 +208,7 @@ pub(crate) struct Content<'a> {
     pub labels: &'a Labels,
     pub typeface: crate::list::Typeface,
     pub focus: &'a crate::dual::focus::Focus,
+    pub pane_edge: Option<Div>,
 }
 
 /// ChromeBar.qml and the tab strip take the keyboard only from Tab, never from a press.
@@ -232,6 +233,7 @@ pub(crate) fn render(
         labels,
         typeface,
         focus,
+        pane_edge,
     } = content;
     let metrics = crate::list::Metrics::for_typeface(&typeface);
     let text =
@@ -360,6 +362,7 @@ pub(crate) fn render(
         }
         root = root.child(pane.child(div().flex_1().min_h_0().overflow_hidden().child(content)));
     }
+    root = root.children(pane_edge);
     if let Some(view) = slots.rail.as_ref().filter(|_| geometry.rail_overlay) {
         // PaneRail.qml: the overlay owns only its edge and body (the host hears those presses), so its stop hangs on a zero-size node.
         root = root.child(

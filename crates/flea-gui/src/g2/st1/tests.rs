@@ -16,7 +16,7 @@ use std::sync::Arc;
 pub(super) fn english() -> Arc<I18n> {
     let missing = PathBuf::from("/nonexistent/flea-st1-test");
     Arc::new(I18n::load(Paths {
-        omarchy: missing.clone(),
+        omarchy: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/i18n/fixtures/omarchy"),
         language_file: missing.join("language"),
         catalogs: Vec::new(),
     }))
