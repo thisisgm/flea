@@ -164,15 +164,31 @@ fn u25_closing_the_window_cleans_the_source_and_catcher(cx: &mut TestAppContext)
     let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
+            shell.follow_tab_drags(window, cx);
             assert!(shell.tab_action("tabNew", window, cx));
             shell.with_tabs(|bar, panes| bar.tab_lift_began(panes, 0, 1));
             assert!(shell.tab_native_payload(cx).is_some());
             assert!(!shell.strip.bar.out_payload.is_empty());
+            let catchers: Vec<_> = cx
+                .windows()
+                .into_iter()
+                .filter(|handle| shell.strip.catchers.contains(*handle))
+                .collect();
+            assert!(!catchers.is_empty(), "a lift maps its catchers");
+            assert!(
+                shell.strip.native.is_some(),
+                "the strip follows native drags before the close"
+            );
+            assert!(shell.strip.router.is_some());
             shell.close(window, cx);
             assert!(shell.strip.bar.out_payload.is_empty());
             assert!(!shell.strip.bar.out_active);
             assert!(shell.strip.bar.lifts.is_empty());
             assert!(shell.strip.native.is_none());
+            assert!(
+                shell.strip.router.is_none(),
+                "a closed window leaves the drag router"
+            );
             assert!(shell.strip.timer.is_none());
             assert!(!shell
                 .strip
@@ -180,10 +196,7 @@ fn u25_closing_the_window_cleans_the_source_and_catcher(cx: &mut TestAppContext)
                 .borrow()
                 .json()
                 .contains("\"available\":true"));
-            assert!(!cx
-                .windows()
-                .into_iter()
-                .any(|window| shell.strip.catchers.contains(window)));
+            assert!(catchers.iter().all(|handle| !cx.windows().contains(handle)));
         })
     });
 }
@@ -216,4 +229,99 @@ fn u25_tear_off_carries_the_same_sort_snapshot_and_fresh_launch_retires_it() {
     }
     transfer::fresh_launch(&mut fresh);
     assert!(fresh.get_envs().all(|(_, value)| value.is_none()));
+}
+
+#[gpui::test]
+fn u25_a_live_search_tears_off_its_resting_folder_with_its_order(cx: &mut TestAppContext) {
+    let (backend, _requests) = Backend::test_channel();
+    let cx = cx.add_empty_window();
+    cx.update(|_, cx| {
+        let shell = cx.new(|cx| shell_with(backend, cx));
+        shell.update(cx, |shell, _| {
+            let host = shell.panes[0].as_mut().unwrap();
+            host.nav.order = Order {
+                key: "size",
+                desc: true,
+            };
+            host.pane.state.search = true;
+            let payload = shell.with_tabs(|_, panes| {
+                let mut result = String::new();
+                panes.visit(0, &mut |tabs, pane| {
+                    result = tabs.tab_payload(pane, 0, "111", "searching")
+                });
+                result
+            });
+            let info = transfer::parse(&payload).unwrap();
+            assert_eq!(
+                info.sort,
+                Some(Snapshot {
+                    path: info.path.clone(),
+                    order: Order {
+                        key: "size",
+                        desc: true
+                    }
+                }),
+                "a search tab tears off its resting folder in its order"
+            );
+        });
+    });
+}
+
+#[test]
+fn u25_tear_off_hand_off_selects_only_on_the_launch_pane_once() {
+    let settings =
+        crate::window::startup::Settings::from_json(flea::jsondoc::parse("{}").unwrap(), false);
+    let mut host = super::host::Host::new(&settings, "/files");
+    host.launch.cursor = "note.txt".into();
+    assert_eq!(
+        host.launch_select(0, 1, "/other"),
+        None,
+        "pane 0 is not the launch pane"
+    );
+    assert_eq!(
+        host.launch_select(1, 1, "/files"),
+        Some("/files/note.txt".into())
+    );
+    assert_eq!(
+        host.launch_select(1, 1, "/files"),
+        None,
+        "a later start never replays the hand-off"
+    );
+}
+
+#[gpui::test]
+fn u25_a_tab_switch_in_its_own_order_keeps_the_switch_options(cx: &mut TestAppContext) {
+    use super::state::Open;
+    let cx = cx.add_empty_window();
+    cx.update(|_, cx| {
+        for clear_at_once in [true, false] {
+            let (backend, _requests) = Backend::test_channel();
+            let shell = cx.new(|cx| shell_with(backend, cx));
+            shell.update(cx, |shell, _| {
+                let order = Order {
+                    key: "size",
+                    desc: true,
+                };
+                shell.with_tabs(|_, panes| {
+                    panes.visit(0, &mut |_, pane| {
+                        pane.open(
+                            "/files/child",
+                            Open {
+                                keep_hidden: true,
+                                clear_at_once,
+                                supersede: true,
+                                order: Some(order),
+                            },
+                        )
+                    });
+                });
+                let host = shell.panes[0].as_ref().unwrap();
+                assert_eq!(host.nav.order, order, "the tab's own order lists");
+                assert_eq!(
+                    host.pane.swap.holding, !clear_at_once,
+                    "a tab in another view clears at once"
+                );
+            });
+        }
+    });
 }

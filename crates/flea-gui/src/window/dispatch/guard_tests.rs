@@ -13,7 +13,7 @@ const NOT_YET: &[(&str, &[&str])] = &[
     // Focus.js:196, PreviewKeys.open on a row whose preview is not focused.
     ("preview", &["preview"]),
     // Focus.js:207-240 and 271, ui/Pane.qml:599-602.
-    ("operations", &["copy", "cut", "paste", "movePaste", "copyAs", "pasteAs", "copyPath", "copydirpath", "duplicate", "trash", "trashArm", "deletePermanently", "newFolder", "rename", "properties"]),
+    ("operations", &["copyAs", "pasteAs", "copyPath", "copydirpath", "duplicate", "trash", "trashArm", "deletePermanently", "newFolder", "rename", "properties"]),
     // Focus.js:143-148, 187-195, 205 and 257-258; reveal is quiet outside results.
     ("listing state", &["sortNext", "sortReverse", "escape", "reveal"]),
     // Focus.js:250, 265 and 273.

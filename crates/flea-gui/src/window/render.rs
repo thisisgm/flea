@@ -168,8 +168,7 @@ impl Render for Shell {
                     Some(shown) => host.pane.wanted_filtered_window(&shown),
                     None => host.pane.wanted_window(),
                 };
-                if let (Some((start, count)), Some(backend)) = (wanted, &host.backend)
-                {
+                if let (Some((start, count)), Some(backend)) = (wanted, &host.backend) {
                     if let Err(error) = backend.window(start, count) {
                         host.stopped = true;
                         host.record_error(error, &self.locale);
