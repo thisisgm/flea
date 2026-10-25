@@ -1,0 +1,79 @@
+"""Small executable adapter controls, run before expensive collection."""
+import argparse
+import json
+import pathlib
+import subprocess
+import sys
+
+from contracts import checked_result, identities, inventory_report, quality_reason
+from fixtures import marked_root
+from measure import Measurements
+
+
+def adapter(root, mode):
+    observed = [(path.hex(), kind) for path, kind in identities(root)]
+    if mode == 'drop':
+        observed.pop()
+    paths = ['target.rs', 'other.rs', 'third.rs']
+    if mode == 'misrank':
+        paths.reverse()
+    return dict(t='result', gen=6 if mode == 'stale' else 7, paths=paths,
+                identities=observed, n=3, capped=mode == 'cap', core_ms=0.001)
+
+
+def run_controls(parent):
+    root = marked_root(parent, 'negative-controls-')
+    tree = root / 'tree'
+    tree.mkdir()
+    for name in ['target.rs', 'other.rs', 'third.rs']:
+        (tree / name).touch(exist_ok=False)
+    expected = identities(tree)
+    report = {}
+    for mode in ['valid', 'drop', 'cap', 'stale', 'misrank']:
+        reply = subprocess.run([sys.executable, '-B', __file__, '--adapter', mode, '--tree', str(tree)],
+                               check=True, capture_output=True, text=True, timeout=5)
+        result = json.loads(reply.stdout)
+        observed = [(bytes.fromhex(path), kind) for path, kind in result['identities']]
+        inventory = inventory_report(expected, observed, result)
+        reasons = list(inventory['reasons'])
+        try:
+            checked_result(result, 7, 350)
+        except ValueError as error:
+            reasons.append(str(error))
+        rank = quality_reason('exact', result['paths'], 'target.rs')
+        if rank:
+            reasons.append(rank)
+        accepted = not reasons
+        if accepted != (mode == 'valid'):
+            raise AssertionError(f'negative control {mode} incorrectly accepted={accepted}')
+        output = marked_root(root, mode + '-')
+        rows = Measurements(output)
+        context = dict(phase='measured', run=0, fixture='control', engine='invalid-adapter', profile=mode)
+        rows.row(context, 'native_core_ms', 0.001, 'ms')
+        for reason in reasons:
+            rows.invalidate(context, reason)
+        rows.finish(True)
+        import csv
+        with (output / 'performance.tsv').open() as stream:
+            included = list(csv.DictReader(stream, delimiter='\t'))
+        if bool(included) != accepted:
+            raise AssertionError('ineligible performance sample leaked')
+        report[mode] = dict(accepted=accepted, reasons=reasons)
+    from production_controls import run_production_controls
+    report.update(run_production_controls(root))
+    (root / 'controls.json').write_text(json.dumps(report, indent=2) + '\n')
+    return report
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--adapter', choices=['valid', 'drop', 'cap', 'stale', 'misrank'])
+    parser.add_argument('--tree', type=pathlib.Path)
+    parser.add_argument('--output', type=pathlib.Path)
+    args = parser.parse_args()
+    if args.adapter:
+        print(json.dumps(adapter(args.tree, args.adapter)))
+    else:
+        if not args.output or not args.output.is_absolute():
+            parser.error('absolute --output required')
+        print(json.dumps(run_controls(args.output), indent=2))
