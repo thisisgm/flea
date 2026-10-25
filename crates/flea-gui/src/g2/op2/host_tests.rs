@@ -202,7 +202,7 @@ fn start(
 }
 
 #[test]
-fn m9_integ_archive_flash_effects_reach_origin_and_jobs() {
+fn m9_integ_archive_effects_reach_origin() {
     let mut cx = crate::list::bench::real_cx();
     let (handle, mut requests, mut other_requests) = start(&mut cx);
 

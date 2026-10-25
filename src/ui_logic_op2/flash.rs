@@ -48,9 +48,10 @@ pub fn drive_name(drive: &Drive, drives: &[Drive]) -> String {
     if twins > 1 { format!("{label} ({})", drive.dev) } else { label }
 }
 
-// Sample input: the model beside its label; "" where the detail would repeat the label.
-pub fn drive_detail(drive: &Drive, drives: &[Drive]) -> String {
-    if drive.model == drive_name(drive, drives) { String::new() } else { drive.model.clone() }
+// Sample input: the model beside its label; "" where the detail would repeat the label, twin suffix or not.
+pub fn drive_detail(drive: &Drive) -> String {
+    let label = if drive.label.is_empty() { &drive.model } else { &drive.label };
+    if drive.model == *label { String::new() } else { drive.model.clone() }
 }
 
 // Sample input: one fitting drive is chosen for you; two choose none.

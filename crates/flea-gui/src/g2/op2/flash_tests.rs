@@ -176,6 +176,7 @@ fn flash_rows_take_pointer_choices_with_the_oracles_guards() {
     view.choose_drive(0);
     assert_eq!(view.selected(), Some(0));
     view.choose_drive(99);
+    assert_eq!(view.selected(), Some(0), "an out-of-range row chooses nothing");
     view.press_flash();
     view.start_transfer(&i18n, 1, 1000, true, 0);
     assert!(view.choose_image().is_empty(), "no picker while a flash runs");
@@ -237,7 +238,10 @@ fn flash_enter_on_the_end_button_presses_it() {
     view.finish_transfer(&i18n, &wire::parse_flashdone(&done));
     assert_eq!(view.park(), Seat::End);
     let effects = view.key(Key::Enter);
-    assert!(!effects.is_empty(), "Enter on the ending button presses it");
+    assert!(
+        matches!(effects.as_slice(), [super::Effect::Send(line)] if line.contains(r#""c":"flash""#)),
+        "Enter on the busy ending's button flashes again, never ejects: {effects:?}"
+    );
 }
 
 #[test]
@@ -328,4 +332,25 @@ fn probe_refusal_reasks_the_image_row() {
     let effects = view.finish_transfer(&i18n, &wire::parse_flashdone(&done));
     assert_eq!(effects.len(), 1);
     assert!(matches!(&effects[0], super::Effect::Send(line) if line.contains("flashimage")));
+}
+
+#[test]
+fn a_dead_backend_ends_a_running_flash_with_a_failure() {
+    let i18n = english();
+    let mut shown = opened();
+    shown.press_flash();
+    shown.start_transfer(&i18n, 1, 1000, true, 0);
+    assert!(shown.on_failed(&i18n).is_empty(), "a shown card draws its ending instead of a status line");
+    assert!(!shown.running(), "the dead run no longer counts as running");
+    let mut handed = opened();
+    handed.press_flash();
+    handed.start_transfer(&i18n, 1, 1000, true, 0);
+    assert!(matches!(handed.key(Key::Escape).as_slice(), [super::Effect::HandTransfer(_)]));
+    let effects = handed.on_failed(&i18n);
+    assert!(
+        matches!(effects.as_slice(), [super::Effect::CloseJob(1), super::Effect::Say { text, error: true }] if text.starts_with("Could not flash")),
+        "a handed run closes its job and says the failure: {effects:?}"
+    );
+    assert!(!handed.running());
+    assert!(opened().on_failed(&i18n).is_empty(), "with nothing running only the press ends");
 }

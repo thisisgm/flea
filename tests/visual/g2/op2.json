@@ -9,9 +9,9 @@
         "Encrypt file names checked",
         "Compress accent frame with wash"
       ],
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
+      "board_html": "design-hig/boards/compress.html",
+      "board_png": "design-hig/boards/compress.png",
       "fixture_variant": "Docs3",
       "language": "en",
       "parity_ids": [
@@ -52,9 +52,9 @@
         "Password field accent frame with caret",
         "Extract dimmed with muted frame"
       ],
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-extract-pw-1100x700.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.html",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.png",
+      "before_png": "design-hig/before/dialog-extract-pw-1100x700.png",
+      "board_html": "design-hig/boards/extract-password.html",
+      "board_png": "design-hig/boards/extract-password.png",
       "fixture_variant": "Docs3",
       "language": "en",
       "parity_ids": [
@@ -98,9 +98,9 @@
         "Erases everything on 128GB in error with Flash 128GB",
         "2 drives"
       ],
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
+      "board_html": "design-hig/boards/flash.html",
+      "board_png": "design-hig/boards/flash.png",
       "fixture_variant": "FlashA",
       "language": "en",
       "parity_ids": [
@@ -119,7 +119,8 @@
       "setup": {
         "drives": 2,
         "image": "debian-13.iso",
-        "view": "flash"
+        "view": "flash",
+        "image_bytes": 4300000000
       },
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
@@ -142,9 +143,9 @@
         "byte line with rate and estimate",
         "Cancel live"
       ],
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/reload-notice-1100x700.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extracting.html",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extracting.png",
+      "before_png": "design-hig/before/reload-notice-1100x700.png",
+      "board_html": "design-hig/boards/extracting.html",
+      "board_png": "design-hig/boards/extracting.png",
       "fixture_variant": "Docs3",
       "language": "en",
       "parity_ids": [
@@ -184,9 +185,9 @@
       "scene": "g2.op2.extra.archive-busy",
       "unit": "g2-op2",
       "title": "Compress, archive-busy: a second request keeps the first card and answers Another archive is waiting for its password. Enter it, then try again.",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
+      "board_png": "design-hig/boards/compress.png",
+      "board_html": "design-hig/boards/compress.html",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
       "sha256": {
         "before_png": "0bf02db16340806db71a28d2a6bab5a59356e627264a22bfefd06ae7b5b4049b",
         "board_html": "24ac630e8bcefa933b136b02fe9bea094e188b01ee610cffc7a1f314d02d1d42",
@@ -207,7 +208,10 @@
       "fixture_variant": "Docs3",
       "setup": {
         "card": "compress",
-        "focus": "busy",
+        "focus": "password",
+        "second_request": {
+          "card": "compress"
+        },
         "path": "/fx/v/work"
       },
       "assertions": [
@@ -221,10 +225,10 @@
     {
       "scene": "g2.op2.extra.compress-cancel-focus",
       "unit": "g2-op2",
-      "title": "Compress, compress-cancel-focus: Cancel closes on Enter or Space with no send",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
+      "title": "Compress, compress-cancel-focus: Cancel draws its own frame in foreground",
+      "board_png": "design-hig/boards/compress.png",
+      "board_html": "design-hig/boards/compress.html",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
       "sha256": {
         "before_png": "0bf02db16340806db71a28d2a6bab5a59356e627264a22bfefd06ae7b5b4049b",
         "board_html": "24ac630e8bcefa933b136b02fe9bea094e188b01ee610cffc7a1f314d02d1d42",
@@ -249,7 +253,7 @@
         "path": "/fx/v/work"
       },
       "assertions": [
-        "Cancel closes on Enter or Space with no send"
+        "Cancel draws its own frame in foreground"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -259,10 +263,10 @@
     {
       "scene": "g2.op2.extra.compress-empty-name",
       "unit": "g2-op2",
-      "title": "Compress, compress-empty-name: empty-name submit drops the sentence and focuses Name",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
+      "title": "Compress, compress-empty-name: submit with a matched password and an empty name draws no sentence and moves focus to Name",
+      "board_png": "design-hig/boards/compress.png",
+      "board_html": "design-hig/boards/compress.html",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
       "sha256": {
         "before_png": "0bf02db16340806db71a28d2a6bab5a59356e627264a22bfefd06ae7b5b4049b",
         "board_html": "24ac630e8bcefa933b136b02fe9bea094e188b01ee610cffc7a1f314d02d1d42",
@@ -283,12 +287,14 @@
       "fixture_variant": "Docs3",
       "setup": {
         "card": "compress",
-        "focus": "name",
+        "focus": "compress",
+        "typed": "match",
         "name": "",
+        "press": "compress",
         "path": "/fx/v/work"
       },
       "assertions": [
-        "empty-name submit drops the sentence and focuses Name"
+        "submit with a matched password and an empty name draws no sentence and moves focus to Name"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -298,10 +304,10 @@
     {
       "scene": "g2.op2.extra.compress-encrypt",
       "unit": "g2-op2",
-      "title": "Compress, compress-encrypt: zip hides the switch; Space and tap toggle on 7z",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
+      "title": "Compress, compress-encrypt: Encrypt file names opens checked on 7z; Space on its focused checkbox draws it unchecked",
+      "board_png": "design-hig/boards/compress.png",
+      "board_html": "design-hig/boards/compress.html",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
       "sha256": {
         "before_png": "0bf02db16340806db71a28d2a6bab5a59356e627264a22bfefd06ae7b5b4049b",
         "board_html": "24ac630e8bcefa933b136b02fe9bea094e188b01ee610cffc7a1f314d02d1d42",
@@ -322,12 +328,14 @@
       "fixture_variant": "Docs3",
       "setup": {
         "card": "compress",
-        "format": "zip",
+        "format": "7z",
         "focus": "encrypt",
+        "encrypt_names": true,
+        "key": "space",
         "path": "/fx/v/work"
       },
       "assertions": [
-        "zip hides the switch; Space and tap toggle on 7z"
+        "Encrypt file names opens checked on 7z; Space on its focused checkbox draws it unchecked"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -338,9 +346,9 @@
       "scene": "g2.op2.extra.compress-focus",
       "unit": "g2-op2",
       "title": "Compress, compress-focus: Tab never lands on a disabled stop; Compress stays in the walk while dimmed",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
+      "board_png": "design-hig/boards/compress.png",
+      "board_html": "design-hig/boards/compress.html",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
       "sha256": {
         "before_png": "0bf02db16340806db71a28d2a6bab5a59356e627264a22bfefd06ae7b5b4049b",
         "board_html": "24ac630e8bcefa933b136b02fe9bea094e188b01ee610cffc7a1f314d02d1d42",
@@ -376,9 +384,9 @@
       "scene": "g2.op2.extra.compress-hover",
       "unit": "g2-op2",
       "title": "Compress, compress-hover: hover lays the 0.08 ink wash inside the unchanged frame",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
+      "board_png": "design-hig/boards/compress.png",
+      "board_html": "design-hig/boards/compress.html",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
       "sha256": {
         "before_png": "0bf02db16340806db71a28d2a6bab5a59356e627264a22bfefd06ae7b5b4049b",
         "board_html": "24ac630e8bcefa933b136b02fe9bea094e188b01ee610cffc7a1f314d02d1d42",
@@ -416,9 +424,9 @@
       "scene": "g2.op2.extra.compress-mismatch",
       "unit": "g2-op2",
       "title": "Compress, compress-mismatch: mismatch wears the error frame with Passwords do not match.",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
+      "board_png": "design-hig/boards/compress.png",
+      "board_html": "design-hig/boards/compress.html",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
       "sha256": {
         "before_png": "0bf02db16340806db71a28d2a6bab5a59356e627264a22bfefd06ae7b5b4049b",
         "board_html": "24ac630e8bcefa933b136b02fe9bea094e188b01ee610cffc7a1f314d02d1d42",
@@ -455,9 +463,9 @@
       "scene": "g2.op2.extra.compress-pressed",
       "unit": "g2-op2",
       "title": "Compress, compress-pressed: press commits or cancels",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
+      "board_png": "design-hig/boards/compress.png",
+      "board_html": "design-hig/boards/compress.html",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
       "sha256": {
         "before_png": "0bf02db16340806db71a28d2a6bab5a59356e627264a22bfefd06ae7b5b4049b",
         "board_html": "24ac630e8bcefa933b136b02fe9bea094e188b01ee610cffc7a1f314d02d1d42",
@@ -495,9 +503,9 @@
       "scene": "g2.op2.extra.compress-zip",
       "unit": "g2-op2",
       "title": "Compress, compress-zip: zip hides the switch and masks it off the send",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/compress.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-compress-pw-1100x700.png",
+      "board_png": "design-hig/boards/compress.png",
+      "board_html": "design-hig/boards/compress.html",
+      "before_png": "design-hig/before/dialog-compress-pw-1100x700.png",
       "sha256": {
         "before_png": "0bf02db16340806db71a28d2a6bab5a59356e627264a22bfefd06ae7b5b4049b",
         "board_html": "24ac630e8bcefa933b136b02fe9bea094e188b01ee610cffc7a1f314d02d1d42",
@@ -532,10 +540,10 @@
     {
       "scene": "g2.op2.extra.extract-bullets",
       "unit": "g2-op2",
-      "title": "Extract password, extract-bullets: wrong passwords draw bullets per typed secret; another archive or a spent count draws none",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-extract-pw-1100x700.png",
+      "title": "Extract password, extract-bullets: a wrong password reported for another archive draws no bullets",
+      "board_png": "design-hig/boards/extract-password.png",
+      "board_html": "design-hig/boards/extract-password.html",
+      "before_png": "design-hig/before/dialog-extract-pw-1100x700.png",
       "sha256": {
         "before_png": "cdd3ce4ca5e693e3b0f85aed9e919cb0ed482e51e899f687760d4e20102634b5",
         "board_html": "958e55420c46b05448b86416b84adfed7cad7f6d2ea58ef45d57f53123c7a858",
@@ -558,10 +566,11 @@
         "card": "extract-password",
         "focus": "password",
         "state": "wrong-password",
-        "path": "/fx/v/work/locked.7z"
+        "path": "/fx/v/work/locked.7z",
+        "retry_for": "/fx/v/work/other.7z"
       },
       "assertions": [
-        "wrong passwords draw bullets per typed secret; another archive or a spent count draws none"
+        "a wrong password reported for another archive draws no bullets"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -571,10 +580,10 @@
     {
       "scene": "g2.op2.extra.extract-cancel-focus",
       "unit": "g2-op2",
-      "title": "Extract password, extract-cancel-focus: Cancel closes on Enter or Space with no send",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-extract-pw-1100x700.png",
+      "title": "Extract password, extract-cancel-focus: Cancel draws its own frame in foreground",
+      "board_png": "design-hig/boards/extract-password.png",
+      "board_html": "design-hig/boards/extract-password.html",
+      "before_png": "design-hig/before/dialog-extract-pw-1100x700.png",
       "sha256": {
         "before_png": "cdd3ce4ca5e693e3b0f85aed9e919cb0ed482e51e899f687760d4e20102634b5",
         "board_html": "958e55420c46b05448b86416b84adfed7cad7f6d2ea58ef45d57f53123c7a858",
@@ -599,7 +608,7 @@
         "path": "/fx/v/work/locked.7z"
       },
       "assertions": [
-        "Cancel closes on Enter or Space with no send"
+        "Cancel draws its own frame in foreground"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -610,9 +619,9 @@
       "scene": "g2.op2.extra.extract-focus",
       "unit": "g2-op2",
       "title": "Extract password, extract-focus: Extract stays in the walk while dimmed; press asks Type a password first.",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-extract-pw-1100x700.png",
+      "board_png": "design-hig/boards/extract-password.png",
+      "board_html": "design-hig/boards/extract-password.html",
+      "before_png": "design-hig/before/dialog-extract-pw-1100x700.png",
       "sha256": {
         "before_png": "cdd3ce4ca5e693e3b0f85aed9e919cb0ed482e51e899f687760d4e20102634b5",
         "board_html": "958e55420c46b05448b86416b84adfed7cad7f6d2ea58ef45d57f53123c7a858",
@@ -648,9 +657,9 @@
       "scene": "g2.op2.extra.extract-hover",
       "unit": "g2-op2",
       "title": "Extract password, extract-hover: hover lays the 0.08 ink wash inside the unchanged frame",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-extract-pw-1100x700.png",
+      "board_png": "design-hig/boards/extract-password.png",
+      "board_html": "design-hig/boards/extract-password.html",
+      "before_png": "design-hig/before/dialog-extract-pw-1100x700.png",
       "sha256": {
         "before_png": "cdd3ce4ca5e693e3b0f85aed9e919cb0ed482e51e899f687760d4e20102634b5",
         "board_html": "958e55420c46b05448b86416b84adfed7cad7f6d2ea58ef45d57f53123c7a858",
@@ -688,9 +697,9 @@
       "scene": "g2.op2.extra.extract-pressed",
       "unit": "g2-op2",
       "title": "Extract password, extract-pressed: press commits or cancels",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-extract-pw-1100x700.png",
+      "board_png": "design-hig/boards/extract-password.png",
+      "board_html": "design-hig/boards/extract-password.html",
+      "before_png": "design-hig/before/dialog-extract-pw-1100x700.png",
       "sha256": {
         "before_png": "cdd3ce4ca5e693e3b0f85aed9e919cb0ed482e51e899f687760d4e20102634b5",
         "board_html": "958e55420c46b05448b86416b84adfed7cad7f6d2ea58ef45d57f53123c7a858",
@@ -727,10 +736,10 @@
     {
       "scene": "g2.op2.extra.extract-threat",
       "unit": "g2-op2",
-      "title": "Extract password, extract-threat: submit, cancel, esc and ground clear the field; state names no character",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-extract-pw-1100x700.png",
+      "title": "Extract password, extract-threat: a typed password draws one bullet per character and no character of it",
+      "board_png": "design-hig/boards/extract-password.png",
+      "board_html": "design-hig/boards/extract-password.html",
+      "before_png": "design-hig/before/dialog-extract-pw-1100x700.png",
       "sha256": {
         "before_png": "cdd3ce4ca5e693e3b0f85aed9e919cb0ed482e51e899f687760d4e20102634b5",
         "board_html": "958e55420c46b05448b86416b84adfed7cad7f6d2ea58ef45d57f53123c7a858",
@@ -756,7 +765,7 @@
         "path": "/fx/v/work/locked.7z"
       },
       "assertions": [
-        "submit, cancel, esc and ground clear the field; state names no character"
+        "a typed password draws one bullet per character and no character of it"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -767,9 +776,9 @@
       "scene": "g2.op2.extra.extract-wrong",
       "unit": "g2-op2",
       "title": "Extract password, extract-wrong: a wrong answer reopens with That password did not open <leaf>. and typed-count bullets",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extract-password.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/dialog-extract-pw-1100x700.png",
+      "board_png": "design-hig/boards/extract-password.png",
+      "board_html": "design-hig/boards/extract-password.html",
+      "before_png": "design-hig/before/dialog-extract-pw-1100x700.png",
       "sha256": {
         "before_png": "cdd3ce4ca5e693e3b0f85aed9e919cb0ed482e51e899f687760d4e20102634b5",
         "board_html": "958e55420c46b05448b86416b84adfed7cad7f6d2ea58ef45d57f53123c7a858",
@@ -806,9 +815,9 @@
       "scene": "g2.op2.extra.extracting-focus",
       "unit": "g2-op2",
       "title": "Extracting, extracting-focus: Cancel keeps the foreground frame; stops between files so the deleted stay deleted",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extracting.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extracting.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/reload-notice-1100x700.png",
+      "board_png": "design-hig/boards/extracting.png",
+      "board_html": "design-hig/boards/extracting.html",
+      "before_png": "design-hig/before/reload-notice-1100x700.png",
       "sha256": {
         "before_png": "cc3f51036895c724d618e340cfae82bd473c406edb664c895783e8f0ca926d34",
         "board_html": "61c3058d5b6625608f10d3dbf43e15ce01ae8048098cbc55115c3b4f88d0ac3b",
@@ -846,9 +855,9 @@
       "scene": "g2.op2.extra.extracting-hover",
       "unit": "g2-op2",
       "title": "Extracting, extracting-hover: hover on Cancel",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extracting.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extracting.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/reload-notice-1100x700.png",
+      "board_png": "design-hig/boards/extracting.png",
+      "board_html": "design-hig/boards/extracting.html",
+      "before_png": "design-hig/before/reload-notice-1100x700.png",
       "sha256": {
         "before_png": "cc3f51036895c724d618e340cfae82bd473c406edb664c895783e8f0ca926d34",
         "board_html": "61c3058d5b6625608f10d3dbf43e15ce01ae8048098cbc55115c3b4f88d0ac3b",
@@ -886,9 +895,9 @@
       "scene": "g2.op2.extra.extracting-pressed",
       "unit": "g2-op2",
       "title": "Extracting, extracting-pressed: pressed Cancel",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extracting.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/extracting.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/reload-notice-1100x700.png",
+      "board_png": "design-hig/boards/extracting.png",
+      "board_html": "design-hig/boards/extracting.html",
+      "before_png": "design-hig/before/reload-notice-1100x700.png",
       "sha256": {
         "before_png": "cc3f51036895c724d618e340cfae82bd473c406edb664c895783e8f0ca926d34",
         "board_html": "61c3058d5b6625608f10d3dbf43e15ce01ae8048098cbc55115c3b4f88d0ac3b",
@@ -926,9 +935,9 @@
       "scene": "g2.op2.extra.flash-bare",
       "unit": "g2-op2",
       "title": "Flash, flash-bare: Erases everything on the drive with Flash while nothing is chosen",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -965,9 +974,9 @@
       "scene": "g2.op2.extra.flash-busy",
       "unit": "g2-op2",
       "title": "Flash, flash-busy: 128GB could not be unmounted with close-what-is-using hint",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -990,7 +999,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "ending-busy"
+        "phase": "ending-busy",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "128GB could not be unmounted with close-what-is-using hint"
@@ -1003,10 +1013,10 @@
     {
       "scene": "g2.op2.extra.flash-cancelled",
       "unit": "g2-op2",
-      "title": "Flash, flash-cancelled: Flash cancelled at 1.2 GB of 4.0 GB with blank-drive hint, Flash back",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "title": "Flash, flash-cancelled: Flash cancelled at 1.2 GB of 4.3 GB with blank-drive hint, Flash back",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1029,10 +1039,11 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "cancelled"
+        "phase": "cancelled",
+        "image_bytes": 4300000000
       },
       "assertions": [
-        "Flash cancelled at 1.2 GB of 4.0 GB with blank-drive hint, Flash back"
+        "Flash cancelled at 1.2 GB of 4.3 GB with blank-drive hint, Flash back"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -1043,9 +1054,9 @@
       "scene": "g2.op2.extra.flash-changed",
       "unit": "g2-op2",
       "title": "Flash, flash-changed: 128GB changed since you chose it with choose-again hint",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1068,7 +1079,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "changed"
+        "phase": "changed",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "128GB changed since you chose it with choose-again hint"
@@ -1082,9 +1094,9 @@
       "scene": "g2.op2.extra.flash-decompress",
       "unit": "g2-op2",
       "title": "Flash, flash-decompress: Could not unpack <image> with tool diagnostic",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1107,7 +1119,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "decompress"
+        "phase": "decompress",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "Could not unpack <image> with tool diagnostic"
@@ -1121,9 +1134,9 @@
       "scene": "g2.op2.extra.flash-done",
       "unit": "g2-op2",
       "title": "Flash, flash-done: Flashed debian-13.iso to 128GB. with check, Eject offered",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1146,7 +1159,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "done"
+        "phase": "done",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "Flashed debian-13.iso to 128GB. with check, Eject offered"
@@ -1159,10 +1173,10 @@
     {
       "scene": "g2.op2.extra.flash-eject",
       "unit": "g2-op2",
-      "title": "Flash, flash-eject: Ejected 128GB. It is safe to unplug. and busy/failed variants",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "title": "Flash, flash-eject: Ejected 128GB. It is safe to unplug.",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1185,10 +1199,11 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "ejected"
+        "phase": "ejected",
+        "image_bytes": 4300000000
       },
       "assertions": [
-        "Ejected 128GB. It is safe to unplug. and busy/failed variants"
+        "Ejected 128GB. It is safe to unplug."
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -1199,9 +1214,9 @@
       "scene": "g2.op2.extra.flash-ending-focus",
       "unit": "g2-op2",
       "title": "Flash, flash-ending-focus: a Flash again ending frames the drawn end button",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1224,7 +1239,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "ending-focus"
+        "phase": "ending-focus",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "a Flash again ending frames the drawn end button"
@@ -1237,10 +1253,10 @@
     {
       "scene": "g2.op2.extra.flash-flush",
       "unit": "g2-op2",
-      "title": "Flash, flash-flush: 4.0 GB written, waiting for the drive; Cancel dimmed",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "title": "Flash, flash-flush: 4.3 GB written · waiting for the drive; Cancel dimmed",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1263,10 +1279,11 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "flush"
+        "phase": "flush",
+        "image_bytes": 4300000000
       },
       "assertions": [
-        "4.0 GB written, waiting for the drive; Cancel dimmed"
+        "4.3 GB written · waiting for the drive; Cancel dimmed"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -1277,9 +1294,9 @@
       "scene": "g2.op2.extra.flash-gone",
       "unit": "g2-op2",
       "title": "Flash, flash-gone: 128GB was unplugged with left-at hint",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1302,7 +1319,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "gone"
+        "phase": "gone",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "128GB was unplugged with left-at hint"
@@ -1313,12 +1331,12 @@
       ]
     },
     {
-      "scene": "g2.op2.extra.flash-grey",
+      "scene": "g2.op2.extra.flash-grey-no-image",
       "unit": "g2-op2",
-      "title": "Flash, flash-grey: Flash dims while no image, no drive or a refused drive",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "title": "Flash, flash-grey-no-image: Flash dimmed while no image is named",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1339,12 +1357,93 @@
       "fixture_variant": "FlashA",
       "setup": {
         "view": "flash",
-        "image": "notes.txt",
+        "image": null,
+        "drives": 1,
+        "phase": "rest"
+      },
+      "assertions": [
+        "Flash dimmed while no image is named"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "g2-op2"
+      ]
+    },
+    {
+      "scene": "g2.op2.extra.flash-grey-no-drive",
+      "unit": "g2-op2",
+      "title": "Flash, flash-grey-no-drive: Flash dimmed while no drive is listed",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
+      "sha256": {
+        "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
+        "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
+        "board_png": "a7fa9a28fb2a87591d745a77b84c19b404e01e2168112db3156036098fca6155"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "rounding_variants": [
+        0,
+        8
+      ],
+      "language": "en",
+      "fixture_variant": "FlashA",
+      "setup": {
+        "view": "flash",
+        "image": "debian-13.iso",
+        "image_bytes": 4300000000,
         "drives": 0,
         "phase": "rest"
       },
       "assertions": [
-        "Flash dims while no image, no drive or a refused drive"
+        "Flash dimmed while no drive is listed"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "g2-op2"
+      ]
+    },
+    {
+      "scene": "g2.op2.extra.flash-grey-refused",
+      "unit": "g2-op2",
+      "title": "Flash, flash-grey-refused: Flash dimmed while the only drive is refused",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
+      "sha256": {
+        "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
+        "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
+        "board_png": "a7fa9a28fb2a87591d745a77b84c19b404e01e2168112db3156036098fca6155"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "rounding_variants": [
+        0,
+        8
+      ],
+      "language": "en",
+      "fixture_variant": "FlashA",
+      "setup": {
+        "view": "flash",
+        "image": "debian-13.iso",
+        "image_bytes": 4300000000,
+        "drives": 1,
+        "refused": "readonly",
+        "phase": "rest"
+      },
+      "assertions": [
+        "Flash dimmed while the only drive is refused"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -1355,9 +1454,9 @@
       "scene": "g2.op2.extra.flash-holds",
       "unit": "g2-op2",
       "title": "Flash, flash-holds: The image is on this drive. Copy it elsewhere first.",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1380,7 +1479,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "holds"
+        "phase": "holds",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "The image is on this drive. Copy it elsewhere first."
@@ -1394,9 +1494,9 @@
       "scene": "g2.op2.extra.flash-hover",
       "unit": "g2-op2",
       "title": "Flash, flash-hover: hover lays the 0.08 ink wash inside the action's unchanged frame",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1419,7 +1519,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "hover": "action"
+        "hover": "action",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "hover lays the 0.08 ink wash inside the action's unchanged frame"
@@ -1433,9 +1534,9 @@
       "scene": "g2.op2.extra.flash-io",
       "unit": "g2-op2",
       "title": "Flash, flash-io: Could not flash 128GB with blank vs partial hint",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1458,7 +1559,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "io"
+        "phase": "io",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "Could not flash 128GB with blank vs partial hint"
@@ -1472,9 +1574,9 @@
       "scene": "g2.op2.extra.flash-lock",
       "unit": "g2-op2",
       "title": "Flash, flash-lock: Its lock switch is on. Slide the switch off and plug the card in again.",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1497,7 +1599,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "refused": "lock"
+        "refused": "lock",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "Its lock switch is on. Slide the switch off and plug the card in again."
@@ -1511,9 +1614,9 @@
       "scene": "g2.op2.extra.flash-member",
       "unit": "g2-op2",
       "title": "Flash, flash-member: It is part of a RAID or volume group.",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1536,7 +1639,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "refused": "member"
+        "refused": "member",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "It is part of a RAID or volume group."
@@ -1550,9 +1654,9 @@
       "scene": "g2.op2.extra.flash-no-drives",
       "unit": "g2-op2",
       "title": "Flash, flash-no-drives: Plug in a USB drive or SD card with drive mark",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1575,7 +1679,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 0,
-        "drives_ready": true
+        "drives_ready": true,
+        "image_bytes": 4300000000
       },
       "assertions": [
         "Plug in a USB drive or SD card with drive mark"
@@ -1589,9 +1694,9 @@
       "scene": "g2.op2.extra.flash-no-image",
       "unit": "g2-op2",
       "title": "Flash, flash-no-image: Choose an image with folder mark while no image is named",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1627,9 +1732,9 @@
       "scene": "g2.op2.extra.flash-nospace",
       "unit": "g2-op2",
       "title": "Flash, flash-nospace: <image> is larger than 128GB with unpacked-past hint",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1652,7 +1757,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "refused": "nospace"
+        "refused": "nospace",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "<image> is larger than 128GB with unpacked-past hint"
@@ -1666,9 +1772,9 @@
       "scene": "g2.op2.extra.flash-not-image",
       "unit": "g2-op2",
       "title": "Flash, flash-not-image: dimmed image with This file is not a disk image. under it",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1705,9 +1811,9 @@
       "scene": "g2.op2.extra.flash-password",
       "unit": "g2-op2",
       "title": "Flash, flash-password: waiting for your password line",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1730,7 +1836,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "password"
+        "phase": "password",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "waiting for your password line"
@@ -1744,9 +1851,9 @@
       "scene": "g2.op2.extra.flash-pressed",
       "unit": "g2-op2",
       "title": "Flash, flash-pressed: press draws locally and sends the flash identity",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1769,7 +1876,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "pressed": "action"
+        "pressed": "action",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "press draws locally and sends the flash identity"
@@ -1783,9 +1891,9 @@
       "scene": "g2.op2.extra.flash-readonly",
       "unit": "g2-op2",
       "title": "Flash, flash-readonly: It is read-only, so Flea cannot write to it.",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1808,7 +1916,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "refused": "readonly"
+        "refused": "readonly",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "It is read-only, so Flea cannot write to it."
@@ -1821,10 +1930,10 @@
     {
       "scene": "g2.op2.extra.flash-running",
       "unit": "g2-op2",
-      "title": "Flash, flash-running: A flash is already running. Wait for it to finish.",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "title": "Flash, flash-running: a flash request from the other pane keeps the running flash and the footer says A flash is already running. Wait for it to finish.",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1847,10 +1956,15 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "write"
+        "phase": "write",
+        "image_bytes": 4300000000,
+        "second_request": {
+          "side": 1,
+          "image": "debian-13.iso"
+        }
       },
       "assertions": [
-        "A flash is already running. Wait for it to finish."
+        "a flash request from the other pane keeps the running flash and the footer says A flash is already running. Wait for it to finish."
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -1861,9 +1975,9 @@
       "scene": "g2.op2.extra.flash-sandbox",
       "unit": "g2-op2",
       "title": "Flash, flash-sandbox: Compressed images need bubblewrap with install hint",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1886,7 +2000,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "sandbox"
+        "phase": "sandbox",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "Compressed images need bubblewrap with install hint"
@@ -1900,9 +2015,9 @@
       "scene": "g2.op2.extra.flash-verify",
       "unit": "g2-op2",
       "title": "Flash, flash-verify: Verifying 128GB head",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1925,7 +2040,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "verify"
+        "phase": "verify",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "Verifying 128GB head"
@@ -1939,9 +2055,9 @@
       "scene": "g2.op2.extra.flash-verify-miss",
       "unit": "g2-op2",
       "title": "Flash, flash-verify-miss: 128GB did not verify with read-back hint",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -1964,7 +2080,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "verify-miss"
+        "phase": "verify-miss",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "128GB did not verify with read-back hint"
@@ -1978,9 +2095,9 @@
       "scene": "g2.op2.extra.flash-writing",
       "unit": "g2-op2",
       "title": "Flash, flash-writing: spiral, Flashing 128GB head, bar on quarter-ink track, byte line, Cancel",
-      "board_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.png",
-      "board_html": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/flash.html",
-      "before_png": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/flash-rest-a-1100x700.png",
+      "board_png": "design-hig/boards/flash.png",
+      "board_html": "design-hig/boards/flash.html",
+      "before_png": "design-hig/before/flash-rest-a-1100x700.png",
       "sha256": {
         "before_png": "bd27504f394374cee659715cf360f2f626f4cfc7788330fcc9c85007f99412d1",
         "board_html": "3e5f905a6e51cac8398916df341d0b9427a00a6fec5b2833b564f1a55ceeba42",
@@ -2003,7 +2120,8 @@
         "view": "flash",
         "image": "debian-13.iso",
         "drives": 1,
-        "phase": "write"
+        "phase": "write",
+        "image_bytes": 4300000000
       },
       "assertions": [
         "spiral, Flashing 128GB head, bar on quarter-ink track, byte line, Cancel"

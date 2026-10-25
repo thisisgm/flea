@@ -223,3 +223,11 @@ fn menu_extract_row_read_through_mn1() {
     assert!(rows::extract_entry(&mut row, &p, 1), "a 7z archive with no reader keeps its Extract row");
     assert_eq!(row.hint, Some(Text::Key("menu.extract.no_tool")), "a bare archive blames neither tool by name");
 }
+
+#[test]
+fn a_folded_tail_cuts_at_its_own_length() {
+    // U+212A KELVIN SIGN lowercases to "k" but is three bytes, so the stem is cut in the original name.
+    assert_eq!(extract_dir("x.ap\u{212A}"), "x");
+    assert_eq!(extract_dir("\u{20AC}.AP\u{212A}"), "\u{20AC}");
+    assert_eq!(extract_dir("Backup.TAR.GZ"), "Backup");
+}

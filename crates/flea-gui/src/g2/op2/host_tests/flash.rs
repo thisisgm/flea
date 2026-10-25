@@ -161,3 +161,26 @@ fn m9_integ_flash_runs_on_its_origin_across_hide_and_reopen() {
         "nothing reached the other pane's backend: {leaked:?}"
     );
 }
+
+#[test]
+fn m9_integ_a_chooser_that_cannot_start_says_so() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, mut requests, _) = start(&mut cx);
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.operations.archive.chooser = || std::process::Command::new("/nonexistent/flea-chooser-fixture");
+    });
+    choose(&mut cx, handle, 45, "flashDrive", "", &["/files/disk.img"]);
+    drain(&mut requests);
+    edit(&mut cx, handle, |shell, window, cx| {
+        let effects = shell.operations.archive.flash.choose_image();
+        shell.archive_effects(0, effects, window, cx);
+    });
+    cx.run_until_parked();
+    frame(&mut cx, handle);
+    let said = footer(&mut cx, handle);
+    assert!(
+        said.contains("Could not start /nonexistent/flea-chooser-fixture to choose an image"),
+        "a chooser that never started names its binary: {said:?}"
+    );
+    assert!(drain(&mut requests).is_empty(), "no image is asked after a failed chooser");
+}

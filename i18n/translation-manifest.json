@@ -73,6 +73,7 @@
     "flea:archive.flash.changed_line": "881d2e8d102d",
     "flea:archive.flash.choose_again": "f32a196c9970",
     "flea:archive.flash.choose_image": "25e57e8d126a",
+    "flea:archive.flash.chooser_failed": "947c9af1f1fc",
     "flea:archive.flash.denied_hint": "cd8e964934de",
     "flea:archive.flash.done": "b84c270280b9",
     "flea:archive.flash.done_line": "95a5baae00e9",
