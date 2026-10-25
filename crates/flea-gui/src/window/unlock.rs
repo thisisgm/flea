@@ -7,6 +7,10 @@ use crate::window::navigate::Step;
 use flea::ui_logic_pl4::rail::Group;
 use gpui::{div, prelude::*, AnyElement, App, Context, Entity, Subscription, Window};
 
+#[cfg(test)]
+#[path = "unlock_tests.rs"]
+mod tests;
+
 /// The card, the pane whose locked row opened it, and the card's effect subscription.
 pub(crate) struct Unlock {
     pub(crate) view: Entity<UnlockView>,
@@ -27,10 +31,37 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let rail = self.unlock_rail(cx);
-        let Some(join) = &mut self.rail else {
+        let Some(view) = self.ensure_unlock(side, window, cx) else {
             return;
         };
+        view.update(cx, |view, cx| {
+            view.open_for(device, label, size, fstype, window, cx)
+        });
+        cx.notify();
+    }
+
+    /// A launch before the rail's first listing uses the card's existing one-shot device namer.
+    pub(crate) fn open_unlock_device(
+        &mut self,
+        device: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(view) = self.ensure_unlock(self.focus_side, window, cx) else {
+            return;
+        };
+        view.update(cx, |view, cx| view.open_for_device(device, window, cx));
+        cx.notify();
+    }
+
+    fn ensure_unlock(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<Entity<UnlockView>> {
+        let rail = self.unlock_rail(cx);
+        let join = self.rail.as_mut()?;
         if join.unlock.is_none() {
             let (catalog, runner) = (self.locale.catalog.clone(), join.device_runner.clone());
             let view = cx.new(|cx| UnlockView::new(catalog, runner, cx));
@@ -43,16 +74,11 @@ impl Shell {
                 _events: events,
             });
         }
-        let Some(unlock) = join.unlock.as_mut() else {
-            return;
-        };
+        let unlock = join.unlock.as_mut()?;
         unlock.side = side.min(1);
         let view = unlock.view.clone();
-        view.update(cx, |view, cx| {
-            view.rail = rail;
-            view.open_for(device, label, size, fstype, window, cx)
-        });
-        cx.notify();
+        view.update(cx, |view, _| view.rail = rail);
+        Some(view)
     }
 
     /// The rail rebuilt: the card names a pending drive and lands the cursor on the unlocked row.

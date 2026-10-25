@@ -40,6 +40,9 @@ pub fn run(device: &str) -> i32 {
         eprintln!("flea: there is no graphical session to open a window in");
         return 2;
     }
+    if gui::use_gpui() {
+        return gui::exec_gpui_unlock(&target);
+    }
     let Some(ui) = paths::ui_dir() else {
         eprintln!("{}", paths::missing_ui_message());
         return 2;

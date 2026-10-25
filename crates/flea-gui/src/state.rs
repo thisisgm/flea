@@ -172,6 +172,9 @@ impl Shell {
             shell.ensure_ipc_reader(window, cx);
         }
         shell.follow_frame_feedback(window, cx);
+        if let Some(device) = shell.launch.unlock.take() {
+            shell.open_unlock_device(&device, window, cx);
+        }
         shell
     }
 

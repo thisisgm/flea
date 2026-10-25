@@ -26,6 +26,9 @@ fn finish_opening<T>(opened: Result<T, String>) -> T {
 }
 
 fn main() {
+    let unlock_device = std::env::var("FLEA_UNLOCK").ok().filter(|value| !value.is_empty());
+    // Consume the one-window request before any service starts child processes or threads.
+    std::env::remove_var("FLEA_UNLOCK");
     let words: Vec<String> = std::env::args().skip(1).collect();
     if let Some(status) = flea_gui::g2::pv3::dispatch(&words) {
         std::process::exit(status);
@@ -65,8 +68,10 @@ fn main() {
             let server = flea::ipc::endpoint::runtime()
                 .and_then(|runtime| Server::bind(&runtime))
                 .map_err(|error| ("ipc.start_failed", error.to_string()))?;
+            let mut launch = Launch::resolve(settings, args, &home);
+            launch.unlock = unlock_device;
             Ok::<_, (&str, String)>((
-                Launch::resolve(settings, args, &home),
+                launch,
                 server,
                 presentation::Service::start(),
             ))

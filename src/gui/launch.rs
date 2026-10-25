@@ -41,10 +41,21 @@ fn gpui_argv(binary: &Path, start: Option<&str>, select: Option<&str>) -> Comman
 }
 
 pub fn exec_gpui(start: Option<&str>, select: Option<&str>) -> i32 {
+    exec_gpui_window(start, select, None)
+}
+
+pub fn exec_gpui_unlock(device: &str) -> i32 {
+    exec_gpui_window(None, None, Some(device))
+}
+
+fn exec_gpui_window(start: Option<&str>, select: Option<&str>, unlock: Option<&str>) -> i32 {
     let executable = std::env::current_exe().ok();
     let binary = gpui_binary(executable.as_deref(), |path| path.is_file());
     let mut cmd = gpui_argv(&binary, start, select);
     configure_gpui(&mut cmd);
+    if let Some(device) = unlock {
+        cmd.env(crate::unlock::ENV, device);
+    }
     thp::disable();
     let error = cmd.exec();
     eprintln!(
