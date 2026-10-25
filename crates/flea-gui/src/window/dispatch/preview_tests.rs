@@ -92,9 +92,9 @@ fn rows() -> Vec<RowFacts> {
 }
 
 fn code_reply(token: u64, lines: &[&str], total: usize) -> String {
-    let lines: Vec<String> = lines.iter().map(|l| format!(r#"["{l}"]"#)).collect();
+    let lines: Vec<String> = lines.iter().map(|l| format!(r#"[0,"{l}"]"#)).collect();
     format!(
-        r#"{{"t":"code","token":{token},"slot":"quicklook","state":"plain","first":1,"total":{total},"lines":[{}]}}"#,
+        r#"{{"t":"code","token":{token},"slot":"look","state":"plain","first":1,"total":{total},"lines":[{}]}}"#,
         lines.join(",")
     )
 }
@@ -128,10 +128,7 @@ fn space_opens_quick_look_on_the_cursor_file_and_space_or_escape_closes_it(
         asked[0].get("path").and_then(Json::as_str),
         Some("/files/notes.txt")
     );
-    assert_eq!(
-        asked[0].get("slot").and_then(Json::as_str),
-        Some("quicklook")
-    );
+    assert_eq!(asked[0].get("slot").and_then(Json::as_str), Some("look"));
     answer(
         &shell,
         cx,
@@ -139,8 +136,26 @@ fn space_opens_quick_look_on_the_cursor_file_and_space_or_escape_closes_it(
     );
     assert_eq!(read(&shell, cx, "previewKind", &[]), "text");
     assert_eq!(read(&shell, cx, "previewState", &[]), "text");
-    assert!(
-        matches!(body(&shell, cx), Some(Body::Text { lines, count }) if lines == ["first line", "second line"] && count == "2 lines")
+    // The card mounts the column's code view, unnumbered, so w wraps plain text too.
+    let shown = shell.read_with(cx, |shell, cx| {
+        let host = shell.quick_look.as_ref()?;
+        match &host.view.read(cx).subject()?.body {
+            Body::Doc(doc) => match &doc.view {
+                crate::g2::pv1::doc::View::Code(code) => {
+                    let code = code.read(cx);
+                    Some((code.numbered, code.lines.plain_lines()))
+                }
+                _ => None,
+            },
+            _ => None,
+        }
+    });
+    assert_eq!(
+        shown,
+        Some((
+            false,
+            vec!["first line".to_owned(), "second line".to_owned()]
+        ))
     );
     assert!(
         cx.debug_bounds("pv1-card").is_some(),

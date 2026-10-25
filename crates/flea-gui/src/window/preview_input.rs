@@ -78,6 +78,10 @@ impl Shell {
                 self.change_settings(patch, window, cx);
                 return true;
             }
+            // ql-pdf: e on the column's PDF opens Quick Look on the page the column shows.
+            "expand" if column_pdf(&preview, cx).is_some() => {
+                return self.open_quick_look(side, window, cx);
+            }
             "previewPageForward" | "previewPageBack" | "parent" | "pageForward"
                 if matches!(event.action, "previewPageForward" | "previewPageBack")
                     || preview.read(cx).focus.is_focused(window) =>
@@ -87,14 +91,7 @@ impl Shell {
                 } else {
                     1
                 };
-                let pdf = preview
-                    .read(cx)
-                    .mounted_kind()
-                    .and_then(|(_, mounted)| match mounted {
-                        Mounted::Pdf(pdf) => Some(pdf.clone()),
-                        _ => None,
-                    });
-                if let Some(pdf) = pdf {
+                if let Some(pdf) = column_pdf(&preview, cx) {
                     pdf.update(cx, |pdf, cx| pdf.turn(step, cx));
                 }
             }
@@ -104,4 +101,18 @@ impl Shell {
         cx.notify();
         true
     }
+}
+
+/// The column's mounted PDF, which its page keys turn and its expand opens at.
+pub(crate) fn column_pdf(
+    preview: &gpui::Entity<super::selection_preview::SelectionPreview>,
+    cx: &gpui::App,
+) -> Option<gpui::Entity<crate::g2::pv2::PdfView>> {
+    preview
+        .read(cx)
+        .mounted_kind()
+        .and_then(|(_, mounted)| match mounted {
+            Mounted::Pdf(pdf) => Some(pdf.clone()),
+            _ => None,
+        })
 }

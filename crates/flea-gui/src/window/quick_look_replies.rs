@@ -1,5 +1,5 @@
-//! The backend answers the open Quick Look card asked for: the code pages, the picture's meta and the Compare patch.
-use super::{code_line, keys, Ask};
+//! The backend answers the open Quick Look card asked for: the mounted view's lines, the picture's meta and the Compare patch.
+use super::{keys, Ask};
 use crate::{backend::Event as BackendEvent, g2::pv1::Body, state::Shell};
 use flea::ui_logic_pv1::{
     compare,
@@ -7,7 +7,7 @@ use flea::ui_logic_pv1::{
     meta::{self, CompareState},
     rect::Shape,
 };
-use gpui::Context;
+use gpui::{Context, Window};
 
 impl Shell {
     /// A backend line the open card asked for; false for every other line.
@@ -15,11 +15,15 @@ impl Shell {
         &mut self,
         side: usize,
         event: &BackendEvent,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained) {
             self.quick_look_lost(side, cx);
             return false;
+        }
+        if self.quick_look_doc_line(side, event, window, cx) {
+            return true;
         }
         let BackendEvent::Producer(line) = event else {
             return false;
@@ -78,64 +82,6 @@ impl Shell {
                 };
                 host.token = 0;
                 host.ask = Ask::Nothing;
-            }
-            Ask::Code { path, mut lines } => {
-                let Ok(doc) = flea::jsondoc::parse(line) else {
-                    return false;
-                };
-                let text = |key| {
-                    doc.get(key)
-                        .and_then(flea::jsondoc::Json::as_str)
-                        .unwrap_or("")
-                };
-                let number = |key| {
-                    doc.get(key)
-                        .and_then(flea::jsondoc::Json::as_f64)
-                        .unwrap_or(-1.)
-                };
-                if text("t") != "code"
-                    || text("slot") != "quicklook"
-                    || number("token") as u64 != token
-                {
-                    return false;
-                }
-                let total = number("total").max(0.) as usize;
-                let failed = !matches!(text("state"), "plain" | "styled");
-                if failed {
-                    let (state, too_large) = match text("state") {
-                        "large" => (State::Text, true),
-                        "binary" => (State::Unsupported, false),
-                        _ => (State::Error, false),
-                    };
-                    subject.body = Body::cannot_show(&catalog, state, too_large, false, Vec::new())
-                        .expect("a refused read has a sentence");
-                    let host = self.quick_look.as_mut().expect("read above");
-                    host.token = 0;
-                    host.ask = Ask::Nothing;
-                } else {
-                    lines.extend(keys::plain_lines(&doc));
-                    let next = (lines.len() < total).then(super::token);
-                    subject.body = Body::Text {
-                        lines: lines.clone(),
-                        count: catalog.trn("preview.lines", total as i64),
-                    };
-                    let first = lines.len() + 1;
-                    let host = self.quick_look.as_mut().expect("read above");
-                    match next {
-                        Some(token) => {
-                            host.token = token;
-                            host.ask = Ask::Code {
-                                path: path.clone(),
-                                lines,
-                            };
-                            self.quick_look_send(side, code_line(token, &path, first));
-                        }
-                        None => {
-                            host.token = 0;
-                            host.ask = Ask::Nothing;
-                        }
-                    }
-                }
             }
             Ask::Meta { path, link } => {
                 let Some(meta) = meta::parse(line).filter(|m| m.token == Some(token as usize))

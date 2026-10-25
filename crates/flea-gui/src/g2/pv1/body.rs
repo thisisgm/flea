@@ -50,6 +50,8 @@ pub enum Body {
     },
     /// compare-binary, compare-identical, compare-large: the title and why there is no patch.
     Refused { title: String, sentence: String },
+    /// Every other board kind: the view the preview column mounts for it, sized to the card.
+    Doc(super::doc::Doc),
 }
 
 impl Body {
@@ -70,14 +72,20 @@ impl Body {
     }
 
     pub fn has_bar(&self) -> bool {
-        !matches!(
-            self,
-            Self::Image { .. } | Self::Raw { .. } | Self::CannotShow { error: false, .. }
-        )
+        match self {
+            Self::Doc(doc) => doc.has_bar(),
+            _ => !matches!(
+                self,
+                Self::Image { .. } | Self::Raw { .. } | Self::CannotShow { error: false, .. }
+            ),
+        }
     }
 
     /// The text, unsupported and compare cards are framed surfaces; a picture or a document pane fills a bare background.
     pub fn framed(&self) -> bool {
+        if let Self::Doc(doc) = self {
+            return doc.framed();
+        }
         matches!(
             self,
             Self::Text { .. }
@@ -85,6 +93,13 @@ impl Body {
                 | Self::Refused { .. }
                 | Self::CannotShow { error: false, .. }
         )
+    }
+
+    pub fn doc(&self) -> Option<&super::doc::Doc> {
+        match self {
+            Self::Doc(doc) => Some(doc),
+            _ => None,
+        }
     }
 
     pub fn is_compare(&self) -> bool {

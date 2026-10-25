@@ -1,0 +1,176 @@
+//! The card's surface for a mounted view: media fills the card under its strip; every other kind sits under the chrome bar.
+use super::{
+    card::recipe,
+    chrome,
+    doc::{Doc, View},
+    look::{self, Look},
+    Outcome, QuickLook, Subject,
+};
+use crate::g2::pv3::{self, ink::MediaInk};
+use flea::ui_logic_pv1::keys::Command;
+use flea::ui_logic_pv3::player::Playback;
+use gpui::{div, prelude::*, AnyElement, Context, Window};
+
+impl Doc {
+    pub fn element(&self) -> AnyElement {
+        match &self.view {
+            View::Code(v) => v.clone().into_any_element(),
+            View::Markdown(v) => v.clone().into_any_element(),
+            View::Table(v) => v.clone().into_any_element(),
+            View::Html(v) => v.clone().into_any_element(),
+            View::Archive(v) => v.clone().into_any_element(),
+            View::Office(v) => v.clone().into_any_element(),
+            View::Font(v) => v.clone().into_any_element(),
+            View::Pdf(v) => v.clone().into_any_element(),
+            View::Model(v) => v.clone().into_any_element(),
+            // The player draws through the card's media surface, never as an element of its own.
+            View::Media(_) => div().into_any_element(),
+        }
+    }
+
+    /// Subscribes the card to the view, so each change re-reads its readiness, shape and opening page.
+    pub(super) fn observe(&self, cx: &mut Context<QuickLook>) -> gpui::Subscription {
+        let changed = |ql: &mut QuickLook, cx: &mut Context<QuickLook>| ql.doc_changed(cx);
+        match &self.view {
+            View::Code(v) => cx.observe(v, move |ql, _, cx| changed(ql, cx)),
+            View::Markdown(v) => cx.observe(v, move |ql, _, cx| changed(ql, cx)),
+            View::Table(v) => cx.observe(v, move |ql, _, cx| changed(ql, cx)),
+            View::Html(v) => cx.observe(v, move |ql, _, cx| changed(ql, cx)),
+            View::Archive(v) => cx.observe(v, move |ql, _, cx| changed(ql, cx)),
+            View::Office(v) => cx.observe(v, move |ql, _, cx| changed(ql, cx)),
+            View::Font(v) => cx.observe(v, move |ql, _, cx| changed(ql, cx)),
+            View::Pdf(v) => cx.observe(v, move |ql, _, cx| changed(ql, cx)),
+            View::Model(v) => cx.observe(v, move |ql, _, cx| changed(ql, cx)),
+            View::Media(m) => cx.observe(&m.player, move |ql, _, cx| changed(ql, cx)),
+        }
+    }
+}
+
+impl QuickLook {
+    /// A mounted view is open, so it lays out even while the swap holds the card back.
+    pub(super) fn has_doc(&self) -> bool {
+        self.subject
+            .as_ref()
+            .is_some_and(|s| s.body.doc().is_some())
+    }
+
+    /// A key for the mounted view; None leaves it to the card's own rules (cursor keys always follow).
+    pub(super) fn doc_action(
+        &mut self,
+        doc: &Doc,
+        action: &str,
+        cx: &mut Context<Self>,
+    ) -> Option<Command> {
+        if matches!(action, "preview" | "escape") {
+            self.close(cx);
+            return Some(Command::Close);
+        }
+        if matches!(action, "cursorDown" | "cursorUp") {
+            return None;
+        }
+        match doc.action(action, cx) {
+            Outcome::Ignored => None,
+            outcome => Some(self.follow_outcome(outcome, cx)),
+        }
+    }
+
+    pub(super) fn follow_outcome(&mut self, outcome: Outcome, cx: &mut Context<Self>) -> Command {
+        cx.notify();
+        match outcome {
+            Outcome::Close => {
+                self.close(cx);
+                Command::Close
+            }
+            Outcome::Expand(on) => {
+                self.expanded = on;
+                Command::ToggleExpand
+            }
+            Outcome::Taken | Outcome::Ignored => Command::Nothing,
+        }
+    }
+
+    /// The mounted view moved: its page shape, the PDF's opening page, and the swap's reveal once it can draw.
+    pub(super) fn doc_changed(&mut self, cx: &mut Context<Self>) {
+        let Some(subject) = self.subject.as_mut() else {
+            return;
+        };
+        let super::Body::Doc(doc) = &mut subject.body else {
+            return;
+        };
+        doc.settle(cx);
+        subject.shape = doc.shape(subject.state, cx);
+        if doc.ready(cx) {
+            self.revealed = true;
+        }
+        cx.notify();
+    }
+
+    pub(super) fn doc_parts(
+        &self,
+        subject: &Subject,
+        doc: &Doc,
+        look: &Look,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Vec<AnyElement> {
+        let i18n = self.i18n.clone();
+        if let View::Media(media) = &doc.view {
+            let theme = cx
+                .try_global::<crate::palette::Theme>()
+                .copied()
+                .unwrap_or_default();
+            // Preview.qml: audio's strip never hides; a video's shows while paused and on pointer contact.
+            let paused = media.player.read(cx).state.playback != Playback::Playing;
+            let card = pv3::surface::QuickLook {
+                player: &media.player,
+                known: &media.known,
+                catalog: &i18n,
+                ink: MediaInk::inherited(&window.text_style(), theme),
+                typeface: media.typeface.clone(),
+                caches: &media.caches,
+                strip_shown: self.strip_shown || paused,
+                touched: None,
+            }
+            .build(cx);
+            return vec![div()
+                .debug_selector(|| "pv1-media".into())
+                .size_full()
+                .child(card)
+                .into_any_element()];
+        }
+        let chrome = doc.chrome(&i18n, cx);
+        let bar = chrome::bar(
+            subject.mark(),
+            &subject.name,
+            &chrome,
+            !doc.framed(),
+            look,
+            self,
+            cx,
+        );
+        let body = match doc.failure(&i18n, cx) {
+            Some(failure) => {
+                let ink = if failure.error { look.error } else { look.meta };
+                let button = super::button::open_with(self, look, window, cx);
+                recipe(
+                    failure.glyph,
+                    ink,
+                    &failure.sentence,
+                    look.foreground,
+                    Some(button),
+                    look::BAR,
+                )
+            }
+            None => div()
+                .debug_selector(|| "pv1-doc".into())
+                .relative()
+                .flex_1()
+                .min_h_0()
+                .w_full()
+                .overflow_hidden()
+                .child(doc.element())
+                .into_any_element(),
+        };
+        vec![bar, body]
+    }
+}

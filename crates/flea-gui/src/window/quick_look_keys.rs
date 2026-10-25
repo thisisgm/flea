@@ -22,21 +22,6 @@ pub(super) fn context(subject: &Subject) -> Keys {
     }
 }
 
-/// A code reply's lines as plain text, each line's runs joined without their roles.
-pub(super) fn plain_lines(doc: &Json) -> impl Iterator<Item = String> + '_ {
-    doc.get("lines")
-        .and_then(Json::as_array)
-        .unwrap_or(&[])
-        .iter()
-        .map(|runs| {
-            runs.as_array()
-                .unwrap_or(&[])
-                .iter()
-                .filter_map(Json::as_str)
-                .collect()
-        })
-}
-
 /// The picture body a meta reply names: a RAW's embedded picture, a link's target, or the image itself upright.
 pub(super) fn picture(meta: &Meta, path: String, link: Option<&str>, catalog: &I18n) -> Body {
     if let Some(raw) = meta.raw.as_ref().filter(|raw| raw.w > 0 && raw.h > 0) {
@@ -109,6 +94,23 @@ impl Shell {
             .get("keys")
             .and_then(Json::as_str)
             .unwrap_or("default");
+        // A tab switch the card does not bind closes it, and the key then runs where it was bound.
+        let input = crate::window::input::event_input(event, window.modifiers());
+        let card = flea::keys::lookup(
+            name,
+            self.keyboard.context,
+            flea::keys::Frontend::Gui,
+            input,
+        );
+        let listing = flea::keys::lookup(name, Keys::Listing, flea::keys::Frontend::Gui, input);
+        if let (false, flea::keys::Match::Action(action)) =
+            (matches!(card, flea::keys::Match::Action(_)), listing)
+        {
+            if action == "openTab" || action.starts_with("tab") {
+                self.quick_look_tab_switch(window, cx);
+                return false;
+            }
+        }
         let pair_armed = self.keyboard.pair_armed(name, seat);
         let resolved = self.keyboard.resolve(name, event, window.modifiers(), seat);
         if let crate::window::input::Dispatch::Action(action) = resolved {
@@ -140,6 +142,7 @@ impl Shell {
             return false;
         };
         let command = view.update(cx, |view, cx| view.action(event.action, cx));
+        self.quick_look_drain();
         match command {
             Command::Close => self.quick_look_closed(window, cx),
             // PreviewKeys.act cursorDown: the cursor moves under the card and the card follows a file row.
@@ -154,6 +157,15 @@ impl Shell {
         }
         cx.notify();
         true
+    }
+
+    /// QuickLook::close on a tab switch: the card closes and the keyboard goes back to the listing.
+    pub(crate) fn quick_look_tab_switch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(view) = self.quick_look.as_ref().map(|host| host.view.clone()) else {
+            return;
+        };
+        view.update(cx, |view, cx| view.close(cx));
+        self.quick_look_closed(window, cx);
     }
 
     fn quick_look_follow(

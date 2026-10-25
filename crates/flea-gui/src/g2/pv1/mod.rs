@@ -1,14 +1,20 @@
 //! Quick Look (pv1): the overlay's state, its ground policy and the card it draws over the listing.
+mod act;
 pub mod bar;
 pub mod body;
 pub mod button;
 pub mod card;
+pub mod chrome;
 pub mod column;
+pub mod doc;
+mod doc_card;
+mod doc_keys;
 pub mod glyph;
 pub mod look;
 mod raster;
 pub mod scroller;
 pub mod shield;
+mod svg;
 mod viewport;
 
 pub use raster::{RasterRefusal, RasterState, Rasterizer};
@@ -33,6 +39,7 @@ use std::{
 };
 
 pub use body::{Body, Control, Subject};
+pub use doc_keys::Outcome;
 pub use look::Look;
 
 /// What the overlay asks of its host; the listing never sees the pointer event that caused one.
@@ -48,6 +55,10 @@ pub enum Event {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Hit {
     Control(usize),
+    /// A mounted view's bar word: Rendered or Source, a sheet, a plate.
+    Word(usize),
+    /// A mounted view's strip control, by its index in the view's own strip.
+    Strip(usize),
     CopyPatch,
     Close,
     OpenWith,
@@ -93,6 +104,8 @@ pub struct QuickLook {
     pub(crate) hovered: Option<Hit>,
     pub(crate) pressed: Option<Hit>,
     pub(crate) scroll: Scroll,
+    /// The mounted view's notifications: each re-reads its readiness, its page shape and the PDF's opening page.
+    doc_watch: Option<gpui::Subscription>,
 }
 
 impl EventEmitter<Event> for QuickLook {}
@@ -118,6 +131,7 @@ impl QuickLook {
             hovered: None,
             pressed: None,
             scroll: Scroll::default(),
+            doc_watch: None,
         }
     }
 
@@ -169,6 +183,15 @@ impl QuickLook {
 
     /// Opens on a subject; revealed is false while the swap still holds the card back.
     pub fn open(&mut self, subject: Subject, revealed: bool, cx: &mut Context<Self>) {
+        let moved = self
+            .subject
+            .as_ref()
+            .and_then(|s| s.body.doc())
+            .filter(|old| subject.body.doc().is_none_or(|new| new.id() != old.id()));
+        if let Some(old) = moved.cloned() {
+            old.close(cx);
+        }
+        self.doc_watch = subject.body.doc().map(|doc| doc.observe(cx));
         self.subject = Some(subject);
         self.retire_svg(cx);
         self.revealed = revealed;
@@ -184,150 +207,14 @@ impl QuickLook {
         cx.notify();
     }
 
-    /// The open vector's raster at the drawn fit times the window scale (#336); a raster file draws itself.
-    fn svg_image(
-        &mut self,
-        path: &Path,
-        fit_w: f64,
-        fit_h: f64,
-        window: &mut gpui::Window,
-        cx: &mut Context<Self>,
-    ) -> RasterState {
-        use flea::ui_logic_pv1::pixels::{decode_size, is_vector_name, needs_redecode};
-        let vector = path.file_name().and_then(|n| n.to_str()).is_some_and(is_vector_name);
-        if !vector {
-            return RasterState::default();
-        }
-        let scale = f64::from(window.scale_factor());
-        let (dw, dh) = decode_size(fit_w, fit_h, scale, 0.0, 0.0, true);
-        if dw == 0 || dh == 0 {
-            return RasterState::default();
-        }
-        let fresh = self.svg.as_ref().is_some_and(|s| {
-            s.path == path && s.size == (dw, dh) && !needs_redecode(s.scale, scale)
-        });
-        if fresh {
-            return self.svg.as_ref().map(SvgPicture::state).unwrap_or_default();
-        }
-        // The same path keeps drawing its last raster until the new one lands; a new path retires it.
-        let prior = self.svg.take();
-        let keep = prior.as_ref().filter(|s| s.path == path).and_then(|s| s.image.clone());
-        if let Some(prior) = prior {
-            if prior.path != path {
-                self.retire(prior.image, cx);
-            }
-        }
-        self.svg = Some(SvgPicture {
-            path: path.to_path_buf(),
-            scale,
-            size: (dw, dh),
-            image: keep,
-            refusal: None,
-        });
-        // A new request invalidates the job in flight; the next one starts when that job ends.
-        self.raster_latest.fetch_add(1, Ordering::SeqCst);
-        self.start_raster(cx);
-        self.svg.as_ref().map(SvgPicture::state).unwrap_or_default()
-    }
-
-    /// Starts one raster job for the current request; a job already in flight finishes first.
-    fn start_raster(&mut self, cx: &mut Context<Self>) {
-        if self.raster_in_flight {
-            return;
-        }
-        let Some(svg) = self.svg.as_ref() else {
-            return;
-        };
-        let (path, size) = (svg.path.clone(), svg.size);
-        let epoch = self.raster_latest.load(Ordering::SeqCst);
-        let raster = self
-            .raster
-            .clone()
-            .unwrap_or_else(|| raster::default_raster(cx.svg_renderer()));
-        self.raster_in_flight = true;
-        // The read, parse and raster run on the background executor, never in the frame that asked.
-        let job = raster::Job {
-            path: path.clone(),
-            size,
-            epoch,
-            latest: self.raster_latest.clone(),
-            raster,
-        };
-        let work = cx.background_executor().spawn(async move { raster::run(&job) });
-        cx.spawn(async move |this, cx| {
-            let landed = work.await;
-            let _ = this.update(cx, |ql, cx| {
-                ql.raster_in_flight = false;
-                let current = ql.raster_latest.load(Ordering::SeqCst) == epoch
-                    && ql.svg.as_ref().is_some_and(|s| s.path == path && s.size == size);
-                if !current {
-                    // This request moved on; the latest wanted size starts now, still one job at a time.
-                    ql.start_raster(cx);
-                    return;
-                }
-                match landed {
-                    raster::RasterOutcome::Raster(image) => {
-                        if let Some(svg) = ql.svg.as_mut() {
-                            svg.refusal = None;
-                            if let Some(old) = svg.image.replace(image) {
-                                ql.retire(Some(old), cx);
-                            }
-                        }
-                    }
-                    raster::RasterOutcome::Refused(refusal) => {
-                        if let Some(svg) = ql.svg.as_mut() {
-                            svg.refusal = Some(refusal);
-                        }
-                    }
-                    raster::RasterOutcome::Superseded => {}
-                }
-                cx.notify();
-            });
-        })
-        .detach();
-    }
-
-    /// Puts a raster the card no longer draws on the retire list for the window that holds its tile.
-    fn retire(&mut self, image: Option<Arc<RenderImage>>, cx: &mut Context<Self>) {
-        if let Some(image) = image {
-            self.retired.push(image);
-        }
-        self.schedule_retire(cx);
-    }
-
-    /// Frees retired tiles at the end of this effect cycle, so a close frees its tile before the next frame.
-    fn schedule_retire(&mut self, cx: &mut Context<Self>) {
-        if self.retired.is_empty() || self.retire_scheduled {
-            return;
-        }
-        let Some(window) = self.window else {
-            return;
-        };
-        self.retire_scheduled = true;
-        let entity = cx.entity().downgrade();
-        cx.defer(move |cx| {
-            let _ = window.update(cx, |_, window, app| {
-                let _ = entity.update(app, |ql, _| {
-                    ql.retire_scheduled = false;
-                    for image in std::mem::take(&mut ql.retired) {
-                        let _ = window.drop_image(image);
-                    }
-                });
-            });
-        });
-    }
-
-    /// Retires the open vector's raster and invalidates every in-flight request for it.
-    fn retire_svg(&mut self, cx: &mut Context<Self>) {
-        let image = self.svg.take().and_then(|s| s.image);
-        self.retire(image, cx);
-        let _ = self.raster_latest.fetch_add(1, Ordering::SeqCst);
-    }
-
     /// close() in Preview.qml: every per-subject flag goes, so the next open starts clean.
     pub fn close(&mut self, cx: &mut Context<Self>) {
-        if self.subject.take().is_none() {
+        let Some(subject) = self.subject.take() else {
             return;
+        };
+        self.doc_watch = None;
+        if let Some(doc) = subject.body.doc() {
+            doc.close(cx);
         }
         self.ground.reset();
         self.retire_svg(cx);
@@ -410,138 +297,6 @@ impl QuickLook {
             });
         })
         .detach();
-    }
-
-    /// A card control answered; a disabled one never reaches here.
-    pub fn activate(&mut self, hit: Hit, cx: &mut Context<Self>) {
-        match hit {
-            Hit::Close => self.close(cx),
-            Hit::OpenWith => cx.emit(Event::OpenWith),
-            Hit::CopyPatch => cx.emit(Event::CopyPatch),
-            Hit::Control(index) => {
-                let glyph = self
-                    .subject
-                    .as_ref()
-                    .and_then(|s| s.body.controls().get(index).copied());
-                if glyph.is_some_and(|c| c.enabled && c.glyph == glyph::Glyph::Maximize) {
-                    self.expanded = !self.expanded;
-                    cx.notify();
-                }
-            }
-        }
-    }
-
-    /// The PDF strip's walk when PdfViewer holds the keyboard: its controls, then Open With, the pane's one action, then Close.
-    fn strip(&self) -> Option<Vec<(Hit, bool)>> {
-        let controls = self.subject.as_ref()?.body.controls();
-        if controls.is_empty() {
-            return None;
-        }
-        let mut walk: Vec<(Hit, bool)> = controls
-            .iter()
-            .enumerate()
-            .map(|(i, c)| (Hit::Control(i), c.enabled))
-            .collect();
-        walk.extend([(Hit::OpenWith, true), (Hit::Close, true)]);
-        Some(walk)
-    }
-
-    /// PdfViewer's keys (PreviewKeys.pdfAction); Space and Escape still close every kind.
-    fn strip_action(&mut self, walk: &[(Hit, bool)], action: &str, cx: &mut Context<Self>) -> Command {
-        if matches!(action, "preview" | "escape" | "focusPreview") {
-            self.close(cx);
-            return Command::Close;
-        }
-        let controls: Vec<keys::Control> = walk
-            .iter()
-            .map(|&(_, enabled)| keys::Control {
-                enabled,
-                visible: true,
-            })
-            .collect();
-        let index = self
-            .focused
-            .and_then(|f| walk.iter().position(|(h, _)| *h == f))
-            .map_or(-1, |i| i as i32);
-        match keys::pdf_action(action, Some(&controls), index) {
-            PdfCommand::Focus(i) => {
-                self.focused = walk.get(i as usize).map(|(h, _)| *h);
-                cx.notify();
-                Command::Nothing
-            }
-            PdfCommand::Activate(i) => {
-                self.activate(walk[i].0, cx);
-                Command::Nothing
-            }
-            PdfCommand::ToggleExpand => {
-                self.expanded = !self.expanded;
-                cx.notify();
-                Command::ToggleExpand
-            }
-            // A PDF that could not be read has no page to turn, zoom or scroll.
-            _ => Command::Nothing,
-        }
-    }
-
-    /// One named action while Quick Look holds the keyboard.
-    pub fn action(&mut self, action: &str, cx: &mut Context<Self>) -> Command {
-        if let Some(walk) = self.strip() {
-            return self.strip_action(&walk, action, cx);
-        }
-        let subject = self.subject.as_ref();
-        let has_bar = subject.is_some_and(|s| s.body.has_bar());
-        let surface = Surface {
-            is_media: subject.is_some_and(|s| matches!(s.state, State::Video | State::Audio)),
-            is_pdf: subject.is_some_and(|s| s.state == State::Pdf),
-            is_compare: subject.is_some_and(|s| s.body.is_compare()),
-            has_bar,
-            close_focused: self.focused == Some(Hit::Close),
-            ..Surface::default()
-        };
-        let open_with = subject.is_some_and(|s| s.body.offers_open_with());
-        let command = keys::act(action, surface);
-        match command {
-            Command::Close => self.close(cx),
-            Command::Follow(step) => cx.emit(Event::Follow(step)),
-            Command::ToggleExpand => {
-                self.expanded = !self.expanded;
-                cx.notify();
-            }
-            Command::CopyPatch => cx.emit(Event::CopyPatch),
-            // Compare's Tab walk: Copy Patch, then Close, round again; a refusal has Close alone.
-            Command::CompareFocus(back) => {
-                let walk: &[Hit] = if subject.is_some_and(|s| matches!(s.body, Body::Diff { .. })) {
-                    &[Hit::CopyPatch, Hit::Close]
-                } else {
-                    &[Hit::Close]
-                };
-                let at = self.focused.and_then(|f| walk.iter().position(|w| *w == f));
-                let next = match (at, back) {
-                    (None, false) => 0,
-                    (None, true) => walk.len() - 1,
-                    (Some(i), false) => (i + 1) % walk.len(),
-                    (Some(i), true) => (i + walk.len() - 1) % walk.len(),
-                };
-                self.focused = Some(walk[next]);
-                cx.notify();
-            }
-            Command::Nothing if action == "open" && self.focused.is_some() => {
-                if let Some(hit) = self.focused {
-                    self.activate(hit, cx);
-                }
-            }
-            Command::ToggleCloseFocus => {
-                self.focused = (self.focused != Some(Hit::Close)).then_some(Hit::Close);
-                cx.notify();
-            }
-            // With no bar, Tab walks to the card's one action, the DialogButton focus a framed button takes.
-            Command::Nothing if open_with && !has_bar && action.starts_with("focus") => {
-                self.focused = (self.focused != Some(Hit::OpenWith)).then_some(Hit::OpenWith);
-                cx.notify();
-            }
-            _ => {}
-        }
-        command
     }
 
     /// The card's window rect for a window of this size, the same arithmetic as Theme.qml.
