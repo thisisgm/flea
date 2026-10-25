@@ -2,24 +2,44 @@
 use super::selection_preview::*;
 use flea::ui_logic_pv1::{facts, kinds::State};
 
-/// The column's state mark: 40 px at base 14, scaled with the text size.
+// cols-preview-video.html, drawn at base and body 14 and caption 12; each value scales with its text size.
+const BOARD_BASE: f32 = 14.;
+const BOARD_BODY: f32 = 14.;
+const BOARD_CAPTION: f32 = 12.;
+/// The state mark, at base 14.
+const STATE_MARK: f32 = 40.;
+/// A fact row's pitch, as a multiple of the caption size (18 px at caption 12).
+const FACT_PITCH: f32 = 1.5;
+/// The name's line, at body 14.
+const NAME_LINE: f32 = 20.;
+/// A fact's text line and its label column, at caption 12.
+const FACT_TEXT: f32 = 16.;
+const FACT_LABEL: f32 = 71.;
+/// FactsTable.qml's row gap, three hairlines.
+const FACT_GAP: f32 = 3.;
+
+/// The column's state mark, scaled with the text size.
 pub(crate) fn state_mark_size(face: &crate::list::Typeface) -> f32 {
-    (40. * f32::from(face.base) / 14.).round()
+    (STATE_MARK * f32::from(face.base) / BOARD_BASE).round()
 }
 
 impl SelectionPreview {
     /// cols-preview-video.html: an 18 px fact row at caption 12, the name's 20 px line at body 14.
     pub(crate) fn fact_row(&self) -> (f32, f32) {
         (
-            (f32::from(self.face.caption) * 1.5).round(),
-            (f32::from(self.face.body) * 20. / 14.).round(),
+            (f32::from(self.face.caption) * FACT_PITCH).round(),
+            (f32::from(self.face.body) * NAME_LINE / BOARD_BODY).round(),
         )
     }
 
     /// The board's 16 px text line inside a fact row, its 71 px label column, and FactsTable.qml's hairline * 3 row gap.
     pub(crate) fn fact_grid(&self) -> (f32, f32, f32) {
         let caption = f32::from(self.face.caption);
-        ((caption * 16. / 12.).round(), (caption * 71. / 12.).round(), 3.)
+        (
+            (caption * FACT_TEXT / BOARD_CAPTION).round(),
+            (caption * FACT_LABEL / BOARD_CAPTION).round(),
+            FACT_GAP,
+        )
     }
 
     /// Facts.js tallHeight for a tall kind, else the 16 by 10 frame every other state shares.
@@ -42,21 +62,16 @@ impl SelectionPreview {
         (width, height)
     }
 
-    /// The state Facts.js draws: Error only for PreviewColumn.qml's failure, a text, PDF, HTML or archive read; a picture or model that failed keeps its kind.
+    /// The state Facts.js draws: Error only for PreviewColumn.qml's failure; a picture or model that failed keeps its kind.
     pub(crate) fn state(&self, frame: &Frame, cx: &gpui::App) -> State {
-        let unread = !frame.manual
-            && frame.kind != Kind::Multi
-            && (matches!(&frame.mounted, Mounted::Doc(doc) if doc.failure(&self.catalog, cx).is_some())
-                || frame.facts.as_ref().is_some_and(|m| m.archive_failed)
-                || (frame.failed && matches!(frame.mounted, Mounted::Pdf(_))));
-        if unread {
+        if self.failure(frame, cx).is_some() {
             State::Error
         } else {
             frame.kind.state()
         }
     }
 
-    /// PreviewColumn.qml failure: the mounted view's sentence, an unreadable archive, or a renderer that failed.
+    /// PreviewColumn.qml failure: the mounted view's sentence, an unreadable archive, or a PDF that failed; never a picture or model.
     pub(crate) fn failure(&self, frame: &Frame, cx: &gpui::App) -> Option<String> {
         if frame.manual || frame.kind == Kind::Multi {
             return None;
@@ -69,8 +84,7 @@ impl SelectionPreview {
         if frame.facts.as_ref().is_some_and(|m| m.archive_failed) {
             return Some(self.catalog.tr("preview.archiveUnreadable"));
         }
-        frame
-            .failed
+        (frame.failed && matches!(frame.mounted, Mounted::Pdf(_)))
             .then(|| self.catalog.tr("document.pdf_unreadable"))
     }
 

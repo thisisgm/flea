@@ -9,6 +9,11 @@ use crate::{g2::pv1::glyph::Glyph, row::marks::Mark};
 use flea::ui_logic_pv1::thumbs;
 use gpui::{div, img, prelude::*, px, IntoElement, Render, Window};
 
+/// The frame's border, which a view laid out inside it insets by on each side.
+const FRAME_BORDER: f32 = 1.;
+/// The opacity of a symlink's or an undrawn kind's state mark.
+const STATE_MARK_OPACITY: f32 = 0.7;
+
 pub(crate) fn number(meta: Option<&Json>, key: &str) -> i64 {
     meta.and_then(|meta| meta.get(key))
         .and_then(Json::as_f64)
@@ -64,10 +69,10 @@ impl Render for SelectionPreview {
                 root = root.child(
                     div()
                         .absolute()
-                        .top(px(metrics.pad + 1.))
-                        .left(px(metrics.pad + 1.))
-                        .w(px((width - 2.).max(1.)))
-                        .h(px((height - 2.).max(1.)))
+                        .top(px(metrics.pad + FRAME_BORDER))
+                        .left(px(metrics.pad + FRAME_BORDER))
+                        .w(px((width - 2. * FRAME_BORDER).max(1.)))
+                        .h(px((height - 2. * FRAME_BORDER).max(1.)))
                         .invisible()
                         .child(doc.element()),
                 );
@@ -173,8 +178,8 @@ impl Render for SelectionPreview {
                 let original = frame.facts.as_ref().map_or((0., 0.), |m| (m.w as f64, m.h as f64));
                 let limit = thumbs::poster_limit(frame.kind == Kind::Video, w, h, original.0, original.1);
                 let scale = thumbs::fit_scale(
-                    (width - 2.).max(1.) as f64,
-                    (height - 2.).max(1.) as f64,
+                    (width - 2. * FRAME_BORDER).max(1.) as f64,
+                    (height - 2. * FRAME_BORDER).max(1.) as f64,
                     w,
                     h,
                     limit,
@@ -244,7 +249,7 @@ impl Render for SelectionPreview {
                 _ if fitted.is_some() => media.children(fitted),
                 _ if frame.kind == Kind::Symlink => media.child(state_mark(
                     Glyph::Row(Mark::Symlink),
-                    roles.symlink.opacity(0.7),
+                    roles.symlink.opacity(STATE_MARK_OPACITY),
                     None,
                 )),
                 _ if frame.kind == Kind::Facts => media.child(state_mark(
@@ -254,7 +259,7 @@ impl Render for SelectionPreview {
                 )),
                 _ => media.child(state_mark(
                     Glyph::kind(&frame.subject.row.icon, frame.subject.row.mode),
-                    roles.muted_frame.opacity(0.7),
+                    roles.muted_frame.opacity(STATE_MARK_OPACITY),
                     frame
                         .thumb_answered
                         .then(|| self.catalog.tr("preview.no_thumb")),
