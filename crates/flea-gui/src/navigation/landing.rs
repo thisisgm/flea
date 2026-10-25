@@ -21,6 +21,7 @@ impl Navigator {
             }
             self.land_restore(pane);
             self.landing_select(pane, selected);
+            self.land_reload(pane);
             self.land_anchor(pane, selected);
             if let Some(at) = self.menus.landed(pane) {
                 self.background_at = Some(at);
@@ -171,6 +172,9 @@ impl Navigator {
             self.order = self.drawn_order();
             self.orders.path = pane.path().into();
             self.restore = None;
+            // A failed reload owes no notice, so a later landing of the same folder must not spend it.
+            self.reload_from = None;
+            self.reload_changed = None;
             // Only a failed Esc relist drops the cursor file; any other ended listing keeps it armed (ui/js/Swap.js failListing).
             if std::mem::take(&mut self.relisting) {
                 self.pending_select = None;

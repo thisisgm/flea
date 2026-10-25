@@ -326,6 +326,7 @@ impl Render for Shell {
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key))
             .on_scroll_wheel(cx.listener(Self::wheel))
+            .capture_any_mouse_down(cx.listener(Self::side_button))
             .child(Self::list_header_input(cx)),
             cx,
         )

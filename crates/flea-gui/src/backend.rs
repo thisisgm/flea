@@ -49,6 +49,8 @@ pub enum Event {
     Changed {
         path: String,
     },
+    /// A reload's listed line named the rows it changed; the listed reply follows it.
+    ReloadChanged(usize),
     Located(Located),
     Paths(Vec<String>),
     Operations(String),

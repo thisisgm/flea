@@ -125,6 +125,12 @@ impl Shell {
         self.surfaces[side].filesystem.enter(&host.path);
         host.nav
             .after_reply(&mut host.pane, before, &mut host.selected);
+        if let Some(changed) = host.nav.reloaded.take() {
+            let notice = crate::strips::status_host::reloaded(&self.locale.catalog, changed);
+            self.status_messages(cx, |messages, now| {
+                messages.say(&notice, false, "", flea::ui_logic_fb1::status::Hint::None, now)
+            });
+        }
         self.run_navigation(side, window, cx);
         self.arm_watch(side, window, cx);
         if self.panes[side]

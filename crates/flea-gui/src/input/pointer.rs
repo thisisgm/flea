@@ -250,6 +250,7 @@ impl Shell {
             }
             host.input.selection.changed(&host.selected);
             host.input.pulled = None;
+            host.nav.landed = None;
         }
         let press = host.input.press.take();
         let mut slow = None;
@@ -306,6 +307,7 @@ impl Shell {
             let was_sole = host.selected == [row] && from == row;
             let pulled = host.input.take_pull(from, host.pane.held.listing);
             let selection = &mut host.input.selection;
+            let mut marked = true;
             let action = match effect {
                 Some("toggleSelect") if press.event.click_count == 1 => {
                     if host.selected.is_empty() && from != row {
@@ -324,21 +326,39 @@ impl Shell {
                     );
                     None
                 }
-                Some("toggleSelect" | "extendSelect") => None,
+                Some("toggleSelect" | "extendSelect") => {
+                    marked = false;
+                    None
+                }
                 Some("menu") => {
-                    if host.selected.binary_search(&row).is_err() {
+                    marked =
+                        !host.selected.is_empty() && host.selected.binary_search(&row).is_err();
+                    if marked {
                         selection.clear(&mut host.selected);
                     }
                     Some("menu")
                 }
-                Some("openTab") => Some("openTab"),
-                Some("reveal") => Some("reveal"),
+                Some("openTab") => {
+                    marked = false;
+                    Some("openTab")
+                }
+                Some("reveal") => {
+                    marked = false;
+                    Some("reveal")
+                }
                 Some("selectOnly" | "open") => {
                     selection.only(&mut host.selected, row);
                     (effect == Some("open") || single_click).then_some("open")
                 }
-                _ => None,
+                _ => {
+                    marked = false;
+                    None
+                }
             };
+            // v0.3.12 Selection.js:32-35, 47-67: only toggle, only, extendTo, all and clear drop the landing.
+            if marked {
+                host.nav.landed = None;
+            }
             if effect != Some("openTab") {
                 host.pane.cursor = row;
                 if let Some(mut frame) = host.input.frame {
