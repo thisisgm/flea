@@ -103,11 +103,23 @@ fn rows(cx: &mut TestAppContext, path: &Entity<PathView>) -> Vec<String> {
 #[gpui::test]
 fn a_lost_backend_owes_no_jump_answer(cx: &mut TestAppContext) {
     let (handle, _lines) = open(cx);
+    let jumps = |cx: &mut TestAppContext| edit(cx, handle, |shell, _, _| shell.chrome.jumps);
     edit(cx, handle, |shell, window, cx| shell.chrome_action("pathBar", window, cx));
     cx.run_until_parked();
-    assert_eq!(edit(cx, handle, |shell, _, _| shell.chrome.jumps), [1, 0], "the provisional ask is out on side 0");
+    assert_eq!(jumps(cx), [1, 0], "the provisional ask is out on side 0");
+    let failure = crate::backend::Failure { key: "window.backend_eof", detail: String::new() };
+    edit(cx, handle, |shell, window, cx| shell.receive(0, BackendEvent::Failed(failure), window, cx));
+    assert_eq!(jumps(cx), [0, 0], "a failed backend never answers its jump");
+    key(cx, handle, "escape");
+    edit(cx, handle, |shell, window, cx| shell.chrome_action("pathBar", window, cx));
+    cx.run_until_parked();
+    assert_eq!(jumps(cx), [1, 0], "a second ask is out on side 0");
     edit(cx, handle, |shell, window, cx| shell.receive(0, BackendEvent::Drained, window, cx));
-    assert_eq!(edit(cx, handle, |shell, _, _| shell.chrome.jumps), [0, 0], "a drained backend never answers its jump");
+    assert_eq!(jumps(cx), [0, 0], "a drained backend never answers its jump");
+    // No second pane runs here, so side 1's earlier owed ask is seeded; a fresh second pane owes none.
+    edit(cx, handle, |shell, _, _| shell.chrome.jumps[1] = 1);
+    edit(cx, handle, |shell, window, cx| shell.request_dual(window, cx));
+    assert_eq!(jumps(cx)[1], 0, "request_dual starts side 1 owing no jump");
 }
 
 #[gpui::test]
