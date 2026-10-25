@@ -185,9 +185,21 @@ fn a_listing_that_shrinks_the_rows_pulls_the_scroll_back_on_the_next_frame(
         "the wheel scrolled the rows"
     );
     let few = builtins("{}");
+    // The update that delivers the listing draws its first frame, still clamped against the longer rows' boxes.
     cx.update(|_, cx| pane.update(cx, |pane, cx| pane.receive(&listing(2, few), cx)));
-    draw(cx);
+    assert!(
+        pane.read_with(cx, |pane, _| pane.scroll) > 0.,
+        "the first frame after the listing keeps the scroll"
+    );
+    let notified = Rc::new(std::cell::Cell::new(0));
+    let count = notified.clone();
+    let _watch = cx.update(|_, cx| cx.observe(&pane, move |_, _| count.set(count.get() + 1)));
     cx.update(|window, cx| window.simulate_next_frame(cx));
+    cx.run_until_parked();
+    assert!(
+        notified.get() > 0,
+        "ST_PLUGINS_SHRINK: the next frame asks the pane to draw again"
+    );
     draw(cx);
     assert_eq!(
         pane.read_with(cx, |pane, _| pane.scroll),
