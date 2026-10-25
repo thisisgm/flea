@@ -82,9 +82,15 @@ pub fn colour(value: Hsla) -> String {
 }
 
 /// Header.cell(): where a title sits in header coordinates; a column that is not drawn collapses onto its right neighbour at width zero.
-pub fn header_cell(layout: &Layout, metrics: &Metrics, row: f32, name: &str) -> Option<Cell> {
+pub fn header_cell(
+    layout: &Layout,
+    metrics: &Metrics,
+    row: f32,
+    name: &str,
+    dual: bool,
+) -> Option<Cell> {
     if name == "name" {
-        return HeaderState::title_cell(layout, metrics, None);
+        return HeaderState::title_cell(layout, metrics, None, dual);
     }
     let wanted = Column::from_key(name)?;
     let mut right = row - metrics.pad;
@@ -173,7 +179,13 @@ impl RowsAdapter<'_> {
     fn header_cell(&self, name: &str) -> Option<Cell> {
         let drawn = &self.list.drawn;
         let row = (f32::from(self.header_box().size.width) - drawn.metrics.lane).max(0.);
-        header_cell(&self.list.header.drawn.layout, &drawn.metrics, row, name)
+        header_cell(
+            &self.list.header.drawn.layout,
+            &drawn.metrics,
+            row,
+            name,
+            self.list.view.dual,
+        )
     }
 
     fn row_value(&self, function: &str, index: usize) -> Option<String> {

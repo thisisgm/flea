@@ -202,13 +202,22 @@ impl HeaderState {
         self.titles = None;
     }
 
-    /// The title cell Header.qml anchors: the name from the padding to the first drawn column's gap, each column its own cell.
-    pub fn title_cell(layout: &Layout, metrics: &Metrics, column: Option<Column>) -> Option<Cell> {
+    /// The title cell Header.qml anchors: the name from the padding (in Dual from the row labels) to the first drawn column's gap, each column its own cell.
+    pub fn title_cell(
+        layout: &Layout,
+        metrics: &Metrics,
+        column: Option<Column>,
+        dual: bool,
+    ) -> Option<Cell> {
         match column {
-            None => Some(Cell {
-                x: metrics.pad,
-                width: (layout.name.right() - metrics.pad).max(0.),
-            }),
+            None => {
+                // A Dual pane sets the name over the row labels, not the padding.
+                let x = if dual { metrics.label_x() } else { metrics.pad };
+                Some(Cell {
+                    x,
+                    width: (layout.name.right() - x).max(0.),
+                })
+            }
             Some(column) => layout.cell(column),
         }
     }
@@ -446,9 +455,10 @@ impl Element for HeaderElement {
         // The board's padding sits above the titles, so their line box is the header less that padding.
         let text_top = top + px(metrics.header_top);
         let text_height = metrics.header - metrics.header_top;
+        let dual = state.view.dual;
         window.paint_layer(bounds, |window| {
             for column in words::CELLS {
-                let Some(cell) = HeaderState::title_cell(&layout, &metrics, column) else {
+                let Some(cell) = HeaderState::title_cell(&layout, &metrics, column, dual) else {
                     continue;
                 };
                 let title = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);
