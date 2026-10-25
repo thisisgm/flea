@@ -94,6 +94,7 @@ fn the_menu_open_on_the_unfocused_dual_pane_opens_that_panes_row(cx: &mut TestAp
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(crate::window::startup::View::Dual, window, cx)));
     let right = asked_on(&shell, cx, 1);
     land_on(&shell, cx, 1, &right, vec![row("beta", true), row("report.pdf", false)], 2, 1);
+    assert_eq!(shell.read_with(cx, |shell, _| shell.focus_side), 0, "the right pane is unfocused when its menu opens");
     // A right click on the right pane's file row; the left cursor stays on folder alpha, which a left-pane Open would enter.
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.open_menu(1, Some(1), (10., 10.), window, cx)));
     let file = format!("{}/report.pdf", right.trim_end_matches('/'));
