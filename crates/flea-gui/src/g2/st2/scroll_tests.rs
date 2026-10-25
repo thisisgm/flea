@@ -170,3 +170,30 @@ fn keys_keep_the_cursor_plugin_inside_the_pane(cx: &mut TestAppContext) {
         "Up walks back to the first plugin"
     );
 }
+
+#[gpui::test]
+fn a_listing_that_shrinks_the_rows_pulls_the_scroll_back_on_the_next_frame(
+    cx: &mut TestAppContext,
+) {
+    let (pane, cx) = long(cx);
+    let frame = rect(&pane, cx, "pane");
+    for _ in 0..30 {
+        notch(cx, frame.center(), 1.);
+    }
+    assert!(
+        pane.read_with(cx, |pane, _| pane.scroll) > 0.,
+        "the wheel scrolled the rows"
+    );
+    let few = builtins("{}");
+    cx.update(|_, cx| pane.update(cx, |pane, cx| pane.receive(&listing(2, few), cx)));
+    draw(cx);
+    cx.update(|window, cx| window.simulate_next_frame(cx));
+    draw(cx);
+    assert_eq!(
+        pane.read_with(cx, |pane, _| pane.scroll),
+        0.,
+        "ST_PLUGINS_SHRINK: the frame after a shorter listing clamps against its own boxes"
+    );
+    let first = pane.read_with(cx, |pane, _| pane.page().rows()[0].id().to_string());
+    assert_eq!(rect(&pane, cx, &format!("row:{first}")).top(), frame.top());
+}

@@ -13,6 +13,20 @@ impl PluginsPane {
         }
     }
 
+    /// Before a frame: rows that shrank since the last frame pull the scroll back before its boxes are cleared.
+    pub(super) fn laid_out(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.scroll = self.scroll.min(self.most());
+        self.probe.clear();
+        // Rows that shrink in this frame are measured only after prepaint: one more frame clamps against those boxes.
+        if self.scroll > 0. {
+            cx.on_next_frame(window, |pane, _, cx| {
+                if pane.scroll > pane.most() {
+                    cx.notify();
+                }
+            });
+        }
+    }
+
     /// After a key: a page opened or closed starts at its top, and a cursor move keeps its row in view.
     pub(super) fn keyed(&mut self, title: &str) {
         if self.page.title() != title {

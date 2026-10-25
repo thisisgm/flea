@@ -183,3 +183,33 @@ fn down_past_the_edge_keeps_the_highlighted_result_in_view() {
         "the wrap to the first result scrolls to the top"
     );
 }
+
+// The resting columns fade at the body's foot while rows run below it, as the keymap board draws, and not at the end.
+#[test]
+fn the_resting_sheet_fades_at_its_foot_until_the_wheel_reaches_the_end() {
+    let mut open = opened();
+    let frame = |open: &mut Open| {
+        open.cx.update(|window, cx| window.simulate_next_frame(cx));
+        draw(&mut open.cx);
+    };
+    frame(&mut open);
+    let fade = open
+        .cx
+        .debug_bounds("sheet-fade")
+        .expect("ST_SHEET_FADE: the fade draws while rows run below the body");
+    let body = bounds(&open, "body");
+    assert_eq!(
+        fade.bottom(),
+        body.bottom(),
+        "the fade sits on the body's foot"
+    );
+    let point = at(&open);
+    for _ in 0..12 {
+        notch(&mut open.cx, point, 1.);
+    }
+    frame(&mut open);
+    assert!(
+        open.cx.debug_bounds("sheet-fade").is_none(),
+        "ST_SHEET_FADE: no fade once the last row sits on the body's foot"
+    );
+}

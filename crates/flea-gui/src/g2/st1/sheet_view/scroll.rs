@@ -32,7 +32,8 @@ impl SheetView {
     }
 
     /// Before a frame: a key that moved the highlight brings its row into view, and the scroll stays inside the content.
-    pub(super) fn laid_out(&mut self, window: &Window) {
+    /// Returns how far the body could scroll on the last frame, read before the probe is cleared for this one.
+    pub(super) fn laid_out(&mut self, window: &mut Window, cx: &mut Context<Self>) -> f32 {
         let viewport = self
             .probe
             .bounds("body")
@@ -40,8 +41,16 @@ impl SheetView {
         if std::mem::take(&mut self.sheet.moved) && !self.sheet.query.is_empty() {
             self.sheet.reveal(viewport, KEY_ROW);
         }
-        self.sheet.scroll = self.sheet.scroll.min(self.most());
+        let most = self.most();
+        self.sheet.scroll = self.sheet.scroll.min(most);
         self.probe.clear();
+        // This frame's boxes exist only after prepaint: draw once more when they moved the end, so the fade and clamp follow.
+        cx.on_next_frame(window, move |view, _, cx| {
+            if (view.most() - most).abs() > 0.5 {
+                cx.notify();
+            }
+        });
+        most
     }
 
     fn wheel(&mut self, event: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {
