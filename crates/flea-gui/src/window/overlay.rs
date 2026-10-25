@@ -14,6 +14,7 @@ impl Shell {
             || self.settings.sheet.is_some()
             || self.output_showing(cx)
             || self.network_holds_keyboard(cx)
+            || self.rename.bulk.is_some()
             || self
                 .overlay
                 .as_ref()

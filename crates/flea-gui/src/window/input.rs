@@ -76,6 +76,11 @@ impl Shell {
                 }
             }
         }
+        // The rename editor and the bulk rename card hold every key while open.
+        if self.rename_key(event, window, cx) {
+            self.rename_sync_gate(window, cx);
+            return;
+        }
         if event.keystroke.key == "escape" && self.dual_drag.is_some() {
             self.dual_cancel(cx);
             cx.stop_propagation();

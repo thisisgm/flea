@@ -4,6 +4,7 @@ mod navigation;
 pub(crate) mod opener;
 mod preview;
 mod previewtypes;
+mod rename;
 mod window;
 
 use super::input::ActionEvent;
@@ -31,11 +32,14 @@ const FAMILIES: &[Family] = &[
     preview::run,
     listing::run,
     window::run,
+    rename::run,
 ];
 
 impl Shell {
     /// Runs the order through its family; one nobody ran is emitted for observers, and an unclaimed menu choice is refused.
     pub(crate) fn dispatch(&mut self, order: Order, window: &mut Window, cx: &mut Context<Self>) {
+        // Pane.qml act: every dispatched action ends a pending slow click.
+        self.slow_cancel();
         if FAMILIES
             .iter()
             .any(|family| family(self, &order, window, cx))
@@ -75,6 +79,12 @@ mod previewtypes_page_tests;
 mod previewtypes_tests;
 #[cfg(test)]
 mod refusal_tests;
+#[cfg(test)]
+mod rename_refusal_tests;
+#[cfg(test)]
+mod rename_slow_tests;
+#[cfg(test)]
+mod rename_tests;
 #[cfg(test)]
 mod search_open_tests;
 #[cfg(test)]

@@ -150,7 +150,9 @@ impl Shell {
                     search: &host.search.owner,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 19] = [
+                let rename = crate::window::rename::ipc::Reader { shell: self };
+                let adapters: [&dyn crate::ipc::Adapter; 20] = [
+                    &rename,
                     &search,
                     &query,
                     &rail,
@@ -175,9 +177,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    19
+                    20
                 } else {
-                    18
+                    19
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
