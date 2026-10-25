@@ -97,3 +97,35 @@ fn m9_integ_extract_answers_only_the_asked_archive() {
         "the refusal is said: {status}"
     );
 }
+
+// An encrypted reply on the other side must leave the active password card with its original backend.
+#[test]
+fn an_extract_card_keeps_its_backend_when_the_other_side_needs_a_password() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, mut requests, mut other) = start(&mut cx);
+    choose(&mut cx, handle, 43, "extract", "", &["/files/photos.zip"]);
+    drain(&mut requests);
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.operations.archive.extracts.push((1, "/right/b.zip".into(), "/right/b".into()))
+    });
+    receive(
+        &mut cx,
+        handle,
+        0,
+        r#"{"t":"archivedone","id":7,"ok":false,"verified":true,"err":"encrypted","path":"/files/photos.zip","dest":"/files/photos"}"#,
+    );
+    receive(
+        &mut cx,
+        handle,
+        1,
+        r#"{"t":"archivedone","id":8,"ok":false,"verified":true,"err":"encrypted","path":"/right/b.zip","dest":"/right/b"}"#,
+    );
+    let side = edit(&mut cx, handle, |shell, _, _| shell.operations.archive.card_side);
+    keys(&mut cx, handle, "s->s e->e c->c r->r e->e t->t");
+    keys(&mut cx, handle, "enter");
+    let (left, right) = (drain(&mut requests), drain(&mut other));
+    eprintln!("card_side={side} left={left:?} right={right:?}");
+    assert_eq!(side, 0, "the open card still belongs to side 0");
+    assert_eq!(left.iter().filter(|line| line.contains("photos.zip") && line.contains(r#""password":"secret""#)).count(), 1, "the owning backend receives the password once: {left:?}");
+    assert!(right.iter().all(|line| !line.contains("photos.zip")), "side 0's password never goes to side 1: {right:?}");
+}

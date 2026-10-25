@@ -346,7 +346,7 @@
     {
       "scene": "g2.op2.extra.compress-focus",
       "unit": "g2-op2",
-      "title": "Compress, compress-focus: Tab from Cancel lands on Compress, dimmed and still in the walk",
+      "title": "Compress, compress-focus: Tab from Cancel lands on Compress, lit as the primary, still in the walk",
       "board_png": "boards/compress.png",
       "board_html": "boards/compress.html",
       "before_png": "before/dialog-compress-pw-1100x700.png",
@@ -375,7 +375,7 @@
         "path": "/fx/v/work"
       },
       "assertions": [
-        "Tab from Cancel lands on Compress, dimmed and still in the walk"
+        "Tab from Cancel lands on Compress, lit as the primary, still in the walk"
       ],
       "parity_ids": [],
       "producer_owner": [
@@ -451,6 +451,7 @@
         "card": "compress",
         "focus": "confirm",
         "typed": "mismatch",
+        "key": "enter",
         "path": "/fx/v/work"
       },
       "assertions": [
