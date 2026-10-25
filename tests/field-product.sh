@@ -145,9 +145,10 @@ for asset in archive_rows[:2]:
     assert checked['version'] == asset['expected_version']
     assert checked['archive'] == asset
     assert checked['rival_manifest']['receipt']['archives'] == archive_rows
+archive_bins = {asset['id']: asset['binary_path'] for asset in archive_rows[:2]}
 for name, row in roster.items():
     if name != 'strata':
-        assert archive_roster[name] == row if name != 'strata-nightly' else archive_rows[1]['binary_path'] in archive_roster[name][7]
+        assert archive_roster[name] == row if name not in archive_bins else archive_bins[name] in archive_roster[name][7]
 fixture = root / 'archive-fixture'
 fixture.mkdir()
 (fixture / 'a.jpg').touch()
