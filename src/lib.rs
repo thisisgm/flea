@@ -1,6 +1,7 @@
 //! Shared, dependency-free protocol primitives for Flea frontends.
 extern crate self as flea;
 
+pub mod chooser_startup;
 pub mod colours;
 pub mod error;
 pub mod i18n;
