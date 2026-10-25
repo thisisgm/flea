@@ -40,7 +40,7 @@ PY
         --env FINDBENCH_FIXTURES="${FINDBENCH_FIXTURES:-100000,1000000,source}" \
         --env FINDBENCH_STORAGE="${FINDBENCH_STORAGE:-local}" \
         --env FINDBENCH_CACHE="${FINDBENCH_CACHE:-warm}" \
-        "$image_id" /bin/bash /work/.superpowers/fb0/harness/run.sh --inside \
+        "$image_id" /bin/bash /work/.superpowers/fb0/engine/run.sh --inside \
         "/work/.superpowers/fb0/$(basename -- "$BUILD")" \
         "/work/.superpowers/fb0/$(basename -- "$RUN")" \
         > "$RUN/run.log" 2>&1

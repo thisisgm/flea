@@ -1,5 +1,7 @@
 {
   "name": "flea-matchbench",
+  "reference": "flea-search/native",
+  "entrants": ["flea-search/native", "flea-current/native", "frizbee/native", "frizbee/typo", "neo_frizbee/native", "neo_frizbee/typo", "nucleo/native", "fuzzy-matcher/native", "sublime_fuzzy/native", "fzf/native"],
   "stage": "engine: matching and ranking over a fixed path corpus; no walk, no watcher, no GUI",
   "entry_point": "cargo run --release --locked --manifest-path tools/flea-matchbench/Cargo.toml -- bench [--dry] [--fixtures 100000,1000000,source] [--runs 30] [--noise-runs 5] [--threads 2] [--entrants NAME/PROFILE,...] [--source-commit 0ebbcffae] [--fzf PATH]",
   "hosts": ["ultra-27 (West)", "ultra-36 (East2)"],
@@ -28,9 +30,10 @@
     "process_total_cpu_ms": "wait4 rusage of the adapter process"
   },
   "quality": "final_rank_top_k (K=350) and intended_rank_full per target; mrr.tsv is the mean reciprocal top-k rank over the five targets; quality.tsv flags any rank that differs between runs",
-  "statistics": "noise-a and noise-b batches of five, then N=30 measured runs; each run starts every entrant as a fresh process in a rotated order reversed every other run; per-run reductions are bootstrapped (10000 resamples, seed 20261025) for a 95% interval of the median, and paired.tsv bootstraps the per-run ratio against flea-current/native",
+  "statistics": "noise-a and noise-b batches of five, then N=30 measured runs; each run starts every entrant as a fresh process in a rotated order reversed every other run; per-run reductions are bootstrapped (10000 resamples, seed 20261025) for a 95% interval of the median, and paired.tsv bootstraps the per-run ratio against flea-search/native",
   "threads": "every entrant gets the same CPU budget (default 2, pinned with taskset) and the client takes one more CPU; libraries without a parallel entry point are scored on that many scoped threads by the adapter",
   "known_differences": [
+    "flea-search/native is the production reference: the pinned backend compressed Index and Session::query run through the bench-only stage entry, with empty stage priors; flea-current/native remains a separate legacy standalone fuzzy comparison",
     "flea-current compiles src/backend/fuzzy.rs unchanged; its last tie-break uses byte order instead of the Finder order of src/backend/sort.rs, and it folds each candidate per call where the product index pre-folds",
     "nucleo uses its incremental append path when a query extends the previous one, as its own picker does",
     "fzf runs under a pseudo-terminal with --scheme=path --sync and answers through --listen with an API key; its clock includes HTTP and polling"

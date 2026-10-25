@@ -157,18 +157,23 @@ pub fn run(args: &Args) -> Result<(), String> {
     Ok(())
 }
 
-pub const SUMMARY_HEADER: &str = "fixture\tadapter\tmode\tmetric\tn_ok\tn_failed\tcoverage\tmedian\tci95_low\tci95_high\treference\tpaired_median_diff\tpaired_ci95_low\tpaired_ci95_high\tpaired_n\n";
+// n_ok counts metric-usable rounds; n_failed counts failed coverage/execution; n_not_measured counts covered rounds without that metric.
+pub const SUMMARY_HEADER: &str = "fixture\tadapter\tmode\tmetric\tn_ok\tn_failed\tn_not_measured\tcoverage\tmedian\tci95_low\tci95_high\treference\tpaired_median_diff\tpaired_ci95_low\tpaired_ci95_high\tpaired_n\n";
 
-type Metric = fn(&measure::Trial) -> f64;
+type Metric = fn(&measure::Trial) -> Option<f64>;
+
+#[cfg(test)]
+#[path = "run_summary_tests.rs"]
+mod summary_tests;
 
 /// Only rounds with full coverage enter a speed, CPU or memory interval; failures stay counted.
 fn summarize(out: &mut String, label: &str, rows: &[Row], reference: &str, resamples: usize, rng: &mut stats::Rng) {
     // Stage clock, stage CPU and peak memory stop before coverage work; process wall is walk mode only for that reason.
     let metrics: [(&str, Metric); 4] = [
-        ("stage_ms", |t| t.stage_ns as f64 / 1e6),
-        ("process_wall_ms", |t| t.wall_ns as f64 / 1e6),
-        ("stage_cpu_ms", |t| t.stage_cpu_us as f64 / 1e3),
-        ("peak_rss_mib", |t| (t.hwm_kib + t.tool_maxrss_kib) as f64 / 1024.0),
+        ("stage_ms", |t| Some(t.stage_ns as f64 / 1e6)),
+        ("process_wall_ms", |t| Some(t.wall_ns as f64 / 1e6)),
+        ("stage_cpu_ms", |t| (t.stage_cpu_us >= 0).then_some(t.stage_cpu_us as f64 / 1e3)),
+        ("peak_rss_mib", |t| (t.hwm_kib >= 0 && t.tool_maxrss_kib >= 0).then_some((t.hwm_kib as f64 + t.tool_maxrss_kib as f64) / 1024.0)),
     ];
     let mut keys: Vec<(&str, &str)> = rows.iter().map(|r| (r.adapter.as_str(), r.mode)).collect();
     keys.sort_unstable();
@@ -180,19 +185,23 @@ fn summarize(out: &mut String, label: &str, rows: &[Row], reference: &str, resam
         let mine = select(adapter);
         let good: Vec<&&Row> = mine.iter().filter(|r| r.coverage == "ok" || r.coverage == "control").collect();
         let theirs: Vec<&Row> = select(reference).into_iter().filter(|r| r.coverage == "ok").collect();
-        let status = if good.len() == mine.len() { "complete" } else { "incomplete" };
         for (metric, value) in metrics {
             if metric == "process_wall_ms" && mode == "index" {
                 continue;
             }
-            let series: Vec<(usize, f64)> = good.iter().map(|r| (r.round, value(&r.trial))).collect();
+            let series: Vec<(usize, f64)> = good.iter().filter_map(|r| value(&r.trial).map(|value| (r.round, value))).collect();
             let plain: Vec<f64> = series.iter().map(|s| s.1).collect();
-            let (m, lo, hi) = stats::bootstrap(&plain, resamples, rng);
-            let refs: Vec<(usize, f64)> = theirs.iter().map(|r| (r.round, value(&r.trial))).collect();
+            let status = if series.is_empty() && !good.is_empty() { "not-measured" }
+                else if series.len() == mine.len() { "complete" } else { "incomplete" };
+            let (m, lo, hi) = if plain.is_empty() { ("-".into(), "-".into(), "-".into()) } else {
+                let (m, lo, hi) = stats::bootstrap(&plain, resamples, rng);
+                (format!("{m:.3}"), format!("{lo:.3}"), format!("{hi:.3}"))
+            };
+            let refs: Vec<(usize, f64)> = theirs.iter().filter_map(|r| value(&r.trial).map(|value| (r.round, value))).collect();
             let pair = if adapter == reference { None } else { stats::paired(&series, &refs, resamples, rng) };
             let (pm, plo, phi, pn) = pair.map_or(("-".into(), "-".into(), "-".into(), 0), |(a, b, c, n)| (format!("{a:.3}"), format!("{b:.3}"), format!("{c:.3}"), n));
-            let _ = writeln!(out, "{label}\t{adapter}\t{mode}\t{metric}\t{}\t{}\t{status}\t{m:.3}\t{lo:.3}\t{hi:.3}\t{reference}\t{pm}\t{plo}\t{phi}\t{pn}",
-                good.len(), mine.len() - good.len());
+            let _ = writeln!(out, "{label}\t{adapter}\t{mode}\t{metric}\t{}\t{}\t{}\t{status}\t{m}\t{lo}\t{hi}\t{reference}\t{pm}\t{plo}\t{phi}\t{pn}",
+                series.len(), mine.len() - good.len(), good.len() - series.len());
         }
     }
 }

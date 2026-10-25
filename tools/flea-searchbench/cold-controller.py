@@ -19,6 +19,7 @@ def main():
     args = parser.parse_args()
     root = marked(args.run_root)
     host = socket.gethostname()
+    unreadable = set()
     while not (root / 'completion.json').exists():
         for request in sorted(root.glob('cache-request-*.json')):
             response = request.with_name(request.name.replace('cache-request-', 'cache-response-', 1))
@@ -26,7 +27,13 @@ def main():
                 raise ValueError('cold response symlink')
             if response.exists():
                 continue
-            payload = read_json(request, 65536)
+            try:
+                payload = read_json(request, 65536)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                if request not in unreadable:
+                    print('cold request unreadable; retrying: ' + str(request), file=sys.stderr, flush=True)
+                    unreadable.add(request)
+                continue
             if (payload.get('action') != 'drop-page-cache' or payload.get('mode') != 'cold'
                     or payload.get('host') != host or not isinstance(payload.get('context'), dict)
                     or request.name != 'cache-request-' + payload['id'] + '.json'):

@@ -40,8 +40,18 @@ def cold_request(root, context):
     request = root / ('cache-request-' + identifier + '.json')
     payload = dict(action='drop-page-cache', mode='cold', id=identifier, host=socket.gethostname(),
                    context=context, requested_wall_ns=time.time_ns(), requested_ns=time.monotonic_ns())
-    with request.open('x') as out:
-        json.dump(payload, out, sort_keys=True)
+    staged = root / ('.' + request.name + '.pending')
+    if request.exists() or request.is_symlink():
+        raise FileExistsError(request)
+    out = staged.open('x')
+    try:
+        with out:
+            json.dump(payload, out, sort_keys=True)
+        if request.exists() or request.is_symlink():
+            raise FileExistsError(request)
+        os.link(staged, request)
+    finally:
+        checked_mutation(root, staged).unlink(missing_ok=True)
     return request
 
 
