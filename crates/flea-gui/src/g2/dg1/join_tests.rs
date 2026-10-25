@@ -200,11 +200,31 @@ fn a_rows_menu_cut_publishes_the_validated_snapshot_once(cx: &mut TestAppContext
     );
     reply(cx, handle, &format!(r#"{{"t":"menuaction","id":{id},"op":"validate","ok":true,"action":"cut","paths":["/files/a.txt"]}}"#));
     let sent = lines();
-    assert!(
-        sent.contains(&r#"{"c":"clipSet","op":"cut","paths":["/files/a.txt"]}"#.to_string())
-            && !sent.iter().any(|line| line.contains(r#""c":"paths""#)),
-        "M9_MENU_CUT_CLAIMS_THE_SNAPSHOT: {sent:?}"
-    );
+    assert_menu_cut_sent(&sent);
     let status = edit(cx, handle, |shell, _, _| shell.panes[0].as_ref().unwrap().status.to_string());
     assert_eq!(status, "Cut 1 item");
+}
+
+fn assert_menu_cut_sent(sent: &[String]) {
+    let published: Vec<_> = sent
+        .iter()
+        .filter(|line| line.contains(r#""c":"clipSet""#))
+        .map(String::as_str)
+        .collect();
+    assert_eq!(
+        published,
+        [r#"{"c":"clipSet","op":"cut","paths":["/files/a.txt"]}"#],
+        "MENU_CUT_PUBLISHES_ONCE: {sent:?}"
+    );
+    assert!(
+        !sent.iter().any(|line| line.contains(r#""c":"paths""#)),
+        "M9_MENU_CUT_CLAIMS_THE_SNAPSHOT: {sent:?}"
+    );
+}
+
+#[test]
+#[should_panic(expected = "MENU_CUT_PUBLISHES_ONCE")]
+fn a_duplicate_clipboard_publication_fails_the_menu_trace_check() {
+    let expected = r#"{"c":"clipSet","op":"cut","paths":["/files/a.txt"]}"#.to_string();
+    assert_menu_cut_sent(&[expected.clone(), expected]);
 }
