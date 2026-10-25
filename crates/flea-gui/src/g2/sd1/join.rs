@@ -25,10 +25,11 @@ mod process;
 pub(crate) struct Senders {
     pub(crate) sides: [ProviderSend; 2],
     // The menu snapshot each side's providers facts ask belongs to; zero while none is out.
-    asked: [u64; 2],
+    pub(super) asked: [u64; 2],
+    pub(super) facts: [Option<Json>; 2],
     // The Dropbox account the facts named, and whether the backend took it as the menu's destination.
-    account: [dropbox::Account; 2],
-    destination: [Option<bool>; 2],
+    pub(super) account: [dropbox::Account; 2],
+    pub(super) destination: [Option<bool>; 2],
     chosen: Option<Subscription>,
 }
 
@@ -116,6 +117,7 @@ impl Shell {
         let asked = self.menu.providers.asked[side];
         if kind == "formats" && asked != 0 && id == asked {
             self.menu.providers.asked[side] = 0;
+            self.menu.providers.facts[side] = reply.get("providers").cloned();
             // A menu dismissed before its facts landed starts no discovery.
             if self
                 .menu
