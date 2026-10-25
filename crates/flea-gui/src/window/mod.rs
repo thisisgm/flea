@@ -1,6 +1,7 @@
 //! Native window host and composition interfaces shared by later surfaces.
 pub mod columns;
 pub mod composition;
+pub(crate) mod devices;
 pub(crate) mod dispatch;
 mod events;
 pub(crate) mod filter;
@@ -31,6 +32,7 @@ pub mod settings;
 pub mod startup;
 pub(crate) mod status;
 pub(crate) mod surfaces;
+mod unlock;
 mod transitions;
 
 #[cfg(test)]

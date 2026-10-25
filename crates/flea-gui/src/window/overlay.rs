@@ -15,6 +15,7 @@ impl Shell {
             || self.output_showing(cx)
             || self.network_holds_keyboard(cx)
             || self.rename.bulk.is_some()
+            || self.unlock_holds_keyboard(cx)
             || self
                 .overlay
                 .as_ref()

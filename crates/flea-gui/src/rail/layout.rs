@@ -138,6 +138,7 @@ pub(super) fn layout(
                 detail_rect,
                 indicator_rect,
                 indicator_visible: dot,
+                eject: dot && row.releasable,
                 label_width,
                 label_needs: needs,
                 elided: needs > label_width,

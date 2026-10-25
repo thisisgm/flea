@@ -75,3 +75,48 @@ pub(super) fn paint_mark(
         }
     }
 }
+
+/// SidebarRow.qml ejectMark: muted at rest, foreground under the keyboard cursor or the pointer.
+pub(super) fn paint_eject(
+    row: &LaidRow,
+    model: &RowsModel,
+    palette: &Palette,
+    hairline: f32,
+    window: &mut Window,
+    cx: &mut App,
+) {
+    let keyboard = model.focused && !model.pointer_focus && model.cursor == Some(row.index);
+    // The keyboard frame stands on the mark's own hit box, in the foreground.
+    if let Some(hit) = row.eject_hit().filter(|_| keyboard && model.mark_focused) {
+        window.paint_quad(gpui::quad(
+            box_of(hit),
+            px(0.),
+            gpui::transparent_black(),
+            px(hairline),
+            palette.foreground,
+            gpui::BorderStyle::Solid,
+        ));
+    }
+    let ink = if keyboard || model.mark_hovered == Some(row.index) {
+        palette.foreground
+    } else {
+        palette.muted_frame
+    };
+    let side = row.indicator_rect.height;
+    if let Some((key, data)) = super::glyph::svg("eject") {
+        let _ = window.paint_svg(
+            Bounds::new(
+                point(
+                    px(row.indicator_rect.x + (row.indicator_rect.width - side) / 2.),
+                    px(row.indicator_rect.y),
+                ),
+                size(px(side), px(side)),
+            ),
+            key,
+            Some(data),
+            gpui::TransformationMatrix::unit(),
+            ink,
+            cx,
+        );
+    }
+}

@@ -104,20 +104,25 @@ impl Shell {
 
     /// Hands the NETWORK section to the rail's tail seam; Settings, Places, Network off hands it nothing.
     pub(crate) fn network_publish(&mut self, rows: Option<Vec<RailEntry>>, cx: &mut Context<Self>) {
-        let state = self.launch.settings.data.clone();
-        let Some(join) = &mut self.rail else {
-            return;
-        };
-        let Some(network) = &mut join.network else {
-            return;
-        };
-        match rows {
-            Some(rows) => network.rows = rows,
-            None if network.rows.is_empty() => return,
-            None => {}
+        if let (Some(rows), Some(network)) = (rows, self.network()) {
+            network.rows = rows;
         }
-        let sections = section(&network.rows, shown(&state));
+        self.rail_tail(cx);
+    }
+
+    /// The tail's one writer: NETWORK ahead of DEVICES, so neither owner's publish drops the other's section.
+    pub(crate) fn rail_tail(&mut self, cx: &mut Context<Self>) {
+        let state = self.launch.settings.data.clone();
+        let Some(join) = &self.rail else {
+            return;
+        };
+        let mut tail = join
+            .network
+            .as_ref()
+            .map(|network| section(&network.rows, shown(&state)))
+            .unwrap_or_default();
+        tail.extend(join.devices.read(cx).sections.iter().cloned());
         join.places
-            .update(cx, |producer, cx| producer.set_tail(sections, cx));
+            .update(cx, |producer, cx| producer.set_tail(tail, cx));
     }
 }

@@ -31,6 +31,8 @@ pub struct DrawnRow {
     pub group: Group,
     pub kind: Kind,
     pub mounted: Option<bool>,
+    /// A mounted removable, loop or phone row, whose slot draws the eject mark in place of the square.
+    pub releasable: bool,
     /// A favourite's diagnostic, carried for its tooltip; the row still draws.
     pub error: Option<SharedString>,
 }
@@ -108,6 +110,7 @@ fn row(catalog: &I18n, theme: &TagTheme, entry: &RailEntry) -> DrawnRow {
         group: entry.group,
         kind: entry.kind,
         mounted: entry.mounted,
+        releasable: entry.releasable,
         error,
     }
 }

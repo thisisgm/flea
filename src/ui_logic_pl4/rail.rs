@@ -88,6 +88,8 @@ pub struct RailEntry {
     pub glyph: &'static str,
     pub tag: Option<&'static str>,
     pub square: Square,
+    // The device unit's Eject.releasable verdict: the row's slot draws the eject mark instead of its square.
+    pub releasable: bool,
     // The plugin section a row belongs to and the row's own id there, empty for built-in rows.
     pub section: String,
     pub id: String,

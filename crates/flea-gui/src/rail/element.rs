@@ -351,7 +351,10 @@ impl Element for RailElement {
                     palette.metadata,
                     window,
                 );
-                if row.indicator_visible {
+                if row.eject {
+                    let hairline = crate::list::Metrics::for_typeface(&self.typeface).hairline;
+                    super::paint::paint_eject(row, &model, &palette, hairline, window, cx);
+                } else if row.indicator_visible {
                     let colour = if row.mounted == Some(false) {
                         palette.muted_frame.opacity(0.5)
                     } else {
