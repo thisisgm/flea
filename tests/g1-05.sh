@@ -18,12 +18,13 @@ lane() {
         CARGO_PROFILE_TEST_DEBUG=line-tables-only CARGO_PROFILE_DEV_DEBUG=line-tables-only "$@" < /dev/null
 }
 lane cargo test --locked -p flea-gui --test g1_05
-# A filter matching nothing passes with zero, so the largest "test result: ok. 9 passed; 0 failed" count must reach this unit's cases.
+# A filter matching nothing passes with zero, so the largest "test result: ok. N passed; 0 failed" count must reach this unit's cases.
 count() { sed -n 's/^test result: ok\. \([0-9]*\) passed; 0 failed.*/\1/p' "$1" | sort -n | tail -1; }
+wiring_floor=10
 # The shell's wheel, stroke and slow-click wiring tests live in the library's test tree.
 lane cargo test --locked -p flea-gui --lib g1_05 2>&1 | tee "$unit_root/lib.log"
 wiring=$(count "$unit_root/lib.log")
-[ "${wiring:-0}" -ge 9 ] || { printf 'FAIL g1_05 library wiring ran %s tests, want at least 9\n' "${wiring:-0}"; exit 1; }
+[ "${wiring:-0}" -ge "$wiring_floor" ] || { printf 'FAIL g1_05 library wiring ran %s tests, want at least %s\n' "${wiring:-0}" "$wiring_floor"; exit 1; }
 oracle() {
     setsid -w env -i PATH="$PATH" HOME="$unit_root/home" \
         XDG_CONFIG_HOME="$unit_root/config" XDG_STATE_HOME="$unit_root/state" \
