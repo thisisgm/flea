@@ -1,10 +1,12 @@
 //! Real watcher acknowledgements and populated-row paint checks for the mounted font test.
 use super::*;
+use std::future::Future;
 
-pub(super) fn wait_for_base(cx: &mut TestAppContext, handle: Handle, base: u32) {
+/// Waits for the named subscription (OEM or settings textSize) to deliver base, failing after 3 s of real time.
+pub(super) fn wait_for_base(cx: &mut TestAppContext, handle: Handle, base: u32, subscription: &str) {
     let shell = handle.update(cx, |root, _, _| root.shell.clone()).unwrap();
     let (send, received) = async_channel::bounded(1);
-    let subscription = cx.update(|cx| {
+    let observer = cx.update(|cx| {
         cx.observe(&shell, move |shell, cx| {
             if f32::from(shell.read(cx).active_typeface().base) == base as f32 {
                 let _ = send.try_send(());
@@ -15,18 +17,35 @@ pub(super) fn wait_for_base(cx: &mut TestAppContext, handle: Handle, base: u32) 
         f32::from(shell.active_typeface().base)
     }) != base as f32
     {
+        // The test scheduler parks with no deadline, so a real-time sleeper ends a lost notification.
+        let (expire, expired) = async_channel::bounded::<()>(1);
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_secs(3));
+            let _ = expire.try_send(());
+        });
         let executor = cx.executor();
         executor.allow_parking();
-        cx.foreground_executor()
-            .block_test(async { received.recv().await.unwrap() });
+        let delivered = cx.foreground_executor().block_test(async {
+            let mut delivered = std::pin::pin!(received.recv());
+            let mut expired = std::pin::pin!(expired.recv());
+            std::future::poll_fn(|task| {
+                if let std::task::Poll::Ready(sent) = delivered.as_mut().poll(task) {
+                    return std::task::Poll::Ready(sent.is_ok());
+                }
+                expired.as_mut().poll(task).map(|_| false)
+            })
+            .await
+        });
         executor.forbid_parking();
+        assert!(delivered, "the actual {subscription} subscription did not deliver {base}");
     }
-    drop(subscription);
+    drop(observer);
     assert_eq!(
         edit(cx, handle, |shell, _, _| {
             f32::from(shell.active_typeface().base)
         }),
-        base as f32
+        base as f32,
+        "the actual {subscription} subscription left base {base} unapplied"
     );
 }
 

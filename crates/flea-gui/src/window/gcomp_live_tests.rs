@@ -177,7 +177,7 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
     ] {
         populate(&mut cx, handle, base as usize + 100);
         fixture.write(&font_file, format!("[font]\nbase-size={base}\n"));
-        wait_for_base(&mut cx, handle, base);
+        wait_for_base(&mut cx, handle, base, "OEM");
         assert_received_surfaces(
             &mut cx,
             handle,
@@ -205,7 +205,7 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
             &home.join(".local/state/flea/ui.json"),
             flea::jsondoc::render(&document),
         );
-        wait_for_base(&mut cx, handle, base);
+        wait_for_base(&mut cx, handle, base, "settings textSize");
         assert_received_surfaces(
             &mut cx,
             handle,
