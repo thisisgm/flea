@@ -384,4 +384,11 @@ fn a_code_reply_for_the_pending_frame_leaves_the_drawn_lines_alone(cx: &mut Test
         (vec!["fn drawn()".to_owned()], true),
         "the pending frame's reply never reaches the drawn view while b.rs waits on its meta"
     );
+    meta(&shell, cx, &lines, r#","lines":1"#);
+    pump(cx);
+    assert_eq!(
+        drawn_code(&shell, cx),
+        (vec!["fn pending()".to_owned()], false),
+        "b.rs lands with the reply it took while pending"
+    );
 }

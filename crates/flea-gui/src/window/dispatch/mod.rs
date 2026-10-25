@@ -64,6 +64,8 @@ mod previewtypes_fit_tests;
 #[cfg(test)]
 mod previewtypes_kinds_tests;
 #[cfg(test)]
+mod previewtypes_page_tests;
+#[cfg(test)]
 mod previewtypes_tests;
 #[cfg(test)]
 mod refusal_tests;

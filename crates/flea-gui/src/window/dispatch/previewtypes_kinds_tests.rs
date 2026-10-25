@@ -178,6 +178,25 @@ fn f_and_b_page_a_table_by_its_viewport_height(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("shift-b->B");
     pump(cx);
     assert_eq!(scroll(cx).0, 0., "B pages back to the top");
+    cx.simulate_keystrokes("shift-b->B");
+    pump(cx);
+    assert_eq!(scroll(cx).0, 0., "B at the top stays at the top");
+    let end = shell.read_with(cx, |shell, cx| {
+        let preview = shell.selection_preview(0).expect("the column is mounted");
+        match preview.read(cx).drawn.as_ref().map(|frame| &frame.mounted) {
+            Some(Mounted::Doc(Doc::Table(view))) => {
+                let view = view.read(cx);
+                view.feed.body_rows() as f64 * view.feed.geometry.row_height - height
+            }
+            _ => panic!("the table is drawn"),
+        }
+    });
+    assert!(end > 2. * height, "the table is taller than two viewports: {end} {height}");
+    for _ in 0..40 {
+        cx.simulate_keystrokes("shift-f->F");
+        pump(cx);
+    }
+    assert_eq!(scroll(cx).0, end, "F past the end stops with the last row on the bottom edge");
 }
 
 #[gpui::test]
@@ -202,4 +221,7 @@ fn an_image_that_fails_to_decode_keeps_its_image_facts(cx: &mut TestAppContext) 
     // PreviewColumn.qml failure covers only text, PDF, HTML and archive reads, so the facts stay the image's.
     let facts = read(&shell, cx, "previewFacts", &[]);
     assert!(facts.contains("|Modified=") && facts.contains("|Pixels="), "{facts}");
+    // The column's own state and Kind readers; previewState and previewKind are the Quick Look's.
+    assert_eq!(read(&shell, cx, "previewColumnState", &[]), "image", "the state stays the row's kind");
+    assert!(facts.starts_with("Kind=PNG image|"), "Kind is the row's description: {facts}");
 }
