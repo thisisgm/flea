@@ -13,6 +13,9 @@ mod empty;
 mod observe;
 pub(crate) use observe::{Draw, QueryReader};
 #[cfg(test)]
+#[path = "search_presented_tests.rs"]
+mod presented_tests;
+#[cfg(test)]
 #[path = "search_tests.rs"]
 mod tests;
 

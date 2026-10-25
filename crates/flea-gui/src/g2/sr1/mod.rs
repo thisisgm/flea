@@ -1,5 +1,6 @@
 //! Search: the query strip, its live backend session and the result presentation, over the core session.
 pub mod contents;
+pub mod presented;
 pub mod run;
 pub mod strip;
 
@@ -7,6 +8,8 @@ pub mod strip;
 mod contents_tests;
 #[cfg(test)]
 mod pane_tests;
+#[cfg(test)]
+mod presented_tests;
 #[cfg(test)]
 mod strip_tests;
 #[cfg(test)]
@@ -68,6 +71,7 @@ impl<'a> From<HostPane<'a>> for Pane<'a> {
 #[derive(Default)]
 pub struct Search {
     pub session: Session,
+    pub presented: presented::Presented,
     relisting: bool,
 }
 
@@ -75,6 +79,7 @@ impl Search {
     pub fn new(wire: Wire) -> Self {
         Self {
             session: Session::new(wire),
+            presented: presented::Presented::default(),
             relisting: false,
         }
     }
@@ -302,19 +307,14 @@ impl StripKey {
     }
 }
 
-/// flea.searchStamps: the newest gen's stopwatch, read-only.
+/// flea.searchStamps: the newest gen's stopwatch, answer and presented frames, read-only.
 pub struct SearchAdapter<'a> {
     pub search: &'a Search,
 }
 
 impl crate::ipc::Adapter for SearchAdapter<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
-        let stamps = self.search.session.stamps;
-        (function == "searchStamps").then(|| {
-            Reply::value(format!(
-                "{{\"gen\":{},\"keyAt\":{},\"firstRowsAt\":{},\"settledAt\":{}}}",
-                stamps.gen, stamps.key_at, stamps.first_rows_at, stamps.settled_at
-            ))
-        })
+        (function == "searchStamps")
+            .then(|| Reply::value(self.search.presented.stamps_json(&self.search.session)))
     }
 }

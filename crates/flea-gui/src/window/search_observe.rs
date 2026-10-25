@@ -1,5 +1,13 @@
-//! Normal query reads and actual prepared-row paint observations.
-use crate::{g2::sr1::Search, state::Shell};
+//! Normal query reads, actual prepared-row paint observations and the presented scenes that showed them.
+use crate::{
+    g2::sr1::{
+        presented::{Scene, Shown},
+        Search,
+    },
+    pane::presentation::Content,
+    state::Shell,
+    window::pane::PaneHost,
+};
 pub(crate) struct QueryReader<'a> {
     pub search: &'a Search,
     pub focused: bool,
@@ -52,5 +60,63 @@ impl Draw {
                 }
             });
         });
+    }
+}
+
+impl PaneHost {
+    /// Some while the pane holds the newest search generation's own rows, never a held older answer.
+    pub(crate) fn search_scene(&self) -> Option<(u64, bool)> {
+        let stamps = self.search.owner.session.stamps;
+        (self.search.owner.active()
+            && stamps.gen != 0
+            && self.search.rows_generation as u64 == stamps.gen
+            && self.pane.swap.session.generation as u64 == stamps.gen)
+            .then_some((stamps.gen, stamps.settled_at != 0))
+    }
+}
+
+impl Shell {
+    /// Every pane's search hears the window's feedback coverage around each expiry, terminal and close.
+    pub(crate) fn sync_search_coverage(&mut self) {
+        let (blind, oldest) = self.presentation.search_coverage();
+        let observed = self.presentation.observer.is_some();
+        for host in self.panes.iter_mut().flatten() {
+            let current = host.search.owner.session.stamps.gen;
+            host.search
+                .owner
+                .presented
+                .coverage(current, blind as u64, oldest, observed);
+        }
+    }
+
+    /// A presented submission whose scene painted the search's rows credits that generation, top painted row first.
+    pub(crate) fn search_presented(
+        &mut self,
+        side: usize,
+        content: &Content,
+        frame: u64,
+        time: gpui::PresentationTime,
+    ) {
+        let (Some((gen, settled)), Some(&row)) =
+            (content.search_scene, content.painted_rows.iter().min())
+        else {
+            return;
+        };
+        let (Some(found), Some(host)) = (content.held.row(row), self.panes[side].as_mut()) else {
+            return;
+        };
+        let scene = Scene {
+            gen,
+            settled,
+            row,
+            name: found.name.clone(),
+        };
+        let shown = Shown {
+            frame,
+            at_ns: time.timestamp.map(|at| at.as_nanos() as u64),
+            clock: time.clock_id,
+        };
+        let current = host.search.owner.session.stamps.gen;
+        host.search.owner.presented.record(current, &scene, shown);
     }
 }

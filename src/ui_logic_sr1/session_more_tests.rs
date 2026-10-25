@@ -64,7 +64,7 @@ fn a_running_walk_is_cancelled_before_esc_leaves() {
     let mut walking = Session { running: true, gen: 3, from: "/d".into(), ..typing("abc") };
     assert_eq!(sent(&walking.type_key(&p, Key::Escape)), ["cancel"]);
     assert_eq!(walking.mode, Mode::Typing, "the first Esc keeps the results on screen");
-    walking.searched(&Line::Searched { n: 5, scanned: 90, ms: 3., cancelled: true, gen: 3, walking: false }, 7);
+    walking.searched(&Line::Searched { n: 5, scanned: 90, ms: 3., cancelled: true, gen: 3, walking: false, partial: None }, 7);
     assert_eq!((walking.cancelled, walking.running), (true, false));
     let out = walking.type_key(&p, Key::Escape);
     assert!(out.contains(&Effect::Relist { path: "/d".into(), select: String::new() }));
@@ -126,15 +126,15 @@ fn a_pushed_answer_for_the_same_query_still_needs_the_newest_gen() {
     let mut session = Session::default();
     session.start(&p);
     session.type_key(&p, Key::Text("a"));
-    session.searched(&Line::Searched { n: 2, scanned: 10, ms: 1., cancelled: false, gen: 1, walking: true }, 5);
+    session.searched(&Line::Searched { n: 2, scanned: 10, ms: 1., cancelled: false, gen: 1, walking: true, partial: None }, 5);
     // The walk's landing re-answers the standing query under its own gen, so the counts move with no keystroke.
-    session.searched(&Line::Searched { n: 3, scanned: 50, ms: 9., cancelled: false, gen: 1, walking: false }, 6);
+    session.searched(&Line::Searched { n: 3, scanned: 50, ms: 9., cancelled: false, gen: 1, walking: false, partial: None }, 6);
     assert_eq!((session.total, session.scanned, session.running), (3, 50, false));
     // An edited query that adds a match lands only once its own answer names its gen.
     session.type_key(&p, Key::Backspace);
-    session.searched(&Line::Searched { n: 7, scanned: 50, ms: 1., cancelled: false, gen: 1, walking: false }, 7);
+    session.searched(&Line::Searched { n: 7, scanned: 50, ms: 1., cancelled: false, gen: 1, walking: false, partial: None }, 7);
     assert_eq!(session.total, 3, "the old gen's answer is stale once a newer query is out");
-    session.searched(&Line::Searched { n: 0, scanned: 50, ms: 1., cancelled: false, gen: 2, walking: false }, 8);
+    session.searched(&Line::Searched { n: 0, scanned: 50, ms: 1., cancelled: false, gen: 2, walking: false, partial: None }, 8);
     assert_eq!((session.total, session.listing_state(0)), (0, ListingState::Empty), "a zero-count answer is an honest empty");
 }
 
@@ -145,7 +145,7 @@ fn cancel_then_reopen_starts_a_fresh_numbering_floor() {
     session.start(&p);
     session.type_key(&p, Key::Text("q"));
     session.type_key(&p, Key::Escape);
-    session.searched(&Line::Searched { n: 1, scanned: 4, ms: 1., cancelled: true, gen: 1, walking: false }, 3);
+    session.searched(&Line::Searched { n: 1, scanned: 4, ms: 1., cancelled: true, gen: 1, walking: false, partial: None }, 3);
     session.type_key(&p, Key::Escape);
     session.close_leaving();
     let out = session.start(&p);
@@ -163,3 +163,35 @@ fn contents_toggle_waits_for_its_producer() {
     assert_eq!(sent(&wired.type_key(&p, Key::Contents)), ["query 1:word/200"]);
     assert_eq!(wired.kind, Kind::Contents);
 }
+
+#[test]
+fn the_answer_keeps_its_partial_reason_until_the_next_query() {
+    let p = pane("/d", "");
+    let mut session = Session::default();
+    session.start(&p);
+    session.type_key(&p, Key::Text("a"));
+    let partial = Some("unreadable".to_owned());
+    session.searched(&Line::Searched { n: 2, scanned: 10, ms: 1., cancelled: false, gen: 1, walking: false, partial }, 5);
+    assert_eq!(session.partial.as_deref(), Some("unreadable"));
+    session.type_key(&p, Key::Text("b"));
+    assert_eq!(session.partial, None, "a newer query has no answer yet, so no partial reason");
+    session.searched(&Line::Searched { n: 1, scanned: 10, ms: 1., cancelled: false, gen: 2, walking: false, partial: None }, 6);
+    assert_eq!((session.partial, session.scanned, session.running), (None, 10, false));
+}
+
+#[test]
+fn leaving_the_search_forgets_which_gen_answered() {
+    let p = pane("/d", "");
+    let mut session = Session::default();
+    session.start(&p);
+    session.type_key(&p, Key::Text("a"));
+    session.searched(&Line::Searched { n: 2, scanned: 11, ms: 1., cancelled: false, gen: 1, walking: false, partial: None }, 5);
+    assert_eq!(session.answered, 1);
+    session.type_key(&p, Key::Escape);
+    session.type_key(&p, Key::Escape);
+    session.close_leaving();
+    assert_eq!((session.answered, session.scanned), (0, 0), "cleared counts are no gen's answer");
+    session.start(&p);
+    assert_eq!(session.answered, 0, "a reopened walk has not answered yet");
+}
+
