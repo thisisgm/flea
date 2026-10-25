@@ -304,6 +304,7 @@ impl Shell {
             let from = host.pane.cursor;
             let pulled = host.input.take_pull(from, host.pane.held.listing);
             let selection = &mut host.input.selection;
+            let mut marked = true;
             let action = match effect {
                 Some("toggleSelect") if press.event.click_count == 1 => {
                     if host.selected.is_empty() && from != row {
@@ -322,23 +323,37 @@ impl Shell {
                     );
                     None
                 }
-                Some("toggleSelect" | "extendSelect") => None,
+                Some("toggleSelect" | "extendSelect") => {
+                    marked = false;
+                    None
+                }
                 Some("menu") => {
-                    if host.selected.binary_search(&row).is_err() {
+                    marked =
+                        !host.selected.is_empty() && host.selected.binary_search(&row).is_err();
+                    if marked {
                         selection.clear(&mut host.selected);
                     }
                     Some("menu")
                 }
-                Some("openTab") => Some("openTab"),
-                Some("reveal") => Some("reveal"),
+                Some("openTab") => {
+                    marked = false;
+                    Some("openTab")
+                }
+                Some("reveal") => {
+                    marked = false;
+                    Some("reveal")
+                }
                 Some("selectOnly" | "open") => {
                     selection.only(&mut host.selected, row);
                     (effect == Some("open") || single_click).then_some("open")
                 }
-                _ => None,
+                _ => {
+                    marked = false;
+                    None
+                }
             };
-            // Selection.js dropLone: a click that sets the marks spends the landing.
-            if !matches!(effect, Some("openTab" | "reveal")) {
+            // Selection.js dropLone: only a click that called toggle, extend, clear or only spends the landing.
+            if marked {
                 host.nav.landed = None;
             }
             if effect != Some("openTab") {
