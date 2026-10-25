@@ -87,6 +87,10 @@ fn read_cached(path: &Path, key: &str) -> Option<Devices> {
 }
 // The answer by exclusive temp plus rename, unsynced since a torn file is a miss, silent when it cannot be written.
 fn write_cached(path: &Path, text: &str) {
+    if !crate::persistdoc::replaceable(path, MAX_FILE_BYTES, format!("{VERSION}\n").as_bytes(), |bytes| {
+        let Ok(body) = std::str::from_utf8(bytes) else { return false };
+        body.lines().nth(1).is_some_and(|key| parse(body, key).is_some())
+    }) { return; }
     let Some(parent) = path.parent() else {
         return;
     };

@@ -51,6 +51,7 @@ impl Moves {
         let dir = self.file.parent().ok_or("the shelf has no folder to write in")?;
         uistore::make_dir(dir)?;
         let lock = uistore::take_lock(&self.lock)?;
+        crate::persistdoc::read(&self.file, moves_shape)?;
         let written = uistore::replace(&self.file, &jsondoc::render(&doc_of(moves, at_ms)));
         give_back(&self.lock, lock);
         written
@@ -68,7 +69,7 @@ impl Moves {
             return Ok(Vec::new());
         }
         let lock = uistore::take_lock(&self.lock)?;
-        let moves = moves_of(&read_doc(&self.file));
+        let moves = moves_of(&crate::persistdoc::read(&self.file, moves_shape)?);
         let removed = match fs::remove_file(&self.file) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -102,6 +103,22 @@ fn doc_of(moves: &[Move], at_ms: u64) -> Json {
         ("at".to_string(), Json::Num(at_ms.to_string())),
         ("moves".to_string(), Json::Arr(rows)),
     ])
+}
+
+// The moves file shape: every row a whole move, so a newer writer's extra field is never dropped.
+pub(crate) fn moves_shape(doc: &Json) -> bool {
+    use crate::persistdoc::{count, fields};
+    fields(doc, &["at", "moves"], &[])
+        && count(doc, "at")
+        && doc
+            .get("moves")
+            .and_then(Json::as_array)
+            .is_some_and(|rows| {
+                rows.len() == moves_of(doc).len()
+                    && rows
+                        .iter()
+                        .all(|row| fields(row, &["from", "to", "dev", "ino", "kind"], &["born"]))
+            })
 }
 
 // Sample input: {"at":1789426926000,"moves":[{"from":"/home/gm/a.txt","to":"/home/gm/Work/a.txt","dev":"66306","ino":"41","kind":"32768","born":["1789426900","5000"]}]}
@@ -260,7 +277,7 @@ fn settle_back(shelf: &Shelf, back: &[&Move]) -> Result<(), String> {
 }
 
 fn read_doc(path: &Path) -> Json {
-    fs::read_to_string(path).ok().and_then(|text| jsondoc::parse(&text).ok()).unwrap_or(Json::Obj(Vec::new()))
+    crate::persistdoc::read(path, moves_shape).unwrap_or_else(|_| crate::persistdoc::empty())
 }
 
 // Said rather than returned, the way summon says it: the write either happened or it did not, and an

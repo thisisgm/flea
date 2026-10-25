@@ -37,6 +37,7 @@ impl Summon {
     pub fn ring(&self) -> Result<u64, String> {
         uistore::make_dir(self.summon.parent().ok_or("the shelf has no folder to write in")?)?;
         let lock = self.take()?;
+        crate::persistdoc::read(&self.summon, crate::persistdoc::summon)?;
         let next = self.rings() + 1;
         let doc = Json::Obj(vec![("summon".to_string(), Json::Num(next.to_string()))]);
         let written = uistore::replace(&self.summon, &jsondoc::render(&doc));
@@ -58,7 +59,7 @@ impl Summon {
     }
 
     pub fn rings(&self) -> u64 {
-        read_doc(&self.summon).get("summon").and_then(Json::as_f64).map(|n| n as u64).unwrap_or(0)
+        read_doc(&self.summon, crate::persistdoc::summon).get("summon").and_then(Json::as_f64).map(|n| n as u64).unwrap_or(0)
     }
 
     // Read by this file's own tests, which write a pile file the verbs then have to survive.
@@ -69,7 +70,7 @@ impl Summon {
 
     // Newest first. The five the board draws is what keep() writes, not what this trims on the way out.
     pub fn piles(&self) -> Vec<Json> {
-        read_doc(&self.piles)
+        read_doc(&self.piles, crate::persistdoc::piles)
             .get("piles")
             .and_then(Json::as_array)
             .map(<[Json]>::to_vec)
@@ -82,6 +83,7 @@ impl Summon {
         }
         uistore::make_dir(self.piles.parent().ok_or("the shelf has no folder to write in")?)?;
         let lock = self.take()?;
+        crate::persistdoc::read(&self.piles, crate::persistdoc::piles)?;
         let mut piles = self.piles();
         piles.insert(0, Json::Obj(vec![("at".to_string(), Json::Num(at_ms.to_string())), ("items".to_string(), Json::Arr(items))]));
         piles.truncate(KEPT_PILES);
@@ -95,6 +97,7 @@ impl Summon {
     pub fn restore_pile(&self, index: usize) -> Result<Vec<Json>, String> {
         uistore::make_dir(self.piles.parent().ok_or("the shelf has no folder to write in")?)?;
         let lock = self.take()?;
+        crate::persistdoc::read(&self.piles, crate::persistdoc::piles)?;
         let mut piles = self.piles();
         if index >= piles.len() {
             self.give_back(lock);
@@ -113,11 +116,8 @@ impl Summon {
     }
 }
 
-fn read_doc(path: &Path) -> Json {
-    fs::read_to_string(path)
-        .ok()
-        .and_then(|text| jsondoc::parse(&text).ok())
-        .unwrap_or(Json::Obj(Vec::new()))
+fn read_doc(path: &Path, shape: crate::persistdoc::Shape) -> Json {
+    crate::persistdoc::read(path, shape).unwrap_or_else(|_| crate::persistdoc::empty())
 }
 
 // flea shelf clear: the pile becomes the last pile, which is the whole of rule 6 on the Keys board.

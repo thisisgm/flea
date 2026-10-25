@@ -255,10 +255,10 @@ fn a_symlink_planted_at_a_cache_path_is_never_read_or_followed() {
     std::fs::remove_file(&planted).expect("remove");
     std::os::unix::fs::symlink(&victim, &planted).expect("plant");
     let again = rig.run(&ask(&path), &root);
-    assert_eq!(rig.jobs.get(), 2, "a symlink is a miss");
+    assert_eq!(rig.jobs.get(), 1, "a symlink refuses the writer before rendering");
     assert_eq!(std::fs::read(&victim).unwrap(), [PNG, b"keep me"].concat(), "the planted target is untouched");
-    assert!(!planted.symlink_metadata().unwrap().file_type().is_symlink(), "the entry is a plain file again");
-    assert_eq!(files_of(&again).len(), 3);
+    assert!(planted.symlink_metadata().unwrap().file_type().is_symlink());
+    assert!(again.contains("left unchanged"));
 }
 
 #[test]
@@ -298,4 +298,24 @@ fn the_jail_lets_the_stub_write_the_work_folder_and_not_the_font() {
     let result = run_boxed_cancellable_capped("font", inner, &path, &mut work, &cancel);
     assert!(result.is_ok(), "the stub must write its folder and fail to write the font: {:?}", result.err().map(|e| e.msg));
     assert!((0..SAMPLES).all(|i| is_png(&work.dir.join(format!("{}.png", i)))));
+}
+
+#[test]
+fn foreign_and_newer_sample_documents_survive_read_and_first_render() {
+    let d = TestDir::new("font-preserve");
+    let rig = Rig::new();
+    let path = font(&d, "Inter.ttf");
+    let ask = ask(&path);
+    let root = d.dir("cache");
+    let key = key(&path, &path.metadata().unwrap(), &ask);
+    let target = entry(&root, &key, 0);
+    for original in ["{\"foreign\":true}", "{\"schemaVersion\":999}", "unparsable"] {
+        std::fs::write(&target, original).unwrap();
+        assert!(cached(&root, &key).is_none());
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), original);
+        assert!(rig.run(&ask, &root).contains("left unchanged"));
+        prune(&root);
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), original);
+    }
+    assert_eq!(rig.jobs.get(), 0);
 }

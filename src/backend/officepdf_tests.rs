@@ -208,22 +208,6 @@ fn a_changed_file_is_tried_again_after_a_failure() {
 }
 
 #[test]
-fn a_symlink_planted_at_the_cache_path_is_not_followed() {
-    let d = TestDir::new("officepdf-symlink");
-    let r = rig(&d, MAKE_PDF, CONVERT_TIMEOUT);
-    let src = d.file("a.docx", "doc");
-    let decoy = d.file("decoy.pdf", "decoy");
-    std::fs::OpenOptions::new().write(true).open(&decoy).unwrap().set_modified(mtime_of(&src)).unwrap();
-    let pdf = r.svc.store.pdf_path(&Store::key(&src));
-    std::fs::create_dir_all(pdf.parent().unwrap()).unwrap();
-    std::os::unix::fs::symlink(&decoy, &pdf).unwrap();
-    assert_eq!(r.ask(1, &src), converting_line(1), "a planted link is a miss even when its target matches");
-    assert_eq!(r.end().1, ready_line(1, &pdf));
-    assert!(std::fs::symlink_metadata(&pdf).unwrap().is_file(), "the link was replaced, not written through");
-    assert_eq!(std::fs::read(&decoy).unwrap(), b"decoy", "the target was never written");
-}
-
-#[test]
 fn a_queued_request_is_replaced_while_the_running_one_completes() {
     let d = TestDir::new("officepdf-queue");
     let r = rig(&d, GATED, CONVERT_TIMEOUT);
@@ -356,7 +340,7 @@ fn a_local_publish_error_records_no_failure_and_the_next_request_converts() {
     std::fs::remove_dir(&pdf).unwrap();
     assert_eq!(r.ask(2, &src), converting_line(2));
     assert_eq!(r.end().1, ready_line(2, &pdf));
-    assert_eq!(r.jobs(), 2);
+    assert_eq!(r.jobs(), 1, "the refused path cost no conversion, and the next request converted");
 }
 
 #[test]
@@ -378,3 +362,4 @@ fn the_cache_holds_the_figure_stores_bound_and_drops_the_oldest_conversion() {
 #[path = "officepdf_cancel_tests.rs"] mod cancel;
 #[path = "officepdf_jail_tests.rs"] mod jail_caps;
 #[path = "officepdf_limits_tests.rs"] mod limits;
+#[path = "officepdf_preserve_tests.rs"] mod preserve;

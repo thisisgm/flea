@@ -13,6 +13,9 @@ pub mod ui_logic_pv1;
 pub mod uischema;
 pub mod uistate;
 pub mod uistore;
+// The library's state store checks only the ui shape; the binary reads every other document.
+#[allow(dead_code)]
+mod persistdoc;
 pub mod userfile;
 mod uimigrate;
 mod uiplugins;

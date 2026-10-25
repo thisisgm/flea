@@ -13,14 +13,42 @@ const RECENTS: &str = "dests.json";
 // Five, the same number of piles the card's own menu keeps, and the same reason: a list, not a log.
 const KEPT: usize = 5;
 
+// A reply created for this invocation is transient, including one the consumer refuses.
+struct ChooserReply<'a>(&'a Path);
+
+impl Drop for ChooserReply<'_> {
+    fn drop(&mut self) {
+        if let Err(e) = fs::remove_file(self.0) {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                eprintln!("flea: {} could not be cleaned up: {}", self.0.display(), io_message(&e));
+            }
+        }
+    }
+}
+
 fn file() -> Result<PathBuf, String> {
     Ok(uistore::state_home()?.join(DIR).join(RECENTS))
 }
 
+fn discard_reply(path: &Path) -> Result<(), String> {
+    crate::persistdoc::read(path, crate::persistdoc::reply)?;
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(format!("{} could not be consumed: {}", path.display(), io_message(&e))),
+    }
+}
+
+fn consume_reply(path: &Path, answer: &str) -> Result<(), String> {
+    crate::persistdoc::parse(answer, crate::persistdoc::reply)
+        .map_err(|e| format!("{}: the chooser reply was rejected ({})", path.display(), e))?;
+    fs::remove_file(path)
+        .map_err(|e| format!("{} could not be consumed: {}", path.display(), io_message(&e)))
+}
+
 pub fn recents() -> Vec<String> {
     let Ok(path) = file() else { return Vec::new() };
-    let text = fs::read_to_string(path).unwrap_or_default();
-    let doc = match jsondoc::parse(&text) {
+    let doc = match crate::persistdoc::read(&path, crate::persistdoc::dests) {
         Ok(doc) => doc,
         Err(_) => return Vec::new(),
     };
@@ -39,13 +67,15 @@ fn ordered(held: &[String], dest: &str) -> Vec<String> {
 }
 
 pub fn remember(dest: &str) -> Result<(), String> {
+    let path = file()?;
+    uistore::make_dir(path.parent().ok_or("the shelf has no folder to write in")?)?;
+    let _lock = uistore::take_lock(&path.with_extension("json.lock"))?;
+    crate::persistdoc::read(&path, crate::persistdoc::dests)?;
     let kept = ordered(&recents(), dest);
     let doc = Json::Obj(vec![(
         "dests".to_string(),
         Json::Arr(kept.into_iter().map(Json::Str).collect()),
     )]);
-    let path = file()?;
-    uistore::make_dir(path.parent().ok_or("the shelf has no folder to write in")?)?;
     uistore::replace(&path, &jsondoc::render(&doc))
 }
 
@@ -112,7 +142,11 @@ fn flash_choose(rest: &[String]) -> i32 {
         eprintln!("flea: {}", e);
         return 2;
     }
-    let _ = fs::remove_file(&reply);
+    if let Err(e) = discard_reply(&reply) {
+        eprintln!("flea: {}", e);
+        return 2;
+    }
+    let _reply_cleanup = ChooserReply(&reply);
     let globs = image_globs().into_iter().map(Json::Str).collect();
     let request = Json::Obj(vec![
         ("mode".to_string(), Json::Str("open".to_string())),
@@ -144,7 +178,10 @@ fn flash_choose(rest: &[String]) -> i32 {
             return 2;
         }
     };
-    let _ = fs::remove_file(&reply);
+    if let Err(e) = consume_reply(&reply, &answer) {
+        eprintln!("flea: {}", e);
+        return 2;
+    }
     if let Some(path) = chosen_file(&answer) {
         println!("{}", path);
     }
@@ -196,7 +233,11 @@ pub fn choose(rest: &[String]) -> i32 {
         eprintln!("flea: {}", e);
         return 2;
     }
-    let _ = fs::remove_file(&reply);
+    if let Err(e) = discard_reply(&reply) {
+        eprintln!("flea: {}", e);
+        return 2;
+    }
+    let _reply_cleanup = ChooserReply(&reply);
     let request = Json::Obj(vec![
         ("mode".to_string(), Json::Str("open".to_string())),
         ("directory".to_string(), Json::Bool(true)),
@@ -225,7 +266,10 @@ pub fn choose(rest: &[String]) -> i32 {
             return 2;
         }
     };
-    let _ = fs::remove_file(&reply);
+    if let Err(e) = consume_reply(&reply, &answer) {
+        eprintln!("flea: {}", e);
+        return 2;
+    }
     if let Some(path) = chosen_dir(&answer) {
         println!("{}", path);
     }

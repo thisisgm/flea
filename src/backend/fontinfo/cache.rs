@@ -64,7 +64,7 @@ pub(super) fn prune(root: &Path) {
         let name = item.file_name().to_string_lossy().to_string();
         let Ok(meta) = item.metadata() else { continue };
         let Ok(when) = meta.modified() else { continue };
-        if is_look_name(item.file_name().as_bytes()) && meta.is_file() {
+        if is_look_name(item.file_name().as_bytes()) && meta.is_file() && crate::cachewrite::allowed(&item.path()) {
             looks.push((when, item.path()));
         } else if name.starts_with(&format!("{}{}-", crate::backend::archivework::WORK_PREFIX, WORK_TAG))
             && meta.is_dir() && when.elapsed().is_ok_and(|age| age > STALE_WORK) {

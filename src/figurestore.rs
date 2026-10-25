@@ -116,6 +116,8 @@ fn put(dir: &Path, key: &str, svg: &str, entries: usize, bytes: u64) -> Option<(
     let name = entry_name(key)?;
     fs::DirBuilder::new().recursive(true).mode(DIR_MODE).create(dir).ok()?;
     let target = dir.join(&name);
+    if !crate::persistdoc::replaceable(&target, MAX_ENTRY_BYTES + key.len() as u64 + HEADER_SLACK_BYTES + FORMAT.len() as u64,
+        format!("{FORMAT}\n").as_bytes(), |bytes| decode(bytes, key).is_some() || earlier_format(bytes)) { return None; }
     let scratch = dir.join(format!("{name}{SCRATCH_MARK}{}", std::process::id()));
     remove_ours(&scratch);
     let written = fs::OpenOptions::new().write(true).create_new(true).mode(FILE_MODE).open(&scratch).and_then(|mut file| file.write_all(&encode(key, svg)));
@@ -129,7 +131,23 @@ fn put(dir: &Path, key: &str, svg: &str, entries: usize, bytes: u64) -> Option<(
 
 // Stale scratch goes, then the least recently used entries until the count and the bytes are within the bound.
 fn evict(dir: &Path, entries: usize, bytes: u64) {
-    evict_leaf(dir, entries, bytes, &Names { entry: &is_entry, scratch: &is_scratch, age: &|meta| meta.modified().unwrap_or(SystemTime::UNIX_EPOCH) });
+    evict_leaf(dir, entries, bytes, &Names { entry: &|name| is_entry(name) && recognized(&dir.join(name)), scratch: &is_scratch, age: &|meta| meta.modified().unwrap_or(SystemTime::UNIX_EPOCH) });
+}
+
+// An entry an earlier Flea figure format wrote is still ours, so it is redrawn and evicted.
+fn earlier_format(bytes: &[u8]) -> bool {
+    bytes.starts_with(b"flea-figure-svg 1\n")
+}
+
+fn recognized(path: &Path) -> bool {
+    crate::persistdoc::replaceable(path, MAX_ENTRY_BYTES + MAX_LINE_BYTES as u64, format!("{FORMAT}\n").as_bytes(), |bytes| {
+        if earlier_format(bytes) { return true; }
+        let Some(body) = bytes.strip_prefix(format!("{FORMAT}\n").as_bytes()) else { return false };
+        let Some(end) = body.iter().position(|b| *b == b'\n') else { return false };
+        let Some(key_len) = std::str::from_utf8(&body[..end]).ok().and_then(|s| s.split_once(' ')).and_then(|(n, _)| n.parse::<usize>().ok()) else { return false };
+        body.get(end + 1..).and_then(|rest| rest.get(..key_len)).and_then(|key| std::str::from_utf8(key).ok())
+            .is_some_and(|key| entry_name(key).as_deref() == path.file_name().and_then(|n| n.to_str()) && decode(bytes, key).is_some())
+    })
 }
 
 // What a cache leaf calls its own and how old one of its files is, so another leaf can sit under the same bound.
