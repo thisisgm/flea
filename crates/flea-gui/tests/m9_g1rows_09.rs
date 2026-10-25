@@ -59,6 +59,7 @@ fn m9_g1rows_09_copy_and_cut_share_one_alignment_rule() {
                     chevron_cells: name_budget(width, true, true, advance),
                     clip_cells: ((GAP + CLIP) / advance).ceil() as usize,
                     size: true,
+                    languages: false,
                     scale: window.scale_factor(),
                     words: Rc::new(Words::from_catalog(&harness::english())),
                 };

@@ -46,7 +46,12 @@ impl Shell {
         // A refused or file row Enter keeps the search it was pressed in; only a folder it opens leaves it.
         let leaves = step != Step::OpenCursor
             || self.panes[side].as_ref().is_some_and(|host| {
-                !host.pane.busy() && host.pane.held.row(host.pane.cursor).is_some_and(|row| row.dir)
+                !host.pane.busy()
+                    && host
+                        .pane
+                        .held
+                        .row(host.pane.cursor)
+                        .is_some_and(|row| row.dir)
             });
         if leaves {
             self.search_leave(side, window, cx);
@@ -180,6 +185,46 @@ impl Shell {
             self.arm_transition(side, window, cx);
             self.arm_listing_wait(side, window, cx);
         }
+    }
+
+    /// PaneStates' PointHandler: a held press owns the rows, so a watched re-read waits for its release.
+    pub(crate) fn hold_pointer(
+        &mut self,
+        side: usize,
+        held: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes.get(side).and_then(Option::as_ref) else {
+            return;
+        };
+        if host.nav.gate.pointer_held != held {
+            let gate = Gate {
+                pointer_held: held,
+                ..host.nav.gate
+            };
+            self.set_gate(side, gate, window, cx);
+        }
+    }
+
+    // A lost release cancels gesture state before allowing a watched listing to replace its rows.
+    pub(crate) fn cancel_pointer(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes[side]
+            .as_mut()
+            .filter(|host| host.nav.gate.pointer_held)
+        else {
+            return;
+        };
+        host.input.cancel(&mut host.selected, &mut host.pane.cursor);
+        host.input.press = None;
+        host.input.pulled = None;
+        self.hold_pointer(side, false, window, cx);
+        cx.notify();
     }
 
     pub(crate) fn arm_watch(&mut self, side: usize, window: &Window, cx: &mut Context<Self>) {

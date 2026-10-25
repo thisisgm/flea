@@ -94,6 +94,9 @@ impl Shell {
         self.dual_blur = Some(cx.observe_window_activation(window, |shell, window, cx| {
             if !window.is_window_active() {
                 shell.dual_cancel(cx);
+                for side in 0..2 {
+                    shell.cancel_pointer(side, window, cx);
+                }
             }
         }));
     }

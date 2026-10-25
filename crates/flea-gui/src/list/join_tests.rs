@@ -9,6 +9,9 @@ use flea::ipc::wire::{Reply, Request};
 use gpui::{px, size, AppContext, TestAppContext, WindowHandle};
 use std::rc::Rc;
 
+#[path = "join_held_tests.rs"]
+mod held;
+
 #[path = "join_pointer_tests.rs"]
 mod pointer;
 
@@ -17,6 +20,9 @@ mod probe;
 
 #[path = "join_steering_tests.rs"]
 mod steering;
+
+#[path = "join_parity_tests.rs"]
+mod parity;
 
 fn open(cx: &mut TestAppContext) -> WindowHandle<Shell> {
     let (backend, _receive) = Backend::test_channel();

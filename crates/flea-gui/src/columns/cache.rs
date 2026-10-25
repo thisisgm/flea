@@ -1,7 +1,10 @@
 //! A track's bounded LRU of prepared rows: a peek row or a listing row is shaped once while it stays near the viewport.
 use super::peeks::PeekRow;
 use crate::navigation::sort::Size;
-use crate::row::{self, marks::Mark};
+use crate::row::{
+    self,
+    marks::{Language, Mark},
+};
 use flea::protocol::RowFacts;
 use gpui::{Font, GlyphRun, Hsla, Pixels, TextRun, Window};
 use std::{collections::HashMap, rc::Rc};
@@ -28,10 +31,15 @@ impl Row<'_> {
         }
     }
 
-    fn mark(&self) -> Mark {
+    fn mark(&self, languages: bool) -> Mark {
         match self {
-            Self::Peek(row) => Mark::for_row(&row.icon, 0),
-            Self::Listing(row) => Mark::for_row(&row.icon, row.mode),
+            Self::Peek(row) => {
+                match (languages && !row.dir).then(|| Language::for_file(&row.name)) {
+                    Some(Some(language)) => Mark::Language(language),
+                    _ => Mark::for_row(&row.icon, 0),
+                }
+            }
+            Self::Listing(row) => Mark::for_facts(row, languages),
         }
     }
 
@@ -87,6 +95,8 @@ pub struct Shaping {
     /// Cells a clip mark takes from either budget: ceil((gap + mark) / advance).
     pub clip_cells: usize,
     pub size: bool,
+    /// ViewState.langMarks: a code file wears its language's logo.
+    pub languages: bool,
     pub scale: f32,
     pub words: Rc<row::format::Words>,
 }
@@ -156,7 +166,7 @@ fn prepare(
         plain: shape(&plain, &shaping.font, shaping.body, window),
         chevron,
         size,
-        mark: row.mark(),
+        mark: row.mark(shaping.languages),
         dir: row.dir(),
     }
 }

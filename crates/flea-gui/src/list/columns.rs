@@ -70,6 +70,15 @@ impl Switched {
     pub fn on(self, column: Column) -> bool {
         self.0[column.slot()]
     }
+
+    /// Columns.dualSet: a Dual pane never draws Mode or Kind, whatever the List shows.
+    pub fn for_dual(self, dual: bool) -> Self {
+        if dual {
+            self.with(Column::Mode, false).with(Column::Kind, false)
+        } else {
+            self
+        }
+    }
 }
 
 /// The rails a dragged or fitted edge clamps to, src/uischema.rs's column width rule.

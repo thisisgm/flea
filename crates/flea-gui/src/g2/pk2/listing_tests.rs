@@ -23,6 +23,7 @@ fn row(name: &str, dir: bool) -> RowFacts {
         icon: String::new(),
         link: None,
         real_modes: true,
+        kind: String::new(),
     }
 }
 

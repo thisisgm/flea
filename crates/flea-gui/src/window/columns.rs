@@ -292,6 +292,7 @@ impl Shell {
         let preview_share = f64::from(super::selection_preview::host::share(
             &self.launch.settings.data,
         ));
+        let limit = Some(self.launch.settings.columns as f64);
         let width = geometry.panes[0].width;
         let height = (geometry.panes[0].height - self.slots.strip_height).max(0.);
         let Some(host) = self.panes[0].as_mut() else {
@@ -315,6 +316,11 @@ impl Shell {
         if let Some(columns) = &mut host.columns {
             if columns.area.share != preview_share {
                 columns.area.set_share(preview_share);
+                columns.seen = None;
+            }
+            // ColumnsArea.columnsLimit: a Settings change re-lays the drawn columns live.
+            if columns.area.limit != limit {
+                columns.area.set_limit(limit);
                 columns.seen = None;
             }
             if columns.area.settings != preview_settings {

@@ -76,6 +76,17 @@ impl Shell {
             self.search_landed(side, true, window, cx);
         }
         if let BackendEvent::Producer(line) | BackendEvent::Operations(line) = &event {
+            if let Some(sentence) = slow_sentence(line) {
+                self.status_messages(cx, |messages, now| {
+                    messages.say(
+                        &sentence,
+                        false,
+                        "",
+                        flea::ui_logic_fb1::status::Hint::None,
+                        now,
+                    )
+                });
+            }
             let menu_taken = self.menu_reply(side, line, window, cx);
             if flea::ui_logic_op1::parse(line).is_some() {
                 self.operation_line(side, line, window, cx);
@@ -370,4 +381,16 @@ impl Shell {
         }
         cx.notify();
     }
+}
+
+// Sample input: {"t":"slow","op":"rename","msg":"The rename will finish on its own."}
+pub(crate) fn slow_sentence(line: &str) -> Option<String> {
+    if !line.contains("\"slow\"") {
+        return None;
+    }
+    let document = flea::jsondoc::parse(line).ok()?;
+    (document.get("t")?.as_str()? == "slow")
+        .then(|| document.get("msg")?.as_str().map(str::to_owned))
+        .flatten()
+        .filter(|sentence| !sentence.is_empty())
 }
