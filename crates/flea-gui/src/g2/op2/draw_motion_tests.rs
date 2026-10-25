@@ -12,6 +12,11 @@ pub(super) fn advance(visual: &mut VisualTestContext, ms: u64) {
     visual.run_until_parked();
 }
 
+/// The pressed chrome's margin a side (Buttons.js PRESS_SCALE 0.96), the press length and the first sample.
+const PRESS_MARGIN: f32 = 0.02;
+const PRESS_MS: u64 = 150;
+const STEP_MS: u64 = 15;
+
 fn frame(visual: &mut VisualTestContext) -> Bounds<Pixels> {
     visual.debug_bounds("op2-flash-frame").expect("the frame is drawn")
 }
@@ -29,15 +34,15 @@ fn r7_an_animated_press_has_initial_intermediate_and_end_bounds() {
         visual.simulate_mouse_move(action.center(), None, Modifiers::none());
         visual.simulate_mouse_down(action.center(), MouseButton::Left, Modifiers::none());
         visual.run_until_parked();
-        let end_x = (f32::from(action.size.width) * 0.02).round();
-        let end_y = (f32::from(action.size.height) * 0.02).round();
+        let end_x = (f32::from(action.size.width) * PRESS_MARGIN).round();
+        let end_y = (f32::from(action.size.height) * PRESS_MARGIN).round();
         assert_eq!(
             f32::from(frame(&mut visual).origin.x - rest.origin.x),
             if reduced { end_x } else { 0. },
             "a new press starts at rest unless reduced motion requests the end state"
         );
-        advance(&mut visual, 15);
-        let eased = 1.0_f32 - 0.9_f32.powi(3);
+        advance(&mut visual, STEP_MS);
+        let eased = 1.0_f32 - (1.0_f32 - STEP_MS as f32 / PRESS_MS as f32).powi(3);
         let sample = frame(&mut visual);
         assert_eq!(
             f32::from(sample.origin.x - rest.origin.x),
@@ -49,7 +54,7 @@ fn r7_an_animated_press_has_initial_intermediate_and_end_bounds() {
             if reduced { end_y } else { (end_y * eased).round() },
             "the intermediate vertical margin follows OutCubic"
         );
-        advance(&mut visual, 135);
+        advance(&mut visual, PRESS_MS - STEP_MS);
         let end = frame(&mut visual);
         assert_eq!(f32::from(end.origin.x - rest.origin.x), end_x, "150 ms reaches the rounded horizontal end state");
         assert_eq!(f32::from(end.origin.y - rest.origin.y), end_y, "150 ms reaches the rounded vertical end state");
@@ -70,7 +75,7 @@ fn r7_exit_and_return_animate_the_frame_with_both_motion_settings() {
         let rest = frame(&mut visual);
         visual.simulate_mouse_move(action.center(), None, Modifiers::none());
         visual.simulate_mouse_down(action.center(), MouseButton::Left, Modifiers::none());
-        advance(&mut visual, 150);
+        advance(&mut visual, PRESS_MS);
         let shrunk = frame(&mut visual);
         assert_ne!(shrunk, rest, "a held press reaches its inset");
         visual.simulate_mouse_move(point(px(20.), px(20.)), Some(MouseButton::Left), Modifiers::none());
@@ -81,14 +86,14 @@ fn r7_exit_and_return_animate_the_frame_with_both_motion_settings() {
         } else {
             assert_eq!(frame(&mut visual), shrunk, "an exit starts the reverse animation at the previous frame");
         }
-        advance(&mut visual, 150);
+        advance(&mut visual, PRESS_MS);
         assert_eq!(frame(&mut visual), rest, "pressShown false restores the frame after the animation");
         visual.simulate_mouse_move(action.center(), Some(MouseButton::Left), Modifiers::none());
-        advance(&mut visual, 150);
+        advance(&mut visual, PRESS_MS);
         assert_eq!(frame(&mut visual), shrunk, "returning during the same press shrinks the frame again");
         assert!(visual.debug_bounds("op2-flash-wash-press").is_some());
         visual.simulate_mouse_up(point(px(20.), px(20.)), MouseButton::Left, Modifiers::none());
-        advance(&mut visual, 150);
+        advance(&mut visual, PRESS_MS);
         assert_eq!(frame(&mut visual), rest, "release outside leaves the resting frame");
     }
 }

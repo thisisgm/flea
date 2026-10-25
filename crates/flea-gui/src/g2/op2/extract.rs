@@ -18,8 +18,8 @@ pub enum Stop {
     Extract,
 }
 
-/// The card over one archive and destination; the secret lives here only while the card is open.
-#[derive(Clone, Debug)]
+/// The card over one archive and destination; the secret lives here only while the card is open, so it has no Debug.
+#[derive(Clone)]
 pub struct Extract {
     path: String,
     dest: String,

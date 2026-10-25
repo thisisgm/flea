@@ -1,5 +1,5 @@
 //! The running flash: the backend answers a press lands in.
-use super::{Flash, Run, RATE_WINDOW_MS};
+use super::{Flash, Run, MS_PER_SECOND, RATE_WINDOW_MS};
 use crate::g2::op2::{cards::JobBlock, Effect};
 use flea::i18n::I18n;
 use flea::ui_logic_op2::{cards as logic, flash, flashcard, flashendings, flashpane, wire};
@@ -119,10 +119,17 @@ impl Flash {
     }
 
     fn note_rate(&mut self, bytes: u64, now_ms: u64) {
+        // Verify counts again from its first chunk, so a count that goes back restarts the window there.
+        if bytes < self.runner.rate_bytes {
+            self.runner.rate_at = now_ms;
+            self.runner.rate_bytes = bytes;
+            self.runner.rate = 0;
+            return;
+        }
         if now_ms.saturating_sub(self.runner.rate_at) >= RATE_WINDOW_MS && bytes >= self.runner.rate_bytes {
             // The guard above proves the span is at least RATE_WINDOW_MS, so the division is safe.
             let span = now_ms - self.runner.rate_at;
-            self.runner.rate = bytes.saturating_sub(self.runner.rate_bytes).saturating_mul(1000) / span;
+            self.runner.rate = bytes.saturating_sub(self.runner.rate_bytes).saturating_mul(MS_PER_SECOND) / span;
             self.runner.rate_at = now_ms;
             self.runner.rate_bytes = bytes;
         }
@@ -207,9 +214,20 @@ impl Flash {
         vec![Effect::Say { text: flashendings::eject_failed_line(i18n, &drive), error: true }]
     }
 
-    /// A refused claim answers with an error and no flashdone, so the press ends here.
-    pub fn on_failed(&mut self) {
+    /// A dead backend sends no flashdone: the press ends here, and a running flash ends as a write failure.
+    pub fn on_failed(&mut self, i18n: &I18n) -> Vec<Effect> {
         self.runner.press_sent = false;
+        let Some(run) = self.runner.transfer.as_ref() else { return Vec::new() };
+        let done = wire::FlashDone {
+            id: run.id,
+            ok: false,
+            phase: run.transfer.phase.clone(),
+            at: run.transfer.bytes,
+            err: "io".into(),
+            blank: false,
+            tool: String::new(),
+        };
+        self.finish_transfer(i18n, &done)
     }
 
 }
@@ -223,4 +241,17 @@ pub(super) fn job_block(run: &Run) -> JobBlock {
         share: run.drawn.share,
         cancel: !run.drawn.no_cancel,
     }
+}
+
+#[cfg(test)]
+#[test]
+fn a_count_that_goes_back_restarts_the_rate_window() {
+    let mut view = Flash::closed();
+    view.note_rate(8_000, RATE_WINDOW_MS);
+    assert_eq!(view.runner.rate, 4_000, "the write reads 8000 bytes over two seconds");
+    view.note_rate(1_000, RATE_WINDOW_MS + 500);
+    assert_eq!(view.runner.rate_bytes, 1_000, "verify's first chunk restarts the window");
+    assert_eq!(view.runner.rate, 0, "the write's rate is not drawn while verify fills its first window");
+    view.note_rate(3_000, 2 * RATE_WINDOW_MS + 500);
+    assert_eq!(view.runner.rate, 1_000, "verify reads its own 2000 bytes over two seconds, not the write's rate");
 }

@@ -82,14 +82,20 @@ fn refusal_hints_use_the_boards_wording() {
 fn names_keep_label_model_and_kernel_name() {
     let rows = drives();
     assert_eq!(drive_name(&rows[0], &rows), "128GB");
-    assert_eq!(drive_detail(&rows[0], &rows), "General USB Flash Disk");
+    assert_eq!(drive_detail(&rows[0]), "General USB Flash Disk");
     let twins = vec![
         Drive { dev: "sda".into(), label: "128GB".into(), model: "General USB Flash Disk".into(), ..Drive::default() },
         Drive { dev: "sdb".into(), label: "128GB".into(), model: "Kingston DataTraveler".into(), ..Drive::default() },
     ];
     assert_eq!(drive_name(&twins[1], &twins), "128GB (sdb)");
     let single = vec![Drive { dev: "sdc".into(), model: "Seagate Expansion".into(), ..Drive::default() }];
-    assert_eq!(drive_detail(&single[0], &single), "");
+    assert_eq!(drive_detail(&single[0]), "");
+    let unlabeled = vec![
+        Drive { dev: "sda".into(), model: "Seagate Expansion".into(), ..Drive::default() },
+        Drive { dev: "sdb".into(), model: "Seagate Expansion".into(), ..Drive::default() },
+    ];
+    assert_eq!(drive_name(&unlabeled[0], &unlabeled), "Seagate Expansion (sda)");
+    assert_eq!(drive_detail(&unlabeled[0]), "", "an unlabeled twin never repeats its model as the detail");
 }
 
 #[test]
@@ -267,4 +273,6 @@ fn huge_backend_figures_saturate_instead_of_wrapping() {
     assert_eq!(flashcard::total(&huge), u64::MAX, "the unpacker share scales up without wrapping");
     let drawn = flashcard::render(&i18n, &huge, u64::MAX);
     assert!(drawn.share <= 1.0, "the bar clamps");
+    let over = flashcard::Transfer { known: true, bytes: 5, total: 4, ..huge };
+    assert_eq!(flashcard::share(&over), 1.0, "known bytes past the total clamp the bar full");
 }

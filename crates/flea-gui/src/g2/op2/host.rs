@@ -185,6 +185,30 @@ impl Shell {
         });
     }
 
+    /// A handed flash run that ended or came back clears its status-line activity.
+    fn archive_release_handed(&mut self, cx: &mut Context<Self>) {
+        if self.operations.archive.handed.take().is_some() {
+            self.status_messages(cx, |messages, now| {
+                messages.set_activity(HANDED_OWNER, "", 0, false, false, now)
+            });
+        }
+    }
+
+    /// A dead backend ends the flash its side was running, with the failure ending or its status line.
+    pub(crate) fn archive_flash_failed(&mut self, side: usize, cx: &mut Context<Self>) {
+        if self.operations.archive.flash_side != side {
+            return;
+        }
+        let catalog = self.locale.catalog.clone();
+        for effect in self.operations.archive.flash.on_failed(&catalog) {
+            match effect {
+                Effect::CloseJob(_) => self.archive_release_handed(cx),
+                Effect::Say { text, error } => self.archive_say(&text, error, cx),
+                _ => {}
+            }
+        }
+    }
+
     /// Every effect a card returns, consumed against the backend and the status line of the side it belongs to.
     pub(crate) fn archive_effects(
         &mut self,
@@ -199,9 +223,7 @@ impl Shell {
                     if !self.archive_send(side, line, cx) {
                         let stopped = archive::backend_stopped_line(&self.locale.catalog, None);
                         self.archive_say(&stopped, true, cx);
-                        if self.operations.archive.flash_side == side {
-                            self.operations.archive.flash.on_failed();
-                        }
+                        self.archive_flash_failed(side, cx);
                     }
                 }
                 Effect::Close => {}
@@ -217,15 +239,7 @@ impl Shell {
                         messages.set_activity(HANDED_OWNER, &line, id, false, false, now)
                     });
                 }
-                Effect::CloseJob(_) | Effect::TakeBack
-                    if self.operations.archive.handed.is_some() =>
-                {
-                    self.operations.archive.handed = None;
-                    self.status_messages(cx, |messages, now| {
-                        messages.set_activity(HANDED_OWNER, "", 0, false, false, now)
-                    });
-                }
-                Effect::CloseJob(_) | Effect::TakeBack => {}
+                Effect::CloseJob(_) | Effect::TakeBack => self.archive_release_handed(cx),
                 Effect::PickImage => self.archive_pick_image(side, window, cx),
             }
         }
@@ -245,6 +259,7 @@ impl Shell {
             return;
         }
         let mut command = (self.operations.archive.chooser)();
+        let binary = command.get_program().to_string_lossy().into_owned();
         let run = cx
             .background_executor()
             .spawn(async move { command.output() });
@@ -252,8 +267,16 @@ impl Shell {
             let output = run.await;
             let _ = this.update_in(cx, |shell, window, cx| {
                 shell.operations.archive.picking = None;
-                let chosen = output
-                    .ok()
+                // A chooser that never started says so; a cancel or a non-zero exit stays silent, as v0.3.12 did.
+                let output = match output {
+                    Ok(output) => output,
+                    Err(err) => {
+                        let line = shell.locale.catalog.tr_args("archive.flash.chooser_failed", &[&binary, &err.to_string()]);
+                        shell.archive_say(&line, true, cx);
+                        return;
+                    }
+                };
+                let chosen = Some(output)
                     .filter(|output| output.status.success())
                     .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
                     .unwrap_or_default();

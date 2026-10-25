@@ -1,12 +1,22 @@
 //! The stand-in frame: the card, its title, its controls and its buttons, drawn to the boards.
 use super::cards::*;
+use super::draw_step::{DISABLED_OPACITY, WASH_PRESS};
 use super::flash::SEL_FORMAT_LABEL;
 use crate::g2::op3::shell::glyph;
 use crate::list::{Palette, Typeface};
-use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight, Pixels};
+use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight, Hsla, Pixels};
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
 pub struct StandIn;
+
+/// The chosen chip draws a foreground frame, an accent one while the chips hold the keyboard; the rest stay muted.
+pub(super) fn chip_frame(t: &Tokens, on: bool, focused: bool) -> Hsla {
+    match (on, focused) {
+        (true, true) => t.accent_frame,
+        (true, false) => t.fg,
+        (false, _) => t.muted_frame,
+    }
+}
 
 impl Draw<'_> {
     pub(super) fn px(&self, board: f32) -> Pixels {
@@ -22,7 +32,7 @@ impl Draw<'_> {
     }
 
     pub(super) fn label(&self, text: &str) -> Div {
-        self.text(CAPTION).line_height(self.px(14.)).mb(self.px(5.)).text_color(self.t.muted).child(text.to_uppercase())
+        self.text(CAPTION).line_height(self.px(LABEL_LINE)).mb(self.px(LABEL_GAP)).text_color(self.t.muted).child(text.to_uppercase())
     }
 
     fn chips(&self, chips: &Chips) -> Div {
@@ -37,7 +47,7 @@ impl Draw<'_> {
                     .flex()
                     .items_center()
                     .border_1()
-                    .border_color(if on || (chips.focused && at == chips.current) { t.fg } else { t.muted_frame })
+                    .border_color(chip_frame(&t, on, chips.focused))
                     .rounded(self.px(self.r))
                     .text_color(if on { t.fg } else { t.muted })
                     .child(option.clone()),
@@ -55,12 +65,12 @@ impl Draw<'_> {
 
     pub(super) fn field(&self, field: &Field) -> Div {
         let t = self.t;
-        let caret = || div().w(px(1.)).h(self.px(16.)).flex_none().bg(t.fg);
+        let caret = || div().w(px(1.)).h(self.px(CARET)).flex_none().bg(t.fg);
         let mut line = div()
             .h(self.px(BUTTON_HEIGHT))
             .flex()
             .items_center()
-            .gap(self.px(8.))
+            .gap(self.px(FIELD_GAP))
             .px(self.px(BUTTON_PAD))
             .bg(t.ground)
             .border_1()
@@ -143,8 +153,8 @@ impl Draw<'_> {
             .border_color(frame)
             .rounded(self.px(self.r))
             .text_color(if button.available { t.fg } else { t.muted })
-            .when(primary, |d| d.bg(t.accent.opacity(0.14)))
-            .when(!button.available, |d| d.opacity(0.55))
+            .when(primary, |d| d.bg(t.accent.opacity(WASH_PRESS)))
+            .when(!button.available, |d| d.opacity(DISABLED_OPACITY))
             .child(button.label.clone())
     }
 }

@@ -23,6 +23,7 @@ impl Shell {
         let kind = text(&reply, "t").to_owned();
         let flash_side = self.operations.archive.flash_side == side;
         let effects = match kind.as_str() {
+            // Sample input: {"t":"formats","archive":["zip","tar","7z"],"extract":{"archive":true,"sevenZip":true,"zip":true}}.
             "formats" => {
                 let extract = reply.get("extract");
                 let flag = |key: &str| {
@@ -194,10 +195,10 @@ impl Shell {
         let archive = &mut self.operations.archive;
         archive.formats[side] = Formats::default();
         archive.extracts.retain(|(s, _, _)| *s != side);
-        if archive.flash_side == side {
-            archive.flash.on_failed();
-        }
+        self.archive_flash_failed(side, cx);
+        let archive = &mut self.operations.archive;
         if !archive.card_open() || archive.card_side != side {
+            cx.notify();
             return;
         }
         let name = archive
