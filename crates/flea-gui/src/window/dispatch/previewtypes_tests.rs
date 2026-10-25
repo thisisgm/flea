@@ -319,3 +319,69 @@ fn p_the_play_mark_and_m_play_and_mute_a_column_clip(cx: &mut TestAppContext) {
     pump(cx);
     assert!(!muted(cx), "m again unmutes it");
 }
+
+#[gpui::test]
+fn a_column_focused_before_its_clip_draws_takes_the_media_keys(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "/files");
+    let rows = vec![file("clip.mp4", "video-x-generic", "MPEG-4 video", 0o100644)];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    let backend: Rc<dyn engine::Backend> = Rc::new(Decoder::default());
+    cx.update(|_, cx| {
+        let preview = shell.read(cx).selection_preview(0).expect("the column is mounted");
+        preview.update(cx, |view, _| view.set_media_backend(backend));
+    });
+    let lines = local(&shell, cx, "/files");
+    // Focused while the clip still loads, so the context taken at focus is the plain preview one.
+    cx.simulate_keystrokes("ctrl-tab");
+    meta(&shell, cx, &lines, r#","w":2,"h":2,"ms":4000"#);
+    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    pump(cx);
+    assert_eq!(read(&shell, cx, "previewColumnState", &[]), "video");
+    cx.simulate_keystrokes("m");
+    pump(cx);
+    assert!(cx.update(|_, cx| MediaSound::get(cx).muted), "m mutes the clip drawn after the focus");
+}
+
+/// The plain lines of the drawn frame's code view, and whether a pending frame waits behind it.
+fn drawn_code(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (Vec<String>, bool) {
+    shell.read_with(cx, |shell, cx| {
+        let preview = shell.selection_preview(0).expect("the column is mounted");
+        let preview = preview.read(cx);
+        match preview.drawn.as_ref().map(|frame| &frame.mounted) {
+            Some(Mounted::Doc(Doc::Code(code))) => (code.read(cx).lines.plain_lines(), preview.pending.is_some()),
+            _ => panic!("the code view is drawn"),
+        }
+    })
+}
+
+#[gpui::test]
+fn a_code_reply_for_the_pending_frame_leaves_the_drawn_lines_alone(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "/files");
+    let rows = vec![
+        file("a.rs", "text-x-rust", "Rust source code", 0o100644),
+        file("b.rs", "text-x-rust", "Rust source code", 0o100644),
+    ];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    let lines = local(&shell, cx, "/files");
+    let code = ask(&lines, "code").to_owned();
+    meta(&shell, cx, &lines, r#","lines":1"#);
+    let reply = |token: u64, first: u64, text: &str| {
+        format!(
+            r#"{{"t":"code","token":{token},"slot":"column","state":"styled","first":{first},"total":1,"lines":[[5,"fn",0," {text}()"]]}}"#
+        )
+    };
+    answer(&shell, cx, &reply(field(&code, "token"), field(&code, "first"), "drawn"));
+    pump(cx);
+    assert_eq!(drawn_code(&shell, cx), (vec!["fn drawn()".to_owned()], false));
+    cx.simulate_keystrokes("down");
+    let lines = pump(cx);
+    let next = ask(&lines, "code").to_owned();
+    assert_ne!(field(&next, "token"), field(&code, "token"), "b.rs asks with its own token");
+    answer(&shell, cx, &reply(field(&next, "token"), field(&next, "first"), "pending"));
+    pump(cx);
+    assert_eq!(
+        drawn_code(&shell, cx),
+        (vec!["fn drawn()".to_owned()], true),
+        "the pending frame's reply never reaches the drawn view while b.rs waits on its meta"
+    );
+}

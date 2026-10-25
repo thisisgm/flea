@@ -30,12 +30,17 @@ pub(crate) struct Look {
     pub muted: gpui::Hsla,
     pub mark: Mark,
 }
+/// The views' line pitch, as a multiple of the caption size.
+const LINE_PITCH: f32 = 1.3;
+/// The opacity of an archive's "and more" line.
+const MORE_OPACITY: f32 = 0.6;
+
 impl Look {
     fn row(&self) -> f32 {
-        (f32::from(self.face.caption) * 1.3).round()
+        (f32::from(self.face.caption) * LINE_PITCH).round()
     }
     fn state_mark(&self) -> f32 {
-        (40. * f32::from(self.face.base) / 14.).round()
+        crate::window::preview_facts::state_mark_size(&self.face)
     }
     fn code(&self, numbered: bool) -> CodeView {
         let m = &self.metrics;
@@ -209,7 +214,7 @@ impl Doc {
                         font: look.face.font.clone(),
                         name: look.face.body,
                         caption: look.face.caption,
-                        more_opacity: 0.6,
+                        more_opacity: MORE_OPACITY,
                     },
                     look.mark.clone(),
                     file,
@@ -350,22 +355,23 @@ impl Doc {
         }
     }
 
-    /// PreviewScroll.qml pageBy: one frame height down or up, never past either end.
-    pub(crate) fn page(&self, direction: i64, rows: i64, cx: &mut gpui::App) {
-        let step = direction * rows.max(1);
+    /// PreviewScroll.qml pageBy: one viewport height down or up, never past either end; `frame` stands in before layout.
+    pub(crate) fn page(&self, direction: i64, frame: f32, cx: &mut gpui::App) {
+        let by = |own: f32| direction as f32 * if own > 0. { own } else { frame };
         match self {
-            Doc::Code(view) => view.update(cx, |view, cx| {
-                let height = view.frame.1;
-                view.scroll_by(direction as f32 * height, cx)
+            Doc::Code(view) => view.update(cx, |view, cx| view.scroll_by(by(view.frame.1), cx)),
+            Doc::Markdown(view) => view.update(cx, |view, cx| view.scroll_by(by(view.frame.1), cx)),
+            // The table's viewport is the body under its header; layout clamps the scroll to the table's ends.
+            Doc::Table(view) => view.update(cx, |view, cx| {
+                view.scroll.1 += f64::from(by((view.frame.1 - view.feed.geometry.head_height).max(0.) as f32));
+                cx.notify();
             }),
-            Doc::Markdown(view) => view.update(cx, |view, cx| {
-                let key = if direction > 0 { "cursorDown" } else { "cursorUp" };
-                for _ in 0..rows.max(1) {
-                    view.action(key, cx);
+            Doc::Html(view) => view.update(cx, |view, cx| match view.source.clone() {
+                Some(source) if view.doc.source_view() => {
+                    source.update(cx, |code, cx| code.scroll_by(by(code.frame.1), cx))
                 }
+                _ => view.scroll_by(by(view.frame.1), cx),
             }),
-            Doc::Table(view) => view.update(cx, |view, cx| view.scroll_rows(step, cx)),
-            Doc::Html(view) => view.update(cx, |view, cx| view.scroll_rows(step, cx)),
             Doc::Archive(_) | Doc::Office(_) => {}
         }
     }

@@ -111,13 +111,17 @@ impl MarkdownView {
     }
 
     pub(in crate::g2::pv2::markdown) fn scroll_rows(&mut self, rows: i64, cx: &mut Context<Self>) {
-        let step = Metrics::line(self.tokens.body);
+        self.scroll_by(rows as f32 * Metrics::line(self.tokens.body), cx);
+    }
+
+    /// Moves the shown view, rendered or Source, by `pixels`, never past either end.
+    pub fn scroll_by(&mut self, pixels: f32, cx: &mut Context<Self>) {
         if self.shown_view() == View::Source {
-            self.source.scroll_by(rows as f32 * step);
+            self.source.scroll_by(pixels);
             self.source_pump(cx);
             cx.notify();
         } else {
-            self.scroll_to(self.scroll + rows as f32 * step, cx);
+            self.scroll_to(self.scroll + pixels, cx);
         }
     }
 }

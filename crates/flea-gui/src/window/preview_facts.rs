@@ -1,6 +1,12 @@
 //! Facts use the listing, the meta reply and the mounted view's counts, as Facts.js reads them.
 use super::selection_preview::*;
 use flea::ui_logic_pv1::{facts, kinds::State};
+
+/// The column's state mark: 40 px at base 14, scaled with the text size.
+pub(crate) fn state_mark_size(face: &crate::list::Typeface) -> f32 {
+    (40. * f32::from(face.base) / 14.).round()
+}
+
 impl SelectionPreview {
     /// cols-preview-video.html: an 18 px fact row at caption 12, the name's 20 px line at body 14.
     pub(crate) fn fact_row(&self) -> (f32, f32) {
@@ -36,9 +42,14 @@ impl SelectionPreview {
         (width, height)
     }
 
-    /// The state Facts.js draws: an unreadable file is Error, whatever the row is.
+    /// The state Facts.js draws: Error only for PreviewColumn.qml's failure, a text, PDF, HTML or archive read; a picture or model that failed keeps its kind.
     pub(crate) fn state(&self, frame: &Frame, cx: &gpui::App) -> State {
-        if self.failure(frame, cx).is_some() {
+        let unread = !frame.manual
+            && frame.kind != Kind::Multi
+            && (matches!(&frame.mounted, Mounted::Doc(doc) if doc.failure(&self.catalog, cx).is_some())
+                || frame.facts.as_ref().is_some_and(|m| m.archive_failed)
+                || (frame.failed && matches!(frame.mounted, Mounted::Pdf(_))));
+        if unread {
             State::Error
         } else {
             frame.kind.state()

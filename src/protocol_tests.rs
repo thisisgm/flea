@@ -89,6 +89,17 @@ fn parses_the_initial_pair_and_preserves_escaped_names() {
             listing: 9007199254740993
         }
     );
+    // A k that is negative, fractional or past the end of kinds, or a reply without kinds, names no kind.
+    let two = r#","kinds":["Script","Folder"]"#;
+    for (k, kinds) in [("-1", two), ("1.5", two), ("2", two), ("0", "")] {
+        let line = format!(
+            r#"{{"t":"rows","start":0,"rows":[{{"n":"a","d":false,"s":0,"m":0,"p":33188,"i":"text-plain","k":{k}}}]{kinds},"listing":1}}"#
+        );
+        let Reply::Rows { rows, .. } = parse_reply(&line).unwrap() else {
+            panic!("rows reply: {line}");
+        };
+        assert_eq!(rows[0].kind, "", "k {k} with{kinds}");
+    }
     assert_eq!(
         parse_reply(r#"{"t":"rows","start":0,"rows":[],"listing":1}"#).unwrap(),
         Reply::Rows {

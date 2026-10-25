@@ -147,10 +147,12 @@ fn row_facts(row: &Json, kinds: &[Json]) -> Result<RowFacts, String> {
         icon: string(row, "i")?.to_owned(),
         link,
         real_modes,
-        kind: row
-            .get("k")
-            .and_then(Json::as_f64)
-            .and_then(|k| kinds.get(k as usize))
+        // k is an index into kinds; anything but an unsigned integer in range names no kind, as uint() reads one.
+        kind: match row.get("k") {
+            Some(Json::Num(k)) => k.parse::<usize>().ok(),
+            _ => None,
+        }
+        .and_then(|k| kinds.get(k))
             .and_then(Json::as_str)
             .unwrap_or_default()
             .to_owned(),

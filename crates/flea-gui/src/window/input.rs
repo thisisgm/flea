@@ -170,6 +170,10 @@ impl Shell {
             .get("keys")
             .and_then(flea::jsondoc::Json::as_str)
             .unwrap_or("default");
+        // Focus.js keyContext reads the live preview on every key, so a frame drawn after the focus moved still counts.
+        if let Some(preview) = host.preview.as_ref().filter(|p| p.read(cx).focus.is_focused(window)) {
+            self.keyboard.context = preview.read(cx).key_context();
+        }
         let pair_armed = self.keyboard.pair_armed(name, seat);
         let resolved = self.keyboard.resolve(name, event, window.modifiers(), seat);
         let dispatch = if resolved == Dispatch::Composition {
