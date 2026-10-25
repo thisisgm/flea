@@ -10,14 +10,24 @@ use flea::ui_logic_sd1::providers::Role;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::{cell::Cell, rc::Rc};
 
+#[path = "provider_state_tests.rs"]
+mod state_tests;
+
 fn right(shell: &Shell, backend: Backend) -> PaneHost {
     let mut host = PaneHost::new("/right".into(), None, 620., &shell.locale);
     host.backend = Some(backend);
     host.pane
-        .receive(Reply::Listed { path: "/right".into(), total: 8 })
+        .receive(Reply::Listed {
+            path: "/right".into(),
+            total: 8,
+        })
         .unwrap();
     host.pane
-        .receive(Reply::Rows { start: 0, rows: vec![RowFacts::default(); 8], listing: 2 })
+        .receive(Reply::Rows {
+            start: 0,
+            rows: vec![RowFacts::default(); 8],
+            listing: 2,
+        })
         .unwrap();
     host
 }
@@ -27,7 +37,11 @@ fn drain(receive: &mut impl FnMut() -> Option<String>) -> Vec<String> {
 }
 
 fn with(lines: &[String], needle: &str) -> Vec<String> {
-    lines.iter().filter(|line| line.contains(needle)).cloned().collect()
+    lines
+        .iter()
+        .filter(|line| line.contains(needle))
+        .cloned()
+        .collect()
 }
 
 fn facts(id: u64) -> String {
@@ -37,7 +51,9 @@ fn facts(id: u64) -> String {
 }
 
 fn peers(id: u64, name: &str) -> String {
-    format!(r#"{{"t":"localsendpeers","id":{id},"peers":[{{"name":"{name}","address":"10.0.0.2"}}],"reason":""}}"#)
+    format!(
+        r#"{{"t":"localsendpeers","id":{id},"peers":[{{"name":"{name}","address":"10.0.0.2"}}],"reason":""}}"#
+    )
 }
 
 fn feed(shell: &Entity<Shell>, cx: &mut VisualTestContext, side: usize, line: &str) {
@@ -53,15 +69,26 @@ fn open(
     side: usize,
     receive: &mut impl FnMut() -> Option<String>,
 ) -> Captured {
-    shell.update_in(cx, |shell, window, cx| shell.open_menu(side, Some(0), (10., 10.), window, cx));
+    shell.update_in(cx, |shell, window, cx| {
+        shell.open_menu(side, Some(0), (10., 10.), window, cx)
+    });
     let asked = with(&drain(receive), "\"c\":\"formats\"");
-    assert_eq!(asked.len(), 1, "a file menu asks its own backend for the providers facts once");
+    assert_eq!(
+        asked.len(),
+        1,
+        "a file menu asks its own backend for the providers facts once"
+    );
     let id = flea::json::field_usize(&asked[0], "id").unwrap() as u64;
-    let captured = shell.read_with(cx, |shell, _| shell.menu.captured.clone()).expect("menu captured");
+    let captured = shell
+        .read_with(cx, |shell, _| shell.menu.captured.clone())
+        .expect("menu captured");
     assert_eq!((captured.side, captured.id), (side, id));
     // A facts answer for another menu is not this one's and starts nothing.
     feed(shell, cx, side, &facts(id + 99));
-    assert!(with(&drain(receive), "\"c\":\"localsend\"").is_empty(), "a stale facts reply started discovery");
+    assert!(
+        with(&drain(receive), "\"c\":\"localsend\"").is_empty(),
+        "a stale facts reply started discovery"
+    );
     feed(shell, cx, side, &facts(id));
     captured
 }
@@ -87,17 +114,32 @@ fn m9_integ_two_provider_backends_cannot_consume_each_others_reply(cx: &mut Test
     });
     let first = open(&shell, cx, 0, &mut left_lines);
     let asked = with(&drain(&mut left_lines), "\"op\":\"peers\"");
-    assert_eq!(asked, vec![r#"{"c":"localsend","op":"peers","peer":"","paths":[],"id":1}"#.to_string()]);
+    assert_eq!(
+        asked,
+        vec![r#"{"c":"localsend","op":"peers","peer":"","paths":[],"id":1}"#.to_string()]
+    );
     open(&shell, cx, 1, &mut right_lines);
     let asked = with(&drain(&mut right_lines), "\"op\":\"peers\"");
     // Each backend numbers its own requests, so both discovery asks carry id 1.
-    assert_eq!(asked, vec![r#"{"c":"localsend","op":"peers","peer":"","paths":[],"id":1}"#.to_string()]);
-    assert!(drain(&mut left_lines).iter().all(|line| !line.contains("localsend")), "side 1's ask reached side 0");
+    assert_eq!(
+        asked,
+        vec![r#"{"c":"localsend","op":"peers","peer":"","paths":[],"id":1}"#.to_string()]
+    );
+    assert!(
+        drain(&mut left_lines)
+            .iter()
+            .all(|line| !line.contains("localsend")),
+        "side 1's ask reached side 0"
+    );
 
     feed(&shell, cx, 1, &peers(1, "Phone B"));
     assert_eq!(peer_names(&shell, cx, 1), vec!["Phone B".to_string()]);
-    assert!(peer_names(&shell, cx, 0).is_empty(), "side 1's reply landed in side 0's sender");
-    assert!(shell.read_with(cx, |shell, _| shell.menu.providers.sides[0].localsend_checking()));
+    assert!(
+        peer_names(&shell, cx, 0).is_empty(),
+        "side 1's reply landed in side 0's sender"
+    );
+    assert!(shell.read_with(cx, |shell, _| shell.menu.providers.sides[0]
+        .localsend_checking()));
     feed(&shell, cx, 0, &peers(1, "Phone A"));
     assert_eq!(peer_names(&shell, cx, 0), vec!["Phone A".to_string()]);
     assert_eq!(peer_names(&shell, cx, 1), vec!["Phone B".to_string()]);
@@ -108,7 +150,10 @@ fn m9_integ_two_provider_backends_cannot_consume_each_others_reply(cx: &mut Test
     // The checked LocalSend row on side 0 writes its send on side 0's pipe only.
     let claimed = Rc::new(Cell::new(false));
     let chosen = Chosen {
-        captured: Captured { ready: true, ..first },
+        captured: Captured {
+            ready: true,
+            ..first
+        },
         action: "localsend".into(),
         leaf: "Phone A".into(),
         paths: vec!["/files/a.txt".into()],
@@ -118,26 +163,55 @@ fn m9_integ_two_provider_backends_cannot_consume_each_others_reply(cx: &mut Test
     cx.run_until_parked();
     assert!(claimed.get(), "the provider join claims its row");
     let sent = with(&drain(&mut left_lines), "\"op\":\"send\"");
-    assert_eq!(sent, vec![r#"{"c":"localsend","op":"send","peer":"Phone A","paths":["/files/a.txt"],"id":2}"#.to_string()]);
+    assert_eq!(
+        sent,
+        vec![
+            r#"{"c":"localsend","op":"send","peer":"Phone A","paths":["/files/a.txt"],"id":2}"#
+                .to_string()
+        ]
+    );
     assert!(with(&drain(&mut right_lines), "\"op\":\"send\"").is_empty());
     let live = |shell: &Entity<Shell>, cx: &mut VisualTestContext, side: usize| {
         shell.read_with(cx, |shell, _| shell.menu.providers.sides[side].live_sends())
     };
     assert_eq!(live(&shell, cx, 0), 1);
     // Side 1's verdict for the same id never ends side 0's send.
-    feed(&shell, cx, 1, r#"{"t":"localsendsent","id":2,"ok":true,"reason":""}"#);
-    assert_eq!(live(&shell, cx, 0), 1, "side 1's verdict ended side 0's send");
+    feed(
+        &shell,
+        cx,
+        1,
+        r#"{"t":"localsendsent","id":2,"ok":true,"reason":""}"#,
+    );
+    assert_eq!(
+        live(&shell, cx, 0),
+        1,
+        "side 1's verdict ended side 0's send"
+    );
     // Side 1's backend dying loses nothing on side 0.
-    shell.update_in(cx, |shell, window, cx| shell.receive(1, BackendEvent::Drained, window, cx));
+    shell.update_in(cx, |shell, window, cx| {
+        shell.receive(1, BackendEvent::Drained, window, cx)
+    });
     assert_eq!(live(&shell, cx, 0), 1);
-    feed(&shell, cx, 0, r#"{"t":"localsendsent","id":2,"ok":true,"reason":""}"#);
+    feed(
+        &shell,
+        cx,
+        0,
+        r#"{"t":"localsendsent","id":2,"ok":true,"reason":""}"#,
+    );
     assert_eq!(live(&shell, cx, 0), 0, "the matching verdict ends the send");
-    feed(&shell, cx, 0, r#"{"t":"localsendsent","id":2,"ok":false,"reason":"late"}"#);
+    feed(
+        &shell,
+        cx,
+        0,
+        r#"{"t":"localsendsent","id":2,"ok":false,"reason":"late"}"#,
+    );
     assert_eq!(live(&shell, cx, 0), 0);
 }
 
 #[gpui::test]
-fn provider_rows_reach_the_menu_only_while_installed_and_their_plugin_is_on(cx: &mut TestAppContext) {
+fn provider_rows_reach_the_menu_only_while_installed_and_their_plugin_is_on(
+    cx: &mut TestAppContext,
+) {
     let (left, mut lines) = Backend::test_lines();
     let (shell, cx) = cx.add_window_view(|_, cx| shell_with(left, cx));
     open(&shell, cx, 0, &mut lines);
@@ -152,7 +226,10 @@ fn provider_rows_reach_the_menu_only_while_installed_and_their_plugin_is_on(cx: 
     let shown = context(&shell, cx);
     assert!(shown.localsend_installed);
     assert_eq!(shown.localsend_peers.len(), 1);
-    assert!(!shown.taildrop_installed && !shown.dropbox_installed, "uninstalled providers draw no row");
+    assert!(
+        !shown.taildrop_installed && !shown.dropbox_installed,
+        "uninstalled providers draw no row"
+    );
     // The st2 switch off in ui.json hides the row at the next open, with no discovery ask.
     shell.update_in(cx, |shell, _, _| {
         shell.launch.settings.data =

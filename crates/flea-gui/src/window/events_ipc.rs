@@ -156,7 +156,12 @@ impl Shell {
                         .and_then(|rail| rail.network.as_ref())
                         .map(|network| network.service.read(cx)),
                 );
-                let adapters: [&dyn crate::ipc::Adapter; 20] = [
+                let providers = crate::g2::sd1::reader::State {
+                    shell: self,
+                    window,
+                };
+                let adapters: [&dyn crate::ipc::Adapter; 21] = [
+                    &providers,
                     &network_result,
                     &search,
                     &query,
@@ -182,9 +187,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    20
+                    21
                 } else {
-                    19
+                    20
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

@@ -9,6 +9,7 @@ pub(crate) mod join;
 #[cfg(test)]
 mod join_tests;
 mod picker;
+pub(crate) mod reader;
 pub mod seams;
 #[cfg(test)]
 mod tests;
