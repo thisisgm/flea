@@ -3022,3 +3022,60 @@ Inherited global copy, filter and reporting options, including quiet/verbose and
 ```
 
 The receipt has no full stop; clients append muted ` · checked by checksum` or ` · checked by size`. A mismatch fails the job with `Send failed` and a reason naming the failed file and remote. The existing jobs Cancel kills the current process group, including descendants that ignore SIGTERM. Files already copied remain remote; a cancelled check has `check:"none"`, `note:"not checked"`, and `ok:false`. Retry keeps the id and row and resends only failed top-level items with their captured identities. It forces retransmission so a checksum failure can be repaired even when the destination retains the source size and timestamp. Retry counts describe that attempt. Dismiss uses the ordinary job contract. Sends never offer Undo.
+
+## Contents search
+
+`searchcontents` takes `path` (an absolute folder), `query` (one nonempty literal,
+case-sensitive line), `hidden`, positive `gen` and optional `count`. The default
+count is the existing search first-window size; counts above 4096 are refused.
+The producer runs ripgrep once in the read-only sandbox, honors ignore files,
+does not follow discovered symlinks, skips binary matches, and keeps the first
+matching line per file. No shell interprets the query or path.
+
+The previous complete listing remains current until ripgrep finishes successfully.
+The new snapshot emits `contentsmatches` for the first window, then ordinary
+`listed`, `rows`, and terminal `searched`. All carry the query generation;
+`contentsmatches`, `listed` and `rows` also carry the operation `listing` identity.
+`window` emits its matching metadata before its rows, retaining both identities.
+The complete result set remains pageable. Match metadata may use several bounded
+envelopes for a window; each envelope's `start` and contiguous `row` values name
+its portion. Consumers assemble metadata and rows before presenting the snapshot.
+
+```json
+{"c":"searchcontents","path":"/work","query":"needle","hidden":false,"gen":7,"count":40}
+{"t":"contentsmatches","gen":7,"listing":2,"start":0,"matches":[{"row":0,"path":"notes.txt","pathBytes":"6e6f7465732e747874","lineNo":3,"line":"needle first","operable":true}]}
+```
+
+`pathBytes` is hexadecimal encoding of the exact relative filename bytes.
+`path` is display text only. Line numbers are one-based. Non-UTF-8 paths retain
+their lossy display, matching the previous listing behavior, but carry
+`operable:false`. A real UTF-8 filename sharing that display also carries false
+while this snapshot is held. Backend row and explicit-path requests for either
+ambiguous identity are refused with `where:"contentsidentity"` before resolution.
+An adapter must refuse external open, reveal, clipboard, drag and operation
+dispatch for these rows; it must never construct an operation path from display
+text. The shared `ui_logic_sr1` parser validates metadata for both front ends.
+This producer does not enable either adapter's contents capability.
+
+`searchcancel` and `searchclose` stop and reap the running jail, including startup.
+Their cancellation or close receipt follows cleanup and names the newest requested
+generation, including a request waiting for an older worker to stop. Older or
+duplicate generations and stale completion tickets publish nothing. Replacement
+queries serialize after cleanup. Navigation discards the old worker's result.
+On missing ripgrep, sandbox refusal, permission/exit failure, malformed output,
+output limits or the 30-second wall deadline, the backend emits a generation-keyed
+`error` and preserves the previous listing, with no success receipt. Individual
+Retained match data and a single pending rg JSON record each have an independent
+64 MiB bound. Both stores may coexist, in addition to transient parser and wire
+allocations. Exceeding either bound fails the request rather than returning an
+apparently complete cap. Full matching lines within these bounds are retained.
+The worker reads at most 8 KiB per pipe iteration. A finished search ignores
+`searchcancel`; `searchclose` acknowledges its scope once. Closing retains the
+displayed snapshot and its identity guard until navigation or replacement, so
+closing cannot make an ambiguous filename operable. Failed or cancelled queries
+also preserve the previous folder's watch and any previous name-search session.
+An explicit `searchclose` closes that previous names session and walk too, before
+the contents close receipt; late names completion events then publish nothing.
+Sorting a snapshot reorders match metadata with its listing and advances the
+listing identity. Name and kind sorts work for every snapshot; size and date
+sorts refuse snapshots containing non-operable paths to avoid statting aliases.
