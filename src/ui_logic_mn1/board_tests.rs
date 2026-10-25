@@ -55,6 +55,7 @@ fn finder_order(rows: &str, marks: [Option<usize>; 2]) -> (String, [Option<usize
     let group: Vec<&str> = all.split_off(last + 1);
     all.pop();
     let at = all.iter().position(|r| *r == "-").unwrap() + 1;
+    assert!(marks.iter().flatten().all(|&i| i < last), "a mark inside the moved trash group needs its own remap");
     let shift = group.len() + 1;
     all.splice(at..at, group.into_iter().chain(["-"]));
     let drop = if marks[1].is_some_and(|i| i >= at) { (shift as i32 - 1) * fit::ROW + fit::SEP } else { 0 };
@@ -388,8 +389,9 @@ fn every_board_card_draws_the_boards_rows_width_place_and_scroll() {
         // A moved card's flyout follows its parent row by the move less the scroll that changed with it.
         let follow = if card.moved { (card.drop - (content_y - card.scroll)) as f32 } else { 0. };
         let foot = work.y + work.h - inset;
+        let want = (fly.top + follow).min(foot - placed.h);
         assert!(
-            placed.x == fly.left && (placed.y == fly.top + follow || card.moved && placed.y + placed.h == foot),
+            placed.x == fly.left && placed.y == want,
             "{name}: flyout place {:?} against the board's {:?} moved by {follow}",
             (placed.x, placed.y),
             (fly.left, fly.top)
