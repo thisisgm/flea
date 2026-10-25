@@ -101,14 +101,31 @@ fn a_right_click_on_the_selected_landed_row_keeps_the_landing(cx: &mut TestAppCo
     keeps_the_landing(&shell, cx, "a menu on a selected row");
 }
 
-// The pane's own menu arm, reached when the root opens no menu over the press.
+// The pane's own menu arm, reached when the root opens no menu over the press. No family on this branch runs
+// a pointer "menu" order (window/dispatch/mod.rs FAMILIES), so the arm's effect is the menu order it hands on.
 #[gpui::test]
 fn the_pane_menu_arm_on_the_selected_landed_row_keeps_the_landing(cx: &mut TestAppContext) {
     let (shell, cx) = landed_on_beta_in(cx, rows());
     let beta = row_point(&shell, cx, 1);
-    assert!(!tapped(&shell, cx), "no tap is counted before the click");
+    let listing = landed(&shell, cx).1 as u64;
+    let emitted = Rc::new(RefCell::new(Vec::new()));
+    let sink = emitted.clone();
+    let _subscription = cx.update(|_, cx| {
+        cx.subscribe(&shell, move |_, event: &ActionEvent, _| {
+            sink.borrow_mut().push((
+                event.action,
+                event.context,
+                event.seat.listing,
+                event.seat.cursor,
+            ))
+        })
+    });
     click(&shell, cx, beta, MouseButton::Right, 1, Modifiers::none());
-    assert!(tapped(&shell, cx), "the release reached the row's binding");
+    assert_eq!(
+        *emitted.borrow(),
+        [("menu", flea::keys::Context::Listing, listing, 1)],
+        "the arm asks for the menu on the landed row"
+    );
     keeps_the_landing(&shell, cx, "the pane's menu arm on a selected row");
 }
 
