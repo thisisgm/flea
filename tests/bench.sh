@@ -20,6 +20,8 @@ case $scratch in
   *) echo "FAIL: mktemp -d gave '$scratch', which is not an absolute path two components deep"; exit 1 ;;
 esac
 : > "$scratch/.flea-test-sandbox"
+# The manifest defaults FLEA_REPO to the operator's checkout; this suite binds no build of the host's.
+export FLEA_REPO="$scratch/no-flea-tree"
 trap 'case $scratch in /*/*) [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
 
 fail=0
@@ -48,6 +50,12 @@ fixture="$scratch/fix"
 mkdir -p "$fixture"
 touch "$fixture/a.jpg" "$fixture/b.jpg" "$fixture/c.png" "$fixture/d.txt" "$fixture/README"
 payload=$(ls -U "$fixture" | wc -l)
+# Strata runs as two required rows, stable and nightly, each its own executable.
+mkdir -p "$scratch/strata-stable" "$scratch/strata-nightly"
+printf '#!/bin/sh\necho "strata 1.1.0"\n' > "$scratch/strata-stable/strata"
+printf '#!/bin/sh\necho "strata 1.0.1-nightly.20261018"\n' > "$scratch/strata-nightly/strata"
+chmod +x "$scratch/strata-stable/strata" "$scratch/strata-nightly/strata"
+export STRATA_BIN="$scratch/strata-stable/strata" STRATA_NIGHTLY_BIN="$scratch/strata-nightly/strata"
 
 "$tool" >/dev/null 2>&1
 check "no arguments is a usage error" 2 $?
@@ -58,7 +66,7 @@ check "a missing fixture is refused" 1 $?
 # name. Every entrant that run holds is listed here too: the report refuses an id it has no kind for.
 man="$scratch/run.manifest.md"
 printf '%s\n' "flea|gui|qs" "dolphin|gui|dolphin" "definitely-not-a-file-manager|gui|definitely-not-a-file-manager" \
-  "strata|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
+  "strata|gui|strata" "strata-nightly|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
   | EXPECT_FILES="$payload" "$tool" "$man" "$fixture" >/dev/null 2>&1
 check "a normal run writes a manifest" 0 $?
 
@@ -212,14 +220,14 @@ check "and it still carries exactly one close section" 1 "$(grep -c '^## Run clo
 # An unset or missing FLEA_QMLCACHE reads absent in the close section, never a 0.
 nocache_man="$scratch/nocache.manifest.md"
 printf '%s\n' "flea|gui|qs" "dolphin|gui|dolphin" "definitely-not-a-file-manager|gui|definitely-not-a-file-manager" \
-  "strata|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
+  "strata|gui|strata" "strata-nightly|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
   | EXPECT_FILES="$payload" "$tool" "$nocache_man" "$fixture" >/dev/null 2>&1
 env -u FLEA_QMLCACHE "$tool" "$nocache_man" close "$csv" >/dev/null 2>&1
 check "a close with no cache variable still closes" 0 $?
 holds "an unset FLEA_QMLCACHE reads absent, never 0" "tested Flea's own QML cache at end: absent entries in an unset path" "$nocache_man"
 missing_man="$scratch/missingcache.manifest.md"
 printf '%s\n' "flea|gui|qs" "dolphin|gui|dolphin" "definitely-not-a-file-manager|gui|definitely-not-a-file-manager" \
-  "strata|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
+  "strata|gui|strata" "strata-nightly|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
   | EXPECT_FILES="$payload" "$tool" "$missing_man" "$fixture" >/dev/null 2>&1
 FLEA_QMLCACHE="$scratch/no-such-dir" "$tool" "$missing_man" close "$csv" >/dev/null 2>&1
 check "a close with a missing cache dir still closes" 0 $?
