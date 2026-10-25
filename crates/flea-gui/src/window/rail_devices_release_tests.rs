@@ -288,3 +288,17 @@ fn release_quiesce_failure_is_said_and_the_eject_still_runs(cx: &mut TestAppCont
     assert_eq!(status(&shell, cx), "The backend stopped accepting requests");
 }
 
+
+#[gpui::test]
+fn release_open_place_on_a_busy_pane_supersedes_and_never_refuses(cx: &mut TestAppContext) {
+    // The phone and unlock opens ignore the step's result; this pins why that is safe.
+    let (shell, _service, cx) = shell_at("/fixture/work", cx);
+    assert!(shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.busy()));
+    let result = shell.update_in(cx, |shell, window, cx| {
+        let step = crate::window::navigate::Step::OpenPlace("/fixture/phone".into());
+        shell.step(0, step, window, cx)
+    });
+    assert_eq!(result, Ok(true), "a busy pane takes the new place");
+    let place = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.place().to_owned());
+    assert_eq!(place, "/fixture/phone");
+}

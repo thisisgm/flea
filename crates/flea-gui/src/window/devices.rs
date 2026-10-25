@@ -93,7 +93,7 @@ impl Shell {
         let origin = self.network_origin(side);
         match crate::g2::pl2::menus::activate(phone, origin) {
             crate::g2::pl2::menus::Open::Direct { path, .. } => {
-                // OpenPlace supersedes a busy pane, so it never refuses.
+                // OpenPlace never refuses: it supersedes a busy pane (no Busy) and reads no row (no NotLoaded).
                 let _ = self.step(side, super::navigate::Step::OpenPlace(path), window, cx);
             }
             crate::g2::pl2::menus::Open::Remote(request) => {
