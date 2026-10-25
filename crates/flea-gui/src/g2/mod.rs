@@ -1,4 +1,6 @@
 //! G2 surface families; each unit keeps its GUI half under its own module.
+#[cfg(test)]
+mod error_ink_tests;
 pub mod fb1;
 pub mod mn1;
 pub mod op1;

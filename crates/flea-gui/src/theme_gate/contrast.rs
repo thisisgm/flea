@@ -2,16 +2,8 @@ use crate::{g2::op1::palette::CardPalette, list::Palette, palette::Theme};
 use gpui::{Hsla, Rgba, TextStyle};
 use std::collections::BTreeMap;
 
-// DESIGN-040 "Contrast exceptions", exact legacy allowances, never expanded by this gate.
-// "*:tag * on a marked row=110": Tags callout 2 lifts against the unselected ground.
-// "*:tag * on the cursor row=42": Tags callout 2 lifts against the unselected ground.
-// "*:tag orange=3": last-horizon, solitude and white use digit squares for a missing orange.
-// "*:foreground text on a marked row=13": rule 7 preserves OEM Style.selectionFill.
-// "*:muted text on surface=4": the older 3:1 recipe predates Theme.qml's 4.5 text lift.
-// "*:muted glyph on surface=4": catppuccin-latte, flexoki-light, lupine and rose-pine, 2.66 to 2.70.
-// "*:rule-12 metadata ink on background=3": Qt.darker(foreground, 1.4) is retained for glyphs.
-// The current QML sweep does not assert the first four pairs or rule-12 glyph text contrast.
-// Its muted *text* now holds 4.5 on both planes; legacy allowances cannot waive that floor.
+// HIG rail-favorites and plugin-rail-section draw --muted-frame marks unlifted on --surface.
+const LIGHT_SURFACE_FRAME: [&str; 4] = ["catppuccin-latte", "flexoki-light", "lupine", "rose-pine"];
 
 fn rgb(colour: Hsla) -> [f64; 3] {
     let c: Rgba = colour.into();
@@ -61,6 +53,7 @@ fn recorded_floor(name: &str) -> u16 {
 }
 
 #[test]
+#[ignore = "needs stock Omarchy themes and a built flea; run by tests/gpui-theme-gate.sh"]
 fn theme_gate_stock_contrast_floors() {
     let mut failures = Vec::new();
     let mut checks = 0;
@@ -84,9 +77,9 @@ fn theme_gate_stock_contrast_floors() {
                 .or_insert(got);
             // Float conversion may move an exact ratio by a few millionths, never by one 8-bit step.
             if got + 0.00001 < need {
-                if role == "secondary_button"
-                    && ["catppuccin-latte", "flexoki-light", "lupine", "rose-pine"]
-                        .contains(&name.as_str())
+                if ["secondary_button", "rail_plus"].contains(&role)
+                    && LIGHT_SURFACE_FRAME.contains(&name.as_str())
+                    && got + 0.00001 >= 2.66
                 {
                     surface_frame_allowances += 1;
                 } else {
@@ -118,7 +111,16 @@ fn theme_gate_stock_contrast_floors() {
             theme.background,
             4.5_f64.max(contrast(footer.muted, theme.background)),
         );
-        // Only the four named muted-glyph-on-surface exceptions can waive this unchanged floor.
+        let status = crate::g2::fb1::Ink::on_surface(&list);
+        floor(
+            "status_bar_error",
+            status.error,
+            theme.surface,
+            4.5_f64.max(contrast(status.muted, theme.surface)),
+        );
+        floor("chrome_text", theme.foreground, theme.chrome(), 4.5);
+        floor("chrome_glyph", list.metadata_frame, theme.chrome(), 3.);
+        // Only LIGHT_SURFACE_FRAME, at 2.66 or above, waives this floor and rail_plus.
         floor("secondary_button", card.muted_frame, theme.surface, 3.);
         floor("accent_frame", card.accent_frame, theme.surface, 3.);
         floor("symlink", list.symlink, theme.background, 4.5);
@@ -144,9 +146,9 @@ fn theme_gate_stock_contrast_floors() {
         floor("rail_cursor_edge", rail.accent_frame, rail.background, 3.);
         // palette.rs uses 3:1 for graphic ink; OMI-SPINNER.md prescribes the raw accent.
         floor("omi_accent", theme.accent, theme.background, 3.);
-        // DESIGN-040 CopyTo/Jobs recipe: the copy track is the muted frame at 25%.
+        floor("rail_plus", rail.muted_frame, rail.background, 3.);
+        // HIG jobs board: the copy track is --muted-frame at opacity 0.25.
         assert_eq!(flea::ui_logic_op1::card::JOBS_TRACK_ALPHA, 0.25);
-        minima.insert("rail_plus", contrast(rail.muted_frame, rail.background));
         minima.insert("rail_square_on", contrast(rail.executable, rail.background));
         minima.insert(
             "rail_hairline",
@@ -155,7 +157,7 @@ fn theme_gate_stock_contrast_floors() {
                 theme.surface,
             ),
         );
-        // DESIGN-040 rule 2: decorative rail hairline is the 12% foreground recipe, not a control boundary.
+        // HIG rail-favorites: the rail edge is --hair, the foreground at 12%, not a control boundary.
         assert_eq!(crate::list::HAIRLINE, 0.12);
         // The cursor wash keeps the resting ink, QML cursorRecipe and MenuRow's foreground at 8%.
         assert_eq!(crate::list::HOVER, 0.08);
@@ -209,8 +211,8 @@ fn theme_gate_stock_contrast_floors() {
         );
     }
     assert_eq!(
-        surface_frame_allowances, 4,
-        "DESIGN-040 muted glyph on surface allowance count changed"
+        surface_frame_allowances, 8,
+        "light-surface muted-frame allowance count changed"
     );
     assert!(
         legacy_failures > 0,

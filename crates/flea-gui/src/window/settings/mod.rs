@@ -146,7 +146,11 @@ impl Shell {
                 .unwrap_or_default();
             let palette = crate::list::Palette::inherited(&window.text_style(), theme);
             view.update(cx, |view, cx| {
-                view.set_tokens(crate::g2::st2::seam::Tokens::interim(&palette), corner, cx);
+                view.set_tokens(
+                    crate::g2::st2::seam::Tokens::on_surface(&palette, theme),
+                    corner,
+                    cx,
+                );
             });
         }
         if let Some(view) = &self.overlay {

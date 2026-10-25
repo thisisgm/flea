@@ -5,6 +5,8 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 cd "$repo"
 # This suite owns only /tmp fixtures; build products stay in the caller's target directory.
 fixture_parent=$(mktemp -d /tmp/flea-gpui-theme-gate.XXXXXXXX)
+# Until the marker lands both dirs are empty, so rmdir is the whole cleanup for an early exit.
+trap 'rmdir -- ${test_root:+"$test_root"} "$fixture_parent"' EXIT
 export FLEA_FIXTURE_ROOT="$fixture_parent"
 . "$repo/tools/flea-sandbox-guard"
 test_root=$(mktemp -d "$fixture_parent/run.XXXXXXXX")
@@ -29,13 +31,12 @@ export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$repo/target}
 # Build while the operator HOME is still available to rustup; no app is started here.
 cargo build --offline --locked -p flea --bin flea
 cargo test --offline --locked -p flea-gui --lib theme_gate --no-run
-# Keep cargo/rustup locations explicit across the HOME swap. No user config, cache or state leaks in.
-cargo_home=${CARGO_HOME:-$HOME/.cargo}
-rustup_home=${RUSTUP_HOME:-$HOME/.rustup}
-env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
+# env -i clears every operator variable; only PATH, cargo/rustup settings and the sandbox dirs below pass in.
+keep=(PATH="$PATH" CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}" RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}")
+while IFS= read -r var; do keep+=("$var=${!var}"); done < <(compgen -e | grep -E '^(CARGO_|RUSTC|RUSTFLAGS$|RUSTDOCFLAGS$|RUSTUP_TOOLCHAIN$)' | grep -vxE 'CARGO_HOME')
+env -i "${keep[@]}" \
     HOME="$test_root/home" XDG_CONFIG_HOME="$test_root/config" XDG_CACHE_HOME="$test_root/cache" \
     XDG_STATE_HOME="$test_root/state" XDG_DATA_HOME="$test_root/home/.local/share" XDG_RUNTIME_DIR="$test_root/runtime" \
-    CARGO_HOME="$cargo_home" RUSTUP_HOME="$rustup_home" FLEA_BIN="$CARGO_TARGET_DIR/debug/flea" \
-    FLEA_THEME_GATE_ROOT="$test_root" FLEA_THEME_STOCK_DIR="$stock" \
-    cargo test --offline --locked -p flea-gui --lib theme_gate -- --nocapture --test-threads=1
+    FLEA_BIN="$CARGO_TARGET_DIR/debug/flea" FLEA_THEME_GATE_ROOT="$test_root" FLEA_THEME_STOCK_DIR="$stock" \
+    cargo test --offline --locked -p flea-gui --lib theme_gate -- --ignored --nocapture --test-threads=1
 printf 'GPUI_THEME_GATE PASS stock=%s contrast and live atomic replacement\n' "$expected"

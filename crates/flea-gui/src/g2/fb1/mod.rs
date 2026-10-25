@@ -46,6 +46,14 @@ pub struct Ink {
 }
 
 impl Ink {
+    /// The status bar stands on --surface (HIG list), so its error takes the red lifted on that ground.
+    pub fn on_surface(palette: &Palette) -> Self {
+        Self {
+            error: palette.error_on_surface,
+            ..Self::interim(palette)
+        }
+    }
+
     /// Maps the shared window palette to feedback roles.
     pub fn interim(palette: &Palette) -> Self {
         Self {

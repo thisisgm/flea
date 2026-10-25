@@ -120,6 +120,7 @@ fn replace(current: &Path, target: &Path) {
 }
 
 #[test]
+#[ignore = "needs stock Omarchy themes and a built flea; run by tests/gpui-theme-gate.sh"]
 fn theme_gate_live_switch_whole_window() {
     // Direct cargo runs also enter a fresh process before any application constructor reads HOME.
     if std::env::var_os("FLEA_THEME_GATE_ROOT").is_none() {
