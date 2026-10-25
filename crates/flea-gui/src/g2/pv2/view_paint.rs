@@ -33,6 +33,10 @@ impl PdfView {
                 (content.0 - 2. * margin).max(0.),
                 (content.1 - 2. * margin).max(0.),
             );
+            self.surface.set_fitted(
+                (self.frame.0 - 2. * margin).max(0.),
+                (self.frame.1 - 2. * margin).max(0.),
+            );
             self.surface
                 .set_frame(inner.0, inner.1, f64::from(scale), gap);
             self.pan = (

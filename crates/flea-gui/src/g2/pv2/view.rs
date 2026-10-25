@@ -112,6 +112,13 @@ impl PdfView {
                 }
             }
         });
+        // A view dropped while its window lives takes its pages out of every window's atlas.
+        cx.on_release(|view, cx| {
+            for image in view.surface.cache.drain() {
+                cx.drop_image(image, None);
+            }
+        })
+        .detach();
         PdfView {
             surface: Surface::new(continuous, CAP_MS, MIN_SHOW_MS),
             renderer,
@@ -223,11 +230,12 @@ impl PdfView {
         for command in self.surface.take_commands() {
             match command {
                 Command::Open(path) => {
-                    let doc = self.renderer.open(path);
+                    let doc = self.renderer.open(path, self.surface.continuous);
                     self.surface.opening(doc);
                 }
                 Command::Close(doc) => self.renderer.close(doc),
                 Command::Render { doc, page, width } => self.renderer.render(doc, page, width),
+                Command::Want { doc, pages } => self.renderer.want(doc, pages),
                 Command::Fetch(path) => {
                     if let Some((host, slot)) = &self.copy {
                         let id = host.pdf_copy(&path, slot);
@@ -239,10 +247,13 @@ impl PdfView {
         self.schedule(cx);
     }
 
-    /// One renderer reply, applied on the foreground.
+    /// One renderer reply, applied on the foreground outside any window's update, so what it releases leaves every atlas now.
     pub fn apply(&mut self, reply: Reply, cx: &mut Context<Self>) {
         let now = self.now(cx);
         self.surface.reply(reply, now);
+        for image in self.surface.cache.take_released() {
+            cx.drop_image(image, None);
+        }
         self.flush(cx);
         cx.notify();
     }

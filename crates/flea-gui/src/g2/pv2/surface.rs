@@ -16,6 +16,11 @@ pub enum Command {
         page: usize,
         width: u32,
     },
+    /// The pages still wanted, sent before any render they name; the renderer skips a queued render not among them.
+    Want {
+        doc: DocId,
+        pages: Vec<(usize, u32)>,
+    },
     /// The host's slow storage copy for this document, answered through `copied`.
     Fetch(String),
 }
@@ -56,6 +61,11 @@ pub struct Surface {
     pub slots: Vec<Slot>,
     pub cache: PageCache,
     pub inflight: Vec<(usize, u32)>,
+    /// Pages of this document that failed to render; never asked again until a switch.
+    pub failed_pages: Vec<usize>,
+    wanted: Vec<(usize, u32)>,
+    /// Quick Look's frame at zoom 1, which the neighbours of a zoomed page render fitted to.
+    fitted: (f64, f64),
     pub counters: Counters,
     commands: Vec<Command>,
 }
@@ -86,6 +96,9 @@ impl Surface {
             slots: Vec::new(),
             cache: PageCache::new(3),
             inflight: Vec::new(),
+            failed_pages: Vec::new(),
+            wanted: Vec::new(),
+            fitted: (0., 0.),
             counters: Counters::default(),
             commands: Vec::new(),
         }
@@ -100,6 +113,8 @@ impl Surface {
         self.active = false;
         self.cache.clear();
         self.inflight.clear();
+        self.failed_pages.clear();
+        self.wanted.clear();
         self.slots.clear();
         self.cap.reset();
     }
@@ -120,12 +135,17 @@ impl Surface {
         }
     }
 
-    // The device width a page renders at: the stack's width, or that page fitted inside the frame.
+    // The device width a page renders at: the stack's width, that page fitted inside the frame, or a neighbour fitted unzoomed.
     fn target(&self, page: usize) -> u32 {
+        let (w, h) = if page != self.page && self.fitted.0 > 0. {
+            self.fitted
+        } else {
+            (self.width, self.view_height)
+        };
         let width = if self.continuous {
             self.width
         } else {
-            pdf::fit(self.width, self.view_height, self.aspect_of(page)).0
+            pdf::fit(w, h, self.aspect_of(page)).0
         };
         (width * self.scale).round() as u32
     }
@@ -184,6 +204,8 @@ impl Surface {
         self.cap.reset();
         self.cache.clear();
         self.inflight.clear();
+        self.failed_pages.clear();
+        self.wanted.clear();
         self.slots.clear();
         self.sizes.clear();
         self.layout = Layout::default();
@@ -225,6 +247,11 @@ impl Surface {
         self.doc = Some(doc);
     }
 
+    /// Quick Look's frame at zoom 1; set before `set_frame` so a zoom change lays out with it.
+    pub fn set_fitted(&mut self, width: f64, view_height: f64) {
+        self.fitted = (width, view_height);
+    }
+
     /// The frame the pages draw in, in logical pixels, and the window's scale.
     pub fn set_frame(&mut self, width: f64, view_height: f64, scale: f64, gap: f64) {
         let changed = (width, view_height, scale, gap)
@@ -254,10 +281,15 @@ impl Surface {
     /// Applies one renderer reply; an image for a document no longer open is released, never drawn.
     pub fn reply(&mut self, reply: Reply, now: u64) {
         match reply {
-            Reply::Opened { doc, sizes } if Some(doc) == self.doc => {
-                self.counters.size_reads += if self.continuous { sizes.len() } else { 0 };
+            Reply::Opened { doc, sizes, read } if Some(doc) == self.doc => {
+                self.counters.size_reads += read;
                 self.sizes = sizes;
                 self.page = self.page.min(self.sizes.len().saturating_sub(1));
+                self.relayout();
+            }
+            Reply::Sizes { doc, sizes, read } if Some(doc) == self.doc => {
+                self.counters.size_reads += read;
+                self.sizes = sizes;
                 self.relayout();
             }
             Reply::OpenFailed { doc, .. } if Some(doc) == self.doc => self.open_failed = true,
@@ -279,6 +311,9 @@ impl Surface {
             Reply::RenderFailed { doc, page, width } if Some(doc) == self.doc => {
                 self.counters.failed += 1;
                 self.inflight.retain(|&(p, w)| (p, w) != (page, width));
+                if !self.failed_pages.contains(&page) {
+                    self.failed_pages.push(page);
+                }
                 self.settle(page, false, now);
             }
             _ => {}
@@ -298,73 +333,8 @@ impl Surface {
             slot.rendering = self.inflight.iter().any(|&(p, _)| p == page);
             slot.landed |= landed;
             slot.errored = !landed;
-            let top = self.layout.page_at(self.view_top);
-            if slot.errored && self.cap.shown_page.is_none() && page == top {
-                self.page_failed = true;
-            }
         }
-        if self.cap.shown_page.is_none()
-            && !self.layout.is_empty()
-            && pdf::first_drawn(&self.slots, &self.layout, self.view_top, self.view_height)
-        {
-            self.cap.shown_page = Some(self.layout.page_at(self.view_top));
-        }
-    }
-
-    // The pages the cache must not drop: the stack's near window, or the single page and its neighbours.
-    fn kept(&self) -> Vec<usize> {
-        if self.continuous {
-            self.slots.iter().map(|slot| slot.page).collect()
-        } else {
-            self.neighbours()
-        }
-    }
-
-    // Asks for each wanted page not held at the render width and not already rendering.
-    fn want(&mut self) {
-        let Some(doc) = self.doc else { return };
-        if self.sizes.is_empty() || self.render_width == 0 {
-            return;
-        }
-        let wanted: Vec<usize> = if self.continuous {
-            pdf::sync_slots(
-                &mut self.slots,
-                self.layout.near(self.view_top, self.view_height),
-                self.sizes.len(),
-            );
-            self.cache.set_limit(self.slots.len() + 2);
-            self.slots.iter().map(|slot| slot.page).collect()
-        } else {
-            self.neighbours()
-        };
-        for page in wanted {
-            let width = if self.continuous || page == self.page {
-                self.render_width
-            } else {
-                self.target(page)
-            };
-            if self.cache.exact(page, width).is_some() || self.inflight.contains(&(page, width)) {
-                continue;
-            }
-            self.inflight.push((page, width));
-            self.counters.asked += 1;
-            self.commands.push(Command::Render { doc, page, width });
-            if let Some(slot) = self.slots.iter_mut().find(|slot| slot.page == page) {
-                slot.rendering = true;
-            }
-        }
-    }
-
-    // The single page first, then its neighbours at their own widths, so a turn lands from the cache.
-    fn neighbours(&self) -> Vec<usize> {
-        let count = self.sizes.len();
-        let mut pages = vec![self.page];
-        pages.extend(
-            [self.page + 1, self.page.wrapping_sub(1)]
-                .into_iter()
-                .filter(|&p| p < count),
-        );
-        pages
+        self.first_frame();
     }
 
     /// A turn by `delta` pages: the stack scrolls to the page's top, the single page shows it from the cache or renders it.
@@ -388,6 +358,8 @@ impl Surface {
         if self.cache.nearest(next, self.target(next)).is_some() {
             self.cache.touch(next);
             self.cap.render_finished(Some(next), now);
+        } else if self.failed_pages.contains(&next) {
+            self.cap.render_finished(None, now);
         } else {
             self.cap.render_started(next, now);
         }
@@ -422,6 +394,13 @@ impl Surface {
     }
 }
 
+#[path = "surface_want.rs"]
+mod want;
+
 #[cfg(test)]
 #[path = "surface_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "surface_fix_tests.rs"]
+mod fix_tests;
