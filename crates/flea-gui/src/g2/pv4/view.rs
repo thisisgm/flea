@@ -260,6 +260,10 @@ impl Model3dView {
         let Some(action) = action(name) else {
             return false;
         };
+        // A hidden or unfocused preview takes no key, so only the focused preview moves.
+        if !self.host.shown || !self.host.focused {
+            return false;
+        }
         if matches!(action, Action::PlatePrevious | Action::PlateNext) {
             let plates = self.plates();
             if plates < 2 || self.surface() == Surface::Column || self.phase != Phase::Ready {
