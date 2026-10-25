@@ -322,6 +322,11 @@ mod tests {
     fn a_hidden_list_with_a_non_string_is_left_as_it_is() {
         let state = patch(r#"{"stateVersion":3,"menu":{"hidden":["delete",7]}}"#);
         assert_eq!(super::hide_0_4_0_rows(state.clone()), state);
+        assert_eq!(
+            hidden(&from_file(r#"{"stateVersion":3,"menu":{"hidden":["runScript","openAgent","actions"]}}"#)),
+            ["runScript", "openAgent", "actions"],
+            "a held id is not added twice"
+        );
     }
 
     // Actions ships off with Run Script's place, so a 0.3.7 file that kept Run Script hidden hides it too.

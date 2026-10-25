@@ -75,6 +75,7 @@ pub struct Facts {
     pub dropbox_ready: bool,
 }
 
+// Sample input: {"taildrop":{"installed":true,"command":"/usr/bin/tailscale","reason":""},"taildropSend":{...},"localsend":{"installed":false,"command":"","reason":"localsend-cli is not installed."},"rclone":{...},"dropbox":{...},"dropboxInfo":"{...}","dropboxError":""}
 pub fn parse_facts(raw: &str) -> Result<Facts, String> {
     let data = jsondoc::parse(raw).map_err(|problem| format!("providers facts do not parse: {problem}"))?;
     let command = |key: &str| {

@@ -99,7 +99,7 @@ fn reopening_takes_back_only_a_flash_card() {
     let mut copy = flashpane::Handed { id: 8, flash: false, running: true };
     let mut kept = "copying".to_string();
     flashpane::reclaim(&mut copy, &mut kept);
-    assert_eq!((copy.id, kept.as_str()), (8, "copying"));
+    assert_eq!((copy, kept.as_str()), (flashpane::Handed { id: 8, flash: false, running: true }, "copying"));
 }
 
 #[test]

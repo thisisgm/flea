@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 mkdir -p "$PWD/.superpowers/g2-mn2"
 unit_root=$(mktemp -d "$PWD/.superpowers/g2-mn2/ci.XXXXXXXX")
 : > "$unit_root/.flea-test-sandbox"
+python3 -B tests/native/g2/mn2-boundary-controls.py "$unit_root"
 python3 -B tests/native/g2/mn2-boundary.py "$unit_root"
 mkdir -p "$unit_root/home" "$unit_root/config" "$unit_root/cache" "$unit_root/state" "$unit_root/runtime"
 run() {

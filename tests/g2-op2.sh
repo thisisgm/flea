@@ -37,7 +37,12 @@ printf 'tools/flea-clippy tools/clippy-baseline.txt %s\n' "$clippy_root"
 tools/flea-clippy tools/clippy-baseline.txt "$clippy_root"
 # Remove a passing run's root only when it is absolute, non-empty, marked and directly inside this unit's scratch.
 drop_root() {
-    [[ -n "$1" && "$1" == "$scratch"/?* && "$(dirname "$1")" == "$scratch" && -f "$1/.flea-test-sandbox" ]] && rm -rf -- "$1"
+    if [[ -n "$1" && "$1" == "$scratch"/?* && "$(dirname "$1")" == "$scratch" && -f "$1/.flea-test-sandbox" ]]; then
+        rm -rf -- "$1"
+    else
+        printf 'g2-op2: FAIL kept %s, not a marked root of %s\n' "$1" "$scratch" >&2
+        return 1
+    fi
 }
 drop_root "$unit_root"
 printf 'g2-op2: ok G2OP2 PASS %s core and %s GPUI checks\n' "$core_n" "$gui_n"
