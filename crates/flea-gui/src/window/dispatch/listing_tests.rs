@@ -130,8 +130,7 @@ fn a_deliberate_mark_on_the_landed_row_keeps_escape_home(cx: &mut TestAppContext
     cx.simulate_keystrokes("escape");
     land(&shell, cx, "/files", home(), 3);
     assert_eq!(selected(&shell, cx), vec![1], "the folder left is selected on landing");
-    // Unmarking and marking the landed row again leaves a deliberate mark, not the landing.
-    cx.simulate_keystrokes("v");
+    // Selection.js promote: v on the landed row keeps it as a deliberate mark, no longer the landing.
     cx.simulate_keystrokes("v");
     assert_eq!(selected(&shell, cx), vec![1]);
     cx.simulate_keystrokes("escape");
