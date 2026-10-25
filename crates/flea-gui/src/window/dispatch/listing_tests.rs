@@ -121,6 +121,26 @@ fn escape_climbs_with_escape_up_on_and_keeps_marks_first(cx: &mut TestAppContext
 }
 
 #[gpui::test]
+fn a_deliberate_mark_on_the_landed_row_keeps_escape_home(cx: &mut TestAppContext) {
+    let (shell, cx) = open_with(cx, r#""keys":"default","view":"list","escapeUp":true"#, None);
+    land(&shell, cx, "/files", home(), 1);
+    set_cursor(&shell, cx, 1);
+    cx.simulate_keystrokes("enter");
+    land(&shell, cx, "/files/beta", vec![row("inner", true)], 2);
+    cx.simulate_keystrokes("escape");
+    land(&shell, cx, "/files", home(), 3);
+    assert_eq!(selected(&shell, cx), vec![1], "the folder left is selected on landing");
+    // Unmarking and marking the landed row again leaves a deliberate mark, not the landing.
+    cx.simulate_keystrokes("v");
+    cx.simulate_keystrokes("v");
+    assert_eq!(selected(&shell, cx), vec![1]);
+    cx.simulate_keystrokes("escape");
+    assert_eq!(selected(&shell, cx), Vec::<usize>::new(), "Escape clears the mark");
+    assert_eq!(asked(&shell, cx), "/files", "and stays in the folder");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
 fn escape_stays_put_with_escape_up_off(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
     land(&shell, cx, "/files", home(), 1);
@@ -212,6 +232,9 @@ fn a_reload_that_changed_rows_says_how_many(cx: &mut TestAppContext) {
     rows.push(row("todo.md", false));
     land(&shell, cx, "/files", rows.clone(), 2);
     assert_eq!(notice(&shell, cx), "Reloaded · 2 items changed");
+    shell.update(cx, |shell, cx| {
+        shell.status_messages(cx, |messages, now| messages.dismiss(now))
+    });
     // With no count on the line, the net change is the count.
     cx.simulate_keystrokes("f5");
     let mut more = rows;
@@ -225,6 +248,43 @@ fn a_reload_that_changed_rows_says_how_many(cx: &mut TestAppContext) {
     // A reload that changed nothing says nothing.
     cx.simulate_keystrokes("f5");
     land(&shell, cx, "/files", more, 4);
+    assert_eq!(notice(&shell, cx), "");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn a_failed_reload_leaves_no_reload_owed(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", home(), 1);
+    cx.simulate_keystrokes("f5");
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.receive(0, crate::backend::Event::ReloadChanged(2), window, cx);
+            shell.receive(
+                0,
+                crate::backend::Event::Refused {
+                    operation: "scan".into(),
+                    path: "/files".into(),
+                    message: "Permission denied".into(),
+                    mode: 0,
+                },
+                window,
+                cx,
+            );
+        })
+    });
+    let owed = shell.read_with(cx, |shell, _| {
+        let nav = &shell.panes[0].as_ref().unwrap().nav;
+        (nav.reload_from.clone(), nav.reload_changed)
+    });
+    assert_eq!(owed, (None, None), "a failed reload owes no notice");
+    shell.update(cx, |shell, cx| {
+        shell.status_messages(cx, |messages, now| messages.dismiss(now))
+    });
+    // A later listing of the same folder is no reload, whatever its count.
+    let mut rows = home();
+    rows.push(row("todo.md", false));
+    land(&shell, cx, "/files", rows, 2);
     assert_eq!(notice(&shell, cx), "");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

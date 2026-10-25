@@ -249,6 +249,7 @@ impl Shell {
             }
             host.input.selection.changed(&host.selected);
             host.input.pulled = None;
+            host.nav.landed = None;
         }
         let press = host.input.press.take();
         if let Some(mut press) =
@@ -336,6 +337,10 @@ impl Shell {
                 }
                 _ => None,
             };
+            // Selection.js dropLone: a click that sets the marks spends the landing.
+            if !matches!(effect, Some("openTab" | "reveal")) {
+                host.nav.landed = None;
+            }
             if effect != Some("openTab") {
                 host.pane.cursor = row;
                 if let Some(mut frame) = host.input.frame {

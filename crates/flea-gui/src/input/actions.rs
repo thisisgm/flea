@@ -108,6 +108,8 @@ impl Shell {
             let extend = matches!(action, "extendUp" | "extendDown");
             let pulled = host.input.take_pull(from, host.pane.held.listing);
             if extend {
+                // Selection.js dropLone: a deliberate change spends the landing, so Escape no longer climbs past it.
+                host.nav.landed = None;
                 host.input.selection.extend(
                     &mut host.selected,
                     from,
@@ -159,6 +161,7 @@ impl Shell {
             }
             _ => return false,
         }
+        host.nav.landed = None;
         host.input.pulled = None;
         host.input.keyboard();
         self.keyboard.disarm();
