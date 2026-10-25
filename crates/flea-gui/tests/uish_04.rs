@@ -219,6 +219,19 @@ fn uish_04_stale_or_refused(cx: &mut TestAppContext) {
     });
 }
 
+// Removes the harness root on every exit, pass or fail: whole once marked, else only while still empty.
+struct Cleanup(std::path::PathBuf);
+
+impl Drop for Cleanup {
+    fn drop(&mut self) {
+        let _ = if self.0.join(".flea-test-sandbox").is_file() {
+            std::fs::remove_dir_all(&self.0)
+        } else {
+            std::fs::remove_dir(&self.0)
+        };
+    }
+}
+
 #[test]
 fn uish_04_live_theme_harness_controls() {
     use std::process::{Command, Stdio};
@@ -238,6 +251,7 @@ fn uish_04_live_theme_harness_controls() {
     assert!(output.status.success());
     let root = std::path::PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
     assert!(root.is_absolute() && root.parent() == Some(parent.as_path()));
+    let _cleanup = Cleanup(root.clone());
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)

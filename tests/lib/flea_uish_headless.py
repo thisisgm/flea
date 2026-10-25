@@ -1,11 +1,13 @@
 """Drive the mounted GPUI test window; authenticate reads through the production IPC transport."""
 import argparse
+import contextlib
 import hashlib
 import json
 import math
 import os
 from pathlib import Path
 import selectors
+import signal
 import subprocess
 import sys
 import tempfile
@@ -14,11 +16,17 @@ import time
 from flea_transport import MARKER, REPO, TransportError, exchange, group_members, owned, private
 from flea_transport_lifecycle import drain, identity, subreaper
 
+MAX_TIMEOUT_S = 30
+READ_BYTES = 65536
+MAX_REPLY_BYTES = 1024 * 1024
+MAX_COMMAND_BYTES = 65536
+TEARDOWN_GRACE_S = 3
+LOG_TAIL_CHARS = 12000
 
 def deadline_seconds(value):
     value = float(value)
-    if not math.isfinite(value) or not 0 < value <= 30:
-        raise TransportError("timeout must be finite and in (0, 30]")
+    if not math.isfinite(value) or not 0 < value <= MAX_TIMEOUT_S:
+        raise TransportError(f"timeout must be finite and in (0, {MAX_TIMEOUT_S}]")
     return value
 
 
@@ -28,6 +36,8 @@ class Host:
         driver = Path(driver).resolve(strict=True)
         if not os.access(driver, os.X_OK):
             raise TransportError("headless driver is not executable")
+        # Hashed before the spawn, so an execute-only driver fails with no child to reap.
+        driver_sha256 = hashlib.sha256(driver.read_bytes()).hexdigest()
         parent = REPO / ".superpowers/m9-uish-02"
         parent.mkdir(parents=True, exist_ok=True)
         self.root = Path(tempfile.mkdtemp(prefix="host.", dir=parent)).resolve()
@@ -50,27 +60,43 @@ class Host:
         self.windows = {}
         self.sequence = 0
         self.buffer = bytearray()
+        self.source = dict(driver_sha256=driver_sha256, driver=str(driver), backend=str(binary))
         self.log = (self.root / "driver.log").open("wb")
-        subreaper()
-        self.process = subprocess.Popen([str(driver), "--ignored", "--exact", "uish_driver_replay",
-                                         "--nocapture", "--test-threads=1"],
-                                        env=environment, cwd=REPO, stdin=subprocess.PIPE,
-                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                        start_new_session=True)
-        current = identity(self.process.pid)
-        self.record = dict(root=str(self.root), pid=self.process.pid, group=self.process.pid,
-                           start=current["start"], leader_start=current["start"])
         self.selector = selectors.DefaultSelector()
-        self.selector.register(self.process.stdout, selectors.EVENT_READ)
-        self.source = dict(driver_sha256=hashlib.sha256(driver.read_bytes()).hexdigest(),
-                           driver=str(driver), backend=str(binary))
         try:
+            subreaper()
+            self.process = subprocess.Popen([str(driver), "--ignored", "--exact", "uish_driver_replay",
+                                             "--nocapture", "--test-threads=1"],
+                                            env=environment, cwd=REPO, stdin=subprocess.PIPE,
+                                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                            start_new_session=True)
+        except BaseException:
+            self.selector.close()
+            self.log.close()
+            raise
+        try:
+            current = identity(self.process.pid)
+            self.record = dict(root=str(self.root), pid=self.process.pid, group=self.process.pid,
+                               start=current["start"], leader_start=current["start"])
+            self.selector.register(self.process.stdout, selectors.EVENT_READ)
             hello = self.receive(self.timeout)
             if hello["sequence"] is not None or hello["result"].get("value", {}).get("protocol") != "flea-uish-headless-v1":
                 raise TransportError("not a mounted GPUI headless driver")
         except BaseException:
-            self.stop(terminate=True)
+            if hasattr(self, "record"):
+                self.stop(terminate=True)
+            else:
+                self.abandon()
             raise
+
+    def abandon(self):
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(self.process.pid, signal.SIGKILL)
+        self.process.wait()
+        for stream in (self.process.stdin, self.process.stdout):
+            stream.close()
+        self.selector.close()
+        self.log.close()
 
     def verify(self):
         if self.process.poll() is not None:
@@ -82,6 +108,7 @@ class Host:
     def receive(self, timeout):
         deadline = time.monotonic() + deadline_seconds(timeout)
         while True:
+            # Sample input: b'driver noise UISH\t{"sequence": 1, "result": {"ok": true, "value": {}}}'
             while b"\n" in self.buffer:
                 line, _, self.buffer = self.buffer.partition(b"\n")
                 if b"UISH\t" in line:
@@ -91,20 +118,20 @@ class Host:
                 raise TimeoutError(f"headless control timeout; log: {self.root / 'driver.log'}")
             if not self.selector.select(remaining):
                 continue
-            chunk = os.read(self.process.stdout.fileno(), 65536)
+            chunk = os.read(self.process.stdout.fileno(), READ_BYTES)
             if not chunk:
                 raise TransportError(f"headless driver exited before reply; log: {self.root / 'driver.log'}")
             self.log.write(chunk)
             self.log.flush()
             self.buffer.extend(chunk)
-            if len(self.buffer) > 1024 * 1024:
+            if len(self.buffer) > MAX_REPLY_BYTES:
                 raise TransportError("oversized headless control reply")
 
     def send(self, command):
         self.verify()
         self.sequence += 1
         data = (json.dumps(dict(command, sequence=self.sequence)) + "\n").encode()
-        if len(data) > 65536:
+        if len(data) > MAX_COMMAND_BYTES:
             raise TransportError("oversized headless control command")
         self.process.stdin.write(data)
         self.process.stdin.flush()
@@ -131,7 +158,7 @@ class Host:
             self.process.stdin.close()
         try:
             result = drain(self.process, self.record, lambda: group_members(self.record),
-                           lambda pid: owned(pid, self.record), terminate=terminate, grace=3,
+                           lambda pid: owned(pid, self.record), terminate=terminate, grace=TEARDOWN_GRACE_S,
                            whole_group=terminate)
             if not terminate and (result["forced"] or result["returncode"] != 0):
                 raise TransportError(f"headless host failed owned teardown: {result}")
@@ -145,7 +172,7 @@ class Host:
 
     def __exit__(self, kind, value, traceback):
         if kind is not None:
-            print((self.root / "driver.log").read_text(errors="replace")[-12000:], file=sys.stderr)
+            print((self.root / "driver.log").read_text(errors="replace")[-LOG_TAIL_CHARS:], file=sys.stderr)
         self.stop(terminate=kind is not None)
 
 

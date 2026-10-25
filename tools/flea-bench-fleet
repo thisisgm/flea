@@ -41,6 +41,7 @@ def hex_id(value, size):
     return value
 
 
+# Sample input: "2026-10-24T11:30:00Z"
 def timestamp(value):
     result = dt.datetime.fromisoformat(text(value).replace("Z", "+00:00"))
     require(result.utcoffset() == dt.timedelta(0), "timestamp must be UTC")
@@ -52,6 +53,7 @@ def fresh(value, now):
     require(dt.timedelta(0) <= age <= MAX_AGE, "stale or future timestamp: controller refresh required")
 
 
+# Sample input: {"schema": 1, "captured_at": "2026-10-24T11:30:00Z", "entrants": [...]}
 def read_json(path):
     def unique(pairs):
         result = {}
@@ -97,6 +99,7 @@ def source_identity(source, version, alias):
         tag_version = text(source["tag"]).removeprefix("v")
         if alias not in ("strata-stable", "strata-nightly"):
             tag_version = source.get("tag_version", tag_version)
+        require(re.search(r"(?<![0-9.])" + re.escape(text(tag_version)) + "$", source["tag"]), "tag_version does not match tag")
         require(tag_version == version, "tag/build version mismatch")
         hex_id(source["tag_commit"], 40)
         hex_id(source["tag_object"], 40)
@@ -134,6 +137,7 @@ def signed_artifact(row):
                                ("source_member", row["source"]["build_commit"])):
             entries = [item for item in archive.getmembers() if item.name == artifact[name]]
             require(len(entries) == 1 and entries[0].isfile(), "archive member missing or ambiguous")
+            # Sample input: the source member holds "<40 hex build commit>\n"
             with archive.extractfile(entries[0]) as stream:
                 actual = (hashlib.file_digest(stream, "sha256").hexdigest() if name == "binary_member"
                           else stream.read(128).decode("ascii").strip())

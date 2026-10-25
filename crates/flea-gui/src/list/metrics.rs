@@ -27,9 +27,10 @@ const CHROME_ROW_RATIO: f32 = 0.72;
 // Density's Compact keeps half the control padding, Omarchy's 6 px at its stock base of 12.
 const COMPACT_PADDING: f32 = 0.5;
 const CONTROL_PADDING_Y: f32 = 6.;
-const STOCK_BASE: f32 = 12.;
+pub(crate) const STOCK_BASE: f32 = 12.;
 // Theme.markSize: a mark is sized from the type scale, and Glyph.qml caps it at its slot.
-const MARK_RATIO: f32 = 1.45;
+// f64, as Theme.qml computes, so flea.tokens reports the QML value; `as f32` yields the same f32 literal.
+pub(crate) const MARK_RATIO: f64 = 1.45;
 
 impl Metrics {
     pub fn at(body: Pixels) -> Self {
@@ -55,7 +56,7 @@ impl Metrics {
             header_top: board(4.),
             pad: board(14.),
             slot,
-            mark: (small * MARK_RATIO).min(slot),
+            mark: (small * MARK_RATIO as f32).min(slot),
             gap: board(9.),
             edge: board(2.),
             lane: board(14.),

@@ -1,19 +1,24 @@
 //! Test-only host for the production window and IPC server; stdin carries input, never IPC mutations.
 #[path = "uish_driver/host.rs"]
 mod host;
+#[path = "uish_driver/input.rs"]
+mod input;
+#[path = "uish_driver/wire.rs"]
+mod wire;
 
 use flea::jsondoc::{self, Json};
-use host::{number, object, text, Host};
+use host::Host;
 use std::{
+    fs,
     io::{self, BufRead, Read, Write},
-    path::Path,
+    os::unix::fs::PermissionsExt,
+    path::{Path, PathBuf},
     process::Command,
     sync::mpsc,
     thread,
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
-
-const LIMIT: u64 = 65_536;
+use wire::{number, object, text, IDLE_LIMIT, LIMIT, REPLAY_LIMIT, STEP};
 
 fn emit(sequence: &Json, result: Result<Json, String>, started: Instant) {
     let result = match result {
@@ -86,22 +91,12 @@ fn uish_driver_replay() {
             Err(mpsc::TryRecvError::Disconnected) => break,
             Err(mpsc::TryRecvError::Empty) => {}
         }
-        assert!(
-            idle.elapsed() < Duration::from_secs(30),
-            "control idle timeout"
-        );
-        assert!(
-            started.elapsed() < Duration::from_secs(300),
-            "bounded replay timeout"
-        );
+        assert!(idle.elapsed() < IDLE_LIMIT, "control idle timeout");
+        assert!(started.elapsed() < REPLAY_LIMIT, "bounded replay timeout");
         host.pump();
-        thread::sleep(Duration::from_millis(2));
+        thread::sleep(STEP);
     }
-    let identities: Vec<_> = host.windows.keys().cloned().collect();
-    for identity in identities {
-        host.command(&object([("op", text("close")), ("window", text(identity))]))
-            .unwrap();
-    }
+    host.teardown().unwrap();
 }
 
 fn controls(case: &str) {
@@ -133,8 +128,9 @@ fn uish_driver_real_window() {
         })
         .reply;
     assert_eq!(
-        reply.code, 3,
-        "a constant Surface must fail the mounted row geometry precondition"
+        reply,
+        flea::ipc::wire::Reply::error(3, "FLEA_IPC_NOT_PORTED flea.rowCentre"),
+        "a constant Surface has no row geometry, so it refuses rowCentre as not ported"
     );
     println!(
         "UISH_CONSTANT_SURFACE_REJECTED rowCentre status={}",
@@ -146,4 +142,66 @@ fn uish_driver_real_window() {
 #[test]
 fn uish_driver_rejects_stale_or_foreign() {
     controls("rejects-stale-or-foreign");
+}
+
+// A sandbox root under the host's owned prefix, removed with everything in it when the test ends.
+struct Sandbox(PathBuf);
+
+impl Sandbox {
+    fn new(name: &str) -> Self {
+        let parent = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.superpowers/m9-uish-02");
+        fs::create_dir_all(&parent).unwrap();
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = parent.join(format!("{name}.{}.{stamp}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
+        fs::write(root.join(".flea-test-sandbox"), "").unwrap();
+        Self(root)
+    }
+}
+
+impl Drop for Sandbox {
+    fn drop(&mut self) {
+        if self.0.is_absolute() && self.0.join(".flea-test-sandbox").is_file() {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+}
+
+#[test]
+fn uish_driver_key_close_drops_the_window_and_tears_down() {
+    let sandbox = Sandbox::new("key-close");
+    let fixture = sandbox.0.join("fixture");
+    fs::create_dir(&fixture).unwrap();
+    fs::write(fixture.join("a.txt"), "a").unwrap();
+    let mut host = Host::at(&sandbox.0);
+    let opened = host
+        .command(&object([
+            ("op", text("open")),
+            ("path", text(fixture.display())),
+        ]))
+        .unwrap();
+    let identity = opened
+        .get("window")
+        .and_then(Json::as_str)
+        .unwrap()
+        .to_owned();
+    let socket = PathBuf::from(opened.get("socket").and_then(Json::as_str).unwrap());
+    let closed = host
+        .command(&object([
+            ("op", text("key")),
+            ("key", text("ctrl-q")),
+            ("window", text(&identity)),
+        ]))
+        .unwrap();
+    assert_eq!(closed, object([("closed", Json::Bool(true))]));
+    assert!(
+        host.windows.is_empty(),
+        "a window closed by a key leaves no entry"
+    );
+    assert!(!socket.exists(), "its socket goes with it");
+    host.teardown().unwrap();
 }

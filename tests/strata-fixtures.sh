@@ -6,6 +6,7 @@ mkdir -p "$repo/.superpowers/m9-integ-07"
 scratch=$(mktemp -d "$repo/.superpowers/m9-integ-07/fixtures.XXXXXXXX")
 [[ -n "$scratch" && "$scratch" == /* ]] || exit 1
 touch "$scratch/.flea-test-sandbox"
+trap 'case $scratch in "$repo"/.superpowers/m9-integ-07/fixtures.?*) [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
 python3 -B - "$repo" "$scratch" <<'PY'
 import importlib.machinery
 import importlib.util

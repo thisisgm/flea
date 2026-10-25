@@ -1,7 +1,7 @@
 #!/bin/bash
 # Validates offline fleet inventories and deliberate identity/refusal controls without launching entrants.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(cd "$(dirname "$0")/.." && pwd -P)"
 mkdir -p "$PWD/.superpowers/m9-bench-05"
 root=$(mktemp -d "$PWD/.superpowers/m9-bench-05/contract.XXXXXXXX")
 : > "$root/.flea-test-sandbox"
