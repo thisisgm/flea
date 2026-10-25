@@ -162,6 +162,7 @@ fn op4_printer_menu_resolves_its_inherited_roles_once_across_frames(cx: &mut Tes
         cx.notify();
     });
     vcx.run_until_parked();
+    crate::palette::forget_inherited();
     // Debug selectors are compiled out of release tests, so open through the control, as a key would.
     view.update_in(vcx, |view, window, cx| {
         view.activate(Control::Field(Focus::Printer), window, cx)
@@ -169,13 +170,16 @@ fn op4_printer_menu_resolves_its_inherited_roles_once_across_frames(cx: &mut Tes
     vcx.run_until_parked();
     assert!(view.read_with(vcx, |view, _| view.printer_menu.opened()));
     let resolves = || crate::palette::INHERITED_RESOLVES.get();
-    let first = resolves();
-    assert!(first >= 1, "the open menu did not take the inherited path");
+    assert_eq!(
+        resolves(),
+        1,
+        "opening the menu resolves its inherited roles exactly once"
+    );
     for _ in 0..5 {
         vcx.update(|window, cx| {
             window.refresh();
             window.simulate_next_frame(cx)
         });
     }
-    assert_eq!(resolves(), first, "a repaint resolved the theme again");
+    assert_eq!(resolves(), 1, "a repaint resolved the theme again");
 }

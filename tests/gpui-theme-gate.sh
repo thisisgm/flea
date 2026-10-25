@@ -31,8 +31,8 @@ export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$repo/target}
 # Build while the operator HOME is still available to rustup; no app is started here.
 cargo build --offline --locked -p flea --bin flea
 cargo test --offline --locked -p flea-gui --lib theme_gate --no-run
-# env -i clears every operator variable; only PATH, cargo/rustup settings and the sandbox dirs below pass in.
-keep=(PATH="$PATH" CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}" RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}")
+# env -i clears every operator variable; only PATH, FLEA_FIXTURE_ROOT, cargo/rustup settings and the sandbox dirs below pass in.
+keep=(PATH="$PATH" FLEA_FIXTURE_ROOT="$FLEA_FIXTURE_ROOT" CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}" RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}")
 while IFS= read -r var; do keep+=("$var=${!var}"); done < <(compgen -e | grep -E '^(CARGO_|RUSTC|RUSTFLAGS$|RUSTDOCFLAGS$|RUSTUP_TOOLCHAIN$)' | grep -vxE 'CARGO_HOME')
 env -i "${keep[@]}" \
     HOME="$test_root/home" XDG_CONFIG_HOME="$test_root/config" XDG_CACHE_HOME="$test_root/cache" \
