@@ -102,6 +102,7 @@ impl Shell {
                 host.input.moved(cx.background_executor().now());
             }
         } else if let Some(row) = host.input.hit(event.position) {
+            self.rename.slow_press();
             host.input.press = Some(Press {
                 row,
                 listing: frame.listing,
@@ -251,6 +252,7 @@ impl Shell {
             host.input.pulled = None;
         }
         let press = host.input.press.take();
+        let mut slow = None;
         if let Some(mut press) =
             press.filter(|press| !press.dragged && press.listing == host.pane.held.listing)
         {
@@ -301,6 +303,7 @@ impl Shell {
                 return;
             }
             let from = host.pane.cursor;
+            let was_sole = host.selected == [row] && from == row;
             let pulled = host.input.take_pull(from, host.pane.held.listing);
             let selection = &mut host.input.selection;
             let action = match effect {
@@ -348,6 +351,16 @@ impl Shell {
                 }
             }
             host.input.pulled = None;
+            // List.qml: only a lone left tap on the drawn name can arm the slow click.
+            let on_name = event.button == MouseButton::Left
+                && count == 1
+                && crate::window::rename::slow::on_name(&host.list.borrow(), row, event.position.x);
+            slow = Some(crate::window::rename::slow::Tap {
+                row,
+                on_name,
+                modifiers: press.event.modifiers,
+                was_sole,
+            });
             if let Some(action) = action {
                 let event = ActionEvent {
                     action,
@@ -368,6 +381,9 @@ impl Shell {
                     self.dispatch(Order::Action(event), window, cx);
                 }
             }
+        }
+        if let Some(tap) = slow {
+            self.slow_tap(side, tap, window, cx);
         }
         self.arm_input_tick(side, window, cx);
         cx.notify();

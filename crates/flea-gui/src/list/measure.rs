@@ -28,6 +28,13 @@ impl Density {
     }
 }
 impl ListState {
+    /// The drawn width of a shown row's name, the run Tap.onName counts as the name.
+    pub(crate) fn drawn_name_width(&self, row: usize) -> Option<f32> {
+        let shown = self.visible.iter().find(|shown| shown.index == row)?;
+        let width = f32::from(shown.prepared.as_ref()?.name.line().width);
+        Some(width.min(self.drawn.layout.name.width))
+    }
+
     pub fn file_metrics(&self) -> Metrics {
         let mut metrics =
             Metrics::for_typeface(&self.typeface).for_dual(self.view.dual, self.typeface.body);

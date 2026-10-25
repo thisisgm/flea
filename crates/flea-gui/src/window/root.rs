@@ -55,6 +55,14 @@ impl Render for Root {
                 deferred(div().absolute().top_0().left_0().size_full().child(view))
                     .with_priority(usize::MAX)
             });
+        // The bulk rename card takes the same highest layer while it shows.
+        let bulk = self
+            .shell
+            .update(cx, |shell, cx| shell.bulk_rename_layer(window, cx))
+            .map(|layer| {
+                deferred(div().absolute().top_0().left_0().size_full().child(layer))
+                    .with_priority(usize::MAX)
+            });
         let shell = self.shell.clone();
         div()
             .size_full()
@@ -83,6 +91,7 @@ impl Render for Root {
             .child(Overlay(self.shell.clone(), true))
             .children(overlay)
             .children(output)
+            .children(bulk)
     }
 }
 

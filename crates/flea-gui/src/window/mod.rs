@@ -21,6 +21,7 @@ pub(crate) mod pane;
 mod presentation;
 pub mod rail;
 mod render;
+pub(crate) mod rename;
 pub mod selection_preview;
 mod preview_text;
 mod preview_facts;
