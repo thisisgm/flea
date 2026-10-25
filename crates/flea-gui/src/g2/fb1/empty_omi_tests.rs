@@ -154,7 +154,7 @@ fn empty_omi_paints_upstream_thinking_rest_at_device_scales_and_theme_accents(
             })
         });
         let handle = open(cx, false);
-        for (scale, side) in [(1., 44.), (1.25, 44.), (1.5, 66.), (2., 88.)] {
+        for (scale, side) in [(1., 48.), (1.25, 60.), (1.5, 72.), (2., 96.)] {
             cx.simulate_window_scale_factor_change(handle.into(), scale);
             frame(cx, handle);
             let (slot, quads, actual_scale) = mark_quads(cx, handle);
@@ -263,7 +263,7 @@ pub(super) fn dual_scenes(
                 assert!(!painted.is_empty(), "each Dual Omi must paint");
                 let pure = player.mode_rects("thinking", f64::from(seconds)).unwrap();
                 assert!(
-                    matches_rects(painted.clone(), slot, scale, 44., ink,
+                    matches_rects(painted.clone(), slot, scale, 48., ink,
                         player.kit().view, player.rects()),
                     "each Dual slot paints upstream thinking geometry: side={side}, elapsed={seconds}, samples={writes}, slot={slot:?}, ink={ink:?}, scale={scale}, quads={painted:?}, upstream={:?}, pure_matches_replay={}",
                     player.rects(), pure == player.rects()
