@@ -34,7 +34,7 @@ pub(super) fn open_with<'a>(
     open_in(cx, settings, select, false)
 }
 
-// The same Shell under the window root, so the deferred cards over the panes draw as they do natively.
+// The native window's own root, which mounts the menu layer and the deferred cards and takes the right click before the panes.
 pub(super) fn open_root<'a>(
     cx: &'a mut TestAppContext,
     keys: &str,
@@ -81,7 +81,9 @@ fn open_in<'a>(
         let (root, cx) = cx.add_window_view(|window, cx| crate::window::root::Root {
             shell: cx.new(|cx| Shell::new(launch, locale, events, window, cx)),
         });
-        (root.read_with(cx, |root, _| root.shell.clone()), cx)
+        let shell = root.read_with(cx, |root, _| root.shell.clone());
+        cx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
+        (shell, cx)
     } else {
         cx.add_window_view(|window, cx| Shell::new(launch, locale, events, window, cx))
     };

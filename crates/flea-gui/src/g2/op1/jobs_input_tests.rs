@@ -81,6 +81,13 @@ fn open(view: View) -> (TestAppContext, Handle, impl FnMut() -> Option<String>) 
         packet.is_none(),
         "unexpected {view:?} setup packet: {packet:?}"
     );
+    // A menu open also asks for the archive formats after its snapshot; the snapshot alone marks an open.
+    let received = move || loop {
+        let line = received()?;
+        if !line.contains("\"c\":\"formats\"") {
+            return Some(line);
+        }
+    };
     (cx, handle, received)
 }
 

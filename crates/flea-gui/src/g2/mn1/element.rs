@@ -325,7 +325,11 @@ impl Element for MenuElement {
         cx: &mut App,
     ) -> MenuInk {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
-        MenuInk::from_palette(&Palette::inherited(&window.text_style(), theme))
+        // A failed provider and a destructive row read in the theme's error role.
+        MenuInk {
+            error: theme.error,
+            ..MenuInk::from_palette(&Palette::inherited(&window.text_style(), theme))
+        }
     }
 
     fn paint(

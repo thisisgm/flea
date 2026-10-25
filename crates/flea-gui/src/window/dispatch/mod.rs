@@ -2,6 +2,7 @@
 mod fileops;
 mod fileops_wire;
 mod listing;
+mod menus;
 mod navigation;
 pub(crate) mod opener;
 mod preview;
@@ -38,6 +39,7 @@ const FAMILIES: &[Family] = &[
     listing::run,
     window::run,
     rename::run,
+    menus::run,
 ];
 
 impl Shell {
@@ -78,6 +80,12 @@ mod listing_tests;
 mod listing_pointer_keep_tests;
 #[cfg(test)]
 mod listing_pointer_tests;
+#[cfg(test)]
+mod menus_columns_tests;
+#[cfg(test)]
+mod menus_dual_tests;
+#[cfg(test)]
+mod menus_tests;
 #[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]

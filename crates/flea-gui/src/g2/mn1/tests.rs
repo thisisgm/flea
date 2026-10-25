@@ -500,8 +500,8 @@ fn a_long_menu_scrolls_with_a_half_row_cue(cx: &mut TestAppContext) {
         );
         assert_eq!(
             card.entries[card.cursor.unwrap()].action,
-            "trash",
-            "Trash is last"
+            "toggleLangMarks",
+            "Hide Code Icons is last"
         );
         let before = card.content_y;
         let (x, y) = (card.frame.x + 10., card.frame.y + card.frame.h / 2.);
@@ -573,12 +573,8 @@ fn ipc_reads_the_drawn_rows(cx: &mut TestAppContext) {
     let menu = menu.borrow();
     let entries = read(&menu, "contextMenuEntries", &[]);
     assert!(
-        entries.starts_with("Open|Open With|Run|Open as Text|-|Cut|Copy|Paste"),
-        "{entries}"
-    );
-    assert!(
-        entries.ends_with("|-|Move to Trash"),
-        "Move to Trash ends the menu alone: {entries}"
+        entries.starts_with("Open|Open With|Run|Open as Text|-|Move to Trash|-|Cut|Copy|Paste"),
+        "Move to Trash follows the open group alone: {entries}"
     );
     assert!(
         read(&menu, "contextMenuGlyphs", &[]).contains("tailscale"),

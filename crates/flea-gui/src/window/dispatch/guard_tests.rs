@@ -11,7 +11,7 @@ const NOT_YET: &[(&str, &[&str])] = &[
     // Focus.js:171 and 290, ui/js/Tabs.js:392.
     ("tabs", &["openTab", "tabNew", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "tab1", "tab2", "tab3", "tab4", "tab5", "tab6", "tab7", "tab8", "tab9"]),
     // Focus.js:207-240 and 271, ui/Pane.qml:599-602.
-    ("operations", &["copy", "cut", "paste", "movePaste", "copyAs", "pasteAs", "copyPath", "copydirpath", "properties"]),
+    ("operations", &["copyAs", "pasteAs", "copyPath", "copydirpath", "properties"]),
     // Focus.js:250 and 273.
     ("window", &["openTerminal", "tags"]),
 ];

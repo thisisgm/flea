@@ -134,3 +134,24 @@ impl Adapter for Reader<'_> {
         Some(Reply::value(value))
     }
 }
+
+impl crate::state::Shell {
+    /// The active column's cursor row as the keyboard menu anchors on it, 14 px into the column; None outside Columns.
+    pub(crate) fn columns_cursor_anchor(&self, side: usize) -> Option<(f32, f32)> {
+        if self.shown_view() != crate::window::startup::View::Columns {
+            return None;
+        }
+        let host = self.panes[side].as_ref()?;
+        let paint = host
+            .columns
+            .as_ref()?
+            .painters
+            .get(crate::columns::geometry::Slot::Active)?
+            .borrow();
+        let drawn = paint.drawn.as_ref()?;
+        let row = crate::list::pane::ROW_HEIGHT;
+        let y = f32::from(drawn.bounds.origin.y) + host.pane.cursor as f32 * row - drawn.scroll
+            + row / 2.;
+        Some((f32::from(drawn.bounds.origin.x) + 14., y))
+    }
+}
