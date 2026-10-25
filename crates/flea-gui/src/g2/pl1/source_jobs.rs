@@ -155,6 +155,7 @@ fn probe_timeout(program: &str, ms: u64) -> String {
     format!("flea-gui: device probe {program} failed: timed out after {ms} ms")
 }
 
+// Sample lsblk stdout on exit 0: {"blockdevices":[{"name":"sdb1","mountpoints":["/run/media/gm/USB"]}]}.
 fn probe_failure(program: &str, outcome: &Outcome) -> Option<String> {
     let reason = if outcome.code != 0 {
         format!("exit {}", outcome.code)
