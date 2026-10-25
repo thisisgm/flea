@@ -30,7 +30,7 @@ fn tile_ink_takes_the_style_ground_and_the_style_colour() {
     );
     assert_eq!(
         ink.muted_frame,
-        crate::palette::Roles::for_inherited(background, colour).muted_frame,
+        crate::palette::Roles::for_inherited(background, colour, theme.urgent).muted_frame,
         "the tile muted frame follows the inherited ground contrast lift"
     );
     let list = Palette::inherited(&style, theme);

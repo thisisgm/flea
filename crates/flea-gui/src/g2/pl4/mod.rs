@@ -10,6 +10,8 @@ pub mod service;
 #[cfg(test)]
 mod fix1_tests;
 #[cfg(test)]
+mod place_edge_tests;
+#[cfg(test)]
 mod service_tests;
 #[cfg(test)]
 mod tests;
