@@ -84,7 +84,7 @@ pub(super) fn run(
                 shell.menu_send(side, close, cx);
             }
             shell.keyboard.context = Keys::Listing;
-            // Nav.js openCursor on the menu's own pane: open_menu put its cursor on the clicked row, so Enter's path runs there.
+            // Nav.js openCursor on the menu's own pane: open_menu put its cursor on the clicked row and focused it, so Enter's path runs there.
             shell.focus_side = side;
             shell.dispatch(Order::Action(ActionEvent::bare("open", Keys::Listing)), window, cx);
             true
