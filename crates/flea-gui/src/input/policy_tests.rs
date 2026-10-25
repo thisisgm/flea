@@ -159,12 +159,20 @@ fn u03_release_never_retargets_a_reordered_row_in_the_same_listing(cx: &mut Test
     });
 }
 
+thread_local! {
+    static OPENED: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
 #[gpui::test]
 fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppContext) {
     let (backend, _requests) = Backend::test_channel();
     let (shell, cx) = cx.add_window_view(|window, cx| {
         let mut shell = shell_with(backend, cx);
         shell.launch.settings.data = flea::jsondoc::parse(r#"{"singleClick":true}"#).unwrap();
+        shell.opener[0].launch = |argv| {
+            OPENED.with(|opened| opened.borrow_mut().push(argv[2..].join(" ")));
+            (Some(0), String::new())
+        };
         window.focus(&shell.focus, cx);
         shell
     });
@@ -204,7 +212,9 @@ fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppCon
         cx.simulate_mouse_up(position, MouseButton::Left, Modifiers::none());
         cx.run_until_parked();
     }
-    assert_eq!(*observed.borrow(), ["open"]);
+    // The file row's one open now runs the opener instead of reaching an observer.
+    assert_eq!(*observed.borrow(), Vec::<&str>::new());
+    assert_eq!(OPENED.with(|opened| opened.take()).len(), 1, "the file opens once");
     shell.read_with(cx, |shell, _| {
         assert_eq!(shell.panes[0].as_ref().unwrap().selected, [2])
     });
@@ -240,7 +250,7 @@ fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppCon
         cx.run_until_parked();
     }
     // The column's folder open is run by the window, once, so it is no longer handed to observers.
-    assert_eq!(*observed.borrow(), ["open"]);
+    assert_eq!(*observed.borrow(), Vec::<&str>::new());
     assert_eq!(
         shell.read_with(cx, |shell, _| shell.panes[0]
             .as_ref()
