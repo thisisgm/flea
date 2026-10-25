@@ -60,13 +60,13 @@ fn error(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
 }
 
 // The footer's message line, where every rename sentence is said.
-fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
+pub(super) fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     shell.update(cx, |shell, cx| {
         shell.status_messages(cx, |messages, _| messages.notice().to_owned())
     })
 }
 
-fn sent(lines: &mut Lines) -> Vec<String> {
+pub(super) fn sent(lines: &mut Lines) -> Vec<String> {
     std::iter::from_fn(lines).collect()
 }
 
@@ -76,7 +76,7 @@ pub(super) fn close(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     cx.run_until_parked();
 }
 
-fn receive(shell: &Entity<Shell>, cx: &mut VisualTestContext, event: BackendEvent) {
+pub(super) fn receive(shell: &Entity<Shell>, cx: &mut VisualTestContext, event: BackendEvent) {
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.receive(0, event, window, cx)));
     cx.run_until_parked();
 }
@@ -359,20 +359,6 @@ fn escape_closes_the_bulk_card_and_sends_nothing(cx: &mut TestAppContext) {
     );
     cx.simulate_keystrokes("escape");
     assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
-    assert_eq!(sent(&mut lines), Vec::<String>::new());
-    close(&shell, cx);
-}
-
-#[gpui::test]
-fn f2_on_a_row_the_window_has_not_read_says_so(cx: &mut TestAppContext) {
-    let (shell, cx, mut lines) = ready(cx, "default");
-    set_cursor(&shell, cx, 40);
-    cx.simulate_keystrokes("f2");
-    assert_eq!(editing(&shell, cx), None);
-    let said = shell.read_with(cx, |shell, _| {
-        shell.locale.catalog.tr("jobs.target.not_loaded")
-    });
-    assert_eq!(notice(&shell, cx), said);
     assert_eq!(sent(&mut lines), Vec::<String>::new());
     close(&shell, cx);
 }
