@@ -6,7 +6,7 @@ use flea::ui_logic_op2::{cards as logic, flash, flashcard, flashendings, flashpa
 
 impl Flash {
     pub fn open_with_image(&mut self, path: &str) -> Vec<Effect> {
-        if self.running() {
+        if self.running() || self.runner.press_sent {
             return self.open();
         }
         self.image = Some(flash::Image { path: path.into(), ..flash::Image::default() });
@@ -21,7 +21,7 @@ impl Flash {
     }
 
     pub fn open_with_drive(&mut self, device: &str) -> Vec<Effect> {
-        if self.running() {
+        if self.running() || self.runner.press_sent {
             return self.open();
         }
         self.pending_drive = device.into();

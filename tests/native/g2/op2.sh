@@ -19,8 +19,10 @@ for arm in qml gpui; do
         XDG_RUNTIME_DIR="$E/$arm/runtime" bash tests/ui.sh "${cases[@]}" > "$E/$arm/ui.log" 2>&1 || printf '%s ui.sh exit %s\n' "$arm" "$?" >> "$E/failures"
 done
 test -x tools/flea-ci-visual || { printf 'BLOCKED: the GPUI scene CLI tools/flea-ci-visual is absent\n' >&2; exit 2; }
+[ -n "${FLEA_VISUAL_DESIGN:-}" ] || { printf 'BLOCKED: FLEA_VISUAL_DESIGN unset\n' >&2; exit 2; }
 for arm in qml gpui; do
-    tools/flea-ci-visual --frontend "$arm" --manifest tests/visual/g2/op2.json --output "$E/visual/$arm"
+    tools/flea-ci-visual --frontend "$arm" --manifest tests/visual/g2/op2.json --output "$E/visual/$arm" --design "$FLEA_VISUAL_DESIGN" \
+        || printf '%s flea-ci-visual exited %s\n' "$arm" "$?" >> "$E/failures"
 done
 printf 'evidence %s\n' "$E"
 [ ! -s "$E/failures" ]

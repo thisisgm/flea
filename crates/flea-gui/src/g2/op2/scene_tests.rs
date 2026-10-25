@@ -107,3 +107,22 @@ fn every_press_names_a_control_and_every_key_a_keystroke() {
         }
     }
 }
+
+/// Board refs are relative to the design-hig root that `flea-ci-visual --design` names, as mn2.json and op3.json are.
+#[test]
+fn every_board_ref_is_relative_to_the_design_root() {
+    assert!(!REGISTRY.contains("/home/"), "no operator path in a committed manifest");
+    let manifest = jsondoc::parse(REGISTRY).expect("the op2 visual registry parses");
+    for scene in scenes(&manifest) {
+        let scene_name = name(scene);
+        for key in ["board_png", "board_html", "before_png"] {
+            let path = scene.get(key).and_then(Json::as_str).unwrap_or("");
+            assert!(
+                (path.starts_with("boards/") || path.starts_with("before/")) && !path.contains(".."),
+                "{scene_name} {key} is relative to the design root: {path:?}"
+            );
+            let pinned = scene.get("sha256").and_then(|pins| pins.get(key)).and_then(Json::as_str).unwrap_or("");
+            assert_eq!(pinned.len(), 64, "{scene_name} pins {key}");
+        }
+    }
+}
