@@ -3,6 +3,7 @@ mod listing;
 mod navigation;
 pub(crate) mod opener;
 mod preview;
+mod previewtypes;
 mod window;
 
 use super::input::ActionEvent;
@@ -26,6 +27,7 @@ type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
 const FAMILIES: &[Family] = &[
     navigation::run,
     opener::run,
+    previewtypes::run,
     preview::run,
     listing::run,
     window::run,
@@ -61,6 +63,16 @@ mod navigation_tests;
 mod opener_menu_tests;
 #[cfg(test)]
 mod opener_tests;
+#[cfg(test)]
+mod previewtypes_cover_tests;
+#[cfg(test)]
+mod previewtypes_fit_tests;
+#[cfg(test)]
+mod previewtypes_kinds_tests;
+#[cfg(test)]
+mod previewtypes_page_tests;
+#[cfg(test)]
+mod previewtypes_tests;
 #[cfg(test)]
 mod refusal_tests;
 #[cfg(test)]

@@ -22,7 +22,6 @@ mod presentation;
 pub mod rail;
 mod render;
 pub mod selection_preview;
-mod preview_text;
 mod preview_facts;
 mod preview_input;
 pub mod root;

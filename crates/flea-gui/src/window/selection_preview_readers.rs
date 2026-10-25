@@ -75,7 +75,8 @@ impl Reader<'_> {
                     "loading".into()
                 } else {
                     frame.map_or(String::new(), |f| {
-                        if f.failed {
+                        // PreviewColumn.qml previewState: Error only where Facts.js draws it, never for a failed picture.
+                        if self.view.is_some_and(|v| v.state(f, self.cx) == flea::ui_logic_pv1::kinds::State::Error) {
                             "error".into()
                         } else {
                             f.kind.name().into()
@@ -84,15 +85,16 @@ impl Reader<'_> {
                 }
             }
             "columnFailure" => frame
-                .filter(|f| f.failed)
-                .and(view)
-                .map_or(String::new(), |v| v.catalog.tr("document.pdf_unreadable")),
-            "columnTextLines" => frame
-                .filter(|f| f.kind == Kind::Text)
-                .map_or(String::new(), |f| f.lines.join("|")),
-            "previewText" => frame
-                .filter(|f| f.kind == Kind::Text)
-                .map_or(String::new(), |f| f.lines.join("\n")),
+                .zip(view)
+                .and_then(|(f, v)| v.failure(f, self.cx))
+                .unwrap_or_default(),
+            "columnTextLines" => frame.map_or(String::new(), |f| doc_lines(f, self.cx).join("|")),
+            "previewText" => frame.map_or(String::new(), |f| doc_lines(f, self.cx).join("\n")),
+            "columnArchiveNames" => frame
+                .and_then(|f| f.facts.as_ref())
+                .map_or(String::new(), |m| {
+                    m.names.iter().map(|e| e.name.as_str()).collect::<Vec<_>>().join("|")
+                }),
             "previewSurfaceRect" => rect(view.and_then(|v| *v.rect.borrow())),
             "columnFrameRect" => rect(view.and_then(|v| *v.frame_rect.borrow())),
             "columnPictureRect" | "previewPictureRect" => rect(
@@ -102,7 +104,7 @@ impl Reader<'_> {
             ),
             "columnLinesRect" => rect(
                 frame
-                    .filter(|f| f.kind == Kind::Text)
+                    .filter(|f| matches!(f.mounted, Mounted::Doc(_)))
                     .and(view)
                     .and_then(|v| *v.frame_rect.borrow()),
             ),
@@ -115,10 +117,17 @@ impl Reader<'_> {
                         f32::from(b.center().y).round()
                     )
                 }),
-            "previewFacts" | "previewTable" => frame.zip(view).map_or(String::new(), |(f, v)| {
+            // ColumnsArea.qml factsLine: "Kind=MPEG-4 video|Duration=1:12|...".
+            "previewFacts" => frame.zip(view).map_or(String::new(), |(f, v)| {
                 v.facts(f, self.cx)
                     .iter()
-                    .flatten()
+                    .map(|(k, v)| format!("{k}={v}"))
+                    .collect::<Vec<_>>()
+                    .join("|")
+            }),
+            "previewTable" => frame.zip(view).map_or(String::new(), |(f, v)| {
+                v.facts(f, self.cx)
+                    .iter()
                     .map(|(k, v)| format!("{k}: {v}"))
                     .collect::<Vec<_>>()
                     .join("\n")
@@ -142,6 +151,14 @@ impl Adapter for Reader<'_> {
                 .insert(function.into(), value.clone());
         }
         Some(Reply::value(value))
+    }
+}
+
+/// What a mounted document draws, as plain lines.
+fn doc_lines(frame: &Frame, cx: &App) -> Vec<String> {
+    match &frame.mounted {
+        Mounted::Doc(doc) => doc.lines(cx),
+        _ => Vec::new(),
     }
 }
 

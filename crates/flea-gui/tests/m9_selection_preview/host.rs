@@ -13,6 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 static SERIAL: Mutex<()> = Mutex::new(());
+const READY: Duration = Duration::from_secs(20);
 #[path = "keys.rs"]
 pub mod keys;
 struct Watchdog(Arc<std::sync::atomic::AtomicBool>);
@@ -121,7 +122,7 @@ impl Host {
             previous_binary,
             events,
         };
-        let deadline = Instant::now() + Duration::from_secs(5);
+        let deadline = Instant::now() + READY;
         loop {
             host.draw();
             let mounted = host
@@ -130,10 +131,11 @@ impl Host {
                     shell.selection_preview(0).is_some()
                 })
                 .unwrap();
-            if mounted {
+            // Before the first listing the window answers "Target not found." with exit 0, so readers wait for ready, within READY.
+            if mounted && host.call("ready") == "true" {
                 break;
             }
-            assert!(Instant::now() < deadline, "the production pane was created");
+            assert!(Instant::now() < deadline, "the production pane was created and is ready");
             std::thread::sleep(Duration::from_millis(2));
         }
         host
@@ -176,7 +178,7 @@ impl Host {
         }
     }
     fn until(&mut self, name: &str, value: &str) {
-        let deadline = Instant::now() + Duration::from_secs(20);
+        let deadline = Instant::now() + READY;
         loop {
             let actual = self.call(name);
             if actual == value {
