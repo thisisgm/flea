@@ -27,7 +27,7 @@ fn inventory_order_and_default_menus() {
         59,
     );
     check("default image menu matches Menus specimen", actions(&file),
-        "open,openWith,run,openAsText,cut,copy,paste,duplicate,rename,compress,convert,flashDrive,addToShelf,taildrop,dropbox,toggleHidden,toggleLangMarks,trash".into());
+        "open,openWith,run,openAsText,trash,cut,copy,paste,duplicate,rename,compress,convert,flashDrive,addToShelf,taildrop,dropbox,toggleHidden,toggleLangMarks".into());
     check(
         "code icons ship enabled with the existing code glyph",
         format!(
@@ -84,18 +84,18 @@ fn inventory_order_and_default_menus() {
         p.row_name = "Photos".into()
     }));
     check("folder omits run and open as text; Pane gives a folder no image or archive flag, so no conversion or extraction", actions(&folder),
-        "open,openWith,cut,copy,paste,duplicate,rename,compress,addToShelf,taildrop,dropbox,addFavourite,toggleHidden,toggleLangMarks,trash".into());
+        "open,openWith,trash,cut,copy,paste,duplicate,rename,compress,addToShelf,taildrop,dropbox,addFavourite,toggleHidden,toggleLangMarks".into());
     check("background menu includes real creation actions in order", actions(&listing_entries(&st(|p| p.has_row = false))),
         "newFolder,newFile,paste,selectAll,openTerminal,addFavourite,sort,toggleHidden,toggleLangMarks,settings".into());
-    // Move to Trash ends the file menu alone in the destructive group (APL-MENU-34).
+    // Move to Trash follows the open group alone in the destructive group, as Finder orders it.
     let last_group: Vec<_> = file
-        .rsplit(|r| r.separator)
-        .next()
+        .split(|r| r.separator)
+        .nth(1)
         .unwrap()
         .iter()
         .map(|r| r.action.to_string())
         .collect();
-    check("Move to Trash moves from the middle of the menu to its end, alone in the destructive group", last_group, strings(&["trash"]));
+    check("Move to Trash is the group after Open, alone in the destructive group", last_group, strings(&["trash"]));
     let all = listing_entries(&st(|p| {
         p.hidden.clear();
         p.clipboard_available = true;
@@ -104,14 +104,14 @@ fn inventory_order_and_default_menus() {
         p.cursor_is_target = true
     }));
     let tail: Vec<_> = all
-        .rsplit(|r| r.separator)
-        .next()
+        .split(|r| r.separator)
+        .nth(1)
         .unwrap()
         .iter()
         .map(|r| r.action.to_string())
         .collect();
     check(
-        "Move to Trash and Delete Permanently move from the middle of the menu to its end",
+        "Move to Trash and Delete Permanently share the group after Open",
         tail,
         strings(&["trash", "deletePermanently"]),
     );

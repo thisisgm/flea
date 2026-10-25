@@ -6,7 +6,7 @@ use crate::list::Typeface;
 use flea::i18n::{I18n, Paths};
 use flea::ui_logic_mn1::{
     build::{listing_entries, Context},
-    fit::Rect,
+    fit::{self, Rect},
     rows::header_entries,
     Brand, Entry, Text,
 };
@@ -255,7 +255,18 @@ fn r1_refresh_keeps_a_hover_opened_flyout_open_on_its_leaf(cx: &mut TestAppConte
             .iter()
             .position(|e| e.action == "copyAs")
             .unwrap();
-        let (x, y) = (card.frame.x + 20., card.row_screen_top(copy_as) + 10.);
+        // Copy As opens past the fold, so the wheel brings it into view first, as a pointer user would.
+        let (x, mid) = (card.frame.x + 20., card.frame.y + card.frame.h / 2.);
+        for _ in 0..20 {
+            let card = menu.card.as_ref().unwrap();
+            if card.row_screen_top(copy_as) + fit::ROW as f32
+                <= card.frame.y + card.frame.h - fit::PAD as f32
+            {
+                break;
+            }
+            menu.wheel(x, mid, -120);
+        }
+        let y = menu.card.as_ref().unwrap().row_screen_top(copy_as) + 10.;
         menu.hover(x, y, env, window);
         assert_eq!(
             menu.flyout.as_ref().map(|f| (f.parent, f.card.cursor)),
@@ -269,7 +280,8 @@ fn r1_refresh_keeps_a_hover_opened_flyout_open_on_its_leaf(cx: &mut TestAppConte
             "Down steps the hovered flyout"
         );
         let mut more = rows;
-        let at = more.iter().position(|e| e.action == "trash").unwrap();
+        // LocalSend joins the send group, the separator before Copy As closing it.
+        let at = more.iter().position(|e| e.action == "copyAs").unwrap() - 1;
         more.insert(
             at,
             Entry::row(

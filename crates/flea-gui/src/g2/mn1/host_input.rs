@@ -149,7 +149,11 @@ impl Shell {
         let pane = geometry.rows(side, self.view == View::Dual, self.slots.strip_height);
         let y = pane.y + host.pane.cursor as f32 * host.pane.row_height() - host.pane.scroll_y
             + host.pane.row_height() / 2.;
-        self.open_menu(side, row, (pane.x + 14., y), window, cx);
+        // In Columns the cursor row is in the active column, so the menu opens over that column's row.
+        let at = self
+            .columns_cursor_anchor(side)
+            .unwrap_or((pane.x + 14., y));
+        self.open_menu(side, row, at, window, cx);
     }
 
     fn menu_click(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
