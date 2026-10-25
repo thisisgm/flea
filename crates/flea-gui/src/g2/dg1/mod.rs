@@ -1,5 +1,6 @@
 //! Clipboard file selections over the G1 shell: one selection, one queue per pane backend and the cut marks rows draw; the core flea::ui_logic_dg1 decides, and this host drains its outbox to the wire, sink, owner and status slot.
 pub mod host;
+pub(crate) mod ipc;
 pub mod join;
 pub mod keys;
 pub mod marks;
