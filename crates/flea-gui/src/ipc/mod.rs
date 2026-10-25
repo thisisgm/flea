@@ -18,6 +18,7 @@ mod status_card;
 pub mod strips;
 mod surface;
 pub mod tabs;
+pub(crate) mod thumbnails;
 pub mod view;
 
 pub use surface::{Adapter, Surface};
