@@ -70,7 +70,7 @@ fn submit_waiting(out: &mut impl Write, st: &mut State, pool: &Pool, mut room: u
 mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
-    use std::sync::mpsc::channel;
+    use crate::backend::events::channel;
 
     #[test]
     fn a_submit_return_is_answered_and_released_after_the_room_snapshot() {

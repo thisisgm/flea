@@ -4,7 +4,7 @@ use crate::backend::run::forget_rows;
 use crate::backend::testdir::TestDir;
 use crate::backend::thumbspec::Thumbnailers;
 use crate::backend::trashdelete::Reviewed;
-use std::sync::mpsc::channel;
+use crate::backend::events::channel;
 
 fn trash_request(out: &mut Vec<u8>, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache, path: &Path, id: usize) {
     let meta = path.symlink_metadata().unwrap();

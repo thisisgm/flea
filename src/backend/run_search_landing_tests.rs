@@ -6,7 +6,7 @@ const DEADLINE: Duration = Duration::from_secs(30);
 
 struct Wire {
     tb: Tables,
-    events: Sender<Event>,
+    events: crate::backend::events::Sender<Event>,
     receiver: Receiver<Event>,
     pending: VecDeque<Event>,
     st: State,
@@ -19,7 +19,7 @@ struct Wire {
     fsinfo: FsInfo,
     poller: super::super::watchpoll::Poller,
     gate: Gate,
-    release: Sender<()>,
+    release: std::sync::mpsc::Sender<()>,
 }
 
 impl Wire {
@@ -27,7 +27,7 @@ impl Wire {
         d.dir("docs");
         d.file("bench.txt", "");
         let root = d.path().to_str().expect("utf-8 sandbox path");
-        let (events, receiver) = channel();
+        let (events, receiver) = crate::backend::events::channel();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let probes = Arc::new(crate::backend::searchwalk::WalkProbes::new());
         let (parked, release) = probes.test_hold_walk_in("docs");

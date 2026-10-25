@@ -11,7 +11,7 @@ pub(crate) use reply::{say_listed, with_anchor, with_changed};
 use crate::error::FleaError;
 use crate::json::{field_bool, field_str, field_str_array, field_usize, field_usize_array};
 
-// The one spelling of the token the reader thread also matches; see src/backend/events.rs.
+// The one spelling of the token the stdin reading path also matches; see src/backend/events.rs.
 pub const TRANSFER_CANCEL: &str = "transfercancel";
 
 pub enum Request {

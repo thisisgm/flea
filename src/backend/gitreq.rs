@@ -17,7 +17,7 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub fn new(replies: Sender<Event>) -> Self {
+    pub fn new(replies: crate::backend::events::Sender<Event>) -> Self {
         let (tx, rx) = mpsc::channel::<(String, u64)>();
         let epoch = Arc::new(AtomicU64::new(0));
         let current = Arc::clone(&epoch);

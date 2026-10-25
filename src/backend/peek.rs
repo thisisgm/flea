@@ -10,7 +10,7 @@ use crate::backend::sort::sort_by_name;
 use crate::json::escape;
 
 // One peek, answered on a worker when the mount is slow; the columns view's own also arms a watch BEFORE the scan, so no change is lost to its gap.
-pub(crate) fn answer(path: &str, first: usize, hidden: bool, order: Order, focus: String, watch: Option<(std::ffi::c_int, std::sync::mpsc::Sender<crate::backend::events::Event>)>, tb: &crate::backend::state::Tables) -> String {
+pub(crate) fn answer(path: &str, first: usize, hidden: bool, order: Order, focus: String, watch: Option<(std::ffi::c_int, crate::backend::events::Sender<crate::backend::events::Event>)>, tb: &crate::backend::state::Tables) -> String {
     let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
     let base = std::path::PathBuf::from(path);
     let (mime, icons) = (std::sync::Arc::clone(&tb.mime), std::sync::Arc::clone(&tb.icons));

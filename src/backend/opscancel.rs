@@ -1,7 +1,7 @@
 // Issue 144: a transfercancel reached the running operation through the event loop, and a listing of
 // an MTP directory held that loop inside read_dir while the copy went on, so the cancel was read only
-// after the copy had finished by itself. The reader thread sets the flag here instead, so a cancel
-// never queues behind whatever the loop is doing.
+// after the copy had finished by itself. The thread that reads the line sets the flag here instead, the
+// stdin helper while the loop is held (src/backend/inbox.rs), so a cancel never queues behind the loop.
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -101,7 +101,7 @@ mod tests {
         let live = Live::new();
         let flag = Arc::new(AtomicBool::new(false));
         live.claim(7, &flag);
-        // The reader thread's own call, made while the loop is inside a read_dir on a FUSE mount.
+        // The stdin helper's own call, made while the loop is inside a read_dir on a FUSE mount.
         live.cancel(7);
         assert!(flag.load(Ordering::Relaxed), "the operation on the thread is the one a cancel reaches");
         assert_eq!(live.running(), Some(7));

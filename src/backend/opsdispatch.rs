@@ -40,7 +40,7 @@ pub(crate) struct Ops {
     pub question: Option<super::collide::Question>,
     pub asked: usize,
     pub next_id: usize,
-    // The operation on the thread and its cancel flag, shared with the reader thread; one at a time.
+    // The operation on the thread and its cancel flag, shared with the stdin helper; one at a time.
     pub live: Arc<super::opscancel::Live>,
     // Pending writes; a second write on the same mount waits until the first journals.
     pub pending: Vec<SlowClaim>,

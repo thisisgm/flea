@@ -1,17 +1,19 @@
 // Every source of work the read loop waits on, and the threads that join them onto its one channel.
-// std has no select, so each blocking source is a thread and the loop only ever waits on the receiver.
+// The loop sleeps on stdin and the channel's doorbell together (src/backend/inbox.rs); every other blocking source is a thread.
 use crate::backend::opscancel::Live;
 use crate::backend::opsreq::OpMsg;
 use crate::backend::proto::{parse_request, Request, TRANSFER_CANCEL};
 use crate::backend::thumbs::Done;
 use crate::error::{from_io, FleaError};
-use std::io::{self, BufRead};
+use std::io;
 use std::path::PathBuf;
-use std::sync::mpsc::{Receiver, Sender};
-use std::sync::Arc;
+use std::sync::mpsc::Receiver;
 use std::thread;
+#[cfg(test)]
+pub use super::wake::channel;
+pub use super::wake::Sender;
 
-// std has no select, so every source of work reaches the loop as one of these.
+// Every source of work reaches the loop as one of these.
 pub enum Event {
     Git(String),
     Request(String),
@@ -53,31 +55,9 @@ pub enum Event {
     Closed,
 }
 
-// stdin blocks, so reading it is a thread and the loop only ever waits on the channel.
-// Issue 144: a cancel is acted on here rather than only forwarded, because the loop that would act on
-// it can be inside a read_dir on a FUSE mount for as long as the device takes to answer.
-pub fn spawn_reader(tx: Sender<Event>, live: Arc<Live>) {
-    thread::spawn(move || read_lines(io::stdin().lock(), &tx, &live));
-}
-
-// The loop itself, over any reader, so what this thread does with a line is asserted without a stdin.
-fn read_lines(source: impl BufRead, tx: &Sender<Event>, live: &Live) {
-    for line in source.lines() {
-        let event = match line {
-            Ok(l) => read_line(l, live),
-            // The reader has no writer, so the decode failure is handed back for the loop to report.
-            Err(e) => Event::ReadError(from_io("read", "stdin", &e)),
-        };
-        let fatal = matches!(event, Event::ReadError(_));
-        if tx.send(event).is_err() || fatal {
-            return;
-        }
-    }
-    let _ = tx.send(Event::Closed);
-}
-
-// One line's worth of that job, split out so a cancel and an ordinary request are asserted apart.
-fn read_line(line: String, live: &Live) -> Event {
+// Issue 144: a cancel is acted on by whichever thread reads its line, the loop or the helper that took stdin over while the
+// loop was held inside a read_dir on a FUSE mount, rather than only forwarded to the loop.
+pub(crate) fn read_line(line: String, live: &Live) -> Event {
     #[cfg(test)]
     super::renametiming::input(&line);
     if let Some(Request::TransferCancel { id }) = cancel_in(&line) {
@@ -90,6 +70,42 @@ fn read_line(line: String, live: &Live) -> Event {
         live.cancel(crate::json::field_usize(&line, "id").unwrap_or(0));
     }
     Event::Request(line)
+}
+
+// One read's bytes against the unfinished line: each whole line goes out as the reader thread sent it, CR LF ends a line
+// as LF does, and the end of input sends what is left and then Closed. False once input is over, as BufRead::lines stops.
+pub(crate) fn feed(tail: &mut Vec<u8>, bytes: &[u8], end: bool, tx: &Sender<Event>, live: &Live) -> bool {
+    let mut rest = bytes;
+    while let Some(at) = rest.iter().position(|&b| b == b'\n') {
+        tail.extend_from_slice(&rest[..at]);
+        rest = &rest[at + 1..];
+        if tail.last() == Some(&b'\r') {
+            tail.pop();
+        }
+        if !send_line(std::mem::take(tail), tx, live) {
+            return false;
+        }
+    }
+    tail.extend_from_slice(rest);
+    if !end {
+        return true;
+    }
+    if !tail.is_empty() && !send_line(std::mem::take(tail), tx, live) {
+        return false;
+    }
+    let _ = tx.send(Event::Closed);
+    false
+}
+
+fn send_line(bytes: Vec<u8>, tx: &Sender<Event>, live: &Live) -> bool {
+    match String::from_utf8(bytes) {
+        Ok(line) => tx.send(read_line(line, live)).is_ok(),
+        // The framing cannot be trusted past a line that is not UTF-8, so input stops there and the loop reports it.
+        Err(_) => {
+            let _ = tx.send(Event::ReadError(from_io("read", "stdin", &io::Error::from(io::ErrorKind::InvalidData))));
+            false
+        }
+    }
 }
 
 // Parsed only for the one request this thread acts on, so no other line pays for a second parse.

@@ -6,7 +6,8 @@ use super::state::{State, Tables};
 use super::thumbs::Pool;
 use std::collections::VecDeque;
 use std::io::Write;
-use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
+use crate::backend::events::Sender;
+use std::sync::mpsc::{channel, sync_channel, Receiver, SyncSender};
 use std::thread::JoinHandle;
 
 pub(crate) enum Work {

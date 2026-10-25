@@ -5,7 +5,7 @@ use crate::backend::testdir::TestDir;
 fn empty_trash_responds_before_review_validation() {
     let d = TestDir::new("empty-trash-wire");
     let tb = Tables::load();
-    let (events, _events_rx) = channel::<Event>();
+    let (events, _events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let pool = Pool::new(
         1,

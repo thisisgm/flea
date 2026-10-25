@@ -75,7 +75,7 @@ impl Session {
         scope: &str,
         folder: &str,
         hidden: bool,
-        walked: std::sync::mpsc::Sender<crate::backend::events::Event>,
+        walked: crate::backend::events::Sender<crate::backend::events::Event>,
     ) -> Session {
         Self::open_async_inner(scope, folder, hidden, walked, Arc::new(WalkProbes::new()))
     }
@@ -86,7 +86,7 @@ impl Session {
         scope: &str,
         folder: &str,
         hidden: bool,
-        walked: std::sync::mpsc::Sender<crate::backend::events::Event>,
+        walked: crate::backend::events::Sender<crate::backend::events::Event>,
         probes: Arc<WalkProbes>,
     ) -> Session {
         Self::open_async_inner(scope, folder, hidden, walked, probes)
@@ -95,7 +95,7 @@ impl Session {
     // Tests open the one constructor and join its walk, so no second setup drifts.
     #[cfg(test)]
     pub(crate) fn open_sync(scope: &str, folder: &str, hidden: bool) -> Session {
-        let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+        let (walked_tx, _walked_rx) = crate::backend::events::channel();
         let mut session = Session::open_async(scope, folder, hidden, walked_tx);
         session.join_walk();
         session

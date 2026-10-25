@@ -208,7 +208,7 @@ impl Session {
         scope: &str,
         folder: &str,
         hidden: bool,
-        walked: std::sync::mpsc::Sender<crate::backend::events::Event>,
+        walked: crate::backend::events::Sender<crate::backend::events::Event>,
         probes: Arc<WalkProbes>,
     ) -> Session {
         #[cfg(test)]

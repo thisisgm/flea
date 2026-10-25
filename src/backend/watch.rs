@@ -5,7 +5,7 @@ use crate::json::escape;
 use std::io;
 use std::ffi::{c_char, c_int, c_void, CString};
 use std::path::Path;
-use std::sync::mpsc::Sender;
+use crate::backend::events::Sender;
 use std::thread;
 use std::time::Duration;
 
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn nothing_is_current_before_a_directory_is_followed() {
-        let w = Watch { fd: (-1).into(), events: std::sync::mpsc::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+        let w = Watch { fd: (-1).into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
         assert!(!w.is_current(-1));
         assert!(!w.is_current(1));
     }
@@ -391,7 +391,7 @@ mod tests {
         let sandbox = crate::backend::testdir::TestDir::new("watch-abandon");
         let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
         assert!(fd >= 0, "this box has no inotify to test with");
-        let mut w = Watch { fd: fd.into(), events: std::sync::mpsc::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+        let mut w = Watch { fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
         w.begin(sandbox.path());
         w.commit();
         let live = w.wd;
@@ -411,7 +411,7 @@ mod tests {
         let sandbox = crate::backend::testdir::TestDir::new("watch-rebegin");
         let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
         assert!(fd >= 0, "this box has no inotify to test with");
-        let mut w = Watch { fd: fd.into(), events: std::sync::mpsc::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+        let mut w = Watch { fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
         w.begin(sandbox.path());
         w.begin(sandbox.path());
         w.commit();
@@ -451,7 +451,7 @@ mod tests {
         let sandbox = crate::backend::testdir::TestDir::new("watch-late");
         let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
         assert!(fd >= 0, "this box has no inotify to test with");
-        let mut w = Watch { fd: fd.into(), events: std::sync::mpsc::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+        let mut w = Watch { fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
         w.begin(sandbox.path());
         w.commit();
         let live = w.wd;
@@ -470,7 +470,7 @@ mod tests {
         let b = crate::backend::testdir::TestDir::new("abandon-b");
         let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
         assert!(fd >= 0, "this box has no inotify to test with");
-        let mut w = Watch { fd: fd.into(), events: std::sync::mpsc::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+        let mut w = Watch { fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
         w.begin(a.path());
         w.commit();
         let live = w.wd;
@@ -488,7 +488,7 @@ mod tests {
     // No descriptor in these two, so they pin the bookkeeping alone; the one above pins the syscall.
     #[test]
     fn an_abandoned_scan_leaves_the_current_watch_alone() {
-        let mut w = Watch { fd: (-1).into(), events: std::sync::mpsc::channel().0, wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+        let mut w = Watch { fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
         w.begin(Path::new("/tmp"));
         w.abandon();
         assert!(w.is_current(7));
@@ -497,7 +497,7 @@ mod tests {
     // And one that succeeds hands the listing over to the descriptor the scan was armed with.
     #[test]
     fn a_committed_scan_takes_over_from_the_old_watch() {
-        let mut w = Watch { fd: (-1).into(), events: std::sync::mpsc::channel().0, wd: 7, incoming: 9, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+        let mut w = Watch { fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: 9, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
         w.commit();
         assert!(w.is_current(9));
         assert!(!w.is_current(7));
@@ -506,7 +506,7 @@ mod tests {
     // Production arms through set_incoming plus commit, with the mount the list worker computed.
     #[test]
     fn set_incoming_captures_the_mount_commit_takes() {
-        let mut w = Watch { fd: (-1).into(), events: std::sync::mpsc::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+        let mut w = Watch { fd: (-1).into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
         w.set_incoming(7, Path::new("/media/stick").to_path_buf());
         w.commit();
         assert!(w.is_current(7));
@@ -534,14 +534,14 @@ mod tests {
     fn an_ejected_mountpoint_lands_outside_the_volume() {
         // Sample input: open "/media/stick/photos" with mount "/media/stick" starts "/media".
         use std::collections::HashSet;
-        let w = Watch { fd: (-1).into(), events: std::sync::mpsc::channel().0, wd: 7, incoming: -1, mount: Path::new("/media/stick").to_path_buf(), incoming_mount: std::path::PathBuf::new() };
+        let w = Watch { fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: -1, mount: Path::new("/media/stick").to_path_buf(), incoming_mount: std::path::PathBuf::new() };
         assert_eq!(w.unmount_start(Path::new("/media/stick/photos")), Path::new("/media"));
         assert_eq!(w.unmount_start(Path::new("/media/stick")), Path::new("/media"));
         let live: HashSet<&str> = ["/media", "/"].into_iter().collect();
         let start = w.unmount_start(Path::new("/media/stick/photos"));
         let at = nearest_parent(&start, |p| live.contains(p.to_str().unwrap_or("")));
         assert_eq!(at, Path::new("/media"), "a surviving mountpoint is never the parent");
-        let bare = Watch { fd: (-1).into(), events: std::sync::mpsc::channel().0, wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+        let bare = Watch { fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
         assert_eq!(bare.unmount_start(Path::new("/media/stick")), Path::new("/media"));
     }
 

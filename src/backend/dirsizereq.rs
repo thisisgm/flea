@@ -61,10 +61,10 @@ mod tests {
     use crate::backend::{events::Event, listing::Listing, testdir::TestDir};
     use std::collections::HashMap;
     use std::path::PathBuf;
-    use std::sync::mpsc::channel;
+    use crate::backend::events::channel;
     use std::time::{Duration, Instant};
 
-    fn state(base: PathBuf, events: std::sync::mpsc::Sender<Event>) -> State {
+    fn state(base: PathBuf, events: crate::backend::events::Sender<Event>) -> State {
         let mut listing = Listing::new();
         listing.push("a", true);
         listing.push("b", true);
