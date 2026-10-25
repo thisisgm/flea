@@ -204,6 +204,11 @@ impl Shell {
         let mut settings = Settings::from_json(data.clone(), true);
         settings.newest = newest.clone();
         self.launch.settings = settings;
+        if let Some(host) = &self.quick_look {
+            let languages = data.get("langMarks").and_then(Json::as_bool) != Some(false);
+            host.view
+                .update(cx, |view, cx| view.set_languages(languages, cx));
+        }
         self.rail_state(&data, cx);
         if let Some(host) = self.panes.iter().flatten().next() {
             *host.nav.folders.borrow_mut() = Folders::from_settings(&data, newest);
@@ -357,6 +362,8 @@ fn configure_pane(
     typeface: crate::list::Typeface,
 ) {
     let mut list = host.list.borrow_mut();
+    list.view
+        .set_lang_marks(data.get("langMarks").and_then(Json::as_bool) != Some(false));
     list.density = crate::list::Density::parse(pages::word(data, &["density"], "compact"));
     list.set_typeface(typeface);
     host.pane.set_row_height(list.file_metrics().row);

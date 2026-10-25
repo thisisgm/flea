@@ -3,6 +3,8 @@ mod actions;
 mod apply;
 mod claim;
 #[cfg(test)]
+mod codeicons_tests;
+#[cfg(test)]
 mod corner_tests;
 #[cfg(test)]
 mod fix1_tests;
