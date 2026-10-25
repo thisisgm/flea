@@ -3,6 +3,8 @@
 mod controls;
 #[path = "typed_presentation_fixture.rs"]
 mod fixture;
+#[path = "frame_timing_tests.rs"]
+mod timing;
 use fixture::*;
 use gpui::{FrameOutcome, TestAppContext};
 use std::time::Duration;
