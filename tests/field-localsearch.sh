@@ -141,8 +141,7 @@ assert rc != 0 and 'localsearch-3 pid %d started 20' % stray.pid in err, err
 assert 'this harness did not start it' in err, err
 assert alive_after, 'a refusal must leave the foreign indexer alone'
 
-# 5. A run killed days ago never wrote its end, so it covers nothing started today.
-# Bound: no alive mark, so the window ends at the run's start plus ALIVE_S.
+# 5. A run killed days ago never wrote its end or an alive mark, so its window ends at its start plus ALIVE_S.
 stale = root / 'ledger-stale.jsonl'
 stale.write_text('{"id": "old", "pid": 4242, "start": %f}\n' % (time.time() - 2 * 86400))
 stray = subprocess.Popen([str(bindir / 'localsearch-3'), '300'], start_new_session=True, stdin=subprocess.DEVNULL,
@@ -153,8 +152,7 @@ stray.kill()
 stray.wait()
 assert rc != 0 and 'this harness did not start it' in err and 'this harness started it' not in err, err
 
-# 6. A run killed outright ends where the next recorded run begins, so it never claims what a later run started.
-# Bound: the next run's start, since the old run's alive mark is touched now, long after that start.
+# 6. A killed run whose alive mark is newer than the next run's start ends at that start, never claiming a later run's work.
 stale = root / 'ledger-next.jsonl'
 now = time.time()
 stale.write_text('{"id": "old-next", "pid": 4242, "start": %f}\n{"id": "next", "pid": 4343, "start": %f, "end": %f}\n'
@@ -169,8 +167,7 @@ stray.kill()
 stray.wait()
 assert rc != 0 and 'this harness did not start it' in err and 'this harness started it' not in err, err
 
-# 7. The newest run is killed outright and nothing runs after it: an indexer started later is not its own.
-# Bound: the alive mark the run touched before it was killed, plus ALIVE_S.
+# 7. A killed newest run ends at its last alive mark plus ALIVE_S, so an indexer started later is not its own.
 S = SourceFileLoader('search_windows', tool).load_module()
 ledger = root / 'ledger-newest.jsonl'
 reap_orphans()
