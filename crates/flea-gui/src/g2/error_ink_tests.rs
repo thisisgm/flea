@@ -1,9 +1,9 @@
 use crate::{list::Palette, palette::Theme};
 use gpui::TextStyle;
 
-// EY-13, EY-06 and SW-23: menu, status bar and Settings error ink is the error role, never the accent or the text.
+// EY-13, EY-06 and SW-23 constructors; the mounted status line and plugins pane have call-site tests of their own.
 #[test]
-fn destructive_and_error_ink_is_the_error_role_on_every_surface() {
+fn menu_status_and_settings_ink_constructors_take_the_error_roles() {
     for name in ["cool-dawn", "sunset"] {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join(format!("../../tests/fixtures/{name}/colors.toml"));

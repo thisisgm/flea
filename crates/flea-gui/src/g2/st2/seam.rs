@@ -83,3 +83,10 @@ impl Tokens {
         self.fg.opacity(0.06)
     }
 }
+
+#[cfg(test)]
+impl super::view::PluginsPane {
+    pub(crate) fn tokens(&self) -> Tokens {
+        self.tokens
+    }
+}
