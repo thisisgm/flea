@@ -9,6 +9,13 @@ pub enum Request {
     Forget,
 }
 
+// A tab handoff carries its live order, independently of the shared folder preference.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Snapshot {
+    pub path: String,
+    pub order: Order,
+}
+
 // The sorted column reverses; any other starts ascending.
 pub fn column_order(current: Order, key: &str) -> Option<Order> {
     let key = ORDERS.iter().copied().find(|order| *order == key)?;
@@ -153,6 +160,61 @@ pub fn wants_sizes(view: &str, hidden_columns: &[&str], class: &str, known: bool
 }
 
 impl super::Navigator {
+    // A pending listing or sort has no settled path/order pair to hand to another window.
+    pub fn sort_snapshot(&self, pane: &crate::pane::Pane) -> Result<Snapshot, super::Refusal> {
+        if pane.busy()
+            || !pane.swap.sorts_out.is_empty()
+            || pane.swap.unheld_total.is_some()
+            || !self.orders.requests.is_empty()
+        {
+            return Err(super::Refusal::Busy);
+        }
+        if pane.state.search
+            || !matches!(
+                pane.state.kind,
+                crate::pane::Kind::Ready | crate::pane::Kind::Empty
+            )
+        {
+            return Err(super::Refusal::NotLoaded);
+        }
+        Ok(Snapshot {
+            path: pane.path().into(),
+            order: self.order,
+        })
+    }
+
+    // Restore one tab listing without remembering a choice; ordinary navigation reads folder defaults again.
+    pub fn restore_sort_snapshot(
+        &mut self,
+        pane: &mut crate::pane::Pane,
+        snapshot: &Snapshot,
+    ) -> Result<bool, super::Refusal> {
+        if snapshot.path.is_empty()
+            || snapshot.path.contains('\0')
+            || !ORDERS.contains(&snapshot.order.key)
+        {
+            return Err(super::Refusal::NotLoaded);
+        }
+        let previous = self.order;
+        let preserve = std::mem::replace(&mut self.preserve_sort, true);
+        self.order = snapshot.order;
+        let result = self.open_without_history(
+            pane,
+            &snapshot.path,
+            crate::pane::swap::Options {
+                supersede: true,
+                ..Default::default()
+            },
+            None,
+            false,
+        );
+        self.preserve_sort = preserve;
+        if result != Ok(true) {
+            self.order = previous;
+        }
+        result
+    }
+
     fn holds_sort(&self) -> bool {
         self.gate.editing || self.gate.rename_pending
     }
@@ -176,6 +238,7 @@ impl super::Navigator {
             return Ok(false);
         }
         let folders = self.folders.borrow().clone();
+        self.start_sort(pane, order);
         self.emit(super::Command::Sort {
             order,
             folders_first: folders.folders_first,
@@ -252,12 +315,19 @@ impl super::Navigator {
             self.pending_sort = Some(Request::Forget);
             return Ok(false);
         }
+        if pane.busy() {
+            return Err(super::Refusal::Busy);
+        }
         let path = pane.path().to_owned();
         let patch = self.folders.borrow_mut().forget(&path);
         if let Some(patch) = patch {
             self.persist(patch, failure);
         }
-        self.open_without_history(pane, &path, Default::default(), None, false)
+        self.orders.preferences = None;
+        let preserve = std::mem::replace(&mut self.preserve_sort, false);
+        let result = self.open_without_history(pane, &path, Default::default(), None, false);
+        self.preserve_sort = preserve;
+        result
     }
 
     // The held sort runs once the edit ends; a listing request in between drops it.

@@ -24,7 +24,9 @@ impl Shell {
         };
         let delta = match event.delta {
             ScrollDelta::Pixels(p) => -f32::from(p.y) * 2.5,
-            ScrollDelta::Lines(p) => -p.y * 24. * 4.,
+            ScrollDelta::Lines(p) => {
+                -p.y * (super::WHEEL_LINES as f32 / super::PLATFORM_SCROLL_GAIN) * 24. * 4.
+            }
         };
         if event.modifiers.control {
             return;

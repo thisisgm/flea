@@ -113,6 +113,7 @@ impl Shell {
                         .copied()
                         .unwrap_or_default(),
                     viewport: window.viewport_size(),
+                    corner: self.corner,
                 };
                 let states = self.list_states(self.focus_side, window, cx);
                 let view = crate::ipc::view::ViewAdapter {

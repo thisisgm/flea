@@ -9,6 +9,10 @@ pub mod selection;
 mod wheel;
 pub use band::{update_band, EDGE_RATE};
 
+// Preserve the current wheel default while keeping its applied policy explicit.
+pub(crate) const PLATFORM_SCROLL_GAIN: f32 = 3.;
+pub(crate) const WHEEL_LINES: u32 = PLATFORM_SCROLL_GAIN as u32;
+
 pub use element::{surface, surface_with, Painted};
 use gpui::{Bounds, Pixels, Point};
 use selection::Selection;

@@ -1,13 +1,10 @@
 //! The menu's input layer occludes the listing and keeps resting-pointer opens on the first row.
 use super::{element::MenuElement, menu::Outcome};
-use crate::{state::Shell, window::startup::View};
+use crate::{input::PLATFORM_SCROLL_GAIN, state::Shell, window::startup::View};
 use gpui::{
     div, prelude::*, px, App, Context, Div, Entity, MouseButton, MouseDownEvent, MouseMoveEvent,
     ScrollDelta, ScrollWheelEvent, TouchPhase, Window,
 };
-
-// gpui-pre-linux's SCROLL_LINES and Wayland Axis modifier both gain raw travel by three.
-const PLATFORM_SCROLL_GAIN: f32 = 3.;
 
 pub(crate) fn layer(shell: &Entity<Shell>, window: &Window, cx: &mut App) -> Option<Div> {
     let state = shell.read(cx);

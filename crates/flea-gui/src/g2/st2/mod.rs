@@ -5,10 +5,13 @@ pub mod glyphs;
 mod load;
 pub mod mark;
 pub mod page;
+mod scroll;
 pub mod seam;
 pub mod view;
 
 #[cfg(test)]
 mod page_tests;
+#[cfg(test)]
+mod scroll_tests;
 #[cfg(test)]
 mod view_tests;

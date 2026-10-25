@@ -3,7 +3,7 @@ mod face;
 mod face_cache;
 #[cfg(test)]
 pub(crate) mod fixture;
-mod fonts;
+pub(crate) mod fonts;
 #[cfg(test)]
 mod regression_tests;
 mod service;

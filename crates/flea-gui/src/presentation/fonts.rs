@@ -92,7 +92,7 @@ fn integer(value: &str) -> Option<i64> {
     value.get(..length)?.parse().ok()
 }
 
-fn uncomment(line: &str) -> &str {
+pub(crate) fn uncomment(line: &str) -> &str {
     let mut quote = None;
     for (at, ch) in line.char_indices() {
         match (quote, ch) {
@@ -105,7 +105,7 @@ fn uncomment(line: &str) -> &str {
     line
 }
 
-fn shell_value(raw: &str) -> Option<&str> {
+pub(crate) fn shell_value(raw: &str) -> Option<&str> {
     if raw.starts_with(['\'', '"']) {
         let quote = raw.as_bytes()[0];
         return (raw.len() > 2

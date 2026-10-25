@@ -30,6 +30,8 @@ pub struct Sheet {
     pub decided: Option<Decision>,
     /// The results' scroll, moved only as far as the highlighted row needs.
     pub scroll: f32,
+    /// Up or Down moved the highlight, so the next frame brings it into view.
+    pub moved: bool,
 }
 
 // GPUI key names to the names the sheet's key decision reads.
@@ -63,6 +65,7 @@ impl Sheet {
             requests: Vec::new(),
             decided: None,
             scroll: 0.,
+            moved: false,
         }
     }
 
@@ -131,8 +134,14 @@ impl Sheet {
         let count = self.ranked.len() as i64;
         match sheet_key(&self.query, named(key), text) {
             SheetKey::Close => self.requests.push(Request::Close),
-            SheetKey::Up => self.cursor = step_cursor(self.cursor as i64, -1, count) as usize,
-            SheetKey::Down => self.cursor = step_cursor(self.cursor as i64, 1, count) as usize,
+            SheetKey::Up => {
+                self.cursor = step_cursor(self.cursor as i64, -1, count) as usize;
+                self.moved = true;
+            }
+            SheetKey::Down => {
+                self.cursor = step_cursor(self.cursor as i64, 1, count) as usize;
+                self.moved = true;
+            }
             SheetKey::Activate => {
                 if let Some(row) = self.ranked.get(self.cursor) {
                     let decided = sheet::dispatch(row);

@@ -1,7 +1,9 @@
 //! Per-folder sort and view memory in the existing ui.json schema, written only by a user choice.
 use super::history::trim_slash;
 use flea::{json::escape, jsondoc::Json};
-use std::{process::Command, sync::mpsc, thread};
+
+mod writer;
+pub use writer::Writer;
 
 pub const MAX: usize = 500;
 pub const ORDERS: [&str; 4] = ["name", "size", "mtime", "kind"];
@@ -160,7 +162,7 @@ impl Folders {
     }
 
     pub fn forget(&mut self, path: &str) -> Option<String> {
-        if path.is_empty() {
+        if !self.remember_sort || path.is_empty() {
             return None;
         }
         self.sorts.retain(|(own, _)| own != path);
@@ -268,48 +270,68 @@ pub fn newest_paths(body: &str, home: &str) -> Vec<String> {
     paths
 }
 
-// One worker writes patches in order off the UI thread; a default writer only counts, so no test reaches the real state file.
-#[derive(Default)]
-pub struct Writer {
-    queue: Option<mpsc::Sender<(String, String)>>,
-    live: bool,
-    pub sent: usize,
-}
+#[cfg(test)]
+mod window_tests {
+    use super::*;
+    use crate::{
+        backend::{Backend, Event},
+        state::tests::shell_with,
+        window::navigate::Step,
+    };
+    use flea::protocol::{Reply, RowFacts};
+    use gpui::{AppContext, TestAppContext};
 
-impl Writer {
-    pub fn live() -> Self {
-        Self {
-            live: true,
-            ..Self::default()
-        }
-    }
-
-    pub fn write(&mut self, patch: String, failure: String) {
-        self.sent += 1;
-        if !self.live {
-            return;
-        }
-        if self.queue.is_none() {
-            let (queue, patches) = mpsc::channel::<(String, String)>();
-            let spawned = thread::Builder::new()
-                .name("flea-folder-state".into())
-                .spawn(move || {
-                    for (patch, failure) in patches {
-                        let ok = Command::new(crate::window::startup::binary())
-                            .args(["--ui-state", &patch])
-                            .output()
-                            .is_ok_and(|output| output.status.success());
-                        if !ok {
-                            eprintln!("flea-gui: {failure}");
-                        }
-                    }
-                });
-            if spawned.is_ok() {
-                self.queue = Some(queue);
-            }
-        }
-        if let Some(queue) = &self.queue {
-            let _ = queue.send((patch, failure));
-        }
+    #[gpui::test]
+    fn m9_g1rows_05_shell_browsing_and_refused_forget_never_write(cx: &mut TestAppContext) {
+        let (backend, _requests) = Backend::test_channel();
+        let cx = cx.add_empty_window();
+        let entity = cx.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
+        cx.update(|window, cx| {
+            entity.update(cx, |shell, cx| {
+                let data = flea::uistate::from_file(
+                    r#"{"folderSorts":{"/files":{"key":"size","reverse":true},"/B":{"key":"kind","reverse":false}}}"#,
+                );
+                *shell.panes[0].as_ref().unwrap().nav.folders.borrow_mut() =
+                    Folders::from_settings(&data, Vec::new());
+                assert_eq!(shell.step(0, Step::Open("/B".into()), window, cx), Ok(true));
+                assert_eq!(
+                    shell.step(0, Step::ForgetSort, window, cx),
+                    Err(crate::navigation::Refusal::Busy)
+                );
+                let host = shell.panes[0].as_ref().unwrap();
+                assert_eq!(host.nav.writer.borrow().sent, 0);
+                assert!(host.nav.folders.borrow().has("/files"));
+                for reply in [
+                    Reply::Listed {
+                        path: "/B".into(),
+                        total: 1,
+                    },
+                    Reply::Rows {
+                        start: 0,
+                        rows: vec![RowFacts::default()],
+                        listing: 3,
+                    },
+                ] {
+                    shell.receive(0, Event::Reply(reply), window, cx);
+                }
+                let host = shell.panes[0].as_ref().unwrap();
+                assert_eq!(host.path, "/B");
+                assert_eq!(host.nav.order, Order { key: "kind", desc: false });
+                assert_eq!(shell.step(0, Step::Open("/files".into()), window, cx), Ok(true));
+                for reply in [
+                    Reply::Listed { path: "/files".into(), total: 1 },
+                    Reply::Rows { start: 0, rows: vec![RowFacts::default()], listing: 4 },
+                ] {
+                    shell.receive(0, Event::Reply(reply), window, cx);
+                }
+                let host = shell.panes[0].as_ref().unwrap();
+                assert_eq!(host.path, "/files");
+                assert_eq!(host.nav.order, Order { key: "size", desc: true });
+                assert_eq!(host.nav.writer.borrow().sent, 0);
+                host.nav.folders.borrow_mut().remember_sort = false;
+                assert_eq!(shell.step(0, Step::ForgetSort, window, cx), Ok(true));
+                assert_eq!(shell.panes[0].as_ref().unwrap().nav.writer.borrow().sent, 0);
+            })
+        });
     }
 }

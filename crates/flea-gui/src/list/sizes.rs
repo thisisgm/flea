@@ -69,6 +69,7 @@ struct Key {
     stored: super::columns::StoredWidths,
     strip: u32,
     dual: bool,
+    drawn: Option<View>,
 }
 
 impl Key {
@@ -95,6 +96,7 @@ impl Key {
             stored: super::columns::StoredWidths::from_settings(settings),
             strip: strip.to_bits(),
             dual,
+            drawn: host.drawn_view,
         }
     }
 }
@@ -141,8 +143,8 @@ impl State {
 impl Shell {
     pub(crate) fn sync_list_sizes(&mut self, side: usize, window: &Window, cx: &mut Context<Self>) {
         let geometry = self.geometry(window);
-        let visible =
-            matches!(self.view, View::List | View::Dual) && (side == 0 || self.view == View::Dual);
+        let visible = matches!(self.view, View::List | View::Dual | View::Columns)
+            && (side == 0 || self.view == View::Dual);
         let Some(host) = self.panes[side].as_mut() else {
             return;
         };
@@ -216,7 +218,9 @@ impl Shell {
     }
 
     fn ask_list_sizes(&mut self, side: usize, key: Key, window: &Window, cx: &mut Context<Self>) {
-        if !matches!(self.view, View::List | View::Dual) || (side == 1 && self.view != View::Dual) {
+        if !matches!(self.view, View::List | View::Dual | View::Columns)
+            || (side == 1 && self.view != View::Dual)
+        {
             return;
         }
         let geometry = self.geometry(window);
@@ -240,23 +244,26 @@ impl Shell {
             return;
         }
         host.sizes.task = None;
+        let columns = self.view == View::Columns;
         let class = host.sizes.class.as_deref();
-        if !wants_sizes("list", &[], class.unwrap_or_default(), class.is_some()) {
+        let surface = if columns { "columns" } else { "list" };
+        if !wants_sizes(surface, &[], class.unwrap_or_default(), class.is_some()) {
             return;
         }
-        let list = host.list.borrow();
-        if list.drawn.listing != key.listing || !list.drawn.layout.shown(Column::Size) {
-            return;
-        }
-        let (Some(first), Some(last)) = (list.visible().first(), list.visible().last()) else {
+        let painted = if columns {
+            crate::columns::walks::painted_rows(host, key.listing)
+        } else {
+            let list = host.list.borrow();
+            (list.drawn.listing == key.listing && list.drawn.layout.shown(Column::Size))
+                .then(|| list.visible().first().zip(list.visible().last()))
+                .flatten()
+                .map(|(first, last)| (first.index, last.index))
+        };
+        let Some((first, last)) = painted else {
             return;
         };
         let held = &host.pane.held;
-        let ask = host
-            .sizes
-            .sizes
-            .plan(&held.rows, held.start, first.index, last.index);
-        drop(list);
+        let ask = host.sizes.sizes.plan(&held.rows, held.start, first, last);
         if ask.is_empty() {
             return;
         }
