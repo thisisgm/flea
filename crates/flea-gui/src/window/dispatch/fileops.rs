@@ -150,6 +150,11 @@ impl Shell {
     // Pane.qml act: Delete permanently reviews the rows on a snapshot of its own, then opens the permanent-delete card.
     fn fileops_delete(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         if self.operations.fileops.deleting[side].is_some() {
+            if let Some(chosen) = chosen.filter(|chosen| !chosen.captured.background) {
+                let id = chosen.captured.id;
+                let close = format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{id}}}");
+                self.fileops_send(side, close, cx);
+            }
             let text = self.locale.catalog.tr("jobs.delete.finishing");
             return self.fileops_say(side, &text, false, cx);
         }
