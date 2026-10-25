@@ -49,14 +49,20 @@ fn generated_actions_reach_the_window_and_respect_context_and_preset(cx: &mut Te
             shell.keyboard.disarm();
             shell.launch.settings.data = flea::jsondoc::parse(r#"{"keys":"mac"}"#).unwrap();
             shell.key(&event("n", None, true), window, cx);
+            assert_eq!(shell.strip.tabs[0].count(), 1);
             shell.key(&event("t", None, true), window, cx);
+            assert_eq!(shell.strip.tabs[0].count(), 2);
+            assert_eq!(shell.strip.tabs[0].current(), 1);
             shell.key(&event("x", None, true), window, cx);
             shell.key(&event("3", None, true), window, cx);
             assert_eq!(shell.view, View::Grid);
         })
     });
     cx.run_until_parked();
-    assert_eq!(*observed.borrow(), vec!["tabNew"]);
+    assert!(
+        observed.borrow().is_empty(),
+        "the mounted tab action is consumed"
+    );
 }
 
 #[gpui::test]
@@ -233,7 +239,12 @@ fn a_busy_pane_swallows_a_modified_row_action(cx: &mut TestAppContext) {
         "ctrl-c: {:?}",
         observed.borrow()
     );
-    shell.read_with(cx, |shell, _| assert!(!shell.clipboard.board.paths_pending(0), "ctrl-c reached the clipboard on a busy pane"));
+    shell.read_with(cx, |shell, _| {
+        assert!(
+            !shell.clipboard.board.paths_pending(0),
+            "ctrl-c reached the clipboard on a busy pane"
+        )
+    });
 }
 
 #[gpui::test]
@@ -330,5 +341,7 @@ fn an_idle_pane_emits_the_row_actions_the_busy_tests_hold(cx: &mut TestAppContex
     press(cx, &shell, "c", None, controlled());
     // Copy has an in-process owner now: it asks the backend for its rows instead of leaving an emit nobody hears.
     assert_eq!(*observed.borrow(), vec!["deletePermanently", "rename"]);
-    shell.read_with(cx, |shell, _| assert!(shell.clipboard.board.paths_pending(0)));
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.clipboard.board.paths_pending(0))
+    });
 }
