@@ -163,3 +163,31 @@ fn provider_rows_reach_the_menu_only_while_installed_and_their_plugin_is_on(cx: 
     let hidden = context(&shell, cx);
     assert!(!hidden.localsend_installed && hidden.localsend_peers.is_empty());
 }
+
+// A Taildrop send's own thread reports back: only a send that exits non-zero leaves its sentence as an error.
+#[gpui::test]
+fn a_failed_taildrop_send_says_its_sentence_and_a_finished_one_says_nothing(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let (backend, _lines) = Backend::test_lines();
+    let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
+    let sends = vec![
+        super::seams::Action::Spawn(vec!["true".into()], "sent true".into()),
+        super::seams::Action::Spawn(vec!["false".into()], "sent false".into()),
+    ];
+    shell.update_in(cx, |shell, window, cx| shell.provider_actions(0, sends, window, cx));
+    let errors = |cx: &mut VisualTestContext| {
+        shell.update(cx, |shell, cx| {
+            shell.status_messages(cx, |messages, _| messages.errors().iter().map(|e| e.text.clone()).collect::<Vec<_>>())
+        })
+    };
+    for _ in 0..500 {
+        cx.run_until_parked();
+        if !errors(cx).is_empty() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    cx.run_until_parked();
+    assert_eq!(errors(cx), vec!["sent false".to_string()]);
+}

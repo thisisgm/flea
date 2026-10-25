@@ -189,3 +189,16 @@ fn r2_g_a_status_answer_after_a_backend_death_still_lands() {
     send.taildrop_done(FIRST_RUN, 0, &ready_status(), "", &i18n);
     assert_eq!(send.peers_for(Role::Tailscale).len(), 1, "the host's status answer was dropped");
 }
+
+// A missing send script starts no status run, so a stale pick reads the gone peer, never "checking".
+#[test]
+fn a_missing_send_script_never_reads_as_checking() {
+    let mut send = ProviderSend::default();
+    let facts = Facts { send_command: String::new(), ..facts() };
+    send.menu_opened(&Fake::default(), &facts, Some(&states()), &[], 0);
+    let i18n = english();
+    assert_eq!(
+        send.send_taildrop("nodekey:owned", &["/home/gm/a.txt".to_string()], &i18n),
+        vec![Action::Say("That Taildrop peer is no longer available.".into(), true)]
+    );
+}

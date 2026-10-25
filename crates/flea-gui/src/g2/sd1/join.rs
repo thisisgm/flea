@@ -272,7 +272,7 @@ impl Shell {
     }
 
     // Says go to the footer; runs leave the UI thread and answer back on this side's sender.
-    fn provider_actions(&mut self, side: usize, actions: Vec<Action>, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn provider_actions(&mut self, side: usize, actions: Vec<Action>, window: &mut Window, cx: &mut Context<Self>) {
         for action in actions {
             match action {
                 Action::Say(text, error) => {
