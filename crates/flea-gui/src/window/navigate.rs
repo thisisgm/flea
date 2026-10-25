@@ -125,6 +125,12 @@ impl Shell {
         self.surfaces[side].filesystem.enter(&host.path);
         host.nav
             .after_reply(&mut host.pane, before, &mut host.selected);
+        // Nav.js applyPendingSelect: the asked row lands lone, so v keeps it and a plain move carries it.
+        if let Some(row) = host.nav.lone_landing.take() {
+            if host.selected == [row] {
+                host.input.selection.only(&mut host.selected, row);
+            }
+        }
         if let Some(changed) = host.nav.reloaded.take() {
             let notice = crate::strips::status_host::reloaded(&self.locale.catalog, changed);
             self.status_messages(cx, |messages, now| {

@@ -106,6 +106,8 @@ pub struct Navigator {
     pub pending_select: Option<String>,
     /// The listing and row a navigation selected on landing, which Escape climbs through as no mark.
     pub landed: Option<(usize, usize)>,
+    /// The row a deep target landed as Nav.js only(index, true): a lone selection the window's Selection must keep lone.
+    pub lone_landing: Option<usize>,
     /// A manual reload out: its folder and the count it left, then the changed count the backend named.
     pub reload_from: Option<(String, usize)>,
     pub reload_changed: Option<usize>,

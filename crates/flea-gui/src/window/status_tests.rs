@@ -9,6 +9,8 @@ mod cards;
 mod disk;
 #[path = "status_failure_tests.rs"]
 mod failures;
+#[path = "status_locked_menu_tests.rs"]
+mod locked_menu;
 #[path = "status_omi_tests.rs"]
 mod omi;
 #[path = "status_owner_tests.rs"]

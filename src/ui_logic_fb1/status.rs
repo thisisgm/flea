@@ -45,6 +45,8 @@ pub enum Hint {
     Paste,
     Deletes,
     Note(Note, bool),
+    /// A notice that names the key which clears it, as the locked-menu board's status line does.
+    Dismiss,
 }
 
 /// One lane segment of a hint, the undo key kept apart so it can draw as its own target.
@@ -75,6 +77,10 @@ impl Hint {
                     preset,
                     "deletePermanently",
                 ),
+                undo: String::new(),
+            },
+            Self::Dismiss => HintText {
+                rest: catalog.tr_args("feedback.hint.dismiss", &[DISMISS_KEY]),
                 undo: String::new(),
             },
             Self::Note(note, with_undo) => HintText {

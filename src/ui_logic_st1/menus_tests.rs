@@ -138,3 +138,31 @@ fn the_shipped_hidden_list_is_the_schema_default() {
     let ids: Vec<&str> = list.split('"').skip(5).step_by(2).collect();
     assert_eq!(ids, SHIPPED_HIDDEN);
 }
+
+// EY-08: a fresh ui.json leaves Open and Inspect at the board's 5 of 14, Open in Agent off.
+#[test]
+fn a_fresh_install_counts_open_and_inspect_five_of_fourteen() {
+    let data = crate::uistate::from_file("{}");
+    let hidden = crate::ui_logic_st1::pages::hidden(&data);
+    let group = crate::ui_logic_st1::menus::GROUPS
+        .iter()
+        .find(|g| g.id == "openInspect")
+        .unwrap();
+    let on: Vec<&str> = group
+        .ids
+        .iter()
+        .copied()
+        .filter(|id| !hidden.iter().any(|h| h == id))
+        .collect();
+    assert_eq!(
+        on,
+        [
+            "openwith",
+            "print",
+            "makeExecutable",
+            "showOriginal",
+            "tags"
+        ],
+        "hidden {hidden:?}"
+    );
+}
