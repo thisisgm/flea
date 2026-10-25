@@ -33,7 +33,11 @@ pub fn align(data: &[u8], first: usize, count: usize, delim: u8, record: Option<
     let mut quoted = false;
     let mut field_start = true;
     // A UTF-8 BOM is a file prefix, not part of the first field.
-    let mut at = if data.starts_with(b"\xef\xbb\xbf") { 3 } else { 0 };
+    let mut at = if data.starts_with(b"\xef\xbb\xbf") {
+        3
+    } else {
+        0
+    };
     loop {
         let eof = at == data.len();
         let byte = data.get(at).copied().unwrap_or(b'\n');
@@ -133,19 +137,6 @@ mod tests {
     }
 
     #[test]
-    fn code_csv_bom_before_a_quoted_header_keeps_record_boundaries() {
-        for separator in [",", "\t"] {
-            let data = format!("\u{feff}\"Full\nname\"{separator}Amount\nAlice{separator}10\n");
-            let result = reply(&data, 2, 1, separator);
-            assert_eq!(window(&result), (1, 2), "the header is one multiline record");
-            assert_eq!(result.get("records").and_then(Json::as_f64), Some(2.0));
-            assert_eq!(result.get("firstRecord").and_then(Json::as_f64), Some(1.0));
-            let body = reply(&data, 3, 1, separator);
-            assert_eq!(body.get("firstRecord").and_then(Json::as_f64), Some(2.0));
-        }
-    }
-
-    #[test]
     fn code_csv_a_quote_inside_an_unquoted_field_is_literal() {
         let data = "id,note\n1,5\" disk\n2,last\n";
         assert_eq!(window(&reply(data, 2, 1, ",")), (2, 1));
@@ -206,6 +197,33 @@ mod tests {
             assert_eq!(result.get("firstRecord").and_then(Json::as_f64), Some(3.0));
             assert_eq!(result.get("total").and_then(Json::as_f64), Some(5.0));
         }
+    }
+
+    #[test]
+    fn code_csv_a_leading_bom_keeps_a_quoted_header_one_record() {
+        for (data, csv) in [
+            ("\u{feff}\"Full\r\nname\",Amount\r\nAlice,10\r\n", ","),
+            ("\u{feff}\"Full\r\nname\"\tAmount\r\nAlice\t10\r\n", "\t"),
+        ] {
+            let result = reply(data, 2, 1, csv);
+            assert_eq!(
+                window(&result),
+                (1, 2),
+                "the header's quoted newline stays inside record 1"
+            );
+            assert_eq!(
+                result.get("records").and_then(Json::as_f64),
+                Some(2.0),
+                "the BOM never starts a field"
+            );
+            assert_eq!(window(&reply(data, 3, 1, csv)), (3, 1));
+        }
+        let later = "id,note\n\u{feff}\"a\nb\",9\n";
+        assert_eq!(
+            window(&reply(later, 3, 1, ",")),
+            (3, 1),
+            "a BOM after the first byte is field text"
+        );
     }
 
     #[test]
