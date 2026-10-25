@@ -2,6 +2,9 @@
 use super::mount::{Effect, Request};
 use flea::{ui_logic_pl1::Note, ui_logic_pl2::form::Form};
 
+/// The longest phone URI or mount path that may reach argv.
+const MAX_URI_BYTES: usize = 8192;
+
 /// A phone root "gio mount -li" offered: gvfs's MTP, AFC or GPhoto2 transport, opened like a share (ui/Sidebar.qml:385).
 pub(super) fn phone(uri: &str) -> bool {
     let Some((scheme, rest)) = uri.split_once("://") else {
@@ -9,7 +12,7 @@ pub(super) fn phone(uri: &str) -> bool {
     };
     matches!(scheme, "mtp" | "afc" | "gphoto2")
         && !rest.trim_end_matches('/').is_empty()
-        && uri.len() <= 8192
+        && uri.len() <= MAX_URI_BYTES
         && !uri.chars().any(|ch| ch.is_control() || ch.is_whitespace())
 }
 
@@ -61,6 +64,6 @@ pub(super) fn release_identity(
 pub(super) fn valid_mount_path(path: &str) -> bool {
     path.starts_with('/')
         && path != "/"
-        && path.len() <= 8192
+        && path.len() <= MAX_URI_BYTES
         && !path.chars().any(char::is_control)
 }
