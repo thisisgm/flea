@@ -224,6 +224,18 @@ impl Rect {
     }
 }
 
+/// Qt anchors.horizontalCenter start: an odd width's centre rounds up, so a 64 px slot sits 42 px into a 147 px cell.
+pub fn centred_x(outer: f32, inner: f32) -> f32 {
+    let half = |width: f32| {
+        if width as i32 % 2 == 1 {
+            (width + 1.) / 2.
+        } else {
+            width / 2.
+        }
+    };
+    half(outer) - half(inner)
+}
+
 /// A decoded picture aspect-fit in its slot and centred on whole pixels, GridTile.qml's PreserveAspectFit in a slot-sized Image.
 pub fn fit_picture(slot: Rect, width: u32, height: u32) -> Rect {
     if width == 0 || height == 0 {
