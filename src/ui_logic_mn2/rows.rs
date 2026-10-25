@@ -68,7 +68,7 @@ pub fn static_glyph(name: &str) -> Option<&'static str> {
         .find(|id| *id == name)
 }
 
-// The cut paths mn2 hands the join so it can register what mn1 does not draw yet: zap and bot from the board source (`design-hig/source/ui.py`, lucide's zap and bot cut to the Omarchy edge), hash as the plugin board draws Verify Checksum (`boards/plugin-menu-rows.html`, lucide's hash).
+// The cut paths mn2 hands the join: zap and bot (mn1 draws the same cuts; `design-hig/source/ui.py`, lucide's zap and bot cut to the Omarchy edge), hash as the plugin board draws Verify Checksum (mn1 draws no hash; `boards/plugin-menu-rows.html`, lucide's hash).
 pub const MARKS: &[(&str, &str)] = &[
     ("zap", "M13 2 3 14h9l-1 8 10-12h-9l1-8z"),
     ("bot", "M12 8V4H8 M4 8h16v12H4z M2 14h2 M20 14h2 M15 13v2 M9 13v2"),
