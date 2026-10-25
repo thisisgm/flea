@@ -56,7 +56,7 @@ impl Shell {
             "focusPreview" => {
                 let focus = preview.read(cx).focus.clone();
                 window.focus(&focus, cx);
-                self.keyboard.context = flea::keys::Context::Preview;
+                self.keyboard.context = preview.read(cx).key_context();
             }
             "escape" if preview.read(cx).focus.is_focused(window) => {
                 window.focus(&self.focus, cx);

@@ -446,7 +446,7 @@ impl HtmlView {
         self.scroll_by(rows as f32 * self.metrics.row_height, cx);
     }
 
-    fn scroll_by(&mut self, pixels: f32, cx: &mut Context<Self>) {
+    pub fn scroll_by(&mut self, pixels: f32, cx: &mut Context<Self>) {
         let end = (self.page_size().1 as f32 - self.frame.1).max(0.);
         self.scroll_y = (self.scroll_y + pixels).clamp(0., end);
         cx.notify();

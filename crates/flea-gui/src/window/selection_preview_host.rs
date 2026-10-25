@@ -203,7 +203,7 @@ impl Shell {
                 let Ok(document) = flea::jsondoc::parse(line) else {
                     return false;
                 };
-                return entity.update(cx, |view, cx| view.on_line(&document, line, cx));
+                return entity.update(cx, |view, cx| view.on_line(&document, line, window, cx));
             }
             _ => {}
         }

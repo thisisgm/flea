@@ -58,6 +58,7 @@ fn row(name: String, icon: &str, size: u64, dir: bool) -> RowFacts {
         icon: icon.into(),
         link: None,
         real_modes: true,
+        kind: String::new(),
     }
 }
 

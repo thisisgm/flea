@@ -1864,6 +1864,8 @@
   "preview.zoom_in": "Zoom in",
   "preview.expand": "Expand",
   "preview.unpacked_size": "%1 unpacked",
+  "preview.no_preview": "no preview",
+  "preview.no_thumb": "no preview could be made",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",

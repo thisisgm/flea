@@ -65,6 +65,8 @@ pub struct ArchiveView {
     pub asks: usize,
     pub painted: Cell<usize>,
     pub shaped: usize,
+    /// The preview column's Archive tile (PreviewArchive.qml): the entries alone, the name and count drawn under the frame.
+    pub column: bool,
 }
 
 impl ArchiveView {
@@ -91,6 +93,7 @@ impl ArchiveView {
             asks: 0,
             painted: Cell::new(0),
             shaped: 0,
+            column: false,
         }
     }
 
@@ -171,7 +174,11 @@ impl ArchiveView {
     /// The rows the frame lists below the name and the count line, the "+ N more" line held back.
     pub fn shown(&self, height: f32) -> usize {
         let m = &self.metrics;
-        let head = m.inset + f32::from(m.name) * 1.3 + m.gap + f32::from(m.caption) * 1.3 + m.gap;
+        let head = if self.column {
+            2. * m.inset
+        } else {
+            m.inset + f32::from(m.name) * 1.3 + m.gap + f32::from(m.caption) * 1.3 + m.gap
+        };
         archive::shown(f64::from((height - head).max(0.)), f64::from(m.row))
     }
 
@@ -226,14 +233,17 @@ impl ArchiveView {
             .file_name()
             .map_or(self.path.clone(), |n| n.to_string_lossy().into());
         let shown = key.0;
+        let head = !self.column;
         let frame = Rc::new(Frame {
-            name: Some(text(name, m.name, full, Elide::Middle)),
-            line: Some(text(
-                archive::line(&catalog, meta),
-                m.caption,
-                full,
-                Elide::End,
-            )),
+            name: head.then(|| text(name, m.name, full, Elide::Middle)),
+            line: head.then(|| {
+                text(
+                    archive::line(&catalog, meta),
+                    m.caption,
+                    full,
+                    Elide::End,
+                )
+            }),
             rows: archive::entries(meta, shown)
                 .iter()
                 .map(|(entry, dir)| (*dir, text(entry.clone(), m.caption, beside, Elide::End)))
@@ -241,7 +251,7 @@ impl ArchiveView {
             more: archive::more_line(&catalog, meta, shown)
                 .map(|more| text(more, m.caption, full, Elide::End)),
         });
-        self.shaped += 2 + frame.rows.len() + usize::from(frame.more.is_some());
+        self.shaped += 2 * usize::from(head) + frame.rows.len() + usize::from(frame.more.is_some());
         self.frame = Some((key, Rc::clone(&frame)));
         Some(frame)
     }

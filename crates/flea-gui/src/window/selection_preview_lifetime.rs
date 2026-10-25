@@ -17,6 +17,7 @@ impl SelectionPreview {
                     player.update(cx, |player, cx| player.close(cx));
                 }
             }
+            Mounted::Doc(doc) => doc.close(window, cx),
             Mounted::Basic => {}
         }
         if let Some(source) = frame.source.take() {
