@@ -245,9 +245,10 @@ fn mn2_every_manifest_syntax_fault_has_its_own_key() {
         "control character in string",
         "unclosed string",
     ] {
-        assert!(
-            manifest_key("r.toml", error).is_some(),
-            "no key for {error}"
+        assert_eq!(
+            manifest_key("r.toml", error),
+            Some((SYNTAX_KEY, vec!["r.toml".to_string(), error.to_string()])),
+            "the syntax key with the file and the fault for {error}"
         );
     }
     assert!(manifest_key("r.toml", "a sentence no backend sends").is_none());

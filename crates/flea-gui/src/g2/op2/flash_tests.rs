@@ -354,3 +354,21 @@ fn a_dead_backend_ends_a_running_flash_with_a_failure() {
     assert!(!handed.running());
     assert!(opened().on_failed(&i18n).is_empty(), "with nothing running only the press ends");
 }
+
+#[test]
+fn a_reopen_while_the_press_is_in_flight_keeps_its_image_and_drive() {
+    let i18n = english();
+    let mut view = opened();
+    assert!(!view.press_flash().is_empty(), "the press is sent");
+    assert_eq!(view.key(Key::Escape), [super::Effect::Close], "Escape before flashstarted only hides the card");
+    assert!(view.open_with_image("/d/other.iso").is_empty(), "a reopen onto another image sends nothing while the press is in flight");
+    assert!(view.open_with_drive("sdz").is_empty(), "a reopen onto another drive sends nothing while the press is in flight");
+    view.start_transfer(&i18n, 1, 1000, true, 0);
+    assert_eq!(view.view(&i18n).image.name, "debian-13.iso", "the running erase keeps the image it was pressed with");
+    assert_eq!(view.selected(), Some(0), "and the drive it was pressed with");
+    let handed = view.key(Key::Escape);
+    assert!(
+        matches!(handed.as_slice(), [super::Effect::HandTransfer(block)] if block.head.contains("128GB")),
+        "the handed run names the pressed drive: {handed:?}"
+    );
+}

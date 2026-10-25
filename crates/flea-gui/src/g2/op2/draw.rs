@@ -116,7 +116,7 @@ impl Draw<'_> {
             .border_color(frame)
             .rounded(self.px(self.r / 2.))
             .when(check.checked, |d| d.bg(t.fg))
-            .when(check.checked, |d| d.child(glyph(Glyph::Check, 12. * self.s, t.surface)));
+            .when(check.checked, |d| d.child(glyph(Glyph::Check, CHECK_GLYPH * self.s, t.surface)));
         div().flex().items_center().gap(self.px(ROW_GAP)).child(box_).child(self.text(BOARD_BODY).text_color(t.fg).child(check.label.clone()))
     }
 
