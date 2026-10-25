@@ -57,6 +57,8 @@ mod effect_tests;
 #[cfg(test)]
 mod families_tests;
 #[cfg(test)]
+mod fileops_arrival_tests;
+#[cfg(test)]
 mod fileops_menu_tests;
 #[cfg(test)]
 mod fileops_tests;
