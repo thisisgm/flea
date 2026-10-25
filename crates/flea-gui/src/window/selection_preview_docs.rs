@@ -34,13 +34,12 @@ pub(crate) struct Look {
 const LINE_PITCH: f32 = 1.3;
 /// The opacity of an archive's "and more" line.
 const MORE_OPACITY: f32 = 0.6;
+/// A row's vertical pad as a multiple of the base size, 6 px at base 12.
+const ROW_PAD_Y: f32 = 6. / 12.;
 
 impl Look {
     fn row(&self) -> f32 {
         (f32::from(self.face.caption) * LINE_PITCH).round()
-    }
-    fn state_mark(&self) -> f32 {
-        crate::window::preview_facts::state_mark_size(&self.face)
     }
     fn code(&self, numbered: bool) -> CodeView {
         let m = &self.metrics;
@@ -67,7 +66,7 @@ impl Look {
                 right: m.gap,
                 row: self.row(),
                 gap: m.gap,
-                state_mark: self.state_mark(),
+                state_mark: crate::window::preview_facts::state_mark_size(&self.face),
             },
             self.mark.clone(),
         );
@@ -135,9 +134,9 @@ impl Doc {
                     gap: m.gap,
                     hairline: m.hairline,
                     row_pad_x: m.pad,
-                    row_pad_y: (6. * f32::from(look.face.base) / 12.).round(),
+                    row_pad_y: (ROW_PAD_Y * f32::from(look.face.base)).round(),
                     mark: m.mark,
-                    state_mark: look.state_mark(),
+                    state_mark: crate::window::preview_facts::state_mark_size(&look.face),
                     column: true,
                 };
                 let t = &look.theme;

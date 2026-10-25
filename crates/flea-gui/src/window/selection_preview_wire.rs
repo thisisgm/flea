@@ -124,6 +124,7 @@ pub(crate) fn code_reply(doc: &Json) -> code_view::Reply {
     }
 }
 
+/// Sample input: {"t":"code","token":4,"slot":"column","state":"plain","first":1,"total":2,"lines":[[0,"# Title"],[]]}.
 pub(crate) fn markdown_answer(doc: &Json) -> CodeAnswer {
     let state = match doc.get("state").and_then(Json::as_str).unwrap_or("") {
         "styled" => CodeState::Styled,
@@ -141,6 +142,7 @@ pub(crate) fn markdown_answer(doc: &Json) -> CodeAnswer {
     }
 }
 
+/// Sample input: {"t":"html","slot":"column","token":3,"state":"ready","file":"/cache/x.png","total":61,"width":984,"title":"Page"}.
 pub(crate) fn html_reply(doc: &Json) -> flea::ui_logic_pv2::html::Reply {
     let text = |key| doc.get(key).and_then(Json::as_str).unwrap_or("").to_owned();
     flea::ui_logic_pv2::html::Reply {
