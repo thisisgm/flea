@@ -73,6 +73,10 @@ pub(super) fn shell(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &m
     (shell, cx, (actions, asks), subscriptions)
 }
 
+fn clear_status(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) {
+    shell.update(cx, |shell, _| shell.panes[0].as_mut().unwrap().status = Default::default());
+}
+
 pub(super) fn quit(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) {
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
@@ -145,10 +149,13 @@ fn the_exit_status_picks_the_next_step(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("enter");
     answering(Some(5), "");
     cx.simulate_keystrokes("enter");
-    answering(Some(4), "");
-    cx.simulate_keystrokes("enter");
-    answering(None, "");
-    cx.simulate_keystrokes("enter");
+    // Each failure press starts from a clear status, so a regression to Done cannot pass on an older sentence.
+    for answer in [Some(4), None] {
+        clear_status(&shell, cx);
+        answering(answer, "");
+        cx.simulate_keystrokes("enter");
+        assert_eq!(status(&shell, cx), "No application on this system opened that file.", "{answer:?} with no line");
+    }
     assert_eq!(launched().len(), 5);
     let path = "/files/notes.txt".to_string();
     assert_eq!(
@@ -158,7 +165,6 @@ fn the_exit_status_picks_the_next_step(cx: &mut TestAppContext) {
             Asked { side: 0, opened: Opened::AskOpenWith(path) },
         ]
     );
-    assert_eq!(status(&shell, cx), "No application on this system opened that file.");
     // Opener.qml isDirectoryStatus: the path named a folder by the time it ran, so the pane goes there.
     answering(Some(3), "");
     cx.simulate_keystrokes("enter");
