@@ -3,7 +3,7 @@
 
   flea-field-instant budget                                      the journey table as JSON, the data a gate reads
   flea-field-instant fixtures ROOT [--usb DIR] [--nas DIR]       build every fixture in marked sandbox roots
-  flea-field-instant run PART --root ROOT --flea TREE --out DIR [--samples N] [--dry] [--only REGEX]   one census part
+  flea-field-instant run PART --root ROOT --flea TREE --out DIR [--samples N] [--dry] [--only REGEX] [--frontend gpui|qml] [--bin FILE]   one census part
   flea-field-instant measure PLAN.json                           the same from a plan file: {"part", "root", "flea", "out", "samples", "only"}
   flea-field-instant report JSONL... [--out FILE] [--calibrate FILE]   the census table in Markdown
   flea-field-instant gate JSONL... [--out FILE] [--part PART]... [--only REGEX]   pass or fail against the budget ceilings
@@ -608,7 +608,7 @@ def scroll_point(view, region, left):
 
 def external_clients(clients, owned):
     """The mapped clients that are not Flea's: Flea's are of class S.FLEA_CLASS and owned by a pid under the launched process."""
-    return [c for c in clients if c.get("mapped", True) and not (c.get("class") == S.FLEA_CLASS and c.get("pid") in owned)]
+    return [c for c in clients if c.get("mapped", True) and not (c.get("class") in (S.FLEA_CLASS, "flea") and c.get("pid") in owned)]
 
 
 class ExternalWindow(Exception):
@@ -627,7 +627,8 @@ class Session:
         self.patch, self.taken = dict(ui_patch(view, fixture, right), **(ui or {})), []
         state = flea_state(ctx, self.patch)
         tree = ctx["tree"]
-        env = dict(S.ENV, FLEA_BIN=tree + "/target/release/flea", FLEA_UI=tree + "/ui", XDG_STATE_HOME=state,
+        env = dict(S.ENV, FLEA_BIN=ctx.get("binary") or tree + "/target/release/flea",
+                   FLEA_FRONTEND=ctx.get("frontend", S.Product.frontend({})), FLEA_UI=tree + "/ui", XDG_STATE_HOME=state,
                    QML_DISK_CACHE_PATH=tree + "/target/qmlcache", HOME=ctx["sbx"] + "/home",
                    XDG_DATA_HOME=ctx["sbx"] + "/data", XDG_CACHE_HOME=ctx["sbx"] + "/cache",
                    XDG_CONFIG_HOME=ctx["config_home"])
@@ -641,7 +642,7 @@ class Session:
             win = None
             while win is None and time.monotonic() - t0 < 60:
                 owned = S.descendants(self.proc.pid)
-                win = next((c for c in S.clients() if c.get("class") == S.FLEA_CLASS and c.get("pid") in owned), None)
+                win = next((c for c in S.clients() if c.get("class") == S.Product.window_class({"frontend": env["FLEA_FRONTEND"]}) and c.get("pid") in owned), None)
                 time.sleep(0.05)
             if win is None:
                 raise RuntimeError("no Flea window mapped in 60 s")
@@ -653,7 +654,7 @@ class Session:
             (wx, wy), (ww, wh) = win["at"], win["size"]
             self.win = (wx, wy, ww, wh)
             self.known = set(self.outsiders())
-            self.ipc_client = Client(ctx["tree"] + "/target/release/flea")
+            self.ipc_client = Client(env["FLEA_BIN"], frontend=env["FLEA_FRONTEND"])
             self.qs_pid = qs_pid(ctx, self.proc, self.ipc_client)
             self.set_region(region)
         except BaseException:
@@ -826,7 +827,7 @@ def flea_state(ctx, patch):
     if key not in ctx["states"]:
         d = tempfile.mkdtemp(prefix="state-", dir=os.path.join(ctx["sbx"], "states"))
         os.makedirs(d + "/no-config", exist_ok=True)
-        subprocess.run([ctx["tree"] + "/target/release/flea", "--ui-state", json.dumps(patch)],
+        subprocess.run([ctx.get("binary") or ctx["tree"] + "/target/release/flea", "--ui-state", json.dumps(patch)],
                        env=dict(S.ENV, XDG_STATE_HOME=d, XDG_CONFIG_HOME=d + "/no-config"),
                        capture_output=True, check=True)
         ctx["states"][key] = d
@@ -2209,7 +2210,7 @@ def dry_targets(sessions):
     return out, bad
 
 
-def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, only=None):
+def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, only=None, frontend=None, binary=None):
     with open(os.path.join(os.path.realpath(root), "fixtures.json")) as f:
         fx = json.load(f)
     sessions = parts(fx, samples)[part]
@@ -2232,7 +2233,7 @@ def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, on
     S.require_idle()
     keys = N.NavKeys()
     ctx = {"tree": tree, "root": fx["root"], "fx": fx, "sbx": fx["root"], "out_dir": out_dir, "keys": keys,
-           "states": {}, "evidence": evidence, "config_home": os.environ.get("XDG_CONFIG_HOME") or
+           "states": {}, "evidence": evidence, "frontend": frontend or S.Product.frontend({}), "binary": binary, "config_home": os.environ.get("XDG_CONFIG_HOME") or
            os.path.expanduser("~/.config"),
            "roots": [fx["root"]] + [fx[x] for x in ("usb", "nas") if fx.get(x)]}
     ctx["rec_bin"] = S.build_recorder(os.path.join(out_dir, "rec"))
@@ -2251,6 +2252,8 @@ def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, on
     with open(out_path, "x") as out:
         emit(out, {"manifest": {"date": time.strftime("%Y-%m-%d %H:%M:%S"), "host": socket.gethostname(),
                                 "plan": plan, "flea_head": head, "repeat": ctx["repeat"],
+                                "product": S.arm_identity({"entrant": "flea", "flea_dir": tree,
+                                                           "flea_bin": binary, "frontend": ctx["frontend"]}),
                                 "monitor": {x: mon.get(x) for x in ("name", "width", "height", "refreshRate", "scale")},
                                 "quiet_s": QUIET, "cap_s": CAP, "pace_ms": PACE_MS, "budget": BUDGET}})
         for i, spec in enumerate(sessions):
@@ -4107,12 +4110,13 @@ def main(argv):
         return calibrate(int(opt("--runs", 10)))
     if cmd == "run":
         return run_part(rest[0], opt("--root"), opt("--flea"), opt("--out"), int(opt("--samples", 20)),
-                        "--dry" in rest, "--no-evidence" not in rest, opt("--only"))
+                        "--dry" in rest, "--no-evidence" not in rest, opt("--only"), opt("--frontend"), opt("--bin"))
     if cmd == "measure":
         with open(rest[0]) as f:
             plan = json.load(f)
         return run_part(plan["part"], plan["root"], plan["flea"], plan["out"], plan.get("samples", 20),
-                        plan.get("dry", False), plan.get("evidence", True), plan.get("only"))
+                        plan.get("dry", False), plan.get("evidence", True), plan.get("only"),
+                        plan.get("frontend"), plan.get("flea_bin"))
     print("unknown command " + cmd, file=sys.stderr)
     return 2
 

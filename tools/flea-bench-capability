@@ -15,13 +15,13 @@ cd "$(dirname "$0")/.." || exit 1
 FLEA_REPO=$PWD
 . "$FLEA_REPO/tools/flea-sandbox-guard"
 
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="${B5_BENCH_PATH:-$HOME/.local/bin:$PATH}"
 eval "$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env)"
 
 MEDIA=${MEDIA:-$FIXTURE_ROOT/flea-media-btrfs}
 FLEA_UI="$FLEA_REPO/ui"
-FLEA_BIN="$FLEA_REPO/target/release/flea"
-STRATA_BIN=${STRATA_BIN:-$HOME/Work/strata/target/release/strata}
+FLEA_BIN="${FLEA_BIN:-$FLEA_REPO/target/release/flea}"
+STRATA_BIN=${STRATA_STABLE_BIN:-${STRATA_BIN:-}}
 # The one entrant in this field that persists no thumbnail. strata renders each one in a sandboxed
 # helper that writes result.png into /tmp/strata-preview-<pid>-<n> and deletes the directory on drop
 # (src/sandbox.rs:382 names it, :53 the file, :397 removes it), so it fills the screen and leaves
@@ -145,11 +145,18 @@ pids_for_target() {
 
 select_process_targets() {
   if [ "$CAP_ONLY" = flea ]; then
-    PROCESS_TARGETS=("qs|$FLEA_UI" "flea|")
+    if [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
+      PROCESS_TARGETS=("flea-gui|$(dirname "$FLEA_BIN")/flea-gui" "flea|")
+    else
+      PROCESS_TARGETS=("qs|$FLEA_UI" "flea|")
+    fi
+  elif [ "$CAP_ONLY" = strata-nightly ] || [ "$CAP_ONLY" = strata-stable ]; then
+    PROCESS_TARGETS=("strata|" )
   elif [ -n "$CAP_ONLY" ]; then
     PROCESS_TARGETS=("$CAP_ONLY|")
   else
     PROCESS_TARGETS=(
+      "flea-gui|$(dirname "${FLEA_BIN:-/nonexistent-flea-bench/flea}")/flea-gui"
       "qs|$FLEA_UI" "flea|" "nautilus|" "thunar|" "pcmanfm|" "nemo|"
       "dolphin|" "strata|" "tumblerd|"
     )
@@ -378,9 +385,15 @@ stop_watches() {
 
 require_flea_enumeration() {
   local shells status=0
-  shells=$(LC_ALL=C.UTF-8 LANGUAGE= qs list --all 2>/dev/null) || status=$?
+  local listing="qs list --all"
+  if [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
+    listing="native IPC list --all"
+    shells=$(FLEA_IPC_KIND=gpui FLEA_IPC_BIN="$FLEA_BIN" FLEA_IPC_HELPER="$FLEA_REPO/tools/flea-ipc" "$FLEA_REPO/tools/flea-ipc" list --all 2>/dev/null) || status=$?
+  else
+    shells=$(LC_ALL=C.UTF-8 LANGUAGE= qs list --all 2>/dev/null) || status=$?
+  fi
   [ "$status" -eq 0 ] \
-    || { printf 'REFUSED: qs list --all failed with status %s\n' "$status" >&2; return 1; }
+    || { printf 'REFUSED: %s failed with status %s\n' "$listing" "$status" >&2; return 1; }
   case "$shells" in
     *"Shell ID: flea"*) printf 'REFUSED: a Flea instance already owns the display\n' >&2; return 1 ;;
   esac
@@ -457,7 +470,7 @@ trap 'cap_terminate 130' INT
 trap 'cap_terminate 143' TERM
 # A transient entrant is measured by live watch and never writes this cache, so a run for it alone
 # has no reason to move the operator's real one out from under whatever else is on screen.
-if [ "$CAP_ONLY" != "$TRANSIENT_ID" ]; then
+if [ "$CAP_ONLY" != "$TRANSIENT_ID" ] && [ "$CAP_ONLY" != strata-nightly ] && [ "$CAP_ONLY" != strata-stable ]; then
   park_thumbs
 fi
 
@@ -578,11 +591,14 @@ mkdir -p "$(dirname "$OUT")"
 } > "$OUT"
 
 # Sample input, one row of the field bench's ENTRANTS table: "strata|gui|io.github.lgse.Strata|strata||||setsid nohup $STRATA_BIN $FIXTURE"
-# corner: one multi-statement sed expands the six variables the bench's command field uses, rather than six processes.
+# The shared builder expands the same product paths and optional channels as the timing instrument.
 # capability roster begin
-mapfile -t CAP_ROWS < <(LC_ALL=C.UTF-8 LANGUAGE= sed -n '/^  declare -ga ENTRANTS=(/,/^  )/p' "$FLEA_REPO/tools/flea-field-bench" \
-  | LC_ALL=C.UTF-8 LANGUAGE= grep '^    "' | LC_ALL=C.UTF-8 LANGUAGE= tr -d '"' \
-  | LC_ALL=C.UTF-8 LANGUAGE= sed "s|\$FIXTURE|$FIXTURE|g; s|\$FLEA_UI|$FLEA_UI|g; s|\$FLEA_BIN|$FLEA_BIN|g; s|\$STRATA_BIN|$STRATA_BIN|g; s|\$FLEA_STATE|$FLEA_STATE|g; s|\$FLEA_QMLCACHE|$FLEA_QMLCACHE|g")
+mapfile -t CAP_ROWS < <(
+  TUI_CONF= TUI_CLASS=flea-bench-kitty TUI_TERM=kitty WITH_ANCHOR=no
+  eval "$(LC_ALL=C.UTF-8 LANGUAGE= sed -n '/^build_entrants() {$/,/^}$/p' "$FLEA_REPO/tools/flea-field-bench")"
+  build_entrants
+  printf '%s\n' "${ENTRANTS[@]}"
+)
 # capability roster end
 [ ${#CAP_ROWS[@]} -gt 0 ] || fail "no entrant rows were read out of tools/flea-field-bench"
 
@@ -594,13 +610,17 @@ for cap_row in "${CAP_ROWS[@]}"; do
   # A variable the bench table gained and this pass does not expand would run empty, so it stops the pass instead.
   case $cmd in *'$'*) fail "entrant $id's command still names an unexpanded variable: $cmd" ;; esac
   [ -z "$CAP_ONLY" ] || [ "$id" = "$CAP_ONLY" ] || continue
-  if [ "$id" = strata ]; then
+  if [ "$id" = flea ] && [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
+    [ -x "$(dirname "$FLEA_BIN")/flea-gui" ] || fail "GPUI binary is absent beside $FLEA_BIN"
+  elif [ "$id" = strata-nightly ]; then
+    [ -x "${STRATA_NIGHTLY_BIN:-}" ] || fail "Strata nightly binary is absent"
+  elif [ "$id" = strata ] || [ "$id" = strata-stable ]; then
     [ -x "$STRATA_BIN" ] || { printf 'SKIP: strata is not built at %s\n' "$STRATA_BIN" >&2; continue; }
   else
     command -v "$comm" >/dev/null 2>&1 || { printf 'SKIP: %s is not installed\n' "$id" >&2; continue; }
   fi
 
-  if [ "$id" = "$TRANSIENT_ID" ]; then
+  if [ "$id" = "$TRANSIENT_ID" ] || [ "$id" = strata-nightly ] || [ "$id" = strata-stable ]; then
     cap_transient "$id" "$cmd"
     continue
   fi
