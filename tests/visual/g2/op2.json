@@ -330,6 +330,7 @@
         "card": "compress",
         "format": "7z",
         "focus": "encrypt",
+        "encrypt_names": true,
         "key": "space",
         "path": "/fx/v/work"
       },
