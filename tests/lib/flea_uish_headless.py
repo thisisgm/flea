@@ -108,11 +108,26 @@ class Host:
         self.log.close()
         self.remove_root()
 
+    def keep_log(self, error):
+        # The root and its driver.log go next, so the tail is printed once and travels in the error.
+        path = self.root / "driver.log"
+        tail = path.read_text(errors="replace")[-LOG_TAIL_CHARS:] if path.is_file() else ""
+        if not tail:
+            return
+        if not getattr(self, "tail_printed", False):
+            print(tail, file=sys.stderr)
+            self.tail_printed = True
+        note = "driver.log tail:\n" + tail
+        if error is not None and note not in getattr(error, "__notes__", ()):
+            error.add_note(note)
+
     def remove_root(self):
-        # Only the marked host.* root this host made, after every log tail has printed.
+        # Only the marked host.* root this host made; an error in flight keeps the log tail first.
         root, parent = self.root, (REPO / ".superpowers/m9-uish-02").resolve()
         if not root.exists():
             return
+        if sys.exception() is not None:
+            self.keep_log(sys.exception())
         if not (root.is_absolute() and root.parent == parent and root.name.startswith("host.")
                 and (root / MARKER).is_file()):
             raise TransportError(f"refusing to remove an unmarked host root: {root}")
@@ -193,7 +208,7 @@ class Host:
 
     def __exit__(self, kind, value, traceback):
         if kind is not None:
-            print((self.root / "driver.log").read_text(errors="replace")[-LOG_TAIL_CHARS:], file=sys.stderr)
+            self.keep_log(value)
         self.stop(terminate=kind is not None)
 
 
