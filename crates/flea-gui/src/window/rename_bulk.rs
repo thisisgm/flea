@@ -36,12 +36,17 @@ impl Shell {
             self.rename_say(said, false, cx);
             return true;
         };
-        let asked = host
+        match host
             .backend
             .as_ref()
-            .map(|backend| backend.rows("paths", action));
-        if matches!(asked, Some(Ok(()))) {
-            self.rename.paths = Some(side);
+            .ok_or_else(stopped)
+            .and_then(|backend| backend.rows("paths", action))
+        {
+            Ok(()) => self.rename.paths = Some(side),
+            Err(error) => {
+                host.record_error(error, &self.locale);
+                cx.notify();
+            }
         }
         true
     }
@@ -87,12 +92,17 @@ impl Shell {
         for effect in effects {
             match effect {
                 Effect::Send(line) => {
-                    let sent = self.panes[side]
+                    let Some(host) = self.panes[side].as_mut() else {
+                        continue;
+                    };
+                    match host
+                        .backend
                         .as_ref()
-                        .and_then(|host| host.backend.as_ref())
-                        .map(|backend| backend.operation(line));
-                    if matches!(sent, Some(Ok(()))) {
-                        self.rename.bulk.as_mut().expect("an open card").sent = true;
+                        .ok_or_else(stopped)
+                        .and_then(|backend| backend.operation(line))
+                    {
+                        Ok(()) => self.rename.bulk.as_mut().expect("an open card").sent = true,
+                        Err(error) => host.record_error(error, &self.locale),
                     }
                 }
                 Effect::Close => {
@@ -144,6 +154,7 @@ impl Shell {
         if self.rename.sent != Some(side) {
             return false;
         }
+        // Sample input: {"t":"bulkrenamed","ok":5,"unchanged":1}
         let Ok(doc) = flea::jsondoc::parse(line) else {
             return false;
         };
@@ -222,5 +233,13 @@ impl Shell {
                 )
                 .into_any_element(),
         )
+    }
+}
+
+/// The pane has no backend to ask, as every other request reports it.
+fn stopped() -> crate::backend::Failure {
+    crate::backend::Failure {
+        key: "window.backend_stopped",
+        detail: String::new(),
     }
 }

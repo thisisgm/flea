@@ -55,6 +55,7 @@ impl Shell {
         };
         match event {
             BackendEvent::Producer(line) | BackendEvent::Operations(line) => {
+                // Sample input: {"t":"renamed","ok":true,"path":"/files/draft.txt"}
                 let Ok(doc) = flea::jsondoc::parse(line) else {
                     return false;
                 };

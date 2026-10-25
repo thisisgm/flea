@@ -26,7 +26,7 @@ pub(crate) struct Edit {
     pub menu: u64,
     pub entry: Entry,
     pub error: String,
-    /// The request out: the destination its reply closes, and whether the cursor was still on the row.
+    /// The request out: the destination its reply closes.
     pub pending: Option<String>,
     pub line: field::Shaped,
 }

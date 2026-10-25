@@ -75,6 +75,11 @@ fn a_double_click_or_a_press_past_the_name_never_renames(cx: &mut gpui::TestAppC
     assert_eq!(editing(&shell, cx), None, "a tap off the name disarms");
     press(cx, &name, 1);
     wait(cx, 600);
+    assert_eq!(
+        editing(&shell, cx),
+        None,
+        "the tap after the disarm arms again and never renames"
+    );
     press(cx, &name, 1);
     press(cx, &name, 2);
     wait(cx, 600);
