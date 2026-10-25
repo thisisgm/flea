@@ -1,5 +1,4 @@
-//! The ShareBrowser overlay cursor, the ShareLink copy handshake and Taildrop send words.
-//! Ported from ui/ShareBrowser.qml, ui/ShareLink.qml and ui/js/Ops.js sendTaildrop.
+//! The ShareBrowser cursor, the ShareLink handshake and Taildrop words, from ui/ShareBrowser.qml and ui/ShareLink.qml.
 use crate::i18n::I18n;
 
 // The overlay over the listing slot: open flips instantly so the IPC read never races the fade.
@@ -44,8 +43,7 @@ impl ShareBrowser {
         Some((join_uri(&self.base_uri, name), name.clone()))
     }
 
-    // A click on one row: that row becomes the cursor and its share is the pick. A gap, a row past
-    // the last share and a click on the shut overlay each pick nothing and change nothing.
+    // A row click makes that row the cursor and its share the pick; a gap or shut overlay picks nothing.
     pub fn pick(&mut self, row: Option<usize>) -> Option<(String, String)> {
         let row = row.filter(|row| self.active && *row < self.shares.len())?;
         self.cursor = row;
@@ -100,8 +98,7 @@ impl ShareLink {
         i18n.tr("send.providers.share_no_file")
     }
 
-    // The sharelink run ended: started and exit code apart, as ui/ShareLink.qml reports them.
-    // A run that never started is the "asked" sentence; any non-zero exit or a non-URL output fails make.
+    // The sharelink run ended: never started is "asked"; a non-zero exit or non-URL output fails make.
     pub fn share_done(&mut self, started: bool, exit_code: i32, output: &str) -> ShareStep {
         if self.pending.is_none() {
             return ShareStep::Idle;
@@ -168,18 +165,21 @@ pub fn is_url(text: &str) -> bool {
     !matches!(rest.find(['/', '?', '#']), Some(0))
 }
 
-// The dispatch is the only result Flea itself ever knows; the OEM script owns its notification.
+// The dispatch sentence; the OEM script owns the delivered notification.
 pub fn taildrop_sending(i18n: &I18n, peer_label: &str, path: &str) -> String {
-    let leaf = match path.rfind('/') {
-        Some(cut) => &path[cut + 1..],
-        None => path,
-    };
-    i18n.tr_args("send.providers.taildrop_sending", &[leaf, peer_label])
+    i18n.tr_args("send.providers.taildrop_sending", &[leaf(path), peer_label])
 }
 
-// A refusal names its category by the stable code, never by matching the English reason; the
-// CLI's own diagnostic and the in-flight checking word ride the argument slot. An empty
-// statusFailed diagnostic resolves through the catalog, as Taildrop.qml words it after the run.
+// A send that did not start or exited non-zero names its file and peer.
+pub fn taildrop_failed(i18n: &I18n, peer_label: &str, path: &str) -> String {
+    i18n.tr_args("send.providers.taildrop_failed", &[leaf(path), peer_label])
+}
+
+fn leaf(path: &str) -> &str {
+    path.rfind('/').map_or(path, |cut| &path[cut + 1..])
+}
+
+// A refusal reads its stable code, never the English reason; the CLI diagnostic rides the argument slot.
 pub fn taildrop_refusal(i18n: &I18n, code: &str, reason: &str) -> String {
     match code {
         "signedOut" => i18n.tr("send.providers.taildrop_signed_out"),
@@ -303,6 +303,7 @@ mod tests {
     fn taildrop_says_the_dispatch_once_and_names_a_stale_peer() {
         let i18n = english();
         assert_eq!(taildrop_sending(&i18n, "laptop", "/home/gm/a.txt"), "Sending a.txt to laptop.");
+        assert_eq!(taildrop_failed(&i18n, "laptop", "/home/gm/a.txt"), "Taildrop could not send a.txt to laptop.");
         assert_eq!(taildrop_refusal(&i18n, "signedOut", "signed out"), "Taildrop \u{b7} signed out");
         assert_eq!(taildrop_refusal(&i18n, "noPeers", "no peers"), "Taildrop \u{b7} no peers");
         assert_eq!(taildrop_refusal(&i18n, "statusFailed", "Permission denied"), "Taildrop \u{b7} Permission denied");
@@ -311,6 +312,10 @@ mod tests {
             "Taildrop \u{b7} Tailscale could not be checked"
         );
         assert_eq!(taildrop_refusal(&i18n, "", "checking"), "Taildrop \u{b7} checking");
+        assert_eq!(taildrop_refusal(&i18n, "disabled", "x"), "Taildrop \u{b7} disabled for this account");
+        assert_eq!(taildrop_refusal(&i18n, "invalid", "x"), "Taildrop \u{b7} invalid status");
+        assert_eq!(taildrop_refusal(&i18n, "stopped", "Tailscale is stopped"), "Taildrop \u{b7} Tailscale is stopped");
+        assert_eq!(taildrop_refusal(&i18n, "stopped", ""), "That Taildrop peer is no longer available.");
         assert_eq!(taildrop_refusal(&i18n, "", ""), "That Taildrop peer is no longer available.");
     }
 }

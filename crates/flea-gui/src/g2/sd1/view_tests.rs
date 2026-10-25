@@ -151,8 +151,7 @@ impl Render for Under {
     }
 }
 
-// r2-2: ui/ShareBrowser.qml sinks the gap click and the wheel, lifts the row under the pointer and
-// picks a clicked row; nothing reaches the hidden listing beneath.
+// r2-2: ui/ShareBrowser.qml sinks gap clicks and wheels and picks a clicked row.
 #[test]
 fn r2_h_the_open_overlay_takes_its_own_clicks_wheel_and_hover() {
     let mut cx = real_cx();
@@ -320,8 +319,7 @@ fn r3_a_the_open_overlay_keeps_motion_and_hover_from_the_listing_beneath() {
     assert_eq!(seen, (0, false, Some(1)), "motion or hover reached the listing beneath the open overlay: {seen:?}");
 }
 
-// r3-1: ui/MenuRow.qml picks through a TapHandler with gesturePolicy ReleaseWithinBounds, so a press
-// alone picks nothing and a press dragged off its row before release picks nothing.
+// r3-1: ui/MenuRow.qml ReleaseWithinBounds: a press alone or dragged off its row picks nothing.
 #[test]
 fn r3_b_a_press_alone_or_dragged_off_picks_no_share() {
     let (mut visual, browser, probe, _, _) = open_motion();

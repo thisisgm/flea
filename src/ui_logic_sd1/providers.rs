@@ -1,8 +1,4 @@
-//! Provider enable-state gating: one menu row per provider, suppressed while disabled or failed.
-//! The plugin store belongs to st2; this module reads its plain-data shape behind the narrowest
-//! seam, so a st2 review touching Plugin only moves the mapping in from_snapshot().
-//! Review-sensitive: PLUGIN_*_ID must equal st2 builtin.rs ids; KIND marks must equal the OEM marks
-//! mn1 glyphs.rs draws; MENU_* must equal mn1 inventory.rs ids.
+//! Provider enable-state gating, one menu row per provider; the ids are pinned to st2 and mn1 by tests.
 use crate::jsondoc::{self, Json};
 
 // The st2 built-in ids carrying send targets, as st2 builtin.rs writes them.
@@ -42,8 +38,7 @@ impl Role {
     }
 }
 
-// One provider as the host reports it: installed from the providers facts, enabled and failed
-// from the st2 listing. ShareLink rides the Dropbox provider, so it carries no Role of its own.
+// One provider: installed from the facts, enabled and failed from st2; ShareLink rides the Dropbox one.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Provider {
     pub plugin: String,
@@ -148,7 +143,10 @@ mod tests {
                 crate::ui_logic_mn1::inventory::INVENTORY.iter().any(|spec| spec.id == menu),
                 "mn1 lost the {menu} row this unit gates"
             );
-            assert!(plugin.starts_with("flea."), "st2 builtins live under flea.: {plugin}");
+            assert!(
+                crate::ui_logic_st2::builtin::manifests().iter().any(|(manifest, _)| manifest.id == plugin),
+                "st2 has no builtin manifest {plugin}"
+            );
         }
         assert!(
             crate::ui_logic_mn1::inventory::INVENTORY.iter().any(|spec| spec.id == MENU_SHARELINK),

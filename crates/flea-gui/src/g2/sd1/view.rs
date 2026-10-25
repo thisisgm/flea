@@ -1,9 +1,4 @@
-//! The ShareBrowser overlay as one GPUI Element over the listing slot: an opaque ground, one
-//! server-marked row per share, the keyboard pick under the accent edge and the pointer lift, as
-//! ui/ShareBrowser.qml and ui/MenuRow.qml draw it. The shares and cursor are core `ShareBrowser`
-//! state. The overlay draws no words of its own: a share name is data the server answered with.
-//! The overlay takes its own pointer: an opaque BlockMouse hitbox sinks clicks and the wheel over
-//! the whole surface, the pointer lifts the row under it and a click picks through `ShareBrowser::pick`.
+//! The ShareBrowser overlay as one GPUI Element over the listing slot, as ui/ShareBrowser.qml draws it.
 use crate::g2::mn1::glyphs;
 use crate::list::{Palette, Typeface};
 use flea::ui_logic_mn1::fit::{GAP, PAD_X, ROW, SLOT};
@@ -209,8 +204,7 @@ impl Element for ShareBrowserElement {
         drop(probe);
         drop(rows);
         drop(browser);
-        // ui/ShareBrowser.qml sinks left and right clicks and the wheel over the whole overlay, so
-        // the hidden listing beneath never sees them; the prepaint hitbox makes this the topmost.
+        // ui/ShareBrowser.qml sinks clicks and the wheel over the overlay; the prepaint hitbox makes this topmost.
         let Some(hitbox) = hitbox.take() else {
             return;
         };
@@ -258,16 +252,14 @@ impl Element for ShareBrowserElement {
             if phase != DispatchPhase::Bubble {
                 return;
             }
-            // Any left release ends the press, over the overlay or off it, so a press dragged off
-            // can never be matched later, as ui/MenuRow.qml's ReleaseWithinBounds tap cancels.
+            // Any left release ends the press, so a press dragged off is never matched later (ReleaseWithinBounds).
             let pressed =
                 if event.button == MouseButton::Left { up_probe.borrow_mut().pressed.take() } else { None };
             if !up_box.is_hovered(window) {
                 return;
             }
             cx.stop_propagation();
-            // ReleaseWithinBounds: only a release over the row the press started on picks, through
-            // the same core rule the host's browser_click uses.
+            // ReleaseWithinBounds: only a release over the pressed row picks, through the core rule browser_click uses.
             let row = row_at(bounds, event.position.y, up_browser.borrow().shares.len());
             up_probe.borrow_mut().hovered = row;
             if pressed.is_some() && pressed == row {
@@ -287,9 +279,7 @@ impl Element for ShareBrowserElement {
     }
 }
 
-/// The mountable overlay view for one `Slots.states` side, as `g2/pl3` mounts its `TrashPane`
-/// Render entity: G1 assigns it with `self.slots.states[side] = Some(view)`, the pick flows through
-/// `Probe.pick` for the host drain, and the overlay shows and hides instantly until op1's Reveal lands.
+/// The mountable overlay view for one `Slots.states` side; its pick flows through `Probe.pick` for the host drain.
 pub struct ShareBrowserView {
     browser: Rc<RefCell<ShareBrowser>>,
     rows: Rc<RefCell<ShapedShares>>,

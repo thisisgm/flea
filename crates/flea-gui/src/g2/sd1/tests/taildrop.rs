@@ -72,7 +72,7 @@ fn r1_3_two_picks_never_spawn() {
     let paths = vec!["/home/gm/a.txt".to_string(), "/home/gm/b.txt".to_string()];
     let actions = send.send_taildrop("nodekey:owned", &paths, &i18n);
     assert!(
-        !actions.iter().any(|action| matches!(action, Action::Spawn(_))),
+        !actions.iter().any(|action| matches!(action, Action::Spawn(..))),
         "a two-file pick spawned {actions:?}"
     );
     assert_eq!(actions, vec![Action::Say("That menu is out of date. Reopen it.".into(), true)]);
@@ -82,6 +82,7 @@ fn r1_3_two_picks_never_spawn() {
 #[test]
 fn r1_3b_an_empty_share_link_pick_is_menu_stale() {
     let mut send = ProviderSend::default();
+    send.menu_opened(&Fake::default(), &facts(), Some(&states()), &[], 0);
     let i18n = english();
     assert_eq!(
         send.copy_share_link("", &i18n),
@@ -89,7 +90,7 @@ fn r1_3b_an_empty_share_link_pick_is_menu_stale() {
     );
 }
 #[test]
-fn a_taildrop_send_spawns_detached_and_a_stale_peer_refuses() {
+fn a_taildrop_send_carries_its_failure_sentence_and_a_stale_peer_refuses() {
     let mut send = ProviderSend::default();
     let wire = Fake::default();
     send.menu_opened(&wire, &facts(), Some(&states()), &[], 0);
@@ -101,7 +102,10 @@ fn a_taildrop_send_spawns_detached_and_a_stale_peer_refuses() {
     let actions = send.send_taildrop("nodekey:owned", &paths, &i18n);
     assert_eq!(
         actions[0],
-        Action::Spawn(vec!["/usr/bin/omarchy-tailscale-send".into(), "laptop.ts.net".into(), "/home/gm/a.txt".into()])
+        Action::Spawn(
+            vec!["/usr/bin/omarchy-tailscale-send".into(), "laptop.ts.net".into(), "/home/gm/a.txt".into()],
+            "Taildrop could not send a.txt to laptop.".into()
+        )
     );
     assert_eq!(actions[1], Action::Say("Sending a.txt to laptop.".into(), false));
     let refused = send.send_taildrop("nodekey:gone", &paths, &i18n);
@@ -157,6 +161,10 @@ fn a_timed_out_status_run_reads_as_a_failure_with_its_code() {
     send.menu_opened(&wire, &facts(), Some(&states()), &[], 0);
     assert!(send.taildrop_done(FIRST_RUN, 137, "", "", &i18n).is_empty());
     assert_eq!(send.taildrop_code(), "statusFailed");
+    assert_eq!(
+        send.send_taildrop("nodekey:owned", &["/home/gm/a.txt".to_string()], &i18n),
+        vec![Action::Say("Taildrop \u{b7} Tailscale did not answer in time".into(), true)]
+    );
     assert!(send.peers_for(Role::Tailscale).is_empty());
     assert!(send.taildrop_done(FIRST_RUN, 0, &ready_status(), "", &i18n).is_empty(), "a second report answers nothing");
     assert_eq!(send.taildrop_code(), "statusFailed", "a wrongly applied duplicate replaced the failed code");

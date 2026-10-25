@@ -1,5 +1,4 @@
-//! The ShareBrowser read-back readers on the IPC seam, answered as ui/Ipc.qml answers shareBrowser*.
-//! The owner pane and the pane rects are the pane's own state, so they join at G1, not here.
+//! The ShareBrowser read-back readers on the IPC seam, as ui/Ipc.qml answers shareBrowser*.
 use super::view::Probe;
 use crate::ipc::Adapter;
 use flea::ipc::wire::Reply;

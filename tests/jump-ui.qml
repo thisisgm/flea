@@ -40,6 +40,9 @@ ShellRoot {
     function rows() {
         return chrome.jump.entries.filter(function (e) { return e.separator !== true }).map(function (e) { return e.path })
     }
+    // ui/Ipc.qml's pathSuggestionRows and pathSuggestionCursor, read the way the seam reads them.
+    function suggestionRows() { return chrome.jump !== null ? chrome.jump.drawnRows : 0 }
+    function suggestionCursor() { return chrome.jump !== null ? chrome.jump.cursor : -1 }
     function type(text) {
         for (var i = 0; i < text.length; i++)
             keys.keyClickChar(text.charAt(i), Qt.NoModifier, -1)
@@ -215,8 +218,12 @@ ShellRoot {
         function () {
             root.answer(0)
             root.type("o")
+            root.check("pathSuggestionRows and pathSuggestionCursor read the drawn rows and the first row", [root.suggestionRows(), root.suggestionCursor()], [7, 0])
+            root.press(Qt.Key_Down)
+            root.check("a Down moves pathSuggestionCursor one row", [root.suggestionRows(), root.suggestionCursor()], [7, 1])
             root.press(Qt.Key_Escape)
             root.check("esc closes the dropdown with the bar and opens nothing", [chrome.editing, chrome.jump.shown, root.entered.length], [false, false, 7])
+            root.check("and pathSuggestionRows reads no rows once it closes", root.suggestionRows(), 0)
             // The recent history is read once and kept: every open so far read nothing more.
             var before = root.asked.length
             chrome.startEdit()

@@ -1,8 +1,4 @@
-//! LocalSend discovery and the Taildrop/provider send picker: peer state, send dispatch,
-//! the ShareBrowser overlay and the ShareLink handshake. The wire and every word come from core
-//! `flea::ui_logic_sd1`; drawing the menu rows and marks belongs to mn1, Jobs and cards to op1,
-//! list geometry to G1. This host feeds all three and spawns nothing: every process runs through
-//! the host's facility via Action, so tests drive the whole picker against a fake wire.
+//! LocalSend discovery and the Taildrop/provider send picker; every process runs through the host as an Action.
 pub mod ipc;
 pub(crate) mod join;
 #[cfg(test)]
@@ -24,8 +20,7 @@ use flea::ui_logic_sd1::{share, Send};
 use seams::ProviderState;
 use std::{cell::RefCell, rc::Rc};
 
-/// One pane backend's provider send state: the window keeps one per pane backend, since each
-/// numbers its localsend requests from 1; every reply is matched to the request that asked for it.
+/// One pane backend's provider send state, one per backend since each numbers its localsend requests from 1.
 #[derive(Default)]
 pub struct ProviderSend {
     next: u64,
@@ -168,8 +163,7 @@ impl ProviderSend {
         )
     }
 
-    // A click on one row of the open overlay: that row becomes the cursor and its share is the pick.
-    // A click in a gap, past the last row or on a shut overlay picks nothing and changes nothing.
+    // A row click makes that row the cursor and its share the pick; a gap or shut overlay picks nothing.
     pub fn browser_click(&mut self, row: Option<usize>) -> Option<(String, String)> {
         self.browser.borrow_mut().pick(row)
     }

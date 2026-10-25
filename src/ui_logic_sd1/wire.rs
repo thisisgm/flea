@@ -1,7 +1,5 @@
-//! The backend's localsend replies, parsed once into events, mirroring ui_logic_sd2::wire.
-//! Sample peers line: {"t":"localsendpeers","id":3,"peers":[{"name":"Clean Lemon",
-//! "address":"192.168.21.23"}],"reason":""}. Sample terminal line: {"t":"localsendsent","id":3,
-//! "ok":true,"reason":""}. Anything for another request, out of order or malformed changes nothing.
+//! The backend's localsend replies parsed once into events; foreign, out-of-order or malformed lines change nothing.
+//! Sample input: {"t":"localsendsent","id":3,"ok":true,"reason":""}
 use crate::jsondoc::{self, Json};
 
 // One device the backend discovered, named the way its owner named it.
