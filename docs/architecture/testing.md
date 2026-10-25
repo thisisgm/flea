@@ -170,7 +170,8 @@ The capture port keeps the stage's later suites and native cases. The sweep's PD
   marker checks while still asserting `EXPECT_FILES`, `flea-tui` adds TUI `preview_ms` rows, and the
   per-run receive bytes on the NAS interface land on stderr beside each row, moving no column.
 - **`cpu_tree_s` was added at the END of each row**, so an old parser still works. Until 0.3.2 it
-  carried the watched set's tree total; `cpu_s` still reports the entrant process alone. On the media
+  carried the watched set's tree total; `cpu_s` then reported the entrant process alone, a figure now
+  in `cpu_main_s` while `cpu_s` equals `cpu_tree_s`. On the media
   fixture they diverged hard then: pcmanfm read 38.83 against 90.00 and dolphin 3.29 against 68.59.
 - **`cpu_tree_s` is read from a control group since 0.3.2, because the tick total was blind to every
   sandboxed decode.** Measured on minipc: ten `ffmpegthumbnailer` decodes of the media fixture add
@@ -241,10 +242,11 @@ The capture port keeps the stage's later suites and native cases. The sweep's PD
   manager on the box by name and refuses to start beside one, which is correct for a field run and
   wrong for re-measuring one row on a box somebody is using: the operator's own windows are not the
   harness's to close. With `ONLY` set, both the kill list and the start-up refusal cover only that
-  entrant's own processes. Run order retains each selected absent entrant with place `-`, so the
-  real launch loop prints its SKIP once per run; only installed entrants rotate and consume launch
-  places. `tests/field-launch-order.sh` drives that loop with missing GUI and TUI commands and a
-  missing Strata binary, and checks that ONLY excludes their SKIPs as well as their launches.
+  entrant's own processes. A selected entrant that is not installed refuses the whole run at start,
+  before any launch; run order still writes an absent row with place `-`, and the launch loop refuses
+  it again if it is reached. `tests/field-launch-order.sh` drives the start check and that loop with
+  missing GUI and TUI commands and a missing Strata binary, and checks that ONLY excludes an absent
+  entrant it does not name.
   Strata provenance parses a Cargo.toml `version = "1.0.0"` line and the binary's `strata 1.0.0`
   output, with the exact formats documented beside its parser. A re-measured row is a row from a different day and the manifest says so
   in its own words, the way `docs/bench/media-rc-2044.manifest.md` does for strata.
@@ -374,9 +376,10 @@ The capture port keeps the stage's later suites and native cases. The sweep's PD
   `Pss`, which the kernel cannot produce, in 15 of 120 reads, worst by 186 kB, while `mapfile` gave
   0 of 300 and is about 4.5x cheaper. The `Pss` column was never affected, because it is the first
   field in the file.
-- **`cpu_s` is the entrant process's own `utime + stime`**, fields 14 and 15 of `/proc/<pid>/stat`
+- **`cpu_main_s` is the entrant process's own `utime + stime`**, fields 14 and 15 of `/proc/<pid>/stat`
   and not `cutime + cstime`, so no child's CPU is in it. For Flea that excludes the Rust backend and
-  every thumbnailer child, and the column therefore compares front ends and not total work.
+  every thumbnailer child, so that column compares front ends and not total work; `cpu_s` is the
+  whole control group, the same value as `cpu_tree_s`.
 - **A PSS row is only comparable to a row taken in the same interleaved run**, and the 4.1 MiB
   that `docs/baseline-2026-08-29-plan5.md` says appeared across Tasks 4 to 7 of that branch is
   mostly this rather than the product. Five interleaved cold pairs of `30b7fde` against `7dfc0d1`

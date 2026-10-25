@@ -102,7 +102,7 @@ echo "population: $mutants mutants, each run on the clean case"
 
 # The columns: the CSV header, the row printf and the guard's cells agree, so a column cannot drift.
 header=$(sed -n 's/^echo "\(id,run,[^"]*\)".*/\1/p' "$bench")
-check "the five guard columns follow cpu_sys_s, then the TUI first rows and launch place" "dirty_wb_kb,pgpgout_pre_kb,pgpgout_launch_kb,write_clean,rerun,first_rows_ms,launch_pos" "${header##*,cpu_sys_s,}"
+check "the guard columns precede the TUI, cold memory and launch place columns" "dirty_wb_kb,pgpgout_pre_kb,pgpgout_launch_kb,write_clean,rerun,first_rows_ms,cpu_main_s,cold_pss_kb,cold_drm_kb,cold_child_pss_kb,cold_sample_after_map_ms,launch_pos" "${header##*,cpu_sys_s,}"
 row_line=$(grep -F '"$id" "$RUN_INDEX" "$mapped"' "$bench")
 fields=$(printf '%s\n' "$header" | tr ',' '\n' | wc -l)
 conversions=$(printf '%s\n' "${row_line%%\\n\'*}" | grep -o '%s' | wc -l)
@@ -112,7 +112,8 @@ check "and one argument per header column" "$fields" "$args"
 run_one_src=$(sed -n '/^run_one() {$/,/^}$/p' "$bench")
 wiring=$(printf '%s\n' "$run_one_src" | grep -nF -e 'write_guard_pre ||' -e 'write_guard_launch_end ||' -e 'ranked=$(write_guard_ranked "$ranked")' -e '"$id" "$RUN_INDEX" "$mapped"' | cut -d: -f2- | sed 's/^ *//' | cut -c1-24 | tr '\n' '|')
 check "run_one calls the guard, then ranks, then prints the row, in that order" 'write_guard_pre || fail |write_guard_launch_end ||ranked=$(write_guard_ran|printf '"'"'%s,%s,%s,%s,%s,%|' "$wiring"
-check "the row's guard arguments come last, then the first rows and the launch place" '"$WG_DIRTY_WB_KB" "$WG_PGPGOUT_PRE_KB" "$WG_PGPGOUT_LAUNCH_KB" "$WG_CLEAN" "$RERUN_N" "$first_rows" "$LAUNCH_POS"' "$(printf '%s\n' "$row_line" | grep -oE '"\$WG_DIRTY_WB_KB" "\$WG_PGPGOUT_PRE_KB" "\$WG_PGPGOUT_LAUNCH_KB" "\$WG_CLEAN" "\$RERUN_N" "\$first_rows" "\$LAUNCH_POS"$')"
+guard_args='"$WG_DIRTY_WB_KB" "$WG_PGPGOUT_PRE_KB" "$WG_PGPGOUT_LAUNCH_KB" "$WG_CLEAN" "$RERUN_N" "$first_rows" "$cpu_main_s" "$cold_pss" "$cold_drm" "$cold_child_pss" "$cold_sample_ms" "$LAUNCH_POS"'
+check "the row ends with guard, TUI, cold memory and launch place arguments" "$guard_args" "$(case $row_line in *"$guard_args") printf '%s' "$guard_args" ;; esac)"
 
 # The loop that runs an entrant, taken from the bench itself, with run_one replaced by one that drives the guard.
 eval "$(sed -n '/^WRITE_RERUNS=/p' "$bench")"
