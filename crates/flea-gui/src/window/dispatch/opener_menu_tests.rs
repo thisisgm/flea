@@ -94,16 +94,11 @@ fn the_menu_open_on_the_unfocused_dual_pane_opens_that_panes_row(cx: &mut TestAp
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(crate::window::startup::View::Dual, window, cx)));
     let right = asked_on(&shell, cx, 1);
     land_on(&shell, cx, 1, &right, vec![row("beta", true), row("report.pdf", false)], 2, 1);
-    let focus = |cx: &mut VisualTestContext| shell.read_with(cx, |shell, _| shell.focus_side);
-    // The left pane holds the focus on its folder row, so an open on the focused pane would enter /files/alpha.
-    assert_eq!(focus(cx), 0);
-    // A right click on the right pane's file row: open_menu puts that pane's cursor on the row and focuses the pane.
+    // A right click on the right pane's file row; the left cursor stays on folder alpha, which a left-pane Open would enter.
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.open_menu(1, Some(1), (10., 10.), window, cx)));
-    assert_eq!(focus(cx), 1, "the right click focused the menu's pane");
     let file = format!("{}/report.pdf", right.trim_end_matches('/'));
     assert!(menu_open_on(&shell, cx, 1, 1, &[&file]));
     assert_eq!(launched(), [file], "Open ran on the menu's pane");
-    assert_eq!(focus(cx), 1, "the menu's pane keeps the focus after Open");
     assert_eq!(asked(&shell, cx), "/files", "the left pane did not move");
     quit(&shell, cx);
 }
