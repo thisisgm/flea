@@ -52,6 +52,11 @@ impl Sources {
             .filter(|v| !v.is_empty())
             .map(PathBuf::from)
             .unwrap_or_else(|| home.join(".local/state"));
+        Self::under(&home, &state)
+    }
+
+    /// The same files under a given home and XDG state directory.
+    pub(crate) fn under(home: &Path, state: &Path) -> Self {
         Self {
             toggles: state.join("omarchy/toggles/hypr"),
             user_shell: home.join(".config/omarchy/shell.toml"),
@@ -149,11 +154,19 @@ impl Tagger {
             probe.push_str(&line);
         }
         let tagged = self.lock().tagged.clone();
-        let outcome = plan(&probe, mode, uses_default, &tagged);
-        self.lock().tagged = outcome.tagged;
+        let mut outcome = plan(&probe, mode, uses_default, &tagged);
+        // Only a dispatch Hyprland ran changes the record, so a refused one is planned again on the next pass.
         for (address, action) in outcome.changes {
-            self.dispatch(&address, action == Action::Add);
+            let add = action == Action::Add;
+            if !self.dispatch(&address, add) {
+                if add {
+                    outcome.tagged.remove(&address);
+                } else {
+                    outcome.tagged.insert(address);
+                }
+            }
         }
+        self.lock().tagged = outcome.tagged;
     }
 
     /// Runs hyprctl for its stdout; a failure logs once and reads as no answer.
@@ -181,18 +194,22 @@ impl Tagger {
         }
     }
 
-    /// Adds or removes Flea's tag, trying the Lua dispatcher first and the classic tagwindow form after.
-    fn dispatch(&self, address: &str, add: bool) {
+    /// Adds or removes Flea's tag, trying the Lua dispatcher first and the classic tagwindow form after; true when one ran.
+    fn dispatch(&self, address: &str, add: bool) -> bool {
         let tag = format!("{}{TAG}", if add { '+' } else { '-' });
         let window = format!("address:{address}");
         let lua = lua_tag(&window, &tag);
         // The Lua form is refused on Hyprland builds that only know tagwindow, so only a second refusal warns.
         if self.dispatched(&["dispatch", lua.as_str()]).is_ok() {
-            return;
+            return true;
         }
         let classic = ["dispatch", "tagwindow", tag.as_str(), window.as_str()];
-        if let Err(reply) = self.dispatched(&classic) {
-            warn_once(&format!("hyprctl did not tag {window} {tag}: {reply}"));
+        match self.dispatched(&classic) {
+            Ok(()) => true,
+            Err(reply) => {
+                warn_once(&format!("hyprctl did not tag {window} {tag}: {reply}"));
+                false
+            }
         }
     }
 
