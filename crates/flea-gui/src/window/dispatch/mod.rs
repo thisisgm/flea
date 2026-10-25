@@ -25,8 +25,7 @@ pub(crate) enum Order {
 /// A family runs the orders it owns and answers whether it ran this one.
 type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
 
-/// Each family keeps its handlers in its own file beside this one and adds one line here.
-// The file operations family goes first: it ends an armed dd pair on every other listing action, then claims only its own.
+/// Each family keeps its handlers in its own file beside this one and adds one line here; file operations go first, to end an armed dd pair on every other listing action.
 const FAMILIES: &[Family] = &[
     fileops::run,
     navigation::run,

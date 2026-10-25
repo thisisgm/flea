@@ -21,8 +21,7 @@ use gpui::{
 };
 use std::sync::Arc;
 
-// Delete is shown and Run Script stays hidden, so the menu asks for nothing but its snapshot and applications.
-// The production Shell under the window Root, as the native launch mounts it, so the menu card is painted and read.
+// The production Shell under the window Root, painted and read, with Delete shown and Run Script hidden so the menu asks only for its snapshot and applications.
 fn open(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
     let document = flea::jsondoc::parse(
         r#"{"keys":"default","view":"list","places":{"rail":"shown","showHome":true,"showTrash":true},"menu":{"hidden":["runScript"]}}"#,
