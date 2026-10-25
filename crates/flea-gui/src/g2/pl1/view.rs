@@ -1,5 +1,5 @@
 //! The unlock card's window-side owner: runs the card's children off the UI thread and feeds their answers back.
-use super::card::{card, CardText, Press};
+use super::card::{card, CardText, Press, BOARD_BODY};
 use super::host::{Effect, Host};
 use super::ink::CardInk;
 use super::keys::{act, Act, Key};
@@ -299,6 +299,7 @@ impl Render for UnlockView {
         let mut ink = CardInk::inherited(&Palette::inherited(&window.text_style(), theme));
         ink.radius = crate::compositor::corner(cx);
         let width = f32::from(window.viewport_size().width);
+        let scale = f32::from(crate::list::Typeface::for_window(window, cx).body) / BOARD_BODY;
         let cancel = cx.listener(|view: &mut Self, _, _, cx| view.close(cx));
         let unlock = cx.listener(|view: &mut Self, _, _, cx| view.submit(cx));
         let press = Press {
@@ -308,6 +309,6 @@ impl Render for UnlockView {
         root.flex()
             .items_center()
             .justify_center()
-            .child(card(state, &self.text, &ink, width, press))
+            .child(card(state, &self.text, &ink, width, scale, press))
     }
 }

@@ -1,26 +1,11 @@
 //! The unlock card as the board draws it: title and esc, a hairline, the drive line, the field, one note line and two buttons.
 use super::ink::CardInk;
+use super::mark::{Mark, DRIVE, EYE};
 use super::unlock::{Card, Part, Phase};
 use super::words::say;
 use flea::i18n::I18n;
 use flea::ui_logic_pl1::unlock::{subtitle, title};
-use gpui::{
-    div, prelude::*, px, App, Bounds, ClickEvent, Element, ElementId, FontWeight, GlobalElementId,
-    Hsla, InspectorElementId, LayoutId, Pixels, SharedString, Style, TransformationMatrix, Window,
-};
-
-/// A Lucide path drawn in the cut: square caps, mitred joins.
-macro_rules! mark_svg {
-    ($d:literal) => {
-        concat!(
-            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" "#,
-            r#"stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d=""#,
-            $d,
-            r#""/></svg>"#
-        )
-        .as_bytes()
-    };
-}
+use gpui::{div, prelude::*, px, App, ClickEvent, FontWeight, Hsla, SharedString, Window};
 
 /// The card's own width on the board, narrowed only by a narrow window.
 pub const CARD_WIDTH: f32 = 448.;
@@ -69,14 +54,26 @@ impl CardText {
     }
 }
 
-/// The card element for a card state and its words.
+/// Every size above is the board's at its 14 px body; the card multiplies by the live body over 14, as the other dialog cards do (#310).
+pub const BOARD_BODY: f32 = 14.;
+
+/// The card's width: the board width grown with the text size, narrowed only by a narrow window.
+pub fn width(scale: f32, window_width: f32) -> f32 {
+    (CARD_WIDTH * scale)
+        .ceil()
+        .min((window_width - 2. * GAP).max(0.))
+}
+
+/// The card element for a card state and its words; scale is the live body over BOARD_BODY.
 pub fn card(
     card: &Card,
     text: &CardText,
     ink: &CardInk,
     window_width: f32,
+    scale: f32,
     press: Press,
 ) -> impl IntoElement {
+    let k = move |v: f32| px(v * scale);
     let note_error = card.note.as_ref().is_some_and(|(_, e)| *e);
     let field_frame = if card.field.error {
         ink.error
@@ -93,9 +90,9 @@ pub fn card(
         .flex()
         .flex_col()
         .flex_none()
-        .w(px(CARD_WIDTH.min((window_width - 2. * GAP).max(0.))))
-        .p(px(PAD))
-        .gap(px(GAP))
+        .w(px(width(scale, window_width)))
+        .p(k(PAD))
+        .gap(k(GAP))
         .bg(ink.surface)
         .border_1()
         .border_color(ink.frame)
@@ -105,9 +102,9 @@ pub fn card(
             div()
                 .flex()
                 .items_center()
-                .gap(px(9.))
+                .gap(k(9.))
                 .font_weight(FontWeight::BOLD)
-                .text_size(px(16.))
+                .text_size(k(16.))
                 .child(
                     div()
                         .min_w_0()
@@ -120,7 +117,7 @@ pub fn card(
                     div()
                         .ml_auto()
                         .font_weight(FontWeight::NORMAL)
-                        .text_size(px(12.))
+                        .text_size(k(12.))
                         .text_color(ink.muted)
                         .child(text.esc.clone()),
                 ),
@@ -130,9 +127,9 @@ pub fn card(
             div()
                 .flex()
                 .items_center()
-                .gap(px(9.))
-                .text_size(px(14.))
-                .child(Mark::new(DRIVE, 19., ink.foreground))
+                .gap(k(9.))
+                .text_size(k(14.))
+                .child(Mark::new(DRIVE, 19. * scale, ink.foreground))
                 .child(
                     div()
                         .min_w_0()
@@ -144,24 +141,24 @@ pub fn card(
         )
         .child(
             div()
-                .mt(px(4.))
+                .mt(k(4.))
                 .opacity(if unlocking { DISABLED_OPACITY } else { 1. })
                 .child(
                     div()
-                        .text_size(px(12.))
-                        .line_height(px(14.))
-                        .mb(px(5.))
+                        .text_size(k(12.))
+                        .line_height(k(14.))
+                        .mb(k(5.))
                         .text_color(ink.muted)
                         .child(text.label.clone()),
                 )
                 .child(
                     div()
-                        .h(px(FIELD_H))
+                        .h(k(FIELD_H))
                         .flex()
                         .items_center()
-                        .gap(px(8.))
-                        .px(px(9.))
-                        .text_size(px(14.))
+                        .gap(k(8.))
+                        .px(k(9.))
+                        .text_size(k(14.))
                         .bg(ink.ground)
                         .border_1()
                         .border_color(field_frame)
@@ -169,36 +166,36 @@ pub fn card(
                         .when(!dots.is_empty(), |d| d.child(dots))
                         .when(card.focus == Some(Part::Field) && !unlocking, |d| {
                             let tuck = if card.field.dots() > 0 { -7. } else { 0. };
-                            d.child(div().w(px(1.)).h(px(16.)).ml(px(tuck)).bg(ink.foreground))
+                            d.child(div().w(px(1.)).h(k(16.)).ml(k(tuck)).bg(ink.foreground))
                         })
                         .child(div().flex_1())
-                        .child(Mark::new(EYE, 13., ink.frame)),
+                        .child(Mark::new(EYE, 13. * scale, ink.frame)),
                 ),
         )
         .child(
             div()
-                .mt(px(-2.))
-                .h(px(NOTE_H))
-                .line_height(px(NOTE_H))
-                .text_size(px(12.))
+                .mt(k(-2.))
+                .h(k(NOTE_H))
+                .line_height(k(NOTE_H))
+                .text_size(k(12.))
                 .overflow_hidden()
                 .text_color(if note_error { ink.error } else { ink.muted })
                 .child(text.note.clone()),
         )
         .child(
             div()
-                .mt(px(10.))
+                .mt(k(10.))
                 .flex()
                 .justify_end()
                 .items_center()
-                .gap(px(9.))
+                .gap(k(9.))
                 .child(button(
                     "g2-pl1-cancel",
                     &text.cancel,
                     false,
                     true,
                     card.focus == Some(Part::Cancel),
-                    ink,
+                    Look { ink, scale },
                     press.cancel,
                 ))
                 .child(button(
@@ -207,7 +204,7 @@ pub fn card(
                     true,
                     available,
                     card.focus == Some(Part::Unlock),
-                    ink,
+                    Look { ink, scale },
                     press.unlock,
                 )),
         )
@@ -251,6 +248,13 @@ pub fn button_frame(primary: bool, enabled: bool, focused: bool, ink: &CardInk) 
     }
 }
 
+/// The card's ink and its text-size scale, which every button shares.
+#[derive(Clone, Copy)]
+struct Look<'a> {
+    ink: &'a CardInk,
+    scale: f32,
+}
+
 /// The board's framed button: accent frame over a 14% wash when primary, foreground frame on focus, 8% hover, 14% press.
 fn button(
     id: &'static str,
@@ -258,9 +262,11 @@ fn button(
     primary: bool,
     enabled: bool,
     focused: bool,
-    ink: &CardInk,
+    look: Look,
     click: Click,
 ) -> impl IntoElement {
+    let Look { ink, scale } = look;
+    let k = move |v: f32| px(v * scale);
     let (frame, ring) = button_frame(primary, enabled, focused, ink);
     let wash = button_wash(primary, enabled, ink);
     // Pointer wash inside the frame: hover while over the button, press only while held inside it (pressShown).
@@ -282,11 +288,11 @@ fn button(
         .child(pointer_wash);
     div()
         .relative()
-        .h(px(FIELD_H))
-        .px(px(9.))
+        .h(k(FIELD_H))
+        .px(k(9.))
         .flex()
         .items_center()
-        .text_size(px(14.))
+        .text_size(k(14.))
         .text_color(ink.foreground)
         .whitespace_nowrap()
         .map(|d| if ring { d.border_2() } else { d.border_1() })
@@ -300,93 +306,4 @@ fn button(
             pointer
         })
         .child(label.to_string())
-}
-
-const DRIVE: (&str, &[u8]) = (
-    "flea-mark:drive",
-    mark_svg!("M6 4h12l4 8v8H2v-8z M2 12h20 M6 16L6.01 16 M10 16L10.01 16"),
-);
-const EYE: (&str, &[u8]) = (
-    "flea-mark:eye",
-    mark_svg!("M12 5 22 12 12 19 2 12z M10 10h4v4h-4z"),
-);
-
-/// One cut mark at a fixed size, painted from its path with no allocation in paint.
-pub struct Mark {
-    key: &'static str,
-    data: &'static [u8],
-    size: f32,
-    ink: Hsla,
-}
-
-impl Mark {
-    pub fn new(mark: (&'static str, &'static [u8]), size: f32, ink: Hsla) -> Self {
-        Self {
-            key: mark.0,
-            data: mark.1,
-            size,
-            ink,
-        }
-    }
-}
-
-impl IntoElement for Mark {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
-    }
-}
-
-impl Element for Mark {
-    type RequestLayoutState = ();
-    type PrepaintState = ();
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
-    }
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
-        let mut style = Style::default();
-        style.size.width = px(self.size).into();
-        style.size.height = px(self.size).into();
-        style.flex_shrink = 0.;
-        (window.request_layout(style, None, cx), ())
-    }
-    fn prepaint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        _: Bounds<Pixels>,
-        _: &mut (),
-        _: &mut Window,
-        _: &mut App,
-    ) {
-    }
-    fn paint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) {
-        let key = SharedString::new_static(self.key);
-        let _ = window.paint_svg(
-            bounds,
-            key,
-            Some(self.data),
-            TransformationMatrix::unit(),
-            self.ink,
-            cx,
-        );
-    }
 }

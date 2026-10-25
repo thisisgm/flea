@@ -124,6 +124,8 @@ mod status_tests;
 #[cfg(test)]
 mod surfaces_tests;
 #[cfg(test)]
+mod text_size_keys_tests;
+#[cfg(test)]
 mod transition_tests;
 
 #[cfg(test)]

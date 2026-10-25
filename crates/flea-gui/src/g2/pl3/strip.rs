@@ -224,6 +224,21 @@ impl TrashPane {
         })
     }
 
+    /// A pointer move over the rows; a move to the point the keyboard quieted is not a move, so the wash stays off.
+    pub fn pointer_moved(
+        &mut self,
+        at: gpui::Point<Pixels>,
+        index: Option<usize>,
+        cx: &mut Context<Self>,
+    ) {
+        if self.quiet && self.pointer == Some(at) {
+            return;
+        }
+        self.quiet = false;
+        self.pointer = Some(at);
+        self.hover(index, cx);
+    }
+
     fn row_at(&self, y: Pixels) -> Option<usize> {
         let bounds = self.paint.borrow().bounds?;
         let y = y - bounds.origin.y;
@@ -273,7 +288,7 @@ impl Render for TrashPane {
             .child(TrashList(self.paint.clone()))
             .on_mouse_move(cx.listener(move |pane, event: &MouseMoveEvent, _, cx| {
                 let index = pane.row_at(event.position.y);
-                pane.hover(index, cx);
+                pane.pointer_moved(event.position, index, cx);
             }))
             .on_mouse_down(
                 MouseButton::Left,

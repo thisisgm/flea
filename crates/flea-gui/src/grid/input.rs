@@ -66,6 +66,12 @@ impl Shell {
         if grid.next_view.is_some() {
             return true;
         }
+        if let Some(grid) = host.grid.as_mut() {
+            grid.state.borrow_mut().quiet = true;
+            if grid.view.hovered.take().is_some() {
+                cx.notify();
+            }
+        }
         if let Some(next) = next.filter(|next| *next < total && *next != cursor) {
             if matches!(action, "extendUp" | "extendDown") {
                 host.selected.extend(cursor.min(next)..=cursor.max(next));
@@ -97,12 +103,22 @@ impl Shell {
         let state = grid.state.borrow();
         let at = event.position - state.bounds.origin;
         let hit = state.tile_at(f32::from(at.x), f32::from(at.y));
-        grid.view.pointer = Some((f32::from(event.position.x), f32::from(event.position.y)));
+        let pointer = Some((f32::from(event.position.x), f32::from(event.position.y)));
+        // Only a real move lifts the keyboard's quiet; a synthetic move at the same point leaves the tile unlit.
+        if state.quiet && grid.view.pointer == pointer {
+            return;
+        }
+        grid.view.pointer = pointer;
         let painted = state
             .drawn()
             .iter()
             .find(|drawn| drawn.hovered)
             .map(|drawn| drawn.view);
+        let quiet = state.quiet;
+        drop(state);
+        if quiet {
+            grid.state.borrow_mut().quiet = false;
+        }
         if grid.view.hovered != hit || painted != hit {
             grid.view.hovered = hit;
             cx.notify();

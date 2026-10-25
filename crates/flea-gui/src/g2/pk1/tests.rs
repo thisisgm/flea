@@ -9,6 +9,8 @@ use std::time::{Duration, Instant};
 
 #[path = "browse_tests.rs"]
 mod browse_tests;
+#[path = "find_tests.rs"]
+mod find_tests;
 #[path = "fixture.rs"]
 mod fixture;
 #[path = "ipc_tests.rs"]

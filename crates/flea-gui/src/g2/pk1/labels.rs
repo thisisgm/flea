@@ -17,6 +17,7 @@ pub struct Labels {
     pub(crate) built: std::cell::Cell<usize>,
     pub hints: SharedString,
     pub hints_unavailable: SharedString,
+    pub hints_filtered: SharedString,
 }
 
 fn text(catalog: &I18n, text: &Text) -> String {
@@ -40,6 +41,7 @@ impl Labels {
             built: std::cell::Cell::new(0),
             hints: catalog.tr(logic::hints(req, false)).into(),
             hints_unavailable: catalog.tr(logic::hints(req, true)).into(),
+            hints_filtered: flea::ui_logic_pk2::hints_filtered(catalog).into(),
         }
     }
 

@@ -2,6 +2,8 @@
 mod delivery;
 mod discovery;
 pub mod element;
+#[cfg(test)]
+mod elide_tests;
 pub mod glyphs;
 pub(crate) mod host_input;
 pub mod ipc;

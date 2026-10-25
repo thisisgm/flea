@@ -72,6 +72,8 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         cx.new(|cx| pl1::view::UnlockView::new(Arc::default(), Rc::new(Idle), cx))
     });
     vcx.update(|window, cx| {
+        // The card grows with the text size (#310); this window has no Shell root, so it sits at the board's 14 px body.
+        window.set_rem_size(px(14.));
         view.update(cx, |view, cx| {
             view.open_for("/dev/test", "Encrypted", 0, "crypto_LUKS", window, cx);
             let card = view.host.card.as_mut().unwrap();

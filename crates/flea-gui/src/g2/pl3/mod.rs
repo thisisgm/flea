@@ -8,6 +8,8 @@ mod fix_tests;
 #[cfg(test)]
 mod flow_tests;
 mod glyph;
+#[cfg(test)]
+mod hover_tests;
 pub mod ink;
 pub mod join;
 mod join_atomic;
