@@ -4,14 +4,18 @@ use super::{
     state::{Live, Say, TabState, MAX},
 };
 use crate::navigation::folder_state::VIEWS;
+use crate::navigation::sort::Snapshot;
 use flea::jsondoc::{self, Json};
-use std::process::Command;
+#[path = "payload.rs"]
+mod wire;
+pub use wire::{fresh_launch, parse, payload, payload_with_sort, tear_off_command, Launch};
 
 // A lift offers only this private type, so no other application is ever offered the folder.
 pub const TAB_MIME: &str = "application/x-flea-tab";
 
 // The hand-off a tear-off gives the one window it starts; the core's tear-off list drops the same names.
 pub const TEAR_OFF_ENV: [&str; 3] = ["FLEA_TAB_SOURCE_PID", "FLEA_TAB_CURSOR", "FLEA_TAB_TOKEN"];
+pub const TAB_SORT_ENV: &str = "FLEA_TAB_SORT";
 
 // An unacknowledged lift expires after one network leg's 15 s bound, and a receiver waits no longer.
 pub const ACK_WAIT_MS: u64 = 15_000;
@@ -26,6 +30,7 @@ pub struct Info {
     pub path: String,
     pub view: String,
     pub cursor: String,
+    pub sort: Option<Snapshot>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -78,6 +83,7 @@ pub struct TearOff {
     pub cursor: String,
     pub token: String,
     pub path: String,
+    pub sort: Option<Snapshot>,
 }
 
 fn text(value: &Json) -> String {
@@ -87,43 +93,6 @@ fn text(value: &Json) -> String {
         Json::Bool(true) => "true".into(),
         _ => String::new(),
     }
-}
-
-// JSON carries every path byte verbatim, CR and LF included.
-pub fn payload(pid: &str, token: &str, path: &str, view: &str, cursor: &str) -> String {
-    let fields: Vec<String> = [pid, token, path, view, cursor]
-        .iter()
-        .map(|field| format!("\"{}\"", flea::json::escape(field)))
-        .collect();
-    format!("[{}]", fields.join(","))
-}
-
-// Sample input: ["111","lift-1","/tmp/folder","list","note.txt"].
-pub fn parse(payload: &str) -> Option<Info> {
-    let fields = jsondoc::parse(payload).ok()?;
-    let fields = fields.as_array()?;
-    if fields.len() != 5 {
-        return None;
-    }
-    let pid = text(&fields[0]);
-    let token = text(&fields[1]);
-    let path = text(&fields[2]);
-    if pid.is_empty() || !pid.bytes().all(|byte| byte.is_ascii_digit()) {
-        return None;
-    }
-    if token.is_empty() || token.chars().any(|c| c < ' ' || c == '\u{7f}') {
-        return None;
-    }
-    if !path.starts_with('/') || path.contains('\0') {
-        return None;
-    }
-    Some(Info {
-        pid,
-        token,
-        path,
-        view: text(&fields[3]),
-        cursor: text(&fields[4]),
-    })
 }
 
 // An own-window drag belongs to reorder and must not duplicate its tab.
@@ -236,55 +205,6 @@ pub fn new_token(now: u64, serial: u64) -> String {
     format!("{now}-{serial}")
 }
 
-// The torn-off window opens the folder and acknowledges the lift once its listing lands; a failed spawn keeps the source.
-pub fn tear_off_command(bin: &str, tear: &TearOff) -> Command {
-    let mut command = Command::new(bin);
-    command
-        .args(["--gui", &tear.path])
-        .env("FLEA_FRONTEND", "gpui")
-        .env_remove("FLEA_PATH")
-        .env_remove("FLEA_SELECT")
-        .env(TEAR_OFF_ENV[0], &tear.pid)
-        .env(TEAR_OFF_ENV[1], &tear.cursor)
-        .env(TEAR_OFF_ENV[2], &tear.token);
-    command
-}
-
-// A new window is not a tear-off, so it never inherits the hand-off its own window was started with.
-pub fn fresh_launch(command: &mut Command) {
-    for name in TEAR_OFF_ENV {
-        command.env_remove(name);
-    }
-}
-
-// The hand-off a tear-off launch read once; it acknowledges when the primary pane opens the folder it names.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Launch {
-    pub pid: String,
-    pub token: String,
-    pub cursor: String,
-    pub path: String,
-}
-
-impl Launch {
-    pub fn read(get: impl Fn(&str) -> Option<String>, path: &str) -> Self {
-        Self {
-            pid: get(TEAR_OFF_ENV[0]).unwrap_or_default(),
-            cursor: get(TEAR_OFF_ENV[1]).unwrap_or_default(),
-            token: get(TEAR_OFF_ENV[2]).unwrap_or_default(),
-            path: path.into(),
-        }
-    }
-
-    pub fn opened(&mut self, path: &str) -> Option<(String, String)> {
-        let valid = !self.pid.is_empty() && self.pid.bytes().all(|byte| byte.is_ascii_digit());
-        if path != self.path || !valid || self.token.is_empty() {
-            return None;
-        }
-        Some((self.pid.clone(), std::mem::take(&mut self.token)))
-    }
-}
-
 // The four fields a peeked line echoes, which tell the folder check's answer from every other peek.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Peeked {
@@ -361,6 +281,11 @@ pub struct Geometry {
 }
 
 impl Geometry {
+    pub fn cancel(&mut self) {
+        self.token.clear();
+        self.rect = None;
+        self.strip = None;
+    }
     // True when the query should start now.
     pub fn begin(&mut self, token: &str, strip: Rect) -> bool {
         self.token = token.into();
@@ -376,6 +301,9 @@ impl Geometry {
     // The query's answer; true when the latest lift still needs its own query.
     pub fn finished(&mut self, clients: &str, pid: u32) -> bool {
         let asked = self.asked.take().unwrap_or_default();
+        if self.token.is_empty() {
+            return false;
+        }
         if asked == self.token {
             self.rect = source_rect(clients, pid);
             return false;
@@ -413,7 +341,31 @@ impl TabState {
 
     pub fn tab_payload(&mut self, pane: &dyn Live, index: usize, pid: &str, token: &str) -> String {
         match self.tab_info(pane, index) {
-            Some((path, view, cursor)) => payload(pid, token, &path, view, &cursor),
+            Some((path, view, cursor)) => {
+                // A current tab the pane cannot snapshot carries its path and the pane's order, as other tabs do.
+                let snapshot = if index == self.current() {
+                    Some(
+                        pane.sort_snapshot()
+                            .filter(|snapshot| snapshot.path == path)
+                            .unwrap_or_else(|| Snapshot {
+                                path: path.clone(),
+                                order: pane.order(),
+                            }),
+                    )
+                } else {
+                    self.tabs
+                        .as_ref()
+                        .and_then(|tabs| tabs.items.get(index))
+                        .map(|tab| Snapshot {
+                            path: tab.path.clone(),
+                            order: tab.order,
+                        })
+                };
+                snapshot.map_or_else(
+                    || payload(pid, token, &path, view, &cursor),
+                    |snapshot| payload_with_sort(pid, token, view, &cursor, &snapshot),
+                )
+            }
             None => String::new(),
         }
     }
@@ -450,6 +402,9 @@ impl TabState {
         let identity = items[index].identity;
         items[index] = self.snapshot(pane, Some(here), identity, dropped);
         let mut snap = self.snapshot(pane, Some(info.path.clone()), 0, dropped);
+        if let Some(snapshot) = &info.sort {
+            snap.order = snapshot.order;
+        }
         if let Some(view) = VIEWS.iter().find(|view| **view == info.view) {
             snap.view = view;
         }
@@ -539,8 +494,38 @@ impl TabState {
 
 // The window's drag-out and receive half of the strip, ported from the shipped strip's own handlers.
 impl Bar {
+    // Resolve a lifted identity before using its cached index; closing that identity ends the gesture.
+    pub fn resolve_drag(&mut self, panes: &mut dyn Panes) -> bool {
+        let Some(lift) = self
+            .lifts
+            .iter()
+            .find(|lift| lift.token == self.out_token && !lift.taken && lift.lifted_at == 0)
+            .cloned()
+        else {
+            return false;
+        };
+        let mut resolved = None;
+        let mut count = 0;
+        panes.visit(lift.side, &mut |state, _| {
+            resolved = state.resolve(lift.identity);
+            count = state.count();
+        });
+        if let Some(index) = resolved.filter(|_| self.pane == Some(lift.side)) {
+            self.drag_from = Some(index);
+            self.drop_at = self.drop_at.map(|at| at.min(count));
+            true
+        } else {
+            self.drag_from = None;
+            self.drop_at = None;
+            self.out_active = false;
+            self.clear_ack();
+            false
+        }
+    }
+
     // A lift captures the tab payload before the pane can change; a lone tab never lifts.
     pub fn tab_lift_began(&mut self, panes: &mut dyn Panes, index: usize, now: u64) {
+        self.drag_cancelled();
         let Some(side) = self.pane else { return };
         let token = new_token(now, self.next_serial());
         let pid = self.self_pid.clone();
@@ -553,8 +538,13 @@ impl Bar {
                 .tab_info(pane, index)
                 .map(|info| info.0)
                 .unwrap_or_default();
-            let lift = state.capture_lift(pane, index, &token, 0, side);
+            let Some(lift) = state.capture_lift(pane, index, &token, 0, side) else {
+                return;
+            };
             let payload = state.tab_payload(pane, index, &pid, &token);
+            if payload.is_empty() {
+                return;
+            }
             began = Some((path, lift, payload));
         });
         let Some((path, lift, payload)) = began else {
@@ -568,7 +558,7 @@ impl Bar {
         self.out_pid = pid;
         self.out_token = token;
         self.ack_lifted_at = 0;
-        self.lifts.extend(lift);
+        self.lifts.push(lift);
         self.out_payload = payload;
         self.out_outside = false;
         self.out_refused = false;
@@ -577,6 +567,9 @@ impl Bar {
 
     // A platform drag freezes the strip reorder until the drop answers; true when the platform drag starts now.
     pub fn tab_lift_moved(&mut self, panes: &mut dyn Panes, strip_x: f64, outside: bool) -> bool {
+        if self.drag_from.is_none() || !self.resolve_drag(panes) {
+            return false;
+        }
         let count = self.count(panes);
         self.drag_moved(strip_x, count);
         self.out_outside = outside;
@@ -607,6 +600,9 @@ impl Bar {
             self.drop_at = None;
             return;
         }
+        if !self.out_token.is_empty() && !self.resolve_drag(panes) {
+            return;
+        }
         self.drag_finished(panes, now);
         if self.ack_lifted_at == 0 {
             self.clear_ack();
@@ -627,6 +623,7 @@ impl Bar {
         self.lifts.retain(|lift| lift.token != token);
         self.out_index = None;
         self.out_path.clear();
+        self.out_payload.clear();
         self.ack_lifted_at = 0;
     }
 
@@ -673,6 +670,8 @@ impl Bar {
         self.drop_at = None;
         self.out_active = false;
         self.own_accepted = false;
+        // Only the identity-bearing lift survives completion, waiting for its acknowledgment.
+        self.out_payload.clear();
         if consumed {
             self.clear_ack();
         } else if !self.out_token.is_empty() {
@@ -736,6 +735,7 @@ impl Bar {
             cursor,
             token: self.out_token.clone(),
             path: self.out_path.clone(),
+            sort: parse(&self.out_payload).and_then(|info| info.sort),
         };
         self.out_finished(now);
         Some(tear)
@@ -762,7 +762,7 @@ impl Bar {
         let count = self.count(panes);
         let at = drop_index_at(x, f64::from(self.tab_width(count)), count);
         if is_own(&info, &self.self_pid) {
-            if !self.out_active {
+            if !self.out_active || info.token != self.out_token {
                 return false;
             }
             self.return_at(panes, at);
@@ -773,8 +773,7 @@ impl Bar {
             return false;
         }
         // The take answers Move at once; the folder check behind it may still refuse, and then no ack goes out.
-        self.accept_tab_drop(panes, payload, &info, Some(at), now);
-        true
+        self.accept_tab_drop(panes, payload, &info, Some(at), now)
     }
 
     // A foreign tab opens only after its reserved peek confirms a folder; one drop waits at a time.

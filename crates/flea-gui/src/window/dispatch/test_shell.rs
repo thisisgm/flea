@@ -21,8 +21,27 @@ pub(super) fn open<'a>(
     cx: &'a mut TestAppContext,
     keys: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    open_in(cx, keys, "list")
+}
+
+// The same launch in a named view.
+pub(super) fn open_in<'a>(
+    cx: &'a mut TestAppContext,
+    keys: &str,
+    view: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    open_with(cx, keys, view, "")
+}
+
+// The same launch with more places members, written as `,"name":value`.
+pub(super) fn open_with<'a>(
+    cx: &'a mut TestAppContext,
+    keys: &str,
+    view: &str,
+    places: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
     let document = flea::jsondoc::parse(&format!(
-        r#"{{"keys":"{keys}","view":"list","places":{{"rail":"shown","showHome":true,"showTrash":true}}}}"#
+        r#"{{"keys":"{keys}","view":"{view}","places":{{"rail":"shown","showHome":true,"showTrash":true{places}}}}}"#
     ))
     .unwrap();
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());

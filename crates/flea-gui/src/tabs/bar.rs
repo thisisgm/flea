@@ -468,39 +468,18 @@ impl Labels {
 pub struct StripElement {
     frame: Frame,
     labels: Rc<RefCell<Labels>>,
+    feedback: Option<Rc<RefCell<super::held::StripFrames>>>,
 }
 
-impl StripElement {
-    pub fn new(frame: Frame, labels: Rc<RefCell<Labels>>) -> Self {
-        Self { frame, labels }
-    }
-}
+#[path = "bar_feedback.rs"]
+mod feedback;
+use feedback::frame_box;
 
 impl IntoElement for StripElement {
     type Element = Self;
     fn into_element(self) -> Self {
         self
     }
-}
-
-fn frame_box(window: &mut Window, bounds: Bounds<Pixels>, ink: Hsla) {
-    let (x, y, w, h) = (
-        bounds.origin.x,
-        bounds.origin.y,
-        bounds.size.width,
-        bounds.size.height,
-    );
-    let edge = px(1.);
-    window.paint_quad(fill(Bounds::new(point(x, y), size(w, edge)), ink));
-    window.paint_quad(fill(
-        Bounds::new(point(x, y + h - edge), size(w, edge)),
-        ink,
-    ));
-    window.paint_quad(fill(Bounds::new(point(x, y), size(edge, h)), ink));
-    window.paint_quad(fill(
-        Bounds::new(point(x + w - edge, y), size(edge, h)),
-        ink,
-    ));
 }
 
 impl Element for StripElement {
@@ -561,6 +540,15 @@ impl Element for StripElement {
         window: &mut Window,
         cx: &mut App,
     ) {
+        if let (Some(frames), Some(draw)) = (&self.feedback, window.current_draw_id()) {
+            let frames = frames.borrow();
+            frames.staged.set(Some(super::held::Painted {
+                draw,
+                version: frames.version,
+                holding: frames.holding,
+                complete: !self.frame.labels.is_empty(),
+            }));
+        }
         window.set_cursor_style(CursorStyle::PointingHand, pointer);
         let palette = *palette;
         let labels = self.labels.borrow();
