@@ -113,7 +113,7 @@ def manifest_versions(path):
 
 
 def display(entry):
-    return "**Flea**" if entry == "flea" else {"pcmanfm": "PCManFM"}.get(entry, entry[:1].upper() + entry[1:])
+    return "**Flea**" if entry == "flea" else {"pcmanfm": "PCManFM", "strata-stable": "Strata stable", "strata-nightly": "Strata nightly"}.get(entry, entry[:1].upper() + entry[1:])
 
 
 def table(csv_path):
@@ -284,9 +284,9 @@ def resolve_flea_label(explicit, blocks, cargo_toml):
 # The full version token from the manifest, never retyped; Flea names label and sha.
 def section_version(entry, ent, flea_label):
     fields = ent["fields"]
-    if entry == "flea" and len(fields) > 3 and fields[2] == "source":
+    if entry in ("flea", "flea-tui") and len(fields) > 3 and fields[2] == "source":
         return "%s, source %s" % (flea_label, fields[3])
-    if entry == "flea-anchor" and len(fields) > 3 and fields[2] == "source":
+    if entry in ("flea-anchor", "flea-tui-anchor") and len(fields) > 3 and fields[2] == "source":
         return "%s, source %s" % (anchor_tag(ent), fields[3])
     return fields[3]
 
@@ -301,8 +301,9 @@ def section_display(entry):
 
 # Display names; the anchor carries its manifest version, never a retyped one.
 def display_for(entry, version):
-    if entry == "flea-anchor":
-        return "**Flea %s**" % version.split(",", 1)[0].strip()
+    if entry in ("flea-anchor", "flea-tui-anchor"):
+        label = "Flea TUI" if entry == "flea-tui-anchor" else "Flea"
+        return "**%s %s**" % (label, version.split(",", 1)[0].strip())
     return section_display(entry)
 
 
@@ -402,7 +403,7 @@ def table_inputs(rows, entries, default_kind, want_kind, tag, flea_label, with_a
         by_id.setdefault(r["id"], []).append(r)
     ids = [i for i in by_id if entries.get(i, {}).get("kind", default_kind) == want_kind]
     if not with_anchor:
-        ids = [i for i in ids if i != "flea-anchor"]
+        ids = [i for i in ids if i not in ("flea-anchor", "flea-tui-anchor")]
     versions = {}
     for i in ids:
         ent = entries.get(i)
@@ -551,9 +552,13 @@ def search_tables(jsonl_path, field_entries, flea_label, unknowns, with_anchor=F
             else:
                 settled_cell = format_search_ms(median_float(settled_vals)) if settled_vals else "n/a"
             ver = search_version(members, ent_name, arms, field_entries, flea_label,
-                                 jsonl_path, unknowns)
+                                 jsonl_path, unknowns, entrants)
+            label = display_for(ent_name, ver)
+            channel = arms.get(members[0], {}).get("channel")
+            if channel:
+                label += " " + channel
             lines.append("| %s | %s | %s | %s | %s |" % (
-                display_for(ent_name, ver), ver, query, first_cell, settled_cell))
+                label, ver, query, first_cell, settled_cell))
     return lines
 
 
@@ -573,8 +578,14 @@ def search_order(merged, members_of, entrants, arms):
     return sorted(merged, key=key)
 
 
-# A Flea search arm takes its sha from its flea_dir basename, others from the field.
-def search_version(members, ent_name, arms, field_entries, flea_label, jsonl_path, unknowns):
+# New search manifests carry measured identities; legacy records use their field receipts.
+def search_version(members, ent_name, arms, field_entries, flea_label, jsonl_path, unknowns, identities=None):
+    actual = (identities or {}).get(members[0], {})
+    if actual.get("version"):
+        version = actual["version"]
+        if actual.get("build_sha"):
+            version += ", source " + actual["build_sha"]
+        return version
     if ent_name == "flea":
         for m in members:
             flea_dir = (arms.get(m) or {}).get("flea_dir", "").rstrip("/")
