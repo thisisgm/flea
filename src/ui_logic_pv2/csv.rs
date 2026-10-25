@@ -163,6 +163,9 @@ pub fn table(held: &BTreeMap<usize, Held>, total: usize, delim: Option<char>) ->
             Some(record) if record != 0 => record,
             _ => 1,
         };
+        if start == 1 {
+            strip_bom(&mut lines);
+        }
         let last_line = start + lines.len() - 1;
         for (ordinal, rec) in (from..).zip(records(&lines, delim)) {
             if rec.open && last_line < total {
@@ -215,6 +218,13 @@ pub fn table(held: &BTreeMap<usize, Held>, total: usize, delim: Option<char>) ->
 /// True when every unfinished record starts after ordinal to, so the first screen is complete.
 pub fn ready(t: &Table, to: usize) -> bool {
     t.open.iter().all(|rec| rec.record > to)
+}
+
+/// A UTF-8 byte-order mark opening the file is no field text; one later in the file stays cell text.
+pub fn strip_bom(lines: &mut [String]) {
+    if let Some(rest) = lines.first().and_then(|line| line.strip_prefix('\u{feff}')) {
+        lines[0] = rest.to_string();
+    }
 }
 
 /// The raw lines of backend text: a terminal newline adds no line, and one trailing CR is removed from each line.

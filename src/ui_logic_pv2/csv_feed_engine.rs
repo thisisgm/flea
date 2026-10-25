@@ -43,7 +43,9 @@ impl Engine {
                 lines: vec![],
             };
         }
-        let recs = records(&self.lines, Some(self.delim));
+        let mut scanned = self.lines.clone();
+        csv::strip_bom(&mut scanned);
+        let recs = records(&scanned, Some(self.delim));
         let mut starts = Vec::new();
         let mut at = 1;
         for rec in &recs {
