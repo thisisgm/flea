@@ -72,6 +72,15 @@ fn a_row_scrolled_out_drops_its_edit_and_a_partly_shown_one_is_clipped(cx: &mut 
     cx.simulate_keystrokes("f2");
     draw(cx);
     assert!(editing(&shell, cx), "F2 opens the editor again");
+    cx.simulate_input("renamed");
+    draw(cx);
+    assert!(
+        shell.read_with(cx, |shell, _| {
+            let edit = shell.rename.edit.as_ref().unwrap();
+            edit.entry.text != edit.name
+        }),
+        "the draft must differ so an accidental commit sends a rename"
+    );
     scroll(&shell, cx, pitch * 3. + 1.);
     assert!(
         shell.read_with(cx, |shell, _| shell.rename.edit.is_none()),
