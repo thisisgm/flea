@@ -38,9 +38,17 @@ const PAGE: usize = 400;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Ask {
     Nothing,
-    Code { path: String },
-    Meta { path: String, link: Option<String> },
-    Compare { a: String, b: String },
+    Code {
+        path: String,
+    },
+    Meta {
+        path: String,
+        link: Option<String>,
+    },
+    Compare {
+        a: String,
+        b: String,
+    },
     /// Compare on rows outside the held window: the backend's snapshot of them, then its validated paths (Ops.js menuKinds).
     Resolve {
         listing: usize,
@@ -98,6 +106,7 @@ impl Shell {
                 _events: events,
             });
         }
+        self.quick_look_release();
         let host = self.quick_look.as_mut().expect("built above");
         host.side = side;
         host
@@ -164,12 +173,7 @@ impl Shell {
                     count: String::new(),
                 };
                 let line = code_line(token, &path, 1);
-                (
-                    subject(state, body),
-                    false,
-                    Some(line),
-                    Ask::Code { path },
-                )
+                (subject(state, body), false, Some(line), Ask::Code { path })
             }
             State::Image => {
                 let body = Body::Image {
@@ -251,6 +255,19 @@ impl Shell {
         cx.notify();
     }
 
+    /// A Compare snapshot still resolving is closed on its own side before its ask is replaced or the card closes.
+    fn quick_look_release(&mut self) {
+        let Some(host) = self.quick_look.as_mut().filter(|h| h.token != 0) else {
+            return;
+        };
+        if matches!(host.ask, Ask::Resolve { .. }) {
+            let (side, token) = (host.side, host.token);
+            host.token = 0;
+            host.ask = Ask::Nothing;
+            self.quick_look_send(side, compare_open::close_line(token));
+        }
+    }
+
     fn quick_look_send(&mut self, side: usize, line: String) {
         let locale = self.locale.clone();
         let Some(pane) = self.panes[side].as_mut().filter(|p| !p.stopped) else {
@@ -265,6 +282,7 @@ impl Shell {
     }
 
     fn quick_look_closed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.quick_look_release();
         let Some(host) = self.quick_look.as_mut() else {
             return;
         };
