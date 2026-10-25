@@ -68,6 +68,8 @@ pub struct Joined {
     pub captured: Option<Captured>,
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
+    // Pane.qml openPasteAs: the flyout a closed-menu key asked for, opened once the card is drawn.
+    pub submenu: Option<&'static str>,
     pub activating: bool,
     pub reading: bool,
     pub sequence: u64,

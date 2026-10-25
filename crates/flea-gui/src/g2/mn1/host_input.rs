@@ -156,6 +156,68 @@ impl Shell {
         self.open_menu(side, row, at, window, cx);
     }
 
+    // Focus.js pasteAs then Pane.qml openPasteAs: Recent and an empty clipboard refuse before any menu, else the cursor's menu opens on Paste as.
+    pub(crate) fn paste_as_key(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let side = self.focus_side;
+        let Some(host) = &self.panes[side] else {
+            return;
+        };
+        if self.input_blocked(cx) {
+            return;
+        }
+        let refusal = if flea::ui_logic_pk1::is_recent(host.pane.place()) {
+            Some(flea::ui_logic_dg1::RECENT_PASTE)
+        } else if !self.clipboard_menu_facts(side).0 {
+            Some(flea::ui_logic_mn1::refresh::EMPTY_CLIPBOARD)
+        } else {
+            None
+        };
+        if let Some(key) = refusal {
+            let sentence = self.locale.catalog.tr(key);
+            // Both are root.message(..., false): the info role, not the error role a menu refusal takes.
+            self.status_messages(cx, |messages, now| {
+                messages.say(
+                    &sentence,
+                    false,
+                    "",
+                    flea::ui_logic_fb1::status::Hint::None,
+                    now,
+                )
+            });
+            cx.notify();
+            return;
+        }
+        self.menu_keyboard_open(window, cx);
+        if self.menu.captured.is_some() {
+            self.menu.submenu = Some("pasteAs");
+            self.open_asked_submenu(window, cx);
+        }
+    }
+
+    // The asked flyout opens on the drawn card; a card still loading keeps the ask for refresh_menu.
+    pub(crate) fn open_asked_submenu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let (Some(action), Some(capture)) = (self.menu.submenu, &self.menu.captured) else {
+            return;
+        };
+        if self.menu.menu.borrow().card.is_none() {
+            return;
+        }
+        self.menu.submenu = None;
+        let list = self.panes[capture.side]
+            .as_ref()
+            .expect("the menu's pane")
+            .list
+            .borrow();
+        let outcome = self.menu.menu.borrow_mut().open_submenu_for(
+            action,
+            self.menu.context.clipboard_available,
+            &self.menu_env(&list.typeface),
+            window,
+        );
+        drop(list);
+        self.menu_outcome(outcome, window, cx);
+    }
+
     fn menu_click(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         if event.button == MouseButton::Right || self.menu.presentation.at.is_some() {
             self.retire_menu(window, cx);

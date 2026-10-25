@@ -4,7 +4,8 @@ use gpui::Window;
 
 impl Shell {
     pub(crate) fn has_tabs(&self) -> bool {
-        self.view != View::Dual && self.tab_strip_visible()
+        // TabBar.qml open is tabCount > 1 in every view; in Dual the strip spans both panes for the focused one.
+        self.tab_strip_visible()
     }
 
     pub(crate) fn geometry(&self, window: &Window) -> Geometry {

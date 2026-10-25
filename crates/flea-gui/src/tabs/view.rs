@@ -219,7 +219,7 @@ impl Shell {
             self.reflow_held_tabs(window, font_changed, cx);
             return;
         }
-        let visible = count > 1 && self.view != View::Dual;
+        let visible = count > 1;
         self.strip.bar.settle(visible.then_some(count));
         if !visible {
             self.strip.snapshot = None;
