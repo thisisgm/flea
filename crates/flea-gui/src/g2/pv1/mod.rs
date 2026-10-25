@@ -103,6 +103,8 @@ pub struct QuickLook {
     pub(crate) focused: Option<Hit>,
     pub(crate) hovered: Option<Hit>,
     pub(crate) pressed: Option<Hit>,
+    /// Survives the shield's release so a press taken while hidden cannot activate newly revealed chrome.
+    pub(crate) chrome_armed: bool,
     pub(crate) scroll: Scroll,
     /// The mounted view's notifications: each re-reads its readiness, its page shape and the PDF's opening page.
     doc_watch: Option<gpui::Subscription>,
@@ -130,6 +132,7 @@ impl QuickLook {
             focused: None,
             hovered: None,
             pressed: None,
+            chrome_armed: false,
             scroll: Scroll::default(),
             doc_watch: None,
         }
@@ -197,6 +200,7 @@ impl QuickLook {
         self.revealed = revealed;
         self.focused = None;
         self.pressed = None;
+        self.chrome_armed = false;
         self.scroll = Scroll::default();
         cx.notify();
     }
@@ -224,6 +228,7 @@ impl QuickLook {
         self.focused = None;
         self.hovered = None;
         self.pressed = None;
+        self.chrome_armed = false;
         self.scroll = Scroll::default();
         cx.emit(Event::Closed);
         cx.notify();

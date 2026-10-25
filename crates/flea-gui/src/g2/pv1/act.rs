@@ -106,7 +106,6 @@ impl QuickLook {
             is_compare: subject.is_some_and(|s| s.body.is_compare()),
             has_bar,
             close_focused: self.focused == Some(Hit::Close),
-            ..Surface::default()
         };
         let open_with = subject.is_some_and(|s| s.body.offers_open_with());
         let command = keys::act(action, surface);

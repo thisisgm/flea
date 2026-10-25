@@ -214,16 +214,16 @@ impl Doc {
             View::Model(v) => match v.read(cx).bar() {
                 Some(bar) => Chrome {
                     tail: bar.fact,
-                    words: (bar.words.len() > 1)
-                        .then(|| {
-                            let chosen = bar.chosen;
-                            bar.words
-                                .into_iter()
-                                .enumerate()
-                                .map(|(i, w)| (w, i == chosen))
-                                .collect()
-                        })
-                        .unwrap_or_default(),
+                    words: if bar.words.len() > 1 {
+                        let chosen = bar.chosen;
+                        bar.words
+                            .into_iter()
+                            .enumerate()
+                            .map(|(i, w)| (w, i == chosen))
+                            .collect()
+                    } else {
+                        Vec::new()
+                    },
                     ..Chrome::default()
                 },
                 None => Chrome::default(),

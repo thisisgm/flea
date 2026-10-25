@@ -100,6 +100,24 @@ impl Mount {
 }
 
 impl Shell {
+    /// A terminal pane event fails pending code reads and preserves documents with no outstanding read.
+    pub(super) fn quick_look_code_lost(&mut self, side: usize, cx: &mut Context<Self>) {
+        let code = self
+            .quick_look
+            .as_ref()
+            .filter(|host| host.side == side)
+            .and_then(|host| {
+                let doc = host.view.read(cx).subject()?.body.doc()?;
+                match &doc.view {
+                    View::Code(code) if code.read(cx).lines.token != 0 => Some(code.clone()),
+                    _ => None,
+                }
+            });
+        if let Some(code) = code {
+            code.update(cx, |code, cx| code.set_read_failed(cx));
+        }
+    }
+
     /// Mounts the row's view in the card; false when it has none to play through, so the card's own refusal shows.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn show_doc(
@@ -280,13 +298,22 @@ pub(crate) fn on_line(
             .update(cx, |table, cx| table.answered(line, cx)),
         (View::Office(view), _) => view.update(cx, |view, cx| view.reply(line, window, cx)),
         (View::Font(view), "fontlooked") => {
-            view.update(cx, |view, cx| view.answered(font_reply(json), cx));
+            let reply = font_reply(json);
+            let pending = view.read(cx).page.pending;
+            if pending == 0 || reply.id != pending {
+                return false;
+            }
+            view.update(cx, |view, cx| view.answered(reply, cx));
             true
         }
         (View::Model(view), "model3d") => view.update(cx, |view, cx| view.on_line(line, cx)),
         (View::Pdf(view), "pdfcopied") => {
             let text = |key| json.get(key).and_then(Json::as_str).unwrap_or("");
             let id = json.get("id").and_then(Json::as_f64).unwrap_or(0.) as u64;
+            if id == 0 || view.read(cx).surface.fetch != flea::ui_logic_pv2::pdf::Fetch::Waiting(id)
+            {
+                return false;
+            }
             let stalled = json.get("stalled").and_then(Json::as_bool) == Some(true);
             view.update(cx, |pdf, cx| {
                 pdf.copied(id, text("path"), text("err"), stalled, cx)

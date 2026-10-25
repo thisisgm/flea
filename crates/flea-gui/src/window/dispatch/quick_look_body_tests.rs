@@ -4,7 +4,7 @@ use super::test_shell::{land, row, set_cursor};
 use crate::{
     g2::{
         pv1::{doc::View, Body},
-        pv3::engine::{feed, Backend, Feed, Playback, Request},
+        pv3::engine::{feed, Backend, Feed, FeedSender, Playback, Request},
     },
     state::Shell,
     window::u07_tests::read,
@@ -13,15 +13,16 @@ use flea::{
     jsondoc::{self, Json},
     keys::Context,
     protocol::RowFacts,
-    ui_logic_pv3::frame::Command,
+    ui_logic_pv3::frame::{Command, Event},
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::{cell::RefCell, rc::Rc};
 
 #[derive(Default)]
-struct Script {
+pub(super) struct Script {
     starts: RefCell<Vec<Request>>,
     commands: Rc<RefCell<Vec<Command>>>,
+    pub(super) feeds: RefCell<Vec<FeedSender>>,
 }
 
 struct Fake(Rc<Script>);
@@ -39,7 +40,8 @@ impl Playback for Decoder {
 impl Backend for Fake {
     fn start(&self, request: &Request) -> Result<(Box<dyn Playback>, Feed), String> {
         self.0.starts.borrow_mut().push(request.clone());
-        let (_sender, feed) = feed();
+        let (sender, feed) = feed();
+        self.0.feeds.borrow_mut().push(sender);
         Ok((Box::new(Decoder(self.0.commands.clone())), feed))
     }
 }
@@ -48,12 +50,12 @@ impl Backend for Fake {
 const KINDS: &[(&str, &str, &str, &str)] = &[
     ("notes.txt", "text-plain", "text", "code"),
     ("main.rs", "text-x-rust", "text", "code"),
-    ("readme.md", "text-markdown", "text", ""),
-    ("page.html", "text-html", "text", ""),
+    ("readme.md", "text-markdown", "text", "markdown-local"),
+    ("page.html", "text-html", "text", "html"),
     ("table.csv", "text-csv", "text", "code"),
     ("report.docx", "x-office-document", "office", "officepdf"),
-    ("book.pdf", "application-pdf", "pdf", ""),
-    ("Inter-Bold.ttf", "font-x-generic", "font", ""),
+    ("book.pdf", "application-pdf", "pdf", "pdf-local"),
+    ("Inter-Bold.ttf", "font-x-generic", "font", "fontlook"),
     ("pack.zip", "package-x-generic", "archive", "meta"),
     ("benchy.stl", "model-stl", "model3d", "model3d"),
     ("benchy.gcode", "text-plain", "model3d", "model3d"),
@@ -71,7 +73,9 @@ fn rows() -> Vec<RowFacts> {
 }
 
 /// The window with the card built once, its media playing through the scripted decoder.
-fn mounted(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, Lines, Rc<Script>) {
+pub(super) fn mounted(
+    cx: &mut TestAppContext,
+) -> (Entity<Shell>, &mut VisualTestContext, Lines, Rc<Script>) {
     // The Markdown parse, picture and PDF render threads are real, so their wakes come from outside the scheduler.
     cx.executor().allow_parking();
     let (shell, cx, mut requests) = opened(cx);
@@ -90,13 +94,19 @@ fn mounted(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, L
     (shell, cx, requests, script)
 }
 
-fn open_kind(shell: &Entity<Shell>, cx: &mut VisualTestContext, name: &str) {
+pub(super) fn open_kind(shell: &Entity<Shell>, cx: &mut VisualTestContext, name: &str) {
     let index = 2 + KINDS
         .iter()
         .position(|(n, ..)| *n == name)
         .expect("a listed kind");
     set_cursor(shell, cx, index);
     cx.simulate_keystrokes("space");
+    draw(cx);
+    cx.simulate_frame_request(gpui::RequestFrameOptions::default());
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(
+            flea::ui_logic_pv2::html::SETTLE_MS,
+        ));
     draw(cx);
 }
 
@@ -108,7 +118,7 @@ fn doc_kind(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<&'stati
 }
 
 fn check(cx: &mut TestAppContext, name: &str) {
-    let (shell, cx, mut requests, _) = mounted(cx);
+    let (shell, cx, mut requests, script) = mounted(cx);
     let (_, _, kind, ask) = *KINDS.iter().find(|(n, ..)| *n == name).unwrap();
     open_kind(&shell, cx, name);
     assert_eq!(
@@ -130,13 +140,62 @@ fn check(cx: &mut TestAppContext, name: &str) {
     let lines: Vec<Json> = std::iter::from_fn(&mut requests)
         .filter_map(|line| jsondoc::parse(&line).ok())
         .collect();
-    if !ask.is_empty() {
+    if ask == "markdown-local" {
+        let Some(Body::Doc(doc)) = body(&shell, cx) else {
+            panic!("Markdown mounted")
+        };
+        let View::Markdown(md) = doc.view else {
+            panic!("Markdown view")
+        };
+        cx.read(|cx| {
+            let md = md.read(cx);
+            assert_eq!(
+                md.path.as_deref(),
+                Some(std::path::Path::new("/files/readme.md"))
+            );
+            assert!(
+                md.active && md.doc.seq > 0,
+                "local Markdown read is scheduled"
+            );
+            assert_eq!(md.slot, "look");
+        });
+    } else if ask == "pdf-local" {
+        let Some(Body::Doc(doc)) = body(&shell, cx) else {
+            panic!("PDF mounted")
+        };
+        let View::Pdf(pdf) = doc.view else {
+            panic!("PDF view")
+        };
+        assert_eq!(
+            cx.read(|cx| pdf.read(cx).surface.opener.opened.clone()),
+            "/files/book.pdf"
+        );
+        assert!(
+            cx.read(|cx| pdf.read(cx).surface.doc.is_some()),
+            "local PDF open reached its renderer"
+        );
+    } else {
         let first = lines
             .iter()
             .find(|doc| doc.get("c").and_then(Json::as_str) == Some(ask))
             .unwrap_or_else(|| panic!("{name} asks {ask}: {lines:?}"));
-        if let Some(slot) = first.get("slot").and_then(Json::as_str) {
-            assert_eq!(slot, "look", "{name} asks on the card's slot");
+        let slot = first.get("slot").and_then(Json::as_str);
+        if matches!(ask, "code" | "html" | "model3d") {
+            assert_eq!(slot, Some("look"), "{name} must include the card's slot");
+        } else {
+            assert_eq!(slot, None, "{ask} uses request identity rather than a slot");
+            let identity = if matches!(ask, "fontlook" | "officepdf" | "officesheets") {
+                "id"
+            } else {
+                "token"
+            };
+            assert!(
+                first
+                    .get(identity)
+                    .and_then(Json::as_f64)
+                    .is_some_and(|id| id > 0.),
+                "{name} has a request identity"
+            );
         }
     }
     let surface = if matches!(kind, "audio" | "video") {
@@ -145,6 +204,12 @@ fn check(cx: &mut TestAppContext, name: &str) {
         "pv1-bar"
     };
     assert!(cx.debug_bounds(surface).is_some(), "{name} draws {surface}");
+    if matches!(kind, "audio" | "video") {
+        let starts = script.starts.borrow();
+        assert_eq!(starts.len(), 1);
+        assert_eq!(starts[0].path, format!("/files/{name}"));
+        assert!(starts[0].autoplay);
+    }
     cx.simulate_keystrokes("escape");
     draw(cx);
     assert_eq!(
@@ -200,6 +265,16 @@ fn a_blob_keeps_the_calm_refusal_as_the_negative_control(cx: &mut TestAppContext
 #[gpui::test]
 fn w_wraps_the_open_text_and_a_tab_switch_closes_the_card(cx: &mut TestAppContext) {
     let (shell, cx, _requests, _) = mounted(cx);
+    let actions = Rc::new(RefCell::new(Vec::new()));
+    let seen = actions.clone();
+    let _actions = cx.update(|_, cx| {
+        cx.subscribe(
+            &shell,
+            move |_, event: &crate::window::input::ActionEvent, _| {
+                seen.borrow_mut().push(event.action);
+            },
+        )
+    });
     open_kind(&shell, cx, "notes.txt");
     let wrap = |shell: &Entity<Shell>, cx: &mut VisualTestContext| match body(shell, cx) {
         Some(Body::Doc(doc)) => match &doc.view {
@@ -225,6 +300,10 @@ fn w_wraps_the_open_text_and_a_tab_switch_closes_the_card(cx: &mut TestAppContex
         "a tab switch closes the card"
     );
     assert_eq!(context(&shell, cx), Context::Listing);
+    assert!(
+        actions.borrow().contains(&"tabNext"),
+        "tabNext reaches the listing dispatcher after closing the card"
+    );
     close(&shell, cx);
 }
 
@@ -235,14 +314,36 @@ fn media_plays_and_p_m_and_the_arrows_reach_the_player(cx: &mut TestAppContext) 
     assert_eq!(script.starts.borrow().len(), 1, "Quick Look starts playing");
     assert!(script.starts.borrow()[0].autoplay);
     assert_eq!(context(&shell, cx), Context::Media);
-    script.commands.borrow_mut().clear();
-    for key in ["p", "m", "right", "left"] {
+    for event in [
+        Event::Loaded {
+            video: false,
+            duration_ms: 20_000,
+        },
+        Event::Playing,
+        Event::Position(10_000),
+    ] {
+        assert!(script.feeds.borrow()[0].event(event));
+    }
+    draw(cx);
+    let muted = shell.read_with(cx, |_, cx| crate::g2::pv3::sound::MediaSound::get(cx).muted);
+    for (key, command) in [
+        ("p", Command::Pause),
+        ("m", Command::Mute(!muted)),
+        ("right", Command::Seek(15_000)),
+        ("left", Command::Seek(10_000)),
+    ] {
+        script.commands.borrow_mut().clear();
         cx.simulate_keystrokes(key);
         draw(cx);
         assert_eq!(
             read(&shell, cx, "previewOpen", &[]),
             "true",
             "{key} keeps the card open"
+        );
+        assert!(
+            script.commands.borrow().contains(&command),
+            "{key} sends {command:?}, got {:?}",
+            script.commands.borrow()
         );
     }
     cx.simulate_keystrokes("space");
@@ -272,6 +373,19 @@ fn the_cursor_keys_still_move_under_a_mounted_view(cx: &mut TestAppContext) {
         doc_kind(&shell, cx),
         Some("text"),
         "the card follows onto main.rs"
+    );
+    assert_eq!(
+        shell.read_with(cx, |shell, cx| shell
+            .quick_look
+            .as_ref()
+            .unwrap()
+            .view
+            .read(cx)
+            .subject()
+            .unwrap()
+            .name
+            .clone()),
+        "main.rs"
     );
     close(&shell, cx);
 }
