@@ -209,6 +209,7 @@ pub fn load_settings() -> Result<Settings, String> {
 
 #[derive(Clone, Debug)]
 pub struct Launch {
+    pub tabs: Option<crate::tabs::state::Plan>,
     pub settings: Settings,
     pub paths: [String; 2],
     pub select: [Option<String>; 2],
@@ -217,7 +218,13 @@ pub struct Launch {
 
 impl Launch {
     pub fn resolve(settings: Settings, args: Arguments, home: &str) -> Self {
-        let start = settings.start_path(home, args.path.as_deref());
+        let tabs =
+            crate::tabs::state::restore_plan(&settings.data, args.path.as_deref().unwrap_or(""));
+        let start = tabs
+            .as_ref()
+            .and_then(|plan| plan.paths.get(plan.index))
+            .cloned()
+            .unwrap_or_else(|| settings.start_path(home, args.path.as_deref()));
         let (paths, launch_side) = settings.dual_paths(&start, args.path.as_deref());
         let focus = if settings.view == View::Dual {
             usize::from(
@@ -243,6 +250,7 @@ impl Launch {
             0
         }] = args.select;
         Self {
+            tabs,
             settings,
             paths,
             select,
@@ -253,6 +261,7 @@ impl Launch {
 
 pub fn new_window_command(path: &str) -> Command {
     let mut command = Command::new(binary());
+    crate::tabs::transfer::fresh_launch(&mut command);
     command
         .args(["--gui", path])
         .env("FLEA_FRONTEND", "gpui")

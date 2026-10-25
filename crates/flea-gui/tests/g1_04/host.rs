@@ -49,14 +49,20 @@ fn generated_actions_reach_the_window_and_respect_context_and_preset(cx: &mut Te
             shell.keyboard.disarm();
             shell.launch.settings.data = flea::jsondoc::parse(r#"{"keys":"mac"}"#).unwrap();
             shell.key(&event("n", None, true), window, cx);
+            assert_eq!(shell.strip.tabs[0].count(), 1);
             shell.key(&event("t", None, true), window, cx);
+            assert_eq!(shell.strip.tabs[0].count(), 2);
+            assert_eq!(shell.strip.tabs[0].current(), 1);
             shell.key(&event("x", None, true), window, cx);
             shell.key(&event("3", None, true), window, cx);
             assert_eq!(shell.view, View::Grid);
         })
     });
     cx.run_until_parked();
-    assert_eq!(*observed.borrow(), vec!["tabNew"]);
+    assert!(
+        observed.borrow().is_empty(),
+        "the mounted tab action is consumed"
+    );
 }
 
 #[gpui::test]

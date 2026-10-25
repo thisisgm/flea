@@ -85,7 +85,7 @@ fn m9_g1rows_05_unfinished_folder_sort_survives_a_stale_reread(cx: &mut TestAppC
                 Ok(true)
             );
             let host = shell.panes[0].as_ref().unwrap();
-            assert_eq!(host.nav.writer.borrow().sent, 1);
+            assert_eq!(host.nav.writer.borrow().sort_writes(), 1);
             let chosen = host.nav.folders.borrow().get("/B");
             assert!(chosen.is_some(), "the explicit choice is remembered");
             shell.receive_settings(reread("{}"), window, cx);
@@ -100,7 +100,9 @@ fn m9_g1rows_05_unfinished_folder_sort_survives_a_stale_reread(cx: &mut TestAppC
                 .and_then(|entry| entry.get("key"))
                 .and_then(Json::as_str);
             assert_eq!(saved, Some("size"));
-            done.store(1, Ordering::Release);
+            // Every write so far finishes, the sort write with the path write before it.
+            let sent = shell.panes[0].as_ref().unwrap().nav.writer.borrow().sent;
+            done.store(sent, Ordering::Release);
             shell.receive_settings(reread("{}"), window, cx);
             let host = shell.panes[0].as_ref().unwrap();
             assert_eq!(

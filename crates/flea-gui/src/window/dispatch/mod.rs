@@ -2,6 +2,7 @@
 mod listing;
 mod navigation;
 mod preview;
+mod tabs;
 mod window;
 
 use super::input::ActionEvent;
@@ -22,7 +23,13 @@ pub(crate) enum Order {
 type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
 
 /// Each family keeps its handlers in its own file beside this one and adds one line here.
-const FAMILIES: &[Family] = &[navigation::run, preview::run, listing::run, window::run];
+const FAMILIES: &[Family] = &[
+    navigation::run,
+    tabs::run,
+    preview::run,
+    listing::run,
+    window::run,
+];
 
 impl Shell {
     /// Runs the order through its family; one nobody ran is emitted for observers, and an unclaimed menu choice is refused.
@@ -54,5 +61,7 @@ mod navigation_tests;
 mod refusal_tests;
 #[cfg(test)]
 mod search_open_tests;
+#[cfg(test)]
+mod tabs_tests;
 #[cfg(test)]
 mod test_shell;

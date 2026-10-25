@@ -5,3 +5,25 @@ pub mod transfer;
 
 pub use bar::{Bar, Panes};
 pub use state::{Live, Tab, TabState, Tabs, MAX};
+
+#[cfg(test)]
+mod regression_tests;
+#[cfg(test)]
+pub mod test_support;
+
+mod atomic;
+pub(crate) mod catcher;
+mod geometry;
+pub(crate) mod held;
+pub(crate) mod host;
+#[cfg(test)]
+mod join_tests;
+mod landing;
+mod live;
+mod native;
+mod view;
+
+#[cfg(test)]
+mod mounted_tests;
+
+mod middle;
