@@ -3,10 +3,14 @@ use std::{
     process::Command,
 };
 
+#[path = "g2_pv2/fix1.rs"]
+mod fix1;
 #[path = "g2_pv2/fixture.rs"]
 mod fixture;
 #[path = "g2_pv2/renderer.rs"]
 mod renderer;
+#[path = "g2_pv2/renderer_drop.rs"]
+mod renderer_drop;
 #[path = "g2_pv2/view.rs"]
 mod view;
 

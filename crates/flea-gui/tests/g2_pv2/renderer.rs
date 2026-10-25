@@ -2,14 +2,39 @@
 use super::fixture::{pixel, LANDSCAPE, LETTER, TURNED};
 use super::{document, root};
 use flea_gui::g2::pv2::poppler::{self, raster_size, Document, Failure, MAX_EDGE, MAX_PIXELS};
-use flea_gui::g2::pv2::render::{Renderer, Reply};
+use flea_gui::g2::pv2::render::{reap, Renderer, Reply};
 use std::time::{Duration, Instant};
+
+/// A renderer whose thread is reaped when the test ends, as main reaps it before the process exits.
+pub(super) struct Scoped(Option<Renderer>);
+
+impl Scoped {
+    pub(super) fn spawn() -> Self {
+        Scoped(Some(Renderer::spawn()))
+    }
+}
+
+impl std::ops::Deref for Scoped {
+    type Target = Renderer;
+
+    fn deref(&self) -> &Renderer {
+        self.0
+            .as_ref()
+            .expect("the renderer lives until the test ends")
+    }
+}
+
+impl Drop for Scoped {
+    fn drop(&mut self) {
+        drop(self.0.take());
+        reap();
+    }
+}
 
 const BLACK: [u8; 4] = [0, 0, 0, 255];
 const WHITE: [u8; 4] = [255, 255, 255, 255];
 
 #[test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_poppler_loads_in_process() {
     assert_eq!(
         poppler::available(),
@@ -19,7 +44,6 @@ fn pv2_poppler_loads_in_process() {
 }
 
 #[test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_pages_report_their_size_after_rotation() {
     let root = root();
     let path = document(&root, "three.pdf", &[LETTER, LANDSCAPE, TURNED]);
@@ -44,7 +68,6 @@ fn pv2_pages_report_their_size_after_rotation() {
 }
 
 #[test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_a_page_renders_on_white_paper_the_right_way_up() {
     let root = root();
     let path = document(&root, "three.pdf", &[LETTER, LANDSCAPE, TURNED]);
@@ -89,7 +112,6 @@ fn pv2_a_page_renders_on_white_paper_the_right_way_up() {
 }
 
 #[test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_unreadable_files_are_refused_before_poppler() {
     let root = root();
     let broken = root.join("broken.pdf");
@@ -159,7 +181,7 @@ fn pv2_raster_size_holds_inside_its_caps() {
     );
 }
 
-fn next(renderer: &Renderer) -> Reply {
+pub(super) fn next(renderer: &Renderer) -> Reply {
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
         if let Ok(reply) = renderer.replies.try_recv() {
@@ -174,22 +196,40 @@ fn next(renderer: &Renderer) -> Reply {
 }
 
 #[test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_render_thread_reads_sizes_once_and_renders_what_is_asked() {
     let root = root();
     let path = document(&root, "two.pdf", &[LETTER, LANDSCAPE]);
-    let renderer = Renderer::spawn();
-    let doc = renderer.open(path);
+    let renderer = Scoped::spawn();
+    let doc = renderer.open(path, true);
     match next(&renderer) {
-        Reply::Opened { doc: opened, sizes } => {
+        Reply::Opened {
+            doc: opened,
+            sizes,
+            read,
+        } => {
             assert_eq!(opened, doc, "the reply names the open");
             assert_eq!(
-                sizes,
-                vec![(612., 792.), (792., 612.)],
-                "every page size is read at the open"
+                (sizes.len(), read),
+                (0, 0),
+                "a column's sizes come after the open, in idle steps"
             );
         }
         _ => panic!("the open answers first"),
+    }
+    match next(&renderer) {
+        Reply::Sizes {
+            doc: sized,
+            sizes,
+            read,
+        } => {
+            assert_eq!((sized, read), (doc, 2), "every size is read once");
+            assert_eq!(
+                sizes,
+                vec![(612., 792.), (792., 612.)],
+                "the sizes are the page sizes"
+            );
+        }
+        _ => panic!("the sizes answer on the idle step"),
     }
     renderer.render(doc, 1, 400);
     match next(&renderer) {
@@ -214,18 +254,17 @@ fn pv2_render_thread_reads_sizes_once_and_renders_what_is_asked() {
 }
 
 #[test]
-#[ignore = "needs libpoppler-glib.so.8, absent on West; run with --ignored where poppler-glib is installed"]
 fn pv2_render_thread_skips_a_closed_documents_work() {
     let root = root();
     let a = document(&root, "a.pdf", &[LETTER; 4]);
     let b = document(&root, "b.pdf", &[LANDSCAPE]);
-    let renderer = Renderer::spawn();
-    let first = renderer.open(a);
+    let renderer = Scoped::spawn();
+    let first = renderer.open(a, true);
     for page in 0..4 {
         renderer.render(first, page, 300);
     }
     renderer.close(first);
-    let second = renderer.open(b);
+    let second = renderer.open(b, true);
     renderer.render(second, 0, 300);
     let mut rendered_first = 0;
     loop {
@@ -240,9 +279,83 @@ fn pv2_render_thread_skips_a_closed_documents_work() {
         rendered_first < 4,
         "a closed document's queued renders are skipped, rendered {rendered_first}"
     );
-    let bad = renderer.open(root.join("missing.pdf"));
-    assert!(
-        matches!(next(&renderer), Reply::OpenFailed { doc, failure: Failure::Unreadable } if doc == bad),
-        "a missing document fails its open"
+    let bad = renderer.open(root.join("missing.pdf"), true);
+    loop {
+        match next(&renderer) {
+            Reply::OpenFailed {
+                doc,
+                failure: Failure::Unreadable,
+            } if doc == bad => break,
+            Reply::Sizes { .. } | Reply::Opened { .. } => {}
+            _ => panic!("a missing document fails its open"),
+        }
+    }
+}
+
+#[test]
+fn pv2_render_thread_skips_pages_no_longer_wanted_and_reads_quick_look_sizes_after_its_open() {
+    let root = root();
+    let path = document(&root, "three.pdf", &[LETTER, LANDSCAPE, LANDSCAPE]);
+    let renderer = Scoped::spawn();
+    let doc = renderer.open(path, false);
+    match next(&renderer) {
+        Reply::Opened { sizes, read, .. } => {
+            assert_eq!(read, 2, "Quick Look reads two sizes at the open");
+            assert_eq!(
+                sizes,
+                vec![(612., 792.), (792., 612.), (612., 792.)],
+                "the third stands in as the first page's"
+            );
+        }
+        _ => panic!("the open answers first"),
+    }
+    renderer.want(doc, vec![(2, 300)]);
+    renderer.render(doc, 0, 300);
+    renderer.render(doc, 2, 300);
+    let mut replies = Vec::new();
+    while replies.len() < 2 {
+        match next(&renderer) {
+            Reply::Rendered { page, .. } => replies.push(format!("rendered {page}")),
+            Reply::Sizes { sizes, read, .. } => {
+                replies.push(format!("sizes {read} {:?}", sizes[2]))
+            }
+            _ => panic!("nothing fails here"),
+        }
+    }
+    replies.sort();
+    assert_eq!(
+        replies,
+        ["rendered 2", "sizes 1 (792.0, 612.0)"],
+        "page 1 is no longer wanted, and the last size is read when idle"
+    );
+}
+
+#[test]
+fn pv2_quick_look_reads_two_sizes_before_its_first_render_and_the_rest_after() {
+    let root = root();
+    let path = document(&root, "long.pdf", &[LETTER; 2000]);
+    let renderer = Scoped::spawn();
+    let doc = renderer.open(path, false);
+    match next(&renderer) {
+        Reply::Opened { sizes, read, .. } => assert_eq!(
+            (read, sizes.len()),
+            (2, 2000),
+            "two sizes read at the open, before any render"
+        ),
+        _ => panic!("the open answers first, before any size step or render"),
+    }
+    renderer.render(doc, 0, 300);
+    let (mut rendered, mut rest) = (false, None);
+    while !rendered || rest.is_none() {
+        match next(&renderer) {
+            Reply::Rendered { page: 0, .. } => rendered = true,
+            Reply::Sizes { read, sizes, .. } => rest = Some((read, sizes.len())),
+            _ => panic!("nothing else answers"),
+        }
+    }
+    assert_eq!(
+        rest,
+        Some((1998, 2000)),
+        "the other 1998 sizes are read once, when the thread is idle"
     );
 }

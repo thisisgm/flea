@@ -1,14 +1,14 @@
 use super::*;
 
-const LETTER: (f64, f64) = (612., 792.);
-const LANDSCAPE: (f64, f64) = (792., 612.);
+pub(super) const LETTER: (f64, f64) = (612., 792.);
+pub(super) const LANDSCAPE: (f64, f64) = (792., 612.);
 
-fn image() -> Arc<RenderImage> {
+pub(super) fn image() -> Arc<RenderImage> {
     let buffer = image::RgbaImage::from_raw(1, 1, vec![255; 4]).unwrap();
     Arc::new(RenderImage::new(vec![image::Frame::new(buffer)]))
 }
 
-fn renders(commands: &[Command]) -> Vec<(usize, u32)> {
+pub(super) fn renders(commands: &[Command]) -> Vec<(usize, u32)> {
     commands
         .iter()
         .filter_map(|c| match c {
@@ -19,7 +19,7 @@ fn renders(commands: &[Command]) -> Vec<(usize, u32)> {
 }
 
 // An idle press on `path` opened on the next frame as document `doc`, its sizes read and its frame laid out.
-fn opened(
+pub(super) fn opened(
     continuous: bool,
     path: &str,
     doc: DocId,
@@ -37,11 +37,18 @@ fn opened(
     );
     s.opening(doc);
     s.set_frame(frame.0, frame.1, 1., 9.);
-    s.reply(Reply::Opened { doc, sizes }, 0);
+    s.reply(
+        Reply::Opened {
+            doc,
+            read: sizes.len(),
+            sizes,
+        },
+        0,
+    );
     s
 }
 
-fn land(s: &mut Surface, doc: DocId, page: usize, width: u32, now: u64) {
+pub(super) fn land(s: &mut Surface, doc: DocId, page: usize, width: u32, now: u64) {
     s.reply(
         Reply::Rendered {
             doc,

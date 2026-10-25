@@ -107,4 +107,5 @@ fn main() {
         });
         cx.activate(true);
     });
+    flea_gui::g2::pv2::reap();
 }

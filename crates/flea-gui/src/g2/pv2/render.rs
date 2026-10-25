@@ -1,11 +1,11 @@
-//! A surface's own render thread: it opens each document once, reads every page size once, and renders the pages asked for.
+//! A surface's own render thread: it opens each document once, reads every page size once, and renders the pages still wanted.
 use super::poppler::{Document, Failure};
 use gpui::RenderImage;
 use std::{
     cell::Cell,
     collections::{HashMap, HashSet},
     path::PathBuf,
-    sync::{mpsc, Arc},
+    sync::{mpsc, Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
@@ -13,17 +13,50 @@ use std::{
 /// A document as one open of it, so a reply for a document since closed is told from the one open now.
 pub type DocId = u64;
 
+/// The pages of one document still wanted, which the thread reads before each render.
+type Wanted = Mutex<(DocId, Vec<(usize, u32)>)>;
+
+/// A document whose sizes are read on idle steps: the list so far, the next page to read and the reads its open answered.
+struct Pending {
+    doc: DocId,
+    sizes: Vec<(f64, f64)>,
+    from: usize,
+    opened: usize,
+}
+
+/// Pages a single page reads at its open; the rest are read once the thread is idle.
+const FIRST_SIZES: usize = 2;
+/// Sizes read per idle step, so a queued render waits for at most one step.
+const SIZE_STEP: usize = 256;
+
 pub enum Job {
-    Open { doc: DocId, path: PathBuf },
-    Render { doc: DocId, page: usize, width: u32 },
-    Close { doc: DocId },
+    Open {
+        doc: DocId,
+        path: PathBuf,
+        all_sizes: bool,
+    },
+    Render {
+        doc: DocId,
+        page: usize,
+        width: u32,
+    },
+    Close {
+        doc: DocId,
+    },
 }
 
 pub enum Reply {
-    /// Every page's size in points, read once when the document opened.
+    /// Every page's size in points; `read` of them were read, the rest stand in as the first page's until `Sizes`.
     Opened {
         doc: DocId,
         sizes: Vec<(f64, f64)>,
+        read: usize,
+    },
+    /// The full size list of a document opened with only its first sizes, `read` more of them read.
+    Sizes {
+        doc: DocId,
+        sizes: Vec<(f64, f64)>,
+        read: usize,
     },
     OpenFailed {
         doc: DocId,
@@ -43,46 +76,152 @@ pub enum Reply {
     },
 }
 
-/// The handle a surface keeps; dropping it ends the thread once the jobs in hand are done.
+/// The wanted list's document while the renderer drops: no queued open or render runs.
+const CLOSING: DocId = DocId::MAX;
+
+/// The renderer threads whose surfaces dropped; `reap` joins them once the event loop has returned.
+static REAPER: Mutex<Vec<thread::JoinHandle<()>>> = Mutex::new(Vec::new());
+
+/// The handle a surface keeps; dropping it skips the queued work and hands its thread to the reaper, never waiting on the UI thread.
 pub struct Renderer {
-    jobs: mpsc::Sender<Job>,
+    jobs: Option<mpsc::Sender<Job>>,
     pub replies: async_channel::Receiver<Reply>,
     next: Cell<DocId>,
+    wanted: Arc<Wanted>,
+    thread: Option<thread::JoinHandle<()>>,
+}
+
+impl Drop for Renderer {
+    fn drop(&mut self) {
+        if let Ok(mut wanted) = self.wanted.lock() {
+            *wanted = (CLOSING, Vec::new());
+        }
+        self.jobs = None;
+        if let Some(thread) = self.thread.take() {
+            if let Ok(mut reaper) = REAPER.lock() {
+                // Each finished handle joins at once, so the list holds only threads still ending their step.
+                let old = std::mem::take(&mut *reaper);
+                reaper.reserve(old.len() + 1);
+                for handle in old {
+                    if handle.is_finished() {
+                        let _ = handle.join();
+                    } else {
+                        reaper.push(handle);
+                    }
+                }
+                reaper.push(thread);
+            }
+        }
+    }
+}
+
+/// The dropped renderers still waiting for their join; the drop joins every handle already finished, so this holds only threads still ending their step.
+pub fn reaper_len() -> usize {
+    REAPER.lock().map(|reaper| reaper.len()).unwrap_or(0)
+}
+
+/// Joins every renderer thread dropped so far; main calls it once the event loop has returned, so no poppler or cairo call outlives the process.
+pub fn reap() {
+    let threads = REAPER
+        .lock()
+        .map(|mut reaper| std::mem::take(&mut *reaper))
+        .unwrap_or_default();
+    for thread in threads {
+        let _ = thread.join();
+    }
 }
 
 impl Renderer {
     pub fn spawn() -> Self {
         let (jobs, inbox) = mpsc::channel();
         let (outbox, replies) = async_channel::unbounded();
-        let _ = thread::Builder::new()
+        let wanted = Arc::new(Mutex::new((0, Vec::new())));
+        let shared = Arc::clone(&wanted);
+        let thread = thread::Builder::new()
             .name("flea-pdf".into())
-            .spawn(move || work(inbox, outbox));
+            .spawn(move || work(inbox, outbox, &shared))
+            .ok();
         Renderer {
-            jobs,
+            jobs: Some(jobs),
             replies,
             next: Cell::new(0),
+            wanted,
+            thread,
         }
     }
 
-    pub fn open(&self, path: PathBuf) -> DocId {
+    /// Opens a document; the column reads every size at once, Quick Look only its first pages before its first render.
+    pub fn open(&self, path: PathBuf, all_sizes: bool) -> DocId {
         let doc = self.next.get() + 1;
         self.next.set(doc);
-        let _ = self.jobs.send(Job::Open { doc, path });
+        self.send(Job::Open {
+            doc,
+            path,
+            all_sizes,
+        });
         doc
     }
 
+    fn send(&self, job: Job) {
+        if let Some(jobs) = &self.jobs {
+            let _ = jobs.send(job);
+        }
+    }
+
+    /// The pages of `doc` still wanted; a queued render of that document not among them is skipped.
+    pub fn want(&self, doc: DocId, pages: Vec<(usize, u32)>) {
+        if let Ok(mut wanted) = self.wanted.lock() {
+            *wanted = (doc, pages);
+        }
+    }
+
     pub fn render(&self, doc: DocId, page: usize, width: u32) {
-        let _ = self.jobs.send(Job::Render { doc, page, width });
+        self.send(Job::Render { doc, page, width });
     }
 
     pub fn close(&self, doc: DocId) {
-        let _ = self.jobs.send(Job::Close { doc });
+        self.send(Job::Close { doc });
     }
 }
 
-fn work(inbox: mpsc::Receiver<Job>, outbox: async_channel::Sender<Reply>) {
+// A render is skipped once its document has a wanted list that no longer names it.
+fn unwanted(wanted: &Wanted, doc: DocId, page: usize, width: u32) -> bool {
+    wanted
+        .lock()
+        .is_ok_and(|w| w.0 == CLOSING || (w.0 == doc && !w.1.contains(&(page, width))))
+}
+
+// A dropping renderer opens nothing more.
+fn closing(wanted: &Wanted) -> bool {
+    wanted.lock().is_ok_and(|w| w.0 == CLOSING)
+}
+
+fn work(inbox: mpsc::Receiver<Job>, outbox: async_channel::Sender<Reply>, wanted: &Wanted) {
     let mut docs: HashMap<DocId, Document> = HashMap::new();
-    while let Ok(first) = inbox.recv() {
+    let mut pending: Vec<Pending> = Vec::new();
+    loop {
+        if closing(wanted) {
+            return;
+        }
+        let first = if pending.is_empty() {
+            match inbox.recv() {
+                Ok(job) => job,
+                Err(_) => return,
+            }
+        } else {
+            match inbox.try_recv() {
+                Ok(job) => job,
+                Err(mpsc::TryRecvError::Disconnected) => return,
+                Err(mpsc::TryRecvError::Empty) => {
+                    if let Some(reply) = read_sizes(&docs, &mut pending) {
+                        if outbox.send_blocking(reply).is_err() {
+                            return;
+                        }
+                    }
+                    continue;
+                }
+            }
+        };
         // Everything queued behind the first job is read at once, so a closed document's work is skipped, never done.
         let batch: Vec<Job> = std::iter::once(first).chain(inbox.try_iter()).collect();
         let closed: HashSet<DocId> = batch
@@ -97,20 +236,46 @@ fn work(inbox: mpsc::Receiver<Job>, outbox: async_channel::Sender<Reply>) {
             let reply = match job {
                 Job::Close { doc } => {
                     docs.remove(&doc);
+                    pending.retain(|p| p.doc != doc);
                     None
                 }
-                Job::Open { doc, .. } if closed.contains(&doc) => None,
-                Job::Open { doc, path } => Some(match Document::open(&path) {
+                Job::Open { doc, .. } if closed.contains(&doc) || closing(wanted) => None,
+                Job::Open {
+                    doc,
+                    path,
+                    all_sizes,
+                } => Some(match Document::open(&path) {
                     Ok(document) => {
-                        let sizes = (0..document.page_count())
-                            .map(|page| document.page_size(page).unwrap_or((0., 0.)))
-                            .collect();
+                        let count = document.page_count();
+                        let opened = if all_sizes { 0 } else { count.min(FIRST_SIZES) };
+                        let mut sizes = vec![(0., 0.); count];
+                        for (page, size) in sizes.iter_mut().enumerate().take(opened) {
+                            *size = document.page_size(page).unwrap_or((0., 0.));
+                        }
+                        if opened > 0 {
+                            let first = sizes[0];
+                            sizes.iter_mut().skip(opened).for_each(|size| *size = first);
+                        }
+                        let reply = if all_sizes { Vec::new() } else { sizes.clone() };
+                        if opened < count {
+                            pending.push(Pending {
+                                doc,
+                                sizes,
+                                from: opened,
+                                opened,
+                            });
+                        }
                         docs.insert(doc, document);
-                        Reply::Opened { doc, sizes }
+                        Reply::Opened {
+                            doc,
+                            sizes: reply,
+                            read: opened,
+                        }
                     }
                     Err(failure) => Reply::OpenFailed { doc, failure },
                 }),
                 Job::Render { doc, .. } if closed.contains(&doc) => None,
+                Job::Render { doc, page, width } if unwanted(wanted, doc, page, width) => None,
                 Job::Render { doc, page, width } => {
                     if !done.insert((doc, page, width)) {
                         continue;
@@ -126,6 +291,29 @@ fn work(inbox: mpsc::Receiver<Job>, outbox: async_channel::Sender<Reply>) {
             }
         }
     }
+}
+
+// One idle step of the first pending size list, answering the whole list once its last size is read.
+fn read_sizes(docs: &HashMap<DocId, Document>, pending: &mut Vec<Pending>) -> Option<Reply> {
+    let Some(document) = docs.get(&pending[0].doc) else {
+        pending.remove(0);
+        return None;
+    };
+    let step = &mut pending[0];
+    let end = (step.from + SIZE_STEP).min(step.sizes.len());
+    for page in step.from..end {
+        step.sizes[page] = document.page_size(page).unwrap_or((0., 0.));
+    }
+    step.from = end;
+    if end < step.sizes.len() {
+        return None;
+    }
+    let done = pending.remove(0);
+    Some(Reply::Sizes {
+        doc: done.doc,
+        read: done.sizes.len() - done.opened,
+        sizes: done.sizes,
+    })
 }
 
 fn render(document: &Document, doc: DocId, page: usize, width: u32) -> Reply {

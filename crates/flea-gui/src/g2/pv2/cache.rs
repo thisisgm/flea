@@ -34,9 +34,9 @@ impl PageCache {
     }
 
     /// Enough room for the pages a frame shows, so the cap never drops a page on screen.
-    pub fn set_limit(&mut self, limit: usize) {
+    pub fn set_limit(&mut self, limit: usize, keep: &[usize]) {
         self.limit = limit.max(1);
-        self.trim(&[]);
+        self.trim(keep);
     }
 
     /// The page at exactly this width.
@@ -104,7 +104,13 @@ impl PageCache {
             .extend(self.entries.drain(..).map(|e| e.image));
     }
 
-    /// Images to release from the atlas, taken once by paint.
+    /// Every image held or waiting for release, for a view that is going away.
+    pub fn drain(&mut self) -> Vec<Arc<RenderImage>> {
+        self.clear();
+        self.take_released()
+    }
+
+    /// Images to release from the atlas, taken once by paint or by a reply applied outside a window's update.
     pub fn take_released(&mut self) -> Vec<Arc<RenderImage>> {
         std::mem::take(&mut self.released)
     }
