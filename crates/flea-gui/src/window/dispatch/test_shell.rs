@@ -13,7 +13,8 @@ use flea::{
     protocol::{Reply, RowFacts},
 };
 use gpui::{
-    px, size, Entity, KeyDownEvent, Keystroke, Modifiers, TestAppContext, VisualTestContext,
+    px, size, AppContext, Entity, KeyDownEvent, Keystroke, Modifiers, TestAppContext,
+    VisualTestContext,
 };
 use std::{sync::Arc, time::Duration};
 
@@ -21,7 +22,7 @@ pub(super) fn open<'a>(
     cx: &'a mut TestAppContext,
     keys: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
-    open_with(cx, &format!(r#""keys":"{keys}","view":"list""#), None)
+    open_in(cx, &format!(r#""keys":"{keys}","view":"list""#), None, false)
 }
 
 // The same launch with its own settings fields and a --select path.
@@ -29,6 +30,23 @@ pub(super) fn open_with<'a>(
     cx: &'a mut TestAppContext,
     settings: &str,
     select: Option<&str>,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    open_in(cx, settings, select, false)
+}
+
+// The same Shell under the window root, so the deferred cards over the panes draw as they do natively.
+pub(super) fn open_root<'a>(
+    cx: &'a mut TestAppContext,
+    keys: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    open_in(cx, &format!(r#""keys":"{keys}","view":"list""#), None, true)
+}
+
+fn open_in<'a>(
+    cx: &'a mut TestAppContext,
+    settings: &str,
+    select: Option<&str>,
+    root: bool,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
     let document = flea::jsondoc::parse(&format!(
         r#"{{{settings},"places":{{"rail":"shown","showHome":true,"showTrash":true}}}}"#
@@ -59,8 +77,14 @@ pub(super) fn open_with<'a>(
             monitor: None,
         })
     });
-    let (shell, cx) =
-        cx.add_window_view(|window, cx| Shell::new(launch, locale, events, window, cx));
+    let (shell, cx) = if root {
+        let (root, cx) = cx.add_window_view(|window, cx| crate::window::root::Root {
+            shell: cx.new(|cx| Shell::new(launch, locale, events, window, cx)),
+        });
+        (root.read_with(cx, |root, _| root.shell.clone()), cx)
+    } else {
+        cx.add_window_view(|window, cx| Shell::new(launch, locale, events, window, cx))
+    };
     // The folder memory writer only counts here, so no step reaches the real state file.
     shell.update(cx, |shell, _| {
         let writer = &shell.panes[0].as_ref().unwrap().nav.writer;

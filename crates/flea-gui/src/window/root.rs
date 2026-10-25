@@ -43,6 +43,15 @@ impl Render for Root {
             deferred(div().absolute().top_0().left_0().size_full().child(view))
                 .with_priority(priority)
         });
+        // Quick Look draws over the panes and menus, under the operations card; a closed card mounts nothing.
+        let look = self
+            .shell
+            .read(cx)
+            .quick_look
+            .as_ref()
+            .map(|host| host.view.clone())
+            .filter(|view| view.read(cx).is_open())
+            .map(|view| deferred(div().absolute().top_0().left_0().size_full().child(view)));
         // The output card draws above everything while it shows; a closed card mounts nothing.
         let output = self
             .shell
@@ -93,6 +102,7 @@ impl Render for Root {
             .child(Overlay(self.shell.clone(), false))
             .children(menu)
             .child(Overlay(self.shell.clone(), true))
+            .children(look)
             .children(overlay)
             .children(output)
             .children(bulk)

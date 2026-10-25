@@ -8,8 +8,6 @@ use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 // Actions a key still hands to nobody, by the family that will run them, cited in v0.3.12 ui/js/Focus.js unless another file is named; a family removes its line when it lands.
 #[rustfmt::skip]
 const NOT_YET: &[(&str, &[&str])] = &[
-    // Focus.js:196, PreviewKeys.open on a row whose preview is not focused.
-    ("preview", &["preview"]),
     // Focus.js:171 and 290, ui/js/Tabs.js:392.
     ("tabs", &["openTab", "tabNew", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "tab1", "tab2", "tab3", "tab4", "tab5", "tab6", "tab7", "tab8", "tab9"]),
     // Focus.js:207-240 and 271, ui/Pane.qml:599-602.
