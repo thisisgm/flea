@@ -59,3 +59,37 @@ pub fn is_vector_name(name: &str) -> bool {
 pub fn is_compressed_vector(name: &str) -> bool {
     name.rsplit('.').next().is_some_and(|ext| ext.eq_ignore_ascii_case("svgz"))
 }
+
+// A raster kind the card decodes itself reads up to this many bytes; past it the card says the file is too large.
+pub const MAX_PICTURE_BYTES: u64 = 256 * 1024 * 1024;
+// A source past this many pixels is never decoded: 64 Mi pixels is 256 MB of RGBA before the downscale.
+pub const MAX_SOURCE_PIXELS: u64 = 64 * 1024 * 1024;
+
+fn extension_is(name: &str, wanted: &[&str]) -> bool {
+    name.rsplit_once('.')
+        .is_some_and(|(_, ext)| wanted.iter().any(|w| ext.eq_ignore_ascii_case(w)))
+}
+
+// AVIF decodes through the system libheif, which GPUI's own image loader does not carry.
+pub fn is_avif_name(name: &str) -> bool {
+    extension_is(name, &["avif"])
+}
+
+// Decoded in the card's raster job at the drawn size, never handed to img(path): vectors, AVIF, TIFF and ICO.
+pub fn is_host_decoded(name: &str) -> bool {
+    is_vector_name(name) || extension_is(name, &["avif", "tif", "tiff", "ico"])
+}
+
+// The most bytes a host-decoded file's kind reads: a vector's parse bound, or the raster bound.
+pub fn decode_byte_bound(name: &str) -> u64 {
+    if is_vector_name(name) {
+        MAX_SVG_BYTES
+    } else {
+        MAX_PICTURE_BYTES
+    }
+}
+
+// Whether a host-decoded file's length is inside its kind's byte bound.
+pub fn within_decode_bound(name: &str, len: u64) -> bool {
+    len <= decode_byte_bound(name)
+}

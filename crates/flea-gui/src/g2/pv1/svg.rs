@@ -1,26 +1,29 @@
-//! The card's vector raster: the open SVG drawn at its fit, and each retired picture dropped from the atlas.
+//! The card's own raster: the open SVG, TIFF, ICO or AVIF drawn at its fit, and each retired picture dropped from the atlas.
 use super::*;
 
 impl QuickLook {
-    /// The open vector's raster at the drawn fit times the window scale (#336); a raster file draws itself.
+    /// The open SVG, TIFF, ICO or AVIF raster at the drawn fit times the window scale, a raster capped at its pixels.
     pub(super) fn svg_image(
         &mut self,
         path: &Path,
-        fit_w: f64,
-        fit_h: f64,
+        fit: (f64, f64),
+        source: (f64, f64),
         window: &mut gpui::Window,
         cx: &mut Context<Self>,
     ) -> RasterState {
-        use flea::ui_logic_pv1::pixels::{decode_size, is_vector_name, needs_redecode};
-        let vector = path
+        use flea::ui_logic_pv1::pixels::{
+            decode_size, is_host_decoded, is_vector_name, needs_redecode,
+        };
+        let name = path
             .file_name()
             .and_then(|n| n.to_str())
-            .is_some_and(is_vector_name);
-        if !vector {
+            .unwrap_or_default();
+        if !is_host_decoded(name) {
             return RasterState::default();
         }
         let scale = f64::from(window.scale_factor());
-        let (dw, dh) = decode_size(fit_w, fit_h, scale, 0.0, 0.0, true);
+        let vector = is_vector_name(name);
+        let (dw, dh) = decode_size(fit.0, fit.1, scale, source.0, source.1, vector);
         if dw == 0 || dh == 0 {
             return RasterState::default();
         }
@@ -67,7 +70,7 @@ impl QuickLook {
         let raster = self
             .raster
             .clone()
-            .unwrap_or_else(|| raster::default_raster(cx.svg_renderer()));
+            .unwrap_or_else(|| raster::for_path(&path, cx.svg_renderer()));
         self.raster_in_flight = true;
         // The read, parse and raster run on the background executor, never in the frame that asked.
         let job = raster::Job {
