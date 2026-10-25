@@ -150,7 +150,14 @@ impl Shell {
                     search: &host.search.owner,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 19] = [
+                let network_result = crate::g2::pl2::result::Adapter(
+                    self.rail
+                        .as_ref()
+                        .and_then(|rail| rail.network.as_ref())
+                        .map(|network| network.service.read(cx)),
+                );
+                let adapters: [&dyn crate::ipc::Adapter; 20] = [
+                    &network_result,
                     &search,
                     &query,
                     &rail,
@@ -175,9 +182,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    19
+                    20
                 } else {
-                    18
+                    19
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

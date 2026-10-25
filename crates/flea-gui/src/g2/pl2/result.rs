@@ -3,6 +3,7 @@ use super::{
     mount::{Effect, Phase},
     service::Service,
 };
+use flea::ipc::wire::Reply;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ResultState {
@@ -57,5 +58,13 @@ impl ResultState {
             "network.unmounted" => Some(Self::Unmounted),
             _ => Some(Self::Failed),
         }
+    }
+}
+
+pub(crate) struct Adapter<'a>(pub Option<&'a Service>);
+impl crate::ipc::Adapter for Adapter<'_> {
+    fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
+        (function == "networkResult")
+            .then(|| Reply::value(self.0.map_or("", |service| service.result.name())))
     }
 }
