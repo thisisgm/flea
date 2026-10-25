@@ -5,6 +5,9 @@ mod surface;
 mod wire;
 #[path = "pictures/readers.rs"]
 mod readers;
+#[cfg(test)]
+#[path = "pictures/faded_tests.rs"]
+mod faded_tests;
 
 use super::{Decor, Identity, Thumbnail};
 use crate::list::pane::Held;
@@ -149,6 +152,12 @@ struct Key {
     cache: Option<bool>,
 }
 
+struct Faded {
+    level: u32,
+    source: Arc<RenderImage>,
+    copy: Arc<Thumbnail>,
+}
+
 #[derive(Default)]
 struct Map {
     listing: usize,
@@ -166,8 +175,8 @@ struct Map {
     names: HashMap<Box<str>, Option<Language>>,
     retired: Vec<Arc<RenderImage>>,
     counters: Counters,
-    // A cut row's faded copy of each picture, keyed by the source image and kept at one level.
-    faded: HashMap<usize, (u32, Arc<Thumbnail>)>,
+    // A cut row's faded copy of each picture at one level, keyed by the source image it holds, so the key is never reused while kept.
+    faded: HashMap<usize, Faded>,
 }
 
 impl Map {
@@ -189,15 +198,35 @@ impl Map {
     fn retire(&mut self, picture: &Thumbnail) {
         self.retired.push(Arc::clone(&picture.image));
         self.counters.retired += 1;
-        if let Some((_, faded)) = self.faded.remove(&image_key(&picture.image)) {
-            self.retired.push(Arc::clone(&faded.image));
+        if let Some(faded) = self.faded.remove(&image_key(&picture.image)) {
+            self.retired.push(Arc::clone(&faded.copy.image));
+        }
+    }
+
+    // Faded copies whose source no Ready slot holds, made by a paint the source had already left.
+    fn sweep_faded(&mut self) {
+        let held: Vec<usize> = self
+            .slots
+            .values()
+            .filter_map(|slot| match slot {
+                Slot::Ready { picture, .. } => Some(image_key(&picture.image)),
+                _ => None,
+            })
+            .collect();
+        let gone: Vec<usize> = self.faded.keys().copied().filter(|key| !held.contains(key)).collect();
+        for key in gone {
+            if let Some(faded) = self.faded.remove(&key) {
+                self.retired.push(Arc::clone(&faded.copy.image));
+            }
         }
     }
 
     // Thumbs.remember: the oldest record goes once the cap is passed.
     fn remember(&mut self, row: usize, slot: Slot) {
-        if self.slots.insert(row, slot).is_none() {
-            self.order.push_back(row);
+        match self.slots.insert(row, slot) {
+            None => self.order.push_back(row),
+            Some(Slot::Ready { picture, .. }) => self.retire(&picture),
+            Some(_) => {}
         }
         while self.order.len() > CAP {
             let oldest = self.order[0];
@@ -244,16 +273,23 @@ impl Map {
         } else {
             self.names.clear();
         }
-        self.release();
+        self.clear();
         for (row, slot) in carried {
             self.remember(row, slot);
         }
+        self.sweep_faded();
         self.listing = held.listing;
         self.path = path.to_owned();
     }
 
-    // Forgets every record and returns the rows the backend still holds jobs for.
+    // Forgets every record and every faded copy, and returns the rows the backend still holds jobs for.
     fn release(&mut self) -> Vec<usize> {
+        let pending = self.clear();
+        self.sweep_faded();
+        pending
+    }
+
+    fn clear(&mut self) -> Vec<usize> {
         let pending = self.pending().collect();
         for row in std::mem::take(&mut self.order) {
             self.forget(row);
@@ -320,8 +356,12 @@ impl Pictures {
     pub fn faded(&self, picture: Arc<Thumbnail>, level: f32) -> Arc<Thumbnail> {
         let mut map = self.map.borrow_mut();
         let key = image_key(&picture.image);
-        if let Some((_, faded)) = map.faded.get(&key).filter(|(at, _)| *at == level.to_bits()) {
-            return Arc::clone(faded);
+        if let Some(faded) = map
+            .faded
+            .get(&key)
+            .filter(|faded| faded.level == level.to_bits() && Arc::ptr_eq(&faded.source, &picture.image))
+        {
+            return Arc::clone(&faded.copy);
         }
         let Some(image) = fade(&picture.image, level) else {
             return picture;
@@ -331,8 +371,13 @@ impl Pictures {
             kind: picture.kind,
             image,
         });
-        if let Some((_, old)) = map.faded.insert(key, (level.to_bits(), Arc::clone(&faded))) {
-            map.retired.push(Arc::clone(&old.image));
+        let kept = Faded {
+            level: level.to_bits(),
+            source: Arc::clone(&picture.image),
+            copy: Arc::clone(&faded),
+        };
+        if let Some(old) = map.faded.insert(key, kept) {
+            map.retired.push(Arc::clone(&old.copy.image));
         }
         faded
     }
