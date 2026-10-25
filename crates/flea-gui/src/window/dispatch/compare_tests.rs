@@ -225,20 +225,24 @@ fn reply(shell: &Entity<Shell>, cx: &mut VisualTestContext, id: u64, op: &str, f
     );
 }
 
-// Ops.js menuKinds: a row outside the held window is named by the backend's snapshot, never refused for being unheld.
-#[gpui::test]
-fn compare_names_rows_outside_the_held_window_through_the_backend(cx: &mut gpui::TestAppContext) {
-    let (shell, cx, mut requests) = opened(cx);
-    // Ten rows more than the first window, so row `far` is one the window has not read.
+// Ten rows more than the first window, so the returned row is one the window has not read.
+fn far_listing(shell: &Entity<Shell>, cx: &mut VisualTestContext, requests: &mut Lines) -> usize {
     let first = shell.read_with(cx, |shell, _| {
         let pending = shell.panes[0].as_ref().unwrap().pane.swap.pending.as_ref();
         pending.unwrap().first
     });
     let mut rows = vec![file("notes-a.txt", "text-plain"), row("folder", true)];
     rows.extend((2..first).map(|at| file(&format!("file{at}.txt"), "text-plain")));
-    land_on(&shell, cx, 0, "/files", rows, first + 10, 1);
-    let far = first + 5;
-    drain(&mut requests);
+    land_on(shell, cx, 0, "/files", rows, first + 10, 1);
+    drain(requests);
+    first + 5
+}
+
+// Ops.js menuKinds: a row outside the held window is named by the backend's snapshot, never refused for being unheld.
+#[gpui::test]
+fn compare_names_rows_outside_the_held_window_through_the_backend(cx: &mut gpui::TestAppContext) {
+    let (shell, cx, mut requests) = opened(cx);
+    let far = far_listing(&shell, cx, &mut requests);
     let open = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
         cx.update(|window, cx| shell.update(cx, |shell, cx| shell.open_compare(0, window, cx)))
     };
@@ -324,4 +328,63 @@ fn compare_names_rows_outside_the_held_window_through_the_backend(cx: &mut gpui:
 
 fn token_of(doc: &Json) -> u64 {
     doc.get("id").and_then(Json::as_f64).expect("an id") as u64
+}
+
+// Every snapshot Compare asks for is closed: by a newer Compare, by Space opening a file, and by the card closing.
+#[gpui::test]
+fn a_superseded_or_closed_compare_snapshot_is_closed(cx: &mut gpui::TestAppContext) {
+    let (shell, cx, mut requests) = opened(cx);
+    let far = far_listing(&shell, cx, &mut requests);
+    let open = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        assert!(
+            cx.update(|window, cx| shell.update(cx, |shell, cx| shell.open_compare(0, window, cx)))
+        );
+        draw(cx);
+    };
+    let ops = |requests: &mut Lines| -> Vec<(String, u64)> {
+        drain(requests)
+            .iter()
+            .map(|doc| {
+                (
+                    format!("{} {}", text(doc, "c"), text(doc, "op")),
+                    doc.get("id")
+                        .or(doc.get("token"))
+                        .and_then(Json::as_f64)
+                        .unwrap_or(0.) as u64,
+                )
+            })
+            .collect()
+    };
+    select(&shell, cx, &[0, far]);
+    open(&shell, cx);
+    let old = token_of(&menu(&mut requests, "snapshot")[0]);
+    open(&shell, cx);
+    let sent = ops(&mut requests);
+    assert_eq!(
+        sent[0],
+        ("menuaction close".into(), old),
+        "the older snapshot closes first"
+    );
+    assert_eq!(sent[1].0, "menuaction snapshot");
+    let pending = sent[1].1;
+    // Space on a held file replaces the ask with the card's read.
+    shell.update(cx, |shell, _| {
+        shell.panes[0].as_mut().unwrap().pane.cursor = 0
+    });
+    cx.simulate_keystrokes("space");
+    draw(cx);
+    let sent = ops(&mut requests);
+    assert_eq!(sent[0], ("menuaction close".into(), pending));
+    assert_eq!(sent[1].0, "code ");
+    // A Compare asked while that card is open closes its snapshot when the card closes.
+    open(&shell, cx);
+    let pending = token_of(&menu(&mut requests, "snapshot")[0]);
+    cx.simulate_keystrokes("escape");
+    draw(cx);
+    assert_eq!(read(&shell, cx, "previewOpen", &[]), "false");
+    assert_eq!(
+        ops(&mut requests),
+        [("menuaction close".to_string(), pending)]
+    );
+    close(&shell, cx);
 }

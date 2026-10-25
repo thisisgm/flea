@@ -99,6 +99,20 @@ fn a_stale_or_column_reply_is_left_alone(cx: &mut TestAppContext) {
     set_cursor(&shell, cx, 1);
     press(cx, "space");
     let first = token(&sent(&mut requests, "code")[0]);
+    // While the code ask is owed: the column's reply with its token, then the card's own slot with an older token.
+    for line in [
+        format!(
+            r#"{{"t":"code","token":{first},"slot":"column","state":"plain","first":1,"total":1,"lines":[["column"]]}}"#
+        ),
+        code_reply(first - 1, &["older"], 1),
+    ] {
+        answer(&shell, cx, line);
+        assert_eq!(
+            read(&shell, cx, "previewState", &[]),
+            "loading",
+            "the code ask is still owed"
+        );
+    }
     press(cx, "down");
     let meta = token(&sent(&mut requests, "meta")[0]);
     answer(&shell, cx, code_reply(first, &["late"], 1));
@@ -258,5 +272,66 @@ fn space_in_the_focused_preview_column_opens_the_card_and_escape_returns_to_it(
     );
     let focused = cx.update(|window, cx| column.read(cx).focus.is_focused(window));
     assert!(focused, "the column has the keyboard again");
+    close(&shell, cx);
+}
+
+// SelectionPreview.qml: Space in the focused column on a clip plays it, and Quick Look stays closed.
+#[gpui::test]
+fn space_in_the_focused_preview_column_on_a_clip_opens_no_card(cx: &mut TestAppContext) {
+    use crate::window::{selection_preview::Kind, startup::View};
+    let (shell, cx, mut requests) = opened(cx);
+    let mut listed = rows();
+    listed.push(super::preview_tests::file("clip.mp4", "video-mp4"));
+    land(&shell, cx, "/files", listed, 1);
+    cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(View::Columns, window, cx)));
+    draw(cx);
+    // The column follows the cursor the Columns keys move.
+    for _ in 0..4 {
+        press(cx, "down");
+    }
+    assert_eq!(read(&shell, cx, "cursor", &[]), "4");
+    for _ in 0..4 {
+        advance(cx, 400);
+    }
+    // The folder's class, then the column's own meta and thumb answers, land the clip; a clip decodes nothing to mount.
+    let local = crate::list::sizes::Reply::Filesystem {
+        path: "/files".into(),
+        class: "local".into(),
+    };
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.receive(0, BackendEvent::ListDetails(local), window, cx)
+        })
+    });
+    advance(cx, 400);
+    let asked = sent(&mut requests, "meta");
+    let generation = asked
+        .iter()
+        .find(|ask| ask.get("media").and_then(Json::as_bool) == Some(true))
+        .map(token)
+        .expect("the column asks for the clip's meta");
+    answer(&shell, cx, meta_reply(generation));
+    answer(&shell, cx, r#"{"t":"thumbed","row":4,"file":""}"#.into());
+    for _ in 0..4 {
+        advance(cx, 400);
+    }
+    let column = shell
+        .read_with(cx, |shell, _| shell.selection_preview(0))
+        .expect("Columns hosts the preview column");
+    let video = cx.update(|_, cx| matches!(column.read(cx).mounted_kind(), Some((Kind::Video, _))));
+    assert!(video, "the column mounted the clip");
+    press(cx, "ctrl-tab");
+    assert_eq!(context(&shell, cx), Context::Preview);
+    sent(&mut requests, "code");
+    press(cx, "space");
+    assert_eq!(
+        read(&shell, cx, "previewOpen", &[]),
+        "false",
+        "a clip opens no card"
+    );
+    let quick = sent(&mut requests, "code")
+        .iter()
+        .any(|ask| ask.get("slot").and_then(Json::as_str) == Some("quicklook"));
+    assert!(!quick, "no quicklook ask for the clip");
     close(&shell, cx);
 }

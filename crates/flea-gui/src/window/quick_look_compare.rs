@@ -13,14 +13,12 @@ use flea::{
 };
 use gpui::{Context, Window};
 
-fn close_line(id: u64) -> String {
+pub(super) fn close_line(id: u64) -> String {
     format!(r#"{{"c":"menuaction","op":"close","id":{id}}}"#)
 }
 
 impl Shell {
-    /// Ops.js open: the pane's two selected regular files open the Compare card; false for any other selection.
-    /// A row outside the held window is named by the backend's snapshot of the selection instead (Ops.js menuKinds),
-    /// so true there means the snapshot was asked for and the card opens when it answers two regular files.
+    /// Ops.js open: two selected regular files open Compare, through a backend snapshot when a row is outside the held window; false for any other selection.
     pub fn open_compare(
         &mut self,
         side: usize,
