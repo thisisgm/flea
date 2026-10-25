@@ -1,6 +1,8 @@
 // Interned raw basenames, with no retained full path or lossy identity key.
-use std::collections::hash_map::RandomState;
 use std::hash::BuildHasher;
+
+// Keyed per process and per table, so a directory of crafted names cannot force colliding probes.
+pub(crate) type Seeded = foldhash::quality::RandomState;
 
 pub(crate) const SLAB: usize = 64 * 1024;
 pub(crate) const EMPTY: u32 = u32::MAX;
@@ -17,7 +19,7 @@ pub(crate) struct Names {
     slabs: Vec<Vec<u8>>,
     refs: Vec<Name>,
     lookup: Vec<u32>,
-    hash: RandomState,
+    hash: Seeded,
     groups: Vec<u64>,
 }
 
@@ -39,7 +41,7 @@ pub(crate) fn slot(slots: &[u32], hash: u64, same: impl Fn(u32) -> bool) -> usiz
 
 impl Names {
     pub(crate) fn new() -> Self {
-        Self { slabs: Vec::new(), refs: Vec::new(), lookup: Vec::new(), hash: RandomState::new(), groups: Vec::new() }
+        Self { slabs: Vec::new(), refs: Vec::new(), lookup: Vec::new(), hash: Seeded::default(), groups: Vec::new() }
     }
 
     pub(crate) fn get(&self, id: u32) -> &[u8] {
@@ -114,5 +116,43 @@ impl Names {
 
     pub(crate) fn len(&self) -> usize {
         self.refs.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Names, Seeded, EMPTY};
+    use std::hash::BuildHasher;
+
+    // Mean linear-probe distance of every interned name from its home slot.
+    fn mean_probe(names: &Names) -> f64 {
+        let mask = names.lookup.len() - 1;
+        let mut total = 0;
+        for (at, &id) in names.lookup.iter().enumerate() {
+            if id == EMPTY { continue; }
+            let home = names.hash.hash_one(names.get(id)) as usize & mask;
+            total += (at + names.lookup.len() - home) & mask;
+        }
+        total as f64 / names.len() as f64
+    }
+
+    #[test]
+    fn search_names_hash_is_seeded_foldhash_per_table() {
+        let (a, b): (Seeded, Seeded) = (Names::new().hash, Names::new().hash);
+        let differs = (0..64u32).any(|i| a.hash_one(i.to_le_bytes()) != b.hash_one(i.to_le_bytes()));
+        assert!(differs, "two tables share one key, so one crafted directory collides in every index");
+    }
+
+    #[test]
+    fn search_names_probe_distance_stays_short_on_fixture_shaped_names() {
+        let mut names = Names::new();
+        for i in 0..100_000u32 {
+            names.intern(format!("file-{i:06}.txt").as_bytes()).unwrap();
+        }
+        for i in 0..3_000u32 {
+            names.intern(format!("d{i}").as_bytes()).unwrap();
+        }
+        let mean = mean_probe(&names);
+        assert!(mean < 2.0, "mean probe distance {mean} on sequential names: the low hash bits are weak");
     }
 }
