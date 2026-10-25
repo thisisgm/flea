@@ -11,7 +11,7 @@ use flea::{
     jsondoc::Json,
     ui_logic_mn1::{
         build::{self, Context as MenuContext},
-        inventory, Entry,
+        Entry,
     },
 };
 use gpui::{Context, KeyDownEvent, Window};
@@ -92,7 +92,7 @@ fn identity(host: &PaneHost, side: usize, background: bool) -> String {
     )
 }
 
-fn flag(data: &Json, key: &str) -> bool {
+pub(super) fn flag(data: &Json, key: &str) -> bool {
     data.get(key).and_then(Json::as_bool) == Some(true)
 }
 
@@ -113,31 +113,6 @@ impl Shell {
             .unwrap_or_default()
     }
 
-    /// The rows Settings hides, which the menu and the provider gating read alike.
-    pub(crate) fn menu_hidden(&self) -> Vec<String> {
-        let stored = self
-            .launch
-            .settings
-            .data
-            .get("menu")
-            .and_then(|m| m.get("hidden"))
-            .and_then(Json::as_array)
-            .map(|ids| {
-                ids.iter()
-                    .filter_map(Json::as_str)
-                    .map(str::to_owned)
-                    .collect::<Vec<_>>()
-            });
-        inventory::effective_hidden(
-            stored.as_deref(),
-            self.launch
-                .settings
-                .data
-                .get("shelf")
-                .is_some_and(|s| flag(s, "enabled")),
-        )
-    }
-
     pub(crate) fn menu_entries(&self) -> Vec<Entry> {
         let mut context = self.menu.context.clone();
         let Some(capture) = &self.menu.captured else {
@@ -154,6 +129,7 @@ impl Shell {
         context.sort_by = host.nav.order.key.into();
         context.has_folder_sort =
             !host.pane.swap.session.open && host.nav.folders.borrow().has(&host.path);
+        self.menu_live_facts(capture.side, &mut context);
         // Actions takes Run Script's place under Run Script's switch, so the build is asked for that row whenever the listing holds an action.
         let actions = (!capture.background)
             .then(|| self.menu.actions.actions_entry(&[], None))
@@ -206,7 +182,7 @@ impl Shell {
             host.pane.cursor = row;
         }
         let background = row.is_none();
-        self.focus_side = side;
+        // Tap.js tappedMenu: a right click opens the menu on its own pane and leaves the focus where it was.
         let rows = if background {
             Vec::new()
         } else if host.selected.is_empty() {
@@ -243,13 +219,20 @@ impl Shell {
         let image = flea::ui_logic_op4::output::Kind::Image;
         self.menu.context = MenuContext {
             has_row: !background,
-            selection_count: capture.rows.len(),
+            selection_count: if background {
+                super::facts::background_count(host)
+            } else {
+                capture.rows.len()
+            },
             has_shebang: false,
             cursor_is_target: capture.rows.as_slice() == [capture.cursor],
             row_mode: facts.map_or(0, |r| r.mode),
             row_is_file: facts.is_some_and(|r| !r.dir),
             row_is_symlink: facts.is_some_and(|r| r.link.is_some()),
             row_name: facts.map_or_else(String::new, |r| r.name.clone()),
+            row_is_archive: facts
+                .is_some_and(|r| flea::ui_logic_mn1::archive::row_is_archive(&r.name, r.dir)),
+            archive_name: facts.map_or_else(String::new, |r| r.name.clone()),
             row_is_image: facts.is_some_and(|r| crate::window::output::kind(r) == image),
             selection_images: kinds.iter().filter(|&&kind| kind == image).count(),
             printable: kinds.len() == capture.rows.len()

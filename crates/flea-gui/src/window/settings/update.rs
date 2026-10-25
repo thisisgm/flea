@@ -13,6 +13,11 @@ fn now() -> u64 {
         .as_millis() as u64
 }
 impl Shell {
+    /// The version the background menu's Update Flea row names, empty unless a check found a newer build.
+    pub(crate) fn menu_update_version(&self) -> String {
+        update::menu_version(&self.settings.update)
+    }
+
     fn sync_settings_update(&mut self, cx: &mut Context<Self>) {
         if let Some(view) = &self.settings.panel {
             view.update(cx, |view, cx| {
@@ -22,7 +27,7 @@ impl Shell {
             });
         }
     }
-    pub(super) fn settings_update(
+    pub(crate) fn settings_update(
         &mut self,
         manual: bool,
         window: &Window,

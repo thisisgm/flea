@@ -235,11 +235,14 @@ pub fn menu_cut(items: &[Entry], content_y: i32, view_h: i32, keep: Option<usize
         return (y, view_h);
     }
     // Rows overflowing by less than half a row cannot scroll to a half row, so the view stops at one instead.
-    let trim = (view_h - ROW + 1..view_h)
-        .rev()
-        .filter(|h| fits(content_y, *h))
-        .min_by_key(|h| (balance(items, content_y, *h), -h));
-    match trim {
+    let trim = |from: i32| {
+        (from..view_h)
+            .rev()
+            .filter(|h| fits(content_y, *h))
+            .min_by_key(|h| (balance(items, content_y, *h), -h))
+    };
+    // An edge just under a separator reaches the half of the row above it only past that separator too.
+    match trim(view_h - ROW + 1).or_else(|| trim(view_h - ROW - SEP + 1)) {
         Some(h) => (content_y, h),
         None => (content_y, view_h),
     }

@@ -36,8 +36,7 @@ impl Ink {
             muted_frame: palette.metadata_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
-            // The error role is not on the interim palette; the theme service fills it.
-            error: palette.foreground,
+            error: theme.error,
             ..Self::default()
         })
     }

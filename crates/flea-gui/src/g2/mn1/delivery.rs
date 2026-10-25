@@ -302,11 +302,6 @@ impl Shell {
         if let Some(step) = step {
             self.retire_menu(window, cx);
             let _ = self.step(side, step, window, cx);
-        } else if action == "selectAll" {
-            self.retire_menu(window, cx);
-            if let Some(host) = &mut self.panes[side] {
-                host.selected = (0..host.pane.held.total).collect();
-            }
         } else if action == "makeExecutable" {
             self.make_executable(&capture, &paths, window, cx);
         } else if self.clipboard_menu(&capture, &action, &leaf, &paths, window, cx) {

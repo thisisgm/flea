@@ -88,24 +88,8 @@ impl Shell {
             let Some(host) = &self.panes[self.focus_side] else {
                 return;
             };
-            let path = &host.path;
-            let label = path
-                .trim_end_matches('/')
-                .rsplit('/')
-                .next()
-                .filter(|s| !s.is_empty())
-                .unwrap_or(path);
-            let operation = Json::Obj(vec![
-                ("op".into(), Json::Str("add".into())),
-                (
-                    "record".into(),
-                    Json::Obj(vec![
-                        ("path".into(), Json::Str(path.clone())),
-                        ("label".into(), Json::Str(label.into())),
-                    ]),
-                ),
-            ]);
-            self.settings_favourite(operation, window, cx);
+            let path = host.path.clone();
+            self.add_favourite(&path, window, cx);
         } else if let Some(index) = id
             .strip_prefix("favourite:")
             .and_then(|s| s.parse::<usize>().ok())
@@ -175,6 +159,32 @@ impl Shell {
             }
         })
         .detach();
+    }
+
+    /// Favourites.add: the folder joins the favourites under its last path segment, "/" for the root.
+    pub(crate) fn add_favourite(
+        &mut self,
+        path: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let label = path
+            .trim_end_matches('/')
+            .rsplit('/')
+            .next()
+            .filter(|s| !s.is_empty())
+            .unwrap_or("/");
+        let operation = Json::Obj(vec![
+            ("op".into(), Json::Str("add".into())),
+            (
+                "record".into(),
+                Json::Obj(vec![
+                    ("path".into(), Json::Str(path.into())),
+                    ("label".into(), Json::Str(label.into())),
+                ]),
+            ),
+        ]);
+        self.settings_favourite(operation, window, cx);
     }
 
     pub(super) fn move_settings_favourite(

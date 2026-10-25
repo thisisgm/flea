@@ -37,6 +37,10 @@ pub(crate) struct Join {
     pub(crate) owner: usize,
     /// Whether each pane's backend can convert, None until a formats reply says.
     pub(crate) convert: [Option<bool>; 2],
+    /// Each pane's backend's archive formats, None until a formats reply says; Compress offers only these.
+    pub(crate) archive: [Option<Vec<String>>; 2],
+    /// Each pane's backend's extract tools, which Extract reads per archive tail.
+    pub(crate) extract: [flea::ui_logic_mn1::archive::Extraction; 2],
     generation: u64,
     origin: Option<FocusHandle>,
     events: Option<Subscription>,
@@ -227,13 +231,39 @@ impl Shell {
         ));
     }
 
-    /// A backend line for the card; formats replies also record whether that backend converts.
+    /// What one backend converts, compresses and extracts, from its formats reply; the menu's provider path reads the same reply.
+    pub(crate) fn record_formats(&mut self, side: usize, reply: &flea::jsondoc::Json) {
+        self.output.convert[side] = reply.get("convert").and_then(flea::jsondoc::Json::as_bool);
+        self.output.archive[side] = Some(
+            reply
+                .get("archive")
+                .and_then(flea::jsondoc::Json::as_array)
+                .unwrap_or(&[])
+                .iter()
+                .filter_map(flea::jsondoc::Json::as_str)
+                .map(str::to_owned)
+                .collect(),
+        );
+        let tool = |key| {
+            reply
+                .get("extract")
+                .and_then(|tools| tools.get(key))
+                .and_then(flea::jsondoc::Json::as_bool)
+                == Some(true)
+        };
+        self.output.extract[side] = flea::ui_logic_mn1::archive::Extraction {
+            archive: tool("archive"),
+            seven_zip: tool("sevenZip"),
+            zip: tool("zip"),
+        };
+    }
+
+    /// A backend line for the card; formats replies also record what that backend converts, compresses and extracts.
     pub(crate) fn output_line(&mut self, side: usize, line: &str, cx: &mut Context<Self>) -> bool {
         if line.contains("\"formats\"") {
             if let Ok(reply) = flea::jsondoc::parse(line) {
                 if reply.get("t").and_then(flea::jsondoc::Json::as_str) == Some("formats") {
-                    self.output.convert[side] =
-                        reply.get("convert").and_then(flea::jsondoc::Json::as_bool);
+                    self.record_formats(side, &reply);
                 }
             }
         }

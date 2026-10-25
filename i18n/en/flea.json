@@ -1295,6 +1295,7 @@
   "menu.refusal.moved": "Selected items changed; reopen the menu.",
   "menu.refusal.unavailable": "That action is no longer available; reopen the menu.",
   "menu.refusal.empty_clipboard": "There is nothing to paste; y copies and x cuts.",
+  "menu.refusal.favourite_unread": "The selected folder could not be read.",
   "menu.locked.refusal": "Open in Terminal, Permissions and Copy As are hidden in Settings > Menus.",
   "menu.favourites_changed": "Favorites changed; reopen the menu before removing this row.",
   "menu.place.opens_here": "%1 opens in this tab only",

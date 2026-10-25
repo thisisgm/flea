@@ -37,7 +37,29 @@ struct Card<'a> {
     scroll: i32,
     cursor: Option<usize>,
     lit: Option<usize>,
-    rows: &'a str,
+    rows: String,
+    moved: bool,
+    // How far the move pushed the lit row down, in pixels.
+    drop: i32,
+}
+
+// Finder's order moves the boards' closing Move to Trash group, marked [trash] in every language, to just after the open group.
+fn finder_order(rows: &str, marks: [Option<usize>; 2]) -> (String, [Option<usize>; 2], bool, i32) {
+    let mut all: Vec<&str> = rows.split('|').collect();
+    let Some(last) = all.iter().rposition(|r| *r == "-") else {
+        return (rows.into(), marks, false, 0);
+    };
+    if !all[last + 1].contains(" [trash]") {
+        return (rows.into(), marks, false, 0);
+    }
+    let group: Vec<&str> = all.split_off(last + 1);
+    all.pop();
+    let at = all.iter().position(|r| *r == "-").unwrap() + 1;
+    let shift = group.len() + 1;
+    all.splice(at..at, group.into_iter().chain(["-"]));
+    let drop = if marks[1].is_some_and(|i| i >= at) { (shift as i32 - 1) * fit::ROW + fit::SEP } else { 0 };
+    let marks = marks.map(|m| m.map(|i| if i >= at { i + shift } else { i }));
+    (all.join("|"), marks, true, drop)
 }
 
 fn cards() -> Vec<Card<'static>> {
@@ -46,6 +68,12 @@ fn cards() -> Vec<Card<'static>> {
         .skip(1)
         .map(|line| {
             let f: Vec<&str> = line.split('\t').collect();
+            let marks = [f[8].parse().ok(), f[9].parse().ok()];
+            let (rows, [cursor, lit], moved, drop) = if f[1] == "0" {
+                finder_order(f[10], marks)
+            } else {
+                (f[10].into(), marks, false, 0)
+            };
             Card {
                 board: f[0],
                 card: f[1].parse().unwrap(),
@@ -54,9 +82,11 @@ fn cards() -> Vec<Card<'static>> {
                 width: f[4].parse().unwrap(),
                 view: f[6].parse().ok(),
                 scroll: f[7].parse().unwrap_or(0),
-                cursor: f[8].parse().ok(),
-                lit: f[9].parse().ok(),
-                rows: f[10],
+                cursor,
+                lit,
+                rows,
+                moved,
+                drop,
             }
         })
         .collect()
@@ -294,7 +324,16 @@ fn every_board_card_draws_the_boards_rows_width_place_and_scroll() {
             (Some(view), Some(keep)) => {
                 let full = (work.h - 2. * inset) as i32 - 2 * PAD;
                 let got = walked(name, &rows, full, keep);
-                assert_eq!(got, (card.scroll, view), "{name}: scroll and view");
+                if card.moved {
+                    // The board's scroll pins the old order, so a moved card keeps its view and the fold's own rules.
+                    assert_eq!(got.1, view, "{name}: view");
+                    assert!(
+                        fit::cue_ok(&rows, got.0, got.1) && fit::keeps_clear(&rows, Some(keep), got.0, got.1),
+                        "{name}: a half row cue with the kept row clear at {got:?}"
+                    );
+                } else {
+                    assert_eq!(got, (card.scroll, view), "{name}: scroll and view");
+                }
                 got
             }
             _ => (0, fit::content_height(&rows)),
@@ -346,10 +385,14 @@ fn every_board_card_draws_the_boards_rows_width_place_and_scroll() {
         }
         // A trimmed view keeps its foot where the work area put it, as Menu::open_flyout places it.
         let placed = fit::place_flyout(frame, fly_w, h, row_top, work, inset);
-        assert_eq!(
+        // A moved card's flyout follows its parent row by the move less the scroll that changed with it.
+        let follow = if card.moved { (card.drop - (content_y - card.scroll)) as f32 } else { 0. };
+        let foot = work.y + work.h - inset;
+        assert!(
+            placed.x == fly.left && (placed.y == fly.top + follow || card.moved && placed.y + placed.h == foot),
+            "{name}: flyout place {:?} against the board's {:?} moved by {follow}",
             (placed.x, placed.y),
-            (fly.left, fly.top),
-            "{name}: flyout place"
+            (fly.left, fly.top)
         );
     }
 }
