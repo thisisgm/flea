@@ -115,7 +115,7 @@ impl Shell {
             .map_or(self.focus_side, |unlock| unlock.side);
         match effect {
             Effect::OpenInPane(path) | Effect::RailOpened(path) => {
-                // OpenPlace supersedes a busy pane, so it never refuses.
+                // OpenPlace never refuses: it supersedes a busy pane (no Busy) and reads no row (no NotLoaded).
                 let _ = self.step(side, Step::OpenPlace(path.clone()), window, cx);
             }
             Effect::PollDevices => {
