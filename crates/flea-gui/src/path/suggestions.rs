@@ -1,5 +1,5 @@
 //! The path bar's folder jump: one backend ask per open, the rows a name typed into the bar ranks, and the popup they fill.
-use super::Jumped;
+use super::{scale::Scale, Jumped};
 
 /// One suggestion: the path as the chrome writes it, where its leaf starts, and the typed match run, in bytes.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -234,21 +234,10 @@ pub fn step(count: usize, from: Option<usize>, delta: isize) -> Option<usize> {
     Some((from + delta).clamp(0, count as isize - 1) as usize)
 }
 
-// Board path-suggest: 3 px clear of the chrome's rule, 37 px rows, 5 px padding inside a 1 px frame.
-pub const TOP: f32 = 30.;
-pub const ROW: f32 = 37.;
-pub const PAD: f32 = 5.;
+// The popup's 1 px frame, the hairline the board draws at every text size.
 pub const FRAME: f32 = 1.;
-pub const MARK: f32 = 18.;
-pub const PAD_X: f32 = 14.;
-pub const GAP: f32 = 9.;
-// The status strip below and the gap that keeps the clipped row's half above it.
-pub const STATUS: f32 = 27.;
-pub const CLEAR: f32 = 19.;
-// The menus' fade: the row inset plus 0.7 of a row, less a pixel, inside the frame.
-pub const FADE: f32 = PAD + FRAME + 26. - 1.;
 
-/// The popup's frame in window pixels, and the scroll its rows have.
+/// The popup's frame in window pixels, the scroll its rows have, and the text size's geometry it lays out with.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Popup {
     pub x: f32,
@@ -257,26 +246,28 @@ pub struct Popup {
     pub height: f32,
     pub content: f32,
     pub inner: f32,
+    pub scale: Scale,
 }
 
 impl Popup {
-    pub fn measure(window_height: f32, x: f32, width: f32, rows: usize) -> Self {
-        let content = rows as f32 * ROW + 2. * PAD;
-        let room = (window_height - TOP - STATUS - CLEAR).max(0.);
+    pub fn measure(scale: Scale, window_height: f32, x: f32, width: f32, rows: usize) -> Self {
+        let content = rows as f32 * scale.row + 2. * scale.pad;
+        let room = (window_height - scale.top() - scale.chrome - scale.clear).max(0.);
         let height = (content + 2. * FRAME).min(room);
         Self {
             x,
-            y: TOP,
+            y: scale.top(),
             width,
             height,
             content,
             inner: (height - 2. * FRAME).max(0.),
+            scale,
         }
     }
 
     /// The popup as it was laid out, its rows' content measured against the frame it got.
-    pub fn framed(x: f32, y: f32, width: f32, height: f32, rows: usize) -> Self {
-        let content = rows as f32 * ROW + 2. * PAD;
+    pub fn framed(scale: Scale, x: f32, y: f32, width: f32, height: f32, rows: usize) -> Self {
+        let content = rows as f32 * scale.row + 2. * scale.pad;
         Self {
             x,
             y,
@@ -284,13 +275,15 @@ impl Popup {
             height,
             content,
             inner: (height - 2. * FRAME).max(0.),
+            scale,
         }
     }
 
     /// The rows any part of which shows at this scroll.
     pub fn visible(&self, scroll: f32, rows: usize) -> (usize, usize) {
-        let first = ((scroll - PAD) / ROW).floor().max(0.) as usize;
-        let last = ((scroll + self.inner - PAD) / ROW).ceil().max(0.) as usize;
+        let (row, pad) = (self.scale.row, self.scale.pad);
+        let first = ((scroll - pad) / row).floor().max(0.) as usize;
+        let last = ((scroll + self.inner - pad) / row).ceil().max(0.) as usize;
         (first.min(rows), last.min(rows))
     }
 
@@ -300,12 +293,13 @@ impl Popup {
 
     /// The scroll that shows row index whole; the first and last rows bring their padding with them.
     pub fn reveal(&self, scroll: f32, index: usize, rows: usize) -> f32 {
-        let top = PAD + index as f32 * ROW;
+        let row = self.scale.row;
+        let top = self.scale.pad + index as f32 * row;
         let low = if index == 0 { 0. } else { top };
         let high = if index + 1 >= rows {
             self.content
         } else {
-            top + ROW
+            top + row
         };
         let scroll = if low < scroll {
             low
@@ -330,8 +324,8 @@ impl Popup {
         {
             return None;
         }
-        let inside = y - self.y - FRAME + scroll - PAD;
-        let index = (inside / ROW).floor();
+        let inside = y - self.y - FRAME + scroll - self.scale.pad;
+        let index = (inside / self.scale.row).floor();
         (inside >= 0. && (index as usize) < rows).then_some(index as usize)
     }
 
@@ -359,5 +353,10 @@ impl Pointer {
         let moved = self.seen != Some(at);
         self.seen = Some(at);
         !first && moved && !self.settling
+    }
+
+    /// The last point the popup has seen, in window coordinates, or None since it opened.
+    pub fn last_seen(&self) -> Option<(f32, f32)> {
+        self.seen
     }
 }

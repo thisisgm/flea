@@ -37,6 +37,7 @@ pub(crate) struct Sessions {
     pub(crate) origins: [Option<crate::g2::mn1::join::Chosen>; 2],
     chosen_subscription: Option<Subscription>,
     status_subscription: Option<Subscription>,
+    pub(crate) archive: crate::g2::op2::host::Archive,
 }
 
 impl Shell {
@@ -205,6 +206,9 @@ impl Shell {
         message: &str,
         cx: &mut Context<Self>,
     ) {
+        if place == "backend" {
+            self.archive_failed(side, cx);
+        }
         let related = flea::ui_logic_op1::collide::dropped_pending(place, input)
             || (place == "stale" && input == "transfer")
             || matches!(
@@ -254,7 +258,13 @@ impl Shell {
                 std::mem::take(&mut overlay.model.spent_cut),
             ))
         });
+        // An ask with no collision pending and no open card is idle; its spent cut, taken above, rides apart.
+        let idle = {
+            let model = &Entity::read(&view, cx).model;
+            model.collide.pending.is_none() && !model.open()
+        };
         let Some((outbox, mut said, mut sticky, spent_cut)) = pending else {
+            self.clipboard_operations(side, false, idle, cx);
             if self.settle_overlay_mount(cx) {
                 cx.notify();
             }
@@ -294,6 +304,7 @@ impl Shell {
         }
         changed |= host.status != before;
         let spent_cut = spent_cut && sent;
+        self.clipboard_operations(side, spent_cut, idle, cx);
         // An empty frame publishes nothing, so the shell's cached view stays untouched.
         if !said.is_empty() || spent_cut || self.operations.sticky[side] != sticky {
             self.operations.sticky[side].clone_from(&sticky);

@@ -55,7 +55,7 @@ pub struct PathView {
     pub built: bool,
     pub corner: f32,
     pub(crate) probe: Option<crate::visual::Probe>,
-    pub(super) pointer: Pointer,
+    pub(crate) pointer: Pointer,
     ranker: Box<dyn Ranker>,
     favourites: Vec<String>,
     recent: Vec<String>,
@@ -334,9 +334,10 @@ impl PathView {
             return;
         };
         let rows = self.jump.entries.len();
+        let scale = self.paint.borrow().scale();
         let popup = self.paint.borrow().popup.map_or_else(
-            || Popup::measure(f32::MAX, 0., 0., rows),
-            |kept| Popup::framed(kept.x, kept.y, kept.width, kept.height, rows),
+            || Popup::measure(scale, f32::MAX, 0., 0., rows),
+            |kept| Popup::framed(scale, kept.x, kept.y, kept.width, kept.height, rows),
         );
         self.scroll = popup.reveal(self.scroll, cursor, rows);
     }

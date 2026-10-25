@@ -22,6 +22,49 @@ const APP_WINDOW: &[(&[(f32, f32)], bool)] = &[
     (&[(9., 6.5), (9.01, 6.5)], false),
 ];
 const CHECK_MARK: &[(&[(f32, f32)], bool)] = &[(&[(5., 12.), (10., 17.), (19., 7.)], false)];
+const EYE: &[(&[(f32, f32)], bool)] = &[
+    (&[(12., 5.), (22., 12.), (12., 19.), (2., 12.)], true),
+    (&[(10., 10.), (14., 10.), (14., 14.), (10., 14.)], true),
+];
+const ALERT: &[(&[(f32, f32)], bool)] = &[
+    (&[(12., 2.), (23., 21.), (1., 21.)], true),
+    (&[(12., 10.), (12., 14.)], false),
+    (&[(12., 18.), (12.01, 18.)], false),
+];
+const DRIVE: &[(&[(f32, f32)], bool)] = &[
+    (
+        &[
+            (6., 4.),
+            (18., 4.),
+            (22., 12.),
+            (22., 20.),
+            (2., 20.),
+            (2., 12.),
+        ],
+        true,
+    ),
+    (&[(2., 12.), (22., 12.)], false),
+    (&[(6., 16.), (6.01, 16.)], false),
+    (&[(10., 16.), (10.01, 16.)], false),
+];
+const CROSS: &[(&[(f32, f32)], bool)] = &[
+    (&[(6., 6.), (18., 18.)], false),
+    (&[(18., 6.), (6., 18.)], false),
+];
+const FOLDER_OPEN: &[(&[(f32, f32)], bool)] = &[
+    (
+        &[
+            (2., 20.),
+            (2., 3.),
+            (8., 3.),
+            (10., 6.),
+            (22., 6.),
+            (22., 9.),
+        ],
+        false,
+    ),
+    (&[(22., 11.), (19.5, 20.), (2., 20.), (4.5, 11.)], true),
+];
 
 /// A board mark at `size` px in `ink`, stroked at the board's width: 2 units, 3.4 for the check.
 pub fn glyph(mark: Glyph, size: f32, ink: Hsla) -> impl IntoElement {
@@ -41,6 +84,11 @@ fn paint_glyph(mark: Glyph, bounds: Bounds<Pixels>, size: f32, ink: Hsla, window
         Glyph::Code => (CODE, 2.),
         Glyph::AppWindow => (APP_WINDOW, 2.),
         Glyph::Check => (CHECK_MARK, 3.4),
+        Glyph::Eye => (EYE, 2.),
+        Glyph::Alert => (ALERT, 2.),
+        Glyph::Drive => (DRIVE, 2.),
+        Glyph::Cross => (CROSS, 2.),
+        Glyph::FolderOpen => (FOLDER_OPEN, 2.),
     };
     let at = |(x, y): (f32, f32)| {
         point(
@@ -50,16 +98,23 @@ fn paint_glyph(mark: Glyph, bounds: Bounds<Pixels>, size: f32, ink: Hsla, window
     };
     let mut path = PathBuilder::stroke(px(width * unit));
     for (points, closed) in strokes {
-        let mut points: Vec<(f32, f32)> = points.to_vec();
-        if !closed {
-            square_caps(&mut points, width / 2.);
-        }
-        path.move_to(at(points[0]));
-        for p in &points[1..] {
-            path.line_to(at(*p));
-        }
         if *closed {
+            path.move_to(at(points[0]));
+            for p in &points[1..] {
+                path.line_to(at(*p));
+            }
             path.close();
+        } else {
+            // Square caps without a paint-time copy: each open end runs on along its own segment.
+            path.move_to(at(extend(points[1], points[0], width / 2.)));
+            for p in &points[1..] {
+                path.line_to(at(*p));
+            }
+            path.line_to(at(extend(
+                points[points.len() - 2],
+                points[points.len() - 1],
+                width / 2.,
+            )));
         }
     }
     if mark == Glyph::Search {
@@ -86,14 +141,9 @@ fn paint_glyph(mark: Glyph, bounds: Bounds<Pixels>, size: f32, ink: Hsla, window
     }
 }
 
-/// Square caps: each open end runs on by half the stroke width along its own segment.
-fn square_caps(points: &mut [(f32, f32)], half: f32) {
-    let last = points.len() - 1;
-    let reach = |from: (f32, f32), to: (f32, f32)| {
-        let (dx, dy) = (to.0 - from.0, to.1 - from.1);
-        let length = (dx * dx + dy * dy).sqrt().max(f32::EPSILON);
-        (to.0 + dx / length * half, to.1 + dy / length * half)
-    };
-    points[0] = reach(points[1], points[0]);
-    points[last] = reach(points[last - 1], points[last]);
+/// One square-cap reach: the end runs on by half the stroke width along its own segment.
+fn extend(from: (f32, f32), to: (f32, f32), half: f32) -> (f32, f32) {
+    let (dx, dy) = (to.0 - from.0, to.1 - from.1);
+    let length = (dx * dx + dy * dy).sqrt().max(f32::EPSILON);
+    (to.0 + dx / length * half, to.1 + dy / length * half)
 }

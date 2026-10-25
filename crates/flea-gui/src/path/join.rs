@@ -1,7 +1,8 @@
 //! One window joins the path and toolbar producers to its pane navigation and action owners.
 use super::{
     chrome::{ChromeView, Inputs, PanePath},
-    suggestions::Unranked,
+    history,
+    rank::Jump,
     view::{Out, PathView},
 };
 use crate::{
@@ -17,6 +18,10 @@ pub struct Chrome {
     pub aliases: Vec<super::crumbs::Alias>,
     /// The network service sets this when it subscribes to `NetworkPath`; until then a typed address is refused with a sentence.
     pub network: bool,
+    /// The recent history file as the jump last read it.
+    pub history: crate::window::path_host::Stamp,
+    /// Jump asks and history reads not answered yet, each a frame still to come.
+    pub waiting: usize,
     home: gpui::SharedString,
     subscriptions: Vec<Subscription>,
 }
@@ -63,8 +68,13 @@ impl Shell {
         };
         if self.chrome.view.is_none() {
             self.chrome.home = std::env::var("HOME").unwrap_or_default().into();
-            let path =
-                cx.new(|cx| PathView::new(self.locale.catalog.clone(), Box::new(Unranked), cx));
+            let favourites = history::favourites(&self.launch.settings.data);
+            let path = cx.new(|cx| {
+                let mut view =
+                    PathView::new(self.locale.catalog.clone(), Box::new(Jump::default()), cx);
+                view.set_favourites(favourites);
+                view
+            });
             self.chrome.subscriptions.push(cx.subscribe_in(
                 &path,
                 window,
@@ -200,18 +210,72 @@ impl Shell {
             Out::Closed => {
                 self.focus_pane(self.focus_side, cx);
                 window.focus(&self.focus, cx);
+                self.check_history(cx);
             }
             Out::Send { side, line } => {
                 if let Some(host) = self.panes.get_mut(*side).and_then(Option::as_mut) {
                     if let Some(backend) = &host.backend {
-                        if let Err(error) = backend.path_line(line.clone()) {
-                            host.record_error(error, &self.locale);
+                        match backend.path_line(line.clone()) {
+                            // Every jump line earns exactly one jumped reply, so the scene waits for it.
+                            Ok(()) if super::is_jump_line(line) => self.chrome.waiting += 1,
+                            Ok(()) => {}
+                            Err(error) => host.record_error(error, &self.locale),
                         }
                     }
                 }
             }
-            Out::ReadHistory => {}
+            Out::ReadHistory => self.read_history(cx),
         }
+    }
+
+    /// The favourites the jump ranks first follow each accepted ui state.
+    pub(crate) fn path_favourites(&mut self, state: &flea::jsondoc::Json, cx: &mut Context<Self>) {
+        let Some(chrome) = &self.chrome.view else {
+            return;
+        };
+        let path = chrome.read_with(cx, |view, _| view.path.clone());
+        let favourites = history::favourites(state);
+        path.update(cx, |view, _| view.set_favourites(favourites));
+    }
+
+    /// The recent history, read and parsed on a worker; the jump's whole ask waits for it.
+    fn read_history(&mut self, cx: &mut Context<Self>) {
+        let read = cx
+            .background_executor()
+            .spawn(async move { crate::window::path_host::load(crate::window::path_host::file()) });
+        self.chrome.waiting += 1;
+        cx.spawn(async move |this, cx| {
+            let (stamp, paths) = read.await;
+            let _ = this.update(cx, |shell, cx| {
+                shell.chrome.waiting = shell.chrome.waiting.saturating_sub(1);
+                shell.chrome.history = stamp;
+                if let Some(chrome) = &shell.chrome.view {
+                    let path = chrome.read_with(cx, |view, _| view.path.clone());
+                    path.update(cx, |view, cx| view.history_read(paths, cx));
+                }
+            });
+        })
+        .detach();
+    }
+
+    /// After each edit the file is stated on a worker, so the next open reads it again only when it changed.
+    fn check_history(&mut self, cx: &mut Context<Self>) {
+        let check = cx.background_executor().spawn(async move {
+            crate::window::path_host::stamp(crate::window::path_host::file())
+        });
+        cx.spawn(async move |this, cx| {
+            let stamp = check.await;
+            let _ = this.update(cx, |shell, cx| {
+                let Some(chrome) = &shell.chrome.view else {
+                    return;
+                };
+                if stamp != shell.chrome.history {
+                    let path = chrome.read_with(cx, |view, _| view.path.clone());
+                    path.update(cx, |view, _| view.history_changed());
+                }
+            });
+        })
+        .detach();
     }
 
     /// The path producer takes its own reply; any other peeked answer comes back for the next peek consumer (the columns view shares the wire, ui/WindowBody.qml:232-237).
@@ -222,6 +286,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<super::Answer> {
+        if matches!(answer, super::Answer::Jumped(_)) {
+            self.chrome.waiting = self.chrome.waiting.saturating_sub(1);
+        }
         let Some(chrome) = &self.chrome.view else {
             return Some(answer);
         };

@@ -1,5 +1,7 @@
 //! The open path field: the accent frame, the line on the window ground, its selection wash, marked text and caret.
 use super::paint::{paint_run, Ink, Size};
+use super::scale::Scale;
+use super::suggestions::FRAME;
 use super::view::PathView;
 use crate::list::Palette;
 use crate::palette::Theme;
@@ -10,11 +12,9 @@ use gpui::{
 };
 use std::rc::Rc;
 
-// Board path-bar: the frame sits 2 px under the strip's top and 1 px over its rule, the text 9 px in, the caret 1 by 17.
+// Board path-bar: the frame sits 2 px under the strip's top and 1 px over its rule; the text, wash and caret follow Scale.
 pub const TOP: f32 = 2.;
 pub const BOTTOM: f32 = 1.;
-pub const INSET: f32 = 9.;
-const CARET: f32 = 17.;
 const SELECTION: f32 = 0.24;
 
 /// The frame inside the chrome's path slot.
@@ -25,6 +25,43 @@ pub fn frame(slot: Bounds<Pixels>) -> Bounds<Pixels> {
             slot.size.width,
             (slot.size.height - px(TOP + BOTTOM)).max(px(0.)),
         ),
+    )
+}
+
+/// Where the text starts: inside the frame's 1 px border, then the field's inset.
+pub fn text_origin(frame: Bounds<Pixels>, scale: &Scale) -> Pixels {
+    frame.origin.x + px(FRAME + scale.inset)
+}
+
+/// The caret's left edge: 1 px past the text's advance, the board's 8 px gap less its 7 px margin.
+pub fn caret_left(origin: Pixels, advance: Pixels) -> Pixels {
+    origin + advance + px(FRAME)
+}
+
+/// The top of a band of height px centred in the frame's inside, on a whole pixel.
+pub fn band_top(frame: Bounds<Pixels>, height: f32) -> Pixels {
+    let inside = f32::from(frame.size.height) - 2. * FRAME;
+    px(f32::from(frame.origin.y) + FRAME + ((inside - height) / 2.).floor())
+}
+
+/// The selection wash over the selected run from x `from` to `to`, its height centred in the frame.
+pub fn wash_box(frame: Bounds<Pixels>, from: Pixels, to: Pixels, scale: &Scale) -> Bounds<Pixels> {
+    Bounds::new(
+        point(from, band_top(frame, scale.wash)),
+        size(to - from, px(scale.wash)),
+    )
+}
+
+/// The caret: 1 px wide, one px past the advance from the text origin, its height centred in the frame.
+pub fn caret_box(
+    frame: Bounds<Pixels>,
+    origin: Pixels,
+    advance: Pixels,
+    scale: &Scale,
+) -> Bounds<Pixels> {
+    Bounds::new(
+        point(caret_left(origin, advance), band_top(frame, scale.caret)),
+        size(px(1.), px(scale.caret)),
     )
 }
 
@@ -105,9 +142,10 @@ impl Element for FieldElement {
         let view = self.view.read(cx);
         let frame = frame(bounds);
         let mut paint = view.paint.borrow_mut();
+        let scale = paint.scale();
         paint.area = Some(bounds);
         paint.frame = Some(frame);
-        paint.field_origin = frame.origin.x + px(INSET);
+        paint.field_origin = text_origin(frame, &scale);
         let pixels = paint.pixels(Size::Field);
         let font = paint.typeface.font.clone();
         let mut line = view.line.borrow_mut();
@@ -130,7 +168,7 @@ impl Element for FieldElement {
             line.revision = view.entry.revision;
         }
         // The caret stays inside the frame: the line slides under it the way a text input scrolls.
-        let room = (frame.size.width - px(2. * INSET)).max(px(0.));
+        let room = (frame.size.width - px(2. * (FRAME + scale.inset))).max(px(0.));
         let caret = line.x_for(view.entry.cursor());
         if caret - line.scroll > room {
             line.scroll = caret - room;
@@ -156,32 +194,33 @@ impl Element for FieldElement {
         let view = self.view.read(cx);
         let focus = view.focus.clone();
         let frame = frame(bounds);
+        let scale = view.paint.borrow().scale();
         window.set_cursor_style(CursorStyle::IBeam, hitbox);
         // The small field follows half of the compositor's corner radius.
         window.paint_quad(quad(
             frame,
             px(view.corner / 2.),
             ink.background,
-            px(1.),
+            px(FRAME),
             ink.accent_frame,
             BorderStyle::Solid,
         ));
         let line = view.line.borrow();
-        let origin = frame.origin.x + px(INSET) - line.scroll;
+        let origin = text_origin(frame, &scale) - line.scroll;
         let band = Bounds::new(
-            point(frame.origin.x + px(1.), frame.origin.y),
-            size((frame.size.width - px(2.)).max(px(0.)), frame.size.height),
+            point(frame.origin.x + px(FRAME), frame.origin.y),
+            size(
+                (frame.size.width - px(2. * FRAME)).max(px(0.)),
+                frame.size.height,
+            ),
         );
-        let mid = frame.origin.y + (frame.size.height - px(CARET)) / 2.;
+        let caret_top = band_top(frame, scale.caret);
         let entry = &view.entry;
         window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
             if !entry.selected.is_empty() {
                 let from = origin + line.x_for(entry.selected.start);
                 let to = origin + line.x_for(entry.selected.end);
-                window.paint_quad(fill(
-                    Bounds::new(point(from, mid), size(to - from, px(CARET))),
-                    ink.wash(SELECTION),
-                ));
+                window.paint_quad(fill(wash_box(frame, from, to, &scale), ink.wash(SELECTION)));
             }
             if let Some(run) = &line.run {
                 paint_run(
@@ -197,15 +236,17 @@ impl Element for FieldElement {
                 let from = origin + line.x_for(marked.start);
                 let to = origin + line.x_for(marked.end);
                 window.paint_quad(fill(
-                    Bounds::new(point(from, mid + px(CARET - 1.)), size(to - from, px(1.))),
+                    Bounds::new(
+                        point(from, caret_top + px(scale.caret - 1.)),
+                        size(to - from, px(1.)),
+                    ),
                     ink.foreground,
                 ));
             }
             // Selected text shows no caret, as the board draws it.
             if entry.selected.is_empty() {
-                let at = origin + line.x_for(entry.cursor());
                 window.paint_quad(fill(
-                    Bounds::new(point(at, mid), size(px(1.), px(CARET))),
+                    caret_box(frame, origin, line.x_for(entry.cursor()), &scale),
                     ink.foreground,
                 ));
             }

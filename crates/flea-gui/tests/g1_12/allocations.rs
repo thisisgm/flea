@@ -92,7 +92,7 @@ fn a_kept_fit_a_hit_a_hover_a_press_and_a_popup_step_allocate_nothing() {
         &mut out,
     );
     assert_eq!(jump.entries.len(), 4);
-    let popup = Popup::measure(360., 80., 788., 9);
+    let popup = Popup::measure(super::jump::board(), 360., 80., 788., 9);
     let count = counted(|| {
         for step in 0..1000_usize {
             let at = step as f32;

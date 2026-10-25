@@ -1,13 +1,14 @@
-//! The suggestion popup: the menu recipe on the field's edges, 37 px rows, a cursor on the 8% wash and fades where it clips.
+//! The suggestion popup: the menu recipe on the field's edges, rows at the text size, a cursor on the 8% wash and fades where it clips.
 use super::paint::{line, paint_run, Ink, Paint, Size};
-use super::suggestions::{Popup, Suggestion, FADE, FRAME, GAP, MARK, PAD, PAD_X, ROW};
+use super::scale::Scale;
+use super::suggestions::{Popup, Suggestion, FRAME};
 use super::view::PathView;
 use crate::list::Typeface;
 use crate::{list::Palette, palette::Theme, row::marks::Mark};
 use gpui::{
     fill, linear_color_stop, linear_gradient, point, px, quad, relative, size, App, BorderStyle,
     Bounds, ContentMask, Element, ElementId, Entity, GlobalElementId, GlyphRun, InspectorElementId,
-    IntoElement, LayoutId, Pixels, Style, TransformationMatrix, Window,
+    IntoElement, LayoutId, Pixels, Point, Style, TransformationMatrix, Window,
 };
 use std::rc::Rc;
 
@@ -97,6 +98,27 @@ pub fn cuts(row: &Suggestion) -> [usize; 5] {
     cuts
 }
 
+/// The mark's box in the row whose top is top inside the popup's inner origin: at the pad, centred on whole pixels.
+pub fn mark_box(scale: &Scale, inner: Point<Pixels>, top: f32) -> Bounds<Pixels> {
+    Bounds::new(
+        point(
+            inner.x + px(scale.pad_x),
+            inner.y + px(top + scale.mark_top()),
+        ),
+        size(px(scale.mark), px(scale.mark)),
+    )
+}
+
+/// The label's line top in that row, centred on whole pixels; its glyphs and run wash sit on it.
+pub fn line_top(scale: &Scale, inner: Point<Pixels>, top: f32) -> Pixels {
+    inner.y + px(top + scale.label_top())
+}
+
+/// A typed run's wash behind one piece of a row's label: from x across width, one line box tall.
+pub fn run_wash(scale: &Scale, x: Pixels, line_top: Pixels, width: Pixels) -> Bounds<Pixels> {
+    Bounds::new(point(x, line_top), size(width, px(scale.wash_line())))
+}
+
 /// What a row paints under its label: the cursor's band with a bold run, or the run's own wash, never a wash inside the band.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Layers {
@@ -160,6 +182,7 @@ impl Element for MenuElement {
         let mut paint = view.paint.borrow_mut();
         let rows = view.jump.entries.len();
         let popup = Popup::framed(
+            paint.scale(),
             f32::from(bounds.origin.x),
             f32::from(bounds.origin.y),
             f32::from(bounds.size.width),
@@ -168,6 +191,7 @@ impl Element for MenuElement {
         );
         paint.popup = Some(popup);
         let visible = popup.visible(view.scroll, rows);
+        paint.drawn = visible.1 - visible.0;
         paint.lay_menu(
             &view.jump.entries,
             view.jump.cursor,
@@ -190,6 +214,7 @@ impl Element for MenuElement {
         let view = self.view.read(cx);
         let paint = view.paint.borrow();
         let Some(popup) = paint.popup else { return };
+        let scale = paint.scale();
         let scroll = view.scroll;
         window.paint_quad(quad(
             bounds,
@@ -206,24 +231,26 @@ impl Element for MenuElement {
                 (bounds.size.height - px(2. * FRAME)).max(px(0.)),
             ),
         );
-        let top_of = |index: usize| inner.origin.y + px(PAD + index as f32 * ROW - scroll);
-        let label_x = inner.origin.x + px(PAD_X + MARK + GAP);
-        let label_w = (inner.size.width - px(PAD_X + MARK + GAP + PAD_X)).max(px(0.));
+        let label_x = inner.origin.x + px(scale.label_x());
+        let label_w =
+            (inner.size.width - px(scale.pad_x + scale.mark + scale.gap + scale.pad_x)).max(px(0.));
         window.with_content_mask(Some(ContentMask { bounds: inner }), |window| {
             let (first, last) = popup.visible(scroll, view.jump.entries.len());
             for index in first..last {
-                let top = top_of(index);
+                let top = scale.row_top(index, scroll);
                 let layers = layers(&view.jump.entries[index], view.jump.cursor == Some(index));
                 if layers.band {
                     window.paint_quad(fill(
-                        Bounds::new(point(inner.origin.x, top), size(inner.size.width, px(ROW))),
+                        Bounds::new(
+                            point(inner.origin.x, inner.origin.y + px(top)),
+                            size(inner.size.width, px(scale.row)),
+                        ),
                         ink.hover(),
                     ));
                 }
                 let (key, data) = Mark::for_row("folder", S_IFDIR).svg();
-                let at = point(inner.origin.x + px(PAD_X), top + px((ROW - MARK) / 2.));
                 let _ = window.paint_svg(
-                    Bounds::new(at, size(px(MARK), px(MARK))),
+                    mark_box(&scale, inner.origin, top),
                     key,
                     Some(data),
                     TransformationMatrix::unit(),
@@ -237,14 +264,17 @@ impl Element for MenuElement {
                     .map_or(0., |piece| piece.x + piece.width());
                 // A path too long for the slot slides left inside it, because the tail names the folder.
                 let slide = (label_w - px(drawn)).min(px(0.));
-                let band = Bounds::new(point(label_x, top), size(label_w, px(ROW)));
+                let band = Bounds::new(
+                    point(label_x, inner.origin.y + px(top)),
+                    size(label_w, px(scale.row)),
+                );
+                let line = line_top(&scale, inner.origin, top);
                 window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
                     for piece in pieces {
                         let x = label_x + slide + px(piece.x);
                         if piece.wash && layers.run_wash {
-                            let width = piece.run.line().width;
                             window.paint_quad(fill(
-                                Bounds::new(point(x, top + px(10.)), size(width, px(ROW - 20.))),
+                                run_wash(&scale, x, line, piece.run.line().width),
                                 ink.wash(RUN_WASH),
                             ));
                         }
@@ -253,14 +283,14 @@ impl Element for MenuElement {
                         } else {
                             ink.muted
                         };
-                        paint_run(&piece.run, x, top, px(ROW), color, window);
+                        paint_run(&piece.run, x, line, px(scale.line), color, window);
                     }
                 });
             }
             let (above, below) = popup.fades(scroll);
             let clear = ink.surface.opacity(0.);
             if above {
-                let band = Bounds::new(inner.origin, size(inner.size.width, px(FADE)));
+                let band = Bounds::new(inner.origin, size(inner.size.width, px(scale.fade)));
                 window.paint_quad(fill(
                     band,
                     linear_gradient(
@@ -272,8 +302,8 @@ impl Element for MenuElement {
             }
             if below {
                 let band = Bounds::new(
-                    point(inner.origin.x, inner.bottom() - px(FADE)),
-                    size(inner.size.width, px(FADE)),
+                    point(inner.origin.x, inner.bottom() - px(scale.fade)),
+                    size(inner.size.width, px(scale.fade)),
                 );
                 window.paint_quad(fill(
                     band,

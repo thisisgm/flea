@@ -558,6 +558,11 @@ action = "toggleHidden"
 char = "a"
 action = "addNetwork"
 
+# Opens Omarchy's default agent in the folder being shown, the menu's Open in Agent with no menu.
+[[text]]
+char = "A"
+action = "openAgent"
+
 # The keyboard's way into the menu a right click raises: the row's own menu in the listing, Eject
 # and Unmount in the rail. The tagline is "keyboard-first" and before this key neither had one, so
 # m is no longer a type-ahead letter; ui/js/Focus.js routes it by which view has focus.
@@ -655,7 +660,7 @@ find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "rel
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect",
           "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
-          "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
+          "openTerminal", "openAgent", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
 
 # The digit range, expanded by the generator into tab1 through tab9.
 [digits]
@@ -953,6 +958,7 @@ menu = "Menu"
 menuRight = "Menu right"
 movePaste = "Move here"
 openTerminal = "Terminal"
+openAgent = "Open agent here"
 pasteAbsoluteLink = "Paste absolute link"
 pasteAs = "Paste as"
 pasteHardLink = "Paste hard link"

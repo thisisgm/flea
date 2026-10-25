@@ -11,6 +11,9 @@ impl Shell {
             &entity,
             window,
             |shell, _, chosen: &crate::g2::mn1::join::Chosen, window, cx| {
+                if shell.archive_chosen(chosen, window, cx) {
+                    return;
+                }
                 let side = chosen.captured.side;
                 if !matches!(chosen.action.as_str(), "copyTo" | "moveTo")
                     || !chosen.captured.ready

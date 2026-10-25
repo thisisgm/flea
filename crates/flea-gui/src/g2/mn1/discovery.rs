@@ -53,6 +53,7 @@ impl Shell {
     pub(crate) fn menu_discovery_reply(
         &mut self,
         side: usize,
+        line: &str,
         reply: &Json,
         window: &mut Window,
         cx: &mut Context<Self>,
@@ -96,6 +97,7 @@ impl Shell {
                 .map(|path| format!("\"{}\"", escape(path)))
                 .collect::<Vec<_>>()
                 .join(",");
+            self.menu.actions.listing_requested(id as usize);
             self.menu_send(
                 side,
                 format!("{{\"c\":\"actions\",\"op\":\"list\",\"id\":{id},\"paths\":[{paths}]}}"),
@@ -103,6 +105,8 @@ impl Shell {
             );
         } else {
             self.menu.reading = false;
+            self.menu.actions.receive(line);
+            self.actions_said(side, cx);
             self.menu.context.scripts = reply
                 .get("actions")
                 .and_then(Json::as_array)

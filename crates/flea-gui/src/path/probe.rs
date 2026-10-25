@@ -1,5 +1,5 @@
 //! Scene receipts observe the fitted, shaped pieces the native path Element draws.
-use super::{paint::STRIP_PAD, view::PathView};
+use super::{paint::strip_pad, view::PathView};
 use crate::visual::Probe;
 use gpui::{canvas, point, prelude::*, px, size, Bounds, Div, Entity, Pixels, Window};
 
@@ -35,7 +35,7 @@ fn record(path: &PathView, slot: usize, probe: &Probe, window: &Window) {
     } else {
         format!("{parent}-text")
     };
-    let pad = if slot == 0 { 0. } else { STRIP_PAD };
+    let pad = strip_pad(slot != 0, &paint.scale());
     let height = bounds.size.height - px(if slot == 0 { 0. } else { 1. });
     let strip = &path.strips[slot];
     let mut text = String::new();

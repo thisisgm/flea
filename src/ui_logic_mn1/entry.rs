@@ -131,3 +131,12 @@ impl Entry {
         !self.separator && !self.disabled
     }
 }
+
+/// Every mark a menu row, flyout leaf or chevron names by its Icons.js name, in the order the window's cut table draws them; that table is pinned to this list.
+pub const MARK_NAMES: &[&str] = &[
+    "app-window", "archive", "archive-out", "check", "checkmark", "chevron-right", "clipboard", "code", "columns",
+    "contrast", "copy", "download", "drive", "eject", "eye", "eye-off", "file", "file-plus", "file-text", "folder",
+    "folder-open", "folder-plus", "globe", "image", "images", "info", "key", "lock", "minus", "network", "play",
+    "plus", "printer", "rename", "scissors", "server", "shelf", "sliders", "sort", "star", "symlink", "tag",
+    "terminal", "trash", "type", "undo", "bot", "zap",
+];
