@@ -2,6 +2,7 @@
 use super::searchindex::{index_bytes, is_hidden, Index, WALK_THREADS};
 use super::searchreq::Cancelled;
 use super::searchsession::Session;
+use super::searchwalkread::Class;
 #[cfg(test)]
 use super::searchsession::Counters;
 use std::collections::VecDeque;
@@ -73,14 +74,14 @@ pub(crate) fn fill(
 fn walk_local(out: &Mutex<Index>, root: &Path, hidden: bool, body: &str, reader: &super::searchwalkread::Reader<'_>, probes: &WalkProbes) -> usize {
     let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1).clamp(1, WALK_THREADS);
     // The queue beside how many threads hold a popped directory; a thread ends only when both are empty.
-    let work: Mutex<(VecDeque<PathBuf>, usize)> = Mutex::new((VecDeque::from([root.to_path_buf()]), 0));
+    let work: Mutex<(VecDeque<Queued>, usize)> = Mutex::new((VecDeque::from([(root.to_path_buf(), None)]), 0));
     let ready = Condvar::new();
     let dirs = AtomicUsize::new(0);
     std::thread::scope(|scope| {
         for _ in 0..threads {
             scope.spawn(|| {
-                while let Some(dir) = next_dir(&work, &ready, &probes.cancel) {
-                    let subdirs = open_directory(out, root, &dir, hidden, Some(body), reader, probes);
+                while let Some((dir, parent)) = next_dir(&work, &ready, &probes.cancel) {
+                    let subdirs = open_directory(out, root, &dir, parent.as_ref(), hidden, Some(body), reader, probes);
                     if subdirs.is_some() {
                         dirs.fetch_add(1, Ordering::Relaxed);
                     }
@@ -98,7 +99,7 @@ fn walk_local(out: &Mutex<Index>, root: &Path, hidden: bool, body: &str, reader:
 }
 
 // Pops the next directory, waiting while a thread that holds one may still queue more.
-fn next_dir(work: &Mutex<(VecDeque<PathBuf>, usize)>, ready: &Condvar, cancel: &AtomicBool) -> Option<PathBuf> {
+fn next_dir<T>(work: &Mutex<(VecDeque<T>, usize)>, ready: &Condvar, cancel: &AtomicBool) -> Option<T> {
     let mut state = work.lock().unwrap();
     loop {
         if cancel.load(Ordering::Relaxed) {
@@ -115,15 +116,20 @@ fn next_dir(work: &Mutex<(VecDeque<PathBuf>, usize)>, ready: &Condvar, cancel: &
     }
 }
 
+// A queued directory and its parent's mount class; the scope has none, so it is classified in full.
+type Queued = (PathBuf, Option<Class>);
+
 // Opens one directory, pushes its rows, and returns its subdirectories; None once the walk is cancelled.
-fn open_directory(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, watch_body: Option<&str>, reader: &super::searchwalkread::Reader<'_>, probes: &WalkProbes) -> Option<Vec<PathBuf>> {
+#[allow(clippy::too_many_arguments)]
+fn open_directory(out: &Mutex<Index>, root: &Path, dir: &Path, parent: Option<&Class>, hidden: bool, watch_body: Option<&str>, reader: &super::searchwalkread::Reader<'_>, probes: &WalkProbes) -> Option<Vec<Queued>> {
     // A close cancels the walk at once: no directory opens after close.
     if probes.cancel.load(Ordering::Relaxed) {
         return None;
     }
     let rel = rel_of(root, dir);
+    let class = reader.class(dir, parent);
     let watch_failed = if let (Some(body), Some(watch)) = (watch_body, probes.watch.lock().unwrap().as_ref()) {
-        if reader.is_remote(dir) { !watch.arm_local(&rel, body) }
+        if class.is_some() { !watch.arm_local(&rel, body) }
         else { !watch.arm(&rel) }
     } else { false };
     probes.opened.fetch_add(1, Ordering::Relaxed);
@@ -134,9 +140,10 @@ fn open_directory(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, wat
     }
     let mut rows = Vec::new();
     let mut subdirs = Vec::new();
-    let read = match reader.read(dir, dir == root, watch_body.is_none(), probes) {
+    let remote = class.is_some();
+    let read = match reader.read_classed(dir, class.clone(), dir == root, watch_body.is_none(), probes) {
         Ok(read) => read,
-        Err(error) if dir != root && !reader.is_remote(dir) && matches!(error.raw_os_error(), Some(2 | 20 | 40)) => return None,
+        Err(error) if dir != root && !remote && matches!(error.raw_os_error(), Some(2 | 20 | 40)) => return None,
         Err(_) => {
             out.lock().unwrap().mark_partial("unreadable");
             return None;
@@ -150,7 +157,7 @@ fn open_directory(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, wat
         }
         // A symlink reports its own type, so a link to a directory is never descended.
         if is_dir {
-            subdirs.push(dir.join(&name));
+            subdirs.push((dir.join(&name), Some(class.clone())));
         }
         rows.push((name, is_dir));
     }
@@ -170,14 +177,14 @@ fn open_directory(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, wat
 
 // A remote scope keeps today's single bounded worker, so one dead server costs one deadline, never the walk.
 fn walk_remote(out: &Mutex<Index>, root: &Path, hidden: bool, reader: &super::searchwalkread::Reader<'_>, probes: &WalkProbes) -> usize {
-    let mut pending: Vec<PathBuf> = vec![root.to_path_buf()];
+    let mut pending: Vec<Queued> = vec![(root.to_path_buf(), None)];
     let mut dirs = 0;
-    while let Some(dir) = pending.pop() {
+    while let Some((dir, parent)) = pending.pop() {
         // A close cancels the walk at once: no directory opens after close.
         if probes.cancel.load(Ordering::Relaxed) {
             break;
         }
-        if let Some(subdirs) = open_directory(out, root, &dir, hidden, None, reader, probes) {
+        if let Some(subdirs) = open_directory(out, root, &dir, parent.as_ref(), hidden, None, reader, probes) {
             pending.extend(subdirs);
             dirs += 1;
         }
