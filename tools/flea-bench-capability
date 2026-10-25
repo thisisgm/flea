@@ -143,6 +143,12 @@ pids_for_target() {
   done
 }
 
+# Strata renders to a temporary file and deletes it, so each of its rows is measured by live watch.
+cap_is_transient() {
+  case $1 in "$TRANSIENT_ID"|strata-stable|strata-nightly|strata-nightly-channel) return 0 ;; esac
+  return 1
+}
+
 select_process_targets() {
   if [ "$CAP_ONLY" = flea ]; then
     if [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
@@ -150,7 +156,8 @@ select_process_targets() {
     else
       PROCESS_TARGETS=("qs|$FLEA_UI" "flea|")
     fi
-  elif [ "$CAP_ONLY" = strata-nightly ] || [ "$CAP_ONLY" = strata-stable ]; then
+  # Self-contained: the suites load this function alone, and every Strata row runs as comm strata.
+  elif case $CAP_ONLY in strata-stable|strata-nightly|strata-nightly-channel) true ;; *) false ;; esac; then
     PROCESS_TARGETS=("strata|" )
   elif [ -n "$CAP_ONLY" ]; then
     PROCESS_TARGETS=("$CAP_ONLY|")
@@ -470,7 +477,7 @@ trap 'cap_terminate 130' INT
 trap 'cap_terminate 143' TERM
 # A transient entrant is measured by live watch and never writes this cache, so a run for it alone
 # has no reason to move the operator's real one out from under whatever else is on screen.
-if [ "$CAP_ONLY" != "$TRANSIENT_ID" ] && [ "$CAP_ONLY" != strata-nightly ] && [ "$CAP_ONLY" != strata-stable ]; then
+if [ -z "$CAP_ONLY" ] || ! cap_is_transient "$CAP_ONLY"; then
   park_thumbs
 fi
 
@@ -614,13 +621,15 @@ for cap_row in "${CAP_ROWS[@]}"; do
     [ -x "$(dirname "$FLEA_BIN")/flea-gui" ] || fail "GPUI binary is absent beside $FLEA_BIN"
   elif [ "$id" = strata-nightly ]; then
     [ -x "${STRATA_NIGHTLY_BIN:-}" ] || fail "Strata nightly binary is absent"
+  elif [ "$id" = strata-nightly-channel ]; then
+    [ -x "${STRATA_NIGHTLY_CHANNEL_BIN:-}" ] || fail "Strata nightly channel binary is absent"
   elif [ "$id" = strata ] || [ "$id" = strata-stable ]; then
     [ -x "$STRATA_BIN" ] || { printf 'SKIP: strata is not built at %s\n' "$STRATA_BIN" >&2; continue; }
   else
     command -v "$comm" >/dev/null 2>&1 || { printf 'SKIP: %s is not installed\n' "$id" >&2; continue; }
   fi
 
-  if [ "$id" = "$TRANSIENT_ID" ] || [ "$id" = strata-nightly ] || [ "$id" = strata-stable ]; then
+  if cap_is_transient "$id"; then
     cap_transient "$id" "$cmd"
     continue
   fi
