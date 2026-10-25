@@ -43,6 +43,10 @@ pub fn printer_query(id: u64, printer: &str) -> String {
     }
 }
 
+pub fn cancel(id: u64) -> String {
+    format!(r#"{{"c":"transfercancel","id":{id}}}"#)
+}
+
 pub fn request(model: &Model, ticket: Ticket) -> Option<String> {
     let selection = model.selection.as_ref()?;
     let paths = selection
