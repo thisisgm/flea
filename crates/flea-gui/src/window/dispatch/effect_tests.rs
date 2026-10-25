@@ -185,3 +185,46 @@ fn a_double_click_in_the_unfocused_dual_pane_opens_that_panes_row(cx: &mut TestA
     assert_eq!(asked(&shell, cx), "/files", "the left pane did not move");
     close(&shell, cx);
 }
+
+// PR #302: Ctrl with = or 0 alone reaches the listing's text size, as the Ctrl+Shift chords still do.
+#[gpui::test]
+fn ctrl_equal_and_ctrl_zero_step_the_listing_text_size(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", home(), 1);
+    let stored = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        shell.read_with(cx, |shell, _| {
+            flea::ui_logic_st1::textsize::parse(
+                flea::ui_logic_st1::pages::at(
+                    &shell.launch.settings.data,
+                    &["display", "textSize"],
+                )
+                .unwrap_or(&flea::jsondoc::Json::Null),
+            )
+        })
+    };
+    let follow = flea::ui_logic_st1::textsize::Stored::Follow;
+    assert_eq!(stored(&shell, cx), follow);
+    // A text size change re-reads the folder, and a busy pane swallows the next chord, so each re-read is answered.
+    let mut listing = 1;
+    let mut press = |cx: &mut VisualTestContext, chord: &str| {
+        cx.simulate_keystrokes(chord);
+        cx.run_until_parked();
+        listing += 1;
+        land(&shell, cx, "/files", home(), listing);
+    };
+    for chord in ["ctrl-=", "ctrl-shift-+"] {
+        press(cx, chord);
+        assert_ne!(
+            stored(&shell, cx),
+            follow,
+            "{chord} overrides the text size"
+        );
+        press(cx, "ctrl-0");
+        assert_eq!(
+            stored(&shell, cx),
+            follow,
+            "Ctrl+0 follows Omarchy again after {chord}"
+        );
+    }
+    close(&shell, cx);
+}

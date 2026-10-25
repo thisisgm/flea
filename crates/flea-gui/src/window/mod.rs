@@ -22,6 +22,7 @@ pub(crate) mod path_host;
 mod presentation;
 pub mod rail;
 mod render;
+pub(crate) mod retry;
 pub mod selection_preview;
 mod preview_text;
 mod preview_facts;
@@ -79,7 +80,10 @@ pub fn open(
         }
         window.set_rem_size(crate::list::Typeface::omarchy_default().body);
         let shell = cx.new(|cx| Shell::new(launch, locale, events, window, cx));
-        shell.update(cx, |shell, cx| shell.follow_settings(window, cx));
+        shell.update(cx, |shell, cx| {
+            shell.follow_settings(window, cx);
+            shell.start_update_polling(window, cx);
+        });
         let weak = shell.downgrade();
         window.on_window_should_close(cx, move |window, cx| {
             weak.update(cx, |shell, cx| {
