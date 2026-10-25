@@ -142,6 +142,10 @@ pub(super) fn press(
     hit: Hit,
 ) -> impl Fn(&mut QuickLook, &MouseDownEvent, &mut gpui::Window, &mut Context<QuickLook>) {
     move |look, _, _, cx| {
+        look.chrome_armed = look.is_revealed();
+        if !look.is_revealed() {
+            return;
+        }
         look.pressed = Some(hit);
         cx.notify();
     }
@@ -151,6 +155,9 @@ pub(super) fn click(
     hit: Hit,
 ) -> impl Fn(&mut QuickLook, &ClickEvent, &mut gpui::Window, &mut Context<QuickLook>) {
     move |look, _, _, cx| {
+        if !std::mem::take(&mut look.chrome_armed) || !look.is_revealed() {
+            return;
+        }
         look.pressed = None;
         look.activate(hit, cx);
     }

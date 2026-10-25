@@ -91,7 +91,7 @@ fn rows() -> Vec<RowFacts> {
     ]
 }
 
-fn code_reply(token: u64, lines: &[&str], total: usize) -> String {
+pub(super) fn code_reply(token: u64, lines: &[&str], total: usize) -> String {
     let lines: Vec<String> = lines.iter().map(|l| format!(r#"[0,"{l}"]"#)).collect();
     format!(
         r#"{{"t":"code","token":{token},"slot":"look","state":"plain","first":1,"total":{total},"lines":[{}]}}"#,

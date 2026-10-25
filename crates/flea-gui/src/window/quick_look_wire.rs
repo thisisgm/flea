@@ -1,5 +1,4 @@
 //! The backend lines the card's mounted views ask through, and the replies they read back.
-//! The preview column's wire (gm/0400-m9-s-previewtypes selection_preview_wire.rs) is the same shape on slot "column".
 use super::token;
 use crate::g2::{pv2, pv4};
 use flea::{

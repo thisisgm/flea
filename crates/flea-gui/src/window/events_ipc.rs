@@ -156,6 +156,7 @@ impl Shell {
                     view: self.quick_look.as_ref().map(|host| host.view.read(cx)),
                     viewport: window.viewport_size(),
                     failure: self.quick_look_failure(cx),
+                    cx,
                 };
                 let adapters: [&dyn crate::ipc::Adapter; 20] = [
                     &look,
