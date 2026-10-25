@@ -57,7 +57,7 @@ impl Source {
                 }
                 Effect::Kill(proc) => {
                     if proc == Proc::List {
-                        eprintln!("flea-gui: device probe lsblk failed: timed out after 10000 ms");
+                        eprintln!("{}", probe_timeout("lsblk", crate::g2::pl1::devices::LIST_TIMEOUT_MS));
                     }
                     self.slots[Child::Device(proc).index()].stop();
                 }
@@ -80,7 +80,8 @@ impl Source {
                 ListingEffect::Start(job) => self.start(Child::Gio, job, cx),
                 ListingEffect::Kill => {
                     eprintln!(
-                        "flea-gui: device probe gio mount -li failed: timed out after 10000 ms"
+                        "{}",
+                        probe_timeout("gio mount -li", crate::g2::pl1::listing::TIMEOUT_MS)
                     );
                     self.slots[Child::Gio.index()].stop();
                 }
@@ -146,6 +147,14 @@ impl Source {
     }
 }
 
+/// The stderr a probe failure line carries, so one wedged child cannot flood the log.
+const STDERR_CHARS: usize = 256;
+
+/// The line a killed probe prints, its bound read from the deadline that killed it.
+fn probe_timeout(program: &str, ms: u64) -> String {
+    format!("flea-gui: device probe {program} failed: timed out after {ms} ms")
+}
+
 fn probe_failure(program: &str, outcome: &Outcome) -> Option<String> {
     let reason = if outcome.code != 0 {
         format!("exit {}", outcome.code)
@@ -166,7 +175,7 @@ fn probe_failure(program: &str, outcome: &Outcome) -> Option<String> {
     let detail: String = outcome
         .stderr
         .chars()
-        .take(256)
+        .take(STDERR_CHARS)
         .map(|ch| if ch.is_control() { ' ' } else { ch })
         .collect();
     let detail = detail.split_whitespace().collect::<Vec<_>>().join(" ");

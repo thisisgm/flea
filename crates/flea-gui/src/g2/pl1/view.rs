@@ -305,7 +305,10 @@ impl Render for UnlockView {
             cancel: Box::new(cancel),
             unlock: Box::new(unlock),
         };
-        root.flex()
+        // The board's scrim: the window under the card at half the ground, its pointer held by the card.
+        root.occlude()
+            .bg(ink.ground.opacity(flea::ui_logic_op1::card::scrim_alpha(0)))
+            .flex()
             .items_center()
             .justify_center()
             .child(card(state, &self.text, &ink, width, press))

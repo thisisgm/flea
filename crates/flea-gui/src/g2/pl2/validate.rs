@@ -2,8 +2,19 @@
 use super::mount::{Effect, Request};
 use flea::{ui_logic_pl1::Note, ui_logic_pl2::form::Form};
 
+/// A phone root "gio mount -li" offered: gvfs's MTP, AFC or GPhoto2 transport, opened like a share (ui/Sidebar.qml:385).
+pub(super) fn phone(uri: &str) -> bool {
+    let Some((scheme, rest)) = uri.split_once("://") else {
+        return false;
+    };
+    matches!(scheme, "mtp" | "afc" | "gphoto2")
+        && !rest.trim_end_matches('/').is_empty()
+        && uri.len() <= 8192
+        && !uri.chars().any(|ch| ch.is_control() || ch.is_whitespace())
+}
+
 pub(super) fn refused(request: &Request) -> Option<Vec<Effect>> {
-    if Form::saved_address(&request.uri).is_ok() {
+    if phone(&request.uri) || Form::saved_address(&request.uri).is_ok() {
         return None;
     }
     Some(if request.id == 0 {

@@ -218,4 +218,10 @@ impl Producer {
         self.model.borrow_mut().reveal_cursor = true;
         cx.notify();
     }
+
+    /// The unlock host lands the cursor on the unlocked row, as Sidebar.cursorIndex.
+    pub fn set_cursor(&mut self, index: usize, cx: &mut Context<Self>) {
+        self.model.borrow_mut().cursor = Some(index);
+        cx.notify();
+    }
 }

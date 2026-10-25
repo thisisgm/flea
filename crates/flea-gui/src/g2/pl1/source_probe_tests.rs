@@ -53,3 +53,26 @@ fn hostname_newline_never_reaches_the_machine_row() {
     let source = Source::new(Rc::new(EmptyRunner), Some("testhost\n".into()), &Json::Null);
     assert_eq!(source.devices.hostname, "testhost");
 }
+
+#[test]
+fn probe_timeouts_name_the_bound_that_killed_them() {
+    assert_eq!(
+        probe_timeout("lsblk", crate::g2::pl1::devices::LIST_TIMEOUT_MS),
+        format!(
+            "flea-gui: device probe lsblk failed: timed out after {} ms",
+            crate::g2::pl1::devices::LIST_TIMEOUT_MS
+        )
+    );
+    assert_eq!(
+        probe_timeout("gio mount -li", 7),
+        "flea-gui: device probe gio mount -li failed: timed out after 7 ms",
+        "the bound is read, never a literal"
+    );
+    let long = Outcome {
+        code: 1,
+        stderr: "q".repeat(STDERR_CHARS * 2),
+        ..Outcome::default()
+    };
+    let line = probe_failure("lsblk", &long).unwrap();
+    assert_eq!(line.matches('q').count(), STDERR_CHARS, "stderr is cut at STDERR_CHARS");
+}

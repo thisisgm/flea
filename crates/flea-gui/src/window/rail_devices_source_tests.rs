@@ -50,7 +50,7 @@ fn rail_devices_empty_optical_drive_is_hidden(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn rail_devices_locked_and_phone_rows_reach_the_rail_request_owner(cx: &mut TestAppContext) {
+fn rail_devices_locked_row_opens_the_unlock_card_and_a_phone_opens_through_gvfs(cx: &mut TestAppContext) {
     let (shell, service, cx) = open("{}", cx);
     service.answer(
         "lsblk",
@@ -62,6 +62,13 @@ fn rail_devices_locked_and_phone_rows_reach_the_rail_request_owner(cx: &mut Test
     );
     service.answer("gio", 0, PHONE);
     frame(cx);
+    // The phone's GVFS flight runs on the network owner's own runner, built on the next frame.
+    let network = Rc::new(FakeDevices::default());
+    shell.update(cx, |shell, _| {
+        let join = shell.rail.as_mut().unwrap();
+        join.network = None;
+        join.network_runner = network.clone();
+    });
     let heard = Rc::new(RefCell::new(Vec::<Request>::new()));
     let sink = heard.clone();
     cx.update(|_, cx| {
@@ -86,38 +93,50 @@ fn rail_devices_locked_and_phone_rows_reach_the_rail_request_owner(cx: &mut Test
         producer.read_with(cx, |producer, _| producer.entries()[backup].glyph),
         "lock"
     );
-    for (row, side) in [(backup, 0), (phone, 1)] {
-        producer.update(cx, |producer, cx| {
-            producer.side = side;
-            producer.activate(row, cx)
-        });
-        frame(cx);
-    }
-    let heard = heard.borrow();
-    let reached = heard
-        .iter()
-        .map(|request| match &request.event {
-            crate::g2::pl4::producer::Event::Activate(entry) => (
-                request.side,
-                entry.label.as_str(),
-                entry.device.as_str(),
-                entry.uri.as_str(),
-            ),
-            _ => panic!("only the two activations reach the owner"),
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(
-        reached,
-        [
-            (0, "Backup", "/dev/sdb1", ""),
-            (1, "Pixel 8", "", "mtp://pixel/")
-        ],
-        "a locked volume and a phone keep their request instead of vanishing"
-    );
+    producer.update(cx, |producer, cx| {
+        producer.side = 0;
+        producer.activate(backup, cx)
+    });
+    frame(cx);
+    shell.read_with(cx, |shell, cx| {
+        let unlock = shell.rail.as_ref().unwrap().unlock.as_ref().expect("the locked row built the unlock card");
+        let card = unlock.view.read(cx).host.card.as_ref().expect("the card opened");
+        assert!(card.opened, "the locked row opens the unlock card");
+        assert_eq!(
+            (card.device.as_str(), card.label.as_str(), card.crypto.as_str()),
+            ("/dev/sdb1", "Backup", "LUKS"),
+            "the card names the row it opened over"
+        );
+        assert!(shell.card_holds_keyboard(cx), "the open card holds the keyboard");
+    });
     assert_eq!(
         service.jobs.borrow().len(),
         2,
         "unlock never runs gio mount on the locked container"
+    );
+    cx.simulate_keystrokes("escape");
+    frame(cx);
+    shell.read_with(cx, |shell, cx| {
+        assert!(!shell.card_holds_keyboard(cx), "Escape closes the card and hands the keyboard back");
+    });
+    producer.update(cx, |producer, cx| {
+        producer.side = 0;
+        producer.activate(phone, cx)
+    });
+    frame(cx);
+    let started = network
+        .jobs
+        .borrow()
+        .iter()
+        .map(|(argv, _, _)| argv.join(" "))
+        .collect::<Vec<_>>();
+    assert!(
+        started.contains(&"gio info -- mtp://pixel/".to_string()),
+        "a mounted phone resolves its FUSE folder through the GVFS opener: {started:?}"
+    );
+    assert!(
+        heard.borrow().is_empty(),
+        "both rows are owned, so no request is left for an absent subscriber"
     );
 }
 
@@ -125,27 +144,23 @@ fn rail_devices_locked_and_phone_rows_reach_the_rail_request_owner(cx: &mut Test
 fn rail_devices_mount_completion_keeps_origin_after_other_pane_activation(cx: &mut TestAppContext) {
     let (shell, service, cx) = open("{}", cx);
     ready(&service, cx);
-    let (backup, photos) = producer(&shell, cx).read_with(cx, |producer, _| {
+    let (backup, photos, archive) = producer(&shell, cx).read_with(cx, |producer, _| {
         let rows = producer.entries();
-        (
-            rows.iter()
-                .find(|row| row.label == "Backup")
-                .unwrap()
-                .clone(),
-            rows.iter()
-                .find(|row| row.label == "Photos")
-                .unwrap()
-                .clone(),
-        )
+        let row = |label: &str| rows.iter().find(|row| row.label == label).unwrap().clone();
+        (row("Backup"), row("Photos"), row("Archive"))
     });
     let source = source(&shell, cx);
     source.update(cx, |source, cx| {
         source.activate(&backup, 0, cx);
         // A second unmounted device while the first mount runs is refused and never takes the mount owner.
         source.activate(&photos, 1, cx);
+        // A mounted one still opens at once, on the pane that asked.
+        source.activate(&archive, 1, cx);
         let requests = source.drain_events();
-        assert!(matches!(&requests[..], [request] if request.side == 1
-            && matches!(&request.event, Event::Device(Effect::Message(note, false)) if note.key == "device.another_mounting")));
+        assert!(matches!(&requests[..], [refused, opened] if refused.side == 1
+            && matches!(&refused.event, Event::Device(Effect::Message(note, false)) if note.key == "device.another_mounting")
+            && opened.side == 1
+            && matches!(&opened.event, Event::Device(Effect::Opened(path)) if path == "/media/archive")));
     });
     assert_eq!(
         service.jobs.borrow().last().unwrap().0,

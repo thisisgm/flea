@@ -40,10 +40,11 @@ pub enum Event {
     Device(Effect),
 }
 
-/// Whether the source acted on a rail activation or the window's rail request owner keeps it.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Whether the source acted on a rail activation, hands a phone to the GVFS opener, or the rail request owner keeps it.
+#[derive(Clone, Debug, PartialEq)]
 pub enum Activation {
     Handled,
+    Phone(RailEntry),
     Unowned,
 }
 
@@ -160,6 +161,14 @@ impl Source {
         self.advance(cx);
     }
 
+    /// The unlock card's PollDevices: list now, so the unlocked drive's row arrives without waiting on the poll.
+    pub fn poll_now(&mut self, cx: &mut Context<Self>) {
+        let now = self.now(cx);
+        let effects = self.devices.poll(now);
+        self.apply(effects, cx);
+        self.arm(cx);
+    }
+
     /// NETWORK stays ahead of DEVICES, including when its source finishes after the devices did.
     pub fn set_network(&mut self, snapshot: NetworkSnapshot, cx: &mut Context<Self>) {
         self.network = snapshot;
@@ -187,20 +196,17 @@ impl Source {
             .position(|entry| entry.device == row.device && !entry.device.is_empty());
         if let Some(index) = index {
             let entry = &self.devices.entries[index];
-            // The unlock card's owner keeps a locked row, as it did before this source existed.
-            if entry.locked {
-                return Activation::Unowned;
-            }
-            if !entry.mounted && !self.devices.running(Proc::Mount) {
+            // A locked row raises the typed unlock request the window's card answers.
+            if !entry.locked && !entry.mounted && !self.devices.running(Proc::Mount) {
                 self.mount_side = side;
             }
             let effects = self.devices.activate(index);
             self.apply_at(effects, side, cx);
             return Activation::Handled;
         }
-        // A phone opens through the GVFS owner, which takes the rail request unchanged.
-        if self.phones.entries.iter().any(|entry| entry.uri == row.uri) {
-            return Activation::Unowned;
+        // A phone mounts, resolves and opens the way a share does (ui/Sidebar.qml:385).
+        if let Some(phone) = self.phones.entries.iter().find(|entry| entry.uri == row.uri) {
+            return Activation::Phone(phone.clone());
         }
         Activation::Handled
     }
