@@ -3,6 +3,7 @@ use super::{Binding, Digit, PointerBinding, SequenceBinding, SheetBinding, Sheet
 
 #[rustfmt::skip]
 pub static PRESET_KEYS: &[Binding] = &[
+    Binding::new("all", "text", "X", "X", "carry", "listing", "gui", 0, 1, "keys.label.6ef49cacb4c3", true),
     Binding::new("default", "ctrl", "1", "ctrl-1", "viewList", "listing", "all", 1, 1, "keys.action.viewList", true),
     Binding::new("default", "ctrl", "2", "ctrl-2", "viewColumns", "listing", "all", 1, 1, "keys.action.viewColumns", true),
     Binding::new("default", "ctrl", "3", "ctrl-3", "viewGrid", "listing", "all", 1, 1, "keys.action.viewGrid", true),
@@ -294,7 +295,7 @@ pub static SHEET_GROUPS: &[SheetGroup] = &[
     SheetGroup { id: "move", label_key: "keys.group.move", actions: &["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open", "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview", "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape"] },
     SheetGroup { id: "look", label_key: "keys.group.look", actions: &["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack", "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown", "textSizeReset", "keymapSheet"] },
     SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
-    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "openAgent", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
+    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "carry", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "openAgent", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
 ];
 
 #[rustfmt::skip]

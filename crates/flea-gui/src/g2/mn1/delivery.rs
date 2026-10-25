@@ -75,6 +75,7 @@ impl Shell {
         self.providers_menu_closed();
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
+        self.menu.flyout = None;
         self.menu.pending = None;
         self.menu.activating = false;
         self.menu.reading = false;
