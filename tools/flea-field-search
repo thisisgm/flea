@@ -814,6 +814,12 @@ def clean_all(leaf=None):
 # Every run that passes require_idle ledgers its window here, so a later refusal can say whether it started a leftover.
 LEDGER = os.environ.get("FLEA_FIELD_LEDGER") or os.path.join(STATE_ROOT, "runs.jsonl")
 _RUN = {}
+# A run touches its alive mark this often, so a run killed outright ends at its last touch plus one period.
+ALIVE_S = 5
+
+
+def alive_mark(run_id):
+    return os.path.join(os.path.dirname(LEDGER), "alive", run_id)
 
 
 # Sample input, /proc/<pid>/stat: "1234 (name) S 1 1234 ... 8812345 ..." (field 22, starttime, in clock ticks); /proc/stat: "btime 1729700000".
@@ -857,6 +863,18 @@ def ledger_write(entry):
         pass
 
 
+def open_run_until(run, next_start):
+    """Where a run with no recorded end stops: never while its process lives, else at the last evidence it was alive."""
+    began = process_start(run["pid"]) if isinstance(run.get("pid"), int) else None
+    if began is not None and began <= run["start"] + 1:
+        return next_start
+    try:
+        seen = os.path.getmtime(alive_mark(run["id"]))
+    except (OSError, KeyError):
+        seen = run["start"]
+    return min(t for t in (seen + ALIVE_S, next_start) if t is not None)
+
+
 def describe_leftover(comm, pid):
     """One refusal clause: the process, when it started, and whether a recorded harness run covers that start."""
     began = process_start(pid)
@@ -867,7 +885,7 @@ def describe_leftover(comm, pid):
     runs = sorted((r for r in ledger_windows().values() if "start" in r), key=lambda r: r["start"])
     for i in reversed(range(len(runs))):
         run = runs[i]
-        until = run.get("end", runs[i + 1]["start"] if i + 1 < len(runs) else None)
+        until = run["end"] if "end" in run else open_run_until(run, runs[i + 1]["start"] if i + 1 < len(runs) else None)
         if run["start"] <= began + 1 and (until is None or began <= until + 1):
             begun = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(run["start"]))
             end = "never ended" if run.get("end") is None else "ended " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(run["end"]))
@@ -885,6 +903,21 @@ def end_run():
         clean_all()
     finally:
         ledger_write({"id": _RUN["id"], "end": time.time()})
+        try:
+            os.unlink(alive_mark(_RUN["id"]))
+        except OSError:
+            pass
+
+
+def touch_alive(run_id):
+    while not _RUN.get("ended"):
+        try:
+            os.makedirs(os.path.dirname(alive_mark(run_id)), exist_ok=True)
+            with open(alive_mark(run_id), "a"):
+                os.utime(alive_mark(run_id))
+        except OSError:
+            pass
+        time.sleep(ALIVE_S)
 
 
 def claim_run():
@@ -893,6 +926,7 @@ def claim_run():
         return
     _RUN.update(id=uuid.uuid4().hex, ended=False)
     ledger_write({"id": _RUN["id"], "pid": os.getpid(), "start": time.time()})
+    threading.Thread(target=touch_alive, args=(_RUN["id"],), daemon=True).start()
     atexit.register(end_run)
     if threading.current_thread() is threading.main_thread():
         for sig in (signal.SIGTERM, signal.SIGHUP):
