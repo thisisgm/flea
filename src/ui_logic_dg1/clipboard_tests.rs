@@ -1,6 +1,6 @@
 //! tests/js/clipboard.js, the single-window half: publish, own echoes, foreign selections, failures, spent cuts and the collide capture rule.
 use super::harness::{english, Pane};
-use super::{words, Out, PasteAsk};
+use super::{words, PasteAsk};
 
 fn paths(list: &[&str]) -> Vec<String> {
     list.iter().map(|item| item.to_string()).collect()
@@ -77,11 +77,13 @@ fn a_failed_clear_names_the_system_clipboard() {
 fn a_failed_watch_keeps_the_local_copy_and_reads_before_paste() {
     let en = english();
     let mut pane = Pane::new();
+    pane.clip(&en, false, Some(paths(&["/a/f1"])), vec![]);
+    pane.set_ok("copy-token");
     pane.watch_error();
     assert!(pane.watch_failed());
-    assert!(pane.current().is_empty());
+    assert_eq!(pane.current().paths, paths(&["/a/f1"]), "the failed watch keeps the local copy");
     pane.paste(&en, super::PendingPaste::transfer("/dest"));
-    assert_eq!(pane.sent[0], r#"{"c":"clipGet"}"#);
+    assert_eq!(pane.sent.last().unwrap(), r#"{"c":"clipGet"}"#);
     assert!(pane.asked.is_empty());
     pane.get_ok(&en, "copy", paths(&["/fallback/file"]), "");
     assert_eq!(pane.pasted(), "copy:/fallback/file");
@@ -189,8 +191,6 @@ fn words_resolve_through_the_catalog() {
     assert_eq!(words::landed(&en, false, 3).text, "Copied 3 items");
     assert_eq!(words::landed(&en, true, 2).text, "Cut 2 items");
     assert_eq!(en.tr("menu.refusal.empty_clipboard"), "There is nothing to paste; y copies and x cuts.");
-    let outs = Out::Say(super::Said { text: "x".into(), error: false, paste_hint: false });
-    assert!(matches!(outs, Out::Say(_)));
 }
 
 // Clipboard.receive gives each set's token to its own clip object (ui/js/Clipboard.js:85), so the newest of two equal cuts keeps the newest token.
@@ -241,4 +241,20 @@ fn a_read_out_across_a_spent_cut_still_serves_its_paste() {
     pane.apply(outs);
     pane.get_ok(&en, "copy", paths(&["/foreign/y"]), "y");
     assert_eq!(pane.pasted(), "copy:/foreign/y", "sent {:?}", pane.sent);
+}
+
+// A clipboard history that re-offers this window's own older bytes after another owner's selection is that owner's choice, so it applies.
+#[test]
+fn an_own_token_offered_again_after_a_foreign_selection_applies() {
+    let en = english();
+    let mut pane = Pane::new();
+    pane.clip(&en, true, Some(paths(&["/a/f2"])), vec![]);
+    pane.set_ok("own-token");
+    pane.changed("cut", paths(&["/a/f2"]), "own-token");
+    assert_eq!(pane.current().token, "own-token", "the own echo is ignored");
+    pane.changed("copy", paths(&["/other/b"]), "");
+    assert_eq!(pane.current().paths, paths(&["/other/b"]));
+    pane.changed("cut", paths(&["/a/f2"]), "own-token");
+    assert_eq!(pane.current().paths, paths(&["/a/f2"]), "the re-offered own bytes replace the foreign selection");
+    assert!(pane.current().moving);
 }

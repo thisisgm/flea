@@ -1,5 +1,5 @@
 //! Open in Agent's spawn: a fixture argv records the folder, process group, stdio targets and argv.
-use super::launch::launch_argv;
+use super::launch::{launch_argv, launch_reaped};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -53,6 +53,7 @@ fn fixture(root: &Path) -> PathBuf {
 }
 
 // The test process's own group, read from its stat line: the fields after the command name's closing paren.
+// Sample input: "4242 (flea_gui-1a2b) S 4200 4242 4242 0 -1 ...": the third field after ") " is the process group.
 fn own_group() -> String {
     let stat = fs::read_to_string("/proc/self/stat").unwrap();
     let after = &stat[stat.rfind(')').unwrap() + 2..];
@@ -93,8 +94,9 @@ fn mn2_r2_the_agent_runs_detached_in_the_folder_with_its_argv() {
 #[test]
 #[ignore]
 fn mn2_launch_helper_spawn_from_pipes() {
-    let program = std::env::var("MN2_FIXTURE_PROGRAM").expect("helper needs MN2_FIXTURE_PROGRAM");
-    let folder = std::env::var("MN2_FIXTURE_FOLDER").expect("helper needs MN2_FIXTURE_FOLDER");
+    let (Ok(program), Ok(folder)) = (std::env::var("MN2_FIXTURE_PROGRAM"), std::env::var("MN2_FIXTURE_FOLDER")) else {
+        return;
+    };
     let argv = [program, "agent".into(), "--pick".into()];
     let mut child = launch_argv(&argv, Path::new(&folder)).expect("the agent spawns");
     assert!(child.wait().expect("the agent exits").success());
@@ -108,4 +110,19 @@ fn mn2_r2_a_folder_that_is_gone_spawns_nothing() {
     let argv = [program.display().to_string(), "agent".to_string()];
     assert!(launch_argv(&argv, &gone).is_err(), "no folder, no agent");
     assert!(!root.0.join("record").exists(), "the fixture never ran");
+}
+
+#[test]
+fn int2_the_reaped_launch_runs_the_agent_and_says_a_failed_spawn() {
+    let root = Sandbox::new();
+    let program = fixture(&root.0);
+    let argv = [program.display().to_string(), "agent".to_string()];
+    assert!(launch_reaped(&argv, &root.0.join("removed")).is_err(), "a failed spawn is an error to say");
+    launch_reaped(&argv, &root.0).expect("the reaper and the agent start");
+    let record = root.0.join("record");
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while !record.exists() && std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    assert!(record.exists(), "the agent ran under the reaper");
 }

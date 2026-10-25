@@ -156,7 +156,7 @@ impl Shell {
             !host.pane.swap.session.open && host.nav.folders.borrow().has(&host.path);
         // Actions takes Run Script's place under Run Script's switch, so the build is asked for that row whenever the listing holds an action.
         let actions = (!capture.background)
-            .then(|| self.menu.actions.actions_entry(&[], None))
+            .then(|| self.menu.actions.actions_entry(&[]))
             .flatten();
         if actions.is_some() && context.scripts.is_empty() {
             context.scripts.push(build::Peer {

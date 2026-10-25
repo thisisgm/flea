@@ -425,7 +425,7 @@ impl Shell {
                 list.view.clip.scope(&host.path);
             }
             if let Some(grid) = host.grid.as_mut() {
-                grid.decor = Rc::new(GridMarks { marks: Rc::clone(&marks), base: host.path.clone() });
+                GridMarks::lend(grid, Rc::clone(&marks), host.path.clone());
             }
             *drawn = Some((revision, host.path.clone(), grid));
         }

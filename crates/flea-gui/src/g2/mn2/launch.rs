@@ -4,10 +4,25 @@ use std::io;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
+use std::sync::mpsc;
 
-// Open in Agent in `folder`: the one argv the menu row, the A key and the TUI share.
-pub fn launch_agent(folder: &Path) -> io::Result<Child> {
-    launch_argv(&agent::argv(), folder)
+// Open in Agent in `folder` with the argv the menu row, the A key and the TUI share, reaped off the UI thread.
+pub fn launch_agent_reaped(folder: &Path) -> io::Result<()> {
+    launch_reaped(&agent::argv(), folder)
+}
+
+// The reaper thread starts first, so a thread that cannot start is an error to say, never a zombie child.
+pub fn launch_reaped(argv: &[String], folder: &Path) -> io::Result<()> {
+    let (send, receive) = mpsc::channel::<Child>();
+    std::thread::Builder::new()
+        .name("flea-agent".into())
+        .spawn(move || {
+            if let Ok(mut child) = receive.recv() {
+                let _ = child.wait();
+            }
+        })?;
+    send.send(launch_argv(argv, folder)?)
+        .map_err(|_| io::Error::other("the agent reaper stopped"))
 }
 
 // The detached spawn over one argv: no shell, and the folder as the working directory.

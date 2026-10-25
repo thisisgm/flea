@@ -178,6 +178,8 @@ impl Session {
         self.revision += 1;
         self.current = Self::replace(clip, paths, token);
         self.current_entry = EntryHandle::new(&self.current.token);
+        // Another owner holds the clipboard now, so a later offer of an older own token is that owner's choice to apply; sets still in flight have no token yet and add theirs when answered.
+        self.own_tokens.clear();
     }
 
     // Sample input: copy ["/a/f1"] publishes clipSet and keeps the paths locally at once.

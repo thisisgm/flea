@@ -77,7 +77,7 @@ fn listed(actions: &mut Actions) {
 fn mn2_r2_a_preview_leaf_reaches_the_host_as_a_preview_and_a_run_leaf_as_a_run(cx: &mut TestAppContext) {
     let mut actions = Actions::default();
     listed(&mut actions);
-    let entries = vec![actions.actions_entry(&[], Some("image")).expect("the Actions row")];
+    let entries = vec![actions.actions_entry(&[]).expect("the Actions row")];
 
     let outcome = press(cx, &entries, &["menuRight", "open"]);
     let Outcome::Fire { action, leaf } = outcome else {

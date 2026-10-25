@@ -257,10 +257,10 @@ impl Shell {
                 std::mem::take(&mut overlay.model.spent_cut),
             ))
         });
-        // An ask that ended without spending its cut releases the clipboard entry it captured.
+        // An ask with no collision pending and no open card is idle; its spent cut, taken above, rides apart.
         let idle = {
             let model = &Entity::read(&view, cx).model;
-            model.collide.pending.is_none() && !model.open() && !model.spent_cut
+            model.collide.pending.is_none() && !model.open()
         };
         let Some((outbox, mut said, mut sticky, spent_cut)) = pending else {
             self.clipboard_operations(side, false, idle, cx);

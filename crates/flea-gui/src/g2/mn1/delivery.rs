@@ -321,6 +321,7 @@ impl Shell {
                     .collect::<Vec<_>>()
                     .join(",")
             );
+            self.menu.actions.run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
             self.menu_send(side, request, cx);
             self.retire_menu(window, cx);
         } else {

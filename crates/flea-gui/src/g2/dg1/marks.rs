@@ -65,6 +65,17 @@ pub struct GridMarks {
     pub base: String,
 }
 
+impl GridMarks {
+    // Pictures draws the marks through itself once installed, so neither decor ever drops the other.
+    pub(crate) fn lend(grid: &mut crate::grid::host::GridHost, marks: Rc<ViewMarks>, base: String) {
+        let decor: Rc<dyn element::Decor> = Rc::new(GridMarks { marks, base });
+        match grid.decor.pictures() {
+            Some(pictures) => pictures.set_clip(decor),
+            None => grid.decor = decor,
+        }
+    }
+}
+
 impl element::Decor for GridMarks {
     fn clip_row(&self, _listing: usize, row: Option<&RowFacts>) -> Option<element::Clip> {
         let mark = self.marks.mark(&self.base, &row?.name)?;

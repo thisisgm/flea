@@ -248,10 +248,14 @@ impl Clipboard {
             };
         }
         let mut said = Vec::new();
-        if let Some(publish) = self.queues.get_mut(&backend).and_then(|queue| queue.resolved(list)) {
-            let outs = self.session.set(backend, publish.paths.clone(), publish.moving);
-            said.extend(self.drain(outs, wire, sink, owner));
-            said.push(core::landed(i18n, publish.moving, publish.paths.len()));
+        match self.queues.get_mut(&backend).and_then(|queue| queue.resolved(i18n, list, view(take))) {
+            Some(Ok(publish)) => {
+                let outs = self.session.set(backend, publish.paths.clone(), publish.moving);
+                said.extend(self.drain(outs, wire, sink, owner));
+                said.push(core::landed(i18n, publish.moving, publish.paths.len()));
+            }
+            Some(Err(stale)) => said.push(stale),
+            None => {}
         }
         // A superseded reply still drains: the newest queued take asks its own rows (ClipSelection.resolved always drains, orderedPicks).
         let next = self

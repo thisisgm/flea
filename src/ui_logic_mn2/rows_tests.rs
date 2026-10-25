@@ -15,6 +15,7 @@ fn action_mode(id: &str, name: &str, script: bool, mode: &str) -> Action {
         mode: mode.into(),
         selection: "many".into(),
         script,
+        mime: vec![if script { "*/*" } else { "image/*" }.into()],
     }
 }
 
@@ -80,7 +81,7 @@ fn mn2_the_agent_row_ships_off_with_the_shipped_hidden_set() {
 
 #[test]
 fn mn2_actions_lists_matches_before_tags_with_the_lightning_mark() {
-    let row = rows::actions_row(&shown(), &listing(), Some("image")).unwrap();
+    let row = rows::actions_row(&shown(), &listing()).unwrap();
     assert_eq!(row.id.as_ref(), rows::ID);
     assert_eq!(row.action.as_ref(), FIRE);
     assert_eq!(row.glyph, Some(rows::GLYPH));
@@ -91,7 +92,7 @@ fn mn2_actions_lists_matches_before_tags_with_the_lightning_mark() {
     assert_eq!(
         leaves[0].glyph,
         Some("image"),
-        "a manifest action names its kind"
+        "a manifest action over image globs carries the image mark"
     );
     assert_eq!(
         leaves[1].glyph,
@@ -107,7 +108,7 @@ fn mn2_a_preview_leaf_is_routed_to_preview_and_a_run_leaf_to_run() {
         actions: vec![action_mode("action:inspect.toml", "Inspect", false, "preview")],
         ..listing()
     };
-    let row = rows::actions_row(&shown(), &preview, None).unwrap();
+    let row = rows::actions_row(&shown(), &preview).unwrap();
     assert_eq!(row.submenu.unwrap().len(), 1, "the preview leaf is still drawn");
     assert_eq!(rows::leaf_previews(&preview, "action:inspect.toml"), Some(true));
     assert_eq!(rows::leaf_previews(&listing(), "action:resize.toml"), Some(false));
@@ -125,7 +126,7 @@ fn mn2_an_empty_listing_offers_no_row_at_all() {
         actions: Vec::new(),
         ..listing()
     };
-    assert!(rows::actions_row(&shown(), &empty, Some("image")).is_none());
+    assert!(rows::actions_row(&shown(), &empty).is_none());
 }
 
 #[test]
@@ -139,20 +140,27 @@ fn mn2_the_actions_row_ships_off_with_the_shipped_hidden_set() {
         .iter()
         .map(|id| (*id).to_owned())
         .collect();
-    assert!(rows::actions_row(&shipped, &listing(), Some("image")).is_none());
+    assert!(rows::actions_row(&shipped, &listing()).is_none());
 }
 
 #[test]
 fn mn2_the_actions_switch_takes_it_away_as_well() {
     let hidden = vec![rows::ID.to_string()];
-    assert!(rows::actions_row(&hidden, &listing(), Some("image")).is_none());
+    assert!(rows::actions_row(&hidden, &listing()).is_none());
 }
 
 #[test]
 fn mn2_an_unknown_kind_leaves_manifest_leaves_on_the_flyout_mark() {
-    let row = rows::actions_row(&shown(), &listing(), Some("video")).unwrap();
-    let leaves = row.submenu.unwrap();
-    assert_eq!(leaves[0].glyph, Some(rows::FLYOUT_GLYPH));
+    // The repo's native fixture lists a "*/*" runner beside two image actions; only the image ones wear the image mark.
+    let mut leaves = Vec::new();
+    for globs in [vec!["*/*"], vec!["video/*"], vec!["image/*", "video/*"], vec!["image/png", "image/jpeg"], vec![]] {
+        let mut wide = action("action:wide.toml", "Wide", false);
+        wide.mime = globs.iter().map(|glob| glob.to_string()).collect();
+        let listed = Listing { actions: vec![wide], ..listing() };
+        leaves.push(rows::actions_row(&shown(), &listed).unwrap().submenu.unwrap()[0].glyph);
+    }
+    let flyout = Some(rows::FLYOUT_GLYPH);
+    assert_eq!(leaves, [flyout, flyout, flyout, Some("image"), flyout]);
 }
 
 fn checksums() -> Contribution {

@@ -108,19 +108,23 @@ impl Queue {
         TakeOut::Wait
     }
 
-    // The backend answered askPaths: only the newest choice publishes, as publish refuses a superseded sequence; the host calls step after the publish to serve what is queued.
-    pub fn resolved(&mut self, list: Vec<String>) -> Option<Publish> {
+    // The backend answered askPaths: only the newest choice publishes, as publish refuses a superseded sequence, and a landing whose listing moved or is reloading is dropped and said stale; the host calls step after either to serve what is queued.
+    pub fn resolved(&mut self, i18n: &I18n, list: Vec<String>, view: View<'_>) -> Option<Result<Publish, Said>> {
         let pending = self.pending.take()?;
         if pending.sequence != self.sequence {
             self.queue.retain(|request| request.sequence != pending.sequence);
             return None;
+        }
+        if pending.path != view.path || pending.listing != view.listing || view.list_in_flight {
+            self.queue.retain(|request| request.sequence != pending.sequence);
+            return Some(Err(Said { text: words::stale(i18n), error: false, paste_hint: false }));
         }
         let found = self
             .queue
             .iter_mut()
             .find(|request| request.sequence == pending.sequence)?;
         found.paths = Some(list.clone());
-        Some(Publish { paths: list, moving: found.moving })
+        Some(Ok(Publish { paths: list, moving: found.moving }))
     }
 
     pub fn failed(&mut self) {

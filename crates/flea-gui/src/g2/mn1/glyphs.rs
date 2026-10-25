@@ -1,4 +1,5 @@
 //! Menu marks: the Lucide 1.38.0 cut ui/js/Icons.js carries (ISC), the boards' printer and images, and the three brand marks.
+use flea::ui_logic_mn1::entry::MARK_NAMES;
 use flea::ui_logic_mn1::Brand;
 use gpui::SharedString;
 
@@ -14,7 +15,7 @@ macro_rules! cut {
     };
 }
 
-// Every mark a menu row, flyout leaf or chevron names, by its Icons.js name.
+// Every mark a menu row, flyout leaf or chevron names, by its Icons.js name, in MARK_NAMES order (pinned by a test).
 pub(super) const CUT: &[(&str, &str, &[u8])] = &[
     ("app-window", "flea-menu:app-window", cut!("M3 4h18v16H3z M3 9h18 M6 6.5h.01 M9 6.5h.01")),
     ("archive", "flea-menu:archive", cut!("M2 3h20v5H2z M4 8v13h16V8 M10 12h4")),
@@ -78,7 +79,7 @@ pub fn mark(name: &str) -> (SharedString, &'static [u8]) {
 }
 
 pub fn known(name: &str) -> bool {
-    CUT.iter().any(|(id, _, _)| *id == name)
+    MARK_NAMES.contains(&name)
 }
 
 const FILE: usize = 16;

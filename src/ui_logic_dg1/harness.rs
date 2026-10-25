@@ -106,14 +106,18 @@ impl Pane {
     }
 
     pub fn resolved(&mut self, en: &I18n, list: Vec<String>) {
-        if let Some(publish) = self.queue.resolved(list) {
-            let paths = publish.paths.clone();
-            let outs = self.session.borrow_mut().set(self.backend, paths.clone(), publish.moving);
-            self.apply(outs);
-            self.said.push(words::landed(en, publish.moving, paths.len()));
-        }
         let path = self.path.clone();
         let view = View { path: &path, listing: self.listing, paths_busy: false, list_in_flight: self.list_in_flight };
+        match self.queue.resolved(en, list, view) {
+            Some(Ok(publish)) => {
+                let paths = publish.paths.clone();
+                let outs = self.session.borrow_mut().set(self.backend, paths.clone(), publish.moving);
+                self.apply(outs);
+                self.said.push(words::landed(en, publish.moving, paths.len()));
+            }
+            Some(Err(stale)) => self.said.push(stale),
+            None => {}
+        }
         match self.queue.step(en, view) {
             TakeOut::AskPaths(rows) if !rows.is_empty() => self.rows_asked.push(rows),
             TakeOut::Busy(said) => self.said.push(said),

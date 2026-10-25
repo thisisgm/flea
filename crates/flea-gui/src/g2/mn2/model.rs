@@ -21,6 +21,9 @@ pub enum Sent {
 // The template for a diagnostic no backend sentence covers: terminal launch errors, the preview's `symlink_metadata` reason, an unmapped listing error.
 pub const START_KEY: &str = "actions.error.start";
 
+// The run ids a window remembers for their refusals; an older run's late refusal is no longer said.
+const HELD_RUNS: usize = 64;
+
 #[derive(Clone, Debug, Default)]
 pub struct Actions {
     next: usize,
@@ -29,6 +32,7 @@ pub struct Actions {
     pending_preview: Option<usize>,
     preview: Option<String>,
     contributions: Vec<plugins::Contribution>,
+    runs: Vec<usize>,
     said: Vec<Said>,
 }
 
@@ -67,7 +71,16 @@ impl Actions {
     // A choice on the Actions flyout: the run goes out under its own id, which the host sends.
     pub fn run(&mut self, leaf: &str, paths: Vec<String>) -> String {
         self.next += 1;
+        self.run_sent(self.next);
         wire::run_request(self.next, leaf, &paths)
+    }
+
+    // A run this window sent, under its id: mn2's own or mn1's runScript; only a held id's refusal is said.
+    pub fn run_sent(&mut self, id: usize) {
+        if self.runs.len() == HELD_RUNS {
+            self.runs.remove(0);
+        }
+        self.runs.push(id);
     }
 
     // A flyout choice on the Actions row: the leaf's mode, read off the listing this menu was built from, routes it (preview names the cursor row, run names the selection), and a leaf that listing no longer names is said stale and sends nothing.
@@ -140,7 +153,9 @@ impl Actions {
             return;
         }
         if let Some(started) = wire::parse_started(line) {
-            if !started.ok {
+            let held = self.runs.iter().position(|id| *id == started.request);
+            if let (Some(at), false) = (held, started.ok) {
+                self.runs.remove(at);
                 self.say_refusal(&started.error);
             }
         }
@@ -180,8 +195,8 @@ impl Actions {
     }
 
     // The file menu's Actions row, from the latest listing for this snapshot.
-    pub fn actions_entry(&self, hidden: &[String], kind: Option<&str>) -> Option<Entry> {
-        rows::actions_row(hidden, self.listing.as_ref()?, kind)
+    pub fn actions_entry(&self, hidden: &[String]) -> Option<Entry> {
+        rows::actions_row(hidden, self.listing.as_ref()?)
     }
 
     // The plugin rows for this menu, fail closed: only eligible contributions draw.
