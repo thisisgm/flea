@@ -141,7 +141,7 @@ impl SheetView {
                             .child(SharedString::from(row.label.clone())),
                     );
                 let line = if last[side] == Some(index) && at + 1 == rows.len() {
-                    self.probe.attach(line, LAST_ROWS[side])
+                    self.probe.masked(line, LAST_ROWS[side])
                 } else {
                     line
                 };

@@ -27,6 +27,26 @@ impl Probe {
         )
     }
 
+    /// As attach, and also the content mask the box is painted under, as `<id>:mask`.
+    pub fn masked(&self, div: Div, id: &str) -> Div {
+        let probe = self.clone();
+        let id = id.to_owned();
+        div.child(
+            canvas(
+                move |bounds, window, _| {
+                    let mut boxes = probe.0.borrow_mut();
+                    boxes.insert(format!("{id}:mask"), window.content_mask().bounds);
+                    boxes.insert(id, bounds);
+                },
+                |_, _, _, _| {},
+            )
+            .absolute()
+            .left_0()
+            .top_0()
+            .size_full(),
+        )
+    }
+
     pub fn first_child(
         &self,
         id: &'static str,
