@@ -63,11 +63,19 @@ def owned(path):
     return path
 
 
+WRAPPER = ('import runpy,socket,sys; '
+           'socket.socket.connect=lambda *a,**k:sys.exit("NETWORK FORBIDDEN"); '
+           'socket.getaddrinfo=lambda *a,**k:sys.exit("NETWORK FORBIDDEN"); '
+           'sys.argv=sys.argv[1:];runpy.run_path(sys.argv[0],run_name="__main__")')
+# The guard must stop a name lookup too, which urllib makes before any connect.
+lookup = owned(scratch / 'lookup.py')
+lookup.write_text('import socket\nsocket.getaddrinfo("raw.pixls.us", 443)\nprint("DNS REACHED")\n')
+probe = subprocess.run([sys.executable, '-B', '-c', WRAPPER, str(lookup)], capture_output=True, text=True, timeout=10)
+assert 'NETWORK FORBIDDEN' in probe.stderr and 'DNS REACHED' not in probe.stdout, (probe.stdout, probe.stderr)
+
+
 def cli(command, *args, ok=True, using=None):
-    wrapper = ('import runpy,socket,sys; '
-               'socket.socket.connect=lambda *a,**k:sys.exit("NETWORK FORBIDDEN"); '
-               'sys.argv=sys.argv[1:];runpy.run_path(sys.argv[0],run_name="__main__")')
-    result = subprocess.run([sys.executable, '-B', '-c', wrapper, str(tool), command,
+    result = subprocess.run([sys.executable, '-B', '-c', WRAPPER, str(tool), command,
                              *map(str, args), '--manifest', str(using or mini)],
                             capture_output=True, text=True, timeout=10)
     assert (result.returncode == 0) == ok, (command, result.stdout, result.stderr)

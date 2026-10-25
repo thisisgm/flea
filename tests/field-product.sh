@@ -22,6 +22,7 @@ N = SourceFileLoader('product_nav', 'tools/flea-field-nav').load_module()
 I = SourceFileLoader('product_instant', 'tools/flea-field-instant').load_module()
 R = SourceFileLoader('product_readme', 'tools/flea-bench-readme').load_module()
 S.ENV = dict(os.environ)
+S.STATE_ROOT = str(root / 'harness-state')
 
 def stub(name, version):
     path = root / name / 'bin' / 'flea'
@@ -46,6 +47,11 @@ with patch.dict(os.environ, {'FLEA_FRONTEND': 'gpui'}):
         assert S.entrant_spec(arm)['cls'] == ('flea' if arm['frontend'] == 'gpui' else S.FLEA_CLASS)
         N.require_seeded_view(arm, env)
     assert launches[0][1]['XDG_STATE_HOME'] != launches[1][1]['XDG_STATE_HOME']
+    # The QML cache outlives the run's state, one per binary by its sha256.
+    for arm, (argv, env) in zip(arms, launches):
+        digest = hashlib.sha256(Path(arm['flea_bin']).read_bytes()).hexdigest()
+        assert env['QML_DISK_CACHE_PATH'] == str(root / 'harness-state/qmlcache' / digest), env
+        assert S.entrant_argv(arm, '/fixture', {'states': {}, 'out_dir': str(root)})[1]['QML_DISK_CACHE_PATH'] == env['QML_DISK_CACHE_PATH']
     with patch.object(S.Product, 'output', wraps=S.Product.output) as observed:
         identities = {arm['id']: S.arm_identity(arm) for arm in arms}
     assert identities['fresh']['version'] == 'flea 0.4.0'
@@ -126,8 +132,11 @@ b5_env = dict(env, B5_RIVAL_MANIFEST=str(receipt), STRATA_BIN=archive_rows[0]['b
               STRATA_NIGHTLY_BIN=archive_rows[1]['binary_path'], PATH=str(bindir) + ':' + os.environ['PATH'])
 preflight = text[text.index('# archive provenance begin'):text.index('# archive provenance end')]
 preflight_env = dict(b5_env, MANIFEST_TOOL=str(Path('tools/flea-bench-manifest').resolve()))
-preflight_script = 'only_has() { return 0; }\nfail() { exit 1; }\n' + preflight
+preflight_script = 'only_has() { return 0; }\nfail() { echo "$*" >&2; exit 1; }\n' + preflight
 assert subprocess.run(['bash', '-c', preflight_script], env=preflight_env, capture_output=True).returncode == 0
+# An unset nightly is not configured, never the current directory.
+no_nightly = subprocess.run(['bash', '-c', preflight_script], env=dict(preflight_env, STRATA_NIGHTLY_BIN=''), capture_output=True, text=True)
+assert no_nightly.returncode == 0, no_nightly.stderr
 rows = subprocess.check_output(['bash', '-c', block + '\nbuild_entrants\nprintf "%s\\n" "${ENTRANTS[@]}"'], env=b5_env, text=True).splitlines()
 archive_roster = {row.split('|')[0]: row.split('|', 7) for row in rows}
 assert 'strata' not in archive_roster
@@ -174,28 +183,99 @@ for asset in archive_rows:
     assert '| `%s` | %s |' % (asset['id'], version) in report.stdout
     assert asset['url'] in report.stdout and asset['binary_sha256'] in report.stdout
 assert manifest.read_text() == text, 'report must preserve the full archive receipt'
-for mutation in ('wrong-path', 'wrong-hash', 'wrong-version', 'changed-binary'):
+# Each mutation is refused by its own check: the copy at another path has the stable bytes and version.
+twin = root / 'twin' / 'strata'
+twin.parent.mkdir()
+twin.write_bytes(Path(archive_rows[0]['binary_path']).read_bytes())
+twin.chmod(0o755)
+differs = 'archive binary hash or version differs from receipt'
+for mutation, wanted in (('wrong-path', 'launched binary differs from archive receipt'), ('wrong-hash', differs),
+                         ('wrong-version', differs), ('no-version-check', 'archive receipt missing version_check'),
+                         ('bad-version-check', 'invalid archive receipt version_check'), ('changed-binary', differs)):
     asset = dict(archive_rows[0])
     binary = asset['binary_path']
     if mutation == 'wrong-path':
-        binary = archive_rows[1]['binary_path']
+        binary = str(twin)
     elif mutation == 'wrong-hash':
         asset['binary_sha256'] = 'b' * 64
     elif mutation == 'wrong-version':
         asset['expected_version'] = 'strata 0.19.0'
+    elif mutation == 'no-version-check':
+        del asset['version_check']
+    elif mutation == 'bad-version-check':
+        asset['version_check'] = 'ok'
     else:
         Path(binary).write_text('#!/bin/sh\necho "strata 0.19.0"\n')
     bad_receipt = root / (mutation + '.json')
     bad_receipt.write_text(json.dumps(dict(archives=[asset])))
     try:
         S.Product.archive_identity(str(bad_receipt), asset['id'], binary)
-    except ValueError:
-        pass
+    except ValueError as error:
+        assert wanted in str(error), (mutation, error)
     else:
         raise AssertionError('accepted ' + mutation)
-wrong_xplr = subprocess.run(['python3', '-B', 'tools/flea_bench_product.py', str(receipt), 'xplr', fresh], capture_output=True)
-assert wrong_xplr.returncode != 0
-assert subprocess.run(['bash', '-c', preflight_script], env=preflight_env, capture_output=True).returncode != 0
+wrong_xplr = subprocess.run(['python3', '-B', 'tools/flea_bench_product.py', str(receipt), 'xplr', fresh], capture_output=True, text=True)
+assert wrong_xplr.returncode == 1 and 'launched binary differs from archive receipt: ' + fresh in wrong_xplr.stderr, wrong_xplr.stderr
+changed = subprocess.run(['bash', '-c', preflight_script], env=preflight_env, capture_output=True, text=True)
+assert changed.returncode == 1 and 'archive provenance refused for strata-stable' in changed.stderr, changed.stderr
+assert 'hash or version differs from receipt: strata-stable' in changed.stderr, changed.stderr
+# A one-word version works as a row; a version of three words is refused by name.
+for name, printed, ok in (('bare', '0.22.0', True), ('wordy', 'strata 0.22.0-nightly (abc)', False)):
+    binary = root / name / 'strata'
+    binary.parent.mkdir()
+    binary.write_text('#!/bin/sh\necho "' + printed + '"\n')
+    binary.chmod(0o755)
+    asset = dict(archive_rows[0], id=name, binary_path=str(binary), expected_version=printed,
+                 binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(), version_check=dict(rc=0, stdout=printed))
+    one = root / (name + '.json')
+    one.write_text(json.dumps(dict(archives=[asset])))
+    row = subprocess.run(['python3', '-B', 'tools/flea_bench_product.py', str(one), name, str(binary), '--row', 'gui'], capture_output=True, text=True)
+    if ok:
+        assert row.returncode == 0 and row.stdout.startswith('bare gui archive 0.22.0 {'), row
+    else:
+        assert row.returncode == 1 and 'archive version is not "name version"' in row.stderr, row
+# Under B5 a missing xplr is named, never a silent exit.
+no_xplr = ':'.join(d for d in os.environ['PATH'].split(':') if not os.path.exists(os.path.join(d, 'xplr')))
+missing = subprocess.run(['tools/flea-bench-manifest', str(root / 'no-xplr.md'), str(fixture)], input='xplr|tui|xplr\n',
+                         env=dict(b5_env, FLEA_REPO=str(Path.cwd()), PATH=no_xplr), capture_output=True, text=True)
+assert missing.returncode == 1 and 'B5 entrant xplr is absent from PATH' in missing.stderr, missing
+# A strata row with no source checkout reads absent, never the caller's own checkout.
+plain_env = dict(env, FLEA_REPO=str(Path.cwd()), STRATA_SRC='', STRATA_BIN=archive_rows[1]['binary_path'])
+plain_env.pop('STRATA_NIGHTLY_SRC', None)
+plain = subprocess.run(['tools/flea-bench-manifest', str(root / 'no-src.md'), str(fixture)],
+                       input='strata|gui|strata\nstrata-nightly|gui|strata\n', env=plain_env, capture_output=True, text=True)
+assert plain.returncode == 0, plain.stderr
+own = subprocess.check_output(['git', 'describe', '--tags', '--always'], text=True).strip()
+for name in ('strata', 'strata-nightly'):
+    line = next(l for l in (root / 'no-src.md').read_text().splitlines() if l.startswith(name + ' '))
+    assert ' source absent ' in line and own not in line, line
+# build_sha names the tree only for a binary built inside it.
+tree = root / 'tree'
+subprocess.run(['git', 'init', '-q', str(tree)], check=True)
+subprocess.run(['git', '-C', str(tree), '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 't'], check=True)
+head = subprocess.check_output(['git', '-C', str(tree), 'rev-parse', 'HEAD'], text=True).strip()
+built = tree / 'target/release/flea'
+built.parent.mkdir(parents=True)
+built.write_bytes(Path(fresh).read_bytes())
+built.chmod(0o755)
+for binary, wanted in ((str(built), head), (fresh, 'unknown')):
+    got = S.Product.identity({'entrant': 'flea', 'flea_dir': str(tree), 'flea_bin': binary, 'frontend': 'qml'}, [binary])
+    assert got['build_sha'] == wanted, (binary, got)
+# A flea-gui outside the arms' trees is never a target, so the harness neither refuses on it nor ends it.
+elsewhere = root / 'elsewhere' / 'flea-gui'
+elsewhere.parent.mkdir()
+elsewhere.write_bytes(Path('/usr/bin/sleep').read_bytes())
+elsewhere.chmod(0o755)
+foreign = subprocess.Popen([str(elsewhere), '30'])
+try:
+    S.GUI_BINARIES[:] = S.flea_gui_binaries(arms)
+    assert foreign.pid not in [p for c, p in S.alive_targets() if c == 'flea-gui']
+    S.GUI_BINARIES[:] = [str(elsewhere)]
+    assert foreign.pid in [p for c, p in S.alive_targets() if c == 'flea-gui']
+finally:
+    foreign.kill()
+    foreign.wait()
+    S.GUI_BINARIES[:] = []
 # An entrant with no working --version (pcmanfm 1.4.0 exits 1) reports its package version.
 pkgbin = root / 'pkgbin'
 pkgbin.mkdir()

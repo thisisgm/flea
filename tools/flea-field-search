@@ -13,6 +13,7 @@ The method in one line: framecap stamps the presented frames, keys are stamped b
 Sample input, one recorder line: "F 660389861257350 660389874933379 32 95 126 0 1919 40" (presentation ns, received ns, changed rows, first row, last row, first column, last column, ink rows).
 """
 import atexit
+import hashlib
 import json
 import os
 import re
@@ -508,6 +509,20 @@ def flea_state(ctx, arm):
     return ctx["states"][key]
 
 
+# The harness's own state: the run ledger and a QML cache per binary, which persists across runs as the tree's did.
+STATE_ROOT = os.environ.get("FLEA_FIELD_STATE") or os.path.expanduser("~/.local/state/flea-field")
+_BINARY_SHA = {}
+
+
+def qml_cache(binary):
+    """A persistent QML disk cache keyed by the binary's sha256, so round 0 is not a cold-cache outlier."""
+    path = os.path.realpath(binary)
+    if path not in _BINARY_SHA:
+        with open(path, "rb") as stream:
+            _BINARY_SHA[path] = hashlib.file_digest(stream, "sha256").hexdigest()
+    return os.path.join(STATE_ROOT, "qmlcache", _BINARY_SHA[path])
+
+
 def strata_bin(arm=None):
     """Each release channel names its installed binary explicitly."""
     path = (arm or {}).get("strata_bin") or os.environ.get("STRATA_BIN")
@@ -540,7 +555,7 @@ def entrant_argv(arm, fixture, ctx):
     if e == "flea":
         state = flea_state(ctx, arm)
         env = {"FLEA_BIN": Product.flea_binary(arm), "FLEA_FRONTEND": Product.frontend(arm),
-               "XDG_STATE_HOME": state, "QML_DISK_CACHE_PATH": state + "/qmlcache"}
+               "XDG_STATE_HOME": state, "QML_DISK_CACHE_PATH": qml_cache(Product.flea_binary(arm))}
         if arm.get("flea_dir"):
             env["FLEA_UI"] = arm["flea_dir"] + "/ui"
         os.makedirs(env["QML_DISK_CACHE_PATH"], exist_ok=True)
@@ -566,7 +581,7 @@ def entrant_argv(arm, fixture, ctx):
     raise SystemExit("no launch line for entrant " + e)
 
 
-# comm, cmdline token, the same table as tools/flea-field-bench's KILL_TARGETS; a bare qs is never matched.
+# comm, cmdline token, the same table as tools/flea-field-bench's KILL_TARGETS; a bare qs or flea-gui is never matched.
 KILL_TARGETS = [("flea-gui", ""), ("qs", "/ui"), ("flea", "--backend"), ("kitty", "--class " + TUI_CLASS), ("nautilus", ""),
                 ("org.gnome.Nauti", ""), ("thunar", ""), ("tumblerd", ""), ("pcmanfm", ""), ("nemo", ""),
                 ("dolphin", ""), ("strata", ""), ("yazi", ""), ("broot", ""), ("fzf", ""), ("localsearch-3", ""),
@@ -588,6 +603,25 @@ def pids_for(comm, token=""):
 
 # The ui directories of the Flea trees this run launches; qs is matched by them and never bare.
 UI_TOKENS = []
+# The flea-gui beside each Flea binary this run launches; a flea-gui is matched by its executable and never bare.
+GUI_BINARIES = []
+
+
+def flea_gui_binaries(arms):
+    return [os.path.realpath(os.path.join(os.path.dirname(Product.flea_binary(a)), "flea-gui"))
+            for a in arms if a.get("entrant") == "flea"]
+
+
+def pids_for_exe(comm, binaries):
+    out = []
+    for p in pids_for(comm):
+        try:
+            exe = os.path.realpath(os.readlink("/proc/%d/exe" % p))
+        except OSError:
+            continue
+        if exe in binaries:
+            out.append(p)
+    return out
 
 
 def alive_targets():
@@ -595,6 +629,8 @@ def alive_targets():
     for c, t in KILL_TARGETS:
         if c == "qs":
             out += [(c, p) for tok in UI_TOKENS for p in pids_for(c, tok)]
+        elif c == "flea-gui":
+            out += [(c, p) for p in pids_for_exe(c, GUI_BINARIES)]
         else:
             out += [(c, p) for p in pids_for(c, t)]
     return out
@@ -775,15 +811,19 @@ def clean_all(leaf=None):
 
 
 # Every run that passes require_idle ledgers its window here, so a later refusal can say whether it started a leftover.
-LEDGER = os.environ.get("FLEA_FIELD_LEDGER") or os.path.expanduser("~/.local/state/flea-field/runs.jsonl")
+LEDGER = os.environ.get("FLEA_FIELD_LEDGER") or os.path.join(STATE_ROOT, "runs.jsonl")
 _RUN = {}
+
+
+# Sample input, /proc/<pid>/stat: "1234 (name) S 1 1234 ... 8812345 ..." (field 22, starttime, in clock ticks); /proc/stat: "btime 1729700000".
+STARTTIME_AFTER_COMM = 19  # field 22 is the 20th field after the ")" that ends the comm
 
 
 def process_start(pid):
     """Epoch seconds a pid started, from /proc starttime and the boot time, or None."""
     try:
         with open("/proc/%d/stat" % pid) as f:
-            ticks = int(f.read().rsplit(")", 1)[1].split()[19])
+            ticks = int(f.read().rsplit(")", 1)[1].split()[STARTTIME_AFTER_COMM])
         with open("/proc/stat") as f:
             boot = next(int(line.split()[1]) for line in f if line.startswith("btime "))
     except (OSError, ValueError, IndexError, StopIteration):
@@ -822,11 +862,17 @@ def describe_leftover(comm, pid):
     if began is None:
         return "%s pid %d (start time unreadable, so not attributable to this harness)" % (comm, pid)
     when = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(began))
+    today = time.strftime("%Y-%m-%d")
     for run in ledger_windows().values():
         if "start" in run and run["start"] <= began + 1 and (run.get("end") is None or began <= run["end"] + 1):
-            end = "never ended" if run.get("end") is None else "ended " + time.strftime("%H:%M:%S", time.localtime(run["end"]))
+            begun = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(run["start"]))
+            # A run killed outright never writes its end, so an open run from before today covers nothing.
+            if run.get("end") is None and begun[:10] < today:
+                return "%s pid %d started %s, after harness run pid %s begun %s, which never ended and is older than today: not attributable to this harness" % (
+                    comm, pid, when, run.get("pid"), begun)
+            end = "never ended" if run.get("end") is None else "ended " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(run["end"]))
             return "%s pid %d started %s, inside this harness's run pid %s begun %s (%s): this harness started it" % (
-                comm, pid, when, run.get("pid"), time.strftime("%H:%M:%S", time.localtime(run["start"])), end)
+                comm, pid, when, run.get("pid"), begun, end)
     return "%s pid %d started %s, outside every recorded harness run: this harness did not start it" % (comm, pid, when)
 
 
@@ -1025,6 +1071,7 @@ def measure(plan_path):
     ctx = make_ctx(out_dir)
     arms = plan["arms"]
     UI_TOKENS[:] = [a["flea_dir"] + "/ui" for a in arms if a.get("flea_dir")]
+    GUI_BINARIES[:] = flea_gui_binaries(arms)
     require_idle()
     for a in arms:
         if a["entrant"] not in ENTRANTS:
@@ -1919,6 +1966,7 @@ def explore(argv):
     arm = {"id": ent + ("-" + os.path.basename(flea) if flea else ""), "entrant": ent, "flea_dir": flea}
     if flea:
         UI_TOKENS.append(flea + "/ui")
+        GUI_BINARIES[:] = flea_gui_binaries([arm])
     require_idle()
     opts = {"evidence": True, "fixture_name": "explore", "mode": "filter" if "--filter" in argv else "search",
             "enter_baseline": "--enter" in argv, "tag": "x"}
