@@ -275,7 +275,7 @@ fn space_in_the_focused_preview_column_opens_the_card_and_escape_returns_to_it(
     close(&shell, cx);
 }
 
-// SelectionPreview.qml: Space in the focused column on a clip plays it, and Quick Look stays closed.
+// SelectionPreview.qml: Space in the focused column on a clip leaves Quick Look closed; playback is not driven here.
 #[gpui::test]
 fn space_in_the_focused_preview_column_on_a_clip_opens_no_card(cx: &mut TestAppContext) {
     use crate::window::{selection_preview::Kind, startup::View};
