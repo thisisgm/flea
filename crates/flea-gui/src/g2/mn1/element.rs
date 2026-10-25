@@ -204,7 +204,9 @@ fn paint_row(
         }
         edge = x - px(GAP);
     }
-    let Some(label) = &line.label else { return };
+    let Some(label) = line.painted_label() else {
+        return;
+    };
     let start = left + px(PAD_X + SLOT + GAP);
     let column = Bounds::new(
         point(start, top),

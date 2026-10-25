@@ -46,7 +46,9 @@ and `#!/bin/sh` resolve. `worker_shape` matches the file name, so it accepts the
 before.
 
 `argv`, in `backend/thumbargv.rs`, substitutes four placeholders: `%i` the input path, `%u` its
-`file://` URI, `%o` the output path and `%s` the pixel size. The input is put through `canonicalize` first, so a
+`file://` URI, `%o` the output path and `%s` the pixel size. A code expands anywhere inside an
+argument, so F3D's `--output=%o --resolution=%s,%s` works; `%%` is one `%` and an unknown code
+stays as written. The program token is never expanded. The input is put through `canonicalize` first, so a
 relative path or one carrying `..` reaches the child absolute and cannot be read as a flag.
 It returns `Option<(PathBuf, Vec<String>)>` and answers `None` when that call fails, which is
 the file being deleted between the listing and the thumbnail, a permission denied on an

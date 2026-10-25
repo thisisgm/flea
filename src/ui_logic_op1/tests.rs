@@ -6,6 +6,7 @@ mod collide;
 mod collide_done;
 mod collide_more;
 mod confirm;
+mod extract_job;
 mod jobs;
 mod lines;
 mod lines_claim;

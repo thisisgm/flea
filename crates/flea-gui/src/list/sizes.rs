@@ -129,6 +129,11 @@ impl State {
 }
 
 impl State {
+    /// The shown folder's filesystem class word, once the backend has answered for it.
+    pub(crate) fn class(&self) -> Option<&str> {
+        self.class.as_deref()
+    }
+
     fn cancel(&mut self, backend: &crate::backend::Backend) {
         self.task = None;
         self.key = None;

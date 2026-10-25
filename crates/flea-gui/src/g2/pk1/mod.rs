@@ -2,6 +2,7 @@
 mod answer;
 pub mod browse;
 pub mod filename;
+mod find;
 pub mod ipc;
 pub mod labels;
 pub mod launch;

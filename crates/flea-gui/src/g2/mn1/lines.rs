@@ -1,13 +1,14 @@
 //! One build of a menu card: every row's words resolved and shaped once, and the card's width read from them once.
 use super::glyphs;
 use super::wrap::Caption;
+use crate::g2::pv2::code::shape::{elided, Elide};
 use crate::list::Typeface;
 use flea::i18n::I18n;
 use flea::ui_logic_mn1::{
     fit::{self, RowParts},
     Brand, Entry,
 };
-use gpui::{GlyphRun, Hsla, Pixels, TextRun, Window};
+use gpui::{px, GlyphRun, Hsla, Pixels, TextRun, Window};
 use std::cell::Cell;
 
 /// What a row draws in its 18 pixel slot.
@@ -50,6 +51,8 @@ pub struct Line {
     pub action: String,
     pub id: String,
     pub label: Option<Shaped>,
+    // The label cut at its end with an ellipsis where the card cannot hold it whole, as v0.3.12 MenuRow elides (#214).
+    pub elided: Option<Shaped>,
     // A state word or the default caption, which keeps the chevron's column.
     pub word: Option<Shaped>,
     // The key the row's action is bound to, while key hints are on.
@@ -88,6 +91,11 @@ impl Line {
             + 2. * fit::GAP
             + label
             + if chevron { fit::CHEVRON + fit::GAP } else { 0. }
+    }
+
+    /// The label run the row paints: the elided one where the card cut it, else the whole label.
+    pub fn painted_label(&self) -> Option<&Shaped> {
+        self.elided.as_ref().or(self.label.as_ref())
     }
 
     pub fn word_width(&self) -> f32 {
@@ -144,6 +152,22 @@ impl Built {
                 let room = (width - Line::wrapped_minimum(label, line.chevron)).max(0.);
                 line.wrapped = Some(Caption::new(word, room, env, window));
             }
+        }
+        // The painter's row is the card less its two frame pixels; a label wider than its room ends in an ellipsis.
+        for line in &mut self.lines {
+            let Some(label) = &line.label else { continue };
+            let room = line.label_room(width - 2.);
+            line.elided = (label.width() > room).then(|| {
+                let (text, run) = elided(
+                    window,
+                    &label.text,
+                    &env.typeface.font,
+                    env.typeface.body,
+                    px(room),
+                    Elide::End,
+                );
+                Shaped { text, run }
+            });
         }
     }
 }
@@ -203,6 +227,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                     action: String::new(),
                     id: String::new(),
                     label: None,
+                    elided: None,
                     word: None,
                     key: None,
                     chevron: false,
@@ -255,6 +280,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 action: entry.action.to_string(),
                 id: entry.id.to_string(),
                 label,
+                elided: None,
                 word,
                 key,
                 chevron: entry.has_submenu(),
