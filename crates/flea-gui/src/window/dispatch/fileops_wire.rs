@@ -4,7 +4,7 @@ use crate::{
     navigation::history::select_match,
     pane::states::Kind,
     state::Shell,
-    window::{input::ActionEvent, navigate::Step},
+    window::{input::ActionEvent, navigate::Step, startup::View},
 };
 use flea::{
     jsondoc::{self, Json},
@@ -69,6 +69,11 @@ impl Shell {
 
     /// PaneWire.qml openRenameOnArrival: once the re-read lands, the new folder's own row takes the cursor and Rename runs on it.
     pub(crate) fn fileops_arrival(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+        // Retained hidden panes finish backend replies without opening an editor on the visible pane.
+        if side == 1 && self.view != View::Dual {
+            self.operations.fileops.arrival[side] = None;
+            return;
+        }
         let Some(host) = self.panes[side].as_mut() else {
             return;
         };
@@ -89,6 +94,7 @@ impl Shell {
         };
         host.pane.cursor = host.pane.held.start + at;
         let rename = ActionEvent::bare("rename", flea::keys::Context::Listing);
+        self.focus_pane(side, cx);
         self.dispatch(Order::Action(rename), window, cx);
     }
 
