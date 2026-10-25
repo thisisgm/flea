@@ -78,7 +78,7 @@ impl Host {
 }
 
 #[test]
-fn uish_driver_second_capture_of_a_window_keeps_the_first() {
+fn uish_driver_each_capture_of_a_window_takes_its_own_name() {
     let sandbox = super::super::Sandbox::new("capture-names");
     let fixture = sandbox.0.join("fixture");
     fs::create_dir(&fixture).unwrap();
@@ -108,8 +108,28 @@ fn uish_driver_second_capture_of_a_window_keeps_the_first() {
         host.root.join(format!("capture-{window_id}-3.rgba")),
         "each capabilities op takes the next capture name"
     );
-    if let [Some(first), Some(second)] = paths.as_slice() {
-        assert!(first.exists() && second.exists() && first != second);
-    }
+    assert_capture_pair(&paths);
     host.teardown().unwrap();
+}
+
+fn assert_capture_pair(paths: &[Option<PathBuf>]) {
+    match paths {
+        [Some(first), Some(second)] => {
+            assert!(first.exists() && second.exists() && first != second);
+        }
+        [None, None] => {}
+        other => panic!("one capture of two came back without a file: {other:?}"),
+    }
+}
+
+#[test]
+#[should_panic(expected = "one capture of two came back without a file")]
+fn uish_driver_rejects_a_missing_second_capture() {
+    assert_capture_pair(&[Some(PathBuf::from("capture-1-1.rgba")), None]);
+}
+
+#[test]
+#[should_panic(expected = "one capture of two came back without a file")]
+fn uish_driver_rejects_a_missing_first_capture() {
+    assert_capture_pair(&[None, Some(PathBuf::from("capture-1-2.rgba"))]);
 }
