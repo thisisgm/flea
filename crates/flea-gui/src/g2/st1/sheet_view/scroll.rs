@@ -31,9 +31,8 @@ impl SheetView {
         }
     }
 
-    /// Before a frame: a key that moved the highlight brings its row into view, and the scroll stays inside the content.
-    /// Returns how far the body could scroll on the last frame, read before the probe is cleared for this one.
-    pub(super) fn laid_out(&mut self, window: &mut Window, cx: &mut Context<Self>) -> f32 {
+    /// Before a frame it reveals a moved key's row, clamps the scroll and returns the last frame's extent and body height read before the probe clears.
+    pub(super) fn laid_out(&mut self, window: &mut Window, cx: &mut Context<Self>) -> (f32, f32) {
         let viewport = self
             .probe
             .bounds("body")
@@ -50,7 +49,7 @@ impl SheetView {
                 cx.notify();
             }
         });
-        most
+        (most, viewport)
     }
 
     fn wheel(&mut self, event: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {

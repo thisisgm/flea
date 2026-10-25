@@ -184,32 +184,51 @@ fn down_past_the_edge_keeps_the_highlighted_result_in_view() {
     );
 }
 
-// The resting columns fade at the body's foot while rows run below it, as the keymap board draws, and not at the end.
+const FADES: [&str; 2] = ["sheet-fade-0", "sheet-fade-1"];
+const COLUMNS: [&str; 2] = ["sheet-column-0", "sheet-column-1"];
+
+// Each resting column fades at its own foot while rows run below the body, as the keymap board draws, and not at the end.
 #[test]
-fn the_resting_sheet_fades_at_its_foot_until_the_wheel_reaches_the_end() {
+fn each_resting_column_fades_at_its_own_foot_until_the_wheel_reaches_the_end() {
     let mut open = opened();
     let frame = |open: &mut Open| {
         open.cx.update(|window, cx| window.simulate_next_frame(cx));
         draw(&mut open.cx);
     };
     frame(&mut open);
-    let fade = open
-        .cx
-        .debug_bounds("sheet-fade")
-        .expect("ST_SHEET_FADE: the fade draws while rows run below the body");
     let body = bounds(&open, "body");
-    assert_eq!(
-        fade.bottom(),
-        body.bottom(),
-        "the fade sits on the body's foot"
+    let fades: Vec<_> = (0..2)
+        .map(|side| {
+            open.cx
+                .debug_bounds(FADES[side])
+                .unwrap_or_else(|| panic!("ST_SHEET_FADE: column {side} fades at its foot"))
+        })
+        .collect();
+    assert!(
+        fades[0].right() < fades[1].left(),
+        "ST_SHEET_FADE: one fade under each column, not one across the body: {fades:?}"
+    );
+    for (side, fade) in fades.iter().enumerate() {
+        let column = open.cx.debug_bounds(COLUMNS[side]).expect("column drawn");
+        let half = f32::from(column.bottom() - fade.bottom());
+        assert!(
+            fade.bottom() == body.bottom() || near(half, KEY_ROW / 2.),
+            "ST_SHEET_FADE: column {side} ends on the body's foot or its last row's half: {fade:?} {column:?}"
+        );
+    }
+    assert!(
+        fades.iter().any(|fade| fade.bottom() == body.bottom()),
+        "ST_SHEET_FADE: the longer column runs to the body's foot"
     );
     let point = at(&open);
     for _ in 0..12 {
         notch(&mut open.cx, point, 1.);
     }
     frame(&mut open);
-    assert!(
-        open.cx.debug_bounds("sheet-fade").is_none(),
-        "ST_SHEET_FADE: no fade once the last row sits on the body's foot"
-    );
+    for side in 0..2 {
+        assert!(
+            open.cx.debug_bounds(FADES[side]).is_none(),
+            "ST_SHEET_FADE: no fade on column {side} once the last row sits on the body's foot"
+        );
+    }
 }
