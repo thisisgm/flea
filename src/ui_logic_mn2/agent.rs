@@ -9,13 +9,9 @@ pub const GLYPH: &str = "bot";
 // Pressing A in the listing does the same with no menu.
 pub const KEY: &str = "A";
 
-// The argv the launcher runs, and the folder it runs in: the background menu's folder.
+// The argv the launcher runs in the background menu's folder.
 pub fn argv() -> Vec<String> {
     vec!["omarchy".into(), "agent".into(), "--pick".into()]
-}
-
-pub fn working_dir(folder: &str) -> &str {
-    folder
 }
 
 // The spawn pair the join hands to its own detached spawn (the same pair as `tui::launch::agent`): argv with no shell interpolation, and the folder as its working directory; the spawn itself stays with the join because the core crate keeps zero dependencies and no process handles.

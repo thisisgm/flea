@@ -10,8 +10,8 @@ mod words;
 
 pub use clipboard::{Clip, GetWait, PasteWait, ReadOut, Session, SetEntry};
 pub use entry::EntryHandle;
-pub use marks::{is_empty, row_path, row_path_into, spent as marks_spent, Marks};
-pub use paste::{copy_as_resolved, copy_as_rows, copy_as_text, image_name, plan, stamp_at, CopyAsOut, LinkKind, PendingPaste, Stamp};
+pub use marks::{row_path, row_path_into, spent as marks_spent, Marks};
+pub use paste::{copy_as_resolved, copy_as_text, image_name, plan, stamp_at, CopyAsOut, LinkKind, PendingPaste, Stamp};
 pub use payload::{
     build_flea, build_gnome, build_kde_cut, build_plain, build_urilist, choose, is_op, is_token,
     parse_flea, parse_gnome, parse_kde_cut, parse_urilist, ForeignSel, Offer, FLEA, GNOME, KDE_CUT,

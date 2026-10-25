@@ -3,7 +3,7 @@ use super::wire::*;
 
 fn listing(paths: &[&str]) -> Listing {
     parse_listing(&format!(
-        "{{\"t\":\"actions\",\"id\":4,\"actions\":[{{\"id\":\"action:resize.toml\",\"name\":\"Resize to 1600 px\",\"mode\":\"background\",\"selection\":\"many\",\"script\":false}},{{\"id\":\"script:ocr.sh\",\"name\":\"ocr\",\"mode\":\"background\",\"selection\":\"many\",\"script\":true}}],\"errors\":[{{\"file\":\"broken.toml\",\"error\":\"unknown manifest key\"}}],\"error\":\"{}\"}}",
+        "{{\"t\":\"actions\",\"id\":4,\"actions\":[{{\"id\":\"action:resize.toml\",\"name\":\"Resize to 1600 px\",\"mode\":\"background\",\"selection\":\"many\",\"script\":false,\"mime\":[\"image/*\",\"image/x-raw\"]}},{{\"id\":\"script:ocr.sh\",\"name\":\"ocr\",\"mode\":\"background\",\"selection\":\"many\",\"script\":true}}],\"errors\":[{{\"file\":\"broken.toml\",\"error\":\"unknown manifest key\"}}],\"error\":\"{}\"}}",
         paths.join(",")
     ))
     .unwrap()
@@ -46,6 +46,8 @@ fn mn2_a_listing_keeps_actions_errors_and_its_error() {
         (back.actions[1].id.as_str(), back.actions[1].script),
         ("script:ocr.sh", true)
     );
+    assert_eq!(back.actions[0].mime, ["image/*", "image/x-raw"], "each action carries its own globs");
+    assert!(back.actions[1].mime.is_empty(), "a reply without globs reads none");
     assert_eq!(
         back.errors,
         [Discovery {

@@ -22,6 +22,7 @@ fn encode_uri(path: &str) -> String {
     out
 }
 
+// Sample input: "file:///tmp/a%20b" reads "/tmp/a b"; "file://host/x" and "file:///tmp/%+1" read None.
 // Only file:// with an empty or localhost host becomes a path; anything else, a NUL, a relative path or a dot component is refused, never failed.
 fn decode_uri(uri: &[u8]) -> Option<String> {
     let rest = uri.strip_prefix(b"file://")?;
@@ -35,6 +36,10 @@ fn decode_uri(uri: &[u8]) -> Option<String> {
     while at < path.len() {
         if path[at] == b'%' {
             let hex = path.get(at + 1..at + 3)?;
+            // from_str_radix takes a leading '+', so only two hex digits are an escape.
+            if !hex.iter().all(u8::is_ascii_hexdigit) {
+                return None;
+            }
             raw.push(u8::from_str_radix(std::str::from_utf8(hex).ok()?, 16).ok()?);
             at += 3;
         } else {
@@ -56,9 +61,12 @@ pub fn is_op(word: &str) -> bool {
     word == "copy" || word == "cut"
 }
 
-// The token rule both validators share: 32 hex chars, the form make_token writes.
+// The token's length in hex chars, the backend's TOKEN_HEX_LEN (src/clip/format.rs), which this library crate cannot import.
+const TOKEN_HEX_LEN: usize = 32;
+
+// The token rule both validators share: TOKEN_HEX_LEN hex chars, the form make_token writes.
 pub fn is_token(token: &str) -> bool {
-    token.len() == 32 && token.bytes().all(|byte| byte.is_ascii_hexdigit())
+    token.len() == TOKEN_HEX_LEN && token.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 pub fn build_gnome(op: &str, paths: &[String]) -> Vec<u8> {
@@ -91,6 +99,7 @@ pub fn build_urilist(paths: &[String]) -> Vec<u8> {
     out
 }
 
+// Sample input: "file:///tmp/a%20b\r\n# note\r\n" reads (["/tmp/a b"], 0).
 // CRLF and LF both read; '#' lines are comments and never files.
 pub fn parse_urilist(bytes: &[u8]) -> (Vec<String>, usize) {
     collect(bytes.split(|byte| *byte == b'\n').filter_map(|line| {
@@ -111,6 +120,7 @@ pub fn build_kde_cut() -> Vec<u8> {
     b"1".to_vec()
 }
 
+// Sample input: "1\0" reads true; "0" or anything else reads false.
 pub fn parse_kde_cut(bytes: &[u8]) -> bool {
     String::from_utf8_lossy(bytes).trim_matches(|c: char| c == '\0' || c.is_whitespace()) == "1"
 }
@@ -119,7 +129,8 @@ pub fn build_flea(op: &str, token: &str) -> Vec<u8> {
     format!("{op} {token} {}", std::process::id()).into_bytes()
 }
 
-// The token is 32 hex chars; anything else is another owner's bytes, not a refusal.
+// Sample input: "cut 0123456789abcdef0123456789abcdef 4242" reads ("cut", that token).
+// The token is TOKEN_HEX_LEN hex chars; anything else is another owner's bytes, not a refusal.
 pub fn parse_flea(bytes: &[u8]) -> Option<(String, String)> {
     let text = std::str::from_utf8(bytes).ok()?;
     let text = text.trim_matches(|c: char| c == '\0' || c.is_whitespace());
@@ -163,11 +174,8 @@ pub struct ForeignSel {
 pub fn choose(offers: &[Offer<'_>]) -> Option<ForeignSel> {
     let bytes_of = |mime: &str| offers.iter().find(|offer| offer.mime == mime).map(|offer| offer.bytes);
     let token = bytes_of(FLEA).and_then(parse_flea).map_or(String::new(), |(_, token)| token);
-    if let Some(bytes) = bytes_of(GNOME) {
-        let (op, paths, _) = parse_gnome(bytes)?;
-        if paths.is_empty() {
-            return None;
-        }
+    // A GNOME offer that does not parse or names no files falls through to the URI list, as the backend reads it.
+    if let Some((op, paths, _)) = bytes_of(GNOME).and_then(parse_gnome).filter(|(_, paths, _)| !paths.is_empty()) {
         return Some(ForeignSel { clip: op, paths, token });
     }
     if let Some(bytes) = bytes_of(URILIST) {

@@ -102,7 +102,7 @@ fn status(cx: &mut TestAppContext, handle: WindowHandle<Root>) -> String {
     })
 }
 
-const LISTING: &str = r#""actions":[{"id":"action:resize.toml","name":"Resize to 1600 px","mode":"background","selection":"many","script":false},{"id":"script:ocr.sh","name":"ocr","mode":"terminal","selection":"many","script":true}],"errors":[],"error":"""#;
+const LISTING: &str = r#""actions":[{"id":"action:resize.toml","name":"Resize to 1600 px","mode":"background","selection":"many","script":false,"mime":["image/*"]},{"id":"script:ocr.sh","name":"ocr","mode":"terminal","selection":"many","script":true}],"errors":[],"error":"""#;
 
 // The file menu up to its discovered Actions row: snapshot, the resolved selection, then the listing under the menu's own id.
 fn discovered(cx: &mut TestAppContext, fixture: &mut Fixture, listing_id: Option<u64>) -> u64 {

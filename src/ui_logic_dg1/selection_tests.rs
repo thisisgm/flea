@@ -90,3 +90,23 @@ fn take_reports_its_decision() {
     let out = pane.queue.take(&en, true, Some(paths(&["/x"])), vec![], view);
     assert_eq!(out, TakeOut::Publish(paths(&["/x"]), true));
 }
+
+#[test]
+fn a_landing_whose_listing_moved_is_dropped_and_said_stale() {
+    let en = english();
+    for reload in [false, true] {
+        let mut pane = Pane::new();
+        pane.clip(&en, true, None, vec![0]);
+        if reload {
+            pane.list_in_flight = true;
+        } else {
+            pane.listing += 1;
+        }
+        pane.resolved(&en, paths(&["/dest/A"]));
+        assert!(pane.sent.is_empty(), "a stale landing publishes nothing");
+        assert!(pane.current().is_empty());
+        assert_eq!(pane.said.last().unwrap().text, super::words::stale(&en));
+        assert!(!pane.queue.pending());
+        assert_eq!(pane.queue.queued(), 0);
+    }
+}

@@ -54,9 +54,7 @@ impl Marks {
         revision: u64,
         paths: &[String],
         moving: bool,
-        calls: &mut u64,
     ) -> &'static str {
-        *calls += 1;
         if paths.is_empty() {
             self.release();
             return "";
@@ -102,11 +100,6 @@ pub fn row_path_into(path: &mut String, base: &str, name: &str) {
     }
     path.push('/');
     path.push_str(name);
-}
-
-// An empty selection costs nothing: its paths are never joined or searched.
-pub fn is_empty(paths: &[String]) -> bool {
-    paths.is_empty()
 }
 
 // A sent cut empties a cut clipboard, so the marks go with it; anything else keeps it (a cut spent by a cut paste empties).

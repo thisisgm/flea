@@ -210,7 +210,7 @@ fn a_cut_pasted_before_its_set_answers_is_spent_whole() {
     assert_eq!(
         (last.as_str(), rig.board.available(), mark),
         (r#"{"c":"clipClear","token":"tokenB"}"#, false, ""),
-        "clear line, window still holds the cut, mark on the moved row"
+        "clear line, window no longer holds the cut, no mark on the moved row"
     );
 }
 

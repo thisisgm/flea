@@ -68,6 +68,7 @@ fn every_refusal_is_a_skip_and_never_a_failed_read() {
         b"file:///tmp/../etc.txt".to_vec(),
         b"file:///tmp/./a.txt".to_vec(),
         b"file:///tmp/%ff.txt".to_vec(),
+        b"file:///tmp/%+1.txt".to_vec(),
         b"file:///tmp/ok.txt".to_vec(),
         b"https://example.com/x".to_vec(),
         b"file:///tmp/second.txt".to_vec(),
@@ -76,7 +77,7 @@ fn every_refusal_is_a_skip_and_never_a_failed_read() {
     let (op, paths, skipped) = parse_gnome(&bytes).expect("a file selection");
     assert_eq!(op, "copy");
     assert_eq!(paths, vec!["/tmp/ok.txt".to_string(), "/tmp/second.txt".to_string()]);
-    assert_eq!(skipped, 8);
+    assert_eq!(skipped, 9);
 }
 
 #[test]

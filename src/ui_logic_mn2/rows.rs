@@ -2,7 +2,7 @@
 use super::agent;
 use super::plugins::{self, Contribution};
 use super::wire::{Action, Listing};
-use crate::ui_logic_mn1::entry::{Entry, Text};
+use crate::ui_logic_mn1::entry::{Entry, Text, MARK_NAMES};
 
 // The stored id Settings > Menus hides by; it ships hidden with Run Script's place (DESIGN-040 Defaults ledger).
 pub const ID: &str = "actions";
@@ -24,92 +24,48 @@ pub fn agent_row(hidden: &[String]) -> Option<Entry> {
     Some(entry)
 }
 
-// The mark a flyout leaf draws for the kind the action takes: the board's three image actions each carry the image mark, and any other kind leaves the leaf on the flyout's own mark.
-pub fn kind_mark(top: &str) -> Option<&'static str> {
+// The mark a flyout leaf draws for the MIME globs its action takes: an action whose every glob is one image type or image/* carries the image mark, as the board's three image actions do, and any other leaf keeps the flyout's own mark.
+pub fn kind_mark(globs: &[String]) -> Option<&'static str> {
+    let top = globs.first()?.split('/').next()?;
+    if !globs.iter().all(|glob| glob.split('/').next() == Some(top)) {
+        return None;
+    }
     match top {
         "image" => Some("image"),
         _ => None,
     }
 }
 
-// The file menu's Actions row: hidden at defaults, shown whenever an action or script matches the selection; `kind` is the selection's shared MIME top type when the host knows every selected path shares one.
-pub fn actions_row(hidden: &[String], listing: &Listing, kind: Option<&str>) -> Option<Entry> {
+// The file menu's Actions row: hidden at defaults, shown whenever an action or script matches the selection.
+pub fn actions_row(hidden: &[String], listing: &Listing) -> Option<Entry> {
     if crate::ui_logic_mn1::rows::is_hidden(hidden, ID) || listing.actions.is_empty() {
         return None;
     }
     let mut entry = Entry::row(ID, Text::Key(LABEL_KEY), GLYPH);
     entry.action = FIRE.into();
-    let mark = kind.and_then(kind_mark);
-    entry.submenu = Some(listing.actions.iter().map(|a| leaf(a, mark)).collect());
+    entry.submenu = Some(listing.actions.iter().map(leaf).collect());
     Some(entry)
 }
 
-fn leaf(action: &Action, mark: Option<&'static str>) -> Entry {
+fn leaf(action: &Action) -> Entry {
     let mut entry = Entry::leaf(action.id.clone(), Text::Data(action.name.clone()));
     entry.action = FIRE.into();
-    // A manifest action is marked with the kind it takes; scripts and leaves with no boarded kind keep the flyout's terminal mark.
+    // A manifest action is marked with the kind its own globs take; scripts and leaves with no boarded kind keep the flyout's terminal mark.
     entry.glyph = if action.script {
         Some(FLYOUT_GLYPH)
     } else {
-        mark.or(Some(FLYOUT_GLYPH))
+        kind_mark(&action.mime).or(Some(FLYOUT_GLYPH))
     };
     entry
 }
 
-// Every mark the window can draw by name: mn1's own cut table, plus the three mn2 cuts handed to the join as data (MARKS); a plugin row names any of them and mn1's draw filters, and any other mark stays with the plugin's own SVG, which the host draws from its mark path at join.
+// Every mark the window can draw by name: mn1's one list (MARK_NAMES), plus the mn2 cuts handed to the join as data (MARKS); a plugin row names any of them and mn1's draw filters, and any other mark stays with the plugin's own SVG, which the host draws from its mark path at join.
 pub fn static_glyph(name: &str) -> Option<&'static str> {
-    Some(match name {
-        "app-window" => "app-window",
-        "archive" => "archive",
-        "archive-out" => "archive-out",
-        "bot" => "bot",
-        "check" => "check",
-        "checkmark" => "checkmark",
-        "chevron-right" => "chevron-right",
-        "clipboard" => "clipboard",
-        "code" => "code",
-        "columns" => "columns",
-        "contrast" => "contrast",
-        "copy" => "copy",
-        "download" => "download",
-        "drive" => "drive",
-        "eject" => "eject",
-        "eye" => "eye",
-        "eye-off" => "eye-off",
-        "file" => "file",
-        "file-plus" => "file-plus",
-        "file-text" => "file-text",
-        "folder" => "folder",
-        "folder-open" => "folder-open",
-        "folder-plus" => "folder-plus",
-        "globe" => "globe",
-        "hash" => "hash",
-        "image" => "image",
-        "images" => "images",
-        "info" => "info",
-        "key" => "key",
-        "lock" => "lock",
-        "minus" => "minus",
-        "network" => "network",
-        "play" => "play",
-        "plus" => "plus",
-        "printer" => "printer",
-        "rename" => "rename",
-        "scissors" => "scissors",
-        "server" => "server",
-        "shelf" => "shelf",
-        "sliders" => "sliders",
-        "sort" => "sort",
-        "star" => "star",
-        "symlink" => "symlink",
-        "tag" => "tag",
-        "terminal" => "terminal",
-        "trash" => "trash",
-        "type" => "type",
-        "undo" => "undo",
-        "zap" => "zap",
-        _ => return None,
-    })
+    MARK_NAMES
+        .iter()
+        .copied()
+        .chain(MARKS.iter().map(|(id, _)| *id))
+        .find(|id| *id == name)
 }
 
 // The cut paths mn2 hands the join so it can register what mn1 does not draw yet: zap and bot from the board source (`design-hig/source/ui.py`, lucide's zap and bot cut to the Omarchy edge), hash as the plugin board draws Verify Checksum (`boards/plugin-menu-rows.html`, lucide's hash).

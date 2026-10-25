@@ -14,6 +14,7 @@ pub enum LinkKind {
 }
 
 impl LinkKind {
+    // Sample input: "pasteHardLink" or "hard" reads Hard; an unknown leaf reads None.
     pub fn parse(leaf: &str) -> Option<Self> {
         Some(match leaf {
             "pasteLink" | "relative" => Self::Relative,
@@ -65,6 +66,9 @@ pub struct Stamp {
     pub second: u32,
 }
 
+// struct tm counts years from 1900.
+const TM_YEAR_BASE: i32 = 1900;
+
 // glibc's struct tm, which localtime_r fills whole; the stamp reads the six clock fields.
 #[repr(C)]
 struct Tm {
@@ -96,7 +100,7 @@ pub fn stamp_at(seconds: i64) -> Option<Stamp> {
         tm.assume_init()
     };
     Some(Stamp {
-        year: tm.year + 1900,
+        year: tm.year + TM_YEAR_BASE,
         month: (tm.mon + 1) as u32,
         day: tm.mday as u32,
         hour: tm.hour as u32,
@@ -128,11 +132,6 @@ pub fn copy_as_text(paths: &[String], format: Format) -> Option<String> {
     }
     let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
     Some(copyas::lines(&refs, format))
-}
-
-// With rows instead of paths the backend resolves them first, as clip does; the host keeps the one shared pending slot (G1 pane).
-pub fn copy_as_rows() -> CopyAsOut {
-    CopyAsOut::AskPaths
 }
 
 // The answer to the rows request above; an empty resolution stays quiet.

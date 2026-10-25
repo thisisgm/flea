@@ -58,11 +58,7 @@ impl Shell {
     fn open_agent(&mut self, side: usize, folder: &str, cx: &mut Context<Self>) {
         let result = match self.menu.agent.clone() {
             Some(launch) => launch(Path::new(folder)),
-            None => super::launch::launch_agent(Path::new(folder)).map(|mut child| {
-                let _ = std::thread::Builder::new()
-                    .name("flea-agent".into())
-                    .spawn(move || child.wait());
-            }),
+            None => super::launch::launch_agent_reaped(Path::new(folder)),
         };
         if let Err(error) = result {
             let sentence = self

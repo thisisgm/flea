@@ -43,6 +43,8 @@ pub struct Action {
     pub mode: String,
     pub selection: String,
     pub script: bool,
+    // The MIME globs the action takes, as its manifest names them; a script takes "*/*".
+    pub mime: Vec<String>,
 }
 
 // A manifest refusal the backend could not parse, kept with the file it came from.
@@ -84,6 +86,10 @@ pub fn parse_listing(line: &str) -> Option<Listing> {
             mode: text(item, "mode"),
             selection: text(item, "selection"),
             script: item.get("script").and_then(Json::as_bool).unwrap_or(false),
+            mime: match item.get("mime") {
+                Some(Json::Arr(globs)) => globs.iter().filter_map(Json::as_str).map(String::from).collect(),
+                _ => Vec::new(),
+            },
         })
     };
     let actions = match doc.get("actions") {

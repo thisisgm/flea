@@ -12,7 +12,7 @@ fn listed(actions: &mut Actions) {
         open,
         r#"{"c":"actions","op":"list","id":1,"paths":["/fx/a.jpg","/fx/b.jpg"]}"#
     );
-    actions.receive(r#"{"t":"actions","id":1,"actions":[{"id":"action:resize.toml","name":"Resize to 1600 px","mode":"background","selection":"many","script":false}],"errors":[],"error":""}"#);
+    actions.receive(r#"{"t":"actions","id":1,"actions":[{"id":"action:resize.toml","name":"Resize to 1600 px","mode":"background","selection":"many","script":false,"mime":["image/*"]}],"errors":[],"error":""}"#);
 }
 
 fn checksums() -> Contribution {
@@ -42,7 +42,7 @@ fn file_item(mime: &str) -> Item {
 fn mn2_a_menu_open_discovers_for_its_own_snapshot() {
     let mut actions = Actions::default();
     listed(&mut actions);
-    let row = actions.actions_entry(&[], Some("image")).unwrap();
+    let row = actions.actions_entry(&[]).unwrap();
     assert_eq!(row.submenu.unwrap().len(), 1);
     assert!(actions.take_said().is_empty());
 }
@@ -54,7 +54,7 @@ fn mn2_a_stale_listing_never_reaches_the_rows() {
         .menu_opened(vec!["/fx/a.jpg".into()])
         .expect("a one-path menu discovers");
     actions.receive(r#"{"t":"actions","id":9,"actions":[{"id":"action:old.toml","name":"Old","mode":"background","selection":"many","script":false}],"errors":[],"error":""}"#);
-    assert!(actions.actions_entry(&[], None).is_none());
+    assert!(actions.actions_entry(&[]).is_none());
     assert!(actions.take_said().is_empty(), "a superseded reply says nothing");
 }
 
@@ -66,7 +66,7 @@ fn mn2_a_refused_listing_is_said_through_its_key() {
         .menu_opened(vec!["relative/path".into()])
         .expect("even a relative menu asks; the backend refuses");
     actions.receive(r#"{"t":"actions","id":1,"actions":[],"errors":[],"error":"Actions require absolute selection paths."}"#);
-    assert!(actions.actions_entry(&[], None).is_none());
+    assert!(actions.actions_entry(&[]).is_none());
     assert_eq!(
         actions.take_said(),
         [Said::Key {
@@ -85,7 +85,7 @@ fn mn2_a_huge_selection_skips_discovery_quietly() {
     let mut actions = Actions::default();
     let paths: Vec<String> = (0..5000).map(|n| format!("/fx/{n}.jpg")).collect();
     assert_eq!(actions.menu_opened(paths), None);
-    assert!(actions.actions_entry(&[], None).is_none());
+    assert!(actions.actions_entry(&[]).is_none());
     assert!(actions.take_said().is_empty());
 }
 
@@ -106,6 +106,8 @@ fn mn2_a_choice_runs_explicitly_under_its_own_id() {
 #[test]
 fn mn2_a_refused_run_is_said_and_a_terminal_failure_stays_data() {
     let mut actions = Actions::default();
+    actions.run_sent(2);
+    actions.run_sent(3);
     actions.receive(r#"{"t":"actionstarted","requestId":2,"ok":false,"error":"That action no longer matches the selection."}"#);
     actions.receive(
         r#"{"t":"actionstarted","requestId":3,"ok":false,"error":"empty terminal action"}"#,
@@ -128,6 +130,7 @@ fn mn2_a_refused_run_is_said_and_a_terminal_failure_stays_data() {
 #[test]
 fn mn2_an_exited_run_says_its_status() {
     let mut actions = Actions::default();
+    actions.run_sent(2);
     actions.receive(r#"{"t":"actionstarted","requestId":2,"ok":false,"error":"Action exited with exit status: 2."}"#);
     assert_eq!(
         actions.take_said(),
@@ -201,7 +204,7 @@ fn mn2_a_failed_preview_is_said_and_closing_drops_the_preview_wait() {
     waiting.menu_closed();
     waiting.receive(r#"{"t":"actions","id":1,"actions":[],"errors":[],"error":""}"#);
     assert!(
-        waiting.actions_entry(&[], None).is_none(),
+        waiting.actions_entry(&[]).is_none(),
         "the dropped listing never lands"
     );
     waiting.preview_closed();
@@ -265,7 +268,7 @@ fn mn2_the_background_menu_gains_the_agent_and_no_actions() {
     let agent = actions.agent_entry(&[]).unwrap();
     assert_eq!(agent.id.as_ref(), "openAgent");
     assert!(
-        actions.actions_entry(&[], None).is_none(),
+        actions.actions_entry(&[]).is_none(),
         "undiscovered means no row"
     );
 }
@@ -305,7 +308,7 @@ fn mn2_every_emitted_mark_is_drawn_or_handed_to_the_join(cx: &mut TestAppContext
     let one = [file_item("image/png")];
     let mut entries = Vec::new();
     entries.push(actions.agent_entry(&[]).unwrap());
-    entries.push(actions.actions_entry(&[], Some("image")).unwrap());
+    entries.push(actions.actions_entry(&[]).unwrap());
     entries.extend(actions.plugin_entries(&[], false, &one));
     let window = cx.add_window(|_, _| Root);
     window
@@ -340,4 +343,18 @@ fn mn2_every_emitted_mark_is_drawn_or_handed_to_the_join(cx: &mut TestAppContext
             }
         })
         .unwrap();
+}
+
+#[test]
+fn int3_only_a_held_run_has_its_refusal_said_once() {
+    let mut actions = Actions::default();
+    let refused = r#"{"t":"actionstarted","requestId":9,"ok":false,"error":"empty terminal action"}"#;
+    actions.receive(refused);
+    assert!(actions.take_said().is_empty(), "a run this window never sent is not said");
+    actions.run_sent(9);
+    actions.receive(r#"{"t":"actionstarted","requestId":9,"id":40,"ok":true,"error":""}"#);
+    assert!(actions.take_said().is_empty(), "a started run is quiet");
+    actions.receive(refused);
+    actions.receive(refused);
+    assert_eq!(actions.take_said().len(), 1, "a held run's refusal is said once");
 }

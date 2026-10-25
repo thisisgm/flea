@@ -155,16 +155,18 @@ fn a_paths_reply_nobody_asked_the_clipboard_for_is_left_to_its_owner(cx: &mut Te
 #[gpui::test]
 fn columns_and_grid_read_the_same_marks(cx: &mut TestAppContext) {
     let (handle, _lines) = cut_then_paste(cx);
-    edit(cx, handle, |shell, _, _| {
+    edit(cx, handle, |shell, window, cx| {
         let marks = shell.clipboard.column_marks().expect("a held cut lends Columns its marks");
         assert_eq!(marks.mark("/files", "a.txt"), crate::columns::paint::Clip::Cut);
         assert_eq!(marks.mark("/files", "b.txt"), crate::columns::paint::Clip::None);
-        let grid = super::marks::GridMarks { marks: std::rc::Rc::new(super::marks::ViewMarks::new(
-            shell.clipboard.board.revision(),
-            shell.clipboard.board.current(),
-        )), base: "/files".into() };
+        shell.set_view(crate::window::startup::View::Grid, window, cx);
+    });
+    // The frame runs sync_clip_marks, which hands the Grid host its decor; the test reads that decor, never one it built.
+    frame(cx, handle);
+    edit(cx, handle, |shell, _, _| {
+        let grid = shell.panes[0].as_ref().unwrap().grid.as_ref().expect("the pane draws a Grid");
         let row = flea::protocol::RowFacts { name: "a.txt".into(), ..Default::default() };
-        let clip = crate::grid::element::Decor::clip_row(&grid, 0, Some(&row)).expect("the Grid tile is marked");
+        let clip = grid.decor.clip_row(0, Some(&row)).expect("the Grid tile is marked");
         assert!(clip.cut);
         assert_eq!(clip.key.as_ref(), "flea-mark:scissors");
     });

@@ -205,12 +205,18 @@ pub(crate) fn request(line: String, mime: Arc<super::mime::Db>, tx: Sender<OpMsg
                 .iter()
                 .map(|a| {
                     format!(
-                        r#"{{"id":"{}","name":"{}","mode":"{}","selection":"{}","script":{}}}"#,
+                        r#"{{"id":"{}","name":"{}","mode":"{}","selection":"{}","script":{},"mime":[{}]}}"#,
                         escape(&a.id),
                         escape(&a.manifest.name),
                         a.manifest.mode,
                         a.manifest.selection,
-                        a.script
+                        a.script,
+                        a.manifest
+                            .mime
+                            .iter()
+                            .map(|glob| format!("\"{}\"", escape(glob)))
+                            .collect::<Vec<_>>()
+                            .join(",")
                     )
                 })
                 .collect();

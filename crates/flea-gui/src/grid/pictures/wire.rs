@@ -32,8 +32,10 @@ impl Shell {
                 if !shown {
                     continue;
                 }
-                // Plain stands in until the first shown frame; from here on the pane's tiles borrow these.
-                grid.decor = Rc::new(Pictures::default());
+                // Plain stands in until the first shown frame; from here on the pane's tiles borrow these, and the marks the old decor drew ride inside.
+                let pictures = Pictures::default();
+                pictures.set_clip(Rc::clone(&grid.decor));
+                grid.decor = Rc::new(pictures);
             }
             let pictures = grid.decor.pictures().expect("installed above");
             let mut map = pictures.map.borrow_mut();
