@@ -101,6 +101,7 @@ fn sweep_dir(dir: &Path, now: SystemTime) {
             continue;
         }
         let path = entry.path();
+        if !crate::persistdoc::replaceable(&path, MAX_BYTES, b"", recognized) { continue; }
         let keep = std::fs::symlink_metadata(&path)
             .ok()
             .filter(|meta| !meta.file_type().is_symlink() && meta.is_file())
@@ -194,7 +195,7 @@ fn publish(dest: &Path, bytes: &[u8]) -> Result<(), String> {
                 .map_err(|e| format!("gvfs prefetch temp {} could not be written ({:?})", tmp.display(), e.kind()))
         })
         .and_then(|()| {
-            std::fs::rename(&tmp, dest)
+            std::fs::hard_link(&tmp, dest).and_then(|()| std::fs::remove_file(&tmp))
                 .map_err(|e| format!("gvfs prefetch {} could not be published ({:?})", dest.display(), e.kind()))
         });
     if written.is_err() {
@@ -274,22 +275,24 @@ pub(crate) fn adopt_in(
         }
         std::thread::sleep(Duration::from_millis(POLL_MS));
     }
-    // Atomic claim: only the rename winner reads; the loser finds the claim above.
+    // Refused bytes stay at their original path, without a claim or truncation.
+    let bytes = read_prefetch(dest, start_ms)?;
+    let adopted = if bytes == FAIL_MARKER { None } else {
+        let text = std::str::from_utf8(&bytes).ok()?;
+        Some((gvfslist::build_listing(text, hidden, path).ok()?, t.elapsed().as_secs_f64() * 1000.0))
+    };
+    // Atomic claim: only the rename winner adopts; the loser finds the claim above.
     if std::fs::rename(dest, &claimed).is_err() {
         return None;
     }
-    // Whatever the outcome, the claim shrinks to an empty marker so a refused or adopted listing never sits in RAM.
-    let adopted = (|| {
-        let bytes = read_prefetch(&claimed, start_ms)?;
-        // A failure marker ends the wait immediately; the scan takes today's gio path.
-        if bytes == FAIL_MARKER {
-            return None;
-        }
-        let text = String::from_utf8(bytes).ok()?;
-        Some((gvfslist::build_listing(&text, hidden, path).ok()?, t.elapsed().as_secs_f64() * 1000.0))
-    })();
     shrink_claim(&claimed);
     adopted
+}
+
+// A listing cut short keeps whole rows up to its last newline, and a cut marker is a prefix of the marker.
+fn recognized(bytes: &[u8]) -> bool {
+    let Some(end) = bytes.iter().rposition(|b| *b == b'\n') else { return FAIL_MARKER.starts_with(bytes) };
+    bytes == FAIL_MARKER || std::str::from_utf8(&bytes[..=end]).is_ok_and(|text| text.lines().all(|line| gvfslist::parse_line(line, true).is_ok()))
 }
 
 // The checks a reader applies before trusting a file it did not write itself; adopt_in has checked its dir.

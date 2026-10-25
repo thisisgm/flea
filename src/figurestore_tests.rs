@@ -69,7 +69,7 @@ fn an_entry_filed_under_another_keys_name_is_refused() {
 }
 
 #[test]
-fn a_corrupt_entry_is_a_miss_and_the_next_put_replaces_it() {
+fn an_unsupported_entry_stays_unchanged_on_the_next_put() {
     let dir = TestDir::new("figure-store-corrupt");
     let store = dir.join("svg");
     let k = math("x^2");
@@ -87,23 +87,33 @@ fn a_corrupt_entry_is_a_miss_and_the_next_put_replaces_it() {
     let wrong_length = String::from_utf8(good.clone()).expect("text").replacen(&format!("{} {}", k.len(), SVG.len()), &format!("{} {}", k.len(), SVG.len() + 1), 1).into_bytes();
     let cases: Vec<(&str, Vec<u8>)> = vec![("an empty file", Vec::new()), ("a truncated file", good[..good.len() - 1].to_vec()), ("a trailing byte", longer),
         ("a flipped byte", flipped), ("a foreign magic", foreign_magic),
+        ("a foreign object", b"{\"foreign\":true}".to_vec()),
         ("a wrong svg length", wrong_length), ("binary noise", vec![0xff; 300])];
     for (label, bytes) in cases {
-        put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("put");
+        fs::create_dir_all(&store).expect("store");
         fs::write(&target, &bytes).expect("damage");
         let refused = get(&store, &k);
         // A flipped byte inside the svg is the one damage the key and lengths cannot see, and it is only a different figure of the same key.
         if label != "a flipped byte" {
             assert_eq!(refused, None, "{label}");
         }
-        put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("replace");
-        assert_eq!(get(&store, &k).as_deref(), Some(SVG), "{label} is replaced");
+        // Empty bytes, or bytes under this writer's own format line, are its own write torn or damaged, which 0.3.12 replaced.
+        let torn = bytes.is_empty() || bytes.starts_with(format!("{FORMAT}\n").as_bytes());
+        if label == "a flipped byte" || torn {
+            assert_eq!(torn, ["an empty file", "a truncated file", "a trailing byte", "a flipped byte", "a wrong svg length"].contains(&label), "{label}");
+            put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("understood wrapper");
+            assert_eq!(get(&store, &k).as_deref(), Some(SVG));
+        } else {
+            assert_eq!(put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES), None);
+            evict(&store, 0, 0);
+            assert_eq!(fs::read(&target).expect("preserved document"), bytes, "{label}");
+        }
     }
     fs::remove_file(&target).expect("unlink");
     std::os::unix::fs::symlink(dir.file("elsewhere", &String::from_utf8(good).expect("text")), &target).expect("link");
     assert_eq!(get(&store, &k), None, "a linked entry is never followed");
-    put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("replace the link");
-    assert!(fs::symlink_metadata(&target).expect("entry").is_file(), "the link is replaced by a plain file");
+    assert_eq!(put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES), None);
+    assert!(fs::symlink_metadata(&target).expect("entry").file_type().is_symlink());
     assert_eq!(fs::read_to_string(dir.join("elsewhere")).expect("target").len(), encode(&k, SVG).len(), "the link's target is untouched");
 }
 
@@ -239,4 +249,23 @@ fn the_wire_answers_get_put_and_known_and_ignores_the_rest() {
     // With the cache off a get is a miss, a put does nothing and nothing is known.
     assert_eq!(answer(None, &get_line).as_deref(), Some("{\"id\":7,\"miss\":true}"));
     assert_eq!(answer(None, &line("known", &format!("\"id\":8,\"keys\":[\"{figures}\"]"))).as_deref(), Some("{\"id\":8,\"known\":false}"));
+}
+
+#[test]
+fn an_empty_or_cut_short_entry_is_replaced_and_evicted() {
+    let dir = TestDir::new("figure-store-torn");
+    let store = dir.join("svg");
+    let k = math("x^3");
+    put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("put");
+    let entry = store.join(entry_name(&k).expect("name"));
+    let whole = fs::read(&entry).expect("entry");
+    for torn in [&b""[..], &whole[..5], &whole[..whole.len() - 4]] {
+        fs::write(&entry, torn).expect("torn");
+        assert_eq!(get(&store, &k), None, "a torn entry is a miss");
+        put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("the next put replaces it");
+        assert_eq!(get(&store, &k).as_deref(), Some(SVG));
+        fs::write(&entry, torn).expect("torn again");
+        evict(&store, 0, 0);
+        assert!(!entry.exists(), "and the bound evicts it");
+    }
 }

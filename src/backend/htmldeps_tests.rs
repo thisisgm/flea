@@ -113,3 +113,21 @@ fn a_loaded_sheet_deleted_before_record_cannot_be_cached_as_absent() {
     let mixed = r#"{"resources":[{"url":"file:///page/loaded.css","failed":true},{"url":"file:///page/loaded.css","failed":false}],"overflow":false}"#;
     assert!(record(mixed, d.path(), started).is_none(), "a failed duplicate must not hide a loaded resource");
 }
+
+#[test]
+fn foreign_and_newer_dependencies_survive_read_and_first_publish() {
+    let d = crate::backend::testdir::TestDir::new("html-deps-preserve");
+    let dest = d.join("existing.png");
+    let deps = sidecar(&dest);
+    let png = d.join("new.png");
+    let record = d.join("new.deps");
+    for original in ["{\"foreign\":true}\n", "{\"version\":999,\"dependencies\":[]}", "unparsable"] {
+        std::fs::write(&deps, original).unwrap();
+        std::fs::write(&png, b"\x89PNG\r\n\x1a\n").unwrap();
+        std::fs::write(&record, "{\"version\":1,\"dependencies\":[]}").unwrap();
+        assert!(!unchanged(&dest, d.path()));
+        assert_eq!(std::fs::read_to_string(&deps).unwrap(), original);
+        assert!(crate::backend::htmlcache::publish(&png, &record, &dest).unwrap_err().to_string().contains("left unchanged"));
+        assert_eq!(std::fs::read_to_string(&deps).unwrap(), original);
+    }
+}

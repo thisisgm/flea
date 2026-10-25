@@ -7,6 +7,11 @@ type Step = fn(Json) -> Json;
 const STEPS: &[(f64, Step)] =
     &[(1.0, show_unmounted_drives), (2.0, hide_new_menu_rows), (3.0, hide_run_rows)];
 
+// Automatic settlement must leave a newer schema for the version that understands it.
+pub fn newer_than_known(found: &Json) -> bool {
+    STEPS.last().is_some_and(|(known, _)| stored_version(found) > *known)
+}
+
 // The file as found carries the stamp: the merged document already holds the shipped one in its place.
 pub fn migrated(found: &Json, merged: Json) -> Json {
     let stored = stored_version(found);

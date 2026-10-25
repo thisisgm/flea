@@ -111,3 +111,34 @@ fn a_file_past_the_size_cap_is_a_miss_even_when_its_lines_are_valid() {
     std::fs::write(&path, padded(MAX_FILE_BYTES + 1)).unwrap();
     assert_eq!(read_cached(&path, &key), None, "one byte past the cap");
 }
+
+#[test]
+fn foreign_and_newer_documents_survive_launch_probe_and_first_write() {
+    let d = TestDir::new("vk-preserve");
+    let path = d.join("vulkan-probe");
+    for original in ["{\"foreign\":true}\n", "flea-vulkan-probe 999\nkey\n8086 a788 1\n", "unparsable"] {
+        std::fs::write(&path, original).unwrap();
+        assert_eq!(get(Some("new-key"), Some(&path), false, &|| Ok(vec![(1, 2, 3)])), Ok(vec![(1, 2, 3)]));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+        write_cached(&path, &render("new-key", &[(1, 2, 3)]));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+    }
+}
+
+#[test]
+fn an_empty_or_cut_short_cache_is_rewritten_by_the_next_probe() {
+    let d = TestDir::new("vk-torn");
+    let path = d.join("vulkan-probe");
+    let key = crate::figurecache::digest(b"torn");
+    let whole = render(&key, &[(1, 2, 3)]);
+    for torn in [String::new(), VERSION[..7].to_string(), whole[..whole.len() - 3].to_string()] {
+        std::fs::write(&path, &torn).unwrap();
+        let probes = Cell::new(0);
+        let probe = || { probes.set(probes.get() + 1); Ok(vec![(1, 2, 3)]) };
+        for _ in 0..3 {
+            assert_eq!(get(Some(&key), Some(&path), false, &probe), Ok(vec![(1, 2, 3)]));
+        }
+        assert_eq!(probes.get(), 1, "{torn:?}: three launches probe once, as 0.3.12 did");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), whole);
+    }
+}

@@ -179,6 +179,9 @@ fn look(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &str, run
     })
     .map_err(|e| e.msg)??;
     let key = key(&font, &meta, ask);
+    for i in 0..SAMPLES {
+        crate::cachewrite::require(&entry(root, &key, i)).map_err(|e| e.to_string())?;
+    }
     if let Some(files) = cached(root, &key) {
         return Ok((facts, files));
     }
