@@ -186,6 +186,7 @@ short_version() {
     "NOT INSTALLED") printf 'NOT INSTALLED'; return 0 ;;
     unpackaged\ at\ *) printf 'unpackaged'; return 0 ;;
     archive\ *)
+      # Sample input: "strata-stable gui archive 1.0.0 {"archive": {"id": "strata-stable", ...}, "version": "strata 1.0.0", ...}".
       rest=${rest#archive }
       version=${rest%% *}
       receipt=${rest#* }

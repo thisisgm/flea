@@ -1783,7 +1783,8 @@ if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
     only_has "$archive_id" || continue
     case $archive_id in
       strata-stable) archive_binary=$STRATA_BIN ;;
-      strata-nightly) archive_binary=$STRATA_NIGHTLY_BIN ;;
+      # An unset nightly is not configured, as in build_entrants, never Path('') (the current directory).
+      strata-nightly) [ -n "${STRATA_NIGHTLY_BIN:-}" ] || continue; archive_binary=$STRATA_NIGHTLY_BIN ;;
       xplr) archive_binary=$(command -v xplr) || fail 'B5 xplr is absent from benchmark PATH' ;;
     esac
     python3 -B "$(dirname "$MANIFEST_TOOL")/flea_bench_product.py" "$B5_RIVAL_MANIFEST" "$archive_id" "$archive_binary" >/dev/null \

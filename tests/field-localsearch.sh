@@ -10,11 +10,12 @@ case $scratch in
 esac
 : > "$scratch/.flea-test-sandbox"
 trap 'pkill -9 -f -- "$scratch/bin/" 2>/dev/null || true; [ -f "$scratch/.flea-test-sandbox" ] && rm -rf "$scratch"' EXIT
-if pgrep -x 'localsearch-3|localsearch-ext' > /dev/null; then
-  echo "FAIL: a real localsearch process runs on this host; stop it before this suite, which never ends one it did not start" >&2
-  exit 1
+# A PID namespace of its own, so a host indexer can neither fail the suite nor be seen by its pgrep.
+if ! why=$(unshare --user --pid --fork --mount-proc true 2>&1); then
+  echo "SKIP field-localsearch: unshare --user --pid --fork --mount-proc is unavailable on this host: ${why:-no message}"
+  exit 0
 fi
-python3 -B - "$scratch" "${FIELD_LOCALSEARCH_TOOL:-tools/flea-field-search}" <<'PY'
+unshare --user --pid --fork --mount-proc python3 -B - "$scratch" "${FIELD_LOCALSEARCH_TOOL:-tools/flea-field-search}" <<'PY'
 import os
 import signal
 import subprocess
@@ -29,8 +30,7 @@ for name in ('localsearch-3', 'localsearch-ext'):
     (bindir / name).write_bytes(Path('/usr/bin/sleep').read_bytes())
     (bindir / name).chmod(0o755)
 
-# The driver loads the real tool, passes require_idle, lets a pretend entrant activate both indexers
-# outside its own process tree (dbus activation does that), then fails or waits as asked.
+# The driver loads the real tool, activates both indexers outside its own tree as dbus would, then fails or waits as asked.
 driver = root / 'driver.py'
 driver.write_text('''
 import os, subprocess, sys, time
@@ -103,6 +103,7 @@ assert '"start"' in ledger and '"end"' in ledger, ledger
 rc, err, pids = run('wait', root / 'ledger-term.jsonl', signal.SIGTERM)
 left = settle(pids)
 reap(left)
+assert rc == 143 and len(pids) == 2, (rc, err, pids)
 assert not left, 'SIGTERM left the activated indexers running: %r' % left
 
 # 3. A run that is killed outright leaves them, and the next refusal says this harness started them.
@@ -127,5 +128,18 @@ stray.wait()
 assert rc != 0 and 'localsearch-3 pid %d started 20' % stray.pid in err, err
 assert 'this harness did not start it' in err, err
 assert alive_after, 'a refusal must leave the foreign indexer alone'
+
+# 5. A run killed days ago never wrote its end, so it covers nothing started today.
+stale = root / 'ledger-stale.jsonl'
+stale.write_text('{"id": "old", "pid": 4242, "start": %f}\n' % (time.time() - 2 * 86400))
+stray = subprocess.Popen([str(bindir / 'localsearch-3'), '300'], start_new_session=True, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(0.3)
+rc, err, _ = run('refuse-only', stale)
+stray.kill()
+stray.wait()
+begun = time.strftime('%Y-%m-%d', time.localtime(time.time() - 2 * 86400))
+assert rc != 0 and 'this harness started it' not in err, err
+assert 'begun %s ' % begun in err and 'not attributable to this harness' in err, err
 print('field-localsearch: all passed')
 PY

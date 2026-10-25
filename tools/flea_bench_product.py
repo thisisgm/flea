@@ -17,9 +17,11 @@ def archive_identity(receipt_path, archive_id, binary):
         raise ValueError('receipt must name exactly one archive: ' + archive_id)
     asset = matches[0]
     for field in ('tag', 'url', 'sha256', 'expected_version', 'binary_path', 'binary_sha256',
-                  'source_commit', 'tag_commit'):
+                  'source_commit', 'tag_commit', 'version_check'):
         if field not in asset:
             raise ValueError('archive receipt missing ' + field)
+    if not isinstance(asset['version_check'], dict):
+        raise ValueError('invalid archive receipt version_check')
     for field in ('sha256', 'binary_sha256'):
         digest = asset[field]
         if len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
@@ -107,7 +109,9 @@ def identity(arm, argv):
     if arm["entrant"] == "flea":
         result["frontend"] = frontend(arm)
         if arm.get("flea_dir"):
-            result["build_sha"] = output(["git", "-C", arm["flea_dir"], "rev-parse", "HEAD"])
+            tree = os.path.realpath(arm["flea_dir"])
+            inside = os.path.commonpath([tree, os.path.realpath(binary)]) == tree
+            result["build_sha"] = output(["git", "-C", tree, "rev-parse", "HEAD"]) if inside else "unknown"
         if frontend(arm) == "gpui":
             gui = os.path.join(os.path.dirname(binary), "flea-gui")
             if not os.access(gui, os.X_OK):
@@ -127,7 +131,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     checked = archive_identity(args.receipt, args.archive_id, args.binary)
     if args.row:
-        print('%s %s archive %s %s' % (args.archive_id, args.row,
-              checked['version'].split(' ', 1)[1], json.dumps(checked, sort_keys=True)))
+        name, _, version = checked['version'].partition(' ')
+        version = version or name
+        if ' ' in version:
+            raise ValueError('archive version is not "name version" or one word: ' + checked['version'])
+        print('%s %s archive %s %s' % (args.archive_id, args.row, version, json.dumps(checked, sort_keys=True)))
     else:
         print(json.dumps(checked, sort_keys=True))
