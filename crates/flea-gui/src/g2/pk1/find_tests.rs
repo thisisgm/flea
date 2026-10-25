@@ -137,3 +137,99 @@ fn escape_clears_the_filter_first_and_a_second_escape_cancels(cx: &mut TestAppCo
     f.settle(|f| f.written().is_some());
     assert_eq!(f.written().as_deref(), Some(r#"{"response":1}"#));
 }
+
+fn chord(f: &mut Fixture, key: &str) {
+    let keystroke = Keystroke {
+        key: key.into(),
+        modifiers: Modifiers {
+            control: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let event = KeyDownEvent {
+        keystroke,
+        is_held: false,
+        prefer_character_input: false,
+    };
+    let picker = f.picker.clone();
+    f.cx.update(|window, cx| picker.update(cx, |picker, cx| picker.key(&event, window, cx)));
+    f.cx.run_until_parked();
+}
+
+#[gpui::test]
+fn a_key_the_line_declines_returns_once_and_leaves_the_caret(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    f.cx.run_until_parked();
+    // The matches sit apart and off row 0, so neither a step nor a leaked key looks like the list's own move.
+    listed(&mut f, &["alpha.txt", "notes.txt", "zeta.md", "nuts.txt"]);
+    press(&mut f, "/", Some("/"));
+    press(&mut f, "n", Some("n"));
+    answer(&mut f, 1, "n", "1,3");
+    press(&mut f, "tab", None);
+    press(&mut f, "f5", None);
+    chord(&mut f, "k");
+    assert_eq!(
+        strip(&mut f),
+        Some(("n".into(), true, "2".into())),
+        "Tab, an F-key and an unbound chord are consumed on the line and keep its caret"
+    );
+    assert_eq!(f.read(|picker| picker.listing.cursor), 1);
+    press(&mut f, "down", None);
+    assert_eq!(
+        strip(&mut f),
+        Some(("n".into(), false, "2".into())),
+        "a key that leaves the line commits it first"
+    );
+    assert_eq!(
+        f.read(|picker| picker.listing.cursor),
+        3,
+        "and the same key's second pass steps to the next match"
+    );
+}
+
+#[gpui::test]
+fn a_cursor_key_on_an_empty_line_closes_it_and_returns(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    f.cx.run_until_parked();
+    listed(&mut f, &["alpha.txt", "notes.txt"]);
+    press(&mut f, "/", Some("/"));
+    assert_eq!(strip(&mut f), Some((String::new(), true, "2".into())));
+    press(&mut f, "down", None);
+    assert_eq!(strip(&mut f), None, "an empty line has nothing to stand, so it closes");
+    assert_eq!(
+        f.read(|picker| picker.listing.cursor),
+        1,
+        "and the key still moves the list, which owns it once nothing is drawn"
+    );
+}
+
+#[gpui::test]
+fn the_shown_count_is_the_backend_total_after_the_type_chip(cx: &mut TestAppContext) {
+    let mut f = fixture(
+        cx,
+        r#"{"folder":"/d","filters":[{"label":"Text","globs":["*.txt"]}]}"#,
+        None,
+    );
+    f.cx.run_until_parked();
+    assert!(
+        f.listing
+            .sent()
+            .iter()
+            .any(|line| line.contains(r#""pickerGlobs":["*.txt"]"#)),
+        "the chip narrows on the backend: {:?}",
+        f.listing.sent()
+    );
+    listed(&mut f, &["a.txt", "b.txt"]);
+    assert_eq!(f.read(|picker| picker.listing.shown_total), 2);
+    press(&mut f, "/", Some("/"));
+    press(&mut f, "a", Some("a"));
+    answer(&mut f, 1, "a", "0");
+    assert_eq!(
+        f.read(|picker| picker.listing.shown_total),
+        1,
+        "a find under the chip counts its own rows within the chip's"
+    );
+    press(&mut f, "escape", None);
+    assert_eq!(f.read(|picker| picker.listing.shown_total), 2);
+}
