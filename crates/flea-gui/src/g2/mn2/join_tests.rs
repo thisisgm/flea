@@ -183,6 +183,8 @@ fn m9_integ_a_stale_listing_or_a_moved_capture_runs_nothing(cx: &mut TestAppCont
         shell.panes[0].as_mut().unwrap().path = "/elsewhere".into();
     });
     fire(cx, handle, "actions", "action:resize.toml");
+    let moved = update(cx, handle, |shell, _, _| shell.locale.catalog.tr("menu.refusal.moved"));
+    assert_eq!(status(cx, handle), moved, "the moved capture says the identity refusal");
     let mut sent = Vec::new();
     while let Some(line) = (fixture2.requests)() {
         sent.push(line);

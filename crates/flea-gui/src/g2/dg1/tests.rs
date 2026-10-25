@@ -132,6 +132,18 @@ fn cut_rows_carry_scissors_and_copy_rows_carry_copy() {
     assert_eq!(rig.board.mark_for_row("/dest", "other"), "");
     assert_eq!(rig.board.builds, 1);
     assert_eq!(rig.board.calls, 3);
+    // The same row taken as a copy drives the copy branch.
+    rig.take(false, vec![0]);
+    rig.board.paths_resolved(
+        &rig.en,
+        7,
+        vec!["/dest/B".into()],
+        Rig::take_facts("/dest"),
+        &rig.wire,
+        &mut rig.sink,
+        &mut rig.owner,
+    );
+    assert_eq!(rig.board.mark_for_row("/dest", "B"), "copy");
 }
 
 #[test]
