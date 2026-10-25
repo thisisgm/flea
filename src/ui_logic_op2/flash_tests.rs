@@ -88,7 +88,7 @@ fn names_keep_label_model_and_kernel_name() {
         Drive { dev: "sdb".into(), label: "128GB".into(), model: "Kingston DataTraveler".into(), ..Drive::default() },
     ];
     assert_eq!(drive_name(&twins[1], &twins), "128GB (sdb)");
-    let single = vec![Drive { dev: "sdc".into(), model: "Seagate Expansion".into(), ..Drive::default() }];
+    let single = [Drive { dev: "sdc".into(), model: "Seagate Expansion".into(), ..Drive::default() }];
     assert_eq!(drive_detail(&single[0]), "");
     let unlabeled = vec![
         Drive { dev: "sda".into(), model: "Seagate Expansion".into(), ..Drive::default() },

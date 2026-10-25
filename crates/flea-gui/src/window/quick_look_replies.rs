@@ -20,7 +20,7 @@ use gpui::{Context, Window};
 enum Reply {
     Compare(CompareReply),
     Code(Json),
-    Meta(Meta),
+    Meta(Box<Meta>),
     Menu(Json),
 }
 
@@ -67,7 +67,7 @@ impl Shell {
             }
             Ask::Meta { .. } => match meta::parse(line).filter(|m| m.token == Some(token as usize))
             {
-                Some(meta) => Reply::Meta(meta),
+                Some(meta) => Reply::Meta(Box::new(meta)),
                 None => return false,
             },
             Ask::Code { .. } => match jsondoc::parse(line) {
