@@ -858,6 +858,7 @@
   "jobs.done.linked": "Linked %1",
   "jobs.done.retry_selected": "%1 selected for retry",
   "jobs.done.created": "Created %1",
+  "jobs.done.duplicated": "Duplicated to %1",
   "jobs.done.cut": "Cut %1",
   "jobs.done.clip_copied": "Copied %1",
   "jobs.done.renamed": {
@@ -933,6 +934,7 @@
   "jobs.delete.busy_title": "Delete permanently",
   "jobs.delete.failed": "That action could not be completed.",
   "jobs.delete.failed_trash": "That Trash action could not be completed.",
+  "jobs.delete.finishing": "The deletion is still finishing.",
   "jobs.delete.body_items": {
     "one": "This item is deleted from disk. This cannot be undone.",
     "other": "These items are deleted from disk. This cannot be undone."
