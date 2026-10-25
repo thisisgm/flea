@@ -292,11 +292,14 @@ impl CsvView {
         if !self.feed.wants_measure(limit) {
             return;
         }
+        let advance = f64::from(self.advance(window));
         let face = self.face.clone();
         let text = window.text_system().clone();
+        // Never under the cells `prepare` elides by, so a box measured to a cell holds all of its characters.
         self.feed.measure(limit, &mut |value, f| {
             let run = text_run(value, face.font(f));
-            f64::from(text.layout_line(value, face.caption, &[run], None).width)
+            let shaped = f64::from(text.layout_line(value, face.caption, &[run], None).width);
+            shaped.max(value.chars().count() as f64 * advance)
         });
     }
 

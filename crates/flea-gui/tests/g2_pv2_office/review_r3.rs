@@ -226,7 +226,29 @@ fn pv2_review_r3_ragged_rows_draw_missing_cells_empty(cx: &mut TestAppContext) {
     println!("REV-R3 ragged rows draw {rows:?}");
     assert_eq!(
         rows,
-        vec![vec!["sho…", "", "", ""], vec!["1", "2", "3", "ext…"]],
-        "a short row draws its missing cells empty"
+        vec![vec!["short", "", "", ""], vec!["1", "2", "3", "extra"]],
+        "a short row draws its missing cells empty, and each column holds its widest cell whole (EY-47)"
     );
+}
+
+// EY-47: Quick Look sizes each column to its widest cell, so a body cell longer than its header draws whole.
+#[gpui::test]
+fn pv2_ey47_quick_look_columns_fit_their_widest_cell(cx: &mut TestAppContext) {
+    let text = "name,kind,size\nimage,png,320x240\nvideo,mp4,3s\n";
+    let (view, sent) = table(cx, true, 902., 625.);
+    view.update(cx, |v, _, cx| v.set_path("/d/text-csv.csv", cx))
+        .unwrap();
+    serve(cx, view, &sent, text);
+    let cells: Vec<(String, bool)> = read(cx, view, |v| {
+        v.rows
+            .iter()
+            .flat_map(|r| r.cells.iter().map(|c| (c.text.to_string(), c.cut)))
+            .collect()
+    });
+    for whole in ["image", "video", "320x240"] {
+        assert!(
+            cells.iter().any(|(t, cut)| t == whole && !cut),
+            "{whole} draws whole: {cells:?}"
+        );
+    }
 }

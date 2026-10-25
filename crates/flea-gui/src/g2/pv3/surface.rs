@@ -24,6 +24,21 @@ pub struct Facts {
     pub probe_duration_ms: i64,
 }
 
+impl Facts {
+    /// What the row already says before the probe answers: the backend's kind name and the size, as PreviewMedia.qml reads them.
+    pub fn of_row(row: &flea::protocol::RowFacts, catalog: &I18n) -> Self {
+        Self {
+            kind_name: row.kind.clone(),
+            size_text: if row.size > 0 {
+                catalog.locale().format_size(row.size)
+            } else {
+                String::new()
+            },
+            ..Self::default()
+        }
+    }
+}
+
 /// Paint state a host keeps per surface.
 #[derive(Clone, Default)]
 pub struct Caches {
@@ -58,7 +73,7 @@ pub fn picture(player: &MediaPlayer, known: &Facts, catalog: &I18n) -> Picture {
     }
     if player.state.has_video {
         return Picture::Video {
-            frame: player.frame.clone(),
+            frame: player.frame.clone().filter(|_| player.state.holds_frame()),
             poster: player.state.poster(true),
         };
     }

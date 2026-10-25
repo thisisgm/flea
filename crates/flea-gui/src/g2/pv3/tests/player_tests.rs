@@ -213,11 +213,56 @@ fn pv3_an_ended_video_stops_on_its_play_mark(cx: &mut TestAppContext) {
         matches!(
             picture,
             Picture::Video {
+                frame: None,
+                poster: true
+            }
+        ),
+        "ql-video.png ends on the empty card under its play mark, as v0.3.12 does: {picture:?}"
+    );
+    let at = player.read_with(cx, |player, _| (player.position, player.duration));
+    assert_eq!(
+        at,
+        (2_000, 2_000),
+        "the strip reads the whole clip at its end"
+    );
+    send(cx, &script, Event::Seeked(1_000));
+    let sought = player.read_with(cx, |player, _| shown(player, &Facts::default(), &catalog));
+    assert!(
+        matches!(
+            sought,
+            Picture::Video {
                 frame: Some(_),
                 poster: true
             }
         ),
-        "{picture:?}"
+        "a seek off the end draws its frame under the play mark: {sought:?}"
+    );
+    send(cx, &script, Event::Ended);
+    send(cx, &script, Event::Playing);
+    script.sender().frame(super::fake::picture(2));
+    send(cx, &script, Event::Position(10));
+    let picture = player.read_with(cx, |player, _| shown(player, &Facts::default(), &catalog));
+    assert!(
+        matches!(
+            picture,
+            Picture::Video {
+                frame: Some(_),
+                poster: false
+            }
+        ),
+        "a replay draws its frames again: {picture:?}"
+    );
+    send(cx, &script, Event::Paused);
+    let paused = player.read_with(cx, |player, _| shown(player, &Facts::default(), &catalog));
+    assert!(
+        matches!(
+            paused,
+            Picture::Video {
+                frame: Some(_),
+                poster: true
+            }
+        ),
+        "a replay paused mid-clip keeps its frame: {paused:?}"
     );
 }
 
