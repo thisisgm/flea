@@ -135,7 +135,7 @@ impl Render for SelectionPreview {
         } else {
             media.h(px(height)).flex_none()
         };
-        let mark_size = (40. * f32::from(self.face.base) / 14.).round();
+        let mark_size = crate::window::preview_facts::state_mark_size(&self.face);
         let state_mark = |glyph: Glyph, ink: gpui::Hsla, note: Option<String>| {
             div()
                 .size_full()

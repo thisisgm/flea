@@ -61,7 +61,7 @@ impl SelectionPreview {
         }
     }
 
-    /// F and B page a shown document by its frame's height; a PDF falls through to the preview family's turn.
+    /// F and B page a shown document by its viewport's height; a PDF falls through to the preview family's turn.
     fn page(&mut self, direction: i64, cx: &mut Context<Self>) -> bool {
         if self.pending.is_some() {
             return false;
@@ -73,8 +73,7 @@ impl SelectionPreview {
             return false;
         };
         let height = self.frame_rect.borrow().map_or(0., |b| f32::from(b.size.height));
-        let (row, _) = self.fact_row();
-        doc.page(direction, (height / row.max(1.)).floor() as i64, cx);
+        doc.page(direction, height, cx);
         cx.notify();
         true
     }

@@ -138,3 +138,68 @@ fn markdown_csv_html_archive_symlink_and_data_rows_draw_their_own_preview(cx: &m
     let facts = read(&shell, cx, "previewFacts", &[]);
     assert!(facts.starts_with("Kind=Markdown document|"), "{facts}");
 }
+
+#[gpui::test]
+fn f_and_b_page_a_table_by_its_viewport_height(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "/files");
+    let rows = vec![file("data.csv", "text-csv", "CSV document", 0o100644)];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    let lines = local(&shell, cx, "/files");
+    let table = ask(&lines, "code").to_owned();
+    meta(&shell, cx, &lines, r#","lines":200"#);
+    let body = (0..200).map(|n| format!(r#"[0,"{n},x"]"#)).collect::<Vec<_>>().join(",");
+    answer(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"code","token":{},"slot":"column","state":"plain","first":1,"total":200,"lines":[{body}],"records":200,"firstRecord":1}}"#,
+            field(&table, "token")
+        ),
+    );
+    pump(cx);
+    let scroll = |cx: &mut VisualTestContext| {
+        shell.read_with(cx, |shell, cx| {
+            let preview = shell.selection_preview(0).expect("the column is mounted");
+            match preview.read(cx).drawn.as_ref().map(|frame| &frame.mounted) {
+                Some(Mounted::Doc(Doc::Table(view))) => {
+                    let view = view.read(cx);
+                    (view.scroll.1, view.frame.1 - view.feed.geometry.head_height)
+                }
+                _ => panic!("the table is drawn"),
+            }
+        })
+    };
+    let (top, height) = scroll(cx);
+    assert!(top == 0. && height > 0., "the table starts at its top in a laid-out frame: {top} {height}");
+    cx.simulate_keystrokes("shift-f->F");
+    pump(cx);
+    // PreviewScroll.qml pageBy moves contentY by the viewport's own height, so no row is skipped unseen.
+    assert_eq!(scroll(cx).0, height, "F moves the table by one viewport height");
+    cx.simulate_keystrokes("shift-b->B");
+    pump(cx);
+    assert_eq!(scroll(cx).0, 0., "B pages back to the top");
+}
+
+#[gpui::test]
+fn an_image_that_fails_to_decode_keeps_its_image_facts(cx: &mut TestAppContext) {
+    // The picture decodes on the asset loader's thread, outside the deterministic scheduler.
+    cx.executor().allow_parking();
+    let root = Root::new("badimage");
+    let dir = root.0.to_string_lossy().into_owned();
+    std::fs::write(root.0.join("broken.png"), b"not a picture").unwrap();
+    let (shell, cx) = open(cx, &dir);
+    let rows = vec![file("broken.png", "image-png", "PNG image", 0o100644)];
+    super::test_shell::land(&shell, cx, &dir, rows, 1);
+    let lines = local(&shell, cx, &dir);
+    meta(&shell, cx, &lines, r#","w":2,"h":2"#);
+    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    pump(cx);
+    let failed = shell.read_with(cx, |shell, cx| {
+        let preview = shell.selection_preview(0).expect("the column is mounted");
+        preview.read(cx).drawn.as_ref().is_some_and(|frame| frame.failed)
+    });
+    assert!(failed, "the broken picture is a failed frame");
+    // PreviewColumn.qml failure covers only text, PDF, HTML and archive reads, so the facts stay the image's.
+    let facts = read(&shell, cx, "previewFacts", &[]);
+    assert!(facts.contains("|Modified=") && facts.contains("|Pixels="), "{facts}");
+}
