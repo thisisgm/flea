@@ -12,16 +12,19 @@ esac
 trap 'pkill -9 -f -- "$scratch/bin/" 2>/dev/null || true; [ -f "$scratch/.flea-test-sandbox" ] && rm -rf "$scratch"' EXIT
 # A PID namespace of its own, so a host indexer can neither fail the suite nor be seen by its pgrep.
 if ! why=$(unshare --user --pid --fork --mount-proc true 2>&1); then
-  echo "SKIP field-localsearch: unshare --user --pid --fork --mount-proc is unavailable on this host: ${why:-no message}"
-  exit 0
+  echo "FAIL field-localsearch: unshare --user --pid --fork --mount-proc is unavailable on this host: ${why:-no message}"
+  exit 1
 fi
 unshare --user --pid --fork --mount-proc python3 -B - "$scratch" "${FIELD_LOCALSEARCH_TOOL:-tools/flea-field-search}" <<'PY'
+import json
 import os
 import signal
 import subprocess
 import sys
 import time
+from importlib.machinery import SourceFileLoader
 from pathlib import Path
+from unittest.mock import patch
 
 root, tool = Path(sys.argv[1]), str(Path(sys.argv[2]).resolve())
 bindir = root / 'bin'
@@ -129,17 +132,43 @@ assert rc != 0 and 'localsearch-3 pid %d started 20' % stray.pid in err, err
 assert 'this harness did not start it' in err, err
 assert alive_after, 'a refusal must leave the foreign indexer alone'
 
-# 5. A run killed days ago never wrote its end, so it covers nothing started today.
+# 5. A run killed outright ends where the next recorded run begins, so it never claims what a later run started.
 stale = root / 'ledger-stale.jsonl'
-stale.write_text('{"id": "old", "pid": 4242, "start": %f}\n' % (time.time() - 2 * 86400))
+now = time.time()
+stale.write_text('{"id": "old", "pid": 4242, "start": %f}\n{"id": "next", "pid": 4343, "start": %f, "end": %f}\n'
+                 % (now - 2 * 86400, now - 86400, now - 86400 + 60))
 stray = subprocess.Popen([str(bindir / 'localsearch-3'), '300'], start_new_session=True, stdin=subprocess.DEVNULL,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(0.3)
 rc, err, _ = run('refuse-only', stale)
 stray.kill()
 stray.wait()
-begun = time.strftime('%Y-%m-%d', time.localtime(time.time() - 2 * 86400))
-assert rc != 0 and 'this harness started it' not in err, err
-assert 'begun %s ' % begun in err and 'not attributable to this harness' in err, err
+assert rc != 0 and 'this harness did not start it' in err and 'this harness started it' not in err, err
+
+# 6. Attribution follows the windows, never the calendar: the covering run is named wherever it sits in the ledger.
+S = SourceFileLoader('search_windows', tool).load_module()
+def attribute(lines, began):
+    S.LEDGER = str(root / 'ledger-unit.jsonl')
+    Path(S.LEDGER).write_text(''.join(json.dumps(line) + '\n' for line in lines))
+    with patch.object(S, 'process_start', return_value=began):
+        return S.describe_leftover('localsearch-3', 99)
+midnight = time.mktime(time.strptime(time.strftime('%Y-%m-%d'), '%Y-%m-%d'))
+# A killed old run, then an ended later run covering the pid: the later run started it.
+said = attribute([{'id': 'old', 'pid': 1, 'start': midnight - 86400},
+                  {'id': 'new', 'pid': 2, 'start': midnight - 3600},
+                  {'id': 'new', 'end': midnight - 1800}], midnight - 3000)
+assert 'run pid 2 ' in said and 'this harness started it' in said, said
+# The killed old run covers only up to the later run's start.
+said = attribute([{'id': 'old', 'pid': 1, 'start': midnight - 86400},
+                  {'id': 'new', 'pid': 2, 'start': midnight - 3600, 'end': midnight - 1800}], midnight - 7200)
+assert 'run pid 1 ' in said and 'never ended' in said, said
+said = attribute([{'id': 'old', 'pid': 1, 'start': midnight - 86400},
+                  {'id': 'new', 'pid': 2, 'start': midnight - 3600, 'end': midnight - 1800}], midnight - 60)
+assert 'this harness did not start it' in said, said
+# A run begun 23:50 whose indexer started 23:55 stays attributed after midnight, open or ended.
+for run in ({'id': 'late', 'pid': 3, 'start': midnight - 600},
+            {'id': 'late', 'pid': 3, 'start': midnight - 600, 'end': midnight - 60}):
+    said = attribute([run], midnight - 300)
+    assert 'run pid 3 ' in said and 'this harness started it' in said, said
 print('field-localsearch: all passed')
 PY
