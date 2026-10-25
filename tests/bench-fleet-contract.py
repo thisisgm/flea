@@ -206,6 +206,9 @@ cap["entrants"][4]["probe"]["stdout"] = "dolphin 1.0.0\n"
 run("actual version output mismatch", capture=cap, error="actual version output mismatch")
 cap["entrants"][4]["probe"]["exit"] = 127
 run("failed version probe cannot pass", capture=cap, error="version command failed")
+cap = copy.deepcopy(CAPTURE)
+cap["entrants"][4]["probe"]["stdout"] = 7
+run("non-text version output is a BLOCKED report", capture=cap, error="missing text")
 binary = path("dolphin")
 original = binary.read_bytes()
 write("dolphin", original + b"changed\n")

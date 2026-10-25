@@ -6,6 +6,7 @@ parent="$PWD/.superpowers/m9-uish-02"
 mkdir -p "$parent"
 root=$(mktemp -d "$parent/suite.XXXXXXXX")
 : > "$root/.flea-test-sandbox"
+trap 'case $root in "$parent"/suite.?*) [ -f "$root/.flea-test-sandbox" ] && rm -rf -- "$root" ;; esac' EXIT
 mkdir -p "$root/home" "$root/config" "$root/cache" "$root/state" "$root/data" "$root/runtime"
 chmod 700 "$root/runtime"
 setsid -w env -i PATH="$PATH" HOME="$root/home" \
