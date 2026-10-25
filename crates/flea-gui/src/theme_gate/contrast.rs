@@ -147,6 +147,14 @@ fn theme_gate_stock_contrast_floors() {
         // palette.rs uses 3:1 for graphic ink; OMI-SPINNER.md prescribes the raw accent.
         floor("omi_accent", theme.accent, theme.background, 3.);
         floor("rail_plus", rail.muted_frame, rail.background, 3.);
+        // The printer menu inherits the card surface and lifts the theme's own red on it (g2/op4/printer_menu.rs:232).
+        let inherited = TextStyle {
+            color: theme.foreground,
+            background_color: Some(theme.surface),
+            ..TextStyle::default()
+        };
+        let printer = Palette::inherited(&inherited, theme);
+        floor("printer_menu_error", printer.error, theme.surface, 4.5);
         // HIG jobs board: the copy track is --muted-frame at opacity 0.25.
         assert_eq!(flea::ui_logic_op1::card::JOBS_TRACK_ALPHA, 0.25);
         minima.insert("rail_square_on", contrast(rail.executable, rail.background));
