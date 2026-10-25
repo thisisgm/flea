@@ -31,9 +31,15 @@ fn closing_bar_fade_requests_a_frame_at_the_hold_deadline(cx: &mut TestAppContex
         ..Default::default()
     });
     cx.run_until_parked();
+    // The notch's OutCubic glide owns frames until it lands; the hold is measured from the notch.
+    let glide = Duration::from_millis(crate::input::scroll::RETURN_MS as u64);
+    cx.executor().advance_clock(glide);
+    cx.update(|window, cx| window.simulate_next_frame(cx));
+    cx.run_until_parked();
     let before = cx.update(|window, cx| window.simulate_next_frame(cx));
     assert_eq!(before, 0, "the hold correctly needs no animation frames");
-    cx.executor().advance_clock(Duration::from_millis(1000));
+    let rest = Duration::from_millis(1000) - glide;
+    cx.executor().advance_clock(rest);
     cx.run_until_parked();
     let (elapsed, opacity, animating) = cx.update(|_, cx| {
         shell.read_with(cx, |shell, cx| {

@@ -83,6 +83,9 @@ impl Shell {
             return;
         }
         host.input.keyboard();
+        host.input.hold(&mut host.pane);
+        // A press stops the slow-click timer without clearing it, so a held press never renames.
+        host.input.slow_task = None;
         if frame.in_lane(event.position)
             && frame.max_scroll() > 0.5
             && event.button == MouseButton::Left
@@ -301,6 +304,13 @@ impl Shell {
                 return;
             }
             let from = host.pane.cursor;
+            let was_sole = super::slow::was_sole_selection(
+                host.selected.len(),
+                host.selected.binary_search(&row).is_ok(),
+                from == row,
+            );
+            let slow = (event.button == MouseButton::Left)
+                .then(|| count == 1 && host.list.borrow().on_name(row, event.position.x));
             let pulled = host.input.take_pull(from, host.pane.held.listing);
             let selection = &mut host.input.selection;
             let action = match effect {
@@ -367,6 +377,11 @@ impl Shell {
                 } else {
                     self.dispatch(Order::Action(event), window, cx);
                 }
+            }
+            if let Some(armed) = slow {
+                let modifiers = crate::window::input::modifiers(press.event.modifiers);
+                let tap = crate::input::slow::SlowTap { row, armed, modifiers, was_sole };
+                self.slow_tap(side, tap, window, cx);
             }
         }
         self.arm_input_tick(side, window, cx);

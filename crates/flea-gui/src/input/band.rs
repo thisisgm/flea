@@ -119,7 +119,7 @@ impl super::PaneInput {
             .is_some_and(|band| band.active && band.direction != 0.);
         // The hold deadline starts the fade while its first opacity is still one.
         let fading = !reduced && !self.shown(now) && self.opacity(now, reduced) > 0.;
-        edge || fading
+        edge || fading || self.moving()
     }
 }
 

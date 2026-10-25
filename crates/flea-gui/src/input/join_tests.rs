@@ -337,3 +337,6 @@ mod closing_tests;
 
 #[path = "fix2_tests.rs"]
 mod fix2_tests;
+
+#[path = "g1_05_tests.rs"]
+mod g1_05_tests;

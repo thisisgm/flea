@@ -4,6 +4,7 @@ pub(crate) mod bench;
 pub mod columns;
 pub mod element;
 pub mod header;
+mod hit;
 mod locale;
 mod measure;
 mod metrics;

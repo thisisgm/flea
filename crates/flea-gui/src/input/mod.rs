@@ -6,6 +6,7 @@ pub mod focus;
 mod pointer;
 pub mod scroll;
 pub mod selection;
+pub mod slow;
 mod wheel;
 pub use band::{update_band, EDGE_RATE};
 
@@ -27,6 +28,22 @@ pub struct Pull {
 
 pub type HitBoxes = std::rc::Rc<[(usize, Bounds<Pixels>)]>;
 
+/// A notch's OutCubic glide: the drawn position eases from where it stood to the written one.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Glide {
+    pub from: f32,
+    pub to: f32,
+    pub elapsed: f32,
+}
+
+/// The drawn position while a glide runs; the written one once it lands.
+pub fn glided(glide: Option<Glide>, at: f32) -> f32 {
+    glide.map_or(at, |glide| {
+        let t = f64::from(glide.elapsed) / scroll::RETURN_MS;
+        glide.from + (at - glide.from) * scroll::out_cubic(t) as f32
+    })
+}
+
 #[derive(Default)]
 pub struct PaneInput {
     pub selection: Selection,
@@ -47,6 +64,19 @@ pub struct PaneInput {
     pub moved_at: Option<std::time::Instant>,
     pub timer: Option<gpui::Task<()>>,
     pub stepped_at: Option<std::time::Instant>,
+    /// The touchpad tail, rubber-band edges and their OutCubic return.
+    pub kinetic: scroll::Kinetic,
+    pub glide: Option<Glide>,
+    /// What a touchpad stroke drew past an end, beyond the clamped position the pane keeps.
+    pub over: f32,
+    /// True between a touchpad stroke's Started and its Ended; only motion inside one may pass an end.
+    pub stroke: bool,
+    /// The clamped position the motion last wrote, so any other write ends the motion.
+    pub(crate) wrote: Option<f32>,
+    pub(crate) motion_at: Option<std::time::Instant>,
+    epoch: Option<std::time::Instant>,
+    pub slow: slow::SlowClick,
+    pub(crate) slow_task: Option<gpui::Task<()>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -143,6 +173,10 @@ impl PaneInput {
             self.hovered = None;
             self.pointer_origin = false;
             self.moved_at = None;
+            self.halt();
+            // A re-list puts another file at the armed index, so the slow click goes with it.
+            self.slow.cancel();
+            self.slow_task = None;
         }
         self.prepared = Some(frame);
     }
@@ -173,6 +207,22 @@ impl PaneInput {
                 listing: frame.listing,
             });
         }
+    }
+    /// The position the list draws: the glide's eased one plus a touchpad overshoot.
+    pub fn drawn(&self, scroll_y: f32) -> f32 {
+        glided(self.glide, scroll_y) + self.over
+    }
+    /// Any motion still owed a frame: a tail, a return or a glide.
+    pub fn moving(&self) -> bool {
+        self.kinetic.running() || self.glide.is_some()
+    }
+    /// A new geometry or listing ends every motion without a write; its own landing places the view.
+    pub fn halt(&mut self) {
+        self.kinetic.halt();
+        self.glide = None;
+        self.over = 0.;
+        self.wrote = None;
+        self.motion_at = None;
     }
     pub fn index(&self, view: usize) -> usize {
         self.shown

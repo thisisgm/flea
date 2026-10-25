@@ -206,9 +206,10 @@ impl Render for Shell {
                     switched
                 };
             }
+            // A notch glides and a stroke rubber-bands in the drawn rows only; the pane keeps the clamped position.
             let list = ListElement::with_states(
                 Rc::clone(&host.pane.held),
-                host.pane.scroll_y,
+                host.input.drawn(host.pane.scroll_y),
                 lists.states[side].take().expect("a mounted pane"),
                 Rc::clone(&host.list),
             )
