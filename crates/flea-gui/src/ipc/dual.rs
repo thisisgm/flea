@@ -56,6 +56,72 @@ impl Adapter for DualAdapter<'_> {
     }
 }
 
+/// Ipc.qml dragPaneGeometry: one pane's list, a folder row and its last row, for the drag cases.
+pub(crate) struct DragGeometry<'a> {
+    pub shell: &'a crate::state::Shell,
+}
+
+impl Adapter for DragGeometry<'_> {
+    fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        if function != "dragPaneGeometry" {
+            return None;
+        }
+        use crate::window::startup::View;
+        let number = |at: usize| {
+            arguments
+                .get(at)
+                .and_then(|text| text.trim().parse::<i64>().ok())
+        };
+        let (side, index) = (number(0).unwrap_or(-1), number(1).unwrap_or(-1));
+        let host = usize::try_from(side)
+            .ok()
+            .and_then(|side| self.shell.panes.get(side))
+            .and_then(Option::as_ref);
+        let total = host.map_or(0, |host| host.pane.held.total);
+        let (Some(host), Ok(index)) = (host, usize::try_from(index)) else {
+            return Some(Reply::value("{}"));
+        };
+        if index >= total {
+            return Some(Reply::value("{}"));
+        }
+        let list = host.list.borrow();
+        let held = &host.pane.held;
+        let listed = matches!(host.drawn_view, Some(View::List | View::Dual));
+        let row = |at: usize| {
+            let facts = held.row(at);
+            let rect = if listed {
+                super::rows::drawn_row_rect(&list, held, at)
+            } else {
+                String::new()
+            };
+            (
+                facts.map_or("", |facts| facts.name.as_str()),
+                facts.is_some_and(|facts| facts.dir),
+                rect,
+            )
+        };
+        let (name, directory, rect) = row(index);
+        let (last_name, _, last_rect) = row(total - 1);
+        let view = match host.drawn_view {
+            Some(View::List | View::Dual) => "list",
+            Some(View::Grid) => "grid",
+            Some(View::Columns) => "columns",
+            None => "",
+        };
+        Some(Reply::value(format!(
+            "{{\"side\":{side},\"active\":{},\"focused\":{},\"path\":\"{}\",\"view\":\"{view}\",\"loading\":{},\"total\":{total},\"area\":\"{}\",\"folder\":{{\"index\":{index},\"name\":\"{}\",\"directory\":{directory},\"rect\":\"{rect}\"}},\"last\":{{\"index\":{},\"name\":\"{}\",\"rect\":\"{last_rect}\"}}}}",
+            self.shell.view == View::Dual,
+            self.shell.focus_side as i64 == side,
+            escape(&host.path),
+            host.pane.busy(),
+            if listed { super::rows::list_area_rect(&list) } else { String::new() },
+            escape(name),
+            total - 1,
+            escape(last_name),
+        )))
+    }
+}
+
 impl crate::state::Shell {
     pub(crate) fn dual_adapter(&self, window: &gpui::Window, cx: &gpui::App) -> DualAdapter<'_> {
         DualAdapter {

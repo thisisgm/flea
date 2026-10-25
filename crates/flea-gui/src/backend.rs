@@ -102,6 +102,8 @@ pub struct Backend {
     wake: UnixStream,
     pub replies: Receiver<Event>,
     drained: Receiver<()>,
+    /// Backend.qml thumbRequests: every thumb line this backend was sent.
+    thumbs: std::sync::atomic::AtomicUsize,
 }
 
 fn command() -> Command {
@@ -122,6 +124,11 @@ impl Backend {
     pub fn operation(&self, line: String) -> Result<(), Failure> {
         self.line(line)
     }
+    /// How many thumb lines this backend accepted, as Backend.qml counts them.
+    pub fn thumb_requests(&self) -> usize {
+        self.thumbs.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
     /// Menu producer requests share the ordered backend pipe.
     pub fn line(&self, line: String) -> Result<(), Failure> {
         self.send(Control::Line(line))
@@ -186,6 +193,7 @@ impl Backend {
             wake,
             replies,
             drained,
+            thumbs: Default::default(),
         })
     }
 
@@ -254,9 +262,14 @@ impl Backend {
         if *closing != Closing::Open {
             return Err(failure("window.backend_stopped", ""));
         }
+        let thumb = matches!(&control, Control::Line(line) if line.starts_with(r#"{"c":"thumb","#));
         self.requests
             .send(control)
             .map_err(|_| failure("window.backend_stopped", ""))?;
+        if thumb {
+            self.thumbs
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
         drop(closing);
         self.notify();
         Ok(())
@@ -325,6 +338,7 @@ impl Backend {
                 wake,
                 replies,
                 drained,
+                thumbs: Default::default(),
             },
             receiver,
         )
@@ -347,6 +361,7 @@ impl Backend {
                 wake,
                 replies,
                 drained,
+                thumbs: Default::default(),
             },
             receive,
         )

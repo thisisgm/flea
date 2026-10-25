@@ -154,6 +154,11 @@ fn visible_files_are_asked_once_after_the_first_settle_and_cancelled_when_scroll
     let thumb = asked.iter().find(|line| line.starts_with(r#"{"c":"thumb","#)).expect("one thumb line");
     assert!(thumb.starts_with(r#"{"c":"thumb","rows":[0,1,2,4,5,6,"#), "every visible file, never the folder: {thumb}");
     assert!(thumb.ends_with(r#"],"cacheOnly":false}"#), "{thumb}");
+    assert_eq!(
+        thumb_requests(cx, handle),
+        "1",
+        "one thumb line, one request"
+    );
     let waiting = read(cx, handle, |shell| pictures(shell).waiting());
     settle(cx, handle, 200);
     assert!(drained(&mut lines).is_empty(), "a still frame asks nothing again");
@@ -168,7 +173,39 @@ fn visible_files_are_asked_once_after_the_first_settle_and_cancelled_when_scroll
     let moved = drained(&mut lines);
     let cancel = moved.iter().find(|line| line.starts_with(r#"{"c":"thumbcancel","#)).expect("a cancel for rows left behind");
     assert!(cancel.contains(&format!("[{}", waiting[0])), "{cancel}");
-    assert!(moved.iter().any(|line| line.starts_with(r#"{"c":"thumb","#)), "the rows now in view are asked");
+    assert!(
+        moved
+            .iter()
+            .any(|line| line.starts_with(r#"{"c":"thumb","#)),
+        "the rows now in view are asked"
+    );
+    assert_eq!(
+        thumb_requests(cx, handle),
+        "2",
+        "a thumbcancel is not a thumb request"
+    );
+}
+
+// Backend.qml thumbRequests through the window's IPC dispatch.
+fn thumb_requests(cx: &mut TestAppContext, handle: WindowHandle<Shell>) -> String {
+    handle
+        .update(cx, |shell, window, cx| {
+            let (answer, receive) = std::sync::mpsc::sync_channel(1);
+            let request = flea::ipc::wire::Request::Call {
+                target: "flea".into(),
+                function: "thumbRequests".into(),
+                arguments: vec![],
+            };
+            shell.ipc(
+                crate::ipc::server::Event::Call { request, answer },
+                window,
+                cx,
+            );
+            let reply = receive.try_recv().unwrap().reply;
+            assert_eq!(reply.code, 0, "{}", reply.stderr);
+            reply.stdout.trim().to_owned()
+        })
+        .unwrap()
 }
 
 #[gpui::test]

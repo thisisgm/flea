@@ -6,6 +6,8 @@ mod claim;
 mod corner_tests;
 #[cfg(test)]
 mod fix1_tests;
+#[cfg(test)]
+mod keymap_ipc_tests;
 mod locale;
 mod messages;
 #[cfg(test)]

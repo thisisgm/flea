@@ -87,7 +87,16 @@ fn u05_idle_readers_use_live_footer_without_enabling_unowned_verbs(cx: &mut Test
     ] {
         assert_eq!(read(cx, window, name), Reply::value(expected), "{name}");
     }
-    assert_eq!(read(cx, window, "statusColor").code, 3);
+    assert_eq!(read(cx, window, "providerState").code, 3);
+    let layers = json(cx, window, "stateLayers");
+    assert_eq!(layers.get("empty").and_then(|v| v.as_bool()), Some(false));
+    assert_eq!(layers.get("message").and_then(|v| v.as_bool()), Some(false));
+    let theme = crate::palette::Theme::default();
+    let foreground = crate::list::Palette::inherited(&gpui::TextStyle::default(), theme).foreground;
+    assert_eq!(
+        read(cx, window, "statusColor"),
+        Reply::value(crate::ipc::rows::colour(foreground))
+    );
 }
 
 #[gpui::test]
@@ -110,10 +119,27 @@ fn u05_backend_failure_stays_in_footer_after_notice_deadline(cx: &mut TestAppCon
         frame(cx, window);
     }
     assert_eq!(read(cx, window, "statusError"), Reply::value("true"));
+    let error = crate::g2::st1::Ink::inherited(
+        &gpui::TextStyle::default(),
+        crate::palette::Theme::default(),
+    )
+    .error;
+    assert_eq!(
+        read(cx, window, "statusColor"),
+        Reply::value(crate::ipc::rows::colour(error)),
+        "an error draws the centre message in the palette's error role"
+    );
     let message = read(cx, window, "lastMessage");
     assert_eq!(message.code, 0);
     assert!(!message.stdout.trim().is_empty());
     assert_eq!(read(cx, window, "emptyShown"), Reply::value("false"));
+    let layers = json(cx, window, "stateLayers");
+    assert_eq!(layers.get("empty").and_then(|v| v.as_bool()), Some(false));
+    assert_eq!(
+        layers.get("message").and_then(|v| v.as_bool()),
+        Some(true),
+        "the failed listing mounts its state message"
+    );
     window
         .update(cx, |shell, _, _| {
             let pane = &shell.panes[0].as_ref().unwrap().pane;

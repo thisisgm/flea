@@ -29,11 +29,28 @@ pub(crate) struct Runtime {
     drawn: Option<Rc<Drawn>>,
     /// The drawn rows as one shared slice, None while every row is drawn.
     pub shown: Option<Rc<[usize]>>,
+    /// Filter.js filterKeyAt and filterNarrowedAt: wall-clock ms of the last query change and of its answer landing.
+    pub key_at: u64,
+    pub narrowed_at: u64,
+}
+
+fn wall_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(1, |since| since.as_millis().max(1) as u64)
 }
 
 impl Runtime {
     pub fn new(face: crate::list::Typeface) -> Self {
-        Self { owner: Filter::default(), strip: Rc::new(RefCell::new(StripState::new(face))), view: None, drawn: None, shown: None }
+        Self {
+            owner: Filter::default(),
+            strip: Rc::new(RefCell::new(StripState::new(face))),
+            view: None,
+            drawn: None,
+            shown: None,
+            key_at: 0,
+            narrowed_at: 0,
+        }
     }
 
     /// How many positions a view draws.
@@ -123,7 +140,20 @@ impl Shell {
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return;
         };
+        let query = host.filter.owner.query().to_owned();
+        let listing = host.pane.held.listing;
+        let before = host.filter.owner.drawn(listing).cloned();
         let asked = change(&mut host.filter.owner, &mut Seam { pane: &mut host.pane, selected: &mut host.selected });
+        let owner = &host.filter.owner;
+        if owner.query() != query {
+            host.filter.key_at = wall_ms();
+        }
+        let after = owner.drawn(listing);
+        let same =
+            matches!((&before, after), (Some(before), Some(after)) if Rc::ptr_eq(before, after));
+        if after.is_some() && !same {
+            host.filter.narrowed_at = wall_ms().max(host.filter.key_at);
+        }
         if let (Some(asked), Some(backend)) = (asked, &host.backend) {
             if let Err(error) = backend.line(wire::request(asked.id, &asked.query).trim_end().to_owned()) {
                 host.stopped = true;

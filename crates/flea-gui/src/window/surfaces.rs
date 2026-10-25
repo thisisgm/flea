@@ -61,6 +61,22 @@ impl Surfaces {
         }
     }
 
+    /// PaneStates' two layers as the last sync mounted them: the empty hero shown, and a state message with facts.
+    pub(crate) fn layers(&self, cx: &gpui::App) -> (bool, bool) {
+        let kind = self.shown.map(|(kind, _, _)| kind);
+        let empty = kind == Some(Kind::Empty)
+            && self
+                .hero
+                .as_ref()
+                .is_some_and(|hero| hero.read(cx).rotation().visible());
+        let message = matches!(kind, Some(Kind::Locked | Kind::Error | Kind::Waiting))
+            && self
+                .notice
+                .as_ref()
+                .is_some_and(|notice| notice.read(cx).facts().is_some());
+        (empty, message)
+    }
+
     /// A refused listing lands its message; the next sync redraws the state even when the kind stays put.
     pub(crate) fn refuse(&mut self, refusal: Refusal) {
         self.refusal = Some(refusal);

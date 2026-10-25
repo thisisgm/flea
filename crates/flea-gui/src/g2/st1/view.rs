@@ -93,7 +93,9 @@ impl SettingsView {
 
     fn rail(&self, ink: &Ink, cx: &mut Context<Self>) -> Div {
         let searching = self.searching();
-        let mut rail = div()
+        let mut rail = self
+            .probe
+            .attach(div(), "rail")
             .w(px(RAIL_W))
             .h_full()
             .flex_none()

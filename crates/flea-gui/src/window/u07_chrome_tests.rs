@@ -315,3 +315,28 @@ fn u07_a_peeked_answer_the_path_never_asked_falls_through_to_the_next_consumer(
         "the columns join takes what the bar never asked"
     );
 }
+
+#[gpui::test]
+fn u07_button_size_reads_the_drawn_box_of_a_visible_glyph(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx);
+    let state = flea::jsondoc::parse(&read(&shell, cx, "chromeButtonState", &["search"])).unwrap();
+    let rect: Vec<i64> = state
+        .get("rect")
+        .and_then(flea::jsondoc::Json::as_str)
+        .unwrap()
+        .split_whitespace()
+        .map(|n| n.parse().unwrap())
+        .collect();
+    let chrome = shell.read_with(cx, |shell, _| shell.chrome.view.clone().unwrap());
+    let bounds = chrome
+        .read_with(cx, |view, _| view.frame.borrow().controls[2].bounds)
+        .expect("search drew");
+    let expected = format!(
+        "{}x{}",
+        (f32::from(bounds.size.width) + 0.5).floor(),
+        (f32::from(bounds.size.height) + 0.5).floor()
+    );
+    assert_eq!(read(&shell, cx, "chromeButtonSize", &["search"]), expected);
+    assert_eq!(rect.len(), 4);
+    assert!(read(&shell, cx, "chromeButtonSize", &["no-such-glyph"]).is_empty());
+}

@@ -11,15 +11,12 @@ pub(super) fn paint(
     window: &mut Window,
     cx: &App,
 ) {
-    let Some(card) = drawn.card else {
+    let Some(body) = drawn.body() else {
         return;
     };
     let clip = Bounds::new(
-        origin + point(px(17.), px(61.)),
-        size(
-            px((card.w - 34.).max(0.)),
-            px((drawn.body_height - 108.).max(0.)),
-        ),
+        origin + point(px(body.x), px(body.y)),
+        size(px(body.w), px(body.h)),
     );
     window.with_content_mask(Some(gpui::ContentMask { bounds: clip }), |window| {
         let mut mark = |name, x, y, side, ink| {

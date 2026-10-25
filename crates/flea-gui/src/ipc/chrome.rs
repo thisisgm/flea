@@ -40,7 +40,10 @@ impl Adapter for ChromeAdapter<'_> {
                     .to_string(),
             ));
         }
-        if !matches!(function, "chromeButtonCentre" | "chromeButtonState") {
+        if !matches!(
+            function,
+            "chromeButtonCentre" | "chromeButtonState" | "chromeButtonSize"
+        ) {
             return None;
         }
         let name = arguments.first().map_or("", String::as_str);
@@ -50,6 +53,16 @@ impl Adapter for ChromeAdapter<'_> {
             .map(|index| self.frame.controls[index])
             .unwrap_or_default();
         let bounds = control.bounds.filter(|_| control.visible);
+        // ui/Ipc.qml chromeButtonSize: the drawn button's "widthxheight", each side rounded on its own.
+        if function == "chromeButtonSize" {
+            return Some(Reply::value(bounds.map_or_else(String::new, |b| {
+                format!(
+                    "{}x{}",
+                    round(f32::from(b.size.width)),
+                    round(f32::from(b.size.height))
+                )
+            })));
+        }
         let centre = bounds.map_or_else(String::new, centre);
         Some(Reply::value(if function == "chromeButtonCentre" {
             centre
