@@ -46,13 +46,13 @@ pub enum Job {
 }
 
 pub enum Reply {
-    /// Every page's size in points; `read` of them were read, the rest stand in as the first page's until `Sizes`.
+    /// Quick Look's sizes in points, `read` of them read and the rest standing in as the first page's until `Sizes`; a column open answers no sizes and `read` 0.
     Opened {
         doc: DocId,
         sizes: Vec<(f64, f64)>,
         read: usize,
     },
-    /// The full size list of a document opened with only its first sizes, `read` more of them read.
+    /// The full size list of a document opened before every size was read, built over idle steps, `read` more of them read.
     Sizes {
         doc: DocId,
         sizes: Vec<(f64, f64)>,
@@ -120,7 +120,7 @@ pub fn reaper_len() -> usize {
     REAPER.lock().map(|reaper| reaper.len()).unwrap_or(0)
 }
 
-/// Joins every renderer thread dropped so far; main calls it once the event loop has returned, so no poppler or cairo call outlives the process.
+/// Joins every renderer thread dropped so far; main calls it once the event loop has returned.
 pub fn reap() {
     let threads = REAPER
         .lock()
@@ -150,7 +150,7 @@ impl Renderer {
         }
     }
 
-    /// Opens a document; the column reads every size at once, Quick Look only its first pages before its first render.
+    /// Opens a document; the column reads no size at the open and every size in later idle steps, Quick Look its first pages' sizes before its first render.
     pub fn open(&self, path: PathBuf, all_sizes: bool) -> DocId {
         let doc = self.next.get() + 1;
         self.next.set(doc);

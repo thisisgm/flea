@@ -2,7 +2,7 @@
 use super::fixture::{self, LETTER};
 use super::view::finish;
 use super::view::{draw, next_frame, open, palette, show, until, with, METRICS};
-use super::{document, root};
+use super::{document, reaper_lock, root};
 use flea::ui_logic_pv2::viewer;
 use flea_gui::g2::pv2::reap;
 use flea_gui::g2::pv2::PdfView;
@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 
 #[gpui::test]
 fn pv2_a_damaged_page_is_asked_for_once(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = root.join("damaged.pdf");
     let bytes = String::from_utf8(fixture::pdf(&[LETTER]))
@@ -29,18 +30,22 @@ fn pv2_a_damaged_page_is_asked_for_once(cx: &mut TestAppContext) {
         draw(cx, view);
         std::thread::sleep(Duration::from_millis(2));
     }
-    let (asked, failed) = with(cx, view, |v| {
-        (v.surface.counters.asked, v.surface.counters.failed)
+    let (pages, asked, failed) = with(cx, view, |v| {
+        (
+            v.surface.sizes.len(),
+            v.surface.counters.asked,
+            v.surface.counters.failed,
+        )
     });
-    assert!(
-        asked <= 3 && failed <= 1,
-        "at rest the view asked {asked} renders and {failed} failed"
-    );
+    assert_eq!(pages, 3, "the damaged count claims three pages");
+    assert_eq!(failed, 1, "at rest the one damaged neighbour failed once");
+    assert!(asked <= 3, "at rest the view asked {asked} renders");
     finish(cx, view);
 }
 
 #[gpui::test]
 fn pv2_held_turns_land_the_last_page_without_rendering_every_page_passed(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "long.pdf", &[LETTER; 400]);
     let view = open(cx, false);
@@ -79,6 +84,7 @@ impl Render for Host {
 
 #[gpui::test]
 fn pv2_a_dropped_view_releases_its_pages_from_the_atlas(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "pages.pdf", &[LETTER; 3]);
     cx.executor().allow_parking();
@@ -134,6 +140,7 @@ fn pv2_a_dropped_view_releases_its_pages_from_the_atlas(cx: &mut TestAppContext)
 // The order of the reads is the renderer's, pinned by renderer.rs; the view lands page 1 and counts each size once.
 #[gpui::test]
 fn pv2_quick_look_lands_its_first_page_and_counts_every_size_once(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "long.pdf", &[LETTER; 2000]);
     let view = open(cx, false);
@@ -153,6 +160,7 @@ fn pv2_quick_look_lands_its_first_page_and_counts_every_size_once(cx: &mut TestA
 
 #[gpui::test]
 fn pv2_a_zoomed_page_prefetches_its_neighbours_fitted(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "pages.pdf", &[LETTER; 3]);
     let view = open(cx, false);

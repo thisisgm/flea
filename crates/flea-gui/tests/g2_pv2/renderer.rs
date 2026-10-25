@@ -1,6 +1,6 @@
 //! The in-process renderer on real documents: sizes, rotation, the white ground, refusals and the render thread's replies.
 use super::fixture::{pixel, LANDSCAPE, LETTER, TURNED};
-use super::{document, root};
+use super::{document, reaper_lock, root};
 use flea_gui::g2::pv2::poppler::{self, raster_size, Document, Failure, MAX_EDGE, MAX_PIXELS};
 use flea_gui::g2::pv2::render::{reap, Renderer, Reply};
 use std::time::{Duration, Instant};
@@ -197,6 +197,7 @@ pub(super) fn next(renderer: &Renderer) -> Reply {
 
 #[test]
 fn pv2_render_thread_reads_sizes_once_and_renders_what_is_asked() {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "two.pdf", &[LETTER, LANDSCAPE]);
     let renderer = Scoped::spawn();
@@ -255,6 +256,7 @@ fn pv2_render_thread_reads_sizes_once_and_renders_what_is_asked() {
 
 #[test]
 fn pv2_render_thread_skips_a_closed_documents_work() {
+    let _reaper = reaper_lock();
     let root = root();
     let a = document(&root, "a.pdf", &[LETTER; 4]);
     let b = document(&root, "b.pdf", &[LANDSCAPE]);
@@ -294,6 +296,7 @@ fn pv2_render_thread_skips_a_closed_documents_work() {
 
 #[test]
 fn pv2_render_thread_skips_pages_no_longer_wanted_and_reads_quick_look_sizes_after_its_open() {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "three.pdf", &[LETTER, LANDSCAPE, LANDSCAPE]);
     let renderer = Scoped::spawn();
@@ -332,6 +335,7 @@ fn pv2_render_thread_skips_pages_no_longer_wanted_and_reads_quick_look_sizes_aft
 
 #[test]
 fn pv2_quick_look_reads_two_sizes_before_its_first_render_and_the_rest_after() {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "long.pdf", &[LETTER; 2000]);
     let renderer = Scoped::spawn();

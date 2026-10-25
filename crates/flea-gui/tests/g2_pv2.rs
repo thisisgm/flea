@@ -57,6 +57,12 @@ pub fn root() -> Root {
     Root(root)
 }
 
+/// Serializes every test that drops a renderer or calls reap, since the reaper is one list for the whole process.
+pub fn reaper_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 /// Writes a fixture document into the root and answers its path.
 pub fn document(root: &Root, name: &str, pages: &[fixture::Page]) -> PathBuf {
     let path = root.join(name);
