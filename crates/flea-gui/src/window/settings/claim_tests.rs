@@ -1,0 +1,238 @@
+use super::*;
+use crate::g2::st1::claim::DESKTOP;
+use std::{
+    fs,
+    os::unix::fs::PermissionsExt,
+    path::Path,
+    process::Stdio,
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+};
+
+const CHILD: &str = "window::settings::claim::tests::isolated_completed";
+
+fn script(root: &Path, name: &str, body: &str) {
+    let path = root.join("bin").join(name);
+    fs::write(&path, format!("#!/bin/sh\n{body}\n")).unwrap();
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
+}
+
+fn run(case: &str) {
+    let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = workspace.join(format!(
+        ".superpowers/gh123/claim-{case}-{}-{nonce}",
+        std::process::id()
+    ));
+    fs::create_dir_all(root.join("bin")).unwrap();
+    fs::create_dir(root.join("run")).unwrap();
+    fs::write(root.join(".flea-test-sandbox"), "gh123 claim test\n").unwrap();
+    script(
+        &root,
+        "flea",
+        r#"printf '%s\n' "$@" > "$GH123_ROOT/flea.args"
+case "$GH123_CASE" in
+    partial) printf '%s\n' 'flea: no file chooser service is installed, so Flea could not become the file chooser' >&2 ;;
+    uninstalled) exit 3 ;;
+    child_error) printf '%s\n' 'noise' 'flea: routing refused' >&2; exit 7 ;;
+    child_status) exit 7 ;;
+esac"#,
+    );
+    script(
+        &root,
+        "xdg-mime",
+        r#"printf '%s\n' "$@" > "$GH123_ROOT/mime.args"
+if [ "$GH123_CASE" = release ]; then
+    printf '%s\n' org.example.Files.desktop
+else
+    printf '%s\n' com.thisisgm.flea.desktop
+fi"#,
+    );
+    script(
+        &root,
+        "systemctl",
+        r#"printf '%s\n' "$@" > "$GH123_ROOT/systemctl.args"
+[ "$GH123_CASE" != refused ]"#,
+    );
+    script(
+        &root,
+        "busctl",
+        r#"printf '%s\n' "$@" > "$GH123_ROOT/busctl.args"
+case "$GH123_CASE" in
+    ready|release) printf 'u 4\n' ;;
+    malformed) printf 's 4\n' ;;
+    zero) printf 'u 0\n' ;;
+    stalled) printf '%s\n' "$$" > "$GH123_ROOT/probe.pid"; exec /bin/sleep 30 ;;
+    *) exit 1 ;;
+esac"#,
+    );
+    let mut child = Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", CHILD, "--nocapture"])
+        .env_clear()
+        .env("PATH", root.join("bin"))
+        .env("HOME", &root)
+        .env("XDG_RUNTIME_DIR", root.join("run"))
+        .env(
+            "DBUS_SESSION_BUS_ADDRESS",
+            format!("unix:path={}/no-bus", root.display()),
+        )
+        .env("GH123_ROOT", &root)
+        .env("GH123_CASE", case)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let start = Instant::now();
+    while child.try_wait().unwrap().is_none() {
+        if start.elapsed() > Duration::from_secs(12) {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!(
+                "{case}: completed() exceeded 12 seconds; evidence: {}",
+                root.display()
+            );
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let output = child.wait_with_output().unwrap();
+    assert!(
+        output.status.success(),
+        "{case}: {}\n{}\nevidence: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+        root.display()
+    );
+}
+
+#[test]
+fn isolated_completed() {
+    let Ok(case) = std::env::var("GH123_CASE") else {
+        return;
+    };
+    let root = PathBuf::from(std::env::var_os("GH123_ROOT").unwrap());
+    assert!(root.is_absolute() && root.join(".flea-test-sandbox").is_file());
+    let mut claim = Claim {
+        handler: if case == "release" {
+            DESKTOP
+        } else {
+            "before.desktop"
+        }
+        .into(),
+        packaged: true,
+        probed: true,
+        ..Claim::default()
+    };
+    assert_eq!(claim.start(), Some(case != "release"));
+    let binary = root.join("bin").join(if case == "unstarted" {
+        "missing"
+    } else {
+        "flea"
+    });
+    let start = Instant::now();
+    let claim = completed(claim, binary);
+    assert!(!claim.running);
+    assert_eq!(claim.revision, 1);
+    assert!(claim.probed);
+    assert_eq!(claim.claiming, case != "release");
+    assert_eq!(claim.packaged, case != "uninstalled");
+    let expected = match case.as_str() {
+        "ready" | "release" => None,
+        "partial" => Some((Text::Key("settings.default.partly"), Role::Foreground)),
+        "uninstalled" => Some((Text::Key("settings.default.uninstalled"), Role::Foreground)),
+        "child_error" => Some((Text::data("routing refused"), Role::Error)),
+        "child_status" => Some((
+            Text::args("settings.default.exited", vec![Text::data("7")]),
+            Role::Error,
+        )),
+        "unstarted" => Some((
+            Text::args("settings.default.unstarted", vec![Text::data("missing")]),
+            Role::Error,
+        )),
+        _ => Some((Text::Key("settings.default.portal"), Role::Foreground)),
+    };
+    assert_eq!(claim.note, expected, "{case}: Settings readiness result");
+    if case == "unstarted" {
+        assert_eq!(claim.handler, "before.desktop");
+        for helper in ["flea", "mime", "systemctl", "busctl"] {
+            assert!(!root.join(format!("{helper}.args")).exists());
+        }
+        return;
+    }
+    assert_eq!(
+        fs::read_to_string(root.join("flea.args")).unwrap(),
+        if case == "release" {
+            "--default\noff\n"
+        } else {
+            "--default\n"
+        }
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("mime.args")).unwrap(),
+        "query\ndefault\ninode/directory\n"
+    );
+    assert_eq!(
+        claim.handler,
+        if case == "release" {
+            "org.example.Files.desktop"
+        } else {
+            DESKTOP
+        }
+    );
+    let child_failed = matches!(
+        case.as_str(),
+        "uninstalled" | "child_error" | "child_status"
+    );
+    if child_failed {
+        assert!(!root.join("systemctl.args").exists());
+    } else {
+        assert_eq!(
+            fs::read_to_string(root.join("systemctl.args")).unwrap(),
+            "--user\ntry-restart\nxdg-desktop-portal.service\n"
+        );
+    }
+    if child_failed || case == "refused" {
+        assert!(!root.join("busctl.args").exists());
+    } else {
+        assert_eq!(fs::read_to_string(root.join("busctl.args")).unwrap(),
+            "--user\n--auto-start=no\n--timeout=5s\nget-property\norg.freedesktop.portal.Desktop\n/org/freedesktop/portal/desktop\norg.freedesktop.portal.FileChooser\nversion\n");
+    }
+    if case == "stalled" {
+        assert!(start.elapsed() >= Duration::from_secs(6));
+        assert!(start.elapsed() < Duration::from_secs(10));
+        let pid = fs::read_to_string(root.join("probe.pid")).unwrap();
+        assert!(
+            !Path::new("/proc").join(pid.trim()).exists(),
+            "probe was not reaped"
+        );
+    }
+}
+
+macro_rules! cases {
+    ($($name:ident => $case:literal),+ $(,)?) => { $(
+        #[test]
+        fn $name() { run($case); }
+    )+ };
+}
+
+cases! {
+    successful_restart_without_filechooser_retains_portal_note => "absent",
+    ready_unsigned_version_completes_claim => "ready",
+    release_uses_the_same_readiness_path => "release",
+    stopped_frontend_is_never_auto_started => "stopped",
+    refused_restart_retains_portal_note => "refused",
+    malformed_version_retains_portal_note => "malformed",
+    zero_version_retains_portal_note => "zero",
+    stalled_probe_is_bounded_and_reaped => "stalled",
+    partial_claim_note_has_precedence => "partial",
+    uninstalled_child_has_precedence => "uninstalled",
+    child_diagnostic_has_precedence => "child_error",
+    child_exit_status_has_precedence => "child_status",
+    unstarted_child_has_precedence => "unstarted",
+}
