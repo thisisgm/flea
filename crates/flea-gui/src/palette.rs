@@ -82,6 +82,13 @@ thread_local! {
     pub(crate) static INHERITED_RESOLVES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
+/// Drops the cached inherited roles and zeroes the resolve count, so a test counts only its own resolves.
+#[cfg(test)]
+pub(crate) fn forget_inherited() {
+    INHERITED.set(None);
+    INHERITED_RESOLVES.set(0);
+}
+
 fn role(color: flea::theme::Color) -> Hsla {
     Rgba {
         r: color.r as f32,
