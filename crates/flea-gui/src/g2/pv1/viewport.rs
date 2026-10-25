@@ -16,6 +16,9 @@ pub(super) fn pane(top: f32, side: f32, bottom: f32) -> gpui::Div {
 impl QuickLook {
     /// The text or diff viewport in window coordinates, and the content it scrolls over; other kinds have none.
     pub(super) fn viewport(&mut self, card: Bounds<Pixels>, window: &mut Window) -> Option<View> {
+        if let Some(view) = self.picture_viewport(card) {
+            return Some(view);
+        }
         let inner = Bounds::new(
             card.origin + gpui::point(px(1.), px(1.)),
             card.size - gpui::size(px(2.), px(2.)),
@@ -36,7 +39,11 @@ impl QuickLook {
             Body::Diff { rows, .. } => {
                 // CompareView's widest line is the longest by characters, measured once per subject.
                 let widest = *self.scroll.widest.get_or_insert_with(|| {
-                    let line = rows.iter().map(|r| r.text.as_str()).max_by_key(|t| t.chars().count()).unwrap_or("");
+                    let line = rows
+                        .iter()
+                        .map(|r| r.text.as_str())
+                        .max_by_key(|t| t.chars().count())
+                        .unwrap_or("");
                     let run = window.text_style().to_run(line.len());
                     let width = window
                         .text_system()

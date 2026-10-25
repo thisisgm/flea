@@ -52,7 +52,9 @@ pub enum RasterOutcome {
 /// The app renderer as a rasterizer; the caller owns neither the parse nor the renderer.
 pub fn default_raster(renderer: SvgRenderer) -> Rasterizer {
     Arc::new(move |bytes: &[u8], (w, h): (u32, u32)| {
-        let parsed = renderer.parse_svg_untrusted(bytes).map_err(|e| e.to_string())?;
+        let parsed = renderer
+            .parse_svg_untrusted(bytes)
+            .map_err(|e| e.to_string())?;
         let at = size(DevicePixels(w as i32), DevicePixels(h as i32));
         renderer
             .render_parsed(&parsed, SvgSize::ExactSize(at))
@@ -78,7 +80,10 @@ fn read_bounded(path: &PathBuf) -> Result<Vec<u8>, RasterRefusal> {
     if !svg_within_byte_bound(meta.len()) {
         return Err(RasterRefusal::TooLarge);
     }
-    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default();
     if is_compressed_vector(name) {
         return read_inflated(file);
     }
@@ -110,6 +115,22 @@ fn read_inflated(file: std::fs::File) -> Result<Vec<u8>, RasterRefusal> {
 pub fn run(job: &Job) -> RasterOutcome {
     if job.latest.load(Ordering::SeqCst) != job.epoch {
         return RasterOutcome::Superseded;
+    }
+    let vector = job
+        .path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(flea::ui_logic_pv1::pixels::is_vector_name);
+    if !vector {
+        return match super::photo::decode(&job.path, job.size, &|| {
+            job.latest.load(Ordering::SeqCst) == job.epoch
+        }) {
+            Ok(image) if job.latest.load(Ordering::SeqCst) == job.epoch => {
+                RasterOutcome::Raster(image)
+            }
+            Ok(_) => RasterOutcome::Superseded,
+            Err(_) => RasterOutcome::Refused(RasterRefusal::Unreadable),
+        };
     }
     let bytes = match read_bounded(&job.path) {
         Ok(bytes) => bytes,

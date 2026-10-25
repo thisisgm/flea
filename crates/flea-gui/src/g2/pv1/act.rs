@@ -49,7 +49,12 @@ impl QuickLook {
     }
 
     /// PdfViewer's keys (PreviewKeys.pdfAction); Space and Escape still close every kind.
-    pub(super) fn strip_action(&mut self, walk: &[(Hit, bool)], action: &str, cx: &mut Context<Self>) -> Command {
+    pub(super) fn strip_action(
+        &mut self,
+        walk: &[(Hit, bool)],
+        action: &str,
+        cx: &mut Context<Self>,
+    ) -> Command {
         if matches!(action, "preview" | "escape" | "focusPreview") {
             self.close(cx);
             return Command::Close;
@@ -94,6 +99,9 @@ impl QuickLook {
         }
         if let Some(walk) = self.strip() {
             return self.strip_action(&walk, action, cx);
+        }
+        if self.picture_action(action, cx) {
+            return Command::Nothing;
         }
         let subject = self.subject.as_ref();
         let has_bar = subject.is_some_and(|s| s.body.has_bar());
