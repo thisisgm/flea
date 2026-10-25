@@ -176,8 +176,13 @@ fn a_new_listing_between_the_presses_ends_the_dd_pair(cx: &mut TestAppContext) {
         })
     });
     cx.run_until_parked();
-    // The cursor goes back to the armed row, so the listing number is all that differs.
+    // The cursor goes back to the armed row without a key, since any key would end the arm itself; only the listing differs.
     set_cursor(&shell, cx, 2);
+    let (listing, cursor) = shell.read_with(cx, |shell, _| {
+        let pane = &shell.panes[0].as_ref().unwrap().pane;
+        (pane.held.listing, pane.cursor)
+    });
+    assert_eq!((listing, cursor), (2, 2), "the new listing is held with the cursor on the armed row");
     cx.simulate_keystrokes("d");
     assert_eq!(sent(), Vec::<String>::new(), "the d on the new listing arms again");
     cx.simulate_keystrokes("d");
@@ -197,8 +202,12 @@ fn a_stopped_backend_ends_the_delete_in_flight(cx: &mut TestAppContext) {
         shell.update(cx, |shell, cx| shell.receive(0, BackendEvent::Drained, window, cx))
     });
     cx.run_until_parked();
+    let stopped = catalog.tr_args("window.backend_stopped", &[""]);
+    let deleting = shell.read_with(cx, |shell, _| shell.operations.fileops.deleting[0]);
+    assert_eq!(deleting, None, "the stop ended the delete in flight");
+    assert_ne!(status(&shell, cx), stopped, "only the second Shift+Delete says the backend stopped");
     cx.simulate_keystrokes("shift-delete");
-    assert_eq!(status(&shell, cx), catalog.tr_args("window.backend_stopped", &[""]));
+    assert_eq!(status(&shell, cx), stopped);
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
