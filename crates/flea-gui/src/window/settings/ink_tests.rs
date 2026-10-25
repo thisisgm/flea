@@ -27,10 +27,22 @@ fn the_mounted_plugins_pane_takes_the_card_surface_and_its_red(cx: &mut TestAppC
         let tokens = shell.settings.plugins.as_ref().unwrap().read(cx).tokens();
         assert_eq!(tokens.surface, theme.surface, "mounted pane ground");
         assert_eq!(tokens.error, palette.error_on_surface, "mounted pane red");
-        // Refresh: window/settings/mod.rs hands the pane new tokens with the corner.
+        // Refresh: a second theme makes the tokens window/settings/mod.rs rebuilds differ from the mount's.
+        let next = Theme::from_text(
+            &SPLIT
+                .replace("#f0f0f0", "#d8e8f8")
+                .replace("#c04040", "#a03050"),
+        );
+        let next_palette = Palette::inherited(&TextStyle::default(), next);
+        assert_ne!(next.surface, theme.surface);
+        assert_ne!(next_palette.error_on_surface, palette.error_on_surface);
+        cx.set_global(next);
         shell.apply_corner(8., window, cx);
         let tokens = shell.settings.plugins.as_ref().unwrap().read(cx).tokens();
-        assert_eq!(tokens.surface, theme.surface, "refreshed pane ground");
-        assert_eq!(tokens.error, palette.error_on_surface, "refreshed pane red");
+        assert_eq!(tokens.surface, next.surface, "refreshed pane ground");
+        assert_eq!(
+            tokens.error, next_palette.error_on_surface,
+            "refreshed pane red"
+        );
     });
 }
