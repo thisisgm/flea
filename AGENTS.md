@@ -63,7 +63,7 @@ Markdown navigation links are relative to the document containing them.
    cannot be separated by one, and a pin there would claim a restriction it did not make.
    That is the hybrid-GPU blank window: Hyprland compositing on NVIDIA while Qt
    opens Intel, which presents a mapped window with no buffer. An index pin (`QT_VK_PHYSICAL_DEVICE_INDEX`)
-   cannot be used: this box enumerates NVIDIA then Intel to `vkEnumeratePhysicalDevices` and
+   cannot be used: the reporting laptop enumerates NVIDIA then Intel to `vkEnumeratePhysicalDevices` and
    Intel then NVIDIA to QRhi, so the index Flea would hand Qt is the other GPU. Restricting the
    ICD list does not care about order. Forcing the NVIDIA ICD on every NVIDIA laptop would blank
    classic Optimus, where the compositor sits on Intel and the connected connector is Intel's.
@@ -227,8 +227,9 @@ Markdown navigation links are relative to the document containing them.
    the cost was measured at **110 bytes a row with one view instantiated, 232 with two
    and 262 with three**, on the 100,000 file fixture. Gating the two non-default views
    behind `Loader`s was MEASURED to recover 14.7 MB at 100k and take the listing from 264
-   to 147 bytes a row, and was then **REVERTED and is not in the tree**. The repair needs
-   `Pane.qml` split first, because two `Loader`s inline exceed the 400-line hard cap, and
+   bytes a row (that run's own three-view baseline) to 147, and was then **REVERTED and is not
+   in the tree**. The repair needs `Pane.qml` split first, because two `Loader`s inline exceed
+   the 400-line hard cap, and
    that split broke `tests/ui.sh` to 20 of 30 and then 27 of 30: worse after a fix is the
    signal to stop. It is a deferred ticket with a measurement attached rather than a
    shipped change. The recovery figure is also a list-view number and not a whole-product

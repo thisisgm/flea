@@ -6,9 +6,35 @@ mkdir -p "$repo/.superpowers/m9-integ-07"
 scratch=$(mktemp -d "$repo/.superpowers/m9-integ-07/contracts.XXXXXXXX")
 [[ -n "$scratch" && "$scratch" == /* ]] || exit 1
 touch "$scratch/.flea-test-sandbox"
+trap 'case $scratch in "$repo"/.superpowers/m9-integ-07/contracts.?*) [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
 python3 -B "$repo/tools/flea-strata-bench" selftest "$scratch"
 python3 -B "$repo/tools/flea-strata-bench" init "$scratch"
 python3 -B "$repo/tools/flea-strata-bench" dry-run "$scratch"
+typed="$scratch/wrong-typed"
+mkdir "$typed"
+touch "$typed/.flea-test-sandbox"
+python3 -B -c 'import json,sys; p=json.load(open(sys.argv[1])); p["visual_timeout_s"]="5"; json.dump(p, open(sys.argv[2], "w"))' \
+    "$scratch/plan.json" "$typed/plan.json"
+set +e
+python3 -B "$repo/tools/flea-strata-bench" dry-run "$typed" 2> "$typed/stderr"
+rc=$?
+set -e
+[[ "$rc" == 3 ]] && grep -qxF "strata-bench: plan $typed/plan.json: field visual_timeout_s must be a number from 1 to 60, not \"5\"" "$typed/stderr" ||
+    { printf 'strata-bench: FAIL wrong-typed plan field rc=%s\n' "$rc" >&2; exit 1; }
+printf 'strata-bench: a wrong-typed plan field exits 3 naming the field and the plan\n'
+injected="$scratch/injected"
+mkdir -p "$injected/tools"
+sed 's/^def dry_run(root):$/&\n    raise TypeError("injected harness bug")/' "$repo/tools/flea-strata-bench" > "$injected/tools/flea-strata-bench"
+grep -q 'injected harness bug' "$injected/tools/flea-strata-bench" ||
+    { printf 'strata-bench: FAIL sed anchor ^def dry_run(root):$ no longer matches tools/flea-strata-bench\n' >&2; exit 1; }
+set +e
+python3 -B "$injected/tools/flea-strata-bench" dry-run "$scratch" 2> "$injected/stderr"
+rc=$?
+set -e
+[[ "$rc" == 3 ]] && grep -q '^Traceback' "$injected/stderr" && grep -qxF 'TypeError: injected harness bug' "$injected/stderr" &&
+    grep -qxF 'strata-bench: harness error, not a result' "$injected/stderr" ||
+    { printf 'strata-bench: FAIL injected harness bug rc=%s\n' "$rc" >&2; exit 1; }
+printf 'strata-bench: an unexpected harness error prints its traceback and exits 3, never a result\n'
 python3 -B - "$repo" "$scratch" <<'PY'
 import importlib.machinery
 import importlib.util
@@ -26,6 +52,20 @@ spec = importlib.util.spec_from_loader(loader.name, loader)
 tool = importlib.util.module_from_spec(spec)
 loader.exec_module(tool)
 plan = tool.read_plan(root)
+for name, entrant, broken, field in (('archive', 'strata-stable', {'binary_path': '/x', 'expected_version': '1'}, 'binary_sha256'),
+                                     ('package', 'dolphin', {'sha256': 7}, 'sha256')):
+    nested = root / ('nested-' + name)
+    nested.mkdir()
+    bad = copy.deepcopy(plan)
+    bad['entrants'][entrant][name] = broken
+    tool.write_json(nested / 'plan.json', bad)
+    try:
+        tool.read_plan(nested)
+    except ValueError as error:
+        assert 'field entrants.%s.%s.%s must be a string' % (entrant, name, field) in str(error), error
+    else:
+        raise AssertionError('a broken %s key was accepted' % name)
+print('strata-bench: archive and package keys the inventory reads are named on refusal')
 expected_trials = len(tool.IDS) * 3 * 14
 assert len(list(tool.trial_specs(plan))) == expected_trials
 fixture = root / 'fixtures.json'
@@ -100,6 +140,14 @@ assert not summary['gate_passed']
 raw = next(row for row in summary['rows'] if row['entrant'] == 'flea' and row['workload'] == 'raw' and row['metric'] == 'ready_s')
 assert raw['score'] is None and '11/12 verified' in raw['status']
 print('strata-bench: synthetic complete matrix aggregates three runs and gates all 33 measures')
+annotations['flea.raw.1'].update(verified=12, ready=[0, 1])
+annotations['flea.cpu-raw.1'].update(visible_total=100, verified=50)
+tool.write_json(complete / 'annotations.json', annotations, replace=True)
+assert tool.report(complete) == 1
+summary = json.loads((complete / 'results.json').read_text())
+assert not summary['gate_passed']
+assert [(loss['workload'], loss['metric']) for loss in summary['flea_not_first']] == [('cpu-raw', 'quiet_s')]
+print('strata-bench: a Flea CPU run with 50 of 100 previews verified loses its quiet_s column')
 
 early = root / 'installed-only'
 early.mkdir()
@@ -139,6 +187,12 @@ try:
         raise AssertionError('changed kernel accepted between chunks')
 finally:
     tool.validate_fixtures, tool.manifest, tool.load_module, tool.run_trial, tool.load_raw_corpus, tool.bind_products = originals
+try:
+    tool.monitor_geometry([{'name': 'DP-1', 'width': 1, 'height': 1, 'x': 0, 'y': 0, 'scale': 1, 'transform': 0}])
+except ValueError as error:
+    assert all(part in str(error) for part in ('hyprctl -j monitors', 'DP-1', 'refreshRate')), error
+else:
+    raise AssertionError('a monitor without refreshRate was accepted')
 print('strata-bench: installed-only arm captures without any 0.4.0 or rival binary and cannot pass the latest gate')
 
 receipts = root / 'archives-only'
@@ -261,7 +315,8 @@ if [[ -x "$repo/target/release/flea" ]]; then
         timeout 10 "$repo/target/release/flea" --gui "$scratch/empty" > "$scratch/headless-product.log" 2>&1
     rc=$?
     set -e
-    [[ "$rc" == 2 ]] && rg -q 'there is no graphical session' "$scratch/headless-product.log"
+    [[ "$rc" == 2 ]] && grep -q 'there is no graphical session' "$scratch/headless-product.log" ||
+        { printf 'strata-bench: FAIL flea --gui headless rc=%s\n' "$rc" >&2; exit 1; }
     printf 'strata-bench: flea --gui headless refusal verified, rc=2, no native timing claimed\n'
 fi
 printf 'strata-bench: PASS capture/CPU/coverage/report contracts\n'

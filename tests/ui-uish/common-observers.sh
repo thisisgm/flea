@@ -9,9 +9,11 @@ assert_theme() {
     flea_ipc_wait "${route[@]}" flea ready true --timeout 20 >/dev/null \
         || fail "the IPC seam never answered ready, so no reader of this window can be trusted"
     for _attempt in $(seq 1 100); do
+        # Sample input: foreground = "#c1c497"
         expected=$(grep -E '^foreground' "$real_state_dir/theme/colors.toml" | grep -oE '#[0-9A-Fa-f]{6}')
         [[ "$expected" =~ ^#[0-9A-Fa-f]{6}$ ]] \
             || fail "no foreground in $real_state_dir/theme/colors.toml, so no shot could be checked against the live palette"
+        # Sample input: accent = "#d28a41"
         accent=$(grep -E '^accent' "$real_state_dir/theme/colors.toml" | grep -oE '#[0-9A-Fa-f]{6}')
         [[ "$accent" =~ ^#[0-9A-Fa-f]{6}$ ]] \
             || fail "no accent in $real_state_dir/theme/colors.toml, so no focused field could be checked against the live palette"
@@ -135,9 +137,7 @@ case_settings() {
     export XDG_STATE_HOME="$state"
     local stored="$state/flea/ui.json"
 
-    # Seeded through the same CLI the window writes through: a column set the header menu owns, two
-    # keys the backend owns and no control in this panel writes, and one key only a newer Flea knows.
-    # What keeps them below is src/uistate.rs's merge, not a copy the window happened to be holding.
+    # Seeded through the window's own CLI, so src/uistate.rs's merge is what keeps the extra keys.
     settings_seed "$state" "$config" "$stored"
 
     launch "$dir"
@@ -157,22 +157,18 @@ case_settings() {
     settle
     local pinned_base
     pinned_base=$(token_of baseSize)
-    # Running text draws at the stop itself (decided 2026-09-07); the row name is the rendered proof, bodySmall stays the geometry token.
-    # rowNamePx reads the list's delegate, so the list has to be the view showing and row 0 a named row.
+    # rowNamePx reads the list's delegate, so the list view must show with row 0 a named row.
     [[ "$(ipc viewMode)" == "list" && "$(ipc rowAt 0)" == *"|"* ]] || fail "settings: the typography proof needs the list view on a named row, got $(ipc viewMode) and '$(ipc rowAt 0)'"
     [[ "$(ipc bodyPx)" == "$pinned_base" && "$(ipc rowNamePx 0)" == "$pinned_base" ]] \
         || fail "settings: at the ${pinned_base}px stop the body draws $(ipc bodyPx) and row 0's name $(ipc rowNamePx 0)"
 
-    # Restart survival, which is what separates a setting from a session's mood. Every value is
-    # asserted in the file the panel wrote, again through the backend that owns it, and again in the
-    # behaviour of a process that only read it.
+    # Restart survival: each value is checked in the file, through the backend, and after a relaunch.
     [[ -f "$stored" ]] || fail "settings: the panel wrote no state file at $stored"
     grep -q '"paste"' "$stored" || fail "settings: the hidden action never reached the state file"
     grep -q '"keys": "windows"' "$stored" || fail "settings: the preset never reached the state file"
     grep -q "\"mode\": $pinned_base" "$stored" \
         || fail "settings: the state file holds no ${pinned_base}px stop"
-    # The board's own words: an override stores a stop, never a free number or a multiplier, and one
-    # stored vocabulary rather than two that would have to be kept in step.
+    # An override stores a stop, never a free number or a multiplier.
     ! grep -q 'uiScale' "$stored" || fail "settings: the state file still carries an interface-scale multiplier"
     ! grep -q '"px"' "$stored" || fail "settings: the state file still carries 0.1.3's override shape"
     [[ ! -e "$config/flea/view.json" ]] \
@@ -190,10 +186,7 @@ case_settings() {
     settings_section display
     [[ "$(ipc settingsRows)" == *"fact|Effective|${pinned_base} px"* ]] \
         || fail "settings: a restart brought the panel back on a different stop"
-    # A new process opens on View; the explicit Display selection above reads the pinned size, while
-    # the master row is not reachable until the rail has been walked. The master is derived from the
-    # stored set, so a restart that read only menu.hidden must still draw the five of six the panel
-    # left behind, and the six rows under it must agree with it.
+    # The master row is derived from the stored set, so a restart must still draw five of six.
     settings_section menus
     [[ "$(ipc settingsRows)" == *"group|Basic file actions|5 of 6"* ]] \
         || fail "settings: a restart did not derive the master back to five of six, got $(ipc settingsRows)"

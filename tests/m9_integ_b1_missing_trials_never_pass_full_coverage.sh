@@ -15,6 +15,7 @@ fi
 repo=$2
 scratch=$3
 [[ ! -t 0 && ! -t 1 && -f "$scratch/.flea-test-sandbox" ]] || exit 1
+trap 'case $scratch in "$repo"/.superpowers/m9-integ-07/consumer.?*) [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
 python3 -B - "$repo" "$scratch" <<'PY'
 import copy
 import errno
@@ -110,6 +111,20 @@ report = json.loads((root / 'results.json').read_text())
 assert not report['gate_passed'] and len(report['pending']) == 1 and report['release_scope_complete'] is False
 assert len(report['rows']) == 330
 print('b1-consumer: missing rival trial remains explicit and cannot pass full coverage')
+fixtures = (root / 'fixtures.json').read_bytes()
+(root / 'fixtures.json').write_text('{"edited": true}')
+error = invoke('report', root, expected=3)
+assert 'fixture manifest changed' in error.stderr
+(root / 'fixtures.json').write_bytes(fixtures)
+print('b1-consumer: a harness error exits 3, apart from a measured loss')
+annotations['flea.raw.1']['reviewer'] = None
+tool.write_json(root / 'annotations.json', annotations, replace=True)
+invoke('report', root, expected=2)
+report = json.loads((root / 'results.json').read_text())
+assert 'flea.raw.1' in [item['trial'] for item in report['pending']]
+annotations['flea.raw.1']['reviewer'] = 'synthetic consumer contract'
+tool.write_json(root / 'annotations.json', annotations, replace=True)
+print('b1-consumer: a non-text reviewer leaves its trial pending instead of crashing the report')
 
 adapter = root / 'adapter'
 (adapter / 'tools').mkdir(parents=True)

@@ -47,7 +47,7 @@ impl Properties {
         }
     }
 
-    /// The snapshot captures the selection first; the host must await its acknowledgement before sending Properties.
+    /// Sends the snapshot and the Properties request at once, snapshot first; Properties may come back busy.
     pub fn open(id: u64, rows: &[usize]) -> (Self, Vec<Effect>) {
         (
             Self::new(id, rows.len()),

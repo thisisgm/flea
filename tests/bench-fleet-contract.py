@@ -149,6 +149,9 @@ run("full roster, separate signed source and peeled tag, no entrant execution")
 source = {**INVENTORY["entrants"][4]["source"], "tag": "release-1.1.0", "tag_version": "1.1.0"}
 inv, cap = change_both(4, "source", source)
 run("explicit upstream tag/version mapping for nonstandard tag names", inv, cap)
+source = {**INVENTORY["entrants"][4]["source"], "tag": "v1.0.0", "tag_version": "1.1.0"}
+inv, cap = change_both(4, "source", source)
+run("non-Strata 1.0.0 tag cannot map to 1.1.0", inv, cap, "tag_version does not match tag")
 search = {"flea-candidate", "flea-0.3.12", "fsearch-nd", "fff-bare", "fff-rich", "fsearch"}
 inv, cap = copy.deepcopy(INVENTORY), copy.deepcopy(CAPTURE)
 inv["entrants"] = [row for row in inv["entrants"] if row["alias"] in search]
