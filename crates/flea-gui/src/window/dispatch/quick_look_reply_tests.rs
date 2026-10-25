@@ -321,7 +321,7 @@ fn space_in_the_focused_preview_column_on_a_clip_opens_no_card(cx: &mut TestAppC
     let video = cx.update(|_, cx| matches!(column.read(cx).mounted_kind(), Some((Kind::Video, _))));
     assert!(video, "the column mounted the clip");
     press(cx, "ctrl-tab");
-    assert_eq!(context(&shell, cx), Context::Preview);
+    assert_eq!(context(&shell, cx), Context::Media, "a mounted clip holds the media keys");
     sent(&mut requests, "code");
     press(cx, "space");
     assert_eq!(
