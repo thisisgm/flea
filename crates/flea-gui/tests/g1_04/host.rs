@@ -189,6 +189,17 @@ fn key_shell(
     (cx, shell, observed, subscription)
 }
 
+// The pane's backend records its lines, so a row action the file operations family runs is read back.
+fn requests(cx: &mut VisualTestContext, shell: &Entity<Shell>) -> impl FnMut() -> Vec<String> {
+    let (backend, mut read) = Backend::test_lines();
+    cx.update(|_, cx| shell.update(cx, |shell, _| shell.panes[0].as_mut().unwrap().backend = Some(backend)));
+    move || {
+        std::iter::from_fn(&mut read)
+            .filter(|line| line.contains(r#""c":"trash""#) || line.contains(r#""c":"menuaction""#))
+            .collect()
+    }
+}
+
 fn assert_busy(cx: &mut VisualTestContext, shell: &Entity<Shell>, busy: bool) {
     cx.update(|_, cx| assert_eq!(shell.read(cx).panes[0].as_ref().unwrap().pane.busy(), busy));
 }
@@ -222,12 +233,14 @@ fn press(
 fn a_busy_pane_swallows_a_modified_row_action(cx: &mut TestAppContext) {
     // Shift-Delete is deletePermanently and Ctrl-C is copy in the default preset: both are row actions.
     let (cx, shell, observed, _subscription) = key_shell(cx, true);
+    let mut sent = requests(cx, &shell);
     press(cx, &shell, "delete", None, shifted());
     assert!(
         observed.borrow().is_empty(),
         "shift-delete: {:?}",
         observed.borrow()
     );
+    assert_eq!(sent(), Vec::<String>::new(), "shift-delete reached the backend");
     press(cx, &shell, "c", None, controlled());
     assert!(
         observed.borrow().is_empty(),
@@ -240,6 +253,7 @@ fn a_busy_pane_swallows_a_modified_row_action(cx: &mut TestAppContext) {
 fn a_busy_pane_swallows_a_plain_row_action(cx: &mut TestAppContext) {
     // F2 is rename and Delete is trash: neither may act on the listing being replaced.
     let (cx, shell, observed, _subscription) = key_shell(cx, true);
+    let mut sent = requests(cx, &shell);
     press(cx, &shell, "f2", None, Modifiers::default());
     assert!(observed.borrow().is_empty(), "f2: {:?}", observed.borrow());
     press(cx, &shell, "delete", None, Modifiers::default());
@@ -248,6 +262,7 @@ fn a_busy_pane_swallows_a_plain_row_action(cx: &mut TestAppContext) {
         "delete: {:?}",
         observed.borrow()
     );
+    assert_eq!(sent(), Vec::<String>::new(), "delete reached the backend");
 }
 
 #[gpui::test]
@@ -337,12 +352,19 @@ fn an_idle_pane_moves_and_extends_selection_on_shift_down(cx: &mut TestAppContex
 
 #[gpui::test]
 fn an_idle_pane_emits_the_row_actions_the_busy_tests_hold(cx: &mut TestAppContext) {
+    // Shift-Delete runs in the file operations family, so it reaches the backend instead of the emitted list.
     let (cx, shell, observed, _subscription) = key_shell(cx, false);
+    let mut sent = requests(cx, &shell);
     press(cx, &shell, "delete", None, shifted());
+    let asked = sent();
+    assert!(
+        asked.len() == 1 && asked[0].contains(r#""op":"snapshot""#),
+        "{asked:?}"
+    );
     press(cx, &shell, "c", None, controlled());
     // Rename has an in-process owner: F2 opens the cursor row's editor instead of leaving an emit nobody hears.
     press(cx, &shell, "f2", None, Modifiers::default());
-    assert_eq!(*observed.borrow(), vec!["deletePermanently", "copy"]);
+    assert_eq!(*observed.borrow(), vec!["copy"]);
     shell.read_with(cx, |shell, _| {
         assert!(shell.rename.edit.is_some(), "F2 opened the editor")
     });

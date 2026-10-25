@@ -1,4 +1,6 @@
 //! The one place the window runs what a producer hands it: key and pointer actions, menu choices and rail requests.
+mod fileops;
+mod fileops_wire;
 mod listing;
 mod navigation;
 pub(crate) mod opener;
@@ -10,6 +12,8 @@ mod window;
 use super::input::ActionEvent;
 use crate::{g2::mn1::join::Chosen, state::Shell};
 use gpui::{Context, Window};
+
+pub(crate) use fileops::Held as FileOps;
 
 /// What a producer hands the window to run.
 pub(crate) enum Order {
@@ -24,8 +28,9 @@ pub(crate) enum Order {
 /// A family runs the orders it owns and answers whether it ran this one.
 type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
 
-/// Each family keeps its handlers in its own file beside this one and adds one line here.
+/// Each family keeps its handlers in its own file beside this one and adds one line here; file operations go first, to end an armed dd pair on every other listing action.
 const FAMILIES: &[Family] = &[
+    fileops::run,
     navigation::run,
     opener::run,
     previewtypes::run,
@@ -61,6 +66,10 @@ mod compare_tests;
 mod effect_tests;
 #[cfg(test)]
 mod families_tests;
+#[cfg(test)]
+mod fileops_menu_tests;
+#[cfg(test)]
+mod fileops_tests;
 #[cfg(test)]
 mod guard_tests;
 #[cfg(test)]

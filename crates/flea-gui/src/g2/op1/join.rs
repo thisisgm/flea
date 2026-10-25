@@ -28,6 +28,7 @@ impl gpui::EventEmitter<OperationUpdate> for Shell {}
 
 #[derive(Default)]
 pub(crate) struct Sessions {
+    pub(crate) fileops: crate::window::dispatch::FileOps,
     pub(super) focus_owner: Option<Entity<Overlay>>,
     views: [Option<Entity<Overlay>>; 2],
     observers: [Option<Subscription>; 2],
