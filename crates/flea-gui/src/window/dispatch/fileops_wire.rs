@@ -1,5 +1,11 @@
 //! The file operations family's replies: New Folder and Duplicate land, Trash clears the marks, Delete permanently opens its card.
-use crate::{state::Shell, window::navigate::Step};
+use super::Order;
+use crate::{
+    navigation::history::select_match,
+    pane::states::Kind,
+    state::Shell,
+    window::{input::ActionEvent, navigate::Step},
+};
 use flea::{
     jsondoc::{self, Json},
     ui_logic_op1::{
@@ -12,6 +18,7 @@ use flea::{
 use gpui::{Context, Window};
 
 impl Shell {
+    // Sample input: {"t":"made","ok":true,"path":"/home/gm/New Folder"}; duplicated and the trash and delete replies share the same t field.
     /// A backend line this family answers; true when nobody else needs it.
     pub(crate) fn fileops_line(
         &mut self,
@@ -41,6 +48,9 @@ impl Shell {
                     lines::with_undo(&catalog, &preset, line)
                 };
                 self.fileops_say(side, &said, false, cx);
+                if kind == "made" {
+                    self.operations.fileops.arrival[side] = Some(path.clone());
+                }
                 // Shell::step says its own refusal in the pane status, so its result is spent here.
                 let _ = self.step(side, Step::Refresh(Some(path)), window, cx);
                 true
@@ -55,6 +65,31 @@ impl Shell {
             "menuaction" => self.fileops_delete_reply(side, line, window, cx),
             _ => false,
         }
+    }
+
+    /// PaneWire.qml openRenameOnArrival: once the re-read lands, the new folder's own row takes the cursor and Rename runs on it.
+    pub(crate) fn fileops_arrival(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(host) = self.panes[side].as_mut() else {
+            return;
+        };
+        let arrival = &mut self.operations.fileops.arrival[side];
+        if arrival.is_none() || host.pane.busy() || host.nav.pending_select.is_some() {
+            // An ended listing never delivers the folder, so its editor is dropped rather than opened over a later one.
+            if matches!(host.pane.state.kind, Kind::Error | Kind::Locked) && !host.pane.busy() {
+                *arrival = None;
+            }
+            return;
+        }
+        let Some(target) = arrival.take() else {
+            return;
+        };
+        let names = host.pane.held.rows.iter().map(|row| row.name.as_str());
+        let Some(at) = select_match(names, &target, host.pane.path()) else {
+            return;
+        };
+        host.pane.cursor = host.pane.held.start + at;
+        let rename = ActionEvent::bare("rename", flea::keys::Context::Listing);
+        self.dispatch(Order::Action(rename), window, cx);
     }
 
     // The Delete permanently snapshot this family sent, then its review, which opens the permanent-delete card.
