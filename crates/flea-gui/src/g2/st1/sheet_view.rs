@@ -152,40 +152,36 @@ impl SheetView {
         let foot = self.sheet.scroll + measured.body;
         let mut grid = div().flex().items_start().gap(px(COL_GAP));
         for (side, rows) in columns.into_iter().enumerate() {
-            let rows = self
-                .probe
-                .attach(div().flex().flex_col().children(rows), COLUMNS[side]);
+            let rows = self.probe.attach(
+                div().flex_none().flex().flex_col().children(rows),
+                COLUMNS[side],
+            );
             let column = div()
                 .flex_1()
                 .min_w_0()
                 .relative()
-                .debug_selector(move || format!("sheet-column-{side}"))
-                .child(rows);
+                .debug_selector(move || format!("sheet-column-{side}"));
             // Board keymap: a column running past the body's foot is cut there, one ending within a row of it on its last row's half.
             let cut = measured.feet[side]
                 .filter(|_| below)
                 .filter(|end| end.end > foot - 2. * (end.end - end.half))
-                .map(|end| if end.end > foot { foot } else { end.half });
+                .map(|end| (end.end, if end.end > foot { foot } else { end.half }));
+            // The rows are clipped at the cut rather than painted over, so a translucent ground never shows them under the fade.
             grid = grid.child(match cut {
-                Some(cut) => column
-                    .child(Self::fade(side, cut, ink))
-                    .child(Self::mask(side, cut, ink)),
-                None => column,
+                Some((end, cut)) => column
+                    .h(px(end))
+                    .child(
+                        div()
+                            .h(px(cut))
+                            .overflow_hidden()
+                            .debug_selector(move || format!("sheet-clip-{side}"))
+                            .child(rows),
+                    )
+                    .child(Self::fade(side, cut, ink)),
+                None => column.child(rows),
             });
         }
         self.body(grid, cx).id("sheet-rest")
-    }
-
-    /// The column's ground from its cut down, hiding the half row and the rows under the fade without moving the layout.
-    fn mask(side: usize, cut: f32, ink: &Ink) -> Div {
-        div()
-            .absolute()
-            .left_0()
-            .right_0()
-            .top(px(cut))
-            .bottom_0()
-            .debug_selector(move || format!("sheet-mask-{side}"))
-            .bg(ink.surface)
     }
 
     /// The 18px fade over a column's cut, as each clipped menu ends to say it scrolls.
