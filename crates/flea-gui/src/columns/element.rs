@@ -1,6 +1,6 @@
 //! One custom Element per drawn track: fixed rows painted as quads, marks and prepared glyph runs, no layout node per row.
 use super::cache::{Row, Shaping};
-use super::geometry::{cells, name_budget, Slot, CHEVRON, DIVIDER, GAP, MARK, MARK_SLOT, PAD_X};
+use super::geometry::{cells, mark_box, name_budget, Slot, CHEVRON, DIVIDER, GAP};
 use super::paint::{
     Clip, ClipMarks, Focus, FolderSizes, Palette, TrackPaint, CACHE_SCREENS, CLIP, EDGE,
 };
@@ -275,13 +275,13 @@ impl Element for TrackElement {
                     let chevron = prepared.dir && (cursor || lifted);
                     let inks = palette.row_ink(*clip, cursor, lifted, view.dim);
                     let geometry = cells(width, active, chevron);
-                    let mark_at = point(
-                        left + px(PAD_X + (MARK_SLOT - MARK) / 2.),
-                        top + px((ROW_HEIGHT - MARK) / 2.),
-                    );
+                    let (mark_x, mark_y, mark) = mark_box();
                     let (key, data) = prepared.mark.svg();
                     let _ = window.paint_svg(
-                        Bounds::new(mark_at, size(px(MARK), px(MARK))),
+                        Bounds::new(
+                            point(left + px(mark_x), top + px(mark_y)),
+                            size(px(mark), px(mark)),
+                        ),
                         key,
                         Some(data),
                         TransformationMatrix::unit(),
