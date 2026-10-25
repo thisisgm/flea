@@ -105,8 +105,6 @@ fn doc_of(moves: &[Move], at_ms: u64) -> Json {
     ])
 }
 
-// Sample input: {"at":1789426926000,"moves":[{"from":"/home/gm/a.txt","to":"/home/gm/Work/a.txt","dev":"66306","ino":"41","kind":"32768","born":["1789426900","5000"]}]}
-// Reject incomplete rows and malformed birth pairs; accept legacy rows without birth time.
 // The moves file shape: every row a whole move, so a newer writer's extra field is never dropped.
 pub(crate) fn moves_shape(doc: &Json) -> bool {
     use crate::persistdoc::{count, fields};
@@ -123,6 +121,8 @@ pub(crate) fn moves_shape(doc: &Json) -> bool {
             })
 }
 
+// Sample input: {"at":1789426926000,"moves":[{"from":"/home/gm/a.txt","to":"/home/gm/Work/a.txt","dev":"66306","ino":"41","kind":"32768","born":["1789426900","5000"]}]}
+// Reject incomplete rows and malformed birth pairs; accept legacy rows without birth time.
 pub fn moves_of(doc: &Json) -> Vec<Move> {
     let rows = doc.get("moves").and_then(Json::as_array).map(<[Json]>::to_vec).unwrap_or_default();
     rows.iter()

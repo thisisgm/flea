@@ -306,6 +306,9 @@ impl Service {
 
     fn run(&self, job: &Job) -> Result<PathBuf, Fail> {
         let local = |e: std::io::Error| Fail::Local(crate::error::io_message(&e));
+        let dest = self.store.pdf_path(&job.key);
+        // Checked before the converter runs, so a document this cache cannot replace costs no child; publish checks again.
+        crate::cachewrite::require(&dest).map_err(local)?;
         std::fs::DirBuilder::new().recursive(true).mode(0o700).create(&self.store.dir).map_err(local)?;
         let mut work = Work::new(&self.store.dir, "office").map_err(|e| Fail::Local(e.msg))?;
         let argv = (self.build)(&job.program, &job.input, &work.dir);
@@ -337,7 +340,6 @@ impl Service {
             });
         }
         let produced = produced_pdf(&work.dir).ok_or_else(|| Fail::Converter(format!("{PROGRAM} wrote no PDF of {}", job.input.display())))?;
-        let dest = self.store.pdf_path(&job.key);
         let mut body = std::fs::File::open(&produced).map_err(local)?;
         Store::publish(&dest, job.mtime, &mut body).map_err(local)?;
         self.store.prune(&self.store.dir);

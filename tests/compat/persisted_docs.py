@@ -65,7 +65,8 @@ def check_documents(parent, binary, inherited, _file, _run):
                 "plugin": ["--ui-state", '{"shelf":{"enabled":true}}'],
             }
             if name == "plugin":
-                invoke(["--ui-state", '{"shelf":{"enabled":false}}'])
+                disabled = invoke(["--ui-state", '{"shelf":{"enabled":false}}'])
+                assert disabled.returncode == 0, (name, kind, "disabling the shelf failed", disabled.stderr)
             attempted = invoke(actions[name])
             if name == "ui" and kind in ("unparsable", "nonobject"):
                 # A ui.json that is not an object is kept as ui.json.broken and replaced, as 0.3.12 did.

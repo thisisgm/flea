@@ -226,8 +226,7 @@ impl Shelf {
 
     // Sample input, the whole of shelf.json:
     // {"items":[{"path":"/home/gm/Work/a.txt","folder":false,"pinned":true}]}
-    // A file that is not there yet, or is empty or blank, is an empty pile; one that cannot be read or
-    // parsed is a pile this must not write over, because the write would take every row in it.
+    // Absent, empty or blank is an empty pile; anything unreadable, unparsable or not a pile is never written over.
     pub(crate) fn held(&self) -> Result<Vec<Json>, String> {
         let doc = crate::persistdoc::read_pile(&self.pile)?;
         Ok(doc.get("items").and_then(Json::as_array).map(<[Json]>::to_vec).unwrap_or_default())

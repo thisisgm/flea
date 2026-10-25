@@ -1,6 +1,4 @@
-// Drives the six compatibility suites from Cargo on demand: `cargo test --test upgrade_compat -- --ignored`.
-// They build source mutants and launch real binaries, so a plain `cargo test --workspace` (the package
-// check()) skips them; flea-ci runs the same suites through the headless list in tests/run-all.sh.
+// The six compatibility suites on demand (`-- --ignored`); flea-ci runs them through tests/run-all.sh.
 use std::path::Path;
 use std::process::Command;
 
@@ -46,6 +44,12 @@ fn cli_mutations() {
 #[ignore = "compatibility suite, run with -- --ignored; flea-ci runs it through tests/run-all.sh"]
 fn legacy_upgrade() {
     suite("legacy-upgrade", "legacy-upgrade: all cases passed");
+}
+
+#[test]
+#[ignore = "compatibility suite, run with -- --ignored; flea-ci runs it through tests/run-all.sh"]
+fn legacy_helpers() {
+    suite("legacy-helpers", "legacy-helpers: all cases passed");
 }
 
 #[test]

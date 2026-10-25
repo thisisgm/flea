@@ -69,6 +69,9 @@ pub(crate) fn exec_special(key: &str, value: &str) -> i32 {
     exec_window(None, None, Some((key, value)))
 }
 
+const ENOENT: i32 = 2;
+const EACCES: i32 = 13;
+
 // The answer exec would give, checked before an old window is closed: ENOENT when absent, EACCES when not runnable.
 fn binary_usable(binary: &Path) -> std::io::Result<()> {
     let usable = |path: &Path| {
@@ -76,7 +79,7 @@ fn binary_usable(binary: &Path) -> std::io::Result<()> {
         if meta.is_file() && meta.permissions().mode() & 0o111 != 0 {
             Ok(())
         } else {
-            Err(std::io::Error::from_raw_os_error(13))
+            Err(std::io::Error::from_raw_os_error(EACCES))
         }
     };
     if binary.components().count() > 1 {
@@ -88,7 +91,7 @@ fn binary_usable(binary: &Path) -> std::io::Result<()> {
     if found {
         Ok(())
     } else {
-        Err(std::io::Error::from_raw_os_error(2))
+        Err(std::io::Error::from_raw_os_error(ENOENT))
     }
 }
 
@@ -102,8 +105,7 @@ fn exec_window(start: Option<&str>, select: Option<&str>, special: Option<(&str,
         );
         return 1;
     }
-    // A picker or unlock launch is a dialog beside the operator's windows, so it never
-    // replaces a 0.3.12 window and carries nothing from one.
+    // A picker or unlock launch is a dialog beside the operator's windows, never a 0.3.12 window's replacement.
     let carry = match special.map_or_else(legacy::replace, |_| Ok(Default::default())) {
         Ok(carry) => carry,
         Err(reason) => {

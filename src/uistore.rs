@@ -127,7 +127,7 @@ impl Store {
             match jsondoc::parse(&text) {
                 Ok(found) if found.as_object().is_some() => {
                     crate::persistdoc::parse(&text, crate::persistdoc::ui)
-                        .map_err(|why| format!("{}: {}; file was left unchanged", self.file.display(), why))?;
+                        .map_err(|why| format!("{}: {}; file was left unchanged, so {STATE_NOT_WRITTEN}", self.file.display(), why))?;
                 }
                 _ => {
                     let backup = self.file.with_file_name("ui.json.broken");
@@ -136,7 +136,7 @@ impl Store {
                     // The backup must survive a crash before the only original is replaced.
                     let dir = backup.parent().ok_or("ui.json.broken has no directory")?;
                     fs::File::open(dir).and_then(|file| file.sync_all())
-                        .map_err(|e| format!("{} backup could not be synced ({:?}); state file was not written", backup.display(), e.kind()))?;
+                        .map_err(|e| format!("{} backup could not be synced ({:?}); {STATE_NOT_WRITTEN}", backup.display(), e.kind()))?;
                 }
             }
         }
@@ -221,9 +221,7 @@ pub(crate) fn unlock(file: &fs::File) -> std::io::Result<()> {
     }
 }
 
-// The state file's path is predictable and its bytes are the operator's only copy, so a link, a
-// device and a file this cannot read are all refused rather than renamed over.
-// `outcome` names the document the refusal kept, so a shelf file is never called the state file.
+// A link, a device or an unreadable state file is refused, never renamed over; outcome names the document kept.
 pub(crate) fn read_write_target(path: &Path, outcome: &str) -> Result<Option<String>, String> {
     match fs::symlink_metadata(path) {
         Ok(meta) if meta.file_type().is_symlink() => {

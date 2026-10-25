@@ -49,6 +49,7 @@ def tags(write=False):
     def send(request):
         child.stdin.write((json.dumps(request) + "\n").encode())
         child.stdin.flush()
+    # Sample input: b'{"t":"tagstates","id":4,"applied":["Red"],"mixed":[]}\n', one backend reply per line.
     def receive(kind):
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
@@ -113,15 +114,15 @@ else:
     fixture = json.loads((repo / "tests/compat/state-v0312.json").read_text())
     for relative, encoded in fixture["files"].items():
         path = root / relative
-        assert path.is_relative_to(root) and path.is_absolute()
+        assert path.is_absolute() and ".." not in Path(relative).parts and path.resolve().is_relative_to(root.resolve()), relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(base64.b64decode(encoded).replace(b"@ROOT@", str(root).encode()))
     (root / "landed").mkdir()
+    before = snapshot()
     if "tags" in fixture:
         os.setxattr(file, "user.xdg.tags", base64.b64decode(fixture["tags"]))
         assert tags() == fixture["tagstates"], "0.3.12 tags changed in the backend reader"
         assert os.getxattr(file, "user.xdg.tags") == base64.b64decode(fixture["tags"])
-    before = snapshot()
     assert reads() == fixture["reads"], "0.3.12 state reader output changed"
     assert snapshot() == before, "reading 0.3.12 state rewrote a persisted file"
     shutil.copy2(binary, root / "bin/flea")

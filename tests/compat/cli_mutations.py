@@ -28,6 +28,11 @@ env = os.environ.copy()
 env["CARGO_TARGET_DIR"] = str(root / "target")
 # A run that checked no mutant must fail, never print a vacuous pass.
 assert mutants, "no mutants defined: refusing a zero-check run"
+# The unmutated scratch crate must pass every row, so a rejection can only come from its mutation.
+build = subprocess.run(["cargo", "build", "--offline", "--manifest-path", str(root / "Cargo.toml"), "--bin", "flea"], env=env, capture_output=True, timeout=300)
+assert build.returncode == 0, build.stderr.decode(errors="replace")
+baseline = subprocess.run(["python3", str(repo / "tests/compat/cli_contract.py"), str(root / "target/debug/flea")], capture_output=True, timeout=120)
+assert baseline.returncode == 0, ("unmutated scratch crate fails the contract", baseline.stdout, baseline.stderr)
 for row, filename, before, after in mutants:
     source = root / "src" / filename
     original = source.read_text()

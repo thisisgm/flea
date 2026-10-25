@@ -50,11 +50,16 @@ pub fn valid_png(file: &Path, width: usize, height: usize) -> bool {
     opened.set_times(FileTimes::new().set_accessed(SystemTime::now())).is_ok()
 }
 
+// A render may land only where both the page and its dependency record are this cache's own.
+pub fn replaceable(dest: &Path) -> bool {
+    crate::cachewrite::allowed(dest) && htmldeps::replaceable(dest)
+}
+
 pub fn publish(png: &Path, dependencies: &Path, dest: &Path) -> std::io::Result<()> {
     let _guard = CACHE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     let record = htmldeps::sidecar(dest);
     crate::cachewrite::require(dest)?;
-    if !htmldeps::replaceable(dest) {
+    if !replaceable(dest) {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "foreign or newer-schema HTML dependencies; cache was left unchanged"));
     }
     match std::fs::remove_file(&record) {
@@ -123,6 +128,17 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
 
+
+    #[test]
+    fn a_render_lands_only_over_this_caches_own_page() {
+        let d = TestDir::new("html-png-replaceable");
+        let dest = d.join("page.png");
+        assert!(replaceable(&dest), "an absent page is a miss");
+        std::fs::write(&dest, b"\x89PNG\r\n\x1a\nold").unwrap();
+        assert!(replaceable(&dest), "an older render is replaced");
+        std::fs::write(&dest, "{\"foreign\":true}").unwrap();
+        assert!(!replaceable(&dest), "another document is never rendered over");
+    }
 
     #[test]
     fn foreign_and_newer_images_survive_read_and_first_publish() {
