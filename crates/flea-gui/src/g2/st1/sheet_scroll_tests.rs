@@ -185,7 +185,7 @@ fn down_past_the_edge_keeps_the_highlighted_result_in_view() {
 }
 
 const FADES: [&str; 2] = ["sheet-fade-0", "sheet-fade-1"];
-const MASKS: [&str; 2] = ["sheet-mask-0", "sheet-mask-1"];
+const CLIPS: [&str; 2] = ["sheet-clip-0", "sheet-clip-1"];
 
 // Each resting column fades at its own foot while rows run below the body, as the keymap board draws, and not at the end.
 #[test]
@@ -221,14 +221,14 @@ fn each_resting_column_fades_at_its_own_foot_until_the_wheel_reaches_the_end() {
                 || (fade.bottom() < last.bottom() && near(f32::from(fade.bottom()), f32::from(last.center().y))),
             "ST_SHEET_FADE: column {side} ends on the body's foot or its drawn last row's half: {fade:?} {last:?} in {body:?}"
         );
-        let mask = open
+        let clip = open
             .cx
-            .debug_bounds(MASKS[side])
-            .expect("the cut hides the rest of the column");
+            .debug_bounds(CLIPS[side])
+            .expect("the rows are clipped at the cut");
         assert_eq!(
-            (mask.top(), mask.bottom()),
-            (fade.bottom(), column.bottom()),
-            "ST_SHEET_FADE: column {side} shows nothing under its cut"
+            clip.bottom(),
+            fade.bottom(),
+            "ST_SHEET_FADE: column {side}'s rows are clipped where its fade ends"
         );
     }
     assert!(
@@ -244,6 +244,45 @@ fn each_resting_column_fades_at_its_own_foot_until_the_wheel_reaches_the_end() {
         assert!(
             open.cx.debug_bounds(FADES[side]).is_none(),
             "ST_SHEET_FADE: no fade on column {side} once the last row sits on the body's foot"
+        );
+    }
+}
+
+// A translucent ground cannot hide rows, so each faded column clips its rows at the cut: the last row runs on past it, undrawn.
+#[test]
+fn a_translucent_ground_never_shows_the_rows_under_a_column_cut() {
+    let mut open = opened();
+    open.cx.update(|_, cx| {
+        let theme = crate::palette::Theme::default();
+        cx.set_global(crate::palette::Theme {
+            background: theme.background.opacity(0.5),
+            ..theme
+        });
+    });
+    open.cx.update(|window, cx| window.simulate_next_frame(cx));
+    draw(&mut open.cx);
+    let surface = open.view.read_with(&open.cx, |_, cx| {
+        cx.global::<crate::palette::Theme>().background.a
+    });
+    assert!(surface < 1., "the sheet draws on a translucent ground");
+    for side in 0..2 {
+        let fade = open
+            .cx
+            .debug_bounds(FADES[side])
+            .unwrap_or_else(|| panic!("ST_SHEET_FADE: column {side} fades at its foot"));
+        let clip = open
+            .cx
+            .debug_bounds(CLIPS[side])
+            .unwrap_or_else(|| panic!("ST_SHEET_CLIP: column {side} clips its rows at the cut"));
+        let rows = bounds(&open, ["column-0", "column-1"][side]);
+        assert_eq!(
+            clip.bottom(),
+            fade.bottom(),
+            "ST_SHEET_CLIP: the clip ends where the fade does"
+        );
+        assert!(
+            rows.bottom() > clip.bottom(),
+            "ST_SHEET_CLIP: column {side}'s rows run past the clip, so the clip, not a painted ground, hides them: {rows:?} {clip:?}"
         );
     }
 }
