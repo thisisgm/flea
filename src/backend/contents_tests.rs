@@ -109,6 +109,8 @@ impl Fixture {
     }
 }
 
+#[path = "contents_lifecycle_tests.rs"]
+mod lifecycle;
 #[path = "contents_review_tests.rs"]
 mod review;
 

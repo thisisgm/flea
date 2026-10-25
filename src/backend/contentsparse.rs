@@ -37,6 +37,7 @@ fn relative(value: &Json) -> Result<Vec<u8>, String> {
     Ok(path.to_vec())
 }
 
+// Sample input: {"type":"begin","data":{"path":{"text":"./notes.txt"}}}
 pub(super) fn parse(line: &[u8]) -> Result<Record, String> {
     let document =
         jsondoc::parse(std::str::from_utf8(line).map_err(|_| "ripgrep JSON was not UTF-8")?)?;

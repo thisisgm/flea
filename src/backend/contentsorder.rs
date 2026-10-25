@@ -65,7 +65,7 @@ pub fn sort(
         .collect();
     let (gen, dev, writable, count) = (held.ask.gen, held.dev, held.writable, held.ask.count);
     st.listing = listing;
-    super::super::run::forget_rows(st, pool);
+    forget_rows(st, pool);
     let mut listed = super::super::proto::listed_gen_line(
         st.listing.len(),
         pass_ms,
