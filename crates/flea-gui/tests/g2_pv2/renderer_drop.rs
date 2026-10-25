@@ -1,15 +1,16 @@
 //! The render thread at a drop: queued work skipped, a drop that never waits on the UI thread, and finished threads joined.
 use super::fixture::LETTER;
-use super::renderer::{next, Scoped};
-use super::{document, root};
+use super::renderer::next;
+use super::{document, reaper_lock, root};
 use flea_gui::g2::pv2::render::{reap, reaper_len, Renderer, Reply};
 use std::time::{Duration, Instant};
 
 #[test]
-fn pv2_dropping_the_renderer_joins_its_thread_and_skips_the_queued_work() {
+fn pv2_dropping_the_renderer_hands_its_thread_to_the_reaper_and_skips_the_queued_work() {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "big.pdf", &[LETTER; 4]);
-    let renderer = Scoped::spawn();
+    let renderer = Renderer::spawn();
     let replies = renderer.replies.clone();
     let doc = renderer.open(path, true);
     assert!(
@@ -21,27 +22,31 @@ fn pv2_dropping_the_renderer_joins_its_thread_and_skips_the_queued_work() {
     }
     let started = Instant::now();
     drop(renderer);
-    let took = started.elapsed();
+    let held = started.elapsed();
+    assert!(
+        held < Duration::from_secs(1),
+        "the drop hands its thread over without waiting on it: {held:?}"
+    );
+    assert!(reaper_len() >= 1, "the dropped thread waits in the reaper");
+    let started = Instant::now();
+    reap();
+    let joined = started.elapsed();
     assert!(
         replies.is_closed(),
-        "after the drop the thread has ended, so no poppler or cairo call runs past it"
+        "after the reap the thread has ended, so no poppler or cairo call runs past it"
     );
     assert!(
-        took < Duration::from_secs(1),
-        "the drop waits for at most the render in hand, not 100 queued: {took:?}"
+        joined < Duration::from_secs(1),
+        "the thread ends after at most the render in hand, not 100 queued: {joined:?}"
     );
 }
 
 #[test]
 fn pv2_dropped_renderers_free_their_threads_without_waiting_for_exit() {
-    fn tasks() -> usize {
-        std::fs::read_dir("/proc/self/task")
-            .map(|tasks| tasks.count())
-            .unwrap_or(0)
-    }
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "one.pdf", &[LETTER]);
-    let (before, live_before) = (reaper_len(), tasks());
+    let before = reaper_len();
     // A Quick Look open and close drops one renderer per view.
     const VIEWS: usize = 50;
     for _ in 0..VIEWS {
@@ -59,7 +64,6 @@ fn pv2_dropped_renderers_free_their_threads_without_waiting_for_exit() {
     }
     // Every worker above returns within its step of its drop; this waits them out.
     std::thread::sleep(Duration::from_secs(2));
-    let live_done = tasks();
     // One more drop sweeps every finished handle, so only threads still ending their step stay unjoined.
     let last = Renderer::spawn();
     let doc = last.open(path.clone(), false);
@@ -72,7 +76,7 @@ fn pv2_dropped_renderers_free_their_threads_without_waiting_for_exit() {
     }
     drop(last);
     let waiting = reaper_len();
-    println!("PV2_REAPER views={VIEWS} waiting={waiting} live_before={live_before} live_done={live_done}");
+    println!("PV2_REAPER views={VIEWS} waiting={waiting}");
     reap();
     assert_eq!(reaper_len(), 0, "reap joins everything left");
     assert!(
@@ -84,6 +88,7 @@ fn pv2_dropped_renderers_free_their_threads_without_waiting_for_exit() {
 
 #[test]
 fn pv2_a_renderer_drop_during_a_column_open_returns_at_once() {
+    let _reaper = reaper_lock();
     for pages in [20_000, 200_000] {
         let root = root();
         let path = document(&root, "tree.pdf", &vec![LETTER; pages]);

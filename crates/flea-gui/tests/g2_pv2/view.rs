@@ -1,7 +1,8 @@
 //! The PDF view as a real GPUI entity in a test window, rendering real documents through its own thread.
 use super::fixture::{Page, LANDSCAPE, LETTER, TURNED};
-use super::{document, root};
+use super::{document, reaper_lock, root};
 use flea::ui_logic_pv2::{pdf, viewer};
+use flea_gui::g2::pv2::render::{reap, reaper_len};
 use flea_gui::g2::pv2::{Metrics, Palette, PdfView};
 use gpui::{AppContext as _, TestAppContext, WindowHandle};
 use std::time::{Duration, Instant};
@@ -73,7 +74,12 @@ pub(super) fn finish(cx: &mut TestAppContext, view: WindowHandle<PdfView>) {
     cx.update_window(view.into(), |_, window, _| window.remove_window())
         .unwrap();
     cx.run_until_parked();
-    flea_gui::g2::pv2::reap();
+    assert!(
+        reaper_len() >= 1,
+        "the closed window's renderer waits in the reaper"
+    );
+    reap();
+    assert_eq!(reaper_len(), 0, "the reap joined every dropped renderer");
 }
 
 pub(super) fn show(cx: &mut TestAppContext, view: WindowHandle<PdfView>, path: &std::path::Path) {
@@ -87,6 +93,7 @@ pub(super) fn show(cx: &mut TestAppContext, view: WindowHandle<PdfView>, path: &
 
 #[gpui::test]
 fn pv2_column_stack_fills_the_frame_and_builds_pages_near_it(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "report.pdf", &[LETTER; 12]);
     let view = open(cx, true);
@@ -156,6 +163,7 @@ fn pv2_column_stack_fills_the_frame_and_builds_pages_near_it(cx: &mut TestAppCon
 
 #[gpui::test]
 fn pv2_column_scroll_follows_the_offset_and_keeps_the_window_bounded(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "big.pdf", &[LETTER; 500]);
     let view = open(cx, true);
@@ -200,6 +208,7 @@ fn pv2_column_scroll_follows_the_offset_and_keeps_the_window_bounded(cx: &mut Te
 
 #[gpui::test]
 fn pv2_quick_look_turns_from_its_cache_and_counts_the_drawn_page(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let path = document(&root, "pages.pdf", &[LETTER, LANDSCAPE, TURNED]);
     let view = open(cx, false);
@@ -269,6 +278,7 @@ fn pv2_quick_look_turns_from_its_cache_and_counts_the_drawn_page(cx: &mut TestAp
 
 #[gpui::test]
 fn pv2_a_walk_waits_for_the_settle_and_a_switch_drops_the_old_pages(cx: &mut TestAppContext) {
+    let _reaper = reaper_lock();
     let root = root();
     let a = document(&root, "a.pdf", &[LETTER]);
     let b = document(&root, "b.pdf", &[LANDSCAPE]);
@@ -331,6 +341,7 @@ fn pv2_the_veil_is_for_dark_grounds_only() {
 fn pv2_quick_look_strip_reads_the_catalog_and_a_failed_open_gets_one_sentence(
     cx: &mut TestAppContext,
 ) {
+    let _reaper = reaper_lock();
     let i18n = flea::i18n::I18n::default();
     let root = root();
     let view = open(cx, false);
