@@ -126,7 +126,7 @@ impl Reader<'_> {
             escape(sentence),
             escape(patch),
             rows.join(","),
-            subject.mark(),
+            view.header_mark().expect("an open subject"),
             controls.join(","),
         )
     }

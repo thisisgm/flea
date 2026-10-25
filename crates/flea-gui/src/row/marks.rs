@@ -59,12 +59,17 @@ impl Mark {
 
     /// Row.qml's slot: a code file wears its language's logo while language marks are on, every other row its kind's mark.
     pub fn for_facts(row: &RowFacts, languages: bool) -> Self {
-        if languages && !row.dir && !super::is_symlink(row.mode) {
-            if let Some(language) = Language::for_file(&row.name) {
+        Self::for_file(&row.name, row.dir, row.mode, &row.icon, languages)
+    }
+
+    /// The same selector for subjects and peek rows that carry file facts without a protocol row.
+    pub fn for_file(name: &str, dir: bool, mode: u32, icon: &str, languages: bool) -> Self {
+        if languages && !dir && !super::is_symlink(mode) {
+            if let Some(language) = Language::for_file(name) {
                 return Self::Language(language);
             }
         }
-        Self::for_row(&row.icon, row.mode)
+        Self::for_row(icon, mode)
     }
 
     /// The Lucide name Icons.js binds, which Ipc.rowGlyph() reads through for_row(); a language logo is drawn on the file page.
@@ -390,49 +395,5 @@ impl ClipMarks {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn marks_follow_icons_js() {
-        assert_eq!(Mark::for_row("folder", 0o120777), Mark::Symlink);
-        assert_eq!(Mark::for_row("inode-directory", 0o040755), Mark::Folder);
-        assert_eq!(Mark::for_row("text-html", 0o100644), Mark::Code);
-        assert_eq!(Mark::for_row("x-office-document", 0o100644), Mark::FileText);
-        assert_eq!(Mark::for_row("application-pdf", 0o100644), Mark::File);
-        let (key, data) = Mark::Folder.svg();
-        assert_eq!(key.as_ref(), "flea-mark:folder");
-        let text = std::str::from_utf8(data).unwrap();
-        assert!(
-            text.starts_with("<svg ")
-                && text.ends_with(r#"<path d="M2 20V3h6l2 3h12v14H2z"/></svg>"#)
-        );
-    }
-
-    #[test]
-    fn clip_marks_answer_one_lookup_per_row_and_an_empty_clipboard_none() {
-        let mut marks = ClipMarks::default();
-        marks.scope("/w");
-        assert_eq!(marks.mark_for("a"), None);
-        assert_eq!(marks.lookups.get(), 0);
-        marks.set(
-            &["/w/a".into(), "/w/sub/b".into(), "/other/c".into()],
-            false,
-        );
-        assert_eq!(marks.mark_for("a"), Some(ClipMark::Copy));
-        assert_eq!(marks.mark_for("sub/b"), Some(ClipMark::Copy));
-        assert_eq!(marks.mark_for("c"), None);
-        assert_eq!(marks.lookups.get(), 3);
-        marks.scope("/other/");
-        assert_eq!(marks.mark_for("c"), Some(ClipMark::Copy));
-        assert_eq!(marks.mark_for("a"), None);
-        marks.set(&["/other/c".into()], true);
-        assert_eq!(marks.mark_for("c"), Some(ClipMark::Cut));
-        marks.set(&[], false);
-        assert!(marks.is_empty() && marks.held() == 0);
-        assert_eq!(marks.mark_for("c"), None);
-        assert_eq!(marks.lookups.get(), 6);
-        let (key, _) = ClipMark::Cut.svg();
-        assert_eq!(key.as_ref(), "flea-mark:scissors");
-    }
-}
+#[path = "mark_tests.rs"]
+mod tests;

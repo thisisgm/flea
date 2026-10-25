@@ -152,10 +152,15 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
         .ok();
     let failed = std::rc::Rc::new(std::cell::Cell::new(false));
     let failure = failed.clone();
+    let settings = crate::window::startup::load_settings()
+        .map(|settings| settings.data)
+        .unwrap_or_else(|_| flea::uistate::from_file("{}"));
     gpui_platform::application().run(move |cx: &mut App| {
         match open(launch, locale.clone(), children(), cx) {
             Ok(window) => {
                 let _ = window.update(cx, |picker, _, cx| {
+                    picker.apply_settings(&settings, cx);
+                    picker.follow_settings(cx);
                     let reader = follow_locale(&service, cx);
                     picker.keep(reader);
                     if let Some(server) = server {

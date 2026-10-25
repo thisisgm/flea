@@ -74,6 +74,7 @@ impl SvgPicture {
 }
 
 pub struct QuickLook {
+    pub(crate) languages: bool,
     pub(crate) i18n: Arc<I18n>,
     pub(crate) look: Option<Look>,
     pub(crate) subject: Option<Subject>,
@@ -100,6 +101,7 @@ impl EventEmitter<Event> for QuickLook {}
 impl QuickLook {
     pub fn new(i18n: Arc<I18n>) -> Self {
         Self {
+            languages: true,
             i18n,
             look: None,
             subject: None,
