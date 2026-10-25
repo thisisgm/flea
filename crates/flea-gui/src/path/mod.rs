@@ -6,6 +6,8 @@ pub mod field;
 pub mod history;
 mod input;
 pub mod join;
+#[cfg(test)]
+mod m9_g2rows_29_netpath_tests;
 pub mod mark;
 pub mod menu;
 pub mod paint;
@@ -21,6 +23,7 @@ mod wire;
 
 use crate::pane::Kind;
 use flea::i18n::I18n;
+use flea::ui_logic_pl2::networkaddress;
 pub use wire::{answer, is_jump_line, jump_line, peek_line, Answer, Jumped, Peeked};
 
 // The one place a path is made canonical: "." and ".." resolve here, so the bar draws the path the backend lists.
@@ -100,17 +103,22 @@ fn trim(text: &str) -> &str {
     text.trim_matches(|c: char| c.is_whitespace() || c == '\u{feff}')
 }
 
-// A typed smb:// (or sftp://, davs://, ...) is a network location, handed back whole for the network open.
+// A typed smb:// (or sftp://, davs://, ...) or user@host:/path is a network location, handed back whole for the network open.
 pub fn is_network_uri(text: &str) -> bool {
     let line = trim(text);
-    ["smb", "sftp", "ftp", "ftps", "dav", "davs", "nfs", "afp"]
+    let uri = ["smb", "sftp", "ftp", "ftps", "dav", "davs", "nfs", "afp"]
         .iter()
         .any(|scheme| {
             line.len() >= scheme.len() + 3
                 && line.is_char_boundary(scheme.len())
                 && line[..scheme.len()].eq_ignore_ascii_case(scheme)
                 && line[scheme.len()..].starts_with("://")
-        })
+        });
+    // A slash before the "@" names a local path ("./a@b:/c", "/srv/a@b:/c"), as scp reads it.
+    uri || (line
+        .split_once('@')
+        .is_some_and(|(user, _)| !user.contains('/'))
+        && networkaddress::parse(line).is_ok())
 }
 
 // The typed line as an absolute path, or "" for a line that names nothing.
