@@ -5,7 +5,9 @@ use super::frames::{frame, held, open, real_cx, set, typeface};
 use super::track_frames::{self, look};
 use flea::protocol::RowFacts;
 use flea_gui::columns::cache::size_text;
-use flea_gui::columns::geometry::{cells, Layout, Slot, CHEVRON, MARK, MARK_SLOT, PAD_X, SIZE_W};
+use flea_gui::columns::geometry::{
+    cells, mark_box, Layout, Slot, CHEVRON, MARK, MARK_SLOT, PAD_X, SIZE_W,
+};
 use flea_gui::columns::paint::{Clip, Focus, Palette, EDGE, HOVER, MARKED, SELECTION, WASH};
 use flea_gui::columns::{TrackRows, TrackState, TrackView};
 use flea_gui::navigation::sort::{DirSizes, Size};
@@ -136,10 +138,21 @@ fn two_and_four_column_boards_keep_their_rects_and_hero_spans() {
 #[test]
 fn a_row_keeps_the_board_cells_in_every_track() {
     assert_eq!(ROW_HEIGHT, 31., ".row height 31");
+    // v0.3.12 ColumnRow.qml: Glyph caps the 23 slot at Theme.markSize, bodySmall 13 x 1.45, the list's own mark.
+    let mark_size = (13. * 1.45_f64) as f32;
     assert_eq!(
         (PAD_X, MARK_SLOT, MARK),
-        (14., 23., 17.),
-        "14 left padding, 23 glyph box, 17 svg"
+        (14., 23., mark_size),
+        "14 left padding, 23 glyph box, an 18.85 mark"
+    );
+    assert_eq!(
+        mark_box(),
+        (
+            14. + (23. - mark_size) / 2.,
+            (31. - mark_size) / 2.,
+            mark_size
+        ),
+        "the painted mark centres its 18.85 square in the slot and on the row"
     );
     // The active 302 track: name at 46, the 70 wide size ending 9 before the 28 right padding, at 265.
     let active = cells(302., true, false);
