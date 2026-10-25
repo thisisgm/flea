@@ -32,6 +32,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 
 REPO = Path(__file__).resolve().parent.parent
 SOURCE_SHA = "e6b79c11f45621f80cb0a082f6985ffaa06dec0d"
@@ -303,6 +304,7 @@ def fixtures(root, raw_corpus=None):
 
 
 MISSING = object()
+SHOWN_VALUE_CHARS = 80
 
 
 def texts(value):
@@ -317,7 +319,7 @@ def optional(kind):
     return lambda value: value is None or type(value) is kind
 
 
-# plan.json is edited by hand, so every field the harness reads is checked here and named on refusal.
+# plan.json is edited by hand, so every plan field the harness reads, archive and package keys included, is named on refusal.
 PLAN_FIELDS = (("runs", lambda value: type(value) is int and value >= 3, "an integer of at least 3"),
                ("visual_timeout_s", within(1, 60), "a number from 1 to 60"),
                ("warmup_s", within(1, 30), "a number from 1 to 30"),
@@ -337,12 +339,16 @@ ENTRANT_FIELDS = (("binary", lambda value: type(value) is str, "a string"),
                   ("setup_keys", lambda value: type(value) is list and all(texts(chord) for chord in value),
                    "a list of key chords, each a list of strings"),
                   ("navigation_keys", texts, "a list of strings"))
+# inventory() reads these from a pinned archive or package; the rest is compared whole against the product.
+ARCHIVE_FIELDS = tuple((name, lambda value: type(value) is str, "a string")
+                       for name in ("binary_path", "binary_sha256", "expected_version"))
+PACKAGE_FIELDS = (("sha256", lambda value: type(value) is str, "a string"),)
 
 
 def check_fields(path, prefix, data, fields):
     for name, valid, kind in fields:
         value = data.get(name, MISSING)
-        shown = "missing" if value is MISSING else json.dumps(value)[:80]
+        shown = "missing" if value is MISSING else json.dumps(value)[:SHOWN_VALUE_CHARS]
         require(value is not MISSING and valid(value), "plan %s: field %s%s must be %s, not %s" % (path, prefix, name, kind, shown))
 
 
@@ -354,8 +360,11 @@ def read_plan(root):
     for ident, entrant in plan["entrants"].items():
         require(type(entrant) is dict, "plan %s: field entrants.%s must be an object" % (path, ident))
         check_fields(path, "entrants.%s." % ident, entrant, ENTRANT_FIELDS)
-        for name in ("archive", "package"):
-            require(optional(dict)(entrant.get(name)), "plan %s: field entrants.%s.%s must be an object" % (path, ident, name))
+        for name, fields in (("archive", ARCHIVE_FIELDS), ("package", PACKAGE_FIELDS)):
+            if entrant.get(name) is None:
+                continue
+            require(type(entrant[name]) is dict, "plan %s: field entrants.%s.%s must be an object" % (path, ident, name))
+            check_fields(path, "entrants.%s.%s." % (ident, name), entrant[name], fields)
     inventory = plan.get("rival_inventory")
     require(inventory is None or (type(inventory) is dict and type(inventory.get("path")) is str
                                   and type(inventory.get("sha256")) is str),
@@ -978,4 +987,9 @@ if __name__ == "__main__":
         sys.exit(main())
     except (OSError, ValueError, KeyError, ImportError, subprocess.SubprocessError) as error:
         print("strata-bench: " + str(error), file=sys.stderr)
+        sys.exit(3)
+    except Exception:
+        # Exit 1 reads as a Flea loss, so a harness bug keeps its traceback and exits 3, never a result.
+        traceback.print_exc()
+        print("strata-bench: harness error, not a result", file=sys.stderr)
         sys.exit(3)

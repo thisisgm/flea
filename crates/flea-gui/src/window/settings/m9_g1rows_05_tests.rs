@@ -61,9 +61,8 @@ fn m9_g1rows_05_unfinished_folder_sort_survives_a_stale_reread(cx: &mut TestAppC
     cx.update(|window, cx| {
         let entity = cx.new(|cx| crate::state::tests::shell_with(backend, cx));
         entity.update(cx, |shell, cx| {
-            let done = Arc::new(AtomicUsize::new(0));
             let host = shell.panes[0].as_ref().unwrap();
-            *host.nav.writer.borrow_mut() = Writer::held(done.clone());
+            *host.nav.writer.borrow_mut() = Writer::held(Arc::new(AtomicUsize::new(0)));
             *host.nav.folders.borrow_mut() =
                 Folders::from_settings(&flea::uistate::from_file("{}"), Vec::new());
             assert_eq!(shell.step(0, Step::Open("/B".into()), window, cx), Ok(true));
@@ -100,7 +99,8 @@ fn m9_g1rows_05_unfinished_folder_sort_survives_a_stale_reread(cx: &mut TestAppC
                 .and_then(|entry| entry.get("key"))
                 .and_then(Json::as_str);
             assert_eq!(saved, Some("size"));
-            done.store(1, Ordering::Release);
+            let writer = &shell.panes[0].as_ref().unwrap().nav.writer;
+            writer.borrow().done().store(1, Ordering::Release);
             shell.receive_settings(reread("{}"), window, cx);
             let host = shell.panes[0].as_ref().unwrap();
             assert_eq!(

@@ -58,6 +58,12 @@ impl Writer {
         }
     }
 
+    // The current worker's count; a restart replaces it, so a test takes it again after each write.
+    #[cfg(test)]
+    pub fn done(&self) -> Arc<AtomicUsize> {
+        self.done.clone()
+    }
+
     pub fn write(&mut self, patch: String, failure: String) {
         self.sent += 1;
         if !self.live {
@@ -79,12 +85,11 @@ impl Writer {
         self.restart();
     }
 
-    // The one `done` restarts from zero in place, so every clone of it sees the new worker's finishes.
-    // A failed send means the old worker dropped its end, so it never counts again.
+    // Each worker gets its own count, so a dead worker's late finishes land on its own and retire nothing.
     fn restart(&mut self) {
         self.queue = None;
         self.queued = 0;
-        self.done.store(0, Ordering::Release);
+        self.done = Arc::new(AtomicUsize::new(0));
         for owed in &mut self.owed {
             owed.seq = 0;
         }
@@ -223,18 +228,19 @@ mod tests {
             ],
             "the new worker gets the unfinished patch, then the new one"
         );
+        first.fetch_add(2, Ordering::Release);
         assert_eq!(
-            first.load(Ordering::Acquire),
-            0,
-            "the restart resets the shared count"
+            writer.owed().len(),
+            2,
+            "the dead worker's count retires nothing"
         );
         assert!(
-            Arc::ptr_eq(&first, &writer.done),
-            "a waiter's clone stays the writer's count"
+            !Arc::ptr_eq(&first, &writer.done()),
+            "the new worker counts on its own"
         );
-        first.store(1, Ordering::Release);
+        writer.done().store(1, Ordering::Release);
         assert_eq!(writer.owed(), vec![c]);
-        first.store(2, Ordering::Release);
+        writer.done().store(2, Ordering::Release);
         assert!(writer.owed().is_empty());
     }
 }
