@@ -45,6 +45,10 @@ runtime=${XDG_RUNTIME_DIR:?native compositor runtime}
 for arm in qml gpui; do
     mkdir -p -m 700 "$E/$arm"/{config,state,cache,runtime,home}
     if [ -d "$runtime/hypr" ]; then ln -s "$runtime/hypr" "$E/$arm/runtime/hypr"; fi
+    if [[ ${WAYLAND_DISPLAY:-} != /* && -S "$runtime/${WAYLAND_DISPLAY:-}" ]]; then
+        ln -s "$runtime/$WAYLAND_DISPLAY" "$E/$arm/runtime/$WAYLAND_DISPLAY"
+    fi
+    if [ -S "$runtime/.ydotool_socket" ]; then ln -s "$runtime/.ydotool_socket" "$E/$arm/runtime/.ydotool_socket"; fi
     seed_actions "$E/$arm"
     bin=$Q_BIN
     [ "$arm" != gpui ] || bin=$G_BIN

@@ -177,6 +177,10 @@ impl Flash {
         if self.running() {
             return vec![Effect::TakeBack];
         }
+        // A sent press is a flash in all but its flashstarted, so a reopen keeps its image, drive and runner.
+        if self.runner.press_sent {
+            return Vec::new();
+        }
         self.runner = Runner::default();
         self.drives.clear();
         self.drives_ready = false;

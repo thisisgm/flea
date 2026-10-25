@@ -58,7 +58,7 @@ pub struct FlashFrame<'a> {
 impl StandIn {
     fn cursor_edge(&self, draw: &Draw, cursor: bool, focused: bool) -> Div {
         div()
-            .w(px(2.))
+            .w(px(CURSOR_EDGE))
             .h_full()
             .flex_none()
             .when(cursor, |d| d.debug_selector(|| SEL_CURSOR_EDGE.into()))

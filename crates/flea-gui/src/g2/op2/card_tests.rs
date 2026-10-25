@@ -321,3 +321,20 @@ fn focused_chip_frames_in_the_accent() {
     assert_eq!(chip_frame(&t, true, false), t.fg, "the chosen chip frames in foreground at rest");
     assert_eq!(chip_frame(&t, false, true), t.muted_frame, "an unchosen chip stays muted while focused");
 }
+
+#[test]
+fn compress_zip_tab_from_confirm_skips_the_hidden_switch() {
+    let i18n = english();
+    let mut card = compress();
+    card.key(&i18n, Key::Backtab);
+    card.key(&i18n, Key::Backtab);
+    card.key(&i18n, Key::Right);
+    for _ in 0..3 {
+        card.key(&i18n, Key::Tab);
+    }
+    assert!(fields(&card.card(&i18n))[2].2, "the walk reaches Confirm on zip");
+    card.key(&i18n, Key::Tab);
+    let drawn = card.card(&i18n);
+    assert!(!drawn.body.iter().any(|block| matches!(block, Block::CheckLine(_))), "zip draws no Encrypt switch");
+    assert!(buttons(&drawn).starts_with("Cancel@"), "Tab from Confirm lands on Cancel: {}", buttons(&drawn));
+}
