@@ -94,6 +94,7 @@ pub struct Picker {
     pub stem_requests: u64,
     // The folder, path strip and Filename the listing child feeds.
     pub browse: super::browse::Browse,
+    pub(super) drawn: super::drawn::Drawn,
 }
 
 pub struct Children {
@@ -146,6 +147,7 @@ impl Picker {
             selection_notice: None,
             stem_requests: 0,
             browse,
+            drawn: super::drawn::Drawn::default(),
         };
         picker.body = Some(picker.browse.body(cx));
         picker.filter = picker.browse.filename.clone().map(AnyView::from);

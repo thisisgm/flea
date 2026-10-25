@@ -1,4 +1,6 @@
 //! flea --pick under the GPUI frontend: one portal request, one window, its reply and its exit.
+use super::drawn::Drawn;
+use super::geometry::Live;
 use super::picker::{Children, Picker};
 use super::process::PickerProcess;
 use crate::ipc::server::{Event, Server};
@@ -106,7 +108,20 @@ pub fn serve_ipc(
         while let Ok(event) = events.recv().await {
             let served = this.update(cx, |picker, cx| match event {
                 Event::Call { request, answer } => {
-                    let _ = answer.try_send(picker.ipc(request, None));
+                    let drawn = picker.drawn.clone();
+                    if Drawn::reads_frame(&request) {
+                        drawn.arm();
+                        let weak = cx.entity().downgrade();
+                        drawn.when_painted(move |cx| {
+                            let _ = weak.update(cx, |picker, cx| {
+                                let geometry = Live { picker, cx };
+                                let _ = answer.try_send(picker.ipc(request, Some(&geometry)));
+                            });
+                        });
+                        cx.notify();
+                    } else {
+                        let _ = answer.try_send(picker.ipc(request, None));
+                    }
                 }
                 Event::Quit => {
                     picker.window_closed(cx);

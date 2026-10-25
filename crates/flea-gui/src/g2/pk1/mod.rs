@@ -1,7 +1,9 @@
 //! Picker portal and lifetime: the request, its one answer, the reply file and both read-only children.
 mod answer;
 pub mod browse;
+mod drawn;
 pub mod filename;
+mod geometry;
 pub mod ipc;
 pub mod labels;
 pub mod launch;
