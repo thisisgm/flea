@@ -1,5 +1,5 @@
 //! The menu's Open on a file runs Enter's own path on the cursor row through the production Shell.
-use super::opener_tests::{home, launched, quit, shell};
+use super::opener_tests::{home, launched, looking, quit, shell};
 use super::test_shell::{asked, asked_on, land, land_on, row, set_cursor};
 use super::Order;
 use crate::g2::mn1::join::{Captured, Chosen};
@@ -62,7 +62,8 @@ fn the_menu_open_on_an_archive_hands_it_to_quick_look(cx: &mut TestAppContext) {
     set_cursor(&shell, cx, 2);
     assert!(menu_open(&shell, cx, 2, &["/files/backup.tar.zst"]));
     assert_eq!(launched(), Vec::<String>::new(), "an archive never reaches flea --open");
-    assert_eq!(actions.borrow().as_slice(), ["preview"]);
+    assert!(actions.borrow().is_empty(), "{:?}", actions.borrow());
+    assert_eq!(looking(&shell, cx), "true", "the archive opens in Quick Look");
     quit(&shell, cx);
 }
 

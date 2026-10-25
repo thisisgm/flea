@@ -128,17 +128,17 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.launch.settings.data = flea::jsondoc::parse(r#"{"keys":"vim"}"#).unwrap();
-            // Eject has no runner yet, so its emission carries the pair state Escape used to show.
-            shell.key(&event("e", None, true), window, cx);
+            // Next tab has no runner yet, so its emission carries the pair state Escape and Eject used to show.
+            shell.key(&event("pagedown", None, true), window, cx);
             shell.key(&event("y", Some("y"), false), window, cx);
-            shell.key(&event("e", None, true), window, cx);
-            shell.key(&event("e", None, true), window, cx);
+            shell.key(&event("pagedown", None, true), window, cx);
+            shell.key(&event("pagedown", None, true), window, cx);
         })
     });
     cx.run_until_parked();
     assert_eq!(
         *observed.borrow(),
-        vec![("eject", false), ("eject", true), ("eject", false),]
+        vec![("tabNext", false), ("tabNext", true), ("tabNext", false),]
     );
 }
 

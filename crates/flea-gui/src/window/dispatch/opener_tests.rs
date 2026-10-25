@@ -73,6 +73,12 @@ pub(super) fn shell(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &m
     (shell, cx, (actions, asks), subscriptions)
 }
 
+// Whether Quick Look shows, as the previewOpen reader reports it.
+pub(super) fn looking(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) -> String {
+    cx.run_until_parked();
+    read(shell, cx, "previewOpen", &[])
+}
+
 pub(super) fn quit(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) {
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
@@ -105,7 +111,9 @@ fn right_on_a_file_is_the_preview_key(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("right");
     assert_eq!(launched(), Vec::<String>::new());
     assert_eq!(asked(&shell, cx), "/files");
-    assert_eq!(actions.borrow().as_slice(), ["preview"], "Right hands the preview key on");
+    // The preview family owns the key now, so it opens Quick Look instead of handing preview on.
+    assert!(actions.borrow().is_empty(), "{:?}", actions.borrow());
+    assert_eq!(looking(&shell, cx), "true", "Right opens Quick Look on the file");
     quit(&shell, cx);
 }
 
@@ -129,7 +137,8 @@ fn enter_on_an_archive_hands_it_to_quick_look(cx: &mut TestAppContext) {
     set_cursor(&shell, cx, 2);
     cx.simulate_keystrokes("enter");
     assert_eq!(launched(), Vec::<String>::new(), "an archive never reaches flea --open");
-    assert_eq!(actions.borrow().as_slice(), ["preview"]);
+    assert!(actions.borrow().is_empty(), "{:?}", actions.borrow());
+    assert_eq!(looking(&shell, cx), "true", "the archive opens in Quick Look");
     quit(&shell, cx);
 }
 
