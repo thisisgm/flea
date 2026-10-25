@@ -72,6 +72,7 @@ fn number(doc: &Json, key: &str) -> usize {
 }
 
 // A malformed reply is a dropped discovery, never a row: the menu shows no Actions row for it.
+// Sample input: {"t":"actions","id":4,"actions":[{"id":"zip","name":"Zip","mode":"background","selection":"many","script":false}],"errors":[{"file":"r.toml","error":"unknown action mode"}],"error":""}.
 pub fn parse_listing(line: &str) -> Option<Listing> {
     let doc = jsondoc::parse(line).ok()?;
     if doc.get("t").and_then(Json::as_str) != Some("actions") {
@@ -117,6 +118,7 @@ pub struct Preview {
     pub error: String,
 }
 
+// Sample input: {"t":"actionpreview","id":5,"ok":true,"text":"zip -r out.zip notes.txt","error":""}.
 pub fn parse_preview(line: &str) -> Option<Preview> {
     let doc = jsondoc::parse(line).ok()?;
     if doc.get("t").and_then(Json::as_str) != Some("actionpreview") {
@@ -139,6 +141,7 @@ pub struct Started {
     pub error: String,
 }
 
+// Sample input: {"t":"actionstarted","requestId":6,"id":40,"ok":true,"error":""}.
 pub fn parse_started(line: &str) -> Option<Started> {
     let doc = jsondoc::parse(line).ok()?;
     if doc.get("t").and_then(Json::as_str) != Some("actionstarted") {

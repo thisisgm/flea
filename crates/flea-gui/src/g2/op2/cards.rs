@@ -19,6 +19,8 @@ pub const CHIP_GAP: f32 = 4.;
 /// The password eye beside the bullets.
 pub const EYE: f32 = 13.;
 pub const CHECK: f32 = 18.;
+/// The tick inside a checked box, the board's 12 px check mark.
+pub const CHECK_GLYPH: f32 = 12.;
 /// A tracked-capitals label's line and the air under it.
 pub const LABEL_LINE: f32 = 14.;
 pub const LABEL_GAP: f32 = 5.;
@@ -33,6 +35,10 @@ pub const STEP_ROW: f32 = 37.;
 /// The wash under a FLASH row's cursor or selection, and the running bar's empty track.
 pub const ROW_WASH: f32 = 0.18;
 pub const TRACK_WASH: f32 = 0.25;
+/// The hairline rule, the muted frame at 40%.
+pub const RULE_WASH: f32 = 0.40;
+/// A FLASH row's cursor edge, unscaled like the columns' edge (v0.3.12 hairline * 2).
+pub const CURSOR_EDGE: f32 = 2.;
 /// The running bar's gap under the step and its height.
 pub const BAR_GAP: f32 = 6.;
 pub const BAR_HEIGHT: f32 = 6.;
@@ -214,7 +220,7 @@ impl Tokens {
             accent: palette.accent,
             accent_frame: palette.accent_frame,
             error: palette.accent,
-            rule: palette.metadata_frame.opacity(0.40),
+            rule: palette.metadata_frame.opacity(RULE_WASH),
         }
     }
 
