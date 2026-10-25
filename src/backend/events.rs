@@ -13,6 +13,7 @@ use std::thread;
 
 // std has no select, so every source of work reaches the loop as one of these.
 pub enum Event {
+    Contents(super::contents::Done),
     Git(String),
     Request(String),
     Nearby { ticket: u64, line: String },
