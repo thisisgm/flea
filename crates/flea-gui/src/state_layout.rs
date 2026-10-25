@@ -4,15 +4,7 @@ use gpui::Window;
 
 impl Shell {
     pub(crate) fn has_tabs(&self) -> bool {
-        self.slots.tabs.is_some()
-            || self
-                .launch
-                .settings
-                .data
-                .get("lastTabs")
-                .and_then(|tabs| tabs.get("paths"))
-                .and_then(flea::jsondoc::Json::as_array)
-                .is_some_and(|paths| paths.len() > 1)
+        self.view != View::Dual && self.tab_strip_visible()
     }
 
     pub(crate) fn geometry(&self, window: &Window) -> Geometry {

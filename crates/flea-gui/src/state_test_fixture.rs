@@ -52,6 +52,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         capture: crate::capture::Capture::default(),
         visual: crate::visual::Visual::default(),
         presentation: Default::default(),
+        strip: crate::tabs::host::Host::new(&launch.settings, &launch.paths[0]),
         path_labels: launch.paths.clone().map(SharedString::from),
         launch,
         locale: locale.clone(),

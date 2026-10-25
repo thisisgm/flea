@@ -48,6 +48,11 @@ pub fn entry(name: &str, directory: bool, size: usize) -> Row {
 }
 pub fn model() -> Model {
     let mut m = Model::new("/fx/v/work".into(), &Json::Null);
+    m.i18n = crate::i18n::I18n::load(crate::i18n::Paths {
+        omarchy: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/i18n/fixtures/omarchy"),
+        language_file: "/nonexistent/flea-frame-language".into(),
+        catalogs: Vec::new(),
+    });
     m.height = 27; m.columns = 130;
     m.parents = vec![entry("work", true, 0)];
     for (index, (name, directory, size)) in [("A", true, 462), ("Code", true, 216), ("Docs", true, 22100),

@@ -108,6 +108,7 @@ fn m9_g2rows_14_office_thumbnail_and_ready_page_share_geometry(cx: &mut TestAppC
                     Reply::Opened {
                         doc: 7,
                         sizes: vec![(dimensions.0.into(), dimensions.1.into())],
+                        read: 1,
                     },
                     0,
                 );

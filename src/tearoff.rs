@@ -5,6 +5,7 @@ pub const ENV: [&str; 3] = ["FLEA_TAB_SOURCE_PID", "FLEA_TAB_CURSOR", "FLEA_TAB_
 
 // A terminal or an opened program that kept these would replay a finished lift into its own Flea.
 pub fn drop_env(command: &mut Command) {
+    command.env_remove("FLEA_TAB_SORT");
     for name in ENV {
         command.env_remove(name);
     }
@@ -40,10 +41,11 @@ mod tests {
     #[test]
     fn a_child_never_sees_a_variable_the_caller_set_for_it() {
         let mut child = Command::new("sh");
-        child.args(["-c", "printf '%s' \"${FLEA_TAB_SOURCE_PID-}${FLEA_TAB_CURSOR-}${FLEA_TAB_TOKEN-}\""]);
+        child.args(["-c", "printf '%s' \"${FLEA_TAB_SOURCE_PID-}${FLEA_TAB_CURSOR-}${FLEA_TAB_TOKEN-}${FLEA_TAB_SORT-}\""]);
         for name in ENV {
             child.env(name, "stale");
         }
+        child.env("FLEA_TAB_SORT", "stale");
         drop_env(&mut child);
         let out = child.output().unwrap();
         assert!(out.status.success());
@@ -54,6 +56,7 @@ mod tests {
     fn an_unrelated_variable_survives() {
         let mut child = Command::new("sh");
         child.args(["-c", "printf '%s' \"$FLEA_TAB_UNRELATED\""]).env("FLEA_TAB_UNRELATED", "kept");
+        child.env("FLEA_TAB_SORT", "stale");
         drop_env(&mut child);
         assert_eq!(String::from_utf8_lossy(&child.output().unwrap().stdout), "kept");
     }

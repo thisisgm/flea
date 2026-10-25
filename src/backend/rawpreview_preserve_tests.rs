@@ -6,10 +6,17 @@ fn foreign_and_newer_preview_documents_survive_read_and_first_extract() {
     let root = d.dir("cache");
     let source = raw_with(&d, "a.cr2", &jpeg(800, 600), None);
     let target = copy_path(&root, &source);
-    for original in ["{\"foreign\":true}", "{\"schemaVersion\":999}", "unparsable"] {
+    for original in [
+        "{\"foreign\":true}",
+        "{\"schemaVersion\":999}",
+        "unparsable",
+    ] {
         std::fs::write(&target, original).unwrap();
         set_mtime(&target, 1);
-        assert!(!fresh(&target, source.metadata().unwrap().modified().unwrap()));
+        assert!(!fresh(
+            &target,
+            source.metadata().unwrap().modified().unwrap()
+        ));
         assert_eq!(std::fs::read_to_string(&target).unwrap(), original);
         assert!(ensure_in(&root, &source).is_none());
         assert_eq!(std::fs::read_to_string(&target).unwrap(), original);
@@ -28,5 +35,8 @@ fn a_symlink_planted_at_the_cache_path_is_preserved_and_never_written_through() 
     std::os::unix::fs::symlink(&victim, copy_path(&cache, &src)).unwrap();
     assert!(ensure_in(&cache, &src).is_none());
     assert_eq!(std::fs::read(&victim).unwrap(), b"keep me");
-    assert!(std::fs::symlink_metadata(copy_path(&cache, &src)).unwrap().file_type().is_symlink());
+    assert!(std::fs::symlink_metadata(copy_path(&cache, &src))
+        .unwrap()
+        .file_type()
+        .is_symlink());
 }

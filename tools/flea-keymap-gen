@@ -314,8 +314,13 @@ try:
     catalog_target = args.catalog or (ROOT / 'i18n/en/flea.json' if args.target is None else None)
     if catalog_target:
         catalog = json.loads(catalog_target.read_text())
+        entries = catalog_entries(data)
+        for key in entries:
+            value = catalog.get(key)
+            if isinstance(value, str) and value.startswith('omarchy:'):
+                entries[key] = value
         catalog = {key: value for key, value in catalog.items() if not key.startswith('keys.')}
-        catalog.update(catalog_entries(data))
+        catalog.update(entries)
         catalog_target.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + '\n')
 except (OSError, ValueError, KeyError) as error:
     print(f'flea-keymap-gen: {error}', file=sys.stderr)

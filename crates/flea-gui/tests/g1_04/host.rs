@@ -49,98 +49,24 @@ fn generated_actions_reach_the_window_and_respect_context_and_preset(cx: &mut Te
             shell.keyboard.disarm();
             shell.launch.settings.data = flea::jsondoc::parse(r#"{"keys":"mac"}"#).unwrap();
             shell.key(&event("n", None, true), window, cx);
+            assert_eq!(shell.strip.tabs[0].count(), 1);
             shell.key(&event("t", None, true), window, cx);
+            assert_eq!(shell.strip.tabs[0].count(), 2);
+            assert_eq!(shell.strip.tabs[0].current(), 1);
             shell.key(&event("x", None, true), window, cx);
             shell.key(&event("3", None, true), window, cx);
             assert_eq!(shell.view, View::Grid);
         })
     });
     cx.run_until_parked();
-    assert_eq!(*observed.borrow(), vec!["tabNew"]);
-}
-
-#[gpui::test]
-fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext) {
-    let (backend, _) = Backend::test_channel();
-    let cx = cx.add_empty_window();
-    let shell = cx.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
-    let observed = Rc::new(std::cell::RefCell::new(Vec::new()));
-    let collected = observed.clone();
-    let _subscription = cx.update(|_, cx| {
-        cx.subscribe(&shell, move |_, event: &ActionEvent, _| {
-            collected
-                .borrow_mut()
-                .push((event.action, event.pair_armed));
-        })
-    });
-    cx.run_until_parked();
-    let event = |key: &str, text: Option<&str>, control: bool| KeyDownEvent {
-        keystroke: Keystroke {
-            key: key.into(),
-            key_char: text.map(str::to_owned),
-            modifiers: Modifiers {
-                control,
-                ..Default::default()
-            },
-            is_keypad: false,
-        },
-        is_held: false,
-        prefer_character_input: false,
-    };
-    cx.simulate_modifiers_change(Modifiers {
-        control: true,
-        shift: true,
-        ..Default::default()
-    });
-    cx.update(|window, cx| {
-        shell.update(cx, |shell, cx| {
-            shell.key(&event(">", Some(">"), true), window, cx);
-            assert_eq!(
-                shell
-                    .launch
-                    .settings
-                    .data
-                    .get("hidden")
-                    .and_then(flea::jsondoc::Json::as_bool),
-                Some(true)
-            );
-            shell.key(&event("+", Some("+"), true), window, cx);
-            assert_eq!(
-                flea::ui_logic_st1::pages::at(
-                    &shell.launch.settings.data,
-                    &["display", "textSize", "mode"]
-                )
-                .and_then(flea::jsondoc::Json::as_f64),
-                Some(16.)
-            );
-            shell.key(&event("_", None, true), window, cx);
-            assert_eq!(
-                flea::ui_logic_st1::pages::at(
-                    &shell.launch.settings.data,
-                    &["display", "textSize", "mode"]
-                )
-                .and_then(flea::jsondoc::Json::as_f64),
-                Some(14.)
-            );
-        })
-    });
-    cx.simulate_modifiers_change(Modifiers::default());
-    cx.update(|window, cx| {
-        shell.update(cx, |shell, cx| {
-            shell.launch.settings.data = flea::jsondoc::parse(r#"{"keys":"vim"}"#).unwrap();
-            // Next tab has no runner yet, so its emission carries the pair state Escape and Eject used to show.
-            shell.key(&event("pagedown", None, true), window, cx);
-            shell.key(&event("y", Some("y"), false), window, cx);
-            shell.key(&event("pagedown", None, true), window, cx);
-            shell.key(&event("pagedown", None, true), window, cx);
-        })
-    });
-    cx.run_until_parked();
-    assert_eq!(
-        *observed.borrow(),
-        vec![("tabNext", false), ("tabNext", true), ("tabNext", false),]
+    assert!(
+        observed.borrow().is_empty(),
+        "the mounted tab action is consumed"
     );
 }
+
+#[path = "host_tab_pair.rs"]
+mod tab_pair;
 
 type Emitted = Rc<std::cell::RefCell<Vec<&'static str>>>;
 

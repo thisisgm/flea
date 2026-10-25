@@ -44,7 +44,12 @@ pub(crate) fn torn(bytes: &[u8], own: &[u8]) -> bool {
 }
 
 // Cache misses do not grant ownership of an existing file with an unknown format; damage under the writer's own header does.
-pub(crate) fn replaceable(path: &Path, limit: u64, own: &[u8], accepts: impl FnOnce(&[u8]) -> bool) -> bool {
+pub(crate) fn replaceable(
+    path: &Path,
+    limit: u64,
+    own: &[u8],
+    accepts: impl FnOnce(&[u8]) -> bool,
+) -> bool {
     use std::io::Read;
     match std::fs::symlink_metadata(path) {
         Err(e) => return e.kind() == std::io::ErrorKind::NotFound,

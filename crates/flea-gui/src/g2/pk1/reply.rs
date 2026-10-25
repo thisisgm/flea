@@ -75,13 +75,34 @@ mod tests {
         write(&path, "{\"response\":0,\"uris\":[]}").expect("the reply is written");
         let mut kept = String::new();
         old.read_to_string(&mut kept).expect("the old bytes");
-        assert_eq!(kept, "{\"response\":1", "the old file was never written in place");
-        assert_ne!(fs::metadata(&path).expect("the reply").ino(), old_inode, "the reply arrived by rename");
-        assert_eq!(fs::read_to_string(&path).expect("the reply"), "{\"response\":0,\"uris\":[]}");
-        let mut names: Vec<_> = fs::read_dir(&root).expect("the root").flatten().map(|e| e.file_name()).collect();
+        assert_eq!(
+            kept, "{\"response\":1",
+            "the old file was never written in place"
+        );
+        assert_ne!(
+            fs::metadata(&path).expect("the reply").ino(),
+            old_inode,
+            "the reply arrived by rename"
+        );
+        assert_eq!(
+            fs::read_to_string(&path).expect("the reply"),
+            "{\"response\":0,\"uris\":[]}"
+        );
+        let mut names: Vec<_> = fs::read_dir(&root)
+            .expect("the root")
+            .flatten()
+            .map(|e| e.file_name())
+            .collect();
         names.sort();
-        assert_eq!(names, [".flea-test-sandbox", "reply.json"], "no temporary is left beside the reply");
-        if root.is_absolute() && root.starts_with(std::env::temp_dir()) && root.join(".flea-test-sandbox").is_file() {
+        assert_eq!(
+            names,
+            [".flea-test-sandbox", "reply.json"],
+            "no temporary is left beside the reply"
+        );
+        if root.is_absolute()
+            && root.starts_with(std::env::temp_dir())
+            && root.join(".flea-test-sandbox").is_file()
+        {
             let _ = fs::remove_dir_all(&root);
         }
     }

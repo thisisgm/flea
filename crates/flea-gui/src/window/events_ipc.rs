@@ -44,6 +44,10 @@ impl Shell {
                 let Some(host) = &self.panes[self.focus_side] else {
                     return;
                 };
+                if crate::ipc::tabs::taken(&request).is_some() {
+                    self.tab_ack_call(&request, &answer, window, cx);
+                    return;
+                }
                 let surface = Surface {
                     path: &host.path,
                     total: host.pane.held.total,
@@ -64,6 +68,12 @@ impl Shell {
                 };
                 let navigation = crate::ipc::navigation::NavigationAdapter {
                     navigator: &host.nav,
+                };
+                let home_label = self.locale.catalog.tr("tabs.home");
+                let tabs = self.tab_adapter(&home_label);
+                let pane = crate::ipc::tabs::SwapWithStrip {
+                    pane: &pane,
+                    strip: self.strip.frames.borrow().json(),
                 };
                 let trash_message = self.trash_message();
                 let trash = crate::g2::pl3::readers::TrashAdapter {
@@ -206,11 +216,13 @@ impl Shell {
                         let frame = frame.borrow();
                         let chrome = crate::ipc::chrome::ChromeAdapter { frame: &frame };
                         let mut mounted = adapters[..count].to_vec();
-                        mounted.extend([&path as &dyn crate::ipc::Adapter, &chrome]);
+                        mounted.extend([&path as &dyn crate::ipc::Adapter, &chrome, &tabs]);
                         surface.dispatch_to(request, &mounted)
                     })
                 } else {
-                    surface.dispatch_to(request, &adapters[..count])
+                    let mut mounted = adapters[..count].to_vec();
+                    mounted.push(&tabs);
+                    surface.dispatch_to(request, &mounted)
                 };
                 let _ = answer.try_send(reply);
             }

@@ -84,6 +84,33 @@ class ExtractTests(unittest.TestCase):
         self.write("i18n/en/flea.json", self.catalog)
         self.run_tool("check", ok=False)
 
+    def test_i50_keymap_regeneration_preserves_aliases_and_frozen_index(self):
+        self.catalog["keys.action.mute"] = "omarchy:keybindings.Mute"
+        self.catalog["keys.retired"] = "omarchy:keybindings.Mute"
+        self.write("i18n/en/flea.json", self.catalog)
+        self.write("keys.toml", (REPO / "keys.toml").read_text())
+        self.write("ui/js/Keymap.js", "")
+        self.write("src/keys_generated.rs", "")
+        command = [sys.executable, "-B", str(REPO / "tools/flea-keymap-gen"),
+                   str(self.root / "ui/js/Keymap.js"), str(self.root / "keys.toml"),
+                   "--rust", str(self.root / "src/keys_generated.rs"),
+                   "--catalog", str(self.root / "i18n/en/flea.json")]
+        result = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        generated = json.loads((self.root / "i18n/en/flea.json").read_text())
+        self.assertEqual(generated["keys.action.mute"], "omarchy:keybindings.Mute")
+        self.assertEqual(generated["file.open"], self.catalog["file.open"])
+        self.assertNotIn("keys.retired", generated)
+        index = self.freeze()
+        self.assertEqual(index["keys"]["keys.action.mute"]["resolved_english"], "Mute")
+        catalog_bytes = (self.root / "i18n/en/flea.json").read_bytes()
+        index_bytes = self.index.read_bytes()
+        result = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / "i18n/en/flea.json").read_bytes(), catalog_bytes)
+        self.run_tool("check")
+        self.assertEqual(self.index.read_bytes(), index_bytes)
+
     def test_i50_extract_direct_reference(self):
         index = self.freeze()
         reference = index["direct_references"]["omarchy:shell.common.cancel"]

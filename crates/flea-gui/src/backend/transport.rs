@@ -239,3 +239,21 @@ pub(super) fn command_line(command: &Command) -> Option<String> {
         Command::Paths(_) | Command::Persist(_) => return None,
     })
 }
+
+#[cfg(test)]
+mod tab_peek_tests {
+    use super::*;
+
+    #[test]
+    fn rev_u25_a_columns_peek_is_not_claimed_as_a_tab_peek() {
+        for first in [2, 320] {
+            let line = format!(
+                "{{\"t\":\"peeked\",\"path\":\"/files/child\",\"first\":{first},\"n\":1,\"rows\":[{{\"n\":\"seed.txt\",\"d\":false}}],\"hidden\":false,\"hiddenLast\":false}}"
+            );
+            let Event::Peeked(document) = parse(&line).unwrap() else {
+                panic!("every peek must keep its shared event shape");
+            };
+            assert_eq!(document, jsondoc::parse(&line).unwrap());
+        }
+    }
+}

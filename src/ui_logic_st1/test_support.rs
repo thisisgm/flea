@@ -4,7 +4,11 @@ use std::path::PathBuf;
 
 pub(crate) fn english() -> I18n {
     let missing = PathBuf::from("/nonexistent/flea-st1-test");
-    I18n::load(Paths { omarchy: missing.clone(), language_file: missing.join("language"), catalogs: Vec::new() })
+    I18n::load(Paths {
+        omarchy: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/i18n/fixtures/omarchy"),
+        language_file: missing.join("language"),
+        catalogs: Vec::new(),
+    })
 }
 
 thread_local! {

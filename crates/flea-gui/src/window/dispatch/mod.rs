@@ -8,6 +8,7 @@ pub(crate) mod opener;
 mod preview;
 mod previewtypes;
 mod rename;
+mod tabs;
 mod window;
 
 use super::input::ActionEvent;
@@ -33,6 +34,7 @@ type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
 const FAMILIES: &[Family] = &[
     fileops::run,
     navigation::run,
+    tabs::run,
     opener::run,
     previewtypes::run,
     preview::run,
@@ -126,5 +128,7 @@ mod rename_slow_tests;
 mod rename_tests;
 #[cfg(test)]
 mod search_open_tests;
+#[cfg(test)]
+mod tabs_tests;
 #[cfg(test)]
 mod test_shell;

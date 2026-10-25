@@ -39,6 +39,7 @@ headless="$headless cli-contract cli-contract-mutations legacy-upgrade legacy-he
 headless="$headless ui-uish-inventory ui-uish-fixtures ui-uish-native-admission ui-uish-common-observers ui-gpui-headless"
 # Bench, filter and search contracts that need no display.
 headless="$headless bench-fleet-contract strata-bench bench-markdown-matrix g2-sr2 search-fb5"
+headless="$headless bench-field-work bench-gate-provenance"
 headless="$headless g1-05"
 fail_line='(^|[: ])FAIL[: ]'
 failed=0

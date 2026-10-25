@@ -29,7 +29,9 @@ pub(super) fn output(command: &mut Command) -> Result<String, String> {
         .take()
         .ok_or("the old window has no reply pipe")?;
     let flags = unsafe { fcntl(pipe.as_raw_fd(), F_GETFL) };
-    if flags < 0 || unsafe { fcntl(pipe.as_raw_fd(), F_SETFL, flags | crate::oflags::O_NONBLOCK) } < 0 {
+    if flags < 0
+        || unsafe { fcntl(pipe.as_raw_fd(), F_SETFL, flags | crate::oflags::O_NONBLOCK) } < 0
+    {
         let _ = child.kill();
         let _ = child.wait();
         return Err("the old window's reply pipe could not be bounded".into());
@@ -84,8 +86,13 @@ mod tests {
     #[test]
     fn an_oversized_reply_is_named_as_oversized_not_as_a_timeout() {
         let started = Instant::now();
-        let error = output(Command::new("/bin/sh").args(["-c", "head -c 70000 /dev/zero; sleep 5"])).unwrap_err();
+        let error =
+            output(Command::new("/bin/sh").args(["-c", "head -c 70000 /dev/zero; sleep 5"]))
+                .unwrap_err();
         assert_eq!(error, "the old window's reply was larger than 64 KiB");
-        assert!(started.elapsed() < Duration::from_secs(4), "the group was killed at the size bound");
+        assert!(
+            started.elapsed() < Duration::from_secs(4),
+            "the group was killed at the size bound"
+        );
     }
 }
