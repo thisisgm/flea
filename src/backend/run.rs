@@ -66,7 +66,7 @@ pub fn run() -> i32 {
     heap::pin_mmap_threshold();
     let mut out = BufWriter::new(io::stdout());
     let tb = Tables::load();
-    let (tx, rx, inbox) = match super::inbox::open() { Ok(open) => open, Err(e) => { say(&mut out, &error_line(&crate::error::from_io("open", "eventfd", &e))); return 1 } };
+    let (tx, rx, inbox) = match super::inbox::open() { Ok(open) => open, Err(e) => { say(&mut out, &error_line(&e)); return 1 } };
     let mut st = State::new(super::dirsizeworker::Worker::new(tx.clone()));
     let (op_tx, op_rx) = channel::<OpMsg>();
     let mut ops = Ops::new_shared(op_tx.clone());

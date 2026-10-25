@@ -1,7 +1,4 @@
-// Issue 144: a transfercancel reached the running operation through the event loop, and a listing of
-// an MTP directory held that loop inside read_dir while the copy went on, so the cancel was read only
-// after the copy had finished by itself. The thread that reads the line sets the flag here instead, the
-// stdin helper while the loop is held (src/backend/inbox.rs), so a cancel never queues behind the loop.
+// Issue 144: the stdin-reading thread sets the cancel flag here, so a slow listing cannot hold cancellation behind the loop.
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 

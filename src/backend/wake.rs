@@ -1,5 +1,4 @@
-// The loop's doorbell and the descriptors it sleeps on: a send rings it only while the loop sleeps in poll beside stdin;
-// see src/backend/inbox.rs.
+// A send rings the loop's doorbell only while it sleeps in poll beside stdin; see src/backend/inbox.rs.
 use super::child::{poll, PollFd};
 use std::ffi::{c_long, c_void};
 use std::io;

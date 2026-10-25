@@ -69,8 +69,7 @@ fn a_send_from_another_thread_always_wakes_the_sleeping_loop() {
     sender.join().unwrap();
 }
 
-// Issue 144: the loop is held and never reads, yet the helper takes stdin over, the cancel reaches the operation, and the line
-// still reaches the loop in order; once the loop sleeps again it reads stdin itself and the helper parks.
+// Issue 144: a held loop still cancels through the helper, preserves input order and takes stdin back when it sleeps.
 #[test]
 fn a_cancel_reaches_its_operation_while_the_loop_is_held() {
     let (mut inbox, rx, mut writer, _input, live) = rig();
@@ -96,6 +95,7 @@ fn a_ticking_loop_hands_stdin_to_the_helper() {
     assert!(matches!(rx.try_recv(), Err(TryRecvError::Empty)));
     let flag = Arc::new(AtomicBool::new(false));
     live.claim(7, &flag);
+    inbox.shared.disarm();
     inbox.hand_over();
     writeln!(writer, "{{\"c\":\"transfercancel\",\"id\":7}}").unwrap();
     wait_for(&flag);
