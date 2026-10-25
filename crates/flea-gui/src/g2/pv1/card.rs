@@ -10,7 +10,7 @@ use super::{
 use crate::{list::Palette, row::marks::Mark};
 use flea::ui_logic_pv1::{
     compare::{DiffRow, Kind},
-    pixels::is_vector_name,
+    pixels::is_host_decoded,
     scroll,
 };
 use gpui::{
@@ -66,8 +66,8 @@ impl Render for QuickLook {
 }
 
 fn picture(path: &Path, at: (f64, f64), w: f64, h: f64, raster: Option<Arc<RenderImage>>) -> AnyElement {
-    // A vector draws only its own raster, or nothing while pending; a raster file decodes whole from its file.
-    let vector = path.file_name().and_then(|n| n.to_str()).is_some_and(is_vector_name);
+    // A host-decoded picture draws only its own raster, or nothing while pending; a PNG or JPEG decodes from its file.
+    let vector = path.file_name().and_then(|n| n.to_str()).is_some_and(is_host_decoded);
     let source = raster
         .map(ImageSource::from)
         .or_else(|| (!vector).then(|| ImageSource::from(path.to_path_buf())));
@@ -93,7 +93,7 @@ pub(super) fn text(content: &str, size: f32, ink: Hsla) -> gpui::Div {
 }
 
 impl QuickLook {
-    /// The open picture's vector raster, asked before the subject borrow below takes `&self` (#336).
+    /// The open picture's own raster (vector, TIFF, ICO, AVIF), asked before the subject borrow below takes `&self`.
     fn vector_raster(
         &mut self,
         w: f64,
@@ -103,20 +103,20 @@ impl QuickLook {
     ) -> RasterState {
         let next = self.subject.as_ref().and_then(|s| match &s.body {
             Body::Image { path, w: pw, h: ph } => {
-                super::body::fit_rounded(w, h, *pw, *ph).map(|f| (path.clone(), f.w, f.h))
+                super::body::fit_rounded(w, h, *pw, *ph).map(|f| (path.clone(), f, (*pw, *ph)))
             }
             Body::Link { path, w: pw, h: ph, .. } => {
                 let room = h - f64::from(look::BAR);
-                super::body::fit_painted(w, room, *pw, *ph).map(|f| (path.clone(), f.w, f.h))
+                super::body::fit_painted(w, room, *pw, *ph).map(|f| (path.clone(), f, (*pw, *ph)))
             }
             Body::Raw { path, w: pw, h: ph, .. } => {
                 let room = h - f64::from(look::BAR);
-                super::body::fit_rounded(w, room, *pw, *ph).map(|f| (path.clone(), f.w, f.h))
+                super::body::fit_rounded(w, room, *pw, *ph).map(|f| (path.clone(), f, (*pw, *ph)))
             }
             _ => None,
         });
         match next {
-            Some((path, fw, fh)) => self.svg_image(&path, fw, fh, window, cx),
+            Some((path, fit, source)) => self.svg_image(&path, (fit.w, fit.h), source, window, cx),
             None => RasterState::default(),
         }
     }
@@ -134,10 +134,10 @@ impl QuickLook {
         );
         let raster = self.vector_raster(w, h, window, cx);
         let subject = self.subject.as_ref().expect("an open card has a subject");
-        // A refused or unreadable vector shows the kind's can't-show card, never a file GPUI would raster unbounded.
+        // A refused or unreadable host-decoded picture shows the kind's can't-show card, never img(path).
         let shown: Cow<'_, Body> = match (&subject.body, raster.refusal) {
             (Body::Image { path, .. } | Body::Link { path, .. } | Body::Raw { path, .. }, Some(refusal))
-                if path.file_name().and_then(|n| n.to_str()).is_some_and(is_vector_name) =>
+                if path.file_name().and_then(|n| n.to_str()).is_some_and(is_host_decoded) =>
             {
                 let too_large = refusal == RasterRefusal::TooLarge;
                 match Body::cannot_show(&self.i18n, subject.state, too_large, !too_large, Vec::new()) {

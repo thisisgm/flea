@@ -79,6 +79,8 @@ pub mod icons;
 pub mod regfile;
 pub mod exiffacts;
 pub mod imagesize;
+pub mod imageformats;
+pub mod imagevector;
 pub mod kind;
 pub mod linecount;
 pub mod dirsize;

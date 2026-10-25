@@ -18,7 +18,7 @@ use std::{
 };
 
 // A test that blocks past this ends the whole process, so a hang never holds the broker's lock.
-fn watchdog(secs: u64) {
+pub(super) fn watchdog(secs: u64) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(secs));
         eprintln!("svg test watchdog: {secs} s passed, exiting 97");
@@ -33,7 +33,7 @@ fn mkfifo(path: &Path) {
     );
 }
 
-fn raster_of(cx: &VisualTestContext, look: &Entity<QuickLook>) -> Option<Arc<RenderImage>> {
+pub(super) fn raster_of(cx: &VisualTestContext, look: &Entity<QuickLook>) -> Option<Arc<RenderImage>> {
     look.read_with(cx, |look, _| look.svg_raster())
 }
 
@@ -49,13 +49,13 @@ fn held(cx: &mut VisualTestContext, seen: &[Arc<RenderImage>]) -> usize {
 }
 
 /// Whether GPUI's asset cache holds the file: the probe that catches a vector handed to img(path).
-fn gpui_loaded(cx: &mut VisualTestContext, path: &Path) -> bool {
+pub(super) fn gpui_loaded(cx: &mut VisualTestContext, path: &Path) -> bool {
     let res = Resource::Path(Arc::from(path));
     cx.update(|_, cx| cx.has_asset::<ImgResourceLoader>(&res))
 }
 
 /// Waits for a raster whose id is not `not`, draining the executors between polls.
-fn wait_for_raster(
+pub(super) fn wait_for_raster(
     cx: &mut VisualTestContext,
     look: &Entity<QuickLook>,
     not: Option<usize>,
@@ -74,7 +74,7 @@ fn wait_for_raster(
 }
 
 /// Waits for a drawn element, draining the executors between polls.
-fn wait_for_selector(cx: &mut VisualTestContext, selector: &'static str) {
+pub(super) fn wait_for_selector(cx: &mut VisualTestContext, selector: &'static str) {
     let start = Instant::now();
     loop {
         cx.run_until_parked();
