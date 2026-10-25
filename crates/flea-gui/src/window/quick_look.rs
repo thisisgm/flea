@@ -38,9 +38,16 @@ const PAGE: usize = 400;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Ask {
     Nothing,
-    Code { path: String, lines: Vec<String> },
+    Code { path: String },
     Meta { path: String, link: Option<String> },
     Compare { a: String, b: String },
+    /// Compare on rows outside the held window: the backend's snapshot of them, then its validated paths (Ops.js menuKinds).
+    Resolve {
+        listing: usize,
+        rows: Vec<usize>,
+        mark: Option<RowFacts>,
+        kinds: Option<Vec<u32>>,
+    },
 }
 
 pub(crate) struct Host {
@@ -161,10 +168,7 @@ impl Shell {
                     subject(state, body),
                     false,
                     Some(line),
-                    Ask::Code {
-                        path,
-                        lines: Vec::new(),
-                    },
+                    Ask::Code { path },
                 )
             }
             State::Image => {

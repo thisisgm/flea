@@ -35,10 +35,17 @@ pub(super) fn file(name: &str, icon: &str) -> RowFacts {
     }
 }
 
-// Every request the pane sent since the last read whose command is `command`.
-pub(super) fn sent(requests: &mut Lines, command: &str) -> Vec<Json> {
+// Every request the pane sent since the last read.
+pub(super) fn drain(requests: &mut Lines) -> Vec<Json> {
     std::iter::from_fn(&mut *requests)
         .filter_map(|line| jsondoc::parse(&line).ok())
+        .collect()
+}
+
+// Every request the pane sent since the last read whose command is `command`; the others are drained with them.
+pub(super) fn sent(requests: &mut Lines, command: &str) -> Vec<Json> {
+    drain(requests)
+        .into_iter()
         .filter(|doc| doc.get("c").and_then(Json::as_str) == Some(command))
         .collect()
 }
@@ -82,7 +89,7 @@ pub(super) fn close(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     cx.run_until_parked();
 }
 
-fn rows() -> Vec<RowFacts> {
+pub(super) fn rows() -> Vec<RowFacts> {
     vec![
         row("alpha", true),
         file("notes.txt", "text-plain"),
@@ -91,7 +98,7 @@ fn rows() -> Vec<RowFacts> {
     ]
 }
 
-fn code_reply(token: u64, lines: &[&str], total: usize) -> String {
+pub(super) fn code_reply(token: u64, lines: &[&str], total: usize) -> String {
     let lines: Vec<String> = lines.iter().map(|l| format!(r#"["{l}"]"#)).collect();
     format!(
         r#"{{"t":"code","token":{token},"slot":"quicklook","state":"plain","first":1,"total":{total},"lines":[{}]}}"#,
@@ -99,7 +106,7 @@ fn code_reply(token: u64, lines: &[&str], total: usize) -> String {
     )
 }
 
-fn press(cx: &mut VisualTestContext, keys: &str) {
+pub(super) fn press(cx: &mut VisualTestContext, keys: &str) {
     cx.simulate_keystrokes(keys);
     draw(cx);
 }
