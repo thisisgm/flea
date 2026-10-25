@@ -33,7 +33,7 @@ pub enum Job {
     Open {
         doc: DocId,
         path: PathBuf,
-        all_sizes: bool,
+        continuous: bool,
     },
     Render {
         doc: DocId,
@@ -151,13 +151,13 @@ impl Renderer {
     }
 
     /// Opens a document; the column reads no size at the open and every size in later idle steps, Quick Look its first pages' sizes before its first render.
-    pub fn open(&self, path: PathBuf, all_sizes: bool) -> DocId {
+    pub fn open(&self, path: PathBuf, continuous: bool) -> DocId {
         let doc = self.next.get() + 1;
         self.next.set(doc);
         self.send(Job::Open {
             doc,
             path,
-            all_sizes,
+            continuous,
         });
         doc
     }
@@ -243,11 +243,15 @@ fn work(inbox: mpsc::Receiver<Job>, outbox: async_channel::Sender<Reply>, wanted
                 Job::Open {
                     doc,
                     path,
-                    all_sizes,
+                    continuous,
                 } => Some(match Document::open(&path) {
                     Ok(document) => {
                         let count = document.page_count();
-                        let opened = if all_sizes { 0 } else { count.min(FIRST_SIZES) };
+                        let opened = if continuous {
+                            0
+                        } else {
+                            count.min(FIRST_SIZES)
+                        };
                         let mut sizes = vec![(0., 0.); count];
                         for (page, size) in sizes.iter_mut().enumerate().take(opened) {
                             *size = document.page_size(page).unwrap_or((0., 0.));
@@ -256,7 +260,11 @@ fn work(inbox: mpsc::Receiver<Job>, outbox: async_channel::Sender<Reply>, wanted
                             let first = sizes[0];
                             sizes.iter_mut().skip(opened).for_each(|size| *size = first);
                         }
-                        let reply = if all_sizes { Vec::new() } else { sizes.clone() };
+                        let reply = if continuous {
+                            Vec::new()
+                        } else {
+                            sizes.clone()
+                        };
                         if opened < count {
                             pending.push(Pending {
                                 doc,
