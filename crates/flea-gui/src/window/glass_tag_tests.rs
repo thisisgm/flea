@@ -1,5 +1,5 @@
 //! Tests for the transparent tag, covering the decision table, the PROBE parser, address checks and the hyprctl-absent path.
-use super::glass_tag::events::socket2_path;
+use super::glass_tag::events::{read_events, socket2_path};
 use super::glass_tag::run::{Sources, Tagger};
 use super::glass_tag::{
     decide, dispatch_ran, lua_tag, own_addresses, parse_props, plan, retags, uses_default,
@@ -7,7 +7,8 @@ use super::glass_tag::{
 };
 use std::collections::BTreeSet;
 use std::ffi::{OsStr, OsString};
-use std::path::PathBuf;
+use std::os::unix::fs::PermissionsExt;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 fn set(items: &[&str]) -> BTreeSet<String> {
@@ -236,4 +237,63 @@ fn glass_tag_without_hyprctl_leaves_windows_alone_and_frees_the_tagger() {
         "a pass must clear busy when hyprctl is absent"
     );
     assert_eq!(tagger.lock().tagged, set(&["0x1"]));
+}
+
+#[test]
+fn glass_tag_keeps_reading_past_a_title_that_is_not_utf8() {
+    let events: &[u8] = b"activewindow>>flea,\xff\xfe\nopenwindow>>55bacb0a1f80,1,flea,Ti\xfftle\nconfigreloaded>>\n";
+    let mut passes = 0;
+    read_events(events, Path::new("/tmp/hypr/sig/.socket2.sock"), || {
+        passes += 1;
+    });
+    assert_eq!(
+        passes, 2,
+        "a raw title byte neither stops the events nor hides this app's window opening"
+    );
+}
+
+// A hyprctl that lists one window of this process at opacity 1 and answers every dispatch with the reply file.
+fn fake_hyprctl(root: &Path) -> OsString {
+    let path = root.join("hyprctl");
+    let script = format!(
+        "#!/bin/sh\ncase \"$1\" in\nclients) printf '[{{\"address\":\"0x1a\",\"pid\":{}}}]' ;;\ngetprop) echo 1 ;;\ndispatch) cat \"${{0%/*}}/reply\" ;;\nesac\n",
+        std::process::id()
+    );
+    std::fs::write(&path, script).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    path.into_os_string()
+}
+
+#[test]
+fn glass_tag_records_only_the_dispatches_hyprland_ran() {
+    let root = crate::compositor::tests::Fixture::new();
+    let state = root.0.join("state");
+    let tagger = Tagger::new(
+        std::process::id(),
+        fake_hyprctl(&root.0),
+        Sources::under(&root.0.join("home"), &state),
+    );
+    let reply = |text: &str| std::fs::write(root.0.join("reply"), text).unwrap();
+    reply("Invalid dispatcher");
+    tagger.pass();
+    assert!(
+        tagger.lock().tagged.is_empty(),
+        "a refused add leaves no record, so the next pass adds again"
+    );
+    reply("ok");
+    tagger.pass();
+    assert_eq!(tagger.lock().tagged, set(&["0x1a"]));
+    let toggles = state.join("omarchy/toggles/hypr");
+    std::fs::create_dir_all(&toggles).unwrap();
+    std::fs::write(toggles.join("window-glassy.lua"), "").unwrap();
+    reply("Invalid dispatcher");
+    tagger.pass();
+    assert_eq!(
+        tagger.lock().tagged,
+        set(&["0x1a"]),
+        "a refused remove keeps the record, so the next pass removes again"
+    );
+    reply("ok");
+    tagger.pass();
+    assert!(tagger.lock().tagged.is_empty());
 }
