@@ -1,7 +1,7 @@
 use super::{composition, startup::View};
 use crate::{
-    g2::dg2::join::{flock, Seed},
     feedback::spinner,
+    g2::dg2::join::{flock, Seed},
     grid::pane_view::PaneInputs,
     list::{ListElement, Palette},
     palette::Theme,
@@ -234,7 +234,8 @@ impl Render for Shell {
                     .relative()
                     .size_full()
                     .on_drag(Seed { side }, move |_, _, window, cx| {
-                        let _ = lifter.update(cx, |shell, cx| shell.begin_file_drag(side, window, cx));
+                        let _ =
+                            lifter.update(cx, |shell, cx| shell.begin_file_drag(side, window, cx));
                         flock(cx)
                     })
                     .external_drag_payload::<Seed>(move |_, window, cx| {

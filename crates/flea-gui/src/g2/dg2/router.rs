@@ -36,7 +36,16 @@ impl<'a> Native<'a> {
         ctrl: bool,
         shift: bool,
     ) -> Self {
-        Self { window, position, dropped, types, data, action, ctrl, shift }
+        Self {
+            window,
+            position,
+            dropped,
+            types,
+            data,
+            action,
+            ctrl,
+            shift,
+        }
     }
 
     pub fn get(&self, mime: &str) -> Option<Arc<[u8]>> {
@@ -52,7 +61,11 @@ pub trait Client {
 }
 
 fn refused() -> NativeDragActions {
-    NativeDragActions { copy: false, move_: false, preferred: NativeDragAction::Move }
+    NativeDragActions {
+        copy: false,
+        move_: false,
+        preferred: NativeDragAction::Move,
+    }
 }
 
 /// The registered clients, held weakly so a closed window's client leaves with its registration.
@@ -80,7 +93,11 @@ impl Drop for Registration {
 
 impl Router {
     fn live(&self) -> Vec<Rc<dyn Client>> {
-        self.clients.borrow().iter().filter_map(|(_, client)| client.upgrade()).collect()
+        self.clients
+            .borrow()
+            .iter()
+            .filter_map(|(_, client)| client.upgrade())
+            .collect()
     }
 
     /// Registers a client on a router that is not shared; tests use it directly.
@@ -88,15 +105,25 @@ impl Router {
         let id = self.next.get() + 1;
         self.next.set(id);
         self.clients.borrow_mut().push((id, Rc::downgrade(&client)));
-        Registration { router: Rc::downgrade(self), id, _client: client }
+        Registration {
+            router: Rc::downgrade(self),
+            id,
+            _client: client,
+        }
     }
 
     pub fn offer(&self, offered: &Offered<'_>) -> NativeDragActions {
-        self.live().iter().find_map(|client| client.offer(offered)).unwrap_or_else(refused)
+        self.live()
+            .iter()
+            .find_map(|client| client.offer(offered))
+            .unwrap_or_else(refused)
     }
 
     pub fn land(&self, native: &Native<'_>) -> bool {
-        self.live().iter().find_map(|client| client.land(native)).unwrap_or(false)
+        self.live()
+            .iter()
+            .find_map(|client| client.land(native))
+            .unwrap_or(false)
     }
 
     pub fn source(&self, event: &NativeDragEvent) {
