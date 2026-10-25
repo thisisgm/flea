@@ -149,5 +149,9 @@ run 'parser setup with locale variables unset' 0 'PASS mutant --regress-fixture-
     env -u LC_ALL -u LANG -u LOCPATH python3 -B tests/locale-control-mutants.py fixture-scope mutant
 run 'parser setup failure with locale variables unset' 1 'FAIL mutant --regress-fixture-scope: locale setup exit 42' \
     env -u LC_ALL -u LANG -u LOCPATH python3 -B tests/locale-control-mutants.py fixture-scope mutant --fail-locale-setup
+run 'i50 roster regression controls' 0 '' python3 -B tests/i18n/test_roster.py
+run 'jq required for all-code plural equality' 0 '' jq --version
+run 'installed Omarchy roster and references' 0 '' \
+    python3 -B tools/flea-i18n-roster --omarchy-path /usr/share/omarchy --check-installed
 printf 'locale: %d passed, %d failed\n' "$passed" "$failed"
 [ "$failed" -eq 0 ]
