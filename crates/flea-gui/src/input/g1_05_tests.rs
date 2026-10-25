@@ -253,16 +253,19 @@ fn g1_05_a_release_a_busy_pane_refuses_still_returns_the_overscroll(cx: &mut Tes
     let (shell, cx) = mounted(cx);
     let at = inside(&shell, cx);
     held_past_end(&shell, cx, at);
-    shell.update(cx, |shell, _| {
+    let before = shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
+        let row = host.input.press.as_ref().unwrap().row;
+        assert!(host.selected.is_empty() && host.pane.cursor != row, "a click on the pressed row would mark and move");
         let now = host.pane.now();
         assert!(host.pane.begin("/next".into(), Default::default(), now));
         assert!(host.pane.busy());
+        (host.pane.cursor, host.selected.clone())
     });
     cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
-        assert!(host.input.press.is_none(), "the busy pane refused the click");
+        assert_eq!((host.pane.cursor, host.selected.clone()), before, "the busy pane refused the click");
         assert!(host.input.kinetic.return_active(), "the refused release still starts the return");
     });
 }
