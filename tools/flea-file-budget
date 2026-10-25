@@ -172,7 +172,7 @@ tests/markdown-tables.qml 401
 tests/figure-store.qml 414
 tests/figure-worker.mjs 343
 tests/quicklook-firstframe.js 214
-tests/preview-settle-live.qml 603
+tests/preview-settle-live.qml 638
 tests/preview-decode.qml 1012
 tests/js/status.js 349
 tests/rename-grid-bottom.qml 439
