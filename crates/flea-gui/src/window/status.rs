@@ -151,23 +151,23 @@ impl Shell {
         );
         let held = &host.pane.held;
         let bytes = if selected <= held.rows.len() {
-            let (sizes, dirs): (Vec<_>, Vec<_>) = host
-                .selected
-                .iter()
-                .map(|index| {
-                    let row = index
-                        .checked_sub(held.start)
-                        .and_then(|at| held.rows.get(at));
-                    (row.map(|row| row.size), row.is_some_and(|row| row.dir))
-                })
-                .unzip();
-            status_host::selection_bytes(
-                selected,
-                held.rows.len(),
-                &sizes,
-                &vec![false; selected],
-                &dirs,
-            )
+            // A folder counts by its finished walk, as ui/js/Status.js selectionBytes reads DirSizes.
+            let mut sizes = Vec::with_capacity(selected);
+            let mut walked = Vec::with_capacity(selected);
+            let mut dirs = Vec::with_capacity(selected);
+            for &index in &host.selected {
+                let row = index
+                    .checked_sub(held.start)
+                    .and_then(|at| held.rows.get(at));
+                let dir = row.is_some_and(|row| row.dir);
+                let walk = dir
+                    .then(|| host.sizes.walked(held.listing, index))
+                    .flatten();
+                sizes.push(if dir { walk } else { row.map(|row| row.size) });
+                walked.push(walk.is_some());
+                dirs.push(dir);
+            }
+            status_host::selection_bytes(selected, held.rows.len(), &sizes, &walked, &dirs)
         } else {
             -1
         };
