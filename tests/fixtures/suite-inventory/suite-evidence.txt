@@ -246,7 +246,7 @@ preview-holdframes|^preview-holdframes: [1-9][0-9]* check\(s\), 0 failed$|1
 navframe|^navframe: Enter and Back draw no frame before the landing in three views, and the listing gate still refuses input$|1
 cursormark|^CURSORMARK DONE (list|grid|columns)$|3
 gridmark|GRIDMARK PASS armed=\+[1-9][0-9]* keybuilt=0 states=.*search|1
-# Deferred 0.3.12 language evidence: 9d8b6fc75de6a083bd3875e91a87463774e3a61d; /home/gm/flea-ops/claude/releases/PENDING.md.
+# Deferred 0.3.12 language evidence: 9d8b6fc75de6a083bd3875e91a87463774e3a61d; PENDING.md in the controller's release notes.
 # DEFERRED gridmark|^LANGCREATE KEY filter-r calls=0$|1
 # DEFERRED gridmark|^LANGCREATE KEY backspace calls=0$|1
 # DEFERRED gridmark|^LANGCREATE KEY filter-r-again calls=0$|1
