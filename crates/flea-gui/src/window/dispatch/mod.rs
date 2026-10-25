@@ -1,5 +1,6 @@
 //! The one place the window runs what a producer hands it: key and pointer actions, menu choices and rail requests.
 mod listing;
+mod menus;
 mod navigation;
 mod preview;
 mod window;
@@ -22,7 +23,13 @@ pub(crate) enum Order {
 type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
 
 /// Each family keeps its handlers in its own file beside this one and adds one line here.
-const FAMILIES: &[Family] = &[navigation::run, preview::run, listing::run, window::run];
+const FAMILIES: &[Family] = &[
+    navigation::run,
+    preview::run,
+    listing::run,
+    window::run,
+    menus::run,
+];
 
 impl Shell {
     /// Runs the order through its family; one nobody ran is emitted for observers, and an unclaimed menu choice is refused.
@@ -48,6 +55,12 @@ mod effect_tests;
 mod families_tests;
 #[cfg(test)]
 mod guard_tests;
+#[cfg(test)]
+mod menus_columns_tests;
+#[cfg(test)]
+mod menus_dual_tests;
+#[cfg(test)]
+mod menus_tests;
 #[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]

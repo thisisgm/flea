@@ -1,5 +1,5 @@
 //! The one row order every menu reads: F file, B background, T Trash, P Places, R rail rows (never hideable).
-//! The destructive group is last, after the view rows, so Move to Trash ends the file menu.
+//! The destructive group follows the open group, so Move to Trash is the file menu's first row after Open, Open With and Print.
 
 #[derive(Clone, Copy, Debug)]
 pub struct Spec {
@@ -76,6 +76,16 @@ pub const INVENTORY: &[Spec] = &[
         "file-text",
         "F",
         "open",
+    ),
+    // Move to Trash follows the open group, alone in its own group with Delete Permanently beside it.
+    spec("trash", "menu.row.trash", "trash", "F", "trash"),
+    acting(
+        "delete",
+        "menu.row.delete",
+        "trash",
+        "F",
+        "trash",
+        "deletePermanently",
     ),
     spec("unlockVolume", "menu.row.unlock", "lock", "R", "open"),
     spec("mountVolume", "menu.row.mount", "drive", "R", "open"),
@@ -246,15 +256,6 @@ pub const INVENTORY: &[Spec] = &[
         "download",
         "B",
         "settings",
-    ),
-    spec("trash", "menu.row.trash", "trash", "F", "trash"),
-    acting(
-        "delete",
-        "menu.row.delete",
-        "trash",
-        "F",
-        "trash",
-        "deletePermanently",
     ),
     spec("restoreAll", "menu.row.restore_all", "undo", "T", "restore"),
     spec("emptyTrash", "menu.row.empty_trash", "trash", "T", "empty"),

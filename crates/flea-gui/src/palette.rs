@@ -21,6 +21,8 @@ pub struct Theme {
     pub muted_frame: Hsla,
     pub symlink: Hsla,
     pub executable: Hsla,
+    /// ThemeColors.qml's error role, the destructive and failed ink.
+    pub error: Hsla,
 }
 
 fn role(color: flea::theme::Color) -> Hsla {
@@ -98,6 +100,7 @@ impl Theme {
             muted_frame: role(core.mutedFrame),
             symlink: role(core.symlink),
             executable: role(core.executable),
+            error: role(core.error),
         };
         // ui/js/Palette.js:31-33 isPalette: any parsed colour makes the theme ready, ui/Theme.qml:357.
         let loaded = !values.is_empty();

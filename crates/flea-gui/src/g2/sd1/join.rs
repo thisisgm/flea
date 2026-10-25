@@ -107,6 +107,8 @@ impl Shell {
         let asked = self.menu.providers.asked[side];
         if kind == "formats" && asked != 0 && id == asked {
             self.menu.providers.asked[side] = 0;
+            // The same reply names the archive formats and extract tools Compress and Extract read.
+            self.record_formats(side, &reply);
             // A menu dismissed before its facts landed starts no discovery.
             if self.menu.captured.as_ref().is_some_and(|c| c.side == side && c.id == id) {
                 self.provider_facts(side, &reply, window, cx);
