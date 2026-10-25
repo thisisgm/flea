@@ -3,6 +3,7 @@ import json
 import pathlib
 import socket
 import subprocess
+import sys
 import time
 
 
@@ -16,12 +17,19 @@ def main():
     if not root.is_absolute() or not (root / '.findbench-root').is_file():
         raise SystemExit('absolute marked run root required')
     print('cold controller ready: ' + str(root), flush=True)
+    unreadable = set()
     while not (root / 'completion.json').exists():
         for request in sorted(root.glob('cache-request-*.json')):
             response = request.with_name(request.name.replace('cache-request-', 'cache-response-', 1))
             if response.exists():
                 continue
-            payload = json.loads(request.read_text())
+            try:
+                payload = json.loads(request.read_text())
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                if request not in unreadable:
+                    print('cold request unreadable; retrying: ' + str(request), file=sys.stderr, flush=True)
+                    unreadable.add(request)
+                continue
             if payload.get('action') != 'drop-page-cache' or payload.get('mode') != 'cold':
                 raise SystemExit('invalid cold request')
             command = ['sudo', '-n', '/bin/sh', '-c', 'sync; echo 3 > /proc/sys/vm/drop_caches']

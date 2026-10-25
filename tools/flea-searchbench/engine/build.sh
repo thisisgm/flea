@@ -53,7 +53,7 @@ if [[ ${1:-} != --inside ]]; then
     podman run --rm --userns=keep-id --cap-drop=all --security-opt=no-new-privileges \
         --volume "$W:/work:ro" --volume "$UNIT:/work/.superpowers/fb0:rw" \
         --volume "$SOURCES:/sources:ro" --volume "$CURRENT:/current:ro" "$image_id" \
-        /bin/bash /work/.superpowers/fb0/harness/build.sh --inside "$inside" \
+        /bin/bash /work/.superpowers/fb0/engine/build.sh --inside "$inside" \
         > "$BUILD/build.log" 2>&1
     printf 'BUILD_ROOT=%s\n' "$BUILD"
     exit 0
