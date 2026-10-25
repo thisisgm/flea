@@ -319,6 +319,7 @@ impl Render for Shell {
                     .as_ref()
                     .map(|_| self.visual.probe.clone()),
             )
+            .children(self.dual_edge(&geometry, palette))
             .children(self.dual_divider(&geometry, palette, cx))
             .bg(background)
             .track_focus(&self.focus)
