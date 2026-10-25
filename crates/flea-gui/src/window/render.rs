@@ -117,6 +117,7 @@ impl Render for Shell {
             self.sync_surfaces(side, cx);
         }
         let mut panes: [Option<AnyElement>; 2] = [None, None];
+        let renaming = [0, 1].map(|side| self.renaming_row(side).is_some());
         let mut lists = self.prepare_lists(
             heights,
             viewport.is_none().then_some(geometry.chrome.height),
@@ -165,8 +166,7 @@ impl Render for Shell {
                     Some(shown) => host.pane.wanted_filtered_window(&shown),
                     None => host.pane.wanted_window(),
                 };
-                if let (Some((start, count)), Some(backend)) = (wanted, &host.backend)
-                {
+                if let (Some((start, count)), Some(backend)) = (wanted, &host.backend) {
                     if let Err(error) = backend.window(start, count) {
                         host.stopped = true;
                         host.record_error(error, &self.locale);
@@ -241,6 +241,9 @@ impl Render for Shell {
                     .when(host.drawn_list, |div| {
                         div.child(list)
                             .child(crate::input::surface(cx.entity(), side))
+                    })
+                    .when(host.drawn_list && renaming[side], |div| {
+                        div.child(super::rename::field::FieldElement::new(cx.entity(), side))
                     })
                     .children(self.slots.states[side].clone())
                     .when(drawn[side], |div| {

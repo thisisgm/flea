@@ -42,6 +42,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        let renamed = self.rename_event(side, &event, window, cx);
+        self.rename_sync_gate(window, cx);
+        if renamed {
+            return;
+        }
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained)
             && self
                 .menu
