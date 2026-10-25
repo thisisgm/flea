@@ -2,6 +2,11 @@ use crate::{backend::Backend, ipc::server::Event, state::Shell};
 use flea::ipc::wire::{Reply, Request};
 use gpui::{AppContext, TestAppContext};
 
+#[path = "m9_g2rows_02_tests.rs"]
+mod m9_g2rows_02;
+#[path = "m9_g2rows_02_plugins_tests.rs"]
+mod m9_g2rows_02_plugins;
+
 fn configured(backend: Backend, cx: &mut gpui::Context<Shell>) -> Shell {
     let mut shell = crate::state::tests::shell_with(backend, cx);
     let data = flea::uistate::from_file("{}");

@@ -10,10 +10,23 @@ use flea::{
 };
 use gpui::{Context, Window};
 
+#[cfg(test)]
+#[path = "m9_g2rows_02_writer_tests.rs"]
+mod m9_g2rows_02_writer;
+
 impl Shell {
     pub(crate) fn sync_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.ensure_settings_claim(window, cx);
         self.sync_settings_plugins(window, cx);
+        if self.settings.opened {
+            let focus = self.settings.panel.as_ref().and_then(|view| {
+                let view = view.read(cx);
+                view.panel.query.as_ref().map(|_| view.focus.clone())
+            });
+            if let Some(focus) = focus {
+                window.focus(&focus, cx);
+            }
+        }
         let patches = std::mem::take(&mut *self.settings.patches.borrow_mut());
         for patch in patches {
             self.change_settings(patch, window, cx);

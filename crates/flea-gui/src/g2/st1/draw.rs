@@ -5,13 +5,13 @@ use super::panel::Press;
 use super::seams::Ink;
 use super::view::SettingsView;
 use flea::ui_logic_st1::{
-    rows::{focusable, Kind, Master, Role, Row},
+    rows::{Kind, Master, Role, Row},
     search::Run,
     visible::marks,
 };
 use gpui::{
     div, prelude::*, px, AnyElement, Context, Div, FontWeight, Hsla, MouseButton, MouseDownEvent,
-    MouseMoveEvent, SharedString,
+    SharedString,
 };
 
 mod hint;
@@ -140,48 +140,6 @@ impl Rows<'_> {
         .into_any_element()
     }
 
-    /// A control takes the cursor when the pointer moves over it and acts on a click; a result moves the highlight.
-    fn pointer(
-        &self,
-        base: gpui::Stateful<Div>,
-        line: &Line<'_>,
-        cx: &mut Context<SettingsView>,
-    ) -> gpui::Stateful<Div> {
-        if let Some(hit) = line.hit {
-            return base
-                .on_mouse_move(cx.listener(move |view, _: &MouseMoveEvent, _, cx| {
-                    if view.panel.hit != hit {
-                        view.panel.hit = hit;
-                        cx.notify();
-                    }
-                }))
-                .on_click(cx.listener(move |view, _, _, cx| {
-                    view.panel.hit = hit;
-                    view.panel.open_hit();
-                    view.flush(cx);
-                }));
-        }
-        let Some(index) = line.index.filter(|_| focusable(line.row)) else {
-            return base;
-        };
-        let row = line.row;
-        let clicks = matches!(row.kind, Kind::Check | Kind::Action | Kind::Group)
-            || (row.kind == Kind::Choice && row.labels.is_empty() && row.values.is_empty());
-        base.cursor_pointer()
-            .on_mouse_move(cx.listener(move |view, _: &MouseMoveEvent, _, cx| {
-                if view.panel.cursor != index || view.panel.side != super::panel::Side::Pane {
-                    view.panel.pointer(index);
-                    cx.notify();
-                }
-            }))
-            .when(clicks, |base| {
-                base.on_click(cx.listener(move |view, _, _, cx| {
-                    view.panel.press(index, Press::Row);
-                    view.flush(cx);
-                }))
-            })
-    }
-
     fn group(
         &self,
         base: gpui::Stateful<Div>,
@@ -261,7 +219,8 @@ impl Rows<'_> {
     ) -> gpui::Stateful<Div> {
         let row = line.row;
         let ink = self.ink;
-        let index = line.index;
+        let index = line.index.or(line.hit);
+        let hit = line.hit;
         base.flex()
             .gap(px(2.))
             .pt(px(7.))
@@ -297,8 +256,9 @@ impl Rows<'_> {
                     .when_some(index.filter(|_| row.on), |tick, index| {
                         tick.cursor_pointer()
                             .on_click(cx.listener(move |view, _, _, cx| {
-                                view.panel.press(index, Press::Pick(stop));
+                                view.panel.press_shown(index, hit, Press::Pick(stop));
                                 view.flush(cx);
+                                cx.stop_propagation();
                             }))
                     })
             }))
@@ -498,7 +458,8 @@ impl Rows<'_> {
         } else {
             ink.muted
         };
-        let index = line.index;
+        let index = line.index.or(line.hit);
+        let hit = line.hit;
         let value = div()
             .max_w(px(width * 0.56))
             .whitespace_nowrap()
@@ -534,7 +495,9 @@ impl Rows<'_> {
                         .child(SharedString::from(row.caption.resolve(catalog))),
                 )
             })
-            .when(segment, |line| line.child(self.segment(row, index, cx)))
+            .when(segment, |line| {
+                line.child(self.segment(row, index, hit, cx))
+            })
             .when(steps || (row.kind == Kind::Action && !row.inert), |line| {
                 line.child(
                     div()
@@ -542,8 +505,9 @@ impl Rows<'_> {
                         .child(mark("chevron-right", MARK_SLOT, ink.muted_frame))
                         .when_some(index.filter(|_| steps), |chevron, index| {
                             chevron.on_click(cx.listener(move |view, _, _, cx| {
-                                view.panel.press(index, Press::Step);
+                                view.panel.press_shown(index, hit, Press::Step);
                                 view.flush(cx);
+                                cx.stop_propagation();
                             }))
                         }),
                 )
@@ -557,7 +521,13 @@ impl Rows<'_> {
     }
 
     /// Words in a set wear the chip, the chosen one in foreground; View's four marks stand bare, as on the board.
-    fn segment(&self, row: &Row, index: Option<usize>, cx: &mut Context<SettingsView>) -> Div {
+    fn segment(
+        &self,
+        row: &Row,
+        index: Option<usize>,
+        hit: Option<usize>,
+        cx: &mut Context<SettingsView>,
+    ) -> Div {
         let ink = self.ink;
         let catalog = &self.view.panel.catalog;
         let glyphs = marks(row);
@@ -568,7 +538,12 @@ impl Rows<'_> {
             } else {
                 ink.muted_frame
             };
-            let cell = div().id(("settings-cell", stop)).flex_none();
+            let cell = self
+                .view
+                .probe
+                .attach(div(), format!("choice:{}:{stop}", row.id))
+                .id(("settings-cell", stop))
+                .flex_none();
             let cell = if glyphs {
                 cell.child(mark(
                     row.values
@@ -599,11 +574,14 @@ impl Rows<'_> {
             .gap(px(if glyphs { 17. } else { CHIP_GAP }))
             .when(glyphs, |strip| strip.mr(px(GAP)).mt(px(-2.)));
         for (cell, stop, current) in cells {
-            out = out.child(cell.when_some(index.filter(|_| !current), |cell, index| {
-                cell.cursor_pointer()
+            out = out.child(cell.when_some(index, |cell, index| {
+                cell.when(!current, |cell| cell.cursor_pointer())
                     .on_click(cx.listener(move |view, _, _, cx| {
-                        view.panel.press(index, Press::Pick(stop));
-                        view.flush(cx);
+                        if !current {
+                            view.panel.press_shown(index, hit, Press::Pick(stop));
+                            view.flush(cx);
+                        }
+                        cx.stop_propagation();
                     }))
             }));
         }
