@@ -112,6 +112,8 @@ class Engine:
                 if boot['cpus'] != threads:
                     raise RuntimeError('native CPU count mismatched requested budget')
             self.baseline_memory = process_memory(self.process.pid)
+            # Every caller opens only after this, so no equal-history open races the backend's prior load.
+            self.prior_load = self.wait_priors() if self.variant == 'flea' and profile == 'equal-history' else None
             self.flush_events()
         except BaseException:
             self.close()
@@ -187,6 +189,19 @@ class Engine:
                 current = self.state / 'frecency' / name
                 if current.is_symlink() or hashlib.sha256(current.read_bytes()).hexdigest() != expected:
                     raise ValueError('native prior history changed during index open')
+
+    def wait_priors(self, timeout=15):
+        # Harness readiness, outside both index clocks: the backend starts its prior load and an open never waits for it.
+        deadline = time.monotonic() + timeout
+        while True:
+            self.send(dict(c='benchpriors'))
+            reply, _ = self.until(lambda obj: obj.get('t') == 'benchpriors', max(0.001, deadline - time.monotonic()))
+            if reply.get('loaded') is True:
+                self.flush_events()
+                return reply
+            if time.monotonic() >= deadline:
+                raise TimeoutError('backend prior load did not finish before the equal-history open')
+            time.sleep(0.005)
 
     def open(self):
         at = time.perf_counter_ns()
