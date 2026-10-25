@@ -1,6 +1,9 @@
 //! The strip's tab list: hidden tabs are snapshots, so the pane and its backend still own one listing.
 use crate::navigation::{folder_state::Order, history::Entry};
 use flea::{i18n::I18n, jsondoc::Json};
+#[path = "restore.rs"]
+mod restore;
+pub use restore::restore_plan;
 
 // The nine-tab cap matches the TUI's direct digit selection; the GUI's shortcuts cycle the same state.
 pub const MAX: usize = 9;
@@ -83,6 +86,12 @@ pub trait Live {
     fn selected(&self) -> Vec<usize>;
     fn follows(&self) -> bool;
     fn order(&self) -> Order;
+    fn sort_snapshot(&self) -> Option<crate::navigation::sort::Snapshot> {
+        (!self.busy() && !self.search_live()).then(|| crate::navigation::sort::Snapshot {
+            path: self.resting_path(),
+            order: self.order(),
+        })
+    }
     fn list_requests(&self) -> usize;
     fn dev(&self) -> u64;
     fn rename_pending(&self) -> bool;
@@ -330,53 +339,6 @@ pub fn restore_selection(pane: &mut dyn Live, selected: &[usize], follows: bool)
     if kept > 0 {
         pane.selection_changed();
     }
-}
-
-// Without a Last-folder strip or with a named path there is no plan; a non-string entry voids the strip.
-pub fn restore_plan(state: &Json, named: &str) -> Option<Plan> {
-    if !named.is_empty() {
-        return None;
-    }
-    if state
-        .get("startIn")
-        .and_then(Json::as_str)
-        .unwrap_or("home")
-        != "last"
-    {
-        return None;
-    }
-    let stored = state.get("lastTabs");
-    let kept = stored
-        .and_then(|value| value.get("paths"))
-        .and_then(Json::as_array)
-        .unwrap_or(&[]);
-    let mut paths = Vec::new();
-    for entry in kept {
-        match entry.as_str() {
-            Some(path) if !path.is_empty() => {
-                if paths.len() < MAX {
-                    paths.push(path.to_owned());
-                }
-            }
-            _ => return None,
-        }
-    }
-    if paths.is_empty() {
-        return None;
-    }
-    let index = stored
-        .and_then(|value| value.get("index"))
-        .and_then(|value| match value {
-            Json::Num(_) => value.as_f64(),
-            _ => None,
-        })
-        .filter(|index| index.is_finite() && index.fract() == 0.)
-        .unwrap_or(0.);
-    let last = (paths.len() - 1) as f64;
-    Some(Plan {
-        index: index.clamp(0., last) as usize,
-        paths,
-    })
 }
 
 impl TabState {

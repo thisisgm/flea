@@ -20,6 +20,7 @@ pub struct Shell {
     pub(crate) presentation: crate::window::frame_feedback::Presentation,
     pub launch: Launch,
     pub slots: Slots,
+    pub(crate) strip: crate::tabs::host::Host,
     pub(crate) chrome: crate::path::join::Chrome,
     pub lifecycle: Lifecycle,
     pub view: View,
@@ -102,6 +103,7 @@ impl Shell {
             capture,
             visual: crate::visual::Visual::default(),
             presentation: Default::default(),
+            strip: crate::tabs::host::Host::new(&launch.settings, &launch.paths[focus_side]),
             launch,
             view,
             focus_side,
@@ -152,6 +154,8 @@ impl Shell {
         if view == View::Dual {
             shell.start_pane(1, window, cx);
         }
+        shell.restore_tabs();
+        shell.follow_tab_drags(window, cx);
         shell.mount_rail(cx);
         shell.mount_trash(window, cx);
         if let Some(host) = &shell.trash {
@@ -168,15 +172,7 @@ impl Shell {
     }
 
     pub(crate) fn has_tabs(&self) -> bool {
-        self.slots.tabs.is_some()
-            || self
-                .launch
-                .settings
-                .data
-                .get("lastTabs")
-                .and_then(|tabs| tabs.get("paths"))
-                .and_then(flea::jsondoc::Json::as_array)
-                .is_some_and(|paths| paths.len() > 1)
+        self.view != View::Dual && self.tab_strip_visible()
     }
 
     pub(crate) fn geometry(&self, window: &Window) -> Geometry {
@@ -251,8 +247,14 @@ impl Shell {
             ),
         };
         host.nav = crate::navigation::Navigator::new(folders, writer);
-        let mut listing = host.nav.listing(&host.pane, &host.path.clone(), false);
-        listing.select = host.select.clone();
+        let mut listing = self
+            .strip
+            .launch_listing(&mut host, side)
+            .unwrap_or_else(|| host.nav.listing(&host.pane, &host.path.clone(), false));
+        listing.select = self
+            .strip
+            .launch_select(side, &host.path)
+            .or_else(|| host.select.clone());
         #[cfg(test)]
         let started = constructor_fixture::start_backend(&listing, cx);
         #[cfg(not(test))]
@@ -368,6 +370,8 @@ impl Shell {
             self.presentation.close();
             self.stop_selection_previews(window, cx);
             self.deadlines = [None, None];
+            self.stop_tabs();
+            self.strip.catchers.close(cx);
             for host in self.panes.iter_mut().flatten() {
                 host.transition = None;
                 host.pane.swap.mark_shown(false, host.pane.now());

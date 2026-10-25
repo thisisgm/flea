@@ -13,6 +13,7 @@ impl Shell {
     // Platform quit closes each backend's stdin and lets go of it, so its EOF cleanup outlives this process.
     pub(crate) fn stop_for_app_quit(&mut self) {
         self.lifecycle.begin_close();
+        self.stop_tabs();
         self.stop_settings();
         self.presentation.close();
         self._ipc_reader = None;
@@ -42,6 +43,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if let BackendEvent::Peeked(document) = &event {
+            self.tab_peeked(side, document, window, cx);
+        }
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained)
             && self
                 .menu
@@ -262,6 +266,8 @@ impl Shell {
                 return;
             }
             BackendEvent::Located(located) => {
+                let tab_taken = self.tab_located(side, &located);
+                let host = self.panes[side].as_mut().expect("reply pane");
                 let taken = match located.id {
                     Some(id) => host.nav.take_located_many(
                         &host.pane,
@@ -278,10 +284,11 @@ impl Shell {
                         located.index,
                     ),
                 };
-                if taken {
+                if taken || tab_taken {
                     host.input.selection.sync(&host.selected);
                     let now = host.pane.now();
                     host.nav.settle(&host.pane, now);
+                    self.tab_landed(side, window, cx);
                     self.run_navigation(side, window, cx);
                     self.arm_watch(side, window, cx);
                     cx.notify();

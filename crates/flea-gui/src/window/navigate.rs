@@ -125,6 +125,7 @@ impl Shell {
         self.surfaces[side].filesystem.enter(&host.path);
         host.nav
             .after_reply(&mut host.pane, before, &mut host.selected);
+        self.tab_landed(side, window, cx);
         self.run_navigation(side, window, cx);
         self.arm_watch(side, window, cx);
         if self.panes[side]

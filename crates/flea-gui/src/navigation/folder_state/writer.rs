@@ -18,6 +18,9 @@ pub struct Writer {
     // Patches the worker has not finished yet, which a settings reread must not undo.
     owed: Vec<(usize, Json)>,
     done: Arc<AtomicUsize>,
+    // Every patch in write order, so a test can tell a sort write from a path or tab strip write.
+    #[cfg(test)]
+    pub patches: Vec<String>,
 }
 
 impl Writer {
@@ -42,6 +45,8 @@ impl Writer {
 
     pub fn write(&mut self, patch: String, failure: String) {
         self.sent += 1;
+        #[cfg(test)]
+        self.patches.push(patch.clone());
         if !self.live {
             return;
         }
@@ -75,6 +80,15 @@ impl Writer {
     }
 
     // Unfinished patches in write order; a finished one drops, because the file now holds its outcome.
+    // The patches that write a folder or global sort; lastPath and lastTabs writes are not sort writes.
+    #[cfg(test)]
+    pub fn sort_writes(&self) -> usize {
+        self.patches
+            .iter()
+            .filter(|patch| patch.contains("\"folderSorts\"") || patch.contains("\"sort\""))
+            .count()
+    }
+
     pub fn owed(&mut self) -> Vec<Json> {
         let done = self.done.load(Ordering::Acquire);
         self.owed.retain(|(seq, _)| *seq > done);

@@ -879,7 +879,12 @@ fn a_tear_off_hands_its_window_the_lift_and_a_new_window_inherits_none_of_it() {
         .collect();
     assert_eq!(
         names,
-        ["FLEA_TAB_CURSOR", "FLEA_TAB_SOURCE_PID", "FLEA_TAB_TOKEN"],
+        [
+            "FLEA_TAB_CURSOR",
+            "FLEA_TAB_SORT",
+            "FLEA_TAB_SOURCE_PID",
+            "FLEA_TAB_TOKEN",
+        ],
         "tearoff sets exactly the names a fresh launch drops"
     );
     let args: Vec<&str> = command.get_args().filter_map(|arg| arg.to_str()).collect();
