@@ -14,12 +14,15 @@ pub fn stamp(file: &Path) -> Stamp {
 /// One read for a worker: the stamp first, so a change landing during the read is seen by the next check.
 pub fn load(file: &Path) -> (Stamp, Vec<String>) {
     let stamp = stamp(file);
-    (
-        stamp,
-        std::fs::read_to_string(file)
-            .map(|text| history::read(&text))
-            .unwrap_or_default(),
-    )
+    match std::fs::read_to_string(file) {
+        Ok(text) => (stamp, history::read(&text)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => (stamp, Vec::new()),
+        // A failed read keeps no stamp, so the next open retries, as PickerRecent.qml warns on it.
+        Err(error) => {
+            eprintln!("flea: could not read {}: {error}", file.display());
+            (None, Vec::new())
+        }
+    }
 }
 
 /// The desktop's recent file, named once from the environment the window started with.

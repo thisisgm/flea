@@ -1,7 +1,4 @@
-//! One LocalSend send's phase as a front end holds it, driven by the parsed replies.
-//! The job row itself lives in op1's Jobs store; this tracks the request so a late, foreign or
-//! backend-death outcome lands exactly once. Cancel has no card: the backend's "Send cancelled."
-//! verdict is said as the failure receipt, the way the oracle messages it.
+//! One LocalSend send's phase, so a late, foreign or backend-death outcome lands exactly once.
 use super::wire::Event;
 
 // Where one send stands for its front end.

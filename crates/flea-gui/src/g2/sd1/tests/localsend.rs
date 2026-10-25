@@ -118,7 +118,7 @@ fn a_finished_localsend_send_leaves_the_live_list() {
     assert_eq!(send.live_sends(), 0, "a finished send keeps no paths");
 }
 #[test]
-fn empty_picks_and_a_gone_cli_each_say_their_sentence() {
+fn an_empty_pick_and_a_dead_wire_each_say_their_sentence() {
     let mut send = ProviderSend::default();
     let wire = Fake::default();
     send.menu_opened(&wire, &facts(), Some(&states()), &[], 0);
