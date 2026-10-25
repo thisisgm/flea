@@ -189,3 +189,35 @@ fn background_new_folder_makes_a_folder_in_the_menu_folder(cx: &mut TestAppConte
     assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files"}"#]);
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[gpui::test]
+fn menu_delete_closes_its_snapshot_once_while_another_review_is_finishing(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = wire(&shell, cx);
+    cx.simulate_keystrokes("shift-delete");
+    let pending = sent();
+    assert_eq!(pending.len(), 1);
+    let pending_id = id_of(&pending[0]);
+    assert!(pending[0].contains(r#""op":"snapshot""#));
+    cx.simulate_keystrokes("shift-delete");
+    assert!(sent().is_empty(), "a repeated key has no menu snapshot to close");
+    let finishing = shell.read_with(cx, |shell, _| shell.locale.catalog.tr("jobs.delete.finishing"));
+    assert_eq!(status(&shell, cx), finishing);
+    let id = row_menu(&shell, cx, &mut sent);
+    assert_ne!(id, pending_id, "the menu owns a separate snapshot");
+    choose(&shell, cx, "deletePermanently");
+    validated(&shell, cx, &mut sent, id, "deletePermanently");
+    assert_eq!(sent(), [format!(r#"{{"c":"menuaction","op":"close","id":{id}}}"#)]);
+    assert_eq!(status(&shell, cx), finishing);
+    assert_eq!(shell.read_with(cx, |shell, _| shell.operations.fileops.deleting[0]), Some(pending_id as u64));
+    assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
+    frame(cx);
+    assert!(sent().is_empty(), "deferred menu delivery must not close a claimed snapshot again");
+    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{pending_id},"op":"snapshot","ok":true,"kinds":[32768]}}"#));
+    assert_eq!(sent(), [format!(r#"{{"c":"menuaction","op":"prepareDelete","id":{pending_id}}}"#)]);
+    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{pending_id},"op":"prepareDelete","ok":true,"token":9,"count":1,"bytes":12}}"#));
+    assert!(shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)), "the original review still opens its card");
+    assert!(sent().is_empty());
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

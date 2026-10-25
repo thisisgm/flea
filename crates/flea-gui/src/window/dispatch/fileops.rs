@@ -18,6 +18,8 @@ pub(crate) struct Held {
     arm: trash::Arm,
     seat: Option<Seat>,
     pub(super) deleting: [Option<u64>; 2],
+    /// The folder New Folder made on each side, renamed once its row lands.
+    pub(super) arrival: [Option<String>; 2],
 }
 
 pub(super) fn run(
@@ -148,6 +150,11 @@ impl Shell {
     // Pane.qml act: Delete permanently reviews the rows on a snapshot of its own, then opens the permanent-delete card.
     fn fileops_delete(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         if self.operations.fileops.deleting[side].is_some() {
+            if let Some(chosen) = chosen.filter(|chosen| !chosen.captured.background) {
+                let id = chosen.captured.id;
+                let close = format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{id}}}");
+                self.fileops_send(side, close, cx);
+            }
             let text = self.locale.catalog.tr("jobs.delete.finishing");
             return self.fileops_say(side, &text, false, cx);
         }
@@ -221,9 +228,10 @@ impl Shell {
         }
     }
 
-    /// A stopped backend ends the side's Delete permanently, so the next Delete says why it cannot run.
+    /// A stopped backend ends the side's Delete permanently and its pending rename, so the next Delete says why it cannot run.
     pub(crate) fn fileops_reset(&mut self, side: usize) {
         self.operations.fileops.deleting[side] = None;
+        self.operations.fileops.arrival[side] = None;
     }
 
     pub(super) fn fileops_say(&mut self, side: usize, text: &str, error: bool, cx: &mut Context<Self>) {

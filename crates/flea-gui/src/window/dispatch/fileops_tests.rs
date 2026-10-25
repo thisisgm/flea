@@ -137,6 +137,13 @@ fn the_dd_pair_arms_then_trashes_and_a_move_or_the_clock_ends_the_arm(cx: &mut T
     assert_eq!(status(&shell, cx), trash::trash_prompt(&catalog, "default", 1));
     cx.simulate_keystrokes("d");
     assert_eq!(sent(), [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]);
+    // Any other listing action ends the pair, even one another family claims that keeps the seat: Forward with no forward history.
+    cx.simulate_keystrokes("d");
+    hit(cx, "default", "historyForward");
+    cx.simulate_keystrokes("d");
+    assert_eq!(sent(), Vec::<String>::new(), "the d after Forward arms again");
+    cx.simulate_keystrokes("d");
+    assert_eq!(sent(), [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]);
     // A cursor move between the presses ends the pair: the d after it arms again on the new row.
     cx.simulate_keystrokes("d up d");
     assert_eq!(sent(), Vec::<String>::new());
