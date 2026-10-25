@@ -93,6 +93,15 @@ def reap(pids):
         except OSError:
             pass
 
+def reap_orphans():
+    """This python is the namespace's init, so an orphaned indexer stays a zombie pgrep still sees until it is reaped here."""
+    while True:
+        try:
+            if os.waitpid(-1, os.WNOHANG) == (0, 0):
+                return
+        except ChildProcessError:
+            return
+
 # 1. A step fails after an entrant activated the indexers: both must be ended.
 rc, err, pids = run('fail', root / 'ledger-fail.jsonl')
 left = settle(pids)
@@ -132,8 +141,19 @@ assert rc != 0 and 'localsearch-3 pid %d started 20' % stray.pid in err, err
 assert 'this harness did not start it' in err, err
 assert alive_after, 'a refusal must leave the foreign indexer alone'
 
-# 5. A run killed outright ends where the next recorded run begins, so it never claims what a later run started.
+# 5. A run killed days ago never wrote its end, so it covers nothing started today.
 stale = root / 'ledger-stale.jsonl'
+stale.write_text('{"id": "old", "pid": 4242, "start": %f}\n' % (time.time() - 2 * 86400))
+stray = subprocess.Popen([str(bindir / 'localsearch-3'), '300'], start_new_session=True, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(0.3)
+rc, err, _ = run('refuse-only', stale)
+stray.kill()
+stray.wait()
+assert rc != 0 and 'this harness did not start it' in err and 'this harness started it' not in err, err
+
+# 6. A run killed outright ends where the next recorded run begins, so it never claims what a later run started.
+stale = root / 'ledger-next.jsonl'
 now = time.time()
 stale.write_text('{"id": "old", "pid": 4242, "start": %f}\n{"id": "next", "pid": 4343, "start": %f, "end": %f}\n'
                  % (now - 2 * 86400, now - 86400, now - 86400 + 60))
@@ -145,12 +165,38 @@ stray.kill()
 stray.wait()
 assert rc != 0 and 'this harness did not start it' in err and 'this harness started it' not in err, err
 
-# 6. Attribution follows the windows, never the calendar: the covering run is named wherever it sits in the ledger.
+# 7. The newest run is killed outright and nothing runs after it: an indexer started later is not its own.
 S = SourceFileLoader('search_windows', tool).load_module()
-def attribute(lines, began):
-    S.LEDGER = str(root / 'ledger-unit.jsonl')
+ledger = root / 'ledger-newest.jsonl'
+reap_orphans()
+rc, err, pids = run('kill', ledger)
+reap(pids)
+settle(pids)
+assert rc == -9 and len(pids) == 2, (rc, err, pids)
+time.sleep(S.ALIVE_S + 2)
+reap_orphans()
+stray = subprocess.Popen([str(bindir / 'localsearch-3'), '300'], start_new_session=True, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(0.3)
+rc, err, _ = run('refuse-only', ledger)
+stray.kill()
+stray.wait()
+assert rc != 0 and 'this harness did not start it' in err and 'this harness started it' not in err, err
+
+# 8. Attribution follows the windows, never the calendar: the covering run is named wherever it sits in the ledger.
+def attribute(lines, began, live=(), seen=None):
+    """describe_leftover for a pid started at began; runs whose pid is in live still run, seen maps a run to its last touch."""
+    S.LEDGER = str(root / 'unit' / 'ledger.jsonl')
+    marks = Path(S.LEDGER).parent / 'alive'
+    marks.mkdir(parents=True, exist_ok=True)
+    for mark in marks.iterdir():
+        mark.unlink()
+    for run_id, when in (seen or {}).items():
+        (marks / run_id).touch()
+        os.utime(marks / run_id, (when, when))
     Path(S.LEDGER).write_text(''.join(json.dumps(line) + '\n' for line in lines))
-    with patch.object(S, 'process_start', return_value=began):
+    starts = {line['pid']: line['start'] for line in lines if 'pid' in line}
+    with patch.object(S, 'process_start', side_effect=lambda p: began if p == 99 else starts[p] if p in live else None):
         return S.describe_leftover('localsearch-3', 99)
 midnight = time.mktime(time.strptime(time.strftime('%Y-%m-%d'), '%Y-%m-%d'))
 # A killed old run, then an ended later run covering the pid: the later run started it.
@@ -158,17 +204,21 @@ said = attribute([{'id': 'old', 'pid': 1, 'start': midnight - 86400},
                   {'id': 'new', 'pid': 2, 'start': midnight - 3600},
                   {'id': 'new', 'end': midnight - 1800}], midnight - 3000)
 assert 'run pid 2 ' in said and 'this harness started it' in said, said
-# The killed old run covers only up to the later run's start.
-said = attribute([{'id': 'old', 'pid': 1, 'start': midnight - 86400},
-                  {'id': 'new', 'pid': 2, 'start': midnight - 3600, 'end': midnight - 1800}], midnight - 7200)
-assert 'run pid 1 ' in said and 'never ended' in said, said
-said = attribute([{'id': 'old', 'pid': 1, 'start': midnight - 86400},
-                  {'id': 'new', 'pid': 2, 'start': midnight - 3600, 'end': midnight - 1800}], midnight - 60)
-assert 'this harness did not start it' in said, said
-# A run begun 23:50 whose indexer started 23:55 stays attributed after midnight, open or ended.
-for run in ({'id': 'late', 'pid': 3, 'start': midnight - 600},
-            {'id': 'late', 'pid': 3, 'start': midnight - 600, 'end': midnight - 60}):
-    said = attribute([run], midnight - 300)
+# A killed old run seen alive until the later run began covers up to that start, and no further.
+for began, wanted in ((midnight - 7200, 'run pid 1 '), (midnight - 60, 'this harness did not start it')):
+    said = attribute([{'id': 'old', 'pid': 1, 'start': midnight - 86400},
+                      {'id': 'new', 'pid': 2, 'start': midnight - 3600, 'end': midnight - 1800}], began,
+                     seen={'old': midnight - 3500})
+    assert wanted in said, said
+# A killed newest run covers up to its last touch plus one period, and nothing after.
+for began, wanted in ((midnight - 3000 + S.ALIVE_S, 'run pid 4 '), (midnight - 600, 'this harness did not start it')):
+    said = attribute([{'id': 'dead', 'pid': 4, 'start': midnight - 3600}], began, seen={'dead': midnight - 3000})
+    assert wanted in said, said
+# A run begun 23:50 whose indexer started 23:55 stays attributed after midnight: still running, seen after, or ended.
+for lines, live, seen in (([{'id': 'late', 'pid': 3, 'start': midnight - 600}], (3,), None),
+                          ([{'id': 'late', 'pid': 3, 'start': midnight - 600}], (), {'late': midnight - 200}),
+                          ([{'id': 'late', 'pid': 3, 'start': midnight - 600, 'end': midnight - 60}], (), None)):
+    said = attribute(lines, midnight - 300, live, seen)
     assert 'run pid 3 ' in said and 'this harness started it' in said, said
 print('field-localsearch: all passed')
 PY
