@@ -11,6 +11,9 @@ pub enum Glyph {
     Minus,
     Plus,
     Maximize,
+    ChevronLeft,
+    ChevronRight,
+    Lock,
 }
 
 macro_rules! svg {
@@ -37,6 +40,19 @@ impl Glyph {
         }
     }
 
+    /// A strip control's glyph by the chrome name a view gives it; None for a name pv1 does not draw.
+    pub fn named(name: &str) -> Option<Self> {
+        Some(match name {
+            "chevron-left" => Self::ChevronLeft,
+            "chevron-right" => Self::ChevronRight,
+            "minus" => Self::Minus,
+            "plus" => Self::Plus,
+            "maximize" => Self::Maximize,
+            "x" => Self::Close,
+            _ => return None,
+        })
+    }
+
     /// Icons.js glyphFor(): a kind's mark by its icon name, the file mark when none is known.
     pub fn kind(icon: &str, mode: u32) -> Self {
         Self::Row(Mark::for_row(icon, mode))
@@ -59,6 +75,12 @@ impl Glyph {
             Self::Maximize => (
                 "pv1-mark:maximize",
                 svg!("M8 3H3v5 M16 3h5v5 M8 21H3v-5 M16 21h5v-5"),
+            ),
+            Self::ChevronLeft => ("pv1-mark:chevron-left", svg!("m15 18-6-6 6-6")),
+            Self::ChevronRight => ("pv1-mark:chevron-right", svg!("m9 18 6-6-6-6")),
+            Self::Lock => (
+                "pv1-mark:lock",
+                svg!("M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4 M12 16L12.01 16"),
             ),
         };
         (SharedString::new_static(key), data)

@@ -42,8 +42,12 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> bool {
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained) {
+            self.quick_look_code_lost(side, cx);
             self.quick_look_lost(side, cx);
             return false;
+        }
+        if self.quick_look_doc_line(side, event, window, cx) {
+            return true;
         }
         let BackendEvent::Producer(line) = event else {
             return false;

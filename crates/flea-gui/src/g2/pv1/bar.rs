@@ -25,7 +25,7 @@ pub fn mark(glyph: Glyph, size: f32, ink: Hsla) -> impl IntoElement {
     .flex_none()
 }
 
-fn name_parts(name: &Name, look: &Look) -> Vec<AnyElement> {
+pub(super) fn name_parts(name: &Name, look: &Look) -> Vec<AnyElement> {
     let mut parts = vec![div()
         .min_w_0()
         .overflow_hidden()
@@ -138,19 +138,26 @@ pub fn refusal_bar(
         .into_any_element()
 }
 
-fn press(
+pub(super) fn press(
     hit: Hit,
 ) -> impl Fn(&mut QuickLook, &MouseDownEvent, &mut gpui::Window, &mut Context<QuickLook>) {
     move |look, _, _, cx| {
+        look.chrome_armed = look.is_revealed();
+        if !look.is_revealed() {
+            return;
+        }
         look.pressed = Some(hit);
         cx.notify();
     }
 }
 
-fn click(
+pub(super) fn click(
     hit: Hit,
 ) -> impl Fn(&mut QuickLook, &ClickEvent, &mut gpui::Window, &mut Context<QuickLook>) {
     move |look, _, _, cx| {
+        if !std::mem::take(&mut look.chrome_armed) || !look.is_revealed() {
+            return;
+        }
         look.pressed = None;
         look.activate(hit, cx);
     }
@@ -165,9 +172,24 @@ fn slot(
     state: &QuickLook,
     cx: &mut Context<QuickLook>,
 ) -> AnyElement {
+    let ring = hit.is_some() && state.focused == hit;
+    ring_slot(glyph, hit, height, ring, look, state, cx)
+}
+
+/// A chrome slot whose focus ring the caller decides, for a strip whose view keeps its own focus.
+pub(super) fn ring_slot(
+    glyph: Glyph,
+    hit: Option<Hit>,
+    height: f32,
+    ring: bool,
+    look: &Look,
+    state: &QuickLook,
+    cx: &mut Context<QuickLook>,
+) -> AnyElement {
     let id = match hit {
         Some(Hit::Close) => "pv1-close".to_owned(),
         Some(Hit::Control(i)) => format!("pv1-control-{i}"),
+        Some(Hit::Strip(i)) => format!("pv1-strip-{i}"),
         _ => format!("pv1-disabled-{}", glyph.svg().0),
     };
     let selector = id.clone();
@@ -193,7 +215,7 @@ fn slot(
     }
     match hit {
         Some(hit) => {
-            if state.focused == Some(hit) {
+            if ring {
                 slot = slot.child(
                     div()
                         .debug_selector(|| "pv1-ring".into())
