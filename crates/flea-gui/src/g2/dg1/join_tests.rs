@@ -7,6 +7,9 @@ use crate::{
 };
 use gpui::{AppContext, Context, TestAppContext, VisualTestContext, Window, WindowHandle};
 
+#[path = "m9_g2rows_23_ipc_tests.rs"]
+mod m9_g2rows_23_ipc_tests;
+
 type Handle = WindowHandle<Root>;
 
 fn open(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Vec<String>) {
