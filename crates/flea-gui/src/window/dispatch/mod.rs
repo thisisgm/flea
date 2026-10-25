@@ -56,6 +56,8 @@ impl Shell {
 }
 
 #[cfg(test)]
+mod compare_tests;
+#[cfg(test)]
 mod effect_tests;
 #[cfg(test)]
 mod families_tests;
@@ -83,6 +85,10 @@ mod previewtypes_kinds_tests;
 mod previewtypes_page_tests;
 #[cfg(test)]
 mod previewtypes_tests;
+#[cfg(test)]
+mod preview_tests;
+#[cfg(test)]
+mod quick_look_reply_tests;
 #[cfg(test)]
 mod refusal_tests;
 #[cfg(test)]
