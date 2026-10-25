@@ -1,6 +1,11 @@
 // Requested search rows reuse facts only while every local path component remains watched.
+use super::inotifyburst::EVENT_HEADER;
 use super::listing::Listing;
-use super::meta::Meta;
+use super::meta::{Meta, S_IFLNK, S_IFMT};
+use super::watch::{
+    IN_ATTRIB, IN_CLOEXEC, IN_CLOSE_WRITE, IN_CREATE, IN_DELETE, IN_DELETE_SELF, IN_IGNORED, IN_MODIFY,
+    IN_MOVED_FROM, IN_MOVED_TO, IN_MOVE_SELF, IN_NONBLOCK, IN_Q_OVERFLOW, IN_UNMOUNT,
+};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::{c_char, c_int, c_void, CString};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
@@ -10,12 +15,26 @@ use std::time::Instant;
 pub(crate) const ROW_CAP: usize = 350;
 const WATCH_CAP: usize = 350;
 const BYTE_CAP: usize = 2 * 1024 * 1024;
-const MASK: u32 = 0x0000_2fce;
-const SELF_OR_LOST: u32 = 0x0000_ec00;
+pub(crate) const READ_BUFFER_BYTES: usize = 8192;
+pub(crate) const DRAIN_READ_LIMIT: usize = 16;
+pub(crate) const PATH_OVERHEAD_BYTES: usize = 64;
+// The events that drop a cached row: any write, create, delete or move under the watch, and an unmount.
+pub(crate) const MASK: u32 = IN_MODIFY | IN_ATTRIB | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE | IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT;
+// The watch lost its own inode or its queue, so the whole cache clears.
+const SELF_OR_LOST: u32 = IN_IGNORED | IN_Q_OVERFLOW | IN_UNMOUNT | IN_MOVE_SELF | IN_DELETE_SELF;
+// Byte offsets of the wd, mask and len words inside one inotify_event header.
+const WD_AT: usize = 0;
+const MASK_AT: usize = 4;
+const LEN_AT: usize = 12;
 extern "C" {
     fn inotify_init1(flags: c_int) -> c_int;
     fn inotify_add_watch(fd: c_int, path: *const c_char, mask: u32) -> c_int;
     fn read(fd: c_int, buf: *mut c_void, count: usize) -> isize;
+}
+
+// One native-endian header word, read at its offset inside the event that starts at at.
+fn word(bytes: &[u8], at: usize, field: usize) -> [u8; 4] {
+    bytes[at + field..at + field + 4].try_into().unwrap()
 }
 
 struct Entry {
@@ -46,8 +65,8 @@ impl Cache {
     // Overflow, self events and ancestor renames all fail closed, without opening any indexed file.
     fn drain(&mut self) {
         let Some(fd) = self.fd.as_ref().map(AsRawFd::as_raw_fd) else { return };
-        let mut buffer = [0u8; 8192];
-        for _ in 0..16 {
+        let mut buffer = [0u8; READ_BUFFER_BYTES];
+        for _ in 0..DRAIN_READ_LIMIT {
             let count = unsafe { read(fd, buffer.as_mut_ptr().cast(), buffer.len()) };
             if count < 0 {
                 match std::io::Error::last_os_error().kind() {
@@ -62,19 +81,20 @@ impl Cache {
         self.clear();
     }
 
-    // The decoder is also driven with overflow and descriptor-loss events by deterministic tests.
+    // Sample input: wd 1, mask 0x00000100, cookie 0, len 16, then "NEWFILE.txt\0\0\0\0\0".
+    // Constraint: a header or name past the buffer clears the cache and answers false.
     fn burst(&mut self, bytes: &[u8]) -> bool {
         let mut at = 0;
-        while at + 16 <= bytes.len() {
-            let wd = i32::from_ne_bytes(bytes[at..at + 4].try_into().unwrap());
-            let mask = u32::from_ne_bytes(bytes[at + 4..at + 8].try_into().unwrap());
-            let len = u32::from_ne_bytes(bytes[at + 12..at + 16].try_into().unwrap()) as usize;
-            if at + 16 + len > bytes.len() || mask & SELF_OR_LOST != 0 {
+        while at + EVENT_HEADER <= bytes.len() {
+            let wd = i32::from_ne_bytes(word(bytes, at, WD_AT));
+            let mask = u32::from_ne_bytes(word(bytes, at, MASK_AT));
+            let len = u32::from_ne_bytes(word(bytes, at, LEN_AT)) as usize;
+            if at + EVENT_HEADER + len > bytes.len() || mask & SELF_OR_LOST != 0 {
                 self.clear();
                 return false;
             }
             use std::os::unix::ffi::OsStrExt;
-            let name = &bytes[at + 16..at + 16 + len];
+            let name = &bytes[at + EVENT_HEADER..at + EVENT_HEADER + len];
             let end = name.iter().position(|&b| b == 0).unwrap_or(name.len());
             for (parent, &watch) in &self.watches {
                 if watch == wd {
@@ -82,7 +102,7 @@ impl Cache {
                     self.entries.retain(|path, entry| !path.starts_with(&changed) && !(entry.directory && path == parent));
                 }
             }
-            at += 16 + len;
+            at += EVENT_HEADER + len;
         }
         if at != bytes.len() { self.clear(); return false; }
         self.recount();
@@ -91,7 +111,7 @@ impl Cache {
 
     fn recount(&mut self) {
         let dependencies = self.requested.iter().chain(self.watches.keys())
-            .map(|path| path.as_os_str().len() + std::mem::size_of::<PathBuf>() + 64).sum::<usize>();
+            .map(|path| path.as_os_str().len() + std::mem::size_of::<PathBuf>() + PATH_OVERHEAD_BYTES).sum::<usize>();
         self.bytes = dependencies + self.inodes.bytes() + self.entries.iter().map(|(path, entry)| {
             path.as_os_str().len() + entry.meta.target.len() + std::mem::size_of::<Entry>()
                 + entry.rendered.as_ref().map_or(0, |(row, kind)| row.len() + kind.len())
@@ -120,13 +140,13 @@ impl Cache {
             }
         }
         let path_bytes: usize = needed.iter().chain(self.requested.iter()).chain(self.requested.iter())
-            .map(|path| path.as_os_str().len() + std::mem::size_of::<PathBuf>() + 64).sum();
+            .map(|path| path.as_os_str().len() + std::mem::size_of::<PathBuf>() + PATH_OVERHEAD_BYTES).sum();
         if path_bytes > BYTE_CAP { self.clear(); return; }
         if self.fd.is_none() || self.watches.keys().ne(needed.iter()) {
             self.entries.clear();
             self.bytes = 0;
             self.watches.clear();
-            let fd = unsafe { inotify_init1(0x0008_0800) };
+            let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
             self.fd = (fd >= 0).then(|| unsafe { OwnedFd::from_raw_fd(fd) });
             if let Some(fd) = &self.fd {
                 for path in needed {
@@ -165,7 +185,7 @@ impl Cache {
                 .is_some_and(|kind| super::netfs::can_wedge(&kind)));
             let bytes = path.as_os_str().len() + meta.target.len() + std::mem::size_of::<Entry>();
             // Symlink targets and vanished rows have dependencies outside the directory watch, so each is a miss.
-            if self.fd.is_some() && self.inodes.covered(&path) && self.requested.contains(&path) && meta.mode != 0 && meta.mode & 0o170000 != 0o120000
+            if self.fd.is_some() && self.inodes.covered(&path) && self.requested.contains(&path) && meta.mode != 0 && meta.mode & S_IFMT != S_IFLNK
                 && !device_remote && self.bytes + bytes <= BYTE_CAP {
                 self.bytes += bytes;
                 self.entries.insert(path, Entry { meta: meta.clone(), directory, rendered: None });

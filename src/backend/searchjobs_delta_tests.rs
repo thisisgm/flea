@@ -4,21 +4,21 @@ use std::sync::mpsc::Receiver;
 use std::sync::Arc;
 use std::time::Duration;
 
-struct Loop {
+pub(super) struct Loop {
     st: State,
     tb: Tables,
     pool: Pool,
-    gate: Gate,
+    pub(super) gate: Gate,
     events: Sender<Event>,
     received: Receiver<Event>,
-    buffered: VecDeque<Event>,
+    pub(super) buffered: VecDeque<Event>,
     wakes: VecDeque<Event>,
-    out: Vec<u8>,
+    pub(super) out: Vec<u8>,
 }
 
 impl Loop {
     // A session over root/scope with its recursive watch on the loop's own channel, walked and answered once.
-    fn open(root: &TestDir, query: &str, count: usize) -> Loop {
+    pub(super) fn open(root: &TestDir, query: &str, count: usize) -> Loop {
         let (events, received) = channel();
         let scope = root.join("scope");
         let scope = scope.to_str().unwrap();
@@ -49,7 +49,7 @@ impl Loop {
         }
     }
 
-    fn route(&mut self, event: Event) -> Option<Event> {
+    pub(super) fn route(&mut self, event: Event) -> Option<Event> {
         self.gate.route(
             event,
             &mut self.st,
@@ -88,7 +88,7 @@ impl Loop {
         }
     }
 
-    fn ready(&mut self) {
+    pub(super) fn ready(&mut self) {
         let ready = self.wake(true);
         self.route(ready);
     }
@@ -97,7 +97,20 @@ impl Loop {
         self.wake(false)
     }
 
-    fn said(&mut self) -> Vec<String> {
+    // One write group can wake the watch twice, so a short answer takes the next delta and answers again.
+    fn settle(&mut self, count: usize) -> Vec<String> {
+        loop {
+            self.ready();
+            let said = self.said();
+            if said.get(2).and_then(|line| crate::json::field_usize(line, "n")) == Some(count) {
+                return said;
+            }
+            let delta = self.delta();
+            self.route(delta);
+        }
+    }
+
+    pub(super) fn said(&mut self) -> Vec<String> {
         String::from_utf8(std::mem::take(&mut self.out))
             .unwrap()
             .lines()
@@ -105,17 +118,17 @@ impl Loop {
             .collect()
     }
 
-    fn session(&mut self) -> &mut Session {
+    pub(super) fn session(&mut self) -> &mut Session {
         self.st.search_session.as_mut().unwrap()
     }
 
-    fn close(mut self) {
+    pub(super) fn close(mut self) {
         self.route(Event::Request(r#"{"c":"searchclose"}"#.into()));
         self.st.search_session.take().unwrap().close();
     }
 }
 
-fn kinds(lines: &[String]) -> Vec<String> {
+pub(super) fn kinds(lines: &[String]) -> Vec<String> {
     lines
         .iter()
         .map(|line| crate::json::field_str(line, "t").unwrap_or_default())
@@ -167,8 +180,7 @@ fn search_delta_arriving_while_a_streamed_answer_is_out_publishes_after_it() {
         lp.route(replay).is_none(),
         "the replayed delta is reconciled on the execution worker"
     );
-    lp.ready();
-    let second = lp.said();
+    let second = lp.settle(4);
     assert_eq!(kinds(&second), ["listed", "rows", "searched"]);
     assert!(
         second
@@ -176,12 +188,16 @@ fn search_delta_arriving_while_a_streamed_answer_is_out_publishes_after_it() {
             .all(|line| crate::json::field_usize(line, "gen") == Some(2)),
         "the standing gen is pushed again"
     );
-    assert_eq!(crate::json::field_usize(&second[2], "n"), Some(4));
     assert!(second[1].contains(r#""n":"alpha9.txt""#));
-    assert!(
-        crate::json::field_usize(&second[1], "listing")
-            > crate::json::field_usize(&first[1], "listing")
+    let (before, after) = (
+        crate::json::field_usize(&first[1], "listing"),
+        crate::json::field_usize(&second[1], "listing"),
     );
+    assert!(
+        before.is_some() && after.is_some(),
+        "both rows lines carry the listing stamp: {first:?} {second:?}"
+    );
+    assert!(after > before, "the listing stamp advances");
     lp.close();
 }
 
@@ -203,9 +219,7 @@ fn search_delta_against_reused_rows_reuses_the_unchanged_and_rereads_the_changed
     std::fs::write(root.join("scope/alpha8.txt"), "a").unwrap();
     let delta = lp.delta();
     lp.route(delta);
-    lp.ready();
-    let grown = lp.said();
-    assert_eq!(crate::json::field_usize(&grown[2], "n"), Some(5));
+    lp.settle(5);
     assert_eq!(
         lp.session().row_cache.misses,
         misses + 1,
@@ -218,10 +232,8 @@ fn search_delta_against_reused_rows_reuses_the_unchanged_and_rereads_the_changed
     std::fs::write(root.join("scope/alpha9.txt"), "a").unwrap();
     let delta = lp.delta();
     lp.route(delta);
-    lp.ready();
-    let fresh = lp.said();
+    let fresh = lp.settle(6);
     assert_eq!(kinds(&fresh), ["listed", "rows", "searched"]);
-    assert_eq!(crate::json::field_usize(&fresh[2], "n"), Some(6));
     assert_eq!(size_of(&fresh[1], "alpha1.txt"), 7);
     assert_eq!(size_of(&fresh[1], "alpha0.txt"), 1);
     let reread = lp.st.base.join("alpha1.txt");

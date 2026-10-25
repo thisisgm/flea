@@ -590,8 +590,7 @@ mount that syscall no longer runs on the loop: the window stat goes through `win
 window's rows to a mount-keyed worker on a remote one, bounded by `CALL_DEADLINE` like every
 `iomount::call`. The thumbnail path is bounded the same way: `thumb_rows` in `backend/thumbreq.rs`
 stats each client-named row through `iomount::call` under `"thumb"` before it queues anything.
-`listpaths` is the exception that still stats on the loop: its `answer` ends in `write_window`,
-which runs `stat_range` on the loop's thread directly.
+`listpaths`' first window takes the same path through `write_window`, so a remote base stats on the worker too.
 This box has no NFS, no CIFS and no sshfs, but it does mount `fuse.gvfsd-fuse` at
 `/run/user/1000/gvfs` and `fuse.portal` at `/run/user/1000/doc`, so a symlink into a live
 gvfs mount whose server goes away is a reachable case here rather than a hypothetical.

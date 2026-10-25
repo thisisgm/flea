@@ -1577,6 +1577,8 @@ Formatting the composed G2 units with `cargo fmt`, the formatter the CI format c
 
 The gcomp join onto the G line re-derives three scoped ceilings with `wc -l`: `src/backend/run.rs` 1252 to 1254 for the plugins request from the G line beside the search delta event and the trash request field from gcomp; `src/backend/officepdf.rs` 428 and `src/backend/run_session_tests.rs` 582, each the merged file's length. Global limits stay unchanged.
 
+The search worker repair routes the walk landing and a held refresh through the execution gate before a closed stdin can quit. `src/backend/run.rs` moves from 1256 lines at the integration join to 1260, re-derived with `wc -l`, and `src/backend/searchwalk.rs` crosses the 400-line cap at 403 for the test-only probe that marks the walk's final landing send; global limits are unchanged.
+
 ---
 
 Navigation: [architecture index](README.md),

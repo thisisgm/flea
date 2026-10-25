@@ -52,3 +52,12 @@ fn malformed_search_lines_are_refused_never_guessed() {
         assert!(parse_line(line).is_err(), "{line}");
     }
 }
+
+// v0.3.12 drew an incomplete search as it drew a complete one, so `partial` and `partial_reason` change nothing that lands.
+#[test]
+fn a_partial_landing_lands_as_the_complete_one_does() {
+    let complete = r#"{"t":"searched","n":3,"scanned":90,"ms":4.000,"cancelled":false,"gen":2,"walking":false}"#;
+    let partial = r#"{"t":"searched","n":3,"scanned":90,"ms":4.000,"cancelled":false,"gen":2,"walking":false,"partial":true,"partial_reason":"unreadable"}"#;
+    assert_eq!(parse_line(partial), parse_line(complete));
+    assert_eq!(parse_line(complete), Ok(Some(Line::Searched { n: 3, scanned: 90, ms: 4.0, cancelled: false, gen: 2, walking: false })));
+}

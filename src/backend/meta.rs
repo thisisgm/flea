@@ -6,9 +6,9 @@ use std::time::Instant;
 pub use super::metarow::Meta;
 
 // The st_mode file-type bits, plus the two types a thumbnail request can reach: a regular file, or a symlink whose target is stat'd when the row is asked for.
-const S_IFMT: u32 = 0o170000;
+pub(crate) const S_IFMT: u32 = 0o170000;
 const S_IFREG: u32 = 0o100000;
-const S_IFLNK: u32 = 0o120000;
+pub(crate) const S_IFLNK: u32 = 0o120000;
 
 // A fifo, socket or device node named like a video would block a decoder for its whole timeout, so no such row is offered; see AGENTS.md "Thumbnail requests".
 pub fn thumbnailable(mode: u32) -> bool {
@@ -128,6 +128,11 @@ fn meta_one(base: &Path, name: &str) -> Meta {
 // 0 is outside the domain and is itself the "I could not look" marker for the whole row.
 fn zeroes() -> Meta {
     Meta { size: 0, mtime: 0, mode: 0, target_is_dir: false, target: String::new(), dev: 0 }
+}
+// The rows of a window whose stat failed: names stay with the zeroes, clamped to the listing like window_rows.
+pub(crate) fn lost_window(l: &Listing, start: usize, count: usize) -> Vec<Meta> {
+    let end = start.saturating_add(count).min(l.len());
+    (start.min(end)..end).map(|_| zeroes()).collect()
 }
 
 // One window row's cached gio facts, owned so a remote worker answers from the store with no arena clone.
