@@ -1,7 +1,7 @@
 use fff_search::{
-    FileItem, DirItem, FilePicker, FilePickerOptions, FrecencyTracker,
-    FuzzySearchOptions, GitRecencyConfig, MixedItemRef, MixedSearchConfig, PaginationArgs,
-    QueryParser, SharedFilePicker, SharedFrecency,
+    DirItem, FileItem, FilePicker, FilePickerOptions, FrecencyTracker, FuzzySearchOptions,
+    GitRecencyConfig, MixedItemRef, MixedSearchConfig, PaginationArgs, QueryParser,
+    SharedFilePicker, SharedFrecency,
 };
 use serde_json::json;
 use std::error::Error;
@@ -24,13 +24,19 @@ fn prepare_prior_seed(scope: &Path, state: &Path, historical: bool) -> Result<()
             let before = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
             tracker.track_access(&scope.join(&rel))?;
             let after = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-            if before != after { return Err("prior replay crossed a timestamp second; rebuild the fixture seed".into()); }
+            if before != after {
+                return Err(
+                    "prior replay crossed a timestamp second; rebuild the fixture seed".into(),
+                );
+            }
             events.push(json!({"path":rel.as_str(), "at_sec":before}));
         }
     }
     drop(tracker);
-    emit(json!({"t":"priorseed", "replay_us":at.elapsed().as_secs_f64() * 1_000_000.0,
-                "events":events, "prior_replay_inside_open":false}))?;
+    emit(
+        json!({"t":"priorseed", "replay_us":at.elapsed().as_secs_f64() * 1_000_000.0,
+                "events":events, "prior_replay_inside_open":false}),
+    )?;
     Ok(())
 }
 
@@ -45,7 +51,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("scope and marked state must be absolute".into());
     }
     if let Some(profile) = args[3].strip_prefix("seed-") {
-        if !matches!(profile, "rich" | "equal-history") { return Err("invalid seed profile".into()); }
+        if !matches!(profile, "rich" | "equal-history") {
+            return Err("invalid seed profile".into());
+        }
         return prepare_prior_seed(scope, state, profile == "rich");
     }
     let historical = args[3] == "rich";
@@ -62,7 +70,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     emit(json!({"t":"boot", "cpus":cpus, "scan_threads":(cpus / 2).max(2)}))?;
     let shared = SharedFilePicker::default();
-    let frecency = if rich { SharedFrecency::default() } else { SharedFrecency::noop() };
+    let frecency = if rich {
+        SharedFrecency::default()
+    } else {
+        SharedFrecency::noop()
+    };
     let parser = QueryParser::new(MixedSearchConfig);
     let mut opened = false;
     for line in io::stdin().lock().lines() {
@@ -79,14 +91,18 @@ fn main() -> Result<(), Box<dyn Error>> {
                     frecency.init(tracker)?;
                 }
                 FilePicker::new_with_shared_state(
-                    shared.clone(), frecency.clone(),
+                    shared.clone(),
+                    frecency.clone(),
                     FilePickerOptions {
                         base_path: args[1].clone(),
                         watch: true,
                         enable_content_indexing: false,
                         enable_mmap_cache: false,
                         follow_symlinks: false,
-                        git_recency: GitRecencyConfig { enabled: historical, ..Default::default() },
+                        git_recency: GitRecencyConfig {
+                            enabled: historical,
+                            ..Default::default()
+                        },
                         ..Default::default()
                     },
                 )?;
@@ -100,7 +116,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let guard = shared.read()?;
                 let picker = guard.as_ref().ok_or("picker missing after scan")?;
                 let dirs = picker.get_dirs();
-                let root_dir = usize::from(dirs.first().is_some_and(|dir| dir.relative_path(picker).is_empty()));
+                let root_dir = usize::from(
+                    dirs.first()
+                        .is_some_and(|dir| dir.relative_path(picker).is_empty()),
+                );
                 emit(json!({"t":"ready", "build_ms":build_ms,
                     "n":picker.live_file_count() + dirs.len() - root_dir,
                     "files":picker.live_file_count(), "arena_bytes":picker.arena_bytes(),
@@ -118,25 +137,42 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let query = parser.parse(fields[5]);
                 let guard = shared.read()?;
                 let picker = guard.as_ref().ok_or("picker missing")?;
-                let result = picker.fuzzy_search_mixed(&query, None, FuzzySearchOptions {
-                    max_threads: threads,
-                    project_path: Some(scope),
-                    pagination: PaginationArgs { offset, limit },
-                    ..Default::default()
-                });
+                let result = picker.fuzzy_search_mixed(
+                    &query,
+                    None,
+                    FuzzySearchOptions {
+                        max_threads: threads,
+                        project_path: Some(scope),
+                        pagination: PaginationArgs { offset, limit },
+                        ..Default::default()
+                    },
+                );
                 let core_ms = at.elapsed().as_secs_f64() * 1000.0;
-                let paths: Vec<String> = result.items.iter().map(|item| match item {
-                    MixedItemRef::File(file) => file.relative_path(picker),
-                    MixedItemRef::Dir(dir) => dir.relative_path(picker).trim_end_matches('/').to_owned(),
-                }).collect();
+                let paths: Vec<String> = result
+                    .items
+                    .iter()
+                    .map(|item| match item {
+                        MixedItemRef::File(file) => file.relative_path(picker),
+                        MixedItemRef::Dir(dir) => {
+                            dir.relative_path(picker).trim_end_matches('/').to_owned()
+                        }
+                    })
+                    .collect();
                 if let Some(target) = fields[4].strip_prefix("audit:") {
-                    let rank = paths.iter().position(|path| path == target).map_or(0, |rank| rank + 1);
-                    emit(json!({"t":"rank", "gen":generation, "rank":rank, "n":result.total_matched, "complete":paths.len() == result.total_matched}))?;
+                    let rank = paths
+                        .iter()
+                        .position(|path| path == target)
+                        .map_or(0, |rank| rank + 1);
+                    emit(
+                        json!({"t":"rank", "gen":generation, "rank":rank, "n":result.total_matched, "complete":paths.len() == result.total_matched}),
+                    )?;
                     continue;
                 }
                 let comparable_core_ms = at.elapsed().as_secs_f64() * 1000.0;
-                emit(json!({"t":"result", "gen":generation, "n":result.total_matched,
-                    "paths":paths, "core_ms":core_ms, "comparable_core_ms":comparable_core_ms}))?;
+                emit(
+                    json!({"t":"result", "gen":generation, "n":result.total_matched,
+                    "paths":paths, "core_ms":core_ms, "comparable_core_ms":comparable_core_ms}),
+                )?;
             }
             "P" => emit(json!({"t":"pong"}))?,
             "X" => break,

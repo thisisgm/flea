@@ -3,7 +3,7 @@ use super::ipc::PickerGeometry;
 use flea::ipc::wire::Request;
 use flea::json::escape;
 use gpui::{
-    App, Bounds, Hsla, IntoElement, Pixels, Rgba, SharedString, Styled, canvas, point, px, size,
+    canvas, point, px, size, App, Bounds, Hsla, IntoElement, Pixels, Rgba, SharedString, Styled,
 };
 use std::{cell::RefCell, rc::Rc};
 

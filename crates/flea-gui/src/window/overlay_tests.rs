@@ -25,6 +25,8 @@ fn open(cx: &mut TestAppContext, backend: Backend) -> WindowHandle<Root> {
 
 // The window through its real startup constructor, as `window::open` builds it.
 fn open_startup(cx: &mut TestAppContext) -> WindowHandle<Root> {
+    // The real constructor starts the backend thread, whose failure lands from that thread.
+    cx.executor().allow_parking();
     cx.add_window(|window, cx| {
         let (_events_tx, events) = async_channel::bounded(1);
         let locale = Snapshot {

@@ -23,7 +23,12 @@ impl CodeHost for Engine {
     }
 }
 
+// The pins answer the PDF surface by hand, so its renderer starts no thread that could answer from elsewhere.
 fn view(cx: &mut TestAppContext) -> WindowHandle<OfficeView> {
+    crate::g2::pv2::render::without_threads(|| view_on(cx))
+}
+
+fn view_on(cx: &mut TestAppContext) -> WindowHandle<OfficeView> {
     cx.open_window(size(px(902.), px(625.)), |_, cx| {
         let mut view = OfficeView::new(
             true,

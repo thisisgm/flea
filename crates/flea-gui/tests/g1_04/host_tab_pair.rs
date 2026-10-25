@@ -46,6 +46,26 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
                     .and_then(flea::jsondoc::Json::as_bool),
                 Some(true)
             );
+            // Finish the hidden-file reread before testing the text-size and tab keys on a live listing.
+            for reply in [
+                Reply::Listed {
+                    path: "/files".into(),
+                    total: 1,
+                },
+                Reply::Rows {
+                    start: 0,
+                    rows: vec![flea::protocol::RowFacts::default()],
+                    listing: 3,
+                },
+            ] {
+                shell.receive(0, BackendEvent::Reply(reply), window, cx);
+            }
+            let host = shell.panes[0].as_mut().unwrap();
+            if host.pane.busy() {
+                host.pane.tick(host.pane.now() + 1000);
+                host.changed(&shell.locale);
+            }
+            assert!(!host.pane.busy(), "the chord runs on the answered listing");
             shell.key(&event("+", Some("+"), true), window, cx);
             assert_eq!(
                 flea::ui_logic_st1::pages::at(
@@ -70,26 +90,6 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.launch.settings.data = flea::jsondoc::parse(r#"{"keys":"vim"}"#).unwrap();
-            // Finish the hidden-file reread before testing the next tab's key on a live listing.
-            for reply in [
-                Reply::Listed {
-                    path: "/files".into(),
-                    total: 1,
-                },
-                Reply::Rows {
-                    start: 0,
-                    rows: vec![flea::protocol::RowFacts::default()],
-                    listing: 3,
-                },
-            ] {
-                shell.receive(0, BackendEvent::Reply(reply), window, cx);
-            }
-            let host = shell.panes[0].as_mut().unwrap();
-            if host.pane.busy() {
-                host.pane.tick(host.pane.now() + 1000);
-                host.changed(&shell.locale);
-            }
-            assert!(!host.pane.busy(), "the chord runs on the answered listing");
             shell.with_tabs(|_, panes| {
                 panes.visit(0, &mut |tabs, pane| {
                     let tab = tabs.snapshot(pane, None, 0, false);

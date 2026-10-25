@@ -265,16 +265,17 @@ fn a_blob_keeps_the_calm_refusal_as_the_negative_control(cx: &mut TestAppContext
 #[gpui::test]
 fn w_wraps_the_open_text_and_a_tab_switch_closes_the_card(cx: &mut TestAppContext) {
     let (shell, cx, _requests, _) = mounted(cx);
-    let actions = Rc::new(RefCell::new(Vec::new()));
-    let seen = actions.clone();
-    let _actions = cx.update(|_, cx| {
-        cx.subscribe(
-            &shell,
-            move |_, event: &crate::window::input::ActionEvent, _| {
-                seen.borrow_mut().push(event.action);
-            },
-        )
-    });
+    // A middle tab of three tells tabNext (to 2) from tabPrevious (to 0) and from a close.
+    for (action, listing) in [("tabNew", 2), ("tabNew", 3), ("tabPrevious", 4)] {
+        cx.update(|window, cx| {
+            shell.update(
+                cx,
+                |shell, cx| assert!(shell.tab_action(action, window, cx)),
+            )
+        });
+        land(&shell, cx, "/files", rows(), listing);
+    }
+    assert_eq!(strip(&shell, cx), (3, 1));
     open_kind(&shell, cx, "notes.txt");
     let wrap = |shell: &Entity<Shell>, cx: &mut VisualTestContext| match body(shell, cx) {
         Some(Body::Doc(doc)) => match &doc.view {
@@ -300,11 +301,18 @@ fn w_wraps_the_open_text_and_a_tab_switch_closes_the_card(cx: &mut TestAppContex
         "a tab switch closes the card"
     );
     assert_eq!(context(&shell, cx), Context::Listing);
-    assert!(
-        actions.borrow().contains(&"tabNext"),
-        "tabNext reaches the listing dispatcher after closing the card"
+    assert_eq!(
+        strip(&shell, cx),
+        (3, 2),
+        "tabNext switches the real tab after closing the card"
     );
     close(&shell, cx);
+}
+
+fn strip(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (usize, usize) {
+    shell.read_with(cx, |shell, _| {
+        (shell.strip.tabs[0].count(), shell.strip.tabs[0].current())
+    })
 }
 
 #[gpui::test]

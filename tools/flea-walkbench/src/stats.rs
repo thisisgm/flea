@@ -30,7 +30,11 @@ pub fn median(values: &[f64]) -> f64 {
     if n == 0 {
         return f64::NAN;
     }
-    if n % 2 == 1 { sorted[n / 2] } else { (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0 }
+    if n % 2 == 1 {
+        sorted[n / 2]
+    } else {
+        (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
+    }
 }
 
 /// Percentile bootstrap of the median: (median, low, high) at 95%.
@@ -53,9 +57,20 @@ pub fn bootstrap(values: &[f64], resamples: usize, rng: &mut Rng) -> (f64, f64, 
 }
 
 /// Paired difference per round (entrant minus reference), bootstrapped as one series.
-pub fn paired(entrant: &[(usize, f64)], reference: &[(usize, f64)], resamples: usize, rng: &mut Rng) -> Option<(f64, f64, f64, usize)> {
-    let diffs: Vec<f64> = entrant.iter()
-        .filter_map(|(round, value)| reference.iter().find(|r| r.0 == *round).map(|r| value - r.1))
+pub fn paired(
+    entrant: &[(usize, f64)],
+    reference: &[(usize, f64)],
+    resamples: usize,
+    rng: &mut Rng,
+) -> Option<(f64, f64, f64, usize)> {
+    let diffs: Vec<f64> = entrant
+        .iter()
+        .filter_map(|(round, value)| {
+            reference
+                .iter()
+                .find(|r| r.0 == *round)
+                .map(|r| value - r.1)
+        })
         .collect();
     if diffs.is_empty() {
         return None;

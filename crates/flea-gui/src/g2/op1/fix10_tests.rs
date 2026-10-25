@@ -127,7 +127,7 @@ fn open<'a>(cx: &'a mut TestAppContext, base: f32, path: &str) -> &'a mut Visual
     let (view, cx) = cx.add_window_view(|window, _| {
         window.set_rem_size(px(base));
         let palette = CardPalette::from_theme(&window.text_style(), Theme::default(), 8.);
-        Overlay::new(Arc::new(flea::i18n::I18n::default()), palette, "default")
+        Overlay::new(Arc::new(super::tests::catalog()), palette, "default")
     });
     cx.simulate_resize(size(px(1100.), px(700.)));
     view.update(cx, |view, cx| view.copy_to(0, false, path, cx));

@@ -59,7 +59,7 @@ fn fix11_actual_copy_to_paint_has_the_oracle_capital_and_descender_rows() {
                     CardPalette::from_theme(&window.text_style(), *cx.global::<Theme>(), 8.);
                 cx.new(|cx| {
                     let mut overlay =
-                        Overlay::new(Arc::new(flea::i18n::I18n::default()), palette, "default");
+                        Overlay::new(Arc::new(super::tests::catalog()), palette, "default");
                     overlay.copy_to(0, false, path, cx);
                     overlay
                 })

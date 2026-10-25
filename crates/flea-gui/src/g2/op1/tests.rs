@@ -7,8 +7,13 @@ use flea::ui_logic_op1::{collide, confirm, trash};
 use gpui::TestAppContext;
 use std::sync::Arc;
 
-fn catalog() -> I18n {
-    I18n::default()
+pub(super) fn catalog() -> I18n {
+    I18n::load(flea::i18n::Paths {
+        omarchy: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../src/i18n/fixtures/omarchy"),
+        language_file: "/nonexistent/flea-op1-test-language".into(),
+        catalogs: Vec::new(),
+    })
 }
 
 pub(super) fn trash_source() -> confirm::Source {

@@ -36,26 +36,56 @@ pub fn rusage_wait(pid: libc::pid_t) -> Result<(i32, libc::rusage), String> {
 }
 
 /// Runs `flea-walkbench adapter ...` as a fresh process and reads its one result line.
-pub fn trial(exe: &Path, adapter: &str, tree: &Path, threads: usize, mode: &str, tool: Option<&Path>) -> Result<Trial, String> {
+pub fn trial(
+    exe: &Path,
+    adapter: &str,
+    tree: &Path,
+    threads: usize,
+    mode: &str,
+    tool: Option<&Path>,
+) -> Result<Trial, String> {
     let mut command = Command::new(exe);
-    command.args(["adapter", adapter, "--mode", mode, "--threads", &threads.to_string(), "--tree"]).arg(tree);
+    command
+        .args([
+            "adapter",
+            adapter,
+            "--mode",
+            mode,
+            "--threads",
+            &threads.to_string(),
+            "--tree",
+        ])
+        .arg(tree);
     if let Some(tool) = tool {
         command.arg("--tool").arg(tool);
     }
     let started = Instant::now();
-    let child = command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::inherit()).spawn().map_err(|e| e.to_string())?;
+    let child = command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .map_err(|e| e.to_string())?;
     let pid = child.id() as libc::pid_t;
     let mut stdout = child.stdout.ok_or("no child stdout")?;
     let mut line = String::new();
     std::io::Read::read_to_string(&mut stdout, &mut line).map_err(|e| e.to_string())?;
     let (status, usage) = rusage_wait(pid)?;
     let wall_ns = started.elapsed().as_nanos();
-    let exit = std::process::ExitStatus::from_raw(status).code().unwrap_or(-1);
+    let exit = std::process::ExitStatus::from_raw(status)
+        .code()
+        .unwrap_or(-1);
     let fields: Vec<&str> = line.trim_end().split('\t').collect();
     if fields.len() != 10 || fields[0] != "RESULT" {
-        return Err(format!("{adapter}: malformed child result {line:?} exit {exit}"));
+        return Err(format!(
+            "{adapter}: malformed child result {line:?} exit {exit}"
+        ));
     }
-    let number = |i: usize| fields[i].parse::<u128>().map_err(|e| format!("{adapter}: field {i}: {e}"));
+    let number = |i: usize| {
+        fields[i]
+            .parse::<u128>()
+            .map_err(|e| format!("{adapter}: field {i}: {e}"))
+    };
     let micros = |t: libc::timeval| t.tv_sec * 1_000_000 + t.tv_usec;
     Ok(Trial {
         wall_ns,
@@ -67,10 +97,18 @@ pub fn trial(exe: &Path, adapter: &str, tree: &Path, threads: usize, mode: &str,
         user_us: micros(usage.ru_utime),
         sys_us: micros(usage.ru_stime),
         maxrss_kib: usage.ru_maxrss,
-        stage_cpu_us: fields[6].parse().map_err(|e| format!("{adapter}: cpu: {e}"))?,
-        hwm_kib: fields[7].parse().map_err(|e| format!("{adapter}: hwm: {e}"))?,
-        spawn_hwm_kib: fields[8].parse().map_err(|e| format!("{adapter}: spawn hwm: {e}"))?,
-        tool_maxrss_kib: fields[9].parse().map_err(|e| format!("{adapter}: tool rss: {e}"))?,
+        stage_cpu_us: fields[6]
+            .parse()
+            .map_err(|e| format!("{adapter}: cpu: {e}"))?,
+        hwm_kib: fields[7]
+            .parse()
+            .map_err(|e| format!("{adapter}: hwm: {e}"))?,
+        spawn_hwm_kib: fields[8]
+            .parse()
+            .map_err(|e| format!("{adapter}: spawn hwm: {e}"))?,
+        tool_maxrss_kib: fields[9]
+            .parse()
+            .map_err(|e| format!("{adapter}: tool rss: {e}"))?,
         exit,
     })
 }
@@ -80,16 +118,36 @@ pub fn cache_gate(cache: &str, hook: Option<&str>) -> Result<&'static str, Strin
     match (cache, hook) {
         ("warm", _) => Ok("warm"),
         ("cold", Some(hook)) => {
-            let status = Command::new("/bin/sh").arg("-c").arg(hook).stdin(Stdio::null()).status().map_err(|e| e.to_string())?;
-            if status.success() { Ok("cold-hook-ok") } else { Err(format!("cold hook failed: {status}")) }
+            let status = Command::new("/bin/sh")
+                .arg("-c")
+                .arg(hook)
+                .stdin(Stdio::null())
+                .status()
+                .map_err(|e| e.to_string())?;
+            if status.success() {
+                Ok("cold-hook-ok")
+            } else {
+                Err(format!("cold hook failed: {status}"))
+            }
         }
-        ("cold", None) => Err("cold cache needs --cold-hook from the controller; refusing to label warm data cold".into()),
+        ("cold", None) => Err(
+            "cold cache needs --cold-hook from the controller; refusing to label warm data cold"
+                .into(),
+        ),
         (other, _) => Err(format!("unknown cache mode {other}")),
     }
 }
 
 /// Coverage status against the census: ok, or the first way the entrant's set differs.
-pub fn coverage(trial: &Trial, files: u64, dirs: u64, full: &str, files_only: &str, lists_dirs: bool, index: bool) -> &'static str {
+pub fn coverage(
+    trial: &Trial,
+    files: u64,
+    dirs: u64,
+    full: &str,
+    files_only: &str,
+    lists_dirs: bool,
+    index: bool,
+) -> &'static str {
     if trial.exit != 0 || trial.errors > 0 {
         return "error";
     }
