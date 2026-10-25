@@ -245,3 +245,40 @@ fn a_container_gvfs_already_locked_gets_no_lock() {
         messages(&effects)
     );
 }
+
+#[test]
+fn one_release_at_a_time_across_eject_and_unmount() {
+    let listed_iso = || {
+        let mut d = Devices::new("host");
+        d.poll(0);
+        d.list_exited(&listed(MOUNTED_ISO));
+        let at = d
+            .entries
+            .iter()
+            .position(|e| e.device == "/dev/loop0p1")
+            .expect("the loop partition is a row");
+        (d, at)
+    };
+    let quiesces = |effects: &[Effect]| {
+        effects
+            .iter()
+            .filter(|e| matches!(e, Effect::Quiesce(_)))
+            .count()
+    };
+    let (mut d, at) = listed_iso();
+    assert_eq!(quiesces(&d.unmount(at)), 1);
+    let second = d.eject(at, 10);
+    assert_eq!(quiesces(&second), 0, "a running unmount keeps its held child");
+    assert_eq!(
+        messages(&second),
+        ["Still unmounting OMARCHY_202608; wait for its result|false"]
+    );
+    let (mut d, at) = listed_iso();
+    assert_eq!(quiesces(&d.eject(at, 10)), 1);
+    let second = d.unmount(at);
+    assert_eq!(quiesces(&second), 0, "an armed eject keeps its held child");
+    assert_eq!(
+        messages(&second),
+        ["Still ejecting OMARCHY_202608; wait for its result|false"]
+    );
+}

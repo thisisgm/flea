@@ -30,6 +30,9 @@ pub struct Join {
     /// The NETWORK service, card and rows, built on the first frame that can carry them.
     pub(crate) network: Option<crate::window::network::Network>,
     pub(crate) network_runner: std::rc::Rc<dyn crate::g2::pl1::process::Runner>,
+    /// The unlock card over a locked row, built on its first open; its children run on the device runner.
+    pub(crate) unlock: Option<crate::window::unlock::Unlock>,
+    pub(crate) device_runner: Rc<dyn Runner>,
     /// NETWORK heading plus presses already routed.
     pub(crate) add_seen: u64,
 }
@@ -67,11 +70,11 @@ fn mount_with_source(
         producer.side = side;
     });
     let observe = cx.observe(&producer, |_, _, cx| cx.notify());
+    let device_runner = runner.clone();
     let devices = cx.new(|_| Source::new(runner, hostname, state));
-    let target = producer.clone();
-    let device_observe = cx.observe(&devices, move |_, source, cx| {
-        let sections = source.read(cx).sections.clone();
-        target.update(cx, |producer, cx| producer.set_tail(sections, cx));
+    let device_observe = cx.observe(&devices, |shell, _, cx| {
+        shell.rail_tail(cx);
+        shell.unlock_rail_changed(cx);
         cx.notify();
     });
     devices.update(cx, |source, cx| {
@@ -112,6 +115,8 @@ fn mount_with_source(
         _trash: trash_subscription,
         network: None,
         network_runner: crate::window::network::default_runner(),
+        unlock: None,
+        device_runner,
         add_seen: 0,
     }
 }
@@ -232,12 +237,14 @@ impl Shell {
                         join.devices
                             .update(cx, |source, cx| source.activate(&entry, side, cx))
                     });
-                    if owned != Some(Activation::Handled) {
-                        cx.emit(Request {
+                    match owned {
+                        Some(Activation::Handled) => {}
+                        Some(Activation::Phone(phone)) => self.open_phone(side, &phone, window, cx),
+                        _ => cx.emit(Request {
                             side,
                             id,
                             event: Event::Activate(entry),
-                        });
+                        }),
                     }
                 }
                 Event::Release(entry) => self.release_rail_row(side, &entry, cx),
@@ -312,16 +319,12 @@ impl Shell {
                 );
                 host.set_mode(Mode::from_places(places), cx);
             });
-            let tail = join.devices.update(cx, |source, cx| {
-                source.adopt_state(state, cx);
-                source.sections.clone()
-            });
-            join.places.update(cx, |producer, cx| {
-                producer.set_tail(tail, cx);
-                producer.adopt_state(state, cx);
-            });
+            join.devices
+                .update(cx, |source, cx| source.adopt_state(state, cx));
+            join.places
+                .update(cx, |producer, cx| producer.adopt_state(state, cx));
         }
-        self.network_publish(None, cx);
+        self.rail_tail(cx);
         cx.notify();
     }
 }

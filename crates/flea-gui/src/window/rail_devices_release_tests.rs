@@ -270,3 +270,21 @@ fn release_refusal_draws_the_eject_refusal_sentence(cx: &mut TestAppContext) {
         "a refusal releases nothing"
     );
 }
+
+#[gpui::test]
+fn release_quiesce_failure_is_said_and_the_eject_still_runs(cx: &mut TestAppContext) {
+    let (shell, service, cx) = shell_at("/media/128GB/photos", cx);
+    let hit = row(&shell, "128GB", cx).eject_hit().unwrap();
+    // The backend stops taking requests, so the pane's quiesce cannot be sent.
+    LINES.with(|lines| *lines.borrow_mut() = None);
+    cx.simulate_mouse_down(centre(hit), MouseButton::Left, Modifiers::none());
+    cx.simulate_mouse_up(centre(hit), MouseButton::Left, Modifiers::none());
+    frame(cx);
+    assert!(
+        jobs(&service).contains(&"gio mount -e /media/128GB".to_string()),
+        "the release still runs after a failed quiesce: {:?}",
+        jobs(&service)
+    );
+    assert_eq!(status(&shell, cx), "The backend stopped accepting requests");
+}
+

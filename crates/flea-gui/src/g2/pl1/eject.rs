@@ -9,6 +9,44 @@ use flea::ui_logic_pl1::power::{
 use flea::ui_logic_pl1::{Kind, Note, RailEntry};
 
 impl Devices {
+    /// Unmount, which is not Eject: a fixed disk stays and only its filesystem goes away.
+    pub fn unmount(&mut self, index: usize) -> Vec<Effect> {
+        if !self.power_disk.is_empty() {
+            return vec![Effect::Message(
+                Note::new("device.still_ejecting", &[&self.eject_label]),
+                false,
+            )];
+        }
+        let Some(e) = self
+            .entries
+            .get(index)
+            .filter(|e| e.kind == Kind::Volume && e.mounted)
+            .cloned()
+        else {
+            return Vec::new();
+        };
+        if self.running(Proc::Unmount) {
+            return vec![Effect::Message(
+                Note::new("device.still_unmounting", &[&self.unmount_label]),
+                false,
+            )];
+        }
+        // One release at a time: a second Quiesce would replace the held eject child.
+        if self.running(Proc::Eject) || !self.eject_device.is_empty() {
+            return vec![Effect::Message(
+                Note::new("device.still_ejecting", &[&self.eject_label]),
+                false,
+            )];
+        }
+        self.unmount_label = e.label.clone();
+        self.unmount_device = e.device.clone();
+        self.unmounting = true;
+        vec![
+            Effect::Quiesce(e.path.clone()),
+            self.start(Proc::Unmount, Job::plain(&["gio", "mount", "-u", &e.path])),
+        ]
+    }
+
     fn arm_eject(&mut self, e: &RailEntry) {
         self.eject_device = e.device.clone();
         self.eject_label = e.label.clone();
@@ -30,6 +68,13 @@ impl Devices {
         if self.running(Proc::Eject) || !self.eject_device.is_empty() {
             return vec![Effect::Message(
                 Note::new("device.still_ejecting", &[&self.eject_label]),
+                false,
+            )];
+        }
+        // One release at a time: a second Quiesce would replace the held unmount child.
+        if self.running(Proc::Unmount) {
+            return vec![Effect::Message(
+                Note::new("device.still_unmounting", &[&self.unmount_label]),
                 false,
             )];
         }

@@ -69,13 +69,17 @@ fn running_listing_waits_only_on_its_timeout_and_never_starts_a_second_poll() {
         Some(TIMEOUT_MS),
         "a running listing schedules nothing before its own timeout"
     );
-    assert!(
-        listing.poll(late).is_empty(),
-        "no second gio while one runs"
-    );
-    let effects = listing.exited(&listed(""), late + 1);
+    assert!(listing.poll(1).is_empty(), "no second gio while one runs");
+    // The exit lands well before POLL_MS, so only the poll asked for mid-listing can start the next one.
+    let effects = listing.exited(&listed(""), 2);
     assert!(
         matches!(&effects[..], [Effect::Listed, Effect::Start(_)]),
         "the poll asked for mid-listing runs as the listing ends"
+    );
+    let mut quiet = Listing::new();
+    quiet.tick(0);
+    assert!(
+        matches!(&quiet.exited(&listed(""), 2)[..], [Effect::Listed]),
+        "with no ask, an exit before POLL_MS starts nothing"
     );
 }

@@ -39,7 +39,7 @@ impl Adapter for DeviceAdapter<'_> {
                                 Kind::Favourite => "favourite",
                                 Kind::None => "",
                             };
-                            format!("{}|{group}|{kind}|{}", row.label, row.mounted)
+                            format!("{}|{group}|{kind}|{}", field(&row.label), row.mounted)
                         })
                         .collect::<Vec<_>>()
                         .join("\n")
@@ -50,3 +50,21 @@ impl Adapter for DeviceAdapter<'_> {
         Some(Reply::value(value))
     }
 }
+
+/// A label is one field of one line: its separator and line breaks read as spaces.
+fn field(label: &str) -> String {
+    label
+        .chars()
+        .map(|ch| if ch == '|' || ch == '\n' || ch == '\r' { ' ' } else { ch })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn a_label_never_splits_its_line_or_its_fields() {
+        assert_eq!(super::field("A|B\nC\rD"), "A B C D");
+        assert_eq!(super::field("128GB"), "128GB");
+    }
+}
+
