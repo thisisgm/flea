@@ -107,13 +107,13 @@ impl Element for Measured {
 }
 
 #[test]
-fn the_slot_uses_whole_22_device_pixel_steps() {
+fn the_slot_preserves_the_old_spinner_size_in_device_pixels() {
     for (slot, want) in [
-        (16., 22.),
+        (16., 16.),
         (22., 22.),
-        (30., 22.),
+        (30., 30.),
         (44., 44.),
-        (48., 44.),
+        (48., 48.),
         (66., 66.),
     ] {
         assert_eq!(device_side(slot), want);
@@ -317,7 +317,7 @@ fn reference_bounds(
     scale: f32,
     side: f32,
 ) -> Bounds<gpui::ScaledPixels> {
-    let size = device_side(side);
+    let size = side.round();
     let left = (f32::from(slot.origin.x) * scale + (side - size) / 2.).round();
     let top = (f32::from(slot.origin.y) * scale + (side - size) / 2.).round();
     let unit = f64::from(size) / view[2];

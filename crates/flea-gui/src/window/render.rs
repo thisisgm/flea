@@ -6,7 +6,7 @@ use crate::{
     palette::Theme,
     state::Shell,
 };
-use gpui::{div, prelude::*, px, AnyElement, Context, IntoElement, MouseButton, Render, Window};
+use gpui::{div, prelude::*, AnyElement, Context, IntoElement, MouseButton, Render, Window};
 use std::rc::Rc;
 
 // The opt-in test probe counts entry to the actual cached pane renderer.
@@ -159,7 +159,7 @@ impl Render for Shell {
                     marked: drawn[side],
                     states: self.slots.states[side].clone(),
                 };
-                panes[side] = Some(host.grid_pane(input, cx));
+                panes[side] = Some(host.grid_pane(input, window, cx));
                 continue;
             }
             if !host.stopped {
@@ -256,9 +256,8 @@ impl Render for Shell {
                                 .flex_col()
                                 .items_center()
                                 .justify_center()
-                                .gap(px(spinner::GAP))
-                                .child(spinner::Slot(Rc::clone(&host.pane.swap.mark)))
-                                .child(
+                                .child(spinner::hero(
+                                    Rc::clone(&host.pane.swap.mark),
                                     gpui::div()
                                         .text_size(host.list.borrow().typeface.caption)
                                         .font_family(
@@ -266,7 +265,9 @@ impl Render for Shell {
                                         )
                                         .text_color(palette.metadata)
                                         .child(host.state_text.message.clone()),
-                                ),
+                                    host.list.borrow().typeface.caption,
+                                    window,
+                                )),
                         )
                     })
                     .into_any_element(),

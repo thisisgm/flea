@@ -47,7 +47,7 @@ impl Mode {
 }
 
 pub fn device_side(slot: f32) -> f32 {
-    (slot / 22.).floor().max(1.) * 22.
+    slot.round().max(0.)
 }
 
 pub struct Motion {

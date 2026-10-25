@@ -96,7 +96,7 @@ impl Element for Slot {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, ()) {
-        let side = self.side.max(22. / window.scale_factor());
+        let side = self.side;
         let style = Style {
             size: size(px(side).into(), px(side).into()),
             flex_shrink: 0.,
