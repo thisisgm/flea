@@ -1,0 +1,630 @@
+#!/usr/bin/env python3
+"""Read field CSVs as a complete comparison, or timestamp a Hyprland map event."""
+import argparse
+import csv
+import datetime
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import re
+import shutil
+import socket
+import statistics
+import subprocess
+import time
+
+
+FIELD_IDS = ("flea", "flea-anchor", "dolphin", "nautilus", "thunar", "pcmanfm",
+             "nemo", "strata-stable", "strata-nightly")
+ANCHOR_COMMIT = "f21789e56cc4b0877caa3156fff7bce52a8dd9c2"
+EMPTY_WORK = {"unranked: no thumbnail work was measured",
+              "unranked: nothing reached the thumbnail cache so its work was not measured"}
+# The eleven B2 cells, keyed as the combined evidence gate keys them.
+CELLS = (("field_a", "field-a", ("mapped_ms", "settled_ms", "memory_mib", "cpu_s")),
+         ("field_b", "field-b", ("mapped_ms", "settled_ms", "memory_mib", "cpu_s")),
+         ("engine", "engine", ("cold_mapped_ms", "cold_memory_mib", "cold_gpu_mib")))
+PASSING = ("FIRST", "TIE_CEILING")
+CPU_METHOD = ("complete run cgroup plus an external helper, identical to cpu_tree_s; "
+              "cpu_main_s retains the main-process reading")
+ENGINE_METHOD = ("cold cache, 3 s pause, Hyprland openwindow event, PSS and resident DRM at map plus 3 s; "
+                 "three interleaved runs per build")
+ENGINE_PSS = "cold_pss_kb is the GUI alone; cold_child_pss_kb is the backend; the gate compares their sum"
+
+
+def sha256(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def command_output(*argv):
+    try:
+        result = subprocess.run(argv, capture_output=True, text=True, timeout=20,
+                                stdin=subprocess.DEVNULL)
+        return result.stdout.strip() if result.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def binary_record(path, read_version=True):
+    binary = Path(path) if path else None
+    if binary is None or not binary.is_file():
+        return None
+    return {"path": str(binary.resolve()), "sha256": sha256(binary),
+            "version": command_output(str(binary), "--version") if read_version else None}
+
+
+def ui_digest(path):
+    if not path or not (Path(path) / "boot/shell.qml").is_file():
+        return None
+    root = Path(path)
+    digest = hashlib.sha256()
+    for file in sorted(root.rglob("*")):
+        if file.is_file():
+            digest.update(os.fsencode(file.relative_to(root)) + b"\0")
+            digest.update(bytes.fromhex(sha256(file)))
+    return digest.hexdigest()
+
+
+def record_context(fixture):
+    """Capture missing session/storage/build evidence inside the existing manifest."""
+    monitors = command_output("hyprctl", "-j", "monitors")
+    storage = command_output("findmnt", "-J", "-T", str(fixture), "-o",
+                             "SOURCE,FSTYPE,TARGET,FSROOT,UUID,MAJ:MIN")
+    gpu = command_output("lspci", "-nn")
+    try:
+        monitors = [{key: monitor.get(key) for key in
+                     ("name", "width", "height", "scale", "transform", "refreshRate", "make", "model", "serial")}
+                    for monitor in json.loads(monitors)]
+    except (ValueError, TypeError, AttributeError):
+        monitors = None
+    try:
+        storage = json.loads(storage)["filesystems"][0]
+    except (ValueError, TypeError, KeyError, IndexError):
+        storage = None
+    repo = os.environ["FLEA_REPO"]
+    launcher = os.environ.get("FLEA_BIN", f"{repo}/target/release/flea")
+    anchor = os.environ.get("ANCHOR_REPO")
+    anchor_launcher = binary_record(os.environ.get("ANCHOR_BIN"))
+    rivals = {}
+    for name in FIELD_IDS[2:7]:
+        binary = binary_record(shutil.which(name), read_version=False)
+        rivals[name] = {"binary": binary, "package": command_output("pacman", "-Q", name)}
+    for name, variable, asset in (("strata-stable", "STRATA_BIN", "strata-stable"),
+                                  ("strata-nightly", "STRATA_NIGHTLY_BIN", "strata-nightly"),
+                                  ("strata-nightly-channel", "STRATA_NIGHTLY_CHANNEL_BIN", "strata-nightly-channel")):
+        binary = binary_record(os.environ.get(variable))
+        receipt = os.environ.get("FLEA_RIVAL_MANIFEST")
+        rivals[name] = {"binary": binary, "archive":
+                        archive_identity(Path(receipt), asset, Path(binary["path"]))
+                        if binary and receipt else None}
+    boot = Path("/proc/sys/kernel/random/boot_id")
+    return {
+        "host": socket.gethostname(), "kernel": os.uname().release,
+        "session": {"boot_id": boot.read_text().strip(),
+                    "hyprland_instance": os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"),
+                    "wayland_display": os.environ.get("WAYLAND_DISPLAY"), "monitors": monitors,
+                    "gpu": [line for line in (gpu or "").splitlines()
+                            if any(kind in line for kind in ("VGA compatible controller", "Display controller", "3D controller"))]},
+        "storage": storage,
+        "builds": {
+            "flea": {"commit": command_output("git", "-C", repo, "rev-parse", "HEAD"),
+                     "launcher": binary_record(launcher),
+                     "gui": binary_record(str(Path(launcher).with_name("flea-gui")), read_version=False)},
+            "flea-anchor": {"commit": command_output("git", "-C", anchor, "rev-parse", "HEAD") if anchor else None,
+                            "launcher": anchor_launcher,
+                            "package": command_output("pacman", "-Qo", anchor_launcher["path"])
+                            if anchor_launcher else None,
+                            "ui_sha256": ui_digest(os.environ.get("ANCHOR_UI"))}},
+        "rivals": rivals, "drop_thumbs": os.environ.get("DROP_THUMBS"),
+    }
+
+
+def archive_identity(receipt, asset_id, binary):
+    evidence = json.loads(receipt.read_text())
+    if evidence.get("host") != socket.gethostname() or evidence.get("kernel") != os.uname().release:
+        raise ValueError("rival receipt belongs to another host or kernel")
+    matches = [asset for asset in evidence["archives"] if asset["id"] == asset_id]
+    if len(matches) != 1:
+        raise ValueError(f"rival receipt must name {asset_id} exactly once")
+    asset = matches[0]
+    if not binary.is_absolute() or binary.resolve() != Path(asset["binary_path"]):
+        raise ValueError(f"binary path differs from {asset_id} receipt")
+    with binary.open("rb") as stream:
+        actual_hash = hashlib.file_digest(stream, "sha256").hexdigest()
+    if actual_hash != asset["binary_sha256"]:
+        raise ValueError(f"binary hash differs from {asset_id} receipt")
+    for key, size in (("sha256", 64), ("source_commit", 40), ("tag_commit", 40)):
+        value = asset.get(key, "")
+        if not isinstance(value, str) or len(value) != size or any(c not in "0123456789abcdef" for c in value):
+            raise ValueError(f"{asset_id} has no valid {key} identity")
+    if not asset.get("tag") or not asset.get("url", "").startswith("https://"):
+        raise ValueError(f"{asset_id} has no archive tag or URL")
+    version = subprocess.run([str(binary), "--version"], capture_output=True, text=True,
+                             timeout=20, env={**os.environ, "LC_ALL": "C", "LANGUAGE": ""})
+    recorded = asset.get("version_check", {})
+    if (version.returncode != 0 or version.stdout.strip() != asset["expected_version"] or
+            recorded.get("rc") != 0 or recorded.get("stdout") != asset["expected_version"]):
+        raise ValueError(f"version differs from {asset_id} receipt")
+    return asset
+
+
+def map_event(output, window_class, timeout):
+    path = (Path(os.environ["XDG_RUNTIME_DIR"]) / "hypr" /
+            os.environ["HYPRLAND_INSTANCE_SIGNATURE"] / ".socket2.sock")
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+        connection.connect(str(path))
+        connection.settimeout(0.2)
+        Path(str(output) + ".ready").touch()
+        deadline = time.monotonic() + timeout
+        pending = b""
+        while time.monotonic() < deadline:
+            try:
+                chunk = connection.recv(65536)
+            except socket.timeout:
+                continue
+            stamp = time.time_ns() // 1_000_000
+            if not chunk:
+                raise RuntimeError("Hyprland event socket closed")
+            pending += chunk
+            while b"\n" in pending:
+                line, pending = pending.split(b"\n", 1)
+                if line.startswith(b"openwindow>>"):
+                    fields = line.split(b">>", 1)[1].split(b",", 3)
+                    if len(fields) == 4 and fields[2].decode() == window_class:
+                        output.write_text(f"{stamp} {fields[0].decode()}\n")
+                        return
+        raise RuntimeError("matching openwindow event timed out")
+
+
+def number(row, key):
+    try:
+        value = float(row[key])
+    except (KeyError, ValueError, TypeError):
+        return None
+    return value if math.isfinite(value) and value >= 0 else None
+
+
+def measured_media(row):
+    count = number(row, "thumbs_n")
+    formats = row.get("thumbs_by_format", "").split(";")
+    if count is None or count <= 0 or not formats:
+        return False
+    produced = {}
+    for cell in formats:
+        name, separator, value = cell.partition("=")
+        if not separator or not name or name in produced or not value.isdigit():
+            return False
+        produced[name] = int(value)
+    known = sum(value for name, value in produced.items() if name != "unknown")
+    return produced.get("unknown") == 0 and 0 < known <= count
+
+
+def summarize(path, ids, metrics, runs, allow_empty_thumbnails=False, require_media_work=False,
+              excluded=frozenset()):
+    with path.open(newline="") as stream:
+        reader = csv.DictReader(stream)
+        if "cpu_main_s" not in (reader.fieldnames or ()):
+            raise ValueError(f"{path}: missing cpu_main_s; historical cpu_s has a different meaning")
+        rows = list(reader)
+    result = {}
+    for name, keys, scale in metrics:
+        entrants = {}
+        for entrant in ids:
+            values = {}
+            duplicates = set()
+            for row in rows:
+                if (row.get("id") != entrant or row.get("write_clean") != "1" or
+                        (entrant, row.get("run"), row.get("rerun") or "0") in excluded):
+                    continue
+                ranked = row.get("ranked", "")
+                empty_synthetic = allow_empty_thumbnails and ranked in EMPTY_WORK
+                if ranked != "yes" and not empty_synthetic:
+                    continue
+                if require_media_work and not measured_media(row):
+                    continue
+                if number(row, "mapped_ms") is None or number(row, "settled_ms") is None:
+                    continue
+                if name.startswith("cold_") and name != "cold_mapped_ms":
+                    sample_ms = number(row, "cold_sample_after_map_ms")
+                    if sample_ms is None or not 3000 <= sample_ms <= 3100:
+                        continue
+                cells = [number(row, key) for key in keys]
+                if any(cell is None for cell in cells):
+                    continue
+                run = row.get("run")
+                if run in values:
+                    duplicates.add(run)
+                values[run] = sum(cells) / scale
+            samples = list(values.values())
+            complete = set(values) == {str(n) for n in range(1, runs + 1)} and not duplicates
+            entrants[entrant] = {
+                "samples": len(samples), "complete": complete,
+                "median": statistics.median(samples) if samples else None,
+                "min": min(samples) if samples else None,
+                "max": max(samples) if samples else None,
+            }
+        candidate = entrants["flea"]
+        complete = all(item["complete"] for item in entrants.values())
+        others = {key: item["median"] for key, item in entrants.items()
+                  if key != "flea" and item["median"] is not None}
+        first = (complete and all(candidate["median"] < value for value in others.values()))
+        anchor = entrants["flea-anchor"]["median"]
+        result[name] = {
+            "entrants": entrants, "complete": complete, "first": first,
+            "ratio_vs_0312": anchor / candidate["median"]
+            if anchor is not None and candidate["median"] else None,
+            "ahead_or_tied": [key for key, value in others.items()
+                              if candidate["median"] is not None and value <= candidate["median"]],
+        }
+    return result
+
+
+def manifest_field(text, name):
+    values = re.findall(rf"^- {re.escape(name)}: (.+)$", text, re.M)
+    if len(values) != 1:
+        raise ValueError(f"manifest must record {name} exactly once")
+    return values[0]
+
+
+def hex_identity(value, length=64):
+    return isinstance(value, str) and re.fullmatch(rf"[0-9a-f]{{{length}}}", value) is not None
+
+
+def validate_binary(record, version=None):
+    if (not isinstance(record, dict) or not isinstance(record.get("path"), str) or
+            not Path(record["path"]).is_absolute() or not hex_identity(record.get("sha256")) or
+            (version is not None and record.get("version") != version)):
+        raise ValueError("manifest has a missing or invalid binary identity/version")
+
+
+def workload_manifest(csv_path, workload):
+    manifest = csv_path.with_suffix(".manifest.md")
+    text = manifest.read_text()
+    if (text.count("\n## Run close\n") != 1 or
+            text.splitlines()[-1:] != ["- close complete: yes"] or
+            manifest_field(text, "closed CSV sha256") != sha256(csv_path)):
+        raise ValueError(f"{manifest}: missing complete close or CSV hash mismatch")
+    start = datetime.datetime.fromisoformat(manifest_field(text, "date"))
+    end = datetime.datetime.fromisoformat(manifest_field(text, "ended"))
+    if start.tzinfo is None or end.tzinfo is None or end < start:
+        raise ValueError("manifest has invalid run start/end dates")
+    context = json.loads(manifest_field(text, "gate context"))
+    if not isinstance(context, dict):
+        raise ValueError("manifest gate context must be an object")
+    expected_fixture, count, profile, drop = (
+        ("/home/flea-sandbox/flea-media-btrfs", 2000, "field", "yes") if workload == "field_b" else
+        ("/home/flea-sandbox/flea-bench-btrfs", 100000, "engine" if workload == "engine" else "field",
+         "no" if workload == "engine" else "yes"))
+    if (manifest_field(text, "fixture") != expected_fixture or
+            manifest_field(text, "fixture kind") != "btrfs" or
+            manifest_field(text, "fixture payload") != f"{count} visible entries, filesystem btrfs" or
+            manifest_field(text, "fixture payload assertion") !=
+            f"PASSED, {count} visible entries against the expected {count}" or
+            manifest_field(text, "front end") != f"gpui; profile: {profile}" or
+            context.get("drop_thumbs") != drop):
+        raise ValueError(f"{workload}: manifest fixture, storage, profile or cold-cache method differs")
+    denominator = manifest_field(text, "thumbnailable denominator").split(",", 1)[0]
+    if not denominator.isdigit() or not (0 < int(denominator) <= count if workload == "field_b" else int(denominator) == 0):
+        raise ValueError(f"{workload}: manifest thumbnail workload differs")
+    host, kernel = context.get("host"), context.get("kernel")
+    if (not host or not kernel or manifest_field(text, "host") != f"{host}, kernel {kernel}"):
+        raise ValueError("manifest host/kernel is missing or inconsistent")
+    storage = context.get("storage")
+    if (not isinstance(storage, dict) or storage.get("fstype") != "btrfs" or
+            any(not storage.get(key) for key in ("source", "target", "fsroot", "uuid", "maj:min"))):
+        raise ValueError("manifest has no verified btrfs storage identity")
+    session = context.get("session", {})
+    monitors = session.get("monitors")
+    if (not session.get("boot_id") or not session.get("hyprland_instance") or not session.get("wayland_display") or
+            not isinstance(monitors, list) or len(monitors) != 1 or not monitors[0].get("name") or
+            (monitors[0].get("width"), monitors[0].get("height"), monitors[0].get("scale")) != (2560, 1440, 1) or
+            not any("UHD Graphics 630" in line for line in session.get("gpu", []))):
+        raise ValueError("manifest has no matching UHD 630 / 2560x1440 display session")
+    builds = context.get("builds", {})
+    for entrant, version in (("flea", "0.4.0"), ("flea-anchor", "0.3.12")):
+        build = builds.get(entrant, {})
+        if not hex_identity(build.get("commit"), 40):
+            raise ValueError(f"{entrant}: missing source commit")
+        validate_binary(build.get("launcher"), version)
+        if entrant == "flea":
+            validate_binary(build.get("gui"))
+            if manifest_field(text, "candidate source commit") != build["commit"]:
+                raise ValueError("candidate source commit is inconsistent")
+        elif build["commit"] != ANCHOR_COMMIT or not hex_identity(build.get("ui_sha256")):
+            raise ValueError("anchor is not the recorded installed 0.3.12 build/UI")
+    if builds["flea"]["launcher"]["path"] == builds["flea-anchor"]["launcher"]["path"]:
+        raise ValueError("candidate and anchor resolve to the same launcher")
+    anchor = builds["flea-anchor"]
+    package = anchor_package(anchor.get("package"))
+    if package is None or anchor["package"] != f"{anchor['launcher']['path']} is owned by {package}":
+        raise ValueError("anchor launcher is not owned by an installed flea 0.3.12 package")
+    recorded = sorted(re.findall(r"^- Flea binary identity: \S.* sha256 ([0-9a-f]{64})$", text, re.M))
+    if recorded != sorted((builds["flea"]["launcher"]["sha256"], builds["flea"]["gui"]["sha256"],
+                           anchor["launcher"]["sha256"])):
+        raise ValueError(f"{workload}: manifest binary identities differ from the recorded builds, so a binary is stale")
+    for entrant in ("flea", "flea-anchor"):
+        source = re.findall(rf"^{re.escape(entrant)} +gui +source (\S+) \S+ \((\w+)\), release binary built ",
+                            text, re.M)
+        if len(source) != 1 or source[0][1] != "clean" or not builds[entrant]["commit"].startswith(source[0][0]):
+            raise ValueError(f"{entrant}: manifest source tree is not one clean checkout of the recorded commit")
+    if manifest_field(text, "cpu_s") != CPU_METHOD:
+        raise ValueError(f"{workload}: manifest CPU accounting is not the whole-cgroup method")
+    if workload == "engine" and (manifest_field(text, "engine method") != ENGINE_METHOD or
+                                 manifest_field(text, "engine PSS") != ENGINE_PSS):
+        raise ValueError("engine: manifest engine sampling method differs")
+    return {"manifest": str(manifest), "manifest_sha256": sha256(manifest), "csv_sha256": sha256(csv_path),
+            "date": start.date().isoformat(), "context": context, "text": text}
+
+
+def anchor_package(record):
+    match = re.fullmatch(r"\S+ is owned by (flea(?:-bin)? 0\.3\.12-[0-9]+)", record or "")
+    return match[1] if match else None
+
+
+def validate_rivals(evidence, ids):
+    context, text = evidence["context"], evidence["text"]
+    rivals = context.get("rivals", {})
+    for entrant in ids[2:]:
+        record = rivals.get(entrant, {})
+        binary = record.get("binary")
+        validate_binary(binary)
+        if entrant.startswith("strata"):
+            archive = record.get("archive", {}) or {}
+            if (archive.get("id") != entrant or not binary.get("version") or
+                    archive.get("expected_version") != binary["version"] or
+                    archive.get("binary_path") != binary["path"] or archive.get("binary_sha256") != binary["sha256"] or
+                    archive.get("version_check", {}).get("rc") != 0 or
+                    archive.get("version_check", {}).get("stdout") != binary["version"] or
+                    not archive.get("tag") or not archive.get("url", "").startswith("https://") or
+                    any(not hex_identity(archive.get(key), size) for key, size in
+                        (("sha256", 64), ("source_commit", 40), ("tag_commit", 40)))):
+                raise ValueError(f"{entrant}: missing or inconsistent archive/version identity")
+            if manifest_field(text, f"Strata {entrant.removeprefix('strata-')}") != (
+                    f"{binary['path']}; exact version: {binary['version']}; sha256: {binary['sha256']}"):
+                raise ValueError(f"{entrant}: manifest version/hash is inconsistent")
+        else:
+            package = record.get("package")
+            if not isinstance(package, str) or not re.fullmatch(rf"{entrant} \S+", package):
+                raise ValueError(f"{entrant}: missing exact package version")
+            if not re.search(rf"^{entrant} +gui +{re.escape(package)}$", text, re.M):
+                raise ValueError(f"{entrant}: manifest package version is inconsistent")
+    paths = [rivals[entrant]["binary"]["path"] for entrant in ids[2:] if entrant.startswith("strata")]
+    if len(paths) != len(set(paths)):
+        raise ValueError("Strata variants resolve to the same executable")
+
+
+def comparison_evidence(args):
+    paths = {"field_a": args.a, "field_b": args.b, "engine": args.engine}
+    for inputs in (list(paths.values()), [path.with_suffix(".manifest.md") for path in paths.values()]):
+        identities = [(path.stat().st_dev, path.stat().st_ino) for path in inputs]
+        if len(set(identities)) != 3:
+            raise ValueError("A, B and engine must have distinct CSVs and manifests, without aliases")
+    evidence = {name: workload_manifest(path, name) for name, path in paths.items()}
+    baseline = evidence["field_a"]
+    for name, record in evidence.items():
+        context = record["context"]
+        for key in ("host", "kernel", "session", "builds"):
+            if context[key] != baseline["context"][key]:
+                raise ValueError(f"{name}: {key} differs across the comparison")
+        if record["date"] != baseline["date"]:
+            raise ValueError("comparison must use the same benchmark day")
+        if any(context["storage"][key] != baseline["context"]["storage"][key] for key in ("uuid", "maj:min")):
+            raise ValueError(f"{name}: fixture storage differs across the comparison")
+    if evidence["engine"]["context"]["storage"] != baseline["context"]["storage"]:
+        raise ValueError("engine and A must use the same fixture storage")
+    ids = FIELD_IDS
+    for name in ("field_a", "field_b"):
+        validate_rivals(evidence[name], ids)
+    for entrant in ids[2:]:
+        if baseline["context"]["rivals"][entrant] != evidence["field_b"]["context"]["rivals"][entrant]:
+            raise ValueError(f"{entrant}: rival version/build differs between fixtures")
+        if (not entrant.startswith("strata") and
+                evidence["engine"]["context"].get("rivals", {}).get(entrant, {}).get("package") !=
+                baseline["context"]["rivals"][entrant]["package"]):
+            raise ValueError(f"{entrant}: installed package differs between the engine and field runs")
+    return evidence, ids
+
+
+def row_reasons(row, workload):
+    """Every reason a raw row cannot be ranked, so an invalid row stays visible instead of vanishing."""
+    reasons = []
+    if row.get("write_clean") != "1":
+        reasons.append(f"dirty writes during the run (write_clean={row.get('write_clean')})")
+    ranked = row.get("ranked", "")
+    if ranked != "yes" and not (workload == "field_a" and ranked in EMPTY_WORK):
+        reasons.append(f"producer refused to rank it ({ranked or 'empty'})")
+    if workload == "field_b" and not measured_media(row):
+        reasons.append("no verified media work")
+    for key in ("mapped_ms", "settled_ms"):
+        if number(row, key) is None:
+            reasons.append(f"no {key}")
+    whole, tree, main = (number(row, key) for key in ("cpu_s", "cpu_tree_s", "cpu_main_s"))
+    if whole is None or tree is None or main is None:
+        reasons.append("missing whole-cgroup or main-process CPU")
+    elif row.get("cpu_s") != row.get("cpu_tree_s"):
+        reasons.append("mixed CPU accounting: cpu_s is not the whole-cgroup cpu_tree_s")
+    elif tree < main:
+        reasons.append("whole-cgroup CPU is below the main process, so child CPU is missing")
+    if workload == "engine":
+        sample_ms = number(row, "cold_sample_after_map_ms")
+        if sample_ms is None or not 3000 <= sample_ms <= 3100:
+            reasons.append(f"cold sample {row.get('cold_sample_after_map_ms') or 'missing'} ms after map, "
+                           "outside 3000 to 3100")
+        elif any(number(row, key) is None for key in ("cold_pss_kb", "cold_child_pss_kb", "cold_drm_kb")):
+            reasons.append("missing cold PSS or DRM reading")
+    return reasons
+
+
+# Strata's single row before stable and nightly were split; its rows cannot say which build ran.
+RETIRED_IDS = ("strata",)
+
+
+def audit_rows(path, ids, workload):
+    with path.open(newline="") as stream:
+        rows = list(csv.DictReader(stream))
+    audited, seen, clean = [], set(), set()
+    for line, row in enumerate(rows, start=2):
+        entrant, run, rerun = row.get("id"), row.get("run"), row.get("rerun") or "0"
+        if entrant in RETIRED_IDS:
+            raise ValueError(f"{workload}: CSV line {line} names the retired id {entrant!r}")
+        # The write guard reruns a contaminated launch under the same run number, one row per attempt.
+        if not (run or "").isdigit() or not rerun.isdigit() or (entrant, run, rerun) in seen:
+            raise ValueError(f"{workload}: CSV line {line} repeats or lacks the row ID {entrant} run {run} rerun {rerun}")
+        seen.add((entrant, run, rerun))
+        if entrant not in ids:
+            reasons = [f"outside the {workload} roster, so it is listed and never ranked"]
+        else:
+            reasons = row_reasons(row, workload)
+            if not reasons:
+                if (entrant, run) in clean:
+                    raise ValueError(f"{workload}: CSV line {line} is one of two clean rows for {entrant} run {run}")
+                clean.add((entrant, run))
+        audited.append({"line": line, "id": entrant, "run": run, "rerun": rerun, "eligible": not reasons,
+                        "reasons": reasons})
+    return audited
+
+
+def cell_state(measure):
+    entrants = measure["entrants"]
+    missing = sorted(name for name, item in entrants.items() if not item["samples"])
+    unknown = sorted(name for name, item in entrants.items() if item["samples"] and not item["complete"])
+    if missing:
+        return "MISSING", missing, unknown
+    if unknown:
+        return "UNKNOWN", missing, unknown
+    if measure["first"]:
+        return "FIRST", missing, unknown
+    best = min(item["median"] for name, item in entrants.items() if name != "flea")
+    # A zero reading on both sides is the instrument's resolution floor, a tie no strict win can exist past.
+    if entrants["flea"]["median"] == best == 0:
+        return "TIE_CEILING", missing, unknown
+    return "LOSS", missing, unknown
+
+
+def cell_records(groups, inputs, blocked=None):
+    cells = []
+    for workload, label, metrics in CELLS:
+        for metric in metrics:
+            cell = {"key": f"B2:{label}:{metric}", "workload": workload, "evidence": inputs.get(workload)}
+            if blocked is not None:
+                cell.update(state="BLOCKED", reason=blocked)
+            else:
+                measure = groups[workload][metric]
+                state, missing, unknown = cell_state(measure)
+                candidate = measure["entrants"]["flea"]
+                cell.update(state=state, missing_entrants=missing, incomplete_entrants=unknown,
+                            candidate={key: candidate[key] for key in ("median", "min", "max", "samples")},
+                            ahead_or_tied=measure["ahead_or_tied"], ratio_vs_0312=measure["ratio_vs_0312"])
+            cells.append(cell)
+    return cells
+
+
+def input_identities(args):
+    inputs = {}
+    for workload, path in (("field_a", args.a), ("field_b", args.b), ("engine", args.engine)):
+        record = {"csv": str(path)}
+        for key, file in (("csv_sha256", path), ("manifest_sha256", path.with_suffix(".manifest.md"))):
+            record[key] = sha256(file) if file.is_file() else None
+        inputs[workload] = record
+    return inputs
+
+
+def report(args):
+    evidence, field_ids = comparison_evidence(args)
+    rosters = {"field_a": field_ids, "field_b": field_ids, "engine": FIELD_IDS[:2]}
+    rows = {workload: audit_rows(path, rosters[workload], workload)
+            for workload, path in (("field_a", args.a), ("field_b", args.b), ("engine", args.engine))}
+    excluded = {workload: frozenset((row["id"], row["run"], row["rerun"]) for row in audited if not row["eligible"])
+                for workload, audited in rows.items()}
+    field_metrics = (("mapped_ms", ("mapped_ms",), 1),
+                     ("settled_ms", ("settled_ms",), 1),
+                     ("memory_mib", ("pss_kb", "child_pss_kb"), 1024),
+                     ("cpu_s", ("cpu_s",), 1))
+    engine_metrics = (("cold_mapped_ms", ("mapped_ms",), 1),
+                      ("cold_memory_mib", ("cold_pss_kb", "cold_child_pss_kb"), 1024),
+                      ("cold_gpu_mib", ("cold_drm_kb",), 1024))
+    groups = {
+        "field_a": summarize(args.a, field_ids, field_metrics, args.runs, allow_empty_thumbnails=True,
+                             excluded=excluded["field_a"]),
+        "field_b": summarize(args.b, field_ids, field_metrics, args.runs, require_media_work=True,
+                             excluded=excluded["field_b"]),
+        "engine": summarize(args.engine, FIELD_IDS[:2], engine_metrics, args.runs, excluded=excluded["engine"]),
+    }
+    cells = cell_records(groups, input_identities(args))
+    payload = {"cells": cells, "release_pass": all(cell["state"] in PASSING for cell in cells),
+               "groups": groups, "rows": rows,
+               "evidence": {name: {key: value for key, value in record.items() if key != "text"}
+                            for name, record in evidence.items()},
+               "first_everywhere": all(measure["first"] for group in groups.values() for measure in group.values())}
+    write_receipt(args.output, payload)
+    for cell in cells:
+        candidate = cell["candidate"]
+        print(f"{cell['key']}: {cell['state']}; range {candidate['min']} to {candidate['max']}; "
+              f"median {candidate['median']}; ahead/tied {', '.join(cell['ahead_or_tied']) or 'none'}; "
+              f"missing {', '.join(cell['missing_entrants']) or 'none'}; "
+              f"incomplete {', '.join(cell['incomplete_entrants']) or 'none'}; "
+              f"0.3.12/candidate {cell['ratio_vs_0312']}")
+    for workload, audited in rows.items():
+        for row in audited:
+            if not row["eligible"]:
+                print(f"INELIGIBLE {workload} line {row['line']} {row['id']} run {row['run']}: {'; '.join(row['reasons'])}")
+    return 0 if payload["release_pass"] else 1
+
+
+def write_receipt(output, payload):
+    payload["gate_sha256"] = sha256(Path(__file__))
+    # Exclusive create: a receipt is immutable, so a scoped rerun writes a new one beside it.
+    with output.open("x") as stream:
+        stream.write(json.dumps(payload, indent=2) + "\n")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    event = commands.add_parser("map-event")
+    event.add_argument("output", type=Path)
+    event.add_argument("window_class")
+    event.add_argument("timeout", type=float)
+    archive = commands.add_parser("archive-identity")
+    archive.add_argument("receipt", type=Path)
+    archive.add_argument("asset_id", choices=("strata-stable", "strata-nightly", "strata-nightly-channel"))
+    archive.add_argument("binary", type=Path)
+    context = commands.add_parser("record-context")
+    context.add_argument("fixture", type=Path)
+    summary = commands.add_parser("report")
+    for flag in ("a", "b", "engine", "output"):
+        summary.add_argument(f"--{flag}", type=Path, required=True)
+    summary.add_argument("--runs", type=int, default=3)
+    args = parser.parse_args()
+    if args.command == "map-event":
+        map_event(args.output, args.window_class, args.timeout)
+        return 0
+    if args.command == "archive-identity":
+        print(json.dumps(archive_identity(args.receipt, args.asset_id, args.binary), indent=2))
+        return 0
+    if args.command == "record-context":
+        print(json.dumps(record_context(args.fixture), sort_keys=True))
+        return 0
+    if args.runs < 3:
+        parser.error("at least three runs are required")
+    if args.output.exists() or args.output.is_symlink():
+        parser.error("output exists; a receipt is never overwritten, so name a new one")
+    try:
+        return report(args)
+    except Exception as error:  # Exit 1 means valid evidence that holds the tag, so no failure may reach it.
+        if args.output.exists():
+            print(f"FAIL B2_EVIDENCE: {error}; the receipt was already written", file=os.sys.stderr)
+            return 2
+        try:
+            write_receipt(args.output, {"cells": cell_records({}, input_identities(args), blocked=str(error)),
+                                        "release_pass": False, "first_everywhere": False, "error": str(error)})
+        except Exception as receipt_error:
+            print(f"FAIL B2_EVIDENCE: no receipt written: {receipt_error}", file=os.sys.stderr)
+        print(f"FAIL B2_EVIDENCE: {error}", file=os.sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
