@@ -59,8 +59,7 @@ fn a_path_that_carries_the_token_is_not_a_cancel() {
     assert_eq!(live.running(), Some(4));
 }
 
-// A read that failed leaves nothing to resume from, so input stops on the first bad line and
-// src/backend/run.rs reports it and breaks. This pins that it stops rather than reading on.
+// The first bad line stops input, leaving run.rs to report the failure without reading beyond it.
 #[test]
 fn a_line_that_does_not_decode_stops_input_where_it_failed() {
     let (live, flag) = claimed(4);
@@ -74,8 +73,7 @@ fn a_line_that_does_not_decode_stops_input_where_it_failed() {
     assert!(!flag.load(Ordering::Relaxed), "a cancel past the failure is never acted on");
 }
 
-// BufRead::lines framing, which the reader thread used: a line split across reads joins, CR LF ends a line,
-// a last line with no newline still counts, and its CR is kept because no newline ended it.
+// BufRead::lines joins split reads, strips CR LF and preserves a final unterminated line's CR.
 #[test]
 fn input_framing_matches_the_line_reader_it_replaced() {
     let (live, _flag) = claimed(4);

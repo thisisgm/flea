@@ -1,5 +1,4 @@
-// Every source of work the read loop waits on, and the threads that join them onto its one channel.
-// The loop sleeps on stdin and the channel's doorbell together (src/backend/inbox.rs); every other blocking source is a thread.
+// The loop polls stdin and its channel's doorbell together; threads forward every other blocking source to that channel.
 use crate::backend::opscancel::Live;
 use crate::backend::opsreq::OpMsg;
 use crate::backend::proto::{parse_request, Request, TRANSFER_CANCEL};
@@ -55,8 +54,7 @@ pub enum Event {
     Closed,
 }
 
-// Issue 144: a cancel is acted on by whichever thread reads its line, the loop or the helper that took stdin over while the
-// loop was held inside a read_dir on a FUSE mount, rather than only forwarded to the loop.
+// Issue 144: whichever thread reads the cancel sets its operation's flag before forwarding the line to the loop.
 pub(crate) fn read_line(line: String, live: &Live) -> Event {
     #[cfg(test)]
     super::renametiming::input(&line);
@@ -72,8 +70,8 @@ pub(crate) fn read_line(line: String, live: &Live) -> Event {
     Event::Request(line)
 }
 
-// One read's bytes against the unfinished line: each whole line goes out as the reader thread sent it, CR LF ends a line
-// as LF does, and the end of input sends what is left and then Closed. False once input is over, as BufRead::lines stops.
+// Sample input: b"{\"c\":\"pi" then b"ng\"}\r\n" sends {"c":"ping"}; CR LF ends a line as LF does.
+// False once input is over: the end sends the rest, then Closed, as BufRead::lines stops.
 pub(crate) fn feed(tail: &mut Vec<u8>, bytes: &[u8], end: bool, tx: &Sender<Event>, live: &Live) -> bool {
     let mut rest = bytes;
     while let Some(at) = rest.iter().position(|&b| b == b'\n') {

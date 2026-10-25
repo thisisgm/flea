@@ -1,10 +1,8 @@
-// The loop reads stdin itself while it sleeps, so a request wakes the one thread that answers it: no reader thread hands it on.
-// Issue 144: a parked helper takes stdin over once one busy stretch outlasts TAKEOVER, so a transfercancel still reaches its
-// operation while the loop is held inside a slow call (src/backend/events.rs read_line acts on it from either thread).
+// The loop reads stdin itself; a parked helper takes over after TAKEOVER so urgent cancellation survives a slow loop.
 use super::events::{feed, Event};
 use super::opscancel::Live;
 use super::wake::{read, wait, watch, waking, Counter, Sender, Timer, Wake, EINTR};
-use crate::error::from_io;
+use crate::error::{from_io, FleaError};
 use std::io;
 use std::sync::atomic::{fence, AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, TryRecvError};
@@ -112,10 +110,12 @@ pub struct Pending {
     stop: Counter,
 }
 
-pub fn open() -> io::Result<(Sender<Event>, Receiver<Event>, Pending)> {
-    let wake = Wake::new(Counter::open()?);
+pub fn open() -> Result<(Sender<Event>, Receiver<Event>, Pending), FleaError> {
+    let wake = Wake::new(Counter::open().map_err(|error| from_io("open", "eventfd", &error))?);
+    let timer = Timer::open().map_err(|error| from_io("open", "timerfd", &error))?;
+    let stop = Counter::open().map_err(|error| from_io("open", "eventfd", &error))?;
     let (tx, rx) = waking(&wake);
-    Ok((tx, rx, Pending { wake, timer: Timer::open()?, stop: Counter::open()? }))
+    Ok((tx, rx, Pending { wake, timer, stop }))
 }
 
 impl Pending {
