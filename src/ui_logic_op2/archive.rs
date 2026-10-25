@@ -22,10 +22,26 @@ pub fn extract_dir(name: &str) -> String {
     let lower = name.to_lowercase();
     for ext in EXTENSIONS.iter().chain(SEVEN_TAILS.iter()) {
         if lower.len() > ext.len() && lower.ends_with(ext) {
-            return name[..name.len() - ext.len()].to_string();
+            if let Some(cut) = matched_cut(name, ext) {
+                return name[..cut].to_string();
+            }
         }
     }
     name.to_string()
+}
+
+// The cut in the original name, since a folded char (U+212A reads "k") can differ in length from its lowercase.
+fn matched_cut(name: &str, ext: &str) -> Option<usize> {
+    for (at, _) in name.char_indices().rev() {
+        let tail = name[at..].to_lowercase();
+        if tail == ext {
+            return (at > 0).then_some(at);
+        }
+        if tail.len() > ext.len() {
+            return None;
+        }
+    }
+    None
 }
 
 // Sample input: one row compresses under "notes", several under the directory holding them.

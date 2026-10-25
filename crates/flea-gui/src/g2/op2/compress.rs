@@ -22,8 +22,8 @@ pub enum Stop {
     Compress,
 }
 
-/// The card over resolved paths; the secret lives here only while the card is open.
-#[derive(Clone, Debug)]
+/// The card over resolved paths; the secret lives here only while the card is open, so it has no Debug.
+#[derive(Clone)]
 pub struct Compress {
     paths: Vec<String>,
     base: String,
@@ -43,8 +43,7 @@ pub struct Compress {
 }
 
 impl Compress {
-    /// The card opens over the resolved paths with the board's order, 7z first, and the keys on Password.
-    /// The archive lands in the pane's search base, as submitCompressPassword joins it there.
+    /// Opens over the resolved paths, 7z first, keys on Password; the archive lands in the pane's search base.
     pub fn open(
         paths: Vec<String>,
         pane_base: &str,

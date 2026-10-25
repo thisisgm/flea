@@ -20,7 +20,7 @@ fn every_extra_scene_is_a_drivable_state() {
     let manifest = jsondoc::parse(REGISTRY).expect("the op2 visual registry parses");
     let scenes = scenes(&manifest);
     let extras: Vec<&Json> = scenes.iter().filter(|scene| is_extra(scene)).collect();
-    assert_eq!((scenes.len(), extras.len()), (51, 47), "4 primaries and 47 extras are registered");
+    assert_eq!((scenes.len(), extras.len()), (53, 49), "4 primaries and 49 extras are registered");
     for scene in extras {
         let scene_name = name(scene);
         for key in [

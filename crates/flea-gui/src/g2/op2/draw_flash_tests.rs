@@ -206,6 +206,8 @@ impl Render for LiveFlash {
         if self.steps_only {
             let step: StepTap = Rc::new(cx.listener(|live: &mut Self, _: &MouseUpEvent, _, cx| {
                 live.step_taps += 1;
+                let fx = live.flash.press_step();
+                live.sent.extend(fx);
                 cx.notify();
             }));
             let taps = FlashTaps {
@@ -364,7 +366,11 @@ fn a_click_on_the_live_flash_action_reaches_only_its_tap() {
     window
         .update(&mut cx, |live, _, _| {
             assert_eq!(live.step_taps, 1, "a click on the live action reaches its tap once");
-            assert!(live.sends().is_empty(), "the counting tap drives no backend send");
+            let sends = live.sends();
+            assert!(
+                matches!(sends.as_slice(), [line] if line.contains(r#""c":"flash""#)),
+                "the one tap sends exactly one flash request: {sends:?}"
+            );
         })
         .unwrap();
 }

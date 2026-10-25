@@ -281,3 +281,43 @@ fn compress_dest_at_the_root_never_doubles_the_slash() {
     assert_eq!(lines.len(), 1);
     assert!(lines[0].contains(r#""dest":"/a.7z""#), "the root joins as the oracle does: {}", lines[0]);
 }
+
+#[test]
+fn secret_field_debug_never_prints_the_value() {
+    use super::cards::Field;
+    let field = Field {
+        label: None,
+        value: "s3cret".into(),
+        placeholder: String::new(),
+        secret: true,
+        held: 0,
+        revealed: true,
+        eye: true,
+        error: false,
+        focused: true,
+    };
+    let printed = format!("{field:?}");
+    assert!(!printed.contains("s3cret") && printed.contains("<6 chars>"), "a secret prints its length: {printed}");
+    let plain = Field { secret: false, ..field };
+    assert!(format!("{plain:?}").contains("s3cret"), "a plain field prints its value");
+}
+
+#[test]
+fn focused_chip_frames_in_the_accent() {
+    use super::draw::chip_frame;
+    let ink = |l: f32| gpui::hsla(0.5, 0.2, l, 1.);
+    let t = super::cards::Tokens {
+        surface: ink(0.1),
+        ground: ink(0.1),
+        fg: ink(0.9),
+        muted: ink(0.6),
+        muted_frame: ink(0.4),
+        accent: ink(0.7),
+        accent_frame: ink(0.75),
+        error: ink(0.7),
+        rule: ink(0.3),
+    };
+    assert_eq!(chip_frame(&t, true, true), t.accent_frame, "the chosen chip frames in accent while focused");
+    assert_eq!(chip_frame(&t, true, false), t.fg, "the chosen chip frames in foreground at rest");
+    assert_eq!(chip_frame(&t, false, true), t.muted_frame, "an unchosen chip stays muted while focused");
+}

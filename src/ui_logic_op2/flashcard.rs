@@ -99,7 +99,7 @@ pub fn parts(i18n: &I18n, transfer: &Transfer, rate: u64) -> Vec<Part> {
     lined(&i18n.tr("archive.flash.unknown_stalled"), &[moved, speed, unit])
 }
 
-// One template fill into inked parts: each %N hole draws the Nth figure, the rest words.
+// Sample input: "%1 of %2" with figures "1.2 GB" and "4.0 GB" reads figure, " of ", figure.
 pub(super) fn lined(template: &str, args: &[Part]) -> Vec<Part> {
     let mut out = Vec::new();
     let mut text = String::new();

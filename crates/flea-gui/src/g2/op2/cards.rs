@@ -19,6 +19,20 @@ pub const CHIP_GAP: f32 = 4.;
 /// The password eye beside the bullets.
 pub const EYE: f32 = 13.;
 pub const CHECK: f32 = 18.;
+/// A tracked-capitals label's line and the air under it.
+pub const LABEL_LINE: f32 = 14.;
+pub const LABEL_GAP: f32 = 5.;
+/// The caret's height in a field and the gap between a field's text and its eye.
+pub const CARET: f32 = 16.;
+pub const FIELD_GAP: f32 = 8.;
+/// The FLASH card's image and drive row height, its mark, the text indent past the mark, and a step row.
+pub const ROW_HEIGHT: f32 = 31.;
+pub const MARK: f32 = 19.;
+pub const MARK_INDENT: f32 = 42.;
+pub const STEP_ROW: f32 = 37.;
+/// The wash under a FLASH row's cursor or selection, and the running bar's empty track.
+pub const ROW_WASH: f32 = 0.18;
+pub const TRACK_WASH: f32 = 0.25;
 
 /// The board's marks, drawn by the one shared painter in op3's shell.
 pub use crate::g2::op3::shell::Glyph;
@@ -32,7 +46,7 @@ pub enum Ink {
     Error,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Field {
     /// The name above the field in tracked capitals, when the board names it.
     pub label: Option<String>,
@@ -64,6 +78,27 @@ impl Field {
             return String::new();
         }
         self.value.clone()
+    }
+}
+
+/// A secret value prints as its length, so a log or a failed assert never carries the password.
+impl std::fmt::Debug for Field {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = f.debug_struct("Field");
+        out.field("label", &self.label);
+        if self.secret {
+            out.field("value", &format_args!("<{} chars>", self.value.chars().count()));
+        } else {
+            out.field("value", &self.value);
+        }
+        out.field("placeholder", &self.placeholder)
+            .field("secret", &self.secret)
+            .field("held", &self.held)
+            .field("revealed", &self.revealed)
+            .field("eye", &self.eye)
+            .field("error", &self.error)
+            .field("focused", &self.focused)
+            .finish()
     }
 }
 

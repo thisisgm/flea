@@ -131,6 +131,7 @@
   "archive.flash.changed_line": "%1 changed since you chose it.",
   "archive.flash.choose_again": "Nothing was written. Choose the drive again.",
   "archive.flash.choose_image": "Choose an image…",
+  "archive.flash.chooser_failed": "Could not start %1 to choose an image: %2.",
   "archive.flash.denied_hint": "The password prompt was closed. Flash again to be asked once more.",
   "archive.flash.done": "Flashed %1 to %2",
   "archive.flash.done_line": "Flashed %1 to %2.",
