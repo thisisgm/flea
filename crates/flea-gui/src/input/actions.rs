@@ -55,82 +55,12 @@ impl Shell {
             return false;
         }
         let climbs = action == "escape" && self.escape_climbs();
+        if let Some(step) = step_of(action) {
+            return self.move_on(self.focus_side, action, step, window, cx);
+        }
         let Some(host) = &mut self.panes[self.focus_side] else {
             return false;
         };
-        let step = match action {
-            "cursorUp" | "extendUp" => Some(Move::Up),
-            "cursorDown" | "extendDown" => Some(Move::Down),
-            "pageUp" => Some(Move::PageUp),
-            "pageDown" => Some(Move::PageDown),
-            "cursorFirst" => Some(Move::Home),
-            "cursorLast" => Some(Move::End),
-            _ => None,
-        };
-        if let Some(step) = step {
-            let from = host.pane.cursor;
-            let before_scroll = host.pane.scroll_y;
-            if let Some(frame) = host.input.frame {
-                if host.pane.busy() || frame.total == 0 {
-                    return true;
-                }
-                let at = host.input.view_index(from);
-                let columns = frame.columns.max(1);
-                let page = ((frame.viewport() / frame.row).ceil() as usize / 2).max(1) * columns;
-                let to = match step {
-                    Move::Up => at.saturating_sub(columns),
-                    Move::Down => at.saturating_add(columns),
-                    Move::PageUp => at.saturating_sub(page),
-                    Move::PageDown => at.saturating_add(page),
-                    Move::Home => 0,
-                    Move::End => frame.total - 1,
-                }
-                .min(frame.total - 1);
-                let wrap =
-                    flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["wrapAtEnds"]);
-                let to = match (wrap, action, at, frame.total) {
-                    (true, "cursorDown", at, total) if at + 1 == total => 0,
-                    (true, "cursorUp", 0, total) => total - 1,
-                    _ => to,
-                };
-                host.pane.cursor = host.input.index(to);
-            } else if !host.pane.move_cursor(step) {
-                return true;
-            }
-            if let Some(mut frame) = host.input.frame {
-                frame.scroll = host.pane.scroll_y;
-                host.pane.scroll_to(super::scroll::reveal(
-                    frame,
-                    host.input.view_index(host.pane.cursor),
-                    3,
-                ));
-            }
-            let extend = matches!(action, "extendUp" | "extendDown");
-            let pulled = host.input.take_pull(from, host.pane.held.listing);
-            if extend {
-                // Selection.js dropLone: a deliberate change spends the landing, so Escape no longer climbs past it.
-                host.nav.landed = None;
-                host.input.selection.extend(
-                    &mut host.selected,
-                    from,
-                    host.pane.cursor,
-                    pulled,
-                    host.input.shown.as_deref(),
-                );
-            } else {
-                host.input
-                    .selection
-                    .follow(&mut host.selected, host.pane.cursor);
-            }
-            host.input.keyboard();
-            if host.pane.scroll_y != before_scroll {
-                host.input.moved(cx.background_executor().now());
-            }
-            self.seam.selected(host.pane.cursor);
-            self.arm_input_tick(self.focus_side, window, cx);
-            cx.notify();
-            return true;
-        }
         match action {
             "toggleSelect" if host.pane.cursor < host.pane.held.total => {
                 if !host
@@ -167,5 +97,205 @@ impl Shell {
         self.keyboard.disarm();
         cx.notify();
         true
+    }
+}
+
+fn step_of(action: &str) -> Option<Move> {
+    match action {
+        "cursorUp" | "extendUp" => Some(Move::Up),
+        "cursorDown" | "extendDown" => Some(Move::Down),
+        "pageUp" => Some(Move::PageUp),
+        "pageDown" => Some(Move::PageDown),
+        "cursorFirst" => Some(Move::Home),
+        "cursorLast" => Some(Move::End),
+        _ => None,
+    }
+}
+
+/// The cursor keys the re-read guard held for their own folder, in order, each run of one key counted once.
+pub(crate) struct Queued {
+    runs: Vec<(&'static str, usize)>,
+    path: String,
+}
+
+// The held action's own name, so a run keeps no copy of the key.
+fn held(action: &str) -> Option<&'static str> {
+    Some(match action {
+        "cursorUp" => "cursorUp",
+        "cursorDown" => "cursorDown",
+        "extendUp" => "extendUp",
+        "extendDown" => "extendDown",
+        "pageUp" => "pageUp",
+        "pageDown" => "pageDown",
+        "cursorFirst" => "cursorFirst",
+        "cursorLast" => "cursorLast",
+        _ => return None,
+    })
+}
+
+impl Shell {
+    fn move_on(
+        &mut self,
+        side: usize,
+        action: &str,
+        step: Move,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let Some(host) = &mut self.panes[side] else {
+            return false;
+        };
+        // The re-read renumbers the rows, so the key waits for it instead of moving the rows it replaces.
+        if host.pane.busy() {
+            // Only a same-folder re-read holds the key; a load into another folder swallows it.
+            if host.pane.place() == host.pane.path() {
+                host.input.queue(action, host.pane.place());
+            }
+            return true;
+        }
+        let from = host.pane.cursor;
+        let before_scroll = host.pane.scroll_y;
+        if let Some(frame) = host.input.frame {
+            if frame.total == 0 {
+                return true;
+            }
+            let at = host.input.view_index(from);
+            let columns = frame.columns.max(1);
+            let page = ((frame.viewport() / frame.row).ceil() as usize / 2).max(1) * columns;
+            let to = match step {
+                Move::Up => at.saturating_sub(columns),
+                Move::Down => at.saturating_add(columns),
+                Move::PageUp => at.saturating_sub(page),
+                Move::PageDown => at.saturating_add(page),
+                Move::Home => 0,
+                Move::End => frame.total - 1,
+            }
+            .min(frame.total - 1);
+            let wrap =
+                flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["wrapAtEnds"]);
+            let to = match (wrap, action, at, frame.total) {
+                (true, "cursorDown", at, total) if at + 1 == total => 0,
+                (true, "cursorUp", 0, total) => total - 1,
+                _ => to,
+            };
+            host.pane.cursor = host.input.index(to);
+        } else if !host.pane.move_cursor(step) {
+            return true;
+        }
+        if let Some(mut frame) = host.input.frame {
+            frame.scroll = host.pane.scroll_y;
+            host.pane.scroll_to(super::scroll::reveal(
+                frame,
+                host.input.view_index(host.pane.cursor),
+                3,
+            ));
+        }
+        let extend = matches!(action, "extendUp" | "extendDown");
+        let pulled = host.input.take_pull(from, host.pane.held.listing);
+        if extend {
+            // Selection.js dropLone: a deliberate change spends the landing, so Escape no longer climbs past it.
+            host.nav.landed = None;
+            host.input.selection.extend(
+                &mut host.selected,
+                from,
+                host.pane.cursor,
+                pulled,
+                host.input.shown.as_deref(),
+            );
+        } else {
+            host.input
+                .selection
+                .follow(&mut host.selected, host.pane.cursor);
+        }
+        host.input.keyboard();
+        if host.pane.scroll_y != before_scroll {
+            host.input.moved(cx.background_executor().now());
+        }
+        self.seam.selected(host.pane.cursor);
+        self.arm_input_tick(side, window, cx);
+        cx.notify();
+        true
+    }
+
+    /// The row-action guard swallows keys while the listing is out; a cursor key is held for the re-read instead.
+    pub(crate) fn hold_cursor_key(&mut self, action: &str) {
+        if let Some(host) = &mut self.panes[self.focus_side] {
+            if host.pane.busy()
+                && host.pane.place() == host.pane.path()
+                && host.input.band.is_none()
+            {
+                host.input.queue(action, host.pane.place());
+            }
+        }
+    }
+
+    /// After each reply: a held key lands once its folder's re-read and anchor have, and goes stale when the folder or focus changes.
+    pub(crate) fn replay_queued(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
+            return;
+        };
+        let Some(queued) = &host.input.queued else {
+            return;
+        };
+        if queued.path != host.pane.place() {
+            host.input.queued = None;
+            return;
+        }
+        let anchored = host
+            .nav
+            .anchor
+            .as_ref()
+            .is_some_and(|anchor| anchor.path == host.pane.path());
+        if host.pane.busy() || anchored {
+            return;
+        }
+        let Some(queued) = host.input.queued.take() else {
+            return;
+        };
+        if side != self.focus_side
+            || self.keyboard.context != flea::keys::Context::Listing
+            || host.input.band.is_some()
+        {
+            return;
+        }
+        // The drawn frame still counts the replaced rows until the next prepaint.
+        if let Some(frame) = &mut host.input.frame {
+            frame.total = host.pane.held.total;
+        }
+        if self.input_blocked(cx) {
+            return;
+        }
+        for (action, count) in queued.runs {
+            let Some(step) = step_of(action) else {
+                continue;
+            };
+            for _ in 0..count {
+                self.move_on(side, action, step, window, cx);
+            }
+        }
+    }
+}
+
+impl crate::input::PaneInput {
+    fn queue(&mut self, action: &str, place: &str) {
+        let Some(action) = held(action) else {
+            return;
+        };
+        let queued = match &mut self.queued {
+            Some(queued) if queued.path == place => queued,
+            slot => slot.insert(Queued {
+                runs: Vec::new(),
+                path: place.to_owned(),
+            }),
+        };
+        match queued.runs.last_mut() {
+            Some((last, count)) if *last == action => *count = count.saturating_add(1),
+            _ => queued.runs.push((action, 1)),
+        }
     }
 }

@@ -239,6 +239,7 @@ impl Shell {
                         mode: 0,
                     });
                 }
+                host.input.queued = None;
                 host.changed(&self.locale);
                 host.record_error(error, &self.locale);
                 self.chrome.jumps[side] = 0;
@@ -314,6 +315,7 @@ impl Shell {
                     host.nav.settle(&host.pane, now);
                     self.tab_landed(side, window, cx);
                     self.run_navigation(side, window, cx);
+                    self.replay_queued(side, window, cx);
                     self.arm_watch(side, window, cx);
                     cx.notify();
                 }

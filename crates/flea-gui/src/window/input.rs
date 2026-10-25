@@ -220,6 +220,7 @@ impl Shell {
         }
         if self.keyboard.context == flea::keys::Context::Listing && requests::swallows(busy, action)
         {
+            self.hold_cursor_key(action);
             cx.stop_propagation();
             return;
         }

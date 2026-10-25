@@ -46,7 +46,12 @@ impl Shell {
         // A refused or file row Enter keeps the search it was pressed in; only a folder it opens leaves it.
         let leaves = step != Step::OpenCursor
             || self.panes[side].as_ref().is_some_and(|host| {
-                !host.pane.busy() && host.pane.held.row(host.pane.cursor).is_some_and(|row| row.dir)
+                !host.pane.busy()
+                    && host
+                        .pane
+                        .held
+                        .row(host.pane.cursor)
+                        .is_some_and(|row| row.dir)
             });
         if leaves {
             self.search_leave(side, window, cx);
@@ -128,11 +133,18 @@ impl Shell {
         if let Some(changed) = host.nav.reloaded.take() {
             let notice = crate::strips::status_host::reloaded(&self.locale.catalog, changed);
             self.status_messages(cx, |messages, now| {
-                messages.say(&notice, false, "", flea::ui_logic_fb1::status::Hint::None, now)
+                messages.say(
+                    &notice,
+                    false,
+                    "",
+                    flea::ui_logic_fb1::status::Hint::None,
+                    now,
+                )
             });
         }
         self.tab_landed(side, window, cx);
         self.run_navigation(side, window, cx);
+        self.replay_queued(side, window, cx);
         self.arm_watch(side, window, cx);
         if self.panes[side]
             .as_ref()
@@ -177,6 +189,7 @@ impl Shell {
                         mode: 0,
                     });
                 }
+                host.input.queued = None;
                 host.changed(&self.locale);
                 host.record_error(error, &self.locale);
                 break;
