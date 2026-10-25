@@ -10,8 +10,11 @@ use crate::{
 use gpui::{Context, FrameFeedbackEvent, FrameOutcome, Subscription, Window, WindowId};
 use std::{cell::RefCell, collections::VecDeque, rc::Rc, time::Instant};
 
+#[cfg(test)]
+pub(crate) mod perf_tests;
 mod policy;
 mod readback;
+mod snapshot;
 
 const RETAINED: usize = 512;
 
@@ -78,6 +81,7 @@ pub(crate) struct Presentation {
     window: Option<WindowId>,
     epoch: u64,
     rendered: [Option<Rc<PaneFrame>>; 2],
+    snapshots: RefCell<[Option<snapshot::Cached>; 2]>,
     staged: RefCell<Option<Draw>>,
     retained: Option<Draw>,
     pending: VecDeque<Submitted>,
@@ -86,6 +90,8 @@ pub(crate) struct Presentation {
     unmatched_terminals: usize,
     frames: u64,
     discarded: u64,
+    #[cfg(test)]
+    snapshot_builds: std::cell::Cell<u64>,
 }
 
 impl Presentation {
@@ -104,6 +110,7 @@ impl Presentation {
             frame.unavailable();
         }
         self.rendered = [None, None];
+        *self.snapshots.get_mut() = [None, None];
         *self.staged.get_mut() = None;
         self.retained = None;
         self.observer = None;
@@ -130,19 +137,7 @@ impl Presentation {
                 self.rendered[side]
                     .as_ref()
                     .filter(|_| eligible[side])
-                    .map(|frame| {
-                        Rc::new(PaneFrame {
-                            content: Rc::new(
-                                frame.content.painted(&frame.list.borrow(), frame.ready),
-                            ),
-                            clock: frame.clock.clone(),
-                            observed: frame.observed.clone(),
-                            list: frame.list.clone(),
-                            ready: frame.ready,
-                            loading: frame.loading,
-                            blank: frame.blank,
-                        })
-                    })
+                    .map(|frame| self.snapshot(side, frame))
             }),
         });
     }
@@ -246,6 +241,7 @@ impl Shell {
     }
 
     pub(crate) fn remember_paint(&mut self, window: &Window, cx: &gpui::App) {
+        *self.presentation.snapshots.get_mut() = [None, None];
         for side in 0..2 {
             let eligible = self.feedback_eligible(side, window, cx);
             if let Some(host) = &self.panes[side] {
