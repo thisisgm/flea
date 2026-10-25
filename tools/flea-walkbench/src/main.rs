@@ -29,7 +29,10 @@ impl Args {
             if let Some(name) = raw[i].strip_prefix("--") {
                 let value = raw.get(i + 1).filter(|v| !v.starts_with("--")).cloned();
                 i += usize::from(value.is_some());
-                if flags.insert(name.to_string(), value.unwrap_or_default()).is_some() {
+                if flags
+                    .insert(name.to_string(), value.unwrap_or_default())
+                    .is_some()
+                {
                     return Err(format!("--{name} given twice"));
                 }
             } else {
@@ -49,7 +52,9 @@ impl Args {
         self.get(name).unwrap_or(default).to_string()
     }
     pub fn number(&self, name: &str, default: usize) -> Result<usize, String> {
-        self.get(name).map_or(Ok(default), |v| v.parse().map_err(|e| format!("--{name}: {e}")))
+        self.get(name).map_or(Ok(default), |v| {
+            v.parse().map_err(|e| format!("--{name}: {e}"))
+        })
     }
     pub fn path(&self, name: &str) -> Option<PathBuf> {
         self.get(name).filter(|v| !v.is_empty()).map(PathBuf::from)
@@ -77,9 +82,23 @@ fn adapter(args: &Args) -> Result<(), String> {
         return Ok(());
     }
     let outcome = adapters::run(name, &tree, threads, mode, args.path("tool").as_deref())?;
-    let digest = if mode == adapters::Mode::Index { fixture::digest(&mut outcome.sink.items()) } else { "-".into() };
+    let digest = if mode == adapters::Mode::Index {
+        fixture::digest(&mut outcome.sink.items())
+    } else {
+        "-".into()
+    };
     let o = &outcome;
-    println!("RESULT\t{}\t{}\t{}\t{}\t{digest}\t{}\t{}\t{}\t{}", o.elapsed_ns, o.sink.files, o.sink.dirs, o.errors, o.cpu_us, o.hwm_kib, o.spawn_hwm_kib, o.tool_maxrss_kib);
+    println!(
+        "RESULT\t{}\t{}\t{}\t{}\t{digest}\t{}\t{}\t{}\t{}",
+        o.elapsed_ns,
+        o.sink.files,
+        o.sink.dirs,
+        o.errors,
+        o.cpu_us,
+        o.hwm_kib,
+        o.spawn_hwm_kib,
+        o.tool_maxrss_kib
+    );
     Ok(())
 }
 
@@ -102,7 +121,10 @@ fn main() {
         Some("adapter") => adapter(&args),
         Some("census") => census(&args),
         Some("print-lock") => {
-            print!("{}", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.lock")));
+            print!(
+                "{}",
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.lock"))
+            );
             Ok(())
         }
         _ => Err(USAGE.into()),
@@ -119,7 +141,10 @@ pub fn self_exe() -> Result<PathBuf, String> {
 }
 
 pub fn first_line(path: &Path, arg: &str) -> String {
-    std::process::Command::new(path).arg(arg).output().ok()
+    std::process::Command::new(path)
+        .arg(arg)
+        .output()
+        .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .and_then(|s| s.lines().next().map(str::to_string))
         .unwrap_or_else(|| "unavailable".into())

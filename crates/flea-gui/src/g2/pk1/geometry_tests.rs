@@ -40,11 +40,12 @@ fn followup_picker_controls_use_the_live_endpoint(cx: &mut TestAppContext) {
     let rows = flea::jsondoc::parse(&reply.stdout).unwrap();
     let controls = rows.as_array().unwrap();
     assert!(controls.len() >= 2, "answers and the drawn header titles");
-    assert!(
-        controls
-            .iter()
-            .all(|control| !control.get("centre").unwrap().as_str().unwrap().is_empty())
-    );
+    assert!(controls.iter().all(|control| !control
+        .get("centre")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .is_empty()));
 }
 
 #[gpui::test]
@@ -84,18 +85,14 @@ fn followup_picker_row_centre_reads_drawn_rows_only(cx: &mut TestAppContext) {
             .count(),
         2
     );
-    assert!(
-        endpoint(&mut f, "rowCentre", &["0"])
-            .stdout
-            .trim()
-            .is_empty()
-    );
-    assert!(
-        endpoint(&mut f, "rowCentre", &["80"])
-            .stdout
-            .trim()
-            .is_empty()
-    );
+    assert!(endpoint(&mut f, "rowCentre", &["0"])
+        .stdout
+        .trim()
+        .is_empty());
+    assert!(endpoint(&mut f, "rowCentre", &["80"])
+        .stdout
+        .trim()
+        .is_empty());
 }
 
 #[gpui::test]

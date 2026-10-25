@@ -193,6 +193,17 @@ impl Shell {
         let host = self.quick_look.as_ref()?;
         let view = host.view.read(cx);
         let doc = view.subject()?.body.doc()?;
+        if let View::Code(code) = &doc.view {
+            use flea::ui_logic_pv2::refusal::Refusal;
+            let key = match code.read(cx).refusal() {
+                Some(Refusal::TooLarge) => Some("preview.too_large"),
+                Some(Refusal::Binary) => Some("preview.unsupported"),
+                _ => None,
+            };
+            if let Some(key) = key {
+                return Some(view.i18n.tr(key));
+            }
+        }
         doc.failure(&view.i18n, cx).map(|failure| failure.sentence)
     }
 

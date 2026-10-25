@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 mod launch;
-pub use launch::{exec_gpui, use_gpui};
-pub(crate) use launch::{exec_special, settle_state};
+pub use launch::{exec_gpui, exec_gpui_unlock, use_gpui};
+pub(crate) use launch::settle_state;
 
 // std already links libc, so fork is declared here rather than taking a crate.
 extern "C" {

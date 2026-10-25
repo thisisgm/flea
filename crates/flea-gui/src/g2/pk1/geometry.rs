@@ -1,7 +1,7 @@
 //! Picker geometry reads the controls and listing that painted the requested frame.
-use super::{Picker, ipc::PickerGeometry};
+use super::{ipc::PickerGeometry, Picker};
 use crate::{
-    ipc::{Adapter, rows::RowsAdapter},
+    ipc::{rows::RowsAdapter, Adapter},
     list::RowStates,
 };
 use flea::jsondoc::{self, Json};

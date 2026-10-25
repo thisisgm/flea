@@ -10,9 +10,9 @@ use crate::{
 use gpui::{Context, FrameFeedbackEvent, FrameOutcome, Subscription, Window, WindowId};
 use std::{cell::RefCell, collections::VecDeque, rc::Rc, time::Instant};
 
+mod activity;
 #[cfg(test)]
 pub(crate) mod perf_tests;
-mod activity;
 mod policy;
 mod readback;
 mod snapshot;

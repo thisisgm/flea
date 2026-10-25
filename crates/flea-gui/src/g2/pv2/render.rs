@@ -79,6 +79,21 @@ pub enum Reply {
 /// The wanted list's document while the renderer drops: no queued open or render runs.
 const CLOSING: DocId = DocId::MAX;
 
+#[cfg(test)]
+thread_local! {
+    // Set while a test builds surfaces it answers by hand, so no reply reaches its scheduler from another thread.
+    static INERT: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Runs `make` with renderers that start no thread, for tests that feed their surfaces every reply themselves.
+#[cfg(test)]
+pub fn without_threads<R>(make: impl FnOnce() -> R) -> R {
+    INERT.set(true);
+    let made = make();
+    INERT.set(false);
+    made
+}
+
 /// The renderer threads whose surfaces dropped; `reap` joins them once the event loop has returned.
 static REAPER: Mutex<Vec<thread::JoinHandle<()>>> = Mutex::new(Vec::new());
 
@@ -89,6 +104,9 @@ pub struct Renderer {
     next: Cell<DocId>,
     wanted: Arc<Wanted>,
     thread: Option<thread::JoinHandle<()>>,
+    // An inert renderer keeps its reply channel open without a thread.
+    #[cfg(test)]
+    _outbox: Option<async_channel::Sender<Reply>>,
 }
 
 impl Drop for Renderer {
@@ -136,6 +154,17 @@ impl Renderer {
         let (jobs, inbox) = mpsc::channel();
         let (outbox, replies) = async_channel::unbounded();
         let wanted = Arc::new(Mutex::new((0, Vec::new())));
+        #[cfg(test)]
+        if INERT.get() {
+            return Renderer {
+                jobs: None,
+                replies,
+                next: Cell::new(0),
+                wanted,
+                thread: None,
+                _outbox: Some(outbox),
+            };
+        }
         let shared = Arc::clone(&wanted);
         let thread = thread::Builder::new()
             .name("flea-pdf".into())
@@ -147,6 +176,8 @@ impl Renderer {
             next: Cell::new(0),
             wanted,
             thread,
+            #[cfg(test)]
+            _outbox: None,
         }
     }
 

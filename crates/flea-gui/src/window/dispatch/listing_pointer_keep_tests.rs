@@ -133,13 +133,23 @@ fn a_middle_click_that_opens_a_tab_keeps_the_landing(cx: &mut TestAppContext) {
     let (shell, cx) = landed_on_beta_in(cx, rows());
     let alpha = row_point(&shell, cx, 0);
     let actions = handed_on(&shell, cx, alpha, MouseButton::Middle, 1, Modifiers::none());
-    assert!(actions.is_empty(), "the mounted tab family consumes the click");
+    assert!(
+        actions.is_empty(),
+        "the mounted tab family consumes the click"
+    );
     assert_eq!(
-        shell.read_with(cx, |shell, _| (shell.strip.tabs[0].count(), shell.strip.tabs[0].current())),
+        shell.read_with(cx, |shell, _| (
+            shell.strip.tabs[0].count(),
+            shell.strip.tabs[0].current()
+        )),
         (2, 1),
         "the middle click on a folder opens and selects its new tab"
     );
-    assert_eq!(asked(&shell, cx), "/files/alpha", "the pointed folder owns the new tab");
+    assert_eq!(
+        asked(&shell, cx),
+        "/files/alpha",
+        "the pointed folder owns the new tab"
+    );
     keeps_the_landing(&shell, cx, "openTab");
 }
 

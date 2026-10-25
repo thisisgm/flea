@@ -86,16 +86,21 @@ impl Sandbox {
         let path = self.root.join("flea-gui");
         write_in_child(&path, r#"#!/usr/bin/python3
 import json,os,sys
-keys=('QSG_RHI_BACKEND','FLEA_RENDERER_AUTOMATIC','FLEA_VK_PIN','VK_DRIVER_FILES','VK_ICD_FILENAMES','FLEA_PATH','FLEA_SELECT')
+keys=('QSG_RHI_BACKEND','FLEA_RENDERER_AUTOMATIC','FLEA_VK_PIN','VK_DRIVER_FILES','VK_ICD_FILENAMES','FLEA_PATH','FLEA_SELECT','FLEA_UNLOCK')
 print(json.dumps({'argv':sys.argv[1:],'env':{key:os.environ.get(key) for key in keys}}))
 "#.as_bytes());
         fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
     }
 
     fn command(&self) -> Command {
+        let mut command = self.launch_command();
+        command.arg("--gui");
+        command
+    }
+
+    fn launch_command(&self) -> Command {
         let mut command = Command::new(self.root.join("flea"));
         command
-            .arg("--gui")
             .env("FLEA_FRONTEND", "gpui")
             .env("WAYLAND_DISPLAY", "flea-test")
             .env("QT_QPA_PLATFORMTHEME", "")
@@ -142,6 +147,67 @@ fn reply(output: &Output) -> Json {
         String::from_utf8_lossy(&output.stderr)
     );
     jsondoc::parse(std::str::from_utf8(&output.stdout).unwrap()).unwrap()
+}
+
+#[test]
+fn unlock_launch_uses_gpui_without_qml_and_forgets_the_parent_request() {
+    let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
+    let sandbox = Sandbox::new();
+    sandbox.frontend();
+    let output = sandbox
+        .launch_command()
+        .args(["--unlock", "/dev/mapper/vault"])
+        .env("FLEA_UNLOCK", "/dev/stale-parent")
+        .output()
+        .unwrap();
+    let document = reply(&output);
+    assert_eq!(document.get("argv"), Some(&Json::Arr(Vec::new())));
+    assert_eq!(
+        document.get("env").unwrap().get("FLEA_UNLOCK").and_then(Json::as_str),
+        Some("/dev/mapper/vault")
+    );
+    let output = sandbox
+        .command()
+        .env("FLEA_UNLOCK", "/dev/stale-parent")
+        .output()
+        .unwrap();
+    assert_eq!(reply(&output).get("env").unwrap().get("FLEA_UNLOCK"), Some(&Json::Null));
+}
+
+#[test]
+fn unlock_launch_keeps_qml_and_rejects_invalid_or_headless_requests() {
+    let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
+    let sandbox = Sandbox::new();
+    sandbox.frontend();
+    fs::hard_link(sandbox.root.join("flea-gui"), sandbox.root.join("qs")).unwrap();
+    let ui = sandbox.root.join("ui");
+    fs::create_dir_all(ui.join("boot")).unwrap();
+    fs::write(ui.join("boot/shell.qml"), "").unwrap();
+    let output = sandbox
+        .launch_command()
+        .args(["--unlock", "/dev/sdb1"])
+        .env("FLEA_FRONTEND", "qml")
+        .env("FLEA_UI", &ui)
+        .env("QSG_RHI_BACKEND", "opengl")
+        .env("PATH", &sandbox.root)
+        .output()
+        .unwrap();
+    let document = reply(&output);
+    assert_eq!(document.get("argv"), Some(&Json::Arr(vec![
+        Json::Str("-p".into()),
+        Json::Str(ui.join("boot/shell.qml").to_string_lossy().into_owned()),
+    ])));
+    assert_eq!(document.get("env").unwrap().get("FLEA_UNLOCK").and_then(Json::as_str), Some("/dev/sdb1"));
+    for device in ["/etc/passwd", "/dev/../etc/passwd"] {
+        let output = sandbox.launch_command().args(["--unlock", device]).output().unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+    }
+    let output = sandbox.launch_command().args(["--unlock", "/dev/sdb1"])
+        .env_remove("WAYLAND_DISPLAY").env_remove("DISPLAY").output().unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("no graphical session"));
+    assert!(output.stdout.is_empty());
 }
 
 #[test]
@@ -308,83 +374,5 @@ fn gpui_exec_errors_name_the_program_and_os_reason() {
     );
 }
 
-#[test]
-fn executables_written_beside_forking_siblings_exec() {
-    let stop = Arc::new(AtomicBool::new(false));
-    let siblings: Vec<_> = (0..4)
-        .map(|_| {
-            let stop = Arc::clone(&stop);
-            thread::spawn(move || {
-                while !stop.load(Ordering::Relaxed) {
-                    let mut command = Command::new("/bin/true");
-                    // Holds each child before exec, so it keeps every descriptor this process has open.
-                    unsafe {
-                        command.pre_exec(|| {
-                            thread::sleep(Duration::from_millis(10));
-                            Ok(())
-                        });
-                    }
-                    command.status().unwrap();
-                }
-            })
-        })
-        .collect();
-    for _ in 0..50 {
-        let sandbox = Sandbox::new();
-        let status = Command::new(sandbox.root.join("flea"))
-            .arg("--version")
-            .stdout(Stdio::null())
-            .status()
-            .unwrap();
-        assert!(status.success());
-        sandbox.frontend();
-        let status = Command::new(sandbox.root.join("flea-gui"))
-            .stdout(Stdio::null())
-            .status()
-            .unwrap();
-        assert!(status.success());
-    }
-    stop.store(true, Ordering::Relaxed);
-    for sibling in siblings {
-        sibling.join().unwrap();
-    }
-}
-
-#[test]
-fn sandbox_is_removed_on_drop() {
-    let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
-    let sandbox = Sandbox::new();
-    let root = sandbox.root.clone();
-    assert!(root.join(".flea-test-sandbox").is_file());
-    drop(sandbox);
-    assert!(
-        !root.exists(),
-        "sandbox was not removed: {}",
-        root.display()
-    );
-}
-
-#[test]
-fn sandbox_cleanup_refuses_unmarked_or_out_of_root_paths() {
-    let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
-    let sandbox = Sandbox::new();
-    let root = sandbox.root.clone();
-    let unmarked = root.join("flea-gpui-launch.unmarked");
-    fs::create_dir(&unmarked).unwrap();
-    let probe = Sandbox {
-        root: unmarked.clone(),
-        temporary: root.clone(),
-    };
-    assert!(!probe.removable());
-    drop(probe);
-    assert!(unmarked.exists());
-    let probe = Sandbox {
-        root: root.clone(),
-        temporary: root.join("another-temp-root"),
-    };
-    assert!(!probe.removable());
-    drop(probe);
-    assert!(root.join(".flea-test-sandbox").is_file());
-    drop(sandbox);
-    assert!(!root.exists());
-}
+#[path = "gpui_launcher/sandbox.rs"]
+mod sandbox;

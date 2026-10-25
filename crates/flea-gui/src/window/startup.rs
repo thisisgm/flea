@@ -214,6 +214,7 @@ pub struct Launch {
     pub paths: [String; 2],
     pub select: [Option<String>; 2],
     pub focus: usize,
+    pub unlock: Option<String>,
 }
 
 impl Launch {
@@ -255,6 +256,7 @@ impl Launch {
             paths,
             select,
             focus,
+            unlock: None,
         }
     }
 }

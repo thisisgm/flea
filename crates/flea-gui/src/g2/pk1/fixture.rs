@@ -99,7 +99,8 @@ pub(crate) fn locale() -> Snapshot {
     Snapshot {
         revision: 1,
         catalog: Arc::new(flea::i18n::I18n::load(flea::i18n::Paths {
-            omarchy: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/i18n/fixtures/omarchy"),
+            omarchy: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../src/i18n/fixtures/omarchy"),
             language_file: "/nonexistent/flea-picker-language".into(),
             catalogs: Vec::new(),
         })),

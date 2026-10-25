@@ -65,6 +65,10 @@ pub fn exec_gpui(start: Option<&str>, select: Option<&str>) -> i32 {
     exec_window(start, select, None)
 }
 
+pub fn exec_gpui_unlock(device: &str) -> i32 {
+    exec_special(crate::unlock::ENV, device)
+}
+
 pub(crate) fn exec_special(key: &str, value: &str) -> i32 {
     exec_window(None, None, Some((key, value)))
 }
