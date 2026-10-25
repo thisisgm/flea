@@ -36,6 +36,8 @@ struct Runner {
 
 /// The rate is the bytes since the last sample over at least this many seconds, so one burst never reads as speed.
 const RATE_WINDOW_MS: u64 = 2000;
+/// The rate is bytes per second from millisecond stamps.
+const MS_PER_SECOND: u64 = 1000;
 /// Buttons.PRESS_MS: the pressed chrome slides in and out over 150 ms.
 const PRESS_MS: u64 = 150;
 

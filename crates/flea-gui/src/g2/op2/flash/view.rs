@@ -34,7 +34,7 @@ impl Flash {
                 let selected = self.selected() == Some(at);
                 DriveRow {
                     name: flash::drive_name(drive, &self.drives),
-                    detail: flash::drive_detail(drive, &self.drives),
+                    detail: flash::drive_detail(drive),
                     size: i18n.locale().format_size(drive.bytes),
                     cursor: self.cursor == at + 1,
                     selected,

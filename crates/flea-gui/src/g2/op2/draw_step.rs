@@ -13,14 +13,17 @@ use std::time::Instant;
 
 /// Buttons.js:19: the pressed chrome shrinks by two percent a side while the press shows.
 const PRESS_SCALE: f32 = 0.96;
+/// The focus ring's width and the resting hairline's, in pixels like border_2 and border_1.
+const RING_W: f32 = 2.;
+const HAIRLINE_W: f32 = 1.;
 /// Buttons.js:14: the pointer's wash, laid in the control's own ink.
 const WASH_HOVER: f32 = 0.08;
 /// Buttons.js:15: the press wash, laid in the control's own ink.
-const WASH_PRESS: f32 = 0.14;
+pub(super) const WASH_PRESS: f32 = 0.14;
 /// Buttons.js:17: a primary's resting wash, at the press wash's weight.
 const WASH_PRIMARY: f32 = WASH_PRESS;
 /// Buttons.js:12: a dimmed control keeps over half its ink, like a cut row.
-const DISABLED_OPACITY: f32 = 0.55;
+pub(super) const DISABLED_OPACITY: f32 = 0.55;
 /// The DialogButton frame role for the step action, shared by the draw code and the tests.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum ActionFrame {
@@ -128,7 +131,7 @@ impl StandIn {
             ActionFrame::Accent => draw.t.accent_frame,
             ActionFrame::Muted => draw.t.muted_frame,
         };
-        let frame_w = if focus_shown && Self::frame_ring(primary, draw.t.accent_frame, draw.t.fg) { 2. } else { 1. };
+        let ring = focus_shown && Self::frame_ring(primary, draw.t.accent_frame, draw.t.fg);
         let fill =
             if primary && available { draw.t.accent.opacity(WASH_PRIMARY) } else { draw.t.accent.opacity(0.) };
         let ink = if available { draw.t.fg } else { draw.t.muted };
@@ -153,8 +156,7 @@ impl StandIn {
         let q = Self::shown_progress(press, now, reduced);
         let inset_x = px(Self::press_margin(board_w, q) * draw.s);
         let inset_y = px(Self::press_margin(BUTTON_HEIGHT, q) * draw.s);
-        let frame_board = frame_w;
-        let frame_w = px(frame_board);
+        let frame_w = px(if ring { RING_W } else { HAIRLINE_W });
         let mut button = div()
             .debug_selector(|| probe.into())
             .id(probe)
@@ -181,7 +183,7 @@ impl StandIn {
             .rounded(draw.px(draw.r))
             .bg(fill)
             .border_color(frame);
-        let frame_div = if frame_board == 2. { frame_div.border_2() } else { frame_div.border_1() };
+        let frame_div = if ring { frame_div.border_2() } else { frame_div.border_1() };
         button = button.child(frame_div);
         if let Some((color, probe)) = wash {
             button = button.child(
