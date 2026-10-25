@@ -256,9 +256,9 @@ def main():
         process.terminate()
         process.wait(timeout=5)
 
-    cpu_line = next(line.strip() for line in field.splitlines() if line.strip().startswith("cpu_s=$("))
+    cpu_line = next(line.strip() for line in field.splitlines() if line.strip().startswith("cpu_main_s=$("))
     numeric = function(field, "sys_seconds") + '\nsys_seconds 1.25 50 100; printf "|"\n'
-    numeric += 'last_entrant=125; ticks_per_second=100\n' + cpu_line + '\nprintf "%s" "$cpu_s"'
+    numeric += 'last_entrant=125; ticks_per_second=100\n' + cpu_line + '\nprintf "%s" "$cpu_main_s"'
     if args.regress_decimal:
         numeric = numeric.replace("LC_ALL=C.UTF-8 LANGUAGE= ", "")
     # POSIX mode makes awk implementations that default to dot decimals honor LC_NUMERIC.

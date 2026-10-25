@@ -1,15 +1,28 @@
 #!/usr/bin/env bash
+HARNESS_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # Cold-cache file manager benchmark against the installed field, see AGENTS.md "Testing".
 # Run from a copy outside the measured tree; NOPASSWD needs no stdin, otherwise the sudo password is stdin's first line, never argv.
 # FIELD_MEMINFO and FIELD_VMSTAT point the write guard at fixture files, for tests/field-write-guard.sh only.
 set -uo pipefail
-# This one runs from a copy outside the tree, so the guard is sourced by the tree's own path rather
-# than by $0's. It owns FIXTURE_ROOT and checks every path this script writes or deletes.
+# Two modes run sibling tools, so a copy without them refuses the mode before anything is set up.
+if [ "${1:-}" = --thumbs ]; then
+  shift
+  [ -f "$HARNESS_DIR/flea-bench-thumbs" ] || { printf 'FAIL: --thumbs needs flea-bench-thumbs, which is not beside this bench in %s\n' "$HARNESS_DIR" >&2; exit 1; }
+  LC_ALL=C.UTF-8 LANGUAGE= exec python3 -B "$HARNESS_DIR/flea-bench-thumbs" "$@"
+fi
+if [ "${FIELD_PROFILE:-field}" = engine ] \
+  && ! LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$HARNESS_DIR/flea-bench-gate" map-event --help >/dev/null 2>&1; then
+  printf 'FAIL: the engine profile needs flea-bench-gate with map-event beside this bench in %s\n' "$HARNESS_DIR" >&2
+  exit 1
+fi
+
+# This one runs from a copy outside the tree, and the guard and sibling tools are read from the copy's
+# own directory, so the copy carries all of tools/. The guard owns FIXTURE_ROOT and checks every path this script writes or deletes.
 # Exported, and overridable: tools/flea-bench-manifest is a child process that defaults to this
 # same path, so an unexported value left it reporting a different tree than the run measured.
 FLEA_REPO=$(readlink -f "${FLEA_REPO:-$HOME/Work/claude/flea}") || { printf 'FAIL: cannot resolve FLEA_REPO\n' >&2; exit 1; }
 export FLEA_REPO
-. "$FLEA_REPO/tools/flea-sandbox-guard"
+. "$HARNESS_DIR/flea-sandbox-guard"
 
 # The CPU column needs a leaf cgroup, which only a delegated user scope may make; see AGENTS.md "Testing".
 # Sample input: /proc/self/cgroup "0::/user.slice/user-1000.slice/user@1000.service/app.slice/flea-field-bench-123.scope"
@@ -58,10 +71,15 @@ EXPECT_FILES=${EXPECT_FILES:-100000}
 DROP_THUMBS=${DROP_THUMBS:-no}
 export FLEA_UI="$FLEA_REPO/ui"
 export FLEA_BIN="${FLEA_BIN:-$FLEA_REPO/target/release/flea}"
-export FLEA_FRONTEND="${FLEA_FRONTEND:-qml}"
-case $FLEA_FRONTEND in gpui|qml) ;; *) printf 'FAIL: invalid FLEA_FRONTEND\n' >&2; exit 1 ;; esac
+FIELD_FRONTEND=${FIELD_FRONTEND:-${FLEA_FRONTEND:-gpui}}
+FLEA_FRONTEND=${FLEA_FRONTEND:-$FIELD_FRONTEND}
+[ "$FIELD_FRONTEND" = "$FLEA_FRONTEND" ] || { printf 'FAIL: frontend variables disagree\n' >&2; exit 1; }
+FIELD_PROFILE=${FIELD_PROFILE:-field}
+case $FIELD_FRONTEND in gpui|qml) ;; *) printf 'FAIL: invalid frontend\n' >&2; exit 1 ;; esac
+case $FIELD_PROFILE in field|engine) ;; *) printf 'FAIL: invalid profile\n' >&2; exit 1 ;; esac
+export FIELD_FRONTEND FLEA_FRONTEND FIELD_PROFILE
 # The tested Flea's own QML disk cache, in its build tree: a sandbox arm never grows the user's ~/.cache/quickshell/qmlcache.
-export FLEA_QMLCACHE="$FLEA_REPO/target/qmlcache"
+export FLEA_QMLCACHE="${BENCH_TMP_ROOT:-/tmp}/flea-unused-qmlcache"
 # The anchor entrant runs only against a separate tree, so a default run never benches one build twice.
 
 # anchor setup begin
@@ -72,7 +90,7 @@ fi
 WITH_ANCHOR=no
 if [ -n "$ANCHOR_REPO" ] && [ "$ANCHOR_REPO" != "$FLEA_REPO" ]; then WITH_ANCHOR=yes; fi
 export ANCHOR_BIN="${ANCHOR_BIN:-$ANCHOR_REPO/target/release/flea}"
-export ANCHOR_UI="$ANCHOR_REPO/ui"
+export ANCHOR_UI="${ANCHOR_UI:-$ANCHOR_REPO/ui}"
 export ANCHOR_QMLCACHE="$ANCHOR_REPO/target/qmlcache"
 # anchor setup end
 
@@ -97,11 +115,15 @@ MANIFEST_TOOL=$(dirname "$0")/flea-bench-manifest
 MANIFEST_TOOL=$(readlink -f "$MANIFEST_TOOL")
 # manifest selection end
 
-# Archive runs use B5's receipt; an explicitly selected source build keeps its source check.
-export STRATA_BIN=${STRATA_STABLE_BIN:-${STRATA_BIN:-}}
+export STRATA_BIN=${STRATA_STABLE_BIN:-${STRATA_BIN:-${STRATA_STABLE:-}}}
 STRATA_SRC=${STRATA_SRC:-}
-export STRATA_NIGHTLY_BIN=${STRATA_NIGHTLY_BIN:-}
+export STRATA_NIGHTLY_BIN=${STRATA_NIGHTLY_BIN:-${STRATA_NIGHTLY:-}}
 export STRATA_NIGHTLY_SRC=${STRATA_NIGHTLY_SRC:-}
+export STRATA_NIGHTLY_CHANNEL_BIN=${STRATA_NIGHTLY_CHANNEL_BIN:-${STRATA_NIGHTLY_CHANNEL:-}}
+B5_RIVAL_MANIFEST=${B5_RIVAL_MANIFEST:-${FLEA_RIVAL_MANIFEST:-}}
+FLEA_RIVAL_MANIFEST=${FLEA_RIVAL_MANIFEST:-$B5_RIVAL_MANIFEST}
+[ "$B5_RIVAL_MANIFEST" = "$FLEA_RIVAL_MANIFEST" ] || { printf 'FAIL: rival receipts disagree\n' >&2; exit 1; }
+export B5_RIVAL_MANIFEST FLEA_RIVAL_MANIFEST
 # The harness's own file, so the manifest can record its sha256 and whether a copy was patched.
 HARNESS_TOOL=$(readlink -f "$0")
 export ANCHOR_REPO ANCHOR_BIN ANCHOR_UI ANCHOR_QMLCACHE HARNESS_TOOL MANIFEST_TOOL
@@ -115,12 +137,13 @@ TRANSIENT_PREFIX=${TRANSIENT_PREFIX:-/tmp/strata-preview-}
 # this run's own, so an entrant reads the bench's settings and never the operator's, this repo never
 # collects the state files entrants write, and each run starts from the same clean tree. Provenance
 # per entrant is in tools/flea-bench-tui/README.md.
-TUI_CONF_SRC="$FLEA_REPO/tools/flea-bench-tui"
+TUI_CONF_SRC="$HARNESS_DIR/flea-bench-tui"
 TUI_CONF=""
 # Cleared before the trap, so the cleanup can never remove a directory the caller named in its environment.
 FLEA_STATE=""
 # The anchor's own state directory: its older build reads and writes an older ui-state schema.
 ANCHOR_STATE=""
+BENCH_TMP_ROOT=${BENCH_TMP_ROOT:-/tmp}
 # This entrant's place in its kind's order for the current run, written to its CSV row by run_one.
 LAUNCH_POS=-
 # Set at the first launch, so the cleanup never kills an operator's window the start-up refusal left alone.
@@ -129,6 +152,7 @@ ENTRANT_LAUNCHED=""
 WARM_PID=""
 WARM_STARTING=""
 WARM_PREVIOUS_PID=""
+MAP_PID=""
 # The group's terminal, named once. foot is sixel only and every entrant here that previews at all
 # prefers the Kitty protocol, so the old group's zero across all eight was this choice and not a
 # result about the entrants.
@@ -499,6 +523,19 @@ watch_classify() {
   printf '%s;unknown=%s\n' "$out" "$(( WATCH_N - total ))"
 }
 
+# The thumbnails a format string credits to the fixture's own formats, so work on files the fixture does not hold proves nothing.
+# Sample input: "jpg=0;mp4=3;unknown=1" answers 3, and "unmeasurable" answers 0.
+known_formats() {
+  local cell n=0
+  local -a cells
+  IFS=';' read -r -a cells <<< "$1"
+  for cell in ${cells[*]:-}; do
+    case $cell in unknown=*) continue ;; esac
+    [[ $cell =~ ^[^=]+=([0-9]+)$ ]] && n=$(( n + BASH_REMATCH[1] ))
+  done
+  printf '%s\n' "$n"
+}
+
 # Unique colours in the preview band. An empty answer is a failed capture and counts as no preview,
 # because a preview nobody could see was not measured.
 preview_colours() {
@@ -731,12 +768,14 @@ HELPER_COMM=""
 HELPER_TOKEN=""
 HELPER_PID=""
 HELPER_POLLS_LEFT=0
+# The ticks of helpers that already exited this run, so a helper replaced mid-run keeps its share of cpu_tree_s.
+HELPER_DONE_TICKS=0
 # find_helper forks pgrep, so the search runs on one poll in 25 instead of every one; its period is 25 poll bodies and is not a wall clock guarantee.
 HELPER_SEARCH_POLLS=25
 find_helper() {
   [ -n "$HELPER_COMM" ] || return 0
   # A cached pid that stops being readable is a helper that exited, so forget it and look again.
-  [ -n "$HELPER_PID" ] && [ ! -r "/proc/$HELPER_PID/stat" ] && HELPER_PID=""
+  if [ -n "$HELPER_PID" ] && [ ! -r "/proc/$HELPER_PID/stat" ]; then HELPER_DONE_TICKS=${HELPER_TICKS:-0}; HELPER_PID=""; fi
   [ -n "$HELPER_PID" ] && return 0
   HELPER_POLLS_LEFT=$(( HELPER_POLLS_LEFT - 1 ))
   [ "$HELPER_POLLS_LEFT" -gt 0 ] && return 0
@@ -764,7 +803,7 @@ settle_ticks() {
   find_helper
   if [ -n "$HELPER_PID" ] && cpu_ticks "$HELPER_PID"; then
     TREE_TICKS=$(( TREE_TICKS + CPU_TREE_TICKS ))
-    HELPER_TICKS=$CPU_TREE_TICKS
+    HELPER_TICKS=$(( ${HELPER_DONE_TICKS:-0} + CPU_TREE_TICKS ))
     WATCHED[$HELPER_PID]=1
     # Flea's backend is forked inside the run's leaf and tumblerd is activated outside it, so only the second is added to the leaf's total.
     # Sample input: /proc/456/cgroup "0::/user.slice/user-1000.slice/user@1000.service/app.slice/flea-field-bench-123.scope/run-flea-1"
@@ -895,26 +934,31 @@ pss_kb() {
 # Sample input: /proc/123/fdinfo/35 holds "drm-client-id:\t14" then "drm-resident-system0:\t55124 KiB".
 # Several file descriptors share one drm client, so the client id is what de-duplicates them.
 drm_kb() {
-  local pid=$1 file line id="" kib_per_mib=1024
+  local pid=$1 file line id device amount unit key
   local -a lines=() word=()
   local -A seen=()
-  DRM_KB=0
-  for file in /proc/$pid/fdinfo/*; do
+  DRM_KB=unmeasurable
+  for file in "${DRM_PROC_ROOT:-/proc}/$pid/fdinfo/"*; do
     [ -r "$file" ] || continue
     # mapfile for the same reason pss_kb uses it: this is a seq_file and a line by line read tears.
     mapfile -t lines < "$file" 2>/dev/null
+    id=""; device=""; amount=""; unit=""
     for line in "${lines[@]}"; do
       word=( $line )
       case "${word[0]:-}" in
         "drm-client-id:") id=${word[1]} ;;
-        "drm-resident-system0:")
-          [ -n "${seen[$id]:-}" ] && continue
-          seen[$id]=1
-          [ "${word[2]:-}" = MiB ] && word[1]=$(( word[1] * kib_per_mib ))
-          DRM_KB=$(( DRM_KB + word[1] ))
-          ;;
+        "drm-pdev:") device=${word[1]} ;;
+        "drm-resident-system0:") amount=${word[1]}; unit=${word[2]:-} ;;
       esac
     done
+    [ -n "$id" ] && [[ $amount =~ ^[0-9]+$ ]] || continue
+    # The kernel prints 0 and any size not a whole KiB in bytes with no unit; those round up to KiB.
+    case $unit in "") amount=$(( (amount + 1023) / 1024 )) ;; KiB) ;; MiB) amount=$(( amount * 1024 )) ;; GiB) amount=$(( amount * 1048576 )) ;; *) continue ;; esac
+    key="$device:$id"
+    [ -n "${seen[$key]:-}" ] && continue
+    seen[$key]=1
+    [ "$DRM_KB" = unmeasurable ] && DRM_KB=0
+    DRM_KB=$(( DRM_KB + amount ))
   done
 }
 
@@ -948,8 +992,7 @@ kill_entrant() {
 
 # The same roster scopes ONLY before setup and builds launch commands again once the temporary paths exist.
 build_entrants() {
-  local strata_id=strata
-  [ -z "${B5_RIVAL_MANIFEST:-}" ] || strata_id=strata-stable
+  local strata_id=strata-stable
   local FLEA_FRONTEND=${FLEA_FRONTEND:-qml}
   local flea_class=com.thisisgm.flea flea_comm=qs flea_token=$FLEA_UI
   if [ "$FLEA_FRONTEND" = gpui ]; then flea_class=flea; flea_comm=flea-gui; flea_token=$(dirname "$FLEA_BIN")/flea-gui; fi
@@ -975,13 +1018,23 @@ build_entrants() {
     "xplr|tui|$TUI_CLASS|xplr||||XDG_CONFIG_HOME=$TUI_CONF setsid nohup $TUI_TERM --class $TUI_CLASS \$TUI_DUMP_FLAG xplr $FIXTURE"
     "superfile|tui|$TUI_CLASS|spf||||XDG_CONFIG_HOME=$TUI_CONF setsid nohup $TUI_TERM --class $TUI_CLASS \$TUI_DUMP_FLAG spf $FIXTURE"
   )
+  ENTRANTS+=("strata-nightly|gui|io.github.lgse.Strata|strata||||setsid nohup ${STRATA_NIGHTLY_BIN:-} $FIXTURE")
+  if [ -n "${STRATA_NIGHTLY_CHANNEL_BIN:-}" ]; then
+    ENTRANTS+=("strata-nightly-channel|gui|*|strata|$FIXTURE|||setsid nohup $STRATA_NIGHTLY_CHANNEL_BIN $FIXTURE")
+  fi
+  if [ -n "${FLEA_RIVAL_MANIFEST:-}" ]; then
+    local i id kind comm helper helper_token command
+    for i in "${!ENTRANTS[@]}"; do
+      case ${ENTRANTS[$i]%%|*} in strata-stable|strata-nightly|strata-nightly-channel)
+        IFS='|' read -r id kind _ comm _ helper helper_token command <<< "${ENTRANTS[$i]}"
+        ENTRANTS[$i]="$id|$kind|*|$comm|$FIXTURE|$helper|$helper_token|$command" ;;
+      esac
+    done
+  fi
   # The anchor entrant is the flea row with the anchor tree in place of the Flea tree, interleaved for the rank.
   if [ "$WITH_ANCHOR" = yes ]; then ENTRANTS=("${ENTRANTS[0]}" "flea-anchor|gui|com.thisisgm.flea|qs|$ANCHOR_UI|flea|--backend|FLEA_FRONTEND=qml FLEA_BIN=$ANCHOR_BIN FLEA_UI=$ANCHOR_UI QML_DISK_CACHE_PATH=$ANCHOR_QMLCACHE XDG_STATE_HOME=$ANCHOR_STATE setsid nohup $ANCHOR_BIN --gui $FIXTURE" "${ENTRANTS[@]:1}"); fi
   if [ "$WITH_ANCHOR" = yes ]; then
     ENTRANTS+=("flea-tui-anchor|tui|$TUI_CLASS|flea||||XDG_CONFIG_HOME=$TUI_CONF XDG_STATE_HOME=$ANCHOR_STATE setsid nohup $TUI_TERM --class $TUI_CLASS \$TUI_DUMP_FLAG $ANCHOR_BIN --tui $FIXTURE")
-  fi
-  if [ -n "${STRATA_NIGHTLY_BIN:-}" ]; then
-    ENTRANTS+=("strata-nightly|gui|io.github.lgse.Strata|strata||||setsid nohup $STRATA_NIGHTLY_BIN $FIXTURE")
   fi
 }
 build_entrants
@@ -1034,6 +1087,7 @@ kill_comms_for() {
   case $1 in
     flea) if [ "${FLEA_FRONTEND:-qml}" = gpui ]; then printf 'flea-gui\nflea\n'; else printf 'qs\nflea\n'; fi ;;
     flea-anchor) printf 'qs\nflea\n' ;;
+    strata-stable|strata-nightly|strata-nightly-channel) printf 'strata\n' ;;
     # tumblerd outlives thunar by 300 s, and a full-field start refuses to begin beside it.
     thunar) printf 'thunar\ntumblerd\n' ;;
     # The indexer nautilus starts outlives it the same way, so ONLY=nautilus ends it too.
@@ -1050,6 +1104,8 @@ kill_comms_for() {
 set -f
 ONLY_IDS=(${ONLY:-})
 set +f
+# Membership reads the split above, so a tab or a glob word scopes the kill and the launch alike.
+only_has() { [ ${#ONLY_IDS[@]} -eq 0 ] && return 0; local o; for o in "${ONLY_IDS[@]}"; do [ "$o" = "$1" ] && return 0; done; return 1; }
 
 # Reject every unknown word against the same rows the launch loop reads, before any kill target is scoped.
 validate_only() {
@@ -1067,6 +1123,27 @@ validate_only() {
 # An ONLY naming the anchor without an anchor tree would silently run nothing of it.
 for one_only in "${ONLY_IDS[@]}"; do { [ "$one_only" = flea-anchor ] || [ "$one_only" = flea-tui-anchor ]; } && [ "$WITH_ANCHOR" = no ] && fail "ONLY names $one_only but ANCHOR_REPO is not a separate tree, so that arm would never launch"; done
 validate_only
+# Validate before run_order can filter absent entries out of its rotation.
+require_selected_entrants() {
+  local row id kind class comm token helper helper_token command binary
+  for row in "${ENTRANTS[@]}"; do
+    IFS='|' read -r id kind class comm token helper helper_token command <<< "$row"
+    only_has "$id" || continue
+    case $id in
+      flea|flea-tui) binary=$FLEA_BIN ;;
+      flea-anchor|flea-tui-anchor) binary=$ANCHOR_BIN ;;
+      strata-stable) binary=$STRATA_BIN ;;
+      strata-nightly) binary=$STRATA_NIGHTLY_BIN ;;
+      strata-nightly-channel) binary=$STRATA_NIGHTLY_CHANNEL_BIN ;;
+      *) binary=$(command -v "$comm") || fail "required entrant is absent: $id" ;;
+    esac
+    [ -n "$binary" ] && [ -x "$binary" ] || fail "required entrant executable is absent: $id"
+    if [ "$id" = flea ] && [ "$FIELD_FRONTEND" = gpui ]; then
+      [ -x "${FLEA_BIN%/*}/flea-gui" ] || fail "candidate sibling flea-gui is absent"
+    fi
+  done
+}
+require_selected_entrants
 # ONLY scopes both the kill list and the startup refusal, so the operator's other windows are never this run's to close.
 if [ ${#ONLY_IDS[@]} -gt 0 ]; then
   declare -a scoped_targets=()
@@ -1083,8 +1160,6 @@ if [ ${#ONLY_IDS[@]} -gt 0 ]; then
 fi
 # only scope end
 
-# Membership reads the split above, so a tab or a glob word scopes the kill and the launch alike.
-only_has() { [ ${#ONLY_IDS[@]} -eq 0 ] && return 0; local o; for o in "${ONLY_IDS[@]}"; do [ "$o" = "$1" ] && return 0; done; return 1; }
 
 clean_bench() {
   local row comm token
@@ -1118,7 +1193,7 @@ warm_qml_cache() {
   ENTRANT_LAUNCHED=yes
   { printf '%s\n' "$BASHPID" > "$cg/cgroup.procs" \
       || { printf 'FAIL: could not join %s, so the warm launch was not started\n' "$cg" >&2; exit 1; }
-    FLEA_BIN=$FLEA_BIN FLEA_UI=$FLEA_UI QML_DISK_CACHE_PATH=$FLEA_QMLCACHE XDG_STATE_HOME=$state FLEA_FIELD_BENCH=$BENCH_TOKEN \
+    FLEA_FRONTEND=qml FLEA_BIN=$FLEA_BIN FLEA_UI=$FLEA_UI QML_DISK_CACHE_PATH=$FLEA_QMLCACHE XDG_STATE_HOME=$state FLEA_FIELD_BENCH=$BENCH_TOKEN \
       exec setsid nohup "$FLEA_BIN" --gui "$FIXTURE" > /dev/null 2>&1; } &
   pid=$!
   # Out of the job table, so the shell never prints the killed job into the run log.
@@ -1279,11 +1354,17 @@ wait_for_window() {
     now_ms
     seen=$NOW_MS
     # The cheap match first, so a poll with no such window costs what it always did and jq runs only once one exists.
+    if [ "$class" = '*' ]; then
+      for pid in $(printf '%s' "$clients" | jq -r '.[].pid'); do
+        if window_owned "$pid" "$owner_comm" "$owner_token"; then WINDOW_PID=$pid; NOW_MS=$seen; return 0; fi
+      done
+    else
     case $clients in
       *"\"class\": \"$class\""*)
         # Sample input, one client of hyprctl -j clients: {"class": "com.thisisgm.flea", "pid": 12345, ...}
         for pid in $(printf '%s' "$clients" | jq -r --arg c "$class" '.[] | select(.class == $c) | .pid'); do
           if window_owned "$pid" "$owner_comm" "$owner_token"; then
+            WINDOW_PID=$pid
             NOW_MS=$seen
             return 0
           fi
@@ -1291,6 +1372,7 @@ wait_for_window() {
         done
         ;;
     esac
+    fi
     [ "$seen" -gt "$deadline" ] && return 1
     sleep 0.01
   done
@@ -1305,28 +1387,49 @@ net_rx_bytes() {
   printf '%s' "${v:-0}"
 }
 
+# The engine comparison samples memory three seconds after map, independently of the CPU quiet gap.
+engine_memory_sample() {
+  local pid=$1 child_pid
+  # The cold sample may land after the post-settle readings, which the row prints, so it restores them.
+  local keep_drm=${DRM_KB:-} keep_pss=${PSS_KB:-} keep_anon=${PSS_ANON_KB:-} keep_uss=${USS_KB:-}
+  pss_kb "$pid" || fail "cannot read cold PSS"
+  COLD_PSS=$PSS_KB
+  drm_kb "$pid"; COLD_DRM=$DRM_KB
+  COLD_CHILD_PSS=0
+  if [ -n "$HELPER_COMM" ]; then
+    pids_for "$HELPER_COMM" "$HELPER_TOKEN"
+    for child_pid in "${PIDS[@]}"; do
+      pss_kb "$child_pid" || fail "cannot read cold child PSS"
+      COLD_CHILD_PSS=$(( COLD_CHILD_PSS + PSS_KB ))
+    done
+  fi
+  DRM_KB=$keep_drm PSS_KB=$keep_pss PSS_ANON_KB=$keep_anon USS_KB=$keep_uss
+}
+
 # One run of one entrant: cold caches, launch, then poll until neither the watched set nor its live descendants earn a tick for a whole gap.
 run_one() {
   local id=$1 kind=$2 class=$3 comm=$4 token=$5 shift_cmd=$8
-  local TRANSIENT_ID=${TRANSIENT_ID:-strata}
-  case "$id" in strata-stable|strata-nightly) TRANSIENT_ID=$id ;; esac
+  local TRANSIENT_ID=${TRANSIENT_ID:-strata-stable}
+  case "$id" in strata-stable|strata-nightly|strata-nightly-channel) TRANSIENT_ID=$id ;; esac
   local t0 deadline mapped=-1 settled=-1 last_settle=-1 last_change=0 best_pss=0 pid
   # A GUI entrant is judged on its thumbnails and never enters the preview pass, so its column reads
   # not-applicable rather than -1, which in a TUI row means the preview never arrived.
   local preview_ms=-
   local best_anon=0 best_uss=0 last_entrant=0 last_tree=0 last_desc=0 last_helper=0
+  local cold_pss=- cold_drm=- cold_child_pss=- cold_sample_ms=- memory_wait
 
   HELPER_COMM=$6
   HELPER_TOKEN=$7
   HELPER_PID=""
   HELPER_POLLS_LEFT=0
   HELPER_TICKS=0
+  HELPER_DONE_TICKS=0
   HELPER_SIDE=""
 
   clean_bench
   # Above drop_caches, not below it: arming the watch walks /tmp and opens the fixture directory, so
   # the cache that costs has to be dropped with everything else rather than handed to this entrant.
-  [ "$DROP_THUMBS" = yes ] && [ "$id" = "$TRANSIENT_ID" ] && watch_start "$id"
+  [ "$DROP_THUMBS" = yes ] && { [ "$id" = "$TRANSIENT_ID" ] || [[ $id = strata-nightly* ]]; } && watch_start "$id"
   # PRE_LAUNCH evens out gvfsd's own listing memory, which drop_caches never reaches.
   if [ -n "${PRE_LAUNCH:-}" ]; then bash -c "$PRE_LAUNCH" > /dev/null 2>&1 || fail "PRE_LAUNCH failed: $PRE_LAUNCH"; fi
   # The build's own list is in place before its launch, and the cache drop below does not touch it.
@@ -1336,6 +1439,7 @@ run_one() {
   esac
   drop_caches
   drop_thumbs
+  if [ "$FIELD_PROFILE" = engine ]; then sleep 3; fi
 
   # Only a rows probe runs kitty with --dump-bytes, which parses through Python for every drawn character and command.
   TUI_DUMP_FLAG=""
@@ -1349,16 +1453,27 @@ run_one() {
   NET_RX0=$(net_rx_bytes "$NET_IFACE")
   # Baselines are per daemon, so a lost daemon cannot hide in a sum.
   mount_ticks_start
-  now_ms; t0=$NOW_MS
-  deadline=$(( t0 + LAUNCH_TIMEOUT_MS ))
-
   # A leaf of this run's own, entered by the launching shell before it forks the entrant, so the entrant and everything it ever starts are in it.
   local leaf="$BENCH_CG/run-$id-$RUN_INDEX"
   [ "$RERUN_N" = 0 ] || leaf="$leaf-r$RERUN_N"
   [ "$RUN_MODE" = rows ] && leaf="$leaf-rows"
   mkdir "$leaf" || fail "could not make the control group $leaf"
   RUN_CG=$leaf
+  if [ "$FIELD_PROFILE" = engine ]; then
+    MAP_EVENT="$TUI_CONF/map-event"
+    rm -f -- "$MAP_EVENT" "$MAP_EVENT.ready"
+    "$HARNESS_DIR/flea-bench-gate" map-event "$MAP_EVENT" "$class" "$(( LAUNCH_TIMEOUT_MS / 1000 ))" &
+    MAP_PID=$!
+    for (( map_poll=0; map_poll<200; map_poll++ )); do
+      [ -f "$MAP_EVENT.ready" ] && break
+      kill -0 "$MAP_PID" 2>/dev/null || fail "the map event reader exited before arming"
+      sleep 0.01
+    done
+    [ -f "$MAP_EVENT.ready" ] || fail "the map event reader did not arm"
+  fi
   ENTRANT_LAUNCHED=yes
+  now_ms; t0=$NOW_MS
+  deadline=$(( t0 + LAUNCH_TIMEOUT_MS ))
   { printf '%s\n' "$BASHPID" > "$RUN_CG/cgroup.procs" \
       || { printf 'FAIL: could not join %s, so %s was not launched\n' "$RUN_CG" "$id" >&2; exit 1; }
     export FLEA_FIELD_BENCH=$BENCH_TOKEN
@@ -1371,6 +1486,7 @@ run_one() {
     owner_token="--class $TUI_CLASS"
   fi
   local first_rows=-
+  WINDOW_PID=""
   ROWS_PID=""
   if [ "$kind" = tui ] && [ "$RUN_MODE" = rows ]; then
     first_rows=-1
@@ -1382,6 +1498,16 @@ run_one() {
   fi
   if [ "$class" != "-" ]; then
     wait_for_window "$class" "$deadline" "$owner_comm" "$owner_token" && mapped=$(( NOW_MS - t0 ))
+  fi
+  if [ "$FIELD_PROFILE" = engine ]; then
+    wait "$MAP_PID" || fail "no matching openwindow event arrived"
+    MAP_PID=""
+    read -r map_stamp map_address < "$MAP_EVENT" || fail "no map event timestamp"
+    mapped=$(( map_stamp - t0 ))
+    [ "$mapped" -ge 0 ] && window_owned "$WINDOW_PID" "$owner_comm" "$owner_token" \
+      || fail "map event did not belong to this launch"
+    map_owner=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl -j clients | LC_ALL=C.UTF-8 LANGUAGE= jq -r --arg address "0x$map_address" '.[] | select(.address == $address) | .pid')
+    [ "$map_owner" = "$WINDOW_PID" ] || fail "map event address belongs to another window"
   fi
   if [ -n "$ROWS_PID" ]; then
     wait "$ROWS_PID"
@@ -1423,6 +1549,11 @@ run_one() {
     if pss_kb "$pid" && [ "$PSS_KB" -gt "$best_pss" ]; then
       best_pss=$PSS_KB; best_anon=$PSS_ANON_KB; best_uss=$USS_KB
     fi
+    if [ "$FIELD_PROFILE" = engine ] && [ "$cold_sample_ms" = - ] && [ "$NOW_MS" -ge "$(( t0 + mapped + 3000 ))" ]; then
+      cold_sample_ms=$(( NOW_MS - t0 - mapped ))
+      engine_memory_sample "$pid"
+      cold_pss=$COLD_PSS; cold_drm=$COLD_DRM; cold_child_pss=$COLD_CHILD_PSS
+    fi
     if [ "$last_change" -gt 0 ] && [ $(( NOW_MS - last_change )) -ge "$SETTLE_GAP_MS" ]; then
       settled=$(( last_change - t0 ))
       break
@@ -1434,12 +1565,12 @@ run_one() {
   write_guard_launch_end || fail "the write guard could not read $FIELD_VMSTAT at the end of the launch"
 
   # n/a and not 0: a run that never counted must stay tellable from one that counted and found none.
-  local cpu_s cpu_tree_s cpu_sys_s cpu_reaped_s helper_add=0 child_pss=0 thumbs_n=n/a thumbs_dirs=- thumbs_fmt=- ranked=yes
+  local cpu_s cpu_main_s cpu_tree_s cpu_sys_s cpu_reaped_s helper_add=0 child_pss=0 thumbs_n=n/a thumbs_dirs=- thumbs_fmt=- ranked=yes
   # drm-resident-system0 is RAM that PSS cannot see, read once after settle because fdinfo is too costly to poll.
   drm_kb "$pid"
   # cpu.stat counts microseconds and /proc/<pid>/stat counts USER_HZ ticks, 100 a second on this kernel.
   local usec_per_second=1000000 ticks_per_second=100
-  cpu_s=$(LC_ALL=C.UTF-8 LANGUAGE= awk -v t="$last_entrant" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", t / hz }')
+  cpu_main_s=$(LC_ALL=C.UTF-8 LANGUAGE= awk -v t="$last_entrant" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", t / hz }')
   # The old reading, kept so a table from before the leaf can still be compared: a sandboxed decode never reaches it, see AGENTS.md "Testing".
   cpu_reaped_s=$(LC_ALL=C.UTF-8 LANGUAGE= awk -v t="$last_tree" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", t / hz }')
   cgroup_usage_usec "$RUN_CG" || fail "no usage_usec in $RUN_CG/cpu.stat, so this row has no CPU column"
@@ -1454,6 +1585,15 @@ run_one() {
   fi
   [ "$HELPER_SIDE" = outside ] && helper_add=$last_helper
   cpu_tree_s=$(LC_ALL=C.UTF-8 LANGUAGE= awk -v u="$run_usec" -v us="$usec_per_second" -v t="$helper_add" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", u / us + t / hz }')
+  cpu_s=$cpu_tree_s
+  if [ "$FIELD_PROFILE" = engine ] && [ "$cold_sample_ms" = - ]; then
+    now_ms
+    memory_wait=$(( t0 + mapped + 3000 - NOW_MS ))
+    [ "$memory_wait" -le 0 ] || sleep "$(LC_ALL=C.UTF-8 LANGUAGE= awk -v ms="$memory_wait" 'BEGIN {print ms / 1000}')"
+    now_ms; cold_sample_ms=$(( NOW_MS - t0 - mapped ))
+    engine_memory_sample "$pid"
+    cold_pss=$COLD_PSS; cold_drm=$COLD_DRM; cold_child_pss=$COLD_CHILD_PSS
+  fi
   if mount_ticks_delta; then
     cpu_sys_s=$(sys_seconds "$cpu_tree_s" "$MOUNT_DTICKS" "$ticks_per_second")
   else
@@ -1465,7 +1605,7 @@ run_one() {
     count_thumbs
     thumbs_n=$THUMBS_N
     thumbs_dirs=$THUMBS_BY_DIR
-    if [ "$id" = "$TRANSIENT_ID" ]; then
+    if [ "$id" = "$TRANSIENT_ID" ] || [[ $id = strata-nightly* ]]; then
       # The cache reading above stays in thumbs_by_dir, where it is a true statement about the cache
       # and a false one about this entrant; the count and the formats come off the live watch.
       watch_stop "$id"
@@ -1481,8 +1621,10 @@ run_one() {
       fi
     else
       capture_keys "$id"
-      thumbs_fmt=$("$FLEA_REPO/tools/flea-bench-keys" classify "$KEY_MAP" "$KEYS_FILE")
+      thumbs_fmt=$("$HARNESS_DIR/flea-bench-keys" classify "$KEY_MAP" "$KEYS_FILE")
     fi
+    # A nas or usb run may go on without a key map, so its formats are unknown, never "no fixture file".
+    [ "${KEY_MAP_OK:-yes}" = yes ] || [ "$thumbs_fmt" = unmeasurable ] || thumbs_fmt=unclassified
     if [ "$kind" = tui ]; then
       # A TUI previews the cursor file, it never fills a grid, and the terminal decides whether it
       # can draw an image at all. A 0 here reads as a slow thumbnailer and it is neither slow nor a
@@ -1490,14 +1632,26 @@ run_one() {
       thumbs_n=n/a
       thumbs_fmt=n/a
       ranked="n/a: tui in $TUI_TERM"
-    elif [ "$thumbs_n" = 0 ] && [ "$id" != "$TRANSIENT_ID" ]; then
-      # A failed measurement, not a fast one, and this instrument cannot tell which failure it is.
-      # strata renders every thumbnail into a scratch dir it deletes on drop, so it fills the screen
-      # and leaves the cache empty: a 0 here is the cache's silence, never the entrant's ability.
+    elif [ "$thumbs_n" = 0 ]; then
+      # This is the live watch's count for transient entrants, the cache count for everyone else.
+      # Neither zero proves media work. Only the report's verified synthetic fixture permits it.
       thumbs_n=unmeasurable
       thumbs_fmt=unmeasurable
-      ranked="unranked: nothing reached the thumbnail cache so its work was not measured"
-      printf 'UNRANKED: %s left nothing in the thumbnail cache, so its work was not measured and its time is not a result\n' "$id" >&2
+      ranked="unranked: no thumbnail work was measured"
+      printf 'UNRANKED: %s produced no measured thumbnails, so its time is not a media result\n' "$id" >&2
+    elif [ "$ranked" = yes ] && [ "${KEY_MAP_OK:-yes}" = yes ] && [ "$(known_formats "$thumbs_fmt")" = 0 ]; then
+      # The count stays as read; none of it is a fixture file, so it is not this fixture's media work.
+      ranked="unranked: none of its thumbnails were of a fixture file"
+      printf 'UNRANKED: %s rendered %s thumbnails and none of a fixture file, so its time is not a media result\n' "$id" "$thumbs_n" >&2
+    fi
+    # A media run that never mapped or never settled stopped part way, so its count is of unfinished work.
+    if [ "$kind" != tui ] && [ "$ranked" = yes ]; then
+      if [ "$mapped" -lt 0 ]; then
+        ranked="unranked: its window never mapped so its media work did not finish"
+      elif [ "$settled" -lt 0 ]; then
+        ranked="unranked: it never settled so its media work did not finish"
+      fi
+      [ "$ranked" = yes ] || printf 'UNRANKED: %s run %s %s\n' "$id" "$RUN_INDEX" "${ranked#unranked: }" >&2
     fi
   fi
 
@@ -1510,7 +1664,10 @@ run_one() {
 
   if [ -n "$HELPER_COMM" ]; then
     pids_for "$HELPER_COMM" "$HELPER_TOKEN"
-    if [ ${#PIDS[@]} -ge 1 ] && pss_kb "${PIDS[0]}"; then child_pss=$PSS_KB; fi
+    for child_pid in "${PIDS[@]}"; do
+      pss_kb "$child_pid" || fail "cannot read helper PSS"
+      child_pss=$(( child_pss + PSS_KB ))
+    done
   fi
 
   # To the log, never a CSV column, so no parser moves.
@@ -1519,7 +1676,7 @@ run_one() {
   fi
   # A contaminated row stays in the CSV and never ranks: the cell says why, and the columns carry the numbers.
   ranked=$(write_guard_ranked "$ranked")
-  printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' "$id" "$RUN_INDEX" "$mapped" "$settled" "$best_pss" "$cpu_s" "$child_pss" "$thumbs_n" "$best_anon" "$best_uss" "$DRM_KB" "$thumbs_dirs" "$cpu_tree_s" "$thumbs_fmt" "$ranked" "$preview_ms" "$cpu_reaped_s" "$cpu_sys_s" "$WG_DIRTY_WB_KB" "$WG_PGPGOUT_PRE_KB" "$WG_PGPGOUT_LAUNCH_KB" "$WG_CLEAN" "$RERUN_N" "$first_rows" "$LAUNCH_POS"
+  printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' "$id" "$RUN_INDEX" "$mapped" "$settled" "$best_pss" "$cpu_s" "$child_pss" "$thumbs_n" "$best_anon" "$best_uss" "$DRM_KB" "$thumbs_dirs" "$cpu_tree_s" "$thumbs_fmt" "$ranked" "$preview_ms" "$cpu_reaped_s" "$cpu_sys_s" "$WG_DIRTY_WB_KB" "$WG_PGPGOUT_PRE_KB" "$WG_PGPGOUT_LAUNCH_KB" "$WG_CLEAN" "$RERUN_N" "$first_rows" "$cpu_main_s" "$cold_pss" "$cold_drm" "$cold_child_pss" "$cold_sample_ms" "$LAUNCH_POS"
   clean_bench
   release_run_cg
 }
@@ -1583,6 +1740,7 @@ bench_cleanup() {
   stop_warm_job || cleanup_rc=1
   # A run that fails mid-entrant ends that entrant here, or it stays resident through every run after it.
   watch_kill
+  if [ -n "${MAP_PID:-}" ]; then kill "$MAP_PID" 2>/dev/null || true; wait "$MAP_PID" 2>/dev/null || true; fi
   [ -n "$ROWS_PID" ] && kill "$ROWS_PID" 2>/dev/null
   # Subshells, because each of these can fail and an exit inside this trap would skip every step after it.
   if [ -n "$ENTRANT_LAUNCHED" ]; then ( clean_bench ) || cleanup_rc=1; fi
@@ -1593,8 +1751,8 @@ bench_cleanup() {
   ( prefetch_keep ) || cleanup_rc=1
   ( restore_prefetch ) || cleanup_rc=1
   case ${TUI_CONF:-} in "") ;; *) safe_rm_tmpdir "$TUI_CONF" "TUI config" || cleanup_rc=1 ;; esac
-  case ${FLEA_STATE:-} in /tmp/flea-bench-state.*) safe_rm_tmpdir "$FLEA_STATE" "Flea state" || cleanup_rc=1 ;; "") ;; *) printf 'WARNING: not removing Flea state path %s, it is not the mktemp directory this run made\n' "$FLEA_STATE" >&2; cleanup_rc=1 ;; esac
-  case ${ANCHOR_STATE:-} in /tmp/flea-bench-state.*) safe_rm_tmpdir "$ANCHOR_STATE" "anchor state" || cleanup_rc=1 ;; "") ;; *) printf 'WARNING: not removing anchor state path %s, it is not the mktemp directory this run made\n' "$ANCHOR_STATE" >&2; cleanup_rc=1 ;; esac
+  case ${FLEA_STATE:-} in "${BENCH_TMP_ROOT:-/tmp}"/flea-bench-state.*) safe_rm_tmpdir "$FLEA_STATE" "Flea state" || cleanup_rc=1 ;; "") ;; *) printf 'WARNING: not removing Flea state path %s, it is not the mktemp directory this run made\n' "$FLEA_STATE" >&2; cleanup_rc=1 ;; esac
+  case ${ANCHOR_STATE:-} in "${BENCH_TMP_ROOT:-/tmp}"/flea-bench-state.*) safe_rm_tmpdir "$ANCHOR_STATE" "anchor state" || cleanup_rc=1 ;; "") ;; *) printf 'WARNING: not removing anchor state path %s, it is not the mktemp directory this run made\n' "$ANCHOR_STATE" >&2; cleanup_rc=1 ;; esac
   if [ "$prior" -ne 0 ]; then exit "$prior"; fi
   exit "$cleanup_rc"
 }
@@ -1604,7 +1762,8 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 # After the trap, never before it: an earlier temp directory would leak on every early exit between the two.
-TUI_CONF=$(mktemp -d) || fail "no temp directory for the TUI configuration"
+case $BENCH_TMP_ROOT in /*) ;; *) fail "BENCH_TMP_ROOT must be absolute" ;; esac
+TUI_CONF=$(mktemp -d "$BENCH_TMP_ROOT/flea-bench-config.XXXXXX") || fail "no temp directory for the TUI configuration"
 printf 'owner=%s\n' "$$" > "$TUI_CONF/$PERF_TMP_MARK" || fail "could not mark $TUI_CONF"
 cp -r "$TUI_CONF_SRC/." "$TUI_CONF/" || fail "could not copy $TUI_CONF_SRC"
 # What a TUI rows probe's kitty receives from its child, and the entry names whose first appearance in it stamps first_rows_ms.
@@ -1631,18 +1790,22 @@ if only_has broot && command -v broot > /dev/null 2>&1; then
   [ -e "$TUI_CONF/broot/launcher/refused" ] || fail "broot's install answer is missing"
 fi
 
+# candidate state begin
 # Flea runs on its shipped defaults, because an operator's saved view, sort or rows decide what the first screen holds.
-FLEA_STATE=$(mktemp -d /tmp/flea-bench-state.XXXXXX) || fail "no temp directory for Flea's state"
+if only_has flea || only_has flea-tui; then
+FLEA_STATE=$(mktemp -d "$BENCH_TMP_ROOT/flea-bench-state.XXXXXX") || fail "no temp directory for Flea's state"
 printf 'owner=%s\n' "$$" > "$FLEA_STATE/$PERF_TMP_MARK" || fail "could not mark $FLEA_STATE"
 mkdir -p "$FLEA_STATE/flea" "$FLEA_STATE/no-config" || fail "could not make $FLEA_STATE/flea"
 # An empty config directory for this one write, so an old view.json cannot migrate into the defaults.
 XDG_STATE_HOME="$FLEA_STATE" XDG_CONFIG_HOME="$FLEA_STATE/no-config" "$FLEA_BIN" --ui-state '{"sort":{"key":"name","reverse":false}}' >/dev/null \
   || fail "flea --ui-state refused to write the shipped defaults into $FLEA_STATE"
 printf 'flea-state: %s, the shipped defaults, whose text size follows the system font as every entrant does\n' "$FLEA_STATE"
+fi
+# candidate state end
 if [ "$WITH_ANCHOR" = yes ]; then
 # The anchor gets its own state directory, written by its own binary, so its older ui-state schema never touches the fresh build's state.
 [ -x "$ANCHOR_BIN" ] || fail "$ANCHOR_BIN is missing, so the anchor arm is not built"
-ANCHOR_STATE=$(mktemp -d /tmp/flea-bench-state.XXXXXX) || fail "no temp directory for the anchor state"
+ANCHOR_STATE=$(mktemp -d "$BENCH_TMP_ROOT/flea-bench-state.XXXXXX") || fail "no temp directory for the anchor state"
 printf 'owner=%s\n' "$$" > "$ANCHOR_STATE/$PERF_TMP_MARK" || fail "could not mark $ANCHOR_STATE"
 mkdir -p "$ANCHOR_STATE/flea" "$ANCHOR_STATE/no-config" || fail "could not make $ANCHOR_STATE/flea"
 [ "$ANCHOR_STATE" != "$FLEA_STATE" ] || fail "the anchor state is the fresh state, refusing a shared ui-state schema"
@@ -1650,6 +1813,11 @@ XDG_STATE_HOME="$ANCHOR_STATE" XDG_CONFIG_HOME="$ANCHOR_STATE/no-config" "$ANCHO
   || fail "flea --ui-state refused to write the shipped defaults into $ANCHOR_STATE"
 printf 'anchor-state: %s, the shipped defaults for the anchor build\n' "$ANCHOR_STATE"
 fi
+# Comparison sources stay read-only; all cache and prefetch writes belong to this invocation.
+FLEA_QMLCACHE="$TUI_CONF/candidate-qmlcache"
+ANCHOR_QMLCACHE="$TUI_CONF/anchor-qmlcache"
+FLEA_PREFETCH_SLOT="$TUI_CONF/flea-prefetch"
+if [ "$WITH_ANCHOR" = yes ]; then ANCHOR_PREFETCH_SLOT="$TUI_CONF/anchor-prefetch"; fi
 
 # The band the TUI group watches for its preview, and the file it captures into.
 # corner: one monitor and one tiled window, which require_bench_idle already guarantees. The band is
@@ -1693,7 +1861,7 @@ if [ "$FIXTURE_KIND" = nas ]; then
 fi
 mkdir -p "$(dirname "$OUT")"
 : > "$OUT"
-echo "id,run,mapped_ms,settled_ms,pss_kb,cpu_s,child_pss_kb,thumbs_n,pss_anon_kb,uss_kb,drm_kb,thumbs_by_dir,cpu_tree_s,thumbs_by_format,ranked,preview_ms,cpu_reaped_s,cpu_sys_s,dirty_wb_kb,pgpgout_pre_kb,pgpgout_launch_kb,write_clean,rerun,first_rows_ms,launch_pos" >> "$OUT"
+echo "id,run,mapped_ms,settled_ms,pss_kb,cpu_s,child_pss_kb,thumbs_n,pss_anon_kb,uss_kb,drm_kb,thumbs_by_dir,cpu_tree_s,thumbs_by_format,ranked,preview_ms,cpu_reaped_s,cpu_sys_s,dirty_wb_kb,pgpgout_pre_kb,pgpgout_launch_kb,write_clean,rerun,first_rows_ms,cpu_main_s,cold_pss_kb,cold_drm_kb,cold_child_pss_kb,cold_sample_after_map_ms,launch_pos" >> "$OUT"
 
 # Build commands with the marked temporary paths while retaining the roster already used for ONLY.
 build_entrants
@@ -1726,11 +1894,17 @@ run_order() {
       IFS='|' read -r id row_kind _ comm _ <<< "${ENTRANTS[$i]}"
       [ "$row_kind" = "$kind" ] || continue
       only_has "$id" || continue
-      if [ "$id" = flea ] && [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
-        [ -x "$(dirname "$FLEA_BIN")/flea-gui" ] || { absent+=("$i"); continue; }
+      if [ "$id" = flea ] && [ "${FIELD_FRONTEND:-qml}" = gpui ]; then
+        [ -x "$FLEA_BIN" ] && [ -x "${FLEA_BIN%/*}/flea-gui" ] || { absent+=("$i"); continue; }
+      elif [ "$id" = flea-tui ]; then
+        [ -x "${FLEA_BIN:-}" ] || { absent+=("$i"); continue; }
+      elif [ "$id" = flea-tui-anchor ]; then
+        [ -x "${ANCHOR_BIN:-}" ] || { absent+=("$i"); continue; }
       elif [ "$id" = strata-nightly ]; then
-        [ -x "$STRATA_NIGHTLY_BIN" ] || { absent+=("$i"); continue; }
-      elif [ "$id" = strata ] || [ "$id" = strata-stable ]; then
+        [ -x "${STRATA_NIGHTLY_BIN:-}" ] || { absent+=("$i"); continue; }
+      elif [ "$id" = strata-nightly-channel ]; then
+        [ -x "${STRATA_NIGHTLY_CHANNEL_BIN:-}" ] || { absent+=("$i"); continue; }
+      elif [ "$id" = strata-stable ]; then
         [ -x "${STRATA_BIN:-}" ] || { absent+=("$i"); continue; }
       else
         command -v "$comm" >/dev/null 2>&1 || { absent+=("$i"); continue; }
@@ -1761,6 +1935,8 @@ fi
 # ui/ is deliberately NOT checked: QML is read at run time and is never compiled into the binary, so
 # a newer .qml is the thing being benched rather than a stale build, and checking it refused a run
 # that was measuring exactly the change it had just been handed.
+# candidate build begin
+if only_has flea || only_has flea-tui; then
 [ -x "$FLEA_BIN" ] || fail "$FLEA_BIN is missing, so run cargo build --release before benching"
 stale_src=$(LC_ALL=C.UTF-8 LANGUAGE= find "$FLEA_REPO/src" "$FLEA_REPO/Cargo.toml" "$FLEA_REPO/Cargo.lock" -newer "$FLEA_BIN" -print -quit)
 if [ "$FLEA_FRONTEND" = gpui ]; then
@@ -1770,6 +1946,13 @@ if [ "$FLEA_FRONTEND" = gpui ]; then
   [ -z "$gui_stale" ] || fail "$gui_stale is newer than $gui_bin"
 fi
 [ -z "$stale_src" ] || fail "$stale_src is newer than $FLEA_BIN, so this run would bench a stale build"
+if [ "$FIELD_FRONTEND" = gpui ]; then
+  [ -x "${FLEA_BIN%/*}/flea-gui" ] || fail "the product launcher needs its sibling flea-gui binary"
+  stale_gui=$(LC_ALL=C.UTF-8 LANGUAGE= find "$FLEA_REPO/crates/flea-gui" "$FLEA_REPO/Cargo.lock" -type f -newer "${FLEA_BIN%/*}/flea-gui" -print -quit)
+  [ -z "$stale_gui" ] || fail "$stale_gui is newer than the GUI binary"
+fi
+fi
+# candidate build end
 # strata provenance begin
 # STRATA_SRC defaults to the cargo target/release tree that built STRATA_BIN; the binary must report that tree's version exactly.
 # Sample input: Cargo.toml has version = "1.0.0", and STRATA_BIN --version prints "strata 1.0.0".
@@ -1791,20 +1974,23 @@ strata_provenance() {
 }
 # strata provenance end
 # archive provenance begin
+# Every selected archive has an executed-binary receipt; optional channels remain additional rows.
 if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
-  for archive_id in strata-stable strata-nightly xplr; do
+  for archive_id in strata-stable strata-nightly strata-nightly-channel xplr; do
     only_has "$archive_id" || continue
     case $archive_id in
       strata-stable) archive_binary=$STRATA_BIN ;;
       # An unset nightly is not configured, as in build_entrants, never Path('') (the current directory).
       strata-nightly) [ -n "${STRATA_NIGHTLY_BIN:-}" ] || continue; archive_binary=$STRATA_NIGHTLY_BIN ;;
+      strata-nightly-channel) [ -n "${STRATA_NIGHTLY_CHANNEL_BIN:-}" ] || continue; archive_binary=$STRATA_NIGHTLY_CHANNEL_BIN ;;
       xplr) archive_binary=$(command -v xplr) || fail 'B5 xplr is absent from benchmark PATH' ;;
     esac
-    python3 -B "$(dirname "$MANIFEST_TOOL")/flea_bench_product.py" "$B5_RIVAL_MANIFEST" "$archive_id" "$archive_binary" >/dev/null \
+    LC_ALL=C.UTF-8 LANGUAGE= python3 -B "${HARNESS_DIR:-$(dirname "$MANIFEST_TOOL")}/flea_bench_product.py" "$B5_RIVAL_MANIFEST" "$archive_id" "$archive_binary" >/dev/null \
       || fail "archive provenance refused for $archive_id"
   done
 else
-  if only_has strata && [ -x "$STRATA_BIN" ]; then strata_provenance; fi
+  # A source build names the tree it came from, checked against the binary's own version.
+  if only_has strata-stable && [ -x "$STRATA_BIN" ]; then strata_provenance; fi
   if only_has strata-nightly && [ -n "$STRATA_NIGHTLY_BIN" ]; then
     STRATA_NIGHTLY_SRC=$( STRATA_BIN=$STRATA_NIGHTLY_BIN STRATA_SRC=$STRATA_NIGHTLY_SRC; strata_provenance; printf %s "$STRATA_SRC" ) || exit 1
     export STRATA_NIGHTLY_SRC
@@ -1833,7 +2019,7 @@ printf '%s\n' "${ENTRANTS[@]}" | cut -d'|' -f1,2,4 \
     TUI_CONFIG_DIR="$TUI_CONF" PREVIEW_TARGET="$PREVIEW_TARGET" \
     BENCH_IDLE_WAITED="$BENCH_IDLE_WAITED" FIXTURE_KIND="$FIXTURE_KIND" \
     SETTLE_GAP_MS="$SETTLE_GAP_MS" SETTLE_WATCH_PIDS="${MOUNT_PIDS[*]:-none}" NET_IFACE="$NET_IFACE" \
-    LAUNCH_ORDER="$LAUNCH_ORDER" \
+    LAUNCH_ORDER="$LAUNCH_ORDER" DROP_THUMBS="$DROP_THUMBS" \
     "$MANIFEST_TOOL" "$MANIFEST" "$FIXTURE" \
   || fail "the manifest did not write, so this run would produce numbers nobody can cite"
 echo "manifest: $MANIFEST"
@@ -1842,14 +2028,15 @@ echo "manifest: $MANIFEST"
 # would be 100k md5 calls for a question that run does not ask.
 mkdir -p "$KEYS_DIR" || fail "could not make the key directory at $KEYS_DIR"
 if [ "$DROP_THUMBS" = yes ]; then
-  "$FLEA_REPO/tools/flea-bench-keys" map "$FIXTURE" "$KEY_MAP" \
-    || [ -n "$FIXTURE_KIND" ] || fail "the fixture key map did not build, so no thumbnail count in this run could be classified"
+  KEY_MAP_OK=yes
+  "$HARNESS_DIR/flea-bench-keys" map "$FIXTURE" "$KEY_MAP" \
+    || { KEY_MAP_OK=no; [ -n "$FIXTURE_KIND" ]; } || fail "the fixture key map did not build, so no thumbnail count in this run could be classified"
   echo "key map: $KEY_MAP, $(wc -l < "$KEY_MAP") keys"
 fi
 
 # warm jobs begin
 # Monitor mode gives each warm shell its own process group; its foreground setup children stay in that group with monitor mode off.
-if only_has flea; then
+if [ "${FIELD_FRONTEND:-qml}" = qml ] && only_has flea; then
   prefetch_for "$FLEA_PREFETCH_SLOT"
   ENTRANT_LAUNCHED=yes
   set -m
@@ -1888,14 +2075,20 @@ for RUN_INDEX in $(seq 1 "$RUNS"); do
     IFS='|' read -r id kind class comm token helper_comm helper_token cmd <<< "${ENTRANTS[$i]}"
     only_has "$id" || continue
     # An absent entrant is named and skipped, never silently dropped from the table, see hard rule 7.
-    if [ "$id" = flea ] && [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
-      [ -x "$(dirname "$FLEA_BIN")/flea-gui" ] || fail "GPUI binary is absent beside $FLEA_BIN"
+    if [ "$id" = flea ] && [ "$FIELD_FRONTEND" = gpui ]; then
+      [ -x "${FLEA_BIN%/*}/flea-gui" ] || fail "flea-gui is missing"
+    elif [ "$id" = flea-tui ]; then
+      [ -x "${FLEA_BIN:-}" ] || fail "required entrant executable is absent: $id"
+    elif [ "$id" = flea-tui-anchor ]; then
+      [ -x "${ANCHOR_BIN:-}" ] || fail "required entrant executable is absent: $id"
     elif [ "$id" = strata-nightly ]; then
-      [ -x "$STRATA_NIGHTLY_BIN" ] || fail "Strata nightly binary is absent: $STRATA_NIGHTLY_BIN"
-    elif [ "$id" = strata ] || [ "$id" = strata-stable ]; then
-      [ -x "$STRATA_BIN" ] || { printf 'SKIP: strata is not built at %s\n' "$STRATA_BIN" >&2; continue; }
+      [ -x "$STRATA_NIGHTLY_BIN" ] || { fail 'Strata nightly is missing'; }
+    elif [ "$id" = strata-nightly-channel ]; then
+      [ -x "$STRATA_NIGHTLY_CHANNEL_BIN" ] || { fail 'additional Strata channel is missing'; }
+    elif [ "$id" = strata-stable ]; then
+      [ -x "$STRATA_BIN" ] || { fail "Strata stable is missing: $STRATA_BIN"; }
     else
-      command -v "$comm" >/dev/null 2>&1 || { printf 'SKIP: %s is not installed\n' "$id" >&2; continue; }
+      command -v "$comm" >/dev/null 2>&1 || { fail "required entrant is absent: $id"; }
     fi
     run_guarded "$id" "$kind" "$class" "$comm" "$token" "$helper_comm" "$helper_token" "$cmd"
   done
@@ -1913,5 +2106,5 @@ write_guard_summary "$OUT"
 # What the run turned out to be: the capability each entrant demonstrated, and every row this
 # harness refuses to rank, written where the versions are rather than left for a reader to infer.
 "$MANIFEST_TOOL" "$MANIFEST" close "$OUT" \
-  || printf 'WARNING: the manifest did not close, so the capability and refusal blocks are missing\n' >&2
+  || fail "manifest did not close; results remain unaccepted"
 echo "done, results in $OUT"

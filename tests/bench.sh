@@ -20,6 +20,8 @@ case $scratch in
   *) echo "FAIL: mktemp -d gave '$scratch', which is not an absolute path two components deep"; exit 1 ;;
 esac
 : > "$scratch/.flea-test-sandbox"
+# The manifest defaults FLEA_REPO to the operator's checkout; this suite binds no build of the host's.
+export FLEA_REPO="$scratch/no-flea-tree"
 trap 'case $scratch in /*/*) [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
 
 fail=0
@@ -48,6 +50,12 @@ fixture="$scratch/fix"
 mkdir -p "$fixture"
 touch "$fixture/a.jpg" "$fixture/b.jpg" "$fixture/c.png" "$fixture/d.txt" "$fixture/README"
 payload=$(ls -U "$fixture" | wc -l)
+# Strata runs as two required rows, stable and nightly, each its own executable.
+mkdir -p "$scratch/strata-stable" "$scratch/strata-nightly"
+printf '#!/bin/sh\necho "strata 1.1.0"\n' > "$scratch/strata-stable/strata"
+printf '#!/bin/sh\necho "strata 1.0.1-nightly.20261018"\n' > "$scratch/strata-nightly/strata"
+chmod +x "$scratch/strata-stable/strata" "$scratch/strata-nightly/strata"
+export STRATA_BIN="$scratch/strata-stable/strata" STRATA_NIGHTLY_BIN="$scratch/strata-nightly/strata"
 
 "$tool" >/dev/null 2>&1
 check "no arguments is a usage error" 2 $?
@@ -58,7 +66,7 @@ check "a missing fixture is refused" 1 $?
 # name. Every entrant that run holds is listed here too: the report refuses an id it has no kind for.
 man="$scratch/run.manifest.md"
 printf '%s\n' "flea|gui|qs" "dolphin|gui|dolphin" "definitely-not-a-file-manager|gui|definitely-not-a-file-manager" \
-  "strata|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
+  "strata|gui|strata" "strata-nightly|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
   | EXPECT_FILES="$payload" "$tool" "$man" "$fixture" >/dev/null 2>&1
 check "a normal run writes a manifest" 0 $?
 
@@ -212,14 +220,14 @@ check "and it still carries exactly one close section" 1 "$(grep -c '^## Run clo
 # An unset or missing FLEA_QMLCACHE reads absent in the close section, never a 0.
 nocache_man="$scratch/nocache.manifest.md"
 printf '%s\n' "flea|gui|qs" "dolphin|gui|dolphin" "definitely-not-a-file-manager|gui|definitely-not-a-file-manager" \
-  "strata|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
+  "strata|gui|strata" "strata-nightly|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
   | EXPECT_FILES="$payload" "$tool" "$nocache_man" "$fixture" >/dev/null 2>&1
 env -u FLEA_QMLCACHE "$tool" "$nocache_man" close "$csv" >/dev/null 2>&1
 check "a close with no cache variable still closes" 0 $?
 holds "an unset FLEA_QMLCACHE reads absent, never 0" "tested Flea's own QML cache at end: absent entries in an unset path" "$nocache_man"
 missing_man="$scratch/missingcache.manifest.md"
 printf '%s\n' "flea|gui|qs" "dolphin|gui|dolphin" "definitely-not-a-file-manager|gui|definitely-not-a-file-manager" \
-  "strata|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
+  "strata|gui|strata" "strata-nightly|gui|strata" "yazi|tui|yazi" "xplr|tui|xplr" \
   | EXPECT_FILES="$payload" "$tool" "$missing_man" "$fixture" >/dev/null 2>&1
 FLEA_QMLCACHE="$scratch/no-such-dir" "$tool" "$missing_man" close "$csv" >/dev/null 2>&1
 check "a close with a missing cache dir still closes" 0 $?
@@ -459,7 +467,7 @@ case $scope_cg in
 esac
 
 # nautilus's indexer outlives it and crawled $HOME under every later entrant's cold launch, so the kill list ends it after nautilus.
-FLEA_UI=/nonexistent ANCHOR_UI=/nonexistent TUI_TERM=kitty TUI_CLASS=flea-bench-kitty
+FLEA_UI=/nonexistent ANCHOR_UI=/nonexistent FIXTURE="$fixture" TUI_TERM=kitty TUI_CLASS=flea-bench-kitty
 eval "$(sed -n '/^declare -a KILL_TARGETS=(/,/^)/p; /^kill_comms_for() {/,/^}/p' "$bench")"
 kill_rows=" ${KILL_TARGETS[*]} "
 case $kill_rows in *" localsearch-3| "*) indexer=listed ;; *) indexer=missing ;; esac
@@ -526,13 +534,13 @@ check "and an empty daemon set never fails" "0" "$rc"
 # Header and row are pinned whole, so a column moved or dropped in either one fails here.
 # Sample input, one run_one line: echo "id,run,mapped_ms,settled_ms,..." (the header, quoted).
 header_line=$(sed -n 's/^echo "\(id,run,[^"]*\)".*/\1/p' "$bench")
-check "the CSV header names every column in order" "id,run,mapped_ms,settled_ms,pss_kb,cpu_s,child_pss_kb,thumbs_n,pss_anon_kb,uss_kb,drm_kb,thumbs_by_dir,cpu_tree_s,thumbs_by_format,ranked,preview_ms,cpu_reaped_s,cpu_sys_s,dirty_wb_kb,pgpgout_pre_kb,pgpgout_launch_kb,write_clean,rerun,first_rows_ms,launch_pos" "$header_line"
+check "the CSV header names every column in order" "id,run,mapped_ms,settled_ms,pss_kb,cpu_s,child_pss_kb,thumbs_n,pss_anon_kb,uss_kb,drm_kb,thumbs_by_dir,cpu_tree_s,thumbs_by_format,ranked,preview_ms,cpu_reaped_s,cpu_sys_s,dirty_wb_kb,pgpgout_pre_kb,pgpgout_launch_kb,write_clean,rerun,first_rows_ms,cpu_main_s,cold_pss_kb,cold_drm_kb,cold_child_pss_kb,cold_sample_after_map_ms,launch_pos" "$header_line"
 row_line=$(grep '^  printf .%s,%s' "$bench" | head -1)
 row_specs=$(printf '%s\n' "$row_line" | grep -o '%s' | wc -l)
 check "run_one's row carries one %s per header column" "$(printf '%s\n' "$header_line" | tr ',' '\n' | wc -l)" "$row_specs"
 # Sample input, one run_one line: printf '%s,%s...\\n...' "$id" "$RUN_INDEX" ... (the row, quoted).
 row_args=$(printf '%s\n' "$row_line" | sed 's/^.*\\n. //')
-check "run_one's row prints the header's columns in its order" '"$id" "$RUN_INDEX" "$mapped" "$settled" "$best_pss" "$cpu_s" "$child_pss" "$thumbs_n" "$best_anon" "$best_uss" "$DRM_KB" "$thumbs_dirs" "$cpu_tree_s" "$thumbs_fmt" "$ranked" "$preview_ms" "$cpu_reaped_s" "$cpu_sys_s" "$WG_DIRTY_WB_KB" "$WG_PGPGOUT_PRE_KB" "$WG_PGPGOUT_LAUNCH_KB" "$WG_CLEAN" "$RERUN_N" "$first_rows" "$LAUNCH_POS"' "$row_args"
+check "run_one's row prints the header's columns in its order" '"$id" "$RUN_INDEX" "$mapped" "$settled" "$best_pss" "$cpu_s" "$child_pss" "$thumbs_n" "$best_anon" "$best_uss" "$DRM_KB" "$thumbs_dirs" "$cpu_tree_s" "$thumbs_fmt" "$ranked" "$preview_ms" "$cpu_reaped_s" "$cpu_sys_s" "$WG_DIRTY_WB_KB" "$WG_PGPGOUT_PRE_KB" "$WG_PGPGOUT_LAUNCH_KB" "$WG_CLEAN" "$RERUN_N" "$first_rows" "$cpu_main_s" "$cold_pss" "$cold_drm" "$cold_child_pss" "$cold_sample_ms" "$LAUNCH_POS"' "$row_args"
 
 # ---------------------------------------------------------------- report Version column
 # Every versioned table names the version beside the app, read off the manifest line only.
@@ -664,8 +672,9 @@ cleanup_out=$((
   PREFETCH="$HOME/.cache/flea/prefetch" PREFETCH_PARKED="$scratch/prefetch-parked" PREFETCH_PARKED_OK=no
   PREFETCH_ARM="" PERF_TMP_MARK=.flea-perf-tmp
   TUI_CONF="$scratch/clean-tui" && mkdir -p "$TUI_CONF"
-  FLEA_STATE=$(mktemp -d /tmp/flea-bench-state.XXXXXX) || exit 3
-  ANCHOR_STATE=$(mktemp -d /tmp/flea-bench-state.XXXXXX) || exit 3
+  BENCH_TMP_ROOT="$scratch"
+  FLEA_STATE=$(mktemp -d "$BENCH_TMP_ROOT/flea-bench-state.XXXXXX") || exit 3
+  ANCHOR_STATE=$(mktemp -d "$BENCH_TMP_ROOT/flea-bench-state.XXXXXX") || exit 3
   trap 'rm -rf "$FLEA_STATE" "$ANCHOR_STATE"' EXIT
   printf 'owner=%s\n' "$$" > "$TUI_CONF/$PERF_TMP_MARK" || exit 3
   printf 'owner=%s\n' "$$" > "$FLEA_STATE/$PERF_TMP_MARK" || exit 3
