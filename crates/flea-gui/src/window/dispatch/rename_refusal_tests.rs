@@ -61,11 +61,30 @@ fn stopped(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
 
 #[gpui::test]
 fn several_marked_rows_with_no_backend_say_the_backend_stopped(cx: &mut TestAppContext) {
-    let (shell, cx, _) = ready(cx, "default");
+    let (shell, cx, _lines) = ready(cx, "default");
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         host.selected = vec![1, 2];
-        host.backend = None;
+        host.input.selection.changed(&host.selected);
+    });
+    // With the backend, this selection takes F2 to the bulk card.
+    cx.simulate_keystrokes("f2");
+    assert_eq!(shell.read_with(cx, |shell, _| shell.rename.paths), Some(0));
+    receive(
+        &shell,
+        cx,
+        BackendEvent::Paths(vec!["/files/beta".into(), "/files/notes.txt".into()]),
+    );
+    assert!(
+        shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)),
+        "the bulk card opened"
+    );
+    cx.simulate_keystrokes("escape");
+    assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
+    assert_eq!(pane_error(&shell, cx), None);
+    // The same selection with no backend asks nothing and says the backend stopped.
+    shell.update(cx, |shell, _| {
+        shell.panes[0].as_mut().unwrap().backend = None
     });
     cx.simulate_keystrokes("f2");
     assert_eq!(shell.read_with(cx, |shell, _| shell.rename.paths), None);
