@@ -14,6 +14,7 @@ use gpui::{
 };
 
 mod scroll;
+use scroll::{Measured, COLUMNS, LAST_ROWS};
 
 // Board keymap: a 628 by 684 card padded 16, the key column 117 plus a 5px margin, columns 14 apart, 19px headings over 25px rows.
 pub const SHEET_W: f32 = 628.;
@@ -90,12 +91,11 @@ impl SheetView {
     }
 
     /// The groups split into two columns at the first group that would pass half the rows, each faded at its own foot.
-    fn columns(&self, most: f32, body: f32, ink: &Ink, cx: &mut Context<Self>) -> Stateful<Div> {
+    fn columns(&self, measured: &Measured, ink: &Ink, cx: &mut Context<Self>) -> Stateful<Div> {
         let catalog = &self.sheet.catalog;
-        let mut columns: [Vec<AnyElement>; 2] = [Vec::new(), Vec::new()];
-        let mut heights = [0f32; 2];
         let half = self.sheet.rows.len().div_ceil(2);
         let mut used = 0;
+        let mut groups = Vec::new();
         for group in SHEET_GROUPS {
             let rows: Vec<_> = self
                 .sheet
@@ -108,7 +108,12 @@ impl SheetView {
             }
             let side = usize::from(used > 0 && used + rows.len() > half);
             used += rows.len();
-            heights[side] += HEAD_SLOT + rows.len() as f32 * KEY_ROW;
+            groups.push((side, group, rows));
+        }
+        let last = [0, 1].map(|side| groups.iter().rposition(|(on, ..)| *on == side));
+        let mut columns: [Vec<AnyElement>; 2] = [Vec::new(), Vec::new()];
+        for (index, (side, group, rows)) in groups.iter().enumerate() {
+            let side = *side;
             let label = caps::heading(&catalog.tr(group.label_key), catalog.language());
             columns[side].push(
                 div()
@@ -122,51 +127,65 @@ impl SheetView {
                     .child(spaced(&label, 1.))
                     .into_any_element(),
             );
-            for row in rows {
-                columns[side].push(
-                    div()
-                        .h(px(KEY_ROW))
-                        .flex_none()
-                        .flex()
-                        .items_center()
-                        .gap(px(GAP))
-                        .child(self.keys(&row.keys, None, false, ink))
-                        .child(
-                            div()
-                                .whitespace_nowrap()
-                                .child(SharedString::from(row.label.clone())),
-                        )
-                        .into_any_element(),
-                );
+            for (at, row) in rows.iter().enumerate() {
+                let line = div()
+                    .h(px(KEY_ROW))
+                    .flex_none()
+                    .flex()
+                    .items_center()
+                    .gap(px(GAP))
+                    .child(self.keys(&row.keys, None, false, ink))
+                    .child(
+                        div()
+                            .whitespace_nowrap()
+                            .child(SharedString::from(row.label.clone())),
+                    );
+                let line = if last[side] == Some(index) && at + 1 == rows.len() {
+                    self.probe.attach(line, LAST_ROWS[side])
+                } else {
+                    line
+                };
+                columns[side].push(line.into_any_element());
             }
         }
-        let below = most - self.sheet.scroll > 1.;
-        let foot = self.sheet.scroll + body;
+        let below = measured.most - self.sheet.scroll > 1.;
+        let foot = self.sheet.scroll + measured.body;
         let mut grid = div().flex().items_start().gap(px(COL_GAP));
         for (side, rows) in columns.into_iter().enumerate() {
-            let rows = div().flex().flex_col().children(rows);
-            let height = heights[side];
-            // Board keymap: a column running past the body's foot is cut there, one ending within a row of it on its last row's half.
-            let cut = if height > foot {
-                foot
-            } else {
-                height - KEY_ROW / 2.
-            };
+            let rows = self
+                .probe
+                .attach(div().flex().flex_col().children(rows), COLUMNS[side]);
             let column = div()
                 .flex_1()
                 .min_w_0()
-                .h(px(height))
                 .relative()
-                .debug_selector(move || format!("sheet-column-{side}"));
-            grid = grid.child(if below && height > foot - KEY_ROW {
-                column
-                    .child(rows.h(px(cut)).overflow_hidden())
+                .debug_selector(move || format!("sheet-column-{side}"))
+                .child(rows);
+            // Board keymap: a column running past the body's foot is cut there, one ending within a row of it on its last row's half.
+            let cut = measured.feet[side]
+                .filter(|_| below)
+                .filter(|end| end.end > foot - 2. * (end.end - end.half))
+                .map(|end| if end.end > foot { foot } else { end.half });
+            grid = grid.child(match cut {
+                Some(cut) => column
                     .child(Self::fade(side, cut, ink))
-            } else {
-                column.child(rows)
+                    .child(Self::mask(side, cut, ink)),
+                None => column,
             });
         }
         self.body(grid, cx).id("sheet-rest")
+    }
+
+    /// The column's ground from its cut down, hiding the half row and the rows under the fade without moving the layout.
+    fn mask(side: usize, cut: f32, ink: &Ink) -> Div {
+        div()
+            .absolute()
+            .left_0()
+            .right_0()
+            .top(px(cut))
+            .bottom_0()
+            .debug_selector(move || format!("sheet-mask-{side}"))
+            .bg(ink.surface)
     }
 
     /// The 18px fade over a column's cut, as each clipped menu ends to say it scrolls.
@@ -288,7 +307,7 @@ impl Render for SheetView {
             .unwrap_or_default();
         let ink = Ink::inherited(&window.text_style(), theme);
         let searching = !self.sheet.query.is_empty();
-        let (most, body) = self.laid_out(window, cx);
+        let measured = self.laid_out(window, cx);
         let viewport = window.viewport_size();
         let (left, top, card_w, card_h) =
             card_rect(f32::from(viewport.width), f32::from(viewport.height));
@@ -344,7 +363,7 @@ impl Render for SheetView {
             )
             .child(self.results(&ink, cx))
         } else {
-            card.child(self.columns(most, body, &ink, cx))
+            card.child(self.columns(&measured, &ink, cx))
         };
         let card = marks::card(card);
         marks::ground(

@@ -3,6 +3,23 @@ use super::{SheetView, KEY_ROW};
 use crate::g2::st1::wheel::travel;
 use gpui::{div, prelude::*, px, Context, Div, ScrollWheelEvent, Window};
 
+/// What the last frame laid out, read before the probe clears for this one.
+pub(super) struct Measured {
+    pub most: f32,
+    pub body: f32,
+    pub feet: [Option<Foot>; 2],
+}
+
+/// A resting column's end and its last row's middle, measured from the content's top.
+#[derive(Clone, Copy, PartialEq)]
+pub(super) struct Foot {
+    pub end: f32,
+    pub half: f32,
+}
+
+pub(super) const LAST_ROWS: [&str; 2] = ["last-0", "last-1"];
+pub(super) const COLUMNS: [&str; 2] = ["column-0", "column-1"];
+
 impl SheetView {
     /// The clipped body under the card's head, its content drawn at the sheet's scroll.
     pub(super) fn body(&self, content: Div, cx: &mut Context<Self>) -> Div {
@@ -31,8 +48,24 @@ impl SheetView {
         }
     }
 
-    /// Before a frame it reveals a moved key's row, clamps the scroll and returns the last frame's extent and body height read before the probe clears.
-    pub(super) fn laid_out(&mut self, window: &mut Window, cx: &mut Context<Self>) -> (f32, f32) {
+    /// Each resting column's foot as the latest frame laid it out.
+    fn feet(&self) -> [Option<Foot>; 2] {
+        let content = self.probe.bounds("content");
+        [0, 1].map(|side| {
+            let (content, column, last) = (
+                content?,
+                self.probe.bounds(COLUMNS[side])?,
+                self.probe.bounds(LAST_ROWS[side])?,
+            );
+            Some(Foot {
+                end: f32::from(column.bottom() - content.top()),
+                half: f32::from(last.center().y - content.top()),
+            })
+        })
+    }
+
+    /// Before a frame it reveals a moved key's row, clamps the scroll and returns what the last frame measured.
+    pub(super) fn laid_out(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Measured {
         let viewport = self
             .probe
             .bounds("body")
@@ -40,16 +73,20 @@ impl SheetView {
         if std::mem::take(&mut self.sheet.moved) && !self.sheet.query.is_empty() {
             self.sheet.reveal(viewport, KEY_ROW);
         }
-        let most = self.most();
+        let (most, feet) = (self.most(), self.feet());
         self.sheet.scroll = self.sheet.scroll.min(most);
         self.probe.clear();
-        // This frame's boxes exist only after prepaint: draw once more when they moved the end, so the fade and clamp follow.
+        // This frame's boxes exist only after prepaint: draw once more when they moved the end or a foot, so the fades and clamp follow.
         cx.on_next_frame(window, move |view, _, cx| {
-            if (view.most() - most).abs() > 0.5 {
+            if (view.most() - most).abs() > 0.5 || view.feet() != feet {
                 cx.notify();
             }
         });
-        (most, viewport)
+        Measured {
+            most,
+            body: viewport,
+            feet,
+        }
     }
 
     fn wheel(&mut self, event: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {

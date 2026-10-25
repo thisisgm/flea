@@ -185,8 +185,15 @@ fn a_listing_that_shrinks_the_rows_pulls_the_scroll_back_on_the_next_frame(
         "the wheel scrolled the rows"
     );
     let few = builtins("{}");
-    // The update that delivers the listing draws its first frame, still clamped against the longer rows' boxes.
-    cx.update(|_, cx| pane.update(cx, |pane, cx| pane.receive(&listing(2, few), cx)));
+    // One explicit frame draws the shorter listing, its clamp still reading the longer rows' boxes.
+    cx.update(|window, cx| {
+        pane.update(cx, |pane, cx| pane.receive(&listing(2, few), cx));
+        window.draw(cx).clear(cx);
+    });
+    assert!(
+        rect(&pane, cx, "rows").size.height < frame.size.height,
+        "the frame drew the shorter listing"
+    );
     assert!(
         pane.read_with(cx, |pane, _| pane.scroll) > 0.,
         "the first frame after the listing keeps the scroll"
