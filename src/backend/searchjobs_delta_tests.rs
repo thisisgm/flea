@@ -315,34 +315,6 @@ fn search_delta_discarded_by_a_newer_query_never_restores_renumbered_rest() {
 }
 
 #[test]
-fn search_landing_watch_deltas_never_restore_renumbered_rest() {
-    let root = TestDir::new("search-delta-landing");
-    root.dir("scope");
-    for i in 0..40 {
-        root.file(&format!("scope/alpha{i:02}.txt"), "a");
-    }
-    let mut lp = Loop::open(&root, "alpha", 2);
-    assert_eq!(lp.session().pending_rest_len(), 38);
-    let gone = root.join("scope/alpha07.txt");
-    root.assert_contains(&gone);
-    std::fs::remove_file(&gone).unwrap();
-    lp.delta();
-    // The landing reconciles the queued deltas itself and has no standing re-run to answer.
-    lp.session().announced = false;
-    lp.route(Event::SearchWalked);
-    lp.ready();
-    assert!(lp.out.is_empty());
-    assert_eq!(
-        lp.session().pending_rest_len(),
-        0,
-        "a landing that renumbered the index drops the old remainder"
-    );
-    let answer = lp.session().re_answer_now().unwrap();
-    assert_eq!(answer.total, 39);
-    lp.close();
-}
-
-#[test]
 fn search_delta_routed_while_the_worker_owns_the_session_waits_behind_its_answer() {
     let root = TestDir::new("search-delta-owned");
     root.dir("scope");
@@ -374,3 +346,6 @@ fn search_delta_routed_while_the_worker_owns_the_session_waits_behind_its_answer
     );
     lp.close();
 }
+
+#[path = "searchjobs_landing_tests.rs"]
+mod landing;

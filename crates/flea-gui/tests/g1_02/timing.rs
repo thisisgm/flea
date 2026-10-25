@@ -93,10 +93,15 @@ fn loading_animation_crawls_from_its_first_drawn_frame_except_under_reduced_moti
     pane.begin("/fixture/b".into(), Options::default(), 1000);
     pane.tick(1066);
     assert!(!pane.swap.crawling(false));
+    // The shell's render shows the player before the frame paints, so the first drawn frame already crawls.
+    pane.swap.mark.show(true, gpui::Hsla::default());
+    assert_eq!(pane.swap.mark_since, None);
+    assert!(pane.swap.crawling(false));
     pane.frame(1100, true);
     assert_eq!(pane.swap.mark_since, Some(1100));
     assert!(pane.swap.crawling(false));
     assert!(!pane.swap.crawling(true));
+    pane.swap.mark.show(false, gpui::Hsla::default());
     pane.swap.mark_shown(false, 9000);
     assert!(!pane.swap.crawling(false));
 }
