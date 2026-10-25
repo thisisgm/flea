@@ -406,6 +406,14 @@ for row in "${ENTRANT_ROWS[@]}"; do
         # A path git cannot read is said so, never recorded as a blank sha that reads clean.
         sha=unreadable tag=unreadable dirty=unreadable
       fi
+      if [ -n "$repo" ] && [ -n "$bin" ]; then
+        resolved_repo=$(readlink -f "$repo") || resolved_repo=''
+        resolved_bin=$(readlink -f "$bin") || resolved_bin=''
+        case $resolved_bin in
+          "$resolved_repo"/*) [ -n "$resolved_repo" ] || { sha=unknown; tag=unknown; dirty=unknown; } ;;
+          *) sha=unknown; tag=unknown; dirty=unknown ;;
+        esac
+      fi
       if [ -n "$bin" ] && [ -x "$bin" ]; then
         built=$(date -Is -r "$bin")
         size=$(stat -c %s "$bin")
@@ -435,8 +443,10 @@ for row in "${ENTRANT_ROWS[@]}"; do
       esac
       reports="binary absent"
       [ -x "$binary" ] && reports="binary reports $("$binary" --version 2>&1 | head -1)"
-      printf '%-10s %-4s source %s committed %s, built locally from this checkout%s\n' \
-        "$id" "$kind" "${desc:-absent}" "${when:-unknown}" "$note; $reports" >> "$OUT"
+      build_note='local build provenance unknown'
+      [ -n "$desc" ] && build_note='built locally from this checkout'
+      printf '%-10s %-4s source %s committed %s, %s%s\n' \
+        "$id" "$kind" "${desc:-absent}" "${when:-unknown}" "$build_note" "$note; $reports" >> "$OUT"
       ;;
     *)
       path=$(command -v "$comm" 2>/dev/null)
@@ -464,6 +474,7 @@ if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
   say "Receipt: $B5_RIVAL_MANIFEST, $(sha256sum "$B5_RIVAL_MANIFEST")"
   say '```json'
   cat "$B5_RIVAL_MANIFEST" >> "$OUT" || exit 1
+  say ''
   say '```'
 fi
 say ""

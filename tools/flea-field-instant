@@ -2230,6 +2230,7 @@ def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, on
     S.ENV = S.session_env()
     os.environ.update(S.ENV)
     S.UI_TOKENS[:] = [tree + "/ui"]
+    S.GUI_BINARIES[:] = S.flea_gui_binaries([{"entrant": "flea", "flea_dir": tree, "flea_bin": binary}])
     S.require_idle()
     keys = N.NavKeys()
     ctx = {"tree": tree, "root": fx["root"], "fx": fx, "sbx": fx["root"], "out_dir": out_dir, "keys": keys,

@@ -162,6 +162,8 @@ assert run.returncode == 0, run.stderr
 text = manifest.read_text()
 assert 'built locally from this checkout' not in text and 'prebuilt x86_64 binary' not in text
 assert '## B5 rival receipt' in text and '1' * 40 in text and '2' * 40 in text
+receipt_block = text.split('```json\n', 1)[1].split('\n```', 1)[0]
+assert json.loads(receipt_block) == json.loads(receipt.read_text()), 'receipt fence must close on its own line'
 parsed = R.manifest_section(str(manifest))['entries']
 for asset in archive_rows:
     assert parsed[asset['id']]['fields'][3] == asset['expected_version'].split()[1]
@@ -259,6 +261,7 @@ own = subprocess.check_output(['git', 'describe', '--tags', '--always'], text=Tr
 for name in ('strata', 'strata-nightly'):
     line = next(l for l in (root / 'no-src.md').read_text().splitlines() if l.startswith(name + ' '))
     assert ' source absent ' in line and own not in line, line
+    assert 'built locally from this checkout' not in line, line
 # A strata row whose binary is unset reads "binary absent", never a shell error.
 for name, var in (('strata', 'STRATA_BIN'), ('strata-nightly', 'STRATA_NIGHTLY_BIN')):
     unset_env = {k: v for k, v in plain_env.items() if k != var}
@@ -291,6 +294,52 @@ built.chmod(0o755)
 for binary, wanted in ((str(built), head), (fresh, 'unknown')):
     got = S.Product.identity({'entrant': 'flea', 'flea_dir': str(tree), 'flea_bin': binary, 'frontend': 'qml'}, [binary])
     assert got['build_sha'] == wanted, (binary, got)
+external = root / 'external-flea.md'
+run = subprocess.run(['tools/flea-bench-manifest', str(external), str(fixture)],
+                     input='flea|gui|flea\nflea-anchor|gui|flea\n',
+                     env=dict(env, FLEA_REPO=str(tree), ANCHOR_REPO=str(tree)), capture_output=True, text=True)
+assert run.returncode == 0, run.stderr
+for line in external.read_text().splitlines():
+    if line.startswith(('flea ', 'flea-anchor ')):
+        assert ' source unknown ' in line and head[:7] not in line, line
+selection = Path('tools/flea-field-bench').read_text().split('export FLEA_UI=', 1)[1].split('# manifest selection begin', 1)[0]
+selection = 'export FLEA_UI=' + selection
+for candidate, anchor, ok in ((str(built), '', True), (fresh, '', False), (str(built), fresh, False)):
+    selected = subprocess.run(['bash', '-c', selection], env=dict(env, FLEA_REPO=str(tree), FLEA_BIN=candidate,
+                              ANCHOR_REPO=str(root / 'anchor'), ANCHOR_BIN=anchor), capture_output=True, text=True)
+    assert (selected.returncode == 0) == ok, (candidate, anchor, selected.returncode, selected.stderr)
+    if not ok:
+        assert 'is outside its source tree' in selected.stderr, selected.stderr
+# Census registers the selected native binary before the real idle guard can refuse a leftover.
+(root / 'fixtures.json').write_text(json.dumps({'root': str(root)}))
+class IdleReached(Exception):
+    pass
+for chosen in (None, fresh):
+    expected_gui = str(Path(chosen or str(tree / 'target/release/flea')).with_name('flea-gui'))
+    def idle():
+        assert I.S.GUI_BINARIES == [expected_gui], I.S.GUI_BINARIES
+        raise IdleReached()
+    with patch.object(I, 'parts', return_value={'probe': []}), patch.object(I.S, 'session_env', return_value={}), \
+         patch.object(I.S, 'require_idle', side_effect=idle):
+        try:
+            I.run_part('probe', str(root), str(tree), str(root / 'census'), frontend='gpui', binary=chosen)
+        except IdleReached:
+            pass
+        else:
+            raise AssertionError('census never checked idle')
+    I.S.GUI_BINARIES[:] = []
+# A ledger failure refuses before the harness claims the machine or installs cleanup hooks.
+bad_parent = root / 'not-a-directory'
+bad_parent.touch()
+with patch.object(S, 'LEDGER', str(bad_parent / 'runs.jsonl')), patch.object(S, 'alive_targets', return_value=[]), \
+     patch.object(S.atexit, 'register') as register:
+    try:
+        S.require_idle()
+    except SystemExit as refusal:
+        assert 'cannot record harness run' in str(refusal) and str(bad_parent) in str(refusal), refusal
+    else:
+        raise AssertionError('a run with an unwritable ledger started')
+    assert not S._RUN and not register.called, S._RUN
 # A flea-gui outside the arms' trees is never a target, so the harness neither refuses on it nor ends it.
 elsewhere = root / 'elsewhere' / 'flea-gui'
 elsewhere.parent.mkdir()
