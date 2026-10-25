@@ -127,6 +127,8 @@ function table(held, total, delim) {
         var lines = []
         while (i <= last && held[i])
             lines.push(held[i++].t)
+        if (start === 1)
+            lines[0] = lines[0].replace(/^\uFEFF/, "")
         if (start !== 1 && held[start].record === undefined)
             continue
         var at = start
