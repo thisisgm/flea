@@ -312,6 +312,7 @@ impl Navigator {
         if let Some(target) = self.pending_select.take() {
             if anchor::apply_select(pane, &target, selected) {
                 self.landed = Some((pane.held.listing, pane.cursor));
+                self.lone_landing = Some(pane.cursor);
             }
         }
     }

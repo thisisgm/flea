@@ -1591,6 +1591,8 @@
   "dialogs.file.run.failed_terminal": "That program could not be run in a terminal.",
   "dialogs.file.run.failed_handler": "That application did not open the file.",
   "dialogs.file.run.failed_text": "No text editor opened that file.",
+  "dialogs.file.terminal.busy": "Still opening the last terminal; try again in a moment.",
+  "dialogs.file.terminal.failed": "No terminal on this system opened that folder.",
   "dialogs.file.open.busy": "Still opening the last file; try again in a moment.",
   "dialogs.file.open.failed": "No application on this system opened that file.",
   "dialogs.file.open.resolving": "Still resolving the last selection; try again.",
