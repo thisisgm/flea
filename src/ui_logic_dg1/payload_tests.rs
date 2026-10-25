@@ -103,9 +103,9 @@ fn a_signed_escape_is_a_skip_like_any_bad_escape() {
 #[test]
 fn a_gnome_offer_that_does_not_parse_falls_through_to_the_uri_list() {
     let gnome = b"copy\r\nfile:///tmp/a\r\n";
-    let uri = b"file:///tmp/a\r\n";
+    let uri = b"file:///tmp/b\r\n";
     let foreign = choose(&[Offer { mime: GNOME, bytes: gnome }, Offer { mime: URILIST, bytes: uri }]);
-    assert_eq!(foreign, Some(ForeignSel { clip: "copy".into(), paths: vec!["/tmp/a".into()], token: String::new() }));
+    assert_eq!(foreign, Some(ForeignSel { clip: "copy".into(), paths: vec!["/tmp/b".into()], token: String::new() }));
     let empty = choose(&[Offer { mime: GNOME, bytes: b"cut\n" }, Offer { mime: URILIST, bytes: uri }]);
-    assert_eq!(empty.map(|sel| sel.paths), Some(vec!["/tmp/a".to_string()]), "a GNOME offer naming no files falls through too");
+    assert_eq!(empty.map(|sel| sel.paths), Some(vec!["/tmp/b".to_string()]), "a GNOME offer naming no files falls through too");
 }

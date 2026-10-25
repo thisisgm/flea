@@ -25,8 +25,10 @@ fn an_own_watcher_token_changes_nothing() {
     pane.set_ok("own");
     assert_eq!(pane.current().token, "own");
     let before = pane.current();
+    let counts = (pane.session.borrow().generation(), pane.session.borrow().revision());
     pane.changed("copy", paths(&["/a/f1"]), "own");
     assert_eq!(pane.current(), before);
+    assert_eq!((pane.session.borrow().generation(), pane.session.borrow().revision()), counts, "an own echo replaces nothing");
 }
 
 #[test]
@@ -250,8 +252,10 @@ fn an_own_token_offered_again_after_a_foreign_selection_applies() {
     let mut pane = Pane::new();
     pane.clip(&en, true, Some(paths(&["/a/f2"])), vec![]);
     pane.set_ok("own-token");
+    let counts = (pane.session.borrow().generation(), pane.session.borrow().revision());
     pane.changed("cut", paths(&["/a/f2"]), "own-token");
     assert_eq!(pane.current().token, "own-token", "the own echo is ignored");
+    assert_eq!((pane.session.borrow().generation(), pane.session.borrow().revision()), counts, "the own echo replaces nothing");
     pane.changed("copy", paths(&["/other/b"]), "");
     assert_eq!(pane.current().paths, paths(&["/other/b"]));
     pane.changed("cut", paths(&["/a/f2"]), "own-token");
