@@ -14,6 +14,8 @@ impl Presentation {
             }
         };
         object([
+            ("gpuReadiness", super::timing::gpu_readiness()),
+            ("presentTiming", self.timing.json(supported)),
             (
                 "coverage",
                 Json::Str(
