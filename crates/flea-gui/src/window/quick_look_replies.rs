@@ -33,6 +33,7 @@ fn number(doc: &Json, key: &str) -> f64 {
 }
 
 impl Shell {
+    // Sample input: {"t":"code","token":7,"slot":"quicklook","state":"plain","first":1,"total":2,"lines":[[0,"a"],[]]}; a meta, compare or menuaction line carries the ask's token the same way (menuaction as "id").
     /// A backend line the open card asked for; false for every other line.
     pub(crate) fn quick_look_line(
         &mut self,

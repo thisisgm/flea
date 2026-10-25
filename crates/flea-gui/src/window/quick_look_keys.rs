@@ -22,6 +22,7 @@ pub(super) fn context(subject: &Subject) -> Keys {
     }
 }
 
+// Sample input: {"t":"code","token":7,"slot":"quicklook","state":"styled","first":1,"total":2,"lines":[[5,"fn",0," main"],[]]}
 /// A code reply's lines as plain text, each line's runs joined without their roles.
 pub(super) fn plain_lines(doc: &Json) -> impl Iterator<Item = String> + '_ {
     doc.get("lines")
