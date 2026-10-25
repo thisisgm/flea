@@ -258,25 +258,25 @@ impl Element for RailElement {
                         palette.foreground.opacity(crate::list::HOVER),
                     ));
                 }
-                let highlighted = if model.focused && !model.pointer_focus {
-                    model.cursor
-                } else {
-                    model.lit
-                };
+                let keyboard = model.focused && !model.pointer_focus;
+                let highlighted = if keyboard { model.cursor } else { model.lit };
                 if highlighted == Some(row.index) {
-                    let plate = if model.focused && !model.pointer_focus {
+                    let plate = if keyboard {
                         palette.accent.opacity(crate::list::CURSOR_WASH)
                     } else {
                         palette.foreground.opacity(crate::list::GREY_CURSOR)
                     };
                     window.paint_quad(fill(box_of(row.rect), plate));
-                    window.paint_quad(fill(
-                        Bounds::new(
-                            point(px(row.rect.x), px(row.rect.y)),
-                            size(px(2.), px(row.rect.height)),
-                        ),
-                        palette.accent_frame,
-                    ));
+                    // HIG rail-favorites: only .rr.cur, the rail holding the keyboard, draws the accent edge.
+                    if keyboard {
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(px(row.rect.x), px(row.rect.y)),
+                                size(px(2.), px(row.rect.height)),
+                            ),
+                            palette.accent_frame,
+                        ));
+                    }
                 }
                 super::paint::paint_mark(
                     row,
