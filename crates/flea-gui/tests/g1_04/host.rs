@@ -325,10 +325,11 @@ fn an_idle_pane_moves_and_extends_selection_on_shift_down(cx: &mut TestAppContex
 fn an_idle_pane_emits_the_row_actions_the_busy_tests_hold(cx: &mut TestAppContext) {
     let (cx, shell, observed, _subscription) = key_shell(cx, false);
     press(cx, &shell, "delete", None, shifted());
-    press(cx, &shell, "f2", None, Modifiers::default());
     press(cx, &shell, "c", None, controlled());
-    assert_eq!(
-        *observed.borrow(),
-        vec!["deletePermanently", "rename", "copy"]
-    );
+    // Rename has an in-process owner: F2 opens the cursor row's editor instead of leaving an emit nobody hears.
+    press(cx, &shell, "f2", None, Modifiers::default());
+    assert_eq!(*observed.borrow(), vec!["deletePermanently", "copy"]);
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.rename.edit.is_some(), "F2 opened the editor")
+    });
 }
