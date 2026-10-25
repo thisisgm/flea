@@ -249,14 +249,7 @@ impl Shell {
             ),
         };
         host.nav = crate::navigation::Navigator::new(folders, writer);
-        let mut listing = self
-            .strip
-            .launch_listing(&mut host, side)
-            .unwrap_or_else(|| host.nav.listing(&host.pane, &host.path.clone(), false));
-        listing.select = self
-            .strip
-            .launch_select(side, &host.path)
-            .or_else(|| host.select.clone());
+        let listing = self.strip.start_listing(&mut host, side, self.focus_side);
         #[cfg(test)]
         let started = constructor_fixture::start_backend(&listing, cx);
         #[cfg(not(test))]
@@ -277,7 +270,9 @@ impl Shell {
                     }
                 }));
                 // Each backend watches the clipboard from its start, as Backend.qml does.
-                self.clipboard.board.watch(side as u64, &crate::g2::dg1::join::PaneWire(Some(&backend)));
+                self.clipboard
+                    .board
+                    .watch(side as u64, &crate::g2::dg1::join::PaneWire(Some(&backend)));
                 host.backend = Some(backend);
             }
             Err(error) => {

@@ -44,6 +44,11 @@ fn m9_g1rows_04_closed_tab_cannot_retarget_live_gesture() {
     bar.drag_moved(0., 4);
     world.tabs.close_at(&mut world.pane, 2);
     let remaining = world.identities();
+    assert!(
+        !bar.tab_lift_moved(&mut world, 900., true),
+        "a live gesture whose identity closed never retargets or tears off"
+    );
+    assert!(bar.drag_from.is_none() && !bar.out_active);
     bar.tab_lift_ended(&mut world, 2);
     assert_eq!(
         world.identities(),
@@ -51,7 +56,6 @@ fn m9_g1rows_04_closed_tab_cannot_retarget_live_gesture() {
         "closing the held identity cancels its reorder"
     );
     assert!(bar.out_payload.is_empty());
-    assert!(!bar.tab_lift_moved(&mut world, 900., true));
 
     let mut world = World::new(4);
     let mut bar = world.bar();

@@ -1,14 +1,79 @@
 //! Addressed acknowledgments and the fork's native private-MIME drag transport.
 use super::transfer;
+use crate::g2::dg2::router::{Client, Native as Landing, Offered};
 use crate::{ipc::server::Answer, state::Shell};
 use flea::ipc::{registry, wire::Request};
-use gpui::{Context, NativeDragAction, NativeDragActions, NativeDragPhase, Window};
+use gpui::{point, px, Context, NativeDragAction, NativeDragActions, NativeDragPhase, Window};
+use std::{cell::Cell, rc::Rc};
 
-fn refused() -> NativeDragActions {
-    NativeDragActions {
-        copy: false,
-        move_: false,
-        preferred: NativeDragAction::Move,
+// The strip's half of the shared router: it claims only the private tab MIME, so file clients never see a tab.
+struct TabClient {
+    window: u64,
+    send: async_channel::Sender<Native>,
+    capacity: Rc<Cell<bool>>,
+    zone: Rc<Cell<Option<gpui::Bounds<gpui::Pixels>>>>,
+    catchers: super::catcher::Catchers,
+}
+
+impl TabClient {
+    fn in_zone(&self, window: u64, at: gpui::Point<gpui::Pixels>) -> bool {
+        window == self.window && self.zone.get().is_some_and(|zone| zone.contains(&at))
+    }
+}
+
+impl Client for TabClient {
+    fn offer(&self, offered: &Offered<'_>) -> Option<NativeDragActions> {
+        if !transfer::has_tab_format(offered.types) {
+            return None;
+        }
+        let at = point(px(offered.position.0), px(offered.position.1));
+        let ours = self.catchers.handle(offered.window).is_some()
+            || self.in_zone(offered.window, at) && self.capacity.get();
+        if !ours {
+            return None;
+        }
+        let _ = self.send.try_send(Native::Hover);
+        Some(NativeDragActions {
+            copy: false,
+            move_: true,
+            preferred: NativeDragAction::Move,
+        })
+    }
+
+    fn land(&self, event: &Landing<'_>) -> Option<bool> {
+        let desktop = self.catchers.handle(event.window);
+        if event.window != self.window && desktop.is_none() {
+            return None;
+        }
+        let bytes = event.get(transfer::TAB_MIME)?;
+        let at = point(px(event.position.0), px(event.position.1));
+        if desktop.is_none() && !self.in_zone(event.window, at) {
+            return Some(false);
+        }
+        let Ok(text) = std::str::from_utf8(&bytes) else {
+            return Some(false);
+        };
+        if transfer::parse(text).is_none() {
+            return Some(false);
+        }
+        if let Some(handle) = desktop {
+            let Some(global) = self.catchers.global(handle, at) else {
+                return Some(false);
+            };
+            return Some(
+                self.catchers.accepts(handle, text)
+                    && (!event.dropped
+                        || self
+                            .send
+                            .try_send(Native::Desktop(text.into(), global))
+                            .is_ok()),
+            );
+        }
+        Some(!event.dropped || self.send.try_send(Native::Drop(text.into(), at)).is_ok())
+    }
+
+    fn source(&self, event: &gpui::NativeDragEvent) {
+        let _ = self.send.try_send(Native::Source(*event));
     }
 }
 
@@ -69,71 +134,15 @@ impl Shell {
 
     pub(crate) fn follow_tab_drags(&mut self, window: &Window, cx: &mut Context<Self>) {
         let (send, receive) = async_channel::unbounded();
-        let handle = window.window_handle();
-        let offered = send.clone();
-        let capacity = self.strip.capacity.clone();
-        let zone = self.strip.drop_zone.clone();
-        let catchers = self.strip.catchers.clone();
-        cx.on_native_drag_offer(move |offer| {
-            if transfer::has_tab_format(&offer.offered_types) && catchers.contains(offer.window)
-                || offer.window == handle
-                    && zone
-                        .get()
-                        .is_some_and(|zone| zone.contains(&offer.position))
-                    && capacity.get()
-                    && transfer::has_tab_format(&offer.offered_types)
-            {
-                let _ = offered.try_send(Native::Hover);
-                NativeDragActions {
-                    copy: false,
-                    move_: true,
-                    preferred: NativeDragAction::Move,
-                }
-            } else {
-                refused()
-            }
+        // One process-wide router owns the fork's single-slot callbacks; this window registers its strip.
+        let client = Rc::new(TabClient {
+            window: window.window_handle().window_id().as_u64(),
+            send,
+            capacity: self.strip.capacity.clone(),
+            zone: self.strip.drop_zone.clone(),
+            catchers: self.strip.catchers.clone(),
         });
-        let drops = send.clone();
-        let zone = self.strip.drop_zone.clone();
-        let catchers = self.strip.catchers.clone();
-        cx.on_native_drop(move |event| {
-            let desktop = catchers.contains(event.window);
-            if !desktop
-                && (event.window != handle
-                    || !zone
-                        .get()
-                        .is_some_and(|zone| zone.contains(&event.position)))
-            {
-                return false;
-            }
-            let Some(bytes) = event.data.get(transfer::TAB_MIME) else {
-                return false;
-            };
-            let Ok(text) = std::str::from_utf8(&bytes) else {
-                return false;
-            };
-            if transfer::parse(text).is_none() {
-                return false;
-            }
-            if desktop {
-                let Some(global) = catchers.global(event.window, event.position) else {
-                    return false;
-                };
-                return catchers.accepts(event.window, text)
-                    && (!event.dropped
-                        || drops.try_send(Native::Desktop(text.into(), global)).is_ok());
-            }
-            if event.dropped {
-                drops
-                    .try_send(Native::Drop(text.into(), event.position))
-                    .is_ok()
-            } else {
-                true
-            }
-        });
-        cx.on_native_drag(move |event| {
-            let _ = send.try_send(Native::Source(event));
-        });
+        self.strip.router = Some(crate::g2::dg2::router::shared(cx).register(client));
         self.strip.native = Some(cx.spawn_in(window, async move |this, cx| {
             while let Ok(event) = receive.recv().await {
                 let _ = cx.update(|window, cx| {

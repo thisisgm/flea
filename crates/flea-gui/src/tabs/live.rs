@@ -121,7 +121,17 @@ impl Live for Pane<'_> {
         if self.host.nav.pending_sort.is_some() {
             return None;
         }
-        self.host.nav.sort_snapshot(&self.host.pane).ok()
+        match self.host.nav.sort_snapshot(&self.host.pane) {
+            Ok(snapshot) => Some(snapshot),
+            // A search tab, like the shipped strip, carries its resting folder in the live order.
+            Err(crate::navigation::Refusal::NotLoaded) if self.search_live() => {
+                Some(crate::navigation::sort::Snapshot {
+                    path: self.resting_path(),
+                    order: self.host.nav.order,
+                })
+            }
+            Err(_) => None,
+        }
     }
     fn list_requests(&self) -> usize {
         self.host.pane.list_requests
@@ -148,17 +158,14 @@ impl Live for Pane<'_> {
         search
     }
     fn open(&mut self, path: &str, open: Open) {
+        let nav = &mut self.host.nav;
+        // A tab lists in its own order without remembering it, keeping the switch's hold choice.
+        let previous = nav.order;
+        let preserve = open.order.is_some() && !std::mem::replace(&mut nav.preserve_sort, true);
         if let Some(order) = open.order {
-            let _ = self.host.nav.restore_sort_snapshot(
-                &mut self.host.pane,
-                &crate::navigation::sort::Snapshot {
-                    path: path.into(),
-                    order,
-                },
-            );
-            return;
+            nav.order = order;
         }
-        let _ = self.host.nav.open_without_history(
+        let result = nav.open_without_history(
             &mut self.host.pane,
             path,
             Options {
@@ -169,6 +176,12 @@ impl Live for Pane<'_> {
             None,
             false,
         );
+        if preserve {
+            nav.preserve_sort = false;
+        }
+        if result != Ok(true) {
+            nav.order = previous;
+        }
     }
     fn set_cursor(&mut self, index: usize) {
         self.host.pane.cursor = index.min(self.total().saturating_sub(1));

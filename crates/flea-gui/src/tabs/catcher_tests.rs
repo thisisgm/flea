@@ -207,6 +207,7 @@ fn u25_a_lift_asks_the_compositor_for_its_own_window_once(cx: &mut TestAppContex
             let now = shell.tab_now();
             shell.with_tabs(|bar, panes| bar.tab_lift_began(panes, 0, now));
             shell.begin_tab_geometry(cx);
+            shell.begin_tab_geometry(cx);
             assert!(
                 shell.strip.geometry.rect.is_none(),
                 "never read on the UI thread"
@@ -228,4 +229,37 @@ fn u25_a_lift_asks_the_compositor_for_its_own_window_once(cx: &mut TestAppContex
         );
         assert!(shell.strip.geometry.strip.unwrap().width > 0.);
     });
+}
+
+#[gpui::test]
+fn u25_finished_and_cancelled_tab_drags_close_the_desktop_catchers(cx: &mut TestAppContext) {
+    for cancelled in [false, true] {
+        let (backend, _requests) = Backend::test_channel();
+        let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
+        cx.update(|window, cx| {
+            shell.update(cx, |shell, cx| {
+                key(shell, "t", window, cx);
+                let now = shell.tab_now();
+                shell.with_tabs(|bar, panes| bar.tab_lift_began(panes, 0, now));
+                assert!(shell.tab_native_payload(cx).is_some());
+                let catchers: Vec<_> = cx
+                    .windows()
+                    .into_iter()
+                    .filter(|handle| shell.strip.catchers.contains(*handle))
+                    .collect();
+                assert!(!catchers.is_empty());
+                if cancelled {
+                    shell.strip.bar.cancel_out(now);
+                } else {
+                    shell.strip.bar.out_finished(now);
+                }
+                shell.tabs_changed(window, cx);
+                assert!(
+                    catchers.iter().all(|handle| !cx.windows().contains(handle)),
+                    "cancelled={cancelled}: the catchers close when the drag ends"
+                );
+            })
+        });
+        cx.run_until_parked();
+    }
 }

@@ -34,6 +34,15 @@ impl Catchers {
         Some(*origin + at)
     }
 
+    // The shared drag router names windows by id.
+    pub fn handle(&self, window: u64) -> Option<AnyWindowHandle> {
+        self.windows
+            .borrow()
+            .iter()
+            .map(|(handle, _)| *handle)
+            .find(|handle| handle.window_id().as_u64() == window)
+    }
+
     pub fn accepts(&self, window: AnyWindowHandle, payload: &str) -> bool {
         self.contains(window) && self.payload.borrow().as_deref() == Some(payload)
     }
