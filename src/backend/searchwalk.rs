@@ -27,6 +27,8 @@ pub(crate) struct WalkProbes {
     pub(crate) remote_reads: AtomicUsize,
     #[cfg(test)]
     pub(crate) body: Mutex<Option<String>>,
+    #[cfg(test)]
+    pub(crate) landing_sent: AtomicBool,
 }
 
 impl WalkProbes {
@@ -43,6 +45,8 @@ impl WalkProbes {
             remote_reads: AtomicUsize::new(0),
             #[cfg(test)]
             body: Mutex::new(None),
+            #[cfg(test)]
+            landing_sent: AtomicBool::new(false),
         }
     }
 }
@@ -253,6 +257,8 @@ impl Session {
             let _ = progress.join();
             thread_done.store(true, Ordering::Release);
             let _ = walked.send(crate::backend::events::Event::SearchWalked);
+            #[cfg(test)]
+            thread_probes.landing_sent.store(true, Ordering::Release);
             dirs
         });
         #[cfg(test)]

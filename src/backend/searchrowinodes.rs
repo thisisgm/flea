@@ -3,8 +3,11 @@ use std::collections::HashSet;
 use std::ffi::{c_char, c_int, c_void, CString};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
+use super::watch::{IN_CLOEXEC, IN_DONT_FOLLOW, IN_NONBLOCK};
+use super::searchrowcache::{DRAIN_READ_LIMIT, PATH_OVERHEAD_BYTES, READ_BUFFER_BYTES};
 
-const MASK: u32 = 0x0200_2fce;
+// The inode watch names the link itself, so it is the row mask plus IN_DONT_FOLLOW.
+const MASK: u32 = IN_DONT_FOLLOW | super::searchrowcache::MASK;
 extern "C" {
     fn inotify_init1(flags: c_int) -> c_int;
     fn inotify_add_watch(fd: c_int, path: *const c_char, mask: u32) -> c_int;
@@ -20,7 +23,7 @@ pub(crate) struct Inodes {
 impl Inodes {
     fn arm(paths: &HashSet<PathBuf>) -> Option<Self> {
         if paths.len() > super::searchrowcache::ROW_CAP { return None; }
-        let fd = unsafe { inotify_init1(0x0008_0800) };
+        let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
         if fd < 0 { return None; }
         let fd = unsafe { OwnedFd::from_raw_fd(fd) };
         for path in paths {
@@ -33,8 +36,8 @@ impl Inodes {
     // Every event on this descriptor invalidates inode facts; any lost coverage also forces rearming.
     fn unchanged(&mut self) -> bool {
         let Some(fd) = self.fd.as_ref().map(AsRawFd::as_raw_fd) else { return false };
-        let mut buffer = [0u8; 8192];
-        for _ in 0..16 {
+        let mut buffer = [0u8; READ_BUFFER_BYTES];
+        for _ in 0..DRAIN_READ_LIMIT {
             let count = unsafe { read(fd, buffer.as_mut_ptr().cast(), buffer.len()) };
             if count < 0 {
                 match std::io::Error::last_os_error().kind() {
@@ -64,7 +67,7 @@ impl Inodes {
     }
 
     pub(crate) fn bytes(&self) -> usize {
-        self.paths.iter().map(|path| path.as_os_str().len() + std::mem::size_of::<PathBuf>() + 64).sum()
+        self.paths.iter().map(|path| path.as_os_str().len() + std::mem::size_of::<PathBuf>() + PATH_OVERHEAD_BYTES).sum()
     }
 
     #[cfg(test)]

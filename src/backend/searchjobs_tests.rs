@@ -153,12 +153,15 @@ fn pss_kb() -> usize {
         .find_map(|line| line.strip_prefix("Pss:").and_then(|rest| rest.split_whitespace().next()).and_then(|n| n.parse().ok())).unwrap()
 }
 
+// CLOCK_PROCESS_CPUTIME_ID from clock_gettime(2): the CPU time this process has used.
+const CLOCK_PROCESS_CPUTIME_ID: i32 = 2;
+
 fn process_cpu_ns() -> u64 {
     #[repr(C)]
     struct Timespec { seconds: i64, nanoseconds: i64 }
     extern "C" { fn clock_gettime(clock: i32, time: *mut Timespec) -> i32; }
     let mut time = Timespec { seconds: 0, nanoseconds: 0 };
-    assert_eq!(unsafe { clock_gettime(2, &mut time) }, 0);
+    assert_eq!(unsafe { clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &mut time) }, 0);
     time.seconds as u64 * 1_000_000_000 + time.nanoseconds as u64
 }
 

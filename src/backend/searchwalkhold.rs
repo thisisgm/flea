@@ -67,7 +67,7 @@ pub(crate) fn wait_landed(rx: &std::sync::mpsc::Receiver<crate::backend::events:
     }
 }
 
-// Walk progress shares the landing event, so a walk's landing is a SearchWalked once its walk reports itself done; `skip` passes the other events a caller expects.
+// Once the walk is done, wait for its final send and consume every queued progress wake through that landing.
 pub(crate) fn wait_walk_landed(
     rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>,
     session: &crate::backend::searchsession::Session,
@@ -82,6 +82,13 @@ pub(crate) fn wait_walk_landed(
         if !matches!(event, crate::backend::events::Event::SearchWalked) {
             assert!(skip(&event), "the walk announces itself");
         } else if session.walk_done.load(std::sync::atomic::Ordering::Acquire) {
+            while !session.probes.landing_sent.load(std::sync::atomic::Ordering::Acquire) {
+                assert!(std::time::Instant::now() < deadline, "the walk sends its landing");
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+            for event in rx.try_iter() {
+                assert!(matches!(event, crate::backend::events::Event::SearchWalked) || skip(&event), "only expected events follow walk progress");
+            }
             return;
         }
     }

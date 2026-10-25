@@ -19,21 +19,29 @@ pub fn write_window_gen(
     gen: Option<usize>,
 ) {
     let start = st.window_start(start);
-    let (metas, ms) = match window_metas(st, start, count) {
-        Ok(window) => window,
-        Err(error) => { say(out, &error_line(&error)); return; }
+    let (metas, ms, failure) = match window_metas(st, start, count) {
+        Ok((metas, ms)) => (metas, ms, None),
+        // A failed stat still answers its rows, each with the zeroes a lost stat renders, so a listing hold never waits on rows that cannot come.
+        Err(error) => (super::meta::lost_window(&st.listing, start, count), 0.0, Some(error)),
     };
-    for (i, m) in metas.iter().enumerate() {
-        st.window_meta.insert(start + i, (m.mode, m.mtime, m.target_is_dir));
-    }
-    // Sample window: start 0 with 3 metas keeps keys 0..3, so a scrolled-past window never grows the map.
     let end = start.saturating_add(metas.len());
-    st.window_meta.retain(|&row, _| row >= start && row < end);
+    // Zeroes from a failed stat are never cached, so the next window over these rows asks the mount again.
+    if failure.is_none() {
+        for (i, m) in metas.iter().enumerate() {
+            st.window_meta.insert(start + i, (m.mode, m.mtime, m.target_is_dir));
+        }
+        // Sample window: start 0 with 3 metas keeps keys 0..3, so a scrolled-past window never grows the map.
+        st.window_meta.retain(|&row, _| row >= start && row < end);
+    }
     let line = window_line(st, tb, &metas, start, ms);
     match gen {
         Some(gen) => writeln!(out, "{}", super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, start..end)).ok(),
         None => writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok(),
     };
+    // The rows end the listing hold first, then the error names the mount once.
+    if let Some(error) = failure {
+        say(out, &error_line(&error));
+    }
 }
 
 // Cached search rows share the same serializer, including response-local kind indices; an empty window demands no row service.
