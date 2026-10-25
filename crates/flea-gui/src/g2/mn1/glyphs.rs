@@ -64,7 +64,7 @@ pub(super) const CUT: &[(&str, &str, &[u8])] = &[
     ("trash", "flea-menu:trash", cut!("M3 6h18 M8 6V3h8v3 M6 6l1.2 15h9.6L18 6 M10 10v7 M14 10v7")),
     ("type", "flea-menu:type", cut!("M12 4v16 M4 7V4h16v3 M9 20h6")),
     ("undo", "flea-menu:undo", cut!("M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5")),
-    // Open in Agent and Actions, the cuts flea::ui_logic_mn2::rows::MARKS hands the join; appended so FILE keeps its index.
+    // Open in Agent and Actions, from the board source (`design-hig/source/ui.py`, lucide's bot and zap cut to the Omarchy edge); the only copy of these cuts; appended so FILE keeps its index.
     ("bot", "flea-menu:bot", cut!("M12 8V4H8 M4 8h16v12H4z M2 14h2 M20 14h2 M15 13v2 M9 13v2")),
     ("zap", "flea-menu:zap", cut!("M13 2 3 14h9l-1 8 10-12h-9l1-8z")),
 ];

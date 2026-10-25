@@ -238,14 +238,12 @@ fn mn2_mime_globs_match_kinds_the_way_manifests_do() {
 
 #[test]
 fn mn2_the_handed_marks_carry_the_board_cuts() {
-    for (name, path) in [
-        ("zap", "M13 2 3 14h9l-1 8 10-12h-9l1-8z"),
-        ("bot", "M12 8V4H8 M4 8h16v12H4z M2 14h2 M20 14h2 M15 13v2 M9 13v2"),
-        ("hash", "M4 9h16 M4 15h16 M10 3 8 21 M16 3l-2 18"),
-    ] {
-        assert_eq!(rows::mark_path(name), Some(path), "{name}");
-    }
+    assert_eq!(rows::mark_path("hash"), Some("M4 9h16 M4 15h16 M10 3 8 21 M16 3l-2 18"));
     assert_eq!(rows::mark_path("rocket"), None);
+    for drawn in ["zap", "bot"] {
+        assert_eq!(rows::mark_path(drawn), None, "{drawn} has one source, mn1's cut table");
+        assert_eq!(rows::static_glyph(drawn), Some(drawn));
+    }
 }
 
 #[test]
