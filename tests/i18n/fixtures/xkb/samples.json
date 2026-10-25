@@ -1,0 +1,4793 @@
+{
+  "schema": 1,
+  "xkbcommon_version": "1.7.0",
+  "xkeyboard_config_version": "2.42",
+  "keymaps": [
+    {
+      "layout": "us",
+      "keymap_sha256": "aac34a6e47f67dc9908bdc118df5aa0c57f39279419113a0fa7fc790616fccde"
+    },
+    {
+      "layout": "de",
+      "keymap_sha256": "e208202183ff60a1dad1aabcb5a14ec79818a61b71f3da6986b59a4225cbaf79"
+    },
+    {
+      "layout": "fr",
+      "keymap_sha256": "f2e22ee75a8ea685fee2e7e4aff1e7177e9a82ae7b65f0575657bb7a0259c166"
+    },
+    {
+      "layout": "ru",
+      "keymap_sha256": "7f24c02ad50439821d4f7881bdfe9cf09fd95cadca2b7d38def120dd61b7b5e9"
+    },
+    {
+      "layout": "ara",
+      "keymap_sha256": "3deb652d33727388f4299de80635827b38b5bdee2a538bc31d16999d629fd5a3"
+    },
+    {
+      "layout": "il",
+      "keymap_sha256": "430e78fc7ab58bee8ecfcc7a1428f36b007c5d9bbe9aca5dfc3e97ac94dd2e1c"
+    }
+  ],
+  "samples": [
+    {
+      "layout": "us",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:0"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "8",
+        "text": "8",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:0"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:0"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "y",
+        "text": "y",
+        "symbol_text": "y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:0"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "bracketleft",
+        "text": "[",
+        "symbol_text": "[",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:0"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "j",
+        "text": "j",
+        "symbol_text": "j",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:0"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "grave",
+        "text": "`",
+        "symbol_text": "`",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:0"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "z",
+        "text": "z",
+        "symbol_text": "z",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:0"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:1"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "asterisk",
+        "text": "*",
+        "symbol_text": "*",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:1"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "parenright",
+        "text": ")",
+        "symbol_text": ")",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:1"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Y",
+        "text": "Y",
+        "symbol_text": "Y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:1"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "braceleft",
+        "text": "{",
+        "symbol_text": "{",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:1"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "J",
+        "text": "J",
+        "symbol_text": "J",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:1"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "asciitilde",
+        "text": "~",
+        "symbol_text": "~",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:1"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Z",
+        "text": "Z",
+        "symbol_text": "Z",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:1"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:2"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "8",
+        "text": "",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:2"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:2"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "y",
+        "text": "\u0019",
+        "symbol_text": "y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:2"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "bracketleft",
+        "text": "\u001b",
+        "symbol_text": "[",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:2"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "j",
+        "text": "\n",
+        "symbol_text": "j",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:2"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "grave",
+        "text": "",
+        "symbol_text": "`",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:2"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "z",
+        "text": "\u001a",
+        "symbol_text": "z",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:2"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:3"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "asterisk",
+        "text": "*",
+        "symbol_text": "*",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:3"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "parenright",
+        "text": ")",
+        "symbol_text": ")",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:3"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Y",
+        "text": "\u0019",
+        "symbol_text": "Y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:3"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "braceleft",
+        "text": "\u001b",
+        "symbol_text": "{",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:3"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "J",
+        "text": "\n",
+        "symbol_text": "J",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:3"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "asciitilde",
+        "text": "\u001e",
+        "symbol_text": "~",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:3"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Z",
+        "text": "\u001a",
+        "symbol_text": "Z",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:3"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:16"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "8",
+        "text": "8",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:16"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:16"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "y",
+        "text": "y",
+        "symbol_text": "y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:16"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "bracketleft",
+        "text": "[",
+        "symbol_text": "[",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:16"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "j",
+        "text": "j",
+        "symbol_text": "j",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:16"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "grave",
+        "text": "`",
+        "symbol_text": "`",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:16"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "z",
+        "text": "z",
+        "symbol_text": "z",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:16"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:18"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "8",
+        "text": "",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:18"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:18"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "y",
+        "text": "\u0019",
+        "symbol_text": "y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:18"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "bracketleft",
+        "text": "\u001b",
+        "symbol_text": "[",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:18"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "j",
+        "text": "\n",
+        "symbol_text": "j",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:18"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "grave",
+        "text": "",
+        "symbol_text": "`",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:18"
+      }
+    },
+    {
+      "layout": "us",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "z",
+        "text": "\u001a",
+        "symbol_text": "z",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:18"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:0"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "8",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:0"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:0"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "z",
+        "text": "z",
+        "symbol_text": "z",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:0"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "udiaeresis",
+        "text": "ü",
+        "symbol_text": "ü",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:0"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "j",
+        "text": "j",
+        "symbol_text": "j",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:0"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "dead_circumflex",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "TLDE:0"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "y",
+        "text": "y",
+        "symbol_text": "y",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:0"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:1"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "parenleft",
+        "text": "(",
+        "symbol_text": "(",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:1"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "equal",
+        "text": "=",
+        "symbol_text": "=",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:1"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Z",
+        "text": "Z",
+        "symbol_text": "Z",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:1"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Udiaeresis",
+        "text": "Ü",
+        "symbol_text": "Ü",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:1"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "J",
+        "text": "J",
+        "symbol_text": "J",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:1"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "degree",
+        "text": "°",
+        "symbol_text": "°",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:1"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Y",
+        "text": "Y",
+        "symbol_text": "Y",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:1"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:2"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:2"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:2"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "z",
+        "text": "\u001a",
+        "symbol_text": "z",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:2"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "udiaeresis",
+        "text": "ü",
+        "symbol_text": "ü",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:2"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "j",
+        "text": "\n",
+        "symbol_text": "j",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:2"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "dead_circumflex",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "TLDE:2"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "y",
+        "text": "\u0019",
+        "symbol_text": "y",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:2"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:3"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "parenleft",
+        "text": "(",
+        "symbol_text": "(",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:3"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "equal",
+        "text": "=",
+        "symbol_text": "=",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:3"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Z",
+        "text": "\u001a",
+        "symbol_text": "Z",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:3"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Udiaeresis",
+        "text": "Ü",
+        "symbol_text": "Ü",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:3"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "J",
+        "text": "\n",
+        "symbol_text": "J",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:3"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "degree",
+        "text": "°",
+        "symbol_text": "°",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:3"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Y",
+        "text": "\u0019",
+        "symbol_text": "Y",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:3"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "onesuperior",
+        "text": "¹",
+        "symbol_text": "¹",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:16"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "bracketleft",
+        "text": "[",
+        "symbol_text": "[",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:16"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "braceright",
+        "text": "}",
+        "symbol_text": "}",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:16"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "leftarrow",
+        "text": "←",
+        "symbol_text": "←",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:16"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "dead_diaeresis",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AD11:16"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "dead_belowdot",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AC07:16"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U2032",
+        "text": "′",
+        "symbol_text": "′",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:16"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "guillemotright",
+        "text": "»",
+        "symbol_text": "»",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:16"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "onesuperior",
+        "text": "¹",
+        "symbol_text": "¹",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:18"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "bracketleft",
+        "text": "\u001b",
+        "symbol_text": "[",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:18"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "braceright",
+        "text": "\u001d",
+        "symbol_text": "}",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:18"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "leftarrow",
+        "text": "←",
+        "symbol_text": "←",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:18"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "dead_diaeresis",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AD11:18"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "dead_belowdot",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AC07:18"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U2032",
+        "text": "′",
+        "symbol_text": "′",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:18"
+      }
+    },
+    {
+      "layout": "de",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "guillemotright",
+        "text": "»",
+        "symbol_text": "»",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:18"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "ampersand",
+        "text": "&",
+        "symbol_text": "&",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:0"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "underscore",
+        "text": "_",
+        "symbol_text": "_",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:0"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "agrave",
+        "text": "à",
+        "symbol_text": "à",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:0"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "y",
+        "text": "y",
+        "symbol_text": "y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:0"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "dead_circumflex",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AD11:0"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "j",
+        "text": "j",
+        "symbol_text": "j",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:0"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "twosuperior",
+        "text": "²",
+        "symbol_text": "²",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:0"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "w",
+        "text": "w",
+        "symbol_text": "w",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:0"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:1"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "8",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:1"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:1"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Y",
+        "text": "Y",
+        "symbol_text": "Y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:1"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "dead_diaeresis",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AD11:1"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "J",
+        "text": "J",
+        "symbol_text": "J",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:1"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asciitilde",
+        "text": "~",
+        "symbol_text": "~",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:1"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "W",
+        "text": "W",
+        "symbol_text": "W",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:1"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "ampersand",
+        "text": "&",
+        "symbol_text": "&",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:2"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "underscore",
+        "text": "\u001f",
+        "symbol_text": "_",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:2"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "agrave",
+        "text": "à",
+        "symbol_text": "à",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:2"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "y",
+        "text": "\u0019",
+        "symbol_text": "y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:2"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "dead_circumflex",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AD11:2"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "j",
+        "text": "\n",
+        "symbol_text": "j",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:2"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "twosuperior",
+        "text": "²",
+        "symbol_text": "²",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:2"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "w",
+        "text": "\u0017",
+        "symbol_text": "w",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:2"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:3"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:3"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:3"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Y",
+        "text": "\u0019",
+        "symbol_text": "Y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:3"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "dead_diaeresis",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AD11:3"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "J",
+        "text": "\n",
+        "symbol_text": "J",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:3"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asciitilde",
+        "text": "\u001e",
+        "symbol_text": "~",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:3"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "W",
+        "text": "\u0017",
+        "symbol_text": "W",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:3"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "onesuperior",
+        "text": "¹",
+        "symbol_text": "¹",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:16"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "backslash",
+        "text": "\\",
+        "symbol_text": "\\",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:16"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "at",
+        "text": "@",
+        "symbol_text": "@",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:16"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "leftarrow",
+        "text": "←",
+        "symbol_text": "←",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:16"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "dead_diaeresis",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AD11:16"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "dead_hook",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AC07:16"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "notsign",
+        "text": "¬",
+        "symbol_text": "¬",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:16"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "lstroke",
+        "text": "ł",
+        "symbol_text": "ł",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:16"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "onesuperior",
+        "text": "¹",
+        "symbol_text": "¹",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:18"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "backslash",
+        "text": "\u001c",
+        "symbol_text": "\\",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:18"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "at",
+        "text": "",
+        "symbol_text": "@",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:18"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "leftarrow",
+        "text": "←",
+        "symbol_text": "←",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:18"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "dead_diaeresis",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AD11:18"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "dead_hook",
+        "text": "",
+        "symbol_text": "",
+        "dead": true,
+        "group": 0,
+        "id": "AC07:18"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "notsign",
+        "text": "¬",
+        "symbol_text": "¬",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:18"
+      }
+    },
+    {
+      "layout": "fr",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "lstroke",
+        "text": "ł",
+        "symbol_text": "ł",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:18"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:0"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "8",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:0"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:0"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_en",
+        "text": "н",
+        "symbol_text": "н",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:0"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_ha",
+        "text": "х",
+        "symbol_text": "х",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:0"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_o",
+        "text": "о",
+        "symbol_text": "о",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:0"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_io",
+        "text": "ё",
+        "symbol_text": "ё",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:0"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_ya",
+        "text": "я",
+        "symbol_text": "я",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:0"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:1"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asterisk",
+        "text": "*",
+        "symbol_text": "*",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:1"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "parenright",
+        "text": ")",
+        "symbol_text": ")",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:1"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_EN",
+        "text": "Н",
+        "symbol_text": "Н",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:1"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_HA",
+        "text": "Х",
+        "symbol_text": "Х",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:1"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_O",
+        "text": "О",
+        "symbol_text": "О",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:1"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_IO",
+        "text": "Ё",
+        "symbol_text": "Ё",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:1"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_YA",
+        "text": "Я",
+        "symbol_text": "Я",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:1"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:2"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:2"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:2"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_en",
+        "text": "н",
+        "symbol_text": "н",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:2"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_ha",
+        "text": "х",
+        "symbol_text": "х",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:2"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_o",
+        "text": "о",
+        "symbol_text": "о",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:2"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_io",
+        "text": "ё",
+        "symbol_text": "ё",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:2"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_ya",
+        "text": "я",
+        "symbol_text": "я",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:2"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:3"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asterisk",
+        "text": "*",
+        "symbol_text": "*",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:3"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "parenright",
+        "text": ")",
+        "symbol_text": ")",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:3"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_EN",
+        "text": "Н",
+        "symbol_text": "Н",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:3"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_HA",
+        "text": "Х",
+        "symbol_text": "Х",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:3"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_O",
+        "text": "О",
+        "symbol_text": "О",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:3"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_IO",
+        "text": "Ё",
+        "symbol_text": "Ё",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:3"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_YA",
+        "text": "Я",
+        "symbol_text": "Я",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:3"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:16"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U20BD",
+        "text": "₽",
+        "symbol_text": "₽",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:16"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:16"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_en",
+        "text": "н",
+        "symbol_text": "н",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:16"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_ha",
+        "text": "х",
+        "symbol_text": "х",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:16"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_o",
+        "text": "о",
+        "symbol_text": "о",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:16"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_io",
+        "text": "ё",
+        "symbol_text": "ё",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:16"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_ya",
+        "text": "я",
+        "symbol_text": "я",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:16"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:18"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U20BD",
+        "text": "₽",
+        "symbol_text": "₽",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:18"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 1,
+        "consumed_gtk": 1,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:18"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_en",
+        "text": "н",
+        "symbol_text": "н",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:18"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_ha",
+        "text": "х",
+        "symbol_text": "х",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:18"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_o",
+        "text": "о",
+        "symbol_text": "о",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:18"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_io",
+        "text": "ё",
+        "symbol_text": "ё",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:18"
+      }
+    },
+    {
+      "layout": "ru",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 3,
+        "consumed_gtk": 3,
+        "keysym": "Cyrillic_ya",
+        "text": "я",
+        "symbol_text": "я",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:18"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:0"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "8",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:0"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:0"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_ghain",
+        "text": "غ",
+        "symbol_text": "غ",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:0"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_jeem",
+        "text": "ج",
+        "symbol_text": "ج",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:0"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_teh",
+        "text": "ت",
+        "symbol_text": "ت",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:0"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_thal",
+        "text": "ذ",
+        "symbol_text": "ذ",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:0"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_hamzaonyeh",
+        "text": "ئ",
+        "symbol_text": "ئ",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:0"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:1"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asterisk",
+        "text": "*",
+        "symbol_text": "*",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:1"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "parenleft",
+        "text": "(",
+        "symbol_text": "(",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:1"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_hamzaunderalef",
+        "text": "إ",
+        "symbol_text": "إ",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:1"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "less",
+        "text": "<",
+        "symbol_text": "<",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:1"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_tatweel",
+        "text": "ـ",
+        "symbol_text": "ـ",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:1"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_shadda",
+        "text": "ّ",
+        "symbol_text": "ّ",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:1"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asciitilde",
+        "text": "~",
+        "symbol_text": "~",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:1"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:2"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:2"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:2"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_ghain",
+        "text": "غ",
+        "symbol_text": "غ",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:2"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_jeem",
+        "text": "ج",
+        "symbol_text": "ج",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:2"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_teh",
+        "text": "ت",
+        "symbol_text": "ت",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:2"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_thal",
+        "text": "ذ",
+        "symbol_text": "ذ",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:2"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_hamzaonyeh",
+        "text": "ئ",
+        "symbol_text": "ئ",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:2"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:3"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asterisk",
+        "text": "*",
+        "symbol_text": "*",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:3"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "parenleft",
+        "text": "(",
+        "symbol_text": "(",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:3"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_hamzaunderalef",
+        "text": "إ",
+        "symbol_text": "إ",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:3"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "less",
+        "text": "<",
+        "symbol_text": "<",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:3"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_tatweel",
+        "text": "ـ",
+        "symbol_text": "ـ",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:3"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_shadda",
+        "text": "ّ",
+        "symbol_text": "ّ",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:3"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asciitilde",
+        "text": "\u001e",
+        "symbol_text": "~",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:3"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_1",
+        "text": "١",
+        "symbol_text": "١",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:16"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_8",
+        "text": "٨",
+        "symbol_text": "٨",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:16"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_0",
+        "text": "٠",
+        "symbol_text": "٠",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:16"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_tcheh",
+        "text": "چ",
+        "symbol_text": "چ",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:16"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_percent",
+        "text": "٪",
+        "symbol_text": "٪",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:16"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "guillemotright",
+        "text": "»",
+        "symbol_text": "»",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:16"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_1",
+        "text": "١",
+        "symbol_text": "١",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:18"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_8",
+        "text": "٨",
+        "symbol_text": "٨",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:18"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_0",
+        "text": "٠",
+        "symbol_text": "٠",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:18"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_tcheh",
+        "text": "چ",
+        "symbol_text": "چ",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:18"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "Arabic_percent",
+        "text": "٪",
+        "symbol_text": "٪",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:18"
+      }
+    },
+    {
+      "layout": "ara",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "guillemotright",
+        "text": "»",
+        "symbol_text": "»",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:18"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:0"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "8",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:0"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:0"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "hebrew_tet",
+        "text": "ט",
+        "symbol_text": "ט",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:0"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "bracketright",
+        "text": "]",
+        "symbol_text": "]",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:0"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "hebrew_chet",
+        "text": "ח",
+        "symbol_text": "ח",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:0"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "semicolon",
+        "text": ";",
+        "symbol_text": ";",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:0"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 0,
+        "effective": 0,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "hebrew_zain",
+        "text": "ז",
+        "symbol_text": "ז",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:0"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:1"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asterisk",
+        "text": "*",
+        "symbol_text": "*",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:1"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "parenleft",
+        "text": "(",
+        "symbol_text": "(",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:1"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Y",
+        "text": "Y",
+        "symbol_text": "Y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:1"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "braceright",
+        "text": "}",
+        "symbol_text": "}",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:1"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "J",
+        "text": "J",
+        "symbol_text": "J",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:1"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asciitilde",
+        "text": "~",
+        "symbol_text": "~",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:1"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 1,
+        "effective": 1,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Z",
+        "text": "Z",
+        "symbol_text": "Z",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:1"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "1",
+        "text": "1",
+        "symbol_text": "1",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:2"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "8",
+        "text": "",
+        "symbol_text": "8",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:2"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "0",
+        "text": "0",
+        "symbol_text": "0",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:2"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "hebrew_tet",
+        "text": "ט",
+        "symbol_text": "ט",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:2"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "bracketright",
+        "text": "\u001d",
+        "symbol_text": "]",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:2"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "hebrew_chet",
+        "text": "ח",
+        "symbol_text": "ח",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:2"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "semicolon",
+        "text": ";",
+        "symbol_text": ";",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:2"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 2,
+        "effective": 4,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "hebrew_zain",
+        "text": "ז",
+        "symbol_text": "ז",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:2"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 10,
+        "physical": "AE01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "exclam",
+        "text": "!",
+        "symbol_text": "!",
+        "dead": false,
+        "group": 0,
+        "id": "AE01:3"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asterisk",
+        "text": "*",
+        "symbol_text": "*",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:3"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "parenleft",
+        "text": "(",
+        "symbol_text": "(",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:3"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Y",
+        "text": "\u0019",
+        "symbol_text": "Y",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:3"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "braceright",
+        "text": "\u001d",
+        "symbol_text": "}",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:3"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "J",
+        "text": "\n",
+        "symbol_text": "J",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:3"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "asciitilde",
+        "text": "\u001e",
+        "symbol_text": "~",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:3"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 52,
+        "physical": "AB01",
+        "held": 3,
+        "effective": 5,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "Z",
+        "text": "\u001a",
+        "symbol_text": "Z",
+        "dead": false,
+        "group": 0,
+        "id": "AB01:3"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "multiply",
+        "text": "×",
+        "symbol_text": "×",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:16"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U200F",
+        "text": "‏",
+        "symbol_text": "‏",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:16"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "U05F0",
+        "text": "װ",
+        "symbol_text": "װ",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:16"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U05B2",
+        "text": "ֲ",
+        "symbol_text": "ֲ",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:16"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "U05B4",
+        "text": "ִ",
+        "symbol_text": "ִ",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:16"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 16,
+        "effective": 128,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U05F3",
+        "text": "׳",
+        "symbol_text": "׳",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:16"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 17,
+        "physical": "AE08",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "multiply",
+        "text": "×",
+        "symbol_text": "×",
+        "dead": false,
+        "group": 0,
+        "id": "AE08:18"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 19,
+        "physical": "AE10",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U200F",
+        "text": "‏",
+        "symbol_text": "‏",
+        "dead": false,
+        "group": 0,
+        "id": "AE10:18"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 29,
+        "physical": "AD06",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "U05F0",
+        "text": "װ",
+        "symbol_text": "װ",
+        "dead": false,
+        "group": 0,
+        "id": "AD06:18"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 34,
+        "physical": "AD11",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U05B2",
+        "text": "ֲ",
+        "symbol_text": "ֲ",
+        "dead": false,
+        "group": 0,
+        "id": "AD11:18"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 44,
+        "physical": "AC07",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 131,
+        "consumed_gtk": 131,
+        "keysym": "U05B4",
+        "text": "ִ",
+        "symbol_text": "ִ",
+        "dead": false,
+        "group": 0,
+        "id": "AC07:18"
+      }
+    },
+    {
+      "layout": "il",
+      "event": {
+        "code": 49,
+        "physical": "TLDE",
+        "held": 18,
+        "effective": 132,
+        "consumed_xkb": 129,
+        "consumed_gtk": 129,
+        "keysym": "U05F3",
+        "text": "׳",
+        "symbol_text": "׳",
+        "dead": false,
+        "group": 0,
+        "id": "TLDE:18"
+      }
+    }
+  ]
+}
