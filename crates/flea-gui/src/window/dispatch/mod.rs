@@ -27,6 +27,10 @@ const FAMILIES: &[Family] = &[navigation::run, preview::run, listing::run, windo
 impl Shell {
     /// Runs the order through its family; one nobody ran is emitted for observers, and an unclaimed menu choice is refused.
     pub(crate) fn dispatch(&mut self, order: Order, window: &mut Window, cx: &mut Context<Self>) {
+        // SlowClick.js: every dispatched action ends a pending slow click.
+        if matches!(order, Order::Action(_)) {
+            self.cancel_slow_click();
+        }
         if FAMILIES
             .iter()
             .any(|family| family(self, &order, window, cx))
