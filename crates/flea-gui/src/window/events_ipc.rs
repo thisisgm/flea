@@ -135,6 +135,9 @@ impl Shell {
                 let operations = crate::g2::op1::ipc::LiveOperationsAdapter {
                     overlay: self.overlay.as_ref().map(|view| view.read(cx)),
                 };
+                let clipboard = crate::g2::dg1::ipc::ClipboardAdapter {
+                    board: &self.clipboard.board,
+                };
                 let geometry = self.geometry(window);
                 let rail = crate::ipc::rail::RailAdapter {
                     host: self.rail.as_ref().map(|join| join.host.read(cx)),
@@ -150,7 +153,7 @@ impl Shell {
                     search: &host.search.owner,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 19] = [
+                let adapters: [&dyn crate::ipc::Adapter; 20] = [
                     &search,
                     &query,
                     &rail,
@@ -169,15 +172,16 @@ impl Shell {
                     &menu,
                     &view,
                     &operations,
+                    &clipboard,
                     &rows,
                 ];
                 let count = if matches!(
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    19
+                    20
                 } else {
-                    18
+                    19
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
