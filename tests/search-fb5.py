@@ -14,6 +14,8 @@ root = Path(subprocess.check_output(["mktemp", "-d", str(parent / "search-wire.X
 marker = root / ".flea-test-sandbox"
 marker.write_text("flea test sandbox\n")
 process = None
+stderr_file = None
+passed = False
 try:
     scope = root / "scope"
     scope.mkdir()
@@ -28,14 +30,22 @@ try:
         directory = root / key.lower()
         directory.mkdir(mode=0o700)
         env[key] = str(directory)
+    # The backend's stderr goes to a file, so a chatty backend never blocks on a full pipe nobody drains.
+    stderr_file = (root / "backend.stderr").open("w")
     process = subprocess.Popen([sys.argv[1], "--backend"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, text=True, env=env)
+                               stderr=stderr_file, text=True, env=env)
     lines = queue.Queue()
 
     def read():
-        for line in process.stdout:
-            lines.put(json.loads(line))
-        lines.put(None)
+        try:
+            for line in process.stdout:
+                try:
+                    lines.put(json.loads(line))
+                except json.JSONDecodeError as error:
+                    lines.put(error)
+                    return
+        finally:
+            lines.put(None)
 
     threading.Thread(target=read, daemon=True).start()
 
@@ -46,6 +56,8 @@ try:
     def receive():
         line = lines.get(timeout=30)
         assert line is not None, "backend ended"
+        if isinstance(line, json.JSONDecodeError):
+            raise AssertionError(f"backend stdout is not JSON: {line.doc!r}") from line
         assert line.get("t") != "error", line
         return line
 
@@ -91,12 +103,25 @@ try:
     assert after["t"] == "rows" and "gen" not in after, after
     send(c="quit")
     process.wait(timeout=30)
-    assert process.returncode == 0, process.stderr.read()
+    assert process.returncode == 0, (root / "backend.stderr").read_text()
     print("SEARCH_FB5_PROTOCOL triplets=ok generations=ok backspace=ok paging=800 mutation=ok hardlink=ok close=ok")
+    passed = True
 finally:
     if process is not None and process.poll() is None:
         process.kill()
         process.wait(timeout=10)
-    assert str(root) and root.is_absolute() and root.parent == parent and root.name.startswith("search-wire.")
-    assert marker.read_text() == "flea test sandbox\n"
-    shutil.rmtree(root)
+    if stderr_file is not None:
+        stderr_file.close()
+    safe = bool(str(root)) and root.is_absolute() and root.parent == parent and root.name.startswith("search-wire.")
+    try:
+        safe = safe and marker.read_text() == "flea test sandbox\n"
+    except (OSError, UnicodeError):
+        safe = False
+    if not safe:
+        print("search-fb5: cleanup refused: invalid sandbox root or marker", file=sys.stderr)
+    if not passed or not safe:
+        print(f"search-fb5: logs kept in {root}", file=sys.stderr)
+        if passed:
+            raise RuntimeError("search-fb5: invalid cleanup sandbox")
+    else:
+        shutil.rmtree(root)

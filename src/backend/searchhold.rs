@@ -24,6 +24,12 @@ impl Session {
         if gen <= self.last_answered_gen || self.held.as_ref().is_some_and(|held| gen <= held.gen) {
             return None;
         }
+        #[cfg(test)]
+        if query == super::searchjobs::INJECTED_PANIC_QUERY {
+            let mut index = self.index.lock().unwrap();
+            index.push("alpha-panic.txt", false);
+            panic!("injected panic after index mutation");
+        }
         let now = Instant::now();
         // An empty query answers the folder's own listing, and past the cap the walk is a slow source drawn from at once.
         if query.is_empty() || !self.walking() || self.announced || self.hold_until.is_some_and(|until| until <= now) {

@@ -72,3 +72,54 @@ fn run_search_lazy_thumbnail_pool_reports_its_first_job() {
         assert!(matches!(reply, Event::Thumb(Done { path: got, result: super::super::thumbs::Outcome::Failed, .. }) if got == path));
     }
 }
+
+#[test]
+fn a_remote_window_whose_stat_fails_answers_its_rows_then_says_why() {
+    let (events, _) = channel();
+    let tb = Tables::load();
+    let mut st = State::new(super::super::dirsizeworker::Worker::new(events));
+    st.base = PathBuf::from("/run/user/flea-empty-test/gvfs/smb-share:server=test,share=lost");
+    st.listing.push("a.txt", false);
+    st.listing.push("b.txt", false);
+    let mount = super::super::iomount::mount_key(&st.base, "");
+    let _stuck = crate::backend::iomount::test_hold_stuck(mount);
+    let mut out = Vec::new();
+    write_window_gen(&mut out, &mut st, 0, 2, &tb, Some(7));
+    let text = String::from_utf8(out).unwrap();
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines.len(), 2, "one rows line, then one error line: {text}");
+    assert!(lines[0].starts_with(r#"{"t":"rows","start":0"#), "{text}");
+    assert!(lines[0].contains(r#""n":"a.txt""#) && lines[0].contains(r#""n":"b.txt""#), "{text}");
+    assert!(lines[1].starts_with(r#"{"t":"error""#) && lines[1].contains("is not responding."), "{text}");
+    assert!(st.window_meta.is_empty(), "zeroes from a failed stat are never cached: {:?}", st.window_meta);
+}
+
+#[test]
+fn a_remote_window_asked_again_after_its_mount_answers_reads_real_metadata() {
+    let d = TestDir::new("window-recovers");
+    let share = d.dir("run/1000/gvfs/smb-share:server=test,share=recover");
+    std::fs::write(share.join("a.txt"), "a").unwrap();
+    std::fs::write(share.join("b.txt"), "bb").unwrap();
+    crate::backend::gvfsroot::set_test_run_user(Some(&d.join("run")));
+    let (events, _) = channel();
+    let tb = Tables::load();
+    let mut st = State::new(super::super::dirsizeworker::Worker::new(events));
+    st.base = share.clone();
+    st.listing.push("a.txt", false);
+    st.listing.push("b.txt", false);
+    let mount = super::super::iomount::mount_key(&st.base, "");
+    let stuck = crate::backend::iomount::test_hold_stuck(mount);
+    let mut out = Vec::new();
+    write_window_gen(&mut out, &mut st, 0, 2, &tb, Some(7));
+    assert_eq!(String::from_utf8(out).unwrap().lines().count(), 2, "the stuck window says why");
+    assert!(st.window_meta.is_empty(), "the failed window caches nothing: {:?}", st.window_meta);
+    drop(stuck);
+    let mut out = Vec::new();
+    write_window_gen(&mut out, &mut st, 0, 2, &tb, Some(7));
+    let text = String::from_utf8(out).unwrap();
+    assert_eq!(text.lines().count(), 1, "the mount answers again, so no error line: {text}");
+    let real = st.window_meta.get(&1).expect("the second window caches the row it stat'd");
+    assert_eq!(real.0 & 0o170000, 0o100000, "a regular file's mode: {:?}", st.window_meta);
+    assert_ne!(real.1, 0, "a real mtime: {:?}", st.window_meta);
+    crate::backend::gvfsroot::set_test_run_user(None);
+}

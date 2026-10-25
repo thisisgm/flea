@@ -49,7 +49,13 @@ fn search_streams_completed_blocks_before_the_last_directory_lands() {
     session.index.lock().unwrap().push("another.txt", false);
     session.test_set_last_batch(Instant::now() - std::time::Duration::from_millis(101));
     let streamed = session.poll_walked();
+    assert!(streamed, "completed blocks must refresh the standing partial query before final readiness");
+    // No query waited under the cap, so the standing re-answer is the path that answers the streamed block.
+    assert!(session.answer_held().is_none(), "no held query stands, so the held path must answer nothing");
+    let refreshed = session.re_answer_standing().expect("the standing partial query is re-answered");
+    assert_eq!(refreshed.gen, 1);
+    assert_eq!(refreshed.total, 2, "the re-answer counts the completed block's row");
+    assert!(refreshed.rows.iter().any(|row| row.0 == "another.txt"), "the re-answer names the streamed row");
     release.send(()).unwrap();
     session.join_walk();
-    assert!(streamed, "completed blocks must refresh the standing partial query before final readiness");
 }

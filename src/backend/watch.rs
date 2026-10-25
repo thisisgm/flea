@@ -10,19 +10,20 @@ use std::thread;
 use std::time::Duration;
 
 // Exactly the events that change what a listing draws; a file still being written is not one.
-const IN_ATTRIB: u32 = 0x0000_0004;
-const IN_CLOSE_WRITE: u32 = 0x0000_0008;
-const IN_MOVED_FROM: u32 = 0x0000_0040;
-const IN_MOVED_TO: u32 = 0x0000_0080;
-const IN_CREATE: u32 = 0x0000_0100;
-const IN_DELETE: u32 = 0x0000_0200;
+pub(crate) const IN_ATTRIB: u32 = 0x0000_0004;
+pub(crate) const IN_CLOSE_WRITE: u32 = 0x0000_0008;
+pub(crate) const IN_MOVED_FROM: u32 = 0x0000_0040;
+pub(crate) const IN_MOVED_TO: u32 = 0x0000_0080;
+pub(crate) const IN_CREATE: u32 = 0x0000_0100;
+pub(crate) const IN_DELETE: u32 = 0x0000_0200;
 // Not IN_DELETE_SELF: the watch's own removal is reported whatever the mask holds, measured.
-const IN_MOVE_SELF: u32 = 0x0000_0800;
-const IN_DELETE_SELF: u32 = 0x0000_0400;
+pub(crate) const IN_MOVE_SELF: u32 = 0x0000_0800;
+pub(crate) const IN_DELETE_SELF: u32 = 0x0000_0400;
 // The mount went away: the pane leaves the volume instead of re-listing a vanished path.
 pub(crate) const IN_UNMOUNT: u32 = 0x0000_2000;
 // IN_IGNORED on the open watch re-lists; IN_Q_OVERFLOW arrives on wd -1 and is_current drops it.
-const IN_Q_OVERFLOW: u32 = 0x0000_4000;
+pub(crate) const IN_Q_OVERFLOW: u32 = 0x0000_4000;
+pub(crate) const IN_MODIFY: u32 = 0x0000_0002;
 pub(crate) const IN_IGNORED: u32 = 0x0000_8000;
 const MASK: u32 = IN_ATTRIB
     | IN_CLOSE_WRITE
@@ -33,7 +34,9 @@ const MASK: u32 = IN_ATTRIB
     | IN_MOVE_SELF;
 
 // IN_CLOEXEC is O_CLOEXEC, so no thumbnailer child inherits this descriptor.
-const IN_CLOEXEC: c_int = 0x0008_0000;
+pub(crate) const IN_CLOEXEC: c_int = 0x0008_0000;
+pub(crate) const IN_NONBLOCK: c_int = 0x0000_0800;
+pub(crate) const IN_DONT_FOLLOW: u32 = 0x0200_0000;
 // One burst says one thing to a client that re-reads it all, so a thousand writes cost one line.
 pub(crate) const COALESCE: Duration = Duration::from_millis(100);
 // A batch size and not a limit: the kernel's own drop is at max_queued_events, which this misses.
@@ -346,9 +349,6 @@ mod tests {
         assert!(!w.is_current(-1));
         assert!(!w.is_current(1));
     }
-
-    // O_NONBLOCK, so a watch this test killed fails it by answering nothing rather than by hanging.
-    const IN_NONBLOCK: c_int = 0x800;
 
     // Sample input: wd 1, mask 0x00000100, cookie 0, len 16, then "NEWFILE.txt\0\0\0\0\0".
     fn carries_a_create(buf: &[u8], wd: c_int) -> bool {

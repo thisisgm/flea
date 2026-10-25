@@ -1,5 +1,23 @@
 use super::*;
 use crate::backend::searchwalkhold::wait_walk_landed;
+
+#[test]
+fn search_fix4_landing_wait_consumes_the_final_wake_after_queued_progress() {
+    let root = TestDir::new("walk-queued-progress");
+    root.file("alpha.txt", "a");
+    let (tx, rx) = std::sync::mpsc::channel();
+    tx.send(crate::backend::events::Event::SearchWalked).unwrap();
+    let scope = root.path().to_str().unwrap();
+    let session = Session::open_async(scope, scope, false, tx);
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while !session.handle.as_ref().unwrap().is_finished() {
+        assert!(Instant::now() < deadline, "the walk finishes");
+        std::thread::sleep(Duration::from_millis(1));
+    }
+    wait_walk_landed(&rx, &session, Duration::from_secs(30), |_| false);
+    assert!(rx.try_recv().is_err(), "the real landing must not remain behind queued progress");
+    session.close();
+}
 use crate::backend::testdir::TestDir;
 use std::time::Duration;
 

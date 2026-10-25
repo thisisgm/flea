@@ -1,5 +1,6 @@
 use super::*;
 use crate::backend::{aliases::Aliases, icons::Names, kind::Kinds, mime::Db, rows, tags, testdir::TestDir, thumbspec::Thumbnailers};
+use crate::backend::watch::{IN_IGNORED, IN_Q_OVERFLOW, IN_UNMOUNT};
 use std::os::unix::fs::{symlink, PermissionsExt};
 
 fn listing(names: &[&str]) -> Listing {
@@ -103,6 +104,8 @@ fn search_row_cache_bypasses_symlinks_unwatched_remotes_and_failed_watches() {
     let missing = listing(&["absent/file.txt"]);
     cache.window(d.path(), &missing, 0, 1, "");
     assert!(cache.entries.is_empty());
+    // A watch that fails to arm takes the bypass: the whole cache clears, so no armed descriptor survives it.
+    assert!(cache.fd.is_none() && cache.watches.is_empty(), "a failed watch clears the armed cache");
 }
 
 #[test]
@@ -172,7 +175,7 @@ fn search_row_cache_overflow_lost_descriptor_and_payload_limit_fail_closed() {
     let d = TestDir::new("search-row-overflow");
     d.file("a.txt", "a");
     let l = listing(&["a.txt"]);
-    for mask in [0x4000, 0x8000, 0x2000] {
+    for mask in [IN_Q_OVERFLOW, IN_IGNORED, IN_UNMOUNT] {
         let mut cache = Cache::default();
         cache.window(d.path(), &l, 0, 1, "");
         assert_eq!(cache.entries.len(), 1);
