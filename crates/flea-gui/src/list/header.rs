@@ -134,8 +134,8 @@ pub fn cell_text(column: Column, held: &Held, index: usize, view: &ListView) -> 
             format::size_text(facts, walked, &view.words)
         }
         Column::Date => format::date_text(facts.mtime, &view.words),
-        // The rows reply carries no kind names, so the held row's painted Kind cell is empty.
-        Column::Kind => String::new(),
+        // ColumnFit.cellText: the Kind name the row paints, so an autofit measures it.
+        Column::Kind => facts.kind.clone(),
     })
 }
 

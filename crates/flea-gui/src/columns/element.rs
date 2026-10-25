@@ -24,6 +24,7 @@ pub struct TrackElement {
     sizes: Option<Rc<dyn FolderSizes>>,
     paint: Rc<RefCell<TrackPaint>>,
     words: Rc<crate::row::format::Words>,
+    languages: bool,
 }
 
 impl TrackElement {
@@ -49,7 +50,14 @@ impl TrackElement {
             sizes: None,
             paint,
             words,
+            languages: false,
         }
+    }
+
+    /// ColumnRow's language marks follow the List's langMarks setting.
+    pub fn with_languages(mut self, languages: bool) -> Self {
+        self.languages = languages;
+        self
     }
 
     /// The folder walks the active track's size cells read; a peek track never shows a size.
@@ -194,6 +202,7 @@ impl Element for TrackElement {
             chevron_cells: name_budget(width, shows_size, true, advance),
             clip_cells: ((GAP + CLIP) / advance.max(1.)).ceil() as usize,
             size: shows_size,
+            languages: self.languages,
             scale: window.scale_factor(),
             words: Rc::clone(&self.words),
         };

@@ -132,22 +132,36 @@ pub fn surface_with(
             let (down, hit) = (paint.clone(), hitbox.clone());
             window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
                 if phase == DispatchPhase::Bubble && hit.is_hovered(window) {
-                    let _ =
-                        down.update(cx, |shell, cx| shell.pointer_down(side, event, window, cx));
+                    let _ = down.update(cx, |shell, cx| {
+                        shell.hold_pointer(side, true, window, cx);
+                        shell.pointer_down(side, event, window, cx)
+                    });
                 }
             });
             let (moved, hit) = (paint.clone(), hitbox.clone());
             window.on_mouse_event(move |event: &MouseMoveEvent, phase, window, cx| {
                 if phase == DispatchPhase::Bubble {
                     let _ = moved.update(cx, |shell, cx| {
+                        if event.pressed_button.is_none() {
+                            shell.cancel_pointer(side, window, cx);
+                        }
                         shell.pointer_move(side, event, hit.is_hovered(window), window, cx)
                     });
                 }
             });
             let up = paint.clone();
             window.on_mouse_event(move |event: &MouseUpEvent, phase, window, cx| {
-                if phase == DispatchPhase::Bubble {
-                    let _ = up.update(cx, |shell, cx| shell.pointer_up(side, event, window, cx));
+                if phase == DispatchPhase::Capture {
+                    let up = up.clone();
+                    // Run after the normal release handler; a consuming overlay still releases the hold.
+                    window.defer(cx, move |window, cx| {
+                        let _ = up.update(cx, |shell, cx| shell.cancel_pointer(side, window, cx));
+                    });
+                } else if phase == DispatchPhase::Bubble {
+                    let _ = up.update(cx, |shell, cx| {
+                        shell.pointer_up(side, event, window, cx);
+                        shell.hold_pointer(side, false, window, cx);
+                    });
                 }
             });
             let wheel = paint.clone();

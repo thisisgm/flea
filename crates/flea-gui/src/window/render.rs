@@ -195,8 +195,11 @@ impl Render for Shell {
                 .set_searching(host.pane.state.search);
             {
                 let mut list = host.list.borrow_mut();
+                list.view
+                    .set_lang_marks(crate::list::lang_marks(&self.launch.settings.data));
                 let switched =
-                    crate::list::columns::Switched::from_settings(&self.launch.settings.data);
+                    crate::list::columns::Switched::from_settings(&self.launch.settings.data)
+                        .for_dual(self.view == View::Dual);
                 list.view.switched = if host.pane.state.search {
                     switched
                         .with(crate::list::columns::Column::Mode, false)

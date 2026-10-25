@@ -169,16 +169,25 @@ impl Default for ListView {
     }
 }
 
+/// ViewState.langMarks: absent reads on.
+pub fn lang_marks(data: &Json) -> bool {
+    data.get("langMarks").and_then(Json::as_bool) != Some(false)
+}
+
 impl ListView {
+    /// A changed langMarks reshapes every row, since a code file's mark changes.
+    pub fn set_lang_marks(&mut self, on: bool) {
+        if on != self.lang_marks {
+            self.lang_marks = on;
+            self.text += 1;
+        }
+    }
+
     /// ui.json's list keys: "columns", "columnWidths", "langMarks" (absent reads on) and "highlightToday" (absent reads off).
     pub fn apply_settings(&mut self, data: &Json, today_start: i64) {
         self.switched = Switched::from_settings(data);
         self.stored = StoredWidths::from_settings(data);
-        let lang_marks = data.get("langMarks").and_then(Json::as_bool) != Some(false);
-        if lang_marks != self.lang_marks {
-            self.lang_marks = lang_marks;
-            self.text += 1;
-        }
+        self.set_lang_marks(lang_marks(data));
         self.today = (data.get("highlightToday").and_then(Json::as_bool) == Some(true))
             .then_some(today_start);
     }

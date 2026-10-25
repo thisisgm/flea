@@ -59,6 +59,8 @@ pub struct RowFacts {
     pub link: Option<String>,
     /// False only when the backend sends `"x":false`: the mount has no real modes, so `mode` marks no executable.
     pub real_modes: bool,
+    /// The row's Kind description, `kinds[k]` of its reply; empty when the reply names none.
+    pub kind: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -97,9 +99,16 @@ pub fn parse_reply(line: &str) -> Result<Reply, String> {
                 .get("rows")
                 .and_then(Json::as_array)
                 .ok_or("rows must be an array")?;
+            let kinds = document
+                .get("kinds")
+                .and_then(Json::as_array)
+                .unwrap_or(&[]);
             Ok(Reply::Rows {
                 start: uint(&document, "start")?,
-                rows: rows.iter().map(row_facts).collect::<Result<_, _>>()?,
+                rows: rows
+                    .iter()
+                    .map(|row| row_facts(row, kinds))
+                    .collect::<Result<_, _>>()?,
                 listing: uint(&document, "listing")?,
             })
         }
@@ -117,7 +126,7 @@ pub fn parse_reply(line: &str) -> Result<Reply, String> {
     }
 }
 
-fn row_facts(row: &Json) -> Result<RowFacts, String> {
+fn row_facts(row: &Json, kinds: &[Json]) -> Result<RowFacts, String> {
     let link = match row.get("l") {
         None => None,
         Some(_) => Some(string(row, "l")?.to_owned()),
@@ -138,6 +147,15 @@ fn row_facts(row: &Json) -> Result<RowFacts, String> {
         icon: string(row, "i")?.to_owned(),
         link,
         real_modes,
+        // k is an index into kinds; anything but an unsigned integer in range names no kind, as uint() reads one.
+        kind: match row.get("k") {
+            Some(Json::Num(k)) => k.parse::<usize>().ok(),
+            _ => None,
+        }
+        .and_then(|k| kinds.get(k))
+        .and_then(Json::as_str)
+        .unwrap_or_default()
+        .to_owned(),
     })
 }
 
