@@ -3,6 +3,10 @@ use flea::ui_logic_st1::{rows::Role, Text};
 use gpui::{Context, Window};
 use std::{path::PathBuf, process::Command};
 
+#[cfg(test)]
+#[path = "claim_tests.rs"]
+mod tests;
+
 fn handler() -> String {
     Command::new("xdg-mime")
         .args(["query", "default", "inode/directory"])
@@ -50,14 +54,10 @@ pub(super) fn completed(mut claim: Claim, binary: PathBuf) -> Claim {
             let status = output.status.code().unwrap_or(1);
             let stderr = String::from_utf8_lossy(&output.stderr);
             let read = std::thread::spawn(handler);
-            let restart = output.status.success().then(|| {
-                std::thread::spawn(|| {
-                    Command::new("systemctl")
-                        .args(["--user", "try-restart", "xdg-desktop-portal.service"])
-                        .status()
-                        .is_ok_and(|s| s.success())
-                })
-            });
+            let restart = output
+                .status
+                .success()
+                .then(|| std::thread::spawn(flea::chooser_startup::restart));
             claim.handler = read.join().unwrap_or_default();
             let restarted = restart.is_none_or(|job| job.join().unwrap_or(false));
             claim.note = if status == 3 {
