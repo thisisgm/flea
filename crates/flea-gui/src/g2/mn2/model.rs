@@ -125,7 +125,7 @@ impl Actions {
         self.pending_list = None;
     }
 
-    // Every backend line the host reads reaches here; mn2 keeps its own ids and returns every other family unclaimed.
+    // Every backend line the host reads reaches here; mn2 keeps its own ids and ignores every other family.
     pub fn receive(&mut self, line: &str) {
         if let Some(back) = wire::parse_listing(line) {
             if self.pending_list == Some(back.id) {
