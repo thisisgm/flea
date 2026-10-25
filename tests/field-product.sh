@@ -235,7 +235,18 @@ for name, printed, ok in (('bare', '0.22.0', True), ('wordy', 'strata 0.22.0-nig
     else:
         assert row.returncode == 1 and 'archive version is not "name version"' in row.stderr, row
 # Under B5 a missing xplr is named, never a silent exit.
-no_xplr = ':'.join(d for d in os.environ['PATH'].split(':') if not os.path.exists(os.path.join(d, 'xplr')))
+# A PATH dir holding xplr is replaced by a scratch dir of links to its other entries, so bash and env stay found.
+no_xplr = []
+for n, d in enumerate(os.environ['PATH'].split(':')):
+    if os.path.exists(os.path.join(d, 'xplr')):
+        shim = root / ('no-xplr-%d' % n)
+        shim.mkdir()
+        for entry in os.listdir(d):
+            if entry != 'xplr':
+                (shim / entry).symlink_to(os.path.join(d, entry))
+        d = str(shim)
+    no_xplr.append(d)
+no_xplr = ':'.join(no_xplr)
 missing = subprocess.run(['tools/flea-bench-manifest', str(root / 'no-xplr.md'), str(fixture)], input='xplr|tui|xplr\n',
                          env=dict(b5_env, FLEA_REPO=str(Path.cwd()), PATH=no_xplr), capture_output=True, text=True)
 assert missing.returncode == 1 and 'B5 entrant xplr is absent from PATH' in missing.stderr, missing
@@ -271,6 +282,11 @@ try:
     S.GUI_BINARIES[:] = S.flea_gui_binaries(arms)
     assert foreign.pid not in [p for c, p in S.alive_targets() if c == 'flea-gui']
     S.GUI_BINARIES[:] = [str(elsewhere)]
+    assert foreign.pid in [p for c, p in S.alive_targets() if c == 'flea-gui']
+    # A running copy whose file was replaced reads "<path> (deleted)" and is still a target.
+    elsewhere.unlink()
+    elsewhere.write_bytes(Path('/usr/bin/sleep').read_bytes())
+    assert os.readlink('/proc/%d/exe' % foreign.pid).endswith(' (deleted)')
     assert foreign.pid in [p for c, p in S.alive_targets() if c == 'flea-gui']
 finally:
     foreign.kill()

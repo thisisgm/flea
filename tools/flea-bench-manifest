@@ -421,8 +421,8 @@ for row in "${ENTRANT_ROWS[@]}"; do
       if [ "$id" = strata-nightly ]; then source_tree=${STRATA_NIGHTLY_SRC:-}; binary=${STRATA_NIGHTLY_BIN:-}; fi
       # The one unpackaged entrant. A tag is what a user installs, so the tag is what the row records
       # and a bare sha is called out as not being a release.
-      # An empty source names no git at all, as for flea above: git -C "" would read the caller's directory.
       desc= when=
+      # An empty source names no git at all, as for flea above: git -C "" would read the caller's directory.
       if [ -n "$source_tree" ]; then
         desc=$(git -C "$source_tree" describe --tags --always 2>/dev/null)
         when=$(git -C "$source_tree" log -1 --format=%cs 2>/dev/null)

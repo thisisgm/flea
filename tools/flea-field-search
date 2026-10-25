@@ -616,7 +616,8 @@ def pids_for_exe(comm, binaries):
     out = []
     for p in pids_for(comm):
         try:
-            exe = os.path.realpath(os.readlink("/proc/%d/exe" % p))
+            # A running copy whose file was replaced reads "<path> (deleted)".
+            exe = os.path.realpath(os.readlink("/proc/%d/exe" % p).removesuffix(" (deleted)"))
         except OSError:
             continue
         if exe in binaries:
@@ -862,14 +863,13 @@ def describe_leftover(comm, pid):
     if began is None:
         return "%s pid %d (start time unreadable, so not attributable to this harness)" % (comm, pid)
     when = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(began))
-    today = time.strftime("%Y-%m-%d")
-    for run in ledger_windows().values():
-        if "start" in run and run["start"] <= began + 1 and (run.get("end") is None or began <= run["end"] + 1):
+    # Runs only claim the machine once it is idle, so a run killed outright ends where the next run begins.
+    runs = sorted((r for r in ledger_windows().values() if "start" in r), key=lambda r: r["start"])
+    for i in reversed(range(len(runs))):
+        run = runs[i]
+        until = run.get("end", runs[i + 1]["start"] if i + 1 < len(runs) else None)
+        if run["start"] <= began + 1 and (until is None or began <= until + 1):
             begun = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(run["start"]))
-            # A run killed outright never writes its end, so an open run from before today covers nothing.
-            if run.get("end") is None and begun[:10] < today:
-                return "%s pid %d started %s, after harness run pid %s begun %s, which never ended and is older than today: not attributable to this harness" % (
-                    comm, pid, when, run.get("pid"), begun)
             end = "never ended" if run.get("end") is None else "ended " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(run["end"]))
             return "%s pid %d started %s, inside this harness's run pid %s begun %s (%s): this harness started it" % (
                 comm, pid, when, run.get("pid"), begun, end)
