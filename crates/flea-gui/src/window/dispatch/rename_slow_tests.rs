@@ -90,3 +90,20 @@ fn a_double_click_or_a_press_past_the_name_never_renames(cx: &mut gpui::TestAppC
     );
     close(&shell, cx);
 }
+
+#[gpui::test]
+fn a_slow_tap_just_past_the_interval_keeps_submillisecond_precision(cx: &mut gpui::TestAppContext) {
+    let (shell, cx, _) = ready(cx, "default");
+    let (name, _) = name_and_past(&shell, cx, "2");
+    press(cx, &name, 1);
+    cx.executor()
+        .advance_clock(Duration::from_millis(400) + Duration::from_nanos(1));
+    press(cx, &name, 1);
+    wait(cx, 401);
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx),
+        Some((2, "notes.txt".into(), "notes".into()))
+    );
+    close(&shell, cx);
+}

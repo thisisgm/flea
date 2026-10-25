@@ -31,9 +31,15 @@ fn closing_bar_fade_requests_a_frame_at_the_hold_deadline(cx: &mut TestAppContex
         ..Default::default()
     });
     cx.run_until_parked();
+    // The notch's OutCubic glide owns frames until it lands; the hold is measured from the notch.
+    let glide = Duration::from_millis(crate::input::scroll::RETURN_MS as u64);
+    cx.executor().advance_clock(glide);
+    cx.update(|window, cx| window.simulate_next_frame(cx));
+    cx.run_until_parked();
     let before = cx.update(|window, cx| window.simulate_next_frame(cx));
     assert_eq!(before, 0, "the hold correctly needs no animation frames");
-    cx.executor().advance_clock(Duration::from_millis(1000));
+    let rest = Duration::from_millis(1000) - glide;
+    cx.executor().advance_clock(rest);
     cx.run_until_parked();
     let (elapsed, opacity, animating) = cx.update(|_, cx| {
         shell.read_with(cx, |shell, cx| {
@@ -89,6 +95,20 @@ fn closing_refresh_cancels_an_edge_band_before_advancing_it(cx: &mut TestAppCont
         ..Default::default()
     });
     cx.run_until_parked();
+    // Finish the notch glide before the real gesture targets the empty footer below the last row.
+    cx.executor().advance_clock(Duration::from_millis(
+        crate::input::scroll::RETURN_MS as u64,
+    ));
+    cx.update(|window, cx| window.simulate_next_frame(cx));
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let input = &shell.panes[0].as_ref().unwrap().input;
+        assert!(
+            !input.moving(),
+            "the empty-footer gesture starts after the notch settles"
+        );
+        assert_eq!(input.hit(at), None, "the gesture starts below the last row");
+    });
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         host.selected = vec![2, 4];

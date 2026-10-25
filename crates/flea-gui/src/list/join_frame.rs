@@ -54,6 +54,8 @@ impl Shell {
             let now = cx.background_executor().now();
             if !matches!(view, View::List | View::Dual) {
                 host.input.advance(now, &mut host.pane, &mut host.selected);
+                host.input
+                    .step_motion(now, &mut host.pane, cx.reduce_motion());
             }
             // Resolve shared font metrics during frame preparation, never inside an observer.
             host.list.borrow_mut().measure(window);
@@ -93,6 +95,8 @@ impl Shell {
                 host.input
                     .prepare(frame, &mut host.selected, &mut host.pane.cursor);
                 host.input.advance(now, &mut host.pane, &mut host.selected);
+                host.input
+                    .step_motion(now, &mut host.pane, cx.reduce_motion());
                 frame.scroll = host.pane.scroll_y;
                 host.input
                     .prepare(frame, &mut host.selected, &mut host.pane.cursor);

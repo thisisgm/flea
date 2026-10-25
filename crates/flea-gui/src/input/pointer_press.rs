@@ -1,0 +1,91 @@
+//! Pointer presses hold the current motion before choosing a row, scrollbar or selection band.
+use super::{pointer::Press, scroll::Bar, Band};
+use crate::state::Shell;
+use gpui::{Context, MouseButton, MouseDownEvent, Window};
+
+impl Shell {
+    pub(crate) fn input_blocked(&self, cx: &gpui::App) -> bool {
+        self.lifecycle.phase() != crate::window::lifecycle::Phase::Open
+            || self.card_holds_keyboard(cx)
+            || self.menu_opened()
+            || self.menu.presentation.at.is_some()
+            || self.input.blocked
+            || self
+                .overlay
+                .as_ref()
+                .is_some_and(|overlay| overlay.read_with(cx, |overlay, _| overlay.model.open()))
+    }
+    pub(crate) fn pointer_down(
+        &mut self,
+        side: usize,
+        event: &MouseDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.input_blocked(cx) {
+            return;
+        }
+        let Some(host) = &mut self.panes[side] else {
+            return;
+        };
+        let Some(frame) = host.input.frame else {
+            return;
+        };
+        if host.pane.busy() || frame.listing != host.pane.held.listing {
+            return;
+        }
+        host.input.keyboard();
+        host.input.hold(&mut host.pane);
+        // The hold may land a glide where it is drawn, so the row and band read the frame it left.
+        let frame = host.input.frame.unwrap_or(frame);
+        if frame.in_lane(event.position)
+            && frame.max_scroll() > 0.5
+            && event.button == MouseButton::Left
+        {
+            let bar = Bar::new(frame);
+            let (_, y) = frame.local(event.position);
+            let start = if y < bar.offset || y > bar.offset + bar.handle {
+                (y - bar.handle / 2.).clamp(0., bar.travel)
+            } else {
+                bar.offset
+            };
+            host.pane.scroll_to(bar.position(frame, start));
+            host.input.grab = Some(y - start);
+            if host.pane.scroll_y != frame.scroll {
+                host.input
+                    .scrolled(host.pane.scroll_y, &mut host.pane.cursor);
+                host.input.moved(cx.background_executor().now());
+            }
+        } else if let Some(row) = host.input.hit(event.position) {
+            self.rename.slow_press();
+            host.input.press = Some(Press {
+                row,
+                listing: frame.listing,
+                name: host.pane.held.row(row).map(|row| row.name.clone()),
+                event: event.clone(),
+                dragged: false,
+            });
+        } else if event.button == MouseButton::Left && !frame.in_lane(event.position) {
+            let (x, y) = frame.local(event.position);
+            host.input.band = Some(Band {
+                start: event.position,
+                pointer: event.position,
+                anchor: (x, y + frame.scroll),
+                end: (x, y + frame.scroll),
+                before: host.selected.clone(),
+                cursor: host.pane.cursor,
+                active: false,
+                additive: event.modifiers.control,
+                direction: 0.,
+                last: None,
+                cells: None,
+            });
+        }
+        self.focus_pane(side, cx);
+        window.focus(&self.focus, cx);
+        self.keyboard.context = flea::keys::Context::Listing;
+        self.keyboard.disarm();
+        cx.stop_propagation();
+        cx.notify();
+    }
+}

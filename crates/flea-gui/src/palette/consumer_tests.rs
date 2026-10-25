@@ -113,8 +113,8 @@ fn m9_integ_g05_a_published_theme_paints_link_and_executable_rows_in_their_roles
 #[test]
 fn inherited_red_keeps_code_palette_and_gutter_roles() {
     let colors = "background='#1e1e2e'\ndark_background='#161622'\nforeground='#cdd6f4'";
-    let themes = ["#f38ba8", "#f7768e"]
-        .map(|red| Theme::from_text(&format!("{colors}\nred='{red}'")));
+    let themes =
+        ["#f38ba8", "#f7768e"].map(|red| Theme::from_text(&format!("{colors}\nred='{red}'")));
     assert_ne!(themes[0].code_inks[0], themes[1].code_inks[0]);
     assert_eq!(themes[0].code_inks[1..], themes[1].code_inks[1..]);
     assert_eq!(themes[0].gutter, themes[1].gutter);
@@ -126,5 +126,8 @@ fn inherited_red_keeps_code_palette_and_gutter_roles() {
         };
         crate::list::Palette::inherited(&style, theme).error
     });
-    assert_ne!(errors[0], errors[1], "inherited error ink must follow the theme red");
+    assert_ne!(
+        errors[0], errors[1],
+        "inherited error ink must follow the theme red"
+    );
 }
