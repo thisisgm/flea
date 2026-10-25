@@ -87,7 +87,7 @@ fn queried(query: &str) -> Vec<String> {
         .collect()
 }
 
-// Headings match in caps::heading's capitals; only the five 0.4.0 keys from G1's key table, absent at BASE, are left over.
+// Headings match in caps::heading's capitals; only the four 0.4.0 keys from G1's key table still unbound in the window are left over, A now opens the agent.
 #[test]
 fn the_resting_sheet_draws_every_keymap_board_string_but_the_new_keys() {
     let sheet = Sheet::new("default", english(), Sources::default());
@@ -121,9 +121,7 @@ fn the_resting_sheet_draws_every_keymap_board_string_but_the_new_keys() {
             "ctrl-left",
             "Close in place",
             "ctrl-g",
-            "Search contents",
-            "A",
-            "Open agent here"
+            "Search contents"
         ]
     );
 }

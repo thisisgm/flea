@@ -72,6 +72,14 @@ impl Render for Root {
                 deferred(div().absolute().top_0().left_0().size_full().child(layer))
                     .with_priority(usize::MAX)
             });
+        // The archive cards and the flash view take the same highest layer while one shows.
+        let archive = self
+            .shell
+            .update(cx, |shell, cx| shell.archive_layer(window, cx))
+            .map(|layer| {
+                deferred(div().absolute().top_0().left_0().size_full().child(layer))
+                    .with_priority(usize::MAX)
+            });
         #[cfg(test)]
         let audit = crate::theme_gate::frame::probe(self.shell.clone(), cx);
         #[cfg(not(test))]
@@ -106,6 +114,7 @@ impl Render for Root {
             .children(overlay)
             .children(output)
             .children(bulk)
+            .children(archive)
             .children(audit)
     }
 }

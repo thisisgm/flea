@@ -1,4 +1,5 @@
 //! Menu marks: the Lucide 1.38.0 cut ui/js/Icons.js carries (ISC), the boards' printer and images, and the three brand marks.
+use flea::ui_logic_mn1::entry::MARK_NAMES;
 use flea::ui_logic_mn1::Brand;
 use gpui::SharedString;
 
@@ -14,7 +15,7 @@ macro_rules! cut {
     };
 }
 
-// Every mark a menu row, flyout leaf or chevron names, by its Icons.js name.
+// Every mark a menu row, flyout leaf or chevron names, by its Icons.js name, in MARK_NAMES order (pinned by a test).
 pub(super) const CUT: &[(&str, &str, &[u8])] = &[
     ("app-window", "flea-menu:app-window", cut!("M3 4h18v16H3z M3 9h18 M6 6.5h.01 M9 6.5h.01")),
     ("archive", "flea-menu:archive", cut!("M2 3h20v5H2z M4 8v13h16V8 M10 12h4")),
@@ -63,6 +64,9 @@ pub(super) const CUT: &[(&str, &str, &[u8])] = &[
     ("trash", "flea-menu:trash", cut!("M3 6h18 M8 6V3h8v3 M6 6l1.2 15h9.6L18 6 M10 10v7 M14 10v7")),
     ("type", "flea-menu:type", cut!("M12 4v16 M4 7V4h16v3 M9 20h6")),
     ("undo", "flea-menu:undo", cut!("M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5")),
+    // Open in Agent and Actions, from the board source (`design-hig/source/ui.py`, lucide's bot and zap cut to the Omarchy edge); the only copy of these cuts; appended so FILE keeps its index.
+    ("bot", "flea-menu:bot", cut!("M12 8V4H8 M4 8h16v12H4z M2 14h2 M20 14h2 M15 13v2 M9 13v2")),
+    ("zap", "flea-menu:zap", cut!("M13 2 3 14h9l-1 8 10-12h-9l1-8z")),
 ];
 
 /// The atlas key and SVG for a named mark; an unknown name draws the plain file mark, as Icons.pathFor does.
@@ -75,7 +79,7 @@ pub fn mark(name: &str) -> (SharedString, &'static [u8]) {
 }
 
 pub fn known(name: &str) -> bool {
-    CUT.iter().any(|(id, _, _)| *id == name)
+    MARK_NAMES.contains(&name)
 }
 
 const FILE: usize = 16;

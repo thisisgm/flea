@@ -55,7 +55,7 @@ impl Shell {
         self.menu_notice(side, self.locale.catalog.tr(key), cx);
     }
 
-    fn menu_notice(&mut self, side: usize, sentence: String, cx: &mut Context<Self>) {
+    pub(crate) fn menu_notice(&mut self, side: usize, sentence: String, cx: &mut Context<Self>) {
         if let Some(host) = &mut self.panes[side] {
             host.status = sentence.clone().into();
         }
@@ -72,6 +72,7 @@ impl Shell {
     }
 
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.providers_menu_closed();
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
         self.menu.pending = None;
@@ -131,6 +132,12 @@ impl Shell {
             if let Some(host) = &mut self.panes[capture.side] {
                 host.nav.gate.menu_pending = true;
             }
+            // Dropbox rows name the account root the backend already took as this menu's destination.
+            let dest = if matches!(action.as_str(), "dropbox" | "sharelink") {
+                format!(",\"dest\":\"{}\"", escape(&self.provider_destination(capture.side)))
+            } else {
+                String::new()
+            };
             let chosen = if leaf.is_empty() {
                 action
             } else {
@@ -139,7 +146,7 @@ impl Shell {
             self.menu_send(
                 capture.side,
                 format!(
-                    "{{\"c\":\"menuaction\",\"op\":\"validate\",\"id\":{},\"action\":\"{}\"}}",
+                    "{{\"c\":\"menuaction\",\"op\":\"validate\",\"id\":{},\"action\":\"{}\"{dest}}}",
                     capture.id,
                     escape(&chosen)
                 ),
@@ -156,10 +163,17 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        // The archive and flash host answers its own lines first, so none is forwarded as an unclaimed reply.
+        if self.archive_line(side, line, window, cx) {
+            return true;
+        }
         let Ok(reply) = flea::jsondoc::parse(line) else {
             return false;
         };
-        if self.menu_discovery_reply(side, &reply, window, cx) {
+        if self.actions_reply(side, line, cx) {
+            return true;
+        }
+        if self.menu_discovery_reply(side, line, &reply, window, cx) {
             return true;
         }
         if string(&reply, "t") != "menuaction" {
@@ -273,6 +287,9 @@ impl Shell {
             return;
         };
         let side = capture.side;
+        if self.deliver_actions(&capture, &action, &leaf, paths.clone(), window, cx) {
+            return;
+        }
         let step = match action.as_str() {
             "open" if !self.menu.context.row_is_file => {
                 paths.first().map(|path| Step::Open(path.clone()))
@@ -292,6 +309,7 @@ impl Shell {
             }
         } else if action == "makeExecutable" {
             self.make_executable(&capture, &paths, window, cx);
+        } else if self.clipboard_menu(&capture, &action, &leaf, &paths, window, cx) {
         } else if action == "runScript" {
             let request = format!(
                 "{{\"c\":\"actions\",\"op\":\"run\",\"id\":{},\"action\":\"{}\",\"paths\":[{}]}}",
@@ -303,6 +321,7 @@ impl Shell {
                     .collect::<Vec<_>>()
                     .join(",")
             );
+            self.menu.actions.run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
             self.menu_send(side, request, cx);
             self.retire_menu(window, cx);
         } else {

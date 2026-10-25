@@ -81,6 +81,10 @@ impl Shell {
             self.rename_sync_gate(window, cx);
             return;
         }
+        if self.archive_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
         if event.keystroke.key == "escape" && self.dual_drag.is_some() {
             self.dual_cancel(cx);
             cx.stop_propagation();
@@ -251,6 +255,7 @@ impl Shell {
                 || self.focus.is_focused(window))
                 && self.input_action(action, window, cx))
             || self.operation_action(action, cx)
+            || self.clipboard_action(action, window, cx)
         {
             return true;
         }
@@ -264,6 +269,8 @@ impl Shell {
             self.new_window();
         } else if action == "eject" {
             self.release_device(false, cx);
+        } else if action == flea::ui_logic_mn2::agent::ID {
+            self.agent_key(cx);
         } else if let Some(view) = match action {
             "viewList" => Some(startup::View::List),
             "viewColumns" => Some(startup::View::Columns),

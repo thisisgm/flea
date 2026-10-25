@@ -203,6 +203,7 @@ pub static SHARED_KEYS: &[Binding] = &[
     Binding::new("all", "text", "S", "S", "sortReverse", "listing", "all", 0, 1, "keys.action.sortReverse", true),
     Binding::new("all", "text", ".", ".", "toggleHidden", "listing", "all", 0, 1, "keys.action.toggleHidden", true),
     Binding::new("all", "text", "a", "a", "addNetwork", "listing", "all", 0, 1, "keys.action.addNetwork", true),
+    Binding::new("all", "text", "A", "A", "openAgent", "listing", "all", 0, 1, "keys.action.openAgent", true),
     Binding::new("all", "text", "m", "m", "menu", "listing", "all", 0, 1, "keys.action.menu", true),
     Binding::new("all", "text", "c", "c", "copyAs", "listing", "all", 0, 1, "keys.action.copyAs", true),
     Binding::new("all", "text", "P", "P", "pasteAs", "listing", "all", 0, 1, "keys.action.pasteAs", true),
@@ -293,7 +294,7 @@ pub static SHEET_GROUPS: &[SheetGroup] = &[
     SheetGroup { id: "move", label_key: "keys.group.move", actions: &["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open", "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview", "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape"] },
     SheetGroup { id: "look", label_key: "keys.group.look", actions: &["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack", "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown", "textSizeReset", "keymapSheet"] },
     SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
-    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
+    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "openAgent", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
 ];
 
 #[rustfmt::skip]

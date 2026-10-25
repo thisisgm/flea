@@ -1,6 +1,39 @@
 use super::*;
 use crate::backend::testdir::TestDir;
 
+// The flyout's script rows come from here, not from the oracle-shape port: executable scripts list under the actions sorted by name, each label the file name without its extension.
+#[test]
+fn scripts_list_sorted_by_name_with_the_stem_as_the_label() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = TestDir::new("actions-scripts");
+    let scripts = root.dir("scripts");
+    for name in ["ocr.sh", "convert-to-webp", "upload-to-s3.py", "notes.txt"] {
+        std::fs::write(scripts.join(name), "#!/bin/sh\n").unwrap();
+    }
+    std::fs::set_permissions(
+        scripts.join("notes.txt"),
+        std::fs::Permissions::from_mode(0o644),
+    )
+    .unwrap();
+    for name in ["ocr.sh", "convert-to-webp", "upload-to-s3.py"] {
+        std::fs::set_permissions(scripts.join(name), std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let (loaded, _) = load_from(root.path());
+    let rows: Vec<(&str, &str)> = loaded
+        .iter()
+        .filter(|a| a.script)
+        .map(|a| (a.id.as_str(), a.manifest.name.as_str()))
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            ("script:convert-to-webp", "convert-to-webp"),
+            ("script:ocr.sh", "ocr"),
+            ("script:upload-to-s3.py", "upload-to-s3"),
+        ]
+    );
+}
+
 // Readdir order is the filesystem's (tmpfs lists newest first), so both creation orders run and the count is read back.
 #[test]
 fn unrelated_directory_entries_cannot_hide_manifest_truncation() {

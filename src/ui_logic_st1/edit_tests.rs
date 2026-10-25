@@ -123,7 +123,7 @@ fn a_pointer_pick_writes_the_cell_or_the_stop_it_names() {
 }
 
 // A fresh install writes shelf.enabled false and the shipped menu.hidden, so ViewState.menuHidden counts the shelf as off.
-const FRESH: &str = r#"{"shelf":{"enabled":false},"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText"]}}"#;
+const FRESH: &str = r#"{"shelf":{"enabled":false},"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent","actions"]}}"#;
 
 fn head<'a>(rows: &'a [Row], id: &str) -> &'a Row {
     rows.iter().find(|row| row.kind == Kind::Group && row.id == id).unwrap_or_else(|| panic!("no head {id}"))
@@ -137,7 +137,7 @@ fn a_fresh_install_counts_the_shelf_as_off() {
         assert_eq!(say(&extras.value), "11 of 17", "{text}");
         assert_eq!(extras.state, Master::Some, "{text}");
         assert!(!find(&menus, "shelf").on, "{text}: Enable shelf is off");
-        assert_eq!(say(&head(&menus, "openInspect").value), "6 of 14", "{text}");
+        assert_eq!(say(&head(&menus, "openInspect").value), "5 of 14", "{text}: Open in Agent ships off");
     }
 }
 

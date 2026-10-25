@@ -247,6 +247,7 @@ fn a_busy_pane_swallows_a_modified_row_action(cx: &mut TestAppContext) {
         "ctrl-c: {:?}",
         observed.borrow()
     );
+    shell.read_with(cx, |shell, _| assert!(!shell.clipboard.board.paths_pending(0), "ctrl-c reached the clipboard on a busy pane"));
 }
 
 #[gpui::test]
@@ -361,11 +362,13 @@ fn an_idle_pane_emits_the_row_actions_the_busy_tests_hold(cx: &mut TestAppContex
         asked.len() == 1 && asked[0].contains(r#""op":"snapshot""#),
         "{asked:?}"
     );
+    // Copy has an in-process owner now: it asks the backend for its rows instead of leaving an emit nobody hears.
     press(cx, &shell, "c", None, controlled());
     // Rename has an in-process owner: F2 opens the cursor row's editor instead of leaving an emit nobody hears.
     press(cx, &shell, "f2", None, Modifiers::default());
-    assert_eq!(*observed.borrow(), vec!["copy"]);
+    assert!(observed.borrow().is_empty(), "{:?}", observed.borrow());
     shell.read_with(cx, |shell, _| {
+        assert!(shell.clipboard.board.paths_pending(0));
         assert!(shell.rename.edit.is_some(), "F2 opened the editor")
     });
 }

@@ -10,7 +10,7 @@ use gpui::{RenderImage, SharedString, Task};
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
-    rc::Weak,
+    rc::{Rc, Weak},
     sync::Arc,
 };
 
@@ -252,9 +252,16 @@ impl Map {
 #[derive(Default)]
 pub struct Pictures {
     map: RefCell<Map>,
+    // The clipboard marks the pane's tiles wear, which Pictures draws through; it never paints marks of its own.
+    clip: RefCell<Option<Rc<dyn Decor>>>,
 }
 
 impl Pictures {
+    /// Hands the tiles their clipboard marks, which outlive every picture this decor lends.
+    pub fn set_clip(&self, marks: Rc<dyn Decor>) {
+        *self.clip.borrow_mut() = Some(marks);
+    }
+
     pub fn counters(&self) -> Counters {
         self.map.borrow().counters
     }
@@ -305,6 +312,10 @@ impl Decor for Pictures {
             }
         };
         language.map(|language| Mark::Language(language).svg())
+    }
+
+    fn clip_row(&self, listing: usize, row: Option<&RowFacts>) -> Option<crate::grid::element::Clip> {
+        self.clip.borrow().as_ref()?.clip_row(listing, row)
     }
 
     fn pictures(&self) -> Option<&Pictures> {

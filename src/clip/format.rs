@@ -76,6 +76,10 @@ fn decode_uri(uri: &[u8]) -> Option<String> {
     while i < path.len() {
         if path[i] == b'%' {
             let hex = path.get(i + 1..i + 3)?;
+            // from_str_radix takes a leading '+', so only two hex digits are an escape.
+            if !hex.iter().all(u8::is_ascii_hexdigit) {
+                return None;
+            }
             let byte = u8::from_str_radix(std::str::from_utf8(hex).ok()?, 16).ok()?;
             raw.push(byte);
             i += 3;

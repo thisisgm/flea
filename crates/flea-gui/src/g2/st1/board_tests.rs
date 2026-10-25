@@ -13,7 +13,7 @@ use flea::ui_logic_st1::{
 };
 
 // The shipped menu.hidden of src/uischema.rs DEFAULTS, which the boards draw; the store hands Settings normalised state.
-const SHIPPED_HIDDEN: &str = r#"{"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText"]}}"#;
+const SHIPPED_HIDDEN: &str = r#"{"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent","actions"]}}"#;
 
 fn open(document: &str, facts: Facts, section: &'static str) -> Panel {
     let mut state = parse(SHIPPED_HIDDEN).expect("defaults parse");
@@ -97,7 +97,7 @@ fn the_places_boards_draw_every_string_of_places() {
     assert_eq!(missing(&panel, board::FAVORITES), Vec::<String>::new());
 }
 
-// Open in Agent ships unticked, but its menu row and default are the agent contract's (mn2), so BASE's defaults leave it on.
+// Open in Agent ships unticked: the agent contract (mn2) ships it in the default hidden set, so this document and the defaults draw the same count.
 const AGENT_SHIPPED: &str = r#"{"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent"]}}"#;
 
 #[test]
@@ -114,10 +114,10 @@ fn the_preview_keys_and_menus_boards_draw_every_string() {
     let panel = open("{}", Facts::default(), "menus");
     assert_eq!(
         missing(&panel, board::MENUS),
-        ["5 of 14"],
-        "BASE's defaults count Open in Agent as on"
+        Vec::<String>::new(),
+        "the defaults count Open in Agent as off"
     );
-    assert!(drawn(&panel).iter().any(|text| text == "6 of 14"));
+    assert!(!drawn(&panel).iter().any(|text| text == "6 of 14"));
 }
 
 #[test]

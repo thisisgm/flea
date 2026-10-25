@@ -76,7 +76,14 @@ pub struct Joined {
     pub pointer_armed: bool,
     pub presentation: super::presentation::Presentation,
     pub shebang: super::shebang::Shebang,
+    // Open in Agent and the Actions flyout keep their listing, replies and refusals here.
+    pub actions: crate::g2::mn2::model::Actions,
+    // A test's stand-in for the detached Open in Agent spawn; None spawns the real agent.
+    pub agent: Option<AgentLaunch>,
+    pub(crate) providers: crate::g2::sd1::join::Senders,
 }
+
+pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
 
 fn identity(host: &PaneHost, side: usize, background: bool) -> String {
     format!(
@@ -106,14 +113,8 @@ impl Shell {
             .unwrap_or_default()
     }
 
-    pub(crate) fn menu_entries(&self) -> Vec<Entry> {
-        let mut context = self.menu.context.clone();
-        let Some(capture) = &self.menu.captured else {
-            return Vec::new();
-        };
-        let Some(host) = &self.panes[capture.side] else {
-            return Vec::new();
-        };
+    /// The rows Settings hides, which the menu and the provider gating read alike.
+    pub(crate) fn menu_hidden(&self) -> Vec<String> {
         let stored = self
             .launch
             .settings
@@ -127,19 +128,59 @@ impl Shell {
                     .map(str::to_owned)
                     .collect::<Vec<_>>()
             });
-        context.hidden = inventory::effective_hidden(
+        inventory::effective_hidden(
             stored.as_deref(),
             self.launch
                 .settings
                 .data
                 .get("shelf")
                 .is_some_and(|s| flag(s, "enabled")),
-        );
+        )
+    }
+
+    pub(crate) fn menu_entries(&self) -> Vec<Entry> {
+        let mut context = self.menu.context.clone();
+        let Some(capture) = &self.menu.captured else {
+            return Vec::new();
+        };
+        let Some(host) = &self.panes[capture.side] else {
+            return Vec::new();
+        };
+        context.hidden = self.menu_hidden();
+        if !capture.background {
+            self.provider_context(capture.side, &host.path, &mut context);
+        }
         context.show_hidden = host.nav.folders.borrow().hidden;
         context.sort_by = host.nav.order.key.into();
         context.has_folder_sort =
             !host.pane.swap.session.open && host.nav.folders.borrow().has(&host.path);
-        build::listing_entries(&context)
+        // Actions takes Run Script's place under Run Script's switch, so the build is asked for that row whenever the listing holds an action.
+        let actions = (!capture.background)
+            .then(|| self.menu.actions.actions_entry(&[]))
+            .flatten();
+        if actions.is_some() && context.scripts.is_empty() {
+            context.scripts.push(build::Peer {
+                id: String::new(),
+                label: String::new(),
+            });
+        }
+        let mut entries = build::listing_entries(&context);
+        if let (Some(at), Some(row)) = (
+            entries.iter().position(|e| e.id.as_ref() == "runScript"),
+            actions,
+        ) {
+            entries[at] = row;
+        }
+        if capture.background {
+            if let Some(row) = self.menu.actions.agent_entry(&context.hidden) {
+                let at = entries
+                    .iter()
+                    .position(|e| e.id.as_ref() == "openTerminal")
+                    .map_or(entries.len(), |at| at + 1);
+                entries.insert(at, row);
+            }
+        }
+        entries
     }
 
     pub(crate) fn open_menu(
@@ -174,6 +215,7 @@ impl Shell {
             host.selected.clone()
         };
         self.menu.sequence += 1;
+        self.menu.actions.listing_forgotten();
         let capture = Captured {
             side,
             listing: host.pane.held.listing,
@@ -185,6 +227,11 @@ impl Shell {
             ready: false,
             kinds: Vec::new(),
             background,
+        };
+        let (clipboard_available, clipboard_watch_failed, can_link) =
+            self.clipboard_menu_facts(side);
+        let Some(host) = &self.panes[side] else {
+            return;
         };
         let facts = row.and_then(|row| host.pane.held.row(row));
         // Print, Convert and Combine Images read the marked rows' output kinds.
@@ -221,10 +268,14 @@ impl Shell {
                 .and_then(Json::as_bool)
                 != Some(false),
             open_with_loaded: background,
+            clipboard_available,
+            clipboard_watch_failed,
+            can_link,
             ..MenuContext::default()
         };
         self.menu.captured = Some(capture.clone());
         self.check_menu_shebang(window, cx);
+        self.archive_menu_context(side);
         self.menu.presentation.at = Some(at);
         self.menu.pointer = Some((
             window.mouse_position().x.into(),
@@ -246,6 +297,9 @@ impl Shell {
                 .collect::<Vec<_>>()
                 .join(",");
             self.menu_send(side, format!("{{\"c\":\"menuaction\",\"op\":\"snapshot\",\"id\":{},\"listing\":{},\"rows\":[{rows}],\"cursor\":{}}}", capture.id, capture.listing, capture.cursor), cx);
+            if self.menu.captured.is_some() {
+                self.providers_menu_opened(side, capture.id, window, cx);
+            }
             if self.menu.captured.is_some() {
                 self.arm_menu_loading(window, cx);
             }

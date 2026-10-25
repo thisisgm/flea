@@ -84,6 +84,10 @@ pub trait Decor {
     fn clip(&self, _listing: usize) -> Option<Clip> {
         None
     }
+    /// The clipboard mark for a row the frame holds, by its facts; owners that key by listing keep `clip`.
+    fn clip_row(&self, listing: usize, _row: Option<&RowFacts>) -> Option<Clip> {
+        self.clip(listing)
+    }
     /// A language mark that replaces the kind mark when no picture draws.
     fn language(&self, _row: &RowFacts) -> Option<(SharedString, &'static [u8])> {
         None
