@@ -13,6 +13,7 @@ pub struct Root {
 impl Render for Root {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.shell.update(cx, |shell, cx| {
+            shell.presentation.activity.draws += 1;
             shell.sync_font_settings(cx);
             shell.observe_operations(window, cx);
             shell.observe_output(window, cx);
