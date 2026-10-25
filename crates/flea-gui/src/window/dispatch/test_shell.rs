@@ -54,6 +54,15 @@ pub(super) fn open_root<'a>(
     )
 }
 
+// The native root with its own settings fields and a --select path.
+pub(super) fn open_root_with<'a>(
+    cx: &'a mut TestAppContext,
+    settings: &str,
+    select: Option<&str>,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    build(cx, settings, select, true, "")
+}
+
 // The same launch in a named view.
 pub(super) fn open_in<'a>(
     cx: &'a mut TestAppContext,

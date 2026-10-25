@@ -170,6 +170,7 @@ impl Shell {
         );
         drop(list);
         self.menu.presentation.cancel();
+        self.open_asked_submenu(window, cx);
         cx.notify();
     }
 

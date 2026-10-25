@@ -1,5 +1,6 @@
 //! Native input policy shared by the mounted view and the window's read-only observers.
 mod actions;
+pub(crate) use actions::follow_cursor;
 mod band;
 mod element;
 pub mod focus;

@@ -261,6 +261,8 @@ impl Shell {
         }
         if action == "menu" {
             self.menu_keyboard_open(window, cx);
+        } else if action == "pasteAs" {
+            self.paste_as_key(window, cx);
         } else if action == "autofitColumns" {
             self.fit_list_columns(window, cx);
         } else if action == "pathBar" {
