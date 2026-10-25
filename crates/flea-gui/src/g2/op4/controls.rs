@@ -127,6 +127,7 @@ pub fn button(
         control,
         enabled,
         div()
+            .debug_selector(move || format!("op4-control-{control:?}"))
             .relative()
             .flex_none()
             .h(px(30.))

@@ -73,7 +73,7 @@ impl OutputView {
         }
         let key = event.keystroke.key.as_str();
         if key == "escape" {
-            self.model.close();
+            self.model.cancel();
             self.flush(cx);
             return;
         }

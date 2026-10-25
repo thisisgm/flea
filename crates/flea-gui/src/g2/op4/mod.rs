@@ -13,6 +13,10 @@ mod fix1_tests;
 mod forms;
 pub mod host;
 mod input;
+#[cfg(test)]
+mod m9_g2rows_21;
+#[cfg(test)]
+mod m9_g2rows_21_artifacts;
 pub mod model;
 #[cfg(test)]
 mod pointer_tests;

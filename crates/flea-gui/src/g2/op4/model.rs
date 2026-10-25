@@ -49,6 +49,7 @@ pub enum Card {
 pub struct Run {
     pub ticket: Ticket,
     pub operation: Option<u64>,
+    pub cancel_requested: bool,
     pub action: Action,
     pub source: String,
     pub last_receipt: Option<(String, bool)>,
