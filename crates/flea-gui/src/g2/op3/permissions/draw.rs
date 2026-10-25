@@ -124,7 +124,7 @@ impl Permissions {
             }),
             _ => {}
         }
-        if self.several() {
+        if self.several() && self.phase != Phase::Reading {
             body.push(self.grid(i18n));
             if self.summary().mixed {
                 body.push(Self::note(tr("dialogs.file.permissions.mixed")));

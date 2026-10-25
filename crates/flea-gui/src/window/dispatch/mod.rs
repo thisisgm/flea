@@ -22,7 +22,13 @@ pub(crate) enum Order {
 type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
 
 /// Each family keeps its handlers in its own file beside this one and adds one line here.
-const FAMILIES: &[Family] = &[navigation::run, preview::run, listing::run, window::run];
+const FAMILIES: &[Family] = &[
+    navigation::run,
+    preview::run,
+    listing::run,
+    window::run,
+    super::permissions::run,
+];
 
 impl Shell {
     /// Runs the order through its family; one nobody ran is emitted for observers, and an unclaimed menu choice is refused.

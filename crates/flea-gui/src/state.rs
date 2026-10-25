@@ -34,6 +34,7 @@ pub struct Shell {
     pub(crate) clipboard: crate::g2::dg1::join::Joined,
     pub(crate) overlay: Option<gpui::Entity<crate::g2::op1::host::Overlay>>,
     pub(crate) output: crate::window::output::Join,
+    pub(crate) permissions: crate::window::permissions::Join,
     pub(crate) trash: Option<crate::g2::pl3::join::TrashHost>,
     pub(crate) rail: Option<crate::window::rail::Join>,
     /// Live compositor rounding, square until it is readable; visual scenes can override it.
@@ -65,13 +66,7 @@ pub struct Shell {
     pub(crate) deadlines: [Option<Task<()>>; 2],
 }
 
-pub(crate) fn labels(locale: &Snapshot) -> Labels {
-    Labels {
-        name: locale.catalog.tr("window.column_name").into(),
-        size: locale.catalog.tr("window.column_size").into(),
-        modified: locale.catalog.tr("window.column_modified").into(),
-    }
-}
+pub(crate) use crate::window::locale::labels;
 
 impl Shell {
     pub fn new(
@@ -118,6 +113,7 @@ impl Shell {
             menu: Default::default(),
             overlay: None,
             output: Default::default(),
+            permissions: Default::default(),
             operations: Default::default(),
             clipboard: Default::default(),
             settings: Default::default(),
@@ -275,7 +271,9 @@ impl Shell {
                     }
                 }));
                 // Each backend watches the clipboard from its start, as Backend.qml does.
-                self.clipboard.board.watch(side as u64, &crate::g2::dg1::join::PaneWire(Some(&backend)));
+                self.clipboard
+                    .board
+                    .watch(side as u64, &crate::g2::dg1::join::PaneWire(Some(&backend)));
                 host.backend = Some(backend);
             }
             Err(error) => {
