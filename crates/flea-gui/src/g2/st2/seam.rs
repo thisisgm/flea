@@ -35,17 +35,26 @@ pub struct Tokens {
 }
 
 impl Tokens {
-    /// Interim roles from the list palette until the theme tokens carry surface and error.
+    /// Reads the shared palette roles and retains the inherited surface ground.
     pub fn interim(palette: &crate::list::Palette) -> Self {
         Self {
             bg: palette.background,
             surface: palette.background,
             fg: palette.foreground,
-            muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted: palette.muted,
+            muted_frame: palette.muted_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
-            error: palette.foreground,
+            error: palette.error,
+        }
+    }
+
+    /// HIG plugin-add and plugin-git-page draw the pane inside the Settings .card, on --surface.
+    pub fn on_surface(palette: &crate::list::Palette, theme: crate::palette::Theme) -> Self {
+        Self {
+            surface: theme.surface,
+            error: palette.error_on_surface,
+            ..Self::interim(palette)
         }
     }
 
@@ -72,5 +81,12 @@ impl Tokens {
     /// The boards' --track, foreground at 6%.
     pub fn track(&self) -> Hsla {
         self.fg.opacity(0.06)
+    }
+}
+
+#[cfg(test)]
+impl super::view::PluginsPane {
+    pub(crate) fn tokens(&self) -> Tokens {
+        self.tokens
     }
 }

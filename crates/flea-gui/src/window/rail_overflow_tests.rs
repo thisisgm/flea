@@ -228,7 +228,7 @@ impl Watch {
             near(bounds.left(), body.left())
                 && near(bounds.right(), body.right())
                 && near(bounds.top(), body.top())
-                && *background == gpui::Background::from(theme.background)
+                && *background == gpui::Background::from(theme.surface)
         }) else {
             fault(format!("the drawn rail at {body:?} painted no ground"));
             return;

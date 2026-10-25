@@ -104,6 +104,10 @@ fn page(window: &mut Window, rect: Bounds<Pixels>, image: &Arc<RenderImage>, vei
 
 impl Render for PdfView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // A live theme switch repaints the window; the veil follows the new ground in that frame.
+        if let Some(theme) = cx.try_global::<crate::palette::Theme>() {
+            self.palette.background = theme.background;
+        }
         let (laid, painted) = (cx.entity(), cx.entity());
         div()
             .size_full()

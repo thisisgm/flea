@@ -173,7 +173,7 @@ impl Render for MessageLine {
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
-        let ink = Ink::interim(&Palette::inherited(&window.text_style(), theme));
+        let ink = Ink::on_surface(&Palette::inherited(&window.text_style(), theme));
         let drawn = &self.drawn;
         self.painted.clear();
         let text = |name, value: SharedString, color| {

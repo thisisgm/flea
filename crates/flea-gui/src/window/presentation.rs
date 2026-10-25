@@ -82,16 +82,28 @@ impl Shell {
         snapshot.install(cx);
         self.font_key = None;
         self.sync_font_settings(cx);
+        let palette = crate::g2::op1::palette::CardPalette::from_theme(
+            &window.text_style(),
+            snapshot.theme,
+            self.corner,
+        );
         if let Some(overlay) = &self.overlay {
-            let palette = crate::g2::op1::palette::CardPalette::from_theme(
-                &window.text_style(),
-                snapshot.theme,
-                self.corner,
-            );
             overlay.update(cx, |overlay, cx| {
                 overlay.palette = palette;
                 cx.notify();
             });
+        }
+        // Cards built once and kept keep their construction palette unless the switch hands them the new one.
+        if let Some(output) = &self.output.view {
+            output.update(cx, |output, cx| {
+                output.palette = palette;
+                cx.notify();
+            });
+        }
+        if let Some(network) = self.rail.as_ref().and_then(|join| join.network.as_ref()) {
+            let (card, shares) = (network.card.clone(), network.shares.clone());
+            card.update(cx, |card, cx| card.set_palette(palette, cx));
+            shares.update(cx, |shares, cx| shares.set_palette(palette, cx));
         }
         window.refresh();
         cx.notify();

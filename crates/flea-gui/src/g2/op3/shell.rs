@@ -241,7 +241,6 @@ struct Tokens {
     muted_frame: Hsla,
     accent: Hsla,
     accent_frame: Hsla,
-    /// The palette carries no error role yet, so an error wears the accent until it does.
     error: Hsla,
     rule: Hsla,
 }
@@ -252,12 +251,12 @@ impl Tokens {
             surface: palette.background,
             ground: palette.background,
             fg: palette.foreground,
-            muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted: palette.muted,
+            muted_frame: palette.muted_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
-            error: palette.accent,
-            rule: palette.metadata_frame.opacity(RULE),
+            error: palette.error,
+            rule: palette.muted_frame.opacity(RULE),
         }
     }
 
@@ -283,3 +282,14 @@ mod draw;
 mod glyph;
 pub use draw::StandIn;
 pub use glyph::glyph;
+
+#[test]
+fn op3_error_ink_is_the_error_role() {
+    let theme = crate::palette::Theme::default();
+    let palette = Palette::inherited(&gpui::TextStyle::default(), theme);
+    assert_ne!(
+        palette.error, palette.accent,
+        "fixture must tell the two roles apart"
+    );
+    assert_eq!(Tokens::of(&palette).ink(Ink::Error), palette.error);
+}
