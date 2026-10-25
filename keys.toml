@@ -151,6 +151,17 @@ action = "copyPath"
 # section prints beside the label, and it is spelled the way SettingsKeys.html spells a chord. Each
 # block writes name, mods, key, keys, action, then label, in that order.
 
+# Carry is a GUI action; terminal presets keep X unbound.
+[[preset]]
+name = "all"
+mods = "text"
+key = "X"
+keys = "X"
+action = "carry"
+frontend = "gui"
+context = "listing"
+label = "carry"
+
 # The four views are bound in no shared table, so a preset claiming nothing left a fresh install
 # with no keyboard route to them at all, on a keyboard-first file manager. Default and Vim take the
 # spelling the Mac rows below already use, because only one preset is ever live and the two never
@@ -657,7 +668,7 @@ look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "fac
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
 find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
-change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
+change = ["copy", "cut", "carry", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect",
           "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
           "openTerminal", "openAgent", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]

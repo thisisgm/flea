@@ -1,0 +1,40 @@
+//! The disk facts a drop's verb needs, read off the UI thread: the device of the folder the sources live in, the destination's device, and whether that source folder can be written.
+use std::ffi::{c_char, c_int, CString};
+use std::os::unix::ffi::OsStrExt;
+use std::os::unix::fs::MetadataExt;
+use std::path::Path;
+
+/// Device numbers are 0 when unknown, which copies (Drag.verbFor).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Facts {
+    pub src_dev: u64,
+    pub dest_dev: u64,
+    pub deletable: bool,
+}
+
+fn dev(path: &Path) -> u64 {
+    std::fs::metadata(path).map_or(0, |meta| meta.dev())
+}
+
+// access(2) W_OK, as the backend's own dir_writable asks it.
+fn writable(path: &Path) -> bool {
+    const W_OK: c_int = 2;
+    extern "C" {
+        fn access(path: *const c_char, mode: c_int) -> c_int;
+    }
+    let Ok(c) = CString::new(path.as_os_str().as_bytes()) else {
+        return false;
+    };
+    // SAFETY: c is a NUL-terminated path that outlives the call.
+    unsafe { access(c.as_ptr(), W_OK) == 0 }
+}
+
+/// Blocking stat and access; callers run it on the background executor.
+pub fn read(first_source: Option<&str>, dest: &str) -> Facts {
+    let folder = first_source.and_then(|source| Path::new(source).parent());
+    Facts {
+        src_dev: folder.map_or(0, dev),
+        dest_dev: dev(Path::new(dest)),
+        deletable: folder.is_some_and(writable),
+    }
+}

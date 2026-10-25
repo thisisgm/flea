@@ -1,25 +1,41 @@
 //! Clipboard file selections over the G1 shell: one selection, one queue per pane backend and the cut marks rows draw; the core flea::ui_logic_dg1 decides, and this host drains its outbox to the wire, sink, owner and status slot.
+pub mod carry;
+mod carry_landing;
+pub mod flock;
 pub mod host;
 pub(crate) mod ipc;
 pub mod join;
+mod keyed;
 pub mod keys;
 pub mod marks;
+mod receive;
 pub mod seams;
+mod transport;
 
 #[cfg(test)]
-mod review_r4_tests;
-#[cfg(test)]
-mod host_tests;
+mod host_marks_tests;
 #[cfg(test)]
 mod host_races_tests;
 #[cfg(test)]
-mod host_marks_tests;
+mod host_tests;
+#[cfg(test)]
+mod join_tests;
+#[cfg(test)]
+mod m9_g2rows_25_carry_tests;
+#[cfg(test)]
+mod m9_g2rows_25_rig;
+#[cfg(test)]
+mod m9_g2rows_25_target_lifetime_tests;
+#[cfg(test)]
+mod m9_g2rows_25_target_rig;
+#[cfg(test)]
+mod m9_g2rows_25_target_tests;
+#[cfg(test)]
+mod review_r4_tests;
 #[cfg(test)]
 mod rig;
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod join_tests;
 
 use flea::i18n::I18n;
 use flea::ui_logic_dg1::{self as core};
@@ -102,7 +118,9 @@ impl Clipboard {
     // A watch begun at first use: until its first changed line the backend reads as down, so a paste reads the system selection first and the menu keeps Paste enabled.
     pub fn watch_unknown(&mut self, backend: u64, wire: &dyn Wire) {
         if !self.watched.contains(&backend) {
-            let _ = self.session.on_changed(backend, "none", Vec::new(), String::new(), "unwatched");
+            let _ =
+                self.session
+                    .on_changed(backend, "none", Vec::new(), String::new(), "unwatched");
             self.watch(backend, wire);
         }
     }
@@ -137,7 +155,10 @@ impl Clipboard {
     /// Whether this backend holds the shared paths slot, a rows take or a Copy As round trip; G1's other askers read it to refuse while dg1 answers.
     pub fn paths_pending(&self, backend: u64) -> bool {
         self.copy_as.contains_key(&backend)
-            || self.queues.get(&backend).is_some_and(|queue| queue.pending())
+            || self
+                .queues
+                .get(&backend)
+                .is_some_and(|queue| queue.pending())
     }
 
     pub fn token(&self) -> &str {
@@ -296,3 +317,6 @@ impl Clipboard {
         }
     }
 }
+
+#[cfg(test)]
+mod m9_g2rows_25_pending_tests;

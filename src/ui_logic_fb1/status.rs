@@ -45,6 +45,8 @@ pub enum Hint {
     Paste,
     Deletes,
     Note(Note, bool),
+    /// Carry's own advice, standing while the carry rides.
+    Carry,
 }
 
 /// One lane segment of a hint, the undo key kept apart so it can draw as its own target.
@@ -81,7 +83,16 @@ impl Hint {
                 rest: catalog.tr(note.key()),
                 undo: if with_undo { undo() } else { String::new() },
             },
+            Self::Carry => HintText {
+                rest: catalog.tr("carry.hint"),
+                undo: String::new(),
+            },
         }
+    }
+
+    /// Whether the notice stands until replaced or withdrawn: an undo target, or a carry that still rides.
+    pub fn stands(self, preset: &str) -> bool {
+        self == Self::Carry || self.has_undo(preset)
     }
 
     /// Whether the hint ends in the undo key, which makes that key a click target.

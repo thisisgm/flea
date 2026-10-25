@@ -27,6 +27,7 @@ pub mod preview_model;
 pub mod theme;
 pub mod ui_logic_fb1;
 pub mod ui_logic_dg1;
+pub mod ui_logic_dg2;
 pub mod ui_logic_mn1;
 pub mod ui_logic_mn2;
 pub mod ui_logic_op1;

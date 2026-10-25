@@ -170,6 +170,7 @@ impl Shell {
         );
         drop(list);
         self.menu.presentation.cancel();
+        self.flyout_pending(window, cx);
         cx.notify();
     }
 
