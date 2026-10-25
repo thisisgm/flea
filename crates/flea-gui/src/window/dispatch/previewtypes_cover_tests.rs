@@ -100,3 +100,91 @@ fn an_mp3_cover_stays_in_the_frame_through_play_pause_and_seek(cx: &mut TestAppC
     assert!(sent.iter().any(|c| matches!(c, Command::Seek(_))), "right seeks: {sent:?}");
     assert!(cover_drawn(cx), "the cover stays after a seek");
 }
+
+// EY-23: with no cover, the column's audio frame is one centred note, before play and while playing, as v0.3.12 draws it.
+#[gpui::test]
+fn an_audio_file_without_a_cover_draws_one_centred_mark(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = Root::new("audiomark");
+    let dir = root.0.to_string_lossy().into_owned();
+    let (shell, cx) = open(cx, &dir);
+    let rows = vec![file(
+        "tone.ogg",
+        "audio-x-vorbis+ogg",
+        "Ogg audio",
+        0o100644,
+    )];
+    super::test_shell::land(&shell, cx, &dir, rows, 1);
+    let sound = Sound::default();
+    let backend: Rc<dyn engine::Backend> = Rc::new(sound.clone());
+    cx.update(|_, cx| {
+        let preview = shell
+            .read(cx)
+            .selection_preview(0)
+            .expect("the column is mounted");
+        preview.update(cx, |view, _| view.set_media_backend(backend));
+    });
+    let lines = local(&shell, cx, &dir);
+    meta(&shell, cx, &lines, r#","ms":3000"#);
+    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    settle(cx);
+    assert_eq!(read(&shell, cx, "previewColumnState", &[]), "audio");
+    let mark = |cx: &mut VisualTestContext| cx.debug_bounds("column-audio-mark");
+    assert!(
+        mark(cx).is_some(),
+        "the note stands in the frame before play"
+    );
+    cx.simulate_keystrokes("ctrl-tab");
+    cx.simulate_keystrokes("p");
+    settle(cx);
+    assert_eq!(read(&shell, cx, "columnMediaPlaying", &[]), "true");
+    assert!(mark(cx).is_some(), "the note stays while it plays");
+}
+
+/// A decoder that cannot start, so the column's player fails at the first press of play.
+struct Broken;
+impl engine::Backend for Broken {
+    fn start(&self, _: &Request) -> Result<(Box<dyn Playback>, engine::Feed), String> {
+        Err("no decoder".into())
+    }
+}
+
+// EY-23 review: a player that failed draws its failure in the column, never the playable note.
+#[gpui::test]
+fn a_failed_audio_player_draws_its_failure_not_the_note(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = Root::new("audiofail");
+    let dir = root.0.to_string_lossy().into_owned();
+    let (shell, cx) = open(cx, &dir);
+    let rows = vec![file(
+        "tone.ogg",
+        "audio-x-vorbis+ogg",
+        "Ogg audio",
+        0o100644,
+    )];
+    super::test_shell::land(&shell, cx, &dir, rows, 1);
+    let backend: Rc<dyn engine::Backend> = Rc::new(Broken);
+    cx.update(|_, cx| {
+        let preview = shell
+            .read(cx)
+            .selection_preview(0)
+            .expect("the column is mounted");
+        preview.update(cx, |view, _| view.set_media_backend(backend));
+    });
+    let lines = local(&shell, cx, &dir);
+    meta(&shell, cx, &lines, r#","ms":3000"#);
+    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    settle(cx);
+    assert!(cx.debug_bounds("column-audio-mark").is_some());
+    cx.simulate_keystrokes("ctrl-tab");
+    cx.simulate_keystrokes("p");
+    settle(cx);
+    assert!(
+        cx.debug_bounds("column-audio-mark").is_none(),
+        "the failure replaces the note"
+    );
+    assert!(
+        cx.debug_bounds("column-media-failed").is_some(),
+        "the player's failure picture draws in the frame"
+    );
+}
