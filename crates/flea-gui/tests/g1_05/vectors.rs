@@ -52,6 +52,9 @@ pub(super) fn nums(values: &[f64]) -> Vec<V> {
 }
 
 
+/// The fewest rows a whole matrix writes; tests/g1-05.qml refuses a file under the same rowFloor.
+const ROW_FLOOR: usize = 7_000;
+
 #[test]
 fn export_oracle_vectors_for_scroll_physics_and_slow_clicks() {
     let root = root();
@@ -64,6 +67,10 @@ fn export_oracle_vectors_for_scroll_physics_and_slow_clicks() {
     let mut lcg = Lcg(0x0105_2026_1018);
     oracle::scroll_functions(&mut out, &mut lcg);
     oracle::slow_vectors(&mut out, &mut lcg);
-    assert!(out.rows > 7_000, "empty or incomplete vector matrix: {}", out.rows);
+    assert!(
+        out.rows >= ROW_FLOOR,
+        "empty or incomplete vector matrix: {}",
+        out.rows
+    );
     println!("G1_05 vectors: {} oracle rows", out.rows);
 }
