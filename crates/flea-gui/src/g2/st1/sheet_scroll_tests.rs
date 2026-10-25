@@ -185,7 +185,7 @@ fn down_past_the_edge_keeps_the_highlighted_result_in_view() {
 }
 
 const FADES: [&str; 2] = ["sheet-fade-0", "sheet-fade-1"];
-const COLUMNS: [&str; 2] = ["sheet-column-0", "sheet-column-1"];
+const MASKS: [&str; 2] = ["sheet-mask-0", "sheet-mask-1"];
 
 // Each resting column fades at its own foot while rows run below the body, as the keymap board draws, and not at the end.
 #[test]
@@ -209,11 +209,26 @@ fn each_resting_column_fades_at_its_own_foot_until_the_wheel_reaches_the_end() {
         "ST_SHEET_FADE: one fade under each column, not one across the body: {fades:?}"
     );
     for (side, fade) in fades.iter().enumerate() {
-        let column = open.cx.debug_bounds(COLUMNS[side]).expect("column drawn");
-        let half = f32::from(column.bottom() - fade.bottom());
+        let last = bounds(&open, ["last-0", "last-1"][side]);
+        let column = bounds(&open, ["column-0", "column-1"][side]);
+        assert_eq!(
+            last.bottom(),
+            column.bottom(),
+            "column {side}'s probed last row ends its column"
+        );
         assert!(
-            fade.bottom() == body.bottom() || near(half, KEY_ROW / 2.),
-            "ST_SHEET_FADE: column {side} ends on the body's foot or its last row's half: {fade:?} {column:?}"
+            fade.bottom() == body.bottom()
+                || (fade.bottom() < last.bottom() && near(f32::from(fade.bottom()), f32::from(last.center().y))),
+            "ST_SHEET_FADE: column {side} ends on the body's foot or its drawn last row's half: {fade:?} {last:?} in {body:?}"
+        );
+        let mask = open
+            .cx
+            .debug_bounds(MASKS[side])
+            .expect("the cut hides the rest of the column");
+        assert_eq!(
+            (mask.top(), mask.bottom()),
+            (fade.bottom(), column.bottom()),
+            "ST_SHEET_FADE: column {side} shows nothing under its cut"
         );
     }
     assert!(
