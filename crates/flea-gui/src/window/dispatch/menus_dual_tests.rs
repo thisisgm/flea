@@ -1,5 +1,5 @@
 //! A right click in the unfocused Dual pane leaves the focus where it was, as Tap.js tappedMenu does, and its menu acts on its own pane.
-use super::menus_tests::{actions, choose, home, right_click, settle};
+use super::menus_tests::{actions, answer, choose, home, right_click, settle, validated};
 use super::test_shell::{asked_on, land, land_on, open_root as open};
 use crate::{state::Shell, window::startup::View};
 use gpui::{px, Entity, VisualTestContext};
@@ -89,6 +89,48 @@ fn a_right_click_in_the_unfocused_pane_keeps_the_focus_and_its_menu_acts_on_that
         state(&shell, cx),
         (0, vec![1], vec![0, 1, 2, 3]),
         "Select All marks the captured pane only"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn an_unread_favourite_in_the_unfocused_pane_says_so_in_that_pane(cx: &mut gpui::TestAppContext) {
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", home(), 1);
+    cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(View::Dual, window, cx)));
+    let right = asked_on(&shell, cx, 1);
+    land_on(&shell, cx, 1, &right, home(), 4, 1);
+    settle(cx);
+    let (x, y) = spot(&shell, cx, 1, Some(0));
+    // The snapshot answers before the loading mark is due, so the menu draws at once.
+    let position = gpui::point(px(x), px(y));
+    let modifiers = gpui::Modifiers::none();
+    let button = gpui::MouseButton::Right;
+    cx.simulate_event(gpui::MouseDownEvent {
+        position,
+        button,
+        modifiers,
+        click_count: 1,
+        first_mouse: false,
+    });
+    cx.simulate_event(gpui::MouseUpEvent {
+        position,
+        button,
+        modifiers,
+        click_count: 1,
+    });
+    answer(&shell, cx, &[0o040755]);
+    choose(&shell, cx, "addFavourite");
+    validated(&shell, cx, "addFavourite", &[]);
+    let said = shell.read_with(cx, |shell, _| {
+        let status = |side: usize| shell.panes[side].as_ref().unwrap().status.to_string();
+        let unread = shell.locale.catalog.tr("menu.refusal.favourite_unread");
+        (shell.focus_side, status(0) == unread, status(1) == unread)
+    });
+    assert_eq!(
+        said,
+        (0, false, true),
+        "the refusal lands in the clicked pane and the focus stays"
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

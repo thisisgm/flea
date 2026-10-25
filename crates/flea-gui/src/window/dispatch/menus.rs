@@ -58,7 +58,11 @@ pub(super) fn run(
             };
             match path {
                 Some(path) => shell.add_favourite(&path, window, cx),
-                None => shell.menu_refuse("menu.refusal.favourite_unread", cx),
+                None => shell.menu_notice(
+                    chosen.captured.side,
+                    shell.locale.catalog.tr("menu.refusal.favourite_unread"),
+                    cx,
+                ),
             }
         }
     }
