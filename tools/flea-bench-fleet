@@ -192,7 +192,7 @@ def validate_row(expected, observed, now, captured):
     probe = observed["probe"]
     require(probe["argv"] == [expected["binary"]["path"]] + expected["version_args"], "version command mismatch")
     require(type(probe["exit"]) is int and probe["exit"] == 0, "version command failed")
-    require(probe["stdout"].strip() == text(expected["version_stdout"]).strip(), "actual version output mismatch")
+    require(text(probe["stdout"]).strip() == text(expected["version_stdout"]).strip(), "actual version output mismatch")
     require(version in probe["stdout"], "version output does not identify build")
     if alias in ("strata-stable", "strata-nightly"):
         require(observed["artifact"] == expected["artifact"], "changed artifact")

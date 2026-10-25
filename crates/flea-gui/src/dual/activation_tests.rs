@@ -131,3 +131,33 @@ fn u26_dual_activation_uses_the_existing_fallback_and_shows_a_stopped_secondary(
         });
     });
 }
+
+#[gpui::test]
+fn rem_j2_dual_reentry_and_start_pane_keep_the_live_host(cx: &mut TestAppContext) {
+    let (backend, _requests) = Backend::test_channel();
+    let window = cx.add_empty_window();
+    window.update(|window, cx| {
+        let entity = cx.new(|cx| shell_with(backend, cx));
+        entity.update(cx, |shell, cx| {
+            shell.panes[1] = Some(PaneHost::new("/right".into(), None, 620., &shell.locale));
+            let held = |shell: &crate::state::Shell, side: usize| {
+                Rc::clone(&shell.panes[side].as_ref().unwrap().pane.held)
+            };
+            let (left, right) = (held(shell, 0), held(shell, 1));
+            for view in [View::Dual, View::List, View::Dual] {
+                shell.set_view(view, window, cx);
+            }
+            shell.start_pane(0, window, cx);
+            shell.start_pane(1, window, cx);
+            // A host that is never replaced never drops its Grid pictures outside drop_image.
+            assert!(
+                Rc::ptr_eq(&left, &held(shell, 0)),
+                "start_pane replaced the live left host"
+            );
+            assert!(
+                Rc::ptr_eq(&right, &held(shell, 1)),
+                "dual re-entry replaced the live right host"
+            );
+        });
+    });
+}

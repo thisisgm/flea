@@ -14,8 +14,9 @@ if [[ ${1:-} != --isolated ]]; then
 fi
 repo=$2
 scratch=$3
-[[ ! -t 0 && ! -t 1 && -f "$scratch/.flea-test-sandbox" ]] || exit 1
 trap 'case $scratch in "$repo"/.superpowers/m9-integ-07/consumer.?*) [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
+[[ ! -t 0 && ! -t 1 && -f "$scratch/.flea-test-sandbox" ]] ||
+    { echo "m9_integ_b1: refused: needs no terminal and a marked sandbox at $scratch" >&2; exit 1; }
 python3 -B - "$repo" "$scratch" <<'PY'
 import copy
 import errno

@@ -40,7 +40,7 @@ pub struct Policy {
 }
 
 impl Policy {
-    /// Absent keys read as v0.3.12 reads them: media, USB on, network and phone off, code icons on.
+    /// Sample input: {"preview":{"thumbnails":"images","thumbUsb":false},"langMarks":true}; absent keys read as v0.3.12 reads them.
     pub fn read(data: &Json) -> Self {
         let preview = data.get("preview");
         let flag = |key| preview.and_then(|p| p.get(key)).and_then(Json::as_bool);

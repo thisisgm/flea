@@ -12,6 +12,10 @@ use flea_gui::{
 };
 use std::{cell::RefCell, rc::Rc};
 
+const PANE_HEIGHT: f32 = 620.;
+// The watch clock reading at which a change seen at 0 fires its reread.
+const WATCH_DELAY_MS: u64 = 400;
+
 fn order(key: &'static str, desc: bool) -> Order {
     Order { key, desc }
 }
@@ -35,7 +39,7 @@ impl Tab {
 
     fn shared(folders: Rc<RefCell<Folders>>, writer: Rc<RefCell<Writer>>, path: &str) -> Self {
         let mut tab = Self {
-            pane: Pane::new(path.into(), 620.),
+            pane: Pane::new(path.into(), PANE_HEIGHT),
             nav: Navigator::new(folders, writer),
             selected: Vec::new(),
             generation: 0,
@@ -120,7 +124,9 @@ fn m9_g1rows_05_browsing_never_writes_sort() {
             assert_eq!(tab.open("/B"), order("size", true));
             assert_eq!(tab.open("/A"), own);
             assert!(tab.nav.changed(&tab.pane, "/A", 0));
-            assert!(tab.nav.fire_watch(&mut tab.pane, &tab.selected, 400));
+            assert!(tab
+                .nav
+                .fire_watch(&mut tab.pane, &tab.selected, WATCH_DELAY_MS));
             assert!(
                 matches!(&tab.nav.take()[..], [Command::List(listing)] if listing.order == own)
             );
@@ -169,7 +175,9 @@ fn m9_g1rows_05_transfer_restores_tab_order_until_navigation() {
     assert_eq!(receiver.nav.writer.borrow().sent, 0);
     assert_eq!(receiver.nav.folders.borrow().get("/A"), before);
     assert!(first.nav.changed(&first.pane, "/A", 0));
-    assert!(first.nav.fire_watch(&mut first.pane, &first.selected, 400));
+    assert!(first
+        .nav
+        .fire_watch(&mut first.pane, &first.selected, WATCH_DELAY_MS));
     let tab_refresh = first
         .nav
         .take()
@@ -181,7 +189,7 @@ fn m9_g1rows_05_transfer_restores_tab_order_until_navigation() {
     assert!(receiver.nav.changed(&receiver.pane, "/A", 0));
     assert!(receiver
         .nav
-        .fire_watch(&mut receiver.pane, &receiver.selected, 400));
+        .fire_watch(&mut receiver.pane, &receiver.selected, WATCH_DELAY_MS));
     let transfer_refresh = receiver
         .nav
         .take()

@@ -23,6 +23,7 @@ MAX_REPLY_BYTES = 1024 * 1024
 MAX_COMMAND_BYTES = 65536
 TEARDOWN_GRACE_S = 3
 LOG_TAIL_CHARS = 12000
+POLL_S = 0.005
 
 def deadline_seconds(value):
     value = float(value)
@@ -268,7 +269,7 @@ class Window:
             actual = self.value(function)
             if actual == expected:
                 return actual
-            time.sleep(0.005)
+            time.sleep(POLL_S)
         raise TimeoutError(f"{function}: expected {expected!r}, observed {actual!r}")
 
     def close(self, *, window=None):
