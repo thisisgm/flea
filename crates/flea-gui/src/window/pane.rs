@@ -39,6 +39,7 @@ pub(crate) struct PaneHost {
     pub stopped: bool,
     pub nav: Navigator,
     pub watch_task: Option<(u64, Task<()>)>,
+    pub retry_line: RefCell<Option<super::retry::RetryLine>>,
     applied_listing: usize,
 }
 
@@ -92,6 +93,7 @@ impl PaneHost {
             stopped: false,
             nav: Navigator::new(Rc::default(), Rc::default()),
             watch_task: None,
+            retry_line: RefCell::new(None),
             applied_listing: 0,
         }
     }

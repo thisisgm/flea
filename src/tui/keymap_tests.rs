@@ -96,6 +96,23 @@ fn ctrl_equal_grows_listing_text_and_shift_chords_stay() {
     assert_eq!(map.in_context(&Key::character('0', ""), "default", "preview"), "zoomFit");
     assert_eq!(map.in_context(&Key::character('0', "ctrl"), "default", "preview"), "");
 }
+
+#[test]
+fn ctrl_text_aliases_keep_the_display_hints_on_shift_chords() {
+    for preset in ["default", "vim", "mac", "windows"] {
+        for (action, shown) in [
+            ("textSizeUp", "Ctrl+Shift++"),
+            ("textSizeDown", "Ctrl+Shift+-"),
+            ("textSizeReset", "Ctrl+Shift+0"),
+        ] {
+            assert_eq!(
+                flea::keys::presentation::key_for(preset, action),
+                shown,
+                "{preset}: {action}"
+            );
+        }
+    }
+}
 #[test]
 fn header_comments_do_not_strip_quoted_hashes_or_accept_other_suffixes() {
     let map = Map::parse(r##"

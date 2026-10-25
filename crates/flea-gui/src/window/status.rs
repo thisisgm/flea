@@ -191,6 +191,7 @@ impl Shell {
         );
         let path = host.path.clone();
         let state_message = host.state_text.message.clone();
+        let retry = host.retry_text();
         let revision = self.locale.revision;
         let catalog = self.locale.catalog.clone();
         let probe = self
@@ -226,6 +227,7 @@ impl Shell {
                     }
                 }
                 line.set_state_message(&state_message, cx);
+                line.set_retry_line(&retry, cx);
             });
             footer.revision = revision;
         });

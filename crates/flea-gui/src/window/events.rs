@@ -77,8 +77,11 @@ impl Shell {
         }
         if let BackendEvent::Producer(line) | BackendEvent::Operations(line) = &event {
             let menu_taken = self.menu_reply(side, line, window, cx);
-            if flea::ui_logic_op1::parse(line).is_some() {
+            if let Some(parsed) = flea::ui_logic_op1::parse(line) {
                 self.operation_line(side, line, window, cx);
+                if let flea::ui_logic_op1::Event::TransferDone(done) = parsed {
+                    self.retry_failed(side, &done.retry_paths, window, cx);
+                }
             }
             if !menu_taken {
                 cx.emit(crate::g2::mn1::join::ProducerReply {
@@ -268,6 +271,12 @@ impl Shell {
                 return;
             }
             BackendEvent::Located(located) => {
+                if self.retry_located(side, &located, window, cx) {
+                    return;
+                }
+                let Some(host) = self.panes[side].as_mut() else {
+                    return;
+                };
                 let taken = match located.id {
                     Some(id) => host.nav.take_located_many(
                         &host.pane,

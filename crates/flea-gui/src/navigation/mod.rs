@@ -3,6 +3,7 @@ pub mod anchor;
 pub mod folder_state;
 pub mod history;
 mod landing;
+mod retry;
 pub mod sort;
 mod steps;
 pub mod watch;
@@ -104,6 +105,7 @@ pub struct Navigator {
     pub preserve_sort: bool,
     pub pending_sort: Option<sort::Request>,
     pub pending_select: Option<String>,
+    pub retry: Option<retry::Retry>,
     pub menus: Deferred,
     pub background_at: Option<(f32, f32)>,
     pub folders: Rc<RefCell<Folders>>,

@@ -102,6 +102,19 @@ pub fn due(status: &Status, now: u64, automatic: bool) -> bool {
     !settled || now.saturating_sub(status.checked_at) >= INTERVAL_MS
 }
 
+// UpdateCheck.qml's two timers: the first, a minute after the window opens, asks only when due; each six-hour beat asks outright.
+pub fn poll_asks(status: &Status, now: u64, automatic: bool, first: bool) -> bool {
+    if first {
+        return due(status, now, automatic);
+    }
+    automatic && !matches!(status.state, State::Checking | State::Launched)
+}
+
+// How long the poll waits before its next beat.
+pub fn poll_wait(first: bool) -> u64 {
+    if first { FIRST_CHECK_MS } else { INTERVAL_MS }
+}
+
 // The part before the first dash, which is the pkgver of a package version.
 fn pkgver(version: &str) -> &str {
     version.split('-').next().unwrap_or("")

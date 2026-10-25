@@ -285,6 +285,7 @@ impl Navigator {
     pub fn settle(&mut self, pane: &Pane, now: u64) {
         let busy = self.busy(pane);
         self.watch.settle(now, busy);
+        self.locate_retry(pane);
     }
 
     pub(crate) fn landing_select(&mut self, pane: &mut Pane, selected: &mut Vec<usize>) {
