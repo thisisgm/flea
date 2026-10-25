@@ -37,8 +37,8 @@ pub(crate) struct Join {
     pub bulk: Option<bulk::Open>,
     /// The side whose selection's paths are out for the bulk card.
     pub paths: Option<usize>,
-    /// The side whose bulk request is out, so its done line is this owner's.
-    pub sent: Option<usize>,
+    /// Each side whose bulk request is out, so its done line is this owner's; every pane has its own wire.
+    pub sent: [bool; 2],
     /// The last lone tap on a name, for the slow click.
     pub slow: Option<slow::Slow>,
 }
@@ -151,6 +151,27 @@ impl Shell {
         if self.rename.edit.take().is_some() {
             cx.notify();
         }
+    }
+
+    /// The list scrolled the edited row wholly out of view: the edit is dropped uncommitted, and a request out keeps its reply's owner.
+    pub(super) fn rename_scrolled_out(
+        &mut self,
+        side: usize,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.renaming_row(side) != Some(index) {
+            return;
+        }
+        match self.rename.edit.as_mut() {
+            Some(edit) if edit.pending.is_some() => {
+                edit.entry.close();
+            }
+            _ => self.rename.edit = None,
+        }
+        self.rename_sync_gate(window, cx);
+        cx.notify();
     }
 
     /// The editor's keys while it holds the keyboard; typed text arrives through the input handler.
