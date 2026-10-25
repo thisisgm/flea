@@ -33,6 +33,7 @@ pub(super) fn isolated() {
     let child = Command::new(std::env::current_exe().unwrap())
         .args([
             "--exact",
+            "--ignored",
             "theme_gate::live::theme_gate_live_switch_whole_window",
             "--nocapture",
             "--test-threads=1",

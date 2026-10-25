@@ -38,7 +38,7 @@ impl Shell {
                 PluginsPane::new(
                     self.locale.catalog.clone(),
                     wire,
-                    Tokens::interim(&palette),
+                    Tokens::on_surface(&palette, theme),
                     self.corner,
                     cx,
                 )

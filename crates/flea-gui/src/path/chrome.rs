@@ -243,10 +243,8 @@ impl ChromeView {
 
 impl Render for ChromeView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let palette = Palette::inherited(
-            &window.text_style(),
-            cx.try_global::<Theme>().copied().unwrap_or_default(),
-        );
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let palette = Palette::inherited(&window.text_style(), theme);
         for control in &mut self.frame.borrow_mut().controls {
             if control.visible {
                 control.bounds = None;
@@ -312,7 +310,7 @@ impl Render for ChromeView {
         ));
         let frame = self.frame.clone();
         let pointer_frame = self.frame.clone();
-        let toolbar = div().size_full().relative().bg(palette.background).child(
+        let toolbar = div().size_full().relative().bg(theme.chrome()).child(
             div()
                 .size_full()
                 .flex()

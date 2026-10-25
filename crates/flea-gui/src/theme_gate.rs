@@ -7,17 +7,15 @@ mod live;
 mod quads;
 
 pub(crate) fn stock_dir() -> std::path::PathBuf {
-    std::env::var_os("FLEA_THEME_STOCK_DIR")
+    let root = std::env::var_os("FLEA_THEME_STOCK_DIR")
         .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| {
-            let installed = std::path::PathBuf::from("/usr/share/omarchy/themes");
-            let east = std::path::PathBuf::from("/home/gm/flea-work/omarchy-dev/themes");
-            if !installed.is_dir() && east.is_dir() {
-                east
-            } else {
-                installed
-            }
-        })
+        .unwrap_or_else(|| std::path::PathBuf::from("/usr/share/omarchy/themes"));
+    assert!(
+        root.is_dir(),
+        "no stock Omarchy themes: set FLEA_THEME_STOCK_DIR or install /usr/share/omarchy/themes ({} is missing)",
+        root.display()
+    );
+    root
 }
 
 pub(crate) fn palettes() -> Vec<(String, String)> {

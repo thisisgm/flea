@@ -55,11 +55,31 @@ impl Roles {
 
     /// Explicit inherited colours keep their own ground and ink and take the same floors on that ground.
     pub fn for_inherited(background: Hsla, foreground: Hsla) -> Self {
+        // A frame repaints with the last ground and ink, so only a theme change resolves again.
+        if let Some((key, roles)) = INHERITED.get() {
+            if key == (background, foreground) {
+                return roles;
+            }
+        }
         let opaque = |colour: Hsla| crate::ipc::rows::colour(Hsla { a: 1., ..colour });
         let (bg, fg) = (opaque(background), opaque(foreground));
         let text = format!("background='{bg}'\nforeground='{fg}'\ndark_background='{bg}'");
-        Self::from_core(&flea::theme::Theme::resolve(&text, "", "", None, "monospace").colors)
+        let roles =
+            Self::from_core(&flea::theme::Theme::resolve(&text, "", "", None, "monospace").colors);
+        INHERITED.set(Some(((background, foreground), roles)));
+        #[cfg(test)]
+        INHERITED_RESOLVES.set(INHERITED_RESOLVES.get() + 1);
+        roles
     }
+}
+
+type Inherited = Option<((Hsla, Hsla), Roles)>;
+thread_local! {
+    static INHERITED: std::cell::Cell<Inherited> = const { std::cell::Cell::new(None) };
+}
+#[cfg(test)]
+thread_local! {
+    pub(crate) static INHERITED_RESOLVES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 fn role(color: flea::theme::Color) -> Hsla {
@@ -147,6 +167,19 @@ impl Theme {
         (theme, ParsedTheme(loaded))
     }
 
+    /// HIG list and rail-favorites draw the chrome strip on color-mix(in srgb, --surface 55%, --bg).
+    pub fn chrome(&self) -> Hsla {
+        let (s, b): (Rgba, Rgba) = (self.surface.into(), self.background.into());
+        let mix = |s: f32, b: f32| s * 0.55 + b * 0.45;
+        Rgba {
+            r: mix(s.r, b.r),
+            g: mix(s.g, b.g),
+            b: mix(s.b, b.b),
+            a: 1.,
+        }
+        .into()
+    }
+
     pub fn roles(&self) -> Roles {
         Roles {
             muted: self.muted,
@@ -227,5 +260,16 @@ mod tests {
             Theme::from_text("foreground=#12345").foreground,
             Theme::default().foreground
         );
+    }
+
+    #[test]
+    fn inherited_roles_resolve_once_per_ground_and_ink() {
+        let (ground, ink): (Hsla, Hsla) = (gpui::rgb(0x202020).into(), gpui::rgb(0xe0e0e0).into());
+        let start = INHERITED_RESOLVES.get();
+        let first = Roles::for_inherited(ground, ink);
+        assert_eq!(Roles::for_inherited(ground, ink), first);
+        assert_eq!(INHERITED_RESOLVES.get(), start + 1);
+        Roles::for_inherited(gpui::rgb(0xf0f0f0).into(), ink);
+        assert_eq!(INHERITED_RESOLVES.get(), start + 2);
     }
 }

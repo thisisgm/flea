@@ -57,16 +57,36 @@ pub(super) fn assert(shell: &Shell, window: &Window, cx: &App) {
             .any(|quad| rail_sized(quad) && quad.background.as_solid() == Some(theme.surface)),
         "the actual rail ground did not repaint"
     );
-    // These fixtures have distinct canvas/card grounds. Only the open card paints the opaque surface.
-    // Debug selectors are compiled out of release GPUI, so this reads the scene primitive directly.
+    // Besides the rail and the full-width status bar, only the open card paints the surface.
     assert_ne!(theme.surface, theme.background);
+    let viewport = window.viewport_size();
+    let full_width = |quad: &Quad| {
+        (quad.bounds.size.width.as_f32() - f32::from(viewport.width) * scale).abs() <= 2.
+    };
     assert!(
-        quads
-            .iter()
-            .any(|quad| !rail_sized(quad) && quad.background.as_solid() == Some(theme.surface)),
+        quads.iter().any(|quad| !rail_sized(quad)
+            && !full_width(quad)
+            && quad.background.as_solid() == Some(theme.surface)),
         "the actual open card surface did not repaint"
     );
-    // Footer has no fill of its own: its ground is the window canvas, dimmed by the same modal scrim.
+    // HIG list: the status bar stands on --surface along the window's bottom edge.
+    let bottom = |quad: &Quad| {
+        let edge = quad.bounds.origin.y + quad.bounds.size.height;
+        (edge.as_f32() - f32::from(viewport.height) * scale).abs() <= 2.
+    };
+    assert!(
+        quads.iter().any(|quad| full_width(quad)
+            && bottom(quad)
+            && quad.background.as_solid() == Some(theme.surface)),
+        "the status bar surface did not repaint"
+    );
+    // HIG list: the chrome strip stands on the 55% surface mix along the window's top edge.
+    assert!(
+        quads.iter().any(|quad| full_width(quad)
+            && quad.bounds.origin.y.as_f32().abs() <= 2.
+            && quad.background.as_solid() == Some(theme.chrome())),
+        "the chrome strip ground did not repaint"
+    );
     ground(
         &quads,
         Bounds::new(
@@ -74,7 +94,7 @@ pub(super) fn assert(shell: &Shell, window: &Window, cx: &App) {
             window.viewport_size(),
         ),
         theme.background,
-        "window/footer canvas",
+        "window canvas",
         scale,
     );
 }

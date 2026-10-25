@@ -49,6 +49,15 @@ impl Tokens {
         }
     }
 
+    /// HIG plugin-add and plugin-git-page draw the pane inside the Settings .card, on --surface.
+    pub fn on_surface(palette: &crate::list::Palette, theme: crate::palette::Theme) -> Self {
+        Self {
+            surface: theme.surface,
+            error: palette.error_on_surface,
+            ..Self::interim(palette)
+        }
+    }
+
     /// The boards' --frame.
     pub fn frame(&self) -> Hsla {
         self.muted_frame

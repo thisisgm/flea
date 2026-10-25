@@ -352,6 +352,8 @@ impl Render for Footer {
             .h(px(height))
             .flex_none()
             .border(self.border_width)
+            // HIG list and rail-favorites: the status bar stands on --surface under its --hair edge.
+            .bg(theme.surface)
             .font_family(typeface.font.family)
             .text_size(typeface.caption)
             .text_color(ink.foreground)
