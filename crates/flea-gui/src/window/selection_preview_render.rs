@@ -178,8 +178,8 @@ impl Render for SelectionPreview {
                 let original = frame.facts.as_ref().map_or((0., 0.), |m| (m.w as f64, m.h as f64));
                 let limit = thumbs::poster_limit(frame.kind == Kind::Video, w, h, original.0, original.1);
                 let scale = thumbs::fit_scale(
-                    (width - 2.).max(1.) as f64,
-                    (height - 2.).max(1.) as f64,
+                    (width - 2. * FRAME_BORDER).max(1.) as f64,
+                    (height - 2. * FRAME_BORDER).max(1.) as f64,
                     w,
                     h,
                     limit,
