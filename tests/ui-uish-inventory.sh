@@ -156,6 +156,93 @@ class Controls(unittest.TestCase):
         self.assertIn("attempted a native receipt", result.stderr)
         self.assertNotIn("NATIVE_RUN", result.stdout)
 
+    @unittest.skipIf(os.geteuid() == 0, "root reads a mode 0111 file, so no PermissionError")
+    def test_execute_only_driver_refused_before_spawn(self):
+        import flea_uish_headless as headless
+        from unittest import mock
+        driver = self.root / "execute-only-driver"
+        driver.write_text("#!/bin/sh\n")
+        driver.chmod(0o111)
+        with mock.patch.object(headless.subprocess, "Popen") as spawn, \
+                mock.patch.dict(os.environ, {"FLEA_BIN": "/bin/true"}):
+            with self.assertRaises(PermissionError):
+                headless.Host(driver)
+        spawn.assert_not_called()
+
+    def test_failed_host_start_removes_its_root(self):
+        import flea_uish_headless as headless
+        from unittest import mock
+        driver = self.root / "sleeping-driver"
+        driver.write_text("#!/bin/sh\nexec sleep 30\n")
+        driver.chmod(0o700)
+        parent = REPO / ".superpowers/m9-uish-02"
+        before = set(parent.glob("host.*")) if parent.is_dir() else set()
+        seen, remove = [], headless.Host.remove_root
+
+        def removing(host, error=None):
+            seen.append((host.root, host.root.is_dir() and host.root not in before))
+            remove(host, error)
+
+        with mock.patch.object(headless, "identity", side_effect=FileNotFoundError("gone")) as identity, \
+                mock.patch.object(headless.Host, "remove_root", removing), \
+                mock.patch.dict(os.environ, {"FLEA_BIN": "/bin/true"}):
+            with self.assertRaises(FileNotFoundError):
+                headless.Host(driver)
+        identity.assert_called_once()
+        self.assertTrue(seen and seen[0][1], f"no new host root existed before removal: {seen}")
+        self.assertTrue(seen[0][0].name.startswith("host.") and not seen[0][0].exists())
+        self.assertEqual(set(parent.glob("host.*")), before, "a failed start left its host root")
+
+    def test_failed_host_keeps_its_log_tail(self):
+        import flea_uish_headless as headless
+        from unittest import mock
+        parent = REPO / ".superpowers/m9-uish-02"
+        before = set(parent.glob("host.*")) if parent.is_dir() else set()
+        hello = 'UISH\t{"sequence": null, "result": {"ok": true, "value": {"protocol": "flea-uish-headless-v1"}}}'
+        greet = "printf '%s\\n' '" + hello + "'\nread -r line\n"
+        said = "flea-uish-headless-v1"
+
+        def body_raises():
+            raise RuntimeError("body failed")
+
+        # A failed start, a failed teardown and a raise inside the body each carry the tail exactly once.
+        cases = (("start", "printf 'driver said this\\n'\nexec sleep 30\n", TimeoutError, "driver said this", None),
+                 ("teardown", greet + "exit 1\n", headless.TransportError, said, None),
+                 ("body", greet + "exec sleep 30\n", RuntimeError, said, body_raises))
+        for name, script, kind, said_here, body in cases:
+            stderr, error = self.host_run(headless, mock, name, script, body, kind)
+            notes = "\n".join(getattr(error, "__notes__", ()))
+            self.assertEqual(notes.count(said_here), 1, f"{name}: the tail is not on the error exactly once")
+            self.assertEqual(stderr.count(said_here), 1, f"{name}: the tail is not printed exactly once")
+            self.assertEqual(set(parent.glob("host.*")), before, f"{name}: the marked root was kept")
+        # A clean host inside an unrelated handler leaves that exception and stderr alone.
+        try:
+            raise ValueError("unrelated")
+        except ValueError as foreign:
+            stderr, error = self.host_run(headless, mock, "clean", greet + "exit 0\n", None, None)
+            self.assertIsNone(error)
+            self.assertEqual(getattr(foreign, "__notes__", []), [], "a clean host noted a foreign exception")
+            self.assertEqual(stderr, "", "a clean host printed a log tail")
+        self.assertEqual(set(parent.glob("host.*")), before, "clean: the marked root was kept")
+
+    def host_run(self, headless, mock, name, script, body, kind):
+        driver = self.root / (name + "-driver")
+        driver.write_text("#!/bin/sh\n" + script)
+        driver.chmod(0o700)
+        stderr, error = io.StringIO(), None
+        with mock.patch.dict(os.environ, {"FLEA_BIN": "/bin/true"}), contextlib.redirect_stderr(stderr):
+            try:
+                with headless.Host(driver, timeout=1):
+                    if body:
+                        body()
+            except BaseException as raised:
+                error = raised
+        if kind is None:
+            self.assertIsNone(error, f"{name}: {error!r}")
+        else:
+            self.assertIsInstance(error, kind, f"{name}: {error!r}")
+        return stderr.getvalue(), error
+
     def test_headless_qml_refused(self):
         result = self.ui("cursor", driver="headless", frontend="qml")
         self.assertEqual(result.returncode, 2)

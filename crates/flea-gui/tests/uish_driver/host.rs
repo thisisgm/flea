@@ -1,4 +1,8 @@
-//! Mounted window host: production Root windows, their IPC servers and test input delivery.
+//! Mounted window host: production Root windows, their IPC servers and their lifetimes.
+use super::{
+    input,
+    wire::{object, text, word, STEP, WAIT},
+};
 use flea::{
     i18n::I18n,
     jsondoc::{self, Json},
@@ -14,8 +18,7 @@ use flea_gui::{
     },
 };
 use gpui::{
-    point, px, size, AppContext, ClipboardItem, Keystroke, Modifiers, MouseButton, ScrollDelta,
-    ScrollWheelEvent, TestAppContext, TestDispatcher, TouchPhase, VisualTestContext, WindowHandle,
+    px, size, AppContext, Keystroke, Pixels, Size, TestAppContext, TestDispatcher, WindowHandle,
 };
 use std::{
     collections::BTreeMap,
@@ -27,34 +30,14 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
     thread,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
-const WAIT: Duration = Duration::from_secs(10);
+#[path = "report.rs"]
+mod report;
 
-pub(super) fn object(fields: impl IntoIterator<Item = (&'static str, Json)>) -> Json {
-    Json::Obj(fields.into_iter().map(|(k, v)| (k.into(), v)).collect())
-}
-pub(super) fn text(value: impl ToString) -> Json {
-    Json::Str(value.to_string())
-}
-pub(super) fn number(value: impl ToString) -> Json {
-    Json::Num(value.to_string())
-}
-fn word<'a>(value: &'a Json, key: &str) -> Result<&'a str, String> {
-    value
-        .get(key)
-        .and_then(Json::as_str)
-        .ok_or_else(|| format!("missing string {key}"))
-}
-fn coordinate(value: &Json, key: &str) -> Result<f32, String> {
-    value
-        .get(key)
-        .and_then(Json::as_f64)
-        .filter(|n| n.is_finite() && n.abs() <= 100_000.)
-        .map(|n| n as f32)
-        .ok_or_else(|| format!("invalid coordinate {key}"))
-}
+// Every owned window opens at this size, so the controls' coordinates land on the same rows.
+const WINDOW_SIZE: Size<Pixels> = size(px(1100.), px(700.));
 
 pub(super) struct Mounted {
     window: WindowHandle<Root>,
@@ -62,6 +45,7 @@ pub(super) struct Mounted {
     identity: String,
     socket: PathBuf,
     draws: u64,
+    captures: u64,
 }
 
 pub(super) struct Host {
@@ -74,8 +58,13 @@ pub(super) struct Host {
 
 impl Host {
     pub(super) fn new() -> Self {
-        let root =
-            fs::canonicalize(std::env::var_os("FLEA_UISH_ROOT").expect("owned root")).unwrap();
+        Self::at(Path::new(
+            &std::env::var_os("FLEA_UISH_ROOT").expect("owned root"),
+        ))
+    }
+
+    pub(super) fn at(root: &Path) -> Self {
+        let root = fs::canonicalize(root).unwrap();
         let worktree = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../..")
             .canonicalize()
@@ -99,7 +88,7 @@ impl Host {
     }
 
     pub(super) fn pump(&mut self) {
-        self.cx.executor().advance_clock(Duration::from_millis(2));
+        self.cx.executor().advance_clock(STEP);
         self.cx.run_until_parked();
         for mounted in self.windows.values_mut() {
             if self
@@ -156,8 +145,7 @@ impl Host {
             window.window_id().as_u64()
         );
         let socket = runtime.join(format!("flea-ipc/{}.sock", std::process::id()));
-        self.cx
-            .simulate_window_resize(window.into(), size(px(1100.), px(700.)));
+        self.cx.simulate_window_resize(window.into(), WINDOW_SIZE);
         self.windows.insert(
             identity.clone(),
             Mounted {
@@ -166,43 +154,11 @@ impl Host {
                 identity: identity.clone(),
                 socket,
                 draws: 0,
+                captures: 0,
             },
         );
         self.pump();
         self.describe(&identity)
-    }
-
-    fn describe(&mut self, identity: &str) -> Result<Json, String> {
-        let mounted = self
-            .windows
-            .get(identity)
-            .ok_or("foreign or closed window")?;
-        let metadata = fs::symlink_metadata(&mounted.socket).map_err(|e| e.to_string())?;
-        let active = self
-            .cx
-            .update(|cx| mounted.window.is_active(cx))
-            .ok_or("closed window")?;
-        Ok(object([
-            ("window", text(&mounted.identity)),
-            ("active", Json::Bool(active)),
-            ("gpui_window", number(mounted.window.window_id().as_u64())),
-            ("pid", number(std::process::id())),
-            ("root_type", text(std::any::type_name::<Root>())),
-            ("socket", text(mounted.socket.display())),
-            (
-                "socket_identity",
-                Json::Arr(vec![number(metadata.dev()), number(metadata.ino())]),
-            ),
-            (
-                "runtime",
-                text(format!(
-                    "/proc/{}/fd/{}/runtime",
-                    std::process::id(),
-                    self.directory.as_raw_fd()
-                )),
-            ),
-            ("draw_calls", number(mounted.draws)),
-        ]))
     }
 
     pub(super) fn command(&mut self, command: &Json) -> Result<Json, String> {
@@ -211,135 +167,20 @@ impl Host {
             return self.open(command);
         }
         let identity = word(command, "window")?;
-        let mounted = self
+        let window = self
             .windows
             .get(identity)
-            .ok_or("foreign or closed window")?;
-        let window = mounted.window;
+            .ok_or("foreign or closed window")?
+            .window;
         if !self.cx.windows().contains(&window.into()) {
-            return Err("closed window".into());
+            self.forget(identity)?;
+            return match op {
+                "close" => Ok(object([("closed", Json::Bool(true))])),
+                _ => Err("closed window".into()),
+            };
         }
-        let mut visual = VisualTestContext::from_window(window.into(), &self.cx);
         match op {
-            "text" => {
-                for character in word(command, "text")?.chars() {
-                    self.cx.dispatch_keystroke(
-                        window.into(),
-                        Keystroke {
-                            key: "text".into(),
-                            key_char: Some(character.to_string()),
-                            ..Default::default()
-                        },
-                    );
-                }
-            }
-            "key" | "paste" => {
-                let mut key = match op {
-                    "paste" => {
-                        self.cx.write_to_clipboard(ClipboardItem::new_string(
-                            word(command, "text")?.into(),
-                        ));
-                        Keystroke::parse(
-                            command
-                                .get("key")
-                                .and_then(Json::as_str)
-                                .unwrap_or("ctrl-v"),
-                        )
-                        .map_err(|e| e.to_string())?
-                    }
-                    _ => Keystroke::parse(word(command, "key")?).map_err(|e| e.to_string())?,
-                };
-                if op == "key"
-                    && key.key.chars().count() == 1
-                    && key.modifiers == Modifiers::default()
-                {
-                    key.key_char = Some(key.key.clone());
-                }
-                self.cx.dispatch_keystroke(window.into(), key);
-            }
-            "mouse" => {
-                let position = point(px(coordinate(command, "x")?), px(coordinate(command, "y")?));
-                let modifiers = Keystroke::parse(
-                    command
-                        .get("modifiers")
-                        .and_then(Json::as_str)
-                        .unwrap_or("a"),
-                )
-                .map_err(|e| e.to_string())?
-                .modifiers;
-                let button = match command
-                    .get("button")
-                    .and_then(Json::as_str)
-                    .unwrap_or("left")
-                {
-                    "left" => MouseButton::Left,
-                    "right" => MouseButton::Right,
-                    "middle" => MouseButton::Middle,
-                    _ => return Err("invalid mouse button".into()),
-                };
-                match word(command, "phase")? {
-                    "move" => visual.simulate_mouse_move(position, None, modifiers),
-                    "down" => visual.simulate_mouse_down(position, button, modifiers),
-                    "up" => visual.simulate_mouse_up(position, button, modifiers),
-                    "click" => {
-                        visual.simulate_mouse_down(position, button, modifiers);
-                        visual.simulate_mouse_up(position, button, modifiers);
-                    }
-                    _ => return Err("invalid mouse phase".into()),
-                }
-            }
-            "wheel" => visual.simulate_event(ScrollWheelEvent {
-                position: point(px(coordinate(command, "x")?), px(coordinate(command, "y")?)),
-                delta: ScrollDelta::Pixels(point(
-                    px(coordinate(command, "dx")?),
-                    px(coordinate(command, "dy")?),
-                )),
-                modifiers: Modifiers::default(),
-                touch_phase: TouchPhase::Moved,
-            }),
-            "focus" => match command.get("active").and_then(Json::as_bool) {
-                Some(true) => visual.update(|window, _| window.activate_window()),
-                Some(false) => visual.deactivate_window(),
-                None => return Err("missing boolean active".into()),
-            },
-            "capabilities" => {
-                return Ok(visual.update(|window, _| {
-                    let raster = match window.render_to_image() {
-                        Ok(image) => {
-                            let file = self.root.join(format!("capture-{}.rgba", self.next));
-                            match fs::write(&file, image.as_raw()) {
-                                Ok(()) => object([
-                                    ("status", text("available")),
-                                    ("path", text(file.display())),
-                                    ("width", number(image.width())),
-                                    ("height", number(image.height())),
-                                ]),
-                                Err(error) => object([
-                                    ("status", text("unsupported")),
-                                    ("reason", text(error)),
-                                ]),
-                            }
-                        }
-                        Err(error) => {
-                            object([("status", text("unsupported")), ("reason", text(error))])
-                        }
-                    };
-                    object([
-                        ("raster", raster),
-                        ("window_events", text("available")),
-                        ("production_ipc", text("available")),
-                        ("native_input", text("unsupported")),
-                        ("hyprland_client", text("unsupported")),
-                        ("wayland_dnd", text("unsupported")),
-                        ("media_frames", text("unsupported")),
-                        ("presented_frame_timing", text("unsupported")),
-                        (
-                            "executor_clock",
-                            text("GPUI test clock; advanced in 2 ms steps"),
-                        ),
-                    ])
-                }))
-            }
+            "capabilities" => return Ok(self.capture(identity, window)),
             "describe" => return self.describe(identity),
             "close" => {
                 self.cx
@@ -350,19 +191,54 @@ impl Host {
                         return Err("owned window close timed out".into());
                     }
                     self.pump();
-                    thread::sleep(Duration::from_millis(2));
+                    thread::sleep(STEP);
                 }
-                let mounted = self.windows.remove(identity).unwrap();
-                let socket = mounted.socket.clone();
-                drop(mounted.server);
-                if socket.exists() {
-                    return Err("owned socket survived teardown".into());
-                }
-                return Ok(object([("closed", Json::Bool(true))]));
+                return self.forget(identity);
             }
-            _ => return Err("unknown control operation".into()),
+            _ => {
+                if !input::deliver(&mut self.cx, window, op, command)? {
+                    return Err("unknown control operation".into());
+                }
+            }
         }
         self.pump();
+        // An input control may close its window, as ctrl-q does; its entry goes with it.
+        if !self.cx.windows().contains(&window.into()) {
+            return self.forget(identity);
+        }
         self.describe(identity)
+    }
+
+    // Removes a window behind the host's back, as a crash or a compositor close would.
+    pub(super) fn remove_outside_command(&mut self, identity: &str) {
+        let window = self.windows[identity].window;
+        self.cx
+            .update_window(window.into(), |_, window, _| window.remove_window())
+            .unwrap();
+        self.cx.run_until_parked();
+        assert!(!self.cx.windows().contains(&window.into()));
+    }
+
+    // Closes every window still owned, so a replay ends with no window and no socket left.
+    pub(super) fn teardown(&mut self) -> Result<(), String> {
+        let identities: Vec<_> = self.windows.keys().cloned().collect();
+        for identity in identities {
+            self.command(&object([("op", text("close")), ("window", text(identity))]))?;
+        }
+        Ok(())
+    }
+
+    // Drops a closed window's entry and its server, which must take the socket with it.
+    fn forget(&mut self, identity: &str) -> Result<Json, String> {
+        let mounted = self
+            .windows
+            .remove(identity)
+            .ok_or("foreign or closed window")?;
+        let socket = mounted.socket.clone();
+        drop(mounted.server);
+        if socket.exists() {
+            return Err("owned socket survived teardown".into());
+        }
+        Ok(object([("closed", Json::Bool(true))]))
     }
 }

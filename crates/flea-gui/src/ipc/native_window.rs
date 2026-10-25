@@ -1,11 +1,31 @@
 //! Native launch observers read the window and its active list without starting producer work.
 use super::Adapter;
+use crate::g2::pl4::rows::{RAIL_ROW_SCALE, TEXT_LINE_HEIGHT_FACTOR};
+use crate::list::{MARK_RATIO, STOCK_BASE};
 use crate::{
     list::{columns::Column, ListState},
     palette::{ParsedTheme, Theme},
 };
 use flea::ipc::wire::Reply;
 use gpui::{Pixels, Size};
+
+// Theme.qml mark ratios: state and hero scale bodySmall, chrome is Style.font.icon (14 x 1.167); one 2-unit stroke.
+const STATE_MARK_RATIO: f64 = 3.1;
+const HERO_MARK_RATIO: f64 = 3.7;
+const CHROME_MARK_RATIO: f64 = 1.167;
+const STROKE_WIDTH: &str = "2";
+// Theme.qml dialogWidthRatio widens the Settings panel (480) and pane (350) board widths by 9 / 8.
+const DIALOG_WIDTH_RATIO: f64 = 9. / 8.;
+const SETTINGS_PANEL_SPACE: f64 = 480.;
+const SETTINGS_PANE_SPACE: f64 = 350.;
+// Theme.qml menuWidth, grid minCellWidth and preview fraction, at the stock base.
+const MENU_WIDTH_SPACE: f64 = 220.;
+const GRID_MIN_CELL_SPACE: f64 = 125.;
+const PREVIEW_FRACTION: &str = "0.82";
+// Board pixels drawn at base 14, whose bodySmall is 13: pickerDateBaseWidth 80 and the rail's railPaddingY 10.
+const BOARD_BODY_SMALL: f64 = 13.;
+const PICKER_DATE_BOARD_WIDTH: f64 = 80.;
+const SETTINGS_RAIL_PADDING_BOARD_Y: f64 = 10.;
 
 pub struct NativeWindowAdapter<'a> {
     pub list: &'a ListState,
@@ -92,12 +112,12 @@ impl NativeWindowAdapter<'_> {
         let metrics = crate::list::Metrics::for_typeface(face);
         let base = f64::from(f32::from(face.base));
         let small = f64::from(f32::from(face.body_small));
-        let space = |value: f64| (value * base / 12.).round();
+        let space = |value: f64| (value * base / f64::from(STOCK_BASE)).round();
         let row = f64::from(metrics.nominal_row);
         let padding = f64::from((metrics.nominal_row - metrics.slot) / 2.);
-        let rail_row = (row * 0.78).round();
-        let panel = (space(480.) * 9. / 8.).round();
-        let pane = (space(350.) * 9. / 8.).round();
+        let rail_row = (row * RAIL_ROW_SCALE).round();
+        let panel = (space(SETTINGS_PANEL_SPACE) * DIALOG_WIDTH_RATIO).round();
+        let pane = (space(SETTINGS_PANE_SPACE) * DIALOG_WIDTH_RATIO).round();
         let column = |column| columns.wanted(column, self.list.view.stored).to_string();
         // The ordered 34-key contract is Theme.tokens() and tools/flea-metrics-gate's token table.
         let values = [
@@ -106,31 +126,45 @@ impl NativeWindowAdapter<'_> {
             ("body", f32::from(face.body).to_string()),
             ("bodySmall", small.to_string()),
             ("caption", f32::from(face.caption).to_string()),
-            ("lineBoxRatio", "1.8".into()),
+            ("lineBoxRatio", TEXT_LINE_HEIGHT_FACTOR.to_string()),
             ("rowPaddingX", metrics.pad.to_string()),
             ("rowPaddingY", padding.to_string()),
             ("gap", metrics.gap.to_string()),
             ("hairline", metrics.hairline.to_string()),
             ("rowHeight", row.to_string()),
             ("iconSize", metrics.slot.to_string()),
-            ("markSize", (small * 1.45).to_string()),
-            ("stateMarkSize", (small * 3.1).round().to_string()),
-            ("heroMarkSize", (small * 3.7).round().to_string()),
-            ("strokeWidth", "2".into()),
+            ("markSize", (small * MARK_RATIO).to_string()),
+            (
+                "stateMarkSize",
+                (small * STATE_MARK_RATIO).round().to_string(),
+            ),
+            (
+                "heroMarkSize",
+                (small * HERO_MARK_RATIO).round().to_string(),
+            ),
+            ("strokeWidth", STROKE_WIDTH.into()),
             ("railRowHeight", rail_row.to_string()),
             ("railIconSize", (rail_row - 2. * padding).to_string()),
             ("chromeHeight", metrics.header.to_string()),
-            ("chromeMarkSize", (base * 1.167).round().to_string()),
+            (
+                "chromeMarkSize",
+                (base * CHROME_MARK_RATIO).round().to_string(),
+            ),
             ("columnMode", column(Column::Mode)),
             ("columnSize", column(Column::Size)),
             ("columnDate", column(Column::Date)),
-            ("columnPickerDate", (80. * small / 13.).round().to_string()),
+            (
+                "columnPickerDate",
+                (PICKER_DATE_BOARD_WIDTH * small / BOARD_BODY_SMALL)
+                    .round()
+                    .to_string(),
+            ),
             ("columnKind", column(Column::Kind)),
-            ("menuWidth", space(220.).to_string()),
+            ("menuWidth", space(MENU_WIDTH_SPACE).to_string()),
             ("cornerRadius", self.corner.to_string()),
-            ("previewFraction", "0.82".into()),
+            ("previewFraction", PREVIEW_FRACTION.into()),
             ("gridIconSize", (metrics.slot * 2.).to_string()),
-            ("gridMinCellWidth", space(125.).to_string()),
+            ("gridMinCellWidth", space(GRID_MIN_CELL_SPACE).to_string()),
             ("settingsPanelWidth", panel.to_string()),
             (
                 "settingsRailWidth",
@@ -139,7 +173,9 @@ impl NativeWindowAdapter<'_> {
             ("settingsPaneWidth", pane.to_string()),
             (
                 "settingsRailPaddingY",
-                (10. * small / 13.).round().to_string(),
+                (SETTINGS_RAIL_PADDING_BOARD_Y * small / BOARD_BODY_SMALL)
+                    .round()
+                    .to_string(),
             ),
         ];
         Reply::value(

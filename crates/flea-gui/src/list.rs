@@ -13,6 +13,7 @@ mod palette_tests;
 mod row_text;
 pub use measure::Density;
 pub use metrics::Metrics;
+pub(crate) use metrics::{MARK_RATIO, STOCK_BASE};
 pub mod pane;
 #[cfg(test)]
 mod probe_tests;

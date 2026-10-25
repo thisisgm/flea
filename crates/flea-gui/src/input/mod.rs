@@ -12,6 +12,10 @@ pub use band::{update_band, EDGE_RATE};
 // Preserve the current wheel default while keeping its applied policy explicit.
 pub(crate) const PLATFORM_SCROLL_GAIN: f32 = 3.;
 pub(crate) const WHEEL_LINES: u32 = PLATFORM_SCROLL_GAIN as u32;
+// Theme.qml scroll: a wheel line is notchPx 24, times the multiplier 4; Scroll.js moves touchpad pixels times TOUCH_GAIN.
+pub(crate) const NOTCH_PX: f32 = 24.;
+pub(crate) const WHEEL_MULTIPLIER: f32 = 4.;
+pub(crate) const TOUCH_GAIN: f32 = 2.5;
 
 pub use element::{surface, surface_with, Painted};
 use gpui::{Bounds, Pixels, Point};
