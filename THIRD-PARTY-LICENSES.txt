@@ -1107,91 +1107,91 @@ Selected: MIT
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 No license or notice file supplied by this crate; see its SPDX expression above.
 
-gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-linux 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-linux 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-platform 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-platform 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 
-gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb)
+gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f)
 SPDX: Apache-2.0
 Selected: Apache-2.0
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
@@ -7815,21 +7815,21 @@ SOFTWARE.
 ========================================================================
 Text SHA256: 2aeb3cf58ee3291bdc19177d4a39ec47740a3ff56ed3bed520ea41f04073cee2
 Covers:
-  gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-linux 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-platform 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
-  gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/NOTICE
+  gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-linux 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-platform 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
+  gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/NOTICE
 
 gpui-omarchy
 Copyright 2026 GM
@@ -12357,36 +12357,36 @@ written authorization of the copyright holder.
 ========================================================================
 Text SHA256: 752daf2fb234ca4a1fa372c073fe127f44b7b90fd2529ae44273a64f9d53da7a
 Covers:
-  gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-linux 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-linux 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-platform 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-platform 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
-  gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): LICENSE-APACHE
-  gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=519f279b2270a384ff4f9262659619cc9dfaabfb#519f279b2270a384ff4f9262659619cc9dfaabfb): checkout/LICENSE-APACHE
+  gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-linux 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-linux 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-platform 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-platform 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
+  gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): LICENSE-APACHE
+  gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=8fd191ee376b4004a3793ed8b69fff798509d56f#8fd191ee376b4004a3793ed8b69fff798509d56f): checkout/LICENSE-APACHE
 
 Copyright 2022 - 2025 Zed Industries, Inc.
 
