@@ -116,6 +116,17 @@ pub(crate) struct State {
 
 #[cfg(test)]
 impl State {
+    /// A held listing with one answered folder walk, as a dirsized reply leaves it.
+    pub(crate) fn walked_fixture(held: Rc<Held>, row: usize, size: Size) -> Self {
+        let mut sizes = DirSizes::default();
+        sizes.remember(row, size, CAP);
+        Self {
+            held,
+            sizes,
+            ..Self::default()
+        }
+    }
+
     /// A ready operation fixture retains the listing and its already-answered filesystem class.
     pub(crate) fn settled_fixture(held: Rc<Held>, path: String, class: &str) -> Self {
         Self {
@@ -129,6 +140,14 @@ impl State {
 }
 
 impl State {
+    /// A folder's finished walk for one row of the held listing; a partial or missing walk has no size to state.
+    pub(crate) fn walked(&self, listing: usize, row: usize) -> Option<u64> {
+        self.sizes
+            .size_for(row)
+            .filter(|size| self.held.listing == listing && !size.partial)
+            .map(|size| size.bytes)
+    }
+
     fn cancel(&mut self, backend: &crate::backend::Backend) {
         self.task = None;
         self.key = None;
