@@ -750,21 +750,25 @@ def main():
     parser.add_argument('--out', type=Path, help='matrix destination; summary stays on stdout')
     parser.add_argument('--md', action='store_true', help='render the matrix as Markdown')
     parser.add_argument('--summary', action='store_true', help='print counts and green percentage')
+    parser.add_argument('--suite-cases', action='store_true',
+                        help='project only test cases and suites, without external design or scope inputs')
     args = parser.parse_args()
     try:
-        if args.design is None:
+        if not args.suite_cases and args.design is None:
             raise ValueError('--design is required (or FLEA_PARITY_DESIGN)')
         if args.layout is None:
             raise ValueError('--layout is required (or FLEA_PARITY_LAYOUT)')
         tree = args.tree or Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip())
         inventory = Inventory(tree.resolve(), args.map)
-        inventory.code()
-        inventory.keys()
-        inventory.schema()
+        if not args.suite_cases:
+            inventory.code()
+            inventory.keys()
+            inventory.schema()
         inventory.cases()
         inventory.suites(args.layout.resolve())
-        inventory.boards(args.design.resolve())
-        if args.pending:
+        if not args.suite_cases:
+            inventory.boards(args.design.resolve())
+        if args.pending and not args.suite_cases:
             inventory.scope(args.pending.resolve())
         rows = sorted(inventory.rows, key=lambda row: (row['kind'], row['id']))
         by_id = {row['id']: row for row in rows}
