@@ -3,6 +3,7 @@ import json
 import sys
 
 source, target, mutation = sys.argv[1:4]
+# Sample rows: {"kind": "fn", "m": "Scroll", "f": "distance", "args": [...], "out": 288} and {"kind": "slow", "steps": [...], "answers": [[true, 2]]}.
 rows = [json.loads(line) for line in open(source, encoding="utf-8")]
 
 

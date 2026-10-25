@@ -18,8 +18,12 @@ lane() {
         CARGO_PROFILE_TEST_DEBUG=line-tables-only CARGO_PROFILE_DEV_DEBUG=line-tables-only "$@" < /dev/null
 }
 lane cargo test --locked -p flea-gui --test g1_05
+# A filter matching nothing passes with zero, so the largest "test result: ok. 9 passed; 0 failed" count must reach this unit's cases.
+count() { sed -n 's/^test result: ok\. \([0-9]*\) passed; 0 failed.*/\1/p' "$1" | sort -n | tail -1; }
 # The shell's wheel, stroke and slow-click wiring tests live in the library's test tree.
-lane cargo test --locked -p flea-gui --lib g1_05
+lane cargo test --locked -p flea-gui --lib g1_05 2>&1 | tee "$unit_root/lib.log"
+wiring=$(count "$unit_root/lib.log")
+[ "${wiring:-0}" -ge 9 ] || { printf 'FAIL g1_05 library wiring ran %s tests, want at least 9\n' "${wiring:-0}"; exit 1; }
 oracle() {
     setsid -w env -i PATH="$PATH" HOME="$unit_root/home" \
         XDG_CONFIG_HOME="$unit_root/config" XDG_STATE_HOME="$unit_root/state" \
@@ -28,13 +32,14 @@ oracle() {
         QML_XHR_ALLOW_FILE_READ=1 timeout 300s qml6 tests/g1-05.qml -- "$1" < /dev/null
 }
 oracle "$unit_root/vectors.jsonl"
-# A native decision changed by one pixel, one mark or one verb must fail the oracle runner.
+# A native decision changed by one pixel or one slow-click answer must fail the oracle runner.
 for mutation in nudge slow; do
     python3 -B tests/g1-05-mutate.py "$unit_root/vectors.jsonl" "$unit_root/$mutation.jsonl" "$mutation"
     if oracle "$unit_root/$mutation.jsonl" > "$unit_root/$mutation.log" 2>&1; then
         printf 'FAIL oracle runner accepted a native %s mutation\n' "$mutation"
         exit 1
     fi
+    # The log names the first mismatch, for example: FAIL native/oracle parity Scroll.distance
     rejected=$(grep -m1 -o 'FAIL native/oracle parity [A-Za-z.]*' "$unit_root/$mutation.log") || {
         printf 'FAIL oracle runner rejected the %s control for another reason\n' "$mutation"
         exit 1
@@ -47,7 +52,11 @@ printf 'tools/flea-clippy tools/clippy-baseline.txt %s\n' "$clippy_root"
 tools/flea-clippy tools/clippy-baseline.txt "$clippy_root"
 # Remove a passing run's root only when it is absolute, non-empty, marked and directly inside this unit's scratch.
 drop_root() {
-    [[ -n "$1" && "$1" == "$scratch"/?* && "$(dirname "$1")" == "$scratch" && -f "$1/.flea-test-sandbox" ]] && rm -rf -- "$1"
+    [[ -n "$1" && "$1" == "$scratch"/?* && "$(dirname "$1")" == "$scratch" && -f "$1/.flea-test-sandbox" ]] || {
+        printf 'FAIL g1-05 refused to remove scratch root %s\n' "$1"
+        exit 1
+    }
+    rm -rf -- "$1"
 }
 drop_root "$unit_root"
 drop_root "$clippy_root"

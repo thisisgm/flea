@@ -32,12 +32,32 @@ impl PaneInput {
         let epoch = *self.epoch.get_or_insert(now);
         now.saturating_duration_since(epoch).as_secs_f64() * 1000.
     }
-    /// A press holds the tail and the return where they stand, for the row under it.
+    /// A press holds the tail, the return and a notch glide where they are drawn, for the row under it.
     pub(super) fn hold(&mut self, pane: &mut Pane) {
+        if self.glide.is_some() {
+            pane.scroll_to(super::glided(self.glide.take(), pane.scroll_y));
+            if let Some(frame) = &mut self.frame {
+                frame.scroll = pane.scroll_y;
+            }
+            self.scrolled(pane.scroll_y, &mut pane.cursor);
+        }
         if let Some(mut axis) = self.axis(pane.scroll_y) {
             self.kinetic.press(&mut axis);
             self.apply_axis(pane, axis);
         }
+    }
+    /// A release returns a position a press held past an end; true when that return now runs.
+    pub(super) fn release(&mut self, pane: &mut Pane, now: Instant, reduced: bool) -> bool {
+        let Some(mut axis) = self.axis(pane.scroll_y) else {
+            return false;
+        };
+        if self.kinetic.running() || !self.kinetic.overscrolled(&axis) {
+            return false;
+        }
+        self.kinetic.start_return(&mut axis, reduced);
+        self.apply_axis(pane, axis);
+        self.motion_at.get_or_insert(now);
+        true
     }
     /// A position the motion did not write, a cursor reveal, a restore or the scrollbar, ends the motion there.
     fn settle(&mut self, pane: &Pane) {
@@ -73,6 +93,15 @@ impl PaneInput {
 }
 
 impl Shell {
+    /// Any release returns a held overscroll, a refused or menu one included, as Flickable's release fixup does.
+    pub(crate) fn pointer_release(&mut self, side: usize, cx: &mut Context<Self>) {
+        let (now, reduced) = (cx.background_executor().now(), cx.reduce_motion());
+        if let Some(host) = &mut self.panes[side] {
+            if host.input.release(&mut host.pane, now, reduced) {
+                cx.notify();
+            }
+        }
+    }
     pub(crate) fn pointer_wheel(
         &mut self,
         side: usize,
