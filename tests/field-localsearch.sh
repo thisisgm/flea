@@ -142,6 +142,7 @@ assert 'this harness did not start it' in err, err
 assert alive_after, 'a refusal must leave the foreign indexer alone'
 
 # 5. A run killed days ago never wrote its end, so it covers nothing started today.
+# Bound: no alive mark, so the window ends at the run's start plus ALIVE_S.
 stale = root / 'ledger-stale.jsonl'
 stale.write_text('{"id": "old", "pid": 4242, "start": %f}\n' % (time.time() - 2 * 86400))
 stray = subprocess.Popen([str(bindir / 'localsearch-3'), '300'], start_new_session=True, stdin=subprocess.DEVNULL,
@@ -153,10 +154,13 @@ stray.wait()
 assert rc != 0 and 'this harness did not start it' in err and 'this harness started it' not in err, err
 
 # 6. A run killed outright ends where the next recorded run begins, so it never claims what a later run started.
+# Bound: the next run's start, since the old run's alive mark is touched now, long after that start.
 stale = root / 'ledger-next.jsonl'
 now = time.time()
-stale.write_text('{"id": "old", "pid": 4242, "start": %f}\n{"id": "next", "pid": 4343, "start": %f, "end": %f}\n'
+stale.write_text('{"id": "old-next", "pid": 4242, "start": %f}\n{"id": "next", "pid": 4343, "start": %f, "end": %f}\n'
                  % (now - 2 * 86400, now - 86400, now - 86400 + 60))
+(root / 'alive').mkdir(exist_ok=True)
+(root / 'alive' / 'old-next').touch()
 stray = subprocess.Popen([str(bindir / 'localsearch-3'), '300'], start_new_session=True, stdin=subprocess.DEVNULL,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(0.3)
@@ -166,6 +170,7 @@ stray.wait()
 assert rc != 0 and 'this harness did not start it' in err and 'this harness started it' not in err, err
 
 # 7. The newest run is killed outright and nothing runs after it: an indexer started later is not its own.
+# Bound: the alive mark the run touched before it was killed, plus ALIVE_S.
 S = SourceFileLoader('search_windows', tool).load_module()
 ledger = root / 'ledger-newest.jsonl'
 reap_orphans()
@@ -173,6 +178,11 @@ rc, err, pids = run('kill', ledger)
 reap(pids)
 settle(pids)
 assert rc == -9 and len(pids) == 2, (rc, err, pids)
+killed = [json.loads(line) for line in ledger.read_text().splitlines()]
+assert len(killed) == 1 and 'end' not in killed[0], killed
+mark = root / 'alive' / killed[0]['id']
+assert mark.exists(), 'the killed run never touched its alive mark'
+assert killed[0]['start'] - 1 <= mark.stat().st_mtime <= killed[0]['start'] + S.ALIVE_S, (mark.stat().st_mtime, killed)
 time.sleep(S.ALIVE_S + 2)
 reap_orphans()
 stray = subprocess.Popen([str(bindir / 'localsearch-3'), '300'], start_new_session=True, stdin=subprocess.DEVNULL,
@@ -210,8 +220,10 @@ for began, wanted in ((midnight - 7200, 'run pid 1 '), (midnight - 60, 'this har
                       {'id': 'new', 'pid': 2, 'start': midnight - 3600, 'end': midnight - 1800}], began,
                      seen={'old': midnight - 3500})
     assert wanted in said, said
-# A killed newest run covers up to its last touch plus one period, and nothing after.
-for began, wanted in ((midnight - 3000 + S.ALIVE_S, 'run pid 4 '), (midnight - 600, 'this harness did not start it')):
+# A killed newest run covers up to its last touch plus one period and the one second of start slack, and nothing after.
+edge = midnight - 3000 + S.ALIVE_S
+for began, wanted in ((edge, 'run pid 4 '), (edge + 1, 'run pid 4 '), (edge + 2, 'this harness did not start it'),
+                      (midnight - 600, 'this harness did not start it')):
     said = attribute([{'id': 'dead', 'pid': 4, 'start': midnight - 3600}], began, seen={'dead': midnight - 3000})
     assert wanted in said, said
 # A run begun 23:50 whose indexer started 23:55 stays attributed after midnight: still running, seen after, or ended.
