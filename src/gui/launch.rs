@@ -1,14 +1,21 @@
 use super::{
     apply_display_pin, apply_renderer, automatic_renderer, pin_display_icd, skip_gtk_platform_theme,
 };
-use crate::{prefetch, thp};
+use crate::{prefetch, shelfplugin, thp, uistatecli, uistore};
 use std::ffi::OsStr;
+use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[path = "gpui_renderer.rs"]
 mod gpui_renderer;
+#[path = "legacy.rs"]
+mod legacy;
+#[path = "legacy_command.rs"]
+mod legacy_command;
+#[path = "legacy_identity.rs"]
+mod legacy_identity;
 
 pub fn use_gpui() -> bool {
     frontend_is_gpui(std::env::var_os("FLEA_FRONTEND").as_deref())
@@ -40,11 +47,94 @@ fn gpui_argv(binary: &Path, start: Option<&str>, select: Option<&str>) -> Comman
     cmd
 }
 
+pub(crate) fn settle_state() {
+    // Both frontends settle state before the first paint; a refusal still opens on the original file.
+    match uistore::Store::user().and_then(|store| store.settle()) {
+        Ok(()) => {}
+        Err(e) => eprintln!("flea: the view state was not settled ({})", e),
+    }
+    // Refresh an enabled shelf's installed plugin before either frontend opens.
+    if let Ok(store) = uistore::Store::user() {
+        if let Err(e) = shelfplugin::refresh(uistatecli::shelf_enabled(&store.read())) {
+            eprintln!("flea: the shelf plugin was not refreshed ({})", e);
+        }
+    }
+}
+
 pub fn exec_gpui(start: Option<&str>, select: Option<&str>) -> i32 {
+    exec_window(start, select, None)
+}
+
+pub(crate) fn exec_special(key: &str, value: &str) -> i32 {
+    exec_window(None, None, Some((key, value)))
+}
+
+// The answer exec would give, checked before an old window is closed: ENOENT when absent, EACCES when not runnable.
+fn binary_usable(binary: &Path) -> std::io::Result<()> {
+    let usable = |path: &Path| {
+        let meta = path.metadata()?;
+        if meta.is_file() && meta.permissions().mode() & 0o111 != 0 {
+            Ok(())
+        } else {
+            Err(std::io::Error::from_raw_os_error(13))
+        }
+    };
+    if binary.components().count() > 1 {
+        return usable(binary);
+    }
+    let found = std::env::var_os("PATH").is_some_and(|path| {
+        std::env::split_paths(&path).any(|dir| usable(&dir.join(binary)).is_ok())
+    });
+    if found {
+        Ok(())
+    } else {
+        Err(std::io::Error::from_raw_os_error(2))
+    }
+}
+
+fn exec_window(start: Option<&str>, select: Option<&str>, special: Option<(&str, &str)>) -> i32 {
     let executable = std::env::current_exe().ok();
     let binary = gpui_binary(executable.as_deref(), |path| path.is_file());
+    if let Err(error) = binary_usable(&binary) {
+        eprintln!(
+            "flea: the window could not start: {}: {error}",
+            binary.display()
+        );
+        return 1;
+    }
+    // A picker or unlock launch is a dialog beside the operator's windows, so it never
+    // replaces a 0.3.12 window and carries nothing from one.
+    let carry = match special.map_or_else(legacy::replace, |_| Ok(Default::default())) {
+        Ok(carry) => carry,
+        Err(reason) => {
+            eprintln!("flea: {reason}");
+            return 2;
+        }
+    };
+    let start = start.or_else(|| special.is_none().then_some(carry.path.as_deref()).flatten());
+    let select = select.or_else(|| {
+        (start == carry.path.as_deref())
+            .then_some(carry.select.as_deref())
+            .flatten()
+    });
+    settle_state();
     let mut cmd = gpui_argv(&binary, start, select);
+    let selection = crate::jsondoc::Json::Arr(
+        carry
+            .selection
+            .into_iter()
+            .map(crate::jsondoc::Json::Str)
+            .collect(),
+    );
+    cmd.env("FLEA_UPGRADE_SELECTION", crate::jsondoc::render(&selection));
+    cmd.env(
+        "FLEA_UPGRADE_WINDOWS",
+        crate::jsondoc::render(&crate::jsondoc::Json::Arr(carry.windows)),
+    );
     configure_gpui(&mut cmd);
+    if let Some((key, value)) = special {
+        cmd.env(key, value);
+    }
     thp::disable();
     let error = cmd.exec();
     eprintln!(

@@ -53,6 +53,10 @@ pub fn valid_png(file: &Path, width: usize, height: usize) -> bool {
 pub fn publish(png: &Path, dependencies: &Path, dest: &Path) -> std::io::Result<()> {
     let _guard = CACHE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     let record = htmldeps::sidecar(dest);
+    crate::cachewrite::require(dest)?;
+    if !htmldeps::replaceable(dest) {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "foreign or newer-schema HTML dependencies; cache was left unchanged"));
+    }
     match std::fs::remove_file(&record) {
         Ok(()) => {},
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
@@ -92,6 +96,7 @@ fn trim(dir: &Path, files: usize, bytes: u64, now: SystemTime) {
         if !meta.is_file() || path.extension().map_or(true, |ext| ext != "png") {
             continue;
         }
+        if !htmldeps::replaceable(&path) || !crate::cachewrite::allowed(&path) { continue; }
         count += 1;
         total = total.saturating_add(meta.len());
         if now.duration_since(used(&meta)).is_ok_and(|age| age > READER_GRACE) {
@@ -118,6 +123,25 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
 
+
+    #[test]
+    fn foreign_and_newer_images_survive_read_and_first_publish() {
+        let d = TestDir::new("html-png-preserve");
+        let dest = d.join("existing.png");
+        let png = d.join("new.png");
+        let deps = d.join("new.deps");
+        for original in ["{\"foreign\":true}", "{\"schemaVersion\":999}", "unparsable"] {
+            std::fs::write(&dest, original).unwrap();
+            std::fs::write(&png, b"\x89PNG\r\n\x1a\n").unwrap();
+            std::fs::write(&deps, "{\"version\":1,\"dependencies\":[]}").unwrap();
+            assert!(!hit(&dest, 300, DEFAULT_HEIGHT, d.path()));
+            assert_eq!(std::fs::read_to_string(&dest).unwrap(), original);
+            assert!(publish(&png, &deps, &dest).unwrap_err().to_string().contains("left unchanged"));
+            trim(d.path(), 0, 0, SystemTime::now() + Duration::from_secs(120));
+            assert_eq!(std::fs::read_to_string(&dest).unwrap(), original);
+        }
+    }
+
     #[test]
     fn cache_key_includes_path_size_nanosecond_mtime_and_width() {
         let d = TestDir::new("html-cache-key");
@@ -141,7 +165,7 @@ mod tests {
     #[test]
     fn eviction_obeys_both_limits_and_leaves_recent_readers() {
         let d = TestDir::new("html-cache-limit");
-        for n in 0..4 { d.file(&format!("{n}.png"), "ten bytes!"); }
+        for n in 0..4 { std::fs::write(d.join(&format!("{n}.png")), b"\x89PNG\r\n\x1a\nxx").unwrap(); }
         d.file("other.txt", "keep");
         let future = SystemTime::now() + Duration::from_secs(120);
         trim(d.path(), 2, 15, future);

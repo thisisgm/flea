@@ -53,12 +53,14 @@ fn version(dir: &Path) -> Option<String> {
 
 // Only the two manifests are read before the window; each PKGBUILD stamps $pkgver-$pkgrel, so every build replaces the copy.
 fn current(dest: &Path, source: &Path) -> bool {
-    version(dest) == version(source)
+    crate::persistdoc::read(&dest.join("manifest.json"), manifest_shape).is_ok()
+        && version(dest) == version(source)
 }
 
 // Files and never a symlink: a link into /usr/share would leave the plugin dead after an upgrade
 // replaced it, and `omarchy plugin remove` expects a folder it can delete.
 fn install(source: &Path, dest: &Path) -> Result<(), String> {
+    crate::persistdoc::read(&dest.join("manifest.json"), manifest_shape)?;
     std::fs::create_dir_all(dest).map_err(|e| format!("{} could not be created ({})", dest.display(), e))?;
     for entry in std::fs::read_dir(source).map_err(|e| format!("{} could not be read ({})", source.display(), e))? {
         let entry = entry.map_err(|e| format!("{} could not be read ({})", source.display(), e))?;
@@ -77,6 +79,13 @@ fn install(source: &Path, dest: &Path) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn manifest_shape(doc: &crate::jsondoc::Json) -> bool {
+    use crate::jsondoc::Json;
+    doc.get("schemaVersion").and_then(Json::as_f64) == Some(1.0)
+        && doc.get("id").and_then(Json::as_str) == Some(ID)
+        && doc.get("version").and_then(Json::as_str).is_some()
 }
 
 // omarchy's own subcommands resolve their helpers through OMARCHY_PATH, which a session that did not
@@ -147,7 +156,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("the fixture root");
         std::fs::write(dir.join("manifest.json"),
-                       format!("{{\n  \"schemaVersion\": 1,\n  \"version\": \"{}\"\n}}\n", version)).expect("a manifest");
+                       format!("{{\n  \"schemaVersion\": 1,\n  \"id\": \"{}\",\n  \"version\": \"{}\"\n}}\n", ID, version)).expect("a manifest");
         std::fs::write(dir.join("Panel.qml"), "Item {}\n").expect("a panel");
         dir
     }

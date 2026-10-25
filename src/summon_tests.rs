@@ -64,7 +64,8 @@ fn a_history_file_that_cannot_be_read_is_no_history_rather_than_an_error() {
     // than from a file that was never written.
     std::fs::write(dir_of.join("summon.json"), "{\"summon\":").unwrap();
     assert_eq!(summon.rings(), 0);
-    assert_eq!(summon.ring().unwrap(), 1, "and the next press starts the count again rather than failing");
+    assert!(summon.ring().unwrap_err().contains("left unchanged"));
+    assert_eq!(std::fs::read_to_string(dir_of.join("summon.json")).unwrap(), "{\"summon\":");
 }
 
 #[test]

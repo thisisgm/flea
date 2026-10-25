@@ -20,6 +20,9 @@ pub(crate) fn read(text: &str) -> Read {
     super::undoprobe::decode();
     let Ok(root) = parse(text) else { return Read::Malformed };
     let Some(pairs) = root.as_object() else { return Read::Malformed };
+    if pairs.iter().any(|(key, _)| !["v", "gen", "jobGen", "undo", "redo"].contains(&key.as_str())) {
+        return Read::Malformed;
+    }
     match get(pairs, "v") {
         Some(Json::Num(literal)) if literal.parse::<u64>().is_ok_and(|v| v > VERSION as u64) => return Read::Newer,
         // v1 files predate the barrier kind and v2 the merge kinds; both still read, anything else is foreign.

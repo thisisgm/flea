@@ -1,4 +1,5 @@
 // Decodes bounded shared-journal entries, identities, and replay records.
+use super::shape;
 use super::{
     checked_op, checked_path, checked_text, get, get_str, parse_i64, parse_u32, parse_u64,
 };
@@ -20,6 +21,7 @@ const KNOWN_KINDS: [u32; 7] = [
 
 fn decode_identity(value: &Json) -> Option<ItemIdentity> {
     let pairs = value.as_object()?;
+    shape::fields(pairs, &["d", "i", "k", "l", "m", "c", "b"])?;
     let kind = get(pairs, "k").and_then(parse_u32)?;
     if !KNOWN_KINDS.contains(&kind) {
         return None;
@@ -62,6 +64,7 @@ pub(crate) fn decode_born(value: &Json) -> Option<Option<(u64, u32)>> {
 
 fn decode_step(value: &Json) -> Option<Step> {
     let pairs = value.as_object()?;
+    shape::step(pairs)?;
     match get_str(pairs, "k")? {
         "m" => Some(Step::Moved {
             from: checked_path(get(pairs, "from")?)?,
@@ -125,6 +128,7 @@ fn decode_step(value: &Json) -> Option<Step> {
 
 fn decode_entry(value: &Json) -> Option<Entry> {
     let pairs = value.as_object()?;
+    shape::fields(pairs, &["op", "steps"])?;
     let steps = get(pairs, "steps")?.as_array()?;
     if steps.len() > MAX_STEPS {
         return None;
@@ -141,6 +145,7 @@ fn decode_entry(value: &Json) -> Option<Entry> {
 
 fn decode_replay_step(value: &Json) -> Option<redo::SavedStep> {
     let pairs = value.as_object()?;
+    shape::fields(pairs, &["s", "in", "parent"])?;
     let step = decode_step(get(pairs, "s")?)?;
     let input = match get(pairs, "in")? {
         Json::Null => None,
@@ -159,13 +164,19 @@ fn decode_replay_step(value: &Json) -> Option<redo::SavedStep> {
 fn decode_redo(value: &Json) -> Option<StoredRedo> {
     let pairs = value.as_object()?;
     if let Some(err) = get(pairs, "err") {
+        shape::fields(pairs, &["err"])?;
         let fields = err.as_object()?;
+        shape::fields(fields, &["where", "path", "msg"])?;
         return Some(StoredRedo::Err(FleaError {
             where_: checked_text(get(fields, "where")?)?,
-            path: get_str(fields, "path").unwrap_or("").to_string(),
+            path: match get(fields, "path") {
+                None => String::new(),
+                Some(v) => v.as_str()?.to_string(),
+            },
             msg: checked_text(get(fields, "msg")?)?,
         }));
     }
+    shape::fields(pairs, &["op", "steps"])?;
     let steps = get(pairs, "steps")?.as_array()?;
     if steps.len() > MAX_STEPS {
         return None;
@@ -189,7 +200,10 @@ pub(crate) fn decode(text: &str) -> Option<Doc> {
 }
 
 pub(crate) fn decode_pairs(pairs: &[(String, Json)]) -> Option<Doc> {
-    let push_gen = get(pairs, "gen").and_then(parse_u64).unwrap_or(0);
+    let push_gen = match get(pairs, "gen") {
+        Some(value) => parse_u64(value)?,
+        None => 0,
+    };
     let job_gen = match get(pairs, "jobGen") {
         Some(value) => parse_u64(value)?,
         None => 0,
