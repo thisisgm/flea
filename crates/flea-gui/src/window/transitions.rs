@@ -83,6 +83,7 @@ impl Shell {
                         mode: 0,
                     });
                 }
+                host.input.queued = None;
                 host.changed(&self.locale);
                 host.record_error(error, &self.locale);
             }
