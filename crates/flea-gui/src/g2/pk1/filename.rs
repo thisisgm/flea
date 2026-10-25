@@ -32,6 +32,8 @@ pub struct Filename {
     pub focus: FocusHandle,
     pub save: Entity<SaveView>,
     label: SharedString,
+    pub(super) probe: crate::g2::st1::probe::Probe,
+    pub(super) focused: bool,
 }
 
 impl Filename {
@@ -41,6 +43,8 @@ impl Filename {
             focus: cx.focus_handle(),
             save,
             label: label.to_uppercase().into(),
+            probe: Default::default(),
+            focused: false,
         };
         field.entry.text = seed.to_owned();
         field.select_stem();
@@ -126,6 +130,8 @@ impl Render for Filename {
             .unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
         let focused = self.focus.is_focused(window);
+        self.focused = focused;
+        self.probe.clear();
         let text = &self.entry.text;
         let selected = self.entry.selected.clone();
         let (before, run, after) = (
@@ -133,7 +139,9 @@ impl Render for Filename {
             text[selected.clone()].to_owned(),
             text[selected.end..].to_owned(),
         );
-        let field = div()
+        let field = self
+            .probe
+            .attach(div().relative(), "field")
             .id("picker-filename")
             .debug_selector(|| "pk1-filename".into())
             .flex_1()

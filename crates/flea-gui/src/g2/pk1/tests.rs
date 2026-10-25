@@ -11,6 +11,8 @@ use std::time::{Duration, Instant};
 mod browse_tests;
 #[path = "fixture.rs"]
 mod fixture;
+#[path = "geometry_tests.rs"]
+mod geometry_tests;
 #[path = "ipc_tests.rs"]
 mod ipc_tests;
 #[path = "save_tests.rs"]

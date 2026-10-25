@@ -10,6 +10,9 @@ use flea::ui_logic_pk1 as logic;
 
 // What only drawn geometry can answer; the listing and chrome owners supply it at the join.
 pub trait PickerGeometry {
+    fn answers(&self, _: &str) -> bool {
+        true
+    }
     fn controls(&self) -> String;
     fn row_centre(&self, index: usize) -> String;
     fn cohesion_controls(&self) -> String;
@@ -128,6 +131,7 @@ impl Picker {
             .first()
             .and_then(|text| text.trim().parse::<i64>().ok())
             .and_then(|index| usize::try_from(index).ok());
+        let geometry = geometry.filter(|geometry| geometry.answers(function.name));
         let listing = &self.listing;
         let value = match (function.name, geometry) {
             ("version", _) => env!("CARGO_PKG_VERSION").to_owned(),
