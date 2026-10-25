@@ -78,6 +78,9 @@ impl Shell {
             self.search_landed(side, true, window, cx);
         }
         if let BackendEvent::Producer(line) | BackendEvent::Operations(line) = &event {
+            if self.fileops_line(side, line, window, cx) {
+                return;
+            }
             let menu_taken = self.menu_reply(side, line, window, cx);
             if flea::ui_logic_op1::parse(line).is_some() {
                 self.operation_line(side, line, window, cx);
@@ -131,6 +134,7 @@ impl Shell {
         }
         match &event {
             BackendEvent::Drained | BackendEvent::Failed(_) => {
+                self.fileops_reset(side);
                 self.operation_failed(side, "backend", "", "", cx)
             }
             BackendEvent::Refused {
