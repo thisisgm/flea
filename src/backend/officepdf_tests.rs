@@ -340,7 +340,7 @@ fn a_local_publish_error_records_no_failure_and_the_next_request_converts() {
     std::fs::remove_dir(&pdf).unwrap();
     assert_eq!(r.ask(2, &src), converting_line(2));
     assert_eq!(r.end().1, ready_line(2, &pdf));
-    assert_eq!(r.jobs(), 2);
+    assert_eq!(r.jobs(), 1, "the refused path cost no conversion, and the next request converted");
 }
 
 #[test]

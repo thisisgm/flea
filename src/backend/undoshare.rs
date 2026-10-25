@@ -135,7 +135,7 @@ fn ignored(_shared: &Shared) -> Result<Doc, ()> {
     Err(())
 }
 
-// One read and one parse; malformed is ignored with a log line, Err is a newer writer's file.
+// One read and one parse; anything but a readable journal of our version is Err, so its writer keeps it.
 fn load(shared: &Shared) -> Result<Doc, ()> {
     let path = shared.journal_path();
     let meta = match path.symlink_metadata() {

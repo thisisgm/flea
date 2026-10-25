@@ -37,6 +37,8 @@ fn birth(pid: i32) -> Option<String> {
     tail.split_whitespace().nth(19).map(str::to_string)
 }
 
+const F_GETLK: i32 = 5;
+
 fn holder(file: &fs::File) -> Option<i32> {
     let mut lock = Flock {
         kind: 1,
@@ -45,7 +47,7 @@ fn holder(file: &fs::File) -> Option<i32> {
         len: 0,
         pid: 0,
     };
-    if unsafe { fcntl(file.as_raw_fd(), 5, &mut lock as *mut Flock) } != 0 {
+    if unsafe { fcntl(file.as_raw_fd(), F_GETLK, &mut lock as *mut Flock) } != 0 {
         return None;
     }
     (lock.kind != 2 && lock.pid > 1).then_some(lock.pid)

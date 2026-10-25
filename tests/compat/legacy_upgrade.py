@@ -191,4 +191,9 @@ finally:
     for child in reversed(processes):
         if child.poll() is None:
             child.terminate()
-        child.wait(timeout=5)
+        try:
+            child.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            # One stuck child must not leave the rest running.
+            child.kill()
+            child.wait()

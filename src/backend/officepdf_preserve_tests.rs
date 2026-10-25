@@ -32,3 +32,21 @@ fn a_symlink_planted_at_the_cache_path_is_not_followed() {
     assert!(std::fs::symlink_metadata(&pdf).unwrap().file_type().is_symlink());
     assert_eq!(std::fs::read(&decoy).unwrap(), b"decoy", "the target was never written");
 }
+
+#[test]
+fn a_foreign_document_at_the_pdf_path_never_starts_the_converter() {
+    let d = TestDir::new("officepdf-foreign-first");
+    let r = rig(&d, MAKE_PDF, CONVERT_TIMEOUT);
+    let src = d.file("a.docx", "doc");
+    let pdf = r.svc.store.pdf_path(&Store::key(&src));
+    std::fs::create_dir_all(pdf.parent().unwrap()).unwrap();
+    std::fs::write(&pdf, "{\"foreign\":true}").unwrap();
+    // An mtime the source never had, so lookup reads the document as a miss rather than a hit.
+    std::fs::OpenOptions::new().write(true).open(&pdf).unwrap().set_modified(SystemTime::UNIX_EPOCH).unwrap();
+    for wire in 1..=2 {
+        assert_eq!(r.ask(wire, &src), converting_line(wire));
+        assert!(r.end().1.contains("left unchanged"));
+    }
+    assert_eq!(r.jobs(), 0, "a refused path never runs the converter");
+    assert_eq!(std::fs::read_to_string(&pdf).unwrap(), "{\"foreign\":true}");
+}

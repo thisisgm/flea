@@ -7,6 +7,9 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Duration, Instant};
 
+// The carried window state rides an environment variable, so it stays far below the argument limit.
+const MAX_CARRY_BYTES: usize = 48 * 1024;
+
 #[derive(Default)]
 pub(super) struct Carry {
     pub path: Option<String>,
@@ -134,7 +137,7 @@ pub(super) fn replace() -> Result<Carry, String> {
                 state.get("selectedPaths").cloned().unwrap_or(Json::Null),
             ),
         ]));
-        if jsondoc::render(&Json::Arr(carry.windows.clone())).len() > 48 * 1024 {
+        if jsondoc::render(&Json::Arr(carry.windows.clone())).len() > MAX_CARRY_BYTES {
             return Err(
                 "the old window state is too large to hand to the new window safely".into(),
             );
