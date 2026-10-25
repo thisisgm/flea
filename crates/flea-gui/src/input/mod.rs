@@ -14,6 +14,8 @@ pub(crate) const PLATFORM_SCROLL_GAIN: f32 = 3.;
 pub(crate) const WHEEL_LINES: u32 = PLATFORM_SCROLL_GAIN as u32;
 
 pub use element::{surface, surface_with, Painted};
+#[cfg(test)]
+pub(crate) use pointer::Press;
 use gpui::{Bounds, Pixels, Point};
 use selection::Selection;
 

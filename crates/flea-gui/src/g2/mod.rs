@@ -1,5 +1,6 @@
 //! G2 surface families; each unit keeps its GUI half under its own module.
 pub mod dg1;
+pub mod dg2;
 pub mod fb1;
 pub mod mn1;
 pub mod mn2;

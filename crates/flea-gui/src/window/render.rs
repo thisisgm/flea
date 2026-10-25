@@ -1,5 +1,6 @@
 use super::{composition, startup::View};
 use crate::{
+    g2::dg2::join::{flock, Seed},
     feedback::spinner,
     grid::pane_view::PaneInputs,
     list::{ListElement, Palette},
@@ -225,10 +226,23 @@ impl Render for Shell {
                         shell: cx.entity().downgrade(),
                     }),
             );
+            let lifter = cx.entity().downgrade();
+            let payload = cx.entity().downgrade();
             panes[side] = Some(
                 div()
+                    .id(("file-drag", side))
                     .relative()
                     .size_full()
+                    .on_drag(Seed { side }, move |_, _, window, cx| {
+                        let _ = lifter.update(cx, |shell, cx| shell.begin_file_drag(side, window, cx));
+                        flock(cx)
+                    })
+                    .external_drag_payload::<Seed>(move |_, window, cx| {
+                        payload.upgrade()?.read(cx).file_drag_payload(window, cx)
+                    })
+                    .on_drop::<Seed>(cx.listener(move |shell, _: &Seed, window, cx| {
+                        shell.land_own_drag(side, window, cx);
+                    }))
                     .children(lists.areas[side].take())
                     .on_mouse_down(
                         MouseButton::Left,
