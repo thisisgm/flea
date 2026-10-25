@@ -264,7 +264,7 @@ mod tests;
 
 #[cfg(test)]
 #[path = "searchprior_alloc_tests.rs"]
-mod alloc_tests;
+pub(super) mod alloc_tests;
 
 #[cfg(test)]
 #[path = "searchprior_xml_tests.rs"]
