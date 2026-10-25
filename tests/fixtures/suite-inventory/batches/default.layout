@@ -1,0 +1,27 @@
+# The default shards; West cargo test --release (the 95 s floor) starts first; measurements in plan-040/jobs/ci-audit/REPORT.md section 7.
+# host lane kind [args]
+west ctr cargo-test --release
+west ct cargo-test
+west qml qmllint-gate
+west budget file-budget
+west prep prep
+east prep prep
+east clippy clippy
+east commits commit-rules 6fcf645b4acc0ceb2c7bfa51293e44e04b51f3b8
+east proto protocol
+east s1 suites protocol js keymap-gen charts budget aurpush signalarity
+east s2 suites filemanager1 empty-state sandbox gio-auth ops update portal
+east s3 suites shellload uiwriter settings-columns preview-frame picker-recent picker-stall
+east s4 suites preview-swap preview-decode media capability-ownership dragwire mount-listing
+east s5 suites jump-ui lazy-objects archive gvfs modes thumbs thumbs-exec network-open-share network-keyless uistate
+east s6 suites pdf-first menu-settle grid-gap rowcost headercost headerhandles listcost listnamebudget listhidden columnscost columnrow-geom columndividers columnsfolder columnspeekgate lockedmenu arm-prompt acceptance-matrix counts connections-style jump-gap gridhidden gridcaption menu-snapshot-retire statusbar-hint
+east s7 suites pdf-turn ui-fixture-home menu-scroll-width scroll-fill columnclip-empty
+
+# Restore historical routing and add two preview suites to s14; preserve native exclusions.
+west s8 suites markdown-html listprebuild columnnarrow search-warm cap-drops-trash search-live dropmods-wait columnspeekorder menu-card-sink scroll-lanes picker-hunt permissions-adv pointer-glide-proof qslog-crash run-card-sink trash-locations griddroplive rename-cost colwatch-gate navcost field-entrant-sweep unlock-stdin ui-gvfsbridge-env cap-filter-width portal-startup-abort quicklook-zoom theme-contrast permissions-point-proof flingframe pv-gif-reply field-strata-src preview-scroll columnsmoves
+east s9 suites pkgrel-check startup-objects tabcatcher xwtab-scan menu-shebang markdown-render figure-store markdown-nest cursormark gridmark ui-captures-sheet columnsfilter search-exit-columns foldersort-keep sheet-query xw-harness scroll-bounds presskeep rename-scroll remote-start sweep-picker-env hoverready gridresize rename-frame dialog-board field-write-guard glass spinner-still unlock-host columns-peekdrag-noise columns-held gridjump menu-contents keyreach tui-quit-playing fontpane code-column quicklook-rect cohesion-reader
+west s10 suites aur-versions appimage-icon preview-settle-live tabreceive columnsback eject-verdict markdown-spec poolpark gridnarrow columnshidden ui-captures-fences dropcase-guards heldlisting search-answered button-system fs-matrix-smoke picker-header hyprdispatch menu-backend-hunt quicklook-firstframe quicklook-hold pdf-idle picker-save-wrap gridgrowth capsweep-check framegap field-prefetch-park preview-holdframes hidden-release columnsprebuild field-instant portal-startup slowsource-nas railmotion columnsdrawn glass-mode pv-gif field-launch-order pv-compare-menu raw-fixture
+east s11 suites preview-select xwsettings sidebarcost flash-ending-focus markdown-figures-render markdown-memory preview-layout-loop gridprebuild columnsfilter-edge rowscroll network-kernel-mounts filter-firstkey dropmods-windows search-sizes gridbare touchpad-tool permissions-skips sidebar-flows watch-views opener-ask gridcapbreak heldkey ring-bounds menu-fit cursor-swap navframe field-tui-frame unlock-lsblk-shim devicelock readme-grab holdoff-cap mediastrip-volume reveal transferlive-owners mpris columns-pwid preview-pdf-flow markdown-code fenceparity
+west s12 suites staticgates fatcopy preview-colwork runall-rule preview-geometry pane-states markdown-figures markdown-security markdown-lazy fencehosts listnarrow search-exit-deep ui-captures-permissions columns-peekdrag wait-listing sortnew menu-refresh-scroll touchpad picker-grid scrolloff-view rename-list-bottom shelf-add-queue click-chrome dragready shelf-mark chromering preview-earlyask glass-boot emptybeats archive-threat slowsource-load-cleanup hiddenlast-views quicklook-firstkind tagflyout heldcolumns mountfail-image preview-tall preview-raw pv-compare capture-port
+east s13 suites preview-hunt xwstate bootload menus-evidence figure-warm markdown-blockcost slowsource-load filter-held clickedge-origin mtp-scan search-exit-reads search-keep folderviews-flow xw-addr touchpad-edge picker-selection permissions-focus menu-clipboard-hunt figure-package markdown-tables tagrows gridviewport trash-view settings-tail cursorback tui-wake quicklook-tablewarm unlock-poller dropmods-box-proof search-rawnames fillroles dualdivider navsupersede transferhold mediasession code-engine quicklook-code csv-preview settings-ground
+west s14 suites markdown-linearity html-preview markdown-preview-state material-startup langmarks3 langtoggle glasspick-case raildrop
