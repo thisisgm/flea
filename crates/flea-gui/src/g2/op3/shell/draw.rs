@@ -6,6 +6,17 @@ use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight, Pixels};
 pub struct StandIn;
 
 impl Draw<'_> {
+    pub(super) fn wired(
+        &self,
+        control: Control,
+        element: gpui::Stateful<Div>,
+    ) -> gpui::Stateful<Div> {
+        match self.wire {
+            Some(wire) => wire(control, element),
+            None => element,
+        }
+    }
+
     pub(super) fn px(&self, board: f32) -> Pixels {
         px(board * self.s)
     }
@@ -72,7 +83,23 @@ impl Draw<'_> {
 
     pub(super) fn field(&self, field: &Field) -> Div {
         let t = self.t;
-        let caret = || div().w(px(1.)).h(self.px(16.)).flex_none().bg(t.fg);
+        let caret = || {
+            div()
+                .relative()
+                .w(px(0.))
+                .h(self.px(16.))
+                .flex_none()
+                .child(
+                    div()
+                        .debug_selector(|| "op3-caret".into())
+                        .absolute()
+                        .left_0()
+                        .top_0()
+                        .w(px(1.))
+                        .h_full()
+                        .bg(t.fg),
+                )
+        };
         let mut line = div()
             .h(self.px(BUTTON_HEIGHT))
             .flex()
@@ -92,7 +119,12 @@ impl Draw<'_> {
         if let Some(mark) = field.glyph {
             line = line.child(glyph(mark, 14. * self.s, t.muted));
         }
-        let mut text = div().flex().items_center().min_w_0().overflow_hidden();
+        let mut text = div()
+            .flex()
+            .items_center()
+            .min_w_0()
+            .pr(px(1.))
+            .overflow_hidden();
         if field.value.is_empty() {
             if field.focused {
                 text = text.child(caret());
@@ -105,6 +137,23 @@ impl Draw<'_> {
                         .child(field.placeholder.clone()),
                 );
             }
+        } else if let Some(entry) = self
+            .entry
+            .filter(|entry| field.focused && entry.text == field.value)
+        {
+            let selected = entry.selected.clone();
+            text = text.child(field.value[..selected.start].to_owned());
+            if selected.is_empty() {
+                text = text.child(caret());
+            } else {
+                text = text.child(
+                    div()
+                        .debug_selector(|| "op3-selection".into())
+                        .bg(t.accent.opacity(flea::ui_logic_op1::card::FIELD_WASH))
+                        .child(field.value[selected.clone()].to_owned()),
+                );
+            }
+            text = text.child(field.value[selected.end..].to_owned());
         } else {
             text = text.child(field.value.clone());
             if field.focused {
@@ -150,72 +199,110 @@ impl DialogShell for StandIn {
         corner: f32,
         room: f32,
     ) -> AnyElement {
-        let s = f32::from(typeface.body) / BOARD_BODY;
-        let draw = Draw {
-            corner: crate::compositor::valid_corner(f64::from(corner)),
-            t: Tokens::of(palette),
-            s,
-            typeface,
-        };
-        let t = draw.t;
-        let head = draw
-            .text(TITLE)
-            .flex()
-            .items_center()
-            .gap(draw.px(ROW_GAP))
-            .font_weight(FontWeight::BOLD)
-            .text_color(t.fg)
-            .child(
-                div()
-                    .min_w_0()
-                    .overflow_hidden()
-                    .text_ellipsis()
-                    .child(card.title.clone()),
-            )
-            .child(
-                draw.text(CAPTION)
-                    .ml_auto()
-                    .font_weight(FontWeight::NORMAL)
-                    .text_color(t.muted)
-                    .child(card.esc.clone()),
-            );
-        let mut frame = div()
-            .debug_selector(|| "op3-card".into())
-            .w(px(scaled(card.width, f32::from(typeface.body), room)))
-            .flex()
-            .flex_col()
-            .gap(draw.px(GAP))
-            .p(draw.px(PAD))
-            .bg(t.surface)
-            .border_1()
-            .border_color(t.muted_frame)
-            .rounded(px(draw.corner))
-            .font_family(draw.typeface.font.family.clone())
-            .text_size(draw.px(BOARD_BODY))
-            .line_height(relative(1.2))
-            .child(head)
-            .child(draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD))));
-        for block in &card.body {
-            frame = frame.child(draw.block(block));
-        }
-        let mut buttons = div()
-            .mt(draw.px(ABOVE_BUTTONS))
-            .flex()
-            .justify_end()
-            .items_center()
-            .gap(draw.px(ROW_GAP));
-        for (at, button) in card.buttons.iter().enumerate() {
-            buttons = buttons.child(
-                draw.button(button)
-                    .debug_selector(|| format!("op3-button-{at}")),
-            );
-        }
-        div()
-            .size_full()
-            .flex()
-            .items_center()
-            .justify_center()
-            .child(frame.child(buttons))
-            .into_any_element()
+        present(card, palette, typeface, corner, room, None)
     }
+}
+
+impl DialogShell for Interactive<'_> {
+    fn present(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        corner: f32,
+        room: f32,
+    ) -> AnyElement {
+        present(card, palette, typeface, corner, room, Some(self))
+    }
+}
+
+fn present(
+    card: &Card,
+    palette: &Palette,
+    typeface: &Typeface,
+    corner: f32,
+    room: f32,
+    interactive: Option<&Interactive<'_>>,
+) -> AnyElement {
+    let s = f32::from(typeface.body) / BOARD_BODY;
+    let draw = Draw {
+        corner: crate::compositor::valid_corner(f64::from(corner)),
+        t: Tokens::of(palette),
+        s,
+        typeface,
+        wire: interactive.map(|live| live.wire),
+        entry: interactive.map(|live| live.entry),
+    };
+    let mut draw = draw;
+    if let Some(live) = interactive {
+        draw.t.surface = live.surface;
+    }
+    let t = draw.t;
+    let head = draw
+        .text(TITLE)
+        .flex()
+        .items_center()
+        .gap(draw.px(ROW_GAP))
+        .font_weight(FontWeight::BOLD)
+        .text_color(t.fg)
+        .child(
+            div()
+                .min_w_0()
+                .overflow_hidden()
+                .text_ellipsis()
+                .child(card.title.clone()),
+        )
+        .child(
+            draw.text(CAPTION)
+                .ml_auto()
+                .font_weight(FontWeight::NORMAL)
+                .text_color(t.muted)
+                .child(card.esc.clone()),
+        );
+    let mut frame = div()
+        .id("op3-frame")
+        .debug_selector(|| "op3-card".into())
+        .w(px(scaled(card.width, f32::from(typeface.body), room)))
+        .flex()
+        .flex_col()
+        .gap(draw.px(GAP))
+        .p(draw.px(PAD))
+        .bg(t.surface)
+        .border_1()
+        .border_color(t.muted_frame)
+        .rounded(px(draw.corner))
+        .font_family(draw.typeface.font.family.clone())
+        .text_size(draw.px(BOARD_BODY))
+        .line_height(relative(1.2))
+        .occlude()
+        .on_any_mouse_down(|_, _, cx| cx.stop_propagation())
+        .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
+        .child(head)
+        .child(draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD))));
+    for block in &card.body {
+        frame = frame.child(draw.block(block));
+    }
+    let mut buttons = div()
+        .mt(draw.px(ABOVE_BUTTONS))
+        .flex()
+        .justify_end()
+        .items_center()
+        .gap(draw.px(ROW_GAP));
+    for (at, button) in card.buttons.iter().enumerate() {
+        buttons = buttons.child(
+            draw.wired(
+                Control::Button(at),
+                draw.button(button)
+                    .id(("op3-button", at))
+                    .debug_selector(move || format!("op3-button-{at}")),
+            ),
+        );
+    }
+    div()
+        .size_full()
+        .flex()
+        .items_center()
+        .justify_center()
+        .child(frame.child(buttons))
+        .into_any_element()
 }

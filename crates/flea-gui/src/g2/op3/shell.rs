@@ -1,6 +1,6 @@
 //! The seam op1's dialog shell fills: a card as plain data, and a stand-in frame drawing the boards' anatomy until the shell and scrim land.
 use crate::list::{Palette, Typeface};
-use gpui::{AnyElement, Hsla};
+use gpui::{AnyElement, Div, Hsla, Stateful};
 
 /// Every size below is the board's at its 14 px body; the shell multiplies by the live body over 14 (#310).
 pub const BOARD_BODY: f32 = 14.;
@@ -281,6 +281,25 @@ struct Draw<'a> {
     t: Tokens,
     s: f32,
     typeface: &'a Typeface,
+    wire: Option<&'a Wire>,
+    entry: Option<&'a crate::path::entry::Entry>,
+}
+
+/// The controls whose pointer activation a live card serves through its model.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Control {
+    Field,
+    Check(usize),
+    Button(usize),
+}
+
+pub type Wire = dyn Fn(Control, Stateful<Div>) -> Stateful<Div>;
+
+/// The same board drawing with live controls and the window's card surface role.
+pub struct Interactive<'a> {
+    pub wire: &'a Wire,
+    pub surface: Hsla,
+    pub entry: &'a crate::path::entry::Entry,
 }
 
 mod blocks;

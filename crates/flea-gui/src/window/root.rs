@@ -55,6 +55,21 @@ impl Render for Root {
                 deferred(div().absolute().top_0().left_0().size_full().child(view))
                     .with_priority(usize::MAX)
             });
+        let permissions = self
+            .shell
+            .read(cx)
+            .permissions
+            .view
+            .clone()
+            .filter(|view| view.read(cx).opened)
+            .map(|view| {
+                view.update(cx, |view, cx| {
+                    view.corner = self.shell.read(cx).corner;
+                    view.catalog = self.shell.read(cx).locale.catalog.clone();
+                });
+                deferred(div().absolute().top_0().left_0().size_full().child(view))
+                    .with_priority(usize::MAX)
+            });
         // The archive cards and the flash view take the same highest layer while one shows.
         let archive = self
             .shell
@@ -91,6 +106,7 @@ impl Render for Root {
             .child(Overlay(self.shell.clone(), true))
             .children(overlay)
             .children(output)
+            .children(permissions)
             .children(archive)
     }
 }
