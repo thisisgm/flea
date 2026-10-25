@@ -24,6 +24,8 @@ pub struct Theme {
     pub executable: Hsla,
     pub error: Hsla,
     pub error_on_surface: Hsla,
+    /// The theme's own red, unlifted (Commons.Color.urgent: red or color1, last in source order), for inherited grounds.
+    pub urgent: Hsla,
 }
 
 /// The floored inks a pane draws with, from the window theme or from an inherited ground and ink.
@@ -54,26 +56,27 @@ impl Roles {
     }
 
     /// Explicit inherited colours keep their own ground and ink and take the same floors on that ground.
-    pub fn for_inherited(background: Hsla, foreground: Hsla) -> Self {
+    pub fn for_inherited(background: Hsla, foreground: Hsla, urgent: Hsla) -> Self {
         // A frame repaints with the last ground and ink, so only a theme change resolves again.
         if let Some((key, roles)) = INHERITED.get() {
-            if key == (background, foreground) {
+            if key == (background, foreground, urgent) {
                 return roles;
             }
         }
         let opaque = |colour: Hsla| crate::ipc::rows::colour(Hsla { a: 1., ..colour });
-        let (bg, fg) = (opaque(background), opaque(foreground));
-        let text = format!("background='{bg}'\nforeground='{fg}'\ndark_background='{bg}'");
+        let (bg, fg, red) = (opaque(background), opaque(foreground), opaque(urgent));
+        let text =
+            format!("background='{bg}'\nforeground='{fg}'\ndark_background='{bg}'\ncolor1='{red}'");
         let roles =
             Self::from_core(&flea::theme::Theme::resolve(&text, "", "", None, "monospace").colors);
-        INHERITED.set(Some(((background, foreground), roles)));
+        INHERITED.set(Some(((background, foreground, urgent), roles)));
         #[cfg(test)]
         INHERITED_RESOLVES.set(INHERITED_RESOLVES.get() + 1);
         roles
     }
 }
 
-type Inherited = Option<((Hsla, Hsla), Roles)>;
+type Inherited = Option<((Hsla, Hsla, Hsla), Roles)>;
 thread_local! {
     static INHERITED: std::cell::Cell<Inherited> = const { std::cell::Cell::new(None) };
 }
@@ -144,6 +147,12 @@ impl Theme {
         let accent = pick(&["accent", "blue", "color4"], foreground);
         // ui/js/Palette.js:18 SURFACE_KEYS with ui/Theme.qml:46 fallbackColor.surface, the ground Theme.qml:330 lifts against.
         let surface = pick(&["dark_background", "background", "selection"], 0x181825);
+        // src/theme/tokens.rs takes the last red or color1 line, else #a55555, as Commons.Color.urgent.
+        let urgent = values
+            .iter()
+            .filter(|(key, _)| *key == "red" || *key == "color1")
+            .last()
+            .map_or(0xa55555, |(_, value)| *value);
         // ui/Theme.qml:342 lifts the accent to 3:1 on that surface for every theme, an empty file included.
         let raised = flea::ui_logic_pl4::tagtheme::ensure_ratio(
             &format!("#{accent:06x}"),
@@ -168,6 +177,7 @@ impl Theme {
             executable: roles.executable,
             error: roles.error,
             error_on_surface: roles.error_on_surface,
+            urgent: gpui::rgb(urgent).into(),
         };
         // ui/js/Palette.js:31-33 isPalette: any parsed colour makes the theme ready, ui/Theme.qml:357.
         let loaded = !values.is_empty();
@@ -273,10 +283,44 @@ mod tests {
     fn inherited_roles_resolve_once_per_ground_and_ink() {
         let (ground, ink): (Hsla, Hsla) = (gpui::rgb(0x202020).into(), gpui::rgb(0xe0e0e0).into());
         let start = INHERITED_RESOLVES.get();
-        let first = Roles::for_inherited(ground, ink);
-        assert_eq!(Roles::for_inherited(ground, ink), first);
+        let red: Hsla = gpui::rgb(0xbf616a).into();
+        let first = Roles::for_inherited(ground, ink, red);
+        assert_eq!(Roles::for_inherited(ground, ink, red), first);
         assert_eq!(INHERITED_RESOLVES.get(), start + 1);
-        Roles::for_inherited(gpui::rgb(0xf0f0f0).into(), ink);
+        Roles::for_inherited(gpui::rgb(0xf0f0f0).into(), ink, red);
         assert_eq!(INHERITED_RESOLVES.get(), start + 2);
+    }
+
+    // Sample input: the stock catppuccin and tokyo-night colors.toml background, surface, foreground and red lines.
+    const STOCK: [&str; 2] = [
+        "background = \"#1e1e2e\"\ndark_background = \"#161622\"\nforeground = \"#cdd6f4\"\nred = \"#f38ba8\"",
+        "background = \"#1a1b26\"\ndark_background = \"#13141c\"\nforeground = \"#a9b1d6\"\nred = \"#f7768e\"",
+    ];
+
+    #[test]
+    fn an_inherited_ground_lifts_the_themes_own_red() {
+        let hue = |colour: Hsla| colour.h;
+        let mut errors = Vec::new();
+        for text in STOCK {
+            let theme = Theme::from_text(text);
+            // The printer menu's ground: the card surface under the theme's ink.
+            let style = gpui::TextStyle {
+                color: theme.foreground,
+                background_color: Some(theme.surface),
+                ..Default::default()
+            };
+            let error = crate::list::Palette::inherited(&style, theme).error;
+            // Lifting mixes toward black or white, which keeps the hue up to 8-bit rounding.
+            assert!(
+                (hue(error) - hue(theme.urgent)).abs() < 0.005,
+                "{text}: {error:?} is not {:?}",
+                theme.urgent
+            );
+            errors.push(error);
+        }
+        assert_ne!(
+            errors[0], errors[1],
+            "two stock reds must give two inherited reds"
+        );
     }
 }

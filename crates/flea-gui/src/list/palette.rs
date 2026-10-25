@@ -30,7 +30,7 @@ impl Palette {
         let roles = if background == theme.background && foreground == theme.foreground {
             theme.roles()
         } else {
-            crate::palette::Roles::for_inherited(background, foreground)
+            crate::palette::Roles::for_inherited(background, foreground, theme.urgent)
         };
         Self {
             background,
