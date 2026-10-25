@@ -21,20 +21,42 @@ impl Shell {
             .read(cx)
             .cursor()
             .and_then(|index| entries.get(index).cloned());
-        // A folder inside a mounted share is the network owner's to release.
-        if !from_rail
-            && entries.iter().any(|row| {
-                row.group == Group::Network
-                    && row.mounted == Some(true)
-                    && !row.path.is_empty()
-                    && inside(&path, &row.path)
-            })
-        {
+        // A share is the network owner's to release: the rail's cursor row, or the share holding the folder (Mounts.holding).
+        let share = if from_rail {
+            cursor.clone().filter(|row| row.group == Group::Network)
+        } else {
+            entries
+                .iter()
+                .find(|row| {
+                    row.group == Group::Network && !row.path.is_empty() && inside(&path, &row.path)
+                })
+                .cloned()
+        };
+        if let Some(share) = share {
+            self.release_share(side, &share, cx);
             return;
         }
         let source = join.devices.clone();
         source.update(cx, |source, cx| {
             source.release(&path, from_rail, cursor.as_ref(), system_volume, side, cx)
+        });
+    }
+
+    /// A mounted share unmounts through the network owner, as the rail menu's Unmount does; any other share has nothing to release (ui/js/Eject.js:211-216).
+    fn release_share(&mut self, side: usize, share: &RailEntry, cx: &mut Context<Self>) {
+        let row = self
+            .network_row(share)
+            .filter(|row| row.mounted && row.kind == flea::ui_logic_pl1::Kind::Share);
+        if let Some(row) = row {
+            let origin = self.network_origin(side);
+            self.network_unmount(&row, origin, cx);
+            return;
+        }
+        let note = flea::ui_logic_pl1::Note::new("device.nothing_to_release", &[&share.label]);
+        let text = crate::g2::pl1::words::say(&self.locale.catalog, &note);
+        let hint = flea::ui_logic_fb1::status::Hint::None;
+        self.status_messages(cx, |messages, now| {
+            messages.say(&text, false, "", hint, now)
         });
     }
 
