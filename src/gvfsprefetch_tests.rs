@@ -132,23 +132,14 @@ fn a_hidden_scan_keeps_what_a_plain_scan_filters() {
 }
 
 #[test]
-fn garbage_is_refused_and_claimed_so_the_scan_lists_itself() {
-    let (_dir, runtime) = runtime_fixture("gvfs-garbage");
-    let dest = write_prefetch(&runtime, "gvfs-1.list", "this is not a gio line\n");
-    assert!(adopt_in(SHARE, false, &dest, live_deadline(), 0, Some(&runtime)).is_none());
-    assert!(!dest.exists(), "garbage is claimed, not left for the next listing");
-    assert_eq!(std::fs::metadata(claimed_path(&dest)).unwrap().len(), 0, "the claim is truncated to its marker");
-}
-
-#[test]
-fn a_stale_file_is_refused_and_kept_as_a_claim() {
+fn a_stale_file_is_refused_and_kept_at_its_original_path() {
     let (_dir, runtime) = runtime_fixture("gvfs-stale");
     let dest = write_prefetch(&runtime, "gvfs-1.list", TWO_ROWS);
     let mtime_ms = dest.metadata().unwrap().modified().unwrap().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
     let start_ms = mtime_ms + (STALE_SECS + 10) * 1000;
     assert!(adopt_in(SHARE, false, &dest, live_deadline(), start_ms, Some(&runtime)).is_none());
-    assert!(!dest.exists() && claimed_path(&dest).exists(), "a refused file is kept as a claim for the sweeper");
-    assert_eq!(std::fs::metadata(claimed_path(&dest)).unwrap().len(), 0, "the claim is truncated to its marker");
+    assert_eq!(std::fs::read_to_string(&dest).unwrap(), TWO_ROWS);
+    assert!(!claimed_path(&dest).exists());
 }
 
 // Runs adopt_in on a thread so a wait that never ends fails the test instead of hanging it; answers the result and how long it took.
@@ -197,7 +188,7 @@ fn a_fifo_at_the_dest_never_blocks_the_scan() {
     let (answer, took) = adopt_within(dest.clone(), runtime, short_deadline(), Duration::from_secs(5));
     assert_eq!(answer, Some(false), "a fifo at the dest adopts nothing");
     assert!(took < Duration::from_secs(5), "the scan answers inside the bound instead of hanging");
-    let kind = std::fs::symlink_metadata(claimed_path(&dest)).unwrap().file_type();
+    let kind = std::fs::symlink_metadata(&dest).unwrap().file_type();
     assert!(kind.is_fifo(), "the fifo is never truncated or replaced");
     let mut fds = crate::backend::child::PollFd { fd: reader.as_raw_fd(), events: 0, revents: 0 };
     assert_eq!(unsafe { crate::backend::child::poll(&mut fds, 1, 0) }, 0, "the claim is never opened for write, revents {}", fds.revents);
@@ -396,3 +387,6 @@ fn the_environment_names_all_three_or_nothing() {
     assert!(env_prefetch_from(env("not-a-number", true)).is_none(), "an unparsable start is no prefetch");
     assert!(env_prefetch_from(env("12345", false)).is_none(), "a missing path is no prefetch");
 }
+
+#[path = "gvfsprefetch_preserve_tests.rs"]
+mod preserve;

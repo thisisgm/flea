@@ -402,12 +402,10 @@ check "the launch got past the settle to the missing shell" "1" "$(echo "$out" |
 check "a ui.json the settle cannot parse is left byte for byte" "$broken_sha" "$(sha256sum "$UI" | cut -d' ' -f1)"
 check "and it is not replaced by a new file either" "$broken_ino" "$(stat -c '%i' "$UI")"
 check "and the read still answers the full default shape" "1" "$(flea_ui 2>&1 | tr -d ' \n' | grep -c '"columns":\["name","size","date"\]')"
-# The settle preserves the file and update() does not: read() answers the shipped defaults for it, so
-# the first patch the window sends merges onto those and renames a full default document over it.
-# Deliberate, because the window has already said the file was not used and a save has to land, but
-# nothing pinned it, so the next change to update() would have been invisible here.
+# The first patch onto that file writes a full default document, keeping the operator's bytes as ui.json.broken like 0.3.12.
 out=$(flea_ui '{"hidden":true}' 2>&1); rc=$?
 check "a patch onto that same file exits 0" "0" "$rc"
+check "the operator's bytes are kept as ui.json.broken" "$broken_sha" "$(sha256sum "$STATE/flea/ui.json.broken" | cut -d' ' -f1)"
 check "and does not leave the operator's bytes" "1" "$([ "$(sha256sum "$UI" | cut -d' ' -f1)" != "$broken_sha" ] && echo 1 || echo 0)"
 check "it writes the full default document instead" "43" "$(grep -c '^  "' "$UI")"
 check "so the hand-written key is gone" "1" "$(grep -c '"density": "compact"' "$UI")"

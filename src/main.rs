@@ -56,6 +56,8 @@ mod shelfundo;
 mod shelfzip;
 mod summon;
 mod uistore;
+mod persistdoc;
+mod cachewrite;
 mod update;
 mod userfile;
 mod usage;
@@ -303,19 +305,7 @@ fn main() {
     }
     match paths::ui_dir() {
         Some(ui) => {
-            // Before the window, so the first paint reads what the settle left, see AGENTS.md "The
-            // state file"; it can fail or decline, and the window then opens on a file it did not touch.
-            match uistore::Store::user().and_then(|store| store.settle()) {
-                Ok(()) => {}
-                Err(e) => eprintln!("flea: the view state was not settled ({})", e),
-            }
-            // An upgrade ships a new plugin under a switch that is already on, and the copy in the
-            // user's own plugin directory is the one the bar reads.
-            if let Ok(store) = uistore::Store::user() {
-                if let Err(e) = shelfplugin::refresh(uistatecli::shelf_enabled(&store.read())) {
-                    eprintln!("flea: the shelf plugin was not refreshed ({})", e);
-                }
-            }
+            gui::settle_state();
             exit(gui::exec_qs(&ui, open_path.as_deref(), select_path.as_deref()))
         }
         None => {

@@ -10,6 +10,7 @@ fn the_oldest_entries_go_first_and_only_ours_are_touched() {
     let now = SystemTime::now();
     for n in 0..CACHE_MAX_FILES + 5 {
         let f = std::fs::File::create(root.join(name(n))).expect("create");
+        std::fs::write(root.join(name(n)), PNG_SIGNATURE).unwrap();
         f.set_modified(now - Duration::from_secs((CACHE_MAX_FILES + 5 - n) as u64)).expect("age");
     }
     d.file("cache/notes.txt", "mine");

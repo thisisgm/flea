@@ -9,6 +9,7 @@ use std::process::{Command, Stdio};
 
 mod launch;
 pub use launch::{exec_gpui, use_gpui};
+pub(crate) use launch::{exec_special, settle_state};
 
 // std already links libc, so fork is declared here rather than taking a crate.
 extern "C" {

@@ -117,3 +117,16 @@ fn a_live_shell_is_named_by_its_pid_and_a_real_start_time() {
     let _ = later.wait();
     assert!(theirs >= start, "a process started after this one read {theirs}, before {start}");
 }
+
+#[test]
+fn foreign_and_newer_lists_survive_warm_and_first_record() {
+    let d = crate::backend::testdir::TestDir::new("prefetch-preserve");
+    let path = d.join("prefetch");
+    for original in ["{\"foreign\":true}\n", "flea-prefetch 999\nshell 1 1\n0 4096 /a\n", "unparsable"] {
+        std::fs::write(&path, original).unwrap();
+        do_warm(&path);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+        write_list(&path, "shell 1 1", &[Range { path: "/a".into(), offset: 0, length: 4096 }]);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
+    }
+}

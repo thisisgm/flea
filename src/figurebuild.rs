@@ -117,7 +117,7 @@ fn sweep(root: &Path, current: &str) {
         let Some((stem, kind)) = classify(&name) else { continue };
         let older = |limit: Duration| age(&entry.path()).is_some_and(|a| a > limit);
         let doomed = match kind {
-            Kind::Live => stem != current,
+            Kind::Live => stem != current && figurecache::replaceable(&entry.path(), stem),
             Kind::Failed => true,
             Kind::Lock => stem != current && older(LOCK_STALE),
             Kind::Scratch => older(SCRATCH_STALE),
@@ -193,6 +193,9 @@ fn smoke(qjs: &Path, vendor: &Path, scratch: &Path, run: Runner) -> Result<(), S
 
 // One build: compile in the jail, check the bytecode renders what the source renders, then swap the directory in whole.
 fn compile_into(root: &Path, key: &str, qjs: &Path, ui: &Path, run: Runner) -> Result<(), String> {
+    if !figurecache::replaceable(&root.join(key), key) {
+        return Err("foreign or newer-schema figure manifest; cache was left unchanged".to_string());
+    }
     let vendor = ui.join("vendor");
     let scratch = root.join(format!("{key}.tmp-{}", std::process::id()));
     remove_ours(&scratch);

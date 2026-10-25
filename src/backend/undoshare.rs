@@ -130,26 +130,12 @@ fn empty_doc() -> Doc {
     }
 }
 
-// A newer writer owns the file when its version reads past ours; a FIFO or endless file answers no.
-fn is_newer_file(shared: &Shared) -> bool {
-    let open = std::fs::OpenOptions::new().read(true).custom_flags(crate::oflags::O_NONBLOCK).open(shared.journal_path());
-    let file = match open { Ok(file) => file, Err(_) => return false };
-    let mut text = String::new();
-    use std::io::Read as _;
-    if file.take(MAX_FILE_BYTES + 1).read_to_string(&mut text).is_err() || text.len() as u64 > MAX_FILE_BYTES {
-        return false;
-    }
-    #[cfg(test)]
-    super::undoprobe::read(text.len());
-    super::undocodec::is_newer_version(&text)
+// An existing file this reader cannot understand stays owned by its original writer.
+fn ignored(_shared: &Shared) -> Result<Doc, ()> {
+    Err(())
 }
 
-// An ignored file is still a newer writer's when it parses as one, so every ignore path asks.
-fn ignored(shared: &Shared) -> Result<Doc, ()> {
-    if is_newer_file(shared) { Err(()) } else { Ok(empty_doc()) }
-}
-
-// One read and one parse; malformed is ignored with a log line, Err is a newer writer's file.
+// One read and one parse; anything but a readable journal of our version is Err, so its writer keeps it.
 fn load(shared: &Shared) -> Result<Doc, ()> {
     let path = shared.journal_path();
     let meta = match path.symlink_metadata() {
@@ -203,7 +189,7 @@ fn load(shared: &Shared) -> Result<Doc, ()> {
         Read::Newer => Err(()),
         Read::Malformed => {
             diagnostic(format_args!("the shared undo journal is malformed, so it was ignored"));
-            Ok(empty_doc())
+            Err(())
         }
     }
 }

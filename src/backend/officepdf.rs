@@ -11,7 +11,7 @@ use crate::backend::thumbcache::uri_for;
 use crate::error::FleaError;
 use crate::figurestore::{evict_leaf, Names};
 use std::io::{Read, Write};
-use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
@@ -71,6 +71,9 @@ pub fn argv(program: &str, input: &Path, outdir: &Path) -> Vec<String> {
     a
 }
 
+#[path = "officepublish.rs"]
+mod publication;
+
 pub enum Hit {
     Ready(PathBuf),
     Failed(String),
@@ -120,24 +123,8 @@ impl Store {
         if Store::stamped(&pdf, mtime) { Hit::Ready(pdf) } else { Hit::Miss }
     }
 
-    // AGENTS.md "Predictable path writes": unlink, exclusive create at 0600, then rename.
     fn publish(dest: &Path, mtime: SystemTime, body: &mut dyn Read) -> std::io::Result<()> {
-        if let Some(parent) = dest.parent() {
-            std::fs::DirBuilder::new().recursive(true).mode(0o700).create(parent)?;
-        }
-        let tmp = PathBuf::from(format!("{}.{}.tmp", dest.display(), std::process::id()));
-        let _ = std::fs::remove_file(&tmp);
-        let written = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&tmp).and_then(|mut f| {
-            std::io::copy(body, &mut f)?;
-            f.set_modified(mtime)
-        });
-        match written.and_then(|()| std::fs::rename(&tmp, dest)) {
-            Ok(()) => Ok(()),
-            Err(e) => {
-                let _ = std::fs::remove_file(&tmp);
-                Err(e)
-            }
-        }
+        publication::publish(dest, mtime, body)
     }
 
     fn record_failure(&self, key: &str, mtime: SystemTime, message: &str) {
@@ -152,7 +139,7 @@ impl Store {
     fn prune(&self, dir: &Path) {
         let cached = |n: &str| n.split_once('.').is_some_and(|(stem, ext)| stem.len() == KEY_HEX_CHARS && stem.bytes().all(|b| b.is_ascii_hexdigit()) && (ext == "pdf" || ext == "txt"));
         let age = |m: &std::fs::Metadata| SystemTime::UNIX_EPOCH + Duration::new(m.ctime().max(0) as u64, m.ctime_nsec() as u32);
-        evict_leaf(dir, self.entries, self.bytes, &Names { entry: &cached, scratch: &|_| false, age: &age });
+        evict_leaf(dir, self.entries, self.bytes, &Names { entry: &|name| cached(name) && crate::cachewrite::allowed(&dir.join(name)), scratch: &|_| false, age: &age });
     }
 }
 
@@ -319,6 +306,9 @@ impl Service {
 
     fn run(&self, job: &Job) -> Result<PathBuf, Fail> {
         let local = |e: std::io::Error| Fail::Local(crate::error::io_message(&e));
+        let dest = self.store.pdf_path(&job.key);
+        // Checked before the converter runs, so a document this cache cannot replace costs no child; publish checks again.
+        crate::cachewrite::require(&dest).map_err(local)?;
         std::fs::DirBuilder::new().recursive(true).mode(0o700).create(&self.store.dir).map_err(local)?;
         let mut work = Work::new(&self.store.dir, "office").map_err(|e| Fail::Local(e.msg))?;
         let argv = (self.build)(&job.program, &job.input, &work.dir);
@@ -350,7 +340,6 @@ impl Service {
             });
         }
         let produced = produced_pdf(&work.dir).ok_or_else(|| Fail::Converter(format!("{PROGRAM} wrote no PDF of {}", job.input.display())))?;
-        let dest = self.store.pdf_path(&job.key);
         let mut body = std::fs::File::open(&produced).map_err(local)?;
         Store::publish(&dest, job.mtime, &mut body).map_err(local)?;
         self.store.prune(&self.store.dir);

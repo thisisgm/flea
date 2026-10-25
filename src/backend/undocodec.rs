@@ -3,7 +3,7 @@ use super::undoshare::StoredRedo;
 #[cfg(test)]
 use super::undoshare::Doc;
 use crate::backend::undo::{Entry, ItemIdentity, Step};
-use crate::jsondoc::{parse, Json};
+use crate::jsondoc::Json;
 use std::path::PathBuf;
 
 #[path = "undodecode.rs"]
@@ -11,6 +11,10 @@ mod read;
 #[cfg(test)]
 pub(crate) use read::decode;
 pub(crate) use read::{decode_born, decode_pairs};
+
+#[path = "undoshape.rs"]
+mod shape;
+use shape::get_str;
 
 pub(crate) const VERSION: u32 = 3;
 // A single record is checked, never trusted: absolute paths, closed kind sets, parsed numbers.
@@ -156,13 +160,6 @@ pub(crate) fn get<'a>(pairs: &'a [(String, Json)], key: &str) -> Option<&'a Json
     pairs.iter().find(|(k, _)| k == key).map(|(_, v)| v)
 }
 
-fn get_str<'a>(pairs: &'a [(String, Json)], key: &str) -> Option<&'a str> {
-    match get(pairs, key) {
-        Some(Json::Str(text)) => Some(text),
-        _ => None,
-    }
-}
-
 pub(crate) fn parse_u64(value: &Json) -> Option<u64> {
     match value {
         Json::Num(literal) => literal.parse().ok(),
@@ -209,17 +206,5 @@ fn checked_op(value: &Json) -> Option<String> {
     match value {
         Json::Str(text) if !text.is_empty() && text.len() <= MAX_OP && !text.contains('\0') => Some(text.clone()),
         _ => None,
-    }
-}
-
-// A newer writer owns the file; the reader falls back to memory and never rewrites it.
-pub(crate) fn is_newer_version(text: &str) -> bool {
-    #[cfg(test)]
-    super::undoprobe::decode();
-    let Ok(root) = parse(text) else { return false };
-    let Some(pairs) = root.as_object() else { return false };
-    match get(pairs, "v") {
-        Some(Json::Num(literal)) => literal.parse::<u64>().is_ok_and(|v| v > VERSION as u64),
-        _ => false,
     }
 }
