@@ -42,7 +42,7 @@ replaced by the next tag, so a change goes in by pull request here.
 4. Push the candidate commit to a `candidate/X.Y.Z` branch. The Candidate workflow
    (`.github/workflows/candidate.yml`) runs the release's verify checks, with `Cargo.toml`'s version
    in place of the tag, and its build job up to publication on both runners: the same packages,
-   `cargo test --release --locked`, the build and the flea-bin tarball check. Tag only the commit it
+   `cargo test --locked`, the build and the flea-bin tarball check. Tag only the commit it
    passed, then delete the branch. A Docker image of the runner OS cannot stand in for this; 0.3.10
    and 0.3.11 were each tagged three times on failures only the runners showed.
 5. Tag and push. Only the repository owner can create a `v*` tag (the ruleset below):
@@ -66,12 +66,14 @@ Then the workflow runs five jobs, in order:
   bump of either builds a Flea that exits with "the shell config is missing". It also resolves the
   tag to its commit, `refs/tags/X` and never a branch of the same name, and every later job checks
   out that commit.
-- **build**, twice, on `ubuntu-24.04` and on `ubuntu-24.04-arm`. Each runs `cargo test --release
+- **build**, twice, on `ubuntu-24.04` and on `ubuntu-24.04-arm`. Each runs `cargo test
   --locked`, builds the release binary, and stages `flea-vX.Y.Z-linux-<arch>.tar.gz` with
   `packaging/flea-bin-tarball`, which refuses a binary of the wrong architecture or one that prints
   a different version. It then checks that the tarball holds every path `flea-bin`'s `package()`
   installs, so a file added to the PKGBUILDs and not to the staging fails here, before anything is
-  published. `tests/js.sh` and `tests/keymap-gen.sh` run in no job of this workflow: both need `qml6`,
+  published. The test step runs the debug profile, the same tests CI gates on, because GPUI
+  compiles out of release builds the debug selectors the flea-gui tests query; the binary is still
+  built release. `tests/js.sh` and `tests/keymap-gen.sh` run in no job of this workflow: both need `qml6`,
   which Ubuntu does not ship on PATH, and the first reads an installed Omarchy besides. They gate a
   release on the maintainer's Omarchy box, in `tests/run-all.sh` before the tag is made, and OPR's
   build runs them again in `check()`; the `flea` and `flea-bin` legs here pass `--nocheck` or have no
