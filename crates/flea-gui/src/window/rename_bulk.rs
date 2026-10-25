@@ -109,7 +109,7 @@ impl Shell {
                     // A sent request keeps its side until the done line, with the card gone.
                     if self.rename.bulk.as_ref().is_some_and(|open| open.sent) {
                         let open = self.rename.bulk.take().expect("an open card");
-                        self.rename.sent = Some(open.side);
+                        self.rename.sent[open.side] = true;
                     } else {
                         self.rename.bulk = None;
                     }
@@ -151,7 +151,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        if self.rename.sent != Some(side) {
+        if !self.rename.sent[side] {
             return false;
         }
         // Sample input: {"t":"bulkrenamed","ok":5,"unchanged":1}
@@ -161,7 +161,7 @@ impl Shell {
         if doc.get("t").and_then(flea::jsondoc::Json::as_str) != Some("bulkrenamed") {
             return false;
         }
-        self.rename.sent = None;
+        self.rename.sent[side] = false;
         let ok = doc
             .get("ok")
             .and_then(flea::jsondoc::Json::as_f64)

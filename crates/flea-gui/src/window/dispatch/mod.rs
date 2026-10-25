@@ -62,6 +62,8 @@ mod navigation_tests;
 #[cfg(test)]
 mod refusal_tests;
 #[cfg(test)]
+mod rename_panes_tests;
+#[cfg(test)]
 mod rename_refusal_tests;
 #[cfg(test)]
 mod rename_slow_tests;
