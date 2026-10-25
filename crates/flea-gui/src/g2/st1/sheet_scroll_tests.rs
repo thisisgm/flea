@@ -248,7 +248,7 @@ fn each_resting_column_fades_at_its_own_foot_until_the_wheel_reaches_the_end() {
     }
 }
 
-// A translucent ground cannot hide rows, so each faded column clips its rows at the cut: the last row runs on past it, undrawn.
+// A translucent ground cannot hide rows, so each faded column clips its rows at the cut: the last row runs past it, painted only above it.
 #[test]
 fn a_translucent_ground_never_shows_the_rows_under_a_column_cut() {
     let mut open = opened();
@@ -274,15 +274,26 @@ fn a_translucent_ground_never_shows_the_rows_under_a_column_cut() {
             .cx
             .debug_bounds(CLIPS[side])
             .unwrap_or_else(|| panic!("ST_SHEET_CLIP: column {side} clips its rows at the cut"));
-        let rows = bounds(&open, ["column-0", "column-1"][side]);
+        let last = bounds(&open, ["last-0", "last-1"][side]);
+        let mask = bounds(&open, ["last-0:mask", "last-1:mask"][side]);
         assert_eq!(
             clip.bottom(),
             fade.bottom(),
             "ST_SHEET_CLIP: the clip ends where the fade does"
         );
         assert!(
-            rows.bottom() > clip.bottom(),
-            "ST_SHEET_CLIP: column {side}'s rows run past the clip, so the clip, not a painted ground, hides them: {rows:?} {clip:?}"
+            last.bottom() > clip.bottom(),
+            "ST_SHEET_CLIP: column {side}'s last row runs past the cut: {last:?} {clip:?}"
+        );
+        assert_eq!(
+            mask.bottom(),
+            clip.bottom(),
+            "ST_SHEET_CLIP: column {side}'s last row is painted under a mask that ends at the cut: {mask:?} {clip:?}"
+        );
+        let painted = last.intersect(&mask);
+        assert!(
+            painted.size.height <= gpui::px(0.) || painted.bottom() <= fade.bottom(),
+            "ST_SHEET_CLIP: nothing of column {side}'s last row paints below the cut: {painted:?}"
         );
     }
 }
