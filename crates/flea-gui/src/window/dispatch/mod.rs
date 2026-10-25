@@ -51,6 +51,8 @@ mod guard_tests;
 #[cfg(test)]
 mod listing_tests;
 #[cfg(test)]
+mod listing_pointer_keep_tests;
+#[cfg(test)]
 mod listing_pointer_tests;
 #[cfg(test)]
 mod navigation_tests;

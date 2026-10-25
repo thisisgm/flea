@@ -352,7 +352,7 @@ impl Shell {
                     None
                 }
             };
-            // Selection.js dropLone: only a click that called toggle, extend, clear or only spends the landing.
+            // v0.3.12 Selection.js:32-35, 47-67: only toggle, only, extendTo, all and clear drop the landing.
             if marked {
                 host.nav.landed = None;
             }
