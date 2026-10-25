@@ -63,6 +63,10 @@ impl ListingView {
         }
     }
 
+    pub(crate) fn drawn(&self) -> std::cell::Ref<'_, ListState> {
+        self.state.borrow()
+    }
+
     pub fn scroll_y(&self) -> f32 {
         self.scroll_y
     }
