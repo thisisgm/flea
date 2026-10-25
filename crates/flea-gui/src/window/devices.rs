@@ -81,6 +81,31 @@ impl Shell {
         }
     }
 
+    /// A rail open that the pane refuses says why on the status path, as quiesce_volume does.
+    pub(super) fn open_place_said(
+        &mut self,
+        side: usize,
+        path: String,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let result = self.step(side, super::navigate::Step::OpenPlace(path), window, cx);
+        self.say_refusal(result, cx);
+    }
+
+    pub(super) fn say_refusal(
+        &mut self,
+        result: Result<bool, crate::navigation::Refusal>,
+        cx: &mut Context<Self>,
+    ) {
+        if let Err(refusal) = result {
+            let text = self.locale.catalog.tr(refusal.key());
+            self.status_messages(cx, |messages, now| {
+                messages.say(&text, true, "", flea::ui_logic_fb1::status::Hint::None, now)
+            });
+        }
+    }
+
     /// A phone row mounts, resolves and opens through the network owner's GVFS flight, as ui/Sidebar.qml openPhone.
     pub(crate) fn open_phone(
         &mut self,
@@ -93,7 +118,7 @@ impl Shell {
         let origin = self.network_origin(side);
         match crate::g2::pl2::menus::activate(phone, origin) {
             crate::g2::pl2::menus::Open::Direct { path, .. } => {
-                let _ = self.step(side, super::navigate::Step::OpenPlace(path), window, cx);
+                self.open_place_said(side, path, window, cx);
             }
             crate::g2::pl2::menus::Open::Remote(request) => {
                 let Some(network) = self.network() else {

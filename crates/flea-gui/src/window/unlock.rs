@@ -3,7 +3,6 @@ use crate::g2::pl1::host::Effect;
 use crate::g2::pl1::seams::RailView;
 use crate::g2::pl1::view::{HostEvent, UnlockView};
 use crate::state::Shell;
-use crate::window::navigate::Step;
 use flea::ui_logic_pl4::rail::Group;
 use gpui::{div, prelude::*, AnyElement, App, Context, Entity, Subscription, Window};
 
@@ -115,7 +114,7 @@ impl Shell {
             .map_or(self.focus_side, |unlock| unlock.side);
         match effect {
             Effect::OpenInPane(path) | Effect::RailOpened(path) => {
-                let _ = self.step(side, Step::OpenPlace(path.clone()), window, cx);
+                self.open_place_said(side, path.clone(), window, cx);
             }
             Effect::PollDevices => {
                 if let Some(join) = &self.rail {

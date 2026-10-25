@@ -288,3 +288,13 @@ fn release_quiesce_failure_is_said_and_the_eject_still_runs(cx: &mut TestAppCont
     assert_eq!(status(&shell, cx), "The backend stopped accepting requests");
 }
 
+
+#[gpui::test]
+fn release_refused_open_place_is_said_on_the_status_path(cx: &mut TestAppContext) {
+    let (shell, _service, cx) = shell_at("/fixture/work", cx);
+    // The phone and unlock opens hand the pane's answer here; a refusal names its sentence.
+    shell.update(cx, |shell, cx| {
+        shell.say_refusal(Err(crate::navigation::Refusal::Busy), cx)
+    });
+    assert_eq!(status(&shell, cx), "A directory is already loading.");
+}
