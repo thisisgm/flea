@@ -29,7 +29,7 @@ fn bench_one_matches() -> Vec<String> {
 fn a_cancelled_walk_narrows_from_every_match_not_the_window() {
     let d = fixture("cancelnarrow");
     let scope = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, _walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(2);
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -46,7 +46,7 @@ fn a_cancelled_walk_narrows_from_every_match_not_the_window() {
 fn a_cancelled_walk_that_lands_keeps_every_row_id() {
     let d = fixture("cancelids");
     let scope = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(2);
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -72,7 +72,7 @@ fn a_parked_walk_thread_leaves_the_queue_to_the_others() {
         d.dir(&format!("d{}", i));
     }
     let scope = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, _walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked_root, release_root) = probes.test_hold_walk_at(1);
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -101,7 +101,7 @@ fn a_parked_walk_thread_leaves_the_queue_to_the_others() {
 fn close_mid_walk_frees_nothing_until_the_detached_walk_exits() {
     let d = fixture("closewalk");
     let scope = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, _walked_rx) = crate::backend::events::channel();
     // Parked at its second directory, the walk has the root's rows in the arena when the close lands.
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(2);

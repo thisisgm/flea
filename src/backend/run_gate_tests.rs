@@ -22,7 +22,7 @@ struct Loop {
     fsinfo: FsInfo,
     poller: super::super::watchpoll::Poller,
     gate: Gate,
-    tx: Sender<Event>,
+    tx: crate::backend::events::Sender<Event>,
     rx: Receiver<Event>,
     _thumbs: Receiver<Done>,
     _ops: Receiver<OpMsg>,
@@ -33,7 +33,7 @@ impl Loop {
     fn new(tag: &str) -> Loop {
         let dir = TestDir::new(tag);
         let tb = Tables::load();
-        let (tx, rx) = channel::<Event>();
+        let (tx, rx) = crate::backend::events::channel::<Event>();
         let st = State::new(super::super::dirsizeworker::Worker::new(tx.clone()));
         let (thumbs_tx, _thumbs) = channel();
         let pool = Pool::new(1, thumbs_tx, dir.join("thumbs"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));

@@ -1,7 +1,8 @@
 use crate::backend::events::Event;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{atomic::{AtomicBool, Ordering}, mpsc::Sender, Arc, Mutex};
+use crate::backend::events::Sender;
+use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 // Inotify never delivers a remote change, so the open network folder is re-statted here.
@@ -214,7 +215,7 @@ mod tests {
         use std::sync::atomic::{AtomicUsize, Ordering};
         let stat_calls = Arc::new(AtomicUsize::new(0));
         let classify_calls = Arc::new(AtomicUsize::new(0));
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = crate::backend::events::channel();
         let state = Arc::new(Mutex::new((PathBuf::new(), 0i64)));
         let wedged = Arc::new(Mutex::new(HashMap::new()));
         wedged.lock().unwrap().insert(PathBuf::from("/dead"), (Instant::now(), Arc::new(AtomicBool::new(false))));
@@ -249,7 +250,7 @@ mod tests {
         // Sample input: stat held for /dead past a 50 ms deadline wedges /dead while /live still polls.
         use std::sync::atomic::{AtomicUsize, Ordering};
         let stat_calls = Arc::new(AtomicUsize::new(0));
-        let (tx, _rx) = std::sync::mpsc::channel();
+        let (tx, _rx) = crate::backend::events::channel();
         let state = Arc::new(Mutex::new((PathBuf::new(), 0i64)));
         let wedged = Arc::new(Mutex::new(HashMap::new()));
         *state.lock().unwrap() = (PathBuf::from("/dead"), 0);
@@ -288,7 +289,7 @@ mod tests {
         // Sample input: classify held for /dead past a 50 ms deadline, instant for /live.
         use std::sync::atomic::{AtomicUsize, Ordering};
         let stat_calls = Arc::new(AtomicUsize::new(0));
-        let (tx, _rx) = std::sync::mpsc::channel();
+        let (tx, _rx) = crate::backend::events::channel();
         let state = Arc::new(Mutex::new((PathBuf::new(), 0i64)));
         let wedged = Arc::new(Mutex::new(HashMap::new()));
         *state.lock().unwrap() = (PathBuf::from("/dead"), 0);

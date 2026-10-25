@@ -4,7 +4,7 @@ use crate::backend::searchreq::Answer;
 use crate::backend::searchsession::Session;
 use crate::backend::testdir::TestDir;
 use std::os::unix::ffi::OsStrExt;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
 pub(super) const DEADLINE: Duration = Duration::from_secs(10);
@@ -30,7 +30,7 @@ pub(super) fn fixture(tag: &str) -> TestDir {
 // A session with its walk landed and its landing event taken, the way the loop sees an idle one.
 pub(super) fn opened(d: &TestDir) -> (Session, Receiver<Event>) {
     let root = d.path().to_str().expect("utf-8").to_string();
-    let (tx, rx) = channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut s = Session::open_async(&root, &root, false, tx);
     s.join_walk();
     crate::backend::searchwalkhold::take_joined_walk(&rx, DEADLINE);
@@ -175,7 +175,7 @@ fn a_patch_that_drops_rows_moves_the_surviving_names_to_their_new_ids() {
 
 #[test]
 fn a_tag_query_on_a_pass_not_started_keeps_no_row() {
-    let (tx, _rx) = channel();
+    let (tx, _rx) = crate::backend::events::channel();
     let mut tags = Tags::new(tx);
     let terms = Tags::terms("tag:Red");
     let index = Arc::new(Mutex::new(Index::new()));
@@ -335,7 +335,7 @@ fn a_failed_bound_chunk_is_unread_and_readable_again_later() {
 #[test]
 fn a_finished_pass_with_unread_rows_answers_partial_and_retries_them() {
     let d = holiday("tagpartial");
-    let (tx, rx) = channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut index = Index::new();
     index.push("holiday.jpg", false);
     index.push("notes.txt", false);
@@ -366,7 +366,7 @@ fn remote_pass(d: &TestDir) -> (Arc<Pass>, Arc<Mutex<Index>>) {
 fn a_failed_first_read_leaves_its_rows_unread_and_raises_the_flag() {
     let d = holiday("tagreadfail");
     let (pass, index) = remote_pass(&d);
-    let (tx, _rx) = channel();
+    let (tx, _rx) = crate::backend::events::channel();
     let _stuck = crate::backend::iomount::test_hold_stuck(d.path().to_path_buf());
     read_all(&pass, &index, 2, &tx);
     assert!(pass.names.lock().unwrap().iter().all(Option::is_none), "a failed chunk leaves both rows unread, not untagged");
@@ -377,7 +377,7 @@ fn a_failed_first_read_leaves_its_rows_unread_and_raises_the_flag() {
 fn a_failed_reread_drops_the_old_names_and_raises_the_flag() {
     let d = holiday("tagrereadfail");
     let (pass, index) = remote_pass(&d);
-    let (tx, _rx) = channel();
+    let (tx, _rx) = crate::backend::events::channel();
     read_all(&pass, &index, 2, &tx);
     assert!(!pass.unread_failed.load(Ordering::Relaxed) && pass.names.lock().unwrap()[0].is_some(), "the first read answered whole");
     let _stuck = crate::backend::iomount::test_hold_stuck(d.path().to_path_buf());

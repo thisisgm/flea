@@ -15,7 +15,7 @@ impl Rig {
     fn open(d: &TestDir, wish: usize) -> Rig {
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, _events_rx) = channel();
+        let (events, _events_rx) = crate::backend::events::channel();
         let mut st = State::new(crate::backend::dirsizeworker::Worker::new(events));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));

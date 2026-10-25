@@ -3,7 +3,8 @@ use crate::backend::testdir::TestDir;
 use crate::backend::thumbreq::{cancel_all, report_done};
 use crate::backend::thumbs::{Done, Outcome};
 use crate::backend::thumbspec::Thumbnailers;
-use std::sync::{mpsc::channel, Arc};
+use crate::backend::events::channel;
+use std::sync::Arc;
 
 fn request_line(path: &Path, id: usize) -> String {
     use std::os::unix::fs::MetadataExt;

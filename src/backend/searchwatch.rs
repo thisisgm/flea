@@ -6,7 +6,8 @@ use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use crate::backend::events::Sender;
+use std::sync::{Arc, Mutex};
 
 pub(crate) const IGNORED: u32 = 0x8000;
 pub(crate) const OVERFLOW: u32 = 0x4000;

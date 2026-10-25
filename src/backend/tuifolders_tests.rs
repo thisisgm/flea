@@ -1,5 +1,5 @@
 use crate::backend::{iomount, mime::Db, testdir::TestDir};
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 
 #[test]
 fn list_size_policy_keeps_hidden_partitions_and_legacy_folder_order() {
@@ -12,7 +12,7 @@ fn list_size_policy_keeps_hidden_partitions_and_legacy_folder_order() {
     root.file("listing/.small", "1");
     let list = |policy: bool, hidden_last: bool, desc: bool, hidden: bool| {
         let request = format!(r#"{{"c":"list","by":"size","foldersByName":{policy},"hiddenLast":{hidden_last},"desc":{desc},"foldersFirst":true}}"#);
-        let (tx, _rx) = mpsc::channel();
+        let (tx, _rx) = crate::backend::events::channel();
         iomount::list_dir(path.display().to_string(), hidden, 32, request, Arc::new(Db::from_str("")), -1, tx,
             "1 0 8:1 / / rw - ext4 /dev/test rw\n").unwrap()
     };

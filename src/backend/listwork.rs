@@ -58,7 +58,7 @@ const LET_GO: u8 = 2;
 // What waits for a scan: the job, the requests behind it, and the watch bursts and unmounts seen before the new descriptor is known.
 pub struct Gate {
     // The loop's channel: the scan answers on it and its worker hands a late watch descriptor back on it.
-    answers: Sender<Event>,
+    answers: crate::backend::events::Sender<Event>,
     // The one thread every remote scan runs on, started by the first remote list, so no later list pays a thread start.
     scanner: Option<Sender<Work>>,
     // The newest scan's fate, shared with its worker.
@@ -75,7 +75,7 @@ pub struct Gate {
 }
 
 impl Gate {
-    pub fn new(answers: Sender<Event>) -> Gate {
+    pub fn new(answers: crate::backend::events::Sender<Event>) -> Gate {
         Gate { answers, scanner: None, fate: Arc::new(AtomicU8::new(ANSWERED)), job: None, deferred: VecDeque::new(), changes: Vec::new(), unmounts: Vec::new(), held: Vec::new(), late: Vec::new(), closed: false }
     }
 
@@ -85,7 +85,7 @@ impl Gate {
     }
 
     // The loop's channel, so an inline scan names the same answer path its worker would.
-    pub fn answers(&self) -> Sender<Event> {
+    pub fn answers(&self) -> crate::backend::events::Sender<Event> {
         self.answers.clone()
     }
 
@@ -106,7 +106,7 @@ impl Gate {
     }
 
     // Runs the scan on the kept thread; it answers exactly once, a panic included, or the gate would hold for good.
-    fn scan(&mut self, path: String, work: impl FnOnce(Sender<Event>) -> Result<ListOut, ListErr> + Send + 'static) {
+    fn scan(&mut self, path: String, work: impl FnOnce(crate::backend::events::Sender<Event>) -> Result<ListOut, ListErr> + Send + 'static) {
         let (answers, loop_tx) = (self.answers.clone(), self.answers.clone());
         let fate = Arc::new(AtomicU8::new(READING));
         self.fate = Arc::clone(&fate);

@@ -8,7 +8,7 @@ use std::ffi::{OsStr, OsString};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::mpsc::Sender;
+use crate::backend::events::Sender;
 use std::sync::{Arc, Mutex};
 
 // One bounded call reads the tags of this many entries, so a slow share costs its deadline per chunk and never per directory.

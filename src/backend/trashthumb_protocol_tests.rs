@@ -6,7 +6,7 @@ use crate::json::{escape, field_str, field_usize};
 use std::os::unix::fs::MetadataExt;
 
 fn wire(line: &str, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache) -> Vec<u8> {
-    let (events, _receiver) = channel();
+    let (events, _receiver) = crate::backend::events::channel();
     let mut ops = Ops::new(channel().0);
     let mut flash = flashslot::Ctx::new(channel().0);
     let mut watch = Watch::start(events.clone());
@@ -65,7 +65,7 @@ fn fixture(d: &TestDir) -> (State, Tables, Pool, Cache) {
         )],
         &tb.aliases,
     )).into();
-    let st = State::new(super::super::dirsizeworker::Worker::new(channel().0));
+    let st = State::new(super::super::dirsizeworker::Worker::new(crate::backend::events::channel().0));
     (st, tb, Pool::idle(), Cache::at(d.join("cache")))
 }
 

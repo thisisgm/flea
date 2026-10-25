@@ -10,7 +10,7 @@ fn walk_landed(rx: &Receiver<Event>, st: &State, skip: fn(&Event) -> bool) {
 }
 
 // Opens the session with its walk hold armed first, so the walk can never pass `at` before the test parks it.
-fn open_held(st: &mut State, root: &str, events: &Sender<Event>, at: usize) -> (Receiver<()>, Sender<()>) {
+fn open_held(st: &mut State, root: &str, events: &crate::backend::events::Sender<Event>, at: usize) -> (Receiver<()>, std::sync::mpsc::Sender<()>) {
     let probes = Arc::new(crate::backend::searchwalk::WalkProbes::new());
     let hold = probes.test_hold_walk_at(at);
     st.search_session = Some(Session::open_async_with_probes(root, root, false, events.clone(), probes));
@@ -27,7 +27,7 @@ fn a_session_answers_listed_rows_and_searched_with_its_generation() {
     d.file("other.txt", "");
     let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
     let tb = Tables::load();
-    let (events, events_rx) = channel::<Event>();
+    let (events, events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let (results, _done) = channel();
     let cache_root = d.join("cache");
@@ -119,7 +119,7 @@ fn a_window_past_the_head_returns_the_full_ranked_order() {
     d.file("other.txt", "");
     let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
     let tb = Tables::load();
-    let (events, events_rx) = channel::<Event>();
+    let (events, events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let (results, _done) = channel();
     let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -193,7 +193,7 @@ fn a_menu_select_all_resolves_every_match_in_ranked_order() {
     d.file("other.txt", "");
     let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
     let tb = Tables::load();
-    let (events, events_rx) = channel::<Event>();
+    let (events, events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let (results, _done) = channel();
     let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -260,7 +260,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
     }
     let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
     let tb = Tables::load();
-    let (events, events_rx) = channel::<Event>();
+    let (events, events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let (results, _done) = channel();
     let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -349,7 +349,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         d.file("bench.txt", "");
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, events_rx) = channel::<Event>();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -410,7 +410,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         d.file("gamma-new.txt", "c");
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, events_rx) = channel::<Event>();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -461,7 +461,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         d.file("other.txt", "x");
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, events_rx) = channel::<Event>();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -501,7 +501,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         d.file("bench.txt", "");
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, events_rx) = channel::<Event>();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));

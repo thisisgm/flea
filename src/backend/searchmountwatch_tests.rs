@@ -9,7 +9,7 @@ fn search_mount_patch_and_replacement_never_arm_nested_remote_directories() {
     d.file("nas/deep/needle", "");
     d.dir("local");
     let body = format!("1 0 8:1 / / rw - ext4 /dev/a rw\n30 1 0:45 / {} rw - fuse.sshfs sshfs rw\n", d.join("nas").display());
-    let (tx, _) = mpsc::channel();
+    let (tx, _) = crate::backend::events::channel();
     let watch = Watch::new(d.path(), false, tx);
     let mut index = Index::new();
     assert!(index.patch_watched(d.path(), Path::new(""), false, &body, Some(&watch.core)));
@@ -30,7 +30,7 @@ fn search_mount_unplug_mid_walk_stops_enumeration_and_invalidates_coverage() {
     d.file("usb/deep/needle", "");
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_in("usb");
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let root = d.path().to_str().unwrap();
     let mut session = Session::open_async_with_probes(root, root, false, tx, Arc::clone(&probes));
     parked.recv_timeout(Duration::from_secs(10)).unwrap();
@@ -61,7 +61,7 @@ fn search_mount_initial_walk_watches_local_usb_but_not_nested_remote_directories
     d.file("nas/deep/needle", "");
     let probes = Arc::new(WalkProbes::new());
     *probes.body.lock().unwrap() = Some(format!("1 0 8:1 / / rw - ext4 /dev/a rw\n30 1 0:45 / {} rw - nfs server:/share rw\n31 1 8:2 / {} rw - vfat /dev/usb rw\n", d.join("nas").display(), d.join("usb").display()));
-    let (tx, _) = mpsc::channel();
+    let (tx, _) = crate::backend::events::channel();
     let root = d.path().to_str().unwrap();
     let mut session = Session::open_async_with_probes(root, root, false, tx, probes);
     session.join_walk();
@@ -125,7 +125,7 @@ fn search_unmount_discards_waiting_patches_at_walk_landing() {
     d.file("usb/before", "");
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_late_in("usb");
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let root = d.path().to_str().unwrap();
     let mut session = Session::open_async_with_probes(root, root, false, tx, probes);
     parked.recv_timeout(Duration::from_secs(10)).unwrap();
@@ -155,7 +155,7 @@ fn check_empty_unmount(walking: bool) {
     d.dir("usb");
     let probes = Arc::new(WalkProbes::new());
     let held = walking.then(|| probes.test_hold_walk_in("usb"));
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let root = d.path().to_str().unwrap();
     let mut session = Session::open_async_with_probes(root, root, false, tx, probes);
     if let Some((parked, _)) = &held {
@@ -168,7 +168,7 @@ fn check_empty_unmount(walking: bool) {
     let core = Arc::clone(&session.watch.as_ref().unwrap().core);
     let wd = core.state.lock().unwrap().paths[Path::new("usb")];
     core.ingest(&event(wd, UNMOUNT, 0, b""));
-    let (events, _) = mpsc::channel();
+    let (events, _) = crate::backend::events::channel();
     let mut state = crate::backend::state::State::new(crate::backend::dirsizeworker::Worker::new(events));
     state.base = d.path().to_path_buf();
     state.held = crate::backend::state::Held::Walk;
@@ -239,7 +239,7 @@ fn search_user_cancel_still_reconciles_own_writes_and_open_directory_changes() {
     d.dir("usb");
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_in("usb");
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let root = d.path().to_str().unwrap();
     let mut session = Session::open_async_with_probes(root, root, false, tx, probes);
     parked.recv_timeout(Duration::from_secs(10)).unwrap();

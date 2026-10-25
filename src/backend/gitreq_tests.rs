@@ -16,7 +16,7 @@ fn enabled(path: &Path) -> String {
 
 #[test]
 fn git_protocol_parses_and_worker_answers_off_without_discovery() {
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut worker = Worker::new(tx);
     for command in ["gitstatus", "gitrows", "gitchanges"] {
         let line = request(command, Path::new("/a/path/that/does/not/exist"), "");

@@ -70,7 +70,7 @@ impl Ctx {
     }
 }
 
-pub fn spawn_forwarder(rx: std::sync::mpsc::Receiver<FlashMsg>, tx: std::sync::mpsc::Sender<crate::backend::events::Event>) {
+pub fn spawn_forwarder(rx: std::sync::mpsc::Receiver<FlashMsg>, tx: crate::backend::events::Sender<crate::backend::events::Event>) {
     std::thread::spawn(move || {
         for msg in rx {
             if tx.send(crate::backend::events::Event::Flash(msg)).is_err() {

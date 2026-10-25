@@ -7,7 +7,7 @@ fn search_fix2_collapsed_newer_query_invalidates_inflight_before_readiness() {
         let root = TestDir::new("search-collapse-ready");
         root.file("alpha.txt", "a");
         let scope = root.path().to_str().unwrap();
-        let (tx, rx) = channel();
+        let (tx, rx) = crate::backend::events::channel();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(tx.clone()));
         st.search_session = Some(Session::open_sync(scope, scope, false));
         let tb = Tables::load();

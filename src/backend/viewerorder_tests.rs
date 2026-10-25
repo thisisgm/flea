@@ -9,7 +9,7 @@ fn image_paths_follow_the_held_listing_and_refuse_stale_numbering() {
         "50:image/png:*.png\n50:text/plain:*.txt\n",
     ))
     .into();
-    let (events, _received) = channel();
+    let (events, _received) = crate::backend::events::channel();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     st.base = dir.join("unscanned");
     st.generation = 7;

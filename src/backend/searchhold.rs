@@ -5,7 +5,7 @@ use crate::backend::searchsession::Session;
 use crate::backend::state::{State, Tables};
 use crate::backend::thumbs::Pool;
 use std::io::Write;
-use std::sync::mpsc::Sender;
+use crate::backend::events::Sender;
 use std::time::{Duration, Instant};
 
 // The listing swap's cap, ui/js/Swap.js HOLD_MS, so a key waits no longer for a walk than a folder waits for a listing.
