@@ -240,9 +240,9 @@ fn each_resting_column_fades_at_its_own_foot_until_the_wheel_reaches_the_end() {
         notch(&mut open.cx, point, 1.);
     }
     frame(&mut open);
-    for side in 0..2 {
+    for (side, fade) in FADES.iter().enumerate() {
         assert!(
-            open.cx.debug_bounds(FADES[side]).is_none(),
+            open.cx.debug_bounds(fade).is_none(),
             "ST_SHEET_FADE: no fade on column {side} once the last row sits on the body's foot"
         );
     }
