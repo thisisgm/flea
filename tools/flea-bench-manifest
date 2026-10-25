@@ -433,8 +433,10 @@ for row in "${ENTRANT_ROWS[@]}"; do
       case $desc in
         *-g*) note=" NOT A RELEASE, this is a mid-stream commit" ;;
       esac
+      reports="binary absent"
+      [ -x "$binary" ] && reports="binary reports $("$binary" --version 2>&1 | head -1)"
       printf '%-10s %-4s source %s committed %s, built locally from this checkout%s\n' \
-        "$id" "$kind" "${desc:-absent}" "${when:-unknown}" "$note; binary reports $("$binary" --version 2>&1 | head -1)" >> "$OUT"
+        "$id" "$kind" "${desc:-absent}" "${when:-unknown}" "$note; $reports" >> "$OUT"
       ;;
     *)
       path=$(command -v "$comm" 2>/dev/null)

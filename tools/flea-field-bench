@@ -1793,7 +1793,8 @@ if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
 else
   if only_has strata && [ -x "$STRATA_BIN" ]; then strata_provenance; fi
   if only_has strata-nightly && [ -n "$STRATA_NIGHTLY_BIN" ]; then
-    ( STRATA_BIN=$STRATA_NIGHTLY_BIN STRATA_SRC=$STRATA_NIGHTLY_SRC strata_provenance ) || exit 1
+    STRATA_NIGHTLY_SRC=$( STRATA_BIN=$STRATA_NIGHTLY_BIN STRATA_SRC=$STRATA_NIGHTLY_SRC; strata_provenance; printf %s "$STRATA_SRC" ) || exit 1
+    export STRATA_NIGHTLY_SRC
   fi
 fi
 # archive provenance end

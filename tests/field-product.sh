@@ -234,8 +234,7 @@ for name, printed, ok in (('bare', '0.22.0', True), ('wordy', 'strata 0.22.0-nig
         assert row.returncode == 0 and row.stdout.startswith('bare gui archive 0.22.0 {'), row
     else:
         assert row.returncode == 1 and 'archive version is not "name version"' in row.stderr, row
-# Under B5 a missing xplr is named, never a silent exit.
-# A PATH dir holding xplr is replaced by a scratch dir of links to its other entries, so bash and env stay found.
+# Under B5 a missing xplr is named: each PATH dir holding xplr becomes a scratch dir of links to its other entries.
 no_xplr = []
 for n, d in enumerate(os.environ['PATH'].split(':')):
     if os.path.exists(os.path.join(d, 'xplr')):
@@ -260,6 +259,26 @@ own = subprocess.check_output(['git', 'describe', '--tags', '--always'], text=Tr
 for name in ('strata', 'strata-nightly'):
     line = next(l for l in (root / 'no-src.md').read_text().splitlines() if l.startswith(name + ' '))
     assert ' source absent ' in line and own not in line, line
+# A strata row whose binary is unset reads "binary absent", never a shell error.
+for name, var in (('strata', 'STRATA_BIN'), ('strata-nightly', 'STRATA_NIGHTLY_BIN')):
+    unset_env = {k: v for k, v in plain_env.items() if k != var}
+    unset = subprocess.run(['tools/flea-bench-manifest', str(root / ('unset-' + name + '.md')), str(fixture)],
+                           input=name + '|gui|strata\n', env=unset_env, capture_output=True, text=True)
+    assert unset.returncode == 0, unset.stderr
+    line = next(l for l in (root / ('unset-' + name + '.md')).read_text().splitlines() if l.startswith(name + ' '))
+    assert line.endswith('; binary absent') and 'not found' not in line + unset.stderr, (line, unset.stderr)
+line = next(l for l in (root / 'no-src.md').read_text().splitlines() if l.startswith('strata '))
+assert '; binary reports ' in line, line
+# A qml flea arm with only flea_bin is refused before anything runs: its qs could never be matched or ended.
+plan = root / 'qml-bin-only.json'
+plan.write_text(json.dumps(dict(out=str(root / 'qml-bin-only.jsonl'), arms=[dict(id='bare', entrant='flea', flea_bin=fresh, frontend='qml')])))
+with patch.object(S, 'ensure_scope', side_effect=AssertionError('measure reached ensure_scope')):
+    try:
+        S.measure(str(plan))
+    except SystemExit as refusal:
+        assert 'measure refuses arm bare: a qml flea arm needs flea_dir' in str(refusal), refusal
+    else:
+        raise AssertionError('measure accepted a qml arm with flea_bin alone')
 # build_sha names the tree only for a binary built inside it.
 tree = root / 'tree'
 subprocess.run(['git', 'init', '-q', str(tree)], check=True)
