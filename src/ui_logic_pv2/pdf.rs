@@ -71,7 +71,9 @@ impl Layout {
             return None;
         }
         let first = self.page_at(view_top - view_height / 2.);
-        let last = self.page_at(view_top + view_height * 1.5).min(self.len() - 1);
+        let last = self
+            .page_at(view_top + view_height * 1.5)
+            .min(self.len() - 1);
         Some((first, last))
     }
 
@@ -121,7 +123,10 @@ pub fn render_width(current: u32, target: u32) -> u32 {
 
 /// A single page fitted inside the frame without upscaling past the frame: width and height.
 pub fn fit(frame_width: f64, frame_height: f64, aspect: f64) -> (f64, f64) {
-    (frame_width.min(frame_height * aspect), frame_height.min(frame_width / aspect))
+    (
+        frame_width.min(frame_height * aspect),
+        frame_height.min(frame_width / aspect),
+    )
 }
 
 /// One page slot of the continuous stack: near the frame or still rendering.
@@ -147,17 +152,24 @@ pub fn sync_slots(slots: &mut Vec<Slot>, near: Option<(usize, usize)>, count: us
         return;
     };
     let last = last.min(count.saturating_sub(1));
-    slots.retain(|slot| slot.page < count && ((slot.page >= first && slot.page <= last) || slot.rendering));
+    slots.retain(|slot| {
+        slot.page < count && ((slot.page >= first && slot.page <= last) || slot.rendering)
+    });
     for page in first..=last {
         if count > 0 && !slots.iter().any(|slot| slot.page == page) {
-            slots.push(Slot { page, ..Slot::default() });
+            slots.push(Slot {
+                page,
+                ..Slot::default()
+            });
         }
     }
 }
 
 /// The first frame holds until every page it shows has settled; later pages are never waited on.
 pub fn first_drawn(slots: &[Slot], layout: &Layout, view_top: f64, view_height: f64) -> bool {
-    layout.in_view(view_top, view_height).all(|page| slots.iter().any(|slot| slot.page == page && slot.settled()))
+    layout
+        .in_view(view_top, view_height)
+        .all(|page| slots.iter().any(|slot| slot.page == page && slot.settled()))
 }
 
 #[path = "pdf_timing.rs"]

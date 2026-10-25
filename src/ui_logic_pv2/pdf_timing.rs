@@ -29,7 +29,11 @@ pub struct Opener {
 impl Opener {
     /// A path or active change; a change that opens nothing stamps nothing.
     pub fn request(&mut self, path: &str, active: bool, now: u64, render_busy: bool) {
-        self.wanted = if active { path.to_string() } else { String::new() };
+        self.wanted = if active {
+            path.to_string()
+        } else {
+            String::new()
+        };
         if self.wanted == self.opened {
             return;
         }
