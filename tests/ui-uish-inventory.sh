@@ -156,6 +156,7 @@ class Controls(unittest.TestCase):
         self.assertIn("attempted a native receipt", result.stderr)
         self.assertNotIn("NATIVE_RUN", result.stdout)
 
+    @unittest.skipIf(os.geteuid() == 0, "root reads a mode 0111 file, so no PermissionError")
     def test_execute_only_driver_refused_before_spawn(self):
         import flea_uish_headless as headless
         from unittest import mock
@@ -167,6 +168,20 @@ class Controls(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 headless.Host(driver)
         spawn.assert_not_called()
+
+    def test_failed_host_start_removes_its_root(self):
+        import flea_uish_headless as headless
+        from unittest import mock
+        driver = self.root / "sleeping-driver"
+        driver.write_text("#!/bin/sh\nexec sleep 30\n")
+        driver.chmod(0o700)
+        parent = REPO / ".superpowers/m9-uish-02"
+        before = set(parent.glob("host.*")) if parent.is_dir() else set()
+        with mock.patch.object(headless, "identity", side_effect=FileNotFoundError("gone")), \
+                mock.patch.dict(os.environ, {"FLEA_BIN": "/bin/true"}):
+            with self.assertRaises(FileNotFoundError):
+                headless.Host(driver)
+        self.assertEqual(set(parent.glob("host.*")), before, "a failed start left its host root")
 
     def test_headless_qml_refused(self):
         result = self.ui("cursor", driver="headless", frontend="qml")

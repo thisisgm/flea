@@ -28,8 +28,7 @@ const CHROME_ROW_RATIO: f32 = 0.72;
 const COMPACT_PADDING: f32 = 0.5;
 const CONTROL_PADDING_Y: f32 = 6.;
 pub(crate) const STOCK_BASE: f32 = 12.;
-// Theme.markSize: a mark is sized from the type scale, and Glyph.qml caps it at its slot.
-// f64, as Theme.qml computes, so flea.tokens reports the QML value; `as f32` yields the same f32 literal.
+// Theme.markSize from the type scale (Glyph.qml caps it), f64 as QML computes; `as f32` gives the same literal.
 pub(crate) const MARK_RATIO: f64 = 1.45;
 
 impl Metrics {

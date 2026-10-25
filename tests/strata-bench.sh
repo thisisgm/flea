@@ -10,6 +10,18 @@ trap 'case $scratch in "$repo"/.superpowers/m9-integ-07/contracts.?*) [ -f "$scr
 python3 -B "$repo/tools/flea-strata-bench" selftest "$scratch"
 python3 -B "$repo/tools/flea-strata-bench" init "$scratch"
 python3 -B "$repo/tools/flea-strata-bench" dry-run "$scratch"
+typed="$scratch/wrong-typed"
+mkdir "$typed"
+touch "$typed/.flea-test-sandbox"
+python3 -B -c 'import json,sys; p=json.load(open(sys.argv[1])); p["visual_timeout_s"]="5"; json.dump(p, open(sys.argv[2], "w"))' \
+    "$scratch/plan.json" "$typed/plan.json"
+set +e
+python3 -B "$repo/tools/flea-strata-bench" dry-run "$typed" 2> "$typed/stderr"
+rc=$?
+set -e
+[[ "$rc" == 3 ]] && grep -q '^strata-bench: TypeError: ' "$typed/stderr" ||
+    { printf 'strata-bench: FAIL wrong-typed plan field rc=%s\n' "$rc" >&2; exit 1; }
+printf 'strata-bench: a wrong-typed plan field exits 3 with its type and message\n'
 python3 -B - "$repo" "$scratch" <<'PY'
 import importlib.machinery
 import importlib.util
@@ -148,6 +160,12 @@ try:
         raise AssertionError('changed kernel accepted between chunks')
 finally:
     tool.validate_fixtures, tool.manifest, tool.load_module, tool.run_trial, tool.load_raw_corpus, tool.bind_products = originals
+try:
+    tool.monitor_geometry([{'name': 'DP-1', 'width': 1, 'height': 1, 'x': 0, 'y': 0, 'scale': 1, 'transform': 0}])
+except ValueError as error:
+    assert all(part in str(error) for part in ('hyprctl -j monitors', 'DP-1', 'refreshRate')), error
+else:
+    raise AssertionError('a monitor without refreshRate was accepted')
 print('strata-bench: installed-only arm captures without any 0.4.0 or rival binary and cannot pass the latest gate')
 
 receipts = root / 'archives-only'

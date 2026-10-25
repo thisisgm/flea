@@ -205,3 +205,43 @@ fn uish_driver_key_close_drops_the_window_and_tears_down() {
     assert!(!socket.exists(), "its socket goes with it");
     host.teardown().unwrap();
 }
+
+#[test]
+fn uish_driver_window_removed_outside_a_command_is_forgotten() {
+    let sandbox = Sandbox::new("outside-close");
+    let fixture = sandbox.0.join("fixture");
+    fs::create_dir(&fixture).unwrap();
+    fs::write(fixture.join("a.txt"), "a").unwrap();
+    let mut host = Host::at(&sandbox.0);
+    let mut open = || {
+        let opened = host
+            .command(&object([
+                ("op", text("open")),
+                ("path", text(fixture.display())),
+            ]))
+            .unwrap();
+        opened
+            .get("window")
+            .and_then(Json::as_str)
+            .unwrap()
+            .to_owned()
+    };
+    let (first, second) = (open(), open());
+    host.remove_outside_command(&first);
+    host.remove_outside_command(&second);
+    let closed = host
+        .command(&object([("op", text("close")), ("window", text(&first))]))
+        .unwrap();
+    assert_eq!(closed, object([("closed", Json::Bool(true))]));
+    let refused = host.command(&object([
+        ("op", text("key")),
+        ("key", text("down")),
+        ("window", text(&second)),
+    ]));
+    assert_eq!(refused, Err("closed window".to_owned()));
+    assert!(
+        host.windows.is_empty(),
+        "both removed windows are forgotten"
+    );
+    host.teardown().unwrap();
+}

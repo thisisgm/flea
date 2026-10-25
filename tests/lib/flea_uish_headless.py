@@ -7,6 +7,7 @@ import math
 import os
 from pathlib import Path
 import selectors
+import shutil
 import signal
 import subprocess
 import sys
@@ -42,6 +43,13 @@ class Host:
         parent.mkdir(parents=True, exist_ok=True)
         self.root = Path(tempfile.mkdtemp(prefix="host.", dir=parent)).resolve()
         (self.root / MARKER).write_text("owned GPUI headless host\n")
+        try:
+            self.prepare(driver, driver_sha256)
+        except BaseException:
+            self.remove_root()
+            raise
+
+    def prepare(self, driver, driver_sha256):
         private(self.root)
         environment = dict(PATH=os.environ.get("PATH", "/usr/bin:/bin"),
                            FLEA_UISH_ROOT=str(self.root), FLEA_TEST_WINDOW=str(self.root),
@@ -73,6 +81,7 @@ class Host:
         except BaseException:
             self.selector.close()
             self.log.close()
+            self.remove_root()
             raise
         try:
             current = identity(self.process.pid)
@@ -97,6 +106,17 @@ class Host:
             stream.close()
         self.selector.close()
         self.log.close()
+        self.remove_root()
+
+    def remove_root(self):
+        # Only the marked host.* root this host made, after every log tail has printed.
+        root, parent = self.root, (REPO / ".superpowers/m9-uish-02").resolve()
+        if not root.exists():
+            return
+        if not (root.is_absolute() and root.parent == parent and root.name.startswith("host.")
+                and (root / MARKER).is_file()):
+            raise TransportError(f"refusing to remove an unmarked host root: {root}")
+        shutil.rmtree(root)
 
     def verify(self):
         if self.process.poll() is not None:
@@ -166,6 +186,7 @@ class Host:
             self.selector.close()
             self.process.stdout.close()
             self.log.close()
+            self.remove_root()
 
     def __enter__(self):
         return self

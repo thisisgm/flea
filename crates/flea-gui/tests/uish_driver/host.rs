@@ -207,6 +207,16 @@ impl Host {
         self.describe(identity)
     }
 
+    // Removes a window behind the host's back, as a crash or a compositor close would.
+    pub(super) fn remove_outside_command(&mut self, identity: &str) {
+        let window = self.windows[identity].window;
+        self.cx
+            .update_window(window.into(), |_, window, _| window.remove_window())
+            .unwrap();
+        self.cx.run_until_parked();
+        assert!(!self.cx.windows().contains(&window.into()));
+    }
+
     // Closes every window still owned, so a replay ends with no window and no socket left.
     pub(super) fn teardown(&mut self) -> Result<(), String> {
         let identities: Vec<_> = self.windows.keys().cloned().collect();
