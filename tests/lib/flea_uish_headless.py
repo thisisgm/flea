@@ -45,8 +45,8 @@ class Host:
         (self.root / MARKER).write_text("owned GPUI headless host\n")
         try:
             self.prepare(driver, driver_sha256)
-        except BaseException:
-            self.remove_root()
+        except BaseException as error:
+            self.remove_root(error)
             raise
 
     def prepare(self, driver, driver_sha256):
@@ -78,10 +78,10 @@ class Host:
                                             env=environment, cwd=REPO, stdin=subprocess.PIPE,
                                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                             start_new_session=True)
-        except BaseException:
+        except BaseException as error:
             self.selector.close()
             self.log.close()
-            self.remove_root()
+            self.remove_root(error)
             raise
         try:
             current = identity(self.process.pid)
@@ -91,14 +91,14 @@ class Host:
             hello = self.receive(self.timeout)
             if hello["sequence"] is not None or hello["result"].get("value", {}).get("protocol") != "flea-uish-headless-v1":
                 raise TransportError("not a mounted GPUI headless driver")
-        except BaseException:
+        except BaseException as error:
             if hasattr(self, "record"):
-                self.stop(terminate=True)
+                self.stop(terminate=True, error=error)
             else:
-                self.abandon()
+                self.abandon(error)
             raise
 
-    def abandon(self):
+    def abandon(self, error):
         with contextlib.suppress(ProcessLookupError):
             os.killpg(self.process.pid, signal.SIGKILL)
         self.process.wait()
@@ -106,7 +106,7 @@ class Host:
             stream.close()
         self.selector.close()
         self.log.close()
-        self.remove_root()
+        self.remove_root(error)
 
     def keep_log(self, error):
         # The root and its driver.log go next, so the tail is printed once and travels in the error.
@@ -121,13 +121,13 @@ class Host:
         if error is not None and note not in getattr(error, "__notes__", ()):
             error.add_note(note)
 
-    def remove_root(self):
-        # Only the marked host.* root this host made; an error in flight keeps the log tail first.
+    def remove_root(self, error=None):
+        # Only the marked host.* root this host made; the error its caller is handling keeps the log tail first.
         root, parent = self.root, (REPO / ".superpowers/m9-uish-02").resolve()
         if not root.exists():
             return
-        if sys.exception() is not None:
-            self.keep_log(sys.exception())
+        if error is not None:
+            self.keep_log(error)
         if not (root.is_absolute() and root.parent == parent and root.name.startswith("host.")
                 and (root / MARKER).is_file()):
             raise TransportError(f"refusing to remove an unmarked host root: {root}")
@@ -186,7 +186,7 @@ class Host:
         self.windows[window.id] = window
         return window
 
-    def stop(self, *, terminate=False):
+    def stop(self, *, terminate=False, error=None):
         if self.log.closed:
             return
         if self.process.stdin and not self.process.stdin.closed:
@@ -197,11 +197,14 @@ class Host:
                            whole_group=terminate)
             if not terminate and (result["forced"] or result["returncode"] != 0):
                 raise TransportError(f"headless host failed owned teardown: {result}")
+        except BaseException as own:
+            error = own
+            raise
         finally:
             self.selector.close()
             self.process.stdout.close()
             self.log.close()
-            self.remove_root()
+            self.remove_root(error)
 
     def __enter__(self):
         return self
@@ -209,7 +212,7 @@ class Host:
     def __exit__(self, kind, value, traceback):
         if kind is not None:
             self.keep_log(value)
-        self.stop(terminate=kind is not None)
+        self.stop(terminate=kind is not None, error=value)
 
 
 class Window:
