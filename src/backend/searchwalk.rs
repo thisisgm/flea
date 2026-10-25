@@ -138,8 +138,10 @@ fn open_directory(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, wat
     if probes.cancel.load(Ordering::Relaxed) {
         return None;
     }
+    let rel = rel_of(root, dir);
     let watch_failed = if let (Some(body), Some(watch)) = (watch_body, probes.watch.lock().unwrap().as_ref()) {
-        !watch.arm_local(&rel_of(root, dir), body)
+        if reader.is_remote(dir) { !watch.arm_local(&rel, body) }
+        else { !watch.arm(&rel) }
     } else { false };
     probes.opened.fetch_add(1, Ordering::Relaxed);
     #[cfg(test)]
@@ -147,7 +149,6 @@ fn open_directory(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, wat
     if probes.cancel.load(Ordering::Relaxed) {
         return None;
     }
-    let rel = rel_of(root, dir);
     let mut rows = Vec::new();
     let mut subdirs = Vec::new();
     let read = match reader.read(dir, dir == root, watch_body.is_none(), probes) {
