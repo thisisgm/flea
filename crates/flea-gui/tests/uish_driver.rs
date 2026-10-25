@@ -220,13 +220,12 @@ fn uish_driver_window_removed_outside_a_command_is_forgotten() {
                 ("path", text(fixture.display())),
             ]))
             .unwrap();
-        opened
-            .get("window")
-            .and_then(Json::as_str)
-            .unwrap()
-            .to_owned()
+        let socket = PathBuf::from(opened.get("socket").and_then(Json::as_str).unwrap());
+        let identity = opened.get("window").and_then(Json::as_str).unwrap();
+        (identity.to_owned(), socket)
     };
-    let (first, second) = (open(), open());
+    let ((first, first_socket), (second, second_socket)) = (open(), open());
+    assert!(first_socket.exists() && second_socket.exists());
     host.remove_outside_command(&first);
     host.remove_outside_command(&second);
     let closed = host
@@ -243,5 +242,8 @@ fn uish_driver_window_removed_outside_a_command_is_forgotten() {
         host.windows.is_empty(),
         "both removed windows are forgotten"
     );
+    for socket in [first_socket, second_socket] {
+        assert!(!socket.exists(), "{} survived its window", socket.display());
+    }
     host.teardown().unwrap();
 }

@@ -177,10 +177,20 @@ class Controls(unittest.TestCase):
         driver.chmod(0o700)
         parent = REPO / ".superpowers/m9-uish-02"
         before = set(parent.glob("host.*")) if parent.is_dir() else set()
-        with mock.patch.object(headless, "identity", side_effect=FileNotFoundError("gone")), \
+        seen, remove = [], headless.Host.remove_root
+
+        def removing(host):
+            seen.append((host.root, host.root.is_dir() and host.root not in before))
+            remove(host)
+
+        with mock.patch.object(headless, "identity", side_effect=FileNotFoundError("gone")) as identity, \
+                mock.patch.object(headless.Host, "remove_root", removing), \
                 mock.patch.dict(os.environ, {"FLEA_BIN": "/bin/true"}):
             with self.assertRaises(FileNotFoundError):
                 headless.Host(driver)
+        identity.assert_called_once()
+        self.assertTrue(seen and seen[0][1], f"no new host root existed before removal: {seen}")
+        self.assertTrue(seen[0][0].name.startswith("host.") and not seen[0][0].exists())
         self.assertEqual(set(parent.glob("host.*")), before, "a failed start left its host root")
 
     def test_headless_qml_refused(self):

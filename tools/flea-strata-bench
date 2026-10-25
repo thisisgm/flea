@@ -302,12 +302,64 @@ def fixtures(root, raw_corpus=None):
     print("fixtures: 90,000 files + 10,000 directories, 2,000 JPEGs, eight 12-file sets, four CPU workloads")
 
 
+MISSING = object()
+
+
+def texts(value):
+    return type(value) is list and all(type(item) is str for item in value)
+
+
+def within(low, high):
+    return lambda value: type(value) in (int, float) and low <= value <= high
+
+
+def optional(kind):
+    return lambda value: value is None or type(value) is kind
+
+
+# plan.json is edited by hand, so every field the harness reads is checked here and named on refusal.
+PLAN_FIELDS = (("runs", lambda value: type(value) is int and value >= 3, "an integer of at least 3"),
+               ("visual_timeout_s", within(1, 60), "a number from 1 to 60"),
+               ("warmup_s", within(1, 30), "a number from 1 to 30"),
+               ("method", lambda value: value == METHOD, "the harness METHOD"),
+               ("before_trial", texts, "a list of strings"),
+               ("cache_state", lambda value: type(value) is str, "a string"),
+               ("entrants", lambda value: type(value) is dict and tuple(value) == IDS, "every entrant in the declared order"))
+ENTRANT_FIELDS = (("binary", lambda value: type(value) is str, "a string"),
+                  ("args", texts, "a list of strings"),
+                  ("frontend", optional(str), "a string or null"),
+                  ("version_args", texts, "a list of strings"),
+                  ("expected_version", lambda value: type(value) is str, "a string"),
+                  ("latest_source", lambda value: type(value) is str, "a string"),
+                  ("latest_checked_utc", lambda value: type(value) is str, "a string"),
+                  ("upstream_commit", optional(str), "a string or null"),
+                  ("config_seed", optional(str), "a string or null"),
+                  ("setup_keys", lambda value: type(value) is list and all(texts(chord) for chord in value),
+                   "a list of key chords, each a list of strings"),
+                  ("navigation_keys", texts, "a list of strings"))
+
+
+def check_fields(path, prefix, data, fields):
+    for name, valid, kind in fields:
+        value = data.get(name, MISSING)
+        shown = "missing" if value is MISSING else json.dumps(value)[:80]
+        require(value is not MISSING and valid(value), "plan %s: field %s%s must be %s, not %s" % (path, prefix, name, kind, shown))
+
+
 def read_plan(root):
-    plan = json.loads((root / "plan.json").read_text())
-    require(tuple(plan["entrants"]) == IDS, "plan must contain every entrant in the declared order")
-    require(type(plan["runs"]) is int and plan["runs"] >= 3, "at least three runs are required")
-    require(plan["method"] == METHOD, "method differs from the harness")
-    require(1 <= plan["visual_timeout_s"] <= 60 and 1 <= plan["warmup_s"] <= 30, "invalid time limits")
+    path = root / "plan.json"
+    plan = json.loads(path.read_text())
+    require(type(plan) is dict, "plan %s: must be a JSON object" % path)
+    check_fields(path, "", plan, PLAN_FIELDS)
+    for ident, entrant in plan["entrants"].items():
+        require(type(entrant) is dict, "plan %s: field entrants.%s must be an object" % (path, ident))
+        check_fields(path, "entrants.%s." % ident, entrant, ENTRANT_FIELDS)
+        for name in ("archive", "package"):
+            require(optional(dict)(entrant.get(name)), "plan %s: field entrants.%s.%s must be an object" % (path, ident, name))
+    inventory = plan.get("rival_inventory")
+    require(inventory is None or (type(inventory) is dict and type(inventory.get("path")) is str
+                                  and type(inventory.get("sha256")) is str),
+            "plan %s: field rival_inventory must be null or an object with string path and sha256" % path)
     return plan
 
 
@@ -926,7 +978,4 @@ if __name__ == "__main__":
         sys.exit(main())
     except (OSError, ValueError, KeyError, ImportError, subprocess.SubprocessError) as error:
         print("strata-bench: " + str(error), file=sys.stderr)
-        sys.exit(3)
-    except Exception as error:
-        print("strata-bench: %s: %s" % (type(error).__name__, error), file=sys.stderr)
         sys.exit(3)

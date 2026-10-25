@@ -79,11 +79,12 @@ impl Writer {
         self.restart();
     }
 
-    // A new worker counts from zero, so the dead one's finishes never retire its patches.
+    // The one `done` restarts from zero in place, so every clone of it sees the new worker's finishes.
+    // A failed send means the old worker dropped its end, so it never counts again.
     fn restart(&mut self) {
         self.queue = None;
         self.queued = 0;
-        self.done = Arc::new(AtomicUsize::new(0));
+        self.done.store(0, Ordering::Release);
         for owed in &mut self.owed {
             owed.seq = 0;
         }
@@ -222,15 +223,18 @@ mod tests {
             ],
             "the new worker gets the unfinished patch, then the new one"
         );
-        first.store(3, Ordering::Release);
         assert_eq!(
-            writer.owed().len(),
-            2,
-            "the dead worker's count retires nothing"
+            first.load(Ordering::Acquire),
+            0,
+            "the restart resets the shared count"
         );
-        writer.done.store(1, Ordering::Release);
+        assert!(
+            Arc::ptr_eq(&first, &writer.done),
+            "a waiter's clone stays the writer's count"
+        );
+        first.store(1, Ordering::Release);
         assert_eq!(writer.owed(), vec![c]);
-        writer.done.store(2, Ordering::Release);
+        first.store(2, Ordering::Release);
         assert!(writer.owed().is_empty());
     }
 }

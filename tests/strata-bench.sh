@@ -19,9 +19,20 @@ set +e
 python3 -B "$repo/tools/flea-strata-bench" dry-run "$typed" 2> "$typed/stderr"
 rc=$?
 set -e
-[[ "$rc" == 3 ]] && grep -q '^strata-bench: TypeError: ' "$typed/stderr" ||
+[[ "$rc" == 3 ]] && grep -qxF "strata-bench: plan $typed/plan.json: field visual_timeout_s must be a number from 1 to 60, not \"5\"" "$typed/stderr" ||
     { printf 'strata-bench: FAIL wrong-typed plan field rc=%s\n' "$rc" >&2; exit 1; }
-printf 'strata-bench: a wrong-typed plan field exits 3 with its type and message\n'
+printf 'strata-bench: a wrong-typed plan field exits 3 naming the field and the plan\n'
+injected="$scratch/injected"
+mkdir -p "$injected/tools"
+sed 's/^def dry_run(root):$/&\n    raise TypeError("injected harness bug")/' "$repo/tools/flea-strata-bench" > "$injected/tools/flea-strata-bench"
+grep -q 'injected harness bug' "$injected/tools/flea-strata-bench"
+set +e
+python3 -B "$injected/tools/flea-strata-bench" dry-run "$scratch" 2> "$injected/stderr"
+rc=$?
+set -e
+[[ "$rc" == 1 ]] && grep -q '^Traceback' "$injected/stderr" && grep -qxF 'TypeError: injected harness bug' "$injected/stderr" ||
+    { printf 'strata-bench: FAIL injected harness bug rc=%s\n' "$rc" >&2; exit 1; }
+printf 'strata-bench: an unexpected harness error keeps its traceback and exits 1\n'
 python3 -B - "$repo" "$scratch" <<'PY'
 import importlib.machinery
 import importlib.util
