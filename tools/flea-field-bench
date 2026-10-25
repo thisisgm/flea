@@ -76,6 +76,19 @@ export ANCHOR_UI="$ANCHOR_REPO/ui"
 export ANCHOR_QMLCACHE="$ANCHOR_REPO/target/qmlcache"
 # anchor setup end
 
+# Source freshness checks and manifest source rows require a binary under the selected tree.
+require_source_binary() {
+  local binary repo
+  binary=$(readlink -m "$1") || return 1
+  repo=$(readlink -f "$2") || return 1
+  case $binary in
+    "$repo"/*) return 0 ;;
+    *) printf 'FAIL: %s is outside its source tree %s\n' "$1" "$2" >&2; return 1 ;;
+  esac
+}
+require_source_binary "$FLEA_BIN" "$FLEA_REPO" || exit 1
+if [ "$WITH_ANCHOR" = yes ]; then require_source_binary "$ANCHOR_BIN" "$ANCHOR_REPO" || exit 1; fi
+
 # manifest selection begin
 
 # A sibling manifest tool wins only when it carries the tree tool's provenance marker.
@@ -1793,7 +1806,8 @@ if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
 else
   if only_has strata && [ -x "$STRATA_BIN" ]; then strata_provenance; fi
   if only_has strata-nightly && [ -n "$STRATA_NIGHTLY_BIN" ]; then
-    ( STRATA_BIN=$STRATA_NIGHTLY_BIN STRATA_SRC=$STRATA_NIGHTLY_SRC strata_provenance ) || exit 1
+    STRATA_NIGHTLY_SRC=$( STRATA_BIN=$STRATA_NIGHTLY_BIN STRATA_SRC=$STRATA_NIGHTLY_SRC; strata_provenance; printf %s "$STRATA_SRC" ) || exit 1
+    export STRATA_NIGHTLY_SRC
   fi
 fi
 # archive provenance end

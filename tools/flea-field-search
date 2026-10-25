@@ -838,6 +838,7 @@ def process_start(pid):
     return boot + ticks / os.sysconf("SC_CLK_TCK")
 
 
+# Sample input, runs.jsonl: {"id":"run-1","pid":1234,"start":1729700000.0} then {"id":"run-1","end":1729700060.0}.
 def ledger_windows():
     """Recorded runs as {id: {pid, start, end}}; a run with no end never reached its exit hook."""
     runs = {}
@@ -859,8 +860,8 @@ def ledger_write(entry):
         os.makedirs(os.path.dirname(LEDGER), exist_ok=True)
         with open(LEDGER, "a") as f:
             f.write(json.dumps(entry) + "\n")
-    except OSError:
-        pass
+    except OSError as error:
+        raise SystemExit("flea-field-search: cannot record harness run in %s: %s" % (LEDGER, error)) from error
 
 
 def open_run_until(run, next_start):
@@ -924,8 +925,9 @@ def claim_run():
     """Called once the machine is idle: ledger the window and make every exit path, signals included, end the targets."""
     if _RUN:
         return
-    _RUN.update(id=uuid.uuid4().hex, ended=False)
-    ledger_write({"id": _RUN["id"], "pid": os.getpid(), "start": time.time()})
+    run_id = uuid.uuid4().hex
+    ledger_write({"id": run_id, "pid": os.getpid(), "start": time.time()})
+    _RUN.update(id=run_id, ended=False)
     threading.Thread(target=touch_alive, args=(_RUN["id"],), daemon=True).start()
     atexit.register(end_run)
     if threading.current_thread() is threading.main_thread():
@@ -1097,6 +1099,10 @@ def measure(plan_path):
     """measure PLAN.json: out (.jsonl), runs, query, queries {fixture: query}, mode, lengths, fixtures {name: dir}, arms [{id, entrant, flea_dir, view, typing, enter_baseline, wl_debug, fixtures}]; rounds interleave the arms over every fixture."""
     with open(plan_path) as f:
         plan = json.load(f)
+    # A qml arm's qs is matched only by its tree's ui directory, so an arm with no tree could never be ended.
+    for a in plan["arms"]:
+        if a.get("entrant") == "flea" and Product.frontend(a) == "qml" and not a.get("flea_dir"):
+            raise SystemExit("measure refuses arm %s: a qml flea arm needs flea_dir, not flea_bin alone" % a.get("id"))
     out_path = plan["out"]
     if os.path.exists(out_path):
         raise SystemExit("measure refuses an existing out (%s); move it away first" % out_path)
