@@ -1,35 +1,49 @@
-//! The card's vector raster: the open SVG drawn at its fit, and each retired picture dropped from the atlas.
+//! The card's physical picture request and retirement of replaced atlas tiles.
 use super::*;
 
 impl QuickLook {
-    /// The open vector's raster at the drawn fit times the window scale (#336); a raster file draws itself.
-    pub(super) fn svg_image(
+    /// The open picture at its zoomed fit times device scale, bounded by source pixels for a photo.
+    pub(super) fn picture_image(
         &mut self,
         path: &Path,
         fit_w: f64,
         fit_h: f64,
+        source: (f64, f64),
         window: &mut gpui::Window,
         cx: &mut Context<Self>,
     ) -> RasterState {
         use flea::ui_logic_pv1::pixels::{decode_size, is_vector_name, needs_redecode};
-        let vector = path.file_name().and_then(|n| n.to_str()).is_some_and(is_vector_name);
-        if !vector {
-            return RasterState::default();
-        }
+        let vector = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(is_vector_name);
         let scale = f64::from(window.scale_factor());
-        let (dw, dh) = decode_size(fit_w, fit_h, scale, 0.0, 0.0, true);
+        let (dw, dh) = decode_size(
+            fit_w * self.zoom,
+            fit_h * self.zoom,
+            scale,
+            source.0,
+            source.1,
+            vector,
+        );
         if dw == 0 || dh == 0 {
             return RasterState::default();
         }
         let fresh = self.svg.as_ref().is_some_and(|s| {
-            s.path == path && s.size == (dw, dh) && !needs_redecode(s.scale, scale)
+            s.path == path
+                && !needs_redecode(s.scale, scale)
+                && (s.size == (dw, dh)
+                    || (!vector && self.zoom > 1. && s.size.0 >= dw && s.size.1 >= dh))
         });
         if fresh {
             return self.svg.as_ref().map(SvgPicture::state).unwrap_or_default();
         }
         // The same path keeps drawing its last raster until the new one lands; a new path retires it.
         let prior = self.svg.take();
-        let keep = prior.as_ref().filter(|s| s.path == path).and_then(|s| s.image.clone());
+        let keep = prior
+            .as_ref()
+            .filter(|s| s.path == path)
+            .and_then(|s| s.image.clone());
         if let Some(prior) = prior {
             if prior.path != path {
                 self.retire(prior.image, cx);
@@ -71,13 +85,18 @@ impl QuickLook {
             latest: self.raster_latest.clone(),
             raster,
         };
-        let work = cx.background_executor().spawn(async move { raster::run(&job) });
+        let work = cx
+            .background_executor()
+            .spawn(async move { raster::run(&job) });
         cx.spawn(async move |this, cx| {
             let landed = work.await;
             let _ = this.update(cx, |ql, cx| {
                 ql.raster_in_flight = false;
                 let current = ql.raster_latest.load(Ordering::SeqCst) == epoch
-                    && ql.svg.as_ref().is_some_and(|s| s.path == path && s.size == size);
+                    && ql
+                        .svg
+                        .as_ref()
+                        .is_some_and(|s| s.path == path && s.size == size);
                 if !current {
                     // This request moved on; the latest wanted size starts now, still one job at a time.
                     ql.start_raster(cx);
@@ -94,7 +113,9 @@ impl QuickLook {
                     }
                     raster::RasterOutcome::Refused(refusal) => {
                         if let Some(svg) = ql.svg.as_mut() {
-                            svg.refusal = Some(refusal);
+                            if svg.image.is_none() {
+                                svg.refusal = Some(refusal);
+                            }
                         }
                     }
                     raster::RasterOutcome::Superseded => {}

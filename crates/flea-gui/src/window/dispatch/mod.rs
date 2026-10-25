@@ -68,3 +68,6 @@ mod refusal_tests;
 mod search_open_tests;
 #[cfg(test)]
 mod test_shell;
+
+#[cfg(test)]
+mod gh_preview_proof_tests;
