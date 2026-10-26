@@ -219,6 +219,8 @@ pub(crate) struct Scratch {
 
 #[path = "searchscore.rs"]
 mod scoring;
+pub(crate) use scoring::{score_cached, QueryScratch};
+#[cfg(test)]
 pub(crate) use scoring::score_all;
 
 // A patch distinguishes a vanished directory from a refused or incomplete read.

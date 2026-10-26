@@ -265,6 +265,7 @@ impl Session {
             last_query: String::new(),
             matched_index_len: 0,
             last_matches: Vec::new(),
+            score_scratch: crate::backend::searchindex::QueryScratch::default(),
             pending_rest: None,
             pending_patches: Default::default(),
             folder_n: 0,
