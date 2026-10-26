@@ -232,41 +232,11 @@ fn read_bounded(dir: &Path, body: &str, follow: bool) -> Result<Option<super::se
     }
 }
 
-// The one rank comparator for answers and rest chunks, so a scrolled window only extends the head's order.
-pub(crate) fn rank_cmp(index: &Index, a: &(i32, usize), b: &(i32, usize)) -> CmpOrdering {
-    b.0.cmp(&a.0).then_with(|| index.path_len(a.1).cmp(&index.path_len(b.1)))
-        .then_with(|| super::sort::name_order(&index.raw(a.1), &index.raw(b.1)))
-}
-
-// The best `window` hits in rank order, the rest unranked; the path comparator runs only on the window and its edge ties.
-pub(crate) fn select_head<K, F, C>(hits: &mut Vec<(i32, usize)>, window: usize, key: F, cmp: C) -> Vec<(i32, usize)>
-where
-    K: Ord,
-    F: Fn(&(i32, usize)) -> K,
-    C: Fn(&(i32, usize), &(i32, usize)) -> CmpOrdering,
-{
-    if window > 0 && window < hits.len() {
-        hits.select_nth_unstable_by_key(window - 1, &key);
-        let edge = key(&hits[window - 1]);
-        // Hits tied with the edge on the integer key can sit on either side of the cut, so the comparator picks among them.
-        if hits[window..].iter().any(|hit| key(hit) == edge) {
-            let (mut sure, mut tied, mut past) = (Vec::with_capacity(window), Vec::new(), Vec::new());
-            for &hit in hits.iter() {
-                match key(&hit).cmp(&edge) {
-                    CmpOrdering::Less => sure.push(hit),
-                    CmpOrdering::Equal => tied.push(hit),
-                    CmpOrdering::Greater => past.push(hit),
-                }
-            }
-            // The edge hit is tied and inside the window, so at least one tied hit joins the head.
-            tied.select_nth_unstable_by(window - sure.len() - 1, &cmp);
-            *hits = [sure, tied, past].concat();
-        }
-    }
-    let rest = hits.split_off(window.min(hits.len()));
-    hits.sort_by(&cmp);
-    rest
-}
+#[path = "searchorder.rs"]
+mod order;
+pub(crate) use order::{rank_cmp, select_head};
+#[cfg(test)]
+pub(crate) use order::cut_elapsed;
 
 #[cfg(test)]
 #[path = "searchindex_tests.rs"]
