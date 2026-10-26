@@ -167,7 +167,12 @@ impl Shell {
         }
         let from = host.pane.cursor;
         let before_scroll = host.pane.scroll_y;
-        if let Some(frame) = host.input.frame {
+        let frame = if self.view == crate::window::startup::View::Columns {
+            host.columns_key_frame()
+        } else {
+            host.input.frame
+        };
+        if let Some(frame) = frame {
             if frame.total == 0 {
                 return true;
             }
@@ -194,7 +199,7 @@ impl Shell {
         } else if !host.pane.move_cursor(step) {
             return true;
         }
-        if let Some(mut frame) = host.input.frame {
+        if let Some(mut frame) = frame {
             frame.scroll = host.pane.scroll_y;
             host.pane.scroll_to(super::scroll::reveal(
                 frame,
