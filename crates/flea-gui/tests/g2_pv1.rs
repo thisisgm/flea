@@ -28,6 +28,8 @@ pub mod scenes;
 mod scroll;
 #[path = "g2_pv1/svg.rs"]
 pub mod svg;
+#[path = "g2_pv1/symlink.rs"]
+mod symlink;
 
 /// What the listing behind the overlay saw: each counter is one thing #331 says must not move.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
