@@ -1,7 +1,7 @@
 // The loop reads stdin itself; a parked helper takes over after TAKEOVER so urgent cancellation survives a slow loop.
 use super::events::{feed, Event};
 use super::opscancel::Live;
-use super::wake::{read, wait, watch, waking, Counter, Sender, Timer, Wake, EINTR};
+use super::wake::{read, wait, waking, watch, Counter, Sender, Timer, Wake, EINTR};
 use crate::error::{from_io, FleaError};
 use std::io;
 use std::sync::atomic::{fence, AtomicBool, Ordering};
@@ -54,9 +54,13 @@ impl Shared {
         };
         let open = match read {
             // std reads a closed fd 0 as the end of input, and so does this.
-            Err(error) if error.raw_os_error() == Some(EBADF) => feed(tail, &[], true, &self.tx, &self.live),
+            Err(error) if error.raw_os_error() == Some(EBADF) => {
+                feed(tail, &[], true, &self.tx, &self.live)
+            }
             Err(error) => {
-                let _ = self.tx.send(Event::ReadError(from_io("read", "stdin", &error)));
+                let _ = self
+                    .tx
+                    .send(Event::ReadError(from_io("read", "stdin", &error)));
                 false
             }
             Ok(n) => feed(tail, &chunk[..n], n == 0, &self.tx, &self.live),
@@ -136,7 +140,11 @@ impl Pending {
         shared.timer.set(TAKEOVER);
         let parked = Arc::clone(&shared);
         std::thread::spawn(move || helper(&parked));
-        Inbox { shared, wake: self.wake, handed: false }
+        Inbox {
+            shared,
+            wake: self.wake,
+            handed: false,
+        }
     }
 }
 
@@ -170,7 +178,11 @@ impl Inbox {
                 shared.arm();
                 return last.ok();
             }
-            let input = if shared.open.load(Ordering::Relaxed) { shared.input } else { -1 };
+            let input = if shared.open.load(Ordering::Relaxed) {
+                shared.input
+            } else {
+                -1
+            };
             let mut fds = [watch(self.wake.counter.fd()), watch(input)];
             wait(&mut fds, -1);
             self.wake.woke();

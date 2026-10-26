@@ -3,7 +3,7 @@ use flea::ui_logic_st1::{pages, update};
 use gpui::{Context, Window};
 use std::{
     process::Command,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 fn now() -> u64 {
@@ -44,9 +44,36 @@ impl Shell {
         } else {
             ""
         };
-        if action.is_empty() {
-            return;
+        if !action.is_empty() {
+            self.run_update(action, window, cx);
         }
+    }
+
+    // UpdateCheck.startPolling: a minute after the window opens, then every six hours, while the switch is on.
+    pub(crate) fn start_update_polling(&mut self, window: &Window, cx: &mut Context<Self>) {
+        self.settings.poll = Some(cx.spawn_in(window, async move |this, cx| {
+            let mut first = true;
+            loop {
+                let wait = Duration::from_millis(update::poll_wait(first));
+                cx.background_executor().timer(wait).await;
+                let beat = this.update_in(cx, |shell, window, cx| {
+                    let automatic =
+                        pages::not_false(&shell.launch.settings.data, &["updates", "autoCheck"]);
+                    if !shell.settings.updating
+                        && update::poll_asks(&shell.settings.update, now(), automatic, first)
+                    {
+                        shell.run_update("check", window, cx);
+                    }
+                });
+                if beat.is_err() {
+                    return;
+                }
+                first = false;
+            }
+        }));
+    }
+
+    fn run_update(&mut self, action: &'static str, window: &Window, cx: &mut Context<Self>) {
         self.settings.updating = true;
         if action == "check" {
             self.settings.update = update::checking(&self.settings.update);

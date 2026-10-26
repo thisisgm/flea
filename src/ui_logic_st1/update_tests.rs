@@ -274,3 +274,15 @@ fn the_menu_hint_is_that_version() {
 fn the_menu_hint_is_the_package_release_when_only_that_moved() {
     assert_eq!(menu_version(&after("available aur 0.3.3-1 0.3.3-2")), "0.3.3-2");
 }
+
+#[test]
+fn the_first_beat_asks_only_when_due_and_each_later_beat_asks_outright() {
+    let fresh = answered(&idle(), CURRENT, 10 * HOUR);
+    assert!(!poll_asks(&fresh, 10 * HOUR + 60_000, true, true));
+    assert!(poll_asks(&fresh, 10 * HOUR + 60_000, true, false));
+    assert!(poll_asks(&idle(), 60_000, true, true));
+    assert!(!poll_asks(&idle(), 60_000, false, true));
+    assert!(!poll_asks(&fresh, 20 * HOUR, false, false));
+    assert!(!poll_asks(&checking(&fresh), 20 * HOUR, true, false));
+    assert_eq!((poll_wait(true), poll_wait(false)), (60_000, 6 * HOUR));
+}

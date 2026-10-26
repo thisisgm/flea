@@ -27,6 +27,7 @@ pub(crate) mod rename;
 mod dual_edge;
 #[cfg(test)]
 mod dual_edge_tests;
+pub(crate) mod retry;
 pub mod selection_preview;
 mod preview_facts;
 mod preview_input;
@@ -88,6 +89,7 @@ pub fn open(
         shell.update(cx, |shell, cx| {
             shell.follow_settings(window, cx);
             shell.follow_file_drags(window, cx);
+            shell.start_update_polling(window, cx);
         });
         let weak = shell.downgrade();
         window.on_window_should_close(cx, move |window, cx| {

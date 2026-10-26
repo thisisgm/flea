@@ -17,6 +17,8 @@ use flea::{
 use gpui::{div, prelude::*, px, AppContext, Context, Entity, Render, SharedString, Window};
 use std::sync::Arc;
 
+#[path = "status_detail.rs"]
+mod detail;
 #[path = "status_filesystem.rs"]
 mod filesystem;
 pub(crate) use filesystem::Filesystem;
@@ -191,6 +193,7 @@ impl Shell {
         );
         let path = host.path.clone();
         let state_message = host.state_text.message.clone();
+        let retry = host.retry_text();
         let revision = self.locale.revision;
         let catalog = self.locale.catalog.clone();
         let probe = self
@@ -226,6 +229,7 @@ impl Shell {
                     }
                 }
                 line.set_state_message(&state_message, cx);
+                line.set_retry_line(&retry, cx);
             });
             footer.revision = revision;
         });
@@ -249,47 +253,6 @@ impl Shell {
             line.update(cx, |line, cx| line.update(cx, |m, now| m.dismiss(now)));
         }
         error
-    }
-
-    pub(crate) fn sync_footer_height(&mut self, window: &Window, cx: &mut Context<Self>) {
-        use crate::g2::fb1::line::{DETAIL_LINE, DETAIL_PAD_X, DETAIL_PAD_Y};
-        let detail = self.surfaces[0]
-            .footer
-            .as_ref()
-            .map(|footer| {
-                footer.read_with(cx, |footer, cx| {
-                    footer
-                        .message_line()
-                        .read_with(cx, |line, _| line.drawn().detail.clone())
-                })
-            })
-            .unwrap_or_default();
-        let height = if detail.is_empty() {
-            0.
-        } else {
-            let typeface = self.active_typeface();
-            let run = gpui::TextRun {
-                len: detail.len(),
-                font: typeface.font,
-                color: Default::default(),
-                background_color: None,
-                underline: None,
-                strikethrough: None,
-            };
-            let width = (window.viewport_size().width - px(2. * DETAIL_PAD_X)).max(px(1.));
-            let lines: usize = window
-                .text_system()
-                .shape_text(detail, typeface.caption, &[run], Some(width), None)
-                .map_or(1, |lines| {
-                    lines
-                        .iter()
-                        .map(|line| line.wrap_boundaries().len() + 1)
-                        .sum()
-                });
-            (lines as f32 * DETAIL_LINE + 2. * DETAIL_PAD_Y)
-                .min(f32::from(window.viewport_size().height) / 3.)
-        };
-        self.surfaces[0].detail_height = height;
     }
 }
 

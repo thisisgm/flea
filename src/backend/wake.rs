@@ -81,8 +81,14 @@ impl Timer {
 
     // A zero duration disarms it.
     pub(crate) fn set(&self, after: Duration) {
-        let value = TimeSpec { sec: after.as_secs() as c_long, nsec: after.subsec_nanos() as c_long };
-        let spec = TimerSpec { interval: TimeSpec { sec: 0, nsec: 0 }, value };
+        let value = TimeSpec {
+            sec: after.as_secs() as c_long,
+            nsec: after.subsec_nanos() as c_long,
+        };
+        let spec = TimerSpec {
+            interval: TimeSpec { sec: 0, nsec: 0 },
+            value,
+        };
         let _ = unsafe { timerfd_settime(self.0.as_raw_fd(), 0, &spec, std::ptr::null_mut()) };
     }
 
@@ -114,7 +120,11 @@ pub(crate) fn wait(fds: &mut [PollFd], timeout: i32) -> bool {
 }
 
 pub(crate) fn watch(fd: i32) -> PollFd {
-    PollFd { fd, events: POLLIN, revents: 0 }
+    PollFd {
+        fd,
+        events: POLLIN,
+        revents: 0,
+    }
 }
 
 // The counter and whether the loop is past its last look at the channel, so a busy loop costs a send no syscall.
@@ -125,7 +135,10 @@ pub struct Wake {
 
 impl Wake {
     pub(crate) fn new(counter: Counter) -> Arc<Wake> {
-        Arc::new(Wake { counter, sleeping: AtomicBool::new(false) })
+        Arc::new(Wake {
+            counter,
+            sleeping: AtomicBool::new(false),
+        })
     }
 
     // Marked before the loop's last look at the channel, so a send either lands before that look or sees the mark and rings.
@@ -164,7 +177,10 @@ impl<T> Sender<T> {
 
 impl<T> Clone for Sender<T> {
     fn clone(&self) -> Self {
-        Sender { tx: self.tx.clone(), wake: self.wake.clone() }
+        Sender {
+            tx: self.tx.clone(),
+            wake: self.wake.clone(),
+        }
     }
 }
 
@@ -176,5 +192,11 @@ pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
 
 pub(crate) fn waking<T>(wake: &Arc<Wake>) -> (Sender<T>, Receiver<T>) {
     let (tx, rx) = mpsc::channel();
-    (Sender { tx, wake: Some(Arc::clone(wake)) }, rx)
+    (
+        Sender {
+            tx,
+            wake: Some(Arc::clone(wake)),
+        },
+        rx,
+    )
 }

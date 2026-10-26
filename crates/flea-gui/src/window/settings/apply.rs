@@ -224,8 +224,13 @@ impl Shell {
         self.font_key = None;
         self.sync_font_settings(cx);
         let typeface = self.settings_typeface(cx);
+        // Settings.js: a new Columns view limit re-lays an open Columns pane at once, as a resize does.
+        let limit = Some(self.launch.settings.columns as f64);
         for host in self.panes.iter_mut().flatten() {
             configure_pane(host, &data, typeface.clone());
+            if let Some(columns) = host.columns.as_mut() {
+                columns.set_limit(limit);
+            }
         }
         if let Some(view) = &self.settings.panel {
             view.update(cx, |view, cx| {

@@ -18,8 +18,8 @@ const OPERATORS: [(&str, &str, &str); 7] = [
 const VIEWS: &[Context] = &[Listing, Rail, Preview, Pdf];
 const PANES: &[Context] = &[Listing, Rail];
 
-// Every non-empty action v0.3.12's Keymap.js gives a keypad operator with KeypadModifier set; any other answer is none.
-const ANSWERS: [(&str, &str, u8, &str, &[Context]); 16] = [
+// Every non-empty action v0.3.12's Keymap.js gives a keypad operator with KeypadModifier set, plus PR #302's Control-only text size chords; any other answer is none.
+const ANSWERS: [(&str, &str, u8, &str, &[Context]); 19] = [
     ("all", "add", 0, "zoomIn", VIEWS),
     ("all", "add", SHIFT, "zoomIn", VIEWS),
     ("all", "add", CONTROL | SHIFT, "textSizeUp", PANES),
@@ -36,6 +36,9 @@ const ANSWERS: [(&str, &str, u8, &str, &[Context]); 16] = [
     ("all", "decimal", CONTROL | SHIFT, "toggleHidden", PANES),
     ("mac", "decimal", SUPER | SHIFT, "toggleHidden", &[Listing]),
     ("all", "equal", CONTROL | SHIFT, "textSizeUp", PANES),
+    ("all", "add", CONTROL, "textSizeUp", PANES),
+    ("all", "subtract", CONTROL, "textSizeDown", PANES),
+    ("all", "equal", CONTROL, "textSizeUp", PANES),
 ];
 
 fn fork(preset: &str, context: Context, key: &str, text: &str, mask: u8) -> Match {

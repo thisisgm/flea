@@ -56,14 +56,32 @@ fn search_fix4_piped_eof_answers_the_deferred_walk_before_exit() {
 fn piped_backend() {
     let mut l = Loop::new("search-eof-loop");
     // The real stdin inbox reads the pipe on its own channel; the loop's channel stays the session's.
-    let (input_tx, input_rx, pending) = crate::backend::inbox::open().expect("the stdin inbox opens");
-    let mut inbox = pending.start(crate::backend::inbox::STDIN, input_tx, Arc::clone(&l.ops.live));
+    let (input_tx, input_rx, pending) =
+        crate::backend::inbox::open().expect("the stdin inbox opens");
+    let mut inbox = pending.start(
+        crate::backend::inbox::STDIN,
+        input_tx,
+        Arc::clone(&l.ops.live),
+    );
+    // Inbox::next has no deadline, so a watchdog fails the child if the requests and EOF never arrive.
+    let read = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let watched = Arc::clone(&read);
+    std::thread::spawn(move || {
+        std::thread::sleep(EVENT_DEADLINE);
+        if !watched.load(std::sync::atomic::Ordering::SeqCst) {
+            eprintln!("the piped request or EOF arrives");
+            std::process::exit(101);
+        }
+    });
     let mut requests = VecDeque::new();
     loop {
-        let event = inbox.next(&input_rx).expect("the piped request or EOF arrives");
+        let event = inbox
+            .next(&input_rx)
+            .expect("the piped request or EOF arrives");
         let closed = matches!(event, Event::Closed);
         requests.push_back(event);
         if closed {
+            read.store(true, std::sync::atomic::Ordering::SeqCst);
             break;
         }
     }
