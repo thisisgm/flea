@@ -13,6 +13,8 @@ use gpui::{AppContext, Context, TestAppContext, Window, WindowHandle};
 
 #[path = "gcomp_batch_tests.rs"]
 mod batch;
+#[path = "footer_feedback_tests.rs"]
+mod footer_feedback;
 #[path = "gcomp_geometry_tests.rs"]
 mod geometry;
 #[path = "gcomp_input_tests.rs"]
@@ -31,8 +33,6 @@ mod pathtab;
 mod presentation;
 #[path = "gcomp_status_tests.rs"]
 mod status;
-#[path = "footer_feedback_tests.rs"]
-mod footer_feedback;
 
 type Handle = WindowHandle<Root>;
 

@@ -26,12 +26,23 @@ pub(super) fn ready<'a>(
     ready_with_root(cx, preset, false)
 }
 
-pub(super) fn ready_root<'a>(cx: &'a mut TestAppContext, preset: &str) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
+pub(super) fn ready_root<'a>(
+    cx: &'a mut TestAppContext,
+    preset: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
     ready_with_root(cx, preset, true)
 }
 
-fn ready_with_root<'a>(cx: &'a mut TestAppContext, preset: &str, root: bool) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
-    let (shell, cx) = if root { super::test_shell::open_root(cx, preset) } else { open(cx, preset) };
+fn ready_with_root<'a>(
+    cx: &'a mut TestAppContext,
+    preset: &str,
+    root: bool,
+) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
+    let (shell, cx) = if root {
+        super::test_shell::open_root(cx, preset)
+    } else {
+        open(cx, preset)
+    };
     land(&shell, cx, "/files", home(), 1);
     set_cursor(&shell, cx, 2);
     let (backend, lines) = Backend::test_lines();
@@ -382,13 +393,26 @@ fn the_rename_field_resolves_bidi_levels_on_each_reshape(cx: &mut TestAppContext
     let (text, right_to_left, levels) = shell.read_with(cx, |shell, _| {
         let edit = shell.rename.edit.as_ref().unwrap();
         let line = &edit.line.line;
-        (edit.entry.text.clone(), line.right_to_left, line.bidi_levels.clone())
+        (
+            edit.entry.text.clone(),
+            line.right_to_left,
+            line.bidi_levels.clone(),
+        )
     });
     assert_eq!(text, "a\u{5e9}b.txt");
     let mut expected = crate::path::field::Line::default();
     expected.set_text_direction(&text);
-    assert!(!right_to_left, "a Latin first letter keeps the paragraph left to right");
-    assert_eq!(levels, expected.bidi_levels, "the drawn line holds the reshaped text's levels");
-    assert!(levels[1].is_rtl(), "the Hebrew letter resolves right to left");
+    assert!(
+        !right_to_left,
+        "a Latin first letter keeps the paragraph left to right"
+    );
+    assert_eq!(
+        levels, expected.bidi_levels,
+        "the drawn line holds the reshaped text's levels"
+    );
+    assert!(
+        levels[1].is_rtl(),
+        "the Hebrew letter resolves right to left"
+    );
     close(&shell, cx);
 }

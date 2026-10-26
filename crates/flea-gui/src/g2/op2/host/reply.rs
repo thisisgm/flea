@@ -169,7 +169,12 @@ impl Shell {
         });
         if done.ok {
             // PaneWire.qml onArchiveDone re-reads in place and lands at the refreshed list's first row.
-            let _ = self.step(side, crate::window::navigate::Step::Refresh(None), window, cx);
+            let _ = self.step(
+                side,
+                crate::window::navigate::Step::Refresh(None),
+                window,
+                cx,
+            );
         }
         let text = if done.ok {
             catalog.tr(if verified {

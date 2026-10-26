@@ -38,8 +38,8 @@ mod view_scale_tests;
 #[cfg(test)]
 mod view_tests;
 
-pub(crate) mod private_entry;
 mod ime;
+pub(crate) mod private_entry;
 
 #[cfg(test)]
 mod i50_dialog_tests;

@@ -157,7 +157,7 @@ impl Permissions {
                 "dialogs.file.permissions.scope_item"
             };
             let octal = Field {
-            input: None,
+                input: None,
                 label: Some(tr("dialogs.file.permissions.octal")),
                 value: self.text.clone(),
                 placeholder: String::new(),

@@ -36,8 +36,9 @@ impl Drawn {
         };
         self.ime.run = Some(std::rc::Rc::new(GlyphRun::new(text.run.line().clone())));
         if focus == Focus::Password && view.model.reveal {
-            self.ime
-                .set_text_direction(std::str::from_utf8(view.model.password.expose()).unwrap_or(""));
+            self.ime.set_text_direction(
+                std::str::from_utf8(view.model.password.expose()).unwrap_or(""),
+            );
         } else {
             self.ime.set_text_direction(&view.input.text);
         }

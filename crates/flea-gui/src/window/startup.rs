@@ -281,8 +281,7 @@ mod startup_view_tests {
             ("columns", View::Columns),
             ("dual", View::Dual),
         ] {
-            let data =
-                flea::jsondoc::parse(&format!(r#"{{"view":"{word}"}}"#)).unwrap();
+            let data = flea::jsondoc::parse(&format!(r#"{{"view":"{word}"}}"#)).unwrap();
             assert_eq!(Settings::from_json(data).view, want, "saved {word}");
         }
         assert_eq!(

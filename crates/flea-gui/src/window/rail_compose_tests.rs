@@ -17,11 +17,7 @@ fn open<'a>(
         if hidden { "hidden" } else { "shown" },
     )).unwrap();
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
-    let launch = Launch::resolve(
-        Settings::from_json(document),
-        Arguments::default(),
-        &home,
-    );
+    let launch = Launch::resolve(Settings::from_json(document), Arguments::default(), &home);
     let locale = Snapshot {
         revision: 1,
         catalog: Arc::new(I18n::default()),

@@ -368,7 +368,12 @@ impl Element for FieldElement {
             // Selected text shows no caret, as the board draws it.
             if entry.selected.is_empty() {
                 window.paint_quad(fill(
-                    caret_box(frame, origin, line.entry_caret(entry, entry.cursor()), &scale),
+                    caret_box(
+                        frame,
+                        origin,
+                        line.entry_caret(entry, entry.cursor()),
+                        &scale,
+                    ),
                     ink.foreground,
                 ));
             }
