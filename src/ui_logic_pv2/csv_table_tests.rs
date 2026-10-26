@@ -215,3 +215,47 @@ fn csv_table_eof() {
         "an open header is held back until it closes"
     );
 }
+
+#[test]
+fn csv_table_a_leading_bom_never_starts_a_header_field() {
+    for d in [',', '\t'] {
+        let comma = held(&[
+            (1, &format!("\u{feff}\"Name{d} full\"{d}Amount"), None),
+            (2, &format!("Alice{d}10"), None),
+        ]);
+        let t = table(&comma, 2, Some(d));
+        assert_eq!(
+            t.header,
+            Some(vec![format!("Name{d} full"), "Amount".to_string()]),
+            "a quoted first header after a BOM stays one cell"
+        );
+        assert_eq!(t.cols, 2, "the BOM adds no column");
+        assert_eq!(
+            t.rows[0].cells,
+            owned(&["Alice", "10"]),
+            "the body stays under its headers"
+        );
+        let multiline = held(&[
+            (1, "\u{feff}\"Full", None),
+            (2, &format!("name\"{d}Amount"), None),
+            (3, &format!("Alice{d}10"), None),
+        ]);
+        let t = table(&multiline, 3, Some(d));
+        assert_eq!(
+            t.header,
+            Some(vec!["Full\nname".to_string(), "Amount".to_string()]),
+            "a quoted newline in the first header stays in the header"
+        );
+        assert_eq!(t.rows.len(), 1, "the header's continuation is no data row");
+        assert_eq!((t.rows[0].line, t.rows[0].record), (3, 2));
+    }
+    let later = table(
+        &held(&[(1, "a,b", None), (2, "\u{feff}x,y", None)]),
+        2,
+        Some(','),
+    );
+    assert_eq!(
+        later.rows[0].cells[0], "\u{feff}x",
+        "a BOM on a later line is cell text"
+    );
+}
