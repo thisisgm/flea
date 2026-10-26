@@ -35,7 +35,10 @@ pub enum Effect {
         ticket: Ticket,
         path: String,
     },
-    Refresh(Vec<String>),
+    Refresh {
+        paths: Vec<String>,
+        select: bool,
+    },
     Status {
         error: bool,
         text: String,
