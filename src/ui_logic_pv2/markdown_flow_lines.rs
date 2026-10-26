@@ -95,7 +95,7 @@ impl Placer<'_> {
         out
     }
 
-    // A run of one look extends the text before it; anything else starts a new atom.
+    // A run of one look extends the text before it; text never joins an empty chip pad, or it draws at the pad's left edge.
     fn put(&mut self, seg: Seg) {
         let x = self.x;
         self.x += seg.width;
@@ -106,7 +106,8 @@ impl Placer<'_> {
             x: at,
         }) = self.atoms.last_mut()
         {
-            if *look == seg.look && (*at + *width - x).abs() < SLACK {
+            let pad = text.is_empty() && !seg.text.is_empty();
+            if *look == seg.look && (*at + *width - x).abs() < SLACK && !pad {
                 text.push_str(&seg.text);
                 *width += seg.width;
                 return;
