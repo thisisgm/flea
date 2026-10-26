@@ -86,7 +86,10 @@ fn page_code_after_wheel(cx: &mut TestAppContext, wrap: bool) {
             view.top as f32 * view.metrics.row + view.offset
         })
     };
-    for (before, key, after) in [(19., "shift-f->F", 500.), (1019., "shift-b->B", 500.)] {
+    // One screen less a line: 505 px of 20 px rows pages by 24 rows, so the last line stays on top as context.
+    let step = flea::ui_logic_pv2::code_view::page_step(505., 20.);
+    assert_eq!(step, 480.);
+    for (before, key, after) in [(19., "shift-f->F", step), (2. * step + 19., "shift-b->B", step)] {
         cx.simulate_event(ScrollWheelEvent {
             position: at,
             delta: ScrollDelta::Pixels(point(px(0.), px(-19.))),
@@ -105,7 +108,7 @@ fn page_code_after_wheel(cx: &mut TestAppContext, wrap: bool) {
         pump(cx);
         assert_eq!(
             position(cx),
-            1000.,
+            2. * step,
             "another page retains whole wrapped continuation rows"
         );
     }
