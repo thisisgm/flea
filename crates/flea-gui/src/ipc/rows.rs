@@ -17,7 +17,8 @@ use gpui::{Bounds, Hsla, Pixels};
 #[path = "rows_format.rs"]
 mod geometry_text;
 pub use geometry_text::{centre_of, colour, rect_of};
-use geometry_text::{centre_of_bounds, rect_of_bounds, round};
+pub(crate) use geometry_text::round;
+use geometry_text::{centre_of_bounds, rect_of_bounds};
 
 /// One pane's List, its held rows and the states its owners hold.
 pub struct RowsAdapter<'a> {
