@@ -31,7 +31,7 @@ pub fn surface(shell: Entity<Shell>, side: usize) -> impl IntoElement {
 pub fn surface_with(
     shell: Entity<Shell>,
     side: usize,
-    read: impl Fn(&Shell, Bounds<gpui::Pixels>) -> Option<(Frame, crate::list::Palette)> + 'static,
+    read: impl Fn(&mut Shell, Bounds<gpui::Pixels>) -> Option<(Frame, crate::list::Palette)> + 'static,
 ) -> impl IntoElement {
     viewport(shell, side, false, read)
 }
@@ -42,14 +42,14 @@ pub(crate) fn grid_surface(
     side: usize,
     read: impl Fn(&Shell, Bounds<gpui::Pixels>) -> Option<(Frame, crate::list::Palette)> + 'static,
 ) -> impl IntoElement {
-    viewport(shell, side, true, read)
+    viewport(shell, side, true, move |shell: &mut Shell, bounds| read(shell, bounds))
 }
 
 fn viewport(
     shell: Entity<Shell>,
     side: usize,
     grid: bool,
-    read: impl Fn(&Shell, Bounds<gpui::Pixels>) -> Option<(Frame, crate::list::Palette)> + 'static,
+    read: impl Fn(&mut Shell, Bounds<gpui::Pixels>) -> Option<(Frame, crate::list::Palette)> + 'static,
 ) -> impl IntoElement {
     let shell = shell.downgrade();
     let paint = shell.clone();
@@ -177,6 +177,10 @@ fn viewport(
                     let _ = down.update(cx, |shell, cx| {
                         if grid {
                             shell.grid_bar_down(side, event, window, cx);
+                        } else if shell.view == crate::window::startup::View::Columns
+                            && (event.button == gpui::MouseButton::Right || shell.input_blocked(cx))
+                        {
+                            shell.columns_pointer(side, event, window, cx);
                         } else {
                             shell.hold_pointer(side, true, window, cx);
                             shell.pointer_down(side, event, window, cx);
@@ -221,8 +225,13 @@ fn viewport(
             let wheel = paint.clone();
             window.on_mouse_event(move |event: &ScrollWheelEvent, phase, window, cx| {
                 if !grid && phase == DispatchPhase::Bubble && hitbox.is_hovered(window) {
-                    let _ =
-                        wheel.update(cx, |shell, cx| shell.pointer_wheel(side, event, window, cx));
+                    let _ = wheel.update(cx, |shell, cx| {
+                        if shell.view == crate::window::startup::View::Columns {
+                            shell.columns_wheel(side, event, cx);
+                        } else {
+                            shell.pointer_wheel(side, event, window, cx);
+                        }
+                    });
                 }
             });
         },

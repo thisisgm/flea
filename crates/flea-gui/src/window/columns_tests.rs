@@ -7,6 +7,8 @@ use gpui::{AppContext, TestAppContext};
 pub(super) mod host;
 #[path = "columns_pointer_tests.rs"]
 mod pointer;
+#[path = "columns_gesture_tests.rs"]
+mod gestures;
 #[path = "columns_review_tests.rs"]
 mod review;
 #[path = "columns_state_tests.rs"]

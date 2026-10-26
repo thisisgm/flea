@@ -36,6 +36,10 @@ impl Rows for HostRows<'_> {
 /// The folder a landing at `point` in a List pane resolves to, as a drop does: the folder row under it unless
 /// `carried` holds that row, else the pane's own folder.
 pub(crate) fn pane_spot(host: &PaneHost, point: Point<gpui::Pixels>, carried: &[usize]) -> String {
+    if host.drawn_view == Some(crate::window::startup::View::Columns) {
+        return crate::window::columns::drop_spot(host, point, carried)
+            .unwrap_or_else(|| host.path.clone());
+    }
     row_spot(host, host.input.hit(point), carried)
 }
 

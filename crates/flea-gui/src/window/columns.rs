@@ -14,6 +14,9 @@ mod input;
 #[path = "columns_keys.rs"]
 mod keys;
 pub use input::BackgroundMenu;
+#[path = "columns_gestures.rs"]
+mod gestures;
+pub(crate) use gestures::{drop_spot, on_name};
 #[path = "columns_events.rs"]
 mod events;
 #[path = "columns_readers.rs"]
