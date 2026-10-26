@@ -81347,7 +81347,7 @@
     },
     {
       "excerpt": "\"a stale reply opens nothing\"",
-      "line": 30,
+      "line": 35,
       "literal": "a stale reply opens nothing",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -81356,7 +81356,7 @@
     },
     {
       "excerpt": "\"another backend's reply opens nothing\"",
-      "line": 44,
+      "line": 49,
       "literal": "another backend's reply opens nothing",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -81365,7 +81365,7 @@
     },
     {
       "excerpt": "\"the asked archive opens the card\"",
-      "line": 58,
+      "line": 63,
       "literal": "the asked archive opens the card",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -81373,8 +81373,17 @@
       "surface": "gui"
     },
     {
+      "excerpt": "\"the password-needed result draws the password card\"",
+      "line": 69,
+      "literal": "the password-needed result draws the password card",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "\"Escape closes the card\"",
-      "line": 85,
+      "line": 96,
       "literal": "Escape closes the card",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -81383,7 +81392,7 @@
     },
     {
       "excerpt": "r#\"{\"t\":\"archivedone\",\"id\":9,\"ok\":false,\"verified\":true,\"err\":\"not enough free space\"}\"#,",
-      "line": 92,
+      "line": 103,
       "literal": "{\"t\":\"archivedone\",\"id\":9,\"ok\":false,\"verified\":true,\"err\":\"not enough free space\"}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -81392,7 +81401,7 @@
     },
     {
       "excerpt": "status.contains(\"Not enough free space\"),",
-      "line": 96,
+      "line": 107,
       "literal": "Not enough free space",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -81401,7 +81410,7 @@
     },
     {
       "excerpt": "\"the refusal is said: {status}\"",
-      "line": 97,
+      "line": 108,
       "literal": "the refusal is said: {status}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -81410,7 +81419,7 @@
     },
     {
       "excerpt": "assert_eq!(side, 0, \"the open card still belongs to side 0\");",
-      "line": 134,
+      "line": 145,
       "literal": "the open card still belongs to side 0",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -81419,7 +81428,7 @@
     },
     {
       "excerpt": "\"the owning backend receives the password once: {left:?}\"",
-      "line": 140,
+      "line": 151,
       "literal": "the owning backend receives the password once: {left:?}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -81428,7 +81437,7 @@
     },
     {
       "excerpt": "\"side 0's password never goes to side 1: {right:?}\"",
-      "line": 144,
+      "line": 155,
       "literal": "side 0's password never goes to side 1: {right:?}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host_tests/extract.rs",
@@ -99770,7 +99779,7 @@
     },
     {
       "excerpt": "label: \"Extracting\",",
-      "line": 137,
+      "line": 144,
       "literal": "Extracting",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99779,7 +99788,7 @@
     },
     {
       "excerpt": "else { Err(\"ImageMagick is not installed. Install it to convert images.\".into()) });",
-      "line": 174,
+      "line": 181,
       "literal": "ImageMagick is not installed. Install it to convert images.",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99788,7 +99797,7 @@
     },
     {
       "excerpt": "d.file(\"out.zip\", \"already here\");",
-      "line": 237,
+      "line": 244,
       "literal": "already here",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99797,7 +99806,7 @@
     },
     {
       "excerpt": "assert!(e.msg.contains(\"already exists\"));",
-      "line": 239,
+      "line": 246,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99806,7 +99815,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(d.join(\"out.zip\")).unwrap(), \"already here\");",
-      "line": 240,
+      "line": 247,
       "literal": "already here",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99815,7 +99824,7 @@
     },
     {
       "excerpt": "assert!(e.msg.contains(\"already exists\"), \"merging into a directory in use is the surprise this rules out\");",
-      "line": 244,
+      "line": 251,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99824,7 +99833,7 @@
     },
     {
       "excerpt": "assert!(e.msg.contains(\"already exists\"), \"merging into a directory in use is the surprise this rules out\");",
-      "line": 244,
+      "line": 251,
       "literal": "merging into a directory in use is the surprise this rules out",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99833,7 +99842,7 @@
     },
     {
       "excerpt": "assert_eq!(e.msg, \"no installed tool can create that format\");",
-      "line": 252,
+      "line": 259,
       "literal": "no installed tool can create that format",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99842,7 +99851,7 @@
     },
     {
       "excerpt": "assert!(e.msg.contains(\"already exists\"));",
-      "line": 260,
+      "line": 267,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99851,7 +99860,7 @@
     },
     {
       "excerpt": "format!(\"Could not inspect {}: item not found.\", missing.display()));",
-      "line": 270,
+      "line": 277,
       "literal": "Could not inspect {}: item not found.",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99860,7 +99869,7 @@
     },
     {
       "excerpt": "format!(\"Could not inspect output {}: part of the path is not a folder.\", invalid_output.display()));",
-      "line": 275,
+      "line": 282,
       "literal": "Could not inspect output {}: part of the path is not a folder.",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99869,7 +99878,7 @@
     },
     {
       "excerpt": "assert!(String::from_utf8_lossy(&output.stdout).contains(\"1 passed; 0 failed\"), \"the isolated missing-helper check did not run\");",
-      "line": 337,
+      "line": 344,
       "literal": "the isolated missing-helper check did not run",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -99878,7 +99887,7 @@
     },
     {
       "excerpt": "assert!(reply.contains(\"ImageMagick is not installed. Install it to convert images.\"));",
-      "line": 353,
+      "line": 360,
       "literal": "ImageMagick is not installed. Install it to convert images.",
       "owner": "controller",
       "path": "src/backend/archivereq.rs",
@@ -108527,7 +108536,7 @@
     },
     {
       "excerpt": "} else { response(&line, Err(\"Menu request cancelled.\".into())) };",
-      "line": 56,
+      "line": 59,
       "literal": "Menu request cancelled.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108536,7 +108545,7 @@
     },
     {
       "excerpt": "if id == 0 || restoration.0 != id { return Err(\"The items changed; select them again.\".into()); }",
-      "line": 77,
+      "line": 80,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108545,7 +108554,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| \"That item is no longer selected; reopen the menu.\".into())",
-      "line": 102,
+      "line": 98,
       "literal": "That item is no longer selected; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108554,7 +108563,7 @@
     },
     {
       "excerpt": "let mut reply = response(&older.0, Err(\"Menu request cancelled.\".into()));",
-      "line": 128,
+      "line": 124,
       "literal": "Menu request cancelled.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108563,7 +108572,7 @@
     },
     {
       "excerpt": "Sent::Busy(refused) => (refused.0, \"A menu request is still running; try again when it finishes.\"),",
-      "line": 133,
+      "line": 129,
       "literal": "A menu request is still running; try again when it finishes.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108572,7 +108581,7 @@
     },
     {
       "excerpt": "return Err(\"Menu selection requires an absolute item path.\".into());",
-      "line": 176,
+      "line": 172,
       "literal": "Menu selection requires an absolute item path.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108581,7 +108590,7 @@
     },
     {
       "excerpt": "\"Could not inspect selected item {}: {}.\",",
-      "line": 180,
+      "line": 176,
       "literal": "Could not inspect selected item {}: {}.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108590,7 +108599,7 @@
     },
     {
       "excerpt": ".map_err(|_| \"Selected item moved or disappeared; reopen the menu.\")?;",
-      "line": 210,
+      "line": 206,
       "literal": "Selected item moved or disappeared; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108599,7 +108608,7 @@
     },
     {
       "excerpt": "return Err(\"Selected item changed; reopen the menu.\".into());",
-      "line": 218,
+      "line": 214,
       "literal": "Selected item changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108608,7 +108617,7 @@
     },
     {
       "excerpt": "Err(\"There are no selected items to inspect.\".into())",
-      "line": 245,
+      "line": 241,
       "literal": "There are no selected items to inspect.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108617,7 +108626,7 @@
     },
     {
       "excerpt": "Err(error) => return Err(format!(\"Could not inspect {}: {}.\", item.path.display(), error)),",
-      "line": 289,
+      "line": 285,
       "literal": "Could not inspect {}: {}.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108626,7 +108635,7 @@
     },
     {
       "excerpt": "if !selected.current()?.is_dir() { return Err(\"The Dropbox account path is not a folder.\".into()); }",
-      "line": 299,
+      "line": 295,
       "literal": "The Dropbox account path is not a folder.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108635,7 +108644,7 @@
     },
     {
       "excerpt": "let cursor = self.cursor.as_ref().ok_or(\"The item under the cursor changed; reopen the menu.\")?;",
-      "line": 316,
+      "line": 317,
       "literal": "The item under the cursor changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108644,7 +108653,7 @@
     },
     {
       "excerpt": "if self.items.len() != 1 { return Err(\"This action requires one selected item.\".into()); }",
-      "line": 326,
+      "line": 327,
       "literal": "This action requires one selected item.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108653,7 +108662,7 @@
     },
     {
       "excerpt": "return Err(format!(\"Opened it, but {} has no file type to set a default for.\", item.path.display()));",
-      "line": 349,
+      "line": 350,
       "literal": "Opened it, but {} has no file type to set a default for.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108662,7 +108671,7 @@
     },
     {
       "excerpt": "return Err(format!(\"Opened it, but the default was not saved: {}.\", error.trim_end_matches('.')));",
-      "line": 352,
+      "line": 353,
       "literal": "Opened it, but the default was not saved: {}.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108671,7 +108680,7 @@
     },
     {
       "excerpt": "_ => Err(\"Unknown menu operation.\".into()),",
-      "line": 357,
+      "line": 358,
       "literal": "Unknown menu operation.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108680,7 +108689,7 @@
     },
     {
       "excerpt": ".ok_or(\"Dropbox account folder changed; reopen the menu.\")?;",
-      "line": 366,
+      "line": 367,
       "literal": "Dropbox account folder changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108689,7 +108698,7 @@
     },
     {
       "excerpt": "selected.current().map_err(|_| \"Dropbox account folder changed or disappeared; reopen the menu.\")?;",
-      "line": 367,
+      "line": 368,
       "literal": "Dropbox account folder changed or disappeared; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108698,7 +108707,7 @@
     },
     {
       "excerpt": "return Err(\"New File requires an absolute folder and one non-empty filename.\".into());",
-      "line": 395,
+      "line": 396,
       "literal": "New File requires an absolute folder and one non-empty filename.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108707,7 +108716,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not create {}: {}.\", path.display(), crate::error::io_message(&e)))?;",
-      "line": 399,
+      "line": 400,
       "literal": "Could not create {}: {}.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108716,7 +108725,7 @@
     },
     {
       "excerpt": "let meta = file.metadata().map_err(|e| format!(\"Created {}, but undo cannot remove it: {}.\", path.display(), crate::error::io_message(&e)))?;",
-      "line": 400,
+      "line": 401,
       "literal": "Created {}, but undo cannot remove it: {}.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108725,7 +108734,7 @@
     },
     {
       "excerpt": "pub(super) const CHANGED: &str = \"Selected items changed; reopen the menu.\";",
-      "line": 409,
+      "line": 410,
       "literal": "Selected items changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108734,7 +108743,7 @@
     },
     {
       "excerpt": "\"a reopen during its own snapshot must not refuse while that snapshot is still queued\");",
-      "line": 432,
+      "line": 433,
       "literal": "a reopen during its own snapshot must not refuse while that snapshot is still queued",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108743,7 +108752,7 @@
     },
     {
       "excerpt": "match rx.try_recv().expect(\"the displaced snapshot must still be answered\") {",
-      "line": 433,
+      "line": 434,
       "literal": "the displaced snapshot must still be answered",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108752,7 +108761,7 @@
     },
     {
       "excerpt": "OpMsg::Meta { line } => assert!(field_usize(&line, \"id\") == Some(41) && field_bool(&line, \"cancelled\")),",
-      "line": 434,
+      "line": 435,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108761,7 +108770,7 @@
     },
     {
       "excerpt": "_ => panic!(\"a displaced snapshot is answered as Meta\"),",
-      "line": 435,
+      "line": 436,
       "literal": "a displaced snapshot is answered as Meta",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108770,7 +108779,7 @@
     },
     {
       "excerpt": "let queued = menu.slot.take().expect(\"the newer snapshot must hold the slot\");",
-      "line": 437,
+      "line": 438,
       "literal": "the newer snapshot must hold the slot",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108779,7 +108788,7 @@
     },
     {
       "excerpt": "assert_eq!(field_usize(&queued.0, \"id\"), Some(42), \"the older snapshot must be displaced and answered, never run\");",
-      "line": 438,
+      "line": 439,
       "literal": "the older snapshot must be displaced and answered, never run",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108788,7 +108797,7 @@
     },
     {
       "excerpt": "\"work must keep its slot; only the refusal may answer\");",
-      "line": 449,
+      "line": 450,
       "literal": "work must keep its slot; only the refusal may answer",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108797,7 +108806,7 @@
     },
     {
       "excerpt": "match rx.try_recv().expect(\"the refusal must still answer rather than hang\") {",
-      "line": 450,
+      "line": 451,
       "literal": "the refusal must still answer rather than hang",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108806,7 +108815,7 @@
     },
     {
       "excerpt": "assert!(!field_bool(&line, \"ok\") && line.contains(\"still running\"));",
-      "line": 453,
+      "line": 454,
       "literal": "still running",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108815,7 +108824,7 @@
     },
     {
       "excerpt": "_ => panic!(\"a refusal must arrive as Meta\"),",
-      "line": 455,
+      "line": 456,
       "literal": "a refusal must arrive as Meta",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108824,7 +108833,7 @@
     },
     {
       "excerpt": "let queued = menu.slot.take().expect(\"the activate must still be queued\");",
-      "line": 457,
+      "line": 458,
       "literal": "the activate must still be queued",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108833,7 +108842,7 @@
     },
     {
       "excerpt": "let reply = rx.recv_timeout(std::time::Duration::from_secs(5)).expect(\"a snapshot reply\");",
-      "line": 474,
+      "line": 475,
       "literal": "a snapshot reply",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108842,7 +108851,7 @@
     },
     {
       "excerpt": "assert!(saw42, \"the reopened snapshot must still be answered\");",
-      "line": 482,
+      "line": 483,
       "literal": "the reopened snapshot must still be answered",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108851,7 +108860,7 @@
     },
     {
       "excerpt": "assert_eq!(published.lock().unwrap().id, 3, \"the former check-before-lock ordering resurrects the snapshot\");",
-      "line": 491,
+      "line": 492,
       "literal": "the former check-before-lock ordering resurrects the snapshot",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108860,7 +108869,7 @@
     },
     {
       "excerpt": "assert_eq!(published.lock().unwrap().id, 0, \"publication must recheck the cancelled generation under its lock\");",
-      "line": 498,
+      "line": 499,
       "literal": "publication must recheck the cancelled generation under its lock",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108869,7 +108878,7 @@
     },
     {
       "excerpt": "assert!(snapshot.deletion.is_none(), \"a refused confirmation cannot be retried as a different token\");",
-      "line": 512,
+      "line": 513,
       "literal": "a refused confirmation cannot be retried as a different token",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108878,7 +108887,7 @@
     },
     {
       "excerpt": "d.file(\"folder/new\", \"new child\");",
-      "line": 532,
+      "line": 533,
       "literal": "new child",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108887,7 +108896,7 @@
     },
     {
       "excerpt": "assert_eq!(snapshot.items.len(), 2, \"unrelated arrivals never widen the confirmation\");",
-      "line": 543,
+      "line": 544,
       "literal": "unrelated arrivals never widen the confirmation",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108896,15 +108905,6 @@
     },
     {
       "excerpt": "assert!(snapshot.handle(r#\"{\"op\":\"validate\",\"id\":3}\"#, vec![]).contains(\"Selected item changed\"));",
-      "line": 580,
-      "literal": "Selected item changed",
-      "owner": "controller",
-      "path": "src/backend/menu_actions.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(snapshot.handle(r#\"{\"op\":\"activate\",\"id\":3,\"action\":\"addFavourite\"}\"#, vec![]).contains(\"Selected item changed\"));",
       "line": 581,
       "literal": "Selected item changed",
       "owner": "controller",
@@ -108913,8 +108913,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "assert!(snapshot.handle(r#\"{\"op\":\"activate\",\"id\":3,\"action\":\"addFavourite\"}\"#, vec![]).contains(\"Selected item changed\"));",
+      "line": 582,
+      "literal": "Selected item changed",
+      "owner": "controller",
+      "path": "src/backend/menu_actions.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let (path, identity) = create_file(sandbox.path(), \"New File\").unwrap();",
-      "line": 587,
+      "line": 588,
       "literal": "New File",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108923,7 +108932,7 @@
     },
     {
       "excerpt": "assert!(create_file(sandbox.path(), \"New File\").is_err());",
-      "line": 591,
+      "line": 592,
       "literal": "New File",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108932,15 +108941,6 @@
     },
     {
       "excerpt": "symlink(sandbox.join(\"absent\"), sandbox.join(\"link\")).unwrap();",
-      "line": 595,
-      "literal": "link",
-      "owner": "controller",
-      "path": "src/backend/menu_actions.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(create_file(sandbox.path(), \"link\").is_err());",
       "line": 596,
       "literal": "link",
       "owner": "controller",
@@ -108949,8 +108949,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "assert!(create_file(sandbox.path(), \"link\").is_err());",
+      "line": 597,
+      "literal": "link",
+      "owner": "controller",
+      "path": "src/backend/menu_actions.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let destination = sandbox.dir(\"Dropbox\");",
-      "line": 602,
+      "line": 603,
       "literal": "Dropbox",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108959,7 +108968,7 @@
     },
     {
       "excerpt": "assert!(reply.contains(\"Selected item changed\"));",
-      "line": 626,
+      "line": 627,
       "literal": "Selected item changed",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108968,7 +108977,7 @@
     },
     {
       "excerpt": "assert!(snapshot.handle(r#\"{\"op\":\"activate\",\"id\":12,\"action\":\"taildrop:peer\"}\"#, vec![]).contains(\"The item under the cursor changed; reopen the menu.\"));",
-      "line": 630,
+      "line": 631,
       "literal": "The item under the cursor changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108977,7 +108986,7 @@
     },
     {
       "excerpt": "let reply = snapshot.handle(r#\"{\"op\":\"activate\",\"id\":21,\"action\":\"localsend:Fixture Phone\"}\"#, vec![]);",
-      "line": 645,
+      "line": 646,
       "literal": "{\"op\":\"activate\",\"id\":21,\"action\":\"localsend:Fixture Phone\"}",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108986,7 +108995,7 @@
     },
     {
       "excerpt": "let destination = sandbox.dir(\"Dropbox\");",
-      "line": 654,
+      "line": 655,
       "literal": "Dropbox",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -108995,7 +109004,7 @@
     },
     {
       "excerpt": "sandbox.dir(\"Dropbox\");",
-      "line": 664,
+      "line": 665,
       "literal": "Dropbox",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -109004,7 +109013,7 @@
     },
     {
       "excerpt": "assert!(snapshot.handle(&activate, vec![]).contains(\"Dropbox account folder changed\"));",
-      "line": 665,
+      "line": 666,
       "literal": "Dropbox account folder changed",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -109013,7 +109022,7 @@
     },
     {
       "excerpt": "let link = sandbox.join(\"link\");",
-      "line": 673,
+      "line": 674,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -210021,7 +210030,7 @@
     "crates/flea-gui/src/g2/op2/host/chosen.rs": "1fa756236079a43938df21f9f325292d7dc7966a30f3a30be69f194a72155f8a",
     "crates/flea-gui/src/g2/op2/host/layer.rs": "f802505fb6a237e91f369557229a68de7e0f2811049a13d0f157afc5c05db7b0",
     "crates/flea-gui/src/g2/op2/host/reply.rs": "3a06e3de0fd1d07c317261116d298b464a123cf2e2457f8b063555a6811849fd",
-    "crates/flea-gui/src/g2/op2/host_tests/extract.rs": "0e58a97602fdf64bf66f75190a083a3338eaab6ab8c721e16589e83b7ee26fa9",
+    "crates/flea-gui/src/g2/op2/host_tests/extract.rs": "c2e855254135f11864527ee3c2c7eb64d59caeea1956e3c19298560b6adba49b",
     "crates/flea-gui/src/g2/op2/host_tests/flash.rs": "73934a1d7b5a4860dfe7475f61d6e3ba9475458fb7087a52bad4e81693e53cbc",
     "crates/flea-gui/src/g2/op2/keys.rs": "75da8a09048fd8247e8d664478663d229b7bff0cea54cc0a50fce2cb313af8f0",
     "crates/flea-gui/src/g2/op2/mod.rs": "c30f4135961f57d65cfb95332bcff0144dfd74653f98f72941ca3e6e54aa477e",
@@ -210628,9 +210637,9 @@
     "src/backend/archivefailure.rs": "5a5ad16edc0810fc5d12a9a48bc7388530c6c161a263bf5410b23fe107ee992d",
     "src/backend/archivefree.rs": "638f57994a455989818c9bb5a7864a46dfe77185e5ba934c0a0da3d859cab242",
     "src/backend/archivelist.rs": "6ba21fc9307cb234bd29cca714cbb7c5689facfe07ee12171c9846e404c01a5a",
-    "src/backend/archiveops.rs": "d030415b1a6ea5cd45dfb10366f403d076b05d49cc433dc8223ef8d1bef2a3b6",
+    "src/backend/archiveops.rs": "a311277479a0f92fa146d1173efd38dbc11f8fc0077a121fc4a5ffc337c9c5ee",
     "src/backend/archivepass.rs": "83ed5deb644ff25d47dca23c0a260779c2e05d8b202f2c25923eebfa2e1b982b",
-    "src/backend/archivereq.rs": "a1e87be621db32df77dabd902abe107e8158e8fc8af75998b22b3ca2e19dc62a",
+    "src/backend/archivereq.rs": "820e4b6c7ca564a6ac7d566dc3cc198a4e2d459b670bdc2c86b2c14e0644a8c1",
     "src/backend/archivespec.rs": "9569e3ab8cc5fa96ddbfd9e245a6ce757399de7fe7b289f97962b443cf13f99a",
     "src/backend/archivework.rs": "ef6da55536164ff5ccafbf4aca1f19a4750b15d4a1f67a19871c07d4ec01a14a",
     "src/backend/bulkrename.rs": "dee03d179cfaa66deea1afeadcae922ee4b072ef5060c0105521a33274fde7e6",
@@ -210742,9 +210751,10 @@
     "src/backend/manifestdir.rs": "ecf7741bbfe990baf3427fb53e3dfbeebaa8163d6af5870ead60f30444543ea8",
     "src/backend/md5.rs": "0dc93d9ba71fd2eb80030de0d4dd1b1fde573a60822e603e4dfa8c770767df48",
     "src/backend/mediaprobe.rs": "a608e926f8f51b82e4539fdadcaa8afec520e4d6c7450344c44f593075884946",
-    "src/backend/menu_actions.rs": "ddeb9b849de7a2e46176d2a49c21b1d94554444004e4d727f2566df4c2e7755f",
+    "src/backend/menu_actions.rs": "6a19751831f1a9e3e04f3ed71dab9123b8bda593ddcddf8778664d2b64a48e37",
     "src/backend/menu_registry.rs": "b650741b643ed5172487ef40f6cb097ac6415309da07bbbae6ad4a9fdba2620f",
     "src/backend/menu_registry_work.rs": "499dd157f3a4b4f2ea3341f76c9dff62f0c7b190bb22b93cf0055f9612ca4381",
+    "src/backend/menu_selection.rs": "172662fac4080a29289db1e6167c79603e932bf60b086f4ef53cc7a964fa82a7",
     "src/backend/menu_slot.rs": "1572bef46483b96054be5ca4d71dc6b0353e8ee1789c98b04d0de5bee0cdd99d",
     "src/backend/menucontents.rs": "96b312a581eb97621edd7dffb408671b76dbe1b7361a33b5f0bafbfbd753c00c",
     "src/backend/menucontents_seams.rs": "d10563d967f80bf519f043b528bf9a5e4172ce64bf2232216c8e9af0e1ee6d5a",
@@ -211998,13 +212008,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "a4853be0f09cb2c93a8df49973d48fa761734add",
-  "source_sha": "a4853be0f09cb2c93a8df49973d48fa761734add",
+  "source_ref_sha": "e6ea4e3586b2ea7fa851dfa61727997a6ddd1808",
+  "source_sha": "e6ea4e3586b2ea7fa851dfa61727997a6ddd1808",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
       "missing_literal_candidates": 5649,
-      "source_files": 775
+      "source_files": 776
     },
     "generated/tooling": {
       "keys_with_occurrences": 146,
@@ -212013,7 +212023,7 @@
     },
     "gui": {
       "keys_with_occurrences": 466,
-      "missing_literal_candidates": 1583,
+      "missing_literal_candidates": 1584,
       "source_files": 732
     },
     "qml-reference": {
