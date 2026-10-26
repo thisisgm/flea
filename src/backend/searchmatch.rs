@@ -57,6 +57,21 @@ impl State {
         Self { best, end: vec![DEAD; len + 1], hit: if len == 0 { 0 } else { DEAD } }
     }
 
+    pub(crate) fn resize(&mut self, len: usize) {
+        self.best.resize(len + 1, DEAD);
+        self.end.resize(len + 1, DEAD);
+        self.reset();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn heap_bytes(&self) -> usize { (self.best.capacity() + self.end.capacity()) * std::mem::size_of::<i32>() }
+
+    pub(crate) fn copy_from(&mut self, other: &Self) {
+        self.best.clone_from(&other.best);
+        self.end.clone_from(&other.end);
+        self.hit = other.hit;
+    }
+
     pub(crate) fn reset(&mut self) {
         self.best.fill(DEAD);
         self.best[0] = 0;
@@ -115,7 +130,11 @@ impl Matcher {
     }
 
     pub(crate) fn can_narrow(before: &str, now: &str) -> bool {
-        edit_budget(before) == 0 && edit_budget(now) == 0 && now.starts_with(before)
+        if !now.starts_with(before) { return false; }
+        let budget = edit_budget(before);
+        // The first slash enables path typos, so it must not enlarge the match set.
+        budget == edit_budget(now)
+            && (budget == 0 || before.contains('/') || !now.contains('/'))
     }
 
     pub(crate) fn name(&self, letters: &[Letter], state: &mut State, edits: &mut super::searchtypo::Scratch) -> Option<i32> {

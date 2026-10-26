@@ -239,7 +239,7 @@ impl Session {
             dirs
         });
         #[cfg(test)]
-        let counters = Counters { walks_started: 1, rows_scored: 0, rank_compares: 0 };
+        let counters = Counters { walks_started: 1, ..Counters::default() };
         // A search before any listing starts the priors load; this open ranks without them.
         crate::backend::searchprior::start();
         #[cfg(test)]
@@ -265,6 +265,7 @@ impl Session {
             last_query: String::new(),
             matched_index_len: 0,
             last_matches: Vec::new(),
+            score_scratch: crate::backend::searchindex::QueryScratch::default(),
             pending_rest: None,
             pending_patches: Default::default(),
             folder_n: 0,
