@@ -12,7 +12,7 @@ use std::{
     rc::Rc,
 };
 
-pub const HERO: f32 = 44.;
+pub const HERO: f32 = 48.;
 pub const GAP: f32 = 9.;
 
 /// Animation, an undrawn floor, or a fixed time in seconds into the mode.
@@ -172,6 +172,30 @@ pub fn paint_rects(motion: &Motion, slot: Bounds<Pixels>, ink: Hsla, window: &mu
             ink.opacity(rect.opacity as f32),
         ));
     }
+}
+
+/// The loading stack reserves one caption line, so a changed message cannot recenter the mark.
+pub fn hero(
+    mark: Rc<Crawl>,
+    caption: impl IntoElement,
+    font_size: Pixels,
+    window: &Window,
+) -> gpui::Div {
+    use gpui::prelude::*;
+    let line = window
+        .text_style()
+        .line_height
+        .to_pixels(font_size.into(), window.rem_size())
+        .round();
+    gpui::div()
+        .flex()
+        .flex_col()
+        .items_center()
+        .h(px(HERO + GAP) + line)
+        .flex_shrink_0()
+        .gap(px(GAP))
+        .child(Slot(mark))
+        .child(gpui::div().flex_shrink_0().child(caption))
 }
 
 /// The mark's place in the pane's layout; it records its bounds and its pane's clip and paints nothing, so a crawl frame leaves the pane alone.

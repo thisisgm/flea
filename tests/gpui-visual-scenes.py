@@ -14,6 +14,7 @@ sys.path[:0] = [str(REPO / 'tests/lib'), str(REPO / 'ci/visual')]
 from flea_transport import Window, load, endpoint, client_run
 import scenes
 import blackgate
+import omi_fit
 
 spec = importlib.util.spec_from_file_location('capture_check', REPO / 'tests/gpui-capture-check.py')
 capture = importlib.util.module_from_spec(spec)
@@ -157,7 +158,17 @@ try:
             else:
                 raise ValueError('empty sidecar was accepted')
         window.quit()
-    print('GPUI_SCENES PASS scenes=8 controls=5', flush=True)
+    run(os.environ['FLEA_BIN'], '--ui-state', json.dumps(dict(
+        view='list', density='compact', display=dict(textSize=dict(mode=14)))))
+    empty = root / 'omi-empty'
+    empty.mkdir()
+    window = Window.start(empty, parent=root, frontend='gpui',
+                          log=logs / 'omi-caption-app.log', timeout=15)
+    windows.append(window)
+    wait(window, 'total', '0')
+    omi_fit.caption_case(window, call, grab, logs)
+    window.quit()
+    print('GPUI_SCENES PASS scenes=9 controls=5', flush=True)
 finally:
     for window in windows:
         window.stop()
