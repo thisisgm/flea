@@ -70,3 +70,28 @@ fn shift_alone_relabels_on_press_and_release_and_the_click_follows_it(cx: &mut T
     assert_eq!(card_title(&shell, cx), None);
     quit(&shell, cx);
 }
+
+// The opener reads the window's Shift when its ask returns, so a Shift held before the card opens labels Run.
+#[gpui::test]
+fn shift_held_before_the_card_opens_labels_run_and_the_click_runs(cx: &mut TestAppContext) {
+    let (shell, cx) = shell(cx);
+    cx.simulate_modifiers_change(Modifiers::shift());
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        let shift = window.modifiers().shift;
+        shell.update(cx, |shell, cx| shell.open_run_card(0, "/files/hello.sh".into(), SCRIPT_ASK.into(), shift, cx))
+    });
+    cx.run_until_parked();
+    shell.update(cx, |shell, _| {
+        shell.run_card.as_mut().expect("the run ask opened its card").launch = record_run;
+    });
+    assert_eq!(launch_label(&shell, cx), "Run", "a Shift held before the card opened labels its button");
+    let button = cx.debug_bounds("op3-button-2").expect("Run is drawn");
+    cx.simulate_click(button.center(), Modifiers::shift());
+    cx.run_until_parked();
+    let ran = run_launched();
+    assert_eq!(ran.len(), 1);
+    assert_eq!(ran[0][1], "--run", "the click runs what the drawn button says");
+    assert_eq!(ran[0][2], "/files/hello.sh");
+    quit(&shell, cx);
+}
