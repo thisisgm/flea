@@ -141,7 +141,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 44,
+      "line": 72,
       "path": "crates/flea-gui/src/g2/op2/flash/view.rs",
       "pattern": null,
       "possible_keys": [],
@@ -11267,8 +11267,8 @@
     "archive.flash.choose_image": {
       "call_sites": [
         {
-          "excerpt": "name: image.map(|image| logic::leaf_of(&image.path)).unwrap_or_else(|| i18n.tr(\"archive.flash.choose_image\")),",
-          "line": 21,
+          "excerpt": ".unwrap_or_else(|| i18n.tr(\"archive.flash.choose_image\")),",
+          "line": 38,
           "path": "crates/flea-gui/src/g2/op2/flash/view.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -12247,7 +12247,7 @@
       "call_sites": [
         {
           "excerpt": "Some(_) => i18n.tr(\"archive.flash.eject\"),",
-          "line": 82,
+          "line": 131,
           "path": "crates/flea-gui/src/g2/op2/flash/view.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -16094,8 +16094,8 @@
     "archive.flash.not_image": {
       "call_sites": [
         {
-          "excerpt": "hint: if refused { i18n.tr(\"archive.flash.not_image\") } else { String::new() },",
-          "line": 27,
+          "excerpt": "i18n.tr(\"archive.flash.not_image\")",
+          "line": 49,
           "path": "crates/flea-gui/src/g2/op2/flash/view.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -17339,7 +17339,7 @@
       "call_sites": [
         {
           "excerpt": "title: i18n.tr(\"archive.flash.title\"),",
-          "line": 67,
+          "line": 116,
           "path": "crates/flea-gui/src/g2/op2/flash/view.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -90742,6 +90742,24 @@
       "surface": "gui"
     },
     {
+      "excerpt": "return Some(Reply::error(3, \"FLEA_IPC_ERROR flea.archiveCardsState unavailable fields: retained password-card lifetime, compressCapture.eye, extractCapture.eye (closing Compress discards its model and neither card records painted eye bounds)\"));",
+      "line": 16,
+      "literal": "FLEA_IPC_ERROR flea.archiveCardsState unavailable fields: retained password-card lifetime, compressCapture.eye, extractCapture.eye (closing Compress discards its model and neither card records painted eye bounds)",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/archive_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "return Some(Reply::error(3, \"FLEA_IPC_ERROR flea.flashState unavailable field: view lifetime (an unbuilt host and an empty closed view share the same model state)\"));",
+      "line": 21,
+      "literal": "FLEA_IPC_ERROR flea.flashState unavailable field: view lifetime (an unbuilt host and an empty closed view share the same model state)",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/archive_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "Group::Network => \"network\",",
       "line": 28,
       "literal": "network",
@@ -90756,6 +90774,24 @@
       "literal": "phone",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/devices.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "return Some(Reply::error(3, \"FLEA_IPC_ERROR flea.unlockState unavailable fields: rect, controls, eye (UnlockView does not record painted control bounds or pointer feedback)\"));",
+      "line": 30,
+      "literal": "FLEA_IPC_ERROR flea.unlockState unavailable fields: rect, controls, eye (UnlockView does not record painted control bounds or pointer feedback)",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "return Some(Reply::error(3, format!(\"FLEA_IPC_ERROR flea.{function} unavailable state: the normal Root has no mounted owner for this dialog\")));",
+      "line": 35,
+      "literal": "FLEA_IPC_ERROR flea.{function} unavailable state: the normal Root has no mounted owner for this dialog",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -91012,6 +91048,24 @@
       "surface": "gui"
     },
     {
+      "excerpt": "return Some(Reply::error(3, format!(\"FLEA_IPC_ERROR flea.{function} unavailable field: retained conversion draft (closing or replacing the output card discards it)\")));",
+      "line": 42,
+      "literal": "FLEA_IPC_ERROR flea.{function} unavailable field: retained conversion draft (closing or replacing the output card discards it)",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/output_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "return Some(Reply::error(3, \"FLEA_IPC_ERROR flea.convertState unavailable fields: retained conversion draft, outputLines, outputRect, bodyRect, rect, formats control feedback (the output card does not record the oracle's complete painted state)\"));",
+      "line": 58,
+      "literal": "FLEA_IPC_ERROR flea.convertState unavailable fields: retained conversion draft, outputLines, outputRect, bodyRect, rect, formats control feedback (the output card does not record the oracle's complete painted state)",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/output_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "Group::Network => \"network\",",
       "line": 47,
       "literal": "network",
@@ -91161,6 +91215,24 @@
       "literal": "loading",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/view.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "return Some(Reply::error(3, format!(\"FLEA_IPC_ERROR flea.{function} unavailable state: the window footer is not mounted\")));",
+      "line": 30,
+      "literal": "FLEA_IPC_ERROR flea.{function} unavailable state: the window footer is not mounted",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/window_feedback.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "return Some(Reply::error(3, \"FLEA_IPC_ERROR flea.contextMenuFocusState unavailable field: activeItem (the oracle serializes a runtime QML object, with no GPUI equivalent)\"));",
+      "line": 52,
+      "literal": "FLEA_IPC_ERROR flea.contextMenuFocusState unavailable field: activeItem (the oracle serializes a runtime QML object, with no GPUI equivalent)",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/window_feedback.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -210016,7 +210088,7 @@
     "crates/flea-gui/src/g2/op2/extract.rs": "0278c87ef5c7ffe6fbfd94d034af8346e3db84a4b64c4d61e8aa0da4f093da04",
     "crates/flea-gui/src/g2/op2/flash/mod.rs": "d0ba02f2268c8b62227ccab77af3c044dc59e7faf614b59f2c12f2f20b2c1140",
     "crates/flea-gui/src/g2/op2/flash/run.rs": "271ecba838c07f454079da8f476081db9f0ee94a42a743e721a83c986c3f65a7",
-    "crates/flea-gui/src/g2/op2/flash/view.rs": "35c6a3a8e1a81b108d0246033290bdba2213e7668b1e27c3adfb6229774f5655",
+    "crates/flea-gui/src/g2/op2/flash/view.rs": "0bb511ca55f3a17e0ca280d31e16b48f8ceeaccbd712bce55f531870a9beb2f0",
     "crates/flea-gui/src/g2/op2/host.rs": "fd4f4108fc7f78c629a9641f6888ead751642cd74444f42ff659102577f6b41e",
     "crates/flea-gui/src/g2/op2/host/chosen.rs": "1fa756236079a43938df21f9f325292d7dc7966a30f3a30be69f194a72155f8a",
     "crates/flea-gui/src/g2/op2/host/layer.rs": "f802505fb6a237e91f369557229a68de7e0f2811049a13d0f157afc5c05db7b0",
@@ -210345,17 +210417,20 @@
     "crates/flea-gui/src/input/scroll.rs": "b1a0f03c5d9128c5c35a4119c27ffa7720e8b8ec672e8d92e50b462d79f681f2",
     "crates/flea-gui/src/input/selection.rs": "f1cdd0996aeb2d15fd204536d543e455a8a61624afbe3bb61f6ac3ff3fb00690",
     "crates/flea-gui/src/input/wheel.rs": "5b2305bb75bedbf40e781b215bf05205be212b61ca793c2623c2774544144ce3",
+    "crates/flea-gui/src/ipc/archive_cards.rs": "dbb6205157bd99c72d134eb2b204b2a797c121034eeea21ea7bab7c21406d5a5",
     "crates/flea-gui/src/ipc/chrome.rs": "3cf31aa6e5ec9e843fffcf8a4549beecb794ec1b1b823ca4ac1cb73b58b57ea3",
     "crates/flea-gui/src/ipc/columns.rs": "6b2adfb74512e0424b2d0fe4f4e0c2584ef56c33028d915a0e6ad2fb4585de48",
     "crates/flea-gui/src/ipc/devices.rs": "0c9a010fdcc4ac543327c3a73979ad958a0e99314ae3783227a12fcf0c5e876a",
+    "crates/flea-gui/src/ipc/dialog_cards.rs": "b361a33230c82fe2002caa010e108c36acd58ae2a00a1f8f392a90e6e3b3d4d1",
     "crates/flea-gui/src/ipc/dual.rs": "a16f37b269aee93be583364254546ebc916c1521bb5381390a6da87b8b2f3c47",
     "crates/flea-gui/src/ipc/focus.rs": "12533b80219c486ddd36590616a5e879d4957b9a41b4ec2fc08d4d07a6df3a08",
     "crates/flea-gui/src/ipc/grid.rs": "3a6ef2f73a73a4ed0f80edc3dbc41e7ced4f8e3164f76cf063e0477b0707034f",
     "crates/flea-gui/src/ipc/grid_rows.rs": "935c41f06358da43669d4f009ea08ec6c141e93d3542b318f3f1d6020ce340eb",
-    "crates/flea-gui/src/ipc/mod.rs": "563eaa2f8a16f522011c598e441ed52cd0a0a345da50184ab8d5ef5abfe87f53",
+    "crates/flea-gui/src/ipc/mod.rs": "cd18cf0f06813ad44f22012b4874089f9da538d0953ac710a84442741dc7ea82",
     "crates/flea-gui/src/ipc/native_window.rs": "dd2c3ec1439a6aeae8652a6bfbcd6e733ed85fd020b944b8b8635b05b8affe42",
     "crates/flea-gui/src/ipc/navigation.rs": "dc6ecdbccd6bca19ab32af13b6636f7f1cafcc839f60b00ac0744f0c07faade4",
     "crates/flea-gui/src/ipc/network.rs": "3eab5321627fc56a14e13b398c1425cc6aadb4271addcc48cd99ca0c28a06f7b",
+    "crates/flea-gui/src/ipc/output_cards.rs": "a8090d067f158a1f03ca6674d443b590a685ff0c8e1a9837b920394c71a60244",
     "crates/flea-gui/src/ipc/pane.rs": "4c9697e0c4baea0cef6df13ab50ab1067c78453305835ddda0f52d243587a2d3",
     "crates/flea-gui/src/ipc/path.rs": "549964f2c510f9817054a3e53c1df71b4abdb705d07b26eb8cb41ea7a0d84600",
     "crates/flea-gui/src/ipc/rail.rs": "955df64c8a8d665cc8601e4751da7ea79a444153b7859f42b7f06378aa461fa0",
@@ -210371,6 +210446,7 @@
     "crates/flea-gui/src/ipc/tabs.rs": "c2910888a0035755ddb686b41c28601cb2ed78b810cf0c9bf0464433a5bae0b5",
     "crates/flea-gui/src/ipc/thumbnails.rs": "e16df3b49c9ff9d4bea41886231b2e16d1028ddaca983832dfef33b7d1b1d377",
     "crates/flea-gui/src/ipc/view.rs": "565977986d04a0f2495e8227b18efe471da294fd15abb830da31941272191973",
+    "crates/flea-gui/src/ipc/window_feedback.rs": "d60dcd9964b0dd6f8becfe8935145fa00c7d19fce961c9c76c4302266617f4b0",
     "crates/flea-gui/src/lib.rs": "25d1b9095043466bd6dc9041bd74e42e367b4b19d81eafda2d84ce624da27bca",
     "crates/flea-gui/src/list.rs": "dce9f5056bf49e3c693e1b452d551c6aa16931b0a0a32e3cb0a5fa76cb202b18",
     "crates/flea-gui/src/list/bench.rs": "98f488f3e3fab2dbb1f59d1bf8e2faa97ca64e14039316379954e72df1e638a4",
@@ -210520,7 +210596,7 @@
     "crates/flea-gui/src/window/dual_edge.rs": "a8f17ce42133fbcf0a3342193c35d5eb0c6663d634d3f425ea3b84a2bf5010d9",
     "crates/flea-gui/src/window/events.rs": "0ed216cbe0162789bde81c75f7d53f2ef438c5edfadc08c7735a1a77baacf4c3",
     "crates/flea-gui/src/window/events_filesystem.rs": "bf070645cae5d817488fe34ea194c1de8d77b9a3087617a632451aed711739c3",
-    "crates/flea-gui/src/window/events_ipc.rs": "32d15920371cb54a52e22ddc8f588782f637285bac72f62646fe885c09a5574b",
+    "crates/flea-gui/src/window/events_ipc.rs": "3dabe6aee19c22491767c5044be6773fc28850691d998045cf7dddd42a7fb293",
     "crates/flea-gui/src/window/events_quit.rs": "2b0efd75460e668005913b5b5259972941b170505938d76f70498c281a5ce62e",
     "crates/flea-gui/src/window/events_slow.rs": "61ca3ba2bba407279ad62e85fddfe16f7744e2fdf4ad9ebb7296bff4a530f689",
     "crates/flea-gui/src/window/filter.rs": "661adc5496554df29a7355ee5e62085d9cc0a8068a2b5991839a9d1ba693f206",
@@ -211998,8 +212074,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "a4853be0f09cb2c93a8df49973d48fa761734add",
-  "source_sha": "a4853be0f09cb2c93a8df49973d48fa761734add",
+  "source_ref_sha": "42a4de7180aa97d2e19a5481c1bdc478b4598106",
+  "source_sha": "42a4de7180aa97d2e19a5481c1bdc478b4598106",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
@@ -212013,8 +212089,8 @@
     },
     "gui": {
       "keys_with_occurrences": 466,
-      "missing_literal_candidates": 1583,
-      "source_files": 732
+      "missing_literal_candidates": 1591,
+      "source_files": 736
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
