@@ -9,6 +9,7 @@ use crate::{
     state::Shell,
     window::{dispatch::Order, input::ActionEvent, navigate::Step, startup::View},
 };
+use flea::ui_logic_fb1::status::Hint;
 use gpui::{AppContext, Context, Entity, Subscription, Window};
 
 #[derive(Default)]
@@ -207,6 +208,9 @@ impl Shell {
                 if let Some(host) = self.panes[self.focus_side].as_mut() {
                     host.status = message.clone().into();
                 }
+                self.status_messages(cx, |messages, now| {
+                    messages.say(message, false, "", Hint::None, now)
+                });
                 cx.notify();
             }
             Out::Closed => {

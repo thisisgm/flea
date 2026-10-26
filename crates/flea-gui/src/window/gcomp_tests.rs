@@ -25,6 +25,8 @@ mod menu;
 pub(super) mod operations;
 #[path = "gcomp_path_tests.rs"]
 mod path;
+#[path = "gcomp_pathtab_tests.rs"]
+mod pathtab;
 #[path = "gcomp_presentation_tests.rs"]
 mod presentation;
 #[path = "gcomp_status_tests.rs"]
