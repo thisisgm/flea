@@ -11,6 +11,9 @@ pub(super) fn open_with(cx: &mut TestAppContext, backend: Backend) -> WindowHand
     cx.add_window(|window, cx| {
         let shell = cx.new(|cx| {
             let mut shell = shell_with(backend, cx);
+            // These tests read every operation command in order, so the rows ask no thumbnails between them.
+            shell.launch.settings.data =
+                flea::jsondoc::parse(r#"{"preview":{"thumbnails":"off"}}"#).unwrap();
             // Ready listing2 gets independent footer facts and List local class "", without consuming or filtering commands.
             let host = shell.panes[0].as_mut().unwrap();
             host.sizes = crate::list::sizes::State::settled_fixture(

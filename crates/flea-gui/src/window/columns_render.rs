@@ -85,10 +85,12 @@ impl Shell {
             )
             .with_languages(languages);
             if view.slot == Slot::Active {
-                element = element.with_sizes(Rc::new(crate::columns::walks::Walked {
-                    list: Rc::clone(&host.list),
-                    listing: host.pane.held.listing,
-                }));
+                element = element
+                    .with_sizes(Rc::new(crate::columns::walks::Walked {
+                        list: Rc::clone(&host.list),
+                        listing: host.pane.held.listing,
+                    }))
+                    .with_pictures(Rc::clone(&host.list.borrow().pictures));
             }
             let mut track = div()
                 .absolute()

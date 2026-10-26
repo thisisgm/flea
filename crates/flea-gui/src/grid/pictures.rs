@@ -1,12 +1,25 @@
-//! The Grid's production pictures and marks: Thumbs.js's viewport asks, the thumbed answers decoded off the UI thread, and LangMarks.js's slugs.
+//! A pane's production pictures and the Grid's marks: Thumbs.js's viewport asks from the Grid, the List or the active Columns track, the thumbed answers decoded off the UI thread, and LangMarks.js's slugs.
+#[path = "pictures/decor.rs"]
+mod decor;
+#[cfg(test)]
+#[path = "pictures/faded_tests.rs"]
+mod faded_tests;
+#[path = "pictures/policy.rs"]
+mod policy;
+#[path = "pictures/readers.rs"]
+mod readers;
+#[path = "pictures/surface.rs"]
+mod surface;
 #[path = "pictures/wire.rs"]
 mod wire;
 
+pub use decor::{paint_in_slot, Counters};
+pub use policy::{Mode, Policy};
+
 use super::{Decor, Identity, Thumbnail};
-use crate::list::pane::Held;
-use crate::row::marks::{Language, Mark};
-use flea::{jsondoc::Json, protocol::RowFacts};
-use gpui::{RenderImage, SharedString, Task};
+use crate::{list::pane::Held, row::marks::Language};
+use flea::protocol::RowFacts;
+use gpui::{RenderImage, Task};
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
@@ -18,80 +31,9 @@ use std::{
 const SETTLE_MS: u64 = 120;
 const FIRST_SETTLE_MS: u64 = 70;
 const CAP: usize = 240;
-// Names whose language slug is remembered; a folder change forgets them.
-const NAMES: usize = 1024;
-
-/// ViewState.thumbnailMode: preview.thumbnails, absent reads media.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Mode {
-    Off,
-    Images,
-    Media,
-}
-
-/// The ui.json facts Grid pictures and marks follow: the thumbnail mode, ExtThumbs.js's class switches and ViewState.langMarks.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Policy {
-    pub mode: Mode,
-    pub usb: bool,
-    pub network: bool,
-    pub phone: bool,
-    pub languages: bool,
-}
-
-impl Policy {
-    /// Sample input: {"preview":{"thumbnails":"images","thumbUsb":false},"langMarks":true}; absent keys read as v0.3.12 reads them.
-    pub fn read(data: &Json) -> Self {
-        let preview = data.get("preview");
-        let flag = |key| preview.and_then(|p| p.get(key)).and_then(Json::as_bool);
-        Self {
-            mode: match preview.and_then(|p| p.get("thumbnails")).and_then(Json::as_str) {
-                Some("off") => Mode::Off,
-                Some("images") => Mode::Images,
-                _ => Mode::Media,
-            },
-            usb: flag("thumbUsb") != Some(false),
-            network: flag("thumbNetwork") == Some(true),
-            phone: flag("thumbPhone") == Some(true),
-            languages: data.get("langMarks").and_then(Json::as_bool) != Some(false),
-        }
-    }
-
-    /// ExtThumbs.cacheOnly: a class whose switch is off asks the shared cache only, so pictures already made still draw.
-    pub fn cache_only(&self, class: &str) -> bool {
-        let off = match class {
-            "usb" => !self.usb,
-            "network" => !self.network,
-            "phone" => !self.phone,
-            _ => false,
-        };
-        off && self.mode != Mode::Off
-    }
-
-    /// Thumbs.allowed; RowFacts carries no t flag, so a file the backend cannot picture is asked and answers empty.
-    pub fn allowed(&self, row: &RowFacts) -> bool {
-        !row.dir
-            && match self.mode {
-                Mode::Off => false,
-                Mode::Images => is_image(row),
-                Mode::Media => true,
-            }
-    }
-}
 
 fn is_image(row: &RowFacts) -> bool {
     row.icon == "image-x-generic"
-}
-
-/// What the pictures did, so tests and the native run can read the policy back.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct Counters {
-    pub asked: usize,
-    pub cancelled: usize,
-    pub answered: usize,
-    pub decoded: usize,
-    pub refused: usize,
-    pub retired: usize,
 }
 
 // One row's thumbnail as this listing has dealt with it; image records whether Images mode may draw it.
@@ -109,8 +51,13 @@ enum Slot {
         _task: Task<()>,
     },
     Ready {
+        file: String,
         picture: Arc<Thumbnail>,
         image: bool,
+    },
+    Failed {
+        identity: Identity,
+        file: String,
     },
     // Answered with nothing, or with a file that would not decode: the mark stays.
     Refused,
@@ -121,7 +68,9 @@ enum Slot {
 impl Slot {
     fn identity(&self) -> Option<&Identity> {
         match self {
-            Self::Asked { identity, .. } | Self::Decoding { identity, .. } => Some(identity),
+            Self::Asked { identity, .. }
+            | Self::Decoding { identity, .. }
+            | Self::Failed { identity, .. } => Some(identity),
             Self::Ready { picture, .. } => Some(&picture.identity),
             Self::Refused | Self::Missed => None,
         }
@@ -133,9 +82,17 @@ impl Slot {
 struct Key {
     listing: usize,
     span: (usize, usize),
+    // A List filter's drawn view positions and the identity of its shown rows, Filter.cut; None asks the whole span.
+    only: Option<(usize, usize, usize)>,
     mode: Mode,
     // None until fsinfo names the folder's class.
     cache: Option<bool>,
+}
+
+struct Faded {
+    level: u32,
+    source: Arc<RenderImage>,
+    copy: Arc<Thumbnail>,
 }
 
 #[derive(Default)]
@@ -155,6 +112,8 @@ struct Map {
     names: HashMap<Box<str>, Option<Language>>,
     retired: Vec<Arc<RenderImage>>,
     counters: Counters,
+    // A cut row's faded copy of each picture at one level, keyed by the source image it holds, so the key is never reused while kept.
+    faded: HashMap<usize, Faded>,
 }
 
 impl Map {
@@ -167,16 +126,49 @@ impl Map {
 
     fn forget(&mut self, row: usize) {
         if let Some(Slot::Ready { picture, .. }) = self.slots.remove(&row) {
-            self.retired.push(Arc::clone(&picture.image));
-            self.counters.retired += 1;
+            self.retire(&picture);
         }
         self.order.retain(|kept| *kept != row);
     }
 
+    // A picture leaves the listing: its texture and its faded copy go to the atlas drop.
+    fn retire(&mut self, picture: &Thumbnail) {
+        self.retired.push(Arc::clone(&picture.image));
+        self.counters.retired += 1;
+        if let Some(faded) = self.faded.remove(&image_key(&picture.image)) {
+            self.retired.push(Arc::clone(&faded.copy.image));
+        }
+    }
+
+    // Faded copies whose source no Ready slot holds, made by a paint the source had already left.
+    fn sweep_faded(&mut self) {
+        let held: Vec<usize> = self
+            .slots
+            .values()
+            .filter_map(|slot| match slot {
+                Slot::Ready { picture, .. } => Some(image_key(&picture.image)),
+                _ => None,
+            })
+            .collect();
+        let gone: Vec<usize> = self
+            .faded
+            .keys()
+            .copied()
+            .filter(|key| !held.contains(key))
+            .collect();
+        for key in gone {
+            if let Some(faded) = self.faded.remove(&key) {
+                self.retired.push(Arc::clone(&faded.copy.image));
+            }
+        }
+    }
+
     // Thumbs.remember: the oldest record goes once the cap is passed.
     fn remember(&mut self, row: usize, slot: Slot) {
-        if self.slots.insert(row, slot).is_none() {
-            self.order.push_back(row);
+        match self.slots.insert(row, slot) {
+            None => self.order.push_back(row),
+            Some(Slot::Ready { picture, .. }) => self.retire(&picture),
+            Some(_) => {}
         }
         while self.order.len() > CAP {
             let oldest = self.order[0];
@@ -209,33 +201,49 @@ impl Map {
                 .map(|(at, row)| (row.name.as_str(), held.start + at))
                 .collect();
             for row in std::mem::take(&mut self.order) {
-                if let Some(Slot::Ready { picture, image }) = self.slots.remove(&row) {
+                if let Some(Slot::Ready {
+                    picture,
+                    image,
+                    file,
+                }) = self.slots.remove(&row)
+                {
                     let moved = at
                         .get(picture.identity.name.as_str())
                         .copied()
                         .filter(|&to| held.row(to).is_some_and(|facts| picture.identity.is(facts)));
                     match moved {
-                        Some(to) => carried.push((to, Slot::Ready { picture, image })),
-                        None => {
-                            self.retired.push(Arc::clone(&picture.image));
-                            self.counters.retired += 1;
-                        }
+                        Some(to) => carried.push((
+                            to,
+                            Slot::Ready {
+                                picture,
+                                image,
+                                file,
+                            },
+                        )),
+                        None => self.retire(&picture),
                     }
                 }
             }
         } else {
             self.names.clear();
         }
-        self.release();
+        self.clear();
         for (row, slot) in carried {
             self.remember(row, slot);
         }
+        self.sweep_faded();
         self.listing = held.listing;
         self.path = path.to_owned();
     }
 
-    // Forgets every record and returns the rows the backend still holds jobs for.
+    // Forgets every record and every faded copy, and returns the rows the backend still holds jobs for.
     fn release(&mut self) -> Vec<usize> {
+        let pending = self.clear();
+        self.sweep_faded();
+        pending
+    }
+
+    fn clear(&mut self) -> Vec<usize> {
         let pending = self.pending().collect();
         for row in std::mem::take(&mut self.order) {
             self.forget(row);
@@ -248,77 +256,14 @@ impl Map {
     }
 }
 
-/// The production Decor: the thumbnails and language marks one Grid pane lends its tiles.
+fn image_key(image: &Arc<RenderImage>) -> usize {
+    Arc::as_ptr(image) as usize
+}
+
+/// The production Decor: the thumbnails one pane lends its Grid tiles, List rows and active Columns track, and the Grid's language marks.
 #[derive(Default)]
 pub struct Pictures {
     map: RefCell<Map>,
     // The clipboard marks the pane's tiles wear, which Pictures draws through; it never paints marks of its own.
     clip: RefCell<Option<Rc<dyn Decor>>>,
-}
-
-impl Pictures {
-    /// Hands the tiles their clipboard marks, which outlive every picture this decor lends.
-    pub fn set_clip(&self, marks: Rc<dyn Decor>) {
-        *self.clip.borrow_mut() = Some(marks);
-    }
-
-    pub fn counters(&self) -> Counters {
-        self.map.borrow().counters
-    }
-    /// Rows holding a decoded picture.
-    pub fn lent(&self) -> usize {
-        let map = self.map.borrow();
-        map.slots
-            .values()
-            .filter(|slot| matches!(slot, Slot::Ready { .. }))
-            .count()
-    }
-    /// Rows asked and not yet answered.
-    pub fn waiting(&self) -> Vec<usize> {
-        self.map.borrow().pending().collect()
-    }
-}
-
-impl Decor for Pictures {
-    fn thumbnail(&self, listing: usize) -> Option<Arc<Thumbnail>> {
-        let map = self.map.borrow();
-        let mode = map.policy.map_or(Mode::Off, |policy| policy.mode);
-        match map.slots.get(&listing)? {
-            Slot::Ready { picture, image } if mode == Mode::Media || (mode == Mode::Images && *image) => {
-                Some(Arc::clone(picture))
-            }
-            _ => None,
-        }
-    }
-
-    // Mark::for_facts's gate, with each name's slug remembered so a still frame allocates nothing.
-    fn language(&self, row: &RowFacts) -> Option<(SharedString, &'static [u8])> {
-        let mut map = self.map.borrow_mut();
-        if !map.policy.is_some_and(|policy| policy.languages)
-            || row.dir
-            || crate::row::is_symlink(row.mode)
-        {
-            return None;
-        }
-        let language = match map.names.get(row.name.as_str()) {
-            Some(language) => *language,
-            None => {
-                if map.names.len() >= NAMES {
-                    map.names.clear();
-                }
-                let language = Language::for_file(&row.name);
-                map.names.insert(row.name.as_str().into(), language);
-                language
-            }
-        };
-        language.map(|language| Mark::Language(language).svg())
-    }
-
-    fn clip_row(&self, listing: usize, row: Option<&RowFacts>) -> Option<crate::grid::element::Clip> {
-        self.clip.borrow().as_ref()?.clip_row(listing, row)
-    }
-
-    fn pictures(&self) -> Option<&Pictures> {
-        Some(self)
-    }
 }

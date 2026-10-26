@@ -18,7 +18,8 @@ use gpui::{
     GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels,
     SharedString, Style, TransformationMatrix, Window,
 };
-use std::{cell::RefCell, rc::Rc};
+use crate::grid::element::{pictures::paint_in_slot, Thumbnail};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 // Row.qml's loading bar draws at a fifth of the muted frame, so scrolling reads as loading.
 const LOADING: f32 = 0.2;
@@ -70,6 +71,8 @@ pub struct Shown {
     pub prepared: Option<Rc<Prepared>>,
     pub clip: Option<ClipMark>,
     pub state: RowState,
+    /// The thumbnail drawn in the mark slot, lent while the row's facts match the answer.
+    pub picture: Option<Arc<Thumbnail>>,
 }
 
 impl Shown {
@@ -290,6 +293,7 @@ impl Element for ListElement {
             drawn,
             blank,
             drop_line,
+            pictures,
             ..
         } = &mut *state;
         let shaping = Shaping {
@@ -357,6 +361,7 @@ impl Element for ListElement {
                     prepared: None,
                     clip: None,
                     state: marks,
+                    picture: None,
                 });
                 continue;
             };
@@ -393,6 +398,11 @@ impl Element for ListElement {
                 prepared: Some(prepared),
                 clip,
                 state: marks,
+                // Row.qml dims a cut row's thumbnail with the rest of its mark.
+                picture: pictures.lend(index, facts).map(|picture| match clip {
+                    Some(ClipMark::Cut) => pictures.faded(picture, CUT_DIM),
+                    _ => picture,
+                }),
             });
         }
         *drawn = super::Drawn {
@@ -519,7 +529,7 @@ impl Element for ListElement {
                     ));
                 }
                 // One layer for every mark and glyph, so the scene orders the whole list once rather than once a line.
-                let (mut marks_painted, mut cells_painted) = (0, 0);
+                let (mut marks_painted, mut cells_painted, mut pictures_painted) = (0, 0, 0);
                 window.paint_layer(bounds, |window| {
                     for shown in &state.visible {
                         let lifted = shown.state.lifted();
@@ -530,6 +540,20 @@ impl Element for ListElement {
                             1.
                         };
                         let top = top_of(shown.view);
+                        // Row.qml: a thumbnail fills the mark slot, a Dual pane's at the mark's own size, fitted whole.
+                        if let Some(picture) = &shown.picture {
+                            let side = if view.dual { metrics.mark } else { metrics.slot };
+                            let slot = Bounds::new(
+                                point(
+                                    left + px(metrics.pad + (metrics.slot - side) / 2.),
+                                    top + px((row - side) / 2.),
+                                ),
+                                size(px(side), px(side)),
+                            );
+                            paint_in_slot(picture, slot, window);
+                            marks_painted += 1;
+                            pictures_painted += 1;
+                        }
                         let at = point(
                             left + px(metrics.pad + (metrics.slot - metrics.mark) / 2.),
                             top + px((row - metrics.mark) / 2.),
@@ -539,14 +563,16 @@ impl Element for ListElement {
                             .prepared
                             .as_ref()
                             .map_or(Mark::File, |prepared| prepared.mark);
-                        let (key, data) = mark.svg();
-                        let ink = if lifted {
-                            palette.foreground
-                        } else {
-                            palette.metadata_frame
-                        };
-                        paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
-                        marks_painted += 1;
+                        if shown.picture.is_none() {
+                            let (key, data) = mark.svg();
+                            let ink = if lifted {
+                                palette.foreground
+                            } else {
+                                palette.metadata_frame
+                            };
+                            paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
+                            marks_painted += 1;
+                        }
                         let Some(prepared) = &shown.prepared else {
                             continue;
                         };
@@ -672,6 +698,7 @@ impl Element for ListElement {
                 });
                 state.painted_marks.set(marks_painted);
                 state.painted_cells.set(cells_painted);
+                state.painted_pictures.set(pictures_painted);
             },
         );
         if let Some(draw) = &self.search_feedback {
