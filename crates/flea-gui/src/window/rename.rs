@@ -11,6 +11,8 @@ pub(crate) mod field;
 mod input;
 #[path = "rename_ipc.rs"]
 pub(crate) mod ipc;
+#[path = "rename_place.rs"]
+mod place;
 #[path = "rename_replies.rs"]
 mod replies;
 #[path = "rename_slow.rs"]

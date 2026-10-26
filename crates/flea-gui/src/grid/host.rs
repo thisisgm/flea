@@ -233,9 +233,11 @@ impl PaneHost {
         size: (f32, f32),
         data: &Json,
         locale: &crate::window::locale::Snapshot,
+        renaming: Option<usize>,
     ) -> AnyElement {
         self.grid_ready(size, data, locale);
         let grid = self.grid.as_mut().expect("a Grid host");
+        grid.overlay.renaming = renaming;
         let filtered = self.filter.shown.clone();
         let shown = filtered.as_deref().map_or(Shown::All(self.pane.held.total), Shown::Only);
         let mut focus = grid.next_view.as_ref().map_or_else(

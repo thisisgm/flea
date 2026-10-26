@@ -18,6 +18,8 @@ pub(crate) struct PaneInputs<'a> {
     pub palette: &'a Palette,
     pub marked: bool,
     pub states: Option<AnyView>,
+    /// The row whose name the rename field covers, so its tile drops its own caption.
+    pub renaming: Option<usize>,
 }
 
 impl PaneHost {
@@ -29,7 +31,7 @@ impl PaneHost {
     ) -> AnyElement {
         let side = input.side;
         self.list.borrow_mut().park();
-        let content = self.render_grid(input.size, input.data, input.locale);
+        let content = self.render_grid(input.size, input.data, input.locale, input.renaming);
         div()
             .id(("pane", side))
             .size_full()

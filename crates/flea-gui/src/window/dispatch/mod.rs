@@ -145,6 +145,8 @@ mod rename_slow_tests;
 #[cfg(test)]
 mod rename_tests;
 #[cfg(test)]
+mod rename_views_tests;
+#[cfg(test)]
 mod retry_tests;
 #[cfg(test)]
 mod search_open_tests;
