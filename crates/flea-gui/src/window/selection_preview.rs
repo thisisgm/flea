@@ -37,6 +37,8 @@ mod play;
 pub(crate) mod readers;
 #[path = "selection_preview_render.rs"]
 pub(crate) mod render;
+#[path = "selection_preview_picture.rs"]
+pub(crate) mod picture;
 
 static NEXT: AtomicU64 = AtomicU64::new(1);
 fn token() -> u64 {
@@ -215,9 +217,26 @@ pub(crate) struct Frame {
     pub thumb_answered: bool,
     pub source: Option<gpui::Resource>,
     pub image: Option<Arc<RenderImage>>,
+    /// An animated GIF's own frames, loaded from the original over its still frame.
+    pub animation: Option<Arc<RenderImage>>,
+    pub animation_source: Option<gpui::Resource>,
     pub failed: bool,
     pub manual: bool,
     pub _watch: Option<Subscription>,
+}
+
+impl Frame {
+    /// An image frame that animates: a GIF with more than one frame, its still already drawn.
+    pub(crate) fn animated_gif(&self) -> bool {
+        self.kind == Kind::Image
+            && self.subject.row.name.to_ascii_lowercase().ends_with(".gif")
+            && self.facts.as_ref().is_some_and(|meta| {
+                // Every frame decodes whole up front, so the moving layer keeps to the raster budget.
+                let pixels = u64::from(meta.w) * u64::from(meta.h) * u64::from(meta.frames);
+                meta.frames > 1 && pixels > 0 && pixels <= crate::g2::pv2::poppler::MAX_PIXELS
+            })
+            && self.image.is_some()
+    }
 }
 
 #[derive(Default)]

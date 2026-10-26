@@ -15,6 +15,8 @@ const ZIP_MAGIC: [u8; 4] = *b"PK\x03\x04";
 const END_MAGIC: [u8; 4] = *b"PK\x05\x06";
 const ENTRY_MAGIC: [u8; 4] = *b"PK\x01\x02";
 const CONTENT: &[u8] = b"content.xml";
+const MIMETYPE: &[u8] = b"mimetype";
+const CONTENT_TYPES: &[u8] = b"[Content_Types].xml";
 const PACKAGE: &[u8] = b"encrypted-package";
 const XML: &[u8] = b"<?xml";
 const BOM_XML: &[u8] = b"\xef\xbb\xbf<?xml";
@@ -64,30 +66,94 @@ pub fn first(path: &str, head: &[u8], tail: &[u8], tail_at: u64) -> Verdict {
 // The central directory as the end record places it, inside the tail: an encrypted-package entry is a whole-package
 // password, and content.xml's entry names the local header to read.
 fn directory(tail: &[u8], tail_at: u64) -> Option<Verdict> {
-    let end = (0..=tail.len().checked_sub(22)?)
-        .rev()
-        .find(|&at| tail[at..].starts_with(&END_MAGIC))?;
-    let entries = u16_at(tail, end + 10)? as usize;
-    let dir_at = u64::from(u32_at(tail, end + 16)?);
-    let mut at = usize::try_from(dir_at.checked_sub(tail_at)?).ok()?;
     let mut content = None;
-    for _ in 0..entries {
-        if !tail.get(at..)?.starts_with(&ENTRY_MAGIC) {
-            return None;
-        }
-        let name_len = u16_at(tail, at + 28)? as usize;
-        let extra = u16_at(tail, at + 30)? as usize;
-        let comment = u16_at(tail, at + 32)? as usize;
-        let name = tail.get(at + 46..at + 46 + name_len)?;
+    for (name, at) in entries(tail, tail_at)? {
         if name == PACKAGE {
             return Some(Verdict::Locked);
         }
         if name == CONTENT {
             content = Some(u64::from(u32_at(tail, at + 42)?));
         }
-        at += 46 + name_len + extra + comment;
     }
     content.map(Verdict::Local)
+}
+
+// Where the end record sits in the tail; a zip always has one there, since the tail holds the largest comment.
+fn end_record(tail: &[u8]) -> Option<usize> {
+    (0..=tail.len().checked_sub(22)?)
+        .rev()
+        .find(|&at| tail[at..].starts_with(&END_MAGIC))
+}
+
+// Each central-directory entry's name and offset in the tail; None when the directory cannot be read from the tail.
+fn entries(tail: &[u8], tail_at: u64) -> Option<Vec<(&[u8], usize)>> {
+    let end = end_record(tail)?;
+    let count = u16_at(tail, end + 10)? as usize;
+    let dir_at = u64::from(u32_at(tail, end + 16)?);
+    let mut at = usize::try_from(dir_at.checked_sub(tail_at)?).ok()?;
+    let mut list = Vec::with_capacity(count);
+    for _ in 0..count {
+        if !tail.get(at..)?.starts_with(&ENTRY_MAGIC) {
+            return None;
+        }
+        let name_len = u16_at(tail, at + 28)? as usize;
+        let extra = u16_at(tail, at + 30)? as usize;
+        let comment = u16_at(tail, at + 32)? as usize;
+        list.push((tail.get(at + 46..at + 46 + name_len)?, at));
+        at += 46 + name_len + extra + comment;
+    }
+    Some(list)
+}
+
+/// Whether `path` names a zip container kind at all: an ODF or OOXML extension, never a legacy or RTF name.
+pub fn is_container_path(path: &str) -> bool {
+    matches!(
+        ext(path).as_str(),
+        "odt" | "ods" | "odp" | "docx" | "xlsx" | "pptx"
+    )
+}
+
+/// A real container: a zip whose directory lists its kind's member; an unread directory or a non-container name stays real.
+pub fn real_container(path: &str, head: &[u8], tail: &[u8], tail_at: u64) -> bool {
+    let ext = ext(path);
+    let wanted: &[u8] = match ext.as_str() {
+        "odt" | "ods" | "odp" => MIMETYPE,
+        "docx" | "xlsx" | "pptx" => {
+            if head.starts_with(&CFB_MAGIC) {
+                return true;
+            }
+            CONTENT_TYPES
+        }
+        _ => return true,
+    };
+    if !head.starts_with(&ZIP_MAGIC) || end_record(tail).is_none() {
+        return false;
+    }
+    entries(tail, tail_at).is_none_or(|list| list.iter().any(|(name, _)| *name == wanted))
+}
+
+/// The whole container check over a reader of the file's bytes, `read(at, len)`, bounded like the sniff.
+pub fn is_real_container(
+    path: &str,
+    size: u64,
+    read: &mut dyn FnMut(u64, usize) -> Option<Vec<u8>>,
+) -> bool {
+    if !is_container_path(path) {
+        return true;
+    }
+    let Some(head) = read(0, HEAD) else {
+        return true;
+    };
+    let tail_at = size.saturating_sub(TAIL as u64);
+    let tail = if head.starts_with(&ZIP_MAGIC) {
+        let Some(tail) = read(tail_at, (size - tail_at) as usize) else {
+            return true;
+        };
+        tail
+    } else {
+        Vec::new()
+    };
+    real_container(path, &head, &tail, tail_at)
 }
 
 /// The verdict from content.xml's local header: an entry stored whole that does not open with an XML declaration is

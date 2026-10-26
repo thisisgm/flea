@@ -54,6 +54,11 @@ fn verdict(path: &str, bytes: Vec<u8>) -> bool {
     sniff(path, size, &mut over(bytes)).0
 }
 
+fn real(path: &str, bytes: Vec<u8>) -> bool {
+    let size = bytes.len() as u64;
+    is_real_container(path, size, &mut over(bytes))
+}
+
 #[test]
 fn office_sniff_an_encrypted_ooxml_package_is_a_compound_file() {
     let mut cfb = CFB_MAGIC.to_vec();
@@ -101,6 +106,50 @@ fn office_sniff_an_encrypted_odf_stores_content_that_is_not_xml() {
     assert!(
         !verdict("/d/a.odt", cut),
         "a truncated directory is read as not locked"
+    );
+}
+
+#[test]
+fn office_container_a_fake_odt_is_not_a_real_container() {
+    assert!(
+        !real("/d/letter.odt", b"PK not really an office document".to_vec()),
+        "a 33-byte fake .odt is not a real ODF container"
+    );
+    assert!(
+        !real("/d/a.odt", b"not a zip at all".to_vec()),
+        "an .odt that is not a zip is not a real container"
+    );
+    assert!(
+        !real("/d/a.docx", zip(&[("word/document.xml", b"<w/>")])),
+        "an OOXML zip with no [Content_Types].xml is not a real container"
+    );
+    assert!(
+        !real("/d/a.xlsx", zip(&[("mimetype", b"application/vnd.oasis.opendocument.text")])),
+        "an .xlsx holding only a mimetype is not a real OOXML container"
+    );
+    let odt = zip(&[
+        ("mimetype", b"application/vnd.oasis.opendocument.text"),
+        ("content.xml", b"<?xml version=\"1.0\"?>"),
+    ]);
+    assert!(real("/d/note.odt", odt), "a real .odt still previews");
+    let docx = zip(&[
+        ("[Content_Types].xml", b"<Types/>"),
+        ("word/document.xml", b"<w/>"),
+    ]);
+    assert!(real("/d/report.docx", docx), "a real .docx still previews");
+    let xlsx = zip(&[("[Content_Types].xml", b"<Types/>")]);
+    assert!(real("/d/budget.xlsx", xlsx), "a real .xlsx still previews");
+    let pptx = zip(&[("[Content_Types].xml", b"<Types/>")]);
+    assert!(real("/d/talk.pptx", pptx), "a real .pptx still previews");
+    assert!(
+        real("/d/old.doc", b"not a zip at all".to_vec()),
+        "a legacy .doc is not a container kind, so the conversion still decides"
+    );
+    let mut cfb = CFB_MAGIC.to_vec();
+    cfb.resize(512, 0);
+    assert!(
+        real("/d/lease.docx", cfb),
+        "a compound-file .docx is Office's encrypted package, not a fake"
     );
 }
 
@@ -180,5 +229,28 @@ fn office_sniff_real_libreoffice_files() {
     assert!(
         verdict("/d/a.odt", tag),
         "encrypted data that happens to start with < is still not XML"
+    );
+}
+
+#[test]
+fn office_container_an_unreadable_directory_or_read_keeps_the_conversions_answer() {
+    let mut big = ZIP_MAGIC.to_vec();
+    big.resize(TAIL + 100, 0);
+    let end = big.len() - 22;
+    big[end..end + 4].copy_from_slice(&END_MAGIC);
+    big[end + 10..end + 12].copy_from_slice(&1u16.to_le_bytes());
+    big[end + 16..end + 20].copy_from_slice(&10u32.to_le_bytes());
+    assert!(
+        real("/d/deck.pptx", big),
+        "a directory that starts before the tail cannot be read here, so the file stays real"
+    );
+    let mut zip64 = zip(&[("[Content_Types].xml", b"<Types/>")]);
+    let end = zip64.len() - 22;
+    zip64[end + 16..end + 20].copy_from_slice(&u32::MAX.to_le_bytes());
+    assert!(real("/d/huge.xlsx", zip64), "a zip64 directory offset stays real");
+    let mut unreadable = |_: u64, _: usize| None;
+    assert!(
+        is_real_container("/d/report.docx", 4096, &mut unreadable),
+        "a file the check cannot read keeps the conversion's answer"
     );
 }

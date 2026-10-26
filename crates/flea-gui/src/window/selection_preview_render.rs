@@ -6,13 +6,24 @@ use crate::g2::pv3::{
     view::{MediaElement, Picture},
 };
 use crate::{g2::pv1::glyph::Glyph, row::marks::Mark};
-use flea::ui_logic_pv1::thumbs;
-use gpui::{div, img, prelude::*, px, IntoElement, Render, Window};
+use gpui::{div, prelude::*, px, IntoElement, Render, Window};
 
 /// The frame's border, which a view laid out inside it insets by on each side.
-const FRAME_BORDER: f32 = 1.;
+pub(super) const FRAME_BORDER: f32 = 1.;
 /// The opacity of a symlink's or an undrawn kind's state mark.
 const STATE_MARK_OPACITY: f32 = 0.7;
+
+impl SelectionPreview {
+    /// An empty text or code file settled with nothing to draw: its frame stands the document glyph in.
+    pub(crate) fn code_blank(&self, frame: &Frame, cx: &gpui::App) -> bool {
+        match &frame.mounted {
+            Mounted::Doc(crate::window::selection_preview::docs::Doc::Code(view)) => {
+                view.read(cx).blank()
+            }
+            _ => false,
+        }
+    }
+}
 
 pub(crate) fn number(meta: Option<&Json>, key: &str) -> i64 {
     meta.and_then(|meta| meta.get(key))
@@ -171,32 +182,18 @@ impl Render for SelectionPreview {
                 cache: self.caches.view.clone(),
                 painted: Default::default(),
             });
+        } else if self.code_blank(frame, cx) {
+            media = media.child(
+                state_mark(
+                    Glyph::kind(&frame.subject.row.icon, frame.subject.row.mode),
+                    roles.muted_frame.opacity(STATE_MARK_OPACITY),
+                    None,
+                )
+                .debug_selector(|| "column-preview-empty-glyph".into()),
+            );
         } else {
-            let fitted = frame.image.clone().map(|image| {
-                let size = image.size(0);
-                let (w, h) = (size.width.0 as f64, size.height.0 as f64);
-                let original = frame.facts.as_ref().map_or((0., 0.), |m| (m.w as f64, m.h as f64));
-                let limit = thumbs::poster_limit(frame.kind == Kind::Video, w, h, original.0, original.1);
-                let scale = thumbs::fit_scale(
-                    (width - 2. * FRAME_BORDER).max(1.) as f64,
-                    (height - 2. * FRAME_BORDER).max(1.) as f64,
-                    w,
-                    h,
-                    limit,
-                ) as f32;
-                div()
-                    .debug_selector(|| "column-preview-picture".into())
-                    .size_full()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .child(
-                        img(image)
-                            .w(px((w as f32 * scale).round()))
-                            .h(px((h as f32 * scale).round()))
-                            .object_fit(gpui::ObjectFit::Fill),
-                    )
-            });
+            let fitted = super::picture::still(frame, width, height);
+            let moving = super::picture::moving(frame, width, height);
             media = match &frame.mounted {
                 Mounted::Pdf(pdf) => media.child(pdf.clone()),
                 Mounted::Model(model) => media.child(model.clone()),
@@ -246,6 +243,7 @@ impl Render for SelectionPreview {
                                 .trn("items.count", frame.subject.selected_count as i64),
                         ),
                 ),
+                _ if moving.is_some() => media.children(moving),
                 _ if fitted.is_some() => media.children(fitted),
                 _ if frame.kind == Kind::Symlink => media.child(state_mark(
                     Glyph::Row(Mark::Symlink),
