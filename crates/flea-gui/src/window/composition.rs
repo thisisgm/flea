@@ -202,6 +202,7 @@ pub struct Labels {
 }
 
 pub(crate) struct Content<'a> {
+    pub glass: super::glass::Grounds,
     pub paths: [SharedString; 2],
     pub headers: [Option<(AnyElement, f32)>; 2],
     pub status: SharedString,
@@ -227,6 +228,7 @@ pub(crate) fn render(
     use crate::visual::geometry::{label, surface};
     let Content {
         paths,
+        glass,
         mut headers,
         status,
         labels,
@@ -247,6 +249,9 @@ pub(crate) fn render(
             )
         };
     let chrome = surface(geometry.chrome.element(), "chrome", probe.clone())
+        .when(glass.glassy && slots.chrome.is_none(), |div| {
+            div.bg(glass.planes[1])
+        })
         .track_focus(&focus.chrome)
         .on_any_mouse_down(keep_the_keys)
         .text_size(typeface.caption);
@@ -294,6 +299,7 @@ pub(crate) fn render(
         if dual {
             let id = format!("path-{side}");
             let row = surface(div(), id.clone(), probe.clone())
+                .when(glass.glassy, |div| div.bg(glass.path(side)))
                 .relative()
                 .h(px(metrics.header))
                 .flex_none()
@@ -313,6 +319,7 @@ pub(crate) fn render(
         }
         let id = format!("header-{side}");
         let header = surface(div(), id.clone(), probe.clone())
+            .when(glass.glassy, |div| div.bg(glass.planes[0]))
             .relative()
             .h(px(headers[side]
                 .as_ref()
@@ -353,6 +360,7 @@ pub(crate) fn render(
         if let Some(view) = &slots.strips[side] {
             pane = pane.child(
                 div()
+                    .when(glass.glassy, |div| div.bg(glass.planes[1]))
                     .h(px(slots.strip_height))
                     .flex_none()
                     .child(view.clone()),
@@ -371,6 +379,9 @@ pub(crate) fn render(
         );
     }
     let bar = surface(geometry.status.element(), "status", probe.clone())
+        .when(glass.glassy && slots.status.is_none(), |div| {
+            div.bg(glass.planes[1])
+        })
         .px(px(metrics.pad))
         .text_size(typeface.caption);
     root.child(match &slots.status {

@@ -5,6 +5,7 @@ pub(crate) mod dispatch;
 mod events;
 pub(crate) mod filter;
 pub(crate) mod frame_feedback;
+pub(crate) mod glass;
 pub mod glass_tag;
 pub mod input;
 pub mod lifecycle;
@@ -19,14 +20,14 @@ pub(crate) mod output;
 pub mod overlay;
 pub(crate) mod pane;
 mod presentation;
-pub mod rail;
-mod render;
-pub mod selection_preview;
-mod preview_text;
 mod preview_facts;
 mod preview_input;
+mod preview_text;
+pub mod rail;
+mod render;
 pub mod root;
 pub(crate) mod search;
+pub mod selection_preview;
 pub mod settings;
 pub mod startup;
 pub(crate) mod status;
@@ -55,7 +56,14 @@ pub fn open(
     cx: &mut App,
 ) -> Result<WindowHandle<Root>, String> {
     let title = locale.catalog.tr("app.name");
+    let appearance = cx
+        .try_global::<crate::palette::Theme>()
+        .copied()
+        .unwrap_or_default()
+        .glass
+        .appearance();
     let options = WindowOptions {
+        window_background: appearance,
         app_id: Some(APP_ID.into()),
         window_bounds: Some(WindowBounds::centered(size(px(900.), px(600.)), cx)),
         titlebar: Some(TitlebarOptions {
@@ -65,6 +73,7 @@ pub fn open(
         ..Default::default()
     };
     cx.open_window(options, |window, cx| {
+        glass::mount(window, appearance, cx);
         if std::env::var_os("FLEA_GUI_RENDER_DIAGNOSTICS").is_some() {
             if let Some(specs) = window.gpu_specs() {
                 eprintln!(
@@ -94,10 +103,10 @@ pub fn open(
 #[cfg(test)]
 mod columns_tests;
 #[cfg(test)]
+mod ipc_cold_tests;
+#[cfg(test)]
 #[path = "../list/join_tests.rs"]
 mod list_tests;
-#[cfg(test)]
-mod ipc_cold_tests;
 #[cfg(test)]
 mod modal_tests;
 #[cfg(test)]
@@ -105,9 +114,9 @@ mod native_reader_tests;
 #[cfg(test)]
 mod omi_views_tests;
 #[cfg(test)]
-mod overlay_escape_tests;
-#[cfg(test)]
 mod output_tests;
+#[cfg(test)]
+mod overlay_escape_tests;
 #[cfg(test)]
 mod overlay_tests;
 #[cfg(test)]
@@ -146,3 +155,6 @@ mod native31_tests;
 mod caption_loop_tests;
 #[cfg(test)]
 mod glass_tag_tests;
+
+#[cfg(test)]
+mod glass_tests;
