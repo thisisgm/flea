@@ -1,6 +1,5 @@
 // Directory ancestry and membership heads for initially contiguous, locally mutable blocks.
-use super::searchnames::{slot, table, Names, Refusal, EMPTY};
-use std::collections::hash_map::RandomState;
+use super::searchnames::{slot, table, Names, Refusal, Seeded, EMPTY};
 use std::hash::BuildHasher;
 
 struct Directory {
@@ -15,14 +14,14 @@ struct Directory {
 pub(crate) struct Blocks {
     dirs: Vec<Directory>,
     lookup: Vec<u32>,
-    hash: RandomState,
+    hash: Seeded,
     root: u32,
     child: u32,
 }
 
 impl Blocks {
     pub(crate) fn new() -> Self {
-        Self { dirs: Vec::new(), lookup: Vec::new(), hash: RandomState::new(), root: EMPTY, child: EMPTY }
+        Self { dirs: Vec::new(), lookup: Vec::new(), hash: Seeded::default(), root: EMPTY, child: EMPTY }
     }
 
     pub(crate) fn directory(&mut self, names: &Names, parent: u32, name: u32) -> Result<u32, Refusal> {
@@ -125,7 +124,30 @@ pub(crate) fn display_len(mut bytes: &[u8]) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::display_len;
+    use super::{display_len, Blocks, Names, EMPTY};
+    use std::hash::BuildHasher;
+
+    #[test]
+    fn search_blocks_probe_distance_stays_short_on_sequential_ids() {
+        let mut names = Names::new();
+        let mut blocks = Blocks::new();
+        let mut parents = vec![EMPTY];
+        for i in 0..30_000u32 {
+            let name = names.intern(format!("d{}", i % 97).as_bytes()).unwrap();
+            let parent = parents[i as usize / 8];
+            parents.push(blocks.directory(&names, parent, name).unwrap());
+        }
+        let mask = blocks.lookup.len() - 1;
+        let mut total = 0;
+        for (at, &id) in blocks.lookup.iter().enumerate() {
+            if id == EMPTY { continue; }
+            let dir = &blocks.dirs[id as usize];
+            let home = blocks.hash.hash_one((dir.parent, dir.name)) as usize & mask;
+            total += (at + blocks.lookup.len() - home) & mask;
+        }
+        let mean = total as f64 / blocks.len() as f64;
+        assert!(mean < 2.0, "mean probe distance {mean} on sequential directory ids: the low hash bits are weak");
+    }
 
     #[test]
     fn search_display_length_matches_lossy_utf8_for_every_two_byte_input() {

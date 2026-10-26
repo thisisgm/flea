@@ -20,6 +20,8 @@ gpui_platform = { package = "gpui-pre-platform", git = "https://github.com/thisi
 path = "src/lib.rs"
 
 [dependencies]
+# Seeded per process and per table; already in the lock through hashbrown, so no new crate version.
+foldhash = "0.2.0"
 
 [features]
 # Bench-only: the flasher's loop-device seam for a marked root, never enabled by packaging or any default build.

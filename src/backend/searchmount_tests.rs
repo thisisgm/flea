@@ -188,3 +188,33 @@ fn search_mount_missing_local_root_reports_the_read_refusal_before_watch_failure
     assert_eq!(session.partial_reason(), Some("unreadable"));
     assert_eq!(session.indexed(), 0);
 }
+
+#[test]
+fn search_mount_walk_classifies_only_the_scope_and_each_mount_boundary() {
+    let d = TestDir::new("mountonce");
+    for a in 0..3 {
+        for b in 0..3 {
+            d.dir(&format!("a{a}/b{b}"));
+            d.file(&format!("a{a}/b{b}/leaf"), "");
+        }
+    }
+    for dir in ["nas/island", "nas/far", "x/gvfs-like/y"] { d.dir(dir); }
+    d.file("nas/island/kept", "");
+    d.file("nas/far/away", "");
+    d.file("x/gvfs-like/y/z", "");
+    let body = format!("{}31 30 8:2 / {} rw - vfat /dev/usb rw\n", body(&d, "nfs"), d.join("nas/island").display());
+    let reader = super::super::searchwalkread::Reader::new(&body);
+    let index = Mutex::new(Index::new());
+    let probes = WalkProbes::new();
+    let opened = walk_local(&index, d.path(), false, &body, &reader, &probes);
+    // The scope, then nas and nas/island where mounts start, then x/gvfs-like and x/gvfs-like/y, whose text holds "gvfs".
+    assert_eq!(reader.classified.load(Ordering::Relaxed), 5, "{opened} directories, classified once per boundary");
+    assert!(reader.is_remote(&d.join("nas/far")), "a child below a remote mount stays remote");
+    assert_eq!(reader.class(&d.join("nas/far"), Some(&reader.class(&d.join("nas"), None))), Some(d.join("nas")));
+    assert_eq!(reader.class(&d.join("nas/island"), Some(&Some(d.join("nas")))), None, "a local island under a remote mount is local");
+    assert_eq!(reader.class(&d.join("a0/b0"), Some(&None)), None);
+    let paths: Vec<String> = { let index = index.lock().unwrap(); (0..index.len()).map(|row| index.path(row)).collect() };
+    for want in ["a2/b2/leaf", "nas/island/kept", "nas/far/away", "x/gvfs-like/y/z"] {
+        assert!(paths.iter().any(|path| path == want), "{want} lands");
+    }
+}
