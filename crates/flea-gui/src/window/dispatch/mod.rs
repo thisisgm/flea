@@ -181,3 +181,9 @@ mod test_shell;
 
 #[cfg(test)]
 mod gh_preview_proof_tests;
+
+#[cfg(test)]
+mod columns_search_parity_tests;
+
+#[cfg(test)]
+mod columns_preview_readers_tests;

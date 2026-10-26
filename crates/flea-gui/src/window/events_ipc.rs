@@ -211,7 +211,10 @@ impl Shell {
                 let output_cards = crate::ipc::output_cards::OutputAdapter { shell: self, cx };
                 let dialog_cards = crate::ipc::dialog_cards::DialogAdapter { shell: self, cx };
                 let feedback = crate::ipc::window_feedback::FeedbackAdapter { shell: self, cx };
-                let adapters: [&dyn crate::ipc::Adapter; 32] = [
+                let column_preview =
+                    crate::ipc::columns_preview::ColumnsPreview { preview: &preview };
+                let adapters: [&dyn crate::ipc::Adapter; 33] = [
+                    &column_preview,
                     &drag,
                     &providers,
                     &network_result,
@@ -249,9 +252,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    32
+                    33
                 } else {
-                    31
+                    32
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
