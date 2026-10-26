@@ -13,6 +13,7 @@ mod locale;
 mod m9_g1rows_05_tests;
 mod messages;
 mod plugins;
+mod provenance;
 #[cfg(test)]
 mod review_tests;
 #[cfg(test)]

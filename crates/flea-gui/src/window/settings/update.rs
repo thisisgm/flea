@@ -18,7 +18,7 @@ impl Shell {
         update::menu_version(&self.settings.update)
     }
 
-    fn sync_settings_update(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn sync_settings_update(&mut self, cx: &mut Context<Self>) {
         if let Some(view) = &self.settings.panel {
             view.update(cx, |view, cx| {
                 view.panel.facts.about.update = self.settings.update.clone();
