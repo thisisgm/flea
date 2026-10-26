@@ -230,6 +230,70 @@ fn pb_scroll_column_lane_is_empty_until_hover_or_motion_and_fades() {
 }
 
 #[test]
+fn pb_scroll_child_preview_releases_a_grabbed_directory_bar() {
+    let mut cx = host::context();
+    let (handle, _requests) = mounted(&mut cx);
+    host::change(&mut cx, handle, |shell, window, cx| {
+        let host = shell.panes[0].as_mut().unwrap();
+        let mut rows = host.pane.held.rows.clone();
+        rows[1] = host::row("file.txt", false);
+        host.pane.held = Rc::new(Held {
+            listing: host.pane.held.listing,
+            total: TOTAL,
+            start: 0,
+            rows,
+        });
+        shell.sync_columns(window, cx);
+    });
+    host::frame(&mut cx, handle);
+    let rect = bounds(&mut cx, handle, Slot::Child);
+    let at = point(rect.right() - px(3.), rect.top() + px(8.));
+    VisualTestContext::from_window(handle.into(), &cx).simulate_mouse_down(
+        at,
+        MouseButton::Left,
+        Modifiers::none(),
+    );
+    host::change(&mut cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(host.columns.as_ref().unwrap().bars[Slot::Child.index()]
+            .input
+            .grab
+            .is_some());
+        assert!(host.nav.gate.pointer_held);
+    });
+    VisualTestContext::from_window(handle.into(), &cx).simulate_keystrokes("down");
+    host::frame(&mut cx, handle);
+    host::change(&mut cx, handle, |shell, _, _| {
+        let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+        let child = columns
+            .area
+            .tracks()
+            .iter()
+            .find(|view| view.slot == Slot::Child)
+            .unwrap();
+        assert!(
+            matches!(child.rows, crate::columns::TrackRows::Preview),
+            "keyboard file selection must turn Child to Preview: {child:?}"
+        );
+    });
+    VisualTestContext::from_window(handle.into(), &cx).simulate_mouse_up(
+        at,
+        MouseButton::Left,
+        Modifiers::none(),
+    );
+    cx.run_until_parked();
+    host::frame(&mut cx, handle);
+    host::change(&mut cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(host.columns.as_ref().unwrap().bars[Slot::Child.index()]
+            .input
+            .grab
+            .is_none());
+        assert!(!host.nav.gate.pointer_held);
+    });
+}
+
+#[test]
 fn pb_scroll_column_resize_cancels_grab_and_releases_watched_rows() {
     let mut cx = host::context();
     let (handle, _requests) = mounted(&mut cx);
