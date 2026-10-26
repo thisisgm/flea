@@ -133,11 +133,18 @@ impl Shell {
         if let Some(changed) = host.nav.reloaded.take() {
             let notice = crate::strips::status_host::reloaded(&self.locale.catalog, changed);
             self.status_messages(cx, |messages, now| {
-                messages.say(&notice, false, "", flea::ui_logic_fb1::status::Hint::None, now)
+                messages.say(
+                    &notice,
+                    false,
+                    "",
+                    flea::ui_logic_fb1::status::Hint::None,
+                    now,
+                )
             });
         }
         self.tab_landed(side, window, cx);
         self.run_navigation(side, window, cx);
+        self.replay_queued(side, window, cx);
         self.arm_watch(side, window, cx);
         if self.panes[side]
             .as_ref()
@@ -182,6 +189,7 @@ impl Shell {
                         mode: 0,
                     });
                 }
+                host.input.queued = None;
                 host.changed(&self.locale);
                 host.record_error(error, &self.locale);
                 break;
