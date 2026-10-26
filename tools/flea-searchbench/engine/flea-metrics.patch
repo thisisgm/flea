@@ -1,6 +1,6 @@
 --- a/src/backend/run.rs
 +++ b/src/backend/run.rs
-@@ -366,6 +366,43 @@
+@@ -370,6 +370,51 @@
          say(out, &refused);
          return Control::Continue;
      }
@@ -8,6 +8,14 @@
 +    match crate::json::field_str(line, "c").as_deref() {
 +        Some("benchping") => {
 +            say(out, r#"{"t":"pong"}"#);
++            return Control::Continue;
++        }
++        Some("benchpriors") => {
++            // Read only: the harness waits on this before an equal-history open; the product never waits.
++            let us = |at: &std::sync::atomic::AtomicU64| at.load(std::sync::atomic::Ordering::Acquire).checked_sub(1).map_or("null".to_string(), |v| v.to_string());
++            writeln!(out, r#"{{"t":"benchpriors","loaded":{},"xbel_us":{},"zoxide_us":{},"load_us":{}}}"#, super::searchprior::loaded().is_some(),
++                us(&super::searchprior::BENCH_XBEL_US), us(&super::searchprior::BENCH_ZOXIDE_US), us(&super::searchprior::BENCH_LOAD_US)).ok();
++            out.flush().ok();
 +            return Control::Continue;
 +        }
 +        Some("benchaudit") => {
@@ -44,20 +52,127 @@
      let request = parse_request(line);
      // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
      extend_search_listing(st, rows_needed(&request));
-@@ -926,6 +963,13 @@
+@@ -930,6 +975,15 @@
  fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Pool) {
      if let Some(session) = st.search_session.as_mut() {
          if session.poll_walked() {
++            // D10: whether this open fixed a loaded desktop prior snapshot; an open before the load reports false.
++            let priors = session.priors.is_some();
 +            let index = session.index.lock().unwrap();
 +            // Base 0ebbcffae replaced the capped flag with a partial refusal; capped stays the harness key.
-+            writeln!(out, r#"{{"t":"searchready","n":{},"bytes":{},"ms":{:.6},"capped":{},"partial_reason":"{}"}}"#,
++            writeln!(out, r#"{{"t":"searchready","n":{},"bytes":{},"ms":{:.6},"capped":{},"partial_reason":"{}","d10_priors":{}}}"#,
 +                index.len(), super::searchindex::index_bytes(&index),
-+                session.opened_at.elapsed().as_secs_f64() * 1000.0, index.partial.is_some(), index.partial.unwrap_or("")).ok();
++                session.opened_at.elapsed().as_secs_f64() * 1000.0, index.partial.is_some(), index.partial.unwrap_or(""), priors).ok();
 +            drop(index);
 +            out.flush().ok();
              if let Some(answer) = session.answer_held().or_else(|| session.re_answer_standing()) {
                  emit_session_answer(out, st, tb, pool, &answer);
              } else if let Some((gen, n, scanned, ms)) = session.landing_empty() {
+--- a/src/backend/searchjobs.rs
++++ b/src/backend/searchjobs.rs
+@@ -30,6 +30,7 @@
+     cancelled: Option<Cancelled>,
+     empty: Option<(usize, usize, usize, f64)>,
+     failed: Option<FleaError>,
++    landed: bool,
+ }
+ 
+ struct Worker {
+@@ -46,13 +47,16 @@
+             while let Ok((mut session, work)) = jobs.recv() {
+                 let mut cancelled = None;
+                 let mut empty = None;
++                let mut landed = false;
+                 let ran = catch_unwind(AssertUnwindSafe(|| match work {
+                     Work::Query(query, gen, count, sizes) => {
+                         session.wish_sizes(sizes);
+                         session.ask(gen, &query, count, &events)
+                     }
+                     Work::Walked => {
++                        let announced = session.announced;
+                         if session.poll_walked() {
++                            landed = !announced && session.announced;
+                             let answer = session.answer_held().or_else(|| session.re_answer_standing());
+                             if answer.is_none() { empty = session.landing_empty(); }
+                             answer
+@@ -93,10 +97,11 @@
+                         session = Session::open_async(&scope.to_string_lossy(), &folder.to_string_lossy(), hidden, events.clone());
+                         cancelled = None;
+                         empty = None;
++                        landed = false;
+                         (None, Some(error))
+                     }
+                 };
+-                if done.send(Done { session, answer, cancelled, empty, failed }).is_err() { break; }
++                if done.send(Done { session, answer, cancelled, empty, failed, landed }).is_err() { break; }
+                 if events.send(Event::SearchReady).is_err() { break; }
+             }
+         });
+@@ -224,6 +229,18 @@
+             done.session.pending_rest = if rest_ids_valid { previous.rest } else { None };
+         }
+         st.search_session = Some(done.session);
++        if !self.discard && done.failed.is_none() && done.landed {
++            // Bench seam: only an accepted successful landing announces this session's index.
++            let session = st.search_session.as_ref().unwrap();
++            // D10: whether this open fixed a loaded desktop prior snapshot; an open before the load reports false.
++            let priors = session.priors.is_some();
++            let index = session.index.lock().unwrap();
++            writeln!(out, r#"{{"t":"searchready","n":{},"bytes":{},"ms":{:.6},"capped":{},"partial_reason":"{}","d10_priors":{}}}"#,
++                index.len(), super::searchindex::index_bytes(&index),
++                session.opened_at.elapsed().as_secs_f64() * 1000.0, index.partial.is_some(), index.partial.unwrap_or(""), priors).ok();
++            drop(index);
++            out.flush().ok();
++        }
+         if !self.discard {
+             if let Some(answer) = done.answer {
+                 super::searchreq::emit_session_answer(out, st, tb, pool, &answer);
+--- a/src/backend/searchprior.rs
++++ b/src/backend/searchprior.rs
+@@ -20,6 +20,13 @@
+ const SCALE: i32 = 64;
+ static GLOBAL: OnceLock<Load> = OnceLock::new();
+ static STARTED: Once = Once::new();
++// Bench-only provider timings in microseconds plus one; zero means not finished.
++pub(crate) static BENCH_XBEL_US: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
++pub(crate) static BENCH_ZOXIDE_US: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
++pub(crate) static BENCH_LOAD_US: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
++fn bench_mark(at: &std::sync::atomic::AtomicU64, since: Instant) {
++    at.store(since.elapsed().as_micros() as u64 + 1, std::sync::atomic::Ordering::Release);
++}
+ 
+ // One snapshot load on its own worker; an open reads whatever it has finished and never waits for it.
+ #[derive(Default)]
+@@ -156,7 +163,10 @@
+ }
+ 
+ fn load() -> Priors {
+-    load_from(history_path(), PathBuf::from("zoxide"), LIMIT)
++    let at = Instant::now();
++    let priors = load_from(history_path(), PathBuf::from("zoxide"), LIMIT);
++    bench_mark(&BENCH_LOAD_US, at);
++    priors
+ }
+ 
+ fn load_from(path: Option<PathBuf>, program: PathBuf, limit: Duration) -> Priors {
+@@ -165,11 +175,16 @@
+     let files_tx = tx.clone();
+     // Each source gets one worker: even opening a regular file or spawning an unavailable executable can block.
+     let _ = std::thread::Builder::new().name("search-priors".into()).spawn(move || {
++        let at = Instant::now();
+         let files = path.and_then(|p| read_xbel(&p)).unwrap_or_default();
++        bench_mark(&BENCH_XBEL_US, at);
+         let _ = files_tx.send((false, files));
+     });
+     let _ = std::thread::Builder::new().name("search-zoxide".into()).spawn(move || {
+-        let _ = tx.send((true, zoxide(&program, deadline).unwrap_or_default()));
++        let at = Instant::now();
++        let rows = zoxide(&program, deadline).unwrap_or_default();
++        bench_mark(&BENCH_ZOXIDE_US, at);
++        let _ = tx.send((true, rows));
+     });
+     let (mut files, mut folders) = (Vec::new(), Vec::new());
+     for _ in 0..2 {
 --- a/src/backend/searchreq.rs
 +++ b/src/backend/searchreq.rs
 @@ -80,6 +80,7 @@
@@ -79,7 +194,7 @@
      for (path, is_dir) in &answer.rows {
 --- a/src/backend/searchsession.rs
 +++ b/src/backend/searchsession.rs
-@@ -275,6 +275,7 @@
+@@ -277,6 +277,7 @@
          let partial = index.partial;
          let walking = self.walking() || unread;
          drop(index);
@@ -87,7 +202,7 @@
          Answer {
              gen: 0,
              all,
-@@ -283,7 +284,8 @@
+@@ -285,7 +286,8 @@
              indexed,
              walking,
              partial,
@@ -97,56 +212,3 @@
              count,
              scope: self.scope.clone(),
              dev: self.dev,
---- a/src/backend/searchjobs.rs
-+++ b/src/backend/searchjobs.rs
-@@ -23,6 +23,7 @@
-     answer: Option<Answer>,
-     cancelled: Option<Cancelled>,
-     empty: Option<(usize, usize, usize, f64)>,
-+    landed: bool,
- }
-
- struct Worker {
-@@ -39,13 +40,16 @@
-             while let Ok((mut session, work)) = jobs.recv() {
-                 let mut cancelled = None;
-                 let mut empty = None;
-+                let mut landed = false;
-                 let answer = match work {
-                     Work::Query(query, gen, count, sizes) => {
-                         session.wish_sizes(sizes);
-                         session.ask(gen, &query, count, &events)
-                     }
-                     Work::Walked => {
-+                        let announced = session.announced;
-                         if session.poll_walked() {
-+                            landed = !announced && session.announced;
-                             let answer = session.answer_held().or_else(|| session.re_answer_standing());
-                             if answer.is_none() { empty = session.landing_empty(); }
-                             answer
-@@ -74,7 +78,7 @@
-                         None
-                     }
-                 };
--                if done.send(Done { session, answer, cancelled, empty }).is_err() { break; }
-+                if done.send(Done { session, answer, cancelled, empty, landed }).is_err() { break; }
-                 if events.send(Event::SearchReady).is_err() { break; }
-             }
-         });
-@@ -196,6 +200,16 @@
-             done.session.pending_rest = if rest_ids_valid { previous.rest } else { None };
-         }
-         st.search_session = Some(done.session);
-+        if !self.discard && done.landed {
-+            // Bench seam: the executor lands the walk, so the index-ready line is said here before its answer.
-+            let session = st.search_session.as_ref().unwrap();
-+            let index = session.index.lock().unwrap();
-+            writeln!(out, r#"{{"t":"searchready","n":{},"bytes":{},"ms":{:.6},"capped":{},"partial_reason":"{}"}}"#,
-+                index.len(), super::searchindex::index_bytes(&index),
-+                session.opened_at.elapsed().as_secs_f64() * 1000.0, index.partial.is_some(), index.partial.unwrap_or("")).ok();
-+            drop(index);
-+            out.flush().ok();
-+        }
-         if !self.discard {
-             if let Some(answer) = done.answer {
-                 super::searchreq::emit_session_answer(out, st, tb, pool, &answer);
