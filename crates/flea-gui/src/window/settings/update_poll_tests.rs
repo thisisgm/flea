@@ -72,7 +72,7 @@ fn owner_parity_update_poll_child(cx: &mut TestAppContext) {
         .as_bool()
         .unwrap();
     let launch = Launch::resolve(
-        Settings::from_json(document, true),
+        Settings::from_json(document),
         Arguments {
             path: Some(fixture.path().join("files").to_str().unwrap().into()),
             select: None,

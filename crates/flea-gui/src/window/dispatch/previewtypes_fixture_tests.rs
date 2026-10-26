@@ -47,7 +47,7 @@ pub(super) fn open_with_preview<'a>(
     .unwrap();
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
     let launch = Launch::resolve(
-        Settings::from_json(document, true),
+        Settings::from_json(document),
         Arguments {
             path: Some(path.into()),
             select: None,
