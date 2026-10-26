@@ -23,8 +23,7 @@ import tomllib
 ROOT = Path(__file__).resolve().parent.parent
 POLICY = ROOT / "i18n/keyboard-policy.json"
 FIXTURES = ROOT / "tests/i18n/fixtures/xkb"
-BASELINE = Path("/home/gm/flea-work/h323/keys.toml")
-LINTER = Path("/home/gm/.agents/skills/flea-design/scripts/keymap_lint.py")
+LINTER = ROOT / "tools/flea-keymap-lint"
 CONTEXTS = ["listing", "rail", "menu", "panel", "preview", "pdf", "media", "editor"]
 MODS = {"shift": 1, "ctrl": 2, "alt": 4, "super": 8, "altgr": 16}
 MOD_NAMES = {"shift": "Shift", "ctrl": "Control", "alt": "Mod1", "super": "Mod4", "altgr": "Mod5"}
@@ -722,7 +721,7 @@ def main():
     gen.add_argument("--omarchy-path", required=True)
     gen.add_argument("--keys", required=True)
     gen.add_argument("--out", required=True)
-    gen.add_argument("--baseline", default=str(BASELINE))
+    gen.add_argument("--baseline", required=True)
     gen.add_argument("--policy", default=str(POLICY))
     gen.add_argument("--model-map", default="/usr/share/systemd/kbd-model-map")
     gen.add_argument("--xkb-root", default="/usr/share/X11/xkb")
