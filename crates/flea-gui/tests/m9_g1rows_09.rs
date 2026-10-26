@@ -63,6 +63,7 @@ fn m9_g1rows_09_copy_and_cut_share_one_alignment_rule() {
                     languages: true,
                     scale: window.scale_factor(),
                     words: Rc::new(Words::from_catalog(&harness::english())),
+                    query: "".into(),
                 };
                 cache.begin(&shaping, held.rows.len());
                 for (index, facts) in held.rows.iter().enumerate() {
