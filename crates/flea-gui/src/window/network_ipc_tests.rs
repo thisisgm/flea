@@ -357,7 +357,10 @@ fn the_add_share_card_takes_typed_text_through_the_window(cx: &mut TestAppContex
     frame(cx);
     let view = card(&shell, cx);
     let host = cx.update(|_, cx| view.read(cx).model.form.host.clone());
-    assert_eq!(host, "nas.local", "the typed host lands in the focused field");
+    assert_eq!(
+        host, "nas.local",
+        "the typed host lands in the focused field"
+    );
     assert_eq!(
         call(&shell, "showHidden", &[], cx),
         hidden,
