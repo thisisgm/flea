@@ -1684,26 +1684,26 @@ ui/PaneWire.qml	581	pane	Declared QML property; enclosing component context supp
 ui/PaneWire.qml	583	pane	Declared QML property; enclosing component context supplies it.
 ui/PaneWire.qml	586	pane	Declared QML property; enclosing component context supplies it.
 ui/PaneWire.qml	595	pane	Declared QML property; enclosing component context supplies it.
-ui/PathJump.qml	303	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	304	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	316	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	326	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	305	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	317	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	327	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	329	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	353	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	353	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	362	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	328	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	330	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	354	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	354	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	363	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	366	rows	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	368	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	364	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	367	rows	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	369	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	370	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	371	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	371	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	372	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	372	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	373	root	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	444	body	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	445	root	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	446	root	Declared QML id; component context access is valid at runtime.
@@ -3430,26 +3430,26 @@ ui/PaneWire.qml	580	pane	Declared QML property; enclosing component context supp
 ui/PaneWire.qml	583	pane	Declared QML property; enclosing component context supplies it.
 ui/PaneWire.qml	586	pane	Declared QML property; enclosing component context supplies it.
 ui/PaneWire.qml	595	pane	Declared QML property; enclosing component context supplies it.
-ui/PathJump.qml	303	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	304	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	316	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	326	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	305	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	317	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	327	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	329	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	353	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	353	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	362	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	328	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	330	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	354	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	354	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	363	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	366	rows	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	368	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	364	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	367	rows	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	369	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	370	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	371	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	371	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	372	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	372	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	373	root	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	444	body	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	445	root	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	446	root	Declared QML id; component context access is valid at runtime.
