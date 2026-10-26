@@ -145,3 +145,32 @@ fn a_model_filename_without_a_model_view_keeps_its_kind_mark() {
         "flea-mark:image"
     );
 }
+
+#[gpui::test]
+fn a_model_name_in_another_doc_view_keeps_its_kind_mark(cx: &mut TestAppContext) {
+    let view = cx.new(|_| {
+        let theme = flea_gui::g2::pv2::font::Theme {
+            foreground: "#c0caf5".into(),
+            surface: "#1a1b26".into(),
+            muted: gpui::hsla(0., 0., 0.6, 1.),
+            size_ratio: 1.,
+        };
+        let metrics = flea_gui::g2::pv2::font::Metrics {
+            bar: 27.,
+            font: gpui::font("sans-serif"),
+            caption: gpui::px(12.),
+        };
+        flea_gui::g2::pv2::font::FontView::new(theme, metrics, ("font".into(), &[]))
+    });
+    let mut subject = file("model.stl", "image-x-generic", true);
+    subject.body = Body::Doc(Doc {
+        view: View::Font(view),
+        path: "/files/model.stl".into(),
+        page: 0,
+    });
+    assert_eq!(
+        key(&subject),
+        "flea-mark:image",
+        "only the model view wears the cube"
+    );
+}
