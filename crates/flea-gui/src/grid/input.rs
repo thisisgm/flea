@@ -77,8 +77,11 @@ impl Shell {
                 host.selected.extend(cursor.min(next)..=cursor.max(next));
                 host.selected.sort_unstable();
                 host.selected.dedup();
+                host.pane.cursor = next;
+            } else {
+                host.pane.cursor = next;
+                crate::input::follow_cursor(host, cursor);
             }
-            host.pane.cursor = next;
             self.seam.selected(next);
             cx.notify();
         }

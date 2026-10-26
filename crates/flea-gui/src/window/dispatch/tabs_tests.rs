@@ -342,9 +342,9 @@ fn a_middle_click_on_a_favourite_refuses_a_bad_or_remote_record_and_decodes_a_fi
     close(&shell, cx);
 }
 
-// Ipc.qml tabLabels reads the model, so the dual view, which draws no strip, still names every tab.
+// TabBar.qml open is tabCount > 1 in every view, so Dual draws the focused pane's strip and names every tab.
 #[gpui::test]
-fn the_dual_view_names_every_tab_though_it_draws_no_strip(cx: &mut TestAppContext) {
+fn the_dual_view_draws_and_names_every_tab(cx: &mut TestAppContext) {
     let (shell, cx) = open_in(cx, "default", "dual");
     land(&shell, cx, "/files", home(), 1);
     cx.update(|window, cx| {
@@ -353,7 +353,7 @@ fn the_dual_view_names_every_tab_though_it_draws_no_strip(cx: &mut TestAppContex
         })
     });
     land(&shell, cx, "/files/alpha", vec![row("inner", true)], 2);
-    assert_eq!(read(&shell, cx, "tabBarVisible", &[]), "false");
+    assert_eq!(read(&shell, cx, "tabBarVisible", &[]), "true");
     assert_eq!(
         strip(&shell, cx),
         ("2".into(), "1".into(), "files|alpha".into())

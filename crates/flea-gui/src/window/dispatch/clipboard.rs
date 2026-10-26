@@ -53,6 +53,14 @@ fn key(shell: &mut Shell, action: &str, window: &mut Window, cx: &mut Context<Sh
                 say(shell, side, "clipboard.no_cursor_row", cx);
             }
         }
+        // Focus.js pasteAs: Recent is a history, so P refuses there before any menu.
+        "pasteAs"
+            if shell.panes[side]
+                .as_ref()
+                .is_some_and(|host| flea::ui_logic_pk1::is_recent(host.pane.place())) =>
+        {
+            say(shell, side, flea::ui_logic_dg1::RECENT_PASTE, cx);
+        }
         // Pane.qml openPasteAs: an empty clipboard says so instead of opening a greyed flyout.
         "pasteAs" if !shell.clipboard.board.available() => {
             say(shell, side, "menu.refusal.empty_clipboard", cx);

@@ -56,7 +56,7 @@ impl Shell {
     }
 
     pub(crate) fn tab_pressed_hit(&self, press: Press) -> Hit {
-        if press.side != self.focus_side || self.view == View::Dual {
+        if press.side != self.focus_side {
             return Hit::Nothing;
         }
         match press.identity {
