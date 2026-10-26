@@ -84,12 +84,7 @@ impl Geometry {
     ) -> Self {
         let width = width.max(0.);
         let height = height.max(0.);
-        let top = header
-            + if tabs && view != View::Dual {
-                header
-            } else {
-                0.
-            };
+        let top = header + if tabs { header } else { 0. };
         let bottom = (height - header).max(top);
         let places = settings
             .data

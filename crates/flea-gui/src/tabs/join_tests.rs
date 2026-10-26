@@ -363,9 +363,16 @@ fn u25_native_drop_zone_tracks_the_drawn_strip_and_full_capacity_own_return(
             assert!(shell.with_tabs(|bar, panes| bar.strip_drop(panes, &payload, 0., now)));
             shell.strip.bar.out_finished(now);
             assert_eq!(shell.strip.tabs[0].count(), 9);
+            // WindowBody.qml: Dual never takes a window-wide drop; its drawn strip keeps its own DropArea.
             shell.view = crate::window::startup::View::Dual;
             shell.sync_tabs(window, cx);
-            assert!(shell.strip.drop_zone.get().is_none());
+            assert_eq!(shell.strip.drop_zone.get(), shell.strip.bounds.get());
+            assert!(!shell
+                .strip
+                .drop_zone
+                .get()
+                .unwrap()
+                .contains(&point(px(40.), px(120.))));
         })
     });
 }

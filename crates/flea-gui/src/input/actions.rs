@@ -1,6 +1,18 @@
 use crate::{list::pane::Move, state::Shell};
 use gpui::{Context, Window};
 
+// Marks.js follow only(cursor, keep): a lone mark moves with a plain move, and a carried landing stays the landing, so Escape still climbs through it.
+pub(crate) fn follow_cursor(host: &mut crate::window::pane::PaneHost, from: usize) {
+    host.input
+        .selection
+        .follow(&mut host.selected, host.pane.cursor);
+    if let Some((listing, row)) = host.nav.landed {
+        if row == from && host.selected == [host.pane.cursor] {
+            host.nav.landed = Some((listing, host.pane.cursor));
+        }
+    }
+}
+
 impl Shell {
     pub(crate) fn input_action(
         &mut self,
@@ -203,15 +215,7 @@ impl Shell {
                 host.input.shown.as_deref(),
             );
         } else {
-            host.input
-                .selection
-                .follow(&mut host.selected, host.pane.cursor);
-            // Marks.js follow only(cursor, keep): a carried landing stays the landing, so Escape still climbs through it.
-            if let Some((listing, row)) = host.nav.landed {
-                if row == from && host.selected == [host.pane.cursor] {
-                    host.nav.landed = Some((listing, host.pane.cursor));
-                }
-            }
+            follow_cursor(host, from);
         }
         host.input.keyboard();
         if host.pane.scroll_y != before_scroll {
