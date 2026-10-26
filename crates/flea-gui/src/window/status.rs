@@ -133,8 +133,8 @@ impl Shell {
         let catalog = &self.locale.catalog;
         let fs = &mut self.surfaces[self.focus_side].filesystem;
         fs.enter(&host.path);
-        if !host.pane.busy() && host.pane.held.listing != fs.listing && !host.stopped {
-            fs.listing = host.pane.held.listing;
+        if !host.pane.busy() && fs.listing != Some(host.pane.held.listing) && !host.stopped {
+            fs.listing = Some(host.pane.held.listing);
             if let Some(backend) = &host.backend {
                 let _ = backend.fsinfo();
             }

@@ -212,11 +212,7 @@ impl Shell {
                 return;
             }
             BackendEvent::Filesystem(facts) => {
-                if facts.path == host.path {
-                    let fs = &mut self.surfaces[side].filesystem;
-                    fs.enter(&facts.path);
-                    fs.answered = true;
-                    fs.facts = Some(facts);
+                if self.surfaces[side].filesystem.answer(&host.path, facts) {
                     cx.notify();
                 }
                 return;
@@ -241,6 +237,7 @@ impl Shell {
                 }
                 host.changed(&self.locale);
                 host.record_error(error, &self.locale);
+                self.surfaces[side].filesystem.settle_without_facts();
                 self.chrome.jumps[side] = 0;
                 self.retire_status_owner(side, window, cx);
                 self.status_refused("backend", "", "", cx);
@@ -268,6 +265,9 @@ impl Shell {
                         mode,
                     });
                     host.changed(&self.locale);
+                }
+                if ended || (operation == "fsinfo" && current) {
+                    self.surfaces[side].filesystem.settle_without_facts();
                 }
                 host.nav.after_failure(&mut host.pane, &operation);
                 self.run_navigation(side, window, cx);
@@ -348,6 +348,7 @@ impl Shell {
                                 message,
                                 mode,
                             });
+                            self.surfaces[side].filesystem.settle_without_facts();
                         }
                         host.changed(&self.locale);
                         self.surfaces[side].filesystem.enter(&host.path);

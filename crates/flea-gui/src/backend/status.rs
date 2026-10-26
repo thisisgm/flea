@@ -10,7 +10,7 @@ pub struct Filesystem {
 }
 
 impl Filesystem {
-    // Input: {"path":"/work","fs":"btrfs","free":442000000000}.
+    // Input: {"path":"/work","fs":"btrfs","free":442000000000}; no name with -1 or no free is unknown.
     pub(super) fn parse(document: &Json) -> Result<Self, String> {
         let text = |key| {
             document
@@ -19,15 +19,22 @@ impl Filesystem {
                 .map(str::to_owned)
                 .ok_or_else(|| format!("{key} must be a string"))
         };
+        let name = match document.get("fs") {
+            Some(_) => text("fs")?,
+            None => String::new(),
+        };
         let free = match document.get("free") {
-            Some(Json::Num(value)) => value
-                .parse()
-                .map_err(|_| "free must be an unsigned integer")?,
+            Some(Json::Num(value)) => match value.parse() {
+                Ok(free) => free,
+                Err(_) if name.is_empty() && value.parse::<i64>().is_ok_and(|free| free < 0) => 0,
+                Err(_) => return Err("free must be an unsigned integer".into()),
+            },
+            None if name.is_empty() => 0,
             _ => return Err("free must be an unsigned integer".into()),
         };
         Ok(Self {
             path: text("path")?,
-            name: text("fs")?,
+            name,
             free,
         })
     }
@@ -50,5 +57,13 @@ mod tests {
         assert_eq!(info.free, 442_000_000_000);
         assert!(parse(r#"{"path":"/a","fs":"btrfs","free":-1}"#).is_err());
         assert!(parse(r#"{"path":"/a","fs":false,"free":0}"#).is_err());
+        for nothing in [
+            r#"{"path":"/a","fs":"","free":-1}"#,
+            r#"{"path":"/a","fs":"","free":0}"#,
+            r#"{"path":"/a","fs":""}"#,
+        ] {
+            let info = parse(nothing).expect("an answer with nothing still answers");
+            assert_eq!((info.name.as_str(), info.free), ("", 0));
+        }
     }
 }
