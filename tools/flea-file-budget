@@ -92,7 +92,6 @@ src/backend/opsreq.rs 605
 src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
 src/backend/run.rs 1274
-src/backend/searchwalk.rs 403
 src/backend/run_session_tests.rs 582
 src/backend/ops.rs 440
 src/backend/thumbs.rs 562
@@ -105,7 +104,6 @@ src/backend/undo_tests.rs 439
 src/backend/undoshare.rs 468
 src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492
-src/backend/proto.rs 409
 src/backend/sandbox.rs 410
 src/backend/thumbworker.rs 961
 src/backend/trashbrowse.rs 1055

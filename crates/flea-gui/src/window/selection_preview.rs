@@ -35,6 +35,8 @@ mod load;
 mod play;
 #[path = "selection_preview_readers.rs"]
 pub(crate) mod readers;
+#[path = "selection_preview_fitted.rs"]
+mod fitted;
 #[path = "selection_preview_render.rs"]
 pub(crate) mod render;
 

@@ -106,16 +106,24 @@ fn video_facts_take_the_board_pitch_and_the_frame_draws_no_play_mark(cx: &mut Te
 
 #[test]
 fn column_document_and_picture_insets_use_the_named_frame_border() {
-    let source = include_str!("../selection_preview_render.rs");
-    for dimension in ["width", "height"] {
-        assert!(
-            !source.contains(&format!("({dimension} - 2.)")),
-            "{dimension} must inset by the named frame border on both sides"
-        );
-        assert_eq!(
-            source.matches(&format!("({dimension} - 2. * FRAME_BORDER)")).count(),
-            2,
-            "document and picture must share the frame border for {dimension}"
-        );
+    // The document inset is in selection_preview_render.rs and the picture's fit in selection_preview_fitted.rs; each is pinned in its own file.
+    let sources = [
+        ("document", include_str!("../selection_preview_render.rs")),
+        ("picture", include_str!("../selection_preview_fitted.rs")),
+    ];
+    for (inset, source) in sources {
+        for dimension in ["width", "height"] {
+            assert!(
+                !source.contains(&format!("({dimension} - 2.)")),
+                "the {inset} {dimension} must inset by the named frame border on both sides"
+            );
+            assert_eq!(
+                source
+                    .matches(&format!("({dimension} - 2. * FRAME_BORDER)"))
+                    .count(),
+                1,
+                "the {inset} must inset its {dimension} by the frame border"
+            );
+        }
     }
 }

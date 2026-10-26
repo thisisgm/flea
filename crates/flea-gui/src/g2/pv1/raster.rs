@@ -67,7 +67,10 @@ pub fn default_raster(renderer: SvgRenderer) -> Rasterizer {
 
 /// The decoder a host-decoded file takes by its name: the app's SVG renderer, libheif for AVIF, the image crate otherwise.
 pub fn for_path(path: &std::path::Path, renderer: SvgRenderer) -> Rasterizer {
-    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default();
     if is_vector_name(name) {
         default_raster(renderer)
     } else if is_avif_name(name) {
@@ -92,7 +95,10 @@ fn read_bounded(path: &PathBuf) -> Result<Vec<u8>, RasterRefusal> {
     if !meta.file_type().is_file() {
         return Err(RasterRefusal::Unreadable);
     }
-    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default();
     if !within_decode_bound(name, meta.len()) {
         return Err(RasterRefusal::TooLarge);
     }

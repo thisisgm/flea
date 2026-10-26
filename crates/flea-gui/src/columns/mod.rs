@@ -4,6 +4,7 @@ pub mod carry;
 pub mod edge;
 pub mod element;
 pub mod geometry;
+mod glyphs;
 pub mod landing;
 pub mod menu;
 pub mod paint;

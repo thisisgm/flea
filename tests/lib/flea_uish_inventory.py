@@ -141,7 +141,7 @@ BATCHES = {'tests/ui-uish/common-observers.sh': ['scroll', 'colour', 'lifted', '
  'tests/ui-uish/media.sh': ['mute', 'previewviews'],
  'tests/ui-uish/preview-swap.sh': ['watch', 'previewswap'],
  'tests/ui-uish/tabs.sh': ['tabs', 'tabdrag', 'middleclick', 'opentab', 'folderviews'],
- 'tests/ui-uish/operations.sh': ['dd', 'ddclick', 'operations', 'transferlive'],
+ 'tests/ui-uish/operations.sh': ['dd', 'ddclick', 'operations', 'transferlive', 'xwundo'],
  'tests/ui-uish/open-with.sh': ['openterminal', 'makeexec', 'openwithdesign'],
  'tests/ui-uish/drag.sh': ['griddrop', 'railpointer', 'dualautohidereveal', 'dualdivider']}
 FUNCTION = re.compile(r"^case_([A-Za-z0-9_]+)\(\) (?:\{[^\n]*\}|\{\n.*?^\}|\(\n.*?^\))(?=\n|$)", re.M | re.S)

@@ -157,10 +157,14 @@ impl Shell {
         if host.pane.busy() || host.stopped {
             return;
         }
+        // The glide lands in its own borrow, so a carry drop below can read the whole pane host.
         let Some(grid) = host.grid.as_mut() else {
             return;
         };
         grid.view.land_glide();
+        let Some(grid) = host.grid.as_ref() else {
+            return;
+        };
         if grid.next_view.is_some() {
             return;
         }

@@ -175,7 +175,7 @@ impl Render for Shell {
                     states: self.slots.states[side].clone(),
                     renaming: renaming[side],
                 };
-                panes[side] = Some(with_field(
+                panes[side] = Some(super::rename::field::with_field(
                     host.grid_pane(input, window, cx),
                     renaming[side],
                     side,
@@ -198,7 +198,7 @@ impl Render for Shell {
             if view == View::Columns {
                 panes[side] = self
                     .render_columns(side, drawn[side], window, cx)
-                    .map(|pane| with_field(pane, renaming[side], side, cx));
+                    .map(|pane| super::rename::field::with_field(pane, renaming[side], side, cx));
                 let host = self.panes[side].as_mut().unwrap();
                 host.drawn_view = panes[side].as_ref().map(|_| View::Columns);
                 host.drawn_list = false;
@@ -382,22 +382,4 @@ impl Render for Shell {
         .children(self.carry_flock(window, cx))
         .children(self.unlock_layer(cx))
     }
-}
-
-/// Columns and Grid draw the rename field over their own element, as the list does over its rows.
-fn with_field(
-    pane: AnyElement,
-    renaming: Option<usize>,
-    side: usize,
-    cx: &mut Context<Shell>,
-) -> AnyElement {
-    if renaming.is_none() {
-        return pane;
-    }
-    div()
-        .relative()
-        .size_full()
-        .child(pane)
-        .child(super::rename::field::FieldElement::new(cx.entity(), side))
-        .into_any_element()
 }

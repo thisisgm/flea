@@ -25,7 +25,7 @@ flea_uish_module tests/ui-uish/documents.sh pdffocus columns views formats
 flea_uish_module tests/ui-uish/media.sh mute previewviews
 flea_uish_module tests/ui-uish/preview-swap.sh watch previewswap
 flea_uish_module tests/ui-uish/tabs.sh tabs tabdrag middleclick opentab folderviews
-flea_uish_module tests/ui-uish/operations.sh dd ddclick operations transferlive
+flea_uish_module tests/ui-uish/operations.sh dd ddclick operations transferlive xwundo
 flea_uish_module tests/ui-uish/open-with.sh openterminal makeexec openwithdesign
 flea_uish_module tests/ui-uish/drag.sh griddrop railpointer dualautohidereveal dualdivider
 
