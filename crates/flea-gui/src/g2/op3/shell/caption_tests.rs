@@ -165,6 +165,35 @@ fn permissions_captions_follow_the_catalog_language(cx: &mut TestAppContext) {
     }
 }
 
+#[test]
+fn every_card_producer_carries_the_catalog_language() {
+    let de = crate::g2::op3::tests::language("language-de");
+    assert_ne!(de.language(), english().language());
+    let bulk = crate::g2::op3::bulkrename::BulkRename::open(vec!["/fx/b/alpha.txt".into()]);
+    let (properties, _) = crate::g2::op3::properties::Properties::open(5, &[2]);
+    // Sample input: the backend's run ask for a script, as card_tests.rs ASK.
+    let ask = r#"{"ask":"run","kind":"script","size":21,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":11,"mtimeNs":12,"target":"/fx/v/work/hello.sh"}"#;
+    let run = crate::g2::op3::runcard::RunCard::open(&de, "flea", "/fx/v/work/hello.sh", ask)
+        .expect("the run card opens on a script ask");
+    for card in [
+        permissions().card(&de),
+        bulk.card(&de),
+        crate::g2::op3::tests::open_with().card(&de),
+        properties.card(&de),
+        run.card(&de),
+    ] {
+        assert_eq!(card.language, de.language(), "{}", card.title);
+    }
+}
+
+#[test]
+fn turkish_captions_take_the_dotted_capital() {
+    assert_eq!(
+        flea::ui_logic_st1::caps::heading("izin", "tr"),
+        "\u{130}Z\u{130}N"
+    );
+}
+
 #[gpui::test]
 fn bulk_rename_field_and_name_labels_share_the_board_caption_tracking(cx: &mut TestAppContext) {
     let bulk = crate::g2::op3::bulkrename::BulkRename::open(vec![

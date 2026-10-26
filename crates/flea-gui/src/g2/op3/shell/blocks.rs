@@ -171,7 +171,7 @@ impl Draw<'_> {
             .text_color(self.t.fg)
             .child(div().w(self.px(LABEL_COLUMN)).flex_none());
         for name in columns {
-            head = head.child(cell().child(self.caption(name, CAPTION * 1.2, self.t.fg)));
+            head = head.child(cell().child(self.caption(name, GRID_HEAD_LINE, self.t.fg)));
         }
         let mut grid = div().flex().flex_col().child(head);
         for (row, (name, checks)) in rows.iter().enumerate() {

@@ -25,6 +25,8 @@ pub const CHECK: f32 = 18.;
 pub const LINE_40: f32 = 40.;
 pub const GRID_HEAD: f32 = 26.;
 pub const LABEL_COLUMN: f32 = 96.;
+/// The line box of each grid head caption inside the GRID_HEAD row: 1.2 times the caption size.
+pub const GRID_HEAD_LINE: f32 = CAPTION * 1.2;
 /// Properties' fact lines and the air between its two columns.
 pub const FACT_LINE: f32 = 24.;
 pub const FACT_GAP: f32 = 18.;
