@@ -5,6 +5,9 @@ use flea::protocol::RowFacts;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::cell::RefCell;
 
+#[path = "runcard_modifiers_tests.rs"]
+mod modifiers;
+
 thread_local! {
     static LAUNCHED: RefCell<Vec<Vec<String>>> = const { RefCell::new(Vec::new()) };
     static ANSWER: RefCell<(Option<i32>, String)> = const { RefCell::new((Some(0), String::new())) };
