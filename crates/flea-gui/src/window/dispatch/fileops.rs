@@ -22,6 +22,18 @@ pub(crate) struct Held {
     pub(super) arrival: [Option<String>; 2],
 }
 
+impl Held {
+    /// The dd arm's stamp, 0 while disarmed, as Pane.qml's trashArmedAt reads it.
+    pub(crate) fn armed_at(&self) -> u64 {
+        self.arm.stamp
+    }
+
+    /// Focus.js: any action but the second d ends the pair, including one a key-only handler takes.
+    pub(crate) fn disarm(&mut self) {
+        self.arm.disarm();
+    }
+}
+
 pub(super) fn run(
     shell: &mut Shell,
     order: &Order,

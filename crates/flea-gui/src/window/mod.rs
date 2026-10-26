@@ -33,6 +33,7 @@ mod preview_input;
 pub(crate) mod quick_look;
 pub mod root;
 pub(crate) mod search;
+pub(crate) mod key_delivery;
 pub mod settings;
 pub mod startup;
 pub(crate) mod status;
