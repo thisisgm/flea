@@ -1,12 +1,6 @@
 //! The bulk rename card for a multi-selection: Pane.qml openBulkRename, its paths round trip, the card's keys and effects, and its done line.
 use super::Shell;
-use crate::g2::op3::{
-    bulkrename::BulkRename,
-    keys::key_of,
-    lane,
-    shell::{DialogShell, StandIn},
-    Effect,
-};
+use crate::g2::op3::{bulkrename::BulkRename, keys::key_of, lane, shell::StandIn, Effect};
 use flea::ui_logic_op1::lines;
 use gpui::{div, prelude::*, AnyElement, Context, KeyDownEvent, MouseButton, Window};
 
@@ -189,7 +183,7 @@ impl Shell {
         true
     }
 
-    /// The card over one scrim on the window's highest layer; a press on the scrim cancels.
+    /// The card over one scrim on the window's highest layer; a press on the scrim cancels, a click on a button presses it as Enter does.
     pub(crate) fn bulk_rename_layer(
         &mut self,
         window: &mut Window,
@@ -203,7 +197,20 @@ impl Shell {
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let card = open.card.card(&self.locale.catalog);
         let room = f32::from(window.viewport_size().width);
-        let drawn = StandIn.present(&card, &palette, &self.active_typeface(), self.corner, room);
+        let press = cx.listener(|shell: &mut Shell, at: &usize, _, cx| {
+            if let Some(open) = shell.rename.bulk.as_mut() {
+                let effects = open.card.press_button(*at);
+                shell.bulk_rename_effects(effects, cx);
+            }
+        });
+        let drawn = StandIn.present_pressable(
+            &card,
+            &palette,
+            &self.active_typeface(),
+            self.corner,
+            room,
+            press,
+        );
         let scrim = cx.listener(|shell: &mut Shell, _: &gpui::MouseDownEvent, _, cx| {
             if let Some(open) = shell.rename.bulk.as_mut() {
                 let effects = open
