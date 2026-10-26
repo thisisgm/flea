@@ -9,11 +9,12 @@ fn shaped(window: &mut Window, text: &str) -> Line {
     let layout = window
         .text_system()
         .layout_line(text, px(14.), &[run], None);
-    Line {
+    let mut line = Line {
         run: Some(Rc::new(GlyphRun::new(layout))),
-        right_to_left: super::right_to_left(text),
         ..Line::default()
-    }
+    };
+    line.set_text_direction(text);
+    line
 }
 
 #[gpui::test]
@@ -135,4 +136,109 @@ fn i50_ime_brahmic_clusters_and_paragraph_direction() {
         weak_then_latin.iter().all(|text| !right_to_left(text)),
         "weak and neutral never decide"
     );
+}
+
+fn single_bidi_run(text: &str, positions: &[(usize, f32)], carets: &[(usize, f32)]) {
+    use crate::path::{
+        entry::Entry,
+        field::{ime_bounds, Line},
+    };
+    use gpui::{
+        point, px, size, Bounds, FontId, GlyphId, GlyphRun, LineLayout, ShapedGlyph, ShapedRun,
+    };
+    use std::{rc::Rc, sync::Arc};
+
+    let mut line = Line {
+        run: Some(Rc::new(GlyphRun::new(Arc::new(LineLayout {
+            width: px(30.),
+            len: text.len(),
+            runs: vec![ShapedRun {
+                font_id: FontId(0),
+                glyphs: positions
+                    .iter()
+                    .map(|&(index, x)| ShapedGlyph {
+                        id: GlyphId(0),
+                        position: point(px(x), px(0.)),
+                        index,
+                        is_emoji: false,
+                    })
+                    .collect(),
+            }],
+            ..LineLayout::default()
+        })))),
+        scroll: px(3.),
+        ..Line::default()
+    };
+    line.set_text_direction(text);
+    let mut entry = Entry::default();
+    entry.begin(text);
+    let bounds = Bounds::new(point(px(50.), px(4.)), size(px(100.), px(20.)));
+    for &(index, x) in carets {
+        assert_eq!(
+            line.caret_x(index),
+            px(x),
+            "caret at byte {index} in {text:?}"
+        );
+        assert_eq!(line.span(&(index..index)), (px(x), px(x)));
+        let offset = entry.offset_to_utf16(index);
+        let ime = ime_bounds(&line, &entry, &(offset..offset), bounds);
+        assert_eq!(ime.left(), bounds.left() - line.scroll + px(x));
+        assert_eq!(ime.size.width, px(0.));
+    }
+}
+
+#[test]
+fn i50_ime_bidi_single_rtl_start() {
+    single_bidi_run(
+        "\u{5e9}ab",
+        &[(2, 0.), (3, 10.), (0, 20.)],
+        &[(0, 30.), (2, 0.), (3, 10.), (4, 20.)],
+    );
+}
+
+#[test]
+fn i50_ime_bidi_single_rtl_middle() {
+    single_bidi_run(
+        "a\u{5e9}b",
+        &[(0, 0.), (1, 10.), (3, 20.)],
+        &[(0, 0.), (1, 20.), (3, 20.), (4, 30.)],
+    );
+}
+
+#[test]
+fn i50_ime_bidi_single_rtl_end() {
+    single_bidi_run(
+        "ab\u{5e9}",
+        &[(0, 0.), (1, 10.), (2, 20.)],
+        &[(0, 0.), (1, 10.), (2, 30.), (4, 20.)],
+    );
+}
+
+#[test]
+fn i50_ime_bidi_single_ltr_inside_rtl() {
+    single_bidi_run(
+        "\u{5e9}a\u{5dc}",
+        &[(3, 0.), (2, 10.), (0, 20.)],
+        &[(0, 30.), (2, 10.), (3, 10.), (5, 0.)],
+    );
+}
+
+#[test]
+fn i50_ime_bidi_levels_follow_overrides_and_clear_on_reshape() {
+    let mut line = Line::default();
+    line.set_text_direction("a\u{202e}b\u{202c}");
+    assert!(!line.right_to_left);
+    assert!(line.bidi_levels[4].is_rtl(), "RLO reverses the Latin run");
+    line.set_text_direction("\u{5e9}a ");
+    assert!(line.right_to_left);
+    assert!(line.bidi_levels[2].is_ltr(), "embedded Latin keeps its run");
+    assert!(
+        line.bidi_levels[3].is_rtl(),
+        "trailing space takes the paragraph level"
+    );
+    line.set_text_direction("a");
+    assert_eq!(line.bidi_levels.len(), 1);
+    assert!(line.bidi_levels[0].is_ltr());
+    line.set_text_direction("");
+    assert!(line.bidi_levels.is_empty() && !line.right_to_left);
 }
