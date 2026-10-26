@@ -46,6 +46,7 @@ pub(crate) struct Session {
     pub(crate) last_query: String,
     pub(crate) matched_index_len: usize,
     pub(crate) last_matches: Vec<usize>,
+    pub(crate) score_scratch: searchindex::QueryScratch,
     // Scored but unranked matches past the head, ranked on scroll; a patch drops them because it moves row ids.
     pub(crate) pending_rest: Option<Vec<(i32, usize)>>,
     // Directories patched while the walk ran, applied at its landing; see src/backend/searchpatch.rs.
@@ -237,7 +238,7 @@ impl Session {
         let fuzzy = Matcher::new(&terms.text);
         let priors = self.priors;
         let index = self.index.lock().unwrap();
-        // Only complete, unchanged zero-edit extensions can reuse their previous candidates.
+        // Only complete, unchanged extensions with stable matching rules can reuse their previous candidates.
         let candidates: Vec<usize> = if narrow && index.partial.is_none() && index.len() == self.matched_index_len {
             self.last_matches.clone()
         } else {
@@ -245,7 +246,7 @@ impl Session {
         };
         #[cfg(test)]
         let scored = candidates.len();
-        let mut hits = crate::backend::searchprior::rank(priors, &self.scope, &self.folder, &index, searchindex::score_all(&fuzzy, &candidates, &index));
+        let mut hits = crate::backend::searchprior::rank(priors, &self.scope, &self.folder, &index, searchindex::score_cached(&fuzzy, &candidates, &index, &mut self.score_scratch));
         self.tags.keep(&mut hits, &terms);
         #[cfg(test)]
         {
