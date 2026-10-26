@@ -1,5 +1,6 @@
 //! The column preview's poster or still, fitted inside the frame's border.
 use super::{render::FRAME_BORDER, Frame, Kind};
+use crate::g2::pv3::view::Picture;
 use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs};
 use gpui::{div, img, prelude::*, px};
 
@@ -42,4 +43,15 @@ pub(super) fn fitted(frame: &Frame, width: f32, height: f32) -> Option<gpui::Div
                     .object_fit(gpui::ObjectFit::Fill),
             )
     })
+}
+
+/// cols-preview-video.html draws no play mark over the frame; the strip under it carries play.
+pub(crate) fn column_picture(picture: Picture) -> Picture {
+    match picture {
+        Picture::Video { frame, .. } => Picture::Video {
+            frame,
+            poster: false,
+        },
+        other => other,
+    }
 }
