@@ -14,6 +14,18 @@ pub(super) const FRAME_BORDER: f32 = 1.;
 /// The opacity of a symlink's or an undrawn kind's state mark.
 const STATE_MARK_OPACITY: f32 = 0.7;
 
+impl SelectionPreview {
+    /// An empty text or code file settled with nothing to draw: its frame stands the document glyph in.
+    pub(crate) fn code_blank(&self, frame: &Frame, cx: &gpui::App) -> bool {
+        match &frame.mounted {
+            Mounted::Doc(crate::window::selection_preview::docs::Doc::Code(view)) => {
+                view.read(cx).blank()
+            }
+            _ => false,
+        }
+    }
+}
+
 pub(crate) fn number(meta: Option<&Json>, key: &str) -> i64 {
     meta.and_then(|meta| meta.get(key))
         .and_then(Json::as_f64)
@@ -191,8 +203,18 @@ impl Render for SelectionPreview {
                 cache: self.caches.view.clone(),
                 painted: Default::default(),
             });
+        } else if self.code_blank(frame, cx) {
+            media = media.child(
+                state_mark(
+                    Glyph::kind(&frame.subject.row.icon, frame.subject.row.mode),
+                    roles.muted_frame.opacity(STATE_MARK_OPACITY),
+                    None,
+                )
+                .debug_selector(|| "column-preview-empty-glyph".into()),
+            );
         } else {
             let fitted = super::fitted::fitted(frame, width, height);
+            let moving = super::picture::moving(frame, width, height);
             let player_failed = matches!(&frame.mounted, Mounted::Media(Some(player))
                 if player.read(cx).status() == flea::ui_logic_pv3::player::Status::Failed);
             media = match &frame.mounted {
@@ -257,6 +279,7 @@ impl Render for SelectionPreview {
                                 .trn("items.count", frame.subject.selected_count as i64),
                         ),
                 ),
+                _ if moving.is_some() => media.children(moving),
                 _ if fitted.is_some() => media.children(fitted),
                 _ if frame.kind == Kind::Symlink => media.child(state_mark(
                     Glyph::Row(Mark::Symlink),

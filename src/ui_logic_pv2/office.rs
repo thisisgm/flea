@@ -394,6 +394,7 @@ impl Office {
     }
 }
 
+#[path = "office_container.rs"] mod container;
 #[cfg(test)]
 #[path = "office_tests.rs"]
 mod tests;
