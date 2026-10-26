@@ -63,6 +63,9 @@ impl State {
         self.reset();
     }
 
+    #[cfg(test)]
+    pub(crate) fn heap_bytes(&self) -> usize { (self.best.capacity() + self.end.capacity()) * std::mem::size_of::<i32>() }
+
     pub(crate) fn copy_from(&mut self, other: &Self) {
         self.best.clone_from(&other.best);
         self.end.clone_from(&other.end);

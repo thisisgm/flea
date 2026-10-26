@@ -102,3 +102,37 @@ fn search_q2_replaced_arenas_and_generation_wrap_drop_query_results() {
         }
     }
 }
+
+// The typed queries whose stale path text and states once held 35.7 MB of a 1M session after scoring.
+const TYPED: [&str; 6] = ["render_frame.rs", "redner_frame.rs", "editor/src/components/render", ".svg",
+    "archive/2024/client/reports/quarterly", "editor/src/components/redner"];
+const TYPED_ROWS: usize = 100_000;
+
+#[test]
+fn search_g1_path_text_and_states_keep_only_the_last_generation() {
+    let (index, _) = searchindex::fixture_tests::synthetic(TYPED_ROWS, false);
+    let rows: Vec<_> = (0..index.len()).collect();
+    let mut scratch = QueryScratch::default();
+    let (mut peak_text, mut peak_states) = (0, 0);
+    for query in TYPED {
+        for end in 1..=query.len() {
+            score_cached(&Matcher::new(&query[..end]), &rows, &index, &mut scratch);
+            peak_text = peak_text.max(scratch.texts.len());
+            peak_states = peak_states.max(scratch.states_used);
+            assert!(scratch.texts.capacity() <= SHRINK_ABOVE * scratch.texts.len(), "{:?}: text {} of {}",
+                &query[..end], scratch.texts.len(), scratch.texts.capacity());
+            assert!(scratch.states.len() <= SHRINK_ABOVE * scratch.states_used, "{:?}: states {} of {}",
+                &query[..end], scratch.states_used, scratch.states.len());
+        }
+    }
+    assert!(peak_text > 0 && peak_states > 0, "the typed queries must build path text and states");
+    assert_eq!((scratch.names.len(), scratch.dirs.len()), (index.names.len(), index.blocks.len()));
+    let state_bytes: usize = scratch.states.iter().map(|state| std::mem::size_of::<State>() + state.heap_bytes()).sum();
+    println!("G1_GATE rows={TYPED_ROWS} names={} dirs={} jobs={} text={} states={state_bytes} peak_text={} peak_states={peak_states}",
+        scratch.names.capacity() * std::mem::size_of::<NameSlot>(), scratch.dirs.capacity() * std::mem::size_of::<Directory>(),
+        scratch.jobs.capacity() * std::mem::size_of::<(u32, i32)>(), scratch.texts.capacity() * std::mem::size_of::<Letter>(),
+        peak_text * std::mem::size_of::<Letter>());
+    score_cached(&Matcher::new("qqqq"), &rows, &index, &mut scratch);
+    assert_eq!((scratch.texts.len(), scratch.states_used), (0, 0), "qqqq builds no path text and no states");
+    assert_eq!((scratch.texts.capacity(), scratch.states.capacity()), (0, 0), "a query without path work frees the last one's");
+}

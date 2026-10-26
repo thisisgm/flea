@@ -15,6 +15,9 @@ fn fixture() -> TestDir {
     d
 }
 
+// The edit budget rises at the 4th and 8th letter ("benc", "bench-not"); those prefix lengths rescore the index.
+const RESCORED_AT: [usize; 2] = [4, 9];
+
 #[test]
 fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
     crate::backend::mountinfo::test_reset();
@@ -26,18 +29,16 @@ fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
     assert_eq!(s.partial_reason(), None, "the fixture has complete coverage");
     assert_eq!(crate::backend::mountinfo::test_reads(), 1, "1 mountinfo read over the session's directories");
     let mut previous = usize::MAX;
-    let mut before = String::new();
     for (i, len) in (1..=10).enumerate() {
         let query: String = "bench-notes".chars().take(len).collect();
         let answer = s.query(i + 1, &query, 100).expect("each newer generation answers");
         assert_eq!(s.counters.walks_started, 1, "still 1 walk after query {}", i + 1);
         assert_eq!(crate::backend::mountinfo::test_reads(), 1, "still 1 mountinfo read after query {}", i + 1);
         if i > 0 {
-            let expected = if Matcher::can_narrow(&before, &query) { previous } else { s.indexed() };
+            let expected = if RESCORED_AT.contains(&len) { s.indexed() } else { previous };
             assert_eq!(s.counters.rows_scored, expected, "safe extensions narrow; budget increases rescore the index");
         }
         previous = answer.total;
-        before = query;
     }
 }
 
