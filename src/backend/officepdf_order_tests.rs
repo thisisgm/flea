@@ -60,11 +60,11 @@ fn an_older_request_that_finishes_its_probe_last_is_replaced_and_the_newer_stays
     mkfifo(&gate);
     let (older, newer) = (d.file("older.docx", "o"), d.file("newer.docx", "n"));
     assert_eq!(r.ask(1, &gate), converting_line(1));
-    r.svc.start(2, 2, older, r.tx.clone());
+    r.svc.start(2, 2, older, false, r.tx.clone());
     while entered.load(Ordering::SeqCst) < 2 {
         std::thread::sleep(Duration::from_millis(5));
     }
-    r.svc.start(3, 3, newer, r.tx.clone());
+    r.svc.start(3, 3, newer, false, r.tx.clone());
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(3)));
     open_tx.send(()).unwrap();
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(2)));
@@ -85,18 +85,18 @@ fn a_request_older_than_the_running_job_is_dropped_and_never_converts() {
     let gate = d.join("running.docx");
     mkfifo(&gate);
     let (stale, fresh) = (d.file("stale.docx", "s"), d.file("fresh.docx", "f"));
-    r.svc.request(1, 1, 2, &gate, &r.tx);
+    r.svc.request(1, 1, 2, &gate, false, &r.tx);
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(1)));
     while r.jobs() == 0 {
         std::thread::sleep(Duration::from_millis(5));
     }
     assert!(r.svc.locked().queued.is_none(), "the newer job left the queue and runs");
-    r.svc.request(2, 2, 1, &stale, &r.tx);
+    r.svc.request(2, 2, 1, &stale, false, &r.tx);
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(2)));
     let (reg, line) = r.end();
     assert!(reg == 2 && line.contains(r#""state":"failed""#) && line.contains("replaced"), "the older request is answered replaced: {reg} {line}");
     assert!(r.svc.locked().queued.is_none(), "an older request is never queued");
-    r.svc.request(3, 3, 3, &fresh, &r.tx);
+    r.svc.request(3, 3, 3, &fresh, false, &r.tx);
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(3)));
     within("the gate opens", move || drop(std::fs::OpenOptions::new().write(true).open(&gate).unwrap()));
     let mut ends = vec![r.end(), r.end()];
@@ -112,14 +112,14 @@ fn an_older_request_whose_probe_lands_after_the_newer_job_finished_starts_no_con
     let d = TestDir::new("officepdf-late");
     let r = rig(&d, MAKE_PDF, CONVERT_TIMEOUT);
     let (late, fresh) = (d.file("late.docx", "l"), d.file("fresh.docx", "f"));
-    r.svc.request(1, 1, 2, &fresh, &r.tx);
+    r.svc.request(1, 1, 2, &fresh, false, &r.tx);
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(1)));
     let (reg, line) = r.end();
     assert!(reg == 1 && line.contains(r#""state":"ready""#), "the newer job finished: {reg} {line}");
     while r.svc.locked().running.is_some() {
         std::thread::sleep(Duration::from_millis(5));
     }
-    r.svc.request(2, 2, 1, &late, &r.tx);
+    r.svc.request(2, 2, 1, &late, false, &r.tx);
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(2)));
     let (reg, line) = r.end();
     assert!(reg == 2 && line.contains(r#""state":"failed""#) && line.contains("replaced"), "the late older request is answered replaced: {reg} {line}");
@@ -149,7 +149,7 @@ fn the_conversion_makes_no_path_call_of_its_own() {
     let d = TestDir::new("officepdf-no-path-call");
     let r = rig(&d, MAKE_PDF, CONVERT_TIMEOUT);
     let absent = d.join("resolved-by-the-probe.docx");
-    let job = Job { key: "k".repeat(KEY_HEX_CHARS), program: "/usr/bin/sh".into(), input: absent, mtime: SystemTime::UNIX_EPOCH, seq: 0, waiters: Vec::new(), required: false, cancel: None };
+    let job = Job { key: "k".repeat(KEY_HEX_CHARS), program: "/usr/bin/sh".into(), input: absent, mtime: SystemTime::UNIX_EPOCH, seq: 0, waiters: Vec::new(), required: false, sheets: false, cancel: None };
     assert!(r.svc.convert(&job).is_ok(), "an input the job already carries needs no second resolve");
     assert_eq!(r.jobs(), 1);
 }

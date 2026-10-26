@@ -24,6 +24,8 @@ pub(crate) fn allowed(path: &Path) -> bool {
         // Legacy office failure records are plain diagnostic text with no schema.
         Some("txt") => std::str::from_utf8(&bytes)
             .is_ok_and(|s| !s.trim_start().starts_with(['{', '[']) && !s.contains('\0')),
+        // A spreadsheet's sheet as LibreOffice's CSV filter writes it: text, never a binary document.
+        Some("csv") => !bytes.contains(&0),
         _ => false,
     }
 }
