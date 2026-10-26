@@ -94270,7 +94270,7 @@
     },
     {
       "excerpt": "let view = self.settings.panel.clone().expect(\"settings built\");",
-      "line": 252,
+      "line": 253,
       "literal": "settings built",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/settings/mod.rs",
@@ -94279,7 +94279,7 @@
     },
     {
       "excerpt": "flea::ui_logic_st1::pages::word(&self.launch.settings.data, &[\"keys\"], \"default\");",
-      "line": 267,
+      "line": 268,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/settings/mod.rs",
@@ -183154,7 +183154,7 @@
     },
     {
       "excerpt": "[[ $(git -C \"$W\" rev-parse HEAD) = \"${FINDBENCH_FLEA_REV:-$(git -C \"$W\" rev-parse HEAD)}\" ]] || exit 2",
-      "line": 11,
+      "line": 13,
       "literal": " rev-parse HEAD)}",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183163,7 +183163,7 @@
     },
     {
       "excerpt": "for source in fff fsearch fsearch-nd; do printf '%s\\t%s\\n' \"$source\" \"$(git -C \"$CURRENT/$source\" rev-parse HEAD)\"; done > \"$BUILD/current-sources.tsv\"",
-      "line": 42,
+      "line": 44,
       "literal": " rev-parse HEAD)",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183172,7 +183172,7 @@
     },
     {
       "excerpt": "python3 - \"$W\" \"$BUILD\" <<'PY'\nimport os, pathlib, shutil, sys\nsource, build = map(pathlib.Path, sys.argv[1:])\nif not build.is_absolute() or not (build / '.findbench-root').is_file():\n    raise SystemExit('marked absolute build root required')\ndestination = build / 'flea-source'\ndestination.mkdir()\npaths = (build / 'source-files.nul').read_bytes().split(b'\\0')\nfor raw in paths:\n    if not raw:\n        continue\n    rel = pathlib.Path(os.fsdecode(raw))\n    original = source / rel\n    target = destination / rel\n    target.parent.mkdir(parents=True, exist_ok=True)\n    if original.is_symlink():\n        os.symlink(os.readlink(original), target)\n    else:\n        shutil.copyfile(original, target)\nPY\npatch --directory \"$BUILD/flea-source\" -p1 < \"$H/flea-metrics.patch\"",
-      "line": 81,
+      "line": 83,
       "literal": " <<'PY'\nimport os, pathlib, shutil, sys\nsource, build = map(pathlib.Path, sys.argv[1:])\nif not build.is_absolute() or not (build / '.findbench-root').is_file():\n    raise SystemExit('marked absolute build root required')\ndestination = build / 'flea-source'\ndestination.mkdir()\npaths = (build / 'source-files.nul').read_bytes().split(b'\\0')\nfor raw in paths:\n    if not raw:\n        continue\n    rel = pathlib.Path(os.fsdecode(raw))\n    original = source / rel\n    target = destination / rel\n    target.parent.mkdir(parents=True, exist_ok=True)\n    if original.is_symlink():\n        os.symlink(os.readlink(original), target)\n    else:\n        shutil.copyfile(original, target)\nPY\npatch --directory ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183181,7 +183181,7 @@
     },
     {
       "excerpt": "python3 - \"$BUILD/project/flea-engine/Cargo.toml\" \"$BUILD/flea-source/src/main.rs\" \"$W/Cargo.toml\" <<'PY'\nimport pathlib, re, sys, tomllib\nmanifest = pathlib.Path(sys.argv[1])\ntext = manifest.read_text()\npackage = tomllib.loads(pathlib.Path(sys.argv[3]).read_text())['package']\nfor key in ['version', 'edition', 'rust-version']:\n    text = re.sub(r'^' + re.escape(key) + r' = \"[^\"]+\"', key + ' = \"' + package[key] + '\"', text, count=1, flags=re.MULTILINE)",
-      "line": 108,
+      "line": 110,
       "literal": " <<'PY'\nimport pathlib, re, sys, tomllib\nmanifest = pathlib.Path(sys.argv[1])\ntext = manifest.read_text()\npackage = tomllib.loads(pathlib.Path(sys.argv[3]).read_text())['package']\nfor key in ['version', 'edition', 'rust-version']:\n    text = re.sub(r'^' + re.escape(key) + r' = ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183190,7 +183190,7 @@
     },
     {
       "excerpt": "text = text.replace('path = \"../../../../src/main.rs\"', 'path = \"' + sys.argv[2] + '\"')\nlibrary = pathlib.Path(sys.argv[2]).with_name('lib.rs')\nif library.is_file():\n    text += '\\n[lib]\\nname = \"flea\"\\npath = \"' + str(library) + '\"\\n'",
-      "line": 131,
+      "line": 133,
       "literal": "')\nlibrary = pathlib.Path(sys.argv[2]).with_name('lib.rs')\nif library.is_file():\n    text += '\\n[lib]\\nname = ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183199,7 +183199,7 @@
     },
     {
       "excerpt": "uname -a > \"$BUILD/kernel.txt\"\npkg-config --modversion gtk+-3.0 gio-unix-2.0 pango libpcre2-8 icu-uc > \"$BUILD/c-libraries.txt\"",
-      "line": 140,
+      "line": 142,
       "literal": "\npkg-config --modversion gtk+-3.0 gio-unix-2.0 pango libpcre2-8 icu-uc > ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183208,7 +183208,7 @@
     },
     {
       "excerpt": "pkg-config --modversion gtk+-3.0 gio-unix-2.0 pango libpcre2-8 icu-uc > \"$BUILD/c-libraries.txt\"\n# Seed the standalone lock from the pinned workspace; retain the final resolved lock and its diff.\ncargo fetch --manifest-path \"$BUILD/project/Cargo.toml\"",
-      "line": 141,
+      "line": 143,
       "literal": "\n                                                                                                  \ncargo fetch --manifest-path ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183217,7 +183217,7 @@
     },
     {
       "excerpt": "diff -u /current/fff/Cargo.lock \"$BUILD/project/Cargo.lock\" > \"$BUILD/lock-diff.txt\" || [[ $? = 1 ]]\ncargo fetch --manifest-path \"$BUILD/project-historical/Cargo.toml\"",
-      "line": 144,
+      "line": 146,
       "literal": " || [[ $? = 1 ]]\ncargo fetch --manifest-path ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183226,7 +183226,7 @@
     },
     {
       "excerpt": "diff -u /sources/fff/Cargo.lock \"$BUILD/project-historical/Cargo.lock\" > \"$BUILD/lock-diff-historical.txt\" || [[ $? = 1 ]]\ncargo metadata --offline --locked --format-version 1 --manifest-path \"$BUILD/project/Cargo.toml\" > \"$BUILD/cargo-metadata.json\"",
-      "line": 146,
+      "line": 148,
       "literal": " || [[ $? = 1 ]]\ncargo metadata --offline --locked --format-version 1 --manifest-path ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183235,7 +183235,7 @@
     },
     {
       "excerpt": "cargo metadata --offline --locked --format-version 1 --manifest-path \"$BUILD/project/Cargo.toml\" > \"$BUILD/cargo-metadata.json\"\ncargo tree --offline --locked -e normal --manifest-path \"$BUILD/project/Cargo.toml\" > \"$BUILD/cargo-tree.txt\"",
-      "line": 147,
+      "line": 149,
       "literal": "\ncargo tree --offline --locked -e normal --manifest-path ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183244,15 +183244,6 @@
     },
     {
       "excerpt": "/usr/bin/time -v -o \"$BUILD/rust-build.time\" \\\n    cargo build --release --offline --locked --manifest-path \"$BUILD/project/Cargo.toml\" --target-dir \"$BUILD/target\"",
-      "line": 149,
-      "literal": " \\\n    cargo build --release --offline --locked --manifest-path ",
-      "owner": "controller",
-      "path": "tools/flea-searchbench/engine/build.sh",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "/usr/bin/time -v -o \"$BUILD/flea-build.time\" \\\n    cargo build --release --offline --locked --manifest-path \"$BUILD/project/flea-engine/Cargo.toml\" --target-dir \"$BUILD/flea-target\"",
       "line": 151,
       "literal": " \\\n    cargo build --release --offline --locked --manifest-path ",
       "owner": "controller",
@@ -183261,8 +183252,17 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "/usr/bin/time -v -o \"$BUILD/rust-historical-build.time\" \\\n    cargo build --release --offline --locked --bin fff-driver --manifest-path \"$BUILD/project-historical/Cargo.toml\" --target-dir \"$BUILD/target-historical\"",
+      "excerpt": "/usr/bin/time -v -o \"$BUILD/flea-build.time\" \\\n    cargo build --release --offline --locked --manifest-path \"$BUILD/project/flea-engine/Cargo.toml\" --target-dir \"$BUILD/flea-target\"",
       "line": 153,
+      "literal": " \\\n    cargo build --release --offline --locked --manifest-path ",
+      "owner": "controller",
+      "path": "tools/flea-searchbench/engine/build.sh",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "/usr/bin/time -v -o \"$BUILD/rust-historical-build.time\" \\\n    cargo build --release --offline --locked --bin fff-driver --manifest-path \"$BUILD/project-historical/Cargo.toml\" --target-dir \"$BUILD/target-historical\"",
+      "line": 155,
       "literal": " \\\n    cargo build --release --offline --locked --bin fff-driver --manifest-path ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183271,7 +183271,7 @@
     },
     {
       "excerpt": "/usr/bin/time -v -o \"$BUILD/flea-anchor-build.time\" \\\n    cargo build --release --offline --locked --manifest-path \"$BUILD/anchor-engine/Cargo.toml\" --target-dir \"$BUILD/flea-anchor-target\"",
-      "line": 155,
+      "line": 157,
       "literal": " \\\n    cargo build --release --offline --locked --manifest-path ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183280,7 +183280,7 @@
     },
     {
       "excerpt": "mapfile -t names < \"$H/fsearch-driver/sources.txt\"\nc_sources=()\nfor name in \"${names[@]}\"; do c_sources+=(\"/current/fsearch/src/$name\"); done",
-      "line": 157,
+      "line": 159,
       "literal": "\nc_sources=()\nfor name in ",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/build.sh",
@@ -183370,7 +183370,7 @@
     },
     {
       "excerpt": "[[ -d $SOURCES/$source ]] || { echo \"source clone missing: $source\" >&2; exit 2; }",
-      "line": 29,
+      "line": 31,
       "literal": "source clone missing: $source",
       "owner": "controller",
       "path": "tools/flea-searchbench/engine/run.sh",
@@ -190137,116 +190137,8 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 17,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 22,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 27,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 32,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 37,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 42,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 47,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 52,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 57,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 62,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 67,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 72,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
       "excerpt": "\"reason\": \"Outside::status queues a Trash message for the feedback service and performs no process or I/O call\"",
-      "line": 77,
+      "line": 17,
       "literal": "Outside::status queues a Trash message for the feedback service and performs no process or I/O call",
       "owner": "controller",
       "path": "tools/gpui-lint.json",
@@ -190254,54 +190146,9 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 82,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 87,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 92,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 97,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 102,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"gpui Entity::read returns a shared borrow of the entity state, not I/O\"",
-      "line": 107,
-      "literal": "gpui Entity::read returns a shared borrow of the entity state, not I/O",
+      "excerpt": "\"reason\": \"Test helper polling the stub backend's reply channel between try_recv attempts; it runs on the test thread, never a UI callback\"",
+      "line": 22,
+      "literal": "Test helper polling the stub backend's reply channel between try_recv attempts; it runs on the test thread, never a UI callback",
       "owner": "controller",
       "path": "tools/gpui-lint.json",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -190309,7 +190156,7 @@
     },
     {
       "excerpt": "\"reason\": \"Parses Omarchy colours and reuses the existing QML canvas and TUI foreground fallbacks.\"",
-      "line": 115,
+      "line": 30,
       "literal": "Parses Omarchy colours and reuses the existing QML canvas and TUI foreground fallbacks.",
       "owner": "controller",
       "path": "tools/gpui-lint.json",
@@ -190597,7 +190444,7 @@
     },
     {
       "excerpt": "\"\"\"Only a named module-level constant can exempt its exact non-colour hex value.\"\"\"",
-      "line": 85,
+      "line": 88,
       "literal": "Only a named module-level constant can exempt its exact non-colour hex value.",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190606,7 +190453,7 @@
     },
     {
       "excerpt": "errors.append(f\"callback registration names no function: {name}\")",
-      "line": 109,
+      "line": 112,
       "literal": "callback registration names no function: {name}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190615,7 +190462,7 @@
     },
     {
       "excerpt": "errors.append(f\"{function.path}:{line}: UI blocking call {target} in {name}\")",
-      "line": 128,
+      "line": 131,
       "literal": "{function.path}:{line}: UI blocking call {target} in {name}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190624,7 +190471,7 @@
     },
     {
       "excerpt": "errors.append(f\"{unit['path']}: drawing/callback modules cannot be colour parsing exemptions\")",
-      "line": 138,
+      "line": 141,
       "literal": "{unit['path']}: drawing/callback modules cannot be colour parsing exemptions",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190633,7 +190480,7 @@
     },
     {
       "excerpt": "errors.append(f\"{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception\")",
-      "line": 147,
+      "line": 150,
       "literal": "{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190642,7 +190489,7 @@
     },
     {
       "excerpt": "errors.append(f\"{unit['path']}:{token.line}: literal colour { '::'.join(path) }; use theme roles\")",
-      "line": 172,
+      "line": 175,
       "literal": "{unit['path']}:{token.line}: literal colour { '::'.join(path) }; use theme roles",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190651,7 +190498,7 @@
     },
     {
       "excerpt": "errors.append(\"hot surfaces must register list, columns, grid and long_menus\")",
-      "line": 177,
+      "line": 180,
       "literal": "hot surfaces must register list, columns, grid and long_menus",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190660,7 +190507,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: pending surface exists; register its Element and row_height\")",
-      "line": 183,
+      "line": 186,
       "literal": "{entry['path']}: pending surface exists; register its Element and row_height",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190669,7 +190516,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: registered hot surface has no custom Element {entry['element']}\")",
-      "line": 187,
+      "line": 190,
       "literal": "{entry['path']}: registered hot surface has no custom Element {entry['element']}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190678,7 +190525,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: custom Element must implement layout, prepaint and paint\")",
-      "line": 192,
+      "line": 195,
       "literal": "{entry['path']}: custom Element must implement layout, prepaint and paint",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190687,7 +190534,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry.get('row_height_path', entry['path'])}: missing fixed row height {entry['row_height']}\")",
-      "line": 197,
+      "line": 200,
       "literal": "{entry.get('row_height_path', entry['path'])}: missing fixed row height {entry['row_height']}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190696,7 +190543,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: Element file does not use its fixed row height {entry['row_height']}\")",
-      "line": 199,
+      "line": 202,
       "literal": "{entry['path']}: Element file does not use its fixed row height {entry['row_height']}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190705,7 +190552,7 @@
     },
     {
       "excerpt": "errors.append(f\"{function.path}:{line}: hot surface builds child tree with {symbol}\")",
-      "line": 210,
+      "line": 213,
       "literal": "{function.path}:{line}: hot surface builds child tree with {symbol}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -190714,7 +190561,7 @@
     },
     {
       "excerpt": "errors.append(\"empty native source or hot-surface scan\")",
-      "line": 215,
+      "line": 218,
       "literal": "empty native source or hot-surface scan",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -211381,13 +211228,14 @@
     "crates/flea-gui/src/window/selection_preview_wire.rs": "56fd35c74b3ca790f549f579cc33046724954393342213a0c79bf47a1fad8019",
     "crates/flea-gui/src/window/settings/actions.rs": "6331e21df3b66fe17f64e4b2a4aca1385f8b2208e13d4bd4c47ada12098f2cf3",
     "crates/flea-gui/src/window/settings/apply.rs": "782be7e0a20c13de862c08ec738e827b7bb2717c36b2c77ed436abef90f3c261",
-    "crates/flea-gui/src/window/settings/claim.rs": "b3b78d3673b34be564a71eacf567b69e4264f902cec5a5925c3642a9e90476f2",
+    "crates/flea-gui/src/window/settings/claim.rs": "cae4c29b9aa0c81a48537d4c6ee7dff8ac14681d81f8e9ec79fe3deb69ce0680",
     "crates/flea-gui/src/window/settings/locale.rs": "672b112d813c4c8c003064fc4f989f79b3747a1a0d98b147e86cd2ae38fdf79b",
     "crates/flea-gui/src/window/settings/messages.rs": "c157fc30188dace20d1fead0f2ff4de78fc92b07d64064bbea2d60bd3c027680",
-    "crates/flea-gui/src/window/settings/mod.rs": "a3646b78a9d0ec9a1df103733e08c129a3ddc58adb3723ca02bf6140874b4ceb",
+    "crates/flea-gui/src/window/settings/mod.rs": "658d953069dada5c5f7ca04cfd471f31915771af589dc76a0a516c0297a1e583",
     "crates/flea-gui/src/window/settings/plugins.rs": "d0797ddfbf052d7c78357a690747d280f1d77f20f9c6313aa2b84072f1ee76c0",
+    "crates/flea-gui/src/window/settings/provenance.rs": "47144d58f157659f51788486dba84fbab1b623ade30646c9d03b33393449e18e",
     "crates/flea-gui/src/window/settings/store.rs": "007bde233a96fcbdaf8ada20404d5212dfdd69a0ca62dbc72dd50fde8ca0086e",
-    "crates/flea-gui/src/window/settings/update.rs": "66492418f02bb7eb6c16d7bfaf914fe4d9c0fb944b1569fd082e75d1ef57cbd5",
+    "crates/flea-gui/src/window/settings/update.rs": "44deb5fb4497f1a5f204ae0eaa8912f631f0b9ed3697044a188da9260a0fa0e2",
     "crates/flea-gui/src/window/startup.rs": "3484d75e82e734c652e1bfe740ad04af0867c7e46c85dd9f8ef75c1c0127fdd9",
     "crates/flea-gui/src/window/status.rs": "927900c6d15e7278729abfb878ff56cb26fb1db50723f188a42a9e186689cbaf",
     "crates/flea-gui/src/window/status_detail.rs": "63f9220941a222a1bcc4cc69aa734a79a73e8b617c0bd31fab2d4f97afe7ca4d",
@@ -211491,7 +211339,7 @@
     "src/backend/homerestore.rs": "6031f58eedb659cb10ad620b6f5ceadfb92737132e8e4bcdc55e82f6e19247f5",
     "src/backend/hometrash.rs": "48c02749d77fef6c63f9704f2c94c71a3189d59a6ff5a64ff802a165b8d9c43c",
     "src/backend/htmlcache.rs": "cf0dcc43f7cf26fcb4c109825e595c0aa2d5be4d574a2877de00d7d7e3f4df33",
-    "src/backend/htmldeps.rs": "745c32a522f7b03c235a84fd2d786495864e7d5c03a9d7497fefa1cd682023f3",
+    "src/backend/htmldeps.rs": "15dec66125c973827778c7e27c559bf7a24f56489f4039a7744eb504496060df",
     "src/backend/htmlrender.qml": "9cc7eb0ba657419b04f3b2993db447b2b302505cba98a8a4b669392d7ab12c85",
     "src/backend/htmlreq.rs": "2b1a0381f279c0a32866bb3ceaa0c3e32a96816b7e76c272f66e11698cbe5348",
     "src/backend/htmlsandbox.rs": "dead4ffd0b2035b920d09dd491c77ce10c8b1d2c9ed39eb356d7c1e82fbd974c",
@@ -212083,7 +211931,7 @@
     "src/ui_logic_pv2/markdown_figure_store.rs": "728b208071ff2d43a7ec127550e253c808115819a3f86129f1b860956b6ccea0",
     "src/ui_logic_pv2/markdown_fit.rs": "4487936b50292c220a98b82b830f038c0d226a57bc41661387e9a4ce88742a2b",
     "src/ui_logic_pv2/markdown_flow.rs": "bd5d4a08179b6892b7f3af1fe229e47ab6cc6b15fb271eaf192a0be15c233fc1",
-    "src/ui_logic_pv2/markdown_flow_lines.rs": "632a8c456435c88b71b4e75b7d8e78ecec2144182bb4e62e6f9bac9309e36cbd",
+    "src/ui_logic_pv2/markdown_flow_lines.rs": "b8d78350d19256ae891918ebd2cbb207657b94e2367e830e13b8480ceac700d7",
     "src/ui_logic_pv2/markdown_flow_tokens.rs": "f83c4c64f6af5984eb99391c4ecdd83eaac0dd89ef6ff80946b700d308c8e580",
     "src/ui_logic_pv2/markdown_html.rs": "89ad67048ac9d2848670a7fae1372c32855197071cb0fd7c3b6f16426a68422b",
     "src/ui_logic_pv2/markdown_html_block.rs": "d90e1a38e09a68063cc0895104acd0b630b226cccecd44a5e7945ee415128136",
@@ -212306,7 +212154,7 @@
     "tools/flea-searchbench/corpus.py": "44ed890bc6fabf0229326231caa6b086dff6e18467387658ac3355171d04aed3",
     "tools/flea-searchbench/engine/Cargo.toml": "da4aa882ceb7e91bfddf444d3d54a2733ec6d10d87786028b20a37079ca7e0d8",
     "tools/flea-searchbench/engine/Containerfile": "1be50223a1d1608b8f6f77b17c62be0c84148fa99611a74705447eefdfb9c609",
-    "tools/flea-searchbench/engine/build.sh": "86dab05d41709c8205cc8f9f61dea6769a0c23a89c2fa4abbfdd94d574b8a831",
+    "tools/flea-searchbench/engine/build.sh": "0f40d59fc9cf0ac0ebca5589a4d72f3b8fbe0d69b0b035e3ba68f27ead985bbd",
     "tools/flea-searchbench/engine/cold-controller.py": "4d772b4fdd973750bdfef2197b76b5a5fc987163a0b64e93661917e8520b17af",
     "tools/flea-searchbench/engine/compare.py": "6a979a243d6f17d647f854bbf848e37b1bbf20e1712cb7b18a7c50ddc73ca508",
     "tools/flea-searchbench/engine/contracts.py": "566d38f212f9c529c2c26bfad91af8229458e9d65b7d7445055801f56953dd2d",
@@ -212321,7 +212169,7 @@
     "tools/flea-searchbench/engine/production_adapter.py": "cdc09d51483982cb744e9393973f14d7a92a544e646e5ce73ec2c5f3acaa6503",
     "tools/flea-searchbench/engine/production_controls.py": "6988dede8af38bff86669c66a13342a586784a888be03708f179b174e83bc915",
     "tools/flea-searchbench/engine/provenance.py": "e80de278ca54777794aa48c85e6755514d7b2152f12b55bfa7fe695b8ed6cfea",
-    "tools/flea-searchbench/engine/run.sh": "4fa2c0be282e4b19201b408e030cf630ffd521113156431351df0ccfe4b0cea6",
+    "tools/flea-searchbench/engine/run.sh": "95e65c3a6ec6c0cbf07ecc3fee36fb27692f66cbb444c833c30b02b694b36970",
     "tools/flea-searchbench/engine/runner.py": "675692b2fa2a1070e698362d849ec84cf0e32f5d96d4e9a3cdee8e66df5f89de",
     "tools/flea-searchbench/engine/rust/fff.rs": "0baad1341403f99e130df167dbfac15bc150bcc9a635e6428c7ff17d1afe22c7",
     "tools/flea-searchbench/engine/rust/linux_walk.rs": "070e9299f288a5df2bb167c93b020f9d2c1e5bd9c31831e028f3e498257537bc",
@@ -212353,11 +212201,11 @@
     "tools/flea-walkbench/src/stats.rs": "139a67b8a175124ad459004107c3069b920bb07b1907171a6a4cc0a35c1ef2b9",
     "tools/flea_bench_product.py": "70a350992a8ca5f4a28ea122d8191cbebdec8426e2eafa0f1f8e7f79361bf9d8",
     "tools/flea_ipc.py": "0a0c390872be4cc21c29be6806df7ee8093de5492e3d9a3f168fdf60260f5fa7",
-    "tools/gpui-lint.json": "4c6b99b38778f11aacc374f228f91ac633477865118d2db823445f50514d9222",
+    "tools/gpui-lint.json": "f00b8f65fb12ffaa7211edd4ee4d1aaf50ead4c20243667440a184e92a916089",
     "tools/gpui_lint/__init__.py": "f4287efa39701462a6d8573e3ef7aca5a0bd9ad8f26c9c4ac3e832259b79f810",
     "tools/gpui_lint/bindings.py": "97e85be963d79df4a629cb9b4ef064e2ac9e2bb10fea25f0b9bc11888fad7afa",
     "tools/gpui_lint/cargo.py": "082afd4b34069eb8c62771babbf090fbf5c8d41faaa1c5e9643b0b87e08d894d",
-    "tools/gpui_lint/checks.py": "edac44f5693cc9b604051726e3f3e0fd9d715d710e8ae1e2fc4be0a1b51e61bd",
+    "tools/gpui_lint/checks.py": "92531f70c4d8d20cea3d3053ef2e58a22b1e23588b8eb2a651b0440dd988b25c",
     "tools/gpui_lint/lex.py": "abe3dcd4cfc820f9680e705716bd0e8688dd9356b4beab6e3c69624fec63bab4",
     "tools/gpui_lint/rust.py": "840fe0762e203aa5c188eb3634b5bdf0165a45da73375e03ebeabf39f10ad61a",
     "tools/keymap_rust.py": "479e1918a6922308a3c5434efee518fba8ee665b346afa782873b9d0dbba1954",
@@ -212411,7 +212259,7 @@
     "ui/DropInto.qml": "76f32bd71ed23ec763017a43911ebe4b922076985ef985791c12b5d9e96390ad",
     "ui/DropTarget.qml": "183c56a77c5368bc39c9176532d1c7aecb2b00f9cb7e8b2065f58216d83c14b0",
     "ui/DropboxMark.qml": "3ac6839078e9a3a30706eb27a1cf8fb4aa4d473893a34d79ac6a2120faacd510",
-    "ui/EmptyState.qml": "f908b2e7661d41929d5ff3dd0ea2e99ac72aa2655323ac96e4ade8c811745894",
+    "ui/EmptyState.qml": "67b661e058fd17e2c1c6a373d491569565be2b82c2221e2448e957034dbf9780",
     "ui/EscapeHint.qml": "90b29d5f7cdd87430b25133aae003b37c67c3a77f22144db6cb5e757c78131e7",
     "ui/FactsTable.qml": "cd07afdd2a924d4ebe85a3f94094865be73581c1b07ab2f7073b2a050db77f98",
     "ui/FastScrollHandler.qml": "1b12bdf9e80dfa99ae0ac32620e27a20902c8b27e5c834ad2a249becc1afb8bf",
@@ -212784,8 +212632,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "7357f3e625bd2e9d35761fe1c475e4e5c0ab3247",
-  "source_sha": "7357f3e625bd2e9d35761fe1c475e4e5c0ab3247",
+  "source_ref_sha": "6d6432eed9384c83632d5c573d974a9b0ae2aeac",
+  "source_sha": "6d6432eed9384c83632d5c573d974a9b0ae2aeac",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
@@ -212794,13 +212642,13 @@
     },
     "generated/tooling": {
       "keys_with_occurrences": 148,
-      "missing_literal_candidates": 4721,
+      "missing_literal_candidates": 4704,
       "source_files": 144
     },
     "gui": {
       "keys_with_occurrences": 468,
       "missing_literal_candidates": 1585,
-      "source_files": 734
+      "source_files": 735
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
