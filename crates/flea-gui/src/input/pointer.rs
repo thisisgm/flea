@@ -298,7 +298,11 @@ impl Shell {
             // List.qml: only a lone left tap on the drawn name can arm the slow click.
             let on_name = event.button == MouseButton::Left
                 && count == 1
-                && host.list.borrow().on_name(row, event.position.x);
+                && if self.view == crate::window::startup::View::Columns {
+                    crate::window::columns::on_name(host, row, event.position.x)
+                } else {
+                    host.list.borrow().on_name(row, event.position.x)
+                };
             slow = Some(crate::window::rename::slow::Tap {
                 row,
                 on_name,
