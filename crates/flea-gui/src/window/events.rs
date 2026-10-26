@@ -12,6 +12,8 @@ mod ipc;
 mod quit;
 #[path = "events_slow.rs"]
 mod slow;
+// Only the status tests read the sentence directly; the window reads it through slow_line.
+#[cfg(test)]
 pub(crate) use slow::slow_sentence;
 
 impl Shell {
@@ -67,16 +69,9 @@ impl Shell {
             self.search_landed(side, true, window, cx);
         }
         if let BackendEvent::Producer(line) | BackendEvent::Operations(line) = &event {
-            if let Some(sentence) = slow_sentence(line) {
-                self.status_messages(cx, |messages, now| {
-                    messages.say(
-                        &sentence,
-                        false,
-                        "",
-                        flea::ui_logic_fb1::status::Hint::None,
-                        now,
-                    )
-                });
+            self.slow_line(line, cx);
+            if self.open_with_line(side, line, cx) {
+                return;
             }
             if self.fileops_line(side, line, window, cx) {
                 return;

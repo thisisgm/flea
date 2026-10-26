@@ -28,14 +28,35 @@ fn drawn(cx: &mut TestAppContext, tag: &str, name: &str, icon: &str) -> ((f32, f
         .save(&picture)
         .unwrap();
     let (shell, cx) = open(cx, &dir);
-    super::test_shell::land(&shell, cx, &dir, vec![file(name, icon, "Image", 0o100644)], 1);
+    super::test_shell::land(
+        &shell,
+        cx,
+        &dir,
+        vec![file(name, icon, "Image", 0o100644)],
+        1,
+    );
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","w":60,"h":40"#);
-    answer(&shell, cx, &format!(r#"{{"t":"thumbed","row":0,"file":"{}"}}"#, picture.display()));
+    answer(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"thumbed","row":0,"file":"{}"}}"#,
+            picture.display()
+        ),
+    );
     settle(cx);
-    assert_eq!(read(&shell, cx, "previewColumnState", &[]), "image", "{name}");
-    let image = cx.debug_bounds("column-preview-image").expect("the picture is drawn");
-    let room = cx.debug_bounds("column-preview-picture").expect("the frame is drawn");
+    assert_eq!(
+        read(&shell, cx, "previewColumnState", &[]),
+        "image",
+        "{name}"
+    );
+    let image = cx
+        .debug_bounds("column-preview-image")
+        .expect("the picture is drawn");
+    let room = cx
+        .debug_bounds("column-preview-picture")
+        .expect("the frame is drawn");
     (
         (f32::from(image.size.width), f32::from(image.size.height)),
         (f32::from(room.size.width), f32::from(room.size.height)),

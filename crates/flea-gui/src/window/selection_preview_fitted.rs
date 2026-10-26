@@ -3,7 +3,7 @@ use super::{render::FRAME_BORDER, Frame, Kind};
 use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs};
 use gpui::{div, img, prelude::*, px};
 
-/// The poster or still at its fit inside the frame's border, never past the source's own pixels.
+/// The poster or still fits inside the border; vectors fill the room and rasters keep their pixel limit.
 pub(super) fn fitted(frame: &Frame, width: f32, height: f32) -> Option<gpui::Div> {
     frame.image.clone().map(|image| {
         let size = image.size(0);
@@ -13,7 +13,14 @@ pub(super) fn fitted(frame: &Frame, width: f32, height: f32) -> Option<gpui::Div
             .as_ref()
             .map_or((0., 0.), |m| (m.w as f64, m.h as f64));
         let vector = is_vector_name(&frame.subject.row.name);
-        let limit = thumbs::preview_limit(frame.kind == Kind::Video, vector, w, h, original.0, original.1);
+        let limit = thumbs::preview_limit(
+            frame.kind == Kind::Video,
+            vector,
+            w,
+            h,
+            original.0,
+            original.1,
+        );
         let scale = thumbs::fit_scale(
             (width - 2. * FRAME_BORDER).max(1.) as f64,
             (height - 2. * FRAME_BORDER).max(1.) as f64,

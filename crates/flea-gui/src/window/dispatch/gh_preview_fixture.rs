@@ -76,7 +76,7 @@ fn root() -> Root {
 }
 
 /// The test_shell constructor opened on a real folder, the pane's backend recording each request line.
-fn opened_at<'a>(
+pub(super) fn opened_at<'a>(
     cx: &'a mut TestAppContext,
     dir: &Path,
 ) -> (

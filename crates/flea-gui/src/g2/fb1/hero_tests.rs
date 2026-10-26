@@ -101,9 +101,17 @@ fn beats_fire_every_2800_ms_on_the_gpui_clock_and_swap_after_the_fade_out(cx: &m
     run(cx, handle, ROTATE_MS - FRAME);
     assert_eq!(phrase(cx), (0, 0), "no beat before 2800 ms");
     run(cx, handle, FRAME);
-    assert_eq!(phrase(cx), (1, 0), "first beat at 2800 ms, fade out running");
+    assert_eq!(
+        phrase(cx),
+        (1, 0),
+        "first beat at 2800 ms, fade out running"
+    );
     run(cx, handle, 128);
-    assert_eq!(phrase(cx), (1, 0), "phrase holds until its 140 ms fade out ends");
+    assert_eq!(
+        phrase(cx),
+        (1, 0),
+        "phrase holds until its 140 ms fade out ends"
+    );
     run(cx, handle, FRAME);
     assert_eq!(phrase(cx), (1, 1), "first swap on the frame at 2944 ms");
     run(cx, handle, 2640);

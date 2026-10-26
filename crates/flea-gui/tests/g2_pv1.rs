@@ -28,6 +28,8 @@ pub mod scenes;
 mod scroll;
 #[path = "g2_pv1/svg.rs"]
 pub mod svg;
+#[path = "g2_pv1/svgfit_join.rs"]
+mod svgfit_join;
 #[path = "g2_pv1/symlink.rs"]
 mod symlink;
 

@@ -207,13 +207,19 @@ pub fn fit_rounded(room_w: f64, room_h: f64, w: f64, h: f64, vector: bool) -> Op
 
 /// The rounded fit for a picture file: a vector path fills its room, a raster path keeps its pixels.
 pub fn fit_rounded_path(room_w: f64, room_h: f64, w: f64, h: f64, path: &Path) -> Option<Fit> {
-    let vector = path.file_name().and_then(|n| n.to_str()).is_some_and(is_vector_name);
+    let vector = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(is_vector_name);
     fit_rounded(room_w, room_h, w, h, vector)
 }
 
 /// The painted fit for a picture file: a vector path fills its room, a raster path keeps its pixels.
 pub fn fit_painted_path(room_w: f64, room_h: f64, w: f64, h: f64, path: &Path) -> Option<Fit> {
-    let vector = path.file_name().and_then(|n| n.to_str()).is_some_and(is_vector_name);
+    let vector = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(is_vector_name);
     fit_painted(room_w, room_h, w, h, vector)
 }
 

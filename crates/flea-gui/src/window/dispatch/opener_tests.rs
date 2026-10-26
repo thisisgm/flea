@@ -158,6 +158,8 @@ fn the_exit_status_picks_the_next_step(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("enter");
     answering(Some(5), "");
     cx.simulate_keystrokes("enter");
+    // The Open With card the ask opened holds the keyboard, so Escape dismisses it before the next press.
+    cx.simulate_keystrokes("escape");
     // Each failure press starts from a clear status, so a regression to Done cannot pass on an older sentence.
     for answer in [Some(4), None] {
         clear_status(&shell, cx);

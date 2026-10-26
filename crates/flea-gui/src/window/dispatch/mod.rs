@@ -163,6 +163,10 @@ mod rename_views_tests;
 #[cfg(test)]
 mod retry_tests;
 #[cfg(test)]
+mod runcard_tests;
+#[cfg(test)]
+mod openwith_tests;
+#[cfg(test)]
 mod search_open_tests;
 #[cfg(test)]
 mod tabs_tests;
