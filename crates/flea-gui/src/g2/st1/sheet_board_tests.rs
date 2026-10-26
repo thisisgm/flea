@@ -114,7 +114,6 @@ fn the_resting_sheet_draws_every_keymap_board_string_but_the_new_keys() {
     assert_eq!(
         left,
         [
-            "Carry to another app",
             "ctrl-right",
             "Open in place",
             "ctrl-left",

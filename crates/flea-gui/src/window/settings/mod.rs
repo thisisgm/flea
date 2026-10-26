@@ -270,6 +270,7 @@ impl Shell {
             self.locale.catalog.clone(),
             Sources {
                 home: std::env::var("HOME").unwrap_or_default(),
+                menus: self.sheet_menus(),
                 ..self.settings.sources.clone()
             },
         );
