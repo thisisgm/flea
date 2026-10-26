@@ -232,7 +232,11 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(len(additions), 1)
         self.assertEqual((additions[0]["table"], additions[0]["key"], additions[0]["mods"]),
                          ("text", "A", "text"))
-        self.assertEqual([r for r in common if r["action"] != "openAgent"],
+        # PR #302 adds foot's Control-only text size chords; every other non-TUI row is the frozen baseline.
+        text_size = [r for r in common if r["table"] == "ctrl" and r["action"].startswith("textSize")]
+        self.assertEqual([(r["key"], r["action"]) for r in text_size],
+                         [("Plus", "textSizeUp"), ("Equal", "textSizeUp"), ("Minus", "textSizeDown"), ("0", "textSizeReset")])
+        self.assertEqual([r for r in common if r["action"] != "openAgent" and r not in text_size],
                          [{k: v for k, v in r.items() if k != "id"} for r in baseline])
 
     def test_i50_layout_unreachable_fails(self):

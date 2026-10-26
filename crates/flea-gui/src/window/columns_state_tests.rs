@@ -66,3 +66,28 @@ fn u09_live_columns_empty_hero_uses_the_whole_pane_or_clear_free_area() {
         }
     }
 }
+
+#[test]
+fn a_new_columns_limit_applies_to_the_open_columns_pane_at_once() {
+    let mut cx = host::context();
+    let (window, _requests) = host::open_at(&mut cx, "/srv/a/b/c", 2700., 5);
+    host::change(&mut cx, window, host::settle);
+    host::frame(&mut cx, window);
+    for limit in [2, 4, 3] {
+        host::change(&mut cx, window, |shell, window, cx| {
+            let patch = flea::jsondoc::parse(&format!(r#"{{"columnsLimit":{limit}}}"#)).unwrap();
+            shell.change_settings(patch, window, cx);
+            host::settle(shell, window, cx);
+        });
+        host::frame(&mut cx, window);
+        host::change(&mut cx, window, |shell, window, cx| {
+            assert_eq!(
+                host::call(shell, "columnCount", &[], window, cx)
+                    .stdout
+                    .trim(),
+                limit.to_string(),
+                "Settings set the limit to {limit}"
+            );
+        });
+    }
+}

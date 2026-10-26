@@ -8,34 +8,10 @@ use gpui::{Context, Window};
 mod filesystem;
 #[path = "events_ipc.rs"]
 mod ipc;
+#[path = "events_quit.rs"]
+mod quit;
 
 impl Shell {
-    // Platform quit closes each backend's stdin and lets go of it, so its EOF cleanup outlives this process.
-    pub(crate) fn stop_for_app_quit(&mut self) {
-        self.lifecycle.begin_close();
-        self.stop_tabs();
-        self.stop_settings();
-        self.presentation.close();
-        self._ipc_reader = None;
-        self._locale_reader = None;
-        self.locale_service = None;
-        self._presentation_reader = None;
-        self.presentation_service = None;
-        self.deadlines = [None, None];
-        for host in self.panes.iter_mut().flatten() {
-            if let Some(columns) = &mut host.columns {
-                columns.timer = None;
-            }
-            host.transition = None;
-            host.pane.swap.mark_shown(false, host.pane.now());
-            host.reader = None;
-            host.stopped = true;
-            if let Some(backend) = host.backend.take() {
-                backend.close_stdin();
-            }
-        }
-    }
-
     pub(crate) fn receive(
         &mut self,
         side: usize,
@@ -92,8 +68,11 @@ impl Shell {
                 return;
             }
             let menu_taken = self.menu_reply(side, line, window, cx);
-            if flea::ui_logic_op1::parse(line).is_some() {
+            if let Some(parsed) = flea::ui_logic_op1::parse(line) {
                 self.operation_line(side, line, window, cx);
+                if let flea::ui_logic_op1::Event::TransferDone(done) = parsed {
+                    self.retry_failed(side, &done.retry_paths, window, cx);
+                }
             }
             if !menu_taken {
                 cx.emit(crate::g2::mn1::join::ProducerReply {
@@ -290,8 +269,13 @@ impl Shell {
                 return;
             }
             BackendEvent::Located(located) => {
+                if self.retry_located(side, &located, window, cx) {
+                    return;
+                }
                 let tab_taken = self.tab_located(side, &located);
-                let host = self.panes[side].as_mut().expect("reply pane");
+                let Some(host) = self.panes[side].as_mut() else {
+                    return;
+                };
                 let taken = match located.id {
                     Some(id) => host.nav.take_located_many(
                         &host.pane,

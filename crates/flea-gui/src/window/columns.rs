@@ -103,6 +103,14 @@ impl Columns {
 }
 
 impl Columns {
+    /// Settings' Columns view limit: re-laid now, and the next sync asks the columns the new count shows.
+    pub(crate) fn set_limit(&mut self, limit: Option<f64>) {
+        if self.area.limit != limit {
+            self.area.set_limit(limit);
+            self.seen = None;
+        }
+    }
+
     /// The entry hold ends with the last answer or the landing's cap, which leaves a still-out column as its loading tile.
     fn settle_entry(&mut self, pane: &PaneView<'_>, ports: &mut Ports<'_>, now: u64) {
         if !self.entering {

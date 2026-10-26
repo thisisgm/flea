@@ -19,6 +19,8 @@ mod review_tests;
 mod service_tests;
 pub(crate) mod store;
 mod update;
+#[cfg(test)]
+mod update_poll_tests;
 pub(crate) use store::SessionStore;
 
 use crate::{
@@ -46,6 +48,7 @@ pub(crate) struct Host {
     pub claim: st1::claim::Claim,
     update: flea::ui_logic_st1::update::Status,
     updating: bool,
+    poll: Option<Task<()>>,
     pub about_open: bool,
     pub listed_paths: [String; 2],
     pub relist: [bool; 2],

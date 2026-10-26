@@ -1,10 +1,10 @@
 use super::*;
 use crate::backend::opscancel::Live;
+use crate::backend::wake::EFD_CLOEXEC;
 use std::io::Write;
+use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
-use crate::backend::wake::EFD_CLOEXEC;
 
 // Long enough for a loaded test host; a pass never waits for it.
 const DEADLINE: Duration = Duration::from_secs(10);
@@ -19,7 +19,12 @@ extern "C" {
 fn rig() -> (Inbox, Receiver<Event>, std::fs::File, OwnedFd, Arc<Live>) {
     let mut fds = [0i32; 2];
     assert_eq!(unsafe { pipe2(fds.as_mut_ptr(), EFD_CLOEXEC) }, 0);
-    let (input, writer) = unsafe { (OwnedFd::from_raw_fd(fds[0]), std::fs::File::from(OwnedFd::from_raw_fd(fds[1]))) };
+    let (input, writer) = unsafe {
+        (
+            OwnedFd::from_raw_fd(fds[0]),
+            std::fs::File::from(OwnedFd::from_raw_fd(fds[1])),
+        )
+    };
     let (tx, rx, pending) = open().expect("the doorbell and the timer open");
     let live = Arc::new(Live::new());
     let inbox = pending.start(input.as_raw_fd(), tx, Arc::clone(&live));
@@ -47,9 +52,16 @@ fn a_request_wakes_only_the_loop_that_answers_it() {
     let (mut inbox, rx, mut writer, _input, _live) = rig();
     for i in 0..CYCLES {
         writeln!(writer, "{{\"c\":\"ping\",\"i\":{i}}}").unwrap();
-        assert_eq!(request(inbox.next(&rx)), format!("{{\"c\":\"ping\",\"i\":{i}}}"));
+        assert_eq!(
+            request(inbox.next(&rx)),
+            format!("{{\"c\":\"ping\",\"i\":{i}}}")
+        );
     }
-    assert!(inbox.takeovers() * 10 <= CYCLES, "the helper took stdin over {} times in {CYCLES} answered requests", inbox.takeovers());
+    assert!(
+        inbox.takeovers() * 10 <= CYCLES,
+        "the helper took stdin over {} times in {CYCLES} answered requests",
+        inbox.takeovers()
+    );
 }
 
 // A send from another thread rings the doorbell while the loop sleeps, or lands before its last look; never lost either way.
@@ -78,14 +90,31 @@ fn a_cancel_reaches_its_operation_while_the_loop_is_held() {
     writeln!(writer, "{{\"c\":\"list\",\"path\":\"/tmp\"}}").unwrap();
     writeln!(writer, "{{\"c\":\"transfercancel\",\"id\":4}}").unwrap();
     wait_for(&flag);
-    assert_eq!(inbox.takeovers(), 1, "the parked helper took stdin over once");
-    assert_eq!(request(inbox.next(&rx)), "{\"c\":\"list\",\"path\":\"/tmp\"}");
-    assert_eq!(request(inbox.next(&rx)), "{\"c\":\"transfercancel\",\"id\":4}");
+    assert_eq!(
+        inbox.takeovers(),
+        1,
+        "the parked helper took stdin over once"
+    );
+    assert_eq!(
+        request(inbox.next(&rx)),
+        "{\"c\":\"list\",\"path\":\"/tmp\"}"
+    );
+    assert_eq!(
+        request(inbox.next(&rx)),
+        "{\"c\":\"transfercancel\",\"id\":4}"
+    );
     for i in 0..CYCLES {
         writeln!(writer, "{{\"c\":\"ping\",\"i\":{i}}}").unwrap();
-        assert_eq!(request(inbox.next(&rx)), format!("{{\"c\":\"ping\",\"i\":{i}}}"));
+        assert_eq!(
+            request(inbox.next(&rx)),
+            format!("{{\"c\":\"ping\",\"i\":{i}}}")
+        );
     }
-    assert!((inbox.takeovers() - 1) * 10 <= CYCLES, "the helper parked once the loop slept: {} takeovers", inbox.takeovers());
+    assert!(
+        (inbox.takeovers() - 1) * 10 <= CYCLES,
+        "the helper parked once the loop slept: {} takeovers",
+        inbox.takeovers()
+    );
 }
 
 // Search ticks never sleep, so the helper reads stdin for them, as the reader thread did.
@@ -99,7 +128,10 @@ fn a_ticking_loop_hands_stdin_to_the_helper() {
     inbox.hand_over();
     writeln!(writer, "{{\"c\":\"transfercancel\",\"id\":7}}").unwrap();
     wait_for(&flag);
-    assert_eq!(request(rx.recv_timeout(DEADLINE).ok()), "{\"c\":\"transfercancel\",\"id\":7}");
+    assert_eq!(
+        request(rx.recv_timeout(DEADLINE).ok()),
+        "{\"c\":\"transfercancel\",\"id\":7}"
+    );
 }
 
 // The end of input is the close the reader thread sent, after the last whole line.

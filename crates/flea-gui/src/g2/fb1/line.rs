@@ -47,6 +47,7 @@ pub struct MessageLine {
     messages: Messages,
     catalog: Arc<I18n>,
     state_message: String,
+    retry: String,
     drawn: Drawn,
     typeface: Typeface,
     base: Instant,
@@ -64,6 +65,7 @@ impl MessageLine {
             messages: Messages::new(preset),
             catalog,
             state_message: String::new(),
+            retry: String::new(),
             drawn: Drawn::default(),
             typeface: Typeface::omarchy_default(),
             base: cx.background_executor().now(),
@@ -108,6 +110,15 @@ impl MessageLine {
     pub fn set_state_message(&mut self, text: &str, cx: &mut Context<Self>) {
         if self.state_message != text {
             self.state_message = text.into();
+            self.refresh(cx);
+        }
+    }
+
+    /// The retry-selection line under the activity, re-joined only when its text moves.
+    pub fn set_retry_line(&mut self, text: &str, cx: &mut Context<Self>) {
+        if self.retry != text {
+            self.retry = text.into();
+            self.messages.set_retry(text);
             self.refresh(cx);
         }
     }

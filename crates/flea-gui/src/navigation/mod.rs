@@ -3,6 +3,7 @@ pub mod anchor;
 pub mod folder_state;
 pub mod history;
 mod landing;
+mod retry;
 pub mod sort;
 mod steps;
 pub mod watch;
@@ -111,6 +112,7 @@ pub struct Navigator {
     pub reload_changed: Option<usize>,
     /// The rows a landed reload changed, owed to the status line as its notice.
     pub reloaded: Option<usize>,
+    pub retry: Option<retry::Retry>,
     pub menus: Deferred,
     pub background_at: Option<(f32, f32)>,
     pub folders: Rc<RefCell<Folders>>,
