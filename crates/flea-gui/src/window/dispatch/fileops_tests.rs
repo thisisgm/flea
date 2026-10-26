@@ -88,17 +88,45 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
     assert_eq!(select.as_deref(), Some("/files/New Folder"), "the new folder lands under the cursor");
     land(&shell, cx, "/files", home(), 2);
     // Ops.js trash: the marked rows, cleared once the backend answers.
-    shell.update(cx, |shell, _| shell.panes[0].as_mut().unwrap().selected = vec![0, 2]);
+    shell.update(cx, |shell, _| {
+        shell.panes[0].as_mut().unwrap().selected = vec![0, 2]
+    });
     cx.simulate_keystrokes("delete");
     assert_eq!(sent(), [r#"{"c":"trash","rows":[0,2],"menuId":0,"listing":2}"#]);
     reply(&shell, cx, r#"{"t":"trashed","ok":2,"failed":0}"#);
-    assert_eq!(status(&shell, cx), lines::trashed(&catalog, "default", 2, 0, ""));
-    assert!(shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().selected.is_empty()));
+    assert_eq!(
+        status(&shell, cx),
+        lines::trashed(&catalog, "default", 2, 0, "")
+    );
+    assert!(shell.read_with(cx, |shell, _| shell.panes[0]
+        .as_ref()
+        .unwrap()
+        .selected
+        .is_empty()));
+    land(
+        &shell,
+        cx,
+        "/files",
+        vec![row("beta", true), row("arrived.txt", false)],
+        3,
+    );
+    assert_eq!(
+        shell.read_with(cx, |shell, _| shell.panes[0]
+            .as_ref()
+            .unwrap()
+            .selected
+            .clone()),
+        [0]
+    );
+    cx.simulate_keystrokes("escape");
     // With nothing marked the cursor row goes; with no row at all it says why.
     set_cursor(&shell, cx, 1);
     cx.simulate_keystrokes("delete");
-    assert_eq!(sent(), [r#"{"c":"trash","rows":[1],"menuId":0,"listing":2}"#]);
-    land(&shell, cx, "/files", Vec::new(), 3);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"trash","rows":[1],"menuId":0,"listing":3}"#]
+    );
+    land(&shell, cx, "/files", Vec::new(), 4);
     cx.simulate_keystrokes("delete");
     assert_eq!(sent(), Vec::<String>::new());
     assert_eq!(status(&shell, cx), catalog.tr("filter.nothing_to_act_on"));
@@ -206,7 +234,9 @@ fn a_stopped_backend_ends_the_delete_in_flight(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("shift-delete");
     assert_eq!(sent().len(), 1, "the snapshot is out");
     cx.update(|window, cx| {
-        shell.update(cx, |shell, cx| shell.receive(0, BackendEvent::Drained, window, cx))
+        shell.update(cx, |shell, cx| {
+            shell.receive(0, BackendEvent::Drained, window, cx)
+        })
     });
     cx.run_until_parked();
     let stopped = catalog.tr_args("window.backend_stopped", &[""]);
