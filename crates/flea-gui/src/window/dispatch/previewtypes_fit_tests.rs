@@ -106,7 +106,11 @@ fn video_facts_take_the_board_pitch_and_the_frame_draws_no_play_mark(cx: &mut Te
 
 #[test]
 fn column_document_and_picture_insets_use_the_named_frame_border() {
-    let source = include_str!("../selection_preview_render.rs");
+    let source = [
+        include_str!("../selection_preview_render.rs"),
+        include_str!("../selection_preview_picture.rs"),
+    ]
+    .concat();
     for dimension in ["width", "height"] {
         assert!(
             !source.contains(&format!("({dimension} - 2.)")),

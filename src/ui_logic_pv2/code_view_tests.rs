@@ -282,6 +282,21 @@ fn code_held_lines_stay_bounded() {
 }
 
 #[test]
+fn code_page_step_lands_on_a_line_boundary() {
+    assert_eq!(page_step(505., 20.), 500., "a page is whole lines only");
+    assert_eq!(page_step(500., 20.), 500., "an aligned viewport pages by itself");
+    assert_eq!(page_step(39., 20.), 20., "a short viewport still pages one line");
+    assert_eq!(page_step(0., 20.), 20., "a page before layout moves one line");
+    assert_eq!(
+        page_step(503., 16.) % 16.,
+        0.,
+        "the page-forward offset is a whole multiple of the line height"
+    );
+    assert_eq!(page_step(100.75, 0.75), 100.5, "a line under one pixel still pages by whole lines");
+    assert_eq!(page_step(300., 0.), 300., "no line height yet pages by the viewport");
+}
+
+#[test]
 fn code_limit_and_plain_lines() {
     let mut lines = Lines::new(1);
     lines.active = true;

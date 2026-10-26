@@ -322,6 +322,14 @@ impl Lines {
     }
 }
 
+/// The page step for a viewport at a line height of `row`: whole lines only, at least one, so a page lands on a line.
+pub fn page_step(viewport: f32, row: f32) -> f32 {
+    if row <= 0. {
+        return viewport;
+    }
+    (viewport / row).floor().max(1.) * row
+}
+
 /// How a text frame is refused: over the gate by the listing's size or the backend's count, a failed read, or a binary file.
 pub fn refusal(
     size: u64,

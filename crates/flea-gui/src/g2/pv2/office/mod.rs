@@ -51,6 +51,7 @@ pub struct OfficeView {
     /// The document's own Title and Author, from the host's metadata reply.
     pub meta: (Option<String>, Option<String>),
     sniff: Option<Task<()>>,
+    check: Option<Task<()>>,
     /// Bytes the last header sniff read.
     pub sniffed_bytes: usize,
 }
@@ -79,6 +80,7 @@ impl OfficeView {
             metrics,
             meta: (None, None),
             sniff: None,
+            check: None,
             sniffed_bytes: 0,
         }
     }
@@ -91,20 +93,6 @@ impl OfficeView {
     ) {
         self.host = Some(host);
         self.table.update(cx, |table, _| table.set_host(code));
-    }
-
-    /// A new subject: the last one's request is left, this one is asked for its pages or its sheets.
-    pub fn set_path(&mut self, path: &str, window: &mut Window, cx: &mut Context<Self>) {
-        self.leave(window, cx);
-        self.thumb = None;
-        self.meta = (None, None);
-        let sheets = Group::of(path) == Some(Group::Spreadsheet);
-        let id = self
-            .host
-            .as_ref()
-            .map_or(0, |host| host.office(path, sheets));
-        self.office.open(path, id);
-        cx.notify();
     }
 
     // A ready subject whose PDF did not open or whose sheet the engine refused ends as a failure the swap shows.
@@ -136,6 +124,7 @@ impl OfficeView {
     pub fn leave(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.office.leave();
         self.sniff = None;
+        self.check = None;
         self.pdf
             .update(cx, |pdf, cx| pdf.set_active(false, window, cx));
         cx.notify();
@@ -393,6 +382,8 @@ impl Render for OfficeView {
             .children(content.map(|c| div().absolute().size_full().child(c)))
     }
 }
+
+mod container;
 
 #[cfg(test)]
 mod m9_g2rows_14;

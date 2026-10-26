@@ -138,14 +138,25 @@ fn f_and_b_page_html_source_by_its_viewport_height(cx: &mut TestAppContext) {
     let moved = |cx: &mut VisualTestContext| {
         cx.read(|cx| {
             let code = source.read(cx);
-            (code.top as f32 * code.metrics.row + code.offset, code.frame.1)
+            (
+                code.top as f32 * code.metrics.row + code.offset,
+                code.frame.1,
+                code.metrics.row,
+                code.offset,
+            )
         })
     };
-    let (top, height) = moved(cx);
+    let (top, height, row, _) = moved(cx);
     assert!(top == 0. && height > 0., "Source is laid out at its top: {top} {height}");
     cx.simulate_keystrokes("shift-f->F");
     pump(cx);
-    assert_eq!(moved(cx).0, height, "F moves Source by one viewport height");
+    let (paged, _, _, offset) = moved(cx);
+    assert_eq!(
+        paged,
+        flea::ui_logic_pv2::code_view::page_step(height, row),
+        "F pages Source by whole lines, so the first line draws whole"
+    );
+    assert_eq!(offset, 0., "a page lands on a line boundary, never half a line");
     assert_eq!(cx.read(|cx| view.read(cx).scroll_y), 0., "the rendered page under Source stays put");
     cx.simulate_keystrokes("shift-b->B");
     pump(cx);
