@@ -9,9 +9,7 @@ use flea::i18n::I18n;
 use flea::ui_logic_pv2::code_view::{Answer, Lines, BYTE_GATE, REMOTE_GATE};
 use flea::ui_logic_pv2::html::{Command, Html, Picture, Reply, View};
 use flea::ui_logic_pv2::refusal::Refusal;
-use gpui::{
-    px, App, AppContext as _, Context, Entity, GlyphRun, RenderImage, ScrollWheelEvent, Task,
-};
+use gpui::{App, AppContext as _, Context, Entity, GlyphRun, RenderImage, ScrollWheelEvent, Task};
 use std::{cell::Cell, rc::Rc, sync::Arc, time::Instant};
 
 /// The backend's `html` route; the token it answers comes back through `HtmlView::reply`.
@@ -474,7 +472,7 @@ impl HtmlView {
     }
 
     fn wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
-        let delta = event.delta.pixel_delta(px(self.metrics.row_height));
+        let delta = crate::input::scroll::wheel_delta(&event.delta);
         self.pan_by(-f32::from(delta.x), cx);
         self.scroll_by(-f32::from(delta.y), cx);
     }

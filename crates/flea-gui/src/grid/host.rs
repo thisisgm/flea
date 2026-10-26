@@ -245,7 +245,7 @@ impl PaneHost {
         focus.selected = grid
             .view
             .layout(shown)
-            .drawn(grid.view.scroll)
+            .drawn(grid.view.drawn_scroll())
             .filter_map(|view| shown.at(view))
             .filter(|row| self.selected.binary_search(row).is_ok())
             .collect();
@@ -268,7 +268,10 @@ impl PaneHost {
                     .map_or(&self.pane.held, |pending| &pending.held),
             ),
             filtered.clone(),
-            grid.view.clone(),
+            GridView {
+                scroll: grid.view.drawn_scroll(),
+                ..grid.view.clone()
+            },
             Rc::new(focus),
             Rc::clone(&grid.decor),
             grid.overlay.clone(),
