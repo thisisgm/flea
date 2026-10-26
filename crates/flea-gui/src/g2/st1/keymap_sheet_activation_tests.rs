@@ -250,6 +250,43 @@ fn keymap_sheet_sources_find_home_and_a_recent_file(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn keymap_sheet_new_sources_requery_a_typed_query(cx: &mut TestAppContext) {
+    let (shell, cx, _) = opened(cx);
+    query(&shell, cx, "later");
+    shell.update(cx, |shell, cx| {
+        shell
+            .settings
+            .sheet
+            .as_ref()
+            .unwrap()
+            .update(cx, |view, _| {
+                let mut sources = view.sheet.sources.clone();
+                sources.recent.push("/later.txt".into());
+                view.sheet.set_sources(sources);
+            })
+    });
+    shell.read_with(cx, |shell, cx| {
+        let sheet = &shell.settings.sheet.as_ref().unwrap().read(cx).sheet;
+        assert_eq!(sheet.query, "later", "the typed query survives new sources");
+        assert!(
+            sheet
+                .ranked
+                .iter()
+                .any(|row| row.section == 3 && row.path == "/later.txt"),
+            "a recent file that arrives after the query is typed is found without retyping"
+        );
+        assert!(sheet.sources.recent.iter().any(|path| path == "/newer.txt"));
+        assert!(
+            !sheet
+                .ranked
+                .iter()
+                .any(|row| row.section == 3 && row.path == "/newer.txt"),
+            "the typed query still filters the recent files"
+        );
+    });
+}
+
+#[gpui::test]
 fn keymap_sheet_place_enter_uses_the_rail_activation(cx: &mut TestAppContext) {
     let (shell, cx, mut sent) = opened(cx);
     // Supply a candidate so missing source population cannot mask a broken Enter handoff.
@@ -278,6 +315,13 @@ fn keymap_sheet_place_enter_uses_the_rail_activation(cx: &mut TestAppContext) {
                 .unwrap(),
         )
     });
+    let before = sent();
+    assert!(
+        !before
+            .iter()
+            .any(|line| flea::json::field_str(line, "path").as_deref() == Some("/home/test")),
+        "nothing before Enter opens Home"
+    );
     pick(&shell, cx, decision);
     assert!(
         sent()
