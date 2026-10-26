@@ -174,12 +174,28 @@ impl Shell {
                     board: &self.clipboard.board,
                 };
                 let geometry = self.geometry(window);
+                let shown = crate::window::network::shown(&self.launch.settings.data);
+                let network = self
+                    .rail
+                    .as_ref()
+                    .and_then(|join| join.network.as_ref())
+                    .map(|network| crate::ipc::rail::NetworkBuilt {
+                        shown,
+                        present: true,
+                        listed: network.listing.answered,
+                        mountinfo: network.mountinfo_ready,
+                    })
+                    .unwrap_or(crate::ipc::rail::NetworkBuilt {
+                        shown,
+                        ..Default::default()
+                    });
                 let rail = crate::ipc::rail::RailAdapter {
                     host: self.rail.as_ref().map(|join| join.host.read(cx)),
                     producer: self.rail.as_ref().map(|join| join.places.read(cx)),
                     geometry: &geometry,
                     focus_side: self.focus_side,
                     now: cx.background_executor().now(),
+                    network,
                 };
                 let card = self
                     .rail
