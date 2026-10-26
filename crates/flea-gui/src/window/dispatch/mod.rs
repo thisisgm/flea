@@ -135,6 +135,8 @@ mod previewtypes_svgfit_tests;
 #[cfg(test)]
 mod previewtypes_tests;
 #[cfg(test)]
+mod pvcode_tests;
+#[cfg(test)]
 mod preview_tests;
 #[cfg(test)]
 mod quick_look_body_tests;
