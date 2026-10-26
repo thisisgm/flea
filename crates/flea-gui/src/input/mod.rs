@@ -83,6 +83,7 @@ pub struct PaneInput {
     pub(crate) wrote: Option<f32>,
     pub(crate) motion_at: Option<std::time::Instant>,
     epoch: Option<std::time::Instant>,
+    pub(crate) queued: Option<actions::Queued>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
