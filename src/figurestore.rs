@@ -8,8 +8,8 @@ use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-// The first line of an entry, so a future layout or engine is a different file and not a misread one (2: the Pele bundle's figures).
-const FORMAT: &str = "flea-figure-svg 2";
+// The first line of an entry, so a future layout or engine is a different file and not a misread one (2: the Pele bundle's figures, 3: its v0.3.12 sequence defaults).
+const FORMAT: &str = "flea-figure-svg 3";
 const SVG_DIR: &str = "svg";
 const EXTENSION: &str = ".svg";
 const SCRATCH_MARK: &str = ".tmp-";
@@ -73,7 +73,7 @@ fn encode(key: &str, svg: &str) -> Vec<u8> {
     bytes
 }
 
-// Sample input: "flea-figure-svg 2\n5 3\nhello<s/>" is key "hello" and svg "<s/>"; any other length or key is refused.
+// Sample input: "flea-figure-svg 3\n5 3\nhello<s/>" is key "hello" and svg "<s/>"; any other length or key is refused.
 fn decode(bytes: &[u8], key: &str) -> Option<String> {
     let body = bytes.strip_prefix(FORMAT.as_bytes())?.strip_prefix(b"\n")?;
     let end = body.iter().position(|&b| b == b'\n')?;
@@ -136,7 +136,7 @@ fn evict(dir: &Path, entries: usize, bytes: u64) {
 
 // An entry an earlier Flea figure format wrote is still ours, so it is redrawn and evicted.
 fn earlier_format(bytes: &[u8]) -> bool {
-    bytes.starts_with(b"flea-figure-svg 1\n")
+    bytes.starts_with(b"flea-figure-svg 1\n") || bytes.starts_with(b"flea-figure-svg 2\n")
 }
 
 fn recognized(path: &Path) -> bool {
@@ -190,7 +190,7 @@ fn known(dir: &Path, keys: &[String]) -> bool {
     !keys.is_empty() && keys.iter().all(|key| entry_name(key).is_some_and(|name| current(&dir.join(name))))
 }
 
-// Sample input: a plain file opening "flea-figure-svg 2\n" is current; a link, a directory or an entry an earlier format wrote is not.
+// Sample input: a plain file opening "flea-figure-svg 3\n" is current; a link, a directory or an entry an earlier format wrote is not.
 fn current(path: &Path) -> bool {
     let mut head = [0u8; FORMAT.len() + 1];
     fs::symlink_metadata(path).is_ok_and(|meta| meta.is_file())

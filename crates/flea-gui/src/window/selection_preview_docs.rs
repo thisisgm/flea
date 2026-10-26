@@ -259,9 +259,9 @@ impl Doc {
         cx: &mut Context<SelectionPreview>,
     ) -> bool {
         let kind = doc.get("t").and_then(Json::as_str).unwrap_or("");
-        let slot = doc.get("slot").and_then(Json::as_str);
+        let slot = doc.get("slot").and_then(Json::as_str).unwrap_or("");
         match (self, kind) {
-            (_, "code") if slot != Some(SLOT) => false,
+            (_, "code") if slot.split(':').next() != Some(SLOT) => false,
             (Doc::Code(view), "code") => {
                 let reply = code_reply(doc);
                 let mine = view.read(cx).lines.token == reply.token;
@@ -285,7 +285,7 @@ impl Doc {
                 .table
                 .clone()
                 .update(cx, |table, cx| table.answered(line, cx)),
-            (Doc::Html(view), "html") if slot == Some(SLOT) => {
+            (Doc::Html(view), "html") if slot == SLOT => {
                 view.update(cx, |view, cx| view.reply(html_reply(doc), cx));
                 true
             }
