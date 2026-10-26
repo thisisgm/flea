@@ -121,7 +121,11 @@ mod opener_tests;
 #[cfg(test)]
 mod previewtypes_cover_tests;
 #[cfg(test)]
+mod previewtypes_fixture_tests;
+#[cfg(test)]
 mod previewtypes_fit_tests;
+#[cfg(test)]
+mod previewtypes_hold_tests;
 #[cfg(test)]
 mod previewtypes_kinds_tests;
 #[cfg(test)]
