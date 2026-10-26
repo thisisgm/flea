@@ -84,7 +84,15 @@ impl Render for Shell {
         let view = self.shown_view();
         let heights = std::array::from_fn(|side| {
             viewport.map_or_else(
-                || geometry.content_height_for(side, view, self.slots.strip_height_for(side)),
+                || {
+                    let search = if view == View::Columns {
+                        self.columns_search_strip(side)
+                    } else {
+                        0.
+                    };
+                    let strip = self.slots.strip_height_for(side) + search;
+                    geometry.content_height_for(side, view, strip)
+                },
                 |viewport| f32::from(viewport.height),
             )
         });
@@ -145,8 +153,10 @@ impl Render for Shell {
                 host.drawn_list = false;
                 continue;
             }
-            if let Some(empty) = search_empty {
-                host.drawn_view = Some(View::List);
+            // Columns keeps its columns and draws the headline in its own active span.
+            if let Some(empty) = search_empty.filter(|_| view != View::Columns) {
+                // Over Grid the headline stands alone: no List frame or Grid layout may take its pointer.
+                host.drawn_view = matches!(view, View::List | View::Dual).then_some(View::List);
                 host.drawn_list = false;
                 panes[side] = Some(empty);
                 continue;

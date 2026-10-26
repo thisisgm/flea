@@ -89,7 +89,9 @@ impl Shell {
                 return None;
             }
             let y = f32::from(event.position.y - drawn.bounds.origin.y) + drawn.scroll;
-            let index = (y / crate::list::pane::ROW_HEIGHT).floor() as usize;
+            let position = (y / crate::list::pane::ROW_HEIGHT).floor() as usize;
+            // Under a filter a position past its rows is background, never the listing row of that number.
+            let index = drawn.row_at(position).unwrap_or(usize::MAX);
             let row = match &drawn.view().rows {
                 TrackRows::Peek(rows) => rows.get(index).map(|row| (row.name.clone(), row.dir)),
                 TrackRows::Listing => drawn
@@ -166,7 +168,12 @@ impl Shell {
         let Some((name, dir)) = row else { return };
         if view.slot == Slot::Active {
             host.pane.cursor = index;
-            host.pane.reveal_cursor();
+            match host.filter.shown.as_deref() {
+                Some(rows) => host
+                    .pane
+                    .reveal_view(rows.iter().position(|&row| row == index).unwrap_or(0)),
+                None => host.pane.reveal_cursor(),
+            }
         }
         if dir && (view.slot != Slot::Active || event.click_count == 2) {
             let target = crate::navigation::history::join(&view.path, &name);
