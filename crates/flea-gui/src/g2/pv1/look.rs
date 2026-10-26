@@ -32,7 +32,7 @@ impl Look {
             muted: palette.metadata,
             meta: palette.metadata,
             muted_frame: palette.metadata_frame,
-            error: palette.foreground,
+            error: palette.error,
             green: palette.foreground,
             cyan: palette.foreground,
             corner: px(0.),
@@ -58,6 +58,34 @@ impl Look {
     /// var(--hover), the pointer's wash, in an ink.
     pub fn wash(ink: Hsla, pressed: bool) -> Hsla {
         ink.opacity(if pressed { WASH_PRESS } else { WASH_HOVER })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::list::Palette;
+
+    /// ql-error: the warning triangle over "This file could not be read." wears the theme's error ink, not the foreground.
+    #[test]
+    fn the_error_role_is_the_palettes_error_ink() {
+        let ink = |value: u32| -> Hsla { gpui::rgb(value).into() };
+        let palette = Palette {
+            background: ink(0x101315),
+            foreground: ink(0xcacccc),
+            muted: ink(0x808080),
+            error: ink(0xf38ba8),
+            error_on_surface: ink(0xd20f39),
+            metadata: ink(0x808080),
+            metadata_frame: ink(0x808080),
+            accent: ink(0x509475),
+            accent_frame: ink(0x509475),
+            symlink: ink(0x808080),
+            executable: ink(0x808080),
+            marked: ink(0x808080),
+            muted_frame: ink(0x808080),
+        };
+        assert_eq!(Look::inherited(&palette).error, palette.error);
     }
 }
 

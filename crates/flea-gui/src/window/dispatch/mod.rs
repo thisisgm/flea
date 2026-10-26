@@ -129,6 +129,8 @@ mod preview_tests;
 #[cfg(test)]
 mod quick_look_body_tests;
 #[cfg(test)]
+mod quick_look_chrome_tests;
+#[cfg(test)]
 mod quick_look_clock_tests;
 #[cfg(test)]
 mod quick_look_media_tests;
