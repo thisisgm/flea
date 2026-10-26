@@ -238,7 +238,7 @@ fn box_of(rect: Rect) -> Bounds<Pixels> {
 }
 
 #[path = "text.rs"]
-mod text;
+pub(crate) mod text;
 
 /// The rail stands on the theme surface, as Sidebar.qml and every HIG board draw it; an inherited ground keeps its own.
 pub fn rail_palette(style: &gpui::TextStyle, theme: crate::palette::Theme) -> Palette {
@@ -272,6 +272,8 @@ mod add;
 pub use add::add_hit;
 #[path = "element.rs"]
 mod element;
+#[path = "rename.rs"]
+mod rename;
 #[path = "layout.rs"]
 mod layout;
 #[path = "paint.rs"]
@@ -279,3 +281,7 @@ mod paint;
 #[cfg(test)]
 #[path = "ground_tests.rs"]
 mod ground_tests;
+
+#[cfg(test)]
+#[path = "i50_rename_tests.rs"]
+mod i50_rename_tests;

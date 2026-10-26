@@ -212,15 +212,7 @@ impl Element for RailElement {
         let metrics = RailMetrics::for_typeface(&self.typeface);
         let model = self.model.borrow();
         let laid = self.laid.borrow();
-        if model.renaming.is_some() {
-            if let Some(focus) = window.focused(cx) {
-                window.handle_input(
-                    &focus,
-                    gpui::ElementInputHandler::new(bounds, self.producer.clone()),
-                    cx,
-                );
-            }
-        }
+        self.attach_rename(&model, &laid, bounds, window, cx);
         window.paint_quad(fill(bounds, palette.background));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (header, text) in laid.headers.iter().zip(&ready.headers) {

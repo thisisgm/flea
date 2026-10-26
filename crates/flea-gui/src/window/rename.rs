@@ -108,7 +108,7 @@ impl Shell {
         let Some(edit) = self.rename.edit.as_mut() else {
             return;
         };
-        if edit.pending.is_some() {
+        if edit.pending.is_some() || edit.entry.marked.is_some() {
             return;
         }
         let next = edit.entry.text.trim().to_owned();
