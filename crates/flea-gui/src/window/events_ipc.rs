@@ -207,7 +207,11 @@ impl Shell {
                     source: self.rail.as_ref().map(|join| join.devices.read(cx)),
                 };
                 let thumbnails = crate::ipc::thumbnails::Thumbnails { host };
-                let adapters: [&dyn crate::ipc::Adapter; 28] = [
+                let archive_cards = crate::ipc::archive_cards::ArchiveAdapter { shell: self };
+                let output_cards = crate::ipc::output_cards::OutputAdapter { shell: self, cx };
+                let dialog_cards = crate::ipc::dialog_cards::DialogAdapter { shell: self, cx };
+                let feedback = crate::ipc::window_feedback::FeedbackAdapter { shell: self, cx };
+                let adapters: [&dyn crate::ipc::Adapter; 32] = [
                     &drag,
                     &providers,
                     &network_result,
@@ -235,15 +239,19 @@ impl Shell {
                     &devices,
                     &clipboard,
                     &network,
+                    &archive_cards,
+                    &output_cards,
+                    &dialog_cards,
+                    &feedback,
                     &rows,
                 ];
                 let count = if matches!(
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    28
+                    32
                 } else {
-                    27
+                    31
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
