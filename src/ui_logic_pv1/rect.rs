@@ -41,7 +41,7 @@ pub fn surface(shape: &Shape, win_w: f64, win_h: f64, expanded: bool, tokens: To
     let tall_h = win_h - 2.0 * tokens.edge;
     let seen = shape.known && shape.w > 0.0 && shape.h > 0.0;
     match shape.kind {
-        State::Text | State::Archive => Size { w: today.w, h: tall_h },
+        State::Text | State::Code | State::Archive => Size { w: today.w, h: tall_h },
         State::Pdf if seen => Size { w: today.w.min((tall_h - tokens.bar) * shape.w / shape.h), h: tall_h },
         State::Image if seen => {
             let (ow, oh) = if shape.orient >= 5 { (shape.h, shape.w) } else { (shape.w, shape.h) };
@@ -103,5 +103,16 @@ mod tests {
         assert_eq!((card_origin(1100.0, w), card_origin(700.0, h), w, h), (99.0, 63.0, 902.0, 574.0));
         let t = surface(&Shape::unknown(State::Text), 1100.0, 700.0, false, TOKENS);
         assert_eq!((card_origin(700.0, card_span(t.h, 700.0)), card_span(t.h, 700.0)), (24.0, 652.0));
+    }
+
+    // EY-43: the GPUI card mounts code and HTML as State::Code, which ql-code.png draws as tall as text.
+    #[test]
+    fn a_code_card_is_as_tall_as_the_text_card() {
+        let c = surface(&Shape::unknown(State::Code), 1100.0, 700.0, false, TOKENS);
+        let (w, h) = (card_span(c.w, 1100.0), card_span(c.h, 700.0));
+        assert_eq!(
+            (card_origin(1100.0, w), card_origin(700.0, h), w, h),
+            (99.0, 24.0, 902.0, 652.0)
+        );
     }
 }
