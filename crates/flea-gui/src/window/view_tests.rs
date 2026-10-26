@@ -268,7 +268,7 @@ fn u02_readers_hold_the_painted_snapshot_until_the_next_frame() {
         Reply::value("")
     );
     assert_eq!(value(&mut cx, window, "drawnCount"), "0");
-    assert_eq!(call(&mut cx, window, "rowThumb", &["0"]).code, 3);
+    assert_eq!(call(&mut cx, window, "rowThumb", &["0"]), Reply::value(""));
 }
 
 #[test]

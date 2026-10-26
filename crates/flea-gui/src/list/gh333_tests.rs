@@ -217,8 +217,7 @@ fn gh333_reported_widths_on_the_mounted_list_shrink_drop_restore_and_never_rewri
                 .borrow_mut()
                 .owed()
                 .into_iter()
-                // The tab session record is session state; only the width patch is the drag's.
-                .filter(|patch| patch.get("lastPath").is_none())
+                .filter(|patch| !harness::session_only(patch))
                 .collect::<Vec<_>>()
         });
         assert_eq!(

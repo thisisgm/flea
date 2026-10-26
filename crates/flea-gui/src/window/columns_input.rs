@@ -60,9 +60,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.view != super::super::startup::View::Columns || self.input_blocked(cx) {
+        if self.view != super::super::startup::View::Columns {
             return;
         }
+        // A card blocks only a carry landing; a plain press outside a non-modal card still reaches Columns.
+        let blocked = self.input_blocked(cx);
         let Some(host) = self.panes[side].as_mut().filter(|host| !host.stopped) else {
             return;
         };
@@ -111,6 +113,9 @@ impl Shell {
                 .try_global::<crate::g2::dg1::carry::Carrying>()
                 .filter(|carrying| carrying.carry.active())
             {
+                if blocked {
+                    return;
+                }
                 host.input.press = None;
                 let dest = if view.slot == Slot::Active {
                     let carried = carrying.source_rows(window, side, host);
