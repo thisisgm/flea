@@ -198,7 +198,11 @@ impl Shell {
             .and_then(flea::jsondoc::Json::as_str)
             .unwrap_or("default");
         // Focus.js keyContext reads the live preview on every key, so a frame drawn after the focus moved still counts.
-        if let Some(preview) = host.preview.as_ref().filter(|p| p.read(cx).focus.is_focused(window)) {
+        if let Some(preview) = host
+            .preview
+            .as_ref()
+            .filter(|p| p.read(cx).focus.is_focused(window))
+        {
             self.keyboard.context = preview.read(cx).key_context();
         }
         let pair_armed = self.keyboard.pair_armed(name, seat);
@@ -211,7 +215,34 @@ impl Shell {
                 .unwrap_or(resolved)
         };
         let action = match dispatch {
-            Dispatch::Unbound | Dispatch::Composition => return,
+            Dispatch::Unbound => {
+                if self.keyboard.context == flea::keys::Context::Listing
+                    && host.filter.shown.is_none()
+                    && printable(event.keystroke.key_char.as_deref().unwrap_or(""))
+                {
+                    let hint = flea::keys::presentation::hinted(
+                        &self.locale.catalog,
+                        "keys.hint.filter",
+                        name,
+                        "filter",
+                    );
+                    if !hint.is_empty() {
+                        self.status_messages(cx, |messages, now| {
+                            messages.say(
+                                &hint,
+                                false,
+                                "",
+                                flea::ui_logic_fb1::status::Hint::None,
+                                now,
+                            )
+                        });
+                        cx.notify();
+                    }
+                    cx.stop_propagation();
+                }
+                return;
+            }
+            Dispatch::Composition => return,
             Dispatch::Suppressed | Dispatch::Armed => {
                 cx.stop_propagation();
                 return;
