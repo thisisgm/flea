@@ -290,3 +290,15 @@ fn a_mount_helper_status_names_its_cause_and_never_echoes_the_uri() {
     }
     assert!(!say(1).contains("secret") && !say(1).contains("://"));
 }
+
+#[test]
+fn an_empty_paste_image_answers_the_empty_clipboard_sentence() {
+    assert_eq!(
+        said("pasteimage", "the clipboard holds no image", ""),
+        "There is nothing to paste; y copies and x cuts."
+    );
+    assert_eq!(
+        said("pasteimage", "the clipboard could not be read", ""),
+        "The clipboard could not be read."
+    );
+}

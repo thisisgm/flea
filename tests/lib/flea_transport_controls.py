@@ -252,6 +252,7 @@ try:
     folder.mkdir(mode=0o700)
     refuse("stub-backend-directory", lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, backend=str(folder)),
            "not an owned executable")
+    # Not under TMPDIR: the CI wrapper points it into a marked root inside REPO, and this dir must be outside both.
     with tempfile.TemporaryDirectory(prefix="flea-unmarked.", dir="/tmp") as unmarked:
         (Path(unmarked) / "flea").write_text("#!/bin/sh\nexit 0\n")
         (Path(unmarked) / "flea").chmod(0o700)
@@ -270,6 +271,7 @@ try:
           "stub-backend-with-select")
     combined.quit()
     saved_home = os.environ["HOME"]
+    # Not under TMPDIR, for the same reason: a fake home inside a marked root or REPO proves nothing.
     with tempfile.TemporaryDirectory(prefix="flea-fake-home.", dir="/tmp") as outside_home:
         fake_home = Path(outside_home)
         (fake_home / MARKER).touch()

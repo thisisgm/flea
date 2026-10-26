@@ -94,7 +94,13 @@ fn open(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
 #[gpui::test]
 fn brackets_turn_a_workbooks_sheets_in_the_open_card(cx: &mut TestAppContext) {
     let (shell, cx, mut requests) = three_tabs(cx);
-    open_workbook(&shell, cx, &mut requests, 1, &["Monthly", "Savings", "Notes"]);
+    open_workbook(
+        &shell,
+        cx,
+        &mut requests,
+        1,
+        &["Monthly", "Savings", "Notes"],
+    );
     assert_eq!(sheet(&shell, cx), (0, 3), "Monthly shows first of three");
     for (key, want) in [("]", 1), ("[", 0), ("[", 2), ("]", 0)] {
         cx.simulate_keystrokes(key);
@@ -113,7 +119,11 @@ fn a_single_sheet_keeps_the_tab_step(cx: &mut TestAppContext) {
     open_workbook(&shell, cx, &mut requests, 2, &["Only"]);
     assert_eq!(open(&shell, cx), "true", "the workbook opens the card");
     assert_eq!(sheet(&shell, cx), (0, 1), "one sheet shows");
-    assert_eq!(context(&shell, cx), Context::Pdf, "a workbook card takes the pdf keys");
+    assert_eq!(
+        context(&shell, cx),
+        Context::Pdf,
+        "a workbook card takes the pdf keys"
+    );
     cx.simulate_keystrokes("]");
     draw(cx);
     assert_eq!(open(&shell, cx), "false", "] closes a one-sheet card");

@@ -49,7 +49,11 @@ fn the_bar_wears_each_code_files_language_logo(cx: &mut TestAppContext) {
         set_cursor(&shell, cx, row);
         cx.simulate_keystrokes("space");
         draw(cx);
-        assert_eq!(bar_mark(&shell, cx).as_deref(), Some(key), "row {row} bar mark");
+        assert_eq!(
+            bar_mark(&shell, cx).as_deref(),
+            Some(key),
+            "row {row} bar mark"
+        );
         cx.simulate_keystrokes("escape");
         draw(cx);
     }
@@ -62,7 +66,13 @@ fn language_marks_off_keeps_each_kind_mark_in_the_bar(cx: &mut TestAppContext) {
     shell.update(cx, |shell, _| {
         shell.launch.settings.data = jsondoc::parse(r#"{"langMarks":false}"#).unwrap()
     });
-    land(&shell, cx, "/files", vec![file("main.rs", "text-x-rust")], 1);
+    land(
+        &shell,
+        cx,
+        "/files",
+        vec![file("main.rs", "text-x-rust")],
+        1,
+    );
     set_cursor(&shell, cx, 0);
     cx.simulate_keystrokes("space");
     draw(cx);
@@ -92,7 +102,10 @@ fn the_archive_card_opens_on_its_name_and_entries_with_no_bar(cx: &mut TestAppCo
         })
     });
     draw(cx);
-    assert!(cx.debug_bounds("pv1-bar").is_none(), "an archive card draws no bar");
+    assert!(
+        cx.debug_bounds("pv1-bar").is_none(),
+        "an archive card draws no bar"
+    );
     let drawn: Vec<String> = cx
         .read(|cx| view.read(cx).drawn())
         .into_iter()
@@ -102,7 +115,11 @@ fn the_archive_card_opens_on_its_name_and_entries_with_no_bar(cx: &mut TestAppCo
     assert_eq!(drawn, ["pack.zip".to_string(), line, "main.rs".to_string()]);
     cx.simulate_keystrokes("escape");
     draw(cx);
-    assert_eq!(read(&shell, cx, "previewOpen", &[]), "false", "Escape closes the archive");
+    assert_eq!(
+        read(&shell, cx, "previewOpen", &[]),
+        "false",
+        "Escape closes the archive"
+    );
     close(&shell, cx);
 }
 
@@ -128,9 +145,14 @@ fn an_unreadable_archive_draws_its_recipe_at_the_card_top_with_no_bar(cx: &mut T
         })
     });
     draw(cx);
-    assert!(cx.debug_bounds("pv1-bar").is_none(), "a failed archive draws no bar");
+    assert!(
+        cx.debug_bounds("pv1-bar").is_none(),
+        "a failed archive draws no bar"
+    );
     let card = cx.debug_bounds("pv1-card").expect("the card is drawn");
-    let recipe = cx.debug_bounds("pv1-recipe").expect("the failure recipe is drawn");
+    let recipe = cx
+        .debug_bounds("pv1-recipe")
+        .expect("the failure recipe is drawn");
     let offset = recipe.origin.y - card.origin.y;
     assert!(
         offset >= gpui::px(0.) && offset <= gpui::px(1.),
@@ -152,6 +174,9 @@ fn a_mounted_documents_bar_follows_the_language_marks_setting(cx: &mut TestAppCo
     });
     open_kind(&shell, cx, "readme.md");
     let off = bar_mark(&shell, cx).expect("the mounted bar draws its mark");
-    assert!(!off.starts_with("flea-lang:"), "langMarks off keeps the kind mark: {off}");
+    assert!(
+        !off.starts_with("flea-lang:"),
+        "langMarks off keeps the kind mark: {off}"
+    );
     close(&shell, cx);
 }
