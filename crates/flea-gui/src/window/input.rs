@@ -81,6 +81,16 @@ impl Shell {
                 }
             }
         }
+        // The run card holds every key while it shows.
+        if self.run_card_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        // The Open With card holds every key while it shows.
+        if self.open_with_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
         // The rename editor and the bulk rename card hold every key while open.
         if self.rename_key(event, window, cx) {
             self.rename_sync_gate(window, cx);

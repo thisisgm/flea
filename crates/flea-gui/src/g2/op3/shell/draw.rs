@@ -1,6 +1,6 @@
 //! The stand-in frame: the card, its title, its controls and its buttons, drawn to the boards.
 use super::*;
-use gpui::{div, prelude::*, px, relative, AnyElement, App, Div, FontWeight, Pixels, Window};
+use gpui::{div, prelude::*, px, relative, AnyElement, App, Div, FontWeight, MouseButton, Pixels, Window};
 use std::rc::Rc;
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
@@ -252,6 +252,10 @@ impl StandIn {
                 _ => buttons.child(drawn),
             };
         }
+        // A pressable card keeps a press on itself from the scrim behind it; a press beside it reaches the scrim.
+        let frame = frame.when(press.is_some(), |frame| {
+            frame.on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+        });
         div()
             .size_full()
             .flex()

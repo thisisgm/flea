@@ -122,6 +122,21 @@ impl OpenWith {
         vec![Effect::Send(line)]
     }
 
+    /// A click on the drawn button at an index: Cancel closes as Escape does, Open launches the cursor application.
+    pub fn press_at(&mut self, at: usize) -> Vec<Effect> {
+        match at {
+            0 => {
+                self.focus = Stop::Cancel;
+                self.close()
+            }
+            1 => {
+                self.focus = Stop::Open;
+                self.launch()
+            }
+            _ => Vec::new(),
+        }
+    }
+
     pub fn key(&mut self, key: Key) -> Vec<Effect> {
         let at = STOPS.iter().position(|s| *s == self.focus).unwrap_or(0);
         match key {
