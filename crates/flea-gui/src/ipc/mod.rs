@@ -23,3 +23,6 @@ pub(crate) mod thumbnails;
 pub mod view;
 
 pub use surface::{Adapter, Surface};
+
+#[cfg(test)]
+mod reader_port_c_tests;
