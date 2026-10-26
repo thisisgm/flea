@@ -16,6 +16,7 @@ mod present;
 pub mod provider;
 mod provider_view;
 pub mod relay;
+pub mod result;
 pub mod routing;
 pub mod service;
 mod status;

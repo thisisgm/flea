@@ -1,6 +1,6 @@
 //! The window's provider sends: one ProviderSend per pane backend, its rows reaching mn1 through the menu Context.
 use super::{
-    seams::{Action, ProviderState, RunKind, Wire},
+    seams::{Action, ProviderState, Wire},
     ProviderSend,
 };
 use crate::{backend::Backend, backend::Event as BackendEvent, state::Shell};
@@ -16,17 +16,19 @@ use flea::{
     ui_logic_st2::{builtin, store},
 };
 use gpui::{Context, Subscription, Window};
-use std::process::{Command, Stdio};
+#[path = "join_process.rs"]
+mod process;
 
 /// Each pane backend numbers its own requests, so each keeps its own ProviderSend and facts ask.
 #[derive(Default)]
 pub(crate) struct Senders {
     pub(crate) sides: [ProviderSend; 2],
     // The menu snapshot each side's providers facts ask belongs to; zero while none is out.
-    asked: [u64; 2],
+    pub(super) asked: [u64; 2],
+    pub(super) facts: [Option<Json>; 2],
     // The Dropbox account the facts named, and whether the backend took it as the menu's destination.
-    account: [dropbox::Account; 2],
-    destination: [Option<bool>; 2],
+    pub(super) account: [dropbox::Account; 2],
+    pub(super) destination: [Option<bool>; 2],
     chosen: Option<Subscription>,
 }
 
@@ -45,7 +47,9 @@ pub(crate) fn provider_states(settings: &Json) -> Vec<ProviderState> {
     [PLUGIN_TAILSCALE, PLUGIN_LOCALSEND, PLUGIN_DROPBOX]
         .iter()
         .map(|id| {
-            let on = shipped.iter().any(|(manifest, on)| manifest.id == *id && *on);
+            let on = shipped
+                .iter()
+                .any(|(manifest, on)| manifest.id == *id && *on);
             ProviderState {
                 plugin: (*id).into(),
                 enabled: store::enabled(settings, id, on),
@@ -63,7 +67,13 @@ fn now_ms() -> u64 {
 
 impl Shell {
     // A file menu opened: ask this side's backend for the providers facts under the menu's own id.
-    pub(crate) fn providers_menu_opened(&mut self, side: usize, id: u64, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn providers_menu_opened(
+        &mut self,
+        side: usize,
+        id: u64,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.observe_providers(window, cx);
         self.menu.providers.asked[side] = id;
         self.menu.providers.destination[side] = None;
@@ -107,8 +117,14 @@ impl Shell {
             self.menu.providers.asked[side] = 0;
             // The same reply names the archive formats and extract tools Compress and Extract read.
             self.record_formats(side, &reply);
+            self.menu.providers.facts[side] = reply.get("providers").cloned();
             // A menu dismissed before its facts landed starts no discovery.
-            if self.menu.captured.as_ref().is_some_and(|c| c.side == side && c.id == id) {
+            if self
+                .menu
+                .captured
+                .as_ref()
+                .is_some_and(|c| c.side == side && c.id == id)
+            {
                 self.provider_facts(side, &reply, window, cx);
             }
             return true;
@@ -116,9 +132,14 @@ impl Shell {
         if kind == "menuaction"
             && reply.get("op").and_then(Json::as_str) == Some("providerDestination")
         {
-            let current = self.menu.captured.as_ref().is_some_and(|c| c.side == side && c.id == id);
+            let current = self
+                .menu
+                .captured
+                .as_ref()
+                .is_some_and(|c| c.side == side && c.id == id);
             if current {
-                self.menu.providers.destination[side] = Some(reply.get("ok").and_then(Json::as_bool) == Some(true));
+                self.menu.providers.destination[side] =
+                    Some(reply.get("ok").and_then(Json::as_bool) == Some(true));
                 self.provider_refresh(window, cx);
             }
             return true;
@@ -132,22 +153,54 @@ impl Shell {
         false
     }
 
-    fn provider_facts(&mut self, side: usize, reply: &Json, window: &mut Window, cx: &mut Context<Self>) {
-        let raw = reply.get("providers").map(jsondoc::render).unwrap_or_default();
-        let Ok(facts) = providers::parse_facts(&raw) else {
+    fn provider_facts(
+        &mut self,
+        side: usize,
+        reply: &Json,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let raw = reply
+            .get("providers")
+            .map(jsondoc::render)
+            .unwrap_or_default();
+        let Ok(mut facts) = providers::parse_facts(&raw) else {
             return;
         };
-        let info = reply.get("providers").and_then(|p| p.get("dropboxInfo")).and_then(Json::as_str);
-        let error = reply.get("providers").and_then(|p| p.get("dropboxError")).and_then(Json::as_str);
-        self.menu.providers.account[side] = dropbox::account(info.unwrap_or(""), error.unwrap_or(""));
+        let info = reply
+            .get("providers")
+            .and_then(|p| p.get("dropboxInfo"))
+            .and_then(Json::as_str);
+        let error = reply
+            .get("providers")
+            .and_then(|p| p.get("dropboxError"))
+            .and_then(Json::as_str);
+        self.menu.providers.account[side] =
+            dropbox::account(info.unwrap_or(""), error.unwrap_or(""));
+        facts.dropbox_ready &= !self.menu.providers.account[side].path.is_empty();
         let states = provider_states(&self.launch.settings.data);
         let hidden = self.menu_hidden();
-        let backend = self.panes[side].as_ref().and_then(|host| host.backend.as_ref());
-        let actions = self.menu.providers.sides[side].menu_opened(&Pipe(backend), &facts, Some(&states), &hidden, now_ms());
+        let backend = self.panes[side]
+            .as_ref()
+            .and_then(|host| host.backend.as_ref());
+        let actions = self.menu.providers.sides[side].menu_opened(
+            &Pipe(backend),
+            &facts,
+            Some(&states),
+            &hidden,
+            now_ms(),
+        );
         self.provider_actions(side, actions, window, cx);
         let path = self.menu.providers.account[side].path.clone();
-        let capture = self.menu.captured.clone().filter(|c| c.side == side && !c.background);
-        if let (Some(capture), false) = (capture, path.is_empty() || !self.menu.providers.sides[side].row_on(Role::Dropbox)) {
+        let capture = self
+            .menu
+            .captured
+            .clone()
+            .filter(|c| c.side == side && !c.background);
+        if let (Some(capture), false) = (
+            capture,
+            path.is_empty() || !self.menu.providers.sides[side].row_on(Role::Dropbox),
+        ) {
             self.menu_send(
                 side,
                 format!(
@@ -173,14 +226,16 @@ impl Shell {
         context.localsend_checking = sender.localsend_checking() && !sender.localsend_answered();
         let account = &self.menu.providers.account[side];
         context.dropbox_installed = sender.row_on(Role::Dropbox);
-        context.dropbox_refreshing = !account.path.is_empty() && self.menu.providers.destination[side].is_none();
+        context.dropbox_refreshing = sender.db.checking
+            || (!account.path.is_empty() && self.menu.providers.destination[side].is_none());
         context.dropbox_path = match self.menu.providers.destination[side] {
-            Some(true) => account.path.clone(),
+            Some(true) if sender.dropbox_ready() => account.path.clone(),
             _ => String::new(),
         };
         context.dropbox_code = match self.menu.providers.destination[side] {
             Some(false) => String::new(),
-            _ => account.code.clone(),
+            _ if !account.code.is_empty() => account.code.clone(),
+            _ => sender.db.status.code.clone(),
         };
         let row = format!("{}/{}", folder.trim_end_matches('/'), context.row_name);
         context.row_in_dropbox = dropbox::contains(&account.path, &row);
@@ -235,8 +290,10 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let side = chosen.captured.side;
-        if !matches!(chosen.action.as_str(), "localsend" | "taildrop" | "sharelink" | "dropbox")
-            || chosen.captured.background
+        if !matches!(
+            chosen.action.as_str(),
+            "localsend" | "taildrop" | "sharelink" | "dropbox"
+        ) || chosen.captured.background
             || self.panes.get(side).and_then(Option::as_ref).is_none()
             || !chosen.claim()
         {
@@ -246,17 +303,33 @@ impl Shell {
         let id = chosen.captured.id;
         let actions = match chosen.action.as_str() {
             "localsend" => {
-                let backend = self.panes[side].as_ref().and_then(|host| host.backend.as_ref());
-                self.menu.providers.sides[side].send_localsend(&Pipe(backend), &chosen.leaf, &chosen.paths, &catalog)
+                let backend = self.panes[side]
+                    .as_ref()
+                    .and_then(|host| host.backend.as_ref());
+                self.menu.providers.sides[side].send_localsend(
+                    &Pipe(backend),
+                    &chosen.leaf,
+                    &chosen.paths,
+                    &catalog,
+                )
             }
-            "taildrop" => self.menu.providers.sides[side].send_taildrop(&chosen.leaf, &chosen.paths, &catalog),
+            "taildrop" => {
+                self.menu.providers.sides[side].send_taildrop(&chosen.leaf, &chosen.paths, &catalog)
+            }
             "sharelink" => {
-                let path = if chosen.paths.len() == 1 { chosen.paths[0].as_str() } else { "" };
+                let path = if chosen.paths.len() == 1 {
+                    chosen.paths[0].as_str()
+                } else {
+                    ""
+                };
                 self.menu.providers.sides[side].copy_share_link(path, &catalog)
             }
             _ => {
                 let dest = self.menu.providers.account[side].path.clone();
-                if self.menu.providers.destination[side] == Some(true) && !dest.is_empty() {
+                if self.menu.providers.destination[side] == Some(true)
+                    && !dest.is_empty()
+                    && self.menu.providers.sides[side].dropbox_ready()
+                {
                     let request = Request::new()
                         .with("c", &collide::text("transfer"))
                         .with("op", &collide::text("move"))
@@ -269,94 +342,11 @@ impl Shell {
                 }
             }
         };
-        self.menu_send(side, format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{id}}}"), cx);
+        self.menu_send(
+            side,
+            format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{id}}}"),
+            cx,
+        );
         self.provider_actions(side, actions, window, cx);
     }
-
-    // Says go to the footer; runs leave the UI thread and answer back on this side's sender.
-    pub(super) fn provider_actions(&mut self, side: usize, actions: Vec<Action>, window: &mut Window, cx: &mut Context<Self>) {
-        for action in actions {
-            match action {
-                Action::Say(text, error) => {
-                    self.status_messages(cx, |messages, now| {
-                        messages.say(&text, error, "", flea::ui_logic_fb1::status::Hint::None, now);
-                    });
-                }
-                // A send may run for minutes, so it waits on its own thread and answers through a channel.
-                Action::Spawn(argv, failed) => {
-                    let (done, outcome) = async_channel::bounded(1);
-                    std::thread::spawn(move || {
-                        let status =
-                            command(&argv).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status();
-                        let _ = done.send_blocking(status.is_ok_and(|status| status.success()));
-                    });
-                    cx.spawn_in(window, async move |this, cx| {
-                        if outcome.recv().await != Ok(true) {
-                            let _ = this.update_in(cx, |shell, window, cx| {
-                                shell.provider_actions(side, vec![Action::Say(failed, true)], window, cx);
-                            });
-                        }
-                    })
-                    .detach();
-                }
-                Action::Run(kind, argv) => self.provider_run(side, kind, argv, window, cx),
-            }
-        }
-        cx.notify();
-    }
-
-    fn provider_run(&mut self, side: usize, kind: RunKind, argv: Vec<String>, window: &mut Window, cx: &mut Context<Self>) {
-        let kind_is_clipboard = kind == RunKind::Clipboard;
-        cx.spawn_in(window, async move |this, cx| {
-            let output = cx
-                .background_executor()
-                .spawn(async move {
-                    let mut command = command(&argv);
-                    command.stdin(Stdio::null());
-                    // wl-copy leaves a server holding its stdout, so only its exit status is read.
-                    if kind_is_clipboard {
-                        command.stdout(Stdio::null()).stderr(Stdio::null());
-                    }
-                    command.output()
-                })
-                .await;
-            let _ = this.update_in(cx, |shell, window, cx| {
-                let catalog = shell.locale.catalog.clone();
-                let sender = &mut shell.menu.providers.sides[side];
-                let (started, code, stdout, stderr) = match &output {
-                    Ok(out) => (
-                        true,
-                        exit_code(&out.status),
-                        String::from_utf8_lossy(&out.stdout).into_owned(),
-                        String::from_utf8_lossy(&out.stderr).into_owned(),
-                    ),
-                    Err(error) => (false, -1, String::new(), error.to_string()),
-                };
-                let actions = match kind {
-                    RunKind::TaildropStatus(generation) => {
-                        sender.taildrop_done(generation, code, &stdout, &stderr, &catalog)
-                    }
-                    RunKind::ShareLink => sender.sharelink_done(started, code, &stdout, &catalog),
-                    RunKind::Clipboard => sender.clipboard_done(started && code == 0, &catalog),
-                };
-                shell.provider_actions(side, actions, window, cx);
-                if matches!(kind, RunKind::TaildropStatus(_)) {
-                    shell.provider_refresh(window, cx);
-                }
-            });
-        })
-        .detach();
-    }
-}
-
-fn command(argv: &[String]) -> Command {
-    let mut command = Command::new(argv.first().map_or("", String::as_str));
-    command.args(argv.iter().skip(1));
-    command
-}
-
-// A signal death reads as 128 plus the signal, as a shell and ui/Taildrop.qml's exit code do.
-fn exit_code(status: &std::process::ExitStatus) -> i32 {
-    use std::os::unix::process::ExitStatusExt;
-    status.code().or_else(|| status.signal().map(|signal| 128 + signal)).unwrap_or(-1)
 }

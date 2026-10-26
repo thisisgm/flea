@@ -6,6 +6,7 @@ use std::io::{self, Write};
 use std::os::unix::net::UnixStream;
 use std::process::Command;
 use std::sync::{
+    atomic::{AtomicUsize, Ordering},
     mpsc::{self, Sender},
     Arc, Mutex,
 };
@@ -99,6 +100,7 @@ enum Control {
 }
 
 pub struct Backend {
+    formats_requests: AtomicUsize,
     requests: Sender<Control>,
     closing: Arc<Mutex<Closing>>,
     wake: UnixStream,
@@ -126,7 +128,13 @@ impl Backend {
     }
     /// Menu producer requests share the ordered backend pipe.
     pub fn line(&self, line: String) -> Result<(), Failure> {
+        if flea::json::field_str(&line, "c").as_deref() == Some("formats") {
+            self.formats_requests.fetch_add(1, Ordering::Relaxed);
+        }
         self.send(Control::Line(line))
+    }
+    pub(crate) fn formats_requests(&self) -> usize {
+        self.formats_requests.load(Ordering::Relaxed)
     }
     /// A Columns-owned request, already encoded by its peek producer.
     pub(crate) fn columns_line(&self, line: String) -> Result<(), Failure> {
@@ -183,6 +191,7 @@ impl Backend {
                 let _ = done.try_send(());
             })?;
         Ok(Self {
+            formats_requests: AtomicUsize::new(0),
             requests,
             closing,
             wake,
@@ -328,6 +337,7 @@ impl Backend {
         let (_, drained) = async_channel::bounded(1);
         (
             Self {
+                formats_requests: AtomicUsize::new(0),
                 requests,
                 closing: Arc::new(Mutex::new(Closing::Open)),
                 wake,
@@ -350,6 +360,7 @@ impl Backend {
         };
         (
             Self {
+                formats_requests: AtomicUsize::new(0),
                 requests,
                 closing: Arc::new(Mutex::new(Closing::Open)),
                 wake,

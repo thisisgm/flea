@@ -19,6 +19,7 @@ pub struct ProviderState {
 pub enum RunKind {
     // One status ask carries its generation, so a result is only ever read by the ask that made it.
     TaildropStatus(u64),
+    DropboxStatus(u64),
     ShareLink,
     Clipboard,
 }

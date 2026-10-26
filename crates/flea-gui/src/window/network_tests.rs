@@ -288,3 +288,6 @@ pub(crate) fn written_bookmarks(sandbox: PathBuf, cx: &mut VisualTestContext) ->
 
 #[path = "network_release_tests.rs"]
 mod release;
+
+#[path = "network_result_tests.rs"]
+mod result_tests;
