@@ -1,0 +1,71 @@
+#!/bin/bash
+# Synthetic preimage: replaced functions retain the runner's function boundaries.
+heavy_lane() {
+  case ${lane_cmd[$1]%% *} in suites|cargo-test|clippy) return 0 ;; *) return 1 ;; esac
+}
+release_waiting() {
+  return 0
+}
+verdict_build() {
+  verdict_line "$1" "NOT RUN" "synthetic old build verdict"
+}
+stage_receipt() {
+  return 0
+}
+
+check_images() {
+  local host have
+  image=$(grep '^id=' "$image_id_file" | cut -d= -f2)
+  [ -n "$image" ] || die "no id= line in $image_id_file"
+  for host in $hosts; do
+    have=$(on "$host" "podman image inspect $image --format '{{.Id}}' 2>/dev/null")
+    [ "$have" = "$image" ] || die "$host does not hold flea-ci $image_label $image (run $ship_hint)"
+  done
+}
+
+verdict_tool() {
+  local check=$1 files f rc ok=PASS detail=""
+  files=$(results_with "$check")
+  [ -n "$files" ] || { verdict_line "$check" "NOT RUN" "no lane reported it"; return; }
+  for f in $files; do
+    rc=$(field "$f" "$check" rc)
+    [ "$rc" = 0 ] || ok=FAIL
+    detail="$detail$(where "$f"): rc=$rc secs=$(field "$f" "$check" secs) last: $(field "$f" "$check" last | tr '_' ' '); "
+  done
+  verdict_line "$check" "$ok" "$detail"
+}
+
+verdict_cargo_test() {
+  local check=$1 f sk c ok=PASS
+  for f in $(results_with "$check"); do
+    sk=$(field "$f" "$check" skipped); c=$(field "$f" "$check" compiled)
+    [ "$sk" = 0 ] && [ "$c" = 1 ] || ok=FAIL
+  done
+  verdict_line "$check" "$ok" "synthetic test verdict"
+}
+verdict_runall() {
+  local f ok=PASS
+  for f in $(results_with run-all); do
+    [ "$(field "$f" run-all debug_same)" = yes ] && [ "$(field "$f" run-all release_same)" = yes ] || ok=FAIL
+  done
+  verdict_line run-all "$ok" "synthetic suite verdict"
+}
+print_verdict() {
+  verdict_tool qmllint-gate
+}
+runner_sum_of() {
+  local d=$1 f
+  for f in flea-ci-lane flea-ci-unit flea-commit-rules; do
+    [ -s "$d/$f" ] || return 1
+  done
+  cat "$d/flea-ci-lane" "$d/flea-ci-unit" "$d/flea-commit-rules" | sha256sum
+}
+prepare_hosts() {
+  cp "$ci_home/bin/flea-ci-lane" "$ci_home/bin/flea-ci-unit" "$stage/in/"
+  stage_checker
+  stage_receipt
+}
+launch_on() {
+  local cmd
+  cmd="systemd-run --user --unit=flea-ci-$run-$lane --slice=flea-batch.slice /bin/bash '$run_dir/in/flea-ci-unit'"
+}
