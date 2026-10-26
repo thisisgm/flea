@@ -21,6 +21,7 @@ mod plugins;
 mod review_tests;
 #[cfg(test)]
 mod service_tests;
+mod sheet;
 pub(crate) mod store;
 mod update;
 #[cfg(test)]
@@ -28,7 +29,7 @@ mod update_poll_tests;
 pub(crate) use store::SessionStore;
 
 use crate::{
-    g2::st1::{self, Facts, Panel, Request, SettingsView, Sheet, SheetView, Sources},
+    g2::st1::{self, Facts, Panel, Request, SettingsView, SheetView},
     state::Shell,
 };
 use flea::jsondoc::Json;
@@ -56,16 +57,13 @@ pub(crate) struct Host {
     pub about_open: bool,
     pub listed_paths: [String; 2],
     pub relist: [bool; 2],
-    pub sources: Sources,
+    sheet_sources_subscription: Option<Subscription>,
     pub messages: Option<Entity<crate::g2::fb1::line::MessageLine>>,
     sheet_subscription: Option<Subscription>,
     worker: Option<store::Worker>,
     reader: Option<Task<()>>,
     pub(super) subscriptions: Vec<Subscription>,
 }
-
-pub struct SheetDecision(pub flea::ui_logic_st1::sheet::Decision);
-impl gpui::EventEmitter<SheetDecision> for Shell {}
 
 impl Shell {
     pub(super) fn settings_base(&self, cx: &gpui::App) -> u32 {
@@ -202,6 +200,7 @@ impl Shell {
     pub(crate) fn open_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.settings.sheet = None;
         self.settings.sheet_subscription = None;
+        self.settings.sheet_sources_subscription = None;
         self.settings.about_open = false;
         self.keyboard.disarm();
         let pane_path = self.panes[self.focus_side]
@@ -260,39 +259,6 @@ impl Shell {
         cx.notify();
     }
 
-    pub(crate) fn open_sheet(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.settings.opened = false;
-        self.keyboard.disarm();
-        let preset =
-            flea::ui_logic_st1::pages::word(&self.launch.settings.data, &["keys"], "default");
-        let sheet = Sheet::new(
-            preset,
-            self.locale.catalog.clone(),
-            Sources {
-                home: std::env::var("HOME").unwrap_or_default(),
-                menus: self.sheet_menus(),
-                ..self.settings.sources.clone()
-            },
-        );
-        let corner = self.corner;
-        let typeface = self.settings_typeface(cx);
-        let view = cx.new(|cx| {
-            let mut view = SheetView::new(sheet, cx);
-            view.corner = corner;
-            view.typeface = typeface;
-            window.focus(&view.focus, cx);
-            view
-        });
-        self.settings.sheet_subscription =
-            Some(
-                cx.subscribe_in(&view, window, |shell, _, request: &Request, window, cx| {
-                    shell.settings_request(request.clone(), window, cx);
-                }),
-            );
-        self.settings.sheet = Some(view);
-        cx.notify();
-    }
-
     fn settings_request(&mut self, request: Request, window: &mut Window, cx: &mut Context<Self>) {
         self.sync_settings(window, cx);
         match request {
@@ -306,13 +272,10 @@ impl Shell {
                 self.settings.about_open = false;
                 self.settings.sheet = None;
                 self.settings.sheet_subscription = None;
+                self.settings.sheet_sources_subscription = None;
                 window.focus(&self.focus, cx);
                 if let Some(decision) = decision {
-                    if let flea::ui_logic_st1::sheet::Decision::Action { action } = &decision {
-                        self.settings_host_action(action, window, cx);
-                    } else {
-                        cx.emit(SheetDecision(decision));
-                    }
+                    self.settings_sheet_decision(decision, window, cx);
                 }
             }
             Request::OpenSheet => self.open_sheet(window, cx),
