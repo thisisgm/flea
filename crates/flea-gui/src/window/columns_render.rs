@@ -101,7 +101,8 @@ impl Shell {
                         listing: host.pane.held.listing,
                     }))
                     .with_pictures(Rc::clone(&host.list.borrow().pictures))
-                    .with_filter(host.filter.shown.clone());
+                    .with_filter(host.filter.shown.clone())
+                    .with_location(host.pane.state.search);
             }
             let mut track = div()
                 .absolute()
@@ -226,6 +227,7 @@ impl Shell {
                 );
             }
         }
+        area = area.children(super::edge::surface(self, side, cx));
         Some(
             area.on_mouse_down(
                 gpui::MouseButton::Left,

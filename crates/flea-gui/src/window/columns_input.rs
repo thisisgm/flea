@@ -184,6 +184,14 @@ impl Shell {
                 cx,
             );
         }
+        if !dir && view.slot != Slot::Active && event.click_count == 2 && !blocked {
+            self.open_file(
+                side,
+                crate::navigation::history::join(&view.path, &name),
+                window,
+                cx,
+            );
+        }
         self.sync_columns(window, cx);
         cx.notify();
     }

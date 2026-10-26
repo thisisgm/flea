@@ -30,6 +30,7 @@ pub struct TrackElement {
     words: Rc<crate::row::format::Words>,
     languages: bool,
     shown: Option<Rc<[usize]>>,
+    locating: bool,
 }
 
 impl TrackElement {
@@ -58,6 +59,7 @@ impl TrackElement {
             words,
             languages: true,
             shown: None,
+            locating: false,
         }
     }
 
@@ -70,6 +72,11 @@ impl TrackElement {
     /// A standing filter's drawn rows: the active track then draws the listing row at each view position.
     pub fn with_filter(mut self, shown: Option<Rc<[usize]>>) -> Self {
         self.shown = shown;
+        self
+    }
+
+    pub fn with_location(mut self, locating: bool) -> Self {
+        self.locating = locating;
         self
     }
 
@@ -175,6 +182,7 @@ impl Element for TrackElement {
             languages: self.languages,
             scale: window.scale_factor(),
             words: Rc::clone(&self.words),
+            locating: self.locating,
         };
         let height = f32::from(bounds.size.height);
         let total = self.total();
@@ -311,6 +319,20 @@ impl Element for TrackElement {
                     let name = prepared.name(chevron);
                     let name_x = left + px(geometry.name_x);
                     paint_line(name, name_x, top, inks.name, window);
+                    if let Some(location) = prepared.location.as_ref() {
+                        let gap = GAP + if *clip != Clip::None { GAP + CLIP } else { 0. };
+                        let bright = cursor
+                            || lifted
+                            || self.focus.selected.contains(index)
+                            || self.focus.hover == Some((view.slot, *index));
+                        paint_line(
+                            location,
+                            name_x + name.line().width + px(gap),
+                            top,
+                            if bright { inks.name } else { palette.muted },
+                            window,
+                        );
+                    }
                     if let (Some(size_run), Some(right)) = (&prepared.size, geometry.size_right) {
                         paint_line(
                             size_run,

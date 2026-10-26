@@ -207,7 +207,10 @@ impl Shell {
                     source: self.rail.as_ref().map(|join| join.devices.read(cx)),
                 };
                 let thumbnails = crate::ipc::thumbnails::Thumbnails { host };
-                let adapters: [&dyn crate::ipc::Adapter; 28] = [
+                let column_preview =
+                    crate::ipc::columns_preview::ColumnsPreview { preview: &preview };
+                let adapters: [&dyn crate::ipc::Adapter; 29] = [
+                    &column_preview,
                     &drag,
                     &providers,
                     &network_result,
@@ -241,9 +244,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    28
+                    29
                 } else {
-                    27
+                    28
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
