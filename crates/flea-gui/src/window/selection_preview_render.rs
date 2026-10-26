@@ -197,6 +197,8 @@ impl Render for SelectionPreview {
                             .object_fit(gpui::ObjectFit::Fill),
                     )
             });
+            let player_failed = matches!(&frame.mounted, Mounted::Media(Some(player))
+                if player.read(cx).status() == flea::ui_logic_pv3::player::Status::Failed);
             media = match &frame.mounted {
                 Mounted::Pdf(pdf) => media.child(pdf.clone()),
                 Mounted::Model(model) => media.child(model.clone()),
@@ -205,6 +207,15 @@ impl Render for SelectionPreview {
                 Mounted::Media(_) if frame.kind == Kind::Audio && fitted.is_some() => {
                     media.children(fitted)
                 }
+                // PreviewColumn.qml: the column's audio frame is one centred mark; a failed player draws its failure below.
+                Mounted::Media(_) if frame.kind == Kind::Audio && !player_failed => media.child(
+                    state_mark(
+                        Glyph::kind(&frame.subject.row.icon, frame.subject.row.mode),
+                        roles.muted_frame.opacity(STATE_MARK_OPACITY),
+                        None,
+                    )
+                    .debug_selector(|| "column-audio-mark".into()),
+                ),
                 Mounted::Media(player) => {
                     let picture = column_picture(if let Some(player) = player {
                         pv3::surface::picture(
@@ -212,19 +223,15 @@ impl Render for SelectionPreview {
                             &pv3::surface::Facts::default(),
                             &self.catalog,
                         )
-                    } else if frame.kind == Kind::Video {
+                    } else {
+                        // Audio took its mark above, so a frame with no player yet is a video's poster.
                         Picture::Video {
                             frame: frame.image.clone(),
                             poster: true,
                         }
-                    } else {
-                        let (kind, tail) = self.compact(frame, cx);
-                        Picture::Audio {
-                            name: frame.subject.row.name.clone(),
-                            facts: kind + &tail,
-                        }
                     });
-                    media.child(MediaElement {
+                    let failed = matches!(picture, Picture::Failed { .. });
+                    let element = MediaElement {
                         picture,
                         reserve: 0.,
                         ink,
@@ -233,7 +240,15 @@ impl Render for SelectionPreview {
                         painted: player
                             .as_ref()
                             .map_or_else(Default::default, |p| p.read(cx).painted.clone()),
-                    })
+                    };
+                    media.child(
+                        div()
+                            .size_full()
+                            .when(failed, |d| {
+                                d.debug_selector(|| "column-media-failed".into())
+                            })
+                            .child(element),
+                    )
                 }
                 _ if frame.kind == Kind::Multi => media.child(
                     div()

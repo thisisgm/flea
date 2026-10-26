@@ -298,12 +298,7 @@ impl Mounting<'_> {
                 });
                 View::Media(Media {
                     player,
-                    known: Facts {
-                        kind_name: String::new(),
-                        rate_hz: 0,
-                        size_text: String::new(),
-                        probe_duration_ms: 0,
-                    },
+                    known: Facts::of_row(self.row, catalog),
                     caches: Default::default(),
                     typeface: look.face.clone(),
                     video,

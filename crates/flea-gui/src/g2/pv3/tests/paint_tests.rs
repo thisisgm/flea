@@ -307,3 +307,36 @@ fn pv3_the_pointer_reaches_each_strip_part_where_the_board_draws_it() {
         "hover over the strip re-arms the host's hide timer"
     );
 }
+
+// EY-42: Quick Look's audio facts line names the kind and ends with the size, as ql-audio.png and v0.3.12 read.
+#[test]
+fn pv3_ey42_audio_facts_name_the_kind_and_the_size() {
+    use crate::g2::pv3::surface::{facts_line, Facts};
+    let catalog = flea::i18n::I18n::default();
+    let row = flea::protocol::RowFacts {
+        name: "tone.ogg".into(),
+        size: 6_900,
+        icon: "audio-x-generic".into(),
+        kind: "Ogg audio".into(),
+        ..Default::default()
+    };
+    let mut known = Facts::of_row(&row, &catalog);
+    known.rate_hz = 44_100;
+    assert_eq!(
+        facts_line("/m/tone.ogg", &known, 2_000, &catalog),
+        "Ogg audio \u{b7} 0:02 \u{b7} 44.1 kHz \u{b7} 6.9 kB"
+    );
+    let unnamed = Facts::of_row(
+        &flea::protocol::RowFacts {
+            kind: String::new(),
+            size: 0,
+            ..row
+        },
+        &catalog,
+    );
+    assert_eq!(
+        facts_line("/m/tone.ogg", &unnamed, 2_000, &catalog),
+        "ogg \u{b7} 0:02",
+        "an empty kind falls back to the suffix and no size is left out"
+    );
+}

@@ -215,3 +215,24 @@ fn pv3_the_quick_look_strip_hides_after_its_delay_unless_held() {
     assert!(hide.shown, "a stopped timer hides nothing");
     assert_eq!(StripHide::default().hide_ms, 4_000);
 }
+
+// EY-52: an ended clip drops its last frame for the play mark; a replay leaves Ended (MediaPlayer's Playing and Seeked).
+#[test]
+fn an_ended_clip_holds_no_frame_until_it_plays_again() {
+    let mut p = Player {
+        has_video: true,
+        media: Media::Buffered,
+        playback: Playback::Playing,
+        failed: false,
+    };
+    assert!(p.holds_frame(), "a playing clip draws its frames");
+    p.playback = Playback::Paused;
+    assert!(p.holds_frame(), "a paused clip keeps its frame");
+    (p.media, p.playback) = (Media::Ended, Playback::Stopped);
+    assert!(
+        !p.holds_frame() && p.poster(true),
+        "the end is the empty card under the play mark"
+    );
+    (p.media, p.playback) = (Media::Buffered, Playback::Paused);
+    assert!(p.holds_frame(), "a replay paused mid-clip keeps its frame");
+}

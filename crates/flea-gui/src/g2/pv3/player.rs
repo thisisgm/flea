@@ -259,10 +259,18 @@ impl MediaPlayer {
             Event::Seeked(ms) => {
                 self.position = ms;
                 self.seeked = true;
+                // A seek leaves the end, so the frame it lands on draws again.
+                if self.state.media == Media::Ended {
+                    self.state.media = Media::Buffered;
+                }
             }
             Event::Ended => {
                 self.state.media = Media::Ended;
                 self.state.playback = Playback::Stopped;
+                // The strip reads the whole clip at its end, as v0.3.12's does, not the last frame's stamp.
+                if self.duration > 0 {
+                    self.position = self.duration;
+                }
             }
             Event::Failed(_) => {
                 self.state.failed = true;
