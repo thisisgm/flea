@@ -80,6 +80,10 @@ fn fix_nettype_a_key_is_card_text_only_while_the_card_holds_focus(cx: &mut TestA
 fn fix_nettype_a_closed_card_that_keeps_focus_takes_no_text(cx: &mut TestAppContext) {
     let (shell, card, cx) = opened_in(cx);
     let key = printable("x");
+    assert!(
+        cx.update(|window, cx| shell.read(cx).card_takes_text(&key, window, cx)),
+        "the opened card holding focus takes the key"
+    );
     // No frame after the close, so the last drawn tree still puts the window's focus inside the card.
     cx.update(|_, cx| card.update(cx, |card, _| drop(card.model.close())));
     assert!(!cx.update(|_, cx| card.read(cx).model.opened));
