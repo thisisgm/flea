@@ -159,13 +159,28 @@ fn u25_strip_counters_hold_swap_and_blank_frames() {
         frame_id: 2,
         outcome: presented(),
     }));
+    // A presented strip with no labels is a blank frame.
+    frames.staged.set(Some(Painted {
+        draw: 3,
+        version: 3,
+        holding: false,
+        complete: false,
+    }));
+    frames.feedback(FrameFeedbackEvent::Submitted {
+        draw_id: 3,
+        frame_id: 3,
+    });
+    frames.feedback(FrameFeedbackEvent::Terminal(FrameTerminal {
+        frame_id: 3,
+        outcome: presented(),
+    }));
     let json = frames.json();
     for field in [
         "\"holds\":1",
         "\"heldFrames\":1",
         "\"swappedFrames\":1",
-        "\"presentedFrames\":2",
-        "\"blankFrames\":0",
+        "\"presentedFrames\":3",
+        "\"blankFrames\":1",
     ] {
         assert!(json.contains(field), "{json}");
     }
@@ -180,11 +195,13 @@ fn u25_swap_state_carries_the_strip_counters_beside_the_pane_counters(cx: &mut T
         shell.update(cx, |shell, cx| {
             let flea::ipc::wire::Reply { code, stdout, .. } = read(shell, "swapState", window, cx);
             assert_eq!(code, 0);
-            assert!(stdout.contains("\"holds\":"), "{stdout}");
-            let strip = stdout
-                .split("\"strip\":")
-                .nth(1)
+            let (pane, strip) = stdout
+                .split_once("\"strip\":")
                 .expect("the strip counters follow the pane's");
+            assert!(
+                pane.contains("\"holds\":"),
+                "the pane keeps its own counters: {stdout}"
+            );
             for name in ["holds", "blankFrames", "heldFrames", "swappedFrames"] {
                 assert!(strip.contains(&format!("\"{name}\":")), "{strip}");
             }
@@ -193,7 +210,7 @@ fn u25_swap_state_carries_the_strip_counters_beside_the_pane_counters(cx: &mut T
     });
 }
 
-// A middle click on a list row uses the row geometry the list painted.
+// The List view uses the row geometry it painted; mounted_tests pins Grid and Columns.
 #[gpui::test]
 fn u25_middle_click_list_row_uses_its_drawn_geometry(cx: &mut TestAppContext) {
     use crate::{pane::Kind, window::startup::View};

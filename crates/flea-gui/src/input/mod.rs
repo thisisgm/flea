@@ -22,6 +22,8 @@ pub(crate) const TOUCH_GAIN: f32 = 2.5;
 
 pub use element::{surface, surface_with, Painted};
 use gpui::{Bounds, Pixels, Point};
+#[cfg(test)]
+pub(crate) use pointer::Press;
 use selection::Selection;
 
 /// Filter.js:241-251: the row a wheel pull left, valid while its cursor and listing are unchanged.

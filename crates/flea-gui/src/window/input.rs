@@ -57,6 +57,11 @@ impl Shell {
         if self.lifecycle.phase() != Phase::Open {
             return;
         }
+        // Escape ends this window's own drag before any card or listing reads the key.
+        if event.keystroke.key == "escape" && self.escape_file_drag(window, cx) {
+            cx.stop_propagation();
+            return;
+        }
         // Every modal key belongs to the card; a cardless Escape still reaches the window.
         if let Some(overlay) = self.overlay.clone() {
             let modal = overlay.read_with(cx, |card, cx| card.modal(cx));

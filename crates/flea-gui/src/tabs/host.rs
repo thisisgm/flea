@@ -33,6 +33,7 @@ pub(crate) struct Host {
     pub launch: transfer::Launch,
     pub timer: Option<Task<()>>,
     pub native: Option<Task<()>>,
+    pub router: Option<crate::g2::dg2::router::Registration>,
     pub drag_serial: u64,
     pub landing_request: [Option<usize>; 2],
     pub snapshot: Option<super::atomic::Snapshot>,
@@ -40,6 +41,7 @@ pub(crate) struct Host {
     pub geometry: transfer::Geometry,
     pub frames: Rc<RefCell<super::held::StripFrames>>,
     pub clients: super::geometry::Clients,
+    pub launch_started: bool,
 }
 
 impl Host {
@@ -61,6 +63,7 @@ impl Host {
             launch: transfer::Launch::read(|key| std::env::var(key).ok(), path),
             timer: None,
             native: None,
+            router: None,
             drag_serial: 0,
             landing_request: Default::default(),
             snapshot: None,
@@ -68,6 +71,7 @@ impl Host {
             geometry: Default::default(),
             frames: Default::default(),
             clients: super::geometry::hyprland(),
+            launch_started: false,
         }
     }
 }
@@ -106,6 +110,7 @@ impl Shell {
     pub(crate) fn stop_tabs(&mut self) {
         self.strip.timer = None;
         self.strip.native = None;
+        self.strip.router = None;
         self.strip.frames.borrow_mut().close();
         self.strip.capacity.set(false);
         self.strip.drop_zone.set(None);
