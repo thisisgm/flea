@@ -1451,6 +1451,7 @@ dependencies = [
  "image",
  "omi",
  "png",
+ "unicode-segmentation",
 ]
 
 [[package]]
