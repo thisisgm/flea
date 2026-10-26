@@ -206,6 +206,12 @@ impl Shell {
             host.input
                 .selection
                 .follow(&mut host.selected, host.pane.cursor);
+            // Marks.js follow only(cursor, keep): a carried landing stays the landing, so Escape still climbs through it.
+            if let Some((listing, row)) = host.nav.landed {
+                if row == from && host.selected == [host.pane.cursor] {
+                    host.nav.landed = Some((listing, host.pane.cursor));
+                }
+            }
         }
         host.input.keyboard();
         if host.pane.scroll_y != before_scroll {
