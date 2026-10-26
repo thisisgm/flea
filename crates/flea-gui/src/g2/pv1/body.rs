@@ -1,5 +1,5 @@
 //! What Quick Look shows for one subject, each kind as its board draws it; every string is already translated.
-use super::glyph::Glyph;
+use super::{doc::View, glyph::Glyph};
 use flea::i18n::I18n;
 use flea::ui_logic_pv1::{
     compare::DiffRow,
@@ -136,7 +136,15 @@ impl Subject {
         self.mark_with_languages(true)
     }
 
+    /// The model view wears the cube; comparisons and other files keep their Markdown, language or kind mark.
     pub fn mark_with_languages(&self, languages: bool) -> Glyph {
+        if self
+            .body
+            .doc()
+            .is_some_and(|doc| matches!(doc.view, View::Model(_)))
+        {
+            return Glyph::Cube;
+        }
         if self.body.is_compare() && flea::ui_logic_pv1::kinds::is_markdown(&self.name) {
             return Glyph::Markdown;
         }
