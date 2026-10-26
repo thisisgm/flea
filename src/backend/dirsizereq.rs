@@ -70,6 +70,7 @@ mod tests {
         listing.push("b", true);
         listing.push("file", false);
         State {
+            contents: Default::default(),
             trash_asked: Vec::new(),
             git: None,
             listing,

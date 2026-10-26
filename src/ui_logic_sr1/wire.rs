@@ -11,6 +11,7 @@ pub struct Wire {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Request {
+    Contents { path: String, query: String, hidden: bool, gen: u64, count: usize },
     Open { scope: String, folder: String, hidden: bool },
     Query { query: String, gen: u64, count: usize, sizes: usize },
     Cancel,
@@ -21,6 +22,10 @@ impl Request {
     // Sample output: {"c":"searchquery","query":"not","gen":3,"count":40,"sizes":0}
     pub fn line(&self) -> String {
         match self {
+            Self::Contents { path, query, hidden, gen, count } => format!(
+                r#"{{"c":"searchcontents","path":"{}","query":"{}","hidden":{},"gen":{},"count":{}}}"#,
+                escape(path), escape(query), hidden, gen, count
+            ),
             Self::Open { scope, folder, hidden } => format!(
                 r#"{{"c":"searchopen","path":"{}","folder":"{}","hidden":{}}}"#,
                 escape(scope),
@@ -43,6 +48,7 @@ impl Request {
 // The lines only a search writes; listed and rows stay the listing's own and carry the gen beside them.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Line {
+    ContentsMatches(super::contents::ContentsMatches),
     // partial names the producer's reason when its index was incomplete, None for a complete one.
     Searched { n: usize, scanned: usize, ms: f64, cancelled: bool, gen: u64, walking: bool, partial: Option<String> },
     Searching { n: usize, scanned: usize, ms: f64 },
@@ -92,6 +98,7 @@ pub fn parse_line(line: &str) -> Result<Option<Line>, String> {
         None => return Err("t must be a string".into()),
     };
     Ok(Some(match kind {
+        "contentsmatches" => Line::ContentsMatches(super::contents::ContentsMatches::parse(&document)?),
         "searched" => Line::Searched {
             n: uint(&document, "n")?,
             scanned: uint(&document, "scanned")?,

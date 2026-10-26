@@ -1,5 +1,6 @@
 //! Search's front-end logic shared by the window and the TUI: the live session, its wire and its words.
 mod matching;
+mod contents;
 mod session;
 mod text;
 mod types;
@@ -10,6 +11,7 @@ pub use session::Session;
 pub use types::{Effect, Key, Kind, ListingState, Mode, Pane, Scope, Stamps};
 pub use text::{frame_kind, nothing_matches, note, status_line, scope_label, way_out, Frame};
 pub use wire::{parse_line, Line, Request, Wire};
+pub use contents::{contents_hex, ContentsMatch, ContentsMatches};
 
 #[cfg(test)]
 mod matching_tests;
@@ -21,3 +23,5 @@ mod session_more_tests;
 mod text_tests;
 #[cfg(test)]
 mod wire_tests;
+#[cfg(test)]
+mod contents_tests;

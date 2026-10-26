@@ -1,6 +1,12 @@
 #[cfg(test)]
 #[path = "trashthumb_protocol_tests.rs"]
 mod trashthumb_protocol_tests;
+#[cfg(test)]
+#[path = "contents_tests.rs"]
+mod contents_tests;
+#[cfg(test)]
+#[path = "contents_roundtrip_tests.rs"]
+mod contents_roundtrip_tests;
 use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
 use crate::backend::peekwatch::PeekWatch;
@@ -125,6 +131,7 @@ pub fn run() -> i32 {
         }
     }
     st.nearby.close();
+    st.contents.clear();
     st.dirsize_worker.cancel();
     drain(&mut out, &mut st, &mut ops, &mut flash, &rx, &pool, &cache);
     0
@@ -157,6 +164,7 @@ fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tabl
                       poller: &super::watchpoll::Poller, loop_tx: &Sender<Event>, gate: &mut Gate,
                       mut search_jobs: Option<&mut super::searchjobs::Gate>) -> Control {
     match event {
+        Event::Contents(done) => super::contentsreq::done(out, st, tb, pool, loop_tx, done, (watch, poller)),
         Event::Request(line) => {
             if super::nearby::is_request(&line) {
                 return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate);
@@ -371,6 +379,9 @@ fn handle_line(
         return Control::Continue;
     }
     let request = parse_request(line);
+    if super::contentsreq::intercept(line, &request, out, st, tb, pool) {
+        return Control::Continue;
+    }
     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
     extend_search_listing(st, rows_needed(&request));
     match request {
@@ -496,6 +507,7 @@ fn handle_line(
             }
             out.flush().ok();
         }
+        Request::SearchContents { line } => super::contentsreq::start(&line, out, st, loop_tx),
         Request::SearchCancel => {
             if st.search_session.is_some() {
                 // The walk stops, the index stays and the standing query re-answers once; with no walk, silence.
@@ -845,6 +857,7 @@ fn rows_needed(request: &Request) -> usize {
         Request::List { .. }
         | Request::ListPaths { .. }
         | Request::Search { .. }
+        | Request::SearchContents { .. }
         | Request::SearchCancel
         | Request::SearchOpen { .. }
         | Request::SearchQuery { .. }
@@ -920,7 +933,7 @@ fn extend_search_listing(st: &mut State, end: usize) -> bool {
 }
 
 // A navigation drops the session and frees its arena; Esc reaches this through searchclose.
-fn close_search_session(st: &mut State) {
+pub(crate) fn close_search_session(st: &mut State) {
     if let Some(session) = st.search_session.take() {
         let _ = session.close();
     }
@@ -942,6 +955,7 @@ fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Po
 
 // A new row order invalidates every outstanding index, so the queue goes and no result can be reported against the new listing.
 pub fn forget_rows(st: &mut State, pool: &Pool) {
+    st.contents.clear();
     st.generation += 1;
     cancel_all(st, pool);
     st.asked.clear();
