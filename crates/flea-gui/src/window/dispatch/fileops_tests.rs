@@ -187,6 +187,26 @@ fn the_dd_pair_arms_then_trashes_and_a_move_or_the_clock_ends_the_arm(cx: &mut T
 }
 
 #[gpui::test]
+fn a_key_only_handler_or_an_unbound_key_between_the_presses_ends_the_dd_pair(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", home(), 1);
+    let mut sent = wire(&shell, cx);
+    set_cursor(&shell, cx, 2);
+    let trashed = |lines: &[String]| lines.iter().any(|line| line.contains(r#""c":"trash""#));
+    // Copy is taken by the clipboard handler ahead of the dispatch point and keeps the seat.
+    cx.simulate_keystrokes("d");
+    hit(cx, "default", "copy");
+    cx.simulate_keystrokes("d");
+    assert!(!trashed(&sent()), "the d after Copy arms again");
+    // F12 names no action in the default preset, and Focus.js still ends the arm on it.
+    cx.simulate_keystrokes("f12 d");
+    assert!(!trashed(&sent()), "the d after an unbound key arms again");
+    cx.simulate_keystrokes("d");
+    assert_eq!(sent(), [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]);
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
 fn a_new_listing_between_the_presses_ends_the_dd_pair(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
     land(&shell, cx, "/files", home(), 1);
