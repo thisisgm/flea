@@ -832,7 +832,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 243,
+      "line": 250,
       "path": "crates/flea-gui/src/g2/pv2/code/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -842,7 +842,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 255,
+      "line": 262,
       "path": "crates/flea-gui/src/g2/pv2/code/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -852,7 +852,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 102,
+      "line": 110,
       "path": "crates/flea-gui/src/g2/pv2/code/paint.rs",
       "pattern": null,
       "possible_keys": [],
@@ -862,7 +862,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 197,
+      "line": 210,
       "path": "crates/flea-gui/src/g2/pv2/code/paint.rs",
       "pattern": null,
       "possible_keys": [],
@@ -38135,7 +38135,7 @@
       "call_sites": [
         {
           "excerpt": ".then(|| i18n.trn(\"document.line_count\", self.lines.total as i64))",
-          "line": 263,
+          "line": 270,
           "path": "crates/flea-gui/src/g2/pv2/code/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -82616,10 +82616,19 @@
     },
     {
       "excerpt": "None => \"loading\".into(),",
-      "line": 247,
+      "line": 254,
       "literal": "loading",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv2/code/mod.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "if self.slot == \"look\" {",
+      "line": 9,
+      "literal": "look",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/pv2/code/scroll.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -210193,8 +210202,9 @@
     "crates/flea-gui/src/g2/pv2/archive/mod.rs": "88beff9606f1b4f8d975e31b4d1ee761277f83d59193020f0d1328d2d4be7458",
     "crates/flea-gui/src/g2/pv2/cache.rs": "0b18a1f9431536740f87656339fbc35930e76e35633fc9ec589a7a48bed700cb",
     "crates/flea-gui/src/g2/pv2/code/bar.rs": "96ad50965d55871b49776bbc80c43e29c2c39be550dc7b6f08f93708de8968f5",
-    "crates/flea-gui/src/g2/pv2/code/mod.rs": "2f70263d4a4c77a5debd94c52d652437d1cb9201de5e3021bd637881455cb68b",
-    "crates/flea-gui/src/g2/pv2/code/paint.rs": "0ab47b2dbed4ef3946305ff8092d5b6e492c6bc281d5ed697ac5d722725fb65d",
+    "crates/flea-gui/src/g2/pv2/code/mod.rs": "1688c15a317ed89e457cf2a7a97889111099224289c79ebbb68b29334ac17af1",
+    "crates/flea-gui/src/g2/pv2/code/paint.rs": "11cae69aae5b9e8f4f3ef7f6fd563d3bfca1ff52ff1646e4f44bd55e4505554f",
+    "crates/flea-gui/src/g2/pv2/code/scroll.rs": "c6163d6d24fa1370032b21cd12fb05464f6adb10a66211ce239691ea64b5efbc",
     "crates/flea-gui/src/g2/pv2/code/shape.rs": "1c24689b4378c28ac227446a51ec7434c6ffb53bc2171b1680fe7db9c517cc08",
     "crates/flea-gui/src/g2/pv2/csv/cells.rs": "d07fdec0a6e8ab41be15804e201bb524b8f7d8db8361a9959d00e2acf3dc635d",
     "crates/flea-gui/src/g2/pv2/csv/mod.rs": "c21a26a2b05cca64f157d5060ad1fba1ff34ff19e4c047c95b447f5e7c6b29bb",
@@ -210509,7 +210519,7 @@
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "6236ba6dd8b841812b462cac9dbcf4714f4cfce23b7d2520f3793bcd4997d70a",
     "crates/flea-gui/src/window/dispatch/listing.rs": "1288e75f34ff704df9927c91639d152b0a56a105303354c7593e22c0d54f9c3b",
     "crates/flea-gui/src/window/dispatch/menus.rs": "fa64aa5c45a4c8aa5894a55df8844c1cf9fabfb7c7480d54067c08966bf1a859",
-    "crates/flea-gui/src/window/dispatch/mod.rs": "2b279b649abe67b472b8b3ef825088a87165d4cd83ef135c96e0b8676e399591",
+    "crates/flea-gui/src/window/dispatch/mod.rs": "1bb7aa2a538d892096b8a5f72620d7bca80cf99f9397f8532149c4512eaf350f",
     "crates/flea-gui/src/window/dispatch/navigation.rs": "c4e90f38f732cc36aebd643f8a97cf146a7e98798413b02012f0eb0bf131e646",
     "crates/flea-gui/src/window/dispatch/opener.rs": "b3b98ef1d249aaa681e8ea7f625b2b9117d35a90a2d2734796ea9fbc9469ee05",
     "crates/flea-gui/src/window/dispatch/preview.rs": "2642e6d460b2bb92ba354ee0a92e784ba04347a800a93005edf78638e72dedb7",
@@ -210555,7 +210565,7 @@
     "crates/flea-gui/src/window/path_host.rs": "d50062fb0ee8daf8ceb8b77c509df505d2b19e809a036e2226c49a0a2116e0e1",
     "crates/flea-gui/src/window/presentation.rs": "bc4d4c772b089cc512924bc371f7ac2c7dfbbd6ef2bb5fc3d2b12685b18b647b",
     "crates/flea-gui/src/window/preview_facts.rs": "b01bd29f546d4ff63e6d158fa52b5e9ae988e4044a57d58b55c4d6e964eaa733",
-    "crates/flea-gui/src/window/preview_input.rs": "0c455629e4f3e7365334b1fb1f70e41027681d45d9ff296d78c0a7621e37af65",
+    "crates/flea-gui/src/window/preview_input.rs": "967724ce14b367ebbb81a746f17069a39afd54260784c082e9bbd4657b56a302",
     "crates/flea-gui/src/window/quick_look.rs": "e6a01f502e98f8d10f1159cf0f474663235984f56897660c7b831736539c031d",
     "crates/flea-gui/src/window/quick_look_compare.rs": "03bce4ae8b1ca93bf410d5a43ad4e8480ddc55b51e5a5fa9de9efb69799270d4",
     "crates/flea-gui/src/window/quick_look_docs.rs": "1c827f66a59b46aa699b2db233f433f8d3da226b434b5a468777b3ed9cd7e0d6",
@@ -211998,8 +212008,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "a4853be0f09cb2c93a8df49973d48fa761734add",
-  "source_sha": "a4853be0f09cb2c93a8df49973d48fa761734add",
+  "source_ref_sha": "42a4de7180aa97d2e19a5481c1bdc478b4598106",
+  "source_sha": "42a4de7180aa97d2e19a5481c1bdc478b4598106",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
@@ -212013,8 +212023,8 @@
     },
     "gui": {
       "keys_with_occurrences": 466,
-      "missing_literal_candidates": 1583,
-      "source_files": 732
+      "missing_literal_candidates": 1584,
+      "source_files": 733
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

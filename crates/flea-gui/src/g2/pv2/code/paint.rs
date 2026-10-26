@@ -61,6 +61,14 @@ impl CodeView {
         let moved = frame != self.frame;
         self.frame = frame;
         let advance = self.advance(window);
+        let inset = self.scroll_inset();
+        self.fit_scroll(Bounds::new(
+            bounds.origin + point(px(inset), px(self.metrics.top)),
+            size(
+                (bounds.size.width - px(2. * inset)).max(px(0.)),
+                px((self.frame.1 - inset).max(0.)),
+            ),
+        ));
         if moved {
             self.flush(cx);
         }
@@ -120,7 +128,12 @@ impl CodeView {
             };
             let count = if self.wrap { prepared.rows.len() } else { 1 };
             let first = ((-y / row).floor().max(0.) as usize).min(count);
-            let last = (((self.frame.1 - y) / row).ceil().max(0.) as usize).min(count);
+            let last = if self.slot == "column" {
+                ((self.frame.1 - y) / row).floor()
+            } else {
+                ((self.frame.1 - y) / row).ceil()
+            };
+            let last = (last.max(0.) as usize).min(count);
             for r in first..last {
                 let shaped = self.cache.rows.get_or_make((line, r), || {
                     Rc::new(shape::shape_row(window, shaping, &prepared, r, line + 1))
@@ -235,11 +248,57 @@ fn baseline(run: &GlyphRun, top: Pixels, row: Pixels, window: &Window) -> Pixels
 }
 
 impl Render for CodeView {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let (laid, painted) = (cx.entity(), cx.entity());
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let mut look = crate::g2::pv1::look::Look::of_text(&window.text_style(), theme);
+        look.foreground = self.palette.foreground;
+        let inset = px(self.scroll_inset());
+        if let Some(view) = self.scroll.view {
+            self.fit_scroll(view.bounds);
+        }
         div()
+            .id("pv2-code-view")
+            .relative()
             .size_full()
             .on_scroll_wheel(cx.listener(|view, event, _, cx| view.wheel(event, cx)))
+            .on_mouse_move(cx.listener(|view, event: &gpui::MouseMoveEvent, _, cx| {
+                view.scroll_pointer(
+                    event.position,
+                    event.pressed_button == Some(gpui::MouseButton::Left),
+                    cx,
+                );
+            }))
+            .on_hover(cx.listener(|view, hovered: &bool, _, cx| {
+                if !hovered && view.scroll.lane.take().is_some() {
+                    cx.notify();
+                }
+            }))
+            .on_mouse_down(
+                gpui::MouseButton::Left,
+                cx.listener(|view, event: &gpui::MouseDownEvent, _, cx| {
+                    view.scroll_press(event.position, cx);
+                }),
+            )
+            .on_mouse_up(
+                gpui::MouseButton::Left,
+                cx.listener(|view, _, _, cx| {
+                    if view.scroll.release() {
+                        cx.notify();
+                    }
+                }),
+            )
+            .on_mouse_up_out(
+                gpui::MouseButton::Left,
+                cx.listener(|view, _, _, cx| {
+                    if view.scroll.release() {
+                        cx.notify();
+                    }
+                }),
+            )
             .child(
                 canvas(
                     move |bounds, window, cx| {
@@ -250,6 +309,15 @@ impl Render for CodeView {
                     },
                 )
                 .size_full(),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .top(px(self.metrics.top))
+                    .bottom(inset)
+                    .left(inset)
+                    .right(inset)
+                    .children(self.scroll.bars(&look)),
             )
     }
 }
