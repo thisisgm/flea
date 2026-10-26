@@ -41,6 +41,9 @@ pub fn field(focus: Focus) -> Option<Rect> {
 pub struct Text {
     pub field: Option<Focus>,
     pub rect: Rect,
+    /// Test observation only: the string this run was shaped from.
+    #[cfg(test)]
+    pub source: gpui::SharedString,
     pub run: GlyphRun,
     pub ink: Hsla,
     pub clip: Option<Rect>,
@@ -113,6 +116,8 @@ impl Drawn {
         self.text.push(Text {
             field: None,
             rect,
+            #[cfg(test)]
+            source: gpui::SharedString::from(text.to_owned()),
             run: GlyphRun::new(line),
             ink,
             clip: None,

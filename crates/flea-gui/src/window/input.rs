@@ -111,6 +111,10 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
+        // A character the open network card left unhandled must reach its text input handler.
+        if self.network_card_takes_text(event, window, cx) {
+            return;
+        }
         if self.menu_key(event, window, cx) {
             return;
         }
