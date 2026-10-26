@@ -9,6 +9,10 @@ pub mod geometry;
 #[cfg(test)]
 mod geometry_tests;
 pub(crate) mod glyphs;
+#[cfg(test)]
+mod keymap_sheet_menu_tests;
+#[cfg(test)]
+mod keymap_sheet_order_tests;
 mod marks;
 #[cfg(test)]
 mod overlay_tests;
@@ -23,6 +27,7 @@ pub mod seams;
 pub mod sheet;
 #[cfg(test)]
 mod sheet_board_tests;
+mod sheet_menus;
 #[cfg(test)]
 mod sheet_scroll_tests;
 #[cfg(test)]

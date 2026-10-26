@@ -680,15 +680,16 @@ sheet = false
 [sheetgroups]
 move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open",
         "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview",
-        "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape"]
+        "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape",
+        "carry"]
 look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
 find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
-change = ["copy", "cut", "carry", "paste", "movePaste", "duplicate", "rename", "trash",
-          "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect",
-          "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
-          "openTerminal", "openAgent", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
+change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
+          "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent",
+          "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
+          "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
 
 # The digit range, expanded by the generator into tab1 through tab9.
 [digits]
@@ -906,6 +907,7 @@ text = "Print…"
 
 # Native presentation uses the approved action names; legacy generated JavaScript stays frozen.
 [native_labels]
+carry = "Carry to another app"
 cursorDown = "Cursor down"
 cursorUp = "Cursor up"
 cursorFirst = "First item"
