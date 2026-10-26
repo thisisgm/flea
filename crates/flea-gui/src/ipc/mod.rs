@@ -31,3 +31,5 @@ pub use surface::{Adapter, Surface};
 
 #[cfg(test)]
 mod reader_port_a_tests;
+#[cfg(test)]
+mod reader_port_c_tests;

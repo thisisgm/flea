@@ -67,7 +67,19 @@ impl Shell {
                         .map(|at| crate::path::chrome::GLYPHS[at])
                 });
                 let focus = crate::ipc::focus::FocusAdapter {
-                    view: Some(self.focus_view(window, cx)).filter(|view| !view.is_empty()),
+                    view: Some(self.focus_view(window, cx))
+                        .filter(|view| !view.is_empty())
+                        .or_else(|| {
+                            host.preview
+                                .as_ref()
+                                .filter(|preview| {
+                                    preview.read_with(cx, |preview, cx| {
+                                        preview.visible
+                                            && preview.focus.contains_focused(window, cx)
+                                    })
+                                })
+                                .map(|_| "list")
+                        }),
                     input: &host.input,
                     chrome_glyph,
                 };
