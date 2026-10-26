@@ -83,6 +83,39 @@ fn cols_preview_image_fits_the_thumbnail_to_the_frame(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn cols_small_svg_fills_the_frame_and_small_png_keeps_its_size(cx: &mut TestAppContext) {
+    // EY-64: a 60x40 vector fills the 274x171 frame along the limiting axis, aspect kept.
+    let view = move || Column {
+        width: 304.,
+        raster: RasterState::default(),
+        name: "image-svg.svg".into(),
+        frame: Frame::Picture {
+            path: repo("docs/images/glyphs.svg"),
+            w: 60.,
+            h: 40.,
+        },
+        facts: facts(&[("Kind", "SVG image")]),
+    };
+    let cx = draw(cx, view);
+    assert_eq!(rect(cx, "pv1-column-frame"), (810., 41., 276., 173.));
+    assert_eq!(rect(cx, "pv1-column-picture"), (820., 42., 256., 171.));
+    // A 60x40 raster keeps v0.3.12's rule: drawn at its own pixels.
+    let view = move || Column {
+        width: 304.,
+        raster: RasterState::default(),
+        name: "photo.png".into(),
+        frame: Frame::Picture {
+            path: repo("docs/images/columns.png"),
+            w: 60.,
+            h: 40.,
+        },
+        facts: facts(&[("Kind", "PNG image")]),
+    };
+    let cx = draw(cx, view);
+    assert_eq!(rect(cx, "pv1-column-picture"), (918., 42., 60., 40.));
+}
+
+#[gpui::test]
 fn cols_preview_raw_centres_its_floored_width(cx: &mut TestAppContext) {
     let view = move || Column {
         width: 304.,

@@ -1,7 +1,7 @@
 //! Quick Look's image fit, physical decode request and zoomed picture viewport.
 use super::{
     bar::{self, Name},
-    body::{fit_painted, fit_rounded, Fit},
+    body::{fit_painted_path, fit_rounded_path, Fit},
     card::text,
     look::{self, Look},
     scroller::View,
@@ -21,9 +21,9 @@ impl QuickLook {
             _ => return None,
         };
         let mut fit = if painted {
-            fit_painted(w, h - top - bottom, sw, sh)
+            fit_painted_path(w, h - top - bottom, sw, sh, path)
         } else {
-            fit_rounded(w, h - top - bottom, sw, sh)
+            fit_rounded_path(w, h - top - bottom, sw, sh, path)
         }?;
         fit.y += top;
         Some((path, fit, (sw, sh)))
