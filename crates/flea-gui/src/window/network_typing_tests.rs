@@ -77,6 +77,23 @@ fn fix_nettype_a_key_is_card_text_only_while_the_card_holds_focus(cx: &mut TestA
 }
 
 #[gpui::test]
+fn fix_nettype_a_closed_card_that_keeps_focus_takes_no_text(cx: &mut TestAppContext) {
+    let (shell, card, cx) = opened_in(cx);
+    let key = printable("x");
+    // No frame after the close, so the last drawn tree still puts the window's focus inside the card.
+    cx.update(|_, cx| card.update(cx, |card, _| drop(card.model.close())));
+    assert!(!cx.update(|_, cx| card.read(cx).model.opened));
+    assert!(
+        cx.update(|window, cx| card.read(cx).holds_focus(window, cx)),
+        "the closed card still holds focus"
+    );
+    assert!(
+        !cx.update(|window, cx| shell.read(cx).card_takes_text(&key, window, cx)),
+        "a closed card takes no typed text even while it holds focus"
+    );
+}
+
+#[gpui::test]
 fn fix_nettype_typed_text_lands_in_host_share_and_username(cx: &mut TestAppContext) {
     let (card, cx) = opened(cx);
     assert_eq!(

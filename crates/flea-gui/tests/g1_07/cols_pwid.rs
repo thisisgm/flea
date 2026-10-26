@@ -350,7 +350,7 @@ fn the_edge_draws_its_line_and_mark_only_while_hovered() {
     );
     c.eq(
         257,
-        "hover: the mark is 16 px, centred on the hairline, top at mid height",
+        "hover: the 16 px mark centres on the hairline, not 12 px left of the edge, top at mid height",
         mark,
         Some((791.5, HEIGHT / 2., 16.)),
     );

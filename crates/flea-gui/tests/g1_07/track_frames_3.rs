@@ -142,7 +142,7 @@ fn the_edge_paints_its_line_and_mark_while_hovered() {
     let paint = area.edge_paint();
     c.eq(
         258,
-        "the hovered edge paints its 16 px mark centred on the 1 px line at 799",
+        "the hovered edge centres its 16 px mark on the 1 px line at 799, not 12 px left of the edge",
         (paint.mark, paint.line),
         (Some((791.5, 300., 16.)), Some((799., 0., 1., 600.))),
     );
