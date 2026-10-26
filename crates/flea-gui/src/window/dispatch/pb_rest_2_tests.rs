@@ -282,3 +282,50 @@ fn pb_rest_2_empty_listed_path_keeps_the_requested_directory(cx: &mut TestAppCon
     });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[gpui::test]
+fn pb_rest_2_enter_opens_reverse_order_marks(cx: &mut TestAppContext) {
+    let (shell, cx) = start(cx, false, false);
+    cx.simulate_keystrokes("down v up v");
+    shell.update(cx, |shell, _| {
+        shell.panes[0].as_mut().unwrap().selected = vec![1, 0]
+    });
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(shell.panes[0].as_ref().unwrap().selected, vec![1, 0]);
+    });
+    cx.simulate_keystrokes("enter");
+    assert!(launches().is_empty());
+    let line = sent()
+        .into_iter()
+        .find(|line| line.contains("\"op\":\"snapshot\""))
+        .expect("Enter asks the backend for every selected row");
+    let doc = flea::jsondoc::parse(&line).unwrap();
+    let expected = flea::jsondoc::parse("[0,1]").unwrap();
+    assert_eq!(doc.get("rows"), Some(&expected));
+    let id = flea::json::field_usize(&line, "id").unwrap();
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"snapshot","id":{id},"ok":true,"count":2,"kinds":[33188,33188]}}"#
+        ),
+    );
+    assert!(
+        sent().iter().any(|line| line.contains("\"op\":\"validate\"")),
+        "unchanged reverse-order marks must pass the snapshot reply guard"
+    );
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"validate","action":"open","id":{id},"ok":true,"paths":["/files/a.txt","/files/b.txt"]}}"#
+        ),
+    );
+    let calls = launches();
+    assert_eq!(calls.len(), 1);
+    assert_eq!(
+        &calls[0][1..],
+        ["--open-selection", "/files/a.txt", "/files/b.txt"]
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

@@ -267,7 +267,13 @@ impl Shell {
                 && !host.stopped
                 && host.pane.held.listing == *listing
                 && host.pane.path() == path
-                && flea::ui_logic_sr2::keep(&host.selected, host.filter.shown.as_deref()) == *rows
+                && {
+                    let mut now =
+                        flea::ui_logic_sr2::keep(&host.selected, host.filter.shown.as_deref());
+                    now.sort_unstable();
+                    now.dedup();
+                    now == *rows
+                }
         });
         if doc.get("ok").and_then(Json::as_bool) != Some(true) || !current {
             self.open_selection_end(side, id, cx);
