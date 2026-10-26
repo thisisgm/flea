@@ -170,7 +170,7 @@ function iconGroups(svg) {
 function rootFont(svg, t) {
     return svg.replace(/<svg\b[^<>]*>/, function (root) {
         var out = root.replace(/\s(?:style|role|aria-[\w-]+|class)="[^"]*"/g, "");
-        return out.replace(/>$/, ' font-family="' + escAttr(t.font || "sans-serif") + '" font-size="' + (t.bodyPx > 0 ? t.bodyPx : MERMAID_FALLBACK_BODY_PX) + '">');
+        return out.replace(/>$/, ' font-family="' + escAttr(t.font || "sans-serif") + '" font-size="' + MERMAID_LAYOUT_PX + '">');
     });
 }
 
@@ -228,8 +228,8 @@ function accentMarks(svg, t) {
     });
 }
 
-// A diagram scales to the theme's body size; this size in px stands in when the request carries none, as the bundle's own fallback does.
-const MERMAID_FALLBACK_BODY_PX = 14;
+// The bundle lays a diagram out at body 13 and scales its canvas to the theme's body size, as v0.3.12 did, so its text is set at 13.
+const MERMAID_LAYOUT_PX = 13;
 
 // SVG's defaults for a stroke the figure does not style: one unit wide, mitred joins cut off past a ratio of 4, butt caps.
 const DEFAULT_STROKE_WIDTH = 1;
