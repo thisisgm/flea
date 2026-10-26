@@ -165,3 +165,6 @@ mod test_shell;
 
 #[cfg(test)]
 mod gh_preview_proof_tests;
+
+#[cfg(test)]
+mod pb_rest_2_tests;
