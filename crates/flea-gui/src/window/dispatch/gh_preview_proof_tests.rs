@@ -318,3 +318,5 @@ fn gh336_raster_zoom_requests_larger_pixels_retains_on_zoom_out_and_releases_at_
 include!("gh_preview_animation_test.rs");
 
 include!("gh_preview_zoom_test.rs");
+
+include!("mdlook_tests.rs");
