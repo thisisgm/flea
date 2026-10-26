@@ -25,6 +25,8 @@ mod review_tests;
 #[cfg(test)]
 mod service_tests;
 mod sheet;
+#[cfg(test)]
+mod textsize_tests;
 pub(crate) mod store;
 mod update;
 #[cfg(test)]

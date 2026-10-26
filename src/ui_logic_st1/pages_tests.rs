@@ -56,7 +56,7 @@ fn display_is_text_size_then_scale_then_appearance() {
 #[test]
 fn an_override_turns_the_ruler_into_the_control() {
     let follow = display(r#"{"mode":"system"}"#, 14, 1.);
-    let pinned = display(r#"{"mode":16}"#, 16, 1.);
+    let pinned = display(r#"{"mode":16}"#, 14, 1.);
     assert_eq!(pinned.len(), follow.len());
     assert_eq!(say(&find(&pinned, "textMode").value), "Override");
     let effective = find(&pinned, "textEffective");
