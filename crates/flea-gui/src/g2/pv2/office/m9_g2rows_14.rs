@@ -160,9 +160,9 @@ fn m9_g2rows_14_sheet_switch_and_stale_reply_preserve_identity(cx: &mut TestAppC
         assert_eq!(view.office.sheet_names, ["Monthly", "Savings"]);
         assert_eq!(view.office.sheet, 1);
         assert!(view.action("nextSheet", cx));
-        assert_eq!(view.office.sheet, 1, "the final sheet clamps");
+        assert_eq!(view.office.sheet, 0, "the final sheet wraps to the first");
         assert!(view.action("previousSheet", cx));
-        assert_eq!(view.office.sheet, 0);
+        assert_eq!(view.office.sheet, 1, "the first sheet wraps back to the last");
         view.set_path("/d/new.xlsx", window, cx);
         assert!(!view.reply(r#"{"t":"officesheets","id":1,"state":"ready","names":["Old"],"paths":["/c/old.csv"]}"#, window, cx));
         assert!(view.office.sheet_names.is_empty());
