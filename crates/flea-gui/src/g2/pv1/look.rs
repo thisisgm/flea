@@ -61,34 +61,6 @@ impl Look {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::list::Palette;
-
-    /// ql-error: the warning triangle over "This file could not be read." wears the theme's error ink, not the foreground.
-    #[test]
-    fn the_error_role_is_the_palettes_error_ink() {
-        let ink = |value: u32| -> Hsla { gpui::rgb(value).into() };
-        let palette = Palette {
-            background: ink(0x101315),
-            foreground: ink(0xcacccc),
-            muted: ink(0x808080),
-            error: ink(0xf38ba8),
-            error_on_surface: ink(0xd20f39),
-            metadata: ink(0x808080),
-            metadata_frame: ink(0x808080),
-            accent: ink(0x509475),
-            accent_frame: ink(0x509475),
-            symlink: ink(0x808080),
-            executable: ink(0x808080),
-            marked: ink(0x808080),
-            muted_frame: ink(0x808080),
-        };
-        assert_eq!(Look::inherited(&palette).error, palette.error);
-    }
-}
-
 const HAIR: f32 = 0.12;
 const SCRIM: f32 = 0.5;
 const WASH_HOVER: f32 = 0.08;
@@ -147,3 +119,31 @@ pub const FACT_LINE: f32 = 16.;
 pub const STACK_STEP_X: f32 = 10.;
 pub const STACK_STEP_Y: f32 = 4.;
 pub const STACK_FADE: f32 = 0.3;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::list::Palette;
+
+    /// ql-error: the warning triangle over "This file could not be read." wears the theme's error ink, not the foreground.
+    #[test]
+    fn the_error_role_is_the_palettes_error_ink() {
+        let ink = |value: u32| -> Hsla { gpui::rgb(value).into() };
+        let palette = Palette {
+            background: ink(0x101315),
+            foreground: ink(0xcacccc),
+            muted: ink(0x808080),
+            error: ink(0xf38ba8),
+            error_on_surface: ink(0xd20f39),
+            metadata: ink(0x808080),
+            metadata_frame: ink(0x808080),
+            accent: ink(0x509475),
+            accent_frame: ink(0x509475),
+            symlink: ink(0x808080),
+            executable: ink(0x808080),
+            marked: ink(0x808080),
+            muted_frame: ink(0x808080),
+        };
+        assert_eq!(Look::inherited(&palette).error, palette.error);
+    }
+}

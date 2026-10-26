@@ -139,7 +139,15 @@ impl QuickLook {
                 text: &subject.name,
                 tail: Some((target, look.meta)),
             };
-            parts.push(bar::bar(subject.mark_with_languages(self.languages), name, None, true, look, self, cx));
+            parts.push(bar::bar(
+                subject.mark_with_languages(self.languages),
+                name,
+                None,
+                true,
+                look,
+                self,
+                cx,
+            ));
             f64::from(look::BAR)
         } else {
             0.

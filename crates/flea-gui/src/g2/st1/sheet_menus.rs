@@ -93,9 +93,9 @@ fn sheet_entry(entry: &Entry, clipboard: bool) -> MenuEntry {
 
 fn text(value: &mn1::Text) -> Text {
     match value {
-        mn1::Text::Key(key) => Text::Key(*key),
-        mn1::Text::Count(key, count) => Text::Count(*key, *count, Vec::new()),
-        mn1::Text::KeyArg(key, arg) => Text::Args(*key, vec![Text::Key(*arg)]),
+        mn1::Text::Key(key) => Text::Key(key),
+        mn1::Text::Count(key, count) => Text::Count(key, *count, Vec::new()),
+        mn1::Text::KeyArg(key, arg) => Text::Args(key, vec![Text::Key(arg)]),
         mn1::Text::Data(value) => Text::data(value.clone()),
     }
 }

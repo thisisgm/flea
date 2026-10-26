@@ -57,9 +57,17 @@ fn a_locked_mark_wears_the_error_ink() {
         error: ink(0xf38ba8),
     };
     let locked = Facts::failed("scan", "Permission denied (os error 13)", 0o40700, &catalog);
-    assert_eq!(locked.mark_ink(inks), inks.error, "the lock wears the error ink");
+    assert_eq!(
+        locked.mark_ink(inks),
+        inks.error,
+        "the lock wears the error ink"
+    );
     let missing = Facts::failed("scan", "item not found", 0o40755, &catalog);
-    assert_eq!(missing.mark_ink(inks), inks.error, "the alert wears the error ink");
+    assert_eq!(
+        missing.mark_ink(inks),
+        inks.error,
+        "the alert wears the error ink"
+    );
 }
 
 #[test]

@@ -1,7 +1,7 @@
 //! The listing, background, Trash and Places menus built from one context, in inventory order.
 use super::entry::{Brand, Entry, Id, Text};
 use super::inventory::{Spec, INVENTORY};
-use super::rows;
+use super::{flyouts, rows};
 
 pub const S_IFMT: u32 = 0o170000;
 pub const S_IFREG: u32 = 0o100000;
@@ -399,10 +399,8 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         e.disabled = true;
     }
     if action == "tags" {
-        let Some(tags) = &p.tag_submenu else {
-            return false;
-        };
-        e.submenu = Some(tags.clone());
+        // A read of the selection's tag states replaces these leaves where its owner supplies them.
+        e.submenu = Some(p.tag_submenu.clone().unwrap_or_else(flyouts::tag_entries));
     }
     if action == "extract" && !rows::extract_entry(e, p, count) {
         return false;
@@ -431,7 +429,7 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         if p.open_with_loaded && p.open_with_apps.is_empty() {
             return false;
         }
-        e.submenu = Some(rows::open_with_entries(&p.open_with_apps));
+        e.submenu = Some(flyouts::open_with_entries(&p.open_with_apps));
         e.disabled = count != 1;
     }
     if action == "taildrop" {

@@ -79,7 +79,10 @@ fn ey65_locked_folder_shows_unknown_when_its_listing_is_refused(cx: &mut TestApp
     refuse_scan(cx, handle);
     frame(cx, handle);
     let asked = std::iter::from_fn(&mut requests).any(|line| line.contains("\"fsinfo\""));
-    assert!(asked, "settling a locked folder still asks for its disk facts");
+    assert!(
+        asked,
+        "settling a locked folder still asks for its disk facts"
+    );
     assert_eq!(filesystem(cx, handle), "unknown");
 }
 

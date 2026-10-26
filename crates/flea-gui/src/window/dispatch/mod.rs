@@ -105,6 +105,8 @@ mod menus_dual_tests;
 #[cfg(test)]
 mod menus_tests;
 #[cfg(test)]
+mod menus_keys_tests;
+#[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]
 mod queued_navigation_tests;

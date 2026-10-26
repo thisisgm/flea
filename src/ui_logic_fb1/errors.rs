@@ -212,6 +212,15 @@ pub fn sentence(place: &str, message: &str, named: &str) -> Sentence {
             "feedback.error.archive_stopped_named",
             "feedback.error.archive_stopped",
         ),
+        // The backend names an empty clipboard by its emptyclipboard code and this one message; the paste keys say the empty-clipboard sentence for it, as ui/js/Messages.js routes the code.
+        "pasteimage"
+            if message
+                .trim()
+                .trim_end_matches('.')
+                .eq_ignore_ascii_case("the clipboard holds no image") =>
+        {
+            Sentence::key("menu.refusal.empty_clipboard")
+        }
         "transfer" | "archive" | "convert" | "link" | "linktarget" | "rename-stranded"
         | "pasteimage" => passthrough(message),
         _ => Sentence::key(GENERIC),
