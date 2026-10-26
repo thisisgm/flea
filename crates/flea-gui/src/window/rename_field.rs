@@ -1,5 +1,8 @@
 //! The rename editor drawn over its row's name: the accent frame on the label column, the stem's selection wash, the muted extension, the caret and the refusal under it.
-use super::Shell;
+use super::{
+    place::{Place, Spot},
+    Shell,
+};
 use crate::path::{field::Line, paint::paint_run};
 use gpui::{
     fill, point, px, quad, relative, size, App, BorderStyle, Bounds, ContentMask, CursorStyle,
@@ -118,34 +121,28 @@ impl Element for FieldElement {
         self.shell.update(cx, |shell, cx| {
             let index = shell.renaming_row(side)?;
             let corner = shell.corner;
-            let host = shell.panes[side].as_ref()?;
-            let list = host.list.borrow();
-            let drawn = &list.drawn;
-            let metrics = drawn.metrics;
-            let font = list.typeface.font.clone();
-            let pixels = list.typeface.body;
-            let caption = list.typeface.caption;
-            let top = drawn.bounds.origin.y + px(index as f32 * metrics.row - drawn.scroll_y);
-            let frame = Bounds::new(
-                point(
-                    drawn.bounds.origin.x + px(drawn.layout.name.x),
-                    top + px((metrics.row - metrics.slot) / 2.),
-                ),
-                size(px(drawn.layout.name.width.max(0.)), px(metrics.slot)),
-            );
-            let inset = px(metrics.gap);
-            let clip = drawn.bounds;
-            drop(list);
-            // RenameField.qml: a row scrolled wholly out of the list drops the edit, with no commit; a list not yet drawn drops nothing.
-            if clip.size.height <= px(0.) {
-                return None;
-            }
-            if frame.bottom() <= clip.top() || frame.top() >= clip.bottom() {
-                cx.defer_in(window, move |shell, window, cx| {
-                    shell.rename_scrolled_out(side, index, window, cx)
-                });
-                return None;
-            }
+            let (font, pixels, caption) = {
+                let list = shell.panes[side].as_ref()?.list.borrow();
+                let face = &list.typeface;
+                (face.font.clone(), face.body, face.caption)
+            };
+            let Place {
+                frame,
+                clip,
+                inset,
+                below,
+                row,
+            } = match shell.rename_place(side, index) {
+                Spot::At(place) => place,
+                // RenameField.qml: a row scrolled wholly out of its view drops the edit, with no commit; a view not yet drawn drops nothing.
+                Spot::Out => {
+                    cx.defer_in(window, move |shell, window, cx| {
+                        shell.rename_scrolled_out(side, index, window, cx)
+                    });
+                    return None;
+                }
+                Spot::Unready => return None,
+            };
             let edit = shell.rename.edit.as_mut()?;
             let line = &mut edit.line.line;
             if line.run.is_none() || line.revision != edit.entry.revision {
@@ -172,10 +169,7 @@ impl Element for FieldElement {
                     let run = shape(window, &edit.error, font, caption);
                     edit.line.error = Some((edit.error.clone(), run));
                 }
-                Bounds::new(
-                    point(frame.origin.x, top + px(metrics.row)),
-                    size(frame.size.width, px(metrics.row)),
-                )
+                Bounds::new(point(frame.origin.x, below), size(frame.size.width, row))
             });
             edit.line.frame = Some(frame);
             edit.line.inset = inset;
