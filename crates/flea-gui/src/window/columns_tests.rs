@@ -250,10 +250,10 @@ fn u09_live_columns_readers_forward_the_retained_preview_state(cx: &mut TestAppC
                 window,
                 cx,
             );
-            assert_eq!(
-                receive.try_recv().unwrap().reply,
-                Reply::value("0")
-            );
+            assert_eq!(receive.try_recv().unwrap().reply, Reply::value("0"));
         });
     });
 }
+
+#[path = "columns_parity_build_tests.rs"]
+mod parity_build;

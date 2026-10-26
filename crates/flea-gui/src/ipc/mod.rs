@@ -1,5 +1,6 @@
 pub mod chrome;
 pub mod columns;
+pub(crate) mod columns_preview;
 pub mod devices;
 pub mod dual;
 pub mod focus;
