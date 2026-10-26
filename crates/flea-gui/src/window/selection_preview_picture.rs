@@ -1,6 +1,6 @@
 //! An animated GIF's moving layer, fitted inside the frame's border; the still is fitted::fitted.
 use super::{Frame, Kind};
-use flea::ui_logic_pv1::thumbs;
+use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs};
 use gpui::{div, img, prelude::*, px, AnyElement, IntoElement, RenderImage};
 use std::sync::Arc;
 
@@ -10,7 +10,14 @@ fn fitted(image: Arc<RenderImage>, frame: &Frame, width: f32, height: f32, selec
     let size = image.size(0);
     let (w, h) = (size.width.0 as f64, size.height.0 as f64);
     let original = frame.facts.as_ref().map_or((0., 0.), |m| (m.w as f64, m.h as f64));
-    let limit = thumbs::poster_limit(frame.kind == Kind::Video, w, h, original.0, original.1);
+    let limit = thumbs::preview_limit(
+        frame.kind == Kind::Video,
+        is_vector_name(&frame.subject.row.name),
+        w,
+        h,
+        original.0,
+        original.1,
+    );
     let scale = thumbs::fit_scale(
         (width - 2. * FRAME_BORDER).max(1.) as f64,
         (height - 2. * FRAME_BORDER).max(1.) as f64,

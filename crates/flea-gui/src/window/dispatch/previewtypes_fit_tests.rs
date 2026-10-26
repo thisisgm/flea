@@ -113,6 +113,10 @@ fn column_document_and_picture_insets_use_the_named_frame_border() {
         ("moving", include_str!("../selection_preview_picture.rs")),
     ];
     for (inset, source) in sources {
+        assert!(
+            !source.contains("poster_limit"),
+            "the {inset} fit must use the train's preview_limit, not the row's poster_limit"
+        );
         for dimension in ["width", "height"] {
             assert!(
                 !source.contains(&format!("({dimension} - 2.)")),
