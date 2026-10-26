@@ -5,7 +5,7 @@ use crate::{
     window::navigate::Step,
 };
 use flea::ui_logic_op3::runfile::{exit_outcome, Action, Button, Exit};
-use gpui::{div, prelude::*, AnyElement, Context, KeyDownEvent, MouseButton, Window};
+use gpui::{div, prelude::*, AnyElement, Context, KeyDownEvent, ModifiersChangedEvent, MouseButton, Window};
 
 /// The open card, the side that asked for it, and the launcher a test can replace.
 pub(crate) struct Open {
@@ -72,6 +72,17 @@ impl Shell {
         let effects = open.card.key(key);
         self.run_card_effects(effects, action, window, cx);
         true
+    }
+
+    /// Shift alone relabels the open card on both press and release, before any key or click chooses an action.
+    pub(crate) fn run_card_modifiers(&mut self, event: &ModifiersChangedEvent, _: &mut Window, cx: &mut Context<Self>) {
+        let Some(open) = self.run_card.as_mut() else {
+            return;
+        };
+        if open.card.shift != event.modifiers.shift {
+            open.card.shift = event.modifiers.shift;
+            cx.notify();
+        }
     }
 
     /// A click reads Shift from its own press, never from the last key the card saw.
