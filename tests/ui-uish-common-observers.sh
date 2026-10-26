@@ -52,6 +52,7 @@ scratch="$PWD/.superpowers/m9-uish-04"
 mkdir -p "$scratch"
 root=$(mktemp -d "$scratch/controls.XXXXXXXX")
 : > "$root/.flea-test-sandbox"
+trap 'case $root in "$scratch"/controls.?*) [ -f "$root/.flea-test-sandbox" ] && rm -rf -- "$root" ;; esac' EXIT
 mkdir -p "$root"/{home,config,state,cache,runtime}
 setsid -w env -i PATH="$PATH" HOME="$root/home" \
     XDG_CONFIG_HOME="$root/config" XDG_STATE_HOME="$root/state" \

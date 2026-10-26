@@ -10,6 +10,17 @@ trap 'case $scratch in "$repo"/.superpowers/m9-integ-07/contracts.?*) [ -f "$scr
 python3 -B "$repo/tools/flea-strata-bench" selftest "$scratch"
 python3 -B "$repo/tools/flea-strata-bench" init "$scratch"
 python3 -B "$repo/tools/flea-strata-bench" dry-run "$scratch"
+python3 -B "$repo/tools/flea-strata-bench" selftest "$scratch" > /dev/null ||
+    { printf 'strata-bench: FAIL a second selftest on one ROOT\n' >&2; exit 1; }
+python3 -B "$repo/tools/flea-strata-bench" dry-run "$scratch" > /dev/null ||
+    { printf 'strata-bench: FAIL a second dry-run on one ROOT\n' >&2; exit 1; }
+set +e
+python3 -B "$repo/tools/flea-strata-bench" reprot "$scratch" 2> "$scratch/usage.stderr"
+rc=$?
+set -e
+[[ "$rc" == 3 ]] && grep -q '^strata-bench: usage error: ' "$scratch/usage.stderr" ||
+    { printf 'strata-bench: FAIL a usage error exits %s, not 3\n' "$rc" >&2; exit 1; }
+printf 'strata-bench: selftest and dry-run rerun on one ROOT, and a usage error exits 3\n'
 typed="$scratch/wrong-typed"
 mkdir "$typed"
 touch "$typed/.flea-test-sandbox"
