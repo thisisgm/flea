@@ -74,6 +74,17 @@ pub struct LaidHeader {
     pub add: Option<Rect>,
 }
 
+/// Sidebar.qml's addMark: the press box centred on the NETWORK plus ink, at least Theme.hitMin wide.
+pub fn add_hit(add: Rect) -> Rect {
+    let side = add.width.max(add::HIT_MIN);
+    Rect::new(
+        add.x + (add.width - side) / 2.,
+        add.y + (add.height - side) / 2.,
+        side,
+        side,
+    )
+}
+
 /// One rail row as painted, in window coordinates; IPC reads these and never recomputes a row.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LaidRow {
