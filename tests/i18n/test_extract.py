@@ -20,6 +20,12 @@ class ExtractTests(unittest.TestCase):
         self.root = Path(self.temporary.name).resolve()
         (self.root / ".flea-test-sandbox").touch()
         self.addCleanup(self.temporary.cleanup)
+        # The extractor records HEAD, so the fixture is its own repository, free of the caller's git environment and config.
+        self.git_env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+        self.git_env.update(GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_NOSYSTEM="1")
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True, env=self.git_env)
+        subprocess.run(["git", "-C", str(self.root), "-c", "user.name=flea-test", "-c", "user.email=flea-test@invalid",
+                        "commit", "-q", "--allow-empty", "-m", "fixture"], check=True, env=self.git_env)
         self.omarchy = self.root / "omarchy"
         self.index = self.root / "i18n/source-index.json"
         self.catalog = {"file.open": "Open", "files.count": {"one": "%1 file", "other": "%1 files"},
@@ -42,7 +48,7 @@ class ExtractTests(unittest.TestCase):
     def run_tool(self, mode, *extra, ok=True, error=None):
         args = [sys.executable, "-B", str(TOOL), mode, "--repo", str(self.root),
                 "--source-index", str(self.index), "--omarchy-path", str(self.omarchy), *extra]
-        result = subprocess.run(args, text=True, capture_output=True)
+        result = subprocess.run(args, text=True, capture_output=True, env=self.git_env)
         self.assertEqual(result.returncode, 0 if ok else 1, result.stdout + result.stderr)
         self.assertNotIn("Traceback", result.stderr)
         if error is not None:
@@ -95,7 +101,7 @@ class ExtractTests(unittest.TestCase):
                    str(self.root / "ui/js/Keymap.js"), str(self.root / "keys.toml"),
                    "--rust", str(self.root / "src/keys_generated.rs"),
                    "--catalog", str(self.root / "i18n/en/flea.json")]
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, env=self.git_env)
         self.assertEqual(result.returncode, 0, result.stderr)
         generated = json.loads((self.root / "i18n/en/flea.json").read_text())
         self.assertEqual(generated["keys.action.mute"], "omarchy:keybindings.Mute")
@@ -105,7 +111,7 @@ class ExtractTests(unittest.TestCase):
         self.assertEqual(index["keys"]["keys.action.mute"]["resolved_english"], "Mute")
         catalog_bytes = (self.root / "i18n/en/flea.json").read_bytes()
         index_bytes = self.index.read_bytes()
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, env=self.git_env)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((self.root / "i18n/en/flea.json").read_bytes(), catalog_bytes)
         self.run_tool("check")

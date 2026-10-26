@@ -57,6 +57,9 @@ def blocking(symbol, args, method, helpers):
         return True
     if parts[-1] in ("block_on", "spawn_blocking"):
         return True
+    # gpui's Entity::read(cx) borrows entity state; an I/O read takes a buffer, never the app context.
+    if method and parts[-1] == "read" and [t.value for t in args] == ["cx"]:
+        return False
     if method and parts[-1] in ("wait", "wait_with_output", "output", "status", "exec", "read", "read_exact", "read_line",
                                "read_to_end", "read_to_string", "write_all", "accept", "connect",
                                "recv_timeout", "send_blocking", "recv_blocking"):
