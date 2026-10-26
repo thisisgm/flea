@@ -21,6 +21,7 @@ pub(crate) const NOTCH_PX: f32 = 24.;
 pub(crate) const WHEEL_MULTIPLIER: f32 = 4.;
 pub(crate) const TOUCH_GAIN: f32 = 2.5;
 
+pub(crate) use element::grid_surface;
 pub use element::{surface, surface_with, Painted};
 use gpui::{Bounds, Pixels, Point};
 #[cfg(test)]

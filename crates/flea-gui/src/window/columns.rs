@@ -11,6 +11,8 @@ use gpui::{Context, Entity, Task, Window};
 
 #[path = "columns_input.rs"]
 mod input;
+#[path = "columns_keys.rs"]
+mod keys;
 pub use input::BackgroundMenu;
 #[path = "columns_events.rs"]
 mod events;

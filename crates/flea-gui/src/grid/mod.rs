@@ -30,6 +30,7 @@ mod rev_u10_r1_tests;
 mod rev_u10_r2_tests;
 #[cfg(test)]
 mod rev_u10_r3_tests;
+mod scrollbar;
 mod tile;
 mod transition;
 #[cfg(test)]
