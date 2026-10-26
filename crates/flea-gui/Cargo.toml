@@ -16,6 +16,7 @@ omi = "=1.0.0"
 image = { version = "=0.25.10", default-features = false, features = ["png", "tiff", "ico"] }
 # Grapheme clusters, so a hint never wraps inside one character; in the lock through gpui.
 unicode-segmentation = "=1.13.3"
+unicode-bidi = "=0.3.18"
 
 [features]
 # Bench-only: a benchmark driver's markers and scroll test, never enabled by packaging or any default build.
