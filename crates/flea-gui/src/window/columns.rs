@@ -21,6 +21,12 @@ mod render;
 #[path = "columns_requested.rs"]
 mod requested;
 pub(crate) use requested::requested;
+#[path = "columns_scroll.rs"]
+mod scroll;
+
+#[cfg(test)]
+#[path = "columns_scroll_tests.rs"]
+mod scroll_tests;
 
 #[cfg(test)]
 #[path = "columns_review_r2_tests.rs"]
@@ -30,6 +36,7 @@ pub(crate) struct Columns {
     pub area: Area,
     pub preview_hosted: bool,
     pub painters: Painters,
+    bars: [scroll::ColumnBar; 5],
     pub heroes: [Option<Entity<EmptyHero>>; 5],
     pub notices: [Option<Entity<StateMessage>>; 5],
     pub loading: [Option<std::rc::Rc<crate::feedback::spinner::Crawl>>; 5],
@@ -84,6 +91,7 @@ impl Columns {
             ),
             preview_hosted: false,
             painters: Painters::default(),
+            bars: Default::default(),
             heroes: Default::default(),
             notices: Default::default(),
             loading: Default::default(),
@@ -343,6 +351,7 @@ impl Shell {
                 columns.entering = false;
                 columns.arm_entry = true;
                 columns.painters.park();
+                columns.bars = Default::default();
                 for since in &columns.loading_since {
                     since.set(None);
                 }
