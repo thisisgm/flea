@@ -96,6 +96,10 @@ impl Shell {
     }
 
     pub(crate) fn follow_settings(&mut self, window: &Window, cx: &mut Context<Self>) {
+        #[cfg(test)]
+        if cx.has_global::<crate::state::constructor_fixture::NoSettingsWorker>() {
+            return;
+        }
         let worker = match store::Worker::start() {
             Ok(worker) => worker,
             Err(_) => return,
