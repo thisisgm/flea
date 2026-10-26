@@ -6,7 +6,7 @@ use crate::g2::pv3::{
     view::{MediaElement, Picture},
 };
 use crate::{g2::pv1::glyph::Glyph, row::marks::Mark};
-use flea::ui_logic_pv1::thumbs;
+use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs};
 use gpui::{div, img, prelude::*, px, IntoElement, Render, Window};
 
 /// The frame's border, which a view laid out inside it insets by on each side.
@@ -176,7 +176,8 @@ impl Render for SelectionPreview {
                 let size = image.size(0);
                 let (w, h) = (size.width.0 as f64, size.height.0 as f64);
                 let original = frame.facts.as_ref().map_or((0., 0.), |m| (m.w as f64, m.h as f64));
-                let limit = thumbs::poster_limit(frame.kind == Kind::Video, w, h, original.0, original.1);
+                let vector = is_vector_name(&frame.subject.row.name);
+                let limit = thumbs::preview_limit(frame.kind == Kind::Video, vector, w, h, original.0, original.1);
                 let scale = thumbs::fit_scale(
                     (width - 2. * FRAME_BORDER).max(1.) as f64,
                     (height - 2. * FRAME_BORDER).max(1.) as f64,
@@ -192,6 +193,7 @@ impl Render for SelectionPreview {
                     .justify_center()
                     .child(
                         img(image)
+                            .debug_selector(|| "column-preview-image".into())
                             .w(px((w as f32 * scale).round()))
                             .h(px((h as f32 * scale).round()))
                             .object_fit(gpui::ObjectFit::Fill),
