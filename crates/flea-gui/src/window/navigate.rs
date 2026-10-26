@@ -15,6 +15,8 @@ pub enum Step {
     MouseBack,
     Up,
     Refresh(Option<String>),
+    /// The re-read that keeps the cursor's row and its marks by name, with no reload notice.
+    Reread,
     Reload,
     Retry,
     ToggleHidden,
@@ -73,6 +75,7 @@ impl Shell {
             Step::MouseBack => nav.mouse_back(pane),
             Step::Up => nav.parent(pane),
             Step::Refresh(select) => nav.refresh(pane, select),
+            Step::Reread => Ok(nav.reread(pane, selected, false, false)),
             Step::Reload => nav.reload(pane, selected),
             Step::Retry => nav.retry(pane, selected),
             Step::ToggleHidden => nav.toggle_hidden(pane, failure),

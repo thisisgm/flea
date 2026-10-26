@@ -10,7 +10,7 @@ use crate::{
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
-const TOTAL: usize = 100_000;
+pub(super) const TOTAL: usize = 100_000;
 
 fn names(n: usize) -> Vec<String> {
     (0..n).map(|at| format!("note{at:03}.txt")).collect()
@@ -21,7 +21,7 @@ fn rows(names: &[String]) -> Vec<flea::protocol::RowFacts> {
 }
 
 // /files lands with 100k rows, its first window held, the cursor on row 1, and the backend's request lines read back.
-fn hundred_k(
+pub(super) fn hundred_k(
     cx: &mut TestAppContext,
 ) -> (Entity<Shell>, &mut VisualTestContext, Lines, Vec<String>) {
     let (shell, cx) = open(cx, "default");
@@ -47,7 +47,7 @@ fn hundred_k(
 }
 
 // The re-read's answer: its own first window of the same 100k folder.
-fn land_reread(
+pub(super) fn land_reread(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
     path: &str,
@@ -88,7 +88,7 @@ fn land_reread(
     );
 }
 
-fn cursor(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> usize {
+pub(super) fn cursor(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> usize {
     shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.cursor)
 }
 
@@ -96,7 +96,7 @@ fn busy(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> bool {
     shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.busy())
 }
 
-fn key(cx: &mut VisualTestContext, keys: &str) {
+pub(super) fn key(cx: &mut VisualTestContext, keys: &str) {
     cx.simulate_keystrokes(keys);
     draw(cx);
 }
