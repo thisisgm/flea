@@ -20,10 +20,22 @@ impl QuickLook {
             Body::Raw { path, w, h, .. } => (path, *w, *h, 0., f64::from(look::BAR), false),
             _ => return None,
         };
-        let mut fit = if painted {
-            fit_painted(w, h - top - bottom, sw, sh)
+        let room_h = h - top - bottom;
+        let (fit_w, fit_h) = if matches!(self.subject.as_ref()?.body, Body::Image { .. })
+            && sw > 0.
+            && sh > 0.
+            && sw < w
+            && sh < room_h
+        {
+            let scale = (w / sw).min(room_h / sh);
+            (sw * scale, sh * scale)
         } else {
-            fit_rounded(w, h - top - bottom, sw, sh)
+            (sw, sh)
+        };
+        let mut fit = if painted {
+            fit_painted(w, room_h, fit_w, fit_h)
+        } else {
+            fit_rounded(w, room_h, fit_w, fit_h)
         }?;
         fit.y += top;
         Some((path, fit, (sw, sh)))

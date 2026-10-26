@@ -106,7 +106,11 @@ impl Placer<'_> {
             x: at,
         }) = self.atoms.last_mut()
         {
-            if *look == seg.look && (*at + *width - x).abs() < SLACK {
+            if !text.is_empty()
+                && !seg.text.is_empty()
+                && *look == seg.look
+                && (*at + *width - x).abs() < SLACK
+            {
                 text.push_str(&seg.text);
                 *width += seg.width;
                 return;
