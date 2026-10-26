@@ -1,8 +1,8 @@
 //! Rail readers: the host's live placement, the producer's drawn boxes and the one rename editor, in ui/Ipc.qml's shapes.
-use super::rows::centre_of;
+use super::rows::{centre_of, round};
 use super::Adapter;
 use crate::g2::pl4::producer::Producer;
-use crate::g2::pl4::rows::LaidRow;
+use crate::g2::pl4::rows::{LaidRow, add_hit};
 use crate::rail::host::Host;
 use crate::window::composition::Geometry;
 use flea::ipc::wire::Reply;
@@ -16,6 +16,27 @@ pub struct RailAdapter<'a> {
     pub geometry: &'a Geometry,
     pub focus_side: usize,
     pub now: Instant,
+    pub network: NetworkBuilt,
+}
+
+/// What networkBuilt answers: the places setting, the built service and its two reads.
+#[derive(Clone, Copy, Default)]
+pub struct NetworkBuilt {
+    pub shown: bool,
+    pub present: bool,
+    pub listed: bool,
+    pub mountinfo: bool,
+}
+
+impl NetworkBuilt {
+    fn ready(self) -> bool {
+        self.shown && self.present && self.listed && self.mountinfo
+    }
+}
+
+// FleaWindow.boxOf(): "x width centre", the edges rounded and the centre kept at three decimals.
+fn box_of(x: f32, width: f32) -> String {
+    format!("{} {} {:.3}", round(x), round(width), x + width / 2.)
 }
 
 fn whole(value: f32) -> String {
@@ -191,6 +212,49 @@ impl RailAdapter<'_> {
         ))
     }
 
+    /// The NETWORK heading's plus ink as painted, in window coordinates.
+    fn network_add(&self) -> Option<crate::rail::geometry::Rect> {
+        if !self.shown() {
+            return None;
+        }
+        self.producer().and_then(|producer| {
+            producer
+                .laid
+                .borrow()
+                .headers
+                .iter()
+                .find_map(|header| header.add)
+        })
+    }
+
+    /// The first drawn NETWORK row, so the mark readers aim at the row the heading's dot belongs to.
+    fn first_network_row(&self) -> Option<LaidRow> {
+        let entries = self.entries();
+        let position = entries
+            .iter()
+            .position(|entry| entry.group == Group::Network)?;
+        self.producer()?.laid.borrow().row(position).cloned()
+    }
+
+    /// The plus ink, its hit target and the rail's own indicator dot, in ui/Ipc.qml's shape.
+    fn mark_geometry(&self) -> Option<String> {
+        let add = self.network_add()?;
+        let row = self.first_network_row()?;
+        let hit = add_hit(add);
+        Some(format!(
+            "{}|{}|{}",
+            box_of(add.x, add.width),
+            box_of(hit.x, hit.width),
+            box_of(row.indicator_rect.x, row.indicator_rect.width)
+        ))
+    }
+
+    /// The hit target's own middle, in ui/Ipc.qml's shape.
+    fn mark_centre(&self) -> Option<String> {
+        let hit = add_hit(self.network_add()?);
+        Some(centre_of(hit.x, hit.y, hit.width, hit.height))
+    }
+
     fn details(&self) -> String {
         if !self.shown() {
             return "{\"rowGap\":0,\"headers\":[],\"rows\":[]}".into();
@@ -351,6 +415,25 @@ impl Adapter for RailAdapter<'_> {
                 .producer()
                 .is_some_and(|producer| self.shown() && producer.field_shown())
                 .to_string(),
+            // One line per entry, "label|group|kind|mounted", in ui/Ipc.qml's shape.
+            "networkEntries" => self
+                .entries()
+                .iter()
+                .filter(|entry| entry.group == Group::Network)
+                .map(|entry| {
+                    format!(
+                        "{}|{}|{}|{}",
+                        entry.label,
+                        group_name(entry.group),
+                        kind_name(entry.kind),
+                        entry.mounted.unwrap_or(false)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "networkBuilt" => self.network.ready().to_string(),
+            "networkMarkGeometry" => self.mark_geometry().unwrap_or_default(),
+            "networkMarkCentre" => self.mark_centre().unwrap_or_default(),
             // U27 installs recentMode with the actual Recent listing owner.
             _ => return None,
         };

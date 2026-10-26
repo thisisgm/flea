@@ -32,7 +32,7 @@ pub(super) fn describe_row(facts: &flea::protocol::RowFacts, words: &format::Wor
 }
 
 // Math.round(): half rounds up, so a negative half lands where QML's does.
-fn round(value: f32) -> i64 {
+pub(crate) fn round(value: f32) -> i64 {
     (value + 0.5).floor() as i64
 }
 

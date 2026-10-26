@@ -343,5 +343,9 @@ mod u08;
 #[path = "rail_devices_tests.rs"]
 mod device_tests;
 
+#[cfg(test)]
+#[path = "network_readers_tests.rs"]
+mod network_readers;
+
 #[path = "../g2/pl1/rail_events.rs"]
 mod device_events;

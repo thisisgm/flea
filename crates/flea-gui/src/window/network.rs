@@ -38,6 +38,8 @@ pub struct Network {
     pub shares: Entity<ShareView>,
     pub rows: Vec<RailEntry>,
     pub listing: Listing,
+    /// The last mountinfo read was non-empty, so networkBuilt can tell a built group from an unbuilt one.
+    pub mountinfo_ready: bool,
     pub menu: Rc<RefCell<crate::g2::mn1::menu::Menu>>,
     pub menu_row: Option<(RailEntry, u64)>,
     pub(crate) runner: Rc<dyn Runner>,
@@ -102,7 +104,7 @@ pub fn section(rows: &[RailEntry], shown: bool) -> Vec<RailSection> {
     }]
 }
 
-fn shown(state: &Json) -> bool {
+pub(crate) fn shown(state: &Json) -> bool {
     state
         .get("places")
         .and_then(|places| places.get("showNetwork"))
@@ -201,6 +203,7 @@ impl Shell {
                 shares,
                 rows: Vec::new(),
                 listing: Listing::new(),
+                mountinfo_ready: false,
                 menu: Rc::default(),
                 menu_row: None,
                 runner,
