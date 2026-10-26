@@ -105,6 +105,8 @@ mod previewtypes_kinds_tests;
 #[cfg(test)]
 mod previewtypes_page_tests;
 #[cfg(test)]
+mod previewtypes_svgfit_tests;
+#[cfg(test)]
 mod previewtypes_tests;
 #[cfg(test)]
 mod preview_tests;

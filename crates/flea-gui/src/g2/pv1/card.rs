@@ -103,15 +103,15 @@ impl QuickLook {
     ) -> RasterState {
         let next = self.subject.as_ref().and_then(|s| match &s.body {
             Body::Image { path, w: pw, h: ph } => {
-                super::body::fit_rounded(w, h, *pw, *ph).map(|f| (path.clone(), f, (*pw, *ph)))
+                super::body::fit_rounded_path(w, h, *pw, *ph, path).map(|f| (path.clone(), f, (*pw, *ph)))
             }
             Body::Link { path, w: pw, h: ph, .. } => {
                 let room = h - f64::from(look::BAR);
-                super::body::fit_painted(w, room, *pw, *ph).map(|f| (path.clone(), f, (*pw, *ph)))
+                super::body::fit_painted_path(w, room, *pw, *ph, path).map(|f| (path.clone(), f, (*pw, *ph)))
             }
             Body::Raw { path, w: pw, h: ph, .. } => {
                 let room = h - f64::from(look::BAR);
-                super::body::fit_rounded(w, room, *pw, *ph).map(|f| (path.clone(), f, (*pw, *ph)))
+                super::body::fit_rounded_path(w, room, *pw, *ph, path).map(|f| (path.clone(), f, (*pw, *ph)))
             }
             _ => None,
         });
@@ -205,7 +205,7 @@ impl QuickLook {
                 }
                 parts
             }
-            Body::Image { path, w: pw, h: ph } => super::body::fit_rounded(w, h, *pw, *ph)
+            Body::Image { path, w: pw, h: ph } => super::body::fit_rounded_path(w, h, *pw, *ph, path)
                 .map(|f| vec![picture(path, (f.x, f.y), f.w, f.h, raster.image.clone())])
                 .unwrap_or_default(),
             Body::Link {
@@ -220,7 +220,7 @@ impl QuickLook {
                 };
                 let mut parts = vec![bar::bar(mark_of, name, None, true, look, self, cx)];
                 let room = h - f64::from(look::BAR);
-                if let Some(f) = super::body::fit_painted(w, room, *pw, *ph) {
+                if let Some(f) = super::body::fit_painted_path(w, room, *pw, *ph, path) {
                     parts.push(picture(
                         path,
                         (f.x, f64::from(look::BAR) + f.y),
@@ -238,7 +238,7 @@ impl QuickLook {
                 caption,
             } => {
                 let room = h - f64::from(look::BAR);
-                let mut parts: Vec<AnyElement> = super::body::fit_rounded(w, room, *pw, *ph)
+                let mut parts: Vec<AnyElement> = super::body::fit_rounded_path(w, room, *pw, *ph, path)
                     .map(|f| vec![picture(path, (f.x, f.y), f.w, f.h, raster.image.clone())])
                     .unwrap_or_default();
                 parts.push(
