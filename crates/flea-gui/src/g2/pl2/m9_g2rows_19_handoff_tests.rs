@@ -58,7 +58,9 @@ fn m9_g2rows_19_window_nearby_reply_populates_real_form(cx: &mut TestAppContext)
     });
     frame(cx);
     cx.update(|_, cx| assert_eq!(card.read(cx).model.discovery.rows.len(), 3));
-    cx.simulate_keystrokes("down enter");
+    cx.update(|_, cx| assert!(!card.read(cx).suggestions_open()));
+    // Down in HOST opens the found hosts on the first, a second Down moves to the second.
+    cx.simulate_keystrokes("down down enter");
     frame(cx);
     cx.update(|_, cx| {
         let view = card.read(cx);

@@ -64,6 +64,14 @@ fn m9_g2rows_19_nearby_selection_fills_without_connecting(cx: &mut TestAppContex
         });
     });
     frame(cx);
+    cx.update(|_, cx| {
+        assert!(
+            !card.read(cx).menu.borrow().opened(),
+            "found hosts open no list by themselves"
+        )
+    });
+    cx.simulate_keystrokes("down");
+    frame(cx);
     let geometry = cx.update(|_, cx| {
         let view = card.read(cx);
         let drawn = view.drawn.borrow();
@@ -112,6 +120,7 @@ fn m9_g2rows_19_nearby_selection_fills_without_connecting(cx: &mut TestAppContex
             view.model.focus = Focus::Host;
             view.model.form.host.clear();
             view.load_input();
+            view.suggesting = true;
             view.changed(cx);
         })
     });
@@ -170,7 +179,7 @@ fn m9_g2rows_19_deadline_close_and_typing_ignore_stale_hosts(cx: &mut TestAppCon
         let view = card.read(cx);
         assert_eq!(view.model.discovery.filtered(&view.model.form.host), [1]);
     });
-    cx.simulate_keystrokes("enter enter");
+    cx.simulate_keystrokes("down enter enter");
     let (request, uri) = cx.update(|_, cx| {
         let view = card.read(cx);
         assert!(view.model.connecting);
