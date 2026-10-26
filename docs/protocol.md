@@ -1668,6 +1668,26 @@ The path is resolved and its cache entry looked up beside the loop under the mou
 hung mount costs one `failed` line and never the window. One conversion runs at a time and the
 newest request replaces the one queued behind it, whichever request finished its lookup first; a request older than the newest one started, running or already finished, is answered replaced at once and never converts.
 
+### officesheets
+
+`{"c":"officesheets","id":<uint>,"path":"<string>"}`
+
+Example: `{"c":"officesheets","id":5,"path":"/home/gm/Documents/budget.xlsx"}`
+
+Converts one XLSX, ODS or XLS workbook to one cached CSV per sheet with LibreOffice's CSV filter
+(UTF-8, comma separated, values as the spreadsheet shows them) and answers `officesheets` lines
+carrying the request `id`:
+`{"t":"officesheets","id":5,"state":"ready","names":["Monthly","Savings"],"paths":["<cached csv>","<cached csv>"]}`
+lists the sheets in the workbook's own order, each name beside its CSV at the same index.
+`converting` and `failed` lines, `unavailable`, the remembered converter error, the mount deadline
+and the one-at-a-time queue are those of `officepdf` above, with `"t":"officesheets"`; the two
+requests share that queue, and a workbook's PDF and its sheets are separate cache entries.
+A file that is not a spreadsheet answers
+`{"t":"officesheets","id":5,"state":"failed","err":"that file is not a spreadsheet","unavailable":true}`.
+The converter runs once over the whole workbook, then once per sheet to fix the order, skipping
+the last sheet, which is the one left; a workbook with more than 24 sheets lists its first 24, one
+order run each.
+
 ### settags
 
 `{"c":"settags","rows":[<uint>,...],"op":"<string>","tag":"<string>","listing":<uint>}`

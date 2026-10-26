@@ -728,7 +728,7 @@ fn handle_line(
         Request::PdfCopy { id, slot, path } => {
             super::pdfcopy::spawn(id, slot, PathBuf::from(&path), ops.tx.clone());
         }
-        Request::OfficePdf { id, path } => super::officepdf::serve(out, ops, &tb.mime, &tb.aliases, id, &path),
+        Request::OfficePdf { id, path, sheets } => super::officepdf::serve(out, ops, &tb.mime, &tb.aliases, id, &path, sheets),
         Request::FontLook(ask) => super::fontinfo::render::spawn(ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases), ops.tx.clone()),
         // One row, only when a client asked: the same no-sweep rule thumb and dirsize already follow.
         Request::Owner { row, token } => {
