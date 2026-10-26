@@ -21,6 +21,55 @@ fn a_block_is_the_row_its_line_and_the_air_under_it() {
     assert_eq!(visible(-20., 110., 100), 0..2);
 }
 
+#[test]
+fn codeicons_language_contents_uses_the_shared_file_mark() {
+    let mut cx = real_cx();
+    let blocks = Rc::new(Held {
+        listing: 9,
+        total: 1,
+        start: 0,
+        blocks: vec![Block {
+            row: flea::protocol::RowFacts {
+                name: "main.rs".into(),
+                icon: "text-plain".into(),
+                mode: 0o100644,
+                ..Default::default()
+            },
+            location: "src".into(),
+            line_no: 1,
+            line: "fn main() {}".into(),
+        }],
+    });
+    let (window, state) = open(&mut cx, blocks, 1.);
+    frame(&mut cx, window, 0.);
+    assert_eq!(
+        state.borrow().visible[0].1.mark,
+        crate::row::marks::Mark::Language(
+            crate::row::marks::Language::for_file("main.rs").unwrap()
+        )
+    );
+    let misses = state.borrow().misses;
+    state
+        .borrow_mut()
+        .apply_settings(&flea::uistate::from_file(r#"{"langMarks":false}"#));
+    frame(&mut cx, window, 0.);
+    assert_eq!(
+        state.borrow().visible[0].1.mark,
+        crate::row::marks::Mark::FileText
+    );
+    assert_eq!(
+        state.borrow().misses,
+        misses + 1,
+        "setting invalidates the cached mark"
+    );
+    frame(&mut cx, window, 0.);
+    assert_eq!(
+        state.borrow().misses,
+        misses + 1,
+        "still frame reuses preparation"
+    );
+}
+
 fn held(count: usize) -> Rc<Held> {
     let blocks: Vec<Block> = fixture("uniform")
         .into_iter()

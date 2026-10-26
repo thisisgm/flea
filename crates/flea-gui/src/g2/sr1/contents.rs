@@ -1,15 +1,17 @@
 //! Contents results: one fixed-height block per match, the file's row then its first matching line, painted from prepared runs.
-use super::run::{run_in, text_runs, wash_span, RUN_WASH};
-use crate::columns::cache::size_text;
+use super::run::RUN_WASH;
+#[path = "contents_text.rs"]
+mod text;
 use crate::list::{mark_bounds, Typeface, END_W, LABEL_X, PAD_X};
 use crate::row;
 use flea::protocol::RowFacts;
 use gpui::{
-    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
-    FontFeatures, GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId,
-    Pixels, Style, TextRun, TransformationMatrix, Window,
+    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,
+    GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, Style, TransformationMatrix,
+    Window,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use text::prepare;
 
 // boards_find.py: the result row 31, its matching line 20 at caption 12, 4 of air under the block.
 pub const ROW_H: f32 = 31.;
@@ -107,9 +109,11 @@ struct Key {
     lifted: bool,
     cells: usize,
     scale: u32,
+    languages: bool,
 }
 
 pub struct ContentsState {
+    languages: bool,
     pub typeface: Typeface,
     pub query: String,
     entries: HashMap<usize, (Key, Rc<Prepared>)>,
@@ -122,8 +126,14 @@ pub struct ContentsState {
 }
 
 impl ContentsState {
+    pub fn apply_settings(&mut self, data: &flea::jsondoc::Json) {
+        self.languages =
+            data.get("langMarks").and_then(flea::jsondoc::Json::as_bool) != Some(false);
+    }
+
     pub fn new(typeface: Typeface, words: row::format::Words) -> Self {
         Self {
+            languages: true,
             typeface,
             query: String::new(),
             entries: HashMap::new(),
@@ -177,44 +187,6 @@ fn right_elide(text: &str, cells: usize) -> String {
     let mut cut: String = text.chars().take(cells.saturating_sub(1)).collect();
     cut.push(ELLIPSIS);
     cut
-}
-
-fn prepare(
-    block: &Block,
-    state: &ContentsState,
-    lifted: bool,
-    cells: usize,
-    window: &Window,
-) -> Prepared {
-    let face = &state.typeface;
-    let text = window.text_system();
-    let shaped = |value: &str, size: Pixels, runs: Vec<TextRun>| {
-        GlyphRun::new(text.layout_line(value, size, &runs, None))
-    };
-    let plain =
-        |value: &str, size: Pixels| shaped(value, size, text_runs(value, None, false, &face.font));
-    // The match is in the file, so the name carries no run; its trailing space is the gap before the folder.
-    let name = format!("{} ", row::decorated_name(&block.row));
-    let line = right_elide(&block.line, cells);
-    let line_run = run_in(&line, &state.query);
-    let unjoined = Font {
-        features: FontFeatures::disable_ligatures(),
-        ..face.font.clone()
-    };
-    let line_glyphs = shaped(
-        &line,
-        face.caption,
-        text_runs(&line, line_run, lifted, &unjoined),
-    );
-    Prepared {
-        name: plain(&name, face.body),
-        location: plain(&block.location, face.caption),
-        size: plain(&size_text(&block.row, None, &state.words), face.caption),
-        number: plain(&block.line_no.to_string(), face.caption),
-        wash: wash_span(line_glyphs.line(), line_run, lifted),
-        line: line_glyphs,
-        mark: row::marks::Mark::for_row(&block.row.icon, block.row.mode),
-    }
 }
 
 fn paint_at(run: &GlyphRun, x: Pixels, top: Pixels, height: f32, color: Hsla, window: &mut Window) {
@@ -292,6 +264,7 @@ impl Element for ContentsElement {
                 lifted: index == self.cursor,
                 cells,
                 scale: window.scale_factor().to_bits(),
+                languages: state.languages,
             };
             let hit = state
                 .entries

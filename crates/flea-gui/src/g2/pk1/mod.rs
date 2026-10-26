@@ -11,6 +11,7 @@ pub mod picker;
 pub mod process;
 pub mod reply;
 mod route;
+mod settings;
 mod view;
 
 pub use picker::{Children, ListingFacts, Message, Picker};

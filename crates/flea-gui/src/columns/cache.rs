@@ -28,10 +28,10 @@ impl Row<'_> {
         }
     }
 
-    fn mark(&self) -> Mark {
+    fn mark(&self, languages: bool) -> Mark {
         match self {
-            Self::Peek(row) => Mark::for_row(&row.icon, 0),
-            Self::Listing(row) => Mark::for_row(&row.icon, row.mode),
+            Self::Peek(row) => Mark::for_file(&row.name, row.dir, 0, &row.icon, languages),
+            Self::Listing(row) => Mark::for_facts(row, languages),
         }
     }
 
@@ -87,6 +87,7 @@ pub struct Shaping {
     /// Cells a clip mark takes from either budget: ceil((gap + mark) / advance).
     pub clip_cells: usize,
     pub size: bool,
+    pub languages: bool,
     pub scale: f32,
     pub words: Rc<row::format::Words>,
 }
@@ -156,7 +157,7 @@ fn prepare(
         plain: shape(&plain, &shaping.font, shaping.body, window),
         chevron,
         size,
-        mark: row.mark(),
+        mark: row.mark(shaping.languages),
         dir: row.dir(),
     }
 }

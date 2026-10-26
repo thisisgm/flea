@@ -15,6 +15,23 @@ pub struct ListingView {
 }
 
 impl ListingView {
+    pub fn apply_settings(&mut self, data: &flea::jsondoc::Json, cx: &mut Context<Self>) {
+        self.state.borrow_mut().view.set_lang_marks(
+            data.get("langMarks").and_then(flea::jsondoc::Json::as_bool) != Some(false),
+        );
+        cx.notify();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn drawn_marks(&self) -> Vec<crate::row::marks::Mark> {
+        self.state
+            .borrow()
+            .visible()
+            .iter()
+            .filter_map(|row| row.prepared.as_ref().map(|row| row.mark))
+            .collect()
+    }
+
     pub fn new(i18n: I18n, typeface: Typeface) -> Self {
         Self {
             listing: Listing::default(),

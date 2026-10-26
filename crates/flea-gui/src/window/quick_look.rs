@@ -135,7 +135,16 @@ impl Shell {
             });
         }
         self.quick_look_release();
+        let languages = self
+            .launch
+            .settings
+            .data
+            .get("langMarks")
+            .and_then(flea::jsondoc::Json::as_bool)
+            != Some(false);
         let host = self.quick_look.as_mut().expect("built above");
+        host.view
+            .update(cx, |view, cx| view.set_languages(languages, cx));
         host.side = side;
         host
     }

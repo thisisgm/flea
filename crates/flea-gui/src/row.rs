@@ -2,6 +2,8 @@
 pub mod cache;
 pub mod format;
 pub mod marks;
+#[cfg(test)]
+mod language_tests;
 
 use flea::protocol::RowFacts;
 use std::borrow::Cow;

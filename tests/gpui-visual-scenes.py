@@ -15,6 +15,7 @@ from flea_transport import Window, load, endpoint, client_run
 import scenes
 import blackgate
 import omi_fit
+import codeicons_native
 
 spec = importlib.util.spec_from_file_location('capture_check', REPO / 'tests/gpui-capture-check.py')
 capture = importlib.util.module_from_spec(spec)
@@ -23,7 +24,7 @@ root, logs = map(Path, sys.argv[1:])
 windows = []
 
 # viewMode answers the mode the focused pane drew; grid and columns change to their own name when their GPUI views mount.
-DRAWN = {'list': 'list', 'dual': 'list', 'grid': 'list', 'columns': 'columns'}
+DRAWN = {'list': 'list', 'dual': 'list', 'grid': 'grid', 'columns': 'columns'}
 
 
 def require_scene_views(status, mode, view):
@@ -89,6 +90,7 @@ try:
     shutil.copyfile(REPO / 'ci/visual/scenes/g1-01.json', control_manifest)
     scenes.controls(control_manifest)
     os.environ['FLEA_TEST_WINDOWS_ROOT'] = str(root)
+    codeicons_native.run(root, logs, Window, call, wait, grab, run, windows)
     for scene in registered:
         name = scene['id']
         state = json.dumps(dict(view=scene['view'], density='compact', display=dict(textSize=dict(mode=14))))
