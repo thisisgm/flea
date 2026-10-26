@@ -6,6 +6,7 @@ pub mod button;
 pub mod card;
 pub mod chrome;
 pub mod column;
+pub mod decode;
 pub mod doc;
 mod doc_card;
 mod doc_keys;

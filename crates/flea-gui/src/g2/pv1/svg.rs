@@ -75,7 +75,7 @@ impl QuickLook {
         let raster = self
             .raster
             .clone()
-            .unwrap_or_else(|| raster::default_raster(cx.svg_renderer()));
+            .unwrap_or_else(|| raster::for_path(&path, cx.svg_renderer()));
         self.raster_in_flight = true;
         // The read, parse and raster run on the background executor, never in the frame that asked.
         let job = raster::Job {

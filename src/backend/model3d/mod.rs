@@ -3,7 +3,7 @@ mod amf;
 mod limits;
 use limits::*;
 mod bgcode;
-pub(super) mod codecs;
+pub(crate) mod codecs;
 mod cura;
 mod facts;
 mod gcode;

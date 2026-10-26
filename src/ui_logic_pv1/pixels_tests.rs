@@ -1,6 +1,7 @@
 //! #336: every preview picture decodes and every SVG rasterizes at physical pixels.
 use super::pixels::{
-    decode_size, is_compressed_vector, is_vector_name, needs_redecode, svg_within_byte_bound,
+    decode_size, is_avif_name, is_compressed_vector, is_host_decoded, is_vector_name,
+    needs_redecode, svg_within_byte_bound, within_decode_bound, MAX_PICTURE_BYTES, MAX_SVG_BYTES,
 };
 
 // With scale 2, a 4000x3000 source fitted at 1000x750 logical requests 2000x1500.
@@ -65,4 +66,29 @@ fn compressed_vector_names_its_extension() {
     assert!(is_vector_name("MARK.SVGZ"));
     assert!(is_compressed_vector("mark.svgz"));
     assert!(!is_compressed_vector("mark.svg"));
+}
+
+// The kinds GPUI's own img(path) cannot read, or would hold whole, decode in the card's raster job.
+#[test]
+fn host_decoded_names_cover_the_five_kinds_and_no_other() {
+    for name in [
+        "a.svg", "a.SVGZ", "a.avif", "A.AVIF", "a.tiff", "a.tif", "a.TIF", "a.ico",
+    ] {
+        assert!(is_host_decoded(name), "{name}");
+    }
+    for name in ["a.png", "a.jpg", "a.webp", "a.gif", "a.bmp", "a.heic", "tiff", "avif"] {
+        assert!(!is_host_decoded(name), "{name}");
+    }
+    assert!(is_avif_name("a.Avif"));
+    assert!(!is_avif_name("a.tiff"));
+}
+
+// A vector keeps its 4 MB parse bound; a raster kind reads up to its own, larger bound.
+#[test]
+fn each_host_decoded_kind_has_its_own_byte_bound() {
+    assert!(within_decode_bound("a.svg", MAX_SVG_BYTES));
+    assert!(!within_decode_bound("a.svgz", MAX_SVG_BYTES + 1));
+    assert!(within_decode_bound("a.tiff", MAX_SVG_BYTES + 1));
+    assert!(within_decode_bound("a.avif", MAX_PICTURE_BYTES));
+    assert!(!within_decode_bound("a.ico", MAX_PICTURE_BYTES + 1));
 }

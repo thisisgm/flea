@@ -85,7 +85,7 @@ impl QuickLook {
         );
         let raster = self.picture_raster(w, h, window, cx);
         let subject = self.subject.as_ref().expect("an open card has a subject");
-        // A refused or unreadable vector shows the kind's can't-show card, never a file GPUI would raster unbounded.
+        // A refused or unreadable host-decoded picture shows the kind's can't-show card, never img(path).
         let shown: Cow<'_, Body> = match (&subject.body, raster.refusal) {
             (Body::Image { .. } | Body::Link { .. } | Body::Raw { .. }, Some(refusal)) => {
                 let too_large = refusal == RasterRefusal::TooLarge;

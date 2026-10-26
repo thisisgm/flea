@@ -79,7 +79,7 @@ pub(crate) fn read_in(path: &Path, text: bool, media: bool, archive: Option<&For
         m.target = link.to_string_lossy().to_string();
         m.target_is_dir = path.metadata().map(|t| t.is_dir()).unwrap_or(false);
     }
-    if let Some(image) = imagesize::header(path) {
+    if let Some(image) = super::imageformats::header(path) {
         m.width = image.width;
         m.height = image.height;
         m.orientation = image.orientation;
