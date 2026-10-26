@@ -79883,7 +79883,7 @@
       "call_sites": [
         {
           "excerpt": "self.locale.catalog.tr(\"window.loading\").into(),",
-          "line": 180,
+          "line": 199,
           "path": "crates/flea-gui/src/window/columns_render.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -93235,7 +93235,7 @@
     },
     {
       "excerpt": "\"Permission denied\",",
-      "line": 377,
+      "line": 396,
       "literal": "Permission denied",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/columns_render.rs",
@@ -211286,7 +211286,7 @@
     "crates/flea-gui/src/window/columns_events.rs": "a71c651cb8bc924a4a837753ca925e283a55a1b6e899fc1cd884ddb7f69de023",
     "crates/flea-gui/src/window/columns_input.rs": "a868bce4d5be023406345c85c6aff913f9ea24a25d9d118c03a1dec4afbc58b7",
     "crates/flea-gui/src/window/columns_readers.rs": "a23362ac77c6a23bdeac47925ba19d09b8585e2b0e8af1a86ad89e253bc15916",
-    "crates/flea-gui/src/window/columns_render.rs": "c5887e22f707c87251c892c5a0069ac4d22150b0b6f713862cdb7fd24e4f3e46",
+    "crates/flea-gui/src/window/columns_render.rs": "153e29f19793bc2a64bce5e38cbaf8d90bbb142169566502ab44c2c01db25266",
     "crates/flea-gui/src/window/columns_requested.rs": "1b262b2f9b3c99874b96596264a1c70ae300b17575b7e0670c2afc70a854bb63",
     "crates/flea-gui/src/window/columns_review_r3_controls.rs": "4b0182c862d2937eda45296ea6bcb4642bc4a6725dabb07502b65145da8cffa7",
     "crates/flea-gui/src/window/columns_scroll.rs": "f61b88235ee0930c9b464e21d313596ef3eb7aea934ece07041d4c83e54a2656",
@@ -212791,8 +212791,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "b2a5af74e552f48a2d09ae7496be045192de6cbf",
-  "source_sha": "b2a5af74e552f48a2d09ae7496be045192de6cbf",
+  "source_ref_sha": "bfea6d82ecaf882e241fe060ece4e9b475d9a7f4",
+  "source_sha": "bfea6d82ecaf882e241fe060ece4e9b475d9a7f4",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
