@@ -189,6 +189,9 @@ impl Shell {
                     window,
                 ));
             }
+            if view.slot == Slot::Active {
+                track = track.child(super::gestures::surface(side, palette, cx));
+            }
             area = area.child(track);
         }
         if let Some((hero, natural)) = no_match {
@@ -227,22 +230,23 @@ impl Shell {
             }
         }
         Some(
-            area.on_mouse_down(
-                gpui::MouseButton::Left,
-                cx.listener(move |shell, event, window, cx| {
-                    shell.columns_pointer(side, event, window, cx)
-                }),
-            )
-            .on_mouse_down(
-                gpui::MouseButton::Right,
-                cx.listener(move |shell, event, window, cx| {
-                    shell.columns_pointer(side, event, window, cx)
-                }),
-            )
-            .on_scroll_wheel(
-                cx.listener(move |shell, event, _, cx| shell.columns_wheel(side, event, cx)),
-            )
-            .into_any_element(),
+            super::gestures::draggable(area, side, cx)
+                .on_mouse_down(
+                    gpui::MouseButton::Left,
+                    cx.listener(move |shell, event, window, cx| {
+                        shell.columns_pointer(side, event, window, cx)
+                    }),
+                )
+                .on_mouse_down(
+                    gpui::MouseButton::Right,
+                    cx.listener(move |shell, event, window, cx| {
+                        shell.columns_pointer(side, event, window, cx)
+                    }),
+                )
+                .on_scroll_wheel(
+                    cx.listener(move |shell, event, _, cx| shell.columns_wheel(side, event, cx)),
+                )
+                .into_any_element(),
         )
     }
 
