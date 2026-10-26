@@ -1,0 +1,159 @@
+//! Where the rename field stands over the name each view drew: the list's label column, the active column's name cell or a tile's caption.
+use crate::{
+    columns::geometry::{cells, Slot},
+    list::{pane::ROW_HEIGHT, ListState, Metrics},
+    state::Shell,
+    window::{pane::PaneHost, startup::View},
+};
+use gpui::{point, px, size, Bounds, Pixels};
+
+/// Where the field stands in the element its side drew last: the frame, the area that clips it, the text's inset, and the refusal's top and height.
+pub(crate) struct Place {
+    pub frame: Bounds<Pixels>,
+    pub clip: Bounds<Pixels>,
+    pub inset: Pixels,
+    pub below: Pixels,
+    pub row: Pixels,
+}
+
+/// The edited row this frame: placed, scrolled wholly out of its view, or in a view that has not drawn yet.
+pub(crate) enum Spot {
+    At(Place),
+    Out,
+    Unready,
+}
+
+impl Spot {
+    /// The edit drops only once `reach`, the whole row or tile, has left the clip.
+    fn of(place: Place, reach: Bounds<Pixels>) -> Self {
+        let clip = place.clip;
+        if clip.size.height <= px(0.) {
+            Spot::Unready
+        } else if reach.bottom() <= clip.top() || reach.top() >= clip.bottom() {
+            Spot::Out
+        } else {
+            Spot::At(place)
+        }
+    }
+}
+
+impl Shell {
+    /// The field sits over the name the side's view drew: the list's label column, the active column's name cell, or a tile's caption.
+    pub(crate) fn rename_place(&self, side: usize, index: usize) -> Spot {
+        let Some(host) = self.panes[side].as_ref() else {
+            return Spot::Unready;
+        };
+        let list = host.list.borrow();
+        match host.drawn_view {
+            Some(View::Columns) => columns_place(host, &list, index),
+            Some(View::Grid) => grid_place(host, &list, index),
+            _ if host.drawn_list => list_place(&list, index),
+            _ => Spot::Unready,
+        }
+    }
+}
+
+fn list_place(list: &ListState, index: usize) -> Spot {
+    let drawn = &list.drawn;
+    let metrics = drawn.metrics;
+    let top = drawn.bounds.origin.y + px(index as f32 * metrics.row - drawn.scroll_y);
+    let frame = Bounds::new(
+        point(
+            drawn.bounds.origin.x + px(drawn.layout.name.x),
+            top + px((metrics.row - metrics.slot) / 2.),
+        ),
+        size(px(drawn.layout.name.width.max(0.)), px(metrics.slot)),
+    );
+    let place = Place {
+        frame,
+        clip: drawn.bounds,
+        inset: px(metrics.gap),
+        below: top + px(metrics.row),
+        row: px(metrics.row),
+    };
+    let reach = Bounds::new(
+        point(drawn.bounds.origin.x, top),
+        size(drawn.bounds.size.width, px(metrics.row)),
+    );
+    Spot::of(place, reach)
+}
+
+// The active track's name cell, from its mark to the size cell, as RenameField.qml spans the Columns name.
+fn columns_place(host: &PaneHost, list: &ListState, index: usize) -> Spot {
+    let Some(paint) = host
+        .columns
+        .as_ref()
+        .and_then(|columns| columns.painters.get(Slot::Active))
+    else {
+        return Spot::Unready;
+    };
+    let paint = paint.borrow();
+    let Some(drawn) = paint.drawn.as_ref() else {
+        return Spot::Unready;
+    };
+    let metrics = Metrics::for_typeface(&list.typeface);
+    let slot = metrics.slot.min(ROW_HEIGHT);
+    let top = drawn.bounds.origin.y + px(index as f32 * ROW_HEIGHT - drawn.scroll.max(0.));
+    // The track draws a folder cursor row with its chevron, which narrows the name cell.
+    let chevron = host.pane.held.row(index).is_some_and(|row| row.dir);
+    let name = cells(f32::from(drawn.bounds.size.width), true, chevron);
+    let frame = Bounds::new(
+        point(
+            drawn.bounds.origin.x + px(name.name_x),
+            top + px((ROW_HEIGHT - slot) / 2.),
+        ),
+        size(px((name.name_right - name.name_x).max(0.)), px(slot)),
+    );
+    let place = Place {
+        frame,
+        clip: drawn.bounds,
+        inset: px(metrics.gap),
+        below: top + px(ROW_HEIGHT),
+        row: px(metrics.row),
+    };
+    let reach = Bounds::new(
+        point(drawn.bounds.origin.x, top),
+        size(drawn.bounds.size.width, px(ROW_HEIGHT)),
+    );
+    Spot::of(place, reach)
+}
+
+// The tile's caption band, a gap in from each side of its cell, one field high on the caption's first line.
+fn grid_place(host: &PaneHost, list: &ListState, index: usize) -> Spot {
+    let Some(grid) = host.grid.as_ref() else {
+        return Spot::Unready;
+    };
+    let state = grid.state.borrow();
+    let Some(layout) = state.layout else {
+        return Spot::Unready;
+    };
+    let Some(tile) = state.drawn_row(index) else {
+        return if state.drawn().is_empty() {
+            Spot::Unready
+        } else {
+            Spot::Out
+        };
+    };
+    let metrics = Metrics::for_typeface(&list.typeface);
+    let gap = layout.metrics.gap;
+    let origin = state.bounds.origin;
+    let frame = Bounds::new(
+        point(
+            origin.x + px(tile.cell.x + gap),
+            origin.y + px(tile.caption.y),
+        ),
+        size(px((tile.cell.width - 2. * gap).max(0.)), px(metrics.slot)),
+    );
+    let cell = Bounds::new(
+        point(origin.x + px(tile.cell.x), origin.y + px(tile.cell.y)),
+        size(px(tile.cell.width), px(tile.cell.height)),
+    );
+    let place = Place {
+        frame,
+        clip: state.bounds,
+        inset: px(metrics.gap),
+        below: frame.bottom(),
+        row: px(metrics.row),
+    };
+    Spot::of(place, cell)
+}
