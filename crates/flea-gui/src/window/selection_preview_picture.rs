@@ -33,6 +33,7 @@ fn fitted(image: Arc<RenderImage>, frame: &Frame, width: f32, height: f32, selec
         .justify_center()
         .child(
             img(image)
+                .debug_selector(move || format!("{selector}-image"))
                 .w(px((w as f32 * scale).round()))
                 .h(px((h as f32 * scale).round()))
                 .object_fit(gpui::ObjectFit::Fill),

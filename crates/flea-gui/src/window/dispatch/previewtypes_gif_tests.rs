@@ -66,6 +66,13 @@ fn an_animated_gif_animates_in_the_column_and_stops_when_the_preview_leaves_it(c
         cx.debug_bounds("column-preview-animation").is_some(),
         "the moving layer draws in the frame"
     );
+    // The moving layer takes the still's place, so it keeps the still's never-enlarge fit for a raster GIF.
+    let layer = cx.debug_bounds("column-preview-animation-image").expect("the moving layer draws its image");
+    assert_eq!(
+        (f32::from(layer.size.width), f32::from(layer.size.height)),
+        (8., 8.),
+        "an 8x8 GIF moves at its own 8x8 in the wide column frame, never enlarged"
+    );
     let moving = shell.read_with(cx, |shell, cx| {
         let preview = shell.selection_preview(0).expect("the column is mounted");
         let frame = preview.read(cx).drawn.as_ref().expect("the GIF is drawn");
