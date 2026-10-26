@@ -134,6 +134,7 @@ impl Shell {
         let landed = host.nav.landed;
         host.nav
             .after_reply(&mut host.pane, before, &mut host.selected);
+        let sorted = host.nav.committed_sort.take();
         // Nav.js applyPendingSelect only(index, true): the landed row is a lone mark, so v keeps it and a move carries it.
         if let Some((listing, row)) = host.nav.landed.filter(|now| landed != Some(*now)) {
             if listing == host.pane.held.listing && host.selected == [row] {
@@ -152,6 +153,9 @@ impl Shell {
                 )
             });
         }
+        if let Some(order) = sorted {
+            self.remember_global_sort(side, order);
+        }
         self.tab_landed(side, window, cx);
         self.run_navigation(side, window, cx);
         self.replay_queued(side, window, cx);
@@ -167,6 +171,36 @@ impl Shell {
         }
         self.columns_landed(side, window, cx);
         self.settle_settings(window, cx);
+    }
+
+    // PaneSwap.qml: a completed user sort becomes the window's fallback while folder memory is off.
+    fn remember_global_sort(&mut self, side: usize, order: crate::navigation::folder_state::Order) {
+        if self.view == super::startup::View::Dual {
+            return;
+        }
+        let Some(host) = self.panes[side].as_mut() else {
+            return;
+        };
+        let mut folders = host.nav.folders.borrow_mut();
+        if host.pane.state.search || folders.remember_sort || folders.global == order {
+            return;
+        }
+        let patch = format!(
+            "{{\"sort\":{{\"key\":\"{}\",\"reverse\":{}}}}}",
+            crate::navigation::folder_state::stored_key(order.key),
+            order.desc
+        );
+        let Ok(data) = flea::uistate::patched(
+            &self.launch.settings.data,
+            &flea::jsondoc::parse(&patch).unwrap(),
+        ) else {
+            return;
+        };
+        folders.global = order;
+        drop(folders);
+        self.launch.settings.data = data;
+        host.nav
+            .persist(patch, self.locale.catalog.tr("navigation.save_failed"));
     }
 
     pub(crate) fn run_navigation(
@@ -335,3 +369,7 @@ impl Shell {
 #[cfg(test)]
 #[path = "navigate_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "navigate_sort_tests.rs"]
+mod sort_tests;
