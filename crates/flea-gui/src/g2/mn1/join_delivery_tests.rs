@@ -51,6 +51,15 @@ fn seek(cx: &mut TestAppContext, handle: WindowHandle<Root>, action: &str) {
     panic!("the keyboard must reach {action}");
 }
 
+// Properties has no window owner yet (its card is unmounted), so it stands in for an unclaimed row; Rename now has one.
+fn show_unowned_row(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
+    update(cx, handle, |shell, _, _| {
+        shell.launch.settings.data =
+            flea::jsondoc::parse(r#"{"menu":{"hidden":["openAgent","actions","runScript"]}}"#)
+                .unwrap();
+    });
+}
+
 fn receive(cx: &mut TestAppContext, handle: WindowHandle<Root>, line: &str) {
     update(cx, handle, |shell, window, cx| {
         shell.receive(0, Event::Producer(line.into()), window, cx)
@@ -71,6 +80,7 @@ fn snapshot(fixture: &mut Fixture) -> u64 {
 fn u06_live_menu_waits_for_snapshot_and_routes_the_captured_choice_once(cx: &mut TestAppContext) {
     let mut fixture = open(cx);
     let handle = fixture.handle;
+    show_unowned_row(cx, handle);
     let entity = handle.update(cx, |root, _, _| root.shell.clone()).unwrap();
     let seen = Rc::new(RefCell::new(Vec::<Chosen>::new()));
     let log = seen.clone();
@@ -88,14 +98,14 @@ fn u06_live_menu_waits_for_snapshot_and_routes_the_captured_choice_once(cx: &mut
         "no choice exists before the complete menu"
     );
     let id = ready(cx, &mut fixture);
-    seek(cx, handle, "rename");
+    seek(cx, handle, "properties");
     key(cx, handle, "enter");
     let validate = (fixture.requests)().expect("a choice validates the original snapshot");
     assert!(
-        validate.contains("\"op\":\"validate\"") && validate.contains("\"action\":\"rename\""),
+        validate.contains("\"op\":\"validate\"") && validate.contains("\"action\":\"properties\""),
         "{validate}"
     );
-    let reply = format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"validate\",\"ok\":true,\"action\":\"rename\",\"paths\":[\"/files/a\"]}}");
+    let reply = format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"validate\",\"ok\":true,\"action\":\"properties\",\"paths\":[\"/files/a\"]}}");
     receive(cx, handle, &reply);
     receive(cx, handle, &reply);
     let seen = seen.borrow();
@@ -166,14 +176,15 @@ fn u06_live_menu_late_snapshot_and_changed_identity_cannot_fire(cx: &mut TestApp
 fn u06_live_menu_unclaimed_choice_is_refused_and_snapshot_retired(cx: &mut TestAppContext) {
     let mut fixture = open(cx);
     let handle = fixture.handle;
+    show_unowned_row(cx, handle);
     key(cx, handle, "m");
     let id = ready(cx, &mut fixture);
-    seek(cx, handle, "rename");
+    seek(cx, handle, "properties");
     key(cx, handle, "enter");
     assert!((fixture.requests)()
         .unwrap()
         .contains("\"op\":\"validate\""));
-    receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"validate\",\"ok\":true,\"action\":\"rename\",\"paths\":[\"/files/a\"]}}"));
+    receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"validate\",\"ok\":true,\"action\":\"properties\",\"paths\":[\"/files/a\"]}}"));
     assert!((fixture.requests)().unwrap().contains("\"op\":\"close\""));
     update(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();

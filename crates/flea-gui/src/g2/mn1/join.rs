@@ -115,6 +115,18 @@ impl Shell {
             .unwrap_or_default()
     }
 
+    /// Nav.js lockedTarget: the denied folder and its mode while the pane draws the Locked state, else None.
+    pub(crate) fn locked_folder(&self, side: usize) -> Option<(String, u32)> {
+        let host = self.panes.get(side)?.as_ref()?;
+        let target = host.pane.state.locked_target()?;
+        let folder = if target.is_empty() {
+            &host.path
+        } else {
+            target
+        };
+        Some((folder.to_owned(), host.pane.state.mode))
+    }
+
     pub(crate) fn menu_entries(&self) -> Vec<Entry> {
         let mut context = self.menu.context.clone();
         let Some(capture) = &self.menu.captured else {
@@ -123,6 +135,11 @@ impl Shell {
         let Some(host) = &self.panes[capture.side] else {
             return Vec::new();
         };
+        if capture.background {
+            if let Some((_, mode)) = self.locked_folder(capture.side) {
+                return flea::ui_logic_mn1::places::locked_entries(mode, &self.menu_hidden());
+            }
+        }
         context.hidden = self.menu_hidden();
         if !capture.background {
             self.provider_context(capture.side, &host.path, &mut context);
@@ -171,6 +188,8 @@ impl Shell {
     ) {
         self.retire_menu(window, cx);
         self.observe_menu(window, cx);
+        // A locked pane draws the hero, never rows, so its menu is the folder's whatever rows it still holds.
+        let row = row.filter(|_| self.locked_folder(side).is_none());
         let Some(host) = &mut self.panes[side] else {
             return;
         };
@@ -184,6 +203,20 @@ impl Shell {
             host.pane.cursor = row;
         }
         let background = row.is_none();
+        // ContextMenu.qml openLocked: with every locked row hidden no frame opens, and the status line names the switch.
+        if background {
+            if let Some((_, mode)) = self.locked_folder(side) {
+                let hidden = self.menu_hidden();
+                if let Some(key) = flea::ui_logic_mn1::places::locked_refusal(mode, &hidden) {
+                    let sentence = self.locale.catalog.tr(key);
+                    self.menu_explain(sentence, cx);
+                    return;
+                }
+            }
+        }
+        let Some(host) = &mut self.panes[side] else {
+            return;
+        };
         // Tap.js tappedMenu: a right click opens the menu on its own pane and leaves the focus where it was.
         let rows = if background {
             Vec::new()

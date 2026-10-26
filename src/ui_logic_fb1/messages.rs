@@ -36,6 +36,8 @@ pub struct Messages {
     notice_hint: Hint,
     notice_serial: u64,
     notice_until: Option<u64>,
+    /// An explanation the user's own key asked for, drawn over the standing errors until it leaves.
+    notice_first: bool,
     prompt: String,
     arm: Option<Arm>,
     arm_until: Option<u64>,
@@ -77,6 +79,9 @@ impl Messages {
     }
 
     pub fn shown(&self) -> Shown {
+        if self.notice_first && !self.notice.is_empty() && !self.arm_live() {
+            return transient_of(&[], &self.notice, "", false);
+        }
         transient_of(&self.errors, &self.notice, &self.prompt, self.arm_live())
     }
 
@@ -106,6 +111,7 @@ impl Messages {
             self.dismiss(now);
             return;
         }
+        self.notice_first = false;
         if error {
             with_error(&mut self.errors, text, detail, hint, None);
             self.follow(now);
@@ -115,6 +121,13 @@ impl Messages {
             self.notice_serial += 1;
             self.sync_notice_timer(now);
         }
+    }
+
+    /// Why a key did nothing when nothing failed: a plain notice that stands over the errors until dismissed or expired.
+    pub fn explain(&mut self, text: &str, hint: Hint, now: u64) {
+        self.say(text, false, "", hint, now);
+        self.notice_first = !text.is_empty();
+        self.follow(now);
     }
 
     /// A refusal that belongs to the place it was raised in, such as a location with no Trash.
