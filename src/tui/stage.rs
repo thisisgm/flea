@@ -48,6 +48,11 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
     if !visible || !preview_allowed || !graphics_ready || !is_pdf || model.pdf.as_ref().is_some_and(|p| Some(&p.path) != content.as_ref()) {
         model.pdf = None;
     }
+    let is_model = kind == Some(Kind::Model3d);
+    if is_model || model.model3d.active() {
+        super::model3d::step(model, graphics, wire, place.room, is_model && visible && preview_allowed && !overlay && model.pending.is_none(), frame)?;
+        if is_model { return Ok((place.left, place.top)); }
+    }
     if let (true, Some(path)) = (visible && preview_allowed, content.clone()) {
         // The probe fixes the picture's box, so the player starts once, in the box it keeps.
         if is_media && !overlay && model.player.is_none() && graphics_ready && model.media_probe.is_some() && model.preview_failed.as_ref() != Some(&path) {

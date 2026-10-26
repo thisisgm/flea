@@ -40,6 +40,8 @@ pub struct Still {
     key: Option<Key>,
     stage: Option<super::job::Job>,
     work: Option<Work>,
+    retiring: Vec<Receiver<io::Result<Option<Grid>>>>,
+    retiring_stages: Vec<Receiver<Result<Vec<u8>, String>>>,
     grid: Option<Grid>,
     pub error: String,
     places: Places,
@@ -81,6 +83,8 @@ impl Still {
     }
     // True when a new grid arrived; a missing chafa leaves the facts alone, with nothing said.
     pub fn poll(&mut self) -> bool {
+        self.retiring.retain(|r| matches!(r.try_recv(), Err(TryRecvError::Empty)));
+        self.retiring_stages.retain(|r| matches!(r.try_recv(), Err(TryRecvError::Empty)));
         if let Some(stage) = &self.stage {
             match stage.result.try_recv() {
                 Ok(Ok(bytes)) => {
@@ -119,12 +123,16 @@ impl Still {
     }
     // Drops the picture and any work for it; a running chafa is cancelled and reaped off this thread.
     pub fn clear(&mut self) {
-        if let Some((cancel, _)) = self.work.take() {
+        if let Some((cancel, result)) = self.work.take() {
             cancel.store(true, Ordering::Relaxed);
+            self.retiring.push(result);
         }
-        self.stage = None;
+        if let Some(job) = self.stage.take() { self.retiring_stages.push(super::graphics::cancel_job(job)); }
         self.grid = None;
         self.key = None;
+        self.error.clear();
+        self.retiring.retain(|r| matches!(r.try_recv(), Err(TryRecvError::Empty)));
+        self.retiring_stages.retain(|r| matches!(r.try_recv(), Err(TryRecvError::Empty)));
     }
     pub fn key(&self) -> Option<&Key> {
         self.key.as_ref()
@@ -147,6 +155,8 @@ impl Still {
 impl Drop for Still {
     fn drop(&mut self) {
         self.clear();
+        for result in self.retiring.drain(..) { let _ = result.recv_timeout(Duration::from_secs(12)); }
+        for result in self.retiring_stages.drain(..) { let _ = result.recv_timeout(Duration::from_secs(12)); }
     }
 }
 
@@ -186,7 +196,7 @@ fn decode(source: Source, cells: (usize, usize), colors: ColorMode, places: Plac
 }
 
 // A spooled PNG's name, unlinked when the decode that bound it ends.
-struct Spooled(PathBuf);
+pub(super) struct Spooled(pub PathBuf);
 impl Drop for Spooled {
     fn drop(&mut self) {
         if self.0.is_absolute() {
@@ -196,7 +206,7 @@ impl Drop for Spooled {
 }
 
 // A decoder's PNG as a new file in an owner-only directory: the sandbox binds a file by name, so a memfd or unlinked file cannot reach chafa.
-fn spool(bytes: &[u8], directory: Option<PathBuf>) -> io::Result<(File, Spooled)> {
+pub(super) fn spool(bytes: &[u8], directory: Option<PathBuf>) -> io::Result<(File, Spooled)> {
     use crate::backend::manifestdir::{candidate_dirs, current_uid, qualifying_dirs};
     use std::os::unix::fs::OpenOptionsExt;
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
@@ -207,6 +217,46 @@ fn spool(bytes: &[u8], directory: Option<PathBuf>) -> io::Result<(File, Spooled)
     let spooled = Spooled(path);
     file.write_all(bytes)?;
     Ok((file, spooled))
+}
+
+// Shared 3D buffers and their one transport input remain reusable across stepped views.
+pub struct ModelStill {
+    pub key: super::model3d::Key,
+    pub image: Spooled,
+    scene: std::sync::Arc<flea::ui_logic_pv4::scene::Scene>,
+    raster: flea::ui_logic_pv4::raster::Raster,
+    rgba: Vec<u8>,
+}
+
+pub fn render_model(held: std::sync::Arc<super::model3d::Held>, file: PathBuf, key: super::model3d::Key, old: Option<ModelStill>, directory: Option<PathBuf>, cancel: &AtomicBool) -> Result<ModelStill, String> {
+    use flea::ui_logic_pv4::{camera, control::{Surface, Viewer}, motion, raster::{Prepared, Style}, scene::{self, CPU_LIVE_TRIANGLES}};
+    if cancel.load(Ordering::Relaxed) || !held.fresh() { return Err("model source changed".into()); }
+    let scene = match &old {
+        Some(old) if old.key.path == key.path && old.key.generation == key.generation => old.scene.clone(),
+        _ => std::sync::Arc::new(super::model3d::scene(&file, cancel)?),
+    };
+    if cancel.load(Ordering::Relaxed) { return Err("model render cancelled".into()); }
+    let mut live = scene::decimate(&scene, key.controls.plate, CPU_LIVE_TRIANGLES);
+    live.keep_extrusions();
+    let home = camera::Home::new(&live, 0).ok_or("empty model plate")?;
+    let (w, h) = key.pixels;
+    let mut viewer = Viewer::from_home(Surface::Terminal, home, (key.controls.plate, scene.plate_count()), live.layers.len(), w as f32, h as f32);
+    viewer.view.az -= key.controls.orbit as f32 * motion::ORBIT_KEY;
+    viewer.view.zoom_at(viewer.view.cx, viewer.view.cy, motion::ZOOM_KEY.powi(key.controls.zoom), camera::zoom_limits(home.radius, h as f32));
+    let prepared = Prepared::new(&live, key.palette);
+    let edges = if key.controls.wire && !live.is_toolpath() { Some(scene::edges(&live, 0)) } else { None };
+    let style = Style { palette: key.palette, wire: edges.as_deref(), layer: viewer.layer, plate: Some(home.rect), ground: Some(key.palette.ground) };
+    let (mut raster, mut rgba) = old.map(|old| (old.raster, old.rgba)).unwrap_or_default();
+    if cancel.load(Ordering::Relaxed) { return Err("model render cancelled".into()); }
+    raster.resize(w, h, 1);
+    raster.render(&live, &prepared, 0, &viewer.view, &style);
+    raster.rgba_into(&mut rgba);
+    if cancel.load(Ordering::Relaxed) || !held.fresh() { return Err("model source changed".into()); }
+    let mut ppm = format!("P6\n{w} {h}\n255\n").into_bytes();
+    ppm.reserve(w * h * 3);
+    for pixel in rgba.chunks_exact(4) { ppm.extend_from_slice(&pixel[..3]); }
+    let (_, image) = spool(&ppm, directory).map_err(|e| e.to_string())?;
+    Ok(ModelStill { key, image, scene, raster, rgba })
 }
 
 // One picture row in cells: only chafa's validated symbols and colours, padded with the ground to width.

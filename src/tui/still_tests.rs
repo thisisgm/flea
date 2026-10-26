@@ -164,3 +164,23 @@ fn a_poster_job_whose_worker_is_gone_reports_an_error_and_stops_waiting() {
     assert!(still.stage.is_none(), "still waiting on a dead job");
     assert_eq!(still.error, UNSHOWN);
 }
+
+#[test]
+fn tui_model3d_chafa_quit_waits_for_reap() {
+    assert!(sandboxed());
+    let root = crate::tui::model3d::tests::Fixture::new();
+    std::fs::create_dir(root.path("bin")).unwrap();
+    let script = root.path("bin/chafa");
+    std::fs::write(&script, b"#!/bin/sh\ntrap '' TERM\nwhile :; do /usr/bin/sleep 60; done\n").unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let image = root.path("input");
+    std::fs::write(&image, b"held\n").unwrap();
+    let mut still = Still::default();
+    still.places = Places { search: Some(root.path("bin").into_os_string()), spool: Some(root.path("")) };
+    still.want(key(&image, 1), || Some(Source::File(image.clone())));
+    let until = Instant::now() + SETTLE;
+    while shells(&script).is_empty() { assert!(Instant::now() < until); std::thread::sleep(Duration::from_millis(5)); }
+    drop(still);
+    assert!(shells(&script).is_empty(), "chafa remained after the preview owner quit");
+}
