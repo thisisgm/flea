@@ -17,6 +17,8 @@ use std::{
 };
 
 pub(super) const DOCX: &str = "garden-report.docx";
+// How long a test waits to show that no request went out.
+pub(super) const NO_REQUEST_WINDOW: Duration = Duration::from_millis(100);
 pub(super) const KEYS: [&str; 3] = [
     "document.office_unsupported",
     "document.office_locked",
@@ -157,6 +159,20 @@ pub(super) fn settle(mut predicate: impl FnMut() -> bool) {
     }
 }
 
+// Drive the input loop until source capture has sent the request.
+pub(super) fn request(
+    m: &mut Model,
+    graphics: &mut Graphics,
+    shown: &mut stage::Shown,
+    wire: &mut Wire,
+) -> (usize, String) {
+    settle(|| {
+        step(m, graphics, shown, wire);
+        m.preview_state.office.doc.id != 0
+    });
+    ask(wire)
+}
+
 // The next officepdf request on the wire: its id and the source path it converts.
 pub(super) fn ask(wire: &Wire) -> (usize, String) {
     let value = wire
@@ -202,7 +218,7 @@ fn tui_office_ready_pdf_keeps_original_identity() {
     let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
     assert_eq!(pane_state::kind(m.rows.get(&0).unwrap()), Kind::Office);
     step(&mut m, &mut graphics, &mut shown, &mut wire);
-    let (id, path) = ask(&wire);
+    let (id, path) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     assert_eq!(path, source.to_string_lossy());
     receive(&mut m, &mut wire, &ready(id, &converted));
     settle(|| {
@@ -254,7 +270,7 @@ fn tui_office_cancel_ignores_late_ready() {
     let (mut wire, reader) = wire::echo_wire();
     let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
     step(&mut m, &mut graphics, &mut shown, &mut wire);
-    let (first, _) = ask(&wire);
+    let (first, _) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     m.cursor = 1;
     preview::load(&mut m, true);
     step(&mut m, &mut graphics, &mut shown, &mut wire);
@@ -273,7 +289,7 @@ fn tui_office_cancel_ignores_late_ready() {
     m.cursor = 0;
     preview::load(&mut m, true);
     step(&mut m, &mut graphics, &mut shown, &mut wire);
-    let (second, path) = ask(&wire);
+    let (second, path) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     assert_ne!(second, first, "returning asks under a fresh id");
     assert_eq!(path, source.to_string_lossy());
     receive(&mut m, &mut wire, &ready(first, &converted));
@@ -305,7 +321,7 @@ fn tui_office_cache_tracks_changed_source() {
     let (mut wire, reader) = wire::echo_wire();
     let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
     step(&mut m, &mut graphics, &mut shown, &mut wire);
-    let (first, _) = ask(&wire);
+    let (first, _) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     receive(&mut m, &mut wire, &ready(first, &first_pdf));
     settle(|| {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
@@ -320,7 +336,7 @@ fn tui_office_cache_tracks_changed_source() {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
         m.pdf.is_none()
     });
-    let (second, path) = ask(&wire);
+    let (second, path) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     assert_ne!(second, first);
     assert_eq!(path, source.to_string_lossy());
     receive(&mut m, &mut wire, &ready(first, &first_pdf));

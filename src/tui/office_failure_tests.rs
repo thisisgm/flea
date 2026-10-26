@@ -2,6 +2,30 @@ use super::tests::*;
 use crate::tui::{graphics::Graphics, icons, pane, stage, wire};
 
 #[test]
+fn tui_office_vfix1_missing_source_fails_without_request() {
+    let root = Fixture::new();
+    let mut m = model(&root, DOCX, "Word 2007 document");
+    let (mut wire, reader) = wire::echo_wire();
+    let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
+    settle(|| {
+        step(&mut m, &mut graphics, &mut shown, &mut wire);
+        m.preview_state.unshown.is_some()
+    });
+    assert!(wire.events.recv_timeout(NO_REQUEST_WINDOW).is_err());
+    assert_eq!(m.preview_state.office.doc.id, 0);
+    assert!(m.preview_state.office.source.is_none());
+    assert!(m.pdf.is_none() && m.preview_state.office.doc.pdf.is_none());
+    let failure = m.preview_state.unshown.as_ref().unwrap();
+    assert_eq!(failure.sentence, m.preview_state.i18n.tr(KEYS[2]));
+    assert!(failure.open_with);
+    let mark = m.preview_state.unshown_mark.unwrap();
+    assert_eq!(mark.glyph, pane::ALERT);
+    assert!(mark.error);
+    drop(graphics);
+    wire::finish(wire, reader);
+}
+
+#[test]
 fn tui_office_failure_and_missing_metadata_are_truthful() {
     let i18n = crate::i18n::I18n::default();
     let cases: [(&str, Vec<u8>, &str, &str); 4] = [
@@ -41,7 +65,7 @@ fn tui_office_failure_and_missing_metadata_are_truthful() {
         let (mut wire, reader) = wire::echo_wire();
         let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
         step(&mut m, &mut graphics, &mut shown, &mut wire);
-        let (id, _) = ask(&wire);
+        let (id, _) = request(&mut m, &mut graphics, &mut shown, &mut wire);
         receive(
             &mut m,
             &mut wire,
@@ -95,7 +119,7 @@ fn tui_office_failure_and_missing_metadata_are_truthful() {
     let (mut wire, reader) = wire::echo_wire();
     let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
     step(&mut m, &mut graphics, &mut shown, &mut wire);
-    let (id, _) = ask(&wire);
+    let (id, _) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     receive(&mut m, &mut wire, &ready(id, &converted));
     settle(|| {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
