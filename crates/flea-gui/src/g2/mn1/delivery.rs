@@ -86,6 +86,7 @@ impl Shell {
         self.menu.presentation.cancel();
         self.menu.flyout = None;
         self.menu.pending = None;
+        self.menu.from_sheet = false;
         self.menu.activating = false;
         self.menu.reading = false;
         if let Some(capture) = self.menu.captured.take() {

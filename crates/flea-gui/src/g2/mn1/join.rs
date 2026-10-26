@@ -63,6 +63,7 @@ pub struct Joined {
     pub captured: Option<Captured>,
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
+    pub(crate) from_sheet: bool,
     pub activating: bool,
     pub reading: bool,
     pub sequence: u64,
@@ -136,7 +137,11 @@ impl Shell {
             capture.side,
             capture.background,
             self.menu.context.clone(),
-            self.menu_hidden(),
+            if self.menu.from_sheet {
+                Vec::new()
+            } else {
+                self.menu_hidden()
+            },
         )
     }
 
