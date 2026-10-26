@@ -102,8 +102,8 @@ pub enum Request {
     Peek { path: String, first: usize, hidden: bool, hidden_last: bool, focus: String, watch: bool, keep: Vec<String>, by: Option<String>, desc: bool },
     // A PDF fetched into a session-private copy under a deadline, so a hung mount never freezes the window.
     PdfCopy { id: usize, slot: String, path: String },
-    // An office document converted once to a cached PDF by LibreOffice; answered ready, converting or failed.
-    OfficePdf { id: usize, path: String },
+    // An office document converted once to a cached PDF by LibreOffice, or with sheets a spreadsheet to one CSV per sheet.
+    OfficePdf { id: usize, path: String, sheets: bool },
     // Quick Look's font page: the facts and three sample images for one font; see src/backend/fontinfo/render.rs.
     FontLook(super::fontinfo::render::Ask),
     // op is "compress" or "extract"; a compress names paths and a format, an extract names one path.
@@ -342,9 +342,10 @@ pub fn parse_request(line: &str) -> Request {
             slot: field_str(line, "slot").unwrap_or_default(),
             path: field_str(line, "path").unwrap_or_default(),
         },
-        Some("officepdf") => Request::OfficePdf {
+        Some(c @ ("officepdf" | "officesheets")) => Request::OfficePdf {
             id: field_usize(line, "id").unwrap_or(0),
             path: field_str(line, "path").unwrap_or_default(),
+            sheets: c == "officesheets",
         },
         Some("peek") => Request::Peek {
             path: field_str(line, "path").unwrap_or_default(),
