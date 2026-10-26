@@ -9,6 +9,7 @@ pub mod glyphs;
 pub(crate) mod host_input;
 pub mod ipc;
 pub mod join;
+mod keys;
 #[cfg(test)]
 mod join_tests;
 pub mod lines;

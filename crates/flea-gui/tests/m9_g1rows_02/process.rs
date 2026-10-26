@@ -10,6 +10,9 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{mpsc, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+#[path = "../../src/g2/mn1/makeexec_foldhash.rs"]
+mod foldhash;
+
 extern "C" {
     fn inotify_init1(flags: c_int) -> c_int;
     fn inotify_add_watch(fd: c_int, path: *const c_char, mask: u32) -> c_int;
@@ -140,11 +143,15 @@ pub(crate) fn binary() -> &'static Path {
             build_dir().join("libflea.rlib"),
             build_dir().join("flea-backend"),
         );
+        let executable = std::env::current_exe().unwrap();
+        let foldhash = foldhash::extern_arg(&workspace(), executable.parent().unwrap());
         rustc(&[
             "--edition=2021".as_ref(),
             "--crate-type=rlib".as_ref(),
             "--crate-name=flea".as_ref(),
             lib.as_os_str(),
+            "--extern".as_ref(),
+            foldhash.as_ref(),
             "-o".as_ref(),
             library.as_os_str(),
         ]);
@@ -155,6 +162,8 @@ pub(crate) fn binary() -> &'static Path {
             main.as_os_str(),
             "--extern".as_ref(),
             external.as_ref(),
+            "--extern".as_ref(),
+            foldhash.as_ref(),
             "-o".as_ref(),
             binary.as_os_str(),
         ]);

@@ -13,9 +13,10 @@ use std::time::{Duration, Instant};
 
 #[path = "searchwalk_probes.rs"]
 mod probes;
+#[path = "searchwalk_queue.rs"]
+mod queue;
+use queue::next_dir;
 
-// How long an idle walk thread waits before it rechecks the cancel flag; every queue change notifies sooner.
-const CANCEL_RECHECK: Duration = Duration::from_millis(50);
 
 // How many directories the walk has opened; tests read it beside the cancel flag.
 pub(crate) struct WalkProbes {
@@ -99,24 +100,6 @@ fn walk_local(out: &Mutex<Index>, root: &Path, hidden: bool, body: &str, reader:
     });
     // No reorder after the walk: a query may already hold row ids, and ranking is total on its own.
     dirs.load(Ordering::Relaxed)
-}
-
-// Pops the next directory, waiting while a thread that holds one may still queue more.
-fn next_dir<T>(work: &Mutex<(VecDeque<T>, usize)>, ready: &Condvar, cancel: &AtomicBool) -> Option<T> {
-    let mut state = work.lock().unwrap();
-    loop {
-        if cancel.load(Ordering::Relaxed) {
-            return None;
-        }
-        if let Some(dir) = state.0.pop_front() {
-            state.1 += 1;
-            return Some(dir);
-        }
-        if state.1 == 0 {
-            return None;
-        }
-        state = ready.wait_timeout(state, CANCEL_RECHECK).unwrap().0;
-    }
 }
 
 // A queued directory and its parent's mount class; the scope has none, so it is classified in full.

@@ -1,5 +1,5 @@
 //! The preview edge's hover paint: the accent line on the hairline and the move-horizontal mark beside it, over the area.
-use super::element::{paint_svg, MOVE_SVG};
+use super::glyphs::{paint_svg, MOVE_SVG};
 use super::paint::Palette;
 use crate::palette::Theme;
 use gpui::{

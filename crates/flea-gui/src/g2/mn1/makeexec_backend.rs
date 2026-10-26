@@ -11,6 +11,9 @@ use std::{
     time::Duration,
 };
 
+#[path = "makeexec_foldhash.rs"]
+mod foldhash;
+
 pub struct Process {
     child: Child,
     lines: Receiver<String>,
@@ -38,6 +41,8 @@ fn binary(root: &Path) -> &'static Path {
             .arg(workspace.join("src/main.rs"))
             .arg("--extern")
             .arg(format!("flea={}", library.display()))
+            .arg("--extern")
+            .arg(foldhash::extern_arg(&workspace, dependencies))
             .arg("-L")
             .arg(format!("dependency={}", dependencies.display()))
             .arg("-o")

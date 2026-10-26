@@ -300,3 +300,96 @@ case_transferlive() {
     trap - EXIT
     [[ ! -e "$transferlive_root" ]] || fail "transferlive: $transferlive_root survived the teardown"
 }
+
+# Two owned windows share one session journal, so one z in either undoes an operation made in the other.
+case_xwundo() {
+    local dir="$fixture_root/xwundo" dirB="$fixture_root/xwundo-b"
+    sandbox_scratch "$dir"
+    sandbox_scratch "$dirB"
+    printf 'note\n' > "$dir/note.txt"
+    printf 'boxed\n' > "$dirB/b.txt"
+    local blog="$run_root/flea-b.log"
+    : > "$blog"
+
+    # launch_window empties the session journal; only the two backends share its dir.
+    launch_window "$dir"
+    wait_listing 1
+    local pidA="$ipc_pid" addrA="" addrB="" pidB=""
+    assert_window
+    addrA=$(omarchy-drive windows --json | jq -r '[.windows[] | select(.title == "Flea")] | .[0].address // empty')
+    [[ -n "$addrA" ]] || fail "xwundo: window A never appeared"
+    [[ "$(hyprctl clients -j | jq -r --arg a "$addrA" '.[] | select(.address == $a) | .pid')" == "$pidA" ]] \
+        || fail "xwundo: the window at $addrA does not belong to owned pid $pidA"
+    local before
+    before=$(flea_pids | tr '\n' ' ')
+    flea_test_launch "$dirB" "$blog" --ui "$flea_ui" --binary "$flea_bin" \
+        || fail "xwundo: the second owned window launch failed"
+    local attempt pid
+    for attempt in $(seq 1 150); do
+        if [[ "$(omarchy-drive windows --json | jq '[.windows[] | select(.title == "Flea")] | length')" == "2" ]]; then
+            addrB=$(omarchy-drive windows --json | jq -r --arg a "$addrA" '.windows[] | select(.title == "Flea" and .address != $a) | .address')
+            [[ -n "$addrB" ]] && break
+        fi
+        sleep 0.1
+    done
+    [[ -n "$addrB" ]] || fail "xwundo: window B never appeared beside A"
+    pidB=""
+    for pid in $(flea_pids); do
+        [[ " $before " == *" $pid "* ]] || pidB=$pid
+    done
+    [[ -n "$pidB" ]] || fail "xwundo: window B has no owned pid"
+    flea_process_owned "$pidB" || fail "xwundo: window B pid $pidB is not owned by this run"
+    [[ "$pidB" != "$pidA" ]] || fail "xwundo: A and B share pid $pidA"
+    [[ "$(hyprctl clients -j | jq -r --arg a "$addrB" '.[] | select(.address == $a) | .pid')" == "$pidB" ]] \
+        || fail "xwundo: window B at $addrB does not belong to owned pid $pidB"
+    omarchy-drive focus "$addrB" >/dev/null || fail "xwundo: window B never took focus"
+
+    echo "-- rename in A, z in B restores the name --"
+    omarchy-drive focus "$addrA" >/dev/null || fail "xwundo: window A never took focus back"
+    omarchy-drive key --window "$addrA" r >/dev/null || fail "xwundo: the rename keypress failed"
+    settle
+    printf '%s' "note2" | omarchy-drive key --window "$addrA" - >/dev/null \
+        || fail "xwundo: typing the new name failed"
+    omarchy-drive key --window "$addrA" -k Return >/dev/null || fail "xwundo: the rename commit failed"
+    xwundo_wait_file "$dir/note2.txt" "xwundo: the rename never landed"
+    [[ ! -e "$dir/note.txt" ]] || fail "xwundo: the old name is still on disk"
+    omarchy-drive focus "$addrB" >/dev/null || fail "xwundo: window B never took focus back"
+    settle
+    omarchy-drive key --window "$addrB" z >/dev/null || fail "xwundo: B's undo keypress failed"
+    xwundo_wait_file "$dir/note.txt" "xwundo: B never undid A's rename"
+    [[ ! -e "$dir/note2.txt" ]] || fail "xwundo: the renamed file survived B's undo"
+    printf 'XWUNDO rename ok\n'
+
+    echo "-- move by paste in B, z in A puts it back --"
+    omarchy-drive focus "$addrB" >/dev/null || fail "xwundo: window B lost focus before the cut"
+    omarchy-drive key --window "$addrB" x >/dev/null || fail "xwundo: the cut keypress failed"
+    settle
+    # The path bar opens with the current path selected, so typing replaces it whole.
+    omarchy-drive key --window "$addrB" : >/dev/null || fail "xwundo: the path bar never opened"
+    settle
+    printf '%s' "$dir" | omarchy-drive key --window "$addrB" - >/dev/null \
+        || fail "xwundo: typing the destination failed"
+    omarchy-drive key --window "$addrB" -k Return >/dev/null || fail "xwundo: the path bar commit failed"
+    local -a ipcB=(timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" "$FLEA_IPC_HELPER" --pid "$pidB" call flea)
+    # B gets path_polls x poll_seconds (15 s) to reach $dir before the paste.
+    local path_polls=150 poll_seconds=0.1
+    for attempt in $(seq 1 "$path_polls"); do
+        [[ "$("${ipcB[@]}" path 2>/dev/null)" == "$dir" ]] && break
+        sleep "$poll_seconds"
+    done
+    [[ "$("${ipcB[@]}" path)" == "$dir" ]] || fail "xwundo: B never reached $dir before the paste"
+    omarchy-drive key --window "$addrB" p >/dev/null || fail "xwundo: the paste keypress failed"
+    xwundo_wait_file "$dir/b.txt" "xwundo: the paste never landed"
+    [[ ! -e "$dirB/b.txt" ]] || fail "xwundo: the source survived its own move"
+    omarchy-drive focus "$addrA" >/dev/null || fail "xwundo: window A never took focus back"
+    settle
+    omarchy-drive key --window "$addrA" z >/dev/null || fail "xwundo: A's undo keypress failed"
+    xwundo_wait_file "$dirB/b.txt" "xwundo: A never undid B's move"
+    [[ ! -e "$dir/b.txt" ]] || fail "xwundo: the moved file survived A's undo"
+    [[ "$(ls -A "$dir")" == "note.txt" ]] || fail "xwundo: A's directory holds more than the restored note"
+    printf 'XWUNDO move ok\n'
+
+    cat "$flea_log" >> "$run_log" 2>/dev/null || true
+    cat "$blog" >> "$run_log" 2>/dev/null || true
+    kill_flea
+}

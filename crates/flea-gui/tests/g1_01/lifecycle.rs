@@ -39,6 +39,7 @@ fn window_geometry_has_one_listing_and_only_dual_reserves_a_second() {
     );
     let tabs = Geometry::measure(1100., 700., &state, View::List, true);
     assert_eq!((tabs.tabs.height, tabs.rows_height(false, 0.)), (27., 592.));
+    // TabBar.qml opens on more than one tab in every view, so Dual reserves the strip too.
     let dual = Geometry::measure(1100., 700., &state, View::Dual, true);
     assert_eq!(
         (
@@ -47,7 +48,7 @@ fn window_geometry_has_one_listing_and_only_dual_reserves_a_second() {
             dual.panes[0].width,
             dual.panes[1].x
         ),
-        (192., 0., 453.5, 646.5)
+        (192., 27., 453.5, 646.5)
     );
     for (width, height) in [(2536., 1386.), (1024., 899.), (100., 50.)] {
         let geometry = Geometry::measure(width, height, &state, View::Dual, false);

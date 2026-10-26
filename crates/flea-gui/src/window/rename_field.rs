@@ -326,3 +326,22 @@ impl Element for FieldElement {
         });
     }
 }
+
+/// Columns and Grid draw the rename field over their own element, as the list does over its rows.
+pub(crate) fn with_field(
+    pane: gpui::AnyElement,
+    renaming: Option<usize>,
+    side: usize,
+    cx: &mut gpui::Context<Shell>,
+) -> gpui::AnyElement {
+    use gpui::prelude::*;
+    if renaming.is_none() {
+        return pane;
+    }
+    gpui::div()
+        .relative()
+        .size_full()
+        .child(pane)
+        .child(FieldElement::new(cx.entity(), side))
+        .into_any_element()
+}

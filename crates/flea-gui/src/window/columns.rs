@@ -1,15 +1,9 @@
 //! The live Columns join: committed pane snapshots, watched peeks and one retained painter per drawn track.
 use super::{pane::PaneHost, startup::View};
 use crate::{
-    columns::{
-        carry::{Leaving, ListOrder},
-        paint::Painters,
-        peeks::{Facts, Lens},
-        preview_host::ThirdSwap,
-        Area, PaneView, Ports,
-    },
+    columns::{paint::Painters, peeks::Lens, preview_host::ThirdSwap, Area, PaneView, Ports},
     g2::fb1::{hero::EmptyHero, state::StateMessage},
-    navigation::{Listing, Navigator},
+    navigation::Navigator,
     pane::Pane,
     state::Shell,
 };
@@ -24,6 +18,9 @@ mod events;
 pub(crate) mod readers;
 #[path = "columns_render.rs"]
 mod render;
+#[path = "columns_requested.rs"]
+mod requested;
+pub(crate) use requested::requested;
 
 #[cfg(test)]
 #[path = "columns_review_r2_tests.rs"]
@@ -244,49 +241,6 @@ fn flush(host: &mut PaneHost, locale: &super::locale::Snapshot) {
             }
         }
     }
-}
-
-pub(crate) fn requested(host: &mut PaneHost, listing: &Listing) {
-    let now = host.pane.now();
-    let order = host.nav.order;
-    let folders = host.nav.folders.borrow();
-    let (folders_first, group_by_kind) = (folders.folders_first, folders.group_by_kind);
-    drop(folders);
-    let held = host.pane.held.clone();
-    let narrowed = host.pane.state.search || !host.list.borrow().view.query.is_empty();
-    with_area(host, |columns, pane, _| {
-        columns.area.listing_requested(
-            Leaving {
-                here: pane.lens.here,
-                target: &listing.path,
-                tag: "",
-                window_size: pane.lens.first,
-                total: held.total,
-                held_start: held.start,
-                narrowed,
-                rows: &held.rows,
-                order: ListOrder {
-                    by: order.key,
-                    desc: order.desc,
-                    folders_first,
-                    group_by_kind,
-                },
-                facts: columns.area.peeks.source(pane.lens.here).map_or(
-                    Facts {
-                        dev: 0,
-                        writable: true,
-                    },
-                    |source| Facts {
-                        dev: source.dev,
-                        writable: source.writable,
-                    },
-                ),
-            },
-            &pane.lens,
-            now,
-        );
-        columns.seen = None;
-    });
 }
 
 impl Shell {

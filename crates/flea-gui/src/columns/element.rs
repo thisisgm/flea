@@ -3,6 +3,7 @@ use super::cache::{Row, Shaping};
 use super::geometry::{
     cells, mark_box, name_budget, Slot, CHEVRON, DIVIDER, GAP, MARK_SLOT, PAD_X,
 };
+use super::glyphs::{paint_line, paint_svg, CHEVRON_SVG, COPY_SVG, SCISSORS_SVG};
 use super::paint::{
     Clip, ClipMarks, Focus, FolderSizes, Palette, TrackPaint, CACHE_SCREENS, CLIP, CUT, EDGE,
 };
@@ -12,8 +13,7 @@ use crate::list::pane::{visible_rows, Held, ROW_HEIGHT};
 use crate::palette::Theme;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,
-    GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, SharedString, Style,
-    TransformationMatrix, Window,
+    InspectorElementId, IntoElement, LayoutId, Pixels, Style, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -107,59 +107,6 @@ fn row_at<'a>(rows: &'a TrackRows, held: Option<&'a Held>, index: usize) -> Opti
         TrackRows::Listing => held?.row(index).map(Row::Listing),
         TrackRows::Preview | TrackRows::Blank => None,
     }
-}
-
-/// Paints a prepared line from the tiles its glyph run kept, its baseline centred on the row.
-fn paint_line(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
-    let line = run.line();
-    let baseline =
-        window.pixel_snap(top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
-    let _ = window.paint_glyph_run(point(x, baseline), run, color);
-}
-
-macro_rules! glyph {
-    ($key:literal, $d:literal) => {
-        (
-            $key,
-            concat!(
-                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" "#,
-                r#"stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d=""#,
-                $d,
-                r#""/></svg>"#
-            )
-            .as_bytes(),
-        )
-    };
-}
-
-// Lucide's chevron-right, copy, scissors and move-horizontal in the Omarchy cut ui/js/Icons.js carries.
-pub const CHEVRON_SVG: (&str, &[u8]) = glyph!("flea-mark:chevron-right", "M9 18l6-6-6-6");
-pub const COPY_SVG: (&str, &[u8]) = glyph!("flea-mark:copy", "M9 8h12v13H9z M4 16V3h13");
-pub const SCISSORS_SVG: (&str, &[u8]) = glyph!(
-    "flea-mark:scissors",
-    "M5 3l14 14 M19 3L5 17 M2 17h5v5H2z M17 17h5v5h-5z"
-);
-
-pub const MOVE_SVG: (&str, &[u8]) = glyph!(
-    "flea-mark:move-horizontal",
-    "M4 12h16 M8 8l-4 4 4 4 M16 8l4 4-4 4"
-);
-
-pub(super) fn paint_svg(
-    glyph: (&'static str, &'static [u8]),
-    bounds: Bounds<Pixels>,
-    ink: Hsla,
-    window: &mut Window,
-    cx: &mut App,
-) {
-    let _ = window.paint_svg(
-        bounds,
-        SharedString::new_static(glyph.0),
-        Some(glyph.1),
-        TransformationMatrix::unit(),
-        ink,
-        cx,
-    );
 }
 
 impl IntoElement for TrackElement {
