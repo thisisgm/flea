@@ -139,6 +139,13 @@ impl Shell {
         let shares = cx.new(|cx| ShareView::new(catalog, palette, cx));
         let subscriptions = vec![
             cx.subscribe_in(
+                &cx.entity(),
+                window,
+                |shell, _, event: &crate::path::join::NetworkPath, window, cx| {
+                    shell.network_address(event.side, &event.uri, window, cx)
+                },
+            ),
+            cx.subscribe_in(
                 &service,
                 window,
                 |shell, _, event: &ServiceEvent, window, cx| {
@@ -215,6 +222,7 @@ impl Shell {
                 poll: Some(poll),
                 _subscriptions: subscriptions,
             });
+            self.chrome.network = true;
         }
     }
 
@@ -293,13 +301,6 @@ impl Shell {
             })
     }
 
-    fn network_say(&mut self, side: usize, text: String, cx: &mut Context<Self>) {
-        if let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) {
-            host.status = text.into();
-            cx.notify();
-        }
-    }
-
     /// The join's own row for a rail row, so release reads the row's fstype and mount path, never a rebuilt copy.
     pub(crate) fn network_row(&mut self, entry: &rail::RailEntry) -> Option<RailEntry> {
         self.network()?
@@ -369,6 +370,8 @@ impl Shell {
 mod effects;
 #[path = "network_menu.rs"]
 mod menu;
+#[path = "network_path.rs"]
+mod path;
 #[path = "network_rows.rs"]
 mod rows;
 

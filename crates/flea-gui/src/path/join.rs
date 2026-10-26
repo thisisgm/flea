@@ -197,11 +197,13 @@ impl Shell {
                 uri: uri.clone(),
             }),
             Out::Network(_) => {
+                let text = super::Said::NetworkUnavailable.text(&self.locale.catalog);
                 if let Some(host) = self.panes[self.focus_side].as_mut() {
-                    host.status = super::Said::NetworkUnavailable
-                        .text(&self.locale.catalog)
-                        .into();
+                    host.status = text.clone().into();
                 }
+                self.status_messages(cx, |messages, now| {
+                    messages.say(&text, true, "", Hint::None, now);
+                });
                 cx.notify();
             }
             Out::Said(message) => {

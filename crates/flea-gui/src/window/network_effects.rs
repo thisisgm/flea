@@ -71,12 +71,20 @@ impl Shell {
                     connect_failed: *connect_failed,
                     password: Secret::from_bytes(password.expose()),
                 };
+                let side = self.network_side(*origin).expect("live network origin");
+                let text = self
+                    .locale
+                    .catalog
+                    .tr_args(error, &args.iter().map(String::as_str).collect::<Vec<_>>());
+                self.network_say(side, text, *connect_failed, cx);
                 card.update(cx, |card, cx| card.retry(retry, window, cx));
             }
             Effect::Say { note, origin } => {
                 if let Some(side) = self.network_side(*origin) {
                     let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
-                    self.network_say(side, text, cx);
+                    let error =
+                        !matches!(note.key, "network.another_opening" | "network.unmounted");
+                    self.network_say(side, text, error, cx);
                 }
             }
             Effect::Peek {
@@ -252,7 +260,7 @@ impl Shell {
                             card.update(cx, |card, cx| card.saved(id, result.is_ok(), &detail, cx));
                         }
                     }
-                    None if result.is_err() => shell.network_say(side, detail, cx),
+                    None if result.is_err() => shell.network_say(side, detail, true, cx),
                     None => {}
                 }
                 shell.network_list(cx);
