@@ -233,7 +233,10 @@ impl Shell {
         };
         // Focus.js: every listing key but the second d ends the dd arm, an unbound one too, before any handler can take it.
         if self.keyboard.context == flea::keys::Context::Listing
-            && !matches!(dispatch, Dispatch::Composition | Dispatch::Action("trashArm"))
+            && !matches!(
+                dispatch,
+                Dispatch::Composition | Dispatch::Action("trashArm")
+            )
         {
             self.operations.fileops.disarm();
         }

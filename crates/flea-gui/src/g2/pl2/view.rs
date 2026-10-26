@@ -162,18 +162,6 @@ impl NetworkView {
         self.menu_dirty = true;
         cx.notify();
     }
-    /// Observation only: whether the window's keyboard focus sits inside the card.
-    pub fn holds_focus(&self, window: &Window, cx: &gpui::App) -> bool {
-        self.focus.contains_focused(window, cx)
-    }
-    /// Observation only: whether the found hosts list is open under HOST.
-    pub fn suggestions_open(&self) -> bool {
-        self.menu.borrow().opened()
-    }
-    /// Observation only: the height the body scrolls over, title and buttons included.
-    pub fn scroll_content(&self) -> f32 {
-        self.content_height()
-    }
     pub(super) fn paint_changed(&mut self, cx: &mut Context<Self>) {
         self.revision += 1;
         cx.notify();
