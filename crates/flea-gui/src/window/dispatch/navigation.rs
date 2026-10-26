@@ -27,6 +27,7 @@ pub(super) fn run(
     let searching = host.search.owner.active();
     let folder = host.pane.held.row(host.pane.cursor).map(|row| row.dir);
     let step = match event.action {
+        "open" if !busy && host.selected.len() > 1 => return false,
         // Nav.js openCursor: a file row belongs to the opener, and Focus.js sends pageForward on one to the preview.
         "open" | "pageForward" if !busy && folder == Some(false) => return false,
         // Focus.js pageForward: with no loaded row the key is quiet.

@@ -13,6 +13,8 @@ use flea::{
 };
 use gpui::{Context, EventEmitter, Task, Window};
 
+mod targets;
+
 /// One pane's opener: the single-flight guard, the launch in flight and the launcher it calls off the UI thread.
 pub(crate) struct Lane {
     guard: Opener,
@@ -21,6 +23,7 @@ pub(crate) struct Lane {
     terminal: Option<Task<()>>,
     text: Option<Task<()>>,
     pub(crate) launch: fn(&[String]) -> lane::Exit,
+    pending: Option<targets::Pending>,
 }
 
 impl Default for Lane {
@@ -30,6 +33,7 @@ impl Default for Lane {
             task: None,
             terminal: None,
             text: None,
+            pending: None,
             #[cfg(not(test))]
             launch: lane::run,
             // A test window never starts a real application; a test that drives the lane sets its own launcher.
@@ -60,6 +64,9 @@ pub(super) fn run(
                 && matches!(event.action, "open" | "pageForward") =>
         {
             let side = shell.focus_side;
+            if event.action == "open" && shell.open_selection(side, window, cx) {
+                return true;
+            }
             let Some((path, archive)) = file_row(shell, side) else {
                 return false;
             };
@@ -72,7 +79,15 @@ pub(super) fn run(
                 shell.dispatch(Order::Action(preview), window, cx);
                 return true;
             }
-            shell.open_file(side, path, window, cx);
+            if !shell.open_gallery(side, path.clone(), window, cx) {
+                shell.open_file(side, path, window, cx);
+            }
+            true
+        }
+        Order::Menu(chosen) if chosen.action == "open" && chosen.paths.len() > 1 => {
+            if menu_claim(shell, chosen, cx) {
+                shell.open_menu_selection(chosen, window, cx);
+            }
             true
         }
         // PaneMenuActions.qml perform: the menu's Open on a file runs the listing's own open on the row it stands on.
@@ -174,13 +189,32 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.open_paths(side, vec![path], false, window, cx);
+    }
+
+    fn open_paths(
+        &mut self,
+        side: usize,
+        paths: Vec<String>,
+        selection: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.opener[side].pending.is_some() {
+            let busy = busy_text(&self.locale.catalog);
+            self.opener_say(side, busy, false, cx);
+            return;
+        }
         let flea = crate::window::startup::binary().to_string_lossy().into_owned();
         let lane = &mut self.opener[side];
-        let Some(argv) = lane.guard.start(&flea, &[path]) else {
+        let Some(mut argv) = lane.guard.start(&flea, &paths) else {
             let busy = busy_text(&self.locale.catalog);
             self.opener_say(side, busy, false, cx);
             return;
         };
+        if selection {
+            argv[1] = "--open-selection".into();
+        }
         let launch = lane.launch;
         let exit = cx
             .background_executor()
@@ -212,6 +246,14 @@ impl Shell {
                 let _ = self.step(side, Step::Open(path), window, cx);
             }
             Opened::Failed(_) => {
+                let refusal = flea::json::field_str(stdout, "refusal");
+                if let Some(key) = refusal.filter(|key| matches!(key.as_str(),
+                    "feedback.refusal.folder_with_files" | "feedback.refusal.archives"
+                    | "feedback.refusal.programs" | "feedback.refusal.not_loaded")) {
+                    let sentence = self.locale.catalog.tr(&key);
+                    self.opener_say(side, sentence, false, cx);
+                    return;
+                }
                 let failed = failed_text(&self.locale.catalog);
                 self.opener_say(side, failed, true, cx);
             }

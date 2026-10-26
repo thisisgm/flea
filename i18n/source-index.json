@@ -1198,6 +1198,26 @@
     {
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
+      "expression": "&key",
+      "line": 253,
+      "path": "crates/flea-gui/src/window/dispatch/opener.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "gui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "refusal.key()",
+      "line": 327,
+      "path": "crates/flea-gui/src/window/dispatch/opener/targets.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "gui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
       "expression": "record.key()",
       "line": 77,
       "path": "crates/flea-gui/src/window/dispatch/tabs.rs",
@@ -27758,7 +27778,7 @@
       "call_sites": [
         {
           "excerpt": "let busy = self.locale.catalog.tr(\"dialogs.file.run.busy\");",
-          "line": 265,
+          "line": 307,
           "path": "crates/flea-gui/src/window/dispatch/opener.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -28247,7 +28267,7 @@
       "call_sites": [
         {
           "excerpt": "let busy = self.locale.catalog.tr(\"dialogs.file.terminal.busy\");",
-          "line": 233,
+          "line": 275,
           "path": "crates/flea-gui/src/window/dispatch/opener.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -28269,7 +28289,7 @@
       "call_sites": [
         {
           "excerpt": "let failed = shell.locale.catalog.tr(\"dialogs.file.terminal.failed\");",
-          "line": 248,
+          "line": 290,
           "path": "crates/flea-gui/src/window/dispatch/opener.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -39591,7 +39611,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"feedback.error.rename\")",
-          "line": 161,
+          "line": 164,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -40779,6 +40799,13 @@
     "feedback.refusal.archives": {
       "call_sites": [
         {
+          "excerpt": "\"feedback.refusal.folder_with_files\" | \"feedback.refusal.archives\"",
+          "line": 251,
+          "path": "crates/flea-gui/src/window/dispatch/opener.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
           "excerpt": "Self::Archives => \"feedback.refusal.archives\",",
           "line": 113,
           "path": "src/ui_logic_fb1.rs",
@@ -40800,6 +40827,13 @@
     },
     "feedback.refusal.folder_with_files": {
       "call_sites": [
+        {
+          "excerpt": "\"feedback.refusal.folder_with_files\" | \"feedback.refusal.archives\"",
+          "line": 251,
+          "path": "crates/flea-gui/src/window/dispatch/opener.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
         {
           "excerpt": "Self::FolderWithFiles => \"feedback.refusal.folder_with_files\",",
           "line": 112,
@@ -40823,6 +40857,13 @@
     "feedback.refusal.not_loaded": {
       "call_sites": [
         {
+          "excerpt": "| \"feedback.refusal.programs\" | \"feedback.refusal.not_loaded\")) {",
+          "line": 252,
+          "path": "crates/flea-gui/src/window/dispatch/opener.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
           "excerpt": "Self::NotLoaded => \"feedback.refusal.not_loaded\",",
           "line": 115,
           "path": "src/ui_logic_fb1.rs",
@@ -40844,6 +40885,13 @@
     },
     "feedback.refusal.programs": {
       "call_sites": [
+        {
+          "excerpt": "| \"feedback.refusal.programs\" | \"feedback.refusal.not_loaded\")) {",
+          "line": 252,
+          "path": "crates/flea-gui/src/window/dispatch/opener.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
         {
           "excerpt": "Self::Programs => \"feedback.refusal.programs\",",
           "line": 114,
@@ -44664,7 +44712,7 @@
       "call_sites": [
         {
           "excerpt": ".tr_args(\"jobs.rename.exists\", &[leaf(&destination)])",
-          "line": 103,
+          "line": 106,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -44710,7 +44758,7 @@
       "call_sites": [
         {
           "excerpt": "let said = self.locale.catalog.tr(\"jobs.rename.journal\");",
-          "line": 93,
+          "line": 96,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -44732,7 +44780,7 @@
       "call_sites": [
         {
           "excerpt": "let said = self.locale.catalog.tr(\"jobs.rename.stopped\");",
-          "line": 112,
+          "line": 115,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -79458,7 +79506,7 @@
         },
         {
           "excerpt": "host.record_error(crate::backend::Failure { key: \"window.backend_protocol\", detail }, &self.locale);",
-          "line": 324,
+          "line": 335,
           "path": "crates/flea-gui/src/window/filter.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -79678,6 +79726,13 @@
           "excerpt": "key: \"window.backend_stopped\",",
           "line": 220,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "key: \"window.backend_stopped\",",
+          "line": 313,
+          "path": "crates/flea-gui/src/window/dispatch/opener/targets.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
@@ -93324,6 +93379,15 @@
       "surface": "gui"
     },
     {
+      "excerpt": ".expect(\"the gallery pane\")",
+      "line": 151,
+      "literal": "the gallery pane",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/window/dispatch/opener/targets.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "BackendEvent::Plugins(_) => unreachable!(\"plugins handled above\"),",
       "line": 160,
       "literal": "plugins handled above",
@@ -93361,7 +93425,7 @@
     },
     {
       "excerpt": "let preset = self.launch.settings.data.get(\"keys\").and_then(flea::jsondoc::Json::as_str).unwrap_or(\"default\").to_owned();",
-      "line": 283,
+      "line": 294,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/filter.rs",
@@ -137695,7 +137759,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that file could not be opened, check that it still exists\");",
-      "line": 57,
+      "line": 61,
       "literal": "flea: that file could not be opened, check that it still exists",
       "owner": "controller",
       "path": "src/open.rs",
@@ -137704,7 +137768,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that file could not be opened, check that it still exists\");",
-      "line": 72,
+      "line": 76,
       "literal": "flea: that file could not be opened, check that it still exists",
       "owner": "controller",
       "path": "src/open.rs",
@@ -137713,7 +137777,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that file is a program, so it was not opened\");",
-      "line": 87,
+      "line": 91,
       "literal": "flea: that file is a program, so it was not opened",
       "owner": "controller",
       "path": "src/open.rs",
@@ -137722,7 +137786,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that file is a program, so it was not opened\");",
-      "line": 105,
+      "line": 109,
       "literal": "flea: that file is a program, so it was not opened",
       "owner": "controller",
       "path": "src/open.rs",
@@ -137731,7 +137795,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that program is on a volume that does not allow running files\");",
-      "line": 110,
+      "line": 114,
       "literal": "flea: that program is on a volume that does not allow running files",
       "owner": "controller",
       "path": "src/open.rs",
@@ -137740,7 +137804,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: no application on this system opened that file\");",
-      "line": 144,
+      "line": 148,
       "literal": "flea: no application on this system opened that file",
       "owner": "controller",
       "path": "src/open.rs",
@@ -137749,7 +137813,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: nothing on this system could be asked to open that file\");",
-      "line": 148,
+      "line": 152,
       "literal": "flea: nothing on this system could be asked to open that file",
       "owner": "controller",
       "path": "src/open.rs",
@@ -138190,7 +138254,7 @@
     },
     {
       "excerpt": "crate::usage(\"--run takes one path and its card identity\");",
-      "line": 161,
+      "line": 164,
       "literal": "--run takes one path and its card identity",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138199,7 +138263,7 @@
     },
     {
       "excerpt": "crate::usage(\"--run-terminal takes one path and its card identity\");",
-      "line": 169,
+      "line": 172,
       "literal": "--run-terminal takes one path and its card identity",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138208,7 +138272,7 @@
     },
     {
       "excerpt": "crate::usage(\"--open-text takes one path\");",
-      "line": 175,
+      "line": 178,
       "literal": "--open-text takes one path",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138217,7 +138281,7 @@
     },
     {
       "excerpt": "crate::usage(\"--open-handler takes one path, a desktop id and the card identity\");",
-      "line": 183,
+      "line": 186,
       "literal": "--open-handler takes one path, a desktop id and the card identity",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138226,7 +138290,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that file is not executable, so it was not run\");",
-      "line": 197,
+      "line": 200,
       "literal": "flea: that file is not executable, so it was not run",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138235,7 +138299,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that program is on a volume that does not allow running files\");",
-      "line": 201,
+      "line": 204,
       "literal": "flea: that program is on a volume that does not allow running files",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138244,7 +138308,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that file is not a program, so it was not run\");",
-      "line": 205,
+      "line": 208,
       "literal": "flea: that file is not a program, so it was not run",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138253,7 +138317,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that file changed since the card asked, so it was not run\");",
-      "line": 216,
+      "line": 219,
       "literal": "flea: that file changed since the card asked, so it was not run",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138262,7 +138326,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that program could not be run, check that it still exists\");",
-      "line": 227,
+      "line": 230,
       "literal": "flea: that program could not be run, check that it still exists",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138271,7 +138335,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: nothing on this system could be asked to run that file\");",
-      "line": 246,
+      "line": 249,
       "literal": "flea: nothing on this system could be asked to run that file",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138280,7 +138344,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that program could not be run, check that it still exists\");",
-      "line": 257,
+      "line": 260,
       "literal": "flea: that program could not be run, check that it still exists",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138289,7 +138353,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: nothing on this system could be asked to run that file in a terminal\");",
-      "line": 275,
+      "line": 278,
       "literal": "flea: nothing on this system could be asked to run that file in a terminal",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138298,7 +138362,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that file could not be opened, check that it still exists\");",
-      "line": 303,
+      "line": 306,
       "literal": "flea: that file could not be opened, check that it still exists",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138307,7 +138371,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: no text editor is installed for that file\");",
-      "line": 312,
+      "line": 315,
       "literal": "flea: no text editor is installed for that file",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138316,7 +138380,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: no text editor on this system opened that file\");",
-      "line": 319,
+      "line": 322,
       "literal": "flea: no text editor on this system opened that file",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138325,7 +138389,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: no text editor on this system opened that file\");",
-      "line": 326,
+      "line": 329,
       "literal": "flea: no text editor on this system opened that file",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138334,7 +138398,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: nothing on this system could be asked to open that file as text\");",
-      "line": 330,
+      "line": 333,
       "literal": "flea: nothing on this system could be asked to open that file as text",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138343,7 +138407,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that file could not be opened, check that it still exists\");",
-      "line": 341,
+      "line": 344,
       "literal": "flea: that file could not be opened, check that it still exists",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138352,7 +138416,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that application is no longer installed\");",
-      "line": 351,
+      "line": 354,
       "literal": "flea: that application is no longer installed",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138361,7 +138425,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: that application did not open the file\");",
-      "line": 358,
+      "line": 361,
       "literal": "flea: that application did not open the file",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -138370,7 +138434,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: nothing on this system could be asked to open that file\");",
-      "line": 362,
+      "line": 365,
       "literal": "flea: nothing on this system could be asked to open that file",
       "owner": "controller",
       "path": "src/runfile.rs",
@@ -211293,9 +211357,10 @@
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "6236ba6dd8b841812b462cac9dbcf4714f4cfce23b7d2520f3793bcd4997d70a",
     "crates/flea-gui/src/window/dispatch/listing.rs": "1288e75f34ff704df9927c91639d152b0a56a105303354c7593e22c0d54f9c3b",
     "crates/flea-gui/src/window/dispatch/menus.rs": "fa64aa5c45a4c8aa5894a55df8844c1cf9fabfb7c7480d54067c08966bf1a859",
-    "crates/flea-gui/src/window/dispatch/mod.rs": "cf9d9033a3baa0d05cce60a5e047d0c27496e6d28a4b276b79ab4f2b5f5958e4",
-    "crates/flea-gui/src/window/dispatch/navigation.rs": "c4e90f38f732cc36aebd643f8a97cf146a7e98798413b02012f0eb0bf131e646",
-    "crates/flea-gui/src/window/dispatch/opener.rs": "b3b98ef1d249aaa681e8ea7f625b2b9117d35a90a2d2734796ea9fbc9469ee05",
+    "crates/flea-gui/src/window/dispatch/mod.rs": "2d0dc0cfab208ee6e3f7711ef1d71e36cad431e1bdda01bad9b2ee79fc977484",
+    "crates/flea-gui/src/window/dispatch/navigation.rs": "c1b8666437a1fac06723617f1a12eaa859a6fce010f4845fb78c1a64b26dda71",
+    "crates/flea-gui/src/window/dispatch/opener.rs": "8a3c7f928df7c77d6cc4047c77e927dd0acce73fdfbac3d971866f0eb1226a97",
+    "crates/flea-gui/src/window/dispatch/opener/targets.rs": "8bf2a13e5ae8c08a63eef3c0e8101ce667196205fc267befb871af51d3a26836",
     "crates/flea-gui/src/window/dispatch/preview.rs": "2642e6d460b2bb92ba354ee0a92e784ba04347a800a93005edf78638e72dedb7",
     "crates/flea-gui/src/window/dispatch/previewtypes.rs": "47fb4fd74d447d9eab0fdb22bb97784ae6c682b82b394894328f759a4b32ec58",
     "crates/flea-gui/src/window/dispatch/rename.rs": "5435064cf1f19910a7a39509c225bf889989e036c5891c84d37cc7f4e470bed1",
@@ -211307,7 +211372,7 @@
     "crates/flea-gui/src/window/events_ipc.rs": "32d15920371cb54a52e22ddc8f588782f637285bac72f62646fe885c09a5574b",
     "crates/flea-gui/src/window/events_quit.rs": "2b0efd75460e668005913b5b5259972941b170505938d76f70498c281a5ce62e",
     "crates/flea-gui/src/window/events_slow.rs": "61ca3ba2bba407279ad62e85fddfe16f7744e2fdf4ad9ebb7296bff4a530f689",
-    "crates/flea-gui/src/window/filter.rs": "661adc5496554df29a7355ee5e62085d9cc0a8068a2b5991839a9d1ba693f206",
+    "crates/flea-gui/src/window/filter.rs": "4bfdd1ed56d45cf1a2076d1a274f5ac71a31ed2a7b25177312485a9abd6686e1",
     "crates/flea-gui/src/window/frame_feedback.rs": "7400b3670691e6f6cc725d3f6018d5f6144aba8bb6948ed1c427c7c493b69798",
     "crates/flea-gui/src/window/frame_feedback/activity.rs": "6576d8076e25165ef1da3634c1179bffb3f9e25a294a6cd6ca1e26b51e459548",
     "crates/flea-gui/src/window/frame_feedback/perf_gates.rs": "505b15c5f3528d402d74c60c3e45cecf7e5951a603e4c5c75505bd75b8c3e2f4",
@@ -211357,7 +211422,7 @@
     "crates/flea-gui/src/window/rename_input.rs": "782451a2193be035811dbc071ebafc0d48a62c9c18aab927e59a1f41d213479c",
     "crates/flea-gui/src/window/rename_ipc.rs": "da0d1c461ab18119b40bdaa03891f7007990d58c1f36c9ff434bb2e7fff5ff48",
     "crates/flea-gui/src/window/rename_place.rs": "79d792d5fbac17b48088bca23a5fa71f0c3ae4fcd1819f9fc5217f6e748a32e1",
-    "crates/flea-gui/src/window/rename_replies.rs": "95fc77a50ccbae8033bde0efe09bc722bab9e8d0b8db02fdbe18bc0ecf4f6c6b",
+    "crates/flea-gui/src/window/rename_replies.rs": "9c759329c827e07205fd52e6ec4beb24c7d0a89948f7d4c46a7552781dc46508",
     "crates/flea-gui/src/window/rename_slow.rs": "f01a0e569d1605e590468fbd141b53cc29b5889170f6ed82465ae3bb43512d52",
     "crates/flea-gui/src/window/rename_slow_policy.rs": "a353741f00f4e36fe7e0000ddc875252f7d9e1daa99dd62ed4be671a2967993d",
     "crates/flea-gui/src/window/render.rs": "95388d3ed1f202555c7596f3b94201004ed7f5623cb07a05c29e28259c31e9e9",
@@ -211800,7 +211865,8 @@
     "src/lib.rs": "1b9ebf1a7f1336f29deab08f08b4f9155e754e63d5b255ecb2d77893b4831b96",
     "src/main.rs": "e85974bbc3450f87eacc029fa43ee5d406b1367006727e7bbfaa9a8e413b8b18",
     "src/oflags.rs": "f436ea9e2d34d2d2d850c9388753ab6a16fcba579d7e3613cc75f7e1f49e66db",
-    "src/open.rs": "bfb028f1b10091da7a76ca749408a0d3925abc2f7eab0d5d6fb74228aa464576",
+    "src/open.rs": "d151ac8428d57992de2f85038b31af9ca1051e234a606298d7c4a77e391ed90a",
+    "src/open_selection.rs": "b4413ffdac3e8343644df37cb188f9ae9d913ab89fa93f5f82078576a5a1ec56",
     "src/paths.rs": "06c1b19910d2b044e2c204e58c2355b9d9e4349dcdc8426f6265d6e50286b945",
     "src/persistdoc.rs": "57bb6e8db402e13fef931e5cf01db2bdda909ac7a45409e8b3908a9942025444",
     "src/plugincli.rs": "3420642f3811ae7f52b3743ac078b9bcdc35f489344ce3352383685feb29ad04",
@@ -211809,7 +211875,7 @@
     "src/procsignal.rs": "b8e84f378c153d0a6fbc2fc421f4a5f06c94d01ddedfa495fb7f36d3cfc4d069",
     "src/protocol.rs": "47a2e25349201d9c5c3f8112fd41203214780a6c9132275abe7b30951cae470d",
     "src/qsregistry.rs": "1e78d20ae9e79a8120e58fea52fe7a888c192bed756575cc4586ab468b3c58e8",
-    "src/runfile.rs": "21089ff431c9da5f723bec721a7592b8331161caa41dd7db8f9845f87b0c70ac",
+    "src/runfile.rs": "73c746de9af77ad4aaf327d492fb2f2322535aca2a17595e4160a9806658e64c",
     "src/runharden.rs": "9c87b01797b68457ebae0d9460a0ac24158bd246fe3a21eebe425aa0699f0a3a",
     "src/runid.rs": "54b0665f710c50e44afd609c26b11b0f621c45a78f1979ccef68dcfff0789acd",
     "src/shelf.rs": "c4f24f1b8d77380e5ecd53009f765cabd668b9f82aa1a472885e42de3c86ec35",
@@ -212784,13 +212850,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "7357f3e625bd2e9d35761fe1c475e4e5c0ab3247",
-  "source_sha": "7357f3e625bd2e9d35761fe1c475e4e5c0ab3247",
+  "source_ref_sha": "b2a5af74e552f48a2d09ae7496be045192de6cbf",
+  "source_sha": "b2a5af74e552f48a2d09ae7496be045192de6cbf",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
       "missing_literal_candidates": 5649,
-      "source_files": 776
+      "source_files": 777
     },
     "generated/tooling": {
       "keys_with_occurrences": 148,
@@ -212798,9 +212864,9 @@
       "source_files": 144
     },
     "gui": {
-      "keys_with_occurrences": 468,
-      "missing_literal_candidates": 1585,
-      "source_files": 734
+      "keys_with_occurrences": 472,
+      "missing_literal_candidates": 1586,
+      "source_files": 735
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

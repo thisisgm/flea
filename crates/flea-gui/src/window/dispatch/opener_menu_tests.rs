@@ -68,12 +68,12 @@ fn the_menu_open_on_an_archive_hands_it_to_quick_look(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn the_menu_open_opens_the_cursor_row_not_the_first_marked_path(cx: &mut TestAppContext) {
+fn the_menu_open_opens_the_whole_captured_selection(cx: &mut TestAppContext) {
     let (shell, cx, _, _keep) = shell(cx);
     set_cursor(&shell, cx, 1);
-    // PaneMenuActions.qml perform: Open runs the cursor row's own open, whatever the selection holds first.
-    assert!(menu_open(&shell, cx, 1, &["/files/backup.tar.zst", "/files/notes.txt"]));
-    assert_eq!(launched(), ["/files/notes.txt"]);
+    // Open takes the validated captured selection, independent of the cursor.
+    assert!(menu_open(&shell, cx, 1, &["/files/todo.txt", "/files/notes.txt"]));
+    assert_eq!(launched(), ["/files/todo.txt /files/notes.txt"]);
     quit(&shell, cx);
 }
 
