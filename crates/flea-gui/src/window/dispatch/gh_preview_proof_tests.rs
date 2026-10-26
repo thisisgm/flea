@@ -111,6 +111,13 @@ fn gh336_space_svg_rasterizes_at_physical_pixels_at_scale_2_and_1_and_on_each_sc
         ] {
             assert!((painted - logical).abs() < 1. / scale);
         }
+        // Layout floors an enlarged fit that ends between device pixels.
+        let snapped = |value: Pixels| px((f32::from(value) * scale).floor() / scale);
+        assert_eq!(
+            now.size,
+            size(snapped(rect.size.width), snapped(rect.size.height)),
+            "scale {scale}: the painted fit lands on device pixels"
+        );
         assert_eq!(
             (s.width.0, s.height.0),
             physical(rect, scale.into()),
