@@ -256,7 +256,7 @@ fn u25_strip_pointer_reads_painted_geometry_and_middle_closes(cx: &mut TestAppCo
 fn u25_last_folder_reopen_chooses_saved_index_and_named_launch_ignores_it() {
     use crate::window::startup::{Arguments, Launch, Settings};
     let settings = || {
-        Settings::from_json(flea::jsondoc::parse(r#"{"startIn":"last","lastPath":"/old","lastTabs":{"paths":["/one","/two"],"index":1}}"#).unwrap(), false)
+        Settings::from_json(flea::jsondoc::parse(r#"{"startIn":"last","lastPath":"/old","lastTabs":{"paths":["/one","/two"],"index":1}}"#).unwrap())
     };
     let reopened = Launch::resolve(settings(), Arguments::default(), "/home/test");
     assert_eq!(reopened.paths[0], "/two");
