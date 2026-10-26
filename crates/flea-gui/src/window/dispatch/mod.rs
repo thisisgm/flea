@@ -133,6 +133,8 @@ mod quick_look_media_tests;
 #[cfg(test)]
 mod quick_look_body_reply_tests;
 #[cfg(test)]
+mod quick_look_font_tests;
+#[cfg(test)]
 mod quick_look_reply_tests;
 #[cfg(test)]
 mod refusal_tests;
