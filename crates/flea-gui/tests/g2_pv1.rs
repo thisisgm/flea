@@ -16,6 +16,8 @@ mod click_through;
 mod column;
 #[path = "g2_pv1/controls.rs"]
 mod controls;
+#[path = "g2_pv1/decoded.rs"]
+mod decoded;
 #[path = "g2_pv1/lifecycle.rs"]
 mod lifecycle;
 #[path = "g2_pv1/scenes.rs"]
@@ -23,7 +25,7 @@ pub mod scenes;
 #[path = "g2_pv1/scroll.rs"]
 mod scroll;
 #[path = "g2_pv1/svg.rs"]
-mod svg;
+pub mod svg;
 
 /// What the listing behind the overlay saw: each counter is one thing #331 says must not move.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

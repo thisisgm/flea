@@ -1,5 +1,5 @@
 //! The decoder helper: one sandboxed process per media subject, reading /input and writing records on stdout.
-mod dl;
+pub(crate) mod dl;
 mod mpv;
 mod mpv_api;
 

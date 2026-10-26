@@ -87,7 +87,7 @@ fn trees(bits: &mut Bits, fixed: bool) -> Result<(Huffman, Huffman)> {
     Ok((Huffman::new(&lengths[..nl])?, Huffman::new(&lengths[nl..])?))
 }
 
-pub(super) fn inflate(bytes: &[u8], expected: usize, zlib: bool) -> Result<Vec<u8>> {
+pub(crate) fn inflate(bytes: &[u8], expected: usize, zlib: bool) -> Result<Vec<u8>> {
     if expected > MAX_EXPANDED { return Err("expanded stream exceeds its bound".into()) }
     let source = if zlib {
         if bytes.len() < 6 || bytes[0] & 15 != 8 || bytes[0] >> 4 > 7 || bytes[1] & 32 != 0

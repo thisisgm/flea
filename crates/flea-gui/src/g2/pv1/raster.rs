@@ -1,5 +1,8 @@
-//! One bounded raster job reads, parses and rasterizes SVG bytes off the UI thread (#336).
-use flea::ui_logic_pv1::pixels::{is_compressed_vector, svg_within_byte_bound, MAX_SVG_BYTES};
+//! One bounded raster job reads, parses and rasterizes SVG bytes, or decodes a TIFF, ICO or AVIF, off the UI thread (#336, SW-13).
+use flea::ui_logic_pv1::pixels::{
+    decode_byte_bound, is_avif_name, is_compressed_vector, is_vector_name, svg_within_byte_bound,
+    within_decode_bound, MAX_SVG_BYTES,
+};
 use gpui::{size, DevicePixels, RenderImage, SvgRenderer, SvgSize};
 use std::{
     io::Read,
@@ -62,6 +65,18 @@ pub fn default_raster(renderer: SvgRenderer) -> Rasterizer {
     })
 }
 
+/// The decoder a host-decoded file takes by its name: the app's SVG renderer, libheif for AVIF, the image crate otherwise.
+pub fn for_path(path: &std::path::Path, renderer: SvgRenderer) -> Rasterizer {
+    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+    if is_vector_name(name) {
+        default_raster(renderer)
+    } else if is_avif_name(name) {
+        super::decode::heif_raster(super::decode::LIBHEIF)
+    } else {
+        super::decode::picture_raster()
+    }
+}
+
 /// Stat judges the path before any open, and the handle's own fstat catches a swap between the two.
 fn read_bounded(path: &PathBuf) -> Result<Vec<u8>, RasterRefusal> {
     if !std::fs::metadata(path).is_ok_and(|m| m.file_type().is_file()) {
@@ -77,22 +92,19 @@ fn read_bounded(path: &PathBuf) -> Result<Vec<u8>, RasterRefusal> {
     if !meta.file_type().is_file() {
         return Err(RasterRefusal::Unreadable);
     }
-    if !svg_within_byte_bound(meta.len()) {
+    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+    if !within_decode_bound(name, meta.len()) {
         return Err(RasterRefusal::TooLarge);
     }
-    let name = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or_default();
     if is_compressed_vector(name) {
         return read_inflated(file);
     }
     let mut bytes = Vec::new();
-    file.take(MAX_SVG_BYTES + 1)
+    file.take(decode_byte_bound(name) + 1)
         .read_to_end(&mut bytes)
         .map_err(|_| RasterRefusal::Unreadable)?;
     // A file that grew between the open and the read is over the bound when the read fills it.
-    if !svg_within_byte_bound(bytes.len() as u64) {
+    if !within_decode_bound(name, bytes.len() as u64) {
         return Err(RasterRefusal::TooLarge);
     }
     Ok(bytes)
@@ -116,12 +128,13 @@ pub fn run(job: &Job) -> RasterOutcome {
     if job.latest.load(Ordering::SeqCst) != job.epoch {
         return RasterOutcome::Superseded;
     }
-    let vector = job
+    // SVG, TIFF, ICO and AVIF read their bounded bytes into the job's decoder; every other picture decodes scaled through photo.
+    let own = job
         .path
         .file_name()
         .and_then(|n| n.to_str())
-        .is_some_and(flea::ui_logic_pv1::pixels::is_vector_name);
-    if !vector {
+        .is_some_and(flea::ui_logic_pv1::pixels::is_host_decoded);
+    if !own {
         return match super::photo::decode(&job.path, job.size, &|| {
             job.latest.load(Ordering::SeqCst) == job.epoch
         }) {
@@ -141,6 +154,13 @@ pub fn run(job: &Job) -> RasterOutcome {
     }
     match (job.raster)(&bytes, job.size) {
         Ok(image) => RasterOutcome::Raster(image),
-        Err(_) => RasterOutcome::Refused(RasterRefusal::Unreadable),
+        Err(reason) => {
+            // One line per failed picture; the card shows the could-not-be-read sentence.
+            eprintln!(
+                "flea-gui: Quick Look could not draw {}: {reason}",
+                job.path.display()
+            );
+            RasterOutcome::Refused(RasterRefusal::Unreadable)
+        }
     }
 }
