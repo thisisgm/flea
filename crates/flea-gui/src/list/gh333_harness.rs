@@ -226,14 +226,13 @@ pub(super) fn drawn(shell: &Entity<Shell>, vcx: &mut VisualTestContext) -> Drawn
             row: f32::from(list.drawn.bounds.size.width) - list.drawn.metrics.lane,
             base_size: f32::from(list.typeface.base),
             stored: Column::ALL.map(|c| stored.get(c)),
-            // The tab session record (lastPath, lastTabs) is session state, not a preference write.
             sent: host
                 .nav
                 .writer
                 .borrow()
                 .patches
                 .iter()
-                .filter(|patch| !patch.starts_with(r#"{"lastPath":"#))
+                .filter(|patch| !jsondoc::parse(patch).is_ok_and(|json| session_only(&json)))
                 .count(),
         }
     })
@@ -247,4 +246,10 @@ pub(super) fn unrelated(data: &Json) -> Vec<String> {
     UNRELATED
         .map(|key| jsondoc::render(data.get(key).unwrap_or(&Json::Null)))
         .to_vec()
+}
+
+// The tab session record carries only lastPath and lastTabs; any other key in a patch is a preference write.
+pub(super) fn session_only(patch: &Json) -> bool {
+    matches!(patch, Json::Obj(members) if !members.is_empty()
+        && members.iter().all(|(key, _)| key == "lastPath" || key == "lastTabs"))
 }

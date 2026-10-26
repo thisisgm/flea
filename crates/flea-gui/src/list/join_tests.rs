@@ -150,7 +150,7 @@ fn u04_header_and_rows_share_the_live_painted_layout_and_dispatch() {
         );
         assert_eq!(ask(&mut cx, handle, name, &["-1"]), "");
     }
-    assert_eq!(call(&mut cx, handle, "rowThumb", &["1"]).code, 3);
+    assert_eq!(call(&mut cx, handle, "rowThumb", &["1"]), Reply::value(""));
     assert_eq!(
         ask(&mut cx, handle, "visibleRowMode", &["1"]),
         0o120777.to_string(),

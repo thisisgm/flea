@@ -9,10 +9,13 @@ pub const COUNT_MAX: usize = 5;
 // The shipped View limit: a default install holds 3 columns from 900 px up.
 pub const COUNT_DEFAULT: usize = 3;
 
-// Board columns.html at body 14: row padding, the 23 mark slot and its 17 mark, the 9 gap, the 70 size cell, the 12 chevron.
+// Board columns.html at body 14: row padding, the 23 mark slot, the 9 gap, the 70 size cell, the 12 chevron.
 pub const PAD_X: f32 = 14.;
 pub const MARK_SLOT: f32 = 23.;
-pub const MARK: f32 = 17.;
+// Theme.qml bodySmall at body 14, Omarchy's 0.917 step rounded.
+const BODY_SMALL: f64 = 13.;
+// v0.3.12 ColumnRow.qml: Glyph caps the slot at Theme.markSize, bodySmall x 1.45, the list row's mark.
+pub const MARK: f32 = (BODY_SMALL * crate::list::MARK_RATIO) as f32;
 pub const GAP: f32 = 9.;
 pub const SIZE_W: f32 = 70.;
 pub const CHEVRON: f32 = 12.;
@@ -20,6 +23,15 @@ pub const NAME_X: f32 = PAD_X + MARK_SLOT + GAP;
 // Scroll.lane: every column keeps a lane as wide as its row padding clear at its right edge.
 pub const LANE: f32 = PAD_X;
 pub const DIVIDER: f32 = 1.;
+
+/// The row mark's square from the row's left and top: centred in its slot and on the row, as Glyph centres it.
+pub fn mark_box() -> (f32, f32, f32) {
+    (
+        PAD_X + (MARK_SLOT - MARK) / 2.,
+        (ROW_HEIGHT - MARK) / 2.,
+        MARK,
+    )
+}
 
 /// cappedLimit: a stored number clamps to 2..5, and anything that is not a number reads as the shipped default.
 pub fn capped_limit(limit: Option<f64>) -> usize {
