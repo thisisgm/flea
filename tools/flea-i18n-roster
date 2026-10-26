@@ -246,8 +246,8 @@ def main():
     args = parser.parse_args()
     if args.file and args.locales_json:
         parser.error("pass the roster either positionally or with --locales-json")
-    if args.warn_only and (args.check_installed or args.require_final_pin):
-        parser.error("--warn-only is development-only and cannot bypass installed or final-pin checks")
+    if args.warn_only and args.require_final_pin:
+        parser.error("--warn-only is development-only and cannot bypass the final-pin check")
     if args.check_installed and (args.file or args.locales_json):
         parser.error("--check-installed reads the roster from --omarchy-path; roster overrides are not allowed")
     if args.repin:
