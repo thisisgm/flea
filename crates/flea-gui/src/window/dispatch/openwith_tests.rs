@@ -241,3 +241,20 @@ fn an_ask_on_a_stopped_backend_opens_no_card(cx: &mut TestAppContext) {
     assert_eq!(card_title(&shell, cx), None, "no card waits on a backend that is gone");
     quit(&shell, cx);
 }
+
+// The snapshot names listing rows, so a held window that starts at row 350 sends the asked row's own listing index.
+#[gpui::test]
+fn the_snapshot_names_the_listing_row_past_the_held_windows_start(cx: &mut TestAppContext) {
+    let (shell, cx) = shell(cx);
+    shell.update(cx, |shell, _| {
+        let pane = &mut shell.panes[0].as_mut().unwrap().pane;
+        let rows = pane.held.rows.clone();
+        pane.held = std::rc::Rc::new(crate::list::pane::Held { listing: pane.held.listing, total: 400, start: 350, rows });
+    });
+    sent();
+    cx.update(|_, cx| shell.update(cx, |shell, cx| shell.open_open_with(0, "/files/mystery.xyz".into(), cx)));
+    cx.run_until_parked();
+    let snapshot = sent().into_iter().find(|line| line.contains(r#""op":"snapshot""#)).expect("the card snapshots its row");
+    assert!(snapshot.contains(r#""rows":[351],"cursor":351"#), "the snapshot names listing row 351: {snapshot}");
+    quit(&shell, cx);
+}

@@ -12,6 +12,8 @@ mod ipc;
 mod quit;
 #[path = "events_slow.rs"]
 mod slow;
+// Only the status tests read the sentence directly; the window reads it through slow_line.
+#[cfg(test)]
 pub(crate) use slow::slow_sentence;
 
 impl Shell {

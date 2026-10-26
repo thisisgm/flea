@@ -272,3 +272,32 @@ fn a_press_on_the_scrim_cancels_the_run_card(cx: &mut TestAppContext) {
     assert!(run_launched().is_empty(), "a cancel runs nothing");
     quit(&shell, cx);
 }
+
+// A click reads Shift from its own press: Shift+Tab then a plain click runs in a terminal, a Shift click runs.
+#[gpui::test]
+fn a_click_reads_shift_from_the_click_not_the_last_key(cx: &mut TestAppContext) {
+    let (shell, cx) = shell(cx);
+    set_cursor(&shell, cx, 1);
+    answering(Some(4), SCRIPT_ASK);
+    for (shifted, flag) in [(false, "--run-terminal"), (true, "--run")] {
+        cx.simulate_keystrokes("enter");
+        cx.run_until_parked();
+        assert_eq!(card_title(&shell, cx).as_deref(), Some("hello.sh is a program."));
+        shell.update(cx, |shell, _| {
+            if let Some(open) = shell.run_card.as_mut() {
+                open.launch = record_run;
+            }
+        });
+        cx.simulate_keystrokes("shift-tab");
+        cx.run_until_parked();
+        let modifiers = if shifted { gpui::Modifiers::shift() } else { gpui::Modifiers::none() };
+        let button = cx.debug_bounds("op3-button-2").expect("Run in Terminal is drawn");
+        cx.simulate_click(button.center(), modifiers);
+        cx.run_until_parked();
+        let ran = run_launched();
+        assert_eq!(ran.len(), 1, "the click launches once: {ran:?}");
+        assert_eq!(ran[0][1], flag, "a click with shift {shifted} launches {flag}");
+        assert_eq!(card_title(&shell, cx), None);
+    }
+    quit(&shell, cx);
+}

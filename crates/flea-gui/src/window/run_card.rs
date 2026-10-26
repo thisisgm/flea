@@ -74,10 +74,12 @@ impl Shell {
         true
     }
 
-    fn press_run_card(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
+    /// A click reads Shift from its own press, never from the last key the card saw.
+    fn press_run_card(&mut self, at: usize, shift: bool, window: &mut Window, cx: &mut Context<Self>) {
         let Some(open) = self.run_card.as_mut() else {
             return;
         };
+        open.card.shift = shift;
         let action = open.card.button_at(at).and_then(|button| open.card.action_of(button));
         let effects = open.card.press_at(at);
         self.run_card_effects(effects, action, window, cx);
@@ -132,7 +134,7 @@ impl Shell {
         let card = open.card.card(&self.locale.catalog);
         let room = f32::from(window.viewport_size().width);
         let press = cx.listener(|shell: &mut Shell, at: &usize, window, cx| {
-            shell.press_run_card(*at, window, cx);
+            shell.press_run_card(*at, window.modifiers().shift, window, cx);
         });
         let drawn = StandIn.present_pressable(&card, &palette, &self.active_typeface(), self.corner, room, press);
         let scrim = cx.listener(|shell: &mut Shell, _: &gpui::MouseDownEvent, window, cx| {
