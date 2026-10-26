@@ -163,6 +163,16 @@ impl Shell {
                     search: &host.search.owner,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
                 };
+                let network_result = crate::g2::pl2::result::Adapter(
+                    self.rail
+                        .as_ref()
+                        .and_then(|rail| rail.network.as_ref())
+                        .map(|network| network.service.read(cx)),
+                );
+                let providers = crate::g2::sd1::reader::State {
+                    shell: self,
+                    window,
+                };
                 // Quick Look answers before the column, so previewState reads the card while it is open.
                 let look = crate::window::quick_look::readers::Reader {
                     host: self.quick_look.as_ref(),
@@ -175,7 +185,9 @@ impl Shell {
                 let devices = crate::ipc::devices::DeviceAdapter {
                     source: self.rail.as_ref().map(|join| join.devices.read(cx)),
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 23] = [
+                let adapters: [&dyn crate::ipc::Adapter; 25] = [
+                    &providers,
+                    &network_result,
                     &look,
                     &rename,
                     &search,
@@ -204,9 +216,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    23
+                    25
                 } else {
-                    22
+                    24
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

@@ -6,6 +6,9 @@ use flea::ui_logic_pl2::bridge::{self, Action, Bridge};
 use gpui::{Context, EventEmitter, Task};
 use std::{rc::Rc, time::Duration};
 
+#[path = "service_release.rs"]
+mod release;
+
 pub struct ServiceEvent(pub Effect);
 struct Wait {
     generation: u64,
@@ -15,6 +18,7 @@ struct Wait {
     flow: Bridge,
 }
 pub struct Service {
+    pub result: super::result::ResultState,
     pub mounts: Mounts,
     pub(super) runner: Rc<dyn Runner>,
     child: Slot,
@@ -36,6 +40,7 @@ impl EventEmitter<ServiceEvent> for Service {}
 impl Service {
     pub fn new(runner: Rc<dyn Runner>, runtime_dir: String, fuse_binary: String) -> Self {
         Self {
+            result: Default::default(),
             mounts: Mounts {
                 auth_binary: std::env::var("FLEA_GIO_AUTH").unwrap_or_default(),
                 ..Mounts::default()
@@ -86,48 +91,10 @@ impl Service {
     }
     pub fn cancel(&mut self, id: u64, now: u64, cx: &mut Context<Self>) {
         let effects = self.mounts.cancel(id);
-        self.apply(effects, now, cx);
-    }
-    pub fn unmount(
-        &mut self,
-        entry: &flea::ui_logic_pl1::RailEntry,
-        listing: &str,
-        origin: u64,
-        cx: &mut Context<Self>,
-    ) {
-        if self.release.handle().is_some() {
-            return;
+        if !effects.is_empty() {
+            self.result = super::result::ResultState::Cancelled;
         }
-        let Some(job) = super::menus::unmount(entry, listing) else {
-            return;
-        };
-        let now = self.now(cx);
-        let effects = self.mounts.retire_location(&entry.uri);
         self.apply(effects, now, cx);
-        let label = entry.label.clone();
-        let handle = self.runner.start(job);
-        let events = handle.events.clone();
-        let run = self.release.start(handle);
-        self.readers.retain(|reader| !reader.is_ready());
-        self.readers.push(cx.spawn(async move |this, cx| {
-            while let Ok(event) = events.recv().await {
-                if let Event::Exited(out) = event {
-                    let _ = this.update(cx, |this, cx| {
-                        if !this.release.ended(run) {
-                            return;
-                        }
-                        cx.emit(ServiceEvent(Effect::RefreshMounts));
-                        let note = if out.code == 0 {
-                            Note::new("network.unmounted", &[&label])
-                        } else {
-                            Note::new("network.unmount_failed", &[])
-                        };
-                        cx.emit(ServiceEvent(Effect::Say { note, origin }));
-                    });
-                    break;
-                }
-            }
-        }));
     }
     #[allow(clippy::too_many_arguments)]
     pub fn peeked(
@@ -147,6 +114,9 @@ impl Service {
     }
     pub(super) fn apply(&mut self, effects: Vec<Effect>, now: u64, cx: &mut Context<Self>) {
         for effect in effects {
+            if let Some(result) = super::result::ResultState::effect(&effect) {
+                self.result = result;
+            }
             match effect {
                 Effect::Run {
                     generation,

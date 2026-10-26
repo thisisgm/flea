@@ -1,17 +1,19 @@
 //! LocalSend discovery and the Taildrop/provider send picker; every process runs through the host as an Action.
+mod dropbox_status;
 pub mod ipc;
 pub(crate) mod join;
 #[cfg(test)]
 mod join_tests;
 mod picker;
+pub(crate) mod reader;
 pub mod seams;
 #[cfg(test)]
 mod tests;
+pub mod view;
 #[cfg(test)]
 mod view_split_tests;
 #[cfg(test)]
 mod view_tests;
-pub mod view;
 
 use crate::list::{Palette, Typeface};
 use flea::ui_logic_mn1::build::Peer;
@@ -23,6 +25,7 @@ use std::{cell::RefCell, rc::Rc};
 /// One pane backend's provider send state, one per backend since each numbers its localsend requests from 1.
 #[derive(Default)]
 pub struct ProviderSend {
+    db: dropbox_status::Daemon,
     next: u64,
     providers: Vec<Provider>,
     gated: bool,
@@ -66,7 +69,9 @@ impl ProviderSend {
     }
 
     fn provider(&self, role: Role) -> Provider {
-        providers::provider(&self.providers, role).cloned().unwrap_or_default()
+        providers::provider(&self.providers, role)
+            .cloned()
+            .unwrap_or_default()
     }
 
     // One row per provider, suppressed while disabled or failed once the st2 join lands.
@@ -153,7 +158,11 @@ impl ProviderSend {
     }
 
     // The overlay Element over the listing slot, drawn from this host's browser state each frame.
-    pub fn browser_element(&self, typeface: Typeface, palette: Palette) -> view::ShareBrowserElement {
+    pub fn browser_element(
+        &self,
+        typeface: Typeface,
+        palette: Palette,
+    ) -> view::ShareBrowserElement {
         view::ShareBrowserElement::new(
             Rc::clone(&self.browser),
             Rc::clone(&self.rows),

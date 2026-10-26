@@ -1547,6 +1547,8 @@
     "flea:search.way.done": "6866eb6ebabb",
     "flea:search.way.walking": "9afc13820bca",
     "flea:selection.count": "68f607d6d336",
+    "flea:send.providers.dropbox_checking": "afcd5475243e",
+    "flea:send.providers.dropbox_timeout": "62f9e93120fa",
     "flea:send.providers.empty": "1aa7fffc57a8",
     "flea:send.providers.finished": "89a6c4d73c14",
     "flea:send.providers.menu_stale": "14d55f36a301",
