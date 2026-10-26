@@ -9,6 +9,8 @@ mod cards;
 mod disk;
 #[path = "status_failure_tests.rs"]
 mod failures;
+#[path = "status_fsunknown_tests.rs"]
+mod fsunknown;
 #[path = "status_launch_tests.rs"]
 mod launch_tests;
 #[path = "status_locked_menu_tests.rs"]
