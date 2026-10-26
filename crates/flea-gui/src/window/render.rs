@@ -121,7 +121,7 @@ impl Render for Shell {
             self.sync_surfaces(side, cx);
         }
         let mut panes: [Option<AnyElement>; 2] = [None, None];
-        let renaming = [0, 1].map(|side| self.renaming_row(side).is_some());
+        let renaming = [0, 1].map(|side| self.renaming_row(side));
         let mut lists = self.prepare_lists(
             heights,
             viewport.is_none().then_some(geometry.chrome.height),
@@ -161,8 +161,14 @@ impl Render for Shell {
                     palette: &palette,
                     marked: drawn[side],
                     states: self.slots.states[side].clone(),
+                    renaming: renaming[side],
                 };
-                panes[side] = Some(host.grid_pane(input, cx));
+                panes[side] = Some(with_field(
+                    host.grid_pane(input, cx),
+                    renaming[side],
+                    side,
+                    cx,
+                ));
                 continue;
             }
             if !host.stopped {
@@ -178,7 +184,9 @@ impl Render for Shell {
                 }
             }
             if view == View::Columns {
-                panes[side] = self.render_columns(side, drawn[side], window, cx);
+                panes[side] = self
+                    .render_columns(side, drawn[side], window, cx)
+                    .map(|pane| with_field(pane, renaming[side], side, cx));
                 let host = self.panes[side].as_mut().unwrap();
                 host.drawn_view = panes[side].as_ref().map(|_| View::Columns);
                 host.drawn_list = false;
@@ -247,7 +255,7 @@ impl Render for Shell {
                         div.child(list)
                             .child(crate::input::surface(cx.entity(), side))
                     })
-                    .when(host.drawn_list && renaming[side], |div| {
+                    .when(host.drawn_list && renaming[side].is_some(), |div| {
                         div.child(super::rename::field::FieldElement::new(cx.entity(), side))
                     })
                     .children(self.slots.states[side].clone())
@@ -343,4 +351,22 @@ impl Render for Shell {
         .children(self.network_layers(window, cx))
         .children(self.unlock_layer(cx))
     }
+}
+
+/// Columns and Grid draw the rename field over their own element, as the list does over its rows.
+fn with_field(
+    pane: AnyElement,
+    renaming: Option<usize>,
+    side: usize,
+    cx: &mut Context<Shell>,
+) -> AnyElement {
+    if renaming.is_none() {
+        return pane;
+    }
+    div()
+        .relative()
+        .size_full()
+        .child(pane)
+        .child(super::rename::field::FieldElement::new(cx.entity(), side))
+        .into_any_element()
 }
