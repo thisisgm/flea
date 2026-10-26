@@ -72,7 +72,7 @@ fn ql_small_svg_and_small_png_fill_the_card(cx: &mut TestAppContext) {
     let (cx, _, _, _) = host(cx, small_picture(true), Arm::Fix);
     assert_eq!(rect(cx, "pv1-card"), (99., 63., 902., 574.));
     assert_eq!(rect(cx, "pv1-picture"), (120., 63., 861., 574.));
-    // EY-160: v0.3.12 scales a small raster up the same way (native run.3v7DMZID, logo.png 96x48).
+    // v0.3.12 scales a small raster up the same way.
     let (cx, _, _, _) = host(cx, small_picture(false), Arm::Fix);
     assert_eq!(rect(cx, "pv1-picture"), (120., 63., 861., 574.));
 }
@@ -81,7 +81,9 @@ fn ql_small_svg_and_small_png_fill_the_card(cx: &mut TestAppContext) {
 fn small_link(vector: bool) -> Subject {
     let mut subject = ql_symlink(&english());
     let small = small_picture(vector);
-    if let (Body::Link { path, w, h, .. }, Body::Image { path: picture, .. }) = (&mut subject.body, &small.body) {
+    if let (Body::Link { path, w, h, .. }, Body::Image { path: picture, .. }) =
+        (&mut subject.body, &small.body)
+    {
         *path = picture.clone();
         *w = 60.;
         *h = 40.;
@@ -90,11 +92,17 @@ fn small_link(vector: bool) -> Subject {
 }
 
 #[gpui::test]
-fn ql_small_svg_link_fills_under_the_bar_and_small_png_link_keeps_its_size(cx: &mut TestAppContext) {
+fn ql_small_svg_link_fills_under_the_bar_and_small_png_link_keeps_its_size(
+    cx: &mut TestAppContext,
+) {
     // The 547 px room under the 27 px bar limits a 60x40 vector: it draws 547 tall, aspect kept.
     let (cx, _, _, _) = host(cx, small_link(true), Arm::Fix);
     let (_, y, w, h) = rect(cx, "pv1-picture");
-    assert_eq!((y, h), (63. + 27., 547.), "the vector fills the room under the bar");
+    assert_eq!(
+        (y, h),
+        (63. + 27., 547.),
+        "the vector fills the room under the bar"
+    );
     assert!((w - 547. * 1.5).abs() <= 1., "the aspect is kept: {w}");
     let (cx, _, _, _) = host(cx, small_link(false), Arm::Fix);
     let (_, _, w, h) = rect(cx, "pv1-picture");
@@ -226,6 +234,9 @@ fn each_strip_mark_reads_its_accessible_name() {
         (Glyph::Maximize, "Expand"),
     ];
     for (glyph, name) in named {
-        assert_eq!(glyph.access_key().map(|k| i18n.tr(k)).as_deref(), Some(name));
+        assert_eq!(
+            glyph.access_key().map(|k| i18n.tr(k)).as_deref(),
+            Some(name)
+        );
     }
 }

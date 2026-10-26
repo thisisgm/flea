@@ -311,7 +311,9 @@ fn pb_rest_2_enter_opens_reverse_order_marks(cx: &mut TestAppContext) {
         ),
     );
     assert!(
-        sent().iter().any(|line| line.contains("\"op\":\"validate\"")),
+        sent()
+            .iter()
+            .any(|line| line.contains("\"op\":\"validate\"")),
         "unchanged reverse-order marks must pass the snapshot reply guard"
     );
     reply(

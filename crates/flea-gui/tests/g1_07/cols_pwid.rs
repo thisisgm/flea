@@ -350,7 +350,6 @@ fn the_edge_draws_its_line_and_mark_only_while_hovered() {
     );
     c.eq(
         257,
-        // GM ruling (COLUMNS-FINDER.md): the mark's centre sits on the hairline's centre, not 12 px left of the edge.
         "hover: the mark is 16 px, centred on the hairline, top at mid height",
         mark,
         Some((791.5, HEIGHT / 2., 16.)),
