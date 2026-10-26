@@ -3,6 +3,7 @@ import { mermaidToSvg } from '../ui/vendor/mermaid.mjs';
 import { nodes, parse, texts } from './mermaid-corpus.mjs';
 
 const EPSILON = 0.000001;
+const LAYOUT_PX = 13;
 const theme = { bg: '#101315', fg: '#c0caf5', accent: '#7aa2f7', font: 'monospace' };
 const sizes = [12, 14, 28];
 const cases = [];
@@ -34,9 +35,9 @@ for (const id of Object.keys(sources)) {
         const labels = texts(tree);
         const node = nodes(tree).find((n) => n.id === (id === 'F2' ? 'A' : 'B'));
         const rect = node.el.children.find((el) => el.name === 'rect');
-        // The library lays the figure out at the body size itself, so the canvas draws at its own scale with every label at that size.
-        check(Math.abs(scale - 1) < EPSILON, id + ' body ' + bodyPx + ': canvas draws at the layout scale, got ' + scale);
-        check(labels.length > 0 && labels.every((t) => t.size === bodyPx), id + ' body ' + bodyPx + ': labels drawn at the body size, got ' + labels.map((t) => t.size));
+        // The bundle lays the figure out at body 13, as v0.3.12 did, and the canvas scales by the body size over 13, so every label draws at the body size.
+        check(Math.abs(scale - bodyPx / LAYOUT_PX) < EPSILON, id + ' body ' + bodyPx + ': canvas scales with the body size, got ' + scale);
+        check(labels.length > 0 && labels.every((t) => t.size === LAYOUT_PX), id + ' body ' + bodyPx + ': labels laid out at 13, got ' + labels.map((t) => t.size));
         const half = Number(rect.attrs['stroke-width'] ?? 1) / 2;
         const paint = [node.box[0] - half, node.box[1] - half, node.box[2] + half, node.box[3] + half];
         const paintBottom = paint[3];

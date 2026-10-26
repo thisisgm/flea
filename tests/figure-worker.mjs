@@ -117,7 +117,7 @@ if (argv[0] === "zone") {
     check(child.status === 0, "two-variable cycle refuses the SVG: " + child.output);
     // The bundle resolves every theme role it draws to the request's own colours, so no var() reaches the post-pass, in a fill or a stroke.
     const flow = renderFigure("mermaid", "flowchart TD\nA --> B", false, roles, { mermaidToSvg });
-    check(!flow.includes("var(") && /<svg\b[^>]*\sfill="#ffffff"/.test(flow) && flow.includes('<rect x="-24" y="-22.5" width="48" height="45" fill="#202020" stroke="#808080"'),
+    check(!flow.includes("var(") && /<svg\b[^>]*\sfill="#ffffff"/.test(flow) && flow.includes('<rect x="-30" y="-18.45" width="60" height="36.9" fill="#202020" stroke="#808080"'),
         "theme roles resolve to the request's colours: text in the foreground, a node on the surface, its border in the muted role");
     // A link crossing a nested subgraph's title gets a halo that mixes two roles, which the bundle hands over as one concrete colour.
     const nested = mermaidToSvg("flowchart TD\nsubgraph outer [Outer]\nsubgraph inner [Inner]\nA --> B\nend\nC --> A\nend", roles);
