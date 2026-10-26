@@ -38,12 +38,13 @@ fn drawn_row_box(list: &ListState, index: usize) -> (f32, f32, f32, f32) {
 
 /// Ipc.qml rowRect for any pane's list: the row's box while that list draws it, else empty.
 pub(crate) fn drawn_row_rect(list: &ListState, held: &Held, index: usize) -> String {
-    let drawn = list.drawn.listing == held.listing
-        && list.visible().iter().any(|shown| shown.index == index);
-    if !drawn {
+    if list.drawn.listing != held.listing {
         return String::new();
     }
-    let (x, y, w, h) = drawn_row_box(list, index);
+    let Some(shown) = list.visible().iter().find(|shown| shown.index == index) else {
+        return String::new();
+    };
+    let (x, y, w, h) = drawn_row_box(list, shown.view);
     rect_of(x, y, w, h)
 }
 
