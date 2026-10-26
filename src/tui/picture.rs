@@ -34,6 +34,7 @@ pub fn stack(m: &Model, area: &Area) -> ((usize, usize), Vec<Slot>) {
         Kind::Video => lead(vec![Slot::Blank, Slot::Player], details),
         Kind::Audio => lead(vec![Slot::Player], details),
         Kind::Pdf => vec![Slot::Blank, Slot::Page, Slot::Controls],
+        Kind::Office => lead(vec![Slot::Blank, Slot::Page, Slot::Controls], details),
         _ => lead(Vec::new(), details),
     };
     let room = area.height.saturating_sub(tail.len() + usize::from(area.card));
@@ -86,7 +87,12 @@ fn picture(m: &Model, row: &super::model::Row, kind: Kind, room: (usize, usize))
             // Nothing is reserved before the probe answers, and the decode waits for it too, so a picture is decoded once.
             Kind::Image if !pane_state::pictured(row) => (0, 0),
             Kind::Image | Kind::Video => m.media_probe.map_or((0, 0), |(w, h, _)| fit((w, h), room, cell)),
-            Kind::Pdf => m.pdf.as_ref().and_then(|pdf| pdf.shown).map_or((0, 0), |size| {
+            // An embedded thumbnail holds the box until the converted page replaces it; without one the kind mark stands.
+            Kind::Office if !m.pdf.as_ref().is_some_and(super::office::page_drawn) => match (m.image_file.is_some(), m.media_probe) {
+                (true, Some((w, h, _))) => fit((w, h), room, cell),
+                _ => (0, 0),
+            },
+            Kind::Pdf | Kind::Office => m.pdf.as_ref().and_then(|pdf| pdf.shown).map_or((0, 0), |size| {
                 ((size.0.div_ceil(cell.0)).min(room.0), ((size.1 + cell.1 / 2) / cell.1).clamp(1, room.1))
             }),
             Kind::Model3d => super::model3d::pixels(room, cell).map_or((0, 0), |p| (p.0.div_ceil(cell.0), p.1.div_ceil(cell.1))),

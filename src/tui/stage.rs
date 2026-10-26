@@ -27,7 +27,11 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
     let preview_allowed = model.preview_loaded && current.as_ref() == Some(&model.preview_path);
     let row = model.rows.get(&model.cursor).cloned();
     let kind = row.as_ref().map(pane_state::kind);
+    super::office::step(model, wire, visible && preview_allowed)?;
     let is_pdf = kind == Some(Kind::Pdf);
+    let is_office = kind == Some(Kind::Office);
+    // An Office page is drawn by the PDF path; a folder, an image or media never is.
+    let paged = is_pdf || is_office;
     let is_media = matches!(kind, Some(Kind::Audio | Kind::Video));
     let place = picture::place(model);
     let geometry = (place.cells.0, place.cells.1, place.left, place.top);
@@ -45,7 +49,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
             }
         }
     }
-    if !visible || !preview_allowed || !graphics_ready || !is_pdf || model.pdf.as_ref().is_some_and(|p| Some(&p.path) != content.as_ref()) {
+    if !visible || !preview_allowed || !graphics_ready || !paged || model.pdf.as_ref().is_some_and(|p| Some(&p.source) != content.as_ref()) {
         model.pdf = None;
     }
     let is_model = kind == Some(Kind::Model3d);
@@ -76,9 +80,19 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
                 }
             }
         }
-        if is_pdf && model.pdf.is_none() && graphics_ready {
+        let drawn = if is_pdf { Some(path.clone()) } else if is_office { super::office::ready_pdf(&model.preview_state) } else { None };
+        if let Some(drawn) = drawn.filter(|_| model.pdf.is_none() && graphics_ready) {
             let still = model.preview_state.colors.is_some() && super::chafa::installed();
-            model.pdf = Some(pdf::Pdf::new(path.clone(), graphics.protocol, place.room.0, place.room.1, page_pixels.unwrap_or((0, 0)), &model.preview_state.ground, still));
+            let mut page = pdf::Pdf::new(drawn, graphics.protocol, place.room.0, place.room.1, page_pixels.unwrap_or((0, 0)), &model.preview_state.ground, still);
+            page.source = path.clone();
+            model.pdf = Some(page);
+        }
+        // The converted page replaces the embedded thumbnail, and the thumbnail is no longer asked for.
+        if is_office && model.pdf.as_ref().is_some_and(super::office::page_drawn) {
+            if let Some(index) = model.thumb_index.take() {
+                wire.send(vec![("c", wire::word("thumbcancel")), ("rows", crate::jsondoc::Json::Arr(vec![wire::number(index)]))])?;
+            }
+            if model.image_file.take().is_some() { graphics.release(); }
         }
         if path != shown.path || shown.generation != model.preview_generation {
             if let Some(index) = model.thumb_index {
@@ -89,7 +103,8 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
             model.thumb_index = None;
             shown.path = path;
             shown.generation = model.preview_generation;
-            if let Some(row) = row.as_ref().filter(|_| !is_media && !is_pdf) {
+            // An Office row asks for its embedded thumbnail too, shown until the converted page replaces it.
+            if let Some(row) = row.as_ref().filter(|_| !is_media && (!paged || is_office)) {
                 if pane_state::pictured(row) {
                     model.image_file = Some(shown.path.clone());
                 } else if row.thumbnail && kind != Some(Kind::Image) {
@@ -123,7 +138,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
         }
         player.poster_up = player.at_rest() && graphics.shows(&player.path);
     }
-    if visible && graphics.protocol != Protocol::None && pixels.is_none() && (is_media || is_pdf || model.image_file.is_some()) && model.preview_failed != current {
+    if visible && graphics.protocol != Protocol::None && pixels.is_none() && (is_media || paged || model.image_file.is_some()) && model.preview_failed != current {
         model.fail("Inline preview unavailable: terminal did not report pixel dimensions".into());
         model.preview_failed = current.clone();
     }
@@ -144,19 +159,24 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
         let error = model.player.take().unwrap().error.clone();
         model.fail(error);
     }
+    let mut polled = false;
     if let Some(pdf) = &mut model.pdf {
         let pixels = page_pixels.unwrap_or((0, 0));
         if (pdf.columns, pdf.rows) != place.room || pdf.pixels != pixels {
             (pdf.columns, pdf.rows, pdf.pixels) = (place.room.0, place.room.1, pixels);
             pdf.refresh();
         }
-        if pdf.poll() {
+        polled = pdf.poll();
+        if polled {
             frame.clear();
         }
         let error = std::mem::take(&mut pdf.error);
         if !error.is_empty() {
             model.fail(error);
         }
+    }
+    if polled {
+        super::office::facts(model);
     }
     Ok((geometry.2, geometry.3))
 }
@@ -176,7 +196,12 @@ fn still(model: &mut Model, protocol: Protocol, shown: bool, room: (usize, usize
             let side = graphics::poster_side(probe.map_or((0, 0), |(w, h, _)| (w, h)), (room.0 * graphics::FALLBACK_CELL.0, room.1 * graphics::FALLBACK_CELL.1));
             state.still.want(key((0, 0, 0)), || Some(Source::Poster(path.clone(), side)));
         }
-        Kind::Pdf => match pdf.as_ref().filter(|pdf| !pdf.png.is_empty()) {
+        // Before the page, an Office row's embedded thumbnail is the picture; its key stays apart from every page's.
+        Kind::Office if !pdf.as_ref().is_some_and(super::office::page_drawn) => match model.image_file.clone() {
+            Some(thumb) => state.still.want(key((0, 0, 0)), || Some(Source::File(thumb))),
+            None => state.still.clear(),
+        },
+        Kind::Pdf | Kind::Office => match pdf.as_ref().filter(|pdf| !pdf.png.is_empty()) {
             Some(pdf) => state.still.want(key((pdf.revision, 0, 0)), || Some(Source::Bytes(pdf.png.clone()))),
             None => state.still.clear(),
         },

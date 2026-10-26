@@ -688,6 +688,7 @@ impl Model {
             "jobs" | "job" => super::jobstatus::receive(self, &value),
             "code" => super::syntax::receive(self, &value),
             "model3d" => super::model3d::receive(self, &value),
+            "officepdf" => super::office::receive(self, &value, wire)?,
             "filtered" => super::filter::receive(self, &value, wire)?,
             "listed" => {
                 if let Some(path) = self.pending.take() {

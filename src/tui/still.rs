@@ -43,6 +43,8 @@ pub struct Still {
     retiring: Vec<Receiver<io::Result<Option<Grid>>>>,
     retiring_stages: Vec<Receiver<Result<Vec<u8>, String>>>,
     grid: Option<Grid>,
+    // The last grid for this file, held across a page-key swap until the new key's grid lands.
+    fallback: Option<Grid>,
     pub error: String,
     places: Places,
 }
@@ -60,8 +62,14 @@ impl Still {
         if self.key.as_ref() == Some(&key) {
             return;
         }
+        // Only a page revision may reuse the last drawn grid while its replacement decodes.
+        let keep = self.key.as_ref().is_some_and(|old| {
+            old.path == key.path && old.generation == key.generation && old.cells == key.cells && old.colors == key.colors
+        });
+        let held = if keep { self.grid.take().or_else(|| self.fallback.take()) } else { None };
         self.clear();
         let Some(source) = source() else { return };
+        self.fallback = held;
         self.key = Some(key);
         match source {
             Source::Poster(path, side) => {
@@ -93,11 +101,13 @@ impl Still {
                 }
                 Ok(Err(error)) => {
                     self.stage = None;
+                    self.fallback = None;
                     self.error = error;
                 }
                 Err(TryRecvError::Empty) => {}
                 Err(TryRecvError::Disconnected) => {
                     self.stage = None;
+                    self.fallback = None;
                     self.error = UNSHOWN.into();
                 }
             }
@@ -113,9 +123,11 @@ impl Still {
             Ok(grid) => {
                 let arrived = grid.is_some();
                 self.grid = grid;
+                self.fallback = None;
                 arrived
             }
             Err(error) => {
+                self.fallback = None;
                 self.error = crate::error::io_message(&error);
                 false
             }
@@ -129,6 +141,7 @@ impl Still {
         }
         if let Some(job) = self.stage.take() { self.retiring_stages.push(super::graphics::cancel_job(job)); }
         self.grid = None;
+        self.fallback = None;
         self.key = None;
         self.error.clear();
         self.retiring.retain(|r| matches!(r.try_recv(), Err(TryRecvError::Empty)));
@@ -139,7 +152,10 @@ impl Still {
     }
     // The grid for this key only, so a stale picture is never drawn for the next file or size.
     pub fn grid(&self, key: &Key) -> Option<&Grid> {
-        self.grid.as_ref().filter(|_| self.key.as_ref() == Some(key))
+        if self.key.as_ref() != Some(key) {
+            return None;
+        }
+        self.grid.as_ref().or(self.fallback.as_ref())
     }
     #[cfg(test)]
     pub fn hold(&mut self, key: Key, grid: Grid) {
