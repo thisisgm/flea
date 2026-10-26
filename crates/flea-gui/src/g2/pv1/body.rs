@@ -1,5 +1,6 @@
 //! What Quick Look shows for one subject, each kind as its board draws it; every string is already translated.
 use super::glyph::Glyph;
+use crate::row::marks::Mark;
 use flea::i18n::I18n;
 use flea::ui_logic_pv1::{
     compare::DiffRow,
@@ -124,18 +125,25 @@ pub struct Subject {
     pub name: String,
     pub icon: String,
     pub mode: u32,
+    /// ViewState.langMarks: a code file's bar wears its language logo while this is on.
+    pub lang_marks: bool,
     pub state: State,
     pub shape: Shape,
     pub body: Body,
 }
 
 impl Subject {
-    /// Icons.js glyphFor(), and CompareView's Markdown mark for a Markdown pair.
+    /// QuickLookBar's mark: CompareView's Markdown mark for a Markdown pair, else the language logo the rows wear while langMarks is on, else Icons.js glyphFor().
     pub fn mark(&self) -> Glyph {
         if self.body.is_compare() && flea::ui_logic_pv1::kinds::is_markdown(&self.name) {
             return Glyph::Markdown;
         }
-        Glyph::kind(&self.icon, self.mode)
+        Glyph::Row(Mark::for_bar(
+            &self.name,
+            &self.icon,
+            self.mode,
+            self.lang_marks,
+        ))
     }
 }
 

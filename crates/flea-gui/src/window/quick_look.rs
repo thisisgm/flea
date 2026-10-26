@@ -1,6 +1,7 @@
 //! Quick Look over the window: pv1's card, built on first open, its subject read through the pane's backend.
 use crate::{
     g2::pv1::{Body, Event, QuickLook, Subject},
+    row::marks,
     state::Shell,
 };
 use flea::keys::Context as Keys;
@@ -181,10 +182,12 @@ impl Shell {
         let catalog = self.locale.catalog.clone();
         let state = kinds::quick_look_kind(&row.icon, &row.name, false);
         let token = token();
+        let lang_marks = marks::lang_marks_on(&self.launch.settings.data);
         let subject = |state, body| Subject {
             name: row.name.clone(),
             icon: row.icon.clone(),
             mode: row.mode,
+            lang_marks,
             state,
             shape: Shape::unknown(state),
             body,

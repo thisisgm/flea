@@ -85,8 +85,9 @@ fn fix9_locked_list_and_grid_follow_body_small_body_and_caption(cx: &mut TestApp
     }
 }
 
+/// EY-83 supersedes the FIX9 neutral-ink assertion: locked, grid-locked and locked-menu draw the padlock in var(--error), as StateMessage.qml does.
 #[test]
-fn fix9_locked_uses_neutral_ink_even_when_error_is_distinct() {
+fn ey83_locked_uses_the_error_ink_even_when_it_is_distinct() {
     let theme = crate::palette::Theme::default();
     let mut ink = super::Ink::interim(&crate::list::Palette::inherited(
         &gpui::TextStyle::default(),
@@ -96,7 +97,7 @@ fn fix9_locked_uses_neutral_ink_even_when_error_is_distinct() {
     let locked = Facts::failed("scan", "Permission denied", 0, &english());
     let error = Facts::failed("scan", "item not found", 0, &english());
     assert_ne!(ink.foreground, ink.error);
-    assert_eq!(locked.mark_ink(ink), ink.foreground);
+    assert_eq!(locked.mark_ink(ink), ink.error);
     assert_eq!(error.mark_ink(ink), ink.error);
 }
 

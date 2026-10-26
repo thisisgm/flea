@@ -165,6 +165,7 @@ impl Shell {
             name: row.name.clone(),
             icon: row.icon.clone(),
             mode: row.mode,
+            lang_marks: crate::row::marks::lang_marks_on(&self.launch.settings.data),
             state,
             shape: doc.shape(state, cx),
             body: Body::Doc(doc.clone()),

@@ -162,6 +162,7 @@ impl Shell {
                 mark.icon.clone()
             },
             mode: mark.mode,
+            lang_marks: crate::row::marks::lang_marks_on(&self.launch.settings.data),
             state: State::Text,
             shape: Shape::unknown(State::Unsupported),
             body: Body::Refused {
