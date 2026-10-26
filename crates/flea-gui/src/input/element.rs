@@ -33,16 +33,58 @@ pub fn surface_with(
     side: usize,
     read: impl Fn(&Shell, Bounds<gpui::Pixels>) -> Option<(Frame, crate::list::Palette)> + 'static,
 ) -> impl IntoElement {
+    viewport(shell, side, false, read)
+}
+
+/// Grid borrows the same scroller paint and deadlines while retaining its own scroll position.
+pub(crate) fn grid_surface(
+    shell: Entity<Shell>,
+    side: usize,
+    read: impl Fn(&Shell, Bounds<gpui::Pixels>) -> Option<(Frame, crate::list::Palette)> + 'static,
+) -> impl IntoElement {
+    viewport(shell, side, true, read)
+}
+
+fn viewport(
+    shell: Entity<Shell>,
+    side: usize,
+    grid: bool,
+    read: impl Fn(&Shell, Bounds<gpui::Pixels>) -> Option<(Frame, crate::list::Palette)> + 'static,
+) -> impl IntoElement {
     let shell = shell.downgrade();
     let paint = shell.clone();
     canvas(
         move |bounds, window, cx| {
             let palette = shell
-                .update(cx, |shell, _| {
-                    let (frame, palette) = read(shell, bounds)?;
+                .update(cx, |shell, cx| {
+                    let facts = read(shell, bounds);
                     let host = shell.panes[side].as_mut()?;
-                    host.pane.scroll_extent = Some(frame.content);
+                    let Some((frame, palette)) = facts else {
+                        if grid {
+                            host.input.cancel(&mut host.selected, &mut host.pane.cursor);
+                            host.input.frame = None;
+                            host.input.drawn = None;
+                            shell.hold_pointer(side, false, window, cx);
+                        }
+                        return None;
+                    };
+                    if grid {
+                        host.input
+                            .prepare(frame, &mut host.selected, &mut host.pane.cursor);
+                        if host.input.frame.is_some_and(|old| {
+                            old.listing == frame.listing
+                                && old.total == frame.total
+                                && old.scroll != frame.scroll
+                        }) {
+                            host.input.moved(cx.background_executor().now());
+                        }
+                    } else {
+                        host.pane.scroll_extent = Some(frame.content);
+                    }
                     host.input.frame = Some(frame);
+                    if grid {
+                        shell.arm_input_tick(side, window, cx);
+                    }
                     Some(palette)
                 })
                 .ok()
@@ -133,8 +175,12 @@ pub fn surface_with(
             window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
                 if phase == DispatchPhase::Bubble && hit.is_hovered(window) {
                     let _ = down.update(cx, |shell, cx| {
-                        shell.hold_pointer(side, true, window, cx);
-                        shell.pointer_down(side, event, window, cx)
+                        if grid {
+                            shell.grid_bar_down(side, event, window, cx);
+                        } else {
+                            shell.hold_pointer(side, true, window, cx);
+                            shell.pointer_down(side, event, window, cx);
+                        }
                     });
                 }
             });
@@ -145,7 +191,11 @@ pub fn surface_with(
                         if event.pressed_button.is_none() {
                             shell.cancel_pointer(side, window, cx);
                         }
-                        shell.pointer_move(side, event, hit.is_hovered(window), window, cx)
+                        if grid {
+                            shell.grid_bar_move(side, event, hit.is_hovered(window), window, cx);
+                        } else {
+                            shell.pointer_move(side, event, hit.is_hovered(window), window, cx);
+                        }
                     });
                 }
             });
@@ -159,14 +209,18 @@ pub fn surface_with(
                     });
                 } else if phase == DispatchPhase::Bubble {
                     let _ = up.update(cx, |shell, cx| {
-                        shell.pointer_up(side, event, window, cx);
+                        if grid {
+                            shell.grid_bar_up(side, event, window, cx);
+                        } else {
+                            shell.pointer_up(side, event, window, cx);
+                        }
                         shell.hold_pointer(side, false, window, cx);
                     });
                 }
             });
             let wheel = paint.clone();
             window.on_mouse_event(move |event: &ScrollWheelEvent, phase, window, cx| {
-                if phase == DispatchPhase::Bubble && hitbox.is_hovered(window) {
+                if !grid && phase == DispatchPhase::Bubble && hitbox.is_hovered(window) {
                     let _ =
                         wheel.update(cx, |shell, cx| shell.pointer_wheel(side, event, window, cx));
                 }
