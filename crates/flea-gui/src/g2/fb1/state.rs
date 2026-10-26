@@ -107,12 +107,9 @@ impl Facts {
         }
     }
 
+    /// StateMessage.qml: only a failure takes the urgent role, and only on the mark; the sentence stays readable.
     pub fn mark_ink(&self, ink: Ink) -> gpui::Hsla {
-        if self.kind == Kind::Locked {
-            ink.foreground
-        } else {
-            ink.error
-        }
+        ink.error
     }
 }
 

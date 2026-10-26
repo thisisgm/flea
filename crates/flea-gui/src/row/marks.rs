@@ -1,8 +1,7 @@
 //! Row marks: Lucide 1.38.0 path data (ISC), the Omarchy cut ui/js/Icons.js carries, drawn as alpha masks.
 //! Language logos are simple-icons geometry (CC0 1.0), trademarks of their owners, as ui/js/LangMarkPaths.js carries them.
 use flea::protocol::RowFacts;
-use gpui::{point, px, size, Bounds, Pixels, SharedString};
-use std::{cell::Cell, collections::HashSet};
+use gpui::SharedString;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mark {
@@ -34,6 +33,9 @@ macro_rules! svg {
         .as_bytes()
     };
 }
+
+mod clip;
+pub use clip::{ClipMark, ClipMarks};
 
 impl Mark {
     /// Icons.js glyphForRow(): a symlink by its mode, everything else by its icon name.
@@ -284,115 +286,6 @@ static LOGOS: [(&str, &[u8]); 35] = [
     logo!("zsh", "M7.65875 11.938833 A0.338333 0.338333 0 0 0 7.342 12.05375 L1.07875 19.51225 A0.338333 0.338333 0 0 0 1.120167 19.987083 A0.338333 0.338333 0 0 0 1.595583 19.94625 L7.85825 12.48775 A0.338333 0.338333 0 0 0 7.817417 12.012333 A0.35 0.35 0 0 0 7.65875 11.938833 M2.926167 12.12375 A1.827583 1.827583 0 0 0 1.106167 13.94375 A1.825833 1.825833 0 0 0 2.926167 15.763167 A1.827583 1.827583 0 0 0 4.745 13.94375 A1.825833 1.825833 0 0 0 2.925583 12.124333 M2.925583 13.177833 A0.758333 0.758333 0 0 1 3.692083 13.94375 A0.758333 0.758333 0 0 1 2.925583 14.709083 A0.758333 0.758333 0 0 1 2.160833 13.94375 A0.758333 0.758333 0 0 1 2.926167 13.17725 M5.990417 16.2415 A1.825833 1.825833 0 0 0 4.171 18.060917 A1.825833 1.825833 0 0 0 5.991 19.87975 A1.827583 1.827583 0 0 0 7.809833 18.05975 A1.827583 1.827583 0 0 0 5.990417 16.240917 M5.990417 17.293833 A0.758333 0.758333 0 0 1 6.756333 18.060333 C6.756333 18.489083 6.41975 18.825667 5.991 18.825667 A0.758333 0.758333 0 0 1 5.2245 18.060333 A0.758333 0.758333 0 0 1 5.990417 17.293833 M10.191 19.204833 A0.338333 0.338333 0 0 0 9.853833 19.542 A0.338333 0.338333 0 0 0 10.191 19.879167 L14.662833 19.879167 A0.338333 0.338333 0 0 0 15.000583 19.542 A0.338333 0.338333 0 0 0 14.662833 19.204833 Z"),
 ];
 
-/// The clipboard slot beside a name: copy and scissors share one anchor; a cut ghosts only the file mark.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ClipMark {
-    Copy,
-    Cut,
-}
-
-impl ClipMark {
-    /// Both glyphs follow the drawn name, capped at its reserved strip, one pixel above the line's centre.
-    pub fn bounds(
-        self,
-        name: Bounds<Pixels>,
-        drawn_width: Pixels,
-        side: Pixels,
-        gap: Pixels,
-    ) -> Bounds<Pixels> {
-        Bounds::new(
-            point(
-                name.origin.x + drawn_width.max(px(0.)).min(name.size.width) + gap,
-                name.origin.y + (name.size.height - side) / 2. - px(1.),
-            ),
-            size(side, side),
-        )
-    }
-
-    pub fn svg(self) -> (SharedString, &'static [u8]) {
-        let (key, data) = match self {
-            Self::Copy => ("flea-mark:copy", svg!("M9 8h12v13H9z M4 16V3h13")),
-            Self::Cut => (
-                "flea-mark:scissors",
-                svg!("M5 3l14 14 M19 3L5 17 M2 17h5v5H2z M17 17h5v5h-5z"),
-            ),
-        };
-        (SharedString::new_static(key), data)
-    }
-}
-
-/// ClipMarks.js: one keyed set per clipboard snapshot, scoped to the listing's directory so each row is one lookup by name.
-#[derive(Default)]
-pub struct ClipMarks {
-    paths: Vec<String>,
-    moving: bool,
-    base: String,
-    names: HashSet<String>,
-    /// Rows that reached the set; an empty clipboard answers without one, as tests/listcost.qml counts markCalls.
-    pub lookups: Cell<u64>,
-    /// Moves with every snapshot or scope, so rows resolve their marks once per change rather than once per frame.
-    pub revision: u64,
-}
-
-impl ClipMarks {
-    /// Takes a new clipboard snapshot; an emptied clipboard drops its set at once.
-    pub fn set(&mut self, paths: &[String], moving: bool) {
-        self.paths.clear();
-        self.paths.extend(paths.iter().cloned());
-        self.moving = moving;
-        self.rebuild();
-    }
-
-    /// The directory a listing's names join under, so a search result's relative name resolves against its scope.
-    pub fn scope(&mut self, base: &str) {
-        if self.base != base {
-            self.base.clear();
-            self.base.push_str(base);
-            self.rebuild();
-        }
-    }
-
-    fn rebuild(&mut self) {
-        self.revision += 1;
-        self.names.clear();
-        if self.paths.is_empty() {
-            self.paths.shrink_to_fit();
-            self.names.shrink_to_fit();
-            return;
-        }
-        let base = self.base.trim_end_matches('/');
-        for path in &self.paths {
-            if let Some(name) = path
-                .strip_prefix(base)
-                .and_then(|rest| rest.strip_prefix('/'))
-            {
-                self.names.insert(name.to_owned());
-            }
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.paths.is_empty()
-    }
-
-    /// The slots this snapshot holds; zero once the clipboard empties.
-    pub fn held(&self) -> usize {
-        self.paths.capacity() + self.names.capacity()
-    }
-
-    /// The mark for a row's name under the scoped directory; an empty clipboard answers without a lookup.
-    pub fn mark_for(&self, name: &str) -> Option<ClipMark> {
-        if self.paths.is_empty() {
-            return None;
-        }
-        self.lookups.set(self.lookups.get() + 1);
-        self.names.contains(name).then_some(if self.moving {
-            ClipMark::Cut
-        } else {
-            ClipMark::Copy
-        })
-    }
-}
 
 #[cfg(test)]
 #[path = "mark_tests.rs"]

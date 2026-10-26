@@ -162,9 +162,9 @@ impl Doc {
         !matches!(self.view, View::Pdf(_) | View::Office(_))
     }
 
-    /// Media draws its strip and no bar; every other kind has the chrome bar.
+    /// Media draws its strip and no bar; an archive card opens on its own name heading with no bar (ql-archive); every other kind has the chrome bar.
     pub fn has_bar(&self) -> bool {
-        !matches!(self.view, View::Media(_))
+        !matches!(self.view, View::Media(_) | View::Archive(_))
     }
 
     /// The bar's data, from the view's own Quick Look bar.
