@@ -1,7 +1,7 @@
 //! The grid's placement in one pass: tile rows, the scroll extent, tile boxes, and the Contain reveal with its last-row gap.
 use super::geometry::{
-    cell_height_for, cell_width_for, columns_for, grid_pad_y, Density, Metrics, Rect, ThumbSize,
-    GLYPH_CAP,
+    cell_height_for, cell_width_for, centred_x, columns_for, grid_pad_y, Density, Metrics, Rect,
+    ThumbSize, GLYPH_CAP,
 };
 use std::ops::Range;
 
@@ -154,10 +154,10 @@ impl Layout {
             height: cell.height - 2. * inset,
         }
     }
-    /// The thumbnail slot, centred across the cell under the density's top pad.
+    /// The thumbnail slot, centred across the cell on GridTile.qml's whole pixel under the density's top pad.
     pub fn slot(&self, cell: Rect) -> Rect {
         Rect {
-            x: cell.x + (cell.width - self.thumb) / 2.,
+            x: cell.x + centred_x(cell.width, self.thumb),
             y: cell.y + self.pad_y,
             width: self.thumb,
             height: self.thumb,
