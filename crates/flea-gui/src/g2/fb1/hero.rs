@@ -302,6 +302,9 @@ impl Render for EmptyHero {
                 )
             })
             .fold(0., f32::max);
+        let mark_side = (f32::from(self.typeface.body_small) * 3.7).round();
+        // Reserve the first caption stack so later line metrics cannot recenter Omi.
+        let anchor = if self.in_list { LIST_FIRST } else { BOARDS }.at(&self.typeface);
         let root = div()
             .relative()
             .size_full()
@@ -315,6 +318,8 @@ impl Render for EmptyHero {
                         .flex()
                         .flex_col()
                         .items_center()
+                        .h(px(mark_side + anchor.gap + anchor.caption_line))
+                        .flex_shrink_0()
                         .gap(px(metrics.gap))
                         .mt(px(2. * frame.offset))
                         .opacity(frame.opacity)
@@ -326,7 +331,7 @@ impl Render for EmptyHero {
                                     .debug_selector(|| "fb1-hero-mark".into())
                                     .child(empty_omi::Slot {
                                         mark: Rc::clone(&self.omi),
-                                        side: (f32::from(self.typeface.body_small) * 3.7).round(),
+                                        side: mark_side,
                                     }),
                                 "mark",
                                 SharedString::default(),

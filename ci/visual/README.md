@@ -9,3 +9,5 @@ Geometry is recorded on demand during native prepaint, only for visible rows and
 The native scene suite shares the capture smoke's private headless Hyprland session. It uses the owned-window transport and the staged `flea --gui` launcher, checks stable bytes one second apart, client and output scale, black pixels and geometry, and exercises unknown-scene, wrong-window, never-presented and empty-sidecar refusals. The smoke separately retains Vulkan and GL software-renderer checks.
 
 The current host draws the listing element in Columns and Grid slots as well as List, and starts the second list lazily in Dual. Capturing those scenes does not establish completion of their view-specific drawing or theme fidelity. Cross-renderer comparison requires native pixel review before a baseline is approved.
+
+The native `gpui-visual-scenes` suite also runs `omi_fit.caption_case`: it captures three settled empty-folder captions with motion enabled, measures accent pixels in each PNG, and rejects any change in the mark box or its 48px slot. The geometry JSON and all three captures are retained with the scene evidence.

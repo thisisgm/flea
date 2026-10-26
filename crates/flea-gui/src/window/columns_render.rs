@@ -160,6 +160,7 @@ impl Shell {
                             &typeface,
                             palette.metadata,
                             self.locale.catalog.tr("window.loading").into(),
+                            window,
                         )
                         .child(signal),
                     );
@@ -170,6 +171,7 @@ impl Shell {
                     &typeface,
                     palette.metadata,
                     host.state_text.message.clone().into(),
+                    window,
                 ));
             }
             area = area.child(track);
@@ -285,21 +287,23 @@ fn loading_tile(
     typeface: &crate::list::Typeface,
     ink: gpui::Hsla,
     line: gpui::SharedString,
+    window: &gpui::Window,
 ) -> gpui::Div {
     tile()
         .flex()
         .flex_col()
         .items_center()
         .justify_center()
-        .gap(px(crate::feedback::spinner::GAP))
-        .child(crate::feedback::spinner::Slot(mark))
-        .child(
+        .child(crate::feedback::spinner::hero(
+            mark,
             div()
                 .text_size(typeface.caption)
                 .font_family(typeface.font.family.clone())
                 .text_color(ink)
                 .child(line),
-        )
+            typeface.caption,
+            window,
+        ))
 }
 
 fn sync_tile(
