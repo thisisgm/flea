@@ -54,6 +54,7 @@ mod mount_process;
 
 mod mount_lifetime;
 
+mod view_observe;
 mod view_render;
 
 #[cfg(test)]

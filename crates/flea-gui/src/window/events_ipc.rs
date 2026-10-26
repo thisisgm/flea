@@ -111,8 +111,7 @@ impl Shell {
                     visible: host.drawn_view == Some(crate::window::startup::View::Columns),
                     cx,
                 };
-                let preview_active = host.drawn_view
-                    == Some(crate::window::startup::View::Columns)
+                let preview_active = host.drawn_view == Some(crate::window::startup::View::Columns)
                     && host.columns.as_ref().is_some_and(|columns| {
                         columns.preview_hosted
                             && columns
