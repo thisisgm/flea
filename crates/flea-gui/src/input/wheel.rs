@@ -7,6 +7,41 @@ use crate::{list::pane::Pane, state::Shell};
 use gpui::{Context, ScrollDelta, ScrollWheelEvent, TouchPhase, Window};
 use std::time::Instant;
 
+#[cfg(test)]
+#[path = "scroll_parity_tests.rs"]
+mod parity_tests;
+
+/// One native event in the shared scroll policy's units; cancellation is handled by the motion owner.
+pub(crate) fn delivery(event: &ScrollWheelEvent, in_stroke: bool) -> Option<Wheel> {
+    Some(match event.delta {
+        ScrollDelta::Lines(lines) => Wheel {
+            angle: f64::from(lines.y) / scroll::FORK_NOTCH_LINES * scroll::NOTCH_UNITS,
+            ..Wheel::default()
+        },
+        ScrollDelta::Pixels(pixels) => {
+            let raw = scroll::touchpad_raw(f64::from(f32::from(pixels.y)));
+            let phase = match event.touch_phase {
+                TouchPhase::Started => Phase::Begin,
+                TouchPhase::Moved => Phase::Update,
+                TouchPhase::Ended => Phase::End,
+                TouchPhase::Cancelled => return None,
+            };
+            if in_stroke {
+                Wheel {
+                    phase,
+                    pixel: raw,
+                    ..Wheel::default()
+                }
+            } else {
+                Wheel {
+                    angle: scroll::continuous_angle(raw),
+                    ..Wheel::default()
+                }
+            }
+        }
+    })
+}
+
 impl PaneInput {
     /// The axis the motion writes: the drawn position past an end included, bounded by this frame's geometry.
     fn axis(&self, scroll_y: f32) -> Option<Axis> {
@@ -122,7 +157,7 @@ impl Shell {
             TouchPhase::Ended | TouchPhase::Cancelled => false,
             TouchPhase::Moved => host.input.stroke,
         };
-        if blocked || host.pane.busy() || host.input.band.is_some() || event.modifiers.control {
+        if blocked || host.pane.busy() || host.input.band.is_some() {
             return;
         }
         let input = &mut host.input;
@@ -130,39 +165,12 @@ impl Shell {
         let Some(mut axis) = input.axis(host.pane.scroll_y) else {
             return;
         };
-        let wheel = match event.delta {
-            ScrollDelta::Lines(lines) => Wheel {
-                angle: f64::from(lines.y) / scroll::FORK_NOTCH_LINES * scroll::NOTCH_UNITS,
-                ..Wheel::default()
-            },
-            ScrollDelta::Pixels(pixels) => {
-                let raw = scroll::touchpad_raw(f64::from(f32::from(pixels.y)));
-                let phase = match event.touch_phase {
-                    TouchPhase::Started => Phase::Begin,
-                    TouchPhase::Ended => Phase::End,
-                    TouchPhase::Moved => Phase::Update,
-                    TouchPhase::Cancelled => {
-                        input.kinetic.press(&mut axis);
-                        input.kinetic.start_return(&mut axis, true);
-                        input.apply_axis(&mut host.pane, axis);
-                        cx.notify();
-                        return;
-                    }
-                };
-                // v0.3.12 decides per event: a Moved outside a stroke is Qt's NoScrollPhase event, which moves by its angle as notches.
-                if in_stroke {
-                    Wheel {
-                        phase,
-                        pixel: raw,
-                        ..Wheel::default()
-                    }
-                } else {
-                    Wheel {
-                        angle: scroll::continuous_angle(raw),
-                        ..Wheel::default()
-                    }
-                }
-            }
+        let Some(wheel) = delivery(event, in_stroke) else {
+            input.kinetic.press(&mut axis);
+            input.kinetic.start_return(&mut axis, true);
+            input.apply_axis(&mut host.pane, axis);
+            cx.notify();
+            return;
         };
         let from = input.drawn(host.pane.scroll_y);
         let before = host.pane.scroll_y;
