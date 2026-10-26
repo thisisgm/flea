@@ -108,6 +108,10 @@ pub fn open(
 #[cfg(test)]
 mod columns_tests;
 #[cfg(test)]
+mod scrollkeys_tests;
+#[cfg(test)]
+mod columns_key_repeat_tests;
+#[cfg(test)]
 #[path = "../list/join_tests.rs"]
 mod list_tests;
 #[cfg(test)]
