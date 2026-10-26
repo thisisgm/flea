@@ -4,7 +4,7 @@ use super::save::SaveField;
 use crate::list::header::HeaderElement;
 use crate::list::{element::ROW_HEIGHT, ListElement, ListState, Typeface};
 use flea::i18n::I18n;
-use gpui::{div, prelude::*, Context, IntoElement, Render, Window};
+use gpui::{div, prelude::*, AnyView, Context, IntoElement, Render, Window};
 use std::{cell::RefCell, rc::Rc};
 
 pub struct ListingView {
@@ -12,6 +12,9 @@ pub struct ListingView {
     i18n: I18n,
     state: Rc<RefCell<ListState>>,
     scroll_y: f32,
+    // The name filter's drawn rows, None while every row is drawn, and its strip under the column titles.
+    shown: Option<Rc<[usize]>>,
+    strip: Option<AnyView>,
 }
 
 impl ListingView {
@@ -38,7 +41,36 @@ impl ListingView {
             i18n,
             state: Rc::new(RefCell::new(ListState::new(typeface))),
             scroll_y: 0.,
+            shown: None,
+            strip: None,
         }
+    }
+
+    /// The rows a standing name filter draws and its query, whose run each drawn name marks.
+    pub fn set_filtered(
+        &mut self,
+        shown: Option<Rc<[usize]>>,
+        query: &str,
+        strip: Option<AnyView>,
+    ) {
+        self.state
+            .borrow_mut()
+            .view
+            .set_query(if shown.is_some() { query } else { "" });
+        self.shown = shown;
+        self.strip = strip;
+    }
+
+    pub fn shown(&self) -> Option<&[usize]> {
+        self.shown.as_deref()
+    }
+
+    // The cursor's position among the drawn rows.
+    fn cursor_view(&self) -> usize {
+        let cursor = self.listing.cursor();
+        self.shown.as_ref().map_or(cursor, |rows| {
+            rows.iter().position(|row| *row == cursor).unwrap_or(0)
+        })
     }
 
     pub fn open(&mut self, path: &str) {
@@ -72,7 +104,7 @@ impl ListingView {
     // Scrolls the least distance that keeps the cursor row inside the last drawn box.
     pub fn reveal(&mut self) {
         let height = f32::from(self.state.borrow().drawn.bounds.size.height);
-        let top = self.listing.cursor() as f32 * ROW_HEIGHT;
+        let top = self.cursor_view() as f32 * ROW_HEIGHT;
         if top < self.scroll_y {
             self.scroll_y = top;
         } else if height > 0. && top + ROW_HEIGHT > self.scroll_y + height {
@@ -113,7 +145,8 @@ impl Render for ListingView {
             self.scroll_y,
             self.listing.cursor(),
             self.state.clone(),
-        );
+        )
+        .with_filter(self.shown.clone());
         div()
             .size_full()
             .flex()
@@ -123,6 +156,12 @@ impl Render for ListingView {
                     .debug_selector(|| "pk2-header".into())
                     .child(HeaderElement::new(self.state.clone())),
             )
+            .children(self.strip.clone().map(|strip| {
+                div()
+                    .flex_none()
+                    .h(gpui::px(crate::g2::sr2::strip::HEIGHT))
+                    .child(strip)
+            }))
             .child(
                 div()
                     .flex_1()

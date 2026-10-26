@@ -92,3 +92,33 @@ impl Watch {
         self.due = None;
     }
 }
+
+// inotify hears nothing a FUSE mount or a network share changes on its far side, so only those folders re-read when the window returns.
+pub fn blind(fs: &str, class: &str) -> bool {
+    fs == "fuse" || matches!(class, "network" | "phone")
+}
+
+// The window's activation as a latch: only a return after leaving owes a re-read, never the first activation or a repeat.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Front {
+    #[default]
+    Unseen,
+    Shown,
+    Left,
+}
+
+impl Front {
+    pub fn turn(&mut self, active: bool) -> bool {
+        let returned = active && *self == Front::Left;
+        *self = match (active, *self) {
+            (true, _) => Front::Shown,
+            (false, Front::Unseen) => Front::Unseen,
+            (false, _) => Front::Left,
+        };
+        returned
+    }
+}
+
+#[cfg(test)]
+#[path = "watch_tests.rs"]
+mod tests;

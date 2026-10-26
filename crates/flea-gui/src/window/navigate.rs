@@ -236,6 +236,45 @@ impl Shell {
         host.watch_task = Some((due, task));
     }
 
+    /// The window's two activation observers: blur cancels a divider drag, a return re-reads blind folders.
+    pub(crate) fn subscribe_activation(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.subscribe_blur(window, cx);
+        self.subscribe_return(window, cx);
+    }
+
+    /// A window coming back to the front re-reads every shown folder inotify cannot hear, through the watch's own route (#324).
+    fn subscribe_return(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let mut front = crate::navigation::watch::Front::default();
+        front.turn(window.is_window_active());
+        cx.observe_window_activation(window, move |shell, window, cx| {
+            if front.turn(window.is_window_active()) {
+                shell.window_returned(window, cx);
+            }
+        })
+        .detach();
+    }
+
+    pub(crate) fn window_returned(&mut self, window: &Window, cx: &mut Context<Self>) {
+        for side in 0..self.panes.len() {
+            let Some(host) = self.panes[side].as_mut() else {
+                continue;
+            };
+            let fs = self.surfaces[side]
+                .filesystem
+                .facts
+                .as_ref()
+                .filter(|facts| facts.path == host.path)
+                .map_or("", |facts| facts.name.as_str());
+            if !crate::navigation::watch::blind(fs, host.sizes.class().unwrap_or_default()) {
+                continue;
+            }
+            let now = host.pane.now();
+            let path = host.pane.path().to_owned();
+            host.nav.changed(&host.pane, &path, now);
+            self.arm_watch(side, window, cx);
+        }
+    }
+
     fn watch_due(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return;

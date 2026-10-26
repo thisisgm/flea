@@ -39,9 +39,9 @@ impl Runner for Idle {
     }
 }
 
-struct Drawn {
+pub(super) struct Drawn {
     ink: CardInk,
-    scale: f32,
+    pub(super) scale: f32,
 }
 
 impl Drawn {
@@ -65,7 +65,7 @@ fn same(a: Hsla, b: Hsla) -> bool {
         && (a.a - b.a).abs() < 1e-3
 }
 
-fn close(a: f32, b: f32) -> bool {
+pub(super) fn close(a: f32, b: f32) -> bool {
     (a - b).abs() < 1e-3
 }
 
@@ -84,7 +84,7 @@ fn inside(quads: &[Quad], colour: Hsla, frame: Bounds<ScaledPixels>) -> Vec<Boun
         .collect()
 }
 
-fn paint(cx: &mut VisualTestContext) -> Vec<Quad> {
+pub(super) fn paint(cx: &mut VisualTestContext) -> Vec<Quad> {
     cx.update(|window, cx| {
         window.draw(cx).clear(cx);
         window.painted_quads()
@@ -92,7 +92,7 @@ fn paint(cx: &mut VisualTestContext) -> Vec<Quad> {
 }
 
 /// An open card with one typed character, so Unlock is available, and an optional focused part.
-fn card(
+pub(super) fn card(
     cx: &mut TestAppContext,
     focus: Option<Part>,
 ) -> (Entity<UnlockView>, &mut VisualTestContext, Drawn) {
@@ -153,7 +153,7 @@ fn border(quads: &[Quad], b: Bounds<ScaledPixels>) -> f32 {
 }
 
 /// The Unlock frame (the framed bounds on the accent wash) and the framed Cancel left of it on the same line.
-fn frames(quads: &[Quad], d: &Drawn) -> (Bounds<ScaledPixels>, Bounds<ScaledPixels>) {
+pub(super) fn frames(quads: &[Quad], d: &Drawn) -> (Bounds<ScaledPixels>, Bounds<ScaledPixels>) {
     let mut framed: Vec<Bounds<ScaledPixels>> = Vec::new();
     for q in quads
         .iter()

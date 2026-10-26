@@ -59,6 +59,9 @@ pub struct TrashPane {
     epoch: Instant,
     /// Starts the Trash watch when Trash opens; None leaves it to a host that already watches.
     pub monitor_start: Option<fn() -> Started>,
+    // The last pointer point over the rows, and whether the keyboard has quieted its wash since (#322).
+    pub(super) pointer: Option<gpui::Point<gpui::Pixels>>,
+    pub(super) quiet: bool,
 }
 
 impl TrashPane {
@@ -98,6 +101,8 @@ impl TrashPane {
             retired: Vec::new(),
             epoch: Instant::now(),
             monitor_start: Some(Monitor::start),
+            pointer: None,
+            quiet: false,
         }
     }
 
@@ -215,6 +220,8 @@ impl TrashPane {
         self.host
             .view
             .press(press, repeat, now, &self.catalog, keys);
+        self.quiet = true;
+        self.hover(None, cx);
         self.pump(cx);
     }
 

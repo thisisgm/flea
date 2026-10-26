@@ -108,6 +108,7 @@ impl Thumbnailers {
 fn fingerprint_of(by_mime: &HashMap<String, Spec>) -> String {
     let mut entries: Vec<String> = by_mime.iter().map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0"))).collect();
     entries.sort();
+    entries.insert(0, "embedded-field-codes-v1".to_string()); // Retry failures made before embedded argv expansion.
     format!("{:016x}", crate::backend::xxh64::hash(entries.join("\n").as_bytes()))
 }
 

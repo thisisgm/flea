@@ -218,6 +218,8 @@ pub struct GridState {
     pub frames: u64,
     pub bounds: gpui::Bounds<Pixels>,
     pub ink: Option<Ink>,
+    /// The keyboard drives the cursor, so a resting pointer lights no tile until it moves (#322).
+    pub quiet: bool,
 }
 
 impl GridState {
@@ -237,6 +239,7 @@ impl GridState {
             frames: 0,
             bounds: gpui::Bounds::default(),
             ink: None,
+            quiet: false,
         }
     }
     /// Omarchy's default face until the pane follows the live font-set.
@@ -338,7 +341,7 @@ impl GridElement {
     ) {
         state.layout = Some(layout);
         state.scroll = scroll;
-        if let Some((x, y)) = self.view.pointer {
+        if let Some((x, y)) = self.view.pointer.filter(|_| !state.quiet) {
             let hit = state.tile_at(
                 x - f32::from(bounds.origin.x),
                 y - f32::from(bounds.origin.y),
