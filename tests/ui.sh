@@ -64,6 +64,9 @@ if [[ "$test_frontend" == qml ]]; then
 export QT_LOGGING_RULES="$(qslog_rules "${QT_LOGGING_RULES:-}")"
 fi
 flea_bin="${FLEA_BIN:-$repo/target/release/flea}"
+# The build these cases launch while their flea_bin points at a stub that stands in for the backend only.
+flea_launch_bin="$flea_bin"
+flea_backend_stub_cases=" dirsortstale openterminal hanglisting hanginspect noblank searchnoblank "
 flea_ipc_init "$flea_bin"
 # Sample input: let finished = Command::new("gio")
 # Every opener stub below is named from the product's own exec target, the same derivation
@@ -651,7 +654,15 @@ launch_window() {
     local -a wrap_args=()
     local wrap_arg
     for wrap_arg in ${flea_launch_wrap[@]+"${flea_launch_wrap[@]}"}; do wrap_args+=("--wrap=$wrap_arg"); done
-    flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$flea_bin" "${wrap_args[@]}" \
+    # A backend stub case's stub under the marked fixture root goes to the transport as FLEA_BIN; the launched flea stays this build.
+    local launch_bin="$flea_bin"
+    local -a backend_args=()
+    if [[ -n "${flea_launch_bin-}" && -n "${fixture_root-}" && "${flea_backend_stub_cases-}" == *" ${running_case-} "* \
+          && "$flea_bin" != "$flea_launch_bin" && "$flea_bin" == "$fixture_root"/* ]]; then
+        launch_bin="$flea_launch_bin"
+        backend_args=(--backend "$flea_bin")
+    fi
+    flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$launch_bin" "${backend_args[@]}" "${wrap_args[@]}" \
         || fail "owned window launch failed"
     ipc_pid=$FLEA_TEST_PID
     if [[ "${test_frontend:-qml}" == gpui ]]; then

@@ -8,8 +8,10 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
+from unittest import mock
 
-from flea_transport import MARKER, REPO, TransportError, Window, load
+from flea_transport import MARKER, REPO, TransportError, Window, load, sandbox_backend
 from flea_native_inputs_controls import check_inputs, check_launch_inputs
 from flea_native_harness_controls import check_harness
 from flea_native_envelope_controls import check_envelope
@@ -48,6 +50,8 @@ while True:
         reply = {"code": 0, "stdout": "owned\\n", "stderr": ""}
         if function == "palette":
             reply.update(code=3, stdout="", stderr="FLEA_IPC_NOT_PORTED flea.palette\\n")
+        if function == "backend":
+            reply["stdout"] = os.environ["FLEA_BIN"] + "\\n"
         if function == "hypr-runtime":
             reply["stdout"] = str((runtime / "hypr/control/.socket.sock").is_socket()) + "\\n"
         if function == "quit":
@@ -198,6 +202,78 @@ try:
     check(second.quit().returncode == 0, "quit-acknowledged")
     second.stop()
     check((second.root / "stopped").is_file(), "quit-drained")
+    stubs = root / "stubs"
+    stubs.mkdir()
+    backend_stub = stubs / "flea"
+    backend_stub.write_text("#!/bin/sh\nexit 0\n")
+    backend_stub.chmod(0o700)
+    stubbed = Window.start(root, parent=root, frontend="gpui", timeout=1, backend=str(backend_stub))
+    windows.append(stubbed)
+    stubbed_record = load(stubbed.root)
+    check(stubbed_record["backend"] == str(backend_stub.resolve()) and stubbed_record["binary"] == str(root / "target/debug/flea"),
+          "marked-sandbox-stub-backend")
+    check(stubbed.call("call", "flea", "backend").stdout == f"{backend_stub.resolve()}\n".encode(), "stub-backend-reaches-window")
+    check(stubbed.quit().returncode == 0, "stub-backend-quit")
+    outside = Path("/usr/bin/true")
+    check(outside.is_file() and not any((ancestor / MARKER).exists() for ancestor in outside.resolve().parents), "outside-has-no-marker")
+    refuse("stub-backend-outside-sandbox", lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, backend=str(outside)),
+           "outside a marked sandbox")
+    escape = stubs / "escape"
+    escape.symlink_to(outside)
+    refuse("stub-backend-symlink-escape", lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, backend=str(escape)),
+           "is a symlink")
+    plain = stubs / "plain"
+    plain.write_text("#!/bin/sh\nexit 0\n")
+    plain.chmod(0o600)
+    refuse("stub-backend-not-executable", lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, backend=str(plain)),
+           "not an owned executable")
+    refuse("stub-backend-relative", lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, backend="stubs/flea"),
+           "absolute path")
+    refuse("stub-backend-missing", lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, backend=str(stubs / "missing")),
+           "does not exist")
+    folder = stubs / "folder"
+    folder.mkdir(mode=0o700)
+    refuse("stub-backend-directory", lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, backend=str(folder)),
+           "not an owned executable")
+    with tempfile.TemporaryDirectory(prefix="flea-unmarked.") as unmarked:
+        (Path(unmarked) / "flea").write_text("#!/bin/sh\nexit 0\n")
+        (Path(unmarked) / "flea").chmod(0o700)
+        (stubs / "out").symlink_to(unmarked)
+        refuse("stub-backend-parent-symlink-escape",
+               lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, backend=str(stubs / "out/flea")),
+               "outside a marked sandbox")
+    qml_stubbed = Window.start(root, parent=root, frontend="qml", timeout=1, backend=str(backend_stub))
+    windows.append(qml_stubbed)
+    check(load(qml_stubbed.root)["backend"] == str(backend_stub.resolve()), "qml-stub-backend")
+    qml_stubbed.quit()
+    saved_home = os.environ["HOME"]
+    with tempfile.TemporaryDirectory(prefix="flea-fake-home.") as outside_home:
+        fake_home = Path(outside_home)
+        (fake_home / MARKER).touch()
+        dotted = fake_home / ".local/flea"
+        tool = fake_home / ".cargo/bin/flea"
+        worktree = fake_home / ".t3/worktrees/flea"
+        for planted in (dotted, tool, worktree / "stubs/flea"):
+            planted.parent.mkdir(parents=True)
+            planted.write_text("#!/bin/sh\nexit 0\n")
+            planted.chmod(0o700)
+        try:
+            os.environ["HOME"] = str(fake_home)
+            refuse("stub-backend-home-dot-dir", lambda: sandbox_backend(str(dotted)), "home dot-directory")
+            refuse("stub-backend-home-tool-dir", lambda: sandbox_backend(str(tool)), "home dot-directory")
+            refuse("stub-backend-worktree-dot-dir-outside-repo", lambda: sandbox_backend(str(worktree / "stubs/flea")), "home dot-directory")
+            with mock.patch("flea_transport.REPO", worktree):
+                check(sandbox_backend(str(worktree / "stubs/flea")) == str(worktree / "stubs/flea"), "stub-backend-worktree-dot-dir-accepted")
+            os.environ["HOME"] = str(root)
+            with mock.patch("pwd.getpwuid", return_value=SimpleNamespace(pw_dir=str(fake_home))):
+                refuse("stub-backend-passwd-home-dot-dir", lambda: sandbox_backend(str(dotted)), "home dot-directory")
+        finally:
+            os.environ["HOME"] = saved_home
+    with mock.patch("os.geteuid", return_value=os.geteuid() + 1):
+        refuse("stub-backend-foreign-owner", lambda: sandbox_backend(str(backend_stub)), "not an owned executable")
+    refuse("stub-as-wrapper-binary", lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, binary=str(backend_stub)),
+           "flea must come from this worktree's build")
+    refuse("stub-as-flea-gui", lambda: start(FLEA_GUI_BIN=str(backend_stub)), "flea-gui must come from this worktree's build")
     print(f"TRANSPORT_CONTROLS checks={checks} failed=0")
 finally:
     for window in windows:
