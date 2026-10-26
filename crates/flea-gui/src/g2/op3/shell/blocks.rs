@@ -171,7 +171,7 @@ impl Draw<'_> {
             .text_color(self.t.fg)
             .child(div().w(self.px(LABEL_COLUMN)).flex_none());
         for name in columns {
-            head = head.child(cell().child(name.to_uppercase()));
+            head = head.child(cell().child(self.caption(name, CAPTION * 1.2, self.t.fg)));
         }
         let mut grid = div().flex().flex_col().child(head);
         for (row, (name, checks)) in rows.iter().enumerate() {
@@ -376,7 +376,7 @@ impl Draw<'_> {
                         div()
                             .line_height(self.px(18.))
                             .pb(self.px(3.))
-                            .child(head.to_uppercase()),
+                            .child(self.caption(head, 18., t.fg)),
                     );
                 for (at, line) in lines.iter().enumerate() {
                     let height = if at + 1 == lines.len() { 20. } else { 16. };

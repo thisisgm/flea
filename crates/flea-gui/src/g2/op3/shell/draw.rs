@@ -1,5 +1,6 @@
 //! The stand-in frame: the card, its title, its controls and its buttons, drawn to the boards.
 use super::*;
+use crate::g2::fb1::caption::{tracking_for, Tracked};
 use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight, Pixels};
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
@@ -73,12 +74,23 @@ impl Draw<'_> {
         box_.into_any_element()
     }
 
+    pub(super) fn caption(&self, text: &str, line: f32, color: Hsla) -> Tracked {
+        Tracked {
+            text: flea::ui_logic_st1::caps::heading(text, self.language).into(),
+            font: self.typeface.font.clone(),
+            size: self.px(CAPTION),
+            line: self.px(line),
+            tracking: self.px(tracking_for(self.language)),
+            color,
+        }
+    }
+
     pub(super) fn label(&self, text: &str) -> Div {
         self.text(CAPTION)
             .line_height(self.px(14.))
             .mb(self.px(5.))
             .text_color(self.t.muted)
-            .child(text.to_uppercase())
+            .child(self.caption(text, 14., self.t.muted))
     }
 
     pub(super) fn field(&self, field: &Field) -> Div {
@@ -230,6 +242,7 @@ fn present(
         t: Tokens::of(palette),
         s,
         typeface,
+        language: &card.language,
         wire: interactive.map(|live| live.wire),
         entry: interactive.map(|live| live.entry),
     };

@@ -198,6 +198,7 @@ impl BulkRename {
             enabled,
         };
         Card {
+            language: i18n.language().to_owned(),
             title: logic::title(i18n, self.old.len()),
             esc: tr("dialogs.file.esc"),
             width: WIDTH,

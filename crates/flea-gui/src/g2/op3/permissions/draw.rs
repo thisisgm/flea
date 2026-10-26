@@ -108,6 +108,7 @@ impl Permissions {
                     lift: 0.,
                 });
                 return Card {
+                    language: i18n.language().to_owned(),
                     title,
                     esc: tr("dialogs.file.esc"),
                     width: WIDTH,
@@ -237,6 +238,7 @@ impl Permissions {
             });
         }
         Card {
+            language: i18n.language().to_owned(),
             title,
             esc: tr("dialogs.file.esc"),
             width: WIDTH,
