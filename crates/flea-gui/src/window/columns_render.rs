@@ -111,6 +111,9 @@ impl Shell {
                 .h_full()
                 .overflow_hidden()
                 .child(element);
+            if !matches!(view.rows, TrackRows::Preview) {
+                track = track.child(super::scroll::surface(cx.entity(), side, view.slot, palette));
+            }
             if matches!(view.rows, TrackRows::Preview) {
                 if columns.preview_hosted {
                     if let Some(preview) = &host.preview {
