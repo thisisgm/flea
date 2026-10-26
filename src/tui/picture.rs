@@ -20,7 +20,8 @@ pub fn stack(m: &Model, area: &Area) -> ((usize, usize), Vec<Slot>) {
     let Some(row) = m.rows.get(&m.cursor) else { return ((0, 0), Vec::new()) };
     let kind = pane_state::kind(row);
     let details: Vec<Slot> = if area.card { Vec::new() } else {
-        m.preview_metadata.iter().enumerate().filter(|(_, line)| !line.starts_with("Modified · ")).map(|(index, _)| Slot::Detail(index)).take(3).collect()
+        let limit = if kind == Kind::Model3d { area.height.saturating_sub(5) } else { 3 };
+        m.preview_metadata.iter().enumerate().filter(|(_, line)| !line.starts_with("Modified · ")).map(|(index, _)| Slot::Detail(index)).take(limit).collect()
     };
     let lead = |mut tail: Vec<Slot>, rest: Vec<Slot>| {
         if !rest.is_empty() {
@@ -36,11 +37,18 @@ pub fn stack(m: &Model, area: &Area) -> ((usize, usize), Vec<Slot>) {
         _ => lead(Vec::new(), details),
     };
     let room = area.height.saturating_sub(tail.len() + usize::from(area.card));
+    let room = model_room(m, kind, area.width(), room, area.card);
     let cells = picture(m, row, kind, (area.width(), room));
     if cells.1 == 0 && tail.first() == Some(&Slot::Blank) {
         tail.remove(0);
     }
     (cells, tail)
+}
+
+fn model_room(m: &Model, kind: Kind, columns: usize, rows: usize, card: bool) -> usize {
+    if kind != Kind::Model3d || card { return rows; }
+    let cell = m.preview_state.cell.unwrap_or(super::graphics::FALLBACK_CELL);
+    rows.min(columns.saturating_mul(cell.0).saturating_mul(3) / cell.1.max(1) / 4)
 }
 
 pub fn slot(m: &Model, i: usize, area: &Area) -> Slot {
@@ -81,6 +89,7 @@ fn picture(m: &Model, row: &super::model::Row, kind: Kind, room: (usize, usize))
             Kind::Pdf => m.pdf.as_ref().and_then(|pdf| pdf.shown).map_or((0, 0), |size| {
                 ((size.0.div_ceil(cell.0)).min(room.0), ((size.1 + cell.1 / 2) / cell.1).clamp(1, room.1))
             }),
+            Kind::Model3d => super::model3d::pixels(room, cell).map_or((0, 0), |p| (p.0.div_ceil(cell.0), p.1.div_ceil(cell.1))),
             _ => (0, 0),
         },
     }
@@ -111,7 +120,9 @@ pub struct Place {
 pub fn place(m: &Model) -> Place {
     let (area, x0, top) = frame(m);
     let ((columns, rows), tail) = stack(m, &area);
-    let room = (area.width(), area.height.saturating_sub(tail.len() + usize::from(area.card)));
+    let available_rows = area.height.saturating_sub(tail.len() + usize::from(area.card));
+    let kind = m.rows.get(&m.cursor).map_or(Kind::Data, pane_state::kind);
+    let room = (area.width(), model_room(m, kind, area.width(), available_rows, area.card));
     let (columns, rows) = if rows == 0 { room } else { (columns, rows) };
     let offset = if area.card { room.0.saturating_sub(columns) / 2 } else { 0 };
     Place { cells: (columns, rows), room, left: x0 + offset + 1, top }

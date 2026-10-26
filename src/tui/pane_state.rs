@@ -42,6 +42,7 @@ pub enum Kind {
     Audio,
     Video,
     Archive,
+    Model3d,
     Data,
 }
 
@@ -52,6 +53,8 @@ pub fn kind(row: &Row) -> Kind {
     let icon = row.icon.to_lowercase();
     if row.directory {
         Kind::Folder
+    } else if crate::backend::model3d::supported(if row.link.is_empty() { &row.name } else { &row.link }).is_some() {
+        Kind::Model3d
     } else if pdf {
         Kind::Pdf
     } else if icon.starts_with("image") {

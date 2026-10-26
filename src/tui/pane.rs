@@ -107,7 +107,7 @@ pub fn body(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
         let line = if index == Some(archive.rows.len()) && more > 0 { state.i18n.trn("preview.more", more as i64) } else { String::new() };
         return padded(&format!("{}{}", theme.meta, fit(&line, width)), area, theme);
     }
-    if m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() {
+    if m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() || super::pane_state::kind(row) == super::pane_state::Kind::Model3d {
         return padded(&stacked(m, i, area, theme), area, theme);
     }
     if let Some(content) = m.preview_display.get(i) {
@@ -228,7 +228,8 @@ pub fn prepare(m: &mut Model) {
     let rows = rows(m);
     let folder = m.rows.get(&m.cursor).is_some_and(|row| row.directory) && m.preview_rows_generation == m.preview_generation;
     let refusal = folder && !m.preview_refusal.is_empty();
-    let graphical = m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() || m.preview_state.unshown.is_some();
+    let graphical = m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() || m.preview_state.unshown.is_some()
+        || m.rows.get(&m.cursor).is_some_and(|r| super::pane_state::kind(r) == super::pane_state::Kind::Model3d);
     let archive = m.preview_state.archive.as_ref().map(|a| a.rows.len() + usize::from(a.entries > a.rows.len()) + usize::from(!m.quicklook));
     m.text_gutter = super::render::grouped(m.preview_body.lines().count()).len();
     let text_width = columns.saturating_sub(m.text_gutter + 1);
