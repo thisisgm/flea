@@ -105,6 +105,8 @@ mod navigation_tests;
 #[cfg(test)]
 mod queued_navigation_tests;
 #[cfg(test)]
+mod queued_navigation_escape_tests;
+#[cfg(test)]
 mod opener_menu_tests;
 #[cfg(test)]
 mod opener_tests;
