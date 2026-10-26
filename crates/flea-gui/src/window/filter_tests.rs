@@ -108,7 +108,10 @@ fn m9_integ_filter_protocol_drives_all_view_rows(cx: &mut TestAppContext) {
     // With the line committed, the cursor keys step through the drawn rows, not the listing.
     press(cx, handle, "j", Some("j"), false);
     assert_eq!(edit(cx, handle, |shell, _, _| shell.panes[0].as_ref().unwrap().pane.cursor), 5);
-    // Escape clears the filter first; the rows refill and every row is drawn again.
+    // Escape clears marks first; another Escape closes the standing filter.
+    press(cx, handle, "escape", None, false);
+    assert_eq!(shown(cx, handle), Some(vec![3, 5, 700]));
+    edit(cx, handle, |shell, _, _| assert!(shell.panes[0].as_ref().unwrap().selected.is_empty()));
     press(cx, handle, "escape", None, false);
     assert_eq!(shown(cx, handle), None);
     edit(cx, handle, |shell, _, _| assert!(shell.slots.strips[0].is_none()));
