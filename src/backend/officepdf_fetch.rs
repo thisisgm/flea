@@ -27,7 +27,7 @@ impl Service {
             Hit::Miss => {},
         }
         let (tx, rx) = std::sync::mpsc::channel();
-        self.enqueue(Job { key, program, input, mtime, seq: 0, waiters: vec![Waiter { wire: 0, reg: 0, tx }], required: true, cancel: Some(Arc::clone(&cancel)) });
+        self.enqueue(Job { key, program, input, mtime, seq: 0, waiters: vec![Waiter { wire: 0, reg: 0, tx }], required: true, sheets: false, cancel: Some(Arc::clone(&cancel)) });
         let reply = loop {
             if cancel.load(Ordering::Relaxed) || self.quit.load(Ordering::Relaxed) {
                 self.cancel_fetch(&cancel);
@@ -53,6 +53,6 @@ impl Service {
         let index = q.required.iter().position(|job| job.cancel.as_ref().is_some_and(|flag| Arc::ptr_eq(flag, cancel)));
         let job = index.and_then(|index| q.required.remove(index));
         drop(q);
-        if let Some(job) = job { answer(job.waiters, Err("cancelled".into())); }
+        if let Some(job) = job { answer(job.waiters, false, Err("cancelled".into())); }
     }
 }

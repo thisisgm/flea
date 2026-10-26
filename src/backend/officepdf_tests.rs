@@ -64,7 +64,7 @@ impl Rig {
     // The first line the request leaves: converting on a miss, otherwise the terminal line that frees its registry id.
     fn ask(&self, wire: usize, path: &Path) -> String {
         let reg = self.claims.fetch_add(1, Ordering::SeqCst) + 1;
-        self.svc.request(wire, reg, self.svc.seq.fetch_add(1, Ordering::Relaxed), path, &self.tx);
+        self.svc.request(wire, reg, self.svc.seq.fetch_add(1, Ordering::Relaxed), path, false, &self.tx);
         match self.rx.recv_timeout(BOUND).expect("a request always answers") {
             OpMsg::Meta { line } => line,
             OpMsg::DetachedDone { id, line } => {
@@ -267,8 +267,8 @@ fn a_convert_that_finds_a_hit_runs_nothing() {
     let key = Store::key(&src);
     let pdf = r.svc.store.pdf_path(&key);
     Store::publish(&pdf, mtime_of(&src), &mut "other window".as_bytes()).unwrap();
-    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new(), required: false, cancel: None };
-    assert_eq!(r.svc.convert(&job), Ok(pdf));
+    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new(), required: false, sheets: false, cancel: None };
+    assert_eq!(r.svc.convert(&job), Ok(Done::Pdf(pdf)));
     assert_eq!(r.jobs(), 0);
 }
 
@@ -307,7 +307,7 @@ fn start_returns_before_the_worker_has_looked_at_the_file() {
         Some("/usr/bin/sh".to_string())
     });
     let src = d.file("a.docx", "doc");
-    r.svc.start(1, 1, src.clone(), r.tx.clone());
+    r.svc.start(1, 1, src.clone(), false, r.tx.clone());
     assert!(r.rx.try_recv().is_err(), "start returned while the worker still waited, so the caller's thread did no path work");
     open_tx.send(()).unwrap();
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(1)));
@@ -363,3 +363,4 @@ fn the_cache_holds_the_figure_stores_bound_and_drops_the_oldest_conversion() {
 #[path = "officepdf_jail_tests.rs"] mod jail_caps;
 #[path = "officepdf_limits_tests.rs"] mod limits;
 #[path = "officepdf_preserve_tests.rs"] mod preserve;
+#[path = "officesheets_tests.rs"] mod sheets;
