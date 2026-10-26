@@ -1,3 +1,4 @@
+pub use crate::window::glass::Inputs as GlassInputs;
 use flea::colours;
 use gpui::{Global, Hsla, Rgba};
 
@@ -10,6 +11,7 @@ mod golden_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Theme {
+    pub glass: GlassInputs,
     pub background: Hsla,
     pub foreground: Hsla,
     pub surface: Hsla,
@@ -164,6 +166,7 @@ impl Theme {
         let core = flea::theme::Theme::resolve(text, "", "", None, "monospace").colors;
         let roles = Roles::from_core(&core);
         let theme = Self {
+            glass: Default::default(),
             background: gpui::rgb(background).into(),
             foreground: gpui::rgb(foreground).into(),
             surface: gpui::rgb(surface).into(),

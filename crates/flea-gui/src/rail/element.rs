@@ -221,7 +221,10 @@ impl Element for RailElement {
                 );
             }
         }
-        window.paint_quad(fill(bounds, palette.background));
+        window.paint_quad(fill(
+            bounds,
+            crate::window::glass::rail_ground(palette.background, window, cx),
+        ));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (header, text) in laid.headers.iter().zip(&ready.headers) {
                 text.paint(

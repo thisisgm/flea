@@ -569,8 +569,18 @@ impl Element for StripElement {
         let (left, top) = (bounds.origin.x, bounds.origin.y);
         let width = px(frame.tab_width);
         let count = frame.labels.len();
-        // The interim palette has no surface role yet, so the ground and the current plate share the background.
-        window.paint_quad(fill(bounds, palette.background));
+        // Under glass the strip is theme.surface; the current plate always paints the background.
+        let current_ground =
+            (frame.current < count && frame.ghost != Some(frame.current)).then(|| {
+                Bounds::new(
+                    point(
+                        left + px(PAD_X) + width * frame.slots[frame.current] as f32,
+                        top,
+                    ),
+                    size(width, px(TAB_HEIGHT)),
+                )
+            });
+        crate::window::glass::tab_ground(bounds, current_ground, palette.background, window, cx);
         let rule = Bounds::new(
             point(left, top + bounds.size.height - px(1.)),
             size(bounds.size.width, px(1.)),
@@ -588,7 +598,13 @@ impl Element for StripElement {
                 };
                 let tab = Bounds::new(point(x, top), size(width, px(TAB_HEIGHT)));
                 if current {
-                    window.paint_quad(fill(tab, palette.background.opacity(fade)));
+                    if crate::window::glass::alpha(window, cx) >= 1. || frame.ghost != Some(index) {
+                        window.paint_quad(fill(
+                            tab,
+                            crate::window::glass::ground(palette.background, window, cx)
+                                .opacity(fade),
+                        ));
+                    }
                     let edge = Bounds::new(
                         point(x, top + px(HEIGHT - ACCENT_EDGE)),
                         size(width, px(ACCENT_EDGE)),
