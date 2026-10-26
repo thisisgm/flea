@@ -111,19 +111,22 @@ impl Shell {
                     visible: host.drawn_view == Some(crate::window::startup::View::Columns),
                     cx,
                 };
-                let preview =
-                    crate::window::selection_preview::readers::Reader {
-                        view: host.preview.as_ref().map(|view| view.read(cx)),
-                        window,
-                        active: host.drawn_view == Some(crate::window::startup::View::Columns)
-                            && host.columns.as_ref().is_some_and(|columns| {
-                                columns.preview_hosted
-                                    && columns.area.tracks().iter().any(|t| {
-                                        matches!(t.rows, crate::columns::TrackRows::Preview)
-                                    })
-                            }),
-                        cx,
-                    };
+                let preview_active = host.drawn_view
+                    == Some(crate::window::startup::View::Columns)
+                    && host.columns.as_ref().is_some_and(|columns| {
+                        columns.preview_hosted
+                            && columns
+                                .area
+                                .tracks()
+                                .iter()
+                                .any(|t| matches!(t.rows, crate::columns::TrackRows::Preview))
+                    });
+                let preview = crate::window::selection_preview::readers::Reader {
+                    view: host.preview.as_ref().map(|view| view.read(cx)),
+                    window,
+                    active: preview_active,
+                    cx,
+                };
                 let settings = crate::ipc::settings::SettingsAdapter {
                     host: &self.settings,
                     document: &self.launch.settings.data,
@@ -215,6 +218,12 @@ impl Shell {
                     cx,
                 };
                 let rename = crate::window::rename::ipc::Reader { shell: self };
+                let delivery = crate::window::key_delivery::Reader {
+                    shell: self,
+                    preview_active,
+                    window,
+                    cx,
+                };
                 let devices = crate::ipc::devices::DeviceAdapter {
                     source: self.rail.as_ref().map(|join| join.devices.read(cx)),
                 };
@@ -225,7 +234,7 @@ impl Shell {
                 let feedback = crate::ipc::window_feedback::FeedbackAdapter { shell: self, cx };
                 let column_preview =
                     crate::ipc::columns_preview::ColumnsPreview { preview: &preview };
-                let adapters: [&dyn crate::ipc::Adapter; 33] = [
+                let adapters: [&dyn crate::ipc::Adapter; 34] = [
                     &column_preview,
                     &drag,
                     &providers,
@@ -235,6 +244,7 @@ impl Shell {
                     &rename,
                     &search,
                     &query,
+                    &delivery,
                     &rail,
                     &focus,
                     &pane,
@@ -264,9 +274,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    33
+                    34
                 } else {
-                    32
+                    33
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

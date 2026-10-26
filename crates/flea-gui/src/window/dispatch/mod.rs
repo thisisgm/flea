@@ -144,6 +144,8 @@ mod previewtypes_gif_tests;
 #[cfg(test)]
 mod previewtypes_hold_tests;
 #[cfg(test)]
+mod key_delivery_preview_tests;
+#[cfg(test)]
 mod previewtypes_kinds_tests;
 #[cfg(test)]
 mod previewtypes_page_tests;
