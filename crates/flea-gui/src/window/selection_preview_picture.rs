@@ -6,10 +6,19 @@ use std::sync::Arc;
 
 use super::render::FRAME_BORDER;
 
-fn fitted(image: Arc<RenderImage>, frame: &Frame, width: f32, height: f32, selector: &'static str) -> AnyElement {
+fn fitted(
+    image: Arc<RenderImage>,
+    frame: &Frame,
+    width: f32,
+    height: f32,
+    selector: &'static str,
+) -> AnyElement {
     let size = image.size(0);
     let (w, h) = (size.width.0 as f64, size.height.0 as f64);
-    let original = frame.facts.as_ref().map_or((0., 0.), |m| (m.w as f64, m.h as f64));
+    let original = frame
+        .facts
+        .as_ref()
+        .map_or((0., 0.), |m| (m.w as f64, m.h as f64));
     let limit = thumbs::preview_limit(
         frame.kind == Kind::Video,
         is_vector_name(&frame.subject.row.name),

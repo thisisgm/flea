@@ -82,7 +82,8 @@ fn m9_g2rows_14_office_thumbnail_and_ready_page_share_geometry(cx: &mut TestAppC
     ] {
         let view = view(cx);
         // The container check runs off the UI thread, so the ask lands once the test parks.
-        view.update(cx, |view, window, cx| view.set_path(path, window, cx)).unwrap();
+        view.update(cx, |view, window, cx| view.set_path(path, window, cx))
+            .unwrap();
         cx.run_until_parked();
         view.update(cx, |view, window, cx| {
             view.set_thumbnail(path, image(dimensions.0, dimensions.1), cx);
@@ -145,7 +146,10 @@ fn m9_g2rows_14_office_thumbnail_and_ready_page_share_geometry(cx: &mut TestAppC
 #[gpui::test]
 fn m9_g2rows_14_sheet_switch_and_stale_reply_preserve_identity(cx: &mut TestAppContext) {
     let view = view(cx);
-    view.update(cx, |view, window, cx| view.set_path("/d/budget.xlsx", window, cx)).unwrap();
+    view.update(cx, |view, window, cx| {
+        view.set_path("/d/budget.xlsx", window, cx)
+    })
+    .unwrap();
     cx.run_until_parked();
     view.update(cx, |view, window, cx| {
         assert!(!view.action("nextSheet", cx));
@@ -170,26 +174,39 @@ fn m9_g2rows_14_sheet_switch_and_stale_reply_preserve_identity(cx: &mut TestAppC
     }).unwrap();
     cx.run_until_parked();
     view.update(cx, |view, window, cx| {
-        assert!(!view.reply(r#"{"t":"officesheets","id":1,"state":"ready","names":["Old"],"paths":["/c/old.csv"]}"#, window, cx));
+        assert!(!view.reply(
+            r#"{"t":"officesheets","id":1,"state":"ready","names":["Old"],"paths":["/c/old.csv"]}"#,
+            window,
+            cx
+        ));
         assert!(view.office.sheet_names.is_empty());
         assert_eq!(view.office.id, 2);
-    }).unwrap();
+    })
+    .unwrap();
 }
 
 #[gpui::test]
 fn m9_g2rows_14_locked_unavailable_and_cancel_keep_officepdf_contract(cx: &mut TestAppContext) {
     let view = view(cx);
     let i18n = I18n::default();
-    view.update(cx, |view, window, cx| view.set_path("/d/lease.docx", window, cx)).unwrap();
+    view.update(cx, |view, window, cx| {
+        view.set_path("/d/lease.docx", window, cx)
+    })
+    .unwrap();
     cx.run_until_parked();
     view.update(cx, |view, window, cx| {
-        assert!(view.reply(r#"{"t":"officepdf","id":1,"state":"failed","err":"encrypted","locked":true}"#, window, cx));
+        assert!(view.reply(
+            r#"{"t":"officepdf","id":1,"state":"failed","err":"encrypted","locked":true}"#,
+            window,
+            cx
+        ));
         let locked = view.failure(&i18n).unwrap();
         assert_eq!(locked.sentence, "This document is password protected.");
         assert_eq!(locked.open_with.as_deref(), Some("Open With…"));
         assert_eq!(locked.glyph, "lock");
         view.set_path("/d/note.odt", window, cx);
-    }).unwrap();
+    })
+    .unwrap();
     cx.run_until_parked();
     view.update(cx, |view, window, cx| {
         assert!(view.reply(r#"{"t":"officepdf","id":2,"state":"failed","err":"LibreOffice is not installed on this box.","unavailable":true}"#, window, cx));
@@ -202,14 +219,27 @@ fn m9_g2rows_14_locked_unavailable_and_cancel_keep_officepdf_contract(cx: &mut T
         view.leave(window, cx);
         assert_eq!(view.office.state, State::Cancelled);
         assert!(view.failure(&i18n).is_none());
-        assert!(!view.reply(r#"{"t":"officepdf","id":3,"state":"ready","path":"/c/old.pdf"}"#, window, cx));
+        assert!(!view.reply(
+            r#"{"t":"officepdf","id":3,"state":"ready","path":"/c/old.pdf"}"#,
+            window,
+            cx
+        ));
         view.set_path("/d/new.docx", window, cx);
-    }).unwrap();
+    })
+    .unwrap();
     cx.run_until_parked();
     view.update(cx, |view, window, cx| {
-        assert!(view.reply(r#"{"t":"officepdf","id":4,"state":"failed","err":"cancelled"}"#, window, cx));
+        assert!(view.reply(
+            r#"{"t":"officepdf","id":4,"state":"failed","err":"cancelled"}"#,
+            window,
+            cx
+        ));
         assert_eq!(view.office.state, State::Cancelled);
         assert!(view.failure(&i18n).is_none());
-        assert_eq!(office::request_line(5, "/d/new.docx", false), r#"{"c":"officepdf","id":5,"path":"/d/new.docx"}"#);
-    }).unwrap();
+        assert_eq!(
+            office::request_line(5, "/d/new.docx", false),
+            r#"{"c":"officepdf","id":5,"path":"/d/new.docx"}"#
+        );
+    })
+    .unwrap();
 }

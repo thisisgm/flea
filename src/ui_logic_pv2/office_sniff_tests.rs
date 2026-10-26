@@ -112,7 +112,10 @@ fn office_sniff_an_encrypted_odf_stores_content_that_is_not_xml() {
 #[test]
 fn office_container_a_fake_odt_is_not_a_real_container() {
     assert!(
-        !real("/d/letter.odt", b"PK not really an office document".to_vec()),
+        !real(
+            "/d/letter.odt",
+            b"PK not really an office document".to_vec()
+        ),
         "a 33-byte fake .odt is not a real ODF container"
     );
     assert!(
@@ -124,7 +127,10 @@ fn office_container_a_fake_odt_is_not_a_real_container() {
         "an OOXML zip with no [Content_Types].xml is not a real container"
     );
     assert!(
-        !real("/d/a.xlsx", zip(&[("mimetype", b"application/vnd.oasis.opendocument.text")])),
+        !real(
+            "/d/a.xlsx",
+            zip(&[("mimetype", b"application/vnd.oasis.opendocument.text")])
+        ),
         "an .xlsx holding only a mimetype is not a real OOXML container"
     );
     let odt = zip(&[
@@ -247,7 +253,10 @@ fn office_container_an_unreadable_directory_or_read_keeps_the_conversions_answer
     let mut zip64 = zip(&[("[Content_Types].xml", b"<Types/>")]);
     let end = zip64.len() - 22;
     zip64[end + 16..end + 20].copy_from_slice(&u32::MAX.to_le_bytes());
-    assert!(real("/d/huge.xlsx", zip64), "a zip64 directory offset stays real");
+    assert!(
+        real("/d/huge.xlsx", zip64),
+        "a zip64 directory offset stays real"
+    );
     let mut unreadable = |_: u64, _: usize| None;
     assert!(
         is_real_container("/d/report.docx", 4096, &mut unreadable),
