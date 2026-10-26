@@ -124,21 +124,23 @@ impl Preview {
             ("path", wire::word(&text)),
         ])
     }
-    fn ask(&mut self, path: &Path, generation: usize, wire: &mut Wire) -> io::Result<()> {
-        self.doc.open(&path.to_string_lossy(), self.issued + 1);
+    fn ask(&mut self, path: &Path, generation: usize) {
+        self.doc.open(&path.to_string_lossy(), 0);
         self.subject = Some((path.into(), generation));
+        self.capture(path);
+    }
+    fn capture(&mut self, path: &Path) {
         self.source = None;
         self.converted = None;
         self.retire_all();
         self.source_open = Some(self.opened(path.into()));
-        self.send(path, wire)
     }
-    fn reask(&mut self, wire: &mut Wire) -> io::Result<()> {
+    fn reask(&mut self) {
         let Some((path, _)) = self.subject.clone() else {
-            return Ok(());
+            return;
         };
-        self.doc.asked(self.issued + 1);
-        self.send(&path, wire)
+        self.doc.asked(0);
+        self.capture(&path);
     }
     // Opens an identity on a worker, so a stalled open never holds the input loop.
     fn opened(&self, path: PathBuf) -> Task<Identity> {
@@ -183,17 +185,36 @@ impl Preview {
     fn reap(&mut self) {
         self.retired.retain_mut(|task| !task.done());
     }
-    // One pass over the held state: takes finished opens and sniffs, runs the freshness check when due, and reports a moved source or PDF.
-    fn pass(&mut self) -> bool {
+    // One pass over the held state: takes finished opens and sniffs, sends the request once the source is captured, runs the freshness check when due, and reports a moved source or PDF.
+    fn pass(&mut self, wire: &mut Wire) -> io::Result<bool> {
         self.reap();
         if let Some(result) = self.source_open.as_mut().and_then(Task::poll) {
             self.source_open = None;
-            self.source = result.ok().map(Arc::new);
+            match result {
+                Ok(identity) => {
+                    let path = identity.path.clone();
+                    self.source = Some(Arc::new(identity));
+                    // Sent only after capture, so a ready can never pair older converted bytes with a newer source.
+                    self.send(&path, wire)?;
+                    self.doc.asked(self.issued);
+                }
+                Err(error) => {
+                    self.doc.state = shared::State::Failed(shared::Reason::Other);
+                    self.doc.diagnostic = error;
+                }
+            }
         }
         if let Some(result) = self.converted_open.as_mut().and_then(Task::poll) {
             self.converted_open = None;
             match result {
-                Ok(identity) => self.converted = Some(Arc::new(identity)),
+                Ok(identity) => {
+                    self.converted = Some(Arc::new(identity));
+                    // A page needs a check of both identities, not an earlier source-only check.
+                    if let Some(task) = self.check.take() {
+                        self.retire(task);
+                    }
+                    self.checked = None;
+                }
                 Err(_) => self.doc.undrawable(shared::PDF_UNOPENED),
             }
         }
@@ -220,7 +241,7 @@ impl Preview {
                 }));
             }
         }
-        moved
+        Ok(moved)
     }
 }
 
@@ -254,9 +275,10 @@ pub fn step(m: &mut Model, wire: &mut Wire, active: bool) -> io::Result<()> {
     };
     let generation = m.preview_generation;
     let office = &mut m.preview_state.office;
-    let moved = office.subject.as_ref() != Some(&(path.clone(), generation)) || office.pass();
+    let moved =
+        office.subject.as_ref() != Some(&(path.clone(), generation)) || office.pass(wire)?;
     if moved {
-        office.ask(&path, generation, wire)?;
+        office.ask(&path, generation);
         m.pdf = None;
         facts(m);
     }
@@ -265,7 +287,7 @@ pub fn step(m: &mut Model, wire: &mut Wire, active: bool) -> io::Result<()> {
 }
 
 // The backend's officepdf line for the open source, applied to the request in flight only.
-pub fn receive(m: &mut Model, value: &Json, wire: &mut Wire) -> io::Result<()> {
+pub fn receive(m: &mut Model, value: &Json, _wire: &mut Wire) -> io::Result<()> {
     let Some(line) = shared::parse(&jsondoc::render(value)) else {
         return Ok(());
     };
@@ -278,7 +300,7 @@ pub fn receive(m: &mut Model, value: &Json, wire: &mut Wire) -> io::Result<()> {
             };
             office.start_sniff(path);
         }
-        Applied::Ask => office.reask(wire)?,
+        Applied::Ask => office.reask(),
         Applied::Stale | Applied::Converting | Applied::Sheet(_) | Applied::Settled => {}
     }
     project(m);
@@ -324,10 +346,10 @@ pub fn page_drawn(pdf: &pdf::Pdf) -> bool {
     !pdf.bytes.is_empty() || !pdf.png.is_empty()
 }
 
-// The converted PDF once the shared state is ready and its identity is open; None otherwise.
+// The converted PDF once both held identities have passed a freshness check; None otherwise.
 pub fn ready_pdf(state: &State) -> Option<PathBuf> {
     let office = &state.office;
-    let ready = office.subject.is_some() && office.converted.is_some();
+    let ready = office.subject.is_some() && office.converted.is_some() && office.checked.is_some();
     office.doc.pdf.as_ref().filter(|_| ready).map(PathBuf::from)
 }
 

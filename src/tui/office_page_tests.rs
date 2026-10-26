@@ -94,7 +94,6 @@ fn tui_office_thumbnail_shows_until_the_page_replaces_it() {
     let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
     graphics.protocol = crate::tui::capabilities::Protocol::Kitty;
     step(&mut m, &mut graphics, &mut shown, &mut wire);
-    let (id, _) = ask(&wire);
     let thumb_request = wire
         .events
         .recv_timeout(Duration::from_secs(5))
@@ -105,6 +104,7 @@ fn tui_office_thumbnail_shows_until_the_page_replaces_it() {
         "thumb",
         "the embedded thumbnail is asked for at once"
     );
+    let (id, _) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     receive(
         &mut m,
         &mut wire,
@@ -150,7 +150,6 @@ fn tui_office_thumbnail_holds_until_the_page_is_drawn() {
     let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
     graphics.protocol = crate::tui::capabilities::Protocol::Kitty;
     step(&mut m, &mut graphics, &mut shown, &mut wire);
-    let (id, _) = ask(&wire);
     let thumb_request = wire
         .events
         .recv_timeout(Duration::from_secs(5))
@@ -161,6 +160,7 @@ fn tui_office_thumbnail_holds_until_the_page_is_drawn() {
         "thumb",
         "the embedded thumbnail is asked for at once"
     );
+    let (id, _) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     receive(
         &mut m,
         &mut wire,
@@ -269,13 +269,13 @@ fn tui_office_r3_handoff_keeps_the_page_image() {
     let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
     graphics.protocol = crate::tui::capabilities::Protocol::Kitty;
     step(&mut m, &mut graphics, &mut shown, &mut wire);
-    let (id, _) = ask(&wire);
     let thumb_request = wire
         .events
         .recv_timeout(Duration::from_secs(5))
         .unwrap()
         .unwrap();
     assert_eq!(wire::text(&thumb_request, "c"), "thumb");
+    let (id, _) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     receive(
         &mut m,
         &mut wire,
@@ -320,7 +320,7 @@ fn tui_office_count_label_follows_the_group() {
     let (mut wire, reader) = wire::echo_wire();
     let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
     step(&mut m, &mut graphics, &mut shown, &mut wire);
-    let (id, _) = ask(&wire);
+    let (id, _) = request(&mut m, &mut graphics, &mut shown, &mut wire);
     receive(&mut m, &mut wire, &ready(id, &converted));
     settle(|| {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
