@@ -202,3 +202,6 @@ mod columns_search_parity_tests;
 
 #[cfg(test)]
 mod columns_preview_readers_tests;
+
+#[cfg(test)]
+mod pb_rest_2_tests;

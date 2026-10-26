@@ -30,7 +30,7 @@ pub(super) fn launched() -> Vec<String> {
     LAUNCHED.with(|launched| std::mem::take(&mut *launched.borrow_mut()))
         .into_iter()
         .map(|argv| {
-            assert_eq!(argv[1], "--open", "the opener runs flea --open");
+            assert!(matches!(argv[1].as_str(), "--open" | "--open-selection"), "the opener uses its validated launch mode");
             argv[2..].join(" ")
         })
         .collect()
