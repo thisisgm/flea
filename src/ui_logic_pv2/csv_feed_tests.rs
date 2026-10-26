@@ -237,3 +237,37 @@ fn csv_feed_a_tall_first_screen_takes_several_capped_asks_and_never_draws_early(
     );
     assert!(feed.first_screen());
 }
+
+#[test]
+fn csv_feed_a_leading_bom_keeps_engine_record_starts() {
+    for delim in [',', '\t'] {
+        let text = format!("\u{feff}\"Full\nname\"{delim}Amount\nAlice{delim}10\n");
+        let (mut feed, mut engine) = open(&text, delim, look(), 22);
+        let ask = feed.ask().expect("the first screen asks for its header");
+        let reply = engine.reply(&ask);
+        assert_eq!(
+            reply.records, 2,
+            "the engine counts a multiline header as one record"
+        );
+        assert_eq!((reply.first, reply.first_record), (1, 1));
+        assert_eq!(
+            reply.lines.len(),
+            3,
+            "the answer holds all header and body lines"
+        );
+        feed.sent(reply.token);
+        assert!(feed.answered(&reply));
+        let table = feed.job().run();
+        feed.apply(table);
+        assert_eq!(
+            feed.table.header,
+            Some(vec!["Full\nname".into(), "Amount".into()])
+        );
+        let body = feed
+            .table
+            .at_record(2)
+            .expect("the body follows the whole header");
+        assert_eq!((body.line, body.record), (3, 2));
+        assert_eq!(body.cells, vec!["Alice", "10"]);
+    }
+}
