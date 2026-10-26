@@ -209,7 +209,7 @@ impl Shell {
                     host.status = message.clone().into();
                 }
                 self.status_messages(cx, |messages, now| {
-                    messages.say(message, false, "", Hint::None, now)
+                    messages.say(message, false, "", Hint::None, now);
                 });
                 cx.notify();
             }
