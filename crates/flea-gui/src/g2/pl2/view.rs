@@ -36,6 +36,8 @@ pub struct NetworkView {
     pub scroll: f32,
     pub(super) focus: FocusHandle,
     pub input: crate::path::entry::Entry,
+    pub(super) input_owner: Option<Focus>,
+    pub(super) input_origin: std::cell::Cell<gpui::Point<gpui::Pixels>>,
     pub(super) password_selection: std::ops::Range<usize>,
     pub(super) password_reversed: bool,
     pub(super) password_marked: Option<std::ops::Range<usize>>,
@@ -62,6 +64,8 @@ impl NetworkView {
             scroll: 0.,
             focus: cx.focus_handle(),
             input: Default::default(),
+            input_owner: None,
+            input_origin: Default::default(),
             password_selection: 0..0,
             password_reversed: false,
             password_marked: None,
@@ -182,7 +186,9 @@ impl NetworkView {
         if self.model.opened {
             return;
         }
-        self.input = Default::default();
+        self.input.close();
+        self.input_owner = None;
+        self.drawn.borrow_mut().ime.registered = None;
         self.password_selection = 0..0;
         self.password_reversed = false;
         self.password_marked = None;
@@ -191,10 +197,22 @@ impl NetworkView {
     }
     pub fn load_input(&mut self) {
         self.fit_focus();
+        self.input_owner = None;
+        self.drawn.borrow_mut().ime.registered = None;
         self.password_marked = None;
         let units = super::secret_edit::units(&self.model.password);
         self.password_selection = units..units;
         self.password_reversed = false;
+        if self.model.focus == Focus::Password
+            && self.model.opened
+            && !self.model.busy()
+            && !self.model.committed
+        {
+            crate::g2::pl1::private_entry::begin(&mut self.input, &self.model.password);
+            self.input.move_to(self.input.text.len());
+            self.input_owner = Some(Focus::Password);
+            return;
+        }
         let text = match self.model.focus {
             Focus::Label => &self.model.form.label,
             Focus::Host => &self.model.form.host,
@@ -207,10 +225,10 @@ impl NetworkView {
                 return;
             }
         };
-        self.input = Default::default();
-        self.input.editing = true;
-        self.input.text = text.clone();
+        self.input.private = false;
+        self.input.begin(text);
         self.input.move_to(text.len());
+        self.input_owner = Some(self.model.focus);
     }
     pub(super) fn fit_focus(&mut self) {
         if self.dimensions.1 <= 0. {

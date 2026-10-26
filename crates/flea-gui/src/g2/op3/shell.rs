@@ -87,6 +87,7 @@ pub struct Check {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Field {
+    pub(crate) input: Option<gpui::Entity<crate::state::Shell>>,
     /// The name above the field in tracked capitals, when the board names it.
     pub label: Option<String>,
     pub value: String,
@@ -120,6 +121,7 @@ pub enum AppRow {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct NameLine {
+    pub(crate) input: Option<gpui::Entity<crate::state::Shell>>,
     pub text: String,
     pub ink: Ink,
     pub reason: String,
