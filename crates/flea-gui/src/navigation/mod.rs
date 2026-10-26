@@ -102,6 +102,7 @@ pub struct Navigator {
     pub watch: Watch,
     pub gate: Gate,
     pub order: Order,
+    pub committed_sort: Option<Order>,
     pub preserve_sort: bool,
     pub pending_sort: Option<sort::Request>,
     pub pending_select: Option<String>,
@@ -188,7 +189,12 @@ impl Navigator {
                 .orders
                 .requests
                 .pop_front()
-                .map(|request| request.order)
+                .map(|request| {
+                    if request.sort {
+                        self.committed_sort = Some(request.order);
+                    }
+                    request.order
+                })
                 .unwrap_or(self.order);
             self.orders.drawn = Some((pane.held.listing, order));
         }
