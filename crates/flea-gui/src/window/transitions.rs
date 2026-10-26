@@ -172,7 +172,9 @@ impl Shell {
                             host.transition_at = None;
                             host.transition = None;
                         }
+                        shell.sync_search_coverage();
                         shell.presentation.expire(cx.background_executor().now());
+                        shell.sync_search_coverage();
                         // One window deadline may retire associations for either pane.
                         for side in 0..2 {
                             shell.advance_transition(side, window, cx);

@@ -354,6 +354,7 @@ impl Shell {
         if self.lifecycle.begin_close() {
             self.network_shutdown(cx);
             self.presentation.close();
+            self.sync_search_coverage();
             self.stop_selection_previews(window, cx);
             self.deadlines = [None, None];
             self.stop_tabs();

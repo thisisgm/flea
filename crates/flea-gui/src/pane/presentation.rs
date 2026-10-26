@@ -7,6 +7,8 @@ pub(crate) struct Content {
     pub identity: u64,
     pub generation: usize,
     pub search_generation: usize,
+    /// The search generation whose own rows this scene holds, and whether its answer had settled.
+    pub search_scene: Option<(u64, bool)>,
     pub held: Rc<super::Held>,
     pub path: gpui::SharedString,
     pub cursor: usize,

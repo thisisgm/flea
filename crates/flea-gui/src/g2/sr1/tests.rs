@@ -225,7 +225,11 @@ fn search_stamps_answer_the_newest_gen_and_nothing_else() {
         .expect("searchStamps answers");
     assert_eq!(
         reply.stdout,
-        "{\"gen\":1,\"keyAt\":2000,\"firstRowsAt\":2010,\"settledAt\":2050}\n"
+        concat!(
+            r#"{"gen":1,"keyAt":2000,"firstRowsAt":2010,"settledAt":2050,"query":"q","indexed":9,"total":1,"#,
+            r#""walking":false,"cancelled":false,"partial":false,"firstRow":null,"firstName":null,"#,
+            "\"presentedFirst\":null,\"presentedSettled\":null,\"coverage\":\"none\"}\n"
+        )
     );
     assert!(
         adapter.call("filterStamps", &[]).is_none(),

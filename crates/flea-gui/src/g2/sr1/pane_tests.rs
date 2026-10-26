@@ -76,6 +76,7 @@ fn the_swap_drops_exactly_the_lines_the_core_session_refuses() {
         cancelled: false,
         gen: 9,
         walking: false,
+        partial: None,
     };
     assert!(core.searched(&late, 5).is_empty() && core.total == 0);
     // searchnoblank.js:64: the exit's own directory lines, gen 0, still land.
