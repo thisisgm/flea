@@ -1,7 +1,7 @@
 // The layout numbers the canvas-040 boards draw, read from their HTML. Quick Look is ql-markdown and its siblings; the
 // preview column is cols-preview-markdown-facts and cols-preview-markdown-crlf. Where no board draws a case, the test
 // pins the oracle's number and says so.
-use super::markdown_flow::{Face, FormulaBox, Measure};
+use super::markdown_flow::{Atom, Face, FormulaBox, Measure};
 use super::markdown_layout as lay;
 use super::markdown_layout::{Assets, Counter, FigureState, Geometry, Item, Metrics};
 use super::*;
@@ -171,4 +171,90 @@ fn oracle_line_boxes_stay_where_no_board_draws_the_case() {
     // No board draws a level-3 heading or a column h2, so both keep the oracle's 1.7 times the size.
     assert_eq!(stacked("### Deep\n", quick_look()).height, 24.0);
     assert_eq!(stacked("## Changes\n", column()).height, 26.0);
+}
+
+fn first_line_atoms(geometry: &Geometry) -> Vec<Atom> {
+    let Some(Item::Text { laid, .. }) = geometry
+        .items
+        .iter()
+        .find(|item| matches!(item, Item::Text { .. }))
+    else {
+        panic!("no paragraph drawn");
+    };
+    laid.lines[0].atoms.clone()
+}
+
+fn chip_box(atoms: &[Atom], label: &str) -> (f32, f32, f32, f32) {
+    let mut measure = Mono;
+    let (x, look) = atoms
+        .iter()
+        .find_map(|atom| match atom {
+            Atom::Text { x, text, look, .. } if text == label => Some((*x, look.clone())),
+            _ => None,
+        })
+        .expect("the label is drawn");
+    let glyphs = measure.width(label, look.face, look.px);
+    let (ground, width) = atoms
+        .iter()
+        .find_map(|atom| match atom {
+            Atom::Ground { x: at, width, .. } if *at <= x && x < at + width => Some((*at, *width)),
+            _ => None,
+        })
+        .expect("the label sits on a chip ground");
+    (ground, width, x, glyphs)
+}
+
+#[test]
+fn a_kbd_chip_centres_its_label_with_the_board_pad_either_side() {
+    // ql-markdown-html.html: a chip's label keeps 4 px either side inside the chip, in Quick Look and in the column.
+    for metrics in [quick_look(), column()] {
+        let atoms = first_line_atoms(&stacked(
+            "Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy.\n",
+            metrics,
+        ));
+        for label in ["Ctrl", "C"] {
+            let (ground, width, x, glyphs) = chip_box(&atoms, label);
+            assert_eq!(x - ground, 4.0, "left pad of {label}");
+            assert_eq!(ground + width - (x + glyphs), 4.0, "right pad of {label}");
+        }
+    }
+}
+
+#[test]
+fn a_kbd_chip_keeps_the_space_before_it_and_the_plus_between_the_chips() {
+    // ql-markdown-html.html: "Press " keeps its space before the first chip, and "+" sits from one chip's edge to the next.
+    let atoms = first_line_atoms(&stacked(
+        "Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy.\n",
+        quick_look(),
+    ));
+    let (ctrl, ctrl_width, _, _) = chip_box(&atoms, "Ctrl");
+    let (c, _, _, _) = chip_box(&atoms, "C");
+    let press = atoms
+        .iter()
+        .find_map(|atom| match atom {
+            Atom::Text { x, width, text, .. } if text == "Press " => Some((*x, *width)),
+            _ => None,
+        })
+        .expect("the lead-in is drawn");
+    let plus = atoms
+        .iter()
+        .find_map(|atom| match atom {
+            Atom::Text { x, width, text, .. } if text == "+" => Some((*x, *width)),
+            _ => None,
+        })
+        .expect("the plus is drawn");
+    assert_eq!(press.0 + press.1, ctrl, "the space stays before the first chip");
+    assert_eq!(plus.0, ctrl + ctrl_width, "the plus starts where the first chip ends");
+    assert_eq!(c, plus.0 + plus.1, "the second chip starts where the plus ends");
+}
+
+#[test]
+fn back_to_back_kbd_chips_share_one_ground_with_the_pad_either_side() {
+    // The tokens give touching chip pieces one leading and one trailing pad, so their labels join and keep 4 px either side.
+    for metrics in [quick_look(), column()] {
+        let atoms = first_line_atoms(&stacked("Press <kbd>A</kbd><kbd>B</kbd> now.\n", metrics));
+        let (ground, width, x, glyphs) = chip_box(&atoms, "AB");
+        assert_eq!(x - ground, 4.0, "left pad of AB");
+        assert_eq!(ground + width - (x + glyphs), 4.0, "right pad of AB");
+    }
 }
