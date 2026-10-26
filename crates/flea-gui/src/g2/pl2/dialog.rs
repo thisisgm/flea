@@ -101,13 +101,20 @@ impl Dialog {
         if self.opened || self.busy() {
             return Vec::new();
         }
-        let Ok(address) = Form::saved_address(uri) else {
+        let Some(address) = Form::saved_address(uri).ok().or_else(|| {
+            (!replace)
+                .then(|| super::routing::incomplete(uri))
+                .flatten()
+        }) else {
             return Vec::new();
         };
         let unacknowledged = self.unacknowledged.take();
         let effects = self.open();
         self.unacknowledged = unacknowledged;
         self.form = Form::load(&address, label);
+        if address.host.is_empty() {
+            self.form.original = None;
+        }
         self.save_new = false;
         self.retry = true;
         self.replace = replace.then_some(address.uri);
