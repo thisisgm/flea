@@ -96,6 +96,20 @@ fn brace_and_bracket_step_tabs() {
     }
 }
 
+// EY-58: [ and ] turn sheets in the Quick Look contexts, and stay tab steps in the listing.
+#[test]
+fn brackets_turn_sheets_in_the_quick_look_contexts() {
+    for preset in PRESETS {
+        for context in [Context::Preview, Context::Pdf] {
+            key_in(preset, "BracketLeft", "[", NONE, "previousSheet", context, Frontend::Gui);
+            key_in(preset, "BracketRight", "]", NONE, "nextSheet", context, Frontend::Gui);
+        }
+        key_in(preset, "BracketLeft", "[", NONE, "tabPrevious", Context::Listing, Frontend::Gui);
+        key_in(preset, "BracketRight", "]", NONE, "tabNext", Context::Listing, Frontend::Gui);
+        key_in(preset, "BracketRight", "]", NONE, "", Context::Media, Frontend::Gui);
+    }
+}
+
 #[test]
 fn reload_focus_delete_and_close_keys() {
     for preset in PRESETS {

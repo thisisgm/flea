@@ -14,6 +14,9 @@ use gpui::{
 };
 use std::{cell::Cell, fmt::Write as _, ops::Range, rc::Rc, sync::Arc};
 
+/// Float slack on a box's character cells: f32 glyph advances (7.2000003 for 7.2) leave a box sized to its widest cell a hair short of it.
+const FIT_SLACK_CELLS: f64 = 1e-4;
+
 /// The host's code engine: it picks the request's token, sends the line `line(token)` writes, and answers the token.
 pub trait CodeHost {
     fn code(&self, line: &dyn Fn(u64) -> String) -> u64;
@@ -350,7 +353,7 @@ impl CsvView {
         } = self;
         cells.begin(&face.font.family, f32::from(face.caption), scale, capacity);
         let mut shape = |at: (usize, usize), value: &str, f: Face, x: f64, w: f64, right: bool| {
-            let fit = (w / advance).floor().max(0.) as usize;
+            let fit = (w / advance + FIT_SLACK_CELLS).floor().max(0.) as usize;
             // The count without allocating: one_line swaps each newline for one space, and only a miss shapes.
             let count = value.chars().count();
             // The box's visible slice in characters, exact for the monospace faces the widths assume.

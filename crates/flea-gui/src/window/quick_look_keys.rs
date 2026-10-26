@@ -119,9 +119,14 @@ impl Shell {
             input,
         );
         let listing = flea::keys::lookup(name, Keys::Listing, flea::keys::Frontend::Gui, input);
-        if let (false, flea::keys::Match::Action(action)) =
-            (matches!(card, flea::keys::Match::Action(_)), listing)
-        {
+        // [ and ] bind only while a workbook of two or more sheets shows; any other card leaves them unbound.
+        let sheet_key = matches!(
+            card,
+            flea::keys::Match::Action("previousSheet" | "nextSheet")
+        );
+        let card_bound = matches!(card, flea::keys::Match::Action(_))
+            && (!sheet_key || self.quick_look_turns_sheet(cx));
+        if let (false, flea::keys::Match::Action(action)) = (card_bound, listing) {
             if action == "openTab" || action.starts_with("tab") {
                 self.quick_look_tab_switch(window, cx);
                 return false;
@@ -173,6 +178,13 @@ impl Shell {
         }
         cx.notify();
         true
+    }
+
+    /// True while the card shows a workbook with more than one sheet, so [ and ] turn sheets.
+    fn quick_look_turns_sheet(&self, cx: &gpui::App) -> bool {
+        self.quick_look
+            .as_ref()
+            .is_some_and(|host| host.view.read(cx).turns_sheet(cx))
     }
 
     /// QuickLook::close on a tab switch: the card closes and the keyboard goes back to the listing.
