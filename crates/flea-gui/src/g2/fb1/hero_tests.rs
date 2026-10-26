@@ -89,6 +89,33 @@ fn the_entrance_and_caption_draw_on_frames_then_a_timer_waits_for_the_beat(
     );
 }
 
+/// v0.3.12's Timer fires every 2800 ms from the show; each phrase swaps on the first frame at or after its fade out (140 ms).
+#[gpui::test]
+fn beats_fire_every_2800_ms_on_the_gpui_clock_and_swap_after_the_fade_out(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let phrase = |cx: &mut TestAppContext| {
+        read(cx, handle, |hero| {
+            (hero.rotation().beats(), hero.rotation().index())
+        })
+    };
+    run(cx, handle, ROTATE_MS - FRAME);
+    assert_eq!(phrase(cx), (0, 0), "no beat before 2800 ms");
+    run(cx, handle, FRAME);
+    assert_eq!(phrase(cx), (1, 0), "first beat at 2800 ms, fade out running");
+    run(cx, handle, 128);
+    assert_eq!(phrase(cx), (1, 0), "phrase holds until its 140 ms fade out ends");
+    run(cx, handle, FRAME);
+    assert_eq!(phrase(cx), (1, 1), "first swap on the frame at 2944 ms");
+    run(cx, handle, 2640);
+    assert_eq!(phrase(cx), (1, 1), "second beat not before 5600 ms");
+    run(cx, handle, FRAME);
+    assert_eq!(phrase(cx), (2, 1), "second beat at 5600 ms");
+    run(cx, handle, 128);
+    assert_eq!(phrase(cx), (2, 1), "second phrase holds until 5744 ms");
+    run(cx, handle, FRAME);
+    assert_eq!(phrase(cx), (2, 2), "second swap on the frame at 5744 ms");
+}
+
 #[gpui::test]
 fn reduced_motion_draws_the_first_phrase_whole_and_never_wakes(cx: &mut TestAppContext) {
     cx.update(|cx| cx.set_reduce_motion(true));
