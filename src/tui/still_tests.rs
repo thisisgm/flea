@@ -157,12 +157,97 @@ fn a_cancelled_decode_kills_and_reaps_chafa_before_its_worker_returns() {
 }
 
 #[test]
+fn a_same_file_key_swap_r3_keeps_the_grid_until_the_new_one_lands() {
+    if !sandboxed() {
+        return;
+    }
+    let fixture = Fixture::new();
+    fixture.stub(ONE_CELL);
+    let image = fixture.file("image.png", b"held\n");
+    let mut still = still(&fixture);
+    let thumb = key(&image, 1);
+    let page = Key { page: (2, 0, 0), ..thumb.clone() };
+    let held = Grid { columns: 1, rows: 1, cells: vec![Cell { symbol: '▀', foreground: Color::Rgb(9, 8, 7), background: Color::Rgb(6, 5, 4) }] };
+    let held_cells = held.cells.clone();
+    still.hold(thumb, held);
+    still.want(page.clone(), || Some(Source::File(image.clone())));
+    assert_eq!(still.grid(&page).map(|grid| grid.cells.clone()), Some(held_cells), "the held grid stands in for the same file");
+    settle(&mut still);
+    let landed = Cell { symbol: '▀', foreground: Color::Rgb(1, 2, 3), background: Color::Rgb(4, 5, 6) };
+    assert_eq!(still.grid(&page).map(|grid| grid.cells.clone()), Some(vec![landed]), "the new grid replaces the fallback: {}", still.error);
+    let other = fixture.file("other.png", b"held\n");
+    still.want(key(&other, 1), || Some(Source::File(other.clone())));
+    assert!(still.grid(&key(&other, 1)).is_none() && still.grid(&page).is_none(), "another file kept the last picture");
+}
+
+#[test]
 fn a_poster_job_whose_worker_is_gone_reports_an_error_and_stops_waiting() {
     let mut still = Still::default();
     still.stage = Some(crate::tui::job::Job::orphaned());
     assert!(!still.poll());
     assert!(still.stage.is_none(), "still waiting on a dead job");
     assert_eq!(still.error, UNSHOWN);
+}
+
+fn r4_grid() -> Grid {
+    Grid {
+        columns: 1,
+        rows: 1,
+        cells: vec![Cell {
+            symbol: 'A',
+            foreground: Color::Default,
+            background: Color::Default,
+        }],
+    }
+}
+
+fn r4_rejects_changed_key(change: impl FnOnce(&mut Key)) {
+    let fixture = Fixture::new();
+    let image = fixture.file("image.png", b"held\n");
+    let mut still = still(&fixture);
+    let old = Key { cells: (48, 21), ..key(&image, 1) };
+    let mut new = old.clone();
+    change(&mut new);
+    still.hold(old, r4_grid());
+    still.want(new.clone(), || Some(Source::File(image)));
+    assert!(still.grid(&new).is_none(), "an incompatible key kept the old grid");
+}
+
+#[test]
+fn r4_resize_drops_the_fallback_before_poll() {
+    r4_rejects_changed_key(|key| key.cells = (24, 10));
+}
+
+#[test]
+fn r4_colors_change_drops_the_fallback_before_poll() {
+    r4_rejects_changed_key(|key| key.colors = ColorMode::Indexed);
+}
+
+#[test]
+fn r4_chained_page_swaps_keep_the_last_drawn_grid_until_the_latest_lands() {
+    assert!(sandboxed());
+    let fixture = Fixture::new();
+    fixture.stub(ONE_CELL);
+    let image = fixture.file("image.png", b"held\n");
+    let mut still = still(&fixture);
+    let first = key(&image, 1);
+    let second = Key { page: (1, 0, 0), ..first.clone() };
+    let latest = Key { page: (2, 0, 0), ..first.clone() };
+    let held = r4_grid().cells;
+    still.hold(first, r4_grid());
+    still.want(second.clone(), || Some(Source::Bytes(b"superseded\n".to_vec())));
+    assert_eq!(still.grid(&second).map(|grid| &grid.cells), Some(&held));
+    still.want(latest.clone(), || Some(Source::File(image)));
+    assert_eq!(still.grid(&latest).map(|grid| &grid.cells), Some(&held));
+    assert!(still.grid(&second).is_none());
+    settle(&mut still);
+    let landed = Cell {
+        symbol: '▀',
+        foreground: Color::Rgb(1, 2, 3),
+        background: Color::Rgb(4, 5, 6),
+    };
+    assert_eq!(still.grid(&latest).map(|grid| &grid.cells), Some(&vec![landed]));
+    assert!(still.fallback.is_none());
 }
 
 #[test]

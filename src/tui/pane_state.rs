@@ -1,6 +1,7 @@
 use super::model::{Model, Row};
 use super::wire::{count, flag, text};
 use crate::jsondoc::Json;
+use flea::ui_logic_pv2::office::Group;
 use std::path::{Component, Path, PathBuf};
 
 // What the preview knows beyond its row: an archive's contents, a can't-show sentence, syntax runs and a half-block picture.
@@ -9,6 +10,8 @@ pub struct State {
     pub i18n: crate::i18n::I18n,
     pub archive: Option<Archive>,
     pub unshown: Option<Unshown>,
+    // None keeps the error alert; an Office subject names its own glyph and tone.
+    pub unshown_mark: Option<Mark>,
     pub code: super::syntax::Code,
     pub still: super::still::Still,
     // The terminal's cell in pixels, as the input loop last read it, for fitting a picture into cells.
@@ -18,6 +21,8 @@ pub struct State {
     // The half-block colours the terminal takes, none at sixteen colours, and the ground a page is veiled with.
     pub colors: Option<super::chafa::ColorMode>,
     pub ground: String,
+    // The Office subject: its shared request state and the held identity behind its converted PDF.
+    pub office: super::office::Preview,
 }
 
 // An archive's exact totals and the entries the backend named, each with its size when one is known.
@@ -33,6 +38,13 @@ pub struct Unshown {
     pub open_with: bool,
 }
 
+// The glyph and tone of a can't-show sentence: an error mark, or a calm glyph for a file that is merely unsupported.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Mark {
+    pub glyph: &'static str,
+    pub error: bool,
+}
+
 // What the preview shows for a row, from the classification the listing already made.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -43,6 +55,7 @@ pub enum Kind {
     Video,
     Archive,
     Model3d,
+    Office,
     Data,
 }
 
@@ -57,6 +70,8 @@ pub fn kind(row: &Row) -> Kind {
         Kind::Model3d
     } else if pdf {
         Kind::Pdf
+    } else if Group::of(if row.link.is_empty() { &row.name } else { &row.link }).is_some() {
+        Kind::Office
     } else if icon.starts_with("image") {
         Kind::Image
     } else if icon.starts_with("audio") {
@@ -99,7 +114,9 @@ pub fn reset(state: &mut State) {
     state.i18n.poll_changed();
     state.archive = None;
     state.unshown = None;
+    state.unshown_mark = None;
     state.code.forget();
+    super::office::forget(state);
 }
 
 // The archive half of a meta reply: the totals and named entries, or the can't-show sentence when it failed.
