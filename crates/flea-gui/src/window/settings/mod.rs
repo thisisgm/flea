@@ -16,6 +16,8 @@ mod locale;
 #[cfg(test)]
 mod m9_g1rows_05_tests;
 mod messages;
+#[cfg(test)]
+mod pb_favourite_tests;
 mod plugins;
 mod provenance;
 #[cfg(test)]

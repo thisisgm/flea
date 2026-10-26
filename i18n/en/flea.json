@@ -1488,6 +1488,8 @@
   "send.rclone.failed": "Send failed",
   "send.rclone.reason": "%1",
   "dialogs.file.cancel": "omarchy:shell.common.cancel",
+  "dialogs.file.original.missing": "That link points to an item that no longer exists.",
+  "dialogs.file.disconnected": "That drive or share was disconnected, so this folder is no longer available",
   "dialogs.file.apply": "omarchy:shell.common.apply",
   "dialogs.file.esc": "esc",
   "dialogs.file.openwith.title": "Open %1 With",

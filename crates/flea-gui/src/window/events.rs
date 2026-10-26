@@ -10,6 +10,8 @@ mod filesystem;
 mod ipc;
 #[path = "events_quit.rs"]
 mod quit;
+#[path = "events_routes.rs"]
+mod routes;
 #[path = "events_slow.rs"]
 mod slow;
 // Only the status tests read the sentence directly; the window reads it through slow_line.
@@ -41,19 +43,7 @@ impl Shell {
         {
             self.retire_menu(window, cx);
         }
-        if self.quick_look_line(side, &event, window, cx) {
-            return;
-        }
-        if self.selection_preview_event(side, &event, window, cx) {
-            return;
-        }
-        if self.grid_pictures_event(side, &event, window, cx) {
-            return;
-        }
-        if self.provider_event(side, &event, window, cx) {
-            return;
-        }
-        if self.clipboard_receive(side, &event, window, cx) {
+        if self.route_surface_event(side, &event, window, cx) {
             return;
         }
         if let BackendEvent::Producer(line) = &event {

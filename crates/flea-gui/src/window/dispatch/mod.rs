@@ -6,6 +6,8 @@ mod listing;
 mod menus;
 mod navigation;
 pub(crate) mod opener;
+mod original;
+mod places;
 mod preview;
 mod previewtypes;
 mod rename;
@@ -37,6 +39,8 @@ const FAMILIES: &[Family] = &[
     navigation::run,
     tabs::run,
     opener::run,
+    original::run,
+    places::run,
     previewtypes::run,
     preview::run,
     listing::run,
@@ -120,6 +124,12 @@ mod queued_navigation_escape_tests;
 mod opener_menu_tests;
 #[cfg(test)]
 mod opener_tests;
+#[cfg(test)]
+mod pb_opener_tests;
+#[cfg(test)]
+pub(crate) mod pb_places_tests;
+#[cfg(test)]
+mod pb_wire_tests;
 #[cfg(test)]
 mod previewtypes_cover_tests;
 #[cfg(test)]
