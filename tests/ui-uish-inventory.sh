@@ -62,7 +62,7 @@ class Controls(unittest.TestCase):
     def test_inventory(self):
         result = inventory.check(self.repo)
         self.assertEqual((result["wanted"], result["inline"], result["sourced"], result["declared_overrides"]),
-                         (111, 84, 27, 72))
+                         (111, 84, 27, 73))
         self.assertGreaterEqual(result["installed_overrides"], 68)
         print("INVENTORY " + json.dumps(result, sort_keys=True))
 

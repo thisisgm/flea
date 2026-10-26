@@ -1,10 +1,9 @@
 # GPUI overrides for UISH-06; seeded from the unchanged oracle at 2faf8d099.
 case_xwsettings() {
-    local root="$fixture_root/xwsettings" dir config state uib
+    local root="$fixture_root/xwsettings" dir config state
     dir="$root/files"
     config="$root/config"
     state="$root/state"
-    uib="$root/ui-b"
     sandbox_scratch "$root"
     [[ -f "$fixture_root/.flea-test-sandbox" ]] \
         || fail "xwsettings: the sandbox root carries no marker, so nothing here is deletable"
@@ -16,32 +15,31 @@ case_xwsettings() {
     local real_config="${XDG_CONFIG_HOME-}" real_state="${XDG_STATE_HOME-}"
     export XDG_CONFIG_HOME="$config"
     export XDG_STATE_HOME="$state"
-    cp -r "$flea_ui" "$uib" || fail "xwsettings: the second ui tree could not be copied"
     env XDG_STATE_HOME="$state" "$flea_bin" --ui-state \
         '{"hidden":false,"density":"compact","view":"list"}' >/dev/null \
         || fail "xwsettings: the seeding write failed"
     printf 'XWSETTINGS setup=ok\n'
 
-    # Window A on the shipped tree.
-    kill_flea
-    cat "$flea_log" >> "$run_log" 2>/dev/null || true
-    : > "$flea_log"
-    FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        flea_test_exec "$flea_bin" --gui "$dir" >"$flea_log" 2>&1 </dev/null &
-    omarchy-drive wait window flea --timeout 15 >/dev/null
+    # Window A through the owned transport, so assert_window and every read name it by its owned PID.
+    launch_window "$dir"
     local addrA addrB pidA pidB
+    pidA=$ipc_pid
     addrA=$(omarchy-drive windows --json | jq -r '[.windows[] | select(.title == "Flea")] | .[0].address // empty')
     [[ -n "$addrA" ]] || fail "xwsettings: no Flea window after launching A"
+    [[ "$(hyprctl clients -j | jq -r --arg a "$addrA" '.[] | select(.address == $a) | .pid')" == "$pidA" ]] \
+        || fail "xwsettings: the window at $addrA does not belong to owned pid $pidA"
     omarchy-drive focus "$addrA" >/dev/null
     assert_window
-    pidA=$(xwsettings_pid "$addrA" "$flea_ui") || fail "xwsettings: A has no owned qs pid"
-    local ipcA=(timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" "$FLEA_IPC_HELPER" --pid "$pidA" call flea)
+    [[ "$pidA" =~ ^[1-9][0-9]*$ ]] || fail "xwsettings: A has no owned qs pid"
+    local -a ipcA=(timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" "$FLEA_IPC_HELPER" --pid "$pidA" call flea)
     wait_listing 3
     [[ "$("${ipcA[@]}" path)" == "$dir" ]] || fail "xwsettings: A opened $("${ipcA[@]}" path), not $dir"
 
-    # Window B on the copied tree, over the same state file.
-    FLEA_UI="$uib" FLEA_BIN="$flea_bin" \
-        flea_test_exec "$flea_bin" --gui "$dir" >>"$flea_log" 2>&1 </dev/null &
+    # Window B is a second owned launch over the same state file; flea-gui needs no second ui tree.
+    local b_log="$run_root/flea-xwsettings-b.log" before pid
+    before=$(flea_pids | tr '\n' ' ')
+    flea_test_launch "$dir" "$b_log" --ui "$flea_ui" --binary "$flea_bin" \
+        || fail "xwsettings: the second owned window launch failed"
     local attempt count
     for (( attempt = 0; attempt < 150; attempt++ )); do
         count=$(omarchy-drive windows --json | jq '[.windows[] | select(.title == "Flea")] | length')
@@ -52,8 +50,16 @@ case_xwsettings() {
     addrB=$(omarchy-drive windows --json \
         | jq -r --arg a "$addrA" '[.windows[] | select(.title == "Flea" and .address != $a)] | .[0].address // empty')
     [[ -n "$addrB" ]] || fail "xwsettings: the second window has no address of its own"
-    pidB=$(xwsettings_pid "$addrB" "$uib") || fail "xwsettings: B has no owned qs pid"
-    local ipcB=(timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" "$FLEA_IPC_HELPER" --pid "$pidB" call flea)
+    pidB=""
+    for pid in $(flea_pids); do
+        [[ " $before " == *" $pid "* ]] || pidB=$pid
+    done
+    [[ -n "$pidB" ]] || fail "xwsettings: B has no owned qs pid"
+    flea_process_owned "$pidB" || fail "xwsettings: B has no owned qs pid"
+    [[ "$pidB" != "$pidA" ]] || fail "xwsettings: A and B share pid $pidA"
+    [[ "$(hyprctl clients -j | jq -r --arg a "$addrB" '.[] | select(.address == $a) | .pid')" == "$pidB" ]] \
+        || fail "xwsettings: the second window at $addrB does not belong to owned pid $pidB"
+    local -a ipcB=(timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" "$FLEA_IPC_HELPER" --pid "$pidB" call flea)
     omarchy-drive focus "$addrB" >/dev/null
     for (( attempt = 0; attempt < 150; attempt++ )); do
         [[ "$("${ipcB[@]}" path 2>/dev/null)" == "$dir" ]] && break
@@ -183,6 +189,7 @@ case_xwsettings() {
 
     if [[ -n "$real_config" ]]; then export XDG_CONFIG_HOME="$real_config"; else unset XDG_CONFIG_HOME; fi
     if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi
+    cat "$b_log" >> "$run_log" 2>/dev/null || true
     kill_flea
 }
 
