@@ -75,9 +75,21 @@ def check_launch_inputs(root, window_type):
         assert (window.root / "config/fontconfig/fonts.conf").read_text() == "owned font alias\n"
         window.stop()
         window = None
+        window = window_type.start(root, parent=root, frontend="qml", timeout=1)
+        copied = window.root / "home/.local/state/omarchy/current/theme/colors.toml"
+        assert copied.read_bytes() == (theme / "colors.toml").read_bytes(), "QML launch lost the session palette"
+        environment = Path(f"/proc/{window.pid}/environ").read_bytes().split(b"\0")
+        assert f"HOME={window.root}/home".encode() in environment, "QML launch reused operator HOME"
+        window.stop()
+        window = None
+        print("TRANSPORT_INPUTS launch=qml theme=seeded home=private")
         os.environ["HOME"] = str(source)
         window = window_type.start(root, parent=root, frontend="gpui", timeout=1)
         assert (window.root / "config/fontconfig/fonts.conf").read_text() == "owned font alias\n"
+        window.stop()
+        window = None
+        window = window_type.start(root, parent=root, frontend="qml", timeout=1)
+        assert (window.root / "config/fontconfig/fonts.conf").read_text() == "owned font alias\n", "QML launch lost the session fonts"
         print("TRANSPORT_INPUTS launch=seeded home=private qt=unneeded")
     finally:
         if window is not None:
