@@ -639,9 +639,9 @@ terminal_shown='["delete","moveto","copyto","properties","permissions","copyAs",
 # DEFAULTS' twelve less placeMenu, runScript and extThumbs; an exact-row-list case seeds this.
 menu_shipped='["delete","openTerminal","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection"]'
 
-# launch() without its IPC wait, for a case that reads the window before the seam exists.
+# launch() without its IPC wait, for a case that reads the window before the seam exists; a second argument is the --select target.
 launch_window() {
-    local start_path="$1"
+    local start_path="$1" select_target="${2-}"
     kill_flea
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
@@ -651,7 +651,10 @@ launch_window() {
     local -a wrap_args=()
     local wrap_arg
     for wrap_arg in ${flea_launch_wrap[@]+"${flea_launch_wrap[@]}"}; do wrap_args+=("--wrap=$wrap_arg"); done
-    flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$flea_bin" "${wrap_args[@]}" \
+    local -a select_args=()
+    [[ -z "$select_target" ]] || select_args=(--select "$select_target")
+    flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$flea_bin" \
+        ${select_args[@]+"${select_args[@]}"} "${wrap_args[@]}" \
         || fail "owned window launch failed"
     ipc_pid=$FLEA_TEST_PID
     if [[ "${test_frontend:-qml}" == gpui ]]; then
@@ -669,7 +672,7 @@ launch_window() {
 }
 
 launch() {
-    launch_window "$1"
+    launch_window "$1" "${2-}"
     assert_window
     printf 'LAUNCH path=%q pid=%s\n' "$1" "$(flea_pid)"
 }

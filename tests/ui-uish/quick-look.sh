@@ -378,7 +378,10 @@ case_relstart() {
     magick -size 440x354 xc:white -fill black -font Liberation-Sans -pointsize 24 -annotate +30+45 PAGEONE "$dir/b-doc.pdf" \
         || fail "relstart: magick could not make b-doc.pdf"
     magick -size 240x320 xc:'#c07030' "$dir/sub/c-photo.png" || fail "relstart: magick could not make c-photo.png"
-    (cd "$dir" && launch .)
+    # The relative start stays relative to the case's cwd, and the launch records its PID here, not in a subshell.
+    pushd "$dir" >/dev/null || fail "relstart: cannot enter $dir"
+    launch .
+    popd >/dev/null || fail "relstart: cannot leave $dir"
     wait_listing 3
     settle
     [[ "$(ipc path)" == "$real" ]] || fail "relstart: a start of . opened $(ipc path), not $real"
