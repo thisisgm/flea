@@ -17,6 +17,8 @@ use gpui::{
 };
 use std::{cell::RefCell, rc::Rc};
 
+mod options;
+
 pub struct TrackElement {
     tracks: Rc<[TrackView]>,
     at: usize,
@@ -63,40 +65,6 @@ impl TrackElement {
             locating: false,
             query: "".into(),
         }
-    }
-
-    /// ColumnRow's language marks follow the List's langMarks setting.
-    pub fn with_languages(mut self, languages: bool) -> Self {
-        self.languages = languages;
-        self
-    }
-
-    /// A standing filter's drawn rows: the active track then draws the listing row at each view position.
-    pub fn with_filter(mut self, shown: Option<Rc<[usize]>>) -> Self {
-        self.shown = shown;
-        self
-    }
-
-    pub fn with_location(mut self, locating: bool) -> Self {
-        self.locating = locating;
-        self
-    }
-
-    pub fn with_query(mut self, query: Rc<str>) -> Self {
-        self.query = query;
-        self
-    }
-
-    /// The folder walks the active track's size cells read; a peek track never shows a size.
-    pub fn with_sizes(mut self, sizes: Rc<dyn FolderSizes>) -> Self {
-        self.sizes = Some(sizes);
-        self
-    }
-
-    /// The pane's thumbnail lender, which only the active track's listing rows draw from.
-    pub fn with_pictures(mut self, pictures: Rc<Pictures>) -> Self {
-        self.pictures = Some(pictures);
-        self
     }
 
     fn view(&self) -> &TrackView {

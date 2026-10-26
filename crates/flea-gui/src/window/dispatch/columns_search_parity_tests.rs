@@ -98,7 +98,10 @@ fn search_rows_wash_the_typed_run_inside_the_drawn_basename(cx: &mut TestAppCont
     host::pump(cx);
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
-        assert_eq!(host.pane.state.query, "n", "the search query reaches the painter");
+        assert_eq!(
+            host.pane.state.query, "n",
+            "the search query reaches the painter"
+        );
         let paint = host
             .columns
             .as_ref()
@@ -108,9 +111,18 @@ fn search_rows_wash_the_typed_run_inside_the_drawn_basename(cx: &mut TestAppCont
             .expect("active column")
             .borrow();
         let row = paint.prepared(1).expect("search row is painted");
-        assert_eq!((row.label.as_str(), row.location_label.as_str()), ("notes.txt", "Docs"));
-        let (from, to) = row.wash_span(false, false).expect("the typed run is washed");
-        assert_eq!(from, gpui::px(0.), "the run starts at the basename's first letter");
+        assert_eq!(
+            (row.label.as_str(), row.location_label.as_str()),
+            ("notes.txt", "Docs")
+        );
+        let (from, to) = row
+            .wash_span(false, false)
+            .expect("the typed run is washed");
+        assert_eq!(
+            from,
+            gpui::px(0.),
+            "the run starts at the basename's first letter"
+        );
         assert!(to > from);
     });
 }

@@ -4,7 +4,9 @@ use gpui::VisualTestContext;
 use std::time::Duration;
 
 fn hit(cx: &mut TestAppContext, handle: Handle, key: &str) {
-    edit(cx, handle, |shell, window, cx| window.focus(&shell.focus, cx));
+    edit(cx, handle, |shell, window, cx| {
+        window.focus(&shell.focus, cx)
+    });
     frame(cx, handle);
     VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes(key);
     frame(cx, handle);

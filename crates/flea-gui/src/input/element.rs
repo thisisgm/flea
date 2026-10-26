@@ -42,7 +42,9 @@ pub(crate) fn grid_surface(
     side: usize,
     read: impl Fn(&Shell, Bounds<gpui::Pixels>) -> Option<(Frame, crate::list::Palette)> + 'static,
 ) -> impl IntoElement {
-    viewport(shell, side, true, move |shell: &mut Shell, bounds| read(shell, bounds))
+    viewport(shell, side, true, move |shell: &mut Shell, bounds| {
+        read(shell, bounds)
+    })
 }
 
 fn viewport(

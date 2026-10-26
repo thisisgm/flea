@@ -269,8 +269,7 @@ fn u25_a_live_search_tears_off_its_resting_folder_with_its_order(cx: &mut TestAp
 
 #[test]
 fn u25_tear_off_hand_off_selects_only_on_the_launch_pane_once() {
-    let settings =
-        crate::window::startup::Settings::from_json(flea::jsondoc::parse("{}").unwrap());
+    let settings = crate::window::startup::Settings::from_json(flea::jsondoc::parse("{}").unwrap());
     let mut host = super::host::Host::new(&settings, "/files");
     host.launch.cursor = "note.txt".into();
     assert_eq!(

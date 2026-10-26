@@ -25,7 +25,8 @@ impl Messages {
     pub fn line(&self, catalog: &I18n, state_message: &str) -> Line {
         let shown = self.shown();
         let slot = self.slot(&shown);
-        let hint = if shown.text.is_empty() || slot.sticky_here || slot.searching || self.arm_live() {
+        let hint = if shown.text.is_empty() || slot.sticky_here || slot.searching || self.arm_live()
+        {
             Hint::None
         } else if shown.is_error {
             self.errors[0].hint
