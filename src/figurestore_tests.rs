@@ -218,19 +218,21 @@ fn known_asks_whether_this_exact_key_was_drawn() {
 }
 
 #[test]
-fn an_entry_drawn_before_the_sequence_defaults_is_a_miss() {
-    let dir = TestDir::new("figure-store-format-2");
-    let store = dir.join("svg");
-    let k = key("mermaid", THEME_A, false, "sequenceDiagram\n    A->>B: hi");
-    put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("put");
-    let target = store.join(entry_name(&k).expect("name"));
-    // Format 2 entries hold Pele's solid lifelines and 64 px participants, which the HIG board does not draw (SW-19).
-    let previous = String::from_utf8(encode(&k, SVG)).expect("text").replacen(FORMAT, "flea-figure-svg 2", 1);
-    fs::write(&target, previous).expect("a format 2 entry");
-    assert_eq!(get(&store, &k), None, "a format 2 figure is never served");
-    assert!(!known(&store, std::slice::from_ref(&k)), "a format 2 figure is not known");
-    put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("redraw");
-    assert_eq!(get(&store, &k).as_deref(), Some(SVG), "the redrawn figure replaces it");
+fn an_entry_drawn_before_the_v0312_geometry_is_a_miss() {
+    // Format 2 holds Pele's solid lifelines and 64 px participants (SW-19); format 3 its round boxes at least 48 wide and late first message (PELE-GEOM).
+    for earlier in ["flea-figure-svg 2", "flea-figure-svg 3"] {
+        let dir = TestDir::new("figure-store-earlier-format");
+        let store = dir.join("svg");
+        let k = key("mermaid", THEME_A, false, "sequenceDiagram\n    A->>B: hi");
+        put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("put");
+        let target = store.join(entry_name(&k).expect("name"));
+        fs::write(&target, String::from_utf8(encode(&k, SVG)).expect("text").replacen(FORMAT, earlier, 1)).expect("an earlier entry");
+        assert_eq!(get(&store, &k), None, "a {earlier} figure is never served");
+        assert!(!known(&store, std::slice::from_ref(&k)), "a {earlier} figure is not known");
+        assert!(recognized(&target), "a {earlier} figure is still ours, so eviction may remove it");
+        put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("redraw");
+        assert_eq!(get(&store, &k).as_deref(), Some(SVG), "the redrawn figure replaces it");
+    }
 }
 
 #[test]
