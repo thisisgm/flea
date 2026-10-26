@@ -30,7 +30,8 @@ impl Open {
 
 impl Shell {
     /// The opener's run ask: the card opens on the asking pane, and an ask that does not parse says so and runs nothing.
-    pub(crate) fn open_run_card(&mut self, side: usize, path: String, text: String, cx: &mut Context<Self>) {
+    /// `shift` is the window's Shift at open, so a Shift held before the ask returned labels the card it opens.
+    pub(crate) fn open_run_card(&mut self, side: usize, path: String, text: String, shift: bool, cx: &mut Context<Self>) {
         self.dismiss_cards(cx);
         let flea = crate::window::startup::binary().to_string_lossy().into_owned();
         // v0.3.12 RunFile.listedGlyph: the mark the listing draws for the row this path still names, read once at open.
@@ -47,6 +48,7 @@ impl Shell {
                 if let Some(listed) = listed {
                     card.set_listed(&listed);
                 }
+                card.shift = shift;
                 self.run_card = Some(Open::new(side, card));
             }
             Err(message) => self.opener_say(side, message, true, cx),

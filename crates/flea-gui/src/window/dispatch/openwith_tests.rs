@@ -190,7 +190,7 @@ fn a_second_ask_closes_the_card_that_shows(cx: &mut TestAppContext) {
     assert!(second.is_some_and(|id| id != first), "the second ask holds its own id");
     let ask = r#"{"ask":"run","kind":"script","size":21,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":11,"mtimeNs":12,"target":"/files/mystery.xyz"}"#;
     cx.update(|_, cx| {
-        shell.update(cx, |shell, cx| shell.open_run_card(0, "/files/mystery.xyz".into(), ask.into(), cx))
+        shell.update(cx, |shell, cx| shell.open_run_card(0, "/files/mystery.xyz".into(), ask.into(), false, cx))
     });
     cx.run_until_parked();
     assert_eq!(

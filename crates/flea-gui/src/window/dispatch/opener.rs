@@ -164,7 +164,7 @@ impl Shell {
                     side,
                     opened: Opened::AskRun { path: path.clone(), text: text.clone() },
                 });
-                self.open_run_card(side, path, text, cx);
+                self.open_run_card(side, path, text, window.modifiers().shift, cx);
             }
             Opened::AskOpenWith(path) => {
                 cx.emit(Asked {
