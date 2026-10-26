@@ -29,6 +29,8 @@ mod path;
 mod presentation;
 #[path = "gcomp_status_tests.rs"]
 mod status;
+#[path = "footer_feedback_tests.rs"]
+mod footer_feedback;
 
 type Handle = WindowHandle<Root>;
 
