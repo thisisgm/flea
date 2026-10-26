@@ -107,6 +107,11 @@ def main(control=False):
                                 for metric in ['replay_us', 'observed_replay_us', 'copy_us']:
                                     rows.row(dict(context, work='fixture-prior-setup'), 'native_prior_' + metric,
                                              engine.native_priors[metric], 'us', note='fixture seed replay and copying precede process launch and both index clocks')
+                            prior_load = engine.prior_load
+                            for metric in ['xbel_us', 'zoxide_us', 'load_us'] if prior_load else []:
+                                value = prior_load.get(metric)
+                                rows.row(dict(context, work='prior-load-readiness'), 'prior_' + metric, value, 'us', 'ok' if value is not None else 'missing',
+                                         'backend-start prior load, waited on before the cache gate and both index clocks' if value is not None else 'provider finished after the load deadline or never ran')
                             cache_gate(args.output, args.cache_mode, context)
                             ticks = cpu_ticks(engine.process.pid)
                             index_cpu = process_cpu_ns(engine.process.pid)

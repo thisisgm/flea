@@ -65,6 +65,8 @@ pub(crate) struct Session {
     pub(crate) row_cache: crate::backend::searchrowcache::Cache,
     // The tag terms' names, read once per row off the loop thread; see src/backend/searchtags.rs.
     pub(crate) tags: crate::backend::searchtags::Tags,
+    // The desktop priors loaded when the session opened, fixed so every answer of the open ranks alike.
+    pub(crate) priors: Option<&'static crate::backend::searchprior::Priors>,
     #[cfg(test)]
     pub counters: Counters,
 }
@@ -233,7 +235,7 @@ impl Session {
             && Matcher::can_narrow(&crate::backend::searchtags::Tags::terms(&self.last_query).text, &terms.text);
         let unread = self.tags.prepare(&terms, &self.index, &self.scope, &self.body, self.walking());
         let fuzzy = Matcher::new(&terms.text);
-        let priors = crate::backend::searchprior::snapshot();
+        let priors = self.priors;
         let index = self.index.lock().unwrap();
         // Only complete, unchanged zero-edit extensions can reuse their previous candidates.
         let candidates: Vec<usize> = if narrow && index.partial.is_none() && index.len() == self.matched_index_len {

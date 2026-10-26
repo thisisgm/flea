@@ -6,8 +6,7 @@ use std::os::fd::AsRawFd;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::OnceLock;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Once, OnceLock};
 use std::time::{Duration, Instant};
 
 #[path = "searchpriorxml.rs"]
@@ -19,8 +18,16 @@ const RECORDS: usize = 4096;
 const PATH_BYTES: usize = 4096;
 const LIMIT: Duration = Duration::from_secs(2);
 const SCALE: i32 = 64;
-static SNAPSHOT: OnceLock<Priors> = OnceLock::new();
-static STARTED: AtomicBool = AtomicBool::new(false);
+// The backend's load waits this long first, so its file read and zoxide spawn stay clear of the first window.
+const GRACE: Duration = Duration::from_secs(1);
+static GLOBAL: OnceLock<Load> = OnceLock::new();
+static STARTED: Once = Once::new();
+
+// One snapshot load on its own worker; an open reads whatever it has finished and never waits for it.
+#[derive(Default)]
+pub(crate) struct Load {
+    snapshot: OnceLock<Priors>,
+}
 
 #[derive(Default)]
 pub(crate) struct Priors {
@@ -42,6 +49,10 @@ impl Priors {
             }
         }
         out
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.files.is_empty() && self.folders.is_empty()
     }
 
     fn insert(&mut self, path: &[u8], directory: bool, direct: u8, context: u8) {
@@ -102,19 +113,40 @@ fn distance(a: &[u8], b: &[u8]) -> usize {
     }
 }
 
-pub(crate) fn snapshot() -> Option<&'static Priors> {
-    if !STARTED.swap(true, Ordering::AcqRel) {
-        let launched = std::thread::Builder::new().name("search-prior-load".into()).spawn(|| {
-            let _ = SNAPSHOT.set(load());
-        });
-        if launched.is_err() { let _ = SNAPSHOT.set(Priors::default()); }
+impl Load {
+    fn spawn(&'static self, source: impl FnOnce() -> Priors + Send + 'static) {
+        let launched = std::thread::Builder::new().name("search-prior-load".into()).spawn(move || { let _ = self.snapshot.set(source()); });
+        if launched.is_err() { let _ = self.snapshot.set(Priors::default()); }
     }
-    SNAPSHOT.get()
+
+    // The snapshot if the load has finished, never waited for.
+    pub(crate) fn loaded(&self) -> Option<&Priors> {
+        self.snapshot.get()
+    }
+
+    // A loader over named sources, so a test never reads or changes the process environment.
+    #[cfg(test)]
+    pub(crate) fn leaked(history: Option<PathBuf>, program: PathBuf) -> &'static Load {
+        let load: &'static Load = Box::leak(Box::default());
+        load.spawn(move || load_from(history, program, LIMIT));
+        load
+    }
+}
+
+// The process's one load, started with the backend and done about GRACE later; an open before then ranks without it.
+pub(crate) fn start() {
+    let load = GLOBAL.get_or_init(Load::default);
+    STARTED.call_once(|| load.spawn(|| { std::thread::sleep(GRACE); self::load() }));
+}
+
+// The process's snapshot if its load has finished; None before start or while it runs.
+pub(crate) fn loaded() -> Option<&'static Priors> {
+    GLOBAL.get().and_then(Load::loaded)
 }
 
 pub(crate) fn rank(priors: Option<&Priors>, scope: &Path, folder: &Path, index: &Index, mut hits: Vec<(i32, usize)>) -> Vec<(i32, usize)> {
     if hits.len() > 1 {
-        if let Some(priors) = priors { priors.apply(scope, folder, index, &mut hits); }
+        if let Some(priors) = priors.filter(|priors| !priors.is_empty()) { priors.apply(scope, folder, index, &mut hits); }
     }
     hits
 }
@@ -269,3 +301,7 @@ pub(super) mod alloc_tests;
 #[cfg(test)]
 #[path = "searchprior_xml_tests.rs"]
 mod xml_tests;
+
+#[cfg(test)]
+#[path = "searchprior_session_tests.rs"]
+mod session_tests;
