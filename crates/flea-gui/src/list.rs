@@ -23,6 +23,10 @@ pub mod seam;
 pub(crate) mod size_tests;
 pub(crate) mod sizes;
 #[cfg(test)]
+mod gh315_filter_tests;
+#[cfg(test)]
+mod gh333_tests;
+#[cfg(test)]
 mod tests;
 mod typeface;
 
