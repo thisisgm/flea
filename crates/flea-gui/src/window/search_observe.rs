@@ -1,5 +1,4 @@
-//! Normal query reads, actual prepared-row paint observations and the presented scenes that showed them;
-//! keyDeliveryState lives in window/key_delivery.rs.
+//! Query reads, prepared-row paint observations and the scenes that showed them; keyDeliveryState is in key_delivery.rs.
 use crate::{
     g2::sr1::{
         presented::{Scene, Shown},
