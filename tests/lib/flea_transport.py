@@ -338,10 +338,10 @@ def serve(root):
             safe = existing.is_absolute() and any((ancestor / MARKER).is_file() for ancestor in (existing, *existing.parents))
             if not safe:
                 environment[key] = str(directory)
-        if options["frontend"] == "gpui" and environment["HOME"] == str(root / "home"):
+        if environment["HOME"] == str(root / "home"):
             config = root / "config" if environment["XDG_CONFIG_HOME"] == str(root / "config") else None
             seed(os.environ.get("HOME", ""), root / "home", config)
-        elif options["frontend"] == "gpui" and environment["XDG_CONFIG_HOME"] == str(root / "config"):
+        elif environment["XDG_CONFIG_HOME"] == str(root / "config"):
             seed_fonts(Path(environment["HOME"]), private_config=root / "config")
         command = [options["binary"], "--gui", options["path"]]
         if options["command"]:
