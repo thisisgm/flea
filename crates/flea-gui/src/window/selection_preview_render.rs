@@ -1,5 +1,6 @@
 //! The approved media frame, optional transport, name and compact or full facts.
 use super::*;
+pub(crate) use super::fitted::column_picture;
 use crate::g2::pv3::{
     self,
     strip::StripElement,
@@ -63,7 +64,11 @@ impl Render for SelectionPreview {
         // A pending document lays out unseen at its frame's size, so the view sends the asks its first screen needs.
         if let Some(frame) = self.pending.as_ref().filter(|f| !f.manual) {
             if let Mounted::Doc(doc) = &frame.mounted {
-                let rows = if frame.kind.tall() && !self.full_facts { 1 } else { 3 };
+                let rows = if frame.kind.tall() && !self.full_facts {
+                    1
+                } else {
+                    3
+                };
                 let (width, height) = self.frame_size(frame.kind, rows);
                 root = root.child(
                     div()
@@ -111,13 +116,15 @@ impl Render for SelectionPreview {
             );
         }
         let frame = self.drawn.as_ref().unwrap();
-        if !matches!(frame.mounted, Mounted::Media(_)) {
+        if frame.manual || !matches!(frame.mounted, Mounted::Media(_)) {
             *self.play_rect.borrow_mut() = None;
         }
+        let empty = self.manual_empty(frame);
+        let kind = if empty { Kind::Facts } else { frame.kind };
         let full = !frame.kind.tall() || self.full_facts;
         let facts = self.facts(frame, cx);
         let (row, name_row) = self.fact_row();
-        let (width, height) = self.frame_size(frame.kind, if full { facts.len() } else { 1 });
+        let (width, height) = self.frame_size(kind, if full { facts.len() } else { 1 });
         let bounds = self.frame_rect.clone();
         let frame_probe = gpui::canvas(
             |bounds, _, _| bounds,
@@ -130,11 +137,16 @@ impl Render for SelectionPreview {
             .relative()
             .w_full()
             .border_1()
-            .border_color(roles.metadata_frame)
+            .border_color(if empty {
+                roles.muted_frame
+            } else {
+                roles.metadata_frame
+            })
             .rounded(px(self.corner))
             .overflow_hidden()
-            .child(frame_probe);
-        media = if frame.kind.tall() {
+            .child(frame_probe)
+            .debug_selector(|| "column-preview-frame".into());
+        media = if kind.tall() {
             media.flex_1().min_h_0()
         } else {
             media.h(px(height)).flex_none()
@@ -152,7 +164,16 @@ impl Render for SelectionPreview {
                 .children(note.map(|note| div().text_color(roles.metadata).child(note)))
         };
         let failure = self.failure(frame, cx);
-        if frame.manual {
+        if empty {
+            media = media.child(
+                state_mark(
+                    Glyph::Row(Mark::File),
+                    roles.muted_frame,
+                    Some(self.catalog.tr("preview.no_preview")),
+                )
+                .debug_selector(|| "column-preview-manual-empty".into()),
+            );
+        } else if frame.manual {
             media = media.child(
                 div()
                     .size_full()
@@ -257,6 +278,9 @@ impl Render for SelectionPreview {
             };
         }
         root = root.flex().flex_col().gap(px(metrics.gap)).child(media);
+        if empty {
+            return root;
+        }
         if let Mounted::Media(player) = &frame.mounted {
             let entity = cx.entity().downgrade();
             let on_input = Rc::new(move |input, window: &mut Window, cx: &mut gpui::App| {
@@ -368,13 +392,5 @@ impl Render for SelectionPreview {
             );
         }
         root
-    }
-}
-
-/// cols-preview-video.html draws no play mark over the frame; the strip under it carries play.
-pub(crate) fn column_picture(picture: Picture) -> Picture {
-    match picture {
-        Picture::Video { frame, .. } => Picture::Video { frame, poster: false },
-        other => other,
     }
 }
