@@ -12,6 +12,8 @@ pub(crate) mod glyphs;
 #[cfg(test)]
 mod keymap_sheet_menu_tests;
 #[cfg(test)]
+mod keymap_sheet_activation_tests;
+#[cfg(test)]
 mod keymap_sheet_order_tests;
 mod marks;
 #[cfg(test)]
