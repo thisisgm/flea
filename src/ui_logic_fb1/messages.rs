@@ -85,6 +85,29 @@ impl Messages {
         transient_of(&self.errors, &self.notice, &self.prompt, self.arm_live())
     }
 
+    /// The transient sentence with its own advice, before the footer splits that advice into another lane.
+    pub fn transient_text(&self, catalog: &crate::i18n::I18n) -> String {
+        let shown = self.shown();
+        if shown.text.is_empty() || self.arm_live() {
+            return shown.text;
+        }
+        let hint = if shown.is_error {
+            self.errors[0].hint
+        } else {
+            self.notice_hint
+        };
+        // Dismiss and carry are display-only advice, outside the transient sentence's wire contract.
+        if matches!(hint, Hint::Dismiss | Hint::Carry) {
+            return shown.text;
+        }
+        let hint = hint.text(catalog, &self.preset).joined();
+        if hint.is_empty() {
+            shown.text
+        } else {
+            format!("{}{}{hint}", shown.text, super::status::SEP)
+        }
+    }
+
     fn sticky(&self) -> &str {
         match self.activities.first() {
             Some(activity) if !activity.running => &activity.text,
