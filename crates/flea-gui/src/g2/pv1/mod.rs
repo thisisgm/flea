@@ -11,6 +11,12 @@ mod doc_card;
 mod doc_keys;
 pub mod glyph;
 pub mod look;
+mod photo;
+mod photo_frames;
+mod photo_png;
+#[cfg(test)]
+mod photo_tests;
+mod picture;
 mod raster;
 pub mod scroller;
 pub mod shield;
@@ -89,6 +95,7 @@ pub struct QuickLook {
     pub(crate) look: Option<Look>,
     pub(crate) subject: Option<Subject>,
     svg: Option<SvgPicture>,
+    zoom: f64,
     raster: Option<Rasterizer>,
     raster_latest: Arc<AtomicU64>,
     raster_in_flight: bool,
@@ -119,6 +126,7 @@ impl QuickLook {
             look: None,
             subject: None,
             svg: None,
+            zoom: 1.,
             raster: None,
             raster_latest: Arc::new(AtomicU64::new(0)),
             raster_in_flight: false,
@@ -197,6 +205,7 @@ impl QuickLook {
         self.doc_watch = subject.body.doc().map(|doc| doc.observe(cx));
         self.subject = Some(subject);
         self.retire_svg(cx);
+        self.zoom = 1.;
         self.revealed = revealed;
         self.focused = None;
         self.pressed = None;
@@ -222,6 +231,7 @@ impl QuickLook {
         }
         self.ground.reset();
         self.retire_svg(cx);
+        self.zoom = 1.;
         self.revealed = false;
         self.expanded = false;
         self.strip_shown = false;

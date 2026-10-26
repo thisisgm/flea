@@ -3,21 +3,19 @@ use super::{
     bar::{self, mark, Name},
     glyph::Glyph,
     look::{self, Look},
-    viewport::pane,
     shield::{OnPointer, Shield},
-    Body, QuickLook, RasterRefusal, RasterState,
+    viewport::pane,
+    Body, QuickLook, RasterRefusal,
 };
 use crate::{list::Palette, row::marks::Mark};
 use flea::ui_logic_pv1::{
     compare::{DiffRow, Kind},
-    pixels::is_vector_name,
     scroll,
 };
 use gpui::{
-    div, img, prelude::*, px, AnyElement, Bounds, Context, Hsla, ImageSource, ObjectFit, Pixels,
-    Render, RenderImage, SharedString, Window,
+    div, prelude::*, px, AnyElement, Bounds, Context, Hsla, Pixels, Render, SharedString, Window,
 };
-use std::{borrow::Cow, path::Path, rc::Rc, sync::Arc};
+use std::{borrow::Cow, rc::Rc};
 
 impl Render for QuickLook {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -65,25 +63,6 @@ impl Render for QuickLook {
     }
 }
 
-fn picture(path: &Path, at: (f64, f64), w: f64, h: f64, raster: Option<Arc<RenderImage>>) -> AnyElement {
-    // A vector draws only its own raster, or nothing while pending; a raster file decodes whole from its file.
-    let vector = path.file_name().and_then(|n| n.to_str()).is_some_and(is_vector_name);
-    let source = raster
-        .map(ImageSource::from)
-        .or_else(|| (!vector).then(|| ImageSource::from(path.to_path_buf())));
-    let mut picture = div()
-        .absolute()
-        .left(px(at.0 as f32))
-        .top(px(at.1 as f32))
-        .w(px(w as f32))
-        .h(px(h as f32))
-        .debug_selector(|| "pv1-picture".into());
-    if let Some(source) = source {
-        picture = picture.child(img(source).size_full().object_fit(ObjectFit::Fill));
-    }
-    picture.into_any_element()
-}
-
 pub(super) fn text(content: &str, size: f32, ink: Hsla) -> gpui::Div {
     div()
         .text_size(px(size))
@@ -93,34 +72,6 @@ pub(super) fn text(content: &str, size: f32, ink: Hsla) -> gpui::Div {
 }
 
 impl QuickLook {
-    /// The open picture's vector raster, asked before the subject borrow below takes `&self` (#336).
-    fn vector_raster(
-        &mut self,
-        w: f64,
-        h: f64,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> RasterState {
-        let next = self.subject.as_ref().and_then(|s| match &s.body {
-            Body::Image { path, w: pw, h: ph } => {
-                super::body::fit_rounded(w, h, *pw, *ph).map(|f| (path.clone(), f.w, f.h))
-            }
-            Body::Link { path, w: pw, h: ph, .. } => {
-                let room = h - f64::from(look::BAR);
-                super::body::fit_painted(w, room, *pw, *ph).map(|f| (path.clone(), f.w, f.h))
-            }
-            Body::Raw { path, w: pw, h: ph, .. } => {
-                let room = h - f64::from(look::BAR);
-                super::body::fit_rounded(w, room, *pw, *ph).map(|f| (path.clone(), f.w, f.h))
-            }
-            _ => None,
-        });
-        match next {
-            Some((path, fw, fh)) => self.svg_image(&path, fw, fh, window, cx),
-            None => RasterState::default(),
-        }
-    }
-
     fn surface(
         &mut self,
         card: Bounds<Pixels>,
@@ -132,15 +83,19 @@ impl QuickLook {
             f64::from(f32::from(card.size.width)),
             f64::from(f32::from(card.size.height)),
         );
-        let raster = self.vector_raster(w, h, window, cx);
+        let raster = self.picture_raster(w, h, window, cx);
         let subject = self.subject.as_ref().expect("an open card has a subject");
         // A refused or unreadable vector shows the kind's can't-show card, never a file GPUI would raster unbounded.
         let shown: Cow<'_, Body> = match (&subject.body, raster.refusal) {
-            (Body::Image { path, .. } | Body::Link { path, .. } | Body::Raw { path, .. }, Some(refusal))
-                if path.file_name().and_then(|n| n.to_str()).is_some_and(is_vector_name) =>
-            {
+            (Body::Image { .. } | Body::Link { .. } | Body::Raw { .. }, Some(refusal)) => {
                 let too_large = refusal == RasterRefusal::TooLarge;
-                match Body::cannot_show(&self.i18n, subject.state, too_large, !too_large, Vec::new()) {
+                match Body::cannot_show(
+                    &self.i18n,
+                    subject.state,
+                    too_large,
+                    !too_large,
+                    Vec::new(),
+                ) {
                     Some(body) => Cow::Owned(body),
                     None => Cow::Borrowed(&subject.body),
                 }
@@ -205,57 +160,8 @@ impl QuickLook {
                 }
                 parts
             }
-            Body::Image { path, w: pw, h: ph } => super::body::fit_rounded(w, h, *pw, *ph)
-                .map(|f| vec![picture(path, (f.x, f.y), f.w, f.h, raster.image.clone())])
-                .unwrap_or_default(),
-            Body::Link {
-                path,
-                w: pw,
-                h: ph,
-                target,
-            } => {
-                let name = Name {
-                    text: &subject.name,
-                    tail: Some((target, look.meta)),
-                };
-                let mut parts = vec![bar::bar(mark_of, name, None, true, look, self, cx)];
-                let room = h - f64::from(look::BAR);
-                if let Some(f) = super::body::fit_painted(w, room, *pw, *ph) {
-                    parts.push(picture(
-                        path,
-                        (f.x, f64::from(look::BAR) + f.y),
-                        f.w,
-                        f.h,
-                        raster.image.clone(),
-                    ));
-                }
-                parts
-            }
-            Body::Raw {
-                path,
-                w: pw,
-                h: ph,
-                caption,
-            } => {
-                let room = h - f64::from(look::BAR);
-                let mut parts: Vec<AnyElement> = super::body::fit_rounded(w, room, *pw, *ph)
-                    .map(|f| vec![picture(path, (f.x, f.y), f.w, f.h, raster.image.clone())])
-                    .unwrap_or_default();
-                parts.push(
-                    div()
-                        .debug_selector(|| "pv1-caption".into())
-                        .absolute()
-                        .left_0()
-                        .right_0()
-                        .bottom_0()
-                        .h(px(look::BAR))
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .child(text(caption, look::CAPTION, look.muted))
-                        .into_any_element(),
-                );
-                parts
+            Body::Image { .. } | Body::Link { .. } | Body::Raw { .. } => {
+                self.picture_parts(subject, w, h, &raster, look, cx)
             }
             Body::CannotShow {
                 sentence, error, ..
@@ -297,7 +203,9 @@ impl QuickLook {
                         f64::from(f32::from(view.bounds.size.height)),
                         rows.len(),
                     );
-                    let width = view.content_w.max(f64::from(f32::from(view.bounds.size.width)));
+                    let width = view
+                        .content_w
+                        .max(f64::from(f32::from(view.bounds.size.width)));
                     let lines = (first..last).map(|i| diff_row(i, &rows[i], look, (x, y), width));
                     let pane = pane(look::DIFF_VIEW_TOP, 0., 0.)
                         .children(lines)
@@ -352,7 +260,13 @@ pub(super) fn recipe(
 }
 
 /// One patch row at the view's position: the two muted numbers, the marker and the text in the row's ink; a hunk header sits at the text's column alone.
-fn diff_row(index: usize, row: &DiffRow, look: &Look, (x, y): (f64, f64), width: f64) -> AnyElement {
+fn diff_row(
+    index: usize,
+    row: &DiffRow,
+    look: &Look,
+    (x, y): (f64, f64),
+    width: f64,
+) -> AnyElement {
     let at = f64::from(look::DIFF_MARGIN) + index as f64 * f64::from(look::DIFF_LINE) - y;
     let top = px(at as f32);
     let ink = match row.kind {

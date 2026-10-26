@@ -100,6 +100,9 @@ impl QuickLook {
         if let Some(walk) = self.strip() {
             return self.strip_action(&walk, action, cx);
         }
+        if self.picture_action(action, cx) {
+            return Command::Nothing;
+        }
         let subject = self.subject.as_ref();
         let has_bar = subject.is_some_and(|s| s.body.has_bar());
         let doc = subject.and_then(|s| s.body.doc());
