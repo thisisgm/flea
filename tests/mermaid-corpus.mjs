@@ -87,7 +87,7 @@ export async function load(root) {
     const base = root ? absolute(root) : repoRoot(import.meta.url);
     const worker = await importFile(resolve(base, "ui/js/FigureWorker.mjs"));
     const api = await importFile(resolve(base, "ui/vendor/mermaid.mjs"));
-    return (source, face) => worker.renderFigure("mermaid", source, false, { ...theme, advances: face.regular, boldAdvances: face.bold }, api);
+    return (source, face, extra) => worker.renderFigure("mermaid", source, false, { ...theme, ...extra, advances: face.regular, boldAdvances: face.bold }, api);
 }
 
 // Sample input: "WM" at 10 px on a face whose W and M are 0.92 em reaches 18.4; a character past ASCII counts the table's mean, a CJK one twice that.
