@@ -91949,7 +91949,7 @@
     },
     {
       "excerpt": "\"{text}: {error:?} is not {:?}\",",
-      "line": 349,
+      "line": 363,
       "literal": "{text}: {error:?} is not {:?}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/palette.rs",
@@ -91958,7 +91958,7 @@
     },
     {
       "excerpt": "\"two stock reds must give two inherited reds\"",
-      "line": 356,
+      "line": 370,
       "literal": "two stock reds must give two inherited reds",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/palette.rs",
@@ -210876,7 +210876,7 @@
     "crates/flea-gui/src/g2/fb1/state.rs": "d138a5589006268d069880b09e3f0ded7e75d700c323b1b04c49105bbce1086e",
     "crates/flea-gui/src/g2/mn1/delivery.rs": "294ceede6a027672253e5ec5a6ed1dc64016fde7d2e0a0a6b561a5c85b8ebae7",
     "crates/flea-gui/src/g2/mn1/discovery.rs": "310583ef9127e536f2a0cc8715de71e018f33e150b8f39a013e82d78dc3d0908",
-    "crates/flea-gui/src/g2/mn1/element.rs": "a662b70311fd21193e2f80cba3629242004a3c335629d4c235fb32500af9927b",
+    "crates/flea-gui/src/g2/mn1/element.rs": "8d590081520c33293d3f43d416b96cd90d0d366b186cdac9428d4ef419e3614f",
     "crates/flea-gui/src/g2/mn1/facts.rs": "7eb05f53a42c783b94f99b98f072498ada37d7cbb10ffcb02eaff2753c43a9fa",
     "crates/flea-gui/src/g2/mn1/fix2_prior_proofs.rs": "81d7c499281a1a818bb6b8c08a31a932562f3e75898b61db1e0299e9ec13d937",
     "crates/flea-gui/src/g2/mn1/fix2_width_proof.rs": "d541621b1c99e6a66ab3b090cbcd0657e864e2adfe462a5827094f9fc3938b4f",
@@ -211339,7 +211339,7 @@
     "crates/flea-gui/src/navigation/sort.rs": "1815d9b9ddfc461ee1b65e0de4b53267e3fe978cdcdef02e768b2e70c7e7ec5d",
     "crates/flea-gui/src/navigation/steps.rs": "3a41ec64e114808b859cdc8d20b0d30d485f62c8e8cfa5e1bef86ad338532f31",
     "crates/flea-gui/src/navigation/watch.rs": "0c994c4d99c6810e3d47215708ed10f1e9b88a26ab1274cc09a159f7b4e1d885",
-    "crates/flea-gui/src/palette.rs": "46c9d8726e11529f68da7dc2e1267949ddbdd0880ae834e7c2f03cf9a0871b38",
+    "crates/flea-gui/src/palette.rs": "fc650e1aeeb4d4602f0681e53ae7416aafd3260743959b59f7b3b8ca41d5cbd3",
     "crates/flea-gui/src/pane/clock.rs": "ff7675b5a873556532d1e24ab5e1428dffd051fe2f9f534a5aaf42ed4ab33054",
     "crates/flea-gui/src/pane/mod.rs": "796b85d7f67cb5cf3a659cded1024d936fe6bfcf5ff82b7c0403a9f8e8fc3602",
     "crates/flea-gui/src/pane/presentation.rs": "775583f86268441b76fb1110bdd9c2605ebd8568985fef3b5213ec1d5ad99cdf",
@@ -212942,8 +212942,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "47e06be348e11d8893ee6980c064c6eee6196faa",
-  "source_sha": "47e06be348e11d8893ee6980c064c6eee6196faa",
+  "source_ref_sha": "2215844d4c1aaad6d470e7a5e2f7df73c614074c",
+  "source_sha": "2215844d4c1aaad6d470e7a5e2f7df73c614074c",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
