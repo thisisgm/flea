@@ -150,7 +150,7 @@ impl Messages {
         if self.shown().is_error {
             self.errors.remove(0);
         } else {
-            self.notice.clear();
+            self.clear_notice();
         }
         self.follow(now);
     }
@@ -158,9 +158,15 @@ impl Messages {
     /// Clears the notice only when the serial still names it.
     pub fn withdraw(&mut self, serial: u64, now: u64) {
         if serial == self.notice_serial {
-            self.notice.clear();
+            self.clear_notice();
             self.follow(now);
         }
+    }
+
+    // The notice and its hint end together, or the muted lane outlives its sentence.
+    fn clear_notice(&mut self) {
+        self.notice.clear();
+        self.notice_hint = Hint::None;
     }
 
     /// Leaving a place drops its refusals and its arm.
@@ -263,7 +269,7 @@ impl Messages {
     pub fn tick(&mut self, now: u64) -> Tick {
         let mut tick = Tick::default();
         if self.notice_until.is_some_and(|until| now >= until) {
-            self.notice.clear();
+            self.clear_notice();
             self.notice_until = None;
             tick.notice_cleared = true;
         }

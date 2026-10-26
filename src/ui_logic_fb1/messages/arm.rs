@@ -15,7 +15,7 @@ impl Messages {
             self.sync_notice_timer(now);
             return;
         }
-        self.notice.clear();
+        self.clear_notice();
         self.prompt = text.into();
         let arm = Arm {
             owner: self.arm_owner,
