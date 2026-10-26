@@ -67,14 +67,14 @@ fn small_picture(vector: bool) -> Subject {
 }
 
 #[gpui::test]
-fn ql_small_svg_fills_the_card_and_small_png_keeps_its_size(cx: &mut TestAppContext) {
+fn ql_small_svg_and_small_png_fill_the_card(cx: &mut TestAppContext) {
     // EY-64: a 60x40 vector in the 902x574 card fills along the limiting axis, aspect kept.
     let (cx, _, _, _) = host(cx, small_picture(true), Arm::Fix);
     assert_eq!(rect(cx, "pv1-card"), (99., 63., 902., 574.));
     assert_eq!(rect(cx, "pv1-picture"), (120., 63., 861., 574.));
-    // A 60x40 raster keeps v0.3.12's rule: drawn at its own pixels, centred.
+    // EY-160: v0.3.12 scales a small raster up the same way (native run.3v7DMZID, logo.png 96x48).
     let (cx, _, _, _) = host(cx, small_picture(false), Arm::Fix);
-    assert_eq!(rect(cx, "pv1-picture"), (520., 330., 60., 40.));
+    assert_eq!(rect(cx, "pv1-picture"), (120., 63., 861., 574.));
 }
 
 // A symlink whose name and picture are a 60x40 vector or raster, drawn under the link bar.

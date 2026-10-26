@@ -62,6 +62,10 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
+        // The unlock and share cards take typed text through the platform, so their text keys keep propagating.
+        if self.card_takes_text(event, window, cx) {
+            return;
+        }
         // Every modal key belongs to the card; a cardless Escape still reaches the window.
         if let Some(overlay) = self.overlay.clone() {
             let modal = overlay.read_with(cx, |card, cx| card.modal(cx));

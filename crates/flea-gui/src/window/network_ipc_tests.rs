@@ -342,3 +342,19 @@ fn m9_net_ipc_rail_readers_read_the_network_rows_and_the_plus(cx: &mut TestAppCo
         "a listing and a mountinfo read build the group"
     );
 }
+
+#[gpui::test]
+fn the_add_share_card_takes_typed_text_through_the_window(cx: &mut TestAppContext) {
+    let (shell, cx, _lines) = open(Rc::new(Recorder::default()), cx);
+    cx.simulate_resize(size(px(1100.), px(700.)));
+    frame(cx);
+    cx.update(|window, cx| shell.update(cx, |shell, cx| shell.network_add(0, window, cx)));
+    frame(cx);
+    assert_eq!(call(&shell, "networkFocus", &[], cx), "Host");
+    // Typed keys reach the focused field through the platform's IME entry, past the window's own key handler.
+    cx.simulate_input("nas.local");
+    frame(cx);
+    let view = card(&shell, cx);
+    let host = cx.update(|_, cx| view.read(cx).model.form.host.clone());
+    assert_eq!(host, "nas.local", "the typed host lands in the focused field");
+}
