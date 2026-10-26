@@ -226,7 +226,7 @@ fn pv2_review_r3_ragged_rows_draw_missing_cells_empty(cx: &mut TestAppContext) {
     println!("REV-R3 ragged rows draw {rows:?}");
     assert_eq!(
         rows,
-        vec![vec!["sho…", "", "", ""], vec!["1", "2", "3", "ext…"]],
+        vec![vec!["short", "", "", ""], vec!["1", "2", "3", "extra"]],
         "a short row draws its missing cells empty"
     );
 }

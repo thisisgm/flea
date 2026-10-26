@@ -118,6 +118,8 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("all", "text", "l", "l", "pageForward", "preview,pdf,media", "all", 0, 112, "keys.label.fa0d5464127e", true),
     Binding::new("all", "text", "r", "r", "markdownView", "preview", "all", 0, 16, "keys.label.743d0f61c964", true),
     Binding::new("all", "text", "w", "w", "toggleWrap", "preview", "all", 0, 16, "keys.label.70bfd7fbcdb6", true),
+    Binding::new("all", "text", "[", "[", "previousSheet", "preview,pdf", "all", 0, 48, "keys.label.e3a4d6eba0c6", true),
+    Binding::new("all", "text", "]", "]", "nextSheet", "preview,pdf", "all", 0, 48, "keys.label.c2fc6e7bc3be", true),
     Binding::new("all", "text", "y", "y", "copyPatch", "preview", "all", 0, 16, "keys.label.a85ca7b809b0", true),
     Binding::new("all", "text", "-", "-", "zoomOut", "preview,pdf", "all", 0, 48, "keys.label.bc7b631a689b", true),
     Binding::new("all", "text", "+", "+", "zoomIn", "preview,pdf", "all", 0, 48, "keys.label.0e47f09a748f", true),
