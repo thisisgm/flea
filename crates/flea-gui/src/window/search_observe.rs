@@ -1,4 +1,4 @@
-//! Normal query reads and actual prepared-row paint observations.
+//! The query line's focusView and actual prepared-row paint observations; keyDeliveryState lives in window/key_delivery.rs.
 use crate::{g2::sr1::Search, state::Shell};
 pub(crate) struct QueryReader<'a> {
     pub search: &'a Search,
@@ -7,16 +7,8 @@ pub(crate) struct QueryReader<'a> {
 
 impl crate::ipc::Adapter for QueryReader<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<flea::ipc::wire::Reply> {
-        if function == "focusView" && self.focused && self.search.typing() {
-            return Some(flea::ipc::wire::Reply::value("search"));
-        }
-        (function == "keyDeliveryState").then(|| {
-            flea::ipc::wire::Reply::value(format!(
-                "{{\"searchQuery\":\"{}\",\"searchMode\":\"{:?}\"}}",
-                flea::json::escape(&self.search.session.query),
-                self.search.session.mode,
-            ))
-        })
+        (function == "focusView" && self.focused && self.search.typing())
+            .then(|| flea::ipc::wire::Reply::value("search"))
     }
 }
 
