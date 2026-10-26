@@ -211408,7 +211408,7 @@
     "crates/flea-gui/src/g2/pv3/kit/window.rs": "a4d6bf6d616aee7f0fe93371984d5dcc856a5a98df4411e70b75a625aab290b1",
     "crates/flea-gui/src/g2/pv3/mod.rs": "e9f78c10c8f5fcac984f6e03352a5dfbe1cff103602f8d90ef3a97f61bd66dcf",
     "crates/flea-gui/src/g2/pv3/mpris.rs": "4538264fa7785ba1a74d640f8e4dbcd0bf47bbe951405e888289d5c2c10fb009",
-    "crates/flea-gui/src/g2/pv3/player.rs": "ed3e8ed24d80df32d3c43193c35bfffd758d156be1dc5d306986d6cfd0044f2b",
+    "crates/flea-gui/src/g2/pv3/player.rs": "e77df2d993691d61a82cd61e533f640e511d72040607dbb676a94bd24f109668",
     "crates/flea-gui/src/g2/pv3/player/atlas.rs": "8dcdc18cf743a793311d660404f70188ddf36fb13fcb20647a73e906bbc0b2cc",
     "crates/flea-gui/src/g2/pv3/player/controls.rs": "1fa651bc2fd5d040778ce52e8c23a17badba5b47ff51e362a86bac6d831f2445",
     "crates/flea-gui/src/g2/pv3/player/publish.rs": "2a7f3898681dc411781842240949a7e9115f804602e0b767adbb9196d2eb2768",
@@ -211416,7 +211416,7 @@
     "crates/flea-gui/src/g2/pv3/sound.rs": "9a0a7e932958a9aaeef72ff2f8c7724b2c8df9b7a4084e50130a836ad55b6f75",
     "crates/flea-gui/src/g2/pv3/strip.rs": "2b9fcc43a014970565c009ff49a72c64b3af47d7710d07725656ce18a7c85a51",
     "crates/flea-gui/src/g2/pv3/strip/pointer.rs": "4d827bbe067c11fa81f17a81d4bcdb7a0f01d341afaddb9216039396a1dc0723",
-    "crates/flea-gui/src/g2/pv3/surface.rs": "4dd314fd92713b6af17848ecb9d6c55d01a4a33d917f9e8faa9f9f4ba98a9310",
+    "crates/flea-gui/src/g2/pv3/surface.rs": "2141e21034a8694f83900464189346e09d5ce3e6bea9a92a2d34e2ca6d1753d7",
     "crates/flea-gui/src/g2/pv3/view.rs": "9c2903727f5ab0eea1e3f0c9e4e1e4d20703ad2e58cdb83233662ac642a45fab",
     "crates/flea-gui/src/g2/pv4/element.rs": "d17d4470d20ff9f9cbb721b73a218331bd04811bf74542e951da96813195f69d",
     "crates/flea-gui/src/g2/pv4/live.rs": "14ef00ab253a8e56fb30c2851b012aa9180c71a33cda1177eff84ba601832b7b",
@@ -212551,7 +212551,7 @@
     "src/ui_logic_pv3.rs": "97f7d560d0b0217da98d512e520e76b422e7a93dd8a4407f48e7df182a06b96a",
     "src/ui_logic_pv3/frame.rs": "3df4e83402b538e08bf28dd53e866b45cb2f93440ac587bb347d8fee69e6bb90",
     "src/ui_logic_pv3/picture.rs": "6a414885c98840e629b34bfb36310d2dadec958c31fe82af4fd1738f09525816",
-    "src/ui_logic_pv3/player.rs": "6c95af2a8c834e45349bfdbcdd0a89db1b80ff6512d2573610107cfab590f254",
+    "src/ui_logic_pv3/player.rs": "403c6f81b6870b7af7a4eea7d6ef7e813257a901cfb9d1d6f727cd7161d14b22",
     "src/ui_logic_pv3/session.rs": "2a7ff96bccb040b7486f3b51a07db699a07cac0833936ac57bde577f99c7053a",
     "src/ui_logic_pv3/strip.rs": "9656c755654fcb01b87f2699f6105453cd76e3016797b318fe7271ac8e99b21b",
     "src/ui_logic_pv3/transport.rs": "a6e33abe327d479a46a4e641ce4983035d3fd9693da409b2569e4f87ce44533e",
@@ -213206,8 +213206,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "edc168acb185be96fc6e17a6baeaf51e67a8a4de",
-  "source_sha": "edc168acb185be96fc6e17a6baeaf51e67a8a4de",
+  "source_ref_sha": "2fbcefc1733a8f58a79524f422bba944c53fd777",
+  "source_sha": "2fbcefc1733a8f58a79524f422bba944c53fd777",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
