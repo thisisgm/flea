@@ -20,6 +20,9 @@ pub(crate) struct Held {
     pub(super) deleting: [Option<u64>; 2],
     /// The folder New Folder made on each side, renamed once its row lands.
     pub(super) arrival: [Option<String>; 2],
+    pub(super) trash_anchors:
+        [std::collections::VecDeque<Option<crate::navigation::anchor::Anchor>>; 2],
+    pub(super) delete_anchor: [Option<(u64, crate::navigation::anchor::Anchor)>; 2],
 }
 
 pub(super) fn run(
@@ -114,6 +117,8 @@ impl Shell {
             "{{\"c\":\"trash\",\"rows\":[{}],\"menuId\":{menu},\"listing\":{listing}}}",
             numbers(&rows)
         );
+        let anchor = self.deletion_capture(side, &rows);
+        self.operations.fileops.trash_anchors[side].push_back(anchor);
         self.fileops_send(side, line, cx);
     }
 
@@ -179,6 +184,16 @@ impl Shell {
                 )
             }
         };
+        let rows = match chosen {
+            Some(chosen) => chosen.captured.rows.clone(),
+            None => self
+                .fileops_targets(side)
+                .map_or_else(|_| Vec::new(), |(_, rows)| rows),
+        };
+        let id = self.operations.fileops.deleting[side].expect("accepted delete snapshot");
+        self.operations.fileops.delete_anchor[side] = self
+            .deletion_capture(side, &rows)
+            .map(|anchor| (id, anchor));
         self.fileops_send(side, line, cx);
     }
 
@@ -203,9 +218,12 @@ impl Shell {
         };
         let held = &host.pane.held;
         let cursor = (held.total > 0).then_some(host.pane.cursor);
-        flea::ui_logic_sr2::targets(&host.selected, host.filter.shown.as_deref(), cursor, |row| {
-            held.row(row).is_some()
-        })
+        flea::ui_logic_sr2::targets(
+            &host.selected,
+            host.filter.shown.as_deref(),
+            cursor,
+            |row| held.row(row).is_some(),
+        )
         .map(|rows| (held.listing, rows))
         .map_err(|refusal| crate::g2::sr2::present::refusal(refusal, catalog))
     }
@@ -238,7 +256,9 @@ impl Shell {
         if let Some(host) = self.panes[side].as_mut() {
             host.status = text.to_owned().into();
         }
-        self.status_messages(cx, |messages, now| messages.say(text, error, "", Hint::None, now));
+        self.status_messages(cx, |messages, now| {
+            messages.say(text, error, "", Hint::None, now)
+        });
         cx.notify();
     }
 

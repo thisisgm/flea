@@ -17,11 +17,25 @@ impl Shell {
             network.service.clone(),
         );
         match effect {
-            Effect::Open { path, origin, .. } | Effect::OpenFile { path, origin, .. } => {
+            Effect::Open {
+                path,
+                uri,
+                label,
+                origin,
+            }
+            | Effect::OpenFile {
+                path,
+                uri,
+                label,
+                origin,
+            } => {
                 self.network_list(cx);
                 let Some(side) = self.network_side(*origin) else {
                     return;
                 };
+                if matches!(effect, Effect::Open { .. }) {
+                    self.remember_path_alias(path, label, uri);
+                }
                 let folder = if matches!(effect, Effect::OpenFile { .. }) {
                     std::path::Path::new(path)
                         .parent()

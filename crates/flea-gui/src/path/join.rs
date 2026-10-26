@@ -17,6 +17,7 @@ pub struct Chrome {
     pub view: Option<Entity<ChromeView>>,
     pub panes: [Option<Entity<PanePath>>; 2],
     pub aliases: Vec<super::crumbs::Alias>,
+    pub(crate) saved_labels: std::collections::HashMap<String, String>,
     /// The network service sets this when it subscribes to `NetworkPath`; until then a typed address is refused with a sentence.
     pub network: bool,
     /// The recent history file as the jump last read it.
@@ -103,6 +104,14 @@ impl Shell {
             dual: self.view == View::Dual,
             failed: host.nav.path_failed(&host.pane),
             show_hidden: host.nav.folders.borrow().hidden,
+            blocked: !inputs.live,
+            address_path: self
+                .launch
+                .settings
+                .data
+                .get("addressBar")
+                .and_then(flea::jsondoc::Json::as_str)
+                == Some("path"),
             first: host.pane.first_count(),
         };
         path.update(cx, |view, cx| {
@@ -238,6 +247,7 @@ impl Shell {
 
     /// The favourites the jump ranks first follow each accepted ui state.
     pub(crate) fn path_favourites(&mut self, state: &flea::jsondoc::Json, cx: &mut Context<Self>) {
+        self.relabel_path_aliases(state);
         let Some(chrome) = &self.chrome.view else {
             return;
         };

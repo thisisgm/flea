@@ -9,6 +9,9 @@ use flea::jsondoc::Json;
 use gpui::{font, AnyElement, IntoElement};
 use std::{cell::RefCell, rc::Rc};
 
+#[path = "anchor.rs"]
+mod anchor;
+
 pub(crate) struct GridHost {
     pub view: GridView,
     pub state: Rc<RefCell<GridState>>,
@@ -201,6 +204,8 @@ impl PaneHost {
             grid.view
                 .reflow(shown, &focus, |view| view.metrics = metrics);
         }
+        drop(list);
+        self.restore_grid_anchor();
     }
 
     /// The Grid window ask, settled before the frame builds its state surfaces so a failed send draws Error now.
