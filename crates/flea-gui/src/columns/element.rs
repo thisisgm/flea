@@ -30,6 +30,7 @@ pub struct TrackElement {
     words: Rc<crate::row::format::Words>,
     languages: bool,
     shown: Option<Rc<[usize]>>,
+    query: Rc<str>,
 }
 
 impl TrackElement {
@@ -58,6 +59,7 @@ impl TrackElement {
             words,
             languages: true,
             shown: None,
+            query: "".into(),
         }
     }
 
@@ -70,6 +72,11 @@ impl TrackElement {
     /// A standing filter's drawn rows: the active track then draws the listing row at each view position.
     pub fn with_filter(mut self, shown: Option<Rc<[usize]>>) -> Self {
         self.shown = shown;
+        self
+    }
+
+    pub fn with_query(mut self, query: Rc<str>) -> Self {
+        self.query = query;
         self
     }
 
@@ -175,6 +182,7 @@ impl Element for TrackElement {
             languages: self.languages,
             scale: window.scale_factor(),
             words: Rc::clone(&self.words),
+            query: Rc::clone(&self.query),
         };
         let height = f32::from(bounds.size.height);
         let total = self.total();
@@ -214,6 +222,12 @@ impl Element for TrackElement {
             };
             let prepared =
                 row.map(|row| cache.get(index, row, mark != Clip::None, walk, &shaping, window));
+            if let Some(prepared) = prepared
+                .as_ref()
+                .filter(|_| shows_size && self.focus.cursor == Some(index))
+            {
+                prepared.prepare_cursor(&shaping.font, shaping.body, window);
+            }
             // ColumnRow.qml dims a cut row's thumbnail with the rest of its mark.
             pictures.push(match (lender, row) {
                 (Some(lender), Some(Row::Listing(facts))) => {
@@ -271,6 +285,21 @@ impl Element for TrackElement {
                 if self.focus.edge(view.slot, *index) {
                     window.paint_quad(fill(row_box(top, EDGE), palette.edge()));
                 }
+                if let Some(prepared) = prepared {
+                    let chevron = prepared.dir && (cursor || lifted);
+                    if let Some((from, to)) = prepared.wash_span(chevron, cursor) {
+                        let line = prepared.name(chevron).line();
+                        let x = left + px(cells(width, active, chevron).name_x);
+                        let y = top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2.;
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(x + from, y),
+                                size(to - from, line.ascent + line.descent),
+                            ),
+                            palette.accent.opacity(crate::g2::sr1::run::RUN_WASH),
+                        ));
+                    }
+                }
             }
             // One layer for every mark and glyph, so the scene orders the whole track once rather than once a line.
             let mut pictures_painted = 0;
@@ -308,7 +337,7 @@ impl Element for TrackElement {
                             cx,
                         );
                     }
-                    let name = prepared.name(chevron);
+                    let name = prepared.name_for(chevron, cursor);
                     let name_x = left + px(geometry.name_x);
                     paint_line(name, name_x, top, inks.name, window);
                     if let (Some(size_run), Some(right)) = (&prepared.size, geometry.size_right) {

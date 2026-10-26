@@ -89,6 +89,8 @@ mod guard_tests;
 #[cfg(test)]
 mod listing_tests;
 #[cfg(test)]
+mod filterkeys_tests;
+#[cfg(test)]
 mod listing_marks_tests;
 #[cfg(test)]
 mod dual_keys_tests;
