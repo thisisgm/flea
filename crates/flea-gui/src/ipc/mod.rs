@@ -1,6 +1,7 @@
 pub(crate) mod archive_cards;
 pub mod chrome;
 pub mod columns;
+pub(crate) mod columns_preview;
 pub mod devices;
 pub(crate) mod dialog_cards;
 pub mod dual;

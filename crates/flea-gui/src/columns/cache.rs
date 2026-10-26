@@ -63,6 +63,9 @@ pub struct Prepared {
     /// A folder's name at the chevron budget, None when it fits both.
     pub chevron: Option<GlyphRun>,
     pub size: Option<GlyphRun>,
+    pub location: Option<GlyphRun>,
+    pub label: String,
+    pub location_label: String,
     pub mark: Mark,
     pub dir: bool,
 }
@@ -91,6 +94,7 @@ pub struct Shaping {
     pub languages: bool,
     pub scale: f32,
     pub words: Rc<row::format::Words>,
+    pub locating: bool,
 }
 
 struct Entry {
@@ -138,11 +142,29 @@ fn prepare(
     window: &Window,
 ) -> Prepared {
     let take = if clipped { shaping.clip_cells } else { 0 };
-    let name = row.name();
-    let plain = row::middle_elide(name, shaping.plain_cells.saturating_sub(take));
+    let path = row.name();
+    let name = if shaping.locating {
+        flea::ui_logic_sr1::base(path)
+    } else {
+        path
+    };
+    let location_label = if shaping.locating {
+        let location =
+            crate::g2::sr1::run::location(path, "", "", flea::ui_logic_sr1::Scope::Folder);
+        row::right_elide(&location, shaping.plain_cells / 2).into_owned()
+    } else {
+        String::new()
+    };
+    let reserved = if location_label.is_empty() {
+        0
+    } else {
+        location_label.chars().map(row::cells_of).sum::<usize>() + 1
+    };
+    let budget = |cells: usize| cells.saturating_sub(take).saturating_sub(reserved);
+    let plain = row::middle_elide(name, budget(shaping.plain_cells));
     let chevron = row
         .dir()
-        .then(|| row::middle_elide(name, shaping.chevron_cells.saturating_sub(take)))
+        .then(|| row::middle_elide(name, budget(shaping.chevron_cells)))
         .filter(|text| *text != plain)
         .map(|text| shape(&text, &shaping.font, shaping.body, window));
     let size = match row {
@@ -154,8 +176,13 @@ fn prepare(
         )),
         _ => None,
     };
+    let label = plain.into_owned();
     Prepared {
-        plain: shape(&plain, &shaping.font, shaping.body, window),
+        plain: shape(&label, &shaping.font, shaping.body, window),
+        location: (!location_label.is_empty())
+            .then(|| shape(&location_label, &shaping.font, shaping.caption, window)),
+        label,
+        location_label,
         chevron,
         size,
         mark: row.mark(shaping.languages),

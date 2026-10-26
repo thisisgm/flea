@@ -9,6 +9,8 @@ use crate::{
 };
 use gpui::{Context, Entity, Task, Window};
 
+#[path = "columns_edge.rs"]
+mod edge;
 #[path = "columns_input.rs"]
 mod input;
 #[path = "columns_keys.rs"]
@@ -72,6 +74,7 @@ struct Seen {
     width: f32,
     height: f32,
     revision: u64,
+    orders: [Option<crate::navigation::folder_state::Order>; 5],
     // The filter's drawn rows by identity, so a new answer under an unmoved cursor re-lays the columns.
     filter: Option<*const usize>,
 }
@@ -330,6 +333,13 @@ impl Shell {
                 width,
                 height,
                 revision,
+                orders: std::array::from_fn(|at| {
+                    columns
+                        .area
+                        .drawn
+                        .get(at)
+                        .and_then(|path| (pane.lens.orders)(path))
+                }),
                 filter,
             };
             if columns.seen == Some(key)
@@ -368,6 +378,7 @@ impl Shell {
                 }
                 columns.path = pane.lens.here.to_owned();
             }
+            columns.area.orders_changed(&pane.lens);
             columns.area.flight_ended(&pane, ports, now);
             columns.area.sync(&pane, ports, now);
             if std::mem::take(&mut columns.arm_entry) {
@@ -376,5 +387,6 @@ impl Shell {
         });
         flush(host, &self.locale);
         self.arm_columns(window, cx);
+        self.persist_columns_edge(0, window, cx);
     }
 }
