@@ -3,6 +3,10 @@ use super::*;
 use crate::window::input::ActionEvent;
 use std::{cell::RefCell, rc::Rc};
 
+thread_local! {
+    static TERMINALS: RefCell<Vec<Vec<String>>> = const { RefCell::new(Vec::new()) };
+}
+
 fn tab_to_rail(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     for _ in 0..3 {
         frame(cx);
@@ -50,6 +54,16 @@ fn gcomp36_focused_rail_passes_window_handlers_and_swallows_listing_actions(
 ) {
     let (shell, cx) = open(false, "list", cx);
     tab_to_rail(&shell, cx);
+    TERMINALS.with(|calls| calls.borrow_mut().clear());
+    let folder = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().pane.path().to_owned()
+    });
+    shell.update(cx, |shell, _| {
+        shell.opener[0].launch = |argv| {
+            TERMINALS.with(|calls| calls.borrow_mut().push(argv.to_vec()));
+            (Some(0), String::new())
+        };
+    });
     let seen = Rc::new(RefCell::new(Vec::new()));
     let sink = seen.clone();
     let _subscription = cx.update(|_, cx| {
@@ -62,12 +76,15 @@ fn gcomp36_focused_rail_passes_window_handlers_and_swallows_listing_actions(
         cx.simulate_keystrokes(key);
         frame(cx);
     }
-    // The window runs reload itself now, so only the actions with no owner yet reach observers; dispatch/navigation_tests.rs proves the rail reload lists.
+    // Reload and Terminal run in the window; dispatch/navigation_tests.rs proves that the rail reload lists.
     assert_eq!(
         seen.borrow().as_slice(),
-        &[("openTerminal", flea::keys::Context::Rail),],
+        &[],
         "focused rail swallowed a real window action handler"
     );
+    let terminals = TERMINALS.with(|calls| calls.take());
+    assert_eq!(terminals.len(), 1, "Ctrl+T must reach the terminal owner");
+    assert_eq!(&terminals[0][1..], ["--terminal", folder.as_str()]);
     shell.read_with(cx, |shell, _| {
         assert_eq!(
             shell.strip.tabs[0].count(),

@@ -20,6 +20,7 @@ pub(crate) struct Lane {
     // Opener.qml's own terminal Process and RunCard.qml's text launch, each single-flight beside the open.
     terminal: Option<Task<()>>,
     text: Option<Task<()>>,
+    pub(super) original: super::original::Pending,
     pub(crate) launch: fn(&[String]) -> lane::Exit,
 }
 
@@ -30,6 +31,7 @@ impl Default for Lane {
             task: None,
             terminal: None,
             text: None,
+            original: super::original::Pending::default(),
             #[cfg(not(test))]
             launch: lane::run,
             // A test window never starts a real application; a test that drives the lane sets its own launcher.
@@ -56,8 +58,17 @@ pub(super) fn run(
 ) -> bool {
     match order {
         Order::Action(event)
-            if event.context == Keys::Listing
-                && matches!(event.action, "open" | "pageForward") =>
+            if matches!(event.context, Keys::Listing | Keys::Rail)
+                && event.action == "openTerminal" =>
+        {
+            let side = shell.focus_side;
+            if let Some(host) = &shell.panes[side] {
+                shell.open_terminal(side, host.pane.path().to_owned(), window, cx);
+            }
+            true
+        }
+        Order::Action(event)
+            if event.context == Keys::Listing && matches!(event.action, "open" | "pageForward") =>
         {
             let side = shell.focus_side;
             let Some((path, archive)) = file_row(shell, side) else {
@@ -91,7 +102,11 @@ pub(super) fn run(
             shell.keyboard.context = Keys::Listing;
             // Nav.js openCursor on the menu's own pane: open_menu put its cursor on the clicked row and focused it, so Enter's path runs there.
             shell.focus_side = side;
-            shell.dispatch(Order::Action(ActionEvent::bare("open", Keys::Listing)), window, cx);
+            shell.dispatch(
+                Order::Action(ActionEvent::bare("open", Keys::Listing)),
+                window,
+                cx,
+            );
             true
         }
         // Focus.js run: Nav.runCursor with the open verb, the same flea --open the menu's Open takes.
@@ -174,7 +189,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let flea = crate::window::startup::binary().to_string_lossy().into_owned();
+        let flea = crate::window::startup::binary()
+            .to_string_lossy()
+            .into_owned();
         let lane = &mut self.opener[side];
         let Some(argv) = lane.guard.start(&flea, &[path]) else {
             let busy = busy_text(&self.locale.catalog);
@@ -182,9 +199,7 @@ impl Shell {
             return;
         };
         let launch = lane.launch;
-        let exit = cx
-            .background_executor()
-            .spawn(async move { launch(&argv) });
+        let exit = cx.background_executor().spawn(async move { launch(&argv) });
         lane.task = Some(cx.spawn_in(window, async move |this, cx| {
             let (status, stdout) = exit.await;
             let _ = this.update_in(cx, |shell, window, cx| {
@@ -285,7 +300,13 @@ impl Shell {
         }));
     }
 
-    fn opener_say(&mut self, side: usize, sentence: String, error: bool, cx: &mut Context<Self>) {
+    pub(crate) fn opener_say(
+        &mut self,
+        side: usize,
+        sentence: String,
+        error: bool,
+        cx: &mut Context<Self>,
+    ) {
         if let Some(host) = &mut self.panes[side] {
             host.status = sentence.clone().into();
         }
