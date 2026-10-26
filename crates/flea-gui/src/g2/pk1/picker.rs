@@ -95,6 +95,8 @@ pub struct Picker {
     // The folder, path strip and Filename the listing child feeds.
     pub browse: super::browse::Browse,
     pub(super) drawn: super::drawn::Drawn,
+    // The name filter "/" opens over the listing.
+    pub(super) find: super::find::Find,
 }
 
 pub struct Children {
@@ -113,6 +115,10 @@ impl Picker {
     ) -> Self {
         let labels = Labels::new(&locale.catalog, &req);
         let browse = super::browse::Browse::new(&req, home, &locale.catalog, cx);
+        let typeface = cx
+            .try_global::<crate::list::Typeface>()
+            .cloned()
+            .unwrap_or_else(crate::list::Typeface::omarchy_default);
         let watchers = [
             Self::watch(children.checks.lines(), Child::Checks, cx),
             Self::watch(children.listing.lines(), Child::Listing, cx),
@@ -148,6 +154,7 @@ impl Picker {
             stem_requests: 0,
             browse,
             drawn: super::drawn::Drawn::default(),
+            find: super::find::Find::new(typeface),
         };
         picker.body = Some(picker.browse.body(cx));
         picker.filter = picker.browse.filename.clone().map(AnyView::from);

@@ -137,6 +137,7 @@ impl Picker {
         if !path.starts_with('/') {
             return;
         }
+        self.find_abandon(cx);
         let (filter, chip, hidden) = (
             self.chip_filter(),
             self.listing.chip,
@@ -220,14 +221,12 @@ impl Picker {
     }
 
     // The listing owner's facts, copied once per landed line so the answer reads them without a frame-time walk.
-    fn sync_facts(&mut self, cx: &mut Context<Self>) {
-        let facts = self.browse.listing.read(cx).facts();
+    pub(super) fn sync_facts(&mut self, cx: &mut Context<Self>) {
+        let view = self.browse.listing.read(cx);
+        let (facts, shown) = (view.facts(), view.shown().map(<[usize]>::len));
         let moved = facts.location != self.listing.location;
         let listing = &mut self.listing;
-        listing.shown_total = facts
-            .filtered
-            .as_ref()
-            .map_or(facts.total, |filtered| filtered.rows.len());
+        listing.shown_total = shown.unwrap_or(facts.total);
         listing.location = facts.location;
         listing.total = facts.total;
         listing.held = facts.first;
@@ -283,6 +282,7 @@ impl Picker {
             .unwrap_or_default()
             .to_owned();
         match kind.as_str() {
+            "filtered" => return self.find_line(text, cx),
             "peeked" => return self.peeked(&document, cx),
             "located" => return self.located(&document, cx),
             "listed" => self.landing(&document, cx),
@@ -301,6 +301,12 @@ impl Picker {
             self.relocate();
         }
         if taken {
+            if let Some(stamp) = (kind == "rows")
+                .then(|| flea::json::field_usize(text, "listing"))
+                .flatten()
+            {
+                self.find_stamp(stamp, cx);
+            }
             self.take_leaf(cx);
         }
     }

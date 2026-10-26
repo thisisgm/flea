@@ -253,3 +253,64 @@ fn u10_grid_hover_follows_stationary_pointer_after_scroll_and_clears_on_exit(
         Reply::value("false")
     );
 }
+
+#[gpui::test]
+fn the_keyboard_quiets_the_grid_hover_until_the_pointer_really_moves(cx: &mut TestAppContext) {
+    let (handle, _requests) = open(cx);
+    handle
+        .update(cx, |shell, window, cx| {
+            shell.set_view(View::Grid, window, cx)
+        })
+        .unwrap();
+    frame(cx, handle);
+    let at = handle
+        .update(cx, |shell, _, _| {
+            let grid = shell.panes[0].as_ref().unwrap().grid.as_ref().unwrap();
+            let state = grid.state.borrow();
+            let tile = state.drawn_row(2).unwrap();
+            state.bounds.origin
+                + point(
+                    px(tile.slot.x + tile.slot.width / 2.),
+                    px(tile.slot.y + tile.slot.height / 2.),
+                )
+        })
+        .unwrap();
+    let hovered = |cx: &mut TestAppContext| call(cx, handle, "rowHovered", &["2"]);
+    VisualTestContext::from_window(handle.into(), cx).simulate_mouse_move(
+        at,
+        None,
+        Modifiers::default(),
+    );
+    frame(cx, handle);
+    assert_eq!(hovered(cx), Reply::value("true"));
+    key(cx, handle, "right");
+    frame(cx, handle);
+    assert_eq!(
+        hovered(cx),
+        Reply::value("false"),
+        "the keyboard hides the resting pointer's wash (#322)"
+    );
+    VisualTestContext::from_window(handle.into(), cx).simulate_mouse_move(
+        at,
+        None,
+        Modifiers::default(),
+    );
+    frame(cx, handle);
+    assert_eq!(
+        hovered(cx),
+        Reply::value("false"),
+        "a move to the same point is not a move"
+    );
+    let moved = at + point(px(2.), px(0.));
+    VisualTestContext::from_window(handle.into(), cx).simulate_mouse_move(
+        moved,
+        None,
+        Modifiers::default(),
+    );
+    frame(cx, handle);
+    assert_eq!(
+        hovered(cx),
+        Reply::value("true"),
+        "a real move brings the wash back"
+    );
+}

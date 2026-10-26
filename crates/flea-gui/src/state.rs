@@ -160,7 +160,7 @@ impl Shell {
             shell.stop_for_app_quit();
             std::future::ready(())
         }));
-        shell.subscribe_blur(window, cx);
+        shell.subscribe_activation(window, cx);
         shell.start_pane(0, window, cx);
         if view == View::Dual {
             shell.start_pane(1, window, cx);

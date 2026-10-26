@@ -90,6 +90,9 @@ impl Picker {
     pub fn hints(&self) -> SharedString {
         if self.backend_unavailable() {
             self.labels.hints_unavailable.clone()
+        } else if self.find.holds_query() {
+            // While a query stands, esc clears it, so the hint says so (picker-filter board).
+            self.labels.hints_filtered.clone()
         } else {
             self.labels.hints.clone()
         }
@@ -111,6 +114,9 @@ impl Picker {
         // The save field takes the keyboard from the list, and Escape still refuses from there.
         if key == "escape" {
             cx.stop_propagation();
+            if self.find_escape(cx) {
+                return;
+            }
             if self.escape_listing(cx) == crate::g2::pk2::Escape::Cancel {
                 self.cancel(cx);
             }
@@ -127,6 +133,10 @@ impl Picker {
                 }
                 return;
             }
+        }
+        if self.find_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
         }
         let held = event.keystroke.modifiers;
         let cursor = self.listing.cursor;

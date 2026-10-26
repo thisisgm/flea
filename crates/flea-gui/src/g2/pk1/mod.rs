@@ -4,6 +4,7 @@ pub mod browse;
 mod drawn;
 pub mod filename;
 mod geometry;
+mod find;
 pub mod ipc;
 pub mod labels;
 pub mod launch;

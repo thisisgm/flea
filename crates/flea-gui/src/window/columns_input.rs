@@ -113,10 +113,10 @@ impl Shell {
                 .try_global::<crate::g2::dg1::carry::Carrying>()
                 .filter(|carrying| carrying.carry.active())
             {
+                host.input.press = None;
                 if blocked {
                     return;
                 }
-                host.input.press = None;
                 let dest = if view.slot == Slot::Active {
                     let carried = carrying.source_rows(window, side, host);
                     crate::g2::dg2::join::row_spot(host, row.as_ref().map(|_| index), carried)

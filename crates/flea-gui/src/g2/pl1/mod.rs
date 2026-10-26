@@ -7,6 +7,7 @@ pub mod host;
 pub mod ink;
 pub mod keys;
 pub mod listing;
+pub mod mark;
 pub mod phones;
 pub mod process;
 pub mod seams;
@@ -32,5 +33,7 @@ mod process_tests;
 mod unlock_tests;
 #[cfg(test)]
 mod view_quad_tests;
+#[cfg(test)]
+mod view_scale_tests;
 #[cfg(test)]
 mod view_tests;

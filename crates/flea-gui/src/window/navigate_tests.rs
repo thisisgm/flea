@@ -144,3 +144,32 @@ fn a_resolved_anchor_pays_a_held_watch_debt(cx: &mut TestAppContext) {
         })
     });
 }
+
+#[gpui::test]
+fn a_returning_window_rereads_a_fuse_folder_and_leaves_a_local_one_to_inotify(
+    cx: &mut TestAppContext,
+) {
+    let (backend, _requests) = Backend::test_channel();
+    let cx = cx.add_empty_window();
+    let entity = cx.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
+    cx.update(|window, cx| {
+        entity.update(cx, |shell, cx| {
+            let facts = |name: &str| crate::backend::status::Filesystem {
+                path: "/files".into(),
+                name: name.into(),
+                free: 0,
+            };
+            shell.surfaces[0].filesystem.facts = Some(facts("btrfs"));
+            shell.window_returned(window, cx);
+            assert!(shell.panes[0].as_ref().unwrap().nav.watch.due.is_none());
+            shell.surfaces[0].filesystem.facts = Some(facts("fuse"));
+            shell.window_returned(window, cx);
+            let host = shell.panes[0].as_ref().unwrap();
+            assert!(
+                host.nav.watch.stale,
+                "the return owes the folder a re-read (#324)"
+            );
+            assert!(host.nav.watch.due.is_some() && host.watch_task.is_some());
+        })
+    });
+}
