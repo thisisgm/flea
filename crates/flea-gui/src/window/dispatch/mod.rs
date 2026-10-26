@@ -91,6 +91,8 @@ mod menus_dual_tests;
 #[cfg(test)]
 mod menus_tests;
 #[cfg(test)]
+mod menus_keys_tests;
+#[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]
 mod opener_menu_tests;

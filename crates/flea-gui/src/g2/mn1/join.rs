@@ -68,6 +68,8 @@ pub struct Joined {
     pub captured: Option<Captured>,
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
+    // A c or P press whose menu is still being read; its flyout opens when the card stands.
+    pub submenu: Option<String>,
     pub activating: bool,
     pub reading: bool,
     pub sequence: u64,

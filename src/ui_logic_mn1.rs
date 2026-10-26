@@ -7,6 +7,9 @@ pub mod build;
 mod build_tests;
 pub mod copyas;
 pub mod entry;
+pub mod flyouts;
+#[cfg(test)]
+mod flyouts_tests;
 pub mod fit;
 #[cfg(test)]
 mod fit_tests;

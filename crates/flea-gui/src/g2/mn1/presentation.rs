@@ -172,6 +172,11 @@ impl Shell {
         );
         drop(list);
         self.menu.presentation.cancel();
+        // A c or P press that opened this menu opens its flyout now the card stands.
+        if let Some(action) = self.menu.submenu.take() {
+            self.menu_submenu_open(&action, window, cx);
+            return;
+        }
         cx.notify();
     }
 
