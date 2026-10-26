@@ -22,7 +22,8 @@ impl Shell {
                 .rows
                 .iter()
                 .position(|row| crate::navigation::history::join(host.pane.path(), &row.name) == path)
-                .map(|at| (at, host.pane.held.listing, host.pane.held.rows[at].name.clone()))
+                // The snapshot names listing rows, and the held window starts at its own row of the listing.
+                .map(|at| (host.pane.held.start + at, host.pane.held.listing, host.pane.held.rows[at].name.clone()))
         });
         let Some((at, listing, name)) = found else {
             // The row left the listing while flea --open ran, and v0.3.12 Pane.qml showOpenWith names it.
