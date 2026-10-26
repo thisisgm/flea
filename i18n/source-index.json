@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "025daaba7ea7245257d4a5872842a3576e00a0ae2e5cd4466295e6c71ddfa6db",
-  "catalog_sha256": "1a8e694d1d911852df93a636980417ad0679529b16849c95e38029156a7a94ef",
+  "catalog_file_sha256": "5b294d24e5af97ed8b9ce184a9a21776ce4dd6b0bb106b16b2f7fb4cdebbd8f9",
+  "catalog_sha256": "f678e8831201e312d974b78089ec08f2b95f0772c2717ab4e20bcd2506daa22f",
   "counts": {
     "direct_references": 0,
-    "keys": 2005,
+    "keys": 2006,
     "plurals": 98
   },
   "direct_references": {},
@@ -2017,7 +2017,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "note.key()",
-      "line": 89,
+      "line": 91,
       "path": "src/ui_logic_fb1/status.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2096,7 +2096,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-      "line": 195,
+      "line": 184,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": "jobs.undone.{op}",
       "possible_keys": [
@@ -2121,7 +2121,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-      "line": 196,
+      "line": 185,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": "jobs.undone.{op}",
       "possible_keys": [
@@ -2146,7 +2146,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-      "line": 203,
+      "line": 192,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": "jobs.redone.{op}",
       "possible_keys": [
@@ -2168,7 +2168,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-      "line": 248,
+      "line": 237,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": "jobs.done.{verb}_of",
       "possible_keys": [
@@ -2183,7 +2183,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if t.moving {\n                \"jobs.done.moved_of\"\n            } else {\n                \"jobs.done.copied_of\"\n            }",
-      "line": 59,
+      "line": 62,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2193,7 +2193,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if t.moving {\n                \"jobs.done.moved\"\n            } else {\n                \"jobs.done.copied\"\n            }",
-      "line": 68,
+      "line": 71,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2203,7 +2203,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if moving {\n            \"jobs.done.move_failed\"\n        } else {\n            \"jobs.done.copy_failed\"\n        }",
-      "line": 89,
+      "line": 92,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2213,7 +2213,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.undone.{op}\")",
-      "line": 195,
+      "line": 184,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2223,7 +2223,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.undone.{op}\")",
-      "line": 196,
+      "line": 185,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2233,7 +2233,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.redone.{op}\")",
-      "line": 203,
+      "line": 192,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2243,7 +2243,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if moving {\n                \"jobs.done.cut\"\n            } else {\n                \"jobs.done.clip_copied\"\n            }",
-      "line": 221,
+      "line": 210,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2253,7 +2253,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if verified {\n        \"jobs.done.archive_written\"\n    } else {\n        \"jobs.done.extract_unverified\"\n    }",
-      "line": 238,
+      "line": 227,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2263,7 +2263,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.done.{verb}_of\")",
-      "line": 247,
+      "line": 236,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2273,7 +2273,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if cursor < 0 {\n        \"jobs.target.none\"\n    } else if !row_loaded {\n        \"jobs.target.not_loaded\"\n    } else {\n        \"jobs.target.filtered\"\n    }",
-      "line": 300,
+      "line": 289,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -20937,7 +20937,7 @@
         },
         {
           "excerpt": "rest: catalog.tr(\"carry.hint\"),",
-          "line": 93,
+          "line": 95,
           "path": "src/ui_logic_fb1/status.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -39183,6 +39183,28 @@
       "resolved_source_hash": "abab71b767bd",
       "source_hash": "abab71b767bd"
     },
+    "feedback.autofit.list_required": {
+      "call_sites": [
+        {
+          "excerpt": "let text = self.locale.catalog.tr(\"feedback.autofit.list_required\");",
+          "line": 282,
+          "path": "crates/flea-gui/src/list/join.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "feedback.autofit.list_required: crates/flea-gui/src/list/join.rs:282",
+      "coverage": "existing-translated-call",
+      "english": "Autofit needs the list view.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Autofit needs the list view.",
+      "resolved_sha256": "9868ee347a1213cf13df952d6673af801c43009aa092132ba18d1a46a89737ed",
+      "resolved_source_hash": "62d8a8ee44c1",
+      "source_hash": "62d8a8ee44c1"
+    },
     "feedback.connect.mounted_as": {
       "call_sites": [],
       "context": "feedback.connect.mounted_as: caller missing; source owner must identify the surface",
@@ -39935,7 +39957,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.hint.deletes\",",
-          "line": 78,
+          "line": 80,
           "path": "src/ui_logic_fb1/status.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -39966,7 +39988,7 @@
         },
         {
           "excerpt": "rest: catalog.tr_args(\"feedback.hint.dismiss\", &[DISMISS_KEY]),",
-          "line": 85,
+          "line": 87,
           "path": "src/ui_logic_fb1/status.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -39990,7 +40012,7 @@
       "call_sites": [
         {
           "excerpt": "rest: hinted(catalog, \"feedback.hint.paste\", preset, \"paste\"),",
-          "line": 72,
+          "line": 74,
           "path": "src/ui_logic_fb1/status.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -40014,7 +40036,7 @@
       "call_sites": [
         {
           "excerpt": "let undo = || hinted(catalog, \"feedback.hint.undo\", preset, \"undo\");",
-          "line": 64,
+          "line": 66,
           "path": "src/ui_logic_fb1/status.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -42717,7 +42739,7 @@
         },
         {
           "excerpt": "self.locale.catalog.tr(\"jobs.delete.failed\")",
-          "line": 144,
+          "line": 173,
           "path": "crates/flea-gui/src/window/dispatch/fileops_wire.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -42823,7 +42845,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.archive_written\"",
-          "line": 239,
+          "line": 228,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -42845,7 +42867,7 @@
       "call_sites": [
         {
           "excerpt": "line += &catalog.tr(\"jobs.done.cancelled_note\");",
-          "line": 31,
+          "line": 34,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -42867,7 +42889,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.clip_copied\"",
-          "line": 225,
+          "line": 214,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -42891,7 +42913,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.copied\"",
-          "line": 72,
+          "line": 75,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -42915,7 +42937,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.copied_of\"",
-          "line": 63,
+          "line": 66,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -42923,7 +42945,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 248,
+          "line": 237,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -42955,7 +42977,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.copy_failed\"",
-          "line": 93,
+          "line": 96,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -42980,7 +43002,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.done.created\", &[leaf(path)])",
-          "line": 210,
+          "line": 199,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43004,7 +43026,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.cut\"",
-          "line": 223,
+          "line": 212,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43029,7 +43051,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 248,
+          "line": 237,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -43070,7 +43092,7 @@
       "call_sites": [
         {
           "excerpt": "let line = catalog.tr_args(\"jobs.done.duplicated\", &[leaf]);",
-          "line": 47,
+          "line": 76,
           "path": "crates/flea-gui/src/window/dispatch/fileops_wire.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -43094,7 +43116,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.extract_unverified\"",
-          "line": 241,
+          "line": 230,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43116,7 +43138,7 @@
       "call_sites": [
         {
           "excerpt": "line += &catalog.tr_args(\"jobs.done.failed_note\", &[&count(catalog, failed)]);",
-          "line": 25,
+          "line": 28,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43139,9 +43161,9 @@
     "jobs.done.linked": {
       "call_sites": [
         {
-          "excerpt": "let mut line = catalog.tr_args(\"jobs.done.linked\", &[&items(catalog, o.ok)]);",
-          "line": 125,
-          "path": "src/ui_logic_op1/lines.rs",
+          "excerpt": "let mut line = catalog.tr_args(\"jobs.done.linked\", &[&items(catalog, outcome.ok)]);",
+          "line": 17,
+          "path": "src/ui_logic_op1/lines/link.rs",
           "surface": "core/backend",
           "usage": "translated-call"
         }
@@ -43164,7 +43186,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.move_failed\"",
-          "line": 91,
+          "line": 94,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43189,7 +43211,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.moved\"",
-          "line": 70,
+          "line": 73,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43213,7 +43235,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.moved_of\"",
-          "line": 61,
+          "line": 64,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43221,7 +43243,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 248,
+          "line": 237,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -43253,7 +43275,7 @@
       "call_sites": [
         {
           "excerpt": "with_undo(catalog, preset, catalog.trn(\"jobs.done.renamed\", n(ok)))",
-          "line": 233,
+          "line": 222,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43287,7 +43309,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 248,
+          "line": 237,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -43328,14 +43350,14 @@
       "call_sites": [
         {
           "excerpt": "[one] => catalog.tr_args(\"jobs.done.retry_selected\", &[leaf(one)]),",
-          "line": 141,
+          "line": 130,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"jobs.done.retry_selected\",",
-          "line": 143,
+          "line": 132,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43359,7 +43381,7 @@
       "call_sites": [
         {
           "excerpt": "line += &catalog.tr_args(\"jobs.done.skipped_note\", &[&count(catalog, skipped)]);",
-          "line": 28,
+          "line": 31,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43959,7 +43981,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.hint.note\", &[text])",
-          "line": 18,
+          "line": 21,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -43983,7 +44005,7 @@
       "call_sites": [
         {
           "excerpt": "line + &hint(catalog, preset, \"jobs.hint.paste\", \"paste\")",
-          "line": 14,
+          "line": 17,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -44031,7 +44053,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.trn(\"jobs.items\", n(value))",
-          "line": 6,
+          "line": 9,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44222,7 +44244,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44260,7 +44282,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44298,7 +44320,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44336,7 +44358,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44374,7 +44396,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44412,7 +44434,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44450,7 +44472,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44488,7 +44510,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44525,7 +44547,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.redone.other\")",
-          "line": 205,
+          "line": 194,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44533,7 +44555,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44571,7 +44593,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44609,7 +44631,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44647,7 +44669,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 203,
+          "line": 192,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -44684,7 +44706,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.rename.changed\")",
-          "line": 393,
+          "line": 382,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44730,7 +44752,7 @@
       "call_sites": [
         {
           "excerpt": "bad.then(|| catalog.tr(\"jobs.rename.invalid\"))",
-          "line": 389,
+          "line": 378,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44860,7 +44882,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.taildrop.gone\")",
-          "line": 267,
+          "line": 256,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44882,7 +44904,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.taildrop.reason\", &[reason])",
-          "line": 269,
+          "line": 258,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44906,7 +44928,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.taildrop.sending\", &[leaf(path), peer])",
-          "line": 278,
+          "line": 267,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44931,7 +44953,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.taildrop.stale\")",
-          "line": 274,
+          "line": 263,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44953,7 +44975,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.target.busy\")",
-          "line": 310,
+          "line": 299,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44975,7 +44997,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.target.filtered\"",
-          "line": 305,
+          "line": 294,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -44997,7 +45019,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.target.none\"",
-          "line": 301,
+          "line": 290,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45019,7 +45041,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.target.not_loaded\"",
-          "line": 303,
+          "line": 292,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45152,7 +45174,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.transfer.progress\", &[&head, &t.name])",
-          "line": 42,
+          "line": 45,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45249,7 +45271,7 @@
       "call_sites": [
         {
           "excerpt": "(false, true) => catalog.tr_args(\"jobs.trash.failed_many\", &[&items(catalog, failed)]),",
-          "line": 155,
+          "line": 144,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45273,7 +45295,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.trash.failed_many_why\",",
-          "line": 157,
+          "line": 146,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45298,7 +45320,7 @@
       "call_sites": [
         {
           "excerpt": "(true, true) => catalog.tr(\"jobs.trash.failed_one\"),",
-          "line": 153,
+          "line": 142,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45320,7 +45342,7 @@
       "call_sites": [
         {
           "excerpt": "(true, false) => catalog.tr_args(\"jobs.trash.failed_one_why\", &[reason]),",
-          "line": 154,
+          "line": 143,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45344,7 +45366,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.trash.moved\", &[&items(catalog, ok)])",
-          "line": 163,
+          "line": 152,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45368,7 +45390,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.trash.moved_some\",",
-          "line": 166,
+          "line": 155,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45393,7 +45415,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.trash.moved_some_why\",",
-          "line": 171,
+          "line": 160,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -45442,7 +45464,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45468,7 +45490,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45509,7 +45531,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45535,7 +45557,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45576,7 +45598,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45602,7 +45624,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45643,7 +45665,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45669,7 +45691,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45710,7 +45732,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45736,7 +45758,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45777,7 +45799,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45803,7 +45825,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45844,7 +45866,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45870,7 +45892,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45911,7 +45933,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45937,7 +45959,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -45978,7 +46000,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46004,7 +46026,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46044,7 +46066,7 @@
       "call_sites": [
         {
           "excerpt": "_ => catalog.tr(\"jobs.undone.other\"),",
-          "line": 197,
+          "line": 186,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -46052,7 +46074,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46078,7 +46100,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46119,7 +46141,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46145,7 +46167,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46186,7 +46208,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46212,7 +46234,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46253,7 +46275,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46279,7 +46301,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46320,7 +46342,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46346,7 +46368,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46387,7 +46409,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 195,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -46413,7 +46435,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 196,
+          "line": 185,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -56482,7 +56504,7 @@
       "call_sites": [
         {
           "excerpt": "let failure = self.locale.catalog.tr(\"navigation.save_failed\");",
-          "line": 333,
+          "line": 337,
           "path": "crates/flea-gui/src/list/join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -145265,7 +145287,7 @@
     },
     {
       "excerpt": "\"move\",",
-      "line": 180,
+      "line": 169,
       "literal": "move",
       "owner": "controller",
       "path": "src/ui_logic_op1/lines.rs",
@@ -145274,7 +145296,7 @@
     },
     {
       "excerpt": "\"link\",",
-      "line": 185,
+      "line": 174,
       "literal": "link",
       "owner": "controller",
       "path": "src/ui_logic_op1/lines.rs",
@@ -211335,7 +211357,7 @@
     "crates/flea-gui/src/list/header_probe.rs": "52bd0f3f190c5d0b0e0c02fa294869270ab8811d58bbdc268bb2ff2d3f097ce7",
     "crates/flea-gui/src/list/header_words.rs": "b32d7984fa8d7ad08532912d2281b116929650ce017d0ae915bd33ef4df2f021",
     "crates/flea-gui/src/list/hit.rs": "67d3a529ae78ab01eaee82a466d387059839467303c92c8fa3fd967ede5a290c",
-    "crates/flea-gui/src/list/join.rs": "bbf50f1560602773e38e43cff22f3cab029fc8f333bcd5501efa252fd411d0e5",
+    "crates/flea-gui/src/list/join.rs": "19f353b7441a9e7060935d8c2c08c3c58228db1f07f3a7faa56475d6a4c8329a",
     "crates/flea-gui/src/list/join_frame.rs": "3d091ac304382c6ddffb17d1771b1ddeda94d2f8d5a96b9e69e17742da79af33",
     "crates/flea-gui/src/list/lang.rs": "a16313192b2d81c698c8b1da2c999b8463793a58ad3e733b5e8dcdc390fc4758",
     "crates/flea-gui/src/list/locale.rs": "47e821680e6de0cb7046c7064e2c62022ee1d7b68325fe0b12fdca8bedcd2a7d",
@@ -211462,7 +211484,7 @@
     "crates/flea-gui/src/window/devices.rs": "5b53b2bac7c4dd0c9656507f6d61225bccb8f68bd7f3cedd4ab1e940259d04a9",
     "crates/flea-gui/src/window/dispatch/clipboard.rs": "b562f4766fc00491ad478141d7671c92cd82257fb094b5ac42df03fb488c84b9",
     "crates/flea-gui/src/window/dispatch/fileops.rs": "2f9d5ec2431968a383ffe0ed9a8c7b5ea4b42657c0d7d14bc6fe187566061a1f",
-    "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "7f7c4d31bb149abd16ef3213a48422a23e662ec0f7082756276b067af565d1c7",
+    "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "0355dd23e9b6b254c32912a6b543eb7263236e6749d1869b328493c25ea8452e",
     "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs": "dcebc8d1ca5a3ff2347fdeca9c05304a5d9111293f899a8b4e40d53364089f67",
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "6236ba6dd8b841812b462cac9dbcf4714f4cfce23b7d2520f3793bcd4997d70a",
     "crates/flea-gui/src/window/dispatch/listing.rs": "1288e75f34ff704df9927c91639d152b0a56a105303354c7593e22c0d54f9c3b",
@@ -212087,8 +212109,8 @@
     "src/ui_logic_fb1/lane.rs": "cbfe288450e2d3a02f733511258547aaecfec5f274440e148d60b90270980fc1",
     "src/ui_logic_fb1/messages.rs": "32e15eddfcdd8dae6ab8fd91736a12e3b24526c40d853c2f3de82170b84d5738",
     "src/ui_logic_fb1/messages/arm.rs": "b5c857ccb06b19c4a22658fa3ce39b376f1a7a010e2f20085dff55228313d1a3",
-    "src/ui_logic_fb1/messages/line.rs": "b40f4f0ea00dfc701633773113f6794b00be3677a80750505075430935bbfa19",
-    "src/ui_logic_fb1/status.rs": "7aba651d98010b497b033c1b05c37a76bf39f34b5953d1ba81eed6d4d93586f0",
+    "src/ui_logic_fb1/messages/line.rs": "3999aa9ff58eec263c78fdf1d142f54ebbbbd4f8d5c561b9e74e0c64a2ab4f1d",
+    "src/ui_logic_fb1/status.rs": "5ac15b6c74e002a4960e5c1a7b544a29b7a6d7ec19eff04a3f8dae2ce8e0314c",
     "src/ui_logic_mn1.rs": "20d9323628e8c911d3c6cd4c1c8fb2ec835cf41eba6d161084c0c4e34cf95446",
     "src/ui_logic_mn1/archive.rs": "7d5f990c6fd7a593104e727190f806a7b6b7cbf00607042c967aeda3eb669a0e",
     "src/ui_logic_mn1/build.rs": "9c8cc8307d100240547802e43cc660b2c7eb215ae46b0b1029debadf952a94d4",
@@ -212114,7 +212136,8 @@
     "src/ui_logic_op1/fat.rs": "f32aa78bc3ea84591d15bdfab517dcf4136f8da4a19f79d3e5b172d8a691e9d3",
     "src/ui_logic_op1/host.rs": "251d4378d1452e5351a1f010b4efaaf5dbe5ceb2a2b1126a9f27993f38a4fbed",
     "src/ui_logic_op1/jobs.rs": "ff070868c7f36196152c84f4949f8cb4709042efdbca55f6914c5c39987fb9e2",
-    "src/ui_logic_op1/lines.rs": "3baf144106e99886487adcc5bd67975631292a6f989b6f0a3f89a8d86346d17f",
+    "src/ui_logic_op1/lines.rs": "f49737151eb7cad752e25fc65310f627a18ffcf4e0dde0e1604b8d023f9c5319",
+    "src/ui_logic_op1/lines/link.rs": "fb51d9b97decb93b643513f3d477d9a5cdf498638c3d3a26c6d7a629c0bfd042",
     "src/ui_logic_op1/testcat.rs": "d24fb6b7c74ed8c19d4d8b1693aa91bba2ebd8a7793487d1e301e2a5c5f439cd",
     "src/ui_logic_op1/transfer.rs": "453bb463cc3b176208135193cc15704d6d3a05b297fcbc6426d9f644fcea869a",
     "src/ui_logic_op1/trash.rs": "691395c9627cf04e93a6e06c317566db9f3589ee19f80a52b138d7281365111b",
@@ -212964,13 +212987,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "65a4a21de781555c549891fadeb61fe5b95bfd2f",
-  "source_sha": "65a4a21de781555c549891fadeb61fe5b95bfd2f",
+  "source_ref_sha": "53c2249408edbb00cdcd2cc26e5fd9604517c12d",
+  "source_sha": "53c2249408edbb00cdcd2cc26e5fd9604517c12d",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
       "missing_literal_candidates": 5649,
-      "source_files": 776
+      "source_files": 777
     },
     "generated/tooling": {
       "keys_with_occurrences": 148,
@@ -212978,7 +213001,7 @@
       "source_files": 144
     },
     "gui": {
-      "keys_with_occurrences": 469,
+      "keys_with_occurrences": 470,
       "missing_literal_candidates": 1609,
       "source_files": 760
     },

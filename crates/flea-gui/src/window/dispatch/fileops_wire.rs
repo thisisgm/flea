@@ -8,6 +8,7 @@ use crate::{
 };
 use flea::{
     jsondoc::{self, Json},
+    ui_logic_fb1::status::Hint,
     ui_logic_op1::{
         confirm::Source,
         lines,
@@ -32,6 +33,34 @@ impl Shell {
         };
         let text = |key| document.get(key).and_then(Json::as_str).unwrap_or("");
         match text("t") {
+            "linked" => {
+                let count = |key| match document.get(key) {
+                    Some(Json::Num(value)) => value.parse::<u64>().unwrap_or(0),
+                    _ => 0,
+                };
+                let outcome = lines::Outcome {
+                    ok: count("ok"),
+                    failed: count("failed"),
+                    skipped: count("skipped"),
+                    note: text("note"),
+                    ..Default::default()
+                };
+                let said = lines::linked_receipt(&self.locale.catalog, outcome);
+                let error = (outcome.failed > 0 && outcome.ok == 0) || !outcome.note.is_empty();
+                let hint = if outcome.ok > 0 {
+                    Hint::TransientUndo
+                } else {
+                    Hint::None
+                };
+                if let Some(host) = self.panes[side].as_mut() {
+                    host.status = said.clone().into();
+                }
+                self.status_messages(cx, |messages, now| {
+                    messages.say(&said, error, "", hint, now);
+                });
+                let _ = self.step(side, Step::Refresh(None), window, cx);
+                true
+            }
             // PaneWire.qml onMade and onDuplicated: the line, then a re-read with the new item under the cursor.
             kind @ ("made" | "duplicated") => {
                 let path = text("path").to_owned();
