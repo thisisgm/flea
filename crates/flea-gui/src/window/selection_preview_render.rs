@@ -97,35 +97,7 @@ impl Render for SelectionPreview {
         let loading =
             self.pending.is_some() && (!self.port.0.borrow().holding || self.drawn.is_none());
         if loading || self.drawn.is_none() {
-            *self.frame_rect.borrow_mut() = None;
-            *self.play_rect.borrow_mut() = None;
-            let port = self.port.clone();
-            let epoch = self.epoch;
-            let loading_mark = gpui::canvas(
-                |_, _, _| (),
-                move |_, _, _, cx| {
-                    let now = cx
-                        .background_executor()
-                        .now()
-                        .saturating_duration_since(epoch)
-                        .as_millis() as u64;
-                    let mut swap = port.0.borrow_mut();
-                    swap.loading_at.get_or_insert(now);
-                },
-            )
-            .absolute()
-            .size_full();
-            return root.child(
-                div()
-                    .relative()
-                    .size_full()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .text_color(roles.metadata)
-                    .child(self.catalog.tr("preview.loading"))
-                    .child(loading_mark),
-            );
+            return root.child(self.loading_view(roles.metadata));
         }
         let frame = self.drawn.as_ref().unwrap();
         if frame.manual || !matches!(frame.mounted, Mounted::Media(_)) {

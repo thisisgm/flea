@@ -140,6 +140,8 @@ mod previewtypes_fixture_tests;
 #[cfg(test)]
 mod previewtypes_fit_tests;
 #[cfg(test)]
+mod previewtypes_gif_tests;
+#[cfg(test)]
 mod previewtypes_hold_tests;
 #[cfg(test)]
 mod previewtypes_kinds_tests;
@@ -177,6 +179,8 @@ mod rename_panes_tests;
 mod rename_refusal_tests;
 #[cfg(test)]
 mod rename_slow_tests;
+#[cfg(test)]
+mod rename_bulk_tests;
 #[cfg(test)]
 mod rename_tests;
 #[cfg(test)]
