@@ -169,9 +169,9 @@ pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
                 matches,
             }))
         }
-        Some(jsondoc::Json::Str(kind)) if kind == "peeked" || kind == "jumped" => {
-            Some(Event::Path(crate::path::answer(&document).ok_or("path answer is malformed")?))
-        }
+        Some(jsondoc::Json::Str(kind)) if kind == "peeked" || kind == "jumped" => Some(
+            Event::Path(crate::path::answer(&document).ok_or("path answer is malformed")?),
+        ),
         _ => None,
     })
 }
@@ -254,6 +254,27 @@ mod tab_peek_tests {
                 panic!("every peek must keep its shared event shape");
             };
             assert_eq!(document, jsondoc::parse(&line).unwrap());
+            // The same parsed event reaches the strip, which claims only its reserved folder check.
+            let peek = crate::tabs::transfer::peeked(&document).unwrap();
+            let mut world = crate::tabs::test_support::World::new(1);
+            let mut bar = world.bar();
+            let payload =
+                crate::tabs::transfer::payload("222", "pending", "/files/child", "list", "");
+            assert!(bar.strip_drop(&mut world, &payload, 0., 1));
+            bar.on_peeked(
+                &mut world,
+                0,
+                &peek.path,
+                peek.hidden,
+                peek.read_failed,
+                peek.hidden_last,
+                peek.first,
+            );
+            assert_eq!(
+                bar.pending.is_some(),
+                first != crate::tabs::transfer::PEEK_FIRST,
+                "first={first}"
+            );
         }
     }
 }

@@ -4,7 +4,7 @@ use super::{
 };
 
 #[test]
-fn u25_model_gesture_without_a_lift_offers_the_previous_lifts_payload() {
+fn u25_model_gesture_without_a_lift_never_offers_the_previous_lifts_payload() {
     let mut world = World::new(2);
     let mut bar = world.bar();
     bar.tab_lift_began(&mut world, 0, 1);
@@ -38,7 +38,7 @@ fn u25_model_second_receive_before_landing_keeps_the_first_tab_unacknowledged() 
 }
 
 #[test]
-fn u25_model_failed_destination_listing_leaves_the_tab_in_both_windows() {
+fn u25_model_an_accepted_receive_is_acknowledged_before_its_listing_settles() {
     let mut source = World::new(2);
     let mut lifting = source.bar();
     lifting.tab_lift_began(&mut source, 0, 1);
@@ -61,7 +61,7 @@ fn u25_model_failed_destination_listing_leaves_the_tab_in_both_windows() {
     receiver.pane.busy = false;
     let (pid, token) = bar
         .pump_taken()
-        .expect("receipt survives a failed destination list");
+        .expect("the receipt does not wait for the destination listing");
     assert_eq!(pid, "111");
     assert!(lifting.take(&mut source, &token, 4));
     assert_eq!(source.tabs.count(), 1);

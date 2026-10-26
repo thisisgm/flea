@@ -35,6 +35,8 @@ impl Shell {
             return;
         }
         host.input.keyboard();
+        // Every press starts its own gesture, so no earlier press can lift rows for this one.
+        host.input.press = None;
         host.input.hold(&mut host.pane);
         // The hold may land a glide where it is drawn, so the row and band read the frame it left.
         let frame = host.input.frame.unwrap_or(frame);
@@ -81,11 +83,18 @@ impl Shell {
                 cells: None,
             });
         }
+        // A row press bubbles on to the pane's on_drag, which lifts the row once the press travels.
+        let row_press = event.button == MouseButton::Left
+            && self.panes[side]
+                .as_ref()
+                .is_some_and(|host| host.input.press.is_some());
         self.focus_pane(side, cx);
         window.focus(&self.focus, cx);
         self.keyboard.context = flea::keys::Context::Listing;
         self.keyboard.disarm();
-        cx.stop_propagation();
+        if !row_press {
+            cx.stop_propagation();
+        }
         cx.notify();
     }
 }

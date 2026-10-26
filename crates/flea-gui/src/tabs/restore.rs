@@ -1,6 +1,7 @@
 use super::{Plan, MAX};
 use flea::jsondoc::Json;
 
+// Sample input: {"startIn":"last","lastTabs":{"paths":["/home/a","/home/b"],"index":1}}.
 // Without a Last-folder strip or with a named path there is no plan; a non-string entry voids the strip.
 pub fn restore_plan(state: &Json, named: &str) -> Option<Plan> {
     if !named.is_empty() {

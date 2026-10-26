@@ -70,6 +70,23 @@ fn u25_addressed_ack_closes_only_the_captured_identity(cx: &mut TestAppContext) 
             shell.strip.bar.out_finished(now);
             token
         });
+        let identities = |shell: &crate::state::Shell| -> Vec<u64> {
+            shell.strip.tabs[0]
+                .tabs
+                .as_ref()
+                .unwrap()
+                .items
+                .iter()
+                .map(|tab| tab.identity)
+                .collect()
+        };
+        let before = entity.read(cx).strip.tabs[0]
+            .tabs
+            .as_ref()
+            .unwrap()
+            .items
+            .clone();
+        let lifted = before[0].identity;
         other.update(cx, |shell, cx| {
             assert_eq!(ack(shell, &token, window, cx), Reply::value("false"));
             assert_eq!(shell.strip.tabs[0].count(), 1);
@@ -77,6 +94,16 @@ fn u25_addressed_ack_closes_only_the_captured_identity(cx: &mut TestAppContext) 
         entity.update(cx, |shell, cx| {
             assert_eq!(ack(shell, &token, window, cx), Reply::value("true"));
             assert_eq!(shell.strip.tabs[0].count(), 2);
+            let kept: Vec<u64> = before
+                .iter()
+                .map(|tab| tab.identity)
+                .filter(|identity| *identity != lifted)
+                .collect();
+            assert_eq!(
+                identities(shell),
+                kept,
+                "the captured identity closed, wherever it moved"
+            );
             assert_eq!(ack(shell, &token, window, cx), Reply::value("false"));
         });
     });

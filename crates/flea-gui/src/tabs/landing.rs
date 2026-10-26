@@ -9,12 +9,13 @@ impl super::host::Host {
         &self,
         host: &mut crate::window::pane::PaneHost,
         side: usize,
+        focus: usize,
     ) -> Option<crate::navigation::Listing> {
         let snapshot = self
             .launch
             .sort
             .as_ref()
-            .filter(|snapshot| side == 0 && snapshot.path == host.path)?;
+            .filter(|snapshot| self.launch_owns(side, focus) && snapshot.path == host.path)?;
         if host.nav.restore_sort_snapshot(&mut host.pane, snapshot) != Ok(true) {
             return None;
         }
@@ -27,9 +28,39 @@ impl super::host::Host {
             })
     }
 
-    // A torn-off tab's cursor names the file its first listing selects, on the launch pane only.
-    pub(crate) fn launch_select(&self, side: usize, path: &str) -> Option<String> {
-        (side == 0 && !self.launch.cursor.is_empty()).then(|| join(path, &self.launch.cursor))
+    // A pane's first listing, carrying a tear-off's order and cursor only on the launch pane.
+    pub(crate) fn start_listing(
+        &mut self,
+        host: &mut crate::window::pane::PaneHost,
+        side: usize,
+        focus: usize,
+    ) -> crate::navigation::Listing {
+        let mut listing = self
+            .launch_listing(host, side, focus)
+            .unwrap_or_else(|| host.nav.listing(&host.pane, &host.path.clone(), false));
+        listing.select = host.select.clone();
+        if let Some(select) = self.launch_select(side, focus, &host.path) {
+            listing.select = Some(select);
+        }
+        listing
+    }
+
+    // The tear-off hand-off belongs to the launch pane's first start only.
+    pub(crate) fn launch_owns(&self, side: usize, focus: usize) -> bool {
+        side == focus && !self.launch_started
+    }
+
+    pub(crate) fn launch_select(
+        &mut self,
+        side: usize,
+        focus: usize,
+        path: &str,
+    ) -> Option<String> {
+        if !self.launch_owns(side, focus) {
+            return None;
+        }
+        self.launch_started = true;
+        (!self.launch.cursor.is_empty()).then(|| join(path, &self.launch.cursor))
     }
 }
 
