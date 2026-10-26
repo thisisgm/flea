@@ -351,10 +351,16 @@ fn the_add_share_card_takes_typed_text_through_the_window(cx: &mut TestAppContex
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.network_add(0, window, cx)));
     frame(cx);
     assert_eq!(call(&shell, "networkFocus", &[], cx), "Host");
-    // Typed keys reach the focused field through the platform's IME entry, past the window's own key handler.
-    cx.simulate_input("nas.local");
+    let hidden = call(&shell, "showHidden", &[], cx);
+    // Each key goes down through the window's key handler, then its text reaches the focused field through IME.
+    cx.simulate_keystrokes("n a s . l o c a l");
     frame(cx);
     let view = card(&shell, cx);
     let host = cx.update(|_, cx| view.read(cx).model.form.host.clone());
     assert_eq!(host, "nas.local", "the typed host lands in the focused field");
+    assert_eq!(
+        call(&shell, "showHidden", &[], cx),
+        hidden,
+        "a typed . never reaches the listing's toggleHidden while the card holds the keyboard"
+    );
 }

@@ -157,9 +157,7 @@ fn unlock_launch_hidden_rail_names_the_device_and_mounts_with_stdin_only(cx: &mu
             ("Backup", "LUKS2")
         );
     });
-    // i50-15: card fields take text through the IME entry, as the platform delivers typed text.
-    cx.simulate_input("secret");
-    cx.simulate_keystrokes("enter");
+    cx.simulate_keystrokes("s e c r e t enter");
     frame(cx);
     {
         let jobs = devices.0.borrow();
