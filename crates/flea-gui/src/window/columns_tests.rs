@@ -11,6 +11,8 @@ mod pointer;
 mod review;
 #[path = "columns_state_tests.rs"]
 mod state;
+#[path = "columns_wheel_tests.rs"]
+mod wheel;
 
 #[test]
 fn u09_live_columns_width_reader_observes_the_list_producers_stored_values() {
