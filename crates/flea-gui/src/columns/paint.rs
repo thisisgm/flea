@@ -6,7 +6,8 @@ use crate::list::Typeface;
 use crate::navigation::sort::{DirSizes, Size};
 use crate::palette::Theme;
 use gpui::{Hsla, Pixels, TextStyle, Window};
-use std::{cell::RefCell, rc::Rc};
+use crate::grid::element::Thumbnail;
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 // The board's rungs over the theme roles: hairline 12%, hover 8%, grey cursor and accent wash 18%, marked plate 35%, a cut row 55%.
 pub const HAIR: f32 = 0.12;
@@ -157,6 +158,10 @@ pub struct TrackPaint {
     pub cache: TrackCache,
     advance: Option<Pixels>,
     pub(super) visible: Vec<(usize, Option<Rc<Prepared>>, Clip)>,
+    // The thumbnail each visible row draws in its mark slot, in the order of visible.
+    pub(super) pictures: Vec<Option<Arc<Thumbnail>>>,
+    /// Thumbnails the last paint drew in mark slots.
+    pub painted_pictures: std::cell::Cell<usize>,
     /// The palette the last frame drew with, for a test that checks the installed theme reached the track.
     pub painted: Option<Palette>,
 }
@@ -169,6 +174,8 @@ impl TrackPaint {
             cache: TrackCache::default(),
             advance: None,
             visible: Vec::new(),
+            pictures: Vec::new(),
+            painted_pictures: Default::default(),
             painted: None,
         }
     }
@@ -188,6 +195,12 @@ impl TrackPaint {
             .and_then(|row| row.1.as_ref())
     }
 
+    /// The thumbnail the last frame drew for a row, for a test and the native probe.
+    pub fn picture(&self, index: usize) -> Option<&Arc<Thumbnail>> {
+        let at = self.visible.iter().position(|row| row.0 == index)?;
+        self.pictures.get(at)?.as_ref()
+    }
+
     pub fn clip(&self, index: usize) -> Clip {
         self.visible
             .iter()
@@ -201,6 +214,7 @@ impl TrackPaint {
         self.cache.keep(&live);
         self.drawn = None;
         self.visible.clear();
+        self.pictures.clear();
     }
 
     /// One advance of "0" at the body size, Theme.bodyAdvance, which turns a name width into cells.

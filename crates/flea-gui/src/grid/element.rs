@@ -7,6 +7,9 @@ pub mod pictures;
 #[cfg(test)]
 #[path = "pictures_tests.rs"]
 mod pictures_tests;
+#[cfg(test)]
+#[path = "row_pictures_tests.rs"]
+mod row_pictures_tests;
 mod tip;
 
 use super::{

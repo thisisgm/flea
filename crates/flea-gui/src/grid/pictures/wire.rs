@@ -1,7 +1,9 @@
-//! The Shell side of Grid pictures: the per-frame follow and settle, the thumb and thumbcancel lines, and the thumbed answer.
+//! The Shell side of a pane's pictures: the per-frame follow and settle over the shown surface, the thumb and thumbcancel lines, and the thumbed answer.
 use super::{is_image, Key, Map, Pictures, Policy, Slot, FIRST_SETTLE_MS, SETTLE_MS};
-use crate::grid::{element::Identity, element::PictureKind, element::Thumbnail, Shown};
-use crate::{backend::Event, state::Shell, window::startup::View};
+use crate::grid::{element::Identity, element::PictureKind, element::Thumbnail};
+use super::surface::{drawn_rows, estimated_rows, Surface};
+use crate::pane::states::Kind;
+use crate::{backend::Event, state::Shell};
 use gpui::{Asset, Context, ImageAssetLoader, RenderImage, Resource, Window};
 use std::{path::Path, rc::Rc, sync::Arc, time::Duration};
 
@@ -13,35 +15,37 @@ fn rows_line(command: &str, rows: &[usize], cache: Option<bool>) -> String {
 }
 
 impl Shell {
-    fn grid_pictures(&self, side: usize) -> Option<&Pictures> {
-        self.panes[side].as_ref()?.grid.as_ref()?.decor.pictures()
+    fn grid_pictures(&self, side: usize) -> Option<Rc<Pictures>> {
+        Some(Rc::clone(&self.panes[side].as_ref()?.list.borrow().pictures))
     }
 
-    /// Every frame: the shown Grid pane lends its Pictures, follows its listing and settles its asks; a hidden one lets every picture go.
+    /// Every frame: the shown surface of each pane follows its listing and settles its asks; a hidden pane lets every picture go.
     pub fn sync_grid_pictures(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let policy = Policy::read(&self.launch.settings.data);
         for side in 0..2 {
-            let shown = self.view == View::Grid && side == 0 && self.slots.covers[side].is_none();
+            let surface = self.picture_surface(side);
             let Some(host) = self.panes[side].as_mut() else {
                 continue;
             };
-            let Some(grid) = host.grid.as_mut() else {
-                continue;
-            };
-            if grid.decor.pictures().is_none() {
-                if !shown {
-                    continue;
+            let pictures = Rc::clone(&host.list.borrow().pictures);
+            if let Some(grid) = host.grid.as_mut() {
+                if surface == Some(Surface::Grid) && grid.decor.pictures().is_none() {
+                    // Plain stands in until the first shown frame; from here on the tiles borrow the pane's pictures, and the marks the old decor drew ride inside.
+                    pictures.set_clip(Rc::clone(&grid.decor));
+                    grid.decor = Rc::clone(&pictures) as Rc<dyn super::Decor>;
                 }
-                // Plain stands in until the first shown frame; from here on the pane's tiles borrow these, and the marks the old decor drew ride inside.
-                let pictures = Pictures::default();
-                pictures.set_clip(Rc::clone(&grid.decor));
-                grid.decor = Rc::new(pictures);
             }
-            let pictures = grid.decor.pictures().expect("installed above");
             let mut map = pictures.map.borrow_mut();
             map.policy = Some(policy);
             let backend = host.backend.as_ref().filter(|_| !host.stopped);
-            let live = shown && grid.view.visible && !host.pane.state.search;
+            let searching = host.pane.state.search;
+            let live = !searching
+                && match surface {
+                    Some(Surface::Grid) => host.grid.as_ref().is_some_and(|grid| grid.view.visible),
+                    Some(Surface::List) => host.pane.state.kind == Kind::Ready,
+                    Some(Surface::Columns) => host.columns.is_some() && host.pane.state.kind == Kind::Ready,
+                    None => false,
+                };
             let mut lines = Vec::new();
             if !live || backend.is_none() {
                 let pending = map.release();
@@ -62,14 +66,20 @@ impl Shell {
                     }
                     map.seen = window_now;
                 }
-                let span = grid
-                    .view
-                    .wanted_thumbnails(&host.pane, Shown::All(held.total))
-                    .map(|span| (*span.start(), *span.end()));
+                // A List or Columns pane not drawn yet starts its settle from the pane's viewport; the settle reads the drawn rows.
+                let want = surface.and_then(|surface| {
+                    drawn_rows(host, surface).or_else(|| {
+                        (surface != Surface::Grid && held.total > 0).then(|| estimated_rows(host))
+                    })
+                });
                 let cache = map.class_for(&host.path).map(|class| policy.cache_only(class));
-                let key = span.map(|span| Key {
+                let key = want.as_ref().map(|want| Key {
                     listing: held.listing,
-                    span,
+                    span: want.span,
+                    only: want
+                        .only
+                        .as_ref()
+                        .map(|(rows, first, end)| (Rc::as_ptr(rows).cast::<usize>() as usize, *first, *end)),
                     mode: policy.mode,
                     cache,
                 });
@@ -93,10 +103,13 @@ impl Shell {
 
     // The settle fired: Thumbs.plan over the visible rows, cancelling what left them and asking what never was.
     fn ask_grid_pictures(&mut self, side: usize, key: Key, cx: &mut Context<Self>) {
-        let Some(host) = self.panes[side].as_mut() else {
+        let Some(pictures) = self.grid_pictures(side) else {
             return;
         };
-        let Some(pictures) = host.grid.as_ref().and_then(|grid| grid.decor.pictures()) else {
+        let Some(surface) = self.picture_surface(side) else {
+            return;
+        };
+        let Some(host) = self.panes[side].as_mut() else {
             return;
         };
         let mut map = pictures.map.borrow_mut();
@@ -108,7 +121,8 @@ impl Shell {
         let Some(policy) = map.policy else { return };
         // The footer asks fsinfo for each listing; only a class still unknown once the settle fires is asked here.
         let Some(cache) = key.cache else {
-            if map.asked_fs != key.listing {
+            // Off asks no picture, so it never needs the class either.
+            if key.mode != super::Mode::Off && map.asked_fs != key.listing {
                 map.asked_fs = key.listing;
                 drop(map);
                 if let Err(error) = host.backend.as_ref().map_or(Ok(()), |b| b.fsinfo()) {
@@ -118,7 +132,8 @@ impl Shell {
             }
             return;
         };
-        let (first, last) = key.span;
+        // The frame has drawn since the key was taken, so the plan covers exactly the rows on screen now; none drawn cancels what waits.
+        let wanted = drawn_rows(host, surface).map_or_else(Vec::new, |want| want.rows());
         // A row whose facts changed under its record is forgotten, so it is asked again for what it is now.
         let changed: Vec<usize> = map
             .order
@@ -129,12 +144,14 @@ impl Shell {
         let allowed = |row: usize| held.row(row).is_some_and(|facts| policy.allowed(facts));
         let gone: Vec<usize> = map
             .pending()
-            .filter(|&row| row < first || row > last || !allowed(row) || changed.contains(&row))
+            .filter(|row| !wanted.contains(row) || !allowed(*row) || changed.contains(row))
             .collect();
         for &row in changed.iter().chain(&gone) {
             map.forget(row);
         }
-        let ask: Vec<usize> = (first..=last)
+        let ask: Vec<usize> = wanted
+            .iter()
+            .copied()
             .filter(|row| !map.slots.contains_key(row) && allowed(*row))
             .collect();
         for &row in &ask {
@@ -210,10 +227,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let Some(host) = self.panes[side].as_ref() else {
+        let Some(pictures) = self.grid_pictures(side) else {
             return;
         };
-        let Some(pictures) = host.grid.as_ref().and_then(|grid| grid.decor.pictures()) else {
+        let Some(host) = self.panes[side].as_ref() else {
             return;
         };
         let mut map = pictures.map.borrow_mut();
@@ -298,6 +315,7 @@ impl Shell {
             Some(decoded) => {
                 map.counters.decoded += 1;
                 Slot::Ready {
+                    file: file.to_owned(),
                     picture: Arc::new(Thumbnail {
                         identity,
                         kind: PictureKind::Image,
@@ -308,7 +326,7 @@ impl Shell {
             }
             None => {
                 map.counters.refused += 1;
-                Slot::Refused
+                Slot::Failed { identity, file: file.to_owned() }
             }
         };
         map.remember(row, slot);
