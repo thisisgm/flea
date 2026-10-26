@@ -243,11 +243,18 @@ impl Mounting<'_> {
                 pdf
             })),
             Mount::Font => View::Font(cx.new(|cx| {
+                let size_ratio = cx
+                    .try_global::<crate::presentation::Fonts>()
+                    .filter(|fonts| fonts.base > 0)
+                    .map_or(1., |fonts| {
+                        f64::from(f32::from(look.face.base)) / f64::from(fonts.base)
+                    });
+                let ground = card::Look::of_text(&window.text_style(), look.theme).surface;
                 let theme = pv2::font::Theme {
                     foreground: hex(look.theme.foreground),
-                    surface: hex(look.theme.surface),
+                    surface: hex(ground),
                     muted: look.muted,
-                    size_ratio: f64::from(f32::from(look.face.base) / 12.),
+                    size_ratio,
                 };
                 let metrics = pv2::font::Metrics {
                     bar: card::BAR,
