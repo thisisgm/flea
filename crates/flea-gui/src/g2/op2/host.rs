@@ -12,6 +12,7 @@ use crate::{backend::Failure, g2::mn1::join::Chosen, state::Shell};
 use flea::{
     jsondoc::{self, Json},
     ui_logic_fb1::status::Hint,
+    ui_logic_mn1::build::Context as MenuContext,
     ui_logic_op2::{archive, cards as logic, wire},
 };
 use gpui::{
@@ -131,8 +132,14 @@ impl Shell {
 
     /// The menu rows this host needs filled: the probed formats, the archive row and whether it extracts.
     pub(crate) fn archive_menu_context(&mut self, side: usize) {
-        let formats = self.operations.archive.formats[side].clone();
-        let context = &mut self.menu.context;
+        let mut context = std::mem::take(&mut self.menu.context);
+        self.archive_context(side, &mut context);
+        self.menu.context = context;
+    }
+
+    /// The same archive facts on a context the caller holds, as the keyboard sheet reads the cursor row's menu.
+    pub(crate) fn archive_context(&self, side: usize, context: &mut MenuContext) {
+        let formats = &self.operations.archive.formats[side];
         let name = context.row_name.clone();
         context.row_is_archive = context.row_is_file && archive::is_archive(&name);
         context.archive_name = name.clone();

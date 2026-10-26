@@ -6,7 +6,6 @@ use super::seams::{Ink, Request};
 use super::sheet::Sheet;
 use super::view::SettingsView;
 use crate::list::Typeface;
-use flea::keys::SHEET_GROUPS;
 use flea::ui_logic_st1::{caps, sheet::match_of};
 use gpui::{
     div, linear_color_stop, linear_gradient, prelude::*, px, AnyElement, Context, Div,
@@ -93,23 +92,7 @@ impl SheetView {
     /// The groups split into two columns at the first group that would pass half the rows, each faded at its own foot.
     fn columns(&self, measured: &Measured, ink: &Ink, cx: &mut Context<Self>) -> Stateful<Div> {
         let catalog = &self.sheet.catalog;
-        let half = self.sheet.rows.len().div_ceil(2);
-        let mut used = 0;
-        let mut groups = Vec::new();
-        for group in SHEET_GROUPS {
-            let rows: Vec<_> = self
-                .sheet
-                .rows
-                .iter()
-                .filter(|row| row.group == group.id)
-                .collect();
-            if rows.is_empty() {
-                continue;
-            }
-            let side = usize::from(used > 0 && used + rows.len() > half);
-            used += rows.len();
-            groups.push((side, group, rows));
-        }
+        let groups = self.sheet.groups();
         let last = [0, 1].map(|side| groups.iter().rposition(|(on, ..)| *on == side));
         let mut columns: [Vec<AnyElement>; 2] = [Vec::new(), Vec::new()];
         for (index, (side, group, rows)) in groups.iter().enumerate() {
