@@ -293,6 +293,26 @@ impl Shell {
             })
     }
 
+    /// A printable key, Shift at most, while the open card holds focus; the card has already refused it as a command.
+    pub(crate) fn network_card_takes_text(
+        &self,
+        event: &gpui::KeyDownEvent,
+        window: &Window,
+        cx: &gpui::App,
+    ) -> bool {
+        let stroke = &event.keystroke;
+        stroke.key_char.is_some()
+            && stroke.modifiers.is_subset_of(&gpui::Modifiers::shift())
+            && self
+                .rail
+                .as_ref()
+                .and_then(|join| join.network.as_ref())
+                .is_some_and(|network| {
+                    let card = network.card.read(cx);
+                    card.model.opened && card.holds_focus(window, cx)
+                })
+    }
+
     fn network_say(&mut self, side: usize, text: String, cx: &mut Context<Self>) {
         if let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) {
             host.status = text.into();

@@ -41,6 +41,8 @@ pub struct NetworkView {
     pub(super) password_marked: Option<std::ops::Range<usize>>,
     pub(super) menu: Rc<RefCell<Menu>>,
     menu_dirty: bool,
+    /// The found hosts list opens only on Down in HOST; no board draws it on its own.
+    pub(super) suggesting: bool,
     pub(super) shown_status: Option<(&'static str, String)>,
     pub(super) dimensions: (f32, f32),
 }
@@ -67,6 +69,7 @@ impl NetworkView {
             password_marked: None,
             menu: Rc::default(),
             menu_dirty: true,
+            suggesting: false,
             shown_status: None,
             dimensions: (0., 0.),
         }
@@ -159,6 +162,10 @@ impl NetworkView {
     pub fn holds_focus(&self, window: &Window, cx: &gpui::App) -> bool {
         self.focus.contains_focused(window, cx)
     }
+    /// Observation only: whether the found hosts list is open under HOST.
+    pub fn suggestions_open(&self) -> bool {
+        self.menu.borrow().opened()
+    }
     /// Observation only: the height the body scrolls over, title and buttons included.
     pub fn scroll_content(&self) -> f32 {
         self.content_height()
@@ -190,6 +197,7 @@ impl NetworkView {
         self.effects(effects, cx);
     }
     pub fn load_input(&mut self) {
+        self.suggesting = false;
         self.fit_focus();
         self.password_marked = None;
         let units = super::secret_edit::units(&self.model.password);
@@ -262,7 +270,7 @@ impl NetworkView {
             return;
         }
         self.menu_dirty = false;
-        if self.model.focus != Focus::Host || self.model.busy() {
+        if !self.suggesting || self.model.focus != Focus::Host || self.model.busy() {
             self.menu.borrow_mut().close();
             return;
         }
