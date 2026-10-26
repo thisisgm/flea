@@ -41,7 +41,11 @@ impl CodeView {
 
     /// F and B: one page by whole rows, snapping a partial row under the top padding.
     pub fn page(&mut self, direction: i64, fallback: f32, cx: &mut Context<Self>) {
-        let viewport = if self.frame.1 > 0. { self.frame.1 } else { fallback };
+        let viewport = if self.frame.1 > 0. {
+            self.frame.1
+        } else {
+            fallback
+        };
         let step = flea::ui_logic_pv2::code_view::page_step(viewport, self.metrics.row);
         let partial = self.offset % self.metrics.row.max(1.);
         self.scroll_by(direction as f32 * step - partial, cx);
