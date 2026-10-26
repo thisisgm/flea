@@ -4,6 +4,8 @@ use crate::backend::searchmatch::{fold, separator, Letter, Matcher, State};
 use crate::backend::searchtypo;
 
 pub(super) const NO_SCORE: i32 = i32::MIN;
+// Generation storage holding more than this multiple of its last use shrinks back to that use.
+const SHRINK_ABOVE: usize = 2;
 
 #[derive(Default, Clone, Copy)]
 struct NameSlot {
@@ -15,9 +17,9 @@ struct NameSlot {
 pub(super) struct Directory {
     generation: u32,
     pub reach: Option<usize>,
-    pub state: Option<State>,
+    pub state: usize,
     state_ready: bool,
-    pub text: Vec<Letter>,
+    pub text: std::ops::Range<usize>,
     text_ready: bool,
     pub parent_edits: Option<bool>,
 }
@@ -41,6 +43,7 @@ impl Worker {
     }
 }
 
+// Index-sized slots and the job list stay for the session, so a keystroke allocates only its output.
 #[derive(Default)]
 pub(crate) struct QueryScratch {
     generation: u32,
@@ -48,6 +51,9 @@ pub(crate) struct QueryScratch {
     jobs: Vec<(u32, i32)>,
     workers: Vec<Worker>,
     pub(super) dirs: Vec<Directory>,
+    pub(super) texts: Vec<Letter>,
+    pub(super) states: Vec<State>,
+    states_used: usize,
     pending: Vec<u32>,
     pub(super) letters: Vec<Letter>,
     pub(super) path_letters: Vec<Letter>,
@@ -76,8 +82,18 @@ impl QueryScratch {
         self.names.resize(index.names.len(), NameSlot::default());
         self.dirs.resize_with(index.blocks.len(), Directory::default);
         self.jobs.clear();
+        self.texts.clear();
+        self.states_used = 0;
         #[cfg(test)]
         { self.counters = Counters::default(); }
+    }
+
+    pub(super) fn end(&mut self) {
+        if self.texts.capacity() > SHRINK_ABOVE * self.texts.len() { self.texts.shrink_to(self.texts.len()); }
+        if self.states.len() > SHRINK_ABOVE * self.states_used {
+            self.states.truncate(self.states_used);
+            self.states.shrink_to(self.states_used);
+        }
     }
 
     pub(super) fn names(&mut self, matcher: &Matcher, rows: &[usize], index: &Index) {
@@ -88,7 +104,7 @@ impl QueryScratch {
             *slot = NameSlot { generation: self.generation, score: NO_SCORE };
             #[cfg(test)]
             { self.counters.scratch_touched += 1; }
-            if super::searchbits::possible(matcher.bits, index.names.group_bits(id as usize / 64), matcher.budget)
+            if super::searchbits::possible(matcher.bits, index.names.group_bits(id), matcher.budget)
                 && super::searchbits::possible(matcher.bits, index.names.bits(id as usize), matcher.budget)
                 && matcher.needle.len() <= index.names.get(id).len().saturating_add(matcher.budget) {
                 self.jobs.push((id, NO_SCORE));
@@ -163,14 +179,19 @@ impl QueryScratch {
         }
         while let Some(id) = self.pending.pop() {
             let (name, parent) = index.blocks.record(id);
-            let mut state = self.dirs[id as usize].state.take().unwrap_or_else(|| State::new(matcher.needle.len()));
+            let slot = self.states_used;
+            if slot == self.states.len() { self.states.push(State::new(matcher.needle.len())); }
+            self.states_used += 1;
+            // A ready parent took its slot earlier in this generation, so it sits below this one.
+            let (ready, rest) = self.states.split_at_mut(slot);
+            let state = &mut rest[0];
             if parent == EMPTY { state.resize(matcher.needle.len()); }
-            else { state.copy_from(self.dirs[parent as usize].state.as_ref().unwrap()); }
+            else { state.copy_from(&ready[self.dirs[parent as usize].state]); }
             fold(index.names.get(name), &mut self.letters);
             state.advance(&matcher.needle, &self.letters, false);
             let boundary = self.letters.last().map_or(true, |letter| separator(letter.lower));
             state.advance(&matcher.needle, &[Letter { lower: '/', boundary }], false);
-            self.dirs[id as usize].state = Some(state);
+            self.dirs[id as usize].state = slot;
             self.dirs[id as usize].state_ready = true;
             #[cfg(test)]
             index.dirs_scored.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -180,15 +201,14 @@ impl QueryScratch {
     pub(super) fn parent_text(&mut self, index: &Index, dir: u32) {
         if self.directory(dir).text_ready { return; }
         index.blocks.ancestors(dir, &mut self.pending);
-        let mut text = std::mem::take(&mut self.dirs[dir as usize].text);
-        text.clear();
+        let start = self.texts.len();
         for &name in self.pending.iter().rev() {
             fold(index.names.get(name), &mut self.letters);
             let boundary = self.letters.last().map_or(true, |letter| separator(letter.lower));
-            text.extend_from_slice(&self.letters);
-            text.push(Letter { lower: '/', boundary });
+            self.texts.extend_from_slice(&self.letters);
+            self.texts.push(Letter { lower: '/', boundary });
         }
-        self.dirs[dir as usize].text = text;
+        self.dirs[dir as usize].text = start..self.texts.len();
         self.dirs[dir as usize].text_ready = true;
     }
 }

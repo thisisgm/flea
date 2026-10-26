@@ -44,7 +44,7 @@ pub(crate) fn score_cached(matcher: &Matcher, rows: &[usize], index: &Index, scr
             let typo_prefix = if exact_prefix || path_edits == 0 { false } else {
                 if scratch.dirs[entry.parent as usize].parent_edits.is_none() {
                     scratch.parent_text(index, entry.parent);
-                    let possible = matcher.parent_possible(&scratch.dirs[entry.parent as usize].text, &mut scratch.edits);
+                    let possible = matcher.parent_possible(&scratch.texts[scratch.dirs[entry.parent as usize].text.clone()], &mut scratch.edits);
                     scratch.dirs[entry.parent as usize].parent_edits = Some(possible);
                 }
                 scratch.dirs[entry.parent as usize].parent_edits.unwrap()
@@ -55,7 +55,7 @@ pub(crate) fn score_cached(matcher: &Matcher, rows: &[usize], index: &Index, scr
             }
             if exact_prefix && matcher.reach(index.names.get(entry.name), reach) == matcher.needle.len() {
                 scratch.state(matcher, index, entry.parent);
-                let parent = scratch.dirs[entry.parent as usize].state.as_ref().unwrap();
+                let parent = &scratch.states[scratch.dirs[entry.parent as usize].state];
                 fold(index.names.get(entry.name), &mut scratch.letters);
                 let state = scratch.row_state.get_or_insert_with(|| State::new(matcher.needle.len()));
                 state.copy_from(parent);
@@ -65,7 +65,7 @@ pub(crate) fn score_cached(matcher: &Matcher, rows: &[usize], index: &Index, scr
             if path_edits > 0 && !score.is_some_and(|score| score >= PATH) {
                 scratch.parent_text(index, entry.parent);
                 scratch.path_letters.clear();
-                scratch.path_letters.extend_from_slice(&scratch.dirs[entry.parent as usize].text);
+                scratch.path_letters.extend_from_slice(&scratch.texts[scratch.dirs[entry.parent as usize].text.clone()]);
                 fold(index.names.get(entry.name), &mut scratch.letters);
                 scratch.path_letters.extend_from_slice(&scratch.letters);
                 score = score.max(matcher.distance(&scratch.path_letters, &mut scratch.edits)
@@ -76,5 +76,6 @@ pub(crate) fn score_cached(matcher: &Matcher, rows: &[usize], index: &Index, scr
         }
         if let Some(score) = score { hits.push((score, row)); }
     }
+    scratch.end();
     hits
 }

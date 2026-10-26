@@ -33,20 +33,32 @@ fn extensions(index: &Index, queries: &[String]) -> usize {
     admitted
 }
 
+// Knuth's MMIX linear congruential step; the seed only fixes one reproducible inventory.
+const LCG_MULTIPLIER: u64 = 6364136223846793005;
+const SEED: u64 = 0x5146_5332;
+const ROWS: usize = 192;
+// Rows below this also contribute their name, path and two typo queries.
+const QUERY_ROWS: usize = 48;
+const NAME_MIN: usize = 4;
+const NAME_SPREAD: usize = 12;
+const FOLDERS: [&str; 4] = ["redner", "café", "abxd", "archive/2024"];
+// The packed typo plan holds one bit per query letter in a u64, so these lengths sit on its limit.
+const PACKED_LIMIT: usize = u64::BITS as usize;
+
 fn random_inventory() -> (Index, Vec<String>) {
-    let mut seed = 0x5146_5332_u64;
+    let mut seed = SEED;
     let mut next = |limit: usize| {
-        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
-        (seed >> 32) as usize % limit
+        seed = seed.wrapping_mul(LCG_MULTIPLIER).wrapping_add(1);
+        (seed >> u32::BITS) as usize % limit
     };
     let alphabet = ['a', 'b', 'c', 'd', 'r', 'e', 'n', '1', '2', '.', '_', 'é', '中', 'İ'];
     let mut index = Index::new();
     let mut queries: Vec<String> = QUERIES.iter().map(|q| (*q).to_string()).collect();
-    for i in 0..192 {
-        let name: String = (0..4 + next(12)).map(|_| alphabet[next(alphabet.len())]).collect();
-        let path = format!("abcd/{}/{name}.{i}", ["redner", "café", "abxd", "archive/2024"][next(4)]);
+    for i in 0..ROWS {
+        let name: String = (0..NAME_MIN + next(NAME_SPREAD)).map(|_| alphabet[next(alphabet.len())]).collect();
+        let path = format!("abcd/{}/{name}.{i}", FOLDERS[next(FOLDERS.len())]);
         assert!(index.push(&path, false));
-        if i < 48 {
+        if i < QUERY_ROWS {
             queries.push(name.clone());
             queries.push(path.clone());
             let mut typo: Vec<_> = name.chars().collect();
@@ -62,7 +74,7 @@ fn random_inventory() -> (Index, Vec<String>) {
         queries.push(path.to_string());
     }
     // Exercise the packed-plan limit and fallback with a transposition near the cut.
-    for length in [63, 64, 65] {
+    for length in [PACKED_LIMIT - 1, PACKED_LIMIT, PACKED_LIMIT + 1] {
         let query = format!("{}bc", "a".repeat(length - 2));
         assert!(index.push(format!("{}cb.txt", "a".repeat(length - 2)), false));
         queries.push(query);
