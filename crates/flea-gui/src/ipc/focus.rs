@@ -10,6 +10,8 @@ use gpui::{Bounds, Pixels};
 pub struct FocusAdapter<'a> {
     pub view: Option<&'a str>,
     pub input: &'a PaneInput,
+    /// The toolbar glyph that holds keyboard focus, if one does.
+    pub chrome_glyph: Option<&'static str>,
 }
 fn number(value: f32) -> Json {
     Json::Num(value.to_string())
@@ -32,6 +34,11 @@ impl Adapter for FocusAdapter<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
         let value = match function {
             "focusView" => return self.view.map(Reply::value),
+            // Focus.js focusStop: the toolbar names its focused glyph; every other stop is its focus view.
+            "focusStop" => match (self.view, self.chrome_glyph) {
+                (Some("chrome"), Some(glyph)) => format!("chrome:{glyph}"),
+                (view, _) => view.unwrap_or_default().to_owned(),
+            },
             "viewContentY" => self.input.drawn?.frame.scroll.round().to_string(),
             "selectedFill" => colour(self.input.drawn?.fill),
             "selectionBandState" => {
@@ -77,5 +84,34 @@ impl Adapter for FocusAdapter<'_> {
             _ => return None,
         };
         Some(Reply::value(value))
+    }
+}
+
+#[cfg(test)]
+mod stop_tests {
+    use super::{Adapter, FocusAdapter};
+    use crate::input::PaneInput;
+
+    fn stop(view: Option<&str>, chrome_glyph: Option<&'static str>) -> String {
+        let input = PaneInput::default();
+        FocusAdapter {
+            view,
+            input: &input,
+            chrome_glyph,
+        }
+        .call("focusStop", &[])
+        .unwrap()
+        .stdout
+        .trim()
+        .to_owned()
+    }
+
+    #[test]
+    fn focus_stop_names_the_toolbar_glyph_and_otherwise_the_focus_view() {
+        assert_eq!(stop(Some("chrome"), Some("search")), "chrome:search");
+        assert_eq!(stop(Some("chrome"), None), "chrome");
+        assert_eq!(stop(Some("list"), Some("search")), "list");
+        assert_eq!(stop(Some("rail"), None), "rail");
+        assert_eq!(stop(None, None), "");
     }
 }

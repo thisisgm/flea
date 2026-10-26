@@ -72,6 +72,13 @@ impl StatusAdapter<'_> {
         if function == "emptyShown" {
             return Some(shown.to_string());
         }
+        if function == "stateLayers" {
+            let (empty, message) = self.shell.surfaces[side].layers(self.cx);
+            return Some(encode(object([
+                ("empty", Json::Bool(empty)),
+                ("message", Json::Bool(message)),
+            ])));
+        }
         if !matches!(
             function,
             "emptyHeroState" | "emptyMarkRect" | "emptyStateRect"
@@ -280,6 +287,7 @@ impl Adapter for StatusAdapter<'_> {
                 | "statusActivityState"
                 | "statusFooterState"
                 | "stickyMessage"
+                | "statusColor"
         ) {
             return None;
         }
@@ -291,6 +299,21 @@ impl Adapter for StatusAdapter<'_> {
         let line = message_line.read(self.cx);
         let messages = line.messages();
         let shown = messages.shown();
+        // StatusBar.centreColor(): the ink the centre message draws in, the foreground while none is drawn.
+        if function == "statusColor" {
+            let ink = match line.painted.get("primary") {
+                Some(primary) => primary.color,
+                None => {
+                    let theme = self
+                        .cx
+                        .try_global::<crate::palette::Theme>()
+                        .copied()
+                        .unwrap_or_default();
+                    crate::list::Palette::inherited(&gpui::TextStyle::default(), theme).foreground
+                }
+            };
+            return Some(Reply::value(super::rows::colour(ink)));
+        }
         let snapshot = Snapshot {
             path: footer.path.clone(),
             total: footer.total,

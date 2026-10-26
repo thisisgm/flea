@@ -55,6 +55,49 @@ impl Reader<'_> {
         format!("{} {}", x.round(), y.round())
     }
 
+    /// ColumnsArea.childItemAt: a child row's name while the track draws that row on screen.
+    fn row_name(&self, slot: Slot, index: usize) -> String {
+        let Some(columns) = self.host.columns.as_ref().filter(|_| self.visible) else {
+            return String::new();
+        };
+        let Some(paint) = columns.painters.get(slot) else {
+            return String::new();
+        };
+        let paint = paint.borrow();
+        if !paint.visible().any(|at| at == index) {
+            return String::new();
+        }
+        match paint.drawn.as_ref().map(|drawn| &drawn.view().rows) {
+            Some(TrackRows::Peek(rows)) => rows
+                .get(index)
+                .map(|row| row.name.clone())
+                .unwrap_or_default(),
+            _ => String::new(),
+        }
+    }
+
+    /// The child's empty tile mark as its last frame painted it, FleaWindow.rectOf of the mark item.
+    fn child_mark_rect(&self) -> String {
+        self.host
+            .columns
+            .as_ref()
+            .filter(|_| self.visible)
+            .and_then(|columns| columns.heroes[Slot::Child.index()].as_ref())
+            .map(|hero| hero.read(self.cx))
+            .filter(|hero| hero.painted().is_some_and(|(shown, _, _)| shown))
+            .and_then(|hero| hero.painted.get("mark"))
+            .map(|mark| {
+                let b = mark.bounds;
+                crate::ipc::rows::rect_of(
+                    f32::from(b.origin.x),
+                    f32::from(b.origin.y),
+                    f32::from(b.size.width),
+                    f32::from(b.size.height),
+                )
+            })
+            .unwrap_or_default()
+    }
+
     fn names(&self, slot: &str) -> String {
         let slot = match slot {
             "parent" => Slot::Parent,
@@ -120,6 +163,17 @@ impl Adapter for Reader<'_> {
             "columnGrandparentRowCentre" => self.centre(Slot::Grandparent, index),
             "columnGreatGrandparentRowCentre" => self.centre(Slot::GreatGrandparent, index),
             "columnChildRowCentre" => self.centre(Slot::Child, index),
+            "columnChildRowName" => self.row_name(Slot::Child, index),
+            "columnChildMarkRect" => self.child_mark_rect(),
+            // ColumnsArea.activeContentY: in Columns the scroll is the active column's, as its last frame drew it.
+            "viewContentY" if self.visible => self
+                .host
+                .columns
+                .as_ref()
+                .and_then(|columns| columns.painters.get(Slot::Active))
+                .and_then(|paint| paint.borrow().drawn.as_ref().map(|drawn| drawn.scroll))
+                .map(|scroll| scroll.round().to_string())
+                .unwrap_or_default(),
             "columnChildEmpty" => self
                 .host
                 .columns

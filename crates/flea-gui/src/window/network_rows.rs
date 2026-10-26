@@ -96,7 +96,12 @@ impl Shell {
         });
         let task = cx.spawn(async move |this, cx| {
             let rows = read.await;
-            let _ = this.update(cx, |shell, cx| shell.network_publish(Some(rows), cx));
+            let _ = this.update(cx, |shell, cx| {
+                if let Some(network) = shell.network() {
+                    network.built = true;
+                }
+                shell.network_publish(Some(rows), cx)
+            });
         });
         network.tasks.retain(|task| !task.is_ready());
         network.tasks.push(task);

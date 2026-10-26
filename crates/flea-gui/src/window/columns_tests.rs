@@ -78,6 +78,28 @@ fn u09_live_columns_paint_real_tracks_and_read_only_visible_geometry() {
                 .trim(),
             "seed.txt"
         );
+        assert_eq!(
+            host::call(shell, "columnChildRowName", &["0"], window, cx)
+                .stdout
+                .trim(),
+            "seed.txt"
+        );
+        assert!(host::call(shell, "columnChildRowName", &["1"], window, cx)
+            .stdout
+            .trim()
+            .is_empty());
+        let active = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+        let scroll = active
+            .painters
+            .get(Slot::Active)
+            .and_then(|paint| paint.borrow().drawn.as_ref().map(|drawn| drawn.scroll))
+            .expect("the active column drew");
+        assert_eq!(
+            host::call(shell, "viewContentY", &[], window, cx)
+                .stdout
+                .trim(),
+            scroll.round().to_string()
+        );
         let centre = host::call(shell, "columnParentRowCentre", &["0"], window, cx).stdout;
         let values: Vec<f32> = centre
             .split_whitespace()

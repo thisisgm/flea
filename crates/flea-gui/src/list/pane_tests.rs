@@ -146,3 +146,23 @@ fn a_listing_stays_in_flight_until_its_rows_land_and_each_open_request_counts() 
     );
     assert_eq!(pane.pending(), 1);
 }
+
+#[test]
+fn first_rows_at_stamps_the_first_non_empty_rows_once_in_wall_clock_ms() {
+    let mut pane = Pane::new("/srv".into(), 640.);
+    assert_eq!(pane.first_rows_at, 0);
+    let before = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64;
+    listed(&mut pane, 3, 3);
+    let first = pane.first_rows_at;
+    assert!(first >= before, "the stamp is epoch milliseconds");
+    std::thread::sleep(std::time::Duration::from_millis(2));
+    let _ = pane.receive(Reply::Rows {
+        start: 0,
+        rows: rows(3),
+        listing: 1,
+    });
+    assert_eq!(pane.first_rows_at, first, "later rows keep the first stamp");
+}

@@ -55,6 +55,8 @@ pub struct Pane {
     pub swap: Swap,
     pub requests: Requests,
     pub list_requests: usize,
+    /// Backend.qml firstRowsAt: wall-clock ms when this pane's backend first delivered rows, 0 before.
+    pub first_rows_at: u64,
     pub(crate) greatest_listing: usize,
     pub(crate) clock: crate::pane::clock::Clock,
 }
@@ -77,6 +79,7 @@ impl Pane {
             swap: Swap::default(),
             requests: Requests::default(),
             list_requests: 0,
+            first_rows_at: 0,
             greatest_listing: 0,
             clock: Default::default(),
         };
@@ -180,7 +183,14 @@ impl Pane {
                 start,
                 rows,
                 listing,
-            } => self.take_rows(start, rows, listing, now),
+            } => {
+                if self.first_rows_at == 0 && !rows.is_empty() {
+                    self.first_rows_at = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map_or(1, |since| since.as_millis().max(1) as u64);
+                }
+                self.take_rows(start, rows, listing, now)
+            }
             Reply::Error {
                 operation,
                 path,

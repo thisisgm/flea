@@ -44,6 +44,7 @@ headless="$headless g1-05"
 headless="$headless fs-instrument"
 headless="$headless bench-b3-capture"
 headless="$headless native-runtime"
+headless="$headless prove-ci-runner bench-raw-corpus-contract"
 fail_line='(^|[: ])FAIL[: ]'
 failed=0
 ran=0

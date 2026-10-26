@@ -181,6 +181,19 @@ fn sheet_rows(sheet: &Sheet) -> String {
     out.join("\n")
 }
 
+// The pane's scrolled content: a standing search's results, otherwise the section's rows.
+fn pane_content(panel: &crate::g2::st1::Panel) -> f32 {
+    if panel
+        .query
+        .as_deref()
+        .is_some_and(|query| !query.is_empty())
+    {
+        panel.results_height
+    } else {
+        panel.heights().iter().sum()
+    }
+}
+
 impl Adapter for SettingsAdapter<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         let panel = self
@@ -265,6 +278,54 @@ impl Adapter for SettingsAdapter<'_> {
                     .map(|s| object([("id", word(s.id)), ("label", word(p.catalog.tr(s.label)))]))
                     .collect()
             }))),
+            // SettingsPanel.paneScroll and scrollState: the pane's content and viewport as the last frame laid them out.
+            "settingsScroll" => panel
+                .filter(|_| self.host.opened)
+                .map_or_else(String::new, |p| {
+                    format!("{}|{}", pane_content(p).round(), p.pane.1.round())
+                }),
+            "settingsScrollState" => match (panel, view) {
+                (Some(p), Some(v)) if self.host.opened => {
+                    let rail = v.probe.bounds("rail");
+                    let rail_bottom = SECTIONS
+                        .iter()
+                        .filter_map(|section| v.probe.bounds(&format!("rail:{}", section.id)))
+                        .map(|b| f32::from(b.bottom()))
+                        .reduce(f32::max);
+                    let (rail_height, rail_content) = rail.map_or((0., 0.), |b| {
+                        let top = f32::from(b.top());
+                        (
+                            f32::from(b.size.height),
+                            rail_bottom.map_or(0., |bottom| bottom - top),
+                        )
+                    });
+                    let scroll = if p.query.as_deref().is_some_and(|q| !q.is_empty()) {
+                        p.results_scroll
+                    } else {
+                        p.scroll
+                    };
+                    json(object([
+                        ("compactHeight", Json::Num(p.view_height.to_string())),
+                        (
+                            "pane",
+                            object([
+                                ("y", Json::Num(scroll.to_string())),
+                                ("height", Json::Num(p.pane.1.to_string())),
+                                ("contentHeight", Json::Num(pane_content(p).to_string())),
+                            ]),
+                        ),
+                        (
+                            "rail",
+                            object([
+                                ("y", Json::Num("0".into())),
+                                ("height", Json::Num(rail_height.to_string())),
+                                ("contentHeight", Json::Num(rail_content.to_string())),
+                            ]),
+                        ),
+                    ]))
+                }
+                _ => "{}".into(),
+            },
             "settingsCardRect" => view
                 .filter(|_| self.host.opened)
                 .map_or_else(String::new, |v| v.probe.rect("card")),
@@ -298,6 +359,13 @@ impl Adapter for SettingsAdapter<'_> {
             ))
             .into(),
             "keymapSheetOpen" => sheet.is_some().to_string(),
+            // ui/Ipc.qml keymapQuery and keymapCardRect: the open sheet's typed query and its card's painted box.
+            "keymapQuery" => sheet.map_or_else(String::new, |sheet| sheet.query.clone()),
+            "keymapCardRect" => self
+                .host
+                .sheet
+                .as_ref()
+                .map_or_else(String::new, |view| view.read(self.cx).probe.rect("card")),
             "keymapSheetResults" => json(sheet.map_or(Json::Arr(Vec::new()), results)),
             "keymapSheetRows" => sheet.map_or_else(String::new, sheet_rows),
             _ => return None,

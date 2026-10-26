@@ -140,6 +140,12 @@ fn replacement_still_applies_select_target_from_new_rows(cx: &mut TestAppContext
     host.changed(&locale);
     assert_eq!(host.pane.cursor, 2, "new listing select target lost");
     assert!(host.select.is_none());
+    assert_eq!(
+        host.selected,
+        [2],
+        "the select target replaces the old marks as the lone mark"
+    );
+    host.selected.clear();
     assert_discarded(&host);
 }
 

@@ -36,7 +36,7 @@ fn rect_json(rect: crate::rail::geometry::Rect) -> String {
     )
 }
 
-fn group_name(group: Group) -> &'static str {
+pub(super) fn group_name(group: Group) -> &'static str {
     match group {
         Group::Home => "home",
         Group::Recent => "recent",
@@ -50,7 +50,7 @@ fn group_name(group: Group) -> &'static str {
     }
 }
 
-fn kind_name(kind: Kind) -> &'static str {
+pub(super) fn kind_name(kind: Kind) -> &'static str {
     match kind {
         Kind::Home => "home",
         Kind::Recent => "recent",
@@ -138,15 +138,15 @@ fn row_json(index: usize, row: &LaidRow) -> String {
 }
 
 impl RailAdapter<'_> {
-    fn shown(&self) -> bool {
+    pub(super) fn shown(&self) -> bool {
         self.host.is_some_and(|host| host.rail.shown())
     }
 
-    fn producer(&self) -> Option<&Producer> {
+    pub(super) fn producer(&self) -> Option<&Producer> {
         self.host.filter(|host| host.rail.live()).and(self.producer)
     }
 
-    fn entries(&self) -> Vec<RailEntry> {
+    pub(super) fn entries(&self) -> Vec<RailEntry> {
         if !self.shown() {
             return Vec::new();
         }

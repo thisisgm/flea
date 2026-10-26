@@ -15,6 +15,9 @@ mod pointer;
 #[path = "join_probe_tests.rs"]
 mod probe;
 
+#[path = "join_drag_tests.rs"]
+mod drag;
+
 #[path = "join_steering_tests.rs"]
 mod steering;
 
@@ -148,6 +151,14 @@ fn u04_header_and_rows_share_the_live_painted_layout_and_dispatch() {
         assert_eq!(ask(&mut cx, handle, name, &["-1"]), "");
     }
     assert_eq!(call(&mut cx, handle, "rowThumb", &["1"]).code, 3);
+    assert_eq!(
+        ask(&mut cx, handle, "visibleRowMode", &["1"]),
+        0o120777.to_string(),
+        "the drawn row reports its raw mode"
+    );
+    for index in ["999", "-1"] {
+        assert_eq!(ask(&mut cx, handle, "visibleRowMode", &[index]), "-1");
+    }
 }
 
 #[test]

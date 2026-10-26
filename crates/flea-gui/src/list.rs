@@ -15,6 +15,10 @@ mod row_text;
 pub use measure::Density;
 pub use metrics::Metrics;
 pub(crate) use metrics::{CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
+#[cfg(test)]
+mod gh315_filter_tests;
+#[cfg(test)]
+mod gh333_tests;
 pub mod pane;
 #[cfg(test)]
 mod probe_tests;
@@ -22,10 +26,6 @@ pub mod seam;
 #[cfg(test)]
 pub(crate) mod size_tests;
 pub(crate) mod sizes;
-#[cfg(test)]
-mod gh315_filter_tests;
-#[cfg(test)]
-mod gh333_tests;
 #[cfg(test)]
 mod tests;
 mod typeface;

@@ -176,6 +176,27 @@ fn u09_live_columns_empty_denied_and_stale_order_replies_use_real_producers() {
                 .trim(),
             "true 1.00 1.00"
         );
+        let mark: Vec<f32> = host::call(shell, "columnChildMarkRect", &[], window, cx)
+            .stdout
+            .split_whitespace()
+            .map(|n| n.parse().unwrap())
+            .collect();
+        let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+        let child = columns
+            .painters
+            .get(crate::columns::geometry::Slot::Child)
+            .and_then(|paint| paint.borrow().drawn.as_ref().map(|drawn| drawn.bounds))
+            .expect("the child track drew");
+        assert_eq!(mark.len(), 4, "the shown empty tile has a painted mark");
+        assert!(mark[2] > 0. && mark[3] > 0.);
+        let (left, right) = (
+            f32::from(child.origin.x).floor(),
+            f32::from(child.origin.x + child.size.width).ceil(),
+        );
+        assert!(
+            mark[0] >= left && mark[0] + mark[2] <= right,
+            "the mark sits inside the child track"
+        );
         assert!(
             host::call(shell, "columnChildRowCentre", &["0"], window, cx)
                 .stdout

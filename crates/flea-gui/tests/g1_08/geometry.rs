@@ -323,9 +323,10 @@ fn the_view_index_map_follows_the_cell_grid_and_misses_the_margins() {
         (9. + 147., 9. + 134., 147., 134.)
     );
     let (slot, frame) = (scrolled.slot(cell), scrolled.frame(cell));
+    // Qt's anchors centre a 64 px slot on the whole pixel, 42 px into a 147 px cell.
     assert_eq!(
         (slot.x, slot.y, slot.width),
-        (cell.x + (147. - 64.) / 2., cell.y + 14., 64.)
+        (cell.x + 42., cell.y + 14., 64.)
     );
     assert_eq!(
         (frame.x, frame.y, frame.width, frame.height),

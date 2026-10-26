@@ -4,13 +4,7 @@ use super::*;
 impl RailElement {
     /// The plus answers a press on a box at least the hit minimum, centred on its ink, and the row under it never sees that press.
     pub(super) fn listen_add(&self, add: Rect, window: &mut Window) {
-        let side = add.width.max(HIT_MIN);
-        let hit = Rect::new(
-            add.x + (add.width - side) / 2.,
-            add.y + (add.height - side) / 2.,
-            side,
-            side,
-        );
+        let hit = add_hit(add);
         let model = Rc::clone(&self.model);
         let producer = self.producer.clone();
         window.on_mouse_event(move |event: &gpui::MouseDownEvent, phase, _, cx| {
@@ -29,6 +23,17 @@ impl RailElement {
             cx.stop_propagation();
         });
     }
+}
+
+/// The plus's press box: at least the hit minimum, centred on its painted ink.
+pub fn add_hit(add: Rect) -> Rect {
+    let side = add.width.max(HIT_MIN);
+    Rect::new(
+        add.x + (add.width - side) / 2.,
+        add.y + (add.height - side) / 2.,
+        side,
+        side,
+    )
 }
 
 /// Theme.hitMin, the smallest box a pointer target answers on.

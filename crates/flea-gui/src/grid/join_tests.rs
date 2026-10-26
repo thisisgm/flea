@@ -160,7 +160,7 @@ fn u10_live_grid_caption_and_rect_exist_only_for_painted_tiles(cx: &mut TestAppC
     assert_eq!(call(cx, handle, "rowRect", &["999"]), Reply::value(""));
     assert_eq!(call(cx, handle, "rowRect", &["-1"]), Reply::value(""));
     assert_eq!(
-        call(cx, handle, "networkUri", &[]).code,
+        call(cx, handle, "thumbnailPolicyState", &[]).code,
         3,
         "unimplemented readers retain refusal"
     );

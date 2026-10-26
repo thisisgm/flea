@@ -112,6 +112,8 @@ pub(crate) struct State {
     waiting: Vec<usize>,
     key: Option<Key>,
     task: Option<Task<()>>,
+    /// Backend.qml dirSizeRequests: every non-empty dirsize line this pane's backend was sent.
+    pub requests: usize,
 }
 
 #[cfg(test)]
@@ -275,6 +277,7 @@ impl Shell {
             },
         ) {
             Ok(()) => {
+                host.sizes.requests += 1;
                 host.sizes.asked_sizes = true;
                 host.sizes.sizes.applied(&ask);
                 host.sizes.waiting = ask;

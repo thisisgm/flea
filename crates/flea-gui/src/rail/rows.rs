@@ -269,6 +269,7 @@ fn indicator_slot(
 
 #[path = "add.rs"]
 mod add;
+pub use add::add_hit;
 #[path = "element.rs"]
 mod element;
 #[path = "layout.rs"]

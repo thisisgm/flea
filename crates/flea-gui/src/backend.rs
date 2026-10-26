@@ -106,6 +106,8 @@ pub struct Backend {
     wake: UnixStream,
     pub replies: Receiver<Event>,
     drained: Receiver<()>,
+    /// Backend.qml thumbRequests: every thumb line this backend was sent.
+    thumbs: std::sync::atomic::AtomicUsize,
 }
 
 fn command() -> Command {
@@ -126,6 +128,11 @@ impl Backend {
     pub fn operation(&self, line: String) -> Result<(), Failure> {
         self.line(line)
     }
+    /// How many thumb lines this backend accepted, as Backend.qml counts them.
+    pub fn thumb_requests(&self) -> usize {
+        self.thumbs.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
     /// Menu producer requests share the ordered backend pipe.
     pub fn line(&self, line: String) -> Result<(), Failure> {
         if flea::json::field_str(&line, "c").as_deref() == Some("formats") {
@@ -197,6 +204,7 @@ impl Backend {
             wake,
             replies,
             drained,
+            thumbs: Default::default(),
         })
     }
 
@@ -271,9 +279,14 @@ impl Backend {
         if *closing != Closing::Open {
             return Err(failure("window.backend_stopped", ""));
         }
+        let thumb = matches!(&control, Control::Line(line) if line.starts_with(r#"{"c":"thumb","#));
         self.requests
             .send(control)
             .map_err(|_| failure("window.backend_stopped", ""))?;
+        if thumb {
+            self.thumbs
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
         drop(closing);
         self.notify();
         Ok(())
@@ -301,81 +314,6 @@ impl Backend {
     fn notify(&self) {
         let _ = (&self.wake).write(&[1]);
     }
-
-    #[cfg(test)]
-    pub(crate) fn test_reply_line(line: &str) -> Event {
-        transport::parse(line).expect("valid fixture wire")
-    }
-
-    #[cfg(test)]
-    pub(crate) fn test_channel() -> (Self, impl FnMut() -> Option<(usize, usize)>) {
-        let (backend, receiver) = Self::test_controls();
-        let receive = move || loop {
-            if let Control::Window { start, count } = receiver.try_recv().ok()? {
-                return Some((start, count));
-            }
-        };
-        (backend, receive)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn test_lines() -> (Self, impl FnMut() -> Option<String>) {
-        let (backend, receiver) = Self::test_controls();
-        let receive = move || loop {
-            if let Control::Line(line) = receiver.try_recv().ok()? {
-                return Some(line);
-            }
-        };
-        (backend, receive)
-    }
-
-    #[cfg(test)]
-    fn test_controls() -> (Self, mpsc::Receiver<Control>) {
-        let (requests, receiver) = mpsc::channel();
-        let (wake, _) = UnixStream::pair().unwrap();
-        let (_, replies) = async_channel::unbounded();
-        let (_, drained) = async_channel::bounded(1);
-        (
-            Self {
-                formats_requests: AtomicUsize::new(0),
-                requests,
-                closing: Arc::new(Mutex::new(Closing::Open)),
-                wake,
-                replies,
-                drained,
-            },
-            receiver,
-        )
-    }
-
-    #[cfg(test)]
-    pub(crate) fn test_operation_channel() -> (Self, impl FnMut() -> Option<String>) {
-        let (requests, receiver) = mpsc::channel();
-        let (wake, _) = UnixStream::pair().unwrap();
-        let (_, replies) = async_channel::unbounded();
-        let (_, drained) = async_channel::bounded(1);
-        let receive = move || match receiver.try_recv().ok()? {
-            Control::Line(line) => Some(line),
-            _ => None,
-        };
-        (
-            Self {
-                formats_requests: AtomicUsize::new(0),
-                requests,
-                closing: Arc::new(Mutex::new(Closing::Open)),
-                wake,
-                replies,
-                drained,
-            },
-            receive,
-        )
-    }
-
-    #[cfg(test)]
-    pub(crate) fn closing_probe(&self) -> impl Fn() -> Closing {
-        let closing = self.closing.clone();
-        move || *closing.lock().unwrap()
-    }
 }
 
 impl Drop for Backend {
@@ -387,6 +325,10 @@ impl Drop for Backend {
 #[cfg(test)]
 #[path = "backend/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "backend/test_support.rs"]
+mod test_support;
 
 #[cfg(test)]
 #[path = "backend/native31_fixture.rs"]
