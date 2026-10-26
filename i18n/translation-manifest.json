@@ -352,6 +352,8 @@
     "flea:dialogs.file.run.text": "c923497edb55",
     "flea:dialogs.file.run.title": "e2f507278a4a",
     "flea:dialogs.file.run.unchecked": "1251b2c589f7",
+    "flea:dialogs.file.terminal.busy": "ed1d264cf50b",
+    "flea:dialogs.file.terminal.failed": "a047082d9afa",
     "flea:dialogs.output.all": "a52ace420f21",
     "flea:dialogs.output.background": "ea2b8a878841",
     "flea:dialogs.output.cancel": "bafbedd61640",

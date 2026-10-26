@@ -287,3 +287,47 @@ fn a_failed_reload_leaves_no_reload_owed(cx: &mut TestAppContext) {
     assert_eq!(notice(&shell, cx), "");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// EY-49: Nav.js applyPendingSelect lands the asked row as a lone selection, so v keeps it and v j v marks two.
+#[gpui::test]
+fn a_select_launch_lands_a_lone_selection_that_v_keeps(cx: &mut TestAppContext) {
+    let (shell, cx) = open_with(
+        cx,
+        r#""keys":"default","view":"list""#,
+        Some("/files/alpha.txt"),
+    );
+    let rows = ["alpha.txt", "beta.md", "gamma.txt"]
+        .iter()
+        .map(|name| row(name, false))
+        .collect();
+    land(&shell, cx, "/files", rows, 1);
+    assert_eq!(selected(&shell, cx), vec![0], "the asked row is selected");
+    cx.simulate_keystrokes("v j v");
+    assert_eq!(
+        selected(&shell, cx),
+        vec![0, 1],
+        "v keeps the landed row as a mark, then marks the next"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn a_select_launch_selection_follows_a_plain_move(cx: &mut TestAppContext) {
+    let (shell, cx) = open_with(
+        cx,
+        r#""keys":"default","view":"list""#,
+        Some("/files/alpha.txt"),
+    );
+    let rows = ["alpha.txt", "beta.md", "gamma.txt"]
+        .iter()
+        .map(|name| row(name, false))
+        .collect();
+    land(&shell, cx, "/files", rows, 1);
+    cx.simulate_keystrokes("j");
+    assert_eq!(
+        selected(&shell, cx),
+        vec![1],
+        "a lone landed selection follows the cursor"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

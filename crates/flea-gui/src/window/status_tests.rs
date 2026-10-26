@@ -11,6 +11,8 @@ mod disk;
 mod failures;
 #[path = "status_launch_tests.rs"]
 mod launch_tests;
+#[path = "status_locked_menu_tests.rs"]
+mod locked_menu;
 #[path = "status_omi_tests.rs"]
 mod omi;
 #[path = "status_owner_tests.rs"]

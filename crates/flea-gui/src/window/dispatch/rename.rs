@@ -9,6 +9,27 @@ pub(super) fn run(
     window: &mut Window,
     cx: &mut Context<Shell>,
 ) -> bool {
+    // PaneMenuActions.qml: the menu's Rename is the listing's own rename, on the rows open_menu left selected, in any view.
+    if let Order::Menu(chosen) = order {
+        if chosen.action != "rename"
+            || !chosen.captured.ready
+            || chosen.captured.background
+            || !chosen.claim()
+        {
+            return false;
+        }
+        let side = chosen.captured.side;
+        let close = format!(
+            "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
+            chosen.captured.id
+        );
+        shell.menu_send(side, close, cx);
+        shell.keyboard.context = flea::keys::Context::Listing;
+        shell.focus_side = side;
+        let event = crate::window::input::ActionEvent::bare("rename", flea::keys::Context::Listing);
+        shell.dispatch(Order::Action(event), window, cx);
+        return true;
+    }
     let Order::Action(event) = order else {
         return false;
     };

@@ -71,6 +71,14 @@ impl Shell {
         cx.notify();
     }
 
+    /// Why no menu opened, when nothing failed: a foreground notice with the dismiss key after it.
+    pub(crate) fn menu_explain(&mut self, sentence: String, cx: &mut Context<Self>) {
+        self.status_messages(cx, |messages, now| {
+            messages.explain(&sentence, flea::ui_logic_fb1::status::Hint::Dismiss, now);
+        });
+        cx.notify();
+    }
+
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.providers_menu_closed();
         self.menu.menu.borrow_mut().close();
@@ -127,7 +135,12 @@ impl Shell {
             return;
         }
         if capture.background {
-            self.deliver_menu(Vec::new(), window, cx);
+            // LockedMenu.js: every locked row acts on the denied folder itself, which may be a child of the pane's path.
+            let paths = self
+                .locked_folder(capture.side)
+                .map(|(folder, _)| vec![folder])
+                .unwrap_or_default();
+            self.deliver_menu(paths, window, cx);
         } else if capture.ready {
             self.menu.activating = true;
             if let Some(host) = &mut self.panes[capture.side] {

@@ -17,6 +17,9 @@ use gpui::{Context, EventEmitter, Task, Window};
 pub(crate) struct Lane {
     guard: Opener,
     task: Option<Task<()>>,
+    // Opener.qml's own terminal Process and RunCard.qml's text launch, each single-flight beside the open.
+    terminal: Option<Task<()>>,
+    text: Option<Task<()>>,
     pub(crate) launch: fn(&[String]) -> lane::Exit,
 }
 
@@ -25,6 +28,8 @@ impl Default for Lane {
         Self {
             guard: Opener::default(),
             task: None,
+            terminal: None,
+            text: None,
             #[cfg(not(test))]
             launch: lane::run,
             // A test window never starts a real application; a test that drives the lane sets its own launcher.
@@ -89,8 +94,59 @@ pub(super) fn run(
             shell.dispatch(Order::Action(ActionEvent::bare("open", Keys::Listing)), window, cx);
             true
         }
+        // Focus.js run: Nav.runCursor with the open verb, the same flea --open the menu's Open takes.
+        Order::Menu(chosen) if chosen.action == "run" && shell.menu.context.row_is_file => {
+            menu_claim(shell, chosen, cx) && {
+                let side = chosen.captured.side;
+                shell.keyboard.context = Keys::Listing;
+                shell.focus_side = side;
+                shell.dispatch(
+                    Order::Action(ActionEvent::bare("open", Keys::Listing)),
+                    window,
+                    cx,
+                );
+                true
+            }
+        }
+        // Pane.qml runText: the menu's one file goes to flea --open-text.
+        Order::Menu(chosen) if chosen.action == "openAsText" && chosen.paths.len() == 1 => {
+            menu_claim(shell, chosen, cx) && {
+                shell.open_text(chosen.captured.side, chosen.paths[0].clone(), window, cx);
+                true
+            }
+        }
+        // Pane.qml openTerminal: the folder the menu stands in, or the denied folder a locked menu delivers as its one path.
+        Order::Menu(chosen) if chosen.action == "openTerminal" => {
+            menu_claim(shell, chosen, cx) && {
+                let folder = match chosen.paths.as_slice() {
+                    [locked] if chosen.captured.background => locked.clone(),
+                    _ => chosen.captured.path.clone(),
+                };
+                shell.open_terminal(chosen.captured.side, folder, window, cx);
+                true
+            }
+        }
         _ => false,
     }
+}
+
+// A claimed row closes its producer snapshot; false when another family already took it.
+fn menu_claim(
+    shell: &mut Shell,
+    chosen: &crate::g2::mn1::join::Chosen,
+    cx: &mut Context<Shell>,
+) -> bool {
+    if !chosen.claim() {
+        return false;
+    }
+    if !chosen.captured.background {
+        let close = format!(
+            "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
+            chosen.captured.id
+        );
+        shell.menu_send(chosen.captured.side, close, cx);
+    }
+    true
 }
 
 // The cursor row's path and whether Quick Look owns it, when the pane is idle and the row is a loaded file.
@@ -163,6 +219,70 @@ impl Shell {
                 cx.emit(Asked { side, opened });
             }
         }
+    }
+
+    /// Opener.qml openTerminal: flea --terminal over the folder; a second ask while one is out says so.
+    pub(crate) fn open_terminal(
+        &mut self,
+        side: usize,
+        path: String,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.opener[side].terminal.is_some() {
+            let busy = self.locale.catalog.tr("dialogs.file.terminal.busy");
+            self.opener_say(side, busy, false, cx);
+            return;
+        }
+        let flea = crate::window::startup::binary()
+            .to_string_lossy()
+            .into_owned();
+        let argv = vec![flea, "--terminal".into(), path];
+        let launch = self.opener[side].launch;
+        let exit = cx.background_executor().spawn(async move { launch(&argv) });
+        self.opener[side].terminal = Some(cx.spawn_in(window, async move |this, cx| {
+            let (status, _) = exit.await;
+            let _ = this.update(cx, |shell, cx| {
+                shell.opener[side].terminal = None;
+                if status != Some(0) {
+                    let failed = shell.locale.catalog.tr("dialogs.file.terminal.failed");
+                    shell.opener_say(side, failed, true, cx);
+                }
+            });
+        }));
+    }
+
+    /// RunCard.qml openText: flea --open-text over one file; its exit reads as the run card's Open as Text.
+    pub(crate) fn open_text(
+        &mut self,
+        side: usize,
+        path: String,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        use flea::ui_logic_op3::runfile::{exit_outcome, Action, Exit};
+        if self.opener[side].text.is_some() {
+            let busy = self.locale.catalog.tr("dialogs.file.run.busy");
+            self.opener_say(side, busy, false, cx);
+            return;
+        }
+        let flea = crate::window::startup::binary()
+            .to_string_lossy()
+            .into_owned();
+        let argv = vec![flea, "--open-text".into(), path];
+        let launch = self.opener[side].launch;
+        let exit = cx.background_executor().spawn(async move { launch(&argv) });
+        self.opener[side].text = Some(cx.spawn_in(window, async move |this, cx| {
+            let (status, _) = exit.await;
+            let _ = this.update(cx, |shell, cx| {
+                shell.opener[side].text = None;
+                if let Exit::Message(text) =
+                    exit_outcome(&shell.locale.catalog, Action::Text, status)
+                {
+                    shell.opener_say(side, text, true, cx);
+                }
+            });
+        }));
     }
 
     fn opener_say(&mut self, side: usize, sentence: String, error: bool, cx: &mut Context<Self>) {
