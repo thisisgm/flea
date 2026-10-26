@@ -25,6 +25,7 @@ impl Render for Operations {
 
 fn controls() -> Card {
     let field = Field {
+        input: None,
         label: None,
         value: "file".into(),
         placeholder: String::new(),
@@ -50,6 +51,7 @@ fn controls() -> Card {
                 old: vec!["a".into()],
                 new_label: "New".into(),
                 new: vec![NameLine {
+                    input: None,
                     text: "b".into(),
                     ink: Ink::Foreground,
                     reason: String::new(),

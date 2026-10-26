@@ -93,6 +93,32 @@ impl Draw<'_> {
         if let Some(mark) = field.glyph {
             line = line.child(glyph(mark, 14. * self.s, t.muted));
         }
+        if let Some(input) = &field.input {
+            line = line.child(crate::g2::op1::field::mount(
+                input.clone(),
+                div().relative().flex_1().min_w_0().h_full().when(
+                    field.value.is_empty() && !field.placeholder.is_empty(),
+                    |slot| {
+                        slot.child(
+                            div()
+                                .absolute()
+                                .left(px(1.))
+                                .top_0()
+                                .h_full()
+                                .flex()
+                                .items_center()
+                                .text_color(t.muted)
+                                .child(field.placeholder.clone()),
+                        )
+                    },
+                ),
+                self.typeface,
+            ));
+            return match &field.label {
+                Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
+                None => line,
+            };
+        }
         let mut text = div().flex().items_center().min_w_0().overflow_hidden();
         if field.value.is_empty() {
             if field.focused {
