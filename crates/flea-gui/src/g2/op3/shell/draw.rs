@@ -212,6 +212,7 @@ impl StandIn {
             );
         let mut frame = div()
             .debug_selector(|| "op3-card".into())
+            .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .w(px(scaled(card.width, f32::from(typeface.body), room)))
             .flex()
             .flex_col()

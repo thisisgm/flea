@@ -20,6 +20,7 @@ pub(crate) mod output;
 pub mod overlay;
 pub(crate) mod pane;
 pub(crate) mod path_host;
+pub(crate) mod properties;
 mod presentation;
 pub mod rail;
 mod render;
