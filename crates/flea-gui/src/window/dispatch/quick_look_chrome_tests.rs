@@ -10,6 +10,9 @@ use crate::{
 use flea::{i18n::I18n, jsondoc, ui_logic_pv2::archive};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
+#[path = "quick_look_symlink_tests.rs"]
+mod symlink;
+
 /// The key of the mark the open card's bar paints, read from the drawn element, not the subject.
 fn bar_mark(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<String> {
     let key = shell.read_with(cx, |shell, cx| {
