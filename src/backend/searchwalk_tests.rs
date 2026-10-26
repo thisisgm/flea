@@ -156,7 +156,7 @@ fn search_memtime_watch_registration_has_no_mount_proportional_allocations() {
     *probes.watch.lock().unwrap() = Some(Arc::clone(&watch.core));
     let index = Mutex::new(Index::new());
     let (opened, allocations) = count_allocations(|| {
-        open_directory(&index, d.path(), &child, false, Some(&body), &reader, &probes)
+        open_directory(&index, d.path(), &child, None, false, Some(&body), &reader, &probes)
     });
     assert!(opened.is_some());
     eprintln!("SEARCH_WALK_MOUNT_ALLOCATIONS mounts={} allocations={allocations}", UNRELATED_MOUNTS + 1);
