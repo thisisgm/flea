@@ -12,6 +12,9 @@ use gpui::{Context, Entity, Task, Window};
 #[path = "columns_input.rs"]
 mod input;
 pub use input::BackgroundMenu;
+#[path = "columns_gestures.rs"]
+mod gestures;
+pub(crate) use gestures::{drop_spot, on_name};
 #[path = "columns_events.rs"]
 mod events;
 #[path = "columns_readers.rs"]

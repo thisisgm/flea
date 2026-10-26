@@ -106,6 +106,16 @@ impl Shell {
         let Some((view, index, row)) = hit else {
             return;
         };
+        // The active track's mounted input owns ordinary left presses through their release.
+        if view.slot == Slot::Active
+            && event.button == MouseButton::Left
+            && !blocked
+            && !cx
+                .try_global::<crate::g2::dg1::carry::Carrying>()
+                .is_some_and(|carrying| carrying.carry.active())
+        {
+            return;
+        }
         cx.stop_propagation();
         if host.pane.busy() || !view.enabled || host.nav.gate.owned() {
             return;
