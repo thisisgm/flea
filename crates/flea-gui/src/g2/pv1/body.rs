@@ -130,12 +130,40 @@ pub struct Subject {
 }
 
 impl Subject {
-    /// Icons.js glyphFor(), and CompareView's Markdown mark for a Markdown pair.
+    /// QuickLookBar's language mark, and CompareView's own mark for a comparison.
     pub fn mark(&self) -> Glyph {
+        self.mark_with_languages(true)
+    }
+
+    pub fn mark_with_languages(&self, languages: bool) -> Glyph {
         if self.body.is_compare() && flea::ui_logic_pv1::kinds::is_markdown(&self.name) {
             return Glyph::Markdown;
         }
-        Glyph::kind(&self.icon, self.mode)
+        if self.body.is_compare() {
+            return Glyph::kind(&self.icon, self.mode);
+        }
+        Glyph::Row(crate::row::marks::Mark::for_file(
+            &self.name,
+            self.mode & 0o170000 == 0o040000,
+            self.mode,
+            &self.icon,
+            languages,
+        ))
+    }
+}
+
+impl super::QuickLook {
+    pub fn set_languages(&mut self, languages: bool, cx: &mut gpui::Context<Self>) {
+        if self.languages != languages {
+            self.languages = languages;
+            cx.notify();
+        }
+    }
+
+    pub fn header_mark(&self) -> Option<Glyph> {
+        self.subject
+            .as_ref()
+            .map(|subject| subject.mark_with_languages(self.languages))
     }
 }
 

@@ -122,7 +122,7 @@ impl QuickLook {
         } else {
             surface.bg(look.background)
         };
-        let mark_of = subject.mark();
+        let mark_of = subject.mark_with_languages(self.languages);
         let children: Vec<AnyElement> = match shown.as_ref() {
             Body::Text { lines, count } => {
                 let name = Name {

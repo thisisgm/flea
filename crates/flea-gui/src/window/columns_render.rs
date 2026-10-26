@@ -41,6 +41,7 @@ impl Shell {
         let list = host.list.borrow();
         let typeface = list.typeface.clone();
         let words = Rc::clone(&list.view.words);
+        let languages = list.view.lang_marks;
         let focus = Rc::new(Focus {
             cursor: (!host.pane.busy()).then_some(host.pane.cursor),
             selected: host.selected.clone().into(),
@@ -81,7 +82,8 @@ impl Shell {
                 clip.clone(),
                 paint,
                 Rc::clone(&words),
-            );
+            )
+            .with_languages(languages);
             if view.slot == Slot::Active {
                 element = element.with_sizes(Rc::new(crate::columns::walks::Walked {
                     list: Rc::clone(&host.list),
