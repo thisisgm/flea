@@ -57,8 +57,23 @@ impl Shell {
             }
             // PaneWire.qml onTrashed clears the marks; the operations overlay says the line.
             "trashed" => {
-                if let Some(host) = self.panes[side].as_mut() {
-                    host.selected.clear();
+                let anchor = self.operations.fileops.trash_anchors[side]
+                    .pop_front()
+                    .flatten();
+                let landed = document.get("ok").and_then(Json::as_f64).unwrap_or(0.) > 0.;
+                self.deletion_landed(side, anchor, landed, window, cx);
+                false
+            }
+            "menuaction" if text("op") == "delete" => {
+                let id = document
+                    .get("id")
+                    .and_then(Json::as_f64)
+                    .map(|id| id as u64);
+                let slot = &mut self.operations.fileops.delete_anchor[side];
+                if slot.as_ref().is_some_and(|(own, _)| Some(*own) == id) {
+                    let anchor = slot.take().map(|(_, anchor)| anchor);
+                    let landed = document.get("deleted").and_then(Json::as_f64).unwrap_or(0.) > 0.;
+                    self.deletion_landed(side, anchor, landed, window, cx);
                 }
                 false
             }

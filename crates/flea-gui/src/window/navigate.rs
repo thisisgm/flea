@@ -65,6 +65,7 @@ impl Shell {
         if host.stopped {
             return Ok(false);
         }
+        host.prepare_grid_anchor();
         let (nav, pane, selected) = (&mut host.nav, &mut host.pane, &mut host.selected);
         let result = match step {
             Step::Open(path) => nav.open(pane, &path),
@@ -323,6 +324,7 @@ impl Shell {
             return;
         };
         host.watch_task = None;
+        host.prepare_grid_anchor();
         let now = host.pane.now();
         if host.nav.fire_watch(&mut host.pane, &host.selected, now) {
             self.run_navigation(side, window, cx);
