@@ -133,6 +133,10 @@ impl Shell {
                     .update(cx, |producer, cx| producer.set_polling(polling, cx));
                 join.devices
                     .update(cx, |source, cx| source.set_polling(polling, cx));
+                // A reveal lists the shares now, as the devices poll does; the five second tick would leave NETWORK out until then.
+                if polling {
+                    self.network_list(cx);
+                }
             }
             host::Event::Focus(handoff) => {
                 join.focus_pending = Some(handoff == crate::rail::Handoff::Rail);
@@ -342,6 +346,10 @@ mod u08;
 #[cfg(test)]
 #[path = "rail_devices_tests.rs"]
 mod device_tests;
+
+#[cfg(test)]
+#[path = "rail_reveal_tests.rs"]
+mod reveal_tests;
 
 #[path = "../g2/pl1/rail_events.rs"]
 mod device_events;
