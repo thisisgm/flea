@@ -12,6 +12,7 @@ mod golden_tests;
 pub struct Theme {
     pub background: Hsla,
     pub foreground: Hsla,
+    pub foreground_bright: Hsla,
     pub surface: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
@@ -190,6 +191,7 @@ impl Theme {
         let theme = Self {
             background: gpui::rgb(background).into(),
             foreground: gpui::rgb(foreground).into(),
+            foreground_bright: role(core.foregroundBright),
             surface: gpui::rgb(surface).into(),
             accent: gpui::rgb(accent).into(),
             accent_frame: gpui::rgb(frame).into(),
