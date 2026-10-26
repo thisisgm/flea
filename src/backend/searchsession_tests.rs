@@ -15,7 +15,7 @@ fn fixture() -> TestDir {
     d
 }
 
-// The edit budget rises at the 4th and 8th letter ("benc", "bench-not"); those prefix lengths rescore the index.
+// The edit budget rises at the 4th and 8th letter; the hyphen is no letter, so prefixes 4 and 9 rescore the index.
 const RESCORED_AT: [usize; 2] = [4, 9];
 
 #[test]
