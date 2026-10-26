@@ -179,7 +179,8 @@ class Window:
         self.root = private(root)
 
     @classmethod
-    def start(cls, path, *, parent=None, binary=None, frontend=None, picker=False, ui=None, timeout=5, log=None, command=None, wrap=()):
+    def start(cls, path, *, parent=None, binary=None, frontend=None, picker=False, ui=None, timeout=5, log=None, command=None, wrap=(),
+              select=None):
         frontend = frontend or os.environ.get("FLEA_TEST_FRONTEND", "qml")
         if frontend not in ("qml", "gpui"):
             raise TransportError(f"unknown test frontend: {frontend}")
@@ -193,6 +194,10 @@ class Window:
             raise TransportError("unsupported QML launch command")
         if direct_qml and frontend == "gpui":
             raise TransportError("FLEA_IPC_NOT_PORTED qml.launch")
+        if select is not None and not str(select):
+            raise TransportError("select target is empty")
+        if direct_qml and select is not None:
+            raise TransportError(f"a select target needs the flea --gui launch, not a direct qs command: {select}")
         gui = built_binary("flea-gui", os.environ.get("FLEA_GUI_BIN")) if frontend == "gpui" else None
         if frontend == "gpui" and picker:
             raise TransportError("FLEA_IPC_NOT_PORTED fleapicker.launch")
@@ -200,7 +205,8 @@ class Window:
         parent.mkdir(parents=True, exist_ok=True)
         root = Path(tempfile.mkdtemp(prefix="w.", dir=parent)).absolute()
         (root / MARKER).write_text("owned Flea window\n")
-        options = dict(root=str(root), path=str(Path(path).absolute()), binary=binary, gui=gui,
+        options = dict(root=str(root), path=str(Path(path).absolute()), select=None if select is None else str(Path(select).absolute()),
+                       binary=binary, gui=gui,
                        frontend=frontend, picker=picker, ui=str(Path(ui or REPO / "ui").absolute()), timeout=float(timeout),
                        log=str(log or root / "window.log"), command=command if direct_qml else None, wrap=list(wrap),
                        backend=os.environ.get("FLEA_BIN", binary) if direct_qml else binary,
@@ -343,7 +349,11 @@ def serve(root):
             seed(os.environ.get("HOME", ""), root / "home", config)
         elif options["frontend"] == "gpui" and environment["XDG_CONFIG_HOME"] == str(root / "config"):
             seed_fonts(Path(environment["HOME"]), private_config=root / "config")
-        command = [options["binary"], "--gui", options["path"]]
+        command = [options["binary"], "--gui"]
+        # A reveal hands the launcher the target, the way `flea --gui --select <target> <dir>` does.
+        if options["select"]:
+            command += ["--select", options["select"]]
+        command.append(options["path"])
         if options["command"]:
             command = options["command"]
         if options["picker"]:

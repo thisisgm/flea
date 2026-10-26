@@ -6,15 +6,8 @@ case_select() {
     : > "$dir/b.txt"
     : > "$dir/c.txt"
 
-    kill_flea
-    cat "$flea_log" >> "$run_log" 2>/dev/null || true
-    : > "$flea_log"
-    # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
-    QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PATH="$dir" FLEA_SELECT="$dir/b.txt" FLEA_BIN="$flea_bin" \
-        flea_test_exec qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
-    omarchy-drive wait window flea --timeout 15 >/dev/null
-    omarchy-drive focus flea >/dev/null
-    assert_window
+    # The target reaches the launcher as argv, the same way `flea --gui --select <target> <dir>` does.
+    launch "$dir" "$dir/b.txt"
     wait_listing 3
     [[ "$(ipc path)" == "$dir" ]] || fail "select: opened $(ipc path), not $dir"
     local want_index
@@ -24,15 +17,7 @@ case_select() {
     [[ "$(ipc selectedIndices)" == "$want_index" ]] || fail "select: selectedIndices is $(ipc selectedIndices), not $want_index"
 
     # A missing target still opens its directory, with nothing selected.
-    kill_flea
-    cat "$flea_log" >> "$run_log" 2>/dev/null || true
-    : > "$flea_log"
-    # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
-    QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PATH="$dir" FLEA_SELECT="$dir/does-not-exist.txt" FLEA_BIN="$flea_bin" \
-        flea_test_exec qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
-    omarchy-drive wait window flea --timeout 15 >/dev/null
-    omarchy-drive focus flea >/dev/null
-    assert_window
+    launch "$dir" "$dir/does-not-exist.txt"
     wait_listing 3
     [[ "$(ipc path)" == "$dir" ]] || fail "select: a missing target opened $(ipc path), not $dir"
     [[ "$(ipc selectionCount)" == "0" ]] || fail "select: a missing target still selected $(ipc selectionCount)"
