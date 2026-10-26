@@ -211181,7 +211181,7 @@
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "6236ba6dd8b841812b462cac9dbcf4714f4cfce23b7d2520f3793bcd4997d70a",
     "crates/flea-gui/src/window/dispatch/listing.rs": "1288e75f34ff704df9927c91639d152b0a56a105303354c7593e22c0d54f9c3b",
     "crates/flea-gui/src/window/dispatch/menus.rs": "fbf7761c931f83e4ab27c0ac27442b9837ed3ae9388dd7f722636b1afac7cecf",
-    "crates/flea-gui/src/window/dispatch/mod.rs": "3e0f99ab49e955244ea4f508fe6db3c6ef6b2a20a23e7dec1e3648221fed95e9",
+    "crates/flea-gui/src/window/dispatch/mod.rs": "38aa08a8392ab82c0de1249cf898c01d381299c00c7a54b1cf88a472a9143a5e",
     "crates/flea-gui/src/window/dispatch/navigation.rs": "c4e90f38f732cc36aebd643f8a97cf146a7e98798413b02012f0eb0bf131e646",
     "crates/flea-gui/src/window/dispatch/opener.rs": "b3b98ef1d249aaa681e8ea7f625b2b9117d35a90a2d2734796ea9fbc9469ee05",
     "crates/flea-gui/src/window/dispatch/preview.rs": "2642e6d460b2bb92ba354ee0a92e784ba04347a800a93005edf78638e72dedb7",
@@ -211231,7 +211231,7 @@
     "crates/flea-gui/src/window/properties.rs": "677f98ba289bbe93d8553dde3c32f5b49e8b23aa672a7812b4c6dabebe900e3c",
     "crates/flea-gui/src/window/quick_look.rs": "e6a01f502e98f8d10f1159cf0f474663235984f56897660c7b831736539c031d",
     "crates/flea-gui/src/window/quick_look_compare.rs": "03bce4ae8b1ca93bf410d5a43ad4e8480ddc55b51e5a5fa9de9efb69799270d4",
-    "crates/flea-gui/src/window/quick_look_docs.rs": "1c827f66a59b46aa699b2db233f433f8d3da226b434b5a468777b3ed9cd7e0d6",
+    "crates/flea-gui/src/window/quick_look_docs.rs": "6dda13cab5ab8dc2cb2a47ded6aca1396ab60dd18684db3cc15098c3a7472674",
     "crates/flea-gui/src/window/quick_look_keys.rs": "7975184e49162f060c28425fbe91d5955c52409c38707195748e1b85e3bce602",
     "crates/flea-gui/src/window/quick_look_mount.rs": "3a6ede2da14f2b55ac9d6dd0be3375058db2ce8e55143e46786c1b10a31fd597",
     "crates/flea-gui/src/window/quick_look_readers.rs": "a046fddf3fc26a1fdfeb0dbfc9d83614c981e562d038d18dd7c62666533d1ef0",
@@ -212675,8 +212675,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "dae0f980a4f071e50e830396b5c771cc54f5371e",
-  "source_sha": "dae0f980a4f071e50e830396b5c771cc54f5371e",
+  "source_ref_sha": "cebc5abd49f9a4a79563a55e0cfaf3c986ec60a2",
+  "source_sha": "cebc5abd49f9a4a79563a55e0cfaf3c986ec60a2",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
