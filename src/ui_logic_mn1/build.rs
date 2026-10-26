@@ -399,10 +399,8 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         e.disabled = true;
     }
     if action == "tags" {
-        let Some(tags) = &p.tag_submenu else {
-            return false;
-        };
-        e.submenu = Some(tags.clone());
+        // A read of the selection's tag states replaces these leaves where its owner supplies them.
+        e.submenu = Some(p.tag_submenu.clone().unwrap_or_else(super::flyouts::tag_entries));
     }
     if action == "extract" && !rows::extract_entry(e, p, count) {
         return false;
@@ -431,7 +429,7 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         if p.open_with_loaded && p.open_with_apps.is_empty() {
             return false;
         }
-        e.submenu = Some(rows::open_with_entries(&p.open_with_apps));
+        e.submenu = Some(super::flyouts::open_with_entries(&p.open_with_apps));
         e.disabled = count != 1;
     }
     if action == "taildrop" {

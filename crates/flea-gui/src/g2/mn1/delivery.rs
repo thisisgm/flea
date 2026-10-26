@@ -84,6 +84,7 @@ impl Shell {
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
         self.menu.pending = None;
+        self.menu.submenu = None;
         self.menu.activating = false;
         self.menu.reading = false;
         if let Some(capture) = self.menu.captured.take() {

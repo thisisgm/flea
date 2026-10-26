@@ -1,7 +1,7 @@
 //! The menus family: the context menu rows whose command lives in the window itself, from ui/PaneMenuActions.qml perform.
 use super::Order;
 use crate::{g2::mn1::join::Chosen, state::Shell};
-use flea::{jsondoc::Json, ui_logic_st1::edit};
+use flea::{jsondoc::Json, keys::Context as Keys, ui_logic_st1::edit};
 use gpui::{Context, Window};
 
 pub(super) fn run(
@@ -10,6 +10,13 @@ pub(super) fn run(
     window: &mut Window,
     cx: &mut Context<Shell>,
 ) -> bool {
+    // Focus.js copyAs and pasteAs: c and P open their flyouts over the cursor row's menu.
+    if let Order::Action(event) = order {
+        if event.context == Keys::Listing && matches!(event.action, "copyAs" | "pasteAs") {
+            shell.menu_submenu_key(event.action, window, cx);
+            return true;
+        }
+    }
     let Order::Menu(chosen) = order else {
         return false;
     };

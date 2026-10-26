@@ -9,7 +9,7 @@ use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 #[rustfmt::skip]
 const NOT_YET: &[(&str, &[&str])] = &[
     // Focus.js:207-240 and 271, ui/Pane.qml:599-602.
-    ("operations", &["copyAs", "pasteAs", "copyPath", "copydirpath", "properties"]),
+    ("operations", &["copyPath", "copydirpath", "properties"]),
     // Focus.js:250 and 273.
     ("window", &["openTerminal", "tags"]),
 ];
