@@ -230,12 +230,12 @@ mod tests {
     }
 
     // A quit's drain over the parts it reads; the worker keeps its own channel, so dropping the sender closes the loop's.
-    fn quit_rig(d: &TestDir) -> (State, Pool, Cache, std::sync::mpsc::Sender<Event>, std::sync::mpsc::Receiver<Event>, flashslot::Ctx) {
+    fn quit_rig(d: &TestDir) -> (State, Pool, Cache, crate::backend::events::Sender<Event>, std::sync::mpsc::Receiver<Event>, flashslot::Ctx) {
         let tb = Tables::load();
         let (done_tx, _done_rx) = std::sync::mpsc::channel();
         let pool = Pool::new(1, done_tx, d.join("thumbs"), std::sync::Arc::clone(&tb.aliases), std::sync::Arc::clone(&tb.thumbs));
-        let (worker_tx, _worker_rx) = std::sync::mpsc::channel();
-        let (ev_tx, ev_rx) = std::sync::mpsc::channel();
+        let (worker_tx, _worker_rx) = crate::backend::events::channel();
+        let (ev_tx, ev_rx) = crate::backend::events::channel();
         let (flash_tx, _flash_rx) = std::sync::mpsc::channel();
         (State::new(Worker::new(worker_tx)), pool, Cache::at(d.join("cache")), ev_tx, ev_rx, flashslot::Ctx::new(flash_tx))
     }

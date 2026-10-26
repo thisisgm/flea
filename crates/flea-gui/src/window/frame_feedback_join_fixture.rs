@@ -1,6 +1,6 @@
 //! Mounted producers and actual TestWindow receipts, with no assigned presentation facts.
 use super::*;
-use crate::window::{root::Root, startup::View};
+use crate::window::{pane::PaneHost, root::Root, startup::View};
 use crate::{
     backend::{Backend, Event as BackendEvent},
     state::tests::shell_with,

@@ -7,7 +7,7 @@ const WIRE_DEADLINE: Duration = Duration::from_secs(30);
 // One backend over a sandbox, driven line by line the way the loop drives it, with the walk parked at its last directory.
 struct Wire {
     tb: Tables,
-    events: Sender<Event>,
+    events: crate::backend::events::Sender<Event>,
     events_rx: Receiver<Event>,
     st: State,
     pool: Pool,
@@ -19,7 +19,7 @@ struct Wire {
     fsinfo: FsInfo,
     poller: super::super::watchpoll::Poller,
     out: Vec<u8>,
-    release: Sender<()>,
+    release: std::sync::mpsc::Sender<()>,
     // When the loop received the walk's landing, read against the session's own cap.
     landed_at: Option<Instant>,
 }
@@ -35,7 +35,7 @@ impl Wire {
         d.file("bench.txt", "");
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, events_rx) = channel::<Event>();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));

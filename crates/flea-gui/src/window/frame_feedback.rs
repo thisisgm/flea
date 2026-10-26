@@ -1,5 +1,5 @@
 //! Joins immutable painted scenes to successful submissions and exact terminal feedback.
-use super::{lifecycle::Phase, pane::PaneHost};
+use super::lifecycle::Phase;
 use crate::{
     pane::{
         presentation::{Content, Observed},
@@ -207,15 +207,6 @@ impl Presentation {
     }
 }
 
-fn current(host: &PaneHost, frame: &PaneFrame) -> bool {
-    let content = &frame.content;
-    host.pane.identity() == content.identity
-        && Rc::ptr_eq(&host.pane.held, &content.held)
-        && host.pane.list_requests == content.generation
-        && host.pane.swap.session.generation == content.search_generation
-        && Rc::ptr_eq(&host.pane.swap.observed, &frame.observed)
-}
-
 impl Shell {
     pub(crate) fn follow_frame_feedback(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.presentation.window.is_some() || self.lifecycle.phase() != Phase::Open {
@@ -383,7 +374,7 @@ impl Shell {
                 && self.feedback_eligible(side, window, cx)
                 && self
                     .shown_pane(side)
-                    .is_some_and(|host| current(host, &frame))
+                    .is_some_and(|host| policy::current(host, &frame))
                 && self.mark_drawn(side)
             {
                 self.pane_mark_shown(side, true, window, cx);

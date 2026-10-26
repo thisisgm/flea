@@ -89,6 +89,8 @@ pub mod viewerpaths;
 pub mod listwork;
 pub mod unmount;
 pub mod events;
+pub mod inbox;
+pub mod wake;
 pub mod scan;
 pub mod gvfslist;
 pub mod fuzzy;

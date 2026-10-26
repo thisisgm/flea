@@ -17,7 +17,7 @@ fn review_job_undo_patches_the_session() {
         .expect("the sandbox path is utf-8")
         .to_string();
     let tb = Tables::load();
-    let (events, events_rx) = channel::<Event>();
+    let (events, events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let (results, _done) = channel();
     let pool = Pool::new(
@@ -196,7 +196,7 @@ fn refused_requests_preserve_job_undo_offer() {
     let sandbox = TestDir::new("jobs-refused-request");
     let root = sandbox.path();
     let tb = Tables::load();
-    let (events, _) = channel::<Event>();
+    let (events, _) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let pool = Pool::new(
         1,

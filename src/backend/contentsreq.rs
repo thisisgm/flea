@@ -2,13 +2,13 @@ use super::contents::{self, Ask, Done, Outcome};
 use super::events::Event;
 use super::state::{Held, State, Tables};
 use super::thumbs::Pool;
+use crate::backend::events::Sender;
 use crate::error::FleaError;
 use crate::json::{escape, field_str, field_usize, field_usize_array};
 use crate::jsondoc::Json;
 use flea::ui_logic_sr1::ContentsMatches;
 use std::io::Write;
 use std::path::{Component, Path, PathBuf};
-use std::sync::mpsc::Sender;
 #[path = "contentsguard.rs"]
 mod guard;
 #[path = "contentsorder.rs"]

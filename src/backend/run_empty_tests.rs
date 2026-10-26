@@ -7,7 +7,7 @@ fn run_search_empty_windows_leave_tables_unloaded_and_preserve_rich_rows() {
     d.file("hello.txt", "hello");
     d.dir("folder");
     let tb = Tables::load();
-    let (events, _) = channel();
+    let (events, _) = crate::backend::events::channel();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events));
     st.base = d.path().to_path_buf();
     st.listing.push("hello.txt", false);
@@ -34,7 +34,7 @@ fn run_search_empty_windows_leave_tables_unloaded_and_preserve_rich_rows() {
 
 #[test]
 fn run_search_empty_remote_window_never_enters_the_mount_worker() {
-    let (events, _) = channel();
+    let (events, _) = crate::backend::events::channel();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events));
     st.base = PathBuf::from("/run/user/flea-empty-test/gvfs/smb-share:server=test,share=wire");
     let before = super::super::iomount::test_calls();
@@ -58,7 +58,7 @@ fn run_search_lazy_thumbnail_pool_reports_its_first_job() {
     }
     let d = TestDir::new("lazy-thumbnail-pool");
     let tb = Tables::load();
-    let (events, replies) = channel();
+    let (events, replies) = crate::backend::events::channel();
     let cache_root = d.join("thumb-cache");
     d.assert_contains(&cache_root);
     let pool = Pool::lazy(1, &tb, cache_root, events);
@@ -75,7 +75,7 @@ fn run_search_lazy_thumbnail_pool_reports_its_first_job() {
 
 #[test]
 fn a_remote_window_whose_stat_fails_answers_its_rows_then_says_why() {
-    let (events, _) = channel();
+    let (events, _) = crate::backend::events::channel();
     let tb = Tables::load();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events));
     st.base = PathBuf::from("/run/user/flea-empty-test/gvfs/smb-share:server=test,share=lost");
@@ -101,7 +101,7 @@ fn a_remote_window_asked_again_after_its_mount_answers_reads_real_metadata() {
     std::fs::write(share.join("a.txt"), "a").unwrap();
     std::fs::write(share.join("b.txt"), "bb").unwrap();
     crate::backend::gvfsroot::set_test_run_user(Some(&d.join("run")));
-    let (events, _) = channel();
+    let (events, _) = crate::backend::events::channel();
     let tb = Tables::load();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events));
     st.base = share.clone();

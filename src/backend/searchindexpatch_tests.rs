@@ -11,7 +11,7 @@ fn search_a_subtree_gone_before_its_read_is_not_unreadable() {
             let target = TestDir::new("subtreegone-target");
             if replacement == "file" { d.file("gone", ""); }
             if replacement == "symlink" { std::os::unix::fs::symlink(target.path(), d.join("gone")).unwrap(); }
-            let (events, _receiver) = std::sync::mpsc::channel();
+            let (events, _receiver) = crate::backend::events::channel();
             let watch = watched.then(|| Watch::new(d.path(), false, events));
             let core = watch.as_ref().map(|watch| watch.core.as_ref());
             if let Some(core) = core {
@@ -71,7 +71,7 @@ fn search_a_permission_denied_local_subtree_stays_partial() {
         let error = crate::backend::searchread::read(&denied).err().expect("chmod 000 must refuse the real directory read");
         assert_eq!(error.raw_os_error(), Some(13), "this fixture must exercise EACCES");
         assert!(read_bounded(&denied, "", false).is_err(), "EACCES must not become a vanished directory");
-        let (events, _receiver) = std::sync::mpsc::channel();
+        let (events, _receiver) = crate::backend::events::channel();
         let watch = watched.then(|| Watch::new(d.path(), false, events));
         let core = watch.as_ref().map(|watch| watch.core.as_ref());
         let mut index = Index::new();

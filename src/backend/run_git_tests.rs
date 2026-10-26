@@ -14,7 +14,7 @@ fn git_wire_preserves_listing_rows_and_refreshes_after_the_existing_watch() {
     d.git(&["add", "--", "."]);
     d.git(&["commit", "--quiet", "-m", "fixture"]);
     let tb = Tables::load();
-    let (events, rx) = channel();
+    let (events, rx) = crate::backend::events::channel();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let pool = Pool::new(
         1,

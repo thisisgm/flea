@@ -316,3 +316,9 @@ mod transport;
 
 #[path = "empty_window/review.rs"]
 mod review;
+
+#[path = "empty_window/wakes.rs"]
+mod wakes;
+
+#[path = "empty_window/inbox_open.rs"]
+mod inbox_open;

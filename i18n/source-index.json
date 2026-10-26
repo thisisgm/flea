@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "6db3bf85a3fda9abf4c4d90a5a7877c45015b7ca5d480434eac6d230057280b8",
-  "catalog_sha256": "dbbc902481c6ac698b66436e34fa47f9ad9a41799c46eb39868f2f7c2abed80e",
+  "catalog_file_sha256": "cf1ea8e5af8a654d99e54a9c83d0f48e3b3a26f5b636f63ce237aa4c8a9d366c",
+  "catalog_sha256": "a1bc00500390f10c75be9f4e2ff5eb9c4340843e0026e1c737f38b798ac94634",
   "counts": {
     "direct_references": 0,
-    "keys": 1979,
+    "keys": 1993,
     "plurals": 97
   },
   "direct_references": {},
@@ -1190,7 +1190,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "refusal.key()",
-      "line": 80,
+      "line": 85,
       "path": "crates/flea-gui/src/window/navigate.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1355,6 +1355,16 @@
       "line": 54,
       "path": "src/backend/combine.rs",
       "pattern": "output.{}",
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 270,
+      "path": "src/backend/contents.rs",
+      "pattern": null,
       "possible_keys": [],
       "surface": "core/backend"
     },
@@ -1871,6 +1881,36 @@
       "expression": "STALE",
       "line": 53,
       "path": "src/ui_logic_dg1/words.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "self.key()",
+      "line": 55,
+      "path": "src/ui_logic_dg2.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "TOO_WIDE",
+      "line": 187,
+      "path": "src/ui_logic_dg2.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 187,
+      "path": "src/ui_logic_dg2.rs",
       "pattern": null,
       "possible_keys": [],
       "surface": "core/backend"
@@ -38706,6 +38746,168 @@
       "resolved_source_hash": "0e570ca6fabe",
       "source_hash": "0e570ca6fabe"
     },
+    "drag.already_here": {
+      "call_sites": [
+        {
+          "excerpt": "pub const ALREADY_HERE: &str = \"drag.already_here\";",
+          "line": 21,
+          "path": "src/ui_logic_dg2.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "drag.already_here: src/ui_logic_dg2.rs:21",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Already in this folder.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Already in this folder.",
+      "resolved_sha256": "14c2c1db3f071ed043c08343df80a7204fd52456380ca7835a4937af00453dc2",
+      "resolved_source_hash": "25f1e62ac66d",
+      "source_hash": "25f1e62ac66d"
+    },
+    "drag.copy_to_folder": {
+      "call_sites": [
+        {
+          "excerpt": "pub const COPY_TO_FOLDER: &str = \"drag.copy_to_folder\";",
+          "line": 24,
+          "path": "src/ui_logic_dg2.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "drag.copy_to_folder: src/ui_logic_dg2.rs:24",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Copy %1 to a folder",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Copy %1 to a folder",
+      "resolved_sha256": "82dd8a7b3db9d29d64941c010db2fb8c6cda6a08bdd44ab10086e0bd0cb8aac5",
+      "resolved_source_hash": "92c5b6265491",
+      "source_hash": "92c5b6265491"
+    },
+    "drag.inside": {
+      "call_sites": [
+        {
+          "excerpt": "pub const INSIDE_DRAG: &str = \"drag.inside\";",
+          "line": 20,
+          "path": "src/ui_logic_dg2.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "drag.inside: src/ui_logic_dg2.rs:20",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "That folder is inside the drag.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "That folder is inside the drag.",
+      "resolved_sha256": "a74b9a7cae4d7975aabee796e1bc072e4c694df25b985ac3c2a376eb1a24b77b",
+      "resolved_source_hash": "dfe03d3da328",
+      "source_hash": "dfe03d3da328"
+    },
+    "drag.link_to_folder": {
+      "call_sites": [
+        {
+          "excerpt": "pub const LINK_TO_FOLDER: &str = \"drag.link_to_folder\";",
+          "line": 25,
+          "path": "src/ui_logic_dg2.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "drag.link_to_folder: src/ui_logic_dg2.rs:25",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Link %1 to a folder",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Link %1 to a folder",
+      "resolved_sha256": "55f590438197c6b46fefb234cd3a38c48f8017f20d9a21633dc07f1405643e25",
+      "resolved_source_hash": "2b66c9016285",
+      "source_hash": "2b66c9016285"
+    },
+    "drag.move_to_folder": {
+      "call_sites": [
+        {
+          "excerpt": "pub const MOVE_TO_FOLDER: &str = \"drag.move_to_folder\";",
+          "line": 23,
+          "path": "src/ui_logic_dg2.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "drag.move_to_folder: src/ui_logic_dg2.rs:23",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Move %1 to a folder · Ctrl copies, Shift moves",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Move %1 to a folder · Ctrl copies, Shift moves",
+      "resolved_sha256": "532c90030cee1be649b4d7bb2aae1324288555072679f300d1ce861c1a0840fc",
+      "resolved_source_hash": "3d934f15f952",
+      "source_hash": "3d934f15f952"
+    },
+    "drag.no_local_files": {
+      "call_sites": [
+        {
+          "excerpt": "pub const NO_LOCAL_FILES: &str = \"drag.no_local_files\";",
+          "line": 22,
+          "path": "src/ui_logic_dg2.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "drag.no_local_files: src/ui_logic_dg2.rs:22",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "That drag has no local files.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "That drag has no local files.",
+      "resolved_sha256": "159f1c1cf2ad4891a206f2f2fc2b90910b51d39afffa56cfd5d1abdc9f716be1",
+      "resolved_source_hash": "7656250c090a",
+      "source_hash": "7656250c090a"
+    },
+    "drag.too_wide": {
+      "call_sites": [
+        {
+          "excerpt": "pub const TOO_WIDE: &str = \"drag.too_wide\";",
+          "line": 26,
+          "path": "src/ui_logic_dg2.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "drag.too_wide: src/ui_logic_dg2.rs:26",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "%1 · too wide to drag out",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1 · too wide to drag out",
+      "resolved_sha256": "0371c9f5acdfdd99c1ca0b9f501051788502a8bc81f5cc0aa86e10d80584782a",
+      "resolved_source_hash": "d41fc8ca53f3",
+      "source_hash": "d41fc8ca53f3"
+    },
     "dual.remember_failed": {
       "call_sites": [
         {
@@ -41145,6 +41347,13 @@
           "line": 316,
           "path": "crates/flea-gui/src/window/selection_preview_render.rs",
           "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "let items = i18n.trn(\"items.count\", count as i64);",
+          "line": 181,
+          "path": "src/ui_logic_dg2.rs",
+          "surface": "core/backend",
           "usage": "translated-call"
         },
         {
@@ -55863,28 +56072,28 @@
         },
         {
           "excerpt": ".persist(patch, self.locale.catalog.tr(\"navigation.save_failed\"));",
-          "line": 254,
+          "line": 259,
           "path": "crates/flea-gui/src/tabs/host.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "self.catalog.tr(\"navigation.save_failed\"),",
-          "line": 198,
+          "line": 211,
           "path": "crates/flea-gui/src/tabs/live.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let failure = self.locale.catalog.tr(\"navigation.save_failed\");",
-          "line": 54,
+          "line": 59,
           "path": "crates/flea-gui/src/window/navigate.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let failure = self.locale.catalog.tr(\"navigation.save_failed\");",
-          "line": 95,
+          "line": 100,
           "path": "crates/flea-gui/src/window/navigate.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -55919,15 +56128,22 @@
           "usage": "key-declaration"
         },
         {
+          "excerpt": "\"network.another_opening\" => None,",
+          "line": 56,
+          "path": "crates/flea-gui/src/g2/pl2/result.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
           "excerpt": "note: Note::new(\"network.another_opening\", &[]),",
-          "line": 211,
+          "line": 181,
           "path": "crates/flea-gui/src/g2/pl2/service.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "note: Note::new(\"network.another_opening\", &[]),",
-          "line": 345,
+          "line": 315,
           "path": "crates/flea-gui/src/g2/pl2/service.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -55988,7 +56204,7 @@
       "call_sites": [
         {
           "excerpt": "note: Note::new(\"network.bridge_failed_timeout\", &[&label]),",
-          "line": 340,
+          "line": 310,
           "path": "crates/flea-gui/src/g2/pl2/service.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -56012,7 +56228,7 @@
       "call_sites": [
         {
           "excerpt": "note: Note::new(\"network.bridge_starting\", &[&label]),",
-          "line": 331,
+          "line": 301,
           "path": "crates/flea-gui/src/g2/pl2/service.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -56810,6 +57026,13 @@
           "path": "crates/flea-gui/src/g2/pl2/mount_lifetime.rs",
           "surface": "gui",
           "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"network.password_needed\" => Some(Self::MissingCredential),",
+          "line": 57,
+          "path": "crates/flea-gui/src/g2/pl2/result.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
         }
       ],
       "context": "network.password_needed: crates/flea-gui/src/g2/pl2/dialog.rs:171",
@@ -57343,8 +57566,8 @@
       "call_sites": [
         {
           "excerpt": "Note::new(\"network.unmount_failed\", &[])",
-          "line": 123,
-          "path": "crates/flea-gui/src/g2/pl2/service.rs",
+          "line": 42,
+          "path": "crates/flea-gui/src/g2/pl2/service_release.rs",
           "surface": "gui",
           "usage": "key-declaration"
         }
@@ -57364,9 +57587,16 @@
     "network.unmounted": {
       "call_sites": [
         {
+          "excerpt": "\"network.unmounted\" => Some(Self::Unmounted),",
+          "line": 58,
+          "path": "crates/flea-gui/src/g2/pl2/result.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
           "excerpt": "Note::new(\"network.unmounted\", &[&label])",
-          "line": 121,
-          "path": "crates/flea-gui/src/g2/pl2/service.rs",
+          "line": 40,
+          "path": "crates/flea-gui/src/g2/pl2/service_release.rs",
           "surface": "gui",
           "usage": "key-declaration"
         }
@@ -57456,6 +57686,13 @@
     "pane.busy": {
       "call_sites": [
         {
+          "excerpt": "let text = self.locale.catalog.tr(\"pane.busy\");",
+          "line": 283,
+          "path": "crates/flea-gui/src/g2/dg2/join.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "Self::Busy => \"pane.busy\",",
           "line": 67,
           "path": "crates/flea-gui/src/navigation/mod.rs",
@@ -57478,7 +57715,7 @@
         }
       ],
       "context": "pane.busy: crates/flea-gui/src/navigation/mod.rs:67",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "A directory is already loading.",
       "kind": "text",
       "omarchy_reference": null,
@@ -57706,35 +57943,35 @@
       "call_sites": [
         {
           "excerpt": "let document = flea::jsondoc::parse(&line).map_err(|_| failure(\"pane.row_request\", \"\"))?;",
-          "line": 196,
+          "line": 205,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "return Err(failure(\"pane.row_request\", \"\"));",
-          "line": 198,
+          "line": 207,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "let document = flea::jsondoc::parse(&line).map_err(|_| failure(\"pane.row_request\", \"\"))?;",
-          "line": 209,
+          "line": 218,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "return Err(failure(\"pane.row_request\", \"\"));",
-          "line": 216,
+          "line": 225,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "return Err(failure(\"pane.row_request\", \"\"));",
-          "line": 240,
+          "line": 249,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -57858,7 +58095,7 @@
       "call_sites": [
         {
           "excerpt": "Self::Filtered(path) => catalog.tr_args(\"path.filtered\", &[path.as_str()]),",
-          "line": 295,
+          "line": 303,
           "path": "crates/flea-gui/src/path/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57882,7 +58119,7 @@
       "call_sites": [
         {
           "excerpt": "Self::ManyStart(count) => catalog.trn(\"path.items_start_with\", *count as i64),",
-          "line": 292,
+          "line": 300,
           "path": "crates/flea-gui/src/path/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57915,7 +58152,7 @@
       "call_sites": [
         {
           "excerpt": "Self::Missing(path) => catalog.tr_args(\"path.missing\", &[path.as_str()]),",
-          "line": 294,
+          "line": 302,
           "path": "crates/flea-gui/src/path/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57939,7 +58176,7 @@
       "call_sites": [
         {
           "excerpt": "Self::NetworkUnavailable => catalog.tr(\"path.network_unavailable\"),",
-          "line": 296,
+          "line": 304,
           "path": "crates/flea-gui/src/path/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57961,7 +58198,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"path.nothing_starts_with\", &[dir.as_str()])",
-          "line": 290,
+          "line": 298,
           "path": "crates/flea-gui/src/path/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57985,7 +58222,7 @@
       "call_sites": [
         {
           "excerpt": "Self::RefusedUri => catalog.tr(\"path.refused_uri\"),",
-          "line": 293,
+          "line": 301,
           "path": "crates/flea-gui/src/path/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -68355,6 +68592,139 @@
       "resolved_source_hash": "956c9808f056",
       "source_hash": "956c9808f056"
     },
+    "search.contents.failed": {
+      "call_sites": [
+        {
+          "excerpt": "msg: contents::message(\"search.contents.failed\", reason),",
+          "line": 91,
+          "path": "src/backend/contentsreq.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "search.contents.failed: src/backend/contentsreq.rs:91",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Contents search failed: %1",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Contents search failed: %1",
+      "resolved_sha256": "83eb19ecb6558a2dcf59701506f7833fbaff74b82e9e617cd89189f224318aee",
+      "resolved_source_hash": "730ed81d6fd8",
+      "source_hash": "730ed81d6fd8"
+    },
+    "search.contents.identity": {
+      "call_sites": [
+        {
+          "excerpt": "msg: contents::message(\"search.contents.identity\", \"\"),",
+          "line": 335,
+          "path": "src/backend/contentsreq.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "search.contents.identity: src/backend/contentsreq.rs:335",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "This filename cannot be used safely. No action was taken.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "This filename cannot be used safely. No action was taken.",
+      "resolved_sha256": "472f0cbe62cc938875332d42b16c863d6654cbe5e1990851924f76d51559a275",
+      "resolved_source_hash": "c6b3a1839c16",
+      "source_hash": "c6b3a1839c16"
+    },
+    "search.contents.limit": {
+      "call_sites": [
+        {
+          "excerpt": "return Err(super::message(\"search.contents.limit\", \"\"));",
+          "line": 232,
+          "path": "src/backend/contentsworker.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "return Err(super::message(\"search.contents.limit\", \"\"));",
+          "line": 239,
+          "path": "src/backend/contentsworker.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "return Err(super::message(\"search.contents.limit\", \"\"));",
+          "line": 255,
+          "path": "src/backend/contentsworker.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "search.contents.limit: src/backend/contentsworker.rs:232",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Contents search exceeded its output limit.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Contents search exceeded its output limit.",
+      "resolved_sha256": "4899aa699c7b3f9ba67231ddd2fff9cb46a7224b4eb76159cbbeb584349c8265",
+      "resolved_source_hash": "0a4e2109f64e",
+      "source_hash": "0a4e2109f64e"
+    },
+    "search.contents.missing": {
+      "call_sites": [
+        {
+          "excerpt": ".ok_or_else(|| super::message(\"search.contents.missing\", \"\"))",
+          "line": 52,
+          "path": "src/backend/contentsworker.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "return Err(super::message(\"search.contents.missing\", \"\"));",
+          "line": 118,
+          "path": "src/backend/contentsworker.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "search.contents.missing: src/backend/contentsworker.rs:52",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "ripgrep is unavailable.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "ripgrep is unavailable.",
+      "resolved_sha256": "1c76c3fda732a7fa194fc61184c81608d47d2c7aa3f77e98a9583ccd7b859207",
+      "resolved_source_hash": "e14adc572f91",
+      "source_hash": "e14adc572f91"
+    },
+    "search.contents.timeout": {
+      "call_sites": [
+        {
+          "excerpt": "return Err(super::message(\"search.contents.timeout\", \"\"));",
+          "line": 217,
+          "path": "src/backend/contentsworker.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "search.contents.timeout: src/backend/contentsworker.rs:217",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Contents search timed out.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Contents search timed out.",
+      "resolved_sha256": "aadce2ff361500a4f5d5e04dd64de0da5a928731db99208f06cc9cef9e7c8c5f",
+      "resolved_source_hash": "0ab676f08ae6",
+      "source_hash": "0ab676f08ae6"
+    },
     "search.note.landed": {
       "call_sites": [
         {
@@ -68741,6 +69111,50 @@
       "resolved_source_hash": "68f607d6d336",
       "source_hash": "68f607d6d336"
     },
+    "send.providers.dropbox_checking": {
+      "call_sites": [
+        {
+          "excerpt": "shell.locale.catalog.tr(\"send.providers.dropbox_checking\")",
+          "line": 72,
+          "path": "crates/flea-gui/src/g2/sd1/reader.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.dropbox_checking: crates/flea-gui/src/g2/sd1/reader.rs:72",
+      "coverage": "existing-translated-call",
+      "english": "Checking Dropbox",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Checking Dropbox",
+      "resolved_sha256": "8d4f50b500c9703ebb9a4d3c8353887b23cdb15c26ceda239ad500487a1b77a8",
+      "resolved_source_hash": "afcd5475243e",
+      "source_hash": "afcd5475243e"
+    },
+    "send.providers.dropbox_timeout": {
+      "call_sites": [
+        {
+          "excerpt": "let timeout = i18n.tr(\"send.providers.dropbox_timeout\");",
+          "line": 77,
+          "path": "crates/flea-gui/src/g2/sd1/dropbox_status.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.dropbox_timeout: crates/flea-gui/src/g2/sd1/dropbox_status.rs:77",
+      "coverage": "existing-translated-call",
+      "english": "Dropbox did not answer in time",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Dropbox did not answer in time",
+      "resolved_sha256": "e63b527508af73dc4b4f3d2d15e69eace34701961c071345824c7f98c76e5a04",
+      "resolved_source_hash": "62f9e93120fa",
+      "source_hash": "62f9e93120fa"
+    },
     "send.providers.empty": {
       "call_sites": [
         {
@@ -68789,42 +69203,42 @@
       "call_sites": [
         {
           "excerpt": "vec![Action::Say(catalog.tr(\"send.providers.menu_stale\"), true)]",
-          "line": 268,
+          "line": 341,
           "path": "crates/flea-gui/src/g2/sd1/join.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "return vec![Action::Say(i18n.tr(\"send.providers.menu_stale\"), true)];",
-          "line": 202,
+          "line": 226,
           "path": "crates/flea-gui/src/g2/sd1/picker.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "return vec![Action::Say(i18n.tr(\"send.providers.menu_stale\"), true)];",
-          "line": 216,
+          "line": 240,
           "path": "crates/flea-gui/src/g2/sd1/picker.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "return vec![Action::Say(i18n.tr(\"send.providers.menu_stale\"), true)];",
-          "line": 219,
+          "line": 243,
           "path": "crates/flea-gui/src/g2/sd1/picker.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "return vec![Action::Say(i18n.tr(\"send.providers.menu_stale\"), true)];",
-          "line": 244,
+          "line": 280,
           "path": "crates/flea-gui/src/g2/sd1/picker.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "return vec![Action::Say(i18n.tr(\"send.providers.menu_stale\"), true)];",
-          "line": 247,
+          "line": 283,
           "path": "crates/flea-gui/src/g2/sd1/picker.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -68989,8 +69403,8 @@
     "send.providers.share_copied": {
       "call_sites": [
         {
-          "excerpt": "share::ShareStep::Copied(_) => vec![Action::Say(i18n.tr(\"send.providers.share_copied\"), false)],",
-          "line": 267,
+          "excerpt": "vec![Action::Say(i18n.tr(\"send.providers.share_copied\"), false)]",
+          "line": 320,
           "path": "crates/flea-gui/src/g2/sd1/picker.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -69276,7 +69690,7 @@
       "call_sites": [
         {
           "excerpt": "let timeout = i18n.tr(\"send.providers.taildrop_timeout\");",
-          "line": 156,
+          "line": 169,
           "path": "crates/flea-gui/src/g2/sd1/picker.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -78655,7 +79069,7 @@
         },
         {
           "excerpt": "key: \"window.backend_protocol\",",
-          "line": 222,
+          "line": 225,
           "path": "crates/flea-gui/src/window/search.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -78731,7 +79145,7 @@
       "call_sites": [
         {
           "excerpt": "key: \"window.backend_reader\",",
-          "line": 276,
+          "line": 271,
           "path": "crates/flea-gui/src/state.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -78810,14 +79224,14 @@
       "call_sites": [
         {
           "excerpt": "return Err(failure(\"window.backend_stopped\", \"\"));",
-          "line": 263,
+          "line": 272,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": ".map_err(|_| failure(\"window.backend_stopped\", \"\"))?;",
-          "line": 267,
+          "line": 276,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -79573,7 +79987,7 @@
     },
     {
       "excerpt": "transport::parse(line).expect(\"valid fixture wire\")",
-      "line": 298,
+      "line": 307,
       "literal": "valid fixture wire",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend.rs",
@@ -79689,7 +80103,7 @@
       "surface": "gui"
     },
     {
-      "excerpt": "Some(Event::Path(crate::path::answer(&document).ok_or(\"path answer is malformed\")?))",
+      "excerpt": "Event::Path(crate::path::answer(&document).ok_or(\"path answer is malformed\")?),",
       "line": 173,
       "literal": "path answer is malformed",
       "owner": "I50-07",
@@ -80437,7 +80851,7 @@
     },
     {
       "excerpt": "id.expect(\"Omi job id\"),",
-      "line": 104,
+      "line": 101,
       "literal": "Omi job id",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op1/glyph.rs",
@@ -81534,6 +81948,15 @@
       "surface": "gui"
     },
     {
+      "excerpt": "Self::Cancelled => \"cancelled\",",
+      "line": 30,
+      "literal": "cancelled",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/pl2/result.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "preset: \"default\",",
       "line": 246,
       "literal": "default",
@@ -81697,7 +82120,7 @@
     },
     {
       "excerpt": "let subject = self.subject.as_ref().expect(\"an open card has a subject\");",
-      "line": 136,
+      "line": 87,
       "literal": "an open card has a subject",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv1/card.rs",
@@ -82327,7 +82750,7 @@
     },
     {
       "excerpt": ".with(\"op\", &collide::text(\"move\"))",
-      "line": 262,
+      "line": 335,
       "literal": "move",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/sd1/join.rs",
@@ -90211,7 +90634,7 @@
     },
     {
       "excerpt": "\"unavailable\"",
-      "line": 136,
+      "line": 138,
       "literal": "unavailable",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/pane/presentation.rs",
@@ -90220,7 +90643,7 @@
     },
     {
       "excerpt": "(\"chronology\", Json::Str(\"unavailable\".into())),",
-      "line": 154,
+      "line": 156,
       "literal": "unavailable",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/pane/presentation.rs",
@@ -91723,7 +92146,7 @@
     },
     {
       "excerpt": "\"Permission denied\",",
-      "line": 339,
+      "line": 343,
       "literal": "Permission denied",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/columns_render.rs",
@@ -91763,6 +92186,33 @@
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "eprintln!(\"gh-preview-proof watchdog: {secs} s passed, exiting 97\");",
+      "line": 37,
+      "literal": "gh-preview-proof watchdog: {secs} s passed, exiting 97",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": ".expect(\"Quick Look is mounted\")",
+      "line": 143,
+      "literal": "Quick Look is mounted",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"the full-source GPUI loader must never run for Quick Look pictures\"",
+      "line": 166,
+      "literal": "the full-source GPUI loader must never run for Quick Look pictures",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -92155,7 +92605,7 @@
     },
     {
       "excerpt": ".unwrap_or(\"default\");",
-      "line": 186,
+      "line": 191,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/input.rs",
@@ -92533,7 +92983,7 @@
     },
     {
       "excerpt": "lists.states[side].take().expect(\"a mounted pane\"),",
-      "line": 217,
+      "line": 218,
       "literal": "a mounted pane",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/render.rs",
@@ -98931,6 +99381,249 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "_ => return Err(\"invalid hidden\".into()),",
+      "line": 52,
+      "literal": "invalid hidden",
+      "owner": "controller",
+      "path": "src/backend/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"invalid contents request\".into());",
+      "line": 61,
+      "literal": "invalid contents request",
+      "owner": "controller",
+      "path": "src/backend/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let live = self.live.take().expect(\"matched contents ticket\");",
+      "line": 222,
+      "literal": "matched contents ticket",
+      "owner": "controller",
+      "path": "src/backend/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "&& !objects.last_mut().ok_or(\"missing object\")?.insert(text)",
+      "line": 27,
+      "literal": "missing object",
+      "owner": "controller",
+      "path": "src/backend/contentsguard.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"duplicate request key\".into());",
+      "line": 29,
+      "literal": "duplicate request key",
+      "owner": "controller",
+      "path": "src/backend/contentsguard.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let held = st.contents.held.as_mut().expect(\"contents sort snapshot\");",
+      "line": 55,
+      "literal": "contents sort snapshot",
+      "owner": "controller",
+      "path": "src/backend/contentsorder.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let mut hit = matches.remove(&span.off).expect(\"sort preserves spans\");",
+      "line": 61,
+      "literal": "sort preserves spans",
+      "owner": "controller",
+      "path": "src/backend/contentsorder.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "_ => Err(\"invalid ripgrep byte string\".into()),",
+      "line": 21,
+      "literal": "invalid ripgrep byte string",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"ripgrep returned a path outside its scope\".into());",
+      "line": 35,
+      "literal": "ripgrep returned a path outside its scope",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "jsondoc::parse(std::str::from_utf8(line).map_err(|_| \"ripgrep JSON was not UTF-8\")?)?;",
+      "line": 43,
+      "literal": "ripgrep JSON was not UTF-8",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".ok_or(\"missing ripgrep record type\")?;",
+      "line": 47,
+      "literal": "missing ripgrep record type",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".map_err(|_| \"invalid ripgrep search count\".into()),",
+      "line": 57,
+      "literal": "invalid ripgrep search count",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "_ => Err(\"missing ripgrep search count\".into()),",
+      "line": 58,
+      "literal": "missing ripgrep search count",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let data = document.get(\"data\").ok_or(\"missing ripgrep record data\")?;",
+      "line": 61,
+      "literal": "missing ripgrep record data",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "path: relative(data.get(\"path\").ok_or(\"missing ripgrep path\")?)?,",
+      "line": 65,
+      "literal": "missing ripgrep path",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let path = relative(data.get(\"path\").ok_or(\"missing ripgrep path\")?)?;",
+      "line": 69,
+      "literal": "missing ripgrep path",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".ok_or(\"invalid ripgrep line number\")?;",
+      "line": 74,
+      "literal": "invalid ripgrep line number",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let mut line = bytes(data.get(\"lines\").ok_or(\"missing ripgrep matching line\")?)?;",
+      "line": 75,
+      "literal": "missing ripgrep matching line",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "_ => Err(\"unexpected ripgrep record type\".into()),",
+      "line": 91,
+      "literal": "unexpected ripgrep record type",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"invalid ripgrep base64\".into());",
+      "line": 97,
+      "literal": "invalid ripgrep base64",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "_ => Err(\"invalid ripgrep base64\".to_owned()),",
+      "line": 106,
+      "literal": "invalid ripgrep base64",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"invalid ripgrep base64 padding\".into());",
+      "line": 116,
+      "literal": "invalid ripgrep base64 padding",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"invalid ripgrep base64 padding\".into());",
+      "line": 124,
+      "literal": "invalid ripgrep base64 padding",
+      "owner": "controller",
+      "path": "src/backend/contentsparse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "error(out, None, \"invalid contents window\");",
+      "line": 261,
+      "literal": "invalid contents window",
+      "owner": "controller",
+      "path": "src/backend/contentsreq.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let document = document.expect(\"validated contents request\");",
+      "line": 313,
+      "literal": "validated contents request",
+      "owner": "controller",
+      "path": "src/backend/contentsreq.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let mut stdout = child.child.stdout.take().ok_or(\"missing ripgrep stdout\")?;",
+      "line": 200,
+      "literal": "missing ripgrep stdout",
+      "owner": "controller",
+      "path": "src/backend/contentsworker.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let mut stderr = child.child.stderr.take().ok_or(\"missing ripgrep stderr\")?;",
+      "line": 201,
+      "literal": "missing ripgrep stderr",
+      "owner": "controller",
+      "path": "src/backend/contentsworker.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "pages: field_str(line, \"pages\").unwrap_or_else(|| \"All\".into()) }",
       "line": 27,
       "literal": "All",
@@ -100075,7 +100768,7 @@
     },
     {
       "excerpt": "assert_eq!(st.dirsizes.get(&0), Some(&(40, false)), \"a completed walk answers from the cache\");",
-      "line": 109,
+      "line": 110,
       "literal": "a completed walk answers from the cache",
       "owner": "controller",
       "path": "src/backend/dirsizereq.rs",
@@ -100084,7 +100777,7 @@
     },
     {
       "excerpt": "assert_eq!(st.dirsizes.get(&1), None, \"a floor seeds nothing, so the worker walks that row\");",
-      "line": 110,
+      "line": 111,
       "literal": "a floor seeds nothing, so the worker walks that row",
       "owner": "controller",
       "path": "src/backend/dirsizereq.rs",
@@ -100093,7 +100786,7 @@
     },
     {
       "excerpt": "assert_eq!(st.dirsizes.get(&2), None, \"a file row seeds nothing\");",
-      "line": 111,
+      "line": 112,
       "literal": "a file row seeds nothing",
       "owner": "controller",
       "path": "src/backend/dirsizereq.rs",
@@ -102199,7 +102892,7 @@
     },
     {
       "excerpt": "return self.slow_answer(entry.mount, path, \"network\");",
-      "line": 83,
+      "line": 84,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/fsinforeq.rs",
@@ -102208,7 +102901,7 @@
     },
     {
       "excerpt": "Some(entry) if fstype_is_network(&entry.fstype) => self.slow_answer(entry.mount, path, \"network\"),",
-      "line": 90,
+      "line": 91,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/fsinforeq.rs",
@@ -102217,7 +102910,7 @@
     },
     {
       "excerpt": "if self.tagged.as_ref().is_some_and(|(dir, _)| dir == base) || matches!(class, \"network\" | \"phone\") {",
-      "line": 153,
+      "line": 154,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/fsinforeq.rs",
@@ -102226,7 +102919,7 @@
     },
     {
       "excerpt": "if self.tagged.as_ref().is_some_and(|(dir, _)| dir == base) || matches!(class, \"network\" | \"phone\") {",
-      "line": 153,
+      "line": 154,
       "literal": "phone",
       "owner": "controller",
       "path": "src/backend/fsinforeq.rs",
@@ -102235,7 +102928,7 @@
     },
     {
       "excerpt": "gvfs_class(path).unwrap_or(\"network\")",
-      "line": 169,
+      "line": 170,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/fsinforeq.rs",
@@ -113629,7 +114322,7 @@
     },
     {
       "excerpt": "assert!(flag.load(Ordering::Relaxed), \"the operation on the thread is the one a cancel reaches\");",
-      "line": 106,
+      "line": 103,
       "literal": "the operation on the thread is the one a cancel reaches",
       "owner": "controller",
       "path": "src/backend/opscancel.rs",
@@ -113638,7 +114331,7 @@
     },
     {
       "excerpt": "assert!(!second.load(Ordering::Relaxed), \"an id that is not running cancels nothing\");",
-      "line": 119,
+      "line": 116,
       "literal": "an id that is not running cancels nothing",
       "owner": "controller",
       "path": "src/backend/opscancel.rs",
@@ -113647,7 +114340,7 @@
     },
     {
       "excerpt": "assert!(!first.load(Ordering::Relaxed), \"and the flag it was aimed at is not set either\");",
-      "line": 120,
+      "line": 117,
       "literal": "and the flag it was aimed at is not set either",
       "owner": "controller",
       "path": "src/backend/opscancel.rs",
@@ -113656,7 +114349,7 @@
     },
     {
       "excerpt": "assert!(second.load(Ordering::Relaxed), \"the one that is running still takes its own cancel\");",
-      "line": 122,
+      "line": 119,
       "literal": "the one that is running still takes its own cancel",
       "owner": "controller",
       "path": "src/backend/opscancel.rs",
@@ -113665,7 +114358,7 @@
     },
     {
       "excerpt": "assert!(!flag.load(Ordering::Relaxed), \"a cancel with nothing running reaches the flag Live held\");",
-      "line": 133,
+      "line": 130,
       "literal": "a cancel with nothing running reaches the flag Live held",
       "owner": "controller",
       "path": "src/backend/opscancel.rs",
@@ -113674,7 +114367,7 @@
     },
     {
       "excerpt": "assert!(!flag.load(Ordering::Relaxed), \"and it does not carry over to the next claim of that id\");",
-      "line": 135,
+      "line": 132,
       "literal": "and it does not carry over to the next claim of that id",
       "owner": "controller",
       "path": "src/backend/opscancel.rs",
@@ -119173,7 +119866,7 @@
     },
     {
       "excerpt": "Some(\"link\") => Request::Link {",
-      "line": 166,
+      "line": 167,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/proto.rs",
@@ -121090,7 +121783,7 @@
     },
     {
       "excerpt": "super::jobwork::Spec { kind: \"send\", label: \"Sending\", target: None },",
-      "line": 416,
+      "line": 425,
       "literal": "Sending",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121099,7 +121792,7 @@
     },
     {
       "excerpt": "Some(\"The items changed; select them again.\".to_string())",
-      "line": 777,
+      "line": 787,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121108,7 +121801,7 @@
     },
     {
       "excerpt": "ops.menuactions.as_ref().ok_or_else(|| \"The items changed; select them again.\".to_string())",
-      "line": 783,
+      "line": 793,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121117,7 +121810,7 @@
     },
     {
       "excerpt": "let listed = String::from_utf8(std::mem::take(&mut out)).expect(\"the listing wire is UTF-8\");",
-      "line": 1111,
+      "line": 1123,
       "literal": "the listing wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121126,7 +121819,7 @@
     },
     {
       "excerpt": "let header = listed.lines().next().expect(\"the listing has a header\");",
-      "line": 1112,
+      "line": 1124,
       "literal": "the listing has a header",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121135,7 +121828,7 @@
     },
     {
       "excerpt": "let listed_path = crate::json::field_str(header, \"path\").expect(\"the header names its directory\");",
-      "line": 1114,
+      "line": 1126,
       "literal": "the header names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121144,7 +121837,7 @@
     },
     {
       "excerpt": "assert_eq!(listed_path.as_bytes(), REMOTE_PATH.as_bytes(), \"the listing preserves the input spelling\");",
-      "line": 1115,
+      "line": 1127,
       "literal": "the listing preserves the input spelling",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121153,7 +121846,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::is_remote(&st.base, \"\"), \"the fixture takes the remote window branch\");",
-      "line": 1116,
+      "line": 1128,
       "literal": "the fixture takes the remote window branch",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121162,7 +121855,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::test_calls() > calls_before, \"the window reaches the real mount bound\");",
-      "line": 1123,
+      "line": 1135,
       "literal": "the window reaches the real mount bound",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121171,7 +121864,7 @@
     },
     {
       "excerpt": "let response = String::from_utf8(out).expect(\"the error wire is UTF-8\");",
-      "line": 1124,
+      "line": 1136,
       "literal": "the error wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121180,7 +121873,7 @@
     },
     {
       "excerpt": "let error = lines.next().expect(\"the refused window emits an error\");",
-      "line": 1126,
+      "line": 1138,
       "literal": "the refused window emits an error",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121189,7 +121882,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::json::field_str(error, \"where\").as_deref(), Some(\"window\"), \"the window emitter identifies its operation: {error}\");",
-      "line": 1128,
+      "line": 1140,
       "literal": "the window emitter identifies its operation: {error}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121198,7 +121891,7 @@
     },
     {
       "excerpt": "let error_path = crate::json::field_str(error, \"path\").expect(\"the error names its directory\");",
-      "line": 1129,
+      "line": 1141,
       "literal": "the error names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121207,7 +121900,7 @@
     },
     {
       "excerpt": "assert_eq!(error_path.as_bytes(), listed_path.as_bytes(), \"the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}\");",
-      "line": 1130,
+      "line": 1142,
       "literal": "the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121216,7 +121909,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1131,
+      "line": 1143,
       "literal": "the error carries its cause",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121225,7 +121918,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1131,
+      "line": 1143,
       "literal": "not responding",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121234,7 +121927,7 @@
     },
     {
       "excerpt": "assert!(lines.next().is_none(), \"a refused window emits no rows: {response}\");",
-      "line": 1132,
+      "line": 1144,
       "literal": "a refused window emits no rows: {response}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121243,7 +121936,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(REPLY_DEADLINE).expect(\"the released link reports through the op channel\");",
-      "line": 1170,
+      "line": 1182,
       "literal": "the released link reports through the op channel",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121252,7 +121945,7 @@
     },
     {
       "excerpt": "assert!(matches!(landed, OpMsg::Linked { .. }), \"the production link sends Linked\");",
-      "line": 1171,
+      "line": 1183,
       "literal": "the production link sends Linked",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121261,7 +121954,7 @@
     },
     {
       "excerpt": "assert_eq!(ops.journal.len(), 1, \"one journal entry covers both links\");",
-      "line": 1174,
+      "line": 1186,
       "literal": "one journal entry covers both links",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121270,7 +121963,7 @@
     },
     {
       "excerpt": "assert!(ops.live.running().is_none(), \"Linked releases the operation slot\");",
-      "line": 1175,
+      "line": 1187,
       "literal": "Linked releases the operation slot",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121279,7 +121972,7 @@
     },
     {
       "excerpt": "entered.recv_timeout(REPLY_DEADLINE).expect(\"run_link reached the handshake\");",
-      "line": 1179,
+      "line": 1191,
       "literal": "run_link reached the handshake",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121288,7 +121981,7 @@
     },
     {
       "excerpt": "backend.join().expect(\"the backend finishes after releasing the held link\");",
-      "line": 1182,
+      "line": 1194,
       "literal": "the backend finishes after releasing the held link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121297,7 +121990,7 @@
     },
     {
       "excerpt": "let (out, running, unjournalled, no_pending) = responsive.expect(\"a held link must leave Request::Paths responsive\");",
-      "line": 1183,
+      "line": 1195,
       "literal": "a held link must leave Request::Paths responsive",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121306,7 +121999,7 @@
     },
     {
       "excerpt": "let refused = replies.next().expect(\"the second link is refused while the slot is held\");",
-      "line": 1187,
+      "line": 1199,
       "literal": "the second link is refused while the slot is held",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121315,7 +122008,7 @@
     },
     {
       "excerpt": "assert!(refused.contains(r#\"\"t\":\"error\"\"#) && refused.contains(\"an operation is already running\"), \"{refused}\");",
-      "line": 1188,
+      "line": 1200,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121324,7 +122017,7 @@
     },
     {
       "excerpt": "assert!(replies.next().is_none(), \"a held link emits neither slow nor a premature linked line: {lines}\");",
-      "line": 1189,
+      "line": 1201,
       "literal": "a held link emits neither slow nor a premature linked line: {lines}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121333,7 +122026,7 @@
     },
     {
       "excerpt": "assert!(running && unjournalled && no_pending, \"the link holds the slot, with no slow claim or journal before completion\");",
-      "line": 1190,
+      "line": 1202,
       "literal": "the link holds the slot, with no slow claim or journal before completion",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121342,7 +122035,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"a.txt\")).is_err(), \"undo removed the first link\");",
-      "line": 1191,
+      "line": 1203,
       "literal": "undo removed the first link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121351,7 +122044,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"b.txt\")).is_err(), \"undo removed the second link\");",
-      "line": 1192,
+      "line": 1204,
       "literal": "undo removed the second link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121360,7 +122053,7 @@
     },
     {
       "excerpt": "assert!(a.exists() && b.exists(), \"undo preserves both sources\");",
-      "line": 1193,
+      "line": 1205,
       "literal": "undo preserves both sources",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121369,7 +122062,7 @@
     },
     {
       "excerpt": "let (metas, _) = window_metas(&mut st, 0, 10).expect(\"a local window answers\");",
-      "line": 1208,
+      "line": 1220,
       "literal": "a local window answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121378,7 +122071,7 @@
     },
     {
       "excerpt": "assert_eq!(metas.len(), 2, \"the window carries its rows\");",
-      "line": 1209,
+      "line": 1221,
       "literal": "the window carries its rows",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121387,7 +122080,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 0, \"a local window takes no bound call and clones no listing\");",
-      "line": 1210,
+      "line": 1222,
       "literal": "a local window takes no bound call and clones no listing",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121396,7 +122089,7 @@
     },
     {
       "excerpt": "let (dev, writable) = search_root_info(d.path()).expect(\"a live root answers\");",
-      "line": 1218,
+      "line": 1230,
       "literal": "a live root answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121405,7 +122098,7 @@
     },
     {
       "excerpt": "assert_eq!(dev, crate::backend::fsinfo::dev_of(d.path()), \"the bound answers the root's own figures\");",
-      "line": 1219,
+      "line": 1231,
       "literal": "the bound answers the root's own figures",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121414,7 +122107,7 @@
     },
     {
       "excerpt": "assert!(writable, \"the sandbox is writable\");",
-      "line": 1220,
+      "line": 1232,
       "literal": "the sandbox is writable",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -121423,7 +122116,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 1, \"the root's stat takes exactly one bound call\");",
-      "line": 1221,
+      "line": 1233,
       "literal": "the root's stat takes exactly one bound call",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -122089,7 +122782,7 @@
     },
     {
       "excerpt": "worker.tx.send((session, work)).unwrap_or_else(|_| panic!(\"search execution worker stopped\"));",
-      "line": 193,
+      "line": 194,
       "literal": "search execution worker stopped",
       "owner": "controller",
       "path": "src/backend/searchjobs.rs",
@@ -122098,7 +122791,7 @@
     },
     {
       "excerpt": "let mut done = self.worker.as_ref().unwrap().rx.recv().expect(\"search result before its wake\");",
-      "line": 207,
+      "line": 208,
       "literal": "search result before its wake",
       "owner": "controller",
       "path": "src/backend/searchjobs.rs",
@@ -129676,7 +130369,7 @@
     },
     {
       "excerpt": "class == \"network\" || class == \"phone\"",
-      "line": 16,
+      "line": 17,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129685,7 +130378,7 @@
     },
     {
       "excerpt": "class == \"network\" || class == \"phone\"",
-      "line": 16,
+      "line": 17,
       "literal": "phone",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129694,7 +130387,7 @@
     },
     {
       "excerpt": "}).expect(\"could not start watch poller\");",
-      "line": 141,
+      "line": 142,
       "literal": "could not start watch poller",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129703,7 +130396,7 @@
     },
     {
       "excerpt": "assert!(polls(\"network\"), \"network polls\");",
-      "line": 170,
+      "line": 171,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129712,7 +130405,7 @@
     },
     {
       "excerpt": "assert!(polls(\"network\"), \"network polls\");",
-      "line": 170,
+      "line": 171,
       "literal": "network polls",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129721,7 +130414,7 @@
     },
     {
       "excerpt": "assert!(polls(\"phone\"), \"phone polls\");",
-      "line": 171,
+      "line": 172,
       "literal": "phone",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129730,7 +130423,7 @@
     },
     {
       "excerpt": "assert!(polls(\"phone\"), \"phone polls\");",
-      "line": 171,
+      "line": 172,
       "literal": "phone polls",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129739,7 +130432,7 @@
     },
     {
       "excerpt": "assert!(!polls(\"\"), \"local never polls\");",
-      "line": 172,
+      "line": 173,
       "literal": "local never polls",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129748,7 +130441,7 @@
     },
     {
       "excerpt": "assert!(!polls(\"usb\"), \"usb never polls\");",
-      "line": 173,
+      "line": 174,
       "literal": "usb never polls",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129757,7 +130450,7 @@
     },
     {
       "excerpt": "assert_eq!(POLL_SECS, 5, \"the named interval stays five seconds\");",
-      "line": 174,
+      "line": 175,
       "literal": "the named interval stays five seconds",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129766,7 +130459,7 @@
     },
     {
       "excerpt": "assert!(send.is_none(), \"a stat for the old folder must not emit for the new one\");",
-      "line": 183,
+      "line": 184,
       "literal": "a stat for the old folder must not emit for the new one",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129775,7 +130468,7 @@
     },
     {
       "excerpt": "assert_eq!(state, (PathBuf::from(\"/new\"), 0), \"and it must not baseline the new folder with the old mtime\");",
-      "line": 184,
+      "line": 185,
       "literal": "and it must not baseline the new folder with the old mtime",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129784,7 +130477,7 @@
     },
     {
       "excerpt": "assert!(first.is_none(), \"the new folder baselines silently\");",
-      "line": 186,
+      "line": 187,
       "literal": "the new folder baselines silently",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129793,7 +130486,7 @@
     },
     {
       "excerpt": "assert_eq!(second, Some(PathBuf::from(\"/new\")), \"its next move emits\");",
-      "line": 189,
+      "line": 190,
       "literal": "its next move emits",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129802,7 +130495,7 @@
     },
     {
       "excerpt": "let network: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(|_| \"network\");",
-      "line": 197,
+      "line": 198,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129811,7 +130504,7 @@
     },
     {
       "excerpt": "assert!(blocked.0.is_none(), \"a dead server must time out rather than wedge polling\");",
-      "line": 203,
+      "line": 204,
       "literal": "a dead server must time out rather than wedge polling",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129820,7 +130513,7 @@
     },
     {
       "excerpt": "assert!(!blocked.1.load(Ordering::Relaxed), \"its helper is still out, so the mark must stay\");",
-      "line": 204,
+      "line": 205,
       "literal": "its helper is still out, so the mark must stay",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129829,7 +130522,7 @@
     },
     {
       "excerpt": "assert!(fast.0.is_some_and(|(class, mtime)| class == \"network\" && mtime == 7), \"a live folder still answers under the poller's own deadline\");",
-      "line": 207,
+      "line": 208,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129838,7 +130531,7 @@
     },
     {
       "excerpt": "assert!(fast.0.is_some_and(|(class, mtime)| class == \"network\" && mtime == 7), \"a live folder still answers under the poller's own deadline\");",
-      "line": 207,
+      "line": 208,
       "literal": "a live folder still answers under the poller's own deadline",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129847,7 +130540,7 @@
     },
     {
       "excerpt": "assert!(fast.1.load(Ordering::Relaxed), \"a returned helper releases its mark to the TTL\");",
-      "line": 208,
+      "line": 209,
       "literal": "a returned helper releases its mark to the TTL",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129856,7 +130549,7 @@
     },
     {
       "excerpt": "\"network\"",
-      "line": 226,
+      "line": 227,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129865,7 +130558,7 @@
     },
     {
       "excerpt": "assert_eq!(p, Path::new(\"/live\"), \"only the live path may reach stat\");",
-      "line": 233,
+      "line": 234,
       "literal": "only the live path may reach stat",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129874,7 +130567,7 @@
     },
     {
       "excerpt": "assert_eq!(state.lock().unwrap().1, 11, \"the live folder baselines silently\");",
-      "line": 238,
+      "line": 239,
       "literal": "the live folder baselines silently",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129883,7 +130576,7 @@
     },
     {
       "excerpt": "assert!(rx.try_recv().is_err(), \"a baseline sends nothing\");",
-      "line": 239,
+      "line": 240,
       "literal": "a baseline sends nothing",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129892,7 +130585,7 @@
     },
     {
       "excerpt": "assert_eq!(stat_calls.load(Ordering::Relaxed), 1, \"the live path stats once\");",
-      "line": 240,
+      "line": 241,
       "literal": "the live path stats once",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129901,7 +130594,7 @@
     },
     {
       "excerpt": "assert_eq!(stat_calls.load(Ordering::Relaxed), 1, \"the wedged path never reaches stat\");",
-      "line": 243,
+      "line": 244,
       "literal": "the wedged path never reaches stat",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129910,7 +130603,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_calls.load(Ordering::Relaxed), 1, \"nor classify\");",
-      "line": 244,
+      "line": 245,
       "literal": "nor classify",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129919,7 +130612,7 @@
     },
     {
       "excerpt": "let network: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(|_| \"network\");",
-      "line": 256,
+      "line": 257,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129928,7 +130621,7 @@
     },
     {
       "excerpt": "assert!(wedged.lock().unwrap().contains_key(&PathBuf::from(\"/dead\")), \"a timed-out path is wedged\");",
-      "line": 275,
+      "line": 276,
       "literal": "a timed-out path is wedged",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129937,7 +130630,7 @@
     },
     {
       "excerpt": "inside.recv_timeout(ANSWERS).expect(\"the timed-out helper reaches its stat\");",
-      "line": 276,
+      "line": 277,
       "literal": "the timed-out helper reaches its stat",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129946,7 +130639,7 @@
     },
     {
       "excerpt": "assert_eq!(stat_calls.load(Ordering::Relaxed), 1, \"a wedged path spawns no second helper\");",
-      "line": 279,
+      "line": 280,
       "literal": "a wedged path spawns no second helper",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129955,7 +130648,7 @@
     },
     {
       "excerpt": "assert_eq!(state.lock().unwrap().1, 22, \"a later folder still polls past the wedge\");",
-      "line": 282,
+      "line": 283,
       "literal": "a later folder still polls past the wedge",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129964,7 +130657,7 @@
     },
     {
       "excerpt": "\"network\"",
-      "line": 302,
+      "line": 303,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129973,7 +130666,7 @@
     },
     {
       "excerpt": "assert!(wedged.lock().unwrap().contains_key(&PathBuf::from(\"/dead\")), \"a blocked classify wedges its own path\");",
-      "line": 312,
+      "line": 313,
       "literal": "a blocked classify wedges its own path",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129982,7 +130675,7 @@
     },
     {
       "excerpt": "assert_eq!(stat_calls.load(Ordering::Relaxed), 0, \"its stat never runs\");",
-      "line": 313,
+      "line": 314,
       "literal": "its stat never runs",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -129991,7 +130684,7 @@
     },
     {
       "excerpt": "assert_eq!(stat_calls.load(Ordering::Relaxed), 1, \"a later folder still stats\");",
-      "line": 316,
+      "line": 317,
       "literal": "a later folder still stats",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -130000,7 +130693,7 @@
     },
     {
       "excerpt": "assert_eq!(state.lock().unwrap().1, 33, \"and baselines\");",
-      "line": 317,
+      "line": 318,
       "literal": "and baselines",
       "owner": "controller",
       "path": "src/backend/watchpoll.rs",
@@ -137658,8 +138351,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_eq!(hand_off_names(include_str!(\"../ui/js/Tabs.js\"), \"var TEAR_OFF_ENV\"), ENV);",
-      "line": 31,
+      "excerpt": "hand_off_names(include_str!(\"../ui/js/Tabs.js\"), \"var TEAR_OFF_ENV\"),",
+      "line": 41,
       "literal": "var TEAR_OFF_ENV",
       "owner": "controller",
       "path": "src/tearoff.rs",
@@ -142109,6 +142802,33 @@
       "literal": "a clip line names no known op: {op}",
       "owner": "controller",
       "path": "src/ui_logic_dg1/wire.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "op: if verb == Verb::Move { \"move\" } else { \"copy\" }.to_owned(),",
+      "line": 231,
+      "literal": "move",
+      "owner": "controller",
+      "path": "src/ui_logic_dg2.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "if self.copy { \"copy\" } else { \"move\" },",
+      "line": 29,
+      "literal": "move",
+      "owner": "controller",
+      "path": "src/ui_logic_dg2/payload.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"move\" => false,",
+      "line": 51,
+      "literal": "move",
+      "owner": "controller",
+      "path": "src/ui_logic_dg2/payload.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -148089,6 +148809,123 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "return Err(\"pathBytes must contain hex pairs\".into());",
+      "line": 35,
+      "literal": "pathBytes must contain hex pairs",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".ok_or_else(|| \"pathBytes must be hexadecimal\".to_owned())",
+      "line": 43,
+      "literal": "pathBytes must be hexadecimal",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".map_err(|_| format!(\"{key} must be an unsigned integer\")),",
+      "line": 54,
+      "literal": "{key} must be an unsigned integer",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "_ => Err(format!(\"{key} must be an unsigned integer\")),",
+      "line": 55,
+      "literal": "{key} must be an unsigned integer",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".ok_or_else(|| format!(\"{key} must be a string\"))",
+      "line": 64,
+      "literal": "{key} must be a string",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"contents identity must be nonzero\".into());",
+      "line": 73,
+      "literal": "contents identity must be nonzero",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".ok_or(\"matches must be an array\")?;",
+      "line": 79,
+      "literal": "matches must be an array",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"contents rows must be contiguous\".into());",
+      "line": 84,
+      "literal": "contents rows must be contiguous",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"contents path must stay relative to its scope\".into());",
+      "line": 94,
+      "literal": "contents path must stay relative to its scope",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"contents display does not match its identity\".into());",
+      "line": 98,
+      "literal": "contents display does not match its identity",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".ok_or(\"operable must be a boolean\")?;",
+      "line": 103,
+      "literal": "operable must be a boolean",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"a raw filename cannot be operable\".into());",
+      "line": 105,
+      "literal": "a raw filename cannot be operable",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"lineNo must be positive\".into());",
+      "line": 109,
+      "literal": "lineNo must be positive",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/contents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let capitals: Vec<String> = template.split(\"%1\").map(str::to_uppercase).collect();",
       "line": 55,
       "literal": "%1",
@@ -148108,7 +148945,7 @@
     },
     {
       "excerpt": "Some(Json::Num(number)) => number.parse().map_err(|_| format!(\"{key} must be an unsigned integer\")),",
-      "line": 54,
+      "line": 61,
       "literal": "{key} must be an unsigned integer",
       "owner": "controller",
       "path": "src/ui_logic_sr1/wire.rs",
@@ -148117,7 +148954,7 @@
     },
     {
       "excerpt": "_ => Err(format!(\"{key} must be an unsigned integer\")),",
-      "line": 55,
+      "line": 62,
       "literal": "{key} must be an unsigned integer",
       "owner": "controller",
       "path": "src/ui_logic_sr1/wire.rs",
@@ -148126,7 +148963,7 @@
     },
     {
       "excerpt": "value.get(key).and_then(Json::as_f64).filter(|ms| ms.is_finite() && *ms >= 0.).ok_or_else(|| format!(\"{key} must be a number\"))",
-      "line": 60,
+      "line": 67,
       "literal": "{key} must be a number",
       "owner": "controller",
       "path": "src/ui_logic_sr1/wire.rs",
@@ -148135,7 +148972,7 @@
     },
     {
       "excerpt": "Some(found) => found.as_bool().ok_or_else(|| format!(\"{key} must be a boolean\")),",
-      "line": 66,
+      "line": 73,
       "literal": "{key} must be a boolean",
       "owner": "controller",
       "path": "src/ui_logic_sr1/wire.rs",
@@ -148144,7 +148981,7 @@
     },
     {
       "excerpt": "value.get(key).and_then(Json::as_str).map(str::to_owned).ok_or_else(|| format!(\"{key} must be a string\"))",
-      "line": 71,
+      "line": 78,
       "literal": "{key} must be a string",
       "owner": "controller",
       "path": "src/ui_logic_sr1/wire.rs",
@@ -148152,8 +148989,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "_ => Err(\"a partial answer needs a partial_reason\".into()),",
+      "line": 88,
+      "literal": "a partial answer needs a partial_reason",
+      "owner": "controller",
+      "path": "src/ui_logic_sr1/wire.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "None => return Err(\"t must be a string\".into()),",
-      "line": 80,
+      "line": 98,
       "literal": "t must be a string",
       "owner": "controller",
       "path": "src/ui_logic_sr1/wire.rs",
@@ -148162,7 +149008,7 @@
     },
     {
       "excerpt": "cancelled: flag(&document, \"cancelled\")?,",
-      "line": 87,
+      "line": 106,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/ui_logic_sr1/wire.rs",
@@ -155334,6 +156180,33 @@
       "surface": "generated/tooling"
     },
     {
+      "excerpt": "\"\"\"B3 installed capture: open to first presented result and indexed PSS for one million-file search.\n\nOne run launches the exact `flea --gui` launcher on a census-bound corpus, types the search key and\nquery through real Wayland input as soon as the window maps, and reads the same process's\nflea.searchStamps. The first result time is the compositor's presentation time of the first\nsubmitted frame that painted the query's own rows (CLOCK_MONOTONIC, wp_presentation), minus the\nlaunch time on the same clock. PSS is the sum of smaps_rollup over every live process of the run's\ncgroup except the driver itself, sampled once the answer settled on a complete index. A missing\nseam, a partial or mismatched index, a foreign process or a failed close blocks the run; nothing\nis estimated. Exit 0 validated capture, 3 blocked, 2 bad input. See README.md.\n\"\"\"",
+      "line": 2,
+      "literal": "B3 installed capture: open to first presented result and indexed PSS for one million-file search.\n\nOne run launches the exact `flea --gui` launcher on a census-bound corpus, types the search key and\nquery through real Wayland input as soon as the window maps, and reads the same process's\nflea.searchStamps. The first result time is the compositor's presentation time of the first\nsubmitted frame that painted the query's own rows (CLOCK_MONOTONIC, wp_presentation), minus the\nlaunch time on the same clock. PSS is the sum of smaps_rollup over every live process of the run's\ncgroup except the driver itself, sampled once the answer settled on a complete index. A missing\nseam, a partial or mismatched index, a foreign process or a failed close blocks the run; nothing\nis estimated. Exit 0 validated capture, 3 blocked, 2 bad input. See README.md.\n",
+      "owner": "controller",
+      "path": "tools/flea-b3-capture/capture.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Count every non-hidden entry below root the way the search walk does: no root, no symlink descent.\"\"\"",
+      "line": 57,
+      "literal": "Count every non-hidden entry below root the way the search walk does: no root, no symlink descent.",
+      "owner": "controller",
+      "path": "tools/flea-b3-capture/capture.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "f'cancelled={stamps[\"cancelled\"]} partial={stamps[\"partial\"]}')",
+      "line": 300,
+      "literal": "cancelled",
+      "owner": "controller",
+      "path": "tools/flea-b3-capture/capture.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
       "excerpt": "echo \"build first: cargo build --release\"",
       "line": 16,
       "literal": "build first: cargo build --release",
@@ -157026,7 +157899,7 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "require(probe[\"stdout\"].strip() == text(expected[\"version_stdout\"]).strip(), \"actual version output mismatch\")",
+      "excerpt": "require(text(probe[\"stdout\"]).strip() == text(expected[\"version_stdout\"]).strip(), \"actual version output mismatch\")",
       "line": 195,
       "literal": "actual version output mismatch",
       "owner": "controller",
@@ -185304,7 +186177,7 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]})",
+      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]}, replace=True)",
       "line": 953,
       "literal": "median endpoints",
       "owner": "controller",
@@ -185313,7 +186186,7 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]})",
+      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]}, replace=True)",
       "line": 953,
       "literal": "midpoint ties",
       "owner": "controller",
@@ -185322,7 +186195,7 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]})",
+      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]}, replace=True)",
       "line": 953,
       "literal": "sampled charged memory",
       "owner": "controller",
@@ -185331,7 +186204,7 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]})",
+      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]}, replace=True)",
       "line": 953,
       "literal": "RAW incomplete",
       "owner": "controller",
@@ -185340,7 +186213,7 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]})",
+      "excerpt": "\"median endpoints\", \"midpoint ties\", \"sampled charged memory\", \"RAW incomplete\", \"CPU quiet\", \"rebound\", \"timeout\"]}, replace=True)",
       "line": 953,
       "literal": "CPU quiet",
       "owner": "controller",
@@ -185358,8 +186231,17 @@
       "surface": "generated/tooling"
     },
     {
+      "excerpt": "print(\"strata-bench: usage error: \" + message, file=sys.stderr)",
+      "line": 961,
+      "literal": "strata-bench: usage error: ",
+      "owner": "controller",
+      "path": "tools/flea-strata-bench",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
       "excerpt": "parser.add_argument(\"--rival-manifest\", help=\"verified package/archive inventory JSON to pin at init\")",
-      "line": 966,
+      "line": 974,
       "literal": "verified package/archive inventory JSON to pin at init",
       "owner": "controller",
       "path": "tools/flea-strata-bench",
@@ -185368,7 +186250,7 @@
     },
     {
       "excerpt": "parser.add_argument(\"--raw-corpus\", help=\"verified real RAW corpus parent containing twelve/ and hundred/\")",
-      "line": 967,
+      "line": 975,
       "literal": "verified real RAW corpus parent containing twelve/ and hundred/",
       "owner": "controller",
       "path": "tools/flea-strata-bench",
@@ -185377,7 +186259,7 @@
     },
     {
       "excerpt": "parser.add_argument(\"--only\", help=\"comma-separated entrant IDs for a bounded capture\")",
-      "line": 968,
+      "line": 976,
       "literal": "comma-separated entrant IDs for a bounded capture",
       "owner": "controller",
       "path": "tools/flea-strata-bench",
@@ -185386,7 +186268,7 @@
     },
     {
       "excerpt": "parser.add_argument(\"--installed\", action=\"store_true\", help=\"record installed versions; never pass the latest-version gate\")",
-      "line": 969,
+      "line": 977,
       "literal": "record installed versions; never pass the latest-version gate",
       "owner": "controller",
       "path": "tools/flea-strata-bench",
@@ -185395,7 +186277,7 @@
     },
     {
       "excerpt": "print(\"strata-bench: harness error, not a result\", file=sys.stderr)",
-      "line": 994,
+      "line": 1002,
       "literal": "strata-bench: harness error, not a result",
       "owner": "controller",
       "path": "tools/flea-strata-bench",
@@ -195821,6 +196703,24 @@
       "literal": "phone",
       "owner": "controller",
       "path": "ui/js/DirSizes.js",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "qml-reference"
+    },
+    {
+      "excerpt": "linkToFolder: \"Link %1 to a folder\",",
+      "line": 59,
+      "literal": "Link %1 to a folder",
+      "owner": "controller",
+      "path": "ui/js/Drag.js",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "qml-reference"
+    },
+    {
+      "excerpt": "copyToFolder: \"Copy %1 to a folder\",",
+      "line": 61,
+      "literal": "Copy %1 to a folder",
+      "owner": "controller",
+      "path": "ui/js/Drag.js",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "qml-reference"
     },
@@ -207944,18 +208844,18 @@
   },
   "schema": 1,
   "source_files": {
-    "Cargo.toml": "f61f4a10f9e017a6c99fe802d3d5719fdf07fe8c7d78e8bfc44145a45f4799e2",
-    "crates/flea-gui/Cargo.toml": "a1bdd72f43f41f10d5532309a79d93016beaaabc7bdd9ff116e44dffc310f6b5",
+    "Cargo.toml": "f91f0ca853a4043e289dfb5ec01796a7fec25060d4e908ee3d8105ca8e8b3822",
+    "crates/flea-gui/Cargo.toml": "d510453a62200433ca2aeb965172fe8ead416f05504a003e200bc1f977fa7963",
     "crates/flea-gui/build.rs": "c401f7b5e0d85762d23db2d1de66f1ef833617cc375269fb9e5e225030c9110f",
     "crates/flea-gui/deny.toml": "1d3ec035ff745443250ea0d7f23f7cae39329f446c869b92b4365df3cc73fd2b",
     "crates/flea-gui/examples/ipc-fixture.rs": "4e931f7c60bd1a15e3c2c9c06bfd921a207ce099b4e280d1d73676f5c0bb495b",
     "crates/flea-gui/examples/memory-empty-shell.rs": "e7945c4ad18c759dc8f1a10f0eac99fc0a7365ef0080010d12da36a4b86496c1",
     "crates/flea-gui/examples/memory-probe.rs": "4615b8fb5e3a143bf3e04a7f83ed3f88a58101d57c41f30e9a75cfb1e1a0943c",
     "crates/flea-gui/examples/presented-probe.rs": "a5f09cf617d84e3305057651584adfb95371098272d47d4cf9953ab34813f28e",
-    "crates/flea-gui/src/backend.rs": "b5fd5515a5565866f57edc665623b0c7d36984a489771dcfba8638d371dc5f9e",
+    "crates/flea-gui/src/backend.rs": "7318f4224a8c46fbab8028e969e9895022ad01040dc2e1864cebce11dedb7033",
     "crates/flea-gui/src/backend/native31_fixture.rs": "145b7ab5c4284e97e798038ad206eb6e7c4c61fd7a53b1e935ad59228135e860",
     "crates/flea-gui/src/backend/status.rs": "f7ba97e4de6ae1aea04760a1476c0f224899c069cc63e2fd90ae9494d9597734",
-    "crates/flea-gui/src/backend/transport.rs": "1ef7004fd4e469cb061c0bb55f6cb6b178cb963e1d342994d71800c04dc8eee6",
+    "crates/flea-gui/src/backend/transport.rs": "879c835e29d6207dee14b8fc0267798606343e6035bb491c41990e11b2927339",
     "crates/flea-gui/src/backend/worker.rs": "60615399fea0a1dca32b80a5d0d58078350946d44605bcc99710ee9da2daf9f7",
     "crates/flea-gui/src/capture.rs": "5ff7556c1494ff60d67288a1d706eb4303e7af9720f03f8ff94cc538f1430643",
     "crates/flea-gui/src/columns/cache.rs": "12eca76533680c9d1c77d80fabb3939ea27b4a7e5d4e2b0926bcc4f33febe25e",
@@ -207984,9 +208884,9 @@
     "crates/flea-gui/src/dual/selection.rs": "9e10cae3384e2cb37b8cfef8b5ff69844becc4982e058d61d9387b750c984c98",
     "crates/flea-gui/src/dual/session.rs": "73ea22c584555e2071ee0ed802f61afd883d2f25fbf96a4272ca0cb40186ed6d",
     "crates/flea-gui/src/dual/window.rs": "652690434d2fad449043adde0ece2d302843cca5f360fd7abfdab6955657cbd2",
-    "crates/flea-gui/src/feedback.rs": "c4d5d82cae6e3cf4f28a0880ca3af9dd443f65967fd00fc2758f6186ee44c10d",
-    "crates/flea-gui/src/feedback/spinner.rs": "0759763b10fcea905a3b0b74bdb5c956454d045e367fbe46efbd9744ef74f15d",
-    "crates/flea-gui/src/feedback/spinner_player.rs": "0ea3c595954edef8d18fd58914c99414c5094b1e135ab9c5b77b7bb5bbb02899",
+    "crates/flea-gui/src/feedback.rs": "07eaa749007fa91c6c00bb486a9d8ff43c894b6d9d80b7cdec71392889d55bdf",
+    "crates/flea-gui/src/feedback/spinner.rs": "4f4256d42fab32c0489f177b4f151fb5fe881b706cd119889d14f9d939c4828c",
+    "crates/flea-gui/src/feedback/spinner_player.rs": "8830d4fbe474d567644c054892f656ec45c8f15b309935b02622a34bbff5f9a5",
     "crates/flea-gui/src/g2/dg1/host.rs": "3dd73599a66f0ea4fbee0e841a0d1467c7960d256f679993f380808a4a9501bc",
     "crates/flea-gui/src/g2/dg1/ipc.rs": "0943351dfff8277dd16df75894f2bd9cad838a7fac69301252c77a6ae738c948",
     "crates/flea-gui/src/g2/dg1/join.rs": "802b3368e633896ebf328e6eea7b3765f6404419c719b646cf578a0bf74676ae",
@@ -207996,10 +208896,15 @@
     "crates/flea-gui/src/g2/dg1/mod.rs": "62d19e0157f7a5471b58d810e0ec89d57a25d2bdb15f1ebeefe00d3a6e4ad431",
     "crates/flea-gui/src/g2/dg1/rig.rs": "30c8cad3318b46d9ce66cdf8b94cd2aed3b4448bf75dc3114c512fb7641e58ca",
     "crates/flea-gui/src/g2/dg1/seams.rs": "dd3a41cab15b99781f11256a84d28424645fd5bd0c98388309e7a8d25e08064f",
+    "crates/flea-gui/src/g2/dg2/facts.rs": "c902532907f1cf3a3c52f73296a204f7257c7e77d9616c212fb37c6910b4ffd2",
+    "crates/flea-gui/src/g2/dg2/files.rs": "8bba4f7f241c3a0b9262e590ad11d54df33ecc3c45fc0b3570e3cf42b4f47eee",
+    "crates/flea-gui/src/g2/dg2/join.rs": "ea061fc69d362368a031c1e9a98386a1c00b5e4f3ee13d452712a829b0f858f1",
+    "crates/flea-gui/src/g2/dg2/mod.rs": "678d21be6bc09070eb847585b01d2a2f1b999a34a74e53c43b171c40c165fd22",
+    "crates/flea-gui/src/g2/dg2/router.rs": "725177062437576957cfa559688f985b83cb51f15f05fbf4bdad32a786a6e9fe",
     "crates/flea-gui/src/g2/fb1/brand.rs": "8809ac170114e5beb34e0b6053b620c7bc10144eacea9ea3a3a07b55994a8f61",
     "crates/flea-gui/src/g2/fb1/caption.rs": "a929afe59a233d9991545964a3c936184aeba7f71cea085f9e9635d7268aa035",
-    "crates/flea-gui/src/g2/fb1/empty_omi.rs": "d43b2d8c2a390d959baad9a6b54c1d5c1b7705f7212325de03d1c75bc91730d1",
-    "crates/flea-gui/src/g2/fb1/hero.rs": "1fc891e81aa8cbaa3cbc4f4dee09f28185d1b1e8f4db3e3307bd2d897bc70686",
+    "crates/flea-gui/src/g2/fb1/empty_omi.rs": "9a41a3ad9f951352551397576e25266c93ed3870c7ed62e04d342aad9881735d",
+    "crates/flea-gui/src/g2/fb1/hero.rs": "ef56f2a437d900a15dec59f88efe54630a6cae7597f095f2b9ba60b95c6623ce",
     "crates/flea-gui/src/g2/fb1/hero_paint.rs": "7a3b89618ac943112058b9903b04a7bcad08c82189cba7f5168b334a834fe57b",
     "crates/flea-gui/src/g2/fb1/line.rs": "df82bb77bed9b90605162df1a76c4fe771ead5e8f5abe7564a3f7c0a1abd27b8",
     "crates/flea-gui/src/g2/fb1/mark.rs": "01f17376da40ed7cbfbeff509838fdf7a954a64ad04438c08271935f67febdd9",
@@ -208031,7 +208936,7 @@
     "crates/flea-gui/src/g2/mn2/launch.rs": "96dfd5c97509e5c3a1b1b3d170e103261d1dcdedb3af66d406abfbf8e98652e8",
     "crates/flea-gui/src/g2/mn2/mod.rs": "95143fcf3d0f2561fc17eaef87b98f06cecf6e3ab008dc41c806f2f93d357563",
     "crates/flea-gui/src/g2/mn2/model.rs": "d325abdfcaa68c0312f0c76f7fa51e8c5411383d9a794b30074f8bc677315b69",
-    "crates/flea-gui/src/g2/mod.rs": "099a9a35918a11b203ad60e1d7b22403f522e8f9eb27fc33ae4a94b9b35dc7cd",
+    "crates/flea-gui/src/g2/mod.rs": "1527727fb571ced5c3bc028af59c8689a49c4b644789853a5ba5ff1d4b0d6113",
     "crates/flea-gui/src/g2/op1/cards.rs": "3f3b326f2dce525b3cce0b99d1386d2966e38f657ec019ca93e87aeee63e1c91",
     "crates/flea-gui/src/g2/op1/chosen.rs": "40309778d26ec24f97c8a767863b8b05e90264944fe04fac173d67bdf2c8a915",
     "crates/flea-gui/src/g2/op1/collision.rs": "8c4bcb207ea57fa2ad631d0dea022d6320c6e9e812d546511ba4e46c231cee8b",
@@ -208042,7 +208947,7 @@
     "crates/flea-gui/src/g2/op1/field.rs": "faeb938943640c27e7873ecba2abfb41e2220f2b150c8abf52d4c88d768de159",
     "crates/flea-gui/src/g2/op1/focus.rs": "7d4e2a5a07a42e4caf7b7400783b4b8e1d88fb3ade6e2b7d659ad5c61eb42b10",
     "crates/flea-gui/src/g2/op1/geometry.rs": "c6ec793f1e906a9f328934dd32d0817f8b171060926f31880ad9f9161cfdb4f5",
-    "crates/flea-gui/src/g2/op1/glyph.rs": "11dde90a535fd2af0783587cfaf1b5d267d7bc548715e867bdf202c36c5bf121",
+    "crates/flea-gui/src/g2/op1/glyph.rs": "5638d053aef348815a12653867a5eb39d8b1c078a442591d90fde9e4a6331647",
     "crates/flea-gui/src/g2/op1/host.rs": "c13120aee0543b220b79cd2169d9947cca8b1a993c20645abc8e5ff95b056e95",
     "crates/flea-gui/src/g2/op1/input.rs": "b2443e4d764c6fabdfe65898207c077fd7e5c83e3ceb0ec820bee7bb4cf40461",
     "crates/flea-gui/src/g2/op1/ipc.rs": "fad70ec6d7fb7f59b9a10a930f484f7ba29438c46676728eb49e0153f7069e94",
@@ -208161,7 +209066,7 @@
     "crates/flea-gui/src/g2/pl2/layout.rs": "9420d83feb16a9d7747d22c422fb3fa9f4bbb3d1d9d5d215b88eeb7279580efd",
     "crates/flea-gui/src/g2/pl2/marks.rs": "ed6116d21076ebd9e1960a0ca6edd50a9ced81955172048d0d9cfd7d3a93e526",
     "crates/flea-gui/src/g2/pl2/menus.rs": "61d83d953abe076ebb2d04a6f59160ce9a1328885222727477c246525f26f695",
-    "crates/flea-gui/src/g2/pl2/mod.rs": "b471668a85b6137f4731cab7cf02bb9553301f61baa8b6072d25ce22ce78f6aa",
+    "crates/flea-gui/src/g2/pl2/mod.rs": "56278d6dcbf0b22fe07a2bb7b48659e36ff9fdff2eaf7b5fbed56e1b5d0d2f20",
     "crates/flea-gui/src/g2/pl2/mount.rs": "c19a765485b7bcffb87dcfce92b28e957bcf84510a52a746ecfdb0507998f8f3",
     "crates/flea-gui/src/g2/pl2/mount_bridge.rs": "f7b33e230a7aa50ba79678abd0796d815a578b408c9f16f22d715f10c4f58dc1",
     "crates/flea-gui/src/g2/pl2/mount_lifetime.rs": "aa5b1e18868ac8abdf35682bae6db0fc8b8c0761024f4bd69c72534a0f7504a0",
@@ -208171,9 +209076,11 @@
     "crates/flea-gui/src/g2/pl2/provider.rs": "3b4ae64ca1893f596caecc5c905fe014a50dc9b4fc0c46a2e5066c77512c3b98",
     "crates/flea-gui/src/g2/pl2/provider_view.rs": "55c1fd7f378662b47b9c5092d4c9e3c3bbc055d44f40b6903b2df0b9aa6a1db9",
     "crates/flea-gui/src/g2/pl2/relay.rs": "59213e229412986e707e7423f77e76935a3120cec5d33d97a83a8fdc812799d7",
+    "crates/flea-gui/src/g2/pl2/result.rs": "04ed64e518aa4a49308d4c774aa4285b515dd04531d18683b29cddf9b4c0a3a4",
     "crates/flea-gui/src/g2/pl2/routing.rs": "0744ced51931589db5eefc78f9d0b16b71ebb865ad0d110a22ba57c6ec2e827d",
     "crates/flea-gui/src/g2/pl2/secret_edit.rs": "832f0ba8cdc5866598580e9e1ab1d9891bf39c98a891c4f563c906e9349560e4",
-    "crates/flea-gui/src/g2/pl2/service.rs": "cb7704009951d1a9193bc3fdc475b942482eb0d05894210c2f043e63cb7b165e",
+    "crates/flea-gui/src/g2/pl2/service.rs": "16053700a66125615637a7b7b0abf50101b3511fafb76e8241140bb8b29fb6db",
+    "crates/flea-gui/src/g2/pl2/service_release.rs": "9f4610ed422d3dd28d429440ab12b8a873060926697383d48838b6961ce958fc",
     "crates/flea-gui/src/g2/pl2/status.rs": "d13b17096af5463e0814bfe0ab9e5aa84858ec4c8d4c7b6f0be2df470d6224d8",
     "crates/flea-gui/src/g2/pl2/validate.rs": "432e096055a332481ed9090cdc379c8ddee7074e718bd3158e203564a35be982",
     "crates/flea-gui/src/g2/pl2/view.rs": "c6f7dea0e20eaaebf297cef9b81c68ac31a8b330685fe9969a0478563460f96c",
@@ -208210,11 +209117,11 @@
     "crates/flea-gui/src/g2/pl4/producer_view.rs": "683d9c6570893453c7e6f3ee26437a39965e37962d3e004607f5ec0bcfeb4055",
     "crates/flea-gui/src/g2/pl4/seams.rs": "e0aa679c3249715beb35d1a6d69fd95e0a793d7bc620ece35b04ae22b337cc16",
     "crates/flea-gui/src/g2/pl4/service.rs": "e8d713403db1b000e72c3c5658f3f353627bd8adb89406e4dfb2b843972a93c5",
-    "crates/flea-gui/src/g2/pv1/act.rs": "2452492f5da1763663d55a7d79008f9342bdc4b280fcd1b39ec27bed7f7ee96d",
+    "crates/flea-gui/src/g2/pv1/act.rs": "6cb13c1a4a7b0c2e6a6b975a1e5b5d528bfddebcbe1b92fb5dc7c02a47b94d28",
     "crates/flea-gui/src/g2/pv1/bar.rs": "cee74823119314c187fae4b08baa30d15d5ba3be8c59449dff9fcd0735064012",
     "crates/flea-gui/src/g2/pv1/body.rs": "41b26255c017cc8625d1f10dcdbeb30b77c66bdff1d624e8151c565adb621eb9",
     "crates/flea-gui/src/g2/pv1/button.rs": "95da89da5d867e835cb36668118fae76c572d4499cd796a6c26d8debf1435f74",
-    "crates/flea-gui/src/g2/pv1/card.rs": "27e2a0f18e10d61c68ba875063cdfedf78c69945ea617b8021d6a6b1849405b3",
+    "crates/flea-gui/src/g2/pv1/card.rs": "8df9a586b568dc0352fc3cbbac947f39cf48b271144da7880ac31e6065218734",
     "crates/flea-gui/src/g2/pv1/chrome.rs": "e25ea87c899bd5798a724f7a8e609ae4fb5ab06a745003d2e0e3e92b820bb1aa",
     "crates/flea-gui/src/g2/pv1/column.rs": "eb3a11b2f08568e85e64725993c18f0a687753aa0b6dce28e3fa36a92eba1e59",
     "crates/flea-gui/src/g2/pv1/doc.rs": "dea0e6979f3637d48ac1fefb36397de94d1fac92b117b512c07c17d2c55007de",
@@ -208222,12 +209129,16 @@
     "crates/flea-gui/src/g2/pv1/doc_keys.rs": "7aee183a4e7baeb5b2ba2d5045e47f8e72f0db5857a302bf32288ccdf79085a4",
     "crates/flea-gui/src/g2/pv1/glyph.rs": "68bcd5b05758e476208b5a259d23b0b5769847ef6667aed4ed8bee6c9a6a8dc0",
     "crates/flea-gui/src/g2/pv1/look.rs": "55fb497d6e946f19b46f8af827d9589918055028ab08e9e4aeb07eb191912316",
-    "crates/flea-gui/src/g2/pv1/mod.rs": "588df6aec68264bf3a07c53c002f73cc0e80f7349e53121ec1c8677920126d44",
-    "crates/flea-gui/src/g2/pv1/raster.rs": "2139022b2663cdac914b5dcb250631fb804c922f63038423f52f24deab3c2a83",
+    "crates/flea-gui/src/g2/pv1/mod.rs": "80601d773ab29ab605c86e041c3af1ab0fa529b95fa12c162a62d648b80bc336",
+    "crates/flea-gui/src/g2/pv1/photo.rs": "baa18776e150fd97e413fa0e7781c4f5761653fa6d321ca5dd3a613ada68ff28",
+    "crates/flea-gui/src/g2/pv1/photo_frames.rs": "4ffcb3134403d55e6e05d1f1463627398259e3362b6e9103fbd9495711d15aa2",
+    "crates/flea-gui/src/g2/pv1/photo_png.rs": "9396d748e77d00552ae20c22aede132c2d113d63ae1e437b724c2b215c72b097",
+    "crates/flea-gui/src/g2/pv1/picture.rs": "70e9071d8e67b4a57d090c61d7c8899c2c7cad6ef8ee686089e34fd029d75b12",
+    "crates/flea-gui/src/g2/pv1/raster.rs": "25cb3120767cc20e5a7b1b62b22443ceb44720b20efbe58fbf83a85da441110d",
     "crates/flea-gui/src/g2/pv1/scroller.rs": "6ef565eaee3497f4294360d519cd4420358f4893d0e1df4186b0732e6c62910b",
     "crates/flea-gui/src/g2/pv1/shield.rs": "6686557bfa65dc53a34735dd4fdfbafaa56d03a6b44b96c3d141158a4ca3d13d",
-    "crates/flea-gui/src/g2/pv1/svg.rs": "dd56d82e2b88aaedd1e70d42c18cff28e7927307d10de3fffce9ba4da13cc78d",
-    "crates/flea-gui/src/g2/pv1/viewport.rs": "1fd3b26db30d4bad613dc94a7cade7761cbd2ff5699e205ef2a62aef561f444a",
+    "crates/flea-gui/src/g2/pv1/svg.rs": "3156aae81e4eba840e0cb48e16476225cce3b0ce3af65e06b711c800a53511ed",
+    "crates/flea-gui/src/g2/pv1/viewport.rs": "0f863e9e74f86a02c0ebf944f13f47525bcba5ed2394bef01fd218e4d32700d9",
     "crates/flea-gui/src/g2/pv2/archive/mod.rs": "88beff9606f1b4f8d975e31b4d1ee761277f83d59193020f0d1328d2d4be7458",
     "crates/flea-gui/src/g2/pv2/cache.rs": "0b18a1f9431536740f87656339fbc35930e76e35633fc9ec589a7a48bed700cb",
     "crates/flea-gui/src/g2/pv2/code/bar.rs": "96ad50965d55871b49776bbc80c43e29c2c39be550dc7b6f08f93708de8968f5",
@@ -208291,17 +209202,21 @@
     "crates/flea-gui/src/g2/pv4/seam.rs": "528989809cc2a3b16b0d792b36b81787c43f132cd1a7bd6bc1cc5e0c1419a105",
     "crates/flea-gui/src/g2/pv4/session.rs": "a685718a3e3aea5f917f2f430ec4422559321388c8fe6535aef141450e34e99f",
     "crates/flea-gui/src/g2/pv4/view.rs": "99ea5d831623e40d3b4c460857cc47fa9f97637f57e4fb20ff5904b7ead669c7",
+    "crates/flea-gui/src/g2/sd1/dropbox_status.rs": "65ba6c512f16620698ffcb302e5d8c981d4540374a2b78ec612fef71d8e8c841",
     "crates/flea-gui/src/g2/sd1/ipc.rs": "5376f908d0afc07829b9b72a6df5d475cb71e5547620231604f4199f43ab1bac",
-    "crates/flea-gui/src/g2/sd1/join.rs": "6bd71173c637294430b9131b619997a5ec4057c0848a1bd2b1240a57d20f2c47",
-    "crates/flea-gui/src/g2/sd1/mod.rs": "534504eeea39d555fda39d96bbd8af7beca18a2c68625bcb970142a1ca910b56",
-    "crates/flea-gui/src/g2/sd1/picker.rs": "6f5752a4fc00def1392c9a5d66aeada2c99a8a465042b67f0bfdbd74a2c87f30",
-    "crates/flea-gui/src/g2/sd1/seams.rs": "61e2801c9d6af798479e20e99ce182cfaa6ea35cfe277b8fad96ddcc1ae435b2",
+    "crates/flea-gui/src/g2/sd1/join.rs": "77987afa60131db5c70f5fb60b13b0524de2a2eaff7db62fa60361f2ccfab278",
+    "crates/flea-gui/src/g2/sd1/join_process.rs": "775e0a9788d17f12de183e372519b95060eb51c00b4c1dc4d1f18e36755d3820",
+    "crates/flea-gui/src/g2/sd1/mod.rs": "494f63b1d1fd3773ea754e718c3dac72753e0a33dd39e0f03643fb3939153102",
+    "crates/flea-gui/src/g2/sd1/picker.rs": "1adf0c6c0c9c5d408334f7f9f53fa8075e672f40a764d31f357a91c7d0728024",
+    "crates/flea-gui/src/g2/sd1/reader.rs": "78d9dfd23f646f6b2c919abb43b5eab201c0a8fda5646dbc00b52316e0394b62",
+    "crates/flea-gui/src/g2/sd1/seams.rs": "e7d67b07bb536ce5bc0808ac4f90feb14be9fc59a6be6dfbaa8ac757441a8786",
     "crates/flea-gui/src/g2/sd1/view.rs": "b29454d3e0edd2b917f299a3b99bf7e4d569f99a378f428fd547d649851dac22",
     "crates/flea-gui/src/g2/sd2/mod.rs": "3a6b059ead498983192fa4fb4b47185c2176ff59b869461fdce07f4c5239e3e6",
     "crates/flea-gui/src/g2/sd2/seams.rs": "c73fcd8e41f136e07286ea6ee26a5cc6d3fca819c0c759eb40d42fefd58442e8",
     "crates/flea-gui/src/g2/sd2/sweep.rs": "b30fbb39be9b4fb3a1d99e07c4d3ac61b99718ca30da7d5a9e471d8f9751e451",
     "crates/flea-gui/src/g2/sr1/contents.rs": "95936a6ebae23b0131131af74db9a427203a30572cad34d47edc328626026d32",
-    "crates/flea-gui/src/g2/sr1/mod.rs": "b75dcf7a83320a39bdaeb8520b6416a8e8844025c2bbb0d0cc220fef2199b115",
+    "crates/flea-gui/src/g2/sr1/mod.rs": "f7876ae564eb6edefc3c3f01f3183ca0dd741378fbdd17a766214517eb64d5db",
+    "crates/flea-gui/src/g2/sr1/presented.rs": "b56e783d473d396115867a5db83c9e0914e028c9dc060305928ea397ce5a9888",
     "crates/flea-gui/src/g2/sr1/run.rs": "97be1a3ef81f36076d2208721a3324736183344cf42cc1495e6809c87efbd057",
     "crates/flea-gui/src/g2/sr1/strip.rs": "577bfddd93269137e98b5b9b5e3a047db040627480aac271f65ed11e647ac8ac",
     "crates/flea-gui/src/g2/sr2/filter.rs": "eb1130f5b7bb275be023cb8191adb4a92fab6348303bd210cf776984c05e502d",
@@ -208354,8 +209269,8 @@
     "crates/flea-gui/src/grid/input.rs": "fb41b39b9b3706fc1e2565cbb02a1d31564265fae03516fc585f72c6408ee019",
     "crates/flea-gui/src/grid/layout.rs": "76d5eccd807d961a6bf08923658b38c4b8a67e92423869b38d23a6c22f6099d5",
     "crates/flea-gui/src/grid/mod.rs": "3f9fd627118147d3fc54c6b9d455b99516932d224513c06b6f8bfdadb9823278",
-    "crates/flea-gui/src/grid/pane_view.rs": "0dd2accf4d9b4405bba9748418287df0e9dc0ffcefa15b0e77c09f992cea6cfa",
-    "crates/flea-gui/src/grid/pictures.rs": "a4d845c008b09225b28b063df947e8351ad5ad9698a81dfeea20b1dbf38da628",
+    "crates/flea-gui/src/grid/pane_view.rs": "cfb00a5d6f8c8c689bc33a0ab664a0ae5d40265bf8dab3d841501bb3a3932f1c",
+    "crates/flea-gui/src/grid/pictures.rs": "776a4daced567edf5575e3508ac377cc55314b67e34d989497b643f6b34ca9ac",
     "crates/flea-gui/src/grid/pictures/wire.rs": "0afddd33aee41cf0b000d2ae86a613493a63976c5fc77b0405ac81bc26b90399",
     "crates/flea-gui/src/grid/tile.rs": "7e00a20162eb73a854ab0a1f122048f3cdd7652dbe396bf6e10d8f9789ef38fe",
     "crates/flea-gui/src/grid/transition.rs": "9adfacf6efeaff79d665e6161905439b5ee6944de3cbce3e652a3099719dbabc",
@@ -208364,9 +209279,9 @@
     "crates/flea-gui/src/input/element.rs": "b04bf3d955339d4523fcfe3a3b36067f8b64d44af63ad261c4bcb8d1fc455b60",
     "crates/flea-gui/src/input/focus.rs": "2d0274a078a76a0a1d9493ff75088ea6524ce0a2a25d1518a2b8402b7d140697",
     "crates/flea-gui/src/input/kinetic.rs": "9292275aa8052140db66b53efb2772015ae993b71903c5dae2ed03135bdcc89b",
-    "crates/flea-gui/src/input/mod.rs": "5a1978160d07bae3f56e4fc2478c3d9f2bf2cefe71c72d58643f8d06ef15c709",
+    "crates/flea-gui/src/input/mod.rs": "090b7260f420c3af451828c4c76ca8d1ef4b240580dc1de6ed7625a0d3d8006b",
     "crates/flea-gui/src/input/pointer.rs": "7d0d5c05d6494ed4785f35b73775d20f186068bb779a15863e19580686207a5d",
-    "crates/flea-gui/src/input/pointer_press.rs": "3c00c9cbcbdd9564de53a3a7855f40b938d14de59758865f7b4392fd8fa691ea",
+    "crates/flea-gui/src/input/pointer_press.rs": "b0ca063a2db8a04ed5bc6883a20a222b0d18714d0c74998769617f3faf4fc0ad",
     "crates/flea-gui/src/input/scroll.rs": "31deb621d00e669a3aef2d72dd988d8851064ef2694722a5ff43089a666da089",
     "crates/flea-gui/src/input/selection.rs": "f1cdd0996aeb2d15fd204536d543e455a8a61624afbe3bb61f6ac3ff3fb00690",
     "crates/flea-gui/src/input/wheel.rs": "5b2305bb75bedbf40e781b215bf05205be212b61ca793c2623c2774544144ce3",
@@ -208428,7 +209343,7 @@
     "crates/flea-gui/src/palette.rs": "46c9d8726e11529f68da7dc2e1267949ddbdd0880ae834e7c2f03cf9a0871b38",
     "crates/flea-gui/src/pane/clock.rs": "ff7675b5a873556532d1e24ab5e1428dffd051fe2f9f534a5aaf42ed4ab33054",
     "crates/flea-gui/src/pane/mod.rs": "796b85d7f67cb5cf3a659cded1024d936fe6bfcf5ff82b7c0403a9f8e8fc3602",
-    "crates/flea-gui/src/pane/presentation.rs": "e3db38c804ada4981d968592510ebb65b6edb474e5e4eea94ab842a625f0d63d",
+    "crates/flea-gui/src/pane/presentation.rs": "775583f86268441b76fb1110bdd9c2605ebd8568985fef3b5213ec1d5ad99cdf",
     "crates/flea-gui/src/pane/requests.rs": "68d2f65801e6e05980fc2c3f6464bca846bc16bb4aba801f64dd3e22918f8ec3",
     "crates/flea-gui/src/pane/states.rs": "3e0d7b812a41832cbea10f55a088ffd46c3ff9dbd1b7f4585596e498ab959f70",
     "crates/flea-gui/src/pane/swap.rs": "caa10783740742855f9a6104e6fa22dee78336e312a469fb7c9d0ffba0a749cb",
@@ -208442,7 +209357,7 @@
     "crates/flea-gui/src/path/join.rs": "c31a9357be1face922093affae3b305c33c531170534948e2b8d4f4270915e51",
     "crates/flea-gui/src/path/mark.rs": "b35d535af4b1dd88920c4c3e1344a705dea7774e5d7c92ef8b6c4f188b19c374",
     "crates/flea-gui/src/path/menu.rs": "5618be153e8faf8f2d2cb7fd25e907c0b95a9a4e9a0257b79d6d66b353bc12bf",
-    "crates/flea-gui/src/path/mod.rs": "b469af1725b90954288dac9f3ffea19ff1d2e8ce70599e9d401d38b6754a68a7",
+    "crates/flea-gui/src/path/mod.rs": "103098d63190e9e5031263d201fef9ec09c6c9492e00b0296f14d913a22a440b",
     "crates/flea-gui/src/path/paint.rs": "12fc0d40b5d2150e8ab60414e1e7231871400eec553ae547d311b91fa816f717",
     "crates/flea-gui/src/path/probe.rs": "cff329372cd8b05ddf1e27304ed61a8161f5adb218ba37110cec4ac93f2af859",
     "crates/flea-gui/src/path/rank.rs": "108bd92778782595349306aa92a3894cf579a9b715acd838cb2a44af45f50f8a",
@@ -208477,7 +209392,7 @@
     "crates/flea-gui/src/row/cache.rs": "27243444c6e2dc18aa5756eefa8bfbea62a9fe0e2070bc7ffd76ec7513c73f42",
     "crates/flea-gui/src/row/format.rs": "fe47e4f88a41ccd9f94efc87bce1128a0d02a1e09ee746c64fb3806da7c8f958",
     "crates/flea-gui/src/row/marks.rs": "bb24a3be6c50a676f1c7d9c10ed4f24e0ad43b5a511554a153ca8cfbc5861d12",
-    "crates/flea-gui/src/state.rs": "414a824ad8f915521f784ede1d6af2d9e6783de4b151e27dd679d2f7acbab9d4",
+    "crates/flea-gui/src/state.rs": "d642a302cc403e6011f2b72945793665d6e3017bd5b73b1ce7e458bbff776842",
     "crates/flea-gui/src/state_constructor_fixture.rs": "77540162348188470700f92f0e42bc5b6b9c1a6597662ae3dfb18e3c564b50ab",
     "crates/flea-gui/src/state_fixture.rs": "968adf9fa89f62a72bf0fafa149a456d14b413f18ee4116840e425356a44b054",
     "crates/flea-gui/src/state_layout.rs": "f150218aed8c71931179a44d845f2d089d4685514cd084debc7686c994887f05",
@@ -208487,17 +209402,17 @@
     "crates/flea-gui/src/tabs/atomic.rs": "676098ff18e077453019d3106aab466569c98d104009f831d6ec1b75eccd58f1",
     "crates/flea-gui/src/tabs/bar.rs": "2145210e609fe83378d7037152f7bbcdd6ef693033cf90042e7c7a2f5614f35f",
     "crates/flea-gui/src/tabs/bar_feedback.rs": "c509621f27f7bccef31dd0c5f3de610e2f126f8e2264dde6279c069db23888e1",
-    "crates/flea-gui/src/tabs/catcher.rs": "0784c97fd411df73f25300b28210d53c801f6021482f1c723a44f55ab19945c2",
+    "crates/flea-gui/src/tabs/catcher.rs": "7588405bef4019d121ab6eecc629972d639ae6e54b857b58588a784fb3ce8dc5",
     "crates/flea-gui/src/tabs/geometry.rs": "f896e00357290c1ee0771e7dad65ce35a1e23fa1def845e3a3b7c86225ea2d35",
     "crates/flea-gui/src/tabs/held.rs": "07631e4f5fd64002554fb6a51b26999fd2ac063d281c548e03f06947acf2ba1b",
-    "crates/flea-gui/src/tabs/host.rs": "bbfd15c1b18b4b57b69842b528daa0b12b154c452a9bc590dff83112b4f3ea43",
-    "crates/flea-gui/src/tabs/landing.rs": "31eed4c7d7cdd0cd192fb466fd172ed2313e2b70228ced7ae87c24c3fc5f461a",
-    "crates/flea-gui/src/tabs/live.rs": "5074dc165f25defccc0948e82d647481c9bb623e3ac48a8adce924b5a58f6808",
+    "crates/flea-gui/src/tabs/host.rs": "e6668ab80f0f2cb979c77370d767c97cc0ab3f87d88494355552d2427dc2e6bb",
+    "crates/flea-gui/src/tabs/landing.rs": "e64ee1bc878c31708c7ccb3b6249ec6f469cdc7af867b46834219fb265d71f0b",
+    "crates/flea-gui/src/tabs/live.rs": "75e030fe0ed70efcea2d38a0f0390acfe7fab2db027aa47ee7d1fc77d793496c",
     "crates/flea-gui/src/tabs/middle.rs": "4a4e65191f602c0a3fa93011a460798b8c5fd84236ee8cf49af85ca35e67341f",
-    "crates/flea-gui/src/tabs/mod.rs": "705073fef8897683ac49d37b2b8b2610c20ef85020f62e1ea892d281f1b4b60b",
-    "crates/flea-gui/src/tabs/native.rs": "f6737be44efd2dddeca4f5cb4c1b896703ee6f6582e3d8379b4b548913268979",
+    "crates/flea-gui/src/tabs/mod.rs": "dc2abb1a88d89cb9131b9c2593e845078cf4fbf6c72bbdf08b8bd1376465660b",
+    "crates/flea-gui/src/tabs/native.rs": "e4fa33e1825f4456af0490bbd8174674cceeed163adfcea2ded44cbec82b39ba",
     "crates/flea-gui/src/tabs/payload.rs": "9f8c011bbb2525513a3e787ab39e270759da28982c62179619d8907b39d2ac12",
-    "crates/flea-gui/src/tabs/restore.rs": "0835220a3c5d017c736d03ab2dd8f41e3209b9864be0b84349d1ca762ce16335",
+    "crates/flea-gui/src/tabs/restore.rs": "f3b17aeda6661ca3e75d42620cd795e1e216b5ba3e9ecaf3f1e53cb59cb61c3b",
     "crates/flea-gui/src/tabs/state.rs": "1631946929811b7d8c0c1f7236bd38bb984d7c5487753c48c0d8a8c0be809b64",
     "crates/flea-gui/src/tabs/transfer.rs": "21120fa9e7d4b7d176e8d59851d6a74c5dca022cd45a96be7856c6af92f369c1",
     "crates/flea-gui/src/tabs/view.rs": "cbd238859ce67f9203e95ad077a23d87990aa5370c31d8adc24e8935202b799b",
@@ -208515,15 +209430,16 @@
     "crates/flea-gui/src/window/columns_events.rs": "a71c651cb8bc924a4a837753ca925e283a55a1b6e899fc1cd884ddb7f69de023",
     "crates/flea-gui/src/window/columns_input.rs": "43aa3a462978e4a98dc1109bdd9a5da79cf383024bcea2b478e0dfabd45ffa79",
     "crates/flea-gui/src/window/columns_readers.rs": "7d7102d82f5a7e575336a4c76517b752429ffdc6609f3bc84f550dbb53e48e63",
-    "crates/flea-gui/src/window/columns_render.rs": "18309ec4bcab891d4ae9f7761ca92bdbf50a238a11f10f01da5cd8a9cc5e2b82",
+    "crates/flea-gui/src/window/columns_render.rs": "ce6d31d1541e43c133c21cb385cbe22d739e3bf6515d29d9c14b54ce01a6c721",
     "crates/flea-gui/src/window/columns_review_r3_controls.rs": "4b0182c862d2937eda45296ea6bcb4642bc4a6725dabb07502b65145da8cffa7",
     "crates/flea-gui/src/window/composition.rs": "6db461f04165a9a18612ef090c432b3e75e60f6ba6e6fc639251de3cbfdc9c30",
     "crates/flea-gui/src/window/devices.rs": "5b53b2bac7c4dd0c9656507f6d61225bccb8f68bd7f3cedd4ab1e940259d04a9",
     "crates/flea-gui/src/window/dispatch/fileops.rs": "2f9d5ec2431968a383ffe0ed9a8c7b5ea4b42657c0d7d14bc6fe187566061a1f",
     "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "7f7c4d31bb149abd16ef3213a48422a23e662ec0f7082756276b067af565d1c7",
+    "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs": "96d8302fd4882bf6320e31d85727c477de0678b5ef9bb4ebacca82d9917a9d67",
     "crates/flea-gui/src/window/dispatch/listing.rs": "1288e75f34ff704df9927c91639d152b0a56a105303354c7593e22c0d54f9c3b",
     "crates/flea-gui/src/window/dispatch/menus.rs": "fa64aa5c45a4c8aa5894a55df8844c1cf9fabfb7c7480d54067c08966bf1a859",
-    "crates/flea-gui/src/window/dispatch/mod.rs": "58a311e4db5062b29d43db03604871efc4fe8d42e1a9abd34b5b551d6afb096d",
+    "crates/flea-gui/src/window/dispatch/mod.rs": "57059f6178a68e4748e7283603576b04f50df70d0c38e68ef06e1fa6f5689064",
     "crates/flea-gui/src/window/dispatch/navigation.rs": "c4e90f38f732cc36aebd643f8a97cf146a7e98798413b02012f0eb0bf131e646",
     "crates/flea-gui/src/window/dispatch/opener.rs": "cd2b3e141f17226e127410bd8f2abf17e2cecd089c344ff624e656db27b80a73",
     "crates/flea-gui/src/window/dispatch/preview.rs": "2642e6d460b2bb92ba354ee0a92e784ba04347a800a93005edf78638e72dedb7",
@@ -208534,28 +209450,28 @@
     "crates/flea-gui/src/window/dual_edge.rs": "a8f17ce42133fbcf0a3342193c35d5eb0c6663d634d3f425ea3b84a2bf5010d9",
     "crates/flea-gui/src/window/events.rs": "b33734e35d449587a20f4bff38dbeff4a2efee7766b5a24e89d0f6ac810fc5d5",
     "crates/flea-gui/src/window/events_filesystem.rs": "bf070645cae5d817488fe34ea194c1de8d77b9a3087617a632451aed711739c3",
-    "crates/flea-gui/src/window/events_ipc.rs": "0320057fb8979d4206b7e8d3694a830eed7f561f933ded1783af69b03f99f1b3",
+    "crates/flea-gui/src/window/events_ipc.rs": "e41ce38c310b0bfd2ab17a63dbbf69a1e3377b4f538ae3b1c5bc85ba73ba1ad6",
     "crates/flea-gui/src/window/filter.rs": "f3e7d037fac2a0cac58ac423eac069a881d2bf63dbf8692c243ea70b82411265",
-    "crates/flea-gui/src/window/frame_feedback.rs": "a0350396cf534c38ee4475871cdfc80eb17dabc3496233f862c202d8d41ab271",
+    "crates/flea-gui/src/window/frame_feedback.rs": "7400b3670691e6f6cc725d3f6018d5f6144aba8bb6948ed1c427c7c493b69798",
     "crates/flea-gui/src/window/frame_feedback/activity.rs": "6576d8076e25165ef1da3634c1179bffb3f9e25a294a6cd6ca1e26b51e459548",
     "crates/flea-gui/src/window/frame_feedback/perf_gates.rs": "505b15c5f3528d402d74c60c3e45cecf7e5951a603e4c5c75505bd75b8c3e2f4",
-    "crates/flea-gui/src/window/frame_feedback/policy.rs": "086d2506e57fa8341f06fa96ab4079b47f40e12efdbba45e6c9fddccf8d112dc",
-    "crates/flea-gui/src/window/frame_feedback/readback.rs": "5c718ca4f77ea71b245de657ee22df98e21d4c18183045cefcc57b351e1ec21f",
+    "crates/flea-gui/src/window/frame_feedback/policy.rs": "71ddbcbe80ffb0eb6435723eefaa537e088ee88550ea875d7002a7ad4b7f714b",
+    "crates/flea-gui/src/window/frame_feedback/readback.rs": "9a0b3a9c9c2d4ccb64af049351493e040d49cb3e6c5643f3a5d1e9d6bdaa60cb",
     "crates/flea-gui/src/window/frame_feedback/snapshot.rs": "6b85943585ead37b30d88f40cddfdc416f9df67c3dfa56b4536e039b03c7b952",
     "crates/flea-gui/src/window/frame_feedback/timing.rs": "cc77bf98cb2d1a1f083c4a3f1317300fba2bc28985fa93e3b2609fe7d4acb23b",
-    "crates/flea-gui/src/window/frame_feedback_join_fixture.rs": "67ed0a81725c25ad28d36f4723184e001c489fd472184bbc2d3c18de711c9160",
+    "crates/flea-gui/src/window/frame_feedback_join_fixture.rs": "8f70af3838cbb3d3d40cfe4f8781a3f0a8ffe643e68373dcb3d3e02a00405fe9",
     "crates/flea-gui/src/window/gcomp_live_fixture.rs": "63f0ec4f78b410b8541a897fecfdd513288a14bc260b4affefd09dbf6330ec5f",
     "crates/flea-gui/src/window/gcomp_menu_u13_fixture.rs": "d8ee1f4b2a64b0b6473f29a72ae0430706b89d398710d7848f57157b90925b10",
     "crates/flea-gui/src/window/glass_tag.rs": "21a8c37e94bf454d41c43da024b0f9349a9387c0f4fb920fc6b89e22eb433a75",
     "crates/flea-gui/src/window/glass_tag/events.rs": "23667d973f359c344bd6141156ad08131154414a962ff4ccfe8daf1f6cfe1243",
     "crates/flea-gui/src/window/glass_tag/run.rs": "9bb7fcb9e6da3c6143a0be4820006857d982ded3d08b2025d2ab8f4ec21237b5",
-    "crates/flea-gui/src/window/input.rs": "5f7a4516e2d951bbac14426962e55409aa3c78499cb0d9f331ccee65f071876c",
+    "crates/flea-gui/src/window/input.rs": "266d2f15c4276a26bf3f8b23f4d81883e375231b5e46e777352768619f1dcc6d",
     "crates/flea-gui/src/window/keyboard.rs": "51d2a3ebc2c5cff8d6e197eefbbeb5bd2eb51e323810aca206d6cedc70c50b82",
     "crates/flea-gui/src/window/lifecycle.rs": "689767f40d95c0995fbca9ae443a57c406bb7f37e1db1c26376d7b6ed8a2824e",
     "crates/flea-gui/src/window/locale.rs": "2201056742ff25026aba42c562bc6c517e3aa6bbac5c22f131435df3519d036e",
     "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs": "b49f4e8ead91cd2bb902af7fc374950db77446671d739fba45a799ebe0ffb231",
-    "crates/flea-gui/src/window/mod.rs": "ad4878173d5b762340f379031989b64e374dc72c3147215f743c13654879347e",
-    "crates/flea-gui/src/window/navigate.rs": "e2b9922f74b0d231528ef5265a285f5c43191d95527df4f9a76c71efa04dbc94",
+    "crates/flea-gui/src/window/mod.rs": "80a9f247a8d31466d491cc24949c047daa1bc82176b19bec26ab159e1bef2298",
+    "crates/flea-gui/src/window/navigate.rs": "d65689114ea94667d11eb9bcc0cf8e2ccfe883b9db0a1e20ad4a87250dea7a65",
     "crates/flea-gui/src/window/network.rs": "c04b9378522aaa8e61690e9e18eecdfeb3a162584acc983a09c19d1f9e7b620a",
     "crates/flea-gui/src/window/network_effects.rs": "8d590e22e0b7f9bf78a28d0245abd3f4e78e201fd807c33fa7feecf3984a0206",
     "crates/flea-gui/src/window/network_menu.rs": "ff2b60edd0bc8a3bc00bd709ed9995cf119c2149a12f0f74e71f53eae3a0646b",
@@ -208587,13 +209503,13 @@
     "crates/flea-gui/src/window/rename_replies.rs": "e41a289e2472014d6eb7ad840af9b7f72d8e2fab680df7c7f3601484df961f05",
     "crates/flea-gui/src/window/rename_slow.rs": "f01a0e569d1605e590468fbd141b53cc29b5889170f6ed82465ae3bb43512d52",
     "crates/flea-gui/src/window/rename_slow_policy.rs": "a353741f00f4e36fe7e0000ddc875252f7d9e1daa99dd62ed4be671a2967993d",
-    "crates/flea-gui/src/window/render.rs": "735f3ccfcd389070ebcc8f80d20bc72eaf481a153edf4634ea8697f5d6214bbc",
+    "crates/flea-gui/src/window/render.rs": "49b894f4232ede87efa71af01dd19d852c65de8ac19457bd73dd1eae64f8c930",
     "crates/flea-gui/src/window/root.rs": "9dd0d3c965989a01ed5c2cd0c10a4995269a0fbd41986cfed7478a010cd67d49",
-    "crates/flea-gui/src/window/search.rs": "9a96e7b98670f154c383862780e469f16580f90e805963eed629f19c70efe314",
+    "crates/flea-gui/src/window/search.rs": "d0ba66689ed7396f7c0e09612b29bb07d0ef11178492d6522b1a5d0577652d89",
     "crates/flea-gui/src/window/search_density_guards.rs": "5902cd5e2b8bc972855eda797fca6108a3aba8fdf3fd55098e89b8b6f9699a38",
     "crates/flea-gui/src/window/search_empty.rs": "bf3b923395be452e98530848fdad1abba4581aee66aabcab18ca5f8b3fae0f39",
     "crates/flea-gui/src/window/search_host.rs": "da0f8235cd92d8dddda1d03d560e2554e01e7d359b34ebbbe12c56d0a6169edb",
-    "crates/flea-gui/src/window/search_observe.rs": "43b6306a09be1c15df9487fe41de897a56c25faeedb64c8e2c346546fed1a6c3",
+    "crates/flea-gui/src/window/search_observe.rs": "be40107910d550dc7e94d90655de8d44e54a382a84d9f22e4a69afea73782ec9",
     "crates/flea-gui/src/window/selection_preview.rs": "da0b1f03129318812c74a7af7188d16f8e0212d67c58166c6e7189b7fe277d4e",
     "crates/flea-gui/src/window/selection_preview_docs.rs": "153f41c777090ffa1b06d8da763c530ddddb55d40050250e589b726bf759d555",
     "crates/flea-gui/src/window/selection_preview_frames.rs": "6ac5a4cbd61b4e87230a487db3c8f1750cd61af15872aa82a3887fd3937293c8",
@@ -208617,7 +209533,7 @@
     "crates/flea-gui/src/window/status.rs": "700e8321205315f202bbe5e3f504a9b885c2575bf5c282b0b3d9aafe72bdb7e4",
     "crates/flea-gui/src/window/status_filesystem.rs": "34d06590a93749f973f2671d726f514d2825b70d15b4c40b7ebd2f07827adbcd",
     "crates/flea-gui/src/window/surfaces.rs": "996777659fa07aea0df2527f0467a1abeb524bdf1b0525df0b21079a104ab23f",
-    "crates/flea-gui/src/window/transitions.rs": "b325bc8e7abff7aefc490f38b54ede2e675e48e9201dc027dd5694f820baa1d9",
+    "crates/flea-gui/src/window/transitions.rs": "7822ce61ce01d6557eab92b031234957cc907cc185666b1ccf0d6bc5aaef8a8b",
     "crates/flea-gui/src/window/typed_presentation_controls.rs": "2292a9b70a2a0b5de7ed35a36cfec2e4b9e64fcfff3d4c63fb7add3f0b69fab9",
     "crates/flea-gui/src/window/typed_presentation_fixture.rs": "66b2d838dc17a037ddfe46c79a135cf3436676491af725a9cd4b5bf612601e72",
     "crates/flea-gui/src/window/unlock.rs": "4295047ad508261ff8d391264aa8b378e900f6a98a24a35aab86c243f0ff15f9",
@@ -208650,6 +209566,12 @@
     "src/backend/collidelink.rs": "13a50bae82bdc2b0a9193e5d2760044201d5ebdfebb1716154da3b8fdcaf8e07",
     "src/backend/combine.rs": "71a6f0ad1adec493421abdb9f125c584f645f9d612a2562e353eb35d92601896",
     "src/backend/compare.rs": "e777dfb222e8e68dcaeef488b79322c085a65f88518e889217d42330c51db7c8",
+    "src/backend/contents.rs": "f2615ab52a26d750bcc149a241a300a2ef300b94667f2180858440ea4de8a5c4",
+    "src/backend/contentsguard.rs": "702ebe85958d25c3a3f4253237a4cc728b969e84d9766a9d218c8745f1fff789",
+    "src/backend/contentsorder.rs": "6fdec3f2d13d31a4002739ca136508393265f5300158512e2d3ee53fd5537002",
+    "src/backend/contentsparse.rs": "8725aa6220a2f3a58dcf0af042ffa85bbdce009ab2d380a36865c7ade3155eb9",
+    "src/backend/contentsreq.rs": "b407cedc2817e2621242d4c14d112a57e6aa69830171248cb04255d1fbbd83c8",
+    "src/backend/contentsworker.rs": "ea5438fb0cc59d52d4200cb042df87dc5ecd6d414f086f38d0d10965801263ea",
     "src/backend/convert.rs": "27d3f89a9dc475631c26fddcd19c620bfda88146d137e90fec1b89cfe211cd0f",
     "src/backend/convertbatch.rs": "d62d050bcf9cdf31314ff9cfc541261351a27a24cb69ab5abc0d094ec93cad91",
     "src/backend/copyfile.rs": "c4b61adce91b28a0e822127a4ffa08a7028d489fd9d35bbef97c7b4735149b43",
@@ -208659,11 +209581,11 @@
     "src/backend/csvrange.rs": "af6deee087da87c652b22909ba43ff466dc09f9ab0e43ae3f205fbbb61c4db3f",
     "src/backend/devsreq.rs": "335d64b3dce4ea4550f0677f97178c24113aa272ed48f7e43efd518199496993",
     "src/backend/dirsize.rs": "268e77773bee592110cde1ffea678054d9d2a51c42d4b61ad1c6fa3c14ac2779",
-    "src/backend/dirsizereq.rs": "d2f784fd034962300c0b0701756b1e59012acb3ed155de33832ab8c34ce22220",
+    "src/backend/dirsizereq.rs": "9b262c36a06e2cf6d8ced104bcb1b401771c002336fd9ac6733a856a4c778a23",
     "src/backend/dirsizewalk.rs": "657ee20ff611471bc3d78ea8a2a2333f982d6eb7ef5138f8b53bca5e48f68706",
-    "src/backend/dirsizeworker.rs": "aa16ee86d2d1eaa1bfeecb98832d9d7e222c896e08713b3a7e87e3493619e188",
+    "src/backend/dirsizeworker.rs": "ba6408068ab1b634e2abb57faff710eced66026b0f05496ae93e4775b07d2c2c",
     "src/backend/durable.rs": "53a5f85d1b85ad7e9eea8b2ca25ddfc457f15e6b820834c03bd6281aba581cf7",
-    "src/backend/events.rs": "a69d548b2a3f386cf67436c0e6aa87dcc714fe5c75dfc04788462177b0c8235a",
+    "src/backend/events.rs": "e168b492d301fc3cac99be3a87367e5592dfe81923e380a4e7e0b3fd93afbf8a",
     "src/backend/exiffacts.rs": "ffc31ed02e73a44adab1d21385be72ee4bb0d2c8dbfe0b0c1254c5d7e4ecf8ac",
     "src/backend/extclass.rs": "257b3d880a69e4e436b02ec1f53974633fb97f4723e5fe7c402adc9d8bcde35c",
     "src/backend/extractindex.rs": "3b2a19b3487ae145f9dadfb0259b9c378f718840176f7d4e661af488f667c5fe",
@@ -208688,7 +209610,7 @@
     "src/backend/flashpipe.rs": "c65ffd268dd7faa0a970a1bab9267164e547d95fa83924e811fbbb603964361a",
     "src/backend/flashpump.rs": "317dbd571a695ab3301b7c98487b1377fd162a75044688c8a31a871f6a9601c3",
     "src/backend/flashseam.rs": "72767ada90666aa5c95348fd13b694467d369a57b42d3444c7173ed1b565af76",
-    "src/backend/flashslot.rs": "5c3df6ce8bb8d525713c080ffa96ddeec8ecdcade6a08c03349bacc791c5a163",
+    "src/backend/flashslot.rs": "7e335e102878d53f65316a27b95b866555a6ce2561055a0e39fcc37e32a927fc",
     "src/backend/flashverify.rs": "edec4cbe14cebe0ae644d0ec52dcee56b7d1afab32fa9f3e03b5fd7aafc842c5",
     "src/backend/flashwrite.rs": "33059478e8dbb057bc53b95867c742dec08d6d4ae6be9552dc84b994ebdd65a0",
     "src/backend/flashzstd.rs": "fe120f05d19d48616bc26f77b91aed9513da61c7b77a807178fe613e24bd69eb",
@@ -208696,13 +209618,13 @@
     "src/backend/fontinfo/cache.rs": "115480f18031a2cc92d043670b9acdd822244740535246c3b2c3006ce225ddb0",
     "src/backend/fontinfo/render.rs": "d4c25bc2b1482a83e66b898074b914706943b62cd4950d8021b0234c92f3649a",
     "src/backend/fsinfo.rs": "56d9b5517d96b275d15b00bbf36ef899ae0555370cfb7689a617ad296c98bd4d",
-    "src/backend/fsinforeq.rs": "b63e012ee979989e1c8d58ff11992b273710f377c9903596dbad72f0da33a7de",
+    "src/backend/fsinforeq.rs": "4ecbaa15f4aa0e37c866a529ce7d367f47d7acc49d7f7b51b2e755f963871cca",
     "src/backend/fsname.rs": "4e91fd39b1a03553043cbc0457b59ba9ae2b0ed489f0d8c5466da62397ec496d",
     "src/backend/fuzzy.rs": "4dc9805fd1768b9ecc52948754505b72025702bed155e0295a4778342f7755ff",
     "src/backend/gitbudget.rs": "0a6bbac5774e68c8d86845bcf035a2cb0069c64c66bb60fea38acfe8978f3cf4",
     "src/backend/gitfixture.rs": "ca8e8ccdad0e320480703a1fdcf923431012c415b83b391e0fc293d1f6109817",
     "src/backend/gitprobe.rs": "bd1f21a5e32b666510f1864c9ce577e2ebb3b5d9d257699cb3eb9e79738caf02",
-    "src/backend/gitreq.rs": "401eac6514527a2937ba05708fcd26559c7ff3a29d38a4398294b30b8232cccb",
+    "src/backend/gitreq.rs": "71ed3ce7ffe33589988296eaed1cc64d07f7b5ff301dd1bd8080e6babae9d2eb",
     "src/backend/gitstatus.rs": "787e9de1b0a20741cd796a46b17ae602b5b22247be574136990649e32534c0ad",
     "src/backend/gvfslist.rs": "8e50dcdb72df4a48f2501235eef46585c9a6b7106dd18eb26fca017d9a8f331a",
     "src/backend/gvfsroot.rs": "b7784896b8376c925c94051685e4a75fc29d61df5cfa6a2df8448cc327a551b8",
@@ -208715,9 +209637,10 @@
     "src/backend/htmlsandbox.rs": "dead4ffd0b2035b920d09dd491c77ce10c8b1d2c9ed39eb356d7c1e82fbd974c",
     "src/backend/icons.rs": "4f5132507d9a9f35cda16f3c45f2a6de0ff76b8d2ff7858df86da761611ced23",
     "src/backend/imagesize.rs": "b95e5f7f52e5027592909761250b230556a3a95e06a5c1a59afbb24a4f16f844",
+    "src/backend/inbox.rs": "a1328c9fb24df0aab01088d85d1b7d85425c7890da53b323e9dc37132dd9e29a",
     "src/backend/inodereuse.rs": "a6e8d782cf73119bb669fd680729583d201a8c15e7f5e98b3f87f01e592fcabf",
     "src/backend/inotifyburst.rs": "44b8ce97d0071f3361ff3dbe841c6552f14ed154896b06506ca643e3c2456331",
-    "src/backend/iomount.rs": "4a2042013a08e01deeb9fa2be6abd9c554c6395445209c2d95b1274ce7c05d93",
+    "src/backend/iomount.rs": "34335c07e59ffeeee19fc3454ccc5250da2274385ca4370f578cc3cd5d4a7178",
     "src/backend/jail.rs": "459eddc9cff901b45ca152f642c02e8b6235aed03d6875760e987818aa70d000",
     "src/backend/jailreap.rs": "aa8df53bb2032f215fd61274fa73880d41b958951dcea65e6d35a0b3dfa2e12d",
     "src/backend/jobdrive.rs": "bdc2280af9f2d7f17dd6dbb1571182a8bf5416e91e00915549306a8d86e68cf5",
@@ -208733,8 +209656,8 @@
     "src/backend/linecount.rs": "ee7a2e74cd0adc49414e1faaf53d2017e375d1678910cccb677ca84f0d570952",
     "src/backend/link.rs": "2865e2ccbbe58915e91b75bdf7962ecc0af101fcf2c0ee6f8790978b341402ac",
     "src/backend/listing.rs": "cf175b5201997773345881d7a87413323e54f5aded162d8726b423d84ff6a155",
-    "src/backend/listpaths.rs": "1372c9870a7a00ac5ff117a135f055a15039f3039534aff4f81c317a72ca76e9",
-    "src/backend/listwork.rs": "59f6b79daec24c3b94db8ff204dfab2edf8fb6cde0d2787680428aae69e5ecf0",
+    "src/backend/listpaths.rs": "0bdcc2247212d7e67940736cc18d9e7b10327a0706d08357c53446ef649a47e9",
+    "src/backend/listwork.rs": "0c1542742636d4b8094fb3d85bdedda25260d4dad574c0254c5927fa8463d1ea",
     "src/backend/locale.rs": "6a21427003650a94d936cba4c43a54cbb4f1c48859084d57ea510e051529803f",
     "src/backend/localsend.rs": "e23e057c8ae3a5163ff8a1680858331e99b0620ee52f75ffabedf5545adf92e8",
     "src/backend/localsendtext.rs": "5417b592823c12753191a2bbf9049b82667eec1ba39e2a05ead86486649b8388",
@@ -208758,7 +209681,7 @@
     "src/backend/metarow.rs": "644e25e3e904a289e9bb939ddbbd4f27284c2d9e04cca1e9e65fedb3fa3c0391",
     "src/backend/metasort.rs": "b147824816ec8aa7b2428fba5d6d8a70ab6f338bc64f2b5218d548bb0850239c",
     "src/backend/mime.rs": "938e568e1640fe08fdf20359ee69b74272b41c2c64f53b65a3803dd129839ea1",
-    "src/backend/mod.rs": "cd1cf5e8822fb905fb273f1d7cfb9997da50bd7753a4febaf4d421c7f25ce5ca",
+    "src/backend/mod.rs": "3294da655eaee04e637b606ff2b30ecac9377cc4c53bdfcc8c44b1b90eecfadd",
     "src/backend/model3d/amf.rs": "8213147933005346105ec28f5ceadabaa6a669db1ad2ceb3cf3ccdaf5e8a5505",
     "src/backend/model3d/bgcode.rs": "28f87b299f411af3d35f46852c8e618f52f77a1f1a25086fe3262c018af1892c",
     "src/backend/model3d/codecs.rs": "aed0be0bbaa80d1050d89ed0bcee77cf5c423666a95f6bffcb92361a532ebd2c",
@@ -208786,7 +209709,7 @@
     "src/backend/model3dreq.rs": "d91d2026070364ee8f38f996d82569221e5c4a63c61d82576bba99edf00d3411",
     "src/backend/mountinfo.rs": "1bc3a6e227a8fb965df98190d91f4e40965d2378f9c125c94a2906de7b1ca78d",
     "src/backend/movebatch.rs": "5694149ae5d6a6a756d97c0513ce25f1bfa954bc588e1587be21078de0cc973f",
-    "src/backend/nearby.rs": "a846632bad7a2b1c586f9043666acb607b0b9ed4113e7a99d3cfa294b97ee976",
+    "src/backend/nearby.rs": "fea7787215f1d6ebceedda2a1bf77f99212d0450ea716ef40b81c069c0b961db",
     "src/backend/nearbyjson.rs": "e187519391a97e5d01747d633d817b2dfc720a2c9306b1a47d591c7e3060c282",
     "src/backend/nearbyrows.rs": "d25c0dca1fe4ef939ec93868c48b7ca0e635690371f7d9d2e4b1bd0fa13d003b",
     "src/backend/nearbystatus.rs": "c238fad6f17a9b3ebb41355a2d6d4ef435da124e7513a67e837cc6af58de9be8",
@@ -208799,8 +209722,8 @@
     "src/backend/officepublish.rs": "df147c15f7e990474965b2ba5a7208a3d20b637b36aea8f1b2ea42887068bde6",
     "src/backend/opmsg.rs": "2adf0d387e0253261410c2edbadc20e7573f3e04e00485783d8a3f7d7699879a",
     "src/backend/ops.rs": "a80b81b42d5f3e06eccba3b51dfb3624874ed3429b342f32b762f7c2e2586490",
-    "src/backend/opscancel.rs": "c44226b57e1bd6ae466f8ba641680f4c30e71a49ae398960b6f94ff115d8ea5b",
-    "src/backend/opsdispatch.rs": "65af4db285364074d93456b9f401e91b6aebe07160c59b58756035bf65651bdd",
+    "src/backend/opscancel.rs": "9418041dfe86184e9c30bfe87a7c8bd46208e1c1d8130f52ded4ad9e8f819fd0",
+    "src/backend/opsdispatch.rs": "8c74149b9e489167264a5f8c153f67f65318c1e796a7c559ec62e7e434df5f5d",
     "src/backend/opsname.rs": "d6a9f806c2f6c343e6fb8e1a645556e728c229f10369214c1e50f2c0ca7ab46d",
     "src/backend/opspace.rs": "6dba8573f53c68c2c35f193aabffd410f1a35b8f56ec32c309df21ac01e96bb7",
     "src/backend/opsprobe.rs": "515c27d465cdfe7b4a590812b775f3563ec3321382da7d0ff593c58039bb709f",
@@ -208810,9 +209733,9 @@
     "src/backend/pagerange.rs": "46f8e05ae0586e9c72d5f793942ac75e3ce895d7f3d73044e3677849217263b2",
     "src/backend/pasteimage.rs": "a2f7beb57768ed43367823538022b74b198511c30ecdcbb9d0e407375a1898a9",
     "src/backend/pdfcopy.rs": "dac036052732c35ca53e712264c506d6da04b74f6132994244621263bc1a917d",
-    "src/backend/peek.rs": "69af44fa504706d1bf14f9884e094fd30941732abf18740878687e6ea755d29b",
-    "src/backend/peekpump.rs": "dd7c9afd7a84c3c4cedfb9cb89bc7de5af54ce53eb7a725a250fafa249b50261",
-    "src/backend/peekwatch.rs": "14c9b325460291294b09d1789c615422d536336188615ecd5ed68918a7e1fd20",
+    "src/backend/peek.rs": "8774e8e0b471495bf7a8cb4488c20477fc27fdbea16b41f720e95ecfa0c6efc1",
+    "src/backend/peekpump.rs": "4ef1b5a74fb2f6f6f5a5b222a1e1cf99ef3d1c154348b973fc33e8ea7b16d1d6",
+    "src/backend/peekwatch.rs": "4413212e23d20c89f628026ea1eef804172f8fd2a1083adf1613c501741e420d",
     "src/backend/permissions.rs": "e006f7a01aecc22375ff0d93ad50c68460b5ed0e897c5d716833587e54ceabd1",
     "src/backend/picker.rs": "9002a13e58643dd80a4a596695c54033a6886a74a07c8c634d54a6b86bd63703",
     "src/backend/picker_limits.rs": "16ce628a55875765c65dd784298b98971e9dc65d40bbc8b2cc746b188135c73a",
@@ -208826,7 +209749,7 @@
     "src/backend/printreq.rs": "e059a189cc0d272e4d415db8ea5352d4c153855774d49611b66ac409152e7aeb",
     "src/backend/printtool.rs": "ca7bcc0231487d8d7f9f8a25d880642da54c6ea19a560cb89fbe06a9357614a5",
     "src/backend/procwatch.rs": "02e48f8c21955f84b80ab07314f7d2fd33102cfbcf4f9b615ef20569eef01b20",
-    "src/backend/proto.rs": "ddcc3b6ee1af19376d42342f45d6906f9a1de8443b429995c2bcfb87e8cb08b1",
+    "src/backend/proto.rs": "43b17c2c41dd01ff1d7f3ebdafaec786e2f167a1c2dc1ddca07aebaac6ba67c7",
     "src/backend/protoreply.rs": "870d85417fe7313323c4f40050bcde855bb2831595b9dd05909a3380ef009db4",
     "src/backend/providers.rs": "5778e9aea8c03b57e23961b104088ca346f951df293a8434d9ef5456ad3342c5",
     "src/backend/quietpanic.rs": "edb0b36a2d1902dcfcd8f7edf18f84539f9167032e232938bc392389cedd374a",
@@ -208852,7 +209775,7 @@
     "src/backend/replacedefer.rs": "ca0427614294f9773cdacd54c616c57c7de5df021788801be8b852f3ecde9bd0",
     "src/backend/rowguard.rs": "48370d931da35757d3defc53b7777d5680a4b022284b0f8f378b17eb3813e9dd",
     "src/backend/rows.rs": "52b1a3b0906a83a835f17fa9d6cf09ae11ff66e03fdc28ad36f77f9b0750411f",
-    "src/backend/run.rs": "1afd078609e081fa0fa150821b3d593587bd99065a85fac10ca2bf197a890bd2",
+    "src/backend/run.rs": "f2280d474cfaea232fa6e58883d8e6bd01bac7a2d1471c0e5ac6d8367e0df5cf",
     "src/backend/sandbox.rs": "53879747de8586bfe848039cc7e2a3072868b4ab1b833778571e533c42c3e9e0",
     "src/backend/sandboxprobe.rs": "3e53fe6593b25281aaf4a7c80ba6cfe73adbc7482150f432acf799ef678d4445",
     "src/backend/scan.rs": "1bb6fa448aac8a21b3c87ab9fcca0d4d7af9940f6a227fb44ac63abe13477c9b",
@@ -208862,10 +209785,10 @@
     "src/backend/searchbits.rs": "b7842ff21afbe14065556b82760b4c4185798cb1c8d41e01ed4f7d4896c2b027",
     "src/backend/searchblocks.rs": "e48fa26b792fc5fd014c361222ad62ba72c96c617298966e86698bb2b8ae2bcc",
     "src/backend/searchdelta.rs": "381c2476dad382f9807f907d40ab334065ab9a17bf93f55fac88183145b9a153",
-    "src/backend/searchhold.rs": "6fa2aba2b78b037b310a48d009b464d4f2a8e194f650381e37364a129b3effc1",
+    "src/backend/searchhold.rs": "4dd3e4cfbadfec591b74999576fa2f054450f3308b9641a1cc95fd37a070f08d",
     "src/backend/searchindex.rs": "810e5d4981370cf460fec19022018c0914bf79fe7012b187fa8378c233fabe25",
     "src/backend/searchindexpatch.rs": "ad22d146378052a2777d15a91e3163c8119ba714b5b6e38c9a7da9c1cca25523",
-    "src/backend/searchjobs.rs": "62ac84d1dcaf157444c57ffc8e35e8b5ee500a016557f94af4e739d9d6152306",
+    "src/backend/searchjobs.rs": "6a0bc6b709089e021baa8b5fa0655eae7895a19e500cb641a42a08adaba89a39",
     "src/backend/searchmatch.rs": "e410971945da66240563ec6f3171dae5b53d8e44eea7a4d325d9b223836ec6e8",
     "src/backend/searchnames.rs": "bf8d49ad7a06431751beece3d266b67bc0b73a482cc87753cc8fc0fda343172b",
     "src/backend/searchpatch.rs": "a2e6ddf15008c119a4b02be758fd3d8319771178be2b5c514e01eb7a7741251a",
@@ -208876,20 +209799,20 @@
     "src/backend/searchrowcache.rs": "6d81ce0ee6f21420c9fe399e339a2276d96a7a18aeebe57f9c5c4abce227a523",
     "src/backend/searchrowinodes.rs": "5252b3f839d2c356fb67b7120eab9e7138bd1284e63bc264a9789c2de36bd708",
     "src/backend/searchscore.rs": "7926ad832967ed99f7815647e5195a62b65a7fe17a98488f68e980e689ebbcd1",
-    "src/backend/searchsession.rs": "b4f98aef90cf83569435811d137e48de0ec06b3587e485d4d72340c53d7621ba",
-    "src/backend/searchtags.rs": "f0430a25d7d4b5ddf56366d5d9b10915467dbcb5058d5501526768111fc3c748",
+    "src/backend/searchsession.rs": "eb2d3c42d08c48767bc6ae1ec0f2208b8610c25d21376bee5076b3da3d5ad418",
+    "src/backend/searchtags.rs": "186669fdc3d18d55f00b5ef0b4401ce324a47e60bf58902a240f36d7907041ed",
     "src/backend/searchtypo.rs": "e656b88b65967f67cbb5f594c10140ebe78978cc35d94a4b47a701a882154f45",
-    "src/backend/searchwalk.rs": "d80f136b8a03b02d1af1f84980d067166c5edd3d492395558c34b6d3168c93e1",
+    "src/backend/searchwalk.rs": "1c1003c68aededeb01c450d8e4ff673f3d74596a6a1dee4e460e459cc22c7860",
     "src/backend/searchwalk_probes.rs": "e11f3e56d3224503e3fe3ed31f5c0f71b5d91805e815334696d72803c3eb2477",
     "src/backend/searchwalkhold.rs": "8b59bebf6c21e31afe953bdcb91ab76e110fbb942c9842b24f72b83cba079423",
     "src/backend/searchwalkread.rs": "3db6459d233fdd79c4118b4e91cd6305d323041300305c7ff2b4ef6a70ddccaa",
-    "src/backend/searchwatch.rs": "57be100512a02a1db238766563e68ffa3cf344faa1a2b372fbfa31e613bfc8df",
+    "src/backend/searchwatch.rs": "d0fcf6f5045311d9ca61fb00d38aab4ec2adef7cff794d84de86ce93ea8fdd1a",
     "src/backend/searchwatchpump.rs": "1985350aba2bd2937270e16a358b4263065bcf7ec1add6656114fcd1707cee62",
     "src/backend/sgr.rs": "e5c8557cc94cc56e7786ccd7fc68382c9488c62da12c417b545badfd389f6f71",
     "src/backend/shebang.rs": "a554487bd81f634875560ad5055955e879c559d9cd89393bacca8611dd12dbdd",
     "src/backend/shelfdrop.rs": "7675283c54b8c0fdf837b1ec9f6ed1cebed18d3d9f2f682189b7cdba9213d2d6",
     "src/backend/sort.rs": "05861266bdfae71c9f7f7c5fddb45e74ead21d76f9d5c4b660429ddac587ecb3",
-    "src/backend/state.rs": "7cbcd8aa076e0f1e4715edaf46113a86b6330ca7774b592d034929d534d25644",
+    "src/backend/state.rs": "7fcb6ef6b1380744ed11e10cd7c7dc16d4215c3f6aa416b13f60073763437c7e",
     "src/backend/tagreadprobe.rs": "a5b5d41231ee53f66ad017ddca32e66e72e243abcf6c5c45fe3c89158ce97c49",
     "src/backend/tags.rs": "86ed3c60b21fdb41828e79637dd4eaefe707413789f52dfeab9c0123bbf08828",
     "src/backend/tagsedit.rs": "5ab5efc6583cc0de75165466b5670fec4740a1431785c2d69f4d270c04d5d697",
@@ -208900,9 +209823,9 @@
     "src/backend/thumbargv.rs": "f6e90a6805fa148b0ca2a6cd4709cd65397d7a50e44e04e1086b15d01ecf43d8",
     "src/backend/thumbbind.rs": "2d209ead59ed2fd23870054a2a573d0c95045efb58bc4ffeda5e512472f2e83c",
     "src/backend/thumbcache.rs": "b6f1a039bd46a6bd08e32f00fc7090decca879a6b94e334201391903fdee2df7",
-    "src/backend/thumbdefer.rs": "de95d585205bc21ee8b85a3d188a89aad9e7c8414155d2997dae0b1153b90a95",
-    "src/backend/thumbreq.rs": "b0b3da6eb0e92d712b60706af084ea510fe841055944f53ae05814195ae5df39",
-    "src/backend/thumbs.rs": "d3cbf2d2d039e0b22f49e1905c93b843577b478fa44c453197bddbf83b71aa70",
+    "src/backend/thumbdefer.rs": "2c2f31113f9b67b87193d78e943abe6ac3ff1d0f9661541e4f7e9eacb1524351",
+    "src/backend/thumbreq.rs": "9ab691af6ffc8d7d811b53797699f68152059a369d5ff21d028ea2646cd237f6",
+    "src/backend/thumbs.rs": "570ccd29588bf37f2c810189e1ba09849e89716273d860c26bdbf41aa787e537",
     "src/backend/thumbspec.rs": "2eb3ae6be913c132caf8d2bdca8a20dcd38cc8a886c5072df2d2c001cbd50eea",
     "src/backend/thumbworker.rs": "98f44f64ec2269df26f40892cf58f3b357a347cee6a83f85abc88fb1791f2226",
     "src/backend/thumbwrite.rs": "17de216308f109b4430129ac1574b40e0e0015d984de35ab52bf8f33fdfaa253",
@@ -208918,7 +209841,7 @@
     "src/backend/trashdelete/cancel.rs": "40ca4b37e9d0873594832957bb6e0b8db0f4f586128d6ff69cf8aceb3340cc25",
     "src/backend/trashdelete/deletetest.rs": "54dcc4855047a92d9c48829c321d246dff9a3971d4795617a214500b2ad8ecba",
     "src/backend/trashdelete/recovery.rs": "cf9b5ce02bab3718b5b16072aeeba921b808f1984ae84c4ee5c26d18799ceeee",
-    "src/backend/trashland.rs": "74bc6ee942894ab38c5a311aa9d1a67a959d002c7d3d84d6affce3f3edf5d435",
+    "src/backend/trashland.rs": "e337fe4900c68c924bc9aadb84fa6e439b84e0c469cd0baaa1255be7a99cf2c3",
     "src/backend/trashmanifest.rs": "65e1b8fe015ffb4b7f2a987e7261b64a1c89eb6d920d87933c2d894eaa0bf2c4",
     "src/backend/trashthumb.rs": "a4e5f6f291a9ae3361d39569685c97629b255be3c1f14601aaef4a1beff3b672",
     "src/backend/trashthumbcache.rs": "c17c02aacbfcfb4f59154242df071e721fde70e32a4c7e2cd0e17cc5d412630a",
@@ -208937,9 +209860,10 @@
     "src/backend/unheld.rs": "edd8f6f36d818f8cb9d49b95660787db76dadcb9f8d8d8fd5c95ffca4197d859",
     "src/backend/unmount.rs": "f34db31414821d10f9c2761b5e8fee401a5544564200103b42364ea184df4d7a",
     "src/backend/viewerpaths.rs": "9caf40ed0bf56841751dc17fb001e1f4941eeae7a9bc2f1de3f3fe3d9c94338a",
+    "src/backend/wake.rs": "db0e31f180c106bfec0c78aba0c5ad64ba3506eb657e5c2ebae4119845720740",
     "src/backend/walkmounts.rs": "68744415ea2b1dcd6637835a0d72d7e90197ad8ceffe127479b655891710ca84",
-    "src/backend/watch.rs": "8d06b5538410adf7028e4b9bf1972f71a69db368edd2be0aaea8a89e8fc02b07",
-    "src/backend/watchpoll.rs": "a007e3d767c6befbc5fc79448a6f0fe30b95248e7f82d04948be31760d3b2c7d",
+    "src/backend/watch.rs": "973762bbfdf00e8ee1de2c326f1936487e274bfa1733d1a2dbcfe56fef7d75bd",
+    "src/backend/watchpoll.rs": "1cc84631a6b6bb806f5107beab3182b2537de432902be47ea83b4128bd6881a6",
     "src/backend/windowreq.rs": "c9863ab19099a4e0ee83b976ef064753ba5e4854528c1f8622e8de3e91eb045e",
     "src/backend/workerlink.rs": "0fd474f95e86ff71b354dc78c173e5e890b0ba602af5c49936f92d6a9d55bcc4",
     "src/backend/xxh64.rs": "c8b63a7db65fc7d8577b5dfaf2c8f78d605d83325343a15b28bdfb569453bf4d",
@@ -209006,8 +209930,8 @@
     "src/keys_generated.rs": "aa606a1d0848cbaab951cc5d3a1bccbf2db734f16171dd9d943cf68fb8d7ea50",
     "src/launchargs.rs": "928414ba829091623aee75fb6069b535940b33df88d781b4cbb6036359eda17a",
     "src/launcher/mod.rs": "7068625788f93dff5a0e078350d5004caab8c78dd4c5fdcd0e9b118dd7fcaaa2",
-    "src/launcher/prewarm.rs": "bc06ba775382e6ee6b694560e07f0d492e19efb353fb5f9d5a1b6bc6ae0b4d2d",
-    "src/lib.rs": "a961d53874078d9ed6bc0359ae97cbe2f6c5dbac5c062c1f301d6b1e9a3bdeec",
+    "src/launcher/prewarm.rs": "d8e90380d092979c9e8bcb13c9c1fbe8d1f4536cb06ae4dd5b657ca475782e33",
+    "src/lib.rs": "1b9ebf1a7f1336f29deab08f08b4f9155e754e63d5b255ecb2d77893b4831b96",
     "src/main.rs": "e85974bbc3450f87eacc029fa43ee5d406b1367006727e7bbfaa9a8e413b8b18",
     "src/oflags.rs": "f436ea9e2d34d2d2d850c9388753ab6a16fcba579d7e3613cc75f7e1f49e66db",
     "src/open.rs": "bfb028f1b10091da7a76ca749408a0d3925abc2f7eab0d5d6fb74228aa464576",
@@ -209032,7 +209956,7 @@
     "src/shelfundo.rs": "c299964f7802e4c2ffd0b083dde14a545c984bbb243b0a9f86f5d05c0dce6fc8",
     "src/shelfzip.rs": "8a46b13932f170f820701148549656d264a20e226a61c51576c8c76366f7e53f",
     "src/summon.rs": "44505e02df03d20f4d39f8ac81269195ffb5672eb0b19e7a860f62e635abee0d",
-    "src/tearoff.rs": "0c61deb7bb616b7bf5143d9358d4be00e7d41b0aec59a0ad40af962f672d0d9e",
+    "src/tearoff.rs": "7da71a07bf1319f6a0b413fa0a311ba22b4d56610ab42c12e418e06979279c67",
     "src/terminal.rs": "ad7aa294380aea2ff949824494b2571df901cefa66108c98f834022efbdb8368",
     "src/theme/color.rs": "3e140459a79b7c0167b96dfce30a90c0485822f753b79d3fee012295ac425e08",
     "src/theme/export.rs": "823c53385a51e6995228f8ceb762d3b3d4b7162c73a25030be4666afac2c1ea7",
@@ -209107,6 +210031,9 @@
     "src/ui_logic_dg1/selection.rs": "72640b26be314bd297a90dfd75eb94dd168a62ece5c5fa4af5ff05858e4f403a",
     "src/ui_logic_dg1/wire.rs": "9b0a682504faf89471534858531718330db350b4486f8f3d661d38a3e7b01fac",
     "src/ui_logic_dg1/words.rs": "ac38ed01ee3f79e6630d2f0de1da30cf0e95f2ee38186a804a89e49bac64131e",
+    "src/ui_logic_dg2.rs": "f86c5b75e45c9168cd5072595713a9f30f19c95f758c1d6c900330c2347b0d58",
+    "src/ui_logic_dg2/payload.rs": "98c1af82aad025f6f7268a581533e46d7a186015c745e5ea03a54eba295ddac6",
+    "src/ui_logic_dg2/rail.rs": "cc2597ab53b22ff2e655598bfaad4d5775b7411b083f72e52ef8a059d93a9a77",
     "src/ui_logic_fb1.rs": "239fb7a987ea5667a69e370377f394265ec1a6e630d7f33b55f81fa5bea8b7fd",
     "src/ui_logic_fb1/empty.rs": "97a9879f9f25b80797d34d9533a02306418dc4f880beb8523279f01ec64e4d42",
     "src/ui_logic_fb1/errors.rs": "5cdfb01ebbecd4286f48f1f1813ac46de2866de0dcda3d399617f511bb23130f",
@@ -209365,12 +210292,13 @@
     "src/ui_logic_sd2/present.rs": "1f4272d6e801ef9d05408c77aa68ded8253536e87fd4fec990f48364fd02066b",
     "src/ui_logic_sd2/send.rs": "248846f43bb6f580a091ad5e9d9b984092a16151ec872d9ec5166f1c92d0b858",
     "src/ui_logic_sd2/wire.rs": "af6273f38f8308c43fde0b3910089cb853a3281d69b71f2e66bf6f6ccf4f0126",
-    "src/ui_logic_sr1.rs": "2bace577a19f627920351416c8f8a752287d5ba78748148cd0d865b0b4584e7f",
+    "src/ui_logic_sr1.rs": "a5623fe0e4673fa72bde0653f331c98b9b30ed15fec588ac25a25d15d73d9e99",
+    "src/ui_logic_sr1/contents.rs": "df2156e70e518aeefbd432a6f715d8ebeab74560c8548a5b385bcf4875c26c49",
     "src/ui_logic_sr1/matching.rs": "df396138268940b9f0225a13c51b575afbafe7d06584a619c5d5384b6b64da83",
-    "src/ui_logic_sr1/session.rs": "a5202113cd84b271a3d952316ead299953390d439e265f71e564abfcf7283ca8",
+    "src/ui_logic_sr1/session.rs": "28765d32e196b4fd1d56b3ed534fea34bd1718aa2d8feacffd51b3e0e5155db2",
     "src/ui_logic_sr1/text.rs": "444f6c0426695a8ea9ce54b106857f42cab0014070ec70ecda7731215d12e1cb",
     "src/ui_logic_sr1/types.rs": "c1de004ed3632ceb5388ed7238e540b8d5389386e90cc35678285ab3e3aa9a96",
-    "src/ui_logic_sr1/wire.rs": "1d0eb999772ca554f3c93d1f81a479e17634d0239800b0a1fd1740140ac725e9",
+    "src/ui_logic_sr1/wire.rs": "c2461a6b47163f53e5b8f68b5919cf420ec6806b3af4b24b7afd55cebaf6f578",
     "src/ui_logic_sr2.rs": "a8aa723989f91cb18ccccfeda221798272bafd917bcec218cf101c4854c859aa",
     "src/ui_logic_sr2/counted.rs": "918c1b437a1f46190fdb981369eb7cf3460bb663f31f8cce3146199677d53bfd",
     "src/ui_logic_sr2/matcher.rs": "6c4b39bd3be55d1505a369f923d7e9468adc0c9500366624200d453763312c13",
@@ -209435,10 +210363,11 @@
     "tools/flea-acceptance": "a67ae8ec98f041f146887ba0c6b0dfffd7a81abfc9331eecbee4fd8374a2a180",
     "tools/flea-acceptance-drive": "829980e913b1dce2f601942ae55a699afb4c9e81c72085434cdc1c2efb7d121a",
     "tools/flea-aur-versions": "93192e47ebda8e230ecbdda40a7379b4e8f1d2dc96d5e3ceccb95e69ed57dfd6",
+    "tools/flea-b3-capture/capture.py": "3e8e82edd813e82751acd790cabbf90eeebf9ab88ae7102a55a3dee579a51d66",
     "tools/flea-bench": "1b395041bce3037315d6aadb87d3fcdbdba0ee75f36284ca0b764cf50e5f64b8",
     "tools/flea-bench-capability": "5abdd2f3905d5e7fac26c6379a5d35bc24f66cced2d59bdc8fbc4b46ace0c592",
     "tools/flea-bench-chart": "59e158f5710e5661a60143dc487cd26a42cc5e446abcd2f6976696bdf0b796b2",
-    "tools/flea-bench-fleet": "fba33568569199eb77cb9a6b0dfe56eb2c9384116a8e091051729569fab579d7",
+    "tools/flea-bench-fleet": "ee3d654cff65190589164228ef0240975b62174c334201a506c0beb3143e8f71",
     "tools/flea-bench-gate": "ea01811587ffb3a697f6cdfc8bc9d9170e5e1f435948f164c22cf7ebfd5da458",
     "tools/flea-bench-keys": "778c1c07fbc99f95cfb6dd9a775b4c8f03cdbd75d10f05f5fa145adac8e5ec03",
     "tools/flea-bench-manifest": "64b3a66c6f1b6b389fc132b513dc7cd1c5c4d5967f8f1971023c39c2f23d8a08",
@@ -209458,7 +210387,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "cbfb36858ad350a831def5d9fde3061016b76fd139909e0ab98e44d897f3ae68",
+    "tools/flea-file-budget": "85de005e1997092737d334592797b2125eee5c142e592f2673e525c2835b2a12",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -209538,7 +210467,7 @@
     "tools/flea-share-route": "a1cfe728c637ce2d3224c745b5e80c379a4031f9e81e971f927b1a36e3d42ad4",
     "tools/flea-showcase": "fa41d18734a5b019dbe845da20d1a3914b64a529622e4902fc4244e56174443f",
     "tools/flea-showcase-content": "f9414cf9db21524ad4ffd69d24c7e66fabda41e0274c51c1150cb68dbc8d9c52",
-    "tools/flea-strata-bench": "e3c9b27ba7bb7f7b6f651d71fba4545b45902350a78026ace2346cc43f3ae03c",
+    "tools/flea-strata-bench": "cfc452cd6529365157d52f3bd51cf00ce41c1cd599dc62138d83154a3427f0c6",
     "tools/flea-suite-inventory": "9751cde0f819aec52cd87626a458b66c5462c007ac422c4e5dff52679e51dd34",
     "tools/flea-third-party-licenses": "5ceb29a9b5aaa44b6126b4a32eee37709797b777b054b0b85fc980eaa5a5d4c0",
     "tools/flea-touchpad": "b6c65e1d8cfefb701de73ce02b2da186bffbde562f636c9068daae8024891b6c",
@@ -209986,27 +210915,27 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "2a2956c3b427116479378800fc15e588cb15f0c6",
-  "source_sha": "2a2956c3b427116479378800fc15e588cb15f0c6",
+  "source_ref_sha": "053fcb97b3761dc5acbb5ed7da03a8eaf42a2ad6",
+  "source_sha": "053fcb97b3761dc5acbb5ed7da03a8eaf42a2ad6",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1266,
-      "missing_literal_candidates": 5616,
-      "source_files": 756
+      "keys_with_occurrences": 1278,
+      "missing_literal_candidates": 5660,
+      "source_files": 768
     },
     "generated/tooling": {
       "keys_with_occurrences": 145,
-      "missing_literal_candidates": 4632,
-      "source_files": 142
+      "missing_literal_candidates": 4636,
+      "source_files": 143
     },
     "gui": {
-      "keys_with_occurrences": 458,
-      "missing_literal_candidates": 1502,
-      "source_files": 676
+      "keys_with_occurrences": 460,
+      "missing_literal_candidates": 1506,
+      "source_files": 692
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
-      "missing_literal_candidates": 2061,
+      "missing_literal_candidates": 2063,
       "source_files": 412
     },
     "tui": {

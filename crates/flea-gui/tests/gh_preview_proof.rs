@@ -87,7 +87,7 @@ fn gh347_render_thread_200_replacements_across_20_pdfs_draw_or_cancel_every_page
                 opened: &mut HashSet<DocId>,
                 failures: &mut Vec<String>| {
         match renderer.replies.try_recv() {
-            Ok(Reply::Opened { doc, sizes }) => {
+            Ok(Reply::Opened { doc, sizes, .. }) => {
                 assert_eq!(sizes.len(), 3, "doc {doc} reads its three page sizes");
                 opened.insert(doc);
             }
@@ -107,6 +107,7 @@ fn gh347_render_thread_200_replacements_across_20_pdfs_draw_or_cancel_every_page
                     "doc {doc} page {page} renders once"
                 );
             }
+            Ok(Reply::Sizes { .. }) => {}
             Ok(Reply::OpenFailed { doc, .. }) => failures.push(format!("open {doc}")),
             Ok(Reply::RenderFailed { doc, page, .. }) => {
                 failures.push(format!("render {doc}:{page}"))
@@ -120,7 +121,8 @@ fn gh347_render_thread_200_replacements_across_20_pdfs_draw_or_cancel_every_page
         if let Some(old) = current.take() {
             renderer.close(old);
         }
-        let doc = renderer.open(path.clone());
+        // Quick Look opens paged rather than continuous, so its open answers every page size.
+        let doc = renderer.open(path.clone(), false);
         asked.insert(doc, (0..3).collect());
         // Once a document is open its bytes are the renderer's: the name is unlinked and rewritten before its renders.
         if step % 20 == 7 {

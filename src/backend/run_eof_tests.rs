@@ -55,12 +55,12 @@ fn search_fix4_piped_eof_answers_the_deferred_walk_before_exit() {
 // The real pipe reader feeds the real execution gate and dispatch; holds make the EOF ordering deterministic.
 fn piped_backend() {
     let mut l = Loop::new("search-eof-loop");
-    spawn_reader(l.tx.clone(), Arc::clone(&l.ops.live));
+    // The real stdin inbox reads the pipe on its own channel; the loop's channel stays the session's.
+    let (input_tx, input_rx, pending) = crate::backend::inbox::open().expect("the stdin inbox opens");
+    let mut inbox = pending.start(crate::backend::inbox::STDIN, input_tx, Arc::clone(&l.ops.live));
     let mut requests = VecDeque::new();
     loop {
-        let event =
-            l.rx.recv_timeout(EVENT_DEADLINE)
-                .expect("the piped request or EOF arrives");
+        let event = inbox.next(&input_rx).expect("the piped request or EOF arrives");
         let closed = matches!(event, Event::Closed);
         requests.push_back(event);
         if closed {

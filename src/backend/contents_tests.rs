@@ -28,7 +28,7 @@ impl Fixture {
         let root = PathBuf::from(String::from_utf8(made.stdout).unwrap().trim_end());
         assert!(root.is_absolute() && root.starts_with(&parent));
         std::fs::write(root.join(".flea-test-sandbox"), b"contents test\n").unwrap();
-        let (tx, rx) = channel();
+        let (tx, rx) = crate::backend::events::channel();
         Self {
             st: State::new(super::super::dirsizeworker::Worker::new(tx.clone())),
             tb: Tables::load(),

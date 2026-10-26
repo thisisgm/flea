@@ -4,7 +4,7 @@ use crate::backend::peekpump::pump;
 use std::collections::VecDeque;
 use std::ffi::{c_int, c_void};
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::Sender;
+use crate::backend::events::Sender;
 use std::thread::{self, JoinHandle};
 
 // Parent, grandparent, great-grandparent and the child column, plus room for one navigation's leftovers.
@@ -128,7 +128,7 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
     use crate::backend::watch::Watch;
-    use std::sync::mpsc::channel;
+    use crate::backend::events::channel;
     use std::time::Duration;
 
     // Bounds the wait for a kernel event; the test asserts what arrived, never how long it took.
