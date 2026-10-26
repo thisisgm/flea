@@ -225,12 +225,7 @@ impl Shell {
             .then_some(view.slot)
         });
         let Some(slot) = slot else { return };
-        let dy = -f32::from(
-            event
-                .delta
-                .pixel_delta(gpui::px(crate::list::pane::ROW_HEIGHT))
-                .y,
-        );
+        let dy = -f32::from(crate::input::scroll::wheel_delta(&event.delta).y);
         if slot == Slot::Active {
             host.pane.scroll_by(dy);
         } else {
