@@ -113,7 +113,10 @@ impl Shell {
                     .rail
                     .as_ref()
                     .and_then(|join| join.network.as_ref())
-                    .is_some_and(|network| network.card.read(cx).holds_focus(window, cx)))
+                    .is_some_and(|network| {
+                        let card = network.card.read(cx);
+                        card.model.opened && card.holds_focus(window, cx)
+                    }))
     }
 
     /// The card centred over the window under its own focus, above the panes and the rail.

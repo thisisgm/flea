@@ -54,7 +54,20 @@ impl NetworkView {
         {
             return;
         }
+        // A space typed into a text field reaches the input handler as text.
+        if k.key == "space"
+            && plain
+            && (self.input.editing || self.model.focus == Focus::Password)
+            && !self.model.committed
+        {
+            return;
+        }
         cx.stop_propagation();
+        if k.key == "escape" && self.menu.borrow().opened() {
+            self.suggesting = false;
+            self.changed(cx);
+            return;
+        }
         if k.key == "escape" {
             return self.close(cx);
         }
@@ -114,6 +127,7 @@ impl NetworkView {
                 self.model.step(k.modifiers.shift);
                 self.load_input();
             }
+            "down" if self.model.focus == Focus::Host => self.suggesting = true,
             "enter" => {
                 let focus = self.model.focus;
                 if matches!(
