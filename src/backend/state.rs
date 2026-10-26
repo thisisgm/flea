@@ -38,6 +38,7 @@ pub enum Held {
 
 // Everything the loop mutates, gathered so a handler takes one borrow instead of ten arguments.
 pub struct State {
+    pub contents: super::contents::Slot,
     pub git: Option<super::gitreq::Worker>,
     pub listing: Listing,
     pub base: PathBuf,
@@ -101,6 +102,7 @@ impl State {
     // One below FIRST_LISTING, so the forget_rows a first list runs numbers its rows FIRST_LISTING.
     pub fn new(dirsize_worker: super::dirsizeworker::Worker) -> State {
         State {
+            contents: Default::default(),
             git: None,
             listing: Listing::new(), base: PathBuf::new(), asked: Vec::new(), outstanding: 0, deferred: Default::default(),
             trash_asked: Vec::new(),
