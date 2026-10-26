@@ -53,6 +53,7 @@ pub enum Glyph {
     Search,
     File,
     Code,
+    Terminal,
     AppWindow,
     Check,
     Eye,

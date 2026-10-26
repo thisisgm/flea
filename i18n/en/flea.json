@@ -1605,6 +1605,7 @@
   "dialogs.file.open.busy": "Still opening the last file; try again in a moment.",
   "dialogs.file.open.failed": "No application on this system opened that file.",
   "dialogs.file.open.resolving": "Still resolving the last selection; try again.",
+  "dialogs.file.open.unlisted": "That file is no longer listed.",
   "dialogs.file.properties.title": "Properties",
   "dialogs.file.properties.close": "Close",
   "dialogs.file.properties.working": "Working…",
