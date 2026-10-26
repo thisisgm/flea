@@ -4,7 +4,7 @@ use crate::navigation::sort::Size;
 use crate::row::{self, marks::Mark};
 use flea::protocol::RowFacts;
 use gpui::{Font, GlyphRun, Hsla, Pixels, TextRun, Window};
-use std::{collections::HashMap, rc::Rc};
+use std::{cell::OnceCell, collections::HashMap, rc::Rc};
 
 /// One row either track kind draws: a peek answers name, folder flag and icon, a listing row its whole facts.
 #[derive(Clone, Copy, Debug)]
@@ -68,6 +68,13 @@ pub struct Prepared {
     pub location_label: String,
     pub mark: Mark,
     pub dir: bool,
+    matches: [Option<MatchedName>; 2],
+}
+
+struct MatchedName {
+    label: String,
+    run: (usize, usize),
+    bold: OnceCell<GlyphRun>,
 }
 
 impl Prepared {
@@ -76,6 +83,39 @@ impl Prepared {
             .as_ref()
             .filter(|_| chevron)
             .unwrap_or(&self.plain)
+    }
+
+    fn matched(&self, chevron: bool) -> Option<&MatchedName> {
+        self.matches[usize::from(chevron && self.chevron.is_some())].as_ref()
+    }
+
+    /// The cursor's glyphs are prepared before paint; other rows retain their plain name.
+    pub fn name_for(&self, chevron: bool, cursor: bool) -> &GlyphRun {
+        self.matched(chevron)
+            .filter(|_| cursor)
+            .and_then(|name| name.bold.get())
+            .unwrap_or_else(|| self.name(chevron))
+    }
+
+    pub fn prepare_cursor(&self, font: &Font, body: Pixels, window: &Window) {
+        for name in self.matches.iter().flatten() {
+            name.bold.get_or_init(|| {
+                let runs = crate::g2::sr1::run::text_runs(&name.label, Some(name.run), true, font);
+                GlyphRun::new(
+                    window
+                        .text_system()
+                        .layout_line(&name.label, body, &runs, None),
+                )
+            });
+        }
+    }
+
+    pub fn wash_span(&self, chevron: bool, cursor: bool) -> Option<(Pixels, Pixels)> {
+        crate::g2::sr1::run::wash_span(
+            self.name(chevron).line(),
+            Some(self.matched(chevron)?.run),
+            cursor,
+        )
     }
 }
 
@@ -95,6 +135,7 @@ pub struct Shaping {
     pub scale: f32,
     pub words: Rc<row::format::Words>,
     pub locating: bool,
+    pub query: Rc<str>,
 }
 
 struct Entry {
@@ -126,6 +167,28 @@ fn shape(text: &str, font: &Font, size: Pixels, window: &Window) -> GlyphRun {
         strikethrough: None,
     };
     GlyphRun::new(window.text_system().layout_line(text, size, &[run], None))
+}
+
+fn shape_name(
+    label: std::borrow::Cow<'_, str>,
+    run: Option<(usize, usize)>,
+    shaping: &Shaping,
+    window: &Window,
+) -> (GlyphRun, Option<MatchedName>) {
+    let glyphs = shape(&label, &shaping.font, shaping.body, window);
+    let kept = if matches!(label, std::borrow::Cow::Owned(_)) {
+        label.len() - '\u{2026}'.len_utf8()
+    } else {
+        label.len()
+    };
+    let matched = run
+        .filter(|&(start, _)| start < kept)
+        .map(|(start, end)| MatchedName {
+            label: label.into_owned(),
+            run: (start, end.min(kept)),
+            bold: OnceCell::new(),
+        });
+    (glyphs, matched)
 }
 
 /// ColumnRow.qml sizeText(): the list's own formatter, so every pane prints one text under the same words.
@@ -161,12 +224,22 @@ fn prepare(
         location_label.chars().map(row::cells_of).sum::<usize>() + 1
     };
     let budget = |cells: usize| cells.saturating_sub(take).saturating_sub(reserved);
-    let plain = row::middle_elide(name, budget(shaping.plain_cells));
+    let run = crate::g2::sr1::run::run_in(name, &shaping.query);
+    let elide = if run.is_some() {
+        row::right_elide
+    } else {
+        row::middle_elide
+    };
+    let label = elide(name, budget(shaping.plain_cells));
     let chevron = row
         .dir()
-        .then(|| row::middle_elide(name, budget(shaping.chevron_cells)))
-        .filter(|text| *text != plain)
-        .map(|text| shape(&text, &shaping.font, shaping.body, window));
+        .then(|| elide(name, budget(shaping.chevron_cells)))
+        .filter(|text| *text != label);
+    let plain_label = label.clone().into_owned();
+    let (plain, plain_match) = shape_name(label, run, shaping, window);
+    let chevron = chevron.map(|text| shape_name(text, run, shaping, window));
+    let (chevron, chevron_match) =
+        chevron.map_or((None, None), |(glyphs, matched)| (Some(glyphs), matched));
     let size = match row {
         Row::Listing(facts) if shaping.size => Some(shape(
             &size_text(facts, walk, &shaping.words),
@@ -176,17 +249,17 @@ fn prepare(
         )),
         _ => None,
     };
-    let label = plain.into_owned();
     Prepared {
-        plain: shape(&label, &shaping.font, shaping.body, window),
+        plain,
         location: (!location_label.is_empty())
             .then(|| shape(&location_label, &shaping.font, shaping.caption, window)),
-        label,
+        label: plain_label,
         location_label,
         chevron,
         size,
         mark: row.mark(shaping.languages),
         dir: row.dir(),
+        matches: [plain_match, chevron_match],
     }
 }
 

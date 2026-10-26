@@ -43,6 +43,11 @@ impl Shell {
         let typeface = list.typeface.clone();
         let words = Rc::clone(&list.view.words);
         let languages = list.view.lang_marks;
+        let query: Rc<str> = match host.filter.shown {
+            Some(_) if !host.pane.state.search => host.filter.owner.query(),
+            _ => &host.pane.state.query,
+        }
+        .into();
         let focus = Rc::new(Focus {
             cursor: (!host.pane.busy()).then_some(host.pane.cursor),
             selected: host.selected.clone().into(),
@@ -102,7 +107,8 @@ impl Shell {
                     }))
                     .with_pictures(Rc::clone(&host.list.borrow().pictures))
                     .with_filter(host.filter.shown.clone())
-                    .with_location(host.pane.state.search);
+                    .with_location(host.pane.state.search)
+                    .with_query(Rc::clone(&query));
             }
             let mut track = div()
                 .absolute()
