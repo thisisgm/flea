@@ -1,4 +1,4 @@
-import { render } from "pele";
+import { detectType, render } from "pele";
 
 // A face is a per-character advance table for printable ASCII, 32 to 126, in thousandths of an em.
 const TABLE_FIRST = 32;
@@ -16,6 +16,139 @@ const MIDDAY_HOUR = 12;
 // The space Pele lays round the drawing, in px, so a border stroke on the canvas edge is not cut.
 const PADDING = 1;
 const FALLBACK_BODY_PX = 14;
+// v0.3.12's sequence participant (80 by 40 with a 60 gap) and dashed lifeline, as the HIG board draws them.
+const SEQUENCE = { width: 80, height: 40, actorMargin: 60 };
+const LIFELINES = '<g class="pele-lifelines" stroke-width="0.75" stroke-dasharray="6 4"';
+
+// Sample input: "--- \ntitle: A\n---\nsequenceDiagram" answers 18, through the closing line's break; a source without front matter answers 0.
+// Pele 1.6.0's own front matter scan, line for line, so the defaults land exactly where Pele's front matter ends.
+function frontMatterLength(e) {
+    const blank = (c) => c !== undefined && /\s/.test(c);
+    const isBreak = (c) => c === "\n" || c === "\r";
+    let t = 0;
+    while (t < e.length && blank(e[t]) && !isBreak(e[t]))
+        t++;
+    const fence = e.slice(0, t) + "---";
+    if (!e.startsWith("---", t))
+        return 0;
+    const opens = [];
+    for (let u = t + 3; u < e.length && blank(e[u]); u++) {
+        if (isBreak(e[u]))
+            opens.push(u);
+    }
+    if (opens.length === 0)
+        return 0;
+    const closeEnd = (u) => {
+        if (!isBreak(e[u]) || !e.startsWith(fence, u + 1))
+            return -1;
+        let end = -1;
+        for (let g = u + 1 + fence.length; g < e.length && blank(e[g]); g++) {
+            if (isBreak(e[g]))
+                end = g;
+        }
+        return end;
+    };
+    const marker = "\n" + fence;
+    let last = -1;
+    for (let u = e.lastIndexOf(marker); u > opens[0]; u = e.lastIndexOf(marker, u - 1)) {
+        if (closeEnd(u) !== -1) {
+            last = u;
+            break;
+        }
+    }
+    if (last === -1)
+        return 0;
+    let open = opens[0];
+    for (const u of opens) {
+        if (u < last)
+            open = u;
+    }
+    const start = open + 1;
+    for (let u = e.indexOf(marker, start > 0 ? start - 1 : 0); u !== -1 && u <= last; u = e.indexOf(marker, u + 1)) {
+        if (u < start)
+            continue;
+        const end = closeEnd(u);
+        if (end !== -1)
+            return end + 1;
+    }
+    return 0;
+}
+
+// Sample input: '"sequence": {"x": {"y": 1}, "width": 120}}' after config's opening brace adds "x" and "width"; each key lives until its own object closes.
+function flowKeys(text, base, found) {
+    const keys = [];
+    let depth = 1;
+    let word = "";
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"' || c === "'") {
+            const end = text.indexOf(c, i + 1);
+            word = text.slice(i + 1, end < 0 ? text.length : end);
+            i = end < 0 ? text.length : end;
+            continue;
+        }
+        if (c === ":") {
+            while (keys.length > 0 && keys[keys.length - 1].depth >= depth)
+                keys.pop();
+            keys.push({ key: word.trim(), depth });
+            const path = base.concat(keys.map((k) => k.key));
+            if (path.length === 3 && path[0] === "config" && path[1] === "sequence")
+                found.add(path[2]);
+        } else if (c === "{") {
+            depth++;
+        } else if (c === "}") {
+            depth--;
+            while (keys.length > 0 && keys[keys.length - 1].depth > depth)
+                keys.pop();
+        }
+        word = c === ":" || c === "{" || c === "}" || c === "," ? "" : word + c;
+    }
+}
+
+// Sample input: "---\ntitle: Login sequence: happy\nconfig:\n  sequence:\n    width: 120\n  flowchart:\n    width: 200\n---\n" answers {"width"}.
+// Front matter is YAML: a block key's parents are the keys above it indented less, and a flow value is read by its braces.
+function frontSequenceKeys(front) {
+    const found = new Set();
+    const parents = [];
+    const lines = front.split(/\r?\n/);
+    for (let n = 1; n < lines.length; n++) {
+        const line = lines[n];
+        const key = line.trim().match(/^["']?([\w-]+)["']?\s*:(.*)$/);
+        if (line.trim() === "---" || !key)
+            continue;
+        const indent = line.length - line.trimStart().length;
+        while (parents.length > 0 && parents[parents.length - 1].indent >= indent)
+            parents.pop();
+        const path = parents.map((p) => p.key).concat(key[1]);
+        const value = key[2].trim();
+        if (path.length === 3 && path[0] === "config" && path[1] === "sequence")
+            found.add(path[2]);
+        if (value.startsWith("{")) {
+            let text = value;
+            while (n + 1 < lines.length && (text.split("{").length > text.split("}").length) && lines[n + 1].trim() !== "---")
+                text += "\n" + lines[++n];
+            flowKeys(text.slice(1), path, found);
+        } else if (value === "" || value.startsWith("#")) {
+            parents.push({ indent, key: key[1] });
+        }
+    }
+    return found;
+}
+
+// Sample input: "---\nconfig:\n  sequence:\n    width: 120\n---\nsequenceDiagram" keeps its 120 and gains the default height and gap.
+// Pele merges directives key by key but its render config whole, so the defaults go in as the first directive, leaving out what front matter names.
+function withSequenceDefaults(source) {
+    if (detectType(source) !== "sequence")
+        return source;
+    const front = source.slice(0, frontMatterLength(source));
+    const named = frontSequenceKeys(front);
+    const defaults = {};
+    for (const [key, value] of Object.entries(SEQUENCE)) {
+        if (!named.has(key))
+            defaults[key] = value;
+    }
+    return front + "%%{init: " + JSON.stringify({ sequence: defaults }) + "}%%\n" + source.slice(front.length);
+}
 
 // Sample input: 95 positive numbers answer { table, mean } in em; anything else answers null.
 function faceOf(thousandths) {
@@ -165,7 +298,7 @@ function mixed(text) {
 // One diagram as SVG whose every colour, font and weight is a concrete value of the theme it is handed.
 export function mermaidToSvg(source, theme) {
     theme = theme || {};
-    const result = render(source, {
+    const result = render(withSequenceDefaults(source), {
         measurer: measurerOf(theme),
         fontFamily: theme.font || "sans-serif",
         fontFamilyMono: theme.font || "monospace",
@@ -179,7 +312,7 @@ export function mermaidToSvg(source, theme) {
         // A Gantt today marker moves once a day, so one day's renders match byte for byte.
         now: todayOf(theme)
     });
-    const svg = result.svg;
+    const svg = result.svg.replace('<g class="pele-lifelines"', LIFELINES);
     const table = aliasesOf(svg, rolesOf(theme));
     return inAttributes(svg, (value) => mixed(resolve(value, table, 0)));
 }

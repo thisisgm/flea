@@ -112,7 +112,9 @@ pub fn sniff(bytes: &[u8]) -> Option<ImageFormat> {
 fn draw(bytes: &[u8], scale: f32, svg: &SvgRenderer) -> Option<(Arc<RenderImage>, (f32, f32))> {
     let format = sniff(bytes)?;
     let (image, scale) = if format == ImageFormat::Svg {
-        (svg.render_single_frame(bytes, scale).ok()?, scale)
+        // GPUI rasterises an SVG at SMOOTH_SVG_SCALE_FACTOR times the asked scale.
+        let pixels = scale * gpui::SMOOTH_SVG_SCALE_FACTOR;
+        (svg.render_single_frame(bytes, scale).ok()?, pixels)
     } else {
         (
             Image::from_bytes(format, bytes.to_vec())
@@ -205,3 +207,7 @@ impl Decoder {
         });
     }
 }
+
+#[cfg(test)]
+#[path = "assets_tests.rs"]
+mod tests;

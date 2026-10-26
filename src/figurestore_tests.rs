@@ -218,6 +218,22 @@ fn known_asks_whether_this_exact_key_was_drawn() {
 }
 
 #[test]
+fn an_entry_drawn_before_the_sequence_defaults_is_a_miss() {
+    let dir = TestDir::new("figure-store-format-2");
+    let store = dir.join("svg");
+    let k = key("mermaid", THEME_A, false, "sequenceDiagram\n    A->>B: hi");
+    put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("put");
+    let target = store.join(entry_name(&k).expect("name"));
+    // Format 2 entries hold Pele's solid lifelines and 64 px participants, which the HIG board does not draw (SW-19).
+    let previous = String::from_utf8(encode(&k, SVG)).expect("text").replacen(FORMAT, "flea-figure-svg 2", 1);
+    fs::write(&target, previous).expect("a format 2 entry");
+    assert_eq!(get(&store, &k), None, "a format 2 figure is never served");
+    assert!(!known(&store, std::slice::from_ref(&k)), "a format 2 figure is not known");
+    put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("redraw");
+    assert_eq!(get(&store, &k).as_deref(), Some(SVG), "the redrawn figure replaces it");
+}
+
+#[test]
 fn a_linked_svg_directory_is_not_used() {
     let dir = TestDir::new("figure-store-linkdir");
     let real = dir.join("real");

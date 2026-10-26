@@ -302,6 +302,21 @@ impl Html {
     }
 }
 
+/// The backend's html ask line; the column leaves the height to the helper, as ui/Backend.qml does.
+pub fn ask_line(token: u64, slot: &str, path: &str, width: u32, height: u32) -> String {
+    // The backend reads "height":0 as a 1 px viewport, which decodes a short page only as tall as its text.
+    let height = if height > 0 {
+        format!(r#","height":{height}"#)
+    } else {
+        String::new()
+    };
+    format!(
+        r#"{{"c":"html","token":{token},"slot":"{}","path":"{}","width":{width}{height}}}"#,
+        crate::json::escape(slot),
+        crate::json::escape(path)
+    )
+}
+
 /// The page image's drawn size: as wide as the frame times the zoom, its height kept to the decode's proportion.
 pub fn picture_size(frame_width: f64, zoom: f64, decoded: (u32, u32)) -> (f64, f64) {
     let width = frame_width * zoom;

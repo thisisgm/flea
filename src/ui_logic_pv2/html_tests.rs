@@ -278,3 +278,17 @@ fn html_view_flip_and_zoom() {
         "a picture not decoded yet has no height"
     );
 }
+
+#[test]
+fn the_column_ask_leaves_the_height_to_the_helper_and_quick_look_names_its_own() {
+    // The backend reads "height":0 as a 1 px viewport, so a short page decoded one line tall (EY-35).
+    let column = ask_line(4, "column", "/a/code-html.html", 548, 0);
+    assert_eq!(
+        column,
+        r#"{"c":"html","token":4,"slot":"column","path":"/a/code-html.html","width":548}"#
+    );
+    assert_eq!(
+        ask_line(5, "look", "/a/x \"y\".html", 984, 625),
+        r#"{"c":"html","token":5,"slot":"look","path":"/a/x \"y\".html","width":984,"height":625}"#
+    );
+}
