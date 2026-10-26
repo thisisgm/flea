@@ -303,6 +303,7 @@ pub struct SelectionPreview {
     pub(crate) face: crate::list::Typeface,
     pub(crate) corner: f32,
     pub(crate) full_facts: bool,
+    pub(crate) automatic: bool,
     pub(crate) media_backend: Option<Rc<dyn crate::g2::pv3::engine::Backend>>,
     pub(crate) caches: crate::g2::pv3::surface::Caches,
     pub(crate) epoch: Instant,
@@ -337,6 +338,7 @@ impl SelectionPreview {
             face,
             corner: 0.,
             full_facts: false,
+            automatic: true,
             media_backend: None,
             caches: Default::default(),
             epoch: cx.background_executor().now(),
@@ -355,5 +357,10 @@ impl SelectionPreview {
     }
     pub fn mounted_kind(&self) -> Option<(&Kind, &Mounted)> {
         self.drawn.as_ref().map(|f| (&f.kind, &f.mounted))
+    }
+
+    /// Automatic loading off leaves the column empty until the selection is explicitly loaded.
+    pub(crate) fn manual_empty(&self, frame: &Frame) -> bool {
+        frame.manual && !self.automatic
     }
 }

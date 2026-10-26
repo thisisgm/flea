@@ -75,6 +75,9 @@ impl Reader<'_> {
                     "loading".into()
                 } else {
                     frame.map_or(String::new(), |f| {
+                        if self.view.is_some_and(|v| v.manual_empty(f)) {
+                            return Kind::Facts.name().into();
+                        }
                         // PreviewColumn.qml previewState: Error only where Facts.js draws it, never for a failed picture.
                         if self.view.is_some_and(|v| v.state(f, self.cx) == flea::ui_logic_pv1::kinds::State::Error) {
                             "error".into()
