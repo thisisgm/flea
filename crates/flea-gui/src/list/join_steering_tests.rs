@@ -40,7 +40,8 @@ for line in sys.stdin:
     handle
         .update(cx, |shell, _, _| {
             // The backend receipts every command, and these tests count folder walks only.
-            shell.launch.settings.data = jsondoc::parse(r#"{"preview":{"thumbnails":"off"}}"#).unwrap();
+            shell.launch.settings.data =
+                jsondoc::parse(r#"{"preview":{"thumbnails":"off"}}"#).unwrap();
             let host = shell.panes[0].as_mut().unwrap();
             host.pane.held = Rc::new(Held {
                 listing: 2,
@@ -251,7 +252,9 @@ fn u04_hidden_size_and_remote_classes_never_request_folder_walks() {
         if hide {
             handle
                 .update(&mut cx, |shell, _, _| {
-                    shell.launch.settings.data = jsondoc::parse(r#"{"columns":["mode"],"preview":{"thumbnails":"off"}}"#).unwrap();
+                    shell.launch.settings.data =
+                        jsondoc::parse(r#"{"columns":["mode"],"preview":{"thumbnails":"off"}}"#)
+                            .unwrap();
                 })
                 .unwrap();
         }

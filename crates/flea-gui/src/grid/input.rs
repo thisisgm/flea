@@ -129,15 +129,13 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.view != View::Grid
-            || self.lifecycle.phase() != crate::window::lifecycle::Phase::Open
-        {
+        if self.view != View::Grid || self.input_blocked(cx) {
             return;
         }
         let Some(host) = self.panes[side].as_mut() else {
             return;
         };
-        if host.pane.busy() {
+        if host.pane.busy() || host.stopped {
             return;
         }
         let Some(grid) = host.grid.as_ref() else {
@@ -147,10 +145,47 @@ impl Shell {
             return;
         }
         let state = grid.state.borrow();
-        let at = event.position - state.bounds.origin;
-        let Some(hit) = state.tile_at(f32::from(at.x), f32::from(at.y)) else {
+        if state
+            .frame_held
+            .as_ref()
+            .is_none_or(|held| !std::rc::Rc::ptr_eq(held, &host.pane.held))
+        {
             return;
-        };
+        }
+        let at = event.position - state.bounds.origin;
+        let hit = state.tile_at(f32::from(at.x), f32::from(at.y));
+        if event.button == gpui::MouseButton::Left && state.bounds.contains(&event.position) {
+            if let Some(carrying) = cx
+                .try_global::<crate::g2::dg1::carry::Carrying>()
+                .filter(|carrying| carrying.carry.active())
+            {
+                // Owned copy first: the cx borrow must end before stop_propagation.
+                let carried = carrying.source_rows(window, side, host).to_vec();
+                cx.stop_propagation();
+                host.input.press = None;
+                if host.nav.gate.owned() {
+                    return;
+                }
+                let row = hit
+                    .and_then(|hit| state.drawn().iter().find(|drawn| drawn.view == hit))
+                    .map(|drawn| drawn.listing);
+                if hit.is_some() && row.is_none_or(|row| host.pane.held.row(row).is_none()) {
+                    return;
+                }
+                let dest = crate::g2::dg2::join::row_spot(host, row, &carried);
+                drop(state);
+                self.carry_land(
+                    side,
+                    &dest,
+                    event.modifiers.control,
+                    event.modifiers.shift,
+                    window,
+                    cx,
+                );
+                return;
+            }
+        }
+        let Some(hit) = hit else { return };
         let Some(drawn) = state.drawn().iter().find(|drawn| drawn.view == hit) else {
             return;
         };

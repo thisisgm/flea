@@ -2,11 +2,11 @@
 use super::cache::{Prepared, TrackCache};
 use super::geometry::Slot;
 use super::tracks::TrackView;
+use crate::grid::element::Thumbnail;
 use crate::list::Typeface;
 use crate::navigation::sort::{DirSizes, Size};
 use crate::palette::Theme;
 use gpui::{Hsla, Pixels, TextStyle, Window};
-use crate::grid::element::Thumbnail;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 // The board's rungs over the theme roles: hairline 12%, hover 8%, grey cursor and accent wash 18%, marked plate 35%, a cut row 55%.

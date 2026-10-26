@@ -223,7 +223,7 @@ impl Messages {
         let visible = notice_shown(&slot);
         self.edges = (slot.transient_is_error, slot.sticky_here, slot.searching);
         self.notice_until =
-            (!self.notice.is_empty() && visible && !self.notice_hint.has_undo(&self.preset))
+            (!self.notice.is_empty() && visible && !self.notice_hint.stands(&self.preset))
                 .then_some(now + MESSAGE_MS);
     }
 

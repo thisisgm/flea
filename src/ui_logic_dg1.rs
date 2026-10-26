@@ -1,4 +1,5 @@
 //! Clipboard file selections shared by every front end, ported from ui/js/Clipboard.js, ClipSelection.js and ClipMarks.js; the backend keeps token, paths and transfer authority, and this module is the pane side with no I/O: every effect is a returned Out. X11 stays out.
+pub mod carry;
 mod clipboard;
 mod entry;
 mod marks;
@@ -11,7 +12,10 @@ mod words;
 pub use clipboard::{Clip, GetWait, PasteWait, ReadOut, Session, SetEntry};
 pub use entry::EntryHandle;
 pub use marks::{row_path, row_path_into, spent as marks_spent, Marks};
-pub use paste::{copy_as_resolved, copy_as_text, image_name, plan, stamp_at, CopyAsOut, LinkKind, PendingPaste, Stamp};
+pub use paste::{
+    copy_as_resolved, copy_as_text, image_name, plan, stamp_at, CopyAsOut, LinkKind, PendingPaste,
+    Stamp,
+};
 pub use payload::{
     build_flea, build_gnome, build_kde_cut, build_plain, build_urilist, choose, is_op, is_token,
     parse_flea, parse_gnome, parse_kde_cut, parse_urilist, ForeignSel, Offer, FLEA, GNOME, KDE_CUT,
@@ -23,14 +27,16 @@ pub use wire::{
     paste_image_line, paths_request_line, ClipEvent,
 };
 pub use words::{
-    CLEAR_FAILED, COPIED, CUT, DEST_CHANGED, READING, RECENT_PASTE, RESOLVING, SET_FAILED, STALE,
     clear_failed, dest_changed, landed, reading, recent_paste, resolving, set_failed, stale,
+    CLEAR_FAILED, COPIED, CUT, DEST_CHANGED, READING, RECENT_PASTE, RESOLVING, SET_FAILED, STALE,
 };
 
 #[cfg(test)]
-mod harness;
+mod carry_tests;
 #[cfg(test)]
 mod clipboard_tests;
+#[cfg(test)]
+mod harness;
 #[cfg(test)]
 mod marks_tests;
 #[cfg(test)]

@@ -60,7 +60,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.view != super::super::startup::View::Columns {
+        if self.view != super::super::startup::View::Columns || self.input_blocked(cx) {
             return;
         }
         let Some(host) = self.panes[side].as_mut().filter(|host| !host.stopped) else {
@@ -105,6 +105,26 @@ impl Shell {
         cx.stop_propagation();
         if host.pane.busy() || !view.enabled || host.nav.gate.owned() {
             return;
+        }
+        if event.button == MouseButton::Left {
+            if let Some(carrying) = cx
+                .try_global::<crate::g2::dg1::carry::Carrying>()
+                .filter(|carrying| carrying.carry.active())
+            {
+                host.input.press = None;
+                let dest = if view.slot == Slot::Active {
+                    let carried = carrying.source_rows(window, side, host);
+                    crate::g2::dg2::join::row_spot(host, row.as_ref().map(|_| index), carried)
+                } else {
+                    match row.as_ref() {
+                        Some((name, true)) => crate::navigation::history::join(&view.path, name),
+                        _ => view.path.clone(),
+                    }
+                };
+                let keys = (event.modifiers.control, event.modifiers.shift);
+                self.carry_land_on(side, &dest, keys, Some(view), window, cx);
+                return;
+            }
         }
         if event.button == MouseButton::Right && row.is_none() {
             let base = if view.slot == Slot::Active {

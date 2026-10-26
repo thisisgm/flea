@@ -33,7 +33,9 @@ pub(super) fn drawn_rows(host: &PaneHost, surface: Surface) -> Option<Want> {
     match surface {
         Surface::Grid => {
             let grid = host.grid.as_ref()?;
-            let span = grid.view.wanted_thumbnails(&host.pane, crate::grid::Shown::All(host.pane.held.total))?;
+            let span = grid
+                .view
+                .wanted_thumbnails(&host.pane, crate::grid::Shown::All(host.pane.held.total))?;
             Some(Want {
                 span: (*span.start(), *span.end()),
                 only: None,
@@ -56,7 +58,10 @@ pub(super) fn estimated_rows(host: &PaneHost) -> Want {
 // ListElement's own row range over the frame it last drew, at the pane's current scroll; None until it has drawn.
 fn list_rows(host: &PaneHost) -> Option<Want> {
     let list = host.list.borrow();
-    let (height, row) = (f32::from(list.drawn.bounds.size.height), list.drawn.metrics.row);
+    let (height, row) = (
+        f32::from(list.drawn.bounds.size.height),
+        list.drawn.metrics.row,
+    );
     if height <= 0. || row <= 0. {
         return None;
     }
@@ -74,7 +79,10 @@ fn list_rows(host: &PaneHost) -> Option<Want> {
         Some(rows) => {
             let first = first.min(end);
             let drawn = &rows[first..end];
-            let span = (drawn.iter().min().copied().unwrap_or(0), drawn.iter().max().copied().unwrap_or(0));
+            let span = (
+                drawn.iter().min().copied().unwrap_or(0),
+                drawn.iter().max().copied().unwrap_or(0),
+            );
             Some(Want {
                 span,
                 only: Some((Rc::clone(rows), first, end)),

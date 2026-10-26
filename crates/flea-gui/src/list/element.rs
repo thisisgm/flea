@@ -7,6 +7,7 @@ use super::{
     ListState, Metrics, Palette, RowState, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM,
     GREY_CURSOR, HOVER, MATCH_WASH, TRACK,
 };
+use crate::grid::element::{pictures::paint_in_slot, Thumbnail};
 use crate::palette::Theme;
 use crate::row::{
     cache::{Extra, Prepared, Shaping},
@@ -18,7 +19,6 @@ use gpui::{
     GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels,
     SharedString, Style, TransformationMatrix, Window,
 };
-use crate::grid::element::{pictures::paint_in_slot, Thumbnail};
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 // Row.qml's loading bar draws at a fifth of the muted frame, so scrolling reads as loading.
@@ -542,7 +542,11 @@ impl Element for ListElement {
                         let top = top_of(shown.view);
                         // Row.qml: a thumbnail fills the mark slot, a Dual pane's at the mark's own size, fitted whole.
                         if let Some(picture) = &shown.picture {
-                            let side = if view.dual { metrics.mark } else { metrics.slot };
+                            let side = if view.dual {
+                                metrics.mark
+                            } else {
+                                metrics.slot
+                            };
                             let slot = Bounds::new(
                                 point(
                                     left + px(metrics.pad + (metrics.slot - side) / 2.),
