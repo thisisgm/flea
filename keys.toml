@@ -177,7 +177,7 @@ keys = "X"
 action = "carry"
 frontend = "gui"
 context = "listing"
-label = "carry"
+label = "Carry to another app"
 
 # The four views are bound in no shared table, so a preset claiming nothing left a fresh install
 # with no keyboard route to them at all, on a keyboard-first file manager. Default and Vim take the
@@ -707,7 +707,7 @@ mirrors = [
 
 # Spellings that win a sheet cap tie, per preset name; "all" applies to every preset.
 [sheetties]
-all = ["left", "shift-f10"]
+all = ["left", "shift-f10", "ctrl-shift-plus", "ctrl-shift-minus", "ctrl-shift-0"]
 default = ["ctrl-c", "ctrl-v"]
 windows = ["ctrl-c", "ctrl-v"]
 
