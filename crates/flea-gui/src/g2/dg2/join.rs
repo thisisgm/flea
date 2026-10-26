@@ -12,6 +12,9 @@ use gpui::{
 use std::collections::HashMap;
 use std::rc::Rc;
 
+#[path = "tab_drop.rs"]
+mod tab_drop;
+
 struct HostRows<'a>(&'a PaneHost);
 
 impl Rows for HostRows<'_> {
@@ -257,6 +260,10 @@ impl Shell {
 
     fn land_arrived(&mut self, arrived: Arrived, window: &mut Window, cx: &mut Context<Self>) {
         let point = gpui::point(gpui::px(arrived.position.0), gpui::px(arrived.position.1));
+        if self.file_tab_destination(point).is_some() {
+            self.land_at(self.focus_side, point, Owned::Native(arrived), window, cx);
+            return;
+        }
         let side = (0..self.panes.len()).find(|side| {
             self.panes[*side]
                 .as_ref()
@@ -276,12 +283,15 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if let Some(tab) = self.file_tab_destination(point) {
+            self.land_file_tab(tab, owned, window, cx);
+            return;
+        }
         let Some(host) = self.panes[side].as_ref() else {
             return;
         };
         if host.pane.busy() {
-            let text = self.locale.catalog.tr("pane.busy");
-            self.say_drop(side, text, cx);
+            self.refuse_drop_loading(side, cx);
             return;
         }
         // Only this pane's own lift, in the listing it was lifted from, carries rows a drop must skip.
@@ -349,6 +359,11 @@ impl Shell {
             messages.say(&text, false, "", Hint::None, now)
         });
         cx.notify();
+    }
+
+    fn refuse_drop_loading(&mut self, side: usize, cx: &mut Context<Self>) {
+        let text = self.locale.catalog.tr("pane.busy");
+        self.say_drop(side, text, cx);
     }
 }
 
