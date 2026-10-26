@@ -2,6 +2,7 @@ use super::{store, SessionStore};
 use crate::{
     navigation::folder_state::Folders,
     state::Shell,
+    visual::view_name,
     window::startup::{Settings, View},
 };
 use flea::{
@@ -387,14 +388,6 @@ fn configure_pane(
     host.pane.set_row_height(list.file_metrics().row);
 }
 
-pub(crate) fn view_name(view: View) -> &'static str {
-    match view {
-        View::List => "list",
-        View::Columns => "columns",
-        View::Grid => "grid",
-        View::Dual => "dual",
-    }
-}
 fn view_kind(name: &str) -> View {
     match name {
         "columns" => View::Columns,

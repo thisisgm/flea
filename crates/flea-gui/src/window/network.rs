@@ -37,6 +37,8 @@ pub struct Network {
     pub card: Entity<NetworkView>,
     pub shares: Entity<ShareView>,
     pub rows: Vec<RailEntry>,
+    /// True once rows were rebuilt from a gio listing and a mountinfo read.
+    pub built: bool,
     pub listing: Listing,
     pub menu: Rc<RefCell<crate::g2::mn1::menu::Menu>>,
     pub menu_row: Option<(RailEntry, u64)>,
@@ -200,6 +202,7 @@ impl Shell {
                 card,
                 shares,
                 rows: Vec::new(),
+                built: false,
                 listing: Listing::new(),
                 menu: Rc::default(),
                 menu_row: None,
@@ -213,6 +216,16 @@ impl Shell {
                 _subscriptions: subscriptions,
             });
         }
+    }
+
+    /// The NETWORK group is built and shown, so an empty group is an answer rather than the unbuilt state.
+    pub(crate) fn network_built(&self) -> bool {
+        shown(&self.launch.settings.data)
+            && self
+                .rail
+                .as_ref()
+                .and_then(|join| join.network.as_ref())
+                .is_some_and(|network| network.built)
     }
 
     pub(crate) fn network(&mut self) -> Option<&mut Network> {

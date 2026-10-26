@@ -49,6 +49,31 @@ impl MountedView<'_> {
 
 impl Adapter for MountedView<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        if function == "dirSizeRequests" {
+            return Some(Reply::value(self.host.sizes.requests.to_string()));
+        }
+        if function == "thumbRequests" {
+            let sent = self
+                .host
+                .backend
+                .as_ref()
+                .map_or(0, crate::backend::Backend::thumb_requests);
+            return Some(Reply::value(sent.to_string()));
+        }
+        // ui/Ipc.qml filterStamps: the drawn view and the wall-clock ms of the last query change and its narrowing.
+        if function == "filterStamps" {
+            let view = match self.view.mode {
+                Some(View::List | View::Dual) => "list",
+                Some(View::Grid) => "grid",
+                Some(View::Columns) => "columns",
+                None => "",
+            };
+            let filter = &self.host.filter;
+            return Some(Reply::value(format!(
+                "{{\"view\":\"{view}\",\"keyAt\":{},\"narrowedAt\":{}}}",
+                filter.key_at, filter.narrowed_at
+            )));
+        }
         if !matches!(function, "rowAt" | "visibleRowName" | "drawnCount")
             || matches!(self.view.mode, Some(View::List | View::Dual))
         {

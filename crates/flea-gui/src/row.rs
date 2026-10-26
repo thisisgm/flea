@@ -1,9 +1,9 @@
 //! One row's cells as ui/Row.qml and ui/js/Format.js print them, built only when a row enters the viewport.
 pub mod cache;
 pub mod format;
-pub mod marks;
 #[cfg(test)]
 mod language_tests;
+pub mod marks;
 
 use flea::protocol::RowFacts;
 use std::borrow::Cow;

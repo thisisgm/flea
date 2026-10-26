@@ -216,6 +216,10 @@ fn gh333_reported_widths_on_the_mounted_list_shrink_drop_restore_and_never_rewri
                 .writer
                 .borrow_mut()
                 .owed()
+                .into_iter()
+                // The tab session record is session state; only the width patch is the drag's.
+                .filter(|patch| patch.get("lastPath").is_none())
+                .collect::<Vec<_>>()
         });
         assert_eq!(
             patches.len(),

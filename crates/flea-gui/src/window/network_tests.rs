@@ -291,3 +291,6 @@ mod release;
 
 #[path = "network_result_tests.rs"]
 mod result_tests;
+
+#[path = "network_ipc_tests.rs"]
+mod ipc_tests;

@@ -139,3 +139,60 @@ fn m9_integ_filter_protocol_drives_all_view_rows(cx: &mut TestAppContext) {
         assert!(host.error.is_some(), "the broken answer is reported");
     });
 }
+
+fn stamps(cx: &mut TestAppContext, handle: Handle) -> flea::jsondoc::Json {
+    flea::jsondoc::parse(ipc(cx, handle, "filterStamps").trim()).unwrap()
+}
+
+fn ipc(cx: &mut TestAppContext, handle: Handle, function: &str) -> String {
+    let reply = edit(cx, handle, |shell, window, cx| {
+        let (answer, receive) = std::sync::mpsc::sync_channel(1);
+        let request = flea::ipc::wire::Request::Call {
+            target: "flea".into(),
+            function: function.into(),
+            arguments: vec![],
+        };
+        shell.ipc(
+            crate::ipc::server::Event::Call { request, answer },
+            window,
+            cx,
+        );
+        receive.try_recv().unwrap().reply
+    });
+    assert_eq!(reply.code, 0, "{}", reply.stderr);
+    reply.stdout
+}
+
+#[gpui::test]
+fn filter_stamps_record_the_query_change_then_its_narrowing(cx: &mut TestAppContext) {
+    let (handle, mut read) = open(cx);
+    frame(cx, handle);
+    while read().is_some() {}
+    let at = |json: &flea::jsondoc::Json, key: &str| {
+        json.get(key).and_then(flea::jsondoc::Json::as_f64).unwrap()
+    };
+    let idle = stamps(cx, handle);
+    assert_eq!((at(&idle, "keyAt"), at(&idle, "narrowedAt")), (0., 0.));
+    press(cx, handle, "/", Some("/"), false);
+    press(cx, handle, "n", Some("n"), false);
+    let typed = stamps(cx, handle);
+    assert!(at(&typed, "keyAt") > 0., "the typed key stamps keyAt");
+    assert_eq!(
+        at(&typed, "narrowedAt"),
+        0.,
+        "nothing narrowed before the answer"
+    );
+    reply(
+        cx,
+        handle,
+        r#"{"t":"filtered","id":1,"query":"n","n":1000,"rows":[3,5],"ms":0.010,"listing":2}"#,
+    );
+    let narrowed = stamps(cx, handle);
+    assert_eq!(at(&narrowed, "keyAt"), at(&typed, "keyAt"));
+    assert!(at(&narrowed, "narrowedAt") >= at(&narrowed, "keyAt"));
+    let view = ipc(cx, handle, "viewMode");
+    assert_eq!(
+        narrowed.get("view").and_then(flea::jsondoc::Json::as_str),
+        Some(view.trim())
+    );
+}

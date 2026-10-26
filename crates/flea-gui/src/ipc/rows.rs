@@ -22,6 +22,32 @@ pub struct RowsAdapter<'a> {
     pub states: &'a RowStates,
 }
 
+// A drawn row's box in window pixels, from the frame the list last painted.
+fn drawn_row_box(list: &ListState, index: usize) -> (f32, f32, f32, f32) {
+    let drawn = &list.drawn;
+    let bounds = drawn.bounds;
+    let row = drawn.metrics.row;
+    let y = f32::from(bounds.origin.y) + index as f32 * row - drawn.scroll_y;
+    let width = (f32::from(bounds.size.width) - drawn.metrics.lane).max(0.);
+    (f32::from(bounds.origin.x), y, width, row)
+}
+
+/// Ipc.qml rowRect for any pane's list: the row's box while that list draws it, else empty.
+pub(crate) fn drawn_row_rect(list: &ListState, held: &Held, index: usize) -> String {
+    let drawn = list.drawn.listing == held.listing
+        && list.visible().iter().any(|shown| shown.index == index);
+    if !drawn {
+        return String::new();
+    }
+    let (x, y, w, h) = drawn_row_box(list, index);
+    rect_of(x, y, w, h)
+}
+
+/// Ipc.qml listAreaRect for any pane's list.
+pub(crate) fn list_area_rect(list: &ListState) -> String {
+    rect_of_bounds(list.drawn.bounds)
+}
+
 pub(super) fn describe_row(facts: &flea::protocol::RowFacts, words: &format::Words) -> String {
     let kind = if facts.dir { "dir" } else { "file" };
     format!(
@@ -137,12 +163,7 @@ impl RowsAdapter<'_> {
     // The row's box in window pixels: the list's left, its slot under the scroll, the row width less the lane.
     fn row_box(&self, index: usize) -> Option<(f32, f32, f32, f32)> {
         self.shown(index)?;
-        let drawn = &self.list.drawn;
-        let bounds = drawn.bounds;
-        let row = drawn.metrics.row;
-        let y = f32::from(bounds.origin.y) + index as f32 * row - drawn.scroll_y;
-        let width = (f32::from(bounds.size.width) - drawn.metrics.lane).max(0.);
-        Some((f32::from(bounds.origin.x), y, width, row))
+        Some(drawn_row_box(self.list, index))
     }
 
     // Ipc.rowNameItem(): the name label of a drawn row, absent while the row is its own rename editor.
@@ -188,6 +209,13 @@ impl RowsAdapter<'_> {
                     || "loading".into(),
                     |facts| describe_row(facts, &view.words),
                 ),
+            // ui/Ipc.qml visibleRowMode: the drawn row's raw st_mode, -1 for a row with no built item.
+            "visibleRowMode" => self
+                .shown(index)
+                .filter(|shown| shown.prepared.is_some())
+                .and_then(|_| self.list.rows.facts(index))
+                .map_or(-1, |facts| i64::from(facts.mode))
+                .to_string(),
             "rowNamePx" => self
                 .shown(index)
                 .and_then(|shown| shown.prepared.as_ref())

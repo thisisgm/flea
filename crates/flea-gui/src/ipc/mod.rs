@@ -7,6 +7,7 @@ pub mod grid;
 pub(crate) mod grid_rows;
 pub mod native_window;
 pub mod navigation;
+pub(crate) mod network;
 pub mod pane;
 pub mod path;
 pub mod rail;

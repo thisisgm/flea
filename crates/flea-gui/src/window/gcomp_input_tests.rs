@@ -119,7 +119,7 @@ fn gcomp_every_chrome_mouse_button_preserves_both_panes_keyboard_owner(cx: &mut 
         "queued U08 must retain its refusal"
     );
     assert_eq!(
-        call(cx, handle, "statusColor").code,
+        call(cx, handle, "thumbnailPolicyState").code,
         3,
         "unowned readers must retain their refusal"
     );

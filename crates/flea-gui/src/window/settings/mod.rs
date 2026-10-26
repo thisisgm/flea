@@ -10,6 +10,8 @@ mod corner_tests;
 mod fix1_tests;
 #[cfg(test)]
 pub(crate) mod ink_tests;
+#[cfg(test)]
+mod keymap_ipc_tests;
 mod locale;
 #[cfg(test)]
 mod m9_g1rows_05_tests;

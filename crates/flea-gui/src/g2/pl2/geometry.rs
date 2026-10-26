@@ -31,6 +31,15 @@ fn horizontal(mut rect: Rect, width: f32) -> Rect {
     rect
 }
 impl Drawn {
+    /// The body's clip as painted, in card coordinates: between the pinned title and the buttons.
+    pub fn body(&self) -> Option<Rect> {
+        self.card.map(|card| Rect {
+            x: 17.,
+            y: 61.,
+            w: (card.w - 34.).max(0.),
+            h: (self.body_height - 108.).max(0.),
+        })
+    }
     pub(super) fn fit_body(
         &mut self,
         start: (usize, usize, usize),

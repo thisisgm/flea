@@ -17,6 +17,7 @@ impl Adapter for PaneAdapter<'_> {
         let value = match function {
             "listInFlight" => pane.busy().to_string(),
             "listRequests" => pane.list_requests.to_string(),
+            "firstRowsAt" => pane.first_rows_at.to_string(),
             "inputToRows" => format!("{} {}", swap.input_at, swap.rows_at),
             "state" => pane.state.kind.name().into(),
             "stateMessage" => pane.state.text(self.catalog, pane.held.total).message,

@@ -226,7 +226,15 @@ pub(super) fn drawn(shell: &Entity<Shell>, vcx: &mut VisualTestContext) -> Drawn
             row: f32::from(list.drawn.bounds.size.width) - list.drawn.metrics.lane,
             base_size: f32::from(list.typeface.base),
             stored: Column::ALL.map(|c| stored.get(c)),
-            sent: host.nav.writer.borrow().sent,
+            // The tab session record (lastPath, lastTabs) is session state, not a preference write.
+            sent: host
+                .nav
+                .writer
+                .borrow()
+                .patches
+                .iter()
+                .filter(|patch| !patch.starts_with(r#"{"lastPath":"#))
+                .count(),
         }
     })
 }
