@@ -196,7 +196,11 @@ fn a_cursor_key_on_an_empty_line_closes_it_and_returns(cx: &mut TestAppContext) 
     press(&mut f, "/", Some("/"));
     assert_eq!(strip(&mut f), Some((String::new(), true, "2".into())));
     press(&mut f, "down", None);
-    assert_eq!(strip(&mut f), None, "an empty line has nothing to stand, so it closes");
+    assert_eq!(
+        strip(&mut f),
+        None,
+        "an empty line has nothing to stand, so it closes"
+    );
     assert_eq!(
         f.read(|picker| picker.listing.cursor),
         1,

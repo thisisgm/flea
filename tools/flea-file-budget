@@ -38,7 +38,7 @@ crates/flea-gui/src/g2/pl3/tests.rs 527
 crates/flea-gui/src/g2/sr1/contents.rs 403
 crates/flea-gui/src/grid/element/paint.rs 444
 crates/flea-gui/src/list/element.rs 667
-crates/flea-gui/src/list/header.rs 478
+crates/flea-gui/src/list/header.rs 449
 crates/flea-gui/src/path/paint.rs 451
 crates/flea-gui/tests/g1_07/cols_pwid.rs 420
 crates/flea-gui/tests/g1_07/track_frames.rs 429
@@ -97,7 +97,7 @@ src/backend/searchwalk.rs 403
 src/backend/run_session_tests.rs 582
 src/backend/ops.rs 440
 src/backend/thumbs.rs 562
-src/backend/thumbspec.rs 479
+src/backend/thumbspec.rs 238
 src/backend/dirsizeworker.rs 577
 src/backend/watch.rs 555
 src/backend/thumbreq.rs 476

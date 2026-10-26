@@ -63,7 +63,7 @@ impl Shell {
         if self.view != super::super::startup::View::Columns {
             return;
         }
-        // A card blocks only a carry landing; a plain press outside a non-modal card still reaches Columns.
+        // Carry25's card gate stops only a carry landing; a plain press keeps the gate Columns had before carry.
         let blocked = self.input_blocked(cx);
         let Some(host) = self.panes[side].as_mut().filter(|host| !host.stopped) else {
             return;

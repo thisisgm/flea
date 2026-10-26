@@ -250,6 +250,8 @@ impl Session {
         });
         #[cfg(test)]
         let counters = Counters { walks_started: 1, rows_scored: 0, rank_compares: 0 };
+        // A search before any listing starts the priors load; this open ranks without them.
+        crate::backend::searchprior::start();
         #[cfg(test)]
         let priors = probes.prior_load.lock().unwrap().map_or_else(crate::backend::searchprior::loaded, |load| load.loaded());
         #[cfg(not(test))]

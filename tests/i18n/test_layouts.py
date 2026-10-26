@@ -236,7 +236,10 @@ class LayoutTests(unittest.TestCase):
         text_size = [r for r in common if r["table"] == "ctrl" and r["action"].startswith("textSize")]
         self.assertEqual([(r["key"], r["action"]) for r in text_size],
                          [("Plus", "textSizeUp"), ("Equal", "textSizeUp"), ("Minus", "textSizeDown"), ("0", "textSizeReset")])
-        self.assertEqual([r for r in common if r["action"] != "openAgent" and r not in text_size],
+        # Carry25 binds X to carry in the GUI listing; it is the one other row the baseline predates.
+        carry = [r for r in common if r["action"] == "carry"]
+        self.assertEqual([(r["table"], r["key"], r["mods"]) for r in carry], [("preset", "X", "text")])
+        self.assertEqual([r for r in common if r["action"] not in ("openAgent", "carry") and r not in text_size],
                          [{k: v for k, v in r.items() if k != "id"} for r in baseline])
 
     def test_i50_layout_unreachable_fails(self):
