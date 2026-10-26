@@ -166,7 +166,9 @@ impl Element for Destination {
                 drawn.font = Some(run.font.clone());
                 drawn.pixels = pixels;
                 // A private line shapes its bullets, and only when it reshapes, so paint allocates nothing.
-                drawn.shaped_text = Rc::from(entry.display().as_ref());
+                let shaped_text = Rc::from(entry.display().as_ref());
+                drawn.line.set_text_direction(&shaped_text);
+                drawn.shaped_text = shaped_text;
                 run.len = drawn.shaped_text.len();
                 drawn.line.run = Some(Rc::new(GlyphRun::new(window.text_system().layout_line(
                     drawn.shaped_text.as_ref(),
@@ -174,7 +176,6 @@ impl Element for Destination {
                     &[run],
                     None,
                 ))));
-                drawn.line.right_to_left = crate::path::entry::right_to_left(&drawn.shaped_text);
                 drawn.line.revision = entry.revision;
             }
             let line = &mut drawn.line;

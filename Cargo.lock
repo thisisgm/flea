@@ -1447,6 +1447,7 @@ dependencies = [
  "gpui-pre-platform",
  "image",
  "omi",
+ "unicode-bidi",
 ]
 
 [[package]]

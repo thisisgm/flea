@@ -75,11 +75,28 @@ pub struct Line {
     pub scroll: Pixels,
     /// The session whose platform handler the last paint registered, None when it registered none.
     pub registered: Option<u64>,
-    /// The shaped text's paragraph direction, which decides a lone glyph's caret edges.
+    /// The shaped text's paragraph direction, used when no character level is available.
     pub right_to_left: bool,
+    /// Resolved levels indexed by UTF-8 byte, refreshed with the shaped text.
+    pub bidi_levels: Vec<unicode_bidi::Level>,
 }
 
 impl Line {
+    /// Resolve character directions once per reshape, including trailing whitespace's paragraph level.
+    pub fn set_text_direction(&mut self, text: &str) {
+        let bidi = unicode_bidi::BidiInfo::new(text, None);
+        self.right_to_left = bidi
+            .paragraphs
+            .first()
+            .is_some_and(|para| para.level.is_rtl());
+        self.bidi_levels.clear();
+        for para in &bidi.paragraphs {
+            let levels = bidi.reordered_levels(para, para.range.clone());
+            self.bidi_levels
+                .extend_from_slice(&levels[para.range.clone()]);
+        }
+    }
+
     /// Whether a platform callback, which always reaches the last registered handler, belongs to entry's session.
     pub fn accepts(&self, entry: &Entry) -> bool {
         entry.session().is_some() && entry.session() == self.registered
@@ -95,12 +112,15 @@ impl Line {
             return px(0.);
         };
         let next = glyphs.clone().filter(|glyph| glyph.0 >= index);
+        let leftward = |glyph: Glyph| {
+            self.bidi_levels
+                .get(glyph.0)
+                .map_or(self.right_to_left, |level| level.is_rtl())
+        };
         match next.min_by_key(|glyph| glyph.0) {
-            Some(glyph) if leftward(glyphs.clone(), glyph, self.right_to_left) => {
-                right_of(glyphs, glyph.1, width)
-            }
+            Some(glyph) if leftward(glyph) => right_of(glyphs, glyph.1, width),
             Some(glyph) => glyph.1,
-            None if leftward(glyphs.clone(), last, self.right_to_left) => last.1,
+            None if leftward(last) => last.1,
             None => right_of(glyphs, last.1, width),
         }
     }
@@ -165,36 +185,6 @@ fn right_of(glyphs: impl Iterator<Item = Glyph>, x: Pixels, width: Pixels) -> Pi
         .map(|glyph| glyph.1)
         .filter(|&left| left > x)
         .fold(width, |a, b| a.min(b))
-}
-
-// A glyph runs right to left when its next character sits on its left or its previous one on its right; alone, the paragraph decides.
-fn leftward(glyphs: impl Iterator<Item = Glyph> + Clone, glyph: Glyph, alone: bool) -> bool {
-    let others = glyphs.filter(move |other| other.0 != glyph.0);
-    let after = others
-        .clone()
-        .map(|other| other.0)
-        .filter(|&at| at > glyph.0)
-        .min();
-    let before = others
-        .clone()
-        .map(|other| other.0)
-        .filter(|&at| at < glyph.0)
-        .max();
-    // The characters beside it on screen, a cluster's other glyphs left out.
-    let beside = |toward_left: bool| {
-        others
-            .clone()
-            .filter(|other| (other.1 < glyph.1) == toward_left && other.1 != glyph.1)
-            .reduce(|a, b| if (a.1 < b.1) == toward_left { b } else { a })
-            .map(|other| other.0)
-    };
-    let (left, right) = (beside(true), beside(false));
-    match (after, before) {
-        (Some(next), _) if Some(next) == left => true,
-        (Some(next), _) if Some(next) == right => false,
-        (_, Some(previous)) => Some(previous) == right,
-        _ => alone,
-    }
 }
 
 /// The input method's rectangle for a UTF-16 range; `text` is the box whose left edge is where unscrolled text starts.
