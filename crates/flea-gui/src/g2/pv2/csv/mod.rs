@@ -216,9 +216,7 @@ impl CsvView {
     }
 
     fn wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
-        let delta = event
-            .delta
-            .pixel_delta(px(self.feed.geometry.row_height as f32));
+        let delta = crate::input::scroll::wheel_delta(&event.delta);
         self.scroll.1 -= f64::from(delta.y);
         if self.feed.geometry.look {
             self.scroll.0 -= f64::from(delta.x);

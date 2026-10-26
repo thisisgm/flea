@@ -28,11 +28,14 @@ mod rev_u10_r2_tests;
 mod rev_u10_r3_tests;
 mod tile;
 mod transition;
+#[cfg(test)]
+mod wheel_tests;
 
+use crate::input::scroll::{out_cubic, RETURN_MS};
 use crate::pane::{requests::WindowRequest, Pane};
 use geometry::{window_for, Density, Metrics, ThumbSize, WindowPlan};
 use layout::Layout;
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive, time::Instant};
 
 /// The filter's view of the listing, Filter.js's shown list: every row, or the listing indices a narrowing kept in order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -125,6 +128,15 @@ pub struct Counters {
     pub reveals: usize,
 }
 
+/// A wheel notch's glide, from the drawn position to the written one over the list's RETURN_MS.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Glide {
+    pub from: f32,
+    pub to: f32,
+    pub start: Instant,
+    pub at: f32,
+}
+
 /// The grid's own state beside the pane: size, zoom, scroll and the landing wait; rows, cursor and selection stay with their owners.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GridView {
@@ -145,6 +157,8 @@ pub struct GridView {
     pub pointer: Option<(f32, f32)>,
     pub zoom_travel: f32,
     pub counters: Counters,
+    /// A wheel notch's OutCubic glide to `scroll`; paint draws its position, everything else reads `scroll`.
+    pub glide: Option<Glide>,
 }
 
 impl GridView {
@@ -165,6 +179,7 @@ impl GridView {
             pointer: None,
             zoom_travel: 0.,
             counters: Counters::default(),
+            glide: None,
         }
     }
 
@@ -304,6 +319,55 @@ impl GridView {
         }
     }
 
+    /// A wheel notch: the scroll lands at once and the paint glides there from where it was drawn, as List's notch does.
+    pub fn wheel_by(
+        &mut self,
+        shown: Shown,
+        focus: &dyn FocusFacts,
+        delta: f32,
+        glide_at: Option<Instant>,
+    ) {
+        let (from, before) = (self.drawn_scroll(), self.scroll);
+        self.scroll_by(shown, focus, delta);
+        if self.scroll != before {
+            self.glide = glide_at.map(|start| Glide {
+                from,
+                to: self.scroll,
+                start,
+                at: from,
+            });
+        }
+    }
+
+    /// The position paint draws: the glide's while it heads for the current scroll, else the scroll.
+    pub fn drawn_scroll(&self) -> f32 {
+        self.glide
+            .filter(|glide| glide.to == self.scroll)
+            .map_or(self.scroll, |glide| glide.at)
+    }
+
+    /// One frame of the glide; false once it lands, or once another write moved the scroll.
+    pub fn step_glide(&mut self, now: Instant) -> bool {
+        let scroll = self.scroll;
+        let Some(glide) = &mut self.glide else {
+            return false;
+        };
+        let t = now.saturating_duration_since(glide.start).as_secs_f64() * 1000. / RETURN_MS;
+        if glide.to != scroll || t >= 1. {
+            self.glide = None;
+            return false;
+        }
+        glide.at = glide.from + (glide.to - glide.from) * out_cubic(t) as f32;
+        true
+    }
+
+    /// A press lands the glide where it is drawn, so the tile under the pointer is the one it hits.
+    pub fn land_glide(&mut self) {
+        if let Some(glide) = self.glide.take().filter(|glide| glide.to == self.scroll) {
+            self.scroll = glide.at;
+        }
+    }
+
     /// An operator scroll (wheel, drag, flick or bar), which also ends a wait nothing answered.
     pub fn scroll_by(&mut self, shown: Shown, focus: &dyn FocusFacts, delta: f32) {
         self.end_landing(shown, focus, false);
@@ -316,7 +380,8 @@ impl GridView {
             return None;
         }
         let layout = self.layout(shown);
-        let (first, last) = layout.viewport(self.scroll);
+        // GridArea.qml asked from contentY, which a notch animates, so the held rows follow what is drawn.
+        let (first, last) = layout.viewport(self.drawn_scroll());
         let need = geometry::drift_ask(
             &self.plan(&layout),
             first,
@@ -335,7 +400,7 @@ impl GridView {
         if !self.visible || pane.swap.pending.is_some() {
             return None;
         }
-        let (first, last) = self.layout(shown).viewport(self.scroll);
+        let (first, last) = self.layout(shown).viewport(self.drawn_scroll());
         let last = usize::try_from(last).ok()?;
         shown.span(first.max(0) as usize, last)
     }
