@@ -60,6 +60,7 @@ pub(super) struct Paint {
     pub scroll: Pixels,
     pub selection: Option<Bounds<Pixels>>,
     pub caret: Option<Bounds<Pixels>>,
+    pub marked: Option<Bounds<Pixels>>,
     pub input_bounds: Option<Bounds<Pixels>>,
 }
 
@@ -164,17 +165,20 @@ impl Element for Destination {
             {
                 drawn.font = Some(run.font.clone());
                 drawn.pixels = pixels;
-                drawn.shaped_text = Rc::from(entry.text.as_str());
+                // A private line shapes its bullets, and only when it reshapes, so paint allocates nothing.
+                drawn.shaped_text = Rc::from(entry.display().as_ref());
+                run.len = drawn.shaped_text.len();
                 drawn.line.run = Some(Rc::new(GlyphRun::new(window.text_system().layout_line(
                     drawn.shaped_text.as_ref(),
                     pixels,
                     &[run],
                     None,
                 ))));
+                drawn.line.right_to_left = crate::path::entry::right_to_left(&drawn.shaped_text);
                 drawn.line.revision = entry.revision;
             }
             let line = &mut drawn.line;
-            let caret = line.x_for(entry.cursor());
+            let caret = line.entry_caret(entry, entry.cursor());
             let room = bounds.size.width.max(px(0.));
             if caret - line.scroll > room {
                 line.scroll = caret - room;
@@ -187,21 +191,19 @@ impl Element for Destination {
             let metrics = super::geometry::Metrics::new(&self.1);
             let origin = bounds.left() - line.scroll;
             let selection_bounds = (active && !entry.selected.is_empty()).then(|| {
+                let (from, to) = line.entry_span(entry, &entry.selected);
                 Bounds::new(
                     point(
-                        origin + line.x_for(entry.selected.start),
+                        origin + from,
                         bounds.top() + (bounds.size.height - px(metrics.selection)) / 2.,
                     ),
-                    size(
-                        line.x_for(entry.selected.end) - line.x_for(entry.selected.start),
-                        px(metrics.selection),
-                    ),
+                    size(to - from, px(metrics.selection)),
                 )
             });
             let caret_bounds = (active && entry.selected.is_empty()).then(|| {
                 Bounds::new(
                     point(
-                        origin + line.x_for(entry.cursor()),
+                        origin + caret,
                         bounds.top() + (bounds.size.height - px(metrics.caret)) / 2.,
                     ),
                     size(px(card::RULE), px(metrics.caret)),
@@ -247,7 +249,7 @@ impl Element for Destination {
         cx: &mut App,
     ) {
         let metrics = super::geometry::Metrics::new(&self.1);
-        let (run, origin, active, palette, marked, focus) = {
+        let (run, origin, active, palette, marked, focus, session) = {
             let view = Entity::read(&self.0, cx);
             let entry = &view.editor.entry;
             let drawn = view.editor.drawn.borrow();
@@ -255,16 +257,11 @@ impl Element for Destination {
             let origin = bounds.left() - line.scroll;
             let active = view.editing_copy(window, cx);
             let mid = bounds.top() + (bounds.size.height - px(metrics.selection)) / 2.;
-            let marked = entry.marked.as_ref().map(|marked| {
+            let marked = entry.marked.as_ref().filter(|_| active).map(|marked| {
+                let (from, to) = line.entry_span(entry, marked);
                 Bounds::new(
-                    point(
-                        origin + line.x_for(marked.start),
-                        mid + px(metrics.selection - card::RULE),
-                    ),
-                    size(
-                        line.x_for(marked.end) - line.x_for(marked.start),
-                        px(card::RULE),
-                    ),
+                    point(origin + from, mid + px(metrics.selection - card::RULE)),
+                    size(to - from, px(card::RULE)),
                 )
             });
             (
@@ -274,6 +271,7 @@ impl Element for Destination {
                 view.palette,
                 marked,
                 view.editor.focus.clone(),
+                entry.session(),
             )
         }; // The actual paint and platform registration below hold no entity or RefCell read.
         window.set_cursor_style(CursorStyle::IBeam, &prepared.hitbox);
@@ -294,6 +292,7 @@ impl Element for Destination {
                 );
             }
             if active {
+                // The preedit underline tells composing text from the committed draft.
                 if let Some(marked) = marked {
                     window.paint_quad(fill(marked, palette.foreground));
                 }
@@ -308,15 +307,24 @@ impl Element for Destination {
         });
         #[cfg(test)]
         let mut input_bounds = None;
+        let mut registered = None;
         if active {
             if let Some(focus) = &focus {
                 window.handle_input(focus, ElementInputHandler::new(bounds, self.0.clone()), cx);
+                registered = session;
                 #[cfg(test)]
                 {
                     input_bounds = Some(bounds);
                 }
             }
         }
+        // Platform callbacks reach this handler until the next paint, so they carry this session only.
+        Entity::read(&self.0, cx)
+            .editor
+            .drawn
+            .borrow_mut()
+            .line
+            .registered = registered;
         #[cfg(test)]
         {
             let view = Entity::read(&self.0, cx);
@@ -331,6 +339,7 @@ impl Element for Destination {
                 scroll: drawn.line.scroll,
                 selection: prepared.selection_bounds,
                 caret: prepared.caret_bounds,
+                marked,
                 input_bounds,
             };
             drop(drawn);
