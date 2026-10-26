@@ -10,6 +10,7 @@ pub mod navigation;
 pub(crate) mod network;
 pub mod pane;
 pub mod path;
+pub(crate) mod preview_scroll;
 pub mod rail;
 pub mod rows;
 pub mod server;
@@ -21,5 +22,8 @@ mod surface;
 pub mod tabs;
 pub(crate) mod thumbnails;
 pub mod view;
+
+#[cfg(test)]
+mod preview_scroll_tests;
 
 pub use surface::{Adapter, Surface};
