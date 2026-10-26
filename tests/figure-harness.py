@@ -517,7 +517,7 @@ with tempfile.TemporaryDirectory(prefix="flea-vendor-targets-") as scratch:
         check(result.returncode == 1 and f"missing tracked target ../../ui/vendor/{name}.mjs" in result.stdout
               and not npm_receipt.exists(), f"mx2b F22 an absent {name} target refuses by name before npm runs")
         target.write_text("same bytes\n")
-agents = (tree / "AGENTS.md").read_text()
+testing_doc = (tree / "docs/architecture/testing.md").read_text()
 sandbox = (tree / "src/backend/sandbox.rs").read_text()
 check("const READONLY_PREFIX_ARGS: usize = 4;" in sandbox
       and "const READONLY_BIND_ARGS: usize = 3;" in sandbox
@@ -562,7 +562,7 @@ fallback = figure_source.split("readonly property string fallbackBody:", 1)[1].s
 check("readonly property int fallbackChars: 2000" in figure_source
       and fallback.count("root.fallbackChars") == 3 and "2000" not in fallback,
       "F27 fallback comparison, slice and remaining count share a named limit")
-headless_contract = agents.split("The suites that drive the debug binary", 1)[1].split("Its own `headless=`", 1)[0]
+headless_contract = testing_doc.split("The suites that drive the debug binary", 1)[1].split("Its own `headless=`", 1)[0]
 check("needs nothing but a shell" not in headless_contract
       and all(word in headless_contract for word in ("no display, session or hardware", "python3", "Qt", "Quickshell", "quickjs-ng", "refuse loudly", "naming")),
       "mx2b F8 headless contract names its tools and missing-tool refusal")
