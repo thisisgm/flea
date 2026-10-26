@@ -18,6 +18,8 @@ mod column;
 mod controls;
 #[path = "g2_pv1/lifecycle.rs"]
 mod lifecycle;
+#[path = "g2_pv1/marks.rs"]
+mod marks;
 #[path = "g2_pv1/scenes.rs"]
 pub mod scenes;
 #[path = "g2_pv1/scroll.rs"]
@@ -126,6 +128,7 @@ pub fn json() -> Subject {
         name: "schema.json".into(),
         icon: "text-x-script".into(),
         mode: 0o100644,
+        lang_marks: true,
         state: State::Code,
         shape: Shape::unknown(State::Text),
         body: Body::Text { lines, count },
@@ -142,6 +145,7 @@ pub fn image() -> Subject {
         name: "columns.png".into(),
         icon: "image-x-generic".into(),
         mode: 0o100644,
+        lang_marks: true,
         state: State::Image,
         shape: Shape {
             kind: State::Image,
@@ -159,6 +163,7 @@ pub fn can_not_show(i18n: &flea::i18n::I18n) -> Subject {
         name: "disk.img".into(),
         icon: "application-x-generic".into(),
         mode: 0o100644,
+        lang_marks: true,
         state: State::Unsupported,
         shape: Shape::unknown(State::Unsupported),
         body: Body::cannot_show(i18n, State::Unsupported, false, false, Vec::new()).expect("no preview kind"),

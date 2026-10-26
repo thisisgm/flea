@@ -138,16 +138,8 @@ impl QuickLook {
                 .child(card)
                 .into_any_element()];
         }
-        let chrome = doc.chrome(&i18n, cx);
-        let bar = chrome::bar(
-            subject.mark(),
-            &subject.name,
-            &chrome,
-            !doc.framed(),
-            look,
-            self,
-            cx,
-        );
+        // ql-archive: no bar over the card; its own heading opens it, and a failure recipe sits at the top.
+        let is_archive = matches!(doc.view, View::Archive(_));
         let body = match doc.failure(&i18n, cx) {
             Some(failure) => {
                 let ink = if failure.error { look.error } else { look.meta };
@@ -158,7 +150,7 @@ impl QuickLook {
                     &failure.sentence,
                     look.foreground,
                     Some(button),
-                    look::BAR,
+                    if is_archive { 0. } else { look::BAR },
                 )
             }
             None => div()
@@ -171,6 +163,19 @@ impl QuickLook {
                 .child(doc.element())
                 .into_any_element(),
         };
+        if is_archive {
+            return vec![body];
+        }
+        let chrome = doc.chrome(&i18n, cx);
+        let bar = chrome::bar(
+            subject.mark(),
+            &subject.name,
+            &chrome,
+            !doc.framed(),
+            look,
+            self,
+            cx,
+        );
         vec![bar, body]
     }
 }

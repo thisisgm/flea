@@ -25,6 +25,15 @@ pub fn mark(glyph: Glyph, size: f32, ink: Hsla) -> impl IntoElement {
     .flex_none()
 }
 
+/// The bar's leading mark, tagged with the glyph it draws so a test reads the painted mark, not the model.
+pub fn bar_mark(glyph: Glyph, look: &Look) -> impl IntoElement {
+    let key = glyph.svg().0;
+    div()
+        .flex_none()
+        .debug_selector(move || format!("pv1-bar-mark:{key}"))
+        .child(mark(glyph, look::CHROME_MARK, look.foreground))
+}
+
 pub(super) fn name_parts(name: &Name, look: &Look) -> Vec<AnyElement> {
     let mut parts = vec![div()
         .min_w_0()
@@ -70,7 +79,7 @@ pub fn bar(
         .border_color(look.hair())
         .text_size(px(look::CAPTION))
         .whitespace_nowrap()
-        .child(mark(glyph, look::CHROME_MARK, look.foreground))
+        .child(bar_mark(glyph, look))
         .children(name_parts(&name, look))
         .child(div().flex_1());
     if filled {
@@ -119,7 +128,7 @@ pub fn refusal_bar(
         .border_b_1()
         .border_color(look.hair())
         .text_size(px(look::CAPTION))
-        .child(mark(glyph, look::CHROME_MARK, look.foreground))
+        .child(bar_mark(glyph, look))
         .child(
             div()
                 .ml(px(look::GAP))

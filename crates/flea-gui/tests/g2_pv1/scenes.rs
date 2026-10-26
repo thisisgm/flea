@@ -31,6 +31,7 @@ fn subject(name: &str, icon: &str, mode: u32, state: State, shape: Shape, body: 
         name: name.into(),
         icon: icon.into(),
         mode,
+        lang_marks: true,
         state,
         shape,
         body,
