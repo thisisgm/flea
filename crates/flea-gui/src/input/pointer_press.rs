@@ -40,6 +40,14 @@ impl Shell {
         host.input.hold(&mut host.pane);
         // The hold may land a glide where it is drawn, so the row and band read the frame it left.
         let frame = host.input.frame.unwrap_or(frame);
+        // Every press starts its own gesture, so no earlier press can lift rows for this one.
+        host.input.press = None;
+        if self.carry_list_press(side, frame, event, window, cx) {
+            return;
+        }
+        let Some(host) = &mut self.panes[side] else {
+            return;
+        };
         if frame.in_lane(event.position)
             && frame.max_scroll() > 0.5
             && event.button == MouseButton::Left

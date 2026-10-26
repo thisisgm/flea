@@ -95,6 +95,7 @@ pub fn open(
         window.on_window_should_close(cx, move |window, cx| {
             weak.update(cx, |shell, cx| {
                 shell.forget_file_drags(window, cx);
+                shell.carry_window_ended(window, cx);
                 shell.close(window, cx);
             })
             .is_err()

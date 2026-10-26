@@ -1,4 +1,5 @@
 //! The one place the window runs what a producer hands it: key and pointer actions, menu choices and rail requests.
+mod clipboard;
 mod fileops;
 mod fileops_wire;
 mod listing;
@@ -42,6 +43,7 @@ const FAMILIES: &[Family] = &[
     window::run,
     rename::run,
     menus::run,
+    clipboard::run,
 ];
 
 impl Shell {
@@ -64,6 +66,8 @@ impl Shell {
     }
 }
 
+#[cfg(test)]
+mod clipboard_tests;
 #[cfg(test)]
 mod compare_tests;
 #[cfg(test)]

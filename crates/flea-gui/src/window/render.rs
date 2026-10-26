@@ -64,6 +64,7 @@ impl Render for Shell {
             self.flush_operations(side, cx);
         }
         self.sync_clip_marks();
+        self.carry_sync(window, cx);
         self.finish_grid_view(window, cx);
         self.capture.report(window, cx);
         if self.seam.viewport().is_none() {
@@ -357,6 +358,7 @@ impl Render for Shell {
         .children(self.settings_surface())
         .children(self.trash_menu_layer(cx))
         .children(self.network_layers(window, cx))
+        .children(self.carry_flock(window, cx))
         .children(self.unlock_layer(cx))
     }
 }

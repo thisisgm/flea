@@ -81,6 +81,8 @@ pub struct Joined {
     // A test's stand-in for the detached Open in Agent spawn; None spawns the real agent.
     pub agent: Option<AgentLaunch>,
     pub(crate) providers: crate::g2::sd1::join::Senders,
+    /// The flyout c or P asked for, opened once the cursor menu draws.
+    pub flyout: Option<&'static str>,
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;

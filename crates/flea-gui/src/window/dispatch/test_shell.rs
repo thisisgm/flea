@@ -104,12 +104,13 @@ fn build<'a>(
         catalog: Arc::new(flea::i18n::I18n::default()),
     };
     let (_sender, events) = async_channel::unbounded();
+    SENT.with(|sent| sent.borrow_mut().clear());
     // Only the backend process is replaced; the rail, Trash, watch and devices start as the native launch starts them.
     cx.update(|cx| {
         cx.set_global(crate::state::constructor_fixture::Services {
-            backend: |_, cx| {
-                let (backend, requests) = Backend::test_channel();
-                cx.on_release(move |_, _| drop(requests)).detach();
+            backend: |_, _| {
+                let (backend, lines) = Backend::test_lines();
+                SENT.with(|sent| sent.borrow_mut().push(Box::new(lines)));
                 Ok(backend)
             },
             monitor: None,
@@ -138,6 +139,27 @@ fn build<'a>(
     cx.simulate_resize(size(px(1100.), px(700.)));
     cx.run_until_parked();
     (shell, cx)
+}
+
+// One backend's request lines, read in order.
+type Lines = Box<dyn FnMut() -> Option<String>>;
+
+thread_local! {
+    // Every request line the test window's backends were handed, read in order by sent.
+    static SENT: std::cell::RefCell<Vec<Lines>> = Default::default();
+}
+
+/// The request lines sent since the last call, from every backend the window started.
+pub(super) fn sent() -> Vec<String> {
+    SENT.with(|sent| {
+        let mut out = Vec::new();
+        for lines in sent.borrow_mut().iter_mut() {
+            while let Some(line) = lines() {
+                out.push(line);
+            }
+        }
+        out
+    })
 }
 
 pub(super) fn row(name: &str, dir: bool) -> RowFacts {

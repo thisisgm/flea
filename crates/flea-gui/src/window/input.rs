@@ -122,6 +122,14 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
+        // Modal cards, menus and fields have already had first refusal on Escape.
+        if event.keystroke.key == "escape"
+            && modifiers(event.keystroke.modifiers) == 0
+            && self.carry_escape(window, cx)
+        {
+            cx.stop_propagation();
+            return;
+        }
         if event.keystroke.key == "escape"
             && modifiers(event.keystroke.modifiers) == 0
             && self.keyboard.context == flea::keys::Context::Listing
