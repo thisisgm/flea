@@ -10,6 +10,9 @@ mod filesystem;
 mod ipc;
 #[path = "events_quit.rs"]
 mod quit;
+#[path = "events_slow.rs"]
+mod slow;
+pub(crate) use slow::slow_sentence;
 
 impl Shell {
     pub(crate) fn receive(
@@ -64,6 +67,17 @@ impl Shell {
             self.search_landed(side, true, window, cx);
         }
         if let BackendEvent::Producer(line) | BackendEvent::Operations(line) = &event {
+            if let Some(sentence) = slow_sentence(line) {
+                self.status_messages(cx, |messages, now| {
+                    messages.say(
+                        &sentence,
+                        false,
+                        "",
+                        flea::ui_logic_fb1::status::Hint::None,
+                        now,
+                    )
+                });
+            }
             if self.fileops_line(side, line, window, cx) {
                 return;
             }

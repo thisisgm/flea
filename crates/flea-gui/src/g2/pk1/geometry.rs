@@ -70,6 +70,7 @@ impl Live<'_> {
                     &state.drawn.metrics,
                     bounds.size.width.into(),
                     key,
+                    false,
                 )
                 .filter(|cell| cell.width > 0. && !label.is_empty())
                 {

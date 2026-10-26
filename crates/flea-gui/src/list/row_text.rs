@@ -114,8 +114,8 @@ pub(super) fn prepare(
         }),
         date: cell(Column::Date, &|| format::date_text(facts.mtime, words)),
         mode: cell(Column::Mode, &|| format::permissions(facts.mode)),
-        // The rows reply carries no kind names on this protocol yet, so the cell is empty, as Row.kindText() is without row.k.
-        kind: cell(Column::Kind, &String::new),
+        // Row.kindText(): the reply's kinds[k], empty when the row names none.
+        kind: cell(Column::Kind, &|| facts.kind.clone()),
         mark: Mark::for_facts(facts, shaping.languages),
         ink: row::name_ink(facts),
         run,

@@ -449,6 +449,8 @@ fn handle_line(
             if let listwork::Started::Inline(landed) = listwork::start(out, st, pool, watch, gate, job, Arc::clone(&tb.mime)) {
                 land(out, st, tb, pool, watch, fsinfo, poller, *landed);
             }
+            // Desktop priors load on their own worker after the first listing, so an empty window starts no thread.
+            super::searchprior::start();
             #[cfg(test)]
             super::renametiming::mark("list_complete");
         }

@@ -59,14 +59,15 @@ impl TrackElement {
         }
     }
 
-    /// The folder walks the active track's size cells read; a peek track never shows a size.
-    pub fn with_sizes(mut self, sizes: Rc<dyn FolderSizes>) -> Self {
-        self.sizes = Some(sizes);
+    /// ColumnRow's language marks follow the List's langMarks setting.
+    pub fn with_languages(mut self, languages: bool) -> Self {
+        self.languages = languages;
         self
     }
 
-    pub fn with_languages(mut self, languages: bool) -> Self {
-        self.languages = languages;
+    /// The folder walks the active track's size cells read; a peek track never shows a size.
+    pub fn with_sizes(mut self, sizes: Rc<dyn FolderSizes>) -> Self {
+        self.sizes = Some(sizes);
         self
     }
 

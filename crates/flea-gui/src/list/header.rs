@@ -5,11 +5,7 @@ use super::{
     pane::Held,
     ListState, ListView, Metrics, Palette, HAIRLINE, NORMAL,
 };
-use crate::{
-    navigation::folder_state::Order,
-    palette::Theme,
-    row::{format, is_symlink},
-};
+use crate::{navigation::folder_state::Order, palette::Theme};
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
     GlobalElementId, GlyphRun, InspectorElementId, IntoElement, LayoutId, Pixels, Style, TextRun,
@@ -115,45 +111,6 @@ pub fn width_patch(column: Column, width: u32) -> String {
     format!("{{\"columnWidths\":{{\"{}\":{width}}}}}", column.key())
 }
 
-/// ColumnFit.cellText(): the string a row draws in one column, measured by an autofit.
-pub fn cell_text(column: Column, held: &Held, index: usize, view: &ListView) -> Option<String> {
-    let facts = held.row(index)?;
-    // Before the catalog words a date and a link's size word print nothing, so a fit there has nothing to measure.
-    let worded = column == Column::Date || (column == Column::Size && is_symlink(facts.mode));
-    if worded && !view.words.ready {
-        return None;
-    }
-    Some(match column {
-        Column::Mode => format::permissions(facts.mode),
-        Column::Size => {
-            let walked = if facts.dir {
-                view.walked_for(held.listing, index)
-            } else {
-                None
-            };
-            format::size_text(facts, walked, &view.words)
-        }
-        Column::Date => format::date_text(facts.mtime, &view.words),
-        // The rows reply carries no kind names, so the held row's painted Kind cell is empty.
-        Column::Kind => String::new(),
-    })
-}
-
-/// Header.fittedWidth(): the widest held row's cell in the caption face, or None with no held row, which writes nothing.
-pub fn fitted_width(
-    column: Column,
-    held: &Held,
-    view: &ListView,
-    current: f32,
-    mut measure: impl FnMut(&str) -> f32,
-) -> Option<u32> {
-    let widths: Vec<f32> = (held.start..held.start + held.rows.len())
-        .filter_map(|index| cell_text(column, held, index, view))
-        .map(|text| measure(&text).ceil())
-        .collect();
-    (!widths.is_empty()).then(|| columns::autofit_width(&widths, f64::from(current)))
-}
-
 // What the shaped titles were shaped for; a language change drops them through forget_titles().
 #[derive(Clone, PartialEq)]
 struct TitleKey {
@@ -202,13 +159,22 @@ impl HeaderState {
         self.titles = None;
     }
 
-    /// The title cell Header.qml anchors: the name from the padding to the first drawn column's gap, each column its own cell.
-    pub fn title_cell(layout: &Layout, metrics: &Metrics, column: Option<Column>) -> Option<Cell> {
+    /// The title cell Header.qml anchors: the name from the padding (in Dual from the row labels) to the first drawn column's gap, each column its own cell.
+    pub fn title_cell(
+        layout: &Layout,
+        metrics: &Metrics,
+        column: Option<Column>,
+        dual: bool,
+    ) -> Option<Cell> {
         match column {
-            None => Some(Cell {
-                x: metrics.pad,
-                width: (layout.name.right() - metrics.pad).max(0.),
-            }),
+            None => {
+                // A Dual pane sets the name over the row labels, not the padding.
+                let x = if dual { metrics.label_x() } else { metrics.pad };
+                Some(Cell {
+                    x,
+                    width: (layout.name.right() - x).max(0.),
+                })
+            }
             Some(column) => layout.cell(column),
         }
     }
@@ -277,6 +243,10 @@ fn sort_key(column: Option<Column>) -> Option<&'static str> {
 #[path = "header_words.rs"]
 mod words;
 pub use words::titles;
+
+#[path = "header_fit.rs"]
+mod fit;
+pub use fit::{cell_text, fitted_width};
 
 #[path = "header_probe.rs"]
 mod probe;
@@ -446,9 +416,10 @@ impl Element for HeaderElement {
         // The board's padding sits above the titles, so their line box is the header less that padding.
         let text_top = top + px(metrics.header_top);
         let text_height = metrics.header - metrics.header_top;
+        let dual = state.view.dual;
         window.paint_layer(bounds, |window| {
             for column in words::CELLS {
-                let Some(cell) = HeaderState::title_cell(&layout, &metrics, column) else {
+                let Some(cell) = HeaderState::title_cell(&layout, &metrics, column, dual) else {
                     continue;
                 };
                 let title = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);

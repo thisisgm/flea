@@ -101,8 +101,6 @@ impl State {
 
     // One below FIRST_LISTING, so the forget_rows a first list runs numbers its rows FIRST_LISTING.
     pub fn new(dirsize_worker: super::dirsizeworker::Worker) -> State {
-        // The backend's start: desktop priors load on their own worker, so a later search open finds them without waiting.
-        super::searchprior::start();
         State {
             contents: Default::default(),
             git: None,

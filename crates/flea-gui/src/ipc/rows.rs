@@ -14,6 +14,10 @@ use crate::{
 };
 use flea::ipc::wire::Reply;
 use gpui::{Bounds, Hsla, Pixels};
+#[path = "rows_format.rs"]
+mod geometry_text;
+pub use geometry_text::{centre_of, colour, rect_of};
+use geometry_text::{centre_of_bounds, rect_of_bounds, round};
 
 /// One pane's List, its held rows and the states its owners hold.
 pub struct RowsAdapter<'a> {
@@ -57,60 +61,16 @@ pub(super) fn describe_row(facts: &flea::protocol::RowFacts, words: &format::Wor
     )
 }
 
-// Math.round(): half rounds up, so a negative half lands where QML's does.
-fn round(value: f32) -> i64 {
-    (value + 0.5).floor() as i64
-}
-
-/// FleaWindow.rectOf(): "x y width height" in window pixels, the far edges rounded before the size is taken.
-pub fn rect_of(x: f32, y: f32, width: f32, height: f32) -> String {
-    let (left, top) = (round(x), round(y));
-    format!(
-        "{left} {top} {} {}",
-        round(x + width) - left,
-        round(y + height) - top
-    )
-}
-
-/// FleaWindow.centreOf(): the box's middle as whole pixels.
-pub fn centre_of(x: f32, y: f32, width: f32, height: f32) -> String {
-    format!("{} {}", round(x + width / 2.), round(y + height / 2.))
-}
-
-fn rect_of_bounds(bounds: Bounds<Pixels>) -> String {
-    rect_of(
-        f32::from(bounds.origin.x),
-        f32::from(bounds.origin.y),
-        f32::from(bounds.size.width),
-        f32::from(bounds.size.height),
-    )
-}
-
-fn centre_of_bounds(bounds: Bounds<Pixels>) -> String {
-    centre_of(
-        f32::from(bounds.origin.x),
-        f32::from(bounds.origin.y),
-        f32::from(bounds.size.width),
-        f32::from(bounds.size.height),
-    )
-}
-
-/// QML's color string: "#rrggbb" when opaque, "#aarrggbb" otherwise.
-pub fn colour(value: Hsla) -> String {
-    let rgba = value.to_rgb();
-    let byte = |channel: f32| (channel.clamp(0., 1.) * 255.).round() as u8;
-    let (r, g, b, a) = (byte(rgba.r), byte(rgba.g), byte(rgba.b), byte(rgba.a));
-    if a == u8::MAX {
-        format!("#{r:02x}{g:02x}{b:02x}")
-    } else {
-        format!("#{a:02x}{r:02x}{g:02x}{b:02x}")
-    }
-}
-
 /// Header.cell(): where a title sits in header coordinates; a column that is not drawn collapses onto its right neighbour at width zero.
-pub fn header_cell(layout: &Layout, metrics: &Metrics, row: f32, name: &str) -> Option<Cell> {
+pub fn header_cell(
+    layout: &Layout,
+    metrics: &Metrics,
+    row: f32,
+    name: &str,
+    dual: bool,
+) -> Option<Cell> {
     if name == "name" {
-        return HeaderState::title_cell(layout, metrics, None);
+        return HeaderState::title_cell(layout, metrics, None, dual);
     }
     let wanted = Column::from_key(name)?;
     let mut right = row - metrics.pad;
@@ -194,7 +154,13 @@ impl RowsAdapter<'_> {
     fn header_cell(&self, name: &str) -> Option<Cell> {
         let drawn = &self.list.drawn;
         let row = (f32::from(self.header_box().size.width) - drawn.metrics.lane).max(0.);
-        header_cell(&self.list.header.drawn.layout, &drawn.metrics, row, name)
+        header_cell(
+            &self.list.header.drawn.layout,
+            &drawn.metrics,
+            row,
+            name,
+            self.list.view.dual,
+        )
     }
 
     fn row_value(&self, function: &str, index: usize) -> Option<String> {

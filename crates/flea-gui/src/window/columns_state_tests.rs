@@ -91,3 +91,76 @@ fn a_new_columns_limit_applies_to_the_open_columns_pane_at_once() {
         });
     }
 }
+
+#[test]
+fn m9_columns_limit_changed_in_settings_relays_the_drawn_columns_live() {
+    let mut cx = host::context();
+    let (window, _requests) = host::open_at(&mut cx, "/srv/a/b/c", 2700., 5);
+    host::frame(&mut cx, window);
+    let count = |cx: &mut gpui::TestAppContext| {
+        window
+            .update(cx, |shell, _, _| {
+                let area = &shell.panes[0]
+                    .as_ref()
+                    .unwrap()
+                    .columns
+                    .as_ref()
+                    .unwrap()
+                    .area;
+                (area.limit, area.count())
+            })
+            .unwrap()
+    };
+    assert_eq!(count(&mut cx), (Some(5.), 5));
+    for (limit, expected) in [(2, 2), (4, 4)] {
+        host::change(&mut cx, window, |shell, window, cx| {
+            let patch = flea::jsondoc::parse(&format!(r#"{{"columnsLimit":{limit}}}"#)).unwrap();
+            shell.change_settings(patch, window, cx);
+        });
+        host::frame(&mut cx, window);
+        assert_eq!(
+            count(&mut cx),
+            (Some(limit as f64), expected),
+            "the Settings limit re-lays the open Columns view without a relaunch"
+        );
+    }
+}
+
+#[test]
+fn m9_columns_rows_wear_language_marks_while_lang_marks_is_on() {
+    use crate::{columns::geometry::Slot, row::marks::Mark};
+    let mut cx = host::context();
+    let (window, _requests) = host::open(&mut cx, "/srv/a/b/c");
+    host::change(&mut cx, window, |shell, window, cx| {
+        host::peek(shell, "/srv/a/b", &[("c", true)], false, window, cx);
+        host::peek(
+            shell,
+            "/srv/a/b/c/d01",
+            &[("main.rs", false)],
+            false,
+            window,
+            cx,
+        );
+    });
+    for (patch, language) in [(None, true), (Some(false), false), (Some(true), true)] {
+        if let Some(on) = patch {
+            host::change(&mut cx, window, |shell, window, cx| {
+                let patch = flea::jsondoc::parse(&format!(r#"{{"langMarks":{on}}}"#)).unwrap();
+                shell.change_settings(patch, window, cx);
+            });
+        }
+        host::frame(&mut cx, window);
+        let mark = window
+            .update(&mut cx, |shell, _, _| {
+                let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+                let painter = columns.painters.get(Slot::Child).unwrap().borrow();
+                painter.prepared(0).unwrap().mark
+            })
+            .unwrap();
+        assert_eq!(
+            matches!(mark, Mark::Language(_)),
+            language,
+            "langMarks {patch:?} drew {mark:?} for main.rs"
+        );
+    }
+}

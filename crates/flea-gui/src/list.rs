@@ -30,6 +30,9 @@ pub(crate) mod sizes;
 mod tests;
 mod typeface;
 
+mod lang;
+pub use lang::lang_marks;
+
 pub use element::{ListElement, Shown};
 pub use header::HeaderElement;
 pub use palette::Palette;
@@ -179,17 +182,9 @@ impl ListView {
     pub fn apply_settings(&mut self, data: &Json, today_start: i64) {
         self.switched = Switched::from_settings(data);
         self.stored = StoredWidths::from_settings(data);
-        let lang_marks = data.get("langMarks").and_then(Json::as_bool) != Some(false);
-        self.set_lang_marks(lang_marks);
+        self.set_lang_marks(lang_marks(data));
         self.today = (data.get("highlightToday").and_then(Json::as_bool) == Some(true))
             .then_some(today_start);
-    }
-
-    pub fn set_lang_marks(&mut self, lang_marks: bool) {
-        if lang_marks != self.lang_marks {
-            self.lang_marks = lang_marks;
-            self.text += 1;
-        }
     }
 
     pub fn set_searching(&mut self, searching: bool) {

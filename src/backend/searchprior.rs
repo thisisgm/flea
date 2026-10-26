@@ -133,7 +133,7 @@ impl Load {
     }
 }
 
-// The process's one load, started with the backend and done about GRACE later; an open before then ranks without it.
+// The process's one load, started by the first list or search and done about GRACE later; an open before then ranks without it.
 pub(crate) fn start() {
     let load = GLOBAL.get_or_init(Load::default);
     STARTED.call_once(|| load.spawn(|| { std::thread::sleep(GRACE); self::load() }));

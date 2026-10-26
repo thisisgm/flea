@@ -87,6 +87,7 @@ pub struct Shaping {
     /// Cells a clip mark takes from either budget: ceil((gap + mark) / advance).
     pub clip_cells: usize,
     pub size: bool,
+    /// ViewState.langMarks: a code file wears its language's logo.
     pub languages: bool,
     pub scale: f32,
     pub words: Rc<row::format::Words>,

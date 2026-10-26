@@ -43,10 +43,11 @@ impl Shell {
         let host = self.panes[side].as_ref()?;
         {
             let mut list = host.list.borrow_mut();
-            list.view.switched = Switched::from_settings(&self.launch.settings.data);
+            list.view.dual = self.view == View::Dual;
+            list.view.switched =
+                Switched::from_settings(&self.launch.settings.data).for_dual(list.view.dual);
             list.view.stored = StoredWidths::from_settings(&self.launch.settings.data);
             list.view.order = host.nav.drawn_order();
-            list.view.dual = self.view == View::Dual;
             list.view.set_searching(host.pane.state.search);
             // A listing out keeps the handles, as Header.qml gates only on view, Dual and search.
             if host.stopped || list.view.dual || list.view.searching {
@@ -122,7 +123,7 @@ impl Shell {
             }
         } else {
             // Header.qml sorts from a TapHandler: remember the title now, sort on the release.
-            let key = title_key(&layout, &metrics, x);
+            let key = title_key(&layout, &metrics, x, list.view.dual);
             list.header.press = (!key.is_empty()).then(|| {
                 (
                     key,
@@ -254,7 +255,9 @@ impl Shell {
                         (f32::from(event.position.x) - x).hypot(f32::from(event.position.y) - y);
                     let at = f32::from(event.position.x - list.header.drawn.bounds.left());
                     let layout = list.header.drawn.layout;
-                    if travel <= TAP_SLOP && title_key(&layout, &list.drawn.metrics, at) == key {
+                    if travel <= TAP_SLOP
+                        && title_key(&layout, &list.drawn.metrics, at, list.view.dual) == key
+                    {
                         tap = Some(key);
                     }
                 }
@@ -334,8 +337,8 @@ impl Shell {
     }
 }
 
-/// The sort key of the title under x, empty over the mode column and the padding.
-fn title_key(layout: &columns::Layout, metrics: &Metrics, x: f32) -> &'static str {
+/// The sort key of the title under x, empty over the mode column and the padding (in Dual also over the mark slot and gap).
+fn title_key(layout: &columns::Layout, metrics: &Metrics, x: f32, dual: bool) -> &'static str {
     Column::ALL
         .into_iter()
         .find(|column| {
@@ -350,7 +353,7 @@ fn title_key(layout: &columns::Layout, metrics: &Metrics, x: f32) -> &'static st
             Column::Kind => "kind",
         })
         .unwrap_or_else(|| {
-            header::HeaderState::title_cell(layout, metrics, None)
+            header::HeaderState::title_cell(layout, metrics, None, dual)
                 .filter(|cell| x >= cell.x && x < cell.right())
                 .map_or("", |_| "name")
         })

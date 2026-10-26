@@ -375,3 +375,6 @@ fn jobs_padding_blocks_grid_press_at_a_measured_tile_overlap() {
         );
     });
 }
+
+#[path = "jobs_modal_tests.rs"]
+mod modal;

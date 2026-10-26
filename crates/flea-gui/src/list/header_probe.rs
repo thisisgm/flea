@@ -1,6 +1,6 @@
 //! Geometry receipts observe the same cached runs and masks the custom header paints.
 use super::{words::CELLS, HeaderState};
-use crate::list::{columns::Column, ListState, Metrics};
+use crate::list::{columns::Column, ListState};
 use gpui::{canvas, point, px, size, Bounds, IntoElement, Styled};
 use std::{cell::RefCell, rc::Rc};
 
@@ -13,10 +13,13 @@ pub(crate) fn element(side: usize, state: Rc<RefCell<ListState>>) -> impl IntoEl
                 return;
             };
             let drawn = &state.header.drawn;
-            let metrics = Metrics::at(state.typeface.body);
+            // The paint's own metrics, so a Dual pane's slot and label column match the drawn titles.
+            let metrics = state.file_metrics();
             let parent = format!("header-{side}");
             for column in CELLS {
-                let Some(cell) = HeaderState::title_cell(&drawn.layout, &metrics, column) else {
+                let Some(cell) =
+                    HeaderState::title_cell(&drawn.layout, &metrics, column, state.view.dual)
+                else {
                     continue;
                 };
                 let title = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);

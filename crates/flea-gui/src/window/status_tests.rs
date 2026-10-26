@@ -15,6 +15,8 @@ mod launch_tests;
 mod omi;
 #[path = "status_owner_tests.rs"]
 mod owners;
+#[path = "status_slow_tests.rs"]
+mod slow;
 
 fn open(cx: &mut TestAppContext) -> WindowHandle<Shell> {
     let (backend, _) = Backend::test_channel();
