@@ -81,6 +81,10 @@ mod fileops_menu_tests;
 #[cfg(test)]
 mod fileops_tests;
 #[cfg(test)]
+mod gh_rename_proof_lane;
+#[cfg(test)]
+mod gh_rename_proof_tests;
+#[cfg(test)]
 mod guard_tests;
 #[cfg(test)]
 mod listing_tests;

@@ -12,6 +12,8 @@ use flea::ui_logic_op3::bulkrename::{self as logic, Reloaded, Stop};
 mod m9_g2rows_04_tests;
 
 pub const WIDTH: f32 = 640.;
+/// The card's buttons left to right; card draws them in this order and press_button reads it.
+const BUTTONS: [Stop; 3] = [Stop::Edit, Stop::Cancel, Stop::Rename];
 
 #[derive(Clone, Debug)]
 pub struct BulkRename {
@@ -100,6 +102,13 @@ impl BulkRename {
             Stop::Edit => self.edit_in_terminal(),
             _ => self.rename(),
         }
+    }
+
+    /// A click on the card's button at an index: the stop the card drew there, pressed as Enter presses it.
+    pub fn press_button(&mut self, at: usize) -> Vec<Effect> {
+        BUTTONS
+            .get(at)
+            .map_or_else(Vec::new, |&stop| self.press(stop))
     }
 
     pub fn key(&mut self, key: Key) -> Vec<Effect> {
@@ -206,14 +215,14 @@ impl BulkRename {
             buttons: vec![
                 button(
                     tr("dialogs.file.bulk.edit"),
-                    Stop::Edit,
+                    BUTTONS[0],
                     false,
                     !self.editing,
                 ),
-                button(tr("dialogs.file.cancel"), Stop::Cancel, false, true),
+                button(tr("dialogs.file.cancel"), BUTTONS[1], false, true),
                 button(
                     logic::rename_label(i18n, counts.renamed),
-                    Stop::Rename,
+                    BUTTONS[2],
                     true,
                     logic::can_rename(counts) && !self.editing,
                 ),
