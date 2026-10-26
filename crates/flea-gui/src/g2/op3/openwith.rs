@@ -251,6 +251,7 @@ impl OpenWith {
             .and_then(|c| logic::chosen(c, &self.rows, self.cursor))
             .is_some();
         Card {
+            language: i18n.language().to_owned(),
             title: logic::title(i18n, &self.name),
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,

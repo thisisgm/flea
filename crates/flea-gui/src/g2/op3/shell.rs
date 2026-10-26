@@ -207,6 +207,8 @@ pub struct Button {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Card {
+    /// The catalog language controls heading capitals and tracking in the shared shell.
+    pub language: String,
     pub title: String,
     pub esc: String,
     /// The board width at the board's body size; the shell scales it.
@@ -281,6 +283,7 @@ struct Draw<'a> {
     t: Tokens,
     s: f32,
     typeface: &'a Typeface,
+    language: &'a str,
     wire: Option<&'a Wire>,
     entry: Option<&'a crate::path::entry::Entry>,
 }
@@ -303,6 +306,8 @@ pub struct Interactive<'a> {
 }
 
 mod blocks;
+#[cfg(test)]
+mod caption_tests;
 mod draw;
 mod glyph;
 pub use draw::StandIn;

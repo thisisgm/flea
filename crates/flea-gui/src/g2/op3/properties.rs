@@ -181,6 +181,7 @@ impl Properties {
             body.push(Block::Facts(facts));
         }
         Card {
+            language: i18n.language().to_owned(),
             title: if self.count > 1 {
                 i18n.trn("items.count", self.count as i64)
             } else {

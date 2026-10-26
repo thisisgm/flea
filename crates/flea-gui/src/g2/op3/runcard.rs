@@ -94,6 +94,7 @@ impl RunCard {
     pub fn card(&self, i18n: &I18n) -> Card {
         let default = logic::default_button(self.ask.kind, self.ask.has_handler());
         Card {
+            language: i18n.language().to_owned(),
             title: logic::title(i18n, &self.name),
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,
