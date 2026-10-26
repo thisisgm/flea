@@ -13,21 +13,48 @@ pub(super) fn run(
     let Order::Menu(chosen) = order else {
         return false;
     };
-    // Compare stays unclaimed until Shell::open_compare (window/quick_look_compare.rs) joins; delivery refuses it meanwhile.
-    if !matches!(
-        chosen.action.as_str(),
-        "selectAll"
-            | "invertSelection"
-            | "toggleLangMarks"
-            | "settings"
-            | "updateFlea"
-            | "addFavourite"
-    ) || !chosen.claim()
-    {
+    let wanted = match chosen.action.as_str() {
+        "compare" => {
+            chosen.captured.ready && !chosen.captured.background && chosen.paths.len() == 2
+        }
+        "properties" => {
+            chosen.captured.ready && !chosen.captured.background && !chosen.captured.rows.is_empty()
+        }
+        "selectAll" | "invertSelection" | "toggleLangMarks" | "settings" | "updateFlea"
+        | "addFavourite" => true,
+        _ => false,
+    };
+    if !wanted || !chosen.claim() {
         return false;
     }
     finish(shell, chosen, window, cx);
     match chosen.action.as_str() {
+        // The menu's validated pair opens the Compare card, as Shell::open_compare does for held rows.
+        "compare" => {
+            let side = chosen.captured.side;
+            let mark = shell.panes[side]
+                .as_ref()
+                .and_then(|host| {
+                    chosen
+                        .captured
+                        .rows
+                        .first()
+                        .and_then(|&row| host.pane.held.row(row).cloned())
+                })
+                .unwrap_or_else(|| flea::protocol::RowFacts {
+                    mode: chosen.captured.kinds.first().copied().unwrap_or(0),
+                    ..flea::protocol::RowFacts::default()
+                });
+            shell.open_compare_paths(
+                side,
+                chosen.paths[0].clone(),
+                chosen.paths[1].clone(),
+                &mark,
+                window,
+                cx,
+            );
+        }
+        "properties" => shell.open_properties_card(chosen, window, cx),
         // Marks.js selectAll and invert: the rows the listing draws, so a filter narrows them.
         "selectAll" | "invertSelection" => {
             // input_action reads the focused pane, so it points at the menu's own pane for this one call.

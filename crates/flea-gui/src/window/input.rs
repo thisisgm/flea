@@ -81,6 +81,10 @@ impl Shell {
                 }
             }
         }
+        // The Properties card holds every key while it shows.
+        if self.properties_key(event, window, cx) {
+            return;
+        }
         // The rename editor and the bulk rename card hold every key while open.
         if self.rename_key(event, window, cx) {
             self.rename_sync_gate(window, cx);

@@ -103,6 +103,8 @@ mod menus_columns_tests;
 #[cfg(test)]
 mod menus_dual_tests;
 #[cfg(test)]
+mod menudeliver_tests;
+#[cfg(test)]
 mod menus_tests;
 #[cfg(test)]
 mod menus_keys_tests;
