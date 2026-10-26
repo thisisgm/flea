@@ -80,6 +80,7 @@ impl Shell {
     }
 
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.menu.place = None;
         self.providers_menu_closed();
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
@@ -113,6 +114,9 @@ impl Shell {
     }
 
     pub(crate) fn activate_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.activate_place_menu(window, cx) {
+            return;
+        }
         let Some(capture) = self.menu.captured.clone() else {
             return;
         };
