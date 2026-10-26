@@ -198,6 +198,23 @@ try:
     check(second.quit().returncode == 0, "quit-acknowledged")
     second.stop()
     check((second.root / "stopped").is_file(), "quit-drained")
+    cwd = os.getcwd()
+    caller = root / "caller"
+    caller.mkdir()
+    try:
+        # The caller's cwd differs from the start path, so only cwd-relative resolution passes.
+        os.chdir(caller)
+        want_select = str(Path(os.getcwd()) / "target.txt")
+        selected = Window.start(root, parent=root, frontend="gpui", timeout=1, select="target.txt")
+        windows.append(selected)
+    finally:
+        os.chdir(cwd)
+    check(load(selected.root)["select"] == want_select, "select-target-made-absolute")
+    selected.stop()
+    refuse("select-with-direct-qml", lambda: Window.start(root, parent=root, frontend="qml", timeout=1,
+                                                          command=["qs", "-p", str(root / "boot")], select=root / "b.txt"),
+           "a select target needs the flea --gui launch")
+    refuse("select-empty", lambda: Window.start(root, parent=root, frontend="gpui", timeout=1, select=""), "select target is empty")
     print(f"TRANSPORT_CONTROLS checks={checks} failed=0")
 finally:
     for window in windows:
