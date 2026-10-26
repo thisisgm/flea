@@ -260,6 +260,9 @@ impl Shell {
         let Some(path) = path else {
             return;
         };
+        let trash = self.trash.as_ref().is_some_and(|host| {
+            host.side == self.focus_side && self.slots.covers[host.side].is_some()
+        });
         if let Some(join) = &self.rail {
             if !join.host.read(cx).rail.shown() {
                 return;
@@ -267,7 +270,11 @@ impl Shell {
             join.places.update(cx, |producer, cx| {
                 producer.side = self.focus_side;
                 producer.model.borrow_mut().corner = self.corner;
-                producer.settle_lit(&path, cx);
+                if trash {
+                    producer.settle_view(&path, &flea::ui_logic_pl4::placeview::View::Trash, cx);
+                } else {
+                    producer.settle_lit(&path, cx);
+                }
             });
         }
     }

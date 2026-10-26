@@ -262,14 +262,22 @@ impl Producer {
 
     /// The lit row follows the pane's place, as Sidebar.settleLit resolves it.
     pub fn settle_lit(&mut self, path: &str, cx: &mut Context<Self>) {
-        use flea::ui_logic_pl4::placeview::{held_by, View};
-        let lit = held_by(
-            &self.entries(),
+        self.settle_view(
             path,
-            &View::Dir {
+            &flea::ui_logic_pl4::placeview::View::Dir {
                 share_key: String::new(),
             },
+            cx,
         );
+    }
+
+    pub(crate) fn settle_view(
+        &mut self,
+        path: &str,
+        view: &flea::ui_logic_pl4::placeview::View,
+        cx: &mut Context<Self>,
+    ) {
+        let lit = flea::ui_logic_pl4::placeview::held_by(&self.entries(), path, view);
         if self.model.borrow().lit != lit {
             self.model.borrow_mut().lit = lit;
             cx.notify();
