@@ -101,7 +101,6 @@ impl Shell {
             return;
         }
         if self.archive_key(event, window, cx) {
-            cx.stop_propagation();
             return;
         }
         if event.keystroke.key == "escape" && self.dual_drag.is_some() {

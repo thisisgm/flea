@@ -94,7 +94,14 @@ fn receive(cx: &mut TestAppContext, handle: Handle, side: usize, line: &str) {
 }
 
 fn keys(cx: &mut TestAppContext, handle: Handle, keys: &str) {
-    VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes(keys);
+    for key in keys.split_whitespace() {
+        let mut visual = VisualTestContext::from_window(handle.into(), cx);
+        if let Some((_, text)) = key.split_once("->") {
+            visual.simulate_input(text);
+
+        }
+        else { visual.simulate_keystrokes(key); }
+    }
     frame(cx, handle);
 }
 

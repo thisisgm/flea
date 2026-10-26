@@ -135,6 +135,11 @@ impl PathView {
     fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         let key = event.keystroke.key.as_str();
         let held = event.keystroke.modifiers;
+        if self.entry.ime_key(key) {
+            self.edited(cx);
+            cx.stop_propagation();
+            return;
+        }
         // A held Enter stands for the line as it was, so nothing typed after it changes what it opens; Escape still closes.
         if self.jump.enter_waiting && key != "escape" {
             cx.stop_propagation();

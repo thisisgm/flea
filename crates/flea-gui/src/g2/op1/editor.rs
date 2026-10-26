@@ -19,7 +19,9 @@ pub(super) struct Editor {
 }
 
 #[derive(Default)]
-pub(super) struct Drawn {
+pub(crate) struct Drawn {
+    pub revealed: bool,
+    pub held: usize,
     pub line: Line,
     // The exact argument retained with the current shaped run, replaced only when shaping changes.
     pub shaped_text: std::rc::Rc<str>,

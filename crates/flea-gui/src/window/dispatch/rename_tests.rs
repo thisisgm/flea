@@ -23,7 +23,15 @@ pub(super) fn ready<'a>(
     cx: &'a mut TestAppContext,
     preset: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
-    let (shell, cx) = open(cx, preset);
+    ready_with_root(cx, preset, false)
+}
+
+pub(super) fn ready_root<'a>(cx: &'a mut TestAppContext, preset: &str) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
+    ready_with_root(cx, preset, true)
+}
+
+fn ready_with_root<'a>(cx: &'a mut TestAppContext, preset: &str, root: bool) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
+    let (shell, cx) = if root { super::test_shell::open_root(cx, preset) } else { open(cx, preset) };
     land(&shell, cx, "/files", home(), 1);
     set_cursor(&shell, cx, 2);
     let (backend, lines) = Backend::test_lines();
@@ -278,7 +286,7 @@ fn every_preset_rename_key_opens_the_editor(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn several_marked_rows_open_the_bulk_card_and_its_done_line_refreshes(cx: &mut TestAppContext) {
-    let (shell, cx, mut lines) = ready(cx, "default");
+    let (shell, cx, mut lines) = ready_root(cx, "default");
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         host.selected = vec![1, 2];
@@ -360,5 +368,27 @@ fn escape_closes_the_bulk_card_and_sends_nothing(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("escape");
     assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
     assert_eq!(sent(&mut lines), Vec::<String>::new());
+    close(&shell, cx);
+}
+
+// Each reshape resolves per-character bidi levels, so a Hebrew letter inside a Latin name keeps its own caret side.
+#[gpui::test]
+fn the_rename_field_resolves_bidi_levels_on_each_reshape(cx: &mut TestAppContext) {
+    let (shell, cx, _lines) = ready(cx, "default");
+    cx.simulate_keystrokes("f2");
+    draw(cx);
+    cx.simulate_input("a\u{5e9}b");
+    draw(cx);
+    let (text, right_to_left, levels) = shell.read_with(cx, |shell, _| {
+        let edit = shell.rename.edit.as_ref().unwrap();
+        let line = &edit.line.line;
+        (edit.entry.text.clone(), line.right_to_left, line.bidi_levels.clone())
+    });
+    assert_eq!(text, "a\u{5e9}b.txt");
+    let mut expected = crate::path::field::Line::default();
+    expected.set_text_direction(&text);
+    assert!(!right_to_left, "a Latin first letter keeps the paragraph left to right");
+    assert_eq!(levels, expected.bidi_levels, "the drawn line holds the reshaped text's levels");
+    assert!(levels[1].is_rtl(), "the Hebrew letter resolves right to left");
     close(&shell, cx);
 }

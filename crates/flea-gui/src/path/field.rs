@@ -270,7 +270,8 @@ impl Element for FieldElement {
         let font = paint.typeface.font.clone();
         let mut line = view.line.borrow_mut();
         if line.run.is_none() || line.revision != view.entry.revision {
-            let text = &view.entry.text;
+            let display = view.entry.display();
+            let text = display.as_ref();
             let run = TextRun {
                 len: text.len(),
                 font,
@@ -285,11 +286,12 @@ impl Element for FieldElement {
                 &[run],
                 None,
             ))));
+            line.set_text_direction(text);
             line.revision = view.entry.revision;
         }
         // The caret stays inside the frame: the line slides under it the way a text input scrolls.
         let room = (frame.size.width - px(2. * (FRAME + scale.inset))).max(px(0.));
-        let caret = line.x_for(view.entry.cursor());
+        let caret = line.entry_caret(&view.entry, view.entry.cursor());
         if caret - line.scroll > room {
             line.scroll = caret - room;
         } else if caret < line.scroll {
@@ -338,8 +340,8 @@ impl Element for FieldElement {
         let entry = &view.entry;
         window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
             if !entry.selected.is_empty() {
-                let from = origin + line.x_for(entry.selected.start);
-                let to = origin + line.x_for(entry.selected.end);
+                let (from, to) = line.entry_span(entry, &entry.selected);
+                let (from, to) = (origin + from, origin + to);
                 window.paint_quad(fill(wash_box(frame, from, to, &scale), ink.wash(SELECTION)));
             }
             if let Some(run) = &line.run {
@@ -353,8 +355,8 @@ impl Element for FieldElement {
                 );
             }
             if let Some(marked) = &entry.marked {
-                let from = origin + line.x_for(marked.start);
-                let to = origin + line.x_for(marked.end);
+                let (from, to) = line.entry_span(entry, marked);
+                let (from, to) = (origin + from, origin + to);
                 window.paint_quad(fill(
                     Bounds::new(
                         point(from, caret_top + px(scale.caret - 1.)),
@@ -366,12 +368,13 @@ impl Element for FieldElement {
             // Selected text shows no caret, as the board draws it.
             if entry.selected.is_empty() {
                 window.paint_quad(fill(
-                    caret_box(frame, origin, line.x_for(entry.cursor()), &scale),
+                    caret_box(frame, origin, line.entry_caret(entry, entry.cursor()), &scale),
                     ink.foreground,
                 ));
             }
         });
         drop(line);
+        view.line.borrow_mut().registered = view.entry.session();
         window.handle_input(
             &focus,
             ElementInputHandler::new(frame, self.view.clone()),
