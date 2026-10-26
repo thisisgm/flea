@@ -1,13 +1,13 @@
-//! F and B page the Markdown and HTML views by their viewport's height (PreviewScroll.qml pageBy), through the production Shell.
+//! F and B page code by whole rows and rendered documents by their viewport height, through the production Shell.
 use super::previewtypes_kinds_tests::Root;
 use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump};
 use crate::{
-    g2::pv2::{html::HtmlView, markdown::MarkdownView},
+    g2::pv2::{code::CodeView, html::HtmlView, markdown::MarkdownView},
     state::Shell,
     window::selection_preview::{docs::Doc, Mounted},
 };
 use flea::ui_logic_pv2::html::View;
-use gpui::{Entity, TestAppContext, VisualTestContext};
+use gpui::{point, px, size, Entity, ScrollDelta, ScrollWheelEvent, TestAppContext, VisualTestContext};
 use std::time::{Duration, Instant};
 
 fn doc<R>(shell: &Entity<Shell>, cx: &mut VisualTestContext, read: impl FnOnce(&Doc, &gpui::App) -> R) -> R {
@@ -32,6 +32,93 @@ fn html(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Entity<HtmlView> {
         Doc::Html(view) => view.clone(),
         _ => panic!("the html view is drawn"),
     })
+}
+
+fn page_code_after_wheel(cx: &mut TestAppContext, wrap: bool) {
+    let (shell, cx) = open(cx, "/files");
+    let rows = vec![file("long.rs", "text-x-rust", "Rust source code", 0o100644)];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    let lines = local(&shell, cx, "/files");
+    meta(&shell, cx, &lines, r#","lines":200"#);
+    let asked = ask(&lines, "code").to_owned();
+    let body = (0..200)
+        .map(|n| {
+            let text = if n == 0 && wrap {
+                "x".repeat(3000)
+            } else {
+                format!("line {n}")
+            };
+            format!(r#"[0,"{text}"]"#)
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    answer(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"code","token":{},"slot":"column","state":"plain","first":1,"total":200,"lines":[{body}]}}"#,
+            field(&asked, "token")
+        ),
+    );
+    pump(cx);
+    let view: Entity<CodeView> = doc(&shell, cx, |doc, _| match doc {
+        Doc::Code(view) => view.clone(),
+        _ => panic!("the code view is drawn"),
+    });
+    cx.update(|_, cx| {
+        view.update(cx, |view, cx| {
+            view.metrics.row = 20.;
+            view.set_wrap(wrap, cx);
+        })
+    });
+    pump(cx);
+    let height = cx.read(|cx| view.read(cx).frame.1);
+    cx.simulate_resize(size(px(1100.), px(700. + 505. - height)));
+    pump(cx);
+    assert_eq!(cx.read(|cx| view.read(cx).frame.1), 505.);
+    let at = cx.debug_bounds("column-preview").unwrap().center();
+    let position = |cx: &mut VisualTestContext| {
+        cx.read(|cx| {
+            let view = view.read(cx);
+            if wrap {
+                assert_eq!(view.top, 0, "paging stays within the long wrapped line");
+            }
+            view.top as f32 * view.metrics.row + view.offset
+        })
+    };
+    for (before, key, after) in [(19., "shift-f->F", 500.), (1019., "shift-b->B", 500.)] {
+        cx.simulate_event(ScrollWheelEvent {
+            position: at,
+            delta: ScrollDelta::Pixels(point(px(0.), px(-19.))),
+            ..Default::default()
+        });
+        pump(cx);
+        assert_eq!(position(cx), before, "wheel scrolling reaches a partial row");
+        cx.simulate_keystrokes(key);
+        pump(cx);
+        assert_eq!(
+            position(cx),
+            after,
+            "a page restores a whole first row under the top padding"
+        );
+        cx.simulate_keystrokes("shift-f->F");
+        pump(cx);
+        assert_eq!(
+            position(cx),
+            1000.,
+            "another page retains whole wrapped continuation rows"
+        );
+    }
+}
+
+#[gpui::test]
+fn f_and_b_snap_code_after_pixel_wheel_scroll(cx: &mut TestAppContext) {
+    page_code_after_wheel(cx, false);
+}
+
+#[gpui::test]
+fn f_and_b_snap_wrapped_code_after_pixel_wheel_scroll(cx: &mut TestAppContext) {
+    page_code_after_wheel(cx, true);
 }
 
 #[gpui::test]
