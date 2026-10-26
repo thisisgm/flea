@@ -266,8 +266,33 @@ fn main<'a>() { let brace = '}'; tr(r##"omarchy:keybindings.Close window"##); }
         path.mkdir()
         self.assertIn("1 missing catalogs: de", self.run_tool(status=1).stderr)
         self.assertIn("1 missing catalogs: de", self.run_tool("--check-installed", status=1).stderr)
-        for flag in ("--check-installed", "--require-final-pin"):
-            self.assertIn("development-only", self.run_tool("--warn-only", flag, status=2).stderr)
+        self.assertIn("development-only", self.run_tool("--warn-only", "--require-final-pin", status=2).stderr)
+
+    def test_i50_roster_warn_only_installed_missing_catalog_warns(self):
+        self.remove_de_catalog()
+        result = self.run_tool("--check-installed", "--warn-only")
+        self.assertIn("warning:", result.stderr)
+        self.assertIn("missing catalogs", result.stderr)
+
+    def remove_de_catalog(self):
+        path = self.catalogs / "de/flea.json"
+        assert path.is_absolute() and str(path) and path.is_relative_to(self.root)
+        assert (self.root / ".flea-test-sandbox").is_file()
+        path.unlink()
+
+    def test_i50_roster_warn_only_installed_hash_mismatch_fails(self):
+        self.remove_de_catalog()
+        (self.omarchy / "default/i18n/plural.jq").write_text("# changed\n")
+        self.assertIn("installed plural.jq differs", self.run_tool("--check-installed", "--warn-only", status=1).stderr)
+
+    def test_i50_roster_warn_only_installed_reference_fails(self):
+        self.remove_de_catalog()
+        (self.source / "main.rs").write_text('fn main() { tr("omarchy:shell.disappeared"); }\n')
+        self.assertIn("omarchy:shell.disappeared", self.run_tool("--check-installed", "--warn-only", status=1).stderr)
+
+    def test_i50_roster_warn_only_require_final_pin_rejected(self):
+        result = self.run_tool("--warn-only", "--require-final-pin", status=2)
+        self.assertIn("--warn-only is development-only and cannot bypass the final-pin check", result.stderr)
 
     def test_i50_roster_unknown_catalog_fails(self):
         self.write(self.catalogs / "zz/flea.json", {"label": "Unknown"})
