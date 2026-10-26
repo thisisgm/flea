@@ -431,7 +431,7 @@ def dry_run(root):
     data["fixture_manifest_sha256"] = sha(root / "fixtures.json") if (root / "fixtures.json").exists() else None
     data["native_prerequisites"] = {name: shutil.which(name) for name in ("hyprctl", "grim", "dbus-run-session")}
     data["display"] = {name: os.environ.get(name) for name in ("WAYLAND_DISPLAY", "DISPLAY")}
-    write_json(root / "dry-run.json", data)
+    write_json(root / "dry-run.json", data, replace=True)
     print("dry-run: %d trials, 11 tests, 33 measures; no timing or rank claimed" % len(data["trials"]))
 
 
@@ -950,12 +950,20 @@ def selftest(root):
     else:
         raise ValueError("incomplete RAW completion accepted")
     write_json(root / "selftest.json", {"passed": True, "contracts": ["adjacent bounds", "navigation uncertainty",
-               "median endpoints", "midpoint ties", "sampled charged memory", "RAW incomplete", "CPU quiet", "rebound", "timeout"]})
+               "median endpoints", "midpoint ties", "sampled charged memory", "RAW incomplete", "CPU quiet", "rebound", "timeout"]}, replace=True)
     print("strata-bench: capture bounds, peak memory, coverage, quiet/rebound/timeout and midpoint ranking passed")
 
 
+class Parser(argparse.ArgumentParser):
+    # Exit 2 would read as a result; a usage error is a harness error, exit 3.
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        print("strata-bench: usage error: " + message, file=sys.stderr)
+        sys.exit(3)
+
+
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = Parser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("action", choices=("init", "fixtures", "dry-run", "run", "report", "selftest"))
     parser.add_argument("root")
     parser.add_argument("--flea-bin", default=str(REPO / "target/release/flea"))
