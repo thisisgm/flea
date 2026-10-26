@@ -18,6 +18,8 @@ pub mod navigate;
 pub mod network;
 pub(crate) mod output;
 pub mod overlay;
+pub(crate) mod run_card;
+pub(crate) mod open_with;
 pub(crate) mod pane;
 pub(crate) mod path_host;
 pub(crate) mod properties;

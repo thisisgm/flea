@@ -215,8 +215,19 @@ impl Shell {
                 let failed = failed_text(&self.locale.catalog);
                 self.opener_say(side, failed, true, cx);
             }
-            opened @ (Opened::AskRun { .. } | Opened::AskOpenWith(_)) => {
-                cx.emit(Asked { side, opened });
+            Opened::AskRun { path, text } => {
+                cx.emit(Asked {
+                    side,
+                    opened: Opened::AskRun { path: path.clone(), text: text.clone() },
+                });
+                self.open_run_card(side, path, text, window.modifiers().shift, cx);
+            }
+            Opened::AskOpenWith(path) => {
+                cx.emit(Asked {
+                    side,
+                    opened: Opened::AskOpenWith(path.clone()),
+                });
+                self.open_open_with(side, path, cx);
             }
         }
     }
@@ -285,7 +296,7 @@ impl Shell {
         }));
     }
 
-    fn opener_say(&mut self, side: usize, sentence: String, error: bool, cx: &mut Context<Self>) {
+    pub(crate) fn opener_say(&mut self, side: usize, sentence: String, error: bool, cx: &mut Context<Self>) {
         if let Some(host) = &mut self.panes[side] {
             host.status = sentence.clone().into();
         }

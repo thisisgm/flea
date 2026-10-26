@@ -11,7 +11,10 @@ pub(super) fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestCo
     open_backend(backend, cx)
 }
 
-fn open_backend(backend: Backend, cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+fn open_backend(
+    backend: Backend,
+    cx: &mut TestAppContext,
+) -> (Entity<Shell>, &mut VisualTestContext) {
     let (shell, cx) = cx.add_window_view(|_, cx| crate::state::tests::shell_with(backend, cx));
     cx.simulate_resize(size(px(1100.), px(700.)));
     cx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
@@ -201,7 +204,11 @@ fn u07_pointer_and_keyboard_edit_the_mounted_path_and_escape_cancels(cx: &mut Te
         assert!(host.pane.swap.pending.is_none());
         let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
         let line = footer.message_line();
-        let painted = line.read(cx).painted.get("primary").expect("painted refusal");
+        let painted = line
+            .read(cx)
+            .painted
+            .get("primary")
+            .expect("painted refusal");
         assert_eq!(painted.text.as_ref(), sentence);
     });
     cx.simulate_keystrokes("ctrl-l");
@@ -212,7 +219,11 @@ fn u07_pointer_and_keyboard_edit_the_mounted_path_and_escape_cancels(cx: &mut Te
 
 #[gpui::test]
 fn u07_local_file_uri_authorities_still_submit_navigation(cx: &mut TestAppContext) {
-    for uri in ["file:///etc", "file://localhost/etc", "file://LOCALHOST/etc"] {
+    for uri in [
+        "file:///etc",
+        "file://localhost/etc",
+        "file://LOCALHOST/etc",
+    ] {
         let (backend, _requests) = Backend::test_channel();
         let (shell, cx) = open_backend(backend, cx);
         cx.simulate_keystrokes("ctrl-l ctrl-a");

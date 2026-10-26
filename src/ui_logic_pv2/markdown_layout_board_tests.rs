@@ -243,9 +243,21 @@ fn a_kbd_chip_keeps_the_space_before_it_and_the_plus_between_the_chips() {
             _ => None,
         })
         .expect("the plus is drawn");
-    assert_eq!(press.0 + press.1, ctrl, "the space stays before the first chip");
-    assert_eq!(plus.0, ctrl + ctrl_width, "the plus starts where the first chip ends");
-    assert_eq!(c, plus.0 + plus.1, "the second chip starts where the plus ends");
+    assert_eq!(
+        press.0 + press.1,
+        ctrl,
+        "the space stays before the first chip"
+    );
+    assert_eq!(
+        plus.0,
+        ctrl + ctrl_width,
+        "the plus starts where the first chip ends"
+    );
+    assert_eq!(
+        c,
+        plus.0 + plus.1,
+        "the second chip starts where the plus ends"
+    );
 }
 
 #[test]

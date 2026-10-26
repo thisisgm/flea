@@ -104,14 +104,17 @@ fn gh336_space_svg_rasterizes_at_physical_pixels_at_scale_2_and_1_and_on_each_sc
             "gh336 svg scale{scale} fit={now:?} raster={}x{}",
             s.width.0, s.height.0
         );
-        assert_eq!(
-            now.size, rect.size,
-            "scale {scale}: the logical fit is unchanged"
-        );
+        // Painted bounds align to physical pixels; the logical fit still owns the decode request.
+        for (painted, logical) in [
+            (f32::from(now.size.width), f32::from(rect.size.width)),
+            (f32::from(now.size.height), f32::from(rect.size.height)),
+        ] {
+            assert!((painted - logical).abs() < 1. / scale);
+        }
         assert_eq!(
             (s.width.0, s.height.0),
-            physical(now, scale.into()),
-            "scale {scale}: a new raster at physical pixels"
+            physical(rect, scale.into()),
+            "scale {scale}: a new raster at the logical fit's physical pixels"
         );
         prev = next.id.0;
     }

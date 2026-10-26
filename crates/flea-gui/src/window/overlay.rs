@@ -16,6 +16,8 @@ impl Shell {
             || self.network_holds_keyboard(cx)
             || self.rename.bulk.is_some()
             || self.properties.is_some()
+            || self.run_card.is_some()
+            || self.open_with.is_some()
             || self.unlock_holds_keyboard(cx)
             || self
                 .overlay
