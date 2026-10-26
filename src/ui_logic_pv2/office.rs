@@ -359,13 +359,13 @@ impl Office {
         })
     }
 
-    /// `[` and `]`: the sheet `delta` away, held at the first and last; the new sheet's CSV when it changed.
+    /// `[` and `]`: the sheet `delta` away, wrapping at the ends as the 3MF plate steps wrap; the new sheet's CSV when it changed.
     pub fn turn_sheet(&mut self, delta: i64) -> Option<String> {
-        if self.sheet_paths.is_empty() {
+        let count = self.sheet_paths.len() as i64;
+        if count == 0 {
             return None;
         }
-        let last = self.sheet_paths.len() as i64 - 1;
-        let next = (self.sheet as i64 + delta).clamp(0, last) as usize;
+        let next = (self.sheet as i64 + delta).rem_euclid(count) as usize;
         if next == self.sheet {
             return None;
         }

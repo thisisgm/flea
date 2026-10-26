@@ -992,6 +992,8 @@ pasteAs = "Paste as"
 pasteHardLink = "Paste hard link"
 pasteLink = "Paste link"
 playPause = "Play pause"
+previousSheet = "Previous sheet"
+nextSheet = "Next sheet"
 properties = "Get info"
 seekBack = "Seek back"
 seekForward = "Seek forward"
@@ -2431,6 +2433,27 @@ action = "toggleWrap"
 label = "wrap"
 frontend = "all"
 context = "preview"
+
+# [ and ] turn a workbook's sheets in Quick Look; the GUI shell keeps the tab step for any other card.
+[[preset]]
+name = "all"
+mods = "text"
+key = "["
+keys = "["
+action = "previousSheet"
+label = "previous sheet"
+frontend = "all"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "]"
+keys = "]"
+action = "nextSheet"
+label = "next sheet"
+frontend = "all"
+context = "preview,pdf"
 
 # Compare's overlay: y copies the whole patch, headers included, and the listing's y stays copy (preview context only).
 [[preset]]

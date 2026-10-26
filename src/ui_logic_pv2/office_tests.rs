@@ -349,7 +349,7 @@ fn office_states_from_open_to_ready_cancelled_and_locked() {
     );
 }
 
-// budget.xlsx: the sheets arrive as cached CSVs, [ and ] switch them, held at both ends.
+// budget.xlsx: the sheets arrive as cached CSVs, [ and ] switch them and wrap at the ends.
 #[test]
 fn office_sheets_switch_with_the_brackets() {
     let mut office = Office::default();
@@ -372,13 +372,21 @@ fn office_sheets_switch_with_the_brackets() {
         Some(("document.office_sheets", 2)),
         "a workbook counts sheets"
     );
-    assert_eq!(office.turn_sheet(-1), None, "[ on the first sheet stays");
+    assert_eq!(
+        office.turn_sheet(-1),
+        Some("/c/s.csv".into()),
+        "[ on the first sheet wraps to the last, as the 3MF plate steps wrap"
+    );
+    assert_eq!(
+        office.turn_sheet(1),
+        Some("/c/m.csv".into()),
+        "] on the last sheet wraps to the first"
+    );
     assert_eq!(
         office.turn_sheet(1),
         Some("/c/s.csv".into()),
         "] shows the next sheet"
     );
-    assert_eq!(office.turn_sheet(1), None, "] on the last sheet stays");
     assert_eq!(office.sheet_words()[1], ("Savings".into(), true));
     office.open("/d/budget.xlsx", 3);
     let broken = line(r#"{"t":"officesheets","id":3,"state":"ready","names":["A"],"paths":[]}"#);

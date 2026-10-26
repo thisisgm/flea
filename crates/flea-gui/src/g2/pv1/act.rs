@@ -2,6 +2,19 @@
 use super::*;
 
 impl QuickLook {
+    /// True while the card shows a workbook with more than one sheet, so [ and ] turn sheets.
+    pub fn turns_sheet(&self, cx: &gpui::App) -> bool {
+        match self
+            .subject
+            .as_ref()
+            .and_then(|s| s.body.doc())
+            .map(|doc| &doc.view)
+        {
+            Some(doc::View::Office(office)) => office.read(cx).office.sheet_paths.len() > 1,
+            _ => false,
+        }
+    }
+
     /// A card control answered; a disabled one never reaches here.
     pub fn activate(&mut self, hit: Hit, cx: &mut Context<Self>) {
         match hit {
