@@ -18,6 +18,7 @@ fn launch(cx: &mut TestAppContext) -> WindowHandle<super::root::Root> {
             },
             monitor: None,
         });
+        cx.set_global(crate::state::constructor_fixture::NoSettingsWorker);
         let settings = super::startup::Settings::from_json(
             flea::jsondoc::parse(r#"{"view":"list"}"#).unwrap(),
             true,
