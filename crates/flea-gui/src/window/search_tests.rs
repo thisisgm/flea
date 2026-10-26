@@ -322,12 +322,16 @@ fn mounted_old_held_rows_never_stamp_the_new_query(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn mounted_search_uses_header_slot_and_restores_columns_after_exit(cx: &mut TestAppContext) {
+fn mounted_search_uses_header_slot_and_keeps_columns(cx: &mut TestAppContext) {
     let (handle, _read) = open(cx);
     edit(cx, handle, |shell, window, cx| {
         shell.view = View::Columns;
         assert!(shell.search_action("search", window, cx));
-        assert_eq!(shell.view, View::List);
+        assert_eq!(
+            shell.view,
+            View::Columns,
+            "HIG cols4-hero-search: Columns searches in place"
+        );
         assert!(shell.search_header(0, window, cx).is_some());
     });
     key(cx, handle, "escape", None);

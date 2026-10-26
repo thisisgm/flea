@@ -143,7 +143,11 @@ impl Shell {
             }
             host.search.origin = Some(self.view);
             host.search.scroll = host.pane.scroll_y;
-            if self.view != super::startup::View::Dual {
+            // HIG cols4-hero-search: Columns searches in its active column and keeps the columns before it.
+            if !matches!(
+                self.view,
+                super::startup::View::Dual | super::startup::View::Columns
+            ) {
                 self.view = super::startup::View::List;
             }
         }
