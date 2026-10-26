@@ -90,7 +90,7 @@ pub(super) fn opened_at<'a>(
     .unwrap();
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
     let launch = Launch::resolve(
-        Settings::from_json(document, true),
+        Settings::from_json(document),
         Arguments {
             path: Some(dir.to_string_lossy().into_owned()),
             select: None,
