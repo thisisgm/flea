@@ -192,9 +192,9 @@ impl Shell {
                 .launch
                 .settings
                 .data
-                .get("singleClick")
-                .and_then(flea::jsondoc::Json::as_bool)
-                == Some(true);
+                .get("openMode")
+                .and_then(flea::jsondoc::Json::as_str)
+                == Some("single");
             if event.button == MouseButton::Left && single_click && count != 1 {
                 return;
             }

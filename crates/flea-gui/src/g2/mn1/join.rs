@@ -58,6 +58,7 @@ impl gpui::EventEmitter<ProducerReply> for Shell {}
 
 #[derive(Default)]
 pub struct Joined {
+    pub(crate) place: Option<super::place_host::Place>,
     pub menu: Rc<RefCell<Menu>>,
     pub captured: Option<Captured>,
     pub context: MenuContext,
@@ -98,6 +99,9 @@ impl Shell {
     }
 
     pub(crate) fn menu_identity(&self) -> String {
+        if let Some(place) = &self.menu.place {
+            return place.key.clone();
+        }
         self.menu
             .captured
             .as_ref()
@@ -122,6 +126,9 @@ impl Shell {
     }
 
     pub(crate) fn menu_entries(&self) -> Vec<Entry> {
+        if let Some(entries) = self.place_menu_entries() {
+            return entries;
+        }
         let Some(capture) = &self.menu.captured else {
             return Vec::new();
         };
