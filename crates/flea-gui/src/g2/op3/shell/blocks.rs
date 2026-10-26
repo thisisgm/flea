@@ -125,6 +125,19 @@ impl Draw<'_> {
             })
             .rounded(px(self.corner));
         for name in new {
+            if let Some(input) = &name.input {
+                let row = line().child(crate::g2::op1::field::mount(
+                    input.clone(),
+                    div().flex_1().min_w_0().h_full(),
+                    self.typeface,
+                ));
+                new_column = new_column.child(if name.reason.is_empty() {
+                    row
+                } else {
+                    row.child(self.text(CAPTION).child(name.reason.clone()))
+                });
+                continue;
+            }
             let row = line().text_color(t.ink(name.ink)).child(
                 div()
                     .flex_1()

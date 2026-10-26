@@ -66,3 +66,6 @@ mod fix2_tests;
 mod m9_g2rows_19_tests;
 #[cfg(test)]
 mod review_tests;
+
+#[cfg(test)]
+mod i50_dialog_tests;

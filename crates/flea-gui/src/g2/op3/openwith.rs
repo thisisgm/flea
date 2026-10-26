@@ -195,6 +195,7 @@ impl OpenWith {
     pub fn card(&self, i18n: &I18n) -> Card {
         let kind = self.catalogue.as_ref().map_or("", |c| c.kind.as_str());
         let search = shell::Field {
+            input: None,
             label: None,
             value: self.query.clone(),
             placeholder: i18n.tr("dialogs.file.openwith.search"),

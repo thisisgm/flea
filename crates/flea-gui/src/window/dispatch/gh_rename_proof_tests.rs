@@ -2,7 +2,7 @@
 use super::{
     gh_rename_proof_lane::{rooted, Lane},
     rename_tests::{close, draw, editing, ready, receive, sent, Lines},
-    test_shell::{land_on, lists, open, row},
+    test_shell::{land_on, lists, open_root as open, row},
 };
 use crate::{
     backend::{Backend, Event as BackendEvent},

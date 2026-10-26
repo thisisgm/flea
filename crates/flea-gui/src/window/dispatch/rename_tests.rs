@@ -23,7 +23,15 @@ pub(super) fn ready<'a>(
     cx: &'a mut TestAppContext,
     preset: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
-    let (shell, cx) = open(cx, preset);
+    ready_with_root(cx, preset, false)
+}
+
+pub(super) fn ready_root<'a>(cx: &'a mut TestAppContext, preset: &str) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
+    ready_with_root(cx, preset, true)
+}
+
+fn ready_with_root<'a>(cx: &'a mut TestAppContext, preset: &str, root: bool) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
+    let (shell, cx) = if root { super::test_shell::open_root(cx, preset) } else { open(cx, preset) };
     land(&shell, cx, "/files", home(), 1);
     set_cursor(&shell, cx, 2);
     let (backend, lines) = Backend::test_lines();
@@ -278,7 +286,7 @@ fn every_preset_rename_key_opens_the_editor(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn several_marked_rows_open_the_bulk_card_and_its_done_line_refreshes(cx: &mut TestAppContext) {
-    let (shell, cx, mut lines) = ready(cx, "default");
+    let (shell, cx, mut lines) = ready_root(cx, "default");
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         host.selected = vec![1, 2];
