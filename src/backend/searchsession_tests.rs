@@ -218,7 +218,7 @@ fn a_query_while_walking_re_runs_with_its_own_gen_at_landing() {
         d.dir(&format!("d{}", i));
     }
     let root = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     // Park the walk at its first directory, so the query below answers from a partial index.
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(1);
@@ -299,7 +299,7 @@ fn cancel_walk_keeps_the_session_and_its_partial_index() {
     }
     d.file("bench.txt", "");
     let root = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, _walked_rx) = crate::backend::events::channel();
     // Park the walk at its first directory, so the cancel below lands mid-walk.
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(1);
@@ -364,7 +364,7 @@ fn an_empty_standing_query_lands_one_searched_line() {
         d.dir(&format!("d{}", i));
     }
     let root = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(1);
     let mut s = Session::open_async_with_probes(&root, &root, false, walked_tx, Arc::clone(&probes));

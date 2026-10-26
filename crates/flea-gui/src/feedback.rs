@@ -2,9 +2,9 @@
 #[cfg(test)]
 mod bench_tests;
 #[cfg(test)]
-mod paint_tests;
-#[cfg(test)]
 mod fit_tests;
+#[cfg(test)]
+mod paint_tests;
 pub mod spinner;
 #[cfg(test)]
 mod spinner_tests;

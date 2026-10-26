@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 mod mount_tests;
 
 fn fresh(d: &TestDir) -> (Session, mpsc::Receiver<Event>) {
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let root = d.path().to_str().unwrap();
     let mut session = Session::open_async(root, root, false, tx);
     session.join_walk();
@@ -53,7 +53,7 @@ fn search_watch_mutations_before_and_after_enumeration_are_replayed() {
         let old = d.file("deep/old", "");
         let probes = Arc::new(WalkProbes::new());
         let (parked, release) = if late { probes.test_hold_walk_late_in("deep") } else { probes.test_hold_walk_in("deep") };
-        let (tx, rx) = mpsc::channel();
+        let (tx, rx) = crate::backend::events::channel();
         let root = d.path().to_str().unwrap();
         let mut s = Session::open_async_with_probes(root, root, false, tx, probes);
         parked.recv_timeout(Duration::from_secs(10)).unwrap();
@@ -84,7 +84,7 @@ fn search_watch_cookies_overflow_and_reused_descriptors_keep_their_boundaries() 
     let d = TestDir::new("watchcookies");
     d.dir("from");
     d.dir("to");
-    let (tx, _rx) = mpsc::channel();
+    let (tx, _rx) = crate::backend::events::channel();
     let watch = Watch::new(d.path(), false, tx);
     let core = &watch.core;
     core.arm(Path::new("from"));
@@ -157,7 +157,7 @@ fn search_watch_mutation_mid_readdir_is_replayed_before_completion() {
     for row in 0..100 { d.file(&format!("deep/file{row:03}"), ""); }
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_scan_in("deep", 3);
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let root = d.path().to_str().unwrap();
     let mut s = Session::open_async_with_probes(root, root, false, tx, probes);
     parked.recv_timeout(Duration::from_secs(10)).unwrap();
@@ -177,7 +177,7 @@ fn search_watch_mutation_mid_readdir_is_replayed_before_completion() {
 #[test]
 fn search_watch_closing_search_preserves_the_real_pane_and_peek_watches() {
     let d = TestDir::new("watchowners");
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut pane = crate::backend::watch::Watch::start(tx.clone());
     pane.begin(d.path());
     pane.commit();
@@ -207,7 +207,7 @@ fn search_watch_cancel_mid_scan_joins_and_releases_recursive_descriptors() {
     d.file("deep/file", "");
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_in("deep");
-    let (tx, _) = mpsc::channel();
+    let (tx, _) = crate::backend::events::channel();
     let root = d.path().to_str().unwrap();
     let mut s = Session::open_async_with_probes(root, root, false, tx, probes);
     parked.recv_timeout(Duration::from_secs(10)).unwrap();

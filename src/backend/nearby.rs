@@ -27,11 +27,11 @@ pub struct Discovery {
 }
 
 impl Discovery {
-    pub fn request(&mut self, op: &str, id: usize, replies: Sender<Event>) -> String {
+    pub fn request(&mut self, op: &str, id: usize, replies: crate::backend::events::Sender<Event>) -> String {
         self.request_with_path(op, id, replies, None)
     }
 
-    fn request_with_path(&mut self, op: &str, id: usize, replies: Sender<Event>, path: Option<PathBuf>) -> String {
+    fn request_with_path(&mut self, op: &str, id: usize, replies: crate::backend::events::Sender<Event>, path: Option<PathBuf>) -> String {
         match op {
             "start" => {
                 self.ticket = self.ticket.wrapping_add(1);
@@ -83,7 +83,7 @@ pub fn is_request(line: &str) -> bool {
         && matches!(field_str(line, "c").as_deref(), Some("nearby" | "networkaddress"))
 }
 
-fn worker(rx: Receiver<Work>, replies: Sender<Event>, path: Option<PathBuf>) {
+fn worker(rx: Receiver<Work>, replies: crate::backend::events::Sender<Event>, path: Option<PathBuf>) {
     let mut next = None;
     loop {
         let command = match next.take().or_else(|| rx.recv().ok()) {

@@ -19,7 +19,7 @@ fn a_query_asked_while_a_cancelled_walk_winds_down_does_not_claim_a_landing() {
         d.file(&format!("bench-{}.txt", i), "");
     }
     let scope = scope_of(&d);
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(2);
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -40,7 +40,7 @@ fn an_own_write_into_a_directory_the_walk_has_not_read_adds_its_rows_once() {
     d.dir("sub");
     d.file("sub/a.txt", "");
     let scope = scope_of(&d);
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_in("sub");
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -89,7 +89,7 @@ fn renamed_behind_a_parked_walk(
     let old = d.file("done/old.txt", "");
     d.file("sub/x.txt", "");
     let scope = scope_of(&d);
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_in("sub");
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -132,7 +132,7 @@ fn a_walker_that_has_read_a_directory_pushes_nothing_once_the_walk_is_cancelled(
     d.dir("sub");
     d.file("sub/x.txt", "");
     let scope = scope_of(&d);
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_late_in("sub");
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -153,7 +153,7 @@ fn a_change_the_landing_applies_re_runs_an_answer_given_after_the_walk() {
         let d = TestDir::new("landingdelta");
         d.dir("deep/child");
         let scope = scope_of(&d);
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = crate::backend::events::channel();
         let probes = Arc::new(WalkProbes::new());
         let (parked, release) = probes.test_hold_walk_in("child");
         let mut s = Session::open_async_with_probes(&scope, &scope, false, tx.clone(), probes);

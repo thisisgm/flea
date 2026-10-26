@@ -5,7 +5,7 @@ use crate::backend::searchwalkhold::wait_walk_landed;
 fn search_fix4_landing_wait_consumes_the_final_wake_after_queued_progress() {
     let root = TestDir::new("walk-queued-progress");
     root.file("alpha.txt", "a");
-    let (tx, rx) = std::sync::mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     tx.send(crate::backend::events::Event::SearchWalked).unwrap();
     let scope = root.path().to_str().unwrap();
     let session = Session::open_async(scope, scope, false, tx);
@@ -47,7 +47,7 @@ fn bench_one_matches() -> Vec<String> {
 fn a_cancelled_walk_narrows_from_every_match_not_the_window() {
     let d = fixture("cancelnarrow");
     let scope = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, _walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(2);
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -64,7 +64,7 @@ fn a_cancelled_walk_narrows_from_every_match_not_the_window() {
 fn a_cancelled_walk_that_lands_keeps_every_row_id() {
     let d = fixture("cancelids");
     let scope = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(2);
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -90,7 +90,7 @@ fn a_parked_walk_thread_leaves_the_queue_to_the_others() {
         d.dir(&format!("d{}", i));
     }
     let scope = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, _walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked_root, release_root) = probes.test_hold_walk_at(1);
     let mut s = Session::open_async_with_probes(&scope, &scope, false, walked_tx, Arc::clone(&probes));
@@ -119,7 +119,7 @@ fn a_parked_walk_thread_leaves_the_queue_to_the_others() {
 fn close_mid_walk_frees_nothing_until_the_detached_walk_exits() {
     let d = fixture("closewalk");
     let scope = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, _walked_rx) = crate::backend::events::channel();
     // Parked at its second directory, the walk has the root's rows in the arena when the close lands.
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(2);
@@ -151,7 +151,7 @@ fn search_memtime_watch_registration_has_no_mount_proportional_allocations() {
     }
     let reader = super::super::searchwalkread::Reader::new(&body);
     let probes = WalkProbes::new();
-    let (tx, _rx) = std::sync::mpsc::channel();
+    let (tx, _rx) = crate::backend::events::channel();
     let watch = super::super::searchwatch::Watch::new(d.path(), false, tx);
     *probes.watch.lock().unwrap() = Some(Arc::clone(&watch.core));
     let index = Mutex::new(Index::new());

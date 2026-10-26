@@ -9,7 +9,7 @@ fn search_growth_while_building_cannot_narrow_a_partial_candidate_set() {
     let scope = root.path().to_str().unwrap();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_in("held");
-    let (events, _received) = std::sync::mpsc::channel();
+    let (events, _received) = crate::backend::events::channel();
     let mut session = Session::open_async_with_probes(scope, scope, false, events, Arc::clone(&probes));
     parked.recv_timeout(std::time::Duration::from_secs(30)).unwrap();
     session.index.lock().unwrap().push("ab", false);
@@ -41,7 +41,7 @@ fn search_streams_completed_blocks_before_the_last_directory_lands() {
     let scope = root.path().to_str().unwrap();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_in("held");
-    let (events, _received) = std::sync::mpsc::channel();
+    let (events, _received) = crate::backend::events::channel();
     let mut session = Session::open_async_with_probes(scope, scope, false, events, probes);
     parked.recv_timeout(std::time::Duration::from_secs(30)).unwrap();
     let answer = session.query(1, "a", 10).unwrap();

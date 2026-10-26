@@ -1,6 +1,8 @@
 //! One per-pane boundary for terminal coverage and legacy ineligible Loading timing.
-use super::{Phase, Shell};
+use super::{PaneFrame, Phase, Shell};
+use crate::window::pane::PaneHost;
 use gpui::{App, Context, Window};
+use std::rc::Rc;
 
 impl Shell {
     pub(crate) fn feedback_eligible(&self, side: usize, window: &Window, cx: &App) -> bool {
@@ -48,4 +50,14 @@ impl Shell {
             self.presentation.legacy_loading[side] = true;
         }
     }
+}
+
+// A submitted pane frame still describes the live pane: same listing, search generation and observer.
+pub(super) fn current(host: &PaneHost, frame: &PaneFrame) -> bool {
+    let content = &frame.content;
+    host.pane.identity() == content.identity
+        && Rc::ptr_eq(&host.pane.held, &content.held)
+        && host.pane.list_requests == content.generation
+        && host.pane.swap.session.generation == content.search_generation
+        && Rc::ptr_eq(&host.pane.swap.observed, &frame.observed)
 }

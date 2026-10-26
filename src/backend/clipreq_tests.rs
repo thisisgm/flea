@@ -124,7 +124,7 @@ fn a_watch_starts_once_and_the_second_is_silent() {
     let dir = TestDir::new("clip-watch-no-compositor");
     let missing = dir.join("no-compositor");
     let (tx, rx) = channel();
-    let (events, _events) = channel();
+    let (events, _events) = crate::backend::events::channel();
     // Exhaustive construction pins that the backend retains no clipboard report state.
     let mut state = State {
         contents: Default::default(),

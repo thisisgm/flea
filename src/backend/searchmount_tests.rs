@@ -39,7 +39,7 @@ fn search_mount_root_remote_has_no_recursive_watch_and_preserves_raw_hidden_and_
         *probes.body.lock().unwrap() = Some(body(&d, "nfs"));
         let root = d.join("nas");
         let root = root.to_str().unwrap();
-        let (tx, _) = std::sync::mpsc::channel();
+        let (tx, _) = crate::backend::events::channel();
         let mut session = Session::open_async_with_probes(root, root, hidden, tx, Arc::clone(&probes));
         session.join_walk();
         assert!(session.watch.is_none());
@@ -64,7 +64,7 @@ fn search_mount_cancel_during_nested_remote_read_closes_without_waiting_for_it()
     let probes = Arc::new(WalkProbes::new());
     *probes.body.lock().unwrap() = Some(body(&d, "fuse.sshfs"));
     let (parked, release) = probes.test_hold_scan_in("nas", 1);
-    let (tx, rx) = std::sync::mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let root = d.path().to_str().unwrap();
     let mut session = Session::open_async_with_probes(root, root, false, tx, Arc::clone(&probes));
     parked.recv_timeout(Duration::from_secs(10)).unwrap();
@@ -182,7 +182,7 @@ fn search_mount_missing_local_root_reports_the_read_refusal_before_watch_failure
     let d = TestDir::new("missingmountroot");
     let missing = d.join("missing");
     let root = missing.to_str().unwrap();
-    let (tx, _) = std::sync::mpsc::channel();
+    let (tx, _) = crate::backend::events::channel();
     let mut session = Session::open_async(root, root, false, tx);
     session.join_walk();
     assert_eq!(session.partial_reason(), Some("unreadable"));

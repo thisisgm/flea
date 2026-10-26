@@ -16,7 +16,7 @@ use std::path::PathBuf;
 use crate::backend::thumbspec::Thumbnailers;
 use std::cell::RefCell;
 use std::os::unix::fs::MetadataExt;
-use std::sync::mpsc::channel;
+use crate::backend::events::channel;
 use std::sync::Arc;
 
 // One jpeg declaration, so for_mime answers; the pool here has no worker, so the program it names never runs.

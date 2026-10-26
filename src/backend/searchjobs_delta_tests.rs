@@ -9,7 +9,7 @@ pub(super) struct Loop {
     tb: Tables,
     pool: Pool,
     pub(super) gate: Gate,
-    events: Sender<Event>,
+    events: crate::backend::events::Sender<Event>,
     received: Receiver<Event>,
     pub(super) buffered: VecDeque<Event>,
     wakes: VecDeque<Event>,
@@ -19,7 +19,7 @@ pub(super) struct Loop {
 impl Loop {
     // A session over root/scope with its recursive watch on the loop's own channel, walked and answered once.
     pub(super) fn open(root: &TestDir, query: &str, count: usize) -> Loop {
-        let (events, received) = channel();
+        let (events, received) = crate::backend::events::channel();
         let scope = root.join("scope");
         let scope = scope.to_str().unwrap();
         let mut session = Session::open_async(scope, scope, false, events.clone());

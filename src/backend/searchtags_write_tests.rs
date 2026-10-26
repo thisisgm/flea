@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 // An own tag write through the real request: the files it changed, as the loop hands them to the session.
 fn written(d: &TestDir, ops: &mut crate::backend::opsdispatch::Ops, rel: &str, op: &str, tag: &str) -> Vec<std::path::PathBuf> {
-    let (tx, _rx) = channel();
+    let (tx, _rx) = crate::backend::events::channel();
     let mut st = crate::backend::state::State::new(crate::backend::dirsizeworker::Worker::new(tx));
     st.base = d.path().to_path_buf();
     st.listing.push(rel, false);
@@ -168,7 +168,7 @@ fn an_earlier_landing_does_not_spend_the_re_run_a_pending_re_read_owes() {
 #[test]
 fn a_write_during_the_first_read_is_not_lost() {
     let d = fixture("tagswritefirst");
-    let (tx, rx) = channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut index = Index::new();
     let rels = ["red-holiday.txt", "plain-holiday.txt"];
     for rel in rels {
@@ -243,7 +243,7 @@ fn assert_survivor_tag_queue(add: bool) {
     let pass = Pass::new(index.len(), Bound::new(d.path(), ""));
     *pass.names.lock().unwrap() = vec![Some(vec!["red".into()]), Some(vec!["blue".into()]), Some(vec!["green".into()])];
     pass.done.store(true, Ordering::Relaxed);
-    let (tx, _rx) = channel();
+    let (tx, _rx) = crate::backend::events::channel();
     let mut tags = Tags::new(tx);
     tags.pass = Some(Arc::clone(&pass));
     let gone = d.join("a");

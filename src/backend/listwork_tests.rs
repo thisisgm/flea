@@ -23,7 +23,7 @@ struct Rig {
 fn rig(tag: &str) -> Rig {
     let dir = TestDir::new(tag);
     let tb = Tables::load();
-    let (tx, rx) = channel::<Event>();
+    let (tx, rx) = crate::backend::events::channel::<Event>();
     let st = State::new(crate::backend::dirsizeworker::Worker::new(tx.clone()));
     let (thumbs_tx, _thumbs_rx) = channel();
     let pool = Pool::new(1, thumbs_tx, dir.join("thumbs"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -179,7 +179,7 @@ fn a_scan_that_panics_answers_an_error_and_leaves_the_gate_free() {
 // Requests that land while a scan is out wait for it and replay in arrival order, so list/list/paths sees both listings.
 #[test]
 fn requests_that_arrive_while_a_scan_is_out_replay_in_order() {
-    let mut gate = Gate::new(channel().0);
+    let mut gate = Gate::new(crate::backend::events::channel().0);
     assert!(!gate.holds(), "nothing is out before the first list");
     gate.begin(Job { path: "/a".into(), first: 0, line: "{}".into(), hidden: false, want_changed: false, session: None });
     assert!(gate.holds());
@@ -194,7 +194,7 @@ fn requests_that_arrive_while_a_scan_is_out_replay_in_order() {
 // A change seen while a scan is out is answered after it, against the descriptor that became current.
 #[test]
 fn a_change_seen_during_a_scan_is_decided_once_the_scan_lands() {
-    let mut gate = Gate::new(channel().0);
+    let mut gate = Gate::new(crate::backend::events::channel().0);
     gate.begin(Job { path: "/a".into(), first: 0, line: "{}".into(), hidden: false, want_changed: false, session: None });
     gate.note_change(7);
     gate.note_change(9);
@@ -205,7 +205,7 @@ fn a_change_seen_during_a_scan_is_decided_once_the_scan_lands() {
 // An unmount seen while a scan is out is kept apart from the changes and replays in the order it arrived.
 #[test]
 fn an_unmount_seen_during_a_scan_waits_apart_from_the_changes_and_keeps_its_order() {
-    let mut gate = Gate::new(channel().0);
+    let mut gate = Gate::new(crate::backend::events::channel().0);
     gate.begin(Job { path: "/a".into(), first: 0, line: "{}".into(), hidden: false, want_changed: false, session: None });
     gate.note_change(7);
     gate.note_unmount(9);
@@ -222,7 +222,7 @@ fn refused(path: &str) -> Result<ListOut, ListErr> {
 // A thread start on every list was most of a fixed 0.15 ms on minipc, so every scan runs on the one thread the gate keeps.
 #[test]
 fn every_scan_runs_on_the_same_thread() {
-    let (tx, rx) = channel::<Event>();
+    let (tx, rx) = crate::backend::events::channel::<Event>();
     let mut gate = Gate::new(tx);
     let (id_tx, id_rx) = channel();
     for _ in 0..2 {
@@ -241,7 +241,7 @@ fn every_scan_runs_on_the_same_thread() {
 // A scan that panics answers, and the thread that ran it is still there for the next listing.
 #[test]
 fn a_panicked_scan_leaves_the_thread_serving_the_next() {
-    let (tx, rx) = channel::<Event>();
+    let (tx, rx) = crate::backend::events::channel::<Event>();
     let mut gate = Gate::new(tx);
     let (id_tx, id_rx) = channel();
     quietpanic::quiet();
@@ -263,7 +263,7 @@ fn a_panicked_scan_leaves_the_thread_serving_the_next() {
 // A scanner that is gone must not turn into silence: the scan runs where it was asked, and the next one starts a fresh thread.
 #[test]
 fn a_gone_scanner_still_answers_and_is_started_afresh() {
-    let (tx, rx) = channel::<Event>();
+    let (tx, rx) = crate::backend::events::channel::<Event>();
     let mut gate = Gate::new(tx);
     let (gone, queue) = channel::<Work>();
     drop(queue);

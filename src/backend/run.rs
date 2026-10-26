@@ -14,7 +14,7 @@ use crate::backend::metareq::spawn as spawn_meta;
 use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_permissions_batch, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_link, start_link_target, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::dirsizereq::{queue_dirsizes, seed_answered, start_next, report_done as report_dirsize};
-use crate::backend::events::{spawn_op_forwarder, spawn_reader, Event};
+use crate::backend::events::{spawn_op_forwarder, Event, Sender};
 use crate::backend::{flashop, flashslot};
 use crate::backend::fsinfo::fsinfo_line;
 use crate::backend::fsinforeq::FsInfo;
@@ -45,7 +45,7 @@ use crate::heap;
 use std::collections::VecDeque;
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{channel, Receiver, TryRecvError};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -72,7 +72,7 @@ pub fn run() -> i32 {
     heap::pin_mmap_threshold();
     let mut out = BufWriter::new(io::stdout());
     let tb = Tables::load();
-    let (tx, rx) = channel::<Event>();
+    let (tx, rx, inbox) = match super::inbox::open() { Ok(open) => open, Err(e) => { say(&mut out, &error_line(&e)); return 1 } };
     let mut st = State::new(super::dirsizeworker::Worker::new(tx.clone()));
     let (op_tx, op_rx) = channel::<OpMsg>();
     let mut ops = Ops::new_shared(op_tx.clone());
@@ -91,7 +91,7 @@ pub fn run() -> i32 {
         flashslot::spawn_forwarder(flash_rx, flash_events);
         flash_tx
     });
-    spawn_reader(tx.clone(), Arc::clone(&ops.live));
+    let mut inbox = inbox.start(super::inbox::STDIN, tx.clone(), Arc::clone(&ops.live));
     let mut fsinfo = FsInfo::new(tx.clone());
     let loop_tx = tx.clone();
     // The descriptor starts on first use, still armed before the listing scan.
@@ -105,15 +105,13 @@ pub fn run() -> i32 {
     let mut search_jobs = super::searchjobs::Gate::default();
     loop {
         start_next(&mut st);
-        // Size results wake this receiver; only search still needs idle ticks.
+        // A request or any send wakes the loop here, with no hop through another thread; only search still needs idle ticks.
         let event = if let Some(ev) = buffered.pop_front() {
             ev
         } else if st.search.is_none() {
-            match rx.recv() {
-                Ok(e) => e,
-                Err(_) => break,
-            }
+            match inbox.next(&rx) { Some(e) => e, None => break }
         } else {
+            inbox.hand_over();
             match rx.try_recv() {
                 Ok(e) => e,
                 // Search takes one bounded step before checking requests again.
@@ -1094,7 +1092,7 @@ mod tests {
         const REMOTE_PATH: &str = "/run/user/flea-window-test/gvfs/smb-share:server=test,share=wire/folder \"café\"\\name/../";
         const NO_WATCH: i32 = -1;
         let tb = Tables::load();
-        let (events, _events_rx) = channel();
+        let (events, _events_rx) = crate::backend::events::channel();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let cache_root = std::env::temp_dir().join("flea-window-error-cache");
@@ -1159,7 +1157,7 @@ mod tests {
         let cache_root = d.join("cache");
         let backend = std::thread::spawn(move || {
             let tb = Tables::load();
-            let (events, _events_rx) = channel();
+            let (events, _events_rx) = crate::backend::events::channel();
             let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
             st.base = src;
             st.listing.push("a.txt", false);
@@ -1214,7 +1212,7 @@ mod tests {
         let d = TestDir::new("windowlocal");
         d.file("a.txt", "a");
         d.file("b.txt", "b");
-        let (tx, _rx) = channel::<Event>();
+        let (tx, _rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(crate::backend::dirsizeworker::Worker::new(tx));
         st.base = d.path().to_path_buf();
         st.listing.push("a.txt", false);

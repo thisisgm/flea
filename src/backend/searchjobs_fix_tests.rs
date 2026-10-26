@@ -253,7 +253,7 @@ fn search_fb5_empty_standing_progress_answers_only_at_the_final_landing() {
     let scope = root.path().to_str().unwrap();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_in("held");
-    let (events, received) = channel();
+    let (events, received) = crate::backend::events::channel();
     let mut session =
         Session::open_async_with_probes(scope, scope, false, events.clone(), Arc::clone(&probes));
     parked.recv_timeout(Duration::from_secs(30)).unwrap();

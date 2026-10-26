@@ -6,7 +6,7 @@ use std::process::{Command, Stdio};
 
 impl Shell {
     // Says go to the footer; runs leave the UI thread and answer back on this side's sender.
-    pub(super) fn provider_actions(
+    pub(in crate::g2::sd1) fn provider_actions(
         &mut self,
         side: usize,
         actions: Vec<Action>,
@@ -40,7 +40,12 @@ impl Shell {
                     cx.spawn_in(window, async move |this, cx| {
                         if outcome.recv().await != Ok(true) {
                             let _ = this.update_in(cx, |shell, window, cx| {
-                                shell.provider_actions(side, vec![Action::Say(failed, true)], window, cx);
+                                shell.provider_actions(
+                                    side,
+                                    vec![Action::Say(failed, true)],
+                                    window,
+                                    cx,
+                                );
                             });
                         }
                     })

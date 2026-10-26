@@ -3,14 +3,13 @@
 pub(super) mod parse;
 #[path = "contentsworker.rs"]
 mod worker;
-use super::events::Event;
+use super::events::{Event, Sender};
 use crate::jsondoc::{self, Json};
 use flea::ui_logic_sr1::ContentsMatch;
 #[cfg(test)]
 use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    mpsc::Sender,
     Arc,
 };
 use std::thread::JoinHandle;

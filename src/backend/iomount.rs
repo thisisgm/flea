@@ -300,7 +300,7 @@ pub fn list_dir(
     line: String,
     mime: std::sync::Arc<super::mime::Db>,
     fd: std::ffi::c_int,
-    loop_tx: std::sync::mpsc::Sender<super::events::Event>,
+    loop_tx: super::events::Sender<super::events::Event>,
     body: &str,
 ) -> Result<ListOut, ListErr> {
     let path_buf = std::path::PathBuf::from(&path);
@@ -571,7 +571,7 @@ mod tests {
     fn a_failed_scan_hands_back_the_watch_it_armed() {
         let sandbox = crate::backend::testdir::TestDir::new("listwd");
         let file = sandbox.file("a.txt", "a");
-        let (tx, _rx) = channel::<crate::backend::events::Event>();
+        let (tx, _rx) = crate::backend::events::channel::<crate::backend::events::Event>();
         let watch = crate::backend::watch::Watch::start(tx.clone());
         let mime = std::sync::Arc::new(crate::backend::mime::Db::load());
         let failed = match list_dir(file.to_string_lossy().to_string(), false, 10, String::new(), mime, watch.raw_fd(), tx, &mount_body()) {
@@ -584,7 +584,7 @@ mod tests {
     fn a_list_dir_carries_the_mount_its_worker_computed() {
         test_reset();
         let sandbox = crate::backend::testdir::TestDir::new("listmnt");
-        let (tx, _rx) = channel::<crate::backend::events::Event>();
+        let (tx, _rx) = crate::backend::events::channel::<crate::backend::events::Event>();
         let watch = crate::backend::watch::Watch::start(tx.clone());
         let mime = std::sync::Arc::new(crate::backend::mime::Db::load());
         let line = format!(r#"{{"c":"list","path":"{}","first":10}}"#, sandbox.path().to_string_lossy());
@@ -602,7 +602,7 @@ mod tests {
         let locked = sandbox.dir("locked");
         sandbox.file("locked/a.txt", "a");
         std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).unwrap();
-        let (tx, _rx) = channel::<crate::backend::events::Event>();
+        let (tx, _rx) = crate::backend::events::channel::<crate::backend::events::Event>();
         let watch = crate::backend::watch::Watch::start(tx.clone());
         let tb = crate::backend::state::Tables::load();
         let line = format!(r#"{{"c":"list","path":"{}","first":10}}"#, locked.to_string_lossy());

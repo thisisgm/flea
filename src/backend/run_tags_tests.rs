@@ -6,7 +6,7 @@ use crate::backend::testdir::TestDir;
 // Asks fsinfo `asks` times at base, answering every line and this thread's probe count since the first ask.
 fn ask_fsinfo(sandbox: &TestDir, base: &Path, asks: usize) -> (String, usize) {
     let tb = Tables::load();
-    let (events, _events_rx) = channel();
+    let (events, _events_rx) = crate::backend::events::channel();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     st.base = base.to_path_buf();
     let (results, _done) = channel();

@@ -233,7 +233,7 @@ mod tests {
     use crate::backend::thumbwrite;
     use std::cell::RefCell;
     use std::os::unix::fs::PermissionsExt;
-    use std::sync::mpsc::channel;
+    use crate::backend::events::channel;
     use std::sync::Arc;
 
     // One jpeg declaration, so for_mime answers; the harness's pool has no worker, so the program it names never runs.

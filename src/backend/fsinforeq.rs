@@ -5,7 +5,8 @@ use super::fsinfo::Info;
 use super::mountinfo::{mount_entry_in, on_system_volume};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::{mpsc::Sender, Arc};
+use crate::backend::events::Sender;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 // A statfs outstanding this long is presumed hung, so the next ask for its mount starts another.

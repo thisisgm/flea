@@ -71,7 +71,7 @@ fn stubs_receive_exact_argv_and_discovery_is_idle_until_asked() {
 case "$6" in _smb._tcp) printf '=;eth0;IPv4;NAS;_smb._tcp;local;nas.local;192.0.2.1;445;\n' ;; esac"#);
     fixture.script("tailscale", r#"[ "$#" = 2 ] && [ "$1 $2" = 'status --json' ] || exit 43
 printf '%s\n' '{"BackendState":"Running","Peer":{"a":{"Online":true,"DNSName":"pi.tail.ts.net.","HostName":"pi","OS":"linux"}}}'"#);
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut discovery = Discovery::default();
     assert!(discovery.worker.is_none());
     assert!(fixture.calls().is_empty());
@@ -94,7 +94,7 @@ printf '%s\n' '{"BackendState":"Running","Peer":{"a":{"Online":true,"DNSName":"p
 #[test]
 fn missing_tools_return_nothing_nearby_and_keep_errors() {
     let fixture = Fixture::new();
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut discovery = Discovery::default();
     discovery.request_with_path("start", 3, tx, Some(fixture.root.clone()));
     let (_, reply) = result(&rx);
@@ -110,7 +110,7 @@ fn failure_keeps_stderr_and_does_not_trust_a_failed_tailnet_reply() {
     fixture.script("tailscale", r#"printf '%s\n' '{"BackendState":"Running","Peer":{"a":{"Online":true,"DNSName":"stale.tail.ts.net."}}}'
 printf 'stub status refused\n' >&2
 exit 7"#);
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut discovery = Discovery::default();
     discovery.request_with_path("start", 3, tx, Some(fixture.root.clone()));
     let (_, reply) = result(&rx);
@@ -127,7 +127,7 @@ fn shared_three_second_deadline_kills_all_helpers_but_keeps_resolved_mdns() {
     fixture.script("avahi-browse", r#"case "$6" in _smb._tcp) printf '=;eth0;IPv4;NAS;_smb._tcp;local;nas.local;192.0.2.1;445;\n' ;; esac
 exec /usr/bin/sleep 30"#);
     fixture.script("tailscale", "exec /usr/bin/sleep 30");
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut discovery = Discovery::default();
     let started = Instant::now();
     discovery.request_with_path("start", 3, tx, Some(fixture.root.clone()));
@@ -146,7 +146,7 @@ fn closing_reopening_and_owner_drop_cancel_the_active_discovery() {
     let fixture = Fixture::new();
     fixture.script("avahi-browse", "exec /usr/bin/sleep 30");
     fixture.script("tailscale", "exec /usr/bin/sleep 30");
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut discovery = Discovery::default();
     discovery.request_with_path("start", 1, tx.clone(), Some(fixture.root.clone()));
     fixture.wait_calls(7);
@@ -171,7 +171,7 @@ fn excess_output_is_bounded_and_empty_results_use_exact_copy() {
     let fixture = Fixture::new();
     fixture.script("avahi-browse", "exit 0");
     fixture.script("tailscale", "exec /usr/bin/head -c 1100000 -- /dev/zero");
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut discovery = Discovery::default();
     discovery.request_with_path("start", 1, tx, Some(fixture.root.clone()));
     let (_, reply) = result(&rx);
@@ -188,7 +188,7 @@ fn helper_exit_kills_descendants_that_hold_its_output_pipe() {
 printf 'child %s\n' "$!" >> "$root/calls"
 exit 0"#);
     fixture.script("tailscale", r#"printf '%s\n' '{"BackendState":"Running","Peer":{}}'"#);
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut discovery = Discovery::default();
     discovery.request_with_path("start", 1, tx, Some(fixture.root.clone()));
     let (_, reply) = result(&rx);
@@ -316,7 +316,7 @@ fn reviewer_cancelled_tailnet_parse_does_not_consume_next_scan_deadline() {
     std::fs::write(&status_file, &status).unwrap();
     fixture.script("avahi-browse", "exit 0");
     fixture.script("tailscale", "exec /usr/bin/cat -- \"$root/status.json\"");
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut discovery = Discovery::default();
     let started = Instant::now();
     discovery.request_with_path("start", 1, tx.clone(), Some(fixture.root.clone()));

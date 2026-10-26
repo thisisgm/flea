@@ -10,7 +10,7 @@ exec /usr/bin/sleep 30"#
         } else { "exec /usr/bin/sleep 30" };
         fixture.script("avahi-browse", browser);
         fixture.script("tailscale", r#"printf '%s\n' '{"BackendState":"Running","Peer":{"ready":{"Online":true,"DNSName":"ready.tail.ts.net.","HostName":"ready"}}}'"#);
-        let (tx, rx) = mpsc::channel();
+        let (tx, rx) = crate::backend::events::channel();
         let mut discovery = Discovery::default();
         let started = Instant::now();
         discovery.request_with_path("start", 1, tx, Some(fixture.root.clone()));
@@ -40,7 +40,7 @@ fn decoded_tailnet_does_not_leak_into_reopened_dialog() {
     std::fs::write(&status_file, r#"{"BackendState":"Running","Peer":{"old":{"Online":true,"DNSName":"old.tail.ts.net."}}}"#).unwrap();
     fixture.script("avahi-browse", "exec /usr/bin/sleep 30");
     fixture.script("tailscale", "exec /usr/bin/cat -- \"$root/status.json\"");
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut discovery = Discovery::default();
     discovery.request_with_path("start", 1, tx.clone(), Some(fixture.root.clone()));
     fixture.wait_calls(7);

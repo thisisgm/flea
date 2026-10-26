@@ -9,7 +9,7 @@ fn search_execution_reuses_one_worker_and_keeps_backspace_and_page_order() {
     for i in 0..700 { root.file(&format!("alpha{i:04}.txt"), "a"); }
     let scope = root.path().to_str().unwrap();
     let session = Session::open_sync(scope, scope, false);
-    let (events, _received) = channel();
+    let (events, _received) = crate::backend::events::channel();
     let worker = Worker::new(events);
     let thread = worker.handle.thread().id();
     assert_ne!(thread, std::thread::current().id());
@@ -39,7 +39,7 @@ fn search_execution_reuses_one_worker_and_keeps_backspace_and_page_order() {
 fn search_execution_discards_superseded_answers_and_restores_the_published_remainder() {
     let root = TestDir::new("search-execution-discard");
     for i in 0..400 { root.file(&format!("alpha{i:04}.txt"), "a"); }
-    let (events, received) = channel();
+    let (events, received) = crate::backend::events::channel();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let scope = root.path().to_str().unwrap();
     let mut session = Session::open_sync(scope, scope, false);
@@ -83,7 +83,7 @@ fn search_fb5_probe_worker_scale_pressure() {
         index.finish();
         let logical = super::super::searchindex::index_bytes(&index);
         session.index = Arc::new(std::sync::Mutex::new(index));
-        let (events, _received) = channel();
+        let (events, _received) = crate::backend::events::channel();
         let worker = Worker::new(events);
         let queries = ["r", "re", "rep", "report", "report0042.txt", "rep"];
         let mut times = Vec::new();
@@ -100,7 +100,7 @@ fn search_fb5_probe_worker_scale_pressure() {
         let all = times.iter().sum::<f64>();
         let query_pss_kb = pss_kb();
         let slowest = times.iter().copied().fold(0.0, f64::max);
-        let (loop_events, loop_received) = channel();
+        let (loop_events, loop_received) = crate::backend::events::channel();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(loop_events.clone()));
         st.search_session = Some(session);
         let tb = Tables::load();
@@ -172,7 +172,7 @@ fn search_worker_streams_only_the_newest_generation_then_one_complete_terminal()
     root.file("alpha.txt", "a");
     let probes = Arc::new(super::super::searchwalk::WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_in("held");
-    let (events, _received) = channel();
+    let (events, _received) = crate::backend::events::channel();
     let path = root.path().to_str().unwrap();
     let session = Session::open_async_with_probes(path, path, false, events.clone(), probes);
     parked.recv_timeout(Duration::from_secs(30)).unwrap();
@@ -218,7 +218,7 @@ fn search_worker_streams_only_the_newest_generation_then_one_complete_terminal()
 fn search_discarded_landing_never_restores_row_ids_across_a_pending_repack() {
     let root = TestDir::new("search-repack-discard");
     for i in 0..400 { root.file(&format!("alpha{i:04}.txt"), "a"); }
-    let (events, received) = channel();
+    let (events, received) = crate::backend::events::channel();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let scope = root.path().to_str().unwrap();
     let mut session = Session::open_sync(scope, scope, false);

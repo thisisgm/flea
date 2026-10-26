@@ -206,8 +206,11 @@ fn a_partial_landing_lands_as_the_complete_one_does() {
         session.type_key(&p, Key::Text("a"));
         let line = Line::Searched { n: 3, scanned: 90, ms: 4., cancelled: false, gen: 1, walking: false, partial };
         let effects = session.searched(&line, 5);
+        assert_eq!(session.answered, 1, "the line lands on the live gen");
         let reason = session.partial.take();
         (format!("{effects:?} {session:?}"), reason)
     };
-    assert_eq!(land(Some("unreadable".into())), (land(None).0, Some("unreadable".into())));
+    let (complete, reason) = land(None);
+    assert_eq!(reason, None, "a complete answer keeps no reason");
+    assert_eq!(land(Some("unreadable".into())), (complete, Some("unreadable".into())));
 }
