@@ -109,6 +109,8 @@ mod listing_pointer_keep_tests;
 #[cfg(test)]
 mod listing_pointer_tests;
 #[cfg(test)]
+mod band_tests;
+#[cfg(test)]
 mod menus_columns_tests;
 #[cfg(test)]
 mod menus_dual_tests;
