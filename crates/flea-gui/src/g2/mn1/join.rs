@@ -60,6 +60,7 @@ impl gpui::EventEmitter<ProducerReply> for Shell {}
 pub struct Joined {
     pub menu: Rc<RefCell<Menu>>,
     pub captured: Option<Captured>,
+    pub(crate) rail: Option<crate::window::dispatch::rail_menu::Target>,
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
     pub activating: bool,
@@ -98,6 +99,9 @@ impl Shell {
     }
 
     pub(crate) fn menu_identity(&self) -> String {
+        if self.menu.rail.is_some() {
+            return String::new();
+        }
         self.menu
             .captured
             .as_ref()
@@ -122,6 +126,9 @@ impl Shell {
     }
 
     pub(crate) fn menu_entries(&self) -> Vec<Entry> {
+        if let Some(target) = &self.menu.rail {
+            return target.rows(self);
+        }
         let Some(capture) = &self.menu.captured else {
             return Vec::new();
         };

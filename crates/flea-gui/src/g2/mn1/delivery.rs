@@ -80,6 +80,10 @@ impl Shell {
     }
 
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let rail = self.menu.rail.take().is_some();
+        if rail {
+            self.rail_menu_hold(false, cx);
+        }
         self.providers_menu_closed();
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
@@ -109,6 +113,10 @@ impl Shell {
         }
         self.keyboard.context = flea::keys::Context::Listing;
         self.keyboard.disarm();
+        if rail {
+            window.focus(&self.dual_focus.rail, cx);
+            self.keyboard.context = flea::keys::Context::Rail;
+        }
         cx.notify();
     }
 
