@@ -194,6 +194,9 @@ impl Shell {
         if self.actions_reply(side, line, cx) || self.menu_tag_line(side, &reply, window, cx) {
             return true;
         }
+        if self.menu_tag_states(side, &reply, window) {
+            return true;
+        }
         if self.menu_discovery_reply(side, line, &reply, window, cx) {
             return true;
         }
@@ -244,6 +247,8 @@ impl Shell {
                     })
                     .collect();
                 self.menu.context.compare_kinds = Some(capture.kinds.clone());
+                self.menu.context.tag_submenu = None;
+                self.menu_ask_tags(cx);
                 if self.menu.pending.is_some() {
                     self.activate_menu(window, cx);
                 } else {
