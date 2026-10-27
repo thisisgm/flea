@@ -83,7 +83,7 @@ pub struct Joined {
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
 
-fn identity(host: &PaneHost, side: usize, background: bool) -> String {
+pub(crate) fn identity(host: &PaneHost, side: usize, background: bool) -> String {
     format!(
         "{side}:{}:{}:{:?}:{}:{background}",
         host.path, host.pane.held.listing, host.selected, host.pane.cursor
