@@ -1,13 +1,13 @@
 //! Acceptance pins for the joined form and mount service; native host composition is checked separately.
 use super::{
-    dialog::{Effect, Focus},
+    dialog::Focus,
     mount::{self, Phase},
     routing::{address, AddressRoute},
     service::{Service, ServiceEvent},
     view::{NetworkEvent, NetworkView},
 };
 use crate::g2::pl1::process::{Event, Handle, Job, KillProbe, Outcome, Runner};
-use gpui::{point, px, AppContext, Entity, TestAppContext, VisualTestContext};
+use gpui::{px, AppContext, Entity, TestAppContext, VisualTestContext};
 use std::{cell::RefCell, rc::Rc};
 
 #[path = "m9_g2rows_19_handoff_tests.rs"]
@@ -49,7 +49,7 @@ fn card(
 }
 
 #[gpui::test]
-fn m9_g2rows_19_nearby_selection_fills_without_connecting(cx: &mut TestAppContext) {
+fn m9_g2rows_19_down_and_typing_in_host_open_no_list(cx: &mut TestAppContext) {
     let (_root, card, cx) = card(cx);
     let effects = Rc::new(RefCell::new(Vec::new()));
     let seen = effects.clone();
@@ -58,142 +58,67 @@ fn m9_g2rows_19_nearby_selection_fills_without_connecting(cx: &mut TestAppContex
             seen.borrow_mut().push(format!("{:?}", event.0));
         })
         .detach();
-        card.update(cx, |view, cx| {
-            let id = view.model.discovery.id.unwrap();
-            assert!(view.line(&reply(id, "found", HOSTS), cx));
-        });
     });
-    frame(cx);
     let geometry = cx.update(|_, cx| {
         let view = card.read(cx);
         let drawn = view.drawn.borrow();
-        let popup = view.menu.borrow();
-        let popup = popup.card.as_ref().expect("hosts open a popup");
-        let host = super::drawing::field(Focus::Host).unwrap();
-        let port = super::drawing::field(Focus::Port).unwrap();
-        assert_eq!(popup.frame.x, drawn.origin.0 + host.x);
-        assert_eq!(popup.frame.y, drawn.origin.1 + host.y + host.h + 3.);
-        assert_eq!(popup.frame.w, port.x + port.w - host.x);
-        assert!(view.model.discovery.rows[1].tailnet);
         (drawn.origin, drawn.card)
     });
-    cx.simulate_keystrokes("down enter");
+    cx.simulate_input("EA");
+    frame(cx);
+    cx.simulate_keystrokes("down");
     frame(cx);
     cx.update(|_, cx| {
         let view = card.read(cx);
-        assert_eq!(
-            view.model.form.protocol,
-            flea::ui_logic_pl2::form::Protocol::Sftp
-        );
-        assert_eq!(
-            (
-                &*view.model.form.host,
-                &*view.model.form.port,
-                &*view.model.form.path
-            ),
-            ("east", "2222", "work")
-        );
-        assert_eq!(view.model.focus, Focus::Connect);
-        assert!(!view.model.connecting && !view.model.saving);
-        assert!(!view.menu.borrow().opened());
+        assert_eq!(view.model.focus, Focus::Host);
+        assert_eq!(&*view.model.form.host, "EA");
         let drawn = view.drawn.borrow();
         assert_eq!(
             (drawn.origin, drawn.card),
             geometry,
-            "choosing a different protocol keeps the card height"
+            "typing and Down keep the card at its one height and place"
         );
     });
     assert!(
         effects.borrow().is_empty(),
-        "selection emits no mount or save"
+        "typing and Down emit no discovery, mount or save"
     );
-    cx.update(|_, cx| {
-        card.update(cx, |view, cx| {
-            view.model.focus = Focus::Host;
-            view.model.form.host.clear();
-            view.load_input();
-            view.changed(cx);
-        })
-    });
-    frame(cx);
-    let hit = cx.update(|_, cx| {
-        let view = card.read(cx);
-        let menu = view.menu.borrow();
-        let popup = menu.card.as_ref().unwrap();
-        point(px(popup.frame.x + 30.), px(popup.frame.y + 15.))
-    });
-    cx.simulate_mouse_down(hit, gpui::MouseButton::Left, gpui::Modifiers::default());
-    cx.simulate_mouse_up(hit, gpui::MouseButton::Left, gpui::Modifiers::default());
-    frame(cx);
-    cx.update(|_, cx| {
-        let view = card.read(cx);
-        assert_eq!(
-            view.model.form.uri().as_deref(),
-            Some("smb://backup.local/media")
-        );
-        assert_eq!(view.model.focus, Focus::Connect);
-    });
-    assert!(effects.borrow().is_empty());
-    cx.simulate_keystrokes("enter");
-    assert_eq!(effects.borrow().len(), 1, "only explicit Connect submits");
-    assert!(effects.borrow()[0].starts_with("Mount {"));
 }
 
 #[gpui::test]
-fn m9_g2rows_19_deadline_close_and_typing_ignore_stale_hosts(cx: &mut TestAppContext) {
+fn m9_g2rows_19_tab_through_every_field_keeps_one_card_and_no_list(cx: &mut TestAppContext) {
     let (_root, card, cx) = card(cx);
-    let first = cx.update(|_, cx| card.read(cx).model.discovery.id.unwrap());
-    cx.update(|_, cx| assert!(card.read(cx).model.discovery.looking));
-    // The backend owns expiry; the view consumes its terminal reply without an empty popup.
+    let effects = Rc::new(RefCell::new(Vec::new()));
+    let seen = effects.clone();
     cx.update(|_, cx| {
-        card.update(cx, |view, cx| {
-            assert!(view.line(&reply(first, "empty", ""), cx));
-            assert!(!view.model.discovery.looking);
+        cx.subscribe(&card, move |_, event: &NetworkEvent, _| {
+            seen.borrow_mut().push(format!("{:?}", event.0));
         })
+        .detach();
     });
-    frame(cx);
-    cx.update(|_, cx| assert!(!card.read(cx).menu.borrow().opened()));
-    cx.update(|window, cx| {
-        card.update(cx, |view, cx| {
-            view.close(cx);
-            view.open_for(42, window, cx);
-            assert!(!view.line(&reply(first, "found", HOSTS), cx));
-            let current = view.model.discovery.id.unwrap();
-            assert_ne!(current, first);
-            assert!(view.line(&reply(current, "found", HOSTS), cx));
-        })
-    });
-    frame(cx);
-    cx.simulate_input("EAST");
-    frame(cx);
-    cx.update(|_, cx| {
+    let geometry = cx.update(|_, cx| {
         let view = card.read(cx);
-        assert_eq!(view.model.discovery.filtered(&view.model.form.host), [1]);
+        let drawn = view.drawn.borrow();
+        (drawn.origin, drawn.card)
     });
-    cx.simulate_keystrokes("enter enter");
-    let (request, uri) = cx.update(|_, cx| {
-        let view = card.read(cx);
-        assert!(view.model.connecting);
-        (view.model.request, view.model.pending_uri.clone())
-    });
-    cx.update(|window, cx| {
-        card.update(cx, |view, cx| {
-            let effects = view.model.close();
-            assert!(effects
-                .iter()
-                .any(|effect| matches!(effect, Effect::Cancel(id) if *id == request)));
-            view.open_for(43, window, cx);
-            view.mount_finished(request, &uri, Ok(()), false, cx);
-            assert_eq!(view.model.focus, Focus::Host);
-            assert!(!view.model.connecting && !view.model.saving);
-            let current = view.model.discovery.id.unwrap();
-            assert!(view.line(&reply(current, "found", HOSTS), cx));
-        })
-    });
-    frame(cx);
-    cx.simulate_input("no-matching-host");
-    frame(cx);
-    cx.update(|_, cx| assert!(!card.read(cx).menu.borrow().opened()));
+    let steps = cx.update(|_, cx| card.read(cx).model.ring().len());
+    for _ in 0..steps {
+        cx.simulate_keystrokes("tab");
+        frame(cx);
+        cx.update(|_, cx| {
+            let view = card.read(cx);
+            let drawn = view.drawn.borrow();
+            assert_eq!(
+                (drawn.origin, drawn.card),
+                geometry,
+                "every field keeps the card at its one height and place"
+            );
+        });
+    }
+    assert!(
+        effects.borrow().is_empty(),
+        "Tab through every field emits no discovery, mount or save"
+    );
 }
 
 #[derive(Default)]

@@ -37,4 +37,4 @@ pub fn add_hit(add: Rect) -> Rect {
 }
 
 /// Theme.hitMin, the smallest box a pointer target answers on.
-const HIT_MIN: f32 = 24.;
+pub(crate) const HIT_MIN: f32 = 24.;
