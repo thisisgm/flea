@@ -336,3 +336,5 @@ impl Host {
 
 #[cfg(test)]
 mod density_prepare_tests;
+#[cfg(test)]
+mod favourites_reader_tests;
