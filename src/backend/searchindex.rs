@@ -252,7 +252,7 @@ mod coverage_tests;
 
 #[cfg(test)]
 #[path = "searchfixture_tests.rs"]
-mod fixture_tests;
+pub(crate) mod fixture_tests;
 
 #[cfg(test)]
 #[path = "searchlatency_tests.rs"]
