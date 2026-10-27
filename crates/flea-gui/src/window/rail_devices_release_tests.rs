@@ -67,7 +67,7 @@ fn shell_at<'a>(
     });
     let state = flea::jsondoc::parse(r#"{"view":"list","places":{"rail":"shown","sidebarWidth":192}}"#).unwrap();
     let launch = Launch::resolve(
-        Settings::from_json(state, true),
+        Settings::from_json(state),
         Arguments {
             path: Some(path.into()),
             select: None,

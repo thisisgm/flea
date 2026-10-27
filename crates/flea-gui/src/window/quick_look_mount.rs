@@ -371,3 +371,7 @@ pub(crate) fn on_meta(doc: &mut Doc, line: &str, cx: &mut App) -> bool {
         _ => false,
     }
 }
+
+#[cfg(test)]
+#[path = "quick_look_mount_tests.rs"]
+mod tests;

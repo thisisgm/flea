@@ -211,7 +211,12 @@ impl Shell {
         self.settings_favourite(Json::Obj(fields), window, cx);
     }
 
-    fn settings_favourite(&mut self, operation: Json, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn settings_favourite(
+        &mut self,
+        operation: Json,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let Ok(next) = flea::favourites::changed(&self.launch.settings.data, &operation) else {
             return;
         };

@@ -17,6 +17,13 @@ pub const KNOB_PRESSED_ALPHA: f32 = 0.7;
 pub const TRACK_ALPHA: f32 = 0.05;
 // Shown this long after the view stops.
 pub const HOLD_MS: u64 = 1000;
+// Then it fades out over this long.
+pub const FADE_MS: u64 = 300;
+
+// The bar's opacity this long after the view stopped: full through the hold, then a linear fade.
+pub fn fade(elapsed_ms: f32) -> f32 {
+    ((HOLD_MS as f32 + FADE_MS as f32 - elapsed_ms) / FADE_MS as f32).clamp(0.0, 1.0)
+}
 // Theme.hitMin: the shortest knob, so a long patch keeps one a pointer can take.
 pub const HIT_MIN: f64 = 24.0;
 

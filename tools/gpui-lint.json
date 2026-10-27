@@ -12,99 +12,14 @@
   "blocking_helpers": [],
   "blocking_exceptions": [
     {
-      "caller": "flea_gui::path::field::FieldElement::prepaint",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::path::field::FieldElement::paint",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::path::menu::MenuElement::prepaint",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::path::menu::MenuElement::paint",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::path::paint::CrumbElement::prepaint",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::path::paint::CrumbElement::paint",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::g2::pl3::join::Shell::trash_action",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::g2::pl3::join::Shell::size_trash",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::g2::pl3::join::Shell::flush_trash",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::g2::pl3::join_cards::Shell::trash_card",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::g2::pl3::join_menu::Shell::open_trash_menu",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::g2::pl3::join_status::Shell::sync_trash_message",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
       "caller": "flea_gui::g2::pl3::pane::TrashPane::pump",
       "symbol": "status",
       "reason": "Outside::status queues a Trash message for the feedback service and performs no process or I/O call"
     },
     {
-      "caller": "flea_gui::g2::pl3::join::Shell::mount_trash",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::g2::pl3::join_atomic::Shell::trash_frame",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::g2::pl3::join_atomic::Shell::sync_trash_presentation",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::window::settings::claim::Shell::ensure_settings_claim",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::window::settings::Shell::settings_request",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
-    },
-    {
-      "caller": "flea_gui::window::settings::plugins::Shell::sync_settings_plugins",
-      "symbol": "read",
-      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
+      "caller": "flea_gui::columns::folder_size_tests::collect",
+      "symbol": "std::thread::sleep",
+      "reason": "Test helper polling the stub backend's reply channel between try_recv attempts; it runs on the test thread, never a UI callback"
     }
   ],
   "non_color_hex_constants": [],

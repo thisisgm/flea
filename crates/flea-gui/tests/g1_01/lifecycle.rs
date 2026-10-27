@@ -101,6 +101,7 @@ fn real_backend_pipes_drain_on_quit_and_report_unexpected_eof() {
                 | Ok(Event::ListDetails(_))
                 | Ok(Event::Filesystem(_))
                 | Ok(Event::FilesystemDetails { .. })
+                | Ok(Event::FilesystemSystem { .. })
                 | Err(async_channel::TryRecvError::Empty) => {
                     std::thread::sleep(Duration::from_millis(5))
                 }

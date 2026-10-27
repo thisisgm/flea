@@ -7,7 +7,7 @@ use super::{
     viewport::pane,
     Body, QuickLook, RasterRefusal,
 };
-use crate::{list::Palette, row::marks::Mark};
+use crate::row::marks::Mark;
 use flea::ui_logic_pv1::{
     compare::{DiffRow, Kind},
     scroll,
@@ -30,9 +30,7 @@ impl Render for QuickLook {
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
-        let look = self
-            .look
-            .unwrap_or_else(|| Look::inherited(&Palette::inherited(&window.text_style(), theme)));
+        let look = self.look(&window.text_style(), theme);
         let card = self.card(window.viewport_size());
         match self.viewport(card, window) {
             Some(view) => self.scroll.fit(view),
@@ -100,7 +98,11 @@ impl QuickLook {
                     None => Cow::Borrowed(&subject.body),
                 }
             }
-            _ => Cow::Borrowed(&subject.body),
+            // A refused code read draws the calm card in the view's place, as a refused picture does.
+            _ => match self.calm_body(cx) {
+                Some(body) => Cow::Owned(body),
+                None => Cow::Borrowed(&subject.body),
+            },
         };
         let mut surface = div()
             .id("pv1-card")

@@ -40,7 +40,7 @@ impl Adapter for FocusAdapter<'_> {
                 (view, _) => view.unwrap_or_default().to_owned(),
             },
             "viewContentY" => self.input.drawn?.frame.scroll.round().to_string(),
-            "selectedFill" => colour(self.input.drawn?.fill),
+            "selectedFill" => colour(self.input.drawn?.selected_fill),
             "selectionBandState" => {
                 let band = self.input.band.as_ref();
                 let mut fields = vec![

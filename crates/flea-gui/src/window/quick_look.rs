@@ -369,9 +369,26 @@ impl Shell {
                     cx.write_to_clipboard(ClipboardItem::new_string(host.patch.clone()));
                 }
             }
+            Event::OpenWith => self.quick_look_open_with(cx),
             // The cursor keys reach the card through quick_look_action, which follows there.
-            Event::Follow(_) | Event::OpenWith => {}
+            Event::Follow(_) => {}
         }
+    }
+
+    /// The card's Open With opens the chooser the row menu's Open With… opens, for the file the card shows.
+    fn quick_look_open_with(&mut self, cx: &mut Context<Self>) {
+        let Some(host) = self.quick_look.as_ref() else {
+            return;
+        };
+        let (side, view) = (host.side, host.view.clone());
+        let Some(name) = view.read(cx).subject().map(|s| s.name.clone()) else {
+            return;
+        };
+        let Some(pane) = self.panes[side].as_ref() else {
+            return;
+        };
+        let path = crate::navigation::history::join(pane.pane.path(), &name);
+        self.open_open_with(side, path, cx);
     }
 }
 

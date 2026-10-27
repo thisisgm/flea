@@ -17,3 +17,6 @@ pub use view::{Bar, CopyHost, Metrics, Palette, PdfView};
 // Office documents and the CSV table view.
 pub mod csv;
 pub mod office;
+
+#[cfg(test)]
+mod scroll_tests;
