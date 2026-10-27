@@ -185,19 +185,6 @@ impl Shell {
                 window.focus(&shell.focus, cx);
                 cx.notify();
             }),
-            cx.subscribe(
-                &cx.entity(),
-                |shell, _, reply: &crate::g2::mn1::join::ProducerReply, cx| {
-                    let Some(network) = shell.network() else {
-                        return;
-                    };
-                    let card = network.card.clone();
-                    let origin = card.read(cx).model.origin;
-                    if shell.network_side(origin) == Some(reply.side) {
-                        card.update(cx, |card, cx| card.line(&reply.line, cx));
-                    }
-                },
-            ),
         ];
         let poll = cx.spawn(async move |this, cx| loop {
             let _ = this.update(cx, |shell, cx| shell.network_tick(cx));
