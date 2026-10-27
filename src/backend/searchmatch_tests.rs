@@ -130,7 +130,8 @@ fn search_edit_budgets_and_narrowing_are_conservative() {
         assert_eq!(Matcher::new(query).budget, edits);
     }
     assert!(Matcher::can_narrow("ab", "abc"));
-    for (before, now) in [("abc", "abcd"), ("abcdefg", "abcdefgh"), ("abcd", "abcde"), ("ab", "a")] {
+    assert!(Matcher::can_narrow("abcd", "abcde"));
+    for (before, now) in [("abc", "abcd"), ("abcdefg", "abcdefgh"), ("abcd", "abcd/"), ("ab", "a")] {
         assert!(!Matcher::can_narrow(before, now));
     }
 }

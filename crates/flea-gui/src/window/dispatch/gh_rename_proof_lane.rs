@@ -168,7 +168,7 @@ pub(super) fn rooted(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTest
     .unwrap();
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
     let launch = Launch::resolve(
-        Settings::from_json(document, true),
+        Settings::from_json(document),
         Arguments {
             path: Some("/files".into()),
             select: None,

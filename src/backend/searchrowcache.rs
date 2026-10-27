@@ -4,7 +4,7 @@ use super::listing::Listing;
 use super::meta::{Meta, S_IFLNK, S_IFMT};
 use super::watch::{
     IN_ATTRIB, IN_CLOEXEC, IN_CLOSE_WRITE, IN_CREATE, IN_DELETE, IN_DELETE_SELF, IN_IGNORED, IN_MODIFY,
-    IN_MOVED_FROM, IN_MOVED_TO, IN_MOVE_SELF, IN_NONBLOCK, IN_Q_OVERFLOW, IN_UNMOUNT,
+    IN_DONT_FOLLOW, IN_MOVED_FROM, IN_MOVED_TO, IN_MOVE_SELF, IN_NONBLOCK, IN_ONLYDIR, IN_Q_OVERFLOW, IN_UNMOUNT,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::{c_char, c_int, c_void, CString};
@@ -22,18 +22,26 @@ pub(crate) const PATH_OVERHEAD_BYTES: usize = 64;
 pub(crate) const MASK: u32 = IN_MODIFY | IN_ATTRIB | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE | IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT;
 // The watch lost its own inode or its queue, so the whole cache clears.
 const SELF_OR_LOST: u32 = IN_IGNORED | IN_Q_OVERFLOW | IN_UNMOUNT | IN_MOVE_SELF | IN_DELETE_SELF;
+// inotify_add_watch's answer for a symlink it was told neither to follow nor to accept as a directory.
+const ENOTDIR: i32 = 20;
 // Byte offsets of the wd, mask and len words inside one inotify_event header.
-const WD_AT: usize = 0;
-const MASK_AT: usize = 4;
-const LEN_AT: usize = 12;
+pub(super) const WD_AT: usize = 0;
+pub(super) const MASK_AT: usize = 4;
+pub(super) const LEN_AT: usize = 12;
 extern "C" {
     fn inotify_init1(flags: c_int) -> c_int;
     fn inotify_add_watch(fd: c_int, path: *const c_char, mask: u32) -> c_int;
     fn read(fd: c_int, buf: *mut c_void, count: usize) -> isize;
 }
 
+// The device and inode a path resolves to through every symlink on the way.
+fn resolved(path: &Path) -> Option<(u64, u64)> {
+    use std::os::unix::fs::MetadataExt;
+    std::fs::metadata(path).ok().map(|meta| (meta.dev(), meta.ino()))
+}
+
 // One native-endian header word, read at its offset inside the event that starts at at.
-fn word(bytes: &[u8], at: usize, field: usize) -> [u8; 4] {
+pub(super) fn word(bytes: &[u8], at: usize, field: usize) -> [u8; 4] {
     bytes[at + field..at + field + 4].try_into().unwrap()
 }
 
@@ -48,6 +56,10 @@ pub(crate) struct Cache {
     fd: Option<OwnedFd>,
     inodes: super::searchrowinodes::Inodes,
     watches: BTreeMap<PathBuf, i32>,
+    // Watched paths that are symlinks, with the device and inode each resolved to when its watch was armed.
+    linked: HashMap<PathBuf, (u64, u64)>,
+    refs: HashMap<i32, usize>,
+    retired: HashSet<i32>,
     entries: HashMap<PathBuf, Entry>,
     requested: HashSet<PathBuf>,
     bytes: usize,
@@ -55,11 +67,22 @@ pub(crate) struct Cache {
     pub(crate) misses: usize,
     #[cfg(test)]
     pub(crate) renders: usize,
+    #[cfg(test)]
+    pub(crate) counts: std::sync::Arc<test_support::Counters>,
 }
 
 impl Cache {
     pub(crate) fn clear(&mut self) {
-        *self = Self::default();
+        if let Some(fd) = self.fd.as_ref() {
+            for (_, wd) in std::mem::take(&mut self.watches) {
+                super::searchrowinodes::remove_watch(fd.as_raw_fd(), wd, &mut self.refs, &mut self.retired, #[cfg(test)] &self.counts);
+            }
+        }
+        self.linked.clear();
+        self.inodes.clear();
+        self.entries.clear();
+        self.requested.clear();
+        self.bytes = 0;
     }
 
     // Overflow, self events and ancestor renames all fail closed, without opening any indexed file.
@@ -72,11 +95,16 @@ impl Cache {
                 match std::io::Error::last_os_error().kind() {
                     std::io::ErrorKind::Interrupted => continue,
                     std::io::ErrorKind::WouldBlock => return,
-                    _ => break,
+                    _ => {
+                        self.clear();
+                        super::searchrowinodes::close_later(self.fd.take(), #[cfg(test)] &self.counts);
+                        self.retired.clear();
+                        return;
+                    }
                 }
             }
             if count == 0 { break; }
-            if !self.burst(&buffer[..count as usize]) { return; }
+            self.burst(&buffer[..count as usize]);
         }
         self.clear();
     }
@@ -85,16 +113,21 @@ impl Cache {
     // Constraint: a header or name past the buffer clears the cache and answers false.
     fn burst(&mut self, bytes: &[u8]) -> bool {
         let mut at = 0;
+        let mut clean = true;
         while at + EVENT_HEADER <= bytes.len() {
             let wd = i32::from_ne_bytes(word(bytes, at, WD_AT));
             let mask = u32::from_ne_bytes(word(bytes, at, MASK_AT));
             let len = u32::from_ne_bytes(word(bytes, at, LEN_AT)) as usize;
-            if at + EVENT_HEADER + len > bytes.len() || mask & SELF_OR_LOST != 0 {
+            if len > bytes.len() - at - EVENT_HEADER { self.clear(); return false; }
+            at += EVENT_HEADER + len;
+            if mask == IN_IGNORED && self.retired.remove(&wd) { continue; }
+            if mask & SELF_OR_LOST != 0 {
                 self.clear();
-                return false;
+                clean = false;
+                continue;
             }
             use std::os::unix::ffi::OsStrExt;
-            let name = &bytes[at + EVENT_HEADER..at + EVENT_HEADER + len];
+            let name = &bytes[at - len..at];
             let end = name.iter().position(|&b| b == 0).unwrap_or(name.len());
             for (parent, &watch) in &self.watches {
                 if watch == wd {
@@ -102,11 +135,10 @@ impl Cache {
                     self.entries.retain(|path, entry| !path.starts_with(&changed) && !(entry.directory && path == parent));
                 }
             }
-            at += EVENT_HEADER + len;
         }
         if at != bytes.len() { self.clear(); return false; }
         self.recount();
-        true
+        clean
     }
 
     fn recount(&mut self) {
@@ -121,6 +153,8 @@ impl Cache {
     // Ancestor and inode coverage are bounded independently to 350 paths each and armed before any miss is read.
     fn begin(&mut self, base: &Path, listing: &Listing, start: usize, count: usize, body: &str) {
         self.drain();
+        // A symlink can retarget from an unwatched directory; checked before the rows are chosen, since clear() empties them.
+        if self.linked.iter().any(|(path, &armed)| resolved(path) != Some(armed)) { self.clear(); }
         let mounts = super::mountinfo::wedge_points_in(body);
         self.requested = (start..start.saturating_add(count).min(listing.len())).take(ROW_CAP)
             .map(|row| base.join(listing.name(row)))
@@ -142,20 +176,40 @@ impl Cache {
         let path_bytes: usize = needed.iter().chain(self.requested.iter()).chain(self.requested.iter())
             .map(|path| path.as_os_str().len() + std::mem::size_of::<PathBuf>() + PATH_OVERHEAD_BYTES).sum();
         if path_bytes > BYTE_CAP { self.clear(); return; }
-        if self.fd.is_none() || self.watches.keys().ne(needed.iter()) {
-            self.entries.clear();
-            self.bytes = 0;
-            self.watches.clear();
-            let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
-            self.fd = (fd >= 0).then(|| unsafe { OwnedFd::from_raw_fd(fd) });
-            if let Some(fd) = &self.fd {
-                for path in needed {
-                    let Ok(path_c) = CString::new(path.as_os_str().as_encoded_bytes()) else { continue };
-                    let wd = unsafe { inotify_add_watch(fd.as_raw_fd(), path_c.as_ptr(), MASK) };
-                    if wd < 0 { self.clear(); return; }
-                    self.watches.insert(path, wd);
+        if needed.is_empty() { self.clear(); return; }
+        if self.fd.is_none() {
+            #[cfg(test)]
+            self.counts.opens.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let raw = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
+            if raw < 0 { self.clear(); return; }
+            self.fd = Some(unsafe { OwnedFd::from_raw_fd(raw) });
+        }
+        if self.watches.keys().ne(needed.iter()) {
+            let fd = self.fd.as_ref().unwrap().as_raw_fd();
+            for path in &needed {
+                if self.watches.contains_key(path) { continue; }
+                let Ok(path_c) = CString::new(path.as_os_str().as_encoded_bytes()) else { self.clear(); return };
+                #[cfg(test)]
+                self.counts.adds.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                let mut wd = unsafe { inotify_add_watch(fd, path_c.as_ptr(), MASK | IN_DONT_FOLLOW | IN_ONLYDIR) };
+                if wd < 0 && std::io::Error::last_os_error().raw_os_error() == Some(ENOTDIR) {
+                    // Resolved before the watch is armed, so a retarget between the two reads as a change.
+                    let Some(armed) = resolved(path) else { self.clear(); return };
+                    wd = unsafe { inotify_add_watch(fd, path_c.as_ptr(), MASK) };
+                    self.linked.insert(path.clone(), armed);
                 }
+                if wd < 0 { self.clear(); return; }
+                *self.refs.entry(wd).or_default() += 1;
+                self.watches.insert(path.clone(), wd);
             }
+            self.watches.retain(|path, &mut wd| {
+                if needed.contains(path) { return true; }
+                self.linked.remove(path);
+                super::searchrowinodes::remove_watch(fd, wd, &mut self.refs, &mut self.retired, #[cfg(test)] &self.counts);
+                false
+            });
+            // Catch changes during the handoff before reusing facts or reading a miss.
+            self.drain();
         }
         if !self.inodes.cover(&self.requested) { self.entries.clear(); }
         self.entries.retain(|path, _| self.requested.contains(path));
@@ -178,7 +232,7 @@ impl Cache {
                 continue;
             }
             #[cfg(test)]
-            { self.misses += 1; }
+            { self.misses += 1; self.counts.misses.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
             let (mut fresh, _) = super::meta::stat_range(base, listing, row, 1);
             let meta = fresh.remove(0);
             let device_remote = *devices.entry(meta.dev).or_insert_with(|| super::mountinfo::fstype_for_dev(meta.dev, body)
@@ -215,3 +269,26 @@ impl Cache {
 #[cfg(test)]
 #[path = "searchrowcache_tests.rs"]
 mod tests;
+
+impl Drop for Cache {
+    fn drop(&mut self) {
+        super::searchrowinodes::close_later(self.fd.take(), #[cfg(test)] &self.counts);
+    }
+}
+
+#[cfg(test)]
+#[path = "searchrowcache_test_support.rs"]
+pub(crate) mod test_support;
+#[cfg(test)]
+#[path = "searchrowcache_lifetime_tests.rs"]
+mod lifetime_tests;
+#[cfg(test)]
+#[path = "searchrowcache_freshness_tests.rs"]
+mod freshness_tests;
+#[cfg(test)]
+#[path = "searchrowcache_probe_tests.rs"]
+mod probe_tests;
+
+#[cfg(test)]
+#[path = "searchrowcache_events_tests.rs"]
+mod events_tests;

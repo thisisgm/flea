@@ -230,8 +230,8 @@ case_cap_columnsrename() {
     key -k Return >/dev/null
     wait_marker "$menu_dir/a-renamed.md" "columnsrename: the rename never wrote a-renamed.md"
     menus_expect renameState '.index == -1 and (.pending | not) and (.loading | not) and .cursorName == "a-renamed.md"' "columnsrename lands on the renamed file"
-    # ColumnPane.qml:387 hands focus to the columns area itself on editor close, and a QML type stringifies as Name_QMLTYPE_n(0x...); the // keeps a null focus a named failure, never a jq error.
-    menus_expect keyDeliveryState '.listFocus and ((.activeFocusItem // "") | test("^ColumnsArea_QML"))' "columnsrename hands focus back to the active column"
+    # The columns area takes focus back on editor close: QML names it ColumnsArea_QMLTYPE_n(0x...), GPUI names its focus stop "list"; // keeps a null focus a named failure.
+    menus_expect keyDeliveryState '.listFocus and ((.activeFocusItem // "") | test("^(ColumnsArea_QML|list$)"))' "columnsrename hands focus back to the active column"
     [[ -n "$(ipc columnActiveRect)" ]] || fail "columnsrename: the active column has no rectangle"
     shot columnsrename-ended
     printf 'COLUMNSRENAME landed=ok focus=ok\n'

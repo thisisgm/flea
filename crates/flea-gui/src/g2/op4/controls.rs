@@ -172,33 +172,56 @@ pub fn field(
     cx: &mut Context<OutputView>,
 ) -> Stateful<Div> {
     let p = &view.palette;
+    let field = div()
+        .debug_selector(move || format!("op4-control-Field({focus:?})"))
+        .h(px(30.))
+        .px(px(9.))
+        .flex()
+        .items_center()
+        .overflow_hidden()
+        .border_1()
+        .border_color(if view.model.focus == Some(focus) {
+            p.accent_frame
+        } else {
+            p.muted_frame
+        })
+        .bg(p.background)
+        .rounded(px(p.radius))
+        .text_size(px(14.))
+        .text_color(if value.is_empty() {
+            p.muted
+        } else {
+            p.foreground
+        })
+        .opacity(if enabled { 1. } else { 0.55 });
+    if enabled && view.editor.owner == Some(focus) {
+        if let Some(face) = &view.editor.face {
+            let input =
+                crate::g2::op1::field::mount(cx.entity(), div().flex_1().min_w_0().h_full(), face);
+            let field = field
+                .relative()
+                .when(value.is_empty() && !placeholder.is_empty(), |field| {
+                    field.child(
+                        div()
+                            .absolute()
+                            .left(px(10.))
+                            .top_0()
+                            .h_full()
+                            .flex()
+                            .items_center()
+                            .text_color(p.muted)
+                            .child(placeholder),
+                    )
+                })
+                .child(input);
+            return wire(view, Control::Field(focus), enabled, field, cx);
+        }
+    }
     wire(
         view,
         Control::Field(focus),
         enabled,
-        div()
-            .debug_selector(move || format!("op4-control-Field({focus:?})"))
-            .h(px(30.))
-            .px(px(9.))
-            .flex()
-            .items_center()
-            .overflow_hidden()
-            .border_1()
-            .border_color(if view.model.focus == Some(focus) {
-                p.accent_frame
-            } else {
-                p.muted_frame
-            })
-            .bg(p.background)
-            .rounded(px(p.radius))
-            .text_size(px(14.))
-            .text_color(if value.is_empty() {
-                p.muted
-            } else {
-                p.foreground
-            })
-            .opacity(if enabled { 1. } else { 0.55 })
-            .child(if value.is_empty() { placeholder } else { value }),
+        field.child(if value.is_empty() { placeholder } else { value }),
         cx,
     )
 }

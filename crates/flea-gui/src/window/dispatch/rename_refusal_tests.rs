@@ -94,7 +94,7 @@ fn several_marked_rows_with_no_backend_say_the_backend_stopped(cx: &mut TestAppC
 
 #[gpui::test]
 fn a_bulk_rename_the_backend_never_took_says_so_as_the_card_closes(cx: &mut TestAppContext) {
-    let (shell, cx, _lines) = ready(cx, "default");
+    let (shell, cx, _lines) = super::rename_tests::ready_root(cx, "default");
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         host.selected = vec![1, 2];

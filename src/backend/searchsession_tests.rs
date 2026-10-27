@@ -15,6 +15,9 @@ fn fixture() -> TestDir {
     d
 }
 
+// The edit budget rises at the 4th and 8th letter; the hyphen is no letter, so prefixes 4 and 9 rescore the index.
+const RESCORED_AT: [usize; 2] = [4, 9];
+
 #[test]
 fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
     crate::backend::mountinfo::test_reset();
@@ -32,8 +35,8 @@ fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
         assert_eq!(s.counters.walks_started, 1, "still 1 walk after query {}", i + 1);
         assert_eq!(crate::backend::mountinfo::test_reads(), 1, "still 1 mountinfo read after query {}", i + 1);
         if i > 0 {
-            let expected = if len < 4 { previous } else { s.indexed() };
-            assert_eq!(s.counters.rows_scored, expected, "only zero-edit extensions narrow; edit-eligible queries rescore the index");
+            let expected = if RESCORED_AT.contains(&len) { s.indexed() } else { previous };
+            assert_eq!(s.counters.rows_scored, expected, "safe extensions narrow; budget increases rescore the index");
         }
         previous = answer.total;
     }
