@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
 import runpy
@@ -38,6 +39,15 @@ def require(condition, message):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def expand_roots(path):
+    # Catalog paths keep ${FLEA_VISUAL_DESIGN} and ${FLEA_RELEASE_ROOT}; the environment supplies the roots.
+    for token, name in (('${FLEA_VISUAL_DESIGN}', 'FLEA_VISUAL_DESIGN'), ('${FLEA_RELEASE_ROOT}', 'FLEA_RELEASE_ROOT')):
+        if token in path:
+            require(os.environ.get(name), name + ' is unset; source path ' + path + ' needs it')
+            path = path.replace(token, os.environ[name])
+    return path
 
 
 def hex_hash(value, size=64):
@@ -448,7 +458,7 @@ def check_sources(catalog, git_root):
         if source['kind'] == 'git':
             data = subprocess.check_output(['git', '-C', str(git_root), 'show', source['ref'] + ':' + source['path']])
         else:
-            data = Path(source['path']).read_bytes()
+            data = Path(expand_roots(source['path'])).read_bytes()
         require(digest(data) == source['sha256'], 'source identity changed: ' + key)
     return dict(status='SOURCE_IDENTITIES_MATCH', sources=len(catalog['sources']))
 
