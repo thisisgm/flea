@@ -35,7 +35,7 @@ griddrop_hovered() {
 }
 case_griddrop() {
     local dir="$fixture_root/griddrop" hov="$fixture_root/griddrop-hover" name i ax ay aw ah wx wy ww wh cx cy
-    local folder="Move 1 item to a folder · Ctrl copies, Shift moves" lit after first pt
+    local folder="Move 1 item to a folder · ctrl copies, shift moves" lit after first pt
     sandbox_scratch "$dir"
     sandbox_scratch "$hov"
     mkdir -p "$dir/box" "$dir/side"
@@ -47,14 +47,14 @@ case_griddrop() {
     [[ "$(ipc viewMode)" == grid ]] || fail "griddrop: the seeded view is $(ipc viewMode), not grid"
 
     echo "-- a file dropped on a folder tile moves, the tile named while held --"
-    griddrop_hold a.txt box "Move 1 item to box · Ctrl copies, Shift moves"
+    griddrop_hold a.txt box "Move 1 item to box · ctrl copies, shift moves"
     cap_drops_release
     wait_message "Moved 1 item · z undoes"
     [[ ! -e "$dir/a.txt" && -f "$dir/box/a.txt" ]] || fail "griddrop: a.txt did not move into box"
     wait_listing 8
 
     echo "-- the target follows the pointer over a file tile and two folders, and the drop lands on the last --"
-    griddrop_hold b.txt c.txt "$folder" box "Move 1 item to box · Ctrl copies, Shift moves" d.txt "$folder" side "Move 1 item to side · Ctrl copies, Shift moves"
+    griddrop_hold b.txt c.txt "$folder" box "Move 1 item to box · ctrl copies, shift moves" d.txt "$folder" side "Move 1 item to side · ctrl copies, shift moves"
     cap_drops_release
     wait_message "Moved 1 item · z undoes"
     [[ ! -e "$dir/b.txt" && -f "$dir/side/b.txt" && ! -e "$dir/box/b.txt" ]] || fail "griddrop: b.txt did not land on side alone"

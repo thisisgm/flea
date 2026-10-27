@@ -1,6 +1,6 @@
 {
-  "catalog_file_sha256": "9ce562685a84cd21c5f28abab16c90a08f086d00773cb4af60d6cdcaea860b9e",
-  "catalog_sha256": "7a502e3aab20f7ded754381eccffed994d39b40848da65cba80c20a144f01024",
+  "catalog_file_sha256": "5393106b676de8518d6c7cb6b126d5d2952f49995aea00512d0ed6e40cb1ffb6",
+  "catalog_sha256": "38cfb8df12d82f4615b3b3b39b72633d65d69d6e8384000b4ead0f4c34210570",
   "counts": {
     "direct_references": 0,
     "keys": 2015,
@@ -39247,7 +39247,7 @@
       ],
       "context": "drag.move_to: src/ui_logic_dg2.rs:27",
       "coverage": "occurrence-needs-owner-verification",
-      "english": "Move %1 to %2 · Ctrl copies, Shift moves",
+      "english": "Move %1 to %2 · ctrl copies, shift moves",
       "kind": "text",
       "omarchy_reference": null,
       "placeholders": [
@@ -39255,10 +39255,10 @@
         "%2"
       ],
       "plural_categories": [],
-      "resolved_english": "Move %1 to %2 · Ctrl copies, Shift moves",
-      "resolved_sha256": "d5d3f50013451682e3f835f7fa3db7209f91cdd9c05077f17d86dee310768111",
-      "resolved_source_hash": "15d615e0ad1f",
-      "source_hash": "15d615e0ad1f"
+      "resolved_english": "Move %1 to %2 · ctrl copies, shift moves",
+      "resolved_sha256": "8dbe7381502e87efd8bc46785ee440d925fdf439cdb5e0fe04619afac1b9c296",
+      "resolved_source_hash": "96fdd642ea3d",
+      "source_hash": "96fdd642ea3d"
     },
     "drag.move_to_folder": {
       "call_sites": [
@@ -39272,17 +39272,17 @@
       ],
       "context": "drag.move_to_folder: src/ui_logic_dg2.rs:23",
       "coverage": "occurrence-needs-owner-verification",
-      "english": "Move %1 to a folder · Ctrl copies, Shift moves",
+      "english": "Move %1 to a folder · ctrl copies, shift moves",
       "kind": "text",
       "omarchy_reference": null,
       "placeholders": [
         "%1"
       ],
       "plural_categories": [],
-      "resolved_english": "Move %1 to a folder · Ctrl copies, Shift moves",
-      "resolved_sha256": "532c90030cee1be649b4d7bb2aae1324288555072679f300d1ce861c1a0840fc",
-      "resolved_source_hash": "3d934f15f952",
-      "source_hash": "3d934f15f952"
+      "resolved_english": "Move %1 to a folder · ctrl copies, shift moves",
+      "resolved_sha256": "b910fb14d79c000148eaecdc392536770894b3d7a5fc0aa7fa081c95cb5955e3",
+      "resolved_source_hash": "9332493233bd",
+      "source_hash": "9332493233bd"
     },
     "drag.no_local_files": {
       "call_sites": [
@@ -212807,8 +212807,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "cfdc426bbe55ff3d000a254829bea9f76e2d27b3",
-  "source_sha": "cfdc426bbe55ff3d000a254829bea9f76e2d27b3",
+  "source_ref_sha": "bbffb363e6c482e41aae72a9d1f49794968541c6",
+  "source_sha": "bbffb363e6c482e41aae72a9d1f49794968541c6",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1286,
