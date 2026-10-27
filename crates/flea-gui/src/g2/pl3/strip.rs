@@ -287,6 +287,13 @@ impl Render for TrashPane {
             .min_h(px(0.))
             .child(TrashList(self.paint.clone()))
             .on_mouse_move(cx.listener(move |pane, event: &MouseMoveEvent, _, cx| {
+                if pane.bar_move(
+                    event.position,
+                    event.pressed_button == Some(MouseButton::Left),
+                    cx,
+                ) {
+                    return;
+                }
                 let index = pane.row_at(event.position.y);
                 pane.pointer_moved(event.position, index, cx);
             }))
@@ -294,10 +301,22 @@ impl Render for TrashPane {
                 MouseButton::Left,
                 cx.listener(move |pane, event: &MouseDownEvent, window, cx| {
                     window.focus(&pane.focus, cx);
+                    if pane.bar_press(event.position, cx) {
+                        cx.stop_propagation();
+                        return;
+                    }
                     if let Some(index) = pane.row_at(event.position.y) {
                         pane.click_row(index, event.modifiers.control, cx);
                     }
                 }),
+            )
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(|pane, _: &MouseUpEvent, _, cx| pane.bar_release(cx)),
+            )
+            .on_mouse_up_out(
+                MouseButton::Left,
+                cx.listener(|pane, _: &MouseUpEvent, _, cx| pane.bar_release(cx)),
             )
             .on_mouse_down(
                 MouseButton::Right,
@@ -322,7 +341,8 @@ impl Render for TrashPane {
                 pane.wheel(-f32::from(event.delta.pixel_delta(px(ROW_H)).y), cx);
                 cx.stop_propagation();
             }))
-            .children(empty);
+            .children(empty)
+            .child(self.scrollbar(window, cx));
         div()
             .size_full()
             .flex()

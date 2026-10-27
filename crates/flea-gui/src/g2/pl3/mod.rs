@@ -24,7 +24,9 @@ mod join_r5_tests;
 mod join_readiness_tests;
 #[cfg(test)]
 mod join_review_tests;
+mod join_sheet;
 mod join_status;
+mod join_sweep;
 #[cfg(test)]
 mod join_tests;
 pub mod list;
@@ -36,6 +38,7 @@ mod paint_tests;
 pub mod pane;
 pub mod presentation;
 pub mod readers;
+mod scrollbar;
 pub mod seams;
 mod strip;
 #[cfg(test)]
@@ -46,3 +49,8 @@ mod join_atomic_tests;
 
 #[cfg(test)]
 mod gcomp_join_tests;
+
+#[cfg(test)]
+mod parity_input_tests;
+#[cfg(test)]
+mod parity_sweep_tests;

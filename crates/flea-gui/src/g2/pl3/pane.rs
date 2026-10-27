@@ -5,6 +5,8 @@ use super::list::ListPaint;
 use super::monitor::{Heard, Monitor, Started};
 #[path = "connection.rs"]
 mod connection;
+#[path = "pane_input.rs"]
+mod input;
 #[path = "paint_sync.rs"]
 mod paint_sync;
 use super::seams::{At, Card, Outside};
@@ -38,6 +40,7 @@ pub struct TrashPane {
     pub paint: Rc<RefCell<ListPaint>>,
     pub focus: FocusHandle,
     pub button: Button,
+    pub(super) scrollbar: super::scrollbar::Bar,
     pub menu_open: bool,
     pub width: f32,
     pub presentation_loading: bool,
@@ -85,6 +88,7 @@ impl TrashPane {
             ))),
             focus: cx.focus_handle(),
             button: Button::default(),
+            scrollbar: Default::default(),
             menu_open: false,
             width: 0.,
             presentation_loading: false,
@@ -150,35 +154,6 @@ impl TrashPane {
         cx.notify();
     }
 
-    /// One backend line on this session: a trashbrowse reply or a trashthumbed answer.
-    pub fn line(&mut self, text: &str, cx: &mut Context<Self>) {
-        let Ok(message) = jsondoc::parse(text) else {
-            return;
-        };
-        match message.get("t").and_then(Json::as_str) {
-            Some("trashbrowse") => {
-                if let Some(reply) = Reply::read(message) {
-                    if reply.id == self.host.view.request_id
-                        && reply.op == self.host.view.pending_op
-                        && reply.ok
-                        && matches!(reply.op.as_str(), "list" | "window")
-                    {
-                        self.rows_request = reply.id;
-                    }
-                    let now = self.now();
-                    let _ = self.host.receive(&reply, &self.catalog, now);
-                }
-            }
-            Some("trashthumbed") => {
-                let id = message.get("id").and_then(Json::as_f64).unwrap_or(0.) as u64;
-                let file = message.get("file").and_then(Json::as_str).unwrap_or("");
-                self.host.view.thumbnailed(id, file);
-            }
-            _ => return,
-        }
-        self.pump(cx);
-    }
-
     /// The strip's back button: TrashView's root.close(), live through a review as the oracle's is.
     pub fn back_pressed(&mut self, cx: &mut Context<Self>) {
         if self.host.view.opened {
@@ -187,52 +162,6 @@ impl TrashPane {
         self.pump(cx);
     }
 
-    /// A key action from the generated table, while Trash holds the keyboard.
-    pub fn action(&mut self, name: &str, repeat: bool, cx: &mut Context<Self>) {
-        if self.interaction_held()
-            && !matches!(name, "escape" | "parent" | "back" | "quit" | "windowNew")
-        {
-            return;
-        }
-        if self.host.view.strip_focus && matches!(name, "open" | "activate") {
-            if self.empty_available() {
-                self.host.view.prepare(true);
-            }
-            return self.pump(cx);
-        }
-        if name == "escape" && self.host.view.confirmation.is_none() && self.outside.escape_taken()
-        {
-            self.host.view.arm.clear();
-            return self.pump(cx);
-        }
-        let (now, keys) = (
-            self.now(),
-            Keys {
-                arm: &self.keys.0,
-                alone: &self.keys.1,
-            },
-        );
-        let press = match name {
-            "parent" | "back" => Press::Backspace,
-            "reload" => Press::F5,
-            other => Press::Action(other),
-        };
-        self.host
-            .view
-            .press(press, repeat, now, &self.catalog, keys);
-        self.quiet = true;
-        self.hover(None, cx);
-        self.pump(cx);
-    }
-
-    /// Tab moves the keyboard between the list and Empty Trash…, the strip's one live stop.
-    pub fn focus_strip(&mut self, on: bool, cx: &mut Context<Self>) {
-        if self.interaction_held() {
-            return;
-        }
-        self.host.view.strip_focus = on && self.empty_available();
-        self.pump(cx);
-    }
     pub fn empty_pressed(&mut self, cx: &mut Context<Self>) {
         if self.empty_available() {
             self.host.action("emptyTrash");
