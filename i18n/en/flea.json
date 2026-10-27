@@ -2091,6 +2091,9 @@
   "search.contents.limit": "Contents search exceeded its output limit.",
   "search.contents.identity": "This filename cannot be used safely. No action was taken.",
   "feedback.autofit.list_required": "Autofit needs the list view.",
+  "drag.copy_to": "Copy %1 to %2",
+  "drag.link_to": "Link %1 to %2",
+  "drag.move_to": "Move %1 to %2 · ctrl copies, shift moves",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",
@@ -2202,6 +2205,7 @@
   "keys.action.keymapSheet": "Keyboard Shortcuts",
   "keys.action.filter": "Filter",
   "keys.action.search": "Find",
+  "keys.action.searchContents": "Search contents",
   "keys.action.reveal": "Reveal",
   "keys.action.sortNext": "Sort",
   "keys.action.sortReverse": "Reverse sort",
@@ -2311,8 +2315,5 @@
   "keys.menu": "Menu",
   "keys.openTerminal": "Open terminal",
   "keys.openAgent": "Open agent here",
-  "keys.print": "Print…",
-  "drag.copy_to": "Copy %1 to %2",
-  "drag.link_to": "Link %1 to %2",
-  "drag.move_to": "Move %1 to %2 · ctrl copies, shift moves"
+  "keys.print": "Print…"
 }

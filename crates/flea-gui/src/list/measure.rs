@@ -40,6 +40,9 @@ impl ListState {
             Metrics::for_typeface(&self.typeface).for_dual(self.view.dual, self.typeface.body);
         let padding = (6. * f32::from(self.typeface.base) / 12.).round();
         metrics.row += 2. * ((padding * self.density.ratio()).round() - (padding * 0.5).round());
+        if self.view.contents {
+            metrics.row = crate::g2::sr1::contents::BLOCK_H;
+        }
         metrics
     }
     // Measured once per face; a language or font change drops it with the shaped rows.

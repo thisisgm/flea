@@ -13,12 +13,17 @@ mod empty;
 mod observe;
 pub(crate) use observe::{Draw, QueryReader};
 #[cfg(test)]
+#[path = "search_contents_tests.rs"]
+mod contents_tests;
+#[cfg(test)]
 #[path = "search_presented_tests.rs"]
 mod presented_tests;
 #[cfg(test)]
 #[path = "search_tests.rs"]
 mod tests;
 
+#[path = "search_contents.rs"]
+mod contents;
 #[path = "search_host.rs"]
 mod host;
 pub(crate) use host::Runtime;
@@ -131,13 +136,25 @@ impl Shell {
         let Some(host) = self.panes[side].as_mut() else {
             return false;
         };
+        // Ctrl+G opens like f, already in contents; it does nothing until the contents producer is wired.
+        let opens = action == "search"
+            || (action == "searchContents" && host.search.owner.session.wire.contents);
         if host.stopped
             || host.backend.is_none()
-            || (action != "search" && !(action == "reveal" && host.search.owner.active()))
+            || (!opens && !(action == "reveal" && host.search.owner.active()))
         {
             return false;
         }
-        if action == "search" && !host.search.owner.active() {
+        // A raw filename the producer could not name exactly is never revealed from its display text.
+        if action == "reveal"
+            && !host
+                .search
+                .owner
+                .operable(host.pane.held.listing, host.pane.cursor)
+        {
+            return true;
+        }
+        if opens && !host.search.owner.active() {
             if host.pane.busy() {
                 return true;
             }
@@ -207,7 +224,7 @@ impl Shell {
         let kind = flea::json::field_str(line, "t");
         if !matches!(
             kind.as_deref(),
-            Some("searchopened" | "searchclosed" | "searched" | "searching")
+            Some("searchopened" | "searchclosed" | "searched" | "searching" | "contentsmatches")
         ) {
             return false;
         }

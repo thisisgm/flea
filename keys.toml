@@ -37,6 +37,11 @@ action = "undo"
 key = "F"
 action = "search"
 
+# Ctrl+G opens search on this folder already in contents mode; inside the strip it turns names and contents.
+[[ctrl]]
+key = "G"
+action = "searchContents"
+
 # Finder's Cmd+E. ui/js/Eject.js "release" ejects the rail's cursor row or the removable volume the
 # listing is inside, with the verdict from Mounts.railMenu, off the lsblk poll, never an exit code.
 [[ctrl]]
@@ -685,7 +690,7 @@ move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "page
 look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
-find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
+find = ["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent",
           "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
@@ -953,6 +958,7 @@ textSizeReset = "Reset text size"
 keymapSheet = "Keyboard Shortcuts"
 filter = "Filter"
 search = "Find"
+searchContents = "Search contents"
 reveal = "Reveal"
 sortNext = "Sort"
 sortReverse = "Reverse sort"
@@ -1088,6 +1094,11 @@ label = "Filter"
 keys = "f"
 action = "search"
 label = "Find"
+
+[[sheet]]
+keys = "^g"
+action = "searchContents"
+label = "Search contents"
 
 [[sheet]]
 keys = "o"

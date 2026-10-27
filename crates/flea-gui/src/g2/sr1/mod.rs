@@ -1,5 +1,6 @@
 //! Search: the query strip, its live backend session and the result presentation, over the core session.
 pub mod contents;
+pub mod matches;
 pub mod presented;
 pub mod run;
 pub mod strip;
@@ -18,7 +19,7 @@ mod tests;
 use flea::{
     i18n::I18n,
     ipc::wire::Reply,
-    ui_logic_sr1::{self as core, Effect, Key, Line, Mode, Pane, Session, Wire},
+    ui_logic_sr1::{self as core, Effect, Key, Kind, Line, Mode, Pane, Session, Wire},
 };
 use gpui::KeyDownEvent;
 
@@ -72,6 +73,8 @@ impl<'a> From<HostPane<'a>> for Pane<'a> {
 pub struct Search {
     pub session: Session,
     pub presented: presented::Presented,
+    /// The contents producer's match lines, held until the rows of their gen and listing present.
+    pub matches: matches::Matches,
     relisting: bool,
 }
 
@@ -80,6 +83,7 @@ impl Search {
         Self {
             session: Session::new(wire),
             presented: presented::Presented::default(),
+            matches: matches::Matches::default(),
             relisting: false,
         }
     }
@@ -98,6 +102,7 @@ impl Search {
             let pane = host.pane();
             match name {
                 "search" => self.session.start(&pane.into()),
+                "searchContents" => self.session.start_contents(&pane.into()),
                 "reveal" => self.session.reveal(&pane.into(), pane.cursor_name),
                 _ => return false,
             }
@@ -160,10 +165,19 @@ impl Search {
         let Some(parsed) = core::parse_line(line)? else {
             return Ok(false);
         };
-        if let Line::Searched { .. } = parsed {
-            let now = host.pane().now;
-            let effects = self.session.searched(&parsed, now);
-            self.apply(effects, host);
+        match parsed {
+            Line::Searched { .. } => {
+                let now = host.pane().now;
+                let effects = self.session.searched(&parsed, now);
+                self.apply(effects, host);
+            }
+            // Only a contents strip's newest gen holds lines; a stale or leaving batch is dropped whole.
+            Line::ContentsMatches(batch)
+                if self.session.kind == Kind::Contents && !self.session.leaving =>
+            {
+                self.matches.take(batch, self.session.gen);
+            }
+            _ => {}
         }
         Ok(true)
     }
@@ -219,6 +233,10 @@ impl Search {
                 Effect::RestartSettle => host.restart_settle(),
             }
         }
+        // A closed session holds no lines; a running one keeps the drawn listing's until its next rows present.
+        if self.session.mode == Mode::Off {
+            self.matches.clear();
+        }
         host.publish(self.pane_session());
     }
 
@@ -267,6 +285,32 @@ impl Search {
             String::new()
         };
         (line, headline)
+    }
+}
+
+/// The match line Quick Look opens at: its number, its text and the typed run in it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MatchLine {
+    pub number: usize,
+    pub text: String,
+    pub run: Option<(usize, usize)>,
+}
+
+impl Search {
+    pub fn match_line(&self, listing: usize, row: usize) -> Option<MatchLine> {
+        let hit = self.matches.line(listing, row)?;
+        Some(MatchLine {
+            number: hit.line_no,
+            text: hit.line.clone(),
+            run: run::run_in(&hit.line, &self.session.query),
+        })
+    }
+
+    /// A row the producer marked inoperable takes no open, reveal, copy, drag or operation; every other row does.
+    pub fn operable(&self, listing: usize, row: usize) -> bool {
+        self.matches
+            .line(listing, row)
+            .is_none_or(|hit| hit.operable)
     }
 }
 

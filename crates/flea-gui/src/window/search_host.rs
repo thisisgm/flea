@@ -11,6 +11,11 @@ pub(crate) struct Runtime {
     pub strip: Rc<RefCell<sr1::strip::StripState>>,
     pub(super) origin: Option<crate::window::startup::View>,
     pub(super) scroll: f32,
+    /// The contents blocks' shaped state, made again when the list's words or face change.
+    pub(super) contents: Option<(
+        Rc<crate::row::format::Words>,
+        Rc<RefCell<sr1::contents::ContentsState>>,
+    )>,
 }
 
 impl Runtime {
@@ -25,6 +30,7 @@ impl Runtime {
             strip: Rc::new(RefCell::new(sr1::strip::StripState::new(face))),
             origin: None,
             scroll: 0.,
+            contents: None,
         }
     }
 }
