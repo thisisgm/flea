@@ -117,7 +117,7 @@ fn gh350_marked_folder_with_files_refuses_without_navigating(cx: &mut TestAppCon
         &shell,
         cx,
         &format!(
-            r#"{{"t":"menuaction","op":"snapshot","id":{id},"ok":true,"count":2,"kinds":[16384,32768]}}"#
+            r#"{{"t":"menuaction","op":"snapshot","id":{id},"ok":true,"count":2,"kinds":[16877,33188]}}"#
         ),
     );
     assert!(launched().is_empty());

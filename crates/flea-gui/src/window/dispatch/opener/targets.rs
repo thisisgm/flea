@@ -549,8 +549,7 @@ impl Shell {
     fn open_selection_end(&mut self, side: usize, id: u64, cx: &mut Context<Self>) {
         let pending = self.opener[side].pending.take();
         self.opener[side].wait = None;
-        // A menu's archive wait never held a snapshot of its own; the menu closed its producer when it was claimed.
-        // A backend that already stopped holds no snapshot, so a close it cannot take is not an error.
+        // A menu's archive wait holds no snapshot, and a stopped backend's failed close is not an error.
         if !matches!(pending, Some(Pending::Archive { close: false, .. })) {
             if let Some(backend) = self.panes[side].as_ref().and_then(|host| host.backend.as_ref()) {
                 let _ = backend.operation(format!(r#"{{"c":"menuaction","op":"close","id":{id}}}"#));
