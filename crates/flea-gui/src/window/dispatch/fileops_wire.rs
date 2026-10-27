@@ -111,6 +111,21 @@ impl Shell {
         }
     }
 
+    /// The New File card's created reply: the created line and a re-read onto the file, with no rename, as v0.3.12 does not rename a new file.
+    pub(crate) fn new_file_created(
+        &mut self,
+        side: usize,
+        path: String,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let catalog = self.locale.catalog.clone();
+        let preset = self.fileops_preset();
+        let said = lines::made(&catalog, &preset, &path);
+        self.fileops_say(side, &said, false, cx);
+        let _ = self.step(side, Step::Refresh(Some(path)), window, cx);
+    }
+
     /// PaneWire.qml openRenameOnArrival: once the re-read lands, the new folder's own row takes the cursor and Rename runs on it.
     pub(crate) fn fileops_arrival(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
         // Retained hidden panes finish backend replies without opening an editor on the visible pane.

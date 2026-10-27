@@ -85,6 +85,8 @@ mod fileops_arrival_tests;
 #[cfg(test)]
 mod fileops_menu_tests;
 #[cfg(test)]
+mod fileops_new_file_tests;
+#[cfg(test)]
 mod fileops_tests;
 #[cfg(test)]
 mod gh_rename_proof_lane;
