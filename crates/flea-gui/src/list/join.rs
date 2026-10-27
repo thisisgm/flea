@@ -279,6 +279,10 @@ impl Shell {
 
     pub(crate) fn fit_list_columns(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.view != View::List {
+            let text = self.locale.catalog.tr("feedback.autofit.list_required");
+            self.status_messages(cx, |messages, now| {
+                messages.explain(&text, flea::ui_logic_fb1::status::Hint::None, now);
+            });
             return;
         }
         let side = self.focus_side;

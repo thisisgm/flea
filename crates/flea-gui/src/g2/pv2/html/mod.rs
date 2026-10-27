@@ -2,6 +2,7 @@
 //! dark-theme veil and clipped to the frame's inner arc, or the shipped code view for Source.
 pub mod decode;
 mod paint;
+mod scroll;
 
 use super::code::{self, CodeView, KindBar, Mark};
 use super::Palette;
@@ -9,7 +10,7 @@ use flea::i18n::I18n;
 use flea::ui_logic_pv2::code_view::{Answer, Lines, BYTE_GATE, REMOTE_GATE};
 use flea::ui_logic_pv2::html::{Command, Html, Picture, Reply, View};
 use flea::ui_logic_pv2::refusal::Refusal;
-use gpui::{App, AppContext as _, Context, Entity, GlyphRun, RenderImage, ScrollWheelEvent, Task};
+use gpui::{App, AppContext as _, Context, Entity, GlyphRun, RenderImage, Task};
 use std::{cell::Cell, rc::Rc, sync::Arc, time::Instant};
 
 /// The backend's `html` route; the token it answers comes back through `HtmlView::reply`.
@@ -49,6 +50,7 @@ pub struct HtmlView {
     /// The decoded page and the token it was asked under; the old page stays up until a new one decodes.
     pub image: Option<(u64, Arc<RenderImage>, (u32, u32))>,
     released: Vec<Arc<RenderImage>>,
+    bars: crate::g2::pv1::scroller::overlay::Overlay,
     pub scroll_y: f32,
     pub scroll_x: f32,
     /// Network or phone storage, set with the path: Source draws the bytes the caller read, never sends the path.
@@ -94,6 +96,7 @@ impl HtmlView {
             catalog: None,
             image: None,
             released: Vec::new(),
+            bars: Default::default(),
             scroll_y: 0.,
             scroll_x: 0.,
             remote: false,
@@ -150,6 +153,7 @@ impl HtmlView {
         self.doc.max_bytes = if remote { REMOTE_GATE } else { BYTE_GATE };
         self.doc.set_path(path, size, now);
         self.scroll_y = 0.;
+        self.bars = Default::default();
         if let Some(old) = self.image.take() {
             self.released.push(old.1);
         }
@@ -378,102 +382,5 @@ impl HtmlView {
             }));
         }
         cx.notify();
-    }
-
-    fn decoded(
-        &mut self,
-        token: u64,
-        decoded: Option<(Arc<RenderImage>, (u32, u32))>,
-        cx: &mut Context<Self>,
-    ) {
-        self.decode = None;
-        self.doc.picture_loaded(token, decoded.is_some());
-        if token != self.doc.image_token {
-            return;
-        }
-        if let Some((image, size)) = decoded {
-            self.decoded += 1;
-            if let Some(old) = self.image.replace((token, image, size)) {
-                self.released.push(old.1);
-            }
-        }
-        cx.notify();
-    }
-
-    /// The page's drawn size at the current zoom, logical pixels; zero until a page is decoded.
-    pub fn page_size(&self) -> (f64, f64) {
-        let decoded = self.image.as_ref().map_or((0, 0), |(_, _, size)| *size);
-        flea::ui_logic_pv2::html::picture_size(f64::from(self.frame.0), self.doc.zoom, decoded)
-    }
-
-    /// The caller's read of a remote page for Source, quoting the generation `set_path` returned for that page. A read
-    /// from any earlier generation, a returned page's superseded read included, is dropped, so it never draws or fails.
-    pub fn set_source_text(
-        &mut self,
-        generation: u64,
-        text: Option<String>,
-        read_failed: bool,
-        cx: &mut Context<Self>,
-    ) {
-        if generation == 0 || generation != self.read_gen {
-            return;
-        }
-        self.source_text = text;
-        self.source_read_failed = read_failed;
-        self.sync_source(true, cx);
-        cx.notify();
-    }
-
-    /// Pans a page wider than the frame sideways, never past either edge (PreviewHtml.qml contentWidth).
-    pub fn pan_by(&mut self, pixels: f32, cx: &mut Context<Self>) {
-        self.scroll_x = (self.scroll_x + pixels).clamp(0., self.pan_end());
-        cx.notify();
-    }
-
-    // How far a zoomed page can pan before its right edge meets the frame's.
-    fn pan_end(&self) -> f32 {
-        (self.page_size().0 as f32 - self.frame.0).max(0.)
-    }
-
-    /// j and k scroll the page or Source by rows; the cursor never moves.
-    pub fn scroll_rows(&mut self, rows: i64, cx: &mut Context<Self>) {
-        if let (true, Some(source)) = (self.doc.source_view(), &self.source) {
-            source.update(cx, |code, cx| code.scroll_rows(rows, cx));
-            return;
-        }
-        self.scroll_by(rows as f32 * self.metrics.row_height, cx);
-    }
-
-    pub fn scroll_by(&mut self, pixels: f32, cx: &mut Context<Self>) {
-        let end = (self.page_size().1 as f32 - self.frame.1).max(0.);
-        self.scroll_y = (self.scroll_y + pixels).clamp(0., end);
-        cx.notify();
-    }
-
-    pub fn zoom_by(&mut self, steps: i64, cx: &mut Context<Self>) {
-        self.doc.zoom_by(steps);
-        self.scroll_x = self.scroll_x.min(self.pan_end());
-        cx.notify();
-    }
-
-    pub fn zoom_fit(&mut self, cx: &mut Context<Self>) {
-        self.doc.zoom_fit();
-        self.scroll_y = 0.;
-        self.scroll_x = 0.;
-        cx.notify();
-    }
-
-    /// The gap under the page's end, -1 with no page: a short page covers the viewport's bottom edge (html-preview F9).
-    pub fn end_gap(&self) -> f32 {
-        if self.image.is_none() {
-            return -1.;
-        }
-        (self.frame.1 - (self.page_size().1 as f32 - self.scroll_y)).max(0.)
-    }
-
-    fn wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
-        let delta = crate::input::scroll::wheel_delta(&event.delta);
-        self.pan_by(-f32::from(delta.x), cx);
-        self.scroll_by(-f32::from(delta.y), cx);
     }
 }

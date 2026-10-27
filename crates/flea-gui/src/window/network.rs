@@ -40,6 +40,8 @@ pub struct Network {
     /// True once rows were rebuilt from a gio listing and a mountinfo read.
     pub built: bool,
     pub listing: Listing,
+    /// The last mountinfo read was non-empty, so networkBuilt can tell a built group from an unbuilt one.
+    pub mountinfo_ready: bool,
     pub menu: Rc<RefCell<crate::g2::mn1::menu::Menu>>,
     pub menu_row: Option<(RailEntry, u64)>,
     pub(crate) runner: Rc<dyn Runner>,
@@ -104,7 +106,7 @@ pub fn section(rows: &[RailEntry], shown: bool) -> Vec<RailSection> {
     }]
 }
 
-fn shown(state: &Json) -> bool {
+pub(crate) fn shown(state: &Json) -> bool {
     state
         .get("places")
         .and_then(|places| places.get("showNetwork"))
@@ -138,6 +140,13 @@ impl Shell {
         let card = cx.new(|cx| NetworkView::new(catalog.clone(), palette, cx));
         let shares = cx.new(|cx| ShareView::new(catalog, palette, cx));
         let subscriptions = vec![
+            cx.subscribe_in(
+                &cx.entity(),
+                window,
+                |shell, _, event: &crate::path::join::NetworkPath, window, cx| {
+                    shell.network_address(event.side, &event.uri, window, cx)
+                },
+            ),
             cx.subscribe_in(
                 &service,
                 window,
@@ -176,19 +185,6 @@ impl Shell {
                 window.focus(&shell.focus, cx);
                 cx.notify();
             }),
-            cx.subscribe(
-                &cx.entity(),
-                |shell, _, reply: &crate::g2::mn1::join::ProducerReply, cx| {
-                    let Some(network) = shell.network() else {
-                        return;
-                    };
-                    let card = network.card.clone();
-                    let origin = card.read(cx).model.origin;
-                    if shell.network_side(origin) == Some(reply.side) {
-                        card.update(cx, |card, cx| card.line(&reply.line, cx));
-                    }
-                },
-            ),
         ];
         let poll = cx.spawn(async move |this, cx| loop {
             let _ = this.update(cx, |shell, cx| shell.network_tick(cx));
@@ -204,6 +200,7 @@ impl Shell {
                 rows: Vec::new(),
                 built: false,
                 listing: Listing::new(),
+                mountinfo_ready: false,
                 menu: Rc::default(),
                 menu_row: None,
                 runner,
@@ -215,6 +212,7 @@ impl Shell {
                 poll: Some(poll),
                 _subscriptions: subscriptions,
             });
+            self.chrome.network = true;
         }
     }
 
@@ -293,13 +291,6 @@ impl Shell {
             })
     }
 
-    fn network_say(&mut self, side: usize, text: String, cx: &mut Context<Self>) {
-        if let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) {
-            host.status = text.into();
-            cx.notify();
-        }
-    }
-
     /// The join's own row for a rail row, so release reads the row's fstype and mount path, never a rebuilt copy.
     pub(crate) fn network_row(&mut self, entry: &rail::RailEntry) -> Option<RailEntry> {
         self.network()?
@@ -369,6 +360,8 @@ impl Shell {
 mod effects;
 #[path = "network_menu.rs"]
 mod menu;
+#[path = "network_path.rs"]
+mod path;
 #[path = "network_rows.rs"]
 mod rows;
 

@@ -2,6 +2,25 @@
 use super::history::{join, select_match};
 use crate::pane::Pane;
 use std::collections::BTreeSet;
+use std::rc::Rc;
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Viewport {
+    pub columns: usize,
+    pub row_height: f32,
+    pub origin: f32,
+    pub scroll: f32,
+    pub shown: Option<Rc<[usize]>>,
+}
+
+impl Viewport {
+    pub fn offset(&self, index: usize) -> f32 {
+        let view = self.shown.as_ref().map_or(index, |shown| {
+            shown.iter().position(|&row| row == index).unwrap_or(0)
+        });
+        self.origin + (view / self.columns.max(1)) as f32 * self.row_height - self.scroll
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Mark {
@@ -16,6 +35,7 @@ pub struct Anchor {
     pub index: usize,
     pub start: usize,
     pub offset: f32,
+    pub(crate) grid_offset: Option<f32>,
     pub select: bool,
     pub want_changed: bool,
     pub marks: Vec<Mark>,
@@ -63,6 +83,7 @@ impl Anchor {
             index: pane.cursor,
             start: pane.held.start,
             offset: pane.cursor as f32 * pane.row_height() - pane.scroll_y,
+            grid_offset: None,
             select,
             want_changed,
             had_marks: !marks.is_empty(),

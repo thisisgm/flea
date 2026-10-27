@@ -1,0 +1,38 @@
+{
+  "cli:ui-state": [
+    {
+      "from": "      \"openAsText\"\n    ]",
+      "to": "      \"openAsText\",\n      \"openAgent\",\n      \"actions\"\n    ]",
+      "reason": "Migration step 4 (src/uimigrate.rs hide_0_4_0_rows) ships the 0.4.0 menu rows hidden, so a 0.3.12 document keeps its menus."
+    },
+    {
+      "from": "\"stateVersion\": 3\n",
+      "to": "\"stateVersion\": 4\n",
+      "reason": "The same migration stamps the document with state version 4."
+    }
+  ],
+  "cli:ui-state-write": [
+    {
+      "from": "      \"openAsText\"\n    ]",
+      "to": "      \"openAsText\",\n      \"openAgent\",\n      \"actions\"\n    ]",
+      "reason": "Migration step 4 (src/uimigrate.rs hide_0_4_0_rows) ships the 0.4.0 menu rows hidden, so a 0.3.12 document keeps its menus."
+    },
+    {
+      "from": "\"stateVersion\": 3\n",
+      "to": "\"stateVersion\": 4\n",
+      "reason": "The same migration stamps the document with state version 4."
+    }
+  ],
+  "state:ui-state": [
+    {
+      "from": "      \"openAsText\"\n    ]",
+      "to": "      \"openAsText\",\n      \"openAgent\",\n      \"actions\"\n    ]",
+      "reason": "Migration step 4 (src/uimigrate.rs hide_0_4_0_rows) ships the 0.4.0 menu rows hidden, so a 0.3.12 document keeps its menus."
+    },
+    {
+      "from": "\"stateVersion\": 3\n",
+      "to": "\"stateVersion\": 4\n",
+      "reason": "The same migration stamps the document with state version 4."
+    }
+  ]
+}

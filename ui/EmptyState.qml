@@ -110,7 +110,7 @@ Item {
         }
     }
 
-    // Three beats per appearance, then the third phrase and the drawn mark rest (GM's ruling); a rotation kept a core 12% busy.
+    // Three beats per appearance, then rest on the third phrase with the mark drawn: an endless rotation kept a core 12% busy.
     readonly property int beatLimit: 3
     property int beats: 0
     // Rest is no beat left with the fade stopped and the mark drawn whole; reduced motion and a fixed caption keep no beat, so the fade and the opacity gate those.

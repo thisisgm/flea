@@ -58,6 +58,7 @@ impl Shell {
             self.rename_say(said, false, cx);
             return;
         }
+        self.rename.ime.close();
         self.rename.edit = None;
         self.rename.bulk = Some(Open {
             side,
@@ -69,6 +70,10 @@ impl Shell {
     }
 
     pub(super) fn bulk_rename_key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) {
+        if self.dialog_key(event, cx) {
+            return;
+        }
+        cx.stop_propagation();
         let Some(key) = key_of(event) else {
             return;
         };
@@ -134,6 +139,7 @@ impl Shell {
                 Effect::Launch(_) | Effect::Refresh => {}
             }
         }
+        self.sync_dialog_editor();
         cx.notify();
     }
 
@@ -189,13 +195,51 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
+        self.sync_dialog_editor();
         let open = self.rename.bulk.as_ref()?;
+
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        let card = open.card.card(&self.locale.catalog);
+        let mut card = open.card.card(&self.locale.catalog);
+        self.rename.ime.palette = Some(crate::g2::op1::palette::CardPalette::from_list(
+            &palette,
+            self.corner,
+        ));
+        self.rename.ime.error_ink = false;
+        for block in &mut card.body {
+            use crate::g2::op3::shell::Block;
+            match block {
+                Block::Fields(a, b) => {
+                    if a.focused
+                        && self.rename.ime.owner
+                            == Some(crate::g2::op1::dialog_editor::Slot::BulkFind)
+                    {
+                        a.input = Some(cx.entity());
+                    }
+                    if b.focused
+                        && self.rename.ime.owner
+                            == Some(crate::g2::op1::dialog_editor::Slot::BulkReplace)
+                    {
+                        b.input = Some(cx.entity());
+                    }
+                }
+                Block::Names { new, .. } => {
+                    if let Some(crate::g2::op1::dialog_editor::Slot::BulkLine(at)) =
+                        self.rename.ime.owner
+                    {
+                        if let Some(line) = new.get_mut(at) {
+                            self.rename.ime.error_ink =
+                                line.ink == crate::g2::op3::shell::Ink::Error;
+                            line.input = Some(cx.entity());
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
         let room = f32::from(window.viewport_size().width);
         let press = cx.listener(|shell: &mut Shell, at: &usize, _, cx| {
             if let Some(open) = shell.rename.bulk.as_mut() {

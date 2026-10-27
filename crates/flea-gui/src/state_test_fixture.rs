@@ -21,7 +21,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         revision: 1,
         catalog: Arc::new(flea::i18n::I18n::default()),
     };
-    let settings = Settings::from_json(flea::jsondoc::parse("{}").unwrap(), false);
+    let settings = Settings::from_json(flea::jsondoc::parse("{}").unwrap());
     let launch = Launch::resolve(
         settings,
         Arguments {
@@ -70,8 +70,10 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         overlay: None,
         quick_look: None,
         output: Default::default(),
+        permissions: Default::default(),
         operations: Default::default(),
         rename: Default::default(),
+        properties: None,
         clipboard: Default::default(),
         settings: Default::default(),
         trash: None,
@@ -90,6 +92,8 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         _app_quit: None,
         deadlines: [None, None],
         opener: Default::default(),
+        run_card: None,
+        open_with: None,
         dual_focus: crate::dual::focus::Focus::new(cx),
         dual_pending: false,
         dual_written: None,

@@ -81,6 +81,15 @@ impl Render for Producer {
                     producer.mark_cancel();
                 }),
             )
+            // RailDrop.qml: the rows receive this window's row drags; the window resolves the row and lands it.
+            .on_drop::<crate::g2::dg2::join::Seed>({
+                let sink = self.drop_sink.clone();
+                move |_, window, cx| {
+                    if let Some(sink) = &sink {
+                        sink(window, cx);
+                    }
+                }
+            })
             .child(element)
     }
 }
