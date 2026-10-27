@@ -45,7 +45,11 @@ impl Picker {
             .as_ref()
             .is_some_and(|field| field.read(cx).focus.is_focused(window));
         let chord = event.keystroke.modifiers;
-        if text_focus && !(chord.control || chord.alt || chord.platform) {
+        // Backspace under any modifier is the name field's own delete while it holds the keyboard.
+        if text_focus
+            && (event.keystroke.key.as_str() == "backspace"
+                || !(chord.control || chord.alt || chord.platform))
+        {
             return false;
         }
         self.chrome.keyboard.context = flea::keys::Context::Listing;
@@ -59,6 +63,12 @@ impl Picker {
             Dispatch::Action(action) => action,
             Dispatch::Armed => return true,
             _ => "",
+        };
+        // Shift+Up/Down extends a range only where one is permitted; elsewhere it moves the cursor as plain Up/Down.
+        let action = match action {
+            "extendDown" if !self.selection_permitted() => "cursorDown",
+            "extendUp" if !self.selection_permitted() => "cursorUp",
+            other => other,
         };
         let key = event.keystroke.key.as_str();
         if self.browse.listing.read(cx).view_mode() == "grid"
@@ -81,7 +91,7 @@ impl Picker {
         } else if key == "space" && !text_focus {
             self.toggle_mark(self.listing.cursor, cx);
         } else if self.browse.listing.read(cx).view_mode() == "grid" && !text_focus {
-            return self.grid_key(action, key, chord.shift, cx)
+            return self.grid_key(action, key, chord.shift && self.selection_permitted(), cx)
                 || self.listing_action(action, event, cx);
         } else if matches!(action, "extendDown" | "extendUp") && !text_focus {
             let to = if action == "extendDown" {

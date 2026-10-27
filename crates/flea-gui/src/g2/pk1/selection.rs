@@ -47,7 +47,7 @@ impl Picker {
         self.req.multiple && !logic::saving(&self.req)
     }
 
-    fn selection_permitted(&self) -> bool {
+    pub(super) fn selection_permitted(&self) -> bool {
         self.marks_allowed()
             && !self.backend_unavailable()
             && !self.answered()
