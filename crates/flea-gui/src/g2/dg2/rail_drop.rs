@@ -1,0 +1,286 @@
+//! A row drag held over or released on a rail place (RailDrop.qml, RailTrashRow.qml): a place takes the transfer a folder row takes, Trash takes dd's trash request.
+use super::*;
+use flea::ui_logic_dg2::{drop_label, line_to, rail_destination, PasteAsk, RailKind, Verb};
+use flea::ui_logic_pl3::dropping;
+use flea::ui_logic_pl4::rail::Kind;
+
+// The status line's activity owner for the held drag's line (FileDrag.qml dragFeedbackOwner).
+const DRAG_LINE: u64 = 1 << 33;
+
+/// Where a rail row sends a drop: a place's folder, or the Trash.
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum Place {
+    Folder(String),
+    Trash,
+}
+
+/// The rail row a held drag rests on, the pane that receives it, and the disk facts once read.
+pub(super) struct Aim {
+    row: usize,
+    side: usize,
+    name: String,
+    place: Place,
+    facts: Option<Facts>,
+    serial: u64,
+}
+
+impl Shell {
+    /// Hands the rail's rows this window's drop receiver; the rows call it with no lease held.
+    pub(crate) fn receive_rail_drops(&mut self, cx: &mut Context<Self>) {
+        let Some(join) = &self.rail else {
+            return;
+        };
+        let shell = cx.entity().downgrade();
+        join.places.update(cx, |producer, _| {
+            producer.drop_sink = Some(Rc::new(move |window, cx| {
+                let _ = shell.update(cx, |shell, cx| shell.land_rail_drag(window, cx));
+            }));
+        });
+    }
+
+    // RailDrop.destination and TrashDrop.accepts: the row under point, its pane and where it sends this lift.
+    fn rail_target(
+        &self,
+        point: Point<gpui::Pixels>,
+        lift: &Lift,
+        cx: &App,
+    ) -> Option<(usize, usize, String, Place)> {
+        let join = self.rail.as_ref()?;
+        let rail = &join.host.read(cx).rail;
+        if !rail.shown() || !rail.drawn(cx.background_executor().now()) {
+            return None;
+        }
+        let producer = join.places.read(cx);
+        let row = producer.row_at(point)?;
+        let entry = producer.entry(row)?;
+        let name = producer.laid.borrow().row(row)?.label.clone();
+        let side = producer.side;
+        let host = self.panes.get(side)?.as_ref()?;
+        if host.pane.busy() || entry.error.is_some() {
+            return None;
+        }
+        let paths = lift.paths.as_ref()?;
+        let place = if entry.kind == Kind::Trash {
+            flea::ui_logic_pl1::mounts::trashable(&lift.marker.source, None)
+                .then_some(Place::Trash)?
+        } else {
+            let kind = match entry.kind {
+                Kind::Recent | Kind::Tag | Kind::Phone => RailKind::Other,
+                _ => RailKind::Folder,
+            };
+            let urls: Vec<String> = paths.iter().map(|path| core::uri_for(path)).collect();
+            let dest = rail_destination(
+                kind,
+                &entry.path,
+                entry.mounted != Some(false),
+                &urls,
+                None,
+                true,
+            );
+            (!dest.is_empty()).then_some(Place::Folder(dest))?
+        };
+        Some((row, side, name, place))
+    }
+
+    /// Every move of a held row drag reaches this listener wherever the pointer is, so one pane carries it.
+    pub(crate) fn aim_rail_on_drag_move(
+        div: gpui::Stateful<gpui::Div>,
+        cx: &mut Context<Self>,
+    ) -> gpui::Stateful<gpui::Div> {
+        gpui::InteractiveElement::on_drag_move::<Seed>(
+            div,
+            cx.listener(|shell, event: &gpui::DragMoveEvent<Seed>, window, cx| {
+                shell.aim_rail_drag(event.event.position, window, cx);
+            }),
+        )
+    }
+
+    /// The pointer moved with this window's row drag held: light the rail row it rests on and say what a release does.
+    pub(crate) fn aim_rail_drag(
+        &mut self,
+        point: Point<gpui::Pixels>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let key = window_key(window);
+        let target = cx
+            .try_global::<Drags>()
+            .and_then(|drags| drags.lifts.get(&key))
+            .and_then(|lift| self.rail_target(point, lift, cx));
+        let Some((row, side, name, place)) = target else {
+            self.clear_rail_aim(window, cx);
+            return;
+        };
+        let drags = cx.default_global::<Drags>();
+        if let Some(aim) = drags.aims.get(&key) {
+            if aim.row == row && aim.side == side && aim.place == place {
+                self.say_rail_aim(window, cx);
+                return;
+            }
+        }
+        drags.serial += 1;
+        let serial = drags.serial;
+        let folder = match &place {
+            Place::Folder(dest) => Some(dest.clone()),
+            Place::Trash => None,
+        };
+        let first = drags
+            .lifts
+            .get(&key)
+            .and_then(|lift| lift.paths.as_ref()?.first().cloned());
+        drags.aims.insert(
+            key,
+            Aim {
+                row,
+                side,
+                name,
+                place,
+                facts: None,
+                serial,
+            },
+        );
+        self.say_rail_aim(window, cx);
+        // RailDrop.qml asks for the place's device before the verb is said; a later aim supersedes this answer.
+        if let Some(dest) = folder {
+            let facts = cx
+                .background_executor()
+                .spawn(async move { facts::read(first.as_deref(), &dest) });
+            cx.spawn_in(window, async move |this, cx| {
+                let facts = facts.await;
+                let _ = this.update_in(cx, |shell, window, cx| {
+                    let key = window_key(window);
+                    let Some(aim) = cx.default_global::<Drags>().aims.get_mut(&key) else {
+                        return;
+                    };
+                    if aim.serial == serial {
+                        aim.facts = Some(facts);
+                        shell.say_rail_aim(window, cx);
+                    }
+                });
+            })
+            .detach();
+        }
+    }
+
+    // FileDrag.showTarget: the row's caption and the status line, from the keys held now; a folder waits for its facts.
+    fn say_rail_aim(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let key = window_key(window);
+        let modifiers = window.modifiers();
+        let catalog = self.locale.catalog.clone();
+        let Some(drags) = cx.try_global::<Drags>() else {
+            return;
+        };
+        let (Some(aim), Some(lift)) = (drags.aims.get(&key), drags.lifts.get(&key)) else {
+            return;
+        };
+        let count = lift.rows.len();
+        let said = match &aim.place {
+            Place::Trash => Some((
+                drop_label(&catalog, Verb::Move),
+                dropping::line(
+                    &catalog,
+                    Some(&dropping::Request::Paths(
+                        lift.paths.clone().unwrap_or_default(),
+                    )),
+                    "",
+                ),
+            )),
+            Place::Folder(dest) => aim.facts.and_then(|facts| {
+                let held = Dropping::own(lift, modifiers.control, modifiers.shift);
+                let verb = match decide(&held, dest, facts) {
+                    Landing::Ask(PasteAsk::Link { .. }) => Verb::Link,
+                    Landing::Ask(PasteAsk::Transfer { op, .. }) if op == "move" => Verb::Move,
+                    Landing::Ask(PasteAsk::Transfer { .. }) => Verb::Copy,
+                    _ => return None,
+                };
+                Some((
+                    drop_label(&catalog, verb),
+                    line_to(&catalog, count, &aim.name, verb),
+                ))
+            }),
+        };
+        let row = aim.row;
+        self.show_rail_cue(said.map(|(label, line)| (row, label, line)), cx);
+    }
+
+    /// The drag left the rail or ended: no row stays lit and the drag's line leaves the status bar.
+    pub(crate) fn clear_rail_aim(&mut self, window: &Window, cx: &mut Context<Self>) {
+        let key = window_key(window);
+        let held = cx
+            .try_global::<Drags>()
+            .is_some_and(|drags| drags.aims.contains_key(&key));
+        if held {
+            cx.global_mut::<Drags>().aims.remove(&key);
+            self.show_rail_cue(None, cx);
+        }
+    }
+
+    /// A frame with no drag in flight drops a cue the release did not reach, as a release over the chrome.
+    pub(crate) fn settle_rail_drag(&mut self, window: &Window, cx: &mut Context<Self>) {
+        if !cx.has_active_drag() {
+            self.clear_rail_aim(window, cx);
+        }
+    }
+
+    fn show_rail_cue(&mut self, cue: Option<(usize, String, String)>, cx: &mut Context<Self>) {
+        if let Some(join) = &self.rail {
+            let target = cue
+                .as_ref()
+                .map(|(row, label, _)| (*row, gpui::SharedString::from(label.clone())));
+            join.places.update(cx, |producer, cx| {
+                let mut model = producer.model.borrow_mut();
+                if model.drop_target != target {
+                    model.drop_target = target;
+                    drop(model);
+                    cx.notify();
+                }
+            });
+        }
+        let line = cue.map(|(_, _, line)| line).unwrap_or_default();
+        self.status_messages(cx, |messages, now| {
+            // FileDrag.say: a running transfer keeps the bar; an empty line always leaves.
+            if line.is_empty() || !messages.activities().iter().any(|entry| entry.running) {
+                messages.set_activity(DRAG_LINE, &line, 0, false, false, now);
+            }
+        });
+        cx.notify();
+    }
+
+    /// This window's row drag was released on the rail: the row under the pointer takes it, or nothing happens.
+    pub(crate) fn land_rail_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let key = window_key(window);
+        let point = window.mouse_position();
+        self.clear_rail_aim(window, cx);
+        let Some(lift) = cx.default_global::<Drags>().take(key) else {
+            return;
+        };
+        if !lift.travelled(at(point)) {
+            return;
+        }
+        let Some((_, side, _, place)) = self.rail_target(point, &lift, cx) else {
+            return;
+        };
+        match place {
+            Place::Trash => {
+                let Some(paths) = lift.paths.clone() else {
+                    return;
+                };
+                let line = dropping::Request::Paths(paths).line();
+                // dd's cursor anchor only while the source pane still lists the rows it lifted.
+                let current = self.panes[lift.side]
+                    .as_ref()
+                    .is_some_and(|host| host.pane.held.listing == lift.listing);
+                self.trash_dropped(lift.side, line, &lift.rows, current, cx);
+            }
+            Place::Folder(dest) => {
+                let modifiers = window.modifiers();
+                let owned = Owned::Own {
+                    lift,
+                    ctrl: modifiers.control,
+                    shift: modifiers.shift,
+                };
+                self.land_into(side, dest, owned, window, cx);
+            }
+        }
+    }
+}
