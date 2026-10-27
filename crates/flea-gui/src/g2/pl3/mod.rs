@@ -1,5 +1,6 @@
 //! pl3, the Trash browser: the core session in flea::ui_logic_pl3 drawn by custom Elements behind narrow seams.
 pub mod board;
+mod controls;
 #[cfg(test)]
 mod edge_tests;
 mod elide;
@@ -13,6 +14,7 @@ mod hover_tests;
 pub mod ink;
 pub mod join;
 mod join_atomic;
+mod join_ipc;
 mod join_cards;
 mod join_input;
 mod join_menu;
@@ -36,6 +38,7 @@ mod paint_tests;
 pub mod pane;
 pub mod presentation;
 pub mod readers;
+mod readers_controls;
 pub mod seams;
 mod strip;
 #[cfg(test)]

@@ -3,6 +3,7 @@ use super::board::{
     Glyph, BODY, BUTTON_H, BUTTON_PAD, CAPTION, CBTN_GLYPH, CBTN_W, DELETED_W, DISABLED, GAP,
     HEADER_H, HOVER, LOCATION_W, PAD_X, PRESS, ROW_H, SLOT, STRIP_H,
 };
+use super::controls::track;
 use super::glyph::GlyphBox;
 use super::list::TrashList;
 use super::pane::TrashPane;
@@ -71,6 +72,7 @@ impl TrashPane {
             .items_center()
             .justify_center()
             .child(mark)
+            .child(track(&self.controls, id))
             .opacity(if enabled { 1. } else { DISABLED });
         if enabled {
             button
@@ -103,6 +105,7 @@ impl TrashPane {
             .rounded(ink.small_radius())
             .opacity(look.opacity)
             .child(label)
+            .child(track(&self.controls, "trash-empty"))
             .on_mouse_up_out(
                 MouseButton::Left,
                 cx.listener(|pane, _: &MouseUpEvent, _, cx| {
