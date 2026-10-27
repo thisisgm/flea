@@ -372,7 +372,6 @@ impl Adapter for RailAdapter<'_> {
             "networkBuilt" => self.network.ready().to_string(),
             "networkMarkGeometry" => self.mark_geometry().unwrap_or_default(),
             "networkMarkCentre" => self.mark_centre().unwrap_or_default(),
-            // U27 installs recentMode with the actual Recent listing owner.
             _ => return None,
         };
         Some(Reply::value(value))

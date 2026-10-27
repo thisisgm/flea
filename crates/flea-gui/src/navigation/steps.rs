@@ -325,3 +325,33 @@ impl Navigator {
         }
     }
 }
+
+impl Navigator {
+    /// Lists the history's paths over "/", the same request a folder takes; the reply keeps the order given.
+    pub(crate) fn list_paths(
+        &mut self,
+        pane: &mut Pane,
+        paths: &[String],
+        hold_walk: bool,
+    ) -> Result<bool, Refusal> {
+        let preserve = std::mem::replace(&mut self.preserve_sort, true);
+        let result = self.open_without_history(
+            pane,
+            "/",
+            Options {
+                supersede: true,
+                hold_walk,
+                ..Options::default()
+            },
+            None,
+            false,
+        );
+        self.preserve_sort = preserve;
+        if result == Ok(true) {
+            if let Some(Command::List(listing)) = self.out.pop() {
+                self.out.push(Command::ListPaths(listing, paths.to_vec()));
+            }
+        }
+        result
+    }
+}

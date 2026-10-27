@@ -208,6 +208,9 @@ mod test_shell;
 mod gh_preview_proof_tests;
 
 #[cfg(test)]
+mod railrecent_tests;
+
+#[cfg(test)]
 mod columns_search_parity_tests;
 
 #[cfg(test)]
