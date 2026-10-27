@@ -731,6 +731,15 @@ fn clamp_flyouts_and_steps() {
         matches!(submenu_for("copyAs", &full, true), Submenu::Row(_)),
         true,
     );
+    let tags_row = vec![Entry {
+        submenu: Some(vec![Entry::leaf("tag1", Text::Key("menu.row.tags"))]),
+        ..Entry::row("tags", Text::Key("menu.row.tags"), "tag")
+    }];
+    check(
+        "a Tags row opens the leaves it carries",
+        submenu_for("tags", &tags_row, true),
+        Submenu::Row(0),
+    );
     check(
         "an action with no flyout opens nothing",
         submenu_for("trash", &full, true),

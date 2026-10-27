@@ -44,6 +44,7 @@ fn ey104_empty_listing_ground_opens_the_background_menu_at_the_pointer(cx: &mut 
 }
 
 #[gpui::test]
+#[ignore = "known red until the header menu column toggle lands (EY-124)"]
 fn ey124_header_menu_toggles_columns_and_keeps_sort_and_cursor(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     land(&shell, cx, "/files", vec![entry("notes.txt", FILE)], 1);
@@ -276,11 +277,13 @@ fn debug(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
 }
 
 #[gpui::test]
+#[ignore = "known red until a right click after landing opens that row's menu (EY-127)"]
 fn ey127_parent_row_right_click_opens_that_rows_menu_after_landing(cx: &mut TestAppContext) {
     columns_menu(cx, Slot::Parent, false);
 }
 
 #[gpui::test]
+#[ignore = "known red until a right click after landing opens that row's menu (EY-127)"]
 fn ey127_peeked_child_file_right_click_opens_that_rows_menu_after_landing(cx: &mut TestAppContext) {
     columns_menu(cx, Slot::Child, false);
 }

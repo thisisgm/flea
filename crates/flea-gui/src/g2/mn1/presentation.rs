@@ -108,7 +108,6 @@ impl Shell {
         }
         if (!capture.background && !capture.ready)
             || self.menu.reading
-            || self.menu.tags_reading
             || !self.menu.context.open_with_loaded
         {
             return;

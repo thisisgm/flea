@@ -143,6 +143,10 @@ impl Shell {
         }
         self.menu.tag_ask += 1;
         let id = self.menu.tag_ask;
+        // A Shift+T flyout waits for this answer before the menu draws.
+        if self.menu.flyout == Some("tags") {
+            self.menu.tags_reading = true;
+        }
         self.menu_send(
             capture.side,
             format!(
@@ -159,6 +163,7 @@ impl Shell {
         side: usize,
         reply: &Json,
         window: &mut Window,
+        cx: &mut Context<Self>,
     ) -> bool {
         if string(reply, "t") != "tagstates" {
             return false;
@@ -183,15 +188,25 @@ impl Shell {
         };
         let states = tags::states_from(&names("applied"), &names("mixed"));
         self.menu.context.tag_submenu = Some(flyouts::tag_entries_in_effect(&states));
+        let flyout = std::mem::take(&mut self.menu.tags_reading);
+        if flyout && !self.menu_opened() {
+            self.refresh_menu(window, cx);
+            return true;
+        }
         // The open menu redraws in place, as the shebang answer does; refresh_menu only runs while the menu is still presenting.
         let entries = self.menu_entries();
-        let list = self.panes[side]
-            .as_ref()
-            .expect("the menu's pane")
-            .list
-            .borrow();
-        let env = self.menu_env(&list.typeface);
-        self.menu.menu.borrow_mut().refresh(entries, &env, window);
+        {
+            let list = self.panes[side]
+                .as_ref()
+                .expect("the menu's pane")
+                .list
+                .borrow();
+            let env = self.menu_env(&list.typeface);
+            self.menu.menu.borrow_mut().refresh(entries, &env, window);
+        }
+        if flyout {
+            self.flyout_pending(window, cx);
+        }
         true
     }
 
