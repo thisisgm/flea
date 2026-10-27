@@ -254,13 +254,18 @@ impl Shell {
                     look: look.view,
                     cx,
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 36] = [
+                let preview_look = crate::ipc::preview_look::PreviewLook {
+                    look: look.view,
+                    cx,
+                };
+                let adapters: [&dyn crate::ipc::Adapter; 37] = [
                     &glass,
                     &column_preview,
                     &drag,
                     &providers,
                     &network_result,
                     &preview_scroll,
+                    &preview_look,
                     &thumbnails,
                     &look,
                     &rename,
@@ -296,9 +301,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    36
+                    37
                 } else {
-                    35
+                    36
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

@@ -1,25 +1,39 @@
 //! The real window's adapter set answers the preview reader contract in its absent state.
 use crate::window::u07_tests::read;
-use gpui::TestAppContext;
+use crate::state::Shell;
+use gpui::{Entity, TestAppContext, VisualTestContext};
+
+// The reader answers Target not found until the first listing settles, as v0.3.12 did, so each case lands one first.
+fn landed(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+    let (shell, cx) = super::previewtypes_tests::open(cx, "/files");
+    let rows = vec![super::previewtypes_tests::file(
+        "a.bin",
+        "application-octet-stream",
+        "Data",
+        0o100644,
+    )];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    (shell, cx)
+}
 
 macro_rules! absent {
-    ($test:ident, $name:literal, $value:literal) => {
+    ($test:ident, $name:literal, [$($arg:literal),*], $value:literal) => {
         #[gpui::test]
         fn $test(cx: &mut TestAppContext) {
-            let (shell, cx) = super::previewtypes_tests::open(cx, "/files");
-            assert_eq!(read(&shell, cx, $name, &[]), $value);
+            let (shell, cx) = landed(cx);
+            assert_eq!(read(&shell, cx, $name, &[$($arg),*]), $value);
         }
     };
 }
-absent!(pb_preview_duration_absent, "previewDuration", "0");
-absent!(pb_preview_markdown_view_absent, "previewMarkdownView", "");
-absent!(pb_preview_end_gap_absent, "previewEndGap", "-1");
-absent!(pb_preview_figures_absent, "previewFigures", "");
-absent!(pb_preview_block_kinds_absent, "previewBlockKinds", "");
+absent!(pb_preview_duration_absent, "previewDuration", [], "0");
+absent!(pb_preview_markdown_view_absent, "previewMarkdownView", [], "");
+absent!(pb_preview_end_gap_absent, "previewEndGap", [], "-1");
+absent!(pb_preview_figures_absent, "previewFigures", [], "");
+absent!(pb_preview_block_kinds_absent, "previewBlockKinds", ["false"], "");
 
 #[gpui::test]
 fn pb_preview_pdf_state_overlay_absent(cx: &mut TestAppContext) {
-    let (shell, cx) = super::previewtypes_tests::open(cx, "/files");
+    let (shell, cx) = landed(cx);
     assert_eq!(read(&shell, cx, "pdfState", &["true"]), "null");
 }
 
