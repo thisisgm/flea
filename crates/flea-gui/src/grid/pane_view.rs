@@ -34,6 +34,7 @@ impl PaneHost {
         let content = self.render_grid(input.size, input.data, input.locale, input.renaming);
         div()
             .id(("pane", side))
+            .relative()
             .size_full()
             .on_mouse_down(
                 MouseButton::Left,
@@ -52,7 +53,13 @@ impl PaneHost {
             }))
             .when(
                 self.pane.state.kind == crate::pane::states::Kind::Ready,
-                |div| div.child(content),
+                |div| {
+                    div.child(content).child(crate::input::views::surface(
+                        cx.entity(),
+                        side,
+                        *input.palette,
+                    ))
+                },
             )
             .children(input.states)
             .when(input.marked, |div| {
