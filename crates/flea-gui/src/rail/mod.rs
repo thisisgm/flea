@@ -313,8 +313,7 @@ impl Rail {
         }
     }
 
-    /// PaneRail.qml revealed: the reveal the pointer or keyboard asks for, in every mode.
-    /// An overlay keeps it through its settle; a docked rail keeps no settle and reads the wants as they stand.
+    /// PaneRail.qml revealed: an overlay keeps its settled reveal, a docked or hidden rail reads the pointer and keyboard wants.
     pub fn revealed(&self) -> bool {
         match self.mode {
             Mode::Overlay => self.revealed,
