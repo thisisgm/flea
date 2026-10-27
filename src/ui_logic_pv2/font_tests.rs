@@ -252,22 +252,29 @@ fn font_inactive_or_empty_asks_nothing() {
     );
 }
 
-// The recipe: 40 px at the sides, samples 18 px apart, the block centred between the bar and the foot, never closer than 24.
+// The recipe: 40 px at the sides, samples 18 px apart, the block centred in the body under the bar, never closer than 24.
 #[test]
 fn font_page_layout() {
     assert_eq!(
-        layout((902., 574.), 27., 160., 1.),
-        (40., 822., 27. + 194., 18.),
-        "the board's block is centred under the bar"
+        layout((902., 547.), 160., 1.),
+        (40., 822., 194., 18.),
+        "the board's block is centred in the body: a 574 px card less its 27 px bar"
     );
     assert_eq!(
-        layout((902., 200.), 27., 160., 1.),
-        (40., 822., 27. + 24., 18.),
-        "a short pane keeps the least gap"
+        layout((902., 173.), 160., 1.),
+        (40., 822., 24., 18.),
+        "a short body keeps the least gap"
     );
     assert_eq!(
-        layout((902., 574.), 27., 160., 14. / 12.),
-        (47., 808., 27. + 194., 21.),
+        layout((902., 547.), 160., 14. / 12.),
+        (47., 808., 194., 21.),
         "the ratio scales the sides and the gap"
     );
+}
+
+// The card's page sits in the body under its 27 px bar: a 545 px body holds a 130 px block centred at 208, 235 from the card's top, as ql-font.html draws it.
+#[test]
+fn font_page_centres_in_the_body_without_adding_the_bar_again() {
+    let (_, _, top, _) = layout((902., 545.), 130., 1.);
+    assert_eq!(27. + top, 235., "the board's first sample sits 235 from the card's top");
 }

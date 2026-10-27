@@ -34,10 +34,9 @@ pub struct Theme {
     pub size_ratio: f64,
 }
 
-/// The bar's height the page centres under, and the caption face of the facts line.
+/// The caption face of the facts line.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Metrics {
-    pub bar: f32,
     pub font: Font,
     pub caption: Pixels,
 }
@@ -230,7 +229,6 @@ impl FontView {
             sizes.iter().map(|(_, h)| h).sum::<f32>() + facts_height + gap * sizes.len() as f32;
         let (x, _, top, gap) = font::layout(
             (f64::from(pane.0), f64::from(pane.1)),
-            f64::from(self.metrics.bar),
             f64::from(block),
             ratio,
         );
