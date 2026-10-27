@@ -24,6 +24,7 @@ pub(super) enum Effect {
     FocusRail,
     Back,
     Action(String),
+    Swept(i64),
 }
 
 struct OutsideHost(Rc<RefCell<Vec<Effect>>>, Rc<Cell<bool>>);
@@ -75,6 +76,9 @@ impl Outside for OutsideHost {
     fn action(&mut self, name: String) {
         self.0.borrow_mut().push(Effect::Action(name));
     }
+    fn swept(&mut self, day: i64) {
+        self.0.borrow_mut().push(Effect::Swept(day));
+    }
 }
 
 /// Rail owners use these events for the existing count slot and the keyboard's return stop.
@@ -103,6 +107,7 @@ pub struct TrashHost {
     pub(super) message_watches: Vec<Subscription>,
     _watch: Subscription,
     _focus_out: Subscription,
+    pub(super) sweep_timer: Option<gpui::Task<()>>,
 }
 
 impl Shell {
@@ -183,8 +188,10 @@ impl Shell {
             messages,
             dismissible,
             message_watches: Vec::new(),
+            sweep_timer: None,
         });
         self.watch_trash_messages(window, cx);
+        self.schedule_trash_sweep(window, cx);
     }
 
     /// The rail and action dispatcher enter through this one host, including its Empty Trash menu row.
@@ -207,6 +214,7 @@ impl Shell {
         self.mount_trash(window, cx);
         let geometry = self.geometry(window);
         let host = self.trash.as_mut().expect("mounted Trash");
+        host.sweep_timer = None;
         if !host.pane.read(cx).view().opened {
             host.side = self.focus_side;
             if !host.pane.read(cx).view().operation_active {
@@ -319,6 +327,7 @@ impl Shell {
                         self.forward_trash_action(&action, window, cx);
                     }
                 }
+                Effect::Swept(day) => self.record_trash_sweep(day, window, cx),
             }
         }
         if self

@@ -18,6 +18,8 @@ mod dropping_tests;
 #[cfg(test)]
 mod host_tests;
 #[cfg(test)]
+mod parity_tests;
+#[cfg(test)]
 mod thumbs_tests;
 #[cfg(test)]
 mod view_tests;

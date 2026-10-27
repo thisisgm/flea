@@ -42,4 +42,6 @@ pub trait Outside {
     /// G1.10 window: back to the listing Trash covers, and window actions Trash forwards.
     fn back(&mut self);
     fn action(&mut self, name: String);
+    /// Persist only a completed sweep's local day through the window settings writer.
+    fn swept(&mut self, _day: i64) {}
 }

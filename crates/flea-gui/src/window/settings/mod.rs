@@ -285,8 +285,13 @@ impl Shell {
                 self.settings.sheet_subscription = None;
                 self.settings.sheet_sources_subscription = None;
                 window.focus(&self.focus, cx);
+                self.focus_trash_after_sheet(window, cx);
                 if let Some(decision) = decision {
-                    self.settings_sheet_decision(decision, window, cx);
+                    if self.trash_sheet_decision(&decision, window, cx) {
+                        cx.notify();
+                    } else {
+                        self.settings_sheet_decision(decision, window, cx);
+                    }
                 }
             }
             Request::OpenSheet => self.open_sheet(window, cx),

@@ -262,6 +262,7 @@ impl Shell {
                 view.update(cx, |view, cx| view.refresh(cx));
             }
         }
+        self.sync_trash_sheet(cx);
         if relist {
             self.settings.relist = [true, true];
         }
