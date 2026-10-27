@@ -9,6 +9,7 @@ use gpui::{SharedString, Task};
 use std::{cell::RefCell, rc::Rc};
 
 pub(crate) struct PaneHost {
+    pub recent: flea::ui_logic_pl4::recentmode::RecentMode,
     pub search: super::search::Runtime,
     pub filter: super::filter::Runtime,
     pub preview: Option<gpui::Entity<super::selection_preview::SelectionPreview>>,
@@ -57,6 +58,7 @@ impl PaneHost {
         typeface: Typeface,
     ) -> Self {
         Self {
+            recent: Default::default(),
             search: super::search::Runtime::new(typeface.clone()),
             filter: super::filter::Runtime::new(typeface.clone()),
             preview: None,
