@@ -9,6 +9,9 @@ use flea::jsondoc::Json;
 use gpui::{font, AnyElement, IntoElement};
 use std::{cell::RefCell, rc::Rc};
 
+#[path = "anchor.rs"]
+mod anchor;
+
 pub(crate) struct GridHost {
     pub view: GridView,
     pub state: Rc<RefCell<GridState>>,
@@ -25,6 +28,10 @@ pub(crate) struct GridHost {
 }
 
 impl GridHost {
+    pub(crate) fn band_ready(&self) -> bool {
+        self.next_view.is_none() && !self.view.landing_wait
+    }
+
     fn new(size: (f32, f32), data: &Json) -> Self {
         let mut view = GridView::new(Metrics::board(), size);
         view.thumb = ThumbSize::named(
@@ -169,7 +176,9 @@ impl PaneHost {
             grid.state.borrow_mut().clear_frame();
         }
         let filtered = self.filter.shown.clone();
-        let shown = filtered.as_deref().map_or(Shown::All(self.pane.held.total), Shown::Only);
+        let shown = filtered
+            .as_deref()
+            .map_or(Shown::All(self.pane.held.total), Shown::Only);
         let focus = grid.next_view.as_ref().map_or_else(
             || GridHost::focus(&self.pane),
             |pending| pending.focus.clone(),
@@ -201,6 +210,8 @@ impl PaneHost {
             grid.view
                 .reflow(shown, &focus, |view| view.metrics = metrics);
         }
+        drop(list);
+        self.restore_grid_anchor();
     }
 
     /// The Grid window ask, settled before the frame builds its state surfaces so a failed send draws Error now.
@@ -213,7 +224,9 @@ impl PaneHost {
         self.grid_ready(size, data, locale);
         let grid = self.grid.as_mut().expect("a Grid host");
         let filtered = self.filter.shown.clone();
-        let shown = filtered.as_deref().map_or(Shown::All(self.pane.held.total), Shown::Only);
+        let shown = filtered
+            .as_deref()
+            .map_or(Shown::All(self.pane.held.total), Shown::Only);
         if !self.stopped && grid.next_view.is_none() {
             if let (Some((start, count)), Some(backend)) =
                 (grid.request(&mut self.pane), &self.backend)
@@ -239,11 +252,14 @@ impl PaneHost {
         let grid = self.grid.as_mut().expect("a Grid host");
         grid.overlay.renaming = renaming;
         let filtered = self.filter.shown.clone();
-        let shown = filtered.as_deref().map_or(Shown::All(self.pane.held.total), Shown::Only);
+        let shown = filtered
+            .as_deref()
+            .map_or(Shown::All(self.pane.held.total), Shown::Only);
         let mut focus = grid.next_view.as_ref().map_or_else(
             || GridHost::focus(&self.pane),
             |pending| pending.focus.clone(),
         );
+        focus.band = self.input.band.is_some();
         focus.selected = grid
             .view
             .layout(shown)

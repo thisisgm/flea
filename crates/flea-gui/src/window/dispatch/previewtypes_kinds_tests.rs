@@ -200,6 +200,30 @@ fn f_and_b_page_a_table_by_its_viewport_height(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn an_empty_text_file_draws_the_document_glyph_in_the_column(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "/files");
+    let rows = vec![file("empty.txt", "text-plain", "Plain text document", 0o100644)];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    let lines = local(&shell, cx, "/files");
+    let code = ask(&lines, "code").to_owned();
+    meta(&shell, cx, &lines, r#","lines":0"#);
+    answer(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"code","token":{},"slot":"column","state":"plain","first":1,"total":0,"lines":[]}}"#,
+            field(&code, "token")
+        ),
+    );
+    pump(cx);
+    assert_eq!(read(&shell, cx, "previewColumnState", &[]), "text");
+    assert!(
+        cx.debug_bounds("column-preview-empty-glyph").is_some(),
+        "an empty text file draws the document glyph centred in the frame"
+    );
+}
+
+#[gpui::test]
 fn an_image_that_fails_to_decode_keeps_its_image_facts(cx: &mut TestAppContext) {
     // The picture decodes on the asset loader's thread, outside the deterministic scheduler.
     cx.executor().allow_parking();
@@ -295,5 +319,50 @@ fn a_markdown_fence_colour_reply_reaches_the_column_and_releases_the_first_scree
     assert!(
         shown,
         "the first screen stops holding once its fence is coloured"
+    );
+}
+
+#[gpui::test]
+fn the_column_markdown_keeps_its_chips_on_the_surface_and_its_page_on_the_window_ground(
+    cx: &mut TestAppContext,
+) {
+    // The Markdown parse thread is real, so its wake comes from outside the deterministic scheduler.
+    cx.executor().allow_parking();
+    let root = Root::new("mdground");
+    let dir = root.0.to_string_lossy().into_owned();
+    std::fs::write(root.0.join("notes.md"), "# Notes\n\nPress `Ctrl` + `C`.\n").unwrap();
+    let theme = crate::palette::Theme::from_text("background='#111c18'\ndark_background='#0c1512'");
+    assert_ne!(
+        theme.background, theme.surface,
+        "distinct grounds expose a swap"
+    );
+    cx.update(|cx| cx.set_global(theme));
+    let (shell, cx) = open(cx, &dir);
+    let rows = vec![file(
+        "notes.md",
+        "text-markdown",
+        "Markdown document",
+        0o100644,
+    )];
+    super::test_shell::land(&shell, cx, &dir, rows, 1);
+    local(&shell, cx, &dir);
+    pump(cx);
+    let (code, background) = shell.read_with(cx, |shell, cx| {
+        let preview = shell.selection_preview(0).expect("the column is mounted");
+        let preview = preview.read(cx);
+        let frame = preview.pending.as_ref().or(preview.drawn.as_ref());
+        let Some(Mounted::Doc(Doc::Markdown(view))) = frame.map(|frame| &frame.mounted) else {
+            panic!("the Markdown document is mounted")
+        };
+        let view = view.read(cx);
+        (view.palette.code, view.palette.background)
+    });
+    assert_eq!(
+        code, theme.surface,
+        "the column's chips and fences stay on the surface"
+    );
+    assert_eq!(
+        background, theme.background,
+        "the column's page stays on the window ground"
     );
 }

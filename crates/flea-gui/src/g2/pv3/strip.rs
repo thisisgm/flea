@@ -61,6 +61,8 @@ pub enum StripInput {
 pub struct StripCache {
     clock: Option<((i64, i64), GlyphRun)>,
     pressed: Option<Part>,
+    /// The play mark's box as the last paint drew it, which the column readers take as the play button.
+    pub play: Option<Bounds<Pixels>>,
 }
 
 pub type OnInput = Rc<dyn Fn(StripInput, &mut Window, &mut App)>;
@@ -232,6 +234,7 @@ impl Element for StripElement {
         let Placed {
             layout, content, ..
         } = *placed;
+        self.cache.borrow_mut().play = Some(span_bounds(layout.play, content));
         paint_ground(bounds, view.framed, &ink, window);
         let glyph = |span: Span, glyph: Glyph, window: &mut Window, cx: &mut App| {
             let side = px(body_small(&self.typeface));

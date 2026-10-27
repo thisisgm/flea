@@ -15,6 +15,10 @@ const CODE: &[(&[(f32, f32)], bool)] = &[
     (&[(16., 18.), (22., 12.), (16., 6.)], false),
     (&[(8., 6.), (2., 12.), (8., 18.)], false),
 ];
+const TERMINAL: &[(&[(f32, f32)], bool)] = &[
+    (&[(4., 17.), (10., 11.), (4., 5.)], false),
+    (&[(12., 19.), (20., 19.)], false),
+];
 const APP_WINDOW: &[(&[(f32, f32)], bool)] = &[
     (&[(3., 4.), (21., 4.), (21., 20.), (3., 20.)], true),
     (&[(3., 9.), (21., 9.)], false),
@@ -82,6 +86,7 @@ fn paint_glyph(mark: Glyph, bounds: Bounds<Pixels>, size: f32, ink: Hsla, window
         Glyph::Search => (SEARCH, 2.),
         Glyph::File => (FILE, 2.),
         Glyph::Code => (CODE, 2.),
+        Glyph::Terminal => (TERMINAL, 2.),
         Glyph::AppWindow => (APP_WINDOW, 2.),
         Glyph::Check => (CHECK_MARK, 3.4),
         Glyph::Eye => (EYE, 2.),

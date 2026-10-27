@@ -256,3 +256,7 @@ mod tests;
 #[cfg(test)]
 #[path = "archiveopscancel_tests.rs"]
 mod cancel_tests;
+
+#[cfg(test)]
+#[path = "archivepassword_tests.rs"]
+mod password_tests;

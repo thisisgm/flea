@@ -1,12 +1,24 @@
 //! The stand-in frame: the card, its title, its controls and its buttons, drawn to the boards.
 use super::*;
-use gpui::{div, prelude::*, px, relative, AnyElement, App, Div, FontWeight, Pixels, Window};
+use crate::g2::fb1::caption::{tracking_for, Tracked};
+use gpui::{div, prelude::*, px, relative, AnyElement, App, Div, FontWeight, Pixels, Stateful, Window};
 use std::rc::Rc;
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
 pub struct StandIn;
 
 impl Draw<'_> {
+    pub(super) fn wired(
+        &self,
+        control: Control,
+        element: gpui::Stateful<Div>,
+    ) -> gpui::Stateful<Div> {
+        match self.wire {
+            Some(wire) => wire(control, element),
+            None => element,
+        }
+    }
+
     pub(super) fn px(&self, board: f32) -> Pixels {
         px(board * self.s)
     }
@@ -63,17 +75,44 @@ impl Draw<'_> {
         box_.into_any_element()
     }
 
+    pub(super) fn caption(&self, text: &str, line: f32, color: Hsla) -> Tracked {
+        Tracked {
+            text: flea::ui_logic_st1::caps::heading(text, self.language).into(),
+            font: self.typeface.font.clone(),
+            size: self.px(CAPTION),
+            line: self.px(line),
+            tracking: self.px(tracking_for(self.language)),
+            color,
+        }
+    }
+
     pub(super) fn label(&self, text: &str) -> Div {
         self.text(CAPTION)
             .line_height(self.px(14.))
             .mb(self.px(5.))
             .text_color(self.t.muted)
-            .child(text.to_uppercase())
+            .child(self.caption(text, 14., self.t.muted))
     }
 
     pub(super) fn field(&self, field: &Field) -> Div {
         let t = self.t;
-        let caret = || div().w(px(1.)).h(self.px(16.)).flex_none().bg(t.fg);
+        let caret = || {
+            div()
+                .relative()
+                .w(px(0.))
+                .h(self.px(16.))
+                .flex_none()
+                .child(
+                    div()
+                        .debug_selector(|| "op3-caret".into())
+                        .absolute()
+                        .left_0()
+                        .top_0()
+                        .w(px(1.))
+                        .h_full()
+                        .bg(t.fg),
+                )
+        };
         let mut line = div()
             .h(self.px(BUTTON_HEIGHT))
             .flex()
@@ -93,7 +132,38 @@ impl Draw<'_> {
         if let Some(mark) = field.glyph {
             line = line.child(glyph(mark, 14. * self.s, t.muted));
         }
-        let mut text = div().flex().items_center().min_w_0().overflow_hidden();
+        if let Some(input) = &field.input {
+            line = line.child(crate::g2::op1::field::mount(
+                input.clone(),
+                div().relative().flex_1().min_w_0().h_full().when(
+                    field.value.is_empty() && !field.placeholder.is_empty(),
+                    |slot| {
+                        slot.child(
+                            div()
+                                .absolute()
+                                .left(px(1.))
+                                .top_0()
+                                .h_full()
+                                .flex()
+                                .items_center()
+                                .text_color(t.muted)
+                                .child(field.placeholder.clone()),
+                        )
+                    },
+                ),
+                self.typeface,
+            ));
+            return match &field.label {
+                Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
+                None => line,
+            };
+        }
+        let mut text = div()
+            .flex()
+            .items_center()
+            .min_w_0()
+            .pr(px(1.))
+            .overflow_hidden();
         if field.value.is_empty() {
             if field.focused {
                 text = text.child(caret());
@@ -106,6 +176,23 @@ impl Draw<'_> {
                         .child(field.placeholder.clone()),
                 );
             }
+        } else if let Some(entry) = self
+            .entry
+            .filter(|entry| field.focused && entry.text == field.value)
+        {
+            let selected = entry.selected.clone();
+            text = text.child(field.value[..selected.start].to_owned());
+            if selected.is_empty() {
+                text = text.child(caret());
+            } else {
+                text = text.child(
+                    div()
+                        .debug_selector(|| "op3-selection".into())
+                        .bg(t.accent.opacity(flea::ui_logic_op1::card::FIELD_WASH))
+                        .child(field.value[selected.clone()].to_owned()),
+                );
+            }
+            text = text.child(field.value[selected.end..].to_owned());
         } else {
             text = text.child(field.value.clone());
             if field.focused {
@@ -142,9 +229,6 @@ impl Draw<'_> {
     }
 }
 
-/// A click on the button at an index, as the card listed them.
-type Press = Rc<dyn Fn(&usize, &mut Window, &mut App)>;
-
 impl DialogShell for StandIn {
     fn present(
         &self,
@@ -154,7 +238,7 @@ impl DialogShell for StandIn {
         corner: f32,
         room: f32,
     ) -> AnyElement {
-        self.frame(card, palette, typeface, corner, room, None)
+        present(card, palette, typeface, corner, room, None)
     }
 }
 
@@ -169,95 +253,137 @@ impl StandIn {
         room: f32,
         press: impl Fn(&usize, &mut Window, &mut App) + 'static,
     ) -> AnyElement {
-        self.frame(card, palette, typeface, corner, room, Some(Rc::new(press)))
+        let press = Rc::new(press);
+        let enabled: Vec<bool> = card.buttons.iter().map(|button| button.enabled).collect();
+        // A disabled button draws as before but takes no click.
+        let wire = move |control, element: Stateful<Div>| match control {
+            Control::Button(at) if enabled.get(at).copied().unwrap_or(false) => {
+                let press = press.clone();
+                element.on_click(move |_, window, cx| press(&at, window, cx))
+            }
+            _ => element,
+        };
+        let live = Live {
+            wire: &wire,
+            surface: None,
+            entry: None,
+        };
+        present(card, palette, typeface, corner, room, Some(&live))
     }
+}
 
-    fn frame(
+impl DialogShell for Interactive<'_> {
+    fn present(
         &self,
         card: &Card,
         palette: &Palette,
         typeface: &Typeface,
         corner: f32,
         room: f32,
-        press: Option<Press>,
     ) -> AnyElement {
-        let s = f32::from(typeface.body) / BOARD_BODY;
-        let draw = Draw {
-            corner: crate::compositor::valid_corner(f64::from(corner)),
-            t: Tokens::of(palette),
-            s,
-            typeface,
+        let live = Live {
+            wire: self.wire,
+            surface: Some(self.surface),
+            entry: Some(self.entry),
         };
-        let t = draw.t;
-        let head = draw
-            .text(TITLE)
-            .flex()
-            .items_center()
-            .gap(draw.px(ROW_GAP))
-            .font_weight(FontWeight::BOLD)
-            .text_color(t.fg)
-            .child(
-                div()
-                    .min_w_0()
-                    .overflow_hidden()
-                    .text_ellipsis()
-                    .child(card.title.clone()),
-            )
-            .child(
-                draw.text(CAPTION)
-                    .ml_auto()
-                    .font_weight(FontWeight::NORMAL)
-                    .text_color(t.muted)
-                    .child(card.esc.clone()),
-            );
-        let mut frame = div()
-            .debug_selector(|| "op3-card".into())
-            .w(px(scaled(card.width, f32::from(typeface.body), room)))
-            .flex()
-            .flex_col()
-            .gap(draw.px(GAP))
-            .p(draw.px(PAD))
-            .bg(t.surface)
-            .border_1()
-            .border_color(t.muted_frame)
-            .rounded(px(draw.corner))
-            .font_family(draw.typeface.font.family.clone())
-            .text_size(draw.px(BOARD_BODY))
-            .line_height(relative(1.2))
-            .child(head)
-            .child(draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD))));
-        for block in &card.body {
-            frame = frame.child(draw.block(block));
-        }
-        let mut buttons = div()
-            .mt(draw.px(ABOVE_BUTTONS))
-            .flex()
-            .justify_end()
-            .items_center()
-            .gap(draw.px(ROW_GAP));
-        for (at, button) in card.buttons.iter().enumerate() {
-            let drawn = draw
-                .button(button)
-                .debug_selector(|| format!("op3-button-{at}"));
-            // A disabled button draws as before but takes no click.
-            buttons = match &press {
-                Some(press) if button.enabled => {
-                    let press = press.clone();
-                    buttons.child(
-                        drawn
-                            .id(("op3-button", at))
-                            .on_click(move |_, window, cx| press(&at, window, cx)),
-                    )
-                }
-                _ => buttons.child(drawn),
-            };
-        }
-        div()
-            .size_full()
-            .flex()
-            .items_center()
-            .justify_center()
-            .child(frame.child(buttons))
-            .into_any_element()
+        present(card, palette, typeface, corner, room, Some(&live))
     }
+}
+
+/// The one live path every card takes: its wired controls, and the window's surface and text entry where it has them.
+struct Live<'a> {
+    wire: &'a Wire,
+    surface: Option<Hsla>,
+    entry: Option<&'a crate::path::entry::Entry>,
+}
+
+fn present(
+    card: &Card,
+    palette: &Palette,
+    typeface: &Typeface,
+    corner: f32,
+    room: f32,
+    live: Option<&Live<'_>>,
+) -> AnyElement {
+    let s = f32::from(typeface.body) / BOARD_BODY;
+    let mut draw = Draw {
+        corner: crate::compositor::valid_corner(f64::from(corner)),
+        t: Tokens::of(palette),
+        s,
+        typeface,
+        language: &card.language,
+        wire: live.map(|live| live.wire),
+        entry: live.and_then(|live| live.entry),
+    };
+    if let Some(surface) = live.and_then(|live| live.surface) {
+        draw.t.surface = surface;
+    }
+    let t = draw.t;
+    let head = draw
+        .text(TITLE)
+        .flex()
+        .items_center()
+        .gap(draw.px(ROW_GAP))
+        .font_weight(FontWeight::BOLD)
+        .text_color(t.fg)
+        .child(
+            div()
+                .min_w_0()
+                .overflow_hidden()
+                .text_ellipsis()
+                .child(card.title.clone()),
+        )
+        .child(
+            draw.text(CAPTION)
+                .ml_auto()
+                .font_weight(FontWeight::NORMAL)
+                .text_color(t.muted)
+                .child(card.esc.clone()),
+        );
+    let mut frame = div()
+        .id("op3-frame")
+        .debug_selector(|| "op3-card".into())
+        .w(px(scaled(card.width, f32::from(typeface.body), room)))
+        .flex()
+        .flex_col()
+        .gap(draw.px(GAP))
+        .p(draw.px(PAD))
+        .bg(t.surface)
+        .border_1()
+        .border_color(t.muted_frame)
+        .rounded(px(draw.corner))
+        .font_family(draw.typeface.font.family.clone())
+        .text_size(draw.px(BOARD_BODY))
+        .line_height(relative(1.2))
+        .occlude()
+        .on_any_mouse_down(|_, _, cx| cx.stop_propagation())
+        .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
+        .child(head)
+        .child(draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD))));
+    for block in &card.body {
+        frame = frame.child(draw.block(block));
+    }
+    let mut buttons = div()
+        .mt(draw.px(ABOVE_BUTTONS))
+        .flex()
+        .justify_end()
+        .items_center()
+        .gap(draw.px(ROW_GAP));
+    for (at, button) in card.buttons.iter().enumerate() {
+        buttons = buttons.child(
+            draw.wired(
+                Control::Button(at),
+                draw.button(button)
+                    .id(("op3-button", at))
+                    .debug_selector(move || format!("op3-button-{at}")),
+            ),
+        );
+    }
+    div()
+        .size_full()
+        .flex()
+        .items_center()
+        .justify_center()
+        .child(frame.child(buttons))
+        .into_any_element()
 }

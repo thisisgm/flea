@@ -131,7 +131,8 @@ printf '%s\n' '{"statuses":[{"index":0,"record":{"label":"Missing","path":"/gone
         crate::g2::st1::seams::merge(&mut state, &jsondoc::parse(r#"{"places":{"favourites":[{"label":"Missing","path":"/gone"}]}}"#).unwrap());
         shell.apply_settings(state, window, cx);
         let producer = shell.rail.as_ref().unwrap().places.clone();
-        producer.read(cx).places.update(cx, |places, _| places.exe = exe.clone());
+        let places = producer.read(cx).places.clone();
+        places.update(cx, |places, _| places.exe = exe.clone());
     }));
     settle(cx);
     shell.read_with(cx, |shell, cx| {

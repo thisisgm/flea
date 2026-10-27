@@ -1,9 +1,12 @@
-//! The oracle's two-line refusal slot scrolls with the body and never moves the buttons.
+//! The two-line refusal slot under Mounts as; a shown status grows the card, so the body never scrolls the chips under the title.
 use super::{
     drawing::{Drawn, Rect, HEIGHT},
     view::NetworkView,
 };
 use gpui::{px, Window};
+
+/// Two 18px rows at y 544 and 562, then 22px of air above the buttons: the card grows 39px, from 610 to 649.
+const STATUS_GROWTH: f32 = 39.;
 
 impl Drawn {
     pub(super) fn status(&mut self, view: &NetworkView, window: &Window) {
@@ -58,13 +61,23 @@ impl Drawn {
     }
 }
 impl NetworkView {
-    pub(super) fn content_height(&self) -> f32 {
-        HEIGHT + if self.model.status.is_some() { 18. } else { 0. }
+    pub(super) fn status_growth(&self) -> f32 {
+        if self.model.status.is_some() {
+            STATUS_GROWTH
+        } else {
+            0.
+        }
     }
+    pub(super) fn content_height(&self) -> f32 {
+        HEIGHT + self.status_growth()
+    }
+    /// A status change resizes the card, so the scroll keeps only what the new height still allows.
     pub(super) fn show_status(&mut self) {
-        if self.model.status.is_some() && self.dimensions.1 > 0. {
+        if self.dimensions.1 > 0. {
             let height = self.body_height(self.dimensions.1);
-            self.scroll = self.scroll.max((580. - (height - 47.)).max(0.));
+            self.scroll = self
+                .scroll
+                .clamp(0., (self.content_height() - height).max(0.));
         }
     }
 }

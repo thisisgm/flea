@@ -37,3 +37,9 @@ mod view_quad_tests;
 mod view_scale_tests;
 #[cfg(test)]
 mod view_tests;
+
+mod ime;
+pub(crate) mod private_entry;
+
+#[cfg(test)]
+mod i50_dialog_tests;

@@ -2,13 +2,14 @@
 //! backend, asked a screen and a margin at a time, painted as pre-shaped glyph runs with a muted number gutter.
 pub mod bar;
 pub mod paint;
+mod scroll;
 pub mod shape;
 
 pub use bar::{KindBar, ViewWords};
 use flea::i18n::I18n;
 use flea::ui_logic_pv2::code_view::{self, Answer, Lines, Reply, Window as View, BYTE_GATE};
 use flea::ui_logic_pv2::refusal::Refusal;
-use gpui::{Context, Font, Hsla, Pixels, ScrollWheelEvent, SharedString};
+use gpui::{Context, Font, Hsla, Pixels, SharedString};
 pub use shape::RowCache;
 use shape::{Lru, Prepared};
 use std::cell::{Cell, RefCell};
@@ -93,6 +94,8 @@ pub struct CodeView {
     /// Bumped by every change a frame is built from; with the view's geometry it keys the last frame built.
     revision: u64,
     laid: Option<(paint::FrameKey, Rc<paint::Frame>)>,
+    scroll: crate::g2::pv1::scroller::Scroll,
+    scroll_timer: Option<gpui::Task<()>>,
 }
 
 impl CodeView {
@@ -130,6 +133,8 @@ impl CodeView {
             built: Cell::new(0),
             revision: 0,
             laid: None,
+            scroll: Default::default(),
+            scroll_timer: None,
         }
     }
 
@@ -162,6 +167,8 @@ impl CodeView {
         self.read_failed = false;
         self.top = 0;
         self.offset = 0.;
+        self.scroll = Default::default();
+        self.scroll_timer = None;
         self.drop_shapes();
         let gated = size > self.max_bytes;
         self.lines.active = self.active && !gated;
@@ -347,50 +354,5 @@ impl CodeView {
             0.
         };
         (self.gutter_right(advance) + lead).round()
-    }
-
-    /// Scrolls by rows of the body line, walking line heights so a wrapped line scrolls through its rows.
-    pub fn scroll_by(&mut self, pixels: f32, cx: &mut Context<Self>) {
-        let row = self.metrics.row.max(1.);
-        let mut offset = self.offset + pixels;
-        while offset < 0. && self.top > 0 {
-            self.top -= 1;
-            offset += self.rows_of(self.top) as f32 * row;
-        }
-        offset = offset.max(0.);
-        while self.top + 1 < self.lines.shown() && offset >= self.rows_of(self.top) as f32 * row {
-            offset -= self.rows_of(self.top) as f32 * row;
-            self.top += 1;
-        }
-        self.offset = offset;
-        self.clamp_end();
-        self.flush(cx);
-    }
-
-    // The view never scrolls past the point where the file's last line meets the bottom edge.
-    fn clamp_end(&mut self) {
-        let row = self.metrics.row.max(1.);
-        let shown = self.lines.shown();
-        let mut room = self.frame.1;
-        let mut line = shown;
-        while line > 0 && room > 0. {
-            line -= 1;
-            room -= self.rows_of(line) as f32 * row;
-        }
-        let (last_top, last_offset) = if room <= 0. { (line, -room) } else { (0, 0.) };
-        if self.top > last_top || (self.top == last_top && self.offset > last_offset) {
-            self.top = last_top;
-            self.offset = last_offset;
-        }
-    }
-
-    /// j and k: one row of the body line per step.
-    pub fn scroll_rows(&mut self, rows: i64, cx: &mut Context<Self>) {
-        self.scroll_by(rows as f32 * self.metrics.row, cx);
-    }
-
-    fn wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
-        let delta = f32::from(crate::input::scroll::wheel_delta(&event.delta).y);
-        self.scroll_by(-delta, cx);
     }
 }
