@@ -26,6 +26,8 @@ pub struct Theme {
     pub error_on_surface: Hsla,
     /// The code reply's roles 1 to 6, each the theme's own colour lifted to 4.5:1 (ui/js/CodeRuns.js inks).
     pub code_inks: [Hsla; 6],
+    /// The seven solid tag swatches on the listing ground, resolved once per theme load.
+    pub tag_listing_inks: [Hsla; 7],
     /// The line numbers' ink, the metadata role lifted to 4.5:1 on both grounds.
     pub gutter: Hsla,
     /// The theme's own red, unlifted (Commons.Color.urgent: red or color1, last in source order), for inherited grounds.
@@ -188,6 +190,20 @@ impl Theme {
         );
         let gutter = ink(&flea::ui_logic_pv2::code::gutter_ink(&muted, &ground, &plane));
         let theme = Self {
+            tag_listing_inks: flea::ui_logic_pl4::tagtheme::tag_theme(
+                |key| {
+                    named
+                        .iter()
+                        .rev()
+                        .find(|(name, _)| *name == key)
+                        .map(|(_, hex)| hex.clone())
+                },
+                &ground,
+                &plane,
+            )
+            .colors
+            .each_ref()
+            .map(|hex| ink(hex)),
             background: gpui::rgb(background).into(),
             foreground: gpui::rgb(foreground).into(),
             surface: gpui::rgb(surface).into(),

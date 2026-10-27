@@ -16,6 +16,8 @@ use gpui::{
     InspectorElementId, IntoElement, LayoutId, Pixels, Style, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc};
+#[path = "tags.rs"]
+mod tags;
 
 pub struct TrackElement {
     tracks: Rc<[TrackView]>,
@@ -30,6 +32,7 @@ pub struct TrackElement {
     words: Rc<crate::row::format::Words>,
     languages: bool,
     shown: Option<Rc<[usize]>>,
+    tag_slot: bool,
 }
 
 impl TrackElement {
@@ -58,12 +61,19 @@ impl TrackElement {
             words,
             languages: true,
             shown: None,
+            tag_slot: false,
         }
     }
 
     /// ColumnRow's language marks follow the List's langMarks setting.
     pub fn with_languages(mut self, languages: bool) -> Self {
         self.languages = languages;
+        self
+    }
+
+    /// A tagged folder reserves the same slot on every row of its active column.
+    pub fn with_tag_slot(mut self, shown: bool) -> Self {
+        self.tag_slot = shown;
         self
     }
 
@@ -168,8 +178,10 @@ impl Element for TrackElement {
             font: paint.typeface.font.clone(),
             body: paint.typeface.body,
             caption: paint.typeface.caption,
-            plain_cells: name_budget(width, shows_size, false, advance),
-            chevron_cells: name_budget(width, shows_size, true, advance),
+            plain_cells: name_budget(width, shows_size, false, advance)
+                .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
+            chevron_cells: name_budget(width, shows_size, true, advance)
+                .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
             clip_cells: ((GAP + CLIP) / advance.max(1.)).ceil() as usize,
             size: shows_size,
             languages: self.languages,
@@ -245,6 +257,7 @@ impl Element for TrackElement {
         cx: &mut App,
     ) {
         let palette = *palette;
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let paint = self.paint.borrow();
         let view = &self.tracks[self.at];
         let held = self.held.as_deref();
@@ -311,6 +324,17 @@ impl Element for TrackElement {
                     let name = prepared.name(chevron);
                     let name_x = left + px(geometry.name_x);
                     paint_line(name, name_x, top, inks.name, window);
+                    if let Some(Row::Listing(facts)) = row_at(&view.rows, held, *index) {
+                        tags::paint(
+                            facts,
+                            point(left, top),
+                            f32::from(name.line().width),
+                            geometry,
+                            *clip,
+                            &theme,
+                            window,
+                        );
+                    }
                     if let (Some(size_run), Some(right)) = (&prepared.size, geometry.size_right) {
                         paint_line(
                             size_run,

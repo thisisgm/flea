@@ -54,6 +54,8 @@ pub struct Entry {
     pub icon: Option<String>,
     // A tag flyout row's colour, 1 to 7, drawn as the filled square.
     pub tag: Option<u8>,
+    /// A tag's selection state, painted beside its digit hint without replacing its colour square.
+    pub tag_state: Option<crate::ui_logic_pl4::tags::State>,
     // A flyout row that says what is in effect: Some(true) draws the checkmark, Some(false) its empty slot.
     pub check: Option<bool>,
     pub disabled: bool,

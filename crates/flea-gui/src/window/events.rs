@@ -8,6 +8,8 @@ use gpui::{Context, Window};
 mod filesystem;
 #[path = "events_ipc.rs"]
 mod ipc;
+#[path = "events_producers.rs"]
+mod producers;
 #[path = "events_quit.rs"]
 mod quit;
 #[path = "events_slow.rs"]
@@ -22,6 +24,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.tags_event(side, &event, window, cx) {
+            return;
+        }
         let renamed = self.rename_event(side, &event, window, cx);
         self.rename_sync_gate(window, cx);
         if renamed {
@@ -39,19 +44,7 @@ impl Shell {
         {
             self.retire_menu(window, cx);
         }
-        if self.quick_look_line(side, &event, window, cx) {
-            return;
-        }
-        if self.selection_preview_event(side, &event, window, cx) {
-            return;
-        }
-        if self.grid_pictures_event(side, &event, window, cx) {
-            return;
-        }
-        if self.provider_event(side, &event, window, cx) {
-            return;
-        }
-        if self.clipboard_receive(side, &event, window, cx) {
+        if self.producer_reply(side, &event, window, cx) {
             return;
         }
         if let BackendEvent::Producer(line) = &event {
@@ -205,7 +198,11 @@ impl Shell {
                 return;
             }
             BackendEvent::Filesystem(facts) => {
+                let supported = self.surfaces[side].filesystem.can_tag();
                 if self.surfaces[side].filesystem.answer(&host.path, facts) {
+                    if supported != self.can_tag(side) {
+                        self.refresh_tag_capability(side, window, cx);
+                    }
                     cx.notify();
                 }
                 return;

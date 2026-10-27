@@ -204,6 +204,9 @@ fn paint_row(
         }
         edge = x - px(GAP);
     }
+    if let Some(state) = line.tag_state {
+        super::tag_checks::paint(state, edge, top, label_ink, window, cx);
+    }
     let Some(label) = line.painted_label() else {
         return;
     };

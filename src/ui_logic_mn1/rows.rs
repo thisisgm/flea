@@ -202,7 +202,7 @@ pub enum Submenu {
 
 // Which flyout c or P opens: the drawn row's, a lone one for a hidden row, or a refusal.
 pub fn submenu_for(action: &str, entries: &[Entry], clipboard_available: bool) -> Submenu {
-    if flyout_entries(action).is_empty() {
+    if action != "tags" && flyout_entries(action).is_empty() {
         return Submenu::None;
     }
     if let Some(index) = entries.iter().position(|entry| entry.action == action) {
@@ -214,6 +214,9 @@ pub fn submenu_for(action: &str, entries: &[Entry], clipboard_available: bool) -
     }
     if action == "pasteAs" && !clipboard_available {
         return Submenu::Refuse;
+    }
+    if action == "tags" {
+        return Submenu::None;
     }
     Submenu::Lone
 }

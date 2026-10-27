@@ -109,6 +109,7 @@ impl Shell {
         if (!capture.background && !capture.ready)
             || self.menu.reading
             || !self.menu.context.open_with_loaded
+            || (self.menu.flyout == Some("tags") && self.menu.tags.asking.is_some())
         {
             return;
         }

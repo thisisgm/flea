@@ -1,6 +1,31 @@
 use super::*;
 
 #[test]
+fn tag_metadata_preserves_absence_empty_and_names_without_accepting_wrong_types() {
+    let line = |suffix: &str| {
+        format!(
+            r#"{{"t":"rows","start":0,"listing":1,"rows":[{{"n":"a","d":false,"s":0,"m":0,"p":33188,"i":"file"{suffix}}}]}}"#
+        )
+    };
+    for (suffix, expected) in [
+        ("", None),
+        (r#", "tg":[]"#, Some(vec![])),
+        (
+            r#", "tg":["Red","Custom"]"#,
+            Some(vec!["Red".into(), "Custom".into()]),
+        ),
+    ] {
+        let Reply::Rows { rows, .. } = parse_reply(&line(suffix)).unwrap() else {
+            panic!("rows")
+        };
+        assert_eq!(rows[0].tags, expected);
+    }
+    for suffix in [r#", "tg":false"#, r#", "tg":[1]"#] {
+        assert!(parse_reply(&line(suffix)).is_err());
+    }
+}
+
+#[test]
 fn list_paths_cannot_inject_another_line_or_field() {
     let path = "/files/a\"b\nnext\\file";
     let mut wire = Vec::new();
@@ -78,6 +103,7 @@ fn parses_the_initial_pair_and_preserves_escaped_names() {
             mode: 16877,
             icon: "folder".into(),
             kind: "Folder".into(),
+            tags: Some(vec!["n".into()]),
             ..RowFacts::default()
         },
     ];

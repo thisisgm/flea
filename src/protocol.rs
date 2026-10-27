@@ -61,6 +61,8 @@ pub struct RowFacts {
     pub real_modes: bool,
     /// The row's Kind description, `kinds[k]` of its reply; empty when the reply names none.
     pub kind: String,
+    /// The optional tg field; absent rows do not latch a folder's tag slot.
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -136,6 +138,21 @@ fn row_facts(row: &Json, kinds: &[Json]) -> Result<RowFacts, String> {
         Some(value) => value.as_bool().ok_or("x must be a boolean")?,
     };
     Ok(RowFacts {
+        tags: row
+            .get("tg")
+            .map(|value| {
+                value
+                    .as_array()
+                    .ok_or_else(|| "tg must be an array".to_owned())?
+                    .iter()
+                    .map(|tag| {
+                        tag.as_str()
+                            .map(str::to_owned)
+                            .ok_or_else(|| "tg names must be strings".to_owned())
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .transpose()?,
         name: string(row, "n")?.to_owned(),
         dir: row
             .get("d")
@@ -153,9 +170,9 @@ fn row_facts(row: &Json, kinds: &[Json]) -> Result<RowFacts, String> {
             _ => None,
         }
         .and_then(|k| kinds.get(k))
-            .and_then(Json::as_str)
-            .unwrap_or_default()
-            .to_owned(),
+        .and_then(Json::as_str)
+        .unwrap_or_default()
+        .to_owned(),
     })
 }
 

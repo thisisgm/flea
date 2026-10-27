@@ -10,6 +10,9 @@ mod preview;
 mod previewtypes;
 mod rename;
 mod tabs;
+mod tag_capability;
+mod tag_places;
+mod tags;
 mod window;
 
 use super::input::ActionEvent;
@@ -34,8 +37,10 @@ type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
 /// Each family keeps its handlers in its own file beside this one and adds one line here; file operations go first, to end an armed dd pair on every other listing action.
 const FAMILIES: &[Family] = &[
     fileops::run,
+    tag_capability::run,
     navigation::run,
     tabs::run,
+    tag_places::run,
     opener::run,
     previewtypes::run,
     preview::run,
@@ -43,6 +48,7 @@ const FAMILIES: &[Family] = &[
     window::run,
     rename::run,
     menus::run,
+    tags::run,
     clipboard::run,
 ];
 
@@ -71,6 +77,8 @@ mod clipboard_tests;
 #[cfg(test)]
 mod compare_tests;
 #[cfg(test)]
+mod dual_keys_tests;
+#[cfg(test)]
 mod effect_tests;
 #[cfg(test)]
 mod families_tests;
@@ -87,35 +95,31 @@ mod gh_rename_proof_tests;
 #[cfg(test)]
 mod guard_tests;
 #[cfg(test)]
-mod listing_tests;
+mod key_rows_tests;
 #[cfg(test)]
 mod listing_marks_tests;
-#[cfg(test)]
-mod dual_keys_tests;
-#[cfg(test)]
-mod key_rows_tests;
 #[cfg(test)]
 mod listing_pointer_keep_tests;
 #[cfg(test)]
 mod listing_pointer_tests;
 #[cfg(test)]
+mod listing_tests;
+#[cfg(test)]
 mod menus_columns_tests;
 #[cfg(test)]
 mod menus_dual_tests;
 #[cfg(test)]
-mod menus_tests;
-#[cfg(test)]
 mod menus_keys_tests;
 #[cfg(test)]
+mod menus_tests;
+#[cfg(test)]
 mod navigation_tests;
-#[cfg(test)]
-mod queued_navigation_tests;
-#[cfg(test)]
-mod queued_navigation_escape_tests;
 #[cfg(test)]
 mod opener_menu_tests;
 #[cfg(test)]
 mod opener_tests;
+#[cfg(test)]
+mod preview_tests;
 #[cfg(test)]
 mod previewtypes_cover_tests;
 #[cfg(test)]
@@ -127,7 +131,11 @@ mod previewtypes_page_tests;
 #[cfg(test)]
 mod previewtypes_tests;
 #[cfg(test)]
-mod preview_tests;
+mod queued_navigation_escape_tests;
+#[cfg(test)]
+mod queued_navigation_tests;
+#[cfg(test)]
+mod quick_look_body_reply_tests;
 #[cfg(test)]
 mod quick_look_body_tests;
 #[cfg(test)]
@@ -136,8 +144,6 @@ mod quick_look_chrome_tests;
 mod quick_look_clock_tests;
 #[cfg(test)]
 mod quick_look_media_tests;
-#[cfg(test)]
-mod quick_look_body_reply_tests;
 #[cfg(test)]
 mod quick_look_reply_tests;
 #[cfg(test)]
@@ -164,4 +170,12 @@ mod tabs_tests;
 mod test_shell;
 
 #[cfg(test)]
+mod tags_races_tests;
+#[cfg(test)]
+mod tags_tests;
+
+#[cfg(test)]
 mod gh_preview_proof_tests;
+
+#[cfg(test)]
+mod tag_capability_tests;

@@ -3,6 +3,9 @@ pub mod columns;
 pub mod composition;
 pub(crate) mod devices;
 pub(crate) mod dispatch;
+mod dual_edge;
+#[cfg(test)]
+mod dual_edge_tests;
 mod events;
 pub(crate) mod filter;
 pub(crate) mod frame_feedback;
@@ -21,25 +24,22 @@ pub mod overlay;
 pub(crate) mod pane;
 pub(crate) mod path_host;
 mod presentation;
-pub mod rail;
-mod render;
-pub(crate) mod rename;
-mod dual_edge;
-#[cfg(test)]
-mod dual_edge_tests;
-pub(crate) mod retry;
-pub mod selection_preview;
 mod preview_facts;
 mod preview_input;
 pub(crate) mod quick_look;
+pub mod rail;
+pub(crate) mod rename;
+mod render;
+pub(crate) mod retry;
 pub mod root;
 pub(crate) mod search;
+pub mod selection_preview;
 pub mod settings;
 pub mod startup;
 pub(crate) mod status;
 pub(crate) mod surfaces;
-mod unlock;
 mod transitions;
+mod unlock;
 
 #[cfg(test)]
 mod u07_chrome_tests;
@@ -108,10 +108,10 @@ pub fn open(
 #[cfg(test)]
 mod columns_tests;
 #[cfg(test)]
+mod ipc_cold_tests;
+#[cfg(test)]
 #[path = "../list/join_tests.rs"]
 mod list_tests;
-#[cfg(test)]
-mod ipc_cold_tests;
 #[cfg(test)]
 mod modal_tests;
 #[cfg(test)]
@@ -119,9 +119,9 @@ mod native_reader_tests;
 #[cfg(test)]
 mod omi_views_tests;
 #[cfg(test)]
-mod overlay_escape_tests;
-#[cfg(test)]
 mod output_tests;
+#[cfg(test)]
+mod overlay_escape_tests;
 #[cfg(test)]
 mod overlay_tests;
 #[cfg(test)]
@@ -133,9 +133,9 @@ mod rate_atomic_tests;
 #[cfg(test)]
 mod settings_tests;
 #[cfg(test)]
-mod status_tests;
-#[cfg(test)]
 mod status_selection_tests;
+#[cfg(test)]
+mod status_tests;
 #[cfg(test)]
 mod surfaces_tests;
 #[cfg(test)]
@@ -164,3 +164,6 @@ mod native31_tests;
 mod caption_loop_tests;
 #[cfg(test)]
 mod glass_tag_tests;
+
+#[cfg(test)]
+mod pb_tags_tests;

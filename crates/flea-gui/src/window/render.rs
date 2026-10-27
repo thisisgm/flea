@@ -59,9 +59,15 @@ impl Render for Shell {
         self.sync_search_text();
         self.route_rail(window, cx);
         self.sync_rail(window, cx);
-        self.settle_rail(cx);
+        self.settle_rail(window, cx);
         for side in 0..2 {
             self.flush_operations(side, cx);
+            let shown = self.panes[side]
+                .as_ref()
+                .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));
+            if let Some(host) = &self.panes[side] {
+                host.list.borrow_mut().view.tags_shown = shown;
+            }
         }
         self.sync_clip_marks();
         self.carry_sync(window, cx);

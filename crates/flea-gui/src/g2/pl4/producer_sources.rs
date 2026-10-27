@@ -29,6 +29,7 @@ impl Producer {
             return;
         }
         let saved = saved_places(&self.state);
+        let in_use = self.places.read(cx).tags_in_use;
         let rows = home_entries(&self.home, &self.dirs, home_glyph);
         let records = &self.places.read(cx).favourites.records;
         let mut favourites = stored_entries(records, &self.home);
@@ -47,7 +48,7 @@ impl Producer {
                 &rows,
                 saved.shown,
                 favourites,
-                &[false; 7],
+                &in_use,
                 self.tail
                     .iter()
                     .filter_map(|section| {
@@ -76,6 +77,24 @@ impl Producer {
     /// U19 and U20 publish complete device and network sections through this seam.
     pub fn set_tail(&mut self, sections: Vec<RailSection>, cx: &mut Context<Self>) {
         self.tail = sections;
+        self.rebuild(cx);
+    }
+
+    /// A committed listing adds only the tags it actually carries; the rail keeps their session union.
+    pub fn tags_seen(&mut self, seen: &[bool; 7], cx: &mut Context<Self>) {
+        if !seen
+            .iter()
+            .zip(self.places.read(cx).tags_in_use)
+            .any(|(seen, used)| *seen && !used)
+        {
+            return;
+        }
+        self.places.update(cx, |places, cx| {
+            for (used, seen) in places.tags_in_use.iter_mut().zip(seen) {
+                *used |= *seen;
+            }
+            cx.notify();
+        });
         self.rebuild(cx);
     }
 

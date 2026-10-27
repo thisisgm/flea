@@ -16,6 +16,7 @@ fn row(name: &str, dir: bool) -> RowFacts {
         link: None,
         real_modes: true,
         kind: String::new(),
+        tags: None,
     }
 }
 

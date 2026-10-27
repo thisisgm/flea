@@ -7,6 +7,7 @@ pub struct Filesystem {
     pub path: String,
     pub name: String,
     pub free: u64,
+    pub tagable: Option<bool>,
 }
 
 impl Filesystem {
@@ -36,6 +37,7 @@ impl Filesystem {
             path: text("path")?,
             name,
             free,
+            tagable: document.get("tagable").and_then(Json::as_bool),
         })
     }
 }

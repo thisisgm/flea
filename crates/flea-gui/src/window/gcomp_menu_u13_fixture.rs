@@ -13,6 +13,7 @@ fn settle(shell: &mut crate::state::Shell) {
             "",
         );
         let facts = crate::backend::status::Filesystem {
+            tagable: None,
             path: host.path.clone(),
             name: "testfs".into(),
             free: 1_073_741_824,

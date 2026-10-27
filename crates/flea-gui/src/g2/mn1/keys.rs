@@ -42,7 +42,7 @@ impl Shell {
                     .borrow();
                 let env = self.menu_env(&list.typeface);
                 let live = self.menu_entries();
-                let outcome = if action == "copyAs" || action == "pasteAs" {
+                let outcome = if matches!(action, "copyAs" | "pasteAs" | "tags") {
                     self.menu.menu.borrow_mut().open_submenu_for(
                         action,
                         self.menu.context.clipboard_available,

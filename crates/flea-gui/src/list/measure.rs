@@ -91,13 +91,20 @@ impl ListState {
 
     /// The drawn columns for a list this wide: the row is the list less its scroll lane.
     pub fn layout(&mut self, width: f32, window: &Window) -> (Metrics, Tokens, Layout) {
-        let (metrics, tokens) = self.measure(window);
+        let (metrics, mut tokens) = self.measure(window);
+        if self.view.tags_shown {
+            tokens.name_min += flea::ui_logic_pl4::tags::ROW_SLOT + metrics.gap;
+        }
         let layout = columns::resolve(
             (width - metrics.lane).max(0.),
             &tokens,
             self.view.switched,
             self.view.stored,
         );
-        (metrics, tokens, layout)
+        (
+            metrics,
+            tokens,
+            super::tags::reserve(layout, self.view.tags_shown, metrics.gap),
+        )
     }
 }

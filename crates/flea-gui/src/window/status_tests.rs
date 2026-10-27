@@ -236,6 +236,7 @@ fn u05_footer_reports_painted_counts_filesystem_and_real_activity_owner(cx: &mut
             shell.receive(
                 0,
                 crate::backend::Event::Filesystem(crate::backend::status::Filesystem {
+                    tagable: None,
                     path: "/files".into(),
                     name: "btrfs".into(),
                     free: 442_000_000_000,
@@ -274,6 +275,7 @@ fn u05_footer_reports_painted_counts_filesystem_and_real_activity_owner(cx: &mut
             shell.receive(
                 0,
                 crate::backend::Event::Filesystem(crate::backend::status::Filesystem {
+                    tagable: None,
                     path: "/old".into(),
                     name: "cifs".into(),
                     free: 0,

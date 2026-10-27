@@ -8,10 +8,12 @@ mod hit;
 mod locale;
 mod measure;
 mod metrics;
+mod painted_row;
 mod palette;
 #[cfg(test)]
 mod palette_tests;
 mod row_text;
+mod tags;
 pub use measure::Density;
 pub use metrics::Metrics;
 pub(crate) use metrics::{CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
@@ -139,6 +141,7 @@ pub struct ListView {
     pub switched: Switched,
     pub stored: StoredWidths,
     pub lang_marks: bool,
+    pub tags_shown: bool,
     /// A filter or search's needle, whose run each name marks.
     pub query: String,
     pub searching: bool,
@@ -163,6 +166,7 @@ impl Default for ListView {
             switched: Switched::default(),
             stored: StoredWidths::default(),
             lang_marks: true,
+            tags_shown: false,
             query: String::new(),
             searching: false,
             dual: false,

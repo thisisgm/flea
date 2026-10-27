@@ -21,6 +21,8 @@ mod tests;
 
 #[path = "search_host.rs"]
 mod host;
+#[path = "search_tag.rs"]
+mod tag;
 pub(crate) use host::Runtime;
 use host::{Effect, Pending};
 impl Shell {
