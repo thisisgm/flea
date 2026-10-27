@@ -19,9 +19,9 @@ const BLOCKS: &str = r#"{"blockdevices":[
 {"name":"sda1","path":"/dev/sda1","type":"part","label":"128GB","mountpoints":["/run/media/gm/128GB"],"fstype":"exfat","rm":true,"size":128000000000}
 ]}"#;
 
-fn root_at<'a>(
-    cx: &'a mut TestAppContext,
-) -> (Entity<Shell>, Rc<FakeDevices>, &'a mut VisualTestContext) {
+fn root_at(
+    cx: &mut TestAppContext,
+) -> (Entity<Shell>, Rc<FakeDevices>, &mut VisualTestContext) {
     let service = Rc::new(FakeDevices::default());
     let runner = service.clone();
     cx.update(|cx| {
