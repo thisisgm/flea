@@ -18,7 +18,7 @@ use gpui::{point, px, Entity, Modifiers, MouseButton, TestAppContext, VisualTest
 const RECENT_REFUSAL: &str = "Recent cannot take a paste. Open a folder first";
 const HISTORY: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/src/g2/pl4/recent-fixture.xbel");
 
-fn frame(cx: &mut VisualTestContext) {
+pub(super) fn frame(cx: &mut VisualTestContext) {
     cx.update(|window, cx| {
         window.refresh();
         window.draw(cx).clear(cx);
@@ -26,7 +26,7 @@ fn frame(cx: &mut VisualTestContext) {
     cx.run_until_parked();
 }
 
-fn read(shell: &Entity<Shell>, cx: &mut VisualTestContext, name: &str) -> String {
+pub(super) fn read(shell: &Entity<Shell>, cx: &mut VisualTestContext, name: &str) -> String {
     let (answer, receiver) = std::sync::mpsc::sync_channel(1);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
@@ -54,7 +54,7 @@ fn bar(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     shell.read_with(cx, |shell, _| shell.path_labels[0].to_string())
 }
 
-fn rows(shell: &Entity<Shell>, cx: &mut VisualTestContext, entries: Vec<RailEntry>) {
+pub(super) fn rows(shell: &Entity<Shell>, cx: &mut VisualTestContext, entries: Vec<RailEntry>) {
     shell.update(cx, |shell, cx| {
         shell.rail.as_ref().unwrap().places.update(cx, |producer, cx| {
             producer.replace_sections(

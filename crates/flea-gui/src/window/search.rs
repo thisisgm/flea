@@ -76,18 +76,24 @@ impl Shell {
                 }
                 Effect::Relist(path, select, relist) => {
                     host.select = (!select.is_empty()).then_some(select);
-                    let _ = host.nav.open_without_history(
-                        &mut host.pane,
-                        &path,
-                        Options {
-                            supersede: true,
-                            hold_walk: true,
-                            relist,
-                            ..Options::default()
-                        },
-                        None,
-                        false,
-                    );
+                    // A search's exit under Recent lists the history again, and a reveal leaves Recent for its folder.
+                    if host.recent.on && relist {
+                        let _ = host.nav.list_paths(&mut host.pane, &host.recent.paths, true);
+                    } else {
+                        host.leave_recent();
+                        let _ = host.nav.open_without_history(
+                            &mut host.pane,
+                            &path,
+                            Options {
+                                supersede: true,
+                                hold_walk: true,
+                                relist,
+                                ..Options::default()
+                            },
+                            None,
+                            false,
+                        );
+                    }
                     relisted = true;
                 }
                 Effect::Reset => {
