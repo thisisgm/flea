@@ -147,11 +147,12 @@ impl Element for FieldElement {
             let line = &mut edit.line.line;
             if line.run.is_none() || line.revision != edit.entry.revision {
                 line.run = Some(shape(window, &edit.entry.text, font.clone(), pixels));
+                line.set_text_direction(&edit.entry.text);
                 line.revision = edit.entry.revision;
             }
             // The caret stays inside the frame: the line slides under it the way a text input scrolls.
             let room = (frame.size.width - inset * 2.).max(px(0.));
-            let caret = line.x_for(edit.entry.cursor());
+            let caret = line.entry_caret(&edit.entry, edit.entry.cursor());
             if caret - line.scroll > room {
                 line.scroll = caret - room;
             } else if caret < line.scroll {
@@ -231,8 +232,8 @@ impl Element for FieldElement {
             let boundary = origin + line.x_for(stem);
             window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
                 if !entry.selected.is_empty() {
-                    let from = origin + line.x_for(entry.selected.start);
-                    let to = origin + line.x_for(entry.selected.end);
+                    let (from, to) = line.entry_span(entry, &entry.selected);
+                    let (from, to) = (origin + from, origin + to);
                     window.paint_quad(fill(
                         Bounds::new(
                             point(from, band.origin.y),
@@ -262,15 +263,15 @@ impl Element for FieldElement {
                     }
                 }
                 if let Some(marked) = &entry.marked {
-                    let from = origin + line.x_for(marked.start);
-                    let to = origin + line.x_for(marked.end);
+                    let (from, to) = line.entry_span(entry, marked);
+                    let (from, to) = (origin + from, origin + to);
                     window.paint_quad(fill(
                         Bounds::new(point(from, band.bottom() - px(1.)), size(to - from, px(1.))),
                         ink.foreground,
                     ));
                 }
                 if entry.selected.is_empty() {
-                    let at = origin + line.x_for(entry.cursor());
+                    let at = origin + line.entry_caret(entry, entry.cursor());
                     window.paint_quad(fill(
                         Bounds::new(
                             point(at, band.origin.y + px(2.)),
@@ -295,7 +296,17 @@ impl Element for FieldElement {
         });
         let entity = self.shell.clone();
         let focus = shell.focus.clone();
-        window.handle_input(&focus, ElementInputHandler::new(frame, entity.clone()), cx);
+        let active = !shell.operations.archive.showing()
+            && shell.rename.bulk.is_none()
+            && focus.is_focused(window);
+        if active {
+            window.handle_input(&focus, ElementInputHandler::new(frame, entity.clone()), cx);
+        }
+        entity.update(cx, |shell, _| {
+            if let Some(edit) = &mut shell.rename.edit {
+                edit.line.line.registered = if active { edit.entry.session() } else { None };
+            }
+        });
         // Tap.js: a press anywhere else commits the open rename first and then does its own work.
         window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
             if phase != DispatchPhase::Capture || event.button != MouseButton::Left {

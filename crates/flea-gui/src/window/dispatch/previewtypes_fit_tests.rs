@@ -106,10 +106,11 @@ fn video_facts_take_the_board_pitch_and_the_frame_draws_no_play_mark(cx: &mut Te
 
 #[test]
 fn column_document_and_picture_insets_use_the_named_frame_border() {
-    // The document inset is in selection_preview_render.rs and the picture's fit in selection_preview_fitted.rs; each is pinned in its own file.
+    // The document inset is in selection_preview_render.rs, the still fit in selection_preview_fitted.rs and the moving fit in selection_preview_picture.rs; each is pinned in its own file.
     let sources = [
         ("document", include_str!("../selection_preview_render.rs")),
-        ("picture", include_str!("../selection_preview_fitted.rs")),
+        ("still", include_str!("../selection_preview_fitted.rs")),
+        ("moving", include_str!("../selection_preview_picture.rs")),
     ];
     for (inset, source) in sources {
         for dimension in ["width", "height"] {

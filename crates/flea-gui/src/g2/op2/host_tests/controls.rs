@@ -23,7 +23,7 @@ fn centre(cx: &mut TestAppContext, handle: Handle, name: &str) -> String {
     })
 }
 
-fn painted(cx: &mut TestAppContext, handle: Handle, selector: &str) -> String {
+fn painted(cx: &mut TestAppContext, handle: Handle, selector: &'static str) -> String {
     let bounds = VisualTestContext::from_window(handle.into(), cx)
         .debug_bounds(selector)
         .expect("the control was painted");
@@ -36,7 +36,7 @@ fn click(cx: &mut TestAppContext, handle: Handle, location: &str) {
     let coordinates: Vec<f32> = location.split_whitespace().map(|n| n.parse().unwrap()).collect();
     assert_eq!(coordinates.len(), 2);
     let point = point(px(coordinates[0]), px(coordinates[1]));
-    let visual = VisualTestContext::from_window(handle.into(), cx);
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
     visual.simulate_mouse_down(point, MouseButton::Left, Modifiers::none());
     visual.simulate_mouse_up(point, MouseButton::Left, Modifiers::none());
     frame(cx, handle);

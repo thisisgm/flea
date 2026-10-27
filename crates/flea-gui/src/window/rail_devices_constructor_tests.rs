@@ -33,7 +33,7 @@ fn rail_devices_real_constructor_draws_completed_devices_before_native_capture(
     let state = flea::jsondoc::parse(r#"{"view":"list","density":"compact","places":{"rail":"shown","sidebarWidth":192,"favourites":[{"label":"Docs","path":"/fixture/Docs"}]}}"#).unwrap();
     let home = std::env::var("HOME").unwrap_or_else(|_| "/fixture/home".into());
     let launch = Launch::resolve(
-        Settings::from_json(state, true),
+        Settings::from_json(state),
         Arguments::default(),
         &home,
     );
@@ -133,7 +133,7 @@ fn rail_devices_survive_the_network_listing_through_the_real_constructor(cx: &mu
         });
     });
     let state = flea::jsondoc::parse(r#"{"view":"list","places":{"rail":"shown","sidebarWidth":192}}"#).unwrap();
-    let launch = Launch::resolve(Settings::from_json(state, true), Arguments::default(), "/fixture/home");
+    let launch = Launch::resolve(Settings::from_json(state), Arguments::default(), "/fixture/home");
     let locale = Snapshot {
         revision: 1,
         catalog: Arc::new(I18n::default()),

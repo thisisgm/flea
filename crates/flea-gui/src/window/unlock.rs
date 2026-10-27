@@ -5,7 +5,7 @@ use crate::g2::pl1::view::{HostEvent, UnlockView};
 use crate::state::Shell;
 use crate::window::navigate::Step;
 use flea::ui_logic_pl4::rail::Group;
-use gpui::{div, prelude::*, AnyElement, App, Context, Entity, Subscription, Window};
+use gpui::{div, prelude::*, AnyElement, App, Context, Entity, KeyDownEvent, Subscription, Window};
 
 #[cfg(test)]
 #[path = "unlock_tests.rs"]
@@ -93,6 +93,30 @@ impl Shell {
     pub(crate) fn unlock_holds_keyboard(&self, cx: &App) -> bool {
         self.unlock_view()
             .is_some_and(|view| view.read(cx).host.opened())
+    }
+
+    /// Typed text the focused unlock or share card left for the platform's IME entry, which a stopped key never reaches.
+    pub(crate) fn card_takes_text(&self, event: &KeyDownEvent, window: &Window, cx: &App) -> bool {
+        let stroke = &event.keystroke;
+        let held = stroke.modifiers;
+        stroke
+            .key_char
+            .as_deref()
+            .is_some_and(|text| !text.chars().any(char::is_control))
+            && !held.control
+            && !held.alt
+            && !held.platform
+            && (self
+                .unlock_view()
+                .is_some_and(|view| view.read(cx).focus_handle().is_focused(window))
+                || self
+                    .rail
+                    .as_ref()
+                    .and_then(|join| join.network.as_ref())
+                    .is_some_and(|network| {
+                        let card = network.card.read(cx);
+                        card.model.opened && card.holds_focus(window, cx)
+                    }))
     }
 
     /// The card centred over the window under its own focus, above the panes and the rail.

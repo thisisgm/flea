@@ -343,7 +343,7 @@ pub static SHEET_MIRRORS: &[[&str; 2]] = &[
 
 #[rustfmt::skip]
 pub static SHEET_TIE_PRIORITY: &[(&str, &[&str])] = &[
-    ("all", &["left", "shift-f10"]),
+    ("all", &["left", "shift-f10", "ctrl-shift-plus", "ctrl-shift-minus", "ctrl-shift-0"]),
     ("default", &["ctrl-c", "ctrl-v"]),
     ("windows", &["ctrl-c", "ctrl-v"]),
 ];

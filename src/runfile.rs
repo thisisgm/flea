@@ -152,6 +152,9 @@ fn canonical(path: &str) -> Option<PathBuf> {
 
 // The card's four modes beside main.rs's --open arms: Some(code) when argv names one, malformed shapes refused through the same usage errors, None for every other mode.
 pub fn dispatch(args: &[String]) -> Option<i32> {
+    if args.get(1).map(String::as_str) == Some("--open-selection") {
+        return Some(crate::open::open_selected(&args[2..]));
+    }
     if args.get(1).map(String::as_str) == Some("--run") {
         if args.len() == 8 {
             if let Some(id) = crate::runid::FileId::parse(&args[3], &args[4], &args[5], &args[6], &args[7]) {

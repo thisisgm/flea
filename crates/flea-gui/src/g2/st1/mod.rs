@@ -10,6 +10,8 @@ pub mod geometry;
 mod geometry_tests;
 pub(crate) mod glyphs;
 #[cfg(test)]
+mod keymap_sheet_activation_tests;
+#[cfg(test)]
 mod keymap_sheet_menu_tests;
 #[cfg(test)]
 mod keymap_sheet_order_tests;
