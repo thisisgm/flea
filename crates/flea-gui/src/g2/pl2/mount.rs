@@ -127,8 +127,10 @@ impl Mounts {
             return effects;
         }
         if !super::validate::phone(&request.uri) {
-            let address =
-                logic::form::Form::saved_address(&request.uri).expect("validated address");
+            let address = logic::form::Form::saved_address(&request.uri)
+                .ok()
+                .or_else(|| super::routing::incomplete(&request.uri))
+                .expect("validated address");
             request.uri = address.uri;
             if address.scheme == "nfs" {
                 request.password.clear();

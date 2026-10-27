@@ -179,7 +179,6 @@ fn the_focused_dual_edge_paints_below_an_overlapping_overlay_rail(cx: &mut TestA
         .update(cx, |shell, _, cx| {
             shell.launch.settings = crate::window::startup::Settings::from_json(
                 flea::jsondoc::parse(r#"{"places":{"autoHide":true}}"#).unwrap(),
-                false,
             );
             shell.slots.rail = Some(cx.new(|_| OverlayGround).into());
         })

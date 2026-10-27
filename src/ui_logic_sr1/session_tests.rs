@@ -12,6 +12,7 @@ pub(super) fn sent(effects: &[Effect]) -> Vec<String> {
         .filter_map(|effect| match effect {
             Effect::Send(Request::Open { scope, folder, .. }) => Some(format!("open {scope}|{folder}")),
             Effect::Send(Request::Query { query, gen, count, .. }) => Some(format!("query {gen}:{query}/{count}")),
+            Effect::Send(Request::Contents { path, query, gen, count, .. }) => Some(format!("contents {gen}:{query}/{count} in {path}")),
             Effect::Send(Request::Close) => Some("close".into()),
             Effect::Send(Request::Cancel) => Some("cancel".into()),
             _ => None,

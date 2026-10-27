@@ -222,6 +222,153 @@ fn jobs_padding_never_wheels_the_covered_active_column() {
     );
 }
 
+/// The track a wheel reaches in this view: the Columns Active track or the List, as drawn.
+fn track(cx: &mut TestAppContext, handle: Handle, view: View) -> Bounds<Pixels> {
+    update(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        let bounds = if view == View::Columns {
+            let paint = host
+                .columns
+                .as_ref()
+                .unwrap()
+                .painters
+                .get(Slot::Active)
+                .unwrap()
+                .borrow();
+            paint.drawn.as_ref().unwrap().bounds
+        } else {
+            host.list.borrow().drawn.bounds
+        };
+        bounds
+    })
+}
+
+fn moving(cx: &mut TestAppContext, handle: Handle, view: View) -> bool {
+    update(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        if view == View::Columns {
+            host.columns.as_ref().unwrap().scroll[Slot::Active.index()]
+                .input
+                .moving()
+        } else {
+            host.input.moving()
+        }
+    })
+}
+
+/// Hands one wheel to the view's own handler; an open menu or card occludes the track at the window level.
+fn wheel_handler(cx: &mut TestAppContext, handle: Handle, view: View, at: Point<Pixels>) {
+    let event = ScrollWheelEvent {
+        position: at,
+        delta: ScrollDelta::Lines(point(0., -3.)),
+        modifiers: Modifiers::none(),
+        touch_phase: gpui::TouchPhase::Moved,
+    };
+    update(cx, handle, |shell, window, cx| {
+        if view == View::Columns {
+            shell.columns_scroll_wheel(0, &event, cx)
+        } else {
+            shell.pointer_wheel(0, &event, window, cx)
+        }
+    });
+}
+
+#[test]
+fn wheel_under_an_open_menu_leaves_the_track_still() {
+    for view in [View::List, View::Columns] {
+        let (mut cx, handle, mut received) = open(view);
+        reset(&mut cx, handle);
+        let track = track(&mut cx, handle, view);
+        let press_at = track.center();
+        press(&mut cx, handle, press_at, MouseButton::Right);
+        assert!(
+            received().is_some_and(|line| line.contains("\"op\":\"snapshot\"")),
+            "{view:?}: a right press asks for the menu snapshot"
+        );
+        // The backend answers the snapshot and the applications list, as the menu tests do.
+        update(&mut cx, handle, |shell, window, cx| {
+            let captured = shell.menu.captured.as_ref().expect("a captured menu");
+            let (side, id) = (captured.side, captured.id);
+            shell.receive(
+                side,
+                Event::Producer(format!(
+                    r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[]}}"#
+                )),
+                window,
+                cx,
+            );
+            shell.receive(
+                side,
+                Event::Producer(format!(
+                    r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[]}}"#
+                )),
+                window,
+                cx,
+            );
+        });
+        assert!(
+            update(&mut cx, handle, |shell, _, _| shell.menu_opened()),
+            "{view:?}: the answered snapshot opens the menu"
+        );
+        let at = point(track.left() + px(5.), track.top() + px(30.));
+        wheel_handler(&mut cx, handle, view, at);
+        assert_eq!(
+            scroll(&mut cx, handle),
+            0.,
+            "{view:?}: a wheel under an open menu moved the track"
+        );
+    }
+}
+
+#[test]
+fn wheel_under_an_open_settings_card_leaves_the_track_still() {
+    for view in [View::List, View::Columns] {
+        let (mut cx, handle, _received) = open(view);
+        reset(&mut cx, handle);
+        update(&mut cx, handle, |shell, window, cx| {
+            shell.open_settings(window, cx)
+        });
+        frame(&mut cx, handle);
+        assert!(update(&mut cx, handle, |shell, _, cx| {
+            shell.card_holds_keyboard(cx)
+        }));
+        let track = track(&mut cx, handle, view);
+        let at = point(track.left() + px(5.), track.top() + px(30.));
+        wheel_handler(&mut cx, handle, view, at);
+        assert_eq!(
+            scroll(&mut cx, handle),
+            0.,
+            "{view:?}: a wheel under the open settings card moved the track"
+        );
+    }
+}
+
+#[test]
+fn wheel_above_the_jobs_card_moves_the_track_and_keeps_its_glide() {
+    for view in [View::List, View::Columns] {
+        let (mut cx, handle, _received) = open(view);
+        start(&mut cx, handle);
+        reset(&mut cx, handle);
+        let jobs = bounds(&mut cx, handle, "op1-jobs");
+        let outside = point(jobs.left() + px(5.), jobs.top() - px(20.));
+        assert!(
+            track(&mut cx, handle, view).contains(&outside),
+            "{view:?}: the point beside the jobs card lies on the track"
+        );
+        wheel(&mut cx, handle, outside);
+        assert!(
+            scroll(&mut cx, handle) > 0.,
+            "{view:?}: a wheel beside the jobs card must scroll"
+        );
+        super::super::atomic_tests::advance(&mut cx, handle, 16);
+        frame(&mut cx, handle);
+        assert!(
+            moving(&mut cx, handle, view),
+            "{view:?}: the glide must survive a frame beside the jobs card"
+        );
+    }
+}
+
 #[test]
 fn jobs_whitespace_blocks_columns_left_and_right_press_but_keeps_cancel() {
     for button in [MouseButton::Left, MouseButton::Right] {

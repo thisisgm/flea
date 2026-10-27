@@ -1,6 +1,8 @@
 //! The menu's input layer occludes the listing and keeps resting-pointer opens on the first row.
 use super::{element::MenuElement, menu::Outcome};
-use crate::{input::PLATFORM_SCROLL_GAIN, state::Shell, window::startup::View};
+use crate::{
+    input::PLATFORM_SCROLL_GAIN, pane::states::Kind, state::Shell, window::startup::View,
+};
 use gpui::{
     div, prelude::*, px, App, Context, Div, Entity, MouseButton, MouseDownEvent, MouseMoveEvent,
     ScrollDelta, ScrollWheelEvent, TouchPhase, Window,
@@ -76,6 +78,22 @@ impl Shell {
             return;
         };
         let row = match host.drawn_view {
+            // An empty folder draws the hero and no row surface, so its whole pane is blank ground.
+            Some(View::List | View::Dual)
+                if !host.drawn_list && host.pane.state.kind == Kind::Empty =>
+            {
+                let pane = self.geometry(window).rows(
+                    side,
+                    self.view == View::Dual,
+                    self.slots.strip_height,
+                );
+                let (x, y) = (f32::from(event.position.x), f32::from(event.position.y));
+                if x < pane.x || x >= pane.x + pane.width || y < pane.y || y >= pane.y + pane.height
+                {
+                    return;
+                }
+                None
+            }
             Some(View::List | View::Dual) => {
                 let Some(frame) = host
                     .input
@@ -154,6 +172,33 @@ impl Shell {
             .columns_cursor_anchor(side)
             .unwrap_or((pane.x + 14., y));
         self.open_menu(side, row, at, window, cx);
+    }
+
+    /// m, the Menu key and Shift+F10: an empty folder has no row to open, so Focus.js says so instead of opening the folder menu.
+    pub(crate) fn cursor_menu_key(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let side = self.focus_side;
+        let empty = self.panes[side]
+            .as_ref()
+            .is_some_and(|host| host.pane.held.total == 0);
+        // A locked folder keeps its own menu or its own refusal in open_menu.
+        if empty && self.locked_folder(side).is_none() && !self.input_blocked(cx) {
+            let sentence = self.locale.catalog.tr("menu.refusal.nocursor");
+            if let Some(host) = &mut self.panes[side] {
+                host.status = sentence.clone().into();
+            }
+            self.status_messages(cx, |messages, now| {
+                messages.say(
+                    &sentence,
+                    false,
+                    "",
+                    flea::ui_logic_fb1::status::Hint::None,
+                    now,
+                )
+            });
+            cx.notify();
+            return;
+        }
+        self.menu_keyboard_open(window, cx);
     }
 
     fn menu_click(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {

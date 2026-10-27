@@ -20,6 +20,11 @@ impl Sequence {
         self.pending = None;
     }
 
+    /// The armed action and the seat it was armed on, while a pair waits for its second press.
+    pub fn pending(&self) -> Option<(&'static str, Seat)> {
+        self.pending.map(|(action, seat, _, _)| (action, seat))
+    }
+
     pub fn live(&self, seat: Seat, context: Context, preset: &'static str) -> bool {
         self.pending
             .is_some_and(|(_, armed, at, under)| armed == seat && at == context && under == preset)

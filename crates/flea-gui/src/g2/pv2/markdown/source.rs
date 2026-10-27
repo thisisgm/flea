@@ -60,6 +60,9 @@ pub struct Source {
     pub laid_chars: usize,
 }
 
+#[path = "source_position.rs"]
+mod position;
+
 impl Source {
     pub fn new(measure: TextMeasure) -> Self {
         Source {

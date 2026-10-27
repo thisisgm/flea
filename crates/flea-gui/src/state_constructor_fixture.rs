@@ -7,6 +7,10 @@ pub(crate) struct Services {
 }
 impl gpui::Global for Services {}
 
+/// Keeps a test window off the real flea-settings thread, whose wakes the test scheduler rejects.
+pub(crate) struct NoSettingsWorker;
+impl gpui::Global for NoSettingsWorker {}
+
 pub(super) fn start_backend(
     listing: &crate::navigation::Listing,
     cx: &mut Context<Shell>,

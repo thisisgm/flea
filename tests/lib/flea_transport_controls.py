@@ -53,7 +53,12 @@ while True:
         if function == "backend":
             reply["stdout"] = os.environ["FLEA_BIN"] + "\\n"
         if function == "hypr-runtime":
-            reply["stdout"] = str((runtime / "hypr/control/.socket.sock").is_socket()) + "\\n"
+            for name in (".socket.sock", ".socket2.sock"):
+                with socket.socket(socket.AF_UNIX) as compositor:
+                    compositor.settimeout(1)
+                    compositor.connect(str(runtime / "hypr" / ("h" * 64) / name))
+                    compositor.sendall(name.encode())
+            reply["stdout"] = "True\\n"
         if function == "quit":
             reply["stdout"] = ""
         connection.sendall((json.dumps(reply) + "\\n").encode())
@@ -140,14 +145,29 @@ try:
     first = start()
     second = start()
     record = load(first.root)
+    alias_parts = record["runtime"].split("/")
+    alias_parts[2] = "9" * len(Path("/proc/sys/kernel/pid_max").read_text().strip())
+    alias_parts[4] = "255"
+    worst_alias = "/".join(alias_parts)
+    socket_lengths = {name: len(os.fsencode(f"{worst_alias}/hypr/{'h' * 64}/{name}"))
+                      for name in (".socket.sock", ".socket2.sock")}
+    print(f"HYPR_SOCKET_LENGTHS {socket_lengths} limit=107", flush=True)
+    check(all(length <= 107 for length in socket_lengths.values()), "hypr-sockets-fit-sun-path")
     runtime_info = os.lstat(record["runtime"])
-    check(stat.S_ISDIR(runtime_info.st_mode) and runtime_info.st_mode & 0o077 == 0, "native-runtime-contract")
+    check(stat.S_ISDIR(runtime_info.st_mode) and runtime_info.st_mode & 0o077 == 0 and
+          Path(record["runtime"]).resolve() == first.root / "runtime" and
+          (Path(record["runtime"]) / MARKER).is_file(), "native-runtime-contract")
     compositor_runtime = root / "compositor-runtime"
-    (compositor_runtime / "hypr/control").mkdir(parents=True)
-    with socket.socket(socket.AF_UNIX) as compositor_socket:
+    signature = "h" * 64
+    (compositor_runtime / "hypr" / signature).mkdir(parents=True)
+    with socket.socket(socket.AF_UNIX) as command_socket, socket.socket(socket.AF_UNIX) as event_socket:
+        compositor_sockets = ((".socket.sock", command_socket), (".socket2.sock", event_socket))
         runtime_fd = os.open(compositor_runtime, os.O_RDONLY | os.O_DIRECTORY)
         try:
-            compositor_socket.bind(f"/proc/self/fd/{runtime_fd}/hypr/control/.socket.sock")
+            for name, compositor_socket in compositor_sockets:
+                compositor_socket.bind(f"/proc/self/fd/{runtime_fd}/hypr/{signature}/{name}")
+                compositor_socket.listen()
+                compositor_socket.settimeout(1)
         finally:
             os.close(runtime_fd)
         saved_runtime = os.environ.get("XDG_RUNTIME_DIR")
@@ -163,6 +183,11 @@ try:
         hypr = compositor_window.root / "runtime/hypr"
         check(hypr.is_symlink() and hypr.resolve() == compositor_runtime / "hypr", "private-runtime-exposes-hypr")
         check(compositor_window.call("call", "flea", "hypr-runtime").stdout == b"True\n", "owned-child-sees-hypr-socket")
+        for name, compositor_socket in compositor_sockets:
+            connection, _ = compositor_socket.accept()
+            with connection:
+                connection.settimeout(1)
+                check(connection.recv(64) == name.encode(), f"owned-child-reaches-hypr-{name}")
         compositor_window.quit()
     environment = dict(os.environ, FLEA_TEST_WINDOWS_ROOT=str(root), FLEA_IPC_KIND="gpui",
                        FLEA_IPC_BIN=str(root / "target/debug/flea"), FLEA_IPC_HELPER=str(REPO / "tools/flea-ipc"))
