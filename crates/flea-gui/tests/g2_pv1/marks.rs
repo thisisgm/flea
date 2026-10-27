@@ -154,7 +154,6 @@ fn a_model_name_in_another_doc_view_keeps_its_kind_mark(cx: &mut TestAppContext)
             size_ratio: 1.,
         };
         let metrics = flea_gui::g2::pv2::font::Metrics {
-            bar: 27.,
             font: gpui::font("sans-serif"),
             caption: gpui::px(12.),
         };

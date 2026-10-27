@@ -30,8 +30,6 @@ pub(crate) struct Look {
     pub muted: gpui::Hsla,
     pub mark: Mark,
 }
-/// The views' line pitch, as a multiple of the caption size.
-const LINE_PITCH: f32 = 1.3;
 /// The opacity of an archive's "and more" line.
 const MORE_OPACITY: f32 = 0.6;
 /// A row's vertical pad as a multiple of the base size, 6 px at base 12.
@@ -39,7 +37,7 @@ const ROW_PAD_Y: f32 = 6. / 12.;
 
 impl Look {
     fn row(&self) -> f32 {
-        (f32::from(self.face.caption) * LINE_PITCH).round()
+        pv2::line_pitch(f32::from(self.face.caption))
     }
     fn code(&self, numbered: bool) -> CodeView {
         let m = &self.metrics;
