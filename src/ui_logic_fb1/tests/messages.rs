@@ -256,3 +256,16 @@ fn activity_and_search_take_the_hint_away_and_the_busy_mark_follows_starting() {
         " · c.txt selected for retry"
     );
 }
+
+#[test]
+fn every_notice_end_takes_its_hint_with_it() {
+    let catalog = english();
+    let mut bar = Messages::new("default");
+    bar.say("Copied 5 items", false, "", Hint::Paste, 0);
+    assert!(!bar.line(&catalog, "").hint.is_empty());
+    assert!(bar.tick(MESSAGE_MS).notice_cleared);
+    assert_eq!(bar.line(&catalog, "").hint, "");
+    bar.say("Copied 5 items", false, "", Hint::Paste, 0);
+    bar.dismiss(0);
+    assert_eq!(bar.line(&catalog, "").hint, "");
+}

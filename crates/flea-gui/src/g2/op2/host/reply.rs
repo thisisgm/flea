@@ -167,6 +167,15 @@ impl Shell {
         self.operations.archive.extracts.retain(|(s, p, d)| {
             !(*s == side && (done.path.is_empty() || (*p == done.path && *d == done.dest)))
         });
+        if done.ok {
+            // PaneWire.qml onArchiveDone re-reads in place and lands at the refreshed list's first row.
+            let _ = self.step(
+                side,
+                crate::window::navigate::Step::Refresh(None),
+                window,
+                cx,
+            );
+        }
         let text = if done.ok {
             catalog.tr(if verified {
                 "archive.done.written"

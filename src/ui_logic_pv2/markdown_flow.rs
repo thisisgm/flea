@@ -178,7 +178,7 @@ pub struct Base {
     pub pre: bool,
 }
 
-/// The look a piece's style draws in over the paragraph's base: bold body text takes the bright ink.
+/// The look a piece's style draws in over the paragraph's base ink and face.
 pub fn look(style: &Style, base: &Base) -> Look {
     let face = Face::of(
         style.bold || base.face.bold(),
@@ -186,7 +186,6 @@ pub fn look(style: &Style, base: &Base) -> Look {
     );
     let ink = match &style.colour {
         Some(hex) => Ink::Hex(hex.clone()),
-        None if style.bold && base.ink == Ink::Foreground => Ink::Bright,
         None => base.ink.clone(),
     };
     let scripted = style.sub || style.sup;

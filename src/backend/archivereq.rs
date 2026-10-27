@@ -96,7 +96,14 @@ pub fn start_archive(
         out.flush().ok();
         return;
     }
-    let selection = match menu_sources(ops, menu_id) {
+    let sources = if op == "extract" && menu_id != 0 {
+        ops.menuactions.as_ref()
+            .ok_or_else(|| super::menu_actions::SELECTION_CHANGED.to_string())
+            .and_then(|menu| menu.extract_selection(menu_id)).map(Some)
+    } else {
+        menu_sources(ops, menu_id)
+    };
+    let selection = match sources {
         Ok(selection) => selection,
         Err(message) => { writeln!(out, "{}", error_line(&op_err("archive", "", &message))).ok(); out.flush().ok(); return; }
     };

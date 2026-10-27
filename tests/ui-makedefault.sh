@@ -72,7 +72,7 @@ makedefault_from_source() {
     status=$(grep -o 'pub const EXIT_UNINSTALLED: i32 = [0-9]*' "$repo/src/defaults.rs" | grep -o '[0-9]*$')
     [[ "$status" =~ ^[1-9][0-9]*$ ]] || fail "makedefault: src/defaults.rs names no EXIT_UNINSTALLED status, found '$status'"
     # Sample input: eprintln!("flea: no file chooser service is installed, so Flea could not become the file chooser");
-    skipped=$(sed -n '/^fn claim_both() -> i32 {$/,/^}$/p' "$repo/src/main.rs" | grep -o 'eprintln!("flea: [^"]*")' | cut -d'"' -f2)
+    skipped=$(sed -n '/^pub(super) fn claim_both() -> i32 {$/,/^}$/p' "$repo/src/claims.rs" | grep -o 'eprintln!("flea: [^"]*")' | cut -d'"' -f2)
     [[ -n "$skipped" && "$skipped" != *$'\n'* ]] || fail "makedefault: claim_both() has no one skipped-chooser line to stub, found '$skipped'"
     # Sample input: if args.len() == 3 && args[1] == "--default" && args[2] == "off" {
     guarded=$(grep -B1 -E 'exit\((claim_both|release_both|claim_picker|chooser::release)\(\)\)' "$repo/src/main.rs" \
@@ -84,18 +84,18 @@ makedefault_from_source() {
     printf '%s\n' "$guarded" > "$box/guarded"
 }
 
-# Launches over the stubs, or on the PATH given fourth, then hands the suite its own PATH, data dirs and binary back.
+# Launches over the stubs, or on the PATH given fourth, then hands the suite its own PATH and data dirs back.
 makedefault_launch() {
     local dir="$1" box="$2" real_bin="$3" path="${4:-$2/bin:$PATH}" saved_path="$PATH" saved_dirs="${XDG_DATA_DIRS-}"
     export PATH="$path" FLEA_MAKEDEFAULT_BOX="$box" FLEA_MAKEDEFAULT_REAL="$real_bin"
     # Prepended, so the fixture entry is found whether or not a Flea package is installed on this box.
     export XDG_DATA_DIRS="$box/data:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
-    flea_bin="$box/bin/flea"
+    # The transport launches only this worktree's build, so the stub reaches the window as its backend through FLEA_BIN.
+    local -a flea_launch_wrap=(env "FLEA_BIN=$box/bin/flea")
     launch "$dir"
     export PATH="$saved_path"
     if [[ -n "$saved_dirs" ]]; then export XDG_DATA_DIRS="$saved_dirs"; else unset XDG_DATA_DIRS; fi
     unset FLEA_MAKEDEFAULT_BOX FLEA_MAKEDEFAULT_REAL
-    flea_bin="$real_bin"
     wait_listing 1
 }
 

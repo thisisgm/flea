@@ -21,13 +21,15 @@ fn at(hero: &mut Rotation, now: u64) -> usize {
     hero.index()
 }
 
-/// Captions loop while shown; the QML front end is not the reference.
+/// Captions loop past the last phrase back to the first for as long as the hero is shown; no beat lands early.
 #[test]
-fn captions_loop_for_three_full_cycles_while_shown() {
+fn captions_wrap_from_the_last_phrase_to_the_first_while_shown() {
     let mut hero = Rotation::default();
     hero.show(0, true);
     for beat in 1..=3 * PHRASES.len() {
         let now = beat as u64 * ROTATE_MS;
+        assert_eq!(at(&mut hero, now - 1), (beat - 1) % PHRASES.len());
+        assert_eq!(hero.beats(), beat - 1, "no beat before {now} ms");
         assert_eq!(at(&mut hero, now), (beat - 1) % PHRASES.len());
         assert_eq!(hero.beats(), beat);
         assert!(hero.animating());

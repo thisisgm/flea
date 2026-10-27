@@ -8,6 +8,12 @@ pub(crate) const ALIGNED: i32 = 3_000_000;
 pub(crate) const NAME: i32 = 2_000_000;
 pub(crate) const PATH: i32 = 1_500_000;
 pub(crate) const TYPO: i32 = 1_000_000;
+// A DP hit moves a score at most this far inside its tier.
+pub(crate) const HIT_SPAN: i32 = 100_000;
+// Pass-1 markers for rows whose class is known and whose score inside it waits for the DP; a real score is never negative.
+pub(crate) const PENDING_ALIGNED: i32 = -3;
+pub(crate) const PENDING_NAME: i32 = -2;
+pub(crate) const PENDING_PATH: i32 = -1;
 const DEAD: i32 = i32::MIN / 4;
 
 #[derive(Clone, Copy)]
@@ -57,6 +63,21 @@ impl State {
         Self { best, end: vec![DEAD; len + 1], hit: if len == 0 { 0 } else { DEAD } }
     }
 
+    pub(crate) fn resize(&mut self, len: usize) {
+        self.best.resize(len + 1, DEAD);
+        self.end.resize(len + 1, DEAD);
+        self.reset();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn heap_bytes(&self) -> usize { (self.best.capacity() + self.end.capacity()) * std::mem::size_of::<i32>() }
+
+    pub(crate) fn copy_from(&mut self, other: &Self) {
+        self.best.clone_from(&other.best);
+        self.end.clone_from(&other.end);
+        self.hit = other.hit;
+    }
+
     pub(crate) fn reset(&mut self) {
         self.best.fill(DEAD);
         self.best[0] = 0;
@@ -80,7 +101,7 @@ impl State {
     }
 
     pub(crate) fn score(&self, tier: i32) -> Option<i32> {
-        (self.hit > DEAD / 2).then(|| tier + self.hit.clamp(-100_000, 100_000))
+        (self.hit > DEAD / 2).then(|| tier + self.hit.clamp(-HIT_SPAN, HIT_SPAN))
     }
 
 }
@@ -95,6 +116,8 @@ pub(crate) struct Matcher {
     typo: super::searchtypo::Plan,
     pub prefix: usize,
     parent_typo: super::searchtypo::Plan,
+    // Pass 1 of a ranked answer: a name or path that matches as a subsequence gets its class marker instead of its DP.
+    pub defer: bool,
 }
 
 impl Matcher {
@@ -111,11 +134,19 @@ impl Matcher {
         for at in (0..needle.len()).rev() {
             suffix_bits[at] = suffix_bits[at + 1] | searchbits::mask(needle[at].encode_utf8(&mut encoded).as_bytes());
         }
-        Self { needle, ascii, bits: searchbits::mask(query.as_bytes()), parent_bits: searchbits::mask(parent.as_bytes()), suffix_bits, budget, typo, prefix, parent_typo }
+        Self { needle, ascii, bits: searchbits::mask(query.as_bytes()), parent_bits: searchbits::mask(parent.as_bytes()), suffix_bits, budget, typo, prefix, parent_typo, defer: false }
+    }
+
+    pub(crate) fn deferred(query: &str) -> Self {
+        Self { defer: true, ..Self::new(query) }
     }
 
     pub(crate) fn can_narrow(before: &str, now: &str) -> bool {
-        edit_budget(before) == 0 && edit_budget(now) == 0 && now.starts_with(before)
+        if !now.starts_with(before) { return false; }
+        let budget = edit_budget(before);
+        // The first slash enables path typos, so it must not enlarge the match set.
+        budget == edit_budget(now)
+            && (budget == 0 || before.contains('/') || !now.contains('/'))
     }
 
     pub(crate) fn name(&self, letters: &[Letter], state: &mut State, edits: &mut super::searchtypo::Scratch) -> Option<i32> {
@@ -130,6 +161,7 @@ impl Matcher {
             if self.needle.get(at) == Some(&letter.lower) { at += 1; }
         }
         if at == self.needle.len() {
+            if self.defer { return Some(PENDING_NAME); }
             state.reset();
             state.advance(&self.needle, letters, true);
             return state.score(NAME);
