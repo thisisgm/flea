@@ -55,7 +55,7 @@ pub fn reveal(frame: Frame, cursor: usize, context: usize) -> f32 {
     }
     let visible = (frame.viewport() / frame.row).floor().max(1.) as usize;
     let margin = context.min(visible.saturating_sub(1) / 2);
-    let first = (frame.scroll / frame.row).floor() as usize;
+    let first = frame.grow.position_at(frame.scroll, frame.row);
     let want = if cursor < first + margin {
         cursor.saturating_sub(margin)
     } else if cursor + margin >= first + visible {

@@ -53,6 +53,7 @@ impl PaneHost {
                     total: layout.total,
                     columns: layout.columns,
                     cell_width: layout.cell_width,
+                    grow: shell.grows[side],
                     cell_origin: (layout.metrics.gap, layout.metrics.gap),
                 },
                 palette,

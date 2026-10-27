@@ -90,7 +90,7 @@ impl Shell {
                 return None;
             }
             let y = f32::from(event.position.y - drawn.bounds.origin.y) + drawn.scroll;
-            let position = (y / crate::list::pane::ROW_HEIGHT).floor() as usize;
+            let position = drawn.grow.position_at(y, crate::list::pane::ROW_HEIGHT);
             // Under a filter a position past its rows is background, never the listing row of that number.
             let index = drawn.row_at(position).unwrap_or(usize::MAX);
             let row = match &drawn.view().rows {

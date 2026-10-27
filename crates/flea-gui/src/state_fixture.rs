@@ -43,6 +43,8 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         lifecycle,
         view: View::List,
         focus_side: 0,
+        grows: Default::default(),
+        bands: Default::default(),
         keyboard: Default::default(),
         input: Default::default(),
         panes: [Some(host), None],
