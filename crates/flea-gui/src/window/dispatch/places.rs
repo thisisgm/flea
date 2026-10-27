@@ -5,7 +5,7 @@ use flea::ui_logic_pl4::rail::Kind;
 use gpui::{Context, Window};
 
 pub(super) fn run(
-    shell: &mut Shell,
+    _: &mut Shell,
     order: &Order,
     window: &mut Window,
     cx: &mut Context<Shell>,
@@ -19,6 +19,10 @@ pub(super) fn run(
     if !matches!(entry.kind, Kind::Home | Kind::Favourite | Kind::Favorite) {
         return false;
     }
-    shell.open_place_menu(request.side, entry, window, cx);
+    // Rail requests drain inside Shell::render, where a notify asks for no frame, so the menu opens after this draw.
+    let (side, entry) = (request.side, entry.clone());
+    cx.defer_in(window, move |shell, window, cx| {
+        shell.open_place_menu(side, &entry, window, cx)
+    });
     true
 }

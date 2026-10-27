@@ -25,6 +25,12 @@ const CHECK: f32 = 16.;
 #[path = "tag_tests.rs"]
 mod tag_tests;
 
+#[cfg(test)]
+thread_local! {
+    // Test-only receipt of each card frame a MenuElement painted in a real draw.
+    pub(crate) static PAINTED: RefCell<Vec<Bounds<Pixels>>> = const { RefCell::new(Vec::new()) };
+}
+
 /// The roles a menu paints with, read from the pane's palette until the theme tokens land.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MenuInk {
@@ -239,6 +245,8 @@ fn paint_card(
 ) {
     let f = card.frame;
     let frame = Bounds::new(origin + point(px(f.x), px(f.y)), size(px(f.w), px(f.h)));
+    #[cfg(test)]
+    PAINTED.with(|painted| painted.borrow_mut().push(frame));
     window.paint_quad(quad(
         frame,
         radius,
