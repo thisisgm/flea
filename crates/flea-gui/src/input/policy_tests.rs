@@ -168,7 +168,7 @@ fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppCon
     let (backend, _requests) = Backend::test_channel();
     let (shell, cx) = cx.add_window_view(|window, cx| {
         let mut shell = shell_with(backend, cx);
-        shell.launch.settings.data = flea::jsondoc::parse(r#"{"singleClick":true}"#).unwrap();
+        shell.launch.settings.data = flea::jsondoc::parse(r#"{"openMode":"single"}"#).unwrap();
         shell.opener[0].launch = |argv| {
             OPENED.with(|opened| opened.borrow_mut().push(argv[2..].join(" ")));
             (Some(0), String::new())

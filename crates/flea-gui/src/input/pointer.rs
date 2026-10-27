@@ -188,13 +188,7 @@ impl Shell {
                 return;
             }
             press.event.click_count = count;
-            let single_click = self
-                .launch
-                .settings
-                .data
-                .get("singleClick")
-                .and_then(flea::jsondoc::Json::as_bool)
-                == Some(true);
+            let single_click = self.launch.settings.single_click_open();
             if event.button == MouseButton::Left && single_click && count != 1 {
                 return;
             }
