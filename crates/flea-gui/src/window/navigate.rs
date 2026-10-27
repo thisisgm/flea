@@ -65,6 +65,16 @@ impl Shell {
         if host.stopped {
             return Ok(false);
         }
+        // Pane.qml:553: Recent shows every item it lists, so the hidden toggle refuses before any write.
+        if step == Step::ToggleHidden && host.recent.on {
+            host.status = self
+                .locale
+                .catalog
+                .tr("places.recent.hidden_refused")
+                .into();
+            cx.notify();
+            return Ok(false);
+        }
         host.prepare_grid_anchor();
         let (nav, pane, selected) = (&mut host.nav, &mut host.pane, &mut host.selected);
         let result = match step {
