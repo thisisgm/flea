@@ -371,12 +371,12 @@ fn clash_refusal() -> BackendEvent {
 }
 
 // Four rows, F2 on notes.txt, and beta.md refused: the editor stays open under the refusal.
-fn refused_clash<'a>(
-    cx: &'a mut TestAppContext,
+fn refused_clash(
+    cx: &mut TestAppContext,
     view: View,
 ) -> (
     Entity<Shell>,
-    &'a mut VisualTestContext,
+    &mut VisualTestContext,
     super::rename_tests::Lines,
 ) {
     let (shell, cx, mut lines) = ready(cx, "default");

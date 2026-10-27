@@ -1,9 +1,8 @@
 //! Pane elapsed time uses the window executor when mounted; standalone model callers keep their explicit times.
 use gpui::BackgroundExecutor;
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    Arc,
-};
+#[cfg(test)]
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 #[derive(Clone)]

@@ -141,7 +141,7 @@ fn ey164_copy_as_leaves_copy_their_value(cx: &mut TestAppContext) {
             .to_string_lossy()
             .into_owned();
         let want = want.replace("{path}", &path).replace("{root}", &root);
-        fire(cx, &mut fixture, "copyAs", leaf, &[path.clone()]);
+        fire(cx, &mut fixture, "copyAs", leaf, std::slice::from_ref(&path));
         let words = said(cx, &fixture);
         assert!(
             !words.contains("no longer available"),
@@ -270,7 +270,7 @@ fn ey195_add_to_shelf_adds_the_item(cx: &mut TestAppContext) {
         });
         fixture.open(cx, 1, vec![]);
         let path = fixture.root.join(name).to_string_lossy().into_owned();
-        fire(cx, &mut fixture, "addToShelf", "", &[path.clone()]);
+        fire(cx, &mut fixture, "addToShelf", "", std::slice::from_ref(&path));
         let words = said(cx, &fixture);
         assert!(
             !words.contains("no longer available"),
