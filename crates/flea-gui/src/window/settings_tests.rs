@@ -84,7 +84,7 @@ fn u11_closed_settings_never_expose_a_control_rectangle(cx: &mut TestAppContext)
                 read(shell, "keymapSheetResults", window, cx),
                 Reply::value("[]")
             );
-            assert_eq!(read(shell, "thumbnailPolicyState", window, cx).code, 3);
+            assert_eq!(read(shell, "thumbnailPolicyState", window, cx).code, 0);
             assert_eq!(
                 read(shell, "settingsScrollState", window, cx),
                 Reply::value("{}")

@@ -156,7 +156,7 @@ fn u01_native_readers_refuse_unavailable_producers_and_report_parse_failure(
             assert_eq!(call(shell, "wheelLines", window, cx), Reply::value("3"));
             assert_eq!(
                 call(shell, "glass", window, cx),
-                Reply::error(3, "FLEA_IPC_NOT_PORTED flea.glass")
+                Reply::error(3, "FLEA_IPC_UNAVAILABLE flea.glass: window not mounted")
             );
         });
     });
