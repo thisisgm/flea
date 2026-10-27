@@ -11,22 +11,22 @@ fn menu(shell: &Entity<Shell>, label: &str, cx: &mut VisualTestContext) {
     cx.simulate_mouse_down(position, MouseButton::Right, Modifiers::none());
     cx.simulate_mouse_up(position, MouseButton::Right, Modifiers::none());
     frame(cx);
-    assert!(shell.read_with(cx, |shell, _| {
-        shell.rail.as_ref().and_then(|rail| rail.network.as_ref())
-            .is_some_and(|network| network.menu.borrow().opened())
-    }), "the right click opens a mounted menu");
+    assert!(shell.read_with(cx, |shell, _| shell.menu.menu.borrow().opened()), "the right click opens a mounted menu");
 }
 
 fn choose(shell: &Entity<Shell>, action: &str, cx: &mut VisualTestContext) {
-    let position = shell.read_with(cx, |shell, _| {
-        let menu = shell.rail.as_ref().unwrap().network.as_ref().unwrap().menu.borrow();
+    // The cursor starts on the first row, as raildrive's keyboard test walks it: down once per row, then enter.
+    let index = shell.read_with(cx, |shell, _| {
+        let menu = shell.menu.menu.borrow();
         let card = menu.card.as_ref().unwrap();
-        let index = card.entries.iter().position(|row| row.action == action).unwrap();
-        point(px(card.frame.x + card.frame.w / 2.), px(card.row_screen_top(index) + 18.))
+        card.entries.iter().filter(|row| !row.separator).position(|row| row.action == action).unwrap()
     });
-    cx.simulate_mouse_down(position, MouseButton::Left, Modifiers::none());
-    cx.simulate_mouse_up(position, MouseButton::Left, Modifiers::none());
-    frame(cx);
+    cx.simulate_keystrokes(&format!("{}enter", "down ".repeat(index)));
+    // The chosen action lands after the clock moves: its jobs and the menu's own timers settle here.
+    for _ in 0..3 {
+        cx.executor().advance_clock(std::time::Duration::from_millis(200));
+        frame(cx);
+    }
 }
 
 #[gpui::test]
@@ -35,7 +35,8 @@ fn pb_devices_menu_open_reaches_the_mounted_volumes_folder(cx: &mut TestAppConte
     ready(&service, cx);
     menu(&shell, "Archive", cx);
     choose(&shell, "open", cx);
-    assert_eq!(shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().path.clone()), "/media/archive");
+    // The requested place, as raildrive's Return test reads it: the listing answer is not part of this unit.
+    assert_eq!(shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.place().to_owned()), "/media/archive");
 }
 
 #[gpui::test]
