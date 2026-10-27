@@ -164,6 +164,8 @@ pub struct RowsModel {
     pub corner: f32,
     /// Presses on the NETWORK heading's plus; the window opens Add a Network Share once per new press.
     pub add_presses: u64,
+    /// The row a held row drag would land on and its caption (move here, copy here or link here), RailDrop.qml's cue.
+    pub drop_target: Option<(usize, gpui::SharedString)>,
 }
 
 pub struct RailElement {
