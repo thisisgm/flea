@@ -146,7 +146,7 @@ impl Shell {
 
     fn menu_entries_keeping(&self, keep: &str) -> Vec<Entry> {
         if let Some(target) = &self.menu.rail {
-            return target.rows(self);
+            return target.rows();
         }
         if let Some(entries) = self.place_menu_entries() {
             return entries;

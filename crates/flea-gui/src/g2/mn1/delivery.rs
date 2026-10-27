@@ -1,7 +1,6 @@
 //! Snapshot retirement, backend validation and captured choices delivered to their producer owners.
 use super::{join::Chosen, menu::Outcome};
 use crate::{
-    backend::Failure,
     state::Shell,
     window::{dispatch::Order, navigate::Step},
 };
@@ -17,72 +16,10 @@ pub(crate) fn string<'a>(value: &'a Json, key: &str) -> &'a str {
 }
 
 impl Shell {
-    pub(crate) fn menu_send(&mut self, side: usize, line: String, cx: &mut Context<Self>) {
-        let Some(host) = self.panes[side].as_mut() else {
-            return;
-        };
-        let result = host
-            .backend
-            .as_ref()
-            .ok_or_else(|| Failure {
-                key: "window.backend_stopped",
-                detail: String::new(),
-            })
-            .and_then(|backend| backend.line(line));
-        if let Err(error) = result {
-            host.record_error(error, &self.locale);
-            self.menu.pending = None;
-            self.menu.activating = false;
-            self.menu.reading = false;
-            self.menu.menu.borrow_mut().close();
-            self.menu.captured = None;
-            self.menu.presentation.cancel();
-            self.keyboard.context = flea::keys::Context::Listing;
-            host.nav.gate.menu_open = false;
-            host.nav.gate.menu_pending = false;
-            let sentence = host.status.to_string();
-            self.menu_notice(side, sentence, cx);
-            cx.notify();
-        }
-    }
-
-    pub(crate) fn menu_refuse(&mut self, key: &str, cx: &mut Context<Self>) {
-        let side = self
-            .menu
-            .captured
-            .as_ref()
-            .map_or(self.focus_side, |c| c.side);
-        self.menu_notice(side, self.locale.catalog.tr(key), cx);
-    }
-
-    pub(crate) fn menu_notice(&mut self, side: usize, sentence: String, cx: &mut Context<Self>) {
-        if let Some(host) = &mut self.panes[side] {
-            host.status = sentence.clone().into();
-        }
-        self.status_messages(cx, |messages, now| {
-            messages.say(
-                &sentence,
-                true,
-                "",
-                flea::ui_logic_fb1::status::Hint::None,
-                now,
-            );
-        });
-        cx.notify();
-    }
-
-    /// Why no menu opened, when nothing failed: a foreground notice with the dismiss key after it.
-    pub(crate) fn menu_explain(&mut self, sentence: String, cx: &mut Context<Self>) {
-        self.status_messages(cx, |messages, now| {
-            messages.explain(&sentence, flea::ui_logic_fb1::status::Hint::Dismiss, now);
-        });
-        cx.notify();
-    }
-
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.menu.place = None;
+        let place = self.menu.place.take().is_some();
         let rail = self.menu.rail.take().is_some();
-        if rail {
+        if place || rail {
             self.rail_menu_hold(false, cx);
         }
         self.providers_menu_closed();
