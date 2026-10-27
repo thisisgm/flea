@@ -66,7 +66,7 @@ pub(crate) struct Columns {
     arm_entry: bool,
     pub counters: Counters,
     /// The track row under the pointer, drawn as the hover plate of its row.
-    pub hover: Option<(crate::columns::geometry::Slot, usize)>,
+    pub hover: Option<gestures::Hover>,
     path: String,
     seen: Option<Seen>,
     held: std::rc::Rc<crate::list::pane::Held>,

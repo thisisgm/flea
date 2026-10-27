@@ -2,6 +2,7 @@
 use super::host;
 use crate::columns::geometry::{Slot, LANE};
 use gpui::{point, px, Modifiers, VisualTestContext};
+use std::rc::Rc;
 
 #[test]
 fn pb_columns1_hover_tracks_rows_and_clears_on_background_and_lane() {
@@ -145,4 +146,59 @@ fn pb_columns1_hover_follows_filtered_rows_and_clears_when_navigation_is_busy() 
             );
         })
         .unwrap();
+}
+
+#[test]
+fn pb_columns1_hover_drops_when_a_still_pointer_lands_a_new_listing() {
+    let mut cx = host::context();
+    let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
+    host::change(&mut cx, handle, |shell, window, cx| {
+        host::settle(shell, window, cx);
+    });
+    host::frame(&mut cx, handle);
+    let at = handle
+        .read_with(&cx, |shell, _| {
+            let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+            let paint = columns.painters.get(Slot::Active).unwrap().borrow();
+            let bounds = paint.drawn.as_ref().unwrap().bounds;
+            point(bounds.left() + px(70.), bounds.top() + px(15.))
+        })
+        .unwrap();
+    let mut cx = VisualTestContext::from_window(handle.into(), &cx);
+    cx.simulate_mouse_move(at, None, Modifiers::none());
+    host::frame(&mut cx, handle);
+    let hover = |cx: &mut VisualTestContext| {
+        handle
+            .read_with(&*cx, |shell, _| {
+                let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+                columns
+                    .painters
+                    .get(Slot::Active)
+                    .unwrap()
+                    .borrow()
+                    .drawn
+                    .as_ref()
+                    .unwrap()
+                    .focus
+                    .hover
+            })
+            .unwrap()
+    };
+    assert_eq!(hover(&mut cx), Some((Slot::Active, 0)));
+    // The pointer stays still while the active listing is swapped for a newer one.
+    host::change(&mut cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        host.pane.held = Rc::new(crate::list::pane::Held {
+            listing: host.pane.held.listing + 1,
+            total: host.pane.held.total,
+            start: host.pane.held.start,
+            rows: host.pane.held.rows.clone(),
+        });
+    });
+    host::frame(&mut cx, handle);
+    assert_eq!(
+        hover(&mut cx),
+        None,
+        "a listing that lands under a still pointer must not keep the old row's plate"
+    );
 }

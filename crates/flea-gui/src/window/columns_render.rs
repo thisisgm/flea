@@ -49,10 +49,19 @@ impl Shell {
             _ => &host.pane.state.query,
         }
         .into();
+        // A hover reads the rows drawn when it was made: a busy pane, a new track set or a new listing drops it until the pointer moves.
+        if host.pane.busy()
+            || columns
+                .hover
+                .as_ref()
+                .is_some_and(|hover| !hover.holds(&tracks, host.pane.held.listing))
+        {
+            columns.hover = None;
+        }
         let focus = Rc::new(Focus {
             cursor: (!host.pane.busy()).then_some(host.pane.cursor),
             selected: host.selected.clone().into(),
-            hover: (!host.pane.busy()).then_some(columns.hover).flatten(),
+            hover: columns.hover.as_ref().map(|hover| (hover.slot, hover.index)),
             ..Focus::default()
         });
         drop(list);
