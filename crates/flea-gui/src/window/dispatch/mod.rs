@@ -220,6 +220,8 @@ mod search_open_tests;
 mod tabs_tests;
 #[cfg(test)]
 pub(crate) mod test_shell;
+#[cfg(test)]
+mod columns_markdown_reader_tests;
 
 #[cfg(test)]
 mod gh_preview_proof_tests;

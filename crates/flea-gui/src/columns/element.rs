@@ -83,7 +83,11 @@ impl TrackElement {
     }
 }
 
-fn row_at<'a>(rows: &'a TrackRows, held: Option<&'a Held>, index: usize) -> Option<Row<'a>> {
+pub(crate) fn row_at<'a>(
+    rows: &'a TrackRows,
+    held: Option<&'a Held>,
+    index: usize,
+) -> Option<Row<'a>> {
     match rows {
         TrackRows::Peek(rows) => rows.get(index).map(Row::Peek),
         TrackRows::Listing => held?.row(index).map(Row::Listing),
@@ -144,6 +148,7 @@ impl Element for TrackElement {
         };
         paint.drawn = Some(super::paint::Drawn {
             bounds,
+            focus: Rc::clone(&self.focus),
             tracks: Rc::clone(&self.tracks),
             at: self.at,
             scroll: self.scroll_y,
@@ -242,6 +247,7 @@ impl Element for TrackElement {
     ) {
         let palette = *palette;
         let paint = self.paint.borrow();
+        let focus = &paint.drawn.as_ref().expect("prepainted track").focus;
         let view = &self.tracks[self.at];
         let held = self.held.as_deref();
         let active = view.slot == Slot::Active;
@@ -263,12 +269,12 @@ impl Element for TrackElement {
                     continue;
                 }
                 let top = top_of(at);
-                let cursor = active && self.focus.cursor == Some(*index);
+                let cursor = active && focus.cursor == Some(*index);
                 let lifted = !cursor && self.lifted(view, held, *index);
-                if let Some(plate) = self.focus.plate(&palette, view.slot, *index, lifted) {
+                if let Some(plate) = focus.plate(&palette, view.slot, *index, lifted) {
                     window.paint_quad(fill(row_box(top, width, at), plate));
                 }
-                if self.focus.edge(view.slot, *index) {
+                if focus.edge(view.slot, *index) {
                     window.paint_quad(fill(row_box(top, EDGE, at), palette.edge()));
                 }
                 if let Some(prepared) = prepared {
@@ -295,7 +301,7 @@ impl Element for TrackElement {
                 {
                     let Some(prepared) = prepared else { continue };
                     let top = top_of(at);
-                    let cursor = active && self.focus.cursor == Some(*index);
+                    let cursor = active && focus.cursor == Some(*index);
                     let lifted = !cursor && self.lifted(view, held, *index);
                     let chevron = prepared.dir && (cursor || lifted);
                     let inks = palette.row_ink(*clip, cursor, lifted, view.dim);
