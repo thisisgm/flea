@@ -299,6 +299,7 @@ impl Shell {
         }
         if let Some(message) = said.last() {
             host.status = message.text.clone().into();
+            host.operation_line = Some(message.text.clone());
         } else if !sticky.is_empty() {
             host.status = sticky.clone().into();
         }

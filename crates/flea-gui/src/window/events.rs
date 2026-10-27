@@ -73,6 +73,7 @@ impl Shell {
             if let Some(parsed) = flea::ui_logic_op1::parse(line) {
                 self.operation_line(side, line, window, cx);
                 if let flea::ui_logic_op1::Event::TransferDone(done) = parsed {
+                    self.transfer_refresh(side, window, cx);
                     self.retry_failed(side, &done.retry_paths, window, cx);
                 }
             }

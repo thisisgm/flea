@@ -11,8 +11,9 @@ const FORMS: [(&str, &str); 6] = [
     ("copyQuoted", "'/files/a.txt'\n'/files/b.txt'"),
 ];
 
-fn menu(cx: &mut TestAppContext, handle: Handle, lines: &mut impl FnMut() -> Vec<String>) -> usize {
-    key(cx, handle, "m");
+// The listing key opens the cursor menu; its snapshot and applications answers ready the rows.
+fn menu(cx: &mut TestAppContext, handle: Handle, lines: &mut impl FnMut() -> Vec<String>, press: &str) -> usize {
+    key(cx, handle, press);
     let id = lines()
         .iter()
         .find_map(|line| {
@@ -48,8 +49,7 @@ fn copy_as(cx: &mut TestAppContext, pointer: bool, shown: bool) {
     lines();
     for (index, (leaf, expected)) in FORMS.iter().enumerate() {
         cx.update(|cx| cx.write_to_clipboard(ClipboardItem::new_string("sentinel".into())));
-        let id = menu(cx, handle, &mut lines);
-        key(cx, handle, "c");
+        let id = menu(cx, handle, &mut lines, "c");
         if pointer {
             let at = edit(cx, handle, |shell, _, _| {
                 let menu = shell.menu.menu.borrow();
@@ -172,7 +172,7 @@ fn pb_clipboard_ey169_keep_both_refreshes_without_selection(cx: &mut TestAppCont
     reply(
         cx,
         handle,
-        r#"{"t":"rows","start":0,"listing":4,"rows":[{"n":"a (copy).txt"},{"n":"a.txt"},{"n":"b.txt"},{"n":"c.txt"}]}"#,
+        r#"{"t":"rows","start":0,"listing":4,"rows":[{"n":"a (copy).txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"a.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"b.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"c.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"}]}"#,
     );
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
@@ -185,23 +185,23 @@ fn pb_clipboard_ey169_keep_both_refreshes_without_selection(cx: &mut TestAppCont
 
 #[gpui::test]
 fn pb_clipboard_paste_as_hidden_leaves_reach_the_file_clipboard(cx: &mut TestAppContext) {
-    let (handle, mut lines) = open(cx);
-    edit(cx, handle, |shell, _, _| {
-        shell.launch.settings.data =
-            flea::jsondoc::parse(r#"{"keys":"default","menu":{"hidden":["pasteAs"]}}"#).unwrap();
-    });
-    reply(
-        cx,
-        handle,
-        r#"{"t":"clip","op":"changed","clip":"copy","paths":["/other/a.txt"],"token":"T1"}"#,
-    );
-    lines();
     for (index, leaf) in ["pasteLink", "pasteAbsoluteLink", "pasteHardLink"]
         .iter()
         .enumerate()
     {
-        let id = menu(cx, handle, &mut lines);
-        key(cx, handle, "shift-p");
+        // Each leaf starts in a fresh window: the collision ask a paste leaves open would refuse the next one.
+        let (handle, mut lines) = open(cx);
+        edit(cx, handle, |shell, _, _| {
+            shell.launch.settings.data =
+                flea::jsondoc::parse(r#"{"keys":"default","menu":{"hidden":["pasteAs"]}}"#).unwrap();
+        });
+        reply(
+            cx,
+            handle,
+            r#"{"t":"clip","op":"changed","clip":"copy","paths":["/other/a.txt"],"token":"T1"}"#,
+        );
+        lines();
+        let id = menu(cx, handle, &mut lines, "shift-p");
         for _ in 0..index {
             key(cx, handle, "down");
         }
@@ -225,7 +225,5 @@ fn pb_clipboard_paste_as_hidden_leaves_reach_the_file_clipboard(cx: &mut TestApp
             asked.iter().any(|line| line.contains("/other/a.txt")),
             "Paste As uses the file clipboard rather than the menu snapshot: {asked:?}"
         );
-        key(cx, handle, "escape");
-        lines();
     }
 }

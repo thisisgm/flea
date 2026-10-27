@@ -40,6 +40,8 @@ pub(crate) struct PaneHost {
     pub nav: Navigator,
     pub watch_task: Option<(u64, Task<()>)>,
     pub retry_line: RefCell<Option<super::retry::RetryLine>>,
+    // The operation line last written to status; a listing that lands after it keeps it, as ui/StatusBar.qml keeps its notice.
+    pub operation_line: Option<String>,
     applied_listing: usize,
 }
 
@@ -94,6 +96,7 @@ impl PaneHost {
             nav: Navigator::new(Rc::default(), Rc::default()),
             watch_task: None,
             retry_line: RefCell::new(None),
+            operation_line: None,
             applied_listing: 0,
         }
     }
@@ -173,7 +176,9 @@ impl PaneHost {
         self.error = None;
         self.failure = None;
         self.state_text = self.pane.state.text(&locale.catalog, self.pane.held.total);
-        self.status = self.state_text.status.clone().into();
+        if self.operation_line.as_deref() != Some(self.status.as_ref()) {
+            self.status = self.state_text.status.clone().into();
+        }
         if self.answered {
             self.apply_select();
         }
