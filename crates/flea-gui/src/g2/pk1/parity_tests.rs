@@ -343,3 +343,41 @@ fn pb_picker1_filter_line_select_all_uses_selection_owner(cx: &mut TestAppContex
     f.cx.run_until_parked();
     assert!(f.checks.sent().last().unwrap().contains(r#""op":"select""#));
 }
+
+#[gpui::test]
+fn pb_picker1_ctrl_backspace_edits_the_save_name(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"mode":"save","folder":"/d","name":"a.txt"}"#, None);
+    seed(&mut f, "/d");
+    let name = f
+        .read(|picker| picker.browse.filename.clone())
+        .expect("Save has its name field");
+    let focus = f.cx.update(|_, cx| name.read(cx).focus.clone());
+    f.cx.update(|window, cx| window.focus(&focus, cx));
+    f.cx.run_until_parked();
+    let sent = f.listing.sent().len();
+    f.cx.simulate_keystrokes("ctrl-backspace");
+    f.cx.run_until_parked();
+    assert!(
+        !f.listing.sent()[sent..]
+            .iter()
+            .any(|line| line.contains(r#""c":"list""#)),
+        "Ctrl+Backspace in the name field edits the name, never the folder"
+    );
+}
+
+#[gpui::test]
+fn pb_picker1_shift_arrow_moves_the_cursor_without_a_range(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    seed(&mut f, "/d");
+    let before = f.read(|picker| picker.listing.cursor);
+    f.cx.simulate_keystrokes("shift-down");
+    f.cx.run_until_parked();
+    assert_eq!(
+        f.read(|picker| picker.listing.cursor),
+        before + 1,
+        "Shift+Down moves the cursor where no range is allowed"
+    );
+    f.cx.simulate_keystrokes("shift-up");
+    f.cx.run_until_parked();
+    assert_eq!(f.read(|picker| picker.listing.cursor), before);
+}

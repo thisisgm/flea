@@ -210993,7 +210993,7 @@
     "crates/flea-gui/src/g2/pk1/ime.rs": "216ff711c05233a4fb4ea433628aff05c710955d338c0e708bd90ffc55fb3dad",
     "crates/flea-gui/src/g2/pk1/ipc.rs": "8b9fd45ec3bae62e50b34ab256b8b38e997c65900317b5afcf7b40b524225e91",
     "crates/flea-gui/src/g2/pk1/jump.rs": "8c007ab74d9b52a3ce557bdc7fbf011e4ff08f5b6e18bfee35274ee3afcb4a82",
-    "crates/flea-gui/src/g2/pk1/keys.rs": "53d03a5a134c77a3a2c5727b1cfdff3305327df33d61c8e47107f8d405fbdd9d",
+    "crates/flea-gui/src/g2/pk1/keys.rs": "046c1bd3616ab4f85794675a2d9019ca7d48c52fc21d9b845f0b737400f1895c",
     "crates/flea-gui/src/g2/pk1/labels.rs": "9900b3885dbb462e355d142ef43265b44c6e0c1ad373f3f9eb843f263964d0d3",
     "crates/flea-gui/src/g2/pk1/launch.rs": "13191bf9e7dd6f61ec9a146d628e3c65912116e3ff2ebf7714e3afca5b308765",
     "crates/flea-gui/src/g2/pk1/mod.rs": "9eaa76abb7cb594c603f97955fc9c9b9470bf275327b3efca199d7c7d6d024be",
@@ -211003,7 +211003,7 @@
     "crates/flea-gui/src/g2/pk1/reply.rs": "c068c97c113c1c8284d75d30c3d8809ae26c681301fad2d52f529116a03d8261",
     "crates/flea-gui/src/g2/pk1/restore.rs": "a06408d141132341345c16429c05b28ebe6791ca040f993cddec19aca55ea52d",
     "crates/flea-gui/src/g2/pk1/route.rs": "013a4baf89d6e7d3f378eb7a8abd9d44d29930499c28cd806171230a9b5aa793",
-    "crates/flea-gui/src/g2/pk1/selection.rs": "314832af1bf591619852ee8e731a3aafb41e312574756306925a0bd604adefd6",
+    "crates/flea-gui/src/g2/pk1/selection.rs": "7a67cb62c84d31688b53468dae7b214d28a3c20fba99e10fb027beee8cb94d02",
     "crates/flea-gui/src/g2/pk1/settings.rs": "01234c27f29740c802b5aa8f84659b135d7b9199220d53be1dc55a1947c4e18b",
     "crates/flea-gui/src/g2/pk1/text.rs": "79e715b8069c1bdd603777e8a488e12419ebf406df10d49b9e2f552e3b34b75e",
     "crates/flea-gui/src/g2/pk1/view.rs": "558f2cefe52d4f52d820edb492559dd76d2ff3e54f7adccbdccd81b8aefc5214",
@@ -212941,8 +212941,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "499d00d226c6c3efc40c27d75dab715b06fa0848",
-  "source_sha": "499d00d226c6c3efc40c27d75dab715b06fa0848",
+  "source_ref_sha": "b97f24543d0bdd1af262976aeb9a14be43f7f161",
+  "source_sha": "b97f24543d0bdd1af262976aeb9a14be43f7f161",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
