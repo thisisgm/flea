@@ -104,7 +104,8 @@ def generate(data, rust=False):
             seen[key] = row['action']
             shared.append(dict(name='all', mods=mods, key=key, keys=row.get('keys', caps(mods, key)),
                                action=row['action'], context='listing', frontend='all',
-                               **({} if row.get('sheet', True) else {'sheet': False})))
+                               **({} if row.get('sheet', True) else {'sheet': False}),
+                               **({'label': row['label']} if 'label' in row else {})))
     check_groups(data, bindings + shared)
     if rust:
         return generate_rust(data, bindings, shared, CONTEXTS)
