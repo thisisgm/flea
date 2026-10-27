@@ -116,7 +116,8 @@ fn pb_network_mountinfo_rebuilds_root_rows_without_replacing_gio(cx: &mut TestAp
     );
 }
 
-#[gpui::test]
+// The scheduler orders the two background reads by seed, so the sweep covers seeds where the older read finishes last.
+#[gpui::test(iterations = 16)]
 fn pb_network_mountinfo_newer_snapshot_supersedes_older_read(cx: &mut TestAppContext) {
     let (shell, cx) = root(cx);
     let old = send(
