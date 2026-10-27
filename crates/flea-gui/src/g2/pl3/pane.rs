@@ -65,6 +65,8 @@ pub struct TrashPane {
     // The last pointer point over the rows, and whether the keyboard has quieted its wash since (#322).
     pub(super) pointer: Option<gpui::Point<gpui::Pixels>>,
     pub(super) quiet: bool,
+    /// The strip's controls as the last frame laid them out, for the IPC centre readers.
+    pub controls: super::controls::Controls,
 }
 
 impl TrashPane {
@@ -88,6 +90,7 @@ impl TrashPane {
             ))),
             focus: cx.focus_handle(),
             button: Button::default(),
+            controls: Default::default(),
             scrollbar: Default::default(),
             menu_open: false,
             width: 0.,

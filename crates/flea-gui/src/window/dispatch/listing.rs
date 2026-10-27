@@ -98,9 +98,14 @@ impl Shell {
         self.dispatch(Order::Action(event), window, cx);
     }
 
+    /// The escapeUp setting: with it on, Escape cancels a live arm or pair first and then climbs.
+    pub(crate) fn escape_up_on(&self) -> bool {
+        flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["escapeUp"])
+    }
+
     /// Focus.js escapeUp: Escape climbs only with the setting on and nothing else owning the key; a landed row is no mark.
     pub(crate) fn escape_climbs(&self) -> bool {
-        if !flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["escapeUp"]) {
+        if !self.escape_up_on() {
             return false;
         }
         let Some(host) = self.panes[self.focus_side].as_ref() else {

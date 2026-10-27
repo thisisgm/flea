@@ -44,6 +44,10 @@ impl Shell {
                 if self.network_mountinfo_call(&request, &answer, cx) {
                     return;
                 }
+                if let Some(reply) = self.trash_focus_call(&request, window, cx) {
+                    let _ = answer.try_send(crate::ipc::server::Answer { reply, quit: false });
+                    return;
+                }
                 let Some(host) = &self.panes[self.focus_side] else {
                     return;
                 };
