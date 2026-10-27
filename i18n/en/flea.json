@@ -2300,5 +2300,8 @@
   "keys.menu": "Menu",
   "keys.openTerminal": "Open terminal",
   "keys.openAgent": "Open agent here",
-  "keys.print": "Print…"
+  "keys.print": "Print…",
+  "drag.copy_to": "Copy %1 to %2",
+  "drag.link_to": "Link %1 to %2",
+  "drag.move_to": "Move %1 to %2 · Ctrl copies, Shift moves"
 }
