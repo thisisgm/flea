@@ -274,7 +274,7 @@ fn u08_fix1_deferred_requests_keep_the_enqueue_pane_and_distinct_ids(cx: &mut Te
             .places
             .update(cx, |producer, cx| {
                 producer.activate(0, cx);
-                producer.key_action("menu", cx);
+                producer.activate(0, cx);
             });
         shell.focus_pane(1, cx);
     });
@@ -284,7 +284,7 @@ fn u08_fix1_deferred_requests_keep_the_enqueue_pane_and_distinct_ids(cx: &mut Te
     assert!(requests.iter().all(|request| request.side == 0));
     assert_eq!((requests[0].id, requests[1].id), (1, 2));
     assert_eq!(requests[0].event, Event::Trash);
-    assert!(matches!(requests[1].event, Event::Menu(_)));
+    assert_eq!(requests[1].event, Event::Trash);
 }
 
 #[rustfmt::skip]

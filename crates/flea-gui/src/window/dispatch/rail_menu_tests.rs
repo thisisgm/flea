@@ -58,7 +58,8 @@ fn pb_rail_2_ey165_right_click_reads_favourite_menu_without_navigation(cx: &mut 
     let (_, at) = row(&shell, cx, Kind::Favourite);
     click(cx, at, MouseButton::Right);
     assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "true");
-    assert_eq!(read(&shell, cx, "contextMenuEntries", &[]), "Open|Open in New Tab|Open in Terminal|Copy Path|Remove from Favorites");
+    assert_eq!(read(&shell, cx, "contextMenuEntries", &[]), "Open|Open in New Tab|-|Open in Terminal|Copy Path|Remove from Favorites");
+    shell.read_with(cx, |shell, cx| assert!(shell.rail.as_ref().unwrap().host.read(cx).rail.wants().menu, "the rail stays up under its own menu"));
     unchanged(&shell, cx);
     choose(&shell, cx, "copypath");
     assert_eq!(cx.update(|_, cx| cx.read_from_clipboard().unwrap().text().unwrap()), "/docs");
@@ -78,7 +79,7 @@ fn pb_rail_2_ey176_m_reads_menu_and_opens_docs_in_a_new_tab(cx: &mut TestAppCont
     settle(cx);
     cx.simulate_keystrokes("m");
     settle(cx);
-    assert_eq!(read(&shell, cx, "contextMenuEntries", &[]), "Open|Open in New Tab|Open in Terminal|Copy Path|Remove from Favorites");
+    assert_eq!(read(&shell, cx, "contextMenuEntries", &[]), "Open|Open in New Tab|-|Open in Terminal|Copy Path|Remove from Favorites");
     unchanged(&shell, cx);
     choose(&shell, cx, "openTab");
     settle(cx);
@@ -93,7 +94,7 @@ fn pb_rail_2_ey176_right_click_trash_reads_restore_all(cx: &mut TestAppContext) 
     let (_, at) = row(&shell, cx, Kind::Trash);
     click(cx, at, MouseButton::Right);
     assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "true");
-    assert_eq!(read(&shell, cx, "contextMenuEntries", &[]), "Open|Restore All|Empty Trash…");
+    assert_eq!(read(&shell, cx, "contextMenuEntries", &[]), "Open|-|Restore All|-|Empty Trash…");
     unchanged(&shell, cx);
     cx.simulate_keystrokes("escape");
     settle(cx);
@@ -111,6 +112,8 @@ fn pb_rail_2_quiet_default_keeps_the_remove_only_favourite_menu(cx: &mut TestApp
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+// BLOCKED-LEASE g2/pl4 (I50-16 owns g2/pl4/**): the favourite inspection needs producer.rs and service.rs. Draft: .superpowers/PB-RAIL-2/producer-inspect.rs.pending.
+#[ignore = "BLOCKED-LEASE g2/pl4: favourite inspection, see RESULT.md"]
 #[gpui::test]
 fn pb_rail_2_visible_favourite_is_inspected_and_carries_the_diagnostic(cx: &mut TestAppContext) {
     use std::os::unix::fs::PermissionsExt;

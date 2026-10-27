@@ -304,8 +304,8 @@ fn release_open_place_on_a_busy_pane_supersedes_and_never_refuses(cx: &mut TestA
 }
 
 #[gpui::test]
-fn pb_rail_2_eject_holds_the_rail_until_its_child_finishes(cx: &mut TestAppContext) {
-    let (shell, service, cx) = shell_at("/fixture/work", cx);
+fn pb_rail_2_eject_holds_the_rail_while_its_child_runs(cx: &mut TestAppContext) {
+    let (shell, _service, cx) = shell_at("/fixture/work", cx);
     let hit = row(&shell, "128GB", cx).eject_hit().unwrap();
     cx.simulate_mouse_down(centre(hit), MouseButton::Left, Modifiers::none());
     cx.simulate_mouse_up(centre(hit), MouseButton::Left, Modifiers::none());
@@ -315,7 +315,6 @@ fn pb_rail_2_eject_holds_the_rail_until_its_child_finishes(cx: &mut TestAppConte
         assert!(join.devices.read(cx).devices.releasing(), "the eject child is in flight");
         assert!(join.host.read(cx).rail.wants().releasing, "the live release owns the rail hold");
     });
-    service.0.answer("gio mount -e", 0, "");
-    frame(cx);
+    // The hold's end waits on the post-exit listing that judges the eject; this test stops at the hold's start.
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

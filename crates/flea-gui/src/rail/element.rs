@@ -340,7 +340,7 @@ impl Element for RailElement {
                                 ));
                             }
                         }
-                        label.paint(origin, rect.y, rect.height, palette.foreground, window);
+                        label.paint(origin, rect.y, rect.height, super::label_ink(row.error, &palette), window);
                     },
                 );
                 ready.details[at].paint(

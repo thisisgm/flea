@@ -145,10 +145,22 @@ impl Shell {
         }
     }
 
+    /// A device release in flight holds the rail up, as PaneRail.qml releaseHold does, and lets go when the child ends.
+    fn hold_rail_for_release(&mut self, cx: &mut Context<Self>) {
+        let Some(join) = &self.rail else {
+            return;
+        };
+        let releasing = join.devices.read(cx).devices.releasing();
+        if join.host.read(cx).rail.wants().releasing != releasing {
+            join.host.update(cx, |host, cx| host.releasing(releasing, cx));
+        }
+    }
+
     /// A row's request is applied once the frame can still run: opens route through the pane's own step.
     pub(crate) fn route_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.settle_rail_drag(window, cx);
         self.route_device_events(window, cx);
+        self.hold_rail_for_release(cx);
         if let Some(held) = self
             .rail
             .as_mut()

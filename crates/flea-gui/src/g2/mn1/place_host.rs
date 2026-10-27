@@ -139,6 +139,7 @@ impl Shell {
             entry: entry.clone(),
             device,
         });
+        self.rail_menu_hold(true, cx);
         let pointer = window.mouse_position();
         let pointer_at = (f32::from(pointer.x), f32::from(pointer.y));
         let at = self
