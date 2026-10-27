@@ -20,6 +20,16 @@
       "caller": "flea_gui::columns::folder_size_tests::collect",
       "symbol": "std::thread::sleep",
       "reason": "Test helper polling the stub backend's reply channel between try_recv attempts; it runs on the test thread, never a UI callback"
+    },
+    {
+      "caller": "flea_gui::window::network_cloud::Sources::read_mountinfo",
+      "symbol": "std::fs::read_to_string",
+      "reason": "Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure"
+    },
+    {
+      "caller": "flea_gui::window::network_cloud::Sources::load_rows",
+      "symbol": "read_to_string",
+      "reason": "Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure"
     }
   ],
   "non_color_hex_constants": [],

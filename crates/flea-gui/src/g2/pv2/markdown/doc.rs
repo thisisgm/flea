@@ -245,7 +245,7 @@ impl MarkdownView {
             },
             head: true,
         };
-        self.workers.load(seq, path, parse);
+        self.workers.load(seq, path, parse, self.source.truncate);
         cx.notify();
     }
 

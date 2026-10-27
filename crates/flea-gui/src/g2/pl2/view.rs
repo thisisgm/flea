@@ -11,6 +11,7 @@ use std::{cell::RefCell, sync::Arc};
 
 pub struct NetworkEvent(pub Effect);
 pub struct NetworkView {
+    pub(super) motion: crate::reveal::Reveal,
     pub model: Dialog,
     pub palette: CardPalette,
     pub cards_below: usize,
@@ -37,6 +38,7 @@ impl EventEmitter<NetworkEvent> for NetworkView {}
 impl NetworkView {
     pub fn new(catalog: Arc<I18n>, palette: CardPalette, cx: &mut Context<Self>) -> Self {
         Self {
+            motion: Default::default(),
             words: Words::new(&catalog),
             catalog,
             palette,
@@ -68,6 +70,9 @@ impl NetworkView {
         self.load_input();
         self.effects(effects, cx);
         window.focus(&self.focus, cx);
+    }
+    pub(crate) fn visible(&self) -> bool {
+        self.model.opened || self.motion.visible()
     }
     pub fn open_for(&mut self, origin: u64, window: &mut Window, cx: &mut Context<Self>) {
         if self.model.opened || self.model.busy() {

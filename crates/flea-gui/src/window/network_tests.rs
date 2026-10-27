@@ -300,3 +300,12 @@ mod ipc_tests;
 
 #[path = "network_typing_tests.rs"]
 mod typing;
+
+#[path = "network_parity_tests.rs"]
+mod parity_tests;
+
+#[path = "network_cloud_tests.rs"]
+mod cloud_tests;
+
+#[path = "network_motion_tests.rs"]
+mod motion_tests;

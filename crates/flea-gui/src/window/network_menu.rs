@@ -201,7 +201,7 @@ impl Shell {
         };
         let mut layers = Vec::new();
         let browser = network.shares.read(cx);
-        if browser.model.open {
+        if browser.visible() {
             if let Some(side) = self.network_side(browser.model.origin) {
                 let rect = self.geometry(window).panes[side];
                 layers.push(
@@ -216,7 +216,7 @@ impl Shell {
                 );
             }
         }
-        if network.card.read(cx).model.opened {
+        if network.card.read(cx).visible() {
             layers.push(
                 gpui::deferred(div().absolute().inset_0().child(network.card.clone()))
                     .with_priority(2)

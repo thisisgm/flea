@@ -78,31 +78,41 @@ impl Shell {
         }
     }
 
+    /// A saved bookmark write landed: the rows and crumb labels rebuild from the file it just wrote.
+    pub(super) fn network_saved(&mut self, cx: &mut Context<Self>) {
+        if let Some(network) = self.network() {
+            network.rows_generation += 1;
+        }
+        self.network_rows(cx);
+    }
+
     /// mountinfo and the bookmarks file are read off the UI thread, then the rows rebuild from the last good listing.
-    fn network_rows(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn network_rows(&mut self, cx: &mut Context<Self>) {
         let Some(network) = self.network() else {
             return;
         };
         let gio = network.listing.text.clone();
         let path = network.bookmarks.clone();
+        let sources = network.sources.clone();
+        let generation = network.rows_generation;
         let read = cx.background_spawn(async move {
             let marks = std::fs::read_to_string(path).unwrap_or_default();
-            let mountinfo = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
+            let mountinfo = sources.read_mountinfo();
             let ready = !mountinfo.is_empty();
-            let rows = flea::ui_logic_pl2::rail::rebuild(
-                &gio,
-                &flea::ui_logic_pl1::mounts::non_file_bookmarks(&marks),
-                &mountinfo,
-            );
+            let rows = sources.load_rows(&gio, &marks, &mountinfo);
             (rows, crate::path::aliases::saved_labels(&marks), ready)
         });
         let task = cx.spawn(async move |this, cx| {
             let (rows, labels, ready) = read.await;
             let _ = this.update(cx, |shell, cx| {
-                if let Some(network) = shell.network() {
-                    network.built = true;
-                    network.mountinfo_ready = ready;
+                let Some(network) = shell.network() else {
+                    return;
+                };
+                if network.rows_generation != generation {
+                    return;
                 }
+                network.built = true;
+                network.mountinfo_ready = ready;
                 if shell.path_saved_labels(labels) {
                     cx.notify();
                 }

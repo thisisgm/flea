@@ -24,6 +24,7 @@ use std::{cell::RefCell, sync::Arc};
 pub struct Activated(pub String, pub String, pub u64);
 pub struct Closed(pub u64);
 pub struct ShareView {
+    motion: crate::reveal::Reveal,
     pub model: Browser,
     pub palette: CardPalette,
     catalog: Arc<I18n>,
@@ -45,6 +46,7 @@ impl EventEmitter<Closed> for ShareView {}
 impl ShareView {
     pub fn new(catalog: Arc<I18n>, palette: CardPalette, cx: &mut Context<Self>) -> Self {
         Self {
+            motion: Default::default(),
             model: Browser::default(),
             palette,
             catalog,
@@ -88,6 +90,9 @@ impl ShareView {
             cx.notify();
         }
     }
+    pub(crate) fn visible(&self) -> bool {
+        self.model.open || self.motion.visible()
+    }
     // G1 dispatch passes the generated action name and retains ownership of the keymap.
     pub fn action(&mut self, action: &str, cx: &mut Context<Self>) -> bool {
         if !self.model.open {
@@ -104,6 +109,9 @@ impl ShareView {
         true
     }
     fn row_at(&self, position: gpui::Point<Pixels>) -> Option<usize> {
+        if !self.model.open {
+            return None;
+        }
         let bounds = self.bounds?;
         if !bounds.contains(&position) {
             return None;
@@ -121,52 +129,68 @@ impl ShareView {
     }
 }
 impl gpui::Render for ShareView {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let motion = self.motion.sample(
+            self.model.open,
+            cx.background_executor().now(),
+            cx.reduce_motion(),
+        );
+        if motion.animating {
+            window.request_animation_frame();
+        }
         let root = div()
             .id("g2-pl2-shares")
             .size_full()
             .track_focus(&self.focus);
-        if !self.model.open {
+        if !motion.visible {
             return root;
         }
-        root.child(Rows(cx.entity()))
-            .on_mouse_down(
-                gpui::MouseButton::Left,
-                cx.listener(|this, e: &gpui::MouseDownEvent, _, cx| {
-                    cx.stop_propagation();
-                    this.pressed = this.row_at(e.position);
-                    cx.notify();
-                }),
-            )
-            .on_mouse_up(
-                gpui::MouseButton::Left,
-                cx.listener(|this, e: &gpui::MouseUpEvent, _, cx| {
-                    cx.stop_propagation();
-                    let row = this.row_at(e.position);
-                    if let Some(row) = row.filter(|row| Some(*row) == this.pressed.take()) {
-                        this.model.cursor = row;
-                        this.activate(cx);
-                    }
-                    this.pressed = None;
-                    cx.notify();
-                }),
-            )
-            .on_mouse_up_out(
-                gpui::MouseButton::Left,
-                cx.listener(|this, _, _, cx| {
-                    this.pressed = None;
-                    cx.notify();
-                }),
-            )
-            .on_mouse_move(cx.listener(|this, e: &gpui::MouseMoveEvent, _, cx| {
+        root.child(
+            div()
+                .debug_selector(|| "share-motion".into())
+                .size_full()
+                .relative()
+                .top(px(motion.rise))
+                .opacity(motion.opacity)
+                .child(Rows(cx.entity())),
+        )
+        .on_mouse_down(
+            gpui::MouseButton::Left,
+            cx.listener(|this, e: &gpui::MouseDownEvent, _, cx| {
+                cx.stop_propagation();
+                this.pressed = this.row_at(e.position);
+                cx.notify();
+            }),
+        )
+        .on_mouse_up(
+            gpui::MouseButton::Left,
+            cx.listener(|this, e: &gpui::MouseUpEvent, _, cx| {
+                cx.stop_propagation();
                 let row = this.row_at(e.position);
-                if row != this.hovered {
-                    this.hovered = row;
-                    cx.notify();
+                if let Some(row) = row.filter(|row| Some(*row) == this.pressed.take()) {
+                    this.model.cursor = row;
+                    this.activate(cx);
                 }
-            }))
-            .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
-            .on_mouse_down(gpui::MouseButton::Right, |_, _, cx| cx.stop_propagation())
+                this.pressed = None;
+                cx.notify();
+            }),
+        )
+        .on_mouse_up_out(
+            gpui::MouseButton::Left,
+            cx.listener(|this, _, _, cx| {
+                this.pressed = None;
+                cx.notify();
+            }),
+        )
+        .on_mouse_move(cx.listener(|this, e: &gpui::MouseMoveEvent, _, cx| {
+            let row = this.row_at(e.position);
+            if row != this.hovered {
+                this.hovered = row;
+                cx.notify();
+            }
+        }))
+        .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
+        .on_mouse_down(gpui::MouseButton::Right, |_, _, cx| cx.stop_propagation())
     }
 }
 

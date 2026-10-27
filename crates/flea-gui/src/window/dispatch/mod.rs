@@ -75,6 +75,8 @@ impl Shell {
 #[cfg(test)]
 mod clipboard_tests;
 #[cfg(test)]
+mod network_parity_tests;
+#[cfg(test)]
 mod compare_tests;
 #[cfg(test)]
 mod effect_tests;
@@ -217,7 +219,7 @@ mod search_open_tests;
 #[cfg(test)]
 mod tabs_tests;
 #[cfg(test)]
-mod test_shell;
+pub(crate) mod test_shell;
 
 #[cfg(test)]
 mod gh_preview_proof_tests;
