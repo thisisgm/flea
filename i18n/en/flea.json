@@ -340,7 +340,7 @@
   "drag.inside": "That folder is inside the drag.",
   "drag.already_here": "Already in this folder.",
   "drag.no_local_files": "That drag has no local files.",
-  "drag.move_to_folder": "Move %1 to a folder · Ctrl copies, Shift moves",
+  "drag.move_to_folder": "Move %1 to a folder · ctrl copies, shift moves",
   "drag.copy_to_folder": "Copy %1 to a folder",
   "drag.link_to_folder": "Link %1 to a folder",
   "drag.too_wide": "%1 · too wide to drag out",
@@ -2303,5 +2303,5 @@
   "keys.print": "Print…",
   "drag.copy_to": "Copy %1 to %2",
   "drag.link_to": "Link %1 to %2",
-  "drag.move_to": "Move %1 to %2 · Ctrl copies, Shift moves"
+  "drag.move_to": "Move %1 to %2 · ctrl copies, shift moves"
 }

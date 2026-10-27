@@ -160,7 +160,7 @@ fn ey221_raildrop_held_over_home_lights_move_here_and_says_the_line() {
     let (target, lines) = cue(&mut vcx, handle);
     assert_eq!(target, Some((0, "move here".to_owned())));
     assert!(
-        lines.contains(&"Move 1 item to Home · Ctrl copies, Shift moves".to_owned()),
+        lines.contains(&"Move 1 item to Home · ctrl copies, shift moves".to_owned()),
         "{lines:?}"
     );
     vcx.simulate_mouse_move(file, Some(MouseButton::Left), Modifiers::default());
