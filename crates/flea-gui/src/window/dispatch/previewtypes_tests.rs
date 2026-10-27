@@ -196,6 +196,75 @@ fn a_column_focused_before_its_clip_draws_takes_the_media_keys(cx: &mut TestAppC
     assert!(cx.update(|_, cx| MediaSound::get(cx).muted), "m mutes the clip drawn after the focus");
 }
 
+// EY-206: the play mark and the strip are two drawn boxes, and a paused clip at its start reads position 0 as Ipc.qml's mediaPosition does.
+#[gpui::test]
+fn ey206_strip_centres_come_from_drawn_boxes_and_a_paused_clip_reads_zero(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx) = open(cx, "/files");
+    let rows = vec![file("clip.mp4", "video-x-generic", "MPEG-4 video", 0o100644)];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    let decoder = Decoder::default();
+    let backend: Rc<dyn engine::Backend> = Rc::new(decoder.clone());
+    cx.update(|_, cx| {
+        let preview = shell.read(cx).selection_preview(0).expect("the column is mounted");
+        preview.update(cx, |view, _| view.set_media_backend(backend));
+    });
+    let lines = local(&shell, cx, "/files");
+    meta(&shell, cx, &lines, r#","w":2,"h":2,"ms":2000"#);
+    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    pump(cx);
+    assert_eq!(read(&shell, cx, "columnPlayerLoaded", &[]), "false");
+    assert_eq!(position(&shell, cx), 0, "a clip with no player yet reads position 0");
+    cx.simulate_keystrokes("ctrl-tab");
+    cx.simulate_keystrokes("p");
+    pump(cx);
+    let centre = read(&shell, cx, "columnPlayCentre", &[]);
+    press(cx, &centre, 1);
+    pump(cx);
+    assert_eq!(
+        read(&shell, cx, "columnMediaPlaying", &[]),
+        "false",
+        "the play mark pauses"
+    );
+    assert_eq!(
+        position(&shell, cx),
+        0,
+        "a paused clip at its start reads position 0"
+    );
+    let strip = cx
+        .update(|_, cx| {
+            let preview = shell
+                .read(cx)
+                .selection_preview(0)
+                .expect("the column is mounted");
+            let view = preview.read(cx);
+            let strip = *view.play_rect.borrow();
+            strip
+        })
+        .expect("the strip is drawn");
+    let (left, width) = (f32::from(strip.left()), f32::from(strip.size.width));
+    let at = |value: String| -> (f32, f32) {
+        let mut values = value.split_whitespace().map(|v| v.parse::<f32>().unwrap());
+        (values.next().unwrap(), values.next().unwrap())
+    };
+    let (play_x, play_y) = at(read(&shell, cx, "columnPlayCentre", &[]));
+    let (strip_x, strip_y) = at(read(&shell, cx, "columnStripCentre", &[]));
+    assert!(
+        strip_x > left && (strip_x - (left + width / 2.)).abs() <= 1.,
+        "the strip centre is the middle of the drawn strip: {strip_x} in {strip:?}"
+    );
+    assert!(
+        left < play_x && play_x < left + width / 4.,
+        "the play centre is the drawn play mark, one slot at the strip's left: {play_x} in {strip:?}"
+    );
+    assert!(
+        play_x < strip_x,
+        "the play mark is not the strip's middle: {play_x} {strip_x}"
+    );
+    assert!((play_y - strip_y).abs() <= 1., "both sit on the strip's middle row");
+}
+
 /// The plain lines of the drawn frame's code view, and whether a pending frame waits behind it.
 fn drawn_code(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (Vec<String>, bool) {
     shell.read_with(cx, |shell, cx| {
