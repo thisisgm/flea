@@ -64,6 +64,10 @@ impl Picker {
             Dispatch::Armed => return true,
             _ => "",
         };
+        // Parent is a listing chord (ui/js/Keymap.js:19, :78); the name field keeps Ctrl+Up and Alt+Up.
+        if text_focus && action == "parent" {
+            return false;
+        }
         // Shift+Up/Down extends a range only where one is permitted; elsewhere it moves the cursor as plain Up/Down.
         let action = match action {
             "extendDown" if !self.selection_permitted() => "cursorDown",
