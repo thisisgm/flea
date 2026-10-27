@@ -110,6 +110,40 @@ fn extract_result_reloads_and_lands_on_the_new_first_folder(cx: &mut TestAppCont
 }
 
 #[gpui::test]
+fn compress_result_during_a_reread_clears_the_cursor_and_marks(cx: &mut TestAppContext) {
+    let (backend, mut requests) = Backend::test_lines();
+    let handle = open(cx, backend);
+    let before = row("notes.txt", "text-x-generic");
+    shell(cx, handle, |shell, window, cx| {
+        hold(shell, vec![row("alpha.txt", "text-x-generic"), before.clone(), row("zeta.txt", "text-x-generic")]);
+        shell.receive(0, Event::Reply(Reply::Other), window, cx);
+        let host = shell.panes[0].as_mut().unwrap();
+        host.pane.cursor = 1;
+        host.selected = vec![1];
+    });
+    frame(cx, handle);
+    while requests().is_some() {}
+    // The folder watch re-reads as the archive writes notes.zip into it, so the re-read is still out when the result lands.
+    shell(cx, handle, |shell, window, cx| {
+        let stepped = shell.step(0, crate::window::navigate::Step::Reread, window, cx);
+        assert!(matches!(stepped, Ok(true)), "the watch re-read starts");
+    });
+    frame(cx, handle);
+    receive(cx, handle, r#"{"t":"archivedone","id":9,"ok":true,"verified":true,"err":""}"#);
+    land(
+        cx,
+        handle,
+        vec![row("alpha.txt", "text-x-generic"), before, row("notes.zip", "package-x-generic"), row("zeta.txt", "text-x-generic")],
+    );
+    shell(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(!host.pane.busy());
+        assert_eq!(host.pane.cursor, 0, "a compress result takes the first row");
+        assert!(host.selected.is_empty(), "a compress result leaves nothing marked: {:?}", host.selected);
+    });
+}
+
+#[gpui::test]
 fn convert_result_reloads_and_selects_the_created_file(cx: &mut TestAppContext) {
     let (backend, mut requests) = Backend::test_lines();
     let handle = open(cx, backend);
