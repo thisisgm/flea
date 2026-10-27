@@ -94,6 +94,17 @@ impl Shell {
             self.new_window();
             return;
         }
+        if self.settings_action(action, window, cx) {
+            return;
+        }
+        if action == "sidebar" {
+            self.toggle_sidebar(window, cx);
+            return;
+        }
+        if action == "pathBar" {
+            self.chrome_action("pathBar", window, cx);
+            return;
+        }
         let Some(action) = keys::PRESET_KEYS
             .iter()
             .chain(keys::SHARED_KEYS)

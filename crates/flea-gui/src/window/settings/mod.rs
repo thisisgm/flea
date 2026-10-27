@@ -265,7 +265,7 @@ impl Shell {
         self.keyboard.disarm();
         let preset =
             flea::ui_logic_st1::pages::word(&self.launch.settings.data, &["keys"], "default");
-        let sheet = Sheet::new(
+        let mut sheet = Sheet::new(
             preset,
             self.locale.catalog.clone(),
             Sources {
@@ -274,6 +274,7 @@ impl Shell {
                 ..self.settings.sources.clone()
             },
         );
+        self.prepare_trash_sheet(&mut sheet, cx);
         let corner = self.corner;
         let typeface = self.settings_typeface(cx);
         let view = cx.new(|cx| {
@@ -307,8 +308,12 @@ impl Shell {
                 self.settings.sheet = None;
                 self.settings.sheet_subscription = None;
                 window.focus(&self.focus, cx);
+                self.focus_trash_after_sheet(window, cx);
                 if let Some(decision) = decision {
-                    if let flea::ui_logic_st1::sheet::Decision::Action { action } = &decision {
+                    if self.trash_sheet_decision(&decision, window, cx) {
+                        cx.notify();
+                    } else if let flea::ui_logic_st1::sheet::Decision::Action { action } = &decision
+                    {
                         self.settings_host_action(action, window, cx);
                     } else {
                         cx.emit(SheetDecision(decision));
