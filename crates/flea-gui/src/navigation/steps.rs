@@ -174,6 +174,20 @@ impl Navigator {
         self.open_without_history(pane, &path, options, None, false)
     }
 
+    // An operation's result re-lists its folder fresh: an unfinished re-read gives up its anchor and supersedes, so nothing stays marked.
+    pub fn fresh(&mut self, pane: &mut Pane) -> Result<bool, Refusal> {
+        self.pending_select = None;
+        if self.anchor.take().is_some_and(|anchor| anchor.need_paths.is_some()) {
+            self.gate.paths_pending = false;
+        }
+        let path = pane.path().to_owned();
+        let options = Options {
+            kept_query: pane.state.query.clone(),
+            ..supersede()
+        };
+        self.open_without_history(pane, &path, options, None, false)
+    }
+
     // Hidden is a scan filter, so changing it is a fresh list back at row 0, never a sort.
     pub fn toggle_hidden(&mut self, pane: &mut Pane, failure: String) -> Result<bool, Refusal> {
         let patch = self.folders.borrow_mut().toggle_hidden();
