@@ -124,7 +124,9 @@ fn viewport(
                 let opacity = host
                     .input
                     .opacity(cx.background_executor().now(), cx.reduce_motion());
-                if opacity > 0. && frame.max_scroll() > 0.5 {
+                // Columns paints each track's bar from its own scroll state.
+                let columns = !grid && shell.view == crate::window::startup::View::Columns;
+                if opacity > 0. && frame.max_scroll() > 0.5 && !columns {
                     if wide {
                         window.paint_quad(fill(lane, palette.foreground.opacity(0.05 * opacity)));
                     }
@@ -227,10 +229,9 @@ fn viewport(
             let wheel = paint.clone();
             window.on_mouse_event(move |event: &ScrollWheelEvent, phase, window, cx| {
                 if !grid && phase == DispatchPhase::Bubble && hitbox.is_hovered(window) {
+                    // Columns takes the wheel once, at its area, for whichever track is under it.
                     let _ = wheel.update(cx, |shell, cx| {
-                        if shell.view == crate::window::startup::View::Columns {
-                            shell.columns_wheel(side, event, cx);
-                        } else {
+                        if shell.view != crate::window::startup::View::Columns {
                             shell.pointer_wheel(side, event, window, cx);
                         }
                     });

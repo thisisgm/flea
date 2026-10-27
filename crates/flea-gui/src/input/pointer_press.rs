@@ -51,6 +51,7 @@ impl Shell {
         if frame.in_lane(event.position)
             && frame.max_scroll() > 0.5
             && event.button == MouseButton::Left
+            && self.view != crate::window::startup::View::Columns
         {
             let bar = Bar::new(frame);
             let (_, y) = frame.local(event.position);

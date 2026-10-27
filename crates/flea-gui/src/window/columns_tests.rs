@@ -11,6 +11,8 @@ mod pointer;
 mod gestures;
 #[path = "columns_review_tests.rs"]
 mod review;
+#[path = "columns_scroll_tests.rs"]
+pub(crate) mod scroll;
 #[path = "columns_state_tests.rs"]
 mod state;
 #[path = "columns_wheel_tests.rs"]
