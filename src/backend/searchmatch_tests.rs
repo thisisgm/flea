@@ -64,9 +64,9 @@ pub(crate) fn reference(query: &str, path: &[u8]) -> Option<i32> {
     });
     if prefix(0) { return Some(if leaf.len() == query_chars.len() { EXACT } else { PREFIX }); }
     if (1..leaf.len()).any(|at| boundary(leaf, at) && prefix(at)) { return Some(WORD); }
-    if let Some(score) = alignment(&query_chars, leaf, 0) { return Some(NAME + score.clamp(-100_000, 100_000)); }
+    // docs/protocol.md: an ordinary subsequence is one class, scored by its best alignment across the whole relative path.
     let matched = alignment(&query_chars, &hay, base).map(|score| {
-        (if query_chars.contains(&'/') { ALIGNED } else { PATH }) + score.clamp(-100_000, 100_000)
+        (if query_chars.contains(&'/') { ALIGNED } else { NAME }) + score.clamp(-100_000, 100_000)
     });
     let budget = Matcher::new(query).budget;
     let mut score = matched.max(distance(&query_chars, leaf, budget).map(|edits| TYPO - edits as i32 * 1000));
@@ -122,6 +122,24 @@ fn search_matches_long_names_unicode_and_literal_punctuation() {
     }
     assert!(Matcher::new(".svg").full(b"icon.sxg").is_none());
     assert!(Matcher::new("render12").full(b"render13").is_none());
+}
+
+#[test]
+fn search_a_typed_folder_run_competes_with_name_matches_on_the_whole_path() {
+    let folder = b"projects/editor/src/components/render_frame.rs".as_slice();
+    let scattered = b"Music/folder_01/test_test_00074578_detail_detail_detail.json".as_slice();
+    let contiguous = b"Music/folder_01/credit_notes.txt".as_slice();
+    let word = b"Music/folder_01/notes_edit.txt".as_slice();
+    let edit = Matcher::new("edit");
+    for path in [folder, scattered, contiguous, word, b"projects/editor".as_slice(), b"editor/edit_x/tide/e_d_i_t".as_slice()] {
+        assert_eq!(edit.full(path), reference("edit", path), "{}", String::from_utf8_lossy(path));
+    }
+    let score = |path: &[u8]| edit.full(path).expect("a subsequence of the path");
+    assert!(score(folder) > score(scattered), "a run at a folder's start beats letters scattered through a name");
+    assert!(score(contiguous) > score(folder), "a contiguous run inside the name still beats the folder run");
+    assert!(score(word) > score(contiguous) && score(b"projects/editor") > score(folder), "word and prefix classes stay above");
+    // A name that is itself a weak subsequence never ranks below a sibling whose name does not match at all.
+    assert!(score(b"projects/editor/src/exdxixtx.rs") >= score(folder));
 }
 
 #[test]

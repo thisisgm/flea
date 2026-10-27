@@ -151,6 +151,16 @@ impl Index {
         self.kinds[row / 8] & (1 << (row % 8)) != 0
     }
 
+    // The row's folder as a slot of a per-folder table: its directory block, or the last slot for the scope's top.
+    pub(crate) fn folder_slot(&self, row: usize) -> usize {
+        let parent = self.rows[row].parent;
+        if parent == EMPTY { self.blocks.len() } else { parent as usize }
+    }
+
+    pub(crate) fn folder_slots(&self) -> usize {
+        self.blocks.len() + 1
+    }
+
     pub(crate) fn push(&mut self, path: impl AsRef<OsStr>, is_dir: bool) -> bool {
         if self.storage_refused() {
             return false;
@@ -228,7 +238,7 @@ pub(crate) struct Scratch {
 
 #[path = "searchscore.rs"]
 mod scoring;
-pub(crate) use scoring::{boundary, class, resolve, score_cached, QueryScratch};
+pub(crate) use scoring::{boundary, class, resolve, resolve_head, score_cached, QueryScratch};
 #[cfg(test)]
 pub(crate) use scoring::score_all;
 
