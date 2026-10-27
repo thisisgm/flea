@@ -88,16 +88,28 @@ impl Shell {
 
     /// mountinfo and the bookmarks file are read off the UI thread, then the rows rebuild from the last good listing.
     pub(super) fn network_rows(&mut self, cx: &mut Context<Self>) {
+        self.network_rebuild(None, None, cx);
+    }
+
+    /// The poll and the IPC feed share one rebuild. A feed never claims the first real listing, and an older read never publishes over a newer one.
+    pub(crate) fn network_rebuild(
+        &mut self,
+        mountinfo: Option<String>,
+        answer: Option<std::sync::mpsc::SyncSender<crate::ipc::server::Answer>>,
+        cx: &mut Context<Self>,
+    ) {
         let Some(network) = self.network() else {
             return;
         };
         let gio = network.listing.text.clone();
         let path = network.bookmarks.clone();
         let sources = network.sources.clone();
+        network.rows_generation += 1;
         let generation = network.rows_generation;
+        let polled = mountinfo.is_none();
         let read = cx.background_spawn(async move {
             let marks = std::fs::read_to_string(path).unwrap_or_default();
-            let mountinfo = sources.read_mountinfo();
+            let mountinfo = mountinfo.unwrap_or_else(|| sources.read_mountinfo());
             let ready = !mountinfo.is_empty();
             let rows = sources.load_rows(&gio, &marks, &mountinfo);
             (rows, crate::path::aliases::saved_labels(&marks), ready)
@@ -105,19 +117,28 @@ impl Shell {
         let task = cx.spawn(async move |this, cx| {
             let (rows, labels, ready) = read.await;
             let _ = this.update(cx, |shell, cx| {
-                let Some(network) = shell.network() else {
-                    return;
+                let current = match shell.network() {
+                    Some(network) => {
+                        network.built |= polled;
+                        network.rows_generation == generation
+                    }
+                    None => false,
                 };
-                if network.rows_generation != generation {
+                if !current {
                     return;
                 }
-                network.built = true;
-                network.mountinfo_ready = ready;
+                if let Some(network) = shell.network() {
+                    network.mountinfo_ready = ready;
+                }
                 if shell.path_saved_labels(labels) {
                     cx.notify();
                 }
                 shell.network_publish(Some(rows), cx)
             });
+            if let Some(answer) = answer {
+                let reply = flea::ipc::wire::Reply::value("fed");
+                let _ = answer.try_send(crate::ipc::server::Answer { reply, quit: false });
+            }
         });
         network.tasks.retain(|task| !task.is_ready());
         network.tasks.push(task);
