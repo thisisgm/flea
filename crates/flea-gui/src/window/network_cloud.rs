@@ -29,7 +29,12 @@ impl Sources {
         std::fs::read_to_string(&self.mountinfo).unwrap_or_default()
     }
 
-    pub fn load_rows(&self, gio: &str, marks: &str, info: &str) -> Vec<flea::ui_logic_pl1::RailEntry> {
+    pub fn load_rows(
+        &self,
+        gio: &str,
+        marks: &str,
+        info: &str,
+    ) -> Vec<flea::ui_logic_pl1::RailEntry> {
         let mut rows = flea::ui_logic_pl2::rail::rebuild(
             gio,
             &flea::ui_logic_pl1::mounts::non_file_bookmarks(marks),

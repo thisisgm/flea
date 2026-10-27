@@ -178,7 +178,7 @@ fn pb_network_2_local_text_keeps_the_local_gate(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn pb_network_2_network_thumbnail_menu_changes_the_class_setting(cx: &mut TestAppContext) {
-    use super::menus_tests::{actions, choose, settle};
+    use super::menus_tests::{actions, choose, right_click, settle};
     let (shell, cx) = open_root_with(
         cx,
         r#""keys":"default","view":"list","menu":{"hidden":[]}"#,
@@ -199,7 +199,8 @@ fn pb_network_2_network_thumbnail_menu_changes_the_class_setting(cx: &mut TestAp
         })
     });
     settle(cx);
-    cx.simulate_keystrokes("m");
+    // Below the empty listing the right click lands on the background menu, which holds the view rows.
+    right_click(cx, 600., 500.);
     settle(cx);
     assert!(
         actions(&shell, cx).contains(&"extThumbs".to_owned()),

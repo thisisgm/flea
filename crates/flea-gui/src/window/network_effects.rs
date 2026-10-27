@@ -252,6 +252,9 @@ impl Shell {
         let task = cx.spawn(async move |this, cx| {
             let result = written.await;
             let _ = this.update(cx, |shell, cx| {
+                if result.is_ok() {
+                    shell.network_saved(cx);
+                }
                 let detail = match &result {
                     Ok(_) => String::new(),
                     Err(failure) => shell.locale.catalog.tr(failure.key()),
