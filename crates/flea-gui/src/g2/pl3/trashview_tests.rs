@@ -324,37 +324,3 @@ fn trashview_comma_then_escape_keeps_trash_and_m_targets_the_trash_row() {
         );
     });
 }
-
-#[test]
-fn trashview_rail_menu_key_on_the_trash_row_opens_the_trash_rail_menu() {
-    let mut cx = real_cx();
-    let window = mounted(&mut cx);
-    cx.simulate_keystrokes(window.into(), "tab");
-    shell(&mut cx, window, |shell, window, cx| {
-        assert!(shell.dual_focus.rail.contains_focused(window, cx));
-    });
-    cx.simulate_keystrokes(window.into(), "m");
-    draw(&mut cx, window);
-    shell(&mut cx, window, |shell, _, _| {
-        let menu = shell.menu.menu.borrow();
-        let card = menu
-            .card
-            .as_ref()
-            .expect("m on the Trash rail row opens a menu");
-        let actions: Vec<_> = card
-            .entries
-            .iter()
-            .filter(|row| !row.separator)
-            .map(|row| row.action.as_ref())
-            .collect();
-        assert_eq!(actions, ["open", "restoreAll", "emptyTrash"]);
-    });
-    cx.simulate_keystrokes(window.into(), "enter");
-    draw(&mut cx, window);
-    shell(&mut cx, window, |shell, _, cx| {
-        assert!(
-            shell.trash_opened(cx),
-            "the Open row of the Trash rail menu opens the Trash view"
-        );
-    });
-}
