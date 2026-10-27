@@ -12,9 +12,7 @@ impl Producer {
         }
         let mut model = self.model.borrow_mut();
         model.renaming = Some(index);
-        model.editor.editing = true;
-        model.editor.text = entry.label;
-        model.editor.select_all();
+        model.editor.begin(&entry.label);
         self.editor_dragging = false;
         drop(model);
         cx.notify();
@@ -48,6 +46,9 @@ impl Producer {
         let Some(index) = index else {
             return;
         };
+        if self.model.borrow().editor.marked.is_some() {
+            return;
+        }
         let label = self.model.borrow().editor.text.trim().to_owned();
         let original = self.entry(index);
         if !label.is_empty() {
@@ -133,6 +134,19 @@ impl Producer {
         let stroke = &event.keystroke;
         let held = stroke.modifiers;
         let key = stroke.key.as_str();
+        {
+            let mut model = self.model.borrow_mut();
+            if model.renaming.is_none() {
+                return false;
+            }
+            if model.editor.ime_key(key) {
+                cx.notify();
+                return true;
+            }
+            if model.editor.marked.is_some() {
+                return false;
+            }
+        }
         if key == "escape" {
             self.cancel_rename(cx);
             return true;

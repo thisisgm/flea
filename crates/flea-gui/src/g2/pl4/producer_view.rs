@@ -4,8 +4,12 @@ use super::*;
 const WHEEL_ROW_FRACTION: f32 = 0.78;
 
 impl Render for Producer {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.load(cx);
+        let model = self.model.borrow();
+        self.ime_session = model.focused.then(|| model.editor.session()).flatten();
+        self.ime_focus = self.ime_session.and_then(|_| window.focused(cx));
+        drop(model);
         let element = RailElement::new(
             Rc::clone(&self.model),
             Rc::clone(&self.laid),

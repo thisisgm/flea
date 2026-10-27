@@ -7,12 +7,12 @@ use super::{
     ListState, Metrics, Palette, RowState, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM,
     GREY_CURSOR, HOVER, MATCH_WASH, TRACK,
 };
-use crate::grid::element::{pictures::paint_in_slot, Thumbnail};
+use crate::grid::element::Thumbnail;
 use crate::palette::Theme;
 use crate::row::{
     cache::{Extra, Prepared, Shaping},
     format,
-    marks::{ClipMark, Mark},
+    marks::ClipMark,
 };
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
@@ -23,7 +23,7 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 // Row.qml's loading bar draws at a fifth of the muted frame, so scrolling reads as loading.
 const LOADING: f32 = 0.2;
-const LOADING_WIDTH: f32 = 0.3;
+pub use super::loading::loading_bar;
 
 /// The drag owner's caption for a drop target row, shaped once per label, face and size.
 pub struct DropLine {
@@ -183,23 +183,6 @@ fn cells(width: f32, advance: f32) -> usize {
     }
 }
 
-/// Row.qml's loading bar for a row the pane does not hold yet: 30 percent of the row, caption high, right of the mark slot.
-pub fn loading_bar(
-    left: Pixels,
-    top: Pixels,
-    metrics: &Metrics,
-    row_width: f32,
-    caption: f32,
-) -> Bounds<Pixels> {
-    Bounds::new(
-        point(
-            left + px(metrics.label_x()),
-            top + px((metrics.row - caption) / 2.),
-        ),
-        size(px(row_width * LOADING_WIDTH), px(caption)),
-    )
-}
-
 /// Paints a prepared line from the tiles its glyph run kept, so a row already seen costs no lookup per glyph.
 pub(super) fn paint_line(
     run: &GlyphRun,
@@ -215,7 +198,7 @@ pub(super) fn paint_line(
     let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
-fn paint_mark(
+pub(super) fn paint_mark(
     key: SharedString,
     data: &'static [u8],
     at: gpui::Point<Pixels>,
@@ -536,54 +519,14 @@ impl Element for ListElement {
                 window.paint_layer(bounds, |window| {
                     for shown in &state.visible {
                         let lifted = shown.state.lifted();
-                        // drag-cut-move: a cut row ghosts its mark alone, so its name and cells keep their contrast.
-                        let dim = if shown.clip == Some(ClipMark::Cut) {
-                            CUT_DIM
-                        } else {
-                            1.
-                        };
                         let top = top_of(shown.view);
-                        // Row.qml: a thumbnail fills the mark slot, a Dual pane's at the mark's own size, fitted whole.
-                        if let Some(picture) = &shown.picture {
-                            let side = if view.dual {
-                                metrics.mark
-                            } else {
-                                metrics.slot
-                            };
-                            let slot = Bounds::new(
-                                point(
-                                    left + px(metrics.pad + (metrics.slot - side) / 2.),
-                                    top + px((row - side) / 2.),
-                                ),
-                                size(px(side), px(side)),
-                            );
-                            paint_in_slot(picture, slot, window);
-                            marks_painted += 1;
-                            pictures_painted += 1;
-                        }
-                        let at = point(
-                            left + px(metrics.pad + (metrics.slot - metrics.mark) / 2.),
-                            top + px((row - metrics.mark) / 2.),
-                        );
-                        // Row.qml keeps Icons.FALLBACK, the file mark, beside a loading row's bar.
-                        let mark = shown
-                            .prepared
-                            .as_ref()
-                            .map_or(Mark::File, |prepared| prepared.mark);
-                        if shown.picture.is_none() {
-                            let (key, data) = mark.svg();
-                            let ink = if lifted {
-                                palette.foreground
-                            } else {
-                                palette.metadata_frame
-                            };
-                            paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
-                            marks_painted += 1;
-                        }
+                        let (marks, pictures) = super::picker::paint_icon(shown, view, metrics, palette, (left, top, self.held.row(shown.index)), window, cx);
+                        marks_painted += marks;
+                        pictures_painted += pictures;
                         let Some(prepared) = &shown.prepared else {
                             continue;
                         };
-                        let meta = if lifted {
+                        let meta = if lifted || view.picker.is_some() {
                             palette.foreground
                         } else {
                             palette.metadata

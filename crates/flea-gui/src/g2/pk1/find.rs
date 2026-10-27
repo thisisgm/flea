@@ -7,10 +7,9 @@ use crate::g2::sr2::{
     present,
     strip::StripState,
     wire::{self, Line},
-    StripView,
 };
 use crate::list::Typeface;
-use gpui::{AnyView, AppContext, Context, Entity, KeyDownEvent, Window};
+use gpui::{prelude::*, AnyView, AppContext, Context, Entity, KeyDownEvent, WeakEntity, Window};
 use std::{cell::RefCell, rc::Rc};
 
 // The cursor keys a standing filter steps through its drawn rows.
@@ -19,9 +18,28 @@ const MOVES: [&str; 4] = ["up", "down", "home", "end"];
 pub struct Find {
     pub owner: Filter,
     strip: Rc<RefCell<StripState>>,
-    view: Option<Entity<StripView>>,
+    view: Option<Entity<QueryView>>,
+    pub(super) entry: crate::path::entry::Entry,
+    pub(super) drawn: RefCell<super::text::Drawn>,
+    kept: Option<(usize, Rc<[usize]>, String)>,
     // The backend's listing stamp on the rows in force, the numbering every answer must name.
     stamp: Option<usize>,
+}
+
+struct QueryView {
+    picker: WeakEntity<Picker>,
+    strip: Rc<RefCell<StripState>>,
+}
+
+impl gpui::Render for QueryView {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl gpui::IntoElement {
+        gpui::div()
+            .size_full()
+            .children(self.picker.upgrade().map(|picker| {
+                super::text::Input::new(picker, self.strip.borrow().typeface.clone())
+                    .strip(self.strip.clone())
+            }))
+    }
 }
 
 impl Find {
@@ -30,6 +48,9 @@ impl Find {
             owner: Filter::default(),
             strip: Rc::new(RefCell::new(StripState::new(typeface))),
             view: None,
+            entry: Default::default(),
+            drawn: RefCell::default(),
+            kept: None,
             stamp: None,
         }
     }
@@ -45,6 +66,9 @@ struct Seam<'a> {
     view: &'a mut ListingView,
     stamp: usize,
     moved: &'a mut bool,
+    selected: &'a [usize],
+    marks: &'a mut Vec<usize>,
+    unmarked: &'a mut bool,
 }
 
 impl PaneSeam for Seam<'_> {
@@ -65,10 +89,10 @@ impl PaneSeam for Seam<'_> {
         *self.moved = true;
     }
     fn selected(&self) -> Vec<usize> {
-        Vec::new()
+        self.selected.to_vec()
     }
-    fn unmark(&mut self, _: &[usize]) {}
-    fn mark(&mut self, _: &[usize]) {}
+    fn unmark(&mut self, rows: &[usize]) { *self.unmarked |= !rows.is_empty(); }
+    fn mark(&mut self, rows: &[usize]) { self.marks.extend_from_slice(rows); }
     fn focus_list(&mut self) {}
     fn refill(&mut self) {
         *self.moved = true;
@@ -81,9 +105,12 @@ impl Picker {
         &mut self,
         change: impl FnOnce(&mut Filter, &mut dyn PaneSeam) -> Option<Asked>,
         cx: &mut Context<Self>,
-    ) {
+    ) -> bool {
         let stamp = self.find.stamp.unwrap_or(usize::MAX);
         let mut moved = false;
+        let selected = self.browse.listing.read(cx).selected_indices();
+        let mut marks = Vec::new();
+        let mut unmarked = false;
         let owner = &mut self.find.owner;
         let asked = self.browse.listing.update(cx, |view, _| {
             change(
@@ -92,44 +119,76 @@ impl Picker {
                     view,
                     stamp,
                     moved: &mut moved,
+                    selected: &selected,
+                    marks: &mut marks,
+                    unmarked: &mut unmarked,
                 },
             )
         });
         if let Some(asked) = asked {
             self.send_listing(wire::request(asked.id, &asked.query).trim_end());
         }
+        if !self.find.owner.typing() {
+            self.find.entry.close();
+        }
         self.find_refresh(cx);
         if moved {
             let cursor = self.browse.listing.read(cx).listing().cursor();
             self.move_cursor(cursor, cx);
         }
+        if !marks.is_empty() { self.select_indices(marks, cx); }
+        if unmarked { self.prune_filtered_marks(cx); }
         cx.notify();
+        unmarked
     }
 
     // The drawn rows, the query's run and the strip, all from the answer in force.
-    fn find_refresh(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn find_refresh(&mut self, cx: &mut Context<Self>) {
         let stamp = self.find.stamp.unwrap_or(usize::MAX);
         let owner = &self.find.owner;
-        let shown: Option<Rc<[usize]>> = owner.shown(stamp).map(Rc::from);
+        if let Some(drawn) = owner.drawn(stamp) {
+            self.find.kept = Some((stamp, Rc::from(drawn.rows()), drawn.query.clone()));
+        } else if owner.asked().is_none()
+            || !self.find.kept.as_ref().is_some_and(|held| held.0 == stamp)
+        {
+            self.find.kept = None;
+        }
+        let shown = self.find.kept.as_ref().map(|held| held.1.clone());
         let strip = if owner.up() {
             let folder = std::path::Path::new(&self.listing.location)
                 .file_name()
                 .and_then(|name| name.to_str())
                 .unwrap_or("/");
-            self.find.strip.borrow_mut().text =
-                present::strip(owner, stamp, folder, &self.locale.catalog);
+            let mut text = present::strip(owner, stamp, folder, &self.locale.catalog);
+            if owner.asked().is_some() && owner.drawn(stamp).is_none() && self.find.kept.is_some() {
+                text.summary = self.find.strip.borrow().text.summary.clone();
+            }
+            if owner.typing() {
+                text.query = self.find.entry.text.clone().into();
+            }
+            self.find.strip.borrow_mut().text = text;
             let state = Rc::clone(&self.find.strip);
+            let picker = cx.entity().downgrade();
             let view = self
                 .find
                 .view
-                .get_or_insert_with(|| cx.new(|_| StripView { state }))
+                .get_or_insert_with(|| {
+                    cx.new(|_| QueryView {
+                        picker,
+                        strip: state,
+                    })
+                })
                 .clone();
             view.update(cx, |_, cx| cx.notify());
             Some(AnyView::from(view))
         } else {
             None
         };
-        let query = self.find.owner.query().to_owned();
+        let query = self
+            .find
+            .kept
+            .as_ref()
+            .map_or_else(String::new, |held| held.2.clone());
         self.browse.listing.update(cx, |view, cx| {
             view.set_filtered(shown, &query, strip);
             cx.notify();
@@ -150,6 +209,8 @@ impl Picker {
         if !self.find.owner.typing() {
             if plain && stroke.key_char.as_deref() == Some("/") {
                 if self.find.stamp.is_some() && self.listing.state == "ready" {
+                    self.find.entry.begin(self.find.owner.query());
+                    window.focus(&self.focus, cx);
                     self.find_update(
                         |filter, _| {
                             filter.start();
@@ -182,13 +243,33 @@ impl Picker {
             );
             return true;
         }
+        let key_name = stroke.key.as_str();
+        let was_marked = self.find.entry.marked.is_some();
+        if self.find.entry.ime_key(key_name) {
+            self.find_changed(cx);
+            return true;
+        }
+        if self.find.entry.marked.is_some() {
+            return false;
+        }
+        if was_marked {
+            self.find_changed(cx);
+        }
         let key = match keys::classify("default", event, window.modifiers()) {
             Classified::Paste => {
                 let text = cx
                     .read_from_clipboard()
                     .and_then(|item| item.text())
                     .unwrap_or_default();
-                self.find_update(|filter, pane| filter.typed(&text, pane), cx);
+                if self.find.entry.ime_replace(None, &text) {
+                    self.find_changed(cx);
+                }
+                return true;
+            }
+            Classified::Key(LineKey::Text(_)) => return false,
+            Classified::Key(LineKey::Backspace) => {
+                self.find.entry.erase(false);
+                self.find_changed(cx);
                 return true;
             }
             Classified::Key(key) => key,
@@ -238,13 +319,14 @@ impl Picker {
     pub(super) fn find_line(&mut self, line: &str, cx: &mut Context<Self>) {
         match wire::read(line, self.find.owner.live()) {
             Ok(Line::Answer(answer)) => {
-                self.find_update(
+                let pruned = self.find_update(
                     |filter, pane| {
                         let _ = filter.receive(answer, pane);
                         None
                     },
                     cx,
                 );
+                if !pruned { self.prune_filtered_marks(cx); }
             }
             Ok(Line::Other | Line::Stale) => {}
             Err(detail) => {
@@ -270,17 +352,24 @@ impl Picker {
 
     // A new folder drops the filter, as the main window's does.
     pub(super) fn find_abandon(&mut self, cx: &mut Context<Self>) {
+        self.find.entry.close();
+        self.find.kept = None;
         let stamp = self.find.stamp.take().unwrap_or(usize::MAX);
         if !self.find.owner.up() {
             return;
         }
         // The old folder's cursor window is never asked: the new folder's list request follows.
         let (owner, mut moved) = (&mut self.find.owner, false);
+        let mut marks = Vec::new();
+        let mut unmarked = false;
         self.browse.listing.update(cx, |view, _| {
             owner.abandon(&mut Seam {
                 view,
                 stamp,
                 moved: &mut moved,
+                selected: &[],
+                marks: &mut marks,
+                unmarked: &mut unmarked,
             })
         });
         self.find_refresh(cx);

@@ -17,7 +17,7 @@ use gpui::{
 // The rows a listing asks for with its folder, and the window a cursor outside them asks for.
 pub const FIRST: usize = 128;
 // The path strip's band above the listing, the picker-path board's 34 px.
-const PATH_HEIGHT: f32 = 34.;
+const PATH_HEIGHT: f32 = 27.;
 
 // A typed path waiting for its peek, then a typed file waiting for its row.
 #[derive(Default)]
@@ -42,11 +42,12 @@ pub struct Browse {
     pub(super) focus_filename: bool,
     pub(super) stems_seen: u64,
     _path: Subscription,
+    _filename: Option<Subscription>,
 }
 
 // The body slot: the path strip over the listing.
 struct Body {
-    path: Entity<PathBar>,
+    path: Entity<super::chrome_view::ChromeView>,
     listing: Entity<ListingView>,
 }
 
@@ -78,6 +79,7 @@ impl Browse {
             .cloned()
             .unwrap_or_else(Typeface::omarchy_default);
         let listing = cx.new(|_| ListingView::new(catalog.clone(), typeface));
+        listing.update(cx, |view, _| { view.set_marks(Default::default(), req.multiple && !logic::saving(req)); view.configure_picker(logic::folder_mode(req)); });
         let path = cx.new(|cx| PathBar::new(catalog, cx));
         let view = path.read(cx).path();
         let subscription = cx.subscribe(&view, |picker: &mut Picker, _, out: &Out, cx| {
@@ -89,7 +91,15 @@ impl Browse {
             let label = catalog.tr("picker.browser.save_as");
             cx.new(|cx| Filename::new(&seed, label, save, cx))
         });
+        let filename_subscription = filename.as_ref().map(|field| {
+            cx.subscribe(field, |picker: &mut Picker, _, event, cx| {
+                if let super::filename::FieldKey::Edited(text) = event {
+                    picker.save_name_edited(text.clone(), cx);
+                }
+            })
+        });
         Self {
+            _filename: filename_subscription,
             listing,
             path,
             focus_filename: filename.is_some(),
@@ -107,6 +117,8 @@ impl Browse {
 
     pub fn body(&self, cx: &mut Context<Picker>) -> AnyView {
         let (path, listing) = (self.path.clone(), self.listing.clone());
+        let picker = cx.entity().downgrade();
+        let path = cx.new(|_| super::chrome_view::ChromeView { picker, path });
         AnyView::from(cx.new(|_| Body { path, listing }))
     }
 
@@ -137,6 +149,9 @@ impl Picker {
         if !path.starts_with('/') {
             return;
         }
+        self.remember_folder(path);
+        self.selection_reset();
+        self.validate_marks(false);
         self.find_abandon(cx);
         let (filter, chip, hidden) = (
             self.chip_filter(),
@@ -145,10 +160,11 @@ impl Picker {
         );
         let line = self.browse.listing.update(cx, |view, _| {
             view.open(path);
+            let first = view.window_size();
             let listing = view.listing_mut();
             listing.set_filter(filter, chip);
             listing.set_hidden(hidden);
-            listing.request_line(FIRST)
+            listing.request_line(first)
         });
         if self.send_listing(&line) {
             self.browse.in_flight += 1;
@@ -165,10 +181,11 @@ impl Picker {
             view.reveal();
             let (held, cursor) = (view.listing().held(), view.listing().cursor());
             let inside = cursor >= held.start && cursor < held.start + held.rows.len();
+            let count = view.window_size();
             (!inside)
                 .then(|| {
                     view.listing()
-                        .window_request(cursor.saturating_sub(FIRST / 2), FIRST)
+                        .window_request(cursor.saturating_sub(count / 2), count)
                 })
                 .flatten()
         });
@@ -260,6 +277,7 @@ impl Picker {
             failed: self.listing.failed,
             show_hidden: self.req.hidden.unwrap_or(false),
             first: FIRST,
+            aliases: self.recent_alias(),
             ..Inputs::default()
         };
         self.browse.path.update(cx, |bar, cx| bar.sync(inputs, cx));
@@ -282,6 +300,8 @@ impl Picker {
             .unwrap_or_default()
             .to_owned();
         match kind.as_str() {
+            "jumped" => return self.jump_answer(&document, cx),
+            "paths" => return self.selection_paths(&document, cx),
             "filtered" => return self.find_line(text, cx),
             "peeked" => return self.peeked(&document, cx),
             "located" => return self.located(&document, cx),

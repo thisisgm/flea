@@ -1701,6 +1701,11 @@
   "picker.browser.save_moved": "The save location changed; review it again.",
   "picker.browser.save_empty": "Name the file before saving it",
   "picker.browser.save_stopped_field": "Flea stopped responding.",
+  "picker.browser.selection_timeout": "Flea did not confirm the selection. Try again.",
+  "picker.browser.selection_changed": {
+    "one": "%1 selected item moved or changed; select it again.",
+    "other": "%1 selected items moved or changed; select them again."
+  },
   "picker.browser.accept_count": "%1 %2",
   "picker.browser.skipped": {
     "one": "Selected %2 of %3. %1 was left out: %4 (%5)%6.",

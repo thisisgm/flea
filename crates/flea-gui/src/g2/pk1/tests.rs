@@ -14,7 +14,7 @@ mod codeicons_tests;
 #[path = "find_tests.rs"]
 mod find_tests;
 #[path = "fixture.rs"]
-mod fixture;
+pub(super) mod fixture;
 #[path = "geometry_tests.rs"]
 mod geometry_tests;
 #[path = "ipc_tests.rs"]
