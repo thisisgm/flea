@@ -257,7 +257,8 @@ impl Shell {
         }
     }
 
-    pub(crate) fn settle_rail(&mut self, cx: &mut Context<Self>) {
+    pub(crate) fn settle_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.tags_sync(window, cx);
         let path = self.panes[self.focus_side]
             .as_ref()
             .map(|host| host.path.clone());

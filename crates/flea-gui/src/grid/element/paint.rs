@@ -8,7 +8,6 @@ use crate::grid::{
     Shown,
 };
 use crate::palette::Theme;
-use crate::row::marks::ClipMark;
 use gpui::{
     fill, outline, point, px, relative, size, App, BorderStyle, Bounds, ContentMask, Corners,
     Element, ElementId, GlobalElementId, GlyphRun, Hsla, InspectorElementId, LayoutId, Pixels,
@@ -23,7 +22,7 @@ const HOVER: f32 = 0.08;
 const MATCH_WASH: f32 = 0.14;
 const CUT: f32 = 0.55;
 
-fn bounds_of(origin: gpui::Point<Pixels>, rect: Rect) -> Bounds<Pixels> {
+pub(super) fn bounds_of(origin: gpui::Point<Pixels>, rect: Rect) -> Bounds<Pixels> {
     Bounds::new(
         point(origin.x + px(rect.x), origin.y + px(rect.y)),
         size(px(rect.width), px(rect.height)),
@@ -61,7 +60,11 @@ fn plate(drawn: &Drawn, ink: &Ink) -> Option<Hsla> {
     }
 }
 
-fn caption_line<'a>(state: &'a GridState, drawn: &'a Drawn, at: usize) -> Option<&'a tile::Line> {
+pub(super) fn caption_line<'a>(
+    state: &'a GridState,
+    drawn: &'a Drawn,
+    at: usize,
+) -> Option<&'a tile::Line> {
     let plain = drawn.tile.as_ref()?.lines.get(at)?;
     Some(
         state
@@ -71,44 +74,6 @@ fn caption_line<'a>(state: &'a GridState, drawn: &'a Drawn, at: usize) -> Option
             .and_then(|bold| bold.lines[at].as_ref())
             .unwrap_or(plain),
     )
-}
-
-impl Drawn {
-    /// The clipboard bounds paint uses, after the actual last drawn caption line, including its fallback face.
-    pub fn clip_bounds(&self, state: &GridState) -> Option<Rect> {
-        if self.editing {
-            return None;
-        }
-        let clip = self.clip.as_ref()?;
-        let metrics = state.layout.as_ref()?.metrics;
-        let last = self.lines.checked_sub(1)?;
-        let width = caption_line(state, self, last)?.centred;
-        let name = bounds_of(
-            point(px(0.), px(0.)),
-            Rect {
-                y: self.caption.y + last as f32 * metrics.caption_line,
-                height: metrics.caption_line,
-                ..self.caption
-            },
-        );
-        let mark = if clip.cut {
-            ClipMark::Cut
-        } else {
-            ClipMark::Copy
-        }
-        .bounds(
-            name,
-            px((self.caption.width + width) / 2.),
-            px(metrics.clip_mark),
-            px(metrics.gap),
-        );
-        Some(Rect {
-            x: f32::from(mark.origin.x),
-            y: f32::from(mark.origin.y),
-            width: f32::from(mark.size.width),
-            height: f32::from(mark.size.height),
-        })
-    }
 }
 
 impl GridElement {
@@ -317,6 +282,7 @@ impl GridElement {
                 );
             }
         });
+        super::tags::paint(self.held.row(drawn.listing), drawn, origin, window, cx);
         if let (Some(clip), Some(mark)) = (&drawn.clip, drawn.clip_bounds(state)) {
             let _ = window.paint_svg(
                 bounds_of(origin, mark),

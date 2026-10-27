@@ -62,6 +62,7 @@ pub struct Line {
     pub hint_wrap: bool,
     pub wrapped: Option<Caption>,
     pub lead: Lead,
+    pub tag_state: Option<flea::ui_logic_pl4::tags::State>,
     pub ink: Ink,
     pub disabled: bool,
     // The width this row needs whole, the parts summed once at build.
@@ -121,6 +122,9 @@ impl Line {
         }
         if self.word.is_some() {
             edge -= self.word_width() + fit::GAP;
+        }
+        if self.tag_state.is_some() {
+            edge -= flea::ui_logic_pl4::tags::SWATCH_SIZE + fit::GAP;
         }
         (edge - fit::PAD_X - fit::SLOT).max(0.)
     }
@@ -234,6 +238,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                     hint_wrap: false,
                     wrapped: None,
                     lead: Lead::None,
+                    tag_state: None,
                     ink: Ink::Plain,
                     disabled: false,
                     wanted: 0.,
@@ -266,6 +271,11 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 Line::wrapped_minimum(parts.label, parts.chevron)
             } else {
                 fit::row_width(parts)
+                    + if entry.tag_state.is_some() {
+                        flea::ui_logic_pl4::tags::SWATCH_SIZE + fit::GAP
+                    } else {
+                        0.
+                    }
             };
             widest = widest.max(wanted);
             let ink = if entry.errored {
@@ -287,6 +297,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 hint_wrap: entry.hint_wrap,
                 wrapped: None,
                 lead: lead(entry),
+                tag_state: entry.tag_state,
                 ink,
                 disabled: entry.disabled,
                 wanted,

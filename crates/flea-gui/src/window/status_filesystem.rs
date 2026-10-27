@@ -10,6 +10,10 @@ pub(crate) struct Filesystem {
 }
 
 impl Filesystem {
+    pub(crate) fn can_tag(&self) -> bool {
+        self.facts.as_ref().and_then(|facts| facts.tagable) != Some(false)
+    }
+
     pub(crate) fn enter(&mut self, path: &str) {
         if self.path != path {
             self.path = path.into();

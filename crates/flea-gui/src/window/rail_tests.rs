@@ -381,3 +381,6 @@ fn review_u08_r1_current_place_keeps_deepest_ancestor_highlight(cx: &mut TestApp
 }
 
 }
+
+#[path = "tag_places_tests.rs"]
+mod tag_places_tests;

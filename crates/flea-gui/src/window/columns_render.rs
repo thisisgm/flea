@@ -21,6 +21,9 @@ impl Shell {
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let no_match = self.no_match_hero(side, window, cx);
+        let tag_slot = self.panes[side]
+            .as_ref()
+            .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));
         let host = self.panes[side].as_mut()?;
         let columns = host.columns.as_mut()?;
         let tracks = Rc::clone(columns.area.tracks());
@@ -94,6 +97,7 @@ impl Shell {
                 Rc::clone(&words),
             )
             .with_languages(languages);
+            element = element.with_tag_slot(view.slot == Slot::Active && tag_slot);
             if view.slot == Slot::Active {
                 element = element
                     .with_sizes(Rc::new(crate::columns::walks::Walked {

@@ -2,6 +2,9 @@
 mod delivery;
 mod discovery;
 mod facts;
+pub(crate) mod tags;
+mod tags_wire;
+mod tag_checks;
 pub mod element;
 #[cfg(test)]
 mod elide_tests;

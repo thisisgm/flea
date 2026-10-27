@@ -4,6 +4,7 @@ pub mod format;
 #[cfg(test)]
 mod language_tests;
 pub mod marks;
+pub mod tags;
 
 use flea::protocol::RowFacts;
 use std::borrow::Cow;

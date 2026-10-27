@@ -43,6 +43,7 @@ pub fn list_rows(dir: &str, n: usize) -> Vec<RowFacts> {
             link: None,
             real_modes: true,
             kind: String::new(),
+            tags: None,
         })
         .collect()
 }

@@ -30,6 +30,8 @@ impl Shell {
             })
             .and_then(|backend| backend.line(line));
         if let Err(error) = result {
+            self.menu.tags.pending[side].clear();
+            self.menu.tags.asking = None;
             host.record_error(error, &self.locale);
             self.menu.pending = None;
             self.menu.activating = false;
@@ -80,6 +82,7 @@ impl Shell {
     }
 
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.menu.tags.asking = None;
         self.providers_menu_closed();
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();

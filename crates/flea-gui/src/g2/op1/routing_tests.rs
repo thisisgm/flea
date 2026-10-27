@@ -110,6 +110,7 @@ fn u13_replies_and_actions_keep_the_origin_after_pane_focus_moves(cx: &mut TestA
             "",
         );
         let facts = crate::backend::status::Filesystem {
+            tagable: None,
             path: host.path.clone(),
             name: "testfs".into(),
             free: 1_073_741_824,

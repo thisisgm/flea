@@ -58,6 +58,7 @@ impl gpui::EventEmitter<ProducerReply> for Shell {}
 
 #[derive(Default)]
 pub struct Joined {
+    pub tags: super::tags::Tags,
     pub menu: Rc<RefCell<Menu>>,
     pub captured: Option<Captured>,
     pub context: MenuContext,
@@ -150,6 +151,9 @@ impl Shell {
             }
         }
         context.hidden = hidden;
+        if !self.can_tag(side) {
+            context.hidden.push("tags".into());
+        }
         if !background {
             self.provider_context(side, &host.path, &mut context);
         }
@@ -251,6 +255,7 @@ impl Shell {
         self.menu.context =
             self.listing_menu_context(side, &capture.rows, capture.cursor, background);
         self.menu.captured = Some(capture.clone());
+        self.ask_tag_states(false, cx);
         self.check_menu_shebang(window, cx);
         self.archive_menu_context(side);
         self.menu.presentation.at = Some(at);
