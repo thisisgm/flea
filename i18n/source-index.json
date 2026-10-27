@@ -82956,7 +82956,7 @@
     },
     {
       "excerpt": "let subject = self.subject.as_ref().expect(\"an open card has a subject\");",
-      "line": 87,
+      "line": 85,
       "literal": "an open card has a subject",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv1/card.rs",
@@ -124868,6 +124868,15 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "let references = refs.get_mut(&wd).expect(\"every watched path owns a reference\");",
+      "line": 45,
+      "literal": "every watched path owns a reference",
+      "owner": "controller",
+      "path": "src/backend/searchrowinodes.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "if probes.cancel.load(Ordering::Relaxed) { index.mark_partial(\"cancelled\"); }",
       "line": 72,
       "literal": "cancelled",
@@ -131781,7 +131790,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the open folder will not follow outside changes, inotify is unavailable\");",
-      "line": 146,
+      "line": 147,
       "literal": "flea: the open folder will not follow outside changes, inotify is unavailable",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131790,7 +131799,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the open folder stopped following outside changes, the inotify read failed: {}\", failure);",
-      "line": 198,
+      "line": 199,
       "literal": "flea: the open folder stopped following outside changes, the inotify read failed: {}",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131799,7 +131808,7 @@
     },
     {
       "excerpt": "buf.extend(event(4, b\"this name did not fit\"));",
-      "line": 301,
+      "line": 302,
       "literal": "this name did not fit",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131808,7 +131817,7 @@
     },
     {
       "excerpt": "assert!(fd >= 0, \"this box has no inotify to test with\");",
-      "line": 393,
+      "line": 394,
       "literal": "this box has no inotify to test with",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131817,7 +131826,7 @@
     },
     {
       "excerpt": "assert!(live >= 0, \"the sandbox could not be watched\");",
-      "line": 398,
+      "line": 399,
       "literal": "the sandbox could not be watched",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131826,7 +131835,7 @@
     },
     {
       "excerpt": "assert_eq!(w.incoming, live, \"a re-list of one inode aliases onto the descriptor it has\");",
-      "line": 401,
+      "line": 402,
       "literal": "a re-list of one inode aliases onto the descriptor it has",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131835,7 +131844,7 @@
     },
     {
       "excerpt": "assert!(saw_a_create(fd, live), \"the abandoned re-list took the open folder's watch with it\");",
-      "line": 405,
+      "line": 406,
       "literal": "the abandoned re-list took the open folder's watch with it",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131844,7 +131853,7 @@
     },
     {
       "excerpt": "assert!(fd >= 0, \"this box has no inotify to test with\");",
-      "line": 413,
+      "line": 414,
       "literal": "this box has no inotify to test with",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131853,7 +131862,7 @@
     },
     {
       "excerpt": "assert!(w.wd >= 0, \"the sandbox could not be watched\");",
-      "line": 418,
+      "line": 419,
       "literal": "the sandbox could not be watched",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131862,7 +131871,7 @@
     },
     {
       "excerpt": "assert!(saw_a_create(fd, w.wd), \"the second begin removed the watch it had just armed\");",
-      "line": 420,
+      "line": 421,
       "literal": "the second begin removed the watch it had just armed",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131871,7 +131880,7 @@
     },
     {
       "excerpt": "assert!(fd >= 0, \"this box has no inotify to test with\");",
-      "line": 453,
+      "line": 454,
       "literal": "this box has no inotify to test with",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131880,7 +131889,7 @@
     },
     {
       "excerpt": "assert!(live >= 0, \"the sandbox could not be watched\");",
-      "line": 458,
+      "line": 459,
       "literal": "the sandbox could not be watched",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131889,7 +131898,7 @@
     },
     {
       "excerpt": "assert_eq!(late, live, \"a re-list of one inode aliases onto the descriptor it has\");",
-      "line": 460,
+      "line": 461,
       "literal": "a re-list of one inode aliases onto the descriptor it has",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131898,7 +131907,7 @@
     },
     {
       "excerpt": "assert!(saw_a_create(fd, live), \"the late re-list took the open folder's watch with it\");",
-      "line": 463,
+      "line": 464,
       "literal": "the late re-list took the open folder's watch with it",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131907,7 +131916,7 @@
     },
     {
       "excerpt": "assert!(fd >= 0, \"this box has no inotify to test with\");",
-      "line": 472,
+      "line": 473,
       "literal": "this box has no inotify to test with",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131916,7 +131925,7 @@
     },
     {
       "excerpt": "assert!(live >= 0, \"the sandbox could not be watched\");",
-      "line": 477,
+      "line": 478,
       "literal": "the sandbox could not be watched",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131925,7 +131934,7 @@
     },
     {
       "excerpt": "assert!(other >= 0 && other != live, \"the second sandbox arms its own descriptor\");",
-      "line": 479,
+      "line": 480,
       "literal": "the second sandbox arms its own descriptor",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131934,7 +131943,7 @@
     },
     {
       "excerpt": "assert!(ignored_wds(fd).is_empty(), \"arming queues no removal\");",
-      "line": 480,
+      "line": 481,
       "literal": "arming queues no removal",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131943,7 +131952,7 @@
     },
     {
       "excerpt": "assert_eq!(ignored_wds(fd), vec![other], \"the failed scan's descriptor is removed\");",
-      "line": 482,
+      "line": 483,
       "literal": "the failed scan's descriptor is removed",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131952,7 +131961,7 @@
     },
     {
       "excerpt": "assert!(w.is_current(live), \"the open folder is still followed\");",
-      "line": 483,
+      "line": 484,
       "literal": "the open folder is still followed",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131961,7 +131970,7 @@
     },
     {
       "excerpt": "assert!(ignored_wds(fd).is_empty(), \"a failed re-list aliases onto the live watch, which stays\");",
-      "line": 485,
+      "line": 486,
       "literal": "a failed re-list aliases onto the live watch, which stays",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131970,7 +131979,7 @@
     },
     {
       "excerpt": "assert_eq!(w.mount, Path::new(\"/media/stick\"), \"the watch reports against a dead mountpoint\");",
-      "line": 513,
+      "line": 514,
       "literal": "the watch reports against a dead mountpoint",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -131979,7 +131988,7 @@
     },
     {
       "excerpt": "assert_eq!(at, Path::new(\"/media\"), \"a surviving mountpoint is never the parent\");",
-      "line": 543,
+      "line": 544,
       "literal": "a surviving mountpoint is never the parent",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -211378,7 +211387,7 @@
     "crates/flea-gui/src/g2/pv1/bar.rs": "406f4145a00e0d8739a277893cc1ac982540b7eb718371d6d2ebc6dfb79db881",
     "crates/flea-gui/src/g2/pv1/body.rs": "fe4fbc15351d5564a2fcb4eda02e8f8a4033eec78e800ace4502dd335133e9fb",
     "crates/flea-gui/src/g2/pv1/button.rs": "95da89da5d867e835cb36668118fae76c572d4499cd796a6c26d8debf1435f74",
-    "crates/flea-gui/src/g2/pv1/card.rs": "b8f4db532457f5ac9be84aa1637cd791aee4d5b55f58660861e34af828a87daf",
+    "crates/flea-gui/src/g2/pv1/card.rs": "ae497b9bf2a314873a997076519f7fdc776443d2b68b141337e42bcfe3c7dce5",
     "crates/flea-gui/src/g2/pv1/chrome.rs": "ee3e950ad2645049955d75d2d717cc558216f88714f95ec44a692dced4930183",
     "crates/flea-gui/src/g2/pv1/column.rs": "a5f060752f525c9663931cba45cd8036bf708b89822c92f818586b6b82e06da2",
     "crates/flea-gui/src/g2/pv1/decode.rs": "704ce79aa79e377a29ceb5814a699004be0ed358814060ada438c28879c09267",
@@ -211386,8 +211395,8 @@
     "crates/flea-gui/src/g2/pv1/doc_card.rs": "56f716532467c44bf6a8355f91e6803f8947485de1684276185cf481ecf2bb17",
     "crates/flea-gui/src/g2/pv1/doc_keys.rs": "7aee183a4e7baeb5b2ba2d5045e47f8e72f0db5857a302bf32288ccdf79085a4",
     "crates/flea-gui/src/g2/pv1/glyph.rs": "666d1f191ea760699474b37e736d94072d81e42ddb12aa11ded7e1e1aab6895e",
-    "crates/flea-gui/src/g2/pv1/look.rs": "6b9f8c470476fbfb19800de35296bd07105042fe22f3ab244b2f75a2df99d116",
-    "crates/flea-gui/src/g2/pv1/mod.rs": "99ebd8e7935fc222cddfc0c1f79de888ae99f0670aa851e2c89c8d7de53f1d03",
+    "crates/flea-gui/src/g2/pv1/look.rs": "71702c742bbbf7acc5662d66de8301a7f067f8389b6e5c4950d79a3223e42b03",
+    "crates/flea-gui/src/g2/pv1/mod.rs": "d4b458dba89af8142109e8e8b276ce238c9da9964d652ccff4c6b8dc34013d6a",
     "crates/flea-gui/src/g2/pv1/photo.rs": "baa18776e150fd97e413fa0e7781c4f5761653fa6d321ca5dd3a613ada68ff28",
     "crates/flea-gui/src/g2/pv1/photo_frames.rs": "4ffcb3134403d55e6e05d1f1463627398259e3362b6e9103fbd9495711d15aa2",
     "crates/flea-gui/src/g2/pv1/photo_png.rs": "9396d748e77d00552ae20c22aede132c2d113d63ae1e437b724c2b215c72b097",
@@ -211736,7 +211745,7 @@
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "b813a0d98d4341f3d94800615a308f15e4abcf2a23e01272a9c1682cc2aa7707",
     "crates/flea-gui/src/window/dispatch/listing.rs": "1288e75f34ff704df9927c91639d152b0a56a105303354c7593e22c0d54f9c3b",
     "crates/flea-gui/src/window/dispatch/menus.rs": "fbf7761c931f83e4ab27c0ac27442b9837ed3ae9388dd7f722636b1afac7cecf",
-    "crates/flea-gui/src/window/dispatch/mod.rs": "d7923b92bba995f986d7ca7f30fe4760c23431d68d9d436ec8cf538a7cc9c992",
+    "crates/flea-gui/src/window/dispatch/mod.rs": "d1bcbe7e2133ef593c43c914bfade325842b016b6f7acda5d39080b26c79d82b",
     "crates/flea-gui/src/window/dispatch/navigation.rs": "75d456c7768dc0bfb27ae6d7f401b2793f3c979dcfd6a6031bd1f8bfcaacadd3",
     "crates/flea-gui/src/window/dispatch/opener.rs": "ae1fa417a0135a29b8a6f4c84f2e106fe4f45b6cfa3be9aa3efeb8d40f81abaf",
     "crates/flea-gui/src/window/dispatch/opener/targets.rs": "fbdc45db2a2f459c54e5644054be66d71c72a292fc477c942583912242d322de",
@@ -211794,7 +211803,7 @@
     "crates/flea-gui/src/window/properties.rs": "677f98ba289bbe93d8553dde3c32f5b49e8b23aa672a7812b4c6dabebe900e3c",
     "crates/flea-gui/src/window/quick_look.rs": "e6a01f502e98f8d10f1159cf0f474663235984f56897660c7b831736539c031d",
     "crates/flea-gui/src/window/quick_look_compare.rs": "03bce4ae8b1ca93bf410d5a43ad4e8480ddc55b51e5a5fa9de9efb69799270d4",
-    "crates/flea-gui/src/window/quick_look_docs.rs": "458e6b88b9fddb23c7009db63c1d575d81b7e655a1237bf4cdec1c8c2763d7a2",
+    "crates/flea-gui/src/window/quick_look_docs.rs": "d64663c84767850aa8d07602cc96509f8c6ee77483b0d5eda11bf52d0c4cc906",
     "crates/flea-gui/src/window/quick_look_keys.rs": "7975184e49162f060c28425fbe91d5955c52409c38707195748e1b85e3bce602",
     "crates/flea-gui/src/window/quick_look_mount.rs": "c840276979d6550006b5960581d1585ad9210aa504cefef582c52840e67f4110",
     "crates/flea-gui/src/window/quick_look_readers.rs": "a046fddf3fc26a1fdfeb0dbfc9d83614c981e562d038d18dd7c62666533d1ef0",
@@ -212111,7 +212120,7 @@
     "src/backend/searchblocks.rs": "788915aacfa70b4c9a403307a7ed103f232099372c86fac434860cca578ff93e",
     "src/backend/searchdelta.rs": "381c2476dad382f9807f907d40ab334065ab9a17bf93f55fac88183145b9a153",
     "src/backend/searchhold.rs": "4dd3e4cfbadfec591b74999576fa2f054450f3308b9641a1cc95fd37a070f08d",
-    "src/backend/searchindex.rs": "e2d3c72eb6f46191584cf917fa1c96ce8ad79843c94698bb876c417e28f6eb5d",
+    "src/backend/searchindex.rs": "9b4c9776a7deb5d1c03444224a3e63b658bc4c7e94c802623110da0f78a7c7f4",
     "src/backend/searchindexpatch.rs": "ad22d146378052a2777d15a91e3163c8119ba714b5b6e38c9a7da9c1cca25523",
     "src/backend/searchjobs.rs": "6a0bc6b709089e021baa8b5fa0655eae7895a19e500cb641a42a08adaba89a39",
     "src/backend/searchmatch.rs": "14ff42bcb4402ba2d6ae15b52280d396676f8523c844ce90a60b0bfa129c2b1c",
@@ -212123,8 +212132,8 @@
     "src/backend/searchpriorxml.rs": "14df71fe8b032788ab7d594e01bcbc37f58b47f0e746fa6734ee6e464dd1f124",
     "src/backend/searchread.rs": "b8b37cfbae19d4f1e1aa4cdfec11bb4a7cac98f95d069da975a6011af4b2c46d",
     "src/backend/searchreq.rs": "f9b36bb65f4146b7934f0d5deb845c47f059c7a95780cd70b48730ca31040c10",
-    "src/backend/searchrowcache.rs": "6d81ce0ee6f21420c9fe399e339a2276d96a7a18aeebe57f9c5c4abce227a523",
-    "src/backend/searchrowinodes.rs": "5252b3f839d2c356fb67b7120eab9e7138bd1284e63bc264a9789c2de36bd708",
+    "src/backend/searchrowcache.rs": "a7a9f4d273a453731da5682b6922589de174b4639c0c864a38ed0e194b774112",
+    "src/backend/searchrowinodes.rs": "5a70e944343d4e35507251c4ed3cddc3f54021a6a8b0d6124d992f281e670d72",
     "src/backend/searchscore.rs": "2d5df4ba10513a1cbf2522716f22b792c6dc2bf2d6a1a16011f0fd4e19735790",
     "src/backend/searchscratch.rs": "670d863413e57858ca6b813a967822ac42cacc3d8bf8f185fafe1c7ed927d7a8",
     "src/backend/searchsession.rs": "b1907628c39b64daaa84e4d3d07f289a929fdf6db5ba5e96b2a681053a4771a5",
@@ -212192,7 +212201,7 @@
     "src/backend/viewerpaths.rs": "9caf40ed0bf56841751dc17fb001e1f4941eeae7a9bc2f1de3f3fe3d9c94338a",
     "src/backend/wake.rs": "ede3c96cafe5280f74feda37103f4bf65d9e564b4f2166b5242ad10fc4146348",
     "src/backend/walkmounts.rs": "68744415ea2b1dcd6637835a0d72d7e90197ad8ceffe127479b655891710ca84",
-    "src/backend/watch.rs": "973762bbfdf00e8ee1de2c326f1936487e274bfa1733d1a2dbcfe56fef7d75bd",
+    "src/backend/watch.rs": "037ff535315888ccc3e0ebd583e563d69976a457c7d5b52fced2b53dcb2dd72d",
     "src/backend/watchpoll.rs": "1cc84631a6b6bb806f5107beab3182b2537de432902be47ea83b4128bd6881a6",
     "src/backend/windowreq.rs": "c9863ab19099a4e0ee83b976ef064753ba5e4854528c1f8622e8de3e91eb045e",
     "src/backend/workerlink.rs": "0fd474f95e86ff71b354dc78c173e5e890b0ba602af5c49936f92d6a9d55bcc4",
@@ -213252,12 +213261,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "1f3c4d4128cc4eb3ef919769bc9331fad28076ba",
-  "source_sha": "1f3c4d4128cc4eb3ef919769bc9331fad28076ba",
+  "source_ref_sha": "0fb3a54240009d92c91939552d6ace42a2162074",
+  "source_sha": "0fb3a54240009d92c91939552d6ace42a2162074",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
-      "missing_literal_candidates": 5651,
+      "missing_literal_candidates": 5652,
       "source_files": 786
     },
     "generated/tooling": {
