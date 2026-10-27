@@ -1,0 +1,2 @@
+id	group	view	dir	select	ui	steps	settle	note
+pb.network.mountinfo	network	list		notes.txt	{}	k:a ; q:networkFocus=Host ; q:networkFeedMountinfo,30 30 0:30 / /fixture/pb-network-nas rw - cifs //nas/share rw=fed ; q:networkEntries ; q:networkFeedMountinfo,=fed ; q:networkEntries	0.8	Oracle ui/Ipc.qml:944 and NetworkMounts.qml:371. Reach the network card through its real key; inject a kernel mount snapshot, observe its row and reset the snapshot. No mount or file operation runs. CTL2 checks both arms and looks at geometry against HIG network.png.
