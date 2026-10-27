@@ -240,9 +240,10 @@ fn ey206_strip_centres_come_from_drawn_boxes_and_a_paused_clip_reads_zero(
                 .expect("the column is mounted");
             let view = preview.read(cx);
             let strip = *view.play_rect.borrow();
-            strip
+            strip.zip(view.caches.strip.borrow().play)
         })
-        .expect("the strip is drawn");
+        .expect("the strip and its play mark are drawn");
+    let (strip, play) = strip;
     let (left, width) = (f32::from(strip.left()), f32::from(strip.size.width));
     let at = |value: String| -> (f32, f32) {
         let mut values = value.split_whitespace().map(|v| v.parse::<f32>().unwrap());
@@ -261,6 +262,11 @@ fn ey206_strip_centres_come_from_drawn_boxes_and_a_paused_clip_reads_zero(
     assert!(
         play_x < strip_x,
         "the play mark is not the strip's middle: {play_x} {strip_x}"
+    );
+    let painted = f32::from(play.left()) + f32::from(play.size.width) / 2.;
+    assert!(
+        (play_x - painted).abs() <= 1.,
+        "the play centre is the middle of the painted play box: {play_x} in {play:?}"
     );
     assert!((play_y - strip_y).abs() <= 1., "both sit on the strip's middle row");
 }
