@@ -30,6 +30,10 @@ impl OutputView {
         } else if field.len() + text.len() <= 4096 && !text.chars().any(char::is_control) {
             field.push_str(text);
         }
+        self.validate_edit(cx);
+    }
+
+    pub(super) fn validate_edit(&mut self, cx: &mut Context<Self>) {
         if let Some(Card::Combine(c)) = &mut self.model.card {
             if let Some(columns) = c
                 .columns_text
@@ -66,11 +70,16 @@ impl OutputView {
         if self.model.card.is_none() {
             return;
         }
-        cx.stop_propagation();
         if self.printer_menu.opened() {
+            cx.stop_propagation();
             self.printer_key(event, window, cx);
             return;
         }
+        self.sync_editor();
+        if self.field_key(event, window, cx) {
+            return;
+        }
+        cx.stop_propagation();
         let key = event.keystroke.key.as_str();
         if key == "escape" {
             self.model.cancel();
@@ -84,6 +93,7 @@ impl OutputView {
             self.body_scroll.request_reveal();
             self.model.tab(event.keystroke.modifiers.shift);
             self.select_all = false;
+            self.sync_editor();
             cx.notify();
             return;
         }

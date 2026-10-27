@@ -340,6 +340,10 @@ fn compare_shows_only_for_two_regular_files_and_routes_both_paths(cx: &mut gpui:
                 .push((chosen.action.clone(), chosen.paths.clone()))
         })
     });
+    let (backend, mut sent) = crate::backend::Backend::test_lines();
+    shell.update(cx, |shell, _| {
+        shell.panes[0].as_mut().unwrap().backend = Some(backend)
+    });
     choose(&shell, cx, "compare");
     validated(
         &shell,
@@ -347,14 +351,17 @@ fn compare_shows_only_for_two_regular_files_and_routes_both_paths(cx: &mut gpui:
         "compare",
         &["/files/notes.txt", "/files/todo.md"],
     );
-    // The Compare card's opener belongs to the preview family; until it claims the row the dispatch hands it on.
-    assert_eq!(
-        handed.borrow().as_slice(),
-        [(
-            "compare".to_owned(),
-            vec!["/files/notes.txt".to_owned(), "/files/todo.md".to_owned()]
-        )]
+    // The menus family claims Compare and opens its card on the validated pair; nothing is handed on.
+    assert!(handed.borrow().is_empty(), "{:?}", handed.borrow());
+    let lines: Vec<String> = std::iter::from_fn(&mut sent).collect();
+    let pair = r#""a":"/files/notes.txt","b":"/files/todo.md""#;
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.contains(r#""c":"compare""#) && line.contains(pair)),
+        "{lines:?}"
     );
+    assert_eq!(read(&shell, cx, "previewKind", &[]), "compare");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

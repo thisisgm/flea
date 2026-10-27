@@ -23,6 +23,7 @@ pub struct OutputEvent(pub Effect);
 
 pub struct OutputView {
     pub model: Model,
+    pub(super) editor: super::editor::Editor,
     pub catalog: Arc<I18n>,
     pub palette: CardPalette,
     pub thumbnails: Vec<Thumbnail>,
@@ -37,7 +38,7 @@ pub struct OutputView {
     pub(super) printer_menu: super::printer_menu::PrinterMenu,
     pub(super) body_scroll: super::body_scroll::BodyScroll,
     released: Vec<Arc<gpui::RenderImage>>,
-    focus: FocusHandle,
+    pub(super) focus: FocusHandle,
     check: Option<Task<()>>,
     pub(super) select_all: bool,
 }
@@ -48,6 +49,7 @@ impl OutputView {
     pub fn new(catalog: Arc<I18n>, palette: CardPalette, cx: &mut Context<Self>) -> Self {
         Self {
             model: Model::default(),
+            editor: Default::default(),
             catalog,
             palette,
             thumbnails: vec![],
@@ -79,6 +81,7 @@ impl OutputView {
             self.flush(cx);
             return false;
         }
+        self.editor.close();
         self.released
             .extend(self.thumbnails.drain(..).map(|t| t.image));
         self.hovered = None;
@@ -154,6 +157,7 @@ impl OutputView {
     }
 
     pub fn flush(&mut self, cx: &mut Context<Self>) {
+        self.sync_editor();
         if !self.model.editable() {
             self.printer_menu.close();
         }
@@ -283,6 +287,8 @@ impl Render for OutputView {
         for image in self.released.drain(..) {
             let _ = window.drop_image(image);
         }
+        self.sync_editor();
+        self.editor.face = Some(crate::list::Typeface::for_window(window, cx));
         let room = window.viewport_size();
         self.body_scroll.prepare(&self.model);
         let mut root = div()

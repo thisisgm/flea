@@ -2,7 +2,7 @@
 use gpui::{Bounds, Hsla, Pixels};
 
 // Math.round(): half rounds up, so a negative half lands where QML's does.
-pub(super) fn round(value: f32) -> i64 {
+pub(crate) fn round(value: f32) -> i64 {
     (value + 0.5).floor() as i64
 }
 
