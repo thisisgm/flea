@@ -125,17 +125,88 @@ fn open_with_on_the_calm_card_opens_the_chooser_for_its_file(cx: &mut TestAppCon
         1,
         "Open With snapshots the file under the card, as the row menu's Open With does"
     );
+    // The snapshot carries the row's index in the pane's listing, never its path, so the path is checked on the pane.
+    let (id, listing, path) = shell.read_with(cx, |shell, _| {
+        let pane = shell.panes[0].as_ref().expect("the pane is open");
+        (
+            shell.open_with.as_ref().expect("the chooser opened").id,
+            pane.pane.held.listing,
+            crate::navigation::history::join(pane.pane.path(), NAME),
+        )
+    });
     assert_eq!(
-        snapshots[0]
+        path, "/files/unsupported.flea-unknown",
+        "the file under the card"
+    );
+    let snapshot = &snapshots[0];
+    assert_eq!(snapshot.get("id").and_then(Json::as_f64), Some(id as f64));
+    assert_eq!(
+        snapshot.get("listing").and_then(Json::as_f64),
+        Some(listing as f64),
+        "the snapshot names the pane's own listing"
+    );
+    assert_eq!(
+        snapshot
             .get("rows")
             .and_then(Json::as_array)
-            .map(|rows| rows.len()),
-        Some(1),
-        "the snapshot names the one row"
+            .map(|rows| rows.iter().filter_map(Json::as_f64).collect::<Vec<f64>>()),
+        Some(vec![1.]),
+        "the snapshot names the one row, at the file's index"
+    );
+    assert_eq!(snapshot.get("cursor").and_then(Json::as_f64), Some(1.));
+    let catalog = crate::g2::op3::tests::english();
+    assert_eq!(
+        shell.read_with(cx, |shell, _| shell
+            .open_with
+            .as_ref()
+            .map(|open| open.card.card(&catalog).title)),
+        Some("Open unsupported.flea-unknown With".to_owned()),
+        "the chooser names the file"
+    );
+    close(&shell, cx);
+}
+
+#[gpui::test]
+fn tab_then_return_on_the_calm_card_opens_the_chooser_through_the_keys(cx: &mut TestAppContext) {
+    let (shell, cx, mut requests) = refused_card(cx, "binary");
+    let focused = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        shell.read_with(cx, |shell, cx| {
+            shell
+                .quick_look
+                .as_ref()
+                .expect("the card is open")
+                .view
+                .read(cx)
+                .focused
+        })
+    };
+    assert_eq!(
+        focused(&shell, cx),
+        None,
+        "the card opens with no control focused"
+    );
+    press(cx, "tab");
+    assert_eq!(
+        focused(&shell, cx),
+        Some(Hit::OpenWith),
+        "Tab walks to the card's one action, Open With"
     );
     assert!(
+        shell.read_with(cx, |shell, _| shell.open_with.is_none()),
+        "Tab alone opens nothing"
+    );
+    press(cx, "return");
+    assert!(
         shell.read_with(cx, |shell, _| shell.open_with.is_some()),
-        "the Open With chooser opens"
+        "Return on the focused Open With opens the chooser"
+    );
+    assert_eq!(
+        sent(&mut requests, "menuaction")
+            .iter()
+            .filter(|line| line.get("op").and_then(Json::as_str) == Some("snapshot"))
+            .count(),
+        1,
+        "the keyed Open With sends one snapshot"
     );
     close(&shell, cx);
 }
