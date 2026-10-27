@@ -32,11 +32,17 @@ pub(super) fn run(
     let side = chosen.captured.side;
     let link = chosen.paths[0].clone();
     shell.retire_menu(window, cx);
+    request(shell, side, link, cx);
+    true
+}
+
+// The backend answers with the target; original_reply reveals it only while this pane still shows the same listing.
+pub(super) fn request(shell: &mut Shell, side: usize, link: String, cx: &mut Context<Shell>) {
     let Some(host) = shell.panes[side]
         .as_ref()
         .filter(|host| !host.stopped && !host.pane.busy())
     else {
-        return true;
+        return;
     };
     let pending = &mut shell.opener[side].original;
     pending.sequence = pending.sequence.wrapping_add(1).max(1);
@@ -52,7 +58,6 @@ pub(super) fn run(
         listing: host.pane.held.listing,
     });
     shell.menu_send(side, line, cx);
-    true
 }
 
 impl Shell {

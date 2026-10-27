@@ -69,16 +69,7 @@ pub(super) fn run(
             shell.focus_side = focused;
         }
         // ViewState.qml toggles langMarks, which every view reads from ui.json.
-        "toggleLangMarks" => {
-            let shown = shell
-                .launch
-                .settings
-                .data
-                .get("langMarks")
-                .and_then(Json::as_bool)
-                != Some(false);
-            shell.change_settings(edit::setting("langMarks", Json::Bool(!shown)), window, cx);
-        }
+        "toggleLangMarks" => toggle_lang_marks(shell, window, cx),
         "settings" => shell.open_settings(window, cx),
         // Focus.js updateFlea: the same run the About page's Update Flea starts.
         "updateFlea" => shell.settings_update(true, window, cx),
@@ -116,4 +107,16 @@ fn finish(shell: &mut Shell, chosen: &Chosen, window: &mut Window, cx: &mut Cont
         );
     }
     shell.retire_menu(window, cx);
+}
+
+// ViewState.qml toggles langMarks, which every view reads from ui.json; the menu row and the listing key share it.
+pub(super) fn toggle_lang_marks(shell: &mut Shell, window: &mut Window, cx: &mut Context<Shell>) {
+    let shown = shell
+        .launch
+        .settings
+        .data
+        .get("langMarks")
+        .and_then(Json::as_bool)
+        != Some(false);
+    shell.change_settings(edit::setting("langMarks", Json::Bool(!shown)), window, cx);
 }

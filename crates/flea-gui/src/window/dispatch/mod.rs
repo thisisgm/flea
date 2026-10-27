@@ -4,6 +4,7 @@ mod deletion;
 mod fileops;
 mod fileops_wire;
 mod listing;
+mod menu_parity;
 mod menus;
 mod navigation;
 pub(crate) mod opener;
@@ -48,6 +49,7 @@ const FAMILIES: &[Family] = &[
     window::run,
     super::permissions::run,
     rename::run,
+    menu_parity::run,
     menus::run,
     clipboard::run,
 ];
@@ -148,6 +150,8 @@ mod pb_opener_tests;
 pub(crate) mod pb_places_tests;
 #[cfg(test)]
 mod menudraw_tests;
+#[cfg(test)]
+mod pb_menus_2_tests;
 #[cfg(test)]
 mod pb_wire_tests;
 #[cfg(test)]
