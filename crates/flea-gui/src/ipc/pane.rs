@@ -19,7 +19,6 @@ impl Adapter for PaneAdapter<'_> {
             // Ipc.qml mode() is the constant "browse", which v0.3.12 never reports as anything else.
             "mode" => "browse".into(),
             // Recent is the history listing under flea:recent; GPUI keeps no origin for it, so recentFrom reads idle.
-            "recentMode" => (if flea::ui_logic_pk1::is_recent(pane.place()) { "results" } else { "" }).into(),
             "recentFrom" => String::new(),
             "listRequests" => pane.list_requests.to_string(),
             "firstRowsAt" => pane.first_rows_at.to_string(),

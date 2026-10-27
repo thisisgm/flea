@@ -50,6 +50,8 @@ pub(crate) struct Host {
     pub plugin_backends: [bool; 2],
     pub patches: store::Patches,
     pub pending: Vec<(u64, Json)>,
+    // Revisions of favourite moves in flight; their pending entry is empty, so the favourites reader needs this list.
+    pub favourite_saves: Vec<u64>,
     pub failed: Vec<(u64, Json)>,
     // Request revision and highest failed revision actually included in that request.
     pub retried: Vec<(u64, u64)>,
