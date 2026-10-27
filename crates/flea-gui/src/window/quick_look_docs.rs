@@ -144,7 +144,7 @@ impl Mounting<'_> {
                 };
                 let palette = pv2::markdown::Palette {
                     background: t.background,
-                    code: t.surface,
+                    code: t.background,
                     surface: t.surface,
                     foreground: t.foreground,
                     bright: t.foreground_bright,
