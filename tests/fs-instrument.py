@@ -29,7 +29,7 @@ class Instrument(unittest.TestCase):
         self.assertIn(('flea-search', 'native'), runner.ENTRANTS)
         self.assertEqual(runner.REFERENCE, ('flea-search', 'native'))
         seam = (HERE / 'stage.rs').read_text()
-        self.assertIn('session.query(', seam)
+        self.assertRegex(seam, r'session\s*\.query\(')
         self.assertIn('index.push(', seam)
 
     def test_walker_uses_product_walk(self):

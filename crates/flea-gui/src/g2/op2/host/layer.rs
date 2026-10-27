@@ -12,6 +12,10 @@ impl Shell {
         if !self.operations.archive.showing() {
             return false;
         }
+        if self.dialog_key(event, cx) {
+            return true;
+        }
+        cx.stop_propagation();
         let Some(key) = keys::key_of(event) else {
             return true;
         };
@@ -47,12 +51,24 @@ impl Shell {
         let catalog = self.locale.catalog.clone();
         let room = f32::from(window.viewport_size().width);
         let radius = self.corner;
+        self.sync_dialog_editor();
+        self.rename.ime.palette = Some(crate::g2::op1::palette::CardPalette::from_list(
+            &palette, radius,
+        ));
+        self.rename.ime.error_ink = false;
         let archive = &mut self.operations.archive;
         if archive.card_open() {
-            let card = match archive.compress.as_ref().filter(|card| card.opened()) {
+            let mut card = match archive.compress.as_ref().filter(|card| card.opened()) {
                 Some(card) => card.card(&catalog),
                 None => archive.extract.card(&catalog),
             };
+            for block in &mut card.body {
+                if let super::super::cards::Block::Field(field) = block {
+                    if field.focused {
+                        field.input = Some(cx.entity());
+                    }
+                }
+            }
             let drawn = StandIn.present(&card, &palette, &typeface, room, radius);
             let ground = cx.listener(|shell: &mut Shell, _: &MouseDownEvent, window, cx| {
                 let archive = &mut shell.operations.archive;

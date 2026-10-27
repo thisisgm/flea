@@ -164,10 +164,16 @@ impl BulkRename {
                     None if text != *old => (Ink::Foreground, String::new()),
                     None => (Ink::Muted, String::new()),
                 };
-                NameLine { text, ink, reason }
+                NameLine {
+                    input: None,
+                    text,
+                    ink,
+                    reason,
+                }
             })
             .collect();
         let field = |label: &str, value: &str, stop: Stop| Field {
+            input: None,
             label: Some(tr(label)),
             value: value.to_string(),
             placeholder: String::new(),
@@ -207,6 +213,7 @@ impl BulkRename {
             enabled,
         };
         Card {
+            language: i18n.language().to_owned(),
             title: logic::title(i18n, self.old.len()),
             esc: tr("dialogs.file.esc"),
             width: WIDTH,
@@ -228,5 +235,38 @@ impl BulkRename {
                 ),
             ],
         }
+    }
+}
+
+impl BulkRename {
+    pub(crate) fn ime_value(&self) -> Option<(crate::g2::op1::dialog_editor::Slot, &str)> {
+        use crate::g2::op1::dialog_editor::Slot;
+        if self.editing {
+            return None;
+        }
+        match self.focus {
+            Stop::Find => Some((Slot::BulkFind, &self.find)),
+            Stop::Replace => Some((Slot::BulkReplace, &self.replace)),
+            Stop::Line(at) => self
+                .names
+                .get(at)
+                .map(|name| (Slot::BulkLine(at), name.as_str())),
+            _ => None,
+        }
+    }
+    pub(crate) fn ime_set(&mut self, slot: crate::g2::op1::dialog_editor::Slot, text: &str) {
+        use crate::g2::op1::dialog_editor::Slot;
+        match slot {
+            Slot::BulkFind => self.find = text.into(),
+            Slot::BulkReplace => self.replace = text.into(),
+            Slot::BulkLine(at) if at < self.names.len() => {
+                self.base = self.names.clone();
+                self.base[at] = text.into();
+                self.find.clear();
+                self.replace.clear();
+            }
+            _ => return,
+        }
+        self.recompute();
     }
 }

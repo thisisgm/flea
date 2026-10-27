@@ -6,20 +6,25 @@ fn m9_integ_extract_answers_only_the_asked_archive() {
     let mut cx = crate::list::bench::real_cx();
     let (handle, mut requests, _other) = start(&mut cx);
 
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.panes[0].as_mut().unwrap().selected = vec![2];
+    });
     // Extract goes beside the archive; only the asked archive's encrypted answer opens the password card.
-    choose(&mut cx, handle, 43, "extract", "", &["/files/photos.zip"]);
+    choose(&mut cx, handle, 43, "extract", "", &["/files/photos.7z"]);
     assert_eq!(
         drain(&mut requests),
         [
-            r#"{"c":"archive","op":"extract","path":"/files/photos.zip","dest":"/files/photos","menuId":43}"#,
+            r#"{"c":"archive","op":"extract","path":"/files/photos.7z","dest":"/files/photos","menuId":43}"#,
             r#"{"c":"menuaction","op":"close","id":43}"#,
         ]
     );
+    receive(&mut cx, handle, 0, r#"{"t":"archivestarted","id":7}"#);
+    receive(&mut cx, handle, 0, r#"{"t":"extractstarted","id":7}"#);
     receive(
         &mut cx,
         handle,
         0,
-        r#"{"t":"archivedone","id":7,"ok":false,"verified":true,"err":"encrypted","path":"/files/stale.zip","dest":"/files/stale"}"#,
+        r#"{"t":"archivedone","id":6,"ok":false,"verified":true,"err":"encrypted","path":"/files/stale.zip","dest":"/files/stale"}"#,
     );
     assert!(
         edit(&mut cx, handle, |shell, _, _| !shell
@@ -33,7 +38,7 @@ fn m9_integ_extract_answers_only_the_asked_archive() {
         &mut cx,
         handle,
         1,
-        r#"{"t":"archivedone","id":7,"ok":false,"verified":true,"err":"encrypted","path":"/files/photos.zip","dest":"/files/photos"}"#,
+        r#"{"t":"archivedone","id":7,"ok":false,"verified":true,"err":"encrypted","path":"/files/photos.7z","dest":"/files/photos"}"#,
     );
     assert!(
         edit(&mut cx, handle, |shell, _, _| !shell
@@ -47,7 +52,7 @@ fn m9_integ_extract_answers_only_the_asked_archive() {
         &mut cx,
         handle,
         0,
-        r#"{"t":"archivedone","id":7,"ok":false,"verified":true,"err":"encrypted","path":"/files/photos.zip","dest":"/files/photos"}"#,
+        r#"{"t":"archivedone","id":7,"ok":false,"verified":true,"err":"encrypted","path":"/files/photos.7z","dest":"/files/photos"}"#,
     );
     assert!(
         edit(&mut cx, handle, |shell, _, _| shell
@@ -57,12 +62,18 @@ fn m9_integ_extract_answers_only_the_asked_archive() {
             .opened()),
         "the asked archive opens the card"
     );
+    assert!(
+        VisualTestContext::from_window(handle.into(), &cx)
+            .debug_bounds("op2-card")
+            .is_some(),
+        "the password-needed result draws the password card"
+    );
     keys(&mut cx, handle, "s->s e->e c->c r->r e->e t->t");
     keys(&mut cx, handle, "enter");
     assert_eq!(
         drain(&mut requests),
         [
-            r#"{"c":"archive","op":"extract","path":"/files/photos.zip","dest":"/files/photos","password":"secret","menuId":0}"#
+            r#"{"c":"archive","op":"extract","path":"/files/photos.7z","dest":"/files/photos","password":"secret","menuId":0}"#
         ]
     );
     // A wrong password reopens the card holding the bullets of the refused answer, never its characters.
@@ -70,7 +81,7 @@ fn m9_integ_extract_answers_only_the_asked_archive() {
         &mut cx,
         handle,
         0,
-        r#"{"t":"archivedone","id":8,"ok":false,"verified":true,"err":"wrong-password","path":"/files/photos.zip","dest":"/files/photos"}"#,
+        r#"{"t":"archivedone","id":8,"ok":false,"verified":true,"err":"wrong-password","path":"/files/photos.7z","dest":"/files/photos"}"#,
     );
     edit(&mut cx, handle, |shell, _, _| {
         assert!(shell.operations.archive.extract.opened());

@@ -10,8 +10,12 @@ mod filesystem;
 mod ipc;
 #[path = "events_quit.rs"]
 mod quit;
+#[path = "events_routes.rs"]
+mod routes;
 #[path = "events_slow.rs"]
 mod slow;
+// Only the status tests read the sentence directly; the window reads it through slow_line.
+#[cfg(test)]
 pub(crate) use slow::slow_sentence;
 
 impl Shell {
@@ -30,6 +34,9 @@ impl Shell {
         if let BackendEvent::Peeked(document) = &event {
             self.tab_peeked(side, document, window, cx);
         }
+        if self.permissions_event(side, &event, window, cx) {
+            return;
+        }
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained)
             && self
                 .menu
@@ -39,19 +46,7 @@ impl Shell {
         {
             self.retire_menu(window, cx);
         }
-        if self.quick_look_line(side, &event, window, cx) {
-            return;
-        }
-        if self.selection_preview_event(side, &event, window, cx) {
-            return;
-        }
-        if self.grid_pictures_event(side, &event, window, cx) {
-            return;
-        }
-        if self.provider_event(side, &event, window, cx) {
-            return;
-        }
-        if self.clipboard_receive(side, &event, window, cx) {
+        if self.route_surface_event(side, &event, window, cx) {
             return;
         }
         if let BackendEvent::Producer(line) = &event {
@@ -67,16 +62,9 @@ impl Shell {
             self.search_landed(side, true, window, cx);
         }
         if let BackendEvent::Producer(line) | BackendEvent::Operations(line) = &event {
-            if let Some(sentence) = slow_sentence(line) {
-                self.status_messages(cx, |messages, now| {
-                    messages.say(
-                        &sentence,
-                        false,
-                        "",
-                        flea::ui_logic_fb1::status::Hint::None,
-                        now,
-                    )
-                });
+            self.slow_line(line, cx);
+            if self.open_with_line(side, line, cx) {
+                return;
             }
             if self.fileops_line(side, line, window, cx) {
                 return;
@@ -145,7 +133,10 @@ impl Shell {
                 path,
                 message,
                 ..
-            } => self.operation_failed(side, operation, path, message, cx),
+            } => {
+                self.menu_tag_refused(side, operation);
+                self.operation_failed(side, operation, path, message, cx)
+            }
             _ => {}
         }
         let event = self.filesystem_details(side, event, cx);
@@ -184,6 +175,7 @@ impl Shell {
                         &self.locale,
                     ),
                 }
+                self.opener_archive_ready(side, window, cx);
                 return;
             }
             event => event,
@@ -387,6 +379,7 @@ impl Shell {
                 }
             }
         }
+        self.opener_archive_ready(side, window, cx);
         self.search_landed(side, false, window, cx);
         self.settle_dual(window, cx);
         self.after_navigation(side, &before, window, cx);
