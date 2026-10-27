@@ -234,26 +234,47 @@ impl Shell {
                     self.focus_pane(side, cx);
                     self.trash_action("openTrash", window, cx);
                 }
+                // The device source's notify is lost inside Shell::render, so its events would wait for an unrelated frame.
                 Event::Activate(entry)
                     if entry.group == flea::ui_logic_pl4::rail::Group::Device =>
                 {
-                    let owned = self.rail.as_ref().map(|join| {
-                        join.devices
-                            .update(cx, |source, cx| source.activate(&entry, side, cx))
+                    let event = Event::Activate(entry);
+                    cx.defer_in(window, move |shell, window, cx| {
+                        shell.device_request(Request { side, id, event }, window, cx)
                     });
-                    match owned {
-                        Some(Activation::Handled) => {}
-                        Some(Activation::Phone(phone)) => self.open_phone(side, &phone, window, cx),
-                        _ => cx.emit(Request {
-                            side,
-                            id,
-                            event: Event::Activate(entry),
-                        }),
-                    }
                 }
-                Event::Release(entry) => self.release_rail_row(side, &entry, cx),
+                Event::Release(entry) => {
+                    let event = Event::Release(entry);
+                    cx.defer_in(window, move |shell, window, cx| {
+                        shell.device_request(Request { side, id, event }, window, cx)
+                    });
+                }
                 event => self.dispatch(Order::Place(Request { side, id, event }), window, cx),
             }
+        }
+    }
+
+    /// A device row's Return or release, run after the draw that drained it.
+    fn device_request(&mut self, request: Request, window: &mut Window, cx: &mut Context<Self>) {
+        let Request { side, id, event } = request;
+        match event {
+            Event::Activate(entry) => {
+                let owned = self.rail.as_ref().map(|join| {
+                    join.devices
+                        .update(cx, |source, cx| source.activate(&entry, side, cx))
+                });
+                match owned {
+                    Some(Activation::Handled) => {}
+                    Some(Activation::Phone(phone)) => self.open_phone(side, &phone, window, cx),
+                    _ => cx.emit(Request {
+                        side,
+                        id,
+                        event: Event::Activate(entry),
+                    }),
+                }
+            }
+            Event::Release(entry) => self.release_rail_row(side, &entry, cx),
+            _ => {}
         }
     }
 
