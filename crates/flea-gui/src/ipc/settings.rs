@@ -342,6 +342,14 @@ impl Adapter for SettingsAdapter<'_> {
                 view.filter(|_| self.host.opened)
                     .map_or_else(String::new, |v| v.probe.centre(&key, clip))
             }
+            "settingsFavouriteControlCentre" => {
+                let id = arguments.first()?;
+                let part = arguments.get(1)?;
+                view.filter(|_| self.host.opened)
+                    .map_or_else(String::new, |v| {
+                        v.probe.centre(&format!("{id}:{part}"), "pane")
+                    })
+            }
             "uiSettings" => json(self.document.clone()),
             "showHidden" => self.hidden.to_string(),
             "keymapPreset" => flea::keys::preset(flea::ui_logic_st1::pages::word(

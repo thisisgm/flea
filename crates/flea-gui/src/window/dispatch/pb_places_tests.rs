@@ -80,6 +80,40 @@ pub(crate) fn menu_fixture(
 }
 
 #[gpui::test]
+fn pb_places_remote_favorite_enter_mounts_its_share(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root_with(cx, r#""view":"list","keys":"default""#, None);
+    land(&shell, cx, "/files", vec![row("notes.txt", false)], 1);
+    let producer = shell.read_with(cx, |shell, _| shell.rail.as_ref().unwrap().places.clone());
+    producer.update(cx, |producer, cx| {
+        producer.replace_sections(
+            vec![RailSection {
+                heading: Heading::Key("places.heading.favourites"),
+                rows: vec![RailEntry {
+                    group: Group::Favourite,
+                    kind: Kind::Favourite,
+                    label: "NAS".into(),
+                    path: "sftp://host/".into(),
+                    glyph: "server",
+                    favourite_index: Some(0),
+                    ..RailEntry::default()
+                }],
+            }],
+            cx,
+        )
+    });
+    settle(cx);
+    shell.update(cx, |shell, cx| shell.rail_focus(true, cx));
+    cx.simulate_keystrokes("enter");
+    settle(cx);
+    assert_eq!(
+        read(&shell, cx, "networkResult", &[]),
+        "mounting",
+        "a remote Favorite opens by mounting its share, as a NETWORK row does"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
 fn pb_places_favorite_open_navigates_its_captured_path(cx: &mut TestAppContext) {
     let (shell, cx) = open_menu(cx);
     choose(&shell, cx, "open");

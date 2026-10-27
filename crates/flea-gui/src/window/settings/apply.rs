@@ -83,6 +83,9 @@ impl Shell {
                 },
             ));
             let favourite = operation.is_some();
+            self.settings
+                .favourite_writes
+                .extend(favourite.then_some(revision));
             if worker.writes.send((revision, saving, operation)).is_err() {
                 self.settings_save_error(cx);
             }
@@ -123,8 +126,7 @@ impl Shell {
                             .cloned(),
                     );
                 }
-                self.settings.pending.retain(|(id, _)| *id > through);
-                self.settings.retried.retain(|(id, _)| *id > through);
+                self.settings.answered(through);
                 self.settings_save_error(cx);
             }
             store::Update::Loaded {
@@ -153,8 +155,7 @@ impl Shell {
                         });
                     }
                 }
-                self.settings.pending.retain(|(id, _)| *id > through);
-                self.settings.retried.retain(|(id, _)| *id > through);
+                self.settings.answered(through);
                 // Folder choices the folder writer has not finished stay as this window chose them.
                 let owed = self
                     .panes

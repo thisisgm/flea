@@ -330,6 +330,35 @@ impl Shell {
         }
     }
 
+    /// A remote Favorite opens like its NETWORK share: one mount request, then the path it reaches opens (Places.openEntry).
+    pub(crate) fn favourite_remote_activate(
+        &mut self,
+        side: usize,
+        entry: &rail::RailEntry,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.ensure_network(window, cx);
+        let origin = self.network_origin(side);
+        let Some(network) = self.network() else {
+            return;
+        };
+        let service = network.service.clone();
+        let request = crate::g2::pl2::mount::Request {
+            id: 0,
+            uri: entry.path.clone(),
+            label: entry.label.clone(),
+            origin,
+            mounted: entry.mounted == Some(true),
+            authenticated: false,
+            password: crate::g2::pl1::secret::Secret::new(),
+        };
+        service.update(cx, |service, cx| {
+            let now = service.now(cx);
+            service.open_share(request, now, cx)
+        });
+    }
+
     /// Unmount releases the row's own identity: FUSE by its path, a lent kernel mount by its exact file URI.
     pub(crate) fn network_unmount(&mut self, row: &RailEntry, origin: u64, cx: &mut Context<Self>) {
         let Some(network) = self.network() else {
