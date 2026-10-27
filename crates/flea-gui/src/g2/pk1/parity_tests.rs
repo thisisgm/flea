@@ -381,3 +381,36 @@ fn pb_picker1_shift_arrow_moves_the_cursor_without_a_range(cx: &mut TestAppConte
     f.cx.run_until_parked();
     assert_eq!(f.read(|picker| picker.listing.cursor), before);
 }
+
+// v0.3.12 binds parent to the listing context only (ui/js/Keymap.js:19 ctrl-up, :78 alt-up).
+fn name_field_keeps_the_parent_chord(cx: &mut TestAppContext, preset: &str, keystroke: &str) {
+    let mut f = fixture(cx, r#"{"mode":"save","folder":"/d","name":"a.txt"}"#, None);
+    seed(&mut f, "/d");
+    let settings = flea::jsondoc::parse(&format!(r#"{{"keys":"{preset}"}}"#)).unwrap();
+    f.update(|picker, cx| picker.apply_settings(&settings, cx));
+    let name = f
+        .read(|picker| picker.browse.filename.clone())
+        .expect("Save has its name field");
+    let focus = f.cx.update(|_, cx| name.read(cx).focus.clone());
+    f.cx.update(|window, cx| window.focus(&focus, cx));
+    f.cx.run_until_parked();
+    let sent = f.listing.sent().len();
+    f.cx.simulate_keystrokes(keystroke);
+    f.cx.run_until_parked();
+    assert!(
+        !f.listing.sent()[sent..]
+            .iter()
+            .any(|line| line.contains(r#""c":"list""#)),
+        "{keystroke} with the name field focused never changes the folder"
+    );
+}
+
+#[gpui::test]
+fn pb_picker1_ctrl_up_leaves_the_save_name_alone(cx: &mut TestAppContext) {
+    name_field_keeps_the_parent_chord(cx, "mac", "ctrl-up");
+}
+
+#[gpui::test]
+fn pb_picker1_alt_up_leaves_the_save_name_alone(cx: &mut TestAppContext) {
+    name_field_keeps_the_parent_chord(cx, "windows", "alt-up");
+}
