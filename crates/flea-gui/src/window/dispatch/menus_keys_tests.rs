@@ -78,3 +78,49 @@ fn c_on_an_empty_listing_says_no_item_under_the_cursor(cx: &mut gpui::TestAppCon
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[gpui::test]
+fn m_on_an_empty_listing_says_no_item_under_the_cursor_and_opens_no_menu(
+    cx: &mut gpui::TestAppContext,
+) {
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", Vec::new(), 1);
+    cx.simulate_keystrokes("m");
+    settle(cx);
+    assert_eq!(
+        status(&shell, cx),
+        "No item under the cursor to open a menu on",
+        "v0.3.12 Focus.js menu says this when no row is under the cursor"
+    );
+    let (opened, captured) = shell.read_with(cx, |shell, _| {
+        (shell.menu_opened(), shell.menu.captured.is_some())
+    });
+    assert!(
+        !opened && !captured,
+        "m opened no folder menu on an empty folder"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn shift_f10_on_an_empty_listing_says_no_item_under_the_cursor_and_opens_no_menu(
+    cx: &mut gpui::TestAppContext,
+) {
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", Vec::new(), 1);
+    cx.simulate_keystrokes("shift-f10");
+    settle(cx);
+    assert_eq!(
+        status(&shell, cx),
+        "No item under the cursor to open a menu on",
+        "Shift+F10 is the same menu action as m"
+    );
+    let (opened, captured) = shell.read_with(cx, |shell, _| {
+        (shell.menu_opened(), shell.menu.captured.is_some())
+    });
+    assert!(
+        !opened && !captured,
+        "Shift+F10 opened no folder menu on an empty folder"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

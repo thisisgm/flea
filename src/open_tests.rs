@@ -256,3 +256,6 @@ fn the_handler_button_launches_the_named_entry_with_the_file() {
     assert_eq!(out.status.code(), Some(crate::runfile::RUN_CHANGED), "a swapped file is refused");
     assert!(!std::fs::read_to_string(&log).unwrap_or_default().contains("launch"), "and nothing was launched");
 }
+
+#[path = "open_selection_tests.rs"]
+mod selection_tests;

@@ -17,11 +17,25 @@ impl Shell {
             network.service.clone(),
         );
         match effect {
-            Effect::Open { path, origin, .. } | Effect::OpenFile { path, origin, .. } => {
+            Effect::Open {
+                path,
+                uri,
+                label,
+                origin,
+            }
+            | Effect::OpenFile {
+                path,
+                uri,
+                label,
+                origin,
+            } => {
                 self.network_list(cx);
                 let Some(side) = self.network_side(*origin) else {
                     return;
                 };
+                if matches!(effect, Effect::Open { .. }) {
+                    self.remember_path_alias(path, label, uri);
+                }
                 let folder = if matches!(effect, Effect::OpenFile { .. }) {
                     std::path::Path::new(path)
                         .parent()
@@ -71,12 +85,20 @@ impl Shell {
                     connect_failed: *connect_failed,
                     password: Secret::from_bytes(password.expose()),
                 };
+                let side = self.network_side(*origin).expect("live network origin");
+                let text = self
+                    .locale
+                    .catalog
+                    .tr_args(error, &args.iter().map(String::as_str).collect::<Vec<_>>());
+                self.network_say(side, text, *connect_failed, cx);
                 card.update(cx, |card, cx| card.retry(retry, window, cx));
             }
             Effect::Say { note, origin } => {
                 if let Some(side) = self.network_side(*origin) {
                     let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
-                    self.network_say(side, text, cx);
+                    let error =
+                        !matches!(note.key, "network.another_opening" | "network.unmounted");
+                    self.network_say(side, text, error, cx);
                 }
             }
             Effect::Peek {
@@ -139,19 +161,8 @@ impl Shell {
         let Some(network) = self.network() else {
             return;
         };
-        let (card, service, runner) = (
-            network.card.clone(),
-            network.service.clone(),
-            network.runner.clone(),
-        );
-        let origin = card.read(cx).model.origin;
+        let (service, runner) = (network.service.clone(), network.runner.clone());
         match effect {
-            dialog::Effect::Wire(line) => {
-                let side = self.network_side(origin).unwrap_or(self.focus_side);
-                if let Some(backend) = self.panes[side].as_ref().and_then(|h| h.backend.as_ref()) {
-                    let _ = backend.line(line.clone());
-                }
-            }
             dialog::Effect::Save {
                 id,
                 uri,
@@ -252,7 +263,7 @@ impl Shell {
                             card.update(cx, |card, cx| card.saved(id, result.is_ok(), &detail, cx));
                         }
                     }
-                    None if result.is_err() => shell.network_say(side, detail, cx),
+                    None if result.is_err() => shell.network_say(side, detail, true, cx),
                     None => {}
                 }
                 shell.network_list(cx);

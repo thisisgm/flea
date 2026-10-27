@@ -101,15 +101,15 @@ fn u13_live_collision_reader_reports_the_drawn_card(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn u13_closed_operations_never_impersonate_the_network_form(cx: &mut TestAppContext) {
+fn u13_ipc_closed_operations_never_impersonate_the_network_form(cx: &mut TestAppContext) {
     let (handle, _backend) = open(cx);
     shell(cx, handle, |shell, window, cx| {
         shell.open_overlay_copy_to(false, "/files", window, cx)
     });
     assert_eq!(
-        call(cx, handle, "dialogOpen").code,
-        3,
-        "the absent network producer keeps its capability refusal"
+        call(cx, handle, "dialogOpen"),
+        Reply::value("false"),
+        "an operation card does not open the network form"
     );
 }
 
