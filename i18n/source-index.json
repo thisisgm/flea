@@ -91846,7 +91846,7 @@
     },
     {
       "excerpt": "other => panic!(\"no fixture named {other}\"),",
-      "line": 92,
+      "line": 93,
       "literal": "no fixture named {other}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -91855,7 +91855,7 @@
     },
     {
       "excerpt": "font: font(\"JetBrains Mono\"),",
-      "line": 113,
+      "line": 114,
       "literal": "JetBrains Mono",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -91864,7 +91864,7 @@
     },
     {
       "excerpt": ".expect(\"the bench window is open\");",
-      "line": 167,
+      "line": 168,
       "literal": "the bench window is open",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -91873,7 +91873,7 @@
     },
     {
       "excerpt": ".expect(\"the bench window is open\");",
-      "line": 172,
+      "line": 173,
       "literal": "the bench window is open",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -92224,7 +92224,7 @@
     },
     {
       "excerpt": "&& !matches!(class, \"network\" | \"phone\")",
-      "line": 157,
+      "line": 166,
       "literal": "network",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/navigation/sort.rs",
@@ -92233,7 +92233,7 @@
     },
     {
       "excerpt": "&& !matches!(class, \"network\" | \"phone\")",
-      "line": 157,
+      "line": 166,
       "literal": "phone",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/navigation/sort.rs",
@@ -138574,7 +138574,7 @@
     },
     {
       "excerpt": ".ok_or(\"rows must be an array\")?;",
-      "line": 101,
+      "line": 103,
       "literal": "rows must be an array",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138582,8 +138582,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "return Err(\"z must hold [row,bytes] pairs\".into());",
+      "line": 120,
+      "literal": "z must hold [row,bytes] pairs",
+      "owner": "controller",
+      "path": "src/protocol.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "Some(Json::Num(value)) => value.parse().map_err(|_| \"mode must fit a mode\")?,",
-      "line": 121,
+      "line": 138,
       "literal": "mode must fit a mode",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138592,7 +138601,7 @@
     },
     {
       "excerpt": "_ => return Err(\"mode must be an unsigned integer\".into()),",
-      "line": 122,
+      "line": 139,
       "literal": "mode must be an unsigned integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138601,7 +138610,7 @@
     },
     {
       "excerpt": "Some(value) => value.as_bool().ok_or(\"x must be a boolean\")?,",
-      "line": 136,
+      "line": 153,
       "literal": "x must be a boolean",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138610,7 +138619,7 @@
     },
     {
       "excerpt": ".ok_or(\"d must be a boolean\")?,",
-      "line": 143,
+      "line": 160,
       "literal": "d must be a boolean",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138619,7 +138628,7 @@
     },
     {
       "excerpt": "mode: u32::try_from(uint(row, \"p\")?).map_err(|_| \"p must fit a mode\")?,",
-      "line": 146,
+      "line": 163,
       "literal": "p must fit a mode",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138628,7 +138637,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| format!(\"{key} must be a string\"))",
-      "line": 166,
+      "line": 191,
       "literal": "{key} must be a string",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138637,7 +138646,7 @@
     },
     {
       "excerpt": ".map_err(|_| format!(\"{key} must be an unsigned integer\")),",
-      "line": 173,
+      "line": 198,
       "literal": "{key} must be an unsigned integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138646,7 +138655,7 @@
     },
     {
       "excerpt": "_ => Err(format!(\"{key} must be an unsigned integer\")),",
-      "line": 174,
+      "line": 199,
       "literal": "{key} must be an unsigned integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138655,7 +138664,7 @@
     },
     {
       "excerpt": ".map_err(|_| format!(\"{key} must be an integer\")),",
-      "line": 182,
+      "line": 207,
       "literal": "{key} must be an integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -138664,7 +138673,7 @@
     },
     {
       "excerpt": "_ => Err(format!(\"{key} must be an integer\")),",
-      "line": 183,
+      "line": 208,
       "literal": "{key} must be an integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -211127,7 +211136,7 @@
     "crates/flea-gui/src/ipc/window_feedback.rs": "d60dcd9964b0dd6f8becfe8935145fa00c7d19fce961c9c76c4302266617f4b0",
     "crates/flea-gui/src/lib.rs": "25d1b9095043466bd6dc9041bd74e42e367b4b19d81eafda2d84ce624da27bca",
     "crates/flea-gui/src/list.rs": "dce9f5056bf49e3c693e1b452d551c6aa16931b0a0a32e3cb0a5fa76cb202b18",
-    "crates/flea-gui/src/list/bench.rs": "98f488f3e3fab2dbb1f59d1bf8e2faa97ca64e14039316379954e72df1e638a4",
+    "crates/flea-gui/src/list/bench.rs": "be61d81c7c83a0547a351267f7985ad1ba3574374a2c95ccdb61cfbe9425d492",
     "crates/flea-gui/src/list/columns.rs": "82342a1216203e6d88ee1123400c6dc63a4f98d7bb3d07b87e74642f19df6caa",
     "crates/flea-gui/src/list/element.rs": "c0b64b32cec026f9eb1465e93d82c4a4988a226bd419a472b7708f6c711dbf85",
     "crates/flea-gui/src/list/gh333_harness.rs": "2b95bbed906e832e43fd74125b1d85baa880cee1af2ac3f22e4d2606d4523fd5",
@@ -211147,7 +211156,7 @@
     "crates/flea-gui/src/list/pane_geometry.rs": "a1f767df4080e2d8e708e6e6e1c5e7329183691396d86212980ed4b0232a16df",
     "crates/flea-gui/src/list/row_text.rs": "9391694e4cc0b22a35170f5d69d881a89f6c5e098ee4be87fb2dba39e602fb75",
     "crates/flea-gui/src/list/seam.rs": "17d0985d536a2497641d1e2b461b74e7738901ebbd8f93c0b2450148b1867732",
-    "crates/flea-gui/src/list/sizes.rs": "cff77496592c217cef0dd60067a223fb3dbfff9258fd6ac19d67b1cc6f731d94",
+    "crates/flea-gui/src/list/sizes.rs": "41f69551e148dc16283b6ac02791f192a3acc529749e2043b74977654afefae5",
     "crates/flea-gui/src/list/typeface.rs": "0f9ff50c6a53d7f029d6f4a5acff9115fc4fe2e7c2aaf6e40afeb31ff0c03185",
     "crates/flea-gui/src/locale_geometry.rs": "150242f97300d0e9ed06656137aff3f828fb6cba43c9c513dc504eca29969d66",
     "crates/flea-gui/src/main.rs": "e7a1170aff1de296fe1e973979b56b271068db7178a77af34bac89ee4c39e880",
@@ -211158,7 +211167,7 @@
     "crates/flea-gui/src/navigation/landing.rs": "0b5fd526211bb8f8a34a52075736ee9a113131c6ff769373be24ce2614a19e38",
     "crates/flea-gui/src/navigation/mod.rs": "d6dff5e2933e4c523f9d3d770c31ecd923544f0ef1f641a911d8ca571ac44c34",
     "crates/flea-gui/src/navigation/retry.rs": "85bc1780c65b4b91012434b648bbd578d3472fcc1acd40647d10885572bf0cea",
-    "crates/flea-gui/src/navigation/sort.rs": "1815d9b9ddfc461ee1b65e0de4b53267e3fe978cdcdef02e768b2e70c7e7ec5d",
+    "crates/flea-gui/src/navigation/sort.rs": "6a464f8d4b8d95edc1c9c023b46090535c652adae5bab527d9fd98a07315357d",
     "crates/flea-gui/src/navigation/steps.rs": "f0f4db480205cbfd5267f7eb8f7e0a6fdb2405297955f43ed1b0c81703825474",
     "crates/flea-gui/src/navigation/watch.rs": "0c994c4d99c6810e3d47215708ed10f1e9b88a26ab1274cc09a159f7b4e1d885",
     "crates/flea-gui/src/palette.rs": "2284f65f015a0cdf3e38c935496b3fe19396b9ec506e371136356ff10adcd836",
@@ -211816,7 +211825,7 @@
     "src/prefetch.rs": "11421a7915332c3fc4d908d6b15593aa4d2ff9c27c8a97ad57f1613b018642a7",
     "src/preview_model.rs": "873bb9d07d692ef99f36f5423168446578f57e210b8171557af447aeb124bb2e",
     "src/procsignal.rs": "b8e84f378c153d0a6fbc2fc421f4a5f06c94d01ddedfa495fb7f36d3cfc4d069",
-    "src/protocol.rs": "47a2e25349201d9c5c3f8112fd41203214780a6c9132275abe7b30951cae470d",
+    "src/protocol.rs": "ff10fb32b3cb37c9cc6b5ed2847258ac14998ae7fae873db23a67408384cbb92",
     "src/qsregistry.rs": "1e78d20ae9e79a8120e58fea52fe7a888c192bed756575cc4586ab468b3c58e8",
     "src/runfile.rs": "73c746de9af77ad4aaf327d492fb2f2322535aca2a17595e4160a9806658e64c",
     "src/runharden.rs": "9c87b01797b68457ebae0d9460a0ac24158bd246fe3a21eebe425aa0699f0a3a",
@@ -212796,12 +212805,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "8e99ceb6184773337dfb1e11c3ef34b480b56c24",
-  "source_sha": "8e99ceb6184773337dfb1e11c3ef34b480b56c24",
+  "source_ref_sha": "00135819e49f283c3a548bcc8a23abb15eac120d",
+  "source_sha": "00135819e49f283c3a548bcc8a23abb15eac120d",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1286,
-      "missing_literal_candidates": 5619,
+      "missing_literal_candidates": 5620,
       "source_files": 787
     },
     "generated/tooling": {

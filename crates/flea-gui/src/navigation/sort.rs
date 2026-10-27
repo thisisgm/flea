@@ -127,6 +127,15 @@ impl DirSizes {
         next
     }
 
+    // A live answer's own walked sizes land on their absolute rows, over any carried size for the same row.
+    pub fn inlined(&mut self, rows: &[RowFacts], start: usize, cap: usize) {
+        for (at, row) in rows.iter().enumerate() {
+            if let Some(bytes) = row.inline {
+                self.remember(start + at, Size { bytes, partial: false }, cap);
+            }
+        }
+    }
+
     pub fn remember(&mut self, row: usize, size: Size, cap: usize) {
         if self.file.insert(row, Some(size)).is_none() {
             self.order.push_back(row);
@@ -345,5 +354,31 @@ impl super::Navigator {
             Some(Request::Forget) => self.forget_sort(pane, failure),
             None => Ok(false),
         }
+    }
+}
+
+#[cfg(test)]
+mod inline_tests {
+    use super::*;
+
+    #[test]
+    fn pb_rest_inline_sizes_answer_their_absolute_rows_only() {
+        let mut sizes = DirSizes::default();
+        let rows = vec![
+            RowFacts::default(),
+            RowFacts {
+                inline: Some(96),
+                ..Default::default()
+            },
+        ];
+        sizes.inlined(&rows, 10, 240);
+        assert_eq!(sizes.size_for(10), None);
+        assert_eq!(
+            sizes.size_for(11),
+            Some(Size {
+                bytes: 96,
+                partial: false
+            })
+        );
     }
 }

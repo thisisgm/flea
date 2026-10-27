@@ -201,6 +201,7 @@ impl Shell {
                 state.class = None;
                 DirSizes::default()
             };
+            state.sizes.inlined(&current.rows, current.start, CAP);
             state.path = host.path.clone();
             state.asked_fs = false;
             state.asked_sizes = false;

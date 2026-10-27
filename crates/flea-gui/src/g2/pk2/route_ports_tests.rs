@@ -240,6 +240,7 @@ fn landed_two() -> Listing {
                 link: None,
                 real_modes: true,
                 kind: String::new(),
+                inline: None,
             },
             RowFacts {
                 name: "a.txt".into(),
@@ -251,6 +252,7 @@ fn landed_two() -> Listing {
                 link: None,
                 real_modes: true,
                 kind: String::new(),
+                inline: None,
             },
         ]
     ));

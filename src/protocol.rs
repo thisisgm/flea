@@ -61,6 +61,8 @@ pub struct RowFacts {
     pub real_modes: bool,
     /// The row's Kind description, `kinds[k]` of its reply; empty when the reply names none.
     pub kind: String,
+    /// The folder size the live answer walked inline for this row, from its `z` pairs; None when it named none.
+    pub inline: Option<u64>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -103,12 +105,27 @@ pub fn parse_reply(line: &str) -> Result<Reply, String> {
                 .get("kinds")
                 .and_then(Json::as_array)
                 .unwrap_or(&[]);
+            let start = uint(&document, "start")?;
+            let mut rows: Vec<RowFacts> = rows
+                .iter()
+                .map(|row| row_facts(row, kinds))
+                .collect::<Result<_, _>>()?;
+            // Each z pair is [absolute row, bytes]: a folder size the backend walked inline with this answer.
+            for pair in document.get("z").and_then(Json::as_array).unwrap_or(&[]) {
+                let (row, bytes): (Option<usize>, Option<u64>) = match pair.as_array() {
+                    Some([row, bytes]) => (number(row), number(bytes)),
+                    _ => (None, None),
+                };
+                let (Some(row), Some(bytes)) = (row, bytes) else {
+                    return Err("z must hold [row,bytes] pairs".into());
+                };
+                if let Some(facts) = row.checked_sub(start).and_then(|at| rows.get_mut(at)) {
+                    facts.inline = Some(bytes);
+                }
+            }
             Ok(Reply::Rows {
-                start: uint(&document, "start")?,
-                rows: rows
-                    .iter()
-                    .map(|row| row_facts(row, kinds))
-                    .collect::<Result<_, _>>()?,
+                start,
+                rows,
                 listing: uint(&document, "listing")?,
             })
         }
@@ -156,7 +173,15 @@ fn row_facts(row: &Json, kinds: &[Json]) -> Result<RowFacts, String> {
             .and_then(Json::as_str)
             .unwrap_or_default()
             .to_owned(),
+        inline: None,
     })
+}
+
+fn number<T: std::str::FromStr>(value: &Json) -> Option<T> {
+    match value {
+        Json::Num(number) => number.parse().ok(),
+        _ => None,
+    }
 }
 
 fn string<'a>(value: &'a Json, key: &str) -> Result<&'a str, String> {

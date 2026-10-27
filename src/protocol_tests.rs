@@ -178,3 +178,22 @@ fn a_write_failure_is_returned_to_the_caller() {
         io::ErrorKind::BrokenPipe
     );
 }
+
+#[test]
+fn pb_rest_z_pairs_name_absolute_rows_and_skip_rows_outside_the_answer() {
+    let line = r#"{"t":"rows","start":10,"listing":3,"rows":[{"n":"a","d":true,"s":0,"m":0,"p":0,"i":"folder"},{"n":"c","d":true,"s":0,"m":0,"p":0,"i":"folder"}],"z":[[11,96],[3,5]]}"#;
+    let Ok(Reply::Rows { rows, .. }) = parse_reply(line) else {
+        panic!("rows reply expected");
+    };
+    assert_eq!(rows[0].inline, None);
+    assert_eq!(rows[1].inline, Some(96));
+}
+
+#[test]
+fn pb_rest_malformed_z_pair_refuses_the_whole_answer() {
+    let line = r#"{"t":"rows","start":0,"listing":3,"rows":[{"n":"a","d":true,"s":0,"m":0,"p":0,"i":"folder"}],"z":[[0]]}"#;
+    assert_eq!(
+        parse_reply(line),
+        Err("z must hold [row,bytes] pairs".to_string())
+    );
+}
