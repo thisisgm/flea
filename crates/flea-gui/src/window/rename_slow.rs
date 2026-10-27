@@ -54,7 +54,8 @@ impl Shell {
         let flag = |key: &str| data.get(key).and_then(flea::jsondoc::Json::as_bool);
         let host = self.panes[side].as_ref();
         SlowGate {
-            single_click: flag("singleClick") == Some(true),
+            single_click: data.get("openMode").and_then(flea::jsondoc::Json::as_str)
+                == Some("single"),
             click_rename: flag("clickRename") != Some(false),
             renaming: self.rename.edit.is_some(),
             search: host.is_none_or(|host| host.pane.state.search),

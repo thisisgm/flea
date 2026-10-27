@@ -28,6 +28,8 @@ mod mount;
 pub(crate) mod readers;
 #[path = "quick_look_replies.rs"]
 mod replies;
+#[path = "quick_look_warm.rs"]
+pub(crate) mod warm;
 #[path = "quick_look_wire.rs"]
 pub(crate) mod wire;
 
@@ -89,7 +91,7 @@ impl Shell {
     pub(crate) fn quick_look_open(&self, cx: &gpui::App) -> bool {
         self.quick_look
             .as_ref()
-            .is_some_and(|host| host.view.read(cx).is_open())
+            .is_some_and(|host| cx.read_entity(&host.view, |view, _| view.is_open()))
     }
 
     /// Builds the card on the first open; later opens reuse it.

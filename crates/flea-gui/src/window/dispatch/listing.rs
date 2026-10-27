@@ -19,7 +19,9 @@ pub(super) fn run(
     let Order::Action(event) = order else {
         return false;
     };
-    if shell.filter_action(event.action, window, cx) {
+    if shell.search_action(event.action, window, cx)
+        || shell.filter_action(event.action, window, cx)
+    {
         return true;
     }
     let side = shell.focus_side;
@@ -106,10 +108,9 @@ impl Shell {
         let Some(host) = self.panes[self.focus_side].as_ref() else {
             return false;
         };
-        let landed = host
-            .nav
-            .landed
-            .is_some_and(|(listing, row)| listing == host.pane.held.listing && host.selected == [row]);
+        let landed = host.nav.landed.is_some_and(|(listing, row)| {
+            listing == host.pane.held.listing && host.selected == [row]
+        });
         !host.pane.busy()
             && !host.search.owner.active()
             && host.pane.state.query.is_empty()

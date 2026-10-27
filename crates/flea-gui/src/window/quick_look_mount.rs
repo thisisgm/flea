@@ -141,6 +141,8 @@ impl Shell {
             mark: mark(row),
         };
         let catalog = self.locale.catalog.clone();
+        let prepared = self.take_quick_prepared(side, row, path, cx);
+        let was_prepared = prepared.is_some();
         let host = self.quick_look_host(side, window, cx);
         let mounting = Mounting {
             path,
@@ -150,9 +152,18 @@ impl Shell {
             catalog: &catalog,
             backend: host.backend.clone(),
         };
-        let Some(mut doc) = mounting.mount(kind, window, cx) else {
+        let Some(mut doc) = prepared.or_else(|| mounting.mount(kind, window, cx)) else {
             return false;
         };
+        if was_prepared {
+            if let crate::g2::pv1::doc::View::Markdown(view) = &doc.view {
+                let wire = self.quick_look.as_ref().unwrap().wire.clone();
+                view.update(cx, |view, cx| {
+                    view.set_code_host(Box::new(wire), cx);
+                    view.finish_prepare(cx);
+                });
+            }
+        }
         // The column's PDF hands the card the page it shows, so Quick Look opens there.
         if kind == Mount::Pdf {
             let column = self.selection_preview(side);

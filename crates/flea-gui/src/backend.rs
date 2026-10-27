@@ -27,6 +27,11 @@ pub struct Failure {
 #[derive(Debug)]
 pub enum Event {
     Filesystem(status::Filesystem),
+    /// Optional fsinfo safety facts travel beside the existing size and footer projections.
+    FilesystemSystem {
+        system: bool,
+        reply: Box<Event>,
+    },
     /// One wire reply belongs to both the footer and the folder-size planner.
     FilesystemDetails {
         facts: status::Filesystem,

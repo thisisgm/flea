@@ -147,6 +147,8 @@ pub struct Parse {
     pub words: md::Words,
     /// Hand the first blocks over ahead of the rest, for a document with nothing drawn yet.
     pub head: bool,
+    pub max_bytes: u64,
+    pub previous: Option<Arc<str>>,
 }
 
 pub struct Lay {
@@ -165,6 +167,9 @@ pub struct Lay {
 }
 
 pub enum Reply {
+    Verified {
+        seq: u64,
+    },
     Read {
         seq: u64,
         read: Read,
@@ -240,18 +245,18 @@ impl Workers {
     }
 }
 
-fn read(path: &PathBuf) -> Read {
-    let Ok(file) = std::fs::File::open(path) else {
+fn read(path: &PathBuf, limit: u64) -> Read {
+    let Ok(file) = flea::backend::regfile::open_if_regular(path, 0) else {
         return Read::Failed;
     };
-    if file.metadata().is_ok_and(|meta| meta.len() > MAX_BYTES) {
+    if file.metadata().is_ok_and(|meta| meta.len() > limit) {
         return Read::Large;
     }
     let mut bytes = Vec::new();
-    if file.take(MAX_BYTES + 1).read_to_end(&mut bytes).is_err() {
+    if file.take(limit + 1).read_to_end(&mut bytes).is_err() {
         return Read::Failed;
     }
-    if bytes.len() as u64 > MAX_BYTES {
+    if bytes.len() as u64 > limit {
         return Read::Large;
     }
     let text: Arc<str> = String::from_utf8_lossy(&bytes).into();
@@ -263,7 +268,14 @@ fn parse_loop(inbox: mpsc::Receiver<(u64, PathBuf, Parse)>, outbox: async_channe
     while let Ok(first) = inbox.recv() {
         // Only the newest load matters: one queued behind it is for a file no longer shown.
         let (seq, path, parse) = inbox.try_iter().last().unwrap_or(first);
-        let read = read(&path);
+        let read = read(&path, parse.max_bytes);
+        if matches!(&read, Read::Text(text, _) if parse.previous.as_ref().is_some_and(|previous| previous.as_ref() == text.as_ref()))
+        {
+            if outbox.send_blocking(Reply::Verified { seq }).is_err() {
+                return;
+            }
+            continue;
+        }
         let text = match &read {
             Read::Text(text, _) => Some(Arc::clone(text)),
             _ => None,
