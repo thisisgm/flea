@@ -341,7 +341,7 @@ impl Shell {
             return true;
         }
         if action == "menu" {
-            self.menu_keyboard_open(window, cx);
+            self.cursor_menu_key(window, cx);
         } else if action == "autofitColumns" {
             self.fit_list_columns(window, cx);
         } else if action == "pathBar" {
