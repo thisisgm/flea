@@ -103,6 +103,25 @@ fn pb_places_remote_favorite_enter_mounts_its_share(cx: &mut TestAppContext) {
     });
     settle(cx);
     shell.update(cx, |shell, cx| shell.rail_focus(true, cx));
+    // Focus leaves the rail cursor unset, and Enter opens only the row under it, so Down moves it there first.
+    let labels = read(&shell, cx, "railLabels", &[]);
+    let index = labels
+        .split('|')
+        .position(|label| label == "NAS")
+        .expect("the NAS favourite is listed") as i64;
+    for _ in 0..8 {
+        let cursor: i64 = read(&shell, cx, "railCursor", &[]).parse().unwrap();
+        if cursor == index {
+            break;
+        }
+        cx.simulate_keystrokes(if cursor < index { "down" } else { "up" });
+        settle(cx);
+    }
+    assert_eq!(
+        read(&shell, cx, "railCursor", &[]),
+        index.to_string(),
+        "Down puts the rail cursor on the NAS favourite"
+    );
     cx.simulate_keystrokes("enter");
     settle(cx);
     assert_eq!(
