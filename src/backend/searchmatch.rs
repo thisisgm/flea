@@ -6,15 +6,19 @@ pub(crate) const PREFIX: i32 = 4_000_000;
 pub(crate) const WORD: i32 = 3_500_000;
 pub(crate) const ALIGNED: i32 = 3_000_000;
 pub(crate) const NAME: i32 = 2_000_000;
-pub(crate) const PATH: i32 = 1_500_000;
 pub(crate) const TYPO: i32 = 1_000_000;
 // A DP hit moves a score at most this far inside its tier.
 pub(crate) const HIT_SPAN: i32 = 100_000;
 // Pass-1 markers for rows whose class is known and whose score inside it waits for the DP; a real score is never negative.
 pub(crate) const PENDING_ALIGNED: i32 = -3;
 pub(crate) const PENDING_NAME: i32 = -2;
+// A NAME-class row whose basename alone is not a subsequence, so a parent-state bound can rank it before its DP.
 pub(crate) const PENDING_PATH: i32 = -1;
 const DEAD: i32 = i32::MIN / 4;
+// State::advance's bonuses for a matched letter that continues a run, starts a word, or sits in the basename.
+pub(crate) const RUN_BONUS: i32 = 8;
+pub(crate) const BOUNDARY_BONUS: i32 = 6;
+pub(crate) const BASENAME_BONUS: i32 = 4;
 
 #[derive(Clone, Copy)]
 pub(crate) struct Letter {
@@ -72,6 +76,8 @@ impl State {
     #[cfg(test)]
     pub(crate) fn heap_bytes(&self) -> usize { (self.best.capacity() + self.end.capacity()) * std::mem::size_of::<i32>() }
 
+    pub(crate) fn best(&self) -> &[i32] { &self.best }
+
     pub(crate) fn copy_from(&mut self, other: &Self) {
         self.best.clone_from(&other.best);
         self.end.clone_from(&other.end);
@@ -90,8 +96,8 @@ impl State {
         for letter in letters {
             for k in (1..=query.len()).rev() {
                 let matched = if query[k - 1] == letter.lower {
-                    self.best[k - 1].max(self.end[k - 1] + 8)
-                        + i32::from(letter.boundary) * 6 + i32::from(basename) * 4
+                    self.best[k - 1].max(self.end[k - 1] + RUN_BONUS)
+                        + i32::from(letter.boundary) * BOUNDARY_BONUS + i32::from(basename) * BASENAME_BONUS
                 } else { DEAD };
                 self.best[k] = (self.best[k] - 1).max(matched);
                 self.end[k] = matched;
@@ -207,12 +213,12 @@ impl Matcher {
         fold(&path[base..], &mut leaf);
         let mut state = State::new(self.needle.len());
         let name = self.name_bytes(&path[base..], &mut leaf, &mut state, &mut super::searchtypo::Scratch::default());
-        if name.is_some_and(|score| score >= NAME) || base == 0 { return name; }
+        if name.is_some_and(|score| score > NAME + HIT_SPAN) || base == 0 { return name; }
         state = State::new(self.needle.len());
         let split = letters.len() - leaf.len();
         state.advance(&self.needle, &letters[..split], false);
         state.advance(&self.needle, &leaf, true);
-        let mut score = name.max(state.score(if self.needle.contains(&'/') { ALIGNED } else { PATH }));
+        let mut score = name.max(state.score(if self.needle.contains(&'/') { ALIGNED } else { NAME }));
         if self.needle.contains(&'/') {
             score = score.max(self.distance(&letters, &mut super::searchtypo::Scratch::default())
                 .map(|distance| TYPO - distance as i32 * 1000));

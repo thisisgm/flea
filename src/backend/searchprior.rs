@@ -1,6 +1,6 @@
 // Existing desktop priors are a bounded read-only snapshot; no candidate is statted for ranking.
 use super::searchindex::{Index, Scratch};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::os::fd::AsRawFd;
 use std::os::unix::ffi::OsStrExt;
@@ -33,8 +33,13 @@ pub(crate) struct Load {
 pub(crate) struct Priors {
     files: BTreeMap<Vec<u8>, u8>,
     folders: BTreeMap<Vec<u8>, (u8, u8)>,
+    // The folder of every kept file, so a folder holding none never needs a file's own path.
+    file_folders: BTreeSet<Vec<u8>>,
     bytes: usize,
 }
+
+// A folder's slot in apply: 0 until seen, then 1 plus the context and proximity its files share, BESIDE when it holds a prior file.
+const BESIDE: u8 = 0x80;
 
 impl Priors {
     fn new(files: Vec<Vec<u8>>, folders: Vec<Vec<u8>>) -> Self {
@@ -48,6 +53,7 @@ impl Priors {
                 }
             }
         }
+        out.file_folders = out.files.keys().filter_map(|path| parent(path)).map(<[u8]>::to_vec).collect();
         out
     }
 
@@ -77,24 +83,42 @@ impl Priors {
         if !path.ends_with(b"/") { path.push(b'/'); }
         let prefix = path.len();
         let mut scratch = Scratch::default();
+        let folder = folder.as_os_str().as_bytes();
+        let mut slots = vec![0u8; index.folder_slots()];
         for (score, row) in hits {
-            path.truncate(prefix);
-            path.extend_from_slice(index.raw_into(*row, &mut scratch));
-            let direct = if index.is_dir(*row) { self.folders.get(&path).map(|v| v.0) } else { self.files.get(&path).copied() }.unwrap_or(0);
-            let mut context = 0;
-            let mut ancestor = if index.is_dir(*row) { Some(path.as_slice()) } else { parent(&path) };
-            for distance in 0..8 {
-                let Some(dir) = ancestor else { break };
-                if let Some((_, strength)) = self.folders.get(dir) {
-                    context = context.max((i32::from(*strength) * 2 - distance * 2).max(0));
+            let file = !index.is_dir(*row);
+            let slot = if file { slots[index.folder_slot(*row)] } else { 0 };
+            let (direct, shared) = if slot != 0 && slot & BESIDE == 0 { (0, i32::from(slot) - 1) } else {
+                path.truncate(prefix);
+                path.extend_from_slice(index.raw_into(*row, &mut scratch));
+                let direct = if file { self.files.get(&path).copied() } else { self.folders.get(&path).map(|v| v.0) }.unwrap_or(0);
+                let shared = if slot != 0 { i32::from(slot & !BESIDE) - 1 } else {
+                    self.context(if file { parent(&path) } else { Some(path.as_slice()) })
+                        + parent(&path).map_or(0, |dir| 7 - distance(dir, folder).min(7) as i32)
+                };
+                if file && slot == 0 {
+                    let beside = parent(&path).is_some_and(|dir| self.file_folders.contains(dir));
+                    slots[index.folder_slot(*row)] = (shared + 1) as u8 | if beside { BESIDE } else { 0 };
                 }
-                ancestor = parent(dir);
-            }
-            let proximity = parent(&path).map_or(0, |dir| 7 - distance(dir, folder.as_os_str().as_bytes()).min(7) as i32);
+                (direct, shared)
+            };
             let bonus = if direct > 0 { 24 + i32::from(direct) * 2 } else { 0 };
             // At most 63: even a one-point lexical advantage survives every prior and distance bonus.
-            *score = *score * SCALE + bonus + context + proximity;
+            *score = *score * SCALE + bonus + shared;
         }
+    }
+
+    // Folder strengths up the ancestry from `start`, two points less a level, over at most eight levels.
+    fn context(&self, mut ancestor: Option<&[u8]>) -> i32 {
+        let mut context = 0;
+        for distance in 0..8 {
+            let Some(dir) = ancestor else { break };
+            if let Some((_, strength)) = self.folders.get(dir) {
+                context = context.max((i32::from(*strength) * 2 - distance * 2).max(0));
+            }
+            ancestor = parent(dir);
+        }
+        context
     }
 }
 

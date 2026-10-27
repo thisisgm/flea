@@ -1,6 +1,6 @@
 // Head-bounded ranking must answer, head and rest alike, exactly what scoring every row and sorting every match answers.
 use crate::backend::searchindex::{fixture_tests, rank_cmp, score_cached, Index, QueryScratch};
-use crate::backend::searchmatch::{Matcher, ALIGNED, EXACT, HIT_SPAN, NAME, PATH, PREFIX, TYPO, WORD};
+use crate::backend::searchmatch::{Matcher, ALIGNED, EXACT, HIT_SPAN, NAME, PREFIX, TYPO, WORD};
 use crate::backend::searchprior::alloc_tests::fixture_priors;
 use crate::backend::searchsession::{Session, FIRST_WINDOW_DEFAULT};
 use crate::backend::testdir::TestDir;
@@ -12,7 +12,7 @@ const QUERIES: [&str; 5] = ["render_frame.rs", "redner_frame.rs", "editor/src/co
 const CHUNK: usize = FIRST_WINDOW_DEFAULT;
 // searchprior's SCALE: a prior bonus is added after the score is multiplied by this.
 const SCALE: i32 = 64;
-const TIERS: usize = 7;
+const TIERS: usize = 6;
 const CORPUS_FILES: usize = 4000;
 const SYNTHETIC_ROWS: usize = 100_000;
 // Every nth file and nth folder carries a prior: sparse on the synthetic tree, dense on the corpus.
@@ -42,7 +42,7 @@ const WORD_ONLY_WINDOWS: [usize; 2] = [1, 3];
 
 // Score tiers from best to worst, kept apart from class() so a wrong floor there shows as a DP count mismatch here.
 fn tier(score: i32) -> usize {
-    [EXACT, PREFIX, WORD, ALIGNED - HIT_SPAN, NAME - HIT_SPAN, PATH - HIT_SPAN].iter().position(|&floor| score >= floor).unwrap_or(TIERS - 1)
+    [EXACT, PREFIX, WORD, ALIGNED - HIT_SPAN, NAME - HIT_SPAN].iter().position(|&floor| score >= floor).unwrap_or(TIERS - 1)
 }
 
 struct Reference {
@@ -105,7 +105,7 @@ fn check(session: &mut Session, gen: &mut usize, text: &str, window: usize, seen
     assert_eq!(adopted, want.order.len(), "{text:?} rest spent");
     let boundary = if head == 0 { TIERS } else { tier(want.raw[head - 1]) };
     let next = want.raw.iter().map(|&raw| tier(raw)).filter(|&below| below > boundary).min();
-    if let Some(next) = next.filter(|&next| head > 0 && (tier(ALIGNED)..=tier(PATH)).contains(&next)) { seen.deferred.insert((boundary, next)); }
+    if let Some(next) = next.filter(|&next| head > 0 && (tier(ALIGNED)..=tier(NAME)).contains(&next)) { seen.deferred.insert((boundary, next)); }
     if head > 0 {
         seen.boundaries.insert(boundary);
         seen.boundary_bonus = seen.boundary_bonus.max(want.raw.iter().zip(&want.bonus)
@@ -115,7 +115,7 @@ fn check(session: &mut Session, gen: &mut usize, text: &str, window: usize, seen
     seen.negative_name |= want.raw.iter().any(|&raw| (NAME - HIT_SPAN..NAME).contains(&raw));
     seen.window_past_total |= window > want.order.len() && !want.order.is_empty();
     // Rows whose class needs a DP and that sit in the boundary tier or above: the most a bounded answer may evaluate.
-    let pending = want.raw.iter().filter(|&&raw| (tier(ALIGNED)..=tier(PATH)).contains(&tier(raw)) && tier(raw) <= boundary).count();
+    let pending = want.raw.iter().filter(|&&raw| (tier(ALIGNED)..=tier(NAME)).contains(&tier(raw)) && tier(raw) <= boundary).count();
     (dp, pending)
 }
 
@@ -254,15 +254,14 @@ fn search_rb_deferred_dp_stays_within_the_boundary_classes() {
     let (mut failures, mut evaluated) = (Vec::new(), 0);
     for (text, window) in corpus_queries() {
         let (dp, pending) = check(&mut session, &mut gen, &text, window, &mut seen);
-        if dp != pending { failures.push(format!("{text:?}: {dp} DP for {pending} pending")); }
+        if dp > pending { failures.push(format!("{text:?}: {dp} DP for {pending} pending")); }
         evaluated += dp;
     }
-    assert!(failures.is_empty(), "{} of the answers ran a DP count other than their boundary classes need: {}", failures.len(), failures.join("; "));
+    assert!(failures.is_empty(), "{} of the answers ran more DPs than their boundary classes hold: {}", failures.len(), failures.join("; "));
     assert!(evaluated > 0, "the DP counters fired on at least one answer");
-    // ALIGNED needs a slash in the query and no name holds one, so a merged class floor can only over-evaluate at these two pairs.
-    for pair in [(tier(WORD), tier(NAME)), (tier(NAME), tier(PATH))] {
-        assert!(seen.deferred.contains(&pair), "boundary tier {} with DP rows of tier {} waiting below it: seen {:?}", pair.0, pair.1, seen.deferred);
-    }
+    // ALIGNED needs a slash in the query and no name holds one, so a merged class floor can only over-evaluate at this pair.
+    let pair = (tier(WORD), tier(NAME));
+    assert!(seen.deferred.contains(&pair), "boundary tier {} with DP rows of tier {} waiting below it: seen {:?}", pair.0, pair.1, seen.deferred);
 }
 
 #[test]
@@ -273,4 +272,87 @@ fn search_rb_re_answers_without_any_dp_at_100k() {
     check(&mut session, &mut gen, "r", CHUNK, &mut seen);
     let (dp, _) = check(&mut session, &mut gen, "re", CHUNK, &mut seen);
     assert_eq!(dp, 0, "PREFIX rows fill the window for re, so no row needs a DP");
+}
+
+// One index of `count` rows per stem, each stem followed by a four-digit number and `.txt`; returns the DP and pending counts and the reference order.
+fn bound_case(dir: &str, groups: &[(&str, usize)], needle: &str) -> (usize, usize, Vec<String>) {
+    let dir = TestDir::new(dir);
+    let scope = dir.path().to_str().unwrap();
+    let mut session = Session::open_sync(scope, scope, false);
+    let mut index = Index::new();
+    for &(stem, count) in groups { for i in 0..count { index.push(format!("{stem}{i:04}.txt"), false); } }
+    *session.index.lock().unwrap() = index;
+    let order = reference(&session, needle).order.into_iter().map(|(path, _)| path).collect();
+    let (mut gen, mut seen) = (0, Seen::default());
+    let (dp, pending) = check(&mut session, &mut gen, needle, CHUNK, &mut seen);
+    (dp, pending, order)
+}
+
+#[test]
+fn search_head_leaves_unscored_the_path_only_rows_whose_bound_cannot_reach_the_window() {
+    // Each name spells r, e, d at word starts, so it scores above any row whose name holds none of them under `shared`.
+    let (strong, weak) = (CHUNK + 50, 3 * CHUNK);
+    let (dp, pending, _) = bound_case("searchpathbound", &[("a/r_e_d_", strong), ("shared/x_", weak)], "red");
+    assert_eq!(pending, strong + weak, "every match sits in the NAME class");
+    assert_eq!(dp, strong, "the head scored the strong names and no row under `shared`");
+}
+
+#[test]
+fn search_head_scores_a_path_only_row_whose_basename_suffix_reaches_the_window_floor() {
+    // r/ed_ and rx_e_d_ both score NAME + 27 and the shorter path wins the tie, so the floor is 27 and every r/ row ranks first.
+    let (names, paths) = (CHUNK + 50, 20);
+    let (dp, pending, order) = bound_case("searchpathadmit", &[("a/rx_e_d_", names), ("r/ed_", paths)], "red");
+    assert_eq!(order[..CHUNK].iter().filter(|path| path.starts_with("r/")).count(), paths, "every r/ row belongs in the window");
+    assert_eq!(dp, pending, "the bound admitted every r/ row to its DP");
+}
+
+#[test]
+fn search_head_scores_a_path_only_row_whose_parent_ends_in_the_needle_prefix() {
+    // re/d_ takes r and e in the parent and scores NAME + 23, its bound exactly, tied with every rxxx_exx_d_ name at the floor.
+    let (names, paths) = (CHUNK + 50, 20);
+    let (dp, pending, order) = bound_case("searchpathcross", &[("a/rxxx_exx_d_", names), ("re/d_", paths)], "red");
+    assert_eq!(order[..CHUNK].iter().filter(|path| path.starts_with("re/")).count(), paths, "every re/ row belongs in the window");
+    assert_eq!(dp, pending, "a bound equal to the floor admitted every re/ row to its DP");
+}
+
+#[test]
+fn search_head_moves_below_every_row_scored_under_the_window_floor() {
+    // r_e_d_ names score NAME + 28 and fill the window, and every rxxxx_exx_d_ name scores 22, so none of those can reach it.
+    let (strong, weak) = (CHUNK + 50, 3 * CHUNK);
+    let dir = TestDir::new("searchheadfloor");
+    let scope = dir.path().to_str().unwrap();
+    let mut session = Session::open_sync(scope, scope, false);
+    let mut index = Index::new();
+    for (stem, count) in [("a/r_e_d_", strong), ("a/rxxxx_exx_d_", weak)] { for i in 0..count { index.push(format!("{stem}{i:04}.txt"), false); } }
+    *session.index.lock().unwrap() = index;
+    assert!(reference(&session, "red").order[..strong].iter().all(|(path, _)| path.starts_with("a/r_e_d_")), "every r_e_d_ row ranks above every rxxxx_exx_d_ row");
+    session.query(1, "red", CHUNK).unwrap();
+    assert_eq!(session.pending_rest.as_ref().map_or(0, |rest| rest.ranked.len()), strong - CHUNK, "only the r_e_d_ rows past the window wait ranked");
+    let (mut gen, mut seen) = (1, Seen::default());
+    check(&mut session, &mut gen, "red", CHUNK, &mut seen);
+}
+
+#[test]
+fn search_head_floor_counts_the_rows_of_earlier_classes() {
+    // red_ PREFIX rows take all but 100 places, so the floor is the 100th name at NAME + 28 and the re/ rows bounded at 23 skip their DP.
+    let (prefix, names, paths) = (CHUNK - 100, 100, 20);
+    let groups = [("a/red_", prefix), ("a/r_e_d_", names), ("re/d_", paths), ("re/d_e_", paths)];
+    let (dp, pending, order) = bound_case("searchheadclasses", &groups, "red");
+    assert!(order[..prefix].iter().all(|path| path.starts_with("a/red_")) && order[prefix..CHUNK].iter().all(|path| path.starts_with("a/r_e_d_")),
+        "the PREFIX rows and then the names fill the window");
+    assert_eq!(pending, names + 2 * paths, "the names and the re/ rows sit in the NAME class");
+    assert_eq!(dp, names, "the head scored every name and no re/ row");
+}
+
+#[test]
+fn search_head_moves_below_every_resolved_row_a_pruned_path_row_could_tie() {
+    // Names at NAME + 27 set the floor; re/d_ and re/d_e_ score 23 under it, and a chunk of rxxxx_exx_d_ names at 22 could fill the first rest chunk alone.
+    let (strong, paths, low) = (CHUNK + 50, 20, CHUNK);
+    let groups = [("a/rx_e_d_", strong), ("re/d_", paths), ("re/d_e_", paths), ("a/rxxxx_exx_d_", low)];
+    let (dp, pending, order) = bound_case("searchpathceiling", &groups, "red");
+    let first = |stem: &str| order.iter().position(|path| path.starts_with(stem)).unwrap();
+    let last_path = order.iter().rposition(|path| path.starts_with("re/")).unwrap();
+    assert!(first("re/") >= CHUNK && last_path < first("a/rxxxx_"), "every re/ row ranks after the window and above every 22-point name");
+    assert_eq!(pending, strong + 2 * paths + low, "every match sits in the NAME class");
+    assert_eq!(dp, strong + low, "the head scored every name and no re/ row");
 }
