@@ -74,7 +74,7 @@ impl Look {
             TableFace {
                 font: self.face.font.clone(),
                 caption: px(card::CAPTION),
-                line: card::TEXT_LINE,
+                line: pv2::line_pitch(card::CAPTION),
                 row_padding_x: card::PAD,
                 hairline: 1.,
             },
@@ -258,7 +258,6 @@ impl Mounting<'_> {
                     size_ratio,
                 };
                 let metrics = pv2::font::Metrics {
-                    bar: card::BAR,
                     font: look.face.font.clone(),
                     caption: px(card::CAPTION),
                 };
@@ -318,5 +317,26 @@ impl Mounting<'_> {
             path: path.to_owned(),
             page: 0,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // v0.3.12 CsvTable.qml: a grid row is the font's 16 px height plus 6 px above and below (28 px), the header 16 px plus
+    // 8 px above and below and the 1 px rule (33 px).
+    #[test]
+    fn quick_look_table_rows_keep_the_v0312_pitch() {
+        let look = Look {
+            theme: crate::palette::Theme::default(),
+            face: crate::list::Typeface::omarchy_default(),
+            muted: gpui::Hsla::default(),
+            mark: (gpui::SharedString::default(), &[]),
+        };
+        let (face, _) = look.table();
+        let geometry = face.geometry(true);
+        assert_eq!(geometry.row_height, 28.);
+        assert_eq!(geometry.head_height, 33.);
     }
 }
