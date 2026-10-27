@@ -174,6 +174,33 @@ impl Shell {
         self.open_menu(side, row, at, window, cx);
     }
 
+    /// m, the Menu key and Shift+F10: an empty folder has no row to open, so Focus.js says so instead of opening the folder menu.
+    pub(crate) fn cursor_menu_key(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let side = self.focus_side;
+        let empty = self.panes[side]
+            .as_ref()
+            .is_some_and(|host| host.pane.held.total == 0);
+        // A locked folder keeps its own menu or its own refusal in open_menu.
+        if empty && self.locked_folder(side).is_none() && !self.input_blocked(cx) {
+            let sentence = self.locale.catalog.tr("menu.refusal.nocursor");
+            if let Some(host) = &mut self.panes[side] {
+                host.status = sentence.clone().into();
+            }
+            self.status_messages(cx, |messages, now| {
+                messages.say(
+                    &sentence,
+                    false,
+                    "",
+                    flea::ui_logic_fb1::status::Hint::None,
+                    now,
+                )
+            });
+            cx.notify();
+            return;
+        }
+        self.menu_keyboard_open(window, cx);
+    }
+
     fn menu_click(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         if event.button == MouseButton::Right || self.menu.presentation.at.is_some() {
             self.retire_menu(window, cx);
