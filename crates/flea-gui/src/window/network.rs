@@ -33,10 +33,13 @@ struct Origin {
 }
 
 pub struct Network {
+    pub(crate) sources: cloud::Sources,
     pub service: Entity<Service>,
     pub card: Entity<NetworkView>,
     pub shares: Entity<ShareView>,
     pub rows: Vec<RailEntry>,
+    saved_labels: std::collections::HashMap<String, String>,
+    rows_generation: u64,
     /// True once rows were rebuilt from a gio listing and a mountinfo read.
     pub built: bool,
     pub listing: Listing,
@@ -79,29 +82,6 @@ fn bookmarks_path() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".config"))
         .join("gtk-3.0/bookmarks")
-}
-
-/// The rows the rail draws for the listing's shares; fstype and release identity stay on the join's own rows.
-pub fn section(rows: &[RailEntry], shown: bool) -> Vec<RailSection> {
-    if !shown || rows.is_empty() {
-        return Vec::new();
-    }
-    vec![RailSection {
-        heading: Heading::Key("places.heading.network"),
-        rows: rows
-            .iter()
-            .map(|row| rail::RailEntry {
-                group: Group::Network,
-                kind: Kind::Share,
-                label: row.label.clone(),
-                path: row.path.clone(),
-                uri: row.uri.clone(),
-                mounted: Some(row.mounted),
-                glyph: "server",
-                ..rail::RailEntry::default()
-            })
-            .collect(),
-    }]
 }
 
 fn shown(state: &Json) -> bool {
@@ -198,10 +178,13 @@ impl Shell {
         });
         if let Some(join) = &mut self.rail {
             join.network = Some(Network {
+                sources: cloud::Sources::default(),
                 service,
                 card,
                 shares,
                 rows: Vec::new(),
+                saved_labels: Default::default(),
+                rows_generation: 0,
                 built: false,
                 listing: Listing::new(),
                 menu: Rc::default(),
@@ -372,6 +355,16 @@ mod menu;
 #[path = "network_rows.rs"]
 mod rows;
 
+#[path = "network_aliases.rs"]
+mod aliases;
+
+#[path = "network_cloud.rs"]
+mod cloud;
+
 #[cfg(test)]
 #[path = "network_tests.rs"]
 pub(crate) mod tests;
+
+#[path = "network_section.rs"]
+mod section_rows;
+pub use section_rows::section;

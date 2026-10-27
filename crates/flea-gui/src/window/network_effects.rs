@@ -17,11 +17,25 @@ impl Shell {
             network.service.clone(),
         );
         match effect {
-            Effect::Open { path, origin, .. } | Effect::OpenFile { path, origin, .. } => {
+            Effect::Open {
+                path,
+                uri,
+                label,
+                origin,
+            }
+            | Effect::OpenFile {
+                path,
+                uri,
+                label,
+                origin,
+            } => {
                 self.network_list(cx);
                 let Some(side) = self.network_side(*origin) else {
                     return;
                 };
+                if matches!(effect, Effect::Open { .. }) {
+                    self.network_remember_alias(path, uri, label);
+                }
                 let folder = if matches!(effect, Effect::OpenFile { .. }) {
                     std::path::Path::new(path)
                         .parent()
@@ -231,7 +245,7 @@ impl Shell {
         let Some(path) = self.network().map(|network| network.bookmarks.clone()) else {
             return;
         };
-        let replies = bookmarks::submit(path, edit);
+        let replies = bookmarks::submit(path, edit.clone());
         // The writer's own thread answers a blocking receive on a background task, so no foreign thread wakes the UI executor.
         let written = cx.background_spawn(async move {
             replies
@@ -241,6 +255,9 @@ impl Shell {
         let task = cx.spawn(async move |this, cx| {
             let result = written.await;
             let _ = this.update(cx, |shell, cx| {
+                if result.is_ok() {
+                    shell.network_alias_saved(&edit);
+                }
                 let detail = match &result {
                     Ok(_) => String::new(),
                     Err(failure) => shell.locale.catalog.tr(failure.key()),

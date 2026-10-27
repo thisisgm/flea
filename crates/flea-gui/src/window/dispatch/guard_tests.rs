@@ -11,7 +11,7 @@ const NOT_YET: &[(&str, &[&str])] = &[
     // Focus.js:271, ui/Pane.qml:599-602.
     ("operations", &["properties"]),
     // Focus.js:250 and 273.
-    ("window", &["openTerminal", "tags"]),
+    ("window", &["tags"]),
 ];
 
 // Spawns a real window process, so the guard reads it from the table instead of pressing it.

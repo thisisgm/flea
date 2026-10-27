@@ -59,6 +59,8 @@ pub(super) fn kind_name(kind: Kind) -> &'static str {
         Kind::Favorite => "favorite",
         Kind::Tag => "tag",
         Kind::Share => "share",
+        Kind::Dropbox => "dropbox",
+        Kind::Cloud => "cloud",
         Kind::Volume => "volume",
         Kind::Disk => "disk",
         Kind::Phone => "phone",

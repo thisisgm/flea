@@ -85,21 +85,25 @@ impl Shell {
         };
         let gio = network.listing.text.clone();
         let path = network.bookmarks.clone();
-        let read = cx.background_spawn(async move {
+        let sources = network.sources.clone();
+        network.rows_generation += 1;
+        let generation = network.rows_generation;
+        let read = cx.background_executor().spawn(async move {
             let marks = std::fs::read_to_string(path).unwrap_or_default();
-            let mountinfo = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-            flea::ui_logic_pl2::rail::rebuild(
-                &gio,
-                &flea::ui_logic_pl1::mounts::non_file_bookmarks(&marks),
-                &mountinfo,
-            )
+            let rows = sources.load_rows(&gio, &marks);
+            (rows, marks)
         });
         let task = cx.spawn(async move |this, cx| {
-            let rows = read.await;
+            let (rows, marks) = read.await;
             let _ = this.update(cx, |shell, cx| {
-                if let Some(network) = shell.network() {
-                    network.built = true;
+                let Some(network) = shell.network() else {
+                    return;
+                };
+                if network.rows_generation != generation {
+                    return;
                 }
+                network.built = true;
+                shell.network_alias_labels(&marks);
                 shell.network_publish(Some(rows), cx)
             });
         });

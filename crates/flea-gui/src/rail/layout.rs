@@ -79,7 +79,8 @@ pub(super) fn layout(
                 y += metrics.row;
                 continue;
             }
-            let dot = indicator_slot(row.group, row.kind);
+            let dropbox = row.kind == flea::ui_logic_pl4::rail::Kind::Dropbox;
+            let dot = !dropbox && indicator_slot(row.group, row.kind);
             let slot_width = if dot { metrics.slot } else { 0. };
             let detail = if row.kind == flea::ui_logic_pl4::rail::Kind::Trash
                 && model.trash_count_shown
@@ -105,7 +106,8 @@ pub(super) fn layout(
                 } else {
                     0.
                 };
-            let label_left = metrics.pad + metrics.icon + metrics.gap;
+            let label_left =
+                metrics.pad + metrics.icon * if dropbox { 1.18 } else { 1. } + metrics.gap;
             let label_width = (right - label_left).max(0.);
             let label_run = cache.get(&row.label, typeface.body, label_width, 0., typeface, window);
             let needs = label_run.width;

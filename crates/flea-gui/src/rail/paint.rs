@@ -63,7 +63,10 @@ pub(super) fn paint_mark(
                 let _ = window.paint_svg(
                     Bounds::new(
                         point(px(x), px(y)),
-                        size(px(metrics.icon), px(metrics.icon)),
+                        size(
+                            px(metrics.icon * if row.glyph == "dropbox" { 1.18 } else { 1. }),
+                            px(metrics.icon),
+                        ),
                     ),
                     key,
                     Some(data),

@@ -41,7 +41,7 @@ pub(super) fn open_with<'a>(
 }
 
 // The native window's own root, which mounts the menu layer and the deferred cards and takes the right click before the panes.
-pub(super) fn open_root<'a>(
+pub(crate) fn open_root<'a>(
     cx: &'a mut TestAppContext,
     keys: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
@@ -180,7 +180,7 @@ pub(super) fn row(name: &str, dir: bool) -> RowFacts {
 }
 
 // The backend's answer to the listing out, then the frames and time a swap needs to commit it.
-pub(super) fn land(
+pub(crate) fn land(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
     path: &str,

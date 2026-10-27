@@ -121,7 +121,7 @@ pub fn release_uri(gio: &str, saved: &str) -> String {
         .map_or_else(|| saved.into(), |m| m.uri)
 }
 
-fn unescape(raw: &str) -> String {
+pub(super) fn unescape(raw: &str) -> String {
     let bytes = raw.as_bytes();
     let mut out = Vec::new();
     let mut index = 0;
