@@ -39,7 +39,8 @@ test -x tools/flea-ci-visual || { printf 'BLOCKED: the GPUI scene CLI tools/flea
 # The tracked manifest keeps the ${FLEA_VISUAL_DESIGN} token; this run reads an expanded copy.
 manifest="$E/pk2.json"
 json=$(<tests/visual/g2/pk2.json)
-printf '%s\n' "${json//'${FLEA_VISUAL_DESIGN}'/$FLEA_VISUAL_DESIGN}" > "$manifest"
+case $FLEA_VISUAL_DESIGN in *'"'* | *'\'*) printf 'FLEA_VISUAL_DESIGN holds a quote or backslash\n' >&2; exit 2 ;; esac
+printf '%s\n' "${json//'${FLEA_VISUAL_DESIGN}'/"$FLEA_VISUAL_DESIGN"}" > "$manifest"
 for arm in qml gpui; do
     tools/flea-ci-visual --frontend "$arm" --manifest "$manifest" --output "$E/visual/$arm"
 done
