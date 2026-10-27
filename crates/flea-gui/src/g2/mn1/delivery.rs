@@ -199,7 +199,7 @@ impl Shell {
         if self.actions_reply(side, line, cx) || self.menu_tag_line(side, &reply, window, cx) {
             return true;
         }
-        if self.menu_tag_states(side, &reply, window) {
+        if self.menu_tag_states(side, &reply, window, cx) {
             return true;
         }
         if self.menu_discovery_reply(side, line, &reply, window, cx) {

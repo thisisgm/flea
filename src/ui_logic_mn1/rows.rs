@@ -202,7 +202,8 @@ pub enum Submenu {
 
 // Which flyout c or P opens: the drawn row's, a lone one for a hidden row, or a refusal.
 pub fn submenu_for(action: &str, entries: &[Entry], clipboard_available: bool) -> Submenu {
-    if flyout_entries(action).is_empty() {
+    // A Tags row carries its own leaves in tag_submenu, so it has no fixed flyout list here.
+    if flyout_entries(action).is_empty() && action != "tags" {
         return Submenu::None;
     }
     if let Some(index) = entries.iter().position(|entry| entry.action == action) {
