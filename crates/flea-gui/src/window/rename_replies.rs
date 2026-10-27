@@ -13,6 +13,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.opener_event(side, event, window, cx) {
+            return true;
+        }
         if let BackendEvent::Paths(paths) = event {
             if self.rename.paths == Some(side) {
                 self.rename.paths = None;

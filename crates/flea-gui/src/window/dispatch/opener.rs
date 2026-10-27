@@ -12,6 +12,7 @@ use flea::{
     ui_logic_pv1::kinds::{quick_look_kind, State},
 };
 use gpui::{Context, EventEmitter, Task, Window};
+mod targets;
 
 /// One pane's opener: the single-flight guard, the launch in flight and the launcher it calls off the UI thread.
 pub(crate) struct Lane {
@@ -20,7 +21,11 @@ pub(crate) struct Lane {
     // Opener.qml's own terminal Process and RunCard.qml's text launch, each single-flight beside the open.
     terminal: Option<Task<()>>,
     text: Option<Task<()>>,
+    pub(super) original: super::original::Pending,
     pub(crate) launch: fn(&[String]) -> lane::Exit,
+    pending: Option<targets::Pending>,
+    // The selection or archive wait's timeout, so a reply the backend never sends cannot hold the lane.
+    wait: Option<Task<()>>,
 }
 
 impl Default for Lane {
@@ -30,6 +35,9 @@ impl Default for Lane {
             task: None,
             terminal: None,
             text: None,
+            original: super::original::Pending::default(),
+            pending: None,
+            wait: None,
             #[cfg(not(test))]
             launch: lane::run,
             // A test window never starts a real application; a test that drives the lane sets its own launcher.
@@ -56,15 +64,27 @@ pub(super) fn run(
 ) -> bool {
     match order {
         Order::Action(event)
-            if event.context == Keys::Listing
-                && matches!(event.action, "open" | "pageForward") =>
+            if matches!(event.context, Keys::Listing | Keys::Rail)
+                && event.action == "openTerminal" =>
         {
             let side = shell.focus_side;
+            if let Some(host) = &shell.panes[side] {
+                shell.open_terminal(side, host.pane.path().to_owned(), window, cx);
+            }
+            true
+        }
+        Order::Action(event)
+            if event.context == Keys::Listing && matches!(event.action, "open" | "pageForward") =>
+        {
+            let side = shell.focus_side;
+            if event.action == "open" && shell.open_selection(side, window, cx) {
+                return true;
+            }
             let Some((path, archive)) = file_row(shell, side) else {
                 return false;
             };
-            // Focus.js:139: pageForward on a file row is the preview key, and Nav.js:239 hands an archive to Quick Look.
-            if event.action == "pageForward" || archive {
+            // Focus.js:139: pageForward on a file row is the preview key.
+            if event.action == "pageForward" {
                 let preview = ActionEvent {
                     action: "preview",
                     ..*event
@@ -72,26 +92,23 @@ pub(super) fn run(
                 shell.dispatch(Order::Action(preview), window, cx);
                 return true;
             }
-            shell.open_file(side, path, window, cx);
+            shell.open_cursor_file(side, path, archive, window, cx);
             true
         }
-        // PaneMenuActions.qml perform: the menu's Open on a file runs the listing's own open on the row it stands on.
+        Order::Menu(chosen) if chosen.action == "open" && chosen.paths.len() > 1 => {
+            if menu_claim(shell, chosen, cx) {
+                shell.open_menu_selection(chosen, window, cx);
+            }
+            true
+        }
+        // PaneMenuActions.qml perform: the menu's Open on a file opens its one validated path on the menu's own pane.
         Order::Menu(chosen) if chosen.action == "open" && shell.menu.context.row_is_file => {
-            if !chosen.claim() {
-                return true;
+            if menu_claim(shell, chosen, cx) {
+                shell.keyboard.context = Keys::Listing;
+                // open_menu put its cursor on the clicked row and focused it, so the cursor's own file keeps Enter's path.
+                shell.focus_side = chosen.captured.side;
+                shell.open_menu_target(chosen, window, cx);
             }
-            let side = chosen.captured.side;
-            if !chosen.captured.background {
-                let close = format!(
-                    "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
-                    chosen.captured.id
-                );
-                shell.menu_send(side, close, cx);
-            }
-            shell.keyboard.context = Keys::Listing;
-            // Nav.js openCursor on the menu's own pane: open_menu put its cursor on the clicked row and focused it, so Enter's path runs there.
-            shell.focus_side = side;
-            shell.dispatch(Order::Action(ActionEvent::bare("open", Keys::Listing)), window, cx);
             true
         }
         // Focus.js run: Nav.runCursor with the open verb, the same flea --open the menu's Open takes.
@@ -165,7 +182,32 @@ fn file_row(shell: &Shell, side: usize) -> Option<(String, bool)> {
     Some((join(host.pane.path(), &row.name), archive))
 }
 
+fn archive_path(path: &str) -> bool {
+    quick_look_kind("", path, false) == State::Archive
+        && !path.to_ascii_lowercase().ends_with(".appimage")
+}
+
 impl Shell {
+    // Enter on the cursor's own file: Nav.js:239 hands an archive to Quick Look, an image opens its gallery, any other file flea --open.
+    pub(super) fn open_cursor_file(
+        &mut self,
+        side: usize,
+        path: String,
+        archive: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if archive {
+            self.dispatch(
+                Order::Action(ActionEvent::bare("preview", Keys::Listing)),
+                window,
+                cx,
+            );
+        } else if !self.open_gallery(side, path.clone(), window, cx) {
+            self.open_file(side, path, window, cx);
+        }
+    }
+
     /// Opener.qml open: one flea --open per pane at a time; a second press while one is out says so and runs nothing.
     pub(crate) fn open_file(
         &mut self,
@@ -174,17 +216,34 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.open_paths(side, vec![path], false, window, cx);
+    }
+
+    fn open_paths(
+        &mut self,
+        side: usize,
+        paths: Vec<String>,
+        selection: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.opener[side].pending.is_some() {
+            let busy = busy_text(&self.locale.catalog);
+            self.opener_say(side, busy, false, cx);
+            return;
+        }
         let flea = crate::window::startup::binary().to_string_lossy().into_owned();
         let lane = &mut self.opener[side];
-        let Some(argv) = lane.guard.start(&flea, &[path]) else {
+        let Some(mut argv) = lane.guard.start(&flea, &paths) else {
             let busy = busy_text(&self.locale.catalog);
             self.opener_say(side, busy, false, cx);
             return;
         };
+        if selection {
+            argv[1] = "--open-selection".into();
+        }
         let launch = lane.launch;
-        let exit = cx
-            .background_executor()
-            .spawn(async move { launch(&argv) });
+        let exit = cx.background_executor().spawn(async move { launch(&argv) });
         lane.task = Some(cx.spawn_in(window, async move |this, cx| {
             let (status, stdout) = exit.await;
             let _ = this.update_in(cx, |shell, window, cx| {
@@ -212,11 +271,30 @@ impl Shell {
                 let _ = self.step(side, Step::Open(path), window, cx);
             }
             Opened::Failed(_) => {
+                let refusal = flea::json::field_str(stdout, "refusal");
+                if let Some(key) = refusal.filter(|key| matches!(key.as_str(),
+                    "feedback.refusal.folder_with_files" | "feedback.refusal.archives"
+                    | "feedback.refusal.programs" | "feedback.refusal.not_loaded")) {
+                    let sentence = self.locale.catalog.tr(&key);
+                    self.opener_say(side, sentence, false, cx);
+                    return;
+                }
                 let failed = failed_text(&self.locale.catalog);
                 self.opener_say(side, failed, true, cx);
             }
-            opened @ (Opened::AskRun { .. } | Opened::AskOpenWith(_)) => {
-                cx.emit(Asked { side, opened });
+            Opened::AskRun { path, text } => {
+                cx.emit(Asked {
+                    side,
+                    opened: Opened::AskRun { path: path.clone(), text: text.clone() },
+                });
+                self.open_run_card(side, path, text, window.modifiers().shift, cx);
+            }
+            Opened::AskOpenWith(path) => {
+                cx.emit(Asked {
+                    side,
+                    opened: Opened::AskOpenWith(path.clone()),
+                });
+                self.open_open_with(side, path, cx);
             }
         }
     }
@@ -285,7 +363,13 @@ impl Shell {
         }));
     }
 
-    fn opener_say(&mut self, side: usize, sentence: String, error: bool, cx: &mut Context<Self>) {
+    pub(crate) fn opener_say(
+        &mut self,
+        side: usize,
+        sentence: String,
+        error: bool,
+        cx: &mut Context<Self>,
+    ) {
         if let Some(host) = &mut self.panes[side] {
             host.status = sentence.clone().into();
         }

@@ -21,6 +21,16 @@ const FADE_H: i32 = PAD + CLEAR - 1;
 const TAG: f32 = 14.;
 const CHECK: f32 = 16.;
 
+#[cfg(test)]
+#[path = "tag_tests.rs"]
+mod tag_tests;
+
+#[cfg(test)]
+thread_local! {
+    // Test-only receipt of each card frame a MenuElement painted in a real draw.
+    pub(crate) static PAINTED: RefCell<Vec<Bounds<Pixels>>> = const { RefCell::new(Vec::new()) };
+}
+
 /// The roles a menu paints with, read from the pane's palette until the theme tokens land.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MenuInk {
@@ -32,7 +42,7 @@ pub struct MenuInk {
     pub muted: Hsla,
     pub mark: Hsla,
     pub error: Hsla,
-    pub tag: Hsla,
+    pub tags: [Hsla; 7],
 }
 
 impl MenuInk {
@@ -46,7 +56,7 @@ impl MenuInk {
             muted: palette.muted,
             mark: palette.metadata_frame,
             error: palette.error,
-            tag: palette.accent,
+            tags: [palette.foreground; 7],
         }
     }
 }
@@ -133,7 +143,14 @@ fn paint_lead(
                 cx,
             );
         }
-        Lead::Tag(_) => window.paint_quad(fill(slot(left, top, TAG, TAG), ink.tag)),
+        Lead::Tag(tag) => {
+            let color = tag
+                .checked_sub(1)
+                .and_then(|at| ink.tags.get(usize::from(at)))
+                .copied()
+                .unwrap_or(ink.label);
+            window.paint_quad(fill(slot(left, top, TAG, TAG), color));
+        }
         // An application's own icon belongs to the icon theme unit; until then the window mark stands in.
         Lead::Icon(_) => {
             let (key, data) = glyphs::mark("app-window");
@@ -231,6 +248,8 @@ fn paint_card(
 ) {
     let f = card.frame;
     let frame = Bounds::new(origin + point(px(f.x), px(f.y)), size(px(f.w), px(f.h)));
+    #[cfg(test)]
+    PAINTED.with(|painted| painted.borrow_mut().push(frame));
     window.paint_quad(quad(
         frame,
         radius,
@@ -333,6 +352,7 @@ impl Element for MenuElement {
         // A failed provider and a destructive row read in the theme's error role.
         MenuInk {
             error: theme.error,
+            tags: theme.tag_menu_inks,
             ..MenuInk::from_palette(&Palette::inherited(&window.text_style(), theme))
         }
     }

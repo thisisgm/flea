@@ -28,7 +28,7 @@ fn open(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
     )
     .unwrap();
     let launch = Launch::resolve(
-        Settings::from_json(document, true),
+        Settings::from_json(document),
         Arguments {
             path: Some("/files".into()),
             select: None,

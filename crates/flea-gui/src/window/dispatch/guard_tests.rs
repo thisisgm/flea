@@ -10,8 +10,8 @@ use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 const NOT_YET: &[(&str, &[&str])] = &[
     // Focus.js:271, ui/Pane.qml:599-602.
     ("operations", &["properties"]),
-    // Focus.js:250 and 273.
-    ("window", &["openTerminal"]),
+    // Focus.js:250 and 273 (openTerminal); Focus.js:250 (tags).
+    ("window", &["openTerminal", "tags"]),
 ];
 
 // Spawns a real window process, so the guard reads it from the table instead of pressing it.
@@ -123,7 +123,10 @@ fn every_bound_listing_action_has_a_handler_or_a_named_family(cx: &mut TestAppCo
     }
     for action in FOLDER_ROW {
         assert!(!folder.contains(action), "{action} opens a folder row");
-        assert!(!file.contains(action), "{action} on a file row is the opener's");
+        assert!(
+            !file.contains(action),
+            "{action} on a file row is the opener's"
+        );
     }
     let named: BTreeSet<&str> = NOT_YET
         .iter()

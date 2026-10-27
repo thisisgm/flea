@@ -19,7 +19,9 @@ pub(super) struct Editor {
 }
 
 #[derive(Default)]
-pub(super) struct Drawn {
+pub(crate) struct Drawn {
+    pub revealed: bool,
+    pub held: usize,
     pub line: Line,
     // The exact argument retained with the current shaped run, replaced only when shaping changes.
     pub shaped_text: std::rc::Rc<str>,
@@ -87,9 +89,7 @@ impl Overlay {
                 || self.editor.entry.text != *path
             {
                 self.editor.entry = Entry::default();
-                self.editor.entry.editing = true;
-                self.editor.entry.replace(None, path);
-                self.editor.entry.select_all();
+                self.editor.entry.begin(path);
                 self.editor.drawn.borrow_mut().line = Line::default();
             }
             self.editor.menu = Some(*menu);
@@ -97,10 +97,24 @@ impl Overlay {
             self.editor.menu = None;
             self.editor.entry.close();
         }
+        // A blur commits the composition as it stands, since the input method's late callbacks are refused.
+        if !self.editing_copy(window, cx) {
+            self.editor.entry.ime_unmark();
+        }
     }
 
+    // Whether the focused field owns the editor; each dialog field the editor serves adds its arm here.
     pub(super) fn editing_copy(&self, window: &Window, cx: &gpui::App) -> bool {
-        matches!(self.model.dialog, Some(Dialog::CopyTo { menu, focus: CopyFocus::Field, busy: false, .. }) if self.editor.menu == Some(menu))
+        let menu = match self.model.dialog {
+            Some(Dialog::CopyTo {
+                menu,
+                focus: CopyFocus::Field,
+                busy: false,
+                ..
+            }) => menu,
+            _ => return false,
+        };
+        self.editor.menu == Some(menu)
             && !self.progress.dialog.holding(self.now(cx))
             && self.editor.entry.editing
             && self
@@ -108,6 +122,11 @@ impl Overlay {
                 .focus
                 .as_ref()
                 .is_some_and(|f| f.is_focused(window))
+    }
+
+    // Platform callbacks reach the last registered handler, so they also need its session to be this one.
+    pub(super) fn ime_field(&self, window: &Window, cx: &gpui::App) -> bool {
+        self.editing_copy(window, cx) && self.editor.drawn.borrow().line.accepts(&self.editor.entry)
     }
 
     pub(super) fn edited_copy(&mut self, cx: &mut Context<Self>) {
@@ -131,7 +150,10 @@ impl Overlay {
         let key = keys.key.as_str();
         let held = keys.modifiers;
         let command = held.control || held.platform;
-        if self.editor.entry.marked.is_some() && matches!(key, "enter" | "return" | "kp_enter") {
+        // Enter belongs to the IME until its marked text commits; Escape cancels the composition, Tab commits it.
+        if self.editor.entry.ime_key(key) {
+            self.edited_copy(cx);
+            cx.stop_propagation();
             return true;
         }
         let at = self.editor.entry.cursor();
@@ -157,13 +179,10 @@ impl Overlay {
             }
             "a" if command && !held.alt && !held.shift => self.editor.entry.select_all(),
             "c" | "x" if command && !held.alt && !held.shift => {
-                let entry = &mut self.editor.entry;
-                if !entry.selected.is_empty() {
-                    cx.write_to_clipboard(ClipboardItem::new_string(
-                        entry.text[entry.selected.clone()].to_owned(),
-                    ));
+                if let Some(text) = self.editor.entry.copyable() {
+                    cx.write_to_clipboard(ClipboardItem::new_string(text.to_owned()));
                     if key == "x" {
-                        entry.replace(None, "");
+                        self.editor.entry.replace(None, "");
                     }
                 }
             }
@@ -174,7 +193,6 @@ impl Overlay {
                 }
             }
             "escape" | "enter" | "return" | "kp_enter" | "tab" | "backtab" => return false,
-            // Enter belongs to the IME until its marked text commits.
             _ if held.alt || command => return false,
             _ => return true,
         }
@@ -203,10 +221,7 @@ impl Overlay {
         let at = self.copy_index(event.position.x);
         let entry = &mut self.editor.entry;
         // The last drawn glyph line can precede an edit, so its hit must fit the current UTF-8 text.
-        let mut at = at.min(entry.text.len());
-        while !entry.text.is_char_boundary(at) {
-            at -= 1;
-        }
+        let at = entry.from_display(at);
         if event.click_count > 2 {
             entry.select_all();
         } else if event.click_count == 2 {
@@ -239,6 +254,7 @@ impl Overlay {
     ) {
         if event.pressed_button == Some(gpui::MouseButton::Left) && self.editing_copy(window, cx) {
             let at = self.copy_index(event.position.x);
+            let at = self.editor.entry.from_display(at);
             self.editor.entry.select_to(at);
             cx.notify();
         }

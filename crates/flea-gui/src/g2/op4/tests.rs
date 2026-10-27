@@ -132,9 +132,10 @@ fn op4_partial_failure_refreshes_outputs_and_cancellation_has_no_refusal() {
     }
 
     assert!(m.line(&format!(r#"{{"t":"convertdone","id":8,"requestId":{r},"source":"/fixture/a.png","ok":false,"paths":["/fixture/a.jpg"],"path":"/fixture/a.jpg","err":"collision"}}"#), &c));
-    assert!(m
-        .effects
-        .contains(&Effect::Refresh(vec!["/fixture/a.jpg".into()])));
+    assert!(m.effects.contains(&Effect::Refresh {
+        paths: vec!["/fixture/a.jpg".into()],
+        select: false,
+    }));
     m.choose_format(2, &c);
     checked(&mut m);
     m.submit(&c);

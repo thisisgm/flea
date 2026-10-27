@@ -9,7 +9,7 @@ use flea::ui_logic_st1::{
 use std::sync::Arc;
 
 /// The sources a query reads. Menus, rail places and recent files are seams for the menu, rail and recents contracts.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Sources {
     pub menus: Vec<MenuEntry>,
     pub rail: Vec<RailEntry>,
@@ -79,6 +79,13 @@ impl Sheet {
         if self.preset != preset {
             self.preset = preset.into();
             self.rows = presentation::sheet(preset, Frontend::Gui, &self.catalog);
+            self.requery();
+        }
+    }
+
+    pub fn set_sources(&mut self, sources: Sources) {
+        if self.sources != sources {
+            self.sources = sources;
             self.requery();
         }
     }

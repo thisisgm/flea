@@ -11,6 +11,8 @@ impl Navigator {
             self.seen = commits;
             if pane.path() != before {
                 self.watch.clear();
+                self.deletion_anchor = None;
+                self.grid_landing = None;
             }
             if self
                 .anchor
@@ -66,7 +68,13 @@ impl Navigator {
             self.anchor = Some(anchor);
             return;
         }
-        if let Some(paths) = anchor.apply(pane, selected) {
+        let paths = anchor.apply(pane, selected);
+        if anchor.landed {
+            self.grid_landing = anchor
+                .grid_offset
+                .map(|offset| (pane.held.listing, pane.cursor, offset));
+        }
+        if let Some(paths) = paths {
             let id = self.next_locate();
             anchor.locate = Some(id);
             self.anchor = Some(anchor);

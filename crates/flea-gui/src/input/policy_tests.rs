@@ -168,7 +168,7 @@ fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppCon
     let (backend, _requests) = Backend::test_channel();
     let (shell, cx) = cx.add_window_view(|window, cx| {
         let mut shell = shell_with(backend, cx);
-        shell.launch.settings.data = flea::jsondoc::parse(r#"{"singleClick":true}"#).unwrap();
+        shell.launch.settings.data = flea::jsondoc::parse(r#"{"openMode":"single"}"#).unwrap();
         shell.opener[0].launch = |argv| {
             OPENED.with(|opened| opened.borrow_mut().push(argv[2..].join(" ")));
             (Some(0), String::new())
@@ -214,7 +214,11 @@ fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppCon
     }
     // The file row's one open now runs the opener instead of reaching an observer.
     assert_eq!(*observed.borrow(), Vec::<&str>::new());
-    assert_eq!(OPENED.with(|opened| opened.take()).len(), 1, "the file opens once");
+    assert_eq!(
+        OPENED.with(|opened| opened.take()).len(),
+        1,
+        "the file opens once"
+    );
     shell.read_with(cx, |shell, _| {
         assert_eq!(shell.panes[0].as_ref().unwrap().selected, [2])
     });
