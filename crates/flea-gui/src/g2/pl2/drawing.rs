@@ -65,6 +65,7 @@ pub struct Drawn {
     pub boxes: Vec<BoxPaint>,
     pub hits: Vec<(Focus, Rect)>,
     pub origin: (f32, f32),
+    pub(super) offset: (f32, f32),
     pub card: Option<Rect>,
     pub body_height: f32,
 }
@@ -201,7 +202,7 @@ impl Element for NetworkElement {
     ) -> CardPalette {
         let view = self.0.read(cx);
         let mut drawn = view.drawn.borrow_mut();
-        if drawn.revision != view.revision || drawn.card.is_none() {
+        if view.model.opened && (drawn.revision != view.revision || drawn.card.is_none()) {
             *drawn = Drawn::build(
                 view,
                 f32::from(bounds.size.width),
@@ -209,6 +210,10 @@ impl Element for NetworkElement {
                 window,
             );
         }
+        let offset = (f32::from(bounds.origin.x), f32::from(bounds.origin.y));
+        drawn.origin.0 += offset.0 - drawn.offset.0;
+        drawn.origin.1 += offset.1 - drawn.offset.1;
+        drawn.offset = offset;
         view.palette
     }
     fn paint(

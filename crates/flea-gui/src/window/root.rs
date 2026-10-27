@@ -53,7 +53,7 @@ impl Render for Root {
             .quick_look
             .as_ref()
             .map(|host| host.view.clone())
-            .filter(|view| view.read(cx).is_open())
+            .filter(|view| view.read(cx).visible())
             .map(|view| deferred(div().absolute().top_0().left_0().size_full().child(view)));
         // The output card draws above everything while it shows; a closed card mounts nothing.
         let output = self

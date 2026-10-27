@@ -17,6 +17,9 @@ impl QuickLook {
 
     /// A card control answered; a disabled one never reaches here.
     pub fn activate(&mut self, hit: Hit, cx: &mut Context<Self>) {
+        if self.subject.is_none() {
+            return;
+        }
         match hit {
             Hit::Close => self.close(cx),
             Hit::OpenWith => cx.emit(Event::OpenWith),
