@@ -23,3 +23,8 @@ pub(crate) mod thumbnails;
 pub mod view;
 
 pub use surface::{Adapter, Surface};
+
+#[cfg(test)]
+mod pb_ipc_fixture;
+#[cfg(test)]
+mod pb_ipc_tests;
