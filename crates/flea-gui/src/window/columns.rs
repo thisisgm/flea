@@ -49,7 +49,7 @@ pub(crate) struct Columns {
     pub area: Area,
     pub preview_hosted: bool,
     pub painters: Painters,
-    scroll: [scroll::Scrolling; 5],
+    pub(crate) scroll: [scroll::Scrolling; 5],
     pub heroes: [Option<Entity<EmptyHero>>; 5],
     pub notices: [Option<Entity<StateMessage>>; 5],
     pub loading: [Option<std::rc::Rc<crate::feedback::spinner::Crawl>>; 5],

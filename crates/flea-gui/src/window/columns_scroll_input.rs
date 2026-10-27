@@ -52,6 +52,7 @@ impl Shell {
         }
         let now = cx.background_executor().now();
         let reduced = cx.reduce_motion();
+        let blocked = self.wheel_blocked(cx);
         let Some(host) = self.panes[side].as_mut() else {
             return;
         };
@@ -70,7 +71,7 @@ impl Shell {
         let Some(slot) = slot else { return };
         let state = &mut columns.scroll[slot.index()];
         // A card's own surface stops the wheel above it, so a card beside the track never does.
-        if host.pane.busy() || state.input.grab.is_some() {
+        if blocked || host.pane.busy() || state.input.grab.is_some() {
             state.input.halt();
             state.input.stroke = false;
             return;
