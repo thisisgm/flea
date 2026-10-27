@@ -20,8 +20,6 @@ use std::time::Duration;
 mod compare_open;
 #[path = "quick_look_docs.rs"]
 mod docs;
-#[path = "preview_preferences.rs"]
-mod preferences;
 #[path = "quick_look_keys.rs"]
 mod keys;
 #[path = "quick_look_mount.rs"]
@@ -101,7 +99,6 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> &mut Host {
-        self.ensure_preview_sound(cx);
         if self.quick_look.is_none() {
             let catalog = self.locale.catalog.clone();
             let view = cx.new(|_| QuickLook::new(catalog));

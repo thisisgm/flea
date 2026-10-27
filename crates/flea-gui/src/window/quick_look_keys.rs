@@ -163,9 +163,6 @@ impl Shell {
             return false;
         };
         let command = view.update(cx, |view, cx| view.action(event.action, cx));
-        if event.action == "toggleWrap" {
-            self.keep_preview_wrap(window, cx);
-        }
         self.quick_look_drain();
         match command {
             Command::Close => self.quick_look_closed(window, cx),

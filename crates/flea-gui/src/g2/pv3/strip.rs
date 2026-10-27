@@ -59,9 +59,6 @@ pub enum StripInput {
 /// Paint state kept across frames: the shaped clock and the press in flight.
 #[derive(Default)]
 pub struct StripCache {
-    pub(crate) seek: Option<Bounds<Pixels>>,
-    pub(crate) mute: Option<Bounds<Pixels>>,
-    pub(crate) visible: bool,
     clock: Option<((i64, i64), GlyphRun)>,
     pressed: Option<Part>,
     /// The play mark's box as the last paint drew it, which the column readers take as the play button.
@@ -215,8 +212,6 @@ impl Element for StripElement {
             clock_width,
             metrics(&self.typeface),
         );
-        cache.seek = Some(span_bounds(layout.seek, content));
-        cache.mute = Some(span_bounds(layout.mute, content));
         let seek = window.insert_hitbox(span_bounds(layout.seek, content), HitboxBehavior::Normal);
         Placed {
             layout,
