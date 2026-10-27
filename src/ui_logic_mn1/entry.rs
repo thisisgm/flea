@@ -115,13 +115,7 @@ impl Entry {
         match self.key_hint {
             _ if !key_hints || self.separator => "",
             Some(letter) => letter,
-            // Enter chooses whichever row holds the cursor, so no row names it as its own key.
-            None if !self.action.is_empty() => {
-                match crate::keys::presentation::hint_for(preset, &self.action) {
-                    "enter" | "return" => "",
-                    key => key,
-                }
-            }
+            None if !self.action.is_empty() => crate::keys::presentation::hint_for(preset, &self.action),
             None => "",
         }
     }

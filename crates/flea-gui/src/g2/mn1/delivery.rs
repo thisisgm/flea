@@ -84,6 +84,8 @@ impl Shell {
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
         self.menu.flyout = None;
+        self.menu.header = false;
+        self.menu.tags_reading = false;
         self.menu.pending = None;
         self.menu.activating = false;
         self.menu.reading = false;
@@ -148,7 +150,10 @@ impl Shell {
             }
             // Dropbox rows name the account root the backend already took as this menu's destination.
             let dest = if matches!(action.as_str(), "dropbox" | "sharelink") {
-                format!(",\"dest\":\"{}\"", escape(&self.provider_destination(capture.side)))
+                format!(
+                    ",\"dest\":\"{}\"",
+                    escape(&self.provider_destination(capture.side))
+                )
             } else {
                 String::new()
             };
@@ -301,6 +306,9 @@ impl Shell {
             return;
         };
         let side = capture.side;
+        if self.header_menu_choose(&action, window, cx) {
+            return;
+        }
         if self.deliver_actions(&capture, &action, &leaf, paths.clone(), window, cx) {
             return;
         }
@@ -330,7 +338,9 @@ impl Shell {
                     .collect::<Vec<_>>()
                     .join(",")
             );
-            self.menu.actions.run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
+            self.menu
+                .actions
+                .run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
             self.menu_send(side, request, cx);
             self.retire_menu(window, cx);
         } else {

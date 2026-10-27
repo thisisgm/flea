@@ -11,6 +11,8 @@ use gpui::{Context, Entity, Task, Window};
 
 #[path = "columns_input.rs"]
 mod input;
+#[path = "columns_menu.rs"]
+mod menu;
 pub use input::BackgroundMenu;
 #[path = "columns_events.rs"]
 mod events;
@@ -27,6 +29,7 @@ pub(crate) use requested::requested;
 mod review_r2;
 
 pub(crate) struct Columns {
+    pub row_menu: Option<crate::columns::menu::NeighbourMenu>,
     pub area: Area,
     pub preview_hosted: bool,
     pub painters: Painters,
@@ -75,6 +78,7 @@ impl Columns {
     fn new(width: f32, height: f32, settings: &super::startup::Settings) -> Self {
         let share = f64::from(super::selection_preview::host::share(&settings.data));
         Self {
+            row_menu: None,
             area: Area::new(
                 width,
                 height,

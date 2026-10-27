@@ -107,6 +107,10 @@ mod menudeliver_tests;
 #[cfg(test)]
 mod menus_tests;
 #[cfg(test)]
+mod menus3_tests;
+#[cfg(test)]
+mod menus3_addon_tests;
+#[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]
 mod queued_navigation_tests;

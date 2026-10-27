@@ -11,6 +11,12 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if (self.menu_opened() || self.menu.presentation.at.is_some())
+            && matches!(event.keystroke.key.as_str(), "tab" | "backtab")
+        {
+            cx.stop_propagation();
+            return true;
+        }
         if self.menu.presentation.at.is_some() {
             if event.keystroke.key == "escape" {
                 self.retire_menu(window, cx);

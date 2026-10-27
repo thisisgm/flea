@@ -58,6 +58,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.menu_tags_reply(side, reply, window, cx) {
+            return true;
+        }
         let scripts = string(reply, "t") == "actions";
         let validation = string(reply, "t") == "menuaction"
             && string(reply, "op") == "validate"

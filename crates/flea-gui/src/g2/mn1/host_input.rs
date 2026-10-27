@@ -75,49 +75,65 @@ impl Shell {
         let Some(host) = &self.panes[side] else {
             return;
         };
-        let row = match host.drawn_view {
-            Some(View::List | View::Dual) => {
-                let Some(frame) = host
-                    .input
-                    .drawn
-                    .map(|drawn| drawn.frame)
-                    .or(host.input.frame)
-                else {
-                    return;
-                };
-                if frame.listing != host.pane.held.listing
-                    || !frame.bounds.contains(&event.position)
-                    || frame.in_lane(event.position)
-                {
-                    return;
-                }
-                frame
-                    .row_at(event.position)
-                    .map(|row| host.input.index(row))
+        let row = if host.pane.state.kind == crate::pane::states::Kind::Empty && !host.pane.busy() {
+            let pane = self.geometry(window).rows(
+                side,
+                self.view == View::Dual,
+                self.slots.strip_height_for(side),
+            );
+            let bounds = gpui::Bounds::new(
+                gpui::point(px(pane.x), px(pane.y)),
+                gpui::size(px(pane.width), px(pane.height)),
+            );
+            if !bounds.contains(&event.position) {
+                return;
             }
-            Some(View::Grid) => {
-                let Some(grid) = &host.grid else { return };
-                let state = grid.state.borrow();
-                if state
-                    .frame_held
-                    .as_ref()
-                    .is_none_or(|held| held.listing != host.pane.held.listing)
-                    || !state.bounds.contains(&event.position)
-                {
-                    return;
+            None
+        } else {
+            match host.drawn_view {
+                Some(View::List | View::Dual) => {
+                    let Some(frame) = host
+                        .input
+                        .drawn
+                        .map(|drawn| drawn.frame)
+                        .or(host.input.frame)
+                    else {
+                        return;
+                    };
+                    if frame.listing != host.pane.held.listing
+                        || !frame.bounds.contains(&event.position)
+                        || frame.in_lane(event.position)
+                    {
+                        return;
+                    }
+                    frame
+                        .row_at(event.position)
+                        .map(|row| host.input.index(row))
                 }
-                let at = event.position - state.bounds.origin;
-                state
-                    .tile_at(f32::from(at.x), f32::from(at.y))
-                    .and_then(|hit| {
-                        state
-                            .drawn()
-                            .iter()
-                            .find(|drawn| drawn.view == hit)
-                            .map(|drawn| drawn.listing)
-                    })
+                Some(View::Grid) => {
+                    let Some(grid) = &host.grid else { return };
+                    let state = grid.state.borrow();
+                    if state
+                        .frame_held
+                        .as_ref()
+                        .is_none_or(|held| held.listing != host.pane.held.listing)
+                        || !state.bounds.contains(&event.position)
+                    {
+                        return;
+                    }
+                    let at = event.position - state.bounds.origin;
+                    state
+                        .tile_at(f32::from(at.x), f32::from(at.y))
+                        .and_then(|hit| {
+                            state
+                                .drawn()
+                                .iter()
+                                .find(|drawn| drawn.view == hit)
+                                .map(|drawn| drawn.listing)
+                        })
+                }
+                _ => return,
             }
-            _ => return,
         };
         if let Some(row) = row {
             if let Some(host) = &mut self.panes[side] {
@@ -142,6 +158,10 @@ impl Shell {
             return;
         };
         if self.input_blocked(cx) {
+            return;
+        }
+        if host.pane.held.row(host.pane.cursor).is_none() && self.locked_folder(side).is_none() {
+            self.menu_notice(side, self.locale.catalog.tr("clipboard.no_cursor_row"), cx);
             return;
         }
         let geometry = self.geometry(window);
