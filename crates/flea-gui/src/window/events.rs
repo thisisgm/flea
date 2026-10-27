@@ -236,7 +236,13 @@ impl Shell {
             } => {
                 let current =
                     path.is_empty() || path == host.pane.path() || path == host.pane.place();
-                let named = if path == host.path {
+                // A denied row of the shown listing is this folder, so the footer says the pane's own sentence too.
+                let listed = crate::navigation::history::parent_of(&path) == host.path;
+                let this_folder = path == host.path
+                    || (operation == "scan"
+                        && listed
+                        && flea::ui_logic_fb1::errors::denied(&operation, &message));
+                let named = if this_folder {
                     ""
                 } else {
                     path.rsplit('/').next().unwrap_or_default()

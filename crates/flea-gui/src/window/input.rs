@@ -300,6 +300,7 @@ impl Shell {
         }
         if self.keyboard.context == flea::keys::Context::Listing && requests::swallows(busy, action)
         {
+            self.status_note(&self.locale.catalog.tr("pane.busy"), cx);
             self.hold_cursor_key(action);
             cx.stop_propagation();
             return;

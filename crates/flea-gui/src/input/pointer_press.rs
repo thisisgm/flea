@@ -31,7 +31,12 @@ impl Shell {
         let Some(frame) = host.input.frame else {
             return;
         };
-        if host.pane.busy() || frame.listing != host.pane.held.listing {
+        if host.pane.busy() {
+            let text = self.locale.catalog.tr("pane.busy");
+            self.status_note(&text, cx);
+            return;
+        }
+        if frame.listing != host.pane.held.listing {
             return;
         }
         host.input.keyboard();

@@ -68,7 +68,12 @@ impl Shell {
             return;
         }
         match order {
-            Order::Action(event) | Order::Network(event) => cx.emit(event),
+            Order::Action(event) => {
+                let text = self.locale.catalog.tr("feedback.action.unavailable");
+                self.status_note(&text, cx);
+                cx.emit(event)
+            }
+            Order::Network(event) => cx.emit(event),
             Order::Menu(chosen) => cx.emit(chosen),
             Order::Place(request) => cx.emit(request),
             Order::Device(request) => cx.emit(request),
@@ -240,6 +245,10 @@ mod pb_preview_readers_tests;
 #[cfg(test)]
 mod rail_menu_tests;
 
+#[cfg(test)]
+mod pb_pane_feedback_tests;
+#[cfg(test)]
+mod pb_pane_state_tests;
 #[cfg(test)]
 mod columns_search_parity_tests;
 #[cfg(test)]

@@ -22,6 +22,7 @@ pub(super) fn open_with(cx: &mut TestAppContext, backend: Backend) -> WindowHand
                 "",
             );
             let facts = crate::backend::status::Filesystem {
+                class: String::new(),
                 path: host.path.clone(),
                 name: "testfs".into(),
                 free: 1_073_741_824,
