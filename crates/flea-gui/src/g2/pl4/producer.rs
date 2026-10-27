@@ -39,7 +39,10 @@ pub enum Event {
     Activate(RailEntry),
     Menu(RailEntry),
     Tab(RailEntry),
-    Rename { entry: RailEntry, label: String },
+    Rename {
+        entry: RailEntry,
+        label: String,
+    },
     /// The eject mark's click or its keyboard frame: the row's own release, as Sidebar.ejectRow.
     Release(RailEntry),
 }
@@ -67,6 +70,8 @@ pub struct Producer {
     pub(crate) side: usize,
     request_id: u64,
     editor_dragging: bool,
+    ime_session: Option<u64>,
+    ime_focus: Option<gpui::FocusHandle>,
     pub directory_reads: u64,
     tail: Vec<RailSection>,
     pub sections: Vec<RailSection>,
@@ -157,6 +162,8 @@ impl Producer {
             side: 0,
             request_id: 0,
             editor_dragging: false,
+            ime_session: None,
+            ime_focus: None,
             directory_reads: 0,
             tail: Vec::new(),
             sections,
