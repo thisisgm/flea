@@ -1,4 +1,5 @@
 //! The collision card draws the committed board and records its painted controls.
+use super::geometry::Metrics;
 use super::model::Dialog;
 use super::press::Press;
 use super::view::{button, caption, mark, shell, state, Scene};
@@ -38,7 +39,7 @@ pub(super) fn draw(dialog: &Dialog, scene: &Scene, window: (f32, f32)) -> gpui::
     if !more.is_empty() {
         list = list.child(
             div()
-                .text_size(px(card::EXPLAIN_SIZE))
+                .text_size(px(Metrics::new(scene.typeface).caption))
                 .truncate()
                 .child(more.clone()),
         );
@@ -47,7 +48,7 @@ pub(super) fn draw(dialog: &Dialog, scene: &Scene, window: (f32, f32)) -> gpui::
         list.into_any_element(),
         scene
             .track(
-                caption(collide::explain(catalog), palette.foreground)
+                caption(scene, collide::explain(catalog), palette.foreground)
                     .relative()
                     .debug_selector(|| "op1-explain".into()),
                 "explain",
