@@ -165,3 +165,8 @@ mod test_shell;
 
 #[cfg(test)]
 mod gh_preview_proof_tests;
+
+#[cfg(test)]
+mod pb_pane_feedback_tests;
+#[cfg(test)]
+mod pb_pane_state_tests;
