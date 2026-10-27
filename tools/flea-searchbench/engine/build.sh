@@ -1,5 +1,7 @@
 #!/bin/bash
 set -euo pipefail
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 H=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 UNIT=$(dirname -- "$H")
 W=$(cd -- "$H/../../.." && pwd -P)

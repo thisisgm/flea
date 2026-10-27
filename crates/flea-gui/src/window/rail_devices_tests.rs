@@ -344,3 +344,6 @@ mod release;
 
 #[path = "rail_device_menu_tests.rs"]
 mod menus;
+
+#[path = "rail_drive_tests.rs"]
+mod drive;

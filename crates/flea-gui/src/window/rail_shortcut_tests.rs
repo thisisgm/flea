@@ -3,6 +3,10 @@ use super::*;
 use crate::window::input::ActionEvent;
 use std::{cell::RefCell, rc::Rc};
 
+thread_local! {
+    static TERMINALS: RefCell<Vec<Vec<String>>> = const { RefCell::new(Vec::new()) };
+}
+
 fn tab_to_rail(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     for _ in 0..3 {
         frame(cx);
@@ -50,6 +54,16 @@ fn gcomp36_focused_rail_passes_window_handlers_and_swallows_listing_actions(
 ) {
     let (shell, cx) = open(false, "list", cx);
     tab_to_rail(&shell, cx);
+    TERMINALS.with(|calls| calls.borrow_mut().clear());
+    let folder = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().pane.path().to_owned()
+    });
+    shell.update(cx, |shell, _| {
+        shell.opener[0].launch = |argv| {
+            TERMINALS.with(|calls| calls.borrow_mut().push(argv.to_vec()));
+            (Some(0), String::new())
+        };
+    });
     let seen = Rc::new(RefCell::new(Vec::new()));
     let sink = seen.clone();
     let _subscription = cx.update(|_, cx| {
@@ -62,12 +76,15 @@ fn gcomp36_focused_rail_passes_window_handlers_and_swallows_listing_actions(
         cx.simulate_keystrokes(key);
         frame(cx);
     }
-    // The window runs reload itself now, so only the actions with no owner yet reach observers; dispatch/navigation_tests.rs proves the rail reload lists.
+    // Reload and Terminal run in the window; dispatch/navigation_tests.rs proves that the rail reload lists.
     assert_eq!(
         seen.borrow().as_slice(),
-        &[("openTerminal", flea::keys::Context::Rail),],
+        &[],
         "focused rail swallowed a real window action handler"
     );
+    let terminals = TERMINALS.with(|calls| calls.take());
+    assert_eq!(terminals.len(), 1, "Ctrl+T must reach the terminal owner");
+    assert_eq!(&terminals[0][1..], ["--terminal", folder.as_str()]);
     shell.read_with(cx, |shell, _| {
         assert_eq!(
             shell.strip.tabs[0].count(),
@@ -235,4 +252,100 @@ fn gcomp45_path_escape_from_rail_restores_listing_context_and_ctrl3_grid(cx: &mu
         ),
         "path close must restore Listing key ownership and let Ctrl+3 reach the real Grid handler",
     );
+}
+
+// The Settings panel's section, the side that holds the keys, and the id of the cursor row.
+fn settings_panel(
+    shell: &gpui::Entity<Shell>,
+    cx: &mut VisualTestContext,
+) -> (&'static str, crate::g2::st1::Side, String) {
+    shell.read_with(cx, |shell, cx| {
+        let view = shell.settings.panel.as_ref().unwrap().read(cx);
+        let panel = &view.panel;
+        (
+            panel.section,
+            panel.side,
+            panel.rows[panel.cursor].id.clone(),
+        )
+    })
+}
+
+// The stored text size mode: absent while following Omarchy, a stop once overridden.
+fn display_size_mode(shell: &gpui::Entity<Shell>, cx: &mut VisualTestContext) -> Option<f64> {
+    shell.read_with(cx, |shell, _| {
+        flea::ui_logic_st1::pages::at(
+            &shell.launch.settings.data,
+            &["display", "textSize", "mode"],
+        )
+        .and_then(flea::jsondoc::Json::as_f64)
+    })
+}
+
+// The Display ruler's stop at the stored size, and the Effective fact as the pane draws it.
+fn display_ruler_stop(shell: &gpui::Entity<Shell>, cx: &mut VisualTestContext) -> Option<u32> {
+    shell.read_with(cx, |shell, cx| {
+        let view = shell.settings.panel.as_ref()?.read(cx);
+        let ruler = view.panel.rows.iter().find(|row| row.id == "textStop")?;
+        Some(ruler.stops[ruler.index])
+    })
+}
+
+fn effective_text(shell: &gpui::Entity<Shell>, cx: &mut VisualTestContext) -> Option<String> {
+    shell.read_with(cx, |shell, cx| {
+        let view = shell.settings.panel.as_ref()?.read(cx);
+        let fact = view.panel.rows.iter().find(|row| row.id == "textEffective")?;
+        Some(fact.value.resolve(&view.panel.catalog))
+    })
+}
+
+#[gpui::test]
+fn ey220_display_takes_down_and_right_after_tab_from_the_sidebar(cx: &mut TestAppContext) {
+    let (shell, cx) = open(false, "list", cx);
+    // Seeded at text size 14 on Override, the EY-162 scene.
+    shell.update(cx, |shell, _| {
+        shell.launch.settings.data =
+            flea::uistate::from_file(r#"{"display":{"textSize":{"mode":14}}}"#);
+    });
+    tab_to_rail(&shell, cx);
+    cx.simulate_keystrokes("ctrl-,");
+    frame(cx);
+    assert!(shell.read_with(cx, |shell, _| shell.settings.opened));
+    assert_eq!(display_size_mode(&shell, cx), Some(14.));
+    cx.simulate_keystrokes("tab");
+    frame(cx);
+    assert_eq!(settings_panel(&shell, cx).1, crate::g2::st1::Side::Rail);
+    for _ in 0..5 {
+        cx.simulate_keystrokes("down");
+        frame(cx);
+    }
+    assert_eq!(settings_panel(&shell, cx).0, "display");
+    cx.simulate_keystrokes("tab");
+    frame(cx);
+    assert_eq!(
+        settings_panel(&shell, cx).1,
+        crate::g2::st1::Side::Pane,
+        "Tab hands the keys from the sidebar to the page, so the sidebar Display row is no longer held"
+    );
+    cx.simulate_keystrokes("down");
+    frame(cx);
+    assert_eq!(
+        settings_panel(&shell, cx),
+        (
+            "display",
+            crate::g2::st1::Side::Pane,
+            "textStop".to_owned()
+        ),
+        "Down lights the Text size ruler on the Display page"
+    );
+    cx.simulate_keystrokes("right");
+    frame(cx);
+    assert_eq!(display_size_mode(&shell, cx), Some(16.), "Right steps the size 14 to 16");
+    assert_eq!(display_ruler_stop(&shell, cx), Some(16));
+    assert_eq!(effective_text(&shell, cx).as_deref(), Some("16 px"));
+    cx.simulate_keystrokes("left");
+    frame(cx);
+    assert_eq!(display_size_mode(&shell, cx), Some(14.), "Left steps the size back to 14");
+    assert_eq!(display_ruler_stop(&shell, cx), Some(14));
+    assert_eq!(effective_text(&shell, cx).as_deref(), Some("14 px"));
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

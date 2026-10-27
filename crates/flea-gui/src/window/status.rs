@@ -8,7 +8,7 @@ use crate::{
     palette::Theme,
     pane::states::Kind,
     state::Shell,
-    strips::status_host::{self, Listing},
+    strips::status_host,
 };
 use flea::{
     i18n::I18n,
@@ -17,6 +17,8 @@ use flea::{
 use gpui::{div, prelude::*, px, AppContext, Context, Entity, Render, SharedString, Window};
 use std::sync::Arc;
 
+#[path = "status_counts.rs"]
+mod counts;
 #[path = "status_detail.rs"]
 mod detail;
 #[path = "status_filesystem.rs"]
@@ -132,9 +134,14 @@ impl Shell {
         let Some(host) = &self.panes[self.focus_side] else {
             return;
         };
-        let kind = host.pane.state.kind;
-        let total = host.pane.held.total;
-        let selected = host.selected.len();
+        let trash = counts::trash(self, cx);
+        let in_trash = trash.is_some();
+        let counts::Snapshot {
+            kind,
+            total,
+            selected,
+            text: counts,
+        } = trash.unwrap_or_else(|| counts::folder(host, &self.locale.catalog));
         let catalog = &self.locale.catalog;
         let fs = &mut self.surfaces[self.focus_side].filesystem;
         fs.enter(&host.path);
@@ -154,59 +161,22 @@ impl Shell {
             free.as_deref(),
             !fs.answered,
         );
-        let held = &host.pane.held;
-        let bytes = if selected <= held.rows.len() {
-            // A folder counts by its finished walk, as ui/js/Status.js selectionBytes reads DirSizes.
-            let mut sizes = Vec::with_capacity(selected);
-            let mut walked = Vec::with_capacity(selected);
-            let mut dirs = Vec::with_capacity(selected);
-            for &index in &host.selected {
-                let row = index
-                    .checked_sub(held.start)
-                    .and_then(|at| held.rows.get(at));
-                let dir = row.is_some_and(|row| row.dir);
-                let walk = dir
-                    .then(|| host.sizes.walked(held.listing, index))
-                    .flatten();
-                sizes.push(if dir { walk } else { row.map(|row| row.size) });
-                walked.push(walk.is_some());
-                dirs.push(dir);
-            }
-            status_host::selection_bytes(selected, held.rows.len(), &sizes, &walked, &dirs)
+        // HIG search.png: the landed receipt stands before the disk facts while search lives.
+        let (path, state_message, retry, search) = if in_trash {
+            (
+                catalog.tr("trash.title"),
+                String::new(),
+                String::new(),
+                String::new(),
+            )
         } else {
-            -1
+            (
+                host.path.clone(),
+                host.state_text.message.clone(),
+                host.retry_text(),
+                host.search.owner.status(catalog).0,
+            )
         };
-        let listing = match kind {
-            Kind::Ready => Listing::Ready(total),
-            Kind::Empty => Listing::Empty,
-            Kind::Locked => Listing::Locked,
-            Kind::Error => Listing::Error,
-            Kind::Loading | Kind::Waiting => Listing::Loading,
-        };
-        // HIG filter.png and grid-filter-matches.png: a standing filter's count, 1 of 10 shown, takes the left.
-        let filtered = host
-            .filter
-            .owner
-            .up()
-            .then(|| host.filter.owner.counts(held.listing))
-            .flatten()
-            .map(|counts| crate::g2::sr2::present::status(&counts, catalog));
-        let counts = status_host::left(
-            catalog,
-            listing,
-            "",
-            Some((
-                selected,
-                bytes,
-                catalog.locale().format_size(bytes.max(0) as u64),
-            )),
-            filtered.as_deref(),
-        );
-        // HIG search.png: the landed receipt, 2 found in 0.0 s, stands before the disk facts while search lives.
-        let search = host.search.owner.status(catalog).0;
-        let path = host.path.clone();
-        let state_message = host.state_text.message.clone();
-        let retry = host.retry_text();
         let revision = self.locale.revision;
         let catalog = self.locale.catalog.clone();
         let probe = self
@@ -333,7 +303,7 @@ impl Render for Footer {
             .flex_none()
             .border(self.border_width)
             // HIG list and rail-favorites: the status bar stands on --surface under its --hair edge.
-            .bg(theme.surface)
+            .bg(super::glass::ground(theme.surface, window, cx))
             .font_family(typeface.font.family)
             .text_size(typeface.caption)
             .text_color(ink.foreground)

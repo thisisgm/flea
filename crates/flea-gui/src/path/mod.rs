@@ -1,4 +1,5 @@
 //! The path bar's meaning, the line a typist writes and what it resolves to, with no window and no backend.
+pub(crate) mod aliases;
 pub mod chrome;
 pub mod crumbs;
 pub mod entry;
@@ -16,6 +17,7 @@ pub mod rank;
 pub mod render;
 pub mod scale;
 pub mod strip;
+mod strip_input;
 pub mod suggestions;
 mod tap;
 pub mod view;

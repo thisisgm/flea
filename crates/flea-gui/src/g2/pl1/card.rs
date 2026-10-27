@@ -73,6 +73,18 @@ pub fn card(
     scale: f32,
     press: Press,
 ) -> impl IntoElement {
+    card_with_input(card, text, ink, window_width, scale, press, None)
+}
+
+pub(super) fn card_with_input(
+    card: &Card,
+    text: &CardText,
+    ink: &CardInk,
+    window_width: f32,
+    scale: f32,
+    press: Press,
+    input: Option<(gpui::Entity<super::view::UnlockView>, crate::list::Typeface)>,
+) -> impl IntoElement {
     let k = move |v: f32| px(v * scale);
     let note_error = card.note.as_ref().is_some_and(|(_, e)| *e);
     let field_frame = if card.field.error {
@@ -163,12 +175,22 @@ pub fn card(
                         .border_1()
                         .border_color(field_frame)
                         .rounded(px(ink.radius))
-                        .when(!dots.is_empty(), |d| d.child(dots))
-                        .when(card.focus == Some(Part::Field) && !unlocking, |d| {
-                            let tuck = if card.field.dots() > 0 { -7. } else { 0. };
-                            d.child(div().w(px(1.)).h(k(16.)).ml(k(tuck)).bg(ink.foreground))
-                        })
-                        .child(div().flex_1())
+                        .when(input.is_none() && !dots.is_empty(), |d| d.child(dots))
+                        .when(
+                            input.is_none() && card.focus == Some(Part::Field) && !unlocking,
+                            |d| {
+                                let tuck = if card.field.dots() > 0 { -7. } else { 0. };
+                                d.child(div().w(px(1.)).h(k(16.)).ml(k(tuck)).bg(ink.foreground))
+                            },
+                        )
+                        .children(input.map(|(view, face)| {
+                            crate::g2::op1::field::mount(
+                                view,
+                                div().flex_1().min_w_0().h_full(),
+                                &face,
+                            )
+                        }))
+                        .child(div().flex_1().when(!unlocking, |d| d.w(px(0.)).flex_none()))
                         .child(Mark::new(EYE, 13. * scale, ink.frame)),
                 ),
         )

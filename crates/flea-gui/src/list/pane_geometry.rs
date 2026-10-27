@@ -1,4 +1,4 @@
-use super::{Move, Pane};
+use super::{page_items, Move, Pane};
 
 impl Pane {
     pub fn row_height(&self) -> f32 {
@@ -45,7 +45,7 @@ impl Pane {
         if self.busy() || total == 0 {
             return false;
         }
-        let page = ((self.height / self.row_height).floor() as usize).max(1);
+        let page = page_items(self.visible_rows());
         let last = total - 1;
         self.cursor = match step {
             Move::Up => self.cursor.saturating_sub(1),

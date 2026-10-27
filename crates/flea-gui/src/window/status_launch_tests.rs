@@ -47,7 +47,6 @@ fn open(
             r#"{{"view":"{view}","dual":{{"focus":{focus},"paths":["/left","/right"]}}}}"#
         ))
         .unwrap(),
-        true,
     );
     let launch = Launch::resolve(settings, args, "/home/test");
     assert_eq!(launch.focus, focus);

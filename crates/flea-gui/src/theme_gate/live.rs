@@ -172,7 +172,6 @@ fn theme_gate_live_switch_whole_window() {
     });
     let settings = Settings::from_json(
         flea::jsondoc::parse(r#"{"view":"dual","places":{"sidebar":"docked"}}"#).unwrap(),
-        true,
     );
     let launch = Launch::resolve(
         settings,

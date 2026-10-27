@@ -288,6 +288,31 @@ const DRAWN: [&str; 8] = [
 ];
 
 #[test]
+fn sheet_scale_chords_and_carry_follow_the_board_in_every_preset() {
+    let catalog = english();
+    for preset in PRESETS {
+        for frontend in [Frontend::Gui, Frontend::Tui] {
+            let rows = sheet(preset, frontend, &catalog);
+            for (action, keys) in [
+                ("textSizeUp", "ctrl-shift-plus"),
+                ("textSizeDown", "ctrl-shift-minus"),
+                ("textSizeReset", "ctrl-shift-0"),
+            ] {
+                let row = rows.iter().find(|row| row.action == action).unwrap();
+                assert_eq!(row.keys, keys, "{preset} {frontend:?} {action}");
+            }
+            let carry = rows.iter().find(|row| row.action == "carry");
+            if frontend == Frontend::Gui {
+                let carry = carry.expect("GUI carry row");
+                assert_eq!((&*carry.keys, &*carry.label, carry.group), ("X", "Carry to another app", "move"));
+            } else {
+                assert!(carry.is_none(), "carry is a GUI action");
+            }
+        }
+    }
+}
+
+#[test]
 fn key_name_draws_the_first_row_of_each_drawn_action() {
     let mut drifted = Vec::new();
     for preset in PRESETS {
