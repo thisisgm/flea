@@ -151,12 +151,12 @@ fn main() {
         usage("--prewarm takes a path, a first index and a destination");
     }
 
-    // flea --open <path> [images...]: the window's entrance; the first target still asks the run card.
+    // flea --open <path> [paths...]: the window's entrance; several targets open together through the batch (grouped by default app, programs refused).
     if args.len() >= 3 && args[1] == "--open" {
         exit(open::open_many(&args[2..]));
     }
     if args.get(1).map(String::as_str) == Some("--open") {
-        usage("--open <path> [images...]");
+        usage("--open <path> [paths...]");
     }
 
     // flea --terminal <dir>

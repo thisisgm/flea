@@ -274,7 +274,7 @@ impl Shell {
         };
         let side = capture.side;
         let step = match action.as_str() {
-            "open" if !self.menu.context.row_is_file => {
+            "open" if !self.menu.context.row_is_file && capture.rows.len() <= 1 => {
                 paths.first().map(|path| Step::Open(path.clone()))
             }
             "toggleHidden" => Some(Step::ToggleHidden),

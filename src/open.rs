@@ -6,6 +6,8 @@ use crate::vulkan;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+#[path = "open_batch.rs"]
+mod batch;
 
 // The exit statuses ui/Opener.qml reads. 0 is a successful handoff and needs no name.
 pub const FAILED: i32 = 2;
@@ -31,25 +33,25 @@ pub fn prepare(child: &mut Command) {
 
 // In-process callers (the TUI, the shelf) read any nonzero status as a refusal, 7 and 10 included; only the main.rs --open path asks the card, through open_ask.
 pub fn open(path: &str) -> i32 {
-    open_inner(path, false, &[])
+    open_inner(path, false)
 }
 
 // The window's own entrance: a program asks once on the run card instead of reaching a handler.
 pub fn open_ask(path: &str) -> i32 {
-    open_inner(path, true, &[])
+    open_inner(path, true)
 }
 
-// The ordered image handoff shares every first-target run decision with a single open.
+// A single file keeps its cards; a selection preflights every target before handing each application its group.
 pub fn open_many(paths: &[String]) -> i32 {
     match paths.first() {
         Some(path) if paths.len() == 1 => open_ask(path),
-        Some(path) => open_inner(path, true, paths),
+        Some(_) => batch::open(paths),
         None => FAILED,
     }
 }
 
 // gio open is the OEM route: it asks the desktop database, so Terminal=true is honoured; see AGENTS.md "Opening a file".
-fn open_inner(path: &str, ask: bool, images: &[String]) -> i32 {
+fn open_inner(path: &str, ask: bool) -> i32 {
     let target = match resolved(path) {
         Some(p) => p,
         // The reason is elided, never shown raw, and the path is the user's own input.
@@ -63,7 +65,7 @@ fn open_inner(path: &str, ask: bool, images: &[String]) -> i32 {
     }
     // A FIFO, socket or device is never a program and never blocks here: it skips the snapshot and the run decision and opens the way it always did.
     if !target.is_file() {
-        return open_normally(&target, ask, &[]);
+        return open_normally(&target, ask);
     }
     // One open for the kind and the identity together, so a swap between them cannot pair two files.
     let opened = match crate::runid::snapshot(&target) {
@@ -76,11 +78,11 @@ fn open_inner(path: &str, ask: bool, images: &[String]) -> i32 {
     // A program asks once on the run card instead of reaching a handler, and a file no application claims asks Open with.
     let body = std::fs::read("/proc/self/mountinfo").unwrap_or_default();
     let mounts = String::from_utf8_lossy(&body).into_owned();
-    open_snapshot(&target, &opened, ask, &mounts, images)
+    open_snapshot(&target, &opened, ask, &mounts)
 }
 
 // The run decision and its answer off one snapshot; the mount table is the caller's, so a test can name a noexec volume the box does not hold.
-fn open_snapshot(target: &Path, opened: &crate::runid::Opened, ask: bool, mounts: &str, images: &[String]) -> i32 {
+fn open_snapshot(target: &Path, opened: &crate::runid::Opened, ask: bool, mounts: &str) -> i32 {
     match runfile::decide_opened(opened, target, mounts) {
         runfile::Decision::Ask(kind) => {
             if !ask {
@@ -112,26 +114,15 @@ fn open_snapshot(target: &Path, opened: &crate::runid::Opened, ask: bool, mounts
         }
         runfile::Decision::OpenNormally => {}
     }
-    open_normally(target, ask, images)
+    open_normally(target, ask)
 }
 
 // Past every run decision: handed to GIO and waited on, the way the opener always did.
-fn open_normally(target: &Path, ask: bool, images: &[String]) -> i32 {
+fn open_normally(target: &Path, ask: bool) -> i32 {
     // corner: waited for, not detached, and on an archive that wait is a cold handler start; see AGENTS.md "Opening a file".
-    let mut launcher = crate::imageopen::launcher(target, images).unwrap_or_else(|| {
-        let mut single = Command::new("gio");
-        single.arg("open").arg(target);
-        single
-    });
-    prepare(&mut launcher);
-    let finished = launcher
-        // The handler outlives us, so an inherited pipe would kill it on its first write; see AGENTS.md "Opening a file".
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        // Its own process group, so nothing that later kills Flea's group reaches the opened program.
-        .process_group(0)
-        .status();
+    let mut launcher = Command::new("gio");
+    launcher.arg("open").arg(target);
+    let finished = handoff(launcher);
     match finished {
         Ok(status) if status.success() => 0,
         // A launcher that refused, which a spawn nobody waited on used to report as a clean handoff.
@@ -149,6 +140,17 @@ fn open_normally(target: &Path, ask: bool, images: &[String]) -> i32 {
             FAILED
         }
     }
+}
+
+// Every opener handoff waits for GIO, isolates its process group and restores the application's environment.
+fn handoff(mut launcher: Command) -> std::io::Result<std::process::ExitStatus> {
+    prepare(&mut launcher);
+    launcher
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .process_group(0)
+        .status()
 }
 
 #[cfg(test)]

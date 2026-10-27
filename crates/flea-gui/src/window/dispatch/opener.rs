@@ -12,12 +12,15 @@ use flea::{
     ui_logic_pv1::kinds::{quick_look_kind, State},
 };
 use gpui::{Context, EventEmitter, Task, Window};
+#[path = "opener_selection.rs"]
+mod selection;
 
 /// One pane's opener: the single-flight guard, the launch in flight and the launcher it calls off the UI thread.
 pub(crate) struct Lane {
     guard: Opener,
     task: Option<Task<()>>,
     pub(crate) launch: fn(&[String]) -> lane::Exit,
+    selection: Option<selection::Capture>,
 }
 
 impl Default for Lane {
@@ -25,6 +28,7 @@ impl Default for Lane {
         Self {
             guard: Opener::default(),
             task: None,
+            selection: None,
             #[cfg(not(test))]
             launch: lane::run,
             // A test window never starts a real application; a test that drives the lane sets its own launcher.
@@ -51,10 +55,12 @@ pub(super) fn run(
 ) -> bool {
     match order {
         Order::Action(event)
-            if event.context == Keys::Listing
-                && matches!(event.action, "open" | "pageForward") =>
+            if event.context == Keys::Listing && matches!(event.action, "open" | "pageForward") =>
         {
             let side = shell.focus_side;
+            if event.action == "open" && shell.open_selected(side, window, cx) {
+                return true;
+            }
             let Some((path, archive)) = file_row(shell, side) else {
                 return false;
             };
@@ -71,7 +77,10 @@ pub(super) fn run(
             true
         }
         // PaneMenuActions.qml perform: the menu's Open on a file runs the listing's own open on the row it stands on.
-        Order::Menu(chosen) if chosen.action == "open" && shell.menu.context.row_is_file => {
+        Order::Menu(chosen)
+            if chosen.action == "open"
+                && (shell.menu.context.row_is_file || chosen.paths.len() > 1) =>
+        {
             if !chosen.claim() {
                 return true;
             }
@@ -86,7 +95,23 @@ pub(super) fn run(
             shell.keyboard.context = Keys::Listing;
             // Nav.js openCursor on the menu's own pane: open_menu put its cursor on the clicked row and focused it, so Enter's path runs there.
             shell.focus_side = side;
-            shell.dispatch(Order::Action(ActionEvent::bare("open", Keys::Listing)), window, cx);
+            let idle = shell.panes[side]
+                .as_ref()
+                .is_some_and(|host| !host.stopped && !host.pane.busy());
+            if !idle || !chosen.captured.ready || chosen.paths.is_empty() {
+                return true;
+            }
+            if chosen.paths.len() == 1
+                && (archive_path(&chosen.paths[0])
+                    || file_row(shell, side)
+                        .is_some_and(|(path, archive)| archive && path == chosen.paths[0]))
+            {
+                if let Some(index) = chosen.captured.rows.first() {
+                    shell.open_archive_path(side, *index, chosen.paths[0].clone(), window, cx);
+                }
+            } else {
+                shell.open_files(side, chosen.paths.clone(), window, cx);
+            }
             true
         }
         _ => false,
@@ -109,6 +134,11 @@ fn file_row(shell: &Shell, side: usize) -> Option<(String, bool)> {
     Some((join(host.pane.path(), &row.name), archive))
 }
 
+fn archive_path(path: &str) -> bool {
+    quick_look_kind("", path, false) == State::Archive
+        && !path.to_ascii_lowercase().ends_with(".appimage")
+}
+
 impl Shell {
     /// Opener.qml open: one flea --open per pane at a time; a second press while one is out says so and runs nothing.
     pub(crate) fn open_file(
@@ -118,17 +148,32 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let flea = crate::window::startup::binary().to_string_lossy().into_owned();
+        self.open_files(side, vec![path], window, cx);
+    }
+
+    fn open_files(
+        &mut self,
+        side: usize,
+        paths: Vec<String>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let flea = crate::window::startup::binary()
+            .to_string_lossy()
+            .into_owned();
         let lane = &mut self.opener[side];
-        let Some(argv) = lane.guard.start(&flea, &[path]) else {
+        let argv = if lane.selection.is_none() {
+            lane.guard.start(&flea, &paths)
+        } else {
+            None
+        };
+        let Some(argv) = argv else {
             let busy = busy_text(&self.locale.catalog);
             self.opener_say(side, busy, false, cx);
             return;
         };
         let launch = lane.launch;
-        let exit = cx
-            .background_executor()
-            .spawn(async move { launch(&argv) });
+        let exit = cx.background_executor().spawn(async move { launch(&argv) });
         lane.task = Some(cx.spawn_in(window, async move |this, cx| {
             let (status, stdout) = exit.await;
             let _ = this.update_in(cx, |shell, window, cx| {
@@ -156,6 +201,18 @@ impl Shell {
                 let _ = self.step(side, Step::Open(path), window, cx);
             }
             Opened::Failed(_) => {
+                // Sample input: {"refusal":"feedback.refusal.archives"}
+                if let Some(key) = flea::json::field_str(stdout, "refusal").filter(|key| {
+                    matches!(
+                        key.as_str(),
+                        "feedback.refusal.folder_with_files"
+                            | "feedback.refusal.archives"
+                            | "feedback.refusal.programs"
+                    )
+                }) {
+                    self.opener_say(side, self.locale.catalog.tr(&key), false, cx);
+                    return;
+                }
                 let failed = failed_text(&self.locale.catalog);
                 self.opener_say(side, failed, true, cx);
             }

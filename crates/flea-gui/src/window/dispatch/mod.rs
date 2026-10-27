@@ -58,7 +58,11 @@ mod guard_tests;
 #[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]
+mod opener_focus_tests;
+#[cfg(test)]
 mod opener_menu_tests;
+#[cfg(test)]
+mod opener_selection_tests;
 #[cfg(test)]
 mod opener_tests;
 #[cfg(test)]
