@@ -404,7 +404,10 @@ impl Rows<'_> {
                 div()
                     .flex()
                     .flex_none()
-                    .child(
+                    .child(self.favourite_control(
+                        index,
+                        &row.id,
+                        "drag",
                         button("settings-grip", "list").when_some(index, |grip, index| {
                             // The press is held until the button comes up anywhere in the window, which counts the rows passed.
                             grip.on_mouse_down(
@@ -415,16 +418,34 @@ impl Rows<'_> {
                                 }),
                             )
                         }),
-                    )
-                    .child(
+                    ))
+                    .child(self.favourite_control(
+                        index,
+                        &row.id,
+                        "remove",
                         button("settings-remove", "x").when_some(index, |remove, index| {
                             remove.on_click(cx.listener(move |view, _, _, cx| {
                                 view.panel.press(index, Press::Remove);
                                 view.flush(cx);
                             }))
                         }),
-                    ),
+                    )),
             )
+    }
+
+    /// A grip or remove control reports its centre to the settings reader only while its row shows it.
+    fn favourite_control(
+        &self,
+        index: Option<usize>,
+        row: &str,
+        part: &str,
+        control: gpui::Stateful<Div>,
+    ) -> Div {
+        let wrap = div().relative().child(control);
+        match index {
+            Some(_) => self.view.probe.attach(wrap, format!("{row}:{part}")),
+            None => wrap,
+        }
     }
 
     /// A label and its control: value, caption, segment or chevron, lock, box, in SettingsRow.qml's order.
