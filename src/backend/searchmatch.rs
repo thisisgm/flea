@@ -7,6 +7,10 @@ pub(crate) const WORD: i32 = 3_500_000;
 pub(crate) const ALIGNED: i32 = 3_000_000;
 pub(crate) const NAME: i32 = 2_000_000;
 pub(crate) const TYPO: i32 = 1_000_000;
+// Each typo edit takes this much off a typo score.
+pub(crate) const TYPO_EDIT: i32 = 1000;
+// The best score a shadow typo can take: an answer drops it, narrowing keeps it.
+pub(crate) const SHADOW_TYPO: i32 = TYPO - super::searchtypo::SHADOW as i32 * TYPO_EDIT;
 // A DP hit moves a score at most this far inside its tier.
 pub(crate) const HIT_SPAN: i32 = 100_000;
 // Pass-1 markers for rows whose class is known and whose score inside it waits for the DP; a real score is never negative.
@@ -172,7 +176,7 @@ impl Matcher {
             state.advance(&self.needle, letters, true);
             return state.score(NAME);
         }
-        self.distance(letters, edits).map(|distance| TYPO - distance as i32 * 1000)
+        self.distance(letters, edits).map(|distance| TYPO - distance as i32 * TYPO_EDIT)
     }
 
     pub(crate) fn name_bytes(&self, bytes: &[u8], letters: &mut Vec<Letter>, state: &mut State, edits: &mut super::searchtypo::Scratch) -> Option<i32> {
@@ -221,7 +225,7 @@ impl Matcher {
         let mut score = name.max(state.score(if self.needle.contains(&'/') { ALIGNED } else { NAME }));
         if self.needle.contains(&'/') {
             score = score.max(self.distance(&letters, &mut super::searchtypo::Scratch::default())
-                .map(|distance| TYPO - distance as i32 * 1000));
+                .map(|distance| TYPO - distance as i32 * TYPO_EDIT));
         }
         score
     }
