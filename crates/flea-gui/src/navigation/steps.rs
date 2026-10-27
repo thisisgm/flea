@@ -229,6 +229,15 @@ impl Navigator {
         self.reload(pane, selected)
     }
 
+    // PaneWire.qml onTransferDone: the folder a transfer finished in is read again in place, its cursor back at the top; a search keeps its rows.
+    pub fn refresh_after_transfer(&mut self, pane: &mut Pane) -> Result<bool, Refusal> {
+        if pane.state.search {
+            return Ok(false);
+        }
+        let path = pane.path().to_owned();
+        self.open_without_history(pane, &path, Options::default(), None, false)
+    }
+
     // The owed re-read: the anchor rides the list so its first rows hold the cursor's file.
     pub fn reread(
         &mut self,

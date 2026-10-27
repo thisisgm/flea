@@ -281,9 +281,11 @@ fn u13_fix1_a_held_completed_job_cannot_be_cancelled_again(cx: &mut TestAppConte
     visual.simulate_mouse_down(point, gpui::MouseButton::Left, gpui::Modifiers::default());
     visual.simulate_mouse_up(point, gpui::MouseButton::Left, gpui::Modifiers::default());
     visual.run_until_parked();
+    // The completion re-read is the listing v0.3.12 sends after transferdone (ui/PaneWire.qml:330-332); it is not a cancel.
+    let sent: Vec<String> = std::iter::from_fn(&mut received).collect();
     assert!(
-        received().is_none(),
-        "the producer already completed this id"
+        !sent.iter().any(|line| line.contains("cancel")),
+        "the producer already completed this id: {sent:?}"
     );
 }
 
@@ -311,9 +313,11 @@ fn u13_fix1_escape_cannot_cancel_an_unseen_new_job(cx: &mut TestAppContext) {
     let mut visual = VisualTestContext::from_window(handle.into(), cx);
     visual.simulate_keystrokes("escape");
     visual.run_until_parked();
+    // The completion re-read is the listing v0.3.12 sends after transferdone (ui/PaneWire.qml:330-332); it is not a cancel.
+    let sent: Vec<String> = std::iter::from_fn(&mut received).collect();
     assert!(
-        received().is_none(),
-        "the drawn job finished and the replacement has not drawn"
+        !sent.iter().any(|line| line.contains("cancel")),
+        "the drawn job finished and the replacement has not drawn: {sent:?}"
     );
     advance(cx, handle, 149);
     drawn(cx, handle);
