@@ -25,6 +25,8 @@ pub(crate) struct Shaped {
     pub error_area: Option<Bounds<Pixels>>,
     pub frame_ink: Option<Hsla>,
     pub error_ink: Option<Hsla>,
+    /// The ground the refusal paints under itself, where no grown row covers its band (Grid never grows).
+    pub error_ground: Option<Bounds<Pixels>>,
     inset: Pixels,
 }
 
@@ -59,6 +61,8 @@ pub(crate) struct Laid {
     frame: Bounds<Pixels>,
     frame_ink: Hsla,
     error: Option<Bounds<Pixels>>,
+    /// The ground under the refusal, where no grown row's plate covers its band.
+    ground: Option<Bounds<Pixels>>,
     /// The list's viewport: a row scrolled partly out draws and takes presses only inside it.
     clip: Bounds<Pixels>,
     hitbox: Hitbox,
@@ -132,6 +136,7 @@ impl Element for FieldElement {
         let side = self.side;
         self.shell.update(cx, |shell, cx| {
             let index = shell.renaming_row(side)?;
+            let grown = shell.grows[side].band > 0.;
             let corner = shell.corner;
             let (font, pixels, caption) = {
                 let list = shell.panes[side].as_ref()?.list.borrow();
@@ -198,13 +203,17 @@ impl Element for FieldElement {
             } else {
                 ink.accent_frame
             };
+            // A grown row's plate covers the band; a row that did not grow (Grid) leaves the refusal on the window ground.
+            let ground = if grown { None } else { error };
             edit.line.error_area = error;
+            edit.line.error_ground = ground;
             edit.line.frame_ink = Some(frame_ink);
             edit.line.error_ink = Some(ink.error);
             Some(Laid {
                 frame,
                 frame_ink,
                 error,
+                ground,
                 clip,
                 hitbox: window.insert_hitbox(frame.intersect(&clip), HitboxBehavior::Normal),
                 ink,
@@ -308,8 +317,11 @@ impl Element for FieldElement {
                     ));
                 }
             });
-            // The refusal sits in the band the grown row keeps under its field, in the error role.
+            // The refusal sits in the band under its field, in the error role, on the ground its row or the window keeps.
             if let (Some(area), Some((_, run))) = (laid.error, &shaped.error) {
+                if let Some(ground) = laid.ground {
+                    window.paint_quad(fill(ground, ink.background));
+                }
                 paint_run(
                     run,
                     frame.origin.x,

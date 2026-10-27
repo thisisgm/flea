@@ -24,14 +24,15 @@ impl Reader<'_> {
         let cursor_name = host
             .and_then(|host| host.pane.held.row(cursor))
             .map_or("", |row| row.name.as_str());
-        let (row, area, band) = host.map_or((0., 0., 0.), |host| {
+        let (row, area) = host.map_or((0., 0.), |host| {
             let list = host.list.borrow();
             (
                 list.drawn.metrics.row,
                 f32::from(list.drawn.bounds.size.height),
-                list.drawn.grow.band,
             )
         });
+        // RenameField.qml's errorHeight: the caption band every view draws, Grid included.
+        let band = shell.bands[side];
         let top = host.map_or(0., |host| {
             f32::from(host.list.borrow().drawn.bounds.origin.y)
         });

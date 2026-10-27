@@ -7,7 +7,7 @@ use crate::{
     backend::Event as BackendEvent,
     columns::geometry::{Slot, CHEVRON, GAP, LANE, NAME_X, PAD_X, SIZE_W},
     state::Shell,
-    window::startup::View,
+    window::{startup::View, u07_tests::read},
 };
 use gpui::{
     point, px, Bounds, Entity, Modifiers, MouseButton, Pixels, TestAppContext, VisualTestContext,
@@ -447,6 +447,11 @@ fn clash_grows_the_row(cx: &mut TestAppContext, view: View) {
     let top = |at: usize| bounds.origin.y + px(grow.top(at, row) - scroll);
     assert_eq!(frame_ink, Some(error), "{view:?} draws the frame in the error ink");
     assert_eq!(error_ink, Some(error), "{view:?} draws the refusal in the error ink");
+    assert_eq!(
+        shell.read_with(cx, |shell, _| shell.rename.edit.as_ref().unwrap().line.error_ground),
+        None,
+        "{view:?} grew its row, so the grown plate covers the refusal"
+    );
     assert!(
         area.top() >= frame.bottom(),
         "{view:?} draws the refusal under the field: {area:?} against {frame:?}"
@@ -583,6 +588,96 @@ fn a_refusal_landing_mid_row_press_keeps_the_press_in_list(cx: &mut TestAppConte
 #[gpui::test]
 fn a_refusal_landing_mid_row_press_keeps_the_press_in_columns(cx: &mut TestAppContext) {
     row_press_survives_a_refusal(cx, View::Columns);
+}
+
+// errorHeight as renameState serves it to the readers.
+fn error_height(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> f32 {
+    let state = read(shell, cx, "renameState", &[]);
+    let key = "\"errorHeight\":";
+    let at = state.find(key).expect("renameState reports errorHeight") + key.len();
+    let end = state[at..].find(',').map_or(state.len(), |comma| at + comma);
+    state[at..end]
+        .parse()
+        .unwrap_or_else(|error| panic!("errorHeight in {state}: {error}"))
+}
+
+// The band the List or Columns row drew for the refusal: its grow.
+fn drawn_band(shell: &Entity<Shell>, cx: &mut VisualTestContext, view: View) -> f32 {
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        match view {
+            View::Columns => {
+                let columns = host.columns.as_ref().unwrap();
+                let paint = columns.painters.get(Slot::Active).unwrap().borrow();
+                paint.drawn.as_ref().unwrap().grow.band
+            }
+            _ => host.list.borrow().drawn.grow.band,
+        }
+    })
+}
+
+// A grown view reports the band it drew as errorHeight, so the readers agree with the paint.
+fn error_height_is_the_drawn_band(cx: &mut TestAppContext, view: View) {
+    let (shell, cx, _lines) = refused_clash(cx, view);
+    let drawn = drawn_band(&shell, cx, view);
+    assert!(drawn > 0., "{view:?} grew its row for the refusal");
+    let reported = error_height(&shell, cx);
+    assert!(
+        (reported - drawn).abs() < 0.01,
+        "{view:?} reports the band it drew: {reported} against {drawn}"
+    );
+    close(&shell, cx);
+}
+
+#[gpui::test]
+fn a_clashing_list_rename_reports_its_drawn_band_as_errorheight(cx: &mut TestAppContext) {
+    error_height_is_the_drawn_band(cx, View::List);
+}
+
+#[gpui::test]
+fn a_clashing_columns_rename_reports_its_drawn_band_as_errorheight(cx: &mut TestAppContext) {
+    error_height_is_the_drawn_band(cx, View::Columns);
+}
+
+// Grid draws the refusal under its tile without growing the tile, and reports the caption line and gap v0.3.12 reports.
+#[gpui::test]
+fn a_clashing_grid_rename_reports_the_caption_band_as_errorheight(cx: &mut TestAppContext) {
+    let (shell, cx, _lines) = refused_clash(cx, View::Grid);
+    let (area, gap) = shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        let typeface = host.list.borrow().typeface.clone();
+        (
+            shell
+                .rename
+                .edit
+                .as_ref()
+                .unwrap()
+                .line
+                .error_area
+                .expect("the refusal drew under the field"),
+            crate::list::Metrics::for_typeface(&typeface).gap,
+        )
+    });
+    let reported = error_height(&shell, cx);
+    let caption = f32::from(area.size.height) + gap;
+    assert!(
+        (reported - caption).abs() < 0.5,
+        "Grid reports the caption line and gap: {reported} against {caption}"
+    );
+    close(&shell, cx);
+}
+
+// Grid never grows its row, so the refusal paints the window ground under itself; a grown row keeps its own plate instead.
+#[gpui::test]
+fn a_clashing_grid_rename_paints_its_refusal_on_the_window_ground(cx: &mut TestAppContext) {
+    let (shell, cx, _lines) = refused_clash(cx, View::Grid);
+    let (area, ground) = shell.read_with(cx, |shell, _| {
+        let line = &shell.rename.edit.as_ref().unwrap().line;
+        (line.error_area, line.error_ground)
+    });
+    let area = area.expect("the refusal drew under the field");
+    assert_eq!(ground, Some(area), "Grid paints the refusal on the window ground");
+    close(&shell, cx);
 }
 
 fn grid_scroll(shell: &Entity<Shell>, cx: &mut VisualTestContext, to: f32) {
