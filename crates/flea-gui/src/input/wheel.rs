@@ -144,7 +144,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let blocked = self.input_blocked(cx);
+        let blocked = self.wheel_blocked(cx);
         let reduced = cx.reduce_motion();
         let now = cx.background_executor().now();
         let Some(host) = &mut self.panes[side] else {

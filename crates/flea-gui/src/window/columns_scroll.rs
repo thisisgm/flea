@@ -7,7 +7,7 @@ use gpui::{ScrollDelta, ScrollWheelEvent, TouchPhase};
 use std::{rc::Rc, time::Instant};
 
 #[derive(Default)]
-pub(super) struct Scrolling {
+pub(crate) struct Scrolling {
     pub input: PaneInput,
     path: String,
     epoch: Option<Instant>,
@@ -21,7 +21,7 @@ impl crate::state::Shell {
         window: &mut gpui::Window,
         cx: &mut gpui::Context<Self>,
     ) {
-        let blocked = self.input_blocked(cx);
+        let blocked = self.wheel_blocked(cx);
         let now = cx.background_executor().now();
         let reduced = cx.reduce_motion();
         let Some(host) = &mut self.panes[side] else {

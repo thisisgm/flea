@@ -200,6 +200,94 @@ fn colwheel_touchpad_pixels_pass_through_on_every_track() {
 }
 
 #[test]
+fn colwheel_pixels_outside_a_stroke_move_each_track_one_to_one() {
+    let mut cx = host::context();
+    let handle = mounted(&mut cx);
+    let mut expected = [0.; 5];
+    for slot in [
+        Slot::Parent,
+        Slot::Grandparent,
+        Slot::GreatGrandparent,
+        Slot::Active,
+        Slot::Child,
+    ] {
+        let at = inside(&mut cx, handle, slot);
+        for y in [-11.5, -7.25, 2.5] {
+            send(
+                &mut cx,
+                handle,
+                at,
+                ScrollDelta::Pixels(point(px(0.), px(y))),
+                TouchPhase::Moved,
+            );
+            expected[slot.index()] -= y;
+            assert_eq!(
+                scrolls(&mut cx, handle),
+                expected,
+                "{slot:?} pixel {y} outside a stroke"
+            );
+        }
+    }
+}
+
+fn painted(cx: &mut TestAppContext, handle: WindowHandle<Shell>, slot: Slot) -> f32 {
+    let mut painted = 0.;
+    host::change(cx, handle, |shell, _, _| {
+        let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+        let paint = columns.painters.get(slot).unwrap().borrow();
+        painted = paint.drawn.as_ref().expect("the track is mounted").scroll;
+    });
+    painted
+}
+
+#[test]
+fn colwheel_notch_paint_still_glides_one_frame_after_the_notch() {
+    for slot in [
+        Slot::Parent,
+        Slot::Grandparent,
+        Slot::GreatGrandparent,
+        Slot::Active,
+        Slot::Child,
+    ] {
+        let mut cx = host::context();
+        let handle = mounted(&mut cx);
+        let at = inside(&mut cx, handle, slot);
+        send(
+            &mut cx,
+            handle,
+            at,
+            ScrollDelta::Lines(point(0., -3.)),
+            TouchPhase::Moved,
+        );
+        cx.executor()
+            .advance_clock(std::time::Duration::from_millis(16));
+        host::frame(&mut cx, handle);
+        let painted = painted(&mut cx, handle, slot);
+        assert!(
+            painted > 0. && painted < NOTCH_PX,
+            "{slot:?}: one frame after a notch paints {painted}, not strictly between 0 and {NOTCH_PX}"
+        );
+    }
+}
+
+#[test]
+fn colwheel_notch_paints_its_target_on_the_first_frame_under_reduced_motion() {
+    let mut cx = host::context();
+    cx.update(|cx| cx.set_reduce_motion(true));
+    let handle = mounted(&mut cx);
+    let at = inside(&mut cx, handle, Slot::Active);
+    send(
+        &mut cx,
+        handle,
+        at,
+        ScrollDelta::Lines(point(0., -3.)),
+        TouchPhase::Moved,
+    );
+    host::frame(&mut cx, handle);
+    assert_eq!(painted(&mut cx, handle, Slot::Active), NOTCH_PX);
+}
+
+#[test]
 fn colwheel_list_and_grid_notch_distances_remain_byte_identical() {
     for view in [View::List, View::Grid] {
         let mut cx = host::context();

@@ -111,6 +111,20 @@ fn pb_scroll_column_lane_jumps_each_track_without_selecting_or_navigating() {
             MouseButton::Left,
             Modifiers::none(),
         );
+        host::change(&mut cx, handle, |shell, _, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            assert!(
+                host.columns.as_ref().unwrap().scroll[slot.index()]
+                    .input
+                    .grab
+                    .is_some(),
+                "{slot:?}: the Columns bar takes its own press"
+            );
+            assert!(
+                host.input.grab.is_none(),
+                "{slot:?}: the legacy List lane must not take a Columns press"
+            );
+        });
         host::frame(&mut cx, handle);
         let after = scrolls(&mut cx, handle);
         assert!(
