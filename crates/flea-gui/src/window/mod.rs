@@ -86,6 +86,8 @@ pub fn open(
     };
     cx.open_window(options, |window, cx| {
         glass::mount(window, appearance, cx);
+        // Wayland holds its callbacks through draw, so the first presented-frame hook must be taken before any frame.
+        window.observe_frame_presented(cx, |_, _| {}).detach();
         if std::env::var_os("FLEA_GUI_RENDER_DIAGNOSTICS").is_some() {
             if let Some(specs) = window.gpu_specs() {
                 eprintln!(
