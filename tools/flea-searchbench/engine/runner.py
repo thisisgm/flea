@@ -85,6 +85,7 @@ def main(control=False):
             fixture_root, tree, queries, info = fixture
             print(f'fixture={label} entries={info["entries"]} root={fixture_root}', flush=True)
             expected = identities(tree)
+            folders = frozenset(os.fsdecode(path) for path, kind in expected if kind == 'd')
             frozen = [[path.hex(), kind] for path, kind in expected]
             (fixture_root / 'identities.json').write_text(json.dumps(frozen) + '\n')
             reference_paths = [os.fsdecode(path) for path, _ in expected[:350]]
@@ -188,7 +189,7 @@ def main(control=False):
                                     rows.invalidate(context, 'head rank differs from complete audit')
                                 if target not in result['paths'] and 0 < full_rank <= len(result['paths']):
                                     rows.invalidate(context, 'head omits a target ranked inside the returned head')
-                                record_query(rows, query_context, result, target, audit=audit)
+                                record_query(rows, query_context, result, target, audit=audit, folders=folders)
                                 rows.row(query_context, 'prefix_full_target_rank', full_rank, 'rank',
                                          'ok' if full_rank else 'miss')
                             for kind, text, target in queries:
@@ -196,7 +197,7 @@ def main(control=False):
                                 complete = engine.audit_rank(text, target, info['entries'] + 16)
                                 engine.verify_head(full, complete)
                                 audit_context = dict(context, query_kind=kind + '-rank-audit', prefix=len(text), query=text)
-                                record_query(rows, audit_context, full, target, full_rank=True)
+                                record_query(rows, audit_context, full, target, full_rank=True, folders=folders)
                                 reason = quality_reason(kind, full['paths'], target)
                                 if reason:
                                     rows.invalidate(context, kind + ': ' + reason)
@@ -245,7 +246,7 @@ def main(control=False):
                                      'ok' if result['first_ms'] is not None else 'no-result')
                             rows.row(startup_context, 'open_to_full_returned_list_ms', result['full_ms'], 'ms')
                             rows.row(startup_context, 'partial_answers', result['partial_answers'], 'answers')
-                            record_query(rows, startup_context, result, queries[0][2])
+                            record_query(rows, startup_context, result, queries[0][2], folders=folders)
                         except Exception as error:
                             rows.invalidate(context, 'startup execution failed: ' + str(error))
                             rows.row(dict(context, query_kind='startup-overlap'), 'execution', None, 'status', 'blocked', str(error))
