@@ -1,6 +1,7 @@
 //! Clipboard outcomes through mounted menu input and the transfer reply path.
 use super::{edit, frame, key, open, reply, Handle};
 use gpui::{point, px, ClipboardItem, MouseButton, TestAppContext, VisualTestContext};
+use std::time::Duration;
 
 const FORMS: [(&str, &str); 6] = [
     ("copyPath", "/files/a.txt\n/files/b.txt"),
@@ -116,9 +117,12 @@ fn pb_clipboard_ey164_pointer_copies_every_form_with_shown_parent(cx: &mut TestA
     copy_as(cx, true, true);
 }
 
-#[gpui::test]
-fn pb_clipboard_ey169_keep_both_refreshes_without_selection(cx: &mut TestAppContext) {
-    let (handle, mut lines) = open(cx);
+// Keep Both into a transfer that completes; returns the lines sent once it has finished.
+fn keep_both_completes(
+    cx: &mut TestAppContext,
+    handle: Handle,
+    lines: &mut impl FnMut() -> Vec<String>,
+) -> Vec<String> {
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_mut().unwrap();
         host.pane.cursor = 1;
@@ -163,7 +167,20 @@ fn pb_clipboard_ey169_keep_both_refreshes_without_selection(cx: &mut TestAppCont
         handle,
         r#"{"t":"transferdone","id":7,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#,
     );
-    let sent = lines();
+    lines()
+}
+
+// The status line the footer reads from the pane.
+fn footer_status(cx: &mut TestAppContext, handle: Handle) -> String {
+    edit(cx, handle, |shell, _, _| {
+        shell.panes[0].as_ref().unwrap().status.to_string()
+    })
+}
+
+#[gpui::test]
+fn pb_clipboard_ey169_keep_both_refreshes_without_selection(cx: &mut TestAppContext) {
+    let (handle, mut lines) = open(cx);
+    let sent = keep_both_completes(cx, handle, &mut lines);
     assert!(
         sent.iter().any(|line| line.contains(r#""c":"list""#)),
         "EY-169 completion refreshes the listing: {sent:?}"
@@ -181,6 +198,59 @@ fn pb_clipboard_ey169_keep_both_refreshes_without_selection(cx: &mut TestAppCont
         assert!(host.selected.is_empty(), "EY-169 no retained selection");
         assert_eq!(host.state_text.status, "4 items");
     });
+}
+
+#[gpui::test]
+fn pb_clipboard_ey169_footer_keeps_the_completion_line_until_the_folder_changes(
+    cx: &mut TestAppContext,
+) {
+    let (handle, mut lines) = open(cx);
+    keep_both_completes(cx, handle, &mut lines);
+    let completed = footer_status(cx, handle);
+    assert!(!completed.is_empty(), "the completion writes its line");
+    reply(cx, handle, r#"{"t":"listed","path":"/files","n":4}"#);
+    reply(
+        cx,
+        handle,
+        r#"{"t":"rows","start":0,"listing":4,"rows":[{"n":"a (copy).txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"a.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"b.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"c.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"}]}"#,
+    );
+    assert_eq!(
+        footer_status(cx, handle),
+        completed,
+        "the completion line holds across its own refresh"
+    );
+    key(cx, handle, "backspace");
+    reply(cx, handle, r#"{"t":"listed","path":"/","n":3}"#);
+    reply(
+        cx,
+        handle,
+        r#"{"t":"rows","start":0,"listing":5,"rows":[{"n":"a.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"b.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"c.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"}]}"#,
+    );
+    assert_eq!(
+        footer_status(cx, handle),
+        "3 items",
+        "another folder shows its own count"
+    );
+}
+
+#[gpui::test]
+fn pb_clipboard_ey169_the_completion_line_ends_with_its_notice(cx: &mut TestAppContext) {
+    let (handle, mut lines) = open(cx);
+    keep_both_completes(cx, handle, &mut lines);
+    reply(cx, handle, r#"{"t":"listed","path":"/files","n":4}"#);
+    reply(
+        cx,
+        handle,
+        r#"{"t":"rows","start":0,"listing":4,"rows":[{"n":"a (copy).txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"a.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"b.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"},{"n":"c.txt","d":false,"s":0,"m":0,"p":33188,"i":"text-plain"}]}"#,
+    );
+    assert_ne!(footer_status(cx, handle), "4 items");
+    cx.executor().advance_clock(Duration::from_millis(4_100));
+    cx.run_until_parked();
+    assert_eq!(
+        footer_status(cx, handle),
+        "4 items",
+        "the notice's display time ends the completion line"
+    );
 }
 
 #[gpui::test]
