@@ -400,7 +400,10 @@ impl Menu {
             <[Entry]>::to_vec,
         );
         let checked = validate_choice(&rows, &action, &leaf, self.moved(identity_now));
-        self.close();
+        // A Tags choice keeps the menu and its flyout up for the answer, as v0.3.12 ContextMenu.qml does; a refusal still closes.
+        if action != "tags" || checked.is_err() {
+            self.close();
+        }
         match checked {
             Ok(()) => Outcome::Fire { action, leaf },
             Err(refusal) => Outcome::Refused(refusal.key()),

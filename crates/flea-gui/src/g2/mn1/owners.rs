@@ -5,6 +5,7 @@ use flea::{
     json::escape,
     jsondoc::Json,
     ui_logic_fb1::status::Hint,
+    ui_logic_mn1::flyouts,
     ui_logic_pl4::tags::{self, Op},
 };
 use gpui::{Context, Window};
@@ -12,6 +13,19 @@ use std::path::Path;
 
 /// Runs one shelf add over its paths: Ok, or the shelf's own last stderr line ("" when it said nothing).
 pub type ShelfAdd = fn(&[String]) -> Result<(), String>;
+
+// The rows a Tags write or read covers: the captured selection, or the cursor row when nothing is selected.
+fn tag_rows(capture: &Captured) -> String {
+    let rows = if capture.rows.is_empty() {
+        vec![capture.cursor]
+    } else {
+        capture.rows.clone()
+    };
+    rows.iter()
+        .map(usize::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
+}
 
 // PaneMenuActions.qml shelver: the same `flea shelf add` a drop onto the card makes.
 fn shelf_add(paths: &[String]) -> Result<(), String> {
@@ -86,7 +100,7 @@ impl Shell {
         .detach();
     }
 
-    // TagState.qml choose: one toggle over the captured rows; the answer is worded with the tag it named.
+    // TagState.qml choose: one toggle over the captured rows; the menu stays up for the answer, which is worded with the tag it named.
     pub(super) fn menu_tag(
         &mut self,
         capture: &Captured,
@@ -99,31 +113,86 @@ impl Shell {
             .strip_prefix("tag")
             .and_then(|slot| slot.parse::<usize>().ok())
             .and_then(|slot| tags::NAMES.get(slot.wrapping_sub(1)));
-        self.retire_menu(window, cx);
         let Some(name) = name else {
+            self.retire_menu(window, cx);
             let sentence = self.locale.catalog.tr("menu.refusal.unavailable");
             self.owner_notice(side, &sentence, true, Hint::None, cx);
             return;
         };
-        let rows = if capture.rows.is_empty() {
-            vec![capture.cursor]
-        } else {
-            capture.rows.clone()
-        };
-        let rows = rows
-            .iter()
-            .map(usize::to_string)
-            .collect::<Vec<_>>()
-            .join(",");
+        // The capture stays, so the menu keeps its place; only the choice's own activation ends here.
+        self.menu.activating = false;
         self.menu.tagging.push((side, name));
         self.menu_send(
             side,
             format!(
-                "{{\"c\":\"settags\",\"rows\":[{rows}],\"op\":\"toggle\",\"tag\":\"{}\"}}",
+                "{{\"c\":\"settags\",\"rows\":[{}],\"op\":\"toggle\",\"tag\":\"{}\"}}",
+                tag_rows(capture),
                 escape(name)
             ),
             cx,
         );
+    }
+
+    /// Asks which tags the captured rows carry, so the open Tags flyout marks the tags in effect; an answer to an older ask is dropped.
+    pub(crate) fn menu_ask_tags(&mut self, cx: &mut Context<Self>) {
+        let Some(capture) = self.menu.captured.clone() else {
+            return;
+        };
+        if capture.background || !self.menu_entries().iter().any(|e| e.action == "tags") {
+            return;
+        }
+        self.menu.tag_ask += 1;
+        let id = self.menu.tag_ask;
+        self.menu_send(
+            capture.side,
+            format!(
+                "{{\"c\":\"tagstates\",\"rows\":[{}],\"id\":{id}}}",
+                tag_rows(&capture)
+            ),
+            cx,
+        );
+    }
+
+    /// The tagstates answer to the latest ask: applied and mixed names become the Tags flyout's leaves, and the open menu redraws with them.
+    pub(super) fn menu_tag_states(
+        &mut self,
+        side: usize,
+        reply: &Json,
+        window: &mut Window,
+    ) -> bool {
+        if string(reply, "t") != "tagstates" {
+            return false;
+        }
+        let id = reply.get("id").and_then(Json::as_f64).unwrap_or(0.) as u64;
+        let Some(capture) = self.menu.captured.clone() else {
+            return true;
+        };
+        let listing = reply.get("listing").and_then(Json::as_f64).unwrap_or(-1.);
+        if id != self.menu.tag_ask || capture.side != side || listing != capture.listing as f64 {
+            return true;
+        }
+        let names = |key: &str| -> Vec<String> {
+            reply
+                .get(key)
+                .and_then(Json::as_array)
+                .unwrap_or(&[])
+                .iter()
+                .filter_map(Json::as_str)
+                .map(str::to_owned)
+                .collect()
+        };
+        let states = tags::states_from(&names("applied"), &names("mixed"));
+        self.menu.context.tag_submenu = Some(flyouts::tag_entries_in_effect(&states));
+        // The open menu redraws in place, as the shebang answer does; refresh_menu only runs while the menu is still presenting.
+        let entries = self.menu_entries();
+        let list = self.panes[side]
+            .as_ref()
+            .expect("the menu's pane")
+            .list
+            .borrow();
+        let env = self.menu_env(&list.typeface);
+        self.menu.menu.borrow_mut().refresh(entries, &env, window);
+        true
     }
 
     /// TagState.qml setTaggedDone: a settagged answer lands this side's oldest toggle, says it and redraws the rows.
@@ -173,7 +242,12 @@ impl Shell {
         if !sentence.is_empty() {
             self.owner_notice(side, &sentence, false, hint, cx);
         }
-        let _ = self.step(side, Step::Refresh(None), window, cx);
+        // An open menu pins its listing, so the answer re-reads the tags rather than re-listing the folder under it.
+        if self.menu.captured.is_some() {
+            self.menu_ask_tags(cx);
+        } else {
+            let _ = self.step(side, Step::Refresh(None), window, cx);
+        }
         true
     }
 
