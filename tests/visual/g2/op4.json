@@ -1,7 +1,7 @@
 {
   "version": 1,
   "unit": "op4",
-  "design_root": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig",
+  "design_root": "${FLEA_VISUAL_DESIGN}",
   "scenes": [
     {
       "scene": "g2.op4.convert.primary",
