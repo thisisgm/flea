@@ -190372,8 +190372,26 @@
       "surface": "generated/tooling"
     },
     {
+      "excerpt": "\"reason\": \"Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure\"",
+      "line": 27,
+      "literal": "Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure",
+      "owner": "controller",
+      "path": "tools/gpui-lint.json",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"reason\": \"Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure\"",
+      "line": 32,
+      "literal": "Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure",
+      "owner": "controller",
+      "path": "tools/gpui-lint.json",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
       "excerpt": "\"reason\": \"Parses Omarchy colours and reuses the existing QML canvas and TUI foreground fallbacks.\"",
-      "line": 30,
+      "line": 40,
       "literal": "Parses Omarchy colours and reuses the existing QML canvas and TUI foreground fallbacks.",
       "owner": "controller",
       "path": "tools/gpui-lint.json",
@@ -212504,7 +212522,7 @@
     "tools/flea-walkbench/src/stats.rs": "139a67b8a175124ad459004107c3069b920bb07b1907171a6a4cc0a35c1ef2b9",
     "tools/flea_bench_product.py": "70a350992a8ca5f4a28ea122d8191cbebdec8426e2eafa0f1f8e7f79361bf9d8",
     "tools/flea_ipc.py": "0a0c390872be4cc21c29be6806df7ee8093de5492e3d9a3f168fdf60260f5fa7",
-    "tools/gpui-lint.json": "f00b8f65fb12ffaa7211edd4ee4d1aaf50ead4c20243667440a184e92a916089",
+    "tools/gpui-lint.json": "3b82a8d308117ff8f3f6d0a6805f910e4ef51edb0fcf12ecfedb0ab8d0cb5763",
     "tools/gpui_lint/__init__.py": "f4287efa39701462a6d8573e3ef7aca5a0bd9ad8f26c9c4ac3e832259b79f810",
     "tools/gpui_lint/bindings.py": "97e85be963d79df4a629cb9b4ef064e2ac9e2bb10fea25f0b9bc11888fad7afa",
     "tools/gpui_lint/cargo.py": "082afd4b34069eb8c62771babbf090fbf5c8d41faaa1c5e9643b0b87e08d894d",
@@ -212935,8 +212953,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "a9f8c09c7f6a4c20b4b7f9f83428898b39330815",
-  "source_sha": "a9f8c09c7f6a4c20b4b7f9f83428898b39330815",
+  "source_ref_sha": "a6eedec48ee7fa74122940c50413b0a5fbdc2912",
+  "source_sha": "a6eedec48ee7fa74122940c50413b0a5fbdc2912",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1286,
@@ -212945,7 +212963,7 @@
     },
     "generated/tooling": {
       "keys_with_occurrences": 148,
-      "missing_literal_candidates": 4725,
+      "missing_literal_candidates": 4727,
       "source_files": 144
     },
     "gui": {
