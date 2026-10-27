@@ -244,6 +244,17 @@ impl Shell {
                         shell.device_request(Request { side, id, event }, window, cx)
                     });
                 }
+                // A remote Favorite mounts its share as a NETWORK row does, then its path opens.
+                Event::Activate(entry)
+                    if matches!(
+                        entry.kind,
+                        flea::ui_logic_pl4::rail::Kind::Favourite
+                            | flea::ui_logic_pl4::rail::Kind::Favorite
+                    ) && entry.path.contains("://")
+                        && !entry.path.starts_with("file://") =>
+                {
+                    self.favourite_remote_activate(side, &entry, window, cx);
+                }
                 Event::Release(entry) => {
                     let event = Event::Release(entry);
                     cx.defer_in(window, move |shell, window, cx| {
