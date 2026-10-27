@@ -80,19 +80,19 @@ impl Overlay {
         } else {
             self.release_mount_focus(window, cx);
         }
-        if let Some(Dialog::CopyTo { menu, path, .. }) = &self.model.dialog {
+        if let Some((session, draft)) = self.model.dialog.as_ref().and_then(Dialog::draft) {
             if self.progress.dialog.holding(self.now(cx)) {
                 return;
             }
             if !self.editor.entry.editing
-                || self.editor.menu != Some(*menu)
-                || self.editor.entry.text != *path
+                || self.editor.menu != Some(session)
+                || self.editor.entry.text != *draft
             {
                 self.editor.entry = Entry::default();
-                self.editor.entry.begin(path);
+                self.editor.entry.begin(draft);
                 self.editor.drawn.borrow_mut().line = Line::default();
             }
-            self.editor.menu = Some(*menu);
+            self.editor.menu = Some(session);
         } else {
             self.editor.menu = None;
             self.editor.entry.close();
@@ -103,18 +103,12 @@ impl Overlay {
         }
     }
 
-    // Whether the focused field owns the editor; each dialog field the editor serves adds its arm here.
+    // Whether the focused field owns the editor; each dialog field the editor serves is listed in Dialog::typing_session.
     pub(super) fn editing_copy(&self, window: &Window, cx: &gpui::App) -> bool {
-        let menu = match self.model.dialog {
-            Some(Dialog::CopyTo {
-                menu,
-                focus: CopyFocus::Field,
-                busy: false,
-                ..
-            }) => menu,
-            _ => return false,
+        let Some(session) = self.model.dialog.as_ref().and_then(Dialog::typing_session) else {
+            return false;
         };
-        self.editor.menu == Some(menu)
+        self.editor.menu == Some(session)
             && !self.progress.dialog.holding(self.now(cx))
             && self.editor.entry.editing
             && self
@@ -130,8 +124,8 @@ impl Overlay {
     }
 
     pub(super) fn edited_copy(&mut self, cx: &mut Context<Self>) {
-        if let Some(Dialog::CopyTo { path, .. }) = &mut self.model.dialog {
-            path.clone_from(&self.editor.entry.text);
+        if let Some(draft) = self.model.dialog.as_mut().and_then(Dialog::draft_mut) {
+            draft.clone_from(&self.editor.entry.text);
         }
         cx.notify();
     }
@@ -207,13 +201,9 @@ impl Overlay {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if let Some(Dialog::CopyTo {
-            focus, busy: false, ..
-        }) = &mut self.model.dialog
-        {
-            *focus = CopyFocus::Field;
-        } else {
-            return;
+        match self.model.dialog.as_mut().and_then(Dialog::field_state) {
+            Some((focus, false)) => *focus = CopyFocus::Field,
+            _ => return,
         }
         if let Some(focus) = &self.editor.focus {
             window.focus(focus, cx);

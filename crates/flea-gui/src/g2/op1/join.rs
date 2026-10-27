@@ -188,12 +188,18 @@ impl Shell {
         let Some(view) = self.operation_overlay(side, window, cx) else {
             return;
         };
-        let taken = view.update(cx, |overlay, cx| overlay.line(line, cx));
+        let (taken, landed) = view.update(cx, |overlay, cx| {
+            let taken = overlay.line(line, cx);
+            (taken, overlay.model.new_file_landed.take())
+        });
         cx.emit(OperationReply {
             side,
             line: line.into(),
             taken,
         });
+        if let Some(path) = landed {
+            self.new_file_created(side, path, window, cx);
+        }
         self.show_operation(&view, cx);
         self.flush_operations(side, cx);
     }
