@@ -128,6 +128,11 @@ fn notches_match_reference(slot: Slot) {
     }
     assert_eq!(scrolls(&mut cx, handle)[slot.index()], 3. * NOTCH_PX);
     host::frame(&mut cx, handle);
+    // Columns glides each notch as List does, so the paint settles after Omarchy's return duration.
+    cx.executor().advance_clock(std::time::Duration::from_millis(
+        crate::input::scroll::RETURN_MS as u64,
+    ));
+    host::frame(&mut cx, handle);
     host::change(&mut cx, handle, |shell, _, _| {
         let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
         let paint = columns.painters.get(slot).unwrap().borrow();
@@ -135,7 +140,7 @@ fn notches_match_reference(slot: Slot) {
         assert_eq!(
             drawn.scroll,
             3. * NOTCH_PX,
-            "paint follows the wheel target"
+            "settles on v0.3.12's notch target"
         );
         assert_eq!(
             paint.visible().next(),
