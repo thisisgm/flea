@@ -99,8 +99,10 @@ function anchoredRefresh(pane, select, marks, wantChanged, rowH) {
     var row = pane.rowFor(pane.cursorIndex)
     var lone = pane.selection && typeof pane.selection.follows === "function" ? !!pane.selection.follows() : false
     var place = Hold.viewFields(pane, rowH)
+    // A filter never moves the held window while the cursor walks the folder's matches, so a cursor outside it asks its own window back, around its row (issue 315).
+    var outside = pane.shown !== null && pane.shown !== undefined && (pane.cursorIndex < pane.held || pane.cursorIndex >= pane.held + pane.rows.length)
     // The path rides along because the anchor can outlive one rows reply: a navigation between the two below would otherwise put this directory's cursor row onto the next directory's listing.
-    var anchor = { name: row ? String(row.n) : "", index: pane.cursorIndex, start: pane.held,
+    var anchor = { name: row ? String(row.n) : "", index: pane.cursorIndex, start: outside ? Math.max(0, pane.cursorIndex - pane.buffer) : pane.held,
                    path: pane.path, select: select === true, wantChanged: wantChanged === true, reloadFrom: pane.total,
                    marks: marks || null, kept: [], hadMarks: marks !== null && marks.length > 0,
                    lone: lone, offset: place.offset, rowH: place.rowH, view: place.view }

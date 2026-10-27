@@ -16,9 +16,12 @@ Item {
     property string listingState: "loading"
     property int total: 0
     // The filter narrows rows already listed, so a query that matches none leaves a ready listing
-    // with nothing drawn in it; shown is -1 while no filter is up.
+    // with nothing drawn in it; shown is -1 while no filter is up. loaded is how many of total the
+    // filter has tested, -1 where the owner holds every row, as the columns do: the tile waits for
+    // the whole folder, since no match among 321 held rows is not no match among 5,000 (issue 315).
     property string filterQuery: ""
     property int shown: -1
+    property int loaded: -1
     // The st_mode of the directory the listing was denied. Zero whenever the backend could not stat
     // it either, which draws no line rather than a mode string that would be false.
     property int lockedMode: 0
@@ -27,6 +30,7 @@ Item {
     // A listing past its wait is the Error state too, so the sentence draws with the alert mark.
     readonly property bool failed: root.locked || root.listingState === "error" || root.listingState === "waiting"
     readonly property bool nothingMatched: root.filterQuery.length > 0 && root.shown === 0 && root.total > 0
+        && (root.loaded < 0 || root.loaded >= root.total)
     // The detail is the directory's own mode, which only a locked state has and only when the
     // backend could stat it; everything else proves nothing extra and draws nothing.
     readonly property string detail: root.locked ? Errors.lockedLine(root.lockedMode)

@@ -185,7 +185,7 @@ function act(action, root, menuId, paths) {
     case "sidebar": root.toggleRail(); return
     // Popups handle Escape first; the focused listing then unwinds filter, search, status and marks.
     case "escape":
-        if (root.filterTyping || root.filterQuery.length > 0) Filter.close(root)
+        if (root.filterTyping || root.filterQuery.length > 0) Filter.escape(root)
         else if (root.searchMode.length > 0 && root.focusView === LIST) Search.abort(root)
         else if (root.recentMode.length > 0 && root.focusView === LIST) RecentMode.close(root)
         else if (root.statusBar && root.statusBar.escapePressed()) return

@@ -40,6 +40,12 @@ fn stat_range_at(base: &Path, l: &Listing, start: usize, count: usize, slow_ms: 
     stat_range_with(base, l, start, count, slow_ms, meta_one)
 }
 
+// Phase 2 for the rows a filter window names (issue 315): the pass stat_range runs, over a set and not a
+// run, with the thread gate read off the mount table the caller already holds.
+pub fn stat_at(base: &Path, l: &Listing, indices: &[usize], body: &str) -> (Vec<Meta>, f64) {
+    stat_pass(0, indices.len(), SLOW_PASS_MS, || l.threaded_cached_with(body), |k| cached_or(base, l, indices[k], &meta_one))
+}
+
 // The test seam: stat names the per-row function, so a counting or slow stub observes the trigger.
 fn stat_range_with(
     base: &Path,
@@ -154,7 +160,14 @@ pub struct CachedRow {
 pub fn window_rows(l: &Listing, start: usize, count: usize) -> Vec<WindowRow> {
     let end = start.saturating_add(count).min(l.len());
     let start = start.min(end);
-    (start..end).map(|i| WindowRow {
+    (start..end).map(|i| window_row(l, i)).collect()
+}
+// A filter window's rows, a set of listing rows rather than a run (issue 315).
+pub fn window_rows_at(l: &Listing, indices: &[usize]) -> Vec<WindowRow> {
+    indices.iter().map(|&i| window_row(l, i)).collect()
+}
+fn window_row(l: &Listing, i: usize) -> WindowRow {
+    WindowRow {
         name: l.name(i).to_string(),
         cached: l.gio_for(i).map(|g| CachedRow {
             size: g.size,
@@ -164,7 +177,7 @@ pub fn window_rows(l: &Listing, start: usize, count: usize) -> Vec<WindowRow> {
             is_symlink: l.spans.get(i).is_some_and(|s| s.is_symlink),
             base_dev: l.base_dev,
         }),
-    }).collect()
+    }
 }
 // Stats only the rows handed over, serial then threaded past SLOW_PASS_MS, so many slow stats overlap while one hung stat still holds the window to the call's deadline.
 pub fn stat_window_rows(base: &Path, rows: &[WindowRow], threaded: bool) -> (Vec<Meta>, f64) {

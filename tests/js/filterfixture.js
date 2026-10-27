@@ -1,6 +1,7 @@
 .pragma library
 
 .import "../../ui/js/Filter.js" as Filter
+.import "../../ui/js/FilterWire.js" as FilterWire
 
 // The filter narrows the listing already on screen, so every check here is pure or takes a stub
 // pane: one that needed a live listing would be checking the wrong feature.
@@ -50,12 +51,36 @@ function pane(query, held) {
         selectionAnchor: 0,
         scrolled: -1,
         contexts: [],
-        picked: {}
+        picked: {},
+        listInFlight: false,
+        // ui/Pane.qml's FilterWire state: the ask's gen, numbering and query, the folder's answer, the view-space window of matched rows, and the window rules the drift check reads.
+        filterGen: 0,
+        filterAskedFor: -1,
+        filterAsked: "",
+        filterAnswer: null,
+        filterHeld: 0,
+        filterRows: [],
+        filterKinds: [],
+        kindNames: [],
+        buffer: 50,
+        windowSize: 130,
+        refetchMargin: 25
     }
-    // ui/Pane.qml's own: the window starts at held, and an index outside it has no row at all.
+    // The backend calls the filter's wire makes, recorded in order: a window as "start:count", a filter as
+    // "filter query:gen:at:before:count", a filter window as "fwindow start:count" and a close as "close".
+    p.backend = {
+        heldListing: 1,
+        asked: [],
+        window: function (start, count) { p.backend.asked.push(start + ":" + count) },
+        filter: function (query, gen, at, before, count) { p.backend.asked.push("filter " + query + ":" + gen + ":" + at + ":" + before + ":" + count) },
+        filterWindow: function (start, count) { p.backend.asked.push("fwindow " + start + ":" + count) },
+        filterClose: function () { p.backend.asked.push("close") }
+    }
+    // ui/Pane.qml's own: the held window first, then the filter's window for a row only it holds.
     p.rowFor = function (index) {
         var offset = index - p.held
-        return offset < 0 || offset >= p.rows.length ? null : p.rows[offset]
+        if (offset >= 0 && offset < p.rows.length) return p.rows[offset]
+        return p.shown === null || p.shown === undefined ? null : FilterWire.rowAt(p, index)
     }
     // The contexts each showRow was handed, so a pointer path proves its 0.
     p.showRow = function (view, context) {
@@ -100,7 +125,7 @@ function pane(query, held) {
     }
     // The two ui/Pane.qml computes as bindings, recomputed here so a stub can never go stale.
     p.refresh = function () {
-        p.shown = Filter.shown(p.rows, p.held, p.filterQuery)
+        p.shown = FilterWire.standing(p.filterAnswer, p.rows, p.held, p.filterQuery)
         p.shownTotal = p.shown === null ? p.total : p.shown.length
     }
     p.refresh()

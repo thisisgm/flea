@@ -3,6 +3,7 @@ import "js/RecentMode.js" as RecentMode
 import "js/Anchor.js" as Anchor
 import "js/BackReturn.js" as BackReturn
 import "js/DirSizes.js" as DirSizes
+import "js/FilterWire.js" as FilterWire
 import "js/Nav.js" as Nav
 import "js/Reload.js" as Reload
 import "js/Search.js" as Search
@@ -126,6 +127,8 @@ Item {
         if (Swap.clearsSelection(root.pane.backend.heldListing, listing) && root.pane.selectionCount() > 0)
             root.pane.clearSelection()
         root.pane.backend.heldListing = listing
+        // A standing filter answer names the old numbering's rows, so it goes before a row of the new one is read (issue 315).
+        FilterWire.renumbered(root.pane, listing)
         root.stampTags(items, action === Swap.LAND || root.pane.listInFlight)
         // Only a live answer names its query; a plain window reply answers none, so a scroll keeps the marks.
         if (gen > 0)
@@ -269,6 +272,8 @@ Item {
             pane.listInFlight = false
             pane.listedSeen = false
         }
+        // Rows of another numbering under a standing query, by a swap or alone, ask the folder again, now that no listing is out (issue 315).
+        FilterWire.relisted(pane, pane.backend.heldListing)
         root.wire.locateRetry()
         root.wire.openRenameOnArrival()
     }

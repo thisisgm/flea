@@ -48,6 +48,29 @@ function plan(state, rows, held, first, last, mode) {
     return { ask: ask, drop: drop }
 }
 
+// The same plan over the rows a filter draws (issue 315), each naming its listing row and the row the pane
+// holds for it, or null for one not landed yet, which is not asked for. Those rows are a set and not a run,
+// so a pending row is dropped when it is not among them, scrolled off and hidden alike, or no longer allowed.
+function planDrawn(state, drawn, mode) {
+    var ask = []
+    var kept = {}
+    for (var i = 0; i < drawn.length; i++) {
+        var at = drawn[i].index
+        var ok = allowed(drawn[i].row, mode)
+        kept[at] = ok
+        if (ok && state.file[at] === undefined) {
+            ask.push(at)
+        }
+    }
+    var drop = []
+    for (var key in state.file) {
+        if (pending(state.file[key]) && kept[key] !== true) {
+            drop.push(Number(key))
+        }
+    }
+    return { ask: ask, drop: drop }
+}
+
 // A cancelled row is forgotten here too, because the backend forgets it when it drops the job.
 function forget(state, row) {
     delete state.file[row]

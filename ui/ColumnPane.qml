@@ -3,6 +3,7 @@ import qs.Commons
 import "." as Flea
 import "js/ClipMarks.js" as ClipMarks
 import "js/Filter.js" as Filter
+import "js/FilterWire.js" as FilterWire
 import "js/ExtThumbs.js" as ExtThumbs
 import "js/Scroll.js" as Scroll
 import "js/ScrollOff.js" as ScrollOff
@@ -124,10 +125,14 @@ Item {
 
     // The active column uses List/Grid's integer model and refills only around its viewport.
     function requestIfDrifted() {
-        if (root.pane === null || !root.visible || root.pane.listInFlight
-                || root.pane.total === 0 || root.pane.shown !== null)
+        if (root.pane === null || !root.visible || root.pane.listInFlight || root.pane.total === 0)
             return
         var range = root.visibleRange()
+        // Under a filter the rows are matches, so the window asked for is the filter's own, in view space (issue 315).
+        if (root.pane.shown !== null) {
+            FilterWire.drift(root.pane, range.first, range.last)
+            return
+        }
         var heldEnd = root.pane.held + root.pane.rows.length
         if (root.pane.rows.length === 0
                 || (range.first - root.pane.held < root.pane.refetchMargin && root.pane.held > 0)
@@ -141,9 +146,7 @@ Item {
         if (root.pane === null || !root.visible || root.pane.total === 0 || root.pane.listInFlight || !root.pane.storageKnown)
             return
         var range = root.visibleRange()
-        var span = Filter.span(root.pane.shown, range.first, range.last)
-        var work = Filter.cut(Thumbs.plan(root.pane.thumbState, root.pane.rows, root.pane.held,
-            span.first, span.last, ViewState.thumbnailMode), root.pane.shown, root.pane.thumbState)
+        var work = Filter.planThumbs(root.pane, range.first, range.last, ViewState.thumbnailMode)
         // Only the loaded preview owns an off-viewport request; manual cursor movement asks nothing extra.
         work.drop = work.drop.filter(function (index) { return index !== root.pane.previewIndex })
         root.pane.backend.thumbcancel(work.drop)
@@ -162,9 +165,7 @@ Item {
         if (!DirSizes.wantsSizes("columns", [], root.pane.storageClass, root.pane.storageKnown))
             return
         var range = root.visibleRange()
-        var span = Filter.span(root.pane.shown, range.first, range.last)
-        var ask = Filter.keep(DirSizes.plan(root.pane.dirSizeState, root.pane.rows, root.pane.held,
-            span.first, span.last, ViewState.thumbnailMode), root.pane.shown)
+        var ask = Filter.planDirSizes(root.pane, range.first, range.last)
         if (ask.length > 0) {
             root.pane.backend.dirsize(ask)
             settle.interval = root.pane.settleMs

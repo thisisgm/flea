@@ -18,6 +18,10 @@ pub enum Request {
     SearchOpen { path: String, hidden: bool, folder: String },
     SearchQuery { query: String, gen: usize, count: Option<usize>, sizes: Option<usize> },
     SearchClose,
+    // The filter's three, issue 315: a query over the listing's names with its first view window, a later view window, and the close.
+    Filter { query: String, gen: usize, at: usize, before: usize, count: usize },
+    FilterWindow { start: usize, count: usize },
+    FilterClose,
     // cacheOnly answers from the shared cache alone and never starts a decoder, for a
     // storage class whose switch is off; absent is today's full path, see docs/protocol.md "thumb".
     Thumb { rows: Vec<usize>, cache_only: bool },
@@ -175,6 +179,19 @@ pub fn parse_request(line: &str) -> Request {
             sizes: field_usize(line, "sizes"),
         },
         Some("searchclose") => Request::SearchClose,
+        Some("filter") => Request::Filter {
+            query: field_str(line, "query").unwrap_or_default(),
+            // Absent is never newer, so a query without a generation answers nothing.
+            gen: field_usize(line, "gen").unwrap_or(0),
+            at: field_usize(line, "at").unwrap_or(0),
+            before: field_usize(line, "before").unwrap_or(0),
+            count: field_usize(line, "count").unwrap_or(0),
+        },
+        Some("filterwindow") => Request::FilterWindow {
+            start: field_usize(line, "start").unwrap_or(0),
+            count: field_usize(line, "count").unwrap_or(0),
+        },
+        Some("filterclose") => Request::FilterClose,
         Some("thumb") => Request::Thumb { rows: field_usize_array(line, "rows"),
             cache_only: field_bool(line, "cacheOnly") },
         Some("thumbcancel") => Request::ThumbCancel { rows: field_usize_array(line, "rows") },

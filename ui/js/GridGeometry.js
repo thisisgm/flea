@@ -75,11 +75,11 @@ function sameRow(a, b) {
     return true
 }
 
-// The row a tile draws from the held snapshot {start, rows, listing}: the held row, else the row it kept at this index on the same listing, else null; memo is the tile's own {row, index, listing}.
+// The row a tile draws from the held snapshot {start, rows, listing, more}: the held row, else what more (the filter's window, issue 315) holds for the index, else the row it kept at this index on the same listing, else null; memo is the tile's own {row, index, listing}.
 // Sample input: heldRow({row: null, index: -1, listing: 0}, {start: 10, rows: [a, b], listing: 1}, 11) is b, and a tile at 5 afterwards keeps what it drew at 5.
 function heldRow(memo, held, index) {
     var offset = index - held.start
-    var next = offset >= 0 && offset < held.rows.length ? held.rows[offset] : null
+    var next = offset >= 0 && offset < held.rows.length ? held.rows[offset] : held.more ? held.more(index) : null
     var kept = next === null ? memo.index === index && memo.listing === held.listing : sameRow(memo.row, next)
     memo.index = index
     memo.listing = held.listing

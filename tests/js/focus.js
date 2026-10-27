@@ -132,6 +132,9 @@ function escaper(query, retreated) {
     p.join = function (base, name) { return base + "/" + name }
     p.pendingSelect = ""
     p.setCursor = function (index) { p.cursorIndex = index }
+    // Issue 315: Esc over a filter parks the listing on the cursor's row, so the view it asked for is kept.
+    p.parked = -1
+    p.showRow = function (view) { p.parked = view }
     p.escapePressed = function () { p.retreated += 1 }
     // Issue 29's own members: the setting, the menu, the card, the marks and the listing in flight.
     p.escapeUp = false
@@ -218,9 +221,11 @@ function run(check) {
     // Esc unwinds one thing at a time, least destructive first. A filter costs nothing to clear, a
     // selection is work, so the filter goes first and a second esc is what drops the selection.
     var unwind = escaper("scr", 0)
+    unwind.cursorIndex = 7
     Focus.act("escape", unwind)
     check("esc clears a standing filter before it touches the selection",
           unwind.filterQuery + "|" + unwind.retreated, "|0")
+    check("and parks the listing on the cursor's row, which the held window may be far down (issue 315)", unwind.parked, 7)
     Focus.act("escape", unwind)
     check("and a second esc reaches the selection", unwind.retreated, 1)
     var walking = escaper("", 0)

@@ -36,6 +36,10 @@ function run(check) {
     check("an unknown row reports no size", DirSizes.sizeFor(DirSizes.empty(), 4), null)
     check("a file row is never asked for", DirSizes.plan(DirSizes.empty(), rows, 10, 12, 12).length, 0)
     check("a row outside the held window is not asked for", DirSizes.plan(DirSizes.empty(), rows, 10, 0, 3).length, 0)
+    // Issue 315: under a filter the rows drawn are a set, each handed over with the row the pane holds for it.
+    var asked = DirSizes.applied(DirSizes.empty(), [12])
+    check("the folders drawn under a filter are asked for wherever in the folder they sit, less the ones asked, the files and the rows not landed",
+          DirSizes.planDrawn(asked, [{ index: 12, row: { d: true } }, { index: 2340, row: { d: true } }, { index: 2341, row: { d: false } }, { index: 5000, row: null }]).join(","), "2340")
 
     // The cap bounds a policy bug: normal use only ever records the rows a viewport held.
     var capped = DirSizes.empty()

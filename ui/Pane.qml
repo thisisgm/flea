@@ -5,6 +5,7 @@ import "js/DirSizes.js" as DirSizes
 import "js/Dropbox.js" as Dropbox
 import "js/ExtThumbs.js" as ExtThumbs
 import "js/Filter.js" as Filter
+import "js/FilterWire.js" as FilterWire
 import "js/Format.js" as Format
 import "js/Focus.js" as Focus
 import "js/Marks.js" as Marks
@@ -143,6 +144,19 @@ FocusScope {
     // The filter stopwatch Ipc's filterStamps reads: the newest keystroke and when it narrowed the shown model.
     property real filterKeyAt: 0
     property real filterNarrowedAt: 0
+    // FilterWire asks the backend to test the whole folder's names (issue 315): the ask's gen per keystroke, the numbering and the query it was made for, the answer it holds, and the view-space window of matched rows with the Kind dictionary its rows index.
+    property int filterGen: 0
+    property real filterAskedFor: -1
+    property string filterAsked: ""
+    property var filterAnswer: null
+    property int filterHeld: 0
+    property var filterRows: []
+    property var filterKinds: []
+    // Where the cursor's row stood on screen when a re-read asked the folder again, which that ask's answer puts it back to, or null.
+    property var filterPlace: null
+    // How many rows the standing query has been tested against, which the strip and the no-match tile name.
+    readonly property int filterTested: FilterWire.tested(root)
+    onFilterQueryChanged: FilterWire.ask(root)
     property int searchScanned: 0
     property real searchMs: 0
     property bool listInFlight: false
@@ -270,7 +284,7 @@ FocusScope {
     property var kindNames: []
     // The listing rows the filter leaves standing, null when none is up: a view position goes in and
     // a listing row comes out, which is what every row-indexed cache and the selection still hold.
-    readonly property var shown: Filter.shown(root.rows, root.held, root.filterQuery)
+    readonly property var shown: FilterWire.standing(root.filterAnswer, root.rows, root.held, root.filterQuery)
     readonly property int shownTotal: root.shown === null ? root.total : root.shown.length
 
     readonly property int minBuffer: 50
@@ -564,9 +578,10 @@ FocusScope {
 
     function rowFor(index) {
         var offset = index - root.held
-        if (offset < 0 || offset >= root.rows.length)
-            return null
-        return root.rows[offset]
+        if (offset >= 0 && offset < root.rows.length)
+            return root.rows[offset]
+        // Under a filter, a matched row the held window does not hold lives in the filter's own window (issue 315).
+        return root.shown === null ? null : FilterWire.rowAt(root, index)
     }
 
     // The list's own delegate, which is what every reader of a rendered row cell needs; only the

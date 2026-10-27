@@ -67,11 +67,33 @@ function run(check) {
     thumbnailState = Thumbs.remember(thumbnailState, 403, "/cache/403.png", 240)
     var sparse = [401, 405]
     var sparseRows = [{t: true}, {t: true}, {d: true}, {t: true}, {d: true}, {t: true}, {t: true}]
-    var sparseSpan = Filter.span(sparse, 0, 1)
-    var pendingPlan = Thumbs.plan(thumbnailState, sparseRows, 400, sparseSpan.first, sparseSpan.last)
-    var narrowedPlan = Filter.cut(pendingPlan, sparse, thumbnailState)
-    check("a narrowed viewport cancels every hidden pending thumbnail, including gaps between matches",
+    // Issue 315: the planners walk the rows drawn, each looked up in the held window or the filter's, never the run between.
+    var sparsePane = Fixture.pane("", 400)
+    sparsePane.rows = sparseRows
+    sparsePane.total = 5000
+    sparsePane.filterQuery = "x"
+    sparsePane.filterAnswer = { query: "x", list: [12, 401, 405, 2340] }
+    sparsePane.refresh()
+    sparsePane.filterHeld = 0
+    sparsePane.filterRows = [{ n: "a", t: true, r: 12 }, { n: "b", r: 401 }, { n: "c", r: 405 }]
+    sparsePane.thumbState = thumbnailState
+    sparsePane.dirSizeState = DirSizes.empty()
+    check("the rows drawn between two view positions carry their listing row and the row held for them, from either window, or null for one not landed",
+          Filter.drawn(sparsePane, 0, 3).map(function (d) { return d.index + ":" + (d.row === null ? "-" : d.row.n || d.row.t) }).join(" "), "12:a 401:true 405:true 2340:-")
+    check("and the ends clamp to the matches", Filter.drawn(sparsePane, 3, 9).map(function (d) { return d.index }).join(","), "2340")
+    var narrowedPlan = Filter.planThumbs(sparsePane, 1, 2, "media")
+    check("a narrowed viewport cancels every hidden pending thumbnail, including gaps between matches and rows scrolled off",
           narrowedPlan.drop.join(","), "400,406")
+    check("and asks for no row already asked", narrowedPlan.ask.length, 0)
+    check("a matched row only the filter window holds is asked for, so it gets its thumbnail", Filter.planThumbs(sparsePane, 0, 0, "media").ask.join(","), "12")
+    check("a row not landed is asked for nothing", Filter.planDirSizes(sparsePane, 0, 3).join(","), "")
+    sparsePane.filterRows = sparsePane.filterRows.concat([{ n: "d", d: true, r: 2340 }])
+    check("a folder only the filter window holds is asked for its size once it lands, the files drawn beside it are not",
+          Filter.planDirSizes(sparsePane, 0, 3).join(","), "2340")
+    sparsePane.filterQuery = ""
+    sparsePane.refresh()
+    check("with no filter up the plan is the held window's run", Filter.planThumbs(sparsePane, 400, 406, "media").ask.join(","), "")
+    check("and so is the folder sizes'", Filter.planDirSizes(sparsePane, 400, 406).join(","), "402,404")
     var hiddenInside = Thumbs.applied(Thumbs.empty(), {ask: [401, 403, 405], drop: []})
     check("a pending thumbnail between visible matches is cancelled before it decodes offscreen",
           Filter.cut({ask: [], drop: []}, sparse, hiddenInside).drop.join(","), "403")
@@ -86,18 +108,14 @@ function run(check) {
           JSON.stringify(Filter.cut({ask: [400], drop: [406]}, null, hiddenInside)),
           JSON.stringify({ask: [400], drop: [406]}))
     check("sparse filtered tile requests retain backend row identities",
-          Filter.cut(Thumbs.plan(Thumbs.empty(), sparseRows, 400, sparseSpan.first, sparseSpan.last), sparse, Thumbs.empty()).ask.join(","),
+          Filter.cut(Thumbs.plan(Thumbs.empty(), sparseRows, 400, 401, 405), sparse, Thumbs.empty()).ask.join(","),
           "401,405")
     check("directory-size requests exclude directories hidden between filtered tiles",
-          Filter.keep(DirSizes.plan(DirSizes.empty(), sparseRows, 400, sparseSpan.first, sparseSpan.last), sparse).length, 0)
-    // A filtered viewport covers a set, not a run, so the range-shaped planners in ui/js/Thumbs.js
-    // and ui/js/DirSizes.js get the run it spans and cut() takes back what they over-asked for.
-    check("a view range spans the listing rows at its ends",
-          JSON.stringify(Filter.span(mixed, 1, 3)), JSON.stringify({ first: 1, last: 6 }))
-    check("with no filter the range is itself",
-          JSON.stringify(Filter.span(null, 3, 9)), JSON.stringify({ first: 3, last: 9 }))
-    check("a filter matching nothing spans nothing, so no row is ever asked for",
-          JSON.stringify(Filter.span([], 0, 5)), JSON.stringify({ first: 0, last: -1 }))
+          Filter.keep(DirSizes.plan(DirSizes.empty(), sparseRows, 400, 401, 405), sparse).length, 0)
+    sparsePane.filterQuery = "x"
+    sparsePane.filterAnswer = { query: "x", list: [] }
+    sparsePane.refresh()
+    check("a filter matching nothing draws nothing, so no row is ever asked for", Filter.planThumbs(sparsePane, 0, 5, "media").ask.length + Filter.planDirSizes(sparsePane, 0, 5).length, 0)
 
     var keyLine = Fixture.pane()
     Filter.typeKey({ key: Qt.Key_Delete, text: "\u007f" }, keyLine)
@@ -207,6 +225,11 @@ function run(check) {
     // States' no-match tile: the query named back, and the count of rows the filter tested.
     check("a filter that matches none says how many rows it tested", Filter.noMatch(11), "No match among 11 items")
     check("and a single item keeps the sentence readable", Filter.noMatch(1), "No match among 1 item")
+    // Issue 315: viewOf is a binary search over the ascending match list, so a 100,000-row answer costs each delegate nothing.
+    check("viewOf finds a shown row's view position at either end and in the middle",
+          [Filter.viewOf([3, 8, 9, 20], 3), Filter.viewOf([3, 8, 9, 20], 9), Filter.viewOf([3, 8, 9, 20], 20)].join(","), "0,2,3")
+    check("and answers -1 for a hidden row between, before or past the matches, and in an empty list",
+          [Filter.viewOf([3, 8, 9, 20], 5), Filter.viewOf([3, 8, 9, 20], 1), Filter.viewOf([3, 8, 9, 20], 21), Filter.viewOf([], 0)].join(","), "-1,-1,-1,-1")
 
     var pointed = Fixture.pane()
     Filter.setCursor(pointed, 4, 0)

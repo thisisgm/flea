@@ -1,3 +1,4 @@
+.import "../../ui/js/FilterWire.js" as FilterWire
 .import "../../ui/js/MenuRefresh.js" as MenuRefresh
 .import "../../ui/js/RecentMode.js" as RecentMode
 .import "../../ui/js/Search.js" as Search
@@ -110,11 +111,12 @@ function searchPane(pane, running) {
 
 // The window reply lands through PaneSwap's own takeRows, so the swap's selection rule is the production one.
 function landWindow(p, body, mode) {
-    var take = new Function("root", "Swap", "RecentMode", "start", "items", "kinds", "listing", "gen", body(Source.source("ui/PaneSwap.qml"), "takeRows"))
+    // FilterWire is the real module: with no query standing on the stub its relisting is a no-op (issue 315).
+    var take = new Function("root", "Swap", "RecentMode", "FilterWire", "start", "items", "kinds", "listing", "gen", body(Source.source("ui/PaneSwap.qml"), "takeRows"))
     var swap = {pane: p, phase: Swap.idle(), rowsLanded: function () {},
         // The rows under test carry no tg field, so the production stamp is a no-op here.
         stampTags: function () {}}
-    take(swap, Swap, RecentMode, p.held, p.rows.map(function (row) { return {n: row.n, p: mode} }), [], LISTING, 0)
+    take(swap, Swap, RecentMode, FilterWire, p.held, p.rows.map(function (row) { return {n: row.n, p: mode} }), [], LISTING, 0)
 }
 
 // An Apply on a search listing re-stats the held window: no walk, no debt, and the rows show the new mode.

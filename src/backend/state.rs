@@ -55,6 +55,8 @@ pub struct State {
     pub search: Option<Search>,
     // The live search session; a list, sort or close drops it and frees its arena.
     pub search_session: Option<Session>,
+    // The filter's standing query, issue 315: its matches over this numbering; a filterclose drops it and another numbering rebuilds it.
+    pub filter: Option<super::filter::Standing>,
     // When the running walk last announced its count, so SEARCH_REPORT can throttle the stream.
     pub search_reported: Instant,
     // Which numbering the rows are in; forget_rows moves it, see src/backend/rowguard.rs.
@@ -83,6 +85,7 @@ impl State {
             dirsizes: HashMap::new(), dirsize_queue: Vec::new(), dirsize_worker,
             search: None, search_reported: Instant::now(), generation: FIRST_LISTING - 1, held: Held::List,
             search_session: None,
+            filter: None,
             clip_watching: false,
         }
     }

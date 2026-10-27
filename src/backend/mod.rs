@@ -14,6 +14,8 @@ pub mod mime;
 pub mod fsinfo;
 pub mod fsname;
 pub mod fsinforeq;
+pub mod filter;
+pub mod filterreq;
 pub mod extclass;
 pub mod gvfsroot;
 pub mod netfs;

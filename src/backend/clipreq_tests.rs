@@ -141,7 +141,7 @@ fn a_watch_starts_once_and_the_second_is_silent() {
         search_reported: std::time::Instant::now(),
         generation: 0,
         held: Held::List,
-        clip_watching: false,
+        clip_watching: false, filter: None,
     };
     request_watch(tx.clone(), &mut state.clip_watching, Some(missing.clone()));
     assert!(state.clip_watching);

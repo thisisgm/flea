@@ -42,6 +42,8 @@ ShellRoot {
         property int total: 0
         property string filterQuery: ""
         property int shownTotal: 0
+        // The rows the filter has tested; a stub that holds no window has tested the whole folder (issue 315).
+        property int filterTested: total
         property string searchMode: ""
         property string searchQuery: ""
         property int lockedMode: 0

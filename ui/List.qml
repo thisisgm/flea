@@ -4,6 +4,7 @@ import "js/ClipMarks.js" as ClipMarks
 import "js/DirSizes.js" as DirSizes
 import "js/ExtThumbs.js" as ExtThumbs
 import "js/Filter.js" as Filter
+import "js/FilterWire.js" as FilterWire
 import "js/Scroll.js" as Scroll
 import "js/ScrollOff.js" as ScrollOff
 import "js/Tap.js" as Tap
@@ -141,7 +142,8 @@ ListView {
         markArmed: root.pane.filterTyping || root.pane.filterQuery.length > 0
         // A search's location layout builds hidden after the strip's first frame, so no answer pays for it.
         locateArmed: root.pane.searchMode.length > 0 && root.pane.swap.searchWarm === true
-        kindNames: cell.live ? root.pane.kindNames : cell.kindNames
+        // A filter window's row names its listing row as r and indexes that window's own Kind dictionary (issue 315).
+        kindNames: !cell.live ? cell.kindNames : cell.row && cell.row.r !== undefined ? root.pane.filterKinds : root.pane.kindNames
         dirSize: cell.live ? root.dirSizeFor(listingIndex) : cell.dirSize
         // A filter paints its run the same way a search does; filtering below is what keeps the
         // ordinary columns, because these rows are still this directory's own and not walk results.
@@ -408,10 +410,8 @@ ListView {
         if (!root.visible || root.pane.listInFlight || !root.pane.storageKnown)
             return
         var view = root.visibleRange()
-        // A filtered viewport covers a set and not a run, so the run it spans is what the planner
-        // gets and Filter.cut takes back every row inside that run the filter is hiding.
-        var span = Filter.span(root.pane.shown, view.first, view.last)
-        var work = Filter.cut(Thumbs.plan(root.pane.thumbState, root.pane.rows, root.pane.held, span.first, span.last, ViewState.thumbnailMode), root.pane.shown, root.pane.thumbState)
+        // A filtered viewport covers a set and not a run, so the plan walks the rows drawn and no row between them (issue 315).
+        var work = Filter.planThumbs(root.pane, view.first, view.last, ViewState.thumbnailMode)
         work.drop = work.drop.filter(function (index) { return index !== root.pane.previewIndex })
         root.pane.backend.thumbcancel(work.drop)
         // An off class still asks; the backend answers from the cache alone, see ui/js/ExtThumbs.js.
@@ -440,8 +440,7 @@ ListView {
             return
         // Thumbs.viewport() is reused: it takes no thumb-specific state, only geometry.
         var view = root.visibleRange()
-        var span = Filter.span(root.pane.shown, view.first, view.last)
-        var ask = Filter.keep(DirSizes.plan(root.pane.dirSizeState, root.pane.rows, root.pane.held, span.first, span.last, ViewState.thumbnailMode), root.pane.shown)
+        var ask = Filter.planDirSizes(root.pane, view.first, view.last)
         if (ask.length > 0) {
             root.pane.backend.dirsize(ask)
             settle.interval = root.pane.settleMs
@@ -451,8 +450,8 @@ ListView {
 
     // Handle an empty held window explicitly before applying held-edge arithmetic.
     function requestIfDrifted() {
-        // No window while hidden, while a filter narrows rows already held, nor while a listing is out, whose windows are the directory asked for.
-        if (!root.visible || root.pane.total === 0 || root.pane.shown !== null || root.pane.listInFlight)
+        // No window while hidden, nor while a listing is out, whose windows are the directory asked for.
+        if (!root.visible || root.pane.total === 0 || root.pane.listInFlight)
             return
         var firstVisible = Math.floor((root.contentY - root.originY) / Theme.fileRowHeight)
         var lastVisible = firstVisible + root.pane.visibleRows
@@ -460,6 +459,11 @@ ListView {
             var range = root.visibleRange()
             firstVisible = range.first
             lastVisible = range.last + 1
+        }
+        // Under a filter the drawn rows are matches, so the window asked for is the filter's own, in view space (issue 315).
+        if (root.pane.shown !== null) {
+            FilterWire.drift(root.pane, firstVisible, lastVisible)
+            return
         }
         if (root.pane.rows.length === 0) {
             root.requestAround(firstVisible)

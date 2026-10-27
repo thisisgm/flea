@@ -3,6 +3,7 @@ import "../ui/js/Search.js" as Search
 import "../ui/js/Swap.js" as Swap
 import "../ui/js/Focus.js" as Focus
 import "../ui/js/Filter.js" as Filter
+import "../ui/js/FilterWire.js" as FilterWire
 import "../ui/js/Messages.js" as Messages
 import "../ui/js/Nav.js" as Nav
 import "../ui/js/RecentMode.js" as RecentMode
@@ -58,9 +59,10 @@ Item {
     // One shipped PaneSwap function by its own text: the replay holds no landing of its own.
     function shipFn(swap, name, args) {
         var body = Ship.block(root.shipSrc, "function " + name + "(", "ui/PaneSwap.qml")
-        var pre = ["root", "cap", "Swap", "Search", "RecentMode", "Anchor", "BackReturn", "DirSizes", "Thumbs", "Reload", "Tabs", "Nav", "Theme", "ViewState"]
+        // FilterWire is the real module: with no query standing on the stub its relisting is a no-op (issue 315).
+        var pre = ["root", "cap", "Swap", "Search", "RecentMode", "Anchor", "BackReturn", "DirSizes", "Thumbs", "Reload", "Tabs", "Nav", "Theme", "ViewState", "FilterWire"]
         var f = new Function(pre.concat(args).join(","), body)
-        var deps = [swap, root.capStub, Swap, Search, RecentMode, Anchor, BackReturn, DirSizes, Thumbs, Reload, Tabs, Nav, root.themeStub, root.viewStub]
+        var deps = [swap, root.capStub, Swap, Search, RecentMode, Anchor, BackReturn, DirSizes, Thumbs, Reload, Tabs, Nav, root.themeStub, root.viewStub, FilterWire]
         return function () { return f.apply(null, deps.concat(Array.prototype.slice.call(arguments))) }
     }
     // The real swap over the stub pane and backend: every landing below runs shipped code.

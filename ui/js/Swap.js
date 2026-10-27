@@ -122,9 +122,10 @@ function ended(state) {
     return Object.assign({}, state, { holding: false, listed: null, fellBack: false, waits: false, relist: false })
 }
 
-// A stale or window refusal ended only its own request, and so does a scan failure naming a folder no longer asked for; any other failure ends the listing, letting held rows go while it is still out.
+// A stale, window or filterwindow refusal ended only its own request, and so does a scan failure naming a folder no longer asked for; any other failure ends the listing, letting held rows go while it is still out.
+// A filter window's stat on a stuck mount can fail seconds after the user went elsewhere, so it must not end the listing out for the new folder (issue 315).
 function failListing(pane, where, path) {
-    if (where === "stale" || where === "window")
+    if (where === "stale" || where === "window" || where === "filterwindow")
         return false
     if (where === "scan" && !!path && path !== pane.listingPath)
         return false

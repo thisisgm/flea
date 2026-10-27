@@ -87,7 +87,7 @@ Item {
         anchors.rightMargin: Theme.spacing.gap
         anchors.verticalCenter: parent.verticalCenter
         elide: Text.ElideRight
-        text: Filter.summary(root.pane.shown, root.pane.rows.length, root.pane.total)
+        text: Filter.summary(root.pane.shown, root.pane.filterTested, root.pane.total)
         color: Theme.color.muted
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption

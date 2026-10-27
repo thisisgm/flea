@@ -105,6 +105,7 @@ js/Eject.js
 js/Errors.js
 js/ExtThumbs.js
 js/Filter.js
+js/FilterWire.js
 js/Focus.js
 js/FolderSorts.js
 js/FolderViews.js
@@ -176,4 +177,4 @@ js/TrashDates.js
 js/UiState.js
 js/Update.js
 js/UserDirs.js
-bytes 1663891
+bytes 1682212

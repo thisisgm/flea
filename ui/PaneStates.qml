@@ -82,6 +82,8 @@ Item {
         listingState: root.pane.listingState
         lockedMode: root.pane.lockedMode
         total: root.pane.total
+        // The rows the filter has tested: the held window until the folder's answer lands (issue 315).
+        loaded: root.pane.filterTested
         filterQuery: root.pane.filterQuery
         shown: root.pane.filterQuery.length > 0 ? root.pane.shownTotal : -1
     }

@@ -249,7 +249,7 @@ Item {
         // The trash view and the picker both draw this strip with no pane behind it, so the filter's
         // sentence is asked for only where there is a listing to have filtered.
         if (root.pane && root.shownTotal !== root.total) {
-            return Filter.summary(root.pane.shown, root.pane.rows.length, root.total)
+            return Filter.summary(root.pane.shown, root.pane.filterTested, root.total)
         }
         return root.itemText()
     }

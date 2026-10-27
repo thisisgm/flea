@@ -52,22 +52,76 @@ fn rows_line_in(
     // Field names stay one character: a window serialises on every scroll.
     let mut s = String::with_capacity(metas.len() * ROW_BYTES_ESTIMATE);
     s.push_str(&format!(r#"{{"t":"rows","start":{},"rows":["#, start));
+    // Clamped like stat_range, so a stale start cannot panic the backend.
+    let n = metas.len().min(l.len().saturating_sub(start));
+    let indices: Vec<usize> = (start..start + n).collect();
+    let kind_list = push_rows(&mut s, base, body, l, &metas[..n], &indices, false, mime, icons, aliases, thumbs, kinds);
+    finish_line(&mut s, &kind_list, ms);
+    s
+}
+
+// A filter window's rows (issue 315): the row shape above, each carrying "r", the listing row it is,
+// because the rows a filter shows are a set and not a run, and start here is a view position.
+#[allow(clippy::too_many_arguments)]
+pub fn frows_line(
+    base: &Path,
+    l: &Listing,
+    metas: &[Meta],
+    indices: &[usize],
+    start: usize,
+    ms: f64,
+    mime: &Db,
+    icons: &Names,
+    aliases: &Aliases,
+    thumbs: &Thumbnailers,
+    kinds: &mut Kinds,
+) -> String {
+    let body = if gvfs_class(base).is_some() { String::new() } else { mountinfo::read_body() };
+    let n = metas.len().min(indices.len());
+    let mut s = String::with_capacity(n * ROW_BYTES_ESTIMATE);
+    s.push_str(&format!(r#"{{"t":"frows","start":{},"rows":["#, start));
+    let kind_list = push_rows(&mut s, base, &body, l, &metas[..n], &indices[..n], true, mime, icons, aliases, thumbs, kinds);
+    finish_line(&mut s, &kind_list, ms);
+    s
+}
+
+fn finish_line(s: &mut String, kind_list: &[String], ms: f64) {
+    let kinds_json: String = kind_list.iter().map(|k| format!(r#""{}""#, escape(k))).collect::<Vec<_>>().join(",");
+    s.push_str(&format!(r#"],"kinds":[{}],"ms":{:.3}}}"#, kinds_json, ms));
+}
+
+// The rows themselves, one per meta and named by listing row, and the Kind dictionary they index:
+// shared by the window's rows line and the filter's frows line, whose rows also carry r.
+#[allow(clippy::too_many_arguments)]
+fn push_rows(
+    s: &mut String,
+    base: &Path,
+    body: &str,
+    l: &Listing,
+    metas: &[Meta],
+    indices: &[usize],
+    with_row: bool,
+    mime: &Db,
+    icons: &Names,
+    aliases: &Aliases,
+    thumbs: &Thumbnailers,
+    kinds: &mut Kinds,
+) -> Vec<String> {
     // Tags are read for exactly the rows a window emits, and never on a network or phone mount, where each read is a round trip.
     let tag_ok = !matches!(extclass::classify_in(base, body), "network" | "phone");
     // A type with no POSIX modes reports the mount's 0755 for every file, so its execute bits say nothing; Row.p keeps the reported mode.
     let gvfs_modes = crate::backend::gvfsroot::gvfs_modes_are_real(base);
     let mut device_modes = HashMap::new();
     let mut lexical_modes: HashMap<(u64, &str), bool> = HashMap::new();
-    // Clamped like stat_range, so a stale start cannot panic the backend.
-    let n = metas.len().min(l.len().saturating_sub(start));
     // Distinct Kind strings this one response uses, so the per-row cost is an integer, not a repeated string.
     let mut kind_index: HashMap<String, usize> = HashMap::new();
     let mut kind_list: Vec<String> = Vec::new();
-    for (i, m) in metas[..n].iter().enumerate() {
+    for (i, m) in metas.iter().enumerate() {
         if i > 0 {
             s.push(',');
         }
-        let name = l.name(start + i);
+        let row = indices[i];
+        let name = l.name(row);
         let gvfs_modes = if name.contains('/') { crate::backend::gvfsroot::gvfs_modes_are_real(&base.join(name)) } else { gvfs_modes };
         // The stat's dev names the filesystem through symlinks; unlisted devices cache lexical decisions by device and parent without another stat.
         let real_modes = gvfs_modes.unwrap_or_else(|| {
@@ -81,7 +135,7 @@ fn rows_line_in(
                     })
                 })
         });
-        let is_dir = l.is_dir(start + i);
+        let is_dir = l.is_dir(row);
         // Looked up once and shared with the icon and the Kind text, because it is the only per-row allocation here.
         let mime_name = mime.lookup(name);
         // A directory or a special file is never thumbnailed, so the spec lookup is skipped for one; see AGENTS.md "Thumbnail requests".
@@ -129,7 +183,7 @@ fn rows_line_in(
         };
         // The icon is escaped like every other field: the escape is the contract, not an optimisation.
         s.push_str(&format!(
-            r#"{{"n":"{}","d":{},"s":{},"m":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}}}"#,
+            r#"{{"n":"{}","d":{},"s":{},"m":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}}}"#,
             escape(name),
             is_dir,
             m.size,
@@ -138,6 +192,8 @@ fn rows_line_in(
             escape(icon),
             can_thumb,
             k,
+            // Only a filter window's row names its listing row, right after k, where every reader of a rows line expects nothing new.
+            if with_row { format!(r#","r":{}"#, row) } else { String::new() },
             link,
             dev,
             tg,
@@ -145,9 +201,7 @@ fn rows_line_in(
             if real_modes { "" } else { r#","x":false"# }
         ));
     }
-    let kinds_json: String = kind_list.iter().map(|k| format!(r#""{}""#, escape(k))).collect::<Vec<_>>().join(",");
-    s.push_str(&format!(r#"],"kinds":[{}],"ms":{:.3}}}"#, kinds_json, ms));
-    s
+    kind_list
 }
 
 // A directory has no MIME type in this model, so its Kind is one hardcoded string, see docs/protocol.md "rows".

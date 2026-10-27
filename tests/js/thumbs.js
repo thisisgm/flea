@@ -56,6 +56,15 @@ function run(check) {
 
     check("an unknown row reports nothing", Thumbs.fileFor(Thumbs.empty(), 4), "")
     check("a row outside the held window is not asked for", Thumbs.plan(Thumbs.empty(), rows, 10, 0, 3).ask.length, 0)
+    // Issue 315: under a filter the rows drawn are a set, each handed over with the row the pane holds for it, from whichever window holds it.
+    var drawnSet = [{ index: 12, row: { t: true } }, { index: 2340, row: { t: true } }, { index: 2341, row: null }, { index: 5000, row: { d: true } }]
+    var sparse = Thumbs.applied(Thumbs.empty(), { ask: [12, 400, 401], drop: [] })
+    sparse = Thumbs.remember(sparse, 401, "/cache/401.png", 240)
+    var drawnWork = Thumbs.planDrawn(sparse, drawnSet, "media")
+    check("the rows drawn under a filter are asked for wherever in the folder they sit, less the ones asked and the ones not landed",
+          drawnWork.ask.join(","), "2340")
+    check("and a pending row the filter does not draw is dropped, a finished one kept", drawnWork.drop.join(","), "400")
+    check("a pending drawn row no longer allowed is dropped too", Thumbs.planDrawn(sparse, [{ index: 12, row: { t: true } }], "off").drop.join(","), "12,400")
     // Held at 0, so the rows above the viewport are in memory and only the lower bound keeps them out.
     check("a row above the viewport is not asked for", Thumbs.plan(Thumbs.empty(), rows, 0, 2, 3).ask.join(","), "3")
 

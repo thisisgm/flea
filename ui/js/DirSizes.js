@@ -22,6 +22,19 @@ function plan(state, rows, held, first, last) {
     return ask
 }
 
+// The same plan over the rows a filter draws (issue 315), each naming its listing row and the row the pane
+// holds for it, or null for one not landed yet, which is not asked for.
+function planDrawn(state, drawn) {
+    var ask = []
+    for (var i = 0; i < drawn.length; i++) {
+        var row = drawn[i].row
+        if (state.file[drawn[i].index] === undefined && row && row.d) {
+            ask.push(drawn[i].index)
+        }
+    }
+    return ask
+}
+
 // The wrapper is new so a QML binding on it re-evaluates; the map inside is mutated in place.
 function applied(state, ask) {
     for (var i = 0; i < ask.length; i++) {

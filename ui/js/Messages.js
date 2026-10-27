@@ -14,6 +14,10 @@ function route(root, message) {
     } else if (message.t === "rows") {
         var landed = sized(message)
         root.rows(message.start, landed, message.ms, message.kinds || [], message.listing || 0, message.gen || 0)
+    } else if (message.t === "filtered") {
+        root.filtered(message.gen || 0, message.n || 0, message.runs || [], message.ms || 0, message.listing || 0)
+    } else if (message.t === "frows") {
+        root.filterRows(message.start || 0, message.rows || [], message.kinds || [], message.listing || 0, message.gen || 0)
     } else if (message.t === "error") {
         // The backend names an empty clipboard by code, so the one sentence lives in Menu.EMPTY_CLIPBOARD.
         root.failed(message.where, message.path, message.code === "emptyclipboard" ? Menu.EMPTY_CLIPBOARD : message.msg, message.mode || 0)

@@ -40,6 +40,9 @@ Item {
     }
     // listing is the numbering the rows are in, 0 from a backend that does not say; see docs/protocol.md "listing".
     signal rows(int start, var items, real ms, var kinds, real listing, real gen)
+    // The filter's two answers, issue 315: the folder's matches as [start, length] runs, and one view window of their rows, each row carrying r, its listing row.
+    signal filtered(int gen, int total, var runs, real ms, real listing)
+    signal filterRows(int start, var items, var kinds, real listing, int gen)
     // The numbering of the rows the pane holds, which every row-indexed request names back; ui/PaneSwap.qml writes it.
     property real heldListing: 0
     property real firstRowsAt: 0
@@ -251,6 +254,11 @@ Item {
     function window(start, count) {
         root.send({ c: "window", start: start, count: count })
     }
+
+    // The filter's wire, issue 315: the standing query with its gen and first view window, a later view window, and the close.
+    function filter(query, gen, at, before, count) { root.send({ c: "filter", query: query, gen: gen, at: at, before: before, count: count }) }
+    function filterWindow(start, count) { root.send({ c: "filterwindow", start: start, count: count }) }
+    function filterClose() { root.send({ c: "filterclose" }) }
 
     function sort(by, desc) {
         root.send({ c: "sort", by: by, desc: desc,
