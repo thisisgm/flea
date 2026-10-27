@@ -77,6 +77,8 @@ pub struct Joined {
     pub(crate) providers: crate::g2::sd1::join::Senders,
     /// The flyout c or P asked for, opened once the cursor menu draws.
     pub flyout: Option<&'static str>,
+    pub(crate) originals: crate::window::dispatch::menu_original::Originals,
+    pub(crate) shelf: crate::window::dispatch::menu_shelf::Shelf,
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
