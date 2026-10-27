@@ -238,3 +238,22 @@ fn fix_band_ey134_list_held_top_edge_scrolls_and_extends_selection(cx: &mut Test
     });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[gpui::test]
+fn fix_band_grid_pane_not_ready_keeps_no_tile_hit_boxes(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "grid", 10);
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(host.input.hit_boxes.is_some(), "a Ready grid answers presses on its tiles");
+    });
+    shell.update(cx, |shell, cx| {
+        shell.panes[0].as_mut().unwrap().pane.state.kind = crate::pane::states::Kind::Loading;
+        cx.notify();
+    });
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(host.input.hit_boxes.is_none(), "a loading grid draws no tiles, so none answers a press");
+    });
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
