@@ -39,6 +39,15 @@ pub(super) fn update<R>(
 
 impl Fixture {
     pub fn new(cx: &mut TestAppContext, mode: u32) -> Self {
+        Self::listed(cx, mode, true)
+    }
+
+    /// The same sandbox with the listing drawn empty, so a key menu opens on the folder itself.
+    pub fn empty(cx: &mut TestAppContext) -> Self {
+        Self::listed(cx, 0o644, false)
+    }
+
+    fn listed(cx: &mut TestAppContext, mode: u32, rows: bool) -> Self {
         let parent = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.superpowers/m9-makeexec");
         assert!(parent.is_absolute());
         std::fs::create_dir_all(&parent).unwrap();
@@ -75,13 +84,13 @@ impl Fixture {
                 host.pane
                     .receive(Reply::Listed {
                         path: directory,
-                        total: 2,
+                        total: if rows { 2 } else { 0 },
                     })
                     .unwrap();
                 host.pane
                     .receive(Reply::Rows {
                         start: 0,
-                        rows: vec![
+                        rows: [
                             RowFacts {
                                 name: "build.sh".into(),
                                 mode: 0o100000 | mode,
@@ -92,7 +101,10 @@ impl Fixture {
                                 mode: 0o100644,
                                 ..RowFacts::default()
                             },
-                        ],
+                        ]
+                        .into_iter()
+                        .filter(|_| rows)
+                        .collect(),
                         listing: 2,
                     })
                     .unwrap();

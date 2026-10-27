@@ -117,14 +117,14 @@ fn every_saved_dual_launch_precedence_case_matches_the_oracle() {
 }
 
 #[test]
-fn fresh_columns_compact_and_saved_state_are_preserved_without_a_migration() {
+fn fresh_list_compact_and_saved_state_are_preserved_without_a_migration() {
     let raw = r#"{"view":"list","columnsLimit":3,"density":"compact","keys":"vim","lastTabs":{"paths":["/a","/b"],"index":1},"places":{"favourites":["/kept"]},"future":42}"#;
     let json = jsondoc::parse(raw).unwrap();
-    let saved = Settings::from_json(json.clone(), true);
+    let saved = Settings::from_json(json.clone());
     assert_eq!(saved.view, View::List);
     assert_eq!(saved.data, json);
-    let fresh = Settings::from_json(Json::Null, false);
-    assert_eq!(fresh.view, View::Columns);
+    let fresh = Settings::from_json(Json::Null);
+    assert_eq!(fresh.view, View::List);
     assert_eq!(fresh.columns, 3);
     assert_eq!(fresh.rail_width, 192.);
     let launch = Launch::resolve(

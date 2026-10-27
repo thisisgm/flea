@@ -8,9 +8,7 @@ use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 // Actions a key still hands to nobody, by the family that will run them, cited in v0.3.12 ui/js/Focus.js unless another file is named; a family removes its line when it lands.
 #[rustfmt::skip]
 const NOT_YET: &[(&str, &[&str])] = &[
-    // Focus.js:271, ui/Pane.qml:599-602.
-    ("operations", &["properties"]),
-    // Focus.js:250 and 273.
+    // Focus.js:250.
     ("window", &["tags"]),
 ];
 
@@ -123,7 +121,10 @@ fn every_bound_listing_action_has_a_handler_or_a_named_family(cx: &mut TestAppCo
     }
     for action in FOLDER_ROW {
         assert!(!folder.contains(action), "{action} opens a folder row");
-        assert!(!file.contains(action), "{action} on a file row is the opener's");
+        assert!(
+            !file.contains(action),
+            "{action} on a file row is the opener's"
+        );
     }
     let named: BTreeSet<&str> = NOT_YET
         .iter()

@@ -25,12 +25,15 @@ impl Default for Sources {
 }
 
 impl Sources {
-    pub fn load_rows(&self, gio: &str, marks: &str) -> Vec<flea::ui_logic_pl1::RailEntry> {
-        let info = std::fs::read_to_string(&self.mountinfo).unwrap_or_default();
+    pub fn read_mountinfo(&self) -> String {
+        std::fs::read_to_string(&self.mountinfo).unwrap_or_default()
+    }
+
+    pub fn load_rows(&self, gio: &str, marks: &str, info: &str) -> Vec<flea::ui_logic_pl1::RailEntry> {
         let mut rows = flea::ui_logic_pl2::rail::rebuild(
             gio,
             &flea::ui_logic_pl1::mounts::non_file_bookmarks(marks),
-            &info,
+            info,
         );
         let dropbox = if self.home.as_os_str().is_empty() {
             String::new()
@@ -45,7 +48,7 @@ impl Sources {
                 .map(|text| flea::ui_logic_sd1::dropbox::account(&text, "").path)
                 .unwrap_or_default()
         };
-        let local = flea::ui_logic_pl2::cloud::rows(&info, &self.home.to_string_lossy(), &dropbox);
+        let local = flea::ui_logic_pl2::cloud::rows(info, &self.home.to_string_lossy(), &dropbox);
         let at = rows
             .iter()
             .position(|row| !row.path.is_empty())

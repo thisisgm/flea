@@ -198,6 +198,8 @@ impl SelectionPreview {
             thumb_answered: !kind.thumbed(),
             source: None,
             image: None,
+            animation: None,
+            animation_source: None,
             failed: false,
             manual,
             remote,
@@ -297,7 +299,28 @@ impl SelectionPreview {
         true
     }
 
+    // An animated GIF's frames, from the original over its still: asked while the frame waits and after it lands.
+    fn load_animation(frame: &mut Frame, window: &mut Window, cx: &mut Context<Self>) {
+        if frame.animation.is_some() || !frame.animated_gif() {
+            return;
+        }
+        if frame.animation_source.is_none() {
+            frame.animation_source = Some(std::path::PathBuf::from(frame.subject.path()).into());
+        }
+        if let Some(source) = &frame.animation_source {
+            if let Some(Ok(image)) = window.use_asset::<ImageAssetLoader>(source, cx) {
+                if image.frame_count() > 1 {
+                    frame.animation = Some(image);
+                    cx.notify();
+                }
+            }
+        }
+    }
+
     pub(crate) fn poll(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(frame) = self.drawn.as_mut() {
+            Self::load_animation(frame, window, cx);
+        }
         let now = self.now(cx);
         let (width, height) = self.frame_size(
             self.pending.as_ref().map_or(Kind::Facts, |f| f.kind),
@@ -321,6 +344,7 @@ impl SelectionPreview {
                 }
             }
         }
+        Self::load_animation(frame, window, cx);
         let renderer_ready = match &frame.mounted {
             Mounted::Pdf(pdf) => {
                 let pdf = pdf.read(cx);

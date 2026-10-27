@@ -6,7 +6,7 @@ use super::{
     jump_line,
     paint::Paint,
     peek_line, should_navigate,
-    strip::{Hit, Strip, Tap},
+    strip::Strip,
     suggestions::{Ask, Enter, Jump, Pointer, Popup, Ranker, ANSWER_LIMIT_MS},
     Answer, Said,
 };
@@ -25,6 +25,8 @@ pub struct Inputs {
     pub dual: bool,
     pub failed: bool,
     pub show_hidden: bool,
+    pub blocked: bool,
+    pub address_path: bool,
     /// The focused pane's window size, which the peek behind Tab asks for.
     pub first: usize,
 }
@@ -56,6 +58,7 @@ pub struct PathView {
     pub corner: f32,
     pub(crate) probe: Option<crate::visual::Probe>,
     pub(crate) pointer: Pointer,
+    pub(super) pressed_row: Option<(usize, String)>,
     ranker: Box<dyn Ranker>,
     favourites: Vec<String>,
     recent: Vec<String>,
@@ -84,6 +87,7 @@ impl PathView {
             corner: 0.,
             probe: None,
             pointer: Pointer::default(),
+            pressed_row: None,
             ranker,
             favourites: Vec::new(),
             recent: Vec::new(),
@@ -152,7 +156,11 @@ impl PathView {
         let side = slot.saturating_sub(1).min(1);
         let path = &self.inputs.paths[side];
         let alias = alias_at(path, &self.inputs.aliases);
-        self.strips[slot].fit(path, &self.inputs.home, alias.as_ref(), budget);
+        if slot == 0 && self.inputs.address_path {
+            self.strips[slot].fit_path(path, &self.inputs.home, budget);
+        } else {
+            self.strips[slot].fit(path, &self.inputs.home, alias.as_ref(), budget);
+        }
         self.inputs.side == side
     }
 
@@ -181,6 +189,7 @@ impl PathView {
             return;
         }
         self.jump.close();
+        self.pressed_row = None;
         self.hold = None;
         cx.emit(Out::Closed);
         cx.notify();
@@ -346,38 +355,5 @@ impl PathView {
     pub(super) fn press_enter(&mut self) -> Option<Enter> {
         self.jump
             .press_enter(self.ranker.as_ref(), &self.entry.text)
-    }
-
-    /// A press on a strip: a parent opens on the first tap, and only inert ground answers a double click.
-    pub fn press_strip(
-        &mut self,
-        slot: usize,
-        x: f32,
-        taps: usize,
-        modifiers: u8,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let side = slot.saturating_sub(1).min(1);
-        if slot > 0 {
-            self.inputs.side = side;
-            cx.emit(Out::Focus(side));
-        }
-        let hit = self.strips[slot].hit(x);
-        match self.strips[slot].press(hit, taps, modifiers) {
-            Tap::Open(path) => cx.emit(Out::Open {
-                side: if slot == 0 { self.inputs.side } else { side },
-                path,
-            }),
-            Tap::Edit => self.open(window, cx),
-            Tap::Nothing => {}
-        }
-    }
-
-    pub fn hover_strip(&mut self, slot: usize, x: Option<f32>, cx: &mut Context<Self>) {
-        let hit: Option<Hit> = x.map(|x| self.strips[slot].hit(x));
-        if self.strips[slot].hover(hit) {
-            cx.notify();
-        }
     }
 }

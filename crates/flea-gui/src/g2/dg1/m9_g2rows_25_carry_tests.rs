@@ -1,11 +1,62 @@
 //! Carry in the production Shell from real keystrokes: X lifts the marked rows through the key table and dispatch, the backend names them, the footer says the carry, esc drops it, and a click lands it through op1 as a paste does.
 use super::carry::{Carrying, LAYERS, OFFSET};
 use super::m9_g2rows_25_rig::{
-    answer, carry_key, click, edit, escape_key, frame, mark, notice, open, pending_frame, press,
-    reply, riding,
+    answer, carry_key, click, edit, escape_key, footer_status, frame, mark, notice, open,
+    pending_frame, press, reply, riding,
 };
 use crate::backend::Event as BackendEvent;
 use gpui::{point, px, TestAppContext};
+
+#[gpui::test]
+fn m9_g2rows_25_carry_escape_restores_primary_and_muted_status(cx: &mut TestAppContext) {
+    carry_end_restores_status(cx, false);
+}
+
+#[gpui::test]
+fn m9_g2rows_25_carry_drop_restores_primary_and_muted_status(cx: &mut TestAppContext) {
+    carry_end_restores_status(cx, true);
+}
+
+fn carry_end_restores_status(cx: &mut TestAppContext, drop: bool) {
+    let (handle, mut lines) = open(cx, "/files", &["docs", "a.txt", "b.md", "c.txt"]);
+    lines();
+    mark(cx, handle, vec![1, 2, 3]);
+    frame(cx, handle);
+    let before = footer_status(cx, handle);
+    assert!(before.0.starts_with("3 of 4 selected"));
+    assert!(before.1.primary.is_empty() && before.1.hint.is_empty());
+    carry_key(cx, handle);
+    lines();
+    answer(cx, handle, &["/files/a.txt", "/files/b.md", "/files/c.txt"]);
+    let carrying = footer_status(cx, handle).1;
+    assert_eq!(carrying.primary.as_ref(), "Carrying 3 items");
+    assert_eq!(
+        carrying.hint.as_ref(),
+        " · click where they go, esc cancels"
+    );
+    if drop {
+        assert!(click(cx, handle, "/files/docs", false, true));
+        assert_eq!(lines().len(), 1);
+    } else {
+        escape_key(cx, handle);
+        assert!(lines().is_empty());
+    }
+    assert!(riding(cx).is_none());
+    assert_eq!(
+        footer_status(cx, handle),
+        before,
+        "CARRY_END_RESTORES_STATUS"
+    );
+    assert_eq!(
+        edit(cx, handle, |shell, _, _| shell.panes[0]
+            .as_ref()
+            .unwrap()
+            .selected
+            .clone()),
+        vec![1, 2, 3]
+    );
+    edit(cx, handle, |shell, _, _| shell.stop_for_app_quit());
+}
 
 #[gpui::test]
 fn m9_g2rows_25_carry_captures_all_paths_and_escape_cancels(cx: &mut TestAppContext) {

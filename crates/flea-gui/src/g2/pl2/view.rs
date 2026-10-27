@@ -4,22 +4,10 @@ use super::{
     drawing::Drawn,
     words::Words,
 };
-use crate::{
-    g2::{
-        mn1::{
-            lines::Env,
-            menu::{Face, Menu, Outcome},
-        },
-        op1::palette::CardPalette,
-    },
-    list::Typeface,
-};
-use flea::{
-    i18n::I18n,
-    ui_logic_mn1::{fit::Rect, Brand, Entry, Text},
-};
+use crate::g2::op1::palette::CardPalette;
+use flea::i18n::I18n;
 use gpui::{Context, EventEmitter, FocusHandle, Window};
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, sync::Arc};
 
 pub struct NetworkEvent(pub Effect);
 pub struct NetworkView {
@@ -37,11 +25,11 @@ pub struct NetworkView {
     pub scroll: f32,
     pub(super) focus: FocusHandle,
     pub input: crate::path::entry::Entry,
+    pub(super) input_owner: Option<Focus>,
+    pub(super) input_origin: std::cell::Cell<gpui::Point<gpui::Pixels>>,
     pub(super) password_selection: std::ops::Range<usize>,
     pub(super) password_reversed: bool,
     pub(super) password_marked: Option<std::ops::Range<usize>>,
-    pub(super) menu: Rc<RefCell<Menu>>,
-    menu_dirty: bool,
     pub(super) shown_status: Option<(&'static str, String)>,
     pub(super) dimensions: (f32, f32),
 }
@@ -64,11 +52,11 @@ impl NetworkView {
             scroll: 0.,
             focus: cx.focus_handle(),
             input: Default::default(),
+            input_owner: None,
+            input_origin: Default::default(),
             password_selection: 0..0,
             password_reversed: false,
             password_marked: None,
-            menu: Rc::default(),
-            menu_dirty: true,
             shown_status: None,
             dimensions: (0., 0.),
         }
@@ -140,13 +128,6 @@ impl NetworkView {
         }
         self.changed(cx);
     }
-    pub fn line(&mut self, line: &str, cx: &mut Context<Self>) -> bool {
-        let changed = self.model.discovery.line(line);
-        if changed {
-            self.changed(cx);
-        }
-        changed
-    }
     pub fn changed(&mut self, cx: &mut Context<Self>) {
         let status = self
             .model
@@ -157,16 +138,7 @@ impl NetworkView {
             self.shown_status = status;
         }
         self.revision += 1;
-        self.menu_dirty = true;
         cx.notify();
-    }
-    /// Observation only: whether the window's keyboard focus sits inside the card.
-    pub fn holds_focus(&self, window: &Window, cx: &gpui::App) -> bool {
-        self.focus.contains_focused(window, cx)
-    }
-    /// Observation only: the height the body scrolls over, title and buttons included.
-    pub fn scroll_content(&self) -> f32 {
-        self.content_height()
     }
     pub(super) fn paint_changed(&mut self, cx: &mut Context<Self>) {
         self.revision += 1;
@@ -187,19 +159,32 @@ impl NetworkView {
         if self.model.opened {
             return;
         }
-        self.input = Default::default();
+        self.input.close();
+        self.input_owner = None;
+        self.drawn.borrow_mut().ime.registered = None;
         self.password_selection = 0..0;
         self.password_reversed = false;
         self.password_marked = None;
-        self.menu.borrow_mut().close();
         self.effects(effects, cx);
     }
     pub fn load_input(&mut self) {
         self.fit_focus();
+        self.input_owner = None;
+        self.drawn.borrow_mut().ime.registered = None;
         self.password_marked = None;
         let units = super::secret_edit::units(&self.model.password);
         self.password_selection = units..units;
         self.password_reversed = false;
+        if self.model.focus == Focus::Password
+            && self.model.opened
+            && !self.model.busy()
+            && !self.model.committed
+        {
+            crate::g2::pl1::private_entry::begin(&mut self.input, &self.model.password);
+            self.input.move_to(self.input.text.len());
+            self.input_owner = Some(Focus::Password);
+            return;
+        }
         let text = match self.model.focus {
             Focus::Label => &self.model.form.label,
             Focus::Host => &self.model.form.host,
@@ -212,10 +197,10 @@ impl NetworkView {
                 return;
             }
         };
-        self.input = Default::default();
-        self.input.editing = true;
-        self.input.text = text.clone();
+        self.input.private = false;
+        self.input.begin(text);
         self.input.move_to(text.len());
+        self.input_owner = Some(self.model.focus);
     }
     pub(super) fn fit_focus(&mut self) {
         if self.dimensions.1 <= 0. {
@@ -252,97 +237,6 @@ impl NetworkView {
         };
         target.clone_from(&self.input.text);
         self.changed(cx);
-    }
-    pub(super) fn env<'a>(&'a self, typeface: &'a Typeface) -> Env<'a> {
-        Env {
-            catalog: &self.catalog,
-            preset: "default",
-            key_hints: false,
-            typeface,
-            inset: 0.,
-        }
-    }
-    pub(super) fn sync_menu(&mut self, window: &Window) {
-        if !self.menu_dirty {
-            return;
-        }
-        self.menu_dirty = false;
-        if self.model.focus != Focus::Host || self.model.busy() {
-            self.menu.borrow_mut().close();
-            return;
-        }
-        let entries = self
-            .model
-            .discovery
-            .filtered(&self.model.form.host)
-            .into_iter()
-            .map(|index| {
-                let host = &self.model.discovery.rows[index];
-                let mut row =
-                    Entry::row(index.to_string(), Text::Data(host.name.clone()), "server");
-                if host.tailnet {
-                    row.brand = Some(Brand::Tailscale);
-                }
-                let protocol = self.catalog.tr(match host.address.scheme.as_str() {
-                    "sftp" => "network.sftp",
-                    "ftp" | "ftps" => "network.ftps",
-                    "dav" | "davs" => "network.webdav",
-                    "nfs" => "network.nfs",
-                    _ => "network.smb",
-                });
-                let tailnet = self.catalog.tr("network.tailscale");
-                let caption = self.catalog.tr_args(
-                    "network.host_caption",
-                    &[
-                        &protocol,
-                        if host.tailnet {
-                            &tailnet
-                        } else {
-                            &host.address.host
-                        },
-                    ],
-                );
-                row.hint = Some(Text::Data(caption));
-                row
-            })
-            .collect::<Vec<_>>();
-        let width = self.dimensions.0;
-        let height = self.dimensions.1;
-        let x = (width - super::drawing::WIDTH.min(width - 16.)) / 2. + 17.;
-        let y = (height - self.frame_height(height)) / 2. + 224. - self.scroll;
-        let mut typeface = Typeface::omarchy_default();
-        typeface.font = window.text_style().font();
-        self.menu.borrow_mut().open(
-            Face::Place,
-            entries,
-            (x, y),
-            Rect {
-                x: 0.,
-                y: 0.,
-                w: width,
-                h: height,
-            },
-            "",
-            &self.env(&typeface),
-            window,
-        );
-        if let Some(card) = &mut self.menu.borrow_mut().card {
-            card.frame.w = super::drawing::WIDTH.min(width - 16.) - 34.;
-            for line in &mut card.built.lines {
-                line.key = line.word.take();
-            }
-        }
-    }
-    pub(super) fn menu_outcome(&mut self, outcome: Outcome, cx: &mut Context<Self>) -> bool {
-        if let Outcome::Fire { action, .. } = outcome {
-            if let Ok(index) = action.parse() {
-                self.model.choose_suggestion(index);
-                self.load_input();
-                self.changed(cx);
-            }
-            return true;
-        }
-        false
     }
     pub(super) fn activate(&mut self, focus: Focus, cx: &mut Context<Self>) {
         if focus == Focus::Eye {

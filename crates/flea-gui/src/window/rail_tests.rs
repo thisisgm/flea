@@ -190,6 +190,31 @@ fn u08_keyboard_moves_the_rail_cursor_and_hiding_returns_focus(cx: &mut TestAppC
     assert!(!producer(&shell, cx).read_with(cx, |producer, _| producer.model.borrow().focused));
 }
 
+// EY-205: PaneRail.qml revealed is the pointer or keyboard reveal in every mode, so a docked rail the keyboard holds reads true.
+#[gpui::test]
+fn ey205_docked_rail_reports_revealed_while_the_keyboard_holds_it(cx: &mut TestAppContext) {
+    let (shell, cx) = open(false, cx);
+    rows(&shell, vec![row("A", "/a"), row("B", "/b")], cx);
+    let revealed = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        let state = jsondoc::parse(&ipc(shell, "railState", &[], cx).stdout).unwrap();
+        matches!(state.get("revealed"), Some(jsondoc::Json::Bool(true)))
+    };
+    assert!(!revealed(&shell, cx), "nothing holds the docked rail yet");
+    shell.update(cx, |shell, cx| shell.rail_focus(true, cx));
+    frame(cx);
+    assert!(
+        revealed(&shell, cx),
+        "the keyboard on a docked rail reveals it, as Ipc.qml's railRevealed does"
+    );
+    // Tab out hands the window back to the listing, as rail.rs does, or the window keeps the rail held.
+    shell.update_in(cx, |shell, window, cx| {
+        shell.rail_focus(false, cx);
+        window.focus(&shell.focus, cx);
+    });
+    frame(cx);
+    assert!(!revealed(&shell, cx), "Tab out withdraws the reveal at once");
+}
+
 #[gpui::test]
 fn u08_trash_count_handoff_changes_the_live_draw_and_respects_the_setting(cx: &mut TestAppContext) {
     let (shell, cx) = open(false, cx);

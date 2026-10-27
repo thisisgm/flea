@@ -15,13 +15,6 @@ pub(super) fn run(
             shell.network_add(shell.focus_side, window, cx);
             true
         }
-        Order::Action(event) if event.action == "openTerminal" => {
-            let side = shell.focus_side;
-            if let Some(path) = shell.panes[side].as_ref().map(|host| host.path.clone()) {
-                shell.open_terminal(side, path, window, cx);
-            }
-            true
-        }
         Order::Action(event) if event.action == "extThumbs" => {
             toggle_ext_thumbs(shell, shell.focus_side, window, cx);
             true

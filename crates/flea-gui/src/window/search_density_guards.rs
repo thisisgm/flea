@@ -6,7 +6,7 @@ pub(super) fn open_density(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> 
     edit(cx, handle, |shell, _, _| {
         // The shared fixture stores {}; production settings loading supplies the full defaults.
         shell.launch.settings =
-            crate::window::startup::Settings::from_json(flea::uistate::from_file("{}"), false);
+            crate::window::startup::Settings::from_json(flea::uistate::from_file("{}"));
         assert!(!shell.panes[0].as_ref().unwrap().pane.busy());
         assert_eq!(shell.settings.relist, [false, false]);
     });

@@ -6,6 +6,9 @@ use crate::state::tests::shell_with;
 use crate::window::rail::mount;
 use gpui::{AnyView, TestAppContext, VisualTestContext};
 
+#[path = "network_alias_tests.rs"]
+mod alias_tests;
+
 #[derive(Default)]
 struct Recorder {
     jobs: RefCell<Vec<Job>>,
@@ -294,6 +297,9 @@ mod result_tests;
 
 #[path = "network_ipc_tests.rs"]
 mod ipc_tests;
+
+#[path = "network_typing_tests.rs"]
+mod typing;
 
 #[path = "network_parity_tests.rs"]
 mod parity_tests;

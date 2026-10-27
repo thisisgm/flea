@@ -34,6 +34,7 @@ pub fn palette() -> Palette {
         surface: grey(0.14),
         foreground: grey(0.85),
         bright: grey(0.95),
+        figure_muted: grey(0.7),
         muted: grey(0.6),
         muted_frame: grey(0.4),
         accent_frame: hue(0.6),
