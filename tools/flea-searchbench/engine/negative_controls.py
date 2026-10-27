@@ -4,10 +4,12 @@ import json
 import pathlib
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 from contracts import checked_result, classify_file_rank, classify_rank, identities, inventory_report, quality_reason
 from fixtures import marked_root
 from measure import Measurements
+from priors import RICH_OPENS, replay
 
 
 def adapter(root, mode):
@@ -73,6 +75,22 @@ def run_controls(parent):
     else:
         raise AssertionError('file rank control: a folder target must fail loud, never rank as a miss')
     report['file-rank'] = dict(accepted=True, reasons=[])
+    state = root / 'rich-replay'
+    (state / 'data').mkdir(parents=True)
+    rich = replay(state, tree, expected, ['target.rs'], 'rich', dict(XDG_DATA_HOME=str(state / 'data')))
+    if rich['replay'] != ['target.rs'] or rich['held_out']:
+        raise AssertionError(f"rich replay control: the rich profile must replay the targets and hold none out, got replay={rich['replay']} held_out={rich['held_out']}")
+    xbel = state / 'data' / 'recently-used.xbel'
+    application = '{http://www.freedesktop.org/standards/desktop-bookmarks}application'
+    try:
+        # <bookmark href="file:///.../target.rs"><info><metadata owner="..."><bookmark:applications><bookmark:application name="findbench-replay" count="3"/>
+        opens = [(mark.get('href'), [app.get('count') for app in mark.iter(application)])
+                 for mark in ET.parse(xbel).getroot().iter('bookmark')]
+    except (OSError, ET.ParseError) as error:
+        raise AssertionError(f'rich replay control: cannot read {xbel}: {error}') from error
+    if opens != [((tree / 'target.rs').as_uri(), [str(RICH_OPENS)])]:
+        raise AssertionError(f'rich replay control: {xbel} must hold one bookmark per target with {RICH_OPENS} opens, got {opens}')
+    report['rich-replay'] = dict(accepted=True, reasons=[])
     from production_controls import run_production_controls
     report.update(run_production_controls(root))
     (root / 'controls.json').write_text(json.dumps(report, indent=2) + '\n')
