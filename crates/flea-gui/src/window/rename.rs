@@ -297,6 +297,33 @@ impl Shell {
         }
     }
 
+    /// The band a refused name draws under its row: the caption line and one gap, RenameField.qml's errorHeight.
+    pub(crate) fn rename_band(&self, side: usize, window: &Window) -> f32 {
+        let Some(edit) = self
+            .rename
+            .edit
+            .as_ref()
+            .filter(|edit| edit.side == side && !edit.error.is_empty())
+        else {
+            return 0.;
+        };
+        if self.renaming_row(side).is_none() {
+            return 0.;
+        }
+        let Some(host) = self.panes[side].as_ref() else {
+            return 0.;
+        };
+        let typeface = host.list.borrow().typeface.clone();
+        let gap = crate::list::Metrics::for_typeface(&typeface).gap;
+        let caption = field::caption_line(
+            window,
+            &edit.error,
+            typeface.font.clone(),
+            typeface.caption,
+        );
+        f32::from(caption) + gap
+    }
+
     /// The row the editor stands over, when it is this side's drawn listing.
     pub(crate) fn renaming_row(&self, side: usize) -> Option<usize> {
         let edit = self.rename.edit.as_ref()?;

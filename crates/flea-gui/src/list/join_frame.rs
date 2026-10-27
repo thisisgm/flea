@@ -90,7 +90,8 @@ impl Shell {
                         )
                     },
                 );
-                let mut frame = crate::input::Frame::list(bounds, &metrics, &host.pane);
+                let mut frame =
+                    crate::input::Frame::list(bounds, &metrics, &host.pane, Default::default());
                 // Invalidate old geometry before an edge step can move the current viewport.
                 host.input
                     .prepare(frame, &mut host.selected, &mut host.pane.cursor);

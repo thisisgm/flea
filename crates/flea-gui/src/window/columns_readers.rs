@@ -49,9 +49,9 @@ impl Reader<'_> {
         }
         let bounds = drawn.bounds;
         let x = f32::from(bounds.origin.x + bounds.size.width / 2.);
-        let y = f32::from(bounds.origin.y) + index as f32 * crate::list::pane::ROW_HEIGHT
-            - drawn.scroll
-            + crate::list::pane::ROW_HEIGHT / 2.;
+        let row = crate::list::pane::ROW_HEIGHT;
+        let position = drawn.position_of(index).unwrap_or(index);
+        let y = f32::from(bounds.origin.y) + drawn.grow.top(position, row) - drawn.scroll + row / 2.;
         format!("{} {}", x.round(), y.round())
     }
 
@@ -205,7 +205,7 @@ impl crate::state::Shell {
         let drawn = paint.drawn.as_ref()?;
         let row = crate::list::pane::ROW_HEIGHT;
         let at = drawn.position_of(host.pane.cursor)?;
-        let y = f32::from(drawn.bounds.origin.y) + at as f32 * row - drawn.scroll + row / 2.;
+        let y = f32::from(drawn.bounds.origin.y) + drawn.grow.top(at, row) - drawn.scroll + row / 2.;
         Some((f32::from(drawn.bounds.origin.x) + 14., y))
     }
 }

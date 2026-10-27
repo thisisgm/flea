@@ -18,16 +18,28 @@ pub(super) fn surface(
     crate::input::surface_with(cx.entity(), side, move |shell, bounds| {
         let host = shell.panes[side].as_mut()?;
         let total = host.filter.shown_total(host.pane.held.total);
+        // The active track's band as its last frame drew it, so the surface places rows as the track does.
+        let grow = host
+            .columns
+            .as_ref()
+            .and_then(|columns| columns.painters.get(Slot::Active))
+            .and_then(|paint| {
+                let paint = paint.borrow();
+                paint.drawn.as_ref().map(|drawn| drawn.grow)
+            })
+            .unwrap_or_default();
+        let row = crate::list::pane::ROW_HEIGHT;
         let frame = crate::input::Frame {
             bounds,
-            row: crate::list::pane::ROW_HEIGHT,
+            row,
             lane: LANE,
-            content: total as f32 * crate::list::pane::ROW_HEIGHT,
+            content: grow.content(total, row),
             scroll: host.pane.scroll_y,
             listing: host.pane.held.listing,
             total,
             columns: 1,
             cell_width: f32::from(bounds.size.width) - LANE,
+            grow,
         };
         host.input
             .prepare(frame, &mut host.selected, &mut host.pane.cursor);
@@ -105,9 +117,10 @@ pub(crate) fn drop_spot(
         {
             return None;
         }
-        let position = ((f32::from(point.y - drawn.bounds.top()) + drawn.scroll)
-            / crate::list::pane::ROW_HEIGHT)
-            .floor() as usize;
+        let position = drawn.grow.position_at(
+            f32::from(point.y - drawn.bounds.top()) + drawn.scroll,
+            crate::list::pane::ROW_HEIGHT,
+        );
         let row = (point.x < drawn.bounds.right() - px(LANE))
             .then_some(drawn.row_at(position))
             .flatten();

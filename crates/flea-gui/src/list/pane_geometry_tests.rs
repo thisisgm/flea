@@ -33,6 +33,7 @@ fn g70_row_height_preserves_fractional_anchor_before_the_next_extent_frame() {
         Bounds::new(point(px(0.), px(0.)), size(px(900.), px(390.))),
         &Metrics::at(px(20.)),
         &pane,
+        Default::default(),
     );
     assert_eq!(frame.content, 4237.);
     pane.scroll_extent = Some(frame.content);

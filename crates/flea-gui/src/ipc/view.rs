@@ -151,7 +151,7 @@ impl Adapter for ViewAdapter<'_> {
                     return None;
                 }
                 let count = if ready { list.drawn_rows.total } else { 0 };
-                let end = count as f32 * drawn.metrics.row + drawn.metrics.header
+                let end = drawn.grow.content(count, drawn.metrics.row) + drawn.metrics.header
                     - f32::from(drawn.bounds.size.height);
                 ((end + 0.5).floor() as i64).to_string()
             }
