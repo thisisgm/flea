@@ -117,6 +117,8 @@ mod opener_menu_tests;
 #[cfg(test)]
 mod opener_tests;
 #[cfg(test)]
+mod pb_fileops_tests;
+#[cfg(test)]
 mod previewtypes_cover_tests;
 #[cfg(test)]
 mod previewtypes_fit_tests;
