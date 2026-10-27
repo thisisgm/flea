@@ -1,11 +1,8 @@
 //! A normal Root with recorded backend traffic and quiet external services.
 use crate::{backend::Backend, state::Shell, window::root::Root};
-use flea::{
-    ipc::wire::Request,
-    jsondoc::{self, Json},
-};
+use flea::{ipc::wire::Request, jsondoc};
 use gpui::{px, size, AnyView, AppContext, Entity, TestAppContext, VisualTestContext};
-use std::{rc::Rc, time::Duration};
+use std::rc::Rc;
 
 struct Quiet;
 impl crate::g2::pl1::process::Runner for Quiet {
@@ -56,11 +53,6 @@ pub(super) fn draw(cx: &mut VisualTestContext) {
     cx.run_until_parked();
 }
 
-pub(super) fn settle(cx: &mut VisualTestContext) {
-    cx.executor().advance_clock(Duration::from_millis(200));
-    draw(cx);
-}
-
 pub(super) fn read(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
@@ -87,8 +79,4 @@ pub(super) fn read(
     });
     assert_eq!(reply.code, 0, "{function}: {reply:?}");
     reply.stdout.trim_end_matches('\n').into()
-}
-
-pub(super) fn json(shell: &Entity<Shell>, cx: &mut VisualTestContext, function: &str) -> Json {
-    jsondoc::parse(&read(shell, cx, function, &[])).unwrap()
 }

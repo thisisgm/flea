@@ -99,6 +99,7 @@ pub fn section(rows: &[RailEntry], shown: bool) -> Vec<RailSection> {
                 path: row.path.clone(),
                 uri: row.uri.clone(),
                 mounted: Some(row.mounted),
+                releasable: flea::ui_logic_pl1::eject::releasable(row),
                 glyph: "server",
                 ..rail::RailEntry::default()
             })
