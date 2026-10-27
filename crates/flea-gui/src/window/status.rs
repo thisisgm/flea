@@ -1,7 +1,7 @@
 //! The window's footer joins the pane count and disk facts around fb1's message service.
 use crate::{
     g2::fb1::{
-        line::{ArmLost, MessageLine},
+        line::{ArmLost, MessageLine, NoticeEnded},
         observe::Paint,
     },
     list::{Metrics, Palette, Typeface},
@@ -100,6 +100,14 @@ impl Shell {
                     cx.notify();
                 }
             }));
+            // The notice channel's own clock ends the operation line that a listing keeps.
+            let ended = cx.subscribe(&line, |shell, _, _: &NoticeEnded, cx| {
+                for host in shell.panes.iter_mut().flatten() {
+                    host.end_operation_line();
+                }
+                cx.notify();
+            });
+            self.surfaces[0].notice_watch = Some(ended);
         }
         footer
     }

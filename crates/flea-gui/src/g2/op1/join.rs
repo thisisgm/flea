@@ -239,6 +239,7 @@ impl Shell {
         } else if let Some(notice) = notice {
             if let Some(host) = self.panes[side].as_mut() {
                 host.status = notice.text.clone().into();
+                host.operation_line = None;
             }
             cx.emit(OperationUpdate {
                 side,
@@ -305,8 +306,10 @@ impl Shell {
         }
         if let Some(message) = said.last() {
             host.status = message.text.clone().into();
+            host.operation_line = Some(message.text.clone());
         } else if !sticky.is_empty() {
             host.status = sticky.clone().into();
+            host.operation_line = None;
         }
         changed |= host.status != before;
         let spent_cut = spent_cut && sent;

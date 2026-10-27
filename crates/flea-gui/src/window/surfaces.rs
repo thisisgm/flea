@@ -23,6 +23,7 @@ pub(crate) struct Refusal {
 pub(crate) struct Surfaces {
     pub(crate) footer: Option<Entity<super::status::Footer>>,
     pub(crate) footer_watch: Option<gpui::Subscription>,
+    pub(crate) notice_watch: Option<gpui::Subscription>,
     pub(crate) detail_height: f32,
     pub(crate) detail_text: gpui::SharedString,
     pub(crate) filesystem: super::status::Filesystem,
