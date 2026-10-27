@@ -5,6 +5,8 @@ mod fixture;
 mod sw03;
 #[path = "makeexec_menurefuse_tests.rs"]
 mod menurefuse;
+#[path = "flyleaf_tests.rs"]
+mod flyleaf;
 use crate::g2::mn1::join_tests::read;
 use fixture::{number, update, Fixture, Process};
 use flea::jsondoc::{self, Json};
