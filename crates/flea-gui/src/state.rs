@@ -28,6 +28,8 @@ pub struct Shell {
     pub lifecycle: Lifecycle,
     pub view: View,
     pub focus_side: usize,
+    /// The rename band's Grow per side, set once per render so every list frame of that side agrees.
+    pub grows: [crate::list::pane::Grow; 2],
     pub keyboard: crate::window::input::Keyboard,
     pub input: crate::input::focus::Focus,
     pub(crate) panes: [Option<PaneHost>; 2],
@@ -117,6 +119,7 @@ impl Shell {
             launch,
             view,
             focus_side,
+            grows: Default::default(),
             keyboard: crate::window::input::Keyboard::default(),
             input: Default::default(),
             path_labels,

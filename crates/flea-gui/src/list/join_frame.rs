@@ -37,6 +37,9 @@ impl Shell {
         let geometry = self.geometry(window);
         let view = self.shown_view();
         let viewport = self.seam.viewport();
+        // One Grow per side for every list frame of this render, so the frames below agree with the rows the views paint.
+        self.grows = [0, 1].map(|side| self.frame_grow(side, window));
+        let grows = self.grows;
         #[cfg(test)]
         let mut prepared = [None; 2];
         // Clamp the viewport before scene reveals and before the settle captures its scroll.
@@ -91,7 +94,7 @@ impl Shell {
                     },
                 );
                 let mut frame =
-                    crate::input::Frame::list(bounds, &metrics, &host.pane, Default::default());
+                    crate::input::Frame::list(bounds, &metrics, &host.pane, grows[side]);
                 // Invalidate old geometry before an edge step can move the current viewport.
                 host.input
                     .prepare(frame, &mut host.selected, &mut host.pane.cursor);

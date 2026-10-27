@@ -3,7 +3,7 @@ pub use super::row_text::drawn_name;
 use super::row_text::{bold_name, prepare, run_of};
 use super::{
     columns::{Column, Layout},
-    pane::{Grow, Held},
+    pane::Held,
     ListState, Metrics, Palette, RowState, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM,
     GREY_CURSOR, HOVER, MATCH_WASH, TRACK,
 };
@@ -341,11 +341,7 @@ impl Element for ListElement {
         let height = f32::from(bounds.size.height);
         let drawn_total = self.shown.as_ref().map_or(held.total, |rows| rows.len());
         // A refused rename grows its row and moves the rows below it down by the band.
-        let grow = Grow::of_row(
-            self.states.renaming,
-            self.states.band,
-            self.shown.as_deref(),
-        );
+        let grow = self.states.grow;
         let (first, last) = grow.span(self.scroll_y, height, metrics.row, drawn_total);
         rows.begin(
             &shaping,

@@ -22,7 +22,7 @@ impl Shell {
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let no_match = self.no_match_hero(side, window, cx);
         let renaming = self.renaming_row(side);
-        let band = self.rename_band(side, window);
+        let grow = self.grows[side];
         let host = self.panes[side].as_mut()?;
         let columns = host.columns.as_mut()?;
         let tracks = Rc::clone(columns.area.tracks());
@@ -54,7 +54,7 @@ impl Shell {
             cursor: (!host.pane.busy()).then_some(host.pane.cursor),
             selected: host.selected.clone().into(),
             renaming,
-            band,
+            grow,
             ..Focus::default()
         });
         drop(list);

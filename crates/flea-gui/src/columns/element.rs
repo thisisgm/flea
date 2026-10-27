@@ -138,7 +138,7 @@ impl Element for TrackElement {
         let view = &self.tracks[self.at];
         // A refused rename grows the active track's edited row and moves the rows below it down.
         let grow = if view.slot == Slot::Active {
-            Grow::of_row(self.focus.renaming, self.focus.band, self.shown.as_deref())
+            self.focus.grow
         } else {
             Grow::default()
         };

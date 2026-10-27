@@ -18,10 +18,11 @@ pub struct Painted {
 
 pub fn surface(shell: Entity<Shell>, side: usize) -> impl IntoElement {
     surface_with(shell, side, move |shell, bounds| {
+        let grow = shell.grows[side];
         let host = shell.panes[side].as_ref()?;
         let list = host.list.borrow();
         Some((
-            Frame::list(bounds, &list.drawn.metrics, &host.pane, list.drawn.grow),
+            Frame::list(bounds, &list.drawn.metrics, &host.pane, grow),
             list.drawn.palette?,
         ))
     })

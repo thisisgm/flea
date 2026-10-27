@@ -324,6 +324,21 @@ impl Shell {
         f32::from(caption) + gap
     }
 
+    /// The Grow every list frame of this side takes this render: the band under the edited row, none in Grid.
+    pub(crate) fn frame_grow(&self, side: usize, window: &Window) -> crate::list::pane::Grow {
+        let Some(host) = self.panes[side].as_ref() else {
+            return Default::default();
+        };
+        if self.shown_view() == crate::window::startup::View::Grid {
+            return Default::default();
+        }
+        crate::list::pane::Grow::of_row(
+            self.renaming_row(side),
+            self.rename_band(side, window),
+            host.filter.shown.as_deref(),
+        )
+    }
+
     /// The row the editor stands over, when it is this side's drawn listing.
     pub(crate) fn renaming_row(&self, side: usize) -> Option<usize> {
         let edit = self.rename.edit.as_ref()?;
