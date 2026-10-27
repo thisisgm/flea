@@ -8,6 +8,11 @@ use gpui::{
 };
 use std::{cell::RefCell, rc::Rc};
 
+// The selection wash over the shaped leaf, and the band heights of the plain field and the filter field.
+const WASH: f32 = 0.24;
+const FIELD_BAND: f32 = 20.;
+const FILTER_BAND: f32 = 18.;
+
 #[derive(Default)]
 pub(super) struct Drawn {
     pub line: Line,
@@ -179,7 +184,7 @@ impl<T: EntryHost> Element for Input<T> {
         let line = &drawn.line;
         let origin = bounds.left() - line.scroll;
         let filter = self.strip.is_some();
-        let band = if filter { 18. } else { 20. };
+        let band = if filter { FILTER_BAND } else { FIELD_BAND };
         let top = bounds.top() + (bounds.size.height - px(band)) / 2.;
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             if filter {
@@ -189,7 +194,7 @@ impl<T: EntryHost> Element for Input<T> {
                 let (from, to) = line.entry_span(entry, &entry.selected);
                 window.paint_quad(fill(
                     Bounds::new(point(origin + from, top), size(to - from, px(band))),
-                    palette.accent.opacity(0.24),
+                    palette.accent.opacity(WASH),
                 ));
             }
             if let Some(run) = &line.run {

@@ -169,7 +169,7 @@ impl HeaderState {
         match column {
             None => {
                 // A Dual pane sets the name over the row labels, not the padding.
-                let x = if dual { metrics.label_x() } else { metrics.pad };
+                let x = if dual { metrics.label_x() } else { metrics.pad + (layout.name.x - metrics.label_x()).max(0.) };
                 Some(Cell {
                     x,
                     width: (layout.name.right() - x).max(0.),

@@ -45,18 +45,38 @@ fn control(name: &str, bounds: Bounds<Pixels>, focused: bool, enabled: bool) -> 
 
 impl Live<'_> {
     fn buttons(&self) -> Vec<Json> {
-        jsondoc::parse(&self.picker.drawn.controls_json())
+        let mut buttons: Vec<Json> = jsondoc::parse(&self.picker.drawn.controls_json())
             .ok()
             .and_then(|value| value.as_array().map(<[_]>::to_vec))
-            .unwrap_or_default()
+            .unwrap_or_default();
+        for (index, button) in buttons.iter_mut().enumerate() {
+            if let Json::Obj(members) = button {
+                members.retain(|(key, _)| key != "focused");
+                let id = if index == 0 { "picker-cancel" } else { "picker-answer" };
+                members.push(("focused".into(), Json::Bool(self.picker.chrome.focused == Some(id))));
+            }
+        }
+        buttons
     }
 
     fn controls_value(&self) -> Vec<Json> {
         let mut controls = self.buttons();
+        for (id, key, enabled) in [
+            ("picker-back", "keys.action.historyBack", !self.picker.chrome.history.is_empty()),
+            ("picker-up", "keys.action.parent", self.picker.can_go_up()),
+            ("picker-list", "keys.action.viewList", true),
+            ("picker-grid-view", "keys.action.viewGrid", true),
+            ("picker-filter", "picker.browser.filter", true),
+            ("picker-new-folder", "picker.browser.new_folder", true),
+        ] {
+            if let Some(bounds) = self.picker.chrome.probe.bounds(id) {
+                controls.push(control(&self.picker.locale.catalog.tr(key), bounds, self.picker.chrome.focused == Some(id), enabled));
+            }
+        }
         let listing = self.picker.browse.listing.read(self.cx);
         let state = listing.drawn();
         let header = &state.header.drawn;
-        if header.frames > 0 {
+        if header.frames > 0 && listing.view_mode() == "list" {
             let bounds = header.bounds;
             for (key, label) in [
                 ("name", &state.view.words.name),
@@ -111,6 +131,12 @@ impl PickerGeometry for Live<'_> {
 
     fn row_centre(&self, index: usize) -> String {
         let listing = self.picker.browse.listing.read(self.cx);
+        if listing.view_mode() == "grid" {
+            let state = listing.grid_state();
+            let state = state.borrow();
+            let Some(tile) = state.drawn_row(index) else { return String::new(); };
+            return crate::ipc::rows::centre_of(f32::from(state.bounds.origin.x) + tile.cell.x, f32::from(state.bounds.origin.y) + tile.cell.y, tile.cell.width, tile.cell.height);
+        }
         let state = listing.drawn();
         let held = listing.listing().held();
         let reader = RowsAdapter {
@@ -188,7 +214,7 @@ impl PickerGeometry for Live<'_> {
         if let Json::Obj(members) = &mut value {
             members.retain(|(key, _)| key != "controls");
             members.push(("controls".into(), Json::Arr(self.controls_value())));
-            members.push(("view".into(), Json::Str("list".into())));
+            members.push(("view".into(), Json::Str(self.picker.browse.listing.read(self.cx).view_mode().into())));
         }
         let text = jsondoc::render(&value);
         let text = text.trim();

@@ -6,6 +6,7 @@ pub mod element;
 pub mod header;
 mod hit;
 mod locale;
+mod loading;
 mod measure;
 mod metrics;
 mod palette;
@@ -20,6 +21,7 @@ mod gh315_filter_tests;
 #[cfg(test)]
 mod gh333_tests;
 pub mod pane;
+pub mod picker;
 #[cfg(test)]
 mod probe_tests;
 pub mod seam;
@@ -143,6 +145,8 @@ pub struct ListView {
     pub query: String,
     pub searching: bool,
     pub dual: bool,
+    pub picker: Option<bool>,
+    pub picker_directory: bool,
     pub clip: ClipMarks,
     pub order: Order,
     /// Highlight today's dates: today's local midnight while the setting is on.
@@ -166,6 +170,8 @@ impl Default for ListView {
             query: String::new(),
             searching: false,
             dual: false,
+            picker: None,
+            picker_directory: false,
             clip: ClipMarks::default(),
             order: Order::default(),
             today: None,

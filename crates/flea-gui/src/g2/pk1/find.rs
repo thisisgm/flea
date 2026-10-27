@@ -66,6 +66,9 @@ struct Seam<'a> {
     view: &'a mut ListingView,
     stamp: usize,
     moved: &'a mut bool,
+    selected: &'a [usize],
+    marks: &'a mut Vec<usize>,
+    unmarked: &'a mut bool,
 }
 
 impl PaneSeam for Seam<'_> {
@@ -86,10 +89,10 @@ impl PaneSeam for Seam<'_> {
         *self.moved = true;
     }
     fn selected(&self) -> Vec<usize> {
-        Vec::new()
+        self.selected.to_vec()
     }
-    fn unmark(&mut self, _: &[usize]) {}
-    fn mark(&mut self, _: &[usize]) {}
+    fn unmark(&mut self, rows: &[usize]) { *self.unmarked |= !rows.is_empty(); }
+    fn mark(&mut self, rows: &[usize]) { self.marks.extend_from_slice(rows); }
     fn focus_list(&mut self) {}
     fn refill(&mut self) {
         *self.moved = true;
@@ -102,9 +105,12 @@ impl Picker {
         &mut self,
         change: impl FnOnce(&mut Filter, &mut dyn PaneSeam) -> Option<Asked>,
         cx: &mut Context<Self>,
-    ) {
+    ) -> bool {
         let stamp = self.find.stamp.unwrap_or(usize::MAX);
         let mut moved = false;
+        let selected = self.browse.listing.read(cx).selected_indices();
+        let mut marks = Vec::new();
+        let mut unmarked = false;
         let owner = &mut self.find.owner;
         let asked = self.browse.listing.update(cx, |view, _| {
             change(
@@ -113,6 +119,9 @@ impl Picker {
                     view,
                     stamp,
                     moved: &mut moved,
+                    selected: &selected,
+                    marks: &mut marks,
+                    unmarked: &mut unmarked,
                 },
             )
         });
@@ -127,7 +136,10 @@ impl Picker {
             let cursor = self.browse.listing.read(cx).listing().cursor();
             self.move_cursor(cursor, cx);
         }
+        if !marks.is_empty() { self.select_indices(marks, cx); }
+        if unmarked { self.prune_filtered_marks(cx); }
         cx.notify();
+        unmarked
     }
 
     // The drawn rows, the query's run and the strip, all from the answer in force.
@@ -307,13 +319,14 @@ impl Picker {
     pub(super) fn find_line(&mut self, line: &str, cx: &mut Context<Self>) {
         match wire::read(line, self.find.owner.live()) {
             Ok(Line::Answer(answer)) => {
-                self.find_update(
+                let pruned = self.find_update(
                     |filter, pane| {
                         let _ = filter.receive(answer, pane);
                         None
                     },
                     cx,
                 );
+                if !pruned { self.prune_filtered_marks(cx); }
             }
             Ok(Line::Other | Line::Stale) => {}
             Err(detail) => {
@@ -347,11 +360,16 @@ impl Picker {
         }
         // The old folder's cursor window is never asked: the new folder's list request follows.
         let (owner, mut moved) = (&mut self.find.owner, false);
+        let mut marks = Vec::new();
+        let mut unmarked = false;
         self.browse.listing.update(cx, |view, _| {
             owner.abandon(&mut Seam {
                 view,
                 stamp,
                 moved: &mut moved,
+                selected: &[],
+                marks: &mut marks,
+                unmarked: &mut unmarked,
             })
         });
         self.find_refresh(cx);

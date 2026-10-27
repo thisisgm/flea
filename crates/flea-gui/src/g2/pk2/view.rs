@@ -2,18 +2,19 @@
 use super::listing::{Cause, Listing};
 use super::save::SaveField;
 use crate::list::header::HeaderElement;
-use crate::list::{element::ROW_HEIGHT, ListElement, ListState, Typeface};
+use crate::list::{element::ROW_HEIGHT, ListState, Typeface};
 use flea::i18n::I18n;
 use gpui::{div, prelude::*, AnyView, Context, IntoElement, Render, Window};
 use std::{cell::RefCell, rc::Rc};
 
 pub struct ListingView {
     listing: Listing,
-    i18n: I18n,
-    state: Rc<RefCell<ListState>>,
-    scroll_y: f32,
+    pub(super) surface: super::surface::Surface,
+    pub(super) i18n: I18n,
+    pub(super) state: Rc<RefCell<ListState>>,
+    pub(super) scroll_y: f32,
     // The name filter's drawn rows, None while every row is drawn, and its strip under the column titles.
-    shown: Option<Rc<[usize]>>,
+    pub(super) shown: Option<Rc<[usize]>>,
     strip: Option<AnyView>,
 }
 
@@ -38,6 +39,7 @@ impl ListingView {
     pub fn new(i18n: I18n, typeface: Typeface) -> Self {
         Self {
             listing: Listing::default(),
+            surface: Default::default(),
             i18n,
             state: Rc::new(RefCell::new(ListState::new(typeface))),
             scroll_y: 0.,
@@ -103,6 +105,13 @@ impl ListingView {
 
     // Scrolls the least distance that keeps the cursor row inside the last drawn box.
     pub fn reveal(&mut self) {
+        if self.surface.mode == "grid" {
+            let view = self.grid_view();
+            let total = self.shown.as_ref().map_or(self.listing.total(), |rows| rows.len());
+            let layout = view.layout(crate::grid::Shown::All(total));
+            self.set_scroll_y(layout.reveal(self.scroll_y, self.cursor_view()));
+            return;
+        }
         let height = f32::from(self.state.borrow().drawn.bounds.size.height);
         let top = self.cursor_view() as f32 * ROW_HEIGHT;
         if top < self.scroll_y {
@@ -140,22 +149,14 @@ impl ListingView {
 impl Render for ListingView {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         let failure = self.listing.failure_line(&self.i18n);
-        let body = ListElement::new(
-            self.listing.held(),
-            self.scroll_y,
-            self.listing.cursor(),
-            self.state.clone(),
-        )
-        .with_filter(self.shown.clone());
+        let body = self.surface_element();
         div()
             .size_full()
             .flex()
             .flex_col()
-            .child(
-                div()
-                    .debug_selector(|| "pk2-header".into())
-                    .child(HeaderElement::new(self.state.clone())),
-            )
+            .when(self.view_mode() == "list", |view| view.child(
+                div().debug_selector(|| "pk2-header".into()).child(HeaderElement::new(self.state.clone()))
+            ))
             .children(self.strip.clone().map(|strip| {
                 div()
                     .flex_none()

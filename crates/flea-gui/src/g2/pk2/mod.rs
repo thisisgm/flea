@@ -1,9 +1,11 @@
 //! Listing/filter/Save controllers; pk1 owns window, G1.06 rows.
 pub mod chrome;
+pub mod chip_input;
 pub mod listing;
 pub mod route;
 pub mod save;
 pub mod view;
+pub mod surface;
 
 pub use listing::{Cause, Escape, Facts, Filtered, Listing, NameMatcher, SubstringMatcher};
 pub use save::{ProbeKey, SaveField, SaveWords};
