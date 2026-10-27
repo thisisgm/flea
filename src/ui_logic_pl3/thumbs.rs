@@ -208,7 +208,6 @@ impl Thumbs {
             return;
         }
         // v0.3.12 draws the generic document icon on every Trash row (TrashView.qml), so no Trash row asks for a thumbnail.
-        // v0.3.12 draws the generic document icon on every Trash row (TrashView.qml), so no Trash row asks for a thumbnail.
         let allowed = |_: Option<&TrashRow>| false;
         let (first, last) = span.unwrap_or((1, 0));
         let ask: Vec<usize> = (first..=last).filter(|i| !self.slots.contains_key(i) && allowed(held.row(*i))).collect();
