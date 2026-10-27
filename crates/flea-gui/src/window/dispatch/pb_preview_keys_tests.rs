@@ -72,6 +72,8 @@ fn pb_preview_focused_pdf_scrolls_and_return_expands(cx: &mut TestAppContext) {
             // Quick Look closes back onto the column it opened from, which keeps the keyboard.
             cx.simulate_keystrokes("escape");
             pump(cx);
+            assert_eq!(read(&shell, cx, "previewOpen", &[]), "false", "escape after {key} closes Quick Look");
+            assert!(preview_focused(&shell, cx), "escape after {key} returns focus to the PDF column");
         }
     });
 }
