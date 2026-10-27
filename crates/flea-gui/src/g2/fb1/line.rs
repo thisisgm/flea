@@ -59,6 +59,12 @@ pub struct MessageLine {
 
 impl EventEmitter<ArmLost> for MessageLine {}
 
+/// The notice reached its display time and left the line, so a status that quoted it must let go.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NoticeEnded;
+
+impl EventEmitter<NoticeEnded> for MessageLine {}
+
 impl MessageLine {
     pub fn new(preset: &str, catalog: Arc<I18n>, cx: &mut Context<Self>) -> Self {
         Self {
@@ -171,6 +177,9 @@ impl MessageLine {
         let tick = self.messages.tick(now);
         if let Some(arm) = tick.arm_lost {
             cx.emit(ArmLost(arm));
+        }
+        if tick.notice_cleared {
+            cx.emit(NoticeEnded);
         }
         self.refresh(cx);
     }
