@@ -14,11 +14,10 @@ use std::cell::Cell;
 struct Moves(Cell<usize>);
 impl Global for Moves {}
 
-pub(super) fn record(cx: &App) -> bool {
-    cx.try_global::<Moves>().is_some_and(|moves| {
+pub(super) fn record(cx: &App) {
+    if let Some(moves) = cx.try_global::<Moves>() {
         moves.0.set(moves.0.get() + 1);
-        true
-    })
+    }
 }
 
 type Handle = WindowHandle<Root>;
@@ -71,6 +70,11 @@ fn travel(vcx: &mut VisualTestContext, at: Point<Pixels>, dx: f32, dy: f32) {
     vcx.simulate_mouse_up(end, MouseButton::Left, Modifiers::default());
 }
 
+/// A point on the chrome row, level with its buttons, away from every control.
+fn chrome_at(cx: &mut TestAppContext, handle: Handle) -> Point<Pixels> {
+    point(px(500.), control(cx, handle, 0).y)
+}
+
 fn control(cx: &mut TestAppContext, handle: Handle, index: usize) -> Point<Pixels> {
     edit(cx, handle, |shell, _, cx| {
         shell
@@ -92,7 +96,7 @@ fn control(cx: &mut TestAppContext, handle: Handle, index: usize) -> Point<Pixel
 fn pb_drag4_chrome_starts_one_system_move_after_four_pixels() {
     let mut cx = crate::list::bench::real_cx();
     let handle = open(&mut cx);
-    let at = point(px(500.), px(12.));
+    let at = chrome_at(&mut cx, handle);
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
     travel(&mut vcx, at, 4., 0.);
     assert_eq!(count(&mut vcx), 0, "a click stays a click at the threshold");
@@ -128,7 +132,7 @@ fn pb_drag4_button_click_survives_slop_but_move_cancels_its_action() {
 fn pb_drag4_path_editor_and_covered_chrome_disable_system_move() {
     let mut cx = crate::list::bench::real_cx();
     let handle = open(&mut cx);
-    let at = point(px(500.), px(12.));
+    let at = chrome_at(&mut cx, handle);
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
     vcx.simulate_keystrokes("ctrl-l");
     assert!(edit(&mut cx, handle, |shell, _, cx| {
@@ -139,6 +143,12 @@ fn pb_drag4_path_editor_and_covered_chrome_disable_system_move() {
     assert_eq!(count(&mut vcx), 0, "the editor selects text");
     vcx.simulate_keystrokes("escape");
     frame(&mut cx, handle);
+    travel(&mut vcx, at, 40., 0.);
+    assert_eq!(
+        count(&mut vcx),
+        1,
+        "a closed editor leaves the chrome movable"
+    );
     let settings = control(&mut cx, handle, 9);
     vcx.simulate_mouse_down(settings, MouseButton::Left, Modifiers::default());
     vcx.simulate_mouse_up(settings, MouseButton::Left, Modifiers::default());
@@ -146,14 +156,14 @@ fn pb_drag4_path_editor_and_covered_chrome_disable_system_move() {
     assert!(edit(&mut cx, handle, |shell, _, cx| shell
         .card_holds_keyboard(cx)));
     travel(&mut vcx, at, 40., 0.);
-    assert_eq!(count(&mut vcx), 0, "covered chrome cannot move the window");
+    assert_eq!(count(&mut vcx), 1, "covered chrome cannot move the window");
 }
 
 #[test]
 fn pb_drag4_only_a_left_press_starting_on_chrome_can_move() {
     let mut cx = crate::list::bench::real_cx();
     let handle = open(&mut cx);
-    let chrome = point(px(500.), px(12.));
+    let chrome = chrome_at(&mut cx, handle);
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
     vcx.simulate_mouse_down(chrome, MouseButton::Right, Modifiers::default());
     vcx.simulate_mouse_move(

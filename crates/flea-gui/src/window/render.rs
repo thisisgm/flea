@@ -400,7 +400,3 @@ impl Render for Shell {
         .children(self.unlock_layer(cx))
     }
 }
-
-#[cfg(test)]
-#[path = "window_drag_tests.rs"]
-mod window_drag_tests;
