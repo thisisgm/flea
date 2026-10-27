@@ -110,9 +110,7 @@ pub fn where_for_context(context: &str) -> Text {
 
 // Section 0: the generated sheet rows, already resolved by the keymap presentation.
 pub fn action_candidates(rows: &[SheetRow]) -> Vec<Candidate> {
-    // The ? row opens the sheet a query is already typed in, so it stays on the resting columns only.
     rows.iter()
-        .filter(|row| row.action != "keymapSheet")
         .map(|row| Candidate {
             label: Text::data(row.label.clone()),
             keys: row.keys.clone(),
@@ -295,6 +293,14 @@ fn worded(row: &Candidate, needle: &str, catalog: &I18n) -> Candidate {
     }
 }
 
+// The sheet's own row matches its key or a word's start in its name, so the field boards' queries stay as drawn.
+fn label_contains(row: &Candidate, label: &str, needle: &str) -> bool {
+    if row.action != "keymapSheet" {
+        return label.contains(needle);
+    }
+    label.match_indices(needle).any(|(at, _)| label[..at].chars().last().map_or(true, |before| !before.is_alphanumeric()))
+}
+
 // Ranks the candidates for one query line: exact name, exact label, substring label, then keys.
 pub fn rank(candidates: &[Candidate], query: &str, catalog: &I18n) -> Vec<Candidate> {
     let needle = query.trim().to_lowercase();
@@ -314,7 +320,7 @@ pub fn rank(candidates: &[Candidate], query: &str, catalog: &I18n) -> Vec<Candid
             exact_place.push(row.clone());
         } else if label == needle || menu_label == needle {
             exact.push(worded(row, &needle, catalog));
-        } else if label.contains(&needle) || menu_label.contains(&needle) {
+        } else if label_contains(row, &label, &needle) || menu_label.contains(&needle) {
             matched.push(worded(row, &needle, catalog));
         } else if !row.keys.is_empty() && row.keys.to_lowercase().contains(&needle) {
             keyed.push(row.clone());
