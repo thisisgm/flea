@@ -2296,5 +2296,11 @@
   "keys.menu": "Menu",
   "keys.openTerminal": "Open terminal",
   "keys.openAgent": "Open agent here",
-  "keys.print": "Print…"
+  "keys.print": "Print…",
+  "menu.original.needs_link": "Show original needs the cursor on a link",
+  "menu.original.missing": "That link points to an item that no longer exists.",
+  "menu.shelf.empty": "There is nothing to put on the shelf.",
+  "menu.shelf.failed": "The shelf did not take that.",
+  "menu.shelf.one": "Added it to the shelf",
+  "menu.shelf.many": "Added %1 items to the shelf"
 }

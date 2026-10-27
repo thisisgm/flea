@@ -8,6 +8,8 @@ use gpui::{Context, Window};
 mod filesystem;
 #[path = "events_ipc.rs"]
 mod ipc;
+#[path = "events_menu.rs"]
+mod menus;
 #[path = "events_quit.rs"]
 mod quit;
 #[path = "events_slow.rs"]
@@ -25,6 +27,9 @@ impl Shell {
         let renamed = self.rename_event(side, &event, window, cx);
         self.rename_sync_gate(window, cx);
         if renamed {
+            return;
+        }
+        if self.menu_original_event(side, &event, window, cx) {
             return;
         }
         if let BackendEvent::Peeked(document) = &event {
@@ -67,33 +72,7 @@ impl Shell {
             self.search_landed(side, true, window, cx);
         }
         if let BackendEvent::Producer(line) | BackendEvent::Operations(line) = &event {
-            if let Some(sentence) = slow_sentence(line) {
-                self.status_messages(cx, |messages, now| {
-                    messages.say(
-                        &sentence,
-                        false,
-                        "",
-                        flea::ui_logic_fb1::status::Hint::None,
-                        now,
-                    )
-                });
-            }
-            if self.fileops_line(side, line, window, cx) {
-                return;
-            }
-            let menu_taken = self.menu_reply(side, line, window, cx);
-            if let Some(parsed) = flea::ui_logic_op1::parse(line) {
-                self.operation_line(side, line, window, cx);
-                if let flea::ui_logic_op1::Event::TransferDone(done) = parsed {
-                    self.retry_failed(side, &done.retry_paths, window, cx);
-                }
-            }
-            if !menu_taken {
-                cx.emit(crate::g2::mn1::join::ProducerReply {
-                    side,
-                    line: line.clone(),
-                });
-            }
+            self.menu_producer(side, line, window, cx);
             return;
         }
         let event = match event {

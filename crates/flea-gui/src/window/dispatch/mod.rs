@@ -3,6 +3,9 @@ mod clipboard;
 mod fileops;
 mod fileops_wire;
 mod listing;
+pub(crate) mod menu_original;
+mod menu_parity;
+pub(crate) mod menu_shelf;
 mod menus;
 mod navigation;
 pub(crate) mod opener;
@@ -42,6 +45,7 @@ const FAMILIES: &[Family] = &[
     listing::run,
     window::run,
     rename::run,
+    menu_parity::run,
     menus::run,
     clipboard::run,
 ];
@@ -71,6 +75,8 @@ mod clipboard_tests;
 #[cfg(test)]
 mod compare_tests;
 #[cfg(test)]
+mod dual_keys_tests;
+#[cfg(test)]
 mod effect_tests;
 #[cfg(test)]
 mod families_tests;
@@ -87,35 +93,33 @@ mod gh_rename_proof_tests;
 #[cfg(test)]
 mod guard_tests;
 #[cfg(test)]
-mod listing_tests;
+mod key_rows_tests;
 #[cfg(test)]
 mod listing_marks_tests;
-#[cfg(test)]
-mod dual_keys_tests;
-#[cfg(test)]
-mod key_rows_tests;
 #[cfg(test)]
 mod listing_pointer_keep_tests;
 #[cfg(test)]
 mod listing_pointer_tests;
 #[cfg(test)]
+mod listing_tests;
+#[cfg(test)]
 mod menus_columns_tests;
 #[cfg(test)]
 mod menus_dual_tests;
 #[cfg(test)]
-mod menus_tests;
-#[cfg(test)]
 mod menus_keys_tests;
 #[cfg(test)]
+mod menus_tests;
+#[cfg(test)]
 mod navigation_tests;
-#[cfg(test)]
-mod queued_navigation_tests;
-#[cfg(test)]
-mod queued_navigation_escape_tests;
 #[cfg(test)]
 mod opener_menu_tests;
 #[cfg(test)]
 mod opener_tests;
+#[cfg(test)]
+mod pb_menus_2_tests;
+#[cfg(test)]
+mod preview_tests;
 #[cfg(test)]
 mod previewtypes_cover_tests;
 #[cfg(test)]
@@ -127,7 +131,11 @@ mod previewtypes_page_tests;
 #[cfg(test)]
 mod previewtypes_tests;
 #[cfg(test)]
-mod preview_tests;
+mod queued_navigation_escape_tests;
+#[cfg(test)]
+mod queued_navigation_tests;
+#[cfg(test)]
+mod quick_look_body_reply_tests;
 #[cfg(test)]
 mod quick_look_body_tests;
 #[cfg(test)]
@@ -136,8 +144,6 @@ mod quick_look_chrome_tests;
 mod quick_look_clock_tests;
 #[cfg(test)]
 mod quick_look_media_tests;
-#[cfg(test)]
-mod quick_look_body_reply_tests;
 #[cfg(test)]
 mod quick_look_reply_tests;
 #[cfg(test)]
