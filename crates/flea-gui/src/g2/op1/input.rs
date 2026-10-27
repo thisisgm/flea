@@ -1,6 +1,7 @@
-//! The mounted destination's platform text and IME ranges use UTF-16 at the boundary.
+//! The mounted destination's platform text, through Entry's shared UTF-16 and composition contract.
 use super::host::Overlay;
-use gpui::{point, Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
+use crate::path::field::{ime_bounds, ime_index};
+use gpui::{Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
 use std::ops::Range;
 
 impl EntityInputHandler for Overlay {
@@ -11,13 +12,9 @@ impl EntityInputHandler for Overlay {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<String> {
-        if !self.editing_copy(window, cx) {
-            return None;
-        }
-        let entry = &self.editor.entry;
-        let range = entry.range_from_utf16(&range);
-        adjusted.replace(entry.range_to_utf16(&range));
-        entry.text.get(range).map(str::to_owned)
+        self.ime_field(window, cx)
+            .then(|| self.editor.entry.ime_text(&range, adjusted))
+            .flatten()
     }
 
     fn selected_text_range(
@@ -26,13 +23,8 @@ impl EntityInputHandler for Overlay {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<UTF16Selection> {
-        self.editing_copy(window, cx).then(|| UTF16Selection {
-            range: self
-                .editor
-                .entry
-                .range_to_utf16(&self.editor.entry.selected),
-            reversed: self.editor.entry.reversed,
-        })
+        self.ime_field(window, cx)
+            .then(|| self.editor.entry.ime_selection())
     }
 
     fn marked_text_range(
@@ -40,20 +32,14 @@ impl EntityInputHandler for Overlay {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<Range<usize>> {
-        self.editing_copy(window, cx)
-            .then(|| {
-                self.editor
-                    .entry
-                    .marked
-                    .as_ref()
-                    .map(|r| self.editor.entry.range_to_utf16(r))
-            })
+        self.ime_field(window, cx)
+            .then(|| self.editor.entry.ime_marked())
             .flatten()
     }
 
     fn unmark_text(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.editing_copy(window, cx) {
-            self.editor.entry.marked = None;
+        if self.ime_field(window, cx) {
+            self.editor.entry.ime_unmark();
             cx.notify();
         }
     }
@@ -65,13 +51,9 @@ impl EntityInputHandler for Overlay {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if !self.editing_copy(window, cx) || text.chars().any(char::is_control) {
-            return;
+        if self.ime_field(window, cx) && self.editor.entry.ime_replace(range, text) {
+            self.edited_copy(cx);
         }
-        let entry = &mut self.editor.entry;
-        let range = range.map(|r| entry.range_from_utf16(&r));
-        entry.replace(range, text);
-        self.edited_copy(cx);
     }
 
     fn replace_and_mark_text_in_range(
@@ -82,14 +64,9 @@ impl EntityInputHandler for Overlay {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if !self.editing_copy(window, cx) || text.chars().any(char::is_control) {
-            return;
+        if self.ime_field(window, cx) && self.editor.entry.ime_mark(range, text, selected) {
+            self.edited_copy(cx);
         }
-        let entry = &mut self.editor.entry;
-        let range = range.map(|r| entry.range_from_utf16(&r));
-        let selected = selected.map(|r| bytes_at(text, r.start)..bytes_at(text, r.end));
-        entry.replace_and_mark(range, text, selected);
-        self.edited_copy(cx);
     }
 
     fn bounds_for_range(
@@ -99,16 +76,15 @@ impl EntityInputHandler for Overlay {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<Bounds<Pixels>> {
-        if !self.editing_copy(window, cx) {
+        if !self.ime_field(window, cx) {
             return None;
         }
         let drawn = self.editor.drawn.borrow();
-        let bounds = drawn.bounds?;
-        let range = self.editor.entry.range_from_utf16(&range);
-        let left = bounds.left() - drawn.line.scroll;
-        Some(Bounds::from_corners(
-            point(left + drawn.line.x_for(range.start), bounds.top()),
-            point(left + drawn.line.x_for(range.end), bounds.bottom()),
+        Some(ime_bounds(
+            &drawn.line,
+            &self.editor.entry,
+            &range,
+            drawn.bounds?,
         ))
     }
 
@@ -118,18 +94,11 @@ impl EntityInputHandler for Overlay {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<usize> {
-        self.editing_copy(window, cx)
-            .then(|| self.editor.entry.offset_to_utf16(self.copy_index(at.x)))
-    }
-}
-
-fn bytes_at(text: &str, units: usize) -> usize {
-    let mut count = 0;
-    for (at, next) in text.char_indices() {
-        if count >= units {
-            return at;
+        if !self.ime_field(window, cx) {
+            return None;
         }
-        count += next.len_utf16();
+        let drawn = self.editor.drawn.borrow();
+        let left = drawn.bounds.map_or(gpui::px(0.), |bounds| bounds.left());
+        Some(ime_index(&drawn.line, &self.editor.entry, at.x - left))
     }
-    text.len()
 }

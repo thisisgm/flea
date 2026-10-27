@@ -1,4 +1,4 @@
-//! Normal query reads, actual prepared-row paint observations and the presented scenes that showed them.
+//! Query reads, prepared-row paint observations and the scenes that showed them; keyDeliveryState is in key_delivery.rs.
 use crate::{
     g2::sr1::{
         presented::{Scene, Shown},
@@ -15,16 +15,8 @@ pub(crate) struct QueryReader<'a> {
 
 impl crate::ipc::Adapter for QueryReader<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<flea::ipc::wire::Reply> {
-        if function == "focusView" && self.focused && self.search.typing() {
-            return Some(flea::ipc::wire::Reply::value("search"));
-        }
-        (function == "keyDeliveryState").then(|| {
-            flea::ipc::wire::Reply::value(format!(
-                "{{\"searchQuery\":\"{}\",\"searchMode\":\"{:?}\"}}",
-                flea::json::escape(&self.search.session.query),
-                self.search.session.mode,
-            ))
-        })
+        (function == "focusView" && self.focused && self.search.typing())
+            .then(|| flea::ipc::wire::Reply::value("search"))
     }
 }
 

@@ -12,6 +12,14 @@ pub struct Snapshot {
     pub catalog: Arc<I18n>,
 }
 
+pub(crate) fn labels(locale: &Snapshot) -> super::composition::Labels {
+    super::composition::Labels {
+        name: locale.catalog.tr("window.column_name").into(),
+        size: locale.catalog.tr("window.column_size").into(),
+        modified: locale.catalog.tr("window.column_modified").into(),
+    }
+}
+
 struct State {
     current: Option<Snapshot>,
     subscribers: Vec<Subscriber>,

@@ -258,9 +258,10 @@ impl Edge {
         (self.hovered || self.dragging).then(|| (layout.edge() - 1., 0., 1., height))
     }
 
-    /// The move-horizontal mark, 16 px square, 12 px left of the edge with its top at mid height.
+    /// The move-horizontal mark, 16 px square, centred on the hairline with its top at mid height.
     pub fn mark(&self, layout: &Layout, height: f32) -> Option<(f32, f32, f32)> {
-        (self.hovered || self.dragging).then(|| (layout.edge() - 12., height / 2., EDGE_MARK))
+        (self.hovered || self.dragging)
+            .then(|| (layout.edge() - 0.5 - EDGE_MARK / 2., height / 2., EDGE_MARK))
     }
 
     pub fn press(&mut self, x: f32, layout: &Layout) {
@@ -299,6 +300,7 @@ impl Edge {
 
     /// A double click restores the default third and stores 0.
     pub fn restore(&mut self) -> Store {
+        self.dragging = false;
         self.last = None;
         Store(0)
     }

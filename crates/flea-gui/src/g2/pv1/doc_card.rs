@@ -4,12 +4,12 @@ use super::{
     chrome,
     doc::{Doc, View},
     look::{self, Look},
-    Outcome, QuickLook, Subject,
+    Body, Outcome, QuickLook, Subject,
 };
 use crate::g2::pv3::{self, ink::MediaInk};
 use flea::ui_logic_pv1::keys::Command;
 use flea::ui_logic_pv3::player::Playback;
-use gpui::{div, prelude::*, AnyElement, Context, Window};
+use gpui::{div, prelude::*, AnyElement, App, Context, Window};
 
 impl Doc {
     pub fn element(&self) -> AnyElement {
@@ -47,6 +47,17 @@ impl Doc {
 }
 
 impl QuickLook {
+    /// The calm card a refused code read draws in the mounted view's place (ql-unsupported): no bar, the mark and sentence in the metadata ink.
+    pub(crate) fn calm_body(&self, cx: &App) -> Option<Body> {
+        let doc = self.subject.as_ref()?.body.doc()?;
+        let sentence = doc.calm_sentence(&self.i18n, cx)?;
+        Some(Body::CannotShow {
+            sentence,
+            error: false,
+            controls: Vec::new(),
+        })
+    }
+
     /// A mounted view is open, so it lays out even while the swap holds the card back.
     pub(super) fn has_doc(&self) -> bool {
         self.subject

@@ -6,6 +6,7 @@ struct Directory {
     name: u32,
     parent: u32,
     text_len: u32,
+    bits: u64,
     head: u32,
     child: u32,
     sibling: u32,
@@ -49,7 +50,8 @@ impl Blocks {
         self.dirs.try_reserve(1).map_err(|_| "allocation")?;
         let at = slot(&self.lookup, hash, |_| false);
         let sibling = if parent == EMPTY { self.child } else { self.dirs[parent as usize].child };
-        self.dirs.push(Directory { name, parent, text_len, head: EMPTY, child: EMPTY, sibling });
+        let bits = names.bits(name as usize) | super::searchbits::mask(b"/") | self.bits(parent);
+        self.dirs.push(Directory { name, parent, text_len, bits, head: EMPTY, child: EMPTY, sibling });
         if parent == EMPTY { self.child = id; } else { self.dirs[parent as usize].child = id; }
         self.lookup[at] = id;
         Ok(id)
@@ -57,6 +59,11 @@ impl Blocks {
 
     pub(crate) fn text_len(&self, dir: u32) -> u32 {
         if dir == EMPTY { 0 } else { self.dirs[dir as usize].text_len }
+    }
+
+    // Names and ancestry are immutable until reclamation builds a new directory arena.
+    pub(crate) fn bits(&self, dir: u32) -> u64 {
+        if dir == EMPTY { 0 } else { self.dirs[dir as usize].bits }
     }
 
     pub(crate) fn head(&self, dir: u32) -> u32 {

@@ -65,11 +65,19 @@ pub fn widths(table: &Table, avail: f32, ctx: &mut Ctx) -> Vec<f32> {
         .collect();
     // A wide glyph takes two, so no column goes under two glyphs of text.
     let least = f64::from(CELL_GAP + (2.0 * glyph).ceil());
-    let fitted = if avail > 0.0 {
+    let mut fitted = if avail > 0.0 {
         table_fit(&natural, &minimum, f64::from(avail), least)
     } else {
         natural
     };
+    // Quick Look wraps oversized text tokens once the columns can fit their two-glyph floor.
+    if !ctx.metrics.column
+        && table.pictures.iter().all(String::is_empty)
+        && fitted.iter().sum::<f64>() > f64::from(avail)
+        && least * columns as f64 <= f64::from(avail)
+    {
+        fitted = table_fit(&fitted, &vec![0.0; columns], f64::from(avail), least);
+    }
     fitted.into_iter().map(|w| w as f32).collect()
 }
 

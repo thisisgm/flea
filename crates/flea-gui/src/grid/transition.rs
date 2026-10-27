@@ -222,6 +222,8 @@ impl Shell {
             if let Some(grid) = &mut host.grid {
                 grid.park();
             }
+            host.nav.viewport = None;
+            host.nav.grid_landing = None;
             host.pane.set_height(height);
             host.pane.reveal_cursor();
         }

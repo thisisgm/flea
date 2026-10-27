@@ -261,7 +261,7 @@ function run(check) {
     Keymap.setPreset("vim")
     check("sheet is populated from effective current bindings", Keymap.sheetFor(Keymap.preset, "gui").length > 30, true)
     var tabRow = Keymap.sheetFor("default", "gui").filter(function (row) { return row.action === "focusNext" })[0]
-    check("the sheet reads Tab as scope / focus, with no pane-only wording", tabRow.keys + "|" + tabRow.label, "tab|scope / focus")
+    check("the sheet reads Tab as Next area, with no pane-only wording", tabRow.keys + "|" + tabRow.label, "tab|Next area")
     var backRow = Keymap.sheetFor("default", "gui").filter(function (row) { return row.action === "focusPrevious" })[0]
     check("and Shift+Tab as focus back, in the Move group", backRow.label + "|" + (Keymap.SHEET_GROUPS.move.indexOf("focusPrevious") >= 0), "focus back|true")
     // One cap names one key. Joining every spelling an action answers to produced caps of 40
@@ -323,7 +323,7 @@ function run(check) {
     // nt1: the sheet lists the new tab key beside the other tab keys, with the same label style.
     check("openTab is claimed by the move group", Keymap.SHEET_GROUPS.move.indexOf("openTab") >= 0, true)
     var openTabSheet = Keymap.sheetFor("default", "gui").filter(function (row) { return row.action === "openTab" })[0] || {}
-    check("and the sheet draws it as open in new tab", openTabSheet.label, "open in new tab")
+    check("and the sheet draws it as Open in new tab", openTabSheet.label, "Open in new tab")
     check("and the sheet caps it as the ctrl enter chord", openTabSheet.keys, "ctrl-enter")
 
     // A mirrored pair draws the same number of spellings: width alone gave next tab "]" beside prev tab "[ / ctrl-pageup".

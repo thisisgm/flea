@@ -12,10 +12,9 @@ impl NetworkView {
         else {
             return 0;
         };
-        let byte = text
-            .run
-            .line()
-            .closest_index_for_x(at.x - gpui::px(drawn.origin.0 + text.rect.x));
+        let byte = text.run.line().closest_index_for_x(
+            at.x - self.input_origin.get().x - gpui::px(drawn.origin.0 + text.rect.x),
+        );
         if self.model.focus == Focus::Password {
             super::secret_edit::units_at_display_index(
                 &self.model.password,
@@ -80,14 +79,9 @@ impl NetworkView {
         true
     }
     fn select_text(&mut self, anchor: usize, at: usize, cx: &mut Context<Self>) {
-        if self.model.focus == Focus::Password {
-            self.password_selection = anchor.min(at)..anchor.max(at);
-            self.password_reversed = at < anchor;
-            self.password_marked = None;
-        } else {
-            self.input.move_to(self.input.offset_from_utf16(anchor));
-            self.input.select_to(self.input.offset_from_utf16(at));
-        }
+        self.input.move_to(self.input.offset_from_utf16(anchor));
+        self.input.select_to(self.input.offset_from_utf16(at));
+        self.sync_password_state();
         self.paint_changed(cx);
     }
 }

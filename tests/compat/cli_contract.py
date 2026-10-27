@@ -8,6 +8,7 @@ import subprocess
 import shutil
 import sys
 
+import deltas
 import sandbox
 
 REPO = Path(__file__).resolve().parents[2]
@@ -110,6 +111,8 @@ os.environ.update({k: args[args.index(f) + 1] for k, f in (("FLEA_PATH", "--"), 
         env["FLEA_FRONTEND"] = "gpui"
     result = {}
     expected = {} if CAPTURE else json.loads(GOLDEN.read_text())
+    for name, changes in ({} if CAPTURE else deltas.load("cli")).items():
+        expected[name] = dict(expected[name], stdout=deltas.apply(name, expected[name]["stdout"], changes))
     chosen = sys.argv[sys.argv.index("--case") + 1] if "--case" in sys.argv else None
     mismatched = []
     for name, args, extra in cases(root):
