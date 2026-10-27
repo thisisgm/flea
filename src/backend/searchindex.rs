@@ -43,6 +43,11 @@ pub(crate) struct Index {
     pub(crate) dirs_scored: std::sync::atomic::AtomicUsize,
     #[cfg(test)]
     pub(crate) paths_scored: std::sync::atomic::AtomicUsize,
+    // Name and path DP evaluations, the work the head-bounded ranking defers.
+    #[cfg(test)]
+    pub(crate) name_dp: std::sync::atomic::AtomicUsize,
+    #[cfg(test)]
+    pub(crate) path_dp: std::sync::atomic::AtomicUsize,
 }
 
 pub(crate) fn index_bytes(index: &Index) -> usize {
@@ -72,6 +77,10 @@ impl Index {
             dirs_scored: std::sync::atomic::AtomicUsize::new(0),
             #[cfg(test)]
             paths_scored: std::sync::atomic::AtomicUsize::new(0),
+            #[cfg(test)]
+            name_dp: std::sync::atomic::AtomicUsize::new(0),
+            #[cfg(test)]
+            path_dp: std::sync::atomic::AtomicUsize::new(0),
         }
     }
 
@@ -219,7 +228,7 @@ pub(crate) struct Scratch {
 
 #[path = "searchscore.rs"]
 mod scoring;
-pub(crate) use scoring::{score_cached, QueryScratch};
+pub(crate) use scoring::{boundary, class, resolve, score_cached, QueryScratch};
 #[cfg(test)]
 pub(crate) use scoring::score_all;
 
