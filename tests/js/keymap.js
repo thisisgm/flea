@@ -264,8 +264,7 @@ function run(check) {
     check("the sheet reads Tab as Next area, with no pane-only wording", tabRow.keys + "|" + tabRow.label, "tab|Next area")
     var backRow = Keymap.sheetFor("default", "gui").filter(function (row) { return row.action === "focusPrevious" })[0]
     check("and Shift+Tab as Previous area, in the Move group", backRow.label + "|" + (Keymap.SHEET_GROUPS.move.indexOf("focusPrevious") >= 0), "Previous area|true")
-    // Every row the keys sheet draws, in every preset, carries its HIG board string when the board draws that
-    // row, and its en catalog keys.action string otherwise. Read from the catalog the app ships, not a copy.
+    // Each sheet row in each preset carries its board string, else the shipped en catalog keys.action string.
     var catalogRequest = new XMLHttpRequest()
     catalogRequest.open("GET", Qt.resolvedUrl("../../i18n/en/flea.json"), false)
     catalogRequest.send()
