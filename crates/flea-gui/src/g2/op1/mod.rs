@@ -1,6 +1,7 @@
 //! Confirmation, transfers and Jobs: one host, one dialog shell, the cards and the Jobs strip.
 mod cards;
 mod copy_to;
+mod new_file;
 mod feedback;
 mod geometry;
 pub mod glyph;
