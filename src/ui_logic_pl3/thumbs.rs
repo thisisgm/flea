@@ -1,4 +1,4 @@
-//! TrashThumbs.qml: one image request per visible image row, settled, capped, cancelled on any identity change.
+//! Trash thumbnail state: no row asks for an image, since v0.3.12 draws the generic icon on every Trash row; replies still land by ticket.
 use super::rows::{Line, TrashRow};
 use std::collections::HashMap;
 
@@ -207,7 +207,8 @@ impl Thumbs {
         if !ready || generation != self.settle {
             return;
         }
-        let allowed = |row: Option<&TrashRow>| policy.mode != Mode::Off && row.is_some_and(TrashRow::thumbnailable);
+        // v0.3.12 draws the generic document icon on every Trash row (TrashView.qml), so no Trash row asks for a thumbnail.
+        let allowed = |_: Option<&TrashRow>| false;
         let (first, last) = span.unwrap_or((1, 0));
         let ask: Vec<usize> = (first..=last).filter(|i| !self.slots.contains_key(i) && allowed(held.row(*i))).collect();
         let drop: Vec<usize> = self.order.iter().copied()

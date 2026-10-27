@@ -171,7 +171,7 @@ impl Shell {
             // PaneWire.qml onArchiveDone re-reads in place and lands at the refreshed list's first row.
             let _ = self.step(
                 side,
-                crate::window::navigate::Step::Refresh(None),
+                crate::window::navigate::Step::Fresh,
                 window,
                 cx,
             );
