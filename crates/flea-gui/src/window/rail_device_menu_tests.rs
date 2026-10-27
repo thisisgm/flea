@@ -71,12 +71,15 @@ fn pb_devices_menu_removed_row_never_opens_a_replacement(cx: &mut TestAppContext
     let (shell, service, cx) = open("{}", cx);
     ready(&service, cx);
     menu(&shell, "Archive", cx);
-    let before = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().path.clone());
+    let before = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.place().to_owned());
     source(&shell, cx).update(cx, |source, cx| source.poll_now(cx));
     service.answer("lsblk", 1, &BLOCKS.replace("/dev/sda1", "/dev/sdc1").replace("Archive", "Replacement"));
     frame(cx);
     choose(&shell, "open", cx);
-    assert_eq!(shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().path.clone()), before);
+    // place() moves on the request, before any listing answers, so a stale open shows here.
+    let after = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.place().to_owned());
+    assert_eq!(after, before);
+    assert_ne!(after, "/media/archive");
 }
 
 #[gpui::test]
