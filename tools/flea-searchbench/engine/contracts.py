@@ -61,6 +61,13 @@ def classify_rank(paths, target, full_paths=None, complete=False):
     return (0, 'miss') if complete else (-1, 'unresolved')
 
 
+# The rank among file rows only, so engines that order folders differently compare like for like.
+def classify_file_rank(paths, folders, target, full_paths=None, complete=False):
+    if target in folders:
+        raise ValueError('file rank asked for a folder target: ' + target)
+    return classify_rank([path for path in paths if path not in folders], target, full_paths, complete)
+
+
 def checked_result(result, gen, limit, complete_matches=None):
     if result.get('gen') != gen:
         raise ValueError('stale generation')
