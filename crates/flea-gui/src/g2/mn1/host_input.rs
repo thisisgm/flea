@@ -1,6 +1,8 @@
 //! The menu's input layer occludes the listing and keeps resting-pointer opens on the first row.
 use super::{element::MenuElement, menu::Outcome};
-use crate::{input::PLATFORM_SCROLL_GAIN, state::Shell, window::startup::View};
+use crate::{
+    input::PLATFORM_SCROLL_GAIN, pane::states::Kind, state::Shell, window::startup::View,
+};
 use gpui::{
     div, prelude::*, px, App, Context, Div, Entity, MouseButton, MouseDownEvent, MouseMoveEvent,
     ScrollDelta, ScrollWheelEvent, TouchPhase, Window,
@@ -76,6 +78,22 @@ impl Shell {
             return;
         };
         let row = match host.drawn_view {
+            // An empty folder draws the hero and no row surface, so its whole pane is blank ground.
+            Some(View::List | View::Dual)
+                if !host.drawn_list && host.pane.state.kind == Kind::Empty =>
+            {
+                let pane = self.geometry(window).rows(
+                    side,
+                    self.view == View::Dual,
+                    self.slots.strip_height,
+                );
+                let (x, y) = (f32::from(event.position.x), f32::from(event.position.y));
+                if x < pane.x || x >= pane.x + pane.width || y < pane.y || y >= pane.y + pane.height
+                {
+                    return;
+                }
+                None
+            }
             Some(View::List | View::Dual) => {
                 let Some(frame) = host
                     .input

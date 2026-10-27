@@ -133,6 +133,8 @@ mod pb_opener_tests;
 #[cfg(test)]
 pub(crate) mod pb_places_tests;
 #[cfg(test)]
+mod menudraw_tests;
+#[cfg(test)]
 mod pb_wire_tests;
 #[cfg(test)]
 mod previewtypes_cover_tests;
