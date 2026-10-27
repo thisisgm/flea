@@ -87,6 +87,11 @@ impl Shell {
         };
         if let Err(refusal) = &result {
             host.status = self.locale.catalog.tr(refusal.key()).into();
+            // A busy refusal also reaches the footer, where the listing's presses and keys say it.
+            if *refusal == Refusal::Busy {
+                let text = host.status.clone();
+                self.status_note(&text, cx);
+            }
         }
         self.run_navigation(side, window, cx);
         cx.notify();

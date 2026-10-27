@@ -129,6 +129,13 @@ impl Shell {
         });
     }
 
+    /// Says a translated sentence in the footer as a note, for input the pane holds or cannot act on.
+    pub(crate) fn status_note(&mut self, text: &str, cx: &mut Context<Self>) {
+        self.status_messages(cx, |messages, now| {
+            messages.say(text, false, "", Hint::None, now)
+        });
+    }
+
     pub(crate) fn sync_footer(&mut self, width: f32, cx: &mut Context<Self>) {
         let footer = self.footer(cx);
         let Some(host) = &self.panes[self.focus_side] else {

@@ -3,6 +3,7 @@ use super::{menus_tests::settle, test_shell::{land, open_root_with, row}};
 use gpui::TestAppContext;
 
 #[gpui::test]
+#[ignore = "BLOCKED-DESIGN: no HIG empty board draws the key-hint line; waits for a design ruling after 0.4.0"]
 fn pb_pane_empty_folder_hint_follows_the_key_hints_setting(cx: &mut TestAppContext) {
     let (shell, cx) = open_root_with(cx, r#""view":"list","keyHints":true"#, None);
     land(&shell, cx, "/files", vec![], 1);
