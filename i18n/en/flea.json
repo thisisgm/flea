@@ -2083,6 +2083,7 @@
   "search.contents.timeout": "Contents search timed out.",
   "search.contents.limit": "Contents search exceeded its output limit.",
   "search.contents.identity": "This filename cannot be used safely. No action was taken.",
+  "feedback.action.unavailable": "That action is not available yet",
   "feedback.autofit.list_required": "Autofit needs the list view.",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",

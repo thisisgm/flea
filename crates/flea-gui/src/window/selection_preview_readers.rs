@@ -145,9 +145,8 @@ impl Reader<'_> {
                     .collect::<Vec<_>>()
                     .join("\n")
             }),
-            "storageClass" => view
-                .and_then(|v| v.class.as_ref())
-                .map_or(String::new(), |(_, class)| class.clone()),
+            // Without a preview class the pane's own fsinfo class answers, so the reader falls through.
+            "storageClass" => view.and_then(|v| v.class.as_ref()).map(|(_, class)| class.clone())?,
             "previewSwapState" => view.map_or(String::new(), swap_state),
             _ => return None,
         })

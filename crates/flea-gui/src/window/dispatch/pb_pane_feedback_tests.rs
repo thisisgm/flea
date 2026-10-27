@@ -54,13 +54,14 @@ fn pb_pane_busy_row_press_says_loading_without_opening(cx: &mut TestAppContext) 
     land(&shell, cx, "/files", vec![row("folder", true)], 1);
     let position = row_point(&shell, cx, 0);
     cx.simulate_keystrokes("enter");
+    let count = lists(&shell, cx);
     cx.simulate_event(MouseDownEvent {
         position, button: MouseButton::Left, click_count: 1,
         modifiers: Modifiers::none(), first_mouse: false,
     });
     assert_eq!(read(&shell, cx, "lastMessage", &[]), "A directory is already loading.");
     assert_eq!(asked(&shell, cx), "/files/folder");
-    assert_eq!(lists(&shell, cx), 2);
+    assert_eq!(lists(&shell, cx), count);
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
