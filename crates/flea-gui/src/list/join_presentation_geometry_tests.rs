@@ -64,7 +64,7 @@ fn g70_geometry_change_requests_newly_visible_sizes_without_reasking_answered_ro
         handle
             .update(&mut cx, |shell, _, _| {
                 // Match startup's full settings shape before applying a density-only patch.
-                shell.launch.settings = Settings::from_json(flea::uistate::from_file("{}"), false);
+                shell.launch.settings = Settings::from_json(flea::uistate::from_file("{}"));
                 let host = shell.panes[0].as_mut().unwrap();
                 let mut rows = bench::fixture("2k");
                 for row in rows.iter_mut().take(64) {

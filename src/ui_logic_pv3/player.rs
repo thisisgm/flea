@@ -79,11 +79,6 @@ impl Player {
             && matches!(self.media, Media::Loaded | Media::Buffered | Media::Ended)
     }
 
-    /// A clip at its end draws the empty card under its play mark (ql-video.png, v0.3.12); play and seek leave Ended.
-    pub fn holds_frame(&self) -> bool {
-        self.media != Media::Ended
-    }
-
     /// The screen stays awake exactly while a clip with a picture plays; audio and a failure never hold it.
     pub fn keeps_awake(&self) -> bool {
         self.has_video && !self.failed && self.playback == Playback::Playing

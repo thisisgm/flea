@@ -67,6 +67,9 @@ impl Build<'_> {
                         text,
                         look,
                     } => {
+                        if text.is_empty() {
+                            continue;
+                        }
                         let (x, baseline, color) =
                             (x0 + x, base + look.shift, self.palette.ink(&look.ink));
                         self.text(text, look.face, look.px, x, baseline, color);

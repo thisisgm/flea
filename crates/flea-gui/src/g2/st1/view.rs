@@ -256,35 +256,34 @@ impl SettingsView {
                 if row.kind != Kind::Hint || row.elide_right {
                     return 1;
                 }
-                let text = SharedString::from(row.label.resolve(&self.panel.catalog));
                 let inset = if row.footer {
                     2. * PAD_X
                 } else {
                     g::LABEL_X + PAD_X
                 };
-                let run = TextRun {
-                    len: text.len(),
-                    font: font.clone(),
-                    color: Default::default(),
-                    background_color: None,
-                    underline: None,
-                    strikethrough: None,
-                };
-                window
-                    .text_system()
-                    .shape_text(
-                        text,
-                        self.typeface.caption,
-                        &[run],
-                        Some(px(width - inset)),
-                        None,
+                // Each unit is shaped whole, as the pane places it, and packed into lines.
+                let text = row.label.resolve(&self.panel.catalog);
+                g::hint_lines(&text, (width - inset).max(0.), |unit| {
+                    let run = TextRun {
+                        len: unit.len(),
+                        font: font.clone(),
+                        color: Default::default(),
+                        background_color: None,
+                        underline: None,
+                        strikethrough: None,
+                    };
+                    f32::from(
+                        window
+                            .text_system()
+                            .shape_line(
+                                SharedString::from(unit.to_owned()),
+                                self.typeface.caption,
+                                &[run],
+                                None,
+                            )
+                            .width,
                     )
-                    .map_or(1, |lines| {
-                        lines
-                            .iter()
-                            .map(|line| line.wrap_boundaries().len() + 1)
-                            .sum()
-                    })
+                })
             })
             .collect()
     }

@@ -1,6 +1,5 @@
 //! The card takes pointer and keyboard input only while open.
 use super::{drawing::NetworkElement, view::NetworkView};
-use crate::{g2::mn1::element::MenuElement, list::Typeface};
 use gpui::{div, prelude::*, px, Context, MouseButton, Render, Window};
 
 impl Render for NetworkView {
@@ -21,34 +20,6 @@ impl Render for NetworkView {
         );
         if motion.animating {
             window.request_animation_frame();
-        }
-        if self.model.opened {
-            self.sync_menu(window);
-            let field = super::drawing::field(super::dialog::Focus::Host).expect("the host field");
-            let at = (
-                (dimensions.0 - super::drawing::WIDTH.min(dimensions.0 - 16.)) / 2. + field.x,
-                (dimensions.1 - self.frame_height(dimensions.1)) / 2. + field.y + field.h + 3.
-                    - self.scroll
-                    + motion.rise,
-            );
-            if let Some(card) = &mut self.menu.borrow_mut().card {
-                let work = flea::ui_logic_mn1::fit::Rect {
-                    x: 0.,
-                    y: 0.,
-                    w: dimensions.0,
-                    h: dimensions.1,
-                };
-                let placed = flea::ui_logic_mn1::fit::place(
-                    at,
-                    card.frame.w,
-                    flea::ui_logic_mn1::fit::content_height(&card.entries),
-                    work,
-                    0.,
-                );
-                card.frame.y = placed.y;
-            }
-        } else {
-            self.menu.borrow_mut().close();
         }
         let root = div()
             .id("g2-pl2-network")
@@ -92,16 +63,11 @@ impl Render for NetworkView {
                         }),
                     )
                     .on_mouse_move(
-                        cx.listener(|this, event: &gpui::MouseMoveEvent, window, cx| {
+                        cx.listener(|this, event: &gpui::MouseMoveEvent, _, cx| {
                             if this.text_drag(event.position, cx) {
                                 return;
                             }
                             let (x, y) = (f32::from(event.position.x), f32::from(event.position.y));
-                            let mut typeface = Typeface::omarchy_default();
-                            typeface.font = window.text_style().font();
-                            this.menu
-                                .borrow_mut()
-                                .hover(x, y, &this.env(&typeface), window);
                             let drawn = this.drawn.borrow();
                             let hover = drawn
                                 .hits
@@ -122,29 +88,9 @@ impl Render for NetworkView {
                     )
                     .on_mouse_down(
                         MouseButton::Left,
-                        cx.listener(|this, event: &gpui::MouseDownEvent, window, cx| {
+                        cx.listener(|this, event: &gpui::MouseDownEvent, _, cx| {
                             cx.stop_propagation();
                             let (x, y) = (f32::from(event.position.x), f32::from(event.position.y));
-                            if this
-                                .menu
-                                .borrow()
-                                .card
-                                .as_ref()
-                                .is_some_and(|c| c.row_at(x, y).is_some())
-                            {
-                                let mut typeface = Typeface::omarchy_default();
-                                typeface.font = window.text_style().font();
-                                let outcome = this.menu.borrow_mut().click(
-                                    x,
-                                    y,
-                                    None,
-                                    "",
-                                    &this.env(&typeface),
-                                    window,
-                                );
-                                this.menu_outcome(outcome, cx);
-                                return;
-                            }
                             let drawn = this.drawn.borrow();
                             let (x, y) = (x - drawn.origin.0, y - drawn.origin.1);
                             let focus = drawn
@@ -213,6 +159,5 @@ impl Render for NetworkView {
             self.cards_below,
             input,
         ))
-        .child(MenuElement::new(self.menu.clone(), px(self.palette.radius)))
     }
 }

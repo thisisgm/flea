@@ -132,6 +132,7 @@ def generate(data, rust=False):
     emit('POINTER', data['pointer'])
     emit('BASE_SHEET', data['sheet'])
     emit('SHEET_GROUPS', data['sheetgroups'])
+    emit('SHEET_TIE_PRIORITY', data['sheetties'])
     # A sheet group may name a binding the listing never sees, the way MediaMute's m is the media
     # context's alone; the sheet takes those from here rather than filtering the tables again. A row
     # whose action the listing binds anywhere is already in the sheet and must not arrive twice.
@@ -223,6 +224,13 @@ function capRank(row, preset) {
     return (row.preset === preset ? 0 : 2) + (row.mods === "text" ? 0 : 1)
 }
 
+function tieRank(row, preset) {
+    if (row.preset === preset) return Infinity
+    var keys = (SHEET_TIE_PRIORITY.all || []).concat(SHEET_TIE_PRIORITY[preset] || [])
+    var at = keys.indexOf(row.keys)
+    return at < 0 ? Infinity : at
+}
+
 function sheetFor(name, frontend) {
     var result = [], groups = {}
     var rows = bindingRows(name, frontend || "gui").concat(SHEET_EXTRA).filter(function (row) { return row.sheet !== false })
@@ -244,7 +252,13 @@ function sheetFor(name, frontend) {
     // the column beside it. The best spelling always shows, a second only while both still fit.
     for (var g = 0; g < result.length; g++) {
         var spellings = result[g].spellings.slice()
-        spellings.sort(function (left, right) { return capRank(left, name) - capRank(right, name) })
+        // Qt's sort need not preserve equal ranks, so table order is the final tie breaker.
+        spellings.sort(function (left, right) {
+            var rank = capRank(left, name) - capRank(right, name)
+            if (rank) return rank
+            var a = tieRank(left, name), b = tieRank(right, name)
+            return a !== b ? a - b : rows.indexOf(left) - rows.indexOf(right)
+        })
         var keys = spellings.length ? spellings[0].keys : ""
         result[g].alone = keys
         for (var k = 1; k < spellings.length; k++) {

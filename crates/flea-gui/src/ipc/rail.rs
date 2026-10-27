@@ -8,6 +8,7 @@ use crate::window::composition::Geometry;
 use flea::ipc::wire::Reply;
 use flea::json::escape;
 use flea::ui_logic_pl4::rail::{Group, Kind, RailEntry};
+pub use network::NetworkBuilt;
 use std::time::Instant;
 
 pub struct RailAdapter<'a> {
@@ -16,6 +17,7 @@ pub struct RailAdapter<'a> {
     pub geometry: &'a Geometry,
     pub focus_side: usize,
     pub now: Instant,
+    pub network: NetworkBuilt,
 }
 
 fn whole(value: f32) -> String {
@@ -188,7 +190,7 @@ impl RailAdapter<'_> {
             whole(width),
             whole(placement.inset),
             whole(self.geometry.chrome.width),
-            host.rail.mode() == crate::rail::Mode::Overlay && shown,
+            host.rail.revealed(),
             whole(placement.rail.x)
         ))
     }
@@ -353,9 +355,31 @@ impl Adapter for RailAdapter<'_> {
                 .producer()
                 .is_some_and(|producer| self.shown() && producer.field_shown())
                 .to_string(),
+            // One line per entry, "label|group|kind|mounted", in ui/Ipc.qml's shape.
+            "networkEntries" => self
+                .entries()
+                .iter()
+                .filter(|entry| entry.group == Group::Network)
+                .map(|entry| {
+                    format!(
+                        "{}|{}|{}|{}",
+                        entry.label,
+                        group_name(entry.group),
+                        kind_name(entry.kind),
+                        entry.mounted.unwrap_or(false)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "networkBuilt" => self.network.ready().to_string(),
+            "networkMarkGeometry" => self.mark_geometry().unwrap_or_default(),
+            "networkMarkCentre" => self.mark_centre().unwrap_or_default(),
             // U27 installs recentMode with the actual Recent listing owner.
             _ => return None,
         };
         Some(Reply::value(value))
     }
 }
+
+#[path = "rail_network.rs"]
+mod network;

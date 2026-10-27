@@ -86,24 +86,23 @@ impl Shell {
         let gio = network.listing.text.clone();
         let path = network.bookmarks.clone();
         let sources = network.sources.clone();
-        network.rows_generation += 1;
-        let generation = network.rows_generation;
-        let read = cx.background_executor().spawn(async move {
+        let read = cx.background_spawn(async move {
             let marks = std::fs::read_to_string(path).unwrap_or_default();
-            let rows = sources.load_rows(&gio, &marks);
-            (rows, marks)
+            let mountinfo = sources.read_mountinfo();
+            let ready = !mountinfo.is_empty();
+            let rows = sources.load_rows(&gio, &marks, &mountinfo);
+            (rows, crate::path::aliases::saved_labels(&marks), ready)
         });
         let task = cx.spawn(async move |this, cx| {
-            let (rows, marks) = read.await;
+            let (rows, labels, ready) = read.await;
             let _ = this.update(cx, |shell, cx| {
-                let Some(network) = shell.network() else {
-                    return;
-                };
-                if network.rows_generation != generation {
-                    return;
+                if let Some(network) = shell.network() {
+                    network.built = true;
+                    network.mountinfo_ready = ready;
                 }
-                network.built = true;
-                shell.network_alias_labels(&marks);
+                if shell.path_saved_labels(labels) {
+                    cx.notify();
+                }
                 shell.network_publish(Some(rows), cx)
             });
         });

@@ -8,6 +8,13 @@ use gpui::{
 
 pub(super) fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     let (backend, _requests) = Backend::test_channel();
+    open_backend(backend, cx)
+}
+
+fn open_backend(
+    backend: Backend,
+    cx: &mut TestAppContext,
+) -> (Entity<Shell>, &mut VisualTestContext) {
     let (shell, cx) = cx.add_window_view(|_, cx| crate::state::tests::shell_with(backend, cx));
     cx.simulate_resize(size(px(1100.), px(700.)));
     cx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
@@ -139,7 +146,8 @@ fn u07_live_buttons_report_drawn_state_and_pointer_changes_the_view(cx: &mut Tes
 
 #[gpui::test]
 fn u07_pointer_and_keyboard_edit_the_mounted_path_and_escape_cancels(cx: &mut TestAppContext) {
-    let (shell, cx) = open(cx);
+    let (backend, _requests) = Backend::test_channel();
+    let (shell, cx) = open_backend(backend, cx);
     assert_eq!(read(&shell, cx, "crumbText", &[]), "/files");
     assert_eq!(read(&shell, cx, "pathCentre", &[]), "474 13");
     assert_eq!(read(&shell, cx, "pathFrameRect", &[]), "");
@@ -164,8 +172,8 @@ fn u07_pointer_and_keyboard_edit_the_mounted_path_and_escape_cancels(cx: &mut Te
     );
     assert_eq!(read(&shell, cx, "crumbCentre", &["1"]), "");
     cx.simulate_keystrokes("ctrl-a");
-    cx.simulate_input("file://remote/etc");
-    assert_eq!(read(&shell, cx, "pathBarText", &[]), "file://remote/etc");
+    cx.simulate_input("file://otherbox/etc");
+    assert_eq!(read(&shell, cx, "pathBarText", &[]), "file://otherbox/etc");
     cx.simulate_keystrokes("enter");
     assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "false");
     assert_eq!(
@@ -185,10 +193,50 @@ fn u07_pointer_and_keyboard_edit_the_mounted_path_and_escape_cancels(cx: &mut Te
             .to_string()),
         flea::i18n::I18n::default().tr("path.refused_uri")
     );
+    let sentence = "That URI names a file on another host, not a path on this machine.";
+    assert_eq!(read(&shell, cx, "statusPrimary", &[]), sentence);
+    assert_eq!(read(&shell, cx, "statusError", &[]), "false");
+    cx.update(|window, cx| window.simulate_next_frame(cx));
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, cx| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.nav.counters.lists, 0, "a refused URI never navigates");
+        assert!(host.pane.swap.pending.is_none());
+        let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
+        let line = footer.message_line();
+        let painted = line
+            .read(cx)
+            .painted
+            .get("primary")
+            .expect("painted refusal");
+        assert_eq!(painted.text.as_ref(), sentence);
+    });
     cx.simulate_keystrokes("ctrl-l");
     assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "true");
     cx.simulate_keystrokes("escape");
     assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "false");
+}
+
+#[gpui::test]
+fn u07_local_file_uri_authorities_still_submit_navigation(cx: &mut TestAppContext) {
+    for uri in [
+        "file:///etc",
+        "file://localhost/etc",
+        "file://LOCALHOST/etc",
+    ] {
+        let (backend, _requests) = Backend::test_channel();
+        let (shell, cx) = open_backend(backend, cx);
+        cx.simulate_keystrokes("ctrl-l ctrl-a");
+        cx.simulate_input(uri);
+        cx.simulate_keystrokes("enter");
+        assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "false", "{uri}");
+        assert_eq!(read(&shell, cx, "statusPrimary", &[]), "", "{uri}");
+        shell.read_with(cx, |shell, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            assert_eq!(host.pane.place(), "/etc", "{uri}");
+            assert_eq!(host.nav.counters.lists, 1, "{uri}");
+        });
+    }
 }
 
 #[gpui::test]

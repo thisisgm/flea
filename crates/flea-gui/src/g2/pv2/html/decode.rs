@@ -17,3 +17,25 @@ pub fn png(path: &str) -> Option<(Arc<RenderImage>, (u32, u32))> {
         size,
     ))
 }
+
+impl super::HtmlView {
+    pub(super) fn decoded(
+        &mut self,
+        token: u64,
+        decoded: Option<(Arc<RenderImage>, (u32, u32))>,
+        cx: &mut gpui::Context<Self>,
+    ) {
+        self.decode = None;
+        self.doc.picture_loaded(token, decoded.is_some());
+        if token != self.doc.image_token {
+            return;
+        }
+        if let Some((image, size)) = decoded {
+            self.decoded += 1;
+            if let Some(old) = self.image.replace((token, image, size)) {
+                self.released.push(old.1);
+            }
+        }
+        cx.notify();
+    }
+}

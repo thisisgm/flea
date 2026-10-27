@@ -41,6 +41,9 @@ pub fn field(focus: Focus) -> Option<Rect> {
 pub struct Text {
     pub field: Option<Focus>,
     pub rect: Rect,
+    /// Test observation only: the string this run was shaped from.
+    #[cfg(test)]
+    pub source: gpui::SharedString,
     pub run: GlyphRun,
     pub ink: Hsla,
     pub clip: Option<Rect>,
@@ -55,6 +58,7 @@ pub struct BoxPaint {
 }
 #[derive(Default)]
 pub struct Drawn {
+    pub ime: crate::path::field::Line,
     pub tracking: f32,
     pub revision: u64,
     pub text: Vec<Text>,
@@ -114,92 +118,12 @@ impl Drawn {
         self.text.push(Text {
             field: None,
             rect,
+            #[cfg(test)]
+            source: gpui::SharedString::from(text.to_owned()),
             run: GlyphRun::new(line),
             ink,
             clip: None,
         });
-    }
-    pub(super) fn caret(&mut self, focus: Focus, rect: Rect, view: &NetworkView) {
-        if let Some(text) = self.text.last_mut() {
-            text.field = Some(focus);
-        }
-        if view.model.focus != focus || view.model.busy() || view.model.committed {
-            return;
-        }
-        let Some(text) = self.text.last_mut() else {
-            return;
-        };
-        let selected = if focus == Focus::Password {
-            super::secret_edit::display_index(
-                &view.model.password,
-                view.password_selection.start,
-                view.model.reveal,
-            )
-                ..super::secret_edit::display_index(
-                    &view.model.password,
-                    view.password_selection.end,
-                    view.model.reveal,
-                )
-        } else {
-            view.input.selected.clone()
-        };
-        let cursor_at = if focus == Focus::Password {
-            if view.password_reversed {
-                selected.start
-            } else {
-                selected.end
-            }
-        } else {
-            view.input.cursor()
-        };
-        let cursor = f32::from(text.run.line().x_for_index(cursor_at));
-        let missing = (WIDTH - self.card.map_or(WIDTH, |card| card.w)).max(0.);
-        let adjustment = if rect.w == 226.5 {
-            missing / 2.
-        } else {
-            missing
-        };
-        let room = (rect.w - if focus == Focus::Password { 42. } else { 20. } - adjustment).max(0.);
-        let scroll = (cursor - room).max(0.);
-        text.clip = Some(Rect {
-            x: rect.x + 1.,
-            w: rect.w - 2.,
-            ..rect
-        });
-        text.rect.x -= scroll;
-        let mut add = |x: f32, w: f32, h: f32, y: f32, ink| {
-            self.boxes.push(BoxPaint {
-                rect: Rect { x, y, w, h },
-                fill: ink,
-                border: ink,
-                radius: 0.,
-                border_width: 1.,
-                clip: None,
-            });
-        };
-        if !selected.is_empty() {
-            let from = f32::from(text.run.line().x_for_index(selected.start)) - scroll;
-            let to = f32::from(text.run.line().x_for_index(selected.end)) - scroll;
-            let from = from.max(0.);
-            let to = to.min(room);
-            if to > from {
-                add(
-                    rect.x + 10. + from,
-                    to - from,
-                    17.,
-                    rect.y + 6.,
-                    view.palette.accent.opacity(0.24),
-                );
-            }
-        } else {
-            add(
-                rect.x + 10. + cursor - scroll,
-                1.,
-                17.,
-                rect.y + 6.,
-                view.palette.foreground,
-            );
-        }
     }
     pub(super) fn control(&mut self, focus: Focus, rect: Rect, selected: bool, view: &NetworkView) {
         let p = view.palette;
@@ -296,7 +220,7 @@ impl Element for NetworkElement {
         &mut self,
         _: Option<&GlobalElementId>,
         _: Option<&InspectorElementId>,
-        _bounds: Bounds<Pixels>,
+        bounds: Bounds<Pixels>,
         _: &mut (),
         p: &mut CardPalette,
         window: &mut Window,
@@ -304,7 +228,8 @@ impl Element for NetworkElement {
     ) {
         let view = self.0.read(cx);
         let drawn = view.drawn.borrow();
-        let origin = point(px(drawn.origin.0), px(drawn.origin.1));
+        view.input_origin.set(bounds.origin);
+        let origin = bounds.origin + point(px(drawn.origin.0), px(drawn.origin.1));
         for b in &drawn.boxes {
             let mut rect = b.rect.bounds();
             rect.origin += origin;
@@ -342,8 +267,11 @@ impl Element for NetworkElement {
             });
         }
         super::marks::paint(view, &drawn, origin, p, window, cx);
+        let mut registered = None;
         if view.model.opened
             && !view.model.busy()
+            && !view.model.committed
+            && view.focus.is_focused(window)
             && (view.input.editing || view.model.focus == Focus::Password)
         {
             if let Some((_, rect)) = drawn
@@ -355,6 +283,7 @@ impl Element for NetworkElement {
                     origin + point(px(rect.x), px(rect.y)),
                     size(px(rect.w), px(rect.h)),
                 );
+                registered = view.input.session();
                 window.handle_input(
                     &view.focus,
                     gpui::ElementInputHandler::new(bounds, self.0.clone()),
@@ -362,5 +291,9 @@ impl Element for NetworkElement {
                 );
             }
         }
+        drop(drawn);
+        view.drawn.borrow_mut().ime.registered = registered;
     }
 }
+
+mod ime;

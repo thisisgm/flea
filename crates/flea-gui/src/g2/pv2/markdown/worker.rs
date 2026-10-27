@@ -36,6 +36,10 @@ pub struct TextMeasure {
 const WIDTHS_KEPT: usize = 65_536;
 
 impl TextMeasure {
+    pub(super) fn reader(&self) -> Self {
+        Self::new(Arc::clone(&self.text), self.faces.clone())
+    }
+
     pub fn new(text: Arc<TextSystem>, faces: Faces) -> Self {
         TextMeasure {
             text,
