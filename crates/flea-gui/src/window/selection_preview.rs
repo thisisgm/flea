@@ -21,6 +21,8 @@ use std::{
 
 #[path = "selection_preview_docs.rs"]
 pub(crate) mod docs;
+#[path = "selection_preview_doc_readers.rs"]
+mod doc_readers;
 #[path = "selection_preview_wire.rs"]
 pub(crate) mod wire;
 #[path = "selection_preview_frames.rs"]
@@ -31,6 +33,8 @@ pub(crate) mod host;
 mod lifetime;
 #[path = "selection_preview_load.rs"]
 mod load;
+#[path = "selection_preview_text.rs"]
+mod text;
 #[path = "selection_preview_play.rs"]
 mod play;
 #[path = "selection_preview_readers.rs"]
@@ -219,6 +223,7 @@ pub(crate) struct Frame {
     pub image: Option<Arc<RenderImage>>,
     pub failed: bool,
     pub manual: bool,
+    pub remote: bool,
     pub _watch: Option<Subscription>,
 }
 

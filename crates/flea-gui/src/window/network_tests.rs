@@ -294,3 +294,12 @@ mod result_tests;
 
 #[path = "network_ipc_tests.rs"]
 mod ipc_tests;
+
+#[path = "network_parity_tests.rs"]
+mod parity_tests;
+
+#[path = "network_cloud_tests.rs"]
+mod cloud_tests;
+
+#[path = "network_motion_tests.rs"]
+mod motion_tests;

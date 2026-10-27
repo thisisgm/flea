@@ -23,8 +23,25 @@ impl Render for QuickLook {
         for image in std::mem::take(&mut self.retired) {
             let _ = window.drop_image(image);
         }
-        if self.subject.is_none() {
+        if !self.visible() {
             return div().into_any_element();
+        }
+        let active = self.subject.is_some();
+        let motion = self.motion.sample(
+            active && self.revealed,
+            cx.background_executor().now(),
+            cx.reduce_motion(),
+        );
+        if motion.animating {
+            window.request_animation_frame();
+        }
+        if !active && !motion.visible {
+            self.finish_close(cx);
+            cx.notify();
+            return div().into_any_element();
+        }
+        if !active {
+            self.subject = self.closing.take();
         }
         let theme = cx
             .try_global::<crate::palette::Theme>()
@@ -33,7 +50,8 @@ impl Render for QuickLook {
         let look = self
             .look
             .unwrap_or_else(|| Look::inherited(&Palette::inherited(&window.text_style(), theme)));
-        let card = self.card(window.viewport_size());
+        let mut card = self.card(window.viewport_size());
+        card.origin.y += px(motion.rise);
         match self.viewport(card, window) {
             Some(view) => self.scroll.fit(view),
             None => self.scroll.view = None,
@@ -43,21 +61,20 @@ impl Render for QuickLook {
             let _ = this.update(cx, |ql, cx| ql.pointer(hand, cx));
         });
         // Unrevealed, the ground still takes every event but draws nothing, so the held listing shows through.
-        let ground = if self.revealed {
-            look.scrim()
-        } else {
-            look.scrim().opacity(0.)
-        };
-        let mut overlay = div()
-            .absolute()
-            .size_full()
-            .child(Shield::new(card, ground, on_pointer).dragging(self.scroll.drag.is_some()));
+        let ground = look.scrim().opacity(motion.opacity);
+        let mut overlay = div().absolute().size_full().when(active, |overlay| {
+            overlay
+                .child(Shield::new(card, ground, on_pointer).dragging(self.scroll.drag.is_some()))
+        });
         // A mounted view lays out unseen while held back, so it can ask for its first screen before the reveal.
         let laying = self.has_doc();
-        if self.revealed || laying {
-            let shown = if self.revealed { 1. } else { 0. };
+        if self.revealed || laying || !active {
+            let shown = motion.opacity;
             let surface = self.surface(card, &look, window, cx);
             overlay = overlay.child(div().absolute().size_full().opacity(shown).child(surface));
+        }
+        if !active {
+            self.closing = self.subject.take();
         }
         overlay.into_any_element()
     }

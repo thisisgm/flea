@@ -99,6 +99,20 @@ impl Shell {
             self.output.extract[side],
         );
         context.update_version = self.menu_update_version();
+        if let Some(host) = &self.panes[side] {
+            context.storage_class = host.sizes.class().unwrap_or_default().into();
+        }
+        let preview = self.launch.settings.data.get("preview");
+        let flag = |key| {
+            preview
+                .and_then(|preview| preview.get(key))
+                .and_then(Json::as_bool)
+        };
+        context.thumbs = flea::ui_logic_mn1::build::ThumbPrefs {
+            network: flag("thumbNetwork") == Some(true),
+            phone: flag("thumbPhone") == Some(true),
+            usb: flag("thumbUsb") != Some(false),
+        };
     }
 }
 

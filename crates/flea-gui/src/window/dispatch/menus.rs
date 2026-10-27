@@ -21,6 +21,7 @@ pub(super) fn run(
             | "toggleLangMarks"
             | "settings"
             | "updateFlea"
+            | "extThumbs"
             | "addFavourite"
     ) || !chosen.claim()
     {
@@ -49,6 +50,7 @@ pub(super) fn run(
         "settings" => shell.open_settings(window, cx),
         // Focus.js updateFlea: the same run the About page's Update Flea starts.
         "updateFlea" => shell.settings_update(true, window, cx),
+        "extThumbs" => super::window::toggle_ext_thumbs(shell, chosen.captured.side, window, cx),
         // PaneMenuActions.qml: the background adds its folder, a folder row the one path its snapshot names.
         _ => {
             let path = if chosen.captured.background {
