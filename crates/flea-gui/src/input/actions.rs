@@ -1,4 +1,7 @@
-use crate::{list::pane::Move, state::Shell};
+use crate::{
+    list::pane::{page_items, Move},
+    state::Shell,
+};
 use gpui::{Context, Window};
 
 // Marks.js follow only(cursor, keep): a lone mark moves with a plain move, and a carried landing stays the landing, so Escape still climbs through it.
@@ -178,7 +181,7 @@ impl Shell {
             }
             let at = host.input.view_index(from);
             let columns = frame.columns.max(1);
-            let page = ((frame.viewport() / frame.row).ceil() as usize / 2).max(1) * columns;
+            let page = page_items((frame.viewport() / frame.row).ceil() as usize) * columns;
             let to = match step {
                 Move::Up => at.saturating_sub(columns),
                 Move::Down => at.saturating_add(columns),
