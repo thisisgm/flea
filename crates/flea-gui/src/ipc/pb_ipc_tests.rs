@@ -34,8 +34,10 @@ fn pb_ipc_share_browser_cursor_follows_the_live_browser(cx: &mut TestAppContext)
     cx.simulate_keystrokes("down");
     draw(cx);
     assert_eq!(read(&shell, cx, "shareBrowserCursor", &[]), "1");
+    assert_eq!(read(&shell, cx, "shareBrowserOpen", &[]), "true");
     cx.simulate_keystrokes("escape");
     draw(cx);
+    assert_eq!(read(&shell, cx, "shareBrowserOpen", &[]), "false", "escape closes the browser");
     assert_eq!(
         read(&shell, cx, "shareBrowserCursor", &[]),
         "1",
@@ -96,8 +98,7 @@ fn pb_ipc_eject_hover_reads_the_pointer_on_the_actual_mark(cx: &mut TestAppConte
     assert_eq!(read(&shell, cx, "railMarkHovered", &[&index]), "true");
 }
 
-// BLOCKED-LEASE g2/pl4/producer_view.rs (I50-16 owns g2/pl4/**): the producer must clear
-// mark_hovered and hovered when the pointer leaves the rail. Unignore once the lease lands.
+// Ignored until the producer clears mark_hovered and hovered when the pointer leaves the rail.
 #[gpui::test]
 #[ignore = "BLOCKED-LEASE g2/pl4/producer_view.rs: leaving the rail keeps mark_hovered set"]
 fn pb_ipc_eject_hover_clears_when_the_pointer_leaves_the_rail(cx: &mut TestAppContext) {
