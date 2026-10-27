@@ -41,6 +41,8 @@ pub(crate) struct PaneHost {
     pub nav: Navigator,
     pub watch_task: Option<(u64, Task<()>)>,
     pub retry_line: RefCell<Option<super::retry::RetryLine>>,
+    // The operation line last written to status; a listing that lands after it keeps it, as ui/StatusBar.qml keeps its notice.
+    pub operation_line: Option<String>,
     applied_listing: usize,
 }
 
@@ -96,6 +98,7 @@ impl PaneHost {
             nav: Navigator::new(Rc::default(), Rc::default()),
             watch_task: None,
             retry_line: RefCell::new(None),
+            operation_line: None,
             applied_listing: 0,
         }
     }
@@ -110,6 +113,7 @@ impl PaneHost {
         }
         self.failure = Some(error);
         self.error = Some(message.clone());
+        self.operation_line = None;
         self.status = message.into();
     }
 
@@ -132,6 +136,15 @@ impl PaneHost {
                     self.state_text.status.clone()
                 }
                 .into();
+        }
+    }
+
+    /// The notice that carried the operation line timed out; a status still showing it returns to the folder's count.
+    pub fn end_operation_line(&mut self) {
+        if let Some(line) = self.operation_line.take() {
+            if self.status.as_ref() == line {
+                self.status = self.state_text.status.clone().into();
+            }
         }
     }
 
@@ -171,11 +184,19 @@ impl PaneHost {
             self.filter_follow(&before);
         }
         self.path = self.pane.path().into();
+        // Leaving the folder drops the operation line that was written there.
+        if self.path != before {
+            self.operation_line = None;
+        }
         self.answered = !self.pane.busy();
         self.error = None;
         self.failure = None;
         self.state_text = self.pane.state.text(&locale.catalog, self.pane.held.total);
-        self.status = self.state_text.status.clone().into();
+        // The completion's line holds across its own in-place refresh; any other status replaces it.
+        if self.operation_line.as_deref() != Some(self.status.as_ref()) {
+            self.operation_line = None;
+            self.status = self.state_text.status.clone().into();
+        }
         if self.answered {
             self.apply_select();
         }
