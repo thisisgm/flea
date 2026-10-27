@@ -238,6 +238,8 @@ impl TrackPaint {
 /// The last frame's geometry and snapshot, shared by hit testing and IPC.
 pub struct Drawn {
     pub bounds: gpui::Bounds<Pixels>,
+    /// The focus snapshot consumed by this frame's row painter.
+    pub focus: Rc<Focus>,
     /// The tracks the frame drew and this one's place among them: a frame copies no track.
     pub tracks: Rc<[TrackView]>,
     pub at: usize,
