@@ -51,11 +51,11 @@ function run(check) {
     check("the capture types the place, place and recent, leaves, one-place key, Permissions and delete card specimens in order", captureQueries.join(","), "trash,fl,comp,mute,perm,perm")
     var captureRows = SheetQuery.rank(SheetQuery.actionCandidates(Keymap.sheetFor("default", "gui", false)), captureQueries[4])
     check("the capture query finds its shipped board row",
-          captureRows.map(function (row) { return row.keys + " " + row.label }).join("\n"), "shift-delete delete permanently")
+          captureRows.map(function (row) { return row.keys + " " + row.label }).join("\n"), "shift-delete Delete permanently")
     // CommandPalette callout 3: mute works in the Preview only, so its row reads "m mute" with that where.
     var muteRows = SheetQuery.rank(SheetQuery.actionCandidates(Keymap.sheetFor("default", "gui", false)), captureQueries[3])
     check("the capture mute query finds its shipped row with its where",
-          muteRows.map(function (row) { return row.keys + " " + row.label + " in " + row.where }).join("\n"), "m mute in Preview")
+          muteRows.map(function (row) { return row.keys + " " + row.label + " in " + row.where }).join("\n"), "m Mute in Preview")
     // CommandPalette "After typing fl": the favourite flea leads the recent file mix.flac, each with its own where.
     var flRows = SheetQuery.rank(SheetQuery.placeCandidates([{ label: "flea", group: "favourite", kind: "favourite", path: "/home/probe/flea" }]).concat(
         SheetQuery.recentCandidates(["/home/probe/Documents/claude/mix.flac"], "/home/probe")), captureQueries[1])
