@@ -211872,7 +211872,7 @@
     "crates/flea-gui/src/window/search.rs": "eef202136c4dd63ad7dd102776743fa1703627c6e429b0bda970f501e5d287d4",
     "crates/flea-gui/src/window/search_density_guards.rs": "d83459fe81449c31eb6ff7e4dbff2397071693713d3fc98085d74ef49bf0d419",
     "crates/flea-gui/src/window/search_empty.rs": "d08a234d81b68579a56b439ee1e6d0b01c626f059350673bee6b777aaa9ff499",
-    "crates/flea-gui/src/window/search_host.rs": "da0f8235cd92d8dddda1d03d560e2554e01e7d359b34ebbbe12c56d0a6169edb",
+    "crates/flea-gui/src/window/search_host.rs": "ca379d663bbbb15f92c2125d18e96e2766d1072655751283828920ac26028618",
     "crates/flea-gui/src/window/search_observe.rs": "2a55a58eae0b8147c9768471f585dbea185d219186aad1aaad7f90bb6fa6b3d3",
     "crates/flea-gui/src/window/selection_preview.rs": "0a05cf1b5f57007a7970a575a77b6d02ada6651e3fc17162b55b3636b34ee0f1",
     "crates/flea-gui/src/window/selection_preview_docs.rs": "8c90be01677b9a84a07971c7d452f9589cc1512ff98e7812ceba1c6c5b71d355",
@@ -212685,7 +212685,7 @@
     "src/ui_logic_sr1.rs": "a5623fe0e4673fa72bde0653f331c98b9b30ed15fec588ac25a25d15d73d9e99",
     "src/ui_logic_sr1/contents.rs": "df2156e70e518aeefbd432a6f715d8ebeab74560c8548a5b385bcf4875c26c49",
     "src/ui_logic_sr1/matching.rs": "df396138268940b9f0225a13c51b575afbafe7d06584a619c5d5384b6b64da83",
-    "src/ui_logic_sr1/session.rs": "28765d32e196b4fd1d56b3ed534fea34bd1718aa2d8feacffd51b3e0e5155db2",
+    "src/ui_logic_sr1/session.rs": "db46d8090239ce0af8d5bcd5e9b6a5d4d3eb4abd5d444017be21fd537b527018",
     "src/ui_logic_sr1/text.rs": "444f6c0426695a8ea9ce54b106857f42cab0014070ec70ecda7731215d12e1cb",
     "src/ui_logic_sr1/types.rs": "c1de004ed3632ceb5388ed7238e540b8d5389386e90cc35678285ab3e3aa9a96",
     "src/ui_logic_sr1/wire.rs": "c2461a6b47163f53e5b8f68b5919cf420ec6806b3af4b24b7afd55cebaf6f578",
@@ -213306,8 +213306,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "f593f67f0900a611751bde99d109934f1500448f",
-  "source_sha": "f593f67f0900a611751bde99d109934f1500448f",
+  "source_ref_sha": "d9bdea113c22a7d7646e5a6df0513fffe640b5c6",
+  "source_sha": "d9bdea113c22a7d7646e5a6df0513fffe640b5c6",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
