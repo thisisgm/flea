@@ -23,6 +23,9 @@ pub(crate) mod run_card;
 pub(crate) mod open_with;
 pub(crate) mod pane;
 pub(crate) mod path_host;
+pub(crate) mod permissions;
+#[cfg(test)]
+mod permissions_tests;
 pub(crate) mod properties;
 mod presentation;
 pub mod rail;
@@ -129,8 +132,6 @@ mod columns_key_repeat_tests;
 #[cfg(test)]
 #[path = "../list/join_tests.rs"]
 mod list_tests;
-#[cfg(test)]
-mod ipc_cold_tests;
 #[cfg(test)]
 mod modal_tests;
 #[cfg(test)]

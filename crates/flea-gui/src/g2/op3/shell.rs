@@ -1,6 +1,6 @@
 //! The seam op1's dialog shell fills: a card as plain data, and a stand-in frame drawing the boards' anatomy until the shell and scrim land.
 use crate::list::{Palette, Typeface};
-use gpui::{AnyElement, Hsla};
+use gpui::{AnyElement, Div, Hsla, Stateful};
 
 /// Every size below is the board's at its 14 px body; the shell multiplies by the live body over 14 (#310).
 pub const BOARD_BODY: f32 = 14.;
@@ -25,6 +25,8 @@ pub const CHECK: f32 = 18.;
 pub const LINE_40: f32 = 40.;
 pub const GRID_HEAD: f32 = 26.;
 pub const LABEL_COLUMN: f32 = 96.;
+/// The line box of each grid head caption inside the GRID_HEAD row: 1.2 times the caption size.
+pub const GRID_HEAD_LINE: f32 = CAPTION * 1.2;
 /// Properties' fact lines and the air between its two columns.
 pub const FACT_LINE: f32 = 24.;
 pub const FACT_GAP: f32 = 18.;
@@ -210,6 +212,8 @@ pub struct Button {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Card {
+    /// The catalog language controls heading capitals and tracking in the shared shell.
+    pub language: String,
     pub title: String,
     pub esc: String,
     /// The board width at the board's body size; the shell scales it.
@@ -283,9 +287,31 @@ struct Draw<'a> {
     t: Tokens,
     s: f32,
     typeface: &'a Typeface,
+    language: &'a str,
+    wire: Option<&'a Wire>,
+    entry: Option<&'a crate::path::entry::Entry>,
+}
+
+/// The controls whose pointer activation a live card serves through its model.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Control {
+    Field,
+    Check(usize),
+    Button(usize),
+}
+
+pub type Wire = dyn Fn(Control, Stateful<Div>) -> Stateful<Div>;
+
+/// The same board drawing with live controls and the window's card surface role.
+pub struct Interactive<'a> {
+    pub wire: &'a Wire,
+    pub surface: Hsla,
+    pub entry: &'a crate::path::entry::Entry,
 }
 
 mod blocks;
+#[cfg(test)]
+mod caption_tests;
 mod draw;
 mod glyph;
 pub use draw::StandIn;

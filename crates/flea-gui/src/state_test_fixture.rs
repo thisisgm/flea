@@ -70,6 +70,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         overlay: None,
         quick_look: None,
         output: Default::default(),
+        permissions: Default::default(),
         operations: Default::default(),
         rename: Default::default(),
         properties: None,
