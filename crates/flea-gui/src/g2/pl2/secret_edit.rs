@@ -1,25 +1,11 @@
 //! Secret edits wipe replaced buffers and keep only positions outside the secret.
 use crate::g2::pl1::secret::Secret;
-use std::ops::Range;
 
 pub fn units(secret: &Secret) -> usize {
     std::str::from_utf8(secret.expose())
         .unwrap_or("")
         .encode_utf16()
         .count()
-}
-
-pub fn replace(secret: &mut Secret, range: Range<usize>, text: &str) -> Range<usize> {
-    let current = std::str::from_utf8(secret.expose()).unwrap_or("");
-    let start = bytes(current, range.start);
-    let start_units = current[..start].encode_utf16().count();
-    let end = bytes(current, range.end.max(range.start));
-    let mut next = Secret::from_bytes(&secret.expose()[..start]);
-    next.push_str(text);
-    next.push_str(&current[end..]);
-    *secret = next;
-    let at = start_units + text.encode_utf16().count();
-    at..at
 }
 
 pub fn previous(secret: &Secret, at: usize) -> usize {
@@ -75,4 +61,16 @@ pub fn units_at_display_index(secret: &Secret, index: usize, reveal: bool) -> us
             .map(char::len_utf16)
             .sum()
     }
+}
+
+#[cfg(test)]
+pub fn replace(
+    secret: &mut Secret,
+    range: std::ops::Range<usize>,
+    text: &str,
+) -> std::ops::Range<usize> {
+    let mut entry = crate::path::entry::Entry::default();
+    crate::g2::pl1::private_entry::begin(&mut entry, secret);
+    crate::g2::pl1::private_entry::replace(&mut entry, secret, Some(range), text, None, false);
+    entry.ime_selection().range
 }

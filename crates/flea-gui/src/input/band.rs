@@ -38,10 +38,14 @@ pub fn update_band(
         && right > 0.
         && top < bottom
     {
-        let first = (top / frame.row).floor().max(0.) as usize;
-        let end = (bottom / frame.row).ceil().max(0.) as usize;
-        let col_first = (left / frame.cell_width.max(1.)).floor().max(0.) as usize;
-        let col_end = (right / frame.cell_width.max(1.)).ceil().max(0.) as usize;
+        let first = ((top - frame.cell_origin.1) / frame.row).floor().max(0.) as usize;
+        let end = ((bottom - frame.cell_origin.1) / frame.row).ceil().max(0.) as usize;
+        let col_first = ((left - frame.cell_origin.0) / frame.cell_width.max(1.))
+            .floor()
+            .max(0.) as usize;
+        let col_end = ((right - frame.cell_origin.0) / frame.cell_width.max(1.))
+            .ceil()
+            .max(0.) as usize;
         let cols = frame.columns.max(1);
         let col_first = col_first.min(cols);
         let col_end = col_end.min(cols);

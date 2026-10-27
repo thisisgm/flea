@@ -9,8 +9,7 @@ use gpui::{div, prelude::*, px, Context, Div, FontWeight, SharedString};
 impl SettingsView {
     /// The head: the title's sliders mark in its own ink, the pane's name, esc and the close mark.
     pub(super) fn head(&self, ink: &Ink, cx: &mut Context<Self>) -> Div {
-        self.probe
-            .attach(div(), "title")
+        div()
             .h(px(HEAD_H))
             .flex_none()
             .flex()
@@ -23,11 +22,17 @@ impl SettingsView {
             .text_color(ink.foreground)
             .child(mark("sliders", 16., ink.foreground))
             .child(
-                div()
-                    .flex_1()
-                    .font_weight(FontWeight::BOLD)
-                    .whitespace_nowrap()
-                    .child(SharedString::from(self.panel.title())),
+                // The probe boxes the title text itself, so its centre is the drawn title's, not the head row's.
+                div().flex_1().flex().child(
+                    self.probe.attach(
+                        div()
+                            .flex_none()
+                            .font_weight(FontWeight::BOLD)
+                            .whitespace_nowrap()
+                            .child(SharedString::from(self.panel.title())),
+                        "title",
+                    ),
+                ),
             )
             .child(div().text_color(ink.muted).child("esc"))
             .child(

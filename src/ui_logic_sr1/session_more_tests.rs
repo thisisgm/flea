@@ -160,8 +160,22 @@ fn contents_toggle_waits_for_its_producer() {
     assert!(plain.type_key(&p, Key::Contents).is_empty());
     assert_eq!(plain.kind, Kind::Names);
     let mut wired = Session { wire: Wire { everywhere: false, contents: true }, ..typing("word") };
-    assert_eq!(sent(&wired.type_key(&p, Key::Contents)), ["query 1:word/200"]);
+    assert_eq!(sent(&wired.type_key(&p, Key::Contents)), ["contents 1:word/200 in /d"]);
     assert_eq!(wired.kind, Kind::Contents);
+}
+
+#[test]
+fn a_contents_query_asks_the_producer_and_never_the_names_walk() {
+    let p = pane("/d", "");
+    let mut wired = Session { wire: Wire { everywhere: true, contents: true }, ..typing("") };
+    assert!(wired.type_key(&p, Key::Contents).is_empty(), "no query yet, so nothing is asked");
+    assert_eq!(sent(&wired.type_key(&p, Key::Text("F"))), ["contents 1:F/200 in /d"]);
+    assert_eq!(sent(&wired.type_key(&p, Key::Text("l"))), ["contents 2:Fl/200 in /d"]);
+    assert_eq!(sent(&wired.type_key(&p, Key::Contents)), ["query 3:Fl/200"], "Ctrl+G back to names asks the names walk");
+    assert_eq!(sent(&wired.type_key(&p, Key::Contents)), ["contents 4:Fl/200 in /d"], "Ctrl+G again asks the producer");
+    wired.scope = Scope::Everywhere;
+    assert!(wired.type_key(&p, Key::Text("e")).is_empty(), "contents has no root under Everywhere, so nothing is asked");
+    assert_eq!((wired.query.as_str(), wired.gen), ("Fle", 4));
 }
 
 #[test]

@@ -74,10 +74,14 @@ impl Overlay {
         self.model.open() || self.progress.dialog.holding(self.now(cx))
     }
 
-    pub fn showing(&self, cx: &App) -> bool {
-        self.modal(cx)
-            || *self.progress.card.value(self.now(cx))
+    /// The Jobs card, the one overlay card that stands beside the panes rather than over them.
+    pub fn jobs_showing(&self, cx: &App) -> bool {
+        *self.progress.card.value(self.now(cx))
             || (self.model.jobs.visible() && !self.model.jobs.folded)
+    }
+
+    pub fn showing(&self, cx: &App) -> bool {
+        self.modal(cx) || self.jobs_showing(cx)
     }
 
     pub fn drawn_dialog(&self) -> Option<&Dialog> {

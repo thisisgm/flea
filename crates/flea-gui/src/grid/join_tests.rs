@@ -8,6 +8,9 @@ use crate::{
 use flea::ipc::wire::{Reply, Request};
 use gpui::{AppContext, Context, KeyDownEvent, Keystroke, TestAppContext, WindowHandle};
 
+#[path = "pb_path_anchor_tests.rs"]
+mod pb_path_anchor_tests;
+
 pub(super) fn named_shell(backend: Backend, cx: &mut Context<Shell>) -> Shell {
     let mut shell = shell_with(backend, cx);
     let held = &mut shell.panes[0].as_mut().unwrap().pane.held;

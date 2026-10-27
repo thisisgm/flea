@@ -1,5 +1,6 @@
 //! The approved media frame, optional transport, name and compact or full facts.
 use super::*;
+pub(crate) use super::fitted::column_picture;
 use crate::g2::pv3::{
     self,
     strip::StripElement,
@@ -12,6 +13,18 @@ use gpui::{div, prelude::*, px, IntoElement, Render, Window};
 pub(super) const FRAME_BORDER: f32 = 1.;
 /// The opacity of a symlink's or an undrawn kind's state mark.
 const STATE_MARK_OPACITY: f32 = 0.7;
+
+impl SelectionPreview {
+    /// An empty text or code file settled with nothing to draw: its frame stands the document glyph in.
+    pub(crate) fn code_blank(&self, frame: &Frame, cx: &gpui::App) -> bool {
+        match &frame.mounted {
+            Mounted::Doc(crate::window::selection_preview::docs::Doc::Code(view)) => {
+                view.read(cx).blank()
+            }
+            _ => false,
+        }
+    }
+}
 
 pub(crate) fn number(meta: Option<&Json>, key: &str) -> i64 {
     meta.and_then(|meta| meta.get(key))
@@ -84,44 +97,18 @@ impl Render for SelectionPreview {
         let loading =
             self.pending.is_some() && (!self.port.0.borrow().holding || self.drawn.is_none());
         if loading || self.drawn.is_none() {
-            *self.frame_rect.borrow_mut() = None;
-            *self.play_rect.borrow_mut() = None;
-            let port = self.port.clone();
-            let epoch = self.epoch;
-            let loading_mark = gpui::canvas(
-                |_, _, _| (),
-                move |_, _, _, cx| {
-                    let now = cx
-                        .background_executor()
-                        .now()
-                        .saturating_duration_since(epoch)
-                        .as_millis() as u64;
-                    let mut swap = port.0.borrow_mut();
-                    swap.loading_at.get_or_insert(now);
-                },
-            )
-            .absolute()
-            .size_full();
-            return root.child(
-                div()
-                    .relative()
-                    .size_full()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .text_color(roles.metadata)
-                    .child(self.catalog.tr("preview.loading"))
-                    .child(loading_mark),
-            );
+            return root.child(self.loading_view(roles.metadata));
         }
         let frame = self.drawn.as_ref().unwrap();
-        if !matches!(frame.mounted, Mounted::Media(_)) {
+        if frame.manual || !matches!(frame.mounted, Mounted::Media(_)) {
             *self.play_rect.borrow_mut() = None;
         }
+        let empty = self.manual_empty(frame);
+        let kind = if empty { Kind::Facts } else { frame.kind };
         let full = !frame.kind.tall() || self.full_facts;
         let facts = self.facts(frame, cx);
         let (row, name_row) = self.fact_row();
-        let (width, height) = self.frame_size(frame.kind, if full { facts.len() } else { 1 });
+        let (width, height) = self.frame_size(kind, if full { facts.len() } else { 1 });
         let bounds = self.frame_rect.clone();
         let frame_probe = gpui::canvas(
             |bounds, _, _| bounds,
@@ -134,11 +121,16 @@ impl Render for SelectionPreview {
             .relative()
             .w_full()
             .border_1()
-            .border_color(roles.metadata_frame)
+            .border_color(if empty {
+                roles.muted_frame
+            } else {
+                roles.metadata_frame
+            })
             .rounded(px(self.corner))
             .overflow_hidden()
-            .child(frame_probe);
-        media = if frame.kind.tall() {
+            .child(frame_probe)
+            .debug_selector(|| "column-preview-frame".into());
+        media = if kind.tall() {
             media.flex_1().min_h_0()
         } else {
             media.h(px(height)).flex_none()
@@ -156,7 +148,16 @@ impl Render for SelectionPreview {
                 .children(note.map(|note| div().text_color(roles.metadata).child(note)))
         };
         let failure = self.failure(frame, cx);
-        if frame.manual {
+        if empty {
+            media = media.child(
+                state_mark(
+                    Glyph::Row(Mark::File),
+                    roles.muted_frame,
+                    Some(self.catalog.tr("preview.no_preview")),
+                )
+                .debug_selector(|| "column-preview-manual-empty".into()),
+            );
+        } else if frame.manual {
             media = media.child(
                 div()
                     .size_full()
@@ -174,8 +175,18 @@ impl Render for SelectionPreview {
                 cache: self.caches.view.clone(),
                 painted: Default::default(),
             });
+        } else if self.code_blank(frame, cx) {
+            media = media.child(
+                state_mark(
+                    Glyph::kind(&frame.subject.row.icon, frame.subject.row.mode),
+                    roles.muted_frame.opacity(STATE_MARK_OPACITY),
+                    None,
+                )
+                .debug_selector(|| "column-preview-empty-glyph".into()),
+            );
         } else {
             let fitted = super::fitted::fitted(frame, width, height);
+            let moving = super::picture::moving(frame, width, height);
             let player_failed = matches!(&frame.mounted, Mounted::Media(Some(player))
                 if player.read(cx).status() == flea::ui_logic_pv3::player::Status::Failed);
             media = match &frame.mounted {
@@ -232,6 +243,7 @@ impl Render for SelectionPreview {
                 _ if frame.kind == Kind::Multi => {
                     media.child(multi::stack(&frame.subject, mark_size, roles.muted_frame))
                 }
+                _ if moving.is_some() => media.children(moving),
                 _ if fitted.is_some() => media.children(fitted),
                 _ if frame.kind == Kind::Symlink => media.child(state_mark(
                     Glyph::Row(Mark::Symlink),
@@ -253,6 +265,9 @@ impl Render for SelectionPreview {
             };
         }
         root = root.flex().flex_col().gap(px(metrics.gap)).child(media);
+        if empty {
+            return root;
+        }
         if let Mounted::Media(player) = &frame.mounted {
             let entity = cx.entity().downgrade();
             let on_input = Rc::new(move |input, window: &mut Window, cx: &mut gpui::App| {
@@ -364,16 +379,5 @@ impl Render for SelectionPreview {
             );
         }
         root
-    }
-}
-
-/// cols-preview-video.html draws no play mark over the frame; the strip under it carries play.
-pub(crate) fn column_picture(picture: Picture) -> Picture {
-    match picture {
-        Picture::Video { frame, .. } => Picture::Video {
-            frame,
-            poster: false,
-        },
-        other => other,
     }
 }

@@ -13,18 +13,43 @@ impl Flash {
         self.runner.ending.as_ref()
     }
 
+    pub(crate) fn cursor_index(&self) -> usize {
+        self.cursor
+    }
+
+    pub(crate) fn drive_count(&self) -> usize {
+        self.drives.len()
+    }
+
+    pub(crate) fn phase(&self) -> &str {
+        self.runner
+            .transfer
+            .as_ref()
+            .map_or("", |run| run.transfer.phase.as_str())
+    }
+
     /// The view as the host draws it: the strip title, the image row, one file row per drive, the Flash step.
     pub fn view(&self, i18n: &I18n) -> View {
         let image = self.image.as_ref();
         let refused = image.is_some_and(|image| image.refused);
         let image_row = ImageRow {
-            name: image.map(|image| logic::leaf_of(&image.path)).unwrap_or_else(|| i18n.tr("archive.flash.choose_image")),
-            detail: image.map(|image| flash::image_detail(i18n, image)).unwrap_or_default(),
-            size: image.map(|image| i18n.locale().format_size(image.bytes)).unwrap_or_default(),
+            name: image
+                .map(|image| logic::leaf_of(&image.path))
+                .unwrap_or_else(|| i18n.tr("archive.flash.choose_image")),
+            detail: image
+                .map(|image| flash::image_detail(i18n, image))
+                .unwrap_or_default(),
+            size: image
+                .map(|image| i18n.locale().format_size(image.bytes))
+                .unwrap_or_default(),
             cursor: self.cursor == 0,
             refused,
             present: image.is_some(),
-            hint: if refused { i18n.tr("archive.flash.not_image") } else { String::new() },
+            hint: if refused {
+                i18n.tr("archive.flash.not_image")
+            } else {
+                String::new()
+            },
         };
         let drives = self
             .drives
@@ -41,17 +66,32 @@ impl Flash {
                     dimmed: !flash::fits(drive),
                     hint: {
                         let key = flash::refused_hint_key(drive);
-                        if key.is_empty() { String::new() } else { i18n.tr(key) }
+                        if key.is_empty() {
+                            String::new()
+                        } else {
+                            i18n.tr(key)
+                        }
                     },
                 }
             })
             .collect();
-        let words = flash::flash_words(i18n, image.is_some_and(|image| !image.refused), self.chosen_drive(), &self.drives);
+        let words = flash::flash_words(
+            i18n,
+            image.is_some_and(|image| !image.refused),
+            self.chosen_drive(),
+            &self.drives,
+        );
         let running = self.running();
         let (mark, line) = match (&self.runner.transfer, &self.runner.ending) {
             (Some(run), _) => (StepMark::Spinner, run.drawn.head_text.clone()),
             (None, Some(ending)) => (
-                if ending.role == "error" { StepMark::Alert } else if ending.mark == "check" { StepMark::Check } else { StepMark::Cross },
+                if ending.role == "error" {
+                    StepMark::Alert
+                } else if ending.mark == "check" {
+                    StepMark::Check
+                } else {
+                    StepMark::Cross
+                },
                 ending.headline.clone(),
             ),
             (None, None) => (StepMark::Alert, words.erase.clone()),
@@ -61,7 +101,16 @@ impl Flash {
             .runner
             .transfer
             .as_ref()
-            .map(|run| (run.drawn.share, run.drawn.byte_text.iter().map(|part| (part.text.clone(), part.figure)).collect()))
+            .map(|run| {
+                (
+                    run.drawn.share,
+                    run.drawn
+                        .byte_text
+                        .iter()
+                        .map(|part| (part.text.clone(), part.figure))
+                        .collect(),
+                )
+            })
             .unwrap_or((0.0, Vec::new()));
         View {
             title: i18n.tr("archive.flash.title"),
@@ -83,10 +132,16 @@ impl Flash {
                     None => String::new(),
                 },
                 end_primary: ending.is_some_and(|ending| ending.flash_back),
-                end_visible: ending.is_some_and(|ending| ending.eject || ending.flash_back) && !self.ejected,
+                end_visible: ending.is_some_and(|ending| ending.eject || ending.flash_back)
+                    && !self.ejected,
                 action_hover: self.action_hover,
                 action_pressed: self.action_pressed,
-                cancel_live: self.runner.transfer.as_ref().map(|run| !run.drawn.no_cancel).unwrap_or(true),
+                cancel_live: self
+                    .runner
+                    .transfer
+                    .as_ref()
+                    .map(|run| !run.drawn.no_cancel)
+                    .unwrap_or(true),
                 share,
                 byte,
             },
