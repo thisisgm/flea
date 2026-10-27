@@ -23,3 +23,4 @@ pub(crate) mod thumbnails;
 pub mod view;
 
 pub use surface::{Adapter, Surface};
+pub(crate) mod preview_text;

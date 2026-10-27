@@ -165,3 +165,8 @@ mod test_shell;
 
 #[cfg(test)]
 mod gh_preview_proof_tests;
+
+#[cfg(test)]
+mod parity_preview_tests;
+#[cfg(test)]
+mod parity_preview_readers_tests;
