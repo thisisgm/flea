@@ -98,7 +98,11 @@ impl QuickLook {
                     None => Cow::Borrowed(&subject.body),
                 }
             }
-            _ => Cow::Borrowed(&subject.body),
+            // A refused code read draws the calm card in the view's place, as a refused picture does.
+            _ => match self.calm_body(cx) {
+                Some(body) => Cow::Owned(body),
+                None => Cow::Borrowed(&subject.body),
+            },
         };
         let mut surface = div()
             .id("pv1-card")
