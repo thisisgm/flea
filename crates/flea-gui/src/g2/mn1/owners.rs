@@ -137,8 +137,9 @@ impl Shell {
         if string(reply, "t") != "settagged" {
             return false;
         }
+        // A settagged answer with no menu toggle waiting on this side belongs to another sender, so it passes on.
         let Some(at) = self.menu.tagging.iter().position(|(s, _)| *s == side) else {
-            return true;
+            return false;
         };
         let (_, name) = self.menu.tagging.remove(at);
         let number = |key: &str| reply.get(key).and_then(Json::as_f64).unwrap_or(0.) as i64;
@@ -164,7 +165,10 @@ impl Shell {
         let (sentence, hint) = if ok > 0 && skipped == 0 {
             (tags::changed_line(catalog, op, ok, &shown), Hint::Undo)
         } else {
-            (tags::done_line(catalog, &preset, op, ok, &shown, skipped), Hint::None)
+            (
+                tags::done_line(catalog, &preset, op, ok, &shown, skipped),
+                Hint::None,
+            )
         };
         if !sentence.is_empty() {
             self.owner_notice(side, &sentence, false, hint, cx);
