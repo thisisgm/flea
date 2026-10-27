@@ -60,3 +60,12 @@ pub(crate) fn count_allocations<T>(work: impl FnOnce() -> T) -> (T, usize) {
     let allocations = ALLOCATIONS.with(|count| count.replace(None).unwrap());
     (result, allocations)
 }
+
+// A deterministic loaded snapshot for the query phase probe; production ranking is unchanged.
+pub(crate) fn fixture_priors(files: Vec<Vec<u8>>, folders: Vec<Vec<u8>>) -> Priors {
+    Priors::new(files, folders)
+}
+
+pub(crate) fn fixture_counts(priors: &Priors) -> (usize, usize) {
+    (priors.files.len(), priors.folders.len())
+}

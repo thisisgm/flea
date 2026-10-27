@@ -123,7 +123,7 @@ fn bulk_send(shell: &Entity<Shell>, cx: &mut VisualTestContext, side: usize, pat
 
 #[gpui::test]
 fn each_pane_keeps_its_own_bulk_rename_done_line(cx: &mut TestAppContext) {
-    let (shell, cx) = open(cx, "default");
+    let (shell, cx) = super::test_shell::open_root(cx, "default");
     let home = || {
         vec![
             row("alpha", true),

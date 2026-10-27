@@ -7,10 +7,15 @@ function canon(v) {
     return "{" + Object.keys(v).sort().filter(function (k) { return v[k] !== undefined }).map(function (k) { return JSON.stringify(k) + ":" + canon(v[k]) }).join(",") + "}"
 }
 
-// The two hosts parse under their own code surface, so the chip background (the one input that differs) is read as one word.
-// Sample input: '<code style="background-color:#181825">x</code>' answers '<code style="background-color:CHROME">x</code>'.
+// Each host has its own chip background and its own session-wide tableKey counter, so both read as host-neutral words.
+// Sample input: 'background-color:#181825 "tableKey":7 "tableKey":7 "tableKey":9' answers 'background-color:CHROME "tableKey":1 "tableKey":1 "tableKey":2'.
 function neutral(blocks) {
+    var order = {}, next = 0
     return canon(blocks).replace(/background-color:#[0-9a-fA-F]{6}/g, "background-color:CHROME")
+        .replace(/"tableKey":(\d+)/g, function (all, key) {
+            if (order[key] === undefined) order[key] = ++next
+            return '"tableKey":' + order[key]
+        })
 }
 
 // A fence line as a rendered run would draw it: 3 or more backticks or tildes opening a line (after LF or a lone CR), after at most a quote mark or an indent.

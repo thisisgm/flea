@@ -214,6 +214,20 @@ fn pl2_password_ime_keeps_selection_positions_and_ignores_closed_composition(
     view.update(cx, |v, window, cx| {
         v.open(window, cx);
         v.model.focus = super::dialog::Focus::Password;
+        v.load_input();
+        v.replace_and_mark_text_in_range(None, "before-paint", None, window, cx);
+        assert!(
+            v.model.password.is_empty(),
+            "an unpainted session refuses platform callbacks"
+        );
+    })
+    .unwrap();
+    cx.update_window(view.into(), |_, window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+    })
+    .unwrap();
+    view.update(cx, |v, window, cx| {
         v.replace_and_mark_text_in_range(None, "a\u{1d11e}z", Some(1..3), window, cx);
         assert_eq!(v.password_selection, 1..3);
         assert!(v.text_for_range(0..4, &mut None, window, cx).is_none());

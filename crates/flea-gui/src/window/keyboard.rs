@@ -38,6 +38,11 @@ impl Keyboard {
         self.sequence.live(seat, self.context, keys::preset(name))
     }
 
+    /// The armed pair and its seat, for keyDeliveryState.
+    pub fn pending(&self) -> Option<(&'static str, Seat)> {
+        self.sequence.pending()
+    }
+
     /// `held` is the window's modifier state, which keeps the Shift the platform drops from a symbol key.
     pub fn resolve(
         &mut self,

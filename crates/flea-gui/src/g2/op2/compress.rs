@@ -294,6 +294,7 @@ impl Compress {
     pub fn card(&self, i18n: &I18n) -> Card {
         let error = self.error.clone().unwrap_or_default();
         let field = |label: &str, value: &str, placeholder: &str, focused: bool, error: bool, revealed: bool| Field {
+            input: None,
             label: Some(label.into()),
             value: value.into(),
             placeholder: placeholder.into(),
@@ -313,6 +314,7 @@ impl Compress {
                 label: i18n.tr("archive.format"),
             }),
             Block::Field(Field {
+            input: None,
                 label: Some(i18n.tr("archive.name")),
                 value: self.name.clone(),
                 placeholder: i18n.tr("archive.name_placeholder"),
@@ -381,3 +383,5 @@ fn join(base: &str, name: &str) -> String {
     }
     format!("{base}/{name}")
 }
+
+mod ime;

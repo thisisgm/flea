@@ -66,8 +66,8 @@ impl Arguments {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum View {
-    List,
     #[default]
+    List,
     Columns,
     Grid,
     Dual,
@@ -88,12 +88,13 @@ fn word<'a>(value: &'a Json, key: &str) -> &'a str {
 }
 
 impl Settings {
-    pub fn from_json(data: Json, saved_view: bool) -> Self {
-        let view = match (saved_view, word(&data, "view")) {
-            (true, "list") => View::List,
-            (true, "grid") => View::Grid,
-            (true, "dual") => View::Dual,
-            _ => View::Columns,
+    pub fn from_json(data: Json) -> Self {
+        let view = match word(&data, "view") {
+            "list" => View::List,
+            "grid" => View::Grid,
+            "columns" => View::Columns,
+            "dual" => View::Dual,
+            _ => View::List,
         };
         let places = data.get("places").unwrap_or(&Json::Null);
         let rail_width = if word(places, "rail") == "hidden" {
@@ -166,6 +167,11 @@ impl Settings {
         }
         (paths, named.map(|_| side))
     }
+
+    /// Settings > View "Open items with": Pane.qml reads its singleClick as this same word, so only "single" opens on one click.
+    pub fn single_click_open(&self) -> bool {
+        word(&self.data, "openMode") == "single"
+    }
 }
 
 pub fn binary() -> PathBuf {
@@ -188,15 +194,7 @@ pub fn load_settings() -> Result<Settings, String> {
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .unwrap_or_default();
-    let state = std::env::var_os("XDG_STATE_HOME")
-        .filter(|v| !v.is_empty())
-        .map(PathBuf::from)
-        .unwrap_or_else(|| home.join(".local/state"));
-    let saved_view = std::fs::read_to_string(state.join("flea/ui.json"))
-        .ok()
-        .and_then(|text| flea::jsondoc::parse(&text).ok())
-        .is_some_and(|raw| raw.get("view").and_then(Json::as_str).is_some());
-    let mut settings = Settings::from_json(data, saved_view);
+    let mut settings = Settings::from_json(data);
     // Read once on the startup worker, never on a frame: the folders that open newest first.
     let config = std::env::var_os("XDG_CONFIG_HOME")
         .filter(|v| !v.is_empty())
@@ -270,4 +268,34 @@ pub fn new_window_command(path: &str) -> Command {
         .env_remove("FLEA_PATH")
         .env_remove("FLEA_SELECT");
     command
+}
+
+#[cfg(test)]
+mod startup_view_tests {
+    use super::*;
+
+    #[test]
+    fn fresh_state_opens_list_and_saved_words_survive() {
+        assert_eq!(
+            Settings::from_json(flea::uistate::from_file("{}")).view,
+            View::List
+        );
+        for (word, want) in [
+            ("list", View::List),
+            ("grid", View::Grid),
+            ("columns", View::Columns),
+            ("dual", View::Dual),
+        ] {
+            let data = flea::jsondoc::parse(&format!(r#"{{"view":"{word}"}}"#)).unwrap();
+            assert_eq!(Settings::from_json(data).view, want, "saved {word}");
+        }
+        assert_eq!(
+            Settings::from_json(flea::jsondoc::parse(r#"{"view":"bogus"}"#).unwrap()).view,
+            View::List
+        );
+        assert_eq!(
+            Settings::from_json(flea::jsondoc::parse("{}").unwrap()).view,
+            View::List
+        );
+    }
 }
