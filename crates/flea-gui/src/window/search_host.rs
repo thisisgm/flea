@@ -16,7 +16,11 @@ pub(crate) struct Runtime {
 impl Runtime {
     pub fn new(face: crate::list::Typeface) -> Self {
         Self {
-            owner: Search::new(Wire::default()),
+            // The GUI wires the contents producer, so Ctrl+G switches the strip to contents instead of doing nothing.
+            owner: Search::new(Wire {
+                contents: true,
+                ..Wire::default()
+            }),
             rows_generation: 0,
             strip: Rc::new(RefCell::new(sr1::strip::StripState::new(face))),
             origin: None,
