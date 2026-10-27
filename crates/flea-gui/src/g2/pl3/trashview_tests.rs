@@ -1,5 +1,5 @@
 //! Trash rail activation through Root, including draw-time registration and the visible view owners.
-use super::join_tests::{answer, draw, root, shell};
+use super::join_tests::{answer, call, draw, root, shell};
 use crate::{list::bench::real_cx, window::root::Root};
 use flea::{
     protocol::{Reply, RowFacts},
@@ -285,4 +285,76 @@ fn trashview_empty_catalog_line_is_visible_and_centered() {
         area.center(),
         "TrashView.qml centres its empty line in the whole view"
     );
+}
+
+#[test]
+fn trashview_comma_then_escape_keeps_trash_and_m_targets_the_trash_row() {
+    let mut cx = real_cx();
+    let window = mounted(&mut cx);
+    cx.simulate_keystrokes(window.into(), "delete");
+    draw(&mut cx, window);
+    enter(&mut cx, window);
+    settle(&mut cx, window, 2);
+    cx.simulate_keystrokes(window.into(), ",");
+    draw(&mut cx, window);
+    assert_eq!(call(&mut cx, window, "settingsOpen", &[]), "true");
+    shell(&mut cx, window, |shell, _, cx| {
+        assert!(shell.trash_opened(cx), "comma must leave Trash open");
+    });
+    cx.simulate_keystrokes(window.into(), "escape");
+    draw(&mut cx, window);
+    assert_eq!(call(&mut cx, window, "settingsOpen", &[]), "false");
+    shell(&mut cx, window, |shell, _, cx| {
+        assert!(
+            shell.trash_opened(cx),
+            "Escape closing Settings must keep Trash open"
+        );
+        let places = shell.rail.as_ref().unwrap().places.read(cx);
+        let lit = places.model.borrow().lit.expect("Trash row lit");
+        assert_eq!(places.entries()[lit].kind, Kind::Trash);
+    });
+    cx.simulate_keystrokes(window.into(), "m");
+    draw(&mut cx, window);
+    shell(&mut cx, window, |shell, window, cx| {
+        let host = shell.trash.as_ref().unwrap();
+        let pane_focused = host.pane.read(cx).focus.contains_focused(window, cx);
+        assert!(
+            host.menu.borrow().opened(),
+            "m must open the owned Trash row menu (trash pane focused: {pane_focused})"
+        );
+    });
+}
+
+#[test]
+fn trashview_rail_menu_key_on_the_trash_row_opens_the_trash_rail_menu() {
+    let mut cx = real_cx();
+    let window = mounted(&mut cx);
+    cx.simulate_keystrokes(window.into(), "tab");
+    shell(&mut cx, window, |shell, window, cx| {
+        assert!(shell.dual_focus.rail.contains_focused(window, cx));
+    });
+    cx.simulate_keystrokes(window.into(), "m");
+    draw(&mut cx, window);
+    shell(&mut cx, window, |shell, _, _| {
+        let menu = shell.menu.menu.borrow();
+        let card = menu
+            .card
+            .as_ref()
+            .expect("m on the Trash rail row opens a menu");
+        let actions: Vec<_> = card
+            .entries
+            .iter()
+            .filter(|row| !row.separator)
+            .map(|row| row.action.as_ref())
+            .collect();
+        assert_eq!(actions, ["open", "restoreAll", "emptyTrash"]);
+    });
+    cx.simulate_keystrokes(window.into(), "enter");
+    draw(&mut cx, window);
+    shell(&mut cx, window, |shell, _, cx| {
+        assert!(
+            shell.trash_opened(cx),
+            "the Open row of the Trash rail menu opens the Trash view"
+        );
+    });
 }

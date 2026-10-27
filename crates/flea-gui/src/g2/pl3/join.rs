@@ -254,6 +254,16 @@ impl Shell {
             .is_some_and(|host| host.pane.read(cx).view().opened)
     }
 
+    /// The focus an overlay hands back: the covering Trash pane while it holds the focused side, else the window.
+    pub(crate) fn overlay_return_focus(&self, cx: &gpui::App) -> gpui::FocusHandle {
+        match &self.trash {
+            Some(host) if host.side == self.focus_side && host.pane.read(cx).view().opened => {
+                host.pane.read(cx).focus.clone()
+            }
+            _ => self.focus.clone(),
+        }
+    }
+
     pub(crate) fn size_trash(&mut self, geometry: &Geometry, cx: &mut Context<Self>) {
         let Some(host) = &self.trash else {
             return;

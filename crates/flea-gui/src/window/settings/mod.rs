@@ -282,7 +282,8 @@ impl Shell {
                 self.settings.sheet = None;
                 self.settings.sheet_subscription = None;
                 self.settings.sheet_sources_subscription = None;
-                window.focus(&self.focus, cx);
+                let focus = self.overlay_return_focus(cx);
+                window.focus(&focus, cx);
                 if let Some(decision) = decision {
                     self.settings_sheet_decision(decision, window, cx);
                 }
