@@ -24,6 +24,78 @@ fn state(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Json {
 }
 
 #[gpui::test]
+fn provider_state_taildrop_peers_match_the_oracle_contract(cx: &mut TestAppContext) {
+    struct Wire;
+    impl crate::g2::sd1::seams::Wire for Wire {
+        fn send(&self, _: String) -> bool {
+            true
+        }
+    }
+    let (backend, _lines) = Backend::test_lines();
+    let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
+    shell.update_in(cx, |shell, _, _| {
+        shell.menu.providers.sides[0].menu_opened(
+            &Wire,
+            &flea::ui_logic_sd1::providers::Facts {
+                tailscale_command: "/usr/bin/tailscale".into(),
+                send_command: "/usr/bin/omarchy-tailscale-send".into(),
+                ..Default::default()
+            },
+            None,
+            &[],
+            0,
+        );
+    });
+    let waiting = state(&shell, cx);
+    assert_eq!(
+        waiting.get("refreshing").and_then(Json::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        waiting
+            .get("taildrop")
+            .unwrap()
+            .get("checking")
+            .and_then(Json::as_bool),
+        Some(true)
+    );
+    shell.update_in(cx, |shell, _, _| {
+        shell.menu.providers.sides[0].taildrop_done(
+            1,
+            0,
+            r#"{"BackendState":"Running","Self":{"Capabilities":["https://tailscale.com/cap/file-sharing"]},"Peer":{
+                "second-peer":{"HostName":"Bravo","DNSName":"fixture.invalid.","Online":true,"TaildropTarget":1},
+                "first-peer":{"HostName":"Alpha","DNSName":"unused.invalid.","Online":true,"TaildropTarget":1}}}"#,
+            "",
+            &shell.locale.catalog,
+        );
+    });
+    let ready = state(&shell, cx);
+    assert_eq!(ready.get("refreshing").and_then(Json::as_bool), Some(false));
+    let taildrop = ready.get("taildrop").unwrap();
+    assert_eq!(
+        taildrop.get("checking").and_then(Json::as_bool),
+        Some(false)
+    );
+    assert_eq!(taildrop.get("reason").and_then(Json::as_str), Some(""));
+    assert_eq!(
+        taildrop.get("timeoutSeconds").and_then(Json::as_f64),
+        Some(15.)
+    );
+    let peers = taildrop.get("peers").unwrap().as_array().unwrap();
+    assert_eq!(peers.len(), 2);
+    for (peer, (id, label, address)) in peers.iter().zip([
+        ("first-peer", "Alpha", "unused.invalid"),
+        ("second-peer", "Bravo", "fixture.invalid"),
+    ]) {
+        assert_eq!(peer.get("id").and_then(Json::as_str), Some(id));
+        assert_eq!(peer.get("label").and_then(Json::as_str), Some(label));
+        assert_eq!(peer.get("address").and_then(Json::as_str), Some(address));
+        assert!(peer.get("name").is_none());
+    }
+}
+
+#[gpui::test]
 fn followup_provider_state_reports_selection_identity_and_idle_services(cx: &mut TestAppContext) {
     let (backend, _lines) = Backend::test_lines();
     let (shell, cx) = cx.add_window_view(|_, cx| {

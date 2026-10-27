@@ -52,11 +52,6 @@ impl Shell {
                 host.input.hovered = None;
             }
             let now = cx.background_executor().now();
-            if !matches!(view, View::List | View::Dual) {
-                host.input.advance(now, &mut host.pane, &mut host.selected);
-                host.input
-                    .step_motion(now, &mut host.pane, cx.reduce_motion());
-            }
             // Resolve shared font metrics during frame preparation, never inside an observer.
             host.list.borrow_mut().measure(window);
             let header = Metrics::for_typeface(&host.list.borrow().typeface).header;
@@ -104,6 +99,10 @@ impl Shell {
                 {
                     prepared[side] = Some(frame);
                 }
+            } else {
+                crate::input::views::prepare(host, view, now);
+                host.input
+                    .step_motion(now, &mut host.pane, cx.reduce_motion());
             }
             if host.input.animating(now, cx.reduce_motion()) {
                 window.request_animation_frame();

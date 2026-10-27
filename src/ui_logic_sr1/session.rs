@@ -110,11 +110,21 @@ impl Session {
         }
     }
 
+    // A contents strip asks the contents producer over the scope root; a names strip asks the names walk.
     fn send_query(&mut self, pane: &Pane, out: &mut Vec<Effect>) {
+        let root = Self::scope_root(pane.path, pane.home, self.scope);
+        // Everywhere has no single root for the producer at this base, so a contents query is not sent.
+        if self.kind == Kind::Contents && root.is_none() {
+            return;
+        }
         self.gen += 1;
         self.stamps = Stamps { gen: self.gen, key_at: pane.now.max(1), first_rows_at: 0, settled_at: 0 };
         self.partial = None;
-        out.push(Effect::Send(Request::Query { query: self.query.clone(), gen: self.gen, count: pane.count, sizes: pane.sizes }));
+        let query = self.query.clone();
+        out.push(Effect::Send(match root {
+            Some(path) if self.kind == Kind::Contents => Request::Contents { path, query, hidden: pane.hidden, gen: self.gen, count: pane.count },
+            _ => Request::Query { query, gen: self.gen, count: pane.count, sizes: pane.sizes },
+        }));
     }
 
     pub fn extend(&mut self, pane: &Pane, text: &str) -> Vec<Effect> {

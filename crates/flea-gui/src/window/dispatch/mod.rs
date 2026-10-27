@@ -1,11 +1,14 @@
 //! The one place the window runs what a producer hands it: key and pointer actions, menu choices and rail requests.
 mod clipboard;
+mod deletion;
 mod fileops;
 mod fileops_wire;
 mod listing;
 mod menus;
 mod navigation;
 pub(crate) mod opener;
+mod original;
+mod places;
 mod preview;
 mod previewtypes;
 mod rename;
@@ -37,10 +40,13 @@ const FAMILIES: &[Family] = &[
     navigation::run,
     tabs::run,
     opener::run,
+    original::run,
+    places::run,
     previewtypes::run,
     preview::run,
     listing::run,
     window::run,
+    super::permissions::run,
     rename::run,
     menus::run,
     clipboard::run,
@@ -89,19 +95,27 @@ mod guard_tests;
 #[cfg(test)]
 mod listing_tests;
 #[cfg(test)]
+mod filterkeys_tests;
+#[cfg(test)]
 mod listing_marks_tests;
 #[cfg(test)]
 mod dual_keys_tests;
 #[cfg(test)]
 mod key_rows_tests;
 #[cfg(test)]
+mod presetkeys_tests;
+#[cfg(test)]
 mod listing_pointer_keep_tests;
 #[cfg(test)]
 mod listing_pointer_tests;
 #[cfg(test)]
+mod band_tests;
+#[cfg(test)]
 mod menus_columns_tests;
 #[cfg(test)]
 mod menus_dual_tests;
+#[cfg(test)]
+mod menudeliver_tests;
 #[cfg(test)]
 mod menus_tests;
 #[cfg(test)]
@@ -109,25 +123,51 @@ mod menus_keys_tests;
 #[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]
+mod pb_path_tests;
+#[cfg(test)]
 mod queued_navigation_tests;
 #[cfg(test)]
 mod queued_navigation_escape_tests;
 #[cfg(test)]
+mod opener_focus_tests;
+#[cfg(test)]
 mod opener_menu_tests;
+#[cfg(test)]
+mod opener_selection_tests;
 #[cfg(test)]
 mod opener_tests;
 #[cfg(test)]
 mod pb_fileops_tests;
 #[cfg(test)]
+mod pb_opener_tests;
+#[cfg(test)]
+pub(crate) mod pb_places_tests;
+#[cfg(test)]
+mod menudraw_tests;
+#[cfg(test)]
+mod pb_wire_tests;
+#[cfg(test)]
 mod previewtypes_cover_tests;
 #[cfg(test)]
+mod previewtypes_fixture_tests;
+#[cfg(test)]
 mod previewtypes_fit_tests;
+#[cfg(test)]
+mod previewtypes_gif_tests;
+#[cfg(test)]
+mod previewtypes_hold_tests;
+#[cfg(test)]
+mod key_delivery_preview_tests;
 #[cfg(test)]
 mod previewtypes_kinds_tests;
 #[cfg(test)]
 mod previewtypes_page_tests;
 #[cfg(test)]
+mod previewtypes_svgfit_tests;
+#[cfg(test)]
 mod previewtypes_tests;
+#[cfg(test)]
+mod pvcode_tests;
 #[cfg(test)]
 mod preview_tests;
 #[cfg(test)]
@@ -141,6 +181,12 @@ mod quick_look_media_tests;
 #[cfg(test)]
 mod quick_look_body_reply_tests;
 #[cfg(test)]
+mod quick_look_calm_tests;
+#[cfg(test)]
+mod quick_look_font_tests;
+#[cfg(test)]
+mod quick_look_ground_tests;
+#[cfg(test)]
 mod quick_look_reply_tests;
 #[cfg(test)]
 mod quick_look_sheet_tests;
@@ -153,11 +199,17 @@ mod rename_refusal_tests;
 #[cfg(test)]
 mod rename_slow_tests;
 #[cfg(test)]
+mod rename_bulk_tests;
+#[cfg(test)]
 mod rename_tests;
 #[cfg(test)]
 mod rename_views_tests;
 #[cfg(test)]
 mod retry_tests;
+#[cfg(test)]
+mod runcard_tests;
+#[cfg(test)]
+mod openwith_tests;
 #[cfg(test)]
 mod search_open_tests;
 #[cfg(test)]
@@ -167,3 +219,12 @@ mod test_shell;
 
 #[cfg(test)]
 mod gh_preview_proof_tests;
+
+#[cfg(test)]
+mod columns_search_parity_tests;
+
+#[cfg(test)]
+mod columns_preview_readers_tests;
+
+#[cfg(test)]
+mod pb_rest_2_tests;

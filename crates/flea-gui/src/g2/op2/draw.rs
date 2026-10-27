@@ -32,7 +32,11 @@ impl Draw<'_> {
     }
 
     pub(super) fn label(&self, text: &str) -> Div {
-        self.text(CAPTION).line_height(self.px(LABEL_LINE)).mb(self.px(LABEL_GAP)).text_color(self.t.muted).child(text.to_uppercase())
+        self.text(CAPTION)
+            .line_height(self.px(LABEL_LINE))
+            .mb(self.px(LABEL_GAP))
+            .text_color(self.t.muted)
+            .child(text.to_uppercase())
     }
 
     fn chips(&self, chips: &Chips) -> Div {
@@ -59,7 +63,10 @@ impl Draw<'_> {
         div()
             .flex()
             .flex_col()
-            .child(self.label(&chips.label).debug_selector(|| SEL_FORMAT_LABEL.into()))
+            .child(
+                self.label(&chips.label)
+                    .debug_selector(|| SEL_FORMAT_LABEL.into()),
+            )
             .child(row)
     }
 
@@ -74,10 +81,45 @@ impl Draw<'_> {
             .px(self.px(BUTTON_PAD))
             .bg(t.ground)
             .border_1()
-            .border_color(if field.error { t.error } else if field.focused { t.accent_frame } else { t.muted_frame })
+            .border_color(if field.error {
+                t.error
+            } else if field.focused {
+                t.accent_frame
+            } else {
+                t.muted_frame
+            })
             .rounded(self.px(self.r))
             .text_color(t.fg)
             .whitespace_nowrap();
+        if let Some(input) = &field.input {
+            line = line.child(crate::g2::op1::field::mount(
+                input.clone(),
+                div().relative().flex_1().min_w_0().h_full().when(
+                    field.value.is_empty() && !field.placeholder.is_empty(),
+                    |slot| {
+                        slot.child(
+                            div()
+                                .absolute()
+                                .left(px(1.))
+                                .top_0()
+                                .h_full()
+                                .flex()
+                                .items_center()
+                                .text_color(t.muted)
+                                .child(field.placeholder.clone()),
+                        )
+                    },
+                ),
+                self.typeface,
+            ));
+            if field.eye {
+                line = line.child(glyph(Glyph::Eye, super::cards::EYE * self.s, t.muted_frame));
+            }
+            return match &field.label {
+                Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
+                None => line,
+            };
+        }
         let drawn = field.drawn();
         let mut text = div().flex().items_center().min_w_0().overflow_hidden();
         if drawn.is_empty() {
@@ -85,7 +127,12 @@ impl Draw<'_> {
                 text = text.child(caret());
             }
             if !field.placeholder.is_empty() {
-                text = text.child(div().ml(px(1.)).text_color(t.muted).child(field.placeholder.clone()));
+                text = text.child(
+                    div()
+                        .ml(px(1.))
+                        .text_color(t.muted)
+                        .child(field.placeholder.clone()),
+                );
             }
         } else {
             text = text.child(drawn);
@@ -105,7 +152,11 @@ impl Draw<'_> {
 
     fn checkline(&self, check: &CheckLine) -> Div {
         let t = self.t;
-        let frame = if check.checked || check.focused { t.fg } else { t.muted_frame };
+        let frame = if check.checked || check.focused {
+            t.fg
+        } else {
+            t.muted_frame
+        };
         let box_ = div()
             .size(self.px(CHECK))
             .flex_none()
@@ -116,8 +167,19 @@ impl Draw<'_> {
             .border_color(frame)
             .rounded(self.px(self.r / 2.))
             .when(check.checked, |d| d.bg(t.fg))
-            .when(check.checked, |d| d.child(glyph(Glyph::Check, CHECK_GLYPH * self.s, t.surface)));
-        div().flex().items_center().gap(self.px(ROW_GAP)).child(box_).child(self.text(BOARD_BODY).text_color(t.fg).child(check.label.clone()))
+            .when(check.checked, |d| {
+                d.child(glyph(Glyph::Check, CHECK_GLYPH * self.s, t.surface))
+            });
+        div()
+            .flex()
+            .items_center()
+            .gap(self.px(ROW_GAP))
+            .child(box_)
+            .child(
+                self.text(BOARD_BODY)
+                    .text_color(t.fg)
+                    .child(check.label.clone()),
+            )
     }
 
     fn block(&self, block: &Block) -> AnyElement {
@@ -129,7 +191,10 @@ impl Draw<'_> {
                 if text.is_empty() {
                     div().into_any_element()
                 } else {
-                    self.text(CAPTION).text_color(self.t.ink(*ink)).child(text.clone()).into_any_element()
+                    self.text(CAPTION)
+                        .text_color(self.t.ink(*ink))
+                        .child(text.clone())
+                        .into_any_element()
                 }
             }
         }
@@ -161,7 +226,10 @@ impl Draw<'_> {
 
 /// The card's width in the window: the board width grown with the body size, held inside the room less the shell's gap.
 pub fn scaled(board: f32, body: f32, room: f32) -> f32 {
-    (board * body / BOARD_BODY).ceil().min((room - 2. * GAP).floor()).max(0.)
+    (board * body / BOARD_BODY)
+        .ceil()
+        .min((room - 2. * GAP).floor())
+        .max(0.)
 }
 
 impl super::cards::DialogShell for StandIn {
@@ -174,7 +242,12 @@ impl super::cards::DialogShell for StandIn {
         radius: f32,
     ) -> AnyElement {
         let s = f32::from(typeface.body) / BOARD_BODY;
-        let draw = Draw { t: Tokens::of(palette), s, typeface, r: radius };
+        let draw = Draw {
+            t: Tokens::of(palette),
+            s,
+            typeface,
+            r: radius,
+        };
         let t = draw.t;
         let head = draw
             .text(TITLE)
@@ -183,8 +256,20 @@ impl super::cards::DialogShell for StandIn {
             .gap(draw.px(ROW_GAP))
             .font_weight(FontWeight::BOLD)
             .text_color(t.fg)
-            .child(div().min_w_0().overflow_hidden().text_ellipsis().child(card.title.clone()))
-            .child(draw.text(CAPTION).ml_auto().font_weight(FontWeight::NORMAL).text_color(t.muted).child(card.esc.clone()));
+            .child(
+                div()
+                    .min_w_0()
+                    .overflow_hidden()
+                    .text_ellipsis()
+                    .child(card.title.clone()),
+            )
+            .child(
+                draw.text(CAPTION)
+                    .ml_auto()
+                    .font_weight(FontWeight::NORMAL)
+                    .text_color(t.muted)
+                    .child(card.esc.clone()),
+            );
         let mut frame = div()
             .debug_selector(|| "op2-card".into())
             .w(px(scaled(card.width, f32::from(typeface.body), room)))
@@ -204,7 +289,12 @@ impl super::cards::DialogShell for StandIn {
         for block in &card.body {
             frame = frame.child(draw.block(block));
         }
-        let mut buttons = div().mt(draw.px(ABOVE_BUTTONS)).flex().justify_end().items_center().gap(draw.px(ROW_GAP));
+        let mut buttons = div()
+            .mt(draw.px(ABOVE_BUTTONS))
+            .flex()
+            .justify_end()
+            .items_center()
+            .gap(draw.px(ROW_GAP));
         for (at, button) in card.buttons.iter().enumerate() {
             buttons = buttons.child(draw.button(button, at));
         }
@@ -221,6 +311,9 @@ impl super::cards::DialogShell for StandIn {
 
 impl StandIn {
     pub(super) fn section(&self, draw: &Draw, text: &str) -> Div {
-        draw.text(CAPTION).font_weight(FontWeight::BOLD).text_color(draw.t.muted).child(text.to_uppercase())
+        draw.text(CAPTION)
+            .font_weight(FontWeight::BOLD)
+            .text_color(draw.t.muted)
+            .child(text.to_uppercase())
     }
 }

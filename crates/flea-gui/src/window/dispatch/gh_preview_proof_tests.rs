@@ -104,14 +104,24 @@ fn gh336_space_svg_rasterizes_at_physical_pixels_at_scale_2_and_1_and_on_each_sc
             "gh336 svg scale{scale} fit={now:?} raster={}x{}",
             s.width.0, s.height.0
         );
+        // Painted bounds align to physical pixels; the logical fit still owns the decode request.
+        for (painted, logical) in [
+            (f32::from(now.size.width), f32::from(rect.size.width)),
+            (f32::from(now.size.height), f32::from(rect.size.height)),
+        ] {
+            assert!((painted - logical).abs() < 1. / scale);
+        }
+        // Layout floors an enlarged fit that ends between device pixels.
+        let snapped = |value: Pixels| px((f32::from(value) * scale).floor() / scale);
         assert_eq!(
-            now.size, rect.size,
-            "scale {scale}: the logical fit is unchanged"
+            now.size,
+            size(snapped(rect.size.width), snapped(rect.size.height)),
+            "scale {scale}: the painted fit lands on device pixels"
         );
         assert_eq!(
             (s.width.0, s.height.0),
-            physical(now, scale.into()),
-            "scale {scale}: a new raster at physical pixels"
+            physical(rect, scale.into()),
+            "scale {scale}: a new raster at the logical fit's physical pixels"
         );
         prev = next.id.0;
     }
@@ -315,3 +325,5 @@ fn gh336_raster_zoom_requests_larger_pixels_retains_on_zoom_out_and_releases_at_
 include!("gh_preview_animation_test.rs");
 
 include!("gh_preview_zoom_test.rs");
+
+include!("mdlook_tests.rs");
