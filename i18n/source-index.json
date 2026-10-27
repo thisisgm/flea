@@ -80339,7 +80339,7 @@
       "call_sites": [
         {
           "excerpt": "self.locale.catalog.tr(\"window.loading\").into(),",
-          "line": 194,
+          "line": 203,
           "path": "crates/flea-gui/src/window/columns_render.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -93817,7 +93817,7 @@
     },
     {
       "excerpt": "\"Permission denied\",",
-      "line": 344,
+      "line": 353,
       "literal": "Permission denied",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/columns_render.rs",
@@ -211109,7 +211109,7 @@
     "crates/flea-gui/src/input/focus.rs": "2d0274a078a76a0a1d9493ff75088ea6524ce0a2a25d1518a2b8402b7d140697",
     "crates/flea-gui/src/input/kinetic.rs": "9292275aa8052140db66b53efb2772015ae993b71903c5dae2ed03135bdcc89b",
     "crates/flea-gui/src/input/mod.rs": "e4f16da6b3a8d8af0bf46329088f530e6cd0183d6053e83f2f24dd3205a2791d",
-    "crates/flea-gui/src/input/pointer.rs": "fc5c57cc0e7fa08c43dbdf881eb5f22697d118db2549cce118cc72e1ddd7595d",
+    "crates/flea-gui/src/input/pointer.rs": "42922776418e40f98aa3b400df152d341e49d2941175a11629d6fa92fc7641d3",
     "crates/flea-gui/src/input/pointer_press.rs": "4b7e8bc4c1e638d621c9cfbf6eaf11a892d4d2d0a641e95464ba1a01fe07a5c6",
     "crates/flea-gui/src/input/scroll.rs": "b1a0f03c5d9128c5c35a4119c27ffa7720e8b8ec672e8d92e50b462d79f681f2",
     "crates/flea-gui/src/input/selection.rs": "f1cdd0996aeb2d15fd204536d543e455a8a61624afbe3bb61f6ac3ff3fb00690",
@@ -211275,15 +211275,15 @@
     "crates/flea-gui/src/visual/geometry.rs": "e305ec3e72a88a6e07abf7aca966db8b2e73782f03fa617ebbee5714eaa16f87",
     "crates/flea-gui/src/visual/ipc.rs": "86cfbc4324c892f1dc45c8dd970d0688f34f663a8b70e1a429da785039827bff",
     "crates/flea-gui/src/visual/mod.rs": "c0f6dfd7c225b9f9bfe93a4abc9fadc7ca13e72fb686b7864f165188cfe2793a",
-    "crates/flea-gui/src/window/columns.rs": "2723eaa92703c9ff70fb9c270894917ae05fd8dd02c24dd493909a4baf319814",
+    "crates/flea-gui/src/window/columns.rs": "13efdea5f0d3da7fb93e3232bf60f005dad4c4b441161ed736994b41d4a8964f",
     "crates/flea-gui/src/window/columns_edge.rs": "b31adc2a75cce96ad928e09f3b2b091921c8c7b93b61719a61b30bb039219076",
     "crates/flea-gui/src/window/columns_events.rs": "a71c651cb8bc924a4a837753ca925e283a55a1b6e899fc1cd884ddb7f69de023",
-    "crates/flea-gui/src/window/columns_gestures.rs": "bd2cfc0e7d399ea9f3040c9d646ee785219e7055d3abf4ea7296520530e09ffc",
+    "crates/flea-gui/src/window/columns_gestures.rs": "cc12ee5c42e02053072c3cb22f03a56e1308b46debe1c2f590c4d79cc4b38a59",
     "crates/flea-gui/src/window/columns_input.rs": "ed86d3bc0e7264556b2ba4f7465ca1115747b1f0bf9b5a1d8ebbcc34a9aae37d",
     "crates/flea-gui/src/window/columns_keys.rs": "870140600785aa7d96a4eb7dd8e492d7c2bd6ed04493b915ac8aa46d94c431e5",
     "crates/flea-gui/src/window/columns_loading.rs": "dc63af36fcfdd05c74203bf0983cb9e63f035ee42db94d196b2a11acd011ecf2",
     "crates/flea-gui/src/window/columns_readers.rs": "a23362ac77c6a23bdeac47925ba19d09b8585e2b0e8af1a86ad89e253bc15916",
-    "crates/flea-gui/src/window/columns_render.rs": "459869988e44b34c335140084db89bf4a61e5d4d7da010edf8ca9037e138f1c4",
+    "crates/flea-gui/src/window/columns_render.rs": "d0991a95f564f4983136444b639f4e51f5d49157e18dabb0c84a3dc086db54fc",
     "crates/flea-gui/src/window/columns_requested.rs": "1b262b2f9b3c99874b96596264a1c70ae300b17575b7e0670c2afc70a854bb63",
     "crates/flea-gui/src/window/columns_review_r3_controls.rs": "4b0182c862d2937eda45296ea6bcb4642bc4a6725dabb07502b65145da8cffa7",
     "crates/flea-gui/src/window/columns_scroll.rs": "7d157feeacf1ac9f24fdbdb9db67c48e6cba51ba122150e278b35019465d1029",
@@ -212818,8 +212818,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "095d70d20a34ae853ab46afb12d878f0cf528672",
-  "source_sha": "095d70d20a34ae853ab46afb12d878f0cf528672",
+  "source_ref_sha": "64693f96926851b44bcedb1eda782271c6d83ce7",
+  "source_sha": "64693f96926851b44bcedb1eda782271c6d83ce7",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1286,

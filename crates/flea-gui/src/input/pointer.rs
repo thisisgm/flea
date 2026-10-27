@@ -81,7 +81,7 @@ impl Shell {
             host.input.in_lane,
             host.input.hovered,
             host.input.pointer_origin,
-            host.columns.as_ref().and_then(|columns| columns.hover),
+            host.columns.as_ref().and_then(|columns| columns.hover.clone()),
         );
         host.input.in_lane = hovered && frame.in_lane(event.position);
         if let Some(press) = &mut host.input.press {
@@ -123,7 +123,7 @@ impl Shell {
                 host.input.in_lane,
                 host.input.hovered,
                 host.input.pointer_origin,
-                host.columns.as_ref().and_then(|columns| columns.hover),
+                host.columns.as_ref().and_then(|columns| columns.hover.clone()),
             )
             || host.input.grab.is_some()
             || host.input.band.is_some();
