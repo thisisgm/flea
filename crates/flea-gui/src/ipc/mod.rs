@@ -6,6 +6,7 @@ pub mod devices;
 pub(crate) mod dialog_cards;
 pub mod dual;
 pub(crate) mod favourites;
+pub(crate) mod fileops_preview;
 pub mod focus;
 pub mod grid;
 pub(crate) mod grid_rows;

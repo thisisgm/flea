@@ -139,6 +139,8 @@ mod opener_selection_tests;
 #[cfg(test)]
 mod opener_tests;
 #[cfg(test)]
+mod pb_fileops_tests;
+#[cfg(test)]
 mod pb_opener_tests;
 #[cfg(test)]
 pub(crate) mod pb_places_tests;
