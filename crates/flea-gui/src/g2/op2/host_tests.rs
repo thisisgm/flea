@@ -15,6 +15,7 @@ use std::{cell::Cell, rc::Rc};
 
 mod extract;
 mod flash;
+mod controls;
 
 type Handle = WindowHandle<Root>;
 

@@ -341,3 +341,6 @@ mod eject;
 
 #[path = "rail_devices_release_tests.rs"]
 mod release;
+
+#[path = "rail_device_menu_tests.rs"]
+mod menus;
