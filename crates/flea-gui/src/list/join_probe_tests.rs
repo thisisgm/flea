@@ -11,7 +11,7 @@ use crate::{
     window::startup::View,
 };
 use flea::jsondoc::Json;
-use gpui::px;
+use gpui::{px, size};
 
 fn role(probe: &Probe, key: &str) -> Option<Json> {
     probe
@@ -79,6 +79,35 @@ fn u04_header_probe_reads_the_painted_sorted_titles_and_only_drawn_cells() {
     for hidden in ["mode", "modified", "kind"] {
         assert!(role(&probe, &format!("header-0-{hidden}")).is_none());
     }
+}
+
+#[test]
+fn ey250_a_header_title_wider_than_its_cell_ends_in_an_ellipsis() {
+    // v0.3.12's Header.qml gives Modified ElideRight in its right-aligned cell: "Modif…", never a left clip.
+    let mut cx = bench::real_cx();
+    let handle = open(&mut cx);
+    let probe = Probe::default();
+    handle
+        .update(&mut cx, |shell, _, _| {
+            shell.panes[0].as_ref().unwrap().list.borrow_mut().probe = Some(probe.clone());
+        })
+        .unwrap();
+    // A stored Date width clamps to the rail's floor, 48 px, so the Date column stays drawn beside the name at 600 px.
+    handle
+        .update(&mut cx, |shell, _, _| {
+            shell.launch.settings.data =
+                flea::jsondoc::parse(r#"{"columnWidths":{"date":1}}"#).unwrap();
+        })
+        .unwrap();
+    cx.simulate_window_resize(handle.into(), size(px(600.), px(400.)));
+    frame(&mut cx, handle);
+    let modified = role(&probe, "header-0-modified").expect("the Modified label role");
+    let text = modified
+        .get("text")
+        .and_then(Json::as_str)
+        .expect("the label text");
+    assert!(text.ends_with('\u{2026}'), "Modified drew as {text:?}");
+    assert!(text.starts_with("Modif"), "Modified drew as {text:?}");
 }
 
 #[test]
