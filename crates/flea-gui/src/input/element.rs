@@ -14,6 +14,8 @@ pub struct Painted {
     pub visible: bool,
     pub shown: bool,
     pub fill: gpui::Hsla,
+    /// The grey selected fill, the token the other pane's cursor and the rail's lit section paint; selectedFill names it.
+    pub selected_fill: gpui::Hsla,
 }
 
 pub fn surface(shell: Entity<Shell>, side: usize) -> impl IntoElement {
@@ -160,7 +162,6 @@ fn viewport(
                         ));
                     });
                 }
-                // Ipc.qml:90 reports Style.selectedFill; Row.qml:127 is the wash the list paints for this state.
                 host.input.drawn = Some(Painted {
                     frame,
                     lane,
@@ -168,6 +169,7 @@ fn viewport(
                     visible: frame.max_scroll() > 0.5,
                     shown,
                     fill: palette.foreground.opacity(crate::list::TRACK),
+                    selected_fill: palette.foreground.opacity(crate::list::GREY_CURSOR),
                 });
             });
             let (down, hit) = (paint.clone(), hitbox.clone());
