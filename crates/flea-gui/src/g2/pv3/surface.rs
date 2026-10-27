@@ -123,7 +123,6 @@ impl QuickLook<'_> {
         let audio = matches!(picture, Picture::Audio { .. });
         let view = state.strip_view(false, cx);
         let shown = state.subject.is_some() && (audio || self.strip_shown);
-        self.caches.strip.borrow_mut().visible = shown;
         let on_input = strip_input(self.player, self.touched);
         div()
             .relative()

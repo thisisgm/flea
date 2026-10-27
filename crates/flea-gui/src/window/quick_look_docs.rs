@@ -32,7 +32,6 @@ pub(crate) struct Look {
     pub face: crate::list::Typeface,
     pub muted: gpui::Hsla,
     pub mark: Mark,
-    pub wrap: bool,
 }
 
 impl Look {
@@ -67,7 +66,6 @@ impl Look {
             self.mark.clone(),
         );
         view.numbered = numbered;
-        view.wrap = self.wrap;
         view
     }
 
@@ -161,7 +159,6 @@ impl Mounting<'_> {
                     ..Faces::omarchy_default()
                 };
                 let mut view = MarkdownView::new(palette, tokens, faces, SLOT, catalog, cx);
-                view.wrap = look.wrap;
                 view.set_code_host(Box::new(wire.clone()), cx);
                 view.set_scale(window);
                 view.set_active(true, cx);
@@ -196,7 +193,6 @@ impl Mounting<'_> {
                         Box::new(source.clone()) as Box<dyn pv2::code::CodeHost>
                     })),
                 );
-                view.set_wrap(look.wrap, cx);
                 view.set_catalog(catalog.clone(), cx);
                 view.set_path(path, size, false, cx);
                 view.set_active(true, cx);

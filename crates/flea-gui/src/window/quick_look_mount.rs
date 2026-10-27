@@ -139,7 +139,6 @@ impl Shell {
             face: self.active_typeface(),
             muted: crate::list::Palette::inherited(&window.text_style(), theme).metadata,
             mark: mark(row),
-            wrap: self.preview_wrap(),
         };
         let catalog = self.locale.catalog.clone();
         let host = self.quick_look_host(side, window, cx);
