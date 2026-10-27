@@ -1219,7 +1219,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "refusal.key()",
-      "line": 581,
+      "line": 580,
       "path": "crates/flea-gui/src/window/dispatch/opener/targets.rs",
       "pattern": null,
       "possible_keys": [],
@@ -79913,7 +79913,7 @@
         },
         {
           "excerpt": "key: \"window.backend_stopped\",",
-          "line": 567,
+          "line": 566,
           "path": "crates/flea-gui/src/window/dispatch/opener/targets.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -211748,7 +211748,7 @@
     "crates/flea-gui/src/window/dispatch/mod.rs": "f4e3e74ce40b7ffbbe57322302e576f9154752f6ef2510a82a06af71efb1748c",
     "crates/flea-gui/src/window/dispatch/navigation.rs": "a3a875dcb3e68a0291dee4abd91d78f7f934599e1ce5065fa482921298f35772",
     "crates/flea-gui/src/window/dispatch/opener.rs": "403a1b00a6d5620a12f0cfe2ce47e91a00c26424340aa8eb49d7abe17fbb390d",
-    "crates/flea-gui/src/window/dispatch/opener/targets.rs": "5192324f7c79100dce99ac9acc098f8cdfa403a34168bbd027fd9198630127ac",
+    "crates/flea-gui/src/window/dispatch/opener/targets.rs": "67ae86df608fb0d163a25e68667fe04979cd508a8fa85e63f2b274ae5432e19d",
     "crates/flea-gui/src/window/dispatch/original.rs": "cb82fa7492dcd1515fcfca3ae28948fc48ab23bbf1f5acaf4a3253fc7594a0ac",
     "crates/flea-gui/src/window/dispatch/places.rs": "dfa9730c78a62224a0f63fca0b234554324fced9eb7b7584e1141efdd5e5e92d",
     "crates/flea-gui/src/window/dispatch/preview.rs": "2642e6d460b2bb92ba354ee0a92e784ba04347a800a93005edf78638e72dedb7",
@@ -213261,8 +213261,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "622bbf3a94168f73cb5a94a1ed468e2deda08da6",
-  "source_sha": "622bbf3a94168f73cb5a94a1ed468e2deda08da6",
+  "source_ref_sha": "bd56e5941c9a5e03d46ffc37bbb54a49e0c1e4d2",
+  "source_sha": "bd56e5941c9a5e03d46ffc37bbb54a49e0c1e4d2",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
