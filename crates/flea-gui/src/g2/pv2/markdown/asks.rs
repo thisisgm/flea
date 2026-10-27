@@ -67,8 +67,8 @@ impl MarkdownView {
             ex_px: figure::ex_px(f64::from(x_height)),
             advances,
             bold_advances: bold,
-            muted: hex(palette.muted),
-            surface: hex(palette.surface),
+            muted: hex(palette.figure_muted),
+            surface: "none".into(),
         }
     }
 

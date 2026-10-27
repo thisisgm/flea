@@ -252,6 +252,80 @@ fn fix1_selected_fill_is_the_wash_the_list_paints_for_an_unfocused_marked_row(
     );
 }
 
+// EY-210: selectedFill names the grey selected fill token the cursor and rail paint, the same in every focus state.
+#[gpui::test]
+fn ey210_selected_fill_names_the_grey_token_in_each_focus_state(
+    cx: &mut TestAppContext,
+) {
+    use crate::ipc::Adapter;
+    let (shell, cx) = mounted(cx);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            super::key(shell, "v", window, cx);
+            super::key(shell, "down", window, cx);
+        });
+    });
+    for focused in [true, false] {
+        cx.update(|window, cx| {
+            if !focused {
+                window.blur(cx);
+            }
+            window.refresh();
+            window.draw(cx).clear(cx);
+        });
+        let (quads, scale) = cx.update(|window, _| (window.painted_quads(), window.scale_factor()));
+        let (fill, palette, top) = shell.read_with(cx, |shell, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            let palette = host.list.borrow().drawn.palette.unwrap();
+            let reply = crate::ipc::focus::FocusAdapter {
+                view: Some("list"),
+                input: &host.input,
+                chrome_glyph: None,
+            }
+            .call("selectedFill", &[])
+            .unwrap();
+            (
+                reply.stdout.trim().to_owned(),
+                palette,
+                host.input.frame.unwrap().bounds.top(),
+            )
+        });
+        let grey = palette.foreground.opacity(crate::list::GREY_CURSOR);
+        assert_eq!(
+            fill,
+            crate::ipc::rows::colour(grey),
+            "focused {focused}: selectedFill names the grey selected fill token"
+        );
+        assert_ne!(
+            fill,
+            crate::ipc::rows::colour(palette.marked),
+            "focused {focused}: selectedFill is not the focused marked plate"
+        );
+        let plate = if focused {
+            palette.marked
+        } else {
+            palette.foreground.opacity(crate::list::TRACK)
+        };
+        let painted = format!("{plate:?}");
+        assert!(
+            quads.iter().any(|quad| {
+                quad.bounds.origin.y == top.scale(scale)
+                    && format!("{:?}", quad.background).contains(&painted)
+            }),
+            "focused {focused}: the marked row never painted {painted}"
+        );
+        if !focused {
+            let painted = format!("{grey:?}");
+            assert!(
+                quads
+                    .iter()
+                    .any(|quad| format!("{:?}", quad.background).contains(&painted)),
+                "unfocused: the cursor row never painted the grey token {painted}"
+            );
+        }
+    }
+}
+
 // r1-7: motion that changes no hover, lane or gesture draws nothing, so it must not notify the shell.
 #[gpui::test]
 fn fix1_motion_without_a_hover_change_notifies_nothing(cx: &mut TestAppContext) {

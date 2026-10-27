@@ -20,7 +20,7 @@ fn add_ancestors(path: &str, dirs: &mut BTreeSet<String>) {
     }
 }
 
-pub(super) fn synthetic(count: usize, audit: bool) -> (Index, Vec<(Vec<u8>, bool)>) {
+pub(crate) fn synthetic(count: usize, audit: bool) -> (Index, Vec<(Vec<u8>, bool)>) {
     let leaf_count = (count / 32).max(8);
     let mut dirs = BTreeSet::new();
     for target in TARGETS { add_ancestors(target, &mut dirs); }

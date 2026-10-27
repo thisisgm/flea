@@ -35,6 +35,7 @@ pub(crate) struct Edit {
 
 #[derive(Default)]
 pub(crate) struct Join {
+    pub(crate) ime: crate::g2::op1::dialog_editor::DialogEditor,
     pub edit: Option<Edit>,
     pub bulk: Option<bulk::Open>,
     /// The side whose selection's paths are out for the bulk card.
@@ -78,8 +79,7 @@ impl Shell {
         let source = join(host.pane.path(), &row.name);
         let name = leaf(&row.name).to_owned();
         let mut entry = Entry::default();
-        entry.editing = true;
-        entry.replace(None, &name);
+        entry.begin(&name);
         // The stem alone, which is the part a rename usually changes.
         let cut = name.rfind('.').filter(|&at| at > 0).unwrap_or(name.len());
         entry.move_to(0);
@@ -108,7 +108,7 @@ impl Shell {
         let Some(edit) = self.rename.edit.as_mut() else {
             return;
         };
-        if edit.pending.is_some() {
+        if edit.pending.is_some() || edit.entry.marked.is_some() {
             return;
         }
         let next = edit.entry.text.trim().to_owned();
@@ -185,7 +185,6 @@ impl Shell {
     ) -> bool {
         if self.rename.bulk.is_some() {
             self.bulk_rename_key(event, cx);
-            cx.stop_propagation();
             return true;
         }
         // An editor whose row left the drawn listing lets go of the keys; a request out keeps its reply's owner.
@@ -205,6 +204,11 @@ impl Shell {
         let held = stroke.modifiers;
         let command = held.control || held.platform;
         let entry = &mut edit.entry;
+        if edit.pending.is_none() && entry.ime_key(&stroke.key) {
+            cx.notify();
+            cx.stop_propagation();
+            return true;
+        }
         match stroke.key.as_str() {
             // SlowOp.js: a request out keeps its reply's owner, so Escape only hides the editor.
             "escape" if edit.pending.is_some() => {
@@ -320,3 +324,7 @@ fn parent(path: &str) -> &str {
         None => "",
     }
 }
+
+#[cfg(test)]
+#[path = "../g2/op1/i50_dialog_tests.rs"]
+mod i50_dialog_tests;

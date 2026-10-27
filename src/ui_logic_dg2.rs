@@ -24,6 +24,9 @@ pub const MOVE_TO_FOLDER: &str = "drag.move_to_folder";
 pub const COPY_TO_FOLDER: &str = "drag.copy_to_folder";
 pub const LINK_TO_FOLDER: &str = "drag.link_to_folder";
 pub const TOO_WIDE: &str = "drag.too_wide";
+pub const MOVE_TO: &str = "drag.move_to";
+pub const COPY_TO: &str = "drag.copy_to";
+pub const LINK_TO: &str = "drag.link_to";
 
 /// The rows a drag carries: the selection when the pressed row is in it, else the pressed row alone.
 pub fn carried(selected: &[usize], index: usize) -> Vec<usize> {
@@ -185,6 +188,26 @@ pub fn too_wide(i18n: &I18n, count: usize, copy: bool, shift: bool) -> String {
         _ => MOVE_TO_FOLDER,
     };
     i18n.tr_args(TOO_WIDE, &[&i18n.tr_args(key, &[&items])])
+}
+
+/// The status line while a drag rests on a named folder (Drag.line with a name): the verb, the count and the folder.
+pub fn line_to(i18n: &I18n, count: usize, name: &str, verb: Verb) -> String {
+    let items = i18n.trn("items.count", count as i64);
+    let key = match verb {
+        Verb::Link => LINK_TO,
+        Verb::Copy => COPY_TO,
+        Verb::Move => MOVE_TO,
+    };
+    i18n.tr_args(key, &[&items, name])
+}
+
+/// The board's own words on the hovered folder (Drag.label): move here, copy here or link here.
+pub fn drop_label(i18n: &I18n, verb: Verb) -> String {
+    i18n.tr(match verb {
+        Verb::Link => "grid.drop.link",
+        Verb::Copy => "grid.drop.copy",
+        Verb::Move => "grid.drop.move",
+    })
 }
 
 /// One drop as the destination read it.

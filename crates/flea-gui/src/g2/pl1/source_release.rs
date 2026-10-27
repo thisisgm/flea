@@ -42,6 +42,16 @@ impl Source {
             .cloned()
     }
 
+    /// The drawn device row's own entry, which its rail menu reads its rows from.
+    pub fn device_row(&self, row: &places::RailEntry) -> Option<RailEntry> {
+        self.owned(row)
+    }
+
+    /// A rail menu's Unmount, Eject or phone Unmount, against the row its key names now.
+    pub fn release_by(&mut self, action: RailAction, key: &str, side: usize, cx: &mut Context<Self>) {
+        self.run(action, key, side, cx);
+    }
+
     /// One click on the eject mark, or Return on its keyboard frame, as Sidebar.ejectRow: the row's own release.
     pub fn release_row(&mut self, row: &places::RailEntry, side: usize, cx: &mut Context<Self>) {
         let Some(entry) = self.owned(row) else {

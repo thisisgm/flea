@@ -67,7 +67,19 @@ impl Shell {
                         .map(|at| crate::path::chrome::GLYPHS[at])
                 });
                 let focus = crate::ipc::focus::FocusAdapter {
-                    view: Some(self.focus_view(window, cx)).filter(|view| !view.is_empty()),
+                    view: Some(self.focus_view(window, cx))
+                        .filter(|view| !view.is_empty())
+                        .or_else(|| {
+                            host.preview
+                                .as_ref()
+                                .filter(|preview| {
+                                    preview.read_with(cx, |preview, cx| {
+                                        preview.visible
+                                            && preview.focus.contains_focused(window, cx)
+                                    })
+                                })
+                                .map(|_| "list")
+                        }),
                     input: &host.input,
                     chrome_glyph,
                 };
@@ -99,19 +111,21 @@ impl Shell {
                     visible: host.drawn_view == Some(crate::window::startup::View::Columns),
                     cx,
                 };
-                let preview =
-                    crate::window::selection_preview::readers::Reader {
-                        view: host.preview.as_ref().map(|view| view.read(cx)),
-                        window,
-                        active: host.drawn_view == Some(crate::window::startup::View::Columns)
-                            && host.columns.as_ref().is_some_and(|columns| {
-                                columns.preview_hosted
-                                    && columns.area.tracks().iter().any(|t| {
-                                        matches!(t.rows, crate::columns::TrackRows::Preview)
-                                    })
-                            }),
-                        cx,
-                    };
+                let preview_active = host.drawn_view == Some(crate::window::startup::View::Columns)
+                    && host.columns.as_ref().is_some_and(|columns| {
+                        columns.preview_hosted
+                            && columns
+                                .area
+                                .tracks()
+                                .iter()
+                                .any(|t| matches!(t.rows, crate::columns::TrackRows::Preview))
+                    });
+                let preview = crate::window::selection_preview::readers::Reader {
+                    view: host.preview.as_ref().map(|view| view.read(cx)),
+                    window,
+                    active: preview_active,
+                    cx,
+                };
                 let settings = crate::ipc::settings::SettingsAdapter {
                     host: &self.settings,
                     document: &self.launch.settings.data,
@@ -159,12 +173,28 @@ impl Shell {
                     board: &self.clipboard.board,
                 };
                 let geometry = self.geometry(window);
+                let shown = crate::window::network::shown(&self.launch.settings.data);
+                let network = self
+                    .rail
+                    .as_ref()
+                    .and_then(|join| join.network.as_ref())
+                    .map(|network| crate::ipc::rail::NetworkBuilt {
+                        shown,
+                        present: true,
+                        listed: network.listing.answered,
+                        mountinfo: network.mountinfo_ready,
+                    })
+                    .unwrap_or(crate::ipc::rail::NetworkBuilt {
+                        shown,
+                        ..Default::default()
+                    });
                 let rail = crate::ipc::rail::RailAdapter {
                     host: self.rail.as_ref().map(|join| join.host.read(cx)),
                     producer: self.rail.as_ref().map(|join| join.places.read(cx)),
                     geometry: &geometry,
                     focus_side: self.focus_side,
                     now: cx.background_executor().now(),
+                    network,
                 };
                 let card = self
                     .rail
@@ -203,21 +233,42 @@ impl Shell {
                     cx,
                 };
                 let rename = crate::window::rename::ipc::Reader { shell: self };
+                let delivery = crate::window::key_delivery::Reader {
+                    shell: self,
+                    preview_active,
+                    window,
+                    cx,
+                };
                 let devices = crate::ipc::devices::DeviceAdapter {
                     source: self.rail.as_ref().map(|join| join.devices.read(cx)),
                 };
                 let thumbnails = crate::ipc::thumbnails::Thumbnails { host };
                 let preview_text = crate::ipc::preview_text::PreviewText { shell: self, window, cx };
-                let adapters: [&dyn crate::ipc::Adapter; 29] = [
+                let archive_cards = crate::ipc::archive_cards::ArchiveAdapter { shell: self };
+                let output_cards = crate::ipc::output_cards::OutputAdapter { shell: self, cx };
+                let dialog_cards = crate::ipc::dialog_cards::DialogAdapter { shell: self, cx };
+                let feedback = crate::ipc::window_feedback::FeedbackAdapter { shell: self, cx };
+                let column_preview =
+                    crate::ipc::columns_preview::ColumnsPreview { preview: &preview };
+                let glass = super::super::glass::Reader { window, cx };
+                let preview_scroll = crate::ipc::preview_scroll::PreviewScroll {
+                    look: look.view,
+                    cx,
+                };
+                let adapters: [&dyn crate::ipc::Adapter; 37] = [
+                    &glass,
+                    &column_preview,
                     &drag,
                     &providers,
                     &network_result,
+                    &preview_scroll,
                     &thumbnails,
                     &preview_text,
                     &look,
                     &rename,
                     &search,
                     &query,
+                    &delivery,
                     &rail,
                     &focus,
                     &pane,
@@ -237,15 +288,19 @@ impl Shell {
                     &devices,
                     &clipboard,
                     &network,
+                    &archive_cards,
+                    &output_cards,
+                    &dialog_cards,
+                    &feedback,
                     &rows,
                 ];
                 let count = if matches!(
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    29
+                    37
                 } else {
-                    28
+                    36
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
