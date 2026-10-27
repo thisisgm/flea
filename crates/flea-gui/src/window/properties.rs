@@ -2,7 +2,7 @@
 use crate::{
     backend::Failure,
     g2::{
-        mn1::join::{Chosen, ProducerReply},
+        mn1::join::{identity, Captured, ProducerReply},
         op3::{
             keys::{key_of, Key},
             properties::Properties,
@@ -24,14 +24,53 @@ pub(crate) struct Open {
 }
 
 impl Shell {
-    /// A validated Properties choice: the card re-takes the snapshot the menu closed, then asks its facts.
+    /// The listing's Properties key, PaneMenuActions.qml open: the card asks for the rows the menu row would take, with no menu drawn.
+    pub(crate) fn properties_listing(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let side = self.focus_side;
+        let Some(host) = self.panes[side].as_ref() else {
+            return false;
+        };
+        let rows: Vec<usize> = if host.selected.is_empty() {
+            vec![host.pane.cursor]
+        } else {
+            host.selected.clone()
+        };
+        let rows: Vec<usize> = rows
+            .into_iter()
+            .filter(|&row| host.pane.held.row(row).is_some())
+            .collect();
+        if rows.is_empty() {
+            return true;
+        }
+        self.menu.sequence += 1;
+        let captured = Captured {
+            side,
+            listing: host.pane.held.listing,
+            rows,
+            cursor: host.pane.cursor,
+            path: host.path.clone(),
+            identity: identity(host, side, false),
+            id: self.menu.sequence,
+            ready: false,
+            kinds: Vec::new(),
+            background: false,
+        };
+        self.open_properties_card(&captured, window, cx);
+        true
+    }
+
+    /// A validated Properties choice or the listing key: the card takes its own snapshot of these rows, then asks their facts.
     pub(crate) fn open_properties_card(
         &mut self,
-        chosen: &Chosen,
+        captured: &Captured,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let side = chosen.captured.side;
+        let side = captured.side;
         let reply = cx.subscribe_in(
             &cx.entity(),
             window,
@@ -45,7 +84,7 @@ impl Shell {
                 }
             },
         );
-        let (card, effects) = Properties::open(chosen.captured.id, &chosen.captured.rows);
+        let (card, effects) = Properties::open(captured.id, &captured.rows);
         self.properties = Some(Open {
             side,
             card,

@@ -103,6 +103,8 @@ mod dual_keys_tests;
 #[cfg(test)]
 mod key_rows_tests;
 #[cfg(test)]
+mod presetkeys_tests;
+#[cfg(test)]
 mod listing_pointer_keep_tests;
 #[cfg(test)]
 mod listing_pointer_tests;
