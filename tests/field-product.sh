@@ -268,10 +268,12 @@ plain_env.pop('STRATA_NIGHTLY_SRC', None)
 plain = subprocess.run(['tools/flea-bench-manifest', str(root / 'no-src.md'), str(fixture)],
                        input='strata|gui|strata\nstrata-nightly|gui|strata\n', env=plain_env, capture_output=True, text=True)
 assert plain.returncode == 0, plain.stderr
-own = subprocess.check_output(['git', 'describe', '--tags', '--always'], text=True).strip()
+# A tree without git metadata (the CI archive) has no describe string for the row to leak; inside a checkout describe must answer.
+inside = Path('.git').exists()
+own = subprocess.check_output(['git', 'describe', '--tags', '--always'], text=True).strip() if inside else ''
 for name in ('strata', 'strata-nightly'):
     line = next(l for l in (root / 'no-src.md').read_text().splitlines() if l.startswith(name + ' '))
-    assert ' source absent ' in line and own not in line, line
+    assert ' source absent ' in line and (not own or own not in line), line
     assert 'built locally from this checkout' not in line, line
 # A strata row whose binary is unset reads "binary absent", never a shell error.
 for name, var in (('strata', 'STRATA_BIN'), ('strata-nightly', 'STRATA_NIGHTLY_BIN')):

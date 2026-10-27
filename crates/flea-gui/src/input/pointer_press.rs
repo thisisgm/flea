@@ -5,15 +5,15 @@ use gpui::{Context, MouseButton, MouseDownEvent, Window};
 
 impl Shell {
     pub(crate) fn input_blocked(&self, cx: &gpui::App) -> bool {
+        self.wheel_blocked(cx) || self.jobs_card_showing(cx)
+    }
+    /// `input_blocked` without the Jobs card: a wheel beside that non-modal card still moves its track.
+    pub(crate) fn wheel_blocked(&self, cx: &gpui::App) -> bool {
         self.lifecycle.phase() != crate::window::lifecycle::Phase::Open
-            || self.card_holds_keyboard(cx)
+            || self.modal_card_holds_keyboard(cx)
             || self.menu_opened()
             || self.menu.presentation.at.is_some()
             || self.input.blocked
-            || self
-                .overlay
-                .as_ref()
-                .is_some_and(|overlay| overlay.read_with(cx, |overlay, _| overlay.model.open()))
     }
     pub(crate) fn pointer_down(
         &mut self,
@@ -51,6 +51,7 @@ impl Shell {
         if frame.in_lane(event.position)
             && frame.max_scroll() > 0.5
             && event.button == MouseButton::Left
+            && self.view != crate::window::startup::View::Columns
         {
             let bar = Bar::new(frame);
             let (_, y) = frame.local(event.position);

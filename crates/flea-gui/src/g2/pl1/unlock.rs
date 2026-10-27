@@ -181,7 +181,7 @@ impl Card {
         self.edited();
     }
 
-    fn edited(&mut self) {
+    pub(super) fn edited(&mut self) {
         if self.field.error || self.note.as_ref().is_some_and(|(_, error)| *error) {
             self.field.error = false;
             self.note = None;

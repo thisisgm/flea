@@ -105,6 +105,9 @@ impl SelectionPreview {
 
     /// Facts.js facts, or the count and combined size for a selection; a model or an office document adds its own under Kind.
     pub(crate) fn facts(&self, frame: &Frame, cx: &gpui::App) -> Vec<(String, String)> {
+        if self.manual_empty(frame) {
+            return Vec::new();
+        }
         if frame.kind == Kind::Multi {
             let subject = &frame.subject;
             let mut rows = vec![(

@@ -310,35 +310,39 @@ impl Render for ChromeView {
         ));
         let frame = self.frame.clone();
         let pointer_frame = self.frame.clone();
-        let toolbar = div().size_full().relative().bg(theme.chrome()).child(
-            div()
-                .size_full()
-                .flex()
-                .gap(px(9.))
-                .px(px(14.))
-                .child(
-                    div()
-                        .flex()
-                        .gap(px(9.))
-                        .flex_none()
-                        .child(self.button(
-                            0,
-                            self.inputs.back,
-                            ink(self.inputs.back),
-                            palette.foreground,
-                            cx,
-                        ))
-                        .child(self.button(
-                            1,
-                            self.inputs.up,
-                            ink(self.inputs.up),
-                            palette.foreground,
-                            cx,
-                        )),
-                )
-                .child(div().h(px(26.)).flex_1().min_w_0().child(self.path.clone()))
-                .child(right),
-        );
+        let toolbar = div()
+            .size_full()
+            .relative()
+            .bg(crate::window::glass::ground(theme.chrome(), window, cx))
+            .child(
+                div()
+                    .size_full()
+                    .flex()
+                    .gap(px(9.))
+                    .px(px(14.))
+                    .child(
+                        div()
+                            .flex()
+                            .gap(px(9.))
+                            .flex_none()
+                            .child(self.button(
+                                0,
+                                self.inputs.back,
+                                ink(self.inputs.back),
+                                palette.foreground,
+                                cx,
+                            ))
+                            .child(self.button(
+                                1,
+                                self.inputs.up,
+                                ink(self.inputs.up),
+                                palette.foreground,
+                                cx,
+                            )),
+                    )
+                    .child(div().h(px(26.)).flex_1().min_w_0().child(self.path.clone()))
+                    .child(right),
+            );
         for control in &mut self.frame.borrow_mut().controls {
             control.hovered = control.pointer_over && control.visible && self.inputs.live;
             if !control.visible || !control.enabled || !self.inputs.live {

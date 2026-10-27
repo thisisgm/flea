@@ -282,6 +282,7 @@ impl Adapter for StatusAdapter<'_> {
             function,
             "lastMessage"
                 | "statusPrimary"
+                | "statusSecondary"
                 | "statusError"
                 | "statusDetail"
                 | "statusActivityState"
@@ -334,6 +335,17 @@ impl Adapter for StatusAdapter<'_> {
                 .get("primary")
                 .map(|text| text.text.to_string())
                 .unwrap_or_default(),
+            secondary: format!(
+                "{}{}{}{}",
+                line.drawn().hint,
+                if line.drawn().undo.is_empty() {
+                    ""
+                } else {
+                    flea::ui_logic_fb1::status::SEP
+                },
+                line.drawn().undo,
+                line.drawn().extra
+            ),
             is_error: shown.is_error,
             detail: shown.detail,
             activity_state: if function == "statusActivityState" {
@@ -347,17 +359,7 @@ impl Adapter for StatusAdapter<'_> {
             snapshot: &snapshot,
         };
         let value = match function {
-            "lastMessage"
-                if !shown.is_error && !shown.text.is_empty() && !line.drawn().undo.is_empty() =>
-            {
-                format!(
-                    "{}{}{}",
-                    shown.text,
-                    flea::ui_logic_fb1::status::SEP,
-                    line.drawn().undo
-                )
-            }
-            "lastMessage" => shown.text,
+            "lastMessage" => messages.transient_text(&self.shell.locale.catalog),
             "stickyMessage" => messages
                 .activities()
                 .first()
