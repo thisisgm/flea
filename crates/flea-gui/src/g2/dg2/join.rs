@@ -12,6 +12,11 @@ use gpui::{
 use std::collections::HashMap;
 use std::rc::Rc;
 
+#[path = "rail_drop.rs"]
+mod rail_drop;
+#[path = "tab_drop.rs"]
+mod tab_drop;
+
 struct HostRows<'a>(&'a PaneHost);
 
 impl Rows for HostRows<'_> {
@@ -36,6 +41,10 @@ impl Rows for HostRows<'_> {
 /// The folder a landing at `point` in a List pane resolves to, as a drop does: the folder row under it unless
 /// `carried` holds that row, else the pane's own folder.
 pub(crate) fn pane_spot(host: &PaneHost, point: Point<gpui::Pixels>, carried: &[usize]) -> String {
+    if host.drawn_view == Some(crate::window::startup::View::Columns) {
+        return crate::window::columns::drop_spot(host, point, carried)
+            .unwrap_or_else(|| host.path.clone());
+    }
     row_spot(host, host.input.hit(point), carried)
 }
 
@@ -100,6 +109,8 @@ pub struct Drags {
     /// The marker tag and serial of each window's current lift, shared with its file client.
     held: HashMap<u64, Held>,
     serial: u64,
+    /// The rail row each window's held drag rests on.
+    aims: HashMap<u64, rail_drop::Aim>,
 }
 
 impl Drags {
@@ -171,6 +182,7 @@ impl Shell {
         let key = window_key(window);
         // A drag that lifts nothing must never land an earlier drag's rows.
         cx.default_global::<Drags>().take(key);
+        self.clear_rail_aim(window, cx);
         let Some(host) = self.panes[side].as_ref() else {
             return false;
         };
@@ -224,6 +236,7 @@ impl Shell {
     pub fn escape_file_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
         let key = window_key(window);
         let lifted = cx.default_global::<Drags>().take(key).is_some();
+        self.clear_rail_aim(window, cx);
         lifted && cx.stop_active_drag(window)
     }
 
@@ -234,10 +247,12 @@ impl Shell {
         drags.take(key);
         drags.clients.remove(&key);
         drags.held.remove(&key);
+        drags.aims.remove(&key);
     }
 
     /// The drag ended over this window: a drop that never left the slop is the tap pointer_up already handled.
     pub fn land_own_drag(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+        self.clear_rail_aim(window, cx);
         let key = window_key(window);
         let Some(lift) = cx.default_global::<Drags>().take(key) else {
             return;
@@ -257,6 +272,10 @@ impl Shell {
 
     fn land_arrived(&mut self, arrived: Arrived, window: &mut Window, cx: &mut Context<Self>) {
         let point = gpui::point(gpui::px(arrived.position.0), gpui::px(arrived.position.1));
+        if self.file_tab_destination(point).is_some() {
+            self.land_at(self.focus_side, point, Owned::Native(arrived), window, cx);
+            return;
+        }
         let side = (0..self.panes.len()).find(|side| {
             self.panes[*side]
                 .as_ref()
@@ -276,12 +295,15 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if let Some(tab) = self.file_tab_destination(point) {
+            self.land_file_tab(tab, owned, window, cx);
+            return;
+        }
         let Some(host) = self.panes[side].as_ref() else {
             return;
         };
         if host.pane.busy() {
-            let text = self.locale.catalog.tr("pane.busy");
-            self.say_drop(side, text, cx);
+            self.refuse_drop_loading(side, cx);
             return;
         }
         // Only this pane's own lift, in the listing it was lifted from, carries rows a drop must skip.
@@ -294,6 +316,21 @@ impl Shell {
             _ => &[],
         };
         let dest = pane_spot(host, point, carried);
+        self.land_into(side, dest, owned, window, cx);
+    }
+
+    // The folder is resolved: read the disk facts off the UI thread, then decide and ask op1.
+    fn land_into(
+        &mut self,
+        side: usize,
+        dest: String,
+        owned: Owned,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes[side].as_ref() else {
+            return;
+        };
         let path = host.path.clone();
         let first = owned.first_source();
         let read_dest = dest.clone();
@@ -349,6 +386,11 @@ impl Shell {
             messages.say(&text, false, "", Hint::None, now)
         });
         cx.notify();
+    }
+
+    fn refuse_drop_loading(&mut self, side: usize, cx: &mut Context<Self>) {
+        let text = self.locale.catalog.tr("pane.busy");
+        self.say_drop(side, text, cx);
     }
 }
 

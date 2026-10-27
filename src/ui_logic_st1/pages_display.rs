@@ -1,6 +1,6 @@
 // The Display and Keys panes, from ui/js/Settings.js displayRows, keyRows and keyPreview.
 use super::super::rows::{choice, KeyItem, Kind, Role, Row};
-use super::super::textsize::{following, nearest, parse, STOPS};
+use super::super::textsize::{effective, following, nearest, parse, STOPS};
 use super::super::Text;
 use super::{at, is_true, State};
 use crate::jsondoc::Json;
@@ -45,7 +45,7 @@ pub fn scale_label(scale: f64) -> Text {
 pub fn display_rows(state: &State<'_>) -> Vec<Row> {
     let stored = parse(at(state.data, &["display", "textSize"]).unwrap_or(&Json::Null));
     let follows = following(stored);
-    let base = state.base_size;
+    let base = effective(stored, state.base_size);
     let mut out = vec![
         Row::group("settings.group.text_size"),
         Row { id: "textMode".into(), glyph: "type",

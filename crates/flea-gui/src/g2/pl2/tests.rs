@@ -1,6 +1,5 @@
 use super::{
     dialog::{Dialog, Effect, Focus},
-    discovery::Discovery,
     mount::{self, Mounts, Phase, Request},
 };
 use crate::g2::pl1::{process::Outcome, secret::Secret};
@@ -90,7 +89,7 @@ fn pl2_cancel_and_backend_death_erase_draft_secrets_and_ignore_completion() {
     d.backend_died();
     assert!(d.password.is_empty());
     assert!(!d.busy());
-    assert!(d.discovery.id.is_none());
+    assert!(d.provider_check.is_none());
 }
 
 #[test]
@@ -128,44 +127,21 @@ fn pl2_invalid_form_and_missing_password_do_no_work() {
 }
 
 #[test]
-fn pl2_discovery_is_lazy_bounded_generation_checked_and_never_connects() {
-    let mut d = draft();
-    let id = d.discovery.id.unwrap();
-    let row = r#"{"name":"NAS","source":"mdns","uri":"smb://nas.local/","protocol":"SMB"}"#;
-    let found = format!(r#"{{"t":"nearby","id":{id},"state":"found","rows":[{row}],"errors":[]}}"#);
-    assert!(!d.discovery.line("{broken"));
-    assert!(!d
-        .discovery
-        .line(&found.replace(&format!("\"id\":{id}"), "\"id\":999")));
-    assert!(d.discovery.line(&found));
-    assert_eq!(d.discovery.filtered("NAS"), [0]);
-    assert!(d.discovery.filtered("other").is_empty());
-    d.form.label = "My name".into();
-    d.form.user = "me".into();
-    d.form.domain = "WORK".into();
-    assert!(d.choose_suggestion(0));
-    assert!(!d.connecting && !d.saving);
-    assert_eq!(d.focus, Focus::Connect);
-    assert_eq!(d.form.label, "My name");
-    assert_eq!(d.form.user, "me");
-    assert_eq!(d.form.domain, "WORK");
-    assert_eq!(d.password.expose(), b"fixture-password");
-    d.close();
-    d.open();
-    assert!(!d.discovery.line(&found));
-    assert!(d.discovery.rows.is_empty());
-    for state in ["looking", "empty", "stopped", "error"] {
-        let line = format!(
-            r#"{{"t":"nearby","id":{},"state":"{state}","rows":[],"errors":["opaque tool stderr"]}}"#,
-            d.discovery.id.unwrap()
-        );
-        assert!(d.discovery.line(&line));
-        assert!(d.discovery.rows.is_empty());
-        assert_eq!(d.discovery.diagnostics, ["opaque tool stderr"]);
-    }
-    let mut unopened = Discovery::default();
-    assert!(unopened.id.is_none());
-    assert!(!unopened.line(&found));
+fn pl2_opening_and_closing_ask_for_no_hosts_and_the_card_takes_no_list() {
+    let mut d = Dialog::default();
+    let opened = d.open();
+    let id = d.provider_check.unwrap();
+    assert!(
+        matches!(opened.as_slice(), [Effect::CheckDropbox(check)] if *check == id),
+        "opening sends the provider check alone"
+    );
+    d.step(false);
+    assert_eq!(d.focus, Focus::Port, "Tab walks the fields, never a list");
+    let closed = d.close();
+    assert!(
+        matches!(closed.as_slice(), [Effect::CancelDropbox(cancel), Effect::Closed] if *cancel == id),
+        "closing sends no discovery stop"
+    );
 }
 
 #[test]

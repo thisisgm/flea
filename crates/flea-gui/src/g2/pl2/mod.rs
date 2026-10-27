@@ -5,7 +5,6 @@ mod buttons;
 mod cancel;
 mod child;
 pub mod dialog;
-pub mod discovery;
 mod drawing;
 mod geometry;
 mod marks;
@@ -54,6 +53,7 @@ mod mount_process;
 
 mod mount_lifetime;
 
+mod view_observe;
 mod view_render;
 
 #[cfg(test)]
@@ -66,3 +66,6 @@ mod fix2_tests;
 mod m9_g2rows_19_tests;
 #[cfg(test)]
 mod review_tests;
+
+#[cfg(test)]
+mod i50_dialog_tests;

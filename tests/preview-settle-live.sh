@@ -62,8 +62,7 @@ run_phase() {
     if [ "$attempt" -lt 3 ] && [ "$code" -eq "$self_kill_exit" ] && [ -z "$warnings" ] \
         && printf '%s\n' "$output" | grep -aq 'PREVIEWSETTLE VOID' && ! printf '%s\n' "$output" | grep -aq 'PREVIEWSETTLE FAIL'; then
         printf '%s\n' "$output" | grep -a 'PREVIEWSETTLE VOID'
-        run_phase "$seed" "$label" $((attempt + 1))
-        return
+        return 2
     fi
     # Only the probe's self-termination after one exact clean receipt proves completion.
     pass_count=$(printf '%s\n' "$output" | grep -ac 'PREVIEWSETTLE PASS')
@@ -86,5 +85,16 @@ run_phase() {
 test_root=""
 cleanup() { [ -z "$test_root" ] || sandbox_remove "$test_root"; }
 trap cleanup EXIT
-run_phase "" auto
-run_phase '{"preview":{"loadOn":"manual"}}' manual
+# A voided attempt returns 2 and the phase runs again from this loop, so run_phase never calls itself.
+settle_phase() {
+    local attempt status
+    for attempt in 1 2 3; do
+        status=0
+        run_phase "$1" "$2" "$attempt" || status=$?
+        [ "$status" -eq 2 ] || return "$status"
+    done
+    printf 'FAIL preview settle %s: every attempt voided\n' "$2"
+    exit 1
+}
+settle_phase "" auto
+settle_phase '{"preview":{"loadOn":"manual"}}' manual

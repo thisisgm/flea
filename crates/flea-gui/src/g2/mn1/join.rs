@@ -58,11 +58,13 @@ impl gpui::EventEmitter<ProducerReply> for Shell {}
 
 #[derive(Default)]
 pub struct Joined {
+    pub(crate) place: Option<super::place_host::Place>,
     pub menu: Rc<RefCell<Menu>>,
     pub captured: Option<Captured>,
     pub(crate) rail: Option<crate::window::dispatch::rail_menu::Target>,
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
+    pub(crate) from_sheet: bool,
     pub activating: bool,
     pub reading: bool,
     pub sequence: u64,
@@ -78,11 +80,15 @@ pub struct Joined {
     pub(crate) providers: crate::g2::sd1::join::Senders,
     /// The flyout c or P asked for, opened once the cursor menu draws.
     pub flyout: Option<&'static str>,
+    // A test's stand-in for the `flea shelf add` call; None runs the real one.
+    pub shelve: Option<super::owners::ShelfAdd>,
+    /// Tag toggles sent and not yet answered, oldest first, by side and tag name.
+    pub(crate) tagging: Vec<(usize, &'static str)>,
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
 
-fn identity(host: &PaneHost, side: usize, background: bool) -> String {
+pub(crate) fn identity(host: &PaneHost, side: usize, background: bool) -> String {
     format!(
         "{side}:{}:{}:{:?}:{}:{background}",
         host.path, host.pane.held.listing, host.selected, host.pane.cursor
@@ -101,6 +107,9 @@ impl Shell {
     pub(crate) fn menu_identity(&self) -> String {
         if self.menu.rail.is_some() {
             return String::new();
+        }
+        if let Some(place) = &self.menu.place {
+            return place.key.clone();
         }
         self.menu
             .captured
@@ -126,17 +135,36 @@ impl Shell {
     }
 
     pub(crate) fn menu_entries(&self) -> Vec<Entry> {
+        self.menu_entries_keeping("")
+    }
+
+    /// The live rows a chosen leaf is checked against: MenuContext.js validateChoice keeps a hidden row whose flyout c or P opened alone.
+    pub(crate) fn menu_choice_entries(&self, action: &str, leaf: &str) -> Vec<Entry> {
+        let lone = !leaf.is_empty() && !flea::ui_logic_mn1::rows::flyout_entries(action).is_empty();
+        self.menu_entries_keeping(if lone { action } else { "" })
+    }
+
+    fn menu_entries_keeping(&self, keep: &str) -> Vec<Entry> {
         if let Some(target) = &self.menu.rail {
             return target.rows(self);
+        }
+        if let Some(entries) = self.place_menu_entries() {
+            return entries;
         }
         let Some(capture) = &self.menu.captured else {
             return Vec::new();
         };
+        let mut hidden = if self.menu.from_sheet {
+            Vec::new()
+        } else {
+            self.menu_hidden()
+        };
+        hidden.retain(|id| id != keep);
         self.listing_menu_entries(
             capture.side,
             capture.background,
             self.menu.context.clone(),
-            self.menu_hidden(),
+            hidden,
         )
     }
 
