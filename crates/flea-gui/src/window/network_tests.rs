@@ -298,6 +298,9 @@ mod result_tests;
 #[path = "network_ipc_tests.rs"]
 mod ipc_tests;
 
+#[path = "network_mountinfo_tests.rs"]
+mod mountinfo_tests;
+
 #[path = "network_typing_tests.rs"]
 mod typing;
 
