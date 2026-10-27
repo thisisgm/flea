@@ -79,8 +79,8 @@ pub struct RowStates {
     pub selected: Option<Rc<[usize]>>,
     pub hovered: Option<usize>,
     pub renaming: Option<usize>,
-    /// The refused rename's band under the edited row, zero while no refusal stands.
-    pub band: f32,
+    /// The rename band's Grow for this side this render: the edited row grows and the rows below move down.
+    pub grow: pane::Grow,
     pub drop_target: Option<usize>,
     /// The drag owner's caption for the drop target, the label Drag.js names: move here, copy here or link here.
     pub drop_label: Option<SharedString>,

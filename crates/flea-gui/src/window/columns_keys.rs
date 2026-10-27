@@ -4,7 +4,10 @@ use crate::columns::geometry::Slot;
 
 impl PaneHost {
     /// Keyboard moves measure the active track that was drawn, including a standing filter.
-    pub(crate) fn columns_key_frame(&self) -> Option<crate::input::Frame> {
+    pub(crate) fn columns_key_frame(
+        &self,
+        grow: crate::list::pane::Grow,
+    ) -> Option<crate::input::Frame> {
         let columns = self.columns.as_ref()?;
         let paint = columns.painters.get(Slot::Active)?.borrow();
         let drawn = paint.drawn.as_ref()?;
@@ -22,13 +25,13 @@ impl PaneHost {
             bounds: drawn.bounds,
             row,
             lane: 0.,
-            content: drawn.grow.content(total, row),
+            content: grow.content(total, row),
             scroll: self.pane.scroll_y,
             listing: self.pane.held.listing,
             total,
             columns: 1,
             cell_width: drawn.bounds.size.width.into(),
-            grow: drawn.grow,
+            grow,
         })
     }
 }

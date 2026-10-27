@@ -16,18 +16,9 @@ pub(super) fn surface(
     cx: &mut Context<Shell>,
 ) -> impl IntoElement {
     crate::input::surface_with(cx.entity(), side, move |shell, bounds| {
+        let grow = shell.grows[side];
         let host = shell.panes[side].as_mut()?;
         let total = host.filter.shown_total(host.pane.held.total);
-        // The active track's band as its last frame drew it, so the surface places rows as the track does.
-        let grow = host
-            .columns
-            .as_ref()
-            .and_then(|columns| columns.painters.get(Slot::Active))
-            .and_then(|paint| {
-                let paint = paint.borrow();
-                paint.drawn.as_ref().map(|drawn| drawn.grow)
-            })
-            .unwrap_or_default();
         let row = crate::list::pane::ROW_HEIGHT;
         let frame = crate::input::Frame {
             bounds,

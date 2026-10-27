@@ -172,6 +172,7 @@ pub struct Band {
 impl PaneInput {
     /// Call before preparing a view's row states so rollback and the new geometry present together.
     pub fn prepare(&mut self, frame: Frame, selected: &mut Vec<usize>, cursor: &mut usize) {
+        // A rename band moves only the rows below its own row, and gestures hold content positions, so it never cancels one.
         if self.prepared.is_some_and(|old| {
             old.bounds != frame.bounds
                 || old.listing != frame.listing
@@ -180,8 +181,6 @@ impl PaneInput {
                 || old.columns != frame.columns
                 || old.cell_width != frame.cell_width
                 || old.lane != frame.lane
-                || old.content != frame.content
-                || old.grow != frame.grow
         }) {
             self.cancel(selected, cursor);
             self.press = None;

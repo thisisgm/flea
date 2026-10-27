@@ -101,9 +101,9 @@ pub struct Focus {
     /// Marked listing indices, sorted.
     pub selected: Rc<[usize]>,
     pub hover: Option<(Slot, usize)>,
-    /// The listing row a rename edits, and the refused rename's band under it on the active track.
+    /// The listing row a rename edits, and the rename band's Grow on the active track.
     pub renaming: Option<usize>,
-    pub band: f32,
+    pub grow: crate::list::pane::Grow,
 }
 
 impl Focus {
