@@ -23,7 +23,13 @@ impl SelectionPreview {
         if let Some(source) = frame.source.take() {
             cx.remove_asset::<ImageAssetLoader>(&source);
         }
+        if let Some(source) = frame.animation_source.take() {
+            cx.remove_asset::<ImageAssetLoader>(&source);
+        }
         if let Some(image) = frame.image.take() {
+            window.defer(cx, move |_, cx| cx.drop_image(image, None));
+        }
+        if let Some(image) = frame.animation.take() {
             window.defer(cx, move |_, cx| cx.drop_image(image, None));
         }
         self.retired.push(frame);

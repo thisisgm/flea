@@ -8,6 +8,8 @@ mod allocations;
 mod crumbs;
 #[path = "g1_12/entry.rs"]
 mod entry;
+#[path = "g1_12/ey174.rs"]
+mod ey174;
 #[path = "g1_12/history.rs"]
 mod history;
 #[path = "g1_12/ipc.rs"]
@@ -16,6 +18,8 @@ mod ipc;
 mod jump;
 #[path = "g1_12/locale.rs"]
 mod locale;
+#[path = "g1_12/parity.rs"]
+mod parity;
 #[path = "g1_12/pathbar.rs"]
 mod pathbar;
 #[path = "g1_12/rank.rs"]

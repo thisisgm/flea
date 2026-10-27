@@ -98,10 +98,14 @@ pub struct Navigator {
     pub history: History,
     pub restore: Option<Restore>,
     pub anchor: Option<Anchor>,
+    pub(crate) deletion_anchor: Option<Anchor>,
+    pub(crate) viewport: Option<anchor::Viewport>,
+    pub(crate) grid_landing: Option<(usize, usize, f32)>,
     pub preference: Option<Preference>,
     pub watch: Watch,
     pub gate: Gate,
     pub order: Order,
+    pub committed_sort: Option<Order>,
     pub preserve_sort: bool,
     pub pending_sort: Option<sort::Request>,
     pub pending_select: Option<String>,
@@ -188,7 +192,12 @@ impl Navigator {
                 .orders
                 .requests
                 .pop_front()
-                .map(|request| request.order)
+                .map(|request| {
+                    if request.sort {
+                        self.committed_sort = Some(request.order);
+                    }
+                    request.order
+                })
                 .unwrap_or(self.order);
             self.orders.drawn = Some((pane.held.listing, order));
         }

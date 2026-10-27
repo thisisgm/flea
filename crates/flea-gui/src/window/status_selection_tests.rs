@@ -29,7 +29,7 @@ fn open(cx: &mut TestAppContext, select: Option<&str>, json: &str) -> WindowHand
             revision: 1,
             catalog: Arc::new(flea::i18n::I18n::default()),
         };
-        let settings = Settings::from_json(flea::jsondoc::parse(json).unwrap(), false);
+        let settings = Settings::from_json(flea::jsondoc::parse(json).unwrap());
         let launch = Launch::resolve(
             settings,
             Arguments {

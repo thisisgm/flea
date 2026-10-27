@@ -17,6 +17,9 @@ pub(crate) const SELECTION_CHANGED: &str = "Selected items changed; reopen the m
 const MENU_STOPPED: &str = "The menu stopped answering; reopen this window.";
 const DELETE_EXPIRED: &str = "The delete confirmation expired; confirm again.";
 
+#[path = "menu_selection.rs"]
+mod selection;
+
 pub struct MenuActions {
     slot: Arc<MenuSlot>,
     replies: Sender<OpMsg>,
@@ -78,13 +81,6 @@ impl MenuActions {
         let originals: HashMap<_, _> = restoration.1.iter().map(|item| (item.path.as_path(), item)).collect();
         matches.retain(|(path, _)| originals.get(Path::new(path)).is_some_and(|item| item.current().is_ok()));
         Ok(())
-    }
-    pub(crate) fn selection(&self, id: usize) -> Result<Vec<Selected>, String> {
-        let snapshot = self.snapshot.lock().map_err(|_| MENU_STOPPED)?;
-        if id == 0 || snapshot.id != id || snapshot.items.is_empty() {
-            return Err(SELECTION_CHANGED.into());
-        }
-        Ok(snapshot.items.clone())
     }
     pub(crate) fn provider_destination(&self, id: usize, dest: &Path) -> Result<Option<Selected>, String> {
         let snapshot = self.snapshot.lock().map_err(|_| MENU_STOPPED)?;
@@ -312,6 +308,11 @@ impl Snapshot {
                 self.check_provider_destination(Path::new(&field_str(line, "dest").unwrap_or_default()))?;
             }
             if op == "activate" { self.provider_transfer = action == "dropbox"; }
+            if action == "extract" {
+                let cursor = self.extract_item()?;
+                cursor.current()?;
+                return Ok(format!(r#""action":"{}","paths":["{}"]"#, escape(&action), escape(&cursor.path.to_string_lossy())));
+            }
             if action.starts_with("taildrop:") || action == "sharelink" {
                 let cursor = self.cursor.as_ref().ok_or("The item under the cursor changed; reopen the menu.")?;
                 cursor.current()?;
@@ -700,3 +701,7 @@ mod tests {
 #[cfg(test)]
 #[path = "menu_actions_wording_tests.rs"]
 mod wording;
+
+#[cfg(test)]
+#[path = "menu_archive_tests.rs"]
+mod archive_tests;

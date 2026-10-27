@@ -125,12 +125,13 @@ fn u02_live_readers_follow_the_drawn_window_without_fetching_rows() {
             Reply::value("")
         );
     }
-    let (height, row) = window
+    let (height, row, header) = window
         .update(&mut cx, |shell, _, _| {
             let list = shell.panes[0].as_ref().unwrap().list.borrow();
             (
                 f32::from(list.drawn.bounds.size.height),
                 list.drawn.metrics.row,
+                list.drawn.metrics.header,
             )
         })
         .unwrap();
@@ -140,7 +141,8 @@ fn u02_live_readers_follow_the_drawn_window_without_fetching_rows() {
     );
     assert_eq!(
         value(&mut cx, window, "viewEndY"),
-        (100_000. * row - height).round().to_string()
+        // reader-port-c: the end includes the header extent, as v0.3.12's contentHeight does.
+        (100_000. * row + header - height).round().to_string()
     );
     assert!(
         requests().is_none(),
