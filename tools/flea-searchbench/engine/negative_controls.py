@@ -5,7 +5,7 @@ import pathlib
 import subprocess
 import sys
 
-from contracts import checked_result, identities, inventory_report, quality_reason
+from contracts import checked_result, classify_file_rank, classify_rank, identities, inventory_report, quality_reason
 from fixtures import marked_root
 from measure import Measurements
 
@@ -59,6 +59,20 @@ def run_controls(parent):
         if bool(included) != accepted:
             raise AssertionError('ineligible performance sample leaked')
         report[mode] = dict(accepted=accepted, reasons=reasons)
+    head, folders = ['src', 'src/target.rs', 'other.rs'], frozenset(['src'])
+    if classify_rank(head, 'src/target.rs') != (2, 'ok') or classify_file_rank(head, folders, 'src/target.rs') != (1, 'ok'):
+        raise AssertionError('file rank control: a folder ahead of the target must count in the mixed rank only')
+    if classify_file_rank(head, folders, 'gone.rs', [], complete=True) != (0, 'miss'):
+        raise AssertionError('file rank control: an absent target must stay a miss')
+    if classify_file_rank(['other.rs'], folders, 'src/target.rs', ['other.rs', 'src', 'src/target.rs']) != (-1, 'censored'):
+        raise AssertionError('file rank control: a target past the head must stay censored whatever folders the audit holds')
+    try:
+        classify_file_rank(head, folders, 'src')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('file rank control: a folder target must fail loud, never rank as a miss')
+    report['file-rank'] = dict(accepted=True, reasons=[])
     from production_controls import run_production_controls
     report.update(run_production_controls(root))
     (root / 'controls.json').write_text(json.dumps(report, indent=2) + '\n')
