@@ -132,6 +132,9 @@ impl Shell {
                     hidden: host.nav.folders.borrow().hidden,
                     cx,
                 };
+                let favourites = crate::ipc::favourites::FavouritesAdapter {
+                    host: &self.settings,
+                };
                 let status = crate::ipc::status::StatusAdapter { shell: self, cx };
                 let dual = self.dual_adapter(window, cx);
                 let drag = crate::ipc::dual::DragGeometry { shell: self };
@@ -254,7 +257,7 @@ impl Shell {
                     look: look.view,
                     cx,
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 36] = [
+                let adapters: [&dyn crate::ipc::Adapter; 37] = [
                     &glass,
                     &column_preview,
                     &drag,
@@ -275,6 +278,7 @@ impl Shell {
                     &dual,
                     &status,
                     &settings,
+                    &favourites,
                     &trash,
                     &omi,
                     &columns,
@@ -296,9 +300,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    36
+                    37
                 } else {
-                    35
+                    36
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

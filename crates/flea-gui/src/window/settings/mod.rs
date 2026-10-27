@@ -50,6 +50,8 @@ pub(crate) struct Host {
     pub plugin_backends: [bool; 2],
     pub patches: store::Patches,
     pub pending: Vec<(u64, Json)>,
+    // Revisions of Favorites operations the writer has not answered yet.
+    pub favourite_writes: Vec<u64>,
     pub failed: Vec<(u64, Json)>,
     // Request revision and highest failed revision actually included in that request.
     pub retried: Vec<(u64, u64)>,
@@ -299,6 +301,13 @@ impl Shell {
 }
 
 impl Host {
+    // A write answer through this revision settles its pending, retried and Favorites entries.
+    pub(crate) fn answered(&mut self, through: u64) {
+        self.pending.retain(|(id, _)| *id > through);
+        self.retried.retain(|(id, _)| *id > through);
+        self.favourite_writes.retain(|id| *id > through);
+    }
+
     pub(crate) fn row_states(&self, listing: usize, cursor: usize) -> crate::list::RowStates {
         let mut states = crate::list::RowStates::cursor_only(listing, cursor);
         states.focused = !self.opened && self.sheet.is_none();

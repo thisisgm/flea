@@ -28,10 +28,9 @@ fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, mpsc
             monitor: None,
         });
     });
-    let settings = Settings::from_json(
-        flea::uistate::from_file(r#"{"view":"list","places":{"rail":"shown"}}"#),
-        true,
-    );
+    let settings = Settings::from_json(flea::uistate::from_file(
+        r#"{"view":"list","places":{"rail":"shown"}}"#,
+    ));
     let launch = Launch::resolve(
         settings,
         Arguments {
@@ -178,5 +177,41 @@ fn favourites_saving_clears_after_a_failed_write(cx: &mut TestAppContext) {
         })
     });
     assert_eq!(read(&shell, cx, "favouritesSaving", &[]), "false");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn pb_rail_favourite_controls_report_centres_while_drawn(cx: &mut TestAppContext) {
+    let (shell, cx, _) = open(cx);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.apply_settings(
+                flea::uistate::from_file(
+                    r#"{"view":"list","places":{"favourites":[{"path":"/files","label":"files"},{"path":"/other","label":"other"}]}}"#,
+                ),
+                window,
+                cx,
+            );
+            shell.open_settings(window, cx);
+            let view = shell.settings.panel.clone().expect("settings panel");
+            view.update(cx, |view, cx| {
+                view.panel.show_section("places");
+                cx.notify();
+            });
+        })
+    });
+    settle(cx);
+    let centre = |cx: &mut VisualTestContext, id: &str, part: &str| {
+        read(&shell, cx, "settingsFavouriteControlCentre", &[id, part])
+    };
+    let drag = centre(cx, "favourite:0", "drag");
+    let remove = centre(cx, "favourite:0", "remove");
+    assert!(
+        !drag.is_empty() && !remove.is_empty(),
+        "favourite 0 draws both controls"
+    );
+    assert_ne!(drag, remove);
+    assert_eq!(centre(cx, "favourite:9", "remove"), "");
+    assert_eq!(centre(cx, "favourite:0", "rename"), "");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
