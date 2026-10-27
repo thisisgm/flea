@@ -83,6 +83,8 @@ pub struct Joined {
     pub shelve: Option<super::owners::ShelfAdd>,
     /// Tag toggles sent and not yet answered, oldest first, by side and tag name.
     pub(crate) tagging: Vec<(usize, &'static str)>,
+    /// The id of the latest tagstates read; an answer to any earlier read is stale.
+    pub(crate) tag_ask: u64,
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
