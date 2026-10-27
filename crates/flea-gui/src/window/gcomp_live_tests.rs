@@ -165,7 +165,7 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
     edit(&mut cx, handle, |shell, window, cx| {
         shell.panes[0].as_mut().unwrap().backend = Some(backend);
         shell.launch.settings =
-            crate::window::startup::Settings::from_json(flea::uistate::from_file("{}"), true);
+            crate::window::startup::Settings::from_json(flea::uistate::from_file("{}"));
         shell.set_view(View::List, window, cx);
         shell.follow_presentation(&service, window, cx);
         shell.follow_settings(window, cx);

@@ -9,7 +9,7 @@ use super::{
 use crate::window::input::{clean_paste, modifiers, paste_key};
 use gpui::{
     deferred, div, prelude::*, px, AnyElement, ClipboardItem, Context, Entity, KeyDownEvent,
-    MouseButton, MouseDownEvent, MouseMoveEvent, ScrollWheelEvent, Window,
+    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, ScrollWheelEvent, Window,
 };
 
 impl Render for PathView {
@@ -55,6 +55,11 @@ impl Render for PathView {
                 .h(px(popup.height))
                 .occlude()
                 .on_mouse_down(MouseButton::Left, cx.listener(Self::menu_press))
+                .on_mouse_up(MouseButton::Left, cx.listener(Self::menu_release))
+                .on_mouse_up_out(
+                    MouseButton::Left,
+                    cx.listener(|view, _, _, _| view.pressed_row = None),
+                )
                 .on_mouse_down(
                     MouseButton::Right,
                     cx.listener(|_, _: &MouseDownEvent, window, _| window.prevent_default()),
@@ -135,6 +140,11 @@ impl PathView {
     fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         let key = event.keystroke.key.as_str();
         let held = event.keystroke.modifiers;
+        if self.entry.ime_key(key) {
+            self.edited(cx);
+            cx.stop_propagation();
+            return;
+        }
         // A held Enter stands for the line as it was, so nothing typed after it changes what it opens; Escape still closes.
         if self.jump.enter_waiting && key != "escape" {
             cx.stop_propagation();
@@ -255,19 +265,31 @@ impl PathView {
         )
     }
 
-    // A press on a row opens it; one on the popup's own padding closes the bar with nothing opened, the menu recipe.
+    // A row waits for release within its bounds, as MenuRow.qml's TapHandler does.
     fn menu_press(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.prevent_default();
         cx.stop_propagation();
-        match self
+        self.pressed_row = self
             .row_at(event.position.x, event.position.y)
-            .and_then(|at| self.jump.entries.get(at))
+            .map(|at| (at, self.jump.entries[at].path.clone()));
+        if self.pressed_row.is_none() {
+            self.close(cx);
+        }
+    }
+
+    fn menu_release(&mut self, event: &MouseUpEvent, _: &mut Window, cx: &mut Context<Self>) {
+        cx.stop_propagation();
+        let Some((at, path)) = self.pressed_row.take() else {
+            return;
+        };
+        if self.row_at(event.position.x, event.position.y) == Some(at)
+            && self
+                .jump
+                .entries
+                .get(at)
+                .is_some_and(|row| row.path == path)
         {
-            Some(row) => {
-                let path = row.path.clone();
-                self.choose(path, cx);
-            }
-            None => self.close(cx),
+            self.choose(path, cx);
         }
     }
 

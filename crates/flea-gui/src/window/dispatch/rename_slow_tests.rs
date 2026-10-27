@@ -92,6 +92,39 @@ fn a_double_click_or_a_press_past_the_name_never_renames(cx: &mut gpui::TestAppC
 }
 
 #[gpui::test]
+fn open_mode_single_click_never_arms_or_fires_the_slow_rename(cx: &mut gpui::TestAppContext) {
+    let (shell, cx, _) = ready(cx, "default");
+    shell.update(cx, |shell, _| {
+        // The Settings page greys clickRename out when openMode is "single"; the slow click must refuse it too.
+        shell.launch.settings.data = flea::jsondoc::parse(r#"{"openMode":"single"}"#).unwrap();
+        // The lone tap opens the file, so the test opener stands in for the desktop's.
+        shell.opener[0].launch = |_| (Some(0), String::new());
+    });
+    let (name, _) = name_and_past(&shell, cx, "2");
+    press(cx, &name, 1);
+    wait(cx, 600);
+    assert_eq!(editing(&shell, cx), None, "the first tap only opens");
+    press(cx, &name, 1);
+    wait(cx, 100);
+    assert!(
+        shell.read_with(cx, |shell, _| shell
+            .rename
+            .slow
+            .as_ref()
+            .is_none_or(|slow| !slow.pending())),
+        "single-click mode never arms the slow click"
+    );
+    wait(cx, 400);
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx),
+        None,
+        "single-click mode never starts the rename"
+    );
+    close(&shell, cx);
+}
+
+#[gpui::test]
 fn a_slow_tap_just_past_the_interval_keeps_submillisecond_precision(cx: &mut gpui::TestAppContext) {
     let (shell, cx, _) = ready(cx, "default");
     let (name, _) = name_and_past(&shell, cx, "2");

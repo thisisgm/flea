@@ -4,12 +4,13 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 
 probe_dir=$(mktemp -d /tmp/flea-keymap.XXXXXXXX) || exit 1
+: > "$probe_dir/.flea-test-sandbox"
 tmp=$probe_dir/Keymap.js
 cleanup() {
   # The test owns this mktemp root; every deletion must still pass its absolute-path guard.
   case "$probe_dir" in /tmp/flea-keymap.?*) ;; *) return 1 ;; esac
   local path=$probe_dir
-  case "$path" in "$probe_dir"|"$probe_dir"/*) rm -rf -- "$path" ;; *) return 1 ;; esac
+  case "$path" in "$probe_dir"|"$probe_dir"/*) [ -f "$probe_dir/.flea-test-sandbox" ] && rm -rf -- "${path:?}" ;; *) return 1 ;; esac
 }
 trap cleanup EXIT
 
@@ -47,6 +48,10 @@ if ! command -v qml6 >/dev/null; then
   echo "FAIL qml6 is not installed, cannot check the key names in keys.toml"
   exit 1
 fi
+
+cp tests/keysheet.qml "$probe_dir/keysheet.qml" || exit 1
+QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_FORCE_STDERR_LOGGING=1 \
+  qml6 "$probe_dir/keysheet.qml" || exit 1
 
 {
   echo "import QtQuick"

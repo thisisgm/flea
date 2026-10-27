@@ -23,6 +23,7 @@ impl Shell {
         );
         self.slots.rail = Some(AnyView::from(join.host.clone()));
         self.rail = Some(join);
+        self.receive_rail_drops(cx);
     }
 
     pub(crate) fn sync_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {

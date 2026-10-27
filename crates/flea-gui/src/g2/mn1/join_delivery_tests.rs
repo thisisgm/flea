@@ -1,15 +1,11 @@
 //! Snapshot success and failure through the window's backend event and native input paths.
-use super::{
-    join::Chosen,
-    join_tests::{open, read, ready, Fixture},
-};
+use super::join_tests::{open, read, ready, Fixture};
 use crate::{
     backend::{Backend, Event},
     state::{tests::shell_with, Shell},
     window::root::Root,
 };
 use gpui::{AppContext, TestAppContext, VisualTestContext, Window, WindowHandle};
-use std::{cell::RefCell, rc::Rc};
 
 fn update<R>(
     cx: &mut TestAppContext,
@@ -51,7 +47,7 @@ fn seek(cx: &mut TestAppContext, handle: WindowHandle<Root>, action: &str) {
     panic!("the keyboard must reach {action}");
 }
 
-// Properties has no window owner yet (its card is unmounted), so it stands in for an unclaimed row; Rename now has one.
+// Properties stands in for a card row: its owner is the op3 card the menus family opens.
 fn show_unowned_row(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
     update(cx, handle, |shell, _, _| {
         shell.launch.settings.data =
@@ -81,22 +77,9 @@ fn u06_live_menu_waits_for_snapshot_and_routes_the_captured_choice_once(cx: &mut
     let mut fixture = open(cx);
     let handle = fixture.handle;
     show_unowned_row(cx, handle);
-    let entity = handle.update(cx, |root, _, _| root.shell.clone()).unwrap();
-    let seen = Rc::new(RefCell::new(Vec::<Chosen>::new()));
-    let log = seen.clone();
-    let _subscription = cx.update(|cx| {
-        cx.subscribe(&entity, move |_, chosen: &Chosen, _| {
-            assert!(chosen.claim());
-            log.borrow_mut().push(chosen.clone());
-        })
-    });
     key(cx, handle, "m");
     assert_eq!(read(cx, handle, "contextMenuVisible").stdout, "false\n");
     key(cx, handle, "enter");
-    assert!(
-        seen.borrow().is_empty(),
-        "no choice exists before the complete menu"
-    );
     let id = ready(cx, &mut fixture);
     seek(cx, handle, "properties");
     key(cx, handle, "enter");
@@ -108,26 +91,22 @@ fn u06_live_menu_waits_for_snapshot_and_routes_the_captured_choice_once(cx: &mut
     let reply = format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"validate\",\"ok\":true,\"action\":\"properties\",\"paths\":[\"/files/a\"]}}");
     receive(cx, handle, &reply);
     receive(cx, handle, &reply);
-    let seen = seen.borrow();
+    // The card owner re-takes the snapshot and asks its facts once; a duplicate reply delivers nothing again.
+    let mut sent = Vec::new();
+    while let Some(line) = (fixture.requests)() {
+        sent.push(line);
+    }
     assert_eq!(
-        seen.len(),
+        sent.iter()
+            .filter(|line| line.contains("\"op\":\"properties\""))
+            .count(),
         1,
-        "a duplicate backend reply cannot deliver again"
+        "a duplicate backend reply cannot deliver again: {sent:?}"
     );
-    assert_eq!(
-        (
-            seen[0].captured.side,
-            seen[0].captured.listing,
-            seen[0].captured.cursor
-        ),
-        (0, 2, 0)
-    );
-    assert_eq!(seen[0].captured.rows, [0]);
-    assert_eq!(seen[0].captured.id, id);
-    assert_eq!(seen[0].paths, ["/files/a"]);
     assert!(
-        (fixture.requests)().is_none(),
-        "a claimed snapshot belongs to its producer"
+        sent.iter()
+            .any(|line| line.contains("\"op\":\"snapshot\"") && line.contains("\"rows\":[0]")),
+        "the card re-takes the captured rows: {sent:?}"
     );
 }
 
@@ -173,7 +152,7 @@ fn u06_live_menu_late_snapshot_and_changed_identity_cannot_fire(cx: &mut TestApp
 }
 
 #[gpui::test]
-fn u06_live_menu_unclaimed_choice_is_refused_and_snapshot_retired(cx: &mut TestAppContext) {
+fn u06_live_menu_owned_choice_is_delivered_and_snapshot_retired(cx: &mut TestAppContext) {
     let mut fixture = open(cx);
     let handle = fixture.handle;
     show_unowned_row(cx, handle);
@@ -185,11 +164,23 @@ fn u06_live_menu_unclaimed_choice_is_refused_and_snapshot_retired(cx: &mut TestA
         .unwrap()
         .contains("\"op\":\"validate\""));
     receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"validate\",\"ok\":true,\"action\":\"properties\",\"paths\":[\"/files/a\"]}}"));
-    assert!((fixture.requests)().unwrap().contains("\"op\":\"close\""));
+    let mut sent = Vec::new();
+    while let Some(line) = (fixture.requests)() {
+        sent.push(line);
+    }
+    assert!(
+        sent.iter().any(|line| line.contains("\"op\":\"close\"")),
+        "the menu snapshot is retired: {sent:?}"
+    );
+    assert!(
+        sent.iter()
+            .any(|line| line.contains("\"op\":\"properties\"")),
+        "the card owner is delivered the choice: {sent:?}"
+    );
     update(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert!(!host.nav.gate.owned());
-        assert_eq!(
+        assert_ne!(
             host.status.as_ref(),
             shell.locale.catalog.tr("menu.refusal.unavailable")
         );

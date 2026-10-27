@@ -121,7 +121,7 @@ fn foreign_and_newer_dependencies_survive_read_and_first_publish() {
     let deps = sidecar(&dest);
     let png = d.join("new.png");
     let record = d.join("new.deps");
-    for original in ["{\"foreign\":true}\n", "{\"version\":999,\"dependencies\":[]}", "unparsable"] {
+    for original in ["{\"foreign\":true}\n", "{\"version\":999,\"dependencies\":[]}"] {
         std::fs::write(&deps, original).unwrap();
         std::fs::write(&png, b"\x89PNG\r\n\x1a\n").unwrap();
         std::fs::write(&record, "{\"version\":1,\"dependencies\":[]}").unwrap();
@@ -129,6 +129,23 @@ fn foreign_and_newer_dependencies_survive_read_and_first_publish() {
         assert_eq!(std::fs::read_to_string(&deps).unwrap(), original);
         assert!(crate::backend::htmlcache::publish(&png, &record, &dest).unwrap_err().to_string().contains("left unchanged"));
         assert_eq!(std::fs::read_to_string(&deps).unwrap(), original);
+    }
+}
+
+#[test]
+fn a_damaged_record_that_is_no_json_is_rendered_again() {
+    let d = TestDir::new("html-deps-damaged");
+    let dest = d.join("existing.png");
+    let png = d.join("new.png");
+    let record = d.join("new.deps");
+    for damaged in [&b"unparsable"[..], b"{\"truncated\":", "\u{fffd}\u{0}".as_bytes(), b"\xff\xfe"] {
+        std::fs::write(sidecar(&dest), damaged).unwrap();
+        std::fs::write(&png, b"\x89PNG\r\n\x1a\n").unwrap();
+        std::fs::write(&record, "{\"version\":1,\"dependencies\":[]}").unwrap();
+        assert!(!unchanged(&dest, d.path()));
+        assert!(replaceable(&dest), "{:?} is damage, not another writer's record", String::from_utf8_lossy(damaged));
+        crate::backend::htmlcache::publish(&png, &record, &dest).unwrap();
+        assert_eq!(std::fs::read_to_string(sidecar(&dest)).unwrap(), "{\"version\":1,\"dependencies\":[]}");
     }
 }
 

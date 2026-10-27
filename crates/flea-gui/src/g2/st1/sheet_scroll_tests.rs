@@ -134,6 +134,53 @@ fn the_wheel_reaches_the_resting_sheet_end_and_holds_both_ends() {
 }
 
 #[test]
+fn keymap_sheet_keeps_groups_whole_and_look_heads_column_two() {
+    let mut open = opened();
+    for preset in flea::keys::PRESETS {
+        open.view
+            .update(&mut open.cx, |view, _| view.sheet.set_preset(preset));
+        draw(&mut open.cx);
+        open.view.read_with(&open.cx, |view, _| {
+            let groups = view.sheet.groups();
+            let heads: Vec<_> = groups
+                .iter()
+                .map(|(side, group, _)| (*side, group.id))
+                .collect();
+            assert_eq!(
+                heads,
+                [(0, "move"), (1, "look"), (1, "find"), (1, "change")],
+                "{preset}: HIG column order"
+            );
+            assert_eq!(
+                groups
+                    .iter()
+                    .filter(|(_, group, _)| group.id == "look")
+                    .count(),
+                1,
+                "{preset}: one LOOK heading"
+            );
+            assert_eq!(
+                groups
+                    .iter()
+                    .find(|(side, _, _)| *side == 1)
+                    .map(|(_, group, _)| group.id),
+                Some("look"),
+                "{preset}: LOOK heads column two"
+            );
+            for (_, group, rows) in &groups {
+                let expected = view
+                    .sheet
+                    .rows
+                    .iter()
+                    .filter(|row| row.group == group.id)
+                    .count();
+                assert_eq!(rows.len(), expected, "{preset}: {} stays whole", group.id);
+            }
+        });
+    }
+}
+
+#[test]
 fn the_wheel_reaches_the_last_result_and_holds_both_ends() {
     both_ends("results", searched("s"));
 }

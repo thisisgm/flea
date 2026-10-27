@@ -57,6 +57,7 @@ pub enum Ink {
 
 #[derive(Clone, PartialEq)]
 pub struct Field {
+    pub(crate) input: Option<gpui::Entity<crate::state::Shell>>,
     /// The name above the field in tracked capitals, when the board names it.
     pub label: Option<String>,
     pub value: String,
@@ -96,7 +97,10 @@ impl std::fmt::Debug for Field {
         let mut out = f.debug_struct("Field");
         out.field("label", &self.label);
         if self.secret {
-            out.field("value", &format_args!("<{} chars>", self.value.chars().count()));
+            out.field(
+                "value",
+                &format_args!("<{} chars>", self.value.chars().count()),
+            );
         } else {
             out.field("value", &self.value);
         }
@@ -133,7 +137,10 @@ pub enum Block {
     Field(Field),
     CheckLine(CheckLine),
     /// A 12 px note at line height 1.5; the wrong-password sentence under the pair.
-    Note { text: String, ink: Ink },
+    Note {
+        text: String,
+        ink: Ink,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

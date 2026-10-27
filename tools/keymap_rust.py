@@ -32,7 +32,7 @@ def catalog_entries(data):
                 labels.add(row.get('label', re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', row['action']).lower()))
     entries = {label_key(label): label for label in sorted(labels) if label}
     entries.update(('keys.action.' + action, label) for action, label in data['native_labels'].items())
-    entries.update(('keys.group.' + group, group) for group in data['sheetgroups'])
+    entries.update(('keys.group.' + group, group[:1].upper() + group[1:]) for group in data['sheetgroups'])
     entries.update(('keys.' + row['key'], row['text']) for row in data['native_copy'])
     return entries
 
