@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "54892dca20f3e752bf086c665cff4568fa3ae0aa0646f6a0138f8def4da20aa2",
-  "catalog_sha256": "2fb46229246d35eb796c658169414cb66fe437c723165f3ef96cf00947cc7220",
+  "catalog_file_sha256": "085cd2cbc8706cd4c3f083cc96fc69d7c99e7a1b21c1ef9ebf8bc7a9701a5a7e",
+  "catalog_sha256": "ca0f6ad89aebd8c2f711109d6fed32e6328dc71c09fb58ef63468a52a08cab07",
   "counts": {
     "direct_references": 0,
-    "keys": 2024,
+    "keys": 2026,
     "plurals": 98
   },
   "direct_references": {},
@@ -1268,7 +1268,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "refusal.key()",
-      "line": 89,
+      "line": 99,
       "path": "crates/flea-gui/src/window/navigate.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1308,7 +1308,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "error.key",
-      "line": 102,
+      "line": 104,
       "path": "crates/flea-gui/src/window/pane.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2808,6 +2808,8 @@
         "places.favorite.changed_reopen",
         "places.favorite.opens_here",
         "places.recent.paste_refused",
+        "places.recent.hidden_refused",
+        "places.recent.new_folder_refused",
         "places.shelf.pin_failed",
         "places.shelf.unpin_failed"
       ],
@@ -39387,7 +39389,7 @@
       "call_sites": [
         {
           "excerpt": "let text = self.locale.catalog.tr(\"feedback.action.unavailable\");",
-          "line": 72,
+          "line": 74,
           "path": "crates/flea-gui/src/window/dispatch/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -41350,7 +41352,7 @@
         },
         {
           "excerpt": "return Err(catalog.tr(\"filter.nothing_to_act_on\"));",
-          "line": 243,
+          "line": 252,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -41883,7 +41885,7 @@
         },
         {
           "excerpt": ".trn(\"items.count\", self.pane.held.total as i64)",
-          "line": 126,
+          "line": 128,
           "path": "crates/flea-gui/src/window/pane.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57148,14 +57150,14 @@
         },
         {
           "excerpt": "let failure = self.locale.catalog.tr(\"navigation.save_failed\");",
-          "line": 109,
+          "line": 119,
           "path": "crates/flea-gui/src/window/navigate.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": ".persist(patch, self.locale.catalog.tr(\"navigation.save_failed\"));",
-          "line": 209,
+          "line": 219,
           "path": "crates/flea-gui/src/window/navigate.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -60703,6 +60705,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -60775,6 +60779,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -60847,6 +60853,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -60919,6 +60927,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -60991,6 +61001,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61063,6 +61075,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61135,6 +61149,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61207,6 +61223,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61279,6 +61297,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61361,6 +61381,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61435,6 +61457,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61507,6 +61531,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61579,6 +61605,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61653,6 +61681,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61725,6 +61755,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61797,6 +61829,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61869,6 +61903,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61941,6 +61977,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -61959,6 +61997,161 @@
       "resolved_sha256": "3f913eb2574a9ff5f196388b13af09668001697924377581420f3f9a344150f7",
       "resolved_source_hash": "1331275bc537",
       "source_hash": "1331275bc537"
+    },
+    "places.recent.hidden_refused": {
+      "call_sites": [
+        {
+          "excerpt": ".tr(\"places.recent.hidden_refused\")",
+          "line": 73,
+          "path": "crates/flea-gui/src/window/navigate.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "let text = self.locale.catalog.tr(\"places.recent.hidden_refused\");",
+          "line": 27,
+          "path": "crates/flea-gui/src/window/settings/actions.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "Row::check(&format!(\"places.{key}\"), label, glyph, on)",
+          "line": 97,
+          "path": "src/ui_logic_st1/pages_places.rs",
+          "pattern": "places.{key}",
+          "possible_keys": [
+            "places.heading.places",
+            "places.heading.favorites",
+            "places.heading.tags",
+            "places.heading.network",
+            "places.row.home",
+            "places.row.recent",
+            "places.row.trash",
+            "places.tag.red",
+            "places.tag.orange",
+            "places.tag.yellow",
+            "places.tag.green",
+            "places.tag.blue",
+            "places.tag.purple",
+            "places.tag.gray",
+            "places.tag.remove_all",
+            "places.tag.tagged",
+            "places.tag.cleared",
+            "places.tag.removed",
+            "places.tag.skipped",
+            "places.tag.with_skip",
+            "places.tag.undo_hint",
+            "places.tag.unsupported",
+            "places.favorite.remove",
+            "places.favorite.invalid_record",
+            "places.favorite.label_blank",
+            "places.favorite.invalid_path",
+            "places.favorite.not_a_place",
+            "places.favorite.invalid_label",
+            "places.favorite.open_failed",
+            "places.favorite.busy",
+            "places.favorite.save_failed",
+            "places.favorite.save_failed_reason",
+            "places.favorite.saved_unread",
+            "places.favorite.inspect_failed",
+            "places.favorite.changed_reopen",
+            "places.favorite.opens_here",
+            "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
+            "places.shelf.pin_failed",
+            "places.shelf.unpin_failed"
+          ],
+          "surface": "core/backend",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "places.recent.hidden_refused: crates/flea-gui/src/window/navigate.rs:73",
+      "coverage": "existing-translated-call",
+      "english": "Recent shows every item it lists, hidden ones included",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Recent shows every item it lists, hidden ones included",
+      "resolved_sha256": "67e22ac2cd386dd644ae4d2a0de3627bd306e196bca12c634380603dce7ec5ca",
+      "resolved_source_hash": "fbc0292901e3",
+      "source_hash": "fbc0292901e3"
+    },
+    "places.recent.new_folder_refused": {
+      "call_sites": [
+        {
+          "excerpt": "let text = self.locale.catalog.tr(\"places.recent.new_folder_refused\");",
+          "line": 230,
+          "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "Row::check(&format!(\"places.{key}\"), label, glyph, on)",
+          "line": 97,
+          "path": "src/ui_logic_st1/pages_places.rs",
+          "pattern": "places.{key}",
+          "possible_keys": [
+            "places.heading.places",
+            "places.heading.favorites",
+            "places.heading.tags",
+            "places.heading.network",
+            "places.row.home",
+            "places.row.recent",
+            "places.row.trash",
+            "places.tag.red",
+            "places.tag.orange",
+            "places.tag.yellow",
+            "places.tag.green",
+            "places.tag.blue",
+            "places.tag.purple",
+            "places.tag.gray",
+            "places.tag.remove_all",
+            "places.tag.tagged",
+            "places.tag.cleared",
+            "places.tag.removed",
+            "places.tag.skipped",
+            "places.tag.with_skip",
+            "places.tag.undo_hint",
+            "places.tag.unsupported",
+            "places.favorite.remove",
+            "places.favorite.invalid_record",
+            "places.favorite.label_blank",
+            "places.favorite.invalid_path",
+            "places.favorite.not_a_place",
+            "places.favorite.invalid_label",
+            "places.favorite.open_failed",
+            "places.favorite.busy",
+            "places.favorite.save_failed",
+            "places.favorite.save_failed_reason",
+            "places.favorite.saved_unread",
+            "places.favorite.inspect_failed",
+            "places.favorite.changed_reopen",
+            "places.favorite.opens_here",
+            "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
+            "places.shelf.pin_failed",
+            "places.shelf.unpin_failed"
+          ],
+          "surface": "core/backend",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "places.recent.new_folder_refused: crates/flea-gui/src/window/dispatch/fileops.rs:230",
+      "coverage": "existing-translated-call",
+      "english": "Recent cannot hold a new folder. Open a folder first",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Recent cannot hold a new folder. Open a folder first",
+      "resolved_sha256": "ce8c4e843fe052119232ef61d7fecfb8f84d30e3a1987e45df74b5f0f44c43af",
+      "resolved_source_hash": "334a40c5f28f",
+      "source_hash": "334a40c5f28f"
     },
     "places.recent.paste_refused": {
       "call_sites": [
@@ -62013,6 +62206,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62092,6 +62287,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62164,6 +62361,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62236,6 +62435,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62315,6 +62516,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62387,6 +62590,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62459,6 +62664,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62531,6 +62738,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62614,6 +62823,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62686,6 +62897,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62758,6 +62971,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62830,6 +63045,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62902,6 +63119,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -62974,6 +63193,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -63046,6 +63267,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -63130,6 +63353,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -63213,6 +63438,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -63304,6 +63531,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -63371,6 +63600,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -63443,6 +63674,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -63518,6 +63751,8 @@
             "places.favorite.changed_reopen",
             "places.favorite.opens_here",
             "places.recent.paste_refused",
+            "places.recent.hidden_refused",
+            "places.recent.new_folder_refused",
             "places.shelf.pin_failed",
             "places.shelf.unpin_failed"
           ],
@@ -80368,7 +80603,7 @@
         },
         {
           "excerpt": "key: \"window.backend_stopped\",",
-          "line": 264,
+          "line": 273,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -80603,7 +80838,7 @@
         },
         {
           "excerpt": "status: locale.catalog.tr(\"window.loading\").into(),",
-          "line": 89,
+          "line": 91,
           "path": "crates/flea-gui/src/window/pane.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -80675,7 +80910,7 @@
         },
         {
           "excerpt": ".tr_args(\"window.open_failed\", &[program])",
-          "line": 154,
+          "line": 166,
           "path": "crates/flea-gui/src/window/settings/actions.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -80797,7 +81032,7 @@
         },
         {
           "excerpt": "locale.catalog.tr(\"window.waiting\")",
-          "line": 128,
+          "line": 130,
           "path": "crates/flea-gui/src/window/pane.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -94200,7 +94435,7 @@
     },
     {
       "excerpt": "keys.and_then(flea::jsondoc::Json::as_str).unwrap_or(\"default\").to_owned()",
-      "line": 293,
+      "line": 302,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
@@ -95262,7 +95497,7 @@
     },
     {
       "excerpt": "let preset = pages::word(&self.launch.settings.data, &[\"keys\"], \"default\");",
-      "line": 41,
+      "line": 53,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/settings/actions.rs",
@@ -95271,7 +95506,7 @@
     },
     {
       "excerpt": "let Some(action) = flea::keys::binding_rows(\"default\", flea::keys::Frontend::Gui)",
-      "line": 114,
+      "line": 126,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/settings/actions.rs",
@@ -212844,14 +213079,14 @@
     "crates/flea-gui/src/window/devices.rs": "5b53b2bac7c4dd0c9656507f6d61225bccb8f68bd7f3cedd4ab1e940259d04a9",
     "crates/flea-gui/src/window/dispatch/clipboard.rs": "b562f4766fc00491ad478141d7671c92cd82257fb094b5ac42df03fb488c84b9",
     "crates/flea-gui/src/window/dispatch/deletion.rs": "6d0b3edb7897643fb370401091b09cedef7514e627d2fd8fd89b46868c880295",
-    "crates/flea-gui/src/window/dispatch/fileops.rs": "64271e928bb91ce217559b1d9a5d8a7aa4ec7cf75d8dcd2e8d403ad5b5f46b29",
+    "crates/flea-gui/src/window/dispatch/fileops.rs": "1430f80c7b25a86269593d6909e55af35be5faf8ed2d72f5f6bf8b04ff03f193",
     "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "faec5461bc3da1a64296515ed4b60ea525afca65c923ff8bc3d1ed9eaa2329b7",
     "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs": "232721723549f4d8c97af9c21389dd8ccf8b8a253937b2e7572185592c7868e0",
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "b813a0d98d4341f3d94800615a308f15e4abcf2a23e01272a9c1682cc2aa7707",
     "crates/flea-gui/src/window/dispatch/listing.rs": "1288e75f34ff704df9927c91639d152b0a56a105303354c7593e22c0d54f9c3b",
     "crates/flea-gui/src/window/dispatch/menu_parity.rs": "d9b6264c50faad0a679c2fbd269139f86268009d1182f4155e22127d579b3d89",
     "crates/flea-gui/src/window/dispatch/menus.rs": "580e649c49ed51cbcc1d113d1ef18dd938ac40cf3b88465a962d7e3c187103b4",
-    "crates/flea-gui/src/window/dispatch/mod.rs": "8fa2cd6da501a7e426848a6603f237c5a35e227d2b26a76f5d5aca83a42cec2c",
+    "crates/flea-gui/src/window/dispatch/mod.rs": "2b4df67625d5d27f6a94d3bfa3a1fd9e07a8df3c19605cf5a8043fa9bce62d9d",
     "crates/flea-gui/src/window/dispatch/navigation.rs": "a3a875dcb3e68a0291dee4abd91d78f7f934599e1ce5065fa482921298f35772",
     "crates/flea-gui/src/window/dispatch/opener.rs": "403a1b00a6d5620a12f0cfe2ce47e91a00c26424340aa8eb49d7abe17fbb390d",
     "crates/flea-gui/src/window/dispatch/opener/targets.rs": "67ae86df608fb0d163a25e68667fe04979cd508a8fa85e63f2b274ae5432e19d",
@@ -212893,7 +213128,7 @@
     "crates/flea-gui/src/window/locale.rs": "1a13e6ac47c51ecca964e0a3de27e10182361ca3bf5cba35c7a857a6408248ed",
     "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs": "b49f4e8ead91cd2bb902af7fc374950db77446671d739fba45a799ebe0ffb231",
     "crates/flea-gui/src/window/mod.rs": "c845f5ea2e69ce1db7c7f8bfed3403345f699456815f60cb63f4cfbe11a49364",
-    "crates/flea-gui/src/window/navigate.rs": "68a351db000dee82a17baf5d56329ad9aff96ad71bc7af1f2fcf93adaa116147",
+    "crates/flea-gui/src/window/navigate.rs": "1e6274a79b53d45a8d229656f5d381d50949b68af8a8526f23a09808860a7476",
     "crates/flea-gui/src/window/network.rs": "59f35e9c4abe475f13f8bf79ca5b43cae967ecf30c575b11f1c69d0b80d57610",
     "crates/flea-gui/src/window/network_cloud.rs": "c9e57bf2de77b95a802982b1621bcd53723ff14938aaedb2c7fde6405609509c",
     "crates/flea-gui/src/window/network_effects.rs": "1ef1154f320892268bc1c7019032e899eff420eb73e72b35f89b4ea394783703",
@@ -212905,7 +213140,7 @@
     "crates/flea-gui/src/window/output.rs": "a62205caabffe27e66e7b75280972ac552fd53cc05d6bbe353a83da8be2fd3b7",
     "crates/flea-gui/src/window/output_effects.rs": "a79a6e130e990c7fb8124c91af32d946f84bc0c65ed42b3d152c99bef53b6a6b",
     "crates/flea-gui/src/window/overlay.rs": "f1aa15ecc396798c51b6498bcf815e664ea1c4cd2f1d8f4c58dfb4cd6ce6528e",
-    "crates/flea-gui/src/window/pane.rs": "07baaf90dd8a5c44e2f1922fa6aedf1c22b33003a8138ede54dfbcfdb815b2a2",
+    "crates/flea-gui/src/window/pane.rs": "0659a13a83c18cd76079ba819c3beabd65d003a791524e74e7a4323cafd46ebf",
     "crates/flea-gui/src/window/path_host.rs": "d50062fb0ee8daf8ceb8b77c509df505d2b19e809a036e2226c49a0a2116e0e1",
     "crates/flea-gui/src/window/permissions.rs": "727382a1b30864db3f88ee98e9de735e0afc8b49768a47fc0386d0f3602141a1",
     "crates/flea-gui/src/window/presentation.rs": "bc4d4c772b089cc512924bc371f7ac2c7dfbbd6ef2bb5fc3d2b12685b18b647b",
@@ -212956,7 +213191,7 @@
     "crates/flea-gui/src/window/selection_preview_render.rs": "22bc1a2c838cb6cc67b5713284a9952509199327639d9bba845b1398513b65c4",
     "crates/flea-gui/src/window/selection_preview_text.rs": "157c6d8e2fe2ca0394e96dcb1f2c718ad53f129f97c9c52f5af20c46559af84d",
     "crates/flea-gui/src/window/selection_preview_wire.rs": "56fd35c74b3ca790f549f579cc33046724954393342213a0c79bf47a1fad8019",
-    "crates/flea-gui/src/window/settings/actions.rs": "d2df55f6e58edf01e11bd20db6bdff7b5e9d6df1f23e2c241ecd890a13ae9f62",
+    "crates/flea-gui/src/window/settings/actions.rs": "b1115c3658ed6ad560195bd144c2e4387d90f057eb257ba2df2d3f95118d0e46",
     "crates/flea-gui/src/window/settings/apply.rs": "9e4ef0e1dfda8a8291687acafbb1e3cc3ee1afeb51d6d6fb43c5f7f794ffa3b2",
     "crates/flea-gui/src/window/settings/claim.rs": "cae4c29b9aa0c81a48537d4c6ee7dff8ac14681d81f8e9ec79fe3deb69ce0680",
     "crates/flea-gui/src/window/settings/locale.rs": "68f3504658bf87a3b3f01b5a37b44ffbf0c9c924af421f90bdf882f4085e2fe9",
@@ -214376,11 +214611,11 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "7b91738e58ee80375c749552d2f20fc7f9060d07",
-  "source_sha": "7b91738e58ee80375c749552d2f20fc7f9060d07",
+  "source_ref_sha": "3bd1a7a836fbd912aaa6177a904bfacc0802ccd5",
+  "source_sha": "3bd1a7a836fbd912aaa6177a904bfacc0802ccd5",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1286,
+      "keys_with_occurrences": 1288,
       "missing_literal_candidates": 5622,
       "source_files": 788
     },
@@ -214390,7 +214625,7 @@
       "source_files": 144
     },
     "gui": {
-      "keys_with_occurrences": 487,
+      "keys_with_occurrences": 489,
       "missing_literal_candidates": 1623,
       "source_files": 818
     },

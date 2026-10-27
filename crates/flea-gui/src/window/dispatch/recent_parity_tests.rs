@@ -1,0 +1,42 @@
+use super::test_shell::{land, open_root, row, sent, status};
+use crate::state::Shell;
+use gpui::{Entity, TestAppContext, VisualTestContext};
+
+fn recent(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    land(shell, cx, "/files", vec![row("note.txt", false)], 1);
+    shell.update(cx, |shell, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        host.recent.on = true;
+        host.recent.from = "/files".into();
+    });
+    sent();
+}
+
+#[gpui::test]
+fn pb_recent_hidden_toggle_refuses_without_changing_preferences(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root(cx, "default");
+    recent(&shell, cx);
+    cx.simulate_keystrokes("ctrl-shift-.");
+    assert_eq!(
+        status(&shell, cx),
+        "Recent shows every item it lists, hidden ones included"
+    );
+    shell.read_with(cx, |shell, _| {
+        assert!(!shell.panes[0].as_ref().unwrap().nav.folders.borrow().hidden)
+    });
+    assert!(sent().is_empty(), "the refusal sends no request");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn pb_recent_new_folder_key_refuses_before_mkdir(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root(cx, "default");
+    recent(&shell, cx);
+    cx.simulate_keystrokes("ctrl-shift-n");
+    assert_eq!(
+        status(&shell, cx),
+        "Recent cannot hold a new folder. Open a folder first"
+    );
+    assert!(!sent().iter().any(|line| line.contains("mkdir")));
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
