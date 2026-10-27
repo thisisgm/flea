@@ -161,19 +161,8 @@ impl Shell {
         let Some(network) = self.network() else {
             return;
         };
-        let (card, service, runner) = (
-            network.card.clone(),
-            network.service.clone(),
-            network.runner.clone(),
-        );
-        let origin = card.read(cx).model.origin;
+        let (service, runner) = (network.service.clone(), network.runner.clone());
         match effect {
-            dialog::Effect::Wire(line) => {
-                let side = self.network_side(origin).unwrap_or(self.focus_side);
-                if let Some(backend) = self.panes[side].as_ref().and_then(|h| h.backend.as_ref()) {
-                    let _ = backend.line(line.clone());
-                }
-            }
             dialog::Effect::Save {
                 id,
                 uri,

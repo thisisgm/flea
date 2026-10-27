@@ -134,6 +134,20 @@ impl Shell {
         self.fileops_send(side, line, cx);
     }
 
+    /// A row drag released on the rail's Trash (TrashDrop.drop): dd's request by path, with dd's cursor anchor while the rows are still listed.
+    pub(crate) fn trash_dropped(
+        &mut self,
+        side: usize,
+        line: String,
+        rows: &[usize],
+        current: bool,
+        cx: &mut Context<Self>,
+    ) {
+        let anchor = current.then(|| self.deletion_capture(side, rows)).flatten();
+        self.operations.fileops.trash_anchors[side].push_back(anchor);
+        self.fileops_send(side, line, cx);
+    }
+
     // Trash.js arm: the first press says what a second press inside ARM_MS does, the second trashes.
     fn fileops_arm(&mut self, side: usize, seat: Seat, cx: &mut Context<Self>) {
         let Some(host) = self.panes[side].as_ref() else {

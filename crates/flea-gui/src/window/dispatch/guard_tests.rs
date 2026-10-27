@@ -8,8 +8,6 @@ use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 // Actions a key still hands to nobody, by the family that will run them, cited in v0.3.12 ui/js/Focus.js unless another file is named; a family removes its line when it lands.
 #[rustfmt::skip]
 const NOT_YET: &[(&str, &[&str])] = &[
-    // Focus.js:271, ui/Pane.qml:599-602.
-    ("operations", &["properties"]),
     // Focus.js:250.
     ("window", &["tags"]),
 ];

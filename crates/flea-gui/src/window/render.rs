@@ -281,6 +281,7 @@ impl Render for Shell {
                     .on_drop::<Seed>(cx.listener(move |shell, _: &Seed, window, cx| {
                         shell.land_own_drag(side, window, cx);
                     }))
+                    .when(side == 0, |div| Shell::aim_rail_on_drag_move(div, cx))
                     // A pane with no rows yet keeps the list floor, which stays opaque under glass.
                     .when(!host.drawn_list, |div| div.bg(theme.background))
                     .children(lists.areas[side].take())

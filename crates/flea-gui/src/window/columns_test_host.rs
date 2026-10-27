@@ -9,6 +9,7 @@ use flea::{
     protocol::{Reply, RowFacts},
 };
 use gpui::{px, size, AppContext, Context, TestAppContext, TestDispatcher, Window, WindowHandle};
+use std::time::Duration;
 
 pub fn context() -> TestAppContext {
     TestAppContext::build_with_text_system(
@@ -37,6 +38,8 @@ pub fn open_at(
         shell.launch.settings.columns = count;
         let host = shell.panes[0].as_mut().unwrap();
         host.pane = crate::pane::Pane::new(path.into(), 646.);
+        // The fresh pane takes test time, so the entry cap moves only when a test advances it.
+        host.pane.clock.use_manual();
         host.pane
             .receive(Reply::Listed {
                 path: path.into(),
@@ -67,6 +70,18 @@ pub fn row(name: &str, dir: bool) -> RowFacts {
         icon: if dir { "folder" } else { "text-plain" }.into(),
         ..Default::default()
     }
+}
+
+/// Moves the shown pane's clock by hand; no executor timer runs during the move.
+pub fn advance(cx: &mut TestAppContext, handle: WindowHandle<Shell>, by: Duration) {
+    change(cx, handle, |shell, _, _| {
+        shell.panes[0]
+            .as_ref()
+            .unwrap()
+            .pane
+            .clock
+            .advance_manual(by)
+    });
 }
 
 pub fn change(

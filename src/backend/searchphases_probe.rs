@@ -76,8 +76,8 @@ fn search_q3_loaded_phase_probe() {
             assert_eq!(values.len(), SAMPLES);
             assert!(values.iter().all(|value| value.4 == values[0].4));
             let time = |field: fn(&Phases) -> std::time::Duration| median(values.iter().map(|value| field(&value.0).as_secs_f64() * MS_PER_SECOND).collect());
-            println!("Q3_PHASE batch={batch} query={text:?} hits={} candidates={} score_ms={:.6} prior_ms={:.6} all_ms={:.6} select_ms={:.6} cut_ms={:.6} rows_ms={:.6} last_matches_ms={:.6} query_ms={:.6} prior_share_pct={:.3} select_raw={} head={:016x}",
-                values[0].2, values[0].3, time(|p| p.score), time(|p| p.prior), time(|p| p.all), time(|p| p.select), time(|p| p.cut), time(|p| p.rows), time(|p| p.last_matches),
+            println!("Q3_PHASE batch={batch} query={text:?} hits={} candidates={} score_ms={:.6} prior_ms={:.6} resolve_ms={:.6} all_ms={:.6} select_ms={:.6} cut_ms={:.6} rows_ms={:.6} last_matches_ms={:.6} query_ms={:.6} prior_share_pct={:.3} select_raw={} head={:016x}",
+                values[0].2, values[0].3, time(|p| p.score), time(|p| p.prior), time(|p| p.resolve), time(|p| p.all), time(|p| p.select), time(|p| p.cut), time(|p| p.rows), time(|p| p.last_matches),
                 median(values.iter().map(|value| value.1).collect()), median(values.iter().map(|value| value.0.prior.as_secs_f64() * MS_PER_SECOND / value.1 * PERCENT).collect()),
                 values.iter().map(|value| value.0.select_raw).max().unwrap(), values[0].4);
         }

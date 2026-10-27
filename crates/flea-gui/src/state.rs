@@ -45,6 +45,7 @@ pub struct Shell {
     pub(crate) overlay: Option<gpui::Entity<crate::g2::op1::host::Overlay>>,
     pub(crate) quick_look: Option<crate::window::quick_look::Host>,
     pub(crate) output: crate::window::output::Join,
+    pub(crate) permissions: crate::window::permissions::Join,
     pub(crate) trash: Option<crate::g2::pl3::join::TrashHost>,
     pub(crate) rail: Option<crate::window::rail::Join>,
     /// Live compositor rounding, square until it is readable; visual scenes can override it.
@@ -79,13 +80,7 @@ pub struct Shell {
     pub(crate) open_with: Option<crate::window::open_with::Open>,
 }
 
-pub(crate) fn labels(locale: &Snapshot) -> Labels {
-    Labels {
-        name: locale.catalog.tr("window.column_name").into(),
-        size: locale.catalog.tr("window.column_size").into(),
-        modified: locale.catalog.tr("window.column_modified").into(),
-    }
-}
+pub(crate) use crate::window::locale::labels;
 
 impl Shell {
     pub fn new(
@@ -136,6 +131,7 @@ impl Shell {
             overlay: None,
             quick_look: None,
             output: Default::default(),
+            permissions: Default::default(),
             operations: Default::default(),
             rename: Default::default(),
             properties: None,

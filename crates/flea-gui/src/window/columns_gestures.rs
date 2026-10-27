@@ -31,6 +31,7 @@ pub(super) fn surface(
             columns: 1,
             cell_width: f32::from(bounds.size.width) - LANE,
             grow,
+            cell_origin: (0., 0.),
         };
         host.input
             .prepare(frame, &mut host.selected, &mut host.pane.cursor);

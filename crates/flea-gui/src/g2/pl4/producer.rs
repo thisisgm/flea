@@ -77,7 +77,12 @@ pub struct Producer {
     pub laid: Rc<RefCell<Laid>>,
     pub typeface: Typeface,
     events: RefCell<Vec<Request>>,
+    /// The window's row-drag receiver: a drag from the listing released over the rows lands through it.
+    pub(crate) drop_sink: Option<DropSink>,
 }
+
+/// Called with no producer lease held, so the window may read the rows it lands on.
+pub(crate) type DropSink = Rc<dyn Fn(&mut gpui::Window, &mut gpui::App)>;
 
 fn dirs_text(home: &str) -> String {
     let config = std::env::var_os("XDG_CONFIG_HOME")
@@ -167,6 +172,7 @@ impl Producer {
             laid: Rc::default(),
             typeface: Typeface::omarchy_default(),
             events: RefCell::default(),
+            drop_sink: None,
         }
     }
 
@@ -302,7 +308,7 @@ impl Producer {
         self.events.borrow_mut().push(request);
     }
 
-    fn entry(&self, index: usize) -> Option<RailEntry> {
+    pub(crate) fn entry(&self, index: usize) -> Option<RailEntry> {
         self.entries().into_iter().nth(index)
     }
 
@@ -333,7 +339,7 @@ impl Producer {
         cx.notify();
     }
 
-    fn row_at(&self, position: gpui::Point<gpui::Pixels>) -> Option<usize> {
+    pub(crate) fn row_at(&self, position: gpui::Point<gpui::Pixels>) -> Option<usize> {
         let (x, y) = (f32::from(position.x), f32::from(position.y));
         self.laid
             .borrow()

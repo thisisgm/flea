@@ -10,7 +10,7 @@ import time
 
 from fixtures import marked_root
 from contracts import checked_result, identities, observed_identities
-from priors import replay, clone, clone_fff
+from priors import RICH_OPENS, replay, clone, clone_fff
 
 
 def process_memory(pid):
@@ -60,8 +60,8 @@ class Engine:
             self.priors = replay(self.state, self.tree, identities(self.tree), history, profile, env)
         if profile == 'rich':
             (self.state / 'history.json').write_text(json.dumps(sorted(set(history))) + '\n')
-            self.priors.update(replay=sorted(set(history)), opens_per_path=3, held_out=[],
-                               policy='historical fff target-seeded profile; not equal-history')
+            self.priors.update(replay=sorted(set(history)), opens_per_path=RICH_OPENS, held_out=[],
+                               policy='historical target-seeded profile, the same for fff and flea; not equal-history')
             (self.state / 'priors.json').write_text(json.dumps(self.priors, indent=2) + '\n')
         self.native_priors = None
         if name == 'fff' and profile in {'equal-history', 'rich'}:
@@ -112,8 +112,8 @@ class Engine:
                 if boot['cpus'] != threads:
                     raise RuntimeError('native CPU count mismatched requested budget')
             self.baseline_memory = process_memory(self.process.pid)
-            # Every caller opens only after this, so no equal-history open races the backend's prior load.
-            self.prior_load = self.wait_priors() if self.variant == 'flea' and profile == 'equal-history' else None
+            # Every caller opens only after this, so no history open races the backend's prior load.
+            self.prior_load = self.wait_priors() if self.variant == 'flea' and profile in ('equal-history', 'rich') else None
             self.flush_events()
         except BaseException:
             self.close()
@@ -200,7 +200,7 @@ class Engine:
                 self.flush_events()
                 return reply
             if time.monotonic() >= deadline:
-                raise TimeoutError('backend prior load did not finish before the equal-history open')
+                raise TimeoutError('backend prior load did not finish before the history open')
             time.sleep(0.005)
 
     def open(self):

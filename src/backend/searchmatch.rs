@@ -8,6 +8,12 @@ pub(crate) const ALIGNED: i32 = 3_000_000;
 pub(crate) const NAME: i32 = 2_000_000;
 pub(crate) const PATH: i32 = 1_500_000;
 pub(crate) const TYPO: i32 = 1_000_000;
+// A DP hit moves a score at most this far inside its tier.
+pub(crate) const HIT_SPAN: i32 = 100_000;
+// Pass-1 markers for rows whose class is known and whose score inside it waits for the DP; a real score is never negative.
+pub(crate) const PENDING_ALIGNED: i32 = -3;
+pub(crate) const PENDING_NAME: i32 = -2;
+pub(crate) const PENDING_PATH: i32 = -1;
 const DEAD: i32 = i32::MIN / 4;
 
 #[derive(Clone, Copy)]
@@ -95,7 +101,7 @@ impl State {
     }
 
     pub(crate) fn score(&self, tier: i32) -> Option<i32> {
-        (self.hit > DEAD / 2).then(|| tier + self.hit.clamp(-100_000, 100_000))
+        (self.hit > DEAD / 2).then(|| tier + self.hit.clamp(-HIT_SPAN, HIT_SPAN))
     }
 
 }
@@ -110,6 +116,8 @@ pub(crate) struct Matcher {
     typo: super::searchtypo::Plan,
     pub prefix: usize,
     parent_typo: super::searchtypo::Plan,
+    // Pass 1 of a ranked answer: a name or path that matches as a subsequence gets its class marker instead of its DP.
+    pub defer: bool,
 }
 
 impl Matcher {
@@ -126,7 +134,11 @@ impl Matcher {
         for at in (0..needle.len()).rev() {
             suffix_bits[at] = suffix_bits[at + 1] | searchbits::mask(needle[at].encode_utf8(&mut encoded).as_bytes());
         }
-        Self { needle, ascii, bits: searchbits::mask(query.as_bytes()), parent_bits: searchbits::mask(parent.as_bytes()), suffix_bits, budget, typo, prefix, parent_typo }
+        Self { needle, ascii, bits: searchbits::mask(query.as_bytes()), parent_bits: searchbits::mask(parent.as_bytes()), suffix_bits, budget, typo, prefix, parent_typo, defer: false }
+    }
+
+    pub(crate) fn deferred(query: &str) -> Self {
+        Self { defer: true, ..Self::new(query) }
     }
 
     pub(crate) fn can_narrow(before: &str, now: &str) -> bool {
@@ -149,6 +161,7 @@ impl Matcher {
             if self.needle.get(at) == Some(&letter.lower) { at += 1; }
         }
         if at == self.needle.len() {
+            if self.defer { return Some(PENDING_NAME); }
             state.reset();
             state.advance(&self.needle, letters, true);
             return state.score(NAME);

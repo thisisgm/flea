@@ -12,7 +12,6 @@ use flea::{
     ui_logic_pv1::kinds::{quick_look_kind, State},
 };
 use gpui::{Context, EventEmitter, Task, Window};
-
 mod targets;
 
 /// One pane's opener: the single-flight guard, the launch in flight and the launcher it calls off the UI thread.
@@ -25,6 +24,8 @@ pub(crate) struct Lane {
     pub(super) original: super::original::Pending,
     pub(crate) launch: fn(&[String]) -> lane::Exit,
     pending: Option<targets::Pending>,
+    // The selection or archive wait's timeout, so a reply the backend never sends cannot hold the lane.
+    wait: Option<Task<()>>,
 }
 
 impl Default for Lane {
@@ -36,6 +37,7 @@ impl Default for Lane {
             text: None,
             original: super::original::Pending::default(),
             pending: None,
+            wait: None,
             #[cfg(not(test))]
             launch: lane::run,
             // A test window never starts a real application; a test that drives the lane sets its own launcher.
@@ -81,8 +83,8 @@ pub(super) fn run(
             let Some((path, archive)) = file_row(shell, side) else {
                 return false;
             };
-            // Focus.js:139: pageForward on a file row is the preview key, and Nav.js:239 hands an archive to Quick Look.
-            if event.action == "pageForward" || archive {
+            // Focus.js:139: pageForward on a file row is the preview key.
+            if event.action == "pageForward" {
                 let preview = ActionEvent {
                     action: "preview",
                     ..*event
@@ -90,9 +92,7 @@ pub(super) fn run(
                 shell.dispatch(Order::Action(preview), window, cx);
                 return true;
             }
-            if !shell.open_gallery(side, path.clone(), window, cx) {
-                shell.open_file(side, path, window, cx);
-            }
+            shell.open_cursor_file(side, path, archive, window, cx);
             true
         }
         Order::Menu(chosen) if chosen.action == "open" && chosen.paths.len() > 1 => {
@@ -101,27 +101,14 @@ pub(super) fn run(
             }
             true
         }
-        // PaneMenuActions.qml perform: the menu's Open on a file runs the listing's own open on the row it stands on.
+        // PaneMenuActions.qml perform: the menu's Open on a file opens its one validated path on the menu's own pane.
         Order::Menu(chosen) if chosen.action == "open" && shell.menu.context.row_is_file => {
-            if !chosen.claim() {
-                return true;
+            if menu_claim(shell, chosen, cx) {
+                shell.keyboard.context = Keys::Listing;
+                // open_menu put its cursor on the clicked row and focused it, so the cursor's own file keeps Enter's path.
+                shell.focus_side = chosen.captured.side;
+                shell.open_menu_target(chosen, window, cx);
             }
-            let side = chosen.captured.side;
-            if !chosen.captured.background {
-                let close = format!(
-                    "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
-                    chosen.captured.id
-                );
-                shell.menu_send(side, close, cx);
-            }
-            shell.keyboard.context = Keys::Listing;
-            // Nav.js openCursor on the menu's own pane: open_menu put its cursor on the clicked row and focused it, so Enter's path runs there.
-            shell.focus_side = side;
-            shell.dispatch(
-                Order::Action(ActionEvent::bare("open", Keys::Listing)),
-                window,
-                cx,
-            );
             true
         }
         // Focus.js run: Nav.runCursor with the open verb, the same flea --open the menu's Open takes.
@@ -195,7 +182,32 @@ fn file_row(shell: &Shell, side: usize) -> Option<(String, bool)> {
     Some((join(host.pane.path(), &row.name), archive))
 }
 
+fn archive_path(path: &str) -> bool {
+    quick_look_kind("", path, false) == State::Archive
+        && !path.to_ascii_lowercase().ends_with(".appimage")
+}
+
 impl Shell {
+    // Enter on the cursor's own file: Nav.js:239 hands an archive to Quick Look, an image opens its gallery, any other file flea --open.
+    pub(super) fn open_cursor_file(
+        &mut self,
+        side: usize,
+        path: String,
+        archive: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if archive {
+            self.dispatch(
+                Order::Action(ActionEvent::bare("preview", Keys::Listing)),
+                window,
+                cx,
+            );
+        } else if !self.open_gallery(side, path.clone(), window, cx) {
+            self.open_file(side, path, window, cx);
+        }
+    }
+
     /// Opener.qml open: one flea --open per pane at a time; a second press while one is out says so and runs nothing.
     pub(crate) fn open_file(
         &mut self,

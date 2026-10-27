@@ -46,6 +46,7 @@ const FAMILIES: &[Family] = &[
     preview::run,
     listing::run,
     window::run,
+    super::permissions::run,
     rename::run,
     menus::run,
     clipboard::run,
@@ -102,9 +103,13 @@ mod dual_keys_tests;
 #[cfg(test)]
 mod key_rows_tests;
 #[cfg(test)]
+mod presetkeys_tests;
+#[cfg(test)]
 mod listing_pointer_keep_tests;
 #[cfg(test)]
 mod listing_pointer_tests;
+#[cfg(test)]
+mod band_tests;
 #[cfg(test)]
 mod menus_columns_tests;
 #[cfg(test)]
@@ -124,13 +129,19 @@ mod queued_navigation_tests;
 #[cfg(test)]
 mod queued_navigation_escape_tests;
 #[cfg(test)]
+mod opener_focus_tests;
+#[cfg(test)]
 mod opener_menu_tests;
+#[cfg(test)]
+mod opener_selection_tests;
 #[cfg(test)]
 mod opener_tests;
 #[cfg(test)]
 mod pb_opener_tests;
 #[cfg(test)]
 pub(crate) mod pb_places_tests;
+#[cfg(test)]
+mod menudraw_tests;
 #[cfg(test)]
 mod pb_wire_tests;
 #[cfg(test)]
@@ -167,6 +178,8 @@ mod quick_look_clock_tests;
 mod quick_look_media_tests;
 #[cfg(test)]
 mod quick_look_body_reply_tests;
+#[cfg(test)]
+mod quick_look_calm_tests;
 #[cfg(test)]
 mod quick_look_font_tests;
 #[cfg(test)]

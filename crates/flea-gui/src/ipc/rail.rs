@@ -188,7 +188,7 @@ impl RailAdapter<'_> {
             whole(width),
             whole(placement.inset),
             whole(self.geometry.chrome.width),
-            host.rail.mode() == crate::rail::Mode::Overlay && shown,
+            host.rail.revealed(),
             whole(placement.rail.x)
         ))
     }

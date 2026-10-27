@@ -11,14 +11,19 @@ from datetime import datetime, timezone
 
 from fixtures import marked_root
 
+# fff/rich tracks each target this many times (engine/rust/fff.rs prepare_prior_seed), so flea/rich records as many opens.
+RICH_OPENS = 3
+
 
 def replay(state, tree, expected, targets, profile, env):
     env = dict(env, _ZO_DATA_DIR=str(pathlib.Path(env['XDG_DATA_HOME']) / 'zoxide'))
-    held_out = {os.fsencode(target) for target in targets}
+    # The rich profile replays the evaluation targets themselves, the history fff/rich is seeded with.
+    rich = profile == 'rich'
+    held_out = set() if rich else {os.fsencode(target) for target in targets}
     candidates = [(path, kind) for path, kind in expected if path not in held_out]
-    files = [os.fsdecode(path) for path, kind in candidates if kind == 'f'][:32]
-    folders = [os.fsdecode(path) for path, kind in candidates if kind == 'd'][:16]
-    active = profile == 'equal-history'
+    files = sorted(set(targets)) if rich else [os.fsdecode(path) for path, kind in candidates if kind == 'f'][:32]
+    folders = [] if rich else [os.fsdecode(path) for path, kind in candidates if kind == 'd'][:16]
+    active = profile in ('equal-history', 'rich')
     root = ET.Element('xbel', version='1.0')
     namespace = 'http://www.freedesktop.org/standards/desktop-bookmarks'
     stamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -28,7 +33,7 @@ def replay(state, tree, expected, targets, profile, env):
         metadata = ET.SubElement(ET.SubElement(bookmark, 'info'), 'metadata', owner='http://freedesktop.org')
         applications = ET.SubElement(metadata, '{' + namespace + '}applications')
         ET.SubElement(applications, '{' + namespace + '}application', name='findbench-replay',
-                      exec='findbench-replay %u', count='1', modified=stamp)
+                      exec='findbench-replay %u', count=str(RICH_OPENS if rich else 1), modified=stamp)
     xbel = pathlib.Path(env['XDG_DATA_HOME']) / 'recently-used.xbel'
     xbel.write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
     history = files + folders if active else []
