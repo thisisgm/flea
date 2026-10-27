@@ -12,6 +12,7 @@ pub mod selection;
 pub use crate::window::rename::slow::policy as slow;
 mod wheel;
 pub use band::{update_band, EDGE_RATE};
+pub(crate) use wheel::delivery as wheel_delivery;
 
 // Preserve the current wheel default while keeping its applied policy explicit.
 pub(crate) const PLATFORM_SCROLL_GAIN: f32 = 3.;
