@@ -145,10 +145,28 @@ fn pl2_delayed_bridge_reply_keeps_the_original_subject() {
 #[test]
 fn pl2_secret_composition_replaces_marked_text_without_plaintext_copies() {
     let mut secret = Secret::from_bytes("a猫z".as_bytes());
-    assert_eq!(super::secret_edit::replace(&mut secret, 1..2, "日"), 2..2);
-    assert_eq!(secret.expose(), "a日z".as_bytes());
-    assert_eq!(super::secret_edit::replace(&mut secret, 1..2, "日本"), 3..3);
-    assert_eq!(secret.expose(), "a日本z".as_bytes());
+    let mut entry = crate::path::entry::Entry::default();
+    crate::g2::pl1::private_entry::begin(&mut entry, &secret);
+    assert!(crate::g2::pl1::private_entry::replace(
+        &mut entry,
+        &mut secret,
+        Some(1..2),
+        "日",
+        None,
+        false
+    ));
+    assert_eq!(entry.ime_selection().range, 2..2);
+    assert!(secret.expose() == "a日z".as_bytes());
+    assert!(crate::g2::pl1::private_entry::replace(
+        &mut entry,
+        &mut secret,
+        Some(1..2),
+        "日本",
+        None,
+        false
+    ));
+    assert_eq!(entry.ime_selection().range, 3..3);
+    assert!(secret.expose() == "a日本z".as_bytes());
     assert!(!format!("{secret:?}").contains("日本"));
     secret.clear();
     assert_eq!(super::secret_edit::units(&secret), 0);

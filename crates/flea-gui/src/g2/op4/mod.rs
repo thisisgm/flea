@@ -34,3 +34,9 @@ mod wire;
 
 #[cfg(test)]
 mod review_tests;
+
+mod editor;
+mod ime;
+
+#[cfg(test)]
+mod i50_dialog_tests;

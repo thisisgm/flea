@@ -1,18 +1,33 @@
 //! Hint rows preserve the producer's wrapping or one-line elision policy.
 use super::{g, Line, Rows, LABEL_X, PAD_X};
-use gpui::{div, prelude::*, px, Div};
+use gpui::{div, prelude::*, px, Div, SharedString};
 
 impl Rows<'_> {
     pub(super) fn hint(&self, base: gpui::Stateful<Div>, line: &Line<'_>) -> gpui::Stateful<Div> {
         let row = line.row;
         let ink = self.role_ink(row.role);
-        let text = self.label(line, ink).map(|text| {
-            if row.elide_right {
-                text.w_full().whitespace_nowrap().text_ellipsis()
-            } else {
-                text.flex_wrap().whitespace_normal()
-            }
-        });
+        // A wrapping hint is placed unit by unit so a key chord never breaks; elided hints and typed runs keep the label.
+        let text = if row.elide_right || line.run.is_some() {
+            self.label(line, ink).map(|text| {
+                if row.elide_right {
+                    text.w_full().whitespace_nowrap().text_ellipsis()
+                } else {
+                    text.flex_wrap().whitespace_normal()
+                }
+            })
+        } else {
+            div()
+                .flex()
+                .flex_wrap()
+                .children(g::hint_units(&self.text(row)).into_iter().map(|unit| {
+                    let name = format!("st1-hint-unit-{}", unit.trim_end());
+                    div()
+                        .debug_selector(move || name)
+                        .flex_none()
+                        .whitespace_nowrap()
+                        .child(SharedString::from(unit))
+                }))
+        };
         let base = base.text_size(self.view.typeface.caption).text_color(ink);
         if row.footer {
             return base.child(

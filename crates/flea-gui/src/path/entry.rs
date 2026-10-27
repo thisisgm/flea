@@ -4,6 +4,16 @@ use super::{
     should_navigate, wants_hidden, Ask, Peeked, Said,
 };
 use std::ops::Range;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+mod ime;
+pub use ime::right_to_left;
+use ime::{binds, extends};
+#[cfg(test)]
+mod tests;
+
+// Session ids are unique in the process, so a reset Entry never reuses an id a retained callback holds.
+static SESSIONS: AtomicU64 = AtomicU64::new(1);
 
 /// What a commit asks of the window once the bar has closed.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,6 +42,10 @@ pub struct Entry {
     cached: Option<(Ask, Vec<String>)>,
     /// Bumped by every change to the line or its selection, so a shaped line knows it is stale.
     pub revision: u64,
+    /// The editing session this line belongs to; a later session never repeats it.
+    pub generation: u64,
+    /// A password: the platform never reads its text, and paint shows one bullet per character.
+    pub private: bool,
 }
 
 impl Entry {
@@ -50,7 +64,26 @@ impl Entry {
         self.reversed = false;
         self.marked = None;
         self.revision += 1;
+        self.generation = SESSIONS.fetch_add(1, Ordering::Relaxed);
         true
+    }
+
+    /// A new editing session on `text`, all of it selected; callbacks held for an earlier session stop matching.
+    pub fn begin(&mut self, text: &str) {
+        *self = Entry {
+            editing: true,
+            text: text.into(),
+            private: self.private,
+            revision: self.revision + 1,
+            generation: SESSIONS.fetch_add(1, Ordering::Relaxed),
+            ..Entry::default()
+        };
+        self.select_all();
+    }
+
+    /// The live session's id, None once the line has closed.
+    pub fn session(&self) -> Option<u64> {
+        self.editing.then_some(self.generation)
     }
 
     pub fn close(&mut self) -> bool {
@@ -61,6 +94,10 @@ impl Entry {
         self.pending = None;
         self.cached = None;
         self.marked = None;
+        if self.private {
+            self.text.clear();
+            self.selected = 0..0;
+        }
         self.revision += 1;
         true
     }
@@ -179,29 +216,47 @@ impl Entry {
             .unwrap_or(0)
     }
 
+    /// The start of the cluster before offset: a base character with the marks and joiners riding on it.
     pub fn previous(&self, offset: usize) -> usize {
-        self.text[..offset.min(self.text.len())]
+        let mut chars = self.text[..self.boundary(offset)]
             .char_indices()
-            .next_back()
-            .map_or(0, |(at, _)| at)
+            .rev()
+            .peekable();
+        let mut at = 0;
+        while let Some((index, ch)) = chars.next() {
+            at = index;
+            if !extends(ch) && !chars.peek().is_some_and(|&(_, before)| binds(before, ch)) {
+                break;
+            }
+        }
+        at
     }
 
+    /// The end of the cluster at offset.
     pub fn next(&self, offset: usize) -> usize {
-        let offset = offset.min(self.text.len());
-        self.text[offset..]
-            .chars()
-            .next()
-            .map_or(offset, |next| offset + next.len_utf8())
+        let offset = self.boundary(offset);
+        let mut chars = self.text[offset..].char_indices().peekable();
+        let Some((_, first)) = chars.next() else {
+            return offset;
+        };
+        let (mut end, mut last) = (offset + first.len_utf8(), first);
+        while let Some((index, ch)) = chars.next_if(|&(_, ch)| extends(ch) || binds(last, ch)) {
+            (end, last) = (offset + index + ch.len_utf8(), ch);
+        }
+        end
     }
 
-    /// Backspace and Delete: the selection goes, or else one character on that side of the caret.
+    /// Backspace takes one character, so a mark goes on its own as GTK does; Delete takes the cluster.
     pub fn erase(&mut self, forward: bool) {
         if self.selected.is_empty() {
             let at = self.cursor();
             let to = if forward {
                 self.next(at)
             } else {
-                self.previous(at)
+                self.text[..at]
+                    .char_indices()
+                    .next_back()
+                    .map_or(0, |(at, _)| at)
             };
             if to == at {
                 return;
@@ -271,5 +326,10 @@ impl Entry {
 
     pub fn range_to_utf16(&self, range: &Range<usize>) -> Range<usize> {
         self.offset_to_utf16(range.start)..self.offset_to_utf16(range.end)
+    }
+
+    /// The selected text a copy may take; a private line gives none.
+    pub fn copyable(&self) -> Option<&str> {
+        (!self.private && !self.selected.is_empty()).then(|| &self.text[self.selected.clone()])
     }
 }

@@ -7,6 +7,9 @@ use flea_gui::g2::pv3::{
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+/// Mean per-byte distance past which two pictures differ visibly; clip.mp4's last frame measured 8.8 from its first.
+const VISIBLY_OTHER: f64 = 4.;
+
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests/pv3_helper")
@@ -23,8 +26,18 @@ fn gui() -> PathBuf {
 fn run(
     path: PathBuf,
     at_once: Option<Command>,
-    mut steps: Vec<(&'static str, Command)>,
+    steps: Vec<(&'static str, Command)>,
 ) -> Vec<String> {
+    run_for(path, at_once, steps, Duration::from_secs(4)).0
+}
+
+/// `run` for `listen`, from the helper's start, with each picture's pixels and how many words came before it.
+fn run_for(
+    path: PathBuf,
+    at_once: Option<Command>,
+    mut steps: Vec<(&'static str, Command)>,
+    listen: Duration,
+) -> (Vec<String>, Vec<(usize, Vec<u8>)>) {
     let sandbox = Sandbox {
         executable: gui(),
         bwrap: "bwrap".into(),
@@ -38,19 +51,27 @@ fn run(
     };
     let (mut decoder, feed) = sandbox.start(&request).expect("start");
     let mut seen = Vec::new();
+    let mut pictures = Vec::new();
     if let Some(command) = at_once {
         seen.push(format!("sent {}", command.render()));
         decoder.send(command);
     }
     steps.reverse();
-    let deadline = Instant::now() + Duration::from_secs(4);
+    let deadline = Instant::now() + listen;
     while Instant::now() < deadline {
         let word = match feed.incoming.try_recv() {
             Ok(Incoming::Closed) => {
                 seen.push("closed".into());
                 break;
             }
-            Ok(Incoming::Frame) => "frame".to_string(),
+            // Taken as the player takes it, so the slot announces the next picture too.
+            Ok(Incoming::Frame) => {
+                if let Some(image) = feed.frames.take() {
+                    let pixels = image.as_bytes(0).unwrap_or_default().to_vec();
+                    pictures.push((seen.len(), pixels));
+                }
+                "frame".to_string()
+            }
             Ok(Incoming::Event(Event::Position(_))) => continue,
             Ok(Incoming::Event(event)) => event.render(),
             Err(_) => {
@@ -67,7 +88,7 @@ fn run(
             decoder.send(command);
         }
     }
-    seen
+    (seen, pictures)
 }
 
 // Control: a seek once the first frame is out lands, and the clip plays on.
@@ -105,4 +126,52 @@ fn pv3_a_clip_that_ends_never_reports_paused() {
         !seen.iter().any(|s| s == "paused"),
         "the end reported a pause: {seen:?}"
     );
+}
+
+// The end pauses on the last frame; a Stop then rewinds and draws the first frame again, which the ended preview shows as its poster.
+#[test]
+fn pv3_a_stop_after_the_end_draws_the_first_frame_again() {
+    let (seen, pictures) = run_for(
+        fixture("clip.mp4"),
+        None,
+        vec![("ended", Command::Stop)],
+        Duration::from_secs(10),
+    );
+    assert!(!seen.iter().any(|s| s.starts_with("failed")), "{seen:?}");
+    let ended = seen
+        .iter()
+        .position(|s| s == "ended")
+        .unwrap_or_else(|| panic!("the clip never ended: {seen:?}"));
+    let sent = seen.iter().position(|s| s == "sent stop").expect("stop");
+    assert!(seen[sent..].iter().any(|s| s == "stopped"), "{seen:?}");
+    let first = &pictures.first().expect("a first picture").1;
+    let held = &pictures
+        .iter()
+        .rfind(|(at, _)| *at <= ended)
+        .expect("a picture before the end")
+        .1;
+    assert!(
+        distance(held, first) > VISIBLY_OTHER,
+        "clip.mp4 ends on a picture visibly other than its first: {}",
+        distance(held, first)
+    );
+    let rewound = &pictures
+        .iter()
+        .rfind(|(at, _)| *at > sent)
+        .unwrap_or_else(|| panic!("the rewind drew no picture: {seen:?}"))
+        .1;
+    // A second decode of frame 0 is not byte-identical, so the rewind is judged by which end it is nearer.
+    assert!(
+        distance(rewound, first) < distance(rewound, held),
+        "the rewind still shows the last picture: {} to the first, {} to the last",
+        distance(rewound, first),
+        distance(rewound, held)
+    );
+}
+
+/// Mean absolute difference per byte between two same-sized pictures.
+fn distance(a: &[u8], b: &[u8]) -> f64 {
+    assert_eq!(a.len(), b.len(), "pictures of one size");
+    let sum: u64 = a.iter().zip(b).map(|(x, y)| x.abs_diff(*y) as u64).sum();
+    sum as f64 / a.len().max(1) as f64
 }

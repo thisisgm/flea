@@ -61,6 +61,92 @@ pub(crate) struct DragGeometry<'a> {
     pub shell: &'a crate::state::Shell,
 }
 
+fn pane_geometry(
+    host: &crate::window::pane::PaneHost,
+    index: usize,
+    last: usize,
+) -> (String, String, String) {
+    use super::rows::rect_of;
+    use crate::{columns::geometry::Slot, window::startup::View};
+
+    match host.drawn_view {
+        Some(View::List | View::Dual) => {
+            let list = host.list.borrow();
+            (
+                super::rows::list_area_rect(&list),
+                super::rows::drawn_row_rect(&list, &host.pane.held, index),
+                super::rows::drawn_row_rect(&list, &host.pane.held, last),
+            )
+        }
+        Some(View::Grid) => {
+            let grid = super::grid_rows::MountedGrid {
+                grid: host.grid.as_ref(),
+                active: true,
+            };
+            let value = |name, arguments: &[String]| {
+                grid.call(name, arguments)
+                    .map(|reply| reply.stdout.trim_end_matches('\n').to_owned())
+                    .unwrap_or_default()
+            };
+            (
+                value("listAreaRect", &[]),
+                value("rowRect", &[index.to_string()]),
+                value("rowRect", &[last.to_string()]),
+            )
+        }
+        Some(View::Columns) => {
+            let paint = host
+                .columns
+                .as_ref()
+                .and_then(|columns| columns.painters.get(Slot::Active))
+                .map(|paint| paint.borrow());
+            let Some(paint) = paint else {
+                return Default::default();
+            };
+            let Some(drawn) = &paint.drawn else {
+                return Default::default();
+            };
+            let bounds = drawn.bounds;
+            let width = drawn
+                .tracks
+                .iter()
+                .map(|view| view.x + view.width)
+                .fold(0., f32::max);
+            let row = |index| {
+                if !paint.visible().any(|at| at == index)
+                    || drawn
+                        .held
+                        .as_ref()
+                        .is_none_or(|held| held.listing != host.pane.held.listing)
+                {
+                    return String::new();
+                }
+                let Some(position) = drawn.position_of(index) else {
+                    return String::new();
+                };
+                rect_of(
+                    f32::from(bounds.origin.x),
+                    f32::from(bounds.origin.y) + position as f32 * crate::list::pane::ROW_HEIGHT
+                        - drawn.scroll,
+                    (f32::from(bounds.size.width) - crate::columns::geometry::LANE).max(0.),
+                    crate::list::pane::ROW_HEIGHT,
+                )
+            };
+            (
+                rect_of(
+                    f32::from(bounds.origin.x) - drawn.view().x,
+                    f32::from(bounds.origin.y),
+                    width,
+                    f32::from(bounds.size.height),
+                ),
+                row(index),
+                row(last),
+            )
+        }
+        None => Default::default(),
+    }
+}
+
 impl Adapter for DragGeometry<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         if function != "dragPaneGeometry" {
@@ -84,24 +170,17 @@ impl Adapter for DragGeometry<'_> {
         if index >= total {
             return Some(Reply::value("{}"));
         }
-        let list = host.list.borrow();
         let held = &host.pane.held;
-        let listed = matches!(host.drawn_view, Some(View::List | View::Dual));
+        let (area, rect, last_rect) = pane_geometry(host, index, total - 1);
         let row = |at: usize| {
             let facts = held.row(at);
-            let rect = if listed {
-                super::rows::drawn_row_rect(&list, held, at)
-            } else {
-                String::new()
-            };
             (
                 facts.map_or("", |facts| facts.name.as_str()),
                 facts.is_some_and(|facts| facts.dir),
-                rect,
             )
         };
-        let (name, directory, rect) = row(index);
-        let (last_name, _, last_rect) = row(total - 1);
+        let (name, directory) = row(index);
+        let (last_name, _) = row(total - 1);
         let view = match host.drawn_view {
             Some(View::List | View::Dual) => "list",
             Some(View::Grid) => "grid",
@@ -114,7 +193,7 @@ impl Adapter for DragGeometry<'_> {
             self.shell.focus_side as i64 == side,
             escape(&host.path),
             host.pane.busy(),
-            if listed { super::rows::list_area_rect(&list) } else { String::new() },
+            area,
             escape(name),
             total - 1,
             escape(last_name),
@@ -143,6 +222,10 @@ impl crate::state::Shell {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "dual_geometry_tests.rs"]
+mod geometry_tests;
 
 #[cfg(test)]
 mod tests {

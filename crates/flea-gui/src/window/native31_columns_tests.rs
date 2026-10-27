@@ -13,6 +13,7 @@ fn native31_registered_column_active_rect_is_actual_mounted_track() {
     for width in [1400., 1100.] {
         cx.simulate_window_resize(handle.into(), gpui::size(gpui::px(width), gpui::px(700.)));
         host::frame(&mut cx, handle);
+        let mut click_at = None;
         host::change(&mut cx, handle, |shell, window, cx| {
             let reply = call(shell, "columnActiveRect", window, cx);
             assert_eq!(
@@ -41,28 +42,26 @@ fn native31_registered_column_active_rect_is_actual_mounted_track() {
             assert_eq!(rect, [left, top, right - left, bottom - top]);
             assert!(left > 0. && top > 0. && right > left && bottom > top);
             shell.panes[0].as_mut().unwrap().pane.cursor = 1;
-            shell.columns_pointer(
-                0,
-                &gpui::MouseDownEvent {
-                    position: gpui::point(
-                        bounds.origin.x + gpui::px(10.),
-                        bounds.origin.y + gpui::px(10.),
-                    ),
-                    button: gpui::MouseButton::Left,
-                    click_count: 1,
-                    ..Default::default()
-                },
-                window,
-                cx,
-            );
+            click_at = Some(gpui::point(
+                bounds.left() + gpui::px(10.),
+                bounds.top() + gpui::px(10.),
+            ));
+            assert_eq!(call(shell, "columnPdfPages", window, cx), Reply::value("0"));
+        });
+        let mut visual = gpui::VisualTestContext::from_window(handle.into(), &cx);
+        let point = click_at.unwrap();
+        let modifiers = gpui::Modifiers {
+            control: true,
+            ..Default::default()
+        };
+        visual.simulate_mouse_move(point, None, modifiers);
+        visual.simulate_mouse_down(point, gpui::MouseButton::Left, modifiers);
+        visual.simulate_mouse_up(point, gpui::MouseButton::Left, modifiers);
+        host::change(&mut visual, handle, |shell, _, _| {
             assert_eq!(
                 shell.panes[0].as_ref().unwrap().pane.cursor,
                 0,
                 "IPC geometry disagreed with actual pointer ownership"
-            );
-            assert_eq!(
-                call(shell, "columnPdfPages", window, cx),
-                Reply::value("0")
             );
         });
     }
@@ -97,7 +96,8 @@ fn native31_file_without_preview_paints_its_mounted_right_hairline() {
     let mut cx = host::context();
     let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
     host::change(&mut cx, handle, |shell, window, cx| {
-        shell.launch.settings.data = flea::jsondoc::parse(r#"{"preview":{"column":false}}"#).unwrap();
+        shell.launch.settings.data =
+            flea::jsondoc::parse(r#"{"preview":{"column":false}}"#).unwrap();
         host::settle(shell, window, cx)
     });
     host::frame(&mut cx, handle);

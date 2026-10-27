@@ -85,6 +85,29 @@ impl Messages {
         transient_of(&self.errors, &self.notice, &self.prompt, self.arm_live())
     }
 
+    /// The transient sentence with its own advice, before the footer splits that advice into another lane.
+    pub fn transient_text(&self, catalog: &crate::i18n::I18n) -> String {
+        let shown = self.shown();
+        if shown.text.is_empty() || self.arm_live() {
+            return shown.text;
+        }
+        let hint = if shown.is_error {
+            self.errors[0].hint
+        } else {
+            self.notice_hint
+        };
+        // Dismiss and carry are display-only advice, outside the transient sentence's wire contract.
+        if matches!(hint, Hint::Dismiss | Hint::Carry) {
+            return shown.text;
+        }
+        let hint = hint.text(catalog, &self.preset).joined();
+        if hint.is_empty() {
+            shown.text
+        } else {
+            format!("{}{}{hint}", shown.text, super::status::SEP)
+        }
+    }
+
     fn sticky(&self) -> &str {
         match self.activities.first() {
             Some(activity) if !activity.running => &activity.text,
@@ -150,7 +173,7 @@ impl Messages {
         if self.shown().is_error {
             self.errors.remove(0);
         } else {
-            self.notice.clear();
+            self.clear_notice();
         }
         self.follow(now);
     }
@@ -158,9 +181,15 @@ impl Messages {
     /// Clears the notice only when the serial still names it.
     pub fn withdraw(&mut self, serial: u64, now: u64) {
         if serial == self.notice_serial {
-            self.notice.clear();
+            self.clear_notice();
             self.follow(now);
         }
+    }
+
+    // The notice and its hint end together, or the muted lane outlives its sentence.
+    fn clear_notice(&mut self) {
+        self.notice.clear();
+        self.notice_hint = Hint::None;
     }
 
     /// Leaving a place drops its refusals and its arm.
@@ -263,7 +292,7 @@ impl Messages {
     pub fn tick(&mut self, now: u64) -> Tick {
         let mut tick = Tick::default();
         if self.notice_until.is_some_and(|until| now >= until) {
-            self.notice.clear();
+            self.clear_notice();
             self.notice_until = None;
             tick.notice_cleared = true;
         }
