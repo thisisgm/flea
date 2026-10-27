@@ -25,6 +25,7 @@ impl Shell {
     }
 
     pub(crate) fn sync_selection_previews(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.ensure_preview_sound(cx);
         let geometry = self.geometry(window);
         let setting = settings(&self.launch.settings.data);
         let preview = self

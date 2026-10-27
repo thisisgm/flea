@@ -31,6 +31,11 @@ impl MediaSound {
         });
     }
 
+    /// The focused window supplies the writer while preserving the shared session sound.
+    pub fn set_keep(keep: KeepVolume, cx: &mut App) {
+        cx.update_global::<Self, _>(|this, _| this.keep = Some(keep));
+    }
+
     pub fn get(cx: &App) -> Sound {
         cx.try_global::<Self>()
             .map_or(Sound::new(FULL_LEVEL), |this| this.sound)
