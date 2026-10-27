@@ -40,9 +40,12 @@ impl Look {
         }
     }
 
-    /// The inherited roles of a window's text style, for a host with no theme tokens yet.
+    /// The inherited roles of a window's text style: the bare ground is the window's and a framed card's
+    /// surface is the theme's surface, which the card body, its bar and a font sample share.
     pub fn of_text(style: &gpui::TextStyle, theme: crate::palette::Theme) -> Self {
-        Self::inherited(&Palette::inherited(style, theme))
+        let mut look = Self::inherited(&Palette::inherited(style, theme));
+        look.surface = theme.surface;
+        look
     }
 
     /// var(--hair): the foreground at 12%.
