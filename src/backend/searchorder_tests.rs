@@ -115,5 +115,31 @@ fn search_q3_cut_has_no_path_builds_and_linear_comparison_bound() {
     }
 }
 
+#[test]
+fn search_cut_keys_only_the_rows_tied_at_the_heads_last_score() {
+    // 400 scores of 250 rows each: the head holds all 250 rows at the top score and 100 of the 250 at the next.
+    let mut index = Index::new();
+    let (count, scores, window) = (100_000, 400, FIRST_WINDOW_DEFAULT);
+    for row in 0..count { assert!(index.push(format!("d{:03}/f{row:06}.rs", row % 100), false)); }
+    let mut hits: Vec<_> = (0..count).map(|row| ((row % scores) as i32, row)).collect();
+    let mut expected = hits.clone();
+    expected.sort_by(|a, b| rank_cmp(&index, a, b));
+    let last = expected[window - 1].0;
+    assert_eq!(expected[window].0, last, "the window splits the rows of its last score, so the tied select runs");
+    let (keyed_tied, keyed_elsewhere) = (Cell::new(0usize), Cell::new(0usize));
+    let rest = select_head(&mut hits, window, |hit| {
+        let keyed = if hit.0 == last { &keyed_tied } else { &keyed_elsewhere };
+        keyed.set(keyed.get() + 1);
+        (std::cmp::Reverse(hit.0), index.path_len(hit.1))
+    }, |a, b| rank_cmp(&index, a, b));
+    assert!(keyed_tied.get() > 0, "the rows tied at the head's last score were keyed");
+    assert_eq!(hits, expected[..window], "the head is the first window of the full rank order");
+    let mut actual: Vec<_> = hits.iter().chain(&rest).copied().collect();
+    actual.sort_unstable();
+    expected.sort_unstable();
+    assert_eq!(actual, expected, "the head and the rest hold every hit once");
+    assert_eq!(keyed_elsewhere.get(), 0, "only rows tied at the head's last score need a path length");
+}
+
 #[path = "searchphases_probe.rs"]
 mod phases;
