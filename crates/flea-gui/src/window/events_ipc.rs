@@ -249,7 +249,9 @@ impl Shell {
                 let feedback = crate::ipc::window_feedback::FeedbackAdapter { shell: self, cx };
                 let column_preview =
                     crate::ipc::columns_preview::ColumnsPreview { preview: &preview };
-                let adapters: [&dyn crate::ipc::Adapter; 34] = [
+                let glass = super::super::glass::Reader { window, cx };
+                let adapters: [&dyn crate::ipc::Adapter; 35] = [
+                    &glass,
                     &column_preview,
                     &drag,
                     &providers,
@@ -289,9 +291,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    34
+                    35
                 } else {
-                    33
+                    34
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
