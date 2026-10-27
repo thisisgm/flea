@@ -55,6 +55,17 @@ impl Render for Shell {
         if let Some(renders) = cx.try_global::<EmptyOmiShellRenders>() {
             renders.0.set(renders.0.get() + 1);
         }
+        super::glass::rail_overlay(
+            window,
+            self.launch
+                .settings
+                .data
+                .get("places")
+                .and_then(|p| p.get("autoHide"))
+                .and_then(flea::jsondoc::Json::as_bool)
+                == Some(true),
+            cx,
+        );
         self.sync_font_settings(cx);
         self.sync_search_text();
         self.route_rail(window, cx);
@@ -276,6 +287,9 @@ impl Render for Shell {
                     .on_drop::<Seed>(cx.listener(move |shell, _: &Seed, window, cx| {
                         shell.land_own_drag(side, window, cx);
                     }))
+                    .when(side == 0, |div| Shell::aim_rail_on_drag_move(div, cx))
+                    // A pane with no rows yet keeps the list floor, which stays opaque under glass.
+                    .when(!host.drawn_list, |div| div.bg(theme.background))
                     .children(lists.areas[side].take())
                     .on_mouse_down(
                         MouseButton::Left,
@@ -330,9 +344,10 @@ impl Render for Shell {
         if let Some(viewport) = viewport {
             return div()
                 .size_full()
-                .bg(background)
+                .bg(super::glass::body_ground(background, window, cx))
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key))
+                .on_modifiers_changed(cx.listener(Self::run_card_modifiers))
                 .capture_any_mouse_down(cx.listener(Self::middle_tab_pointer))
                 .child(
                     div()
@@ -359,6 +374,7 @@ impl Render for Shell {
                 panes,
                 composition::Content {
                     paths,
+                    glass: super::glass::Grounds::for_window(window, self.focus_side, cx),
                     headers: lists.headers,
                     status,
                     labels: &self.labels,
@@ -373,9 +389,10 @@ impl Render for Shell {
                     .map(|_| self.visual.probe.clone()),
             )
             .children(self.dual_divider(&geometry, palette, cx))
-            .bg(background)
+            .bg(super::glass::body_ground(background, window, cx))
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key))
+            .on_modifiers_changed(cx.listener(Self::run_card_modifiers))
             .on_scroll_wheel(cx.listener(Self::wheel))
             .capture_any_mouse_down(cx.listener(Self::side_button))
             .capture_any_mouse_down(cx.listener(Self::middle_tab_pointer))

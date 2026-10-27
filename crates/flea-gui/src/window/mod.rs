@@ -9,6 +9,7 @@ mod dual_edge_tests;
 mod events;
 pub(crate) mod filter;
 pub(crate) mod frame_feedback;
+pub(crate) mod glass;
 pub mod glass_tag;
 pub mod input;
 pub mod lifecycle;
@@ -21,8 +22,14 @@ pub mod navigate;
 pub mod network;
 pub(crate) mod output;
 pub mod overlay;
+pub(crate) mod run_card;
+pub(crate) mod open_with;
 pub(crate) mod pane;
 pub(crate) mod path_host;
+pub(crate) mod permissions;
+#[cfg(test)]
+mod permissions_tests;
+pub(crate) mod properties;
 mod presentation;
 mod preview_facts;
 mod preview_input;
@@ -34,6 +41,7 @@ pub(crate) mod retry;
 pub mod root;
 pub(crate) mod search;
 pub mod selection_preview;
+pub(crate) mod key_delivery;
 pub mod settings;
 pub mod startup;
 pub(crate) mod status;
@@ -63,7 +71,14 @@ pub fn open(
     cx: &mut App,
 ) -> Result<WindowHandle<Root>, String> {
     let title = locale.catalog.tr("app.name");
+    let appearance = cx
+        .try_global::<crate::palette::Theme>()
+        .copied()
+        .unwrap_or_default()
+        .glass
+        .appearance();
     let options = WindowOptions {
+        window_background: appearance,
         app_id: Some(APP_ID.into()),
         window_bounds: Some(WindowBounds::centered(size(px(900.), px(600.)), cx)),
         titlebar: Some(TitlebarOptions {
@@ -73,6 +88,9 @@ pub fn open(
         ..Default::default()
     };
     cx.open_window(options, |window, cx| {
+        glass::mount(window, appearance, cx);
+        // Wayland holds its callbacks through draw, so the first presented-frame hook must be taken before any frame.
+        window.observe_frame_presented(cx, |_, _| {}).detach();
         if std::env::var_os("FLEA_GUI_RENDER_DIAGNOSTICS").is_some() {
             if let Some(specs) = window.gpu_specs() {
                 eprintln!(
@@ -109,6 +127,10 @@ pub fn open(
 mod columns_tests;
 #[cfg(test)]
 mod ipc_cold_tests;
+#[cfg(test)]
+mod scrollkeys_tests;
+#[cfg(test)]
+mod columns_key_repeat_tests;
 #[cfg(test)]
 #[path = "../list/join_tests.rs"]
 mod list_tests;
@@ -167,3 +189,5 @@ mod glass_tag_tests;
 
 #[cfg(test)]
 mod pb_tags_tests;
+#[cfg(test)]
+mod glass_tests;

@@ -267,7 +267,7 @@ impl Model {
                 return false;
             }
             if !paths.is_empty() {
-                self.effects.push(Effect::Refresh(paths));
+                self.effects.push(Effect::Refresh { paths, select: ok });
             }
         }
         let cancelled = reason == "cancelled";

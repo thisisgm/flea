@@ -59,7 +59,7 @@ impl Adapter for State<'_> {
             .iter()
             .map(|peer| {
                 crate::visual::object([
-                    ("name", text(&peer.label)),
+                    ("label", text(&peer.label)),
                     ("id", text(&peer.id)),
                     (
                         "address",

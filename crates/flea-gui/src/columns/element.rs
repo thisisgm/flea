@@ -19,6 +19,8 @@ use std::{cell::RefCell, rc::Rc};
 #[path = "tags.rs"]
 mod tags;
 
+mod options;
+
 pub struct TrackElement {
     tracks: Rc<[TrackView]>,
     at: usize,
@@ -33,6 +35,8 @@ pub struct TrackElement {
     languages: bool,
     shown: Option<Rc<[usize]>>,
     tag_slot: bool,
+    locating: bool,
+    query: Rc<str>,
 }
 
 impl TrackElement {
@@ -62,37 +66,9 @@ impl TrackElement {
             languages: true,
             shown: None,
             tag_slot: false,
+            locating: false,
+            query: "".into(),
         }
-    }
-
-    /// ColumnRow's language marks follow the List's langMarks setting.
-    pub fn with_languages(mut self, languages: bool) -> Self {
-        self.languages = languages;
-        self
-    }
-
-    /// A tagged folder reserves the same slot on every row of its active column.
-    pub fn with_tag_slot(mut self, shown: bool) -> Self {
-        self.tag_slot = shown;
-        self
-    }
-
-    /// A standing filter's drawn rows: the active track then draws the listing row at each view position.
-    pub fn with_filter(mut self, shown: Option<Rc<[usize]>>) -> Self {
-        self.shown = shown;
-        self
-    }
-
-    /// The folder walks the active track's size cells read; a peek track never shows a size.
-    pub fn with_sizes(mut self, sizes: Rc<dyn FolderSizes>) -> Self {
-        self.sizes = Some(sizes);
-        self
-    }
-
-    /// The pane's thumbnail lender, which only the active track's listing rows draw from.
-    pub fn with_pictures(mut self, pictures: Rc<Pictures>) -> Self {
-        self.pictures = Some(pictures);
-        self
     }
 
     fn view(&self) -> &TrackView {
@@ -187,6 +163,8 @@ impl Element for TrackElement {
             languages: self.languages,
             scale: window.scale_factor(),
             words: Rc::clone(&self.words),
+            locating: self.locating,
+            query: Rc::clone(&self.query),
         };
         let height = f32::from(bounds.size.height);
         let total = self.total();
@@ -226,6 +204,12 @@ impl Element for TrackElement {
             };
             let prepared =
                 row.map(|row| cache.get(index, row, mark != Clip::None, walk, &shaping, window));
+            if let Some(prepared) = prepared
+                .as_ref()
+                .filter(|_| shows_size && self.focus.cursor == Some(index))
+            {
+                prepared.prepare_cursor(&shaping.font, shaping.body, window);
+            }
             // ColumnRow.qml dims a cut row's thumbnail with the rest of its mark.
             pictures.push(match (lender, row) {
                 (Some(lender), Some(Row::Listing(facts))) => {
@@ -284,6 +268,21 @@ impl Element for TrackElement {
                 if self.focus.edge(view.slot, *index) {
                     window.paint_quad(fill(row_box(top, EDGE), palette.edge()));
                 }
+                if let Some(prepared) = prepared {
+                    let chevron = prepared.dir && (cursor || lifted);
+                    if let Some((from, to)) = prepared.wash_span(chevron, cursor) {
+                        let line = prepared.name(chevron).line();
+                        let x = left + px(cells(width, active, chevron).name_x);
+                        let y = top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2.;
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(x + from, y),
+                                size(to - from, line.ascent + line.descent),
+                            ),
+                            palette.accent.opacity(crate::g2::sr1::run::RUN_WASH),
+                        ));
+                    }
+                }
             }
             // One layer for every mark and glyph, so the scene orders the whole track once rather than once a line.
             let mut pictures_painted = 0;
@@ -321,14 +320,30 @@ impl Element for TrackElement {
                             cx,
                         );
                     }
-                    let name = prepared.name(chevron);
+                    let name = prepared.name_for(chevron, cursor);
                     let name_x = left + px(geometry.name_x);
                     paint_line(name, name_x, top, inks.name, window);
+                    let mut name_width = f32::from(name.line().width);
+                    if let Some(location) = prepared.location.as_ref() {
+                        let gap = GAP + if *clip != Clip::None { GAP + CLIP } else { 0. };
+                        let bright = cursor
+                            || lifted
+                            || self.focus.selected.contains(index)
+                            || self.focus.hover == Some((view.slot, *index));
+                        paint_line(
+                            location,
+                            name_x + name.line().width + px(gap),
+                            top,
+                            if bright { inks.name } else { palette.muted },
+                            window,
+                        );
+                        name_width += gap + f32::from(location.line().width);
+                    }
                     if let Some(Row::Listing(facts)) = row_at(&view.rows, held, *index) {
                         tags::paint(
                             facts,
                             point(left, top),
-                            f32::from(name.line().width),
+                            name_width,
                             geometry,
                             *clip,
                             &theme,

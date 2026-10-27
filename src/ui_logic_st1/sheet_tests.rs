@@ -295,9 +295,16 @@ fn rank_menu_wording_finds_the_action_once_under_its_key() {
 }
 
 #[test]
-fn a_query_never_lists_the_sheet_it_is_typed_in() {
-    let rows = sheet("default", Frontend::Gui, &english());
-    assert!(rows.iter().any(|row| row.action == "keymapSheet"), "the resting sheet keeps its ? row");
-    assert!(sheet_actions().iter().all(|row| row.action != "keymapSheet"));
-    assert!(ranked(&sheet_actions(), "shortcuts").is_empty());
+fn a_query_lists_the_sheet_row_by_its_key_and_by_a_word_of_its_name() {
+    let rows = sheet_actions();
+    let by_key = ranked(&rows, "?");
+    assert_eq!(by_key.len(), 1, "{:?}", labels(&by_key));
+    assert_eq!(by_key[0].action, "keymapSheet");
+    assert_eq!(say(&by_key[0].label), "Keyboard Shortcuts");
+    for query in ["keyboard", "short", "keyboard sh"] {
+        assert!(ranked(&rows, query).iter().any(|row| row.action == "keymapSheet"), "{query}");
+    }
+    for query in ["ho", "cuts"] {
+        assert!(ranked(&rows, query).iter().all(|row| row.action != "keymapSheet"), "{query}");
+    }
 }

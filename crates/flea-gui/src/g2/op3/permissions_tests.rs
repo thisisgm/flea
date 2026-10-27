@@ -161,6 +161,8 @@ fn permissions_apply_closes_with_a_status_line_and_a_reread() {
         "Selected item changed; reopen Permissions.".into(),
         Ink::Error
     )));
+    assert_eq!(card.focus, PermStop::Cancel);
+    card.key(Key::Tab);
     card.key(Key::Enter);
     let done = card.reply(
         &i18n,

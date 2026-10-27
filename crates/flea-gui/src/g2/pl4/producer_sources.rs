@@ -3,7 +3,13 @@ use super::*;
 
 impl Producer {
     pub(super) fn load(&mut self, cx: &mut Context<Self>) {
-        if self.loaded || self.loading || !self.polling {
+        if self.polling {
+            self.load_places(cx);
+        }
+    }
+
+    pub(crate) fn load_places(&mut self, cx: &mut Context<Self>) {
+        if self.loaded || self.loading {
             return;
         }
         self.loading = true;

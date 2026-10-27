@@ -243,6 +243,7 @@ fn holding_the_eye_reveals_each_compress_secret_field() {
 fn revealed_secret_draws_its_value() {
     use super::cards::Field;
     let field = Field {
+            input: None,
         label: None,
         value: "s3cret".into(),
         placeholder: String::new(),
@@ -286,6 +287,7 @@ fn compress_dest_at_the_root_never_doubles_the_slash() {
 fn secret_field_debug_never_prints_the_value() {
     use super::cards::Field;
     let field = Field {
+            input: None,
         label: None,
         value: "s3cret".into(),
         placeholder: String::new(),

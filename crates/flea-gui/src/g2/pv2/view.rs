@@ -47,6 +47,7 @@ pub struct Bar {
 
 pub struct PdfView {
     pub surface: Surface,
+    bars: crate::g2::pv1::scroller::overlay::Overlay,
     renderer: Renderer,
     origin: Instant,
     pub palette: Palette,
@@ -121,6 +122,7 @@ impl PdfView {
         .detach();
         PdfView {
             surface: Surface::new(continuous, CAP_MS, MIN_SHOW_MS),
+            bars: Default::default(),
             renderer,
             origin: cx.background_executor().now(),
             palette,
@@ -139,6 +141,7 @@ impl PdfView {
     /// Ends pending work and releases cached pictures after existing draw references retire.
     pub fn close(&mut self, cx: &mut Context<Self>) {
         self.timer = None;
+        self.bars = Default::default();
         self.surface.close();
         self.flush(cx);
         for image in self.surface.cache.take_released() {
@@ -171,6 +174,7 @@ impl PdfView {
     /// The subject: a new path resets Quick Look's zoom; it opens on the next frame when idle, at the settle otherwise.
     pub fn set_path(&mut self, path: &str, window: &mut Window, cx: &mut Context<Self>) {
         let now = self.now(cx);
+        self.bars = Default::default();
         if let Some(viewer) = &mut self.viewer {
             viewer.subject_changed();
             self.pan = (0., 0.);
@@ -358,3 +362,6 @@ mod paint;
 #[cfg(test)]
 #[path = "view_wheel_tests.rs"]
 mod wheel_tests;
+
+#[path = "view_scroll.rs"]
+mod scroll;
