@@ -17,7 +17,7 @@ from negative_controls import run_controls
 from fixtures import marked_root, source_fixture, synthetic
 from measure import Measurements, record_query, update_probe
 
-LEGACY = [('flea', 'native'), ('flea-0.3.12', 'native'), ('fff', 'bare'), ('fff', 'rich'), ('fsearch', 'native'),
+LEGACY = [('flea', 'native'), ('flea-0.3.12', 'native'), ('fff', 'bare'), ('fff', 'rich'), ('flea', 'rich'), ('fsearch', 'native'),
           ('fsearch-nd', 'linux-core')]
 CONFIGURATIONS = LEGACY + [(name, profile) for profile in ['fresh', 'equal-history']
                   for name in ['flea', 'flea-0.3.12', 'fff', 'fsearch', 'fsearch-nd']]
@@ -124,9 +124,9 @@ def main(control=False):
                             if not coverage['eligible']:
                                 rows.invalidate(context, '; '.join(coverage['reasons']))
                             priors_supported = name == 'fff' or (name in FLEA and index['details'].get('d10_priors') is True)
-                            if profile == 'equal-history' and not priors_supported:
+                            if profile in ('equal-history', 'rich') and not priors_supported:
                                 rows.row(context, 'ranking_priors', None, 'supported', 'unsupported', 'engine has no advertised D10 provider integration')
-                                rows.invalidate(context, 'equal-history prior consumption unsupported')
+                                rows.invalidate(context, profile + ' prior consumption unsupported')
                             if profile == 'equal-history' and not engine.priors['zoxide']['supported']:
                                 rows.invalidate(context, 'zoxide replay unavailable')
                             rows.row(context, 'index_build_observed_ms', index['observed_ms'], 'ms')
