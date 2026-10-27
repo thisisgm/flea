@@ -242,13 +242,22 @@ fn small_originals_draw_at_their_own_size() {
 }
 
 #[test]
+fn vector_preview_fills_and_raster_preview_caps() {
+    // EY-64: a 60x40 vector in the 274x171 Columns frame fills along the limiting axis.
+    assert_eq!(preview_limit(false, true, 60.0, 40.0, 60.0, 40.0), f64::INFINITY);
+    assert_eq!(drawn(fit_scale(274.0, 171.0, 60.0, 40.0, preview_limit(false, true, 60.0, 40.0, 60.0, 40.0)), 60.0, 40.0), "257x171");
+    // A 60x40 raster keeps the cap: drawn at its own pixels.
+    assert_eq!(drawn(fit_scale(274.0, 171.0, 60.0, 40.0, preview_limit(false, false, 60.0, 40.0, 60.0, 40.0)), 60.0, 40.0), "60x40");
+}
+
+#[test]
 fn video_poster_fills_and_image_poster_caps() {
     // a video poster is uncapped
-    assert_eq!(poster_limit(true, 256.0, 256.0, 64.0, 64.0), f64::INFINITY);
+    assert_eq!(preview_limit(true, false, 256.0, 256.0, 64.0, 64.0), f64::INFINITY);
     // an image poster keeps its cap
-    assert_eq!(poster_limit(false, 256.0, 256.0, 64.0, 64.0), 64.0 / 256.0);
+    assert_eq!(preview_limit(false, false, 256.0, 256.0, 64.0, 64.0), 64.0 / 256.0);
     // a 64x64 clip poster in the 754x471 frame fills it
-    assert_eq!(drawn(fit_scale(754.0, 471.0, 256.0, 256.0, poster_limit(true, 256.0, 256.0, 64.0, 64.0)), 256.0, 256.0), "471x471");
+    assert_eq!(drawn(fit_scale(754.0, 471.0, 256.0, 256.0, preview_limit(true, false, 256.0, 256.0, 64.0, 64.0)), 256.0, 256.0), "471x471");
 }
 
 #[test]

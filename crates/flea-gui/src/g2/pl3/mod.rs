@@ -54,3 +54,5 @@ mod gcomp_join_tests;
 mod parity_input_tests;
 #[cfg(test)]
 mod parity_sweep_tests;
+#[cfg(test)]
+mod trashview_tests;

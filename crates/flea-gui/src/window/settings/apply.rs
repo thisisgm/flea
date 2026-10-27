@@ -215,7 +215,7 @@ impl Shell {
         .iter()
         .any(|key| old.get(key) != data.get(key));
         let newest = self.launch.settings.newest.clone();
-        let mut settings = Settings::from_json(data.clone(), true);
+        let mut settings = Settings::from_json(data.clone());
         settings.newest = newest.clone();
         self.launch.settings = settings;
         if let Some(host) = &self.quick_look {
