@@ -101,6 +101,8 @@ pub struct Frame {
     pub total: usize,
     pub columns: usize,
     pub cell_width: f32,
+    /// The refused rename's band: the rows below its edited row sit lower by it.
+    pub grow: crate::list::pane::Grow,
     pub cell_origin: (f32, f32),
 }
 
@@ -110,17 +112,19 @@ impl Frame {
         bounds: Bounds<Pixels>,
         metrics: &crate::list::Metrics,
         pane: &crate::list::pane::Pane,
+        grow: crate::list::pane::Grow,
     ) -> Self {
         Self {
             bounds,
             row: metrics.row,
             lane: metrics.lane,
-            content: pane.held.total as f32 * metrics.row + metrics.header,
+            content: grow.content(pane.held.total, metrics.row) + metrics.header,
             scroll: pane.scroll_y,
             listing: pane.held.listing,
             total: pane.held.total,
             columns: 1,
             cell_width: f32::from(bounds.size.width) - metrics.lane,
+            grow,
             cell_origin: (0., 0.),
         }
     }
@@ -153,7 +157,8 @@ impl Frame {
         if column >= self.columns {
             return None;
         }
-        let row = (y / self.row).floor() as usize * self.columns + column;
+        let position = self.grow.position_at(y, self.row);
+        let row = position * self.columns + column;
         (row < self.total).then_some(row)
     }
 }
@@ -175,6 +180,7 @@ pub struct Band {
 impl PaneInput {
     /// Call before preparing a view's row states so rollback and the new geometry present together.
     pub fn prepare(&mut self, frame: Frame, selected: &mut Vec<usize>, cursor: &mut usize) {
+        // A rename band moves only the rows below its own row, and gestures hold content positions, so it never cancels one.
         if self.prepared.is_some_and(|old| {
             old.bounds != frame.bounds
                 || old.listing != frame.listing
@@ -184,7 +190,6 @@ impl PaneInput {
                 || old.cell_width != frame.cell_width
                 || old.cell_origin != frame.cell_origin
                 || old.lane != frame.lane
-                || old.content != frame.content
         }) {
             self.cancel(selected, cursor);
             self.press = None;
@@ -207,7 +212,7 @@ impl PaneInput {
         };
         frame.scroll = scroll;
         let columns = frame.columns.max(1);
-        let first = (scroll / frame.row).floor() as usize * columns;
+        let first = frame.grow.position_at(scroll, frame.row) * columns;
         let visible = ((frame.viewport() / frame.row).ceil() as usize).max(1);
         let last = ((first / columns + visible) * columns - 1).min(frame.total - 1);
         let first = first.min(last);

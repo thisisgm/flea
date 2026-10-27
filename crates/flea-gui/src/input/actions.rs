@@ -171,7 +171,7 @@ impl Shell {
         let from = host.pane.cursor;
         let before_scroll = host.pane.scroll_y;
         let frame = if self.view == crate::window::startup::View::Columns {
-            host.columns_key_frame()
+            host.columns_key_frame(self.grows[side])
         } else {
             host.input.frame
         };

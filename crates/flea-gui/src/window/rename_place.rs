@@ -7,13 +7,12 @@ use crate::{
 };
 use gpui::{point, px, size, Bounds, Pixels};
 
-/// Where the field stands in the element its side drew last: the frame, the area that clips it, the text's inset, and the refusal's top and height.
+/// Where the field stands in the element its side drew last: the frame, the area that clips it, the text's inset, and the top of the refusal's band.
 pub(crate) struct Place {
     pub frame: Bounds<Pixels>,
     pub clip: Bounds<Pixels>,
     pub inset: Pixels,
     pub below: Pixels,
-    pub row: Pixels,
 }
 
 /// The edited row this frame: placed, scrolled wholly out of its view, or in a view that has not drawn yet.
@@ -56,11 +55,17 @@ impl Shell {
 fn list_place(list: &ListState, index: usize) -> Spot {
     let drawn = &list.drawn;
     let metrics = drawn.metrics;
-    let top = drawn.bounds.origin.y + px(index as f32 * metrics.row - drawn.scroll_y);
+    let row = metrics.row;
+    let position = list
+        .visible()
+        .iter()
+        .find(|shown| shown.index == index)
+        .map_or(index, |shown| shown.view);
+    let top = drawn.bounds.origin.y + px(drawn.grow.top(position, row) - drawn.scroll_y);
     let frame = Bounds::new(
         point(
             drawn.bounds.origin.x + px(drawn.layout.name.x),
-            top + px((metrics.row - metrics.slot) / 2.),
+            top + px((row - metrics.slot) / 2.),
         ),
         size(px(drawn.layout.name.width.max(0.)), px(metrics.slot)),
     );
@@ -68,12 +73,14 @@ fn list_place(list: &ListState, index: usize) -> Spot {
         frame,
         clip: drawn.bounds,
         inset: px(metrics.gap),
-        below: top + px(metrics.row),
-        row: px(metrics.row),
+        below: frame.bottom() + px(metrics.gap),
     };
     let reach = Bounds::new(
         point(drawn.bounds.origin.x, top),
-        size(drawn.bounds.size.width, px(metrics.row)),
+        size(
+            drawn.bounds.size.width,
+            px(drawn.grow.height(position, row)),
+        ),
     );
     Spot::of(place, reach)
 }
@@ -91,9 +98,13 @@ fn columns_place(host: &PaneHost, list: &ListState, index: usize) -> Spot {
     let Some(drawn) = paint.drawn.as_ref() else {
         return Spot::Unready;
     };
+    let Some(position) = drawn.position_of(index) else {
+        return Spot::Out;
+    };
     let metrics = Metrics::for_typeface(&list.typeface);
     let slot = metrics.slot.min(ROW_HEIGHT);
-    let top = drawn.bounds.origin.y + px(index as f32 * ROW_HEIGHT - drawn.scroll.max(0.));
+    let top = drawn.bounds.origin.y
+        + px(drawn.grow.top(position, ROW_HEIGHT) - drawn.scroll.max(0.));
     // The track draws a folder cursor row with its chevron, which narrows the name cell.
     let chevron = host.pane.held.row(index).is_some_and(|row| row.dir);
     let name = cells(f32::from(drawn.bounds.size.width), true, chevron);
@@ -108,12 +119,14 @@ fn columns_place(host: &PaneHost, list: &ListState, index: usize) -> Spot {
         frame,
         clip: drawn.bounds,
         inset: px(metrics.gap),
-        below: top + px(ROW_HEIGHT),
-        row: px(metrics.row),
+        below: frame.bottom() + px(metrics.gap),
     };
     let reach = Bounds::new(
         point(drawn.bounds.origin.x, top),
-        size(drawn.bounds.size.width, px(ROW_HEIGHT)),
+        size(
+            drawn.bounds.size.width,
+            px(drawn.grow.height(position, ROW_HEIGHT)),
+        ),
     );
     Spot::of(place, reach)
 }
@@ -152,8 +165,7 @@ fn grid_place(host: &PaneHost, list: &ListState, index: usize) -> Spot {
         frame,
         clip: state.bounds,
         inset: px(metrics.gap),
-        below: frame.bottom(),
-        row: px(metrics.row),
+        below: frame.bottom() + px(gap),
     };
     Spot::of(place, cell)
 }

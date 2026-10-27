@@ -37,13 +37,20 @@ pub(super) fn surface(
                         TrackRows::Peek(rows) => rows.len(),
                         _ => return None,
                     };
+                    // Only the active track takes the refused rename's band, as its rows do.
+                    let grow = if slot == Slot::Active {
+                        shell.grows[side]
+                    } else {
+                        crate::list::pane::Grow::default()
+                    };
+                    let row = crate::pane::ROW_HEIGHT;
                     let scroll = if slot == Slot::Active {
                         host.pane.scroll_y
                     } else {
                         columns.area.scroll(slot)
                     };
                     if slot == Slot::Active {
-                        host.pane.scroll_extent = Some(total as f32 * crate::pane::ROW_HEIGHT);
+                        host.pane.scroll_extent = Some(grow.content(total, row));
                     }
                     let lane = f32::from(host.list.borrow().typeface.body);
                     let state = &mut columns.scroll[slot.index()];
@@ -56,9 +63,9 @@ pub(super) fn surface(
                         &view.path,
                         Frame {
                             bounds,
-                            row: crate::pane::ROW_HEIGHT,
+                            row,
                             lane,
-                            content: total as f32 * crate::pane::ROW_HEIGHT,
+                            content: grow.content(total, row),
                             scroll,
                             listing: if slot == Slot::Active {
                                 host.pane.held.listing
@@ -69,6 +76,7 @@ pub(super) fn surface(
                             columns: 1,
                             cell_width: f32::from(bounds.size.width) - lane,
                             cell_origin: (0., 0.),
+                            grow,
                         },
                         snapshot,
                     );

@@ -16,18 +16,21 @@ pub(super) fn surface(
     cx: &mut Context<Shell>,
 ) -> impl IntoElement {
     crate::input::surface_with(cx.entity(), side, move |shell, bounds| {
+        let grow = shell.grows[side];
         let host = shell.panes[side].as_mut()?;
         let total = host.filter.shown_total(host.pane.held.total);
+        let row = crate::list::pane::ROW_HEIGHT;
         let frame = crate::input::Frame {
             bounds,
-            row: crate::list::pane::ROW_HEIGHT,
+            row,
             lane: LANE,
-            content: total as f32 * crate::list::pane::ROW_HEIGHT,
+            content: grow.content(total, row),
             scroll: host.pane.scroll_y,
             listing: host.pane.held.listing,
             total,
             columns: 1,
             cell_width: f32::from(bounds.size.width) - LANE,
+            grow,
             cell_origin: (0., 0.),
         };
         host.input
@@ -106,9 +109,10 @@ pub(crate) fn drop_spot(
         {
             return None;
         }
-        let position = ((f32::from(point.y - drawn.bounds.top()) + drawn.scroll)
-            / crate::list::pane::ROW_HEIGHT)
-            .floor() as usize;
+        let position = drawn.grow.position_at(
+            f32::from(point.y - drawn.bounds.top()) + drawn.scroll,
+            crate::list::pane::ROW_HEIGHT,
+        );
         let row = (point.x < drawn.bounds.right() - px(LANE))
             .then_some(drawn.row_at(position))
             .flatten();
