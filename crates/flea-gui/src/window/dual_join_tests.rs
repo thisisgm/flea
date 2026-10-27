@@ -78,7 +78,6 @@ fn u26_auto_hide_uses_overlay_room_for_both_listings(cx: &mut TestAppContext) {
             shell.view = super::startup::View::Dual;
             shell.launch.settings = super::startup::Settings::from_json(
                 flea::jsondoc::parse(r#"{"places":{"autoHide":true}}"#).unwrap(),
-                true,
             );
             let geometry = shell.geometry(window);
             assert_eq!(

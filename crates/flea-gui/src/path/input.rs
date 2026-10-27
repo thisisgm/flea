@@ -1,71 +1,59 @@
-//! The field's text input: typed characters and the input method's composing text, in UTF-16 as the platform counts.
+//! The mounted destination's platform text, through Entry's shared UTF-16 and composition contract.
 use super::view::PathView;
-use gpui::{point, Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
+use crate::path::field::{ime_bounds, ime_index};
+use gpui::{Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
 use std::ops::Range;
-
-// Sample input: ("a\u{e9}b", 2) is 3, the byte where the second UTF-16 unit ends.
-fn bytes_at(text: &str, units: usize) -> usize {
-    let mut count = 0;
-    for (at, next) in text.char_indices() {
-        if count >= units {
-            return at;
-        }
-        count += next.len_utf16();
-    }
-    text.len()
-}
 
 impl EntityInputHandler for PathView {
     fn text_for_range(
         &mut self,
         range: Range<usize>,
         adjusted: &mut Option<Range<usize>>,
-        _: &mut Window,
-        _: &mut Context<Self>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
     ) -> Option<String> {
-        let range = self.entry.range_from_utf16(&range);
-        adjusted.replace(self.entry.range_to_utf16(&range));
-        self.entry.text.get(range).map(str::to_owned)
+        self.ime_field(window, cx)
+            .then(|| self.entry.ime_text(&range, adjusted))
+            .flatten()
     }
 
     fn selected_text_range(
         &mut self,
         _: bool,
-        _: &mut Window,
-        _: &mut Context<Self>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
     ) -> Option<UTF16Selection> {
-        self.entry.editing.then(|| UTF16Selection {
-            range: self.entry.range_to_utf16(&self.entry.selected),
-            reversed: self.entry.reversed,
-        })
+        self.ime_field(window, cx)
+            .then(|| self.entry.ime_selection())
     }
 
-    fn marked_text_range(&self, _: &mut Window, _: &mut Context<Self>) -> Option<Range<usize>> {
-        self.entry
-            .marked
-            .as_ref()
-            .map(|range| self.entry.range_to_utf16(range))
+    fn marked_text_range(
+        &self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<Range<usize>> {
+        self.ime_field(window, cx)
+            .then(|| self.entry.ime_marked())
+            .flatten()
     }
 
-    fn unmark_text(&mut self, _: &mut Window, cx: &mut Context<Self>) {
-        self.entry.marked = None;
-        cx.notify();
+    fn unmark_text(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.ime_field(window, cx) {
+            self.entry.ime_unmark();
+            cx.notify();
+        }
     }
 
     fn replace_text_in_range(
         &mut self,
         range: Option<Range<usize>>,
         text: &str,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        // A held Enter stands for the line as it was.
-        if !self.entry.editing || self.jump.enter_waiting {
-            return;
+        if self.ime_field(window, cx) && self.entry.ime_replace(range, text) {
+            self.edited(cx);
         }
-        let range = range.map(|range| self.entry.range_from_utf16(&range));
-        self.entry.replace(range, text);
-        self.edited(cx);
     }
 
     fn replace_and_mark_text_in_range(
@@ -73,46 +61,89 @@ impl EntityInputHandler for PathView {
         range: Option<Range<usize>>,
         text: &str,
         selected: Option<Range<usize>>,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if !self.entry.editing || self.jump.enter_waiting {
-            return;
+        if self.ime_field(window, cx) && self.entry.ime_mark(range, text, selected) {
+            self.edited(cx);
         }
-        let range = range.map(|range| self.entry.range_from_utf16(&range));
-        // The selection inside the composing text counts UTF-16 units of that text alone.
-        let selected = selected.map(|inner| bytes_at(text, inner.start)..bytes_at(text, inner.end));
-        self.entry.replace_and_mark(range, text, selected);
-        self.edited(cx);
     }
 
     fn bounds_for_range(
         &mut self,
         range: Range<usize>,
-        bounds: Bounds<Pixels>,
-        _: &mut Window,
-        _: &mut Context<Self>,
+        _: Bounds<Pixels>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
     ) -> Option<Bounds<Pixels>> {
-        let range = self.entry.range_from_utf16(&range);
-        let origin = self.paint.borrow().field_origin;
-        let line = self.line.borrow();
-        let left = origin - line.scroll;
-        Some(Bounds::from_corners(
-            point(left + line.x_for(range.start), bounds.top()),
-            point(left + line.x_for(range.end), bounds.bottom()),
-        ))
+        if !self.ime_field(window, cx) {
+            return None;
+        }
+        let paint = self.paint.borrow();
+        let mut field = paint.frame?;
+        field.origin.x = paint.field_origin;
+        Some(ime_bounds(&self.line.borrow(), &self.entry, &range, field))
     }
 
     fn character_index_for_point(
         &mut self,
         at: Point<Pixels>,
-        _: &mut Window,
-        _: &mut Context<Self>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
     ) -> Option<usize> {
-        let origin = self.paint.borrow().field_origin;
-        let line = self.line.borrow();
-        let index = line.index_for(at.x - origin + line.scroll);
-        drop(line);
-        Some(self.entry.offset_to_utf16(index))
+        if !self.ime_field(window, cx) {
+            return None;
+        }
+        Some(ime_index(
+            &self.line.borrow(),
+            &self.entry,
+            at.x - self.paint.borrow().field_origin,
+        ))
+    }
+}
+
+impl PathView {
+    fn ime_field(&self, window: &Window, _: &gpui::App) -> bool {
+        self.holds_keyboard(window)
+            && !self.jump.enter_waiting
+            && self.line.borrow().accepts(&self.entry)
+    }
+}
+
+#[cfg(test)]
+mod i50_tests {
+    use super::*;
+    #[gpui::test]
+    fn i50_dialog_go_to_composition_and_closed_owner(cx: &mut gpui::TestAppContext) {
+        let (view, cx) = cx.add_window_view(|_, cx| {
+            PathView::new(
+                std::sync::Arc::new(flea::i18n::I18n::default()),
+                Box::new(crate::path::suggestions::Unranked),
+                cx,
+            )
+        });
+        cx.simulate_resize(gpui::size(gpui::px(600.), gpui::px(27.)));
+        view.update_in(cx, |v, w, cx| v.open(w, cx));
+        cx.run_until_parked();
+        cx.update(|w, cx| {
+            w.refresh();
+            w.draw(cx).clear(cx);
+        });
+        view.update_in(cx, |v, w, cx| {
+            v.replace_and_mark_text_in_range(None, "/猫", Some(2..2), w, cx);
+            assert_eq!(v.marked_text_range(w, cx), Some(0..2));
+        });
+        cx.simulate_keystrokes("enter");
+        assert!(view.read_with(cx, |v, _| v.entry.editing));
+        cx.simulate_keystrokes("escape");
+        assert!(view.read_with(cx, |v, _| v.entry.editing && v.entry.marked.is_none()));
+        view.update_in(cx, |v, w, cx| {
+            v.close(cx);
+            v.replace_text_in_range(None, "late", w, cx);
+            assert!(v.selected_text_range(false, w, cx).is_none());
+            v.open(w, cx);
+            v.replace_and_mark_text_in_range(None, "late", None, w, cx);
+            assert!(v.entry.marked.is_none());
+        });
     }
 }

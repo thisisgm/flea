@@ -18,18 +18,39 @@ impl Shell {
         });
         host.presentation.begin(held, now);
         if host.presentation.feedback.is_none() {
-            let shell = cx.entity().downgrade();
-            host.presentation.feedback =
-                Some(window.observe_frame_presented(cx, move |window, cx| {
-                    let Some(frames) = window.presented_frames() else {
-                        return;
-                    };
-                    let _ = shell.update(cx, |shell, _| {
-                        if let Some(host) = &mut shell.trash {
-                            host.presentation.presented(frames.presented);
-                        }
-                    });
-                }));
+            // Wayland holds its callback borrow through draw; a foreground task runs after that dispatch returns.
+            cx.spawn_in(window, async move |shell, cx| {
+                let _ = shell.update_in(cx, |shell, window, cx| {
+                    shell.observe_trash_presentation(window, cx);
+                });
+            })
+            .detach();
+        }
+    }
+
+    fn observe_trash_presentation(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(host) = self.trash.as_mut() else {
+            return;
+        };
+        if host.presentation.feedback.is_some() {
+            return;
+        }
+        #[cfg(test)]
+        super::trashview_tests::record_registration(window, cx);
+        let shell = cx.entity().downgrade();
+        host.presentation.feedback = Some(window.observe_frame_presented(cx, move |window, cx| {
+            let Some(frames) = window.presented_frames() else {
+                return;
+            };
+            let _ = shell.update(cx, |shell, _| {
+                if let Some(host) = &mut shell.trash {
+                    host.presentation.presented(frames.presented);
+                }
+            });
+        }));
+        // Feedback may have advanced before the registration task ran.
+        if let Some(frames) = window.presented_frames() {
+            host.presentation.presented(frames.presented);
         }
     }
 

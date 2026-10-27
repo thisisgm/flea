@@ -211,9 +211,9 @@ pub fn thumb_limit(thumb_w: f64, thumb_h: f64, original_w: f64, original_h: f64)
     }
 }
 
-// A video poster fills the frame; an image keeps the never-enlarge cap.
-pub fn poster_limit(is_video: bool, thumb_w: f64, thumb_h: f64, original_w: f64, original_h: f64) -> f64 {
-    if is_video {
+// A video poster and a vector fill the frame; a raster image keeps the never-enlarge cap (v0.3.12).
+pub fn preview_limit(is_video: bool, vector: bool, thumb_w: f64, thumb_h: f64, original_w: f64, original_h: f64) -> f64 {
+    if is_video || vector {
         return f64::INFINITY;
     }
     thumb_limit(thumb_w, thumb_h, original_w, original_h)

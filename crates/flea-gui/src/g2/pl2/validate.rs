@@ -17,7 +17,10 @@ pub(super) fn phone(uri: &str) -> bool {
 }
 
 pub(super) fn refused(request: &Request) -> Option<Vec<Effect>> {
-    if phone(&request.uri) || Form::saved_address(&request.uri).is_ok() {
+    if phone(&request.uri)
+        || Form::saved_address(&request.uri).is_ok()
+        || (request.id == 0 && super::routing::incomplete(&request.uri).is_some())
+    {
         return None;
     }
     Some(if request.id == 0 {

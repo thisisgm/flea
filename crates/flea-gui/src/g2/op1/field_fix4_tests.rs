@@ -299,3 +299,22 @@ fn u13_fix4_copy_confirm_copy_queue_keeps_keyboard_and_originating_backends(
         before + 1
     );
 }
+
+#[gpui::test]
+fn i50_ime_blur_commits_the_composition(cx: &mut TestAppContext) {
+    let (handle, view, _lines) = open(cx, "/files");
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    visual.update(|window, cx| {
+        view.update(cx, |view, cx| {
+            view.replace_text_in_range(None, "/dir", window, cx);
+            view.replace_and_mark_text_in_range(None, "\u{3081}", None, window, cx);
+        })
+    });
+    // A pointer submit blurs the field mid-composition; the preedit commits as shown.
+    let copy = visual.debug_bounds("op1-button-1").unwrap();
+    visual.simulate_click(copy.center(), Modifiers::none());
+    visual.update(|window, cx| window.draw(cx).clear(cx));
+    assert!(view.read_with(&visual, |v, _| v.editor.entry.marked.is_none()));
+    let (path, _, busy) = super::field_tests::state(&view, &visual);
+    assert_eq!((path.as_str(), busy), ("/dir\u{3081}", true));
+}

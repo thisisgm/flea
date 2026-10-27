@@ -1,7 +1,17 @@
 //! Header geometry reads the title run's text and clipping, including its cached sort direction.
 use super::{frame, open};
-use crate::{list::bench, visual::Probe, window::startup::View};
+use crate::{
+    list::{
+        bench,
+        columns::{self, StoredWidths, Switched, Tokens},
+        header::HeaderState,
+        Metrics,
+    },
+    visual::Probe,
+    window::startup::View,
+};
 use flea::jsondoc::Json;
+use gpui::px;
 
 fn role(probe: &Probe, key: &str) -> Option<Json> {
     probe
@@ -69,6 +79,29 @@ fn u04_header_probe_reads_the_painted_sorted_titles_and_only_drawn_cells() {
     for hidden in ["mode", "modified", "kind"] {
         assert!(role(&probe, &format!("header-0-{hidden}")).is_none());
     }
+}
+
+#[test]
+fn dual_header_name_cell_is_the_row_name_cell() {
+    // The header reads the rows' own name cell (the Dual mark slot), whatever metrics a caller hands it.
+    let metrics = Metrics::at(px(14.));
+    let tokens = Tokens::measure(metrics.pad, 19., metrics.gap, 7., 13.);
+    let layout = columns::resolve(
+        400.,
+        &tokens,
+        Switched::default().for_dual(true),
+        StoredWidths::default(),
+    );
+    assert_eq!(
+        HeaderState::title_cell(&layout, &metrics, None, true),
+        Some(layout.name),
+        "the Dual header's Name sits over the rows' name column"
+    );
+    assert_eq!(
+        HeaderState::title_cell(&layout, &metrics, None, false).map(|cell| cell.x),
+        Some(metrics.pad),
+        "the single List header keeps its board inset at the padding"
+    );
 }
 
 #[test]

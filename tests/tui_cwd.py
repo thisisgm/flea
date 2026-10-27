@@ -257,7 +257,7 @@ while not result_file.exists() and time.monotonic() < deadline:
 assert result_file.exists(), 'agent did not report its launch'
 result = json.loads(result_file.read_text())
 s.read()
-assert result['cwd'] == str(fixture) and result['argv'] == ['agent'], result
+assert result['cwd'] == str(fixture) and result['argv'] == ['agent', '--pick'], result
 assert result['fds'] == ['/dev/null'] * 3, result
 assert result['pid'] == result['group'], result
 assert b'AGENT_STDOUT_SENTINEL' not in s.output and b'AGENT_STDERR_SENTINEL' not in s.output
