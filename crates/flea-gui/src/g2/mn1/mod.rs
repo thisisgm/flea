@@ -2,6 +2,7 @@
 mod delivery;
 mod discovery;
 mod facts;
+mod notice;
 pub mod element;
 #[cfg(test)]
 mod elide_tests;

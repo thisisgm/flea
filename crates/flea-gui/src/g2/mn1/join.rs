@@ -61,6 +61,7 @@ pub struct Joined {
     pub(crate) place: Option<super::place_host::Place>,
     pub menu: Rc<RefCell<Menu>>,
     pub captured: Option<Captured>,
+    pub(crate) rail: Option<crate::window::dispatch::rail_menu::Target>,
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
     pub(crate) from_sheet: bool,
@@ -106,6 +107,9 @@ impl Shell {
     }
 
     pub(crate) fn menu_identity(&self) -> String {
+        if self.menu.rail.is_some() {
+            return String::new();
+        }
         if let Some(place) = &self.menu.place {
             return place.key.clone();
         }
@@ -143,6 +147,9 @@ impl Shell {
     }
 
     fn menu_entries_keeping(&self, keep: &str) -> Vec<Entry> {
+        if let Some(target) = &self.menu.rail {
+            return target.rows();
+        }
         if let Some(entries) = self.place_menu_entries() {
             return entries;
         }

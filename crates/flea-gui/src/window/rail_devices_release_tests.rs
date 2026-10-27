@@ -302,3 +302,19 @@ fn release_open_place_on_a_busy_pane_supersedes_and_never_refuses(cx: &mut TestA
     let place = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.place().to_owned());
     assert_eq!(place, "/fixture/phone");
 }
+
+#[gpui::test]
+fn pb_rail_2_eject_holds_the_rail_while_its_child_runs(cx: &mut TestAppContext) {
+    let (shell, _service, cx) = shell_at("/fixture/work", cx);
+    let hit = row(&shell, "128GB", cx).eject_hit().unwrap();
+    cx.simulate_mouse_down(centre(hit), MouseButton::Left, Modifiers::none());
+    cx.simulate_mouse_up(centre(hit), MouseButton::Left, Modifiers::none());
+    frame(cx);
+    shell.read_with(cx, |shell, cx| {
+        let join = shell.rail.as_ref().unwrap();
+        assert!(join.devices.read(cx).devices.releasing(), "the eject child is in flight");
+        assert!(join.host.read(cx).rail.wants().releasing, "the live release owns the rail hold");
+    });
+    // The hold's end waits on the post-exit listing that judges the eject; this test stops at the hold's start.
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
