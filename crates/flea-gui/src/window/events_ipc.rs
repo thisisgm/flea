@@ -250,6 +250,7 @@ impl Shell {
                 let output_cards = crate::ipc::output_cards::OutputAdapter { shell: self, cx };
                 let dialog_cards = crate::ipc::dialog_cards::DialogAdapter { shell: self, cx };
                 let feedback = crate::ipc::window_feedback::FeedbackAdapter { shell: self, cx };
+                let archive_preview = crate::ipc::fileops_preview::PreviewAdapter { shell: self, cx };
                 let column_preview =
                     crate::ipc::columns_preview::ColumnsPreview { preview: &preview };
                 let glass = super::super::glass::Reader { window, cx };
@@ -257,7 +258,7 @@ impl Shell {
                     look: look.view,
                     cx,
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 37] = [
+                let adapters: [&dyn crate::ipc::Adapter; 38] = [
                     &glass,
                     &column_preview,
                     &drag,
@@ -294,15 +295,16 @@ impl Shell {
                     &output_cards,
                     &dialog_cards,
                     &feedback,
+                    &archive_preview,
                     &rows,
                 ];
                 let count = if matches!(
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    37
+                    38
                 } else {
-                    36
+                    37
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
