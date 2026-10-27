@@ -41,7 +41,7 @@ fn search_exact_prefix_path_and_protected_numeric_controls() {
     let (_root, mut search) = session(&["render", "render_more", "rander", "render-parent/notes.txt", "downloads/helper.txt", "render12", "render13", "icon.svg", "icon.sxg"]);
     let ranked = names(&mut search, 1, "render");
     assert_eq!(ranked[0], "render");
-    assert!(ranked.iter().position(|p| p == "render_more").unwrap() < ranked.iter().position(|p| p == "rander").unwrap());
+    assert!(ranked.contains(&"render_more".to_string()) && !ranked.contains(&"rander".to_string()), "no typo row beside real hits");
     assert!(ranked.iter().position(|p| p == "render-parent/notes.txt").unwrap() > 0);
     assert!(names(&mut search, 2, "dwnhelp").contains(&"downloads/helper.txt".to_string()));
     let numbered = names(&mut search, 3, "render12");
@@ -49,4 +49,5 @@ fn search_exact_prefix_path_and_protected_numeric_controls() {
     assert!(!numbered.contains(&"render13".to_string()));
     assert_eq!(names(&mut search, 4, ".svg"), ["icon.svg"]);
     assert!(search.query(5, "downloads", 100).unwrap().rows.contains(&("downloads".to_string(), true)));
+    assert!(names(&mut search, 6, "rnader").contains(&"rander".to_string()), "a typo row shows where no basename holds the query");
 }

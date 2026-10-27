@@ -238,7 +238,7 @@ pub(crate) struct Scratch {
 
 #[path = "searchscore.rs"]
 mod scoring;
-pub(crate) use scoring::{boundary, class, resolve, resolve_head, score_cached, QueryScratch};
+pub(crate) use scoring::{boundary, class, class_counts, hide_typos, last_class, resolve, resolve_head, score_cached, QueryScratch};
 #[cfg(test)]
 pub(crate) use scoring::score_all;
 
