@@ -46,6 +46,7 @@ const FAMILIES: &[Family] = &[
     preview::run,
     listing::run,
     window::run,
+    super::permissions::run,
     rename::run,
     menus::run,
     clipboard::run,

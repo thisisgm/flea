@@ -66,6 +66,16 @@ impl Shell {
         if self.card_takes_text(event, window, cx) {
             return;
         }
+        if let Some(view) = self
+            .permissions
+            .view
+            .clone()
+            .filter(|view| view.read(cx).opened)
+        {
+            view.update(cx, |view, cx| view.key(event, window, cx));
+            cx.stop_propagation();
+            return;
+        }
         // Every modal key belongs to the card; a cardless Escape still reaches the window.
         if let Some(overlay) = self.overlay.clone() {
             let modal = overlay.read_with(cx, |card, cx| card.modal(cx));

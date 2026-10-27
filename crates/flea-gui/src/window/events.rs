@@ -34,6 +34,9 @@ impl Shell {
         if let BackendEvent::Peeked(document) = &event {
             self.tab_peeked(side, document, window, cx);
         }
+        if self.permissions_event(side, &event, window, cx) {
+            return;
+        }
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained)
             && self
                 .menu

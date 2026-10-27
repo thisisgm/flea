@@ -184,10 +184,10 @@ impl Draw<'_> {
             .text_color(self.t.fg)
             .child(div().w(self.px(LABEL_COLUMN)).flex_none());
         for name in columns {
-            head = head.child(cell().child(name.to_uppercase()));
+            head = head.child(cell().child(self.caption(name, GRID_HEAD_LINE, self.t.fg)));
         }
         let mut grid = div().flex().flex_col().child(head);
-        for (name, checks) in rows {
+        for (row, (name, checks)) in rows.iter().enumerate() {
             let mut line = self
                 .text(BOARD_BODY)
                 .h(self.px(LINE_40))
@@ -200,8 +200,19 @@ impl Draw<'_> {
                         .flex_none()
                         .child(name.clone()),
                 );
-            for check in checks {
-                line = line.child(cell().child(self.check(*check)));
+            for (column, check) in checks.iter().enumerate() {
+                let at = row * 3 + column;
+                line = line.child(
+                    cell().child(
+                        self.wired(
+                            Control::Check(at),
+                            div()
+                                .id(("op3-check", at))
+                                .debug_selector(move || format!("op3-check-{at}"))
+                                .child(self.check(*check)),
+                        ),
+                    ),
+                );
             }
             grid = grid.child(line);
         }
@@ -257,7 +268,14 @@ impl Draw<'_> {
     pub(super) fn block(&self, block: &Block) -> AnyElement {
         let t = self.t;
         match block {
-            Block::Field(field) => self.field(field).into_any_element(),
+            Block::Field(field) => self
+                .wired(
+                    Control::Field,
+                    self.field(field)
+                        .id("op3-field")
+                        .debug_selector(|| "op3-field".into()),
+                )
+                .into_any_element(),
             Block::Fields(left, right) => div()
                 .flex()
                 .gap(self.px(GAP))
@@ -291,6 +309,10 @@ impl Draw<'_> {
                 ink,
                 lift,
             } => div()
+                .debug_selector({
+                    let text = text.clone();
+                    move || format!("op3-note:{text}")
+                })
                 .text_size(self.px(CAPTION))
                 .line_height(relative(1.5))
                 .mt(self.px(-*lift))
@@ -367,7 +389,7 @@ impl Draw<'_> {
                         div()
                             .line_height(self.px(18.))
                             .pb(self.px(3.))
-                            .child(head.to_uppercase()),
+                            .child(self.caption(head, 18., t.fg)),
                     );
                 for (at, line) in lines.iter().enumerate() {
                     let height = if at + 1 == lines.len() { 20. } else { 16. };
