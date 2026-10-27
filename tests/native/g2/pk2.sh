@@ -2,6 +2,7 @@
 # Native picker acceptance in both arms, then scenes; native host only.
 set -euo pipefail
 : "${W:?absolute staged candidate tree}" "${Q_BIN:?verified v0.3.12 launcher}" "${G_BIN:?verified GPUI flea binary}"
+: "${FLEA_VISUAL_DESIGN:?FLEA_VISUAL_DESIGN is unset: set it to the design-hig root}"
 [[ $W == /* && -d $W ]] || { printf 'W must be an absolute tree\n' >&2; exit 2; }
 cd "$W"
 mkdir -p "$W/.superpowers/g2-pk2"
@@ -35,8 +36,13 @@ for arm in qml gpui; do
     done
 done
 test -x tools/flea-ci-visual || { printf 'BLOCKED: the GPUI scene CLI tools/flea-ci-visual is absent\n' >&2; exit 2; }
+# The tracked manifest keeps the ${FLEA_VISUAL_DESIGN} token; this run reads an expanded copy.
+manifest="$E/pk2.json"
+json=$(<tests/visual/g2/pk2.json)
+case $FLEA_VISUAL_DESIGN in *'"'* | *'\'*) printf 'FLEA_VISUAL_DESIGN holds a quote or backslash\n' >&2; exit 2 ;; esac
+printf '%s\n' "${json//'${FLEA_VISUAL_DESIGN}'/"$FLEA_VISUAL_DESIGN"}" > "$manifest"
 for arm in qml gpui; do
-    tools/flea-ci-visual --frontend "$arm" --manifest tests/visual/g2/pk2.json --output "$E/visual/$arm"
+    tools/flea-ci-visual --frontend "$arm" --manifest "$manifest" --output "$E/visual/$arm"
 done
 printf 'evidence %s\n' "$E"
 [ ! -s "$failures" ]
