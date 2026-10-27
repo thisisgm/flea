@@ -4,7 +4,9 @@ pub mod browse;
 mod drawn;
 pub mod filename;
 mod find;
+mod find_input;
 mod geometry;
+mod ime;
 pub mod ipc;
 pub mod labels;
 pub mod launch;
@@ -13,9 +15,12 @@ pub mod process;
 pub mod reply;
 mod route;
 mod settings;
+mod text;
 mod view;
 
 pub use picker::{Children, ListingFacts, Message, Picker};
 
+#[cfg(test)]
+mod i50_ime_tests;
 #[cfg(test)]
 mod tests;

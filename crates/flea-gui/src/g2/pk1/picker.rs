@@ -296,7 +296,16 @@ impl Picker {
                 Effect::CloseChecks => {
                     let _ = self.checks.send(logic::CLOSE_LINE);
                 }
-                Effect::WriteReply(text) => self.write_reply(text, cx),
+                Effect::WriteReply(text) => {
+                    self.find.entry.close();
+                    if let Some(field) = self.browse.filename.clone() {
+                        field.update(cx, |field, cx| {
+                            field.entry.close();
+                            cx.notify();
+                        });
+                    }
+                    self.write_reply(text, cx);
+                }
                 Effect::QuitChildren => {
                     self.checks.quit();
                     self.listing_child.quit();

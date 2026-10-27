@@ -104,6 +104,9 @@ impl Picker {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.answered() {
+            return;
+        }
         self.browse.window = Some(window.window_handle());
         // The shared path entry answers its own keys; what it lets through is typed into it, never into the chooser.
         let path = self.browse.path_view(cx);
@@ -111,7 +114,34 @@ impl Picker {
             return;
         }
         let key = event.keystroke.key.as_str();
-        // The save field takes the keyboard from the list, and Escape still refuses from there.
+        if let Some(filename) = self.browse.filename.clone() {
+            if filename.read(cx).focus.is_focused(window) {
+                let result = filename.update(cx, |field, cx| field.key(event, cx));
+                match &result {
+                    FieldKey::Edited(text) => self.save_name_edited(text.clone(), cx),
+                    FieldKey::Enter => self.accept(cx),
+                    FieldKey::Tab => window.focus(&self.focus, cx),
+                    FieldKey::Moved | FieldKey::Ignored => {}
+                }
+                if result != FieldKey::Ignored {
+                    cx.stop_propagation();
+                    return;
+                }
+                if key != "escape" || filename.read(cx).entry.marked.is_some() {
+                    return;
+                }
+            }
+        }
+        let typing = self.find.owner.typing();
+        if typing {
+            if self.find_key(event, window, cx) {
+                cx.stop_propagation();
+                return;
+            }
+            if self.find.owner.typing() {
+                return;
+            }
+        }
         if key == "escape" {
             cx.stop_propagation();
             if self.find_escape(cx) {
@@ -121,18 +151,6 @@ impl Picker {
                 self.cancel(cx);
             }
             return;
-        }
-        if let Some(filename) = self.browse.filename.clone() {
-            if filename.read(cx).focus.is_focused(window) {
-                cx.stop_propagation();
-                match filename.update(cx, |field, cx| field.key(event, cx)) {
-                    FieldKey::Edited(text) => self.save_name_edited(text, cx),
-                    FieldKey::Enter => self.accept(cx),
-                    FieldKey::Tab => window.focus(&self.focus, cx),
-                    FieldKey::Moved | FieldKey::Ignored => {}
-                }
-                return;
-            }
         }
         if self.find_key(event, window, cx) {
             cx.stop_propagation();

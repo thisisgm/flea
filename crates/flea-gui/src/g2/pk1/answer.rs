@@ -6,6 +6,15 @@ use flea::ui_logic_pk1::{
 use gpui::Context;
 
 impl Picker {
+    fn composing(&self, cx: &gpui::App) -> bool {
+        self.find.entry.marked.is_some()
+            || self
+                .browse
+                .filename
+                .as_ref()
+                .is_some_and(|field| field.read(cx).entry.marked.is_some())
+    }
+
     pub fn accept_state(&self) -> AcceptState<'_> {
         AcceptState {
             req: &self.req,
@@ -28,7 +37,7 @@ impl Picker {
     }
 
     pub fn accept(&mut self, cx: &mut Context<Self>) {
-        if self.answered() {
+        if self.answered() || self.composing(cx) {
             return;
         }
         match logic::accept_step(&self.accept_state()) {
@@ -53,6 +62,9 @@ impl Picker {
 
     // Replace is the only answer that overwrites; nothing but its own activation arrives here.
     pub fn replace(&mut self, cx: &mut Context<Self>) {
+        if self.composing(cx) {
+            return;
+        }
         if logic::replace_allowed(&self.accept_state()) {
             self.submit_save();
             cx.notify();

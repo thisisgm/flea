@@ -42,6 +42,7 @@ pub struct Browse {
     pub(super) focus_filename: bool,
     pub(super) stems_seen: u64,
     _path: Subscription,
+    _filename: Option<Subscription>,
 }
 
 // The body slot: the path strip over the listing.
@@ -89,7 +90,15 @@ impl Browse {
             let label = catalog.tr("picker.browser.save_as");
             cx.new(|cx| Filename::new(&seed, label, save, cx))
         });
+        let filename_subscription = filename.as_ref().map(|field| {
+            cx.subscribe(field, |picker: &mut Picker, _, event, cx| {
+                if let super::filename::FieldKey::Edited(text) = event {
+                    picker.save_name_edited(text.clone(), cx);
+                }
+            })
+        });
         Self {
+            _filename: filename_subscription,
             listing,
             path,
             focus_filename: filename.is_some(),
