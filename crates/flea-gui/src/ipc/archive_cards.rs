@@ -13,7 +13,10 @@ impl Adapter for ArchiveAdapter<'_> {
         let value = match function {
             "archiveFormats" => archive.formats[self.shell.focus_side].archive.join("|"),
             "archiveCardsState" => {
-                return Some(Reply::error(3, "FLEA_IPC_ERROR flea.archiveCardsState unavailable fields: retained password-card lifetime, compressCapture.eye, extractCapture.eye (closing Compress discards its model and neither card records painted eye bounds)"));
+                if !archive.card_open() {
+                    return Some(Reply::value("{\"opened\":false}"));
+                }
+                return Some(Reply::error(3, "FLEA_IPC_ERROR flea.archiveCardsState unavailable fields: compressCapture.eye, extractCapture.eye (neither card records painted eye bounds)"));
             }
             "flashState" => {
                 let flash = &archive.flash;

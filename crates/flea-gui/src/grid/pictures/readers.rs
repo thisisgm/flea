@@ -35,6 +35,11 @@ impl Pictures {
         }
     }
 
+    // Image.Ready on the row's current slot, the test ui/Ipc.qml rowThumbReady makes.
+    pub(crate) fn ready(&self, held: &Held, row: usize) -> bool {
+        self.status(held, row) == ImageStatus::Ready as i32
+    }
+
     // Qt Image.Null, Image.Ready, Image.Loading and Image.Error are the frozen IPC values.
     pub(crate) fn status(&self, held: &Held, row: usize) -> i32 {
         (match self.map.borrow().current(held, row) {

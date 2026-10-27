@@ -248,11 +248,28 @@ impl Shell {
                 let devices = crate::ipc::devices::DeviceAdapter {
                     source: self.rail.as_ref().map(|join| join.devices.read(cx)),
                 };
-                let thumbnails = crate::ipc::thumbnails::Thumbnails { host };
+                let thumbnails = crate::ipc::thumbnails::Thumbnails {
+                    host,
+                    mode: crate::grid::element::pictures::policy::Policy::read(
+                        &self.launch.settings.data,
+                    )
+                    .mode,
+                };
                 let archive_cards = crate::ipc::archive_cards::ArchiveAdapter { shell: self };
                 let output_cards = crate::ipc::output_cards::OutputAdapter { shell: self, cx };
-                let dialog_cards = crate::ipc::dialog_cards::DialogAdapter { shell: self, cx };
-                let feedback = crate::ipc::window_feedback::FeedbackAdapter { shell: self, cx };
+                let dialog_cards = crate::ipc::dialog_cards::DialogAdapter {
+                    shell: self,
+                    cx,
+                    input_ready: states.focused && !host.pane.busy(),
+                };
+                let feedback = crate::ipc::window_feedback::FeedbackAdapter {
+                    shell: self,
+                    cx,
+                    view: focus.view.unwrap_or(""),
+                    pane_focused: self.focus.is_focused(window),
+                    list_focused: states.focused,
+                    drop_active: states.drop_target.is_some(),
+                };
                 let archive_preview = crate::ipc::fileops_preview::PreviewAdapter { shell: self, cx };
                 let column_preview =
                     crate::ipc::columns_preview::ColumnsPreview { preview: &preview };

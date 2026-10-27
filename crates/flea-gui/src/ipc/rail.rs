@@ -380,6 +380,8 @@ impl Adapter for RailAdapter<'_> {
                     .join("\n")
             }
             "networkBuilt" => self.network.ready().to_string(),
+            // GPUI tracks the pointer over the whole rail, never over one release mark, so no mark reads hovered.
+            "railMarkHovered" => false.to_string(),
             "networkMarkGeometry" => self.mark_geometry().unwrap_or_default(),
             "networkMarkCentre" => self.mark_centre().unwrap_or_default(),
             // U27 installs recentMode with the actual Recent listing owner.
