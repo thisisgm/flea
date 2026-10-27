@@ -11,6 +11,8 @@ pub enum Press {
     Delete(trash::Button),
     CopyCancel,
     CopyConfirm,
+    NewFileCancel,
+    NewFileConfirm,
     Job(u64, jobs::Action),
 }
 
@@ -23,6 +25,8 @@ impl Press {
             Press::Delete(b) => 0x20 + b as u64,
             Press::CopyCancel => 0x30,
             Press::CopyConfirm => 0x31,
+            Press::NewFileCancel => 0x32,
+            Press::NewFileConfirm => 0x33,
             Press::Job(id, a) => 0x100 + (id << 2) + a as u64,
         }
     }

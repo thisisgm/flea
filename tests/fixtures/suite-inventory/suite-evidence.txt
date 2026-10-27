@@ -246,7 +246,7 @@ preview-holdframes|^preview-holdframes: [1-9][0-9]* check\(s\), 0 failed$|1
 navframe|^navframe: Enter and Back draw no frame before the landing in three views, and the listing gate still refuses input$|1
 cursormark|^CURSORMARK DONE (list|grid|columns)$|3
 gridmark|GRIDMARK PASS armed=\+[1-9][0-9]* keybuilt=0 states=.*search|1
-# Deferred 0.3.12 language evidence: 9d8b6fc75de6a083bd3875e91a87463774e3a61d; /home/gm/flea-ops/claude/releases/PENDING.md.
+# Deferred 0.3.12 language evidence: 9d8b6fc75de6a083bd3875e91a87463774e3a61d, listed with the pending release work.
 # DEFERRED gridmark|^LANGCREATE KEY filter-r calls=0$|1
 # DEFERRED gridmark|^LANGCREATE KEY backspace calls=0$|1
 # DEFERRED gridmark|^LANGCREATE KEY filter-r-again calls=0$|1
@@ -511,3 +511,18 @@ gpui-theme-gate|^GPUI_THEME_GATE PASS stock=2[45] contrast and live atomic repla
 ui-gpui-headless|^UI_GPUI_HEADLESS PASS mounted Window input, production IPC, identity, refusal, deadlines and teardown$|1
 ui-uish-common-observers|^UISH_04 HARNESS PASS 6 controls: QML, current, changed, stale, unloaded, invalid$|1
 ui-uish-common-observers|^UISH_04 PASS live palette, 34 tokens, applied wheel gain and refusal controls$|1
+# Compat, i18n, bench and native suites joined after the inventory was drawn.
+g1-14|^G1_14 PASS retained glyphs, invalidation, allocation controls and clippy$|1
+g1-05|^G1_05 PASS scroll and slow-click policy, shell wiring tests, oracle vectors, mutation controls and clippy$|1
+i18n-quality|^PASS i18n-quality: [1-9][0-9]* tests$|1
+cli-contract|^cli-contract: all rows passed$|2
+cli-contract-mutations|^cli-contract-mutations: all [1-9][0-9]* source mutations rejected$|1
+legacy-upgrade|^legacy-upgrade: all cases passed$|1
+legacy-helpers|^legacy-helpers: all cases passed$|1
+state-compat|^state-compat: all covered readers preserved source files$|1
+chooser-replies|^chooser-replies: all cases passed$|1
+bench-field-work|^ok   |36
+bench-gate-provenance|^BENCH_GATE_PROVENANCE PASS$|1
+fs-instrument|^fs-instrument: PASS$|1
+native-runtime|^NATIVE RUNTIME PASS [1-9][0-9]* adapter/display pairs and [1-9][0-9]* executable guards$|1
+native-runtime|^ARCHIVE SCENES PASS submitted mismatch and lit primary focus$|1

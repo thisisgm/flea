@@ -591,7 +591,8 @@ fn pv2_office_failures_project_the_approved_sentences(cx: &mut TestAppContext) {
     cfb.resize(4096, 0);
     std::fs::write(&lease, cfb).unwrap();
     let report = root.0.join("report.docx");
-    std::fs::write(&report, b"PK\x03\x04 not really a zip").unwrap();
+    // A real container, since a fake one falls to the unsupported card before any conversion runs.
+    std::fs::write(&report, container::REAL_DOCX).unwrap();
     let i18n = I18n::default();
     let (view, _, _) = office(cx, true);
     let cases = [
@@ -772,15 +773,21 @@ fn pv2_office_sheets_open_in_the_table_and_switch(cx: &mut TestAppContext) {
             .unwrap(),
         "Savings is current"
     );
-    let before = code.borrow().len();
     assert!(view
         .update(cx, |v, _, cx| v.action("nextSheet", cx))
         .unwrap());
     draw(cx, view);
-    assert_eq!(
-        code.borrow().len(),
-        before,
-        "] on the last sheet stays and asks nothing"
+    assert!(
+        code.borrow()
+            .last()
+            .unwrap()
+            .contains(r#""path":"/c/m.csv""#),
+        "] on the last sheet wraps to the first, as the 3MF plate steps wrap"
+    );
+    assert!(
+        view.update(cx, |v, _, cx| v.bar(&i18n, cx).sheets[0].1)
+            .unwrap(),
+        "Monthly is current again"
     );
     view.update(cx, |v, _, cx| {
         v.set_meta("/d/budget.xlsx", Some("Budget".into()), None, cx)
@@ -794,6 +801,10 @@ fn pv2_office_sheets_open_in_the_table_and_switch(cx: &mut TestAppContext) {
     );
 }
 
+#[path = "g2_pv2_office/container.rs"]
+mod container;
+#[path = "g2_pv2_office/fix_qlsheet.rs"]
+mod fix_qlsheet;
 #[path = "g2_pv2_office/review.rs"]
 mod review;
 #[path = "g2_pv2_office/review_r2.rs"]

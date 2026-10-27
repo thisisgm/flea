@@ -2,7 +2,8 @@
 #[derive(Default)]
 pub(crate) struct Filesystem {
     pub path: String,
-    pub(super) listing: usize,
+    /// Listing the shown folder's facts were asked for; None (never asked) still asks.
+    pub(super) listing: Option<usize>,
     pub answered: bool,
     /// Retained across a folder change; only an accepted answer for the shown folder replaces it.
     pub facts: Option<crate::backend::status::Filesystem>,
@@ -12,9 +13,30 @@ impl Filesystem {
     pub(crate) fn enter(&mut self, path: &str) {
         if self.path != path {
             self.path = path.into();
-            self.listing = 0;
+            self.listing = None;
             self.answered = false;
         }
+    }
+
+    /// A refused listing or failed backend answers with no facts; retained facts stay.
+    pub(crate) fn settle_without_facts(&mut self) {
+        self.answered = true;
+    }
+
+    /// Lands an fsinfo answer on the shown folder; an empty path is the backend's unmoved base.
+    pub(crate) fn answer(
+        &mut self,
+        shown: &str,
+        mut facts: crate::backend::status::Filesystem,
+    ) -> bool {
+        if facts.path != shown && !facts.path.is_empty() {
+            return false;
+        }
+        facts.path = shown.to_owned();
+        self.enter(shown);
+        self.answered = true;
+        self.facts = Some(facts);
+        true
     }
 }
 
@@ -27,7 +49,7 @@ impl Filesystem {
     ) -> Self {
         Self {
             path: facts.path.clone(),
-            listing,
+            listing: Some(listing),
             answered: true,
             facts: Some(facts),
         }

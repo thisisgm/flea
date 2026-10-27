@@ -149,7 +149,7 @@ fn results(sheet: &Sheet) -> Json {
             .collect(),
     )
 }
-fn sheet_rows(sheet: &Sheet) -> String {
+pub(crate) fn sheet_rows(sheet: &Sheet) -> String {
     if !sheet.query.is_empty() {
         return sheet
             .ranked
@@ -166,15 +166,7 @@ fn sheet_rows(sheet: &Sheet) -> String {
             .join("\n");
     }
     let mut out = Vec::new();
-    for group in flea::keys::SHEET_GROUPS {
-        let rows: Vec<_> = sheet
-            .rows
-            .iter()
-            .filter(|row| row.group == group.id)
-            .collect();
-        if rows.is_empty() {
-            continue;
-        }
+    for (_, group, rows) in sheet.groups() {
         out.push(sheet.catalog.tr(group.label_key));
         out.extend(rows.iter().map(|row| format!("{} {}", row.keys, row.label)));
     }

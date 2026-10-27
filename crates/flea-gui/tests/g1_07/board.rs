@@ -182,6 +182,8 @@ fn each_row_state_paints_the_board_plate_and_inks() {
         grey: false,
         selected: Rc::from([3usize]),
         hover: Some((Slot::Child, 2)),
+        renaming: None,
+        grow: Default::default(),
     };
     // Ancestor at rest: no plate, muted name, muted-frame mark.
     assert_eq!(focused.plate(&p, Slot::Parent, 4, false), None);

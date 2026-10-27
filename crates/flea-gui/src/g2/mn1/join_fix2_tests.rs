@@ -62,8 +62,10 @@ fn rev_u06_r2_openwith_leaf_icons_survive_menu_state(cx: &mut TestAppContext) {
         flyout[0].get("icon").and_then(Json::as_str),
         Some("text-x-generic")
     );
+    // The default stands alone: a separator, then the other apps, then Another Application.
+    assert!(flyout[1].get("separator").and_then(Json::as_bool) == Some(true));
     assert_eq!(
-        flyout[1].get("icon").and_then(Json::as_str),
+        flyout[2].get("icon").and_then(Json::as_str),
         Some("/fixture/icons/other.svg")
     );
     assert!(flyout.last().unwrap().get("icon").is_none());

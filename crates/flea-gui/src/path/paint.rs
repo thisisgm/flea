@@ -19,6 +19,7 @@ pub struct Ink {
     pub muted_frame: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
+    pub error: Hsla,
 }
 
 // Board inks: hover is the foreground at 8%, the hairline 12%.
@@ -35,6 +36,7 @@ impl Ink {
             muted_frame: palette.muted_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
+            error: palette.error,
         }
     }
 

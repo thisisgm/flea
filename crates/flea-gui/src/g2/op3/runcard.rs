@@ -18,6 +18,7 @@ pub struct RunCard {
     buttons: Vec<Button>,
     pub focus: Button,
     pub shift: bool,
+    listed: String,
 }
 
 impl RunCard {
@@ -33,7 +34,13 @@ impl RunCard {
             buttons,
             focus,
             shift: false,
+            listed: String::new(),
         })
+    }
+
+    /// The listed row's mark name, read once at open as v0.3.12 RunFile.listedGlyph reads it; a binary keeps it, a script keeps the code mark.
+    pub fn set_listed(&mut self, listed: &str) {
+        self.listed = listed.to_string();
     }
 
     /// The listed row's mark name for a binary, for the icon service to resolve.
@@ -41,11 +48,25 @@ impl RunCard {
         logic::glyph_for(self.ask.kind, listed)
     }
 
-    /// The board draws a script's code mark; a binary keeps the listed row's mark once the icon service hands it over.
+    /// The board draws a script's code mark; a binary keeps the listed row's mark the host read at open.
     fn mark(&self) -> Glyph {
-        match self.ask.kind {
-            flea::ui_logic_op3::runfile::Kind::Script => Glyph::Code,
+        match self.glyph(&self.listed).as_str() {
+            "code" => Glyph::Code,
+            "terminal" => Glyph::Terminal,
             _ => Glyph::AppWindow,
+        }
+    }
+
+    /// The button a drawn index names, so a click presses the same button Enter on it would.
+    pub fn button_at(&self, at: usize) -> Option<Button> {
+        self.buttons.get(at).copied()
+    }
+
+    /// A click on the drawn button at an index.
+    pub fn press_at(&mut self, at: usize) -> Vec<Effect> {
+        match self.button_at(at) {
+            Some(button) => self.press(button),
+            None => Vec::new(),
         }
     }
 
@@ -94,6 +115,7 @@ impl RunCard {
     pub fn card(&self, i18n: &I18n) -> Card {
         let default = logic::default_button(self.ask.kind, self.ask.has_handler());
         Card {
+            language: i18n.language().to_owned(),
             title: logic::title(i18n, &self.name),
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,

@@ -124,6 +124,14 @@ impl Overlay {
         self.schedule(cx);
     }
 
+    // Seam: the folder's background New File row, with the menu snapshot id its request carries.
+    pub fn new_file(&mut self, id: u64, folder: &str, cx: &mut Context<Self>) {
+        self.model.new_file(&self.catalog, id, folder);
+        self.editor.restart();
+        cx.notify();
+        self.schedule(cx);
+    }
+
     // Seam: the Trash view says when its own request is out; the check waits for it, then a full interval runs again.
     pub fn trash_busy(&mut self, busy: bool, cx: &mut Context<Self>) {
         if self.model.trash_busy && !busy {

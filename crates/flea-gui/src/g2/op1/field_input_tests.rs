@@ -6,8 +6,8 @@ use super::{
 };
 use crate::{backend::Event, window::root::Root};
 use gpui::{
-    Context, Entity, EntityInputHandler, Modifiers, TestAppContext, VisualTestContext, Window,
-    WindowHandle,
+    point, px, Context, Entity, EntityInputHandler, Modifiers, TestAppContext, VisualTestContext,
+    Window, WindowHandle,
 };
 
 fn input<R>(
@@ -191,4 +191,210 @@ fn u13_fix3_disabled_and_busy_controls_never_submit_or_edit(cx: &mut TestAppCont
         view.replace_and_mark_text_in_range(None, "late", None, window, cx)
     });
     assert!(!view.read_with(&visual, |v, _| v.model.open()));
+}
+
+#[gpui::test]
+fn i50_ime_utf16_surrogate(cx: &mut TestAppContext) {
+    let (handle, view, _received) = open(cx, "/files");
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    input(&mut visual, &view, |view, window, cx| {
+        view.replace_text_in_range(None, "/\u{1d11e}n", window, cx);
+        let mut adjusted = None;
+        // Half of a surrogate pair widens to its whole character instead of reading nothing.
+        assert_eq!(
+            view.text_for_range(2..3, &mut adjusted, window, cx)
+                .as_deref(),
+            Some("\u{1d11e}")
+        );
+        assert_eq!(adjusted, Some(1..3));
+        view.replace_text_in_range(Some(2..3), "x", window, cx);
+        assert_eq!(
+            view.selected_text_range(false, window, cx).unwrap().range,
+            2..2
+        );
+        view.replace_and_mark_text_in_range(None, "\u{1d11e}", Some(1..1), window, cx);
+        assert_eq!(view.marked_text_range(window, cx), Some(2..4));
+        assert_eq!(
+            view.selected_text_range(false, window, cx).unwrap().range,
+            4..4
+        );
+    });
+    assert_eq!(state(&view, &visual).0, "/x\u{1d11e}n");
+    visual.update(|window, cx| window.draw(cx).clear(cx));
+    input(&mut visual, &view, |view, window, cx| {
+        let slot = view.editor.drawn.borrow().bounds.unwrap();
+        let whole = view.bounds_for_range(2..4, slot, window, cx).unwrap();
+        assert!(whole.size.width > px(0.));
+        assert_eq!(view.bounds_for_range(3..4, slot, window, cx), Some(whole));
+        let inside = point(whole.left() + px(0.5), whole.center().y);
+        assert_eq!(view.character_index_for_point(inside, window, cx), Some(2));
+    });
+}
+
+#[gpui::test]
+fn i50_ime_combining_selection(cx: &mut TestAppContext) {
+    let (handle, view, _received) = open(cx, "/files");
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    let selected = |visual: &mut VisualTestContext| {
+        input(visual, &view, |view, window, cx| {
+            view.selected_text_range(false, window, cx).unwrap().range
+        })
+    };
+    input(&mut visual, &view, |view, window, cx| {
+        view.replace_text_in_range(None, "/e\u{301}x", window, cx)
+    });
+    visual.simulate_keystrokes("end left left");
+    assert_eq!(
+        selected(&mut visual),
+        1..1,
+        "a base and its mark step together"
+    );
+    visual.simulate_keystrokes("shift-right");
+    assert_eq!(selected(&mut visual), 1..3);
+    visual.simulate_keystrokes("left delete");
+    assert_eq!(state(&view, &visual).0, "/x");
+    // The input method may address one mark on its own, as Vietnamese tone entry does.
+    input(&mut visual, &view, |view, window, cx| {
+        view.replace_text_in_range(Some(1..1), "a\u{302}", window, cx);
+        view.replace_and_mark_text_in_range(Some(2..3), "\u{301}", Some(1..1), window, cx);
+        assert_eq!(view.marked_text_range(window, cx), Some(2..3));
+        assert_eq!(
+            view.selected_text_range(false, window, cx).unwrap().range,
+            3..3
+        );
+        view.replace_text_in_range(None, "\u{301}", window, cx);
+    });
+    assert_eq!(state(&view, &visual).0, "/a\u{301}x");
+    let mut entry = crate::path::entry::Entry::default();
+    entry.begin("\u{d85}\u{dc3}\u{995}\u{9ce}\u{d9a}\u{dca}\u{dc2}");
+    let steps = [0, 3, 6, 9].map(|at| entry.next(at));
+    assert_eq!(
+        steps,
+        [3, 6, 9, 12],
+        "letters at sign offsets stay their own stops"
+    );
+    assert_eq!(entry.next(12), 18, "al-lakuna alone ends its cluster");
+    visual.simulate_keystrokes("backspace");
+    assert_eq!(
+        state(&view, &visual).0,
+        "/ax",
+        "Backspace takes one mark, as GTK does"
+    );
+}
+
+#[gpui::test]
+fn i50_ime_stale_field_generation(cx: &mut TestAppContext) {
+    let (handle, view, _received) = open(cx, "/files");
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    input(&mut visual, &view, |view, window, cx| {
+        view.replace_and_mark_text_in_range(None, "\u{30e1}", None, window, cx)
+    });
+    // A second card replaces the first, and late callbacks arrive before any frame registers its field.
+    let overlay = view.clone();
+    handle
+        .update(&mut visual, |root, window, cx| {
+            root.shell.update(cx, |shell, cx| {
+                shell.copy_to_operation(0, 74, false, "/again", window, cx)
+            });
+            overlay.update(cx, |view, cx| {
+                view.sync_focus(window, cx);
+                view.replace_text_in_range(None, "\u{30e1}\u{30e2}", window, cx);
+                view.replace_and_mark_text_in_range(None, "late", None, window, cx);
+                assert_eq!(view.marked_text_range(window, cx), None);
+                assert!(view.selected_text_range(false, window, cx).is_none());
+            });
+        })
+        .unwrap();
+    assert_eq!(state(&view, &visual).0, "/again");
+    visual.update(|window, cx| window.draw(cx).clear(cx));
+    input(&mut visual, &view, |view, window, cx| {
+        assert_eq!(
+            view.selected_text_range(false, window, cx).unwrap().range,
+            0..6
+        );
+    });
+    visual.simulate_input("/new");
+    assert_eq!(state(&view, &visual).0, "/new");
+}
+
+#[gpui::test]
+fn i50_ime_enter_no_submit(cx: &mut TestAppContext) {
+    let (handle, view, mut received) = open(cx, "/files");
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    input(&mut visual, &view, |view, window, cx| {
+        view.replace_text_in_range(None, "/dir", window, cx);
+        view.replace_and_mark_text_in_range(None, "\u{3081}", None, window, cx);
+    });
+    visual.simulate_keystrokes("enter");
+    assert_eq!(
+        state(&view, &visual),
+        ("/dir\u{3081}".into(), CopyFocus::Field, false)
+    );
+    assert!(received().is_none());
+    // Escape drops the composition first and keeps the card and its committed draft.
+    visual.simulate_keystrokes("escape");
+    assert!(view.read_with(&visual, |v, _| v.model.open()));
+    assert_eq!(state(&view, &visual).0, "/dir");
+    input(&mut visual, &view, |view, window, cx| {
+        assert_eq!(view.marked_text_range(window, cx), None)
+    });
+    assert!(received().is_none());
+    // Tab finishes the composition as it stands, moves focus, and a late callback finds the field blurred.
+    input(&mut visual, &view, |view, window, cx| {
+        view.replace_and_mark_text_in_range(None, "\u{3081}", None, window, cx)
+    });
+    visual.simulate_keystrokes("tab");
+    input(&mut visual, &view, |view, window, cx| {
+        view.replace_and_mark_text_in_range(None, "late", None, window, cx)
+    });
+    let committed = ("/dir\u{3081}".into(), CopyFocus::Cancel, false);
+    assert_eq!(state(&view, &visual), committed);
+    assert!(view.read_with(&visual, |v, _| v.editor.entry.marked.is_none()));
+    visual.simulate_keystrokes("shift-tab escape");
+    assert!(!view.read_with(&visual, |v, _| v.model.open()));
+    assert_eq!(
+        received().as_deref(),
+        Some(r#"{"c":"menuaction","op":"close","id":71}"#)
+    );
+}
+
+#[gpui::test]
+fn i50_ime_preedit_underline(cx: &mut TestAppContext) {
+    let (handle, view, _received) = open(cx, "/files");
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    input(&mut visual, &view, |view, window, cx| {
+        view.replace_text_in_range(None, "/.txt", window, cx);
+        view.replace_text_in_range(Some(1..1), "", window, cx);
+        view.replace_and_mark_text_in_range(None, "\u{30e1}\u{30e2}", None, window, cx);
+    });
+    visual.update(|window, cx| window.draw(cx).clear(cx));
+    let painted = |visual: &VisualTestContext| {
+        view.read_with(visual, |view, _| {
+            let drawn = view.editor.drawn.borrow();
+            (drawn.paint.clone().unwrap(), drawn.line.span(&(1..7)))
+        })
+    };
+    let (paint, (from, to)) = painted(&visual);
+    let mark = paint.marked.expect("the preedit is underlined");
+    assert_eq!(
+        (mark.left(), mark.right()),
+        (paint.origin + from, paint.origin + to)
+    );
+    assert_eq!(mark.size.height, px(flea::ui_logic_op1::card::RULE));
+    assert!(mark.top() > paint.bounds.center().y && mark.bottom() <= paint.bounds.bottom());
+    let caret = paint.caret.expect("the caret follows the preedit");
+    assert_eq!(
+        caret.left(),
+        paint.origin + to,
+        ".txt stays outside the underline"
+    );
+    input(&mut visual, &view, |view, window, cx| {
+        view.replace_text_in_range(None, "\u{30e1}\u{30e2}", window, cx)
+    });
+    visual.update(|window, cx| window.draw(cx).clear(cx));
+    assert!(
+        painted(&visual).0.marked.is_none(),
+        "a committed draft draws no underline"
+    );
+    assert_eq!(state(&view, &visual).0, "/\u{30e1}\u{30e2}.txt");
 }

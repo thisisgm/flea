@@ -58,10 +58,12 @@ impl gpui::EventEmitter<ProducerReply> for Shell {}
 
 #[derive(Default)]
 pub struct Joined {
+    pub(crate) place: Option<super::place_host::Place>,
     pub menu: Rc<RefCell<Menu>>,
     pub captured: Option<Captured>,
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
+    pub(crate) from_sheet: bool,
     pub activating: bool,
     pub reading: bool,
     pub sequence: u64,
@@ -79,11 +81,17 @@ pub struct Joined {
     pub flyout: Option<&'static str>,
     pub header: bool,
     pub tags_reading: bool,
+    // A test's stand-in for the `flea shelf add` call; None runs the real one.
+    pub shelve: Option<super::owners::ShelfAdd>,
+    /// Tag toggles sent and not yet answered, oldest first, by side and tag name.
+    pub(crate) tagging: Vec<(usize, &'static str)>,
+    /// The id of the latest tagstates read; an answer to any earlier read is stale.
+    pub(crate) tag_ask: u64,
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
 
-fn identity(host: &PaneHost, side: usize, background: bool) -> String {
+pub(crate) fn identity(host: &PaneHost, side: usize, background: bool) -> String {
     format!(
         "{side}:{}:{}:{:?}:{}:{background}",
         host.path, host.pane.held.listing, host.selected, host.pane.cursor
@@ -100,6 +108,9 @@ impl Shell {
     }
 
     pub(crate) fn menu_identity(&self) -> String {
+        if let Some(place) = &self.menu.place {
+            return place.key.clone();
+        }
         self.menu
             .captured
             .as_ref()
@@ -124,32 +135,66 @@ impl Shell {
     }
 
     pub(crate) fn menu_entries(&self) -> Vec<Entry> {
-        let mut context = self.menu.context.clone();
+        self.menu_entries_keeping("")
+    }
+
+    /// The live rows a chosen leaf is checked against: MenuContext.js validateChoice keeps a hidden row whose flyout c or P opened alone.
+    pub(crate) fn menu_choice_entries(&self, action: &str, leaf: &str) -> Vec<Entry> {
+        let lone = !leaf.is_empty() && !flea::ui_logic_mn1::rows::flyout_entries(action).is_empty();
+        self.menu_entries_keeping(if lone { action } else { "" })
+    }
+
+    fn menu_entries_keeping(&self, keep: &str) -> Vec<Entry> {
+        if let Some(entries) = self.place_menu_entries() {
+            return entries;
+        }
         let Some(capture) = &self.menu.captured else {
-            return Vec::new();
-        };
-        let Some(host) = &self.panes[capture.side] else {
             return Vec::new();
         };
         if self.menu.header {
             return self.header_menu_entries(capture.side);
         }
-        if capture.background {
-            if let Some((_, mode)) = self.locked_folder(capture.side) {
-                return flea::ui_logic_mn1::places::locked_entries(mode, &self.menu_hidden());
+        let mut hidden = if self.menu.from_sheet {
+            Vec::new()
+        } else {
+            self.menu_hidden()
+        };
+        hidden.retain(|id| id != keep);
+        self.listing_menu_entries(
+            capture.side,
+            capture.background,
+            self.menu.context.clone(),
+            hidden,
+        )
+    }
+
+    /// The listing menu's rows for a context and hidden set; the keyboard sheet passes none hidden so it finds every row.
+    pub(crate) fn listing_menu_entries(
+        &self,
+        side: usize,
+        background: bool,
+        mut context: MenuContext,
+        hidden: Vec<String>,
+    ) -> Vec<Entry> {
+        let Some(host) = &self.panes[side] else {
+            return Vec::new();
+        };
+        if background {
+            if let Some((_, mode)) = self.locked_folder(side) {
+                return flea::ui_logic_mn1::places::locked_entries(mode, &hidden);
             }
         }
-        context.hidden = self.menu_hidden();
-        if !capture.background {
-            self.provider_context(capture.side, &host.path, &mut context);
+        context.hidden = hidden;
+        if !background {
+            self.provider_context(side, &host.path, &mut context);
         }
         context.show_hidden = host.nav.folders.borrow().hidden;
         context.sort_by = host.nav.order.key.into();
         context.has_folder_sort =
             !host.pane.swap.session.open && host.nav.folders.borrow().has(&host.path);
-        self.menu_live_facts(capture.side, &mut context);
+        self.menu_live_facts(side, &mut context);
         // Actions takes Run Script's place under Run Script's switch, so the build is asked for that row whenever the listing holds an action.
-        let actions = (!capture.background)
+        let actions = (!background)
             .then(|| self.menu.actions.actions_entry(&[]))
             .flatten();
         if actions.is_some() && context.scripts.is_empty() {
@@ -165,7 +210,7 @@ impl Shell {
         ) {
             entries[at] = row;
         }
-        if capture.background {
+        if background {
             if let Some(row) = self.menu.actions.agent_entry(&context.hidden) {
                 let at = entries
                     .iter()
@@ -185,10 +230,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        self.open_menu_target(side, row, at, false, window, cx);
+        self.open_menu_with(side, row, at, false, window, cx);
     }
 
-    pub(crate) fn open_menu_target(
+    pub(crate) fn open_menu_with(
         &mut self,
         side: usize,
         row: Option<usize>,
@@ -251,58 +296,8 @@ impl Shell {
             kinds: Vec::new(),
             background,
         };
-        let (clipboard_available, clipboard_watch_failed, can_link) =
-            self.clipboard_menu_facts(side);
-        let Some(host) = &self.panes[side] else {
-            return;
-        };
-        let facts = row.and_then(|row| host.pane.held.row(row));
-        // Print, Convert and Combine Images read the marked rows' output kinds.
-        let kinds = capture
-            .rows
-            .iter()
-            .filter_map(|&row| host.pane.held.row(row).map(crate::window::output::kind))
-            .collect::<Vec<_>>();
-        let image = flea::ui_logic_op4::output::Kind::Image;
-        self.menu.context = MenuContext {
-            has_row: !background,
-            selection_count: if background {
-                super::facts::background_count(host)
-            } else {
-                capture.rows.len()
-            },
-            has_shebang: false,
-            cursor_is_target: capture.rows.as_slice() == [capture.cursor],
-            row_mode: facts.map_or(0, |r| r.mode),
-            row_is_file: facts.is_some_and(|r| !r.dir),
-            row_is_symlink: facts.is_some_and(|r| r.link.is_some()),
-            row_name: facts.map_or_else(String::new, |r| r.name.clone()),
-            row_is_archive: facts
-                .is_some_and(|r| flea::ui_logic_mn1::archive::row_is_archive(&r.name, r.dir)),
-            archive_name: facts.map_or_else(String::new, |r| r.name.clone()),
-            row_is_image: facts.is_some_and(|r| crate::window::output::kind(r) == image),
-            selection_images: kinds.iter().filter(|&&kind| kind == image).count(),
-            printable: kinds.len() == capture.rows.len()
-                && flea::ui_logic_op4::output::can_print(&kinds),
-            can_convert: self.output.convert[side] != Some(false),
-            selection_modes: capture
-                .rows
-                .iter()
-                .filter_map(|&row| host.pane.held.row(row).map(|r| r.mode))
-                .collect(),
-            lang_marks: self
-                .launch
-                .settings
-                .data
-                .get("langMarks")
-                .and_then(Json::as_bool)
-                != Some(false),
-            open_with_loaded: background,
-            clipboard_available,
-            clipboard_watch_failed,
-            can_link,
-            ..MenuContext::default()
-        };
+        self.menu.context =
+            self.listing_menu_context(side, &capture.rows, capture.cursor, background);
         self.menu.captured = Some(capture.clone());
         self.check_menu_shebang(window, cx);
         self.archive_menu_context(side);

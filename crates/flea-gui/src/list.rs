@@ -79,6 +79,8 @@ pub struct RowStates {
     pub selected: Option<Rc<[usize]>>,
     pub hovered: Option<usize>,
     pub renaming: Option<usize>,
+    /// The rename band's Grow for this side this render: the edited row grows and the rows below move down.
+    pub grow: pane::Grow,
     pub drop_target: Option<usize>,
     /// The drag owner's caption for the drop target, the label Drag.js names: move here, copy here or link here.
     pub drop_label: Option<SharedString>,
@@ -223,6 +225,8 @@ pub struct Drawn {
     pub drop: Option<(usize, Bounds<Pixels>)>,
     /// Rows drawn as Row.qml's loading bar because the pane does not hold them yet.
     pub loading: usize,
+    /// The refused rename's band this frame: the edited row's grown height and the rows below it moved down.
+    pub grow: pane::Grow,
 }
 
 impl Default for Drawn {
@@ -238,6 +242,7 @@ impl Default for Drawn {
             frames: 0,
             drop: None,
             loading: 0,
+            grow: pane::Grow::default(),
         }
     }
 }

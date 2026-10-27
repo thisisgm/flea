@@ -5,7 +5,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         revision: 1,
         catalog: Arc::new(flea::i18n::I18n::default()),
     };
-    let settings = Settings::from_json(flea::jsondoc::parse("{}").unwrap(), false);
+    let settings = Settings::from_json(flea::jsondoc::parse("{}").unwrap());
     let launch = Launch::resolve(
         settings,
         Arguments {
@@ -43,6 +43,8 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         lifecycle,
         view: View::List,
         focus_side: 0,
+        grows: Default::default(),
+        bands: Default::default(),
         keyboard: Default::default(),
         input: Default::default(),
         panes: [Some(host), None],

@@ -140,3 +140,39 @@ fn ey48_a_locked_child_folder_is_what_its_rows_act_on(cx: &mut TestAppContext) {
         "the denied folder, not the pane's"
     );
 }
+
+#[gpui::test]
+fn ey48_keyboard_sheet_finds_the_locked_menus_rows_even_when_menus_hides_them(
+    cx: &mut TestAppContext,
+) {
+    // The sheet reads the menu the key would open, hidden rows included, so a locked folder lists its own rows.
+    let handle = locked(cx, Some(r#"["permissions"]"#));
+    handle
+        .update(cx, |shell, _, _| {
+            let sheet: Vec<String> = shell
+                .sheet_menus()
+                .into_iter()
+                .map(|entry| entry.action)
+                .collect();
+            let mode = shell.panes[0].as_ref().unwrap().pane.state.mode;
+            let rows = |hidden: &[String]| -> Vec<String> {
+                flea::ui_logic_mn1::places::locked_entries(mode, hidden)
+                    .into_iter()
+                    .filter(|entry| !entry.separator)
+                    .map(|entry| entry.action.to_string())
+                    .collect()
+            };
+            let menu = rows(&shell.menu_hidden());
+            assert_eq!(menu.len(), 2, "the menu hides Permissions: {menu:?}");
+            let locked = rows(&[]);
+            assert_eq!(locked.len(), 3, "{locked:?}");
+            let mut sheet_rows = sheet.clone();
+            // sheet_entries adds a dead Paste As while nothing is held, a row no locked menu carries.
+            sheet_rows.retain(|action| action != "pasteAs");
+            assert_eq!(
+                sheet_rows, locked,
+                "the sheet lists the locked rows: {sheet:?}"
+            );
+        })
+        .unwrap();
+}

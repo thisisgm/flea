@@ -86,7 +86,10 @@ impl Shell {
                 self.retire_menu(window, cx);
             }
             Outcome::Fire { action, leaf } => {
-                self.keyboard.context = flea::keys::Context::Listing;
+                // A Tags choice keeps the menu up, so its keys stay with the menu until the answer lands.
+                if action != "tags" {
+                    self.keyboard.context = flea::keys::Context::Listing;
+                }
                 self.menu.pending = Some((action, leaf));
                 self.activate_menu(window, cx);
             }

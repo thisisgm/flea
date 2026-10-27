@@ -10,6 +10,12 @@ pub(super) fn run(
     window: &mut Window,
     cx: &mut Context<Shell>,
 ) -> bool {
+    // PaneMenuActions.qml open: the listing's Properties key opens the card the menu row opens, with no menu drawn.
+    if let Order::Action(event) = order {
+        return event.context == flea::keys::Context::Listing
+            && event.action == "properties"
+            && shell.properties_listing(window, cx);
+    }
     let Order::Menu(chosen) = order else {
         return false;
     };
@@ -54,7 +60,7 @@ pub(super) fn run(
                 cx,
             );
         }
-        "properties" => shell.open_properties_card(chosen, window, cx),
+        "properties" => shell.open_properties_card(&chosen.captured, window, cx),
         // Marks.js selectAll and invert: the rows the listing draws, so a filter narrows them.
         "selectAll" | "invertSelection" => {
             // input_action reads the focused pane, so it points at the menu's own pane for this one call.

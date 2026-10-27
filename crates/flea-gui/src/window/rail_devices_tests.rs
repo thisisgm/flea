@@ -341,3 +341,6 @@ mod eject;
 
 #[path = "rail_devices_release_tests.rs"]
 mod release;
+
+#[path = "rail_drive_tests.rs"]
+mod drive;

@@ -4,12 +4,12 @@ use super::{
     chrome,
     doc::{Doc, View},
     look::{self, Look},
-    Outcome, QuickLook, Subject,
+    Body, Outcome, QuickLook, Subject,
 };
 use crate::g2::pv3::{self, ink::MediaInk};
 use flea::ui_logic_pv1::keys::Command;
 use flea::ui_logic_pv3::player::Playback;
-use gpui::{div, prelude::*, AnyElement, Context, Window};
+use gpui::{div, prelude::*, AnyElement, App, Context, Window};
 
 impl Doc {
     pub fn element(&self) -> AnyElement {
@@ -47,6 +47,17 @@ impl Doc {
 }
 
 impl QuickLook {
+    /// The calm card a refused code read draws in the mounted view's place (ql-unsupported): no bar, the mark and sentence in the metadata ink.
+    pub(crate) fn calm_body(&self, cx: &App) -> Option<Body> {
+        let doc = self.subject.as_ref()?.body.doc()?;
+        let sentence = doc.calm_sentence(&self.i18n, cx)?;
+        Some(Body::CannotShow {
+            sentence,
+            error: false,
+            controls: Vec::new(),
+        })
+    }
+
     /// A mounted view is open, so it lays out even while the swap holds the card back.
     pub(super) fn has_doc(&self) -> bool {
         self.subject
@@ -138,16 +149,8 @@ impl QuickLook {
                 .child(card)
                 .into_any_element()];
         }
-        let chrome = doc.chrome(&i18n, cx);
-        let bar = chrome::bar(
-            subject.mark(),
-            &subject.name,
-            &chrome,
-            !doc.framed(),
-            look,
-            self,
-            cx,
-        );
+        // ql-archive: no bar over the card; its own heading opens it, and a failure recipe sits at the top.
+        let is_archive = matches!(doc.view, View::Archive(_));
         let body = match doc.failure(&i18n, cx) {
             Some(failure) => {
                 let ink = if failure.error { look.error } else { look.meta };
@@ -158,7 +161,7 @@ impl QuickLook {
                     &failure.sentence,
                     look.foreground,
                     Some(button),
-                    look::BAR,
+                    if is_archive { 0. } else { look::BAR },
                 )
             }
             None => div()
@@ -171,6 +174,19 @@ impl QuickLook {
                 .child(doc.element())
                 .into_any_element(),
         };
+        if is_archive {
+            return vec![body];
+        }
+        let chrome = doc.chrome(&i18n, cx);
+        let bar = chrome::bar(
+            subject.mark_with_languages(self.languages),
+            &subject.name,
+            &chrome,
+            !doc.framed(),
+            look,
+            self,
+            cx,
+        );
         vec![bar, body]
     }
 }

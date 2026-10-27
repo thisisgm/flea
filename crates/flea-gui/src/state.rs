@@ -28,6 +28,10 @@ pub struct Shell {
     pub lifecycle: Lifecycle,
     pub view: View,
     pub focus_side: usize,
+    /// The rename band's Grow per side, set once per render so every list frame of that side agrees.
+    pub grows: [crate::list::pane::Grow; 2],
+    /// The refusal band per side as the last render drew it: RenameField.qml's errorHeight, in every view.
+    pub bands: [f32; 2],
     pub keyboard: crate::window::input::Keyboard,
     pub input: crate::input::focus::Focus,
     pub(crate) panes: [Option<PaneHost>; 2],
@@ -41,6 +45,7 @@ pub struct Shell {
     pub(crate) overlay: Option<gpui::Entity<crate::g2::op1::host::Overlay>>,
     pub(crate) quick_look: Option<crate::window::quick_look::Host>,
     pub(crate) output: crate::window::output::Join,
+    pub(crate) permissions: crate::window::permissions::Join,
     pub(crate) trash: Option<crate::g2::pl3::join::TrashHost>,
     pub(crate) rail: Option<crate::window::rail::Join>,
     /// Live compositor rounding, square until it is readable; visual scenes can override it.
@@ -71,15 +76,11 @@ pub struct Shell {
     pub(crate) dual_blur: Option<gpui::Subscription>,
     pub(crate) deadlines: [Option<Task<()>>; 2],
     pub(crate) opener: [crate::window::dispatch::opener::Lane; 2],
+    pub(crate) run_card: Option<crate::window::run_card::Open>,
+    pub(crate) open_with: Option<crate::window::open_with::Open>,
 }
 
-pub(crate) fn labels(locale: &Snapshot) -> Labels {
-    Labels {
-        name: locale.catalog.tr("window.column_name").into(),
-        size: locale.catalog.tr("window.column_size").into(),
-        modified: locale.catalog.tr("window.column_modified").into(),
-    }
-}
+pub(crate) use crate::window::locale::labels;
 
 impl Shell {
     pub fn new(
@@ -115,6 +116,8 @@ impl Shell {
             launch,
             view,
             focus_side,
+            grows: Default::default(),
+            bands: Default::default(),
             keyboard: crate::window::input::Keyboard::default(),
             input: Default::default(),
             path_labels,
@@ -128,6 +131,7 @@ impl Shell {
             overlay: None,
             quick_look: None,
             output: Default::default(),
+            permissions: Default::default(),
             operations: Default::default(),
             rename: Default::default(),
             properties: None,
@@ -150,6 +154,8 @@ impl Shell {
             _app_quit: None,
             deadlines: [None, None],
             opener: Default::default(),
+            run_card: None,
+            open_with: None,
             dual_focus,
             dual_pending: false,
             dual_written: None,

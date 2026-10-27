@@ -1,26 +1,36 @@
 //! The operations overlay slot: op1's Overlay over the panes under its scrim, built on first open.
-use crate::{g2::op1::host::Overlay, state::Shell};
+use crate::state::Shell;
 use gpui::{App, Context, Window};
-
-/// A card or the Jobs list is showing: it holds the keyboard, and the list underneath draws grey.
-pub(crate) fn card_showing(card: &Overlay, cx: &App) -> bool {
-    card.showing(cx)
-}
 
 impl Shell {
     /// An overlay entity can outlive its card, so only a card still showing takes the keyboard from the list.
     pub(crate) fn card_holds_keyboard(&self, cx: &App) -> bool {
+        self.modal_card_holds_keyboard(cx) || self.jobs_card_showing(cx)
+    }
+
+    /// Every keyboard card that also blocks a wheel; the Jobs card is left to `jobs_card_showing`.
+    pub(crate) fn modal_card_holds_keyboard(&self, cx: &App) -> bool {
         self.settings.opened
             || self.settings.sheet.is_some()
             || self.output_showing(cx)
+            || self.permissions_showing(cx)
             || self.network_holds_keyboard(cx)
             || self.rename.bulk.is_some()
             || self.properties.is_some()
+            || self.run_card.is_some()
+            || self.open_with.is_some()
             || self.unlock_holds_keyboard(cx)
             || self
                 .overlay
                 .as_ref()
-                .is_some_and(|overlay| overlay.read_with(cx, |card, _| card_showing(card, cx)))
+                .is_some_and(|overlay| overlay.read_with(cx, |card, cx| card.modal(cx)))
+    }
+
+    /// The Jobs card: it holds the keyboard and blocks presses on it, but never a wheel beside it.
+    pub(crate) fn jobs_card_showing(&self, cx: &App) -> bool {
+        self.overlay
+            .as_ref()
+            .is_some_and(|overlay| overlay.read_with(cx, |card, cx| card.jobs_showing(cx)))
     }
 
     /// Opens the Copy To card on the overlay, building it on the first open; needs no backend reply.

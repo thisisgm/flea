@@ -50,6 +50,19 @@ impl Operations {
         });
     }
 
+    // The folder's New File card: nothing is sent until Create, and the name opens whole for typing, as v0.3.12 selects it.
+    pub fn new_file(&mut self, catalog: &I18n, id: u64, folder: &str) {
+        self.clear_card();
+        self.dialog = Some(Dialog::NewFile {
+            id,
+            folder: folder.into(),
+            name: catalog.tr("jobs.newfile.default"),
+            focus: CopyFocus::Field,
+            busy: false,
+            error: String::new(),
+        });
+    }
+
     // A card another card replaces is answered as dismissed, so no session is left waiting on it.
     pub(super) fn clear_card(&mut self) {
         if let Some(token) = self.external_delete.take() {
@@ -59,7 +72,7 @@ impl Operations {
             Some(Dialog::Collide { .. }) => self.collide.chosen(Choice::Cancel),
             Some(Dialog::Fat { .. }) => self.collide.decide_fat(Fat::Cancel),
             Some(Dialog::CopyTo { menu, .. }) => Step::Send(menu_close(menu)),
-            Some(Dialog::Delete { .. }) | None => Step::Nothing,
+            Some(Dialog::Delete { .. } | Dialog::NewFile { .. }) | None => Step::Nothing,
         };
         if let Step::Send(line) | Step::SendSpent(line) = step {
             self.outbox.push(line);
@@ -158,6 +171,92 @@ impl Operations {
         }
     }
 
+    pub(super) fn walk_new_file_focus(&mut self, key: Key) {
+        let Some(Dialog::NewFile {
+            focus, busy, name, ..
+        }) = &mut self.dialog
+        else {
+            return;
+        };
+        // A busy card has nothing to walk to: the field stays focused, as v0.3.12 leaves no control focused.
+        let order: &[_] = if *busy {
+            &[CopyFocus::Field]
+        } else if name.is_empty() {
+            &[CopyFocus::Field, CopyFocus::Cancel]
+        } else {
+            &[CopyFocus::Field, CopyFocus::Cancel, CopyFocus::Confirm]
+        };
+        *focus = collide::walk(order, *focus, key, CopyFocus::Field);
+    }
+
+    // Escape and Cancel close the card unless its create is out, as v0.3.12 keeps it open until the reply.
+    pub(super) fn close_new_file(&mut self) {
+        if matches!(self.dialog, Some(Dialog::NewFile { busy: false, .. })) {
+            self.dialog = None;
+        }
+    }
+
+    // Create sends v0.3.12's newfile request once the name is a plain filename; a bad name says so in the card.
+    pub(super) fn confirm_new_file(&mut self, catalog: &I18n) {
+        let Some(Dialog::NewFile {
+            id,
+            folder,
+            name,
+            busy: false,
+            ..
+        }) = self.dialog.clone()
+        else {
+            return;
+        };
+        if name.is_empty() {
+            return;
+        }
+        // MenuActionDialog.qml:170 gives "." and ".." the slash sentence too.
+        let slash = name == "." || name == ".." || name.contains('/');
+        if let Some(Dialog::NewFile { busy, error, .. }) = &mut self.dialog {
+            if slash {
+                *error = catalog.tr("jobs.newfile.slash");
+                return;
+            }
+            *busy = true;
+            error.clear();
+        }
+        self.changed = true;
+        self.outbox.push(format!(
+            "{{\"c\":\"newfile\",\"op\":\"newFile\",\"id\":{id},\"path\":{},\"name\":{}}}",
+            collide::text(&folder),
+            collide::text(&name)
+        ));
+    }
+
+    // The create's reply: ok ends the card and hands the path to the window; a refusal keeps the card with its sentence.
+    fn new_file_reply(&mut self, catalog: &I18n, reply: &Reply) {
+        let Some(Dialog::NewFile {
+            id, busy: true, ..
+        }) = self.dialog
+        else {
+            return;
+        };
+        if reply.id != id {
+            return;
+        }
+        self.changed = true;
+        if reply.ok && !reply.path.is_empty() {
+            self.dialog = None;
+            self.new_file_landed = Some(reply.path.clone());
+            return;
+        }
+        let error = if reply.error.is_empty() {
+            catalog.tr("jobs.delete.failed")
+        } else {
+            reply.error.clone()
+        };
+        if let Some(Dialog::NewFile { busy, error: shown, .. }) = &mut self.dialog {
+            *busy = false;
+            *shown = error;
+        }
+    }
+
     // A full path goes to the menu's validate, whose reply names the snapshot; a relative one is refused out loud.
     pub(super) fn confirm_copy(&mut self, catalog: &I18n) {
         let Some(Dialog::CopyTo {
@@ -196,6 +295,10 @@ impl Operations {
         self.changed = false;
         if !trash_reply && reply.op == "validate" {
             self.validated(catalog, reply);
+            return false;
+        }
+        if !trash_reply && reply.op == "newFile" {
+            self.new_file_reply(catalog, reply);
             return false;
         }
         let Some(confirm) = self.confirm.as_mut() else {

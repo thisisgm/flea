@@ -3,7 +3,7 @@ use super::{Binding, Digit, PointerBinding, SequenceBinding, SheetBinding, Sheet
 
 #[rustfmt::skip]
 pub static PRESET_KEYS: &[Binding] = &[
-    Binding::new("all", "text", "X", "X", "carry", "listing", "gui", 0, 1, "keys.label.6ef49cacb4c3", true),
+    Binding::new("all", "text", "X", "X", "carry", "listing", "gui", 0, 1, "keys.action.carry", true),
     Binding::new("default", "ctrl", "1", "ctrl-1", "viewList", "listing", "all", 1, 1, "keys.action.viewList", true),
     Binding::new("default", "ctrl", "2", "ctrl-2", "viewColumns", "listing", "all", 1, 1, "keys.action.viewColumns", true),
     Binding::new("default", "ctrl", "3", "ctrl-3", "viewGrid", "listing", "all", 1, 1, "keys.action.viewGrid", true),
@@ -119,6 +119,8 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("all", "text", "l", "l", "pageForward", "preview,pdf,media", "all", 0, 112, "keys.label.fa0d5464127e", true),
     Binding::new("all", "text", "r", "r", "markdownView", "preview", "all", 0, 16, "keys.label.743d0f61c964", true),
     Binding::new("all", "text", "w", "w", "toggleWrap", "preview", "all", 0, 16, "keys.label.70bfd7fbcdb6", true),
+    Binding::new("all", "text", "[", "[", "previousSheet", "preview,pdf", "all", 0, 48, "keys.label.e3a4d6eba0c6", true),
+    Binding::new("all", "text", "]", "]", "nextSheet", "preview,pdf", "all", 0, 48, "keys.label.c2fc6e7bc3be", true),
     Binding::new("all", "text", "y", "y", "copyPatch", "preview", "all", 0, 16, "keys.label.a85ca7b809b0", true),
     Binding::new("all", "text", "-", "-", "zoomOut", "preview,pdf", "all", 0, 48, "keys.label.bc7b631a689b", true),
     Binding::new("all", "text", "+", "+", "zoomIn", "preview,pdf", "all", 0, 48, "keys.label.0e47f09a748f", true),
@@ -296,10 +298,10 @@ pub static BASE_SHEET: &[SheetBinding] = &[
 
 #[rustfmt::skip]
 pub static SHEET_GROUPS: &[SheetGroup] = &[
-    SheetGroup { id: "move", label_key: "keys.group.move", actions: &["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open", "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview", "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape"] },
+    SheetGroup { id: "move", label_key: "keys.group.move", actions: &["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open", "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview", "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape", "carry"] },
     SheetGroup { id: "look", label_key: "keys.group.look", actions: &["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack", "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown", "textSizeReset", "keymapSheet"] },
     SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
-    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "carry", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "openAgent", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
+    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
 ];
 
 #[rustfmt::skip]
@@ -341,7 +343,7 @@ pub static SHEET_MIRRORS: &[[&str; 2]] = &[
 
 #[rustfmt::skip]
 pub static SHEET_TIE_PRIORITY: &[(&str, &[&str])] = &[
-    ("all", &["left", "shift-f10"]),
+    ("all", &["left", "shift-f10", "ctrl-shift-plus", "ctrl-shift-minus", "ctrl-shift-0"]),
     ("default", &["ctrl-c", "ctrl-v"]),
     ("windows", &["ctrl-c", "ctrl-v"]),
 ];

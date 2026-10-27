@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import pwd
 import signal
 import socket
 import stat
@@ -84,6 +85,30 @@ def built_binary(name, override=None):
     if not path.is_file() or not os.access(path, os.X_OK):
         raise TransportError(f"missing worktree binary: {path}")
     return str(path)
+
+
+def sandbox_backend(override):
+    path = Path(override)
+    if not path.is_absolute():
+        raise TransportError(f"stub backend must be an absolute path: {path}")
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        raise TransportError(f"stub backend does not exist: {path}") from None
+    if stat.S_ISLNK(info.st_mode):
+        raise TransportError(f"stub backend is a symlink: {path}")
+    resolved = path.resolve(strict=True)
+    if not any((ancestor / MARKER).is_file() for ancestor in resolved.parents):
+        raise TransportError(f"stub backend is outside a marked sandbox: {path}")
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or not os.access(resolved, os.X_OK):
+        raise TransportError(f"stub backend is not an owned executable file: {path}")
+    homes = {Path(home).resolve() for home in (os.environ.get("HOME"), pwd.getpwuid(os.geteuid()).pw_dir) if home}
+    # A planted marker never makes a home dot-directory runnable, except this worktree's own tree (T3 worktrees live under ~/.t3).
+    for home in homes:
+        inside_dot_dir = resolved.is_relative_to(home) and resolved.relative_to(home).parts[0].startswith(".")
+        if inside_dot_dir and not resolved.is_relative_to(REPO):
+            raise TransportError(f"stub backend is inside a home dot-directory: {path}")
+    return str(resolved)
 
 
 def endpoint(record, supplied=None, timeout=None, discovering=False):
@@ -179,7 +204,8 @@ class Window:
         self.root = private(root)
 
     @classmethod
-    def start(cls, path, *, parent=None, binary=None, frontend=None, picker=False, ui=None, timeout=5, log=None, command=None, wrap=()):
+    def start(cls, path, *, parent=None, binary=None, backend=None, frontend=None, picker=False, ui=None, timeout=5, log=None, command=None,
+              wrap=(), select=None):
         frontend = frontend or os.environ.get("FLEA_TEST_FRONTEND", "qml")
         if frontend not in ("qml", "gpui"):
             raise TransportError(f"unknown test frontend: {frontend}")
@@ -193,17 +219,28 @@ class Window:
             raise TransportError("unsupported QML launch command")
         if direct_qml and frontend == "gpui":
             raise TransportError("FLEA_IPC_NOT_PORTED qml.launch")
+        if select is not None and not str(select):
+            raise TransportError("select target is empty")
+        if direct_qml and select is not None:
+            raise TransportError(f"a select target needs the flea --gui launch, not a direct qs command: {select}")
         gui = built_binary("flea-gui", os.environ.get("FLEA_GUI_BIN")) if frontend == "gpui" else None
         if frontend == "gpui" and picker:
             raise TransportError("FLEA_IPC_NOT_PORTED fleapicker.launch")
+        if backend is not None:
+            backend = sandbox_backend(backend)
+        elif direct_qml:
+            backend = os.environ.get("FLEA_BIN", binary)
+        else:
+            backend = binary
         parent = Path(parent or REPO / ".superpowers/g010t")
         parent.mkdir(parents=True, exist_ok=True)
         root = Path(tempfile.mkdtemp(prefix="w.", dir=parent)).absolute()
         (root / MARKER).write_text("owned Flea window\n")
-        options = dict(root=str(root), path=str(Path(path).absolute()), binary=binary, gui=gui,
+        options = dict(root=str(root), path=str(Path(path).absolute()), select=None if select is None else str(Path(select).absolute()),
+                       binary=binary, gui=gui,
                        frontend=frontend, picker=picker, ui=str(Path(ui or REPO / "ui").absolute()), timeout=float(timeout),
                        log=str(log or root / "window.log"), command=command if direct_qml else None, wrap=list(wrap),
-                       backend=os.environ.get("FLEA_BIN", binary) if direct_qml else binary,
+                       backend=backend,
                        owner=int(os.environ.get("FLEA_TEST_OWNER_PID", os.getpid())),
                        drain_timeout=float(os.environ.get("FLEA_TEST_DRAIN_TIMEOUT", "30")))
         if not all(0 < options[key] < float("inf") for key in ("timeout", "drain_timeout")):
@@ -322,8 +359,9 @@ def serve(root):
         real_runtime = os.environ.get("XDG_RUNTIME_DIR")
         if real_runtime and (Path(real_runtime) / "hypr").is_dir():
             (root / "runtime" / "hypr").symlink_to((Path(real_runtime) / "hypr").resolve(), target_is_directory=True)
-        fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
-        alias = f"/proc/{os.getpid()}/fd/{fd}/runtime"
+        fd = os.open(root / "runtime", os.O_RDONLY | os.O_DIRECTORY)
+        # Keep lstat's final component a directory while leaving room for Hyprland's event socket.
+        alias = f"/proc/{os.getpid()}/fd/{fd}/."
         environment = dict(os.environ, XDG_RUNTIME_DIR=alias, FLEA_BIN=options["backend"],
                            FLEA_UI=options["ui"], FLEA_PATH=options["path"], FLEA_TEST_WINDOW=str(root),
                            FLEA_FRONTEND=options["frontend"])
@@ -343,7 +381,11 @@ def serve(root):
             seed(os.environ.get("HOME", ""), root / "home", config)
         elif environment["XDG_CONFIG_HOME"] == str(root / "config"):
             seed_fonts(Path(environment["HOME"]), private_config=root / "config")
-        command = [options["binary"], "--gui", options["path"]]
+        command = [options["binary"], "--gui"]
+        # A reveal hands the launcher the target, the way `flea --gui --select <target> <dir>` does.
+        if options["select"]:
+            command += ["--select", options["select"]]
+        command.append(options["path"])
         if options["command"]:
             command = options["command"]
         if options["picker"]:

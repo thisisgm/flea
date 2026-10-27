@@ -1,6 +1,7 @@
 //! Confirmation, transfers and Jobs: one host, one dialog shell, the cards and the Jobs strip.
 mod cards;
 mod copy_to;
+mod new_file;
 mod feedback;
 mod geometry;
 pub mod glyph;
@@ -45,9 +46,9 @@ mod tests;
 
 mod collision;
 
-mod editor;
+pub(crate) mod editor;
 
-mod field;
+pub(crate) mod field;
 
 mod focus;
 
@@ -95,3 +96,7 @@ mod u13_draw_tests;
 
 #[cfg(test)]
 mod u13_join_tests;
+
+pub(crate) mod dialog_editor;
+
+pub(crate) mod field_view;

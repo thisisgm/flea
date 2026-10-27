@@ -10,11 +10,13 @@ mod header;
 pub(crate) mod host_input;
 pub mod ipc;
 pub mod join;
+mod place_host;
 #[cfg(test)]
 mod join_tests;
 mod keys;
 pub mod lines;
 pub mod menu;
+mod owners;
 pub(crate) mod presentation;
 #[cfg(test)]
 mod review_r2_tests;

@@ -1,5 +1,5 @@
 //! Review round uish-u09-r1 regressions: each assertion names the contract the join holds.
-use super::host::{call, change, context, frame, open, peek, settle};
+use super::host::{advance, call, change, context, frame, open, peek, settle};
 use crate::{
     columns::{geometry::Slot, TrackRows, TrackState},
     g2::fb1::state::Kind,
@@ -128,7 +128,11 @@ fn u09_review_r1_3_an_ancestor_past_the_cap_mounts_as_a_loading_tile() {
     let mut cx = context();
     let (window, _requests) = open(&mut cx, "/srv/a/b/c");
     frame(&mut cx, window);
-    std::thread::sleep(Duration::from_millis(crate::pane::swap::CAP_MS + 20));
+    advance(
+        &mut cx,
+        window,
+        Duration::from_millis(crate::pane::swap::CAP_MS + 20),
+    );
     cx.executor().advance_clock(Duration::from_secs(1));
     cx.run_until_parked();
     frame(&mut cx, window);

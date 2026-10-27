@@ -26,7 +26,24 @@ pub(super) fn run(
     let waited = busy && host.waiting;
     let searching = host.search.owner.active();
     let folder = host.pane.held.row(host.pane.cursor).map(|row| row.dir);
+    if event.action == "open"
+        && !busy
+        && folder.is_some()
+        && !flea::ui_logic_sr2::cursor_shown(host.filter.shown.as_deref(), Some(host.pane.cursor))
+    {
+        let text = shell.locale.catalog.tr("filter.row_hidden");
+        shell.panes[side].as_mut().expect("focused pane").status = text.into();
+        cx.notify();
+        return true;
+    }
     let step = match event.action {
+        "open"
+            if !busy
+                && !host.selected.is_empty()
+                && host.selected.as_slice() != [host.pane.cursor] =>
+        {
+            return false
+        }
         // Nav.js openCursor: a file row belongs to the opener, and Focus.js sends pageForward on one to the preview.
         "open" | "pageForward" if !busy && folder == Some(false) => return false,
         // Focus.js pageForward: with no loaded row the key is quiet.

@@ -16,7 +16,7 @@ const FILE: u32 = 0o100644;
 const REG: u32 = 32768;
 const PAIR: &str = r#""a":"/files/notes.txt","b":"/files/todo.md""#;
 
-fn open<'a>(cx: &'a mut TestAppContext) -> (Entity<Shell>, &'a mut VisualTestContext) {
+fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     // Delete and Permissions shown, Run Script hidden, so the menu asks only for snapshot and applications.
     open_root_with(
         cx,
@@ -97,7 +97,7 @@ fn favourites(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> 
     })
 }
 
-fn pair<'a>(cx: &'a mut TestAppContext) -> (Entity<Shell>, &'a mut VisualTestContext) {
+fn pair(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     let (shell, cx) = open(cx);
     land(&shell, cx, "/files", home(), 1);
     select(&shell, cx, &[2, 3]);

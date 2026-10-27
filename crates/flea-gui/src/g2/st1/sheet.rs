@@ -1,7 +1,7 @@
 //! The keyboard sheet: every key of the preset in its groups, and a query that narrows them to ranked rows.
 use super::seams::Request;
 use flea::i18n::I18n;
-use flea::keys::{presentation, Frontend};
+use flea::keys::{presentation, Frontend, SheetGroup, SHEET_GROUPS};
 use flea::ui_logic_st1::{
     sheet::{self, Candidate, Decision, MenuEntry, RailEntry},
     sheetkeys::{sheet_key, step_cursor, SheetKey},
@@ -9,7 +9,7 @@ use flea::ui_logic_st1::{
 use std::sync::Arc;
 
 /// The sources a query reads. Menus, rail places and recent files are seams for the menu, rail and recents contracts.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Sources {
     pub menus: Vec<MenuEntry>,
     pub rail: Vec<RailEntry>,
@@ -81,6 +81,35 @@ impl Sheet {
             self.rows = presentation::sheet(preset, Frontend::Gui, &self.catalog);
             self.requery();
         }
+    }
+
+    pub fn set_sources(&mut self, sources: Sources) {
+        if self.sources != sources {
+            self.sources = sources;
+            self.requery();
+        }
+    }
+
+    /// The resting sheet as drawn: each group's rows in the group's own order, and the column it sits in.
+    pub fn groups(&self) -> Vec<(usize, &'static SheetGroup, Vec<&presentation::SheetRow>)> {
+        let half = self.rows.len().div_ceil(2);
+        let mut used = 0;
+        let mut out = Vec::new();
+        for group in SHEET_GROUPS {
+            let rows: Vec<_> = group
+                .actions
+                .iter()
+                .filter_map(|action| self.rows.iter().find(|row| row.action == *action))
+                .collect();
+            if rows.is_empty() {
+                continue;
+            }
+            // A group opens the second column whole once it would pass half the rows.
+            let side = usize::from(used > 0 && used + rows.len() > half);
+            used += rows.len();
+            out.push((side, group, rows));
+        }
+        out
     }
 
     fn candidates(&self) -> Vec<Candidate> {

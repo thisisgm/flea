@@ -9,13 +9,15 @@ use super::paint::{
 };
 use super::tracks::{TrackRows, TrackView};
 use crate::grid::element::pictures::{paint_in_slot, Pictures};
-use crate::list::pane::{visible_rows, Held, ROW_HEIGHT};
+use crate::list::pane::{visible_rows, Grow, Held, ROW_HEIGHT};
 use crate::palette::Theme;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,
     InspectorElementId, IntoElement, LayoutId, Pixels, Style, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc};
+
+mod options;
 
 pub struct TrackElement {
     tracks: Rc<[TrackView]>,
@@ -30,6 +32,8 @@ pub struct TrackElement {
     words: Rc<crate::row::format::Words>,
     languages: bool,
     shown: Option<Rc<[usize]>>,
+    locating: bool,
+    query: Rc<str>,
 }
 
 impl TrackElement {
@@ -58,31 +62,9 @@ impl TrackElement {
             words,
             languages: true,
             shown: None,
+            locating: false,
+            query: "".into(),
         }
-    }
-
-    /// ColumnRow's language marks follow the List's langMarks setting.
-    pub fn with_languages(mut self, languages: bool) -> Self {
-        self.languages = languages;
-        self
-    }
-
-    /// A standing filter's drawn rows: the active track then draws the listing row at each view position.
-    pub fn with_filter(mut self, shown: Option<Rc<[usize]>>) -> Self {
-        self.shown = shown;
-        self
-    }
-
-    /// The folder walks the active track's size cells read; a peek track never shows a size.
-    pub fn with_sizes(mut self, sizes: Rc<dyn FolderSizes>) -> Self {
-        self.sizes = Some(sizes);
-        self
-    }
-
-    /// The pane's thumbnail lender, which only the active track's listing rows draw from.
-    pub fn with_pictures(mut self, pictures: Rc<Pictures>) -> Self {
-        self.pictures = Some(pictures);
-        self
     }
 
     fn view(&self) -> &TrackView {
@@ -154,6 +136,12 @@ impl Element for TrackElement {
         let mut paint = self.paint.borrow_mut();
         let advance = f32::from(paint.body_advance(window));
         let view = &self.tracks[self.at];
+        // A refused rename grows the active track's edited row and moves the rows below it down.
+        let grow = if view.slot == Slot::Active {
+            self.focus.grow
+        } else {
+            Grow::default()
+        };
         paint.drawn = Some(super::paint::Drawn {
             bounds,
             tracks: Rc::clone(&self.tracks),
@@ -161,6 +149,7 @@ impl Element for TrackElement {
             scroll: self.scroll_y,
             held: self.held.clone(),
             shown: self.shown.clone(),
+            grow,
         });
         let width = f32::from(bounds.size.width);
         let shows_size = view.slot == Slot::Active;
@@ -175,11 +164,12 @@ impl Element for TrackElement {
             languages: self.languages,
             scale: window.scale_factor(),
             words: Rc::clone(&self.words),
+            locating: self.locating,
+            query: Rc::clone(&self.query),
         };
         let height = f32::from(bounds.size.height);
         let total = self.total();
-        let first = (self.scroll_y.max(0.) / ROW_HEIGHT).floor() as usize;
-        let last = (((self.scroll_y.max(0.) + height) / ROW_HEIGHT).ceil() as usize).min(total);
+        let (first, last) = grow.span(self.scroll_y.max(0.), height, ROW_HEIGHT, total);
         // An empty clipboard costs one question a frame, never one a row.
         let clip = self.clip.as_ref().filter(|clip| !clip.is_empty());
         let held = self.held.as_deref();
@@ -214,6 +204,12 @@ impl Element for TrackElement {
             };
             let prepared =
                 row.map(|row| cache.get(index, row, mark != Clip::None, walk, &shaping, window));
+            if let Some(prepared) = prepared
+                .as_ref()
+                .filter(|_| shows_size && self.focus.cursor == Some(index))
+            {
+                prepared.prepare_cursor(&shaping.font, shaping.body, window);
+            }
             // ColumnRow.qml dims a cut row's thumbnail with the rest of its mark.
             pictures.push(match (lender, row) {
                 (Some(lender), Some(Row::Listing(facts))) => {
@@ -251,11 +247,15 @@ impl Element for TrackElement {
         let active = view.slot == Slot::Active;
         let width = f32::from(bounds.size.width);
         let left = bounds.origin.x;
+        let grow = paint.drawn.as_ref().map_or(Grow::default(), |drawn| drawn.grow);
         let top_of = |at: usize| {
-            bounds.origin.y + px((paint.first + at) as f32 * ROW_HEIGHT - self.scroll_y.max(0.))
+            bounds.origin.y + px(grow.top(paint.first + at, ROW_HEIGHT) - self.scroll_y.max(0.))
         };
-        let row_box =
-            |top: Pixels, w: f32| Bounds::new(point(left, top), size(px(w), px(ROW_HEIGHT)));
+        // The edited row's plate and edge take its band, so the refusal sits on the row's own ground.
+        let row_box = |top: Pixels, w: f32, at: usize| {
+            let height = grow.height(paint.first + at, ROW_HEIGHT);
+            Bounds::new(point(left, top), size(px(w), px(height)))
+        };
         window.paint_quad(fill(bounds, palette.background));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (at, (index, prepared, _)) in paint.visible.iter().enumerate() {
@@ -266,10 +266,25 @@ impl Element for TrackElement {
                 let cursor = active && self.focus.cursor == Some(*index);
                 let lifted = !cursor && self.lifted(view, held, *index);
                 if let Some(plate) = self.focus.plate(&palette, view.slot, *index, lifted) {
-                    window.paint_quad(fill(row_box(top, width), plate));
+                    window.paint_quad(fill(row_box(top, width, at), plate));
                 }
                 if self.focus.edge(view.slot, *index) {
-                    window.paint_quad(fill(row_box(top, EDGE), palette.edge()));
+                    window.paint_quad(fill(row_box(top, EDGE, at), palette.edge()));
+                }
+                if let Some(prepared) = prepared {
+                    let chevron = prepared.dir && (cursor || lifted);
+                    if let Some((from, to)) = prepared.wash_span(chevron, cursor) {
+                        let line = prepared.name(chevron).line();
+                        let x = left + px(cells(width, active, chevron).name_x);
+                        let y = top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2.;
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(x + from, y),
+                                size(to - from, line.ascent + line.descent),
+                            ),
+                            palette.accent.opacity(crate::g2::sr1::run::RUN_WASH),
+                        ));
+                    }
                 }
             }
             // One layer for every mark and glyph, so the scene orders the whole track once rather than once a line.
@@ -308,9 +323,23 @@ impl Element for TrackElement {
                             cx,
                         );
                     }
-                    let name = prepared.name(chevron);
+                    let name = prepared.name_for(chevron, cursor);
                     let name_x = left + px(geometry.name_x);
                     paint_line(name, name_x, top, inks.name, window);
+                    if let Some(location) = prepared.location.as_ref() {
+                        let gap = GAP + if *clip != Clip::None { GAP + CLIP } else { 0. };
+                        let bright = cursor
+                            || lifted
+                            || self.focus.selected.contains(index)
+                            || self.focus.hover == Some((view.slot, *index));
+                        paint_line(
+                            location,
+                            name_x + name.line().width + px(gap),
+                            top,
+                            if bright { inks.name } else { palette.muted },
+                            window,
+                        );
+                    }
                     if let (Some(size_run), Some(right)) = (&prepared.size, geometry.size_right) {
                         paint_line(
                             size_run,

@@ -62,6 +62,20 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
+        // The unlock and share cards take typed text through the platform, so their text keys keep propagating.
+        if self.card_takes_text(event, window, cx) {
+            return;
+        }
+        if let Some(view) = self
+            .permissions
+            .view
+            .clone()
+            .filter(|view| view.read(cx).opened)
+        {
+            view.update(cx, |view, cx| view.key(event, window, cx));
+            cx.stop_propagation();
+            return;
+        }
         // Every modal key belongs to the card; a cardless Escape still reaches the window.
         if let Some(overlay) = self.overlay.clone() {
             let modal = overlay.read_with(cx, |card, cx| card.modal(cx));
@@ -85,13 +99,22 @@ impl Shell {
         if self.properties_key(event, window, cx) {
             return;
         }
+        // The run card holds every key while it shows.
+        if self.run_card_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        // The Open With card holds every key while it shows.
+        if self.open_with_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
         // The rename editor and the bulk rename card hold every key while open.
         if self.rename_key(event, window, cx) {
             self.rename_sync_gate(window, cx);
             return;
         }
         if self.archive_key(event, window, cx) {
-            cx.stop_propagation();
             return;
         }
         if event.keystroke.key == "escape" && self.dual_drag.is_some() {
@@ -202,7 +225,11 @@ impl Shell {
             .and_then(flea::jsondoc::Json::as_str)
             .unwrap_or("default");
         // Focus.js keyContext reads the live preview on every key, so a frame drawn after the focus moved still counts.
-        if let Some(preview) = host.preview.as_ref().filter(|p| p.read(cx).focus.is_focused(window)) {
+        if let Some(preview) = host
+            .preview
+            .as_ref()
+            .filter(|p| p.read(cx).focus.is_focused(window))
+        {
             self.keyboard.context = preview.read(cx).key_context();
         }
         let pair_armed = self.keyboard.pair_armed(name, seat);
@@ -214,8 +241,44 @@ impl Shell {
                 .map(Dispatch::Action)
                 .unwrap_or(resolved)
         };
+        // Focus.js: every listing key but the second d ends the dd arm, an unbound one too, before any handler can take it.
+        if self.keyboard.context == flea::keys::Context::Listing
+            && !matches!(
+                dispatch,
+                Dispatch::Composition | Dispatch::Action("trashArm")
+            )
+        {
+            self.operations.fileops.disarm();
+        }
         let action = match dispatch {
-            Dispatch::Unbound | Dispatch::Composition => return,
+            Dispatch::Unbound => {
+                if self.keyboard.context == flea::keys::Context::Listing
+                    && host.filter.shown.is_none()
+                    && printable(event.keystroke.key_char.as_deref().unwrap_or(""))
+                {
+                    let hint = flea::keys::presentation::hinted(
+                        &self.locale.catalog,
+                        "keys.hint.filter",
+                        name,
+                        "filter",
+                    );
+                    if !hint.is_empty() {
+                        self.status_messages(cx, |messages, now| {
+                            messages.say(
+                                &hint,
+                                false,
+                                "",
+                                flea::ui_logic_fb1::status::Hint::None,
+                                now,
+                            )
+                        });
+                        cx.notify();
+                    }
+                    cx.stop_propagation();
+                }
+                return;
+            }
+            Dispatch::Composition => return,
             Dispatch::Suppressed | Dispatch::Armed => {
                 cx.stop_propagation();
                 return;
@@ -278,7 +341,7 @@ impl Shell {
             return true;
         }
         if action == "menu" {
-            self.menu_keyboard_open(window, cx);
+            self.cursor_menu_key(window, cx);
         } else if action == "autofitColumns" {
             self.fit_list_columns(window, cx);
         } else if action == "pathBar" {

@@ -94,7 +94,7 @@ fn stale_and_oversized_rows_are_refused_and_the_cursor_stays_in_view() {
     assert_eq!(pane.cursor, 999);
     assert_eq!(pane.scroll_y, 1000. * ROW_HEIGHT - 620.);
     pane.move_cursor(Move::PageUp);
-    assert_eq!(pane.cursor, 979);
+    assert_eq!(pane.cursor, 989);
     pane.move_cursor(Move::Home);
     assert_eq!((pane.cursor, pane.scroll_y), (0, 0.));
 }

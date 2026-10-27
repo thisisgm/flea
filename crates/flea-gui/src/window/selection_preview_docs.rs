@@ -30,8 +30,6 @@ pub(crate) struct Look {
     pub muted: gpui::Hsla,
     pub mark: Mark,
 }
-/// The views' line pitch, as a multiple of the caption size.
-const LINE_PITCH: f32 = 1.3;
 /// The opacity of an archive's "and more" line.
 const MORE_OPACITY: f32 = 0.6;
 /// A row's vertical pad as a multiple of the base size, 6 px at base 12.
@@ -39,7 +37,7 @@ const ROW_PAD_Y: f32 = 6. / 12.;
 
 impl Look {
     fn row(&self) -> f32 {
-        (f32::from(self.face.caption) * LINE_PITCH).round()
+        pv2::line_pitch(f32::from(self.face.caption))
     }
     fn code(&self, numbered: bool) -> CodeView {
         let m = &self.metrics;
@@ -145,8 +143,9 @@ impl Doc {
                     code: t.surface,
                     surface: t.surface,
                     foreground: t.foreground,
-                    bright: t.foreground,
+                    bright: t.foreground_bright,
                     muted: look.muted,
+                    figure_muted: t.muted,
                     muted_frame: t.muted_frame,
                     accent_frame: t.accent_frame,
                     inks: t.code_inks,
@@ -354,11 +353,11 @@ impl Doc {
         }
     }
 
-    /// PreviewScroll.qml pageBy: one viewport height down or up, never past either end; `frame` stands in before layout.
+    /// PreviewScroll.qml pageBy: one viewport height down or up, never past either end, a code view by whole lines.
     pub(crate) fn page(&self, direction: i64, frame: f32, cx: &mut gpui::App) {
         let by = |own: f32| direction as f32 * if own > 0. { own } else { frame };
         match self {
-            Doc::Code(view) => view.update(cx, |view, cx| view.scroll_by(by(view.frame.1), cx)),
+            Doc::Code(view) => view.update(cx, |view, cx| view.page(direction, frame, cx)),
             Doc::Markdown(view) => view.update(cx, |view, cx| view.scroll_by(by(view.frame.1), cx)),
             // The table's viewport is the body under its header; layout clamps the scroll to the table's ends.
             Doc::Table(view) => view.update(cx, |view, cx| {
@@ -367,7 +366,7 @@ impl Doc {
             }),
             Doc::Html(view) => view.update(cx, |view, cx| match view.source.clone() {
                 Some(source) if view.doc.source_view() => {
-                    source.update(cx, |code, cx| code.scroll_by(by(code.frame.1), cx))
+                    source.update(cx, |code, cx| code.page(direction, frame, cx))
                 }
                 _ => view.scroll_by(by(view.frame.1), cx),
             }),

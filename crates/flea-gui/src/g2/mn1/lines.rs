@@ -195,11 +195,12 @@ pub(super) fn shape(text: String, size: Pixels, typeface: &Typeface, window: &Wi
 }
 
 pub(super) fn lead(entry: &Entry) -> Lead {
-    if let Some(check) = entry.check {
-        return Lead::Check(check);
-    }
+    // A tag row leads with its colour square even while it carries the mark in effect.
     if let Some(tag) = entry.tag {
         return Lead::Tag(tag);
+    }
+    if let Some(check) = entry.check {
+        return Lead::Check(check);
     }
     if let Some(brand) = entry.brand {
         return Lead::Brand(brand);

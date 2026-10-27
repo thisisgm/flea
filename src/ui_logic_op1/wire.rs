@@ -72,6 +72,8 @@ pub struct Reply {
     pub cancelled: bool,
     pub action: String,
     pub dest: String,
+    // The new file's path, from a newFile reply.
+    pub path: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -244,6 +246,7 @@ fn reply(doc: &Json) -> Option<Reply> {
         cancelled: flag(doc, "cancelled"),
         action: text(doc, "action"),
         dest: text(doc, "dest"),
+        path: text(doc, "path"),
     })
 }
 

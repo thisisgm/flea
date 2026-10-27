@@ -1,6 +1,7 @@
 use super::hero_tests::{bounds, english, frame, run};
 use super::mark::Glyph;
 use super::state::{Facts, Kind, StateMessage, GRID, LIST};
+use super::Ink;
 use gpui::{px, size, Pixels, TestAppContext, WindowHandle};
 
 fn open(cx: &mut TestAppContext) -> WindowHandle<StateMessage> {
@@ -39,6 +40,33 @@ fn a_denied_listing_is_locked_with_its_mode_and_the_board_sentence() {
     assert_eq!(
         (waiting.kind, waiting.glyph(), waiting.sentence.as_ref()),
         (Kind::Waiting, Glyph::Alert, "Still waiting for this folder")
+    );
+}
+
+/// grid-locked, locked, locked-menu: the padlock over the permission sentence wears the error ink, the footer message's ink, as the alert does.
+#[test]
+fn a_locked_mark_wears_the_error_ink() {
+    let catalog = english();
+    let ink = |value: u32| -> gpui::Hsla { gpui::rgb(value).into() };
+    let inks = Ink {
+        foreground: ink(0xcacccc),
+        metadata: ink(0x808080),
+        metadata_frame: ink(0x808080),
+        muted: ink(0x808080),
+        muted_frame: ink(0x808080),
+        error: ink(0xf38ba8),
+    };
+    let locked = Facts::failed("scan", "Permission denied (os error 13)", 0o40700, &catalog);
+    assert_eq!(
+        locked.mark_ink(inks),
+        inks.error,
+        "the lock wears the error ink"
+    );
+    let missing = Facts::failed("scan", "item not found", 0o40755, &catalog);
+    assert_eq!(
+        missing.mark_ink(inks),
+        inks.error,
+        "the alert wears the error ink"
     );
 }
 
