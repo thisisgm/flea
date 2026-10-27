@@ -14,6 +14,7 @@ pub(crate) mod network;
 pub(crate) mod output_cards;
 pub mod pane;
 pub mod path;
+pub(crate) mod preview_scroll;
 pub mod rail;
 pub mod rows;
 pub mod server;
@@ -26,6 +27,9 @@ pub mod tabs;
 pub(crate) mod thumbnails;
 pub mod view;
 pub(crate) mod window_feedback;
+
+#[cfg(test)]
+mod preview_scroll_tests;
 
 pub use surface::{Adapter, Surface};
 

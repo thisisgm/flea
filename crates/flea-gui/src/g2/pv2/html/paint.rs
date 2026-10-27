@@ -115,8 +115,20 @@ impl HtmlView {
 }
 
 impl Render for HtmlView {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let (laid, painted) = (cx.entity(), cx.entity());
+        let ink = crate::list::Palette::inherited(
+            &window.text_style(),
+            cx.try_global::<crate::palette::Theme>()
+                .copied()
+                .unwrap_or_default(),
+        )
+        .foreground;
+        let bars = crate::g2::pv1::scroller::overlay::surface(
+            cx.entity(),
+            ink,
+            crate::compositor::corner(cx),
+        );
         let page = canvas(
             move |bounds, window, cx| laid.update(cx, |view, cx| view.layout(bounds, window, cx)),
             move |bounds, (released, caption), window, cx| {
@@ -143,6 +155,7 @@ impl Render for HtmlView {
                 }
             }))
             .child(page)
+            .child(bars)
             .children(source.map(|code| div().absolute().inset_0().child(code)))
     }
 }
