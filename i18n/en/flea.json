@@ -2312,6 +2312,7 @@
   "keys.openTerminal": "Open terminal",
   "keys.openAgent": "Open agent here",
   "keys.print": "Print…",
+  "menu.original.needs_link": "Show original needs the cursor on a link",
   "drag.copy_to": "Copy %1 to %2",
   "drag.link_to": "Link %1 to %2",
   "drag.move_to": "Move %1 to %2 · ctrl copies, shift moves"
