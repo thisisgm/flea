@@ -91721,6 +91721,15 @@
       "surface": "gui"
     },
     {
+      "excerpt": "return Some(Reply::error(3, \"FLEA_IPC_ERROR flea.contextMenuFocusState unavailable fields: origin, activeItem (GPUI keeps no menu focus holder or QML focus item for an open menu)\"));",
+      "line": 86,
+      "literal": "FLEA_IPC_ERROR flea.contextMenuFocusState unavailable fields: origin, activeItem (GPUI keeps no menu focus holder or QML focus item for an open menu)",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/window_feedback.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "other => panic!(\"no fixture named {other}\"),",
       "line": 92,
       "literal": "no fixture named {other}",
@@ -211597,7 +211606,7 @@
     "crates/flea-gui/src/ipc/tabs.rs": "c2910888a0035755ddb686b41c28601cb2ed78b810cf0c9bf0464433a5bae0b5",
     "crates/flea-gui/src/ipc/thumbnails.rs": "8115091ee078ca0d1fdf6e0142b690c47a0095639b6f12634ab465223e1828ed",
     "crates/flea-gui/src/ipc/view.rs": "c35fec8ebaa33641ef75e1ac742ac05e29eaf089f9f4f4cb29cb1153951f4db7",
-    "crates/flea-gui/src/ipc/window_feedback.rs": "238938844455e572c2c29e3e8ab711a4cb7580f10108c531fad8f3edf3bda0c8",
+    "crates/flea-gui/src/ipc/window_feedback.rs": "046e9dca57b1305f8ef63cdff419d3a013a51e5a9811f5e60d261bb455d6b6d1",
     "crates/flea-gui/src/lib.rs": "25d1b9095043466bd6dc9041bd74e42e367b4b19d81eafda2d84ce624da27bca",
     "crates/flea-gui/src/list.rs": "dce9f5056bf49e3c693e1b452d551c6aa16931b0a0a32e3cb0a5fa76cb202b18",
     "crates/flea-gui/src/list/bench.rs": "98f488f3e3fab2dbb1f59d1bf8e2faa97ca64e14039316379954e72df1e638a4",
@@ -213261,8 +213270,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "830749d7533eed1abe4fdebce0ca1ae171530e59",
-  "source_sha": "830749d7533eed1abe4fdebce0ca1ae171530e59",
+  "source_ref_sha": "0bea576cb05265dc867d6a35ef3d672425b7d47c",
+  "source_sha": "0bea576cb05265dc867d6a35ef3d672425b7d47c",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
@@ -213276,7 +213285,7 @@
     },
     "gui": {
       "keys_with_occurrences": 477,
-      "missing_literal_candidates": 1615,
+      "missing_literal_candidates": 1616,
       "source_files": 779
     },
     "qml-reference": {

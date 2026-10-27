@@ -206,14 +206,11 @@ fn ipc_readers3_context_menu_focus_reports_an_open_menu(cx: &mut TestAppContext)
     update(cx, handle, |shell, window, cx| {
         shell.open_menu(0, None, (40., 40.), window, cx)
     });
-    let state = json(cx, handle, "contextMenuFocusState");
-    assert_eq!(
-        state.get("opened").and_then(Json::as_bool),
-        Some(true),
-        "a menu the pane opened reads opened"
-    );
-    assert_eq!(state.get("origin").and_then(Json::as_bool), Some(false));
-    assert_eq!(state.get("activeItem").and_then(Json::as_str), Some(""));
+    update(cx, handle, |shell, _, _| {
+        assert!(shell.menu.menu.borrow().opened(), "the pane opened a menu");
+    });
+    // GPUI keeps no menu focus holder and no QML focus item, so origin and activeItem refuse while the menu is open.
+    refused(cx, handle, "contextMenuFocusState", "origin, activeItem");
 }
 
 #[gpui::test]
