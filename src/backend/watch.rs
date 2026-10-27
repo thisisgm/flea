@@ -37,6 +37,7 @@ const MASK: u32 = IN_ATTRIB
 pub(crate) const IN_CLOEXEC: c_int = 0x0008_0000;
 pub(crate) const IN_NONBLOCK: c_int = 0x0000_0800;
 pub(crate) const IN_DONT_FOLLOW: u32 = 0x0200_0000;
+pub(crate) const IN_ONLYDIR: u32 = 0x0100_0000;
 // One burst says one thing to a client that re-reads it all, so a thousand writes cost one line.
 pub(crate) const COALESCE: Duration = Duration::from_millis(100);
 // A batch size and not a limit: the kernel's own drop is at max_queued_events, which this misses.

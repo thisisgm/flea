@@ -29,19 +29,26 @@ impl Shell {
                 }
             }
             Effect::DocumentPages { ticket, path } => self.output_pages(ticket, path, cx),
-            Effect::Refresh(paths) => {
-                for side in 0..2 {
-                    let Some(host) = self.panes[side].as_mut() else {
+            Effect::Refresh { paths, select } => {
+                for pane_side in 0..2 {
+                    let Some(host) = self.panes[pane_side].as_mut() else {
                         continue;
                     };
-                    let listed = paths
+                    let produced = paths
                         .iter()
-                        .any(|path| Path::new(path).parent() == Some(Path::new(&host.path)));
-                    if listed {
+                        .find(|path| Path::new(path).parent() == Some(Path::new(&host.path)));
+                    let Some(path) = produced else {
+                        continue;
+                    };
+                    if select && pane_side == side && !host.search.owner.active() {
+                        // PaneWire.qml onConvertDone refreshes with its first output as the landing target.
+                        let step = crate::window::navigate::Step::Refresh(Some(path.clone()));
+                        let _ = self.step(pane_side, step, window, cx);
+                    } else {
                         let now = host.pane.now();
                         let folder = host.path.clone();
                         host.nav.changed(&host.pane, &folder, now);
-                        self.arm_watch(side, window, cx);
+                        self.arm_watch(pane_side, window, cx);
                     }
                 }
             }

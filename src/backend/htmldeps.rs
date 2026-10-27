@@ -84,7 +84,8 @@ fn own_header() -> String {
 
 pub(super) fn replaceable(png: &Path) -> bool {
     crate::persistdoc::replaceable(&sidecar(png), MAX_RECORD_BYTES as u64, own_header().as_bytes(), |bytes| {
-        let Some(doc) = std::str::from_utf8(bytes).ok().and_then(|s| jsondoc::parse(s).ok()) else { return false };
+        // Bytes that are no JSON at all are damage to this cache's own record, which 0.3.12 rendered again (html-engine F4).
+        let Some(doc) = std::str::from_utf8(bytes).ok().and_then(|s| jsondoc::parse(s).ok()) else { return true };
         doc.as_object().is_some_and(|pairs| pairs.len() == 2)
             && doc.get("version") == Some(&number(1))
             && doc.get("dependencies").and_then(Json::as_array).is_some_and(|rows| {

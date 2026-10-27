@@ -1,26 +1,44 @@
-//! The rename editor's text input: typed characters and the input method's composing text, in UTF-16 as the platform counts.
-use super::{Edit, Shell};
-use gpui::{point, Bounds, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
+//! Inline names and operation cards forward platform callbacks to their currently painted entry session.
+use super::Shell;
+use crate::path::{
+    entry::Entry,
+    field::{ime_bounds, ime_index},
+};
+use gpui::{Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
 use std::ops::Range;
 
-// Sample input: ("a\u{e9}b", 2) is 3, the byte where the second UTF-16 unit ends.
-fn bytes_at(text: &str, units: usize) -> usize {
-    let mut count = 0;
-    for (at, next) in text.char_indices() {
-        if count >= units {
-            return at;
-        }
-        count += next.len_utf16();
-    }
-    text.len()
-}
-
 impl Shell {
-    fn editing(&mut self) -> Option<&mut Edit> {
-        self.rename
-            .edit
-            .as_mut()
-            .filter(|edit| edit.entry.editing && edit.pending.is_none())
+    fn ime_entry(&self, window: &Window) -> Option<&Entry> {
+        if self.operations.archive.showing() || self.rename.bulk.is_some() {
+            return (self.dialog_active(window)
+                && self
+                    .rename
+                    .ime
+                    .drawn
+                    .borrow()
+                    .line
+                    .accepts(&self.rename.ime.entry))
+            .then_some(&self.rename.ime.entry);
+        }
+        let edit = self.rename.edit.as_ref()?;
+        (edit.pending.is_none()
+            && self.focus.is_focused(window)
+            && edit.line.line.accepts(&edit.entry))
+        .then_some(&edit.entry)
+    }
+    fn ime_entry_mut(&mut self) -> &mut Entry {
+        if self.operations.archive.showing() || self.rename.bulk.is_some() {
+            &mut self.rename.ime.entry
+        } else {
+            &mut self.rename.edit.as_mut().expect("active inline name").entry
+        }
+    }
+    fn ime_changed(&mut self, cx: &mut Context<Self>) {
+        if self.operations.archive.showing() || self.rename.bulk.is_some() {
+            self.dialog_edited(cx);
+        } else {
+            cx.notify();
+        }
     }
 }
 
@@ -29,105 +47,94 @@ impl EntityInputHandler for Shell {
         &mut self,
         range: Range<usize>,
         adjusted: &mut Option<Range<usize>>,
-        _: &mut Window,
-        _: &mut gpui::Context<Self>,
+        window: &mut Window,
+        _: &mut Context<Self>,
     ) -> Option<String> {
-        let entry = &self.editing()?.entry;
-        let range = entry.range_from_utf16(&range);
-        adjusted.replace(entry.range_to_utf16(&range));
-        entry.text.get(range).map(str::to_owned)
+        self.ime_entry(window)?.ime_text(&range, adjusted)
     }
-
     fn selected_text_range(
         &mut self,
         _: bool,
-        _: &mut Window,
-        _: &mut gpui::Context<Self>,
+        window: &mut Window,
+        _: &mut Context<Self>,
     ) -> Option<UTF16Selection> {
-        let entry = &self.editing()?.entry;
-        Some(UTF16Selection {
-            range: entry.range_to_utf16(&entry.selected),
-            reversed: entry.reversed,
-        })
+        Some(self.ime_entry(window)?.ime_selection())
     }
-
     fn marked_text_range(
         &self,
-        _: &mut Window,
-        _: &mut gpui::Context<Self>,
+        window: &mut Window,
+        _: &mut Context<Self>,
     ) -> Option<Range<usize>> {
-        let entry = &self.rename.edit.as_ref()?.entry;
-        entry
-            .marked
-            .as_ref()
-            .map(|range| entry.range_to_utf16(range))
+        self.ime_entry(window)?.ime_marked()
     }
-
-    fn unmark_text(&mut self, _: &mut Window, cx: &mut gpui::Context<Self>) {
-        if let Some(edit) = self.editing() {
-            edit.entry.marked = None;
-            cx.notify();
+    fn unmark_text(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.ime_entry(window).is_some() {
+            self.ime_entry_mut().ime_unmark();
+            self.ime_changed(cx);
         }
     }
-
     fn replace_text_in_range(
         &mut self,
         range: Option<Range<usize>>,
         text: &str,
-        _: &mut Window,
-        cx: &mut gpui::Context<Self>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
     ) {
-        let Some(edit) = self.editing() else {
-            return;
-        };
-        let text: String = text.chars().filter(|ch| !ch.is_control()).collect();
-        let range = range.map(|range| edit.entry.range_from_utf16(&range));
-        edit.entry.replace(range, &text);
-        cx.notify();
+        if self.ime_entry(window).is_some() && self.ime_entry_mut().ime_replace(range, text) {
+            self.ime_changed(cx);
+        }
     }
-
     fn replace_and_mark_text_in_range(
         &mut self,
         range: Option<Range<usize>>,
         text: &str,
         selected: Option<Range<usize>>,
-        _: &mut Window,
-        cx: &mut gpui::Context<Self>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
     ) {
-        let Some(edit) = self.editing() else {
-            return;
-        };
-        let range = range.map(|range| edit.entry.range_from_utf16(&range));
-        // The selection inside the composing text counts UTF-16 units of that text alone.
-        let selected = selected.map(|inner| bytes_at(text, inner.start)..bytes_at(text, inner.end));
-        edit.entry.replace_and_mark(range, text, selected);
-        cx.notify();
+        if self.ime_entry(window).is_some() && self.ime_entry_mut().ime_mark(range, text, selected)
+        {
+            self.ime_changed(cx);
+        }
     }
-
     fn bounds_for_range(
         &mut self,
         range: Range<usize>,
-        bounds: Bounds<Pixels>,
-        _: &mut Window,
-        _: &mut gpui::Context<Self>,
+        _: Bounds<Pixels>,
+        window: &mut Window,
+        _: &mut Context<Self>,
     ) -> Option<Bounds<Pixels>> {
+        let entry = self.ime_entry(window)?;
+        if self.operations.archive.showing() || self.rename.bulk.is_some() {
+            let drawn = self.rename.ime.drawn.borrow();
+            return Some(crate::g2::op1::field_view::bounds(
+                self,
+                &range,
+                drawn.bounds?,
+            ));
+        }
         let edit = self.rename.edit.as_ref()?;
-        let range = edit.entry.range_from_utf16(&range);
-        let left = edit.line.origin();
-        Some(Bounds::from_corners(
-            point(left + edit.line.line.x_for(range.start), bounds.top()),
-            point(left + edit.line.line.x_for(range.end), bounds.bottom()),
-        ))
+        let mut frame = edit.line.frame?;
+        frame.origin.x = edit.line.origin() + edit.line.line.scroll;
+        Some(ime_bounds(&edit.line.line, entry, &range, frame))
     }
-
     fn character_index_for_point(
         &mut self,
         at: Point<Pixels>,
-        _: &mut Window,
-        _: &mut gpui::Context<Self>,
+        window: &mut Window,
+        _: &mut Context<Self>,
     ) -> Option<usize> {
+        let entry = self.ime_entry(window)?;
+        if self.operations.archive.showing() || self.rename.bulk.is_some() {
+            let drawn = self.rename.ime.drawn.borrow();
+            let byte = crate::g2::op1::field_view::index(self, at.x - drawn.bounds?.left());
+            return Some(entry.offset_to_utf16(byte));
+        }
         let edit = self.rename.edit.as_ref()?;
-        let index = edit.line.line.index_for(at.x - edit.line.origin());
-        Some(edit.entry.offset_to_utf16(index))
+        Some(ime_index(
+            &edit.line.line,
+            entry,
+            at.x - edit.line.origin() - edit.line.line.scroll,
+        ))
     }
 }

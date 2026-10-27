@@ -359,8 +359,9 @@ def serve(root):
         real_runtime = os.environ.get("XDG_RUNTIME_DIR")
         if real_runtime and (Path(real_runtime) / "hypr").is_dir():
             (root / "runtime" / "hypr").symlink_to((Path(real_runtime) / "hypr").resolve(), target_is_directory=True)
-        fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
-        alias = f"/proc/{os.getpid()}/fd/{fd}/runtime"
+        fd = os.open(root / "runtime", os.O_RDONLY | os.O_DIRECTORY)
+        # Keep lstat's final component a directory while leaving room for Hyprland's event socket.
+        alias = f"/proc/{os.getpid()}/fd/{fd}/."
         environment = dict(os.environ, XDG_RUNTIME_DIR=alias, FLEA_BIN=options["backend"],
                            FLEA_UI=options["ui"], FLEA_PATH=options["path"], FLEA_TEST_WINDOW=str(root),
                            FLEA_FRONTEND=options["frontend"])

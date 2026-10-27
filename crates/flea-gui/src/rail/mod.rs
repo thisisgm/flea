@@ -313,6 +313,14 @@ impl Rail {
         }
     }
 
+    /// PaneRail.qml revealed: an overlay keeps its settled reveal, a docked or hidden rail reads the pointer and keyboard wants.
+    pub fn revealed(&self) -> bool {
+        match self.mode {
+            Mode::Overlay => self.revealed,
+            Mode::Docked | Mode::Hidden => self.pointer_wanted() || self.wants.focus,
+        }
+    }
+
     /// The places rows exist: built once for an overlay and then kept, so later reveals keep cursor and scroll.
     pub fn live(&self) -> bool {
         self.hold

@@ -46,3 +46,6 @@ mod join_atomic_tests;
 
 #[cfg(test)]
 mod gcomp_join_tests;
+
+#[cfg(test)]
+mod trashview_tests;

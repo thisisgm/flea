@@ -42,6 +42,8 @@ pub enum Hint {
     #[default]
     None,
     Undo,
+    /// A completion receipt's undo target leaves with its ordinary notice timer.
+    TransientUndo,
     Paste,
     Deletes,
     Note(Note, bool),
@@ -64,7 +66,7 @@ impl Hint {
         let undo = || hinted(catalog, "feedback.hint.undo", preset, "undo");
         match self {
             Self::None => HintText::default(),
-            Self::Undo => HintText {
+            Self::Undo | Self::TransientUndo => HintText {
                 rest: String::new(),
                 undo: undo(),
             },
@@ -98,12 +100,13 @@ impl Hint {
 
     /// Whether the notice stands until replaced or withdrawn: an undo target, or a carry that still rides.
     pub fn stands(self, preset: &str) -> bool {
-        self == Self::Carry || self.has_undo(preset)
+        self == Self::Carry || (self != Self::TransientUndo && self.has_undo(preset))
     }
 
     /// Whether the hint ends in the undo key, which makes that key a click target.
     pub fn has_undo(self, preset: &str) -> bool {
-        matches!(self, Self::Undo | Self::Note(_, true)) && !hint_for(preset, "undo").is_empty()
+        matches!(self, Self::Undo | Self::TransientUndo | Self::Note(_, true))
+            && !hint_for(preset, "undo").is_empty()
     }
 }
 
