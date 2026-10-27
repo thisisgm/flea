@@ -17,16 +17,18 @@ impl PaneHost {
             .shown
             .as_ref()
             .map_or(self.pane.held.total, |rows| rows.len());
+        let row = crate::pane::ROW_HEIGHT;
         Some(crate::input::Frame {
             bounds: drawn.bounds,
-            row: crate::pane::ROW_HEIGHT,
+            row,
             lane: 0.,
-            content: total as f32 * crate::pane::ROW_HEIGHT,
+            content: drawn.grow.content(total, row),
             scroll: self.pane.scroll_y,
             listing: self.pane.held.listing,
             total,
             columns: 1,
             cell_width: drawn.bounds.size.width.into(),
+            grow: drawn.grow,
         })
     }
 }

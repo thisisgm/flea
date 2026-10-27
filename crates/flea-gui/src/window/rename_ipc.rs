@@ -24,11 +24,12 @@ impl Reader<'_> {
         let cursor_name = host
             .and_then(|host| host.pane.held.row(cursor))
             .map_or("", |row| row.name.as_str());
-        let (row, area) = host.map_or((0., 0.), |host| {
+        let (row, area, band) = host.map_or((0., 0., 0.), |host| {
             let list = host.list.borrow();
             (
                 list.drawn.metrics.row,
                 f32::from(list.drawn.bounds.size.height),
+                list.drawn.grow.band,
             )
         });
         let top = host.map_or(0., |host| {
@@ -41,7 +42,7 @@ impl Reader<'_> {
             let (w, h) = (f32::from(frame.size.width), f32::from(frame.size.height));
             (h, y - top, centre_of(x, y, w, h))
         });
-        let error_height = if error { row } else { 0. };
+        let error_height = if error { band } else { 0. };
         let selected = edit.map_or("", |edit| &edit.entry.text[edit.entry.selected.clone()]);
         format!(
             "{{\"index\":{},\"pending\":{},\"error\":\"{}\",\"text\":\"{}\",\"cursor\":{cursor},\"cursorName\":\"{}\",\"loading\":{},\"focused\":{},\"rowHeight\":{},\"normalRowHeight\":{row},\"fieldHeight\":{field},\"errorHeight\":{error_height},\"editorTop\":{editor_top},\"editorBottom\":{},\"viewportHeight\":{area},\"selectedText\":\"{}\",\"centre\":\"{centre}\"}}",

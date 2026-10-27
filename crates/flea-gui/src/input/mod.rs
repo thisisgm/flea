@@ -99,6 +99,8 @@ pub struct Frame {
     pub total: usize,
     pub columns: usize,
     pub cell_width: f32,
+    /// The refused rename's band: the rows below its edited row sit lower by it.
+    pub grow: crate::list::pane::Grow,
 }
 
 impl Frame {
@@ -107,17 +109,19 @@ impl Frame {
         bounds: Bounds<Pixels>,
         metrics: &crate::list::Metrics,
         pane: &crate::list::pane::Pane,
+        grow: crate::list::pane::Grow,
     ) -> Self {
         Self {
             bounds,
             row: metrics.row,
             lane: metrics.lane,
-            content: pane.held.total as f32 * metrics.row + metrics.header,
+            content: grow.content(pane.held.total, metrics.row) + metrics.header,
             scroll: pane.scroll_y,
             listing: pane.held.listing,
             total: pane.held.total,
             columns: 1,
             cell_width: f32::from(bounds.size.width) - metrics.lane,
+            grow,
         }
     }
     pub fn viewport(self) -> f32 {
@@ -145,7 +149,8 @@ impl Frame {
         if column >= self.columns {
             return None;
         }
-        let row = ((y + self.scroll) / self.row).floor() as usize * self.columns + column;
+        let position = self.grow.position_at(y + self.scroll, self.row);
+        let row = position * self.columns + column;
         (row < self.total).then_some(row)
     }
 }
@@ -176,6 +181,7 @@ impl PaneInput {
                 || old.cell_width != frame.cell_width
                 || old.lane != frame.lane
                 || old.content != frame.content
+                || old.grow != frame.grow
         }) {
             self.cancel(selected, cursor);
             self.press = None;
@@ -198,7 +204,7 @@ impl PaneInput {
         };
         frame.scroll = scroll;
         let columns = frame.columns.max(1);
-        let first = (scroll / frame.row).floor() as usize * columns;
+        let first = frame.grow.position_at(scroll, frame.row) * columns;
         let visible = ((frame.viewport() / frame.row).ceil() as usize).max(1);
         let last = ((first / columns + visible) * columns - 1).min(frame.total - 1);
         let first = first.min(last);

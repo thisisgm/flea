@@ -3,7 +3,7 @@ pub use super::row_text::drawn_name;
 use super::row_text::{bold_name, prepare, run_of};
 use super::{
     columns::{Column, Layout},
-    pane::Held,
+    pane::{Grow, Held},
     ListState, Metrics, Palette, RowState, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM,
     GREY_CURSOR, HOVER, MATCH_WASH, TRACK,
 };
@@ -339,10 +339,14 @@ impl Element for ListElement {
             (index, x, width, cells)
         });
         let height = f32::from(bounds.size.height);
-        let first = (self.scroll_y / metrics.row).floor().max(0.) as usize;
         let drawn_total = self.shown.as_ref().map_or(held.total, |rows| rows.len());
-        let last =
-            (((self.scroll_y + height) / metrics.row).ceil().max(0.) as usize).min(drawn_total);
+        // A refused rename grows its row and moves the rows below it down by the band.
+        let grow = Grow::of_row(
+            self.states.renaming,
+            self.states.band,
+            self.shown.as_deref(),
+        );
+        let (first, last) = grow.span(self.scroll_y, height, metrics.row, drawn_total);
         rows.begin(
             &shaping,
             ((height / metrics.row).ceil() as usize).max(1) * CACHE_SCREENS,
@@ -414,8 +418,9 @@ impl Element for ListElement {
             scroll_y: self.scroll_y,
             listing: held.listing,
             frames: drawn.frames + 1,
+            grow,
             drop: drop_box.map(|(index, x, width, _)| {
-                let top = bounds.origin.y + px(index as f32 * metrics.row - self.scroll_y);
+                let top = bounds.origin.y + px(grow.top(index, metrics.row) - self.scroll_y);
                 (
                     index,
                     Bounds::new(
@@ -458,7 +463,8 @@ impl Element for ListElement {
         let view = &state.view;
         let left = bounds.origin.x;
         let row = metrics.row;
-        let top_of = |index: usize| bounds.origin.y + px(index as f32 * row - self.scroll_y);
+        let grow = state.drawn.grow;
+        let top_of = |at: usize| bounds.origin.y + px(grow.top(at, row) - self.scroll_y);
         let focused = self.states.focused;
         window.paint_quad(fill(bounds, palette.background));
         window.with_content_mask(
@@ -468,7 +474,8 @@ impl Element for ListElement {
             |window| {
                 for shown in &state.visible {
                     let top = top_of(shown.view);
-                    let ground = Bounds::new(point(left, top), size(bounds.size.width, px(row)));
+                    let height = px(grow.height(shown.view, row));
+                    let ground = Bounds::new(point(left, top), size(bounds.size.width, height));
                     let s = shown.state;
                     // The cursor draws its rung alone on a marked row, so no plate stacks into a brighter band.
                     // drag-cut-move: a drop target takes the cursor's accent wash and edge whichever window holds the keyboard.

@@ -101,6 +101,9 @@ pub struct Focus {
     /// Marked listing indices, sorted.
     pub selected: Rc<[usize]>,
     pub hover: Option<(Slot, usize)>,
+    /// The listing row a rename edits, and the refused rename's band under it on the active track.
+    pub renaming: Option<usize>,
+    pub band: f32,
 }
 
 impl Focus {
@@ -245,6 +248,8 @@ pub struct Drawn {
     pub held: Option<Rc<crate::list::pane::Held>>,
     /// A standing filter's drawn rows on the active track, None while every row is drawn.
     pub shown: Option<Rc<[usize]>>,
+    /// The refused rename's band this track drew with; only the active track ever grows.
+    pub grow: crate::list::pane::Grow,
 }
 
 impl Drawn {

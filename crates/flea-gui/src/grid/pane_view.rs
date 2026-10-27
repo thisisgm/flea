@@ -49,6 +49,7 @@ impl PaneHost {
                     total: layout.total,
                     columns: layout.columns,
                     cell_width: layout.cell_width,
+                    grow: Default::default(),
                 },
                 palette,
             ))

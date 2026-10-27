@@ -1,9 +1,10 @@
 //! The inline rename field in Columns and Grid: F2 draws the framed field over the cursor's name with its stem selected, and typing and Enter rename.
 use super::{
-    rename_tests::{close, draw, editing, notice, ready, sent},
+    rename_tests::{close, draw, editing, notice, ready, receive, sent},
     test_shell::set_cursor,
 };
 use crate::{
+    backend::Event as BackendEvent,
     columns::geometry::{Slot, CHEVRON, GAP, LANE, NAME_X, PAD_X, SIZE_W},
     state::Shell,
     window::startup::View,
@@ -352,6 +353,114 @@ fn a_list_edit_drops_once_its_row_leaves_the_list(cx: &mut TestAppContext) {
 #[gpui::test]
 fn a_columns_edit_drops_once_its_row_leaves_the_track(cx: &mut TestAppContext) {
     drops_once_row_leaves(cx, View::Columns);
+}
+
+// A clashing rename keeps its editor open under the refusal: the frame and the refusal take the error ink, and the edited row grows so the row below clears the refusal.
+fn clash_grows_the_row(cx: &mut TestAppContext, view: View) {
+    let (shell, cx, mut lines) = ready(cx, "default");
+    let rows = vec![
+        super::test_shell::row("alpha", true),
+        super::test_shell::row("beta", true),
+        super::test_shell::row("notes.txt", false),
+        super::test_shell::row("gamma.txt", false),
+    ];
+    super::test_shell::land(&shell, cx, "/files", rows, 2);
+    switch(&shell, cx, view);
+    sent(&mut lines);
+    cx.simulate_keystrokes("f2");
+    draw(cx);
+    cx.simulate_keystrokes("ctrl-a");
+    cx.simulate_input("beta.md");
+    cx.simulate_keystrokes("enter");
+    assert_eq!(
+        sent(&mut lines),
+        [r#"{"c":"rename","path":"/files/notes.txt","to":"beta.md","menuId":0}"#]
+    );
+    receive(
+        &shell,
+        cx,
+        BackendEvent::Refused {
+            operation: "rename".into(),
+            path: "/files/notes.txt".into(),
+            message: "file exists".into(),
+            mode: 0,
+        },
+    );
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx).map(|(row, text, _)| (row, text)),
+        Some((2, "beta.md".into())),
+        "{view:?} keeps the editor open on the clashing draft"
+    );
+    let (said, exists) = shell.read_with(cx, |shell, _| {
+        let said = shell.rename.edit.as_ref().unwrap().error.clone();
+        (said, shell.locale.catalog.tr_args("jobs.rename.exists", &["beta.md"]))
+    });
+    assert_eq!(said, exists, "{view:?} says the name is taken");
+    let error = cx.update(|window, cx| {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        crate::list::Palette::inherited(&window.text_style(), theme).error
+    });
+    let (area, frame_ink, error_ink) = shell.read_with(cx, |shell, _| {
+        let line = &shell.rename.edit.as_ref().unwrap().line;
+        (line.error_area, line.frame_ink, line.error_ink)
+    });
+    let frame = frame(&shell, cx).expect("the field drew over the row");
+    let area = area.expect("the refusal drew under the field");
+    let row = match view {
+        View::Columns => crate::list::pane::ROW_HEIGHT,
+        _ => shell.read_with(cx, |shell, _| {
+            shell.panes[0].as_ref().unwrap().list.borrow().drawn.metrics.row
+        }),
+    };
+    let bounds = clip(&shell, cx, view);
+    let scroll = scrolled(&shell, cx, view);
+    let grow = shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        match view {
+            View::Columns => {
+                let columns = host.columns.as_ref().unwrap();
+                let paint = columns.painters.get(Slot::Active).unwrap().borrow();
+                paint.drawn.as_ref().unwrap().grow
+            }
+            _ => host.list.borrow().drawn.grow,
+        }
+    });
+    let top = |at: usize| bounds.origin.y + px(grow.top(at, row) - scroll);
+    assert_eq!(frame_ink, Some(error), "{view:?} draws the frame in the error ink");
+    assert_eq!(error_ink, Some(error), "{view:?} draws the refusal in the error ink");
+    assert!(
+        area.top() >= frame.bottom(),
+        "{view:?} draws the refusal under the field: {area:?} against {frame:?}"
+    );
+    assert!(
+        frame.top() >= top(2) && frame.bottom() <= top(2) + px(row),
+        "{view:?} keeps the field inside its own row"
+    );
+    assert!(
+        top(3) - top(2) > px(row),
+        "{view:?} grows the edited row by the refusal: the row below moved to {:?}",
+        top(3)
+    );
+    assert!(
+        area.bottom() <= top(3),
+        "{view:?} keeps the refusal clear of the row below: {area:?} against {:?}",
+        top(3)
+    );
+    close(&shell, cx);
+}
+
+#[gpui::test]
+fn a_clashing_list_rename_grows_its_row_and_keeps_the_editor(cx: &mut TestAppContext) {
+    clash_grows_the_row(cx, View::List);
+}
+
+#[gpui::test]
+fn a_clashing_columns_rename_grows_its_row_and_keeps_the_editor(cx: &mut TestAppContext) {
+    clash_grows_the_row(cx, View::Columns);
 }
 
 fn grid_scroll(shell: &Entity<Shell>, cx: &mut VisualTestContext, to: f32) {

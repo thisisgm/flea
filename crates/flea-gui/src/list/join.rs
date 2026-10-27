@@ -82,6 +82,7 @@ impl Shell {
                 host.input.pointer_origin && host.input.band.is_none() && !self.input_blocked(cx)
             }),
             renaming: self.renaming_row(side),
+            band: self.rename_band(side, window),
             ..self
                 .settings
                 .row_states(host.pane.held.listing, host.pane.cursor)
