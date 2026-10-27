@@ -23,5 +23,6 @@ impl Shell {
         if let Some(view) = &self.settings.plugins {
             view.update(cx, |view, cx| view.set_catalog(catalog, cx));
         }
+        self.sync_trash_sheet(cx);
     }
 }
