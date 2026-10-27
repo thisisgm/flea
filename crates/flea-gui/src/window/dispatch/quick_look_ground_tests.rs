@@ -1,6 +1,4 @@
-//! Quick Look's card ground and Markdown's code ground: the card sits on the theme's surface and the chips,
-//! fences and failed figures inside it on the window ground (ql-markdown-html draws `.card` in `--surface` and
-//! its chip in `var(--bg)`; v0.3.12's MarkdownPane sets codeSurface to the window colour on that card).
+//! Quick Look's card sits on the theme surface; its chips, fences and failed figures on the window ground.
 use super::preview_tests::{draw, file, opened};
 use super::test_shell::{land, set_cursor};
 use crate::{
