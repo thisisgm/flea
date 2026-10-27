@@ -10,6 +10,132 @@ fn image_open_child() {
     }
 }
 
+// A mixed selection reaches the actual open_many entrance in an isolated child and records handler launches.
+fn selection_handoff(invalid: &str) -> (std::process::Output, String) {
+    let dir = TestDir::new("gh350-batch");
+    std::fs::create_dir(dir.path().join("applications")).unwrap();
+    for app in ["viewer", "editor"] {
+        dir.file(
+            &format!("applications/{app}.desktop"),
+            &format!("[Desktop Entry]\nType=Application\nName={app}\nExec={app} %F\n"),
+        );
+    }
+    let mut paths: Vec<String> = ["one.png", "notes.txt", "two.png", "three.png"]
+        .iter()
+        .map(|name| dir.file(name, "plain data").to_string_lossy().into_owned())
+        .collect();
+    if !invalid.is_empty() {
+        let last = match invalid {
+            "folder" => {
+                let path = dir.path().join("folder");
+                std::fs::create_dir(&path).unwrap();
+                path
+            }
+            "missing" => dir.path().join("missing.txt"),
+            "default" => dir.file("unclaimed.txt", "data"),
+            "program" => dir.script("program.sh", "#!/bin/sh\nexit 0\n"),
+            "archive" => dir.file("backup.zip", "data"),
+            _ => unreachable!(),
+        };
+        paths.push(last.to_string_lossy().into_owned());
+    }
+    let log = dir.path().join("launches");
+    let stub = dir.script("gio", "#!/bin/sh\ncase \"$1\" in\ninfo) for last do :; done; case \"$last\" in *.png) kind=image/png;; *unclaimed*) kind=application/x-unclaimed;; *) kind=text/plain;; esac; printf '  standard::content-type: %s\\n' \"$kind\";;\nmime) case \"$2\" in image/png) app=viewer;; text/plain) app=editor;; *) exit 0;; esac; printf \"Default application for '%s': %s.desktop\\n\" \"$2\" \"$app\";;\nopen|launch) printf '%s\\n' BEGIN \"$@\" END >> \"$FLEA_TEST_LOG\";;\nesac\n");
+    let out = std::process::Command::new("timeout")
+        .arg("30")
+        .arg(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "imageopen::handoff_tests::image_open_child",
+            "--nocapture",
+            "--test-threads=1",
+        ])
+        .env(
+            "FLEA_TEST_IMAGES",
+            format!(r#"{{"paths":{}}}"#, crate::json::string_array(&paths)),
+        )
+        .env("FLEA_TEST_LOG", &log)
+        .env(
+            "PATH",
+            format!("{}:/usr/bin:/bin", stub.parent().unwrap().display()),
+        )
+        .env("XDG_DATA_HOME", dir.path())
+        .env("XDG_DATA_DIRS", dir.path())
+        .output()
+        .unwrap();
+    (out, std::fs::read_to_string(log).unwrap_or_default())
+}
+
+#[test]
+fn gh350_mixed_selection_launches_each_default_once_in_selection_order() {
+    let (out, receipt) = selection_handoff("");
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(
+        receipt.matches("BEGIN\n").count(),
+        2,
+        "three images and one text need two launches: {receipt}"
+    );
+    let groups: Vec<_> = receipt.split("BEGIN\n").skip(1).collect();
+    assert!(
+        groups[0].contains("viewer.desktop\n"),
+        "first selected handler first: {receipt}"
+    );
+    let names: Vec<_> = groups[0]
+        .lines()
+        .filter_map(|line| {
+            std::path::Path::new(line)
+                .file_name()
+                .and_then(|n| n.to_str())
+        })
+        .collect();
+    let first = names.iter().position(|name| *name == "one.png").unwrap();
+    assert_eq!(
+        &names[first..first + 3],
+        ["one.png", "two.png", "three.png"]
+    );
+    assert!(
+        groups[1].contains("editor.desktop\n") && groups[1].contains("/notes.txt\n"),
+        "text goes only to its handler: {receipt}"
+    );
+}
+
+#[test]
+fn gh350_invalid_last_target_refuses_the_whole_batch_before_any_launch() {
+    for invalid in ["folder", "missing", "default", "program", "archive"] {
+        let (out, receipt) = selection_handoff(invalid);
+        assert_ne!(
+            out.status.code(),
+            Some(0),
+            "{invalid} must refuse the batch"
+        );
+        assert!(
+            receipt.is_empty(),
+            "{invalid} must refuse before any launch: {receipt}"
+        );
+        let refusal = crate::json::field_str(&String::from_utf8_lossy(&out.stdout), "refusal");
+        let expected = match invalid {
+            "folder" => Some("feedback.refusal.folder_with_files"),
+            "program" => Some("feedback.refusal.programs"),
+            "archive" => Some("feedback.refusal.archives"),
+            _ => None,
+        };
+        assert_eq!(
+            refusal.as_deref(),
+            expected,
+            "{invalid} must use its own refusal branch"
+        );
+        assert!(
+            !String::from_utf8_lossy(&out.stdout).contains("\"ask\""),
+            "a batch never opens a single-file card"
+        );
+    }
+}
+
 fn handoff(exec: &str, first_body: &str, mime: &str) -> (std::process::Output, String) {
     let dir = TestDir::new("image-handoff");
     let apps = dir.path().join("applications");
@@ -21,14 +147,11 @@ fn handoff(exec: &str, first_body: &str, mime: &str) -> (std::process::Output, S
     }
     let log = dir.path().join("handoff.log");
     let stub = dir.script("gio", "#!/bin/sh\ncase \"$1\" in\ninfo) printf '  standard::content-type: %s\\n' \"$FLEA_TEST_MIME\";;\nmime) printf \"Default application for '%s': viewer.desktop\\n\" \"$2\";;\nopen|launch) printf '%s\\n' \"$@\" >> \"$FLEA_TEST_LOG\";;\nesac\n");
+    let companion = dir.file("companion.png", "picture");
     let paths = format!(
         r#"{{"paths":["{}","{}"]}}"#,
         crate::json::escape(&first.to_string_lossy()),
-        crate::json::escape(
-            &dir.path()
-                .join("unreadable companion.png")
-                .to_string_lossy()
-        )
+        crate::json::escape(&companion.to_string_lossy())
     );
     let out = std::process::Command::new("timeout")
         .arg("30")
@@ -55,7 +178,7 @@ fn handoff(exec: &str, first_body: &str, mime: &str) -> (std::process::Output, S
 }
 
 #[test]
-fn the_default_list_handler_gets_one_ordered_launch_and_no_companion_stat() {
+fn the_default_list_handler_gets_every_validated_image_in_one_ordered_launch() {
     for code in ["%F", "%U"] {
         let (out, receipt) = handoff(&format!("viewer {code}"), "picture", "image/png");
         assert_eq!(out.status.code(), Some(0));
@@ -64,38 +187,36 @@ fn the_default_list_handler_gets_one_ordered_launch_and_no_companion_stat() {
         assert_eq!(lines[0], "launch");
         assert!(lines[1].ends_with("/applications/viewer.desktop"));
         assert!(lines[2].ends_with("/first.png"));
-        assert!(lines[3].ends_with("/unreadable companion.png"));
+        assert!(lines[3].ends_with("/companion.png"));
     }
 }
 
 #[test]
-fn single_path_handlers_and_nonimages_keep_the_original_open() {
+fn a_single_path_default_handler_still_receives_every_marked_file() {
     for (exec, mime) in [
         ("viewer %f", "image/png"),
         ("viewer %u", "image/png"),
         ("viewer %%F", "image/png"),
         ("viewer", "image/png"),
-        ("viewer %F", "text/plain"),
     ] {
         let (out, receipt) = handoff(exec, "picture", mime);
-        assert_eq!(out.status.code(), Some(0));
-        assert_eq!(receipt.lines().count(), 2);
-        assert!(receipt.starts_with("open\n"));
+        assert_eq!(out.status.code(), Some(0), "{exec}");
+        assert!(receipt.contains("/first.png\n"), "{exec}: {receipt}");
+        assert!(receipt.contains("/companion.png\n"), "{exec}: {receipt}");
     }
 }
 
 #[test]
-fn an_image_named_script_still_asks_before_any_handler_handoff() {
+fn an_image_named_script_refuses_a_batch_before_any_handler_handoff() {
     let (out, receipt) = handoff("viewer %F", "#!/bin/sh\necho never\n", "image/png");
-    assert_eq!(out.status.code(), Some(crate::runfile::ASK_RUN));
-    assert!(String::from_utf8_lossy(&out.stdout).contains(r#""ask":"run""#));
+    assert_eq!(out.status.code(), Some(crate::open::FAILED));
+    assert!(String::from_utf8_lossy(&out.stdout).contains("feedback.refusal.programs"));
     assert!(receipt.is_empty());
 }
 
 fn assert_escaped_gallery(prefix: &str) {
     for field in ["%F", "%U"] {
         let exec = format!("{prefix}{field}");
-        assert!(super::takes_many(&exec), "{exec}");
         let (out, receipt) = handoff(&exec, "picture", "image/png");
         assert_eq!(out.status.code(), Some(0), "{exec}");
         assert_eq!(receipt.lines().count(), 4, "{exec}: {receipt:?}");

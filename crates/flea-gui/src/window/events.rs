@@ -42,6 +42,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.opener_event(side, &event, window, cx) {
+            return;
+        }
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained)
             && self
                 .menu
@@ -169,6 +172,7 @@ impl Shell {
                         &self.locale,
                     ),
                 }
+                self.opener_archive_ready(side, window, cx);
                 return;
             }
             event => event,
@@ -355,6 +359,7 @@ impl Shell {
                 }
             }
         }
+        self.opener_archive_ready(side, window, cx);
         self.search_landed(side, false, window, cx);
         self.settle_dual(window, cx);
         self.after_navigation(side, &before, window, cx);

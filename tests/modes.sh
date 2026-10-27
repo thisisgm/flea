@@ -690,7 +690,7 @@ check "with no errno in it" "0" "$(echo "$out" | grep -c 'os error')"
 out=$($BIN --open 2>&1 </dev/null)
 rc=$?
 check "--open with no path exits 2" "2" "$rc"
-check "--open usage names its path and optional gallery" "1" "$(echo "$out" | grep -F -c -- '--open <path> [images...]')"
+check "--open usage names its path and optional targets" "1" "$(echo "$out" | grep -F -c -- '--open <path> [paths...]')"
 
 # Every program the openers hand off to by name must be shipped by a PKGBUILD dependency, or the
 # package installs and the button it belongs to does nothing at all. The three sources are src/open.rs,

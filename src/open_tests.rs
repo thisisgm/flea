@@ -181,7 +181,7 @@ fn a_binary_missing_its_bit_answers_its_own_status() {
         let dir = crate::backend::testdir::TestDir::new("open-unbit-status");
         let target = fixture(&dir, name, &bytes, 0o644);
         let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
-        assert_eq!(super::open_snapshot(&target, &opened, true, MOUNTS, &[]), crate::runfile::NOT_EXECUTABLE, "{} answers its own status", name);
+        assert_eq!(super::open_snapshot(&target, &opened, true, MOUNTS), crate::runfile::NOT_EXECUTABLE, "{} answers its own status", name);
     }
 }
 
@@ -194,8 +194,8 @@ fn a_program_on_a_noexec_volume_answers_the_run_card_status() {
     let target = fixture(&dir, "tool", &elf, 0o755);
     let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
     let noexec = format!("1 0 8:1 / / rw - ext4 /dev/a rw\n2 1 0:99 / {} rw,noexec - tmpfs tmpfs rw\n", dir.path().display());
-    assert_eq!(super::open_snapshot(&target, &opened, true, &noexec, &[]), crate::runfile::RUN_NOEXEC, "the noexec volume refuses under the card's status");
-    assert_eq!(super::open_snapshot(&target, &opened, true, MOUNTS, &[]), crate::runfile::ASK_RUN, "the same program on an exec volume asks");
+    assert_eq!(super::open_snapshot(&target, &opened, true, &noexec), crate::runfile::RUN_NOEXEC, "the noexec volume refuses under the card's status");
+    assert_eq!(super::open_snapshot(&target, &opened, true, MOUNTS), crate::runfile::ASK_RUN, "the same program on an exec volume asks");
 }
 
 // open() never asks the card, and a binary missing its bit still answers its own status with no handler run: open_normally answers only 0, 2 and 5.
@@ -206,7 +206,7 @@ fn a_binary_missing_its_bit_answers_its_own_status_for_in_process_callers() {
     let dir = crate::backend::testdir::TestDir::new("open-unbit-ask-false");
     let target = fixture(&dir, "tool", &elf, 0o644);
     let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
-    assert_eq!(super::open_snapshot(&target, &opened, false, MOUNTS, &[]), crate::runfile::NOT_EXECUTABLE, "the in-process caller gets the binary's own status");
+    assert_eq!(super::open_snapshot(&target, &opened, false, MOUNTS), crate::runfile::NOT_EXECUTABLE, "the in-process caller gets the binary's own status");
 }
 
 // open() never asks the card, and a program on a noexec volume still answers the run card's status with no handler run: status 7 is never an open_normally answer.
@@ -218,7 +218,7 @@ fn a_program_on_a_noexec_volume_answers_its_status_for_in_process_callers() {
     let target = fixture(&dir, "tool", &elf, 0o755);
     let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
     let noexec = format!("1 0 8:1 / / rw - ext4 /dev/a rw\n2 1 0:99 / {} rw,noexec - tmpfs tmpfs rw\n", dir.path().display());
-    assert_eq!(super::open_snapshot(&target, &opened, false, &noexec, &[]), crate::runfile::RUN_NOEXEC, "the in-process caller gets the noexec status");
+    assert_eq!(super::open_snapshot(&target, &opened, false, &noexec), crate::runfile::RUN_NOEXEC, "the in-process caller gets the noexec status");
 }
 
 // F3: an application uninstalled between the ask and the press answers its own exit, and nothing is launched.
