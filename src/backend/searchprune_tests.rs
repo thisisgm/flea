@@ -29,6 +29,26 @@ fn search_pruning_and_directory_states_equal_exhaustive_scores_and_ranks() {
 }
 
 #[test]
+fn search_ranks_a_typed_folder_run_above_scattered_name_matches() {
+    let mut index = Index::new();
+    index.push("projects/editor", true);
+    for path in ["Music/folder_01/test_test_00074578_detail_detail_detail.json", "Music/folder_01/credit_notes.txt",
+                 "projects/editor/src/components/render_frame.rs", "Music/folder_01/notes_edit.txt", "Music/folder_01/tide.txt"] {
+        index.push(path, false);
+    }
+    let rows: Vec<_> = (0..index.len()).collect();
+    for query in ["e", "ed", "edi", "edit", "edito"] {
+        let ranked: Vec<String> = optimized(&index, query, &rows).iter().map(|&(_, row)| index.path(row).to_string()).collect();
+        let at = |path: &str| ranked.iter().position(|row| row == path);
+        let target = at("projects/editor/src/components/render_frame.rs").expect("the file under the typed folder matches");
+        assert_eq!(at("projects/editor"), Some(0), "{query}: the folder itself leads, {ranked:?}");
+        if let Some(scattered) = at("Music/folder_01/test_test_00074578_detail_detail_detail.json") {
+            assert!(target < scattered, "{query}: {ranked:?}");
+        }
+    }
+}
+
+#[test]
 fn search_scores_each_distinct_eligible_name_once_with_no_file_path_reconstruction() {
     let mut index = Index::new();
     for dir in 0..1000 {
@@ -82,5 +102,44 @@ fn search_rejected_path_suffixes_never_build_alignment_states() {
         assert_eq!(index.dirs_scored.load(Ordering::Relaxed), 0);
         assert_eq!(index.paths_scored.load(Ordering::Relaxed), 0);
         assert_eq!(index.reconstructed.load(Ordering::Relaxed), 0);
+    }
+}
+
+#[test]
+fn search_resolve_splits_pending_rows_across_threads_and_matches_each_row_alone() {
+    // Top-level names, basename subsequences and path-only rows interleave, so every chunk resets, copies and switches parents.
+    use crate::backend::searchmatch::{NAME, PENDING_NAME, PENDING_PATH};
+    let mut index = Index::new();
+    for row in 0..3001 {
+        index.push(match row % 3 {
+            0 => format!("top_e{row}x_d.txt"),
+            1 => format!("f{:02}/notes_e{row}d.txt", row % 40),
+            _ => format!("ed{:02}/x{row}.txt", row % 40),
+        }, false);
+    }
+    let matcher = Matcher::deferred("ed");
+    let rows: Vec<_> = (0..index.len()).collect();
+    let mut scratch = QueryScratch::default();
+    scratch.pinned_cores = Some(WALK_THREADS);
+    let hits = score_cached(&matcher, &rows, &index, &mut scratch);
+    let marked = |marker| hits.iter().filter(|hit| hit.0 == marker).count();
+    assert_eq!((marked(PENDING_NAME), marked(PENDING_PATH)), (2001, 1000), "the fixture marks every row for the DP");
+    let resolved: Vec<_> = rows.iter().map(|&row| (NAME, row)).collect();
+    let alone: Vec<_> = hits.iter().map(|&hit| {
+        let mut one = [hit];
+        resolve(&matcher, &index, &mut scratch, &mut one);
+        one[0]
+    }).collect();
+    let join = |head: &[(i32, usize)], tail: &[(i32, usize)]| -> Vec<_> { head.iter().chain(tail).copied().collect() };
+    // resolve_head's low list reaches Rest::promote pending first; resolved first fails a cut that counts rows instead of pending ones.
+    for (order, mut batch, expected) in [
+        ("pending first", join(&hits, &resolved), join(&alone, &resolved)),
+        ("resolved first", join(&resolved, &hits), join(&resolved, &alone)),
+    ] {
+        scratch.counters.resolve_largest_share = 0;
+        resolve(&matcher, &index, &mut scratch, &mut batch);
+        assert_eq!(batch, expected, "{order}: a split resolve scores each pending row as a resolve of that row alone and leaves resolved rows alone");
+        let largest = scratch.counters.resolve_largest_share;
+        assert_eq!(largest, hits.len().div_ceil(WALK_THREADS), "{order}: 3001 pending rows, which no thread count divides, split evenly across every thread");
     }
 }

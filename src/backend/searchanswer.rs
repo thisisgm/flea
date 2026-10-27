@@ -39,9 +39,9 @@ impl Session {
             #[cfg(test)]
             let phase_started = Instant::now();
             let last = searchindex::boundary(&hits, count);
-            let (mut head, below): (Vec<_>, Vec<_>) = hits.into_iter()
+            let (mut head, mut below): (Vec<_>, Vec<_>) = hits.into_iter()
                 .partition(|hit| last.is_some_and(|last| searchindex::class(hit.0) <= last));
-            searchindex::resolve(&fuzzy, &index, &mut self.score_scratch, &mut head);
+            below.append(&mut searchindex::resolve_head(&fuzzy, &index, &mut self.score_scratch, &mut head, count));
             #[cfg(test)]
             { self.counters.phases.resolve = phase_started.elapsed(); }
             #[cfg(test)]
