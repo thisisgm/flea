@@ -188,6 +188,8 @@ impl Shell {
         );
         let current = &host.pane.held;
         let state = &mut host.sizes;
+        // Every new answer, a re-list's first or a later window on the same listing, installs its own inline sizes.
+        let fresh = !Rc::ptr_eq(&state.held, current);
         if state.held.listing != current.listing {
             state.cancel(backend);
             state.sizes = if state.path == host.path {
@@ -201,10 +203,12 @@ impl Shell {
                 state.class = None;
                 DirSizes::default()
             };
-            state.sizes.inlined(&current.rows, current.start, CAP);
             state.path = host.path.clone();
             state.asked_fs = false;
             state.asked_sizes = false;
+        }
+        if fresh {
+            state.sizes.inlined(&current.rows, current.start, CAP);
             state.held = Rc::clone(current);
             let mut list = host.list.borrow_mut();
             for (at, _) in current.rows.iter().enumerate() {
@@ -214,8 +218,6 @@ impl Shell {
                 }
             }
             list.retain_folder_sizes(&state.sizes);
-        } else {
-            state.held = Rc::clone(current);
         }
         if !state.asked_fs {
             if let Err(error) = backend.list_details(r#"{"c":"fsinfo"}"#) {
@@ -367,3 +369,7 @@ impl super::ListView {
             .flatten()
     }
 }
+
+#[cfg(test)]
+#[path = "sizes_window_tests.rs"]
+mod window_tests;
