@@ -68,6 +68,7 @@ pub(super) fn surface(
                             total,
                             columns: 1,
                             cell_width: f32::from(bounds.size.width) - lane,
+                            cell_origin: (0., 0.),
                         },
                         snapshot,
                     );
