@@ -125,13 +125,111 @@ pub fn pane_size(card_w: f32, card_h: f32) -> (f32, f32) {
     )
 }
 
+/// Wide characters (CJK and fullwidth forms) take two monospace cells and may break between any two of them.
+fn wide(letter: char) -> bool {
+    matches!(letter as u32, 0x1100..=0x115F | 0x2E80..=0xA4CF | 0xAC00..=0xD7A3 | 0xF900..=0xFAFF | 0xFF00..=0xFF60)
+}
+
+/// Closing punctuation never starts a line.
+fn closing(letter: char) -> bool {
+    matches!(
+        letter,
+        ',' | '.'
+            | ':'
+            | ';'
+            | '!'
+            | '?'
+            | ')'
+            | ']'
+            | '}'
+            | '、'
+            | '。'
+            | '，'
+            | '．'
+            | '：'
+            | '；'
+            | '！'
+            | '？'
+            | '）'
+            | '］'
+            | '｝'
+            | '」'
+            | '』'
+            | '】'
+            | '〉'
+            | '》'
+            | '〕'
+            | '・'
+            | 'ー'
+    )
+}
+
+/// Opening punctuation never ends a line.
+fn opening(letter: char) -> bool {
+    matches!(
+        letter,
+        '(' | '[' | '{' | '（' | '［' | '｛' | '「' | '『' | '【' | '〈' | '《' | '〔'
+    )
+}
+
+/// A hint's layout units: each word whole with its trailing space (a key chord is one word), split only beside a wide character, never inside a grapheme, before closing or after opening punctuation.
+pub fn hint_units(text: &str) -> Vec<String> {
+    use unicode_segmentation::UnicodeSegmentation;
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let mut units: Vec<String> = Vec::new();
+    for (at, word) in words.iter().enumerate() {
+        let mut run = String::new();
+        let mut before: Option<char> = None;
+        for grapheme in word.graphemes(true) {
+            let first = grapheme.chars().next().expect("a grapheme has a character");
+            if let Some(last) = before {
+                if (wide(last) || wide(first)) && !closing(first) && !opening(last) {
+                    units.push(std::mem::take(&mut run));
+                }
+            }
+            run.push_str(grapheme);
+            before = Some(first);
+        }
+        if !run.is_empty() {
+            units.push(run);
+        }
+        if at + 1 < words.len() {
+            if let Some(last) = units.last_mut() {
+                last.push(' ');
+            }
+        }
+    }
+    units
+}
+
+/// Lines the units take packed whole in a width: a unit that does not fit starts a line, a wider one keeps its own.
+pub fn hint_line_count(widths: &[f32], width: f32) -> usize {
+    let mut lines = 1;
+    let mut used = 0.;
+    for unit in widths {
+        if used > 0. && used + unit > width {
+            lines += 1;
+            used = *unit;
+        } else {
+            used += unit;
+        }
+    }
+    lines
+}
+
+/// A hint's line count in a width, each unit measured whole by the caller's face.
+pub fn hint_lines(text: &str, width: f32, measure: impl Fn(&str) -> f32) -> usize {
+    let widths: Vec<f32> = hint_units(text).iter().map(|unit| measure(unit)).collect();
+    hint_line_count(&widths, width)
+}
+
 /// Hint lines in a monospace face, a stand-in until the window has shaped the text: wide characters take two cells.
 pub fn estimated_lines(text: &str, size: f32, width: f32) -> usize {
-    let wide = |letter: char| matches!(letter as u32, 0x1100..=0x115F | 0x2E80..=0xA4CF | 0xAC00..=0xD7A3 | 0xF900..=0xFAFF | 0xFF00..=0xFF60);
-    let cells: usize = text
-        .chars()
-        .map(|letter| if wide(letter) { 2 } else { 1 })
-        .sum();
-    let per_line = ((width / (size * 0.6)).floor() as usize).max(1);
-    cells.div_ceil(per_line).max(1)
+    let cells = |unit: &str| {
+        unit.chars()
+            .map(|letter| if wide(letter) { 2 } else { 1 })
+            .sum::<usize>() as f32
+    };
+    let widths: Vec<f32> = hint_units(text).iter().map(|unit| cells(unit)).collect();
+    hint_line_count(&widths, (width / (size * 0.6)).floor().max(1.))
 }

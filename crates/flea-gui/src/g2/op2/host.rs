@@ -258,6 +258,7 @@ impl Shell {
                 self.archive_menu_close(side, menu, cx);
             }
         }
+        self.sync_dialog_editor();
         cx.notify();
     }
 
@@ -278,7 +279,10 @@ impl Shell {
                 let output = match output {
                     Ok(output) => output,
                     Err(err) => {
-                        let line = shell.locale.catalog.tr_args("archive.flash.chooser_failed", &[&binary, &err.to_string()]);
+                        let line = shell
+                            .locale
+                            .catalog
+                            .tr_args("archive.flash.chooser_failed", &[&binary, &err.to_string()]);
                         shell.archive_say(&line, true, cx);
                         return;
                     }

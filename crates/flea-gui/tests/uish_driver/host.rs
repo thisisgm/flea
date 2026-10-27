@@ -124,7 +124,7 @@ impl Host {
         );
         let server = Server::bind(Path::new(&alias)).map_err(|e| e.to_string())?;
         let launch = Launch::resolve(
-            Settings::from_json(jsondoc::parse(r#"{"view":"list"}"#)?, true),
+            Settings::from_json(jsondoc::parse(r#"{"view":"list"}"#)?),
             Arguments {
                 path: Some(path.to_string_lossy().into_owned()),
                 select: None,

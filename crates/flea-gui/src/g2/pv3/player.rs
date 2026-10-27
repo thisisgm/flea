@@ -253,7 +253,9 @@ impl MediaPlayer {
                 self.position = 0;
             }
             Event::Position(ms) => {
-                self.position = ms;
+                if !(self.state.has_video && self.state.media == Media::Ended) {
+                    self.position = ms;
+                }
                 publish = false;
             }
             Event::Seeked(ms) => {
@@ -267,8 +269,11 @@ impl MediaPlayer {
             Event::Ended => {
                 self.state.media = Media::Ended;
                 self.state.playback = Playback::Stopped;
-                // The strip reads the whole clip at its end, as v0.3.12's does, not the last frame's stamp.
-                if self.duration > 0 {
+                if self.state.has_video {
+                    self.position = 0;
+                    // Stop pauses and rewinds the decoder so the poster replaces the held picture.
+                    self.send(Command::Stop);
+                } else if self.duration > 0 {
                     self.position = self.duration;
                 }
             }

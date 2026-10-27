@@ -129,3 +129,47 @@ fn keymap_sheet_reads_the_cursor_rows_menu_when_the_cursor_is_scrolled_out(
         );
     });
 }
+
+#[gpui::test]
+fn keymap_sheet_question_mark_lists_its_own_row(cx: &mut TestAppContext) {
+    assert_eq!(searched("?", cx), ["?|Keyboard Shortcuts"]);
+}
+
+#[gpui::test]
+fn keymap_sheet_keyboard_lists_its_own_row(cx: &mut TestAppContext) {
+    let rows = searched("keyboard", cx);
+    assert!(rows.iter().any(|drawn| drawn == "?|Keyboard Shortcuts"), "{rows:#?}");
+}
+
+#[gpui::test]
+fn keymap_sheet_single_symbol_keys_list_their_rows(cx: &mut TestAppContext) {
+    for (query, row) in [
+        ("/", "/|Filter"),
+        (":", ": / ctrl-l|Go to folder"),
+        ("{", "{|Move tab left"),
+        ("}", "}|Move tab right"),
+    ] {
+        let rows = searched(query, cx);
+        assert!(rows.iter().any(|drawn| drawn == row), "{query}: {rows:#?}");
+    }
+}
+
+#[gpui::test]
+fn keymap_sheet_escape_closes_it_from_a_typed_query(cx: &mut TestAppContext) {
+    let (backend, _requests) = Backend::test_channel();
+    let (entity, cx) = cx.add_window_view(|window, cx| {
+        let shell = shell(backend, REGULAR, 0, cx);
+        window.focus(&shell.focus, cx);
+        shell
+    });
+    entity.update_in(cx, |shell, window, cx| shell.open_sheet(window, cx));
+    cx.run_until_parked();
+    cx.simulate_keystrokes("?");
+    cx.run_until_parked();
+    cx.simulate_keystrokes("escape");
+    cx.run_until_parked();
+    assert!(
+        entity.read_with(cx, |shell, _| shell.settings.sheet.is_none()),
+        "Escape closes the sheet"
+    );
+}

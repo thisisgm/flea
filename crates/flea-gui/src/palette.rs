@@ -1,3 +1,4 @@
+pub use crate::window::glass::Inputs as GlassInputs;
 use flea::colours;
 use gpui::{Global, Hsla, Rgba};
 
@@ -10,8 +11,10 @@ mod golden_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Theme {
+    pub glass: GlassInputs,
     pub background: Hsla,
     pub foreground: Hsla,
+    pub foreground_bright: Hsla,
     pub surface: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
@@ -26,6 +29,8 @@ pub struct Theme {
     pub error_on_surface: Hsla,
     /// The code reply's roles 1 to 6, each the theme's own colour lifted to 4.5:1 (ui/js/CodeRuns.js inks).
     pub code_inks: [Hsla; 6],
+    /// The shared tag palette's seven surface swatches, resolved once per theme load.
+    pub tag_menu_inks: [Hsla; 7],
     /// The line numbers' ink, the metadata role lifted to 4.5:1 on both grounds.
     pub gutter: Hsla,
     /// The theme's own red, unlifted (Commons.Color.urgent: red or color1, last in source order), for inherited grounds.
@@ -187,9 +192,22 @@ impl Theme {
             (metadata.b * 255.).round() as u8
         );
         let gutter = ink(&flea::ui_logic_pv2::code::gutter_ink(&muted, &ground, &plane));
+        let tags = flea::ui_logic_pl4::tagtheme::tag_theme(
+            |key| {
+                named
+                    .iter()
+                    .rev()
+                    .find(|(name, _)| *name == key)
+                    .map(|(_, hex)| hex.clone())
+            },
+            &ground,
+            &plane,
+        );
         let theme = Self {
+            glass: Default::default(),
             background: gpui::rgb(background).into(),
             foreground: gpui::rgb(foreground).into(),
+            foreground_bright: role(core.foregroundBright),
             surface: gpui::rgb(surface).into(),
             accent: gpui::rgb(accent).into(),
             accent_frame: gpui::rgb(frame).into(),
@@ -210,6 +228,7 @@ impl Theme {
                 ink(&lifted[6]),
             ],
             gutter,
+            tag_menu_inks: tags.menu_colors.each_ref().map(|hex| ink(hex)),
             urgent: gpui::rgb(urgent).into(),
         };
         // ui/js/Palette.js:31-33 isPalette: any parsed colour makes the theme ready, ui/Theme.qml:357.
