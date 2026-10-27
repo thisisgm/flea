@@ -52,11 +52,11 @@ fn gcomp39_real_rail_focus_handoff_preserves_queued_origins_invalid_targets_and_
             .iter()
             .map(|request| (request.side, request.id))
             .collect::<Vec<_>>(),
-        [(0, 1), (1, 2), (1, 3), (0, 4)],
+        [(0, 1), (1, 2), (0, 4)],
         "focus handoff lagged a new request or rewrote a captured origin",
     );
     assert_eq!(requests[0].event, Event::Trash);
     assert_eq!(requests[1].event, Event::Trash);
-    assert!(matches!(requests[2].event, Event::Menu(_)));
-    assert_eq!(requests[3].event, Event::Trash);
+    // PB-RAIL-2: the Trash row's menu is a handled order now (window/dispatch/rail_menu.rs), so it no longer reaches observers.
+    assert_eq!(requests[2].event, Event::Trash);
 }

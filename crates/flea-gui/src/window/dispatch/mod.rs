@@ -13,6 +13,7 @@ mod places;
 mod preview;
 mod previewtypes;
 mod rename;
+pub(crate) mod rail_menu;
 mod tabs;
 mod window;
 
@@ -51,6 +52,7 @@ const FAMILIES: &[Family] = &[
     rename::run,
     menu_parity::run,
     menus::run,
+    rail_menu::run,
     clipboard::run,
 ];
 
@@ -235,6 +237,9 @@ mod pb_preview_fixture;
 mod pb_preview_keys_tests;
 #[cfg(test)]
 mod pb_preview_readers_tests;
+#[cfg(test)]
+mod rail_menu_tests;
+
 #[cfg(test)]
 mod columns_search_parity_tests;
 #[cfg(test)]

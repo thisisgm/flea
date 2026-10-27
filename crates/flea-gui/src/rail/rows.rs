@@ -251,6 +251,15 @@ pub fn rail_palette(style: &gpui::TextStyle, theme: crate::palette::Theme) -> Pa
     palette
 }
 
+/// SidebarRow.qml: a broken favourite's label takes the error ink, every other label the foreground.
+pub fn label_ink(error: bool, palette: &Palette) -> gpui::Hsla {
+    if error {
+        palette.error
+    } else {
+        palette.foreground
+    }
+}
+
 pub struct Ready {
     palette: Palette,
     headers: Vec<Rc<text::Prepared>>,
@@ -283,6 +292,9 @@ mod paint;
 #[cfg(test)]
 #[path = "ground_tests.rs"]
 mod ground_tests;
+#[cfg(test)]
+#[path = "ink_tests.rs"]
+mod ink_tests;
 
 #[cfg(test)]
 #[path = "i50_rename_tests.rs"]
