@@ -144,6 +144,8 @@ pub struct ListView {
     /// A filter or search's needle, whose run each name marks.
     pub query: String,
     pub searching: bool,
+    /// A contents search draws each row as a block, its row and first matching line, so rows take the block height.
+    pub contents: bool,
     pub dual: bool,
     pub clip: ClipMarks,
     pub order: Order,
@@ -167,6 +169,7 @@ impl Default for ListView {
             lang_marks: true,
             query: String::new(),
             searching: false,
+            contents: false,
             dual: false,
             clip: ClipMarks::default(),
             order: Order::default(),

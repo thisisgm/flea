@@ -13,9 +13,9 @@ use flea::{
 use gpui::{AppContext, KeyDownEvent, Keystroke, Modifiers, TestAppContext, WindowHandle};
 use std::time::Duration;
 
-type Handle = WindowHandle<Root>;
+pub(super) type Handle = WindowHandle<Root>;
 
-fn open(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<String>) {
+pub(super) fn open(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<String>) {
     let (backend, read) = Backend::test_lines();
     let handle = cx.add_window(|window, cx| Root {
         shell: cx.new(|cx| {
@@ -27,7 +27,7 @@ fn open(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<String>) {
     (handle, read)
 }
 
-fn edit<R>(
+pub(super) fn edit<R>(
     cx: &mut TestAppContext,
     handle: Handle,
     f: impl FnOnce(&mut Shell, &mut Window, &mut Context<Shell>) -> R,
@@ -39,7 +39,7 @@ fn edit<R>(
         .unwrap()
 }
 
-fn key(cx: &mut TestAppContext, handle: Handle, key: &str, text: Option<&str>) {
+pub(super) fn key(cx: &mut TestAppContext, handle: Handle, key: &str, text: Option<&str>) {
     edit(cx, handle, |shell, window, cx| {
         shell.key(
             &KeyDownEvent {
@@ -57,7 +57,7 @@ fn key(cx: &mut TestAppContext, handle: Handle, key: &str, text: Option<&str>) {
     });
 }
 
-fn control_key(cx: &mut TestAppContext, handle: Handle, key: &str) {
+pub(super) fn control_key(cx: &mut TestAppContext, handle: Handle, key: &str) {
     edit(cx, handle, |shell, window, cx| {
         shell.key(
             &KeyDownEvent {
@@ -78,7 +78,7 @@ fn control_key(cx: &mut TestAppContext, handle: Handle, key: &str) {
     });
 }
 
-fn reply(cx: &mut TestAppContext, handle: Handle, side: usize, line: &str) {
+pub(super) fn reply(cx: &mut TestAppContext, handle: Handle, side: usize, line: &str) {
     edit(cx, handle, |shell, window, cx| {
         shell.receive(side, Backend::test_reply_line(line), window, cx)
     });
@@ -152,7 +152,7 @@ fn call(cx: &mut TestAppContext, handle: Handle, function: &str) -> Reply {
     })
 }
 
-fn frame(cx: &mut TestAppContext, handle: Handle) {
+pub(super) fn frame(cx: &mut TestAppContext, handle: Handle) {
     cx.update_window(handle.into(), |_, window, cx| {
         window.refresh();
         window.draw(cx).clear(cx);
@@ -226,7 +226,11 @@ fn mounted_ctrl_g_turns_the_strip_to_contents_and_sends_only_contents_requests(
         key(cx, handle, key_name, Some(text));
     }
     let sent: Vec<String> = std::iter::from_fn(&mut read).collect();
-    assert_eq!(sent.len(), 4, "one contents request per query key: {sent:?}");
+    assert_eq!(
+        sent.len(),
+        4,
+        "one contents request per query key: {sent:?}"
+    );
     for line in &sent {
         assert_eq!(
             flea::json::field_str(line, "c").as_deref(),

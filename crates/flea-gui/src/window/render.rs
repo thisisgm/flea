@@ -143,6 +143,8 @@ impl Render for Shell {
         }
         let mut panes: [Option<AnyElement>; 2] = [None, None];
         let renaming = [0, 1].map(|side| self.renaming_row(side));
+        // Contents blocks take the block height before the frames are built, so scroll, keys and hit-test agree.
+        self.sync_contents_rows();
         let mut lists = self.prepare_lists(
             heights,
             viewport.is_none().then_some(geometry.chrome.height),
@@ -151,6 +153,7 @@ impl Render for Shell {
         );
         for side in 0..2 {
             let search_empty = self.search_empty(side, window, cx);
+            let contents = self.contents_blocks(side).map(Rc::new);
             let Some(host) = self.panes[side].as_mut() else {
                 continue;
             };
@@ -263,6 +266,8 @@ impl Render for Shell {
                         shell: cx.entity().downgrade(),
                     }),
             );
+            let blocks =
+                Shell::contents_element(host, &self.launch.settings.data, contents, window, cx);
             let lifter = cx.entity().downgrade();
             let payload = cx.entity().downgrade();
             panes[side] = Some(
@@ -296,6 +301,7 @@ impl Render for Shell {
                     )
                     .when(host.drawn_list, |div| {
                         div.child(list)
+                            .children(blocks)
                             .child(crate::input::surface(cx.entity(), side))
                     })
                     .when(host.drawn_list && renaming[side].is_some(), |div| {

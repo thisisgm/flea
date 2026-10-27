@@ -152,6 +152,7 @@ pub static SHARED_KEYS: &[Binding] = &[
     Binding::new("all", "ctrl", "X", "ctrl-x", "cut", "listing", "all", 1, 1, "keys.action.cut", true),
     Binding::new("all", "ctrl", "Z", "ctrl-z", "undo", "listing", "all", 1, 1, "keys.action.undo", true),
     Binding::new("all", "ctrl", "F", "ctrl-f", "search", "listing", "all", 1, 1, "keys.action.search", true),
+    Binding::new("all", "ctrl", "G", "ctrl-g", "searchContents", "listing", "all", 1, 1, "keys.action.searchContents", true),
     Binding::new("all", "ctrl", "E", "ctrl-e", "eject", "listing", "all", 1, 1, "keys.action.eject", true),
     Binding::new("all", "ctrl", "B", "ctrl-b", "sidebar", "listing", "all", 1, 1, "keys.action.sidebar", true),
     Binding::new("all", "ctrl", "L", "ctrl-l", "pathBar", "listing", "all", 1, 1, "keys.action.pathBar", true),
@@ -266,6 +267,7 @@ pub static BASE_SHEET: &[SheetBinding] = &[
     SheetBinding { action: "preview", keys: "space", label_key: "keys.action.preview" },
     SheetBinding { action: "filter", keys: "/", label_key: "keys.action.filter" },
     SheetBinding { action: "search", keys: "f", label_key: "keys.action.search" },
+    SheetBinding { action: "searchContents", keys: "^g", label_key: "keys.action.searchContents" },
     SheetBinding { action: "reveal", keys: "o", label_key: "keys.action.reveal" },
     SheetBinding { action: "reload", keys: "F5 ^r", label_key: "keys.action.reload" },
     SheetBinding { action: "focusNext", keys: "tab", label_key: "keys.action.focusNext" },
@@ -300,7 +302,7 @@ pub static BASE_SHEET: &[SheetBinding] = &[
 pub static SHEET_GROUPS: &[SheetGroup] = &[
     SheetGroup { id: "move", label_key: "keys.group.move", actions: &["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open", "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview", "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape", "carry"] },
     SheetGroup { id: "look", label_key: "keys.group.look", actions: &["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack", "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown", "textSizeReset", "keymapSheet"] },
-    SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
+    SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
     SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
 ];
 

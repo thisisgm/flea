@@ -340,8 +340,8 @@ fn the_key_table_routes_f_ctrl_f_and_o_to_this_units_actions() {
     assert_eq!(at("f", "f", 0), "search");
     assert_eq!(at("f", "f", keys::CONTROL), "search");
     assert_eq!(at("o", "o", 0), "reveal");
-    // No binding turns contents on at this base, so Ctrl+G stays with the query line.
-    assert_ne!(at("g", "g", keys::CONTROL), "search");
+    // Ctrl+G in the listing opens contents search; inside the strip the query line takes it first.
+    assert_eq!(at("g", "g", keys::CONTROL), "searchContents");
 }
 
 #[test]
