@@ -120,9 +120,64 @@ struct TitleKey {
     scale: f32,
 }
 
+const ELLIPSIS: &str = "\u{2026}";
+
 struct Title {
     run: GlyphRun,
     text: String,
+    // The title cut to the cell it is wider than, or None while the whole title fits.
+    cut: Option<Cut>,
+}
+
+// A title cut for one cell width: the head and an ellipsis, shaped once for that width.
+struct Cut {
+    width: f32,
+    run: GlyphRun,
+    text: String,
+}
+
+impl Title {
+    /// The run and text a cell draws: the whole title, or its cut head once the cell is narrower.
+    fn drawn(&self) -> (&GlyphRun, &str) {
+        match &self.cut {
+            Some(cut) => (&cut.run, &cut.text),
+            None => (&self.run, &self.text),
+        }
+    }
+
+    /// Text.ElideRight for a cell `width` wide: the longest head that fits beside an ellipsis, shaped only when the width changes.
+    fn fit(&mut self, width: f32, key: &TitleKey, window: &Window) {
+        if f32::from(self.run.line().width) <= width {
+            self.cut = None;
+            return;
+        }
+        if self.cut.as_ref().is_some_and(|cut| cut.width == width) {
+            return;
+        }
+        let shape = |text: &str| {
+            GlyphRun::new(window.text_system().layout_line(
+                text,
+                key.caption,
+                &[title_run(text.len(), &key.font)],
+                None,
+            ))
+        };
+        let line = self.run.line();
+        let ellipsis = f32::from(shape(ELLIPSIS).line().width);
+        let head = self
+            .text
+            .char_indices()
+            .map(|(at, _)| at)
+            .take_while(|at| f32::from(line.x_for_index(*at)) + ellipsis <= width)
+            .last()
+            .unwrap_or(0);
+        let text = format!("{}{ELLIPSIS}", &self.text[..head]);
+        self.cut = Some(Cut {
+            width,
+            run: shape(&text),
+            text,
+        });
+    }
 }
 
 struct Titles {
@@ -176,6 +231,23 @@ impl HeaderState {
                 })
             }
             Some(column) => layout.cell(column),
+        }
+    }
+
+    /// Fits each drawn title to its own cell, so a title too wide for its cell ends in an ellipsis instead of clipping its head.
+    fn fit_titles(&mut self, layout: &Layout, metrics: &Metrics, dual: bool, window: &Window) {
+        let Some(Titles { key, name, columns }) = self.titles.as_mut() else {
+            return;
+        };
+        for column in words::CELLS {
+            let Some(cell) = Self::title_cell(layout, metrics, column, dual) else {
+                continue;
+            };
+            let title = match column {
+                None => &mut *name,
+                Some(column) => &mut columns[column.slot()],
+            };
+            title.fit(cell.width, key, window);
         }
     }
 }
@@ -357,6 +429,7 @@ impl Element for HeaderElement {
                         None,
                     )),
                     text: title,
+                    cut: None,
                 }
             };
             header.painted_titles = titles(view);
@@ -367,6 +440,7 @@ impl Element for HeaderElement {
             });
             header.drawn.shaped += 1;
         }
+        header.fit_titles(&layout, &metrics, view.dual, window);
         header.drawn = HeaderDrawn {
             bounds,
             layout,
@@ -423,7 +497,7 @@ impl Element for HeaderElement {
                     continue;
                 };
                 let title = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);
-                let run = &title.run;
+                let (run, _) = title.drawn();
                 let x = match column {
                     Some(Column::Size | Column::Date) => left + px(cell.right()) - run.line().width,
                     _ => left + px(cell.x),

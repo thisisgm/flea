@@ -65,9 +65,11 @@ pub(super) fn card(
         .into_any_element()];
     // The refusal's sentence in the error role, or the working note while create is out; nothing otherwise.
     if !error.is_empty() {
-        body.push(caption(error.into(), palette.error_on_surface).into_any_element());
+        body.push(caption(scene, error.into(), palette.error_on_surface).into_any_element());
     } else if busy {
-        body.push(caption(catalog.tr("jobs.newfile.working"), palette.muted).into_any_element());
+        body.push(
+            caption(scene, catalog.tr("jobs.newfile.working"), palette.muted).into_any_element(),
+        );
     }
     let buttons = vec![
         button(
