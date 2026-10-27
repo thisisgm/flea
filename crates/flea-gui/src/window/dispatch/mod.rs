@@ -165,3 +165,9 @@ mod test_shell;
 
 #[cfg(test)]
 mod gh_preview_proof_tests;
+#[cfg(test)]
+mod pb_preview_fixture;
+#[cfg(test)]
+mod pb_preview_keys_tests;
+#[cfg(test)]
+mod pb_preview_readers_tests;
