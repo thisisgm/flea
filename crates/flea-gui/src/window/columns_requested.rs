@@ -10,6 +10,16 @@ use crate::{
 };
 
 pub(crate) fn requested(host: &mut PaneHost, listing: &Listing) {
+    if let Some(columns) = host.columns.as_mut() {
+        if columns
+            .row_menu
+            .as_ref()
+            .is_some_and(|target| target.open != listing.path)
+        {
+            columns.row_menu = None;
+            host.nav.menus.row_menu = false;
+        }
+    }
     let now = host.pane.now();
     let order = host.nav.order;
     let folders = host.nav.folders.borrow();

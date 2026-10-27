@@ -77,6 +77,8 @@ pub struct Joined {
     pub(crate) providers: crate::g2::sd1::join::Senders,
     /// The flyout c or P asked for, opened once the cursor menu draws.
     pub flyout: Option<&'static str>,
+    pub header: bool,
+    pub tags_reading: bool,
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
@@ -129,6 +131,9 @@ impl Shell {
         let Some(host) = &self.panes[capture.side] else {
             return Vec::new();
         };
+        if self.menu.header {
+            return self.header_menu_entries(capture.side);
+        }
         if capture.background {
             if let Some((_, mode)) = self.locked_folder(capture.side) {
                 return flea::ui_logic_mn1::places::locked_entries(mode, &self.menu_hidden());
@@ -180,8 +185,21 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.open_menu_target(side, row, at, false, window, cx);
+    }
+
+    pub(crate) fn open_menu_target(
+        &mut self,
+        side: usize,
+        row: Option<usize>,
+        at: (f32, f32),
+        header: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.retire_menu(window, cx);
         self.observe_menu(window, cx);
+        self.menu.header = header;
         // A locked pane draws the hero, never rows, so its menu is the folder's whatever rows it still holds.
         let row = row.filter(|_| self.locked_folder(side).is_none());
         let Some(host) = &mut self.panes[side] else {

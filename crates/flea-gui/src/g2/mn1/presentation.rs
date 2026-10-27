@@ -108,6 +108,7 @@ impl Shell {
         }
         if (!capture.background && !capture.ready)
             || self.menu.reading
+            || self.menu.tags_reading
             || !self.menu.context.open_with_loaded
         {
             return;
@@ -151,7 +152,9 @@ impl Shell {
         let env = self.menu_env(&list.typeface);
         let viewport = window.viewport_size();
         self.menu.menu.borrow_mut().open(
-            if capture.background && self.locked_folder(capture.side).is_some() {
+            if self.menu.header {
+                Face::Header
+            } else if capture.background && self.locked_folder(capture.side).is_some() {
                 Face::Locked
             } else if capture.background {
                 Face::Background

@@ -66,6 +66,7 @@ fn key(shell: &mut Shell, action: &str, window: &mut Window, cx: &mut Context<Sh
             say(shell, side, "menu.refusal.empty_clipboard", cx);
         }
         "pasteAs" => shell.open_flyout("pasteAs", window, cx),
+        "tags" => shell.open_tags_menu(window, cx),
         _ => return false,
     }
     true
@@ -90,7 +91,28 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        self.menu_keyboard_open(window, cx);
+        let side = self.focus_side;
+        let background = action == "pasteAs"
+            && self.locked_folder(side).is_none()
+            && self.panes[side]
+                .as_ref()
+                .is_some_and(|host| host.pane.held.row(host.pane.cursor).is_none());
+        if background {
+            let pane = self.geometry(window).rows(
+                side,
+                self.view == crate::window::startup::View::Dual,
+                self.slots.strip_height_for(side),
+            );
+            self.open_menu(
+                side,
+                None,
+                (pane.x + pane.width / 2., pane.y + pane.height / 2.),
+                window,
+                cx,
+            );
+        } else {
+            self.menu_keyboard_open(window, cx);
+        }
         if self.menu.captured.is_none() {
             return;
         }
