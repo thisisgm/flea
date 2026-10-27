@@ -130,7 +130,10 @@ impl Shell {
                 path,
                 message,
                 ..
-            } => self.operation_failed(side, operation, path, message, cx),
+            } => {
+                self.menu_tag_refused(side, operation);
+                self.operation_failed(side, operation, path, message, cx)
+            }
             _ => {}
         }
         let event = self.filesystem_details(side, event, cx);
