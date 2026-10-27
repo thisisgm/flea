@@ -101,6 +101,11 @@ impl Grow {
     }
 }
 
+/// Focus.js:168-169 pages floor(visibleRows / 2) items, at least one, in every view.
+pub fn page_items(visible: usize) -> usize {
+    (visible / 2).max(1)
+}
+
 pub fn window_size(visible: usize) -> usize {
     visible.saturating_add(2 * requests::BUFFER)
 }

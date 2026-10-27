@@ -15,6 +15,7 @@ mod place_host;
 mod join_tests;
 pub mod lines;
 pub mod menu;
+mod owners;
 pub(crate) mod presentation;
 #[cfg(test)]
 mod review_r2_tests;

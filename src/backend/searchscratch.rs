@@ -1,6 +1,8 @@
 // Query generations invalidate logical slots without clearing the index-sized backing storage.
 use super::super::{Index, EMPTY, PARALLEL_SCORE_AT, WALK_THREADS};
 use crate::backend::searchmatch::{fold, separator, Letter, Matcher, State};
+#[cfg(test)]
+use crate::backend::searchmatch::{HIT_SPAN, NAME};
 use crate::backend::searchtypo;
 
 pub(super) const NO_SCORE: i32 = i32::MIN;
@@ -39,6 +41,10 @@ impl Worker {
         self.state.resize(matcher.needle.len());
         for (id, score) in jobs {
             *score = matcher.name_bytes(index.names.get(*id), &mut self.letters, &mut self.state, &mut self.edits).unwrap_or(NO_SCORE);
+            #[cfg(test)]
+            if (NAME - HIT_SPAN..=NAME + HIT_SPAN).contains(&*score) {
+                index.name_dp.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            }
         }
     }
 }
@@ -72,7 +78,7 @@ pub(crate) struct Counters {
 }
 
 impl QueryScratch {
-    pub(super) fn begin(&mut self, index: &Index) {
+    pub(crate) fn begin(&mut self, index: &Index) {
         self.generation = self.generation.wrapping_add(1);
         if self.generation == 0 {
             self.names.iter_mut().for_each(|slot| slot.generation = 0);
@@ -88,7 +94,7 @@ impl QueryScratch {
         { self.counters = Counters::default(); }
     }
 
-    pub(super) fn end(&mut self) {
+    pub(crate) fn end(&mut self) {
         if self.texts.capacity() > SHRINK_ABOVE * self.texts.len() { self.texts.shrink_to(self.texts.len()); }
         if self.states.len() > SHRINK_ABOVE * self.states_used {
             self.states.truncate(self.states_used);

@@ -23,6 +23,9 @@ pub(crate) mod run_card;
 pub(crate) mod open_with;
 pub(crate) mod pane;
 pub(crate) mod path_host;
+pub(crate) mod permissions;
+#[cfg(test)]
+mod permissions_tests;
 pub(crate) mod properties;
 mod presentation;
 pub mod rail;

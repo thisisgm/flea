@@ -1,16 +1,18 @@
-//! Preflight a marked selection completely, then launch each default application once.
+//! Preflight a marked selection completely, then hand each default application every file it opens.
 use super::{prepare, resolved, FAILED};
 use crate::{backend::menu_registry, runfile, runid};
 use flea::ui_logic_fb1::OpenRefusal;
 use std::os::unix::process::CommandExt;
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
 struct Group {
     app: PathBuf,
     paths: Vec<PathBuf>,
+    // An Exec that takes a list gets the group in one launch; one that takes a path is launched once per file.
+    list: bool,
 }
 
 struct Plan {
@@ -79,20 +81,19 @@ fn plan(paths: &[String]) -> Result<Plan, Option<OpenRefusal>> {
             result.groups.push(Group {
                 app,
                 paths: Vec::new(),
+                list: true,
             });
             result.groups.len() - 1
         });
         result.identities.push((target.clone(), opened.id));
         result.groups[index].paths.push(target);
     }
-    for group in &result.groups {
+    for group in &mut result.groups {
         if group.paths.len() > 1 {
             let exec = menu_registry::desktop_exec_raw(&group.app)
                 .map_err(|_| None)?
                 .ok_or(None)?;
-            if !crate::imageopen::takes_many(&exec) {
-                return Err(None);
-            }
+            group.list = crate::imageopen::takes_many(&exec);
         }
     }
     if result
@@ -116,19 +117,29 @@ pub fn open_selected(paths: &[String]) -> i32 {
         }
     };
     for group in plan.groups {
-        let mut launch = Command::new("gio");
-        launch.arg("launch").arg(group.app).args(group.paths);
-        prepare(&mut launch);
-        match launch
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .process_group(0)
-            .status()
-        {
-            Ok(status) if status.success() => {}
-            _ => return FAILED,
+        let batches: Vec<Vec<PathBuf>> = if group.list {
+            vec![group.paths]
+        } else {
+            group.paths.into_iter().map(|path| vec![path]).collect()
+        };
+        for batch in batches {
+            if !launch(&group.app, batch) {
+                return FAILED;
+            }
         }
     }
     0
+}
+
+fn launch(app: &Path, paths: Vec<PathBuf>) -> bool {
+    let mut launch = Command::new("gio");
+    launch.arg("launch").arg(app).args(paths);
+    prepare(&mut launch);
+    launch
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .process_group(0)
+        .status()
+        .is_ok_and(|status| status.success())
 }

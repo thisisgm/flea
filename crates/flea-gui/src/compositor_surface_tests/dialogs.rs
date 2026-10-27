@@ -33,6 +33,7 @@ fn controls() -> Card {
         focused: true,
     };
     Card {
+        language: "en".into(),
         title: "Operations".into(),
         esc: "esc".into(),
         width: 640.,

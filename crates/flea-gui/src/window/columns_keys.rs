@@ -32,6 +32,7 @@ impl PaneHost {
             columns: 1,
             cell_width: drawn.bounds.size.width.into(),
             grow,
+            cell_origin: (0., 0.),
         })
     }
 }

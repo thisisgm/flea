@@ -34,6 +34,9 @@ impl Shell {
         if let BackendEvent::Peeked(document) = &event {
             self.tab_peeked(side, document, window, cx);
         }
+        if self.permissions_event(side, &event, window, cx) {
+            return;
+        }
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained)
             && self
                 .menu
@@ -130,7 +133,10 @@ impl Shell {
                 path,
                 message,
                 ..
-            } => self.operation_failed(side, operation, path, message, cx),
+            } => {
+                self.menu_tag_refused(side, operation);
+                self.operation_failed(side, operation, path, message, cx)
+            }
             _ => {}
         }
         let event = self.filesystem_details(side, event, cx);
@@ -169,6 +175,7 @@ impl Shell {
                         &self.locale,
                     ),
                 }
+                self.opener_archive_ready(side, window, cx);
                 return;
             }
             event => event,
@@ -372,6 +379,7 @@ impl Shell {
                 }
             }
         }
+        self.opener_archive_ready(side, window, cx);
         self.search_landed(side, false, window, cx);
         self.settle_dual(window, cx);
         self.after_navigation(side, &before, window, cx);

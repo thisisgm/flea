@@ -81,6 +81,8 @@ fn owner_parity_update_poll_child(cx: &mut TestAppContext) {
     );
     let (_sender, events) = async_channel::unbounded();
     let handle = cx.update(|cx| {
+        // The poll does not need the real flea-settings thread, whose wakes the test scheduler rejects.
+        cx.set_global(crate::state::constructor_fixture::NoSettingsWorker);
         cx.set_global(crate::state::constructor_fixture::Services {
             backend: |_, cx| {
                 let (backend, requests) = Backend::test_channel();

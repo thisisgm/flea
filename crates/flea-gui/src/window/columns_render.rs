@@ -15,6 +15,7 @@ impl Shell {
         window: &mut gpui::Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
+        self.advance_columns_scroll(side, window, cx);
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -97,7 +98,7 @@ impl Shell {
                 at,
                 Some(Rc::clone(&host.pane.held)),
                 Rc::clone(&focus),
-                scroll,
+                columns.scroll[view.slot.index()].input.drawn(scroll),
                 clip.clone(),
                 paint,
                 Rc::clone(&words),
@@ -122,6 +123,14 @@ impl Shell {
                 .h_full()
                 .overflow_hidden()
                 .child(element);
+            if !matches!(view.rows, TrackRows::Preview) && view.slot != Slot::Active {
+                track = track.child(super::scroll_bar::surface(
+                    cx.entity(),
+                    side,
+                    view.slot,
+                    Rc::clone(&tracks),
+                ));
+            }
             if matches!(view.rows, TrackRows::Preview) {
                 if columns.preview_hosted {
                     if let Some(preview) = &host.preview {
@@ -201,7 +210,15 @@ impl Shell {
                 ));
             }
             if view.slot == Slot::Active {
-                track = track.child(super::gestures::surface(side, palette, cx));
+                // The track's own bar sits above the shared gestures, so a lane press never reaches a row.
+                track = track
+                    .child(super::gestures::surface(side, palette, cx))
+                    .child(super::scroll_bar::surface(
+                        cx.entity(),
+                        side,
+                        view.slot,
+                        Rc::clone(&tracks),
+                    ));
             }
             area = area.child(track);
         }

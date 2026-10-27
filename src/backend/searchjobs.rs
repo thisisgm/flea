@@ -106,7 +106,7 @@ impl Worker {
 }
 
 struct Previous {
-    rest: Option<Vec<(i32, usize)>>,
+    rest: Option<crate::backend::searchsession::Rest>,
     standing: Option<(usize, String, usize)>,
     walking: bool,
     gen: usize,

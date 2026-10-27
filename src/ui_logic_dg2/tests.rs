@@ -271,7 +271,7 @@ fn too_wide_reads_the_frozen_drag_line_and_reach_note() {
     let i18n = english();
     assert_eq!(
         too_wide(&i18n, 400, false, false),
-        "Move 400 items to a folder · Ctrl copies, Shift moves · too wide to drag out"
+        "Move 400 items to a folder · ctrl copies, shift moves · too wide to drag out"
     );
     assert_eq!(
         too_wide(&i18n, 1, true, false),
@@ -280,6 +280,15 @@ fn too_wide_reads_the_frozen_drag_line_and_reach_note() {
     assert_eq!(
         too_wide(&i18n, 2, true, true),
         "Link 2 items to a folder · too wide to drag out"
+    );
+}
+
+#[test]
+fn line_to_over_a_listed_folder_spells_the_keys_as_the_board_does() {
+    let i18n = english();
+    assert_eq!(
+        line_to(&i18n, 1, "Docs", Verb::Move),
+        "Move 1 item to Docs · ctrl copies, shift moves"
     );
 }
 
