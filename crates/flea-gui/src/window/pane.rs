@@ -10,6 +10,7 @@ use std::{cell::RefCell, rc::Rc};
 
 pub(crate) struct PaneHost {
     pub search: super::search::Runtime,
+    pub look_warm: super::quick_look::warm::Warm,
     pub filter: super::filter::Runtime,
     pub preview: Option<gpui::Entity<super::selection_preview::SelectionPreview>>,
     pub preview_port: super::selection_preview::Port,
@@ -58,6 +59,7 @@ impl PaneHost {
     ) -> Self {
         Self {
             search: super::search::Runtime::new(typeface.clone()),
+            look_warm: Default::default(),
             filter: super::filter::Runtime::new(typeface.clone()),
             preview: None,
             preview_port: Default::default(),

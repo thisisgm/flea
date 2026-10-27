@@ -1,7 +1,6 @@
 //! The shown document's state: its read, its blocks and their layouts, and the jobs that lay out what the frame shows first.
 use super::assets::{Art, Snapshot};
-use super::style::hex;
-use super::worker::{Lay, Parse, Parsed, Read, Reply};
+use super::worker::{Lay, Parsed, Read, Reply};
 use super::MarkdownView;
 use flea::ui_logic_pv2::markdown::{
     self as md,
@@ -202,7 +201,7 @@ impl Doc {
         first..last.max(first)
     }
 
-    fn reset(&mut self, seq: u64) {
+    pub(super) fn reset(&mut self, seq: u64) {
         let released: Vec<Arc<RenderImage>> = std::mem::take(&mut self.pictures)
             .into_values()
             .filter_map(|state| match state {
@@ -221,36 +220,14 @@ impl Doc {
 }
 
 impl MarkdownView {
-    pub(super) fn load(&mut self, cx: &mut Context<Self>) {
-        let seq = self.doc.seq + 1;
-        self.doc.reset(seq);
-        self.counts.first = None;
-        self.source.reset();
-        self.tables.clear();
-        let Some(path) = self.path.clone().filter(|_| self.active) else {
-            cx.notify();
-            return;
-        };
-        self.doc.status = Status::Loading;
-        self.doc.loaded_at = self.now(cx);
-        let parse = Parse {
-            dir: path
-                .parent()
-                .map(|dir| dir.to_string_lossy().into_owned())
-                .unwrap_or_default(),
-            chrome: hex(self.palette.code),
-            ink: hex(self.palette.foreground),
-            words: md::Words {
-                remote: self.words.remote.to_string(),
-            },
-            head: true,
-        };
-        self.workers.load(seq, path, parse);
-        cx.notify();
-    }
-
     pub(super) fn reply(&mut self, reply: Reply, cx: &mut Context<Self>) {
+        self.prepare_answer(&reply);
         match reply {
+            Reply::Verified { seq } if seq == self.doc.seq => {
+                self.confirming = false;
+                self.doc.status = Status::Ready;
+                self.resume_prepared(cx);
+            }
             Reply::Read { seq, read } if seq == self.doc.seq => match read {
                 Read::Large => self.doc.status = Status::TooLarge,
                 Read::Failed => self.doc.status = Status::Unreadable,

@@ -79,6 +79,7 @@ impl Render for Shell {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let background = crate::list::Palette::inherited(&window.text_style(), theme).background;
         let viewport = self.seam.viewport();
+        self.sync_quick_look_warm(window, cx);
         self.sync_selection_previews(window, cx);
         self.sync_columns(window, cx);
         let view = self.shown_view();

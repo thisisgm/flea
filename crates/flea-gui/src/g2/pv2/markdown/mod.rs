@@ -4,6 +4,7 @@ mod asks;
 mod assets;
 mod doc;
 pub mod figures;
+mod loading;
 mod paint;
 mod source;
 pub mod style;
@@ -192,6 +193,9 @@ pub struct MarkdownView {
     pub scroll: f32,
     /// The frame the document was last laid out in, and its scale.
     pub frame: (f32, f32),
+    preparing: bool,
+    confirming: bool,
+    read_limit: u64,
     pub scale: f32,
     workers: worker::Workers,
     decoder: assets::Decoder,
@@ -257,6 +261,9 @@ impl MarkdownView {
             counts: Counts::default(),
             scroll: 0.,
             frame: (0., 0.),
+            preparing: false,
+            confirming: false,
+            read_limit: MAX_BYTES,
             scale: 1.,
             workers,
             decoder,
@@ -289,24 +296,6 @@ impl MarkdownView {
         self.doc.fences.clear();
         self.source.reset_asks();
         self.pump(cx);
-    }
-
-    /// The document shown: a new path reads and parses off the UI thread and draws nothing until its first screen is ready.
-    pub fn set_path(&mut self, path: Option<PathBuf>, cx: &mut Context<Self>) {
-        if self.path == path {
-            return;
-        }
-        self.path = path;
-        self.scroll = 0.;
-        self.close_focused = false;
-        self.load(cx);
-    }
-
-    pub fn set_active(&mut self, active: bool, cx: &mut Context<Self>) {
-        if self.active != active {
-            self.active = active;
-            self.load(cx);
-        }
     }
 
     /// The view the body draws: Source for a document nested past the limit, whatever was asked.

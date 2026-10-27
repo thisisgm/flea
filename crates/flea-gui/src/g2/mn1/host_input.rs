@@ -2,14 +2,39 @@
 use super::{element::MenuElement, menu::Outcome};
 use crate::{input::PLATFORM_SCROLL_GAIN, state::Shell, window::startup::View};
 use gpui::{
-    div, prelude::*, px, App, Context, Div, Entity, MouseButton, MouseDownEvent, MouseMoveEvent,
-    ScrollDelta, ScrollWheelEvent, TouchPhase, Window,
+    div, prelude::*, px, Animation, AnimationExt, App, Context, Div, Entity, MouseButton,
+    MouseDownEvent, MouseMoveEvent, ScrollDelta, ScrollWheelEvent, TouchPhase, Window,
 };
 
 pub(crate) fn layer(shell: &Entity<Shell>, window: &Window, cx: &mut App) -> Option<Div> {
+    let now = cx.background_executor().now();
+    let reduced = cx.reduce_motion();
+    shell.update(cx, |state, _| {
+        state.menu.menu.borrow_mut().settle_fade(now, reduced)
+    });
     let state = shell.read(cx);
+    let fading = state.menu.menu.borrow().faded.as_ref().map(|faded| {
+        let id = faded.id;
+        let painted = faded.painted.clone();
+        let element = MenuElement::fading(state.menu.menu.clone(), px(state.corner));
+        div()
+            .absolute()
+            .top_0()
+            .left_0()
+            .size_full()
+            .debug_selector(|| "menu-flyout-fade".into())
+            .child(element)
+            .with_animation(
+                ("flyout-fade", id as usize),
+                Animation::new(super::menu::fade::CLOSE).with_easing(|t| 1. - (1. - t).powi(3)),
+                move |element, delta| {
+                    painted.set(1. - delta);
+                    element.opacity(1. - delta)
+                },
+            )
+    });
     if !state.menu_opened() && state.menu.presentation.at.is_none() {
-        return None;
+        return fading.map(|fading| div().absolute().top_0().left_0().size_full().child(fading));
     }
     let element = MenuElement::new(state.menu.menu.clone(), px(state.corner));
     let loading = state.menu.presentation.loading.then(|| {
@@ -54,7 +79,8 @@ pub(crate) fn layer(shell: &Entity<Shell>, window: &Window, cx: &mut App) -> Opt
                 })
             })
             .child(element)
-            .children(loading),
+            .children(loading)
+            .children(fading),
     )
 }
 

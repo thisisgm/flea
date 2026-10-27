@@ -63,7 +63,11 @@ impl Render for SelectionPreview {
         // A pending document lays out unseen at its frame's size, so the view sends the asks its first screen needs.
         if let Some(frame) = self.pending.as_ref().filter(|f| !f.manual) {
             if let Mounted::Doc(doc) = &frame.mounted {
-                let rows = if frame.kind.tall() && !self.full_facts { 1 } else { 3 };
+                let rows = if frame.kind.tall() && !self.full_facts {
+                    1
+                } else {
+                    3
+                };
                 let (width, height) = self.frame_size(frame.kind, rows);
                 root = root.child(
                     div()
@@ -225,17 +229,9 @@ impl Render for SelectionPreview {
                             .child(element),
                     )
                 }
-                _ if frame.kind == Kind::Multi => media.child(
-                    div()
-                        .size_full()
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .child(
-                            self.catalog
-                                .trn("items.count", frame.subject.selected_count as i64),
-                        ),
-                ),
+                _ if frame.kind == Kind::Multi => {
+                    media.child(multi::stack(&frame.subject, mark_size, roles.muted_frame))
+                }
                 _ if fitted.is_some() => media.children(fitted),
                 _ if frame.kind == Kind::Symlink => media.child(state_mark(
                     Glyph::Row(Mark::Symlink),
@@ -303,7 +299,7 @@ impl Render for SelectionPreview {
                 .line_height(px(name_row))
                 .child(if frame.kind == Kind::Multi {
                     self.catalog
-                        .trn("items.count", frame.subject.selected_count as i64)
+                        .trn("preview.selected", frame.subject.selected_count as i64)
                 } else {
                     frame.subject.row.name.clone()
                 }),
@@ -374,7 +370,10 @@ impl Render for SelectionPreview {
 /// cols-preview-video.html draws no play mark over the frame; the strip under it carries play.
 pub(crate) fn column_picture(picture: Picture) -> Picture {
     match picture {
-        Picture::Video { frame, .. } => Picture::Video { frame, poster: false },
+        Picture::Video { frame, .. } => Picture::Video {
+            frame,
+            poster: false,
+        },
         other => other,
     }
 }

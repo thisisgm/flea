@@ -302,3 +302,6 @@ fn release_open_place_on_a_busy_pane_supersedes_and_never_refuses(cx: &mut TestA
     let place = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.place().to_owned());
     assert_eq!(place, "/fixture/phone");
 }
+
+#[path = "rail_devices_pb_rest_tests.rs"]
+mod pb_rest;

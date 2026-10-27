@@ -55,11 +55,23 @@ pub struct MenuElement {
     menu: Rc<RefCell<Menu>>,
     // The compositor's corner radius, which the window module reads from Hyprland.
     radius: Pixels,
+    faded: bool,
 }
 
 impl MenuElement {
     pub fn new(menu: Rc<RefCell<Menu>>, radius: Pixels) -> Self {
-        Self { menu, radius }
+        Self {
+            menu,
+            radius,
+            faded: false,
+        }
+    }
+    pub fn fading(menu: Rc<RefCell<Menu>>, radius: Pixels) -> Self {
+        Self {
+            menu,
+            radius,
+            faded: true,
+        }
     }
 }
 
@@ -345,12 +357,19 @@ impl Element for MenuElement {
         cx: &mut App,
     ) {
         let menu = self.menu.borrow();
-        let Some(card) = &menu.card else { return };
+        let card = if self.faded {
+            menu.faded.as_ref().map(|faded| &faded.flyout.card)
+        } else {
+            menu.card.as_ref()
+        };
+        let Some(card) = card else { return };
         let ink = *ink;
         window.paint_layer(bounds, |window| {
-            let lit = menu.flyout.as_ref().and_then(|f| f.parent);
+            let lit = (!self.faded)
+                .then(|| menu.flyout.as_ref().and_then(|f| f.parent))
+                .flatten();
             paint_card(card, lit, self.radius, &ink, bounds.origin, window, cx);
-            if let Some(flyout) = &menu.flyout {
+            if let Some(flyout) = menu.flyout.as_ref().filter(|_| !self.faded) {
                 paint_card(
                     &flyout.card,
                     None,

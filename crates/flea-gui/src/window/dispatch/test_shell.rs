@@ -95,6 +95,31 @@ fn build<'a>(
     root: bool,
     places: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    build_at(cx, settings, select, root, places, "/files")
+}
+
+pub(super) fn open_root_at<'a>(
+    cx: &'a mut TestAppContext,
+    path: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    build_at(
+        cx,
+        r#""keys":"default","view":"list""#,
+        None,
+        true,
+        "",
+        path,
+    )
+}
+
+fn build_at<'a>(
+    cx: &'a mut TestAppContext,
+    settings: &str,
+    select: Option<&str>,
+    root: bool,
+    places: &str,
+    path: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
     let document = flea::jsondoc::parse(&format!(
         r#"{{{settings},"places":{{"rail":"shown","showHome":true,"showTrash":true{places}}}}}"#
     ))
@@ -103,7 +128,7 @@ fn build<'a>(
     let launch = Launch::resolve(
         Settings::from_json(document, true),
         Arguments {
-            path: Some("/files".into()),
+            path: Some(path.into()),
             select: select.map(str::to_owned),
         },
         &home,

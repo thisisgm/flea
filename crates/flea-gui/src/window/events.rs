@@ -22,6 +22,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        let event = self.filesystem_flags(side, event);
         let renamed = self.rename_event(side, &event, window, cx);
         self.rename_sync_gate(window, cx);
         if renamed {
@@ -190,7 +191,7 @@ impl Shell {
         };
         match event {
             BackendEvent::Plugins(_) => unreachable!("plugins handled above"),
-            BackendEvent::FilesystemDetails { .. } => {
+            BackendEvent::FilesystemDetails { .. } | BackendEvent::FilesystemSystem { .. } => {
                 unreachable!("filesystem fanout handled above")
             }
             BackendEvent::Peeked(_) => unreachable!(),
@@ -205,9 +206,7 @@ impl Shell {
                 return;
             }
             BackendEvent::Filesystem(facts) => {
-                if self.surfaces[side].filesystem.answer(&host.path, facts) {
-                    cx.notify();
-                }
+                self.filesystem_answer(side, facts, cx);
                 return;
             }
             BackendEvent::Drained => {

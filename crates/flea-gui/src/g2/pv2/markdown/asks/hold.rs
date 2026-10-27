@@ -10,6 +10,9 @@ pub const FIGURE_HOLD_MS: u64 = 1500;
 impl MarkdownView {
     /// True while the first screen waits: the shown blocks not yet laid at this width, or a picture, figure or colour they draw still out.
     pub fn holding(&self, now: u64) -> bool {
+        if self.confirming {
+            return true;
+        }
         if self.doc.shown {
             return false;
         }
