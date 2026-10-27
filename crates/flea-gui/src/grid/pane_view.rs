@@ -35,7 +35,10 @@ impl PaneHost {
         let palette = *input.palette;
         let scroller = crate::input::grid_surface(cx.entity(), side, move |shell, bounds| {
             let host = shell.panes[side].as_mut()?;
-            host.input.hit_boxes = crate::input::views::grid_hit_boxes(host, bounds);
+            // A pane that is not Ready draws no tiles, so the last drawn ones answer no press.
+            host.input.hit_boxes = (host.pane.state.kind == crate::pane::states::Kind::Ready)
+                .then(|| crate::input::views::grid_hit_boxes(host, bounds))
+                .flatten();
             let grid = host.grid.as_ref()?;
             let state = grid.state.borrow();
             let layout = state.layout?;
