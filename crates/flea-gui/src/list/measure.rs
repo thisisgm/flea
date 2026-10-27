@@ -91,13 +91,20 @@ impl ListState {
 
     /// The drawn columns for a list this wide: the row is the list less its scroll lane.
     pub fn layout(&mut self, width: f32, window: &Window) -> (Metrics, Tokens, Layout) {
-        let (metrics, tokens) = self.measure(window);
-        let layout = columns::resolve(
+        let (metrics, mut tokens) = self.measure(window);
+        if self.view.picker.is_some() {
+            tokens.measured[super::columns::Column::Size.slot()] = 70.;
+            tokens.measured[super::columns::Column::Date.slot()] = 80.;
+        }
+        let mut layout = columns::resolve(
             (width - metrics.lane).max(0.),
             &tokens,
             self.view.switched,
             self.view.stored,
         );
+        let leading = super::picker::leading(&self.view, &metrics);
+        layout.name.x += leading;
+        layout.name.width = (layout.name.width - leading).max(0.);
         (metrics, tokens, layout)
     }
 }

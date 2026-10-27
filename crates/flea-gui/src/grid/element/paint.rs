@@ -11,8 +11,8 @@ use crate::palette::Theme;
 use crate::row::marks::ClipMark;
 use gpui::{
     fill, outline, point, px, relative, size, App, BorderStyle, Bounds, ContentMask, Corners,
-    Element, ElementId, GlobalElementId, GlyphRun, Hsla, InspectorElementId, LayoutId, Pixels,
-    Style, TextRun, TransformationMatrix, Window,
+    Element, ElementId, GlobalElementId, InspectorElementId, LayoutId, Pixels,
+    Style, TransformationMatrix, Window,
 };
 use std::rc::Rc;
 
@@ -23,43 +23,9 @@ const HOVER: f32 = 0.08;
 const MATCH_WASH: f32 = 0.14;
 const CUT: f32 = 0.55;
 
-fn bounds_of(origin: gpui::Point<Pixels>, rect: Rect) -> Bounds<Pixels> {
-    Bounds::new(
-        point(origin.x + px(rect.x), origin.y + px(rect.y)),
-        size(px(rect.width), px(rect.height)),
-    )
-}
-
-fn label_run(text: &str, state: &GridState, size: Pixels, window: &Window) -> GlyphRun {
-    let run = TextRun {
-        len: text.len(),
-        font: state.font.clone(),
-        color: Hsla::default(),
-        background_color: None,
-        underline: None,
-        strikethrough: None,
-    };
-    GlyphRun::new(window.text_system().layout_line(text, size, &[run], None))
-}
-
-// A run's baseline inside a fixed-height caption line, centred on the line box.
-fn baseline(run: &GlyphRun, top: Pixels, line: f32, window: &Window) -> Pixels {
-    let layout = run.line();
-    window.pixel_snap(top + (px(line) - layout.ascent - layout.descent) / 2. + layout.ascent)
-}
-
-// The tile's own ground: the plate it sits on over the pane, which a cut picture fades toward.
-fn plate(drawn: &Drawn, ink: &Ink) -> Option<Hsla> {
-    if drawn.cursor {
-        Some(ink.accent.opacity(CURSOR_WASH))
-    } else if drawn.selected {
-        Some(ink.foreground.opacity(MARK_PLATE))
-    } else if drawn.hovered {
-        Some(ink.foreground.opacity(HOVER))
-    } else {
-        None
-    }
-}
+#[path = "ground.rs"]
+mod ground;
+use ground::{baseline, bounds_of, label_run, plate};
 
 fn caption_line<'a>(state: &'a GridState, drawn: &'a Drawn, at: usize) -> Option<&'a tile::Line> {
     let plain = drawn.tile.as_ref()?.lines.get(at)?;
@@ -412,10 +378,10 @@ impl Element for GridElement {
                         .as_ref()
                         .map_or(drawn.cell, |layout| layout.frame(drawn.cell)),
                 );
-                if let Some(ground) = plate(drawn, &ink) {
+                if let Some(ground) = plate(drawn, &ink, self.focus.focused(), self.focus.selection_fill()) {
                     window.paint_quad(fill(frame, ground));
                 }
-                if drawn.cursor {
+                if drawn.cursor && self.focus.focused() {
                     window.paint_quad(outline(frame, ink.accent_frame, BorderStyle::Solid));
                 }
                 if drawn.drop.is_some() {
@@ -465,7 +431,7 @@ impl Element for GridElement {
                 drawn.picture.is_some() && drawn.clip.as_ref().is_some_and(|clip| clip.cut)
             }) {
                 let ground =
-                    plate(drawn, &ink).map_or(ink.background, |plate| ink.background.blend(plate));
+                    plate(drawn, &ink, self.focus.focused(), self.focus.selection_fill()).map_or(ink.background, |plate| ink.background.blend(plate));
                 let slot = bounds_of(origin, drawn.slot);
                 window.paint_layer(slot, |window| {
                     window.paint_quad(fill(slot, ground.opacity(1. - CUT)))

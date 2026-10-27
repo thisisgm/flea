@@ -11,7 +11,7 @@ use crate::grid::{
 };
 use crate::list::{pane::Held, Typeface};
 use crate::path::{
-    suggestions::Unranked,
+    rank::Jump,
     view::{Inputs, PathView},
 };
 use crate::rail::{
@@ -43,7 +43,7 @@ pub struct PathBar {
 impl PathBar {
     pub fn new(i18n: &I18n, cx: &mut Context<Self>) -> Self {
         let catalog = Arc::new(i18n.clone());
-        let path = cx.new(|cx| PathView::new(catalog, Box::new(Unranked), cx));
+        let path = cx.new(|cx| PathView::new(catalog, Box::new(Jump::default()), cx));
         Self { path }
     }
 
@@ -150,9 +150,9 @@ impl Render for TileGrid {
 
 /// Chip menu: mn1 card, All files; file face, no chip face.
 pub struct ChipMenu {
-    menu: Rc<RefCell<Menu>>,
-    catalog: I18n,
-    typeface: Typeface,
+    pub(super) menu: Rc<RefCell<Menu>>,
+    pub(super) catalog: I18n,
+    pub(super) typeface: Typeface,
 }
 
 impl ChipMenu {
@@ -168,7 +168,12 @@ impl ChipMenu {
     pub fn open(&mut self, chips: &[Chip], at: (f32, f32), window: &Window) {
         let entries: Vec<Entry> = chips
             .iter()
-            .map(|chip| Entry::leaf(format!("chip:{}", chip.index), Text::Data(chip.label.clone())))
+            .map(|chip| {
+                let action = format!("chip:{}", chip.index);
+                let mut entry = Entry::leaf(action.clone(), Text::Data(chip.label.clone()));
+                entry.action = action.into();
+                entry
+            })
             .collect();
         let env = Env {
             catalog: &self.catalog,
@@ -209,10 +214,14 @@ impl ChipMenu {
 }
 
 impl Render for ChipMenu {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .size_full()
             .debug_selector(|| "pk2-chip-menu".into())
-            .child(MenuElement::new(self.menu.clone(), px(8.)))
+            .on_mouse_down(gpui::MouseButton::Left, cx.listener(|menu, event: &gpui::MouseDownEvent, window, cx| {
+                menu.press(f32::from(event.position.x), f32::from(event.position.y), window, cx);
+                cx.stop_propagation();
+            }))
+            .child(MenuElement::new(self.menu.clone(), px(crate::compositor::corner(cx))))
     }
 }

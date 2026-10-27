@@ -126,7 +126,11 @@ fn commit_entry(cx: &mut TestAppContext, text: &str, expected: Vec<Out>) {
     cx.run_until_parked();
     assert!(path.read_with(cx, |view, _| view.built && view.editing()));
     assert!(cx.update(|window, cx| path.read(cx).holds_keyboard(window)));
-    assert!(events.borrow().is_empty(), "opening an unranked entry sends nothing");
+    let opened = std::mem::take(&mut *events.borrow_mut());
+    assert!(
+        opened.iter().all(|out| matches!(out, Out::Send { .. } | Out::ReadHistory)),
+        "opening asks the jump for its history and nothing else"
+    );
     cx.simulate_input(text);
     cx.simulate_keystrokes("enter");
     assert_eq!(*events.borrow(), expected, "the real entry must emit its host events");

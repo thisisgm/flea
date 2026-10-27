@@ -113,6 +113,8 @@ impl Picker {
         if path.read(cx).holds_keyboard(window) {
             return;
         }
+        if event.keystroke.key == "enter" { self.record_submission_focus(window, cx); }
+        if self.parity_key(event, window, cx) { cx.stop_propagation(); return; }
         let key = event.keystroke.key.as_str();
         if let Some(filename) = self.browse.filename.clone() {
             if filename.read(cx).focus.is_focused(window) {
@@ -206,11 +208,17 @@ impl Picker {
 impl Render for Picker {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.place_focus(window, cx);
+        self.submission_focus(window, cx);
+        self.read_control_focus(window);
+        self.chrome.probe.clear();
+        let focused = self.focus.is_focused(window) || self.find.owner.typing();
+        self.browse.listing.update(cx, |listing, _| listing.set_focused(focused));
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
+        self.browse.listing.update(cx, |listing, _| listing.set_selection_fill(palette.marked));
         let reviewing = self.accept_state().collision_review();
         let available = if reviewing {
             logic::replace_allowed(&self.accept_state())
@@ -280,7 +288,7 @@ impl Render for Picker {
             .px(px(SIDE))
             .border_t_1()
             .border_color(rule)
-            .child(div().flex_1().children(self.filter.clone()))
+            .child(self.answer_leading(&palette, window, cx))
             .child(
                 answer(
                     "picker-cancel",
@@ -291,6 +299,9 @@ impl Render for Picker {
                     &self.drawn,
                     Slot::Cancel,
                 )
+                .rounded(px(crate::compositor::corner(cx)))
+                .track_focus(&self.chrome.cancel)
+                .when(self.chrome.cancel.is_focused(window), |button| button.border_color(palette.foreground))
                 .on_click(cx.listener(|picker, _: &ClickEvent, _, cx| picker.cancel(cx))),
             )
             .child(
@@ -303,13 +314,16 @@ impl Render for Picker {
                     &self.drawn,
                     Slot::Answer,
                 )
+                .rounded(px(crate::compositor::corner(cx)))
+                .track_focus(&self.chrome.answer)
+                .when(self.chrome.answer.is_focused(window), |button| button.border_color(palette.foreground))
                 // A refused answer is drawn and its press does nothing, as DialogButton.qml says.
                 .on_click(cx.listener(
-                    move |picker, _: &ClickEvent, _, cx| match (available, reviewing) {
+                    move |picker, _: &ClickEvent, window, cx| { picker.record_submission_focus(window, cx); match (available, reviewing) {
                         (false, _) => {}
                         (true, true) => picker.replace(cx),
                         (true, false) => picker.accept(cx),
-                    },
+                    } },
                 )),
             );
         let footer = div()
@@ -330,7 +344,8 @@ impl Render for Picker {
                     .flex_1()
                     .overflow_hidden()
                     .whitespace_nowrap()
-                    .children(message.map(|message| message.text)),
+                    .children(message.as_ref().map(|message| message.text.clone()))
+                    .when(message.is_none(), |view| view.child(div().debug_selector(|| "picker-selection-status".into()).child(self.selection_status()))),
             )
             .child(div().flex_none().whitespace_nowrap().child(self.hints()));
         div()
@@ -358,6 +373,7 @@ impl Render for Picker {
             )
             .child(answers)
             .child(footer)
+            .children(self.chrome.menu_view.clone().map(|menu| div().absolute().size_full().debug_selector(|| "picker-filter-menu".into()).child(menu)))
             .children(self.drawn.probe(Slot::Window, [0.; 4]))
     }
 }

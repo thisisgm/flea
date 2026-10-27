@@ -62,6 +62,9 @@ pub struct Message {
 
 pub struct Picker {
     pub req: Request,
+    pub(super) preferences: super::settings::Preferences,
+    pub chrome: super::chrome::Chrome,
+    pub selection: super::selection::Selection,
     pub(super) lifetime: Lifetime,
     pub listing: ListingFacts,
     pub marks: Vec<Mark>,
@@ -126,6 +129,9 @@ impl Picker {
         let mut picker = Self {
             listing: ListingFacts::start(&req, home),
             req,
+            preferences: Default::default(),
+            chrome: super::chrome::Chrome::new(cx),
+            selection: Default::default(),
             lifetime: Lifetime::default(),
             marks: Vec::new(),
             accept_marks: false,
@@ -184,6 +190,7 @@ impl Picker {
                 let stop = line == Line::Stopped;
                 let kept = this.update(cx, |picker, cx| match line {
                     Line::Reply(text) if child == Child::Checks => {
+                        if picker.folder_reply(&text, cx) { return; }
                         if let Some(result) = check_result(&text) {
                             picker.received(result, cx);
                         }

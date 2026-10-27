@@ -11,6 +11,7 @@ pub struct CheckResult {
     pub marks: Vec<(String, u64)>,
     pub removed: u64,
     pub skipped: usize,
+    pub skipped_items: Vec<(String, String)>,
     pub review: u64,
     pub path: String,
     pub collision: bool,
@@ -62,6 +63,18 @@ pub fn check_result(line: &str) -> Option<CheckResult> {
             .get("skipped")
             .and_then(Json::as_array)
             .map_or(0, <[Json]>::len),
+        skipped_items: document
+            .get("skipped")
+            .and_then(Json::as_array)
+            .unwrap_or(&[])
+            .iter()
+            .filter_map(|item| {
+                Some((
+                    item.get("path")?.as_str()?.to_owned(),
+                    item.get("why")?.as_str()?.to_owned(),
+                ))
+            })
+            .collect(),
         review: whole("review").unwrap_or(0),
         path: text("path"),
         collision: document.get("collision").and_then(Json::as_bool) == Some(true),

@@ -105,7 +105,8 @@ impl Picker {
         });
     }
 
-    fn validate_marks(&mut self, accepting: bool) {
+    pub(super) fn validate_marks(&mut self, accepting: bool) {
+        if self.mark_request > 0 { self.selection.dirty = true; return; }
         if self.backend_unavailable()
             || (self.marks.is_empty() && self.mark_request == 0)
             || self.mark_request > 0
@@ -198,15 +199,22 @@ impl Picker {
         self.mark_request = 0;
         let accepting = std::mem::take(&mut self.accept_marks);
         if !result.ok {
+            let selecting = result.op == "select";
+            self.end_range();
+            self.selection_failed();
             self.say(result.error, true, cx);
+            if selecting { self.validate_marks(false); }
             return;
         }
         self.marks = Mark::reviewed(&self.marks, &result.marks);
+        self.mark_changed(cx);
         if result.removed > 0 || result.skipped > 0 {
+            self.selection_feedback(&result, cx);
             self.selection_notice = Some(result);
         } else if accepting && !self.marks.is_empty() {
             let uris: Vec<String> = self.marks.iter().map(|mark| mark.uri.clone()).collect();
             self.finish_ok(&uris, cx);
         }
+        self.selection_settled(cx);
     }
 }

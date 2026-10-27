@@ -15,8 +15,8 @@ extern "C" {
 }
 const SIGKILL: i32 = 9;
 const REAP_POLL: Duration = Duration::from_millis(5);
-pub(super) const CHECKS: &[&str] = &["picker", "formats"];
-pub(super) const LISTING: &[&str] = &["list", "window", "filter", "peek", "locate", "sort"];
+pub(super) const CHECKS: &[&str] = &["picker", "formats", "mkdir"];
+pub(super) const LISTING: &[&str] = &["list", "window", "filter", "peek", "locate", "sort", "paths", "jump"];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Line {
