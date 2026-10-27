@@ -107,13 +107,26 @@ fn page(window: &mut Window, rect: Bounds<Pixels>, image: &Arc<RenderImage>, vei
 }
 
 impl Render for PdfView {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         // A live theme switch repaints the window; the veil follows the new ground in that frame.
         if let Some(theme) = cx.try_global::<crate::palette::Theme>() {
             self.palette.background = theme.background;
         }
         let (laid, painted) = (cx.entity(), cx.entity());
+        let ink = crate::list::Palette::inherited(
+            &window.text_style(),
+            cx.try_global::<crate::palette::Theme>()
+                .copied()
+                .unwrap_or_default(),
+        )
+        .foreground;
+        let bars = crate::g2::pv1::scroller::overlay::surface(
+            cx.entity(),
+            ink,
+            crate::compositor::corner(cx),
+        );
         div()
+            .relative()
             .size_full()
             .on_scroll_wheel(cx.listener(|view, event, _, cx| view.wheel(event, cx)))
             .child(
@@ -131,5 +144,6 @@ impl Render for PdfView {
                 )
                 .size_full(),
             )
+            .child(bars)
     }
 }

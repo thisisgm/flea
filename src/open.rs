@@ -7,6 +7,10 @@ use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+#[path = "open_selection.rs"]
+mod selection;
+pub use selection::open_selected;
+
 // The exit statuses ui/Opener.qml reads. 0 is a successful handoff and needs no name.
 pub const FAILED: i32 = 2;
 pub const IS_DIRECTORY: i32 = 3;

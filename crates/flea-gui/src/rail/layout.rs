@@ -79,9 +79,17 @@ pub(super) fn layout(
                 y += metrics.row;
                 continue;
             }
-            let dot = indicator_slot(row.group, row.kind);
+            // SidebarRow.qml: a drop cue replaces the trailing detail and the slot, and reserves its caption's width.
+            let cue = model
+                .drop_target
+                .as_ref()
+                .filter(|(target, _)| *target == index)
+                .map(|(_, label)| label.to_string());
+            let dot = cue.is_none() && indicator_slot(row.group, row.kind);
             let slot_width = if dot { metrics.slot } else { 0. };
-            let detail = if row.kind == flea::ui_logic_pl4::rail::Kind::Trash
+            let detail = if let Some(cue) = cue {
+                cue
+            } else if row.kind == flea::ui_logic_pl4::rail::Kind::Trash
                 && model.trash_count_shown
                 && model.trash_count > 0
             {

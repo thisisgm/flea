@@ -14,6 +14,9 @@ async-channel = "=2.5.0"
 omi = "=1.0.0"
 # RenderImage's frame type, in the lock through gpui: PNG for the HTML and font helpers, TIFF and ICO for Quick Look.
 image = { version = "=0.25.10", default-features = false, features = ["png", "tiff", "ico"] }
+# Grapheme clusters, so a hint never wraps inside one character; in the lock through gpui.
+unicode-segmentation = "=1.13.3"
+unicode-bidi = "=0.3.18"
 
 [features]
 # Bench-only: a benchmark driver's markers and scroll test, never enabled by packaging or any default build.

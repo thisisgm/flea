@@ -1,5 +1,5 @@
 //! The unlock card's window-side owner: runs the card's children off the UI thread and feeds their answers back.
-use super::card::{card, CardText, Press, BOARD_BODY};
+use super::card::{CardText, Press, BOARD_BODY};
 use super::host::{Effect, Host};
 use super::ink::CardInk;
 use super::keys::{act, Act, Key};
@@ -18,6 +18,9 @@ pub struct HostEvent(pub Effect);
 
 pub struct UnlockView {
     pub host: Host,
+    pub(super) drawn: std::cell::RefCell<crate::g2::op1::editor::Drawn>,
+    pub(super) input_active: bool,
+    pub(super) input_palette: Option<crate::g2::op1::palette::CardPalette>,
     pub rail: Option<RailView>,
     catalog: Arc<I18n>,
     text: CardText,
@@ -37,6 +40,9 @@ impl UnlockView {
     pub fn new(catalog: Arc<I18n>, runner: Rc<dyn Runner>, cx: &mut Context<Self>) -> Self {
         Self {
             host: Host::default(),
+            drawn: Default::default(),
+            input_active: false,
+            input_palette: None,
             rail: None,
             catalog,
             text: CardText::default(),
@@ -93,7 +99,8 @@ impl UnlockView {
         self.apply(effects, cx);
     }
 
-    fn refresh(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn refresh(&mut self, cx: &mut Context<Self>) {
+        self.sync_input();
         if let Some(card) = &self.host.card {
             self.text = CardText::of(card, &self.catalog);
         }
@@ -250,7 +257,10 @@ impl UnlockView {
         self.card_did(effects, cx);
     }
 
-    fn key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
+    fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if self.private_key(event, window, cx) {
+            return;
+        }
         let Some(card) = self.host.card.as_mut().filter(|c| c.opened) else {
             return;
         };
@@ -300,6 +310,12 @@ impl Render for UnlockView {
         ink.radius = crate::compositor::corner(cx);
         let width = f32::from(window.viewport_size().width);
         let scale = f32::from(crate::list::Typeface::for_window(window, cx).body) / BOARD_BODY;
+        self.input_palette = Some(crate::g2::op1::palette::CardPalette::from_list(
+            &Palette::inherited(&window.text_style(), theme),
+            ink.radius,
+        ));
+        let input = (state.phase != super::unlock::Phase::Unlocking)
+            .then(|| (cx.entity(), crate::list::Typeface::for_window(window, cx)));
         let cancel = cx.listener(|view: &mut Self, _, _, cx| view.close(cx));
         let unlock = cx.listener(|view: &mut Self, _, _, cx| view.submit(cx));
         let press = Press {
@@ -312,6 +328,8 @@ impl Render for UnlockView {
             .flex()
             .items_center()
             .justify_center()
-            .child(card(state, &self.text, &ink, width, scale, press))
+            .child(super::card::card_with_input(
+                state, &self.text, &ink, width, scale, press, input,
+            ))
     }
 }

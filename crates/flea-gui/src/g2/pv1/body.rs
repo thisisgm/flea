@@ -1,13 +1,14 @@
 //! What Quick Look shows for one subject, each kind as its board draws it; every string is already translated.
-use super::glyph::Glyph;
+use super::{doc::View, glyph::Glyph};
 use flea::i18n::I18n;
 use flea::ui_logic_pv1::{
     compare::DiffRow,
     kinds::{self, State},
+    pixels::is_vector_name,
     rect::Shape,
     swap::js_round,
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// A bar control left of Close, as the PDF strip lists them.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -135,7 +136,15 @@ impl Subject {
         self.mark_with_languages(true)
     }
 
+    /// The model view wears the cube; comparisons and other files keep their Markdown, language or kind mark.
     pub fn mark_with_languages(&self, languages: bool) -> Glyph {
+        if self
+            .body
+            .doc()
+            .is_some_and(|doc| matches!(doc.view, View::Model(_)))
+        {
+            return Glyph::Cube;
+        }
         if self.body.is_compare() && flea::ui_logic_pv1::kinds::is_markdown(&self.name) {
             return Glyph::Markdown;
         }
@@ -167,7 +176,7 @@ impl super::QuickLook {
     }
 }
 
-/// A picture's rect inside its room, never enlarged, in room coordinates.
+/// A picture's rect inside its room, in room coordinates: a raster is never enlarged, a vector fills.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Fit {
     pub x: f64,
@@ -176,11 +185,12 @@ pub struct Fit {
     pub h: f64,
 }
 
-fn scale(room_w: f64, room_h: f64, w: f64, h: f64) -> Option<(f64, f64)> {
+fn scale(room_w: f64, room_h: f64, w: f64, h: f64, vector: bool) -> Option<(f64, f64)> {
     if w.is_nan() || h.is_nan() || w <= 0. || h <= 0. {
         return None;
     }
-    if w <= room_w && h <= room_h {
+    // A raster is never enlarged; a vector fills its room along the limiting axis (v0.3.12).
+    if !vector && w <= room_w && h <= room_h {
         return Some((w, h));
     }
     // Multiply before dividing, so a whole fit stays whole: 800x600 in 171 rows is 228, never 227.99.
@@ -192,8 +202,8 @@ fn scale(room_w: f64, room_h: f64, w: f64, h: f64) -> Option<(f64, f64)> {
 }
 
 /// The interim and RAW picture: the size rounds, then the offset; ql-image 800x600 lands 765x574 at 69,0.
-pub fn fit_rounded(room_w: f64, room_h: f64, w: f64, h: f64) -> Option<Fit> {
-    let (fw, fh) = scale(room_w, room_h, w, h)?;
+pub fn fit_rounded(room_w: f64, room_h: f64, w: f64, h: f64, vector: bool) -> Option<Fit> {
+    let (fw, fh) = scale(room_w, room_h, w, h, vector)?;
     let (w, h) = (js_round(fw), js_round(fh));
     Some(Fit {
         x: js_round((room_w - w) / 2.),
@@ -203,9 +213,27 @@ pub fn fit_rounded(room_w: f64, room_h: f64, w: f64, h: f64) -> Option<Fit> {
     })
 }
 
+/// The rounded fit for a picture file: a vector path fills its room, a raster path keeps its pixels.
+pub fn fit_rounded_path(room_w: f64, room_h: f64, w: f64, h: f64, path: &Path) -> Option<Fit> {
+    let vector = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(is_vector_name);
+    fit_rounded(room_w, room_h, w, h, vector)
+}
+
+/// The painted fit for a picture file: a vector path fills its room, a raster path keeps its pixels.
+pub fn fit_painted_path(room_w: f64, room_h: f64, w: f64, h: f64, path: &Path) -> Option<Fit> {
+    let vector = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(is_vector_name);
+    fit_painted(room_w, room_h, w, h, vector)
+}
+
 /// A painted aspect fit, whole pixels toward the origin; ql-symlink 800x600 lands 729x547 at 86,0, a column RAW 256x171 at 9,0.
-pub fn fit_painted(room_w: f64, room_h: f64, w: f64, h: f64) -> Option<Fit> {
-    let (fw, fh) = scale(room_w, room_h, w, h)?;
+pub fn fit_painted(room_w: f64, room_h: f64, w: f64, h: f64, vector: bool) -> Option<Fit> {
+    let (fw, fh) = scale(room_w, room_h, w, h, vector)?;
     let (w, h) = (fw.floor(), fh.floor());
     Some(Fit {
         x: ((room_w - w) / 2.).floor(),
