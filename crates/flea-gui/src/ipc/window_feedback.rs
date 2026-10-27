@@ -7,6 +7,14 @@ use gpui::App;
 pub(crate) struct FeedbackAdapter<'a> {
     pub shell: &'a Shell,
     pub cx: &'a App,
+    /// The focus view the window reports, "" when nothing holds focus.
+    pub view: &'a str,
+    /// The window's own focus, Pane.qml's activeFocus.
+    pub pane_focused: bool,
+    /// The list's keyboard focus, Pane.qml's listArea.activeFocus.
+    pub list_focused: bool,
+    /// The list draws a drop target this frame, so a drag is over one of its rows.
+    pub drop_active: bool,
 }
 
 impl Adapter for FeedbackAdapter<'_> {
@@ -48,8 +56,16 @@ impl Adapter for FeedbackAdapter<'_> {
                     )
                 }
             }
+            "listingDropActive" => self.drop_active.to_string(),
+            // An open row menu takes the keyboard, so menu follows opened. GPUI has no QML item to name as activeItem and no separate menu focus holder, so both report idle.
             "contextMenuFocusState" => {
-                return Some(Reply::error(3, "FLEA_IPC_ERROR flea.contextMenuFocusState unavailable field: activeItem (the oracle serializes a runtime QML object, with no GPUI equivalent)"));
+                let opened = self.shell.menu.menu.borrow().opened();
+                format!(
+                    "{{\"opened\":{opened},\"view\":\"{}\",\"menu\":{opened},\"pane\":{},\"list\":{},\"origin\":false,\"activeItem\":\"\"}}",
+                    flea::json::escape(self.view),
+                    self.pane_focused,
+                    self.list_focused,
+                )
             }
             _ => return None,
         };
