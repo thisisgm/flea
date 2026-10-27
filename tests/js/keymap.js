@@ -263,7 +263,39 @@ function run(check) {
     var tabRow = Keymap.sheetFor("default", "gui").filter(function (row) { return row.action === "focusNext" })[0]
     check("the sheet reads Tab as Next area, with no pane-only wording", tabRow.keys + "|" + tabRow.label, "tab|Next area")
     var backRow = Keymap.sheetFor("default", "gui").filter(function (row) { return row.action === "focusPrevious" })[0]
-    check("and Shift+Tab as focus back, in the Move group", backRow.label + "|" + (Keymap.SHEET_GROUPS.move.indexOf("focusPrevious") >= 0), "focus back|true")
+    check("and Shift+Tab as Previous area, in the Move group", backRow.label + "|" + (Keymap.SHEET_GROUPS.move.indexOf("focusPrevious") >= 0), "Previous area|true")
+    // Each sheet row in each preset carries its board string, else the shipped en catalog keys.action string.
+    var catalogRequest = new XMLHttpRequest()
+    catalogRequest.open("GET", Qt.resolvedUrl("../../i18n/en/flea.json"), false)
+    catalogRequest.send()
+    var catalog = JSON.parse(catalogRequest.responseText)
+    var boardLabels = {
+        cursorDown: "Cursor down", cursorUp: "Cursor up", cursorFirst: "First item", cursorLast: "Last item",
+        pageDown: "Page down", pageUp: "Page up", open: "Open", parent: "Parent folder", pageForward: "Browse in",
+        historyBack: "Back", historyForward: "Forward", focusNext: "Next area", focusPrevious: "Previous area",
+        focusPreview: "Focus the preview", tabNew: "New tab", openTab: "Open in new tab", tabClose: "Close tab",
+        tabNext: "Next tab", tabPrevious: "Previous tab", tabMoveLeft: "Move tab left", tabMoveRight: "Move tab right",
+        windowNew: "New window", escape: "Close or go back", carry: "Carry to another app", viewList: "List view",
+        viewColumns: "Columns view", viewGrid: "Grid view", viewDual: "Dual pane", togglePreview: "Preview column",
+        factsToggle: "Facts", loadPreview: "Preview", preview: "Quick Look", previewPageForward: "Page preview forward",
+        previewPageBack: "Page preview back", toggleHidden: "Show hidden files", sidebar: "Sidebar", zoomIn: "Zoom in",
+        zoomOut: "Zoom out", expand: "Expand", mute: "Mute", textSizeUp: "Larger text", textSizeDown: "Smaller text",
+        textSizeReset: "Reset text size", keymapSheet: "Keyboard Shortcuts", filter: "Filter", search: "Find",
+        reveal: "Reveal", sortNext: "Sort", sortReverse: "Reverse sort", pathBar: "Go to folder", reload: "Reload",
+        copy: "Copy", cut: "Cut", paste: "Paste", rename: "Rename", trash: "Move to Trash",
+        deletePermanently: "Delete permanently", undo: "Undo", redo: "Redo", newFolder: "New folder",
+        copydirpath: "Copy folder path", copyPath: "Copy path", openAgent: "Open agent here"
+    }
+    var drawnWrong = [], drawnRows = 0
+    for (var dp = 0; dp < Keymap.PRESETS.length; dp++) {
+        var drawn = Keymap.sheetFor(Keymap.PRESETS[dp], "gui")
+        for (var dr = 0; dr < drawn.length; dr++) {
+            var want = boardLabels[drawn[dr].action] || catalog["keys.action." + drawn[dr].action] || ""
+            drawnRows++
+            if (drawn[dr].label !== want) drawnWrong.push(Keymap.PRESETS[dp] + " " + drawn[dr].action + " " + JSON.stringify(drawn[dr].label) + " want " + JSON.stringify(want))
+        }
+    }
+    check("every keys sheet row in every preset draws its board or catalog string (" + drawnRows + " rows)", drawnWrong.join("; "), "")
     // One cap names one key. Joining every spelling an action answers to produced caps of 40
     // characters on Default and 78 on Mac, wider than the card, and they drew over the next column.
     var widestCap = 0, identifierLabel = ""

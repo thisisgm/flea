@@ -4,14 +4,17 @@
 [[ctrl]]
 key = "D"
 action = "pageDown"
+label = "Page down"
 
 [[ctrl]]
 key = "U"
 action = "pageUp"
+label = "Page up"
 
 [[ctrl]]
 key = "A"
 action = "selectAll"
+label = "Select all"
 
 # Finder's table with Cmd read as Ctrl, which is also what Omarchy's universal clipboard injects
 # (SUPER+C/V/X arrive here as CTRL+C/V/X, see clipboard.lua) and what GTK binds. Every chord is
@@ -48,6 +51,7 @@ action = "eject"
 [[ctrl]]
 key = "B"
 action = "sidebar"
+label = "Sidebar"
 
 # Not a Finder chord: Cmd+Shift+G is Go to Folder there, and Ctrl+Shift+G is nothing on this box.
 # Ctrl+L is what Nautilus, Thunar, Dolphin and every browser bind, so the path bar answers to it too.
@@ -143,16 +147,19 @@ action = "toggleHidden"
 [[ctrlshift]]
 key = "PageUp"
 action = "tabMoveLeft"
+label = "Move tab left"
 
 [[ctrlshift]]
 key = "PageDown"
 action = "tabMoveRight"
+label = "Move tab right"
 
 # MenuAdditions040: Ctrl+Shift+C copies the selection's paths, one per line,
 # through wl-copy, without opening a row; c opens Copy as at the cursor.
 [[ctrlshift]]
 key = "C"
 action = "copyPath"
+label = "Copy path"
 
 # Shift falls through instead of returning, because shift-modified letters already carry their
 # own capital text (see G below); this table only covers the arrow keys, which carry no text.
@@ -189,7 +196,7 @@ mods = "ctrl"
 key = "1"
 keys = "ctrl-1"
 action = "viewList"
-label = "list"
+label = "List view"
 
 [[preset]]
 name = "default"
@@ -197,7 +204,7 @@ mods = "ctrl"
 key = "2"
 keys = "ctrl-2"
 action = "viewColumns"
-label = "columns"
+label = "Columns view"
 
 [[preset]]
 name = "default"
@@ -205,7 +212,7 @@ mods = "ctrl"
 key = "3"
 keys = "ctrl-3"
 action = "viewGrid"
-label = "grid"
+label = "Grid view"
 
 [[preset]]
 name = "default"
@@ -213,7 +220,7 @@ mods = "ctrl"
 key = "4"
 keys = "ctrl-4"
 action = "viewDual"
-label = "dual pane"
+label = "Dual pane"
 
 [[preset]]
 name = "vim"
@@ -221,7 +228,7 @@ mods = "ctrl"
 key = "1"
 keys = "ctrl-1"
 action = "viewList"
-label = "list"
+label = "List view"
 
 [[preset]]
 name = "vim"
@@ -229,7 +236,7 @@ mods = "ctrl"
 key = "2"
 keys = "ctrl-2"
 action = "viewColumns"
-label = "columns"
+label = "Columns view"
 
 [[preset]]
 name = "vim"
@@ -237,7 +244,7 @@ mods = "ctrl"
 key = "3"
 keys = "ctrl-3"
 action = "viewGrid"
-label = "grid"
+label = "Grid view"
 
 [[preset]]
 name = "vim"
@@ -245,7 +252,7 @@ mods = "ctrl"
 key = "4"
 keys = "ctrl-4"
 action = "viewDual"
-label = "dual pane"
+label = "Dual pane"
 
 # Finder's own chords, read with Cmd as Ctrl the way Omarchy's universal clipboard already delivers
 # them; ui/js/Keymap.js's shared ctrl table keeps only the chords both platforms agree on.
@@ -255,7 +262,7 @@ mods = "ctrl"
 key = "1"
 keys = "ctrl-1"
 action = "viewList"
-label = "list"
+label = "List view"
 
 [[preset]]
 name = "mac"
@@ -263,7 +270,7 @@ mods = "ctrl"
 key = "2"
 keys = "ctrl-2"
 action = "viewColumns"
-label = "columns"
+label = "Columns view"
 
 [[preset]]
 name = "mac"
@@ -271,7 +278,7 @@ mods = "ctrl"
 key = "3"
 keys = "ctrl-3"
 action = "viewGrid"
-label = "grid"
+label = "Grid view"
 
 [[preset]]
 name = "mac"
@@ -279,7 +286,7 @@ mods = "ctrl"
 key = "4"
 keys = "ctrl-4"
 action = "viewDual"
-label = "dual pane"
+label = "Dual pane"
 
 [[preset]]# Historical Ctrl navigation aliases remain additive.
 
@@ -334,7 +341,7 @@ mods = "ctrlshift"
 key = "1"
 keys = "ctrl-shift-1"
 action = "viewList"
-label = "list"
+label = "List view"
 
 [[preset]]
 name = "windows"
@@ -342,7 +349,7 @@ mods = "ctrlshift"
 key = "2"
 keys = "ctrl-shift-2"
 action = "viewColumns"
-label = "columns"
+label = "Columns view"
 
 [[preset]]
 name = "windows"
@@ -350,7 +357,7 @@ mods = "ctrlshift"
 key = "3"
 keys = "ctrl-shift-3"
 action = "viewGrid"
-label = "grid"
+label = "Grid view"
 
 [[preset]]
 name = "windows"
@@ -358,15 +365,17 @@ mods = "ctrlshift"
 key = "4"
 keys = "ctrl-shift-4"
 action = "viewDual"
-label = "dual pane"
+label = "Dual pane"
 
 [[shift]]
 key = "Down"
 action = "extendDown"
+label = "Extend down"
 
 [[shift]]
 key = "Up"
 action = "extendUp"
+label = "Extend up"
 
 # Bindings on the key code, for the keys that carry no printable character.
 [[code]]
@@ -376,6 +385,7 @@ action = "cursorDown"
 [[code]]
 key = "Up"
 action = "cursorUp"
+label = "Cursor up"
 
 # Issue 28: the full-size keyboard's own four. Every one names an action the vim keys already carry,
 # so ui/js/Focus.js takes them for free and tools/flea-acceptance derives each as its own driven
@@ -385,18 +395,22 @@ action = "cursorUp"
 [[code]]
 key = "Home"
 action = "cursorFirst"
+label = "First item"
 
 [[code]]
 key = "End"
 action = "cursorLast"
+label = "Last item"
 
 [[code]]
 key = "PageUp"
 action = "pageUp"
+label = "Page up"
 
 [[code]]
 key = "PageDown"
 action = "pageDown"
+label = "Page down"
 
 [[code]]
 key = "Return"
@@ -417,6 +431,7 @@ action = "trash"
 [[code]]
 key = "Escape"
 action = "escape"
+label = "Close or go back"
 
 # The only thing that moves focus between the list and the rail, see ui/js/Focus.js.
 [[code]]
@@ -463,14 +478,17 @@ action = "cursorDown"
 [[text]]
 char = "k"
 action = "cursorUp"
+label = "Cursor up"
 
 [[text]]
 char = "g"
 action = "cursorFirst"
+label = "First item"
 
 [[text]]
 char = "G"
 action = "cursorLast"
+label = "Last item"
 
 # Decided 2026-09-01: the keymap sheet's own letters. Selection moved off x, which now cuts,
 # onto v, which is also the TUI board's visual-mode key.
@@ -481,10 +499,12 @@ action = "toggleSelect"
 [[text]]
 char = "J"
 action = "extendDown"
+label = "Extend down"
 
 [[text]]
 char = "K"
 action = "extendUp"
+label = "Extend up"
 
 [[text]]
 char = "h"
@@ -515,6 +535,7 @@ action = "pathBar"
 [[text]]
 char = "t"
 action = "tabNew"
+label = "New tab"
 
 # The Tags flyout's own key, from the listing; the seven digits toggle while that list is open.
 [[text]]
@@ -529,6 +550,7 @@ action = "factsToggle"
 [[text]]
 char = "w"
 action = "tabClose"
+label = "Close tab"
 
 
 [[text]]
@@ -590,6 +612,7 @@ action = "addNetwork"
 [[text]]
 char = "A"
 action = "openAgent"
+label = "Open agent here"
 
 # The keyboard's way into the menu a right click raises: the row's own menu in the listing, Eject
 # and Unmount in the rail. The tagline is "keyboard-first" and before this key neither had one, so
@@ -603,14 +626,17 @@ action = "menu"
 [[text]]
 char = "c"
 action = "copyAs"
+label = "Copy as"
 
 [[text]]
 char = "P"
 action = "pasteAs"
+label = "Paste as"
 
 [[text]]
 char = "V"
 action = "invertSelection"
+label = "Invert selection"
 
 # The Settings board's own key: "," from anywhere in the window, no modifier chord, because
 # Omarchy's universal clipboard consumes SUPER+C/V/X and a settings panel is the last place to
@@ -630,14 +656,17 @@ action = "keymapSheet"
 [[text]]
 char = "-"
 action = "zoomOut"
+label = "Zoom out"
 
 [[text]]
 char = "+"
 action = "zoomIn"
+label = "Zoom in"
 
 [[text]]
 char = "e"
 action = "expand"
+label = "Expand"
 
 # The page pair: h goes back in a PDF or to the parent while browsing; l goes forward, enters a directory, or previews a file.
 [[text]]
@@ -650,10 +679,12 @@ action = "pageForward"
 [[text]]
 char = "{"
 action = "tabMoveLeft"
+label = "Move tab left"
 
 [[text]]
 char = "}"
 action = "tabMoveRight"
+label = "Move tab right"
 
 # Keys040: [ and ] step to the previous and next tab. Bare text like { and }
 # above; the only BracketLeft/BracketRight rows in any preset are mac's
@@ -662,6 +693,7 @@ action = "tabMoveRight"
 [[text]]
 char = "["
 action = "tabPrevious"
+label = "Previous tab"
 # CommandPalette draws the tab rows by their chords alone, so [ and ] stay bound but off the sheet.
 sheet = false
 
@@ -1485,7 +1517,7 @@ mods = "ctrl"
 key = "N"
 keys = "ctrl-n"
 action = "windowNew"
-label = "new window"
+label = "New window"
 frontend = "gui"
 context = "listing,rail"
 
@@ -1495,7 +1527,7 @@ mods = "ctrl"
 key = "N"
 keys = "ctrl-n"
 action = "windowNew"
-label = "new window"
+label = "New window"
 frontend = "gui"
 context = "listing,rail"
 
@@ -1505,7 +1537,7 @@ mods = "ctrl"
 key = "N"
 keys = "ctrl-n"
 action = "windowNew"
-label = "new window"
+label = "New window"
 frontend = "gui"
 context = "listing,rail"
 
@@ -1515,7 +1547,7 @@ mods = "ctrl"
 key = "T"
 keys = "ctrl-t"
 action = "tabNew"
-label = "new tab"
+label = "New tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1525,7 +1557,7 @@ mods = "ctrl"
 key = "T"
 keys = "ctrl-t"
 action = "tabNew"
-label = "new tab"
+label = "New tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1537,7 +1569,7 @@ mods = "shift"
 key = "Delete"
 keys = "shift-delete"
 action = "deletePermanently"
-label = "delete permanently"
+label = "Delete permanently"
 frontend = "all"
 context = "listing"
 
@@ -1547,7 +1579,7 @@ mods = "alt"
 key = "P"
 keys = "alt-p"
 action = "togglePreview"
-label = "preview column"
+label = "Preview column"
 frontend = "all"
 context = "listing"
 
@@ -1557,7 +1589,7 @@ mods = "ctrl"
 key = "Space"
 keys = "ctrl-space"
 action = "loadPreview"
-label = "preview"
+label = "Preview"
 frontend = "all"
 context = "listing"
 
@@ -1567,7 +1599,7 @@ mods = "ctrl"
 key = "W"
 keys = "ctrl-w"
 action = "tabClose"
-label = "close tab"
+label = "Close tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1577,7 +1609,7 @@ mods = "ctrl"
 key = "PageDown"
 keys = "ctrl-pagedown"
 action = "tabNext"
-label = "next tab"
+label = "Next tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1587,7 +1619,7 @@ mods = "ctrl"
 key = "PageUp"
 keys = "ctrl-pageup"
 action = "tabPrevious"
-label = "prev tab"
+label = "Previous tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1597,7 +1629,7 @@ mods = "ctrl"
 key = "Tab"
 keys = "ctrl-tab"
 action = "focusPreview"
-label = "focus preview"
+label = "Focus the preview"
 frontend = "all"
 context = "listing"
 
@@ -1630,7 +1662,7 @@ mods = "text"
 key = "H"
 keys = "H"
 action = "historyBack"
-label = "back"
+label = "Back"
 frontend = "all"
 context = "listing"
 
@@ -1640,7 +1672,7 @@ mods = "text"
 key = "H"
 keys = "H"
 action = "historyBack"
-label = "back"
+label = "Back"
 frontend = "all"
 context = "listing"
 
@@ -1650,7 +1682,7 @@ mods = "text"
 key = "L"
 keys = "L"
 action = "historyForward"
-label = "forward"
+label = "Forward"
 frontend = "all"
 context = "listing"
 
@@ -1660,7 +1692,7 @@ mods = "text"
 key = "L"
 keys = "L"
 action = "historyForward"
-label = "forward"
+label = "Forward"
 frontend = "all"
 context = "listing"
 
@@ -1700,7 +1732,7 @@ mods = "text"
 key = "g"
 keys = "gg"
 action = "cursorFirstArm"
-label = "first row"
+label = "First item"
 frontend = "all"
 context = "listing"
 
@@ -1810,7 +1842,7 @@ mods = "superalt"
 key = "V"
 keys = "superalt-v"
 action = "movePaste"
-label = "move here"
+label = "Move here"
 frontend = "all"
 context = "listing"
 
@@ -1820,7 +1852,7 @@ mods = "super"
 key = "D"
 keys = "super-d"
 action = "duplicate"
-label = "duplicate"
+label = "Duplicate"
 frontend = "all"
 context = "listing"
 
@@ -1841,7 +1873,7 @@ mods = "ctrlshift"
 key = "Z"
 keys = "ctrl-shift-z"
 action = "redo"
-label = "redo"
+label = "Redo"
 frontend = "all"
 context = "listing"
 
@@ -1851,7 +1883,7 @@ mods = "supershift"
 key = "Z"
 keys = "supershift-z"
 action = "redo"
-label = "redo"
+label = "Redo"
 frontend = "all"
 context = "listing"
 
@@ -1861,7 +1893,7 @@ mods = "super"
 key = "A"
 keys = "super-a"
 action = "selectAll"
-label = "select all"
+label = "Select all"
 frontend = "all"
 context = "listing"
 
@@ -1871,7 +1903,7 @@ mods = "super"
 key = "I"
 keys = "super-i"
 action = "properties"
-label = "get info"
+label = "Get info"
 frontend = "all"
 context = "listing"
 
@@ -1881,7 +1913,7 @@ mods = "super"
 key = "N"
 keys = "super-n"
 action = "windowNew"
-label = "new window"
+label = "New window"
 frontend = "gui"
 context = "listing,rail"
 
@@ -1891,7 +1923,7 @@ mods = "super"
 key = "BracketLeft"
 keys = "super-bracketleft"
 action = "historyBack"
-label = "back"
+label = "Back"
 frontend = "all"
 context = "listing"
 
@@ -1901,7 +1933,7 @@ mods = "super"
 key = "BracketRight"
 keys = "super-bracketright"
 action = "historyForward"
-label = "forward"
+label = "Forward"
 frontend = "all"
 context = "listing"
 
@@ -1941,7 +1973,7 @@ mods = "ctrl"
 key = "Y"
 keys = "ctrl-y"
 action = "redo"
-label = "redo"
+label = "Redo"
 frontend = "all"
 context = "listing"
 
@@ -1951,7 +1983,7 @@ mods = "alt"
 key = "Return"
 keys = "alt-return"
 action = "properties"
-label = "properties"
+label = "Get info"
 frontend = "all"
 context = "listing"
 
@@ -1961,7 +1993,7 @@ mods = "alt"
 key = "Enter"
 keys = "alt-enter"
 action = "properties"
-label = "properties"
+label = "Get info"
 frontend = "all"
 context = "listing"
 
@@ -1971,7 +2003,7 @@ mods = "alt"
 key = "Left"
 keys = "alt-left"
 action = "historyBack"
-label = "back"
+label = "Back"
 frontend = "all"
 context = "listing"
 
@@ -1981,7 +2013,7 @@ mods = "alt"
 key = "Right"
 keys = "alt-right"
 action = "historyForward"
-label = "forward"
+label = "Forward"
 frontend = "all"
 context = "listing"
 
@@ -2086,7 +2118,7 @@ mods = "text"
 key = "m"
 keys = "m"
 action = "mute"
-label = "mute"
+label = "Mute"
 frontend = "all"
 context = "media"
 
@@ -2146,7 +2178,7 @@ mods = "shift"
 key = "Tab"
 keys = "shift-tab"
 action = "focusPrevious"
-label = "focus back"
+label = "Previous area"
 frontend = "all"
 context = "listing,rail,menu,panel,preview,pdf,media"
 
@@ -2156,7 +2188,7 @@ mods = "shift"
 key = "Backtab"
 keys = "shift-backtab"
 action = "focusPrevious"
-label = "focus back"
+label = "Previous area"
 frontend = "all"
 context = "listing,rail,menu,panel,preview,pdf,media"
 
@@ -2527,7 +2559,7 @@ mods = "text"
 key = "F"
 keys = "F"
 action = "previewPageForward"
-label = "page preview forward"
+label = "Page preview forward"
 frontend = "gui"
 context = "listing"
 
@@ -2537,7 +2569,7 @@ mods = "text"
 key = "B"
 keys = "B"
 action = "previewPageBack"
-label = "page preview back"
+label = "Page preview back"
 frontend = "gui"
 context = "listing"
 
