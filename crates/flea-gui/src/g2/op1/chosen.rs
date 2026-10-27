@@ -10,13 +10,21 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let side = chosen.captured.side;
-        if !chosen.captured.background
-            || self
-                .panes
-                .get(side)
-                .and_then(Option::as_ref)
-                .is_none_or(|host| host.backend.is_none())
-        {
+        if !chosen.captured.background {
+            return;
+        }
+        let Some(host) = self.panes.get(side).and_then(Option::as_ref) else {
+            return;
+        };
+        // Pane.qml act: Recent is a history, so New File refuses there before any card opens.
+        if flea::ui_logic_pk1::is_recent(host.pane.place()) {
+            if chosen.claim() {
+                let text = self.locale.catalog.tr("menu.refusal.recent_new_file");
+                self.fileops_say(side, &text, false, cx);
+            }
+            return;
+        }
+        if host.backend.is_none() {
             return;
         }
         let Some(view) = self.operation_overlay(side, window, cx) else {

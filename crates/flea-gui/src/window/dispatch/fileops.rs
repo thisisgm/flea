@@ -278,7 +278,7 @@ impl Shell {
         self.operations.fileops.arrival[side] = None;
     }
 
-    pub(super) fn fileops_say(&mut self, side: usize, text: &str, error: bool, cx: &mut Context<Self>) {
+    pub(crate) fn fileops_say(&mut self, side: usize, text: &str, error: bool, cx: &mut Context<Self>) {
         if let Some(host) = self.panes[side].as_mut() {
             host.status = text.to_owned().into();
         }

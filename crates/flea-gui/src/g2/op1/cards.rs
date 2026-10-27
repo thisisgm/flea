@@ -211,6 +211,7 @@ impl Operations {
         if name.is_empty() {
             return;
         }
+        // MenuActionDialog.qml:170 gives "." and ".." the slash sentence too.
         let slash = name == "." || name == ".." || name.contains('/');
         if let Some(Dialog::NewFile { busy, error, .. }) = &mut self.dialog {
             if slash {
