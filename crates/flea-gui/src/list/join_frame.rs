@@ -37,8 +37,10 @@ impl Shell {
         let geometry = self.geometry(window);
         let view = self.shown_view();
         let viewport = self.seam.viewport();
-        // One Grow per side for every list frame of this render, so the frames below agree with the rows the views paint.
-        self.grows = [0, 1].map(|side| self.frame_grow(side, window));
+        // One refusal band and one Grow per side for this render, so every list frame and the rename readers agree with the paint.
+        let bands = [0, 1].map(|side| self.rename_band(side, window));
+        self.bands = bands;
+        self.grows = [0, 1].map(|side| self.frame_grow(side, bands[side]));
         let grows = self.grows;
         #[cfg(test)]
         let mut prepared = [None; 2];
