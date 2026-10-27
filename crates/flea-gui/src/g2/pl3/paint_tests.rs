@@ -1,12 +1,12 @@
-//! The Trash list Element drawn in a real window: columns, grounds, shaping once, thumbnails and their eviction.
+//! The Trash list Element drawn in a real window: columns, grounds, shaping once, and the generic icon on image rows.
 use super::board::{HOVER, WASH};
 use super::elide;
 use super::list::columns;
 use super::pane::TrashPane;
-use super::tests::{answer, ink, listed, opened, row, sent};
+use super::tests::{ink, opened, row, sent};
 use crate::list::bench::real_cx;
-use gpui::{prelude::*, ImageAssetLoader, Resource, TestAppContext, WindowHandle};
-use std::{path::Path, sync::Arc, time::Duration};
+use gpui::{prelude::*, TestAppContext, WindowHandle};
+use std::time::Duration;
 
 fn draw(cx: &mut TestAppContext, window: WindowHandle<TrashPane>) {
     cx.update_window(window.into(), |_, window, cx| {
@@ -105,9 +105,8 @@ fn trash_rows_ground_as_the_boards_draw_them() {
 }
 
 #[test]
-fn a_thumbnail_draws_in_the_mark_slot_and_leaves_with_its_row() {
+fn a_trash_image_row_keeps_the_generic_icon() {
     let mut cx = real_cx();
-    let fixture = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/images/icon.svg");
     let (window, calls) = opened(
         &mut cx,
         &[
@@ -117,78 +116,17 @@ fn a_thumbnail_draws_in_the_mark_slot_and_leaves_with_its_row() {
     );
     cx.executor().advance_clock(Duration::from_millis(70));
     cx.run_until_parked();
-    let asks: Vec<String> = sent(&calls)
+    let asks = sent(&calls)
         .into_iter()
         .filter(|line| line.contains(r#""c":"trashthumb""#))
-        .collect();
-    assert_eq!(asks.len(), 2, "both visible image rows ask");
-    let id = |line: &str| {
-        line[line.find(r#""id":"#).unwrap() + 5..]
-            .split(',')
-            .next()
-            .unwrap()
-            .to_string()
-    };
-    let (first, second) = (id(&asks[0]), id(&asks[1]));
-    draw(&mut cx, window);
-    window.update(&mut cx, |pane, _, cx| {
-        assert!(pane.paint.borrow().drawn_images.is_empty(), "the glyph stays drawn before a reply");
-        pane.line(&format!(r#"{{"t":"trashthumbed","id":{first},"file":"{fixture}"}}"#), cx);
-        pane.line(&format!(r#"{{"t":"trashthumbed","id":{second},"file":"/nonexistent/flea-pl3/missing.png"}}"#), cx);
-    }).unwrap();
-    draw(&mut cx, window);
-    cx.run_until_parked();
-    draw(&mut cx, window);
-    let source = Resource::Path(Arc::from(Path::new(fixture)));
-    window
-        .update(&mut cx, |pane, _, cx| {
-            assert_eq!(
-                pane.paint.borrow().drawn_images,
-                [0],
-                "the decoded image replaces the glyph; a failed decode keeps it"
-            );
-            assert!(
-                cx.has_asset::<ImageAssetLoader>(&source),
-                "the image is cached while its row shows it"
-            );
-            pane.action("reload", false, cx);
-        })
-        .unwrap();
-    answer(
-        &mut cx,
-        window,
-        &calls,
-        "list",
-        &listed(&[row("a.png", Some("/fixture/a.png"))]),
-    );
+        .count();
+    assert_eq!(asks, 0, "no Trash row asks for a thumbnail");
     draw(&mut cx, window);
     window
-        .update(&mut cx, |pane, _, cx| {
-            assert_eq!(
-                pane.paint.borrow().drawn_images,
-                [0],
-                "the retained row keeps its decoded image until the complete replacement"
-            );
-            assert!(cx.has_asset::<ImageAssetLoader>(&source));
-        })
-        .unwrap();
-    answer(
-        &mut cx,
-        window,
-        &calls,
-        "summary",
-        r#","bytes":13,"partial":false"#,
-    );
-    draw(&mut cx, window);
-    window
-        .update(&mut cx, |pane, _, cx| {
+        .update(&mut cx, |pane, _, _| {
             assert!(
                 pane.paint.borrow().drawn_images.is_empty(),
-                "the complete replacement retires its previous thumbnail at once"
-            );
-            assert!(
-                !cx.has_asset::<ImageAssetLoader>(&source),
-                "and its decoded image leaves the cache"
+                "every image row draws the generic icon"
             );
         })
         .unwrap();

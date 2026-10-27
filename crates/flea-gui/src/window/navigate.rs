@@ -15,6 +15,8 @@ pub enum Step {
     MouseBack,
     Up,
     Refresh(Option<String>),
+    /// The re-list an operation's result owes: it supersedes a re-read in flight and lands on the first row with nothing marked.
+    Fresh,
     /// The re-read that keeps the cursor's row and its marks by name, with no reload notice.
     Reread,
     Reload,
@@ -86,6 +88,7 @@ impl Shell {
             Step::MouseBack => nav.mouse_back(pane),
             Step::Up => nav.parent(pane),
             Step::Refresh(select) => nav.refresh(pane, select),
+            Step::Fresh => nav.fresh(pane),
             Step::Reread => Ok(nav.reread(pane, selected, false, false)),
             Step::Reload => nav.reload(pane, selected),
             Step::Retry => nav.retry(pane, selected),
