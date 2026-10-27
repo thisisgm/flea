@@ -14,6 +14,7 @@ pub(crate) mod network;
 pub(crate) mod output_cards;
 pub mod pane;
 pub mod path;
+pub(crate) mod preview_look;
 pub(crate) mod preview_scroll;
 pub mod rail;
 pub mod rows;

@@ -2,6 +2,7 @@
 use super::selection_preview::{Mounted, Subject};
 use crate::{state::Shell, window::input::ActionEvent};
 use flea::jsondoc::Json;
+use flea::ui_logic_pv2::viewer::Action;
 use gpui::{Context, Window};
 
 /// The preview keys that act on a shown preview only.
@@ -53,12 +54,13 @@ impl Shell {
             "loadPreview" => {
                 preview.update(cx, |view, cx| view.follow(subject, false, true, window, cx))
             }
-            "focusPreview" => {
+            "focusPreview" if !preview.read(cx).focus.is_focused(window) => {
                 let focus = preview.read(cx).focus.clone();
                 window.focus(&focus, cx);
                 self.keyboard.context = preview.read(cx).key_context();
             }
-            "escape" if preview.read(cx).focus.is_focused(window) => {
+            // Ctrl+Tab in the preview hands the keyboard back to the listing, as Escape does (Focus.js focusPreview).
+            "escape" | "focusPreview" if preview.read(cx).focus.is_focused(window) => {
                 window.focus(&self.focus, cx);
                 self.keyboard.context = flea::keys::Context::Listing;
             }
@@ -81,6 +83,20 @@ impl Shell {
             // ql-pdf: e on the column's PDF opens Quick Look on the page the column shows.
             "expand" if column_pdf(&preview, cx).is_some() => {
                 return self.open_quick_look(side, window, cx);
+            }
+            // The focused column PDF: Return opens Quick Look, Up and Down scroll the pages (PreviewKeys.js columnPdfAction).
+            "open" | "cursorDown" | "cursorUp"
+                if preview.read(cx).focus.is_focused(window) && column_pdf(&preview, cx).is_some() =>
+            {
+                if event.action == "open" {
+                    return self.open_quick_look(side, window, cx);
+                }
+                let Some(action) = Action::from_name(event.action) else {
+                    return false;
+                };
+                if let Some(pdf) = column_pdf(&preview, cx) {
+                    pdf.update(cx, |pdf, cx| pdf.action(action, cx));
+                }
             }
             "previewPageForward" | "previewPageBack" | "parent" | "pageForward" | "seekBack"
             | "seekForward"

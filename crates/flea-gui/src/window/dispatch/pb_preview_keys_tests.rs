@@ -1,7 +1,14 @@
 //! Preview keys travel through the mounted root and preserve the listing behind them.
 use super::previewtypes_tests::{answer, file, local, open, pump};
 use crate::window::u07_tests::read;
-use gpui::TestAppContext;
+use flea::jsondoc::Json;
+use gpui::{Entity, TestAppContext, VisualTestContext};
+
+// focusView reads "list" while the preview holds focus too, so the preview's own focus flag is the witness.
+fn preview_focused(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) -> bool {
+    let state = flea::jsondoc::parse(&read(shell, cx, "keyDeliveryState", &[])).unwrap();
+    state.get("preview").and_then(|preview| preview.get("focused")) == Some(&Json::Bool(true))
+}
 
 #[gpui::test]
 fn pb_preview_ctrl_tab_returns_from_every_column_kind(cx: &mut TestAppContext) {
@@ -21,14 +28,14 @@ fn pb_preview_ctrl_tab_returns_from_every_column_kind(cx: &mut TestAppContext) {
             pump(cx);
             cx.simulate_keystrokes("ctrl-tab");
             pump(cx);
-            assert_ne!(read(&shell, cx, "focusView", &[]), "list");
+            assert!(preview_focused(&shell, cx), "Ctrl+Tab focuses row {row}'s preview");
             cx.simulate_keystrokes("ctrl-tab");
             pump(cx);
-            assert_eq!(
-                read(&shell, cx, "focusView", &[]),
-                "list",
+            assert!(
+                !preview_focused(&shell, cx),
                 "Ctrl+Tab returns from row {row}"
             );
+            assert_eq!(read(&shell, cx, "focusView", &[]), "list");
             assert_eq!(read(&shell, cx, "cursor", &[]), row.to_string());
         }
     });
@@ -62,9 +69,9 @@ fn pb_preview_focused_pdf_scrolls_and_return_expands(cx: &mut TestAppContext) {
                 "true",
                 "{key} expands the PDF"
             );
+            // Quick Look closes back onto the column it opened from, which keeps the keyboard.
             cx.simulate_keystrokes("escape");
             pump(cx);
-            cx.simulate_keystrokes("ctrl-tab");
         }
     });
 }
@@ -85,7 +92,6 @@ fn pb_preview_menu_compare_reaches_copy_patch(cx: &mut TestAppContext) {
     local(&shell, cx, "/files");
     cx.simulate_keystrokes("shift-down");
     cx.simulate_keystrokes("shift-f10");
-    pump(cx);
     super::menus_tests::answer(&shell, cx, &[0o100644, 0o100644]);
     super::menus_tests::choose(&shell, cx, "compare");
     super::menus_tests::validated(&shell, cx, "compare", &["/files/a.txt", "/files/b.txt"]);
@@ -115,7 +121,8 @@ fn pb_preview_menu_compare_reaches_copy_patch(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn pb_preview_panel_up_down_and_j_k_leave_the_listing_and_focus_alone(cx: &mut TestAppContext) {
-    let (shell, cx) = open(cx, "/files");
+    // The toolbar is a Tab stop only in Dual; single-pane Tab runs list, rail.
+    let (shell, cx) = super::test_shell::open_with(cx, r#""keys":"default","view":"dual""#, None);
     super::test_shell::land(
         &shell,
         cx,
@@ -124,7 +131,7 @@ fn pb_preview_panel_up_down_and_j_k_leave_the_listing_and_focus_alone(cx: &mut T
         1,
     );
     pump(cx);
-    for _ in 0..3 {
+    for _ in 0..8 {
         if read(&shell, cx, "focusView", &[]) == "chrome" {
             break;
         }
