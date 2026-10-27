@@ -133,6 +133,8 @@ mod columns_key_repeat_tests;
 #[path = "../list/join_tests.rs"]
 mod list_tests;
 #[cfg(test)]
+mod ipc_cold_tests;
+#[cfg(test)]
 mod modal_tests;
 #[cfg(test)]
 mod native_reader_tests;

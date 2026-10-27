@@ -211802,7 +211802,7 @@
     "crates/flea-gui/src/window/lifecycle.rs": "689767f40d95c0995fbca9ae443a57c406bb7f37e1db1c26376d7b6ed8a2824e",
     "crates/flea-gui/src/window/locale.rs": "1a13e6ac47c51ecca964e0a3de27e10182361ca3bf5cba35c7a857a6408248ed",
     "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs": "b49f4e8ead91cd2bb902af7fc374950db77446671d739fba45a799ebe0ffb231",
-    "crates/flea-gui/src/window/mod.rs": "58bcf8baf798e127e10cece057353e412347ef36993306990cc9d759fd4c8321",
+    "crates/flea-gui/src/window/mod.rs": "4b63b44ef11fcfb54ab29da71ffb207cacc946af27be24929f5e4351d9b1d0c5",
     "crates/flea-gui/src/window/navigate.rs": "feb31c09c6984068674d30b121172c4945cc08b5fda267902c9907a8b0efe420",
     "crates/flea-gui/src/window/network.rs": "d33b9375885d796cb2c56ee4466e2ad588ef40b65e1d92e3ab01f3c2b14e7466",
     "crates/flea-gui/src/window/network_effects.rs": "788a6da5fed7090832f709fc81da927c12ce9086d7f12e58b3c3fb969a7830a3",
@@ -213280,8 +213280,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "622bbf3a94168f73cb5a94a1ed468e2deda08da6",
-  "source_sha": "622bbf3a94168f73cb5a94a1ed468e2deda08da6",
+  "source_ref_sha": "1ba3146b84354303c39831da44da2e26190666df",
+  "source_sha": "1ba3146b84354303c39831da44da2e26190666df",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
