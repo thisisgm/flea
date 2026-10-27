@@ -135,7 +135,9 @@ impl Shell {
             self.menu_outcome(Outcome::Refused("menu.refusal.moved"), window, cx);
             return;
         }
-        if refresh::validate_choice(&self.menu_entries(), &action, &leaf, false).is_err() {
+        if refresh::validate_choice(&self.menu_choice_entries(&action, &leaf), &action, &leaf, false)
+            .is_err()
+        {
             self.menu_outcome(Outcome::Refused("menu.refusal.unavailable"), window, cx);
             return;
         }
@@ -189,7 +191,7 @@ impl Shell {
         let Ok(reply) = flea::jsondoc::parse(line) else {
             return false;
         };
-        if self.actions_reply(side, line, cx) {
+        if self.actions_reply(side, line, cx) || self.menu_tag_line(side, &reply, window, cx) {
             return true;
         }
         if self.menu_discovery_reply(side, line, &reply, window, cx) {
@@ -286,7 +288,8 @@ impl Shell {
                     .filter_map(Json::as_str)
                     .map(str::to_owned)
                     .collect();
-                if refresh::validate_choice(&self.menu_entries(), action, leaf, false).is_err() {
+                let live = self.menu_choice_entries(action, leaf);
+                if refresh::validate_choice(&live, action, leaf, false).is_err() {
                     self.menu_outcome(Outcome::Refused("menu.refusal.unavailable"), window, cx);
                 } else {
                     self.deliver_menu(paths, window, cx);
@@ -323,6 +326,10 @@ impl Shell {
             let _ = self.step(side, step, window, cx);
         } else if action == "makeExecutable" {
             self.make_executable(&capture, &paths, window, cx);
+        } else if action == "addToShelf" {
+            self.menu_shelve(&capture, &paths, window, cx);
+        } else if action == "tags" && !capture.background {
+            self.menu_tag(&capture, &leaf, window, cx);
         } else if self.clipboard_menu(&capture, &action, &leaf, &paths, window, cx) {
         } else if action == "runScript" {
             let request = format!(
