@@ -506,6 +506,23 @@ class MatrixTests(unittest.TestCase):
             self.bench.generate_controls(root, self.catalog)
         self.assertEqual(list(root.iterdir()), [])
 
+    def test_expand_roots_refuses_unset_root_and_substitutes_set_root(self):
+        names = ('FLEA_VISUAL_DESIGN', 'FLEA_RELEASE_ROOT')
+        saved = {name: os.environ.pop(name, None) for name in names}
+        try:
+            for name in names:
+                path = '${' + name + '}/plan.md'
+                with self.rejected(name + ' is unset'):
+                    self.bench.expand_roots(path)
+                os.environ[name] = '/srv/' + name.lower()
+                self.assertEqual(self.bench.expand_roots(path), '/srv/' + name.lower() + '/plan.md')
+                del os.environ[name]
+        finally:
+            for name, value in saved.items():
+                os.environ.pop(name, None)
+                if value is not None:
+                    os.environ[name] = value
+
     def test_missing_in_root_artifact_named(self):
         self.campaign['samples'][0]['observation']['path'] = 'absent-observation.json'
         with self.rejected('missing artifact file: absent-observation.json'):
@@ -672,6 +689,7 @@ MUTANTS = {
     'test_rival_without_table_support_keeps_plain_twin_controls': [("require(all(row is None or len(row) == pairs", "require(all(row is not None and len(row) == pairs")],
     'test_measure_commands_cover_resolved_cells_and_solo_candidate': [("                entrant = 'none'\n", '')],
     'test_fixture_root_needs_marker': [("    require((root / '.flea-test-sandbox').is_file(), 'fixture root must hold a .flea-test-sandbox marker: ' + str(root))\n", '')],
+    'test_expand_roots_refuses_unset_root_and_substitutes_set_root': [("            path = path.replace(token, os.environ[name])\n", '')],
     'test_artifact_escape_refused': [("        require(target.is_relative_to(self.root), 'artifact escapes campaign root: ' + path)\n", '')],
     'test_missing_in_root_artifact_named': [("        require(target.is_relative_to(self.root), 'artifact escapes campaign root: ' + path)\n        require(target.is_file(), 'missing artifact file: ' + path)",
                                             "        require(target.is_relative_to(self.root) and target.is_file(), 'artifact escapes campaign root')")],

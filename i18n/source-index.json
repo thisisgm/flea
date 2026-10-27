@@ -212394,7 +212394,7 @@
     "tools/flea-walkbench/src/stats.rs": "139a67b8a175124ad459004107c3069b920bb07b1907171a6a4cc0a35c1ef2b9",
     "tools/flea_bench_product.py": "70a350992a8ca5f4a28ea122d8191cbebdec8426e2eafa0f1f8e7f79361bf9d8",
     "tools/flea_ipc.py": "0a0c390872be4cc21c29be6806df7ee8093de5492e3d9a3f168fdf60260f5fa7",
-    "tools/gpui-lint.json": "f00b8f65fb12ffaa7211edd4ee4d1aaf50ead4c20243667440a184e92a916089",
+    "tools/gpui-lint.json": "3550ab41f510b5479fc7445a0e058e8fe4da6d26d6a4e1760f501caacb8e9e28",
     "tools/gpui_lint/__init__.py": "f4287efa39701462a6d8573e3ef7aca5a0bd9ad8f26c9c4ac3e832259b79f810",
     "tools/gpui_lint/bindings.py": "97e85be963d79df4a629cb9b4ef064e2ac9e2bb10fea25f0b9bc11888fad7afa",
     "tools/gpui_lint/cargo.py": "082afd4b34069eb8c62771babbf090fbf5c8d41faaa1c5e9643b0b87e08d894d",
@@ -212825,8 +212825,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "af4370ab0ceaa01d578c70e804f8bbac379bae72",
-  "source_sha": "af4370ab0ceaa01d578c70e804f8bbac379bae72",
+  "source_ref_sha": "fafa46aabbff707f46e5dca06a4b1a0b67b143bc",
+  "source_sha": "fafa46aabbff707f46e5dca06a4b1a0b67b143bc",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1286,
