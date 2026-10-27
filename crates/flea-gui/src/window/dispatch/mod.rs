@@ -9,6 +9,7 @@ pub(crate) mod opener;
 mod preview;
 mod previewtypes;
 mod rename;
+pub(crate) mod rail_menu;
 mod tabs;
 mod window;
 
@@ -43,6 +44,7 @@ const FAMILIES: &[Family] = &[
     window::run,
     rename::run,
     menus::run,
+    rail_menu::run,
     clipboard::run,
 ];
 
@@ -165,3 +167,6 @@ mod test_shell;
 
 #[cfg(test)]
 mod gh_preview_proof_tests;
+
+#[cfg(test)]
+mod rail_menu_tests;
