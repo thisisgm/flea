@@ -13,6 +13,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.opener_event(side, event, window, cx) {
+            return true;
+        }
         if let BackendEvent::Paths(paths) = event {
             if self.rename.paths == Some(side) {
                 self.rename.paths = None;
@@ -139,8 +142,13 @@ impl Shell {
             .is_some_and(|host| host.pane.path().trim_end_matches('/') == folder);
         self.rename_sync_gate(window, cx);
         if here {
-            let select = destination.filter(|_| !moved);
-            let _ = self.step(side, Step::Refresh(select), window, cx);
+            // A cursor a key moved off the renamed row keeps its own row through an anchored re-read (PaneWire.qml refreshRename).
+            let step = match destination {
+                _ if moved => Step::Reread,
+                Some(select) => Step::Refresh(Some(select)),
+                None => Step::Refresh(None),
+            };
+            let _ = self.step(side, step, window, cx);
         }
         cx.notify();
     }

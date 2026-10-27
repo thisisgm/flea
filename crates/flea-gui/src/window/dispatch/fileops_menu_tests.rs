@@ -28,7 +28,7 @@ fn open(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
     )
     .unwrap();
     let launch = Launch::resolve(
-        Settings::from_json(document, true),
+        Settings::from_json(document),
         Arguments {
             path: Some("/files".into()),
             select: None,
@@ -66,7 +66,7 @@ fn open(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
     (shell, cx)
 }
 
-fn frame(cx: &mut VisualTestContext) {
+pub(super) fn frame(cx: &mut VisualTestContext) {
     cx.update(|window, cx| {
         window.refresh();
         window.draw(cx).clear(cx);
@@ -82,7 +82,7 @@ fn home() -> Vec<flea::protocol::RowFacts> {
     ]
 }
 
-fn id_of(line: &str) -> usize {
+pub(super) fn id_of(line: &str) -> usize {
     flea::json::field_usize(line, "id").unwrap()
 }
 
@@ -105,7 +105,7 @@ fn row_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext, sent: &mut impl F
 }
 
 // Walks the open menu's cursor to the row with this action and presses Return on it.
-fn choose(shell: &Entity<Shell>, cx: &mut VisualTestContext, action: &str) {
+pub(super) fn choose(shell: &Entity<Shell>, cx: &mut VisualTestContext, action: &str) {
     frame(cx);
     let model = flea::jsondoc::parse(&read(shell, cx, "contextMenuModel", &[])).unwrap();
     let rows = model.as_array().unwrap();
@@ -134,7 +134,7 @@ fn validated(shell: &Entity<Shell>, cx: &mut VisualTestContext, sent: &mut impl 
     reply(shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"validate","ok":true,"action":"{action}","paths":["/files/notes.txt"],"dest":""}}"#));
 }
 
-fn opened(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
+pub(super) fn opened(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
     let (shell, mut cx) = open(cx);
     land(&shell, &mut cx, "/files", home(), 1);
     set_cursor(&shell, &mut cx, 2);

@@ -1,7 +1,7 @@
 //! Quick Look's image fit, physical decode request and zoomed picture viewport.
 use super::{
     bar::{self, Name},
-    body::{fit_painted, fit_rounded, Fit},
+    body::{fit_painted_path, fit_rounded_path, Fit},
     card::text,
     look::{self, Look},
     scroller::View,
@@ -20,10 +20,22 @@ impl QuickLook {
             Body::Raw { path, w, h, .. } => (path, *w, *h, 0., f64::from(look::BAR), false),
             _ => return None,
         };
-        let mut fit = if painted {
-            fit_painted(w, h - top - bottom, sw, sh)
+        let room_h = h - top - bottom;
+        let (fit_w, fit_h) = if matches!(self.subject.as_ref()?.body, Body::Image { .. })
+            && sw > 0.
+            && sh > 0.
+            && sw < w
+            && sh < room_h
+        {
+            let scale = (w / sw).min(room_h / sh);
+            (sw * scale, sh * scale)
         } else {
-            fit_rounded(w, h - top - bottom, sw, sh)
+            (sw, sh)
+        };
+        let mut fit = if painted {
+            fit_painted_path(w, room_h, fit_w, fit_h, path)
+        } else {
+            fit_rounded_path(w, room_h, fit_w, fit_h, path)
         }?;
         fit.y += top;
         Some((path, fit, (sw, sh)))
@@ -139,7 +151,15 @@ impl QuickLook {
                 text: &subject.name,
                 tail: Some((target, look.meta)),
             };
-            parts.push(bar::bar(subject.mark(), name, None, true, look, self, cx));
+            parts.push(bar::bar(
+                subject.mark_with_languages(self.languages),
+                name,
+                None,
+                true,
+                look,
+                self,
+                cx,
+            ));
             f64::from(look::BAR)
         } else {
             0.

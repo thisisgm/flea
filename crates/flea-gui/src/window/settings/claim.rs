@@ -126,9 +126,9 @@ impl Shell {
         self.settings_update(false, window, cx);
         let revision = self.settings.claim.revision;
         cx.spawn_in(window, async move |this, cx| {
-            let (handler, packaged) = cx
+            let (handler, packaged, (owner, package)) = cx
                 .background_executor()
-                .spawn(async { (handler(), packaged()) })
+                .spawn(async { (handler(), packaged(), super::provenance::probe()) })
                 .await;
             let _ = this.update(cx, |shell, cx| {
                 if shell.settings.claim.revision != revision {
@@ -137,6 +137,7 @@ impl Shell {
                 shell.settings.claim.handler = handler;
                 shell.settings.claim.packaged = packaged;
                 shell.settings.claim.probed = true;
+                shell.settings_owner(&owner, &package, cx);
                 shell.sync_settings_claim(cx);
             });
         })

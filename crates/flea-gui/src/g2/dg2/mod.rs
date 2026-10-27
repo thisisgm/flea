@@ -5,6 +5,8 @@ pub mod join;
 pub mod router;
 
 #[cfg(test)]
+mod rail_drop_tests;
+#[cfg(test)]
 mod router_tests;
 #[cfg(test)]
 mod tests;
@@ -272,3 +274,6 @@ pub fn decide(dropping: &Dropping<'_>, dest: &str, facts: Facts) -> Landing {
 mod mounted_negative_tests;
 #[cfg(test)]
 mod mounted_tests;
+
+#[cfg(test)]
+mod pb_devices_2_tests;

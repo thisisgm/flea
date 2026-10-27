@@ -133,6 +133,10 @@ impl Shell {
                     .update(cx, |producer, cx| producer.set_polling(polling, cx));
                 join.devices
                     .update(cx, |source, cx| source.set_polling(polling, cx));
+                // A reveal lists the shares now, as the devices poll does; the five second tick would leave NETWORK out until then.
+                if polling {
+                    self.network_list(cx);
+                }
             }
             host::Event::Focus(handoff) => {
                 join.focus_pending = Some(handoff == crate::rail::Handoff::Rail);
@@ -143,6 +147,7 @@ impl Shell {
 
     /// A row's request is applied once the frame can still run: opens route through the pane's own step.
     pub(crate) fn route_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.settle_rail_drag(window, cx);
         self.route_device_events(window, cx);
         if let Some(held) = self
             .rail
@@ -230,26 +235,47 @@ impl Shell {
                     self.focus_pane(side, cx);
                     self.trash_action("openTrash", window, cx);
                 }
+                // The device source's notify is lost inside Shell::render, so its events would wait for an unrelated frame.
                 Event::Activate(entry)
                     if entry.group == flea::ui_logic_pl4::rail::Group::Device =>
                 {
-                    let owned = self.rail.as_ref().map(|join| {
-                        join.devices
-                            .update(cx, |source, cx| source.activate(&entry, side, cx))
+                    let event = Event::Activate(entry);
+                    cx.defer_in(window, move |shell, window, cx| {
+                        shell.device_request(Request { side, id, event }, window, cx)
                     });
-                    match owned {
-                        Some(Activation::Handled) => {}
-                        Some(Activation::Phone(phone)) => self.open_phone(side, &phone, window, cx),
-                        _ => cx.emit(Request {
-                            side,
-                            id,
-                            event: Event::Activate(entry),
-                        }),
-                    }
                 }
-                Event::Release(entry) => self.release_rail_row(side, &entry, cx),
+                Event::Release(entry) => {
+                    let event = Event::Release(entry);
+                    cx.defer_in(window, move |shell, window, cx| {
+                        shell.device_request(Request { side, id, event }, window, cx)
+                    });
+                }
                 event => self.dispatch(Order::Place(Request { side, id, event }), window, cx),
             }
+        }
+    }
+
+    /// A device row's Return or release, run after the draw that drained it.
+    fn device_request(&mut self, request: Request, window: &mut Window, cx: &mut Context<Self>) {
+        let Request { side, id, event } = request;
+        match event {
+            Event::Activate(entry) => {
+                let owned = self.rail.as_ref().map(|join| {
+                    join.devices
+                        .update(cx, |source, cx| source.activate(&entry, side, cx))
+                });
+                match owned {
+                    Some(Activation::Handled) => {}
+                    Some(Activation::Phone(phone)) => self.open_phone(side, &phone, window, cx),
+                    _ => cx.emit(Request {
+                        side,
+                        id,
+                        event: Event::Activate(entry),
+                    }),
+                }
+            }
+            Event::Release(entry) => self.release_rail_row(side, &entry, cx),
+            _ => {}
         }
     }
 
@@ -260,6 +286,9 @@ impl Shell {
         let Some(path) = path else {
             return;
         };
+        let trash = self.trash.as_ref().is_some_and(|host| {
+            host.side == self.focus_side && self.slots.covers[host.side].is_some()
+        });
         if let Some(join) = &self.rail {
             if !join.host.read(cx).rail.shown() {
                 return;
@@ -267,7 +296,11 @@ impl Shell {
             join.places.update(cx, |producer, cx| {
                 producer.side = self.focus_side;
                 producer.model.borrow_mut().corner = self.corner;
-                producer.settle_lit(&path, cx);
+                if trash {
+                    producer.settle_view(&path, &flea::ui_logic_pl4::placeview::View::Trash, cx);
+                } else {
+                    producer.settle_lit(&path, cx);
+                }
             });
         }
     }
@@ -342,6 +375,13 @@ mod u08;
 #[cfg(test)]
 #[path = "rail_devices_tests.rs"]
 mod device_tests;
+
+#[cfg(test)]
+#[path = "rail_reveal_tests.rs"]
+mod reveal_tests;
+#[cfg(test)]
+#[path = "network_readers_tests.rs"]
+mod network_readers;
 
 #[path = "../g2/pl1/rail_events.rs"]
 mod device_events;

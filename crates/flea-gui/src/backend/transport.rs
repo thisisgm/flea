@@ -88,6 +88,22 @@ pub(super) fn write_rows(
 // Unsolicited and pathed replies the listing parser has no variant for.
 pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
     let document = jsondoc::parse(line)?;
+    // A figures-bearing fsinfo is a status fact even without a class; class-only lines go to sizes.
+    if document.get("t").and_then(jsondoc::Json::as_str) == Some("fsinfo")
+        && (document.get("fs").is_some() || document.get("free").is_some())
+    {
+        let facts = super::status::Filesystem::parse(&document)?;
+        return Ok(Some(match document.get("class") {
+            Some(class) => Event::FilesystemDetails {
+                facts,
+                class: class
+                    .as_str()
+                    .map(str::to_owned)
+                    .ok_or("class must be a string")?,
+            },
+            None => Event::Filesystem(facts),
+        }));
+    }
     if let Some(reply) = crate::list::sizes::parse(&document)? {
         return Ok(Some(match reply {
             crate::list::sizes::Reply::Filesystem { class, .. }
@@ -276,5 +292,18 @@ mod tab_peek_tests {
                 "first={first}"
             );
         }
+    }
+
+    #[test]
+    fn ey65_fsinfo_figures_are_a_status_fact_with_or_without_a_class() {
+        let bare = parse(r#"{"t":"fsinfo","path":"/a","fs":"btrfs","free":5}"#).unwrap();
+        assert!(
+            matches!(bare, Event::Filesystem(facts) if facts.name == "btrfs" && facts.free == 5)
+        );
+        let classed =
+            parse(r#"{"t":"fsinfo","path":"/a","fs":"","free":-1,"class":"ssd"}"#).unwrap();
+        assert!(
+            matches!(classed, Event::FilesystemDetails { facts, class } if facts.name.is_empty() && class == "ssd")
+        );
     }
 }

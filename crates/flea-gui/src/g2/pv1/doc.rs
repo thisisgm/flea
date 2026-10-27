@@ -12,7 +12,10 @@ use crate::g2::{
     pv4::view::{Model3dView, Phase},
 };
 use crate::list::Typeface;
-use flea::{i18n::I18n, ui_logic_pv1::kinds::State, ui_logic_pv1::rect::Shape};
+use flea::{
+    i18n::I18n, ui_logic_pv1::kinds::State, ui_logic_pv1::rect::Shape,
+    ui_logic_pv2::refusal::Refusal,
+};
 use gpui::{App, Entity, EntityId};
 
 /// A media subject: the player, the facts the host knew before it, and the paint caches the card keeps.
@@ -162,9 +165,9 @@ impl Doc {
         !matches!(self.view, View::Pdf(_) | View::Office(_))
     }
 
-    /// Media draws its strip and no bar; every other kind has the chrome bar.
+    /// Media draws its strip and no bar; an archive card opens on its own name heading with no bar (ql-archive); every other kind has the chrome bar.
     pub fn has_bar(&self) -> bool {
-        !matches!(self.view, View::Media(_))
+        !matches!(self.view, View::Media(_) | View::Archive(_))
     }
 
     /// The bar's data, from the view's own Quick Look bar.
@@ -301,6 +304,18 @@ impl Doc {
                 let model = v.read(cx);
                 model.phase == Phase::Ready || matches!(model.phase, Phase::Failed(_))
             }
+        }
+    }
+
+    /// The sentence a refused code read draws in the calm card: the binary sentence, or v0.3.12's too-large caption; None while the read answers or plays.
+    pub fn calm_sentence(&self, i18n: &I18n, cx: &App) -> Option<String> {
+        let View::Code(view) = &self.view else {
+            return None;
+        };
+        match view.read(cx).refusal()? {
+            Refusal::Binary => Some(i18n.tr("preview.unsupported")),
+            Refusal::TooLarge => Some(i18n.tr("document.too_large_frame")),
+            _ => None,
         }
     }
 

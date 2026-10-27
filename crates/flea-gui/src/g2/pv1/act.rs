@@ -2,6 +2,19 @@
 use super::*;
 
 impl QuickLook {
+    /// True while the card shows a workbook with more than one sheet, so [ and ] turn sheets.
+    pub fn turns_sheet(&self, cx: &gpui::App) -> bool {
+        match self
+            .subject
+            .as_ref()
+            .and_then(|s| s.body.doc())
+            .map(|doc| &doc.view)
+        {
+            Some(doc::View::Office(office)) => office.read(cx).office.sheet_paths.len() > 1,
+            _ => false,
+        }
+    }
+
     /// A card control answered; a disabled one never reaches here.
     pub fn activate(&mut self, hit: Hit, cx: &mut Context<Self>) {
         match hit {
@@ -92,9 +105,13 @@ impl QuickLook {
 
     /// One named action while Quick Look holds the keyboard.
     pub fn action(&mut self, action: &str, cx: &mut Context<Self>) -> Command {
-        if let Some(doc) = self.subject.as_ref().and_then(|s| s.body.doc()).cloned() {
-            if let Some(command) = self.doc_action(&doc, action, cx) {
-                return command;
+        // A refused read draws the calm card, which takes the keys of a card with no document.
+        let calm = self.calm_body(cx);
+        if calm.is_none() {
+            if let Some(doc) = self.subject.as_ref().and_then(|s| s.body.doc()).cloned() {
+                if let Some(command) = self.doc_action(&doc, action, cx) {
+                    return command;
+                }
             }
         }
         if let Some(walk) = self.strip() {
@@ -104,23 +121,21 @@ impl QuickLook {
             return Command::Nothing;
         }
         let subject = self.subject.as_ref();
-        let has_bar = subject.is_some_and(|s| s.body.has_bar());
-        let doc = subject.and_then(|s| s.body.doc());
+        let body = calm.as_ref().or(subject.map(|s| &s.body));
+        let has_bar = body.is_some_and(|b| b.has_bar());
+        let doc = body.and_then(|b| b.doc()).cloned();
         let surface = Surface {
-            html_rendered: doc.is_some_and(|d| d.html_rendered(cx)),
-            is_document: doc.is_some_and(|d| d.kind() == "text"),
+            html_rendered: doc.as_ref().is_some_and(|d| d.html_rendered(cx)),
+            is_document: doc.as_ref().is_some_and(|d| d.kind() == "text"),
             is_media: subject.is_some_and(|s| matches!(s.state, State::Video | State::Audio)),
             is_pdf: subject.is_some_and(|s| s.state == State::Pdf),
             is_compare: subject.is_some_and(|s| s.body.is_compare()),
             has_bar,
             close_focused: self.focused == Some(Hit::Close),
         };
-        let open_with = subject.is_some_and(|s| s.body.offers_open_with());
+        let open_with = body.is_some_and(|b| b.offers_open_with());
         let command = keys::act(action, surface);
-        if let (Command::ScrollDocument(rows), Some(doc)) = (
-            command,
-            self.subject.as_ref().and_then(|s| s.body.doc()).cloned(),
-        ) {
+        if let (Command::ScrollDocument(rows), Some(doc)) = (command, doc) {
             doc.scroll(rows.into(), cx);
         }
         match command {

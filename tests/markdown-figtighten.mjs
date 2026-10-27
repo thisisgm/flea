@@ -27,8 +27,8 @@ const THOUSAND = 1000;
 const widest = Array.from({ length: TABLE_LENGTH }, (unused, i) => Math.round(MAX_ADVANCE_EM[String.fromCharCode(TABLE_FIRST + i)] * THOUSAND));
 const theme = { bg: '#101315', fg: '#c0caf5', accent: '#7aa2f7', font: 'sans-serif', bodyPx: 14, advances: widest, boldAdvances: widest };
 const LABEL_FONT_PX = 13;
-// The library's padding beside a box node's label, in px.
-const NODE_PAD = 18;
+// v0.3.12's padding beside a box node's label at the body 13 layout, in px: the box is 41.95 wider than its label.
+const NODE_PAD = 20.975;
 // How far a narrow node may stand from its label's measured width and padding, in px: the layout rounds to a hundredth.
 const NARROW_SLACK = 0.05;
 const failures = [];
@@ -147,7 +147,7 @@ for (const glyph of Object.keys(MAX_ADVANCE_EM).filter((g) => /\S/.test(g))) {
 const narrowLabel = 'iiiiiiiiiiii';
 const narrowNode = nodes(parse(node(narrowLabel))).find((n) => n.id === 'A');
 const narrowBox = narrowNode ? narrowNode.box[2] - narrowNode.box[0] : NaN;
-const narrowWant = glyphEm(narrowLabel) * theme.bodyPx + 2 * NODE_PAD;
+const narrowWant = glyphEm(narrowLabel) * LABEL_FONT_PX + 2 * NODE_PAD;
 check(Math.abs(narrowBox - narrowWant) <= NARROW_SLACK, 'a narrow label keeps a narrow box, ' + narrowBox + ' wide, want ' + narrowWant.toFixed(2));
 // A sequence message of capitals and symbols, and an edge label of at signs, must not be cut.
 const domain = real('sequenceDiagram\n    A->>B: DOMAIN <=> QUERY @@@@ %%%%');

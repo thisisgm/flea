@@ -132,7 +132,17 @@ sequence-defaults 2026-10-25: Pele drew a sequence's participants 64 px wide and
 figures board draw them 80 by 40, 60 apart, over lifelines dashed `6 4` at 0.75. For a sequence source the entry writes those three numbers as
 the first `init` directive, after any front matter and leaving out a key its `sequence` section names, because Pele merges directives key by key but a
 `render` config whole; every key a source sets still wins. It dashes the `pele-lifelines` group, and the store moves to `flea-figure-svg 3` so no
-format 2 sequence is served again. Flowchart nodes keep Pele's own size, which no config reaches.
+format 2 sequence is served again.
+
+pele-geom 2026-10-25: Pele laid a diagram out at the body size, with round flowchart boxes at least 48 wide (44 high at body 13) and a sequence's first message 46 below
+its participants; v0.3.12 and both HIG figure boards draw square 60 by 36.9 boxes (41.95 wider than a long label, 16.9 a line plus 20, a 0.75
+stroke), the first message 20 below with its label 6.15 above it, messages 40 apart and the closing row 40 under the last, all laid out at body
+13 and scaled. The entry now lays every diagram out at 13 and scales the root's width and height by the body size over 13 (`FigureWorker.mjs`
+sets the root font at 13 to match). A sequence takes `messageMargin` 42 among its defaults, and when its first row is a straight message and nothing reshapes the rows above it (a note, frame, rect or
+activation above it, a created or destroyed participant, no closing row, or the source's own messageMargin), the content rises 26, its labels 2.5 less, and the closing row 6. A flowchart's plain boxes are redrawn at v0.3.12's size; each rank closes or
+opens along the flow by what its furthest reaching shape along the flow gained or lost, edge ends, markers, labels and subgraphs move with it, ranks that overlap (side
+by side subgraphs) move as one band at their own spacing, and a drawing the pass cannot place exactly (a relative path or an unknown group) keeps
+Pele's own. The store moves to `flea-figure-svg 4`.
 
 mathsize 2026-10-04: a display formula's ex equals the body font's x-height, so maths and prose letters stand level.
 `ui/MarkdownFigure.qml` measures `FontMetrics.xHeight` on its own family at `bodyPx` and sends it in the theme as `exPx`;

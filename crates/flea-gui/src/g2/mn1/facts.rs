@@ -1,4 +1,4 @@
-//! The menu facts read at draw time: the rows Settings hides, the backend's archive answer and the Update Flea hint.
+//! The menu facts: the cursor rows' context, the rows Settings hides, the backend's archive answer and the Update Flea hint.
 use super::join::flag;
 use crate::{state::Shell, window::pane::PaneHost};
 use flea::{
@@ -30,6 +30,65 @@ impl Shell {
                 .get("shelf")
                 .is_some_and(|s| flag(s, "enabled")),
         )
+    }
+
+    /// The menu's context for these rows of a side before any producer answers, as the menu and the keyboard sheet read it.
+    pub(crate) fn listing_menu_context(
+        &self,
+        side: usize,
+        rows: &[usize],
+        cursor: usize,
+        background: bool,
+    ) -> MenuContext {
+        let (clipboard_available, clipboard_watch_failed, can_link) =
+            self.clipboard_menu_facts(side);
+        let Some(host) = &self.panes[side] else {
+            return MenuContext::default();
+        };
+        let facts = (!background).then(|| host.pane.held.row(cursor)).flatten();
+        // Print, Convert and Combine Images read the marked rows' output kinds.
+        let kinds = rows
+            .iter()
+            .filter_map(|&row| host.pane.held.row(row).map(crate::window::output::kind))
+            .collect::<Vec<_>>();
+        let image = flea::ui_logic_op4::output::Kind::Image;
+        MenuContext {
+            has_row: !background,
+            selection_count: if background {
+                background_count(host)
+            } else {
+                rows.len()
+            },
+            has_shebang: false,
+            cursor_is_target: rows == [cursor],
+            row_mode: facts.map_or(0, |r| r.mode),
+            row_is_file: facts.is_some_and(|r| !r.dir),
+            row_is_symlink: facts.is_some_and(|r| r.link.is_some()),
+            row_name: facts.map_or_else(String::new, |r| r.name.clone()),
+            row_is_archive: facts
+                .is_some_and(|r| flea::ui_logic_mn1::archive::row_is_archive(&r.name, r.dir)),
+            archive_name: facts.map_or_else(String::new, |r| r.name.clone()),
+            row_is_image: facts.is_some_and(|r| crate::window::output::kind(r) == image),
+            selection_images: kinds.iter().filter(|&&kind| kind == image).count(),
+            printable: kinds.len() == rows.len() && flea::ui_logic_op4::output::can_print(&kinds),
+            can_convert: self.output.convert[side] != Some(false),
+            selection_modes: rows
+                .iter()
+                .filter_map(|&row| host.pane.held.row(row).map(|r| r.mode))
+                .collect(),
+            lang_marks: self
+                .launch
+                .settings
+                .data
+                .get("langMarks")
+                .and_then(Json::as_bool)
+                != Some(false),
+            open_with_loaded: background,
+            clipboard_available,
+            clipboard_watch_failed,
+            can_link,
+            ..MenuContext::default()
+        }
     }
 
     /// The facts a formats reply or an update check may change while the menu is open.

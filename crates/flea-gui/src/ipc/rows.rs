@@ -16,8 +16,9 @@ use flea::ipc::wire::Reply;
 use gpui::{Bounds, Hsla, Pixels};
 #[path = "rows_format.rs"]
 mod geometry_text;
+pub(crate) use geometry_text::round;
 pub use geometry_text::{centre_of, colour, rect_of};
-use geometry_text::{centre_of_bounds, rect_of_bounds, round};
+use geometry_text::{centre_of_bounds, rect_of_bounds};
 
 /// One pane's List, its held rows and the states its owners hold.
 pub struct RowsAdapter<'a> {
@@ -31,19 +32,20 @@ fn drawn_row_box(list: &ListState, index: usize) -> (f32, f32, f32, f32) {
     let drawn = &list.drawn;
     let bounds = drawn.bounds;
     let row = drawn.metrics.row;
-    let y = f32::from(bounds.origin.y) + index as f32 * row - drawn.scroll_y;
+    let y = f32::from(bounds.origin.y) + drawn.grow.top(index, row) - drawn.scroll_y;
     let width = (f32::from(bounds.size.width) - drawn.metrics.lane).max(0.);
-    (f32::from(bounds.origin.x), y, width, row)
+    (f32::from(bounds.origin.x), y, width, drawn.grow.height(index, row))
 }
 
 /// Ipc.qml rowRect for any pane's list: the row's box while that list draws it, else empty.
 pub(crate) fn drawn_row_rect(list: &ListState, held: &Held, index: usize) -> String {
-    let drawn = list.drawn.listing == held.listing
-        && list.visible().iter().any(|shown| shown.index == index);
-    if !drawn {
+    if list.drawn.listing != held.listing {
         return String::new();
     }
-    let (x, y, w, h) = drawn_row_box(list, index);
+    let Some(shown) = list.visible().iter().find(|shown| shown.index == index) else {
+        return String::new();
+    };
+    let (x, y, w, h) = drawn_row_box(list, shown.view);
     rect_of(x, y, w, h)
 }
 

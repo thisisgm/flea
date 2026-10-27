@@ -380,6 +380,13 @@ pub(super) fn dialog_snapshot(
             busy,
             ..
         } => super::copy_to::card(scene, window, *moving, path, *focus, *busy),
+        Dialog::NewFile {
+            name,
+            focus,
+            busy,
+            error,
+            ..
+        } => super::new_file::card(scene, window, name, *focus, *busy, error),
     };
     Some(card)
 }

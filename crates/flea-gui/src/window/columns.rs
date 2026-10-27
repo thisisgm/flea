@@ -9,11 +9,18 @@ use crate::{
 };
 use gpui::{Context, Entity, Task, Window};
 
+#[path = "columns_edge.rs"]
+mod edge;
 #[path = "columns_input.rs"]
 mod input;
 #[path = "columns_menu.rs"]
 mod menu;
+#[path = "columns_keys.rs"]
+mod keys;
 pub use input::BackgroundMenu;
+#[path = "columns_gestures.rs"]
+mod gestures;
+pub(crate) use gestures::{drop_spot, on_name};
 #[path = "columns_events.rs"]
 mod events;
 #[path = "columns_readers.rs"]
@@ -22,6 +29,18 @@ pub(crate) mod readers;
 mod render;
 #[path = "columns_requested.rs"]
 mod requested;
+#[path = "columns_scroll.rs"]
+mod scroll;
+#[path = "columns_scroll_bar.rs"]
+mod scroll_bar;
+#[path = "columns_scroll_input.rs"]
+mod scroll_input;
+#[cfg(test)]
+#[path = "columns_scroll_state_tests.rs"]
+mod scroll_tests;
+#[cfg(test)]
+#[path = "columns_scroll_lane_tests.rs"]
+mod lane_tests;
 pub(crate) use requested::requested;
 
 #[cfg(test)]
@@ -33,6 +52,7 @@ pub(crate) struct Columns {
     pub area: Area,
     pub preview_hosted: bool,
     pub painters: Painters,
+    pub(crate) scroll: [scroll::Scrolling; 5],
     pub heroes: [Option<Entity<EmptyHero>>; 5],
     pub notices: [Option<Entity<StateMessage>>; 5],
     pub loading: [Option<std::rc::Rc<crate::feedback::spinner::Crawl>>; 5],
@@ -70,6 +90,7 @@ struct Seen {
     width: f32,
     height: f32,
     revision: u64,
+    orders: [Option<crate::navigation::folder_state::Order>; 5],
     // The filter's drawn rows by identity, so a new answer under an unmoved cursor re-lays the columns.
     filter: Option<*const usize>,
 }
@@ -88,6 +109,7 @@ impl Columns {
             ),
             preview_hosted: false,
             painters: Painters::default(),
+            scroll: Default::default(),
             heroes: Default::default(),
             notices: Default::default(),
             loading: Default::default(),
@@ -329,6 +351,13 @@ impl Shell {
                 width,
                 height,
                 revision,
+                orders: std::array::from_fn(|at| {
+                    columns
+                        .area
+                        .drawn
+                        .get(at)
+                        .and_then(|path| (pane.lens.orders)(path))
+                }),
                 filter,
             };
             if columns.seen == Some(key)
@@ -341,6 +370,7 @@ impl Shell {
             columns.held = held;
             let was_visible = columns.area.visible;
             if !visible {
+                columns.scroll = Default::default();
                 columns.area.set_visible(false, &pane, ports, now);
                 columns.area.drawn.clear();
                 columns.timer = None;
@@ -367,6 +397,7 @@ impl Shell {
                 }
                 columns.path = pane.lens.here.to_owned();
             }
+            columns.area.orders_changed(&pane.lens);
             columns.area.flight_ended(&pane, ports, now);
             columns.area.sync(&pane, ports, now);
             if std::mem::take(&mut columns.arm_entry) {
@@ -375,5 +406,6 @@ impl Shell {
         });
         flush(host, &self.locale);
         self.arm_columns(window, cx);
+        self.persist_columns_edge(0, window, cx);
     }
 }

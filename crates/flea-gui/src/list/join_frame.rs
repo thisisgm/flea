@@ -37,6 +37,11 @@ impl Shell {
         let geometry = self.geometry(window);
         let view = self.shown_view();
         let viewport = self.seam.viewport();
+        // One refusal band and one Grow per side for this render, so every list frame and the rename readers agree with the paint.
+        let bands = [0, 1].map(|side| self.rename_band(side, window));
+        self.bands = bands;
+        self.grows = [0, 1].map(|side| self.frame_grow(side, bands[side]));
+        let grows = self.grows;
         #[cfg(test)]
         let mut prepared = [None; 2];
         // Clamp the viewport before scene reveals and before the settle captures its scroll.
@@ -52,11 +57,6 @@ impl Shell {
                 host.input.hovered = None;
             }
             let now = cx.background_executor().now();
-            if !matches!(view, View::List | View::Dual) {
-                host.input.advance(now, &mut host.pane, &mut host.selected);
-                host.input
-                    .step_motion(now, &mut host.pane, cx.reduce_motion());
-            }
             // Resolve shared font metrics during frame preparation, never inside an observer.
             host.list.borrow_mut().measure(window);
             let header = Metrics::for_typeface(&host.list.borrow().typeface).header;
@@ -90,7 +90,8 @@ impl Shell {
                         )
                     },
                 );
-                let mut frame = crate::input::Frame::list(bounds, &metrics, &host.pane);
+                let mut frame =
+                    crate::input::Frame::list(bounds, &metrics, &host.pane, grows[side]);
                 // Invalidate old geometry before an edge step can move the current viewport.
                 host.input
                     .prepare(frame, &mut host.selected, &mut host.pane.cursor);
@@ -104,6 +105,10 @@ impl Shell {
                 {
                     prepared[side] = Some(frame);
                 }
+            } else {
+                crate::input::views::prepare(host, view, now);
+                host.input
+                    .step_motion(now, &mut host.pane, cx.reduce_motion());
             }
             if host.input.animating(now, cx.reduce_motion()) {
                 window.request_animation_frame();

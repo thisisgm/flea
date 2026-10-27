@@ -80,6 +80,7 @@ impl Shell {
     }
 
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.menu.place = None;
         self.providers_menu_closed();
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
@@ -87,6 +88,7 @@ impl Shell {
         self.menu.header = false;
         self.menu.tags_reading = false;
         self.menu.pending = None;
+        self.menu.from_sheet = false;
         self.menu.activating = false;
         self.menu.reading = false;
         if let Some(capture) = self.menu.captured.take() {
@@ -115,6 +117,9 @@ impl Shell {
     }
 
     pub(crate) fn activate_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.activate_place_menu(window, cx) {
+            return;
+        }
         let Some(capture) = self.menu.captured.clone() else {
             return;
         };
@@ -132,7 +137,9 @@ impl Shell {
             self.menu_outcome(Outcome::Refused("menu.refusal.moved"), window, cx);
             return;
         }
-        if refresh::validate_choice(&self.menu_entries(), &action, &leaf, false).is_err() {
+        if refresh::validate_choice(&self.menu_choice_entries(&action, &leaf), &action, &leaf, false)
+            .is_err()
+        {
             self.menu_outcome(Outcome::Refused("menu.refusal.unavailable"), window, cx);
             return;
         }
@@ -189,7 +196,10 @@ impl Shell {
         let Ok(reply) = flea::jsondoc::parse(line) else {
             return false;
         };
-        if self.actions_reply(side, line, cx) {
+        if self.actions_reply(side, line, cx) || self.menu_tag_line(side, &reply, window, cx) {
+            return true;
+        }
+        if self.menu_tag_states(side, &reply, window) {
             return true;
         }
         if self.menu_discovery_reply(side, line, &reply, window, cx) {
@@ -242,6 +252,8 @@ impl Shell {
                     })
                     .collect();
                 self.menu.context.compare_kinds = Some(capture.kinds.clone());
+                self.menu.context.tag_submenu = None;
+                self.menu_ask_tags(cx);
                 if self.menu.pending.is_some() {
                     self.activate_menu(window, cx);
                 } else {
@@ -286,7 +298,8 @@ impl Shell {
                     .filter_map(Json::as_str)
                     .map(str::to_owned)
                     .collect();
-                if refresh::validate_choice(&self.menu_entries(), action, leaf, false).is_err() {
+                let live = self.menu_choice_entries(action, leaf);
+                if refresh::validate_choice(&live, action, leaf, false).is_err() {
                     self.menu_outcome(Outcome::Refused("menu.refusal.unavailable"), window, cx);
                 } else {
                     self.deliver_menu(paths, window, cx);
@@ -313,7 +326,7 @@ impl Shell {
             return;
         }
         let step = match action.as_str() {
-            "open" if !self.menu.context.row_is_file => {
+            "open" if !self.menu.context.row_is_file && capture.rows.len() <= 1 => {
                 paths.first().map(|path| Step::Open(path.clone()))
             }
             "toggleHidden" => Some(Step::ToggleHidden),
@@ -326,6 +339,10 @@ impl Shell {
             let _ = self.step(side, step, window, cx);
         } else if action == "makeExecutable" {
             self.make_executable(&capture, &paths, window, cx);
+        } else if action == "addToShelf" {
+            self.menu_shelve(&capture, &paths, window, cx);
+        } else if action == "tags" && !capture.background {
+            self.menu_tag(&capture, &leaf, window, cx);
         } else if self.clipboard_menu(&capture, &action, &leaf, &paths, window, cx) {
         } else if action == "runScript" {
             let request = format!(

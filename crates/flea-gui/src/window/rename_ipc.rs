@@ -31,6 +31,8 @@ impl Reader<'_> {
                 f32::from(list.drawn.bounds.size.height),
             )
         });
+        // RenameField.qml's errorHeight: the caption band every view draws, Grid included.
+        let band = shell.bands[side];
         let top = host.map_or(0., |host| {
             f32::from(host.list.borrow().drawn.bounds.origin.y)
         });
@@ -41,7 +43,7 @@ impl Reader<'_> {
             let (w, h) = (f32::from(frame.size.width), f32::from(frame.size.height));
             (h, y - top, centre_of(x, y, w, h))
         });
-        let error_height = if error { row } else { 0. };
+        let error_height = if error { band } else { 0. };
         let selected = edit.map_or("", |edit| &edit.entry.text[edit.entry.selected.clone()]);
         format!(
             "{{\"index\":{},\"pending\":{},\"error\":\"{}\",\"text\":\"{}\",\"cursor\":{cursor},\"cursorName\":\"{}\",\"loading\":{},\"focused\":{},\"rowHeight\":{},\"normalRowHeight\":{row},\"fieldHeight\":{field},\"errorHeight\":{error_height},\"editorTop\":{editor_top},\"editorBottom\":{},\"viewportHeight\":{area},\"selectedText\":\"{}\",\"centre\":\"{centre}\"}}",

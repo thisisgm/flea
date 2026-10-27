@@ -148,6 +148,41 @@ fn u11_drawn_geometry_moves_with_the_real_window(cx: &mut TestAppContext) {
     });
 }
 
+// EY-207: the title's box is the drawn title, so its centre sits over the text at the card's left, not the card's middle.
+#[gpui::test]
+fn ey207_settings_title_centre_is_the_drawn_title_not_the_card_middle(cx: &mut TestAppContext) {
+    use gpui::{px, size};
+    let (backend, _requests) = Backend::test_channel();
+    let (shell, cx) = cx.add_window_view(|window, cx| {
+        let shell = configured(backend, cx);
+        window.focus(&shell.focus, cx);
+        shell
+    });
+    cx.simulate_keystrokes(",");
+    cx.simulate_resize(size(px(800.), px(500.)));
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    shell.update_in(cx, |shell, window, cx| {
+        let numbers = |reply: String| -> Vec<f32> {
+            reply
+                .split_whitespace()
+                .map(|v| v.parse::<f32>().unwrap())
+                .collect()
+        };
+        let card = numbers(read(shell, "settingsCardRect", window, cx).stdout);
+        let title = numbers(read(shell, "settingsTitleCentre", window, cx).stdout);
+        assert!(
+            title[0] < card[0] + card[2] / 2.,
+            "the drawn title sits left of the card's middle: {title:?} in {card:?}"
+        );
+        let view = shell.settings.panel.as_ref().unwrap().read(cx);
+        let drawn = view.probe.bounds("title").expect("the title is drawn");
+        assert!(
+            f32::from(drawn.size.width) < card[2] / 2.,
+            "the title box is the title's own width, not the head row: {drawn:?} in {card:?}"
+        );
+    });
+}
+
 #[gpui::test]
 fn u11_live_preset_and_density_have_real_consumers(cx: &mut TestAppContext) {
     let (backend, _requests) = Backend::test_channel();

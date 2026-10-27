@@ -39,7 +39,7 @@ impl Shell {
         {
             return;
         }
-        self.open_menu_target(
+        self.open_menu_with(
             side,
             None,
             (event.position.x.into(), event.position.y.into()),

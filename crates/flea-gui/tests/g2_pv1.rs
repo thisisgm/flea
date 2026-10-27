@@ -20,12 +20,18 @@ mod controls;
 mod decoded;
 #[path = "g2_pv1/lifecycle.rs"]
 mod lifecycle;
+#[path = "g2_pv1/marks.rs"]
+mod marks;
 #[path = "g2_pv1/scenes.rs"]
 pub mod scenes;
 #[path = "g2_pv1/scroll.rs"]
 mod scroll;
 #[path = "g2_pv1/svg.rs"]
 pub mod svg;
+#[path = "g2_pv1/svgfit_join.rs"]
+mod svgfit_join;
+#[path = "g2_pv1/symlink.rs"]
+mod symlink;
 
 /// What the listing behind the overlay saw: each counter is one thing #331 says must not move.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

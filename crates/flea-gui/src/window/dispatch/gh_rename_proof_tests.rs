@@ -2,7 +2,7 @@
 use super::{
     gh_rename_proof_lane::{rooted, Lane},
     rename_tests::{close, draw, editing, ready, receive, sent, Lines},
-    test_shell::{land_on, lists, open, row},
+    test_shell::{land_on, lists, open_root as open, row},
 };
 use crate::{
     backend::{Backend, Event as BackendEvent},
@@ -336,12 +336,11 @@ fn gh265_navigation_answers_around_a_delayed_rename(cx: &mut TestAppContext) {
     );
     land_on(&shell, cx, 0, "/files", reread(), 3, 2);
     assert!(!queued(&shell, cx), "the landing spends the held key");
-    // The landing puts the cursor on row 0 before the replay (DEFECTS B3-GH265-ESC); set this to `at` once that is fixed.
-    let landed = 0;
+    // The cursor Escape left on row `at` keeps that row through the re-read, and the held Down moves one row from it.
     assert_eq!(
         cursor(&shell, cx),
-        landed + 1,
-        "the held Down moves one row from where the re-read lands"
+        at + 1,
+        "the held Down moves one row from the row the re-read keeps"
     );
     close(&shell, cx);
 }

@@ -45,7 +45,7 @@ impl Metrics {
     }
 
     pub fn width(&self, kind: Kind, window: f32) -> f32 {
-        let width = if kind == Kind::CopyTo {
+        let width = if matches!(kind, Kind::CopyTo | Kind::NewFile) {
             // MenuActionDialog: Theme.space(420), the 9/8 dialog ratio, then cardSpan's ceil.
             ((420. * self.body / 12.).round() * 9. / 8.).ceil()
         } else {

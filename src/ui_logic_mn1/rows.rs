@@ -412,25 +412,6 @@ pub fn extract_entry(entry: &mut Entry, p: &Context, count: usize) -> bool {
     true
 }
 
-// The desktop's default first with the muted caption, then the registry, then the tail under its own separator.
-pub fn open_with_entries(apps: &[super::build::App]) -> Vec<Entry> {
-    let mut rows: Vec<Entry> = apps
-        .iter()
-        .map(|app| Entry {
-            icon: Some(app.icon.clone()),
-            hint: app.default.then_some(Text::Key("menu.open_with.default")),
-            ..Entry::leaf(app.id.clone(), Text::Data(app.label.clone()))
-        })
-        .collect();
-    if !rows.is_empty() {
-        rows.push(Entry::separator());
-    }
-    rows.push(
-        Entry::leaf(OPEN_WITH_OTHER, Text::Key("menu.open_with.other")).with_glyph("app-window"),
-    );
-    rows
-}
-
 // The state words an errored provider row says: fixed values, never a provider's reason.
 pub fn taildrop_word(p: &Context) -> &'static str {
     if !p.row_is_file {

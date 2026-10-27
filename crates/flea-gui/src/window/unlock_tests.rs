@@ -58,7 +58,7 @@ fn open<'a>(
         });
     });
     let mut launch = Launch::resolve(
-        Settings::from_json(flea::jsondoc::parse(settings).unwrap(), true),
+        Settings::from_json(flea::jsondoc::parse(settings).unwrap()),
         Arguments::default(),
         "/fixture/home",
     );

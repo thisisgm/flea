@@ -1,6 +1,6 @@
 //! A mounted view's 27 px bar: the row's mark, the name and its tail, the pager and its counter, the view words, the tools and close.
 use super::{
-    bar::{click, mark, name_parts, press, ring_slot, Name},
+    bar::{bar_mark, click, name_parts, press, ring_slot, Name},
     doc::{Chrome, StripItem},
     glyph::Glyph,
     look::{self, Look},
@@ -85,7 +85,7 @@ pub fn bar(
         .border_color(look.hair())
         .text_size(px(look::CAPTION))
         .whitespace_nowrap()
-        .child(mark(glyph, look::CHROME_MARK, look.foreground))
+        .child(bar_mark(glyph, look))
         .children(name_parts(&name, look));
     if filled {
         row = row.bg(look.surface);

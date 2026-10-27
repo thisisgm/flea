@@ -198,12 +198,13 @@ fn check(cx: &mut TestAppContext, name: &str) {
             );
         }
     }
-    let surface = if matches!(kind, "audio" | "video") {
-        "pv1-media"
-    } else {
-        "pv1-bar"
+    let (selector, drawn) = match kind {
+        "audio" | "video" => ("pv1-media", true),
+        "archive" => ("pv1-bar", false),
+        _ => ("pv1-bar", true),
     };
-    assert!(cx.debug_bounds(surface).is_some(), "{name} draws {surface}");
+    let found = cx.debug_bounds(selector).is_some();
+    assert_eq!(found, drawn, "{name} draws {selector}: {drawn}");
     if matches!(kind, "audio" | "video") {
         let starts = script.starts.borrow();
         assert_eq!(starts.len(), 1);

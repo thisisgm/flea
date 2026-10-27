@@ -29,6 +29,83 @@ pub fn visible_rows(height: f32) -> usize {
     ((height / ROW_HEIGHT).ceil() as usize).max(1)
 }
 
+/// The band a refused rename draws under the row it edits: that row grows by the band and every row below it moves down by the band.
+/// With no band every method is the fixed-row arithmetic the views always used.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Grow {
+    /// The view position of the edited row.
+    pub at: usize,
+    pub band: f32,
+}
+
+impl Grow {
+    /// The band for the row at a listing index, or none when no row is edited or the view filters it out.
+    pub fn of_row(index: Option<usize>, band: f32, shown: Option<&[usize]>) -> Self {
+        let at = match (index, shown) {
+            (Some(index), Some(rows)) => rows.iter().position(|&row| row == index),
+            (Some(index), None) => Some(index),
+            (None, _) => None,
+        };
+        match at {
+            Some(at) if band > 0. => Self { at, band },
+            _ => Self::default(),
+        }
+    }
+
+    /// The top of a view position, before scroll.
+    pub fn top(self, position: usize, row: f32) -> f32 {
+        let below = self.band > 0. && position > self.at;
+        position as f32 * row + if below { self.band } else { 0. }
+    }
+
+    /// The height of a view position: the edited row takes the band.
+    pub fn height(self, position: usize, row: f32) -> f32 {
+        row + if self.band > 0. && position == self.at { self.band } else { 0. }
+    }
+
+    /// The position drawn at a content offset, scroll already added; the band stays on its edited row.
+    pub fn position_at(self, y: f32, row: f32) -> usize {
+        let y = y.max(0.);
+        if self.band <= 0. {
+            return (y / row).floor() as usize;
+        }
+        let edited = self.at as f32 * row;
+        if y < edited {
+            (y / row).floor() as usize
+        } else if y < edited + row + self.band {
+            self.at
+        } else {
+            self.at + 1 + ((y - edited - row - self.band) / row).floor() as usize
+        }
+    }
+
+    /// The exclusive end position of a content offset, rounded up the way the views always rounded.
+    pub fn end_at(self, y: f32, row: f32) -> usize {
+        if self.band <= 0. {
+            (y.max(0.) / row).ceil() as usize
+        } else {
+            self.position_at(y, row) + 1
+        }
+    }
+
+    /// The content height of `count` rows, the band included once the edited row is among them.
+    pub fn content(self, count: usize, row: f32) -> f32 {
+        count as f32 * row + if self.band > 0. && count > self.at { self.band } else { 0. }
+    }
+
+    /// The first and end positions a viewport of `height` at `scroll` draws, the end capped at `count`.
+    pub fn span(self, scroll: f32, height: f32, row: f32, count: usize) -> (usize, usize) {
+        let first = self.position_at(scroll, row);
+        let end = self.end_at(scroll + height, row).min(count);
+        (first, end.max(first))
+    }
+}
+
+/// Focus.js:168-169 pages floor(visibleRows / 2) items, at least one, in every view.
+pub fn page_items(visible: usize) -> usize {
+    (visible / 2).max(1)
+}
+
 pub fn window_size(visible: usize) -> usize {
     visible.saturating_add(2 * requests::BUFFER)
 }
@@ -363,6 +440,10 @@ impl Pane {
 #[cfg(test)]
 #[path = "pane_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "pane_grow_tests.rs"]
+mod grow_tests;
 
 #[path = "pane_geometry.rs"]
 mod geometry;

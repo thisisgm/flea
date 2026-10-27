@@ -183,13 +183,12 @@ pub fn join_facts(i18n: &I18n, parts: Vec<String>) -> String {
         .unwrap_or_default()
 }
 
-/// The page's block: its left edge and width, its top under the bar (centred, never closer than the least gap), and the gap.
-pub fn layout(pane: (f64, f64), bar: f64, block: f64, ratio: f64) -> (f64, f64, f64, f64) {
+/// The page's block in a pane below the bar: its left edge and width, its top (centred, never closer than the least gap), and the gap.
+pub fn layout(pane: (f64, f64), block: f64, ratio: f64) -> (f64, f64, f64, f64) {
     let x = (SIDE * ratio).round();
-    let top = bar
-        + (MIN_TOP * ratio)
-            .round()
-            .max(((pane.1 - bar - block) / 2.).round());
+    let top = (MIN_TOP * ratio)
+        .round()
+        .max(((pane.1 - block) / 2.).round());
     (x, pane.0 - 2. * x, top, (SPACING * ratio).round())
 }
 

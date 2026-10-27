@@ -2,6 +2,45 @@
 use super::*;
 
 impl Shell {
+    // The folder's background New File row opens its card; the menu's own check finds the row claimed and nothing refuses.
+    fn open_new_file(
+        &mut self,
+        chosen: &crate::g2::mn1::join::Chosen,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let side = chosen.captured.side;
+        if !chosen.captured.background {
+            return;
+        }
+        let Some(host) = self.panes.get(side).and_then(Option::as_ref) else {
+            return;
+        };
+        // Pane.qml act: Recent is a history, so New File refuses there before any card opens.
+        if flea::ui_logic_pk1::is_recent(host.pane.place()) {
+            if chosen.claim() {
+                let text = self.locale.catalog.tr("menu.refusal.recent_new_file");
+                self.fileops_say(side, &text, false, cx);
+            }
+            return;
+        }
+        if host.backend.is_none() {
+            return;
+        }
+        let Some(view) = self.operation_overlay(side, window, cx) else {
+            return;
+        };
+        if !chosen.claim() {
+            return;
+        }
+        self.menu.sequence += 1;
+        let id = self.menu.sequence;
+        let folder = chosen.captured.path.clone();
+        view.update(cx, |overlay, cx| overlay.new_file(id, &folder, cx));
+        self.show_operation(&view, cx);
+        self.flush_operations(side, cx);
+    }
+
     pub(crate) fn observe_operations(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.operations.chosen_subscription.is_some() {
             return;
@@ -12,6 +51,10 @@ impl Shell {
             window,
             |shell, _, chosen: &crate::g2::mn1::join::Chosen, window, cx| {
                 if shell.archive_chosen(chosen, window, cx) {
+                    return;
+                }
+                if chosen.action == "newFile" {
+                    shell.open_new_file(chosen, window, cx);
                     return;
                 }
                 let side = chosen.captured.side;

@@ -177,7 +177,7 @@ keys = "X"
 action = "carry"
 frontend = "gui"
 context = "listing"
-label = "carry"
+label = "Carry to another app"
 
 # The four views are bound in no shared table, so a preset claiming nothing left a fresh install
 # with no keyboard route to them at all, on a keyboard-first file manager. Default and Vim take the
@@ -680,15 +680,16 @@ sheet = false
 [sheetgroups]
 move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open",
         "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview",
-        "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape"]
+        "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape",
+        "carry"]
 look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
 find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
-change = ["copy", "cut", "carry", "paste", "movePaste", "duplicate", "rename", "trash",
-          "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect",
-          "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
-          "openTerminal", "openAgent", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
+change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
+          "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent",
+          "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
+          "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
 
 # The digit range, expanded by the generator into tab1 through tab9.
 [digits]
@@ -706,7 +707,7 @@ mirrors = [
 
 # Spellings that win a sheet cap tie, per preset name; "all" applies to every preset.
 [sheetties]
-all = ["left", "shift-f10"]
+all = ["left", "shift-f10", "ctrl-shift-plus", "ctrl-shift-minus", "ctrl-shift-0"]
 default = ["ctrl-c", "ctrl-v"]
 windows = ["ctrl-c", "ctrl-v"]
 
@@ -906,6 +907,7 @@ text = "Print…"
 
 # Native presentation uses the approved action names; legacy generated JavaScript stays frozen.
 [native_labels]
+carry = "Carry to another app"
 cursorDown = "Cursor down"
 cursorUp = "Cursor up"
 cursorFirst = "First item"
@@ -992,6 +994,8 @@ pasteAs = "Paste as"
 pasteHardLink = "Paste hard link"
 pasteLink = "Paste link"
 playPause = "Play pause"
+previousSheet = "Previous sheet"
+nextSheet = "Next sheet"
 properties = "Get info"
 seekBack = "Seek back"
 seekForward = "Seek forward"
@@ -1047,185 +1051,185 @@ kind = "confirm"
 [[sheet]]
 keys = "j k"
 action = "cursorDown"
-label = "move"
+label = "Cursor down"
 
 [[sheet]]
 keys = "enter"
 action = "open"
-label = "open"
+label = "Open"
 
 [[sheet]]
 keys = "^enter"
 action = "openTab"
-label = "open in new tab"
+label = "Open in new tab"
 
 [[sheet]]
 keys = "h"
 action = "parent"
-label = "parent"
+label = "Parent folder"
 
 [[sheet]]
 keys = "l"
 action = "pageForward"
-label = "browse in"
+label = "Browse in"
 
 [[sheet]]
 keys = "space"
 action = "preview"
-label = "quick look"
+label = "Quick Look"
 
 # The canvas's Operations board draws / between space and f, and so does this.
 [[sheet]]
 keys = "/"
 action = "filter"
-label = "filter"
+label = "Filter"
 
 [[sheet]]
 keys = "f"
 action = "search"
-label = "find"
+label = "Find"
 
 [[sheet]]
 keys = "o"
 action = "reveal"
-label = "reveal"
+label = "Reveal"
 
 [[sheet]]
 keys = "F5 ^r"
 action = "reload"
-label = "reload"
+label = "Reload"
 
 # Issue 30 asked for a way to search the folder the pane is in, and tab on the query line is it, so
 # the sheet draws the key here rather than leaving the only control the issue got undocumented.
 [[sheet]]
 keys = "tab"
 action = "focusNext"
-label = "scope / focus"
+label = "Next area"
 
 [[sheet]]
 keys = ": ^l"
 action = "pathBar"
-label = "path"
+label = "Go to folder"
 
 [[sheet]]
 keys = "y ^c"
 action = "copy"
-label = "copy"
+label = "Copy"
 
 [[sheet]]
 keys = "Y"
 action = "copydirpath"
-label = "folder path"
+label = "Copy folder path"
 
 [[sheet]]
 keys = "x ^x"
 action = "cut"
-label = "cut"
+label = "Cut"
 
 [[sheet]]
 keys = "p ^v"
 action = "paste"
-label = "paste"
+label = "Paste"
 
 [[sheet]]
 keys = "r"
 action = "rename"
-label = "rename"
+label = "Rename"
 
 [[sheet]]
 keys = "F4"
 action = "autofitColumns"
-label = "autofit columns"
+label = "Autofit columns"
 
 [[sheet]]
 keys = "dd"
 action = "trashArm"
-label = "trash"
+label = "Move to Trash"
 
 [[sheet]]
 keys = "z ^z"
 action = "undo"
-label = "undo"
+label = "Undo"
 
 [[sheet]]
 keys = "T"
 action = "tags"
-label = "tags"
+label = "Tags"
 
 [[sheet]]
 keys = "i"
 action = "factsToggle"
-label = "facts"
+label = "Facts"
 
 [[sheet]]
 keys = "^N"
 action = "newFolder"
-label = "new folder"
+label = "New folder"
 
 [[sheet]]
 keys = "v"
 action = "toggleSelect"
-label = "select"
+label = "Select"
 
 [[sheet]]
 keys = "s"
 action = "sortNext"
-label = "sort"
+label = "Sort"
 
 [[sheet]]
 keys = "S"
 action = "sortReverse"
-label = "reverse"
+label = "Reverse sort"
 
 [[sheet]]
 keys = ". ^>"
 action = "toggleHidden"
-label = "hidden files"
+label = "Show hidden files"
 
 [[sheet]]
 keys = "a"
 action = "addNetwork"
-label = "add network place"
+label = "Add network place"
 
 [[sheet]]
 keys = "m"
 action = "menu"
-label = "menu"
+label = "Menu"
 
 [[sheet]]
 keys = "^e"
 action = "eject"
-label = "eject"
+label = "Eject"
 
 [[sheet]]
 keys = "^t"
 action = "openTerminal"
-label = "terminal"
+label = "Terminal"
 
 [[sheet]]
 keys = "^+"
 action = "textSizeUp"
-label = "larger"
+label = "Larger text"
 
 [[sheet]]
 keys = "^-"
 action = "textSizeDown"
-label = "smaller"
+label = "Smaller text"
 
 [[sheet]]
 keys = "^)"
 action = "textSizeReset"
-label = "reset size"
+label = "Reset text size"
 
 [[sheet]]
 keys = ","
 action = "settings"
-label = "settings"
+label = "Settings"
 
 [[sheet]]
 keys = "?"
 action = "keymapSheet"
-label = "keys"
+label = "Keyboard Shortcuts"
 
 # The pointer contract, the mouse's half of this table. tools/flea-keymap-gen turns it into
 # Keymap.POINTER and tests/js/tap.js drives ui/js/Tap.js against every listing and neighbour row, so
@@ -2431,6 +2435,27 @@ action = "toggleWrap"
 label = "wrap"
 frontend = "all"
 context = "preview"
+
+# [ and ] turn a workbook's sheets in Quick Look; the GUI shell keeps the tab step for any other card.
+[[preset]]
+name = "all"
+mods = "text"
+key = "["
+keys = "["
+action = "previousSheet"
+label = "previous sheet"
+frontend = "all"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "]"
+keys = "]"
+action = "nextSheet"
+label = "next sheet"
+frontend = "all"
+context = "preview,pdf"
 
 # Compare's overlay: y copies the whole patch, headers included, and the listing's y stays copy (preview context only).
 [[preset]]
