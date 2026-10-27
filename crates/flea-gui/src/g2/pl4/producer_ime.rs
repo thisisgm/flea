@@ -1,17 +1,22 @@
-//! The rail editor reuses the path field's Unicode selection model and native input contract.
+//! Rail callbacks use the shared UTF-16 contract and only the session drawn for this focus.
 use super::*;
 use gpui::{Bounds, EntityInputHandler, Pixels, Point, UTF16Selection};
 use std::ops::Range;
 
-fn bytes_at(text: &str, units: usize) -> usize {
-    let mut count = 0;
-    for (at, ch) in text.char_indices() {
-        if count >= units {
-            return at;
-        }
-        count += ch.len_utf16();
+impl Producer {
+    pub(super) fn ime_live(&self, window: &Window) -> bool {
+        let model = self.model.borrow();
+        model.focused
+            && model
+                .renaming
+                .is_some_and(|index| self.entry(index).is_some())
+            && model.editor.session().is_some()
+            && self.ime_session == model.editor.session()
+            && self
+                .ime_focus
+                .as_ref()
+                .is_some_and(|focus| focus.is_focused(window))
     }
-    text.len()
 }
 
 impl EntityInputHandler for Producer {
@@ -19,117 +24,98 @@ impl EntityInputHandler for Producer {
         &mut self,
         range: Range<usize>,
         adjusted: &mut Option<Range<usize>>,
-        _: &mut Window,
+        window: &mut Window,
         _: &mut Context<Self>,
     ) -> Option<String> {
-        let model = self.model.borrow();
-        model.renaming?;
-        let range = model.editor.range_from_utf16(&range);
-        adjusted.replace(model.editor.range_to_utf16(&range));
-        model.editor.text.get(range).map(str::to_owned)
+        self.ime_live(window)
+            .then(|| self.model.borrow().editor.ime_text(&range, adjusted))
+            .flatten()
     }
-
     fn selected_text_range(
         &mut self,
         _: bool,
-        _: &mut Window,
+        window: &mut Window,
         _: &mut Context<Self>,
     ) -> Option<UTF16Selection> {
-        let model = self.model.borrow();
-        model.renaming.map(|_| UTF16Selection {
-            range: model.editor.range_to_utf16(&model.editor.selected),
-            reversed: model.editor.reversed,
-        })
+        self.ime_live(window)
+            .then(|| self.model.borrow().editor.ime_selection())
     }
-
-    fn marked_text_range(&self, _: &mut Window, _: &mut Context<Self>) -> Option<Range<usize>> {
-        let model = self.model.borrow();
-        model
-            .editor
-            .marked
-            .as_ref()
-            .map(|range| model.editor.range_to_utf16(range))
+    fn marked_text_range(
+        &self,
+        window: &mut Window,
+        _: &mut Context<Self>,
+    ) -> Option<Range<usize>> {
+        self.ime_live(window)
+            .then(|| self.model.borrow().editor.ime_marked())
+            .flatten()
     }
-
-    fn unmark_text(&mut self, _: &mut Window, cx: &mut Context<Self>) {
-        self.model.borrow_mut().editor.marked = None;
-        cx.notify();
+    fn unmark_text(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.ime_live(window) && self.model.borrow_mut().editor.ime_unmark() {
+            cx.notify();
+        }
     }
-
     fn replace_text_in_range(
         &mut self,
         range: Option<Range<usize>>,
         text: &str,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let mut model = self.model.borrow_mut();
-        if model.renaming.is_none() {
-            return;
+        if self.ime_live(window) && self.model.borrow_mut().editor.ime_replace(range, text) {
+            cx.notify();
         }
-        let range = range.map(|range| model.editor.range_from_utf16(&range));
-        model.editor.replace(
-            range,
-            &text
-                .chars()
-                .filter(|ch| !ch.is_control())
-                .collect::<String>(),
-        );
-        drop(model);
-        cx.notify();
     }
-
     fn replace_and_mark_text_in_range(
         &mut self,
         range: Option<Range<usize>>,
         text: &str,
         selected: Option<Range<usize>>,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let mut model = self.model.borrow_mut();
-        if model.renaming.is_none() {
-            return;
+        if self.ime_live(window)
+            && self
+                .model
+                .borrow_mut()
+                .editor
+                .ime_mark(range, text, selected)
+        {
+            cx.notify();
         }
-        let range = range.map(|range| model.editor.range_from_utf16(&range));
-        let text: String = text.chars().filter(|ch| !ch.is_control()).collect();
-        let selected =
-            selected.map(|range| bytes_at(&text, range.start)..bytes_at(&text, range.end));
-        model.editor.replace_and_mark(range, &text, selected);
-        drop(model);
-        cx.notify();
     }
-
     fn bounds_for_range(
         &mut self,
         range: Range<usize>,
         _: Bounds<Pixels>,
-        _: &mut Window,
+        window: &mut Window,
         _: &mut Context<Self>,
     ) -> Option<Bounds<Pixels>> {
+        if !self.ime_live(window) {
+            return None;
+        }
         let model = self.model.borrow();
         let laid = self.laid.borrow();
         let rect = laid.row(model.renaming?)?.editor?;
-        let range = model.editor.range_from_utf16(&range);
+        let range = model.editor.ime_range(&range);
         let left = rect.x + 4. - model.editor_scroll;
+        let (from, to) = (model.editor_x(range.start), model.editor_x(range.end));
         Some(Bounds::from_corners(
+            gpui::point(gpui::px(left + from.min(to)), gpui::px(rect.y)),
             gpui::point(
-                gpui::px(left + model.editor_x(range.start)),
-                gpui::px(rect.y),
-            ),
-            gpui::point(
-                gpui::px(left + model.editor_x(range.end)),
+                gpui::px(left + from.max(to)),
                 gpui::px(rect.y + rect.height),
             ),
         ))
     }
-
     fn character_index_for_point(
         &mut self,
         point: Point<Pixels>,
-        _: &mut Window,
+        window: &mut Window,
         _: &mut Context<Self>,
     ) -> Option<usize> {
+        if !self.ime_live(window) {
+            return None;
+        }
         let model = self.model.borrow();
         let laid = self.laid.borrow();
         let rect = laid.row(model.renaming?)?.editor?;

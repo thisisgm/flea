@@ -1268,6 +1268,8 @@
     "flea:picker.browser.save_stopped_field": "27d62de50b46",
     "flea:picker.browser.selected_none": "08ff49a1bdca",
     "flea:picker.browser.selected_some": "1731d39eac5a",
+    "flea:picker.browser.selection_changed": "73a96bed3054",
+    "flea:picker.browser.selection_timeout": "775c291c888d",
     "flea:picker.browser.skipped": "0f216dd2b7e5",
     "flea:picker.browser.skipped_more": "7b701555297c",
     "flea:picker.browser.title_file": "b09c73d9d3f8",
