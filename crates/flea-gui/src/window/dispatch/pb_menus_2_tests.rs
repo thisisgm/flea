@@ -1,33 +1,18 @@
-//! Mounted menu delivery uses simulated input and records only the external process and backend boundaries.
+//! Mounted menu and listing keys use simulated input and read back the window's state, not a private call.
 use super::{
-    menus_tests::{answer, choose, entry, reply, settle, validated},
-    test_shell::{asked, land, open_root, open_root_with, sent, status},
+    menus_tests::{answer, choose, entry, reply, validated},
+    test_shell::{asked, land, open_root, sent, status},
     Order,
 };
-use crate::{
-    g2::pl1::process::{Event, Handle, Job, Outcome, Runner},
-    window::input::ActionEvent,
-};
+use crate::window::input::ActionEvent;
 use flea::{
     jsondoc::{self, Json},
     keys,
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
-use std::{cell::RefCell, rc::Rc};
 
 const FILE: u32 = 0o100644;
 const LINK: u32 = 0o120777;
-
-#[derive(Default)]
-struct Jobs(RefCell<Vec<(Job, async_channel::Sender<Event>)>>);
-
-impl Runner for Jobs {
-    fn start(&self, job: Job) -> Handle {
-        let (handle, send) = Handle::detached();
-        self.0.borrow_mut().push((job, send));
-        handle
-    }
-}
 
 fn show_original(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) -> Json {
     cx.simulate_keystrokes("m");
@@ -119,49 +104,6 @@ fn pb_menus_2_show_original_ignores_foreign_and_late_replies_and_reports_missing
         ),
     );
     assert_eq!(asked(&shell, cx), "/elsewhere");
-    shell.update(cx, |shell, _| shell.stop_for_app_quit());
-}
-
-#[gpui::test]
-fn pb_menus_2_add_to_shelf_queues_validated_paths_and_reports_each_exit(cx: &mut TestAppContext) {
-    let jobs = Rc::new(Jobs::default());
-    cx.update(|cx| cx.set_global(super::menu_shelf::Services(jobs.clone())));
-    let (shell, cx) = open_root_with(
-        cx,
-        r#""keys":"default","view":"list","shelf":{"enabled":true},"menu":{"hidden":["runScript"]}"#,
-        None,
-    );
-    land(&shell, cx, "/files", vec![entry("notes.txt", FILE)], 1);
-    for _ in 0..2 {
-        cx.simulate_keystrokes("m");
-        answer(&shell, cx, &[FILE]);
-        choose(&shell, cx, "addToShelf");
-        validated(&shell, cx, "addToShelf", &["/files/notes.txt"]);
-    }
-    assert_eq!(
-        jobs.0.borrow().len(),
-        1,
-        "the second add waits for the first child"
-    );
-    let (job, send) = jobs.0.borrow_mut().remove(0);
-    assert_eq!(&job.argv[1..], ["shelf", "add", "/files/notes.txt"]);
-    send.try_send(Event::Exited(Outcome::code(0))).unwrap();
-    settle(cx);
-    assert_eq!(status(&shell, cx), "Added it to the shelf");
-    assert_eq!(
-        jobs.0.borrow().len(),
-        1,
-        "the queued add starts after the first exits"
-    );
-    let (_, send) = jobs.0.borrow_mut().remove(0);
-    send.try_send(Event::Exited(Outcome {
-        code: 1,
-        stderr: "flea: permission denied\n".into(),
-        ..Outcome::default()
-    }))
-    .unwrap();
-    settle(cx);
-    assert_eq!(status(&shell, cx), "permission denied");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

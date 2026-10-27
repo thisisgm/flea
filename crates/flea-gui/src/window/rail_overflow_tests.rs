@@ -24,7 +24,7 @@ fn launch(view: View, state: &str, cx: &mut TestAppContext) -> Handle {
         shell: cx.new(|cx| {
             let mut shell = shell_with(backend, cx);
             cx.on_release(move |_, _| drop(receiver)).detach();
-            shell.launch.settings = Settings::from_json(flea::uistate::from_file(&state), false);
+            shell.launch.settings = Settings::from_json(flea::uistate::from_file(&state));
             shell.panes[0].as_mut().unwrap().backend = None;
             if view == View::Dual {
                 let mut right = PaneHost::new("/right".into(), None, 620., &shell.locale);

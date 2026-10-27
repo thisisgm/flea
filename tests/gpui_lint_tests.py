@@ -98,10 +98,12 @@ source = "{SOURCE}"
         self.assertEqual([], self.check_body('theme.background; let p = path.join("child");'))
         self.assertEqual([], self.check_body('std::process::exit(2); replies.recv().await;'))
         self.assertEqual([], self.check_body('let first = theme.background; if let Some(value) = next { let later = value; }'))
+        self.assertEqual([], self.check_body('let state = pane.read(cx);'))
         for code in ('std::fs::read("x");', 'std::net::TcpStream::connect("x");',
                      'std::thread::sleep(duration);', 'worker.join();', 'child.wait();',
                      'command.output();', 'stream.read_to_end(&mut bytes);', 'executor.block_on(future);',
-                     'std::io::Read::read_to_string(stream, buffer);', 'reqwest::blocking::get("host");'):
+                     'std::io::Read::read_to_string(stream, buffer);', 'reqwest::blocking::get("host");',
+                     'stream.read(&mut buffer);', 'stream.read(cx_buffer);'):
             with self.subTest(code=code):
                 self.assertTrue(any("blocking" in e for e in self.check_body(code)), code)
 

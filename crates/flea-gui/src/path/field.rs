@@ -1,4 +1,5 @@
 //! The open path field: the accent frame, the line on the window ground, its selection wash, marked text and caret.
+use super::entry::Entry;
 use super::paint::{paint_run, Ink, Size};
 use super::scale::Scale;
 use super::suggestions::FRAME;
@@ -10,6 +11,7 @@ use gpui::{
     Element, ElementId, ElementInputHandler, Entity, GlobalElementId, GlyphRun, Hitbox,
     HitboxBehavior, InspectorElementId, IntoElement, LayoutId, Pixels, Style, TextRun, Window,
 };
+use std::ops::Range;
 use std::rc::Rc;
 
 // Board path-bar: the frame sits 2 px under the strip's top and 1 px over its rule; the text, wash and caret follow Scale.
@@ -71,9 +73,87 @@ pub struct Line {
     pub revision: u64,
     pub run: Option<Rc<GlyphRun>>,
     pub scroll: Pixels,
+    /// The session whose platform handler the last paint registered, None when it registered none.
+    pub registered: Option<u64>,
+    /// The shaped text's paragraph direction, used when no character level is available.
+    pub right_to_left: bool,
+    /// Resolved levels indexed by UTF-8 byte, refreshed with the shaped text.
+    pub bidi_levels: Vec<unicode_bidi::Level>,
 }
 
 impl Line {
+    /// Resolve character directions once per reshape, including trailing whitespace's paragraph level.
+    pub fn set_text_direction(&mut self, text: &str) {
+        let bidi = unicode_bidi::BidiInfo::new(text, None);
+        self.right_to_left = bidi
+            .paragraphs
+            .first()
+            .is_some_and(|para| para.level.is_rtl());
+        self.bidi_levels.clear();
+        for para in &bidi.paragraphs {
+            let levels = bidi.reordered_levels(para, para.range.clone());
+            self.bidi_levels
+                .extend_from_slice(&levels[para.range.clone()]);
+        }
+    }
+
+    /// Whether a platform callback, which always reaches the last registered handler, belongs to entry's session.
+    pub fn accepts(&self, entry: &Entry) -> bool {
+        entry.session().is_some() && entry.session() == self.registered
+    }
+
+    /// The caret before byte index: the character's leading edge, its right edge in a right-to-left run.
+    pub fn caret_x(&self, index: usize) -> Pixels {
+        let Some(run) = &self.run else {
+            return px(0.);
+        };
+        let (glyphs, width) = (glyphs(run), run.line().width);
+        let Some(last) = glyphs.clone().max_by_key(|glyph| glyph.0) else {
+            return px(0.);
+        };
+        let next = glyphs.clone().filter(|glyph| glyph.0 >= index);
+        let leftward = |glyph: Glyph| {
+            self.bidi_levels
+                .get(glyph.0)
+                .map_or(self.right_to_left, |level| level.is_rtl())
+        };
+        match next.min_by_key(|glyph| glyph.0) {
+            Some(glyph) if leftward(glyph) => right_of(glyphs, glyph.1, width),
+            Some(glyph) => glyph.1,
+            None if leftward(last) => last.1,
+            None => right_of(glyphs, last.1, width),
+        }
+    }
+
+    /// The left and right x of the glyphs in a byte range, a caret's x for an empty one.
+    pub fn span(&self, range: &Range<usize>) -> (Pixels, Pixels) {
+        let edges = self.run.as_ref().into_iter().flat_map(|run| {
+            let width = run.line().width;
+            glyphs(run).map(move |glyph| (glyph, right_of(glyphs(run), glyph.1, width)))
+        });
+        edges
+            .filter(|(glyph, _)| range.contains(&glyph.0))
+            .fold(None, |span: Option<(Pixels, Pixels)>, (glyph, right)| {
+                Some(span.map_or((glyph.1, right), |(from, to)| {
+                    (from.min(glyph.1), to.max(right))
+                }))
+            })
+            .unwrap_or_else(|| {
+                let (from, to) = (self.caret_x(range.start), self.caret_x(range.end));
+                (from.min(to), from.max(to))
+            })
+    }
+
+    /// caret_x at a byte offset of entry's line, which paint shaped from entry.display().
+    pub fn entry_caret(&self, entry: &Entry, offset: usize) -> Pixels {
+        self.caret_x(entry.display_offset(offset))
+    }
+
+    /// span over a byte range of entry's line, which paint shaped from entry.display().
+    pub fn entry_span(&self, entry: &Entry, range: &Range<usize>) -> (Pixels, Pixels) {
+        self.span(&(entry.display_offset(range.start)..entry.display_offset(range.end)))
+    }
+
     pub fn x_for(&self, index: usize) -> Pixels {
         self.run
             .as_ref()
@@ -85,6 +165,46 @@ impl Line {
             .as_ref()
             .map_or(0, |run| run.line().closest_index_for_x(x))
     }
+}
+
+type Glyph = (usize, Pixels);
+
+// Each glyph as its byte index and left x; a right-to-left paragraph lists them right to left.
+fn glyphs(run: &Rc<GlyphRun>) -> impl Iterator<Item = Glyph> + Clone + '_ {
+    let runs = run.line().runs.iter();
+    runs.flat_map(|run| {
+        run.glyphs
+            .iter()
+            .map(|glyph| (glyph.index, glyph.position.x))
+    })
+}
+
+// A glyph's right edge: the left of the nearest glyph drawn right of it, or the line's end.
+fn right_of(glyphs: impl Iterator<Item = Glyph>, x: Pixels, width: Pixels) -> Pixels {
+    glyphs
+        .map(|glyph| glyph.1)
+        .filter(|&left| left > x)
+        .fold(width, |a, b| a.min(b))
+}
+
+/// The input method's rectangle for a UTF-16 range; `text` is the box whose left edge is where unscrolled text starts.
+pub fn ime_bounds(
+    line: &Line,
+    entry: &Entry,
+    range: &Range<usize>,
+    text: Bounds<Pixels>,
+) -> Bounds<Pixels> {
+    let (from, to) = line.entry_span(entry, &entry.ime_range(range));
+    let left = text.left() - line.scroll;
+    Bounds::from_corners(
+        point(left + from, text.top()),
+        point(left + to, text.bottom()),
+    )
+}
+
+/// The UTF-16 offset nearest x, measured from where unscrolled text starts.
+pub fn ime_index(line: &Line, entry: &Entry, x: Pixels) -> usize {
+    entry.offset_to_utf16(entry.from_display(line.index_for(x + line.scroll)))
 }
 
 pub struct FieldElement {
@@ -150,7 +270,8 @@ impl Element for FieldElement {
         let font = paint.typeface.font.clone();
         let mut line = view.line.borrow_mut();
         if line.run.is_none() || line.revision != view.entry.revision {
-            let text = &view.entry.text;
+            let display = view.entry.display();
+            let text = display.as_ref();
             let run = TextRun {
                 len: text.len(),
                 font,
@@ -165,11 +286,12 @@ impl Element for FieldElement {
                 &[run],
                 None,
             ))));
+            line.set_text_direction(text);
             line.revision = view.entry.revision;
         }
         // The caret stays inside the frame: the line slides under it the way a text input scrolls.
         let room = (frame.size.width - px(2. * (FRAME + scale.inset))).max(px(0.));
-        let caret = line.x_for(view.entry.cursor());
+        let caret = line.entry_caret(&view.entry, view.entry.cursor());
         if caret - line.scroll > room {
             line.scroll = caret - room;
         } else if caret < line.scroll {
@@ -218,8 +340,8 @@ impl Element for FieldElement {
         let entry = &view.entry;
         window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
             if !entry.selected.is_empty() {
-                let from = origin + line.x_for(entry.selected.start);
-                let to = origin + line.x_for(entry.selected.end);
+                let (from, to) = line.entry_span(entry, &entry.selected);
+                let (from, to) = (origin + from, origin + to);
                 window.paint_quad(fill(wash_box(frame, from, to, &scale), ink.wash(SELECTION)));
             }
             if let Some(run) = &line.run {
@@ -233,8 +355,8 @@ impl Element for FieldElement {
                 );
             }
             if let Some(marked) = &entry.marked {
-                let from = origin + line.x_for(marked.start);
-                let to = origin + line.x_for(marked.end);
+                let (from, to) = line.entry_span(entry, marked);
+                let (from, to) = (origin + from, origin + to);
                 window.paint_quad(fill(
                     Bounds::new(
                         point(from, caret_top + px(scale.caret - 1.)),
@@ -246,12 +368,18 @@ impl Element for FieldElement {
             // Selected text shows no caret, as the board draws it.
             if entry.selected.is_empty() {
                 window.paint_quad(fill(
-                    caret_box(frame, origin, line.x_for(entry.cursor()), &scale),
+                    caret_box(
+                        frame,
+                        origin,
+                        line.entry_caret(entry, entry.cursor()),
+                        &scale,
+                    ),
                     ink.foreground,
                 ));
             }
         });
         drop(line);
+        view.line.borrow_mut().registered = view.entry.session();
         window.handle_input(
             &focus,
             ElementInputHandler::new(frame, self.view.clone()),

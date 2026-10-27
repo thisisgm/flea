@@ -12,6 +12,9 @@ use flea::protocol::RowFacts;
 use gpui::{AppContext, TestAppContext, VisualTestContext, Window, WindowHandle};
 use std::{cell::Cell, rc::Rc};
 
+#[path = "output_tests/result_selection_tests.rs"]
+mod result_selection;
+
 fn open(cx: &mut TestAppContext, backend: Backend) -> WindowHandle<Root> {
     cx.add_window(|_, cx| {
         let shell = cx.new(|cx| shell_with(backend, cx));

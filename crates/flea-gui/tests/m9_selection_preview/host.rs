@@ -89,7 +89,6 @@ impl Host {
                 r#"{"places":{"rail":"hidden"},"preview":{"column":true,"loadOn":"automatic"}}"#,
             )
             .unwrap(),
-            true,
         );
         settings.view = view;
         let launch = Launch::resolve(

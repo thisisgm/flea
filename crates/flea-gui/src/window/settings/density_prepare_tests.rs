@@ -63,7 +63,7 @@ fn open(cx: &mut TestAppContext, view: View, density: &str) -> WindowHandle<Rend
             let mut shell = shell_with(backend, cx);
             let patch = jsondoc::parse(&format!(r#"{{"density":"{density}"}}"#)).unwrap();
             let data = flea::uistate::patched(&flea::uistate::from_file("{}"), &patch).unwrap();
-            shell.launch.settings = Settings::from_json(data, false);
+            shell.launch.settings = Settings::from_json(data);
             shell.view = view;
             let mut right = PaneHost::new("/right".into(), None, 620., &shell.locale);
             right

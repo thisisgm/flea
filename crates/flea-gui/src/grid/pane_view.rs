@@ -32,6 +32,32 @@ impl PaneHost {
         let side = input.side;
         self.list.borrow_mut().park();
         let content = self.render_grid(input.size, input.data, input.locale, input.renaming);
+        let palette = *input.palette;
+        let scroller = crate::input::grid_surface(cx.entity(), side, move |shell, bounds| {
+            let host = shell.panes[side].as_mut()?;
+            // A pane that is not Ready draws no tiles, so the last drawn ones answer no press.
+            host.input.hit_boxes = (host.pane.state.kind == crate::pane::states::Kind::Ready)
+                .then(|| crate::input::views::grid_hit_boxes(host, bounds))
+                .flatten();
+            let grid = host.grid.as_ref()?;
+            let state = grid.state.borrow();
+            let layout = state.layout?;
+            Some((
+                crate::input::Frame {
+                    bounds,
+                    row: layout.cell_height,
+                    lane: layout.metrics.pad_x,
+                    content: layout.extent(),
+                    scroll: state.scroll,
+                    listing: state.frame_held.as_ref()?.listing,
+                    total: layout.total,
+                    columns: layout.columns,
+                    cell_width: layout.cell_width,
+                    cell_origin: (layout.metrics.gap, layout.metrics.gap),
+                },
+                palette,
+            ))
+        });
         div()
             .id(("pane", side))
             .size_full()
@@ -54,6 +80,7 @@ impl PaneHost {
                 self.pane.state.kind == crate::pane::states::Kind::Ready,
                 |div| div.child(content),
             )
+            .child(scroller)
             .children(input.states)
             .when(input.marked, |div| {
                 div.child(

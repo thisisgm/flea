@@ -5,6 +5,7 @@ use gpui::{Bounds, Hsla, Pixels, SharedString, TransformationMatrix, Window};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Glyph {
     Row(Mark),
+    Cube,
     Markdown,
     Alert,
     Close,
@@ -61,6 +62,10 @@ impl Glyph {
     pub fn svg(self) -> (SharedString, &'static [u8]) {
         let (key, data) = match self {
             Self::Row(mark) => return mark.svg(),
+            Self::Cube => (
+                "pv1-mark:cube",
+                svg!("M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5 M12 12v10"),
+            ),
             Self::Markdown => (
                 "pv1-mark:markdown",
                 svg!("M2 5h20v14H2z M5.5 15V9l3 3.5 3-3.5v6 M17 9v6 M14.5 12.5 17 15l2.5-2.5"),

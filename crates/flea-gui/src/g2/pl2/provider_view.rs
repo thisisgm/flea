@@ -15,7 +15,7 @@ impl NetworkView {
         }
     }
     pub(super) fn frame_height(&self, height: f32) -> f32 {
-        (HEIGHT + self.footer_height()).min((height - 16.).max(0.))
+        (HEIGHT + self.footer_height() + self.status_growth()).min((height - 16.).max(0.))
     }
     pub(super) fn body_height(&self, height: f32) -> f32 {
         (self.frame_height(height) - self.footer_height()).max(0.)
