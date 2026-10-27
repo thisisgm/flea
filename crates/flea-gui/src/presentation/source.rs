@@ -22,18 +22,18 @@ impl Snapshot {
     }
 }
 
-pub(super) type Inputs = [Option<String>; 5];
-pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; 5];
+pub(super) type Inputs = [Option<String>; 7];
+pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; 7];
 
-/// The five files a presentation reads, and where the resolved font family is cached.
+/// The seven files a presentation reads, and where the resolved font family is cached.
 pub(super) struct Sources {
-    inputs: [PathBuf; 5],
+    inputs: [PathBuf; 7],
     cache: PathBuf,
 }
 
 impl Sources {
     #[cfg(test)]
-    pub fn at(inputs: [PathBuf; 5], cache: PathBuf) -> Self {
+    pub fn at(inputs: [PathBuf; 7], cache: PathBuf) -> Self {
         Self { inputs, cache }
     }
 
@@ -55,6 +55,8 @@ impl Sources {
                 home.join(".config/omarchy/shell.toml"),
                 config.join("fontconfig/fonts.conf"),
                 config.join("fontconfig/conf.d/50-omarchy-input-method.conf"),
+                state.join("omarchy/toggles/hypr/window-opaque.lua"),
+                state.join("omarchy/toggles/hypr/window-glassy.lua"),
             ],
             cache: state.join("flea/fc-match-monospace"),
         }
@@ -125,8 +127,15 @@ impl Sources {
         probe: impl FnOnce() -> std::process::Command,
     ) -> (Snapshot, Option<io::Error>) {
         let text = |at: usize| input[at].as_deref().unwrap_or("");
-        let (theme, parsed) = Theme::from_text_observed(text(0));
-        let (family, failure) = match super::face_cache::family(&input[3..], &self.cache, probe) {
+        let (mut theme, parsed) = Theme::from_text_observed(text(0));
+        theme.glass = crate::window::glass::Inputs::resolve(
+            text(0),
+            text(1),
+            text(2),
+            input[5].is_some(),
+            input[6].is_some(),
+        );
+        let (family, failure) = match super::face_cache::family(&input[3..5], &self.cache, probe) {
             Ok(family) => (family, None),
             Err(error) => (fallback.to_owned(), Some(error)),
         };
@@ -144,7 +153,7 @@ mod tests {
     use super::*;
     use std::process::Command;
 
-    fn sources(inputs: [PathBuf; 5]) -> Sources {
+    fn sources(inputs: [PathBuf; 7]) -> Sources {
         Sources {
             inputs,
             cache: PathBuf::from("/proc/self/flea-u01-no-cache/entry"),
@@ -156,15 +165,18 @@ mod tests {
         let absent = sources(std::array::from_fn(|_| {
             PathBuf::from("/proc/self/flea-u01-absent-input")
         }));
-        assert_eq!(absent.read().unwrap(), [None, None, None, None, None]);
+        assert_eq!(
+            absent.read().unwrap(),
+            [None, None, None, None, None, None, None]
+        );
         let failed = sources(std::array::from_fn(|_| PathBuf::from("/proc/self")));
         assert_eq!(
             failed.read().unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
         let (launch, failures) = failed.read_for_launch();
-        assert_eq!(launch, [None, None, None, None, None]);
-        assert_eq!(failures.len(), 5);
+        assert_eq!(launch, [None, None, None, None, None, None, None]);
+        assert_eq!(failures.len(), 7);
         let valid = sources(std::array::from_fn(|_| PathBuf::from("/proc/self/status")));
         assert!(valid
             .read()
@@ -203,3 +215,7 @@ mod tests {
         fixture.cleanup();
     }
 }
+
+#[cfg(test)]
+#[path = "../window/glass_test_bridge.rs"]
+mod glass_test_bridge;
