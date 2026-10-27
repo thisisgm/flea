@@ -10,6 +10,7 @@ import select
 import time
 import sys
 
+import deltas
 import sandbox
 
 repo = Path(__file__).resolve().parents[2]
@@ -123,7 +124,10 @@ else:
         os.setxattr(file, "user.xdg.tags", base64.b64decode(fixture["tags"]))
         assert tags() == fixture["tagstates"], "0.3.12 tags changed in the backend reader"
         assert os.getxattr(file, "user.xdg.tags") == base64.b64decode(fixture["tags"])
-    assert reads() == fixture["reads"], "0.3.12 state reader output changed"
+    expected_reads = dict(fixture["reads"])
+    for name, changes in deltas.load("state").items():
+        expected_reads[name] = deltas.apply(name, expected_reads[name], changes)
+    assert reads() == expected_reads, "0.3.12 state reader output changed"
     assert snapshot() == before, "reading 0.3.12 state rewrote a persisted file"
     shutil.copy2(binary, root / "bin/flea")
     binary = root / "bin/flea"
@@ -144,6 +148,7 @@ else:
     saved = json.loads(state.read_text())
     assert saved["keys"] == "vim" and saved["lastTabs"]["index"] == 1
     assert saved["places"]["favourites"][0]["label"] == "Kept folder"
-    assert saved["keyHints"] is True and saved["stateVersion"] == 3
+    # The first 0.4.0 write migrates the 0.3.12 document to state version 4.
+    assert saved["keyHints"] is True and saved["stateVersion"] == 4
     print(f"state-compat: replayed {len(fixture['files'])} files from {fixture['source']}")
 print("state-compat: all covered readers preserved source files")

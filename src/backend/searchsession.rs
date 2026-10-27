@@ -21,6 +21,7 @@ pub(crate) struct Counters {
     pub walks_started: usize,
     pub rows_scored: usize,
     pub rank_compares: usize,
+    pub phases: timing::Phases,
 }
 
 // The wire lines live in searchreq.rs and the walk thread that fills the index in searchwalk.rs.
@@ -46,8 +47,9 @@ pub(crate) struct Session {
     pub(crate) last_query: String,
     pub(crate) matched_index_len: usize,
     pub(crate) last_matches: Vec<usize>,
-    // Scored but unranked matches past the head, ranked on scroll; a patch drops them because it moves row ids.
-    pub(crate) pending_rest: Option<Vec<(i32, usize)>>,
+    pub(crate) score_scratch: searchindex::QueryScratch,
+    // Matches past the head, ranked on scroll; a patch drops them because it moves row ids.
+    pub(crate) pending_rest: Option<Rest>,
     // Directories patched while the walk ran, applied at its landing; see src/backend/searchpatch.rs.
     pub(crate) pending_patches: std::collections::BTreeSet<PathBuf>,
     pub(crate) folder_n: usize,
@@ -149,7 +151,11 @@ impl Session {
         let mut answer = self.answer(query, count);
         answer.gen = gen;
         self.last_query = query.to_string();
+        #[cfg(test)]
+        let clone_started = Instant::now();
         self.last_matches = answer.all.clone();
+        #[cfg(test)]
+        { self.counters.phases.last_matches = clone_started.elapsed(); }
         self.last_answered_gen = gen;
         self.standing = Some((gen, query.to_string(), count));
         self.standing_while_walking = answer.walking;
@@ -226,77 +232,10 @@ impl Session {
         true
     }
 
-    // Scores the index and ranks only the first window; the callers own the generations.
-    pub(crate) fn answer(&mut self, query: &str, count: usize) -> Answer {
-        let started = Instant::now();
-        let terms = crate::backend::searchtags::Tags::terms(query);
-        let narrow = self.tags.narrows(&self.last_query, query)
-            && !self.walking() && !self.standing_while_walking
-            && Matcher::can_narrow(&crate::backend::searchtags::Tags::terms(&self.last_query).text, &terms.text);
-        let unread = self.tags.prepare(&terms, &self.index, &self.scope, &self.body, self.walking());
-        let fuzzy = Matcher::new(&terms.text);
-        let priors = self.priors;
-        let index = self.index.lock().unwrap();
-        // Only complete, unchanged zero-edit extensions can reuse their previous candidates.
-        let candidates: Vec<usize> = if narrow && index.partial.is_none() && index.len() == self.matched_index_len {
-            self.last_matches.clone()
-        } else {
-            (0..index.len()).collect()
-        };
-        #[cfg(test)]
-        let scored = candidates.len();
-        let mut hits = crate::backend::searchprior::rank(priors, &self.scope, &self.folder, &index, searchindex::score_all(&fuzzy, &candidates, &index));
-        self.tags.keep(&mut hits, &terms);
-        #[cfg(test)]
-        {
-            self.counters.rows_scored = scored;
-        }
-        // Every match stays addressable for narrowing, whatever the window holds.
-        let all: Vec<usize> = hits.iter().map(|(_, row)| *row).collect();
-        // Top-K first: the window is selected and ordered, and the rest waits unranked in the session.
-        let window = count.min(hits.len());
-        #[cfg(test)]
-        let compares = std::cell::Cell::new(0usize);
-        let cmp = |a: &(i32, usize), b: &(i32, usize)| {
-            #[cfg(test)]
-            compares.set(compares.get() + 1);
-            rank_cmp(&index, a, b)
-        };
-        // Score then path length, the rank order's first two fields, compared as one integer key.
-        let rest = select_head(&mut hits, window, |hit| (Reverse(hit.0), index.path_len(hit.1)), cmp);
-        self.pending_rest = if rest.is_empty() { None } else { Some(rest) };
-        #[cfg(test)]
-        {
-            self.counters.rank_compares = compares.get();
-        }
-        let rows: Vec<(String, bool)> =
-            hits[..window].iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
-        let total = all.len();
-        let indexed = index.len();
-        self.matched_index_len = indexed;
-        let partial = index.partial;
-        let walking = self.walking() || unread;
-        drop(index);
-        Answer {
-            gen: 0,
-            all,
-            rows,
-            total,
-            indexed,
-            walking,
-            partial,
-            ms: started.elapsed().as_secs_f64() * 1000.0,
-            count,
-            scope: self.scope.clone(),
-            dev: self.dev,
-            writable: self.writable,
-        }
-    }
-
     // How many unranked matches wait past the head; production spends them through take_rest_chunk.
     #[cfg(test)]
     pub(crate) fn pending_rest_len(&self) -> usize {
-        self.pending_rest.as_ref().map(Vec::len).unwrap_or(0)
+        self.pending_rest.as_ref().map_or(0, Rest::len)
     }
 
     // Ranks and materializes the next chunk past the adopted prefix; None when nothing is held.
@@ -320,16 +259,18 @@ impl Session {
         let (rows, spent) = {
             let rest = self.pending_rest.as_mut()?;
             let index = self.index.lock().unwrap();
-            if take < rest.len() {
-                rest.select_nth_unstable_by(take - 1, |a, b| rank_cmp(&index, a, b));
-                rest[..take].sort_by(|a, b| rank_cmp(&index, a, b));
+            rest.promote(take, &index, &mut self.score_scratch);
+            let ranked = &mut rest.ranked;
+            if take < ranked.len() {
+                ranked.select_nth_unstable_by(take - 1, |a, b| rank_cmp(&index, a, b));
+                ranked[..take].sort_by(|a, b| rank_cmp(&index, a, b));
             } else {
-                rest.sort_by(|a, b| rank_cmp(&index, a, b));
+                ranked.sort_by(|a, b| rank_cmp(&index, a, b));
             }
-            let taken: Vec<(i32, usize)> = rest.drain(..take).collect();
+            let taken: Vec<(i32, usize)> = ranked.drain(..take).collect();
             let rows: Vec<(String, bool)> =
                 taken.iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
-            (rows, rest.is_empty())
+            (rows, rest.len() == 0)
         };
         if spent {
             self.pending_rest = None;
@@ -371,3 +312,14 @@ mod conservative_tests;
 #[cfg(test)]
 #[path = "searchcache_tests.rs"]
 mod cache_tests;
+
+#[path = "searchanswer.rs"]
+mod answer;
+
+#[path = "searchrest.rs"]
+mod rest;
+pub(crate) use rest::Rest;
+
+#[cfg(test)]
+#[path = "searchtiming.rs"]
+pub(crate) mod timing;

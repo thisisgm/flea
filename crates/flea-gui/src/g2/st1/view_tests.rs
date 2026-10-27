@@ -62,6 +62,158 @@ fn every_section_draws_in_a_frame(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn settings_display_hint_wraps_before_the_chord_not_inside_it(cx: &mut TestAppContext) {
+    use gpui::{px, SharedString, TextRun};
+    let (view, cx) = cx.add_window_view(|_, cx| SettingsView::new(panel("{}"), cx));
+    let raw =
+        "Ctrl+Shift++ and Ctrl+Shift+- step through them; Ctrl+Shift+0 follows Omarchy again.";
+    // The last chord's byte range in the raw text, the one the Display hint wraps on.
+    let chord = (
+        raw.rfind("Ctrl+Shift+0").unwrap(),
+        raw.len() - " follows Omarchy again.".len(),
+    );
+    let mut raw_breaks = Vec::new();
+    let mut packed: Vec<Vec<String>> = Vec::new();
+    cx.update(|window, cx| {
+        let face = view.read(cx).typeface.clone();
+        let run = TextRun {
+            len: raw.len(),
+            font: face.font.clone(),
+            color: Default::default(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        for width in (160..=420).step_by(8) {
+            let lines = window
+                .text_system()
+                .shape_text(
+                    SharedString::from(raw.to_owned()),
+                    face.caption,
+                    std::slice::from_ref(&run),
+                    Some(px(width as f32)),
+                    None,
+                )
+                .unwrap();
+            for line in &lines {
+                let glyphs: Vec<usize> = line
+                    .runs()
+                    .iter()
+                    .flat_map(|run| run.glyphs.iter().map(|glyph| glyph.index))
+                    .collect();
+                for boundary in line.wrap_boundaries() {
+                    raw_breaks.push(
+                        glyphs
+                            .get(boundary.glyph_ix + 1)
+                            .copied()
+                            .unwrap_or(raw.len()),
+                    );
+                }
+            }
+            // The pane's own packing at this width: units shaped whole, lines rejoined.
+            let units = super::geometry::hint_units(raw);
+            let widths: Vec<f32> = units
+                .iter()
+                .map(|unit| {
+                    let run = TextRun {
+                        len: unit.len(),
+                        font: face.font.clone(),
+                        color: Default::default(),
+                        background_color: None,
+                        underline: None,
+                        strikethrough: None,
+                    };
+                    f32::from(
+                        window
+                            .text_system()
+                            .shape_line(
+                                SharedString::from(unit.clone()),
+                                face.caption,
+                                &[run],
+                                None,
+                            )
+                            .width,
+                    )
+                })
+                .collect();
+            let mut lines: Vec<String> = Vec::new();
+            let mut used = 0.;
+            for (unit, unit_width) in units.iter().zip(&widths) {
+                if used > 0. && used + unit_width > width as f32 {
+                    lines.push(String::new());
+                    used = *unit_width;
+                } else {
+                    used += unit_width;
+                }
+                if lines.is_empty() {
+                    lines.push(String::new());
+                }
+                lines.last_mut().unwrap().push_str(unit);
+            }
+            packed.push(lines);
+        }
+    });
+    // Control: the raw hint really does break inside the chord at some pane width.
+    assert!(
+        raw_breaks.iter().any(|at| *at > chord.0 && *at < chord.1),
+        "the raw hint never breaks inside its chord, so this test proves nothing"
+    );
+    // Packed as the pane places it, the text is whole and every line holds the chord whole or not at all.
+    assert!(
+        packed.iter().all(|lines| lines.concat() == raw),
+        "the packing lost hint text: {packed:?}"
+    );
+    assert!(
+        packed
+            .iter()
+            .flatten()
+            .all(|line| !line.contains("Shift+0") || line.contains("Ctrl+Shift+0")),
+        "a packed line splits Ctrl+Shift+0: {packed:?}"
+    );
+    assert!(
+        packed
+            .iter()
+            .flatten()
+            .any(|line| line.contains("Ctrl+Shift+0")),
+        "the chord was never placed by the packing, so this test proves nothing"
+    );
+}
+
+#[gpui::test]
+fn the_drawn_display_hint_places_its_chord_whole_on_one_line(cx: &mut TestAppContext) {
+    use gpui::{px, size};
+    let (view, cx) = cx.add_window_view(|_, cx| SettingsView::new(panel("{}"), cx));
+    view.update(cx, |view, cx| {
+        view.panel.show_section("display");
+        cx.notify();
+    });
+    let mut wrapped_before = false;
+    for width in (520..=900).step_by(20) {
+        cx.simulate_resize(size(px(width as f32), px(760.)));
+        cx.update(|window, cx| window.draw(cx).clear(cx));
+        let chord = cx
+            .debug_bounds("st1-hint-unit-Ctrl+Shift+0")
+            .expect("the renderer places the chord as its own unit");
+        let word = cx
+            .debug_bounds("st1-hint-unit-follows")
+            .expect("the renderer places each word as its own unit");
+        let lead = cx
+            .debug_bounds("st1-hint-unit-them;")
+            .expect("the word before the chord is drawn");
+        // The chord is one line tall wherever the pane wraps, never split across two.
+        assert!(
+            chord.size.height < word.size.height * 1.5,
+            "Ctrl+Shift+0 wraps inside itself at {width}: {chord:?}"
+        );
+        wrapped_before |= chord.origin.y > lead.origin.y;
+    }
+    assert!(
+        wrapped_before,
+        "no width wrapped the hint before the chord, so this test proves nothing"
+    );
+}
+
+#[gpui::test]
 fn the_sheet_draws_its_groups_and_its_query(cx: &mut TestAppContext) {
     let (view, cx) = cx.add_window_view(|_, cx| {
         SheetView::new(Sheet::new("default", english(), Sources::default()), cx)

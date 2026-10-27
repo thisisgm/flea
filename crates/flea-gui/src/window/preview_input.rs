@@ -82,11 +82,14 @@ impl Shell {
             "expand" if column_pdf(&preview, cx).is_some() => {
                 return self.open_quick_look(side, window, cx);
             }
-            "previewPageForward" | "previewPageBack" | "parent" | "pageForward"
+            "previewPageForward" | "previewPageBack" | "parent" | "pageForward" | "seekBack"
+            | "seekForward"
                 if matches!(event.action, "previewPageForward" | "previewPageBack")
-                    || preview.read(cx).focus.is_focused(window) =>
+                    || (preview.read(cx).focus.is_focused(window)
+                        && (!matches!(event.action, "seekBack" | "seekForward")
+                            || column_pdf(&preview, cx).is_some())) =>
             {
-                let step = if matches!(event.action, "parent" | "previewPageBack") {
+                let step = if matches!(event.action, "parent" | "previewPageBack" | "seekBack") {
                     -1
                 } else {
                     1
