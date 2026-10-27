@@ -7,10 +7,16 @@ use gpui::{AppContext, TestAppContext};
 pub(super) mod host;
 #[path = "columns_pointer_tests.rs"]
 mod pointer;
+#[path = "columns_gesture_tests.rs"]
+mod gestures;
 #[path = "columns_review_tests.rs"]
 mod review;
+#[path = "columns_scroll_tests.rs"]
+pub(crate) mod scroll;
 #[path = "columns_state_tests.rs"]
 mod state;
+#[path = "columns_wheel_tests.rs"]
+mod wheel;
 
 #[test]
 fn u09_live_columns_width_reader_observes_the_list_producers_stored_values() {
@@ -250,10 +256,10 @@ fn u09_live_columns_readers_forward_the_retained_preview_state(cx: &mut TestAppC
                 window,
                 cx,
             );
-            assert_eq!(
-                receive.try_recv().unwrap().reply,
-                Reply::value("0")
-            );
+            assert_eq!(receive.try_recv().unwrap().reply, Reply::value("0"));
         });
     });
 }
+
+#[path = "columns_parity_build_tests.rs"]
+mod parity_build;

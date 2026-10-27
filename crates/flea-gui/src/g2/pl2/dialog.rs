@@ -1,5 +1,4 @@
 //! A draft is saved only after its own endpoint mounted; the writer acknowledges the commit once.
-use super::discovery::Discovery;
 use crate::g2::pl1::secret::Secret;
 use flea::ui_logic_pl2::form::{Form, Protocol, PROTOCOLS};
 
@@ -23,7 +22,6 @@ pub enum Focus {
 
 #[derive(Debug)]
 pub enum Effect {
-    Wire(String),
     Mount {
         id: u64,
         uri: String,
@@ -52,8 +50,6 @@ pub struct Dialog {
     pub password: Secret,
     pub reveal: bool,
     pub focus: Focus,
-    pub discovery: Discovery,
-    pub suggestion: usize,
     pub connecting: bool,
     pub saving: bool,
     pub committed: bool,
@@ -92,22 +88,29 @@ impl Dialog {
         self.replace = None;
         self.mounted_uri.clear();
         self.opened = true;
-        let wire = self.discovery.open();
-        let id = self.discovery.id.unwrap();
+        self.serial += 1;
+        let id = self.serial;
         self.provider_check = Some(id);
-        vec![Effect::Wire(wire), Effect::CheckDropbox(id)]
+        vec![Effect::CheckDropbox(id)]
     }
     pub fn open_location(&mut self, uri: &str, label: &str, replace: bool) -> Vec<Effect> {
         if self.opened || self.busy() {
             return Vec::new();
         }
-        let Ok(address) = Form::saved_address(uri) else {
+        let Some(address) = Form::saved_address(uri).ok().or_else(|| {
+            (!replace)
+                .then(|| super::routing::incomplete(uri))
+                .flatten()
+        }) else {
             return Vec::new();
         };
         let unacknowledged = self.unacknowledged.take();
         let effects = self.open();
         self.unacknowledged = unacknowledged;
         self.form = Form::load(&address, label);
+        if address.host.is_empty() {
+            self.form.original = None;
+        }
         self.save_new = false;
         self.retry = true;
         self.replace = replace.then_some(address.uri);
@@ -144,9 +147,6 @@ impl Dialog {
         self.password.clear();
         self.reveal = false;
         self.mounted_uri.clear();
-        if let Some(line) = self.discovery.close() {
-            effects.push(Effect::Wire(line));
-        }
         effects.push(Effect::Closed);
         effects
     }
@@ -272,18 +272,6 @@ impl Dialog {
         }
         self.detail = detail;
     }
-    pub fn choose_suggestion(&mut self, index: usize) -> bool {
-        if !self.opened || self.busy() {
-            return false;
-        }
-        let Some(host) = self.discovery.rows.get(index) else {
-            return false;
-        };
-        self.form.suggest(&host.address);
-        self.focus = Focus::Connect;
-        self.suggestion = 0;
-        true
-    }
     pub fn ring(&self) -> Vec<Focus> {
         if self.committed {
             let mut ring = vec![Focus::Cancel, Focus::Connect];
@@ -336,7 +324,6 @@ impl Dialog {
         self.connecting = false;
         self.password.clear();
         self.reveal = false;
-        self.discovery.close();
         if self.saving {
             return effects;
         }

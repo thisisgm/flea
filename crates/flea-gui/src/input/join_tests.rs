@@ -340,3 +340,6 @@ mod fix2_tests;
 
 #[path = "g1_05_tests.rs"]
 mod g1_05_tests;
+
+#[path = "pagekeys_tests.rs"]
+mod pagekeys_tests;
