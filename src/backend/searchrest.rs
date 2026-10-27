@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 pub(crate) struct Rest {
     pub(super) ranked: Vec<(i32, usize)>,
-    // Pass-1 scores in candidate order; every class here ranks below every row in `ranked`.
+    // Pass-1 or exact scores; every row here ranks below every row in `ranked`.
     below: Vec<(i32, usize)>,
     query: String,
     priors: Option<&'static Priors>,

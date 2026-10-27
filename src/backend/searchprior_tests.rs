@@ -150,6 +150,42 @@ fn searchprior_closer_equal_matches_and_file_folder_context_rank_without_target_
 }
 
 #[test]
+fn searchprior_apply_builds_one_path_per_folder_that_holds_no_prior_file() {
+    // 20 folders of 50 files and no prior file among them: a file's context and proximity are its folder's, so each folder builds one path.
+    let mut index = Index::new();
+    for row in 0..1000 { index.push(format!("d{:02}/report{:03}.rs", row / 50, row % 50), false); }
+    let prior = Priors::new(vec![b"/work/other/recent.rs".to_vec()], vec![b"/work/d03".to_vec()]);
+    let mut ranked = hits(&index, ".rs");
+    assert_eq!(ranked.len(), 1000);
+    index.reconstructed.store(0, std::sync::atomic::Ordering::Relaxed);
+    prior.apply(Path::new("/work"), Path::new("/work/d07"), &index, &mut ranked);
+    assert_eq!(index.reconstructed.load(std::sync::atomic::Ordering::Relaxed), 20, "one path per folder");
+}
+
+#[test]
+fn searchprior_apply_scores_every_row_as_an_apply_of_that_row_alone() {
+    // An apply of one row computes its whole bonus from its own path; the batch must reuse folder parts without changing any row.
+    let mut index = Index::new();
+    let folders = ["near", "near/deep", "near/deep/inner", "far", "far/x/y/z/w/v/u/t/s/r"];
+    for path in ["top.rs", "near", "near/deep", "far", "far/x/y/z/w/v/u/t/s/r"] { index.push(path, !path.ends_with(".rs")); }
+    for row in 0..400 { index.push(format!("{}/f{row:03}.rs", folders[row % folders.len()]), false); }
+    let files = vec![b"/work/near/f005.rs".to_vec(), b"/work/far/x/y/old.rs".to_vec(), b"/work/top.rs".to_vec(), b"/work/near/deep/f011.rs".to_vec()];
+    let prior = Priors::new(files, vec![b"/work/near/deep".to_vec(), b"/work/far".to_vec()]);
+    for folder in ["/work/near/deep", "/work/far/x/y/z", "/work", "/elsewhere"] {
+        let mut batch: Vec<(i32, usize)> = (0..index.len()).map(|row| (3, row)).collect();
+        prior.apply(Path::new("/work"), Path::new(folder), &index, &mut batch);
+        let alone: Vec<(i32, usize)> = (0..index.len()).map(|row| {
+            let mut one = [(3, row)];
+            prior.apply(Path::new("/work"), Path::new(folder), &index, &mut one);
+            one[0]
+        }).collect();
+        assert_eq!(batch, alone, "folder {folder}");
+        let bonuses: std::collections::BTreeSet<i32> = batch.iter().map(|hit| hit.0 - 3 * SCALE).collect();
+        assert!(bonuses.len() >= 4, "the fixture gives distinct bonuses at {folder}: {bonuses:?}");
+    }
+}
+
+#[test]
 fn searchprior_caps_input_rows_retained_keys_and_total_path_bytes() {
     let xml = format!("<xbel>{}</xbel>", (0..5000).map(|i| format!("<bookmark href='file:///work/{i}'/>")).collect::<String>());
     assert_eq!(xbel(&xml).unwrap().len(), RECORDS);
