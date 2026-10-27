@@ -9,9 +9,7 @@ use crate::{
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
 /// The card open on a Markdown row under the bench theme: surface `#0c1512`, window ground `#111c18`.
-fn quick_look_markdown<'a>(
-    cx: &'a mut TestAppContext,
-) -> (Entity<Shell>, &'a mut VisualTestContext, Theme) {
+fn quick_look_markdown(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, Theme) {
     // The Markdown parse thread is real, so its wake comes from outside the deterministic scheduler.
     cx.executor().allow_parking();
     let (shell, cx, _lines) = opened(cx);
