@@ -213199,7 +213199,7 @@
     "crates/flea-gui/src/navigation/steps.rs": "dcf8a1c22ab30f8923d50e504e0cd941865318b59709483c6b97607a4d29e507",
     "crates/flea-gui/src/navigation/watch.rs": "0c994c4d99c6810e3d47215708ed10f1e9b88a26ab1274cc09a159f7b4e1d885",
     "crates/flea-gui/src/palette.rs": "2284f65f015a0cdf3e38c935496b3fe19396b9ec506e371136356ff10adcd836",
-    "crates/flea-gui/src/pane/clock.rs": "0d86caf15faf9a8bb12500d378d154c4cd826ea9fb345e4fd7ed26f95155fecf",
+    "crates/flea-gui/src/pane/clock.rs": "dcffd22a134fa43315fda190be72cffd09d9f3ad40f22b91bbaa03286a9666bf",
     "crates/flea-gui/src/pane/mod.rs": "796b85d7f67cb5cf3a659cded1024d936fe6bfcf5ff82b7c0403a9f8e8fc3602",
     "crates/flea-gui/src/pane/presentation.rs": "775583f86268441b76fb1110bdd9c2605ebd8568985fef3b5213ec1d5ad99cdf",
     "crates/flea-gui/src/pane/requests.rs": "68d2f65801e6e05980fc2c3f6464bca846bc16bb4aba801f64dd3e22918f8ec3",
@@ -214842,8 +214842,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "54b7bae1eb4521f9a6ed0ac23aaff33addb7f3b6",
-  "source_sha": "54b7bae1eb4521f9a6ed0ac23aaff33addb7f3b6",
+  "source_ref_sha": "ae2895b64d17c9c33bd814c3c79e878f26b7924b",
+  "source_sha": "ae2895b64d17c9c33bd814c3c79e878f26b7924b",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1288,
