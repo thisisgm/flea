@@ -23,6 +23,14 @@ fn rect(bounds: Option<Bounds<Pixels>>) -> String {
         })
         .unwrap_or_default()
 }
+fn centre(bounds: Bounds<Pixels>) -> String {
+    let centre = bounds.center();
+    format!(
+        "{} {}",
+        f32::from(centre.x).round(),
+        f32::from(centre.y).round()
+    )
+}
 impl Reader<'_> {
     pub(crate) fn value(&self, function: &str, arguments: &[String]) -> Option<String> {
         let view = self.view.filter(|v| self.active && v.visible);
@@ -55,7 +63,10 @@ impl Reader<'_> {
             "columnMediaPlaying" => player
                 .is_some_and(|p| p.state.playback == flea::ui_logic_pv3::player::Playback::Playing)
                 .to_string(),
-            "columnMediaPosition" => player.map_or(-1, |p| p.position).to_string(),
+            // PreviewColumn.qml mediaPosition answers 0 while no player is mounted; -1 is only no column at all.
+            "columnMediaPosition" => view
+                .map_or(-1, |_| player.map_or(0, |p| p.position))
+                .to_string(),
             "columnManualHold" => frame.is_some_and(|f| f.manual).to_string(),
             "columnThumbShown" => frame.is_some_and(|f| f.image.is_some()).to_string(),
             "columnFrameReady" => frame
@@ -111,15 +122,14 @@ impl Reader<'_> {
                     .and(view)
                     .and_then(|v| *v.frame_rect.borrow()),
             ),
-            "columnStripCentre" | "columnPlayCentre" => view
+            "columnStripCentre" => view
                 .and_then(|v| *v.play_rect.borrow())
-                .map_or(String::new(), |b| {
-                    format!(
-                        "{} {}",
-                        (f32::from(b.left()) + 12.).round(),
-                        f32::from(b.center().y).round()
-                    )
-                }),
+                .map_or(String::new(), centre),
+            // The play mark's own box, painted by the strip, and only while the strip is drawn.
+            "columnPlayCentre" => view
+                .and_then(|v| *v.play_rect.borrow())
+                .and(view.and_then(|v| v.caches.strip.borrow().play))
+                .map_or(String::new(), centre),
             // ColumnsArea.qml factsLine: "Kind=MPEG-4 video|Duration=1:12|...".
             "previewFacts" => frame.zip(view).map_or(String::new(), |(f, v)| {
                 v.facts(f, self.cx)
