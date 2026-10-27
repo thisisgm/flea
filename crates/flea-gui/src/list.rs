@@ -2,9 +2,6 @@
 #[cfg(test)]
 pub(crate) mod bench;
 pub mod columns;
-pub(crate) mod recent;
-#[cfg(test)]
-mod recent_tests;
 pub mod element;
 pub mod header;
 mod hit;
@@ -138,7 +135,6 @@ impl RowStates {
 
 /// What the pane's owners set outside paint: the words, the switched columns and stored widths, and the decorations they own.
 pub struct ListView {
-    pub recent: Option<recent::Rows>,
     pub words: Rc<Words>,
     pub switched: Switched,
     pub stored: StoredWidths,
@@ -163,7 +159,6 @@ pub struct ListView {
 impl Default for ListView {
     fn default() -> Self {
         Self {
-            recent: None,
             words: Rc::default(),
             switched: Switched::default(),
             stored: StoredWidths::default(),
