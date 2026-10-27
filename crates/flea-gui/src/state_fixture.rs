@@ -40,6 +40,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         labels: labels(&locale),
         slots: Slots::default(),
         chrome: Default::default(),
+        chrome_move: Default::default(),
         lifecycle,
         view: View::List,
         focus_side: 0,
