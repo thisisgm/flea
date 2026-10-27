@@ -370,6 +370,11 @@ impl Adapter for RailAdapter<'_> {
                 .collect::<Vec<_>>()
                 .join("\n"),
             "networkBuilt" => self.network.ready().to_string(),
+            // The row whose eject mark holds the pointer, by index (rail/rows.rs RowsModel.mark_hovered, set from producer_view.rs).
+            "railMarkHovered" => self
+                .producer()
+                .is_some_and(|producer| producer.model.borrow().mark_hovered == index())
+                .to_string(),
             "networkMarkGeometry" => self.mark_geometry().unwrap_or_default(),
             "networkMarkCentre" => self.mark_centre().unwrap_or_default(),
             // U27 installs recentMode with the actual Recent listing owner.
