@@ -8,7 +8,7 @@ use crate::{
     backend::Backend,
     g2::op1::model::{CopyFocus, Dialog},
     state::Shell,
-    window::u07_tests::read,
+    window::{navigate::Step, u07_tests::read},
 };
 use flea::ui_logic_op1::lines;
 use gpui::{point, px, Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext};
@@ -136,6 +136,55 @@ fn new_file_escape_and_cancel_close_without_a_request(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("tab enter");
     assert!(card(&shell, cx).is_none(), "Cancel closes the card");
     assert!(sent().is_empty(), "closing sends no request");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// Pane.qml act: Recent is a history, so New File refuses there before any card opens.
+#[gpui::test]
+fn new_file_in_recent_refuses_before_any_card(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    let recent = flea::ui_logic_pk1::RECENT;
+    let done = cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| shell.step(0, Step::Open(recent.into()), window, cx))
+    });
+    assert_eq!(done, Ok(true));
+    land(&shell, cx, recent, vec![row("alpha", true), row("beta", true), row("notes", false)], 2);
+    // The walk into Recent asks the backend its own lines; only what New File asks counts here.
+    let _ = sent();
+    background_menu(&shell, cx);
+    choose(&shell, cx, "newFile");
+    frame(cx);
+    assert!(card(&shell, cx).is_none(), "Recent cannot hold a new file, so no card opens");
+    let requests = sent();
+    assert!(requests.is_empty(), "New File in Recent asks the backend nothing: {requests:?}");
+    assert_eq!(
+        read(&shell, cx, "lastMessage", &[]),
+        "Recent cannot hold a new file. Open a folder first"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// MenuActionDialog.qml:170 refuses "." and ".." with the slash sentence, so the card does too.
+#[gpui::test]
+fn new_file_dot_names_refuse_in_the_card_with_the_slash_sentence(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    for dot in [".", ".."] {
+        open_card(&shell, cx);
+        cx.simulate_input(dot);
+        cx.simulate_keystrokes("enter");
+        assert!(sent().is_empty(), "{dot} never reaches the backend");
+        match card(&shell, cx) {
+            Some(Dialog::NewFile { busy: false, name, error, .. }) => {
+                assert_eq!((name.as_str(), error.as_str()), (dot, "Enter a name without a /."));
+            }
+            other => panic!("{dot} stays in the card: {other:?}"),
+        }
+        cx.simulate_keystrokes("escape");
+    }
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
