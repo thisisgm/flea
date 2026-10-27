@@ -18,6 +18,7 @@ fn sw03_file_menu_rows_reach_an_owner(cx: &mut TestAppContext) {
         "openTerminal",
         "moveTo",
         "copyTo",
+        "newFile",
         "openAsText",
         "run",
     ] {
@@ -27,6 +28,33 @@ fn sw03_file_menu_rows_reach_an_owner(cx: &mut TestAppContext) {
                 jsondoc::parse(r#"{"menu":{"hidden":["openAgent","actions","runScript"]}}"#)
                     .unwrap();
         });
+        // New File is a blank-space row: its menu is the background one, and the card claims it without a validate.
+        if action == "newFile" {
+            fixture.open_background(cx);
+            update(cx, fixture.handle, |shell, window, cx| {
+                shell.menu_outcome(
+                    crate::g2::mn1::menu::Outcome::Fire {
+                        action: action.into(),
+                        leaf: String::new(),
+                    },
+                    window,
+                    cx,
+                )
+            });
+            let said = read(cx, fixture.handle, "lastMessage").stdout;
+            let opened = update(cx, fixture.handle, |shell, _, cx| {
+                shell.operation_view(0).is_some_and(|view| {
+                    matches!(
+                        view.read(cx).model.dialog,
+                        Some(crate::g2::op1::model::Dialog::NewFile { .. })
+                    )
+                })
+            });
+            if said.contains("no longer available") || !opened {
+                refused.push(action);
+            }
+            continue;
+        }
         fixture.open(cx, 1, vec![]);
         update(cx, fixture.handle, |shell, window, cx| {
             shell.menu_outcome(

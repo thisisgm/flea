@@ -109,6 +109,14 @@ impl Fixture {
         }
     }
 
+    // The folder's blank-space menu, which has no snapshot to take.
+    pub fn open_background(&mut self, cx: &mut TestAppContext) {
+        update(cx, self.handle, |shell, window, cx| {
+            shell.open_menu(0, None, (40., 40.), window, cx);
+        });
+        self.drain();
+    }
+
     pub fn open(
         &mut self,
         cx: &mut TestAppContext,

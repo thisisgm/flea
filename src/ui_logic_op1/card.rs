@@ -35,19 +35,20 @@ pub const NAME_MARK: f32 = 19.0;
 pub const NAME_GAP: f32 = 9.0;
 pub const FIELD_WASH: f32 = 0.24;
 
-// The three widths the boards draw: the delete card, the collision card, Copy To.
+// The three widths the boards draw: the delete card, the collision card, Copy To. New File takes Copy To's width.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     Delete,
     Collide,
     CopyTo,
+    NewFile,
 }
 
 pub fn width(kind: Kind) -> f32 {
     match kind {
         Kind::Delete => 416.0,
         Kind::Collide => 448.0,
-        Kind::CopyTo => 552.0,
+        Kind::CopyTo | Kind::NewFile => 552.0,
     }
 }
 
