@@ -9,7 +9,10 @@ pub(crate) struct ColumnsPreview<'a, 'b> {
 
 impl Adapter for ColumnsPreview<'_, '_> {
     fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
-        if !matches!(function, "columnMarkdownText" | "columnArchiveRect") {
+        if !matches!(
+            function,
+            "columnMarkdownText" | "columnMarkdownView" | "columnArchiveRect"
+        ) {
             return None;
         }
         let view = self
@@ -28,6 +31,18 @@ impl Adapter for ColumnsPreview<'_, '_> {
                     markdown.doc.text.as_deref().unwrap_or_default(),
                     markdown.shown_view() == crate::g2::pv2::markdown::View::Source,
                 )
+            }
+            ("columnMarkdownView", Some(Mounted::Doc(Doc::Markdown(markdown)))) => {
+                let markdown = markdown.read(self.preview.cx);
+                if !markdown.active || !markdown.doc.content_ready() {
+                    String::new()
+                } else {
+                    match markdown.shown_view() {
+                        crate::g2::pv2::markdown::View::Rendered => "rendered",
+                        crate::g2::pv2::markdown::View::Source => "source",
+                    }
+                    .to_owned()
+                }
             }
             ("columnArchiveRect", Some(Mounted::Doc(Doc::Archive(archive)))) => {
                 let archive = archive.read(self.preview.cx);
