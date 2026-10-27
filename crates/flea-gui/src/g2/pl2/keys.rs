@@ -1,13 +1,12 @@
-//! Modal keyboard dispatch for the network card and its suggestion menu.
+//! Modal keyboard dispatch for the network card.
 use super::{dialog::Focus, view::NetworkView};
-use crate::list::Typeface;
 use gpui::{Context, KeyDownEvent, Window};
 
 impl NetworkView {
     pub(super) fn key(
         &mut self,
         event: &KeyDownEvent,
-        window: &mut Window,
+        _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         if !self.model.opened {
@@ -63,11 +62,6 @@ impl NetworkView {
             return;
         }
         cx.stop_propagation();
-        if k.key == "escape" && self.menu.borrow().opened() {
-            self.suggesting = false;
-            self.changed(cx);
-            return;
-        }
         if k.key == "escape" {
             return self.close(cx);
         }
@@ -106,28 +100,11 @@ impl NetworkView {
         if k.modifiers.control || k.modifiers.alt || k.modifiers.platform {
             return;
         }
-        if self.menu.borrow().opened() && matches!(k.key.as_str(), "down" | "up" | "enter") {
-            let mut typeface = Typeface::omarchy_default();
-            typeface.font = window.text_style().font();
-            let action = match k.key.as_str() {
-                "down" => "cursorDown",
-                "up" => "cursorUp",
-                _ => "open",
-            };
-            let outcome =
-                self.menu
-                    .borrow_mut()
-                    .act(action, None, "", &self.env(&typeface), window);
-            self.menu_outcome(outcome, cx);
-            cx.notify();
-            return;
-        }
         match k.key.as_str() {
             "tab" => {
                 self.model.step(k.modifiers.shift);
                 self.load_input();
             }
-            "down" if self.model.focus == Focus::Host => self.suggesting = true,
             "enter" => {
                 let focus = self.model.focus;
                 if matches!(

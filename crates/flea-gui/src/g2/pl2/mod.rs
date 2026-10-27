@@ -5,7 +5,6 @@ mod buttons;
 mod cancel;
 mod child;
 pub mod dialog;
-pub mod discovery;
 mod drawing;
 mod geometry;
 mod marks;

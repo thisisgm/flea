@@ -4,22 +4,10 @@ use super::{
     drawing::Drawn,
     words::Words,
 };
-use crate::{
-    g2::{
-        mn1::{
-            lines::Env,
-            menu::{Face, Menu, Outcome},
-        },
-        op1::palette::CardPalette,
-    },
-    list::Typeface,
-};
-use flea::{
-    i18n::I18n,
-    ui_logic_mn1::{fit::Rect, Brand, Entry, Text},
-};
+use crate::g2::op1::palette::CardPalette;
+use flea::i18n::I18n;
 use gpui::{Context, EventEmitter, FocusHandle, Window};
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, sync::Arc};
 
 pub struct NetworkEvent(pub Effect);
 pub struct NetworkView {
@@ -41,10 +29,6 @@ pub struct NetworkView {
     pub(super) password_selection: std::ops::Range<usize>,
     pub(super) password_reversed: bool,
     pub(super) password_marked: Option<std::ops::Range<usize>>,
-    pub(super) menu: Rc<RefCell<Menu>>,
-    menu_dirty: bool,
-    /// The found hosts list opens only on Down in HOST; no board draws it on its own.
-    pub(super) suggesting: bool,
     pub(super) shown_status: Option<(&'static str, String)>,
     pub(super) dimensions: (f32, f32),
 }
@@ -71,9 +55,6 @@ impl NetworkView {
             password_selection: 0..0,
             password_reversed: false,
             password_marked: None,
-            menu: Rc::default(),
-            menu_dirty: true,
-            suggesting: false,
             shown_status: None,
             dimensions: (0., 0.),
         }
@@ -142,13 +123,6 @@ impl NetworkView {
         }
         self.changed(cx);
     }
-    pub fn line(&mut self, line: &str, cx: &mut Context<Self>) -> bool {
-        let changed = self.model.discovery.line(line);
-        if changed {
-            self.changed(cx);
-        }
-        changed
-    }
     pub fn changed(&mut self, cx: &mut Context<Self>) {
         let status = self
             .model
@@ -159,7 +133,6 @@ impl NetworkView {
             self.shown_status = status;
         }
         self.revision += 1;
-        self.menu_dirty = true;
         cx.notify();
     }
     pub(super) fn paint_changed(&mut self, cx: &mut Context<Self>) {
@@ -187,11 +160,9 @@ impl NetworkView {
         self.password_selection = 0..0;
         self.password_reversed = false;
         self.password_marked = None;
-        self.menu.borrow_mut().close();
         self.effects(effects, cx);
     }
     pub fn load_input(&mut self) {
-        self.suggesting = false;
         self.fit_focus();
         self.input_owner = None;
         self.drawn.borrow_mut().ime.registered = None;
@@ -261,97 +232,6 @@ impl NetworkView {
         };
         target.clone_from(&self.input.text);
         self.changed(cx);
-    }
-    pub(super) fn env<'a>(&'a self, typeface: &'a Typeface) -> Env<'a> {
-        Env {
-            catalog: &self.catalog,
-            preset: "default",
-            key_hints: false,
-            typeface,
-            inset: 0.,
-        }
-    }
-    pub(super) fn sync_menu(&mut self, window: &Window) {
-        if !self.menu_dirty {
-            return;
-        }
-        self.menu_dirty = false;
-        if !self.suggesting || self.model.focus != Focus::Host || self.model.busy() {
-            self.menu.borrow_mut().close();
-            return;
-        }
-        let entries = self
-            .model
-            .discovery
-            .filtered(&self.model.form.host)
-            .into_iter()
-            .map(|index| {
-                let host = &self.model.discovery.rows[index];
-                let mut row =
-                    Entry::row(index.to_string(), Text::Data(host.name.clone()), "server");
-                if host.tailnet {
-                    row.brand = Some(Brand::Tailscale);
-                }
-                let protocol = self.catalog.tr(match host.address.scheme.as_str() {
-                    "sftp" => "network.sftp",
-                    "ftp" | "ftps" => "network.ftps",
-                    "dav" | "davs" => "network.webdav",
-                    "nfs" => "network.nfs",
-                    _ => "network.smb",
-                });
-                let tailnet = self.catalog.tr("network.tailscale");
-                let caption = self.catalog.tr_args(
-                    "network.host_caption",
-                    &[
-                        &protocol,
-                        if host.tailnet {
-                            &tailnet
-                        } else {
-                            &host.address.host
-                        },
-                    ],
-                );
-                row.hint = Some(Text::Data(caption));
-                row
-            })
-            .collect::<Vec<_>>();
-        let width = self.dimensions.0;
-        let height = self.dimensions.1;
-        let x = (width - super::drawing::WIDTH.min(width - 16.)) / 2. + 17.;
-        let y = (height - self.frame_height(height)) / 2. + 224. - self.scroll;
-        let mut typeface = Typeface::omarchy_default();
-        typeface.font = window.text_style().font();
-        self.menu.borrow_mut().open(
-            Face::Place,
-            entries,
-            (x, y),
-            Rect {
-                x: 0.,
-                y: 0.,
-                w: width,
-                h: height,
-            },
-            "",
-            &self.env(&typeface),
-            window,
-        );
-        if let Some(card) = &mut self.menu.borrow_mut().card {
-            card.frame.w = super::drawing::WIDTH.min(width - 16.) - 34.;
-            for line in &mut card.built.lines {
-                line.key = line.word.take();
-            }
-        }
-    }
-    pub(super) fn menu_outcome(&mut self, outcome: Outcome, cx: &mut Context<Self>) -> bool {
-        if let Outcome::Fire { action, .. } = outcome {
-            if let Ok(index) = action.parse() {
-                self.model.choose_suggestion(index);
-                self.load_input();
-                self.changed(cx);
-            }
-            return true;
-        }
-        false
     }
     pub(super) fn activate(&mut self, focus: Focus, cx: &mut Context<Self>) {
         if focus == Focus::Eye {
