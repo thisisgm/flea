@@ -93,12 +93,27 @@ impl Producer {
         self.rebuild(cx);
     }
 
+    /// The desktop's recent-files history, named from the environment the way the Recent row reads it.
+    pub fn history_file(&self) -> String {
+        flea::ui_logic_pl4::recent::history_path(
+            &std::env::var("XDG_DATA_HOME").unwrap_or_default(),
+            &self.home,
+        )
+    }
+
     pub fn read_recent(&mut self, path: String, cx: &mut Context<Self>) {
         // Places accepts only its newest read; a new ask cancels the older pending ticket.
         self.recent_pending = Some(self.request(Event::Recent(Vec::new())));
         self.history_seen = self.places.read(cx).history_reads;
         self.places
             .update(cx, |places, cx| places.reread_history(path, cx));
+    }
+
+    /// A navigation on this side leaves its history ask behind, so the reply finds no ticket and is dropped.
+    pub fn cancel_recent(&mut self, side: usize) {
+        if self.side == side {
+            self.recent_pending = None;
+        }
     }
 
     pub fn replace_sections(&mut self, sections: Vec<RailSection>, cx: &mut Context<Self>) {

@@ -57,7 +57,7 @@ fn key(shell: &mut Shell, action: &str, window: &mut Window, cx: &mut Context<Sh
         "pasteAs"
             if shell.panes[side]
                 .as_ref()
-                .is_some_and(|host| flea::ui_logic_pk1::is_recent(host.pane.place())) =>
+                .is_some_and(|host| host.recent.on || flea::ui_logic_pk1::is_recent(host.pane.place())) =>
         {
             say(shell, side, flea::ui_logic_dg1::RECENT_PASTE, cx);
         }

@@ -249,6 +249,7 @@ impl Shell {
                         shell.device_request(Request { side, id, event }, window, cx)
                     });
                 }
+                Event::Recent(visits) => self.recent_completed(side, visits, window, cx),
                 event => self.dispatch(Order::Place(Request { side, id, event }), window, cx),
             }
         }

@@ -15,6 +15,7 @@ pub(crate) mod output_cards;
 pub mod pane;
 pub mod path;
 pub mod rail;
+pub(crate) mod recent;
 pub mod rows;
 pub mod server;
 pub(crate) mod settings;

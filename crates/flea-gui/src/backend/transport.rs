@@ -229,6 +229,14 @@ pub fn list_line(listing: &Listing) -> String {
 pub(super) fn command_line(command: &Command) -> Option<String> {
     Some(match command {
         Command::List(listing) => list_line(listing),
+        Command::ListPaths(listing, paths) => {
+            let paths = paths
+                .iter()
+                .map(|path| format!("\"{}\"", escape(path)))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("{{\"c\":\"listpaths\",\"paths\":[{paths}],\"first\":{}}}", listing.first)
+        }
         Command::Window { start, count } => {
             format!("{{\"c\":\"window\",\"start\":{start},\"count\":{count}}}")
         }

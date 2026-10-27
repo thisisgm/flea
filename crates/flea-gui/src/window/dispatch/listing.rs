@@ -45,8 +45,16 @@ pub(super) fn run(
         "sortNext" | "sortReverse" if searching => return true,
         "sortNext" => Step::SortNext,
         "sortReverse" => Step::SortReverse,
-        // Focus.js:143-144: reveal means something only on a search result; the search runs it there.
+        // Focus.js:143-144: reveal means something only on a search result or a Recent row; the search runs it there.
+        "reveal" if host.recent.on => {
+            shell.recent_reveal(side, window, cx);
+            return true;
+        }
         "reveal" => return true,
+        "escape" if host.recent.on => {
+            let _ = shell.step(side, Step::Back, window, cx);
+            return true;
+        }
         "escape" if shell.escape_climbs() => Step::Up,
         // Focus.js:188-190: a filter or a search still standing is the owner Escape belongs to.
         "escape"

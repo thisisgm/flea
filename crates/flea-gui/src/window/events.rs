@@ -155,7 +155,8 @@ impl Shell {
                         host.search.rows_generation = generation;
                         host.changed(&self.locale);
                         self.surfaces[side].filesystem.enter(&host.path);
-                        self.path_labels[side] = host.path.clone().into();
+                        let name = self.locale.catalog.tr("places.row.recent");
+                        self.path_labels[side] = super::recent::path_label(host, &name);
                         self.seam.rows(&host.pane);
                         self.settle_dual(window, cx);
                         cx.notify();
@@ -337,7 +338,8 @@ impl Shell {
                         }
                         host.changed(&self.locale);
                         self.surfaces[side].filesystem.enter(&host.path);
-                        self.path_labels[side] = host.path.clone().into();
+                        let name = self.locale.catalog.tr("places.row.recent");
+                        self.path_labels[side] = super::recent::path_label(host, &name);
                         if host.answered {
                             self.deadlines[side] = None;
                         }

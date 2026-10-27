@@ -173,6 +173,7 @@ impl Shell {
                     board: &self.clipboard.board,
                 };
                 let geometry = self.geometry(window);
+                let recent = crate::ipc::recent::RecentAdapter(&host.recent);
                 let shown = crate::window::network::shown(&self.launch.settings.data);
                 let network = self
                     .rail
@@ -250,7 +251,7 @@ impl Shell {
                 let column_preview =
                     crate::ipc::columns_preview::ColumnsPreview { preview: &preview };
                 let glass = super::super::glass::Reader { window, cx };
-                let adapters: [&dyn crate::ipc::Adapter; 35] = [
+                let adapters: [&dyn crate::ipc::Adapter; 36] = [
                     &glass,
                     &column_preview,
                     &drag,
@@ -261,6 +262,7 @@ impl Shell {
                     &rename,
                     &search,
                     &query,
+                    &recent,
                     &delivery,
                     &rail,
                     &focus,
@@ -291,9 +293,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    35
+                    36
                 } else {
-                    34
+                    35
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

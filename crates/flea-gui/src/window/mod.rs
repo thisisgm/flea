@@ -26,6 +26,7 @@ pub(crate) mod path_host;
 pub(crate) mod properties;
 mod presentation;
 pub mod rail;
+pub(crate) mod recent;
 mod render;
 pub(crate) mod rename;
 mod dual_edge;

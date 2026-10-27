@@ -308,6 +308,10 @@ impl Shell {
             _ => &[],
         };
         let dest = pane_spot(host, point, carried);
+        // Recent stands on "/" with no folder of its own, so a drop on its blank ground lands nowhere.
+        if host.recent.on && dest == host.path {
+            return;
+        }
         let path = host.path.clone();
         let first = owned.first_source();
         let read_dest = dest.clone();
