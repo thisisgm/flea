@@ -110,8 +110,9 @@ impl Producer {
     }
 
     /// A navigation on this side leaves its history ask behind, so the reply finds no ticket and is dropped.
+    /// The ticket names the side that asked, so focus or the rail's side moving elsewhere does not change the answer.
     pub fn cancel_recent(&mut self, side: usize) {
-        if self.side == side {
+        if self.recent_pending.as_ref().is_some_and(|ticket| ticket.side == side) {
             self.recent_pending = None;
         }
     }
