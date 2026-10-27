@@ -153,14 +153,14 @@ fn pb_network_mountinfo_validates_calls_and_does_not_construct_a_service(cx: &mu
     );
     for arguments in [vec![], vec!["", "extra"]] {
         let reply = call(&shell, "flea", "networkFeedMountinfo", &arguments, cx);
-        assert_ne!(
-            reply.code, 0,
-            "the registry still validates argument counts"
+        assert!(
+            reply.stdout.contains("arguments provided"),
+            "the registry still validates argument counts: {reply:?}"
         );
     }
-    assert_ne!(
-        call(&shell, "fleapicker", "networkFeedMountinfo", &[""], cx).code,
-        0,
+    assert_eq!(
+        call(&shell, "fleapicker", "networkFeedMountinfo", &[""], cx),
+        Reply::value("Function not found."),
         "only the main-window target owns the seam"
     );
     assert!(shell.read_with(cx, |shell, _| shell.rail.is_none()));

@@ -80,14 +80,29 @@ impl Shell {
 
     /// mountinfo and the bookmarks file are read off the UI thread, then the rows rebuild from the last good listing.
     fn network_rows(&mut self, cx: &mut Context<Self>) {
+        self.network_rebuild(None, None, cx);
+    }
+
+    /// The poll and the IPC feed share one rebuild. A feed never claims the first real listing, and an older read never publishes over a newer one.
+    pub(crate) fn network_rebuild(
+        &mut self,
+        mountinfo: Option<String>,
+        answer: Option<std::sync::mpsc::SyncSender<crate::ipc::server::Answer>>,
+        cx: &mut Context<Self>,
+    ) {
         let Some(network) = self.network() else {
             return;
         };
         let gio = network.listing.text.clone();
         let path = network.bookmarks.clone();
-        let read = cx.background_spawn(async move {
+        network.rows_generation += 1;
+        let generation = network.rows_generation;
+        let polled = mountinfo.is_none();
+        let read = cx.background_executor().spawn(async move {
             let marks = std::fs::read_to_string(path).unwrap_or_default();
-            let mountinfo = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
+            let mountinfo = mountinfo.unwrap_or_else(|| {
+                std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default()
+            });
             let ready = !mountinfo.is_empty();
             let rows = flea::ui_logic_pl2::rail::rebuild(
                 &gio,
@@ -99,8 +114,17 @@ impl Shell {
         let task = cx.spawn(async move |this, cx| {
             let (rows, labels, ready) = read.await;
             let _ = this.update(cx, |shell, cx| {
+                let current = match shell.network() {
+                    Some(network) => {
+                        network.built |= polled;
+                        network.rows_generation == generation
+                    }
+                    None => false,
+                };
+                if !current {
+                    return;
+                }
                 if let Some(network) = shell.network() {
-                    network.built = true;
                     network.mountinfo_ready = ready;
                 }
                 if shell.path_saved_labels(labels) {
@@ -108,6 +132,10 @@ impl Shell {
                 }
                 shell.network_publish(Some(rows), cx)
             });
+            if let Some(answer) = answer {
+                let reply = flea::ipc::wire::Reply::value("fed");
+                let _ = answer.try_send(crate::ipc::server::Answer { reply, quit: false });
+            }
         });
         network.tasks.retain(|task| !task.is_ready());
         network.tasks.push(task);
