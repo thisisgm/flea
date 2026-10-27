@@ -211,6 +211,9 @@ mod gh_preview_proof_tests;
 mod railrecent_tests;
 
 #[cfg(test)]
+mod railrecent_owner_tests;
+
+#[cfg(test)]
 mod columns_search_parity_tests;
 
 #[cfg(test)]
