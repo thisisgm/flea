@@ -30,7 +30,6 @@ fn open(cx: &mut TestAppContext) -> (WindowHandle<FontView>, Calls<Ask>) {
     let host = Host(calls.clone());
     let view = cx.add_window(|_, cx| {
         let metrics = Metrics {
-            bar: 27.,
             font: gpui::font("sans-serif"),
             caption: px(12.),
         };
