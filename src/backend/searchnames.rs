@@ -5,6 +5,8 @@ use std::hash::BuildHasher;
 pub(crate) type Seeded = foldhash::quality::RandomState;
 
 pub(crate) const SLAB: usize = 64 * 1024;
+// One u64 of letter bits covers this many consecutive name ids, so a query can skip a whole group.
+const GROUP_NAMES: u32 = 64;
 pub(crate) const EMPTY: u32 = u32::MAX;
 pub(crate) type Refusal = &'static str;
 
@@ -71,7 +73,7 @@ impl Names {
             }
             self.lookup = lookup;
         }
-        if id % 64 == 0 { self.groups.try_reserve(1).map_err(|_| "allocation")?; }
+        if id % GROUP_NAMES == 0 { self.groups.try_reserve(1).map_err(|_| "allocation")?; }
         self.refs.try_reserve(1).map_err(|_| "allocation")?;
         if self.slabs.last().map_or(true, |slab| slab.len() + bytes.len() > SLAB) {
             self.slabs.try_reserve(1).map_err(|_| "allocation")?;
@@ -88,8 +90,8 @@ impl Names {
         slab.extend_from_slice(bytes);
         let bits = super::searchbits::mask(bytes);
         self.refs.push(Name { off, len: bytes.len() as u32, bits });
-        if id % 64 == 0 { self.groups.push(0); }
-        self.groups[id as usize / 64] |= bits;
+        if id % GROUP_NAMES == 0 { self.groups.push(0); }
+        self.groups[(id / GROUP_NAMES) as usize] |= bits;
         self.lookup[at] = id;
         Ok(id)
     }
@@ -112,7 +114,7 @@ impl Names {
 
     pub(crate) fn bits(&self, id: usize) -> u64 { self.refs[id].bits }
 
-    pub(crate) fn group_bits(&self, group: usize) -> u64 { self.groups[group] }
+    pub(crate) fn group_bits(&self, id: u32) -> u64 { self.groups[(id / GROUP_NAMES) as usize] }
 
     pub(crate) fn len(&self) -> usize {
         self.refs.len()

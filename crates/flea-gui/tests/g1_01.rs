@@ -15,7 +15,7 @@ use std::{
 };
 
 fn settings(text: &str) -> Settings {
-    Settings::from_json(jsondoc::parse(text).unwrap(), true)
+    Settings::from_json(jsondoc::parse(text).unwrap())
 }
 
 #[path = "g1_01/lifecycle.rs"]

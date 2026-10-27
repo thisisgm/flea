@@ -89,7 +89,7 @@ pub(super) fn open(
     width: f32,
 ) -> (Entity<Shell>, &mut VisualTestContext, Arc<AtomicUsize>) {
     let launch = Launch::resolve(
-        Settings::from_json(data, true),
+        Settings::from_json(data),
         Arguments {
             path: Some("/reports".into()),
             select: None,

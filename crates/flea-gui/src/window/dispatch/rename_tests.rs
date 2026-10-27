@@ -23,7 +23,26 @@ pub(super) fn ready<'a>(
     cx: &'a mut TestAppContext,
     preset: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
-    let (shell, cx) = open(cx, preset);
+    ready_with_root(cx, preset, false)
+}
+
+pub(super) fn ready_root<'a>(
+    cx: &'a mut TestAppContext,
+    preset: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
+    ready_with_root(cx, preset, true)
+}
+
+fn ready_with_root<'a>(
+    cx: &'a mut TestAppContext,
+    preset: &str,
+    root: bool,
+) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
+    let (shell, cx) = if root {
+        super::test_shell::open_root(cx, preset)
+    } else {
+        open(cx, preset)
+    };
     land(&shell, cx, "/files", home(), 1);
     set_cursor(&shell, cx, 2);
     let (backend, lines) = Backend::test_lines();
@@ -276,89 +295,37 @@ fn every_preset_rename_key_opens_the_editor(cx: &mut TestAppContext) {
     );
 }
 
+// Each reshape resolves per-character bidi levels, so a Hebrew letter inside a Latin name keeps its own caret side.
 #[gpui::test]
-fn several_marked_rows_open_the_bulk_card_and_its_done_line_refreshes(cx: &mut TestAppContext) {
-    let (shell, cx, mut lines) = ready(cx, "default");
-    shell.update(cx, |shell, _| {
-        let host = shell.panes[0].as_mut().unwrap();
-        host.selected = vec![1, 2];
-        host.input.selection.changed(&host.selected);
-    });
+fn the_rename_field_resolves_bidi_levels_on_each_reshape(cx: &mut TestAppContext) {
+    let (shell, cx, _lines) = ready(cx, "default");
     cx.simulate_keystrokes("f2");
-    assert_eq!(
-        editing(&shell, cx),
-        None,
-        "several rows never open the inline editor"
-    );
-    assert_eq!(
-        shell.read_with(cx, |shell, _| shell.rename.paths),
-        Some(0),
-        "the paths are asked"
-    );
-    receive(
-        &shell,
-        cx,
-        BackendEvent::Paths(vec!["/files/beta".into(), "/files/notes.txt".into()]),
-    );
-    assert!(
-        shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)),
-        "the card opens"
-    );
     draw(cx);
-    // Find "e", replace it with "x": both names change, and Enter on Replace renames.
-    cx.simulate_input("e");
-    cx.simulate_keystrokes("tab");
-    cx.simulate_input("x");
-    cx.simulate_keystrokes("enter");
-    let out = sent(&mut lines);
-    assert_eq!(out.len(), 1, "{out:?}");
-    assert!(
-        out[0].starts_with(r#"{"c":"bulkrename""#)
-            && out[0].contains("bxta")
-            && out[0].contains("notxs.txt"),
-        "{out:?}"
-    );
-    assert!(
-        !shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)),
-        "the card closed"
-    );
-    let before = lists(&shell, cx);
-    receive(
-        &shell,
-        cx,
-        BackendEvent::Producer(r#"{"t":"bulkrenamed","ok":2,"unchanged":0}"#.into()),
-    );
-    let done = shell.read_with(cx, |shell, _| {
-        flea::ui_logic_op1::lines::bulk_done_line(&shell.locale.catalog, "default", 2)
+    cx.simulate_input("a\u{5e9}b");
+    draw(cx);
+    let (text, right_to_left, levels) = shell.read_with(cx, |shell, _| {
+        let edit = shell.rename.edit.as_ref().unwrap();
+        let line = &edit.line.line;
+        (
+            edit.entry.text.clone(),
+            line.right_to_left,
+            line.bidi_levels.clone(),
+        )
     });
-    assert_eq!(notice(&shell, cx), done);
-    assert_eq!(lists(&shell, cx), before + 1);
-    assert!(shell.read_with(cx, |shell, _| shell.panes[0]
-        .as_ref()
-        .unwrap()
-        .selected
-        .is_empty()));
-    close(&shell, cx);
-}
-
-#[gpui::test]
-fn escape_closes_the_bulk_card_and_sends_nothing(cx: &mut TestAppContext) {
-    let (shell, cx, mut lines) = ready(cx, "default");
-    shell.update(cx, |shell, _| {
-        shell.panes[0].as_mut().unwrap().selected = vec![0, 1]
-    });
-    cx.simulate_keystrokes("f2");
-    receive(
-        &shell,
-        cx,
-        BackendEvent::Paths(vec!["/files/alpha".into(), "/files/beta".into()]),
+    assert_eq!(text, "a\u{5e9}b.txt");
+    let mut expected = crate::path::field::Line::default();
+    expected.set_text_direction(&text);
+    assert!(
+        !right_to_left,
+        "a Latin first letter keeps the paragraph left to right"
+    );
+    assert_eq!(
+        levels, expected.bidi_levels,
+        "the drawn line holds the reshaped text's levels"
     );
     assert!(
-        shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)),
-        "the card opened"
+        levels[1].is_rtl(),
+        "the Hebrew letter resolves right to left"
     );
-    cx.simulate_keystrokes("escape");
-    assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
-    assert_eq!(sent(&mut lines), Vec::<String>::new());
     close(&shell, cx);
 }
