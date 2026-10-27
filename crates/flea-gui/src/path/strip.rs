@@ -34,6 +34,7 @@ pub struct Strip {
     pub hovered: Option<usize>,
     /// How many times this strip built its crumbs; a hidden strip builds none.
     pub built: u64,
+    plain: bool,
 }
 
 impl Strip {
@@ -48,6 +49,10 @@ impl Strip {
 
     /// budget is the room in characters, as the oracle's fit counts it; place then lays the crumbs out in pixels.
     pub fn fit(&mut self, path: &str, home: &str, alias: Option<&Alias>, budget: usize) -> bool {
+        if self.plain {
+            self.clear();
+            self.plain = false;
+        }
         let (kept_path, kept_home, kept_alias, kept_budget) = &self.key;
         if self.revision > 0
             && kept_path == path
@@ -60,6 +65,47 @@ impl Strip {
         self.key = (path.to_owned(), home.to_owned(), alias.cloned(), budget);
         self.crumbs = fit_crumbs(crumbs(path, home, alias), budget);
         self.edges.clear();
+        self.revision += 1;
+        self.built += 1;
+        self.hovered = None;
+        true
+    }
+
+    /// ChromeBar.qml's Path mode is one foreground, inert line with left elision.
+    pub fn fit_path(&mut self, path: &str, home: &str, budget: usize) -> bool {
+        if self.plain && self.key.0 == path && self.key.1 == home && self.key.3 == budget {
+            return false;
+        }
+        let in_home = !home.is_empty()
+            && (path == home
+                || path
+                    .strip_prefix(home)
+                    .is_some_and(|tail| tail.starts_with('/')));
+        let mut text = if in_home {
+            format!("~{}", &path[home.len()..])
+        } else {
+            path.to_owned()
+        };
+        let count = text.chars().count();
+        if count > budget {
+            text = if budget == 0 {
+                String::new()
+            } else {
+                format!(
+                    "\u{2026}{}",
+                    text.chars().skip(count - budget + 1).collect::<String>()
+                )
+            };
+        }
+        self.crumbs = vec![Crumb {
+            text,
+            path: path.to_owned(),
+            last: true,
+            elided: false,
+        }];
+        self.edges.clear();
+        self.key = (path.to_owned(), home.to_owned(), None, budget);
+        self.plain = true;
         self.revision += 1;
         self.built += 1;
         self.hovered = None;

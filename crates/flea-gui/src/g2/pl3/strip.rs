@@ -272,7 +272,10 @@ impl Render for TrashPane {
         }
         let empty = self.empty_line().map(|(text, error)| {
             div()
+                .debug_selector(|| "trash-empty-line".into())
                 .absolute()
+                .top_0()
+                .left_0()
                 .size_full()
                 .flex()
                 .items_center()
@@ -282,6 +285,7 @@ impl Render for TrashPane {
                 .child(SharedString::from(text))
         });
         let list = div()
+            .debug_selector(|| "trash-list-area".into())
             .relative()
             .flex_1()
             .min_h(px(0.))
@@ -321,9 +325,10 @@ impl Render for TrashPane {
             .on_scroll_wheel(cx.listener(|pane, event: &ScrollWheelEvent, _, cx| {
                 pane.wheel(-f32::from(event.delta.pixel_delta(px(ROW_H)).y), cx);
                 cx.stop_propagation();
-            }))
-            .children(empty);
+            }));
         div()
+            .debug_selector(|| "trash-view".into())
+            .relative()
             .size_full()
             .flex()
             .flex_col()
@@ -333,6 +338,7 @@ impl Render for TrashPane {
             .child(self.strip(cx))
             .child(self.header())
             .child(list)
+            .children(empty)
             .into_any_element()
     }
 }

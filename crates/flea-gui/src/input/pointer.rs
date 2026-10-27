@@ -188,13 +188,7 @@ impl Shell {
                 return;
             }
             press.event.click_count = count;
-            let single_click = self
-                .launch
-                .settings
-                .data
-                .get("singleClick")
-                .and_then(flea::jsondoc::Json::as_bool)
-                == Some(true);
+            let single_click = self.launch.settings.single_click_open();
             if event.button == MouseButton::Left && single_click && count != 1 {
                 return;
             }
@@ -298,7 +292,11 @@ impl Shell {
             // List.qml: only a lone left tap on the drawn name can arm the slow click.
             let on_name = event.button == MouseButton::Left
                 && count == 1
-                && host.list.borrow().on_name(row, event.position.x);
+                && if self.view == crate::window::startup::View::Columns {
+                    crate::window::columns::on_name(host, row, event.position.x)
+                } else {
+                    host.list.borrow().on_name(row, event.position.x)
+                };
             slow = Some(crate::window::rename::slow::Tap {
                 row,
                 on_name,

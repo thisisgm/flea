@@ -122,6 +122,21 @@ impl OpenWith {
         vec![Effect::Send(line)]
     }
 
+    /// A click on the drawn button at an index: Cancel closes as Escape does, Open launches the cursor application.
+    pub fn press_at(&mut self, at: usize) -> Vec<Effect> {
+        match at {
+            0 => {
+                self.focus = Stop::Cancel;
+                self.close()
+            }
+            1 => {
+                self.focus = Stop::Open;
+                self.launch()
+            }
+            _ => Vec::new(),
+        }
+    }
+
     pub fn key(&mut self, key: Key) -> Vec<Effect> {
         let at = STOPS.iter().position(|s| *s == self.focus).unwrap_or(0);
         match key {
@@ -195,6 +210,7 @@ impl OpenWith {
     pub fn card(&self, i18n: &I18n) -> Card {
         let kind = self.catalogue.as_ref().map_or("", |c| c.kind.as_str());
         let search = shell::Field {
+            input: None,
             label: None,
             value: self.query.clone(),
             placeholder: i18n.tr("dialogs.file.openwith.search"),
@@ -251,6 +267,7 @@ impl OpenWith {
             .and_then(|c| logic::chosen(c, &self.rows, self.cursor))
             .is_some();
         Card {
+            language: i18n.language().to_owned(),
             title: logic::title(i18n, &self.name),
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,
