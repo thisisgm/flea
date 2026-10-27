@@ -5,6 +5,8 @@ use std::time::Duration;
 pub(crate) struct Phases {
     pub score: Duration,
     pub prior: Duration,
+    // The boundary class, the head partition and the head's deferred DP.
+    pub resolve: Duration,
     pub all: Duration,
     pub select: Duration,
     pub cut: Duration,

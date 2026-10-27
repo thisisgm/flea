@@ -10,7 +10,8 @@ impl Session {
             && !self.walking() && !self.standing_while_walking
             && Matcher::can_narrow(&crate::backend::searchtags::Tags::terms(&self.last_query).text, &terms.text);
         let unread = self.tags.prepare(&terms, &self.index, &self.scope, &self.body, self.walking());
-        let fuzzy = Matcher::new(&terms.text);
+        // Without tag terms the match set is final after pass 1, so only the classes the window reaches get their DP.
+        let fuzzy = if terms.tags.is_empty() { Matcher::deferred(&terms.text) } else { Matcher::new(&terms.text) };
         let priors = self.priors;
         let index = self.index.lock().unwrap();
         // Only complete, unchanged extensions with stable matching rules can reuse their previous candidates.
@@ -27,23 +28,44 @@ impl Session {
         #[cfg(test)]
         { self.counters.phases.score = phase_started.elapsed(); }
         #[cfg(test)]
-        let phase_started = Instant::now();
-        let mut hits = crate::backend::searchprior::rank(priors, &self.scope, &self.folder, &index, hits);
-        #[cfg(test)]
-        { self.counters.phases.prior = phase_started.elapsed(); }
-        self.tags.keep(&mut hits, &terms);
-        #[cfg(test)]
-        {
-            self.counters.rows_scored = scored;
-        }
+        { self.counters.rows_scored = scored; }
         // Every match stays addressable for narrowing, whatever the window holds.
-        #[cfg(test)]
-        let phase_started = Instant::now();
-        let all: Vec<usize> = hits.iter().map(|(_, row)| *row).collect();
-        #[cfg(test)]
-        { self.counters.phases.all = phase_started.elapsed(); }
-        // Top-K first: the window is selected and ordered, and the rest waits unranked in the session.
-        let window = count.min(hits.len());
+        let (all, mut hits, below) = if fuzzy.defer {
+            #[cfg(test)]
+            let phase_started = Instant::now();
+            let all: Vec<usize> = hits.iter().map(|(_, row)| *row).collect();
+            #[cfg(test)]
+            { self.counters.phases.all = phase_started.elapsed(); }
+            #[cfg(test)]
+            let phase_started = Instant::now();
+            let last = searchindex::boundary(&hits, count);
+            let (mut head, below): (Vec<_>, Vec<_>) = hits.into_iter()
+                .partition(|hit| last.is_some_and(|last| searchindex::class(hit.0) <= last));
+            searchindex::resolve(&fuzzy, &index, &mut self.score_scratch, &mut head);
+            #[cfg(test)]
+            { self.counters.phases.resolve = phase_started.elapsed(); }
+            #[cfg(test)]
+            let phase_started = Instant::now();
+            crate::backend::searchprior::scale(priors, &self.scope, &self.folder, &index, &mut head, all.len());
+            #[cfg(test)]
+            { self.counters.phases.prior = phase_started.elapsed(); }
+            (all, head, below)
+        } else {
+            #[cfg(test)]
+            let phase_started = Instant::now();
+            let mut hits = crate::backend::searchprior::rank(priors, &self.scope, &self.folder, &index, hits);
+            #[cfg(test)]
+            { self.counters.phases.prior = phase_started.elapsed(); }
+            self.tags.keep(&mut hits, &terms);
+            #[cfg(test)]
+            let phase_started = Instant::now();
+            let all = hits.iter().map(|(_, row)| *row).collect();
+            #[cfg(test)]
+            { self.counters.phases.all = phase_started.elapsed(); }
+            (all, hits, Vec::new())
+        };
+        // Top-K first: the window is selected and ordered, and the rest waits in the session.
+        let window = count.min(all.len());
         #[cfg(test)]
         let compares = std::cell::Cell::new(0usize);
         let cmp = |a: &(i32, usize), b: &(i32, usize)| {
@@ -63,7 +85,7 @@ impl Session {
             self.counters.phases.cut = searchindex::cut_elapsed();
             self.counters.phases.select_raw = index.reconstructed.load(Ordering::Relaxed) - raw_before;
         }
-        self.pending_rest = if rest.is_empty() { None } else { Some(rest) };
+        self.pending_rest = Rest::held(rest, below, &terms.text, priors, &self.scope, &self.folder, all.len());
         #[cfg(test)]
         {
             self.counters.rank_compares = compares.get();
@@ -96,3 +118,7 @@ impl Session {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "searchrank_tests.rs"]
+mod rank_tests;
