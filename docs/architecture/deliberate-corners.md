@@ -1023,10 +1023,11 @@ take Flea's OutCubic at `Motion.durMs` (140 ms out, 180 ms in), the curve every 
 list stayed sentence case in its source, matching `activePhrases`' own authoring convention, with
 `.toUpperCase()` applied only at render time.
 
-The rotation is not endless: each appearance plays three beats (phrase and FleaMark together, every
-2800 ms, the first after a full interval), then rests on the third phrase with the mark drawn whole.
-A hide resets the count. An endless rotation kept an empty folder at 2.4 s of CPU per 20 s against
-0.08 s still; three beats then rest is GM's ruling. `tests/emptybeats.sh` gates the count and the rest.
+The GPUI hero's rotation loops while shown: every 2800 ms, the first after a full interval, the phrase
+and FleaMark beat together and the phrase wraps from the last back to the first. A hide resets the count.
+The GPUI hero waits on one timer between beats and requests frames only during the fade. The QML oracle
+still stops after three beats to save CPU (2.4 s per 20 s against 0.08 s still), and
+`tests/emptybeats.sh` gates that stop.
 
 **Correction, fix round 2:** this entry originally recorded the darken factor as `1.55`, read off
 an identically-named `dim` property in `tailscale/Panel.qml` governing its own rows rather than

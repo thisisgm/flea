@@ -8,7 +8,7 @@ use crate::list::Typeface;
 use flea::i18n::I18n;
 use flea::ui_logic_pv3::{
     facts, file_name,
-    player::{column_duration, Status},
+    player::{column_duration, Media, Status},
     sample_rate_khz,
 };
 use gpui::{div, prelude::*, px, App, Entity, Window};
@@ -73,7 +73,7 @@ pub fn picture(player: &MediaPlayer, known: &Facts, catalog: &I18n) -> Picture {
     }
     if player.state.has_video {
         return Picture::Video {
-            frame: player.frame.clone().filter(|_| player.state.holds_frame()),
+            frame: player.frame.clone(),
             poster: player.state.poster(true),
         };
     }
@@ -161,7 +161,11 @@ pub fn column_view(player: Option<&MediaPlayer>, probe_duration_ms: i64, cx: &Ap
     let sound = MediaSound::get(cx);
     match player {
         Some(player) => StripView {
-            duration: column_duration(player.position, player.duration, probe_duration_ms),
+            duration: if player.state.media == Media::Ended && player.duration > 0 {
+                player.duration
+            } else {
+                column_duration(player.position, player.duration, probe_duration_ms)
+            },
             ..player.strip_view(true, cx)
         },
         None => StripView {

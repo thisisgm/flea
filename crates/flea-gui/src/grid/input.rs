@@ -1,6 +1,7 @@
 //! Grid input uses the drawn tile mask and the shared key table, with no per-tile handlers.
 use super::{arrow, host::GridHost, Arrow, Shown};
 use crate::{
+    list::pane::page_items,
     state::Shell,
     window::{
         dispatch::Order,
@@ -54,7 +55,7 @@ impl Shell {
         let next = if let Some(step) = step {
             arrow(layout.columns, Some(cursor), total, step)
         } else {
-            let page = layout.visible_rows() * layout.columns;
+            let page = page_items(host.pane.visible_rows());
             match action {
                 "cursorFirst" => Some(0),
                 "cursorLast" => total.checked_sub(1),

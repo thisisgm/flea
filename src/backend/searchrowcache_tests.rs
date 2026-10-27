@@ -104,8 +104,8 @@ fn search_row_cache_bypasses_symlinks_unwatched_remotes_and_failed_watches() {
     let missing = listing(&["absent/file.txt"]);
     cache.window(d.path(), &missing, 0, 1, "");
     assert!(cache.entries.is_empty());
-    // A watch that fails to arm takes the bypass: the whole cache clears, so no armed descriptor survives it.
-    assert!(cache.fd.is_none() && cache.watches.is_empty(), "a failed watch clears the armed cache");
+    // A failed watch removes all active coverage and facts while retaining descriptors for the next request.
+    super::test_support::assert_cleared(&cache);
 }
 
 #[test]
@@ -120,7 +120,7 @@ fn search_row_cache_is_bounded_and_clears_all_session_state() {
     assert_eq!(cache.inodes.len(), ROW_CAP);
     assert!(cache.bytes <= BYTE_CAP);
     cache.clear();
-    assert!(cache.fd.is_none());
+    super::test_support::assert_cleared(&cache);
     assert!(cache.entries.is_empty());
     assert!(cache.requested.is_empty());
     assert_eq!(cache.inodes.len(), 0);
@@ -184,7 +184,7 @@ fn search_row_cache_overflow_lost_descriptor_and_payload_limit_fail_closed() {
         assert!(cache.bytes <= BYTE_CAP);
         assert!(cache.rendered(&d.join("a.txt")).is_none());
         assert!(!cache.burst(&super::super::inotifyburst::event(-1, mask, b"")));
-        assert!(cache.fd.is_none());
+        super::test_support::assert_cleared(&cache);
         assert!(cache.entries.is_empty());
     }
 }

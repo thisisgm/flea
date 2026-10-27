@@ -102,6 +102,7 @@ impl Shell {
                 view.face = host.list.borrow().typeface.clone();
                 view.catalog = self.locale.catalog.clone();
                 view.corner = self.corner;
+                view.automatic = setting.automatic;
                 view.full_facts = self
                     .launch
                     .settings
