@@ -139,6 +139,7 @@ pub(super) fn surface(
                     visible: frame.max_scroll() > 0.5,
                     shown: state.input.shown(now),
                     fill: foreground.opacity(crate::list::TRACK),
+                    selected_fill: foreground.opacity(crate::list::GREY_CURSOR),
                 });
                 if state.input.moving() || (opacity > 0. && opacity < 1.) {
                     window.request_animation_frame()
