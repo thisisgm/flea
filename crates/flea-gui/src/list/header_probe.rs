@@ -23,7 +23,8 @@ pub(crate) fn element(side: usize, state: Rc<RefCell<ListState>>) -> impl IntoEl
                     continue;
                 };
                 let title = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);
-                let line = title.run.line();
+                let (run, text) = title.drawn();
+                let line = run.line();
                 let left = drawn.bounds.left();
                 let top = drawn.bounds.top();
                 let x = match column {
@@ -56,7 +57,7 @@ pub(crate) fn element(side: usize, state: Rc<RefCell<ListState>>) -> impl IntoEl
                     &parent,
                     "label",
                     ink.intersect(&mask),
-                    &title.text,
+                    text,
                     window,
                 );
             }

@@ -115,3 +115,63 @@ fn fix9_card_inherits_the_oem_family_and_live_body(cx: &mut TestAppContext) {
         assert_eq!(style.font_size.to_pixels(px(base)), px(base));
     }
 }
+
+struct Caption(Rc<RefCell<Option<TextStyle>>>);
+
+impl Render for Caption {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let typeface = Typeface::for_window(window, cx);
+        let palette = CardPalette::from_theme(&window.text_style(), Theme::default(), 8.);
+        let scene = Scene {
+            copy_field: None,
+            frame: None,
+            typeface: &typeface,
+            palette: &palette,
+            catalog: &I18n::default(),
+            pointer: &Pointer::default(),
+            wire: &|_, button| button,
+            pinned: None,
+            feedback: None,
+        };
+        let line = view::caption(&scene, "Explain".into(), palette.foreground)
+            .child(Probe(self.0.clone()).into_any_element());
+        view::shell(
+            &scene,
+            Kind::Collide,
+            (1100., 700.),
+            "Keep both".into(),
+            vec![line.into_any_element()],
+            Vec::new(),
+        )
+    }
+}
+
+#[gpui::test]
+fn ey254_the_collision_body_line_grows_with_the_text_size(cx: &mut TestAppContext) {
+    let seen = Rc::new(RefCell::new(None));
+    let view = cx.add_window(|window, _| {
+        window.set_rem_size(px(14.));
+        Caption(seen.clone())
+    });
+    cx.simulate_window_resize(view.into(), size(px(1100.), px(700.)));
+    // The title scales with the text size; the body line takes the caption token, 12 at 14 and 17 at 20.
+    for (base, drawn) in [(14., 12.), (20., 17.)] {
+        view.update(cx, |_, window, cx| {
+            window.set_rem_size(px(base));
+            cx.notify();
+        })
+        .unwrap();
+        cx.run_until_parked();
+        cx.update_window(view.into(), |_, window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        })
+        .unwrap();
+        let style = seen.borrow().clone().expect("the body line laid out");
+        assert_eq!(
+            style.font_size.to_pixels(px(base)),
+            px(drawn),
+            "the collision body line at text size {base}"
+        );
+    }
+}
