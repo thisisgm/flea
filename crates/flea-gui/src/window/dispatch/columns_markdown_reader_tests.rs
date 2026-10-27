@@ -9,6 +9,8 @@ use gpui::TestAppContext;
 #[gpui::test]
 fn pb_columns1_markdown_view_reader_is_mounted_in_the_normal_root(cx: &mut TestAppContext) {
     let (shell, cx) = test_shell::open_root_with(cx, r#""keys":"default","view":"columns""#, None);
+    // Before the first listing the window answers "Target not found." (v0.3.12), so the root settles first.
+    test_shell::land(&shell, cx, "/files", vec![test_shell::row("notes.md", false)], 1);
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "");
 }
 

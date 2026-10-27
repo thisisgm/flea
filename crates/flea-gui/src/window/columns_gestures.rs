@@ -84,6 +84,35 @@ pub(crate) fn on_name(host: &PaneHost, row: usize, x: Pixels) -> bool {
     x >= left && x < left + width
 }
 
+/// The row under the pointer on a drawn track, never the lane, a gap below the rows or a hidden listing.
+pub(crate) fn hover_at(host: &PaneHost, point: Point<Pixels>) -> Option<(Slot, usize)> {
+    let columns = host.columns.as_ref()?;
+    let tracks = columns.area.tracks();
+    tracks.iter().enumerate().find_map(|(at, view)| {
+        let paint = columns.painters.get(view.slot)?.borrow();
+        let drawn = paint.drawn.as_ref()?;
+        if !view.enabled
+            || !Rc::ptr_eq(&drawn.tracks, tracks)
+            || drawn.at != at
+            || !drawn.bounds.contains(&point)
+            || point.x >= drawn.bounds.right() - px(LANE)
+            || matches!(view.rows, TrackRows::Preview)
+            || drawn
+                .held
+                .as_ref()
+                .is_none_or(|held| held.listing != host.pane.held.listing)
+        {
+            return None;
+        }
+        let position = ((f32::from(point.y - drawn.bounds.top()) + drawn.scroll)
+            / crate::list::pane::ROW_HEIGHT)
+            .floor() as usize;
+        let index = drawn.row_at(position)?;
+        crate::columns::element::row_at(&view.rows, drawn.held.as_deref(), index)
+            .map(|_| (view.slot, index))
+    })
+}
+
 pub(crate) fn drop_spot(
     host: &PaneHost,
     point: Point<Pixels>,

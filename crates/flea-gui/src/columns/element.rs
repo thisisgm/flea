@@ -83,7 +83,11 @@ impl TrackElement {
     }
 }
 
-fn row_at<'a>(rows: &'a TrackRows, held: Option<&'a Held>, index: usize) -> Option<Row<'a>> {
+pub(crate) fn row_at<'a>(
+    rows: &'a TrackRows,
+    held: Option<&'a Held>,
+    index: usize,
+) -> Option<Row<'a>> {
     match rows {
         TrackRows::Peek(rows) => rows.get(index).map(Row::Peek),
         TrackRows::Listing => held?.row(index).map(Row::Listing),

@@ -18,13 +18,17 @@ mod keys;
 pub use input::BackgroundMenu;
 #[path = "columns_gestures.rs"]
 mod gestures;
-pub(crate) use gestures::{drop_spot, on_name};
+pub(crate) use gestures::{drop_spot, hover_at, on_name};
 #[path = "columns_events.rs"]
 mod events;
 #[path = "columns_readers.rs"]
 pub(crate) mod readers;
 #[path = "columns_render.rs"]
 mod render;
+#[path = "columns_shown.rs"]
+mod shown;
+#[path = "columns_loading.rs"]
+mod loading;
 #[path = "columns_requested.rs"]
 mod requested;
 #[path = "columns_scroll.rs"]
@@ -61,6 +65,8 @@ pub(crate) struct Columns {
     pub entering: bool,
     arm_entry: bool,
     pub counters: Counters,
+    /// The track row under the pointer, drawn as the hover plate of its row.
+    pub hover: Option<(crate::columns::geometry::Slot, usize)>,
     path: String,
     seen: Option<Seen>,
     held: std::rc::Rc<crate::list::pane::Held>,
@@ -116,6 +122,7 @@ impl Columns {
             entering: false,
             arm_entry: true,
             counters: Counters::default(),
+            hover: None,
             path: String::new(),
             seen: None,
             held: Default::default(),
@@ -266,29 +273,6 @@ fn flush(host: &mut PaneHost, locale: &super::locale::Snapshot) {
 }
 
 impl Shell {
-    /// The search strip's height over a Columns pane, which draws it in the header slot List leaves it.
-    pub(crate) fn columns_search_strip(&self, side: usize) -> f32 {
-        self.panes[side]
-            .as_ref()
-            .filter(|host| self.view == View::Columns && host.search.owner.active())
-            .map_or(0., |host| {
-                crate::list::Metrics::for_typeface(&host.list.borrow().typeface).header
-            })
-    }
-
-    /// The view whose content this frame draws: an entry into Columns still waiting on its columns draws the List.
-    pub(crate) fn shown_view(&self) -> View {
-        let entering = self.panes[0]
-            .as_ref()
-            .and_then(|host| host.columns.as_ref())
-            .is_some_and(|columns| columns.entering);
-        if self.view == View::Columns && entering {
-            View::List
-        } else {
-            self.view
-        }
-    }
-
     pub(crate) fn sync_columns(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let geometry = self.geometry(window);
         let visible = self.view == View::Columns;
