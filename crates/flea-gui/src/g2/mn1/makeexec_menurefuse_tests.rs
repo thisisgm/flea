@@ -6,7 +6,13 @@ use flea::protocol::{Reply, RowFacts};
 use gpui::TestAppContext;
 
 // Fires one row or leaf on the open menu and answers its validate with the given paths; returns the requests sent after.
-fn fire(cx: &mut TestAppContext, fixture: &mut Fixture, action: &str, leaf: &str, paths: &[String]) -> Vec<Json> {
+fn fire(
+    cx: &mut TestAppContext,
+    fixture: &mut Fixture,
+    action: &str,
+    leaf: &str,
+    paths: &[String],
+) -> Vec<Json> {
     update(cx, fixture.handle, |shell, window, cx| {
         shell.menu_outcome(
             crate::g2::mn1::menu::Outcome::Fire {
@@ -25,7 +31,11 @@ fn fire(cx: &mut TestAppContext, fixture: &mut Fixture, action: &str, leaf: &str
         let said = said(cx, fixture);
         panic!("{action}:{leaf} never validated; said {said:?}, sent {requests:?}")
     };
-    let chosen = if leaf.is_empty() { action.to_owned() } else { format!("{action}:{leaf}") };
+    let chosen = if leaf.is_empty() {
+        action.to_owned()
+    } else {
+        format!("{action}:{leaf}")
+    };
     let listed = paths
         .iter()
         .map(|path| format!("\"{}\"", flea::json::escape(path)))
@@ -37,7 +47,10 @@ fn fire(cx: &mut TestAppContext, fixture: &mut Fixture, action: &str, leaf: &str
 }
 
 fn said(cx: &mut TestAppContext, fixture: &Fixture) -> String {
-    read(cx, fixture.handle, "lastMessage").stdout.trim_end().to_owned()
+    read(cx, fixture.handle, "lastMessage")
+        .stdout
+        .trim_end()
+        .to_owned()
 }
 
 fn settings(cx: &mut TestAppContext, fixture: &Fixture, data: &str) {
@@ -86,7 +99,8 @@ fn answer_reads(cx: &mut TestAppContext, fixture: &mut Fixture) {
     {
         fixture.receive(cx, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"applications\",\"ok\":true,\"applications\":[]}}"));
     }
-    cx.executor().advance_clock(std::time::Duration::from_millis(400));
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(400));
     cx.run_until_parked();
 }
 
@@ -121,14 +135,28 @@ fn ey164_copy_as_leaves_copy_their_value(cx: &mut TestAppContext) {
         let mut fixture = Fixture::new(cx, 0o644);
         fixture.open(cx, 1, vec![]);
         let root = fixture.root.to_string_lossy().into_owned();
-        let path = fixture.root.join("notes.txt").to_string_lossy().into_owned();
+        let path = fixture
+            .root
+            .join("notes.txt")
+            .to_string_lossy()
+            .into_owned();
         let want = want.replace("{path}", &path).replace("{root}", &root);
         fire(cx, &mut fixture, "copyAs", leaf, &[path.clone()]);
         let words = said(cx, &fixture);
-        assert!(!words.contains("no longer available"), "{leaf} refused: {words:?}");
+        assert!(
+            !words.contains("no longer available"),
+            "{leaf} refused: {words:?}"
+        );
         let text = cx.read_from_clipboard().and_then(|item| item.text());
-        assert_eq!(text.as_deref(), Some(want.as_str()), "{leaf} copied the wrong text");
-        assert!(update(cx, fixture.handle, |shell, _, _| shell.menu.captured.is_none()));
+        assert_eq!(
+            text.as_deref(),
+            Some(want.as_str()),
+            "{leaf} copied the wrong text"
+        );
+        assert!(update(cx, fixture.handle, |shell, _, _| shell
+            .menu
+            .captured
+            .is_none()));
     }
 }
 
@@ -136,15 +164,26 @@ fn ey164_copy_as_leaves_copy_their_value(cx: &mut TestAppContext) {
 #[gpui::test]
 fn ey164_copy_as_name_with_return_copies_the_name(cx: &mut TestAppContext) {
     let mut fixture = Fixture::new(cx, 0o644);
-    update(cx, fixture.handle, |shell, _, _| shell.panes[0].as_mut().unwrap().pane.cursor = 1);
+    update(cx, fixture.handle, |shell, _, _| {
+        shell.panes[0].as_mut().unwrap().pane.cursor = 1
+    });
     keys(cx, &fixture, "c");
     answer_reads(cx, &mut fixture);
     keys(cx, &fixture, "down enter");
-    let path = fixture.root.join("notes.txt").to_string_lossy().into_owned();
+    let path = fixture
+        .root
+        .join("notes.txt")
+        .to_string_lossy()
+        .into_owned();
     validate_reply(cx, &mut fixture, "copyAs:copyName", &[&path]);
     let words = said(cx, &fixture);
     assert!(!words.contains("no longer available"), "refused: {words:?}");
-    assert_eq!(cx.read_from_clipboard().and_then(|item| item.text()).as_deref(), Some("notes.txt"));
+    assert_eq!(
+        cx.read_from_clipboard()
+            .and_then(|item| item.text())
+            .as_deref(),
+        Some("notes.txt")
+    );
 }
 
 // EY-222: a file on the clipboard, the folder empty, and the shipped hidden set: P opens the lone Paste As flyout and L, a and H send the link.
@@ -157,18 +196,33 @@ fn ey222_paste_as_letters_send_the_link(cx: &mut TestAppContext) {
         fixture.drain();
         typed(cx, &fixture, "P");
         let flyout = update(cx, fixture.handle, |shell, _, _| {
-            shell.menu.menu.borrow().flyout.as_ref().map(|f| f.action.clone())
+            shell
+                .menu
+                .menu
+                .borrow()
+                .flyout
+                .as_ref()
+                .map(|f| f.action.clone())
         });
-        assert_eq!(flyout.as_deref(), Some("pasteAs"), "P opens the Paste As flyout; said {:?}", said(cx, &fixture));
+        assert_eq!(
+            flyout.as_deref(),
+            Some("pasteAs"),
+            "P opens the Paste As flyout; said {:?}",
+            said(cx, &fixture)
+        );
         fixture.drain();
         typed(cx, &fixture, letter);
         let words = said(cx, &fixture);
         let sent = fixture.drain();
-        assert!(!words.contains("no longer available"), "{letter} refused: {words:?}; sent {sent:?}");
+        assert!(
+            !words.contains("no longer available"),
+            "{letter} refused: {words:?}; sent {sent:?}"
+        );
         let dest = fixture.root.to_string_lossy().into_owned();
         assert!(
-            sent.iter().any(|r| r.get("c").and_then(Json::as_str) == Some("collisions")
-                && r.get("dest").and_then(Json::as_str) == Some(dest.as_str())),
+            sent.iter()
+                .any(|r| r.get("c").and_then(Json::as_str) == Some("collisions")
+                    && r.get("dest").and_then(Json::as_str) == Some(dest.as_str())),
             "{letter} sent no link request into the folder: {sent:?}; said {words:?}"
         );
     }
@@ -188,7 +242,11 @@ fn ey195_add_to_shelf_adds_the_item(cx: &mut TestAppContext) {
         SHELVED.lock().unwrap().clear();
         let mut fixture = Fixture::new(cx, 0o644);
         settings(cx, &fixture, r#"{"shelf":{"enabled":true}}"#);
-        let name = if case == "folder" { "docs" } else { "notes.txt" };
+        let name = if case == "folder" {
+            "docs"
+        } else {
+            "notes.txt"
+        };
         update(cx, fixture.handle, |shell, _, _| {
             shell.menu.shelve = Some(record_shelf);
             if case == "columns" {
@@ -214,8 +272,15 @@ fn ey195_add_to_shelf_adds_the_item(cx: &mut TestAppContext) {
         let path = fixture.root.join(name).to_string_lossy().into_owned();
         fire(cx, &mut fixture, "addToShelf", "", &[path.clone()]);
         let words = said(cx, &fixture);
-        assert!(!words.contains("no longer available"), "{case} refused: {words:?}");
-        assert_eq!(*SHELVED.lock().unwrap(), vec![vec![path]], "{case} shelved the item");
+        assert!(
+            !words.contains("no longer available"),
+            "{case} refused: {words:?}"
+        );
+        assert_eq!(
+            *SHELVED.lock().unwrap(),
+            vec![vec![path]],
+            "{case} shelved the item"
+        );
         assert_eq!(words, "Added it to the shelf", "{case}");
     }
 }
@@ -229,7 +294,11 @@ fn fixture_root(shell: &crate::state::Shell) -> std::path::PathBuf {
 fn ey224_tag_leaf_tags_the_row(cx: &mut TestAppContext) {
     let mut fixture = Fixture::new(cx, 0o644);
     fixture.open(cx, 1, vec![]);
-    let path = fixture.root.join("notes.txt").to_string_lossy().into_owned();
+    let path = fixture
+        .root
+        .join("notes.txt")
+        .to_string_lossy()
+        .into_owned();
     let sent = fire(cx, &mut fixture, "tags", "tag1", &[path]);
     let words = said(cx, &fixture);
     assert!(!words.contains("no longer available"), "refused: {words:?}");
@@ -250,7 +319,26 @@ fn ey224_tag_leaf_tags_the_row(cx: &mut TestAppContext) {
     fixture.receive(cx, r#"{"t":"settagged","ok":1,"op":"add"}"#);
     assert_eq!(said(cx, &fixture), "Tagged 1 item Red · z undoes");
     assert!(
-        fixture.drain().iter().any(|r| r.get("c").and_then(Json::as_str) == Some("list")),
+        fixture
+            .drain()
+            .iter()
+            .any(|r| r.get("c").and_then(Json::as_str) == Some("list")),
         "the answer redraws the rows so the red square shows"
     );
+}
+
+// A settagged answer with no menu toggle waiting is not the menu's, so the menu passes it on instead of swallowing it.
+#[gpui::test]
+fn ey224_stray_settagged_is_not_claimed_by_the_menu(cx: &mut TestAppContext) {
+    let mut fixture = Fixture::new(cx, 0o644);
+    fixture.open(cx, 1, vec![]);
+    let reply = jsondoc::parse(r#"{"t":"settagged","ok":1,"op":"add"}"#).unwrap();
+    let claimed = update(cx, fixture.handle, |shell, window, cx| {
+        shell.menu_tag_line(0, &reply, window, cx)
+    });
+    assert!(
+        !claimed,
+        "no menu toggle was waiting, so the reply is someone else's"
+    );
+    assert!(!said(cx, &fixture).contains("Tagged"));
 }
