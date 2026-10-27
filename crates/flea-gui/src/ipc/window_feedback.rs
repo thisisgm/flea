@@ -1,5 +1,5 @@
 //! Share and footer readers observe the producers the normal window actually draws.
-use super::Adapter;
+use super::{rows::list_area_rect, Adapter};
 use crate::state::Shell;
 use flea::ipc::wire::Reply;
 use gpui::App;
@@ -32,6 +32,29 @@ impl Adapter for FeedbackAdapter<'_> {
                 } else {
                     browser.map_or_else(String::new, |browser| browser.names.join("\n"))
                 }
+            }
+            // The ShareBrowser overlay is never opened or painted in GPUI (g2/sd1/mod.rs browser_open and browser_element have no production caller), so only active, from the card shareBrowserOpen reads, and paneRects carry state here.
+            "shareBrowserRect" => String::new(),
+            "shareBrowserState" => {
+                let active = self
+                    .shell
+                    .rail
+                    .as_ref()
+                    .and_then(|rail| rail.network.as_ref())
+                    .is_some_and(|network| network.shares.read(self.cx).model.open);
+                let panes = self
+                    .shell
+                    .panes
+                    .iter()
+                    .map(|host| {
+                        let rect = host
+                            .as_ref()
+                            .map_or_else(String::new, |host| list_area_rect(&host.list.borrow()));
+                        format!("\"{rect}\"")
+                    })
+                    .collect::<Vec<_>>()
+                    .join(",");
+                format!("{{\"active\":{active},\"owner\":-1,\"rect\":\"\",\"baseUri\":\"\",\"cursor\":-1,\"paneRects\":[{panes}]}}")
             }
             "statusBusy" | "statusSecondary" => {
                 let Some(footer) = &self.shell.surfaces[0].footer else {

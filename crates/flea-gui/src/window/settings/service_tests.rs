@@ -261,3 +261,64 @@ fn u11_a_default_command_that_never_starts_draws_its_error_without_saving_a_sett
         assert!(shell.launch.settings.data.get("makeDefault").is_none());
     });
 }
+
+fn favourites_saving(
+    shell: &mut crate::state::Shell,
+    window: &mut gpui::Window,
+    cx: &mut gpui::Context<crate::state::Shell>,
+) -> flea::ipc::wire::Reply {
+    let (answer, receive) = std::sync::mpsc::sync_channel(1);
+    shell.ipc(
+        crate::ipc::server::Event::Call {
+            request: flea::ipc::wire::Request::Call {
+                target: "flea".into(),
+                function: "favouritesSaving".into(),
+                arguments: Vec::new(),
+            },
+            answer,
+        },
+        window,
+        cx,
+    );
+    receive.try_recv().unwrap().reply
+}
+
+#[gpui::test]
+fn readers3_favourites_saving_reads_true_while_a_move_is_in_flight(cx: &mut TestAppContext) {
+    let root = Fixture::new();
+    let worker = Worker::at(root.0.join("ui.json"), root.0.join("no-flea")).unwrap();
+    let (backend, _requests) = Backend::test_channel();
+    let cx = cx.add_empty_window();
+    cx.update(|window, cx| {
+        let entity = cx.new(|cx| crate::state::tests::shell_with(backend, cx));
+        entity.update(cx, |shell, cx| {
+            let document = flea::uistate::from_file(r#"{"places":{"favourites":[{"path":"/files","label":"Files"},{"path":"/other","label":"Other"}]}}"#);
+            shell.apply_settings(document, window, cx);
+            shell.settings.worker = Some(worker);
+            shell.open_settings(window, cx);
+            assert_eq!(
+                favourites_saving(shell, window, cx),
+                flea::ipc::wire::Reply::value("false")
+            );
+            shell.move_settings_favourite(0, Some(1), window, cx);
+            assert_eq!(
+                favourites_saving(shell, window, cx),
+                flea::ipc::wire::Reply::value("true"),
+                "a favourite move in flight reads saving"
+            );
+            shell.receive_settings(
+                Update::Failed {
+                    through: 1,
+                    keep: false,
+                },
+                window,
+                cx,
+            );
+            assert_eq!(
+                favourites_saving(shell, window, cx),
+                flea::ipc::wire::Reply::value("false"),
+                "a move the worker answered no longer reads saving"
+            );
+        });
+    });
+}

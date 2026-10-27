@@ -188,14 +188,15 @@ fn pane_content(panel: &crate::g2::st1::Panel) -> f32 {
 
 impl Adapter for SettingsAdapter<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
-        // A favourites write is saving while a queued or in-flight settings change names places.favourites.
+        // A favourites write is saving while a favourite move is in flight, or a queued or in-flight settings change names places.favourites.
         if function == "favouritesSaving" {
-            let saving = self.host.pending.iter().any(|(_, change)| {
-                change
-                    .get("places")
-                    .and_then(|places| places.get("favourites"))
-                    .is_some()
-            });
+            let saving = !self.host.favourite_saves.is_empty()
+                || self.host.pending.iter().any(|(_, change)| {
+                    change
+                        .get("places")
+                        .and_then(|places| places.get("favourites"))
+                        .is_some()
+                });
             return Some(Reply::value(saving.to_string()));
         }
         let panel = self

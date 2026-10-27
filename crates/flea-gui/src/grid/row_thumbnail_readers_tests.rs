@@ -218,3 +218,74 @@ fn cut_list_and_columns_rows_paint_the_faded_copy(cx: &mut TestAppContext) {
         );
     }
 }
+
+// The box a drawn row's thumbnail fills, from the drawn frame: Row.qml's mark slot centred in the row (List), or the track's 23 px slot (Columns).
+fn thumb_box(cx: &mut TestAppContext, handle: WindowHandle<Shell>, view: View) -> (f32, f32, f32) {
+    handle
+        .update(cx, |shell, _, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            if view == View::Columns {
+                let paint = host
+                    .columns
+                    .as_ref()
+                    .unwrap()
+                    .painters
+                    .get(Slot::Active)
+                    .unwrap()
+                    .borrow();
+                let drawn = paint.drawn.as_ref().unwrap();
+                let row = crate::list::pane::ROW_HEIGHT;
+                let top = f32::from(drawn.bounds.origin.y) + row - drawn.scroll.max(0.);
+                let side = crate::columns::geometry::MARK_SLOT;
+                (
+                    f32::from(drawn.bounds.origin.x) + crate::columns::geometry::PAD_X,
+                    top + (row - side) / 2.,
+                    side,
+                )
+            } else {
+                let list = host.list.borrow();
+                let drawn = &list.drawn;
+                let metrics = &drawn.metrics;
+                let top = f32::from(drawn.bounds.origin.y) + metrics.row - drawn.scroll_y;
+                (
+                    f32::from(drawn.bounds.origin.x) + metrics.pad,
+                    top + (metrics.row - metrics.slot) / 2.,
+                    metrics.slot,
+                )
+            }
+        })
+        .unwrap()
+}
+
+#[gpui::test]
+fn readers3_row_thumb_ready_and_rect_follow_the_drawn_thumbnail(cx: &mut TestAppContext) {
+    for view in [View::List, View::Columns] {
+        let (handle, mut lines) = open(cx, view, "{}");
+        first_settle(cx, handle, &mut lines);
+        let (x, y, side) = thumb_box(cx, handle, view);
+        let rect = crate::ipc::rows::rect_of(x, y, side, side);
+        assert_eq!(
+            ipc(cx, handle, "rowThumbRect", 1),
+            Reply::value(rect.clone()),
+            "{view:?}: the drawn thumbnail box while the row is drawn"
+        );
+        assert_eq!(
+            ipc(cx, handle, "rowThumbReady", 1),
+            Reply::value("false"),
+            "{view:?}: no decoded thumbnail yet"
+        );
+        assert!(deliver(cx, handle, &thumbed(1, PICTURE)));
+        cx.run_until_parked();
+        step(cx, handle);
+        assert_eq!(
+            ipc(cx, handle, "rowThumbReady", 1),
+            Reply::value("true"),
+            "{view:?}: Image.Ready on the drawn row"
+        );
+        assert_eq!(
+            ipc(cx, handle, "rowThumbRect", 1),
+            Reply::value(rect),
+            "{view:?}: the box is unchanged once decoded"
+        );
+    }
+}

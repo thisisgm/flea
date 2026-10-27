@@ -1,5 +1,5 @@
 //! Thumbnail readers describe the active painted row's source, raw file and decoder state.
-use super::Adapter;
+use super::{rows::rect_of, Adapter};
 use crate::{
     columns::{geometry::Slot, TrackRows},
     grid::element::pictures::policy::Mode,
@@ -71,10 +71,58 @@ impl Thumbnails<'_> {
     }
 }
 
+impl Thumbnails<'_> {
+    // The mark slot a drawn row's thumbnail fills, as window pixels (x, y, width, height); a Dual pane fits the mark's own side.
+    fn thumb_box(&self, index: usize) -> Option<(f32, f32, f32, f32)> {
+        match self.host.drawn_view {
+            Some(View::List | View::Dual) => {
+                let list = self.host.list.borrow();
+                let drawn = &list.drawn;
+                let shown = list.visible().iter().find(|shown| shown.index == index)?;
+                let metrics = &drawn.metrics;
+                let side = if self.host.drawn_view == Some(View::Dual) {
+                    metrics.mark
+                } else {
+                    metrics.slot
+                };
+                let left = f32::from(drawn.bounds.origin.x);
+                let top = f32::from(drawn.bounds.origin.y) + shown.view as f32 * metrics.row
+                    - drawn.scroll_y;
+                Some((
+                    left + metrics.pad + (metrics.slot - side) / 2.,
+                    top + (metrics.row - side) / 2.,
+                    side,
+                    side,
+                ))
+            }
+            Some(View::Columns) => {
+                let columns = self.host.columns.as_ref()?;
+                let paint = columns.painters.get(Slot::Active)?.borrow();
+                let (x, y, side) = paint.slot_box(index)?;
+                Some((x, y, side, side))
+            }
+            _ => None,
+        }
+    }
+}
+
 impl Adapter for Thumbnails<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         if function == "thumbnailPolicyState" {
             return Some(Reply::value(self.policy_state()));
+        }
+        // The grid answers rowThumbRect from its own slots, so the pictures share it only in the list and columns.
+        if function == "rowThumbRect" && self.host.drawn_view != Some(View::Grid) {
+            let index = arguments
+                .first()
+                .and_then(|text| text.parse::<usize>().ok());
+            let rect = index
+                .filter(|&row| self.visible(row))
+                .and_then(|row| self.thumb_box(row))
+                .map_or_else(String::new, |(x, y, width, height)| {
+                    rect_of(x, y, width, height)
+                });
+            return Some(Reply::value(rect));
         }
         // The grid answers rowThumbReady from its own decoded tiles, so the pictures share it only in the list and columns.
         if function == "rowThumbReady" && self.host.drawn_view != Some(View::Grid) {

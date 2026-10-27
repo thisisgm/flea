@@ -74,6 +74,9 @@ impl Shell {
                     .unwrap_or(0);
                 self.settings.retried.push((revision, through));
             }
+            if operation.is_some() {
+                self.settings.favourite_saves.push(revision);
+            }
             self.settings.pending.push((
                 revision,
                 if operation.is_some() {
@@ -124,6 +127,7 @@ impl Shell {
                     );
                 }
                 self.settings.pending.retain(|(id, _)| *id > through);
+                self.settings.favourite_saves.retain(|id| *id > through);
                 self.settings.retried.retain(|(id, _)| *id > through);
                 self.settings_save_error(cx);
             }
@@ -154,6 +158,7 @@ impl Shell {
                     }
                 }
                 self.settings.pending.retain(|(id, _)| *id > through);
+                self.settings.favourite_saves.retain(|id| *id > through);
                 self.settings.retried.retain(|(id, _)| *id > through);
                 // Folder choices the folder writer has not finished stay as this window chose them.
                 let owed = self

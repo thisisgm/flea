@@ -139,9 +139,9 @@ fn u08_composition_paints_rows_and_readers_report_the_drawn_centres(cx: &mut Tes
     assert_eq!(ipc(&shell, "focusView", &[], cx).stdout.trim(), "rail");
     assert_eq!(ipc(&shell, "railRowCentre", &["99"], cx).stdout.trim(), "");
     assert_eq!(
-        ipc(&shell, "recentMode", &[], cx).stdout.trim(),
-        "",
-        "Recent is off, the v0.3.12 closed value, when no Recent listing is open"
+        ipc(&shell, "recentMode", &[], cx).code,
+        3,
+        "an unmounted Recent listing retains its refusal"
     );
 }
 
