@@ -504,10 +504,10 @@ r5_wait_listing() {
 
 # Read the same target-owned activity as expect_feedback before releasing the held drag.
 r5_wait_feedback() {
-  local attempt state owner="$HOMEDIR/bbb" line="Move 1 item to $HOMEDIR/bbb · Ctrl copies, Shift moves"
+  local attempt state owner="$HOMEDIR/bbb" line="Move 1 item to $HOMEDIR/bbb · ctrl copies, shift moves"
   for ((attempt=1; attempt<=r5_poll_attempts; attempt++)); do
     state=$(ipc statusActivityState) || { r5_evidence; die "R5 drag activity observer failed"; }
-    # Sample input: {"activities":[{"running":false,"ownerPath":"/run/home/bbb","text":"Move 1 item to /run/home/bbb · Ctrl copies, Shift moves"}]}.
+    # Sample input: {"activities":[{"running":false,"ownerPath":"/run/home/bbb","text":"Move 1 item to /run/home/bbb · ctrl copies, shift moves"}]}.
     if jq -e --arg owner "$owner" --arg line "$line" '
         [.activities[] | select(.running | not) | {ownerPath,text}] ==
         [{ownerPath:$owner,text:$line}]' <<< "$state" >/dev/null; then
@@ -720,7 +720,7 @@ raildrop_case() {
     press; sleep 0.3
     glide_to "$((WX + x))" "$((WY + y))"
     if [[ "$verb" == Move ]]; then
-      expect_ipc stickyMessage "Move 1 item to Favorite · Ctrl copies, Shift moves"
+      expect_ipc stickyMessage "Move 1 item to Favorite · ctrl copies, shift moves"
     else
       expect_ipc stickyMessage "Copy 1 item to USB"
     fi
@@ -902,7 +902,7 @@ press; sleep 0.3
 glide_to "$bx" "$by"; sleep 0.8
 MID=$(ipc stickyMessage)
 release; sleep 0.6
-check "the line names the folder under the pointer" "$MID" "Move 1 item to bbb · Ctrl copies, Shift moves"
+check "the line names the folder under the pointer" "$MID" "Move 1 item to bbb · ctrl copies, shift moves"
 
 # ---------------------------------------------------------------- R1
 echo
@@ -1359,7 +1359,7 @@ dual_drag_diagnostic() {
 
 visit_targets() {
   local destination="$1" verb="$2" suffix=""
-  [[ "$verb" != Move ]] || suffix=' · Ctrl copies, Shift moves'
+  [[ "$verb" != Move ]] || suffix=' · ctrl copies, shift moves'
   glide_to "$folder_x" "$folder_y"
   expect_feedback "$destination" "$verb 2 items to folder$suffix"
   glide_to "$floor_x" "$floor_y"
