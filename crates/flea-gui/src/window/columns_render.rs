@@ -111,6 +111,9 @@ impl Shell {
                 .h_full()
                 .overflow_hidden()
                 .child(element);
+            if view.slot == Slot::Active && view.enabled && view.state == TrackState::Rows {
+                track = track.child(crate::input::views::surface(cx.entity(), side, palette));
+            }
             if matches!(view.rows, TrackRows::Preview) {
                 if columns.preview_hosted {
                     if let Some(preview) = &host.preview {

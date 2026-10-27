@@ -10,6 +10,7 @@ pub mod scroll;
 pub mod selection;
 // The oracle tests keep their input::slow path while the rename owner supplies the shared policy.
 pub use crate::window::rename::slow::policy as slow;
+pub(crate) mod views;
 mod wheel;
 pub use band::{update_band, EDGE_RATE};
 
@@ -98,6 +99,7 @@ pub struct Frame {
     pub total: usize,
     pub columns: usize,
     pub cell_width: f32,
+    pub cell_origin: (f32, f32),
 }
 
 impl Frame {
@@ -117,6 +119,7 @@ impl Frame {
             total: pane.held.total,
             columns: 1,
             cell_width: f32::from(bounds.size.width) - metrics.lane,
+            cell_origin: (0., 0.),
         }
     }
     pub fn viewport(self) -> f32 {
@@ -140,11 +143,15 @@ impl Frame {
         }
         let (_, y) = self.local(point);
         let (x, _) = self.local(point);
+        let (x, y) = (x - self.cell_origin.0, y + self.scroll - self.cell_origin.1);
+        if x < 0. || y < 0. {
+            return None;
+        }
         let column = (x / self.cell_width.max(1.)).floor() as usize;
         if column >= self.columns {
             return None;
         }
-        let row = ((y + self.scroll) / self.row).floor() as usize * self.columns + column;
+        let row = (y / self.row).floor() as usize * self.columns + column;
         (row < self.total).then_some(row)
     }
 }
@@ -173,6 +180,7 @@ impl PaneInput {
                 || old.row != frame.row
                 || old.columns != frame.columns
                 || old.cell_width != frame.cell_width
+                || old.cell_origin != frame.cell_origin
                 || old.lane != frame.lane
                 || old.content != frame.content
         }) {
@@ -243,6 +251,9 @@ impl PaneInput {
     }
     pub fn hit(&self, point: Point<Pixels>) -> Option<usize> {
         let frame = self.frame?;
+        self.hit_in(frame, point)
+    }
+    pub(super) fn hit_in(&self, frame: Frame, point: Point<Pixels>) -> Option<usize> {
         if !frame.bounds.contains(&point) || frame.in_lane(point) {
             return None;
         }
