@@ -30,40 +30,64 @@ case_renderer() {
     kill_flea
     local dir="$fixture_root/renderer"
     sandbox_scratch "$dir"
-    local log="$dir/shell.log"
-    local relaunched="$dir/relaunch.log"
-    : > "$relaunched"
-    printf '#!/bin/sh\nprintf "RAN %%s\\n" "$*" >> %q\n' "$relaunched" > "$dir/flea-stub"
-    chmod +x "$dir/flea-stub"
-    # The marker is set, so the renderer's own name is the only thing standing between this and a retry.
+    local log="$dir/window.log" fallback="$dir/fallback.log" message waited
+    # Sample input: pub const MESSAGE: &str = "flea: no graphics driver could open a window; install or repair vulkan-swrast and mesa, or run flea --tui";
+    message=$(grep -o 'pub const MESSAGE: &str = "[^"]*"' "$repo/crates/flea-gui/src/renderer.rs" | cut -d'"' -f2)
+    [[ "$message" == "flea: "* ]] || fail "crates/flea-gui/src/renderer.rs names no flea: line for a window no driver could open, found '$message'"
+    # No Vulkan driver and no EGL vendor, so neither backend GPUI tries in turn can open the window; the Qt-era renderer names stay set as an operator's shell may have them.
     QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=1 \
+        VK_DRIVER_FILES="$dir/no-such-icd.json" VK_ICD_FILENAMES="$dir/no-such-icd.json" \
         __EGL_VENDOR_LIBRARY_FILENAMES="$dir/no-such-egl-vendor.json" \
-        FLEA_PATH="$dir" FLEA_BIN="$dir/flea-stub" \
-        flea_test_exec qs -p "$flea_ui/boot" > "$log" 2>&1 </dev/null &
-    local waited
+        FLEA_PATH="$dir" FLEA_BIN="$flea_bin" \
+        flea_test_exec "$flea_bin" --gui "$dir" > "$log" 2>&1 </dev/null &
+    local launcher=$!
     for waited in $(seq 1 200); do
-        grep -aq 'graphics backend opengl failed' "$log" && break
+        grep -aqF -- "$message" "$log" && break
+        sleep 0.1
+    done
+    # The launcher returns once the window's process group has drained, so a retry would have printed by then.
+    for waited in $(seq 1 400); do
+        kill -0 "$launcher" 2>/dev/null || break
         sleep 0.1
     done
     kill_flea
-    printf 'RENDERER ran=%q\n' "$(tr '\n' ' ' < "$relaunched")"
-    grep -aq 'graphics backend opengl failed' "$log" \
-        || fail "no scene-graph error reached ui/boot/shell.qml, so its Connections never held the window"
-    # A scene-graph failure now starts no backend at all, so counting FLEA_BIN is a zero denominator.
-    local retried
-    retried=$(grep -c -- '--gui' "$relaunched" || true)
-    [[ "$retried" == "0" ]] || fail "the retry fired for a renderer the operator named: $(cat "$relaunched")"
-    # The argv side of that arm, from a root carrying ui/boot's own two symlinks: the helper implicitly imports ui/, whose qmldir singletons import qs.Commons, and qs: resolves against the root.
-    local proberoot="$dir/retry-cfg" probe="$dir/retry-probe.log"
-    mkdir -p "$proberoot"
-    cp -a "$flea_ui/boot/Commons" "$flea_ui/boot/Ui" "$proberoot/" \
-        || fail "the boot root has no Commons or Ui to copy, so this probe would test its own fake root"
-    cp "$repo/tests/renderer-retry.qml" "$proberoot/probe.qml"
-    : > "$probe"
-    env RETRY_HELPER="$flea_ui/RendererRetry.qml" RETRY_BACKEND=vulkan \
-        FLEA_RENDERER_AUTOMATIC=1 FLEA_BIN="$dir/flea-stub" QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic \
-        timeout 20 qs -p "$proberoot/probe.qml" > "$probe" 2>&1
-    local want='RETRY argv ["/usr/bin/env","QSG_RHI_BACKEND=opengl","'"$dir/flea-stub"'","--gui"]'
-    grep -aqF "$want" "$probe" \
-        || fail "the retry helper did not answer with the argv Renderer.js names: $(grep -a RETRY "$probe" | head -2)"
+    local failed
+    failed=$(grep -acF -- "$message" "$log" || true)
+    printf 'RENDERER failed=%s\n' "$failed"
+    [[ "$failed" != 0 ]] \
+        || fail "no graphics failure reached flea-gui's startup, so a window no driver could open was never caught: $(tail -n 3 "$log" | tr '\n' ' ')"
+    [[ "$failed" == 1 ]] || fail "the window was started again after its graphics failed, the failure was said $failed times"
+    # Sample input: "flea: no graphics driver could open a window; install or repair vulkan-swrast and mesa, or run flea --tui" then "No GPU adapters found".
+    local cause
+    cause=$(grep -aA1 -F -- "$message" "$log" | sed -n 2p)
+    printf 'RENDERER cause=%q\n' "$cause"
+    # Every error gpui-pre-wgpu returns for a refused window names an adapter, a surface, a device or its alpha modes.
+    grep -qiE 'adapter|surface|device|alpha mode' <<< "$cause" \
+        || fail "the graphics failure named no backend cause under its message: $(tail -n 3 "$log" | tr '\n' ' ')"
+    # Control: with the box's own drivers the window opens on Vulkan, so GL below is the fallback, not the only driver.
+    local control="$dir/control.log"
+    FLEA_GPUI_CAPTURE=1 FLEA_PATH="$dir" FLEA_BIN="$flea_bin" \
+        flea_test_exec "$flea_bin" --gui "$dir" > "$control" 2>&1 </dev/null &
+    for waited in $(seq 1 200); do
+        grep -aq '^GPUI_RENDERER ' "$control" && break
+        sleep 0.1
+    done
+    kill_flea
+    printf 'RENDERER control=%s\n' "$(grep -a -m1 '^GPUI_RENDERER ' "$control" | cut -d' ' -f2)"
+    grep -aq '^GPUI_RENDERER backend=vulkan ' "$control" \
+        || fail "this box opened no window on Vulkan, so a GL window with Vulkan removed would prove no fallback: $(grep -a -m1 '^GPUI_RENDERER ' "$control" || tail -n 3 "$control" | tr '\n' ' ')"
+    # The automatic fallback is in-process: Vulkan with no driver falls to GL in the same window, never a relaunch.
+    QSG_RHI_BACKEND=vulkan FLEA_GPUI_CAPTURE=1 \
+        VK_DRIVER_FILES="$dir/no-such-icd.json" VK_ICD_FILENAMES="$dir/no-such-icd.json" \
+        FLEA_PATH="$dir" FLEA_BIN="$flea_bin" \
+        flea_test_exec "$flea_bin" --gui "$dir" > "$fallback" 2>&1 </dev/null &
+    for waited in $(seq 1 200); do
+        grep -aq '^GPUI_RENDERER ' "$fallback" && break
+        sleep 0.1
+    done
+    kill_flea
+    printf 'RENDERER fallback=%s\n' "$(grep -a -m1 '^GPUI_RENDERER ' "$fallback" | cut -d' ' -f2)"
+    grep -aq '^GPUI_RENDERER backend=gl ' "$fallback" \
+        || fail "a window with no Vulkan driver did not fall back to GL in-process: $(grep -a -m1 '^GPUI_RENDERER ' "$fallback" || tail -n 3 "$fallback" | tr '\n' ' ')"
+    ! grep -aqF -- "$message" "$fallback" || fail "a window GL could open still said no graphics driver could open it"
 }

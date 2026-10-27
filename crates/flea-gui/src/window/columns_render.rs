@@ -15,6 +15,7 @@ impl Shell {
         window: &mut gpui::Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
+        self.advance_columns_scroll(side, window, cx);
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -43,6 +44,11 @@ impl Shell {
         let typeface = list.typeface.clone();
         let words = Rc::clone(&list.view.words);
         let languages = list.view.lang_marks;
+        let query: Rc<str> = match host.filter.shown {
+            Some(_) if !host.pane.state.search => host.filter.owner.query(),
+            _ => &host.pane.state.query,
+        }
+        .into();
         let focus = Rc::new(Focus {
             cursor: (!host.pane.busy()).then_some(host.pane.cursor),
             selected: host.selected.clone().into(),
@@ -88,7 +94,7 @@ impl Shell {
                 at,
                 Some(Rc::clone(&host.pane.held)),
                 Rc::clone(&focus),
-                scroll,
+                columns.scroll[view.slot.index()].input.drawn(scroll),
                 clip.clone(),
                 paint,
                 Rc::clone(&words),
@@ -101,7 +107,9 @@ impl Shell {
                         listing: host.pane.held.listing,
                     }))
                     .with_pictures(Rc::clone(&host.list.borrow().pictures))
-                    .with_filter(host.filter.shown.clone());
+                    .with_filter(host.filter.shown.clone())
+                    .with_location(host.pane.state.search)
+                    .with_query(Rc::clone(&query));
             }
             let mut track = div()
                 .absolute()
@@ -111,6 +119,14 @@ impl Shell {
                 .h_full()
                 .overflow_hidden()
                 .child(element);
+            if !matches!(view.rows, TrackRows::Preview) && view.slot != Slot::Active {
+                track = track.child(super::scroll_bar::surface(
+                    cx.entity(),
+                    side,
+                    view.slot,
+                    Rc::clone(&tracks),
+                ));
+            }
             if matches!(view.rows, TrackRows::Preview) {
                 if columns.preview_hosted {
                     if let Some(preview) = &host.preview {
@@ -189,6 +205,17 @@ impl Shell {
                     window,
                 ));
             }
+            if view.slot == Slot::Active {
+                // The track's own bar sits above the shared gestures, so a lane press never reaches a row.
+                track = track
+                    .child(super::gestures::surface(side, palette, cx))
+                    .child(super::scroll_bar::surface(
+                        cx.entity(),
+                        side,
+                        view.slot,
+                        Rc::clone(&tracks),
+                    ));
+            }
             area = area.child(track);
         }
         if let Some((hero, natural)) = no_match {
@@ -226,23 +253,25 @@ impl Shell {
                 );
             }
         }
+        area = area.children(super::edge::surface(self, side, cx));
         Some(
-            area.on_mouse_down(
-                gpui::MouseButton::Left,
-                cx.listener(move |shell, event, window, cx| {
-                    shell.columns_pointer(side, event, window, cx)
-                }),
-            )
-            .on_mouse_down(
-                gpui::MouseButton::Right,
-                cx.listener(move |shell, event, window, cx| {
-                    shell.columns_pointer(side, event, window, cx)
-                }),
-            )
-            .on_scroll_wheel(
-                cx.listener(move |shell, event, _, cx| shell.columns_wheel(side, event, cx)),
-            )
-            .into_any_element(),
+            super::gestures::draggable(area, side, cx)
+                .on_mouse_down(
+                    gpui::MouseButton::Left,
+                    cx.listener(move |shell, event, window, cx| {
+                        shell.columns_pointer(side, event, window, cx)
+                    }),
+                )
+                .on_mouse_down(
+                    gpui::MouseButton::Right,
+                    cx.listener(move |shell, event, window, cx| {
+                        shell.columns_pointer(side, event, window, cx)
+                    }),
+                )
+                .on_scroll_wheel(
+                    cx.listener(move |shell, event, _, cx| shell.columns_wheel(side, event, cx)),
+                )
+                .into_any_element(),
         )
     }
 

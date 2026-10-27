@@ -155,6 +155,11 @@ impl QuickLook {
         cx.notify();
     }
 
+    /// The roles the card draws with: the host's when it set them, else the theme's inherited roles.
+    pub(crate) fn look(&self, style: &gpui::TextStyle, theme: crate::palette::Theme) -> Look {
+        self.look.unwrap_or_else(|| Look::of_text(style, theme))
+    }
+
     pub fn is_open(&self) -> bool {
         self.subject.is_some()
     }

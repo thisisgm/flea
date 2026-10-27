@@ -2,6 +2,9 @@
 use super::{count, hint, leaf, n, transfer::Transfer, undo_hint};
 use crate::i18n::I18n;
 
+mod link;
+pub use link::{linked_line, linked_receipt};
+
 pub fn items(catalog: &I18n, value: u64) -> String {
     catalog.trn("jobs.items", n(value))
 }
@@ -118,20 +121,6 @@ pub fn done_line(catalog: &I18n, preset: &str, t: &Transfer, done: &super::Trans
         note: &done.note,
     };
     super::collide::merged_line(catalog, preset, m)
-}
-
-// Paste as links answers one line per request, and one undo removes every link it made.
-pub fn linked_line(catalog: &I18n, preset: &str, o: Outcome<'_>) -> String {
-    let mut line = catalog.tr_args("jobs.done.linked", &[&items(catalog, o.ok)]);
-    line += &tail(catalog, o.failed, o.skipped, false);
-    if !o.note.is_empty() {
-        line += &note(catalog, o.note);
-    }
-    if o.ok > 0 {
-        with_undo(catalog, preset, line)
-    } else {
-        line
-    }
 }
 
 // Only an identity-checked locate reply supplies these matches.

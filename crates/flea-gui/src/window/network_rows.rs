@@ -88,17 +88,23 @@ impl Shell {
         let read = cx.background_spawn(async move {
             let marks = std::fs::read_to_string(path).unwrap_or_default();
             let mountinfo = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-            flea::ui_logic_pl2::rail::rebuild(
+            let ready = !mountinfo.is_empty();
+            let rows = flea::ui_logic_pl2::rail::rebuild(
                 &gio,
                 &flea::ui_logic_pl1::mounts::non_file_bookmarks(&marks),
                 &mountinfo,
-            )
+            );
+            (rows, crate::path::aliases::saved_labels(&marks), ready)
         });
         let task = cx.spawn(async move |this, cx| {
-            let rows = read.await;
+            let (rows, labels, ready) = read.await;
             let _ = this.update(cx, |shell, cx| {
                 if let Some(network) = shell.network() {
                     network.built = true;
+                    network.mountinfo_ready = ready;
+                }
+                if shell.path_saved_labels(labels) {
+                    cx.notify();
                 }
                 shell.network_publish(Some(rows), cx)
             });

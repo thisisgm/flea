@@ -132,6 +132,20 @@ pub(super) fn notice(cx: &mut TestAppContext, handle: Handle) -> String {
     })
 }
 
+pub(super) fn footer_status(
+    cx: &mut TestAppContext,
+    handle: Handle,
+) -> (String, crate::g2::fb1::line::Drawn) {
+    edit(cx, handle, |shell, _, cx| {
+        let footer = shell.footer(cx);
+        let footer = footer.read(cx);
+        (
+            footer.counts.to_string(),
+            footer.line.read(cx).drawn().clone(),
+        )
+    })
+}
+
 pub(super) fn errors(cx: &mut TestAppContext, handle: Handle) -> Vec<String> {
     edit(cx, handle, |shell, _, cx| {
         shell.status_messages(cx, |messages, _| {

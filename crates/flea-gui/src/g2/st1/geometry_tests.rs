@@ -1,5 +1,8 @@
 //! tests/settings-columns.qml and settings-tail.qml: band heights, and the pane's reveal at every host height.
-use super::geometry::{fade_shown, row_height, FADE, FOOTER_LINE, HINT_LINE};
+use super::geometry::{
+    estimated_lines, fade_shown, hint_line_count, hint_units, row_height, FADE, FOOTER_LINE,
+    HINT_LINE,
+};
 use super::panel::Panel;
 use super::tests::panel;
 use flea::ui_logic_st1::{
@@ -61,6 +64,79 @@ fn walk(panel: &mut Panel, section: &'static str, height: f32) {
         }
         panel.key("j", "j", false);
     }
+}
+
+#[test]
+fn settings_hint_keeps_every_chord_whole_for_layout() {
+    let raw =
+        "Ctrl+Shift++ and Ctrl+Shift+- step through them; Ctrl+Shift+0 follows Omarchy again.";
+    let units = hint_units(raw);
+    // The laid-out units are the same words in the same order, spaces kept on each word.
+    assert_eq!(units.concat(), raw);
+    // Every chord is one whole unit, never a fragment the layout could wrap inside.
+    for chord in ["Ctrl+Shift++ ", "Ctrl+Shift+- ", "Ctrl+Shift+0 "] {
+        assert!(
+            units.iter().any(|unit| unit == chord),
+            "{chord} is not one unit in {units:?}"
+        );
+    }
+    assert!(
+        !units.iter().any(|unit| unit.starts_with('+')),
+        "a chord fragment in {units:?}"
+    );
+    // Packed whole, a chord that does not fit moves to the next line instead of splitting.
+    assert_eq!(hint_line_count(&[90., 20.], 100.), 2);
+    assert_eq!(hint_line_count(&[40., 20.], 100.), 1);
+    assert_eq!(hint_line_count(&[120.], 100.), 1);
+}
+
+#[test]
+fn an_unspaced_wide_script_hint_still_wraps_between_characters() {
+    assert_eq!(
+        hint_units("按Ctrl+Shift+0逐级"),
+        ["按", "Ctrl+Shift+0", "逐", "级"]
+    );
+    assert_eq!(hint_units("a 你好 b").concat(), "a 你好 b");
+    assert_eq!(
+        hint_units("か\u{3099}き"),
+        ["か\u{3099}", "き"],
+        "a voicing mark stays with its kana"
+    );
+    assert_eq!(
+        hint_units("你好，世界。"),
+        ["你", "好，", "世", "界。"],
+        "closing punctuation never starts a line"
+    );
+    assert_eq!(
+        hint_units("按「回车」"),
+        ["按", "「回", "车」"],
+        "opening punctuation never ends a line"
+    );
+    assert_eq!(
+        hint_units("Ctrl+K, then"),
+        ["Ctrl+K, ", "then"],
+        "a chord keeps its own comma"
+    );
+    assert_eq!(
+        hint_units("辻\u{E0100}道"),
+        ["辻\u{E0100}", "道"],
+        "a variation selector stays with its ideograph"
+    );
+    assert_eq!(
+        hint_units("按(回车)"),
+        ["按", "(回", "车)"],
+        "an ASCII bracket never ends a line"
+    );
+    assert_eq!(
+        hint_units("\u{1100}\u{1161}\u{11A8}가"),
+        ["\u{1100}\u{1161}\u{11A8}", "가"],
+        "a conjoined syllable stays whole"
+    );
+    let sentence = "按下组合键可以逐级放大或缩小文字并在需要时恢复跟随系统设置的大小";
+    assert!(
+        estimated_lines(sentence, 14., 100.) > 1,
+        "thirty wide characters fit no 100px line"
+    );
 }
 
 #[test]
