@@ -149,6 +149,7 @@ impl Render for Root {
                     .clone()
                     .cached(StyleRefinement::default().size_full()),
             )
+            .child(crate::window::chrome_move::observer(self.shell.clone()))
             // Pane marks paint over the cached shell and below deferred surfaces.
             .child(Overlay(self.shell.clone(), false))
             .children(menu)
