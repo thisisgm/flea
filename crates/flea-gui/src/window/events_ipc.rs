@@ -41,6 +41,9 @@ impl Shell {
                     Some(call) => call,
                     None => return,
                 };
+                if self.network_mountinfo_call(&request, &answer, cx) {
+                    return;
+                }
                 let Some(host) = &self.panes[self.focus_side] else {
                     return;
                 };

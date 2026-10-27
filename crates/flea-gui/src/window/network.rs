@@ -37,6 +37,8 @@ pub struct Network {
     pub card: Entity<NetworkView>,
     pub shares: Entity<ShareView>,
     pub rows: Vec<RailEntry>,
+    /// Counts rebuilds, so a read that a newer one superseded never publishes its rows.
+    pub rows_generation: u64,
     /// True once rows were rebuilt from a gio listing and a mountinfo read.
     pub built: bool,
     pub listing: Listing,
@@ -198,6 +200,7 @@ impl Shell {
                 card,
                 shares,
                 rows: Vec::new(),
+                rows_generation: 0,
                 built: false,
                 listing: Listing::new(),
                 mountinfo_ready: false,
