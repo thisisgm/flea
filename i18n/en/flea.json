@@ -1874,7 +1874,7 @@
   "network.connecting": "Connecting…",
   "network.saving": "Saving…",
   "network.close": "Close",
-  "network.tls": "Use TLS encryption",
+  "network.tls": "Encrypted (TLS)",
   "network.host_caption": "%1 · %2",
   "network.invalid_form": "Enter a valid host and port.",
   "network.invalid_address": "Enter a valid network address.",
