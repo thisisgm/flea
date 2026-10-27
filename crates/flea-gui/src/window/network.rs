@@ -38,6 +38,8 @@ pub struct Network {
     pub card: Entity<NetworkView>,
     pub shares: Entity<ShareView>,
     pub rows: Vec<RailEntry>,
+    /// Bumped by each saved bookmark write, so a rows read started before it cannot publish older labels.
+    rows_generation: u64,
     /// True once rows were rebuilt from a gio listing and a mountinfo read.
     pub built: bool,
     pub listing: Listing,
@@ -177,6 +179,7 @@ impl Shell {
                 card,
                 shares,
                 rows: Vec::new(),
+                rows_generation: 0,
                 built: false,
                 listing: Listing::new(),
                 mountinfo_ready: false,

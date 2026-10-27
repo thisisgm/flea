@@ -62,30 +62,26 @@ impl Render for NetworkView {
                             }
                         }),
                     )
-                    .on_mouse_move(
-                        cx.listener(|this, event: &gpui::MouseMoveEvent, _, cx| {
-                            if this.text_drag(event.position, cx) {
-                                return;
-                            }
-                            let (x, y) = (f32::from(event.position.x), f32::from(event.position.y));
-                            let drawn = this.drawn.borrow();
-                            let hover = drawn
-                                .hits
-                                .iter()
-                                .rev()
-                                .find(|(_, rect)| {
-                                    rect.contains(x - drawn.origin.0, y - drawn.origin.1)
-                                })
-                                .map(|(focus, _)| *focus);
-                            drop(drawn);
-                            if hover != this.hovered {
-                                this.hovered = hover;
-                                this.paint_changed(cx);
-                            } else {
-                                cx.notify();
-                            }
-                        }),
-                    )
+                    .on_mouse_move(cx.listener(|this, event: &gpui::MouseMoveEvent, _, cx| {
+                        if this.text_drag(event.position, cx) {
+                            return;
+                        }
+                        let (x, y) = (f32::from(event.position.x), f32::from(event.position.y));
+                        let drawn = this.drawn.borrow();
+                        let hover = drawn
+                            .hits
+                            .iter()
+                            .rev()
+                            .find(|(_, rect)| rect.contains(x - drawn.origin.0, y - drawn.origin.1))
+                            .map(|(focus, _)| *focus);
+                        drop(drawn);
+                        if hover != this.hovered {
+                            this.hovered = hover;
+                            this.paint_changed(cx);
+                        } else {
+                            cx.notify();
+                        }
+                    }))
                     .on_mouse_down(
                         MouseButton::Left,
                         cx.listener(|this, event: &gpui::MouseDownEvent, _, cx| {

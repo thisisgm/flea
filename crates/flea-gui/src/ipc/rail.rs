@@ -356,21 +356,29 @@ impl Adapter for RailAdapter<'_> {
                 .is_some_and(|producer| self.shown() && producer.field_shown())
                 .to_string(),
             // One line per entry, "label|group|kind|mounted", in ui/Ipc.qml's shape.
-            "networkEntries" => self
-                .entries()
-                .iter()
-                .filter(|entry| entry.group == Group::Network)
-                .map(|entry| {
-                    format!(
-                        "{}|{}|{}|{}",
-                        entry.label,
-                        group_name(entry.group),
-                        kind_name(entry.kind),
-                        entry.mounted.unwrap_or(false)
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("\n"),
+            "networkEntries" => {
+                let catalog = self.producer().map(|producer| &producer.catalog);
+                self.entries()
+                    .iter()
+                    .filter(|entry| entry.group == Group::Network)
+                    .map(|entry| {
+                        let label = catalog.map_or_else(
+                            || entry.label.to_string(),
+                            |catalog| {
+                                crate::g2::pl4::content::row_label(catalog, entry).to_string()
+                            },
+                        );
+                        format!(
+                            "{}|{}|{}|{}",
+                            label,
+                            group_name(entry.group),
+                            kind_name(entry.kind),
+                            entry.mounted.unwrap_or(false)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            }
             "networkBuilt" => self.network.ready().to_string(),
             "networkMarkGeometry" => self.mark_geometry().unwrap_or_default(),
             "networkMarkCentre" => self.mark_centre().unwrap_or_default(),
