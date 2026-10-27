@@ -7,6 +7,16 @@ use gpui::App;
 pub(crate) struct DialogAdapter<'a> {
     pub shell: &'a Shell,
     pub cx: &'a App,
+    /// The list holds the keyboard and no listing is in flight, the rest state of Pane.qml's permissions inputReady.
+    pub input_ready: bool,
+}
+
+// An open card's painted bounds are not recorded, so its reader refuses instead of inventing them.
+fn open_card(function: &str, fields: &str) -> Reply {
+    Reply::error(
+        3,
+        format!("FLEA_IPC_ERROR flea.{function} unavailable fields: {fields} (GPUI does not record the card's painted bounds)"),
+    )
 }
 
 impl Adapter for DialogAdapter<'_> {
@@ -31,8 +41,31 @@ impl Adapter for DialogAdapter<'_> {
                 }
                 "{\"opened\":false}".into()
             }
-            "menuDialogState" | "openWithState" | "permissionsState" | "runCardState" => {
-                return Some(Reply::error(3, format!("FLEA_IPC_ERROR flea.{function} unavailable state: the normal Root has no mounted owner for this dialog")));
+            // The menu actions' card is Open With or the run card; with neither open the Root has no dialog to describe.
+            "menuDialogState" => {
+                if self.shell.open_with.is_some() || self.shell.run_card.is_some() {
+                    return Some(open_card(function, "rect, controls, confirmation"));
+                }
+                "{\"opened\":false}".into()
+            }
+            "openWithState" => {
+                if self.shell.open_with.is_some() {
+                    return Some(open_card(
+                        function,
+                        "rect, titleRuleRect, searchRect, listRect, rowRect, controls",
+                    ));
+                }
+                "{\"opened\":false}".into()
+            }
+            "runCardState" => {
+                if self.shell.run_card.is_some() {
+                    return Some(open_card(function, "rect, controls"));
+                }
+                "{\"opened\":false}".into()
+            }
+            // The Permissions card is not mounted in the window, so only the rest input state remains.
+            "permissionsState" => {
+                format!("{{\"opened\":false,\"inputReady\":{}}}", self.input_ready)
             }
             _ => return None,
         };
