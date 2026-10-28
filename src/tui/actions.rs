@@ -52,6 +52,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
             "preview"
         };
         let action = map.in_context(key, &model.preset, context);
+        if super::model3d::key(model, key, &action, wire)? { return Ok(()); }
         if matches!(action.as_str(), "tabNext" | "tabPrevious") { return act(model, &action, wire); }
         if action == "escape" || action == "focusPreview" {
             model.preview_focus = false;

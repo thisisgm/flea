@@ -6,7 +6,11 @@ use super::{
 use std::path::PathBuf;
 
 pub struct Pdf {
+    // The file the row names; path is the PDF drawn, which an Office conversion makes a copy of.
+    pub source: PathBuf,
     pub path: PathBuf,
+    pub title: String,
+    pub author: String,
     pub page: usize,
     pub pages: usize,
     pub zoom: usize,
@@ -45,6 +49,9 @@ impl Pdf {
             vec!["/usr/bin/pdfinfo".into(), "{input}".into()],
         ));
         let mut pdf = Self {
+            source: path.clone(),
+            title: String::new(),
+            author: String::new(),
             path,
             page: 1,
             pages: 0,
@@ -103,7 +110,12 @@ impl Pdf {
             if let Ok(result) = info.result.try_recv() {
                 self.info = None;
                 match result {
-                    Ok(bytes) => self.pages = pages(&String::from_utf8_lossy(&bytes)),
+                    Ok(bytes) => {
+                        let text = String::from_utf8_lossy(&bytes);
+                        self.pages = pages(&text);
+                        self.title = fact(&text, "Title:");
+                        self.author = fact(&text, "Author:");
+                    }
                     Err(e) => self.error = e,
                 }
                 changed = true;
@@ -230,6 +242,10 @@ fn size(bytes: &[u8]) -> Option<(usize, usize)> {
     let end = bytes[start..].iter().position(|b| !b.is_ascii_digit() && *b != b';')? + start;
     let fields: Vec<usize> = std::str::from_utf8(&bytes[start..end]).ok()?.split(';').map(|n| n.parse().ok()).collect::<Option<_>>()?;
     (fields.len() == 4).then(|| (fields[2], fields[3]))
+}
+// Sample input: Title:           Spring report 2025; a field the file leaves out is an empty string.
+fn fact(text: &str, key: &str) -> String {
+    text.lines().find_map(|line| line.strip_prefix(key)).map(|value| value.trim().to_string()).unwrap_or_default()
 }
 // Sample input: Pages:           12
 fn pages(text: &str) -> usize {

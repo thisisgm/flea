@@ -94,7 +94,7 @@ pub fn body(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
         return folder(m, i, area, theme);
     }
     if let Some(unshown) = &state.unshown {
-        return padded(&unshown_row(unshown, i, area, theme, &state.i18n, m.marks()), area, theme);
+        return padded(&unshown_row(unshown, state.unshown_mark, i, area, theme, &state.i18n, m.marks()), area, theme);
     }
     if let Some(archive) = &state.archive {
         let first = usize::from(!area.card);
@@ -107,7 +107,7 @@ pub fn body(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
         let line = if index == Some(archive.rows.len()) && more > 0 { state.i18n.trn("preview.more", more as i64) } else { String::new() };
         return padded(&format!("{}{}", theme.meta, fit(&line, width)), area, theme);
     }
-    if m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() {
+    if m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() || super::pane_state::kind(row) == super::pane_state::Kind::Model3d {
         return padded(&stacked(m, i, area, theme), area, theme);
     }
     if let Some(content) = m.preview_display.get(i) {
@@ -144,13 +144,20 @@ fn stacked(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
     }
 }
 
+// The error alert every can't-show row draws by default; an Office mark names its own glyph and tone.
+pub const ALERT: &str = "\u{ea6c}";
 // The can't-show state, centred under the head: the alert mark in the error role, one sentence, then Open With when offered.
-fn unshown_row(unshown: &super::pane_state::Unshown, i: usize, area: &Area, theme: &Theme, i18n: &crate::i18n::I18n, marks: bool) -> String {
+fn unshown_row(unshown: &super::pane_state::Unshown, mark: Option<super::pane_state::Mark>, i: usize, area: &Area, theme: &Theme, i18n: &crate::i18n::I18n, marks: bool) -> String {
     let width = area.width();
     let rows = if unshown.open_with { 4 } else { 2 };
     let top = area.height.saturating_sub(rows) / 2;
+    let (glyph, tone) = match mark {
+        Some(mark) => (mark.glyph, if mark.error { &theme.error } else { &theme.muted }),
+        None => (ALERT, &theme.error),
+    };
+    let label = if marks { glyph.to_string() } else if mark.map_or(true, |mark| mark.error) { "!".to_string() } else { String::new() };
     match i.checked_sub(top) {
-        Some(0) => format!("{}{}", theme.error, cells::centered(if marks { "\u{ea6c}" } else { "!" }, width)),
+        Some(0) => format!("{tone}{}", cells::centered(&label, width)),
         Some(1) => format!("{}{}", theme.foreground, cells::centered(&unshown.sentence, width)),
         Some(3) if unshown.open_with && width >= 5 => {
             let label = i18n.tr("preview.openWith");
@@ -228,7 +235,8 @@ pub fn prepare(m: &mut Model) {
     let rows = rows(m);
     let folder = m.rows.get(&m.cursor).is_some_and(|row| row.directory) && m.preview_rows_generation == m.preview_generation;
     let refusal = folder && !m.preview_refusal.is_empty();
-    let graphical = m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() || m.preview_state.unshown.is_some();
+    let graphical = m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() || m.preview_state.unshown.is_some()
+        || m.rows.get(&m.cursor).is_some_and(|r| super::pane_state::kind(r) == super::pane_state::Kind::Model3d);
     let archive = m.preview_state.archive.as_ref().map(|a| a.rows.len() + usize::from(a.entries > a.rows.len()) + usize::from(!m.quicklook));
     m.text_gutter = super::render::grouped(m.preview_body.lines().count()).len();
     let text_width = columns.saturating_sub(m.text_gutter + 1);

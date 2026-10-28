@@ -160,6 +160,8 @@ pub struct Model {
     pub hints: super::keymap::Hints,
     pub player: Option<super::media::Player>,
     pub pdf: Option<super::pdf::Pdf>,
+    pub model3d: super::model3d::State,
+    pub model3d_palette: flea::ui_logic_pv4::color::Palette,
     pub preview_scroll: usize,
     pub image_file: Option<PathBuf>,
     // The cursor row's probed width, height and length in ms, once its meta answer lands.
@@ -334,6 +336,8 @@ impl Model {
             hints: super::keymap::Hints::default(),
             player: None,
             pdf: None,
+            model3d: Default::default(),
+            model3d_palette: super::graphics::palette(&super::theme::Theme::with_depth("", super::theme::Depth::Truecolor)),
             preview_scroll: 0,
             image_file: None,
             media_probe: None,
@@ -385,6 +389,7 @@ impl Model {
             return Ok(());
         }
         // Cleared on send: a late re-sort reply belongs to the old listing, and a re-sort sent after this names its own anchor.
+        self.model3d.stop(wire)?;
         self.sort_anchor = None;
         if self.cancel_taildrop() {
             wire.send(vec![("c", word("menuaction")), ("op", word("close")), ("id", number(self.action_id))])?;
@@ -682,6 +687,8 @@ impl Model {
         match text(&value, "t") {
             "jobs" | "job" => super::jobstatus::receive(self, &value),
             "code" => super::syntax::receive(self, &value),
+            "model3d" => super::model3d::receive(self, &value),
+            "officepdf" => super::office::receive(self, &value, wire)?,
             "filtered" => super::filter::receive(self, &value, wire)?,
             "listed" => {
                 if let Some(path) = self.pending.take() {

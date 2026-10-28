@@ -126,7 +126,7 @@ pub fn load(m: &mut Model, force: bool) {
     }
     // Text reads as text, and so does data that holds no NUL; a link reads its target, which the reader opens without following.
     let text = row.icon.starts_with("text") || row.kind.to_lowercase().contains("source");
-    if !text && super::pane_state::kind(row) != super::pane_state::Kind::Data {
+    if super::pane_state::kind(row) == super::pane_state::Kind::Model3d || !text && super::pane_state::kind(row) != super::pane_state::Kind::Data {
         return;
     }
     if row.size as u64 > TEXT_BYTES && row.link.is_empty() {
@@ -168,6 +168,7 @@ fn meta(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {
         return Ok(());
     }
     m.preview_requested = m.preview_generation;
+    if super::pane_state::kind(row) == super::pane_state::Kind::Model3d { return Ok(()); }
     if row.directory {
         m.preview_children = Some(m.preview_path.clone());
         wire.send(vec![
