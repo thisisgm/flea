@@ -1,10 +1,70 @@
 use super::job::Job;
 use std::path::PathBuf;
 
+// A bounded preview worker stays owned until completion, including cancellation and quit.
+pub struct Task<T> {
+    cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    result: std::sync::mpsc::Receiver<Result<T, String>>,
+    worker: Option<std::thread::JoinHandle<()>>,
+}
+impl<T: Send + 'static> Task<T> {
+    pub fn start(work: impl FnOnce(&std::sync::atomic::AtomicBool) -> Result<T, String> + Send + 'static) -> Self {
+        let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let stopped = cancel.clone();
+        let (tx, result) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || { let _ = tx.send(work(&stopped)); });
+        Self { cancel, result, worker: Some(worker) }
+    }
+    pub fn cancel(&self) { self.cancel.store(true, std::sync::atomic::Ordering::Relaxed); }
+    pub fn cancelled(&self) -> bool { self.cancel.load(std::sync::atomic::Ordering::Relaxed) }
+    pub fn poll(&mut self) -> Option<Result<T, String>> {
+        if !self.worker.as_ref().is_some_and(|worker| worker.is_finished()) { return None; }
+        let _ = self.worker.take().unwrap().join();
+        Some(self.result.try_recv().unwrap_or_else(|_| Err("model worker stopped".into())))
+    }
+    pub fn discard_cancelled(&mut self) -> bool {
+        self.cancel.load(std::sync::atomic::Ordering::Relaxed) && self.poll().is_some()
+    }
+}
+impl<T> Drop for Task<T> {
+    fn drop(&mut self) {
+        self.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+        if let Some(worker) = self.worker.take() { let _ = worker.join(); }
+    }
+}
+
+// Read the terminal's encoded theme roles back into the shared renderer's sRGB palette.
+pub fn palette(theme: &super::theme::Theme) -> flea::ui_logic_pv4::color::Palette {
+    let ground = hex(&theme.ground);
+    let role = |text: &str| {
+        let values: Vec<u8> = text.trim_start_matches("\x1b[").trim_end_matches('m').split(';').filter_map(|s| s.parse().ok()).collect();
+        match values.as_slice() {
+            [38, 2, r, g, b] => [*r, *g, *b].map(|v| v as f32 / 255.),
+            [38, 5, n] if *n >= 232 => [((f32::from(*n) - 232.) * 10. + 8.) / 255.; 3],
+            [38, 5, n] if *n >= 16 => {
+                let n = n - 16;
+                [n / 36, n / 6 % 6, n % 6].map(|v| if v == 0 { 0. } else { (55. + 40. * f32::from(v)) / 255. })
+            }
+            [38, 5, n] => {
+                const BASIC: [[u8; 3]; 16] = [[0,0,0],[128,0,0],[0,128,0],[128,128,0],[0,0,128],[128,0,128],[0,128,128],[192,192,192],
+                    [128,128,128],[255,0,0],[0,255,0],[255,255,0],[0,0,255],[255,0,255],[0,255,255],[255,255,255]];
+                BASIC[*n as usize].map(|v| v as f32 / 255.)
+            }
+            _ => ground,
+        }
+    };
+    flea::ui_logic_pv4::color::Palette { ground, foreground: role(&theme.foreground), muted: role(&theme.meta), frame: role(&theme.track) }
+}
+fn hex(text: &str) -> [f32; 3] {
+    let text = text.strip_prefix('#').unwrap_or("");
+    std::array::from_fn(|i| text.get(i * 2..i * 2 + 2).and_then(|s| u8::from_str_radix(s, 16).ok()).map_or(0., |v| v as f32 / 255.))
+}
+
 pub use super::capabilities::Protocol;
 pub struct Graphics {
     pub protocol: Protocol,
     job: Option<Job>,
+    retiring: Vec<std::sync::mpsc::Receiver<Result<Vec<u8>, String>>>,
     identity: PathBuf,
     pub bytes: Vec<u8>,
     // Kitty's one transmission of the image; each changed frame after it only re-places the stored copy.
@@ -19,6 +79,7 @@ impl Graphics {
         Self {
             protocol: Protocol::None,
             job: None,
+            retiring: Vec::new(),
             identity: PathBuf::new(),
             bytes: Vec::new(),
             transmit: Vec::new(),
@@ -63,7 +124,7 @@ impl Graphics {
     }
     // Forgets the image without deleting it: mpv's forwarder deletes the poster once its own frame is up.
     pub fn release(&mut self) {
-        self.job = None;
+        self.retire();
         self.bytes.clear();
         self.transmit.clear();
         self.identity = PathBuf::new();
@@ -83,6 +144,7 @@ impl Graphics {
         true
     }
     pub fn accept(&mut self) -> bool {
+        self.retiring.retain(|r| matches!(r.try_recv(), Err(std::sync::mpsc::TryRecvError::Empty)));
         let Some(job) = &self.job else {
             return false;
         };
@@ -107,17 +169,28 @@ impl Graphics {
         if self.protocol == Protocol::Kitty && (!self.bytes.is_empty() || !self.identity.as_os_str().is_empty()) {
             let _ = super::tmux::write_graphics(&mut std::io::stdout().lock(), b"\x1b_Ga=d,d=I,i=42,q=2\x1b\\");
         }
-        self.job = None;
+        self.retire();
         self.bytes.clear();
         self.transmit.clear();
         self.error.clear();
         self.identity = PathBuf::new();
     }
+    fn retire(&mut self) {
+        if let Some(job) = self.job.take() { self.retiring.push(cancel_job(job)); }
+        self.retiring.retain(|r| matches!(r.try_recv(), Err(std::sync::mpsc::TryRecvError::Empty)));
+    }
 }
 impl Drop for Graphics {
     fn drop(&mut self) {
         self.clear();
+        for result in self.retiring.drain(..) { let _ = result.recv_timeout(std::time::Duration::from_secs(12)); }
     }
+}
+
+// Keep the completion channel after Drop signals cancellation, so quit can wait for the worker's reap.
+pub(super) fn cancel_job(mut job: Job) -> std::sync::mpsc::Receiver<Result<Vec<u8>, String>> {
+    let (_, empty) = std::sync::mpsc::channel();
+    std::mem::replace(&mut job.result, empty)
 }
 const BASE64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 pub(crate) fn base64(bytes: &[u8]) -> String {
@@ -217,6 +290,33 @@ pub fn kitty_chunks(bytes: &[u8], action: char) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tui_model3d_graphics_cancellation_reaps_decoder() {
+        use std::time::{Duration, Instant};
+        assert!(crate::tui::chafa::test_support::sandboxed());
+        let root = crate::tui::model3d::tests::Fixture::new();
+        let input = root.path("input");
+        std::fs::write(&input, b"held\n").unwrap();
+        let marker = root.path("owned-decoder").to_string_lossy().into_owned();
+        let children = || std::fs::read_dir("/proc").unwrap().flatten().filter(|entry| {
+            std::fs::read(entry.path().join("cmdline")).is_ok_and(|line| line.split(|b| *b == 0).any(|arg| arg == marker.as_bytes()))
+        }).count();
+        for protocol in [Protocol::Kitty, Protocol::Sixel] {
+            let mut graphics = Graphics::new();
+            graphics.protocol = protocol;
+            graphics.job = Some(Job::start(input.clone(), vec!["/bin/sh".into(), "-c".into(), "trap '' TERM; while :; do /usr/bin/sleep 60; done".into(), marker.clone()]));
+            let until = Instant::now() + Duration::from_secs(10);
+            while children() == 0 { assert!(Instant::now() < until); std::thread::sleep(Duration::from_millis(5)); }
+            graphics.clear();
+            while !graphics.retiring.is_empty() {
+                graphics.accept();
+                assert!(Instant::now() < until, "decoder was not reaped after cancellation");
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            assert_eq!(children(), 0);
+        }
+    }
 
     #[test]
     fn unbase64_inverts_base64_and_refuses_what_it_did_not_make() {

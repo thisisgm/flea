@@ -33,6 +33,8 @@ mod jobstatus;
 mod keymap;
 mod media;
 mod model;
+mod office;
+mod model3d;
 mod mpv;
 mod mounts;
 mod pdf;
@@ -58,6 +60,13 @@ use std::io;
 use std::path::PathBuf;
 extern "C" {
     fn setlocale(category: i32, locale: *const std::ffi::c_char) -> *mut std::ffi::c_char;
+}
+
+// The frame's picture bytes, and whether the held thumbnail transmission goes out with this frame.
+// Sample state: a page whose bytes are still empty keeps the thumbnail bytes and its transmission.
+pub(crate) fn frame_image<'a>(pdf: Option<&'a pdf::Pdf>, thumb: &'a [u8], writing: bool) -> (&'a [u8], bool) {
+    let page = pdf.map(|p| p.bytes.as_slice()).filter(|bytes| !bytes.is_empty());
+    (page.unwrap_or(thumb), writing && page.is_none())
 }
 
 pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> i32 {
@@ -168,6 +177,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                 wire.send(vec![("c", wire::word("menuaction")), ("op", wire::word("validate")), ("id", wire::number(model.action_id)), ("action", wire::word("open"))])?;
             }
             style.prepare(&mut model, &mut wire)?;
+            model.model3d_palette = graphics::palette(&style.theme);
             detail::prepare(&mut model, &mut wire)?;
             model.taildrop.poll();
             model.advance_taildrop(&mut wire)?;
@@ -179,7 +189,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             }
             completion::land(&mut model);
             model.expire_message(std::time::Instant::now());
-            let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some();
+            let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some() || model.prompts.question.is_some();
             if (model.menu || model.deletion.is_some()) != menu_tracking {
                 menu_tracking = model.menu || model.deletion.is_some();
                 print!("{}", if menu_tracking { "\x1b[?1003h" } else { "\x1b[?1003l\x1b[?1002h" });
@@ -204,12 +214,8 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                     &mut frame,
                 )?;
                 let writing = changed && !overlay;
-                let transmit = if writing && model.pdf.is_none() { std::mem::take(&mut graphics.transmit) } else { Vec::new() };
-                let image = model
-                    .pdf
-                    .as_ref()
-                    .map(|p| p.bytes.as_slice())
-                    .unwrap_or(&graphics.bytes);
+                let (image, take) = frame_image(model.pdf.as_ref(), &graphics.bytes, writing);
+                let transmit = if take { std::mem::take(&mut graphics.transmit) } else { Vec::new() };
                 // Lowercase d=i drops the placements and keeps kitty's stored copy, so a redraw never re-sends the picture.
                 if changed && graphics.protocol == graphics::Protocol::Kitty {
                     tmux::write_graphics(&mut std::io::stdout().lock(), b"\x1b_Ga=d,d=i,i=42,q=2\x1b\\")?;
@@ -264,6 +270,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         let directory = model.last_directory.clone();
         let chosen = model.chosen.take();
         let no_cwd = model.no_cwd;
+        model.model3d.stop(&mut wire)?;
         drop(graphics);
         drop(model);
         drop(terminal);

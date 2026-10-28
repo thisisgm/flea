@@ -69,13 +69,33 @@ fn bar(m: &Model, width: usize, theme: &Theme) -> String {
     let room = width.saturating_sub(3);
     let mark = if m.marks() { format!("{} ", super::icons::row(row, true)) } else { String::new() };
     let leaf = row.name.rsplit('/').next().unwrap_or(&row.name);
+    let plates = if pane_state::kind(row) == Kind::Model3d { plate_words(m, room / 2, theme) } else { (String::new(), 0) };
+    let room = room.saturating_sub(plates.1);
     let head = (text_width(&mark) + text_width(leaf)).min(room);
     let name = name_title(&mark, leaf, head);
     let fact = fact(m, row);
     let rest = room - head;
     let fact = if fact.is_empty() || rest < 3 { fit("", rest) } else { format!("  {}", ellipsis(&fact, text_width(&fact).min(rest - 2))) };
-    let gap = width.saturating_sub(2 + head + text_width(&fact));
-    format!("{}{name}{}{fact}{}{}{close} ", theme.foreground, theme.meta, " ".repeat(gap), theme.foreground)
+    let gap = width.saturating_sub(2 + head + text_width(&fact) + plates.1);
+    format!("{}{name}{}{fact}{}{}{}{close} ", theme.foreground, theme.meta, " ".repeat(gap), plates.0, theme.foreground)
+}
+
+fn plate_words(m: &Model, width: usize, theme: &Theme) -> (String, usize) {
+    let count = m.model3d.data.as_ref().map_or(0, |d| d.plates.len());
+    if count < 2 { return (String::new(), 0); }
+    let mut text = String::new();
+    let mut used = 0;
+    for plate in 0..count {
+        let number = m.preview_state.i18n.locale().format_count((plate + 1) as i64);
+        let word = m.preview_state.i18n.tr_args("model3d.plate", &[&number]);
+        let length = text_width(&word) + 2;
+        if used + length > width { break; }
+        text.push_str(if plate == m.model3d.controls.plate { &theme.foreground } else { &theme.muted });
+        text.push_str(&word);
+        text.push_str("  ");
+        used += length;
+    }
+    (text, used)
 }
 
 // The fact the window's Quick Look bar names: a picture's size, a sound's length, a page or line count.
@@ -83,6 +103,7 @@ fn fact(m: &Model, row: &super::model::Row) -> String {
     let i18n = &m.preview_state.i18n;
     let probe = m.media_probe.unwrap_or((0, 0, 0));
     match pane_state::kind(row) {
+        Kind::Model3d => super::model3d::dimensions(m).unwrap_or_default(),
         Kind::Image | Kind::Video if probe.0 > 0 && probe.1 > 0 => format!("{} × {}", probe.0, probe.1),
         Kind::Audio if probe.2 > 0 => super::media::clock(probe.2 as f64 / 1000.0),
         Kind::Pdf => m.pdf.as_ref().filter(|pdf| pdf.pages > 0).map(|pdf| i18n.trn("quicklook.pages", pdf.pages as i64)).unwrap_or_default(),
