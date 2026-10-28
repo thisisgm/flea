@@ -4257,6 +4257,8 @@ Before the default-ON ruling, the language-mark startup follow-up kept the filen
 
 The default-ON language-mark ruling keeps the existing glyph slot and ink and respects a saved false. The first real default-ON startup census measured 600 objects, three LangMark and three LangMarkLoader objects, against 585 with explicit OFF. The unchanged two-object headroom puts the default ceiling at 602 and keeps explicit OFF at 587; both exact baselines are asserted. The measured default unit set is 176, adding LangMark.qml, LangMarkLoader.qml and js/LangMarkPaths.js to the prior 173; current source-byte sums are 1755027 ON and 1644293 OFF. The saved-OFF profile retains the same unit names and cold language units. File ceilings are re-derived with wc -l: src/uischema.rs 595, src/uistore.rs 568 and tests/js/settings.js 398 for missing/invalid fallback, actual pre-GUI settle and saved-false checks. No artwork, key or geometry changes.
 
+Issue #333 moves one ceiling, re-derived with `wc -l`: `tests/js/columns.js` 687 to 700 for the hidden-column floor checks (a hidden Mode releases its width to Size, Modified and Kind, the floor left still drops a column one pixel under it, and the report's stored widths in a 1388 px list draw Modified again). `ui/js/Columns.js` keeps 298: `floors` takes the hidden set and `set` passes it, the same release `dualSet` and `recentSet` already make.
+
 ## The key table is generated
 
 `keys.toml` at the repository root is the single source of truth for every binding.

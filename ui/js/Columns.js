@@ -14,14 +14,14 @@ var DROP_ORDER = ["kind", "date", "size", "mode"]
 // The row width each optional column needs before it is drawn, keyed by column. t carries the
 // tokens ui/Theme.qml resolved: rowPaddingX, gap, iconSize, nameMin, and one width per column.
 // A floor includes every column that outlives it, because they drop in order and a wider column
-// never survives a narrower one, which is what makes the four floors nest.
-function floors(t) {
+// never survives a narrower one, so the floors nest; a hidden column draws nothing and adds none (#333).
+function floors(t, hidden) {
     // The name's own slot at its floor: the row padding either side, the mark and the gap after it.
     var running = t.rowPaddingX + t.iconSize + t.gap + t.nameMin + t.rowPaddingX
     var out = {}
     for (var i = DROP_ORDER.length - 1; i >= 0; i--) {
         var key = DROP_ORDER[i]
-        running += t[key] + t.gap
+        if ((hidden || []).indexOf(key) < 0) running += t[key] + t.gap
         out[key] = running
     }
     return out
@@ -32,7 +32,7 @@ function floors(t) {
 // affords: a hidden column never draws, and width still wins over a column the user wants back,
 // so the name cannot be crowded out by a column the pane is too narrow to carry.
 function set(width, t, hidden) {
-    var f = floors(t)
+    var f = floors(t, hidden)
     var h = {}
     var list = hidden || []
     for (var i = 0; i < list.length; i++) h[list[i]] = true
