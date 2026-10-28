@@ -1,16 +1,94 @@
-use super::{icons, model::Row, theme::{Depth, Theme}};
+use super::{
+    icons,
+    model::Row,
+    theme::{Depth, Theme},
+};
 
-extern "C" { fn wcwidth(c: i32) -> i32; }
+extern "C" {
+    fn wcwidth(c: i32) -> i32;
+}
 
 pub fn safe(c: char) -> bool {
-    !c.is_control() && !matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{200e}' | '\u{200f}' | '\u{061c}')
+    !c.is_control()
+        && !matches!(c, '\u{2028}'..='\u{202e}' | '\u{2066}'..='\u{206f}' | '\u{200e}' | '\u{200f}' | '\u{061c}')
 }
-pub fn clean(text: &str) -> String { text.chars().filter(|c| safe(*c)).collect() }
+// Each untrusted run starts on its own base cell, never on the preceding column's blank or mark.
+fn characters(text: &str) -> impl Iterator<Item = (char, usize)> + '_ {
+    let mut base = false;
+    text.chars().filter_map(move |c| {
+        if !safe(c) {
+            return None;
+        }
+        let cells = width(c);
+        base |= cells > 0;
+        base.then_some((c, cells))
+    })
+}
+pub fn clean(text: &str) -> String {
+    characters(text).map(|(c, _)| c).collect()
+}
+// Untrusted runs are isolated with the markers i18n/rtl-policy.json names, never a TUI copy; TUI-12 wires the views.
+#[cfg_attr(not(test), allow(dead_code))]
+#[derive(Clone, Copy)]
+pub enum Run {
+    Name,
+    Number,
+}
+#[derive(Debug, PartialEq)]
+struct Runs {
+    name: (char, char),
+    number: (char, char),
+}
+fn runs_from(policy: &str) -> Option<Runs> {
+    let doc = crate::jsondoc::parse(policy).ok()?;
+    let runs = doc.get("text_runs")?;
+    if runs.get("reverse_bytes")?.as_bool()?
+        || !runs.get("strip_raw_display_controls")?.as_bool()?
+    {
+        return None;
+    }
+    let control = |name: &str| match name {
+        "FSI" => Some('\u{2068}'),
+        "LRI" => Some('\u{2066}'),
+        "RLI" => Some('\u{2067}'),
+        _ => None,
+    };
+    let pair = |key: &str| {
+        let (open, close) = runs.get(key)?.as_str()?.split_once("+unchanged-text+")?;
+        (close == "PDI").then_some(())?;
+        Some((control(open)?, '\u{2069}'))
+    };
+    Some(Runs {
+        name: pair("names_and_paths")?,
+        number: pair("numbers_dates_keycaps")?,
+    })
+}
+// Call last on an already fitted run: the isolates take no cells, and a refused policy leaves the run clean only.
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn isolate(run: Run, text: &str) -> String {
+    static RUNS: std::sync::OnceLock<Option<Runs>> = std::sync::OnceLock::new();
+    let text = clean(text);
+    let Some(runs) = RUNS.get_or_init(|| runs_from(include_str!("../../i18n/rtl-policy.json")))
+    else {
+        return text;
+    };
+    let (open, close) = match run {
+        Run::Name => runs.name,
+        Run::Number => runs.number,
+    };
+    format!("{open}{text}{close}")
+}
+// Preserve the Unicode range groups as a readable data table.
+#[rustfmt::skip]
 pub fn width(c: char) -> usize {
     let cells = unsafe { wcwidth(c as i32) };
     if cells >= 0 { return cells as usize; }
     match c as u32 {
-        0x0300..=0x036f | 0x1ab0..=0x1aff | 0x1dc0..=0x1dff | 0x20d0..=0x20ff | 0xfe00..=0xfe0f | 0xfe20..=0xfe2f => 0,
+        0x0300..=0x036f | 0x0483..=0x0489 | 0x0591..=0x05bd | 0x05bf | 0x05c1..=0x05c2 | 0x05c4..=0x05c5 | 0x05c7
+        | 0x0610..=0x061a | 0x064b..=0x065f | 0x0670 | 0x06d6..=0x06dc | 0x06df..=0x06e4 | 0x06e7..=0x06e8 | 0x06ea..=0x06ed
+        | 0x0897..=0x089f | 0x08ca..=0x08e1 | 0x08e3..=0x08ff | 0x1ab0..=0x1aff | 0x1dc0..=0x1dff | 0x200b..=0x200d
+        | 0x2060 | 0x20d0..=0x20ff | 0x302a..=0x302d | 0x3099..=0x309a | 0x3164 | 0xfe00..=0xfe0f | 0xfe20..=0xfe2f | 0xfeff
+        | 0xe0020..=0xe007f | 0xe0100..=0xe01ef => 0,
         0x1100..=0x115f | 0x2329..=0x232a | 0x2e80..=0xa4cf | 0xac00..=0xd7a3 | 0xf900..=0xfaff | 0xfe10..=0xfe19 | 0xfe30..=0xfe6f | 0xff01..=0xff60 | 0xffe0..=0xffe6 | 0x20000..=0x3fffd => 2,
         // The rest of glibc 2.41's C.UTF-8 wide set, which a C locale answers -1 for.
         0x231a..=0x231b | 0x23e9..=0x23ec | 0x23f0 | 0x23f3 | 0x25fd..=0x25fe | 0x2614..=0x2615 | 0x2630..=0x2637
@@ -30,14 +108,16 @@ pub fn width(c: char) -> usize {
         _ => 1,
     }
 }
-pub fn text_width(text: &str) -> usize { text.chars().filter(|c| safe(*c)).map(width).sum() }
+pub fn text_width(text: &str) -> usize {
+    characters(text).map(|(_, cells)| cells).sum()
+}
 pub fn fit(text: &str, limit: usize) -> String {
     let mut out = String::new();
     let mut used = 0;
-    for c in text.chars().filter(|c| safe(*c)) {
-        let n = width(c);
-        if used + n > limit { break; }
-        if n == 0 && used == 0 { continue; }
+    for (c, n) in characters(text) {
+        if used + n > limit {
+            break;
+        }
         out.push(c);
         used += n;
     }
@@ -45,33 +125,51 @@ pub fn fit(text: &str, limit: usize) -> String {
     out
 }
 pub fn ellipsis(text: &str, limit: usize) -> String {
-    if text_width(text) <= limit { return fit(text, limit); }
-    if limit == 0 { return String::new(); }
+    if text_width(text) <= limit {
+        return fit(text, limit);
+    }
+    if limit == 0 {
+        return String::new();
+    }
     let mut prefix = fit(text, limit - 1);
     prefix.push('…');
     prefix
 }
 pub fn centered(text: &str, limit: usize) -> String {
-    fit(&format!("{}{}", " ".repeat(limit.saturating_sub(text_width(text)) / 2), text), limit)
+    let text = clean(text);
+    fit(
+        &format!(
+            "{}{}",
+            " ".repeat(limit.saturating_sub(text_width(&text)) / 2),
+            text
+        ),
+        limit,
+    )
 }
 // Bold on the name's cells only (mark, space and padding plain, a cut name's ellipsis bold); the title is exactly columns cells.
 pub fn name_title(mark: &str, name: &str, columns: usize) -> String {
-    if columns == 0 { return String::new(); }
+    if columns == 0 {
+        return String::new();
+    }
     let cut = text_width(mark) + text_width(name) > columns;
     let limit = if cut { columns - 1 } else { columns };
     let mut shown = Vec::new();
     let mut used = 0;
-    for (is_name, c) in mark.chars().map(|c| (false, c)).chain(name.chars().map(|c| (true, c))) {
-        if !safe(c) { continue; }
-        let n = width(c);
-        if used + n > limit { break; }
-        if n == 0 && used == 0 { continue; }
+    for (is_name, c, n) in characters(mark)
+        .map(|(c, n)| (false, c, n))
+        .chain(characters(name).map(|(c, n)| (true, c, n)))
+    {
+        if used + n > limit {
+            break;
+        }
         shown.push((is_name, c));
         used += n;
     }
     let name_shown = shown.iter().any(|&(is_name, c)| is_name && width(c) > 0);
     shown.resize(shown.len() + limit - used, (false, ' '));
-    if cut { shown.push((name_shown, '…')); }
+    if cut {
+        shown.push((name_shown, '…'));
+    }
     let mut out = String::new();
     let mut bold = false;
     for (is_name, c) in shown {
@@ -81,21 +179,35 @@ pub fn name_title(mark: &str, name: &str, columns: usize) -> String {
         }
         out.push(c);
     }
-    if bold { out.push_str("\x1b[22m"); }
+    if bold {
+        out.push_str("\x1b[22m");
+    }
     out
 }
-pub struct Wrapped<'a> { remaining: Option<&'a str>, columns: usize }
+pub struct Wrapped<'a> {
+    remaining: Option<&'a str>,
+    columns: usize,
+}
 impl<'a> Wrapped<'a> {
-    pub fn new(text: &'a str, columns: usize) -> Self { Self { remaining: (columns > 0).then_some(text), columns } }
+    pub fn new(text: &'a str, columns: usize) -> Self {
+        Self {
+            remaining: (columns > 0).then_some(text),
+            columns,
+        }
+    }
 }
 impl<'a> Iterator for Wrapped<'a> {
     type Item = &'a str;
     fn next(&mut self) -> Option<Self::Item> {
-        let text = self.remaining.take()?;
+        // A borrowed part cannot replace an oversized glyph; omit it together with its following marks.
+        let text = self
+            .remaining
+            .take()?
+            .trim_start_matches(|c| !safe(c) || width(c) == 0 || width(c) > self.columns);
         let mut used = 0;
         for (offset, c) in text.char_indices() {
             let cells = if safe(c) { width(c) } else { 0 };
-            if used + cells > self.columns && offset > 0 {
+            if used + cells > self.columns {
                 self.remaining = Some(&text[offset..]);
                 return Some(&text[..offset]);
             }
@@ -105,7 +217,9 @@ impl<'a> Iterator for Wrapped<'a> {
     }
 }
 pub fn words(text: &str, columns: usize) -> Vec<String> {
-    if columns == 0 { return Vec::new(); }
+    if columns == 0 {
+        return Vec::new();
+    }
     let mut lines = Vec::new();
     let mut line = String::new();
     for word in text.split_whitespace() {
@@ -114,12 +228,18 @@ pub fn words(text: &str, columns: usize) -> Vec<String> {
         }
         let mut parts = Wrapped::new(word, columns).peekable();
         while let Some(part) = parts.next() {
-            if !line.is_empty() { line.push(' '); }
-            line.push_str(part);
-            if parts.peek().is_some() || text_width(&line) >= columns { lines.push(std::mem::take(&mut line)); }
+            if !line.is_empty() {
+                line.push(' ');
+            }
+            line.push_str(&clean(part));
+            if parts.peek().is_some() || text_width(&line) >= columns {
+                lines.push(std::mem::take(&mut line));
+            }
         }
     }
-    if !line.is_empty() { lines.push(line); }
+    if !line.is_empty() {
+        lines.push(line);
+    }
     lines
 }
 
@@ -132,23 +252,69 @@ pub struct RowStyle {
     pub quiet: bool,
     pub parent: bool,
 }
-pub fn row(entry: &Row, columns: usize, size: Option<&str>, marks: bool, style: RowStyle, theme: &Theme, query: &str) -> String {
+pub fn row(
+    entry: &Row,
+    columns: usize,
+    size: Option<&str>,
+    marks: bool,
+    style: RowStyle,
+    theme: &Theme,
+    query: &str,
+) -> String {
     let base = theme.base();
     let lifted = style.cursor || style.marked;
-    let fill = if style.cursor { if style.focused { &theme.cursor } else { &theme.selected } }
-        else if style.marked { &theme.marked } else { &theme.background };
-    let ink = if style.dimmed { &theme.muted } else if lifted { &theme.foreground }
-        else if style.parent { &theme.muted } else if style.quiet { &theme.meta } else if !entry.link.is_empty() { &theme.symlink }
-        else if !entry.directory && entry.mode & 0o111 != 0 { &theme.executable } else { &theme.foreground };
-    let meta = if style.dimmed { &theme.muted } else if lifted { &theme.foreground } else { &theme.meta };
-    let reset = format!("\x1b[0m{fill}{ink}{}", if style.cursor && theme.depth == Depth::Sixteen { "\x1b[7m" } else { "" });
+    let fill = if style.cursor {
+        if style.focused {
+            &theme.cursor
+        } else {
+            &theme.selected
+        }
+    } else if style.marked {
+        &theme.marked
+    } else {
+        &theme.background
+    };
+    let ink = if style.dimmed {
+        &theme.muted
+    } else if lifted {
+        &theme.foreground
+    } else if style.parent {
+        &theme.muted
+    } else if style.quiet {
+        &theme.meta
+    } else if !entry.link.is_empty() {
+        &theme.symlink
+    } else if !entry.directory && entry.mode & 0o111 != 0 {
+        &theme.executable
+    } else {
+        &theme.foreground
+    };
+    let meta = if style.dimmed {
+        &theme.muted
+    } else if lifted {
+        &theme.foreground
+    } else {
+        &theme.meta
+    };
+    let reset = format!(
+        "\x1b[0m{fill}{ink}{}",
+        if style.cursor && theme.depth == Depth::Sixteen {
+            "\x1b[7m"
+        } else {
+            ""
+        }
+    );
     let mut out = reset.clone();
-    if columns == 0 { return out; }
+    if columns == 0 {
+        return out;
+    }
     if style.cursor && style.focused && theme.depth != Depth::Sixteen {
         out.push_str(&theme.accent);
         out.push('▎');
         out.push_str(ink);
-    } else { out.push(' '); }
+    } else {
+        out.push(' ');
+    }
     if columns < 4 {
         out.push_str(&ellipsis(&entry.name, columns - 1));
         out.push_str(&base);
@@ -165,8 +331,13 @@ pub fn row(entry: &Row, columns: usize, size: Option<&str>, marks: bool, style: 
     let display_name = fit(leaf, text_width(leaf));
     let name = ellipsis(&display_name, text_width(&display_name).min(name_width));
     let target_width = name_width - text_width(&name);
-    let target = if !folder.is_empty() { ellipsis(&format!(" {folder}"), target_width) } else if entry.link.is_empty() { fit("", target_width) }
-        else { ellipsis(&format!(" → {}", entry.link), target_width) };
+    let target = if !folder.is_empty() {
+        ellipsis(&format!(" {}", clean(folder)), target_width)
+    } else if entry.link.is_empty() {
+        fit("", target_width)
+    } else {
+        ellipsis(&format!(" → {}", clean(&entry.link)), target_width)
+    };
     if let Some((start, end)) = match_range(&name, query) {
         out.push_str(&name[..start]);
         out.push_str("\x1b[1m");
@@ -174,27 +345,40 @@ pub fn row(entry: &Row, columns: usize, size: Option<&str>, marks: bool, style: 
         out.push_str(&name[start..end]);
         out.push_str(&reset);
         out.push_str(&name[end..]);
-    } else { out.push_str(&name); }
-    if !target.is_empty() { out.push_str(meta); out.push_str(&target); }
+    } else {
+        out.push_str(&name);
+    }
+    if !target.is_empty() {
+        out.push_str(meta);
+        out.push_str(&target);
+    }
     if let Some(size) = size {
         out.push(' ');
         out.push_str(meta);
         out.push_str(size);
         out.push_str("  ");
-    } else { out.push(' '); }
+    } else {
+        out.push(' ');
+    }
     out.push_str(&base);
     out
 }
 pub(super) fn match_range(text: &str, query: &str) -> Option<(usize, usize)> {
-    if query.is_empty() { return None; }
+    if query.is_empty() {
+        return None;
+    }
     let query = query.to_lowercase();
     let start = text.to_lowercase().find(&query)?;
     let end = start + query.len();
     let (mut offset, mut first) = (0, None);
     for (index, c) in text.char_indices() {
         let length: usize = c.to_lowercase().map(char::len_utf8).sum();
-        if offset <= start && start < offset + length { first = Some(index); }
-        if offset < end && end <= offset + length { return first.map(|first| (first, index + c.len_utf8())); }
+        if offset <= start && start < offset + length {
+            first = Some(index);
+        }
+        if offset < end && end <= offset + length {
+            return first.map(|first| (first, index + c.len_utf8()));
+        }
         offset += length;
     }
     None
