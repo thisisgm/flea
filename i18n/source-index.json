@@ -1814,6 +1814,71 @@
       "surface": "tui"
     },
     {
+      "coverage": "dynamic-needs-owner-verification",
+      "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+      "line": 156,
+      "path": "src/tui/model3d.rs",
+      "pattern": "model3d.fact.{key}",
+      "possible_keys": [
+        "model3d.fact.kind",
+        "model3d.fact.size",
+        "model3d.fact.modified",
+        "model3d.fact.dimensions",
+        "model3d.fact.volume",
+        "model3d.fact.surface",
+        "model3d.fact.triangles",
+        "model3d.fact.objects",
+        "model3d.fact.plates",
+        "model3d.fact.watertight",
+        "model3d.fact.printer",
+        "model3d.fact.filament",
+        "model3d.fact.layer_height",
+        "model3d.fact.print_time",
+        "model3d.fact.weight"
+      ],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "&format!(\"model3d.fact.{key}\")",
+      "line": 156,
+      "path": "src/tui/model3d.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "p.key",
+      "line": 331,
+      "path": "src/tui/office.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 360,
+      "path": "src/tui/office.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 382,
+      "path": "src/tui/office.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "match editor.kind {\n        \"rename\" => \"prompt.rename\", \"mkdir\" => \"prompt.folder\", \"newfile\" => \"prompt.file\", \"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",\n    }",
@@ -1897,7 +1962,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&error",
-      "line": 184,
+      "line": 214,
       "path": "src/tui/stage.rs",
       "pattern": null,
       "possible_keys": [],
@@ -38537,6 +38602,13 @@
           "path": "crates/flea-gui/src/g2/pv2/office/mod.rs",
           "surface": "gui",
           "usage": "key-declaration"
+        },
+        {
+          "excerpt": "const AUTHOR: &str = \"document.office_author\";",
+          "line": 29,
+          "path": "src/tui/office.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
         }
       ],
       "context": "document.office_author: crates/flea-gui/src/g2/pv2/office/mod.rs:288",
@@ -38620,6 +38692,13 @@
     "document.office_pages": {
       "call_sites": [
         {
+          "excerpt": "const PAGES: &str = \"document.office_pages\";",
+          "line": 25,
+          "path": "src/tui/office.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        },
+        {
           "excerpt": "Group::Document => \"document.office_pages\",",
           "line": 38,
           "path": "src/ui_logic_pv2/office.rs",
@@ -38642,6 +38721,13 @@
     "document.office_sheets": {
       "call_sites": [
         {
+          "excerpt": "const SHEETS: &str = \"document.office_sheets\";",
+          "line": 26,
+          "path": "src/tui/office.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        },
+        {
           "excerpt": "Group::Spreadsheet => \"document.office_sheets\",",
           "line": 39,
           "path": "src/ui_logic_pv2/office.rs",
@@ -38663,6 +38749,13 @@
     },
     "document.office_slides": {
       "call_sites": [
+        {
+          "excerpt": "const SLIDES: &str = \"document.office_slides\";",
+          "line": 27,
+          "path": "src/tui/office.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        },
         {
           "excerpt": "Group::Presentation => \"document.office_slides\",",
           "line": 40,
@@ -38690,6 +38783,13 @@
           "line": 276,
           "path": "crates/flea-gui/src/g2/pv2/office/mod.rs",
           "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "const TITLE: &str = \"document.office_title\";",
+          "line": 28,
+          "path": "src/tui/office.rs",
+          "surface": "tui",
           "usage": "key-declaration"
         }
       ],
@@ -41431,14 +41531,14 @@
       "call_sites": [
         {
           "excerpt": "m.search = m.prompts.i18n.tr(\"find.starting\");",
-          "line": 854,
+          "line": 855,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "self.search = self.prompts.i18n.tr(\"find.starting\");",
-          "line": 460,
+          "line": 465,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -55692,6 +55792,13 @@
     "model3d.cannot_preview": {
       "call_sites": [
         {
+          "excerpt": "m.preview_state.unshown = Some(Unshown { sentence: m.preview_state.i18n.tr(\"model3d.cannot_preview\"), open_with: true });",
+          "line": 125,
+          "path": "src/tui/model3d.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "i18n.tr(\"model3d.cannot_preview\")",
           "line": 57,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -55713,6 +55820,32 @@
     },
     "model3d.fact.dimensions": {
       "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
         {
           "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
@@ -55756,6 +55889,32 @@
       "call_sites": [
         {
           "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
+        {
+          "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
           "line": 83,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -55795,6 +55954,32 @@
     },
     "model3d.fact.kind": {
       "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
         {
           "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
@@ -55838,6 +56023,32 @@
       "call_sites": [
         {
           "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
+        {
+          "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
           "line": 83,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -55877,6 +56088,32 @@
     },
     "model3d.fact.modified": {
       "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
         {
           "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
@@ -55920,6 +56157,32 @@
       "call_sites": [
         {
           "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
+        {
+          "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
           "line": 83,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -55959,6 +56222,32 @@
     },
     "model3d.fact.plates": {
       "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
         {
           "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
@@ -56002,6 +56291,32 @@
       "call_sites": [
         {
           "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
+        {
+          "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
           "line": 83,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -56041,6 +56356,32 @@
     },
     "model3d.fact.printer": {
       "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
         {
           "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
@@ -56084,6 +56425,32 @@
       "call_sites": [
         {
           "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
+        {
+          "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
           "line": 83,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -56123,6 +56490,32 @@
     },
     "model3d.fact.surface": {
       "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
         {
           "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
@@ -56166,6 +56559,32 @@
       "call_sites": [
         {
           "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
+        {
+          "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
           "line": 83,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -56205,6 +56624,32 @@
     },
     "model3d.fact.volume": {
       "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
         {
           "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
@@ -56248,6 +56693,32 @@
       "call_sites": [
         {
           "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
+        {
+          "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
           "line": 83,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -56289,6 +56760,32 @@
       "call_sites": [
         {
           "coverage": "needs-owner-verification",
+          "excerpt": "m.preview_metadata.push(format!(\"{} · {value}\", i18n.tr(&format!(\"model3d.fact.{key}\"))));",
+          "line": 156,
+          "path": "src/tui/model3d.rs",
+          "pattern": "model3d.fact.{key}",
+          "possible_keys": [
+            "model3d.fact.kind",
+            "model3d.fact.size",
+            "model3d.fact.modified",
+            "model3d.fact.dimensions",
+            "model3d.fact.volume",
+            "model3d.fact.surface",
+            "model3d.fact.triangles",
+            "model3d.fact.objects",
+            "model3d.fact.plates",
+            "model3d.fact.watertight",
+            "model3d.fact.printer",
+            "model3d.fact.filament",
+            "model3d.fact.layer_height",
+            "model3d.fact.print_time",
+            "model3d.fact.weight"
+          ],
+          "surface": "tui",
+          "usage": "dynamic-candidate"
+        },
+        {
+          "coverage": "needs-owner-verification",
           "excerpt": "i18n.tr(&format!(\"model3d.fact.{key}\"))",
           "line": 83,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -56328,6 +56825,13 @@
     },
     "model3d.plate": {
       "call_sites": [
+        {
+          "excerpt": "let word = m.preview_state.i18n.tr_args(\"model3d.plate\", &[&number]);",
+          "line": 90,
+          "path": "src/tui/look.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
         {
           "excerpt": "(1..=count).map(|n| i18n.tr_args(\"model3d.plate\", &[&i18n.locale().format_count(n as i64)])).collect()",
           "line": 52,
@@ -56401,6 +56905,13 @@
     "model3d.value.g": {
       "call_sites": [
         {
+          "excerpt": "if let Some(weight) = data.slicer.weight_g { rows.push((\"weight\", i18n.tr_args(\"model3d.value.g\", &[&i18n.locale().format_number(weight, 1)]))); }",
+          "line": 152,
+          "path": "src/tui/model3d.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "s.weight_g.map(|v| (label(i18n, \"weight\"), i18n.tr_args(\"model3d.value.g\", &[&one(i18n, v, 1)]))),",
           "line": 126,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -56424,6 +56935,13 @@
     },
     "model3d.value.hours_minutes": {
       "call_sites": [
+        {
+          "excerpt": "else { i18n.tr_args(\"model3d.value.hours_minutes\", &[&i18n.locale().format_count((minutes / 60) as i64), &minute]) };",
+          "line": 149,
+          "path": "src/tui/model3d.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
         {
           "excerpt": "i18n.tr_args(\"model3d.value.hours_minutes\", &[&digits(h, 1), &digits(m, 2)])",
           "line": 37,
@@ -56476,6 +56994,13 @@
     "model3d.value.minutes": {
       "call_sites": [
         {
+          "excerpt": "let duration = if minutes < 60 { i18n.tr_args(\"model3d.value.minutes\", &[&i18n.locale().format_count(minutes as i64)]) }",
+          "line": 148,
+          "path": "src/tui/model3d.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "i18n.tr_args(\"model3d.value.minutes\", &[&digits(m, 1)])",
           "line": 35,
           "path": "src/ui_logic_pv4/facts.rs",
@@ -56499,6 +57024,13 @@
     },
     "model3d.value.mm": {
       "call_sites": [
+        {
+          "excerpt": "if let Some(mm) = data.slicer.layer_height_mm { rows.push((\"layer_height\", i18n.tr_args(\"model3d.value.mm\", &[&i18n.locale().format_number(mm, 2)]))); }",
+          "line": 144,
+          "path": "src/tui/model3d.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
         {
           "excerpt": "let mm = |v: f64| i18n.tr_args(\"model3d.value.mm\", &[&one(i18n, v, 2)]);",
           "line": 120,
@@ -56556,6 +57088,13 @@
     },
     "model3d.value.size_mm": {
       "call_sites": [
+        {
+          "excerpt": "Some(m.preview_state.i18n.tr_args(\"model3d.value.size_mm\", &[&x, &y, &z]))",
+          "line": 164,
+          "path": "src/tui/model3d.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
         {
           "excerpt": "i18n.tr_args(\"model3d.value.size_mm\", &[&x, &y, &z])",
           "line": 23,
@@ -58849,7 +59388,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr_args(\"pdf.page\", &[&i18n.locale().format_count(self.page as i64), &pages, &self.zoom.to_string()])",
-          "line": 174,
+          "line": 186,
           "path": "src/tui/pdf.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -65578,7 +66117,7 @@
         },
         {
           "excerpt": "m.preview_state.unshown = Some(Unshown { sentence: m.preview_state.i18n.tr(\"preview.archiveUnreadable\"), open_with: false });",
-          "line": 105,
+          "line": 125,
           "path": "src/tui/pane_state.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -65988,14 +66527,14 @@
       "call_sites": [
         {
           "excerpt": "Kind::Archive => m.preview_state.archive.as_ref().map(|a| i18n.trn(\"preview.entries\", a.entries as i64)).unwrap_or_default(),",
-          "line": 89,
+          "line": 110,
           "path": "src/tui/look.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let count = state.i18n.trn(\"preview.entries\", archive.entries as i64);",
-          "line": 136,
+          "line": 156,
           "path": "src/tui/pane_state.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -66730,14 +67269,14 @@
       "call_sites": [
         {
           "excerpt": "let sentence = model.preview_state.i18n.tr_args(\"preview.imageError\", &[&std::mem::take(&mut graphics.error)]);",
-          "line": 129,
+          "line": 149,
           "path": "src/tui/stage.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let sentence = i18n.tr_args(\"preview.imageError\", &[&error]);",
-          "line": 185,
+          "line": 215,
           "path": "src/tui/stage.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -67229,7 +67768,7 @@
       "call_sites": [
         {
           "excerpt": "let label = i18n.tr(\"preview.openWith\");",
-          "line": 156,
+          "line": 163,
           "path": "src/tui/pane.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -67917,7 +68456,7 @@
       "call_sites": [
         {
           "excerpt": "Some(state.i18n.tr_args(\"preview.unpacked\", &[&count, &super::render::bytes(archive.unpacked)]))",
-          "line": 137,
+          "line": 157,
           "path": "src/tui/pane_state.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -68259,7 +68798,7 @@
       "call_sites": [
         {
           "excerpt": "m.editor = Some(Editor::named(\"newfile\", m.prompts.i18n.tr(\"prompt.newFile\"), m.path.clone()));",
-          "line": 384,
+          "line": 385,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -68281,7 +68820,7 @@
       "call_sites": [
         {
           "excerpt": "\"newFolder\" => m.editor = Some(Editor::named(\"mkdir\", m.prompts.i18n.tr(\"prompt.newFolder\"), m.path.clone())),",
-          "line": 339,
+          "line": 340,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -68561,7 +69100,7 @@
       "call_sites": [
         {
           "excerpt": "m.properties = Some(vec![(String::new(), m.i18n.tr(\"properties.loading\"))]);",
-          "line": 508,
+          "line": 509,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -68769,7 +69308,7 @@
       "call_sites": [
         {
           "excerpt": "_ if !m.preview_body.is_empty() => i18n.trn(\"quicklook.lines\", m.preview_body.lines().count() as i64),",
-          "line": 90,
+          "line": 111,
           "path": "src/tui/look.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -68802,7 +69341,7 @@
       "call_sites": [
         {
           "excerpt": "Kind::Pdf => m.pdf.as_ref().filter(|pdf| pdf.pages > 0).map(|pdf| i18n.trn(\"quicklook.pages\", pdf.pages as i64)).unwrap_or_default(),",
-          "line": 88,
+          "line": 109,
           "path": "src/tui/look.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -68936,7 +69475,7 @@
       "call_sites": [
         {
           "excerpt": "self.say(super::prompts::undoable(self, self.prompts.i18n.tr(\"receipt.fileCreated\")));",
-          "line": 1062,
+          "line": 1069,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -140169,7 +140708,7 @@
     },
     {
       "excerpt": "if key.name == \"Paste\" {",
-      "line": 131,
+      "line": 132,
       "literal": "Paste",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140178,7 +140717,7 @@
     },
     {
       "excerpt": "let mut action = if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\") {",
-      "line": 134,
+      "line": 135,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140187,7 +140726,7 @@
     },
     {
       "excerpt": "let mut action = if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\") {",
-      "line": 134,
+      "line": 135,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140196,7 +140735,7 @@
     },
     {
       "excerpt": "if key.name != \"Escape\" { model.fail(\"No action for that key sequence\".into()); }",
-      "line": 140,
+      "line": 141,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140205,7 +140744,7 @@
     },
     {
       "excerpt": "if key.name != \"Escape\" { model.fail(\"No action for that key sequence\".into()); }",
-      "line": 140,
+      "line": 141,
       "literal": "No action for that key sequence",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140214,7 +140753,7 @@
     },
     {
       "excerpt": "\"H\" if matches!(model.preset.as_str(), \"default\" | \"vim\") => {",
-      "line": 186,
+      "line": 187,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140223,7 +140762,7 @@
     },
     {
       "excerpt": "\"L\" if matches!(model.preset.as_str(), \"default\" | \"vim\") => {",
-      "line": 189,
+      "line": 190,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140232,7 +140771,7 @@
     },
     {
       "excerpt": "m.fail(\"Wait for search to settle before a file operation\".into());",
-      "line": 209,
+      "line": 210,
       "literal": "Wait for search to settle before a file operation",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140241,7 +140780,7 @@
     },
     {
       "excerpt": "if m.pending_clipboard || m.searching { m.fail(\"Wait for the selection to settle before choosing\".into()); return Ok(()); }",
-      "line": 263,
+      "line": 264,
       "literal": "Wait for the selection to settle before choosing",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140250,7 +140789,7 @@
     },
     {
       "excerpt": "m.fail(\"Could not open selected file\".into());",
-      "line": 273,
+      "line": 274,
       "literal": "Could not open selected file",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140259,7 +140798,7 @@
     },
     {
       "excerpt": "let path = match action { \"goConfig\" => home.join(\".config\"), \"goDownloads\" => home.join(\"Downloads\"), _ => home };",
-      "line": 313,
+      "line": 314,
       "literal": "Downloads",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140268,7 +140807,7 @@
     },
     {
       "excerpt": "} else { m.fail(\"No home folder is configured\".into()); }",
-      "line": 315,
+      "line": 316,
       "literal": "No home folder is configured",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140277,7 +140816,7 @@
     },
     {
       "excerpt": "else { m.fail(\"Only a regular file can be edited\".into()); }",
-      "line": 319,
+      "line": 320,
       "literal": "Only a regular file can be edited",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140286,7 +140825,7 @@
     },
     {
       "excerpt": "m.fail(\"Selected item is unavailable; select it again to rename\".into());",
-      "line": 336,
+      "line": 337,
       "literal": "Selected item is unavailable; select it again to rename",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140295,7 +140834,7 @@
     },
     {
       "excerpt": "m.say(\"Clipboard cleared\".into());",
-      "line": 352,
+      "line": 353,
       "literal": "Clipboard cleared",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140304,7 +140843,7 @@
     },
     {
       "excerpt": "m.fail(\"Select one available item to duplicate\".into());",
-      "line": 379,
+      "line": 380,
       "literal": "Select one available item to duplicate",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140313,7 +140852,7 @@
     },
     {
       "excerpt": "m.reverse = action.ends_with(\"Reverse\");",
-      "line": 394,
+      "line": 395,
       "literal": "Reverse",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140322,7 +140861,7 @@
     },
     {
       "excerpt": "None => m.say(\"Only a folder opens in a new tab\".into()),",
-      "line": 440,
+      "line": 441,
       "literal": "Only a folder opens in a new tab",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140331,7 +140870,7 @@
     },
     {
       "excerpt": "m.launches.push((if action == \"windowNew\" { \"New Flea window\" } else { \"Terminal\" }.into(), child));",
-      "line": 445,
+      "line": 446,
       "literal": "New Flea window",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140340,7 +140879,7 @@
     },
     {
       "excerpt": "m.launches.push((if action == \"windowNew\" { \"New Flea window\" } else { \"Terminal\" }.into(), child));",
-      "line": 445,
+      "line": 446,
       "literal": "Terminal",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140349,7 +140888,7 @@
     },
     {
       "excerpt": "if !path.is_dir() { m.fail(\"An agent needs a folder to open in\".into()); }",
-      "line": 449,
+      "line": 450,
       "literal": "An agent needs a folder to open in",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140358,7 +140897,7 @@
     },
     {
       "excerpt": "m.launches.push((\"Agent\".into(), child));",
-      "line": 452,
+      "line": 453,
       "literal": "Agent",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140367,7 +140906,7 @@
     },
     {
       "excerpt": "m.fail(\"Properties requires one selected item\".into());",
-      "line": 503,
+      "line": 504,
       "literal": "Properties requires one selected item",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140376,7 +140915,7 @@
     },
     {
       "excerpt": "&Key::named(if scroll < 0 { \"Up\" } else { \"Down\" }, \"\"),",
-      "line": 609,
+      "line": 610,
       "literal": "Down",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140385,7 +140924,7 @@
     },
     {
       "excerpt": "return self::key(m, &Key::named(\"Return\", \"\"), map, w);",
-      "line": 622,
+      "line": 623,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140394,7 +140933,7 @@
     },
     {
       "excerpt": "m.say(\"Nine tabs is the most\".into());",
-      "line": 766,
+      "line": 767,
       "literal": "Nine tabs is the most",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140403,7 +140942,7 @@
     },
     {
       "excerpt": "m.fail(format!(\"Could not save settings: {}\", e));",
-      "line": 801,
+      "line": 802,
       "literal": "Could not save settings: {}",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140412,7 +140951,7 @@
     },
     {
       "excerpt": "if key.name == \"Escape\" || (m.preset == \"yazi\" && key.mods == \"ctrl\" && matches!(key.name.as_str(), \"C\" | \"BracketLeft\")) {",
-      "line": 818,
+      "line": 819,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140421,7 +140960,7 @@
     },
     {
       "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" {",
-      "line": 824,
+      "line": 825,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140430,7 +140969,7 @@
     },
     {
       "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" {",
-      "line": 824,
+      "line": 825,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140439,7 +140978,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"path\" {",
-      "line": 884,
+      "line": 885,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140448,7 +140987,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"search\" {",
-      "line": 888,
+      "line": 889,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -141415,6 +141954,24 @@
       "literal": "The editor command needs a program",
       "owner": "t11",
       "path": "src/tui/external_editor.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "Some(self.result.try_recv().unwrap_or_else(|_| Err(\"model worker stopped\".into())))",
+      "line": 23,
+      "literal": "model worker stopped",
+      "owner": "t11",
+      "path": "src/tui/graphics.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "assert!(Instant::now() < until, \"decoder was not reaped after cancellation\");",
+      "line": 314,
+      "literal": "decoder was not reaped after cancellation",
+      "owner": "t11",
+      "path": "src/tui/graphics.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "tui"
     },
@@ -142725,7 +143282,7 @@
     },
     {
       "excerpt": "if !status.success() { launch_errors.push(format!(\"{} could not finish ({})\", name, status)); }",
-      "line": 120,
+      "line": 129,
       "literal": "{} could not finish ({})",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -142734,7 +143291,7 @@
     },
     {
       "excerpt": "Err(error) => { launch_errors.push(format!(\"Could not observe {}: {}\", name, crate::error::io_message(&error))); false }",
-      "line": 124,
+      "line": 133,
       "literal": "Could not observe {}: {}",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -142743,7 +143300,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: terminal interface: {}\", crate::error::io_message(&e));",
-      "line": 275,
+      "line": 282,
       "literal": "flea: terminal interface: {}",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -142752,7 +143309,7 @@
     },
     {
       "excerpt": "format!(\"{} {} · Undo reverts one\", if cancelled { \"Stopped after renaming\" } else { \"Renamed\" }, super::render::items(completed))",
-      "line": 213,
+      "line": 215,
       "literal": "{} {} · Undo reverts one",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142761,7 +143318,7 @@
     },
     {
       "excerpt": "format!(\"{} {} · Undo reverts one\", if cancelled { \"Stopped after renaming\" } else { \"Renamed\" }, super::render::items(completed))",
-      "line": 213,
+      "line": 215,
       "literal": "Stopped after renaming",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142770,7 +143327,7 @@
     },
     {
       "excerpt": "format!(\"{} {} · Undo reverts one\", if cancelled { \"Stopped after renaming\" } else { \"Renamed\" }, super::render::items(completed))",
-      "line": 213,
+      "line": 215,
       "literal": "Renamed",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142779,7 +143336,7 @@
     },
     {
       "excerpt": "_ => \"default\",",
-      "line": 331,
+      "line": 333,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142788,7 +143345,7 @@
     },
     {
       "excerpt": "self.say(if batch.completed == 0 { if batch.cancelled { \"Rename cancelled\" } else { \"No names changed\" }.into() }",
-      "line": 509,
+      "line": 514,
       "literal": "Rename cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142797,7 +143354,7 @@
     },
     {
       "excerpt": "self.say(if batch.completed == 0 { if batch.cancelled { \"Rename cancelled\" } else { \"No names changed\" }.into() }",
-      "line": 509,
+      "line": 514,
       "literal": "No names changed",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142806,7 +143363,7 @@
     },
     {
       "excerpt": "} else { self.fail(format!(\"Could not restore deletion selection: {}\", text(value, \"error\"))); }",
-      "line": 535,
+      "line": 540,
       "literal": "Could not restore deletion selection: {}",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142815,7 +143372,7 @@
     },
     {
       "excerpt": "self.fail(\"Taildrop cancelled; selection changed\".into());",
-      "line": 552,
+      "line": 557,
       "literal": "Taildrop cancelled; selection changed",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142824,7 +143381,7 @@
     },
     {
       "excerpt": "let reason = if self.taildrop.error.is_empty() { \"Taildrop device is unreachable\".into() }",
-      "line": 559,
+      "line": 564,
       "literal": "Taildrop device is unreachable",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142833,7 +143390,7 @@
     },
     {
       "excerpt": "\"Dimensions\",",
-      "line": 829,
+      "line": 836,
       "literal": "Dimensions",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142842,7 +143399,7 @@
     },
     {
       "excerpt": "\"Duration\",",
-      "line": 837,
+      "line": 844,
       "literal": "Duration",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142851,7 +143408,7 @@
     },
     {
       "excerpt": "\"Rate\",",
-      "line": 845,
+      "line": 852,
       "literal": "Rate",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142860,7 +143417,7 @@
     },
     {
       "excerpt": "else if count(&value, \"mode\") > 0 && count(&value, \"mode\") & 0o444 == 0 { \"You don’t have permission to open this folder.\".into() }",
-      "line": 870,
+      "line": 877,
       "literal": "You don’t have permission to open this folder.",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142869,7 +143426,7 @@
     },
     {
       "excerpt": "else { \"This folder could not be read.\".into() };",
-      "line": 871,
+      "line": 878,
       "literal": "This folder could not be read.",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142878,7 +143435,7 @@
     },
     {
       "excerpt": "self.preview.push(\"This folder could not be read.\".into());",
-      "line": 875,
+      "line": 882,
       "literal": "This folder could not be read.",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142887,7 +143444,7 @@
     },
     {
       "excerpt": "self.preview.push(\"Empty folder\".into());",
-      "line": 885,
+      "line": 892,
       "literal": "Empty folder",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142896,7 +143453,7 @@
     },
     {
       "excerpt": "self.fail(\"The selection changed or cannot be written one path per line; choose it again\".into());",
-      "line": 938,
+      "line": 945,
       "literal": "The selection changed or cannot be written one path per line; choose it again",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142905,7 +143462,7 @@
     },
     {
       "excerpt": "\"Moving\"",
-      "line": 979,
+      "line": 986,
       "literal": "Moving",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142914,7 +143471,7 @@
     },
     {
       "excerpt": "\"Copying\"",
-      "line": 981,
+      "line": 988,
       "literal": "Copying",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142923,7 +143480,7 @@
     },
     {
       "excerpt": "\"Moving\"",
-      "line": 997,
+      "line": 1004,
       "literal": "Moving",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142932,7 +143489,7 @@
     },
     {
       "excerpt": "\"Copying\"",
-      "line": 999,
+      "line": 1006,
       "literal": "Copying",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142941,7 +143498,7 @@
     },
     {
       "excerpt": "else { Err(io::Error::other(\"Bulk rename stopped: a rename could not finish\")) };",
-      "line": 1013,
+      "line": 1020,
       "literal": "Bulk rename stopped: a rename could not finish",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142950,7 +143507,7 @@
     },
     {
       "excerpt": "self.say(\"Selection changed; confirm again\".into());",
-      "line": 1073,
+      "line": 1080,
       "literal": "Selection changed; confirm again",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -142959,33 +143516,6 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { self.say(\"Deletion cancelled\".into()); }",
-      "line": 1080,
-      "literal": "cancelled",
-      "owner": "t11",
-      "path": "src/tui/model.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "tui"
-    },
-    {
-      "excerpt": "if flag(&value, \"cancelled\") { self.say(\"Deletion cancelled\".into()); }",
-      "line": 1080,
-      "literal": "Deletion cancelled",
-      "owner": "t11",
-      "path": "src/tui/model.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "tui"
-    },
-    {
-      "excerpt": "self.say(\"Deletion cancelled\".into());",
-      "line": 1083,
-      "literal": "Deletion cancelled",
-      "owner": "t11",
-      "path": "src/tui/model.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "tui"
-    },
-    {
-      "excerpt": "if flag(&value, \"cancelled\") { \" · Cancelled\".into() } else { String::new() }));",
       "line": 1087,
       "literal": "cancelled",
       "owner": "t11",
@@ -142994,8 +143524,35 @@
       "surface": "tui"
     },
     {
+      "excerpt": "if flag(&value, \"cancelled\") { self.say(\"Deletion cancelled\".into()); }",
+      "line": 1087,
+      "literal": "Deletion cancelled",
+      "owner": "t11",
+      "path": "src/tui/model.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "self.say(\"Deletion cancelled\".into());",
+      "line": 1090,
+      "literal": "Deletion cancelled",
+      "owner": "t11",
+      "path": "src/tui/model.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if flag(&value, \"cancelled\") { \" · Cancelled\".into() } else { String::new() }));",
+      "line": 1094,
+      "literal": "cancelled",
+      "owner": "t11",
+      "path": "src/tui/model.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
       "excerpt": "if !flag(&value, \"cancelled\") { self.fail(text(&value, \"error\").into()); }",
-      "line": 1106,
+      "line": 1113,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143004,7 +143561,7 @@
     },
     {
       "excerpt": "if token == 0 { return Err(io::Error::other(\"Deletion could not be confirmed; try again\")); }",
-      "line": 1120,
+      "line": 1127,
       "literal": "Deletion could not be confirmed; try again",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143013,7 +143570,7 @@
     },
     {
       "excerpt": "self.fail(\"Bulk rename selection is incomplete; select the items again\".into());",
-      "line": 1132,
+      "line": 1139,
       "literal": "Bulk rename selection is incomplete; select the items again",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143022,7 +143579,7 @@
     },
     {
       "excerpt": "self.fail(\"Could not open selected file\".into());",
-      "line": 1144,
+      "line": 1151,
       "literal": "Could not open selected file",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143031,7 +143588,7 @@
     },
     {
       "excerpt": "self.fail(\"Could not open selected file\".into());",
-      "line": 1152,
+      "line": 1159,
       "literal": "Could not open selected file",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143040,7 +143597,7 @@
     },
     {
       "excerpt": "self.fail(\"Taildrop: selection is incomplete\".into());",
-      "line": 1158,
+      "line": 1165,
       "literal": "Taildrop: selection is incomplete",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143049,7 +143606,7 @@
     },
     {
       "excerpt": "Ok(()) => self.say(format!(\"Sending to {}\", peer.label)),",
-      "line": 1161,
+      "line": 1168,
       "literal": "Sending to {}",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143058,7 +143615,7 @@
     },
     {
       "excerpt": "if text(&value, \"msg\") == \"permission denied\" { \"You don’t have permission to open this folder.\".into() }",
-      "line": 1184,
+      "line": 1191,
       "literal": "permission denied",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143067,10 +143624,46 @@
     },
     {
       "excerpt": "if text(&value, \"msg\") == \"permission denied\" { \"You don’t have permission to open this folder.\".into() }",
-      "line": 1184,
+      "line": 1191,
       "literal": "You don’t have permission to open this folder.",
       "owner": "t11",
       "path": "src/tui/model.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "let fields = value.as_object().ok_or_else(|| io::Error::other(\"invalid model request\"))?;",
+      "line": 98,
+      "literal": "invalid model request",
+      "owner": "t11",
+      "path": "src/tui/model3d.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if plain && (key.name == \"Escape\" || key.name == \"Space\") || action == \"focusPreview\" {",
+      "line": 171,
+      "literal": "Escape",
+      "owner": "t11",
+      "path": "src/tui/model3d.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if plain && (key.name == \"Escape\" || key.name == \"Space\") || action == \"focusPreview\" {",
+      "line": 171,
+      "literal": "Space",
+      "owner": "t11",
+      "path": "src/tui/model3d.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if cancel.load(Ordering::Relaxed) { return Err(\"model render cancelled\".into()); }",
+      "line": 326,
+      "literal": "model render cancelled",
+      "owner": "t11",
+      "path": "src/tui/model3d.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "tui"
     },
@@ -143134,6 +143727,15 @@
       "literal": "Preview socket directory is outside its sandbox",
       "owner": "t11",
       "path": "src/tui/mpv.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": ".is_some_and(|rest| rest.starts_with(\" · \"))",
+      "line": 364,
+      "literal": " · ",
+      "owner": "t11",
+      "path": "src/tui/office.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "tui"
     },
@@ -143283,7 +143885,7 @@
     },
     {
       "excerpt": "let script = format!(\"/usr/bin/pdftoppm -f \\\"$1\\\" -l \\\"$1\\\" -singlefile -scale-to \\\"$2\\\" -png /input | /usr/bin/magick png:- -resize \\\"$3\\\" -resize \\\"$4\\\" -crop \\\"$5\\\" +repage -fill \\\"$7\\\" -colorize {VEIL_PERCENT}% \\\"$6\\\"\");",
-      "line": 80,
+      "line": 87,
       "literal": "/usr/bin/pdftoppm -f \"$1\" -l \"$1\" -singlefile -scale-to \"$2\" -png /input | /usr/bin/magick png:- -resize \"$3\" -resize \"$4\" -crop \"$5\" +repage -fill \"$7\" -colorize {VEIL_PERCENT}% \"$6\"",
       "owner": "t11",
       "path": "src/tui/pdf.rs",
@@ -143346,7 +143948,7 @@
     },
     {
       "excerpt": "kind: \"Plain text document\".into(),",
-      "line": 214,
+      "line": 215,
       "literal": "Plain text document",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143355,7 +143957,7 @@
     },
     {
       "excerpt": "d.file(\"next.txt\", \"next body\");",
-      "line": 226,
+      "line": 227,
       "literal": "next body",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143364,7 +143966,7 @@
     },
     {
       "excerpt": "assert_eq!(read_text(&d.join(\"next.txt\"), &AtomicBool::new(false)).unwrap(), \"next body\");",
-      "line": 234,
+      "line": 235,
       "literal": "next body",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143373,15 +143975,6 @@
     },
     {
       "excerpt": "std::os::unix::fs::symlink(d.join(\"note.txt\"), d.join(\"link\")).unwrap();",
-      "line": 243,
-      "literal": "link",
-      "owner": "t11",
-      "path": "src/tui/preview.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "tui"
-    },
-    {
-      "excerpt": "m.rows.get_mut(&0).unwrap().name = \"link\".into();",
       "line": 244,
       "literal": "link",
       "owner": "t11",
@@ -143390,8 +143983,8 @@
       "surface": "tui"
     },
     {
-      "excerpt": "assert_eq!(read_text(&d.join(\"link\"), &AtomicBool::new(false)).unwrap_err(), \"This file could not be read.\");",
-      "line": 246,
+      "excerpt": "m.rows.get_mut(&0).unwrap().name = \"link\".into();",
+      "line": 245,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143400,7 +143993,16 @@
     },
     {
       "excerpt": "assert_eq!(read_text(&d.join(\"link\"), &AtomicBool::new(false)).unwrap_err(), \"This file could not be read.\");",
-      "line": 246,
+      "line": 247,
+      "literal": "link",
+      "owner": "t11",
+      "path": "src/tui/preview.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "assert_eq!(read_text(&d.join(\"link\"), &AtomicBool::new(false)).unwrap_err(), \"This file could not be read.\");",
+      "line": 247,
       "literal": "This file could not be read.",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143409,7 +144011,7 @@
     },
     {
       "excerpt": "let row = Row { name: \"note.txt\".into(), directory: false, size: 4, mode: 0o100644, link: String::new(), kind: \"Plain text document\".into(), thumbnail: false, modified: 0, icon: \"text-x-generic\".into() };",
-      "line": 262,
+      "line": 263,
       "literal": "Plain text document",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143418,7 +144020,7 @@
     },
     {
       "excerpt": "m.hints = crate::tui::keymap::Hints::new(&crate::tui::keymap::Map::load(), \"default\");",
-      "line": 266,
+      "line": 267,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143427,7 +144029,7 @@
     },
     {
       "excerpt": "assert_eq!(m.preview.last().unwrap(), \"Ctrl+Space to load preview\");",
-      "line": 268,
+      "line": 269,
       "literal": "Ctrl+Space to load preview",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143436,7 +144038,7 @@
     },
     {
       "excerpt": "m.hints = crate::tui::keymap::Hints::new(&rebound, \"default\");",
-      "line": 269,
+      "line": 270,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143445,7 +144047,7 @@
     },
     {
       "excerpt": "assert_eq!(m.preview.last().unwrap(), \"Ctrl+P to load preview\");",
-      "line": 272,
+      "line": 273,
       "literal": "Ctrl+P to load preview",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143454,7 +144056,7 @@
     },
     {
       "excerpt": "assert!(!m.preview.iter().any(|line| line.contains(\"load preview\")), \"{:?}\", m.preview);",
-      "line": 276,
+      "line": 277,
       "literal": "load preview",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143463,7 +144065,7 @@
     },
     {
       "excerpt": "d.file(\"real.txt\", \"target body\");",
-      "line": 283,
+      "line": 284,
       "literal": "target body",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143472,7 +144074,7 @@
     },
     {
       "excerpt": "std::os::unix::fs::symlink(d.join(\"real.txt\"), d.join(\"link\")).unwrap();",
-      "line": 284,
+      "line": 285,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143481,7 +144083,7 @@
     },
     {
       "excerpt": "let row = |name: &str, icon: &str, link: &str| Row { name: name.into(), directory: false, size: 11, mode: 0o100644, link: link.into(), kind: \"Data\".into(), thumbnail: false, modified: 0, icon: icon.into() };",
-      "line": 287,
+      "line": 288,
       "literal": "Data",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143490,7 +144092,7 @@
     },
     {
       "excerpt": "assert!(started.elapsed() < std::time::Duration::from_secs(5), \"the text read did not finish\");",
-      "line": 292,
+      "line": 293,
       "literal": "the text read did not finish",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143499,7 +144101,7 @@
     },
     {
       "excerpt": "assert!(m.preview_reader.outstanding(m.preview_generation), \"data was not read as text\");",
-      "line": 299,
+      "line": 300,
       "literal": "data was not read as text",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143508,7 +144110,7 @@
     },
     {
       "excerpt": "assert!(!m.preview_reader.outstanding(m.preview_generation), \"a picture was read as text\");",
-      "line": 304,
+      "line": 305,
       "literal": "a picture was read as text",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143517,7 +144119,7 @@
     },
     {
       "excerpt": "m.rows.insert(0, row(\"link\", \"text-plain\", \"real.txt\"));",
-      "line": 305,
+      "line": 306,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143526,7 +144128,7 @@
     },
     {
       "excerpt": "assert_eq!(m.preview_body, \"target body\", \"{:?}\", m.preview);",
-      "line": 308,
+      "line": 309,
       "literal": "target body",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143535,7 +144137,7 @@
     },
     {
       "excerpt": "let path = sandbox.file(\"next.txt\", \"current body\");",
-      "line": 313,
+      "line": 314,
       "literal": "current body",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143544,7 +144146,7 @@
     },
     {
       "excerpt": "tx.send(Ok(\"stale body\".into())).unwrap();",
-      "line": 320,
+      "line": 321,
       "literal": "stale body",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143553,7 +144155,7 @@
     },
     {
       "excerpt": "assert_eq!(receiver.recv_timeout(std::time::Duration::from_secs(5)).unwrap().unwrap(), \"current body\");",
-      "line": 324,
+      "line": 325,
       "literal": "current body",
       "owner": "t11",
       "path": "src/tui/preview.rs",
@@ -143652,7 +144254,7 @@
     },
     {
       "excerpt": "model.fail(format!(\"Media preview: {}\", crate::error::io_message(&e)));",
-      "line": 68,
+      "line": 77,
       "literal": "Media preview: {}",
       "owner": "t11",
       "path": "src/tui/stage.rs",
@@ -143661,7 +144263,7 @@
     },
     {
       "excerpt": "model.fail(\"Inline preview unavailable: terminal did not report pixel dimensions\".into());",
-      "line": 122,
+      "line": 142,
       "literal": "Inline preview unavailable: terminal did not report pixel dimensions",
       "owner": "t11",
       "path": "src/tui/stage.rs",
@@ -143670,8 +144272,53 @@
     },
     {
       "excerpt": "return Err(io::Error::other(\"Preview cancelled\"));",
-      "line": 178,
+      "line": 204,
       "literal": "Preview cancelled",
+      "owner": "t11",
+      "path": "src/tui/still.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if cancel.load(Ordering::Relaxed) || !held.fresh() { return Err(\"model source changed\".into()); }",
+      "line": 249,
+      "literal": "model source changed",
+      "owner": "t11",
+      "path": "src/tui/still.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if cancel.load(Ordering::Relaxed) { return Err(\"model render cancelled\".into()); }",
+      "line": 254,
+      "literal": "model render cancelled",
+      "owner": "t11",
+      "path": "src/tui/still.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "let home = camera::Home::new(&live, 0).ok_or(\"empty model plate\")?;",
+      "line": 257,
+      "literal": "empty model plate",
+      "owner": "t11",
+      "path": "src/tui/still.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if cancel.load(Ordering::Relaxed) { return Err(\"model render cancelled\".into()); }",
+      "line": 266,
+      "literal": "model render cancelled",
+      "owner": "t11",
+      "path": "src/tui/still.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if cancel.load(Ordering::Relaxed) || !held.fresh() { return Err(\"model source changed\".into()); }",
+      "line": 270,
+      "literal": "model source changed",
       "owner": "t11",
       "path": "src/tui/still.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -212288,12 +212935,12 @@
     "src/theme/tokens.rs": "300da578de3add38d96788c85e0fd27f08f6a4c71f7165b93d67c3ca977dc016",
     "src/theme/watch.rs": "d8660ef8fd5bab6d239281aaeeb04fd87e0d1b459924611417db85a41600b88c",
     "src/thp.rs": "6dfac794c19696f80fe1ff33cea9f2d16ed5b69c6a186f989769db44f4fcf8f1",
-    "src/tui/actions.rs": "ec5765625c827996c7dd31528cece83eda0f49da6af64aa8d7fb0560658dc982",
+    "src/tui/actions.rs": "54c5fe78f23a94b0d5d08bd5302bb4ea7ea306b03b0092bca9d1a7cea1cdac76",
     "src/tui/batch.rs": "51fced81cc375c676c8039e60405f0b311e54e7a026328b166940813f6013a88",
     "src/tui/calendar.rs": "5e1251d31dc14cd7f9a516a87f05d910bfd91c9d8e48b7d1c959726b7ac72bf2",
     "src/tui/capabilities.rs": "a8790641f17557c0e34c7b417b5d321bb6f8ebb8e1becd0ab37060b947596eb9",
     "src/tui/cards.rs": "77e3682bc95281e9295e4deb70f97a08da907150c144ccb487d49c8e946758f5",
-    "src/tui/cells.rs": "c2b6603b014d1c0695dc3d1d8978872a924b5643f97644c09c69b34f5857c91b",
+    "src/tui/cells.rs": "8a6c65b1cc62f2f8730ae42bb239ae68c8bcf6ca03a1a7f47770e439a06aacd7",
     "src/tui/chafa.rs": "d908fe639ea05088a9b333e06e6272cd893b4b50e89d1f3e0862d65b91b08b02",
     "src/tui/chafa_process.rs": "e88bd7ad9d1ac18581ce19444c750572c513182a139d8a2c164ab75bd0a0cd5a",
     "src/tui/completion.rs": "e0ee7b5b1f3e935735c63c913b1edee5f657c48b58b3000e9a7aa2fcd62b08b8",
@@ -212303,7 +212950,7 @@
     "src/tui/empty.rs": "86edf118493245e2a8859b56166447a0c47d9abb3b9e558727133cb2778aae0a",
     "src/tui/external_editor.rs": "4a42cd351c05f4658849780daaf3a82ab5d96b2c83729341665d89a38eae5e9d",
     "src/tui/filter.rs": "b0914659d35defbca4e47f13697a130573c0f4656924f7af7c1e473682e313b8",
-    "src/tui/graphics.rs": "e2d170beabf0750376e8a807e7d371120a0b586620d47da236f1207067aecba7",
+    "src/tui/graphics.rs": "496212860977c9f25eba3a2c1753c07af63acd63d492147889a7f3db81cedc5d",
     "src/tui/hold.rs": "9aadaa765d5e5d81d4bbfb2923988966ed65ad96bf89e0eab46ec3e996e11868",
     "src/tui/icons.rs": "126966c1f0cba1f43823055dc9803028c010bd1dffd24bb04f51793171664168",
     "src/tui/input.rs": "d9768c9e39f50994fde6a0bdb011fb49a9a416b0c5e53426a950dd86ec95f66a",
@@ -212313,24 +212960,26 @@
     "src/tui/keymap.rs": "4595b6b809aa095995fa725d00830e5713317765a5e6d2b0d24648066488ba26",
     "src/tui/launch.rs": "5c3a1d582ce86f2c72b42213887f7bb48b4be8192cbfbaa7c917a8f8b274cf30",
     "src/tui/layout.rs": "c4881ecf18b6dc88009fd4f24f3454f0cbe4038df2b32703ea6fda57ec6d5c12",
-    "src/tui/look.rs": "035a8d1a2bed1da66f8388fdeae73f93e4d0a37ded307228ed279fb7622501b7",
+    "src/tui/look.rs": "e78ccfccc6df6013c5ccb990a662099ecdebd013f4d6746fb76d73ea9ebe04c2",
     "src/tui/media.rs": "4d0666e7b3c522656664cbf0826991b0b43d27eaaf58441c7f527e455fd6ed04",
     "src/tui/menu_layout.rs": "a2dc050f53f6a5818bb91f5995e66346e147cbe6123f768a2114a4dbecf54775",
     "src/tui/menu_run.rs": "bc882b0fc0c95992e55555c51f2c2acafb9dc2ec5f340b7f89a6657d58a24713",
-    "src/tui/mod.rs": "864f2a7ecc64c777e27ffc968327ce47beb804c5a3f41fcfd250e6e910532934",
-    "src/tui/model.rs": "79ebb16988777149b3d9ace9345505c2654acd2e60556a632482cdcdbc7a1b94",
+    "src/tui/mod.rs": "aa2dc217118fd2077c07bbab19917502bd2fe7511cffbbac9a0180ce051758c6",
+    "src/tui/model.rs": "a5355fc2054307c82ccc91f2d7d7dc1709f328c8e05f3649d59fb9b9143b1b46",
+    "src/tui/model3d.rs": "e54a37dc6faa6a4d91c58b05e43ba98cccdf22fb4c5ceecf872b8ece6de5b31d",
     "src/tui/mounts.rs": "6c240e6c9ff2e2c2fe1e0057b62aafa176100e68e83bdc77d0f0fce52009a3d3",
     "src/tui/mpv.rs": "11f5dbae6e21e1312707373c7c8af3117e7169389a5b74700a02d202575f338b",
-    "src/tui/pane.rs": "6039f7140e2be838402557193c3f5fd13bcef1292380dbd43df1dc429b5cfdb1",
-    "src/tui/pane_state.rs": "379e218f48bbcafde5a54b2427114cd7f1aefd5a5d2b0587124232172161c677",
+    "src/tui/office.rs": "bba348d9494f5453bed009d12131429f2cfc1e62339f75d1ee253117898ab142",
+    "src/tui/pane.rs": "c2760d3d0025c4cc6eb06bd7607b2b151971f865a7b8411666a2de8f7b5c6e98",
+    "src/tui/pane_state.rs": "8be7c3fef5d8fbc9997b8ad20f5ea3e1f63b17d5494d61b7fc44f50dc3c3a774",
     "src/tui/parity.rs": "2241103166422ff8af142ff44b259923fcda0a3079eb541e4ad0fbcdcacfbfb4",
-    "src/tui/pdf.rs": "2902c5d5b5fbbb94a98561d170e21a5656b0a889ce6fb4dfdf69230a3c794972",
-    "src/tui/picture.rs": "74768448e0812aac2971a15b37b3c86b022edef343b94ae1d6a44836eeeb4819",
-    "src/tui/preview.rs": "ff9f2950ae2a94586cf4702d63e5b98e8f972a0355fb390f4f7933d094d0d3a1",
+    "src/tui/pdf.rs": "777b3b9ec9e58becbf2b69fadf2d0455517fd39f830c193b9779e2dc867cb6c7",
+    "src/tui/picture.rs": "0436b193e7d0686dfb52e07d553a7e55e8a834463dcdca17c6dd11170070e6db",
+    "src/tui/preview.rs": "8f42c708ddab303dd19e4080d5c2c9008168ba1c471a86dfe4d43a5488fae12a",
     "src/tui/prompts.rs": "383cdc0f26dad003743a467879b3837244dcc0b6af6437816c5c61726f3f1d78",
     "src/tui/render.rs": "7b6963bf552477e0553b405bbd704652d5e15f0598a530e3ffaf2077fd265f82",
-    "src/tui/stage.rs": "11e3b4a6bedd37d36be4ff1e0556c194ed840e9976ab07b075b2f72575dccd2e",
-    "src/tui/still.rs": "fff3d4de137046cf62af86e15901f98300936b6ec4f2c35c6478556bc5c431db",
+    "src/tui/stage.rs": "d5c0d2732b9e4d84e9771cd7e529ce82d73848198f51625d235c1f89bc1eb00f",
+    "src/tui/still.rs": "e169b6427851ea49c6d29c71615bc6e4a186d5828003ec64e75faf17af9d397d",
     "src/tui/syntax.rs": "6097244b74b035e34cb73bc9c0276790edecf62d62ef826066309666f6392b12",
     "src/tui/taildrop.rs": "dee6fe8f721a13a333f32ba4f2620a109a3d55aade39d119b4bf4972232827fb",
     "src/tui/terminal.rs": "cb4c4b87b84151950279893256657f0c38d073c86c2faf0a2c4ffe079ef4102c",
@@ -213242,8 +213891,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "1124ef97e1d117c8fc455a0488ebf937f5304425",
-  "source_sha": "1124ef97e1d117c8fc455a0488ebf937f5304425",
+  "source_ref_sha": "5a3c96a0499b239400b23950b0cb51507932081d",
+  "source_sha": "5a3c96a0499b239400b23950b0cb51507932081d",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
@@ -213266,9 +213915,9 @@
       "source_files": 412
     },
     "tui": {
-      "keys_with_occurrences": 179,
-      "missing_literal_candidates": 469,
-      "source_files": 54
+      "keys_with_occurrences": 206,
+      "missing_literal_candidates": 481,
+      "source_files": 56
     }
   },
   "unlocated_keys": [
