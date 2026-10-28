@@ -22,7 +22,7 @@ once at startup and prints one line on stderr, so the cause is stated rather tha
 fatal, because listing directories does not need the sandbox. `tests/thumbs.sh` runs the real binary
 with `PATH` pointed at an empty directory and asserts the empty `file`, no cache entry and no marker.
 
-The decoder's shape is `prlimit --cpu=30 --as=2147483648 bwrap <flags> <inner>`; the archive class
+The default decoder's shape is `prlimit --cpu=30 --as=2147483648 bwrap <flags> <inner>`; the archive class
 below is that same argv with the `--cpu=` argument dropped and nothing else. **`prlimit` is the
 outermost program because `bwrap` has no rlimit option**, verified against `bwrap --help`
 on bubblewrap 0.11.2 here. Setting the limits from Rust would need raw `setrlimit`, which
@@ -58,6 +58,21 @@ margin over their range and a larger image on their box could reopen the issue; 
 accepted, because the rung here is the smallest thing that works and the number moves again
 when somebody brings a measurement. It is still finite and still refuses a decompression
 bomb.
+
+**Issue #357 gives f3d alone a 3 GiB address-space cap.** Its llvmpipe/LLVM mappings
+can exhaust 2 GiB while resident memory stays much smaller. With f3d 3.5.0, Mesa
+26.2.5 and llvmpipe at 32 threads, a 48,400-vertex OBJ sphere aborted at exactly
+2 GiB with `LLVM ERROR: Unable to allocate section memory!`; at 3 GiB it rendered
+with about 2.02 GiB virtual space and 401 MiB RSS. The executable's final path
+component must be exactly `f3d`; mentioning it in an argument changes nothing.
+Other decoders, read-only probes, archives and the forked video worker keep 2 GiB.
+The 30 CPU seconds, 20-second thumbnail deadline, namespace and allocator arena
+limit remain. `RLIMIT_RSS` is not a substitute: this kernel allowed a 192 MiB
+allocation under a 64 MiB RSS limit. Address-space limits apply independently to
+each process and survive fork and exec; they do not bound a whole process tree's
+combined RSS. A cgroup would provide that different bound but adds a service
+manager dependency and a separate launch per thumbnail. Concurrent sparse-mapping
+and forked allocation-bomb tests pin the chosen finite per-process limit.
 
 **Extract and compress run without the CPU cap, and that is issue #211.** `wrap` is
 the decoder's wrapper. `sandbox::wrap_archive` is the one `run_boxed_cancellable` builds for
