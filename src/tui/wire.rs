@@ -7,6 +7,7 @@ use std::sync::mpsc::{self, Receiver};
 
 pub struct Wire {
     child: Child,
+    pub listing: Option<usize>,
     input: ChildStdin,
     pub events: Receiver<Result<Json, String>>,
     // One byte per backend event, so the main loop wakes for it instead of waiting out its input timeout.
@@ -25,7 +26,10 @@ pub(crate) fn backend_command(exe: &std::path::Path, prefetch: Option<&crate::gv
 }
 impl Wire {
     pub fn start(prefetch: Option<&crate::gvfsprefetch::Prefetch>) -> io::Result<Self> {
-        let mut child = backend_command(&std::env::current_exe()?, prefetch)
+        Self::spawn(backend_command(&std::env::current_exe()?, prefetch))
+    }
+    pub(super) fn spawn(mut command: Command) -> io::Result<Self> {
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
@@ -57,6 +61,7 @@ impl Wire {
             let _ = (&ring).write(&[1]);
         });
         Ok(Self {
+            listing: None,
             child,
             input,
             events,
@@ -87,7 +92,13 @@ impl Wire {
             self.wake = None;
         }
     }
-    pub fn send(&mut self, fields: Vec<(&str, Json)>) -> io::Result<()> {
+    pub fn send(&mut self, mut fields: Vec<(&str, Json)>) -> io::Result<()> {
+        let command = fields.iter().find(|(key, _)| *key == "c").and_then(|(_, value)| value.as_str()).unwrap_or("");
+        if matches!(command, "trash" | "transfer" | "paths" | "menuaction" | "collisions" | "mergecollisions" | "link" | "settags")
+            && !fields.iter().any(|(key, _)| *key == "listing")
+        {
+            if let Some(listing) = self.listing { fields.push(("listing", number(listing))); }
+        }
         let document = Json::Obj(fields.into_iter().map(|(k, v)| (k.into(), v)).collect());
         let text = jsondoc::render(&document).replace('\n', "");
         writeln!(self.input, "{}", text)?;
@@ -138,7 +149,7 @@ pub(crate) fn echo_wire() -> (Wire, std::thread::JoinHandle<()>) {
         }
     });
     // The tests read events straight from the channel and never poll, so they need no wake.
-    (Wire { child, input, events, wake: None }, reader)
+    (Wire { child, input, events, wake: None, listing: None }, reader)
 }
 
 // Ends an echo wire, proving the child exits cleanly rather than lingering.
@@ -237,6 +248,7 @@ mod tests {
             }
         });
         let mut wire = Wire {
+            listing: None,
             child,
             input,
             events,

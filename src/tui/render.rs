@@ -55,6 +55,7 @@ pub fn grouped(n: usize) -> String {
 pub use super::calendar::modified;
 pub fn draw(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,
     _cell_pixels: Option<(usize, usize)>, elapsed: std::time::Duration, last: &mut String) -> io::Result<bool> {
+    if m.find.waiting || m.find.cancelling { return Ok(false); }
     let out = super::look::frame(m, theme, map, columns, lines, elapsed);
     present(out, last, &mut io::stdout().lock())
 }
@@ -87,9 +88,19 @@ pub(super) fn frame_at(m: &Model, theme: &Theme, map: &Map, columns: usize, line
             out.push_str(&cells::row(parent, left, None, m.marks(), RowStyle { cursor: current, quiet: true, parent: true, ..Default::default() }, theme, ""));
         } else { out.push_str(&" ".repeat(left)); }
         out.push_str(&format!("{}│{}", theme.border, base));
-        if let Some((index, entry)) = visible.get(y).and_then(|index| m.rows.get(index).map(|entry| (*index, entry))) {
+        if let Some((index, entry)) = visible.get(y / super::contents::row_height(m)).filter(|_| y / super::contents::row_height(m) < body / super::contents::row_height(m)).and_then(|index| m.rows.get(index).map(|entry| (*index, entry))) {
             let style = RowStyle { cursor: index == m.cursor, focused: layout::focused(m), marked: m.selected.contains(&index), dimmed: entry.mode == 0, ..Default::default() };
-            out.push_str(&cells::row(entry, middle, Some(&super::trashview::detail(m, index, entry)), m.marks(), style, theme, &m.filter));
+            if super::contents::row_height(m) == 2 && y % 2 == 1 {
+                out.push_str(&contents_line(m, index, middle, style, theme));
+            } else {
+                let query = if !m.filter.is_empty() { &m.filter } else if super::contents::row_height(m) == 1 { &m.search_query } else { "" };
+                if super::contents::row_height(m) == 2 {
+                    out.push_str(&contents_row(m, entry, middle, &super::trashview::detail(m, index, entry), style, theme));
+                } else { out.push_str(&cells::row(entry, middle, Some(&super::trashview::detail(m, index, entry)), m.marks(), style, theme, query)); }
+            }
+        } else if !m.search.is_empty() && !m.searching && m.total == 0 {
+            out.push_str(&theme.meta);
+            out.push_str(&super::empty::no_match(y, body, middle, m.marks(), &m.prompts.i18n.tr_args("filter.nothing", &[&m.search_query])));
         } else if super::empty::shown(m, columns, lines) {
             out.push_str(&theme.meta);
             out.push_str(&super::empty::line(y, body, middle, m.marks(), now.saturating_duration_since(m.empty_at)));
@@ -117,6 +128,40 @@ pub(super) fn frame_at(m: &Model, theme: &Theme, map: &Map, columns: usize, line
     if m.deletion.is_some() { cards::draw_delete(&mut out, m, lit); }
     out.push_str(&super::prompts::caret(caret, lines));
     out
+}
+fn contents_gutter(m: &Model) -> usize {
+    m.find.matches.values().map(|hit| text_width(&m.prompts.i18n.locale().format_count(hit.line_no as i64)) + 1).max().unwrap_or(3).max(3)
+}
+fn contents_line(m: &Model, index: usize, columns: usize, style: RowStyle, theme: &Theme) -> String {
+    let Some(hit) = m.find.matches.get(&index) else { return fit("", columns); };
+    let fill = if style.cursor { if style.focused { &theme.cursor } else { &theme.selected } }
+        else if style.marked { &theme.marked } else { &theme.background };
+    let reset = format!("\x1b[0m{fill}{}{}", theme.meta, if style.cursor && theme.depth == super::theme::Depth::Sixteen { "\x1b[7m" } else { "" });
+    let number = m.prompts.i18n.locale().format_count(hit.line_no as i64);
+    let gutter = contents_gutter(m).min(columns);
+    let prefix = format!("{}{} ", " ".repeat(gutter.saturating_sub(text_width(&number) + 1)), number);
+    let line = cells::ellipsis(&hit.line, columns.saturating_sub(gutter));
+    let query = m.find.active.as_ref().map_or("", |q| q.query.as_str());
+    let mut out = format!("{reset}{}", fit(&prefix, gutter));
+    let matched = (!query.is_empty()).then(|| hit.line.find(query)).flatten()
+        .map(|start| clean(&hit.line[..start]).len()).filter(|start| line.get(*start..).is_some_and(|tail| tail.starts_with(query)));
+    if let Some(start) = matched {
+        let end = start + query.len();
+        out.push_str(&line[..start]);
+        out.push_str(if style.cursor || style.marked { "\x1b[1m" } else { &theme.match_fill });
+        out.push_str(&line[start..end]);
+        out.push_str(&reset);
+        out.push_str(&line[end..]);
+    } else { out.push_str(&line); }
+    out.push_str(&theme.base());
+    out
+}
+fn contents_row(m: &Model, entry: &super::model::Row, columns: usize, size: &str, style: RowStyle, theme: &Theme) -> String {
+    let pad = contents_gutter(m).saturating_sub(3);
+    let mut entry = entry.clone();
+    let (folder, leaf) = entry.name.rsplit_once('/').unwrap_or(("", &entry.name));
+    entry.name = format!("{}{}{}", if folder.is_empty() { String::new() } else { format!("{folder}/") }, " ".repeat(pad), leaf);
+    cells::row(&entry, columns, Some(size), m.marks(), style, theme, "")
 }
 pub(super) fn selection_line(m: &Model, y: usize, columns: usize) -> String {
     if y == 0 { return format!("{} selected", items(m.selected.len())); }

@@ -1,5 +1,7 @@
 // The status-row prompts, receipts and paste question against the boards' cells, through the real key and receive paths.
 use super::*;
+#[path = "prompts_find_tests.rs"]
+mod find_tests;
 use crate::backend::testdir::TestDir;
 use crate::jsondoc::parse;
 use crate::tui::{actions, keymap::{Hints, Map}, render::{self, frame_tests}, wire::{echo_wire, finish}};
@@ -61,24 +63,6 @@ fn filter_prompt_and_applied_filter_keep_the_board_columns() {
     assert_eq!(span(&cells, 0, "Filter o").0, theme.muted);
     assert_eq!(span(&cells, 10, "5 of 9 shown").0, theme.foreground);
     assert_eq!(caret, None);
-}
-// tui-search-typing and tui-search-here: Tab moves the scope between Home and the folder on screen.
-#[test]
-fn find_prompt_names_its_scope_and_tab_changes_it() {
-    let theme = Theme::from_text("");
-    let (mut w, reader) = echo_wire();
-    let mut m = frame_tests::model();
-    m.editor = Some(Editor::new("search", "item".into(), m.path.clone()));
-    let (cells, caret) = row(&m);
-    assert_eq!(span(&cells, 0, "Find").0, theme.muted);
-    assert_eq!(span(&cells, 5, "item").1, theme.field);
-    assert_eq!(cells[9].2, theme.field, "the caret's cell is the field's");
-    assert_eq!(span(&cells, 11, "in Home · tab changes scope").0, theme.muted);
-    assert_eq!(caret, Some(9));
-    press(&mut m, &mut w, Key::named("Tab", ""));
-    let (cells, _) = row(&m);
-    span(&cells, 11, "in /fx/v/work · tab changes scope");
-    finish(w, reader);
 }
 // tui-path: Go to with the completion's ghost after the caret in the extension ink.
 #[test]
@@ -174,27 +158,6 @@ fn a_filter_that_matches_nothing_clears_the_preview() {
         for (y, row) in rows.iter().enumerate().take(29).skip(2) { assert_eq!(row.chars().skip(81).collect::<String>().trim(), "", "answered {answered}: preview row {y}"); }
         assert!(rows[30].starts_with(" Filter zzz  0 of 9 shown"));
     }
-    finish(w, reader);
-}
-// tui-search-results: each result prints its name, then its folder in the metadata ink, and the status names what was found and where.
-#[test]
-fn search_results_print_their_folder_and_the_status_names_the_search() {
-    let theme = Theme::from_text("");
-    let (mut w, reader) = echo_wire();
-    let mut m = frame_tests::model();
-    m.rows.insert(0, frame_tests::entry("Many/item-02.txt", false, 7));
-    let cells = inks(&crate::tui::cells::row(&m.rows[&0], 51, Some("7 B"), true, Default::default(), &theme, ""));
-    assert_eq!(span(&cells, 3, "item-02.txt").0, theme.foreground);
-    assert_eq!(span(&cells, 15, "Many").0, theme.meta);
-    m.search = "x".into();
-    m.search_query = "item".into();
-    m.search_here = true;
-    event(&mut m, &mut w, r#"{"t":"searching","n":80,"scanned":114}"#);
-    assert_eq!(m.search, "80 found · 114 scanned");
-    event(&mut m, &mut w, r#"{"t":"searched","n":80,"scanned":114}"#);
-    let (cells, _) = row(&m);
-    assert_eq!(span(&cells, 0, "80 found").0, theme.foreground);
-    assert_eq!(span(&cells, 10, "Find “item” in /fx/v/work").0, theme.muted);
     finish(w, reader);
 }
 // tui-trash-arm, tui-trashed and tui-undone: the arm's sentence, the receipt with its muted undo key, the kept scroll, and the cursor on what came back.

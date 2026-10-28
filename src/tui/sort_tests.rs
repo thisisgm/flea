@@ -217,7 +217,8 @@ fn stale_listing_inputs_leave_a_late_sort_reply_alone() {
     press(&mut model, &mut wire, &Key::character('q', ""));
     press(&mut model, &mut wire, &Key::named("Return", ""));
     let sent = drain(&mut wire);
-    assert_eq!(requests(&sent, "search").len(), 1, "Return runs the search");
+    assert_eq!(requests(&sent, "searchopen").len(), 1, "Return opens the ranked search session");
+    assert_eq!(requests(&sent, "searchquery").len(), 1, "Return runs the search query");
     assert!(model.sort_anchor.is_none(), "a search spends the outstanding anchor");
     model.receive(listed(2, "/listing", "/listing/amber", "1"), &mut wire).unwrap();
     drain(&mut wire);

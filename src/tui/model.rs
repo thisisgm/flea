@@ -112,11 +112,11 @@ pub struct Model {
     pub errors: VecDeque<String>,
     pub message: String,
     pub message_at: std::time::Instant,
+    pub find: super::contents::State,
     pub search: String,
     pub search_query: String,
     pub searching: bool,
     pub search_from: Option<PathBuf>,
-    pub search_here: bool,
     pub transfer: String,
     pub pending_clipboard: bool,
     // Keep the untagged paths request pending until its cancelled reply drains.
@@ -281,11 +281,11 @@ impl Model {
             errors: VecDeque::new(),
             message: String::new(),
             message_at: std::time::Instant::now(),
+            find: Default::default(),
             search: String::new(),
             search_query: String::new(),
             searching: false,
             search_from: None,
-            search_here: false,
             transfer: String::new(),
             pending_clipboard: false,
             discard_clipboard: false,
@@ -389,6 +389,7 @@ impl Model {
             return Ok(());
         }
         // Cleared on send: a late re-sort reply belongs to the old listing, and a re-sort sent after this names its own anchor.
+        super::contents::navigate(self, wire)?;
         self.model3d.stop(wire)?;
         self.sort_anchor = None;
         if self.cancel_taildrop() {
@@ -446,8 +447,35 @@ impl Model {
         self.size_pending.extend(rows);
         Ok(())
     }
+    pub(super) fn resize_body(&mut self, cells: usize) {
+        self.height = cells.max(1);
+    }
+    pub(super) fn file_capacity(&self) -> usize {
+        (self.height / super::contents::row_height(self)).max(1)
+    }
+    pub(super) fn search_count(&self, contents: bool) -> usize {
+        (self.height / if contents { 2 } else { 1 }).clamp(1, 4096)
+    }
+    pub(super) fn search_path(&mut self, path: PathBuf, wire: &mut Wire) -> io::Result<()> {
+        if self.path == path { return Ok(()); }
+        self.path = path;
+        self.parents.clear();
+        self.peek_sent = self.path.parent().map(PathBuf::from);
+        if let Some(parent) = &self.peek_sent {
+            wire.send(vec![("c", word("peek")), ("path", word(&parent.to_string_lossy())),
+                ("focus", word(&self.path.file_name().unwrap_or_default().to_string_lossy())),
+                ("first", number(self.height)), ("hidden", Json::Bool(self.hidden))])?;
+        }
+        Ok(())
+    }
+    pub(super) fn search_settled(&mut self, wire: &mut Wire) -> io::Result<()> {
+        if let Some(path) = &self.restore_path {
+            wire.send(vec![("c", word("locate")), ("path", word(&path.to_string_lossy()))])?;
+        }
+        self.locate_survivors(wire)
+    }
     pub fn visible(&self) -> Vec<usize> {
-        if self.filter.is_empty() { self.rows.range(self.top..self.top.saturating_add(self.height)).map(|(i, _)| *i).collect() }
+        if self.filter.is_empty() { self.rows.range(self.top..self.top.saturating_add(self.file_capacity())).map(|(i, _)| *i).collect() }
         else { super::filter::visible(self) }
     }
     pub fn restore_navigation(&mut self) {
@@ -460,6 +488,17 @@ impl Model {
         self.restore_path = None;
     }
     pub fn refresh(&mut self, wire: &mut Wire) -> io::Result<()> {
+        if let Some(active) = &self.find.active {
+            self.find.mode = active.contents;
+            self.find.session.scope = active.scope;
+            return super::contents::start(
+                self,
+                self.search_query.clone(),
+                self.search_from.clone().unwrap_or_else(|| self.path.clone()),
+                wire,
+            )
+            .map(|_| ());
+        }
         if !self.search.is_empty() && !self.search_query.is_empty() {
             self.searching = true;
             self.search = self.prompts.i18n.tr("find.starting");
@@ -473,24 +512,26 @@ impl Model {
         if !self.filter.is_empty() { return super::filter::window(self, wire); }
         if self.prompts.trash.is_some() { return super::trashview::window(self, wire); }
         let old_top = self.top;
+        let capacity = self.file_capacity();
         if self.cursor < self.top {
             self.top = self.cursor;
         }
-        if self.cursor >= self.top + self.height {
-            self.top = self.cursor + 1 - self.height;
+        if self.cursor >= self.top + self.file_capacity() {
+            self.top = self.cursor + 1 - capacity;
         }
         if self.top != old_top { self.scrolled_at = Some(std::time::Instant::now()); }
         wire.send(vec![
             ("c", word("window")),
             ("start", number(self.top)),
-            ("count", number(self.height)),
+            ("count", number(capacity)),
         ])
     }
     pub fn row_path(&self, row: &Row) -> PathBuf {
         self.path.join(&row.name)
     }
+    // The displayed safe identity also feeds previews; actions separately refuse a held Find snapshot.
     pub fn current_path(&self) -> Option<PathBuf> {
-        self.rows.get(&self.cursor).filter(|_| !super::trashview::hides(self)).map(|row| self.row_path(row))
+        self.rows.get(&self.cursor).filter(|_| !super::trashview::hides(self) && super::contents::displayed_operable(self, self.cursor)).map(|row| self.row_path(row))
     }
     pub fn single_row(&self) -> Option<(usize, Row)> {
         match self.selected.len() {
@@ -684,6 +725,7 @@ impl Model {
         }
     }
     pub fn receive(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
+        if super::contents::receive(self, &value, wire)? { return Ok(()); }
         match text(&value, "t") {
             "jobs" | "job" => super::jobstatus::receive(self, &value),
             "code" => super::syntax::receive(self, &value),
@@ -691,6 +733,7 @@ impl Model {
             "officepdf" => super::office::receive(self, &value, wire)?,
             "filtered" => super::filter::receive(self, &value, wire)?,
             "listed" => {
+                wire.listing = value.get("listing").map(|_| count(&value, "listing"));
                 if let Some(path) = self.pending.take() {
                     self.empty_at = std::time::Instant::now();
                     let same = self.prompts.trash.take().is_none() & (std::mem::replace(&mut self.path, path) == self.path);
@@ -798,7 +841,7 @@ impl Model {
                     {
                         self.cursor = i;
                         self.restore_path = None;
-                        if self.cursor < self.top || self.cursor >= self.top + self.height {
+                        if self.cursor < self.top || self.cursor >= self.top + self.file_capacity() {
                             self.window(wire)?;
                         }
                     }
@@ -1204,6 +1247,7 @@ impl Model {
                 {
                     self.pending = None;
                     self.restore_navigation();
+                    if self.find.active.is_some() { self.refresh(wire)?; }
                 }
                 if self.menu_action == "deleteRestore" && matches!(text(&value, "where"), "scan" | "search") {
                     self.menu_action.clear();
