@@ -10,6 +10,7 @@ printf '%s\0' magick-stub "$@" >> "$root/calls"
 printf '\n' >> "$root/calls"
 last=
 for last do :; done
+last=${last#png:}
 case "$last" in "$root"/*.png) ;; *) exit 97 ;; esac
 set -C
 for frame in 0 1 2; do

@@ -73,7 +73,9 @@ pub fn run(argv: &[String], cancel: &AtomicBool, wait: Duration) -> Result<Strin
     let err = err.unwrap().map_err(failure)?;
     let said = String::from_utf8_lossy(&err);
     if !status.success() {
-        return Err(failure(super::archivework::failure_message("conversion or print", &status, &said)));
+        // ImageMagick's failed fallback can end with a PNG write error that hides the missing encoder.
+        let diagnostic = said.lines().find(|line| line.contains("no encode delegate for this image format")).unwrap_or(&said);
+        return Err(failure(super::archivework::failure_message("conversion or print", &status, diagnostic)));
     }
     if out.len() > OUTPUT_CAP || err.len() > OUTPUT_CAP { return Err(failure("the tool returned too much output".into())); }
     String::from_utf8(out).map_err(|_| failure("the tool returned invalid text".into()))

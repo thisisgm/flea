@@ -14,10 +14,20 @@ fn multiple_images_keep_the_listing_order_and_combine_by_default() {
     let ask = Ask::parse(r#"{"paths":["/x/b.png","/x/a.jpg"],"format":"pdf"}"#);
     assert!(ask.combine);
     assert_eq!(image_argv(&ask.paths, Path::new("/out.pdf"), false),
-        ["magick", "--", "/x/b.png[0]", "--", "/x/a.jpg[0]", "/out.pdf"]);
+        ["magick", "--", "/x/b.png[0]", "--", "/x/a.jpg[0]", "pdf:/out.pdf"]);
     assert_eq!(image_argv(&ask.paths, Path::new("/out.tiff"), true),
-        ["magick", "--", "/x/b.png", "--", "/x/a.jpg", "-strip", "/out.tiff"]);
+        ["magick", "--", "/x/b.png", "--", "/x/a.jpg", "-strip", "tiff:/out.tiff"]);
     assert!(!Ask::parse(r#"{"combine":false}"#).combine);
+}
+
+#[test]
+fn image_encoder_is_explicit_for_every_supported_target() {
+    for format in ["jpg", "png", "webp", "avif", "heic", "tiff", "bmp", "pdf"] {
+        let output = PathBuf::from(format!("/work/output-0.{format}"));
+        let args = image_argv(&[PathBuf::from("/work/input-0.png")], &output, true);
+        assert_eq!(args.last().unwrap(), &format!("{format}:/work/output-0.{format}"),
+            "filename inference can silently fall back to the source codec when {format} has no encoder");
+    }
 }
 
 #[test]

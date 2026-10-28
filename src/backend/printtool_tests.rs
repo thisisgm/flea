@@ -11,6 +11,15 @@ fn stderr_and_exit_status_survive_a_tool_refusal() {
 }
 
 #[test]
+fn print_tool_missing_encoder_diagnostic_is_not_masked_by_fallback() {
+    let d = TestDir::new("print-tool-missing-encoder");
+    let stub = d.script("refuse", "#!/bin/sh\nprintf '%s\\n' \"magick: no encode delegate for this image format AVIF\" \"magick: WriteBlob Failed avif:/work/output.avif @ error/png.c\" >&2\nexit 1\n");
+    let error = run(&[stub.to_string_lossy().into_owned()], &AtomicBool::new(false), QUERY_WAIT).unwrap_err();
+    assert_eq!(error.message, "magick: no encode delegate for this image format AVIF");
+    assert!(!error.lingering);
+}
+
+#[test]
 fn a_tool_deadline_kills_the_whole_process_group() {
     let d = TestDir::new("print-tool-timeout");
     let stub = d.script("wait", "#!/bin/sh\nsleep 30 &\nwait\n");
