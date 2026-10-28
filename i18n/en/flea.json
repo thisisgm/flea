@@ -2300,5 +2300,8 @@
   "keys.menu": "Menu",
   "keys.openTerminal": "Open terminal",
   "keys.openAgent": "Open agent here",
-  "keys.print": "Print…"
+  "keys.print": "Print…",
+  "tui.find.invalid_response": "The search response could not be used safely. Try Find again.",
+  "tui.find.scope_hint": "%1 · tab changes scope",
+  "tui.find.status": "Find “%1” %2"
 }

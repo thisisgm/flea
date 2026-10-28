@@ -1,7 +1,8 @@
 // The status row's prompts and receipts, the paste question, and the undo steps an undo of a trash lands the cursor on.
 use super::{cells::{ellipsis, fit, text_width}, editor::Editor, input::Key, model::Model, render::grouped, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
-use crate::{i18n::I18n, jsondoc::Json};
+use crate::jsondoc::Json;
+use flea::{i18n::I18n, ui_logic_sr1::{scope_label, Kind, Session}};
 use std::{collections::BTreeSet, io, path::PathBuf, time::Duration};
 
 #[derive(Default)]
@@ -67,15 +68,18 @@ fn after<'a>(m: &Model, editor: &Editor, theme: &'a Theme) -> (String, &'a str, 
     match editor.kind {
         "rename" => (i18n.tr("prompt.renameHint"), &theme.muted, true),
         "filter" => (shown(m), &theme.muted, false),
-        "search" => (i18n.tr_args("prompt.scope", &[&scope(m)]), &theme.muted, false),
+        "search" => (i18n.tr_args("tui.find.scope_hint", &[&scope(m, m.find.mode)]), &theme.muted, false),
         _ => (String::new(), &theme.muted, false),
     }
 }
 fn shown(m: &Model) -> String {
     m.prompts.i18n.tr_args("filter.shown", &[&grouped(m.filter_count()), &grouped(m.total)])
 }
-fn scope(m: &Model) -> String {
-    if m.search_here { super::layout::display_path(m) } else { m.prompts.i18n.tr("prompt.home") }
+fn scope(m: &Model, contents: bool) -> String {
+    let folder = m.editor.as_ref().filter(|e| e.kind == "search").map_or(&m.path, |e| &e.path);
+    let home = std::env::var("HOME").unwrap_or_default();
+    let root = Session::scope_root(&folder.to_string_lossy(), &home, m.find.session.scope);
+    scope_label(&m.prompts.i18n, root.as_deref(), &home, m.find.session.scope, if contents { Kind::Contents } else { Kind::Names })
 }
 // The footer's leading runs: an applied filter in muted ink with its count, Find's count and its query in muted ink, or the item count.
 pub fn lead<'a>(m: &Model, theme: &'a Theme, count: String) -> Vec<(&'a str, String, usize)> {
@@ -86,7 +90,7 @@ pub fn lead<'a>(m: &Model, theme: &'a Theme, count: String) -> Vec<(&'a str, Str
     if m.search.is_empty() { return vec![(theme.foreground.as_str(), count, 0)]; }
     let mut parts = if m.selected.is_empty() { Vec::new() } else { vec![(theme.foreground.as_str(), count, 0)] };
     parts.push((&theme.foreground, m.search.clone(), 2));
-    parts.push((&theme.muted, i18n.tr_args("find.status", &[&m.search_query, &scope(m)]), 2));
+    parts.push((&theme.muted, i18n.tr_args("tui.find.status", &[&m.search_query, &scope(m, m.find.active.as_ref().is_some_and(|q| q.contents))]), 2));
     parts
 }
 // Find's status: what it found, and what it has scanned only while it is still walking.

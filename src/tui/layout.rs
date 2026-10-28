@@ -18,10 +18,13 @@ pub fn preview_area(columns: usize, quicklook: bool) -> (usize, usize) {
 }
 pub fn display_path(m: &Model) -> String {
     if let Some(place) = super::trashview::place(m) { return place; }
+    short_path(&m.path)
+}
+pub(super) fn short_path(path: &std::path::Path) -> String {
     let home = std::env::var_os("HOME").filter(|s| !s.is_empty()).map(std::path::PathBuf::from);
-    if let Some(tail) = home.as_ref().and_then(|home| m.path.strip_prefix(home).ok()) {
+    if let Some(tail) = home.as_ref().and_then(|home| path.strip_prefix(home).ok()) {
         if tail.as_os_str().is_empty() { "~".into() } else { format!("~/{}", tail.to_string_lossy()) }
-    } else { m.path.to_string_lossy().into_owned() }
+    } else { path.to_string_lossy().into_owned() }
 }
 fn sort_label(m: &Model) -> String {
     if let Some(sort) = super::trashview::sort(m) { return sort; }
@@ -100,6 +103,8 @@ pub fn focused(m: &Model) -> bool {
 }
 pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {
     let (first, total) = super::filter::lane(m);
+    let first = first.saturating_mul(super::contents::row_height(m));
+    let total = total.saturating_mul(super::contents::row_height(m));
     if total <= body || body == 0 || m.scrolled_at.map_or(true, |at| now.saturating_duration_since(at) >= Duration::from_millis(700)) { return None; }
     let height = (body.saturating_mul(body) / total).max(1).min(body);
     let top = first.min(total - body) * (body - height) / (total - body);

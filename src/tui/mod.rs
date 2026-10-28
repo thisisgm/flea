@@ -11,6 +11,17 @@ mod detail;
 mod batch;
 mod chafa;
 mod completion;
+mod contents;
+#[cfg(test)]
+mod contents_tests;
+#[cfg(test)]
+mod contents_process_tests;
+#[cfg(test)]
+mod contents_state_tests;
+#[cfg(test)]
+mod contents_fix_tests;
+#[cfg(test)]
+mod contents_fix2_tests;
 mod cells;
 mod filter;
 mod layout;
@@ -94,7 +105,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         model.choosing = options.chooser_file.is_some();
         model.store = Some(store);
         let mut size = terminal::size();
-        model.height = render::body_height(size.1).max(1);
+        model.resize_body(render::body_height(size.1));
         model.columns = size.0;
         model.restore_path = select.map(PathBuf::from);
         // The listing goes out before the terminal is entered, so gio runs beside raw mode, keymap and theme.
@@ -176,6 +187,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                 model.menu_action = "open".into();
                 wire.send(vec![("c", wire::word("menuaction")), ("op", wire::word("validate")), ("id", wire::number(model.action_id)), ("action", wire::word("open"))])?;
             }
+            model.resize_body(render::body_height(size.1));
             style.prepare(&mut model, &mut wire)?;
             model.model3d_palette = graphics::palette(&style.theme);
             detail::prepare(&mut model, &mut wire)?;
@@ -261,7 +273,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             let next = terminal::size();
             if next != size {
                 size = next;
-                model.height = render::body_height(size.1).max(1);
+                model.resize_body(render::body_height(size.1));
                 model.columns = size.0;
                 model.window(&mut wire)?;
             }

@@ -42,17 +42,19 @@ pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     request(m, "list", 0, w)
 }
 fn request(m: &mut Model, op: &str, start: usize, w: &mut Wire) -> io::Result<()> {
+    let capacity = m.file_capacity();
     let Some(view) = &mut m.prompts.trash else { return Ok(()); };
     view.id = view.id.wrapping_add(1).max(1);
-    w.send(vec![("c", word("trashbrowse")), ("op", word(op)), ("id", number(view.id)), ("start", number(start)), ("count", number(m.height))])
+    w.send(vec![("c", word("trashbrowse")), ("op", word(op)), ("id", number(view.id)), ("start", number(start)), ("count", number(capacity))])
 }
 // The same scroll rule as a folder's window, fetching only rows Trash has not sent yet.
 pub fn window(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     let old_top = m.top;
+    let capacity = m.file_capacity();
     if m.cursor < m.top { m.top = m.cursor; }
-    if m.cursor >= m.top + m.height { m.top = m.cursor + 1 - m.height; }
+    if m.cursor >= m.top + capacity { m.top = m.cursor + 1 - capacity; }
     if m.top != old_top { m.scrolled_at = Some(std::time::Instant::now()); }
-    if (m.top..(m.top + m.height).min(m.total)).all(|index| m.rows.contains_key(&index)) { return Ok(()); }
+    if (m.top..(m.top + capacity).min(m.total)).all(|index| m.rows.contains_key(&index)) { return Ok(()); }
     let top = m.top;
     request(m, "window", top, w)
 }

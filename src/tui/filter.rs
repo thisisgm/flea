@@ -38,8 +38,8 @@ pub fn shown(m: &Model) -> Vec<usize> {
 }
 pub fn visible(m: &Model) -> Vec<usize> {
     match answered(m) {
-        Some(rows) => rows[m.name_filter.top.min(rows.len())..].iter().take(m.height).copied().collect(),
-        None => loaded(m).into_iter().take(m.height).collect(),
+        Some(rows) => rows[m.name_filter.top.min(rows.len())..].iter().take(m.file_capacity()).copied().collect(),
+        None => loaded(m).into_iter().take(m.file_capacity()).collect(),
     }
 }
 pub fn count_shown(m: &Model) -> usize {
@@ -69,7 +69,7 @@ pub fn window(m: &mut Model, wire: &mut Wire) -> io::Result<()> {
     if let Ok(position) = rows.binary_search(&m.cursor) {
         let old_top = m.name_filter.top;
         if position < old_top { m.name_filter.top = position; }
-        if position >= m.name_filter.top + m.height { m.name_filter.top = position + 1 - m.height; }
+        if position >= m.name_filter.top + m.file_capacity() { m.name_filter.top = position + 1 - m.file_capacity(); }
         if m.name_filter.top != old_top { m.scrolled_at = Some(std::time::Instant::now()); }
     }
     let missing: Vec<usize> = visible(m).into_iter().filter(|i| !m.rows.contains_key(i)).collect();
