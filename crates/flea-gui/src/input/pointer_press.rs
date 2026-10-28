@@ -25,6 +25,7 @@ impl Shell {
         if self.input_blocked(cx) {
             return;
         }
+        let columns_shown = self.shown_view() == crate::window::startup::View::Columns;
         let Some(host) = &mut self.panes[side] else {
             return;
         };
@@ -32,6 +33,10 @@ impl Shell {
             return;
         };
         if host.pane.busy() || frame.listing != host.pane.held.listing {
+            return;
+        }
+        // A directory column owns its lane; let its overlay receive this press.
+        if columns_shown && frame.in_lane(event.position) {
             return;
         }
         host.input.keyboard();
