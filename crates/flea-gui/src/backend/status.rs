@@ -9,6 +9,7 @@ pub struct Filesystem {
     pub free: u64,
     /// The backend's storage class for the folder: network, phone, usb, or empty for local.
     pub class: String,
+    pub tagable: Option<bool>,
 }
 
 impl Filesystem {
@@ -43,6 +44,7 @@ impl Filesystem {
             name,
             free,
             class,
+            tagable: document.get("tagable").and_then(Json::as_bool),
         })
     }
 }

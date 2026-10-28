@@ -201,3 +201,6 @@ fn ey139_remember_on_keeps_each_folder_sort_and_leaves_global_untouched(cx: &mut
             .all(|patch| { flea::jsondoc::parse(patch).unwrap().get("sort").is_none() }));
     });
 }
+
+#[path = "sort_atomic_tests.rs"]
+mod atomic;

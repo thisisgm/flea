@@ -1,4 +1,5 @@
 //! The grid tile Element: one Element paints every drawn tile from prepared captions and lent pictures, with no layout node per tile.
+mod clipboard;
 #[cfg(test)]
 mod ink_tests;
 mod paint;
@@ -10,6 +11,7 @@ mod pictures_tests;
 #[cfg(test)]
 #[path = "row_pictures_tests.rs"]
 mod row_pictures_tests;
+mod tags;
 mod tip;
 
 use super::{

@@ -93,7 +93,7 @@ pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
         && (document.get("fs").is_some() || document.get("free").is_some())
     {
         let facts = super::status::Filesystem::parse(&document)?;
-        return Ok(Some(match document.get("class") {
+        let reply = match document.get("class") {
             Some(class) => Event::FilesystemDetails {
                 facts,
                 class: class
@@ -102,6 +102,13 @@ pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
                     .ok_or("class must be a string")?,
             },
             None => Event::Filesystem(facts),
+        };
+        return Ok(Some(match document.get("system") {
+            Some(system) => Event::FilesystemSystem {
+                system: system.as_bool().ok_or("system must be a boolean")?,
+                reply: Box::new(reply),
+            },
+            None => reply,
         }));
     }
     if let Some(reply) = crate::list::sizes::parse(&document)? {
@@ -229,6 +236,14 @@ pub fn list_line(listing: &Listing) -> String {
 pub(super) fn command_line(command: &Command) -> Option<String> {
     Some(match command {
         Command::List(listing) => list_line(listing),
+        Command::ListPaths(listing, paths) => {
+            let paths = paths
+                .iter()
+                .map(|path| format!("\"{}\"", escape(path)))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("{{\"c\":\"listpaths\",\"paths\":[{paths}],\"first\":{}}}", listing.first)
+        }
         Command::Window { start, count } => {
             format!("{{\"c\":\"window\",\"start\":{start},\"count\":{count}}}")
         }

@@ -36,11 +36,13 @@ pub(super) fn home() -> Vec<RowFacts> {
 
 pub(super) fn reply(shell: &Entity<Shell>, cx: &mut VisualTestContext, line: &str) {
     deliver(shell, cx, line);
-    settle(cx);
+    if !shell.read_with(cx, |shell, _| shell.menu.tags_reading) {
+        settle(cx);
+    }
 }
 
 // One backend line with no clock advance, as a reply that lands before the menu's loading mark is due; an open menu's own pane's backend sends it.
-fn deliver(shell: &Entity<Shell>, cx: &mut VisualTestContext, line: &str) {
+pub(super) fn deliver(shell: &Entity<Shell>, cx: &mut VisualTestContext, line: &str) {
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             let side = shell.menu.captured.as_ref().map_or(0, |c| c.side);
@@ -76,6 +78,44 @@ pub(super) fn answer(shell: &Entity<Shell>, cx: &mut VisualTestContext, kinds: &
         .join(",");
     deliver(shell, cx, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"snapshot\",\"ok\":true,\"kinds\":[{kinds}]}}"));
     reply(shell, cx, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"applications\",\"ok\":true,\"applications\":[]}}"));
+}
+
+pub(super) fn tags_answer(shell: &Entity<Shell>, cx: &mut VisualTestContext, kinds: &[u32]) {
+    answer(shell, cx, kinds);
+    let answer = shell.read_with(cx, |shell, _| {
+        let (id, listing) = shell.menu.tags.asked_for_test()?;
+        let capture = shell.menu.captured.as_ref()?;
+        let host = shell.panes[capture.side].as_ref()?;
+        let files = capture
+            .rows
+            .iter()
+            .map(|row| {
+                host.pane
+                    .held
+                    .row(*row)
+                    .map(|facts| facts.tags.clone().unwrap_or_default())
+            })
+            .collect::<Option<Vec<_>>>()?;
+        use flea::ui_logic_pl4::tags::{self, State};
+        let states = tags::states_for(&files);
+        let names = |state| {
+            tags::NAMES
+                .iter()
+                .zip(states)
+                .filter(|(_, value)| *value == state)
+                .map(|(name, _)| format!("\"{name}\""))
+                .collect::<Vec<_>>()
+                .join(",")
+        };
+        Some(format!(
+            r#"{{"t":"tagstates","id":{id},"listing":{listing},"applied":[{}],"mixed":[{}]}}"#,
+            names(State::Applied),
+            names(State::Mixed)
+        ))
+    });
+    if let Some(answer) = answer {
+        reply(shell, cx, &answer);
+    }
 }
 
 pub(super) fn actions(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {

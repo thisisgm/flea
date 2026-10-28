@@ -6,12 +6,16 @@ pub mod columns;
 pub mod composition;
 pub(crate) mod devices;
 pub(crate) mod dispatch;
+mod dual_edge;
+#[cfg(test)]
+mod dual_edge_tests;
 mod events;
 pub(crate) mod filter;
 pub(crate) mod frame_feedback;
 pub(crate) mod glass;
 pub mod glass_tag;
 pub mod input;
+pub(crate) mod key_delivery;
 pub mod lifecycle;
 #[path = "../list/join.rs"]
 mod list_join;
@@ -20,37 +24,34 @@ pub mod locale;
 mod locale_tests;
 pub mod navigate;
 pub mod network;
+pub(crate) mod open_with;
 pub(crate) mod output;
 pub mod overlay;
-pub(crate) mod run_card;
-pub(crate) mod open_with;
 pub(crate) mod pane;
 pub(crate) mod path_host;
 pub(crate) mod permissions;
 #[cfg(test)]
 mod permissions_tests;
-pub(crate) mod properties;
 mod presentation;
-pub mod rail;
-mod render;
-pub(crate) mod rename;
-mod dual_edge;
-#[cfg(test)]
-mod dual_edge_tests;
-pub(crate) mod retry;
-pub mod selection_preview;
 mod preview_facts;
 mod preview_input;
+pub(crate) mod properties;
 pub(crate) mod quick_look;
+pub mod rail;
+pub(crate) mod recent;
+pub(crate) mod rename;
+mod render;
+pub(crate) mod retry;
 pub mod root;
+pub(crate) mod run_card;
 pub(crate) mod search;
-pub(crate) mod key_delivery;
+pub mod selection_preview;
 pub mod settings;
 pub mod startup;
 pub(crate) mod status;
 pub(crate) mod surfaces;
-mod unlock;
 mod transitions;
+mod unlock;
 
 #[cfg(test)]
 mod u07_chrome_tests;
@@ -127,16 +128,14 @@ pub fn open(
 }
 
 #[cfg(test)]
+mod columns_key_repeat_tests;
+#[cfg(test)]
 mod columns_tests;
 #[cfg(test)]
-mod scrollkeys_tests;
-#[cfg(test)]
-mod columns_key_repeat_tests;
+mod ipc_cold_tests;
 #[cfg(test)]
 #[path = "../list/join_tests.rs"]
 mod list_tests;
-#[cfg(test)]
-mod ipc_cold_tests;
 #[cfg(test)]
 mod modal_tests;
 #[cfg(test)]
@@ -156,11 +155,13 @@ mod presentation_tests;
 #[cfg(test)]
 mod rate_atomic_tests;
 #[cfg(test)]
+mod scrollkeys_tests;
+#[cfg(test)]
 mod settings_tests;
 #[cfg(test)]
-mod status_tests;
-#[cfg(test)]
 mod status_selection_tests;
+#[cfg(test)]
+mod status_tests;
 #[cfg(test)]
 mod surfaces_tests;
 #[cfg(test)]
@@ -192,3 +193,5 @@ mod glass_tag_tests;
 
 #[cfg(test)]
 mod glass_tests;
+#[cfg(test)]
+mod pb_tags_tests;

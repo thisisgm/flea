@@ -9,6 +9,7 @@ fn gcomp_mounted_disk_name_survives_pending_and_stale_producer_answers(cx: &mut 
                 0,
                 BackendEvent::Filesystem(crate::backend::status::Filesystem {
                     class: String::new(),
+                    tagable: None,
                     path: path.into(),
                     name: name.into(),
                     free: 442_000_000_000,
@@ -149,6 +150,7 @@ fn gcomp_u05_r3_empty_old_answer_stays_pending_until_the_new_directory_answers(
             0,
             BackendEvent::Filesystem(crate::backend::status::Filesystem {
                 class: String::new(),
+                tagable: None,
                 path: "/files".into(),
                 name: String::new(),
                 free: 0,
@@ -196,6 +198,7 @@ fn gcomp_u05_r3_empty_old_answer_stays_pending_until_the_new_directory_answers(
                     0,
                     BackendEvent::Filesystem(crate::backend::status::Filesystem {
                         class: String::new(),
+                        tagable: None,
                         path: "/files".into(),
                         name: "obsolete".into(),
                         free: 7,
@@ -227,6 +230,7 @@ fn gcomp_u05_r3_empty_old_answer_stays_pending_until_the_new_directory_answers(
             0,
             BackendEvent::Filesystem(crate::backend::status::Filesystem {
                 class: String::new(),
+                tagable: None,
                 path: "/next".into(),
                 name: String::new(),
                 free: 0,

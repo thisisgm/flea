@@ -17,7 +17,22 @@ impl Render for Producer {
             cx.entity(),
         );
         div()
+            .id("rail-producer")
             .size_full()
+            .hover_listener_mode(gpui::HoverListenerMode::InputModalityIndependent)
+            .on_hover(cx.listener(|producer, hovered: &bool, _, cx| {
+                if *hovered {
+                    return;
+                }
+                let mut model = producer.model.borrow_mut();
+                let changed = model.hovered.is_some() || model.mark_hovered.is_some();
+                model.hovered = None;
+                model.mark_hovered = None;
+                drop(model);
+                if changed {
+                    cx.notify();
+                }
+            }))
             .on_mouse_move(
                 cx.listener(|producer, event: &gpui::MouseMoveEvent, _, cx| {
                     producer.editor_drag(event, cx);

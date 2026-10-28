@@ -113,6 +113,21 @@ pub fn swallows(busy: bool, action: &str) -> bool {
 }
 
 impl Pane {
+    /// A completed metadata write re-reads the held window through the same acceptance contract as scrolling.
+    pub(crate) fn reread_held(&mut self) -> Option<WindowRequest> {
+        if self.busy() || self.requests.outstanding.is_some() || self.held.total == 0 {
+            return None;
+        }
+        let request = WindowRequest {
+            start: self.held.start,
+            count: self.first_count(),
+            listing: self.held.listing,
+        };
+        self.requests.outstanding = Some(request);
+        self.requests.sent += 1;
+        Some(request)
+    }
+
     pub fn anchor_window(&mut self, start: usize) -> Option<WindowRequest> {
         let pending = self.swap.pending.as_ref()?;
         let held = pending.ready.as_ref()?;

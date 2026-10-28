@@ -329,10 +329,7 @@ impl Producer {
         self.model.borrow_mut().cursor = Some(index);
         match entry.kind {
             Kind::Recent => {
-                let path = flea::ui_logic_pl4::recent::history_path(
-                    &std::env::var("XDG_DATA_HOME").unwrap_or_default(),
-                    &self.home,
-                );
+                let path = self.history_file();
                 self.read_recent(path, cx);
             }
             Kind::Trash => self.queue(Event::Trash),

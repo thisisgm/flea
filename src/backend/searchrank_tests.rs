@@ -1,6 +1,6 @@
 // Head-bounded ranking must answer, head and rest alike, exactly what scoring every row and sorting every match answers.
 use crate::backend::searchindex::{fixture_tests, rank_cmp, score_cached, Index, QueryScratch};
-use crate::backend::searchmatch::{Matcher, ALIGNED, EXACT, HIT_SPAN, NAME, PREFIX, TYPO, WORD};
+use crate::backend::searchmatch::{Matcher, ALIGNED, EXACT, HIT_SPAN, NAME, PREFIX, SHADOW_TYPO, TYPO, WORD};
 use crate::backend::searchprior::alloc_tests::fixture_priors;
 use crate::backend::searchsession::{Session, FIRST_WINDOW_DEFAULT};
 use crate::backend::testdir::TestDir;
@@ -57,13 +57,18 @@ fn reference(session: &Session, text: &str) -> Reference {
     let index = session.index.lock().unwrap();
     let rows: Vec<usize> = (0..index.len()).collect();
     let text = crate::backend::searchtags::Tags::terms(text).text;
-    let raw = score_cached(&Matcher::new(&text), &rows, &index, &mut QueryScratch::default());
-    let ranked = crate::backend::searchprior::rank(session.priors, &session.scope, &session.folder, &index, raw.clone());
+    let mut raw = score_cached(&Matcher::new(&text), &rows, &index, &mut QueryScratch::default());
+    let all: Vec<usize> = raw.iter().map(|&(_, row)| row).collect();
+    // Shadow rows never show, and typo rows only when no basename holds the query exactly, as its prefix or at a word start.
+    let real = raw.iter().any(|hit| tier(hit.0) <= tier(WORD));
+    if Matcher::new(&text).budget > 0 { raw.retain(|hit| tier(hit.0) < TIERS - 1 || (!real && hit.0 > SHADOW_TYPO)); }
+    let mut ranked = raw.clone();
+    crate::backend::searchprior::scale(session.priors, &session.scope, &session.folder, &index, &mut ranked, all.len());
     let applied = ranked.iter().zip(&raw).any(|(ranked, raw)| ranked.0 != raw.0);
     let mut pairs: Vec<_> = ranked.iter().copied().zip(raw.iter().map(|hit| hit.0)).collect();
     pairs.sort_by(|a, b| rank_cmp(&index, &a.0, &b.0));
     Reference {
-        all: ranked.iter().map(|&(_, row)| row).collect(),
+        all,
         order: pairs.iter().map(|&((_, row), _)| (index.path(row), index.is_dir(row))).collect(),
         raw: pairs.iter().map(|&(_, raw)| raw).collect(),
         bonus: pairs.iter().map(|&((ranked, _), raw)| if applied { ranked - raw * SCALE } else { 0 }).collect(),
@@ -355,4 +360,32 @@ fn search_head_moves_below_every_resolved_row_a_pruned_path_row_could_tie() {
     assert!(first("re/") >= CHUNK && last_path < first("a/rxxxx_"), "every re/ row ranks after the window and above every 22-point name");
     assert_eq!(pending, strong + 2 * paths + low, "every match sits in the NAME class");
     assert_eq!(dp, strong + low, "the head scored every name and no re/ row");
+}
+
+#[test]
+fn search_typo_rows_answer_only_a_query_no_basename_holds() {
+    // FP-1: one-edit words never sit beside a real hit, and a query with no real hit still finds its word by typo.
+    let dir = TestDir::new("searchtypohide");
+    let scope = dir.path().to_str().unwrap();
+    let mut session = Session::open_sync(scope, scope, false);
+    let mut index = Index::new();
+    for path in ["notes/flea.txt", "Flea-notes.md", "audio-flac.flac", "fleet.txt", "flex.rs", "flame.png", "src/render_frame.rs"] {
+        assert!(index.push(path, false));
+    }
+    *session.index.lock().unwrap() = index;
+    let (mut gen, mut seen) = (0, Seen::default());
+    for (query, want) in [("flea", &["Flea-notes.md", "notes/flea.txt"][..]), ("frame", &["src/render_frame.rs"]), ("flae", &["notes/flea.txt", "fleet.txt"])] {
+        check(&mut session, &mut gen, query, CHUNK, &mut seen);
+        let files: Vec<_> = reference(&session, query).order.into_iter().filter(|(_, dir)| !dir).map(|(path, _)| path).collect();
+        let typo = files.iter().filter(|path| !want.iter().any(|name| path.ends_with(name))).count();
+        assert!(want.iter().all(|name| files.iter().any(|path| path.ends_with(name))), "{query:?} lists {want:?}: {files:?}");
+        assert!(query == "flae" || typo == 0, "{query:?} lists no typo row beside its real hits: {files:?}");
+    }
+    // A mid-word dropped letter leaves "flea" a shadow of "flac": never listed, still kept for narrowing.
+    let mut index = Index::new();
+    for path in ["audio-flac.flac", "music/song.flac"] { assert!(index.push(path, false)); }
+    *session.index.lock().unwrap() = index;
+    check(&mut session, &mut gen, "flea", CHUNK, &mut seen);
+    let answer = session.query(gen + 1, "flea", CHUNK).unwrap();
+    assert_eq!((answer.total, answer.all.len()), (0, 2), "shadow rows are kept for narrowing and never listed");
 }

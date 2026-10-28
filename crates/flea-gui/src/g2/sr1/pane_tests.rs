@@ -203,6 +203,7 @@ impl super::Host for Real {
             home: "/h",
             hidden: false,
             count: self.pane.held.total,
+            listing: self.pane.held.listing,
             sizes: 0,
             cursor_name: None,
             recent: None,

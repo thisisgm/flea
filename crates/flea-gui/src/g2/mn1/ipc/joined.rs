@@ -70,7 +70,7 @@ fn leaf(entry: &Entry, catalog: &I18n) -> String {
         text.as_ref()
             .map_or(String::new(), |text| text.resolve(catalog))
     };
-    row(Row {
+    let mut output = row(Row {
         id: &entry.id,
         action: &entry.action,
         label: &text(&entry.label),
@@ -86,7 +86,17 @@ fn leaf(entry: &Entry, catalog: &I18n) -> String {
                 .collect::<Vec<_>>()
                 .join(",")
         }),
-    })
+    });
+    if let Some(state) = entry.tag_state {
+        let state = match state {
+            flea::ui_logic_pl4::tags::State::Applied => "applied",
+            flea::ui_logic_pl4::tags::State::Mixed => "mixed",
+            flea::ui_logic_pl4::tags::State::Absent => "absent",
+        };
+        output.pop();
+        output.push_str(&format!(",\"tagRow\":{{\"state\":\"{state}\"}}}}"));
+    }
+    output
 }
 
 pub(super) fn model(card: Option<&Card>, catalog: &I18n) -> String {

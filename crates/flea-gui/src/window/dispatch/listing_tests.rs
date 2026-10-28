@@ -13,7 +13,9 @@ fn home() -> Vec<RowFacts> {
 }
 
 fn mark(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
-    shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().nav.sort_mark())
+    shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().nav.sort_mark()
+    })
 }
 
 fn sorts(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> usize {
@@ -53,7 +55,10 @@ fn capital(cx: &mut VisualTestContext, letter: &str) {
 fn footer_left(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     let state = flea::jsondoc::parse(&read(shell, cx, "statusFooterState", &[])).unwrap();
     let left = state.get("left").expect("the footer's left lane");
-    left.get("text").and_then(|text| text.as_str()).unwrap().to_owned()
+    left.get("text")
+        .and_then(|text| text.as_str())
+        .unwrap()
+        .to_owned()
 }
 
 fn sort_keys_resort(settings: &str, cx: &mut TestAppContext) {
@@ -65,9 +70,23 @@ fn sort_keys_resort(settings: &str, cx: &mut TestAppContext) {
     cx.simulate_keystrokes("s");
     assert_eq!(mark(&shell, cx), "size:asc", "s steps to the next order");
     assert_eq!(sorts(&shell, cx), before + 1, "the sort request goes out");
-    assert_eq!(cursor(&shell, cx), 0, "a resort puts the cursor on the first row");
+    assert_eq!(
+        cursor(&shell, cx),
+        2,
+        "the retained rows keep their cursor until replacement"
+    );
+    land(&shell, cx, "/files", home(), 2);
+    assert_eq!(
+        cursor(&shell, cx),
+        0,
+        "the sorted rows land on the first row"
+    );
     capital(cx, "S");
-    assert_eq!(mark(&shell, cx), "size:desc", "S reverses the order the listing is in");
+    assert_eq!(
+        mark(&shell, cx),
+        "size:desc",
+        "S reverses the order the listing is in"
+    );
     assert_eq!(sorts(&shell, cx), before + 2);
     capital(cx, "S");
     assert_eq!(mark(&shell, cx), "size:asc", "S again reverses it back");
@@ -92,28 +111,50 @@ fn reveal_is_quiet_outside_a_search(cx: &mut TestAppContext) {
     let before = lists(&shell, cx);
     cx.simulate_keystrokes("o");
     assert_eq!(asked(&shell, cx), "/files");
-    assert_eq!(lists(&shell, cx), before, "o asks for nothing outside a search");
+    assert_eq!(
+        lists(&shell, cx),
+        before,
+        "o asks for nothing outside a search"
+    );
     assert_eq!(cursor(&shell, cx), 1);
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
 #[gpui::test]
 fn escape_climbs_with_escape_up_on_and_keeps_marks_first(cx: &mut TestAppContext) {
-    let (shell, cx) = open_with(cx, r#""keys":"default","view":"list","escapeUp":true"#, None);
+    let (shell, cx) = open_with(
+        cx,
+        r#""keys":"default","view":"list","escapeUp":true"#,
+        None,
+    );
     land(&shell, cx, "/files", home(), 1);
     set_cursor(&shell, cx, 1);
     cx.simulate_keystrokes("enter");
-    land(&shell, cx, "/files/beta", vec![row("inner", true), row("two", true)], 2);
+    land(
+        &shell,
+        cx,
+        "/files/beta",
+        vec![row("inner", true), row("two", true)],
+        2,
+    );
     // A deliberate mark owns the first Escape, as escapePressed clears it before any climb.
     cx.simulate_keystrokes("v");
     assert_eq!(selected(&shell, cx), vec![0]);
     cx.simulate_keystrokes("escape");
-    assert_eq!(selected(&shell, cx), Vec::<usize>::new(), "Escape clears the mark");
+    assert_eq!(
+        selected(&shell, cx),
+        Vec::<usize>::new(),
+        "Escape clears the mark"
+    );
     assert_eq!(asked(&shell, cx), "/files/beta", "and stays in the folder");
     cx.simulate_keystrokes("escape");
     assert_eq!(asked(&shell, cx), "/files", "with no mark Escape climbs");
     land(&shell, cx, "/files", home(), 3);
-    assert_eq!(selected(&shell, cx), vec![1], "the folder left is selected on landing");
+    assert_eq!(
+        selected(&shell, cx),
+        vec![1],
+        "the folder left is selected on landing"
+    );
     // The landed row is no mark, so Escape keeps climbing through it.
     cx.simulate_keystrokes("escape");
     assert_eq!(asked(&shell, cx), "/", "Escape climbs through a landed row");
@@ -122,19 +163,31 @@ fn escape_climbs_with_escape_up_on_and_keeps_marks_first(cx: &mut TestAppContext
 
 #[gpui::test]
 fn a_deliberate_mark_on_the_landed_row_keeps_escape_home(cx: &mut TestAppContext) {
-    let (shell, cx) = open_with(cx, r#""keys":"default","view":"list","escapeUp":true"#, None);
+    let (shell, cx) = open_with(
+        cx,
+        r#""keys":"default","view":"list","escapeUp":true"#,
+        None,
+    );
     land(&shell, cx, "/files", home(), 1);
     set_cursor(&shell, cx, 1);
     cx.simulate_keystrokes("enter");
     land(&shell, cx, "/files/beta", vec![row("inner", true)], 2);
     cx.simulate_keystrokes("escape");
     land(&shell, cx, "/files", home(), 3);
-    assert_eq!(selected(&shell, cx), vec![1], "the folder left is selected on landing");
+    assert_eq!(
+        selected(&shell, cx),
+        vec![1],
+        "the folder left is selected on landing"
+    );
     // Selection.js promote: v on the landed row keeps it as a deliberate mark, no longer the landing.
     cx.simulate_keystrokes("v");
     assert_eq!(selected(&shell, cx), vec![1]);
     cx.simulate_keystrokes("escape");
-    assert_eq!(selected(&shell, cx), Vec::<usize>::new(), "Escape clears the mark");
+    assert_eq!(
+        selected(&shell, cx),
+        Vec::<usize>::new(),
+        "Escape clears the mark"
+    );
     assert_eq!(asked(&shell, cx), "/files", "and stays in the folder");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
@@ -149,12 +202,22 @@ fn escape_stays_put_with_escape_up_off(cx: &mut TestAppContext) {
     let before = lists(&shell, cx);
     shell.update(cx, |shell, cx| {
         shell.status_messages(cx, |messages, now| {
-            messages.say("Copied 1 item", false, "", flea::ui_logic_fb1::status::Hint::None, now)
+            messages.say(
+                "Copied 1 item",
+                false,
+                "",
+                flea::ui_logic_fb1::status::Hint::None,
+                now,
+            )
         })
     });
     cx.simulate_keystrokes("escape");
     assert_eq!(asked(&shell, cx), "/files/beta");
-    assert_eq!(lists(&shell, cx), before, "Escape asks for nothing with the setting off");
+    assert_eq!(
+        lists(&shell, cx),
+        before,
+        "Escape asks for nothing with the setting off"
+    );
     let notice = shell.update(cx, |shell, cx| {
         shell.status_messages(cx, |messages, _| messages.notice().to_owned())
     });
@@ -178,14 +241,25 @@ fn a_select_launch_selects_and_reveals_the_asked_row(cx: &mut TestAppContext) {
         "the asked row is scrolled into view: row at {top}, view from {scroll}"
     );
     let footer = footer_left(&shell, cx);
-    assert!(footer.starts_with("1 of 76 selected"), "the footer counts it: {footer}");
+    assert!(
+        footer.starts_with("1 of 76 selected"),
+        "the footer counts it: {footer}"
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
 fn side_button(cx: &mut VisualTestContext, direction: gpui::NavigationDirection) {
     let at = gpui::point(gpui::px(550.), gpui::px(350.));
-    cx.simulate_mouse_down(at, gpui::MouseButton::Navigate(direction), Modifiers::none());
-    cx.simulate_mouse_up(at, gpui::MouseButton::Navigate(direction), Modifiers::none());
+    cx.simulate_mouse_down(
+        at,
+        gpui::MouseButton::Navigate(direction),
+        Modifiers::none(),
+    );
+    cx.simulate_mouse_up(
+        at,
+        gpui::MouseButton::Navigate(direction),
+        Modifiers::none(),
+    );
     cx.run_until_parked();
 }
 
@@ -201,7 +275,11 @@ fn the_mouse_side_buttons_go_back_forward_and_up(cx: &mut TestAppContext) {
     assert_eq!(asked(&shell, cx), "/files", "Back follows the history");
     land(&shell, cx, "/files", home(), 3);
     side_button(cx, Forward);
-    assert_eq!(asked(&shell, cx), "/files/beta", "Forward goes again through the Back");
+    assert_eq!(
+        asked(&shell, cx),
+        "/files/beta",
+        "Forward goes again through the Back"
+    );
     land(&shell, cx, "/files/beta", vec![row("inner", true)], 4);
     side_button(cx, Back);
     land(&shell, cx, "/files", home(), 5);

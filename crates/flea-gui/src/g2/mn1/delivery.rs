@@ -17,6 +17,7 @@ pub(crate) fn string<'a>(value: &'a Json, key: &str) -> &'a str {
 
 impl Shell {
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.menu.tags.retire();
         let place = self.menu.place.take().is_some();
         let rail = self.menu.rail.take().is_some();
         if place || rail {
@@ -26,6 +27,8 @@ impl Shell {
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
         self.menu.flyout = None;
+        self.menu.header = false;
+        self.menu.tags_reading = false;
         self.menu.pending = None;
         self.menu.from_sheet = false;
         self.menu.activating = false;
@@ -80,8 +83,13 @@ impl Shell {
             self.menu_outcome(Outcome::Refused("menu.refusal.moved"), window, cx);
             return;
         }
-        if refresh::validate_choice(&self.menu_choice_entries(&action, &leaf), &action, &leaf, false)
-            .is_err()
+        if refresh::validate_choice(
+            &self.menu_choice_entries(&action, &leaf),
+            &action,
+            &leaf,
+            false,
+        )
+        .is_err()
         {
             self.menu_outcome(Outcome::Refused("menu.refusal.unavailable"), window, cx);
             return;
@@ -100,7 +108,10 @@ impl Shell {
             }
             // Dropbox rows name the account root the backend already took as this menu's destination.
             let dest = if matches!(action.as_str(), "dropbox" | "sharelink") {
-                format!(",\"dest\":\"{}\"", escape(&self.provider_destination(capture.side)))
+                format!(
+                    ",\"dest\":\"{}\"",
+                    escape(&self.provider_destination(capture.side))
+                )
             } else {
                 String::new()
             };
@@ -137,9 +148,6 @@ impl Shell {
             return false;
         };
         if self.actions_reply(side, line, cx) || self.menu_tag_line(side, &reply, window, cx) {
-            return true;
-        }
-        if self.menu_tag_states(side, &reply, window) {
             return true;
         }
         if self.menu_discovery_reply(side, line, &reply, window, cx) {
@@ -193,7 +201,11 @@ impl Shell {
                     .collect();
                 self.menu.context.compare_kinds = Some(capture.kinds.clone());
                 self.menu.context.tag_submenu = None;
-                self.menu_ask_tags(cx);
+                if self.menu.tags.asking.is_none() {
+                    self.ask_tag_states(true, cx);
+                } else if self.menu.flyout == Some("tags") {
+                    self.menu.tags_reading = true;
+                }
                 if self.menu.pending.is_some() {
                     self.activate_menu(window, cx);
                 } else {
@@ -259,6 +271,9 @@ impl Shell {
             return;
         };
         let side = capture.side;
+        if self.header_menu_choose(&action, window, cx) {
+            return;
+        }
         if self.deliver_actions(&capture, &action, &leaf, paths.clone(), window, cx) {
             return;
         }
@@ -292,7 +307,9 @@ impl Shell {
                     .collect::<Vec<_>>()
                     .join(",")
             );
-            self.menu.actions.run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
+            self.menu
+                .actions
+                .run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
             self.menu_send(side, request, cx);
             self.retire_menu(window, cx);
         } else {

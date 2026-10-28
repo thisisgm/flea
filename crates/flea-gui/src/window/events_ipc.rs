@@ -183,6 +183,7 @@ impl Shell {
                     board: &self.clipboard.board,
                 };
                 let geometry = self.geometry(window);
+                let recent = crate::ipc::recent::RecentAdapter(&host.recent);
                 let shown = crate::window::network::shown(&self.launch.settings.data);
                 let network = self
                     .rail
@@ -259,6 +260,7 @@ impl Shell {
                     )
                     .mode,
                 };
+                let preview_text = crate::ipc::preview_text::PreviewText { shell: self, window, cx };
                 let archive_cards = crate::ipc::archive_cards::ArchiveAdapter { shell: self };
                 let output_cards = crate::ipc::output_cards::OutputAdapter { shell: self, cx };
                 let dialog_cards = crate::ipc::dialog_cards::DialogAdapter {
@@ -286,7 +288,7 @@ impl Shell {
                     look: look.view,
                     cx,
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 39] = [
+                let adapters: [&dyn crate::ipc::Adapter; 41] = [
                     &glass,
                     &column_preview,
                     &drag,
@@ -295,10 +297,12 @@ impl Shell {
                     &preview_scroll,
                     &preview_look,
                     &thumbnails,
+                    &preview_text,
                     &look,
                     &rename,
                     &search,
                     &query,
+                    &recent,
                     &delivery,
                     &rail,
                     &focus,
@@ -331,9 +335,9 @@ impl Shell {
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    39
+                    41
                 } else {
-                    38
+                    40
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

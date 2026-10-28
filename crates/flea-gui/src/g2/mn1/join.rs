@@ -58,6 +58,7 @@ impl gpui::EventEmitter<ProducerReply> for Shell {}
 
 #[derive(Default)]
 pub struct Joined {
+    pub tags: super::tags::Tags,
     pub(crate) place: Option<super::place_host::Place>,
     pub menu: Rc<RefCell<Menu>>,
     pub captured: Option<Captured>,
@@ -80,12 +81,10 @@ pub struct Joined {
     pub(crate) providers: crate::g2::sd1::join::Senders,
     /// The flyout c or P asked for, opened once the cursor menu draws.
     pub flyout: Option<&'static str>,
+    pub header: bool,
+    pub tags_reading: bool,
     // A test's stand-in for the `flea shelf add` call; None runs the real one.
     pub shelve: Option<super::owners::ShelfAdd>,
-    /// Tag toggles sent and not yet answered, oldest first, by side and tag name.
-    pub(crate) tagging: Vec<(usize, &'static str)>,
-    /// The id of the latest tagstates read; an answer to any earlier read is stale.
-    pub(crate) tag_ask: u64,
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
@@ -156,6 +155,9 @@ impl Shell {
         let Some(capture) = &self.menu.captured else {
             return Vec::new();
         };
+        if self.menu.header {
+            return self.header_menu_entries(capture.side);
+        }
         let mut hidden = if self.menu.from_sheet {
             Vec::new()
         } else {
@@ -187,6 +189,9 @@ impl Shell {
             }
         }
         context.hidden = hidden;
+        if !self.can_tag(side) {
+            context.hidden.push("tags".into());
+        }
         if !background {
             self.provider_context(side, &host.path, &mut context);
         }
@@ -232,8 +237,21 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.open_menu_with(side, row, at, false, window, cx);
+    }
+
+    pub(crate) fn open_menu_with(
+        &mut self,
+        side: usize,
+        row: Option<usize>,
+        at: (f32, f32),
+        header: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.retire_menu(window, cx);
         self.observe_menu(window, cx);
+        self.menu.header = header;
         // A locked pane draws the hero, never rows, so its menu is the folder's whatever rows it still holds.
         let row = row.filter(|_| self.locked_folder(side).is_none());
         let Some(host) = &mut self.panes[side] else {
@@ -288,6 +306,7 @@ impl Shell {
         self.menu.context =
             self.listing_menu_context(side, &capture.rows, capture.cursor, background);
         self.menu.captured = Some(capture.clone());
+        self.ask_tag_states(false, cx);
         self.check_menu_shebang(window, cx);
         self.archive_menu_context(side);
         self.menu.presentation.at = Some(at);

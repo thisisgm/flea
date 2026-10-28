@@ -5,19 +5,23 @@ pub mod columns;
 pub mod element;
 pub mod header;
 mod hit;
-mod locale;
 mod loading;
+mod locale;
 mod measure;
 mod metrics;
+mod painted_row;
 mod palette;
 #[cfg(test)]
 mod palette_tests;
 mod row_text;
+mod tags;
 pub use measure::Density;
 pub use metrics::Metrics;
 pub(crate) use metrics::{CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
 #[cfg(test)]
 mod gh315_filter_tests;
+#[cfg(test)]
+mod gh315_filter_views_tests;
 #[cfg(test)]
 mod gh333_tests;
 pub mod pane;
@@ -143,9 +147,12 @@ pub struct ListView {
     pub switched: Switched,
     pub stored: StoredWidths,
     pub lang_marks: bool,
+    pub tags_shown: bool,
     /// A filter or search's needle, whose run each name marks.
     pub query: String,
     pub searching: bool,
+    /// A contents search draws each row as a block, its row and first matching line, so rows take the block height.
+    pub contents: bool,
     pub dual: bool,
     pub picker: Option<bool>,
     pub picker_directory: bool,
@@ -169,8 +176,10 @@ impl Default for ListView {
             switched: Switched::default(),
             stored: StoredWidths::default(),
             lang_marks: true,
+            tags_shown: false,
             query: String::new(),
             searching: false,
+            contents: false,
             dual: false,
             picker: None,
             picker_directory: false,

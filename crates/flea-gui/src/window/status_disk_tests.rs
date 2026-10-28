@@ -8,6 +8,7 @@ fn answer(cx: &mut TestAppContext, handle: WindowHandle<Shell>, path: &str, name
                 0,
                 BackendEvent::Filesystem(Filesystem {
                     class: String::new(),
+                    tagable: None,
                     path: path.into(),
                     name: name.into(),
                     free: 442_000_000_000,

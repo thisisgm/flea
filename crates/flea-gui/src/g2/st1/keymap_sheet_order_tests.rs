@@ -71,6 +71,7 @@ const LOOK: &[&str] = &[
 const FIND: &[&str] = &[
     "/|Filter",
     "f / ctrl-f|Find",
+    "ctrl-g|Search contents",
     "o|Reveal",
     "s|Sort",
     "S|Reverse sort",

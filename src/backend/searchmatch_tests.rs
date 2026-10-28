@@ -27,30 +27,39 @@ fn alignment(query: &[char], hay: &[char], base: usize) -> Option<i32> {
     table.last().unwrap().iter().flatten().copied().max()
 }
 
+// Layer 1 holds alignments that dropped a query letter; those may only end where the matched word ends.
 fn distance(query: &[char], hay: &[char], budget: usize) -> Option<usize> {
-    let mut best = budget + 1;
+    let (mut best, mut plain) = (budget + 1, budget + 1);
     for start in 0..hay.len() {
         if !boundary(hay, start) { continue; }
         let tail: Vec<_> = hay[start..].iter().map(|c| c.to_lowercase().next().unwrap()).collect();
-        let mut dp = vec![vec![1000; tail.len() + 1]; query.len() + 1];
-        dp[0][0] = 0;
+        let mut dp = vec![vec![vec![1000; tail.len() + 1]; query.len() + 1]; 2];
+        dp[0][0][0] = 0;
         for i in 0..=query.len() {
             for j in 0..=tail.len() {
-                if i > 0 && query[i - 1].is_alphabetic() { dp[i][j] = dp[i][j].min(dp[i - 1][j] + 1); }
-                if j > 0 && tail[j - 1].is_alphabetic() { dp[i][j] = dp[i][j].min(dp[i][j - 1] + 1); }
-                if i > 0 && j > 0 {
-                    let (a, b) = (query[i - 1], tail[j - 1]);
-                    if a == b { dp[i][j] = dp[i][j].min(dp[i - 1][j - 1]); }
-                    else if a.is_alphabetic() && b.is_alphabetic() { dp[i][j] = dp[i][j].min(dp[i - 1][j - 1] + 1); }
-                    if i > 1 && j > 1 && a == tail[j - 2] && query[i - 2] == b && a.is_alphabetic() && b.is_alphabetic() {
-                        dp[i][j] = dp[i][j].min(dp[i - 2][j - 2] + 1);
+                for layer in 0..2 {
+                    if i > 0 && query[i - 1].is_alphabetic() { dp[1][i][j] = dp[1][i][j].min(dp[layer][i - 1][j] + 1); }
+                    if j > 0 && tail[j - 1].is_alphabetic() { dp[layer][i][j] = dp[layer][i][j].min(dp[layer][i][j - 1] + 1); }
+                    if i > 0 && j > 0 {
+                        let (a, b) = (query[i - 1], tail[j - 1]);
+                        if a == b { dp[layer][i][j] = dp[layer][i][j].min(dp[layer][i - 1][j - 1]); }
+                        else if a.is_alphabetic() && b.is_alphabetic() { dp[layer][i][j] = dp[layer][i][j].min(dp[layer][i - 1][j - 1] + 1); }
+                        if i > 1 && j > 1 && a == tail[j - 2] && query[i - 2] == b && a.is_alphabetic() && b.is_alphabetic() {
+                            dp[layer][i][j] = dp[layer][i][j].min(dp[layer][i - 2][j - 2] + 1);
+                        }
                     }
                 }
             }
         }
-        best = best.min(*dp.last().unwrap().iter().min().unwrap());
+        let word_end = |j: usize| start + j == hay.len() || !hay[start + j].is_alphabetic() || boundary(hay, start + j);
+        for (j, (&kept, &dropped)) in dp[0][query.len()].iter().zip(&dp[1][query.len()]).enumerate() {
+            best = best.min(kept);
+            plain = plain.min(kept).min(dropped);
+            if word_end(j) { best = best.min(dropped); }
+        }
     }
-    (budget > 0 && best <= budget).then_some(best)
+    // A match only a mid-word dropped letter gives is a shadow: narrowing keeps it, answers hide it.
+    if budget == 0 { None } else if best <= budget { Some(best) } else { (plain <= budget).then_some(searchtypo::SHADOW + plain) }
 }
 
 pub(crate) fn reference(query: &str, path: &[u8]) -> Option<i32> {
@@ -182,4 +191,17 @@ fn search_bit_edits_match_the_reference_at_both_budgets_and_word_boundaries() {
     let matcher = Matcher::new("café");
     fold("cafè".as_bytes(), &mut folded);
     assert_eq!(matcher.distance(&folded, &mut scratch), Some(1));
+}
+
+#[test]
+fn search_fp1_a_typo_never_lists_a_word_two_edits_away() {
+    // FP-1: "flac" is two edits from "flea"; dropping its "e" against the prefix "fla" only leaves a shadow narrowing keeps.
+    for query in ["Flea", "flea"] {
+        let matcher = Matcher::new(query);
+        for path in [&b"audio-flac.flac"[..], b"music/song.flac", b"flags.toml", b"flame.png"] {
+            assert_eq!(matcher.full(path), Some(SHADOW_TYPO - TYPO_EDIT), "{query} {}", String::from_utf8_lossy(path));
+            assert_eq!(reference(query, path), Some(SHADOW_TYPO - TYPO_EDIT), "{query} {}", String::from_utf8_lossy(path));
+        }
+        assert!(matcher.full(b"notes/flea.txt").is_some_and(|score| score > TYPO));
+    }
 }

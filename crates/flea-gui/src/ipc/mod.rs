@@ -20,6 +20,7 @@ pub mod path;
 pub(crate) mod preview_look;
 pub(crate) mod preview_scroll;
 pub mod rail;
+pub(crate) mod recent;
 pub mod rows;
 pub mod server;
 pub(crate) mod settings;
@@ -36,7 +37,12 @@ pub(crate) mod window_feedback;
 mod preview_scroll_tests;
 
 pub use surface::{Adapter, Surface};
+pub(crate) mod preview_text;
 
+#[cfg(test)]
+mod pb_ipc_fixture;
+#[cfg(test)]
+mod pb_ipc_tests;
 #[cfg(test)]
 mod reader_port_a_tests;
 #[cfg(test)]

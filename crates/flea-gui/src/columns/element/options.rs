@@ -11,6 +11,12 @@ impl TrackElement {
         self
     }
 
+    /// A tagged folder reserves the same slot on every row of its active column.
+    pub fn with_tag_slot(mut self, shown: bool) -> Self {
+        self.tag_slot = shown;
+        self
+    }
+
     /// A standing filter's drawn rows: the active track then draws the listing row at each view position.
     pub fn with_filter(mut self, shown: Option<Rc<[usize]>>) -> Self {
         self.shown = shown;

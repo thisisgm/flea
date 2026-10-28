@@ -206,6 +206,19 @@ impl Session {
         out
     }
 
+    // Ctrl+G in the listing opens the strip on this folder already in contents; an open strip turns as Ctrl+G inside it.
+    pub fn start_contents(&mut self, pane: &Pane) -> Vec<Effect> {
+        if !self.wire.contents {
+            return Vec::new();
+        }
+        if self.mode != Mode::Off {
+            return self.toggle_contents(pane);
+        }
+        self.kind = Kind::Contents;
+        self.scope = Scope::Folder;
+        self.start(pane)
+    }
+
     // Esc stops a running walk first, then leaves: at once when nothing was sent, else by re-listing the folder.
     pub fn abort(&mut self, pane: &Pane) -> Vec<Effect> {
         if self.leaving {

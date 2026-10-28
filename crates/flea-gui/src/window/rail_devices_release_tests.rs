@@ -318,3 +318,6 @@ fn pb_rail_2_eject_holds_the_rail_while_its_child_runs(cx: &mut TestAppContext) 
     // The hold's end waits on the post-exit listing that judges the eject; this test stops at the hold's start.
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[path = "rail_devices_pb_rest_tests.rs"]
+mod pb_rest;

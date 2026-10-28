@@ -5,16 +5,26 @@ pub(crate) struct Filesystem {
     /// Listing the shown folder's facts were asked for; None (never asked) still asks.
     pub(super) listing: Option<usize>,
     pub answered: bool,
+    pub system: bool,
     /// Retained across a folder change; only an accepted answer for the shown folder replaces it.
     pub facts: Option<crate::backend::status::Filesystem>,
 }
 
 impl Filesystem {
+    pub(crate) fn can_tag(&self) -> bool {
+        self.facts
+            .as_ref()
+            .filter(|facts| facts.path == self.path)
+            .and_then(|facts| facts.tagable)
+            != Some(false)
+    }
+
     pub(crate) fn enter(&mut self, path: &str) {
         if self.path != path {
             self.path = path.into();
             self.listing = None;
             self.answered = false;
+            self.system = false;
         }
     }
 
@@ -51,6 +61,7 @@ impl Filesystem {
             path: facts.path.clone(),
             listing: Some(listing),
             answered: true,
+            system: false,
             facts: Some(facts),
         }
     }

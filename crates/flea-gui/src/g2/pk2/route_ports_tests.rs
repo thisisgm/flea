@@ -27,13 +27,23 @@ fn the_main_chrome_holds_the_shared_entry(cx: &mut TestAppContext) {
     let (bar, cx) = cx.add_window_view(|_, cx| PathBar::new(&english(), cx));
     let shared = bar.read_with(cx, |bar, _| bar.path());
     bar.update(cx, |bar, cx| {
-        bar.path().update(cx, |view, _| assert!(view.entry.start("/d")));
+        bar.path()
+            .update(cx, |view, _| assert!(view.entry.start("/d")));
     });
-    assert_eq!(shared.read_with(cx, |view, _| view.entry.text.clone()), "/d/");
+    assert_eq!(
+        shared.read_with(cx, |view, _| view.entry.text.clone()),
+        "/d/"
+    );
     shared.update(cx, |view, _| view.entry.text = "/d/typed".into());
     let reread = bar.read_with(cx, |bar, _| bar.path());
-    assert_eq!(reread, shared, "the bar returns the entity its renderer holds");
-    assert_eq!(reread.read_with(cx, |view, _| view.entry.text.clone()), "/d/typed");
+    assert_eq!(
+        reread, shared,
+        "the bar returns the entity its renderer holds"
+    );
+    assert_eq!(
+        reread.read_with(cx, |view, _| view.entry.text.clone()),
+        "/d/typed"
+    );
 }
 
 // pickerpath.js:16; the held view keeps its entry across syncs.
@@ -94,15 +104,35 @@ fn the_chrome_says_the_shared_refusal_sentence(cx: &mut TestAppContext) {
         commit_line("file://otherhost/x", "/home/gm", "/home/gm"),
         CommitAsk::Say(Said::RefusedUri, false)
     );
-    commit_entry(cx, "file://otherhost/x", vec![Out::Closed, Out::Said(Said::RefusedUri.text(&english()))]);
+    commit_entry(
+        cx,
+        "file://otherhost/x",
+        vec![Out::Closed, Out::Said(Said::RefusedUri.text(&english()))],
+    );
 }
 
 // pickerpath.js:31; opening builds and focuses the shared entry before committing.
 #[gpui::test]
 fn the_chrome_delegates_its_open(cx: &mut TestAppContext) {
-    assert_eq!(commit_line("/d", "/b", "/home/gm"), CommitAsk::Peek("/d".into()));
-    assert_eq!(peeked("/d", "/d", false, 0o040755, false, false), Peeked::OpenFolder("/d".into()));
-    commit_entry(cx, "/d", vec![Out::Closed, Out::Open { side: 0, path: "/d".into() }]);
+    assert_eq!(
+        commit_line("/d", "/b", "/home/gm"),
+        CommitAsk::Peek("/d".into())
+    );
+    assert_eq!(
+        peeked("/d", "/d", false, 0o040755, false, false),
+        Peeked::OpenFolder("/d".into())
+    );
+    commit_entry(
+        cx,
+        "/d",
+        vec![
+            Out::Closed,
+            Out::Open {
+                side: 0,
+                path: "/d".into(),
+            },
+        ],
+    );
 }
 
 fn commit_entry(cx: &mut TestAppContext, text: &str, expected: Vec<Out>) {
@@ -110,7 +140,11 @@ fn commit_entry(cx: &mut TestAppContext, text: &str, expected: Vec<Out>) {
     let path = bar.read_with(cx, |bar, _| bar.path());
     let events = Rc::new(RefCell::new(Vec::new()));
     let recorded = events.clone();
-    let _subscription = cx.update(|_, cx| cx.subscribe(&path, move |_, out: &Out, _| recorded.borrow_mut().push(out.clone())));
+    let _subscription = cx.update(|_, cx| {
+        cx.subscribe(&path, move |_, out: &Out, _| {
+            recorded.borrow_mut().push(out.clone())
+        })
+    });
     assert!(!path.read_with(cx, |view, _| view.built));
     bar.update(cx, |bar, cx| {
         bar.sync(
@@ -128,12 +162,18 @@ fn commit_entry(cx: &mut TestAppContext, text: &str, expected: Vec<Out>) {
     assert!(cx.update(|window, cx| path.read(cx).holds_keyboard(window)));
     let opened = std::mem::take(&mut *events.borrow_mut());
     assert!(
-        opened.iter().all(|out| matches!(out, Out::Send { .. } | Out::ReadHistory)),
+        opened
+            .iter()
+            .all(|out| matches!(out, Out::Send { .. } | Out::ReadHistory)),
         "opening asks the jump for its history and nothing else"
     );
     cx.simulate_input(text);
     cx.simulate_keystrokes("enter");
-    assert_eq!(*events.borrow(), expected, "the real entry must emit its host events");
+    assert_eq!(
+        *events.borrow(),
+        expected,
+        "the real entry must emit its host events"
+    );
     assert!(!path.read_with(cx, |view, _| view.editing()));
 }
 
@@ -173,21 +213,33 @@ fn the_picker_holds_no_ranking_of_its_own() {
         },
     ];
     ranker.rows("x", &mut rows);
-    assert_eq!(rows.iter().map(|row| row.text.clone()).collect::<Vec<_>>(), ["b", "a"]);
+    assert_eq!(
+        rows.iter().map(|row| row.text.clone()).collect::<Vec<_>>(),
+        ["b", "a"]
+    );
 }
 
 // pickerpath.js:42; the bar resolves text against base and home.
 #[test]
 fn the_picker_resolves_through_pathbar() {
-    assert_eq!(commit_line("docs", "/b", "/home/gm"), CommitAsk::Peek("/b/docs".into()));
-    assert_eq!(commit_line("~/x", "/b", "/home/gm"), CommitAsk::Peek("/home/gm/x".into()));
+    assert_eq!(
+        commit_line("docs", "/b", "/home/gm"),
+        CommitAsk::Peek("/b/docs".into())
+    );
+    assert_eq!(
+        commit_line("~/x", "/b", "/home/gm"),
+        CommitAsk::Peek("/home/gm/x".into())
+    );
 }
 
 // pickerpath.js:43; commit wraps resolve with nothing between.
 #[test]
 fn no_resolver_wrapper_remains() {
     for text in ["docs", "~/x", "d/f", "/a"] {
-        assert_eq!(commit_line(text, "/b", "/h"), CommitAsk::Peek(resolve(text, "/b", "/h")));
+        assert_eq!(
+            commit_line(text, "/b", "/h"),
+            CommitAsk::Peek(resolve(text, "/b", "/h"))
+        );
     }
 }
 
@@ -201,7 +253,11 @@ fn tab_no_match_and_committed_line_use_different_helpers() {
         Some(Said::NothingStartsWith("/d".into())),
         "Tab says its own sentence"
     );
-    assert_eq!(commit_line("zzz", "/d", "/h"), CommitAsk::Peek("/d/zzz".into()), "a line peeks");
+    assert_eq!(
+        commit_line("zzz", "/d", "/h"),
+        CommitAsk::Peek("/d/zzz".into()),
+        "a line peeks"
+    );
 }
 
 // pickerpath.js:48; opening a folder lists through the open.
@@ -210,7 +266,10 @@ fn a_folder_lists_through_the_picker_s_own_open() {
     let mut list = Listing::default();
     list.open("/d");
     assert!(list.is_pending());
-    assert!(list.request_line(0).contains("\"path\":\"/d\""), "the open asks for its path");
+    assert!(
+        list.request_line(0).contains("\"path\":\"/d\""),
+        "the open asks for its path"
+    );
 }
 
 // pickerpath.js:49; a file's parent rides the locate answer.
@@ -244,6 +303,8 @@ fn landed_two() -> Listing {
                 link: None,
                 real_modes: true,
                 kind: String::new(),
+                inline: None,
+                tags: None,
             },
             RowFacts {
                 name: "a.txt".into(),
@@ -255,6 +316,8 @@ fn landed_two() -> Listing {
                 link: None,
                 real_modes: true,
                 kind: String::new(),
+                inline: None,
+                tags: None,
             },
         ]
     ));
@@ -283,7 +346,10 @@ fn no_window_is_walked_to_find_a_typed_file() {
     let mut list = Listing::default();
     list.open("/d");
     assert_eq!(list.window_request(0, 50), None, "no window walk yet");
-    assert_eq!(located("/d/a.txt", "/d", "/d", "/d/a.txt", 7), Located::Row(7));
+    assert_eq!(
+        located("/d/a.txt", "/d", "/d", "/d/a.txt", 7),
+        Located::Row(7)
+    );
 }
 
 // Direct cursor coverage only; pickerpath.js:55 needs pk1's locate reply handler.
@@ -300,13 +366,20 @@ fn the_located_row_s_window_is_the_view_s_own() {
     assert_eq!(take_row("/d/a.txt", 3, true), Some(3));
     assert_eq!(take_row("/d/a.txt", 3, false), None, "unheld takes nothing");
     let list = landed_two();
-    assert_eq!(list.held().listing, list.generation() as usize, "the window is the listing's own");
+    assert_eq!(
+        list.held().listing,
+        list.generation() as usize,
+        "the window is the listing's own"
+    );
 }
 
 // pickerpath.js:69; both sentences render through the one helper.
 #[test]
 fn the_picker_says_both_through_the_helper() {
-    assert_eq!(Said::Missing("/x/y z".into()).text(&english()), "/x/y z does not exist or cannot be reached.");
+    assert_eq!(
+        Said::Missing("/x/y z".into()).text(&english()),
+        "/x/y z does not exist or cannot be reached."
+    );
     assert_eq!(
         Said::Filtered("a.png".into()).text(&english()),
         "a.png is hidden by the file filter or the hidden files setting."
@@ -321,5 +394,8 @@ fn the_list_routes_the_pathbar_action() {
         text: ":",
         modifiers: 0,
     };
-    assert_eq!(lookup("default", Context::Listing, Frontend::Gui, input), Match::Action("pathBar"));
+    assert_eq!(
+        lookup("default", Context::Listing, Frontend::Gui, input),
+        Match::Action("pathBar")
+    );
 }

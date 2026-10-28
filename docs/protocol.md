@@ -723,7 +723,11 @@ presence masks reject impossible names before scoring, and an interned basename
 is scored once per query. Unknown and non-ASCII classes bypass this rejection.
 
 Typo-only matching starts at a word boundary and permits letter replacement,
-insertion, deletion and adjacent swap, including the first letter. The budget
+insertion, deletion and adjacent swap, including the first letter. A dropped
+query letter counts only where the matched word ends, so `flea` never matches
+the prefix `fla` of `flac`. Typo-only matches are listed only when no basename
+holds the query exactly, as its prefix or at a word start; with a tag term,
+only the basenames that carry its tags count. The budget
 is zero below four alphanumeric query characters, one from four through seven,
 and two from eight onward. Digits and punctuation are never edited. A query
 beginning with punctuation, such as `.svg`, permits no edits. Explicit path

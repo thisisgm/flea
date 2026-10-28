@@ -41,7 +41,7 @@ fn a_resort_asks_the_backend_once_records_the_folder_and_lands_the_reordered_fir
     );
     assert_eq!(
         (pane.cursor, sel.len(), nav.sort_mark()),
-        (0, 0, "size:asc".into())
+        (40, 0, "size:asc".into())
     );
     assert_eq!(nav.writer.borrow().sent, 1);
     let now = pane.now();

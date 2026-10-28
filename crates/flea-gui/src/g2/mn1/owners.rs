@@ -1,13 +1,7 @@
 //! Rows the file menu runs itself: Add to Shelf as one `flea shelf add` call, and a Tags leaf as one settags toggle.
 use super::{delivery::string, join::Captured};
-use crate::{state::Shell, window::navigate::Step};
-use flea::{
-    json::escape,
-    jsondoc::Json,
-    ui_logic_fb1::status::Hint,
-    ui_logic_mn1::flyouts,
-    ui_logic_pl4::tags::{self, Op},
-};
+use crate::state::Shell;
+use flea::{json::escape, jsondoc::Json, ui_logic_fb1::status::Hint, ui_logic_pl4::tags};
 use gpui::{Context, Window};
 use std::path::Path;
 
@@ -100,8 +94,29 @@ impl Shell {
         .detach();
     }
 
-    // TagState.qml choose: one toggle over the captured rows; the menu stays up for the answer, which is worded with the tag it named.
+    // Only a validated choice completes the current menu's activation; a legacy Order::Menu write cannot release it.
     pub(super) fn menu_tag(
+        &mut self,
+        capture: &Captured,
+        leaf: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.menu.activating = false;
+        self.send_menu_tag(capture, leaf, window, cx);
+        if self
+            .menu
+            .captured
+            .as_ref()
+            .is_some_and(|current| current.id == capture.id)
+        {
+            self.menu.pending = self.menu.tags.choices.pop_front();
+            self.activate_menu(window, cx);
+        }
+    }
+
+    // TagState.qml choose: one toggle over the captured rows; the answer is worded with the tag it named.
+    pub(super) fn send_menu_tag(
         &mut self,
         capture: &Captured,
         leaf: &str,
@@ -113,86 +128,41 @@ impl Shell {
             .strip_prefix("tag")
             .and_then(|slot| slot.parse::<usize>().ok())
             .and_then(|slot| tags::NAMES.get(slot.wrapping_sub(1)));
+        let name = if leaf == "__clear__" {
+            Some("")
+        } else {
+            name.copied()
+        };
         let Some(name) = name else {
             self.retire_menu(window, cx);
             let sentence = self.locale.catalog.tr("menu.refusal.unavailable");
             self.owner_notice(side, &sentence, true, Hint::None, cx);
             return;
         };
-        // The capture stays, so the menu keeps its place; only the choice's own activation ends here.
-        self.menu.activating = false;
-        self.menu.tagging.push((side, name));
+        let rows = if capture.rows.is_empty() {
+            vec![capture.cursor]
+        } else {
+            capture.rows.clone()
+        };
+        let rows = rows
+            .iter()
+            .map(usize::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let op = if name.is_empty() { "clear" } else { "toggle" };
+        self.menu.tags.pending[side].push_back(super::tags::Change {
+            tag: name,
+            listing: capture.listing,
+        });
         self.menu_send(
             side,
             format!(
-                "{{\"c\":\"settags\",\"rows\":[{}],\"op\":\"toggle\",\"tag\":\"{}\"}}",
-                tag_rows(capture),
+                "{{\"c\":\"settags\",\"listing\":{},\"rows\":[{rows}],\"op\":\"{op}\",\"tag\":\"{}\"}}",
+                capture.listing,
                 escape(name)
             ),
             cx,
         );
-    }
-
-    /// Asks which tags the captured rows carry, so the open Tags flyout marks the tags in effect; an answer to an older ask is dropped.
-    pub(crate) fn menu_ask_tags(&mut self, cx: &mut Context<Self>) {
-        let Some(capture) = self.menu.captured.clone() else {
-            return;
-        };
-        if capture.background || !self.menu_entries().iter().any(|e| e.action == "tags") {
-            return;
-        }
-        self.menu.tag_ask += 1;
-        let id = self.menu.tag_ask;
-        self.menu_send(
-            capture.side,
-            format!(
-                "{{\"c\":\"tagstates\",\"rows\":[{}],\"id\":{id}}}",
-                tag_rows(&capture)
-            ),
-            cx,
-        );
-    }
-
-    /// The tagstates answer to the latest ask: applied and mixed names become the Tags flyout's leaves, and the open menu redraws with them.
-    pub(super) fn menu_tag_states(
-        &mut self,
-        side: usize,
-        reply: &Json,
-        window: &mut Window,
-    ) -> bool {
-        if string(reply, "t") != "tagstates" {
-            return false;
-        }
-        let id = reply.get("id").and_then(Json::as_f64).unwrap_or(0.) as u64;
-        let Some(capture) = self.menu.captured.clone() else {
-            return true;
-        };
-        let listing = reply.get("listing").and_then(Json::as_f64).unwrap_or(-1.);
-        if id != self.menu.tag_ask || capture.side != side || listing != capture.listing as f64 {
-            return true;
-        }
-        let names = |key: &str| -> Vec<String> {
-            reply
-                .get(key)
-                .and_then(Json::as_array)
-                .unwrap_or(&[])
-                .iter()
-                .filter_map(Json::as_str)
-                .map(str::to_owned)
-                .collect()
-        };
-        let states = tags::states_from(&names("applied"), &names("mixed"));
-        self.menu.context.tag_submenu = Some(flyouts::tag_entries_in_effect(&states));
-        // The open menu redraws in place, as the shebang answer does; refresh_menu only runs while the menu is still presenting.
-        let entries = self.menu_entries();
-        let list = self.panes[side]
-            .as_ref()
-            .expect("the menu's pane")
-            .list
-            .borrow();
-        let env = self.menu_env(&list.typeface);
-        self.menu.menu.borrow_mut().refresh(entries, &env, window);
-        true
     }
 
     /// TagState.qml setTaggedDone: a settagged answer lands this side's oldest toggle, says it and redraws the rows.
@@ -200,64 +170,17 @@ impl Shell {
         &mut self,
         side: usize,
         reply: &Json,
-        window: &mut Window,
+        _window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
         if string(reply, "t") != "settagged" {
             return false;
         }
-        // A settagged answer with no menu toggle waiting on this side belongs to another sender, so it passes on.
-        let Some(at) = self.menu.tagging.iter().position(|(s, _)| *s == side) else {
+        if self.menu.tags.pending[side].is_empty() {
             return false;
-        };
-        let (_, name) = self.menu.tagging.remove(at);
-        let number = |key: &str| reply.get(key).and_then(Json::as_f64).unwrap_or(0.) as i64;
-        let skipped = reply
-            .get("skipped")
-            .and_then(Json::as_array)
-            .map_or(0, <[Json]>::len);
-        let preset = self
-            .launch
-            .settings
-            .data
-            .get("keys")
-            .and_then(Json::as_str)
-            .unwrap_or("default")
-            .to_owned();
-        let catalog = &self.locale.catalog;
-        let (op, ok, shown) = (
-            Op::from_wire(string(reply, "op")),
-            number("ok"),
-            catalog.tr(tags::label_key(name)),
-        );
-        // A plain change carries the footer's own undo hint; a skip rides inside the line, as Tags.js doneLine words it.
-        let (sentence, hint) = if ok > 0 && skipped == 0 {
-            (tags::changed_line(catalog, op, ok, &shown), Hint::Undo)
-        } else {
-            (
-                tags::done_line(catalog, &preset, op, ok, &shown, skipped),
-                Hint::None,
-            )
-        };
-        if !sentence.is_empty() {
-            self.owner_notice(side, &sentence, false, hint, cx);
         }
-        // An open menu pins its listing, so the answer re-reads the tags rather than re-listing the folder under it.
-        if self.menu.captured.is_some() {
-            self.menu_ask_tags(cx);
-        } else {
-            let _ = self.step(side, Step::Refresh(None), window, cx);
-        }
+        self.tag_write_done(side, reply, cx);
         true
-    }
-
-    /// A refused settags answers this side's oldest toggle, so a later answer keeps its own tag name.
-    pub(crate) fn menu_tag_refused(&mut self, side: usize, operation: &str) {
-        if operation == "settags" {
-            if let Some(at) = self.menu.tagging.iter().position(|(s, _)| *s == side) {
-                self.menu.tagging.remove(at);
-            }
-        }
     }
 
     fn owner_notice(

@@ -67,6 +67,10 @@ impl Shell {
                 _ => None,
             }
         };
+        // The window's Settings chord is not the Trash view's to operate, so it reaches the window.
+        if !menu_open && action == Some("settings") {
+            return false;
+        }
         if let Some(action) = action {
             if menu_open {
                 self.trash_menu_action(action, window, cx);

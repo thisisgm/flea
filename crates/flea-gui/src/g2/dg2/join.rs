@@ -316,6 +316,10 @@ impl Shell {
             _ => &[],
         };
         let dest = pane_spot(host, point, carried);
+        // Recent stands on "/" with no folder of its own, so a drop on its blank ground lands nowhere.
+        if host.recent.on && dest == host.path {
+            return;
+        }
         self.land_into(side, dest, owned, window, cx);
     }
 
