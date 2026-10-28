@@ -36,7 +36,18 @@ mod icons;
 mod editor;
 mod empty;
 mod prompts;
+mod convert;
 mod print;
+#[cfg(test)]
+mod convert_tests;
+#[cfg(test)]
+mod convert_process_tests;
+#[cfg(test)]
+mod convert_real_tests;
+#[cfg(test)]
+mod convert_lifecycle_tests;
+#[cfg(test)]
+mod convert_review_tests;
 #[cfg(test)]
 mod print_tests;
 #[cfg(test)]
@@ -202,6 +213,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             style.prepare(&mut model, &mut wire)?;
             model.model3d_palette = graphics::palette(&style.theme);
             detail::prepare(&mut model, &mut wire)?;
+            convert::poll(&mut model);
             model.taildrop.poll();
             model.advance_taildrop(&mut wire)?;
             if let Some(result) = model.taildrop.sent.take() {
@@ -212,9 +224,9 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             }
             completion::land(&mut model);
             model.expire_message(std::time::Instant::now());
-            let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some() || model.prompts.question.is_some() || model.printing.card.is_some();
-            if (model.menu || model.deletion.is_some() || model.printing.card.is_some()) != menu_tracking {
-                menu_tracking = model.menu || model.deletion.is_some() || model.printing.card.is_some();
+            let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some() || model.prompts.question.is_some() || (model.printing.card.is_some() || model.converting.card.is_some());
+            if (model.menu || model.deletion.is_some() || (model.printing.card.is_some() || model.converting.card.is_some())) != menu_tracking {
+                menu_tracking = model.menu || model.deletion.is_some() || (model.printing.card.is_some() || model.converting.card.is_some());
                 print!("{}", if menu_tracking { "\x1b[?1003h" } else { "\x1b[?1003l\x1b[?1002h" });
                 std::io::Write::flush(&mut std::io::stdout())?;
             }

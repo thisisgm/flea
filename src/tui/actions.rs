@@ -21,6 +21,9 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         }
         return Ok(());
     }
+    if model.converting.card.is_some() {
+        return super::convert::key(model, key, wire);
+    }
     if model.printing.card.is_some() {
         return super::print::key(model, key, wire);
     }
@@ -169,6 +172,9 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         } else {
             map.action(key, &model.preset)
         };
+    if action.is_empty() && key.text == "F" && matches!(key.mods.as_str(), "" | "shift") {
+        action = "convert".into();
+    }
     if let Some(prefix) = armed.strip_prefix("prefix:") {
         action = map.sequence(prefix, key, &model.preset, "listing");
         if action.is_empty() {
@@ -338,6 +344,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     }
     match action {
         "print" => super::print::open(m, w, false)?,
+        "convert" => super::convert::open(m, w, false)?,
         "cursorDown" => m.move_by(1, false, w)?,
         "cursorUp" => m.move_by(-1, false, w)?,
         "extendDown" => m.move_by(1, true, w)?,
@@ -715,6 +722,9 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             }
         }
         "escape" => {
+            if super::convert::cancel(m, w)? {
+                return Ok(());
+            }
             if super::print::cancel(m, w)? {
                 return Ok(());
             }

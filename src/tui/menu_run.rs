@@ -171,6 +171,7 @@ fn run(m: &mut Model, id: &str, w: &mut Wire) -> io::Result<()> {
         vec![("c", word("actions")), ("op", word("run")), ("id", number(request)), ("action", word(action)), ("paths", paths)]
     } else {
         match id {
+            "convert" => return crate::tui::convert::open(m, w, true),
             "print" => return crate::tui::print::open(m, w, true),
             "open" => { m.menu_action = "open".into(); menu("validate", vec![("action", word("open"))]) }
             "dropbox" => {

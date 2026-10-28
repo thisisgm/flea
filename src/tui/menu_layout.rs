@@ -105,6 +105,7 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
                     open.push(Entry::new("print", PRINTER, label, wait(Ink::Plain)));
                 }
                 if !v.formats.is_empty() { archive.push(Entry { chevron: true, ..Entry::new("compress", ARCHIVE, tr("menu.compress"), wait(Ink::Plain)) }); }
+                if !m.menu_directory && crate::tui::convert::offered(m) { archive.push(Entry::new("convert", "\u{eb52}", tr("menu.row.convert"), wait(Ink::Plain))); }
                 archive.extend(v.actions.iter().map(|(id, name)| Entry::new(&format!("action:{id}"), HASH, name.clone(), wait(Ink::Plain))));
                 if v.taildrop { share.push(taildrop(m, tr("menu.taildrop"))); }
                 if let Some(account) = v.dropbox.as_ref().filter(|root| m.menu_view.paths.is_empty() || !m.menu_view.paths.iter().all(|path| within(root, path))) {
@@ -125,7 +126,7 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
         if !out.is_empty() { out.push(None); }
         for mut row in group {
             if v.hints && row.trail.is_empty() && !row.chevron {
-                row.trail = super::key_sheet::hint(map, &m.preset, match row.id.as_str() { "delete" => "deletePermanently", id => id });
+                row.trail = if row.id == "convert" && map.action(&crate::tui::input::Key::character('F', ""), &m.preset).is_empty() { "F".into() } else { super::key_sheet::hint(map, &m.preset, match row.id.as_str() { "delete" => "deletePermanently", id => id }) };
             }
             out.push(Some(row));
         }
