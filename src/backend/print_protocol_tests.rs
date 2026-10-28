@@ -51,6 +51,7 @@ case "$tool" in
    exit 0
   fi
   test "$tool" != pdftoppm || last=$last.$codec
+  case "$last" in jpg:/*|png:/*|webp:/*|avif:/*|heic:/*|tiff:/*|bmp:/*|pdf:/*) last=${last#*:} ;; esac
   case "$last" in "$root"/*) ;; *) exit 97 ;; esac
   set -C
   printf '%s %s\n' "$tool" "$page" > "$last"

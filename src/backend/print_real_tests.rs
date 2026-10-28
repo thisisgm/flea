@@ -4,6 +4,9 @@ use crate::backend::{combine::{self, Background, Layout, Settings, Spacing}, con
 #[path = "print_review_tests.rs"]
 mod review;
 
+#[path = "convert_codec_real_tests.rs"]
+mod codecs;
+
 fn installed(name: &str) -> bool {
     use std::os::unix::fs::PermissionsExt;
     std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()).any(|p| p.join(name).metadata().is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0))
