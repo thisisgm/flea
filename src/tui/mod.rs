@@ -36,6 +36,17 @@ mod icons;
 mod editor;
 mod empty;
 mod prompts;
+mod print;
+#[cfg(test)]
+mod print_tests;
+#[cfg(test)]
+mod print_fix_tests;
+#[cfg(test)]
+mod print_guard_tests;
+#[cfg(test)]
+mod print_ui_tests;
+#[cfg(test)]
+mod print_process_tests;
 mod trashview;
 pub(crate) mod graphics;
 mod input;
@@ -201,9 +212,9 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             }
             completion::land(&mut model);
             model.expire_message(std::time::Instant::now());
-            let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some() || model.prompts.question.is_some();
-            if (model.menu || model.deletion.is_some()) != menu_tracking {
-                menu_tracking = model.menu || model.deletion.is_some();
+            let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some() || model.prompts.question.is_some() || model.printing.card.is_some();
+            if (model.menu || model.deletion.is_some() || model.printing.card.is_some()) != menu_tracking {
+                menu_tracking = model.menu || model.deletion.is_some() || model.printing.card.is_some();
                 print!("{}", if menu_tracking { "\x1b[?1003h" } else { "\x1b[?1003l\x1b[?1002h" });
                 std::io::Write::flush(&mut std::io::stdout())?;
             }

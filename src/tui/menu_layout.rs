@@ -100,7 +100,10 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
                 if v.apps.as_ref().map_or(true, |apps| !apps.is_empty()) {
                     open.push(Entry { chevron: true, ..Entry::new("openwith", WINDOW, tr("menu.openWith"), if one { wait(Ink::Plain) } else { Ink::Dim }) });
                 }
-                if one && !m.menu_directory { open.push(Entry::new("print", PRINTER, tr("menu.print"), wait(Ink::Plain))); }
+                if !m.menu_directory && crate::tui::print::offered(m) {
+                    let label = if one { tr("menu.print") } else { m.i18n.trn("menu.row.print_many", m.menu_count as i64) };
+                    open.push(Entry::new("print", PRINTER, label, wait(Ink::Plain)));
+                }
                 if !v.formats.is_empty() { archive.push(Entry { chevron: true, ..Entry::new("compress", ARCHIVE, tr("menu.compress"), wait(Ink::Plain)) }); }
                 archive.extend(v.actions.iter().map(|(id, name)| Entry::new(&format!("action:{id}"), HASH, name.clone(), wait(Ink::Plain))));
                 if v.taildrop { share.push(taildrop(m, tr("menu.taildrop"))); }

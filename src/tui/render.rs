@@ -74,7 +74,7 @@ pub(super) fn frame_at(m: &Model, theme: &Theme, map: &Map, columns: usize, line
     if columns < 12 || lines <= CHROME_ROWS { return layout::small(columns, lines, theme) + &super::prompts::caret(None, lines); }
     // A card or the keys sheet is the one lit surface: everything behind it draws in the scrim's inks.
     let lit = theme;
-    let theme = if m.sheet || m.deletion.is_some() { theme.dim.as_deref().unwrap_or(theme) } else { theme };
+    let theme = if m.sheet || m.deletion.is_some() || m.printing.card.is_some() { theme.dim.as_deref().unwrap_or(theme) } else { theme };
     let (left, middle, right) = panes(columns, m.preview_visible);
     let body = body_height(lines);
     let base = theme.base();
@@ -125,6 +125,7 @@ pub(super) fn frame_at(m: &Model, theme: &Theme, map: &Map, columns: usize, line
     if m.properties.is_some() { cards::draw_properties(&mut out, m, lit); }
     else if m.sheet { key_sheet::draw(&mut out, m, lit, map); }
     if m.menu { menu_layout::draw(&mut out, m, lit, map); }
+    if m.printing.card.is_some() { super::print::draw(&mut out, m, lit); }
     if m.deletion.is_some() { cards::draw_delete(&mut out, m, lit); }
     out.push_str(&super::prompts::caret(caret, lines));
     out

@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "b2aead0700cf49371b5fc89d868f9839b671171b3c22ad091cc0eb3af0116906",
-  "catalog_sha256": "ea5174492e17f544496b469426150fec3b53d751ad6ebdeeb8088d0e17b74fa8",
+  "catalog_file_sha256": "6115a4726354651cc39c3a481d1e7db255c525091f7b6e32adfa457822da6566",
+  "catalog_sha256": "4661f78000aa52ade2779ba6270eb18712a85ceb20a32f072c255ebe0d83007d",
   "counts": {
     "direct_references": 0,
-    "keys": 2011,
+    "keys": 2015,
     "plurals": 98
   },
   "direct_references": {},
@@ -497,7 +497,10 @@
         "dialogs.output.choice.Black",
         "dialogs.output.title.print_many",
         "dialogs.output.title.convert_many",
-        "dialogs.output.title.combine"
+        "dialogs.output.title.combine",
+        "dialogs.output.cancelled",
+        "dialogs.output.error.print_busy",
+        "dialogs.output.error.printer_reply"
       ],
       "surface": "gui"
     },
@@ -1787,7 +1790,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "account",
-      "line": 109,
+      "line": 112,
       "path": "src/tui/menu_layout.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1797,7 +1800,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "shown.0",
-      "line": 115,
+      "line": 118,
       "path": "src/tui/menu_layout.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1807,7 +1810,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "match error { \"signed out\" => \"menu.state.signedOut\", \"no peers\" => \"menu.state.noDevices\", _ => \"menu.state.offline\" }",
-      "line": 148,
+      "line": 151,
       "path": "src/tui/menu_layout.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1874,6 +1877,46 @@
       "expression": "key",
       "line": 382,
       "path": "src/tui/office.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "reason",
+      "line": 124,
+      "path": "src/tui/print.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "error",
+      "line": 247,
+      "path": "src/tui/print.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "if no_printer(f) {\n                \"dialogs.output.setup\"\n            } else {\n                \"dialogs.output.print\"\n            }",
+      "line": 41,
+      "path": "src/tui/print/card.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 58,
+      "path": "src/tui/print/card.rs",
       "pattern": null,
       "possible_keys": [],
       "surface": "tui"
@@ -21007,6 +21050,13 @@
           "path": "src/tui/key_sheet.rs",
           "surface": "tui",
           "usage": "translated-call"
+        },
+        {
+          "excerpt": ".max(text_width(&title(m)) + text_width(&m.i18n.tr(\"card.esc\")) + 2)",
+          "line": 143,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
+          "usage": "translated-call"
         }
       ],
       "context": "card.esc: src/tui/cards.rs:94",
@@ -28485,6 +28535,13 @@
           "usage": "translated-call"
         },
         {
+          "excerpt": "tr(\"dialogs.output.all\")",
+          "line": 100,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
           "coverage": "needs-owner-verification",
           "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
           "line": 101,
@@ -28568,7 +28625,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -28679,7 +28739,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -28704,6 +28767,13 @@
           "line": 92,
           "path": "crates/flea-gui/src/g2/op4/view.rs",
           "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "label: m.i18n.tr(\"dialogs.output.cancel\"),",
+          "line": 35,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
           "usage": "translated-call"
         },
         {
@@ -28790,7 +28860,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -28807,6 +28880,123 @@
       "resolved_sha256": "c0774c185060fc1366ab0c01488af84eb5e4e1f4f59229431e064de73e0de6c5",
       "resolved_source_hash": "19766ed6ccb2",
       "source_hash": "bafbedd61640"
+    },
+    "dialogs.output.cancelled": {
+      "call_sites": [
+        {
+          "excerpt": ".tr_args(\"dialogs.output.cancelled\", &[&names(true), &names(false)])",
+          "line": 150,
+          "path": "src/tui/print/replies.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
+          "line": 101,
+          "path": "crates/flea-gui/src/g2/op4/view.rs",
+          "pattern": "dialogs.output.{label}",
+          "possible_keys": [
+            "dialogs.output.error.document_pages",
+            "dialogs.output.error.pdf_limit",
+            "dialogs.output.error.page_count_failed",
+            "dialogs.output.error.legacy",
+            "dialogs.output.error.print_stopped",
+            "dialogs.output.esc",
+            "dialogs.output.cancel",
+            "dialogs.output.print",
+            "dialogs.output.convert",
+            "dialogs.output.combine",
+            "dialogs.output.setup",
+            "dialogs.output.output",
+            "dialogs.output.output_range",
+            "dialogs.output.printer",
+            "dialogs.output.copies",
+            "dialogs.output.pages",
+            "dialogs.output.all",
+            "dialogs.output.two_sided",
+            "dialogs.output.grayscale",
+            "dialogs.output.default",
+            "dialogs.output.no_printer",
+            "dialogs.output.metadata",
+            "dialogs.output.combine_pdf",
+            "dialogs.output.layout",
+            "dialogs.output.columns",
+            "dialogs.output.spacing",
+            "dialogs.output.background",
+            "dialogs.output.format",
+            "dialogs.output.name",
+            "dialogs.output.converting",
+            "dialogs.output.completed",
+            "dialogs.output.sent",
+            "dialogs.output.title.print",
+            "dialogs.output.title.convert",
+            "dialogs.output.title.office",
+            "dialogs.output.error.item_count",
+            "dialogs.output.error.absolute",
+            "dialogs.output.error.duplicate",
+            "dialogs.output.error.convert_kind",
+            "dialogs.output.error.print_kind",
+            "dialogs.output.error.image_count",
+            "dialogs.output.error.format",
+            "dialogs.output.error.folder",
+            "dialogs.output.error.same_name",
+            "dialogs.output.error.pages",
+            "dialogs.output.error.page_count",
+            "dialogs.output.error.dimensions",
+            "dialogs.output.error.columns",
+            "dialogs.output.error.jpeg_alpha",
+            "dialogs.output.error.name",
+            "dialogs.output.error.copies",
+            "dialogs.output.error.exists",
+            "dialogs.output.error.output",
+            "dialogs.output.error.operation",
+            "dialogs.output.error.printer_query",
+            "dialogs.output.error.print_refusal",
+            "dialogs.output.error.stopped_pending",
+            "dialogs.output.error.stopped",
+            "dialogs.output.choice.jpg",
+            "dialogs.output.choice.png",
+            "dialogs.output.choice.webp",
+            "dialogs.output.choice.avif",
+            "dialogs.output.choice.heic",
+            "dialogs.output.choice.tiff",
+            "dialogs.output.choice.bmp",
+            "dialogs.output.choice.pdf",
+            "dialogs.output.choice.Row",
+            "dialogs.output.choice.Column",
+            "dialogs.output.choice.Grid",
+            "dialogs.output.choice.None",
+            "dialogs.output.choice.Small",
+            "dialogs.output.choice.Large",
+            "dialogs.output.choice.Transparent",
+            "dialogs.output.choice.White",
+            "dialogs.output.choice.Black",
+            "dialogs.output.title.print_many",
+            "dialogs.output.title.convert_many",
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
+          ],
+          "surface": "gui",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "Cancellation outcome lists accepted and unaccepted file names; empty lists use the shared None label.",
+      "coverage": "existing-translated-call",
+      "english": "Printing cancelled. Sent: %1. Not sent: %2.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Printing cancelled. Sent: %1. Not sent: %2.",
+      "resolved_sha256": "91bf45681ca596fea093302906530095db1b482817bf71f34cb1d362601b2c5d",
+      "resolved_source_hash": "98f4fb6748e0",
+      "source_hash": "98f4fb6748e0"
     },
     "dialogs.output.choice.Black": {
       "call_sites": [
@@ -28922,7 +29112,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -29082,7 +29275,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -29242,7 +29438,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -29402,7 +29601,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -29450,6 +29652,13 @@
     },
     "dialogs.output.choice.None": {
       "call_sites": [
+        {
+          "excerpt": "m.i18n.tr(\"dialogs.output.choice.None\")",
+          "line": 144,
+          "path": "src/tui/print/replies.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let text = view.catalog.tr(&format!(\"dialogs.output.choice.{label}\"));",
@@ -29562,7 +29771,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -29597,7 +29809,7 @@
         }
       ],
       "context": "dialogs.output.choice.None: caller missing; source owner must identify the surface",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "None",
       "kind": "text",
       "omarchy_reference": null,
@@ -29722,7 +29934,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -29882,7 +30097,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -30042,7 +30260,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -30202,7 +30423,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -30362,7 +30586,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -30522,7 +30749,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -30682,7 +30912,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -30842,7 +31075,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -31002,7 +31238,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -31162,7 +31401,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -31322,7 +31564,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -31482,7 +31727,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -31621,7 +31869,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -31725,7 +31976,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -31836,7 +32090,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -31947,7 +32204,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -32053,7 +32313,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -32164,7 +32427,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -32189,6 +32455,13 @@
           "line": 72,
           "path": "crates/flea-gui/src/g2/op4/forms.rs",
           "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "rows[3].push((0, tr(\"dialogs.output.copies\").to_uppercase(), true, false));",
+          "line": 88,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
           "usage": "translated-call"
         },
         {
@@ -32275,7 +32548,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -32310,6 +32586,20 @@
           "usage": "key-declaration"
         },
         {
+          "excerpt": "tr(\"dialogs.output.default\"),",
+          "line": 76,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "format!(\"  {}\", m.i18n.tr(\"dialogs.output.default\"))",
+          "line": 203,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
           "coverage": "needs-owner-verification",
           "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
           "line": 101,
@@ -32393,7 +32683,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -32504,7 +32797,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -32622,7 +32918,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -32740,7 +33039,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -32765,6 +33067,13 @@
           "line": 57,
           "path": "crates/flea-gui/src/g2/op4/input.rs",
           "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "Some(\"dialogs.output.error.copies\")",
+          "line": 240,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
           "usage": "key-declaration"
         },
         {
@@ -32851,7 +33160,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -32962,7 +33274,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -33073,7 +33388,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -33195,7 +33513,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -33306,7 +33627,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -33426,7 +33750,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -33537,7 +33864,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -33655,7 +33985,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -33766,7 +34099,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -33877,7 +34213,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -33910,6 +34249,20 @@
           "path": "crates/flea-gui/src/g2/op4/replies.rs",
           "surface": "gui",
           "usage": "key-declaration"
+        },
+        {
+          "excerpt": ".tr_args(\"dialogs.output.error.legacy\", &[text(value, \"message\")]),",
+          "line": 125,
+          "path": "src/tui/print/replies.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "\"dialogs.output.error.legacy\",",
+          "line": 162,
+          "path": "src/tui/print/replies.rs",
+          "surface": "tui",
+          "usage": "translated-call"
         },
         {
           "coverage": "needs-owner-verification",
@@ -33995,7 +34348,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -34108,7 +34464,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -34134,6 +34493,13 @@
           "path": "crates/flea-gui/src/g2/op4/replies.rs",
           "surface": "gui",
           "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"dialogs.output.error.operation\",",
+          "line": 227,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
+          "usage": "translated-call"
         },
         {
           "coverage": "needs-owner-verification",
@@ -34219,14 +34585,17 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
         }
       ],
       "context": "dialogs.output.error.operation: crates/flea-gui/src/g2/op4/replies.rs:293",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "The operation could not be completed. %1",
       "kind": "text",
       "omarchy_reference": null,
@@ -34332,7 +34701,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -34445,7 +34817,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -34556,7 +34931,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -34590,6 +34968,13 @@
           "line": 60,
           "path": "crates/flea-gui/src/g2/op4/input.rs",
           "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "Some(\"dialogs.output.error.pages\")",
+          "line": 242,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
           "usage": "key-declaration"
         },
         {
@@ -34683,7 +35068,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -34794,7 +35182,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -34812,13 +35203,13 @@
       "resolved_source_hash": "f63f79e0414e",
       "source_hash": "f63f79e0414e"
     },
-    "dialogs.output.error.print_kind": {
+    "dialogs.output.error.print_busy": {
       "call_sites": [
         {
-          "excerpt": "Action::Print if !output::can_print(&kinds) => Err(\"dialogs.output.error.print_kind\"),",
-          "line": 97,
-          "path": "crates/flea-gui/src/g2/op4/model.rs",
-          "surface": "gui",
+          "excerpt": "Some(\"dialogs.output.error.print_busy\")",
+          "line": 109,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
           "usage": "key-declaration"
         },
         {
@@ -34905,14 +35296,145 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
+          ],
+          "surface": "gui",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "Print refuses a second submission while the previous batch is sending.",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "A print is still being sent. Wait for it to finish.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "A print is still being sent. Wait for it to finish.",
+      "resolved_sha256": "7a78a62630330725f85befdc7b6ff899a847461d958b3e92ed8c875edada07f5",
+      "resolved_source_hash": "c0b30245e2d6",
+      "source_hash": "c0b30245e2d6"
+    },
+    "dialogs.output.error.print_kind": {
+      "call_sites": [
+        {
+          "excerpt": "Action::Print if !output::can_print(&kinds) => Err(\"dialogs.output.error.print_kind\"),",
+          "line": 97,
+          "path": "crates/flea-gui/src/g2/op4/model.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "Some(\"dialogs.output.error.print_kind\")",
+          "line": 119,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "m.fail(m.i18n.tr(\"dialogs.output.error.print_kind\"));",
+          "line": 50,
+          "path": "src/tui/print/replies.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
+          "line": 101,
+          "path": "crates/flea-gui/src/g2/op4/view.rs",
+          "pattern": "dialogs.output.{label}",
+          "possible_keys": [
+            "dialogs.output.error.document_pages",
+            "dialogs.output.error.pdf_limit",
+            "dialogs.output.error.page_count_failed",
+            "dialogs.output.error.legacy",
+            "dialogs.output.error.print_stopped",
+            "dialogs.output.esc",
+            "dialogs.output.cancel",
+            "dialogs.output.print",
+            "dialogs.output.convert",
+            "dialogs.output.combine",
+            "dialogs.output.setup",
+            "dialogs.output.output",
+            "dialogs.output.output_range",
+            "dialogs.output.printer",
+            "dialogs.output.copies",
+            "dialogs.output.pages",
+            "dialogs.output.all",
+            "dialogs.output.two_sided",
+            "dialogs.output.grayscale",
+            "dialogs.output.default",
+            "dialogs.output.no_printer",
+            "dialogs.output.metadata",
+            "dialogs.output.combine_pdf",
+            "dialogs.output.layout",
+            "dialogs.output.columns",
+            "dialogs.output.spacing",
+            "dialogs.output.background",
+            "dialogs.output.format",
+            "dialogs.output.name",
+            "dialogs.output.converting",
+            "dialogs.output.completed",
+            "dialogs.output.sent",
+            "dialogs.output.title.print",
+            "dialogs.output.title.convert",
+            "dialogs.output.title.office",
+            "dialogs.output.error.item_count",
+            "dialogs.output.error.absolute",
+            "dialogs.output.error.duplicate",
+            "dialogs.output.error.convert_kind",
+            "dialogs.output.error.print_kind",
+            "dialogs.output.error.image_count",
+            "dialogs.output.error.format",
+            "dialogs.output.error.folder",
+            "dialogs.output.error.same_name",
+            "dialogs.output.error.pages",
+            "dialogs.output.error.page_count",
+            "dialogs.output.error.dimensions",
+            "dialogs.output.error.columns",
+            "dialogs.output.error.jpeg_alpha",
+            "dialogs.output.error.name",
+            "dialogs.output.error.copies",
+            "dialogs.output.error.exists",
+            "dialogs.output.error.output",
+            "dialogs.output.error.operation",
+            "dialogs.output.error.printer_query",
+            "dialogs.output.error.print_refusal",
+            "dialogs.output.error.stopped_pending",
+            "dialogs.output.error.stopped",
+            "dialogs.output.choice.jpg",
+            "dialogs.output.choice.png",
+            "dialogs.output.choice.webp",
+            "dialogs.output.choice.avif",
+            "dialogs.output.choice.heic",
+            "dialogs.output.choice.tiff",
+            "dialogs.output.choice.bmp",
+            "dialogs.output.choice.pdf",
+            "dialogs.output.choice.Row",
+            "dialogs.output.choice.Column",
+            "dialogs.output.choice.Grid",
+            "dialogs.output.choice.None",
+            "dialogs.output.choice.Small",
+            "dialogs.output.choice.Large",
+            "dialogs.output.choice.Transparent",
+            "dialogs.output.choice.White",
+            "dialogs.output.choice.Black",
+            "dialogs.output.title.print_many",
+            "dialogs.output.title.convert_many",
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
         }
       ],
       "context": "dialogs.output.error.print_kind: crates/flea-gui/src/g2/op4/model.rs:96",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "Select PDF, images, text, code or office documents to print.",
       "kind": "text",
       "omarchy_reference": null,
@@ -35009,7 +35531,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -35123,7 +35648,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -35149,6 +35677,20 @@
           "path": "crates/flea-gui/src/g2/op4/printing.rs",
           "surface": "gui",
           "usage": "key-declaration"
+        },
+        {
+          "excerpt": ".tr_args(\"dialogs.output.error.printer_query\", &[text(value, \"err\")]);",
+          "line": 186,
+          "path": "src/tui/print/replies.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "\"dialogs.output.error.printer_query\",",
+          "line": 196,
+          "path": "src/tui/print/replies.rs",
+          "surface": "tui",
+          "usage": "translated-call"
         },
         {
           "coverage": "needs-owner-verification",
@@ -35234,14 +35776,17 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
         }
       ],
       "context": "dialogs.output.error.printer_query: crates/flea-gui/src/g2/op4/printing.rs:93",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "The printer list could not be read. %1",
       "kind": "text",
       "omarchy_reference": null,
@@ -35253,6 +35798,120 @@
       "resolved_sha256": "94c7d54c19c9c266640678dea29e71bef8cdfc3aee578de9c8df46444cdcd116",
       "resolved_source_hash": "3b06c584f57a",
       "source_hash": "3b06c584f57a"
+    },
+    "dialogs.output.error.printer_reply": {
+      "call_sites": [
+        {
+          "excerpt": "&[&m.i18n.tr(\"dialogs.output.error.printer_reply\")],",
+          "line": 197,
+          "path": "src/tui/print/replies.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
+          "line": 101,
+          "path": "crates/flea-gui/src/g2/op4/view.rs",
+          "pattern": "dialogs.output.{label}",
+          "possible_keys": [
+            "dialogs.output.error.document_pages",
+            "dialogs.output.error.pdf_limit",
+            "dialogs.output.error.page_count_failed",
+            "dialogs.output.error.legacy",
+            "dialogs.output.error.print_stopped",
+            "dialogs.output.esc",
+            "dialogs.output.cancel",
+            "dialogs.output.print",
+            "dialogs.output.convert",
+            "dialogs.output.combine",
+            "dialogs.output.setup",
+            "dialogs.output.output",
+            "dialogs.output.output_range",
+            "dialogs.output.printer",
+            "dialogs.output.copies",
+            "dialogs.output.pages",
+            "dialogs.output.all",
+            "dialogs.output.two_sided",
+            "dialogs.output.grayscale",
+            "dialogs.output.default",
+            "dialogs.output.no_printer",
+            "dialogs.output.metadata",
+            "dialogs.output.combine_pdf",
+            "dialogs.output.layout",
+            "dialogs.output.columns",
+            "dialogs.output.spacing",
+            "dialogs.output.background",
+            "dialogs.output.format",
+            "dialogs.output.name",
+            "dialogs.output.converting",
+            "dialogs.output.completed",
+            "dialogs.output.sent",
+            "dialogs.output.title.print",
+            "dialogs.output.title.convert",
+            "dialogs.output.title.office",
+            "dialogs.output.error.item_count",
+            "dialogs.output.error.absolute",
+            "dialogs.output.error.duplicate",
+            "dialogs.output.error.convert_kind",
+            "dialogs.output.error.print_kind",
+            "dialogs.output.error.image_count",
+            "dialogs.output.error.format",
+            "dialogs.output.error.folder",
+            "dialogs.output.error.same_name",
+            "dialogs.output.error.pages",
+            "dialogs.output.error.page_count",
+            "dialogs.output.error.dimensions",
+            "dialogs.output.error.columns",
+            "dialogs.output.error.jpeg_alpha",
+            "dialogs.output.error.name",
+            "dialogs.output.error.copies",
+            "dialogs.output.error.exists",
+            "dialogs.output.error.output",
+            "dialogs.output.error.operation",
+            "dialogs.output.error.printer_query",
+            "dialogs.output.error.print_refusal",
+            "dialogs.output.error.stopped_pending",
+            "dialogs.output.error.stopped",
+            "dialogs.output.choice.jpg",
+            "dialogs.output.choice.png",
+            "dialogs.output.choice.webp",
+            "dialogs.output.choice.avif",
+            "dialogs.output.choice.heic",
+            "dialogs.output.choice.tiff",
+            "dialogs.output.choice.bmp",
+            "dialogs.output.choice.pdf",
+            "dialogs.output.choice.Row",
+            "dialogs.output.choice.Column",
+            "dialogs.output.choice.Grid",
+            "dialogs.output.choice.None",
+            "dialogs.output.choice.Small",
+            "dialogs.output.choice.Large",
+            "dialogs.output.choice.Transparent",
+            "dialogs.output.choice.White",
+            "dialogs.output.choice.Black",
+            "dialogs.output.title.print_many",
+            "dialogs.output.title.convert_many",
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
+          ],
+          "surface": "gui",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "Malformed matching capability reply, included in the shared printer-query failure.",
+      "coverage": "existing-translated-call",
+      "english": "The printer response was invalid.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "The printer response was invalid.",
+      "resolved_sha256": "723227d3f068db589056f382a9b84234c1e569cf2fe25c8ee47dd6dfba87fb36",
+      "resolved_source_hash": "13563cdb4eb9",
+      "source_hash": "13563cdb4eb9"
     },
     "dialogs.output.error.same_name": {
       "call_sites": [
@@ -35347,7 +36006,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -35458,7 +36120,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -35569,7 +36234,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -35680,7 +36348,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -35791,7 +36462,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -35816,6 +36490,13 @@
           "line": 125,
           "path": "crates/flea-gui/src/g2/op4/forms.rs",
           "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "tr(\"dialogs.output.grayscale\")",
+          "line": 123,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
           "usage": "translated-call"
         },
         {
@@ -35902,7 +36583,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -36013,7 +36697,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -36124,7 +36811,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -36235,7 +36925,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -36260,6 +36953,13 @@
           "line": 21,
           "path": "crates/flea-gui/src/g2/op4/forms.rs",
           "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "return vec![vec![(0, tr(\"dialogs.output.no_printer\"), false, false)]];",
+          "line": 60,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
           "usage": "translated-call"
         },
         {
@@ -36346,7 +37046,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -36457,7 +37160,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -36568,7 +37274,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -36606,218 +37315,10 @@
           "usage": "translated-call"
         },
         {
-          "coverage": "needs-owner-verification",
-          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
-          "line": 101,
-          "path": "crates/flea-gui/src/g2/op4/view.rs",
-          "pattern": "dialogs.output.{label}",
-          "possible_keys": [
-            "dialogs.output.error.document_pages",
-            "dialogs.output.error.pdf_limit",
-            "dialogs.output.error.page_count_failed",
-            "dialogs.output.error.legacy",
-            "dialogs.output.error.print_stopped",
-            "dialogs.output.esc",
-            "dialogs.output.cancel",
-            "dialogs.output.print",
-            "dialogs.output.convert",
-            "dialogs.output.combine",
-            "dialogs.output.setup",
-            "dialogs.output.output",
-            "dialogs.output.output_range",
-            "dialogs.output.printer",
-            "dialogs.output.copies",
-            "dialogs.output.pages",
-            "dialogs.output.all",
-            "dialogs.output.two_sided",
-            "dialogs.output.grayscale",
-            "dialogs.output.default",
-            "dialogs.output.no_printer",
-            "dialogs.output.metadata",
-            "dialogs.output.combine_pdf",
-            "dialogs.output.layout",
-            "dialogs.output.columns",
-            "dialogs.output.spacing",
-            "dialogs.output.background",
-            "dialogs.output.format",
-            "dialogs.output.name",
-            "dialogs.output.converting",
-            "dialogs.output.completed",
-            "dialogs.output.sent",
-            "dialogs.output.title.print",
-            "dialogs.output.title.convert",
-            "dialogs.output.title.office",
-            "dialogs.output.error.item_count",
-            "dialogs.output.error.absolute",
-            "dialogs.output.error.duplicate",
-            "dialogs.output.error.convert_kind",
-            "dialogs.output.error.print_kind",
-            "dialogs.output.error.image_count",
-            "dialogs.output.error.format",
-            "dialogs.output.error.folder",
-            "dialogs.output.error.same_name",
-            "dialogs.output.error.pages",
-            "dialogs.output.error.page_count",
-            "dialogs.output.error.dimensions",
-            "dialogs.output.error.columns",
-            "dialogs.output.error.jpeg_alpha",
-            "dialogs.output.error.name",
-            "dialogs.output.error.copies",
-            "dialogs.output.error.exists",
-            "dialogs.output.error.output",
-            "dialogs.output.error.operation",
-            "dialogs.output.error.printer_query",
-            "dialogs.output.error.print_refusal",
-            "dialogs.output.error.stopped_pending",
-            "dialogs.output.error.stopped",
-            "dialogs.output.choice.jpg",
-            "dialogs.output.choice.png",
-            "dialogs.output.choice.webp",
-            "dialogs.output.choice.avif",
-            "dialogs.output.choice.heic",
-            "dialogs.output.choice.tiff",
-            "dialogs.output.choice.bmp",
-            "dialogs.output.choice.pdf",
-            "dialogs.output.choice.Row",
-            "dialogs.output.choice.Column",
-            "dialogs.output.choice.Grid",
-            "dialogs.output.choice.None",
-            "dialogs.output.choice.Small",
-            "dialogs.output.choice.Large",
-            "dialogs.output.choice.Transparent",
-            "dialogs.output.choice.White",
-            "dialogs.output.choice.Black",
-            "dialogs.output.title.print_many",
-            "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
-          ],
-          "surface": "gui",
-          "usage": "dynamic-candidate"
-        }
-      ],
-      "context": "dialogs.output.pages: crates/flea-gui/src/g2/op4/forms.rs:93",
-      "coverage": "existing-translated-call",
-      "english": "Pages",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "Pages",
-      "resolved_sha256": "aaa967c95e0e231847d2ab89ad434ca0e3ab8dcbc3c17b0d47ccf1402e805af7",
-      "resolved_source_hash": "9046da16aea9",
-      "source_hash": "9046da16aea9"
-    },
-    "dialogs.output.print": {
-      "call_sites": [
-        {
-          "coverage": "needs-owner-verification",
-          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
-          "line": 101,
-          "path": "crates/flea-gui/src/g2/op4/view.rs",
-          "pattern": "dialogs.output.{label}",
-          "possible_keys": [
-            "dialogs.output.error.document_pages",
-            "dialogs.output.error.pdf_limit",
-            "dialogs.output.error.page_count_failed",
-            "dialogs.output.error.legacy",
-            "dialogs.output.error.print_stopped",
-            "dialogs.output.esc",
-            "dialogs.output.cancel",
-            "dialogs.output.print",
-            "dialogs.output.convert",
-            "dialogs.output.combine",
-            "dialogs.output.setup",
-            "dialogs.output.output",
-            "dialogs.output.output_range",
-            "dialogs.output.printer",
-            "dialogs.output.copies",
-            "dialogs.output.pages",
-            "dialogs.output.all",
-            "dialogs.output.two_sided",
-            "dialogs.output.grayscale",
-            "dialogs.output.default",
-            "dialogs.output.no_printer",
-            "dialogs.output.metadata",
-            "dialogs.output.combine_pdf",
-            "dialogs.output.layout",
-            "dialogs.output.columns",
-            "dialogs.output.spacing",
-            "dialogs.output.background",
-            "dialogs.output.format",
-            "dialogs.output.name",
-            "dialogs.output.converting",
-            "dialogs.output.completed",
-            "dialogs.output.sent",
-            "dialogs.output.title.print",
-            "dialogs.output.title.convert",
-            "dialogs.output.title.office",
-            "dialogs.output.error.item_count",
-            "dialogs.output.error.absolute",
-            "dialogs.output.error.duplicate",
-            "dialogs.output.error.convert_kind",
-            "dialogs.output.error.print_kind",
-            "dialogs.output.error.image_count",
-            "dialogs.output.error.format",
-            "dialogs.output.error.folder",
-            "dialogs.output.error.same_name",
-            "dialogs.output.error.pages",
-            "dialogs.output.error.page_count",
-            "dialogs.output.error.dimensions",
-            "dialogs.output.error.columns",
-            "dialogs.output.error.jpeg_alpha",
-            "dialogs.output.error.name",
-            "dialogs.output.error.copies",
-            "dialogs.output.error.exists",
-            "dialogs.output.error.output",
-            "dialogs.output.error.operation",
-            "dialogs.output.error.printer_query",
-            "dialogs.output.error.print_refusal",
-            "dialogs.output.error.stopped_pending",
-            "dialogs.output.error.stopped",
-            "dialogs.output.choice.jpg",
-            "dialogs.output.choice.png",
-            "dialogs.output.choice.webp",
-            "dialogs.output.choice.avif",
-            "dialogs.output.choice.heic",
-            "dialogs.output.choice.tiff",
-            "dialogs.output.choice.bmp",
-            "dialogs.output.choice.pdf",
-            "dialogs.output.choice.Row",
-            "dialogs.output.choice.Column",
-            "dialogs.output.choice.Grid",
-            "dialogs.output.choice.None",
-            "dialogs.output.choice.Small",
-            "dialogs.output.choice.Large",
-            "dialogs.output.choice.Transparent",
-            "dialogs.output.choice.White",
-            "dialogs.output.choice.Black",
-            "dialogs.output.title.print_many",
-            "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
-          ],
-          "surface": "gui",
-          "usage": "dynamic-candidate"
-        }
-      ],
-      "context": "dialogs.output.print: caller missing; source owner must identify the surface",
-      "coverage": "occurrence-needs-owner-verification",
-      "english": "Print",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "Print",
-      "resolved_sha256": "2a7fc6d9b75cb782c986131013d320d2ef123545bc1b6672a2dfc0f8ecb945d5",
-      "resolved_source_hash": "df0fe79898ef",
-      "source_hash": "df0fe79898ef"
-    },
-    "dialogs.output.printer": {
-      "call_sites": [
-        {
-          "excerpt": "view.catalog.tr(\"dialogs.output.printer\"),",
-          "line": 138,
-          "path": "crates/flea-gui/src/g2/op4/forms.rs",
-          "surface": "gui",
+          "excerpt": "tr(\"dialogs.output.pages\").to_uppercase(),",
+          "line": 93,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
           "usage": "translated-call"
         },
         {
@@ -36904,7 +37405,245 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
+          ],
+          "surface": "gui",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "dialogs.output.pages: crates/flea-gui/src/g2/op4/forms.rs:93",
+      "coverage": "existing-translated-call",
+      "english": "Pages",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Pages",
+      "resolved_sha256": "aaa967c95e0e231847d2ab89ad434ca0e3ab8dcbc3c17b0d47ccf1402e805af7",
+      "resolved_source_hash": "9046da16aea9",
+      "source_hash": "9046da16aea9"
+    },
+    "dialogs.output.print": {
+      "call_sites": [
+        {
+          "excerpt": "\"dialogs.output.print\"",
+          "line": 44,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
+          "line": 101,
+          "path": "crates/flea-gui/src/g2/op4/view.rs",
+          "pattern": "dialogs.output.{label}",
+          "possible_keys": [
+            "dialogs.output.error.document_pages",
+            "dialogs.output.error.pdf_limit",
+            "dialogs.output.error.page_count_failed",
+            "dialogs.output.error.legacy",
+            "dialogs.output.error.print_stopped",
+            "dialogs.output.esc",
+            "dialogs.output.cancel",
+            "dialogs.output.print",
+            "dialogs.output.convert",
+            "dialogs.output.combine",
+            "dialogs.output.setup",
+            "dialogs.output.output",
+            "dialogs.output.output_range",
+            "dialogs.output.printer",
+            "dialogs.output.copies",
+            "dialogs.output.pages",
+            "dialogs.output.all",
+            "dialogs.output.two_sided",
+            "dialogs.output.grayscale",
+            "dialogs.output.default",
+            "dialogs.output.no_printer",
+            "dialogs.output.metadata",
+            "dialogs.output.combine_pdf",
+            "dialogs.output.layout",
+            "dialogs.output.columns",
+            "dialogs.output.spacing",
+            "dialogs.output.background",
+            "dialogs.output.format",
+            "dialogs.output.name",
+            "dialogs.output.converting",
+            "dialogs.output.completed",
+            "dialogs.output.sent",
+            "dialogs.output.title.print",
+            "dialogs.output.title.convert",
+            "dialogs.output.title.office",
+            "dialogs.output.error.item_count",
+            "dialogs.output.error.absolute",
+            "dialogs.output.error.duplicate",
+            "dialogs.output.error.convert_kind",
+            "dialogs.output.error.print_kind",
+            "dialogs.output.error.image_count",
+            "dialogs.output.error.format",
+            "dialogs.output.error.folder",
+            "dialogs.output.error.same_name",
+            "dialogs.output.error.pages",
+            "dialogs.output.error.page_count",
+            "dialogs.output.error.dimensions",
+            "dialogs.output.error.columns",
+            "dialogs.output.error.jpeg_alpha",
+            "dialogs.output.error.name",
+            "dialogs.output.error.copies",
+            "dialogs.output.error.exists",
+            "dialogs.output.error.output",
+            "dialogs.output.error.operation",
+            "dialogs.output.error.printer_query",
+            "dialogs.output.error.print_refusal",
+            "dialogs.output.error.stopped_pending",
+            "dialogs.output.error.stopped",
+            "dialogs.output.choice.jpg",
+            "dialogs.output.choice.png",
+            "dialogs.output.choice.webp",
+            "dialogs.output.choice.avif",
+            "dialogs.output.choice.heic",
+            "dialogs.output.choice.tiff",
+            "dialogs.output.choice.bmp",
+            "dialogs.output.choice.pdf",
+            "dialogs.output.choice.Row",
+            "dialogs.output.choice.Column",
+            "dialogs.output.choice.Grid",
+            "dialogs.output.choice.None",
+            "dialogs.output.choice.Small",
+            "dialogs.output.choice.Large",
+            "dialogs.output.choice.Transparent",
+            "dialogs.output.choice.White",
+            "dialogs.output.choice.Black",
+            "dialogs.output.title.print_many",
+            "dialogs.output.title.convert_many",
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
+          ],
+          "surface": "gui",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "dialogs.output.print: caller missing; source owner must identify the surface",
+      "coverage": "existing-translated-call",
+      "english": "Print",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Print",
+      "resolved_sha256": "2a7fc6d9b75cb782c986131013d320d2ef123545bc1b6672a2dfc0f8ecb945d5",
+      "resolved_source_hash": "df0fe79898ef",
+      "source_hash": "df0fe79898ef"
+    },
+    "dialogs.output.printer": {
+      "call_sites": [
+        {
+          "excerpt": "view.catalog.tr(\"dialogs.output.printer\"),",
+          "line": 138,
+          "path": "crates/flea-gui/src/g2/op4/forms.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "rows[0].push((0, tr(\"dialogs.output.printer\").to_uppercase(), true, false));",
+          "line": 63,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
+          "line": 101,
+          "path": "crates/flea-gui/src/g2/op4/view.rs",
+          "pattern": "dialogs.output.{label}",
+          "possible_keys": [
+            "dialogs.output.error.document_pages",
+            "dialogs.output.error.pdf_limit",
+            "dialogs.output.error.page_count_failed",
+            "dialogs.output.error.legacy",
+            "dialogs.output.error.print_stopped",
+            "dialogs.output.esc",
+            "dialogs.output.cancel",
+            "dialogs.output.print",
+            "dialogs.output.convert",
+            "dialogs.output.combine",
+            "dialogs.output.setup",
+            "dialogs.output.output",
+            "dialogs.output.output_range",
+            "dialogs.output.printer",
+            "dialogs.output.copies",
+            "dialogs.output.pages",
+            "dialogs.output.all",
+            "dialogs.output.two_sided",
+            "dialogs.output.grayscale",
+            "dialogs.output.default",
+            "dialogs.output.no_printer",
+            "dialogs.output.metadata",
+            "dialogs.output.combine_pdf",
+            "dialogs.output.layout",
+            "dialogs.output.columns",
+            "dialogs.output.spacing",
+            "dialogs.output.background",
+            "dialogs.output.format",
+            "dialogs.output.name",
+            "dialogs.output.converting",
+            "dialogs.output.completed",
+            "dialogs.output.sent",
+            "dialogs.output.title.print",
+            "dialogs.output.title.convert",
+            "dialogs.output.title.office",
+            "dialogs.output.error.item_count",
+            "dialogs.output.error.absolute",
+            "dialogs.output.error.duplicate",
+            "dialogs.output.error.convert_kind",
+            "dialogs.output.error.print_kind",
+            "dialogs.output.error.image_count",
+            "dialogs.output.error.format",
+            "dialogs.output.error.folder",
+            "dialogs.output.error.same_name",
+            "dialogs.output.error.pages",
+            "dialogs.output.error.page_count",
+            "dialogs.output.error.dimensions",
+            "dialogs.output.error.columns",
+            "dialogs.output.error.jpeg_alpha",
+            "dialogs.output.error.name",
+            "dialogs.output.error.copies",
+            "dialogs.output.error.exists",
+            "dialogs.output.error.output",
+            "dialogs.output.error.operation",
+            "dialogs.output.error.printer_query",
+            "dialogs.output.error.print_refusal",
+            "dialogs.output.error.stopped_pending",
+            "dialogs.output.error.stopped",
+            "dialogs.output.choice.jpg",
+            "dialogs.output.choice.png",
+            "dialogs.output.choice.webp",
+            "dialogs.output.choice.avif",
+            "dialogs.output.choice.heic",
+            "dialogs.output.choice.tiff",
+            "dialogs.output.choice.bmp",
+            "dialogs.output.choice.pdf",
+            "dialogs.output.choice.Row",
+            "dialogs.output.choice.Column",
+            "dialogs.output.choice.Grid",
+            "dialogs.output.choice.None",
+            "dialogs.output.choice.Small",
+            "dialogs.output.choice.Large",
+            "dialogs.output.choice.Transparent",
+            "dialogs.output.choice.White",
+            "dialogs.output.choice.Black",
+            "dialogs.output.title.print_many",
+            "dialogs.output.title.convert_many",
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -36932,112 +37671,12 @@
           "usage": "translated-call"
         },
         {
-          "coverage": "needs-owner-verification",
-          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
-          "line": 101,
-          "path": "crates/flea-gui/src/g2/op4/view.rs",
-          "pattern": "dialogs.output.{label}",
-          "possible_keys": [
-            "dialogs.output.error.document_pages",
-            "dialogs.output.error.pdf_limit",
-            "dialogs.output.error.page_count_failed",
-            "dialogs.output.error.legacy",
-            "dialogs.output.error.print_stopped",
-            "dialogs.output.esc",
-            "dialogs.output.cancel",
-            "dialogs.output.print",
-            "dialogs.output.convert",
-            "dialogs.output.combine",
-            "dialogs.output.setup",
-            "dialogs.output.output",
-            "dialogs.output.output_range",
-            "dialogs.output.printer",
-            "dialogs.output.copies",
-            "dialogs.output.pages",
-            "dialogs.output.all",
-            "dialogs.output.two_sided",
-            "dialogs.output.grayscale",
-            "dialogs.output.default",
-            "dialogs.output.no_printer",
-            "dialogs.output.metadata",
-            "dialogs.output.combine_pdf",
-            "dialogs.output.layout",
-            "dialogs.output.columns",
-            "dialogs.output.spacing",
-            "dialogs.output.background",
-            "dialogs.output.format",
-            "dialogs.output.name",
-            "dialogs.output.converting",
-            "dialogs.output.completed",
-            "dialogs.output.sent",
-            "dialogs.output.title.print",
-            "dialogs.output.title.convert",
-            "dialogs.output.title.office",
-            "dialogs.output.error.item_count",
-            "dialogs.output.error.absolute",
-            "dialogs.output.error.duplicate",
-            "dialogs.output.error.convert_kind",
-            "dialogs.output.error.print_kind",
-            "dialogs.output.error.image_count",
-            "dialogs.output.error.format",
-            "dialogs.output.error.folder",
-            "dialogs.output.error.same_name",
-            "dialogs.output.error.pages",
-            "dialogs.output.error.page_count",
-            "dialogs.output.error.dimensions",
-            "dialogs.output.error.columns",
-            "dialogs.output.error.jpeg_alpha",
-            "dialogs.output.error.name",
-            "dialogs.output.error.copies",
-            "dialogs.output.error.exists",
-            "dialogs.output.error.output",
-            "dialogs.output.error.operation",
-            "dialogs.output.error.printer_query",
-            "dialogs.output.error.print_refusal",
-            "dialogs.output.error.stopped_pending",
-            "dialogs.output.error.stopped",
-            "dialogs.output.choice.jpg",
-            "dialogs.output.choice.png",
-            "dialogs.output.choice.webp",
-            "dialogs.output.choice.avif",
-            "dialogs.output.choice.heic",
-            "dialogs.output.choice.tiff",
-            "dialogs.output.choice.bmp",
-            "dialogs.output.choice.pdf",
-            "dialogs.output.choice.Row",
-            "dialogs.output.choice.Column",
-            "dialogs.output.choice.Grid",
-            "dialogs.output.choice.None",
-            "dialogs.output.choice.Small",
-            "dialogs.output.choice.Large",
-            "dialogs.output.choice.Transparent",
-            "dialogs.output.choice.White",
-            "dialogs.output.choice.Black",
-            "dialogs.output.title.print_many",
-            "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
-          ],
-          "surface": "gui",
-          "usage": "dynamic-candidate"
-        }
-      ],
-      "context": "dialogs.output.sent: crates/flea-gui/src/g2/op4/replies.rs:194",
-      "coverage": "existing-translated-call",
-      "english": "Sent %1 to %2",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [
-        "%1",
-        "%2"
-      ],
-      "plural_categories": [],
-      "resolved_english": "Sent %1 to %2",
-      "resolved_sha256": "ceebc597a93d806d029e4674e6e50b361d304fbddb697a6d33052635ebb6fb5d",
-      "resolved_source_hash": "1c5f214dab49",
-      "source_hash": "1c5f214dab49"
-    },
-    "dialogs.output.setup": {
-      "call_sites": [
+          "excerpt": "m.say(m.i18n.tr_args(\"dialogs.output.sent\", &[name, &printer]));",
+          "line": 121,
+          "path": "src/tui/print/replies.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
         {
           "coverage": "needs-owner-verification",
           "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
@@ -37122,14 +37761,141 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
+          ],
+          "surface": "gui",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "dialogs.output.sent: crates/flea-gui/src/g2/op4/replies.rs:194",
+      "coverage": "existing-translated-call",
+      "english": "Sent %1 to %2",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Sent %1 to %2",
+      "resolved_sha256": "ceebc597a93d806d029e4674e6e50b361d304fbddb697a6d33052635ebb6fb5d",
+      "resolved_source_hash": "1c5f214dab49",
+      "source_hash": "1c5f214dab49"
+    },
+    "dialogs.output.setup": {
+      "call_sites": [
+        {
+          "excerpt": "m.launches.push((m.i18n.tr(\"dialogs.output.setup\"), child));",
+          "line": 222,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "\"dialogs.output.setup\"",
+          "line": 42,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
+          "line": 101,
+          "path": "crates/flea-gui/src/g2/op4/view.rs",
+          "pattern": "dialogs.output.{label}",
+          "possible_keys": [
+            "dialogs.output.error.document_pages",
+            "dialogs.output.error.pdf_limit",
+            "dialogs.output.error.page_count_failed",
+            "dialogs.output.error.legacy",
+            "dialogs.output.error.print_stopped",
+            "dialogs.output.esc",
+            "dialogs.output.cancel",
+            "dialogs.output.print",
+            "dialogs.output.convert",
+            "dialogs.output.combine",
+            "dialogs.output.setup",
+            "dialogs.output.output",
+            "dialogs.output.output_range",
+            "dialogs.output.printer",
+            "dialogs.output.copies",
+            "dialogs.output.pages",
+            "dialogs.output.all",
+            "dialogs.output.two_sided",
+            "dialogs.output.grayscale",
+            "dialogs.output.default",
+            "dialogs.output.no_printer",
+            "dialogs.output.metadata",
+            "dialogs.output.combine_pdf",
+            "dialogs.output.layout",
+            "dialogs.output.columns",
+            "dialogs.output.spacing",
+            "dialogs.output.background",
+            "dialogs.output.format",
+            "dialogs.output.name",
+            "dialogs.output.converting",
+            "dialogs.output.completed",
+            "dialogs.output.sent",
+            "dialogs.output.title.print",
+            "dialogs.output.title.convert",
+            "dialogs.output.title.office",
+            "dialogs.output.error.item_count",
+            "dialogs.output.error.absolute",
+            "dialogs.output.error.duplicate",
+            "dialogs.output.error.convert_kind",
+            "dialogs.output.error.print_kind",
+            "dialogs.output.error.image_count",
+            "dialogs.output.error.format",
+            "dialogs.output.error.folder",
+            "dialogs.output.error.same_name",
+            "dialogs.output.error.pages",
+            "dialogs.output.error.page_count",
+            "dialogs.output.error.dimensions",
+            "dialogs.output.error.columns",
+            "dialogs.output.error.jpeg_alpha",
+            "dialogs.output.error.name",
+            "dialogs.output.error.copies",
+            "dialogs.output.error.exists",
+            "dialogs.output.error.output",
+            "dialogs.output.error.operation",
+            "dialogs.output.error.printer_query",
+            "dialogs.output.error.print_refusal",
+            "dialogs.output.error.stopped_pending",
+            "dialogs.output.error.stopped",
+            "dialogs.output.choice.jpg",
+            "dialogs.output.choice.png",
+            "dialogs.output.choice.webp",
+            "dialogs.output.choice.avif",
+            "dialogs.output.choice.heic",
+            "dialogs.output.choice.tiff",
+            "dialogs.output.choice.bmp",
+            "dialogs.output.choice.pdf",
+            "dialogs.output.choice.Row",
+            "dialogs.output.choice.Column",
+            "dialogs.output.choice.Grid",
+            "dialogs.output.choice.None",
+            "dialogs.output.choice.Small",
+            "dialogs.output.choice.Large",
+            "dialogs.output.choice.Transparent",
+            "dialogs.output.choice.White",
+            "dialogs.output.choice.Black",
+            "dialogs.output.title.print_many",
+            "dialogs.output.title.convert_many",
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
         }
       ],
       "context": "dialogs.output.setup: caller missing; source owner must identify the surface",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "Set Up a Printer…",
       "kind": "text",
       "omarchy_reference": null,
@@ -37233,7 +37999,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -37344,7 +38113,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -37466,7 +38238,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -37579,7 +38354,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -37701,7 +38479,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -37731,116 +38512,10 @@
           "usage": "translated-call"
         },
         {
-          "coverage": "needs-owner-verification",
-          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
-          "line": 101,
-          "path": "crates/flea-gui/src/g2/op4/view.rs",
-          "pattern": "dialogs.output.{label}",
-          "possible_keys": [
-            "dialogs.output.error.document_pages",
-            "dialogs.output.error.pdf_limit",
-            "dialogs.output.error.page_count_failed",
-            "dialogs.output.error.legacy",
-            "dialogs.output.error.print_stopped",
-            "dialogs.output.esc",
-            "dialogs.output.cancel",
-            "dialogs.output.print",
-            "dialogs.output.convert",
-            "dialogs.output.combine",
-            "dialogs.output.setup",
-            "dialogs.output.output",
-            "dialogs.output.output_range",
-            "dialogs.output.printer",
-            "dialogs.output.copies",
-            "dialogs.output.pages",
-            "dialogs.output.all",
-            "dialogs.output.two_sided",
-            "dialogs.output.grayscale",
-            "dialogs.output.default",
-            "dialogs.output.no_printer",
-            "dialogs.output.metadata",
-            "dialogs.output.combine_pdf",
-            "dialogs.output.layout",
-            "dialogs.output.columns",
-            "dialogs.output.spacing",
-            "dialogs.output.background",
-            "dialogs.output.format",
-            "dialogs.output.name",
-            "dialogs.output.converting",
-            "dialogs.output.completed",
-            "dialogs.output.sent",
-            "dialogs.output.title.print",
-            "dialogs.output.title.convert",
-            "dialogs.output.title.office",
-            "dialogs.output.error.item_count",
-            "dialogs.output.error.absolute",
-            "dialogs.output.error.duplicate",
-            "dialogs.output.error.convert_kind",
-            "dialogs.output.error.print_kind",
-            "dialogs.output.error.image_count",
-            "dialogs.output.error.format",
-            "dialogs.output.error.folder",
-            "dialogs.output.error.same_name",
-            "dialogs.output.error.pages",
-            "dialogs.output.error.page_count",
-            "dialogs.output.error.dimensions",
-            "dialogs.output.error.columns",
-            "dialogs.output.error.jpeg_alpha",
-            "dialogs.output.error.name",
-            "dialogs.output.error.copies",
-            "dialogs.output.error.exists",
-            "dialogs.output.error.output",
-            "dialogs.output.error.operation",
-            "dialogs.output.error.printer_query",
-            "dialogs.output.error.print_refusal",
-            "dialogs.output.error.stopped_pending",
-            "dialogs.output.error.stopped",
-            "dialogs.output.choice.jpg",
-            "dialogs.output.choice.png",
-            "dialogs.output.choice.webp",
-            "dialogs.output.choice.avif",
-            "dialogs.output.choice.heic",
-            "dialogs.output.choice.tiff",
-            "dialogs.output.choice.bmp",
-            "dialogs.output.choice.pdf",
-            "dialogs.output.choice.Row",
-            "dialogs.output.choice.Column",
-            "dialogs.output.choice.Grid",
-            "dialogs.output.choice.None",
-            "dialogs.output.choice.Small",
-            "dialogs.output.choice.Large",
-            "dialogs.output.choice.Transparent",
-            "dialogs.output.choice.White",
-            "dialogs.output.choice.Black",
-            "dialogs.output.title.print_many",
-            "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
-          ],
-          "surface": "gui",
-          "usage": "dynamic-candidate"
-        }
-      ],
-      "context": "dialogs.output.title.print: crates/flea-gui/src/g2/op4/model.rs:180",
-      "coverage": "existing-translated-call",
-      "english": "Print %1",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [
-        "%1"
-      ],
-      "plural_categories": [],
-      "resolved_english": "Print %1",
-      "resolved_sha256": "552d3df12c06467d015817e26ed4494e65e9f9db1292eefff6e34ad56c374287",
-      "resolved_source_hash": "03caa6194c40",
-      "source_hash": "03caa6194c40"
-    },
-    "dialogs.output.title.print_many": {
-      "call_sites": [
-        {
-          "excerpt": "\"dialogs.output.title.print_many\",",
-          "line": 184,
-          "path": "crates/flea-gui/src/g2/op4/model.rs",
-          "surface": "gui",
+          "excerpt": "m.i18n.tr_args(\"dialogs.output.title.print\", &[name])",
+          "line": 25,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
           "usage": "translated-call"
         },
         {
@@ -37927,7 +38602,133 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
+          ],
+          "surface": "gui",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "dialogs.output.title.print: crates/flea-gui/src/g2/op4/model.rs:180",
+      "coverage": "existing-translated-call",
+      "english": "Print %1",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Print %1",
+      "resolved_sha256": "552d3df12c06467d015817e26ed4494e65e9f9db1292eefff6e34ad56c374287",
+      "resolved_source_hash": "03caa6194c40",
+      "source_hash": "03caa6194c40"
+    },
+    "dialogs.output.title.print_many": {
+      "call_sites": [
+        {
+          "excerpt": "\"dialogs.output.title.print_many\",",
+          "line": 184,
+          "path": "crates/flea-gui/src/g2/op4/model.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": ".trn(\"dialogs.output.title.print_many\", m.menu_count as i64)",
+          "line": 13,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
+          "line": 101,
+          "path": "crates/flea-gui/src/g2/op4/view.rs",
+          "pattern": "dialogs.output.{label}",
+          "possible_keys": [
+            "dialogs.output.error.document_pages",
+            "dialogs.output.error.pdf_limit",
+            "dialogs.output.error.page_count_failed",
+            "dialogs.output.error.legacy",
+            "dialogs.output.error.print_stopped",
+            "dialogs.output.esc",
+            "dialogs.output.cancel",
+            "dialogs.output.print",
+            "dialogs.output.convert",
+            "dialogs.output.combine",
+            "dialogs.output.setup",
+            "dialogs.output.output",
+            "dialogs.output.output_range",
+            "dialogs.output.printer",
+            "dialogs.output.copies",
+            "dialogs.output.pages",
+            "dialogs.output.all",
+            "dialogs.output.two_sided",
+            "dialogs.output.grayscale",
+            "dialogs.output.default",
+            "dialogs.output.no_printer",
+            "dialogs.output.metadata",
+            "dialogs.output.combine_pdf",
+            "dialogs.output.layout",
+            "dialogs.output.columns",
+            "dialogs.output.spacing",
+            "dialogs.output.background",
+            "dialogs.output.format",
+            "dialogs.output.name",
+            "dialogs.output.converting",
+            "dialogs.output.completed",
+            "dialogs.output.sent",
+            "dialogs.output.title.print",
+            "dialogs.output.title.convert",
+            "dialogs.output.title.office",
+            "dialogs.output.error.item_count",
+            "dialogs.output.error.absolute",
+            "dialogs.output.error.duplicate",
+            "dialogs.output.error.convert_kind",
+            "dialogs.output.error.print_kind",
+            "dialogs.output.error.image_count",
+            "dialogs.output.error.format",
+            "dialogs.output.error.folder",
+            "dialogs.output.error.same_name",
+            "dialogs.output.error.pages",
+            "dialogs.output.error.page_count",
+            "dialogs.output.error.dimensions",
+            "dialogs.output.error.columns",
+            "dialogs.output.error.jpeg_alpha",
+            "dialogs.output.error.name",
+            "dialogs.output.error.copies",
+            "dialogs.output.error.exists",
+            "dialogs.output.error.output",
+            "dialogs.output.error.operation",
+            "dialogs.output.error.printer_query",
+            "dialogs.output.error.print_refusal",
+            "dialogs.output.error.stopped_pending",
+            "dialogs.output.error.stopped",
+            "dialogs.output.choice.jpg",
+            "dialogs.output.choice.png",
+            "dialogs.output.choice.webp",
+            "dialogs.output.choice.avif",
+            "dialogs.output.choice.heic",
+            "dialogs.output.choice.tiff",
+            "dialogs.output.choice.bmp",
+            "dialogs.output.choice.pdf",
+            "dialogs.output.choice.Row",
+            "dialogs.output.choice.Column",
+            "dialogs.output.choice.Grid",
+            "dialogs.output.choice.None",
+            "dialogs.output.choice.Small",
+            "dialogs.output.choice.Large",
+            "dialogs.output.choice.Transparent",
+            "dialogs.output.choice.White",
+            "dialogs.output.choice.Black",
+            "dialogs.output.title.print_many",
+            "dialogs.output.title.convert_many",
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -37966,6 +38767,13 @@
           "usage": "translated-call"
         },
         {
+          "excerpt": "tr(\"dialogs.output.two_sided\")",
+          "line": 113,
+          "path": "src/tui/print/card.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
           "coverage": "needs-owner-verification",
           "excerpt": "view.catalog.tr(&format!(\"dialogs.output.{label}\")),",
           "line": 101,
@@ -38049,7 +38857,10 @@
             "dialogs.output.choice.Black",
             "dialogs.output.title.print_many",
             "dialogs.output.title.convert_many",
-            "dialogs.output.title.combine"
+            "dialogs.output.title.combine",
+            "dialogs.output.cancelled",
+            "dialogs.output.error.print_busy",
+            "dialogs.output.error.printer_reply"
           ],
           "surface": "gui",
           "usage": "dynamic-candidate"
@@ -41545,7 +42356,7 @@
         },
         {
           "excerpt": "self.search = self.prompts.i18n.tr(\"find.starting\");",
-          "line": 504,
+          "line": 506,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -45181,6 +45992,13 @@
     },
     "jobs.target.busy": {
       "call_sites": [
+        {
+          "excerpt": "Some(\"jobs.target.busy\")",
+          "line": 117,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        },
         {
           "excerpt": "catalog.tr(\"jobs.target.busy\")",
           "line": 299,
@@ -52683,7 +53501,7 @@
       "call_sites": [
         {
           "excerpt": "if !v.formats.is_empty() { archive.push(Entry { chevron: true, ..Entry::new(\"compress\", ARCHIVE, tr(\"menu.compress\"), wait(Ink::Plain)) }); }",
-          "line": 104,
+          "line": 107,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -52915,7 +53733,7 @@
       "call_sites": [
         {
           "excerpt": "let delete = Entry::new(\"delete\", TRASH, tr(\"menu.deletePermanently\"), wait(Ink::Destructive));",
-          "line": 113,
+          "line": 116,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -52937,7 +53755,7 @@
       "call_sites": [
         {
           "excerpt": "let mut row = Entry::new(\"dropbox\", DROPBOX, tr(\"menu.dropbox\"), wait(Ink::Plain));",
-          "line": 108,
+          "line": 111,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -53223,7 +54041,7 @@
       "call_sites": [
         {
           "excerpt": "let shown = if m.hidden { (\"menu.hideHidden\", EYE_CLOSED) } else { (\"menu.showHidden\", EYE) };",
-          "line": 114,
+          "line": 117,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -53247,6 +54065,13 @@
           "excerpt": "None => vec![Entry::new(\"\", WINDOW, tr(\"menu.loading\"), Ink::Dim)],",
           "line": 85,
           "path": "src/tui/menu_layout.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "tr(\"menu.loading\")",
+          "line": 65,
+          "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
         }
@@ -53377,7 +54202,7 @@
       "call_sites": [
         {
           "excerpt": "let view = vec![Entry::new(\"toggleHidden\", shown.1, tr(shown.0), Ink::Plain), Entry::new(\"openTrash\", TRASH, tr(\"menu.openTrash\"), Ink::Plain)];",
-          "line": 115,
+          "line": 118,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -53554,8 +54379,8 @@
     "menu.print": {
       "call_sites": [
         {
-          "excerpt": "if one && !m.menu_directory { open.push(Entry::new(\"print\", PRINTER, tr(\"menu.print\"), wait(Ink::Plain))); }",
-          "line": 103,
+          "excerpt": "let label = if one { tr(\"menu.print\") } else { m.i18n.trn(\"menu.row.print_many\", m.menu_count as i64) };",
+          "line": 104,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -54664,6 +55489,13 @@
     "menu.row.print_many": {
       "call_sites": [
         {
+          "excerpt": "let label = if one { tr(\"menu.print\") } else { m.i18n.trn(\"menu.row.print_many\", m.menu_count as i64) };",
+          "line": 104,
+          "path": "src/tui/menu_layout.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "count_label(e, count, \"menu.row.print_many\");",
           "line": 339,
           "path": "src/ui_logic_mn1/build.rs",
@@ -54672,7 +55504,7 @@
         }
       ],
       "context": "menu.row.print_many: src/ui_logic_mn1/build.rs:339",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": {
         "one": "Print %1 Item…",
         "other": "Print %1 Items…"
@@ -55230,7 +56062,7 @@
       "call_sites": [
         {
           "excerpt": "let shown = if m.hidden { (\"menu.hideHidden\", EYE_CLOSED) } else { (\"menu.showHidden\", EYE) };",
-          "line": 114,
+          "line": 117,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -55362,7 +56194,7 @@
       "call_sites": [
         {
           "excerpt": "let word = if m.menu_directory { Some(m.i18n.tr(\"menu.state.filesOnly\")) }",
-          "line": 136,
+          "line": 139,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -55413,7 +56245,7 @@
       "call_sites": [
         {
           "excerpt": "m.i18n.tr(match error { \"signed out\" => \"menu.state.signedOut\", \"no peers\" => \"menu.state.noDevices\", _ => \"menu.state.offline\" })",
-          "line": 148,
+          "line": 151,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -55464,21 +56296,21 @@
       "call_sites": [
         {
           "excerpt": "if !error.is_empty() { return \"menu.state.notRunning\".into(); }",
-          "line": 72,
+          "line": 71,
           "path": "src/tui/menu_run.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "let Ok(data) = crate::jsondoc::parse(info) else { return if info.is_empty() { \"menu.state.signedOut\" } else { \"menu.state.notRunning\" }.into() };",
-          "line": 73,
+          "line": 72,
           "path": "src/tui/menu_run.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": ".map(|path| if path.starts_with('/') { path } else { \"menu.state.notRunning\".into() })",
-          "line": 75,
+          "line": 74,
           "path": "src/tui/menu_run.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -55544,7 +56376,7 @@
       "call_sites": [
         {
           "excerpt": "m.i18n.tr(match error { \"signed out\" => \"menu.state.signedOut\", \"no peers\" => \"menu.state.noDevices\", _ => \"menu.state.offline\" })",
-          "line": 148,
+          "line": 151,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -55573,21 +56405,21 @@
       "call_sites": [
         {
           "excerpt": "m.i18n.tr(match error { \"signed out\" => \"menu.state.signedOut\", \"no peers\" => \"menu.state.noDevices\", _ => \"menu.state.offline\" })",
-          "line": 148,
+          "line": 151,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let Ok(data) = crate::jsondoc::parse(info) else { return if info.is_empty() { \"menu.state.signedOut\" } else { \"menu.state.notRunning\" }.into() };",
-          "line": 73,
+          "line": 72,
           "path": "src/tui/menu_run.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": ".unwrap_or_else(|| \"menu.state.signedOut\".into())",
-          "line": 76,
+          "line": 75,
           "path": "src/tui/menu_run.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -55682,7 +56514,7 @@
       "call_sites": [
         {
           "excerpt": "if v.taildrop { share.push(taildrop(m, tr(\"menu.taildrop\"))); }",
-          "line": 106,
+          "line": 109,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -55704,7 +56536,7 @@
       "call_sites": [
         {
           "excerpt": "m.say(m.i18n.tr(\"menu.taildropChecking\"));",
-          "line": 157,
+          "line": 156,
           "path": "src/tui/menu_run.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -55726,7 +56558,7 @@
       "call_sites": [
         {
           "excerpt": "Sub::Compress => Some(m.i18n.tr(\"menu.title.compress\")),",
-          "line": 157,
+          "line": 160,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -55748,7 +56580,7 @@
       "call_sites": [
         {
           "excerpt": "Sub::OpenWith => Some(m.i18n.tr(\"menu.title.openWith\")),",
-          "line": 156,
+          "line": 159,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -55770,7 +56602,7 @@
       "call_sites": [
         {
           "excerpt": "Sub::Taildrop => Some(m.i18n.tr(\"menu.title.taildrop\")),",
-          "line": 158,
+          "line": 161,
           "path": "src/tui/menu_layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -68789,7 +69621,7 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.tr(\"prompt.newFile\"),",
-          "line": 540,
+          "line": 550,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -68811,7 +69643,7 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.tr(\"prompt.newFolder\"),",
-          "line": 481,
+          "line": 491,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -69083,7 +69915,7 @@
       "call_sites": [
         {
           "excerpt": "m.properties = Some(vec![(String::new(), m.i18n.tr(\"properties.loading\"))]);",
-          "line": 686,
+          "line": 696,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -69458,7 +70290,7 @@
       "call_sites": [
         {
           "excerpt": "self.say(super::prompts::undoable(self, self.prompts.i18n.tr(\"receipt.fileCreated\")));",
-          "line": 1112,
+          "line": 1115,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -69761,10 +70593,17 @@
         },
         {
           "excerpt": "m.fail(m.prompts.i18n.tr(\"search.contents.identity\"));",
-          "line": 272,
+          "line": 281,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
+        },
+        {
+          "excerpt": "Some(\"search.contents.identity\")",
+          "line": 113,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
         }
       ],
       "context": "search.contents.identity: src/backend/contentsreq.rs:335",
@@ -79974,6 +80813,35 @@
       "resolved_sha256": "db075dd783347e49fc589d755db4007138c4f90297d343465c049b472c3238a3",
       "resolved_source_hash": "ada57b0de49a",
       "source_hash": "ada57b0de49a"
+    },
+    "tui.operation.search_busy": {
+      "call_sites": [
+        {
+          "excerpt": "Some(\"tui.operation.search_busy\")",
+          "line": 111,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "Some(\"tui.operation.search_busy\")",
+          "line": 115,
+          "path": "src/tui/print.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "Shared TUI busy-search refusal, matching the existing file-operation wording.",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Wait for search to settle before a file operation",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Wait for search to settle before a file operation",
+      "resolved_sha256": "f09f10a82ace956a7c17749291cfea7c5b461aac10ed2fdee9fcee1695a8c40c",
+      "resolved_source_hash": "639a457e4a3f",
+      "source_hash": "639a457e4a3f"
     },
     "visual.busy": {
       "call_sites": [
@@ -140769,7 +141637,7 @@
     },
     {
       "excerpt": "if key.name == \"Space\" && key.mods == \"ctrl\" {",
-      "line": 62,
+      "line": 68,
       "literal": "Space",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140778,7 +141646,7 @@
     },
     {
       "excerpt": "if key.name == \"Paste\" {",
-      "line": 156,
+      "line": 162,
       "literal": "Paste",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140787,7 +141655,7 @@
     },
     {
       "excerpt": "if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\")",
-      "line": 160,
+      "line": 166,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140796,7 +141664,7 @@
     },
     {
       "excerpt": "if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\")",
-      "line": 160,
+      "line": 166,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140805,7 +141673,7 @@
     },
     {
       "excerpt": "if key.name != \"Escape\" {",
-      "line": 169,
+      "line": 175,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140814,7 +141682,7 @@
     },
     {
       "excerpt": "model.fail(\"No action for that key sequence\".into());",
-      "line": 170,
+      "line": 176,
       "literal": "No action for that key sequence",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140823,7 +141691,7 @@
     },
     {
       "excerpt": "\"H\" if matches!(model.preset.as_str(), \"default\" | \"vim\") => {",
-      "line": 221,
+      "line": 227,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140832,7 +141700,7 @@
     },
     {
       "excerpt": "\"L\" if matches!(model.preset.as_str(), \"default\" | \"vim\") => {",
-      "line": 224,
+      "line": 230,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140841,7 +141709,7 @@
     },
     {
       "excerpt": "m.fail(\"Wait for search to settle before a file operation\".into());",
-      "line": 289,
+      "line": 298,
       "literal": "Wait for search to settle before a file operation",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140850,7 +141718,7 @@
     },
     {
       "excerpt": "m.fail(\"Wait for the selection to settle before choosing\".into());",
-      "line": 368,
+      "line": 378,
       "literal": "Wait for the selection to settle before choosing",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140859,7 +141727,7 @@
     },
     {
       "excerpt": "m.fail(\"Could not open selected file\".into());",
-      "line": 380,
+      "line": 390,
       "literal": "Could not open selected file",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140868,7 +141736,7 @@
     },
     {
       "excerpt": "\"goDownloads\" => home.join(\"Downloads\"),",
-      "line": 440,
+      "line": 450,
       "literal": "Downloads",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140877,7 +141745,7 @@
     },
     {
       "excerpt": "m.fail(\"No home folder is configured\".into());",
-      "line": 445,
+      "line": 455,
       "literal": "No home folder is configured",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140886,7 +141754,7 @@
     },
     {
       "excerpt": "m.fail(\"Only a regular file can be edited\".into());",
-      "line": 452,
+      "line": 462,
       "literal": "Only a regular file can be edited",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140895,7 +141763,7 @@
     },
     {
       "excerpt": "m.fail(\"Selected item is unavailable; select it again to rename\".into());",
-      "line": 475,
+      "line": 485,
       "literal": "Selected item is unavailable; select it again to rename",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140904,7 +141772,7 @@
     },
     {
       "excerpt": "m.say(\"Clipboard cleared\".into());",
-      "line": 497,
+      "line": 507,
       "literal": "Clipboard cleared",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140913,7 +141781,7 @@
     },
     {
       "excerpt": "m.fail(\"Select one available item to duplicate\".into());",
-      "line": 533,
+      "line": 543,
       "literal": "Select one available item to duplicate",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140922,7 +141790,7 @@
     },
     {
       "excerpt": "m.reverse = action.ends_with(\"Reverse\");",
-      "line": 560,
+      "line": 570,
       "literal": "Reverse",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140931,7 +141799,7 @@
     },
     {
       "excerpt": "None => m.say(\"Only a folder opens in a new tab\".into()),",
-      "line": 609,
+      "line": 619,
       "literal": "Only a folder opens in a new tab",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140940,7 +141808,7 @@
     },
     {
       "excerpt": "\"New Flea window\"",
-      "line": 616,
+      "line": 626,
       "literal": "New Flea window",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140949,7 +141817,7 @@
     },
     {
       "excerpt": "\"Terminal\"",
-      "line": 618,
+      "line": 628,
       "literal": "Terminal",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140958,7 +141826,7 @@
     },
     {
       "excerpt": "m.fail(\"An agent needs a folder to open in\".into());",
-      "line": 627,
+      "line": 637,
       "literal": "An agent needs a folder to open in",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140967,7 +141835,7 @@
     },
     {
       "excerpt": "m.launches.push((\"Agent\".into(), child));",
-      "line": 630,
+      "line": 640,
       "literal": "Agent",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140976,7 +141844,7 @@
     },
     {
       "excerpt": "m.fail(\"Properties requires one selected item\".into());",
-      "line": 681,
+      "line": 691,
       "literal": "Properties requires one selected item",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140985,7 +141853,7 @@
     },
     {
       "excerpt": "&Key::named(if scroll < 0 { \"Up\" } else { \"Down\" }, \"\"),",
-      "line": 809,
+      "line": 822,
       "literal": "Down",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -140994,7 +141862,7 @@
     },
     {
       "excerpt": "return self::key(m, &Key::named(\"Return\", \"\"), map, w);",
-      "line": 830,
+      "line": 843,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -141003,7 +141871,7 @@
     },
     {
       "excerpt": "m.say(\"Nine tabs is the most\".into());",
-      "line": 975,
+      "line": 988,
       "literal": "Nine tabs is the most",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -141012,7 +141880,7 @@
     },
     {
       "excerpt": "m.fail(format!(\"Could not save settings: {}\", e));",
-      "line": 1015,
+      "line": 1028,
       "literal": "Could not save settings: {}",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -141021,7 +141889,7 @@
     },
     {
       "excerpt": "if key.name == \"Escape\"",
-      "line": 1032,
+      "line": 1045,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -141030,7 +141898,7 @@
     },
     {
       "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" {",
-      "line": 1048,
+      "line": 1061,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -141039,7 +141907,7 @@
     },
     {
       "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" {",
-      "line": 1048,
+      "line": 1061,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -141048,7 +141916,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"path\" {",
-      "line": 1092,
+      "line": 1105,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -141057,7 +141925,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"search\" {",
-      "line": 1098,
+      "line": 1111,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -143307,7 +144175,7 @@
     },
     {
       "excerpt": "else if !busy && m.taildrop.peers.is_empty() { Some(state(m, if m.taildrop.error.is_empty() { \"no peers\" } else { &m.taildrop.error })) }",
-      "line": 137,
+      "line": 140,
       "literal": "no peers",
       "owner": "t11",
       "path": "src/tui/menu_layout.rs",
@@ -143316,7 +144184,7 @@
     },
     {
       "excerpt": "m.i18n.tr(match error { \"signed out\" => \"menu.state.signedOut\", \"no peers\" => \"menu.state.noDevices\", _ => \"menu.state.offline\" })",
-      "line": 148,
+      "line": 151,
       "literal": "signed out",
       "owner": "t11",
       "path": "src/tui/menu_layout.rs",
@@ -143325,7 +144193,7 @@
     },
     {
       "excerpt": "m.i18n.tr(match error { \"signed out\" => \"menu.state.signedOut\", \"no peers\" => \"menu.state.noDevices\", _ => \"menu.state.offline\" })",
-      "line": 148,
+      "line": 151,
       "literal": "no peers",
       "owner": "t11",
       "path": "src/tui/menu_layout.rs",
@@ -143334,7 +144202,7 @@
     },
     {
       "excerpt": "if matches!(pointer.button, WHEEL_UP | WHEEL_DOWN) { return key(m, &Key::named(if pointer.button == WHEEL_UP { \"Up\" } else { \"Down\" }, \"\"), map, w); }",
-      "line": 110,
+      "line": 109,
       "literal": "Down",
       "owner": "t11",
       "path": "src/tui/menu_run.rs",
@@ -143361,7 +144229,7 @@
     },
     {
       "excerpt": "if !status.success() { launch_errors.push(format!(\"{} could not finish ({})\", name, status)); }",
-      "line": 140,
+      "line": 151,
       "literal": "{} could not finish ({})",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -143370,7 +144238,7 @@
     },
     {
       "excerpt": "Err(error) => { launch_errors.push(format!(\"Could not observe {}: {}\", name, crate::error::io_message(&error))); false }",
-      "line": 144,
+      "line": 155,
       "literal": "Could not observe {}: {}",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -143379,7 +144247,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: terminal interface: {}\", crate::error::io_message(&e));",
-      "line": 294,
+      "line": 305,
       "literal": "flea: terminal interface: {}",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -143388,7 +144256,7 @@
     },
     {
       "excerpt": "format!(\"{} {} · Undo reverts one\", if cancelled { \"Stopped after renaming\" } else { \"Renamed\" }, super::render::items(completed))",
-      "line": 215,
+      "line": 216,
       "literal": "{} {} · Undo reverts one",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143397,7 +144265,7 @@
     },
     {
       "excerpt": "format!(\"{} {} · Undo reverts one\", if cancelled { \"Stopped after renaming\" } else { \"Renamed\" }, super::render::items(completed))",
-      "line": 215,
+      "line": 216,
       "literal": "Stopped after renaming",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143406,7 +144274,7 @@
     },
     {
       "excerpt": "format!(\"{} {} · Undo reverts one\", if cancelled { \"Stopped after renaming\" } else { \"Renamed\" }, super::render::items(completed))",
-      "line": 215,
+      "line": 216,
       "literal": "Renamed",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143415,7 +144283,7 @@
     },
     {
       "excerpt": "_ => \"default\",",
-      "line": 333,
+      "line": 334,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143424,7 +144292,7 @@
     },
     {
       "excerpt": "self.say(if batch.completed == 0 { if batch.cancelled { \"Rename cancelled\" } else { \"No names changed\" }.into() }",
-      "line": 555,
+      "line": 557,
       "literal": "Rename cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143433,7 +144301,7 @@
     },
     {
       "excerpt": "self.say(if batch.completed == 0 { if batch.cancelled { \"Rename cancelled\" } else { \"No names changed\" }.into() }",
-      "line": 555,
+      "line": 557,
       "literal": "No names changed",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143442,7 +144310,7 @@
     },
     {
       "excerpt": "} else { self.fail(format!(\"Could not restore deletion selection: {}\", text(value, \"error\"))); }",
-      "line": 581,
+      "line": 583,
       "literal": "Could not restore deletion selection: {}",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143451,7 +144319,7 @@
     },
     {
       "excerpt": "self.fail(\"Taildrop cancelled; selection changed\".into());",
-      "line": 598,
+      "line": 600,
       "literal": "Taildrop cancelled; selection changed",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143460,7 +144328,7 @@
     },
     {
       "excerpt": "let reason = if self.taildrop.error.is_empty() { \"Taildrop device is unreachable\".into() }",
-      "line": 605,
+      "line": 607,
       "literal": "Taildrop device is unreachable",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143469,7 +144337,7 @@
     },
     {
       "excerpt": "\"Dimensions\",",
-      "line": 879,
+      "line": 882,
       "literal": "Dimensions",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143478,7 +144346,7 @@
     },
     {
       "excerpt": "\"Duration\",",
-      "line": 887,
+      "line": 890,
       "literal": "Duration",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143487,7 +144355,7 @@
     },
     {
       "excerpt": "\"Rate\",",
-      "line": 895,
+      "line": 898,
       "literal": "Rate",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143496,7 +144364,7 @@
     },
     {
       "excerpt": "else if count(&value, \"mode\") > 0 && count(&value, \"mode\") & 0o444 == 0 { \"You don’t have permission to open this folder.\".into() }",
-      "line": 920,
+      "line": 923,
       "literal": "You don’t have permission to open this folder.",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143505,7 +144373,7 @@
     },
     {
       "excerpt": "else { \"This folder could not be read.\".into() };",
-      "line": 921,
+      "line": 924,
       "literal": "This folder could not be read.",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143514,7 +144382,7 @@
     },
     {
       "excerpt": "self.preview.push(\"This folder could not be read.\".into());",
-      "line": 925,
+      "line": 928,
       "literal": "This folder could not be read.",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143523,7 +144391,7 @@
     },
     {
       "excerpt": "self.preview.push(\"Empty folder\".into());",
-      "line": 935,
+      "line": 938,
       "literal": "Empty folder",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143532,7 +144400,7 @@
     },
     {
       "excerpt": "self.fail(\"The selection changed or cannot be written one path per line; choose it again\".into());",
-      "line": 988,
+      "line": 991,
       "literal": "The selection changed or cannot be written one path per line; choose it again",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143541,7 +144409,7 @@
     },
     {
       "excerpt": "\"Moving\"",
-      "line": 1029,
+      "line": 1032,
       "literal": "Moving",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143550,7 +144418,7 @@
     },
     {
       "excerpt": "\"Copying\"",
-      "line": 1031,
+      "line": 1034,
       "literal": "Copying",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143559,7 +144427,7 @@
     },
     {
       "excerpt": "\"Moving\"",
-      "line": 1047,
+      "line": 1050,
       "literal": "Moving",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143568,7 +144436,7 @@
     },
     {
       "excerpt": "\"Copying\"",
-      "line": 1049,
+      "line": 1052,
       "literal": "Copying",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143577,7 +144445,7 @@
     },
     {
       "excerpt": "else { Err(io::Error::other(\"Bulk rename stopped: a rename could not finish\")) };",
-      "line": 1063,
+      "line": 1066,
       "literal": "Bulk rename stopped: a rename could not finish",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143586,7 +144454,7 @@
     },
     {
       "excerpt": "self.say(\"Selection changed; confirm again\".into());",
-      "line": 1123,
+      "line": 1126,
       "literal": "Selection changed; confirm again",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143595,7 +144463,7 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { self.say(\"Deletion cancelled\".into()); }",
-      "line": 1130,
+      "line": 1133,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143604,15 +144472,6 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { self.say(\"Deletion cancelled\".into()); }",
-      "line": 1130,
-      "literal": "Deletion cancelled",
-      "owner": "t11",
-      "path": "src/tui/model.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "tui"
-    },
-    {
-      "excerpt": "self.say(\"Deletion cancelled\".into());",
       "line": 1133,
       "literal": "Deletion cancelled",
       "owner": "t11",
@@ -143621,8 +144480,17 @@
       "surface": "tui"
     },
     {
+      "excerpt": "self.say(\"Deletion cancelled\".into());",
+      "line": 1136,
+      "literal": "Deletion cancelled",
+      "owner": "t11",
+      "path": "src/tui/model.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
       "excerpt": "if flag(&value, \"cancelled\") { \" · Cancelled\".into() } else { String::new() }));",
-      "line": 1137,
+      "line": 1140,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143631,7 +144499,7 @@
     },
     {
       "excerpt": "if !flag(&value, \"cancelled\") { self.fail(text(&value, \"error\").into()); }",
-      "line": 1156,
+      "line": 1159,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143640,7 +144508,7 @@
     },
     {
       "excerpt": "if token == 0 { return Err(io::Error::other(\"Deletion could not be confirmed; try again\")); }",
-      "line": 1170,
+      "line": 1173,
       "literal": "Deletion could not be confirmed; try again",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143649,7 +144517,7 @@
     },
     {
       "excerpt": "self.fail(\"Bulk rename selection is incomplete; select the items again\".into());",
-      "line": 1182,
+      "line": 1185,
       "literal": "Bulk rename selection is incomplete; select the items again",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143658,7 +144526,7 @@
     },
     {
       "excerpt": "self.fail(\"Could not open selected file\".into());",
-      "line": 1194,
+      "line": 1197,
       "literal": "Could not open selected file",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143667,7 +144535,7 @@
     },
     {
       "excerpt": "self.fail(\"Could not open selected file\".into());",
-      "line": 1202,
+      "line": 1205,
       "literal": "Could not open selected file",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143676,7 +144544,7 @@
     },
     {
       "excerpt": "self.fail(\"Taildrop: selection is incomplete\".into());",
-      "line": 1208,
+      "line": 1211,
       "literal": "Taildrop: selection is incomplete",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143685,7 +144553,7 @@
     },
     {
       "excerpt": "Ok(()) => self.say(format!(\"Sending to {}\", peer.label)),",
-      "line": 1211,
+      "line": 1214,
       "literal": "Sending to {}",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143694,7 +144562,7 @@
     },
     {
       "excerpt": "if text(&value, \"msg\") == \"permission denied\" { \"You don’t have permission to open this folder.\".into() }",
-      "line": 1234,
+      "line": 1237,
       "literal": "permission denied",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -143703,7 +144571,7 @@
     },
     {
       "excerpt": "if text(&value, \"msg\") == \"permission denied\" { \"You don’t have permission to open this folder.\".into() }",
-      "line": 1234,
+      "line": 1237,
       "literal": "You don’t have permission to open this folder.",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -144242,6 +145110,177 @@
       "surface": "tui"
     },
     {
+      "excerpt": "if key.name == \"Escape\" {",
+      "line": 38,
+      "literal": "Escape",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "\"Up\" | \"Down\" => {",
+      "line": 111,
+      "literal": "Down",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "\"Return\" | \"Enter\" | \"Space\" => return choose(m, w),",
+      "line": 117,
+      "literal": "Return",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "\"Return\" | \"Enter\" | \"Space\" => return choose(m, w),",
+      "line": 117,
+      "literal": "Enter",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "\"Return\" | \"Enter\" | \"Space\" => return choose(m, w),",
+      "line": 117,
+      "literal": "Space",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if key.name == \"Tab\" {",
+      "line": 122,
+      "literal": "Tab",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "} else if matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\")",
+      "line": 136,
+      "literal": "Return",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "} else if matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\")",
+      "line": 136,
+      "literal": "Enter",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "} else if matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\")",
+      "line": 136,
+      "literal": "Space",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "&& !(f.focus == 2 && key.name == \"Space\")",
+      "line": 137,
+      "literal": "Space",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "} else if f.focus == 0 && matches!(key.name.as_str(), \"Left\" | \"Right\" | \"Up\" | \"Down\") {",
+      "line": 140,
+      "literal": "Left",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "} else if f.focus == 0 && matches!(key.name.as_str(), \"Left\" | \"Right\" | \"Up\" | \"Down\") {",
+      "line": 140,
+      "literal": "Right",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "} else if f.focus == 0 && matches!(key.name.as_str(), \"Left\" | \"Right\" | \"Up\" | \"Down\") {",
+      "line": 140,
+      "literal": "Down",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if matches!(key.name.as_str(), \"Left\" | \"Up\") {",
+      "line": 144,
+      "literal": "Left",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if key.name == \"Backspace\" {",
+      "line": 153,
+      "literal": "Backspace",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "} else if copies && matches!(key.name.as_str(), \"Up\" | \"Down\") {",
+      "line": 159,
+      "literal": "Down",
+      "owner": "t11",
+      "path": "src/tui/print/input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "let cancelled = (!ok && reason == \"cancelled\").then(|| {",
+      "line": 135,
+      "literal": "cancelled",
+      "owner": "t11",
+      "path": "src/tui/print/replies.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "names.join(\", \")",
+      "line": 146,
+      "literal": ", ",
+      "owner": "t11",
+      "path": "src/tui/print/replies.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "default: d.get(\"default\")?.as_bool()?,",
+      "line": 249,
+      "literal": "default",
+      "owner": "t11",
+      "path": "src/tui/print/replies.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
       "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
       "line": 141,
       "literal": "move",
@@ -144324,7 +145363,7 @@
     },
     {
       "excerpt": "if y == m.selected_rows.len() + 3 && m.selected_rows.len() < m.selected.len() { return format!(\"{} outside loaded rows\", marked(m.selected.len() - m.selected_rows.len())); }",
-      "line": 171,
+      "line": 172,
       "literal": "{} outside loaded rows",
       "owner": "t11",
       "path": "src/tui/render.rs",
@@ -213030,7 +214069,7 @@
     "src/theme/tokens.rs": "300da578de3add38d96788c85e0fd27f08f6a4c71f7165b93d67c3ca977dc016",
     "src/theme/watch.rs": "d8660ef8fd5bab6d239281aaeeb04fd87e0d1b459924611417db85a41600b88c",
     "src/thp.rs": "6dfac794c19696f80fe1ff33cea9f2d16ed5b69c6a186f989769db44f4fcf8f1",
-    "src/tui/actions.rs": "55cc26d41052da7b7f4ee737477a0658d5a62d2964b96179fba4769cfebc6097",
+    "src/tui/actions.rs": "d0c6e4f57756dd4b5abe0d0b0e8672aad2cff0a86972888dcda7ae54f4ae7989",
     "src/tui/batch.rs": "51fced81cc375c676c8039e60405f0b311e54e7a026328b166940813f6013a88",
     "src/tui/calendar.rs": "5e1251d31dc14cd7f9a516a87f05d910bfd91c9d8e48b7d1c959726b7ac72bf2",
     "src/tui/capabilities.rs": "a8790641f17557c0e34c7b417b5d321bb6f8ebb8e1becd0ab37060b947596eb9",
@@ -213055,13 +214094,13 @@
     "src/tui/key_sheet.rs": "81113030e5419922765d8b6b84afe8edebf5c0c46c6e1566a966c1298041a8e5",
     "src/tui/keymap.rs": "4595b6b809aa095995fa725d00830e5713317765a5e6d2b0d24648066488ba26",
     "src/tui/launch.rs": "5c3a1d582ce86f2c72b42213887f7bb48b4be8192cbfbaa7c917a8f8b274cf30",
-    "src/tui/layout.rs": "bcd017a19dc36ca15e9ca62f009d67efaf7440e97348eb5524db132267eb6410",
+    "src/tui/layout.rs": "0ac3cbf60c91eb61bd2a089e410f7199e5e09f290ee687b3ac5275b420e44b1f",
     "src/tui/look.rs": "e78ccfccc6df6013c5ccb990a662099ecdebd013f4d6746fb76d73ea9ebe04c2",
     "src/tui/media.rs": "4d0666e7b3c522656664cbf0826991b0b43d27eaaf58441c7f527e455fd6ed04",
-    "src/tui/menu_layout.rs": "a2dc050f53f6a5818bb91f5995e66346e147cbe6123f768a2114a4dbecf54775",
-    "src/tui/menu_run.rs": "bc882b0fc0c95992e55555c51f2c2acafb9dc2ec5f340b7f89a6657d58a24713",
-    "src/tui/mod.rs": "90e7e534ad54011a18073b97a39e4ac59d64728bb8f9748c4dbe5576658ee8cb",
-    "src/tui/model.rs": "779ee0e976a3c66fb442aae973a6752a6fe4c96a5c6da58a1742b1b22a2d3c64",
+    "src/tui/menu_layout.rs": "f913c8ee6ce1d544a226de97ef21e4e7771f3aa2992b6b4fad501825eb6c4563",
+    "src/tui/menu_run.rs": "cbbe3910a49ac2006a7aa0208e02177913a64565c6c0aa38507d5507e0d80ad0",
+    "src/tui/mod.rs": "d9e650834e21f96e5e0091dac440750f67bd3c83433c80ae63e878cf5b655b0f",
+    "src/tui/model.rs": "eb7f7af0f4523941c10c91b368b7948490c70b883fb2006032622569db3902dc",
     "src/tui/model3d.rs": "e54a37dc6faa6a4d91c58b05e43ba98cccdf22fb4c5ceecf872b8ece6de5b31d",
     "src/tui/mounts.rs": "6c240e6c9ff2e2c2fe1e0057b62aafa176100e68e83bdc77d0f0fce52009a3d3",
     "src/tui/mpv.rs": "11f5dbae6e21e1312707373c7c8af3117e7169389a5b74700a02d202575f338b",
@@ -213072,9 +214111,13 @@
     "src/tui/pdf.rs": "777b3b9ec9e58becbf2b69fadf2d0455517fd39f830c193b9779e2dc867cb6c7",
     "src/tui/picture.rs": "0436b193e7d0686dfb52e07d553a7e55e8a834463dcdca17c6dd11170070e6db",
     "src/tui/preview.rs": "8f42c708ddab303dd19e4080d5c2c9008168ba1c471a86dfe4d43a5488fae12a",
+    "src/tui/print.rs": "79d5af28f626c4452748aee55b91731e13de77a7754fe87000a0f02f092470ea",
+    "src/tui/print/card.rs": "8b927b786435865f3c8e5131bc502c3dea661e3d898e2a489959294d18eb7aa3",
+    "src/tui/print/input.rs": "95d69f71fbbba3e0826bd2390785413b910ca59a6ea76b9959024f662f89c1f4",
+    "src/tui/print/replies.rs": "5423b959ea04a6a5c04e5e8302b2d7b4476b360e67f7ce94932cfb93b6d3303a",
     "src/tui/prompts.rs": "f406e0a9fe613dbca0d1ceddb9e7f2779bf7576e6587b2e4c9b99461a5a64a96",
-    "src/tui/render.rs": "e0c0a05c9beb4aa0d7e45585cd18bec3ca634448e6340dc25c3cbc3ca55d2e15",
-    "src/tui/stage.rs": "d5c0d2732b9e4d84e9771cd7e529ce82d73848198f51625d235c1f89bc1eb00f",
+    "src/tui/render.rs": "96f86a08301f7e69afb7791ab61c89a95ebc11786db5b5584ede45cda53f88b9",
+    "src/tui/stage.rs": "68e3e63eba88c7fee8582d6ea93f675957c8841191d54cfc00c2db583a2ecddd",
     "src/tui/still.rs": "e169b6427851ea49c6d29c71615bc6e4a186d5828003ec64e75faf17af9d397d",
     "src/tui/syntax.rs": "6097244b74b035e34cb73bc9c0276790edecf62d62ef826066309666f6392b12",
     "src/tui/taildrop.rs": "dee6fe8f721a13a333f32ba4f2620a109a3d55aade39d119b4bf4972232827fb",
@@ -213987,8 +215030,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "b275737775fc9c98e0702943d01a106265feb51d",
-  "source_sha": "b275737775fc9c98e0702943d01a106265feb51d",
+  "source_ref_sha": "01f3865d2f8b20cac4857b13b5e3ca3859619ec6",
+  "source_sha": "01f3865d2f8b20cac4857b13b5e3ca3859619ec6",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1280,
@@ -214001,7 +215044,7 @@
       "source_files": 144
     },
     "gui": {
-      "keys_with_occurrences": 477,
+      "keys_with_occurrences": 480,
       "missing_literal_candidates": 1614,
       "source_files": 785
     },
@@ -214011,9 +215054,9 @@
       "source_files": 412
     },
     "tui": {
-      "keys_with_occurrences": 207,
-      "missing_literal_candidates": 483,
-      "source_files": 57
+      "keys_with_occurrences": 234,
+      "missing_literal_candidates": 502,
+      "source_files": 61
     }
   },
   "unlocated_keys": [
