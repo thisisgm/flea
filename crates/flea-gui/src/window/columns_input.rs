@@ -173,6 +173,12 @@ impl Shell {
             );
             return;
         }
+        if event.button == MouseButton::Right {
+            if let Some((name, _)) = row {
+                self.columns_neighbour_menu(side, &view.path, &name, window, cx);
+            }
+            return;
+        }
         if event.button != MouseButton::Left {
             return;
         }
@@ -214,6 +220,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         self.sync_columns(window, cx);
+        self.columns_row_menu_landed(side, window, cx);
         let Some(host) = self.panes[side].as_mut() else {
             return;
         };

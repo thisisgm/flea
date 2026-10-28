@@ -16,6 +16,8 @@ impl Shell {
             })
             .and_then(|backend| backend.line(line));
         if let Err(error) = result {
+            self.menu.tags.pending[side].clear();
+            self.menu.tags.retire();
             host.record_error(error, &self.locale);
             self.menu.pending = None;
             self.menu.activating = false;

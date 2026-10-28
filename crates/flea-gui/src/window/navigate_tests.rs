@@ -156,6 +156,7 @@ fn a_returning_window_rereads_a_fuse_folder_and_leaves_a_local_one_to_inotify(
         entity.update(cx, |shell, cx| {
             let facts = |name: &str| crate::backend::status::Filesystem {
                 class: String::new(),
+                tagable: None,
                 path: "/files".into(),
                 name: name.into(),
                 free: 0,

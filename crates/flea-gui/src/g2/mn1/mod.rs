@@ -1,28 +1,32 @@
 //! The menu primitive every Flea menu opens through: file, background, header, rail, tags, Copy As and Paste As.
 mod delivery;
 mod discovery;
-mod facts;
-mod notice;
 pub mod element;
 #[cfg(test)]
 mod elide_tests;
+mod facts;
 pub mod glyphs;
+mod header;
 pub(crate) mod host_input;
 pub mod ipc;
 pub mod join;
-mod keys;
-mod place_host;
 #[cfg(test)]
 mod join_tests;
+mod keys;
 pub mod lines;
 pub mod menu;
+mod notice;
 mod owners;
+mod place_host;
 pub(crate) mod presentation;
 #[cfg(test)]
 mod review_r2_tests;
 #[cfg(test)]
 mod review_tests;
 pub mod shebang;
+mod tag_checks;
+pub(crate) mod tags;
+mod tags_wire;
 #[cfg(test)]
 mod tests;
 mod wrap;

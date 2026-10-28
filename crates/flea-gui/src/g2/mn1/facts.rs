@@ -53,6 +53,9 @@ impl Shell {
             .collect::<Vec<_>>();
         let image = flea::ui_logic_op4::output::Kind::Image;
         MenuContext {
+            tag_submenu: (!background)
+                .then(|| self.tag_entries_for(side, rows))
+                .flatten(),
             has_row: !background,
             selection_count: if background {
                 background_count(host)

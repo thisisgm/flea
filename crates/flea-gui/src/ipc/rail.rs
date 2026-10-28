@@ -380,11 +380,15 @@ impl Adapter for RailAdapter<'_> {
                     .join("\n")
             }
             "networkBuilt" => self.network.ready().to_string(),
-            // GPUI tracks the pointer over the whole rail, never over one release mark, so no mark reads hovered.
-            "railMarkHovered" => false.to_string(),
+            // The row whose eject mark holds the pointer, by index (rail/rows.rs RowsModel.mark_hovered, set from producer_view.rs).
+            "railMarkHovered" => self
+                .producer()
+                .is_some_and(|producer| {
+                    index().is_some_and(|row| producer.model.borrow().mark_hovered == Some(row))
+                })
+                .to_string(),
             "networkMarkGeometry" => self.mark_geometry().unwrap_or_default(),
             "networkMarkCentre" => self.mark_centre().unwrap_or_default(),
-            // U27 installs recentMode with the actual Recent listing owner.
             _ => return None,
         };
         Some(Reply::value(value))

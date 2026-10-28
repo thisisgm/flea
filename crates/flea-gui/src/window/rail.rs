@@ -12,9 +12,7 @@ use crate::window::dispatch::Order;
 use crate::window::navigate::Step;
 use flea::i18n::I18n;
 use flea::jsondoc::Json;
-use gpui::{
-    AnyView, AppContext, Context, Entity, EventEmitter, Subscription, Window,
-};
+use gpui::{AnyView, AppContext, Context, Entity, EventEmitter, Subscription, Window};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -152,7 +150,8 @@ impl Shell {
         };
         let releasing = join.devices.read(cx).devices.releasing();
         if join.host.read(cx).rail.wants().releasing != releasing {
-            join.host.update(cx, |host, cx| host.releasing(releasing, cx));
+            join.host
+                .update(cx, |host, cx| host.releasing(releasing, cx));
         }
     }
 
@@ -273,6 +272,7 @@ impl Shell {
                         shell.device_request(Request { side, id, event }, window, cx)
                     });
                 }
+                Event::Recent(visits) => self.recent_completed(side, visits, window, cx),
                 event => self.dispatch(Order::Place(Request { side, id, event }), window, cx),
             }
         }
@@ -302,7 +302,8 @@ impl Shell {
         }
     }
 
-    pub(crate) fn settle_rail(&mut self, cx: &mut Context<Self>) {
+    pub(crate) fn settle_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.tags_sync(window, cx);
         let path = self.panes[self.focus_side]
             .as_ref()
             .map(|host| host.path.clone());
@@ -400,11 +401,11 @@ mod u08;
 mod device_tests;
 
 #[cfg(test)]
-#[path = "rail_reveal_tests.rs"]
-mod reveal_tests;
-#[cfg(test)]
 #[path = "network_readers_tests.rs"]
 mod network_readers;
+#[cfg(test)]
+#[path = "rail_reveal_tests.rs"]
+mod reveal_tests;
 
 #[path = "../g2/pl1/rail_events.rs"]
 mod device_events;

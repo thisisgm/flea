@@ -24,21 +24,23 @@ impl Session {
         let scored = candidates.len();
         #[cfg(test)]
         let phase_started = Instant::now();
-        let hits = searchindex::score_cached(&fuzzy, &candidates, &index, &mut self.score_scratch);
+        let mut hits = searchindex::score_cached(&fuzzy, &candidates, &index, &mut self.score_scratch);
         #[cfg(test)]
         { self.counters.phases.score = phase_started.elapsed(); }
         #[cfg(test)]
         { self.counters.rows_scored = scored; }
-        // Every match stays addressable for narrowing, whatever the window holds.
-        let (all, mut hits, below) = if fuzzy.defer {
+        // Every match stays addressable for narrowing, whatever the window holds, hidden typo rows included.
+        let (all, mut hits, below, hidden) = if fuzzy.defer {
             #[cfg(test)]
             let phase_started = Instant::now();
             let all: Vec<usize> = hits.iter().map(|(_, row)| *row).collect();
+            let mut counts = searchindex::class_counts(&hits);
+            let hidden = searchindex::hide_typos(&mut hits, &mut counts, fuzzy.budget);
             #[cfg(test)]
             { self.counters.phases.all = phase_started.elapsed(); }
             #[cfg(test)]
             let phase_started = Instant::now();
-            let last = searchindex::boundary(&hits, count);
+            let last = searchindex::last_class(&counts, count);
             let (mut head, mut below): (Vec<_>, Vec<_>) = hits.into_iter()
                 .partition(|hit| last.is_some_and(|last| searchindex::class(hit.0) <= last));
             below.append(&mut searchindex::resolve_head(&fuzzy, &index, &mut self.score_scratch, &mut head, count));
@@ -49,23 +51,28 @@ impl Session {
             crate::backend::searchprior::scale(priors, &self.scope, &self.folder, &index, &mut head, all.len());
             #[cfg(test)]
             { self.counters.phases.prior = phase_started.elapsed(); }
-            (all, head, below)
+            (all, head, below, hidden)
         } else {
-            #[cfg(test)]
-            let phase_started = Instant::now();
-            let mut hits = crate::backend::searchprior::rank(priors, &self.scope, &self.folder, &index, hits);
-            #[cfg(test)]
-            { self.counters.phases.prior = phase_started.elapsed(); }
+            // Tags filter rows before the typo rule reads them; priors still count every match, as when they ranked first.
+            let matched = hits.len();
             self.tags.keep(&mut hits, &terms);
             #[cfg(test)]
             let phase_started = Instant::now();
-            let all = hits.iter().map(|(_, row)| *row).collect();
+            let all: Vec<usize> = hits.iter().map(|(_, row)| *row).collect();
             #[cfg(test)]
             { self.counters.phases.all = phase_started.elapsed(); }
-            (all, hits, Vec::new())
+            let mut counts = searchindex::class_counts(&hits);
+            let hidden = searchindex::hide_typos(&mut hits, &mut counts, fuzzy.budget);
+            #[cfg(test)]
+            let phase_started = Instant::now();
+            crate::backend::searchprior::scale(priors, &self.scope, &self.folder, &index, &mut hits, matched);
+            #[cfg(test)]
+            { self.counters.phases.prior = phase_started.elapsed(); }
+            (all, hits, Vec::new(), hidden)
         };
+        let shown = all.len() - hidden;
         // Top-K first: the window is selected and ordered, and the rest waits in the session.
-        let window = count.min(all.len());
+        let window = count.min(shown);
         #[cfg(test)]
         let compares = std::cell::Cell::new(0usize);
         let cmp = |a: &(i32, usize), b: &(i32, usize)| {
@@ -96,7 +103,7 @@ impl Session {
             hits[..window].iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
         #[cfg(test)]
         { self.counters.phases.rows = phase_started.elapsed(); }
-        let total = all.len();
+        let total = shown;
         let indexed = index.len();
         self.matched_index_len = indexed;
         let partial = index.partial;

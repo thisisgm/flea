@@ -58,7 +58,7 @@ crates/flea-gui/tests/g1_10/restore.rs 429
 crates/flea-gui/tests/g1_10/strip.rs 778
 crates/flea-gui/tests/g1_10/transfer.rs 1277
 crates/flea-gui/tests/g1_03/sort.rs 472
-crates/flea-gui/tests/g1_03/sort_window.rs 506
+crates/flea-gui/tests/g1_03/sort_window.rs 508
 tests/csv-preview.qml 520
 shelf/Panel.qml 443
 shelf/ShelfCard.qml 444
@@ -238,7 +238,7 @@ ui/js/ColumnsCarry.js 103
 ui/js/Devices.js 440
 ui/js/Filter.js 284
 ui/js/Focus.js 492
-ui/js/Keymap.js 392
+ui/js/Keymap.js 393
 ui/js/Nav.js 328
 ui/js/Markdown.js 135
 ui/js/MdBlocks.js 437

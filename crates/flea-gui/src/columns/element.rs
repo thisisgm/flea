@@ -16,6 +16,8 @@ use gpui::{
     InspectorElementId, IntoElement, LayoutId, Pixels, Style, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc};
+#[path = "tags.rs"]
+mod tags;
 
 mod options;
 
@@ -32,6 +34,7 @@ pub struct TrackElement {
     words: Rc<crate::row::format::Words>,
     languages: bool,
     shown: Option<Rc<[usize]>>,
+    tag_slot: bool,
     locating: bool,
     query: Rc<str>,
 }
@@ -62,6 +65,7 @@ impl TrackElement {
             words,
             languages: true,
             shown: None,
+            tag_slot: false,
             locating: false,
             query: "".into(),
         }
@@ -162,8 +166,10 @@ impl Element for TrackElement {
             font: paint.typeface.font.clone(),
             body: paint.typeface.body,
             caption: paint.typeface.caption,
-            plain_cells: name_budget(width, shows_size, false, advance),
-            chevron_cells: name_budget(width, shows_size, true, advance),
+            plain_cells: name_budget(width, shows_size, false, advance)
+                .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
+            chevron_cells: name_budget(width, shows_size, true, advance)
+                .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
             clip_cells: ((GAP + CLIP) / advance.max(1.)).ceil() as usize,
             size: shows_size,
             languages: self.languages,
@@ -246,6 +252,7 @@ impl Element for TrackElement {
         cx: &mut App,
     ) {
         let palette = *palette;
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let paint = self.paint.borrow();
         let focus = &paint.drawn.as_ref().expect("prepainted track").focus;
         let view = &self.tracks[self.at];
@@ -253,7 +260,10 @@ impl Element for TrackElement {
         let active = view.slot == Slot::Active;
         let width = f32::from(bounds.size.width);
         let left = bounds.origin.x;
-        let grow = paint.drawn.as_ref().map_or(Grow::default(), |drawn| drawn.grow);
+        let grow = paint
+            .drawn
+            .as_ref()
+            .map_or(Grow::default(), |drawn| drawn.grow);
         let top_of = |at: usize| {
             bounds.origin.y + px(grow.top(paint.first + at, ROW_HEIGHT) - self.scroll_y.max(0.))
         };
@@ -332,6 +342,7 @@ impl Element for TrackElement {
                     let name = prepared.name_for(chevron, cursor);
                     let name_x = left + px(geometry.name_x);
                     paint_line(name, name_x, top, inks.name, window);
+                    let mut name_width = f32::from(name.line().width);
                     if let Some(location) = prepared.location.as_ref() {
                         let gap = GAP + if *clip != Clip::None { GAP + CLIP } else { 0. };
                         let bright = cursor
@@ -343,6 +354,18 @@ impl Element for TrackElement {
                             name_x + name.line().width + px(gap),
                             top,
                             if bright { inks.name } else { palette.muted },
+                            window,
+                        );
+                        name_width += gap + f32::from(location.line().width);
+                    }
+                    if let Some(Row::Listing(facts)) = row_at(&view.rows, held, *index) {
+                        tags::paint(
+                            facts,
+                            point(left, top),
+                            name_width,
+                            geometry,
+                            *clip,
+                            &theme,
                             window,
                         );
                     }

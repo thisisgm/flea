@@ -64,6 +64,12 @@ impl Shell {
                         shell.list_header_down(side, event, window, cx);
                     }),
                 )
+                .on_mouse_down(
+                    MouseButton::Right,
+                    cx.listener(move |shell, event, window, cx| {
+                        shell.header_menu_open(side, event, window, cx);
+                    }),
+                )
                 .child(HeaderElement::new(Rc::clone(&host.list)))
                 .child(header::probe_element(side, Rc::clone(&host.list)))
                 .into_any_element(),

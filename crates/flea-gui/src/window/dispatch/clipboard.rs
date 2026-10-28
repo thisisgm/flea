@@ -57,7 +57,7 @@ fn key(shell: &mut Shell, action: &str, window: &mut Window, cx: &mut Context<Sh
         "pasteAs"
             if shell.panes[side]
                 .as_ref()
-                .is_some_and(|host| flea::ui_logic_pk1::is_recent(host.pane.place())) =>
+                .is_some_and(|host| host.recent.on || flea::ui_logic_pk1::is_recent(host.pane.place())) =>
         {
             say(shell, side, flea::ui_logic_dg1::RECENT_PASTE, cx);
         }
@@ -66,6 +66,7 @@ fn key(shell: &mut Shell, action: &str, window: &mut Window, cx: &mut Context<Sh
             say(shell, side, "menu.refusal.empty_clipboard", cx);
         }
         "pasteAs" => shell.open_flyout("pasteAs", window, cx),
+        "tags" => shell.open_tags_menu(window, cx),
         _ => return false,
     }
     true
@@ -90,7 +91,28 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        self.menu_keyboard_open(window, cx);
+        let side = self.focus_side;
+        let background = action == "pasteAs"
+            && self.locked_folder(side).is_none()
+            && self.panes[side]
+                .as_ref()
+                .is_some_and(|host| host.pane.held.row(host.pane.cursor).is_none());
+        if background {
+            let pane = self.geometry(window).rows(
+                side,
+                self.view == crate::window::startup::View::Dual,
+                self.slots.strip_height_for(side),
+            );
+            self.open_menu(
+                side,
+                None,
+                (pane.x + pane.width / 2., pane.y + pane.height / 2.),
+                window,
+                cx,
+            );
+        } else {
+            self.menu_keyboard_open(window, cx);
+        }
         if self.menu.captured.is_none() {
             return;
         }
@@ -102,6 +124,10 @@ impl Shell {
 
     /// The flyout a key asked for before the menu drew; the menu's refresh calls this once it opens.
     pub(crate) fn flyout_pending(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        // The Tags flyout opens once its tagstates answer lands, so the leaves carry their marks.
+        if self.menu.flyout == Some("tags") && self.menu.tags_reading {
+            return;
+        }
         let Some(action) = self.menu.flyout.take() else {
             return;
         };

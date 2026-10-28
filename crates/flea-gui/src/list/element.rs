@@ -1,112 +1,29 @@
 //! The List Element: one custom Element for the whole pane, fixed-height rows painted as quads, marks and pre-shaped lines.
+pub use super::painted_row::{DropLine, Shown};
 pub use super::row_text::drawn_name;
-use super::row_text::{bold_name, prepare, run_of};
+use super::row_text::{bold_name, prepare};
 use super::{
     columns::{Column, Layout},
     pane::Held,
-    ListState, Metrics, Palette, RowState, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM,
-    GREY_CURSOR, HOVER, MATCH_WASH, TRACK,
+    ListState, Metrics, Palette, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM, GREY_CURSOR,
+    HOVER, MATCH_WASH, TRACK,
 };
-use crate::grid::element::Thumbnail;
 use crate::palette::Theme;
 use crate::row::{
-    cache::{Extra, Prepared, Shaping},
+    cache::{Extra, Shaping},
     format,
     marks::ClipMark,
 };
 use gpui::{
-    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
-    GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels,
-    SharedString, Style, TransformationMatrix, Window,
+    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,
+    GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, SharedString, Style,
+    TransformationMatrix, Window,
 };
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
 // Row.qml's loading bar draws at a fifth of the muted frame, so scrolling reads as loading.
 const LOADING: f32 = 0.2;
 pub use super::loading::loading_bar;
-
-/// The drag owner's caption for a drop target row, shaped once per label, face and size.
-pub struct DropLine {
-    label: SharedString,
-    font: Font,
-    size: Pixels,
-    run: GlyphRun,
-}
-
-impl DropLine {
-    fn shaped<'a>(
-        slot: &'a mut Option<DropLine>,
-        label: &SharedString,
-        font: &Font,
-        size: Pixels,
-        window: &Window,
-    ) -> &'a GlyphRun {
-        if !slot
-            .as_ref()
-            .is_some_and(|line| line.label == *label && line.font == *font && line.size == size)
-        {
-            let run = GlyphRun::new(window.text_system().layout_line(
-                label,
-                size,
-                &[run_of(label.len(), font)],
-                None,
-            ));
-            *slot = Some(DropLine {
-                label: label.clone(),
-                font: font.clone(),
-                size,
-                run,
-            });
-        }
-        &slot.as_ref().expect("shaped above").run
-    }
-}
-
-/// One visible row this frame: its index, its shaped lines once held, its clipboard mark and its states.
-#[derive(Clone)]
-pub struct Shown {
-    pub index: usize,
-    /// The position the row is drawn at: its index, or its place in a filter's drawn rows.
-    pub view: usize,
-    pub prepared: Option<Rc<Prepared>>,
-    pub clip: Option<ClipMark>,
-    pub state: RowState,
-    /// The thumbnail drawn in the mark slot, lent while the row's facts match the answer.
-    pub picture: Option<Arc<Thumbnail>>,
-}
-
-impl Shown {
-    fn name_line(&self) -> Option<&GlyphRun> {
-        let prepared = self.prepared.as_ref()?;
-        Some(
-            prepared
-                .bold
-                .get()
-                .filter(|_| self.state.cursor)
-                .unwrap_or(&prepared.name),
-        )
-    }
-
-    fn name_slot(&self, mut name: Bounds<Pixels>, metrics: &Metrics) -> Bounds<Pixels> {
-        if self.clip.is_some() {
-            name.size.width = (name.size.width - px(metrics.gap + metrics.clip)).max(px(0.));
-        }
-        name
-    }
-
-    /// The clipboard bounds used by paint, following the same run and mask as the visible name.
-    pub fn clip_bounds(&self, name: Bounds<Pixels>, metrics: &Metrics) -> Option<Bounds<Pixels>> {
-        if self.state.renaming {
-            return None;
-        }
-        Some(self.clip?.bounds(
-            self.name_slot(name, metrics),
-            self.name_line()?.line().width,
-            px(metrics.clip),
-            px(metrics.gap),
-        ))
-    }
-}
 
 // The list surface's fixed row height: the scroll model and every reader share it from here.
 pub const ROW_HEIGHT: f32 = 31.;
@@ -438,6 +355,7 @@ impl Element for ListElement {
             row_width,
             caption,
         } = *frame;
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let state = self.state.borrow();
         let view = &state.view;
         let left = bounds.origin.x;
@@ -520,7 +438,15 @@ impl Element for ListElement {
                     for shown in &state.visible {
                         let lifted = shown.state.lifted();
                         let top = top_of(shown.view);
-                        let (marks, pictures) = super::picker::paint_icon(shown, view, metrics, palette, (left, top, self.held.row(shown.index)), window, cx);
+                        let (marks, pictures) = super::picker::paint_icon(
+                            shown,
+                            view,
+                            metrics,
+                            palette,
+                            (left, top, self.held.row(shown.index)),
+                            window,
+                            cx,
+                        );
                         marks_painted += marks;
                         pictures_painted += pictures;
                         let Some(prepared) = &shown.prepared else {
@@ -608,6 +534,7 @@ impl Element for ListElement {
                             }
                         }
                     });
+                    super::tags::paint(&state, &self.held, bounds, &theme, window);
                     // RowDropTarget.qml: the label is an accent caption at the row's right padding, in place of the hidden cells.
                     if let (Some((_, caption)), Some(line)) = (state.drawn.drop, &state.drop_line) {
                         paint_line(

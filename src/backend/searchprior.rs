@@ -168,13 +168,7 @@ pub(crate) fn loaded() -> Option<&'static Priors> {
     GLOBAL.get().and_then(Load::loaded)
 }
 
-pub(crate) fn rank(priors: Option<&Priors>, scope: &Path, folder: &Path, index: &Index, mut hits: Vec<(i32, usize)>) -> Vec<(i32, usize)> {
-    let matched = hits.len();
-    scale(priors, scope, folder, index, &mut hits, matched);
-    hits
-}
-
-// Bonuses for part of a match set of `matched` hits, applied exactly when rank applies them to the whole set.
+// Bonuses for part of a match set of `matched` hits, the same ones scaling the whole set gives them.
 pub(crate) fn scale(priors: Option<&Priors>, scope: &Path, folder: &Path, index: &Index, hits: &mut [(i32, usize)], matched: usize) {
     if matched > 1 {
         if let Some(priors) = priors.filter(|priors| !priors.is_empty()) { priors.apply(scope, folder, index, hits); }

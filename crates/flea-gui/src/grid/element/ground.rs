@@ -3,7 +3,10 @@ use super::{Drawn, GridState, Ink};
 use crate::grid::geometry::Rect;
 use gpui::{point, px, size, Bounds, GlyphRun, Hsla, Pixels, TextRun, Window};
 
-pub(super) fn bounds_of(origin: gpui::Point<Pixels>, rect: Rect) -> Bounds<Pixels> {
+pub(in crate::grid::element) fn bounds_of(
+    origin: gpui::Point<Pixels>,
+    rect: Rect,
+) -> Bounds<Pixels> {
     Bounds::new(
         point(origin.x + px(rect.x), origin.y + px(rect.y)),
         size(px(rect.width), px(rect.height)),

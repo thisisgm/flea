@@ -51,6 +51,8 @@ fn landed() -> Listing {
                 link: None,
                 real_modes: true,
                 kind: String::new(),
+                inline: None,
+                tags: None,
             },
             RowFacts {
                 name: "a.txt".into(),
@@ -62,6 +64,8 @@ fn landed() -> Listing {
                 link: None,
                 real_modes: true,
                 kind: String::new(),
+                inline: None,
+                tags: None,
             },
         ]
     ));
@@ -73,7 +77,12 @@ fn default_return_and_enter_look_up_as_open_and_activate() {
     assert_eq!(looked("default", key("Return")), "open");
     assert_eq!(looked("default", key("Enter")), "open");
     assert!(activates(looked("default", key("Return")), RET, RET, ENTER));
-    assert!(activates(looked("default", key("Enter")), ENTER, RET, ENTER));
+    assert!(activates(
+        looked("default", key("Enter")),
+        ENTER,
+        RET,
+        ENTER
+    ));
 }
 
 #[test]
@@ -112,10 +121,26 @@ fn open_and_page_forward_activate_parent_and_escape_never_do() {
 #[test]
 fn esc_clears_a_set_filter_first_then_cancels() {
     let mut list = landed();
-    assert_eq!(looked("default", key("Escape")), "escape", "Escape reaches the listing through the G1.04 table");
-    assert_eq!(list.escape(), super::listing::Escape::Cancel, "without a filter the window cancels at once");
+    assert_eq!(
+        looked("default", key("Escape")),
+        "escape",
+        "Escape reaches the listing through the G1.04 table"
+    );
+    assert_eq!(
+        list.escape(),
+        super::listing::Escape::Cancel,
+        "without a filter the window cancels at once"
+    );
     list.filter_line("notes");
-    assert_eq!(list.escape(), super::listing::Escape::ClearedFilter, "a set filter clears first");
+    assert_eq!(
+        list.escape(),
+        super::listing::Escape::ClearedFilter,
+        "a set filter clears first"
+    );
     assert!(list.facts().filtered.is_none());
-    assert_eq!(list.escape(), super::listing::Escape::Cancel, "the second esc cancels");
+    assert_eq!(
+        list.escape(),
+        super::listing::Escape::Cancel,
+        "the second esc cancels"
+    );
 }

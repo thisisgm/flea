@@ -14,6 +14,7 @@ fn settle(shell: &mut crate::state::Shell) {
         );
         let facts = crate::backend::status::Filesystem {
             class: String::new(),
+            tagable: None,
             path: host.path.clone(),
             name: "testfs".into(),
             free: 1_073_741_824,

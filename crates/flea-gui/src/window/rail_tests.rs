@@ -138,10 +138,15 @@ fn u08_composition_paints_rows_and_readers_report_the_drawn_centres(cx: &mut Tes
     assert_eq!(ipc(&shell, "railCursor", &[], cx).stdout.trim(), "1");
     assert_eq!(ipc(&shell, "focusView", &[], cx).stdout.trim(), "rail");
     assert_eq!(ipc(&shell, "railRowCentre", &["99"], cx).stdout.trim(), "");
+    let idle = ipc(&shell, "recentMode", &[], cx);
     assert_eq!(
-        ipc(&shell, "recentMode", &[], cx).code,
-        3,
-        "an unmounted Recent listing retains its refusal"
+        idle.code, 0,
+        "the Recent reader answers on the running window"
+    );
+    assert_eq!(
+        idle.stdout.trim(),
+        "",
+        "a pane outside Recent reads an empty mode"
     );
 }
 
@@ -212,7 +217,10 @@ fn ey205_docked_rail_reports_revealed_while_the_keyboard_holds_it(cx: &mut TestA
         window.focus(&shell.focus, cx);
     });
     frame(cx);
-    assert!(!revealed(&shell, cx), "Tab out withdraws the reveal at once");
+    assert!(
+        !revealed(&shell, cx),
+        "Tab out withdraws the reveal at once"
+    );
 }
 
 #[gpui::test]
@@ -363,14 +371,6 @@ fn review_u08_r1_editor_click_never_activates_its_share(cx: &mut TestAppContext)
 #[gpui::test]
 fn review_u08_r1_recent_completion_keeps_origin_pane(cx: &mut TestAppContext) {
     let (shell, cx) = open(false, cx);
-    let heard = Rc::new(RefCell::new(Vec::<Request>::new()));
-    let sink = heard.clone();
-    cx.update(|_, cx| {
-        cx.subscribe(&shell, move |_, request: &Request, _| {
-            sink.borrow_mut().push(request.clone())
-        })
-        .detach()
-    });
     shell.update(cx, |shell, cx| {
         shell.view = crate::window::startup::View::Dual;
         shell.panes[1] = Some(crate::window::pane::PaneHost::new(
@@ -387,10 +387,14 @@ fn review_u08_r1_recent_completion_keeps_origin_pane(cx: &mut TestAppContext) {
     });
     cx.run_until_parked();
     frame(cx);
-    let events = heard.borrow();
-    let request = events.iter().find(|request| matches!(request.event, Event::Recent(_)))
-        .expect("the real history reader must publish a completion");
-    assert_eq!(request.side, 0, "Recent started on the left but was addressed to the right");
+    let (left, right) = shell.read_with(cx, |shell, _| {
+        (
+            shell.panes[0].as_ref().unwrap().recent.on,
+            shell.panes[1].as_ref().unwrap().recent.on,
+        )
+    });
+    assert!(left, "Recent started on the left and must complete there");
+    assert!(!right, "Recent started on the left but was applied to the right");
 }
 
 #[gpui::test]
@@ -406,3 +410,6 @@ fn review_u08_r1_current_place_keeps_deepest_ancestor_highlight(cx: &mut TestApp
 }
 
 }
+
+#[path = "tag_places_tests.rs"]
+mod tag_places_tests;

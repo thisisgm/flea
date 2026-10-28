@@ -120,7 +120,7 @@ fn a_malformed_scroll_answer_after_a_failed_sort_window_settles_its_request() {
     );
 }
 
-// A sort from a scrolled view asks the top window twice; its own fails after a resize, and the first late answer is the view's.
+// Home during a scrolled sort asks another top window; the sort's own fails after a resize, and the first late answer is the view's.
 fn resized_before_a_failed_sort_window() -> (Pane, usize, Option<(usize, usize)>) {
     let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
     pane.scroll_to(400. * 31.);
@@ -137,10 +137,11 @@ fn resized_before_a_failed_sort_window() -> (Pane, usize, Option<(usize, usize)>
     assert_eq!(scrolled, Ok(true));
     assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
     let asked = window_count(&mut nav);
+    pane.move_cursor(flea_gui::pane::Move::Home);
     assert_eq!(
         pane.wanted_window(),
         Some((0, asked)),
-        "the reordered top is not held, so the view asks it too"
+        "Home asks the missing top while the sort's own window is still out"
     );
     pane.set_height(900.);
     pane.receive_at(
@@ -305,7 +306,7 @@ fn a_window_error_under_a_listed_line_no_sort_asked_settles_the_view_request() {
     assert_eq!((pane.held.listing, pane.cursor), (2, 0));
 }
 
-// A second sort while the view's top window is still out after the first sort's window failed.
+// A second sort while Home's top window is still out after the first sort's window failed.
 fn resorted_after_a_failed_sort_window() -> (Pane, Navigator, usize, usize, Option<(usize, usize)>)
 {
     let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
@@ -323,10 +324,11 @@ fn resorted_after_a_failed_sort_window() -> (Pane, Navigator, usize, usize, Opti
     assert_eq!(scrolled, Ok(true));
     assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
     let asked = window_count(&mut nav);
+    pane.move_cursor(flea_gui::pane::Move::Home);
     assert_eq!(
         pane.wanted_window(),
         Some((0, asked)),
-        "the reordered top is not held, so the view asks it too"
+        "Home asks the missing top while the sort's own window is still out"
     );
     pane.receive_at(
         Reply::Listed {

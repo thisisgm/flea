@@ -127,6 +127,22 @@ impl DirSizes {
         next
     }
 
+    // A live answer's own walked sizes land on their absolute rows, over any carried size for the same row.
+    pub fn inlined(&mut self, rows: &[RowFacts], start: usize, cap: usize) {
+        for (at, row) in rows.iter().enumerate() {
+            if let Some(bytes) = row.inline {
+                self.remember(
+                    start + at,
+                    Size {
+                        bytes,
+                        partial: false,
+                    },
+                    cap,
+                );
+            }
+        }
+    }
+
     pub fn remember(&mut self, row: usize, size: Size, cap: usize) {
         if self.file.insert(row, Some(size)).is_none() {
             self.order.push_back(row);
@@ -159,7 +175,31 @@ pub fn wants_sizes(view: &str, hidden_columns: &[&str], class: &str, known: bool
         && !(view == "list" && hidden_columns.contains(&"size"))
 }
 
+// A submitted folder choice already drives a sort or re-list; acknowledge it before its disk echo.
+pub(crate) fn apply_own_patch(data: &mut flea::jsondoc::Json, command: &super::Command) {
+    let super::Command::Persist(text) = command else {
+        return;
+    };
+    if let Some(next) = flea::jsondoc::parse(text)
+        .ok()
+        .filter(|patch| patch.get("folderSorts").is_some())
+        .and_then(|patch| flea::uistate::patched(data, &patch).ok())
+    {
+        *data = next;
+    }
+}
+
 impl super::Navigator {
+    // Explicit settings changes read the folder choice again; file-watch re-reads keep each tab's order.
+    pub(crate) fn reread_preferences(
+        &mut self,
+        pane: &mut crate::pane::Pane,
+        selected: &[usize],
+    ) -> bool {
+        self.orders.preferences = None;
+        self.reread(pane, selected, true, false)
+    }
+
     // A pending listing or sort has no settled path/order pair to hand to another window.
     pub fn sort_snapshot(&self, pane: &crate::pane::Pane) -> Result<Snapshot, super::Refusal> {
         if pane.busy()
@@ -252,10 +292,8 @@ impl super::Navigator {
                 self.persist(patch, failure);
             }
         }
-        // A reorder moves every row, so row-indexed marks would silently name different files.
+        // Clear row-indexed marks now; keep the retained cursor and viewport until sorted rows land.
         selected.clear();
-        pane.cursor = 0;
-        pane.scroll_to(0.);
         // While a pair is armed, a request out at the resorted top answers before this sort's listed line, so the pair takes it at its own count.
         if pane.swap.unheld_total.is_none()
             || pane
@@ -345,5 +383,31 @@ impl super::Navigator {
             Some(Request::Forget) => self.forget_sort(pane, failure),
             None => Ok(false),
         }
+    }
+}
+
+#[cfg(test)]
+mod inline_tests {
+    use super::*;
+
+    #[test]
+    fn pb_rest_inline_sizes_answer_their_absolute_rows_only() {
+        let mut sizes = DirSizes::default();
+        let rows = vec![
+            RowFacts::default(),
+            RowFacts {
+                inline: Some(96),
+                ..Default::default()
+            },
+        ];
+        sizes.inlined(&rows, 10, 240);
+        assert_eq!(sizes.size_for(10), None);
+        assert_eq!(
+            sizes.size_for(11),
+            Some(Size {
+                bytes: 96,
+                partial: false
+            })
+        );
     }
 }

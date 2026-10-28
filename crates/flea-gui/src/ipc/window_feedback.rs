@@ -56,6 +56,14 @@ impl Adapter for FeedbackAdapter<'_> {
                     .join(",");
                 format!("{{\"active\":{active},\"owner\":-1,\"rect\":\"\",\"baseUri\":\"\",\"cursor\":-1,\"paneRects\":[{panes}]}}")
             }
+            // Browser.close keeps the cursor, so a closed browser still answers the row it was left on.
+            "shareBrowserCursor" => self
+                .shell
+                .rail
+                .as_ref()
+                .and_then(|rail| rail.network.as_ref())
+                .map_or(0, |network| network.shares.read(self.cx).model.cursor)
+                .to_string(),
             "statusBusy" | "statusSecondary" => {
                 let Some(footer) = &self.shell.surfaces[0].footer else {
                     return Some(Reply::error(3, format!("FLEA_IPC_ERROR flea.{function} unavailable state: the window footer is not mounted")));

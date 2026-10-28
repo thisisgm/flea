@@ -82,7 +82,7 @@ impl MarkdownView {
             .iter()
             .map(|(kind, source, _)| (*kind, source.clone()))
             .collect();
-        if figures.is_empty() || self.shown_view() != super::View::Rendered {
+        if self.preparing || figures.is_empty() || self.shown_view() != super::View::Rendered {
             return;
         }
         let (math, mermaid) = (
@@ -123,33 +123,59 @@ impl MarkdownView {
                 self.doc.pictures.insert(url, PictureState::Failed);
                 continue;
             }
+            if self.preparing
+                && self.doc.pictures.len()
+                    >= flea::ui_logic_pv2::markdown::markdown_prepared::PICTURE_LIMIT
+            {
+                continue;
+            }
             self.doc.pictures.insert(url.clone(), PictureState::Asked);
-            self.decoder
-                .picture(self.doc.seq, url, PathBuf::from(path), self.scale);
+            if self.preparing {
+                self.decoder.picture_limited(
+                    self.doc.seq,
+                    url,
+                    PathBuf::from(path),
+                    self.scale,
+                    flea::ui_logic_pv2::markdown::markdown_prepared::PICTURE_MAX_BYTES,
+                );
+            } else {
+                self.decoder
+                    .picture(self.doc.seq, url, PathBuf::from(path), self.scale);
+            }
         }
     }
 
     // The figures, formulas and fence colours one shown block asks for, each once.
     pub(super) fn ask_for(&mut self, i: usize, cx: &mut Context<Self>) {
-        for ordinal in self.doc.ordinals(i, |c| c.figure) {
-            let asked = self.doc.figure_tickets.values().any(|o| *o == ordinal)
-                || self.doc.assets.figures.contains_key(&ordinal);
-            let Some((kind, source, _)) = self.doc.parsed.asks.figures.get(ordinal).cloned() else {
-                continue;
-            };
-            if asked {
-                continue;
+        if !self.preparing {
+            for ordinal in self.doc.ordinals(i, |c| c.figure) {
+                let asked = self.doc.figure_tickets.values().any(|o| *o == ordinal)
+                    || self.doc.assets.figures.contains_key(&ordinal);
+                let Some((kind, source, _)) = self.doc.parsed.asks.figures.get(ordinal).cloned()
+                else {
+                    continue;
+                };
+                if asked {
+                    continue;
+                }
+                let theme = self.figure_theme(kind);
+                let ticket = self
+                    .figures
+                    .update(cx, |host, cx| host.ask(kind, &source, true, &theme, cx));
+                self.doc.figure_tickets.insert(ticket, ordinal);
             }
-            let theme = self.figure_theme(kind);
-            let ticket = self
-                .figures
-                .update(cx, |host, cx| host.ask(kind, &source, true, &theme, cx));
-            self.doc.figure_tickets.insert(ticket, ordinal);
         }
         for ordinal in self.doc.ordinals(i, |c| c.formula) {
             let Some(source) = self.doc.parsed.asks.formulas.get(ordinal).cloned() else {
                 continue;
             };
+            if self.preparing
+                && !self.doc.formula_sources.contains_key(&source)
+                && self.doc.formula_sources.len()
+                    >= flea::ui_logic_pv2::markdown::markdown_prepared::FORMULA_LIMIT
+            {
+                continue;
+            }
             if let Some(ticket) = self.doc.formula_sources.get(&source).copied() {
                 let ordinals = self.doc.formula_tickets.entry(ticket).or_default();
                 if !ordinals.contains(&ordinal)
@@ -170,6 +196,9 @@ impl MarkdownView {
                 .entry(ticket)
                 .or_default()
                 .push(ordinal);
+        }
+        if self.preparing {
+            return;
         }
         for ordinal in self.doc.ordinals(i, |c| c.fence) {
             self.ask_fence(ordinal);

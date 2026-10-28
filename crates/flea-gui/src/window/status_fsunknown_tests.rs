@@ -121,6 +121,7 @@ fn ey65_pending_answer_is_empty_then_known_facts_survive_an_error(cx: &mut TestA
                 0,
                 BackendEvent::Filesystem(Filesystem {
                     class: String::new(),
+                    tagable: None,
                     path: "/files".into(),
                     name: "btrfs".into(),
                     free: 442_000_000_000,

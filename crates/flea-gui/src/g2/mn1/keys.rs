@@ -11,6 +11,12 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if (self.menu_opened() || self.menu.presentation.at.is_some())
+            && matches!(event.keystroke.key.as_str(), "tab" | "backtab")
+        {
+            cx.stop_propagation();
+            return true;
+        }
         if self.menu.presentation.at.is_some() {
             if event.keystroke.key == "escape" {
                 self.retire_menu(window, cx);
@@ -42,7 +48,7 @@ impl Shell {
                     .borrow();
                 let env = self.menu_env(&list.typeface);
                 let live = self.menu_entries();
-                let outcome = if action == "copyAs" || action == "pasteAs" {
+                let outcome = if matches!(action, "copyAs" | "pasteAs" | "tags") {
                     self.menu.menu.borrow_mut().open_submenu_for(
                         action,
                         self.menu.context.clipboard_available,
@@ -83,9 +89,12 @@ impl Shell {
                 self.retire_menu(window, cx);
             }
             Outcome::Fire { action, leaf } => {
-                // A Tags choice keeps the menu up, so its keys stay with the menu until the answer lands.
                 if action != "tags" {
                     self.keyboard.context = flea::keys::Context::Listing;
+                }
+                if self.menu.activating || (self.menu.reading && self.menu.pending.is_some()) {
+                    self.menu.tags.choices.push_back((action, leaf));
+                    return;
                 }
                 self.menu.pending = Some((action, leaf));
                 self.activate_menu(window, cx);

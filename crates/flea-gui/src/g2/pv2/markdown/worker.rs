@@ -151,6 +151,8 @@ pub struct Parse {
     pub words: md::Words,
     /// Hand the first blocks over ahead of the rest, for a document with nothing drawn yet.
     pub head: bool,
+    pub max_bytes: u64,
+    pub previous: Option<Arc<str>>,
 }
 
 pub struct Lay {
@@ -169,6 +171,9 @@ pub struct Lay {
 }
 
 pub enum Reply {
+    Verified {
+        seq: u64,
+    },
     Read {
         seq: u64,
         read: Read,
@@ -275,7 +280,14 @@ fn parse_loop(
         } else {
             MAX_BYTES
         };
-        let read = read(&path, limit);
+        let read = read(&path, limit.min(parse.max_bytes));
+        if matches!(&read, Read::Text(text, _) if parse.previous.as_ref().is_some_and(|previous| previous.as_ref() == text.as_ref()))
+        {
+            if outbox.send_blocking(Reply::Verified { seq }).is_err() {
+                return;
+            }
+            continue;
+        }
         let text = match &read {
             Read::Text(text, _) => Some(Arc::clone(text)),
             _ => None,

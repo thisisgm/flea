@@ -141,7 +141,13 @@ fn ey164_copy_as_leaves_copy_their_value(cx: &mut TestAppContext) {
             .to_string_lossy()
             .into_owned();
         let want = want.replace("{path}", &path).replace("{root}", &root);
-        fire(cx, &mut fixture, "copyAs", leaf, std::slice::from_ref(&path));
+        fire(
+            cx,
+            &mut fixture,
+            "copyAs",
+            leaf,
+            std::slice::from_ref(&path),
+        );
         let words = said(cx, &fixture);
         assert!(
             !words.contains("no longer available"),
@@ -270,7 +276,13 @@ fn ey195_add_to_shelf_adds_the_item(cx: &mut TestAppContext) {
         });
         fixture.open(cx, 1, vec![]);
         let path = fixture.root.join(name).to_string_lossy().into_owned();
-        fire(cx, &mut fixture, "addToShelf", "", std::slice::from_ref(&path));
+        fire(
+            cx,
+            &mut fixture,
+            "addToShelf",
+            "",
+            std::slice::from_ref(&path),
+        );
         let words = said(cx, &fixture);
         assert!(
             !words.contains("no longer available"),
@@ -316,15 +328,53 @@ fn ey224_tag_leaf_tags_the_row(cx: &mut TestAppContext) {
         .filter_map(Json::as_f64)
         .collect();
     assert_eq!(rows, vec![1.]);
+    let (backend, mut windows) = crate::backend::Backend::test_channel();
+    let (original, held) = update(cx, fixture.handle, |shell, _, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        (
+            host.backend.replace(backend),
+            std::rc::Rc::clone(&host.pane.held),
+        )
+    });
     fixture.receive(cx, r#"{"t":"settagged","ok":1,"op":"add"}"#);
     assert_eq!(said(cx, &fixture), "Tagged 1 item Red · z undoes");
     assert!(
-        fixture
-            .drain()
-            .iter()
-            .any(|r| r.get("c").and_then(Json::as_str) == Some("tagstates")),
-        "the answer re-reads the tags so the open flyout marks what is in effect"
+        update(cx, fixture.handle, |shell, _, _| {
+            shell.menu.tags.asked_for_test().is_some()
+        }),
+        "the completion requests the captured tag state"
     );
+    let (start, count) =
+        windows().expect("the answer rereads the held rows so the red square shows");
+    assert_eq!(start, held.start);
+    assert!(count > 0);
+    update(cx, fixture.handle, |shell, window, cx| {
+        shell.panes[0].as_mut().unwrap().backend = original;
+        let mut rows = held.rows.iter().take(count).cloned().collect::<Vec<_>>();
+        rows[1].tags = Some(vec!["Red".into()]);
+        shell.receive(
+            0,
+            crate::backend::Event::Reply(Reply::Rows {
+                start,
+                listing: held.listing,
+                rows,
+            }),
+            window,
+            cx,
+        );
+        assert_eq!(
+            shell.panes[0]
+                .as_ref()
+                .unwrap()
+                .pane
+                .held
+                .row(1)
+                .unwrap()
+                .tags
+                .as_deref(),
+            Some(&["Red".to_owned()][..])
+        );
+    });
 }
 
 // A settagged answer with no menu toggle waiting is not the menu's, so the menu passes it on instead of swallowing it.
@@ -370,7 +420,9 @@ fn red_mark(cx: &mut TestAppContext, fixture: &Fixture) -> Option<bool> {
             .entries
             .iter()
             .find(|e| e.id == "tag1")?
-            .check
+            .tag_state
+            .filter(|state| *state != flea::ui_logic_pl4::tags::State::Absent)
+            .map(|state| state == flea::ui_logic_pl4::tags::State::Applied)
     })
 }
 

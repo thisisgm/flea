@@ -4,7 +4,7 @@ use super::*;
 pub(super) fn paint_mark(
     row: &LaidRow,
     palette: &Palette,
-    digit: Option<&text::Prepared>,
+    _digit: Option<&text::Prepared>,
     metrics: &RailMetrics,
     window: &mut Window,
     cx: &mut App,
@@ -20,25 +20,9 @@ pub(super) fn paint_mark(
                 ),
                 size(px(metrics.tag), px(metrics.tag)),
             );
-            if let Some(colour) = tag.fill {
-                window.paint_quad(fill(box_, colour));
-            } else if let Some(digit) = digit {
-                window.paint_quad(gpui::quad(
-                    box_,
-                    px(0.),
-                    palette.background,
-                    px(2.),
-                    palette.foreground,
-                    gpui::BorderStyle::Solid,
-                ));
-                digit.paint(
-                    f32::from(box_.origin.x) + (metrics.tag - digit.width) / 2.,
-                    f32::from(box_.origin.y),
-                    metrics.tag,
-                    palette.foreground,
-                    window,
-                );
-            }
+            let mut colour = tag.fill.unwrap_or(palette.foreground);
+            colour.a = 1.;
+            window.paint_quad(fill(box_, colour));
         }
         RowMark::Square(square) => {
             use flea::ui_logic_pl4::rail::Square;

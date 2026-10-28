@@ -1,7 +1,7 @@
 // Scoring visits candidate name ids and their parents; reusable storage belongs to the session.
 use super::*;
 use crate::backend::searchmatch::{fold, Matcher, State, ALIGNED, BASENAME_BONUS, BOUNDARY_BONUS, EXACT, HIT_SPAN, NAME, PENDING_ALIGNED, PENDING_NAME,
-    PENDING_PATH, PREFIX, RUN_BONUS, WORD};
+    PENDING_PATH, PREFIX, RUN_BONUS, SHADOW_TYPO, WORD};
 use crate::backend::searchbits;
 
 #[path = "searchscratch.rs"]
@@ -80,7 +80,7 @@ pub(crate) fn score_cached(matcher: &Matcher, rows: &[usize], index: &Index, scr
                 fold(index.names.get(entry.name), &mut scratch.letters);
                 scratch.path_letters.extend_from_slice(&scratch.letters);
                 score = score.max(matcher.distance(&scratch.path_letters, &mut scratch.edits)
-                    .map(|distance| crate::backend::searchmatch::TYPO - distance as i32 * 1000));
+                    .map(|distance| crate::backend::searchmatch::TYPO - distance as i32 * crate::backend::searchmatch::TYPO_EDIT));
             }
             #[cfg(test)]
             index.paths_scored.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -103,14 +103,33 @@ pub(crate) fn class(score: i32) -> usize {
     }
 }
 
-// The last class the best `window` hits reach; None when the window is empty.
-pub(crate) fn boundary(hits: &[(i32, usize)], window: usize) -> Option<usize> {
-    let window = window.min(hits.len());
-    if window == 0 { return None; }
+// The pass-1 hits of each class, best class first.
+pub(crate) fn class_counts(hits: &[(i32, usize)]) -> [usize; CLASSES] {
     let mut counts = [0usize; CLASSES];
     for hit in hits { counts[class(hit.0)] += 1; }
+    counts
+}
+
+// The last class the best `window` hits reach; None when the window is empty.
+pub(crate) fn boundary(hits: &[(i32, usize)], window: usize) -> Option<usize> {
+    last_class(&class_counts(hits), window)
+}
+
+pub(crate) fn last_class(counts: &[usize; CLASSES], window: usize) -> Option<usize> {
+    let window = window.min(counts.iter().sum());
+    if window == 0 { return None; }
     let mut reached = 0;
     counts.iter().position(|&count| { reached += count; reached >= window })
+}
+
+// Shadow rows are never listed, and typo rows only when no basename holds the query exactly, as its prefix or at a word start.
+pub(crate) fn hide_typos(hits: &mut Vec<(i32, usize)>, counts: &mut [usize; CLASSES], budget: usize) -> usize {
+    if budget == 0 || counts[CLASSES - 1] == 0 { return 0; }
+    let real = counts[..=class(WORD)].iter().any(|&count| count > 0);
+    let before = hits.len();
+    hits.retain(|hit| class(hit.0) < CLASSES - 1 || (!real && hit.0 > SHADOW_TYPO));
+    counts[CLASSES - 1] -= before - hits.len();
+    before - hits.len()
 }
 
 // The head resolved, minus every row scored or bounded under the window's floor; path-only rows bounded under it skip their DP.
