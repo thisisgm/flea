@@ -98,7 +98,7 @@ pub fn rule(columns: usize, preview: bool, bottom: bool, theme: &Theme) -> Strin
     format!("{}{}{}", theme.border, rule.into_iter().collect::<String>(), theme.base())
 }
 pub fn focused(m: &Model) -> bool {
-    m.printing.card.is_none() && !m.preview_focus && !m.menu && !m.sheet && m.deletion.is_none() && !m.quicklook
+    m.converting.card.is_none() && m.printing.card.is_none() && !m.preview_focus && !m.menu && !m.sheet && m.deletion.is_none() && !m.quicklook
         && m.editor.as_ref().map_or(m.prompts.question.is_none(), |editor| matches!(editor.kind, "filter" | "search"))
 }
 pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {

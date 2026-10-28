@@ -204,6 +204,7 @@ pub struct Model {
     pub launches: Vec<(String, std::process::Child)>,
     pub bulk: Option<super::batch::Batch>,
     pub deletion: Option<Deletion>,
+    pub converting: super::convert::State,
     pub printing: super::print::State,
     pub restore_marks: BTreeMap<PathBuf, Row>,
     pub restore_selection: BTreeSet<PathBuf>,
@@ -378,6 +379,7 @@ impl Model {
             launches: Vec::new(),
             bulk: None,
             deletion: None,
+            converting: super::convert::State::default(),
             printing: super::print::State::default(),
             restore_marks: BTreeMap::new(),
             restore_selection: BTreeSet::new(),
@@ -727,6 +729,7 @@ impl Model {
         }
     }
     pub fn receive(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
+        if super::convert::receive(self, &value, wire)? { return Ok(()); }
         if super::print::receive(self, &value, wire)? { return Ok(()); }
         if super::contents::receive(self, &value, wire)? { return Ok(()); }
         match text(&value, "t") {
