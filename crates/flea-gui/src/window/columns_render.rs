@@ -21,6 +21,25 @@ impl Shell {
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let no_match = self.no_match_hero(side, window, cx);
+        let stranded = self.panes[side].as_mut().is_some_and(|host| {
+            let Some(columns) = host.columns.as_mut() else {
+                return false;
+            };
+            let tracks = Rc::clone(columns.area.tracks());
+            let mut released = false;
+            for (index, bar) in columns.bars.iter_mut().enumerate() {
+                let drawn = tracks.iter().any(|view| {
+                    view.slot.index() == index && !matches!(view.rows, TrackRows::Preview)
+                });
+                if !drawn && bar.input.grab.take().is_some() {
+                    released = true;
+                }
+            }
+            released
+        });
+        if stranded {
+            self.hold_pointer(side, false, window, cx);
+        }
         let host = self.panes[side].as_mut()?;
         let columns = host.columns.as_mut()?;
         let tracks = Rc::clone(columns.area.tracks());
@@ -118,6 +137,9 @@ impl Shell {
                 .h_full()
                 .overflow_hidden()
                 .child(element);
+            if !matches!(view.rows, TrackRows::Preview) {
+                track = track.child(super::scroll::surface(cx.entity(), side, view.slot, palette));
+            }
             if matches!(view.rows, TrackRows::Preview) {
                 if columns.preview_hosted {
                     if let Some(preview) = &host.preview {
