@@ -21,6 +21,9 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         }
         return Ok(());
     }
+    if model.printing.card.is_some() {
+        return super::print::key(model, key, wire);
+    }
     if model.deletion.is_some() {
         return super::render::cards::delete_key(model, key, wire);
     }
@@ -49,6 +52,9 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     }
     if model.editor.is_some() {
         return edit(model, key, wire);
+    }
+    if super::contents::holding(model) && map.action(key, &model.preset) == "print" {
+        return super::print::open(model, wire, false);
     }
     if find_holds(model, &map.action(key, &model.preset)) {
         return Ok(());
@@ -231,6 +237,9 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     act(model, &action, wire)
 }
 pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
+    if action == "print" && super::contents::holding(m) {
+        return super::print::open(m, w, false);
+    }
     if find_holds(m, action) {
         return Ok(());
     }
@@ -328,6 +337,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         m.sort_anchor = None;
     }
     match action {
+        "print" => super::print::open(m, w, false)?,
         "cursorDown" => m.move_by(1, false, w)?,
         "cursorUp" => m.move_by(-1, false, w)?,
         "extendDown" => m.move_by(1, true, w)?,
@@ -705,6 +715,9 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             }
         }
         "escape" => {
+            if super::print::cancel(m, w)? {
+                return Ok(());
+            }
             if let Some(batch) = &mut m.bulk {
                 batch.cancelled = true;
                 return Ok(());

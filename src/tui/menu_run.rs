@@ -24,9 +24,8 @@ pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     view.actions.clear();
     view.row = row;
     super::cards::probe(&m.rounded);
-    let mut rows: Vec<usize> = if m.selected.is_empty() { m.rows.contains_key(&m.cursor).then_some(m.cursor).into_iter().collect() } else { m.selected.iter().copied().collect() };
+    let rows: Vec<usize> = if m.selected.is_empty() { m.rows.contains_key(&m.cursor).then_some(m.cursor).into_iter().collect() } else { m.selected.iter().copied().collect() };
     m.menu_count = rows.len();
-    if !m.menu_path.as_os_str().is_empty() && !rows.contains(&m.cursor) { rows.push(m.cursor); }
     m.action_id = m.action_id.wrapping_add(1).max(1);
     m.menu_view.request = m.action_id;
     w.send(vec![("c", word("formats")), ("id", number(m.action_id))])?;
@@ -39,7 +38,7 @@ pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     let paths = Json::Arr(m.menu_view.paths.iter().map(|path| word(path)).collect());
     w.send(vec![("c", word("actions")), ("op", word("list")), ("id", number(m.action_id)), ("paths", paths)])?;
     m.menu_action = "menu".into();
-    w.send(vec![("c", word("menuaction")), ("op", word("snapshot")), ("id", number(m.action_id)), ("rows", Json::Arr(rows.into_iter().map(number).collect()))])
+    w.send(vec![("c", word("menuaction")), ("op", word("snapshot")), ("id", number(m.action_id)), ("rows", Json::Arr(rows.into_iter().map(number).collect())), ("cursor", number(m.cursor))])
 }
 // The snapshot answered: one item also asks for its Open With registry, as the window does.
 pub fn ready(m: &mut Model, w: &mut Wire) -> io::Result<()> {
@@ -172,6 +171,7 @@ fn run(m: &mut Model, id: &str, w: &mut Wire) -> io::Result<()> {
         vec![("c", word("actions")), ("op", word("run")), ("id", number(request)), ("action", word(action)), ("paths", paths)]
     } else {
         match id {
+            "print" => return crate::tui::print::open(m, w, true),
             "open" => { m.menu_action = "open".into(); menu("validate", vec![("action", word("open"))]) }
             "dropbox" => {
                 m.menu_action = "dropbox".into();

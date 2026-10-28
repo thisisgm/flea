@@ -21,7 +21,7 @@ impl Shown {
 
 // One input-loop pass over the preview's decoders and player; answers where a terminal picture is placed, one-based.
 pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire: &mut Wire, size: (usize, usize), overlay: bool, frame: &mut String) -> io::Result<(usize, usize)> {
-    let visible = (model.preview_visible || model.quicklook) && model.selected.len() < 2;
+    let visible = model.printing.card.is_none() && (model.preview_visible || model.quicklook) && model.selected.len() < 2;
     let current = model.current_path().filter(|_| super::prompts::previewed(model));
     let content = pane_state::content(model);
     let preview_allowed = model.preview_loaded && current.as_ref() == Some(&model.preview_path);

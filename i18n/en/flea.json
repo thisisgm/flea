@@ -2303,5 +2303,9 @@
   "keys.print": "Print…",
   "tui.find.invalid_response": "The search response could not be used safely. Try Find again.",
   "tui.find.scope_hint": "%1 · tab changes scope",
-  "tui.find.status": "Find “%1” %2"
+  "tui.find.status": "Find “%1” %2",
+  "dialogs.output.cancelled": "Printing cancelled. Sent: %1. Not sent: %2.",
+  "dialogs.output.error.print_busy": "A print is still being sent. Wait for it to finish.",
+  "dialogs.output.error.printer_reply": "The printer response was invalid.",
+  "tui.operation.search_busy": "Wait for search to settle before a file operation"
 }
