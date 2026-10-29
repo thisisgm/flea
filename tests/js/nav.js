@@ -2,6 +2,8 @@
 .import "../../ui/js/BackReturn.js" as BackReturn
 .import "../../ui/js/Anchor.js" as Anchor
 .import "../../ui/js/SlowClick.js" as SlowClick
+.import "../../ui/js/Selection.js" as Selection
+.import "../../ui/js/Ops.js" as Ops
 .import "sourcefixture.js" as Source
 
 // Nav.js had no suite at all, so nothing loaded it outside the running app and a broken .import in
@@ -95,6 +97,37 @@ function entered(row) {
 }
 
 function run(check) {
+    check("menu Open returns captured selection paths",
+        Source.source("src/backend/menu_actions.rs").indexOf('matches!(action.as_str(), "open" |') >= 0, true)
+    check("the opener passes a batch as one argv command",
+        Source.source("ui/Opener.qml").indexOf('mode].concat(paths)') >= 0, true)
+    var multi = pane()
+    multi.cursorIndex = 0
+    multi.selection = Selection.create()
+    multi.selection.toggle(0)
+    multi.selection.toggle(500)
+    multi.rowFor = function () { return { n: "a.png", i: "image-x-generic" } }
+    multi.join = function (base, name) { return base + "/" + name }
+    multi.backend.askPaths = function (indices) { multi.requested = indices.join(",") }
+    var launches = []
+    var batchOpener = { open: function (path) { launches.push(path) },
+        openMany: function (paths) { launches.push(paths.join("|")) } }
+    Nav.openCursor(multi, batchOpener)
+    check("Open resolves the whole selection including offscreen images", multi.requested, "0,500")
+    check("Open waits for selected paths rather than launching the cursor", launches.length, 0)
+    Nav.openCursor(multi, batchOpener)
+    check("another Open cannot overwrite the pending selection", multi.said.length, 1)
+    Ops.pathsResolved(multi, ["/pics/a.png", "/pics/b.jpg"])
+    check("resolved images reach one batch launch", launches.join(","), "/pics/a.png|/pics/b.jpg")
+    check("the batch path claim is cleared", multi.pathsPending, null)
+    launches = []
+    Nav.openCursor(multi, batchOpener, ["/captured/one.png", "/captured/two.png"])
+    check("menu Open uses the captured paths", launches.join(","), "/captured/one.png|/captured/two.png")
+    multi.selection.clear()
+    launches = []
+    Nav.openCursor(multi, batchOpener)
+    check("single-file Open retains the run-card entrance", launches.join(","), "/home/gm/a.png")
+
     // StatusBar board rule 4's first lane: a refused hop leaves the breadcrumb where it was, which is
     // what taking the path off the answer buys. Nothing else in this suite can tell the two apart.
     var refused = browsing(["/home/gm"])

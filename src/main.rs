@@ -15,6 +15,7 @@ mod jsonstring;
 mod launcher;
 mod oflags;
 mod open;
+mod open_many;
 mod paths;
 mod prefetch;
 mod procsignal;
@@ -208,8 +209,8 @@ fn main() {
         exit(code);
     }
 
-    // flea --run, --run-terminal, --open-text and --open-handler: the run card's own launches; see src/runfile.rs.
-    if let Some(code) = runfile::dispatch(&args) {
+    // The run card's own launches and the deliberate multi-selection handoff; see runfile.rs and open_many.rs.
+    if let Some(code) = runfile::dispatch(&args).or_else(|| open_many::dispatch(&args)) {
         exit(code);
     }
 

@@ -228,9 +228,20 @@ function openableRow(pane) {
 }
 
 // Enter on the cursor row: a directory navigates, an archive opens Flea's own view, anything else goes to the opener.
-function openCursor(pane, opener) {
+function openCursor(pane, opener, paths) {
     var row = openableRow(pane)
     if (!row) return
+    // Menu paths are already captured; keyboard selection indices may extend beyond the viewport.
+    if (paths && paths.length > 1) { opener.openMany(paths); return }
+    if (!paths && pane.selection && pane.selection.count() > 1 && pane.selection.has(pane.cursorIndex)) {
+        if (pane.pathsPending || pane.clipPending != null) {
+            pane.message("The selected paths are still being collected.", false)
+            return
+        }
+        pane.pathsPending = { deliver: function (list) { if (list.length > 1) opener.openMany(list) } }
+        pane.backend.askPaths(pane.selection.indices())
+        return
+    }
     var path = pane.join(Search.baseOf(pane), row.n)
     if (row.d) {
         pane.open(path)

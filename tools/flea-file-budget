@@ -84,7 +84,7 @@ tests/js/keymap.js 366
 tests/js/focus.js 843
 tests/js/mounts.js 359
 tests/js/menu.js 673
-tests/js/nav.js 478
+tests/js/nav.js 511
 tests/js/rail.js 471
 tests/js/picker.js 382
 tests/picker-grid.qml 465
@@ -187,7 +187,7 @@ ui/js/Devices.js 440
 ui/js/Filter.js 284
 ui/js/Focus.js 492
 ui/js/Keymap.js 370
-ui/js/Nav.js 328
+ui/js/Nav.js 339
 ui/js/Markdown.js 135
 ui/js/MdBlocks.js 437
 ui/js/FigureWorker.mjs 619

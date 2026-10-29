@@ -34,7 +34,12 @@ Item {
     // flea --open waits for gio open and not for the application it starts, and that wait is 11 to 15 ms
     // for an Exec= handler but 0.32 to 0.75 s for a DBusActivatable one, which is what this box's
     // twenty-five archive types default to, so this guard drops a second Enter for that long and says so.
-    function open(path) {
+    function open(path) { start([path], "--open") }
+
+    function openMany(paths) { start(paths, "--open-many") }
+
+    function start(paths, mode) {
+        var path = paths[0]
         if (child.running || root.pending) {
             root.busy(path)
             return
@@ -42,7 +47,7 @@ Item {
         root.current = path
         root.pending = true
         root.askText = ""
-        child.command = [Quickshell.env("FLEA_BIN") || "flea", "--open", path]
+        child.command = [Quickshell.env("FLEA_BIN") || "flea", mode].concat(paths)
         child.running = true
     }
 

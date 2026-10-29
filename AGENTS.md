@@ -2698,6 +2698,12 @@ record clears when the edit leaves that row or the tile is reused, so a pooled t
 
 ## File budget
 
+Multi-selection Open re-derives two scoped ceilings with `wc -l`: `ui/js/Nav.js`
+328 to 339 and `tests/js/nav.js` 478 to 511. The unchanged 180/177 first-frame
+inventories gain 806 source bytes each, totalling 1775538/1664697 bytes.
+No startup objects or per-row work are added; only explicitly selected paths
+are resolved. See `docs/multi-selection-open.md`.
+
 The RAW3 join onto the 0.3.11 stage records the merged `wc -l` ceilings at `src/backend/metareq.rs` 541, `src/backend/menu_actions.rs` 674, `tests/js/facts.js` 415 and `ui/js/Facts.js` 402. `ui/MenuActionDialog.qml` crosses the unchanged 400-line cap at 402 for the initial photo facts combined with the deferred file facts, each pair drawn once in the board's order; its scoped ceiling is the merged count. No code or comment was compressed to meet a cap.
 The same join keeps all 66 stage Properties checks and all 7 RAW3 checks, then adds 4 checks for duplicate pairs, approved values and deferred completion of missing facts, and 8 checks (2 for each of a partial ISO, a partial camera, complementary fields and conflicting fields) that the immediate and deferred photo facts merge field by field before each pair is drawn once, so `tests/menu-contents.sh` expects 85. Both lint profiles retain their allowance counts, source text, symbols and reasons, with the `ui/MenuActionDialog.qml` reads one line lower (body 325 to 326, root 328 to 329 and 342 to 343). The 169 first-frame units still sum to 1,628,263 bytes; the changed RAW3 UI units are deferred, so `tests/startup-units.txt` stays unchanged.
 
@@ -7216,7 +7222,7 @@ so what is being paid for is page-walk work rather than allocation.
 
 ### Opening a file
 
-`flea --open <path>` is the one route that opens a file with the desktop's own handler, and both
+`flea --open <path>` is the single-file route that opens a file with the desktop's own handler, and both
 front ends use it rather than launching anything themselves. It exists in Rust because the huge page
 setting above is inherited by every descendant, so a program launched from QML would run its whole
 life with transparent huge pages disabled without ever asking; `open::open` hands the setting back
@@ -7266,8 +7272,17 @@ through the opener from inside a file manager opens a file manager; the caller n
 `flea --open` with no path and `flea --open a b` both meet the usage error `--open takes one path`
 and exit 2 (tests/modes.sh counts that sentence).
 
+A deliberate multi-selection uses `flea --open-many <path> <path> ...` instead.
+`src/open_many.rs` validates all targets before launching, groups files by their default
+application and passes each group to `gio launch` as separate argv elements, retaining
+`open::prepare`, null descriptors and a detached process group. Folders, unavailable
+files, programs requiring a run decision and missing defaults refuse the batch with
+status 2; single-file opening retains its existing behavior. Enter resolves selected
+indices through the backend's guarded paths request, while menu Open receives the
+validated snapshot's paths. See `docs/multi-selection-open.md`.
+
 `ui/Opener.qml` is the window side of that contract and the only component in the tree that runs
-`flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the
+`flea --open`, `flea --open-many` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the
 opener's own `onExited` is the whole mapping for this half: `0` says nothing, `3` raises
 `isDirectory` and `Pane` navigates there, `4` hands the stdout line it collected to the card once the
 process has exited, and `5` opens Open with for that path, while anything else
