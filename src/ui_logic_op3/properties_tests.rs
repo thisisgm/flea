@@ -24,6 +24,52 @@ fn names(pairs: &[Pair]) -> String {
 }
 
 #[test]
+fn bfx_172_1_folder_size_waits_for_the_recursive_reply() {
+    let i18n = english();
+    let folder = Facts { directory: true, bytes: 4096, ..facts(&[]) };
+    let first = begin(&folder);
+    assert_eq!(size(&i18n, folder.bytes, Some(first)).value, "Unknown");
+    assert_eq!(first.bytes, 0, "the directory entry is not counted content");
+    assert_eq!(size(&i18n, folder.bytes, Some(first)).tail, " \u{b7} counting\u{2026}");
+    let counted = next(first, &parse(r#"{"ok":true,"bytes":13,"items":1,"partial":false,"done":true}"#).unwrap());
+    assert_eq!(drawn(&size(&i18n, folder.bytes, Some(counted))), "13 B (13 bytes)");
+}
+
+#[test]
+fn bfx_172_2_zero_unknown_is_distinct_from_exact_zero() {
+    let i18n = english();
+    for (partial, done) in [(false, false), (true, false), (true, true)] {
+        let line = size(&i18n, 4096, Some(walk(0, 0, partial, done)));
+        assert_eq!(line.value, "Unknown", "partial={partial}, done={done}");
+        assert_eq!(line.tail.is_empty(), done);
+    }
+    assert_eq!(drawn(&size(&i18n, 4096, Some(walk(0, 0, false, true)))), "0 B (0 bytes)");
+    assert_eq!(drawn(&size(&i18n, 0, None)), "0 B (0 bytes)");
+    assert_eq!(drawn(&size(&i18n, 4096, Some(walk(13, 1, true, true)))), "> 13 B (13 bytes)");
+}
+
+#[test]
+fn bfx_172_2_refused_or_cancelled_uncounted_walk_stays_unknown() {
+    let i18n = english();
+    let folder = Facts { directory: true, bytes: 4096, ..facts(&[]) };
+    for reply in [r#"{"ok":false}"#, r#"{"ok":true,"cancelled":true}"#] {
+        let stopped = next(begin(&folder), &parse(reply).unwrap());
+        assert_eq!(drawn(&size(&i18n, folder.bytes, Some(stopped))), "Unknown");
+    }
+}
+
+#[test]
+fn bfx_172_2_incomplete_zero_combined_size_is_unknown() {
+    let i18n = english();
+    for (partial, done) in [(false, false), (true, false), (true, true), (false, true)] {
+        let several = Several { bytes: 0, partial, done, ..Several::default() };
+        let combined = several_pairs(&i18n, &several)[1].line.clone();
+        assert_eq!(combined.value, if done && !partial { "0 B" } else { "Unknown" });
+        assert_eq!(combined.tail.is_empty(), done);
+    }
+}
+
+#[test]
 fn a_folder_walk_reads_as_a_floor_until_it_ends_whole() {
     let i18n = english();
     let counting = walk(2_104_332_800, 812, false, false);
@@ -34,7 +80,7 @@ fn a_folder_walk_reads_as_a_floor_until_it_ends_whole() {
     assert_eq!(drawn(&size(&i18n, 0, Some(done))), "7.4 GB (7,404,118,016 bytes)");
     assert_eq!(drawn(&contains(&i18n, Some(done)).unwrap()), "1,204 items");
     let first = begin(&Facts { bytes: 4096, ..Facts::default() });
-    assert_eq!(drawn(&size(&i18n, 4096, Some(first))), "> 4.1 kB (4,096 bytes) \u{b7} counting\u{2026}");
+    assert_eq!(drawn(&size(&i18n, 4096, Some(first))), "Unknown \u{b7} counting\u{2026}");
     assert_eq!(drawn(&contains(&i18n, Some(first)).unwrap()), "> 0 items \u{b7} counting\u{2026}");
     assert_eq!(drawn(&contains(&i18n, Some(walk(4096, 1, false, true))).unwrap()), "1 item");
     assert_eq!(drawn(&contains(&i18n, Some(walk(4096, 1, false, false))).unwrap()), "> 1 item \u{b7} counting\u{2026}");
