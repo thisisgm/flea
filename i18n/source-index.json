@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "69d8c2b15c58abab35153a754ea33bce0023cd06edb8196ae6ab514ceaba0dd7",
-  "catalog_sha256": "268f97e25ac6c74363c8bd88dc7c7a5b58b69c695adc330fa3fc6b3d925d1b48",
+  "catalog_file_sha256": "e279cf795a45bda51ab3c811fcaff89555072f86ed1a63b5dab0782ef0bb4def",
+  "catalog_sha256": "209571f1c0c52af97eade8a7215413c34f9bd6fedc6b5614a1350396b42e83c5",
   "counts": {
     "direct_references": 0,
-    "keys": 2036,
+    "keys": 2032,
     "plurals": 101
   },
   "direct_references": {},
@@ -57564,20 +57564,6 @@
       "resolved_source_hash": "60eb59474ca8",
       "source_hash": "60eb59474ca8"
     },
-    "menu.state.files_only": {
-      "call_sites": [],
-      "context": "menu.state.files_only: src/ui_logic_mn1/rows.rs:437",
-      "coverage": "missing-callsite",
-      "english": "files only",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "files only",
-      "resolved_sha256": "c52710c52f4f8a9fd3daf9176a8c1742637ba11b200ed9661cf0ae73193a4354",
-      "resolved_source_hash": "60eb59474ca8",
-      "source_hash": "60eb59474ca8"
-    },
     "menu.state.noDevices": {
       "call_sites": [
         {
@@ -57590,20 +57576,6 @@
       ],
       "context": "menu.state.noDevices: src/tui/menu_layout.rs:148",
       "coverage": "existing-translated-call",
-      "english": "no devices",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "no devices",
-      "resolved_sha256": "b6d2254253278d1a61934f7f259554d1323fc1352706178bebae0667f56f719e",
-      "resolved_source_hash": "07afdd3b4a56",
-      "source_hash": "07afdd3b4a56"
-    },
-    "menu.state.no_devices": {
-      "call_sites": [],
-      "context": "menu.state.no_devices: src/ui_logic_mn1/rows.rs:441",
-      "coverage": "missing-callsite",
       "english": "no devices",
       "kind": "text",
       "omarchy_reference": null,
@@ -57640,20 +57612,6 @@
       ],
       "context": "menu.state.notRunning: src/tui/menu_run.rs:72",
       "coverage": "occurrence-needs-owner-verification",
-      "english": "not running",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "not running",
-      "resolved_sha256": "98cd086a4d962a35fcabdd7d34d96c4dd53c32202ebf365759707cf3937febb4",
-      "resolved_source_hash": "415ed7340303",
-      "source_hash": "415ed7340303"
-    },
-    "menu.state.not_running": {
-      "call_sites": [],
-      "context": "menu.state.not_running: src/ui_logic_mn1/rows.rs:459",
-      "coverage": "missing-callsite",
       "english": "not running",
       "kind": "text",
       "omarchy_reference": null,
@@ -57734,20 +57692,6 @@
       ],
       "context": "menu.state.signedOut: src/tui/menu_layout.rs:148",
       "coverage": "existing-translated-call",
-      "english": "signed out",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "signed out",
-      "resolved_sha256": "3c1b7bb6db89f68c61c73aeb2da5bc08c0d6a2cbd882c1e5cf71c53fabc96946",
-      "resolved_source_hash": "67e877ee28c9",
-      "source_hash": "67e877ee28c9"
-    },
-    "menu.state.signed_out": {
-      "call_sites": [],
-      "context": "menu.state.signed_out: src/ui_logic_mn1/rows.rs:439",
-      "coverage": "missing-callsite",
       "english": "signed out",
       "kind": "text",
       "omarchy_reference": null,
@@ -214238,80 +214182,8 @@
       "surface": "qml-reference"
     },
     {
-      "excerpt": "taildropFolder: \"files only\",",
-      "line": 7,
-      "literal": "files only",
-      "owner": "controller",
-      "path": "ui/js/StateWords.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "taildropSignedOut: \"signed out\",",
-      "line": 8,
-      "literal": "signed out",
-      "owner": "controller",
-      "path": "ui/js/StateWords.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "taildropNoPeers: \"no devices\",",
-      "line": 9,
-      "literal": "no devices",
-      "owner": "controller",
-      "path": "ui/js/StateWords.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "taildropDown: \"offline\",",
-      "line": 10,
-      "literal": "offline",
-      "owner": "controller",
-      "path": "ui/js/StateWords.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "localsendFolder: \"files only\",",
-      "line": 11,
-      "literal": "files only",
-      "owner": "controller",
-      "path": "ui/js/StateWords.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "localsendNoPeers: \"no devices\",",
-      "line": 12,
-      "literal": "no devices",
-      "owner": "controller",
-      "path": "ui/js/StateWords.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "dropboxSignedOut: \"signed out\",",
-      "line": 13,
-      "literal": "signed out",
-      "owner": "controller",
-      "path": "ui/js/StateWords.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "dropboxDown: \"not running\",",
-      "line": 14,
-      "literal": "not running",
-      "owner": "controller",
-      "path": "ui/js/StateWords.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
       "excerpt": "permissionsLink: \"symlink\",",
-      "line": 15,
+      "line": 7,
       "literal": "symlink",
       "owner": "controller",
       "path": "ui/js/StateWords.js",
@@ -214320,7 +214192,7 @@
     },
     {
       "excerpt": "permissionsSpecial: \"special file\",",
-      "line": 16,
+      "line": 8,
       "literal": "special file",
       "owner": "controller",
       "path": "ui/js/StateWords.js",
@@ -214329,7 +214201,7 @@
     },
     {
       "excerpt": "permissionsNotYours: \"not yours\"",
-      "line": 17,
+      "line": 9,
       "literal": "not yours",
       "owner": "controller",
       "path": "ui/js/StateWords.js",
@@ -217148,7 +217020,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "0c3823d7edad5b53a3d1a114837223f9919504b2f7a089edea8d796cc7ae4661",
+    "tools/flea-file-budget": "d3b35f91b30d41712105edad359279600ef4a1354ce71c97302440b05d70fe4d",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -217376,7 +217248,7 @@
     "ui/MenuActionDialog.qml": "c2f5d1f0eeff0c17b5774085bb83c27c82894483a4c63e5edde170cb46bb136b",
     "ui/MenuEdgeFade.qml": "e401d802322c83580a0df14df2b510fa93930fa327c0cd0578859235f97487bd",
     "ui/MenuHost.qml": "43083a59f36493415e10d1bfc7994512a0abae1976d387c5d2e78567056d6a28",
-    "ui/MenuRow.qml": "6cd49697aa909950b681774f1fa1e507dd0e104a69d8bd1fc44a543c37c7731f",
+    "ui/MenuRow.qml": "46567cf22a5acd8a43b658a00c822f584562b9046639194a5e3754f78606157d",
     "ui/MountListing.qml": "9a0af39f542b6fba4286dcd8461c56965422c28e4a464126df1b8ac84f47550e",
     "ui/NetworkDialog.qml": "66c5f32bdfeec6fae928aeef46ebd4118eef25451592d1b0bf9305d0f0d41eba",
     "ui/NetworkForm.qml": "58fb0cb0b9a294a4bedd8e325172727b539ee39c979ea49b432a5625baf74c56",
@@ -217606,7 +217478,7 @@
     "ui/js/MdResolve.js": "b8e2c996677cd18423df6058375f64816c1caeb2da53aba683ef4a145b497e6a",
     "ui/js/MdRun.js": "966a1653eb41c4441fc9447e40b29fb0e4ef878b780a233f7e7bca3c8467a101",
     "ui/js/MdUrl.js": "8e0258377dd04e598ee6d3f51b40914153b68c0ee0463e11e8f1f2d3f688277a",
-    "ui/js/Menu.js": "8bbb09c5c04a02c382638b7a0af42cff3d0629ebf5af9b00ff91c3e129ef5a2f",
+    "ui/js/Menu.js": "ee1765c7a6efba207e44304acf8a73ebb53a672c8b3825f32298595e7ae7cafb",
     "ui/js/MenuContext.js": "368372a92f1816c28ff97247369ecb507e997151f05bea8c7a60eb0621a9bcea",
     "ui/js/MenuFit.js": "7d0c3a60ae4c69d5004eaabe7f8da57233582a326c034d7fafc0273d1284a99e",
     "ui/js/MenuRefresh.js": "574de0fa37189359ce86168bc82351c324cb6e45fd932a1cd16f9639bd458eae",
@@ -217657,7 +217529,7 @@
     "ui/js/SlowOp.js": "3066adc95f6b8932e11fd6bea301cf4d97259fa84a7b9fd880c033eec8b69943",
     "ui/js/Sort.js": "82f3cedbd3eecf9b6f2922ca33e5f91b5620537349aa6d232459c8083aa9b781",
     "ui/js/Startup.js": "047f95c5fd76df01a47eee0b40c5b2be78499f99d8f59ea35e467646a34aed1c",
-    "ui/js/StateWords.js": "950b21877731eb2f8abe6f4dc6cbd0555f4a1cade5629ae93793a8da256faba4",
+    "ui/js/StateWords.js": "1db06856050bd5265bf47d04817b1ace8c6b7cefad0b7be36b153cf610883f9e",
     "ui/js/Status.js": "bfda8e414d2e2f7ba4c0b55cba292376d084f723702b506deb0e38017f50006a",
     "ui/js/Swap.js": "a876249ce2f30cb5f1ff3b74d7c74d1245197c16054ddb0c9933ddf826c003ce",
     "ui/js/TabMove.js": "36e4a7e67b6d963f0b388f6f99cc1db0a8e978894d91a6794cb7d6b05a3d148d",
@@ -217677,8 +217549,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "b4e0eee44f2b6a33d7e85ede76b982e8a8db1e48",
-  "source_sha": "b4e0eee44f2b6a33d7e85ede76b982e8a8db1e48",
+  "source_ref_sha": "56d77f63be8a0c3e8a544a99ebe70c3d5303eedc",
+  "source_sha": "56d77f63be8a0c3e8a544a99ebe70c3d5303eedc",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1279,
@@ -217697,7 +217569,7 @@
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
-      "missing_literal_candidates": 2132,
+      "missing_literal_candidates": 2124,
       "source_files": 412
     },
     "tui": {
@@ -217737,10 +217609,6 @@
     "keys.action.tag7",
     "keys.action.toggleWrap",
     "keys.action.zoomFit",
-    "menu.state.files_only",
-    "menu.state.no_devices",
-    "menu.state.not_running",
-    "menu.state.signed_out",
     "network.bridge_failed",
     "network.bridge_timeout",
     "network.failed",
