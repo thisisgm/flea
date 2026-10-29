@@ -10,17 +10,11 @@ pub enum ClipMark {
 }
 
 impl ClipMark {
-    /// Both glyphs follow the drawn name, capped at its reserved strip, one pixel above the line's centre.
-    pub fn bounds(
-        self,
-        name: Bounds<Pixels>,
-        drawn_width: Pixels,
-        side: Pixels,
-        gap: Pixels,
-    ) -> Bounds<Pixels> {
+    /// Both glyphs share the reserved strip's edge, one pixel above the line's centre.
+    pub fn bounds(self, name: Bounds<Pixels>, side: Pixels, gap: Pixels) -> Bounds<Pixels> {
         Bounds::new(
             point(
-                name.origin.x + drawn_width.max(px(0.)).min(name.size.width) + gap,
+                name.right() + gap,
                 name.origin.y + (name.size.height - side) / 2. - px(1.),
             ),
             size(side, side),

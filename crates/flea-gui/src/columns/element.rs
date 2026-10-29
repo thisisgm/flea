@@ -353,7 +353,7 @@ impl Element for TrackElement {
                     paint_line(name, name_x, top, inks.name, window);
                     let mut name_width = f32::from(name.line().width);
                     if let Some(location) = prepared.location.as_ref() {
-                        let gap = GAP + if *clip != Clip::None { GAP + CLIP } else { 0. };
+                        let gap = GAP;
                         let bright = cursor
                             || lifted
                             || self.focus.selected.contains(index)
@@ -395,7 +395,7 @@ impl Element for TrackElement {
                         paint_svg(CHEVRON_SVG, at, inks.chevron, window, cx);
                     }
                     if *clip != Clip::None {
-                        let x = geometry.clip_x(f32::from(name.line().width));
+                        let x = geometry.clip_x();
                         let at = Bounds::new(
                             point(left + px(x), top + px((ROW_HEIGHT - CLIP) / 2. - 1.)),
                             size(px(CLIP), px(CLIP)),

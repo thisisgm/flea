@@ -123,7 +123,7 @@ fn glyph_names_follow_icons_js() {
 }
 
 #[test]
-fn clipboard_bounds_follow_the_drawn_name_and_leave_a_reserved_strip() {
+fn clipboard_bounds_align_in_the_reserved_strip() {
     use super::harness::{held, open, real_cx, row};
     use flea_gui::list::RowStates;
     use flea_gui::list::{RowState, Shown};
@@ -191,14 +191,9 @@ fn clipboard_bounds_follow_the_drawn_name_and_leave_a_reserved_strip() {
                         .get()
                         .filter(|_| shown.state.cursor)
                         .unwrap_or(&prepared.name);
-                    let available = (layout.name.width - metrics.gap - metrics.clip).max(0.);
-                    let right = f32::from(run.line().width).min(available);
                     saw_bold_advance |= shown.state.cursor
                         && (f32::from(run.line().width - prepared.name.line().width)).abs() > 0.01;
-                    assert!(
-                        (f32::from(bounds.left()) - layout.name.x - right - metrics.gap).abs()
-                            < 0.001
-                    );
+                    assert!((f32::from(bounds.right()) - layout.name.right()).abs() < 0.001);
                     assert!(bounds.right() <= name.right());
                     assert_eq!(bounds.size, size(px(12.), px(12.)));
                     if moving {
@@ -248,22 +243,16 @@ fn clipboard_bounds_follow_the_drawn_name_and_leave_a_reserved_strip() {
             };
             let name = Bounds::new(point(px(46.), px(0.)), size(px(200.), px(31.)));
             let cursor = shown.clip_bounds(name, &state.drawn.metrics).unwrap();
-            let want = shown
-                .prepared
-                .as_ref()
-                .unwrap()
-                .bold
-                .get()
-                .unwrap()
-                .line()
-                .width;
-            assert_eq!(
-                cursor.left(),
-                name.left() + want + px(state.drawn.metrics.gap)
-            );
+            let prepared = shown.prepared.as_ref().unwrap();
+            saw_bold_advance |=
+                prepared.bold.get().unwrap().line().width != prepared.name.line().width;
+            assert_eq!(cursor.left(), name.right() - px(state.drawn.metrics.clip));
             shown.state.cursor = false;
             let plain = shown.clip_bounds(name, &state.drawn.metrics).unwrap();
-            saw_bold_advance |= (f32::from(cursor.left() - plain.left())).abs() > 0.01;
+            assert_eq!(
+                cursor, plain,
+                "bold cursor text must not move the clipboard slot"
+            );
         });
     }
     assert!(

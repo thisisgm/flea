@@ -251,6 +251,8 @@ impl GridElement {
         });
         super::tags::paint(self.held.row(drawn.listing), drawn, origin, window, cx);
         if let (Some(clip), Some(mark)) = (&drawn.clip, drawn.clip_bounds(state)) {
+            #[cfg(test)]
+            crate::bfx_cols_tests::record_mark(&clip.key, bounds_of(origin, mark));
             let _ = window.paint_svg(
                 bounds_of(origin, mark),
                 clip.key.clone(),

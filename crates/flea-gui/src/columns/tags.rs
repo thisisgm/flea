@@ -1,5 +1,5 @@
 //! ColumnRow's reserved slot and the solid swatches that hug the painted name.
-use super::{Clip, Theme, CLIP, GAP, ROW_HEIGHT};
+use super::{Clip, Theme, GAP, ROW_HEIGHT};
 use flea::{
     protocol::RowFacts,
     ui_logic_pl4::tags::{ROW_SLOT, SWATCH_SIZE},
@@ -24,12 +24,16 @@ pub(super) fn paint(
     window: &mut Window,
 ) {
     let Some(names) = &facts.tags else { return };
-    let start =
-        geometry.name_x + name_width + GAP + if clip == Clip::None { 0. } else { CLIP + GAP };
+    let start = geometry.name_x + name_width + GAP;
+    let right = if clip == Clip::None {
+        geometry.name_right
+    } else {
+        geometry.clip_x() - GAP
+    };
     crate::row::tags::paint(
         names,
         point(at.x + px(start), at.y + px((ROW_HEIGHT - SWATCH_SIZE) / 2.)),
-        (geometry.name_right - start).min(ROW_SLOT),
+        (right - start).min(ROW_SLOT),
         &theme.tag_listing_inks,
         theme.foreground,
         window,

@@ -205,6 +205,11 @@ fn prepare(
     window: &Window,
 ) -> Prepared {
     let take = if clipped { shaping.clip_cells } else { 0 };
+    let plain_cells = if clipped {
+        shaping.plain_cells.min(shaping.chevron_cells)
+    } else {
+        shaping.plain_cells
+    };
     let path = row.name();
     let name = if shaping.locating {
         flea::ui_logic_sr1::base(path)
@@ -214,7 +219,13 @@ fn prepare(
     let location_label = if shaping.locating {
         let location =
             crate::g2::sr1::run::location(path, "", "", flea::ui_logic_sr1::Scope::Folder);
-        row::right_elide(&location, shaping.plain_cells / 2).into_owned()
+        // The location leaves the clip slot, its own gap and one cell of name before the mark.
+        let cells = (shaping.plain_cells / 2).min(plain_cells.saturating_sub(take + 2));
+        if cells == 0 {
+            String::new()
+        } else {
+            row::right_elide(&location, cells).into_owned()
+        }
     } else {
         String::new()
     };
@@ -230,7 +241,7 @@ fn prepare(
     } else {
         row::middle_elide
     };
-    let label = elide(name, budget(shaping.plain_cells));
+    let label = elide(name, budget(plain_cells));
     let chevron = row
         .dir()
         .then(|| elide(name, budget(shaping.chevron_cells)))

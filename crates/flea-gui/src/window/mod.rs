@@ -130,7 +130,7 @@ pub fn open(
 #[cfg(test)]
 mod columns_key_repeat_tests;
 #[cfg(test)]
-mod columns_tests;
+pub(crate) mod columns_tests;
 #[cfg(test)]
 mod ipc_cold_tests;
 #[cfg(test)]

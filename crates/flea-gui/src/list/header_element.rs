@@ -145,7 +145,9 @@ impl Element for HeaderElement {
                 let title = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);
                 let (run, _) = title.drawn();
                 let x = match column {
-                    Some(Column::Size | Column::Date) => left + px(cell.right()) - run.line().width,
+                    Some(Column::Size | Column::Date | Column::Kind) => {
+                        left + px(cell.right()) - run.line().width
+                    }
                     _ => left + px(cell.x),
                 };
                 let mask = Bounds::new(

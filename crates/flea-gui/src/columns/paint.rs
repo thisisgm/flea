@@ -18,7 +18,7 @@ pub const WASH: f32 = 0.18;
 pub const MARKED: f32 = 0.35;
 pub const CUT: f32 = 0.55;
 pub const EDGE: f32 = 2.;
-/// Theme.clipMarkSize: the clip mark 12 px square, one gap after the name.
+/// Theme.clipMarkSize: the clip mark is 12 px square in its reserved strip.
 pub const CLIP: f32 = 12.;
 // Rows kept shaped past the viewport, so a short scroll back reshapes nothing.
 pub const CACHE_SCREENS: usize = 3;

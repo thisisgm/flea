@@ -112,6 +112,8 @@ pub(super) fn paint_line(
     let line = run.line();
     let baseline =
         window.pixel_snap(top + (px(height) - line.ascent - line.descent) / 2. + line.ascent);
+    #[cfg(test)]
+    crate::bfx_cols_tests::record_line(run, x, baseline);
     let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
@@ -125,6 +127,8 @@ pub(super) fn paint_mark(
     cx: &mut App,
 ) {
     let bounds = Bounds::new(at, size(px(side), px(side)));
+    #[cfg(test)]
+    crate::bfx_cols_tests::record_mark(&key, bounds);
     let _ = window.paint_svg(
         bounds,
         key,
@@ -474,10 +478,10 @@ impl Element for ListElement {
                                 continue;
                             };
                             let x = match column {
-                                Column::Size | Column::Date => {
+                                Column::Size | Column::Date | Column::Kind => {
                                     left + px(cell.right()) - line.line().width
                                 }
-                                Column::Mode | Column::Kind => left + px(cell.x),
+                                Column::Mode => left + px(cell.x),
                             };
                             let ink = if column == Column::Date && recent {
                                 palette.foreground
@@ -546,7 +550,7 @@ impl Element for ListElement {
                             window,
                         );
                     }
-                    // RowDropTarget.qml: the clip mark sits a gap past the drawn name, one pixel above the row's centre line.
+                    // The clip mark occupies the reserved strip, one pixel above the row's centre line.
                     for shown in &state.visible {
                         let Some(clip) = shown.clip else {
                             continue;
