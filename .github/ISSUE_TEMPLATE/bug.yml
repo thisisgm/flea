@@ -1,0 +1,92 @@
+name: Bug report
+description: Something in Flea does not work as it should.
+labels: [bug]
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you file
+      options:
+        - label: I can reproduce this on the [latest release](https://github.com/thisisgm/flea/releases/latest) or on `main`.
+          required: true
+        - label: The steps below reproduce it from a fresh Flea window.
+          required: true
+        - label: I searched the open issues and this is not already reported.
+          required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw. One bug per issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact keys and clicks. If the bug needs certain files, add the shell lines that create them.
+      placeholder: |
+        mkdir -p /tmp/repro && touch /tmp/repro/a.txt
+        1. Run flea /tmp/repro
+        2. Press ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Screenshot or video
+      description: Drag a capture here. Print takes a screenshot and Alt+Print records the screen. Show the whole window, and record anything that moves, flickers or takes time.
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where in Flea
+      multiple: true
+      options:
+        - List view
+        - Columns view
+        - Grid view
+        - Two panes
+        - Quick Look
+        - Search
+        - Copy, move, rename or trash
+        - Sidebar and devices
+        - Network
+        - Settings
+        - File chooser
+        - Shelf
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: often
+    attributes:
+      label: How often
+      options:
+        - Every time
+        - Sometimes
+        - Once
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: Run `flea --version; omarchy-version; omarchy-theme-current` and paste the output.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: For a crash, the output of `coredumpctl info` for it. For an error, Flea's lines from `journalctl --user -b`.
+      render: text
