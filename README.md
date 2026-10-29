@@ -5,8 +5,7 @@
 <h1 align="center">Flea</h1>
 
 <p align="center">
-  <strong>The fastest GUI file manager on Linux.</strong><br>
-  Keyboard-first. Built for Omarchy.
+  <strong>The fastest GUI file manager on Omarchy.</strong>
 </p>
 
 <p align="center">
@@ -47,21 +46,15 @@ record, so the screen does not need unlocking each time.
 
 ## Install
 
-Install Flea and make it your default file manager, file chooser and the app opened by
-**Super+Shift+F**:
-
-```bash
-omarchy pkg aur add flea-bin && flea --default
-```
-
-`flea-bin` is the tagged release, prebuilt for x86_64 and aarch64 and available minutes after each tag.
-Omarchy's own repository reviews, builds and signs `flea`, a day or more later:
+Flea is available only from the Omarchy Package Repository. Install it and make it your default
+file manager, file chooser and the app opened by **Super+Shift+F**:
 
 ```bash
 omarchy pkg add flea && flea --default
 ```
 
-Install one of the two, never both.
+Omarchy reviews, builds and signs each tagged release for x86_64 and aarch64, and it reaches the
+repository a day or more after the tag.
 
 Run `flea --default` in a terminal inside your session: it restarts xdg-desktop-portal, so file
 dialogs switch at once. To try Flea without changing your defaults, run only the install.
@@ -73,14 +66,15 @@ Update through Omarchy:
 omarchy update
 ```
 
-To switch from `flea` to `flea-bin`, run this and answer `y` when pacman asks to remove `flea`:
+If you installed `flea-bin` or `flea-git` from the AUR, move to the Omarchy package. Run this and
+answer `y` when pacman asks to remove the AUR package:
 
 ```bash
-yay -S flea-bin
+sudo pacman -S flea
 ```
 
 <details>
-<summary>File chooser only, development package and removal</summary>
+<summary>File chooser only, development build and removal</summary>
 
 Use Flea for portal Open/Save dialogs without changing your default file manager:
 
@@ -88,16 +82,9 @@ Use Flea for portal Open/Save dialogs without changing your default file manager
 flea --picker
 ```
 
-For the development build, which follows `main` and compiles on your machine, answer `y` if pacman
-asks to remove an installed Flea:
+To try unreleased changes from `main`, [build Flea from source](#build).
 
-```bash
-yay -S flea-git
-```
-
-It updates with `yay -Sua --devel`.
-
-Before removing Flea, undo its desktop integration, then drop whichever package you installed:
+Before removing Flea, undo its desktop integration, then drop the package:
 
 ```bash
 flea --default off

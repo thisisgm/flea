@@ -13,41 +13,31 @@ below.
 
 ## Which package?
 
-The recommended install is `omarchy pkg aur add flea-bin`, and `omarchy update` keeps it current: a
-release reaches it minutes after it ships. Omarchy's own repository carries the same release as
-`flea`, a day or more behind. Install one of these, never two: all three own `/usr/bin/flea`, so pacman refuses a pair rather than leaving two
-half-installed.
-
-| Package | What you get | Built where | Install | Updates |
-|---|---|---|---|---|
-| `flea-bin`, AUR, recommended | the tagged release | Flea's release workflow, for x86_64 and aarch64; nothing compiles on your machine | `omarchy pkg aur add flea-bin` | `omarchy update`; a release arrives minutes after it ships |
-| `flea`, Omarchy's repository | the same tagged release | Omarchy's build host, signed; nothing compiles on your machine | `omarchy pkg add flea` | `omarchy update`; a release arrives a day or more after it ships, once Omarchy has reviewed and built it |
-| `flea-git`, AUR | current `main`, unreleased fixes included, for testers | your machine, with `cargo` | `yay -S flea-git` | `yay -Sua --devel` follows `main`; `omarchy update` rebuilds it only when its AUR PKGBUILD changes |
-
-The AUR also carries a `flea` that compiles the tagged release on your machine. Omarchy's repository
-package shares its name, so `omarchy update` replaces it with the repository build; use `flea-bin`
-instead.
-
-**Switching.** From `flea` to `flea-bin`, run the interactive command and answer `y` when pacman
-asks whether to remove `flea`:
+Flea is available only from the Omarchy Package Repository, as `flea`. It needs Omarchy, and the
+AUR accepts only packages that work on a plain Arch install, so Flea has no AUR package.
 
 ```
-yay -S flea-bin
+omarchy pkg add flea
 ```
 
-`omarchy pkg aur add flea-bin` cannot make that swap: it passes `--noconfirm`, pacman then answers
-its own "Remove flea?" with the default No, and the install stops at "unresolvable package
-conflicts". On a box with no Flea installed yet, both commands work. `flea-git` switches the same
-way, and going back to Omarchy's package is `sudo pacman -S flea`, answering `y` to remove the other.
-Omarchy refuses `yay -Syu` and `pacman -Syu`; `omarchy update`, or `yay -Sua` for the AUR alone, are
-the update commands.
+Omarchy's build host builds and signs each tagged release for x86_64 and aarch64, so nothing
+compiles on your machine. `omarchy update` keeps it current: a release arrives a day or more after
+it ships, once Omarchy has reviewed and built it. Omarchy refuses `yay -Syu` and `pacman -Syu`;
+`omarchy update` is the update command.
 
-What lands on disk is the table below whichever package it is, the licence directory aside, which
-takes the package's name: every AUR PKGBUILD runs the source `PKGBUILD`'s `package()` commands, and
-the release workflow refuses a tag where one has drifted. `flea --default` and `flea --picker` write
-per-user files, so a switch keeps them. The AUR also carries `flea`, the same release built from
-source on your machine, but on Omarchy the repository package of the same name comes first, so
-there is no reason to pick it there. [docs/release.md](release.md) is how each package is made.
+**Moving from the AUR.** Earlier releases were also on the AUR as `flea-bin`, `flea-git` and a
+source-built `flea`. To move from `flea-bin` or `flea-git`, run the interactive command and answer
+`y` when pacman asks whether to remove the AUR package:
+
+```
+sudo pacman -S flea
+```
+
+`omarchy pkg add flea` cannot make that swap: it passes `--noconfirm`, pacman then answers its own
+removal question with the default No, and the install stops at "unresolvable package conflicts".
+The AUR's `flea` shares the repository package's name, so `omarchy update` replaces it with the
+repository build at the next release. `flea --default` and `flea --picker` write per-user files, so
+the move keeps them.
 
 ## Build and install
 
@@ -113,17 +103,18 @@ Then run `sudo systemctl restart NetworkManager`.
 sudo pacman -Rns flea
 ```
 
-Or `flea-bin`, or `flea-git`, whichever is installed. Everything above goes, including the
-directories the install created. The package carries no `.INSTALL` scriptlet, so nothing is ever
-created outside the file list pacman tracks, and the desktop and icon caches are re-indexed by
+An older AUR install removes the same way under its own name, `flea-bin` or `flea-git`.
+Everything above goes, including the directories the install created. The package carries no
+`.INSTALL` scriptlet, so nothing is ever created outside the file list pacman tracks, and the
+desktop and icon caches are re-indexed by
 Arch's own `update-desktop-database` and `gtk-update-icon-cache` hooks, which fire on Remove as
 well as on Install.
 
 Removal also runs Flea's own `flea.hook`, before any file goes. It prints `flea --default off` and
 `flea --picker off`, because what those two commands undo lives in each user's home, where pacman
 never reaches. Run them before the removal; once Flea is gone, the two "What `pacman -Rns flea`
-leaves behind" sections below name each file to delete by hand. Swapping `flea-bin` for `flea` or
-`flea-git` removes one package too, so the note appears then as well; its first line says it only
+leaves behind" sections below name each file to delete by hand. Moving from an AUR package to
+`flea` removes one package too, so the note appears then as well; its first line says it only
 matters when Flea is leaving for good.
 
 ## Make Flea the default
