@@ -50,8 +50,9 @@ fn ey151_tab_shift_tab_and_backtab_leave_the_menu_cursor_on_copy(cx: &mut TestAp
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+// The file-menu-print board pins Open with no key while key hints are on: Enter activates whichever row holds the cursor.
 #[gpui::test]
-fn ey177_open_keeps_its_enter_hint_when_key_hints_are_on(cx: &mut TestAppContext) {
+fn ey177_open_draws_no_enter_hint_when_key_hints_are_on(cx: &mut TestAppContext) {
     let (shell, cx) = open_root_with(
         cx,
         r#""keys":"default","view":"list","keyHints":true"#,
@@ -64,7 +65,7 @@ fn ey177_open_keeps_its_enter_hint_when_key_hints_are_on(cx: &mut TestAppContext
     let hints = read(&shell, cx, "contextMenuHints", &[]);
     let hints = hints.split('|').collect::<Vec<_>>();
     for (action, hint) in [
-        ("open", "enter"),
+        ("open", ""),
         ("cut", "x"),
         ("copy", "y"),
         ("rename", "r"),

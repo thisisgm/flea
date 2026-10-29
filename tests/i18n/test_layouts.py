@@ -243,7 +243,13 @@ class LayoutTests(unittest.TestCase):
         contents = [r for r in common if r["action"] == "searchContents"]
         self.assertEqual([(r["table"], r["key"], r["mods"], r["contexts"], r["frontend"])
                           for r in contents], [("ctrl", "G", "ctrl", ["listing", "rail"], "all")])
-        self.assertEqual([r for r in common if r["action"] not in ("openAgent", "carry", "searchContents") and r not in text_size],
+        # The Quick Look sheet fix binds [ and ] to turn a workbook's sheets, only inside the preview and PDF contexts.
+        sheets = [r for r in common if r["action"] in ("previousSheet", "nextSheet")]
+        self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
+                          for r in sheets], [("preset", "all", "[", "text", "previousSheet", ["preview", "pdf"], "all"),
+                                             ("preset", "all", "]", "text", "nextSheet", ["preview", "pdf"], "all")])
+        self.assertEqual([r for r in common if r["action"] not in ("openAgent", "carry", "searchContents") and r not in text_size
+                          and r not in sheets],
                          [{k: v for k, v in r.items() if k != "id"} for r in baseline])
 
     def test_i50_layout_unreachable_fails(self):
