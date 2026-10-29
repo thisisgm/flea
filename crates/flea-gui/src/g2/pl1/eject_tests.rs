@@ -282,3 +282,53 @@ fn one_release_at_a_time_across_eject_and_unmount() {
         ["Still ejecting OMARCHY_202608; wait for its result|false"]
     );
 }
+
+// One stick holding an open crypt and a plain partition, beside a second stick.
+const CRYPT_BESIDE: &str = concat!(
+    r#"{"blockdevices":[{"name":"sdb","path":"/dev/sdb","type":"disk","rm":true,"mountpoints":[null],"children":["#,
+    r#"{"name":"sdb1","path":"/dev/sdb1","type":"part","rm":true,"label":"Vault","fstype":"crypto_LUKS","mountpoints":[null]"#,
+    r#","children":[{"name":"luks-vault","path":"/dev/mapper/luks-vault","type":"crypt","rm":true,"fstype":"ext4","mountpoints":["/run/media/gm/Vault"]}]"#,
+    r#"},{"name":"sdb2","path":"/dev/sdb2","type":"part","rm":true,"label":"Stick","fstype":"ext4","mountpoints":["/run/media/gm/Stick"]}]},"#,
+    r#"{"name":"sdc","path":"/dev/sdc","type":"disk","rm":true,"mountpoints":[null],"children":["#,
+    r#"{"name":"sdc1","path":"/dev/sdc1","type":"part","rm":true,"label":"Other","fstype":"ext4","mountpoints":["/run/media/gm/Other"]}]}]}"#,
+);
+const LUKS_CHILD: &str = r#","children":[{"name":"luks-vault","path":"/dev/mapper/luks-vault","type":"crypt","rm":true,"fstype":"ext4","mountpoints":["/run/media/gm/Vault"]}]"#;
+
+fn at(d: &Devices, label: &str) -> usize {
+    d.entries
+        .iter()
+        .position(|e| e.label == label)
+        .unwrap_or_else(|| panic!("the listing shows {label}"))
+}
+
+#[test]
+fn an_eject_holds_an_open_crypt_on_its_drive_and_a_crypt_eject_holds_the_drive() {
+    let locked = CRYPT_BESIDE.replace(LUKS_CHILD, "");
+    assert_ne!(locked, CRYPT_BESIDE, "the fixture can lock its crypt");
+    for (source, neighbour) in [("Stick", "Vault"), ("Vault", "Stick")] {
+        let mut d = listed_devices(CRYPT_BESIDE);
+        let started = d.eject(at(&d, source), 1);
+        assert!(
+            started
+                .iter()
+                .any(|e| matches!(e, Effect::Start(Proc::Eject, _))),
+            "{source} ejects: {started:?}"
+        );
+        let held = [format!(
+            "Still ejecting {source}; wait for its result|false"
+        )];
+        assert_eq!(messages(&d.activate(at(&d, neighbour))), held);
+        let other = d.activate(at(&d, "Other"));
+        assert!(
+            other
+                .iter()
+                .any(|e| matches!(e, Effect::Opened(path) if path == "/run/media/gm/Other")),
+            "a volume on another drive still opens: {other:?}"
+        );
+        if source == "Vault" {
+            // A listing that lands mid-eject may already show the crypt locked and gone.
+            d.list_exited(&listed(&locked));
+            assert_eq!(messages(&d.activate(at(&d, "Stick"))), held);
+        }
+    }
+}

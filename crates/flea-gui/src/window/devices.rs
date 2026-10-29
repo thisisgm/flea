@@ -63,7 +63,7 @@ impl Shell {
         });
     }
 
-    /// The eject mark's click or its keyboard frame names the row; the pane that asked is the one that quiesces.
+    /// The eject mark's click or its keyboard frame names the row to release.
     pub(crate) fn release_rail_row(
         &mut self,
         side: usize,
@@ -76,7 +76,7 @@ impl Shell {
         }
     }
 
-    /// v0.3.12 quiesces and moves only the releasing pane (ui/Sidebar.qml:271, ui/PaneRail.qml:148,225), then the release runs.
+    /// Every pane on the volume releases its readers before the release child starts.
     pub(crate) fn quiesce_volume(
         &mut self,
         side: usize,
@@ -86,18 +86,34 @@ impl Shell {
     ) {
         let side = side.min(1);
         let mut failed = Vec::new();
-        let on_volume = self.panes[side].as_ref().is_some_and(|host| {
+        let home = std::env::var("HOME").unwrap_or_default();
+        for pane_side in 0..self.panes.len() {
+            let Some(host) = self.panes[pane_side].as_ref() else {
+                continue;
+            };
+            let on_volume = !volume.is_empty()
+                && (inside(&host.path, volume) || inside(host.pane.place(), volume));
+            if pane_side != side && !on_volume {
+                continue;
+            }
             if let Some(Err(error)) = host.backend.as_ref().map(|backend| backend.quiesce()) {
                 failed.push(self.locale.catalog.tr_args(error.key, &[&error.detail]));
             }
-            !volume.is_empty() && inside(&host.path, volume)
-        });
-        let home = std::env::var("HOME").unwrap_or_default();
-        if on_volume && !home.is_empty() {
-            if let Err(refusal) =
-                self.step(side, super::navigate::Step::OpenPlace(home), window, cx)
-            {
-                failed.push(self.locale.catalog.tr(refusal.key()));
+            if !on_volume {
+                continue;
+            }
+            if let Some(preview) = host.preview.clone() {
+                preview.update(cx, |preview, cx| preview.hide(window, cx));
+            }
+            if !home.is_empty() {
+                if let Err(refusal) = self.step(
+                    pane_side,
+                    super::navigate::Step::OpenPlace(home.clone()),
+                    window,
+                    cx,
+                ) {
+                    failed.push(self.locale.catalog.tr(refusal.key()));
+                }
             }
         }
         // A failed quiesce or move is said, and the release still runs, as v0.3.12 never held it back.

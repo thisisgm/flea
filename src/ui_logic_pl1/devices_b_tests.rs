@@ -4,7 +4,7 @@ use super::devices_tests::{LIVE, UNMOUNTED};
 use super::eject::{blockers, sentence, verdict, Verdict};
 use super::menu::{rail_menu, MenuRow};
 use super::mounts::parse_mounts;
-use super::power::{power_off_queue, sys_base, written_sectors, Queued};
+use super::power::{drives_holding, power_off_queue, sys_base, written_sectors, Queued};
 use super::{Kind, RailEntry};
 
 // Four rows from two sticks, the system disk and one bare internal drive; the nvme1n1 drive adds none.
@@ -27,7 +27,7 @@ const CRYPT: &str = concat!(
     r#""children":[{"name":"luks-vault","path":"/dev/mapper/luks-vault","label":"vault","mountpoints":["/run/media/gm/vault"],"rm":false,"size":8589934592,"type":"crypt","model":null}]}]}]}"#,
 );
 
-// A real multi-boot system disk with its live GPT parttype GUIDs, its siblings follow the switch.
+// A real multi-boot system disk with its live GPT parttype GUIDs and usable Windows data volumes.
 const MULTIBOOT: &str = concat!(
     r#"{"blockdevices":[{"name":"nvme0n1","path":"/dev/nvme0n1","label":null,"mountpoints":[],"rm":false,"tran":"nvme","size":512110190592,"type":"disk","model":"Micron_2450","#,
     r#""children":["#,
@@ -234,6 +234,16 @@ fn power_off_queues_every_mounted_node_on_the_disk() {
 }
 
 #[test]
+fn drives_holding_names_every_drive_under_a_volume() {
+    let crypt = r#"{"blockdevices":[{"name":"sdb","path":"/dev/sdb","children":[{"name":"sdb2","path":"/dev/sdb2","children":[{"name":"luks-x","path":"/dev/mapper/luks-x","type":"crypt"}]}]},{"name":"sdc","path":"/dev/sdc"}]}"#;
+    assert_eq!(drives_holding(crypt, "/dev/mapper/luks-x"), vec!["/dev/sdb"], "an open crypt names the drive under its container");
+    assert_eq!(drives_holding(crypt, "/dev/sdc"), vec!["/dev/sdc"], "a whole disk names itself");
+    let spanned = r#"{"blockdevices":[{"name":"sdb","path":"/dev/sdb","children":[{"name":"md0","path":"/dev/md0"}]},{"name":"sdc","path":"/dev/sdc","children":[{"name":"md0","path":"/dev/md0"}]}]}"#;
+    assert_eq!(drives_holding(spanned, "/dev/md0"), vec!["/dev/sdb", "/dev/sdc"], "an array lsblk repeats under each member names both drives");
+    assert!(drives_holding("not json", "/dev/sdb1").is_empty(), "an unparsable listing names no drive");
+}
+
+#[test]
 fn power_off_falls_back_to_rail_volumes_when_the_listing_fails() {
     let rails = rail_volumes();
     assert_eq!(power_off_queue("not json", "/dev/sda", &rails), rail_queue(), "an unparsable listing falls back to mounted rail volumes on this disk");
@@ -261,12 +271,12 @@ fn sysfs_helpers_answer_block_name_and_written_sectors() {
 }
 
 #[test]
-fn multiboot_system_disk_siblings_follow_the_switch() {
+fn multiboot_windows_data_stays_visible_and_other_siblings_follow_the_switch() {
     let with = parse_devices(MULTIBOOT, true);
     let without = parse_devices(MULTIBOOT, false);
     assert_eq!(field_list(&with, |e| e.label.as_str()), "nvme0n1,Acer,Micron_2450,ryoku", "with the switch on, the system disk lists its real volumes beside the disk row");
     assert_eq!(if with.len() > 2 { with[2].label.as_str() } else { "" }, "Micron_2450", "an unlabeled sibling falls back to the drive's product name");
-    assert_eq!(field_list(&without, |e| e.label.as_str()), "nvme0n1", "with the switch off, a multi-boot disk is still the one disk row");
+    assert_eq!(field_list(&without, |e| e.label.as_str()), "nvme0n1,Acer,Micron_2450", "usable Windows data volumes stay visible with the switch off");
     assert!(!(with.iter().any(|e| e.label == "ESP" || e.label == "OMARCHY_EFI")), "both ESPs stay out with the switch on");
     assert!(!(without.iter().any(|e| e.label == "ESP" || e.label == "OMARCHY_EFI")), "and they stay out with the switch off");
     assert!(!(with.iter().any(|e| e.device == "/dev/nvme0n1p2") || without.iter().any(|e| e.device == "/dev/nvme0n1p2")), "the reserved partition stays out on either switch value");

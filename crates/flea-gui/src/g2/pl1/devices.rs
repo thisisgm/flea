@@ -70,6 +70,7 @@ pub struct Devices {
     pub(super) unmount_device: String,
     pub(super) unmounting: bool,
     pub(super) eject_device: String,
+    pub(super) eject_drives: Vec<String>,
     pub(super) eject_label: String,
     pub(super) eject_loop: bool,
     pub(super) detach_failed: bool,
@@ -237,6 +238,9 @@ impl Devices {
         let Some(e) = self.entries.get(index).cloned() else {
             return Vec::new();
         };
+        if let Some(note) = self.release_note(&e.device) {
+            return vec![Effect::Message(note, false)];
+        }
         if e.locked {
             let request = Effect::UnlockRequested {
                 device: e.device,
