@@ -2,7 +2,7 @@
 use crate::g2::pl4::content::{DrawnSection, RowMark};
 use crate::rail::geometry::Rect;
 #[path = "glyph.rs"]
-mod glyph;
+pub(crate) mod glyph;
 use crate::list::{Palette, Typeface};
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,

@@ -175,6 +175,7 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
             Ok(window) => {
                 let _ = window.update(cx, |picker, _, cx| {
                     picker.apply_settings(&settings, cx);
+                    picker.start_places(&settings, cx);
                     picker.follow_settings(cx);
                     let reader = follow_locale(&service, cx);
                     picker.keep(reader);

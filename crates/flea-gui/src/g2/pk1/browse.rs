@@ -8,7 +8,7 @@ use crate::list::Typeface;
 use crate::path::view::{Inputs, Out, PathView};
 use flea::jsondoc::{self, Json};
 use flea::ui_logic_pk1 as logic;
-use flea::ui_logic_pk2::{join, FilterDef};
+use flea::ui_logic_pk2::FilterDef;
 use gpui::{
     div, prelude::*, px, AnyView, AnyWindowHandle, Context, Entity, IntoElement, Render,
     Subscription, Window,
@@ -32,7 +32,7 @@ pub struct Browse {
     pub listing: Entity<ListingView>,
     pub path: Entity<PathBar>,
     pub filename: Option<Entity<Filename>>,
-    home: String,
+    pub(super) home: String,
     // List requests the child has not answered yet; only the answer to the newest names the current generation.
     pub(super) in_flight: usize,
     reply_gen: u64,
@@ -45,9 +45,10 @@ pub struct Browse {
     _filename: Option<Subscription>,
 }
 
-// The body slot: the path strip over the listing.
+// The body slot: the path strip over the places rail and the listing, as picker-open draws them.
 struct Body {
     path: Entity<super::chrome_view::ChromeView>,
+    rail: Entity<super::rail_view::RailView>,
     listing: Entity<ListingView>,
 }
 
@@ -63,7 +64,15 @@ impl Render for Body {
                     .h(px(PATH_HEIGHT))
                     .child(self.path.clone()),
             )
-            .child(div().flex_1().overflow_hidden().child(self.listing.clone()))
+            .child(
+                div()
+                    .flex_1()
+                    .min_h_0()
+                    .flex()
+                    .flex_row()
+                    .child(self.rail.clone())
+                    .child(div().flex_1().overflow_hidden().child(self.listing.clone())),
+            )
     }
 }
 
@@ -121,8 +130,15 @@ impl Browse {
     pub fn body(&self, cx: &mut Context<Picker>) -> AnyView {
         let (path, listing) = (self.path.clone(), self.listing.clone());
         let picker = cx.entity().downgrade();
+        let rail = cx.new(|_| super::rail_view::RailView {
+            picker: picker.clone(),
+        });
         let path = cx.new(|_| super::chrome_view::ChromeView { picker, path });
-        AnyView::from(cx.new(|_| Body { path, listing }))
+        AnyView::from(cx.new(|_| Body {
+            path,
+            rail,
+            listing,
+        }))
     }
 
     pub fn path_view(&self, cx: &gpui::App) -> Entity<PathView> {
@@ -147,10 +163,15 @@ impl Picker {
             })
     }
 
-    // Only an absolute folder lists; Recent is the places reader's to fill.
+    // Only an absolute folder lists, or Recent, whose paths the history file names.
     pub fn open_folder(&mut self, path: &str, cx: &mut Context<Self>) {
-        if !path.starts_with('/') {
+        let recent = logic::is_recent(path);
+        if !path.starts_with('/') && !recent {
             return;
+        }
+        // A folder change ends any drive wait, as v0.3.12 PickerPlaces.qml onPathChanged does.
+        if path != self.listing.location {
+            self.rail.awaiting.clear();
         }
         self.remember_folder(path);
         self.selection_reset();
@@ -169,7 +190,10 @@ impl Picker {
             listing.set_hidden(hidden);
             listing.request_line(first)
         });
-        if self.send_listing(&line) {
+        self.rail.recent_read = None;
+        if recent {
+            self.read_recent(cx);
+        } else if self.send_listing(&line) {
             self.browse.in_flight += 1;
         }
         if self.browse.route.leaf_parent != path {
@@ -209,7 +233,7 @@ impl Picker {
             return;
         };
         if row.dir {
-            let path = join(&self.listing.location, &row.name);
+            let path = flea::ui_logic_pk2::row_path(&self.listing.location, &row.name);
             self.open_folder(&path, cx);
             return;
         }
@@ -338,9 +362,15 @@ impl Picker {
     fn landing(&mut self, document: &Json, cx: &mut Context<Self>) {
         self.browse.in_flight = self.browse.in_flight.saturating_sub(1);
         let view = self.browse.listing.read(cx);
+        // Recent's listing stands on the base "/" its paths are named under.
+        let listed = if logic::is_recent(&self.listing.location) {
+            "/"
+        } else {
+            self.listing.location.as_str()
+        };
         let current = view.listing().is_pending()
             && self.browse.in_flight == 0
-            && document.get("path").and_then(Json::as_str) == Some(self.listing.location.as_str());
+            && document.get("path").and_then(Json::as_str) == Some(listed);
         self.browse.reply_gen = if current { view.generation() } else { 0 };
     }
 

@@ -116,7 +116,7 @@ impl Picker {
         if event.keystroke.key == "enter" {
             self.record_submission_focus(window, cx);
         }
-        if self.parity_key(event, window, cx) {
+        if self.rail_key(event, window, cx) || self.parity_key(event, window, cx) {
             cx.stop_propagation();
             return;
         }

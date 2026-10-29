@@ -89,7 +89,7 @@ pub struct Producer {
 /// Called with no producer lease held, so the window may read the rows it lands on.
 pub(crate) type DropSink = Rc<dyn Fn(&mut gpui::Window, &mut gpui::App)>;
 
-fn dirs_text(home: &str) -> String {
+pub(crate) fn dirs_text(home: &str) -> String {
     let config = std::env::var_os("XDG_CONFIG_HOME")
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)

@@ -160,6 +160,18 @@ impl Listing {
         )
     }
 
+    // Recent's request: the history's paths, newest first, listed under the base "/".
+    pub fn paths_line(paths: &[String], first: usize) -> String {
+        let paths: Vec<String> = paths
+            .iter()
+            .map(|path| format!("\"{}\"", escape(path)))
+            .collect();
+        format!(
+            r#"{{"c":"listpaths","paths":[{}],"first":{first}}}"#,
+            paths.join(",")
+        )
+    }
+
     // The window request for rows the held window does not hold yet.
     pub fn window_request(&self, start: usize, count: usize) -> Option<String> {
         if self.pending || self.cause.is_some() || self.total() == 0 {

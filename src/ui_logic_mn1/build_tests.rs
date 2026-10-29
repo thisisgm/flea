@@ -95,7 +95,11 @@ fn inventory_order_and_default_menus() {
         .iter()
         .map(|r| r.action.to_string())
         .collect();
-    check("Move to Trash is the group after Open, alone in the destructive group", last_group, strings(&["trash"]));
+    check(
+        "Move to Trash is the group after Open, alone in the destructive group",
+        last_group,
+        strings(&["trash"]),
+    );
     let all = listing_entries(&st(|p| {
         p.hidden.clear();
         p.clipboard_available = true;
@@ -816,8 +820,7 @@ fn print_convert_and_combine() {
 
 #[test]
 fn a_folder_row_offers_no_taildrop_peers() {
-    // tests/js/menu.js "cold folder listing suppresses file-only peers": a folder gets the dimmed files only row.
-    let i18n = english();
+    // tests/js/menu.js "cold folder listing suppresses file-only peers": a folder takes no Taildrop peer.
     let rows = listing_entries(&st(|p| p.row_is_file = false));
     let taildrop = rows
         .iter()
@@ -829,13 +832,10 @@ fn a_folder_row_offers_no_taildrop_peers() {
         0,
     );
     check("folder Taildrop row is dimmed", taildrop.disabled, true);
+    // GM 2026-10-29: it reads red with no state word, so the menu keeps its size.
     check(
-        "folder Taildrop row says files only",
-        taildrop
-            .hint
-            .as_ref()
-            .map(|t| t.resolve(&i18n))
-            .unwrap_or_default(),
-        "files only".to_owned(),
+        "folder Taildrop row is red and says no word",
+        (taildrop.errored, taildrop.hint.is_none()),
+        (true, true),
     );
 }

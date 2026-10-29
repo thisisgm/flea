@@ -198,10 +198,11 @@ fn provider_rows_and_state_words() {
         offline.disabled,
         true,
     );
+    // GM 2026-10-29: an app row that cannot answer reads red and says no state word, so the menu keeps its size.
     check(
-        "offline Taildrop reads as an error, with one state word beside it",
+        "offline Taildrop reads as an error with no state word beside it",
         format!("{}|{}", offline.errored, hint(&english(), Some(offline))),
-        "true|offline".into(),
+        "true|undefined".into(),
     );
     check(
         "offline Taildrop offers no stale peers",
@@ -218,17 +219,6 @@ fn provider_rows_and_state_words() {
         "a provider still being read is dimmed, not errored",
         entry(&reading, "taildrop").unwrap().errored,
         false,
-    );
-    check(
-        "and says no word until it has answered",
-        word(
-            |p| {
-                p.taildrop_refreshing = true;
-                p.taildrop_peers.clear()
-            },
-            "taildrop",
-        ),
-        "undefined".into(),
     );
     check(
         "fresh status disables a cached Dropbox directory",
@@ -250,132 +240,101 @@ fn provider_rows_and_state_words() {
         entry(&rows, "taildrop").unwrap().errored,
         true,
     );
-    let td = |code: &str| {
-        let code = code.to_owned();
-        word(
-            move |p| {
-                p.taildrop_peers.clear();
-                p.taildrop_code = code
-            },
-            "taildrop",
+    let red = |change: &dyn Fn(&mut Context), action: &str| {
+        let rows = listing_entries(&st(change));
+        let row = entry(&rows, action).unwrap();
+        format!(
+            "{}|{}|{}",
+            row.disabled,
+            row.errored,
+            hint(&english(), Some(row))
         )
     };
+    for code in [
+        "signedOut",
+        "noPeers",
+        "stopped",
+        "",
+        "invalid",
+        "statusFailed",
+    ] {
+        check(
+            "an unanswering Taildrop is red and wordless under every code",
+            red(
+                &|p| {
+                    p.taildrop_peers.clear();
+                    p.taildrop_code = code.into()
+                },
+                "taildrop",
+            ),
+            "true|true|undefined".into(),
+        );
+    }
     check(
-        "Taildrop signed out says signed out",
-        td("signedOut"),
-        "signed out".into(),
-    );
-    check(
-        "Taildrop with no peers says no devices",
-        td("noPeers"),
-        "no devices".into(),
-    );
-    check(
-        "Taildrop stopped says offline",
-        td("stopped"),
-        "offline".into(),
-    );
-    let folder = |mode: u32, code: &str| {
-        let code = code.to_owned();
-        word(
-            move |p| {
-                p.taildrop_peers.clear();
+        "Taildrop on a folder takes no peer, so it is red and wordless with a device answering",
+        red(
+            &|p| {
                 p.row_is_file = false;
                 p.row_is_image = false;
-                p.row_mode = mode;
-                p.taildrop_code = code
-            },
-            "taildrop",
-        )
-    };
-    check(
-        "Taildrop on a folder says files only",
-        folder(0o100644, "signedOut"),
-        "files only".into(),
-    );
-    check(
-        "Taildrop on a folder whose mode was never read says files only",
-        folder(0, ""),
-        "files only".into(),
-    );
-    check(
-        "Taildrop on a link to a folder says files only",
-        folder(0o120777, "noPeers"),
-        "files only".into(),
-    );
-    check(
-        "Taildrop on a file whose mode was never read says offline",
-        word(
-            |p| {
-                p.taildrop_peers.clear();
-                p.row_mode = 0
+                p.row_mode = 0o040755
             },
             "taildrop",
         ),
-        "offline".into(),
+        "true|true|undefined".into(),
     );
-    let ls = |change: &dyn Fn(&mut Context)| {
-        word(
-            |p| {
+    check(
+        "LocalSend with nobody answering is red and wordless",
+        red(&|p| p.localsend_installed = true, "localsend"),
+        "true|true|undefined".into(),
+    );
+    check(
+        "LocalSend on a folder with a device answering stays live, as v0.3.12 MenuContext.js hands it every peer",
+        red(
+            &|p| {
                 p.localsend_installed = true;
-                change(p)
+                p.localsend_peers = vec![peer("box", "Box")];
+                p.row_is_file = false;
+                p.row_is_image = false
             },
             "localsend",
-        )
-    };
-    check(
-        "LocalSend on a folder says files only",
-        ls(&|p| {
-            p.row_is_file = false;
-            p.row_is_image = false
-        }),
-        "files only".into(),
+        ),
+        "false|false|undefined".into(),
     );
     check(
-        "LocalSend on a folder whose mode was never read says files only",
-        ls(&|p| {
-            p.row_is_file = false;
-            p.row_mode = 0
-        }),
-        "files only".into(),
-    );
-    check(
-        "LocalSend on a link to a folder says files only",
-        ls(&|p| {
-            p.row_is_file = false;
-            p.row_mode = 0o120777
-        }),
-        "files only".into(),
-    );
-    check(
-        "LocalSend with nobody answering says no devices",
-        ls(&|_| {}),
-        "no devices".into(),
-    );
-    check(
-        "LocalSend still being read says nothing",
-        ls(&|p| p.localsend_checking = true),
-        "undefined".into(),
-    );
-    let db = |code: &str| {
-        let code = code.to_owned();
-        word(
-            move |p| {
-                p.dropbox_path.clear();
-                p.dropbox_code = code
+        "LocalSend still being read is dimmed and says nothing",
+        red(
+            &|p| {
+                p.localsend_installed = true;
+                p.localsend_checking = true
             },
-            "dropbox",
-        )
-    };
-    check(
-        "Dropbox signed out says signed out",
-        db("signedOut"),
-        "signed out".into(),
+            "localsend",
+        ),
+        "true|false|undefined".into(),
     );
+    for code in ["signedOut", "notRunning", "", "readFailed", "statusFailed"] {
+        check(
+            "an unanswering Dropbox is red and wordless under every code",
+            red(
+                &|p| {
+                    p.dropbox_path.clear();
+                    p.dropbox_code = code.into()
+                },
+                "dropbox",
+            ),
+            "true|true|undefined".into(),
+        );
+    }
     check(
-        "Dropbox that is not answering says not running",
-        db("notRunning"),
-        "not running".into(),
+        "Share link reads as Dropbox does",
+        red(
+            &|p| {
+                p.dropbox_path.clear();
+                p.row_in_dropbox = true;
+                p.dropbox_code = "signedOut".into()
+            },
+            "sharelink",
+        ),
+        "true|true|undefined".into(),
     );
     check(
         "Dropbox still being read says nothing",
@@ -388,70 +347,8 @@ fn provider_rows_and_state_words() {
         ),
         "undefined".into(),
     );
-    check(
-        "Share link says the same word as Dropbox",
-        word(
-            |p| {
-                p.dropbox_path.clear();
-                p.row_in_dropbox = true;
-                p.dropbox_code = "signedOut".into()
-            },
-            "sharelink",
-        ),
-        "signed out".into(),
-    );
-    // The Context carries no provider reason at all, so none can be passed through.
-    check(
-        "a provider reason is never passed through",
-        td(""),
-        "offline".into(),
-    );
-    check(
-        "and no sentence is read: a signed out reason under another code says offline",
-        td("stopped"),
-        "offline".into(),
-    );
-    check(
-        "nor a no peers reason under the failed code",
-        td("statusFailed"),
-        "offline".into(),
-    );
-    check(
-        "Taildrop with an empty or unknown code says offline",
-        format!("{}|{}", td(""), td("other")),
-        "offline|offline".into(),
-    );
-    check(
-        "Taildrop codes invalid, disabled and statusFailed say offline",
-        ["invalid", "disabled", "statusFailed"].map(td).join("|"),
-        "offline|offline|offline".into(),
-    );
-    check(
-        "Dropbox signed out reason under a running code says not running",
-        db("notRunning"),
-        "not running".into(),
-    );
-    check(
-        "Dropbox with an empty or unknown code says not running",
-        format!("{}|{}", db(""), db("other")),
-        "not running|not running".into(),
-    );
-    check(
-        "Dropbox codes readFailed, invalid and statusFailed say not running",
-        ["readFailed", "invalid", "statusFailed"].map(db).join("|"),
-        "not running|not running|not running".into(),
-    );
     let i18n = english();
-    let words = [
-        "files_only",
-        "signed_out",
-        "no_devices",
-        "offline",
-        "not_running",
-        "symlink",
-        "special_file",
-        "not_yours",
-    ];
+    let words = ["symlink", "special_file", "not_yours"];
     check(
         "every state word is one short lowercase run with no period",
         words.iter().all(|w| {
