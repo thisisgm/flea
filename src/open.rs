@@ -22,6 +22,7 @@ fn resolved(path: &str) -> Option<PathBuf> {
 
 // The environment every program Flea starts carries: huge pages back on, Qt's own pin, driver exclusion and theme dropped, the tear-off hand-off kept to its window. runfile.rs reuses this.
 pub fn prepare(child: &mut Command) {
+    flea::qscrash::restore(child);
     // The setting is inherited across exec, so this is the last point that can hand it back.
     thp::enable();
     // The display-GPU pin and the driver exclusion are Qt's alone, and only this launcher's own are dropped.

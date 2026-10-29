@@ -184,6 +184,7 @@ fn configure_gpui(cmd: &mut Command) {
 }
 
 fn configure_child(cmd: &mut Command) {
+    flea::qscrash::restore(cmd);
     // Only the main window records a prefetch list; a chooser started from a Flea terminal must not overwrite it.
     cmd.env_remove(prefetch::LIST_ENV);
     cmd.env_remove(prefetch::SHELL_ENV);
@@ -206,6 +207,7 @@ fn set_backend_binary(cmd: &mut Command) {
 
 pub(super) fn configure_shell(cmd: &mut Command) {
     configure_child(cmd);
+    flea::qscrash::disable(cmd);
     skip_gtk_platform_theme(cmd);
     set_backend_binary(cmd);
     // Before the probe and qs in every arm, so neither loads a driver for a GPU vendor this box does not hold.
