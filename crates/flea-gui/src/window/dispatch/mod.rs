@@ -242,6 +242,8 @@ mod rename_tests;
 #[cfg(test)]
 mod rename_views_tests;
 #[cfg(test)]
+mod rename_watch_tests;
+#[cfg(test)]
 mod retry_tests;
 #[cfg(test)]
 mod runcard_tests;

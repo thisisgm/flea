@@ -22,6 +22,8 @@ pub(crate) struct Progress {
     preview: String,
     preview_bytes: Option<u64>,
     finished: HashSet<String>,
+    probe: usize,
+    growing: Option<String>,
     reported: Instant,
     protected: bool,
 }
@@ -38,12 +40,14 @@ impl Progress {
             preview: String::new(),
             preview_bytes: None,
             finished: HashSet::new(),
+            probe: 0,
+            growing: None,
             reported: Instant::now() - PROGRESS_EVERY,
             protected,
         }
     }
 
-    // Sample: 7z -bb1 stdout "- docs/a.txt", or bsdtar -v stderr "x docs/a.txt".
+    // Sample: 7z -bb1 -bso2 stderr "- docs/a.txt", or bsdtar -v stderr "x docs/a.txt".
     pub fn line(&mut self, line: &str, seven: bool, stage: &Path) {
         let name = if seven {
             line.strip_prefix("- ")
@@ -104,9 +108,49 @@ impl Progress {
         }
     }
 
+    fn find_growing(&mut self, stage: &Path) -> Option<(String, u64, u64)> {
+        let probes = SAMPLE_PROBES - usize::from(self.growing.is_some());
+        if let Some(name) = self.growing.take() {
+            if !self.finished.contains(&name) {
+                if let Some(size) = self.index.members.get(&name).copied() {
+                    if let Some(bytes) =
+                        staged_size(stage, &name).filter(|bytes| *bytes > 0 && *bytes < size)
+                    {
+                        self.growing = Some(name.clone());
+                        return Some((name, size, bytes));
+                    }
+                }
+            }
+        }
+        let count = self.index.members.len();
+        for (name, size) in self
+            .index
+            .members
+            .iter()
+            .cycle()
+            .skip(self.probe)
+            .take(count.min(probes))
+        {
+            self.probe = (self.probe + 1) % count;
+            if self.finished.contains(name) {
+                continue;
+            }
+            if let Some(bytes) = staged_size(stage, name).filter(|bytes| *bytes > 0) {
+                if bytes < *size {
+                    self.growing = Some(name.clone());
+                }
+                return Some((name.clone(), *size, bytes.min(*size)));
+            }
+        }
+        None
+    }
+
     pub fn sample(&mut self, stage: &Path, id: usize, tx: &Sender<OpMsg>, final_sample: bool) {
         if !final_sample && self.reported.elapsed() < PROGRESS_EVERY {
             return;
+        }
+        if self.index.members.contains_key(&self.current) {
+            self.complete(stage);
         }
         let mut file = self.current.clone();
         let mut item = self.index.members.get(&file).copied().unwrap_or(0);
@@ -130,21 +174,10 @@ impl Progress {
             }
         }
         if self.index.known && active == 0 {
-            for (name, size) in self
-                .index
-                .members
-                .iter()
-                .filter(|(name, _)| !self.finished.contains(*name))
-                .take(SAMPLE_PROBES)
-            {
-                if let Some(bytes) = staged_size(stage, name) {
-                    if bytes > 0 {
-                        file = name.clone();
-                        item = *size;
-                        active = bytes.min(*size);
-                        break;
-                    }
-                }
+            if let Some((name, size, bytes)) = self.find_growing(stage) {
+                file = name;
+                item = size;
+                active = bytes;
             }
         }
         if final_sample {
@@ -268,3 +301,7 @@ mod tests {
         assert!(rx.try_recv().is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "extractprogress_live_tests.rs"]
+mod live_tests;

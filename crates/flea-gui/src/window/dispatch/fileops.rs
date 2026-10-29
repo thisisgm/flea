@@ -154,26 +154,13 @@ impl Shell {
         true
     }
 
-    /// Focus.js trashRefused: where gio has no Trash, a trash key refuses and names the key that still deletes.
-    fn trash_refused(&mut self, side: usize, cx: &mut Context<Self>) -> bool {
-        let Some(host) = self.panes[side].as_ref() else {
-            return false;
-        };
-        if flea::ui_logic_pl1::mounts::trashable(&host.path, None) {
-            return false;
-        }
-        let text = self.locale.catalog.tr("feedback.no_trash");
-        self.status_messages(cx, |messages, now| {
-            messages.say_placed(&text, Hint::Deletes, now)
-        });
-        cx.notify();
-        true
-    }
-
     // Ops.js trash: the marked rows, or the cursor while the filter draws it; none says why.
     fn fileops_trash(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
-        if self.trash_refused(side, cx) {
+        let Some(host) = self.panes[side].as_ref() else {
             return;
+        };
+        if !flea::ui_logic_pl1::mounts::trashable(&host.path, None) {
+            return self.fileops_delete(side, chosen, cx);
         }
         let (listing, rows, menu) = match chosen {
             Some(chosen) => (
@@ -211,12 +198,10 @@ impl Shell {
 
     // Trash.js arm: the first press says what a second press inside ARM_MS does, the second trashes.
     fn fileops_arm(&mut self, side: usize, seat: Seat, cx: &mut Context<Self>) {
-        if self.trash_refused(side, cx) {
-            return;
-        }
         let Some(host) = self.panes[side].as_ref() else {
             return;
         };
+        let has_trash = flea::ui_logic_pl1::mounts::trashable(&host.path, None);
         let now = host.pane.now();
         let held = &mut self.operations.fileops;
         // A pair belongs to one listing, cursor, view and pane; a press anywhere else arms again.
@@ -231,7 +216,11 @@ impl Shell {
         }
         let stamp = held.arm.stamp;
         let rows = self.fileops_targets(side).map_or(0, |(_, rows)| rows.len());
-        let prompt = trash::trash_prompt(&self.locale.catalog, &self.fileops_preset(), rows);
+        let prompt = if has_trash {
+            trash::trash_prompt(&self.locale.catalog, &self.fileops_preset(), rows)
+        } else {
+            trash::review_prompt(&self.locale.catalog, &self.fileops_preset())
+        };
         if let Some(host) = self.panes[side].as_mut() {
             host.status = prompt.clone().into();
         }
