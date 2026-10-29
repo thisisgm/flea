@@ -526,3 +526,4 @@ bench-gate-provenance|^BENCH_GATE_PROVENANCE PASS$|1
 fs-instrument|^fs-instrument: PASS$|1
 native-runtime|^NATIVE RUNTIME PASS [1-9][0-9]* adapter/display pairs and [1-9][0-9]* executable guards$|1
 native-runtime|^ARCHIVE SCENES PASS submitted mismatch and lit primary focus$|1
+opr-recipe|^opr-recipe: PASS recipes match outside release metadata and Maintainer$|1

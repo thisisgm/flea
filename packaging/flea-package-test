@@ -68,8 +68,14 @@ done
 
 echo "== the package"
 if [ -z "$pkg" ]; then
-  if ( cd "$repo" && BUILDDIR="$work/build" PKGDEST="$work/pkgdest" SRCDEST="$work/srcdest" \
-       makepkg -f >"$work/makepkg.log" 2>&1 ); then
+  # makepkg takes a source file beside the PKGBUILD over SRCDEST, so HEAD's tarball goes in a recipe directory of its own.
+  pkgver=$(. "$repo/PKGBUILD" && printf '%s\n' "$pkgver")
+  sandbox_make "$work/recipe"
+  cp "$repo/PKGBUILD" "$work/recipe/PKGBUILD"
+  git -C "$repo" archive --prefix="flea-$pkgver/" -o "$work/recipe/flea-v$pkgver.tar.gz" HEAD || exit 1
+  [ -z "$(git -C "$repo" status --porcelain)" ] || echo "note: uncommitted changes are not in the package, which is HEAD $(git -C "$repo" rev-parse --short HEAD)"
+  if ( cd "$work/recipe" && BUILDDIR="$work/build" PKGDEST="$work/pkgdest" SRCDEST="$work/srcdest" \
+       makepkg -f --skipchecksums >"$work/makepkg.log" 2>&1 ); then
     pass "makepkg built the package"
   else
     fail "makepkg failed, see $work/makepkg.log"
