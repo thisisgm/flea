@@ -248,9 +248,24 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
                           for r in sheets], [("preset", "all", "[", "text", "previousSheet", ["preview", "pdf"], "all"),
                                              ("preset", "all", "]", "text", "nextSheet", ["preview", "pdf"], "all")])
+        # The Quick Look paging fix lets F and B page in the preview and PDF contexts too, and binds Ctrl+D, Ctrl+U,
+        # Page Down and Page Up to page the focused document there.
+        paging = [r for r in common if r["action"] in ("previewPageForward", "previewPageBack")
+                  or (r["action"] in ("pageDown", "pageUp") and r["contexts"] == ["preview", "pdf"])]
+        self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
+                          for r in paging],
+                         [("preset", "all", "F", "text", "previewPageForward", ["listing", "preview", "pdf"], "gui"),
+                          ("preset", "all", "B", "text", "previewPageBack", ["listing", "preview", "pdf"], "gui"),
+                          ("preset", "all", "D", "ctrl", "pageDown", ["preview", "pdf"], "gui"),
+                          ("preset", "all", "U", "ctrl", "pageUp", ["preview", "pdf"], "gui"),
+                          ("preset", "all", "PageDown", "none", "pageDown", ["preview", "pdf"], "gui"),
+                          ("preset", "all", "PageUp", "none", "pageUp", ["preview", "pdf"], "gui")])
+        frozen = [{k: v for k, v in r.items() if k != "id"} for r in baseline]
+        widened = [r for r in frozen if r["action"] in ("previewPageForward", "previewPageBack")]
+        self.assertEqual([(r["key"], r["contexts"]) for r in widened], [("F", ["listing"]), ("B", ["listing"])])
         self.assertEqual([r for r in common if r["action"] not in ("openAgent", "carry", "searchContents") and r not in text_size
-                          and r not in sheets],
-                         [{k: v for k, v in r.items() if k != "id"} for r in baseline])
+                          and r not in sheets and r not in paging],
+                         [r for r in frozen if r not in widened])
 
     def test_i50_layout_unreachable_fails(self):
         matrix = self.valid_matrix()
