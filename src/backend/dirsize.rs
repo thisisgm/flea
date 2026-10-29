@@ -1,7 +1,6 @@
 use crate::backend::extclass::refuses_folder_sizes;
 use crate::backend::listing::Listing;
 use crate::backend::meta::Stat;
-#[cfg(test)]
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::time::Instant;
@@ -27,6 +26,8 @@ pub fn walked_bytes(walked: &[Option<DirSize>], row: usize) -> u64 {
 pub fn walk_all(base: &Path, l: &Listing, deadline: Instant) -> Vec<Option<DirSize>> {
     let n = l.len();
     let mut out = vec![None; n];
+    let mounts = super::iomount::mount_body();
+    let mounts = mounts.as_str();
     let workers = std::thread::available_parallelism().map(|w| w.get()).unwrap_or(1);
     // Ceiling division, so every row lands in exactly one chunk; max(1) keeps chunks_mut off zero.
     let per_worker = n.div_ceil(workers).max(1);
@@ -36,7 +37,7 @@ pub fn walk_all(base: &Path, l: &Listing, deadline: Instant) -> Vec<Option<DirSi
             s.spawn(move || {
                 for (j, slot) in slots.iter_mut().enumerate() {
                     if l.is_dir(first + j) {
-                        *slot = Some(walk_until(&base.join(l.name(first + j)), deadline));
+                        *slot = Some(walk_display(&base.join(l.name(first + j)), &|| Instant::now() >= deadline, mounts));
                     }
                 }
             });
@@ -59,12 +60,26 @@ pub fn walk(path: &Path) -> DirSize {
 }
 
 pub fn walk_until(path: &Path, deadline: Instant) -> DirSize {
-    walk_while(path, &|| Instant::now() >= deadline)
+    walk_display(path, &|| Instant::now() >= deadline, &super::iomount::mount_body())
 }
 
 pub fn walk_cancellable(path: &Path, deadline: Instant, cancelled: &impl Fn() -> bool) -> DirSize {
     if cancelled() { return DirSize { bytes: 0, partial: true }; }
-    walk_while(path, &|| cancelled() || Instant::now() >= deadline)
+    walk_display(path, &|| cancelled() || Instant::now() >= deadline, &super::iomount::mount_body())
+}
+
+// A row can itself be a remote mount under a local pane; the walk's device boundary cannot protect its starting folder.
+fn walk_display(path: &Path, stop: &dyn Fn() -> bool, mounts: &str) -> DirSize {
+    let network = |kind: String| super::netfs::is_network_fstype(&kind);
+    let entry = path.symlink_metadata().ok();
+    let remote = super::extclass::gvfs_class(path).is_some_and(refuses_folder_sizes)
+        || super::mountinfo::mount_type_in(path, mounts).is_some_and(network)
+        // A pane reached through a symlink never spells the mount point, so the row's own device names its mount too.
+        || entry.as_ref().and_then(|meta| super::mountinfo::fstype_for_dev(meta.dev(), mounts)).is_some_and(network);
+    if remote {
+        return DirSize { bytes: entry.map(|meta| meta.size()).unwrap_or(0), partial: true };
+    }
+    walk_while(path, stop)
 }
 
 // Issue F1e: a copy's walk answers to the copy and not to a clock. The listing needs a floor inside
@@ -111,6 +126,10 @@ fn walk_while_with(path: &Path, stop: &dyn Fn() -> bool, dev_of: DevLookup<'_>) 
 #[cfg(test)]
 #[path = "dirsize_race_tests.rs"]
 mod race_tests;
+
+#[cfg(test)]
+#[path = "dirsize_gh368_tests.rs"]
+mod gh368_tests;
 
 #[cfg(test)]
 mod tests {

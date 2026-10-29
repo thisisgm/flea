@@ -144,6 +144,8 @@ fn scan_raw(path: &str, hidden: bool, l: &mut Listing) -> Result<(), FleaError> 
         return Err(from_io("scan", path, &std::io::Error::last_os_error()));
     }
     let fd = unsafe { dirfd(dir) };
+    // The held folder's device reaches window metadata even when the initial pass never needed its threading gate.
+    l.base_dev = fs::metadata(format!("/proc/self/fd/{fd}")).map(|meta| meta.dev()).unwrap_or(0);
     loop {
         unsafe { *__errno_location() = 0 };
         let entry = unsafe { readdir(dir) };
@@ -186,6 +188,10 @@ pub fn mode_of(path: &str) -> u32 {
         Err(_) => 0,
     }
 }
+
+#[cfg(test)]
+#[path = "scan_gh362_tests.rs"]
+mod gh362_tests;
 
 #[cfg(test)]
 mod tests {
