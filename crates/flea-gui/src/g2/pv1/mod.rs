@@ -13,6 +13,8 @@ mod doc_keys;
 pub mod glyph;
 mod lifetime;
 pub mod look;
+pub(crate) mod observations;
+pub(crate) mod observed_frames;
 mod photo;
 mod photo_frames;
 mod photo_png;
@@ -96,6 +98,10 @@ pub struct QuickLook {
     pub(crate) motion: crate::reveal::Reveal,
     pub(crate) closing: Option<Subject>,
     close_task: Option<gpui::Task<()>>,
+    pub(crate) observations: observations::Shared,
+    observation_origin: Option<std::time::Instant>,
+    observation_frames: std::rc::Rc<std::cell::RefCell<observed_frames::Frames>>,
+    observation_feedback: Option<gpui::Subscription>,
     pub(crate) languages: bool,
     pub(crate) i18n: Arc<I18n>,
     pub(crate) look: Option<Look>,
@@ -131,6 +137,10 @@ impl QuickLook {
             motion: Default::default(),
             closing: None,
             close_task: None,
+            observations: Default::default(),
+            observation_origin: None,
+            observation_frames: Default::default(),
+            observation_feedback: None,
             languages: true,
             i18n,
             look: None,
@@ -225,6 +235,8 @@ impl QuickLook {
                 old.close(cx);
             }
         }
+        let now = self.observation_time(cx);
+        self.observations.borrow_mut().opened(now, revealed);
         let moved = self
             .subject
             .as_ref()
@@ -247,6 +259,7 @@ impl QuickLook {
 
     /// The swap's first whole frame: the card draws.
     pub fn reveal(&mut self, cx: &mut Context<Self>) {
+        self.observe_reveal(false, cx);
         self.revealed = true;
         cx.notify();
     }

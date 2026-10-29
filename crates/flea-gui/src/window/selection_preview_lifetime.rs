@@ -58,6 +58,7 @@ impl SelectionPreview {
         }
         self.visible = false;
         self.timer = None;
+        observation::release(&mut self.port.0.borrow_mut(), self.now(cx), "hidden", false);
         self.port.cancel();
         self.port.0.borrow_mut().ready = false;
         *self.rect.borrow_mut() = None;

@@ -23,6 +23,7 @@ pub(super) fn surface(
             let ready = weak
                 .update(cx, |shell, cx| {
                     let host = shell.panes[side].as_mut()?;
+                    let active_row = host.columns_row_height();
                     let columns = host.columns.as_mut()?;
                     if !Rc::ptr_eq(columns.area.tracks(), &tracks) {
                         return None;
@@ -43,7 +44,11 @@ pub(super) fn surface(
                     } else {
                         crate::list::pane::Grow::default()
                     };
-                    let row = crate::pane::ROW_HEIGHT;
+                    let row = if slot == Slot::Active {
+                        active_row
+                    } else {
+                        crate::pane::ROW_HEIGHT
+                    };
                     let scroll = if slot == Slot::Active {
                         host.pane.scroll_y
                     } else {

@@ -1,0 +1,221 @@
+//! Quick Look's Markdown, PDF, media and archive readers answer the mounted card's own live state.
+use super::{
+    preview_tests::{body, close, draw},
+    quick_look_body_tests::{mounted, open_kind},
+};
+use crate::{
+    g2::{
+        pv1::{doc::View, Body},
+        pv2::markdown::{Status, View as Shown},
+    },
+    state::Shell,
+    window::u07_tests::read,
+};
+use flea::{ui_logic_pv2::archive::Meta, ui_logic_pv3::frame::Event};
+use gpui::{Entity, TestAppContext, VisualTestContext};
+
+fn mounted_view(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> View {
+    let Some(Body::Doc(doc)) = body(shell, cx) else {
+        panic!("a document is mounted")
+    };
+    doc.view
+}
+
+#[gpui::test]
+fn quick_look_state_duration_reads_the_player_length(cx: &mut TestAppContext) {
+    let (shell, cx, _requests, script) = mounted(cx);
+    open_kind(&shell, cx, "song.ogg");
+    assert!(script.feeds.borrow()[0].event(Event::Loaded {
+        video: false,
+        duration_ms: 20_000,
+    }));
+    draw(cx);
+    assert_eq!(read(&shell, cx, "previewDuration", &[]), "20000");
+    cx.simulate_keystrokes("escape");
+    draw(cx);
+    assert_eq!(
+        read(&shell, cx, "previewDuration", &[]),
+        "0",
+        "a closed card has no length"
+    );
+    close(&shell, cx);
+}
+
+#[gpui::test]
+fn quick_look_state_markdown_reads_view_text_length_and_end_gap(cx: &mut TestAppContext) {
+    let (shell, cx, _requests, _script) = mounted(cx);
+    open_kind(&shell, cx, "readme.md");
+    let View::Markdown(markdown) = mounted_view(&shell, cx) else {
+        panic!("Markdown view")
+    };
+    assert_eq!(read(&shell, cx, "previewMarkdownView", &[]), "rendered");
+    cx.simulate_keystrokes("r");
+    draw(cx);
+    assert_eq!(
+        read(&shell, cx, "previewMarkdownView", &[]),
+        "source",
+        "r flips the shown view and the reader follows it"
+    );
+    markdown.update(cx, |view, _| {
+        view.doc.text = Some("a\u{1F600}".into());
+    });
+    assert_eq!(
+        read(&shell, cx, "previewTextLength", &[]),
+        "3",
+        "the length counts UTF-16 code units, not bytes or characters"
+    );
+    assert_eq!(
+        read(&shell, cx, "previewEndGap", &[]),
+        "-1",
+        "Source answers -1 until its own end gap is measured"
+    );
+    cx.simulate_keystrokes("r");
+    draw(cx);
+    markdown.update(cx, |view, cx| {
+        view.doc.status = Status::Ready;
+        view.doc.complete = true;
+        view.doc.height = 4000.;
+        view.frame = (800., 200.);
+        view.set_view(Shown::Rendered, cx);
+    });
+    let full = cx.read(|cx| markdown.read(cx).content_height());
+    assert_eq!(
+        read(&shell, cx, "previewEndGap", &[]),
+        ((full - 200.).round() as i64).to_string(),
+        "the end gap is the document below the viewport's bottom edge"
+    );
+    markdown.update(cx, |view, cx| view.scroll_by(27.5, cx));
+    let (scroll, full, viewport) = cx.read(|cx| {
+        let view = markdown.read(cx);
+        (view.scroll, view.content_height(), view.frame.1)
+    });
+    assert_eq!(scroll, 27.5, "the scroll lands where it was asked");
+    assert_eq!(
+        read(&shell, cx, "previewEndGap", &[]),
+        ((full - scroll - viewport).round() as i64).to_string(),
+        "the end gap follows the live scroll, document height and viewport height"
+    );
+    cx.simulate_keystrokes("escape");
+    draw(cx);
+    assert_eq!(read(&shell, cx, "previewMarkdownView", &[]), "");
+    assert_eq!(read(&shell, cx, "previewEndGap", &[]), "-1");
+    assert_eq!(read(&shell, cx, "previewTextLength", &[]), "0");
+    close(&shell, cx);
+}
+
+#[gpui::test]
+fn quick_look_state_pdf_reads_page_zoom_focus_and_expanded(cx: &mut TestAppContext) {
+    let (shell, cx, _requests, _script) = mounted(cx);
+    open_kind(&shell, cx, "book.pdf");
+    assert_eq!(read(&shell, cx, "previewPdfPage", &[]), "0");
+    assert_eq!(read(&shell, cx, "previewPdfFocus", &[]), "-1");
+    assert_eq!(read(&shell, cx, "previewExpanded", &[]), "false");
+    let View::Pdf(pdf) = mounted_view(&shell, cx) else {
+        panic!("PDF view")
+    };
+    pdf.update(cx, |pdf, _| {
+        pdf.surface.sizes = vec![(612., 792.); 3];
+        pdf.surface.page = 2;
+        let viewer = pdf.viewer.as_mut().expect("Quick Look's viewer");
+        viewer.zoom = 1.25;
+        viewer.expanded = true;
+        viewer.control = Some(1);
+    });
+    draw(cx);
+    assert_eq!(read(&shell, cx, "previewPdfPage", &[]), "2");
+    assert_eq!(read(&shell, cx, "previewPdfZoom", &[]), "1.25");
+    assert_eq!(read(&shell, cx, "previewPdfFocus", &[]), "1");
+    assert_eq!(read(&shell, cx, "previewExpanded", &[]), "true");
+    cx.simulate_keystrokes("escape");
+    draw(cx);
+    assert_eq!(
+        read(&shell, cx, "previewPdfPage", &[]),
+        "-1",
+        "a closed card has no PDF"
+    );
+    assert_eq!(read(&shell, cx, "previewExpanded", &[]), "");
+    close(&shell, cx);
+}
+
+#[gpui::test]
+fn quick_look_state_archive_reads_the_mounted_index_names(cx: &mut TestAppContext) {
+    let (shell, cx, _requests, _script) = mounted(cx);
+    open_kind(&shell, cx, "pack.zip");
+    assert_eq!(
+        read(&shell, cx, "previewArchiveNames", &[]),
+        "",
+        "no index has landed yet"
+    );
+    let View::Archive(archive) = mounted_view(&shell, cx) else {
+        panic!("archive view")
+    };
+    archive.update(cx, |archive, _| {
+        archive.meta = Some(Meta {
+            entries: 2,
+            unpacked: 3,
+            failed: false,
+            names: vec![("a.txt".into(), false), ("docs".into(), true)],
+        });
+    });
+    draw(cx);
+    assert_eq!(read(&shell, cx, "previewArchiveNames", &[]), "a.txt|docs");
+    close(&shell, cx);
+}
+
+#[gpui::test]
+fn quick_look_state_media_strip_reads_the_painted_seek_and_mute_centres(cx: &mut TestAppContext) {
+    let (shell, cx, _requests, script) = mounted(cx);
+    open_kind(&shell, cx, "song.ogg");
+    assert!(script.feeds.borrow()[0].event(Event::Loaded {
+        video: false,
+        duration_ms: 20_000,
+    }));
+    draw(cx);
+    let seek = read(&shell, cx, "previewSliderCentre", &[]);
+    assert!(
+        seek.split(' ').count() == 2 && seek.split(' ').all(|value| value.parse::<f32>().is_ok()),
+        "the seek track's centre is painted as \"x y\": {seek:?}"
+    );
+    let strip = read(&shell, cx, "previewStrip", &[]);
+    assert!(
+        strip.starts_with(r#"{"visible":true,"muted":false,"mute":""#)
+            && !strip.contains(r#""mute":"""#),
+        "the strip reports visible, unmuted and the mute mark's centre: {strip}"
+    );
+    cx.simulate_keystrokes("escape");
+    draw(cx);
+    assert_eq!(
+        read(&shell, cx, "previewSliderCentre", &[]),
+        "",
+        "a closed card has no seek track"
+    );
+    close(&shell, cx);
+}
+
+#[gpui::test]
+fn quick_look_state_video_strip_retires_hidden_paint_geometry(cx: &mut TestAppContext) {
+    let (shell, cx, _requests, script) = mounted(cx);
+    open_kind(&shell, cx, "clip.mp4");
+    assert!(script.feeds.borrow()[0].event(Event::Loaded {
+        video: true,
+        duration_ms: 20_000,
+    }));
+    draw(cx);
+    let paused = read(&shell, cx, "previewStrip", &[]);
+    assert!(paused.starts_with(r#"{"visible":true,"muted":false,"mute":""#));
+    assert!(!paused.contains(r#""mute":"""#));
+    assert!(script.feeds.borrow()[0].event(Event::Playing));
+    draw(cx);
+    let hidden = read(&shell, cx, "previewStrip", &[]);
+    assert!(
+        hidden.starts_with(r#"{"visible":false,"muted":false,"mute":""}"#),
+        "a hidden video strip has no visible paint or mute target: {hidden}"
+    );
+    assert_eq!(read(&shell, cx, "previewSliderCentre", &[]), "");
+    assert!(script.feeds.borrow()[0].event(Event::Paused));
+    draw(cx);
+    let paused_again = read(&shell, cx, "previewStrip", &[]);
+    assert!(paused_again.starts_with(r#"{"visible":true,"muted":false,"mute":""#));
+    assert!(!paused_again.contains(r#""mute":"""#));
+    close(&shell, cx);
+}

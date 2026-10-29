@@ -19,6 +19,8 @@ mod footer_feedback;
 mod geometry;
 #[path = "gcomp_input_tests.rs"]
 mod input;
+#[path = "keynav_tests.rs"]
+mod keynav;
 #[path = "gcomp_live_tests.rs"]
 mod live;
 #[path = "gcomp_menu_tests.rs"]

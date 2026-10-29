@@ -64,10 +64,12 @@ fn pb_columns2_markdown_reader_reads_the_mounted_document_and_source(cx: &mut Te
         std::thread::yield_now();
     }
     assert_eq!(read(&shell, cx, "columnMarkdownText", &[]), "Notes\n\ntext");
+    assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "rendered");
     let view = markdown(&shell, cx).unwrap();
     view.update(cx, |view, cx| {
         view.set_view(crate::g2::pv2::markdown::View::Source, cx)
     });
+    assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "source");
     assert_eq!(
         read(&shell, cx, "columnMarkdownText", &[]),
         raw.trim_end_matches('\n')

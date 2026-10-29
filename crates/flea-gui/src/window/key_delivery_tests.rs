@@ -167,7 +167,7 @@ fn key_delivery_state_carries_every_v0312_key_in_order(cx: &mut TestAppContext) 
         parse(
             r#"{"keySequence":"","keySequenceIdentity":"","trashArmedAt":0,"clipboard":{"paths":[],"cut":false},
             "searchMode":"","filterTyping":false,"filterQuery":"","searchRunning":false,"searchQuery":"",
-            "searchScanned":0,"searchCancelled":false,"paneFocus":true,"listFocus":true,"activeFocusItem":"list",
+            "searchScanned":0,"searchCancelled":false,"paneFocus":true,"listFocus":true,"activeFocusItem":"List",
             "preview":{"index":-1,"focused":false},"history":{"back":[],"forward":[]}}"#
         ),
         "a browsing window at rest"
@@ -281,7 +281,7 @@ fn key_delivery_state_reads_search_and_its_focus(cx: &mut TestAppContext) {
     );
     assert_eq!(
         field(&typed, "activeFocusItem"),
-        &Json::Str("search".into())
+        &Json::Str("QQuickTextInput".into())
     );
     edit(cx, handle, |shell, _, _| {
         let session = &mut shell.panes[0].as_mut().unwrap().search.owner.session;
@@ -355,7 +355,14 @@ fn key_delivery_state_counts_chrome_and_strip_outside_the_pane(cx: &mut TestAppC
         });
         frame(cx, handle);
         let read = state(cx, handle);
-        assert_eq!(field(&read, "activeFocusItem"), &Json::Str(name.into()));
+        assert_eq!(
+            field(&read, "activeFocusItem"),
+            &Json::Str("QQuickItem".into())
+        );
+        assert_eq!(
+            edit(cx, handle, |shell, window, cx| shell.focus_view(window, cx)),
+            name
+        );
         assert_eq!(
             field(&read, "paneFocus"),
             &Json::Bool(false),
@@ -369,12 +376,15 @@ fn key_delivery_state_counts_chrome_and_strip_outside_the_pane(cx: &mut TestAppC
 fn key_delivery_state_reads_no_focus_under_a_modal(cx: &mut TestAppContext) {
     let (handle, _lines) = open(cx);
     assert_eq!(field(&state(cx, handle), "listFocus"), &Json::Bool(true));
-    edit(cx, handle, |shell, _, _| shell.input.blocked = true);
+    edit(cx, handle, |shell, window, _| {
+        assert!(shell.focus.is_focused(window));
+        shell.input.blocked = true;
+    });
     let read = state(cx, handle);
     assert_eq!(
         field(&read, "activeFocusItem"),
-        &Json::Str(String::new()),
-        "the modal holds the keyboard"
+        &Json::Str("List".into()),
+        "the diagnostic still describes the actual focus item; the block only changes semantic ownership"
     );
     assert_eq!(field(&read, "paneFocus"), &Json::Bool(false));
     assert_eq!(field(&read, "listFocus"), &Json::Bool(false));

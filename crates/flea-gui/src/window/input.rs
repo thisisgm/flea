@@ -165,7 +165,9 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
-        if !self.input_blocked(cx) && self.filter_key(event, window, cx) {
+        if !self.input_blocked(cx)
+            && (self.chrome_key(event, window, cx) || self.filter_key(event, window, cx))
+        {
             cx.stop_propagation();
             return;
         }
@@ -276,13 +278,16 @@ impl Shell {
             }
             Dispatch::Composition => return,
             Dispatch::Suppressed | Dispatch::Armed => {
+                if dispatch == Dispatch::Armed {
+                    self.keyboard.capture_sequence_path(host.pane.path());
+                }
                 cx.stop_propagation();
                 return;
             }
             Dispatch::Action(action) => action,
         };
         let busy = host.pane.busy();
-        if action == "escape" && self.escape_cancels_arm(arm_live, cx) {
+        if listing && action == "escape" && self.escape_cancels_arm(arm_live, cx) {
             return;
         }
         if matches!(action, "focusNext" | "focusPrevious")

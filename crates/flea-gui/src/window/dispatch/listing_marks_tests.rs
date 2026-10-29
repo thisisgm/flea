@@ -71,3 +71,64 @@ fn escape_climbs_through_a_carried_landing(cx: &mut TestAppContext) {
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+fn focus_surface(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> &'static str {
+    cx.update(|window, cx| shell.read(cx).focus_view(window, cx))
+}
+
+fn five_rows_landed(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+    let (shell, cx) = open_with(
+        cx,
+        r#""keys":"default","view":"list","escapeUp":true"#,
+        Some("/files/alpha"),
+    );
+    let rows = ["alpha", "beta", "gamma", "delta", "epsilon"]
+        .map(|name| row(name, false))
+        .to_vec();
+    land(&shell, cx, "/files", rows, 1);
+    (shell, cx)
+}
+
+// EY-247: v0.3.12 Focus.js RING is list, rail, chrome, strip, so Tab Tab from the listing lands on the path bar.
+#[gpui::test]
+fn tab_tab_escape_on_the_path_bar_keeps_the_selection(cx: &mut TestAppContext) {
+    let (shell, cx) = five_rows_landed(cx);
+    cx.simulate_keystrokes("ctrl-a");
+    assert_eq!(
+        selected(&shell, cx),
+        vec![0, 1, 2, 3, 4],
+        "ctrl-a selects all five"
+    );
+    cx.simulate_keystrokes("tab tab");
+    assert_eq!(
+        focus_surface(&shell, cx),
+        "chrome",
+        "Tab Tab lands on the path bar"
+    );
+    cx.simulate_keystrokes("escape");
+    assert_eq!(
+        focus_surface(&shell, cx),
+        "list",
+        "Escape on the path bar returns to the list"
+    );
+    assert_eq!(
+        selected(&shell, cx),
+        vec![0, 1, 2, 3, 4],
+        "Escape on the path bar keeps the selection"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// EY-247: Focus.js escape in the list still reaches escapePressed, which clears the selection.
+#[gpui::test]
+fn escape_in_the_list_still_clears_the_selection(cx: &mut TestAppContext) {
+    let (shell, cx) = five_rows_landed(cx);
+    cx.simulate_keystrokes("ctrl-a escape");
+    assert_eq!(focus_surface(&shell, cx), "list");
+    assert_eq!(
+        selected(&shell, cx),
+        Vec::<usize>::new(),
+        "Escape in the list clears"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

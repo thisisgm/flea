@@ -26,6 +26,10 @@ const CHECK: f32 = 16.;
 mod tag_tests;
 
 #[cfg(test)]
+#[path = "fade_tests.rs"]
+mod fade_tests;
+
+#[cfg(test)]
 thread_local! {
     // Test-only receipt of each card frame a MenuElement painted in a real draw.
     pub(crate) static PAINTED: RefCell<Vec<Bounds<Pixels>>> = const { RefCell::new(Vec::new()) };
@@ -262,14 +266,6 @@ fn paint_card(
     let frame = Bounds::new(origin + point(px(f.x), px(f.y)), size(px(f.w), px(f.h)));
     #[cfg(test)]
     PAINTED.with(|painted| painted.borrow_mut().push(frame));
-    window.paint_quad(quad(
-        frame,
-        radius,
-        ink.surface,
-        px(1.),
-        ink.frame,
-        BorderStyle::Solid,
-    ));
     let inner = Bounds::new(
         frame.origin + point(px(1.), px(1.)),
         size(frame.size.width - px(2.), frame.size.height - px(2.)),
@@ -278,26 +274,36 @@ fn paint_card(
         frame.origin + point(px(1.), px(PAD as f32)),
         size(inner.size.width, px(card.view_h as f32)),
     );
-    window.with_content_mask(Some(ContentMask { bounds: view }), |window| {
-        let mut y = 0;
-        for (index, line) in card.built.lines.iter().enumerate() {
-            let h = fit::height(&card.entries[index]);
-            let top = y - card.content_y;
-            y += h;
-            if top + h <= 0 || top >= card.view_h {
-                continue;
+    window.paint_layer(frame, |window| {
+        window.paint_quad(quad(
+            frame,
+            radius,
+            ink.surface,
+            px(1.),
+            ink.frame,
+            BorderStyle::Solid,
+        ));
+        window.with_content_mask(Some(ContentMask { bounds: view }), |window| {
+            let mut y = 0;
+            for (index, line) in card.built.lines.iter().enumerate() {
+                let h = fit::height(&card.entries[index]);
+                let top = y - card.content_y;
+                y += h;
+                if top + h <= 0 || top >= card.view_h {
+                    continue;
+                }
+                let row_top = view.origin.y + px(top as f32);
+                paint_row(
+                    line,
+                    card.cursor == Some(index) || lit == Some(index),
+                    ink,
+                    point(inner.origin.x, row_top),
+                    inner.size.width,
+                    window,
+                    cx,
+                );
             }
-            let row_top = view.origin.y + px(top as f32);
-            paint_row(
-                line,
-                card.cursor == Some(index) || lit == Some(index),
-                ink,
-                point(inner.origin.x, row_top),
-                inner.size.width,
-                window,
-                cx,
-            );
-        }
+        });
     });
     let (top, bottom) = fit::fades(&card.entries, card.content_y, card.view_h);
     let fade = |at: Pixels, angle: f32| {
@@ -314,15 +320,18 @@ fn paint_card(
             ),
         )
     };
-    if top {
-        window.paint_quad(fade(inner.origin.y, 180.));
-    }
-    if bottom {
-        window.paint_quad(fade(
-            inner.origin.y + inner.size.height - px(FADE_H as f32),
-            0.,
-        ));
-    }
+    // Equal-order quads precede glyph sprites in GPUI; fades need their own later order.
+    window.paint_layer(inner, |window| {
+        if top {
+            window.paint_quad(fade(inner.origin.y, 180.));
+        }
+        if bottom {
+            window.paint_quad(fade(
+                inner.origin.y + inner.size.height - px(FADE_H as f32),
+                0.,
+            ));
+        }
+    });
 }
 
 impl Element for MenuElement {
@@ -387,22 +396,20 @@ impl Element for MenuElement {
         };
         let Some(card) = card else { return };
         let ink = *ink;
-        window.paint_layer(bounds, |window| {
-            let lit = (!self.faded)
-                .then(|| menu.flyout.as_ref().and_then(|f| f.parent))
-                .flatten();
-            paint_card(card, lit, self.radius, &ink, bounds.origin, window, cx);
-            if let Some(flyout) = menu.flyout.as_ref().filter(|_| !self.faded) {
-                paint_card(
-                    &flyout.card,
-                    None,
-                    self.radius,
-                    &ink,
-                    bounds.origin,
-                    window,
-                    cx,
-                );
-            }
-        });
+        let lit = (!self.faded)
+            .then(|| menu.flyout.as_ref().and_then(|f| f.parent))
+            .flatten();
+        paint_card(card, lit, self.radius, &ink, bounds.origin, window, cx);
+        if let Some(flyout) = menu.flyout.as_ref().filter(|_| !self.faded) {
+            paint_card(
+                &flyout.card,
+                None,
+                self.radius,
+                &ink,
+                bounds.origin,
+                window,
+                cx,
+            );
+        }
     }
 }

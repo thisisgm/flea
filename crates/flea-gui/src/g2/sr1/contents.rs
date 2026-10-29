@@ -13,6 +13,14 @@ use gpui::{
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use text::prepare;
 
+#[cfg(test)]
+type PaintedLine = (usize, u64, String, Bounds<Pixels>, bool, bool, bool);
+
+#[cfg(test)]
+thread_local! {
+    pub(crate) static PAINTED_LINES: RefCell<Option<Vec<PaintedLine>>> = const { RefCell::new(None) };
+}
+
 // boards_find.py: the result row 31, its matching line 20 at caption 12, 4 of air under the block.
 pub const ROW_H: f32 = 31.;
 pub const LINE_H: f32 = 20.;
@@ -196,11 +204,20 @@ fn right_elide(text: &str, cells: usize) -> String {
     cut
 }
 
-fn paint_at(run: &GlyphRun, x: Pixels, top: Pixels, height: f32, color: Hsla, window: &mut Window) {
+fn paint_at(
+    run: &GlyphRun,
+    x: Pixels,
+    top: Pixels,
+    height: f32,
+    color: Hsla,
+    window: &mut Window,
+) -> bool {
     let line = run.line();
     let baseline =
         window.pixel_snap(top + (px(height) - line.ascent - line.descent) / 2. + line.ascent);
-    let _ = window.paint_glyph_run(point(x, baseline), run, color);
+    window
+        .paint_glyph_run(point(x, baseline), run, color)
+        .is_ok()
 }
 
 impl IntoElement for ContentsElement {
@@ -374,7 +391,7 @@ impl Element for ContentsElement {
                 );
                 let line_top = top + px(ROW_H);
                 let number_right = left + px(PAD_X + NUMBER_W);
-                paint_at(
+                let _number_painted = paint_at(
                     &prepared.number,
                     number_right - prepared.number.line().width,
                     line_top,
@@ -390,7 +407,23 @@ impl Element for ContentsElement {
                     );
                     window.paint_quad(fill(wash, palette.accent.opacity(RUN_WASH)));
                 }
-                paint_at(&prepared.line, name_x, line_top, LINE_H, ink, window);
+                let _line_painted = paint_at(&prepared.line, name_x, line_top, LINE_H, ink, window);
+                #[cfg(test)]
+                if let Some(block) = self.held.block(*index) {
+                    PAINTED_LINES.with(|lines| {
+                        let mut lines = lines.borrow_mut();
+                        let Some(lines) = lines.as_mut() else { return };
+                        lines.push((
+                            *index,
+                            block.line_no,
+                            block.line.clone(),
+                            Bounds::new(point(left, line_top), size(bounds.size.width, px(LINE_H))),
+                            _number_painted,
+                            _line_painted,
+                            row.selected,
+                        ))
+                    });
+                }
             }
         });
     }

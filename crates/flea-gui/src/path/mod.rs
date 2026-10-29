@@ -4,6 +4,7 @@ pub mod chrome;
 pub mod crumbs;
 pub mod entry;
 pub mod field;
+mod focus;
 pub mod history;
 mod input;
 pub mod join;

@@ -37,6 +37,7 @@ pub struct TrackElement {
     tag_slot: bool,
     locating: bool,
     query: Rc<str>,
+    row_height: f32,
 }
 
 impl TrackElement {
@@ -68,11 +69,17 @@ impl TrackElement {
             tag_slot: false,
             locating: false,
             query: "".into(),
+            row_height: ROW_HEIGHT,
         }
     }
 
     fn view(&self) -> &TrackView {
         &self.tracks[self.at]
+    }
+
+    pub(crate) fn with_row_height(mut self, row_height: f32) -> Self {
+        self.row_height = row_height;
+        self
     }
 
     fn total(&self) -> usize {
@@ -159,6 +166,7 @@ impl Element for TrackElement {
             held: self.held.clone(),
             shown: self.shown.clone(),
             grow,
+            row_height: self.row_height,
         });
         let width = f32::from(bounds.size.width);
         let shows_size = view.slot == Slot::Active;
@@ -180,7 +188,7 @@ impl Element for TrackElement {
         };
         let height = f32::from(bounds.size.height);
         let total = self.total();
-        let (first, last) = grow.span(self.scroll_y.max(0.), height, ROW_HEIGHT, total);
+        let (first, last) = grow.span(self.scroll_y.max(0.), height, self.row_height, total);
         // An empty clipboard costs one question a frame, never one a row.
         let clip = self.clip.as_ref().filter(|clip| !clip.is_empty());
         let held = self.held.as_deref();
@@ -265,11 +273,12 @@ impl Element for TrackElement {
             .as_ref()
             .map_or(Grow::default(), |drawn| drawn.grow);
         let top_of = |at: usize| {
-            bounds.origin.y + px(grow.top(paint.first + at, ROW_HEIGHT) - self.scroll_y.max(0.))
+            bounds.origin.y
+                + px(grow.top(paint.first + at, self.row_height) - self.scroll_y.max(0.))
         };
         // The edited row's plate and edge take its band, so the refusal sits on the row's own ground.
         let row_box = |top: Pixels, w: f32, at: usize| {
-            let height = grow.height(paint.first + at, ROW_HEIGHT);
+            let height = grow.height(paint.first + at, self.row_height);
             Bounds::new(point(left, top), size(px(w), px(height)))
         };
         window.paint_quad(fill(bounds, palette.background));

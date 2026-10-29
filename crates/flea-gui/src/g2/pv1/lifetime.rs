@@ -7,6 +7,8 @@ impl QuickLook {
         let Some(subject) = self.subject.take() else {
             return;
         };
+        let now = self.observation_time(cx);
+        self.observations.borrow_mut().closed(now);
         self.closing = Some(subject);
         self.ground.reset();
         self.revealed = false;

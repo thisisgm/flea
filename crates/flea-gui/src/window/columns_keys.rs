@@ -3,6 +3,14 @@ use super::PaneHost;
 use crate::columns::geometry::Slot;
 
 impl PaneHost {
+    pub(crate) fn columns_row_height(&self) -> f32 {
+        if self.list.borrow().view.contents {
+            crate::g2::sr1::contents::BLOCK_H
+        } else {
+            crate::pane::ROW_HEIGHT
+        }
+    }
+
     /// Keyboard moves measure the active track that was drawn, including a standing filter.
     pub(crate) fn columns_key_frame(
         &self,
@@ -20,7 +28,7 @@ impl PaneHost {
             .shown
             .as_ref()
             .map_or(self.pane.held.total, |rows| rows.len());
-        let row = crate::pane::ROW_HEIGHT;
+        let row = drawn.row_height;
         Some(crate::input::Frame {
             bounds: drawn.bounds,
             row,

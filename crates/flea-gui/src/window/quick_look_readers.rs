@@ -1,7 +1,14 @@
 //! Quick Look's state, its mounted media clock and the Compare card, read through the state IPC.
 use super::Host;
 use crate::{
-    g2::pv1::{doc::View, Body, Hit, QuickLook},
+    g2::{
+        pv1::{
+            doc::{Doc, View},
+            Body, Hit, QuickLook,
+        },
+        pv2::{markdown::MarkdownView, markdown::View as Shown, PdfView},
+        pv3::{sound::MediaSound, strip::StripCache},
+    },
     ipc::Adapter,
 };
 use flea::{
@@ -9,7 +16,7 @@ use flea::{
     json::escape,
     ui_logic_pv1::{compare::Kind, kinds::State},
 };
-use gpui::{App, Pixels, Size};
+use gpui::{App, Bounds, Pixels, Size};
 
 pub(crate) struct Reader<'a> {
     pub host: Option<&'a Host>,
@@ -156,6 +163,103 @@ impl Reader<'_> {
     }
 }
 
+impl Reader<'_> {
+    /// The open card's mounted document; None while Quick Look is shut or shows a refusal or a comparison.
+    fn doc(&self) -> Option<&Doc> {
+        self.open()
+            .and_then(QuickLook::subject)
+            .and_then(|subject| subject.body.doc())
+    }
+
+    fn view(&self) -> Option<&View> {
+        self.doc().map(|doc| &doc.view)
+    }
+
+    fn markdown(&self) -> Option<&MarkdownView> {
+        match self.view() {
+            Some(View::Markdown(view)) => Some(view.read(self.cx)),
+            _ => None,
+        }
+    }
+
+    fn pdf(&self) -> Option<&PdfView> {
+        match self.view() {
+            Some(View::Pdf(pdf)) => Some(pdf.read(self.cx)),
+            _ => None,
+        }
+    }
+
+    /// IpcPreviewState previewDuration: the mounted player's length in milliseconds, 0 with no media.
+    fn duration(&self) -> i64 {
+        match self.view() {
+            Some(View::Media(media)) => media.player.read(self.cx).duration,
+            _ => 0,
+        }
+    }
+
+    /// Rendered Markdown's end gap, clamped to 0; -1 until ready or while Source is shown.
+    fn end_gap(&self) -> i64 {
+        match self.markdown() {
+            Some(view) if view.shown_view() == Shown::Rendered && view.doc.content_ready() => {
+                (view.content_height() - view.scroll - view.frame.1)
+                    .round()
+                    .max(0.) as i64
+            }
+            _ => -1,
+        }
+    }
+
+    /// The media strip's box from its last paint as "x y" centre; "" until a Quick Look media card has painted it.
+    fn strip_centre(&self, part: impl Fn(&StripCache) -> Option<Bounds<Pixels>>) -> String {
+        match self.view() {
+            Some(View::Media(media)) => {
+                part(&media.caches.strip.borrow()).map_or_else(String::new, |bounds| {
+                    let centre = bounds.center();
+                    format!(
+                        "{} {}",
+                        f32::from(centre.x).round(),
+                        f32::from(centre.y).round()
+                    )
+                })
+            }
+            _ => String::new(),
+        }
+    }
+
+    /// A mounted media strip's painted visibility, mute state and centre; other kinds remain unported.
+    fn strip(&self) -> Option<String> {
+        match self.view() {
+            Some(View::Media(media)) => Some(format!(
+                r#"{{"visible":{},"muted":{},"mute":"{}"}}"#,
+                media.caches.strip.borrow().mute.is_some(),
+                MediaSound::get(self.cx).muted,
+                self.strip_centre(|cache| cache.mute),
+            )),
+            _ => None,
+        }
+    }
+
+    /// IpcPreviewState archiveNames: the index names joined by bars, "" until the index lands.
+    fn archive_names(&self) -> String {
+        match self.view() {
+            Some(View::Archive(archive)) => {
+                archive
+                    .read(self.cx)
+                    .meta
+                    .as_ref()
+                    .map_or_else(String::new, |meta| {
+                        meta.names
+                            .iter()
+                            .map(|(name, _)| name.as_str())
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    })
+            }
+            _ => String::new(),
+        }
+    }
+}
+
 impl Adapter for Reader<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
         Some(Reply::value(match function {
@@ -163,6 +267,46 @@ impl Adapter for Reader<'_> {
             "previewKind" => self.kind().into(),
             "previewState" => self.state(),
             "previewPosition" => self.position().to_string(),
+            "previewDuration" => self.duration().to_string(),
+            "previewEndGap" => self.end_gap().to_string(),
+            "previewMarkdownView" => self
+                .markdown()
+                .map_or_else(String::new, |view| view.shown_view().name().into()),
+            // Only a Markdown document has a text the reader can count; other kinds stay unported.
+            "previewTextLength" => match self.doc() {
+                None => "0".into(),
+                Some(doc) => match &doc.view {
+                    View::Markdown(view) => view
+                        .read(self.cx)
+                        .doc
+                        .text
+                        .as_deref()
+                        .map_or(0, |text| text.encode_utf16().count())
+                        .to_string(),
+                    _ => return None,
+                },
+            },
+            "previewExpanded" => self
+                .pdf()
+                .and_then(|pdf| pdf.viewer.as_ref())
+                .map_or_else(String::new, |viewer| viewer.expanded.to_string()),
+            "previewPdfPage" => self
+                .pdf()
+                .map_or(-1, |pdf| pdf.surface.page as i64)
+                .to_string(),
+            "previewPdfZoom" => self
+                .pdf()
+                .and_then(|pdf| pdf.viewer.as_ref())
+                .map_or_else(String::new, |viewer| viewer.zoom.to_string()),
+            "previewPdfFocus" => self
+                .pdf()
+                .and_then(|pdf| pdf.viewer.as_ref())
+                .and_then(|viewer| viewer.control)
+                .map_or(-1, |index| index as i64)
+                .to_string(),
+            "previewArchiveNames" => self.archive_names(),
+            "previewSliderCentre" => self.strip_centre(|cache| cache.seek),
+            "previewStrip" => self.strip()?,
             "compareState" => self.compare(),
             _ => return None,
         }))

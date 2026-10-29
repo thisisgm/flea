@@ -296,11 +296,17 @@ fn rank_menu_wording_finds_the_action_once_under_its_key() {
 
 #[test]
 fn a_query_lists_the_sheet_row_by_its_key_and_by_a_word_of_its_name() {
+    let resting = sheet("default", Frontend::Gui, &english());
+    assert!(resting.iter().any(|row| row.action == "keymapSheet"), "the resting sheet keeps its ? row");
     let rows = sheet_actions();
     let by_key = ranked(&rows, "?");
     assert_eq!(by_key.len(), 1, "{:?}", labels(&by_key));
     assert_eq!(by_key[0].action, "keymapSheet");
+    assert_eq!(by_key[0].keys, "?");
     assert_eq!(say(&by_key[0].label), "Keyboard Shortcuts");
+    let by_name = ranked(&rows, "shortcuts");
+    assert_eq!(by_name.len(), 1, "{:?}", labels(&by_name));
+    assert_eq!(by_name[0].action, "keymapSheet");
     for query in ["keyboard", "short", "keyboard sh"] {
         assert!(ranked(&rows, query).iter().any(|row| row.action == "keymapSheet"), "{query}");
     }

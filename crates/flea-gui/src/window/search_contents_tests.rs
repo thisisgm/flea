@@ -7,6 +7,8 @@ use flea::{
 };
 use gpui::TestAppContext;
 
+#[path = "search_contents_real_paint_tests.rs"]
+mod real_paint;
 #[path = "search_contents_regression_tests.rs"]
 mod regressions;
 

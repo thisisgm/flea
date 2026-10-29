@@ -49,7 +49,7 @@ impl Reader<'_> {
         }
         let bounds = drawn.bounds;
         let x = f32::from(bounds.origin.x + bounds.size.width / 2.);
-        let row = crate::list::pane::ROW_HEIGHT;
+        let row = drawn.row_height;
         let position = drawn.position_of(index).unwrap_or(index);
         let y =
             f32::from(bounds.origin.y) + drawn.grow.top(position, row) - drawn.scroll + row / 2.;
@@ -204,7 +204,7 @@ impl crate::state::Shell {
             .get(crate::columns::geometry::Slot::Active)?
             .borrow();
         let drawn = paint.drawn.as_ref()?;
-        let row = crate::list::pane::ROW_HEIGHT;
+        let row = drawn.row_height;
         let at = drawn.position_of(host.pane.cursor)?;
         let y =
             f32::from(drawn.bounds.origin.y) + drawn.grow.top(at, row) - drawn.scroll + row / 2.;

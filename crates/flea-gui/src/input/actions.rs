@@ -50,6 +50,10 @@ impl Shell {
                 self.keyboard.context = stop.context;
                 if stop.name == "rail" {
                     self.focus_side = 0;
+                } else if stop.name == "chrome" {
+                    self.enter_chrome(forward, window, cx);
+                } else if stop.name == "strip" {
+                    self.enter_strip(forward);
                 }
             } else {
                 self.focus_side = usize::from(dual && !forward);
@@ -170,6 +174,7 @@ impl Shell {
         }
         let from = host.pane.cursor;
         let before_scroll = host.pane.scroll_y;
+        let wrap = flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["wrapAtEnds"]);
         let frame = if self.view == crate::window::startup::View::Columns {
             host.columns_key_frame(self.grows[side])
         } else {
@@ -191,16 +196,23 @@ impl Shell {
                 Move::End => frame.total - 1,
             }
             .min(frame.total - 1);
-            let wrap =
-                flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["wrapAtEnds"]);
             let to = match (wrap, action, at, frame.total) {
                 (true, "cursorDown", at, total) if at + 1 == total => 0,
                 (true, "cursorUp", 0, total) => total - 1,
                 _ => to,
             };
             host.pane.cursor = host.input.index(to);
-        } else if !host.pane.move_cursor(step) {
-            return true;
+        } else {
+            if !host.pane.move_cursor(step) {
+                return true;
+            }
+            let total = host.pane.held.total;
+            host.pane.cursor = match (wrap, action, from) {
+                (true, "cursorDown", at) if at + 1 == total => 0,
+                (true, "cursorUp", 0) => total - 1,
+                _ => host.pane.cursor,
+            };
+            host.pane.reveal_cursor();
         }
         if let Some(mut frame) = frame {
             frame.scroll = host.pane.scroll_y;
