@@ -518,7 +518,7 @@
   },
   "inventory": {
     "schema": 1,
-    "state_manifest_sha256": "1107a80e46b3086e15a415540f32d88ce9493e167e5f4aec4611bba6346f7f94",
+    "state_manifest_sha256": "9ba464450078c639d1bd4ff1507d14ac9aa6bb6cac41c828102792d2d8b0e562",
     "terminals": [
       "alacritty",
       "foot",

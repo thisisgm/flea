@@ -732,8 +732,7 @@
       ],
       "predicate": {
         "contains": [
-          "shelf-kit.3mf",
-          "30"
+          "shelf-kit.3mf"
         ]
       },
       "variants": [
@@ -746,7 +745,13 @@
             9
           ]
         }
-      ]
+      ],
+      "picture_steps": {
+        "orbit_degrees": 30,
+        "presses": 2,
+        "key": "Right",
+        "plate": 1
+      }
     },
     {
       "id": "tui-menu",

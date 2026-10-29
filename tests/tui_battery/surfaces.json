@@ -28,7 +28,9 @@
         "real-filter-input"
       ],
       "status": "BLOCKED",
-      "reason": "Surface fixture and cell mapping are not available."
+      "reason": "BLOCKED: accepted route/fixture and independent TUI reference mapping must be supplied by Root / G2ROWS filter owner.",
+      "owner": "Root / G2ROWS filter owner",
+      "required_api": "Accepted no-exact-match fixture/query returning 0 of 9 shown and 1 close match, plus TUI cell mapping for filter-close."
     },
     {
       "id": "tui-search-contents",
@@ -63,7 +65,9 @@
         "ranked-order"
       ],
       "status": "BLOCKED",
-      "reason": "Surface fixture and cell mapping are not available."
+      "reason": "BLOCKED: accepted route/fixture and independent TUI reference mapping must be supplied by Root / G2ROWS-01 and TUI08.",
+      "owner": "Root / G2ROWS-01 and TUI08",
+      "required_api": "Accepted bounded contents producer route, ranked two-row result fixture and TUI cell mapping for search-contents; Ctrl+G must be observed natively."
     },
     {
       "id": "tui-jobs",
@@ -82,7 +86,9 @@
         "cancel-reap"
       ],
       "status": "BLOCKED",
-      "reason": "Surface fixture and cell mapping are not available."
+      "reason": "BLOCKED: accepted route/fixture and independent TUI reference mapping must be supplied by Root / G2 Jobs and backend operations owners.",
+      "owner": "Root / G2 Jobs and backend operations owners",
+      "required_api": "Three real unfinished private operations with a copy barrier, newest headline, count and cancel/reap receipt; TUI status-row mapping for jobs."
     },
     {
       "id": "tui-open-refused",
@@ -94,7 +100,7 @@
       ],
       "predicate": {
         "contains": [
-          "A folder can\u2019t be opened together with files."
+          "A folder can’t be opened together with files."
         ]
       },
       "checks": [
@@ -105,7 +111,9 @@
         "Enter-emission"
       ],
       "status": "BLOCKED",
-      "reason": "Surface fixture and cell mapping are not available."
+      "reason": "BLOCKED: accepted route/fixture and independent TUI reference mapping must be supplied by Root / G2 open-selection and TUI action owners.",
+      "owner": "Root / G2 open-selection and TUI action owners",
+      "required_api": "Mixed file/folder marks, actual Enter refusal, error-role TUI cells and sealed application-launches.json proving zero launches. No fallback app route."
     }
   ]
 }

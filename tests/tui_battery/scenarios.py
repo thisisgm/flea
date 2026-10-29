@@ -90,7 +90,22 @@ def steps(terminal, state, fx, keymap, journal, timeout):
         elif "key" in step:
             if state["id"] in ("tui-delete", "tui-delete-focus") and step["key"] == "X":
                 raise Blocked("X must never drive a permanent-delete state")
-            send(terminal, {"key": step["key"], "mods": step.get("mods", "")}, journal)
+            if state.get("picture_steps") and step["key"] == state["picture_steps"]["key"]:
+                from .candidate import picture_frame
+                def ready():
+                    try:
+                        return picture_frame(terminal)
+                    except Blocked:
+                        return None
+                before = wait_for(ready, timeout, "3D picture before orbit")
+                send(terminal, {"key": step["key"], "mods": step.get("mods", "")}, journal)
+                def changed():
+                    frame = ready()
+                    return frame if frame and frame["sha256"] != before["sha256"] else None
+                after = wait_for(changed, timeout, "changed presented 3D picture after orbit")
+                journal[-1].update(before_picture=before, after_picture=after)
+            else:
+                send(terminal, {"key": step["key"], "mods": step.get("mods", "")}, journal)
         elif "text" in step:
             if state["id"] in ("tui-delete", "tui-delete-focus") and "X" in step["text"]:
                 raise Blocked("X must never drive a permanent-delete state")

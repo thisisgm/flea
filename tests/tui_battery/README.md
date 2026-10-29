@@ -278,3 +278,30 @@ Exit codes: 0 means the requested native records and supplemental controls passe
 or the explicitly labelled dry-run diagnostics passed; 1 means a failed comparison or
 shutdown; 2 means blocked prerequisites or pending review. Neither a scoped pass nor
 a dry-run pass establishes completion of the entire native release matrix.
+
+## Candidate composition
+
+`python3 -B -m tui_battery.candidate --boards H --list` (with `PYTHONPATH=tests`)
+prints the complete derived candidate inventory. The composition CLI accepts the existing
+binary/boards/fixtures/profile/step/seam/review inputs, `--identity-inputs`, and
+`--calendar-bundle`, `--controls-bundle`, `--surface-bundle`. Use `--reconcile` to consume
+matching primary captures without opening windows again. It invokes the accepted
+calendar/control verification and the existing battery driver. It never promotes
+proof rows. Missing routes, fixtures, outputs, lifecycle records or review remain blocked.
+
+The final matrix requires exact identities and inventories, including all 325 primary
+variant captures, 85 calendar, 135 control and 20 surface records. The small windows,
+long-list phases, Convert formats/options and original date labels remain mandatory.
+`--identity-inputs` names actual external catalog/roster/font/keyboard receipt files;
+the tool also binds all shipped i18n JSON and the keymap. Capture and reconcile require
+the same identities. Every present root JSON hook and all four lifecycle receipts are
+sealed, and control supplements run `control_native.validate_record` before acceptance.
+
+For `tui-3d-quicklook`, the driver observes two actual Right inputs and changed presented
+pictures, retaining the full board/source comparison and independent 30-degree raster.
+No visible angle label is required. A seam's `tool_policy: no-chafa` creates a private
+resolver that excludes chafa and has no system PATH fallback; the facts-only controls
+still need their actual assertions. Operation receipts require real retained source/output
+bytes and private HTTP/IPP traffic, not feature names. `candidate.catalog_case` reuses
+the caller's display lease and private locale preparation for I50-27. Final capture and
+all-language acceptance remain controller/I50 work after their prerequisite gates.

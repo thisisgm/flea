@@ -27,10 +27,11 @@ def regular_bytes(path, limit=64 * 1024 * 1024):
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_size > limit:
             raise Blocked(f"fixture is not a bounded regular file: {path}")
+        # A read of n bytes allocates n up front, so ask for the checked size, never the whole budget.
         with os.fdopen(fd, "rb", closefd=False) as source:
-            data = source.read(limit + 1)
-        if len(data) > limit:
-            raise Blocked("fixture grew beyond its size budget")
+            data = source.read(info.st_size + 1)
+        if len(data) > info.st_size:
+            raise Blocked("fixture grew while it was read")
         return data
     finally:
         os.close(fd)
@@ -254,7 +255,25 @@ def retain(fx, case):
     discard(root)
 
 
-def namespace(binary, fx, cwd, environment):
+def no_chafa(fx, search=(Path("/usr/bin"), Path("/bin"))):
+    """Expose the installed tool set through a private resolver that has no chafa entry."""
+    Owned(fx.parent).child(fx.name)
+    target = absolute(fx / "tools-no-chafa")
+    target.mkdir()
+    entries = {}
+    for directory in (fx / "tools", *search):
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.iterdir()):
+            if path.name != "chafa" and path.is_file() and os.access(path, os.X_OK) and path.name not in entries:
+                source = "/fx/tools/" + path.name if directory == fx / "tools" else str(path)
+                (target / path.name).symlink_to(source)
+                entries[path.name] = source
+    return {"policy": "no-chafa", "PATH": "/fx/tools-no-chafa", "entries": entries,
+            "chafa_present": (target / "chafa").exists() or (target / "chafa").is_symlink()}
+
+
+def namespace(binary, fx, cwd, environment, tool_policy=None, cups_server=None, arguments=None):
     if not shutil.which("bwrap"):
         raise Blocked("bwrap is required for the isolated /fx namespace")
     argv = ["bwrap", "--die-with-parent", "--unshare-all", "--tmpfs", "/"]
@@ -271,6 +290,16 @@ def namespace(binary, fx, cwd, environment):
            "XDG_DATA_HOME": "/fx/data", "XDG_STATE_HOME": "/fx/state", "XDG_CACHE_HOME": "/fx/cache",
            "XDG_RUNTIME_DIR": "/fx/runtime", "TMPDIR": "/fx/tmp", "LANG": "C.UTF-8", "TZ": "UTC"}
     env.update(environment)
+    if cups_server is not None:
+        if cups_server != "/fx/runtime/cups.sock" or not (fx / "runtime/cups.sock").is_socket():
+            raise Blocked("CUPS fixture must use its actual private Unix socket")
+        env["CUPS_SERVER"] = cups_server
+    if tool_policy:
+        if tool_policy != "no-chafa":
+            raise Blocked("unknown private tool policy: " + str(tool_policy))
+        policy = no_chafa(fx)
+        save(fx / "data/tool-policy.json", policy)
+        env["PATH"] = policy["PATH"]
     for key, value in env.items():
         argv += ["--setenv", key, value]
-    return argv + ["--chdir", cwd, "/opt/flea", "--tui", cwd]
+    return argv + ["--chdir", cwd, "/opt/flea"] + (["--tui", cwd] if arguments is None else list(arguments))

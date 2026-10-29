@@ -96,12 +96,53 @@ def font_identity(commands, name, environment):
             "fontconfig_version": commands.run(["fc-match", "--version"], env=environment).stderr.decode(errors="replace")}
 
 
-def execute_pair(args, root, display, terminal_name, state, variant, colors, identity, profiles, reviews, overrides, seams):
+def close_terminal(terminal, case):
+    """Reuse the accepted pidfd owner through close and exceptional group cleanup."""
+    from .calendar_native import hold_group, reap_group, shielded
+    anchor = None
+    with shielded():
+        try:
+            anchor = hold_group(case)
+            return terminal.close()
+        finally:
+            try:
+                cleanup = reap_group(case, anchor)
+                save(case / "cleanup.json", cleanup)
+                if cleanup["signals"] or cleanup["live"]:
+                    raise Blocked("terminal group outlived close: " + json.dumps(cleanup))
+            finally:
+                if anchor is not None:
+                    os.close(anchor)
+
+
+def seal_case(case, verdict, capture_config):
+    try:
+        verdict["artifact_sha256"], missing = seal(case)
+        from .candidate import seal_extra
+        missing += seal_extra(case, verdict["artifact_sha256"])
+        if missing:
+            verdict["incomplete_artifacts"] = missing
+            verdict.setdefault("reason", "capture identity or evidence is incomplete")
+            if verdict["status"] == "PASS":
+                verdict["status"] = "BLOCKED"
+        elif verdict["status"] == "PASS":
+            verify_case(case, verdict["artifact_sha256"], capture_config)
+    except (Blocked, OSError, ValueError, KeyError) as error:
+        verdict.update(artifact_sha256={}, sealing_reason=str(error))
+        verdict.setdefault("reason", str(error))
+        if verdict["status"] == "PASS":
+            verdict["status"] = "BLOCKED"
+
+
+def execute_pair(args, root, display, terminal_name, state, variant, colors, identity, profiles, reviews, overrides, seams,
+                 fixture_setup=None):
     relative = f"{terminal_name}/{state['id']}/{variant['id']}"
     case = root.directory(relative)
     (case / MARKER).write_text(uuid.uuid4().hex + "\n")
-    commands, journal, terminal, lost, fx = Commands(), [], None, None, None
+    commands, journal, terminal, lost, fx, cups, interrupted = Commands(), [], None, None, None, None, None
     verdict = {"terminal": terminal_name, "state": state["id"], "variant": variant["id"], "status": "BLOCKED"}
+    save(case / "candidate-identity.json", identity)
+    capture_config = None
     try:
         adapter = Adapter(terminal_name, case, owned_identity(), colors, profiles.get(terminal_name))
         packages = adapter.preflight(commands)
@@ -109,9 +150,18 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
         profile["config_check"] = adapter.validate(commands)
         fonts = font_identity(commands, profile["font"], adapter.environment())
         fx, fixture = build(case, state["family"], args.fixtures)
-        available = set(fixture.get("features", [])) | BUILT_IN_FEATURES
+        if fixture_setup:
+            save(case / "catalog-case.json", fixture_setup(fx))
+        available = (set(fixture.get("features", [])) - {"cups-sink"}) | BUILT_IN_FEATURES
         seam = seams.get(state["id"], {})
-        available.update(seam.get("features", []))
+        available.update(set(seam.get("features", [])) - {"cups-sink"})
+        if seam.get("private_cups"):
+            if seam["private_cups"] is not True or type(seam.get("cups_reject", False)) is not bool:
+                raise Blocked("private CUPS fixture flags must be booleans")
+            from .bundle.cups import PrivateSink
+            cups = PrivateSink(case, fx, reject=seam.get("cups_reject", False))
+            cups.start()
+            available.add("cups-sink")
         missing = set(state["requires"]) - available
         if missing:
             raise Blocked("fixture integration required: " + ", ".join(sorted(missing)))
@@ -129,7 +179,14 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
         capture_config = configuration(terminal_name, args.preset, variant, state,
                                        profiles.get(terminal_name), active["steps"], seam)
         save(case / "capture-config.json", capture_config)
-        candidate = namespace(args.binary, fx, state["cwd"], environment)
+        options = {}
+        if cups:
+            options["cups_server"] = "/fx/runtime/cups.sock"
+        if seam.get("tool_policy"):
+            options["tool_policy"] = seam["tool_policy"]
+        candidate = namespace(args.binary, fx, state["cwd"], environment, **options)
+        if seam.get("tool_policy"):
+            save(case / "tool-policy.json", load(fx / "data/tool-policy.json"))
         keymap = Keymap(REPO / "keys.toml", args.preset)
         terminal = Terminal(display, adapter, case, commands, args.timeout, keymap.resolve("quit"))
         start = terminal.launch(candidate, dict(PATH="/usr/bin:/bin", LANG="C.UTF-8", PYTHONPATH=str(REPO / "tests")),
@@ -151,6 +208,11 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                        "browser_cell": [CELL_WIDTH, CELL_HEIGHT], "resampling_allowed": False}
         save(case / "profile.json", dict(profile, terminal=terminal_name, calibrated=True, calibration=calibration, fonts=fonts,
              packages=packages, theme_sha256=theme_hash, original_rounding=display.original_rounding))
+        if state.get("picture_steps"):
+            terminal.fixture = fx
+            from .bundle.pictures import configure
+            configure(terminal, Board(args.boards / "boards" / (state["id"] + ".html")),
+                      Board(args.boards / "boards/tui-3d-column.html"), rect, calibration["cell"])
         steps(terminal, active, fx, keymap, journal, args.timeout)
         if (variant["columns"], variant["rows"]) != (COLUMNS, ROWS):
             terminal.resize(variant["columns"], variant["rows"], calibration)
@@ -160,6 +222,9 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                         absent=["┃"] if variant["id"] == "rest" else [])
         if state["id"] == "tui-small":
             rule = {"contains": ["wide"]}
+        if state.get("picture_steps"):
+            from .candidate import picture_steps
+            save(case / "picture-steps.json", picture_steps(state, journal, case / "pty.log"))
         snapshot = settled(terminal, rule, args.timeout, transient=state["id"] in ("tui-long", "tui-progress"))
         if snapshot["unsupported"]:
             raise Blocked("cell parser encountered unsupported output: " + str(snapshot["unsupported"]))
@@ -219,38 +284,45 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
             except (Blocked, OSError, ValueError, RuntimeError) as capture_error:
                 verdict["failure_capture_reason"] = str(capture_error)
     finally:
-        if terminal and terminal.launched:
-            try:
-                verdict["terminal_exit"] = terminal.close()
-                shutdown = load(case / "relay-exit.json")
-                verdict["shutdown"] = {k: v for k, v in shutdown.items() if k != "screen"}
-                failure = shutdown_failure(verdict["terminal_exit"], shutdown)
-                if failure:
-                    verdict.update(status="FAIL", shutdown_reason=failure)
-            except (Blocked, OSError, ValueError, RuntimeError) as error:
-                verdict.update(status="FAIL", shutdown_reason=str(error))
-        if fx:
-            try:
-                retain(fx, case)
-            except (Blocked, OSError) as error:
-                verdict["fixture_retain_reason"] = str(error)
-                if verdict["status"] == "PASS":
-                    verdict.update(status="BLOCKED", reason=str(error))
-        save(case / "state.json", {"requested": state, "variant": variant, "preset": args.preset, "input": journal})
-        save(case / "commands.json", commands.records)
-        try:
-            verdict["artifact_sha256"], missing = seal(case)
-            if missing:
-                verdict["incomplete_artifacts"] = missing
-                if verdict["status"] == "PASS":
-                    verdict.update(status="BLOCKED", reason="capture identity or evidence is incomplete")
-            elif verdict["status"] == "PASS":
-                verify_case(case, verdict["artifact_sha256"], capture_config)
-        except (Blocked, OSError, ValueError, KeyError) as error:
-            verdict["artifact_sha256"] = {}
-            if verdict["status"] == "PASS":
-                verdict.update(status="BLOCKED", reason=str(error))
-        save(case / "verdict.json", verdict)
+        from .calendar_native import shielded
+        with shielded():
+            if terminal and terminal.launched:
+                try:
+                    verdict["terminal_exit"] = close_terminal(terminal, case)
+                    shutdown = load(case / "relay-exit.json")
+                    verdict["shutdown"] = {k: v for k, v in shutdown.items() if k != "screen"}
+                    failure = shutdown_failure(verdict["terminal_exit"], shutdown)
+                    if failure:
+                        verdict.update(status="FAIL", shutdown_reason=failure)
+                except (Blocked, OSError, ValueError, RuntimeError) as error:
+                    verdict.update(status="FAIL", shutdown_reason=str(error))
+                except (KeyboardInterrupt, SystemExit) as error:
+                    interrupted = error
+                    verdict.update(status="FAIL", shutdown_reason="terminal cleanup interrupted: " + type(error).__name__)
+            if cups:
+                try:
+                    receipt = cups.close()
+                    if receipt["errors"]:
+                        raise Blocked("private CUPS receiver failed: " + "; ".join(receipt["errors"]))
+                except (Blocked, OSError, ValueError, RuntimeError) as error:
+                    verdict.update(status="FAIL", shutdown_reason=str(error))
+                except (KeyboardInterrupt, SystemExit) as error:
+                    interrupted = interrupted or error
+                    verdict.update(status="FAIL", shutdown_reason="private CUPS cleanup interrupted: " + type(error).__name__)
+            if fx:
+                try:
+                    retain(fx, case)
+                except (Blocked, OSError) as error:
+                    verdict["fixture_retain_reason"] = str(error)
+                    verdict.setdefault("reason", str(error))
+                    if verdict["status"] == "PASS":
+                        verdict["status"] = "BLOCKED"
+            save(case / "state.json", {"requested": state, "variant": variant, "preset": args.preset, "input": journal})
+            save(case / "commands.json", commands.records)
+            seal_case(case, verdict, capture_config)
+            save(case / "verdict.json", verdict)
+    if interrupted:
+        raise interrupted
     if lost:
         raise lost
     return verdict
@@ -263,7 +335,7 @@ def review_pending(verdict):
     return (verdict["status"] == "BLOCKED" and (verdict.get("visual") or {}).get("reason") == REVIEW_PENDING
             and all((check or {}).get("status") == "PASS" for check in checks)
             and not verdict.get("shutdown_reason") and not verdict.get("incomplete_artifacts")
-            and not verdict.get("fixture_retain_reason"))
+            and not verdict.get("fixture_retain_reason") and not verdict.get("sealing_reason"))
 
 
 def parser():
@@ -278,6 +350,7 @@ def parser():
     result.add_argument("--steps", type=Path, help="logical setup steps keyed by state, for integrated keymap changes")
     result.add_argument("--reviews", type=Path, help="native visual approvals keyed by terminal/state/variant and image hashes")
     result.add_argument("--seams", type=Path, help="explicit test-only fixture features and FLEA_TUI_ environment by state")
+    result.add_argument("--identity-inputs", type=Path, help="additional named catalog/roster/font input paths to hash")
     result.add_argument("--supplement", type=Path, help="identity-matched controller control/calendar evidence bundle")
     result.add_argument("--reconcile", type=Path, help="review retained captures from this run directory instead of launching terminals")
     result.add_argument("--preset", choices=("default", "vim", "mac", "windows", "yazi"), default="default")
@@ -310,10 +383,15 @@ def main(argv=None):
         surfaces = load(HERE / "surfaces.json")["states"]
         planned = [{"terminal": t, "state": s["id"], "variant": v["id"]}
                    for t in terminals for s in spec["states"] for v in s["variants"]]
+        from .candidate import inventory as candidate_inventory, completion, bind_identity
+        complete_spec = contract(args.boards, None)
+        required = candidate_inventory(complete_spec)
         manifest = {"schema": 1, "mode": "dry-run" if args.dry_run else "native", "smoke": args.smoke, "preset": args.preset, "excluded": spec["excluded"],
-                    "reserved": spec["reserved"], "requested": planned, "required_primary_records": 305,
-                    "required_additional_records": len(spec["additional_states"]) * 5,
-                    "required_minimum_native_captures": 310, "records": [], "controls": [], "calendar": calendar,
+                    "reserved": spec["reserved"], "requested": planned,
+                    "required_primary_records": len(complete_spec["primary_ids"]) * len(TERMINALS),
+                    "required_additional_records": len(complete_spec["additional_states"]) * len(TERMINALS),
+                    "required_minimum_native_captures": required["counts"]["captures"], "complete_inventory": required,
+                    "records": [], "controls": [], "calendar": calendar,
                     "additional_surfaces": surfaces,
                     "masking_policy": "Backend-derived right-anchored disk cells and source-derived media cells; every character, width, space and rendition is checked.",
                     "tolerance_policy": "Cell text, geometry, focus and ink roles are exact; native antialiasing needs controller review."}
@@ -353,6 +431,8 @@ def main(argv=None):
             if os.geteuid() == 0:
                 raise Blocked("native Locked proof requires an unprivileged controller")
             identity = source_identity(REPO, args.binary, args.boards, commands)
+            identity = bind_identity(identity, load(args.identity_inputs) if args.identity_inputs else None, args.boards)
+            manifest["candidate_inputs"] = identity["candidate_inputs"]
             save(root.child("identity.json"), identity)
             profiles = load(args.profiles) if args.profiles else {}
             for name, profile in profiles.items():
@@ -391,8 +471,8 @@ def main(argv=None):
             manifest.update(counts=dict(counts), native_acceptance=accepted, native_accepted=counts["PASS"],
                             native_captures=sum(1 for _ in (args.reconcile or root.path).glob("*/*/*/native.png")),
                             complete_primary_matrix=accepted and set(spec["primary_ids"]).issubset(s["id"] for s in spec["states"]) and len(terminals) == 5,
-                            complete_reference_matrix=accepted and len(spec["states"]) == 61 + len(spec["additional_states"]) and len(terminals) == 5,
                             status="PASS" if accepted else ("FAIL" if counts["FAIL"] else "BLOCKED"))
+            manifest.update(completion(manifest, required))
             code = 0 if accepted else (1 if counts["FAIL"] else 2)
             if args.smoke and not accepted and not manifest.get("display_reason") and manifest["records"] \
                     and all(r["status"] == "PASS" or review_pending(r) for r in manifest["records"]):

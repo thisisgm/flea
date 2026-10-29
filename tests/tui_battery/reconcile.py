@@ -34,7 +34,9 @@ def shutdown_failure(terminal_exit, shutdown):
 def retained(source, identity, planned, boards, reviews, configurations=None):
     source = absolute(source)
     saved_identity = json.loads((source / "identity.json").read_text())
-    for key in ("commit", "dirty_patch_sha256", "elf_sha256", "references", "untracked"):
+    for key in ("commit", "dirty_patch_sha256", "elf_sha256", "references", "untracked", "candidate_inputs"):
+        if key == "candidate_inputs" and key not in identity:
+            continue
         if saved_identity.get(key) != identity[key]:
             raise Blocked("retained capture identity changed: " + key)
     results = []
@@ -46,24 +48,38 @@ def retained(source, identity, planned, boards, reviews, configurations=None):
             verdict = json.loads((directory / "verdict.json").read_text())
             if any(verdict.get(k) != row[k] for k in ("terminal", "state", "variant")):
                 raise Blocked("retained verdict identifies another case")
+            if verdict.get("fixture_retain_reason") or verdict.get("sealing_reason") or verdict.get("incomplete_artifacts"):
+                raise Blocked("retained capture has a permanent fixture or sealing failure")
             hashes = verdict.get("artifact_sha256", {})
             failure = shutdown_failure(verdict.get("terminal_exit"), verdict.get("shutdown", {}))
             if failure:
                 result["status"] = "FAIL"
                 raise Blocked(failure)
+            from .bundle.outputs import load
+            raw_exit, raw_shutdown = load(directory / "launch-exit.json"), load(directory / "relay-exit.json")
+            failure = shutdown_failure(raw_exit, raw_shutdown)
+            if failure or raw_exit.get("exit_code") != verdict["terminal_exit"]["exit_code"] or any(
+                    raw_shutdown.get(key) != verdict["shutdown"].get(key)
+                    for key in ("candidate_exit", "termios_restored", "relay_termios_restored")):
+                result["status"] = "FAIL"
+                raise Blocked(failure or "raw shutdown receipt disagrees with passing verdict")
             verify(directory, hashes, (configurations or {}).get(relative))
+            if "candidate_inputs" in identity:
+                from .candidate import verify_extra
+                verify_extra(directory, hashes)
             visual = visual_review(directory / "native.png", reviews, digest(boards / "boards" / (row["state"] + ".png")))
             checks = [verdict["behavior"]["status"], verdict["cells"]["geometry"]["status"],
-                      verdict["cells"]["color"]["status"], pixel_status(verdict["pixels"], visual)]
+                      verdict["cells"]["color"]["status"], pixel_status(verdict["pixels"], visual),
+                      (verdict.get("edges") or {}).get("status", "BLOCKED")]
             media = json.loads((directory / "media.json").read_text())
             verify_sources(media, directory / "fx")
             media_status = representation_status(media, visual.get("review", {}))
             checks.append(media_status)
-            if verdict.get("reason") or verdict.get("shutdown_reason"):
+            if verdict.get("reason") not in (None, "", "controller native visual review required") or verdict.get("shutdown_reason"):
                 raise Blocked(verdict.get("reason") or verdict.get("shutdown_reason"))
-            result.update(status="PASS" if checks == ["PASS"] * 5 else ("FAIL" if "FAIL" in checks else "BLOCKED"),
+            result.update(status="PASS" if checks == ["PASS"] * 6 else ("FAIL" if "FAIL" in checks else "BLOCKED"),
                           visual=visual, checks=checks, artifact_sha256=hashes)
-        except (Blocked, OSError, ValueError, KeyError) as error:
+        except (Blocked, OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as error:
             result["reason"] = str(error)
         results.append(result)
     return results

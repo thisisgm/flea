@@ -348,8 +348,9 @@ class RegressionTests(unittest.TestCase):
             self.inspect_media(state, board, image, caps, fx)
 
     def supplement_record(self, control, assertions, name='control'):
-        directory = self.root / name
-        directory.mkdir()
+        bundle = self.root / name
+        directory = bundle / 'kitty' / control['id']
+        directory.mkdir(parents=True)
         for file in receipts.REQUIRED:
             (directory / file).write_text('{}')
         (directory / 'native.png').write_bytes(b'placeholder')
@@ -360,12 +361,14 @@ class RegressionTests(unittest.TestCase):
         verdict = dict(behavior='PASS', cell_geometry='PASS', color='PASS', native_visual='PASS',
                        assertions=assertions, native_capture_sha256=hashes['native.png'])
         (directory / 'verdict.json').write_text(json.dumps(verdict))
-        identity = dict(commit='c', dirty_patch_sha256='p', elf_sha256='e', references={})
-        row = dict(terminal='kitty', kind='control', id=control['id'], directory=name, sha256=hashes,
+        identity = dict(commit='c', dirty_patch_sha256='p', elf_sha256='e', references={}, untracked={})
+        row = dict(terminal='kitty', kind='control', id=control['id'], directory='kitty/'+control['id'], sha256=hashes,
                    verdict_sha256=digest(directory / 'verdict.json'))
-        (self.root / 'manifest.json').write_text(json.dumps(dict(identity=identity, records=[row])))
-        with patch.object(receipts.png, 'read', return_value=(1, 1, b'rgba')):
-            return receipts.supplement(self.root, identity, ['kitty'], [control], {'states': []})[0]
+        (bundle / 'manifest.json').write_text(json.dumps(dict(identity=identity, records=[row])))
+        # These four tests isolate assertion-shape checks; the accepted producer validator has separate integration controls.
+        with patch.object(receipts.png, 'read', return_value=(1, 1, b'rgba')), \
+                patch('tui_battery.control_native.validate_record', return_value={}):
+            return receipts.supplement(bundle, identity, ['kitty'], [control], {'states': []})[0]
 
     def test_control_without_checks_cannot_pass(self):
         record = self.supplement_record({'id': 'unasserted'}, {'anything': True})
@@ -395,10 +398,17 @@ class RegressionTests(unittest.TestCase):
         second_case = source / 'foot/tui-list-text/secondary'
         second_case.mkdir()
         (second_case / 'media.json').write_text(json.dumps({'status': 'PASS'}))
+        from .candidate import LIFECYCLE, seal_extra
+        for name in LIFECYCLE:
+            value = ({'exit_code': 0} if name == 'launch-exit.json' else
+                     {'candidate_exit': 0, 'termios_restored': True, 'relay_termios_restored': True} if name == 'relay-exit.json' else {})
+            (second_case / name).write_text(json.dumps(value))
+        second_hashes = {}
+        self.assertEqual(seal_extra(second_case, second_hashes), [])
         valid_shutdown = {'candidate_exit': 0, 'termios_restored': True, 'relay_termios_restored': True}
         (second_case / 'verdict.json').write_text(json.dumps(dict(
             second, behavior={'status': 'PASS'}, cells={'geometry': {'status': 'PASS'}, 'color': {'status': 'PASS'}},
-            pixels={'status': 'REVIEW'}, terminal_exit={'exit_code': 0}, shutdown=valid_shutdown, artifact_sha256={})))
+            pixels={'status': 'REVIEW'}, edges={'status': 'PASS'}, terminal_exit={'exit_code': 0}, shutdown=valid_shutdown, artifact_sha256=second_hashes)))
         path = case / 'verdict.json'
         verdict = json.loads(path.read_text())
         for shutdown in (None, [], 'clean'):

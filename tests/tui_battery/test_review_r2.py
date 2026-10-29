@@ -159,6 +159,8 @@ class Review2Tests(unittest.TestCase):
         case = source / "foot/tui-list-text/primary"
         case.mkdir(parents=True)
         identity = dict(commit="c", dirty_patch_sha256="p", elf_sha256="e", references={}, untracked={})
+        from .candidate import input_identity, LIFECYCLE
+        identity["candidate_inputs"] = input_identity(HERE.parents[1])
         (source / "identity.json").write_text(json.dumps(identity))
         row = dict(terminal="foot", state="tui-list-text", variant="primary")
         state = next(s for s in json.loads((HERE / "states.json").read_text())["states"] if s["id"] == row["state"])
@@ -174,8 +176,15 @@ class Review2Tests(unittest.TestCase):
             target = case / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(json.dumps(value))
+        raw = {"launch-exit.json": {"exit_code": 0},
+               "relay-exit.json": {"candidate_exit": 0, "termios_restored": True, "relay_termios_restored": True},
+               "launch-start.json": {"pid": 2147483647, "start_ns": 1},
+               "relay-start.json": {"stdin_tty": True, "stdout_tty": True}}
+        for name in LIFECYCLE:
+            (case / name).write_text(json.dumps(raw[name]))
+            values[name] = raw[name]
         verdict = dict(row, behavior={"status": "PASS"}, cells={"geometry": {"status": "PASS"}, "color": {"status": "PASS"}},
-                       pixels={"status": "REVIEW"}, terminal_exit={"exit_code": 0},
+                       pixels={"status": "REVIEW"}, edges={"status": "PASS"}, terminal_exit={"exit_code": 0},
                        shutdown={"candidate_exit": 0, "termios_restored": True, "relay_termios_restored": True},
                        artifact_sha256={name: digest(case / name) for name in values})
         (case / "verdict.json").write_text(json.dumps(verdict))
