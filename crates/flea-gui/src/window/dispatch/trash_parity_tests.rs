@@ -6,7 +6,7 @@ use super::{
 use crate::window::navigate::Step;
 use gpui::TestAppContext;
 
-const SMB: &str = "/run/user/1000/gvfs/smb-share:server=host,share=docs";
+pub(super) const SMB: &str = "/run/user/1000/gvfs/smb-share:server=host,share=docs";
 
 #[gpui::test]
 #[ignore = "known red until the path work selects the replacement row after a trash"]
@@ -92,32 +92,116 @@ fn trash_parity_escape_cancels_trash_and_vim_pairs_before_escape_up(cx: &mut Tes
 }
 
 #[gpui::test]
-fn trash_parity_gvfs_keys_refuse_with_the_working_delete_hint(cx: &mut TestAppContext) {
+fn bfx325_no_trash_keys_review_before_permanent_delete(cx: &mut TestAppContext) {
     for (preset, key) in [
+        ("default", "delete"),
         ("mac", "ctrl-delete"),
         ("vim", "shift-d"),
         ("windows", "ctrl-d"),
+        ("default", "d d"),
     ] {
-        let (shell, cx) = open_root_with(cx, &format!(r#""keys":"{preset}","view":"list""#), None);
-        cx.update(|window, cx| {
-            shell.update(cx, |shell, cx| {
-                let _ = shell.step(0, Step::OpenPlace(SMB.into()), window, cx);
-            })
-        });
-        land(&shell, cx, SMB, vec![row("notes.txt", false)], 1);
-        cx.update(|window, cx| {
-            shell.update(cx, |shell, cx| window.focus(&shell.focus, cx));
-        });
-        let mut sent = wire(&shell, cx);
-        cx.simulate_keystrokes(key);
-        assert!(
-            sent().is_empty(),
-            "{preset}: a location without Trash never sends a write"
-        );
-        let text = shell.update(cx, |shell, cx| {
-            shell.status_messages(cx, |messages, _| messages.shown().text)
-        });
-        assert_eq!(text, "This location has no Trash", "{preset}");
-        shell.update(cx, |shell, _| shell.stop_for_app_quit());
+        for confirm in [false, true] {
+            let (shell, cx) =
+                open_root_with(cx, &format!(r#""keys":"{preset}","view":"list""#), None);
+            cx.update(|window, cx| {
+                shell.update(cx, |shell, cx| {
+                    let _ = shell.step(0, Step::OpenPlace(SMB.into()), window, cx);
+                })
+            });
+            land(&shell, cx, SMB, vec![row("notes.txt", false)], 1);
+            cx.update(|window, cx| {
+                shell.update(cx, |shell, cx| window.focus(&shell.focus, cx));
+            });
+            let mut sent = wire(&shell, cx);
+            cx.simulate_keystrokes(key);
+            let snapshot = sent();
+            assert_eq!(snapshot.len(), 1, "{preset}: {key} must request a review");
+            let id = flea::json::field_usize(&snapshot[0], "id").unwrap();
+            assert_eq!(
+                snapshot[0],
+                format!(
+                    r#"{{"c":"menuaction","op":"snapshot","id":{id},"listing":1,"rows":[0],"cursor":0}}"#
+                )
+            );
+            reply(
+                &shell,
+                cx,
+                &format!(
+                    r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[32768]}}"#
+                ),
+            );
+            assert_eq!(
+                sent(),
+                [format!(
+                    r#"{{"c":"menuaction","op":"prepareDelete","id":{id}}}"#
+                )]
+            );
+            reply(
+                &shell,
+                cx,
+                &format!(
+                    r#"{{"t":"menuaction","id":{id},"op":"prepareDelete","ok":true,"token":77,"count":1,"bytes":12}}"#
+                ),
+            );
+            assert!(shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
+            assert!(sent().is_empty(), "review never deletes");
+            cx.simulate_keystrokes(if confirm { "tab enter" } else { "enter" });
+            let out = sent();
+            if confirm {
+                assert!(
+                    out.iter().any(|line| line
+                        == &format!(r#"{{"c":"menuaction","op":"delete","id":{id},"token":77}}"#)),
+                    "{out:?}"
+                );
+            } else {
+                assert!(
+                    out.iter().all(|line| !line.contains(r#""op":"delete""#)),
+                    "Enter defaults to Cancel: {out:?}"
+                );
+                assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
+            }
+            shell.update(cx, |shell, _| shell.stop_for_app_quit());
+        }
     }
+}
+
+#[gpui::test]
+fn bfx325_no_trash_pair_names_review_and_a_denied_review_never_deletes(cx: &mut TestAppContext) {
+    let (shell, cx) = super::test_shell::open_root_at(cx, SMB);
+    land(&shell, cx, SMB, vec![row("notes.txt", false)], 1);
+    let mut sent = wire(&shell, cx);
+    cx.simulate_keystrokes("d");
+    assert!(sent().is_empty(), "the first d only arms");
+    let text = shell.update(cx, |shell, cx| {
+        shell.status_messages(cx, |messages, _| messages.shown().text)
+    });
+    assert!(text.contains("review permanent deletion"), "{text}");
+    cx.simulate_keystrokes("d");
+    let snapshot = sent();
+    assert_eq!(snapshot.len(), 1);
+    let id = flea::json::field_usize(&snapshot[0], "id").unwrap();
+    reply(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[32768]}}"#),
+    );
+    assert_eq!(
+        sent(),
+        [format!(
+            r#"{{"c":"menuaction","op":"prepareDelete","id":{id}}}"#
+        )]
+    );
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"prepareDelete","ok":false,"error":"Read-only file system"}}"#
+        ),
+    );
+    assert_eq!(
+        sent(),
+        [format!(r#"{{"c":"menuaction","op":"close","id":{id}}}"#)]
+    );
+    assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

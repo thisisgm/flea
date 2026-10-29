@@ -9,6 +9,7 @@ use crate::{
     state::Shell,
     window::{
         locale::Snapshot,
+        navigate::Step,
         root::Root,
         startup::{Arguments, Launch, Settings},
         u07_tests::read,
@@ -225,6 +226,47 @@ fn menu_delete_reviews_the_menu_snapshot_and_opens_the_permanent_card(cx: &mut T
         ),
     );
     assert!(shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// Move to Trash on a place without Trash reviews the menu snapshot for permanent deletion, Cancel first.
+#[gpui::test]
+fn bfx325_menu_trash_without_trash_reviews_before_permanent_delete(cx: &mut TestAppContext) {
+    let (shell, mut cx) = open(cx);
+    let cx = &mut cx;
+    let smb = super::trash_parity_tests::SMB;
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let _ = shell.step(0, Step::OpenPlace(smb.into()), window, cx);
+        })
+    });
+    land(&shell, cx, smb, home(), 1);
+    set_cursor(&shell, cx, 2);
+    let mut sent = wire(&shell, cx);
+    let id = row_menu(&shell, cx, &mut sent);
+    choose(&shell, cx, "trash");
+    validated(&shell, cx, &mut sent, id, "trash");
+    assert_eq!(
+        sent(),
+        [format!(
+            r#"{{"c":"menuaction","op":"prepareDelete","id":{id}}}"#
+        )]
+    );
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"prepareDelete","ok":true,"token":9,"count":1,"bytes":12}}"#
+        ),
+    );
+    assert!(shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
+    cx.simulate_keystrokes("enter");
+    let out = sent();
+    assert!(
+        out.iter().all(|line| !line.contains(r#""op":"delete""#)),
+        "Enter defaults to Cancel: {out:?}"
+    );
+    assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

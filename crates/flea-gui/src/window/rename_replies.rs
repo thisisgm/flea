@@ -148,7 +148,12 @@ impl Shell {
                 Some(select) => Step::Refresh(Some(select)),
                 None => Step::Refresh(None),
             };
-            let _ = self.step(side, step, window, cx);
+            if self.step(side, step, window, cx) == Ok(true) {
+                if let Some(host) = self.panes[side].as_mut() {
+                    host.nav.watch.clear();
+                }
+                self.arm_watch(side, window, cx);
+            }
         }
         cx.notify();
     }
