@@ -97,6 +97,17 @@ fn collect_mounted(node: &Json, out: &mut Vec<RailEntry>) {
     }
 }
 
+/// Every top lsblk node whose tree holds `device`, so an open crypt or a spanned array names each drive it sits on.
+/// {"blockdevices":[{"path":"/dev/sdb","children":[{"path":"/dev/sdb2","children":[{"path":"/dev/mapper/luks-x"}]}]}]}
+pub fn drives_holding(listing: &str, device: &str) -> Vec<String> {
+    let Some(nodes) = parse_nodes(listing) else { return Vec::new() };
+    nodes.iter().filter(|n| holds_device(n, device)).map(device_path).collect()
+}
+
+fn holds_device(node: &Json, device: &str) -> bool {
+    device_path(node) == device || children(node).iter().any(|kid| holds_device(kid, device))
+}
+
 /// The exit the loop eject chain uses when the loop device could not be detached.
 pub const DETACH_FAILED_EXIT: i32 = 3;
 

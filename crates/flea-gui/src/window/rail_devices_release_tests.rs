@@ -47,6 +47,14 @@ fn shell_at<'a>(
     path: &str,
     cx: &'a mut TestAppContext,
 ) -> (Entity<Shell>, Rc<Ordered>, &'a mut VisualTestContext) {
+    shell_with_listing(path, BLOCKS, cx)
+}
+
+fn shell_with_listing<'a>(
+    path: &str,
+    blocks: &str,
+    cx: &'a mut TestAppContext,
+) -> (Entity<Shell>, Rc<Ordered>, &'a mut VisualTestContext) {
     LOG.with(|log| log.borrow_mut().clear());
     let service = Rc::new(Ordered::default());
     let runner = service.clone();
@@ -84,7 +92,7 @@ fn shell_at<'a>(
     let (shell, cx) =
         cx.add_window_view(|window, cx| Shell::new(launch, locale, events, window, cx));
     cx.run_until_parked();
-    service.0.answer("lsblk", 0, BLOCKS);
+    service.0.answer("lsblk", 0, blocks);
     service.0.answer("gio", 0, "");
     frame(cx);
     cx.executor().advance_clock(Duration::from_millis(900));
@@ -386,3 +394,6 @@ fn pb_rail_2_eject_holds_the_rail_while_its_child_runs(cx: &mut TestAppContext) 
 
 #[path = "rail_devices_pb_rest_tests.rs"]
 mod pb_rest;
+
+#[path = "rail_devices_drives_tests.rs"]
+mod drives;

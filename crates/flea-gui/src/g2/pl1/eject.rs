@@ -3,14 +3,38 @@ use super::devices::{failure, Devices, Effect, Proc, EJECT_VERDICT_MS, POWER_OFF
 use super::process::{Job, Outcome};
 use flea::ui_logic_pl1::eject::{blockers, sentence, verdict, Verdict};
 use flea::ui_logic_pl1::power::{
-    eject_command, mount_error, power_off_disk, power_off_queue, written_sectors, Op,
-    DETACH_FAILED_EXIT,
+    drives_holding, eject_command, mount_error, power_off_disk, power_off_queue, written_sectors,
+    Op, DETACH_FAILED_EXIT,
 };
 use flea::ui_logic_pl1::{Kind, Note, RailEntry};
 
 impl Devices {
+    /// A release holds its own volume, and an eject or power-off holds every volume on its drive.
+    pub(super) fn release_note(&self, device: &str) -> Option<Note> {
+        if self.unmounting && device == self.unmount_device {
+            Some(Note::new("device.still_unmounting", &[&self.unmount_label]))
+        } else if !self.eject_device.is_empty() && self.on_ejecting_drive(device) {
+            Some(Note::new("device.still_ejecting", &[&self.eject_label]))
+        } else {
+            None
+        }
+    }
+
+    fn on_ejecting_drive(&self, device: &str) -> bool {
+        device == self.eject_device
+            || drives_holding(&self.listing, device)
+                .iter()
+                .any(|drive| self.eject_drives.contains(drive))
+    }
+
     /// Unmount, which is not Eject: a fixed disk stays and only its filesystem goes away.
     pub fn unmount(&mut self, index: usize) -> Vec<Effect> {
+        if self.running(Proc::Mount) {
+            return vec![Effect::Message(
+                Note::new("device.another_mounting", &[]),
+                false,
+            )];
+        }
         if !self.power_disk.is_empty() {
             return vec![Effect::Message(
                 Note::new("device.still_ejecting", &[&self.eject_label]),
@@ -49,6 +73,8 @@ impl Devices {
 
     fn arm_eject(&mut self, e: &RailEntry) {
         self.eject_device = e.device.clone();
+        // Read when armed: a crypt locked mid-eject leaves the listing, and its drive stays held.
+        self.eject_drives = drives_holding(&self.listing, &e.device);
         self.eject_label = e.label.clone();
         self.eject_loop = e.loop_device;
         self.detach_failed = false;
@@ -57,6 +83,12 @@ impl Devices {
 
     /// Eject by mount point; a non-removable USB disk powers off instead, so nothing remounts it.
     pub fn eject(&mut self, index: usize, now: u64) -> Vec<Effect> {
+        if self.running(Proc::Mount) {
+            return vec![Effect::Message(
+                Note::new("device.another_mounting", &[]),
+                false,
+            )];
+        }
         let Some(e) = self
             .entries
             .get(index)
@@ -152,6 +184,7 @@ impl Devices {
         self.power_disk.clear();
         self.power_queue.clear();
         self.eject_device.clear();
+        self.eject_drives.clear();
     }
 
     pub(super) fn power_off_expired(&mut self) -> Vec<Effect> {
@@ -225,6 +258,7 @@ impl Devices {
             out.extend(self.lock_crypt(&device, &label, body).unwrap_or_default());
         }
         self.eject_device.clear();
+        self.eject_drives.clear();
         out.extend(self.replace_verdict(note, error));
         out
     }

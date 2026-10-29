@@ -68,7 +68,8 @@ fn collect_volumes(nodes: &[Json], model: &str, unplugs: bool, out: &mut Vec<Rai
         let pulls = unpluggable(n) || (unplugs && text(n, "type") == "part");
         let loop_here = walk.under_loop || text(n, "name").starts_with("loop");
         let mounted = !mount_of(n).is_empty();
-        let wanted = pulls || mounted || (walk.unmounted && browsable(n) && !loop_here) || is_locked_node(n);
+        let windows_data = text(n, "fstype").to_lowercase() == "ntfs";
+        let wanted = pulls || mounted || ((walk.unmounted || windows_data) && browsable(n) && !loop_here) || is_locked_node(n);
         if has(n, "name") && (kids.is_empty() || mounted) && !hidden(n) && !holds_root(n) && wanted {
             out.push(volume_row(n, &own, pulls, walk.removable_disk, walk.holder, loop_here));
         }
