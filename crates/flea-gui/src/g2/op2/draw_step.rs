@@ -4,8 +4,8 @@ use super::draw::StandIn;
 use super::draw_flash::FlashTaps;
 use super::draw_press::PressButton;
 use super::flash::{
-    PressAnim, StepAction, StepRow, View, SEL_STEP_CANCEL, SEL_STEP_END, SEL_STEP_FLASH, SEL_STEP_FRAME,
-    SEL_STEP_WASH_HOVER, SEL_STEP_WASH_PRESS,
+    PressAnim, StepAction, StepRow, View, SEL_STEP_CANCEL, SEL_STEP_END, SEL_STEP_FLASH,
+    SEL_STEP_FRAME, SEL_STEP_WASH_HOVER, SEL_STEP_WASH_PRESS,
 };
 use flea::i18n::I18n;
 use gpui::{div, prelude::*, px, AnyElement, Hsla, IntoElement, TextRun, Window};
@@ -108,7 +108,15 @@ impl StandIn {
 
     /// The step action probe: its registry key, its frame role and the exact labels of the live copy.
     pub(super) fn action(&self, draw: &Draw, input: ActionIn) -> Option<AnyElement> {
-        let ActionIn { view, i18n, taps, press, now, reduced, window } = input;
+        let ActionIn {
+            view,
+            i18n,
+            taps,
+            press,
+            now,
+            reduced,
+            window,
+        } = input;
         let step = &view.step;
         let action = step.step_action();
         let probe = match action {
@@ -132,8 +140,11 @@ impl StandIn {
             ActionFrame::Muted => draw.t.muted_frame,
         };
         let ring = focus_shown && Self::frame_ring(primary, draw.t.accent_frame, draw.t.fg);
-        let fill =
-            if primary && available { draw.t.accent.opacity(WASH_PRIMARY) } else { draw.t.accent.opacity(0.) };
+        let fill = if primary && available {
+            draw.t.accent.opacity(WASH_PRIMARY)
+        } else {
+            draw.t.accent.opacity(0.)
+        };
         let ink = if available { draw.t.fg } else { draw.t.muted };
         let wash = if step.action_pressed && step.action_hover && available {
             Some((ink.opacity(WASH_PRESS), SEL_STEP_WASH_PRESS))
@@ -150,7 +161,10 @@ impl StandIn {
             underline: None,
             strikethrough: None,
         };
-        let label_w = window.text_system().shape_line(label.clone().into(), draw.px(BOARD_BODY), &[run], None).width();
+        let label_w = window
+            .text_system()
+            .shape_line(label.clone().into(), draw.px(BOARD_BODY), &[run], None)
+            .width();
         let pad = draw.px(BUTTON_PAD);
         let board_w = f32::from(label_w + pad + pad) / draw.s;
         let q = Self::shown_progress(press, now, reduced);
@@ -168,7 +182,14 @@ impl StandIn {
             .text_color(draw.t.fg)
             .opacity(if available { 1. } else { DISABLED_OPACITY })
             .whitespace_nowrap()
-            .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().child(label));
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .overflow_hidden()
+                    .text_ellipsis()
+                    .child(label),
+            );
         if let Some(hover) = &taps.hover {
             let hover = hover.clone();
             button = button.on_hover(move |over, window, cx| hover(over, window, cx));
@@ -183,7 +204,11 @@ impl StandIn {
             .rounded(draw.px(draw.r))
             .bg(fill)
             .border_color(frame);
-        let frame_div = if ring { frame_div.border_2() } else { frame_div.border_1() };
+        let frame_div = if ring {
+            frame_div.border_2()
+        } else {
+            frame_div.border_1()
+        };
         button = button.child(frame_div);
         if let Some((color, probe)) = wash {
             button = button.child(
@@ -199,8 +224,14 @@ impl StandIn {
             );
         }
         Some(
-            PressButton::new(button, taps, available, step.action_pressed, !reduced && q != press.to)
-                .into_any_element(),
+            PressButton::new(
+                button,
+                taps,
+                available,
+                step.action_pressed,
+                !reduced && q != press.to,
+            )
+            .into_any_element(),
         )
     }
 }

@@ -4,34 +4,38 @@ use super::*;
 fn f2_check(view: View, side: usize, from: &str, to: &str, elapsed: bool) {
     let mut cx = bench::real_cx();
     let handle = open(&mut cx, view, from);
-    handle.update(&mut cx, |root, _, cx| {
-        root.shell.update(cx, |shell, cx| {
-            for host in shell.panes.iter_mut().flatten() {
-                host.pane.held = Rc::new(Held {
-                    listing: host.pane.held.listing,
-                    total: 100,
-                    start: 0,
-                    rows: bench::fixture("2k").into_iter().take(100).collect(),
-                });
-                host.selected = vec![95];
-                host.pane.cursor = 96;
-                host.input.selection.changed(&host.selected);
-            }
-            cx.notify();
-        });
-    }).unwrap();
+    handle
+        .update(&mut cx, |root, _, cx| {
+            root.shell.update(cx, |shell, cx| {
+                for host in shell.panes.iter_mut().flatten() {
+                    host.pane.held = Rc::new(Held {
+                        listing: host.pane.held.listing,
+                        total: 100,
+                        start: 0,
+                        rows: bench::fixture("2k").into_iter().take(100).collect(),
+                    });
+                    host.selected = vec![95];
+                    host.pane.cursor = 96;
+                    host.input.selection.changed(&host.selected);
+                }
+                cx.notify();
+            });
+        })
+        .unwrap();
     draw(&mut cx, handle);
-    handle.update(&mut cx, |root, _, cx| {
-        root.shell.update(cx, |shell, cx| {
-            let host = shell.panes[side].as_mut().unwrap();
-            let frame = host.input.drawn.expect("long listing painted").frame;
-            let header = host.list.borrow().file_metrics().header;
-            assert_eq!(frame.total, 100);
-            assert!(frame.max_scroll() > 1000.);
-            host.pane.scroll_to(frame.max_scroll() - header / 4.);
-            cx.notify();
-        });
-    }).unwrap();
+    handle
+        .update(&mut cx, |root, _, cx| {
+            root.shell.update(cx, |shell, cx| {
+                let host = shell.panes[side].as_mut().unwrap();
+                let frame = host.input.drawn.expect("long listing painted").frame;
+                let header = host.list.borrow().file_metrics().header;
+                assert_eq!(frame.total, 100);
+                assert!(frame.max_scroll() > 1000.);
+                host.pane.scroll_to(frame.max_scroll() - header / 4.);
+                cx.notify();
+            });
+        })
+        .unwrap();
     draw(&mut cx, handle);
     handle.update(&mut cx, |root, window, cx| {
         let capture = root.shell.update(cx, |shell, cx| {
@@ -117,21 +121,40 @@ fn f2_check(view: View, side: usize, from: &str, to: &str, elapsed: bool) {
         cx.notify();
     }).unwrap();
     draw(&mut cx, handle);
-    handle.update(&mut cx, |root, _, cx| {
-        assert!(root.capture.is_none(), "genuine ac631 render consumed capture");
-        let prepared = root.prepared.take().expect("genuine render produced frame");
-        root.shell.read_with(cx, |shell, _| {
-            let host = shell.panes[side].as_ref().unwrap();
-            let mounted = host.input.drawn.expect("fresh actual mounted viewport").frame;
-            if from != to {
-                assert_eq!(mounted.scroll, prepared.scroll, "actual painted viewport offset");
-            } else {
-                assert!(mounted.scroll <= prepared.scroll, "a still-active upward edge may advance again in the mounted render");
-            }
-            assert_eq!(host.list.borrow().drawn.scroll_y, mounted.scroll, "actual list content viewport offset");
-            assert_eq!(mounted.row, prepared.row);
-        });
-    }).unwrap();
+    handle
+        .update(&mut cx, |root, _, cx| {
+            assert!(
+                root.capture.is_none(),
+                "genuine ac631 render consumed capture"
+            );
+            let prepared = root.prepared.take().expect("genuine render produced frame");
+            root.shell.read_with(cx, |shell, _| {
+                let host = shell.panes[side].as_ref().unwrap();
+                let mounted = host
+                    .input
+                    .drawn
+                    .expect("fresh actual mounted viewport")
+                    .frame;
+                if from != to {
+                    assert_eq!(
+                        mounted.scroll, prepared.scroll,
+                        "actual painted viewport offset"
+                    );
+                } else {
+                    assert!(
+                        mounted.scroll <= prepared.scroll,
+                        "a still-active upward edge may advance again in the mounted render"
+                    );
+                }
+                assert_eq!(
+                    host.list.borrow().drawn.scroll_y,
+                    mounted.scroll,
+                    "actual list content viewport offset"
+                );
+                assert_eq!(mounted.row, prepared.row);
+            });
+        })
+        .unwrap();
 }
 
 #[test]
@@ -141,7 +164,9 @@ fn g76_f2_density_change_preserves_scaled_near_bottom_viewport() {
     }
     for from in DENSITIES {
         for to in DENSITIES {
-            if from == to { continue; }
+            if from == to {
+                continue;
+            }
             for (view, side) in [(View::List, 0), (View::Dual, 0), (View::Dual, 1)] {
                 f2_check(view, side, from, to, true);
             }

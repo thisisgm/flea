@@ -144,8 +144,8 @@ fn empty_omi_paints_upstream_thinking_rest_at_device_scales_and_theme_accents(
 ) {
     cx.update(|cx| cx.set_reduce_motion(true));
     for accent in [
-        gpui::hsla(0.6, 0.8, 0.6, 1.),
-        gpui::hsla(0.2, 0.08, 0.65, 1.),
+        Theme::from_text(r##"accent="#7aa2f7""##).accent,
+        Theme::from_text(r##"accent="#e0af68""##).accent,
     ] {
         cx.update(|cx| {
             cx.set_global(Theme {

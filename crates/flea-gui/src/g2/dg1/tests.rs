@@ -1,5 +1,5 @@
-use super::rig::*;
 use super::keys::Verb;
+use super::rig::*;
 use flea::ui_logic_dg1::{LinkKind, PasteAsk};
 use flea::ui_logic_mn1::copyas::Format;
 
@@ -11,9 +11,18 @@ fn verbs_route_in_every_preset_spelling() {
     assert_eq!(Verb::parse("paste"), Some(Verb::Paste));
     assert_eq!(Verb::parse("pasteArm"), Some(Verb::Paste));
     assert_eq!(Verb::parse("movePaste"), Some(Verb::MovePaste));
-    assert_eq!(Verb::parse("pasteLink"), Some(Verb::Link(LinkKind::Relative)));
-    assert_eq!(Verb::parse("pasteAbsoluteLink"), Some(Verb::Link(LinkKind::Absolute)));
-    assert_eq!(Verb::parse("pasteHardLink"), Some(Verb::Link(LinkKind::Hard)));
+    assert_eq!(
+        Verb::parse("pasteLink"),
+        Some(Verb::Link(LinkKind::Relative))
+    );
+    assert_eq!(
+        Verb::parse("pasteAbsoluteLink"),
+        Some(Verb::Link(LinkKind::Absolute))
+    );
+    assert_eq!(
+        Verb::parse("pasteHardLink"),
+        Some(Verb::Link(LinkKind::Hard))
+    );
     assert_eq!(Verb::parse("pasteAs"), None);
     assert_eq!(Verb::parse("copyAs"), None);
 }
@@ -29,7 +38,18 @@ fn copy_and_cut_take_rows_and_paste_reads_the_selection() {
     let landing = Rig::landing("/dest");
     let said = rig
         .board
-        .act(&rig.en, 7, Verb::Cut, None, vec![0], facts, landing, &rig.wire, &mut rig.sink, &mut rig.owner)
+        .act(
+            &rig.en,
+            7,
+            Verb::Cut,
+            None,
+            vec![0],
+            facts,
+            landing,
+            &rig.wire,
+            &mut rig.sink,
+            &mut rig.owner,
+        )
         .unwrap();
     assert!(said.is_empty());
     assert_eq!(rig.set_lines()[1], r#"{"c":"paths","rows":[0]}"#);
@@ -42,12 +62,26 @@ fn copy_and_cut_take_rows_and_paste_reads_the_selection() {
         &mut rig.sink,
         &mut rig.owner,
     );
-    assert_eq!(rig.set_lines()[2], r#"{"c":"clipSet","op":"cut","paths":["/dest/B"]}"#);
+    assert_eq!(
+        rig.set_lines()[2],
+        r#"{"c":"clipSet","op":"cut","paths":["/dest/B"]}"#
+    );
     assert!(rig.board.available());
     assert!(!rig.board.watch_failed(7));
     let said = rig
         .board
-        .act(&rig.en, 7, Verb::Paste, None, Vec::new(), facts, landing, &rig.wire, &mut rig.sink, &mut rig.owner)
+        .act(
+            &rig.en,
+            7,
+            Verb::Paste,
+            None,
+            Vec::new(),
+            facts,
+            landing,
+            &rig.wire,
+            &mut rig.sink,
+            &mut rig.owner,
+        )
         .unwrap();
     assert!(said.is_empty());
     let asks = rig.sink.asks.borrow();
@@ -109,8 +143,28 @@ fn menu_picks_publish_text_and_paste_links() {
         &mut rig.sink,
         &mut rig.owner,
     );
-    assert_eq!(said[0].text, "There is nothing to paste; y copies and x cuts.");
-    assert_eq!(rig.board.menu_action(&rig.en, 7, "invertSelection", &[], "", Vec::new(), Rig::take_facts("/dest"), landing, &rig.wire, &mut rig.sink, &mut rig.owner).len(), 0);
+    assert_eq!(
+        said[0].text,
+        "There is nothing to paste; y copies and x cuts."
+    );
+    assert_eq!(
+        rig.board
+            .menu_action(
+                &rig.en,
+                7,
+                "invertSelection",
+                &[],
+                "",
+                Vec::new(),
+                Rig::take_facts("/dest"),
+                landing,
+                &rig.wire,
+                &mut rig.sink,
+                &mut rig.owner
+            )
+            .len(),
+        0
+    );
 }
 
 #[test]
@@ -149,7 +203,16 @@ fn cut_rows_carry_scissors_and_copy_rows_carry_copy() {
 #[test]
 fn copy_as_rows_resolve_through_the_backend() {
     let mut rig = Rig::new();
-    rig.board.copy_as(&rig.en, 7, Format::Stem, None, vec![3], Rig::take_facts("/dest"), &rig.wire, &mut rig.owner);
+    rig.board.copy_as(
+        &rig.en,
+        7,
+        Format::Stem,
+        None,
+        vec![3],
+        Rig::take_facts("/dest"),
+        &rig.wire,
+        &mut rig.owner,
+    );
     assert_eq!(rig.set_lines(), vec![r#"{"c":"paths","rows":[3]}"#]);
     rig.board.paths_resolved(
         &rig.en,
@@ -191,7 +254,10 @@ fn copy_as_with_an_empty_snapshot_falls_back_to_rows() {
         &mut rig.sink,
         &mut rig.owner,
     );
-    assert_eq!(rig.owner.texts.borrow().as_slice(), &["/dest/archive.tar.gz"]);
+    assert_eq!(
+        rig.owner.texts.borrow().as_slice(),
+        &["/dest/archive.tar.gz"]
+    );
 }
 
 // Recent refuses every paste verb before any read (ui/js/Focus.js:217,235,237).
@@ -209,10 +275,24 @@ fn paste_verbs_refuse_in_recent_before_reading() {
     ] {
         let said = rig
             .board
-            .act(&rig.en, 7, verb, None, Vec::new(), Rig::take_facts("/dest"), recent, &rig.wire, &mut rig.sink, &mut rig.owner)
+            .act(
+                &rig.en,
+                7,
+                verb,
+                None,
+                Vec::new(),
+                Rig::take_facts("/dest"),
+                recent,
+                &rig.wire,
+                &mut rig.sink,
+                &mut rig.owner,
+            )
             .unwrap();
         assert_eq!(said.len(), 1, "{verb:?}");
-        assert_eq!(said[0].text, "Recent cannot take a paste. Open a folder first", "{verb:?}");
+        assert_eq!(
+            said[0].text, "Recent cannot take a paste. Open a folder first",
+            "{verb:?}"
+        );
         assert!(!said[0].error, "{verb:?}");
     }
     assert!(rig.sink.asks.borrow().is_empty());

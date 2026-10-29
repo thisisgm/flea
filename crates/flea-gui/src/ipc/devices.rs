@@ -55,7 +55,13 @@ impl Adapter for DeviceAdapter<'_> {
 fn field(label: &str) -> String {
     label
         .chars()
-        .map(|ch| if ch == '|' || ch == '\n' || ch == '\r' { ' ' } else { ch })
+        .map(|ch| {
+            if ch == '|' || ch == '\n' || ch == '\r' {
+                ' '
+            } else {
+                ch
+            }
+        })
         .collect()
 }
 
@@ -67,4 +73,3 @@ mod tests {
         assert_eq!(super::field("128GB"), "128GB");
     }
 }
-

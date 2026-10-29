@@ -118,7 +118,11 @@ fn key_shell(
 // The pane's backend records its lines, so a row action the file operations family runs is read back.
 fn requests(cx: &mut VisualTestContext, shell: &Entity<Shell>) -> impl FnMut() -> Vec<String> {
     let (backend, mut read) = Backend::test_lines();
-    cx.update(|_, cx| shell.update(cx, |shell, _| shell.panes[0].as_mut().unwrap().backend = Some(backend)));
+    cx.update(|_, cx| {
+        shell.update(cx, |shell, _| {
+            shell.panes[0].as_mut().unwrap().backend = Some(backend)
+        })
+    });
     move || {
         std::iter::from_fn(&mut read)
             .filter(|line| line.contains(r#""c":"trash""#) || line.contains(r#""c":"menuaction""#))
@@ -166,14 +170,23 @@ fn a_busy_pane_swallows_a_modified_row_action(cx: &mut TestAppContext) {
         "shift-delete: {:?}",
         observed.borrow()
     );
-    assert_eq!(sent(), Vec::<String>::new(), "shift-delete reached the backend");
+    assert_eq!(
+        sent(),
+        Vec::<String>::new(),
+        "shift-delete reached the backend"
+    );
     press(cx, &shell, "c", None, controlled());
     assert!(
         observed.borrow().is_empty(),
         "ctrl-c: {:?}",
         observed.borrow()
     );
-    shell.read_with(cx, |shell, _| assert!(!shell.clipboard.board.paths_pending(0), "ctrl-c reached the clipboard on a busy pane"));
+    shell.read_with(cx, |shell, _| {
+        assert!(
+            !shell.clipboard.board.paths_pending(0),
+            "ctrl-c reached the clipboard on a busy pane"
+        )
+    });
 }
 
 #[gpui::test]
@@ -200,7 +213,13 @@ fn a_busy_pane_still_acts_on_the_answered_keys(cx: &mut TestAppContext) {
     cx.update(|_, cx| {
         shell.update(cx, |shell, cx| {
             shell.status_messages(cx, |messages, now| {
-                messages.say("Copied 1 item", false, "", flea::ui_logic_fb1::status::Hint::None, now)
+                messages.say(
+                    "Copied 1 item",
+                    false,
+                    "",
+                    flea::ui_logic_fb1::status::Hint::None,
+                    now,
+                )
             })
         })
     });
@@ -211,7 +230,10 @@ fn a_busy_pane_still_acts_on_the_answered_keys(cx: &mut TestAppContext) {
         })
     });
     assert_eq!(notice, "", "Escape clears the notice on a busy pane");
-    assert!(observed.borrow().is_empty(), "the listing family runs Escape");
+    assert!(
+        observed.borrow().is_empty(),
+        "the listing family runs Escape"
+    );
     assert_busy(cx, &shell, true);
     press(cx, &shell, "f5", None, Modifiers::default());
     assert!(observed.borrow().is_empty());

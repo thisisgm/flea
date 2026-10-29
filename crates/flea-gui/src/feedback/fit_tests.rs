@@ -86,7 +86,7 @@ fn omi_fit_preserves_old_surface_sizes_and_snaps_every_edge() {
 
 struct Surfaces(spinner::Mode);
 impl Render for Surfaces {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         use crate::g2::op1::glyph::{Glyph, Paint};
         div()
             .flex()
@@ -97,15 +97,21 @@ impl Render for Surfaces {
                     .debug_selector(|| "fit-menu".into())
                     .child(spinner::Slot(Default::default())),
             )
-            .child(div().debug_selector(|| "fit-job".into()).child(Glyph {
-                paint: Paint::Spiral {
-                    id: 123,
-                    mode: self.0,
-                    still: Some(0.),
-                },
-                side: 16.,
-                ink: gpui::hsla(0.6, 0.8, 0.6, 1.),
-            }))
+            .child(
+                div().debug_selector(|| "fit-job".into()).child(Glyph {
+                    paint: Paint::Spiral {
+                        id: 123,
+                        mode: self.0,
+                        still: Some(0.),
+                    },
+                    side: 16.,
+                    ink: cx
+                        .try_global::<crate::palette::Theme>()
+                        .copied()
+                        .unwrap_or_default()
+                        .accent,
+                }),
+            )
     }
 }
 

@@ -270,9 +270,15 @@ impl Clipboard {
             };
         }
         let mut said = Vec::new();
-        match self.queues.get_mut(&backend).and_then(|queue| queue.resolved(i18n, list, view(take))) {
+        match self
+            .queues
+            .get_mut(&backend)
+            .and_then(|queue| queue.resolved(i18n, list, view(take)))
+        {
             Some(Ok(publish)) => {
-                let outs = self.session.set(backend, publish.paths.clone(), publish.moving);
+                let outs = self
+                    .session
+                    .set(backend, publish.paths.clone(), publish.moving);
                 said.extend(self.drain(outs, wire, sink, owner));
                 said.push(core::landed(i18n, publish.moving, publish.paths.len()));
             }

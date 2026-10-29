@@ -125,7 +125,13 @@ fn escape_after_a_mouse_cancel_leaves_no_overlay(cx: &mut TestAppContext) {
     let say = |cx: &mut TestAppContext| {
         shell(cx, handle, |shell, _, cx| {
             shell.status_messages(cx, |messages, now| {
-                messages.say("Copied 1 item", false, "", flea::ui_logic_fb1::status::Hint::None, now)
+                messages.say(
+                    "Copied 1 item",
+                    false,
+                    "",
+                    flea::ui_logic_fb1::status::Hint::None,
+                    now,
+                )
             })
         })
     };

@@ -26,7 +26,10 @@ fn the_path_bar_draws_the_picker_path_it_is_given(cx: &mut TestAppContext) {
     cx.simulate_resize(size(px(800.), px(120.)));
     bar.update(cx, |bar, cx| {
         let inputs = Inputs {
-            paths: [SharedString::from("/home/gm/Documents"), SharedString::default()],
+            paths: [
+                SharedString::from("/home/gm/Documents"),
+                SharedString::default(),
+            ],
             home: "/home/gm".into(),
             ..Inputs::default()
         };
@@ -34,11 +37,17 @@ fn the_path_bar_draws_the_picker_path_it_is_given(cx: &mut TestAppContext) {
         cx.notify();
     });
     cx.run_until_parked();
-    assert!(cx.debug_bounds("pk2-path").is_some(), "the path bar is drawn");
+    assert!(
+        cx.debug_bounds("pk2-path").is_some(),
+        "the path bar is drawn"
+    );
     bar.update(cx, |bar, cx| {
         let path = bar.path().read(cx);
         assert_eq!(path.inputs.paths[0].as_ref(), "/home/gm/Documents");
-        assert!(path.paint.borrow().area.is_some(), "the PathView painted its chrome area in the frame");
+        assert!(
+            path.paint.borrow().area.is_some(),
+            "the PathView painted its chrome area in the frame"
+        );
     });
 }
 
@@ -48,8 +57,13 @@ fn the_places_rail_builds_its_content_once_and_draws_it(cx: &mut TestAppContext)
     cx.simulate_resize(size(px(800.), px(600.)));
     cx.run_until_parked();
     assert!(cx.debug_bounds("pk2-rail").is_some(), "the rail is drawn");
-    assert!(cx.debug_bounds("pk2-places").is_some(), "the places content is drawn inside it");
-    rail.update(cx, |rail, cx| assert_eq!(rail.host().read(cx).constructed, 1));
+    assert!(
+        cx.debug_bounds("pk2-places").is_some(),
+        "the places content is drawn inside it"
+    );
+    rail.update(cx, |rail, cx| {
+        assert_eq!(rail.host().read(cx).constructed, 1)
+    });
 }
 
 #[gpui::test]
@@ -62,17 +76,24 @@ fn the_tile_grid_draws_the_held_window_of_a_hundred_thousand_row_folder(cx: &mut
         cx.notify();
     });
     cx.run_until_parked();
-    assert!(cx.debug_bounds("pk2-tiles").is_some(), "the tile grid is drawn over the held rows");
+    assert!(
+        cx.debug_bounds("pk2-tiles").is_some(),
+        "the tile grid is drawn over the held rows"
+    );
     tiles.update(cx, |tiles, _| {
         let (hits, misses, _) = tiles.shaped();
-        assert!(misses > 0, "the grid shaped the held window's tiles in the frame (hits {hits})");
+        assert!(
+            misses > 0,
+            "the grid shaped the held window's tiles in the frame (hits {hits})"
+        );
         assert!(tiles.frames() > 0, "the grid painted a frame");
     });
 }
 
 #[gpui::test]
 fn the_chip_menu_opens_over_every_chip_then_all_files(cx: &mut TestAppContext) {
-    let (menu, cx) = cx.add_window_view(|_, _| ChipMenu::new(english(), Typeface::omarchy_default()));
+    let (menu, cx) =
+        cx.add_window_view(|_, _| ChipMenu::new(english(), Typeface::omarchy_default()));
     cx.simulate_resize(size(px(800.), px(600.)));
     let chips = vec![
         Chip {
@@ -89,19 +110,33 @@ fn the_chip_menu_opens_over_every_chip_then_all_files(cx: &mut TestAppContext) {
         cx.notify();
     });
     cx.run_until_parked();
-    assert!(menu.update(cx, |menu, _| menu.opened()), "the card opens over the chips");
-    assert!(cx.debug_bounds("pk2-chip-menu").is_some(), "the chip menu card is drawn");
+    assert!(
+        menu.update(cx, |menu, _| menu.opened()),
+        "the card opens over the chips"
+    );
+    assert!(
+        cx.debug_bounds("pk2-chip-menu").is_some(),
+        "the chip menu card is drawn"
+    );
     let quads = menu.update_in(cx, |_, window, _| window.painted_quads().len());
-    assert!(quads > 0, "the MenuElement painted the card's quads in the frame");
+    assert!(
+        quads > 0,
+        "the MenuElement painted the card's quads in the frame"
+    );
     menu.update(cx, |menu, _| {
-        assert_eq!(menu.card_labels(), vec!["Archives", "All files"], "the card lists every chip then All files");
+        assert_eq!(
+            menu.card_labels(),
+            vec!["Archives", "All files"],
+            "the card lists every chip then All files"
+        );
     });
 }
 
 // mn1 fits every card inside its work area.
 #[gpui::test]
 fn the_chip_card_stays_inside_the_window_it_opens_in(cx: &mut TestAppContext) {
-    let (menu, cx) = cx.add_window_view(|_, _| ChipMenu::new(english(), Typeface::omarchy_default()));
+    let (menu, cx) =
+        cx.add_window_view(|_, _| ChipMenu::new(english(), Typeface::omarchy_default()));
     cx.simulate_resize(size(px(800.), px(600.)));
     let chips = vec![
         Chip {
@@ -128,7 +163,8 @@ fn the_chip_card_stays_inside_the_window_it_opens_in(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn the_listing_header_is_drawn_above_the_held_rows(cx: &mut TestAppContext) {
-    let (view, cx) = cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
+    let (view, cx) =
+        cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
     cx.simulate_resize(size(px(800.), px(600.)));
     view.update(cx, |view, cx| {
         view.open("/big");
@@ -138,10 +174,23 @@ fn the_listing_header_is_drawn_above_the_held_rows(cx: &mut TestAppContext) {
         cx.notify();
     });
     cx.run_until_parked();
-    assert!(cx.debug_bounds("pk2-header").is_some(), "the column header is drawn");
-    assert!(cx.debug_bounds("pk2-listing").is_some(), "and the held rows under it");
+    assert!(
+        cx.debug_bounds("pk2-header").is_some(),
+        "the column header is drawn"
+    );
+    assert!(
+        cx.debug_bounds("pk2-listing").is_some(),
+        "and the held rows under it"
+    );
     view.update(cx, |view, _| {
-        assert!(view.header_frames() > 0, "the HeaderElement shaped and painted its titles in the frame");
-        assert_eq!(view.shaped_rows(), 2, "the held rows shaped under the header");
+        assert!(
+            view.header_frames() > 0,
+            "the HeaderElement shaped and painted its titles in the frame"
+        );
+        assert_eq!(
+            view.shaped_rows(),
+            2,
+            "the held rows shaped under the header"
+        );
     });
 }

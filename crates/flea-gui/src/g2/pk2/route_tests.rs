@@ -14,8 +14,14 @@ fn english() -> I18n {
 
 #[test]
 fn a_committed_line_is_peeked_before_anything_lists() {
-    assert_eq!(commit_line("/home/gm/docs", "/home/gm", "/home/gm"), CommitAsk::Peek("/home/gm/docs".into()));
-    assert_eq!(commit_line("docs", "/home/gm", "/home/gm"), CommitAsk::Peek("/home/gm/docs".into()));
+    assert_eq!(
+        commit_line("/home/gm/docs", "/home/gm", "/home/gm"),
+        CommitAsk::Peek("/home/gm/docs".into())
+    );
+    assert_eq!(
+        commit_line("docs", "/home/gm", "/home/gm"),
+        CommitAsk::Peek("/home/gm/docs".into())
+    );
     assert_eq!(commit_line("", "/home/gm", "/home/gm"), CommitAsk::Close);
 }
 
@@ -29,12 +35,18 @@ fn a_uri_on_another_host_says_its_sentence_and_lists_nothing() {
 
 #[test]
 fn a_peek_for_another_line_is_stale() {
-    assert_eq!(peeked("/a", "/b", false, 0o040755, false, false), Peeked::Stale);
+    assert_eq!(
+        peeked("/a", "/b", false, 0o040755, false, false),
+        Peeked::Stale
+    );
 }
 
 #[test]
 fn a_peeked_folder_opens_and_a_missing_path_says_so() {
-    assert_eq!(peeked("/d", "/d", false, 0o040755, false, false), Peeked::OpenFolder("/d".into()));
+    assert_eq!(
+        peeked("/d", "/d", false, 0o040755, false, false),
+        Peeked::OpenFolder("/d".into())
+    );
     assert_eq!(
         peeked("/d/gone", "/d/gone", true, 0, false, false),
         Peeked::Say(Said::Missing("/d/gone".into()), true)
@@ -64,15 +76,27 @@ fn a_file_where_a_folder_answers_is_the_backend_own_refusal() {
 
 #[test]
 fn a_located_row_is_taken_a_negative_one_says_filtered() {
-    assert_eq!(located("/d/a.txt", "/d", "/d", "/d/a.txt", 42), Located::Row(42));
-    assert_eq!(located("/d/a.txt", "/d", "/d", "/d/a.txt", -1), Located::Filtered("a.txt".into()));
+    assert_eq!(
+        located("/d/a.txt", "/d", "/d", "/d/a.txt", 42),
+        Located::Row(42)
+    );
+    assert_eq!(
+        located("/d/a.txt", "/d", "/d", "/d/a.txt", -1),
+        Located::Filtered("a.txt".into())
+    );
 }
 
 #[test]
 fn a_locate_against_another_listing_is_stale() {
     assert_eq!(located("", "/d", "/d", "/d/a.txt", 42), Located::Stale);
-    assert_eq!(located("/d/b.txt", "/d", "/d", "/d/a.txt", 42), Located::Stale);
-    assert_eq!(located("/d/a.txt", "/other", "/d", "/d/a.txt", 42), Located::Stale);
+    assert_eq!(
+        located("/d/b.txt", "/d", "/d", "/d/a.txt", 42),
+        Located::Stale
+    );
+    assert_eq!(
+        located("/d/a.txt", "/other", "/d", "/d/a.txt", 42),
+        Located::Stale
+    );
 }
 
 #[test]
@@ -91,7 +115,10 @@ fn a_failed_listing_drops_the_leaf_it_was_waiting_for() {
 
 #[test]
 fn a_folder_that_refused_the_read() {
-    assert_eq!(peeked("/d", "/d", true, 0o040000, false, false), Peeked::OpenFolder("/d".into()));
+    assert_eq!(
+        peeked("/d", "/d", true, 0o040000, false, false),
+        Peeked::OpenFolder("/d".into())
+    );
 }
 
 #[test]
@@ -105,7 +132,10 @@ fn a_file_that_fails_its_scan_carries_nothing_but_itself() {
 // tests/js/pickerpath.js: the missing and filter sentences are whole, with one placeholder each.
 #[test]
 fn the_missing_sentence_is_whole() {
-    assert_eq!(Said::Missing("/x/y z".into()).text(&english()), "/x/y z does not exist or cannot be reached.");
+    assert_eq!(
+        Said::Missing("/x/y z".into()).text(&english()),
+        "/x/y z does not exist or cannot be reached."
+    );
 }
 
 #[test]
@@ -118,14 +148,21 @@ fn the_filter_sentence_is_whole() {
 
 #[test]
 fn a_dollar_in_a_name_stays_literal() {
-    assert_eq!(Said::Missing("/a$&b".into()).text(&english()), "/a$&b does not exist or cannot be reached.");
+    assert_eq!(
+        Said::Missing("/a$&b".into()).text(&english()),
+        "/a$&b does not exist or cannot be reached."
+    );
 }
 
 #[test]
 fn each_sentence_has_one_placeholder() {
     let i18n = english();
     for key in ["path.missing", "path.filtered"] {
-        assert_eq!(i18n.tr(key).matches("%1").count(), 1, "{key} keeps one placeholder");
+        assert_eq!(
+            i18n.tr(key).matches("%1").count(),
+            1,
+            "{key} keeps one placeholder"
+        );
     }
 }
 

@@ -35,7 +35,7 @@ fn a_wheel_notch_moves_the_pdf_stack_as_far_as_the_list(cx: &mut TestAppContext)
                 row_height: 31.,
             };
             let palette = Palette {
-                background: gpui::black(),
+                background: crate::palette::Theme::default().background,
             };
             let mut view = PdfView::new(true, palette, metrics, cx);
             view.surface = four_pages();

@@ -53,7 +53,11 @@ impl PressAnim {
     /// A chrome that never moves: rest, or fully pressed under reduced motion.
     pub fn settled(shown: bool) -> Self {
         let to = if shown { 1. } else { 0. };
-        Self { from: to, to, start: Instant::now() }
+        Self {
+            from: to,
+            to,
+            start: Instant::now(),
+        }
     }
 
     /// OutCubic over PRESS_MS from where the last press change found it.
@@ -70,9 +74,10 @@ use run::job_block;
 mod view;
 
 pub use view::{
-    DriveRow, ImageRow, StepAction, StepMark, StepRow, View, SEL_CURSOR_EDGE, SEL_CURSOR_EDGE_LIVE, SEL_DRIVE_ROW,
-    SEL_EMPTY_MARK, SEL_FORMAT_LABEL, SEL_IMAGE_HINT, SEL_IMAGE_ROW, SEL_STEP_BAR, SEL_STEP_BYTE, SEL_STEP_CANCEL,
-    SEL_STEP_END, SEL_STEP_FLASH, SEL_STEP_FRAME, SEL_STEP_WASH_HOVER, SEL_STEP_WASH_PRESS,
+    DriveRow, ImageRow, StepAction, StepMark, StepRow, View, SEL_CURSOR_EDGE, SEL_CURSOR_EDGE_LIVE,
+    SEL_DRIVE_ROW, SEL_EMPTY_MARK, SEL_FORMAT_LABEL, SEL_IMAGE_HINT, SEL_IMAGE_ROW, SEL_STEP_BAR,
+    SEL_STEP_BYTE, SEL_STEP_CANCEL, SEL_STEP_END, SEL_STEP_FLASH, SEL_STEP_FRAME,
+    SEL_STEP_WASH_HOVER, SEL_STEP_WASH_PRESS,
 };
 
 #[derive(Clone, Debug)]
@@ -128,7 +133,11 @@ impl Flash {
         let shown = self.action_pressed && self.action_hover && self.step_available();
         let to = if shown { 1. } else { 0. };
         if self.press.to != to {
-            self.press = PressAnim { from: self.press.at(now), to, start: now };
+            self.press = PressAnim {
+                from: self.press.at(now),
+                to,
+                start: now,
+            };
         }
     }
 
@@ -156,7 +165,9 @@ impl Flash {
     }
 
     pub fn selected(&self) -> Option<usize> {
-        self.chosen.as_ref().and_then(|chosen| flashpane::index_of(&self.drives, chosen))
+        self.chosen
+            .as_ref()
+            .and_then(|chosen| flashpane::index_of(&self.drives, chosen))
     }
 
     fn flash_row(&self) -> usize {
@@ -206,8 +217,12 @@ impl Flash {
         if self.runner.press_sent || !self.live() || self.running() {
             return Vec::new();
         }
-        let Some(drive) = self.chosen_drive().cloned() else { return Vec::new() };
-        let Some(image) = self.image.as_ref() else { return Vec::new() };
+        let Some(drive) = self.chosen_drive().cloned() else {
+            return Vec::new();
+        };
+        let Some(image) = self.image.as_ref() else {
+            return Vec::new();
+        };
         self.request_id += 1;
         self.runner.press_sent = true;
         self.runner.pending_id = self.request_id;
@@ -233,7 +248,9 @@ impl Flash {
             return Vec::new();
         }
         match self.chosen_drive() {
-            Some(drive) => vec![Effect::Send(wire::flash_eject_request(&drive.dev, drive.seq))],
+            Some(drive) => vec![Effect::Send(wire::flash_eject_request(
+                &drive.dev, drive.seq,
+            ))],
             None => Vec::new(),
         }
     }
@@ -248,7 +265,11 @@ impl Flash {
     }
 
     fn cursor_drive(&self) -> Option<usize> {
-        if self.cursor > 0 && self.cursor <= self.drives.len() { Some(self.cursor - 1) } else { None }
+        if self.cursor > 0 && self.cursor <= self.drives.len() {
+            Some(self.cursor - 1)
+        } else {
+            None
+        }
     }
 
     pub fn move_cursor(&mut self, delta: isize) {
@@ -280,7 +301,9 @@ impl Flash {
         if self.running() {
             return Vec::new();
         }
-        let Some(drive) = self.drives.get(index).cloned() else { return Vec::new() };
+        let Some(drive) = self.drives.get(index).cloned() else {
+            return Vec::new();
+        };
         if !flash::fits(&drive) {
             return Vec::new();
         }
@@ -291,7 +314,11 @@ impl Flash {
 
     /// Cancel is live everywhere except the final flush, where Transfer.js cancelEnabled is false.
     pub fn cancel_live(&self) -> bool {
-        self.runner.transfer.as_ref().map(|run| !run.drawn.no_cancel).unwrap_or(true)
+        self.runner
+            .transfer
+            .as_ref()
+            .map(|run| !run.drawn.no_cancel)
+            .unwrap_or(true)
     }
 
     /// The drawn step action's availability, mirroring DialogButton.qml: only an available button activates.
@@ -305,7 +332,11 @@ impl Flash {
             }
             Some(_) => false,
             None => {
-                if self.ejected { false } else { self.live() }
+                if self.ejected {
+                    false
+                } else {
+                    self.live()
+                }
             }
         }
     }
@@ -348,46 +379,6 @@ impl Flash {
         }
         Vec::new()
     }
-
-    /// After Eject no button is drawn, so the keyboard rests on the pane itself.
-    pub fn park(&self) -> Seat {
-        if !self.shown || self.ejected {
-            return Seat::Pane;
-        }
-        if self.cursor == self.flash_row() {
-            if self.running() {
-                return Seat::Cancel;
-            }
-            if let Some(ending) = &self.runner.ending {
-                if ending.eject || ending.flash_back {
-                    return Seat::End;
-                }
-                return Seat::Pane;
-            }
-            return Seat::Flash;
-        }
-        if self.cursor == 0 {
-            return Seat::Image;
-        }
-        Seat::Drive
-    }
-
-    /// No drawn button owns Enter or Space, so the scope presses where the cursor parks.
-    pub fn key(&mut self, key: super::keys::Key) -> Vec<Effect> {
-        use super::keys::Key;
-        match key {
-            Key::Escape | Key::Backspace => self.close(),
-            Key::Up => {
-                self.move_cursor(-1);
-                Vec::new()
-            }
-            Key::Down => {
-                self.move_cursor(1);
-                Vec::new()
-            }
-            // No drawn button owns Enter or Space, so the scope presses where the cursor parks.
-            Key::Enter | Key::Space => self.context_press(),
-            _ => Vec::new(),
-        }
-    }
 }
+
+mod input;

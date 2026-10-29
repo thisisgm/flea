@@ -7,7 +7,9 @@ use gpui::{point, px, size, Modifiers, MouseButton, VisualTestContext};
 fn r7_dragged_outside_frame_returns_to_rest() {
     let mut cx = real_cx();
     cx.update(|cx| cx.set_reduce_motion(true));
-    let window = cx.open_window(size(px(1100.), px(700.)), |_, _| LiveFlash::live_flash_action());
+    let window = cx.open_window(size(px(1100.), px(700.)), |_, _| {
+        LiveFlash::live_flash_action()
+    });
     let mut visual = VisualTestContext::from_window(window.into(), &cx);
     visual.run_until_parked();
     let action = visual.debug_bounds("op2-flash-action").unwrap();
@@ -16,7 +18,10 @@ fn r7_dragged_outside_frame_returns_to_rest() {
     visual.simulate_mouse_move(action.center(), None, Modifiers::none());
     visual.simulate_mouse_down(action.center(), MouseButton::Left, Modifiers::none());
     visual.run_until_parked();
-    assert_ne!(visual.debug_bounds("op2-flash-frame").unwrap(), resting_frame);
+    assert_ne!(
+        visual.debug_bounds("op2-flash-frame").unwrap(),
+        resting_frame
+    );
     visual.simulate_mouse_move(outside, Some(MouseButton::Left), Modifiers::none());
     visual.run_until_parked();
     assert!(visual.debug_bounds("op2-flash-wash-press").is_none());
@@ -30,7 +35,9 @@ fn r7_dragged_outside_frame_returns_to_rest() {
 #[test]
 fn r7_release_outside_window_clears_the_press() {
     let mut cx = real_cx();
-    let window = cx.open_window(size(px(1100.), px(700.)), |_, _| LiveFlash::live_flash_action());
+    let window = cx.open_window(size(px(1100.), px(700.)), |_, _| {
+        LiveFlash::live_flash_action()
+    });
     let mut visual = VisualTestContext::from_window(window.into(), &cx);
     visual.run_until_parked();
     let action = visual.debug_bounds("op2-flash-action").unwrap();
@@ -81,7 +88,11 @@ fn r7_a_left_release_after_an_outside_release_does_not_flash() {
     visual.run_until_parked();
     window
         .update(&mut cx, |live, _, _| {
-            assert!(live.sends().is_empty(), "a release with no new action press must not flash: {:?}", live.sends());
+            assert!(
+                live.sends().is_empty(),
+                "a release with no new action press must not flash: {:?}",
+                live.sends()
+            );
         })
         .unwrap();
 }
@@ -89,7 +100,9 @@ fn r7_a_left_release_after_an_outside_release_does_not_flash() {
 #[test]
 fn r7_the_step_frame_keeps_the_live_radius() {
     let mut cx = real_cx();
-    let window = cx.open_window(size(px(1100.), px(700.)), |_, _| LiveFlash::live_flash_action());
+    let window = cx.open_window(size(px(1100.), px(700.)), |_, _| {
+        LiveFlash::live_flash_action()
+    });
     let mut visual = VisualTestContext::from_window(window.into(), &cx);
     visual.run_until_parked();
     let frame = visual.debug_bounds("op2-flash-frame").unwrap();
@@ -97,7 +110,10 @@ fn r7_the_step_frame_keeps_the_live_radius() {
         .update(&mut cx, |_, window, _| {
             let scaled = frame.scale(window.scale_factor());
             let quads = window.painted_quads();
-            let painted = quads.iter().find(|q| q.bounds == scaled && q.border_widths.top.0 > 0.).unwrap();
+            let painted = quads
+                .iter()
+                .find(|q| q.bounds == scaled && q.border_widths.top.0 > 0.)
+                .unwrap();
             assert_eq!(
                 painted.corner_radii.top_left.0,
                 8. * window.scale_factor(),

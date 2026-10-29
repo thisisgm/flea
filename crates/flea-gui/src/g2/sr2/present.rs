@@ -16,7 +16,8 @@ pub struct StripText {
 }
 
 fn count(i18n: &I18n, value: usize) -> String {
-    i18n.locale().format_count(i64::try_from(value).unwrap_or(i64::MAX))
+    i18n.locale()
+        .format_count(i64::try_from(value).unwrap_or(i64::MAX))
 }
 
 /// The strip's sentence: shown of tested, the subfolder scope naming its folder, close matches counted apart.
@@ -26,14 +27,27 @@ pub fn summary(counts: &Counts, folder: &str, i18n: &I18n) -> String {
     match (counts.scope, counts.close) {
         (Scope::Folder, 0) => i18n.tr_args("filter.shown", &[&shown, &tested]),
         (Scope::Folder, _) => i18n.trn_args("filter.shown_close", close, &[&shown, &tested]),
-        (Scope::Subfolders, 0) => i18n.tr_args("filter.shown_subfolders", &[&shown, &tested, folder]),
-        (Scope::Subfolders, _) => i18n.trn_args("filter.shown_subfolders_close", close, &[&shown, &tested, folder]),
+        (Scope::Subfolders, 0) => {
+            i18n.tr_args("filter.shown_subfolders", &[&shown, &tested, folder])
+        }
+        (Scope::Subfolders, _) => i18n.trn_args(
+            "filter.shown_subfolders_close",
+            close,
+            &[&shown, &tested, folder],
+        ),
     }
 }
 
 /// The status bar's count, the strip's sentence without its scope, which the strip above already names.
 pub fn status(counts: &Counts, i18n: &I18n) -> String {
-    summary(&Counts { scope: Scope::Folder, ..*counts }, "", i18n)
+    summary(
+        &Counts {
+            scope: Scope::Folder,
+            ..*counts
+        },
+        "",
+        i18n,
+    )
 }
 
 /// Search's no-match headline with the query as typed, drawn only when nothing exact and nothing close stands.
@@ -41,14 +55,20 @@ pub fn no_match(filter: &Filter, listing: usize, i18n: &I18n) -> Option<String> 
     // The headline names the query whose answer is drawn, so a key still out never relabels the old rows.
     let drawn = filter.drawn(listing)?;
     let counts = filter.counts(listing)?;
-    counts.nothing().then(|| i18n.tr_args("filter.nothing_matches", &[&drawn.query]))
+    counts
+        .nothing()
+        .then(|| i18n.tr_args("filter.nothing_matches", &[&drawn.query]))
 }
 
 pub fn strip(filter: &Filter, listing: usize, folder: &str, i18n: &I18n) -> StripText {
     StripText {
         query: filter.query().to_owned().into(),
         caret: filter.typing(),
-        summary: filter.counts(listing).map(|counts| summary(&counts, folder, i18n)).unwrap_or_default().into(),
+        summary: filter
+            .counts(listing)
+            .map(|counts| summary(&counts, folder, i18n))
+            .unwrap_or_default()
+            .into(),
         way_out: i18n.tr("filter.esc_clears").into(),
     }
 }
@@ -80,7 +100,11 @@ pub fn run_style(cursor: bool, marked: bool) -> RunStyle {
 
 /// Char runs turned into byte ranges of the name, the form a text run is cut by.
 pub fn byte_ranges(name: &str, runs: &[Run]) -> Vec<std::ops::Range<usize>> {
-    let offsets: Vec<usize> = name.char_indices().map(|(at, _)| at).chain(std::iter::once(name.len())).collect();
+    let offsets: Vec<usize> = name
+        .char_indices()
+        .map(|(at, _)| at)
+        .chain(std::iter::once(name.len()))
+        .collect();
     runs.iter()
         .filter(|run| run.len > 0 && run.start + run.len < offsets.len())
         .map(|run| offsets[run.start]..offsets[run.start + run.len])
@@ -98,7 +122,13 @@ pub struct RunCache {
 
 impl RunCache {
     pub fn new(capacity: usize) -> Self {
-        Self { key: (String::new(), 0), capacity: capacity.max(1), matcher: None, order: VecDeque::new(), runs: Default::default() }
+        Self {
+            key: (String::new(), 0),
+            capacity: capacity.max(1),
+            matcher: None,
+            order: VecDeque::new(),
+            runs: Default::default(),
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -110,7 +140,14 @@ impl RunCache {
     }
 
     /// The runs for one drawn row; `close` asks the close matcher, as a row drawn from the close list must.
-    pub fn get(&mut self, query: &str, listing: usize, row: usize, name: &str, close: bool) -> Rc<[Run]> {
+    pub fn get(
+        &mut self,
+        query: &str,
+        listing: usize,
+        row: usize,
+        name: &str,
+        close: bool,
+    ) -> Rc<[Run]> {
         if self.key.0 != query || self.key.1 != listing {
             self.key = (query.to_owned(), listing);
             self.matcher = Matcher::new(query);
@@ -122,8 +159,12 @@ impl RunCache {
         }
         let runs: Rc<[Run]> = match &mut self.matcher {
             None => Rc::from([]),
-            Some(matcher) if close => matcher.close(name).map_or_else(|| Rc::from([]), |found| Rc::from(found.runs)),
-            Some(matcher) => matcher.exact(name).map_or_else(|| Rc::from([]), |run| Rc::from([run])),
+            Some(matcher) if close => matcher
+                .close(name)
+                .map_or_else(|| Rc::from([]), |found| Rc::from(found.runs)),
+            Some(matcher) => matcher
+                .exact(name)
+                .map_or_else(|| Rc::from([]), |run| Rc::from([run])),
         };
         if self.order.len() == self.capacity {
             if let Some(oldest) = self.order.pop_front() {

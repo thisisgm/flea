@@ -32,11 +32,7 @@ fn rail_devices_real_constructor_draws_completed_devices_before_native_capture(
     });
     let state = flea::jsondoc::parse(r#"{"view":"list","density":"compact","places":{"rail":"shown","sidebarWidth":192,"favourites":[{"label":"Docs","path":"/fixture/Docs"}]}}"#).unwrap();
     let home = std::env::var("HOME").unwrap_or_else(|_| "/fixture/home".into());
-    let launch = Launch::resolve(
-        Settings::from_json(state),
-        Arguments::default(),
-        &home,
-    );
+    let launch = Launch::resolve(Settings::from_json(state), Arguments::default(), &home);
     let locale = Snapshot {
         revision: 1,
         catalog: Arc::new(I18n::default()),
@@ -108,7 +104,10 @@ fn painted(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (Vec<String>, V
         let producer = shell.rail.as_ref().unwrap().places.read(cx);
         let laid = producer.laid.borrow();
         (
-            laid.headers.iter().map(|header| header.text.to_string()).collect(),
+            laid.headers
+                .iter()
+                .map(|header| header.text.to_string())
+                .collect(),
             laid.rows.iter().map(|row| row.label.to_string()).collect(),
         )
     })
@@ -132,8 +131,14 @@ fn rail_devices_survive_the_network_listing_through_the_real_constructor(cx: &mu
             hostname: "minipc\n".into(),
         });
     });
-    let state = flea::jsondoc::parse(r#"{"view":"list","places":{"rail":"shown","sidebarWidth":192}}"#).unwrap();
-    let launch = Launch::resolve(Settings::from_json(state), Arguments::default(), "/fixture/home");
+    let state =
+        flea::jsondoc::parse(r#"{"view":"list","places":{"rail":"shown","sidebarWidth":192}}"#)
+            .unwrap();
+    let launch = Launch::resolve(
+        Settings::from_json(state),
+        Arguments::default(),
+        "/fixture/home",
+    );
     let locale = Snapshot {
         revision: 1,
         catalog: Arc::new(I18n::default()),
@@ -143,14 +148,21 @@ fn rail_devices_survive_the_network_listing_through_the_real_constructor(cx: &mu
         cx.add_window_view(|window, cx| Shell::new(launch, locale, events, window, cx));
     cx.run_until_parked();
     assert!(
-        shell.read_with(cx, |shell, _| shell.rail.as_ref().is_some_and(|join| join.network.is_some())),
+        shell.read_with(cx, |shell, _| shell
+            .rail
+            .as_ref()
+            .is_some_and(|join| join.network.is_some())),
         "the first frame builds the network owner beside the device source"
     );
     service.answer("lsblk", 0, NATIVE_BLOCKS);
     service.answer("gio", 0, "");
     cx.executor().advance_clock(Duration::from_millis(900));
     let (headers, rows) = painted(&shell, cx);
-    assert_eq!(headers.last().map(String::as_str), Some("DEVICES"), "{headers:?}");
+    assert_eq!(
+        headers.last().map(String::as_str),
+        Some("DEVICES"),
+        "{headers:?}"
+    );
     // The network listing answers after the devices, empty, as on a box with no share mounted.
     shell.update(cx, |shell, cx| shell.network_publish(Some(Vec::new()), cx));
     let (headers, rows_after) = painted(&shell, cx);
@@ -159,7 +171,10 @@ fn rail_devices_survive_the_network_listing_through_the_real_constructor(cx: &mu
         Some("DEVICES"),
         "an empty network listing must not drop the DEVICES section: {headers:?}"
     );
-    assert_eq!(rows_after, rows, "the drawn rows survive the network publish");
+    assert_eq!(
+        rows_after, rows,
+        "the drawn rows survive the network publish"
+    );
     let share = flea::ui_logic_pl1::RailEntry {
         uri: "sftp://user@host/folder".into(),
         label: "NAS".into(),
@@ -170,8 +185,19 @@ fn rail_devices_survive_the_network_listing_through_the_real_constructor(cx: &mu
     };
     shell.update(cx, |shell, cx| shell.network_publish(Some(vec![share]), cx));
     let (headers, rows) = painted(&shell, cx);
-    assert_eq!(headers.len(), headers.iter().collect::<std::collections::HashSet<_>>().len(), "{headers:?}");
-    assert_eq!(headers.last().map(String::as_str), Some("DEVICES"), "NETWORK draws ahead of DEVICES: {headers:?}");
+    assert_eq!(
+        headers.len(),
+        headers
+            .iter()
+            .collect::<std::collections::HashSet<_>>()
+            .len(),
+        "{headers:?}"
+    );
+    assert_eq!(
+        headers.last().map(String::as_str),
+        Some("DEVICES"),
+        "NETWORK draws ahead of DEVICES: {headers:?}"
+    );
     let at = |label: &str| rows.iter().position(|row| row == label);
     assert!(
         at("NAS").is_some() && at("NAS") < at("minipc") && at("minipc") < at("128GB"),

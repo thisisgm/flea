@@ -25,7 +25,7 @@ impl ProviderSend {
         self.menu_open = true;
         self.derive_providers(states);
         self.send_command = facts.send_command.clone();
-    // A row that left the menu keeps no peers from an earlier open, as Taildrop.qml and LocalSend.qml empty theirs.
+        // A row that left the menu keeps no peers from an earlier open, as Taildrop.qml and LocalSend.qml empty theirs.
         if !self.row_on(Role::LocalSend) {
             self.ls_peers.clear();
         }
@@ -64,7 +64,7 @@ impl ProviderSend {
     }
 
     pub fn menu_closed(&mut self) {
-    // The status run outlives the menu, as the QML singleton does; only a menu still open asks again.
+        // The status run outlives the menu, as the QML singleton does; only a menu still open asks again.
         self.menu_open = false;
     }
 

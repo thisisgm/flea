@@ -304,7 +304,7 @@ impl Drawn {
                 window,
             );
         }
-        out.status(view, window);
+        Self::status(&mut out, view, window);
         out.fit_body(body_start, view.scroll, card_w, body_h);
         let action = if d.committed {
             &w.close

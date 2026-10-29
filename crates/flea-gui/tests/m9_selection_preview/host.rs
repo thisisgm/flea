@@ -16,29 +16,9 @@ static SERIAL: Mutex<()> = Mutex::new(());
 const READY: Duration = Duration::from_secs(20);
 #[path = "keys.rs"]
 pub mod keys;
-struct Watchdog(Arc<std::sync::atomic::AtomicBool>);
-impl Watchdog {
-    fn start() -> Self {
-        let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let watch = stopped.clone();
-        std::thread::spawn(move || {
-            for _ in 0..600 {
-                if watch.load(std::sync::atomic::Ordering::SeqCst) {
-                    return;
-                }
-                std::thread::sleep(Duration::from_millis(100));
-            }
-            eprintln!("m9_selection_preview: a consumer frame blocked for 60 seconds");
-            std::process::abort();
-        });
-        Self(stopped)
-    }
-}
-impl Drop for Watchdog {
-    fn drop(&mut self) {
-        self.0.store(true, std::sync::atomic::Ordering::SeqCst);
-    }
-}
+#[path = "host_watchdog.rs"]
+mod watchdog;
+use watchdog::Watchdog;
 
 struct Host {
     cx: TestAppContext,
@@ -134,7 +114,10 @@ impl Host {
             if mounted && host.call("ready") == "true" {
                 break;
             }
-            assert!(Instant::now() < deadline, "the production pane was created and is ready");
+            assert!(
+                Instant::now() < deadline,
+                "the production pane was created and is ready"
+            );
             std::thread::sleep(Duration::from_millis(2));
         }
         host

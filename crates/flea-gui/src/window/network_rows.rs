@@ -108,7 +108,7 @@ impl Shell {
         network.rows_generation += 1;
         let generation = network.rows_generation;
         let polled = mountinfo.is_none();
-        let read = cx.background_spawn(async move {
+        let read = cx.background_executor().spawn(async move {
             let marks = std::fs::read_to_string(path).unwrap_or_default();
             let mountinfo = mountinfo.unwrap_or_else(|| sources.read_mountinfo());
             let ready = !mountinfo.is_empty();

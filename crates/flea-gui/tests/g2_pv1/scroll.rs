@@ -54,7 +54,11 @@ fn compare_wheel_scrolls_a_long_patch_and_the_listing_stays_still(cx: &mut TestA
     // the lane is space at rest: no knob until the view is used
     assert!(!drawn(cx, "pv1-scroll-knob"));
     // a 264 px stroke reaches GPUI as 792 px (its Wayland 3.0) and moves the view 660 px, Scroll.js's 2.5 gain
-    wheel(cx, card.center(), ScrollDelta::Pixels(point(px(0.), px(-792.))));
+    wheel(
+        cx,
+        card.center(),
+        ScrollDelta::Pixels(point(px(0.), px(-792.))),
+    );
     assert!(drawn(cx, "pv1-diff-40") && !drawn(cx, "pv1-diff-0"));
     assert_eq!(rect(cx, "pv1-diff-30").1, 102. + 30. * 22. - 660.);
     assert!(drawn(cx, "pv1-scroll-knob"));
@@ -66,7 +70,8 @@ fn compare_wheel_scrolls_a_long_patch_and_the_listing_stays_still(cx: &mut TestA
     assert_eq!(rect(cx, "pv1-diff-0").1, 102.);
     assert_eq!(*seen.borrow(), Seen::default());
     // Finder's hold: the knob leaves a second after the view stops
-    cx.executor().advance_clock(std::time::Duration::from_millis(1001));
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(1001));
     cx.run_until_parked();
     assert!(!drawn(cx, "pv1-scroll-knob"));
 }
@@ -81,7 +86,11 @@ fn compare_scrolls_sideways_to_its_longest_line(cx: &mut TestAppContext) {
     let (cx, seen, _, _) = host(cx, subject, Arm::Fix);
     let card = cx.debug_bounds("pv1-card").unwrap();
     let before = rect(cx, "pv1-diff-3").0;
-    wheel(cx, card.center(), ScrollDelta::Pixels(point(px(-120.), px(0.))));
+    wheel(
+        cx,
+        card.center(),
+        ScrollDelta::Pixels(point(px(-120.), px(0.))),
+    );
     assert_eq!(rect(cx, "pv1-diff-3").0, before - 100.);
     assert_eq!(*seen.borrow(), Seen::default());
 }
@@ -146,7 +155,8 @@ fn the_lane_widens_on_hover_jumps_on_a_press_and_drags(cx: &mut TestAppContext) 
     cx.run_until_parked();
     // off the lane the knob narrows to 6 px and leaves a second after the drag
     assert_eq!(rect(cx, "pv1-scroll-knob").2, 6.);
-    cx.executor().advance_clock(std::time::Duration::from_millis(1001));
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(1001));
     cx.run_until_parked();
     assert!(!drawn(cx, "pv1-scroll-knob"));
     assert_eq!(*seen.borrow(), Seen::default());
@@ -157,7 +167,11 @@ fn a_ten_pixel_stroke_moves_twenty_five(cx: &mut TestAppContext) {
     let (cx, _, _, _) = host(cx, long_patch(&english()), Arm::Fix);
     let card = cx.debug_bounds("pv1-card").unwrap();
     // the compositor's 10 px arrives as 30 (gpui-pre-linux wayland/client.rs:2774), and Qt's pixelDelta x 2.5 is 25
-    wheel(cx, card.center(), ScrollDelta::Pixels(point(px(0.), px(-30.))));
+    wheel(
+        cx,
+        card.center(),
+        ScrollDelta::Pixels(point(px(0.), px(-30.))),
+    );
     assert_eq!(rect(cx, "pv1-diff-0").1, 102. - 25.);
 }
 
@@ -176,12 +190,20 @@ fn a_release_outside_the_window_ends_the_drag(cx: &mut TestAppContext) {
     cx.simulate_mouse_move(point(px(500.), px(300.)), None, none);
     cx.simulate_mouse_move(lane(200.), None, none);
     cx.run_until_parked();
-    assert_eq!(rect(cx, "pv1-diff-40").1, held, "the view moved under a pointer with no button down");
+    assert_eq!(
+        rect(cx, "pv1-diff-40").1,
+        held,
+        "the view moved under a pointer with no button down"
+    );
     cx.simulate_mouse_move(point(px(500.), px(300.)), None, none);
-    cx.executor().advance_clock(std::time::Duration::from_millis(1001));
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(1001));
     cx.run_until_parked();
     assert!(!drawn(cx, "pv1-scroll-knob"));
-    assert!(drawn(cx, "pv1-card"), "a drag released outside the window leaves the card open");
+    assert!(
+        drawn(cx, "pv1-card"),
+        "a drag released outside the window leaves the card open"
+    );
     assert_eq!(*seen.borrow(), Seen::default());
 }
 
@@ -223,7 +245,11 @@ fn a_release_outside_the_window_ends_the_drag_with_no_later_move(cx: &mut TestAp
     cx.simulate_mouse_move(lane(760.), Some(MouseButton::Left), none);
     // after a release below the window Wayland sends leave and no motion, so only the release can end the drag
     cx.simulate_mouse_up(lane(760.), MouseButton::Left, none);
-    cx.executor().advance_clock(std::time::Duration::from_millis(1001));
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(1001));
     cx.run_until_parked();
-    assert!(!drawn(cx, "pv1-scroll-knob"), "the knob is still held after a release outside the window");
+    assert!(
+        !drawn(cx, "pv1-scroll-knob"),
+        "the knob is still held after a release outside the window"
+    );
 }

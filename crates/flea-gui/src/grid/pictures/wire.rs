@@ -1,7 +1,7 @@
 //! The Shell side of a pane's pictures: the per-frame follow and settle over the shown surface, the thumb and thumbcancel lines, and the thumbed answer.
+use super::surface::{drawn_rows, estimated_rows, Surface};
 use super::{is_image, Key, Map, Pictures, Policy, Slot, FIRST_SETTLE_MS, SETTLE_MS};
 use crate::grid::{element::Identity, element::PictureKind, element::Thumbnail};
-use super::surface::{drawn_rows, estimated_rows, Surface};
 use crate::pane::states::Kind;
 use crate::{backend::Event, state::Shell};
 use gpui::{Asset, Context, ImageAssetLoader, RenderImage, Resource, Window};
@@ -11,12 +11,17 @@ use std::{path::Path, rc::Rc, sync::Arc, time::Duration};
 fn rows_line(command: &str, rows: &[usize], cache: Option<bool>) -> String {
     let rows: Vec<String> = rows.iter().map(usize::to_string).collect();
     let cache = cache.map_or(String::new(), |cache| format!(",\"cacheOnly\":{cache}"));
-    format!("{{\"c\":\"{command}\",\"rows\":[{}]{cache}}}", rows.join(","))
+    format!(
+        "{{\"c\":\"{command}\",\"rows\":[{}]{cache}}}",
+        rows.join(",")
+    )
 }
 
 impl Shell {
     fn grid_pictures(&self, side: usize) -> Option<Rc<Pictures>> {
-        Some(Rc::clone(&self.panes[side].as_ref()?.list.borrow().pictures))
+        Some(Rc::clone(
+            &self.panes[side].as_ref()?.list.borrow().pictures,
+        ))
     }
 
     /// Every frame: the shown surface of each pane follows its listing and settles its asks; a hidden pane lets every picture go.
@@ -43,13 +48,16 @@ impl Shell {
                 && match surface {
                     Some(Surface::Grid) => host.grid.as_ref().is_some_and(|grid| grid.view.visible),
                     Some(Surface::List) => host.pane.state.kind == Kind::Ready,
-                    Some(Surface::Columns) => host.columns.is_some() && host.pane.state.kind == Kind::Ready,
+                    Some(Surface::Columns) => {
+                        host.columns.is_some() && host.pane.state.kind == Kind::Ready
+                    }
                     None => false,
                 };
             let mut lines = Vec::new();
             if !live || backend.is_none() {
                 let pending = map.release();
-                if backend.is_some() && !pending.is_empty() && map.listing == host.pane.held.listing {
+                if backend.is_some() && !pending.is_empty() && map.listing == host.pane.held.listing
+                {
                     map.counters.cancelled += pending.len();
                     lines.push(rows_line("thumbcancel", &pending, None));
                 }
@@ -72,14 +80,15 @@ impl Shell {
                         (surface != Surface::Grid && held.total > 0).then(|| estimated_rows(host))
                     })
                 });
-                let cache = map.class_for(&host.path).map(|class| policy.cache_only(class));
+                let cache = map
+                    .class_for(&host.path)
+                    .map(|class| policy.cache_only(class));
                 let key = want.as_ref().map(|want| Key {
                     listing: held.listing,
                     span: want.span,
-                    only: want
-                        .only
-                        .as_ref()
-                        .map(|(rows, first, end)| (Rc::as_ptr(rows).cast::<usize>() as usize, *first, *end)),
+                    only: want.only.as_ref().map(|(rows, first, end)| {
+                        (Rc::as_ptr(rows).cast::<usize>() as usize, *first, *end)
+                    }),
                     mode: policy.mode,
                     cache,
                 });
@@ -196,7 +205,9 @@ impl Shell {
                 (path, class)
             }
             // {"t":"thumbed","row":2,"file":"/home/u/.cache/thumbnails/large/b98fa408.png","ms":75.823}
-            Event::Producer(line) if flea::json::field_str(line, "t").as_deref() == Some("thumbed") => {
+            Event::Producer(line)
+                if flea::json::field_str(line, "t").as_deref() == Some("thumbed") =>
+            {
                 if let Ok(document) = flea::jsondoc::parse(line) {
                     let row = document.get("row").and_then(|row| match row {
                         flea::jsondoc::Json::Num(value) => value.parse::<usize>().ok(),
@@ -265,7 +276,8 @@ impl Shell {
             cx.notify();
             return;
         }
-        let load = <ImageAssetLoader as Asset>::load(Resource::Path(Arc::from(Path::new(file))), cx);
+        let load =
+            <ImageAssetLoader as Asset>::load(Resource::Path(Arc::from(Path::new(file))), cx);
         let work = cx.background_executor().spawn(load);
         let (listing, answered) = (map.listing, file.to_owned());
         let task = cx.spawn_in(window, async move |this, cx| {
@@ -326,7 +338,10 @@ impl Shell {
             }
             None => {
                 map.counters.refused += 1;
-                Slot::Failed { identity, file: file.to_owned() }
+                Slot::Failed {
+                    identity,
+                    file: file.to_owned(),
+                }
             }
         };
         map.remember(row, slot);
@@ -336,7 +351,9 @@ impl Shell {
 
 // The settle starts again for a changed key, the first in a listing after 70 ms and later ones after 120 ms; Off still settles, so its plan cancels what waits, and a class turned on asks its misses again.
 fn restart(map: &mut Map, key: Option<Key>, side: usize, window: &Window, cx: &mut Context<Shell>) {
-    if map.key.is_some_and(|old| old.cache == Some(true)) && key.is_some_and(|new| new.cache == Some(false)) {
+    if map.key.is_some_and(|old| old.cache == Some(true))
+        && key.is_some_and(|new| new.cache == Some(false))
+    {
         let misses: Vec<usize> = map
             .order
             .iter()
@@ -352,11 +369,16 @@ fn restart(map: &mut Map, key: Option<Key>, side: usize, window: &Window, cx: &m
     let Some(key) = key else {
         return;
     };
-    let delay = if map.settled { SETTLE_MS } else { FIRST_SETTLE_MS };
+    let delay = if map.settled {
+        SETTLE_MS
+    } else {
+        FIRST_SETTLE_MS
+    };
     map.settle = Some(cx.spawn_in(window, async move |this, cx| {
         cx.background_executor()
             .timer(Duration::from_millis(delay))
             .await;
-        let _ = cx.update(|_, cx| this.update(cx, |shell, cx| shell.ask_grid_pictures(side, key, cx)));
+        let _ =
+            cx.update(|_, cx| this.update(cx, |shell, cx| shell.ask_grid_pictures(side, key, cx)));
     }));
 }

@@ -57,7 +57,10 @@ impl Source {
                 }
                 Effect::Kill(proc) => {
                     if proc == Proc::List {
-                        eprintln!("{}", probe_timeout("lsblk", crate::g2::pl1::devices::LIST_TIMEOUT_MS));
+                        eprintln!(
+                            "{}",
+                            probe_timeout("lsblk", crate::g2::pl1::devices::LIST_TIMEOUT_MS)
+                        );
                     }
                     self.slots[Child::Device(proc).index()].stop();
                 }

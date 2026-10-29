@@ -6,7 +6,7 @@ use flea::ui_logic_pv2::refusal::Refusal;
 use flea_gui::g2::pv2::archive::{ArchiveHost, ArchiveView, Metrics, Palette};
 use flea_gui::g2::pv2::code::shape;
 use gpui::AppContext as _;
-use gpui::{hsla, px, TestAppContext, WindowHandle};
+use gpui::{px, TestAppContext, WindowHandle};
 
 struct Host(Calls<String>);
 
@@ -20,7 +20,7 @@ fn open(cx: &mut TestAppContext) -> (WindowHandle<ArchiveView>, Calls<String>) {
     let calls = Calls::default();
     let host = Host(calls.clone());
     let view = cx.add_window(|_, cx| {
-        let ink = hsla(0., 0., 0.9, 1.);
+        let ink = flea_gui::palette::Theme::default().foreground;
         let palette = Palette {
             foreground: ink,
             muted: ink.opacity(0.6),

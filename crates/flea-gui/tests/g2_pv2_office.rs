@@ -7,7 +7,7 @@ use flea::ui_logic_pv2::office::State;
 use flea_gui::g2::pv2::csv::{CodeHost, CsvView, TableFace, TablePalette};
 use flea_gui::g2::pv2::office::{OfficeHost, OfficeView};
 use flea_gui::g2::pv2::{Metrics, Palette};
-use gpui::{font, hsla, px, size, TestAppContext, WindowHandle};
+use gpui::{font, px, size, TestAppContext, WindowHandle};
 use std::{cell::RefCell, path::PathBuf, process::Command, rc::Rc};
 
 const METRICS: Metrics = Metrics {
@@ -28,15 +28,15 @@ fn face() -> TableFace {
 
 fn table_palette() -> TablePalette {
     TablePalette {
-        foreground: hsla(0.1, 0.3, 0.68, 1.),
-        bright: hsla(0.1, 0.3, 0.79, 1.),
-        muted: hsla(0.05, 0.1, 0.5, 1.),
+        foreground: flea_gui::palette::Theme::default().foreground,
+        bright: flea_gui::palette::Theme::default().foreground_bright,
+        muted: flea_gui::palette::Theme::default().muted,
     }
 }
 
 fn palette() -> Palette {
     Palette {
-        background: hsla(0.06, 0.37, 0.08, 1.),
+        background: flea_gui::palette::Theme::default().background,
     }
 }
 

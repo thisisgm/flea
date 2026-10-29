@@ -20,7 +20,8 @@ pub(super) fn listed(total: usize) -> String {
 }
 
 pub(super) fn rows(listing: u64) -> String {
-    let row = |name: &str, dir: bool| format!(r#"{{"n":"{name}","d":{dir},"s":0,"m":0,"p":420,"i":""}}"#);
+    let row =
+        |name: &str, dir: bool| format!(r#"{{"n":"{name}","d":{dir},"s":0,"m":0,"p":420,"i":""}}"#);
     format!(
         r#"{{"t":"rows","start":0,"listing":{listing},"rows":[{},{}]}}"#,
         row("Docs", true),
@@ -30,7 +31,8 @@ pub(super) fn rows(listing: u64) -> String {
 
 #[gpui::test]
 fn a_hundred_thousand_row_folder_draws_its_held_window_and_nothing_more(cx: &mut TestAppContext) {
-    let (view, cx) = cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
+    let (view, cx) =
+        cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
     cx.simulate_resize(size(px(800.), px(600.)));
     view.update(cx, |view, cx| {
         view.open("/big");
@@ -40,19 +42,34 @@ fn a_hundred_thousand_row_folder_draws_its_held_window_and_nothing_more(cx: &mut
         cx.notify();
     });
     cx.run_until_parked();
-    assert!(cx.debug_bounds("pk2-listing").is_some(), "the listing element is drawn");
+    assert!(
+        cx.debug_bounds("pk2-listing").is_some(),
+        "the listing element is drawn"
+    );
     view.update(cx, |view, _| {
         let facts = view.facts();
-        assert_eq!((facts.total, facts.held), (100_000, 2), "the total is a count; only the two held rows exist");
-        assert_eq!(facts.names, vec!["Docs".to_owned(), "a.txt".to_owned()], "the drawn slots name the held rows");
+        assert_eq!(
+            (facts.total, facts.held),
+            (100_000, 2),
+            "the total is a count; only the two held rows exist"
+        );
+        assert_eq!(
+            facts.names,
+            vec!["Docs".to_owned(), "a.txt".to_owned()],
+            "the drawn slots name the held rows"
+        );
         assert_eq!(view.shaped_rows(), 2, "both held rows shaped in the frame");
-        assert!(view.painted_cells() > 0, "the frame painted the held rows' cells");
+        assert!(
+            view.painted_cells() > 0,
+            "the frame painted the held rows' cells"
+        );
     });
 }
 
 #[gpui::test]
 fn a_backend_death_draws_its_sentence_and_keeps_the_held_rows(cx: &mut TestAppContext) {
-    let (view, cx) = cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
+    let (view, cx) =
+        cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
     cx.simulate_resize(size(px(800.), px(600.)));
     view.update(cx, |view, cx| {
         view.open("/big");
@@ -63,28 +80,49 @@ fn a_backend_death_draws_its_sentence_and_keeps_the_held_rows(cx: &mut TestAppCo
         cx.notify();
     });
     cx.run_until_parked();
-    assert!(cx.debug_bounds("pk2-failure").is_some(), "the footer sentence is drawn");
-    assert!(cx.debug_bounds("pk2-listing").is_some(), "the held rows stay on screen");
+    assert!(
+        cx.debug_bounds("pk2-failure").is_some(),
+        "the footer sentence is drawn"
+    );
+    assert!(
+        cx.debug_bounds("pk2-listing").is_some(),
+        "the held rows stay on screen"
+    );
     view.update(cx, |view, _| {
-        assert_eq!(view.facts().held, 2, "the held rows stay, as PickerWindow.qml keeps them");
-        assert_eq!(view.shaped_rows(), 2, "the kept rows still shaped in the frame");
+        assert_eq!(
+            view.facts().held,
+            2,
+            "the held rows stay, as PickerWindow.qml keeps them"
+        );
+        assert_eq!(
+            view.shaped_rows(),
+            2,
+            "the kept rows still shaped in the frame"
+        );
     });
 }
 
 #[gpui::test]
 fn a_stale_worker_draws_nothing_of_its_own(cx: &mut TestAppContext) {
-    let (view, cx) = cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
+    let (view, cx) =
+        cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
     cx.simulate_resize(size(px(800.), px(600.)));
     view.update(cx, |view, cx| {
         view.open("/first");
         let old = view.generation();
         view.open("/second");
-        assert!(!view.receive(old, &listed(9)), "the first folder's answer is refused");
+        assert!(
+            !view.receive(old, &listed(9)),
+            "the first folder's answer is refused"
+        );
         assert!(!view.fail(old, Cause::Gone), "and so is its death");
         cx.notify();
     });
     cx.run_until_parked();
-    assert!(cx.debug_bounds("pk2-failure").is_none(), "no sentence for a worker that was replaced");
+    assert!(
+        cx.debug_bounds("pk2-failure").is_none(),
+        "no sentence for a worker that was replaced"
+    );
     view.update(cx, |view, _| {
         assert_eq!(view.facts().total, 0);
         assert_eq!(view.shaped_rows(), 0, "a refused listing shaped no row");
@@ -101,5 +139,8 @@ fn the_save_field_draws_its_error_line_from_the_field(cx: &mut TestAppContext) {
     });
     cx.run_until_parked();
     assert!(cx.debug_bounds("pk2-save-field").is_some());
-    assert!(cx.debug_bounds("pk2-save-error").is_some(), "the field carries its own line");
+    assert!(
+        cx.debug_bounds("pk2-save-error").is_some(),
+        "the field carries its own line"
+    );
 }

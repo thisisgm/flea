@@ -151,7 +151,10 @@ fn ql_error_tab_walks_maximize_open_with_and_close(cx: &mut TestAppContext) {
     cx.run_until_parked();
     // the focused Maximize draws its ring inside its own slot
     let ring = cx.debug_bounds("pv1-ring").unwrap();
-    assert!(cx.debug_bounds("pv1-control-2").unwrap().contains(&ring.center()));
+    assert!(cx
+        .debug_bounds("pv1-control-2")
+        .unwrap()
+        .contains(&ring.center()));
     look.update(cx, |look, cx| look.action("open", cx));
     assert!(look.read_with(cx, |look, _| look.is_expanded()));
     look.update(cx, |look, cx| {

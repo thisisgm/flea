@@ -118,13 +118,17 @@ pub struct ParsedTheme(pub bool);
 
 impl Global for ParsedTheme {}
 
-impl Global for Theme {}
+mod defaults;
 
-impl Default for Theme {
-    fn default() -> Self {
-        // Resolved once: a frame without an installed theme reads the default and must not allocate.
-        static DEFAULT: std::sync::OnceLock<Theme> = std::sync::OnceLock::new();
-        *DEFAULT.get_or_init(|| Self::from_text(""))
+/// The requested output-image background, independent of the window theme.
+pub(crate) fn output_background(
+    background: flea::ui_logic_op4::composition::Background,
+) -> Option<Hsla> {
+    use flea::ui_logic_op4::composition::Background;
+    match background {
+        Background::Transparent => None,
+        Background::White => Some(Hsla::white()),
+        Background::Black => Some(Hsla::black()),
     }
 }
 

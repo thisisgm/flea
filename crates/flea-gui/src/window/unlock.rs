@@ -65,9 +65,10 @@ impl Shell {
         if join.unlock.is_none() {
             let (catalog, runner) = (self.locale.catalog.clone(), join.device_runner.clone());
             let view = cx.new(|cx| UnlockView::new(catalog, runner, cx));
-            let events = cx.subscribe_in(&view, window, |shell, _, event: &HostEvent, window, cx| {
-                shell.unlock_effect(&event.0, window, cx)
-            });
+            let events =
+                cx.subscribe_in(&view, window, |shell, _, event: &HostEvent, window, cx| {
+                    shell.unlock_effect(&event.0, window, cx)
+                });
             join.unlock = Some(Unlock {
                 view,
                 side,
@@ -121,7 +122,9 @@ impl Shell {
 
     /// The card centred over the window under its own focus, above the panes and the rail.
     pub(crate) fn unlock_layer(&self, cx: &App) -> Option<AnyElement> {
-        let view = self.unlock_view().filter(|_| self.unlock_holds_keyboard(cx))?;
+        let view = self
+            .unlock_view()
+            .filter(|_| self.unlock_holds_keyboard(cx))?;
         Some(
             gpui::deferred(div().absolute().inset_0().child(view))
                 .with_priority(2)
@@ -175,13 +178,20 @@ impl Shell {
             }
             Effect::SetCursor(index) => {
                 if let Some(join) = &self.rail {
-                    join.places.update(cx, |producer, cx| producer.set_cursor(*index, cx));
+                    join.places
+                        .update(cx, |producer, cx| producer.set_cursor(*index, cx));
                 }
             }
             Effect::Say(note, error) => {
                 let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
                 self.status_messages(cx, |messages, now| {
-                    messages.say(&text, *error, "", flea::ui_logic_fb1::status::Hint::None, now)
+                    messages.say(
+                        &text,
+                        *error,
+                        "",
+                        flea::ui_logic_fb1::status::Hint::None,
+                        now,
+                    )
                 });
             }
             Effect::FocusPane => {

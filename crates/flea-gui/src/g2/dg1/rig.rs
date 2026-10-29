@@ -31,7 +31,9 @@ pub(super) struct FakeOwner {
 
 impl FakeWire {
     fn new() -> Self {
-        Self { sent: RefCell::new(Vec::new()) }
+        Self {
+            sent: RefCell::new(Vec::new()),
+        }
     }
 }
 
@@ -44,7 +46,9 @@ impl Wire for FakeWire {
 
 impl FakeSink {
     fn new() -> Self {
-        Self { asks: RefCell::new(Vec::new()) }
+        Self {
+            asks: RefCell::new(Vec::new()),
+        }
     }
 }
 
@@ -77,7 +81,9 @@ impl Owner for FakeOwner {
     }
 
     fn clear_if_owned(&mut self, token: &str, cut_paths: &[String]) -> bool {
-        self.cleared.borrow_mut().push((token.into(), cut_paths.to_vec()));
+        self.cleared
+            .borrow_mut()
+            .push((token.into(), cut_paths.to_vec()));
         true
     }
 
@@ -96,11 +102,22 @@ pub(super) struct Rig {
 
 impl Rig {
     pub(super) fn new() -> Self {
-        Self { board: Clipboard::new(), wire: FakeWire::new(), sink: FakeSink::new(), owner: FakeOwner::new(), en: english() }
+        Self {
+            board: Clipboard::new(),
+            wire: FakeWire::new(),
+            sink: FakeSink::new(),
+            owner: FakeOwner::new(),
+            en: english(),
+        }
     }
 
     pub(super) fn take_facts(path: &str) -> Take<'_> {
-        Take { path, listing: 11, paths_busy: false, list_in_flight: false }
+        Take {
+            path,
+            listing: 11,
+            paths_busy: false,
+            list_in_flight: false,
+        }
     }
 
     pub(super) fn landing(path: &str) -> Landing<'_> {
@@ -108,13 +125,35 @@ impl Rig {
             path,
             list_in_flight: false,
             recent: false,
-            stamp: Stamp { year: 2026, month: 9, day: 23, hour: 10, minute: 14, second: 32 },
+            stamp: Stamp {
+                year: 2026,
+                month: 9,
+                day: 23,
+                hour: 10,
+                minute: 14,
+                second: 32,
+            },
         }
     }
 
     pub(super) fn take(&mut self, moving: bool, rows: Vec<usize>) -> Vec<flea::ui_logic_dg1::Said> {
-        let facts = Take { path: "/dest", listing: 11, paths_busy: false, list_in_flight: false };
-        self.board.take(&self.en, 7, moving, None, rows, facts, &self.wire, &mut self.sink, &mut self.owner)
+        let facts = Take {
+            path: "/dest",
+            listing: 11,
+            paths_busy: false,
+            list_in_flight: false,
+        };
+        self.board.take(
+            &self.en,
+            7,
+            moving,
+            None,
+            rows,
+            facts,
+            &self.wire,
+            &mut self.sink,
+            &mut self.owner,
+        )
     }
 
     pub(super) fn set_lines(&self) -> Vec<String> {

@@ -6,7 +6,7 @@ use flea::ui_logic_pv2::font::{physical, Ask, Reply, SAMPLE_SIZES, SAMPLE_TEXT};
 use flea::ui_logic_pv2::refusal::Refusal;
 use flea_gui::g2::pv2::font::{FontHost, FontView, Metrics, Theme};
 use gpui::AppContext as _;
-use gpui::{hsla, px, TestAppContext, WindowHandle};
+use gpui::{px, TestAppContext, WindowHandle};
 
 struct Host(Calls<Ask>);
 
@@ -20,7 +20,7 @@ fn theme(foreground: &str) -> Theme {
     Theme {
         foreground: foreground.into(),
         surface: "#1a1b26".into(),
-        muted: hsla(0., 0., 0.6, 1.),
+        muted: flea_gui::palette::Theme::default().muted,
         size_ratio: 1.,
     }
 }

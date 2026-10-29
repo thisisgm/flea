@@ -147,7 +147,8 @@ pub fn ql_error(i18n: &I18n) -> Subject {
             enabled: true,
         },
     ];
-    let body = Body::cannot_show(i18n, State::Pdf, false, true, controls).expect("a failed read is refused");
+    let body = Body::cannot_show(i18n, State::Pdf, false, true, controls)
+        .expect("a failed read is refused");
     subject(
         "broken.pdf",
         "x-office-document",
@@ -160,7 +161,8 @@ pub fn ql_error(i18n: &I18n) -> Subject {
 
 /// g2.pv1.ql-unsupported.primary
 pub fn ql_unsupported(i18n: &I18n) -> Subject {
-    let body = Body::cannot_show(i18n, State::Unsupported, false, false, Vec::new()).expect("no preview kind");
+    let body = Body::cannot_show(i18n, State::Unsupported, false, false, Vec::new())
+        .expect("no preview kind");
     subject(
         "letter.odt",
         "x-office-document",

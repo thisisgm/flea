@@ -2,7 +2,9 @@
 use super::seams::{Action, ProviderState, RunKind, Wire};
 use super::ProviderSend;
 use flea::i18n::{I18n, Paths};
-use flea::ui_logic_sd1::providers::{Facts, Role, PLUGIN_DROPBOX, PLUGIN_LOCALSEND, PLUGIN_TAILSCALE};
+use flea::ui_logic_sd1::providers::{
+    Facts, Role, PLUGIN_DROPBOX, PLUGIN_LOCALSEND, PLUGIN_TAILSCALE,
+};
 use std::cell::RefCell;
 use std::path::PathBuf;
 mod browser;
@@ -29,7 +31,11 @@ impl Wire for Fake {
 
 fn english() -> I18n {
     let none = PathBuf::from("/nonexistent/flea-sd1");
-    I18n::load(Paths { omarchy: none.clone(), language_file: none, catalogs: Vec::new() })
+    I18n::load(Paths {
+        omarchy: none.clone(),
+        language_file: none,
+        catalogs: Vec::new(),
+    })
 }
 
 fn facts() -> Facts {
@@ -44,11 +50,19 @@ fn facts() -> Facts {
 }
 
 fn on(plugin: &str) -> ProviderState {
-    ProviderState { plugin: plugin.into(), enabled: true, failed: false }
+    ProviderState {
+        plugin: plugin.into(),
+        enabled: true,
+        failed: false,
+    }
 }
 
 fn states() -> Vec<ProviderState> {
-    vec![on(PLUGIN_TAILSCALE), on(PLUGIN_LOCALSEND), on(PLUGIN_DROPBOX)]
+    vec![
+        on(PLUGIN_TAILSCALE),
+        on(PLUGIN_LOCALSEND),
+        on(PLUGIN_DROPBOX),
+    ]
 }
 
 // The tests/js/taildrop.js ready shape, trimmed to the fields status() reads.
@@ -73,5 +87,8 @@ fn address_only_status() -> String {
 const FIRST_RUN: u64 = 1;
 
 fn status_runs(actions: &[Action]) -> usize {
-    actions.iter().filter(|action| matches!(action, Action::Run(RunKind::TaildropStatus(_), _))).count()
+    actions
+        .iter()
+        .filter(|action| matches!(action, Action::Run(RunKind::TaildropStatus(_), _)))
+        .count()
 }

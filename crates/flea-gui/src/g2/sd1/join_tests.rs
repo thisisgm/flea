@@ -243,7 +243,9 @@ fn provider_rows_reach_the_menu_only_while_installed_and_their_plugin_is_on(
 
 // A Taildrop send's own thread reports back: a send that fails to start or exits non-zero leaves its sentence as an error.
 #[gpui::test]
-fn a_failed_taildrop_send_says_its_sentence_and_a_finished_one_says_nothing(cx: &mut TestAppContext) {
+fn a_failed_taildrop_send_says_its_sentence_and_a_finished_one_says_nothing(
+    cx: &mut TestAppContext,
+) {
     // Up to 5 s for the two failures to land, then a settle window long enough for `true` to have exited and reported.
     const POLL_STEPS: usize = 500;
     const POLL_MS: u64 = 10;
@@ -254,20 +256,32 @@ fn a_failed_taildrop_send_says_its_sentence_and_a_finished_one_says_nothing(cx: 
     let sends = vec![
         super::seams::Action::Spawn(vec!["true".into()], "sent true".into()),
         super::seams::Action::Spawn(vec!["false".into()], "sent false".into()),
-        super::seams::Action::Spawn(vec!["/nonexistent/flea-sd1/no-such-send".into()], "sent missing".into()),
+        super::seams::Action::Spawn(
+            vec!["/nonexistent/flea-sd1/no-such-send".into()],
+            "sent missing".into(),
+        ),
     ];
     let read = |cx: &mut VisualTestContext| {
         shell.update(cx, |shell, cx| {
             shell.status_messages(cx, |messages, _| {
-                let mut errors = messages.errors().iter().map(|e| e.text.clone()).collect::<Vec<_>>();
+                let mut errors = messages
+                    .errors()
+                    .iter()
+                    .map(|e| e.text.clone())
+                    .collect::<Vec<_>>();
                 errors.sort();
                 (errors, messages.notice_serial())
             })
         })
     };
     let (_, serial) = read(cx);
-    shell.update_in(cx, |shell, window, cx| shell.provider_actions(0, sends, window, cx));
-    let expected = (vec!["sent false".to_string(), "sent missing".to_string()], serial);
+    shell.update_in(cx, |shell, window, cx| {
+        shell.provider_actions(0, sends, window, cx)
+    });
+    let expected = (
+        vec!["sent false".to_string(), "sent missing".to_string()],
+        serial,
+    );
     for _ in 0..POLL_STEPS {
         cx.run_until_parked();
         if read(cx).0.len() >= 2 {
@@ -275,7 +289,11 @@ fn a_failed_taildrop_send_says_its_sentence_and_a_finished_one_says_nothing(cx: 
         }
         std::thread::sleep(std::time::Duration::from_millis(POLL_MS));
     }
-    assert_eq!(read(cx), expected, "both failures land as errors and nothing else is said");
+    assert_eq!(
+        read(cx),
+        expected,
+        "both failures land as errors and nothing else is said"
+    );
     for _ in 0..SETTLE_MS / POLL_MS {
         std::thread::sleep(std::time::Duration::from_millis(POLL_MS));
         cx.run_until_parked();

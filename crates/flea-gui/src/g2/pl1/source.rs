@@ -205,7 +205,12 @@ impl Source {
             return Activation::Handled;
         }
         // A phone mounts, resolves and opens the way a share does (ui/Sidebar.qml:385).
-        if let Some(phone) = self.phones.entries.iter().find(|entry| entry.uri == row.uri) {
+        if let Some(phone) = self
+            .phones
+            .entries
+            .iter()
+            .find(|entry| entry.uri == row.uri)
+        {
             return Activation::Phone(Box::new(phone.clone()));
         }
         Activation::Handled

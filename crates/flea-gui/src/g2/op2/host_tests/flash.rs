@@ -167,7 +167,8 @@ fn m9_integ_a_chooser_that_cannot_start_says_so() {
     let mut cx = crate::list::bench::real_cx();
     let (handle, mut requests, _) = start(&mut cx);
     edit(&mut cx, handle, |shell, _, _| {
-        shell.operations.archive.chooser = || std::process::Command::new("/nonexistent/flea-chooser-fixture");
+        shell.operations.archive.chooser =
+            || std::process::Command::new("/nonexistent/flea-chooser-fixture");
     });
     choose(&mut cx, handle, 45, "flashDrive", "", &["/files/disk.img"]);
     drain(&mut requests);
@@ -182,7 +183,10 @@ fn m9_integ_a_chooser_that_cannot_start_says_so() {
         said.contains("Could not start /nonexistent/flea-chooser-fixture to choose an image"),
         "a chooser that never started names its binary: {said:?}"
     );
-    assert!(drain(&mut requests).is_empty(), "no image is asked after a failed chooser");
+    assert!(
+        drain(&mut requests).is_empty(),
+        "no image is asked after a failed chooser"
+    );
 }
 
 #[test]
@@ -203,8 +207,9 @@ fn m9_integ_a_drained_backend_ends_the_handed_flash() {
         r#"{"t":"flashtargets","drives":[{"dev":"sdz","seq":3,"serial":"S1","label":"STICK","model":"Fixture","bytes":4096,"volumes":[],"refused":""}]}"#,
     );
     for _ in 0..4 {
-        if edit(&mut cx, handle, |shell, _, _| shell.operations.archive.flash.park())
-            == super::super::flash::Seat::Flash
+        if edit(&mut cx, handle, |shell, _, _| {
+            shell.operations.archive.flash.park()
+        }) == super::super::flash::Seat::Flash
         {
             break;
         }
@@ -212,17 +217,40 @@ fn m9_integ_a_drained_backend_ends_the_handed_flash() {
     }
     keys(&mut cx, handle, "enter");
     drain(&mut requests);
-    receive(&mut cx, handle, 0, r#"{"t":"flashstarted","id":31,"total":100,"known":true}"#);
+    receive(
+        &mut cx,
+        handle,
+        0,
+        r#"{"t":"flashstarted","id":31,"total":100,"known":true}"#,
+    );
     keys(&mut cx, handle, "escape");
     let handed = footer(&mut cx, handle);
-    assert_eq!(edit(&mut cx, handle, |shell, _, _| shell.operations.archive.handed), Some(31), "the run is handed");
-    edit(&mut cx, handle, |shell, window, cx| shell.receive(0, BackendEvent::Drained, window, cx));
+    assert_eq!(
+        edit(&mut cx, handle, |shell, _, _| shell
+            .operations
+            .archive
+            .handed),
+        Some(31),
+        "the run is handed"
+    );
+    edit(&mut cx, handle, |shell, window, cx| {
+        shell.receive(0, BackendEvent::Drained, window, cx)
+    });
     frame(&mut cx, handle);
     edit(&mut cx, handle, |shell, _, _| {
-        assert_eq!(shell.operations.archive.handed, None, "the dead run leaves the status line");
-        assert!(!shell.operations.archive.flash.running(), "the dead run no longer runs");
+        assert_eq!(
+            shell.operations.archive.handed, None,
+            "the dead run leaves the status line"
+        );
+        assert!(
+            !shell.operations.archive.flash.running(),
+            "the dead run no longer runs"
+        );
     });
     let said = footer(&mut cx, handle);
     assert_ne!(said, handed, "the footer no longer shows the handed run");
-    assert!(said.contains("Could not flash STICK"), "the failure is said: {said:?}");
+    assert!(
+        said.contains("Could not flash STICK"),
+        "the failure is said: {said:?}"
+    );
 }

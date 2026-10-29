@@ -90,7 +90,10 @@ impl SaveField {
     // The probe answer; true when its key still matches.
     pub fn set_exists(&mut self, key: &ProbeKey, exists: bool) -> bool {
         if *key == self.probe_key() {
-            self.probed = Some(Probe { key: key.clone(), exists });
+            self.probed = Some(Probe {
+                key: key.clone(),
+                exists,
+            });
             return true;
         }
         false
@@ -116,7 +119,9 @@ impl SaveField {
     // The check runs on the typed name through the single core check.
     pub fn check(&self) -> SaveCheck {
         let matched = match &self.probed {
-            Some(probe) if probe.key.folder == self.folder && probe.key.name == self.name => Some(probe.exists),
+            Some(probe) if probe.key.folder == self.folder && probe.key.name == self.name => {
+                Some(probe.exists)
+            }
             _ => None,
         };
         core::check_save_name(&self.name, matched, self.location_changed)

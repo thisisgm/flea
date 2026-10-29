@@ -1,11 +1,13 @@
 //! The production pane owns SR1; its effects join the existing navigation and backend queues.
 use crate::{
-    g2::sr1::{self, Host, HostPane, Search, StripKey},
+    g2::sr1::{Host, HostPane, Search, StripKey},
     pane::swap::Options,
     state::Shell,
 };
-use gpui::{div, prelude::*, Context, IntoElement, KeyDownEvent, MouseButton, Window};
-use std::rc::Rc;
+use gpui::{Context, KeyDownEvent, Window};
+
+#[path = "search_header.rs"]
+mod header;
 
 #[path = "search_empty.rs"]
 mod empty;
@@ -329,85 +331,10 @@ impl Shell {
         self.search_update(side, None, |search, host| search.leave(host), window, cx);
     }
 
-    pub(crate) fn search_header(
-        &mut self,
-        side: usize,
-        window: &Window,
-        cx: &mut Context<Self>,
-    ) -> Option<(gpui::AnyElement, f32)> {
-        if (side == 1 && self.view != super::startup::View::Dual)
-            || self.slots.covers[side].is_some()
-        {
-            return None;
-        }
-        let host = self.panes[side].as_ref()?;
-        if !host.search.owner.active() {
-            return None;
-        }
-        let home = std::env::var("HOME").unwrap_or_default();
-        let words = Rc::new(host.search.owner.words(
-            &self.locale.catalog,
-            &host.path,
-            &home,
-            false,
-        ));
-        let list = host.list.borrow();
-        let mut strip = host.search.strip.borrow_mut();
-        if strip.typeface != list.typeface {
-            strip.typeface = list.typeface.clone();
-            strip.prepared = None;
-        }
-        drop(strip);
-        let theme = cx
-            .try_global::<crate::palette::Theme>()
-            .copied()
-            .unwrap_or_default();
-        let palette = sr1::strip::Palette::from_list(&crate::list::Palette::inherited(
-            &window.text_style(),
-            theme,
-        ));
-        let element = sr1::strip::StripElement::new(words, palette, host.search.strip.clone());
-        let height = crate::list::Metrics::for_typeface(&list.typeface).header;
-        Some((
-            div()
-                .size_full()
-                .on_mouse_down(
-                    MouseButton::Left,
-                    cx.listener(move |shell, event: &gpui::MouseDownEvent, window, cx| {
-                        let Some(host) = &shell.panes[side] else {
-                            return;
-                        };
-                        let strip = host.search.strip.borrow();
-                        let Some(prepared) = &strip.prepared else {
-                            return;
-                        };
-                        let x = f32::from(event.position.x) - shell.geometry(window).panes[side].x;
-                        let scope = x >= prepared.boxes.scope_x
-                            && x < prepared.boxes.scope_x + prepared.boxes.scope_w;
-                        drop(strip);
-                        shell.focus_pane(side, cx);
-                        if scope {
-                            shell.search_update(
-                                side,
-                                None,
-                                |search, host| search.click_scope(host),
-                                window,
-                                cx,
-                            );
-                        }
-                        window.focus(&shell.focus, cx);
-                    }),
-                )
-                .child(element)
-                .into_any_element(),
-            height,
-        ))
-    }
-
     pub(crate) fn sync_search_text(&mut self) {
         for host in self.panes.iter_mut().flatten() {
             if host.search.owner.session.live() {
-                let (status, _) = host.search.owner.status(&self.locale.catalog);
+                let (status, _) = Search::status(&host.search.owner, &self.locale.catalog);
                 host.state_text.message = status.clone();
                 host.status = status.into();
             }

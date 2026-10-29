@@ -127,7 +127,12 @@ impl Shell {
     }
 
     /// PaneWire.qml openRenameOnArrival: once the re-read lands, the new folder's own row takes the cursor and Rename runs on it.
-    pub(crate) fn fileops_arrival(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn fileops_arrival(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         // Retained hidden panes finish backend replies without opening an editor on the visible pane.
         if side == 1 && self.view != View::Dual {
             self.operations.fileops.arrival[side] = None;
@@ -168,7 +173,15 @@ impl Shell {
         let Some(Event::MenuAction(reply)) = flea::ui_logic_op1::parse(line) else {
             return false;
         };
-        if self.operations.fileops.deleting.get(side).copied().flatten() != Some(reply.id) {
+        if self
+            .operations
+            .fileops
+            .deleting
+            .get(side)
+            .copied()
+            .flatten()
+            != Some(reply.id)
+        {
             return false;
         }
         match (reply.op.as_str(), reply.ok) {
@@ -186,7 +199,14 @@ impl Shell {
                     token: reply.token,
                     stale: false,
                 };
-                self.confirm_operation(side, review, Scope::Items, Source::Menu(reply.id), window, cx);
+                self.confirm_operation(
+                    side,
+                    review,
+                    Scope::Items,
+                    Source::Menu(reply.id),
+                    window,
+                    cx,
+                );
             }
             ("snapshot" | "prepareDelete", false) => self.fileops_delete_refused(side, &reply, cx),
             _ => return false,
@@ -197,7 +217,10 @@ impl Shell {
     // A refused review says why and closes the snapshot it was taken on.
     fn fileops_delete_refused(&mut self, side: usize, reply: &Reply, cx: &mut Context<Self>) {
         self.operations.fileops.deleting[side] = None;
-        let close = format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}", reply.id);
+        let close = format!(
+            "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
+            reply.id
+        );
         self.fileops_send(side, close, cx);
         let text = if reply.error.is_empty() {
             self.locale.catalog.tr("jobs.delete.failed")

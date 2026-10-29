@@ -84,14 +84,7 @@ fn bfx_172_2_partial_zero_size_cells_are_unknown() {
         assert_eq!(size_text(&folder, walk, &words), expected);
         assert_eq!(cache::size_text(&folder, walk, &words), expected);
         assert_eq!(
-            sets::cell_text(
-                "size",
-                &folder,
-                None,
-                None,
-                Some((bytes, partial)),
-                &words,
-            ),
+            sets::cell_text("size", &folder, None, None, Some((bytes, partial)), &words,),
             expected
         );
     }

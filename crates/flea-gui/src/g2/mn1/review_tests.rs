@@ -200,9 +200,17 @@ fn r1_every_cut_mark_parses(cx: &mut TestAppContext) {
 #[test]
 fn int14_the_cut_table_draws_exactly_the_core_mark_names() {
     let drawn: Vec<&str> = glyphs::CUT.iter().map(|(name, _, _)| *name).collect();
-    assert_eq!(drawn, flea::ui_logic_mn1::entry::MARK_NAMES, "one mark-name list, in one order");
+    assert_eq!(
+        drawn,
+        flea::ui_logic_mn1::entry::MARK_NAMES,
+        "one mark-name list, in one order"
+    );
     for name in flea::ui_logic_mn1::entry::MARK_NAMES {
-        assert_eq!(flea::ui_logic_mn2::rows::static_glyph(name), Some(*name), "a plugin row may name {name}");
+        assert_eq!(
+            flea::ui_logic_mn2::rows::static_glyph(name),
+            Some(*name),
+            "a plugin row may name {name}"
+        );
     }
 }
 

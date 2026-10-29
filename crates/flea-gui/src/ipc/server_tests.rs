@@ -35,7 +35,11 @@ fn short_fixture_roots_fit_real_ipc_endpoints() {
     let nested = root.join("r");
     fs::create_dir(&nested).unwrap();
     fs::set_permissions(&nested, fs::Permissions::from_mode(0o700)).unwrap();
-    fs::write(nested.join(".flea-test-sandbox"), "private IPC fixture runtime\n").unwrap();
+    fs::write(
+        nested.join(".flea-test-sandbox"),
+        "private IPC fixture runtime\n",
+    )
+    .unwrap();
     for runtime in [&root, &nested] {
         let server = Server::bind(runtime).unwrap();
         let path = server.path();

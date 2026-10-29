@@ -11,7 +11,10 @@ use flea::protocol::RowFacts;
 use gpui::{TestAppContext, WindowHandle};
 use std::{rc::Rc, time::Duration};
 
-const PICTURE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/images/transfer.png");
+const PICTURE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../docs/images/transfer.png"
+);
 const LOCAL: &str = r#"{"t":"fsinfo","path":"/files","class":""}"#;
 const FSINFO: &str = r#"{"c":"fsinfo"}"#;
 
@@ -51,7 +54,9 @@ fn open(
         shell
     });
     handle
-        .update(cx, |shell, window, cx| shell.set_view(View::Grid, window, cx))
+        .update(cx, |shell, window, cx| {
+            shell.set_view(View::Grid, window, cx)
+        })
         .unwrap();
     (handle, lines)
 }
@@ -68,7 +73,9 @@ fn step(cx: &mut TestAppContext, handle: WindowHandle<Shell>) {
 fn deliver(cx: &mut TestAppContext, handle: WindowHandle<Shell>, line: &str) -> bool {
     let event = Backend::test_reply_line(line);
     handle
-        .update(cx, |shell, window, cx| shell.grid_pictures_event(0, &event, window, cx))
+        .update(cx, |shell, window, cx| {
+            shell.grid_pictures_event(0, &event, window, cx)
+        })
         .unwrap()
 }
 
@@ -88,7 +95,9 @@ fn read<R>(cx: &mut TestAppContext, handle: WindowHandle<Shell>, f: impl FnOnce(
 
 fn pictures(shell: &Shell) -> &Pictures {
     let grid = shell.panes[0].as_ref().unwrap().grid.as_ref().unwrap();
-    grid.decor.pictures().expect("the shown Grid lends the production pictures")
+    grid.decor
+        .pictures()
+        .expect("the shown Grid lends the production pictures")
 }
 
 // What the last frame drew for one row: its language mark key and its decoded picture size.
@@ -110,7 +119,10 @@ fn first_settle(
     lines: &mut impl FnMut() -> Option<String>,
 ) -> Vec<String> {
     step(cx, handle);
-    assert!(!deliver(cx, handle, LOCAL), "fsinfo stays with its other readers");
+    assert!(
+        !deliver(cx, handle, LOCAL),
+        "fsinfo stays with its other readers"
+    );
     step(cx, handle);
     settle(cx, handle, 70);
     drained(lines)
@@ -120,11 +132,24 @@ fn first_settle(
 fn code_files_draw_their_language_mark_in_place_of_the_kind_mark(cx: &mut TestAppContext) {
     let (handle, _lines) = open(cx, "{}");
     step(cx, handle);
-    let marks = read(cx, handle, |shell| (0..7).map(|row| drawn(shell, row).0).collect::<Vec<_>>());
-    assert_eq!(marks[0].as_deref(), Some("flea-lang:rust"), "main.rs draws the Rust mark");
-    assert_eq!(marks[6].as_deref(), Some("flea-lang:gnu"), "a Makefile is matched by name");
+    let marks = read(cx, handle, |shell| {
+        (0..7).map(|row| drawn(shell, row).0).collect::<Vec<_>>()
+    });
+    assert_eq!(
+        marks[0].as_deref(),
+        Some("flea-lang:rust"),
+        "main.rs draws the Rust mark"
+    );
+    assert_eq!(
+        marks[6].as_deref(),
+        Some("flea-lang:gnu"),
+        "a Makefile is matched by name"
+    );
     for row in [1, 2, 5] {
-        assert_eq!(marks[row], None, "{row}: a file with no language keeps its kind mark");
+        assert_eq!(
+            marks[row], None,
+            "{row}: a file with no language keeps its kind mark"
+        );
     }
     assert_eq!(marks[3], None, "a folder named like code stays a folder");
     assert_eq!(marks[4], None, "a symlink keeps its link mark");
@@ -148,11 +173,22 @@ fn visible_files_are_asked_once_after_the_first_settle_and_cancelled_when_scroll
     step(cx, handle);
     cx.executor().advance_clock(Duration::from_millis(60));
     cx.run_until_parked();
-    assert!(drained(&mut lines).iter().all(|line| !line.contains("\"thumb\"")), "nothing is asked before the 70 ms settle");
+    assert!(
+        drained(&mut lines)
+            .iter()
+            .all(|line| !line.contains("\"thumb\"")),
+        "nothing is asked before the 70 ms settle"
+    );
     settle(cx, handle, 10);
     let asked = drained(&mut lines);
-    let thumb = asked.iter().find(|line| line.starts_with(r#"{"c":"thumb","#)).expect("one thumb line");
-    assert!(thumb.starts_with(r#"{"c":"thumb","rows":[0,1,2,4,5,6,"#), "every visible file, never the folder: {thumb}");
+    let thumb = asked
+        .iter()
+        .find(|line| line.starts_with(r#"{"c":"thumb","#))
+        .expect("one thumb line");
+    assert!(
+        thumb.starts_with(r#"{"c":"thumb","rows":[0,1,2,4,5,6,"#),
+        "every visible file, never the folder: {thumb}"
+    );
     assert!(thumb.ends_with(r#"],"cacheOnly":false}"#), "{thumb}");
     assert_eq!(
         thumb_requests(cx, handle),
@@ -161,7 +197,10 @@ fn visible_files_are_asked_once_after_the_first_settle_and_cancelled_when_scroll
     );
     let waiting = read(cx, handle, |shell| pictures(shell).waiting());
     settle(cx, handle, 200);
-    assert!(drained(&mut lines).is_empty(), "a still frame asks nothing again");
+    assert!(
+        drained(&mut lines).is_empty(),
+        "a still frame asks nothing again"
+    );
     handle
         .update(cx, |shell, _, _| {
             let grid = shell.panes[0].as_mut().unwrap().grid.as_mut().unwrap();
@@ -171,7 +210,10 @@ fn visible_files_are_asked_once_after_the_first_settle_and_cancelled_when_scroll
     step(cx, handle);
     settle(cx, handle, 120);
     let moved = drained(&mut lines);
-    let cancel = moved.iter().find(|line| line.starts_with(r#"{"c":"thumbcancel","#)).expect("a cancel for rows left behind");
+    let cancel = moved
+        .iter()
+        .find(|line| line.starts_with(r#"{"c":"thumbcancel","#))
+        .expect("a cancel for rows left behind");
     assert!(cancel.contains(&format!("[{}", waiting[0])), "{cancel}");
     assert!(
         moved
@@ -212,17 +254,31 @@ fn thumb_requests(cx: &mut TestAppContext, handle: WindowHandle<Shell>) -> Strin
 fn a_thumbed_file_is_decoded_off_the_ui_thread_and_replaces_the_mark(cx: &mut TestAppContext) {
     let (handle, mut lines) = open(cx, "{}");
     first_settle(cx, handle, &mut lines);
-    assert!(deliver(cx, handle, &thumbed(0, PICTURE)), "a thumbed line is the Grid's");
+    assert!(
+        deliver(cx, handle, &thumbed(0, PICTURE)),
+        "a thumbed line is the Grid's"
+    );
     step(cx, handle);
-    assert_eq!(read(cx, handle, |shell| pictures(shell).lent()), 0, "the UI thread never decodes");
+    assert_eq!(
+        read(cx, handle, |shell| pictures(shell).lent()),
+        0,
+        "the UI thread never decodes"
+    );
     assert_eq!(read(cx, handle, |shell| drawn(shell, 0).1), None);
     cx.run_until_parked();
     step(cx, handle);
     let (mark, decoded) = read(cx, handle, |shell| drawn(shell, 0));
-    assert_eq!(decoded, Some((1280, 64)), "the decoded picture draws on its tile");
+    assert_eq!(
+        decoded,
+        Some((1280, 64)),
+        "the decoded picture draws on its tile"
+    );
     assert_eq!(mark, None, "a drawn picture replaces the language mark");
     let counters = read(cx, handle, |shell| pictures(shell).counters());
-    assert_eq!((counters.answered, counters.decoded, counters.refused), (1, 1, 0));
+    assert_eq!(
+        (counters.answered, counters.decoded, counters.refused),
+        (1, 1, 0)
+    );
 }
 
 #[gpui::test]
@@ -238,7 +294,11 @@ fn refused_missing_and_unasked_answers_draw_no_picture(cx: &mut TestAppContext) 
         assert_eq!(read(cx, handle, |shell| drawn(shell, row).1), None, "{row}");
     }
     let counters = read(cx, handle, |shell| pictures(shell).counters());
-    assert_eq!((counters.answered, counters.decoded, counters.refused), (2, 0, 2), "the folder was never asked");
+    assert_eq!(
+        (counters.answered, counters.decoded, counters.refused),
+        (2, 0, 2),
+        "the folder was never asked"
+    );
 }
 
 #[gpui::test]
@@ -260,62 +320,19 @@ fn a_row_whose_facts_changed_never_draws_the_old_picture_and_is_asked_again(
         })
         .unwrap();
     step(cx, handle);
-    assert_eq!(read(cx, handle, |shell| drawn(shell, 1).1), None, "an edited file never shows its old picture");
+    assert_eq!(
+        read(cx, handle, |shell| drawn(shell, 1).1),
+        None,
+        "an edited file never shows its old picture"
+    );
     settle(cx, handle, 120);
-    assert!(drained(&mut lines).iter().any(|line| line == r#"{"c":"thumb","rows":[1],"cacheOnly":false}"#));
-}
-
-#[gpui::test]
-fn a_relist_of_the_same_folder_carries_each_picture_by_its_source_facts(cx: &mut TestAppContext) {
-    let (handle, mut lines) = open(cx, "{}");
-    first_settle(cx, handle, &mut lines);
-    deliver(cx, handle, &thumbed(1, PICTURE));
-    deliver(cx, handle, &thumbed(5, PICTURE));
-    cx.run_until_parked();
-    step(cx, handle);
-    handle
-        .update(cx, |shell, _, _| {
-            let pane = &mut shell.panes[0].as_mut().unwrap().pane;
-            let mut rows = pane.held.rows.clone();
-            rows.swap(1, 2);
-            rows[5].size += 1;
-            pane.held = Rc::new(Held { rows, listing: pane.held.listing + 1, ..*pane.held });
-        })
-        .unwrap();
-    step(cx, handle);
-    assert_eq!(read(cx, handle, |shell| drawn(shell, 2).1), Some((1280, 64)), "photo.png moved to row 2 with its picture");
-    assert_eq!(read(cx, handle, |shell| drawn(shell, 1).1), None);
-    assert_eq!(read(cx, handle, |shell| drawn(shell, 5).1), None, "a changed file is not carried");
-}
-
-#[gpui::test]
-fn an_unknown_class_is_asked_once_at_the_settle_and_a_network_folder_asks_the_cache_only(
-    cx: &mut TestAppContext,
-) {
-    let (handle, mut lines) = open(cx, "{}");
-    step(cx, handle);
-    drained(&mut lines);
-    settle(cx, handle, 70);
-    assert_eq!(drained(&mut lines), [FSINFO], "no thumbnail is made before the class is known");
-    settle(cx, handle, 240);
-    assert!(drained(&mut lines).is_empty(), "the class is asked once per listing");
-    deliver(cx, handle, r#"{"t":"fsinfo","path":"/files","class":"network"}"#);
-    step(cx, handle);
-    settle(cx, handle, 70);
-    let asked = drained(&mut lines);
-    assert_eq!(asked.len(), 1, "{asked:?}");
-    assert!(asked[0].ends_with(r#"],"cacheOnly":true}"#), "network thumbnails are off by default: {}", asked[0]);
-}
-
-#[gpui::test]
-fn thumbnails_off_ask_nothing_and_images_ask_pictures_only(cx: &mut TestAppContext) {
-    let (handle, mut lines) = open(cx, r#"{"preview":{"thumbnails":"off"}}"#);
-    let asked = first_settle(cx, handle, &mut lines);
-    assert!(asked.iter().all(|line| !line.contains("thumb")), "{asked:?}");
-    let (handle, mut lines) = open(cx, r#"{"preview":{"thumbnails":"images"}}"#);
-    let asked = first_settle(cx, handle, &mut lines);
-    assert!(asked.contains(&r#"{"c":"thumb","rows":[1],"cacheOnly":false}"#.to_owned()), "{asked:?}");
+    assert!(drained(&mut lines)
+        .iter()
+        .any(|line| line == r#"{"c":"thumb","rows":[1],"cacheOnly":false}"#));
 }
 
 #[path = "centering_tests.rs"]
 mod centering;
+
+#[path = "pictures_relist_tests.rs"]
+mod relist;

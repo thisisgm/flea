@@ -13,8 +13,14 @@ pub enum MenuAction {
 
 impl MenuAction {
     pub fn parse(action: &str) -> Self {
-        const LEAVES: [&str; 6] =
-            ["copyPath", "copyName", "copyStem", "copydirpath", "copyUri", "copyQuoted"];
+        const LEAVES: [&str; 6] = [
+            "copyPath",
+            "copyName",
+            "copyStem",
+            "copydirpath",
+            "copyUri",
+            "copyQuoted",
+        ];
         if let Some(leaf) = action.strip_prefix("copyAs:") {
             if LEAVES.contains(&leaf) {
                 return Self::CopyAs(leaf.into());
@@ -91,15 +97,36 @@ pub fn payloads(cut: bool, paths: &[String], token: &str) -> Vec<Payload> {
     use flea::ui_logic_dg1 as format;
     let op = if cut { "cut" } else { "copy" };
     let mut out = vec![
-        Payload { mime: format::FLEA, bytes: format::build_flea(op, token) },
-        Payload { mime: format::GNOME, bytes: format::build_gnome(op, paths) },
-        Payload { mime: format::URILIST, bytes: format::build_urilist(paths) },
-        Payload { mime: format::PLAIN_UTF8, bytes: format::build_plain(paths) },
-        Payload { mime: format::PLAIN, bytes: format::build_plain(paths) },
-        Payload { mime: format::UTF8_STRING, bytes: format::build_plain(paths) },
+        Payload {
+            mime: format::FLEA,
+            bytes: format::build_flea(op, token),
+        },
+        Payload {
+            mime: format::GNOME,
+            bytes: format::build_gnome(op, paths),
+        },
+        Payload {
+            mime: format::URILIST,
+            bytes: format::build_urilist(paths),
+        },
+        Payload {
+            mime: format::PLAIN_UTF8,
+            bytes: format::build_plain(paths),
+        },
+        Payload {
+            mime: format::PLAIN,
+            bytes: format::build_plain(paths),
+        },
+        Payload {
+            mime: format::UTF8_STRING,
+            bytes: format::build_plain(paths),
+        },
     ];
     if cut {
-        out.push(Payload { mime: format::KDE_CUT, bytes: format::build_kde_cut() });
+        out.push(Payload {
+            mime: format::KDE_CUT,
+            bytes: format::build_kde_cut(),
+        });
     }
     out
 }

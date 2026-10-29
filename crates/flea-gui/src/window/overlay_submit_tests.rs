@@ -64,8 +64,15 @@ fn cross_owner_submit(cx: &mut TestAppContext, dead: usize) {
             foreign.is_empty(),
             "cross-owner submit must never send to the old backend"
         );
-        assert_eq!(sent, if owner == 1 { vec![r#"{"c":"fsinfo"}"#.to_owned(), r#"{"c":"menuaction","op":"validate","id":0,"action":"copyTo","dest":"/validated/cross-owner"}"#.to_owned()] } else { vec![r#"{"c":"menuaction","op":"validate","id":0,"action":"copyTo","dest":"/validated/cross-owner"}"#.to_owned()] },
-            "cross-owner submit must preserve the exact focus and validate request queue");
+        assert_eq!(
+            sent,
+            if owner == 1 {
+                vec![r#"{"c":"fsinfo"}"#.to_owned(), r#"{"c":"menuaction","op":"validate","id":0,"action":"copyTo","dest":"/validated/cross-owner"}"#.to_owned()]
+            } else {
+                vec![r#"{"c":"menuaction","op":"validate","id":0,"action":"copyTo","dest":"/validated/cross-owner"}"#.to_owned()]
+            },
+            "cross-owner submit must preserve the exact focus and validate request queue"
+        );
         let pending = shell(cx, handle, |shell, _, cx| {
             assert_eq!(shell.operation_view(owner).as_ref(), Some(&live));
             assert_eq!(shell.operation_view(dead).as_ref(), Some(&old));
@@ -94,7 +101,10 @@ fn cross_owner_submit(cx: &mut TestAppContext, dead: usize) {
         assert!(marks(cx, handle, "op1-scrim").is_some());
         let first_after_death: Vec<_> = std::iter::from_fn(&mut first_lines).collect();
         let second_after_death: Vec<_> = std::iter::from_fn(&mut second_lines).collect();
-        for (side, queue) in [&first_after_death, &second_after_death].into_iter().enumerate() {
+        for (side, queue) in [&first_after_death, &second_after_death]
+            .into_iter()
+            .enumerate()
+        {
             if !failed && side == dead {
                 assert!(queue.is_empty(),
                     "Drained backend must have no post-death commands: dead={dead} failed={failed} first={first_after_death:?} second={second_after_death:?}");

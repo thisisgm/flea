@@ -24,7 +24,10 @@ pub enum Line {
 
 /// The request line for one query against the listing in force.
 pub fn request(id: u64, query: &str) -> String {
-    format!("{{\"c\":\"filter\",\"query\":\"{}\",\"id\":{id}}}\n", escape(query))
+    format!(
+        "{{\"c\":\"filter\",\"query\":\"{}\",\"id\":{id}}}\n",
+        escape(query)
+    )
 }
 
 /// None for a line that is not a filter answer; an answer whose rows break the protocol is an error, never half used.
@@ -91,8 +94,14 @@ fn value_end(line: &[u8], at: usize) -> Result<usize, String> {
             Err("an array never closes".into())
         }
         Some(_) => {
-            let end = (at..line.len()).find(|&i| matches!(line[i], b',' | b'}' | b']' | b' ' | b'\t' | b'\n' | b'\r')).unwrap_or(line.len());
-            if end == at { Err("a member has no value".into()) } else { Ok(end) }
+            let end = (at..line.len())
+                .find(|&i| matches!(line[i], b',' | b'}' | b']' | b' ' | b'\t' | b'\n' | b'\r'))
+                .unwrap_or(line.len());
+            if end == at {
+                Err("a member has no value".into())
+            } else {
+                Ok(end)
+            }
         }
         None => Err("a member has no value".into()),
     }
@@ -101,7 +110,10 @@ fn value_end(line: &[u8], at: usize) -> Result<usize, String> {
 impl<'a> Members<'a> {
     fn of(text: &'a str) -> Result<Self, String> {
         let line = text.as_bytes();
-        let mut members = Self { line, spans: [None; KEYS.len()] };
+        let mut members = Self {
+            line,
+            spans: [None; KEYS.len()],
+        };
         let mut at = space(line, 0);
         if line.get(at) != Some(&b'{') {
             return Err("an answer is one object".into());
@@ -137,7 +149,11 @@ impl<'a> Members<'a> {
     }
 
     fn end(self, at: usize) -> Result<Self, String> {
-        if space(self.line, at) == self.line.len() { Ok(self) } else { Err("an answer ends at its object".into()) }
+        if space(self.line, at) == self.line.len() {
+            Ok(self)
+        } else {
+            Err("an answer ends at its object".into())
+        }
     }
 
     fn raw(&self, key: &str) -> Option<&'a [u8]> {
@@ -146,9 +162,14 @@ impl<'a> Members<'a> {
     }
 
     fn uint(&self, key: &str) -> Result<u64, String> {
-        let raw = self.raw(key).filter(|raw| raw.iter().all(u8::is_ascii_digit));
-        let text = raw.and_then(|raw| std::str::from_utf8(raw).ok()).ok_or_else(|| format!("{key} must be an unsigned integer"))?;
-        text.parse().map_err(|_| format!("{key} must be an unsigned integer"))
+        let raw = self
+            .raw(key)
+            .filter(|raw| raw.iter().all(u8::is_ascii_digit));
+        let text = raw
+            .and_then(|raw| std::str::from_utf8(raw).ok())
+            .ok_or_else(|| format!("{key} must be an unsigned integer"))?;
+        text.parse()
+            .map_err(|_| format!("{key} must be an unsigned integer"))
     }
 
     fn index(&self, key: &str) -> Result<usize, String> {
@@ -157,7 +178,10 @@ impl<'a> Members<'a> {
 
     fn text(&self, key: &str) -> Result<String, String> {
         // The member's span ends on ASCII bytes, so it is whole UTF-8 and only this value is decoded.
-        let raw = self.raw(key).filter(|raw| raw.first() == Some(&b'"')).and_then(|raw| std::str::from_utf8(raw).ok());
+        let raw = self
+            .raw(key)
+            .filter(|raw| raw.first() == Some(&b'"'))
+            .and_then(|raw| std::str::from_utf8(raw).ok());
         match raw.map(flea::jsondoc::parse) {
             Some(Ok(Json::Str(text))) => Ok(text),
             _ => Err(format!("{key} must be a string")),
@@ -166,20 +190,34 @@ impl<'a> Members<'a> {
 
     // Row indexes read straight from the bytes into one list: digits only, each under the listing's count.
     fn rows(&self, key: &str, total: usize) -> Result<Option<Vec<usize>>, String> {
-        let Some(raw) = self.raw(key) else { return Ok(None) };
+        let Some(raw) = self.raw(key) else {
+            return Ok(None);
+        };
         if raw == b"null" {
             return Ok(None);
         }
-        let body = raw.strip_prefix(b"[").and_then(|raw| raw.strip_suffix(b"]")).ok_or_else(|| format!("{key} must be an array"))?;
+        let body = raw
+            .strip_prefix(b"[")
+            .and_then(|raw| raw.strip_suffix(b"]"))
+            .ok_or_else(|| format!("{key} must be an array"))?;
         let mut out = Vec::with_capacity(body.iter().filter(|&&b| b == b',').count() + 1);
         if space(body, 0) == body.len() {
             return Ok(Some(Vec::new()));
         }
         for item in body.split(|&b| b == b',') {
-            let (from, to) = (space(item, 0), item.iter().rposition(|b| !b.is_ascii_whitespace()).map_or(0, |at| at + 1));
-            let digits = item.get(from..to).filter(|digits| !digits.is_empty() && digits.iter().all(u8::is_ascii_digit));
+            let (from, to) = (
+                space(item, 0),
+                item.iter()
+                    .rposition(|b| !b.is_ascii_whitespace())
+                    .map_or(0, |at| at + 1),
+            );
+            let digits = item
+                .get(from..to)
+                .filter(|digits| !digits.is_empty() && digits.iter().all(u8::is_ascii_digit));
             let digits = digits.ok_or_else(|| format!("{key} holds a row that is not an index"))?;
-            let row = digits.iter().try_fold(0usize, |row, &d| row.checked_mul(10)?.checked_add(usize::from(d - b'0')));
+            let row = digits.iter().try_fold(0usize, |row, &d| {
+                row.checked_mul(10)?.checked_add(usize::from(d - b'0'))
+            });
             match row {
                 Some(row) if row < total => out.push(row),
                 _ => return Err(format!("{key} names a row past the listing's {total}")),
@@ -208,7 +246,10 @@ fn scan(line: &str, gate: Option<Option<u64>>) -> Result<Line, String> {
         None => return Err("rows must be an array or null".into()),
         Some(_) => members.rows("rows", total)?,
     };
-    if exact.as_ref().is_some_and(|exact| exact.windows(2).any(|pair| pair[0] >= pair[1])) {
+    if exact
+        .as_ref()
+        .is_some_and(|exact| exact.windows(2).any(|pair| pair[0] >= pair[1]))
+    {
         // Exact rows keep the backend's order, strictly ascending, which is what keeps folders first.
         return Err("rows must ascend without repeats".into());
     }
@@ -227,5 +268,12 @@ fn scan(line: &str, gate: Option<Option<u64>>) -> Result<Line, String> {
     if query.is_empty() != exact.is_none() {
         return Err("an empty query answers null rows and only it does".into());
     }
-    Ok(Line::Answer(Answer { id, query, listing, total, exact, close }))
+    Ok(Line::Answer(Answer {
+        id,
+        query,
+        listing,
+        total,
+        exact,
+        close,
+    }))
 }

@@ -173,11 +173,7 @@ impl Element for Preview {
                     px(((f32::from(bounds.size.height) - geometry.height as f32) / 2.).round()),
                 );
             // White and Black are output image content, not invented UI palette roles.
-            let ink = match self.background {
-                Background::Transparent => None,
-                Background::White => Some(Hsla::white()),
-                Background::Black => Some(Hsla::black()),
-            };
+            let ink = crate::palette::output_background(self.background);
             if let Some(ink) = ink {
                 window.paint_quad(fill(
                     Bounds::new(

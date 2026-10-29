@@ -15,6 +15,8 @@ case $scratch in
   *) echo "FAIL: mktemp -d gave '$scratch', which is not an absolute path two components deep"; exit 1 ;;
 esac
 touch "$scratch/.flea-test-sandbox" || exit 1
+export XDG_DATA_HOME="$scratch/data" XDG_CONFIG_HOME="$scratch/config" XDG_CACHE_HOME="$scratch/cache"
+mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" || exit 1
 trap 'case "$scratch" in /*/.superpowers/g10l/budget.?*) [ -n "$scratch" ] && [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
 
 fail=0
@@ -44,7 +46,7 @@ check "oversized file fails" 1 $?
 
 # The duplicate-ceiling gate reads a hardcoded list, so a scratch-root copy of the tool names one file twice and runs there.
 case "$scratch" in /*/.superpowers/g10l/budget.?*) [ -n "$scratch" ] && [ -f "$scratch/.flea-test-sandbox" ] && rm -f -- "$scratch/src/oversized.rs" ;; esac
-sed 's|^known_over_cap="shelf/Model.js 701$|&\nshelf/Model.js 701|' "$repo/tools/flea-file-budget" > "$scratch/dup-budget"
+sed 's|^shelf/Model.js 701$|&\nshelf/Model.js 701|' "$repo/tools/flea-file-budget" > "$scratch/dup-budget"
 if cmp -s "$repo/tools/flea-file-budget" "$scratch/dup-budget"; then
   echo "FAIL duplicate fixture: the sed did not duplicate a known_over_cap entry"
   fail=1
@@ -59,7 +61,7 @@ esac
 
 # Exercise measured source bytes at each ratcheted debt, without reading the registry into the expected result.
 git -C "$scratch" init -q || exit 1
-for file in crates/flea-gui/src/list/header.rs ui/PreviewMarkdown.qml; do
+for file in crates/flea-gui/src/rail/element.rs ui/PreviewMarkdown.qml; do
   measured=$(wc -l < "$repo/$file") || exit 1
   if [ "$measured" -le 400 ]; then
     echo "FAIL measured-debt fixture: $file no longer exceeds the 400-line hard cap"
@@ -82,25 +84,27 @@ for file in crates/flea-gui/src/list/header.rs ui/PreviewMarkdown.qml; do
   cp "$repo/$file" "$scratch/$file" || exit 1
 done
 
-# This former exemption is now below the hard cap, so it receives the ordinary 400-line boundary.
-state_tests=crates/flea-gui/src/state_tests.rs
-cp "$repo/$state_tests" "$scratch/$state_tests" || exit 1
-git -C "$scratch" add -- "$state_tests" || exit 1
-( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
-check "the measured state test file passes" 0 $?
-seq 1 400 | sed 's/^/\/\/ line /' > "$scratch/$state_tests"
-( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
-check "the state test file at the unchanged hard cap passes" 0 $?
-printf '// growth\n' >> "$scratch/$state_tests"
-( cd "$scratch" && "$repo/tools/flea-file-budget" > state-mutant.log 2>&1 )
-check "the state test file past the hard cap fails" 1 $?
-if grep -qFx 'OVER CAP  crates/flea-gui/src/state_tests.rs: 401 lines, cap 400' "$scratch/state-mutant.log"; then
-  echo "ok   state test growth receives the ordinary hard cap"
-else
-  echo "FAIL state test growth did not name the ordinary hard cap"
-  fail=1
-fi
-cp "$repo/$state_tests" "$scratch/$state_tests" || exit 1
+# Former exemptions below the hard cap receive the ordinary 400-line boundary.
+for file in crates/flea-gui/src/state_tests.rs crates/flea-gui/src/list/header.rs; do
+  mkdir -p "$scratch/$(dirname "$file")" || exit 1
+  cp "$repo/$file" "$scratch/$file" || exit 1
+  git -C "$scratch" add -- "$file" || exit 1
+  ( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
+  check "$file at its measured size passes" 0 $?
+  seq 1 400 | sed 's/^/\/\/ line /' > "$scratch/$file"
+  ( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
+  check "$file at the unchanged hard cap passes" 0 $?
+  printf '// growth\n' >> "$scratch/$file"
+  ( cd "$scratch" && "$repo/tools/flea-file-budget" > former-debt-mutant.log 2>&1 )
+  check "$file past the hard cap fails" 1 $?
+  if grep -qFx "OVER CAP  $file: 401 lines, cap 400" "$scratch/former-debt-mutant.log"; then
+    echo "ok   $file growth receives the ordinary hard cap"
+  else
+    echo "FAIL $file growth did not name the ordinary hard cap"
+    fail=1
+  fi
+  cp "$repo/$file" "$scratch/$file" || exit 1
+done
 
 seq 1 400 | sed 's/^/\/\/ line /' > "$scratch/crates/flea-gui/src/new.rs"
 printf '// line\n' > "$scratch/crates/flea-gui/src/list.rs"

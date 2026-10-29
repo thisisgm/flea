@@ -20,11 +20,17 @@ impl Clipboard {
         owner: &mut dyn Owner,
     ) -> (bool, Vec<core::Said>) {
         if let Ok(Some(event)) = core::parse_clip(text) {
-            return (true, self.clip_event(i18n, backend, event, landing, wire, sink, owner));
+            return (
+                true,
+                self.clip_event(i18n, backend, event, landing, wire, sink, owner),
+            );
         }
         if let Ok(Some(list)) = core::parse_paths(text) {
             if self.paths_pending(backend) {
-                return (true, self.paths_resolved(i18n, backend, list, take, wire, sink, owner));
+                return (
+                    true,
+                    self.paths_resolved(i18n, backend, list, take, wire, sink, owner),
+                );
             }
             return (false, Vec::new());
         }
@@ -48,11 +54,24 @@ impl Clipboard {
                 // The B prerequisite (validate and mint a token without an owner) is a join seam: until it lands the fork publishes nothing, B's clipSet is the one claim, and the validated clip is what the seam will publish.
                 self.drain(outs, wire, sink, owner)
             }
-            core::ClipEvent::Changed { clip, paths, token, error } => {
-                let outs = self.session.on_changed(backend, &clip, paths, token, &error);
+            core::ClipEvent::Changed {
+                clip,
+                paths,
+                token,
+                error,
+            } => {
+                let outs = self
+                    .session
+                    .on_changed(backend, &clip, paths, token, &error);
                 self.drain(outs, wire, sink, owner)
             }
-            core::ClipEvent::Get { ok, clip, paths, token, .. } => {
+            core::ClipEvent::Get {
+                ok,
+                clip,
+                paths,
+                token,
+                ..
+            } => {
                 let (_, pendings) = self.session.on_get(backend, ok, &clip, paths, token);
                 let mut said = Vec::new();
                 for pending in &pendings {
@@ -99,7 +118,11 @@ impl Clipboard {
             },
             None => {
                 if take.paths_busy || self.paths_pending(backend) {
-                    return vec![core::Said { text: core::resolving(i18n), error: false, paste_hint: false }];
+                    return vec![core::Said {
+                        text: core::resolving(i18n),
+                        error: false,
+                        paste_hint: false,
+                    }];
                 }
                 if rows.is_empty() {
                     return Vec::new();
@@ -130,7 +153,11 @@ impl Clipboard {
         match MenuAction::parse(action) {
             MenuAction::CopyAs(leaf) => match Format::parse(&leaf) {
                 Some(format) => {
-                    let paths = if snapshot.is_empty() { None } else { Some(snapshot.to_vec()) };
+                    let paths = if snapshot.is_empty() {
+                        None
+                    } else {
+                        Some(snapshot.to_vec())
+                    };
                     self.copy_as(i18n, backend, format, paths, rows, take, wire, owner)
                 }
                 None => Vec::new(),
@@ -147,7 +174,15 @@ impl Clipboard {
                 if landing.recent {
                     return vec![core::recent_paste(i18n)];
                 }
-                self.paste(i18n, backend, core::PendingPaste::link(landing.path, kind), landing, wire, sink, owner)
+                self.paste(
+                    i18n,
+                    backend,
+                    core::PendingPaste::link(landing.path, kind),
+                    landing,
+                    wire,
+                    sink,
+                    owner,
+                )
             }
             MenuAction::Unhandled => Vec::new(),
         }
@@ -192,7 +227,11 @@ impl Clipboard {
         sink: &mut dyn Sink,
         owner: &mut dyn Owner,
     ) -> Vec<core::Said> {
-        let clip = core::Clip { paths: captured.paths.clone(), moving: captured.moving, token: captured.token.clone() };
+        let clip = core::Clip {
+            paths: captured.paths.clone(),
+            moving: captured.moving,
+            token: captured.token.clone(),
+        };
         let outs = self.session.spent(&clip, &captured.entry, spends_cut);
         let _ = backend;
         self.drain(outs, wire, sink, owner)
@@ -201,11 +240,15 @@ impl Clipboard {
     // Foreign selections the fork read apply in the fork's own monotonic generation order, so a late old report never clears a new owner.
     pub fn foreign(&mut self, owner: &mut dyn Owner) {
         for foreign in owner.drain_foreign() {
-            if self.foreign_generation.is_some_and(|seen| foreign.generation <= seen) {
+            if self
+                .foreign_generation
+                .is_some_and(|seen| foreign.generation <= seen)
+            {
                 continue;
             }
             self.foreign_generation = Some(foreign.generation);
-            self.session.foreign(&foreign.clip, foreign.paths, foreign.token);
+            self.session
+                .foreign(&foreign.clip, foreign.paths, foreign.token);
         }
     }
 

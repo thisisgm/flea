@@ -27,8 +27,7 @@ fn bfx_172_1_properties_first_size_never_shows_the_directory_entry() {
     let (mut properties, _) = Properties::open(9, &[0]);
     let effects = properties.reply(
         &i18n,
-        &parse(r#"{"op":"properties","id":9,"ok":true,"directory":true,"bytes":4096}"#)
-            .unwrap(),
+        &parse(r#"{"op":"properties","id":9,"ok":true,"directory":true,"bytes":4096}"#).unwrap(),
     );
     assert_eq!(
         sent(&effects),

@@ -285,7 +285,9 @@ fn retry_key(path: &str, dest: &str) -> String {
 }
 
 impl Extract {
-    pub(crate) fn ime_revealed(&self) -> bool { self.held_eye }
+    pub(crate) fn ime_revealed(&self) -> bool {
+        self.held_eye
+    }
     pub(crate) fn ime_value(&self) -> Option<(crate::g2::op1::dialog_editor::Slot, &str)> {
         (self.focus == Stop::Password).then_some((
             crate::g2::op1::dialog_editor::Slot::ExtractPassword,

@@ -162,6 +162,18 @@ source = "{SOURCE}"
                 self.assertEqual([], self.check_body(code))
         self.assertTrue(any("blocking" in e for e in self.check_body('cx.spawn(async move || { std::fs::read("x"); });')))
 
+    def test_image_pixels_are_data_but_gpui_color_aliases_stay_rejected(self):
+        for code in ('image::Rgba([200, 100, 50, 255]);',
+                     'use image::Rgb as Pixel; Pixel([200, 100, 50]);',
+                     'fn image() {} image::Rgba([200, 100, 50, 255]);'):
+            with self.subTest(code=code):
+                self.assertEqual([], self.check_body(code))
+        for code in ('use gpui as image; image::Rgba { r: 1., g: 0., b: 0., a: 1. };',
+                     'use gpui::Rgba as Pixel; Pixel { r: 1., g: 0., b: 0., a: 1. };',
+                     'mod image { pub use gpui::Rgba; } image::Rgba { r: 1., g: 0., b: 0., a: 1. };'):
+            with self.subTest(code=code):
+                self.assertTrue(any("literal colour" in error for error in self.check_body(code)))
+
     def test_literal_colors_theme_control_and_module_exemptions(self):
         self.assertEqual([], self.check_body('paint(theme.background);'))
         for code in ('rgb(0xff1122);', 'rgba(1);', 'hsla(1., 0., 0., 1.);', 'Hsla { l: 0.5, ..theme.ink };',

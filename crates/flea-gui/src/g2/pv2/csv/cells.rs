@@ -152,8 +152,7 @@ mod tests {
         });
         let again = cache.get_or_shape((999, 0, 0, 0), "y", 9, Face::Body, run);
         assert_eq!(cache.shaped, 999, "a changed source is shaped again");
-        let hit =
-            cache.get_or_shape((999, 0, 0, 0), "y", 9, Face::Body, || panic!("reshaped"));
+        let hit = cache.get_or_shape((999, 0, 0, 0), "y", 9, Face::Body, || panic!("reshaped"));
         assert!(Rc::ptr_eq(&again.run, &hit.run) && Rc::ptr_eq(&again.text, &hit.text));
         cache.get_or_shape((999, 0, 0, 0), "y", 4, Face::Body, run);
         assert_eq!(cache.shaped, 1000, "a changed fit is shaped again");
@@ -161,8 +160,7 @@ mod tests {
         assert_eq!(cache.shaped, 1001, "a changed face is shaped again");
         cache.get_or_shape((999, 0, 1, 7), "y", 4, Face::Figure, run);
         assert_eq!(cache.shaped, 1002, "a drawn window is shaped again");
-        let whole =
-            cache.get_or_shape((999, 0, 0, 0), "y", 4, Face::Figure, || panic!("reshaped"));
+        let whole = cache.get_or_shape((999, 0, 0, 0), "y", 4, Face::Figure, || panic!("reshaped"));
         let window =
             cache.get_or_shape((999, 0, 1, 7), "y", 4, Face::Figure, || panic!("reshaped"));
         assert_eq!(

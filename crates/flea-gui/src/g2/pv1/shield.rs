@@ -121,7 +121,9 @@ impl Element for Shield {
                 let on_pointer = Rc::clone(&self.on_pointer);
                 window.on_mouse_event(move |event: &$event, phase, window, cx| {
                     let grabbed = dragging && $grabbed;
-                    if phase != DispatchPhase::Bubble || !(grabbed || bounds.contains(&event.position)) {
+                    if phase != DispatchPhase::Bubble
+                        || !(grabbed || bounds.contains(&event.position))
+                    {
                         return;
                     }
                     cx.stop_propagation();
@@ -158,7 +160,11 @@ impl Element for Shield {
             None,
             e.pressed_button == Some(MouseButton::Left)
         ));
-        end!(ScrollWheelEvent, false, |e| (Pointer::Wheel, Some(e.delta), false));
+        end!(ScrollWheelEvent, false, |e| (
+            Pointer::Wheel,
+            Some(e.delta),
+            false
+        ));
         end!(PinchEvent, false, |_| (Pointer::Pinch, None, false));
     }
 }

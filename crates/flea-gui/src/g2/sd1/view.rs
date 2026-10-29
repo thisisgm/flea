@@ -4,10 +4,10 @@ use crate::list::{Palette, Typeface};
 use flea::ui_logic_mn1::fit::{GAP, PAD_X, ROW, SLOT};
 use flea::ui_logic_sd1::share::ShareBrowser;
 use gpui::{
-    fill, point, px, relative, size, App, Bounds, ContentMask, Context, DispatchPhase, Element, ElementId,
-    GlobalElementId, GlyphRun, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, MouseButton,
-    MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Render, ScrollWheelEvent, Style, TextRun,
-    TransformationMatrix, Window,
+    fill, point, px, relative, size, App, Bounds, ContentMask, Context, DispatchPhase, Element,
+    ElementId, GlobalElementId, GlyphRun, HitboxBehavior, Hsla, InspectorElementId, IntoElement,
+    LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Render,
+    ScrollWheelEvent, Style, TextRun, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -47,7 +47,10 @@ impl ShapedShares {
             return;
         }
         self.names = names.to_vec();
-        self.runs = names.iter().map(|name| shape(name, typeface, window)).collect();
+        self.runs = names
+            .iter()
+            .map(|name| shape(name, typeface, window))
+            .collect();
         self.reshapes += 1;
     }
 
@@ -69,7 +72,11 @@ fn shape(text: &str, typeface: &Typeface, window: &Window) -> GlyphRun {
         underline: None,
         strikethrough: None,
     };
-    GlyphRun::new(window.text_system().layout_line(text, typeface.body, &[run], None))
+    GlyphRun::new(
+        window
+            .text_system()
+            .layout_line(text, typeface.body, &[run], None),
+    )
 }
 
 /// The row under a pointer height, counted from the overlay's top; None above it or past the last share.
@@ -98,7 +105,13 @@ impl ShareBrowserElement {
         typeface: Typeface,
         palette: Palette,
     ) -> Self {
-        Self { browser, rows, probe, typeface, palette }
+        Self {
+            browser,
+            rows,
+            probe,
+            typeface,
+            palette,
+        }
     }
 }
 
@@ -111,7 +124,8 @@ impl IntoElement for ShareBrowserElement {
 
 fn paint_text(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
     let line = run.line();
-    let baseline = window.pixel_snap(top + (px(ROW_H) - line.ascent - line.descent) / 2. + line.ascent);
+    let baseline =
+        window.pixel_snap(top + (px(ROW_H) - line.ascent - line.descent) / 2. + line.ascent);
     let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
@@ -151,9 +165,13 @@ impl Element for ShareBrowserElement {
         _: &mut App,
     ) -> Option<gpui::Hitbox> {
         let browser = self.browser.borrow();
-        self.rows.borrow_mut().sync(&browser.shares, &self.typeface, window);
+        self.rows
+            .borrow_mut()
+            .sync(&browser.shares, &self.typeface, window);
         // An open overlay is the topmost surface: this hitbox sinks every press and the wheel.
-        browser.active.then(|| window.insert_hitbox(bounds, HitboxBehavior::BlockMouse))
+        browser
+            .active
+            .then(|| window.insert_hitbox(bounds, HitboxBehavior::BlockMouse))
     }
 
     fn paint(
@@ -190,11 +208,25 @@ impl Element for ShareBrowserElement {
                 } else if hovered == Some(index) {
                     window.paint_quad(fill(row, palette.foreground.opacity(HOVER)));
                 }
-                let ink = if lifted || hovered == Some(index) { palette.foreground } else { palette.metadata_frame };
-                let mark = Bounds::new(point(left + px(PAD_X), top + px((ROW_H - SLOT) / 2.)), size(px(SLOT), px(SLOT)));
+                let ink = if lifted || hovered == Some(index) {
+                    palette.foreground
+                } else {
+                    palette.metadata_frame
+                };
+                let mark = Bounds::new(
+                    point(left + px(PAD_X), top + px((ROW_H - SLOT) / 2.)),
+                    size(px(SLOT), px(SLOT)),
+                );
                 let (key, data) = glyphs::mark("server");
-                let _ = window.paint_svg(mark, key, Some(data), TransformationMatrix::unit(), ink, cx);
-                paint_text(run, left + px(PAD_X + SLOT + GAP), top, palette.foreground, window);
+                let _ =
+                    window.paint_svg(mark, key, Some(data), TransformationMatrix::unit(), ink, cx);
+                paint_text(
+                    run,
+                    left + px(PAD_X + SLOT + GAP),
+                    top,
+                    palette.foreground,
+                    window,
+                );
             }
         });
         probe.bounds = Some(bounds);
@@ -253,8 +285,11 @@ impl Element for ShareBrowserElement {
                 return;
             }
             // Any left release ends the press, so a press dragged off is never matched later (ReleaseWithinBounds).
-            let pressed =
-                if event.button == MouseButton::Left { up_probe.borrow_mut().pressed.take() } else { None };
+            let pressed = if event.button == MouseButton::Left {
+                up_probe.borrow_mut().pressed.take()
+            } else {
+                None
+            };
             if !up_box.is_hovered(window) {
                 return;
             }
@@ -296,7 +331,13 @@ impl ShareBrowserView {
         typeface: Typeface,
         palette: Palette,
     ) -> Self {
-        Self { browser, rows, probe, typeface, palette }
+        Self {
+            browser,
+            rows,
+            probe,
+            typeface,
+            palette,
+        }
     }
 }
 

@@ -54,9 +54,16 @@ impl Compress {
         let base = pane_base.to_string();
         let leaves: Vec<&str> = paths.iter().map(String::as_str).collect();
         let leaves = flea::ui_logic_op2::cards::path_leaves(&leaves);
-        let stem = archive::archive_stem(&leaves.iter().map(String::as_str).collect::<Vec<_>>(), parent_leaf);
+        let stem = archive::archive_stem(
+            &leaves.iter().map(String::as_str).collect::<Vec<_>>(),
+            parent_leaf,
+        );
         let formats = archive::board_formats(reported);
-        let format = if formats.iter().any(|f| f == "7z") { "7z".into() } else { formats[0].clone() };
+        let format = if formats.iter().any(|f| f == "7z") {
+            "7z".into()
+        } else {
+            formats[0].clone()
+        };
         let name = format!("{stem}.{format}");
         let card = Self {
             paths,
@@ -147,7 +154,11 @@ impl Compress {
             return Vec::new();
         }
         if !self.can_compress() {
-            let refusal = logic::compress_commit(self.matched(), self.password.is_empty(), self.name.is_empty());
+            let refusal = logic::compress_commit(
+                self.matched(),
+                self.password.is_empty(),
+                self.name.is_empty(),
+            );
             match &refusal {
                 logic::Commit::EmptyName => {
                     self.error = None;
@@ -176,7 +187,10 @@ impl Compress {
             .map(|submit| {
                 let mut out = vec![Effect::Send(submit.line)];
                 if let Some(sticky) = submit.sticky {
-                    out.push(Effect::Say { text: sticky, error: false });
+                    out.push(Effect::Say {
+                        text: sticky,
+                        error: false,
+                    });
                 }
                 out
             })
@@ -211,12 +225,20 @@ impl Compress {
                 Vec::new()
             }
             Key::Left if self.focus == Stop::Format => {
-                let at = self.formats.iter().position(|f| *f == self.format).unwrap_or(0);
+                let at = self
+                    .formats
+                    .iter()
+                    .position(|f| *f == self.format)
+                    .unwrap_or(0);
                 self.choose_format(at.saturating_sub(1));
                 Vec::new()
             }
             Key::Right if self.focus == Stop::Format => {
-                let at = self.formats.iter().position(|f| *f == self.format).unwrap_or(0);
+                let at = self
+                    .formats
+                    .iter()
+                    .position(|f| *f == self.format)
+                    .unwrap_or(0);
                 self.choose_format(at + 1);
                 Vec::new()
             }
@@ -228,7 +250,9 @@ impl Compress {
                 self.close();
                 vec![Effect::Close]
             }
-            Key::Enter if self.focus == Stop::Format || self.focus == Stop::Encrypt => self.commit(i18n),
+            Key::Enter if self.focus == Stop::Format || self.focus == Stop::Encrypt => {
+                self.commit(i18n)
+            }
             Key::Space if self.focus == Stop::Compress => self.commit(i18n),
             Key::Enter => self.commit(i18n),
             _ => {
@@ -289,92 +313,6 @@ impl Compress {
             self.focus = stop;
         }
     }
-
-    /// The card as the shell draws it: chips, name, the masked pair with eyes, the header switch, the buttons.
-    pub fn card(&self, i18n: &I18n) -> Card {
-        let error = self.error.clone().unwrap_or_default();
-        let field = |label: &str, value: &str, placeholder: &str, focused: bool, error: bool, revealed: bool| Field {
-            input: None,
-            label: Some(label.into()),
-            value: value.into(),
-            placeholder: placeholder.into(),
-            secret: true,
-            held: 0,
-            revealed,
-            eye: true,
-            error,
-            focused,
-        };
-        let current = self.formats.iter().position(|f| *f == self.format).unwrap_or(0);
-        let mut body = vec![
-            Block::Chips(Chips {
-                options: self.formats.clone(),
-                current,
-                focused: self.focus == Stop::Format,
-                label: i18n.tr("archive.format"),
-            }),
-            Block::Field(Field {
-            input: None,
-                label: Some(i18n.tr("archive.name")),
-                value: self.name.clone(),
-                placeholder: i18n.tr("archive.name_placeholder"),
-                secret: false,
-                held: 0,
-                revealed: false,
-                eye: false,
-                error: false,
-                focused: self.focus == Stop::Name,
-            }),
-            Block::Field(field(
-                &i18n.tr("archive.password"),
-                &self.password,
-                "",
-                self.focus == Stop::Password,
-                !error.is_empty() && self.password.is_empty(),
-                self.held_password,
-            )),
-            Block::Field(field(
-                &i18n.tr("archive.confirm"),
-                &self.confirm,
-                "",
-                self.focus == Stop::Confirm,
-                !error.is_empty() && !self.matched(),
-                self.held_confirm,
-            )),
-        ];
-        if !error.is_empty() {
-            body.push(Block::Note { text: error, ink: Ink::Error });
-        }
-        if self.format == "7z" {
-            body.push(Block::CheckLine(CheckLine {
-                checked: self.encrypt_names,
-                focused: self.focus == Stop::Encrypt,
-                label: i18n.tr("archive.encrypt_names"),
-            }));
-        }
-        Card {
-            title: logic::compress_title(i18n, self.paths.len()),
-            esc: i18n.tr("dialogs.file.esc"),
-            width: WIDTH,
-            body,
-            buttons: vec![
-                Button {
-                    label: i18n.tr("archive.cancel"),
-                    primary: false,
-                    focused: self.focus == Stop::Cancel,
-                    enabled: true,
-                    available: true,
-                },
-                Button {
-                    label: i18n.tr("archive.compress.action"),
-                    primary: true,
-                    focused: self.focus == Stop::Compress,
-                    enabled: true,
-                    available: true,
-                },
-            ],
-        }
-    }
 }
 
 fn join(base: &str, name: &str) -> String {
@@ -385,3 +323,6 @@ fn join(base: &str, name: &str) -> String {
 }
 
 mod ime;
+
+#[path = "compress_view.rs"]
+mod view;

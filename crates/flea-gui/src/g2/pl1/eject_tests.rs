@@ -268,7 +268,11 @@ fn one_release_at_a_time_across_eject_and_unmount() {
     let (mut d, at) = listed_iso();
     assert_eq!(quiesces(&d.unmount(at)), 1);
     let second = d.eject(at, 10);
-    assert_eq!(quiesces(&second), 0, "a running unmount keeps its held child");
+    assert_eq!(
+        quiesces(&second),
+        0,
+        "a running unmount keeps its held child"
+    );
     assert_eq!(
         messages(&second),
         ["Still unmounting OMARCHY_202608; wait for its result|false"]

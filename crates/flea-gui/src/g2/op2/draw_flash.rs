@@ -3,18 +3,18 @@ use super::cards::*;
 use super::draw::StandIn;
 use super::draw_step::DISABLED_OPACITY;
 use super::flash::{
-    DriveRow, ImageRow, PressAnim, StepMark, View, SEL_CURSOR_EDGE, SEL_CURSOR_EDGE_LIVE, SEL_DRIVE_ROW,
-    SEL_EMPTY_MARK, SEL_IMAGE_HINT, SEL_IMAGE_ROW, SEL_STEP_BAR, SEL_STEP_BYTE,
+    DriveRow, ImageRow, PressAnim, StepMark, View, SEL_CURSOR_EDGE, SEL_CURSOR_EDGE_LIVE,
+    SEL_DRIVE_ROW, SEL_EMPTY_MARK, SEL_IMAGE_HINT, SEL_IMAGE_ROW, SEL_STEP_BAR, SEL_STEP_BYTE,
 };
+use crate::g2::op3::shell::glyph;
+use crate::list::{Palette, Typeface};
 use flea::i18n::I18n;
 use gpui::{
-    div, prelude::*, px, relative, AnyElement, App, ClickEvent, Div, MouseButton, MouseDownEvent, MouseUpEvent,
-    Window,
+    div, prelude::*, px, relative, AnyElement, App, ClickEvent, Div, MouseButton, MouseDownEvent,
+    MouseUpEvent, Window,
 };
 use std::rc::Rc;
 use std::time::Instant;
-use crate::g2::op3::shell::glyph;
-use crate::list::{Palette, Typeface};
 
 /// A left-release tap: the entity-free closure the host builds with `cx.listener`.
 pub type ClickTap = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
@@ -62,10 +62,21 @@ impl StandIn {
             .h_full()
             .flex_none()
             .when(cursor, |d| d.debug_selector(|| SEL_CURSOR_EDGE.into()))
-            .bg(if cursor && focused { draw.t.accent } else if cursor { draw.t.muted_frame } else { draw.t.surface })
+            .bg(if cursor && focused {
+                draw.t.accent
+            } else if cursor {
+                draw.t.muted_frame
+            } else {
+                draw.t.surface
+            })
             .when(!cursor, |d| d.invisible())
             .when(cursor, |d| {
-                d.child(div().w_full().h_full().debug_selector(|| SEL_CURSOR_EDGE_LIVE.into()))
+                d.child(
+                    div()
+                        .w_full()
+                        .h_full()
+                        .debug_selector(|| SEL_CURSOR_EDGE_LIVE.into()),
+                )
             })
     }
 
@@ -81,15 +92,33 @@ impl StandIn {
             .when(row.cursor && focused, |d| d.bg(t.accent.opacity(ROW_WASH)))
             .when(row.refused, |d| d.opacity(DISABLED_OPACITY))
             .child(self.cursor_edge(draw, row.cursor, focused))
-            .child(glyph(row.mark(), MARK * draw.s, if row.cursor { t.fg } else { t.muted_frame }))
-            .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().child(row.name.clone()))
-            .child(draw.text(CAPTION).text_color(if row.cursor { t.fg } else { t.muted }).child(row.detail.clone()))
-            .child(draw.text(CAPTION).text_color(if row.cursor { t.fg } else { t.muted }).child(row.size.clone()));
+            .child(glyph(
+                row.mark(),
+                MARK * draw.s,
+                if row.cursor { t.fg } else { t.muted_frame },
+            ))
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .overflow_hidden()
+                    .text_ellipsis()
+                    .child(row.name.clone()),
+            )
+            .child(
+                draw.text(CAPTION)
+                    .text_color(if row.cursor { t.fg } else { t.muted })
+                    .child(row.detail.clone()),
+            )
+            .child(
+                draw.text(CAPTION)
+                    .text_color(if row.cursor { t.fg } else { t.muted })
+                    .child(row.size.clone()),
+            );
         let line = match &taps.image {
             Some(tap) => {
                 let tap = tap.clone();
-                line
-                    .id(SEL_IMAGE_ROW)
+                line.id(SEL_IMAGE_ROW)
                     .debug_selector(|| SEL_IMAGE_ROW.into())
                     .on_click(move |ev, window, cx| tap(ev, window, cx))
                     .into_any_element()
@@ -114,7 +143,14 @@ impl StandIn {
         }
     }
 
-    fn driverow(&self, draw: &Draw, at: usize, row: &DriveRow, focused: bool, taps: &FlashTaps) -> AnyElement {
+    fn driverow(
+        &self,
+        draw: &Draw,
+        at: usize,
+        row: &DriveRow,
+        focused: bool,
+        taps: &FlashTaps,
+    ) -> AnyElement {
         let t = draw.t;
         let line = div()
             .h(draw.px(ROW_HEIGHT))
@@ -124,18 +160,42 @@ impl StandIn {
             .px(draw.px(PAD))
             .text_color(t.fg)
             .when(row.cursor && focused, |d| d.bg(t.accent.opacity(ROW_WASH)))
-            .when(!row.cursor && row.selected, |d| d.bg(t.fg.opacity(ROW_WASH)))
+            .when(!row.cursor && row.selected, |d| {
+                d.bg(t.fg.opacity(ROW_WASH))
+            })
             .when(row.dimmed, |d| d.opacity(DISABLED_OPACITY))
             .child(self.cursor_edge(draw, row.cursor, focused))
             .child(glyph(Glyph::Drive, MARK * draw.s, t.fg))
-            .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().child(row.name.clone()))
-            .child(draw.text(CAPTION).text_color(if row.cursor || row.selected { t.fg } else { t.muted }).child(row.detail.clone()))
-            .child(draw.text(CAPTION).text_color(if row.cursor || row.selected { t.fg } else { t.muted }).child(row.size.clone()));
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .overflow_hidden()
+                    .text_ellipsis()
+                    .child(row.name.clone()),
+            )
+            .child(
+                draw.text(CAPTION)
+                    .text_color(if row.cursor || row.selected {
+                        t.fg
+                    } else {
+                        t.muted
+                    })
+                    .child(row.detail.clone()),
+            )
+            .child(
+                draw.text(CAPTION)
+                    .text_color(if row.cursor || row.selected {
+                        t.fg
+                    } else {
+                        t.muted
+                    })
+                    .child(row.size.clone()),
+            );
         let line = match taps.drives.get(at) {
             Some(tap) => {
                 let tap = tap.clone();
-                line
-                    .id((SEL_DRIVE_ROW, at))
+                line.id((SEL_DRIVE_ROW, at))
                     .debug_selector(move || format!("{}-{}", SEL_DRIVE_ROW, at))
                     .on_click(move |ev, window, cx| tap(ev, window, cx))
                     .into_any_element()
@@ -145,7 +205,17 @@ impl StandIn {
         if row.hint.is_empty() {
             line
         } else {
-            div().flex().flex_col().child(line).child(draw.text(CAPTION).pl(draw.px(MARK_INDENT)).text_color(t.muted).child(row.hint.clone())).into_any_element()
+            div()
+                .flex()
+                .flex_col()
+                .child(line)
+                .child(
+                    draw.text(CAPTION)
+                        .pl(draw.px(MARK_INDENT))
+                        .text_color(t.muted)
+                        .child(row.hint.clone()),
+                )
+                .into_any_element()
         }
     }
 
@@ -157,7 +227,9 @@ impl StandIn {
         let mut bytes = div().flex().items_center();
         for (text, figure) in &step.byte {
             bytes = bytes.child(
-                draw.text(CAPTION).text_color(if *figure { t.fg } else { t.muted }).child(text.clone()),
+                draw.text(CAPTION)
+                    .text_color(if *figure { t.fg } else { t.muted })
+                    .child(text.clone()),
             );
         }
         div()
@@ -180,9 +252,25 @@ impl StandIn {
 
     /// The flash view as plain rows under its strip, until the G1 pane host covers the slot.
     pub fn present_flash(&self, p: FlashFrame) -> AnyElement {
-        let FlashFrame { view, i18n, palette, typeface, radius, taps, press, now, reduced, window } = p;
+        let FlashFrame {
+            view,
+            i18n,
+            palette,
+            typeface,
+            radius,
+            taps,
+            press,
+            now,
+            reduced,
+            window,
+        } = p;
         let s = f32::from(typeface.body) / BOARD_BODY;
-        let draw = Draw { t: Tokens::of(palette), s, typeface, r: radius };
+        let draw = Draw {
+            t: Tokens::of(palette),
+            s,
+            typeface,
+            r: radius,
+        };
         let t = draw.t;
         let step = &view.step;
         let mark = match step.mark {
@@ -200,7 +288,12 @@ impl StandIn {
             .font_family(draw.typeface.font.family.clone())
             .text_size(draw.px(BOARD_BODY))
             .line_height(relative(1.2))
-            .child(draw.text(CAPTION).px(draw.px(PAD)).text_color(t.fg).child(view.title.clone()))
+            .child(
+                draw.text(CAPTION)
+                    .px(draw.px(PAD))
+                    .text_color(t.fg)
+                    .child(view.title.clone()),
+            )
             .child(self.section(&draw, &i18n.tr("archive.flash.image")))
             .child(self.imagerow(&draw, &view.image, view.focused, taps))
             .child(self.section(&draw, &i18n.tr("archive.flash.drives")));
@@ -218,35 +311,72 @@ impl StandIn {
                     .px(draw.px(PAD))
                     .text_color(t.muted)
                     .child(glyph(Glyph::Drive, MARK * draw.s, t.muted_frame))
-                    .child(draw.text(BOARD_BODY).child(i18n.tr("archive.flash.no_drives"))),
+                    .child(
+                        draw.text(BOARD_BODY)
+                            .child(i18n.tr("archive.flash.no_drives")),
+                    ),
             );
         }
-        let action = self.action(&draw, super::draw_step::ActionIn { view, i18n, taps, press, now, reduced, window });
+        let action = self.action(
+            &draw,
+            super::draw_step::ActionIn {
+                view,
+                i18n,
+                taps,
+                press,
+                now,
+                reduced,
+                window,
+            },
+        );
         let mut step_row = div()
             .h(draw.px(STEP_ROW))
             .flex()
             .items_center()
             .gap(draw.px(ROW_GAP))
             .px(draw.px(PAD))
-            .text_color(if step.mark == StepMark::Alert && !step.running { t.error } else { t.fg })
-            .when(step.cursor && view.focused, |d| d.bg(t.accent.opacity(ROW_WASH)))
+            .text_color(if step.mark == StepMark::Alert && !step.running {
+                t.error
+            } else {
+                t.fg
+            })
+            .when(step.cursor && view.focused, |d| {
+                d.bg(t.accent.opacity(ROW_WASH))
+            })
             .child(self.cursor_edge(&draw, step.cursor, view.focused))
             .child(mark)
-            .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().child(step.line.clone()));
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .overflow_hidden()
+                    .text_ellipsis()
+                    .child(step.line.clone()),
+            );
         if let Some(action) = action {
             step_row = step_row.child(action);
         }
-        column = column.child(self.section(&draw, &i18n.tr("archive.flash.step"))).child(step_row);
+        column = column
+            .child(self.section(&draw, &i18n.tr("archive.flash.step")))
+            .child(step_row);
         if step.show_bar() {
             column = column.child(self.bar(&draw, view));
         }
         if !step.hint.is_empty() {
-            column = column.child(draw.text(CAPTION).pl(draw.px(MARK_INDENT)).text_color(t.muted).child(step.hint.clone()));
+            column = column.child(
+                draw.text(CAPTION)
+                    .pl(draw.px(MARK_INDENT))
+                    .text_color(t.muted)
+                    .child(step.hint.clone()),
+            );
         }
-        let mut root = div().debug_selector(|| format!("op2-radius-{}", draw.r)).size_full();
+        let mut root = div()
+            .debug_selector(|| format!("op2-radius-{}", draw.r))
+            .size_full();
         if let Some(up) = &taps.up {
             let up = up.clone();
-            root = root.on_mouse_up_out(MouseButton::Left, move |ev, window, cx| up(ev, window, cx));
+            root =
+                root.on_mouse_up_out(MouseButton::Left, move |ev, window, cx| up(ev, window, cx));
         }
         root.child(column).into_any_element()
     }

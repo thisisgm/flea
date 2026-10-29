@@ -12,7 +12,10 @@ use flea::{
     ui_logic_pv1::kinds::{quick_look_kind, State},
 };
 use gpui::{Context, EventEmitter, Task, Window};
+#[path = "opener_subject.rs"]
+mod subject;
 mod targets;
+use subject::{archive_path, file_row};
 
 /// One pane's opener: the single-flight guard, the launch in flight and the launcher it calls off the UI thread.
 pub(crate) struct Lane {
@@ -166,33 +169,6 @@ fn menu_claim(
     true
 }
 
-// The cursor row's path and whether Quick Look owns it, when the pane is idle and the row is a loaded file.
-fn file_row(shell: &Shell, side: usize) -> Option<(String, bool)> {
-    let host = shell.panes[side].as_ref()?;
-    if host.pane.busy()
-        || host.stopped
-        || !host
-            .search
-            .owner
-            .operable(host.pane.held.listing, host.pane.cursor)
-    {
-        return None;
-    }
-    let row = host.pane.held.row(host.pane.cursor)?;
-    if row.dir || row.name.is_empty() {
-        return None;
-    }
-    // Nav.js:239: an AppImage is a program first, so it asks on the run card instead.
-    let archive = quick_look_kind(&row.icon, &row.name, false) == State::Archive
-        && !row.name.to_ascii_lowercase().ends_with(".appimage");
-    Some((join(host.pane.path(), &row.name), archive))
-}
-
-fn archive_path(path: &str) -> bool {
-    quick_look_kind("", path, false) == State::Archive
-        && !path.to_ascii_lowercase().ends_with(".appimage")
-}
-
 impl Shell {
     // Enter on the cursor's own file: Nav.js:239 hands an archive to Quick Look, an image opens its gallery, any other file flea --open.
     pub(super) fn open_cursor_file(
@@ -238,7 +214,9 @@ impl Shell {
             self.opener_say(side, busy, false, cx);
             return;
         }
-        let flea = crate::window::startup::binary().to_string_lossy().into_owned();
+        let flea = crate::window::startup::binary()
+            .to_string_lossy()
+            .into_owned();
         let lane = &mut self.opener[side];
         let Some(mut argv) = lane.guard.start(&flea, &paths) else {
             let busy = busy_text(&self.locale.catalog);
@@ -278,9 +256,15 @@ impl Shell {
             }
             Opened::Failed(_) => {
                 let refusal = flea::json::field_str(stdout, "refusal");
-                if let Some(key) = refusal.filter(|key| matches!(key.as_str(),
-                    "feedback.refusal.folder_with_files" | "feedback.refusal.archives"
-                    | "feedback.refusal.programs" | "feedback.refusal.not_loaded")) {
+                if let Some(key) = refusal.filter(|key| {
+                    matches!(
+                        key.as_str(),
+                        "feedback.refusal.folder_with_files"
+                            | "feedback.refusal.archives"
+                            | "feedback.refusal.programs"
+                            | "feedback.refusal.not_loaded"
+                    )
+                }) {
                     let sentence = self.locale.catalog.tr(&key);
                     self.opener_say(side, sentence, false, cx);
                     return;
@@ -291,7 +275,10 @@ impl Shell {
             Opened::AskRun { path, text } => {
                 cx.emit(Asked {
                     side,
-                    opened: Opened::AskRun { path: path.clone(), text: text.clone() },
+                    opened: Opened::AskRun {
+                        path: path.clone(),
+                        text: text.clone(),
+                    },
                 });
                 self.open_run_card(side, path, text, window.modifiers().shift, cx);
             }

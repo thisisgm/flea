@@ -40,7 +40,7 @@ fn u05_empty_omi_observes_the_mounted_player_and_its_lifecycle(cx: &mut TestAppC
             .unwrap()
     }
     let theme = crate::palette::Theme {
-        accent: gpui::hsla(0.62, 0.85, 0.65, 1.),
+        accent: crate::palette::Theme::from_text("accent='#729df2'").accent,
         ..Default::default()
     };
     cx.update(|cx| cx.set_global(theme));

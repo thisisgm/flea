@@ -73,7 +73,9 @@ impl Pane {
         if lo >= self.held.start && lo + span <= self.held.start + self.held.rows.len() {
             return None;
         }
-        self.requests.wanted(&self.held, lo, span).map(|request| (request.start, request.count))
+        self.requests
+            .wanted(&self.held, lo, span)
+            .map(|request| (request.start, request.count))
     }
     /// Scroll so a view position is on screen, the filter's showRow.
     pub fn reveal_view(&mut self, view: usize) {
