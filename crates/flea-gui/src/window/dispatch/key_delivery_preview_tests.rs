@@ -42,7 +42,7 @@ fn key_delivery_state_reads_the_drawn_and_focused_column_preview(cx: &mut TestAp
     );
     assert_eq!(
         focused.get("activeFocusItem").unwrap(),
-        &Json::Str("preview".into())
+        &Json::Str("SelectionPreview".into())
     );
     assert_eq!(
         focused.get("paneFocus").unwrap(),
