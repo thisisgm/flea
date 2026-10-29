@@ -6,16 +6,12 @@ use super::Text;
 pub const ISSUES_URL: &str = "https://github.com/thisisgm/flea/issues";
 pub const SPONSORS_URL: &str = "https://github.com/sponsors/thisisgm";
 
-// The three names Flea is packaged under, src/update.rs's OPR_PACKAGE, AUR_PACKAGE and GIT_PACKAGE.
+// The signed repository package, src/update.rs's OPR_PACKAGE.
 pub const OPR_PACKAGE: &str = "flea";
-pub const AUR_PACKAGE: &str = "flea-bin";
-pub const GIT_PACKAGE: &str = "flea-git";
 
 // Each kind word src/update.rs prints, with the key of the sentence About shows for it.
-pub const SOURCES: [(&str, &str); 5] = [
+pub const SOURCES: [(&str, &str); 3] = [
     ("opr", "settings.about.source_opr"),
-    ("aur", "settings.about.source_aur"),
-    ("git", "settings.about.source_git"),
     ("local", "settings.about.source_local"),
     ("unowned", "settings.about.source_unowned"),
 ];
@@ -122,10 +118,6 @@ pub fn install_kind(owner: &str, signed: bool) -> &'static str {
         "unowned"
     } else if owner == OPR_PACKAGE && signed {
         "opr"
-    } else if owner == AUR_PACKAGE {
-        "aur"
-    } else if owner == GIT_PACKAGE {
-        "git"
     } else {
         "local"
     }

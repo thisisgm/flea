@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "7cf48c9b7ae7088a5ea88c3dfd9f77c12262676c2e3f046f4fe9f6174411fe32",
-  "catalog_sha256": "23f7b1fc906132824b271d9aa0473fef88e42b850c2ed655e84e1a838c0be5c3",
+  "catalog_file_sha256": "69d8c2b15c58abab35153a754ea33bce0023cd06edb8196ae6ab514ceaba0dd7",
+  "catalog_sha256": "268f97e25ac6c74363c8bd88dc7c7a5b58b69c695adc330fa3fc6b3d925d1b48",
   "counts": {
     "direct_references": 0,
-    "keys": 2040,
+    "keys": 2036,
     "plurals": 101
   },
   "direct_references": {},
@@ -74069,7 +74069,7 @@
       "call_sites": [
         {
           "excerpt": "Row::fact(\"settings.about.built\", or_key(&facts.built, \"settings.about.not_recorded\")),",
-          "line": 47,
+          "line": 43,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74091,7 +74091,7 @@
       "call_sites": [
         {
           "excerpt": "..Row::check(\"updates.autoCheck\", \"settings.about.check_automatically\", \"\", data_auto_check)",
-          "line": 89,
+          "line": 85,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74113,7 +74113,7 @@
       "call_sites": [
         {
           "excerpt": "caption: Text::Key(\"settings.about.check_automatically_caption\"),",
-          "line": 88,
+          "line": 84,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74135,7 +74135,7 @@
       "call_sites": [
         {
           "excerpt": "..Row::fact(\"settings.about.file_manager\", or_key(&facts.handler, \"settings.about.not_reported\"))",
-          "line": 60,
+          "line": 56,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74157,7 +74157,7 @@
       "call_sites": [
         {
           "excerpt": "Row::group(\"settings.about.group_language\"),",
-          "line": 51,
+          "line": 47,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74179,7 +74179,7 @@
       "call_sites": [
         {
           "excerpt": "out.push(Row::group(\"settings.about.group_this_computer\"));",
-          "line": 56,
+          "line": 52,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74201,7 +74201,7 @@
       "call_sites": [
         {
           "excerpt": "Row::group(\"settings.about.group_updates\"),",
-          "line": 53,
+          "line": 49,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74223,7 +74223,7 @@
       "call_sites": [
         {
           "excerpt": "Row::fact(\"settings.about.installed_from\", text_or(&facts.source, \"settings.about.not_reported\")),",
-          "line": 48,
+          "line": 44,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74245,7 +74245,7 @@
       "call_sites": [
         {
           "excerpt": "out.push(Row::action(\"keyboardSheet\", \"settings.about.keyboard_sheet\", \"keyboard\", Text::data(\"?\")));",
-          "line": 63,
+          "line": 59,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74267,7 +74267,7 @@
       "call_sites": [
         {
           "excerpt": "Row::action(\"language\", \"settings.about.language\", \"globe\", Text::data(language_name)),",
-          "line": 52,
+          "line": 48,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74289,7 +74289,7 @@
       "call_sites": [
         {
           "excerpt": "Row::fact(\"settings.about.license\", Text::Key(\"settings.about.license_text\")),",
-          "line": 50,
+          "line": 46,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74311,7 +74311,7 @@
       "call_sites": [
         {
           "excerpt": "Row::fact(\"settings.about.license\", Text::Key(\"settings.about.license_text\")),",
-          "line": 50,
+          "line": 46,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74333,7 +74333,7 @@
       "call_sites": [
         {
           "excerpt": "Some(\"\") => Text::Key(\"settings.about.not_owned\"),",
-          "line": 114,
+          "line": 110,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74355,7 +74355,7 @@
       "call_sites": [
         {
           "excerpt": "Row::fact(\"settings.about.built\", or_key(&facts.built, \"settings.about.not_recorded\")),",
-          "line": 47,
+          "line": 43,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74377,28 +74377,28 @@
       "call_sites": [
         {
           "excerpt": "Row::fact(\"settings.about.version\", or_key(&facts.version, \"settings.about.not_reported\")),",
-          "line": 46,
+          "line": 42,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
         },
         {
           "excerpt": "Row::fact(\"settings.about.installed_from\", text_or(&facts.source, \"settings.about.not_reported\")),",
-          "line": 48,
+          "line": 44,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
         },
         {
           "excerpt": "..Row::fact(\"settings.about.file_manager\", or_key(&facts.handler, \"settings.about.not_reported\"))",
-          "line": 60,
+          "line": 56,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
         },
         {
           "excerpt": "None => Text::Key(\"settings.about.not_reported\"),",
-          "line": 113,
+          "line": 109,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74420,7 +74420,7 @@
       "call_sites": [
         {
           "excerpt": "..Row::action(\"reportIssue\", \"settings.about.report_issue\", \"network\", Text::Key(\"settings.about.open\"))",
-          "line": 66,
+          "line": 62,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74442,7 +74442,7 @@
       "call_sites": [
         {
           "excerpt": "Row::fact(\"settings.about.package\", package_text(facts.package.as_deref())),",
-          "line": 49,
+          "line": 45,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74464,7 +74464,7 @@
       "call_sites": [
         {
           "excerpt": "..Row::action(\"reportIssue\", \"settings.about.report_issue\", \"network\", Text::Key(\"settings.about.open\"))",
-          "line": 66,
+          "line": 62,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74482,55 +74482,11 @@
       "resolved_source_hash": "635ae219ad13",
       "source_hash": "635ae219ad13"
     },
-    "settings.about.source_aur": {
-      "call_sites": [
-        {
-          "excerpt": "(\"aur\", \"settings.about.source_aur\"),",
-          "line": 17,
-          "path": "src/ui_logic_st1/about.rs",
-          "surface": "core/backend",
-          "usage": "key-declaration"
-        }
-      ],
-      "context": "settings.about.source_aur: src/ui_logic_st1/about.rs:17",
-      "coverage": "occurrence-needs-owner-verification",
-      "english": "AUR, flea-bin",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "AUR, flea-bin",
-      "resolved_sha256": "218216286c258b36c6a26a50f3cafa502158090618d39ae06a255e15067b3f2a",
-      "resolved_source_hash": "abb64e848ccf",
-      "source_hash": "abb64e848ccf"
-    },
-    "settings.about.source_git": {
-      "call_sites": [
-        {
-          "excerpt": "(\"git\", \"settings.about.source_git\"),",
-          "line": 18,
-          "path": "src/ui_logic_st1/about.rs",
-          "surface": "core/backend",
-          "usage": "key-declaration"
-        }
-      ],
-      "context": "settings.about.source_git: src/ui_logic_st1/about.rs:18",
-      "coverage": "occurrence-needs-owner-verification",
-      "english": "AUR, flea-git",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "AUR, flea-git",
-      "resolved_sha256": "e3b1b2bdbbdf1baae78ccecfd4be6d66d9d8094a2c5ef6591830abf4a6927475",
-      "resolved_source_hash": "f53cc3cad72f",
-      "source_hash": "f53cc3cad72f"
-    },
     "settings.about.source_local": {
       "call_sites": [
         {
           "excerpt": "(\"local\", \"settings.about.source_local\"),",
-          "line": 19,
+          "line": 15,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74552,7 +74508,7 @@
       "call_sites": [
         {
           "excerpt": "(\"opr\", \"settings.about.source_opr\"),",
-          "line": 16,
+          "line": 14,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74574,7 +74530,7 @@
       "call_sites": [
         {
           "excerpt": "(\"unowned\", \"settings.about.source_unowned\"),",
-          "line": 20,
+          "line": 16,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74596,7 +74552,7 @@
       "call_sites": [
         {
           "excerpt": "..Row::action(\"support\", \"settings.about.support\", \"\", Text::data(\"GitHub Sponsors\"))",
-          "line": 70,
+          "line": 66,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74618,7 +74574,7 @@
       "call_sites": [
         {
           "excerpt": "Row { value: Text::Key(\"settings.about.tagline\"), ..Row::new(Kind::Hero, Text::data(\"Flea\")) },",
-          "line": 45,
+          "line": 41,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74640,7 +74596,7 @@
       "call_sites": [
         {
           "excerpt": "..Row::new(kind, Text::Key(\"settings.about.update_flea\"))",
-          "line": 85,
+          "line": 81,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74662,7 +74618,7 @@
       "call_sites": [
         {
           "excerpt": "Row::fact(\"settings.about.version\", or_key(&facts.version, \"settings.about.not_reported\")),",
-          "line": 46,
+          "line": 42,
           "path": "src/ui_logic_st1/about.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -79925,7 +79881,7 @@
       "call_sites": [
         {
           "excerpt": "(Text::Key(\"settings.update.launch_failed\"), true)",
-          "line": 173,
+          "line": 171,
           "path": "src/ui_logic_st1/update.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -79969,7 +79925,7 @@
       "call_sites": [
         {
           "excerpt": "State::Failed => Some((Text::Key(\"settings.update.note_failed\"), Role::Foreground)),",
-          "line": 156,
+          "line": 155,
           "path": "src/ui_logic_st1/update.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -79991,7 +79947,7 @@
       "call_sites": [
         {
           "excerpt": "State::Launched => Some((Text::Key(\"settings.update.note_launched\"), Role::Accent)),",
-          "line": 155,
+          "line": 154,
           "path": "src/ui_logic_st1/update.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -80009,33 +79965,11 @@
       "resolved_source_hash": "0a54b6e8e631",
       "source_hash": "0a54b6e8e631"
     },
-    "settings.update.note_rolling": {
-      "call_sites": [
-        {
-          "excerpt": "State::Unchecked if status.kind == \"git\" => Some((Text::Key(\"settings.update.note_rolling\"), Role::Foreground)),",
-          "line": 157,
-          "path": "src/ui_logic_st1/update.rs",
-          "surface": "core/backend",
-          "usage": "key-declaration"
-        }
-      ],
-      "context": "settings.update.note_rolling: src/ui_logic_st1/update.rs:144",
-      "coverage": "occurrence-needs-owner-verification",
-      "english": "Rolling build: yay -Sua --devel follows main",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "Rolling build: yay -Sua --devel follows main",
-      "resolved_sha256": "666925c21d64d49825690301599bf094ad3d25efc90e49b341be266b47466bca",
-      "resolved_source_hash": "ade8e6bd1a83",
-      "source_hash": "ade8e6bd1a83"
-    },
     "settings.update.note_source": {
       "call_sites": [
         {
           "excerpt": "State::Unchecked => Some((Text::Key(\"settings.update.note_source\"), Role::Foreground)),",
-          "line": 158,
+          "line": 156,
           "path": "src/ui_logic_st1/update.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -80057,7 +79991,7 @@
       "call_sites": [
         {
           "excerpt": "(Text::Key(\"settings.update.opening\"), false)",
-          "line": 171,
+          "line": 169,
           "path": "src/ui_logic_st1/update.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -80075,33 +80009,11 @@
       "resolved_source_hash": "6cfe7cc462a5",
       "source_hash": "6cfe7cc462a5"
     },
-    "settings.update.rolling": {
-      "call_sites": [
-        {
-          "excerpt": "State::Unchecked if status.kind == \"git\" => Text::Key(\"settings.update.rolling\"),",
-          "line": 138,
-          "path": "src/ui_logic_st1/update.rs",
-          "surface": "core/backend",
-          "usage": "key-declaration"
-        }
-      ],
-      "context": "settings.update.rolling: src/ui_logic_st1/update.rs:125",
-      "coverage": "occurrence-needs-owner-verification",
-      "english": "flea-git · rolling",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [],
-      "plural_categories": [],
-      "resolved_english": "flea-git · rolling",
-      "resolved_sha256": "9c512fa9e9040ac53521889d32d615c9c80e10ecfc36cae33502e8b6d9d87f57",
-      "resolved_source_hash": "68bbc1ac9266",
-      "source_hash": "68bbc1ac9266"
-    },
     "settings.update.source": {
       "call_sites": [
         {
           "excerpt": "State::Unchecked => Text::Key(\"settings.update.source\"),",
-          "line": 139,
+          "line": 138,
           "path": "src/ui_logic_st1/update.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -155746,7 +155658,7 @@
     },
     {
       "excerpt": "Row { value: Text::Key(\"settings.about.tagline\"), ..Row::new(Kind::Hero, Text::data(\"Flea\")) },",
-      "line": 45,
+      "line": 41,
       "literal": "Flea",
       "owner": "controller",
       "path": "src/ui_logic_st1/about.rs",
@@ -155755,7 +155667,7 @@
     },
     {
       "excerpt": "..Row::action(\"reportIssue\", \"settings.about.report_issue\", \"network\", Text::Key(\"settings.about.open\"))",
-      "line": 66,
+      "line": 62,
       "literal": "network",
       "owner": "controller",
       "path": "src/ui_logic_st1/about.rs",
@@ -155764,7 +155676,7 @@
     },
     {
       "excerpt": "..Row::action(\"support\", \"settings.about.support\", \"\", Text::data(\"GitHub Sponsors\"))",
-      "line": 70,
+      "line": 66,
       "literal": "GitHub Sponsors",
       "owner": "controller",
       "path": "src/ui_logic_st1/about.rs",
@@ -155773,7 +155685,7 @@
     },
     {
       "excerpt": "\"Name\" => facts.package = value.to_owned(),",
-      "line": 151,
+      "line": 143,
       "literal": "Name",
       "owner": "controller",
       "path": "src/ui_logic_st1/about.rs",
@@ -155782,7 +155694,7 @@
     },
     {
       "excerpt": "\"Version\" if facts.package.is_empty() => facts.package = value.to_owned(),",
-      "line": 152,
+      "line": 144,
       "literal": "Version",
       "owner": "controller",
       "path": "src/ui_logic_st1/about.rs",
@@ -155791,7 +155703,7 @@
     },
     {
       "excerpt": "\"Version\" => facts.package = format!(\"{} {}\", facts.package, value),",
-      "line": 153,
+      "line": 145,
       "literal": "Version",
       "owner": "controller",
       "path": "src/ui_logic_st1/about.rs",
@@ -155800,7 +155712,7 @@
     },
     {
       "excerpt": "\"Build Date\" => facts.built = value.to_owned(),",
-      "line": 154,
+      "line": 146,
       "literal": "Build Date",
       "owner": "controller",
       "path": "src/ui_logic_st1/about.rs",
@@ -155809,7 +155721,7 @@
     },
     {
       "excerpt": "\"Validated By\" => facts.signed = value.split_whitespace().any(|method| method == \"Signature\"),",
-      "line": 156,
+      "line": 148,
       "literal": "Validated By",
       "owner": "controller",
       "path": "src/ui_logic_st1/about.rs",
@@ -155818,7 +155730,7 @@
     },
     {
       "excerpt": "\"Validated By\" => facts.signed = value.split_whitespace().any(|method| method == \"Signature\"),",
-      "line": 156,
+      "line": 148,
       "literal": "Signature",
       "owner": "controller",
       "path": "src/ui_logic_st1/about.rs",
@@ -158284,7 +158196,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: Omarchy's updater could not be started, so nothing was updated\");",
-      "line": 115,
+      "line": 99,
       "literal": "flea: Omarchy's updater could not be started, so nothing was updated",
       "owner": "controller",
       "path": "src/update.rs",
@@ -158293,7 +158205,7 @@
     },
     {
       "excerpt": "return failed(kind_for(&owner, false), None, \"pacman could not find the package that installed Flea\");",
-      "line": 126,
+      "line": 110,
       "literal": "pacman could not find the package that installed Flea",
       "owner": "controller",
       "path": "src/update.rs",
@@ -158302,7 +158214,7 @@
     },
     {
       "excerpt": "return failed(kind, None, \"the installed Flea reports a version this check cannot compare\");",
-      "line": 154,
+      "line": 137,
       "literal": "the installed Flea reports a version this check cannot compare",
       "owner": "controller",
       "path": "src/update.rs",
@@ -158311,7 +158223,7 @@
     },
     {
       "excerpt": "return failed(kind, installed, \"the package source answered with a version this check cannot compare\");",
-      "line": 160,
+      "line": 143,
       "literal": "the package source answered with a version this check cannot compare",
       "owner": "controller",
       "path": "src/update.rs",
@@ -158320,7 +158232,7 @@
     },
     {
       "excerpt": "None => State::Failed(\"the two versions could not be compared\"),",
-      "line": 171,
+      "line": 154,
       "literal": "the two versions could not be compared",
       "owner": "controller",
       "path": "src/update.rs",
@@ -158329,7 +158241,7 @@
     },
     {
       "excerpt": "let why = \"the package mirrors could not be asked for a newer Flea\";",
-      "line": 188,
+      "line": 171,
       "literal": "the package mirrors could not be asked for a newer Flea",
       "owner": "controller",
       "path": "src/update.rs",
@@ -158337,17 +158249,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let why = \"the AUR could not be asked for a newer Flea\";",
-      "line": 199,
-      "literal": "the AUR could not be asked for a newer Flea",
-      "owner": "controller",
-      "path": "src/update.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "\"Version\" => version = Some(value.trim().to_string()),",
-      "line": 243,
+      "line": 217,
       "literal": "Version",
       "owner": "controller",
       "path": "src/update.rs",
@@ -158356,7 +158259,7 @@
     },
     {
       "excerpt": "\"Validated By\" => signed = value.split_whitespace().any(|method| method == \"Signature\"),",
-      "line": 245,
+      "line": 219,
       "literal": "Validated By",
       "owner": "controller",
       "path": "src/update.rs",
@@ -158365,26 +158268,8 @@
     },
     {
       "excerpt": "\"Validated By\" => signed = value.split_whitespace().any(|method| method == \"Signature\"),",
-      "line": 245,
+      "line": 219,
       "literal": "Signature",
-      "owner": "controller",
-      "path": "src/update.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let found = results.iter().find(|r| r.get(\"Name\").and_then(Json::as_str) == Some(package))?;",
-      "line": 279,
-      "literal": "Name",
-      "owner": "controller",
-      "path": "src/update.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "found.get(\"Version\").and_then(Json::as_str).map(str::to_string)",
-      "line": 280,
-      "literal": "Version",
       "owner": "controller",
       "path": "src/update.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -214020,27 +213905,9 @@
       "surface": "qml-reference"
     },
     {
-      "excerpt": "var SOURCES = { opr: \"Omarchy Package Repository\", aur: \"AUR, flea-bin\", git: \"AUR, flea-git\",",
+      "excerpt": "var SOURCES = { opr: \"Omarchy Package Repository\",",
       "line": 60,
       "literal": "Omarchy Package Repository",
-      "owner": "controller",
-      "path": "ui/js/SettingsAbout.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "var SOURCES = { opr: \"Omarchy Package Repository\", aur: \"AUR, flea-bin\", git: \"AUR, flea-git\",",
-      "line": 60,
-      "literal": "AUR, flea-bin",
-      "owner": "controller",
-      "path": "ui/js/SettingsAbout.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "var SOURCES = { opr: \"Omarchy Package Repository\", aur: \"AUR, flea-bin\", git: \"AUR, flea-git\",",
-      "line": 60,
-      "literal": "AUR, flea-git",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -214066,7 +213933,7 @@
     },
     {
       "excerpt": "if (key === \"Name\")",
-      "line": 88,
+      "line": 86,
       "literal": "Name",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -214075,7 +213942,7 @@
     },
     {
       "excerpt": "else if (key === \"Version\")",
-      "line": 90,
+      "line": 88,
       "literal": "Version",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -214084,7 +213951,7 @@
     },
     {
       "excerpt": "else if (key === \"Build Date\")",
-      "line": 92,
+      "line": 90,
       "literal": "Build Date",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -214093,7 +213960,7 @@
     },
     {
       "excerpt": "else if (key === \"Validated By\")",
-      "line": 95,
+      "line": 93,
       "literal": "Validated By",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -214102,7 +213969,7 @@
     },
     {
       "excerpt": "facts.signed = value.split(/\\s+/).indexOf(\"Signature\") >= 0",
-      "line": 96,
+      "line": 94,
       "literal": "Signature",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -215334,17 +215201,8 @@
       "surface": "qml-reference"
     },
     {
-      "excerpt": "rolling: \"flea-git · rolling\",",
-      "line": 20,
-      "literal": "flea-git · rolling",
-      "owner": "controller",
-      "path": "ui/js/Update.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
       "excerpt": "source: \"Built from source\",",
-      "line": 21,
+      "line": 20,
       "literal": "Built from source",
       "owner": "controller",
       "path": "ui/js/Update.js",
@@ -215353,7 +215211,7 @@
     },
     {
       "excerpt": "noteLaunched: \"Restart Flea when the update finishes\",",
-      "line": 22,
+      "line": 21,
       "literal": "Restart Flea when the update finishes",
       "owner": "controller",
       "path": "ui/js/Update.js",
@@ -215362,7 +215220,7 @@
     },
     {
       "excerpt": "noteFailed: \"Offline: Omarchy update still opens\",",
-      "line": 23,
+      "line": 22,
       "literal": "Offline: Omarchy update still opens",
       "owner": "controller",
       "path": "ui/js/Update.js",
@@ -215370,17 +215228,8 @@
       "surface": "qml-reference"
     },
     {
-      "excerpt": "noteRolling: \"Rolling build: yay -Sua --devel follows main\",",
-      "line": 24,
-      "literal": "Rolling build: yay -Sua --devel follows main",
-      "owner": "controller",
-      "path": "ui/js/Update.js",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
       "excerpt": "noteSource: \"Built locally: rebuild from the checkout\",",
-      "line": 25,
+      "line": 23,
       "literal": "Built locally: rebuild from the checkout",
       "owner": "controller",
       "path": "ui/js/Update.js",
@@ -215389,7 +215238,7 @@
     },
     {
       "excerpt": "opening: \"Opening Omarchy update · restart Flea when it finishes\",",
-      "line": 26,
+      "line": 24,
       "literal": "Opening Omarchy update · restart Flea when it finishes",
       "owner": "controller",
       "path": "ui/js/Update.js",
@@ -215398,7 +215247,7 @@
     },
     {
       "excerpt": "launchFailed: \"Omarchy's updater could not be started.\"",
-      "line": 27,
+      "line": 25,
       "literal": "Omarchy's updater could not be started.",
       "owner": "controller",
       "path": "ui/js/Update.js",
@@ -217228,7 +217077,7 @@
     "src/ui_logic_sr2/tests_matcher.rs": "7bf32084806852e214e857739045c007852db4e171f588f082bda093b2ac2d8b",
     "src/ui_logic_sr2/tests_same.rs": "d0b57434b0d8b05f50df661be2699deae4d22df3953d57fa9db791108e32bc71",
     "src/ui_logic_st1.rs": "ffb0e88d1640f592e3e48778a4f4a8501f1e08e8d73e00bad6235be493327e44",
-    "src/ui_logic_st1/about.rs": "1c7a2811dc8fbc5f515df503624d33bbdf68381ac0b26ac7336dc4813782b622",
+    "src/ui_logic_st1/about.rs": "db5b9cfdc0d4480f1b63f05a5eb4b5a2af4e113d40413bb54c82f48cd165b0b2",
     "src/ui_logic_st1/caps.rs": "54f200e440c6ce6aa50c297f9886a5f312232070a784f75b49b549de7805ebd9",
     "src/ui_logic_st1/edit.rs": "afde2158935fe8569e579c3e240548753fffa4b326b8ac246e08143c81f6bbc8",
     "src/ui_logic_st1/menus.rs": "6d9f8d26c2951e9cc511c33527f419439104a28503a284624e807a30d3b6a4da",
@@ -217247,7 +217096,7 @@
     "src/ui_logic_st1/uistate_tests_b.rs": "30bc96cd77d9f479a7b521073f6c9df26749ca574d39558a09ccd4a8a945a094",
     "src/ui_logic_st1/uistate_tests_c.rs": "e93c128044612d1f48d8ed4513cdde94314bbfebe57c709de7ced5a515d74b15",
     "src/ui_logic_st1/uistate_tests_d.rs": "9de96937702c45cac257bea3c8bc632f593de456a21c2ae4214bbd5ca96f7179",
-    "src/ui_logic_st1/update.rs": "61d7d7bdb19d3d0f40fab9a560af74c4951f74bb95814f363b6a99674ed07026",
+    "src/ui_logic_st1/update.rs": "b234f32456be9529f5146584e0331927d4bfe84f5d78ba24e940cc080fb89b5c",
     "src/ui_logic_st1/visible.rs": "40e686a53fd5b4793b3044feaae6893d814f60acbe430431628f5406363da71f",
     "src/ui_logic_st1/words.rs": "6823f05a037166d8b64d4c379acd757e5db95988e24a7b8be98a835463afa28a",
     "src/ui_logic_st2.rs": "1ffb051a6f284de6ffdc0875cf75998a08a7697458c91ad206801dd2e81f423e",
@@ -217265,7 +217114,7 @@
     "src/uistatecli.rs": "c629c0f34474bbe67edb0276457b295e8ed33bfd028e2c73779dfd05ab7cc30e",
     "src/uistore.rs": "8df2c75485947e0b6495ab3846a38cb17c48b1eace425a406e7b23af24cc4474",
     "src/unlock.rs": "63e84bd386bc725c4a2b84cfec87e19210455812305f6caeb86f5ceb86c43c36",
-    "src/update.rs": "27d0d91faec731d2bd5b05a99e040acf5bac27fdb89470e6f775e3e6201067db",
+    "src/update.rs": "51deae597a60a2fb334c3e4d6e586aad68f8ca499bcdc774c25055ed035ba921",
     "src/usage.rs": "ce21d837809df9f513f2113f3d828892a732a22728ac5a32de979110433f1342",
     "src/userfile.rs": "c8ba8011cccc3b6c00b40ea2b39039d1309d8281605856ef2cb8c760afb5cf22",
     "src/vkprobecache.rs": "10ae20a28ff710494f07d7b04027d3e0844810e47c4a1a4c2c60699da5f62dca",
@@ -217799,7 +217648,7 @@
     "ui/js/Search.js": "6a7d7bca60fe4386c10bb2913c583050d1b3050445f27d346ed56cc37350845f",
     "ui/js/Selection.js": "adccbc00e173383fd4d1373303514612681b9bc2e588880a0065cc1d0d0001fc",
     "ui/js/Settings.js": "90bc09df01131822bc1cf62109d90d8a982de74596090b0b4ec58d7c8aa7be50",
-    "ui/js/SettingsAbout.js": "c3887740e4fa7e1f76b2435de22284f29b00e8dfe05ab15d2044e19b75bcf116",
+    "ui/js/SettingsAbout.js": "be725682ecd1f431fe0b8c64017e38590db35fcee82a52380404ddbdc38a421a",
     "ui/js/SettingsShelf.js": "2eae51fbc0bf3fffeb7ed3baf15fb793a3b1e33238da23064b23ef3174ae7eee",
     "ui/js/SheetKeys.js": "ae38ddc6a24fb666c8eef7bc09cd8269a0c6bb321cc33a3525dc8e994abca903",
     "ui/js/SheetQuery.js": "b398e9d74c6bb5fddf9d1168f9920ee95bd0747018fb5d44bf4de935c050b09f",
@@ -217824,7 +217673,7 @@
     "ui/js/TrashDrop.js": "ab05a8d8f8d7dfd37b137358e832734041ef12389a943a002be5ac6249dd8085",
     "ui/js/UiState.js": "5aba9267e12e952d151657095342168b16b148601e6f0462c3ecafd02186cc39",
     "ui/js/Unlock.js": "ba600b1dec83f99b16fe0acbe5e364ac41407aacd03e9426cefe0b69b39c17ad",
-    "ui/js/Update.js": "835c0ca8cc1db902e27fa9ab1b3ba81641b45dc1c80f76dd2827508f7577c7b6",
+    "ui/js/Update.js": "fa8f12147afb77b5e36b59a6a4480fe813f2d027c5859dc54e61f23b189b204e",
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
@@ -217832,8 +217681,8 @@
   "source_sha": "b4e0eee44f2b6a33d7e85ede76b982e8a8db1e48",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1283,
-      "missing_literal_candidates": 5611,
+      "keys_with_occurrences": 1279,
+      "missing_literal_candidates": 5608,
       "source_files": 789
     },
     "generated/tooling": {
@@ -217848,7 +217697,7 @@
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
-      "missing_literal_candidates": 2136,
+      "missing_literal_candidates": 2132,
       "source_files": 412
     },
     "tui": {

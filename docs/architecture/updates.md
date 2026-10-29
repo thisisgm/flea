@@ -16,24 +16,23 @@ decides the kind:
   databases without root and exits 0 with updates, 2 with none and 1 on an error; it is never given
   `--nosync`, which answers 2 when it has no copy to read. GitHub is never asked for OPR, because it
   would announce a tag OPR cannot install yet.
-- `flea-bin` asks the AUR's RPC v5 `info` endpoint once: `curl -q --silent --fail --globoff --max-time 10
-  --max-filesize 1M`, `-q` first so the user's `~/.curlrc` is never read, `--globoff` because `arg[]` is
-  otherwise curl's own glob syntax, and a body over 1 MiB is refused in Rust too. `src/jsondoc.rs` parses
-  it. The release workflow pushes a version to the AUR only after its makepkg proof.
-- `flea-git`, a `flea` no signature validated (a local `makepkg -si` build), any other owner name, and a
-  binary no package owns are all `unchecked`: no source describes them, and none is asked.
+- Any other owner is `local`: a `flea` no signature validated (a local `makepkg -si` build), the former
+  AUR names `flea-bin` and `flea-git`, and any other name. A binary no package owns is `unowned`. Both
+  are `unchecked`: no source describes them, and none is asked. A box that still has an AUR package moves
+  to OPR's `flea` through `omarchy update` once the OPR recipe declares `replaces=('flea-bin' 'flea-git')`:
+  pacman's `-Syu` takes that replacement, and upgrades a same-name AUR `flea` to a newer repository build.
 
 Every version that reaches `vercmp` or a screen matches `^[0-9]+(\.[0-9]+){2}-[0-9]+$` first, which is
 how network text is kept out of the line; `vercmp` then decides. The line is
 `<state> <kind> <installed> <latest>`, the states `available`, `current`, `failed` and `unchecked`, the
-kinds `opr`, `aur`, `git`, `local` and `unowned`, and `-` for a version the check does not have. See
+kinds `opr`, `local` and `unowned`, and `-` for a version the check does not have. See
 "Modes" for the exit statuses.
 
 **What is launched.** `flea --update` spawns `omarchy-launch-floating-terminal-with-presentation
 omarchy-update`, the command Omarchy's own menu and its bar widget run, as a fixed argv; nothing the
-network said reaches argv or a shell. It updates OPR `flea` through pacman and `flea-bin` through
-`yay -Sua`, with Omarchy's snapshot, keyring, migrations and pacman guard in step, and it asks for sudo
-in a real terminal. It goes through Rust for the same reason `--terminal` does, "Transparent huge
+network said reaches argv or a shell. It updates OPR `flea` through pacman, with Omarchy's snapshot,
+keyring, migrations and pacman guard in step, and it asks for sudo in a real terminal. It goes through
+Rust for the same reason `--terminal` does, "Transparent huge
 pages": `terminal::detach` is the one set of guards both use, the huge page hand-back, the display-GPU
 pin and theme trade dropped, `/dev/null` on all three descriptors and a process group of its own.
 
@@ -42,7 +41,7 @@ binary is package-owned, so `pacman -Qkk` would fail and the next upgrade would 
 package also ships the QML under `/usr/share/flea/ui`, the helpers, the portal and two D-Bus services,
 so a newer binary against older QML is a skew bug; a `~/.local/bin` copy would put two Fleas on the box;
 and it would need HTTP, TLS and archive code this crate does not have, for no more than same-origin
-checksum integrity. OPR's signature and the `flea-bin` checksum makepkg verifies remain the authenticity.
+checksum integrity. OPR's signature remains the authenticity.
 
 **The window.** `ui/UpdateCheck.qml` is a singleton that owns both processes, the state (pure, in
 `ui/js/Update.js`) and two `Timer`s. A check starts four ways: Enter on Settings > About's Update Flea
@@ -55,7 +54,7 @@ an answer from the last six hours stands, and a failed check never stands. The r
 the caption and the note line follow the Update Flea boards (`UpdateStates`, `Main` and `UpdateMenu` in
 the 0.3.3 design canvas). Enter checks from idle and up to date, opens Omarchy's updater from available
 and from a check that failed, because the updater can still run, and does nothing while a check or an
-update runs; a rolling or local build is a fact row. A launch is final for the process: the row reads
+update runs; a local or unpackaged build is a fact row. A launch is final for the process: the row reads
 "Updating in terminal", the note asks for a restart, and no automatic check runs again, because pacman
 may replace QML this process still loads lazily.
 
@@ -69,19 +68,17 @@ Extras switch in Settings > Menus and ships visible. `ui/js/Focus.js` reaches th
 **Privacy.** This is the first request Flea can make on its own: `Cargo.toml` has no dependencies, and
 everything else that reaches another machine, a network mount or a LocalSend send through `localsend-cli`,
 starts from something someone did. For an OPR install it is `checkupdates` fetching the
-sync databases from the mirrors pacman already uses; for `flea-bin` it is one GET to
-`aur.archlinux.org` with curl's own user agent, naming the `flea-bin` package and nothing about the box,
-its installed version or its user. A rolling, local or
-unpackaged build makes no request at all, only the two local pacman queries. Requests happen only on a
-press of Update Flea, when Settings > About opens, one minute after a window opens (off the launch
+sync databases from the mirrors pacman already uses. A local or unpackaged build makes no request at
+all, only the two local pacman queries. Requests happen only on a press of Update Flea, when Settings >
+About opens, one minute after a window opens (off the launch
 path, so no benchmark or first frame pays for it) and every six hours after that, all but the first
 only with "Check automatically" on; off means nothing leaves the box until someone presses the row.
 Nothing is written: the answer lives in the running process.
 
 **Tests.** `src/update_tests.rs` feeds each parser canned output and never runs pacman.
 `tests/update.sh` drives the binary with only a stub directory on `PATH`, so a program the suite forgot to
-stub fails to start rather than reaching a mirror, and asserts the printed line, the exit status, the curl
-argv, the presenter's argv, descriptors and process group, and the huge page hand-back through a stub
+stub fails to start rather than reaching a mirror, and asserts the printed line, the exit status, that curl
+never runs, the presenter's argv, descriptors and process group, and the huge page hand-back through a stub
 `qs`. `tests/js/update.js`, `tests/js/settingsabout.js`, `tests/js/menu.js` and `tests/js/settingsmenus.js`
 hold the row states, the About rows, the menu row and its switch. The GUI suites launch a `target/`
 binary, which no package owns, so an automatic check there answers `unchecked unowned` and asks nothing.

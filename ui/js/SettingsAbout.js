@@ -53,22 +53,20 @@ function autoCheck(data) {
     return ((data || {}).updates || {}).autoCheck !== false
 }
 
-// The three names Flea is packaged under, src/update.rs's OPR_PACKAGE, AUR_PACKAGE and GIT_PACKAGE.
-var PACKAGES = { opr: "flea", aur: "flea-bin", git: "flea-git" }
+// The signed repository package, src/update.rs's OPR_PACKAGE.
+var PACKAGES = { opr: "flea" }
 
 // Installed from, one sentence per kind src/update.rs derives, so this row and the Update Flea row name one source.
-var SOURCES = { opr: "Omarchy Package Repository", aur: "AUR, flea-bin", git: "AUR, flea-git",
+var SOURCES = { opr: "Omarchy Package Repository",
                 local: "Local package", unowned: "Not from a package" }
 
-// src/update.rs kind_for, over pacman -Qqo's owner ("" when no package owns Flea); pacman -Si knows no AUR package.
+// src/update.rs kind_for, over pacman -Qqo's owner ("" when no package owns Flea).
 function installKind(owner, signed) {
     if (!owner)
         return "unowned"
     if (owner === PACKAGES.opr && signed)
         return "opr"
-    if (owner === PACKAGES.aur)
-        return "aur"
-    return owner === PACKAGES.git ? "git" : "local"
+    return "local"
 }
 
 function installedFrom(owner, signed) {
@@ -76,7 +74,7 @@ function installedFrom(owner, signed) {
 }
 
 // pacman -Qi under LC_ALL=C, read the way src/update.rs package_info reads it; "" for a query that failed.
-// Sample input: "Name            : flea-bin\nVersion         : 0.3.4-1\nBuild Date      : Wed Sep 23 12:40:50 2026\nValidated By    : None\n"
+// Sample input: "Name            : flea\nVersion         : 0.3.4-1\nBuild Date      : Wed Sep 23 12:40:50 2026\nValidated By    : None\n"
 function packageFacts(text) {
     var facts = { package: "", built: "", signed: false }
     var lines = String(text || "").split("\n")

@@ -88,7 +88,7 @@ pub fn acts(status: &Status) -> bool {
     !on_activate(status).is_empty()
 }
 
-// A rolling or local build has nothing to check or launch, so its row is a fact.
+// A local build has nothing to check or launch, so its row is a fact.
 pub fn is_fact(status: &Status) -> bool {
     status.state == State::Unchecked
 }
@@ -135,7 +135,6 @@ pub fn value(status: &Status) -> Text {
         State::Current => Text::args("settings.update.current", vec![Text::data(pkgver(&status.installed))]),
         State::Failed => Text::Key("settings.update.failed"),
         State::Launched => Text::Key("settings.update.launched"),
-        State::Unchecked if status.kind == "git" => Text::Key("settings.update.rolling"),
         State::Unchecked => Text::Key("settings.update.source"),
     }
 }
@@ -154,7 +153,6 @@ pub fn note(status: &Status) -> Option<(Text, Role)> {
     match status.state {
         State::Launched => Some((Text::Key("settings.update.note_launched"), Role::Accent)),
         State::Failed => Some((Text::Key("settings.update.note_failed"), Role::Foreground)),
-        State::Unchecked if status.kind == "git" => Some((Text::Key("settings.update.note_rolling"), Role::Foreground)),
         State::Unchecked => Some((Text::Key("settings.update.note_source"), Role::Foreground)),
         _ => None,
     }

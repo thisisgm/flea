@@ -5,8 +5,8 @@ use crate::ui_logic_st1::test_support::say;
 const HOUR: u64 = 60 * 60 * 1000;
 const AVAILABLE: &str = "available opr 0.3.3-1 0.3.4-1\n";
 const CURRENT: &str = "current opr 0.3.3-1 -";
-const OFFLINE: &str = "failed aur 0.3.3-1 -";
-const ROLLING: &str = "unchecked git - -";
+const OFFLINE: &str = "failed opr 0.3.3-1 -";
+const OTHER: &str = "unchecked git - -";
 const SOURCE: &str = "unchecked local 0.3.3-1 -";
 
 fn after(line: &str) -> Status {
@@ -71,8 +71,8 @@ fn offline_still_acts() {
 }
 
 #[test]
-fn flea_git_is_rolling() {
-    assert_eq!(drawn(&after(ROLLING)), "flea-git · rolling|live|false");
+fn any_unchecked_kind_reads_as_built_from_source() {
+    assert_eq!(drawn(&after(OTHER)), "Built from source|live|false");
 }
 
 #[test]
@@ -87,7 +87,7 @@ fn unowned_binary_is_built_from_source() {
 
 #[test]
 fn only_unchecked_kinds_are_facts() {
-    let list = [idle(), after(CURRENT), after(ROLLING), after(SOURCE), after("unchecked unowned - -")]
+    let list = [idle(), after(CURRENT), after(OTHER), after(SOURCE), after("unchecked unowned - -")]
         .iter()
         .map(|status| format!("{}/{}", is_fact(status), acts(status)))
         .collect::<Vec<_>>()
@@ -97,7 +97,7 @@ fn only_unchecked_kinds_are_facts() {
 
 #[test]
 fn rebuild_names_the_package_release() {
-    assert_eq!(say(&value(&after("available aur 0.3.3-1 0.3.3-2"))), "0.3.3-2 available");
+    assert_eq!(say(&value(&after("available opr 0.3.3-1 0.3.3-2"))), "0.3.3-2 available");
 }
 
 #[test]
@@ -132,7 +132,7 @@ fn available_and_offline_open_the_updater() {
 
 #[test]
 fn enter_does_nothing_while_busy_or_on_a_fact() {
-    let list = [checking(&idle()), launched_from(&after(AVAILABLE), true), after(ROLLING), after(SOURCE)]
+    let list = [checking(&idle()), launched_from(&after(AVAILABLE), true), after(OTHER), after(SOURCE)]
         .iter()
         .map(next)
         .collect::<Vec<_>>()
@@ -175,11 +175,11 @@ fn the_note_asks_for_a_restart_in_the_accent_after_a_launch() {
 }
 
 #[test]
-fn the_note_explains_offline_rolling_and_source_in_the_foreground() {
-    let list = [OFFLINE, ROLLING, SOURCE].iter().map(|line| noted(&after(line))).collect::<Vec<_>>().join(", ");
+fn the_note_explains_offline_and_all_unchecked_builds_in_the_foreground() {
+    let list = [OFFLINE, OTHER, SOURCE].iter().map(|line| noted(&after(line))).collect::<Vec<_>>().join(", ");
     assert_eq!(
         list,
-        "Offline: Omarchy update still opens|foreground, Rolling build: yay -Sua --devel follows main|foreground, \
+        "Offline: Omarchy update still opens|foreground, Rebuild from the checkout to update.|foreground, \
          Rebuild from the checkout to update.|foreground"
     );
 }
@@ -233,13 +233,13 @@ fn an_answer_a_whole_period_old_is_asked_again() {
 
 #[test]
 fn an_available_or_unchecked_answer_inside_the_period_stands_too() {
-    let list = [after(AVAILABLE), after(ROLLING)].iter().map(|s| due(s, 1000 + 6 * HOUR - 1, true)).collect::<Vec<_>>();
+    let list = [after(AVAILABLE), after(OTHER)].iter().map(|s| due(s, 1000 + 6 * HOUR - 1, true)).collect::<Vec<_>>();
     assert_eq!(list, vec![false, false]);
 }
 
 #[test]
 fn an_available_or_unchecked_answer_is_asked_again_once_a_period_old() {
-    let list = [after(AVAILABLE), after(ROLLING)].iter().map(|s| due(s, 1000 + 6 * HOUR, true)).collect::<Vec<_>>();
+    let list = [after(AVAILABLE), after(OTHER)].iter().map(|s| due(s, 1000 + 6 * HOUR, true)).collect::<Vec<_>>();
     assert_eq!(list, vec![true, true]);
 }
 
@@ -255,7 +255,7 @@ fn the_menu_row_exists_only_while_a_newer_build_is_known() {
         checking(&idle()),
         after(CURRENT),
         after(OFFLINE),
-        after(ROLLING),
+        after(OTHER),
         after(SOURCE),
         launched_from(&after(AVAILABLE), true),
     ]
@@ -272,7 +272,7 @@ fn the_menu_hint_is_that_version() {
 
 #[test]
 fn the_menu_hint_is_the_package_release_when_only_that_moved() {
-    assert_eq!(menu_version(&after("available aur 0.3.3-1 0.3.3-2")), "0.3.3-2");
+    assert_eq!(menu_version(&after("available opr 0.3.3-1 0.3.3-2")), "0.3.3-2");
 }
 
 #[test]
