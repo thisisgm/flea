@@ -200,7 +200,7 @@ tests/rename-grid-bottom.qml 439
 tests/rename-grid-bottom.js 351
 tests/js/runfile.js 313
 tests/ring-bounds.qml 710
-tests/menu-fit.qml 448
+tests/menu-fit.qml 453
 tests/search-live.qml 417
 tests/sidebar-flows.qml 691
 tests/touchpad.qml 882

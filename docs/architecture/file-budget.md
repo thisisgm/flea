@@ -1587,6 +1587,8 @@ The gcomp join onto the G line re-derives three scoped ceilings with `wc -l`: `s
 
 The search worker repair routes the walk landing and a held refresh through the execution gate before a closed stdin can quit. `src/backend/run.rs` moves from its recorded 1254 ceiling (1256 lines at the integration join, already two over it) to 1260, re-derived with `wc -l`, and `src/backend/searchwalk.rs` crosses the 400-line cap at 403 for the test-only probe that marks the walk's final landing send; global limits are unchanged.
 
+The QML menu's unavailable-app rows draw red with no state word, and the review of that change moves `tests/menu-fit.qml` from 448 to 453, re-derived with `wc -l`, because the errored scenes now check that a drawn permissions word still counts toward its row's wanted width and that every unavailable app row fits `Theme.menuWidth`. Global limits are unchanged.
+
 ---
 
 Navigation: [architecture index](README.md),

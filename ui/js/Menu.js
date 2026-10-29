@@ -229,8 +229,8 @@ function availableEntry(e, p, kind) {
         delete e.glyph
         e.submenu = p.taildropPeers || []
         e.disabled = p.taildropRefreshing === true || !e.submenu.length
-        // The row says it cannot answer by red and one state word, not the reason: a sentence widened the menu past its frame mid-read.
-        if (e.disabled && p.taildropRefreshing !== true) { e.errored = true; e.hint = StateWords.taildrop(p) }
+        // Unavailable app rows read red with no state word, so the menu keeps its size (GM 2026-10-29).
+        if (e.disabled && p.taildropRefreshing !== true) e.errored = true
     }
     // Absent rather than greyed when nothing is installed, the Menu board's rule for a row whose
     // whole destination is missing; the row is a plain send, so it has no submenu and no reason.
@@ -241,13 +241,13 @@ function availableEntry(e, p, kind) {
         delete e.glyph
         e.submenu = p.localSendPeers || []
         e.disabled = p.localSendChecking === true || !e.submenu.length
-        if (e.disabled && p.localSendChecking !== true) { e.errored = true; e.hint = StateWords.localsend(p) }
+        if (e.disabled && p.localSendChecking !== true) e.errored = true
     }
     if (e.action === "dropbox" || e.action === "sharelink") {
         if (!p.dropboxInstalled || (e.action === "dropbox" ? p.rowInDropbox : !p.rowInDropbox)) return false
         e.disabled = p.dropboxRefreshing === true || !p.dropboxPath
         if (e.action === "dropbox") { e.mark = "dropbox"; delete e.glyph }
-        if (e.disabled && p.dropboxRefreshing !== true) { e.errored = true; e.hint = StateWords.dropbox(p) }
+        if (e.disabled && p.dropboxRefreshing !== true) e.errored = true
     }
     if (e.action === "sort") e.submenu = sortEntries(p.hasFolderSort === true)
     // Present only while a check has found a newer build, whose version rides the hint slot beside the status square.
