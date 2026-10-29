@@ -39,7 +39,10 @@ pub enum Event {
     Activate(RailEntry),
     Menu(RailEntry),
     Tab(RailEntry),
-    Rename { entry: RailEntry, label: String },
+    Rename {
+        entry: RailEntry,
+        label: String,
+    },
     /// The eject mark's click or its keyboard frame: the row's own release, as Sidebar.ejectRow.
     Release(RailEntry),
 }
@@ -67,6 +70,8 @@ pub struct Producer {
     pub(crate) side: usize,
     request_id: u64,
     editor_dragging: bool,
+    ime_session: Option<u64>,
+    ime_focus: Option<gpui::FocusHandle>,
     pub directory_reads: u64,
     tail: Vec<RailSection>,
     pub sections: Vec<RailSection>,
@@ -77,7 +82,12 @@ pub struct Producer {
     pub laid: Rc<RefCell<Laid>>,
     pub typeface: Typeface,
     events: RefCell<Vec<Request>>,
+    /// The window's row-drag receiver: a drag from the listing released over the rows lands through it.
+    pub(crate) drop_sink: Option<DropSink>,
 }
+
+/// Called with no producer lease held, so the window may read the rows it lands on.
+pub(crate) type DropSink = Rc<dyn Fn(&mut gpui::Window, &mut gpui::App)>;
 
 fn dirs_text(home: &str) -> String {
     let config = std::env::var_os("XDG_CONFIG_HOME")
@@ -157,6 +167,8 @@ impl Producer {
             side: 0,
             request_id: 0,
             editor_dragging: false,
+            ime_session: None,
+            ime_focus: None,
             directory_reads: 0,
             tail: Vec::new(),
             sections,
@@ -167,6 +179,7 @@ impl Producer {
             laid: Rc::default(),
             typeface: Typeface::omarchy_default(),
             events: RefCell::default(),
+            drop_sink: None,
         }
     }
 
@@ -302,7 +315,7 @@ impl Producer {
         self.events.borrow_mut().push(request);
     }
 
-    fn entry(&self, index: usize) -> Option<RailEntry> {
+    pub(crate) fn entry(&self, index: usize) -> Option<RailEntry> {
         self.entries().into_iter().nth(index)
     }
 
@@ -316,10 +329,7 @@ impl Producer {
         self.model.borrow_mut().cursor = Some(index);
         match entry.kind {
             Kind::Recent => {
-                let path = flea::ui_logic_pl4::recent::history_path(
-                    &std::env::var("XDG_DATA_HOME").unwrap_or_default(),
-                    &self.home,
-                );
+                let path = self.history_file();
                 self.read_recent(path, cx);
             }
             Kind::Trash => self.queue(Event::Trash),
@@ -333,7 +343,7 @@ impl Producer {
         cx.notify();
     }
 
-    fn row_at(&self, position: gpui::Point<gpui::Pixels>) -> Option<usize> {
+    pub(crate) fn row_at(&self, position: gpui::Point<gpui::Pixels>) -> Option<usize> {
         let (x, y) = (f32::from(position.x), f32::from(position.y));
         self.laid
             .borrow()

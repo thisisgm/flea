@@ -80,6 +80,59 @@ pub(crate) fn menu_fixture(
 }
 
 #[gpui::test]
+fn pb_places_remote_favorite_enter_mounts_its_share(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root_with(cx, r#""view":"list","keys":"default""#, None);
+    land(&shell, cx, "/files", vec![row("notes.txt", false)], 1);
+    let producer = shell.read_with(cx, |shell, _| shell.rail.as_ref().unwrap().places.clone());
+    producer.update(cx, |producer, cx| {
+        producer.replace_sections(
+            vec![RailSection {
+                heading: Heading::Key("places.heading.favourites"),
+                rows: vec![RailEntry {
+                    group: Group::Favourite,
+                    kind: Kind::Favourite,
+                    label: "NAS".into(),
+                    path: "sftp://host/".into(),
+                    glyph: "server",
+                    favourite_index: Some(0),
+                    ..RailEntry::default()
+                }],
+            }],
+            cx,
+        )
+    });
+    settle(cx);
+    shell.update(cx, |shell, cx| shell.rail_focus(true, cx));
+    // Focus leaves the rail cursor unset, and Enter opens only the row under it, so Down moves it there first.
+    let labels = read(&shell, cx, "railLabels", &[]);
+    let index = labels
+        .split('|')
+        .position(|label| label == "NAS")
+        .expect("the NAS favourite is listed") as i64;
+    for _ in 0..8 {
+        let cursor: i64 = read(&shell, cx, "railCursor", &[]).parse().unwrap();
+        if cursor == index {
+            break;
+        }
+        cx.simulate_keystrokes(if cursor < index { "down" } else { "up" });
+        settle(cx);
+    }
+    assert_eq!(
+        read(&shell, cx, "railCursor", &[]),
+        index.to_string(),
+        "Down puts the rail cursor on the NAS favourite"
+    );
+    cx.simulate_keystrokes("enter");
+    settle(cx);
+    assert_eq!(
+        read(&shell, cx, "networkResult", &[]),
+        "mounting",
+        "a remote Favorite opens by mounting its share, as a NETWORK row does"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
 fn pb_places_favorite_open_navigates_its_captured_path(cx: &mut TestAppContext) {
     let (shell, cx) = open_menu(cx);
     choose(&shell, cx, "open");

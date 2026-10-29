@@ -55,13 +55,30 @@ impl Render for Shell {
         if let Some(renders) = cx.try_global::<EmptyOmiShellRenders>() {
             renders.0.set(renders.0.get() + 1);
         }
+        super::glass::rail_overlay(
+            window,
+            self.launch
+                .settings
+                .data
+                .get("places")
+                .and_then(|p| p.get("autoHide"))
+                .and_then(flea::jsondoc::Json::as_bool)
+                == Some(true),
+            cx,
+        );
         self.sync_font_settings(cx);
         self.sync_search_text();
         self.route_rail(window, cx);
         self.sync_rail(window, cx);
-        self.settle_rail(cx);
+        self.settle_rail(window, cx);
         for side in 0..2 {
             self.flush_operations(side, cx);
+            let shown = self.panes[side]
+                .as_ref()
+                .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));
+            if let Some(host) = &self.panes[side] {
+                host.list.borrow_mut().view.tags_shown = shown;
+            }
         }
         self.sync_clip_marks();
         self.carry_sync(window, cx);
@@ -79,6 +96,7 @@ impl Render for Shell {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let background = crate::list::Palette::inherited(&window.text_style(), theme).background;
         let viewport = self.seam.viewport();
+        self.sync_quick_look_warm(window, cx);
         self.sync_selection_previews(window, cx);
         self.sync_columns(window, cx);
         let view = self.shown_view();
@@ -132,6 +150,8 @@ impl Render for Shell {
         }
         let mut panes: [Option<AnyElement>; 2] = [None, None];
         let renaming = [0, 1].map(|side| self.renaming_row(side));
+        // Contents blocks take the block height before the frames are built, so scroll, keys and hit-test agree.
+        self.sync_contents_rows();
         let mut lists = self.prepare_lists(
             heights,
             viewport.is_none().then_some(geometry.chrome.height),
@@ -140,6 +160,7 @@ impl Render for Shell {
         );
         for side in 0..2 {
             let search_empty = self.search_empty(side, window, cx);
+            let contents = self.contents_blocks(side).map(Rc::new);
             let Some(host) = self.panes[side].as_mut() else {
                 continue;
             };
@@ -206,38 +227,13 @@ impl Render for Shell {
             }
             host.drawn_view = Some(View::List);
             host.drawn_list = host.pane.state.kind == crate::pane::states::Kind::Ready;
-            // A standing filter's query marks its run in each drawn name, as a search's does.
-            let query = match host.filter.shown {
-                Some(_) if !host.pane.state.search => host.filter.owner.query(),
-                _ => &host.pane.state.query,
-            };
-            host.list.borrow_mut().view.set_query(query);
-            host.list
-                .borrow_mut()
-                .view
-                .set_searching(host.pane.state.search);
-            {
-                let mut list = host.list.borrow_mut();
-                list.view
-                    .set_lang_marks(crate::list::lang_marks(&self.launch.settings.data));
-                let switched =
-                    crate::list::columns::Switched::from_settings(&self.launch.settings.data)
-                        .for_dual(self.view == View::Dual);
-                list.view.switched = if host.pane.state.search {
-                    switched
-                        .with(crate::list::columns::Column::Mode, false)
-                        .with(crate::list::columns::Column::Date, false)
-                        .with(crate::list::columns::Column::Kind, false)
-                        .with(crate::list::columns::Column::Size, true)
-                } else {
-                    switched
-                };
-            }
+            Self::configure_search_rows(host, &self.launch.settings.data, self.view == View::Dual);
             // A notch glides and a stroke rubber-bands in the drawn rows only; the pane keeps the clamped position.
+            let rows = lists.states[side].take().expect("a mounted pane");
             let list = ListElement::with_states(
                 Rc::clone(&host.pane.held),
                 host.input.drawn(host.pane.scroll_y),
-                lists.states[side].take().expect("a mounted pane"),
+                rows.clone(),
                 Rc::clone(&host.list),
             )
             .with_filter(host.filter.shown.clone())
@@ -251,6 +247,14 @@ impl Render for Shell {
                         clock: host.pane.clock.clone(),
                         shell: cx.entity().downgrade(),
                     }),
+            );
+            let blocks = Shell::contents_element(
+                host,
+                &self.launch.settings.data,
+                contents,
+                rows,
+                window,
+                cx,
             );
             let lifter = cx.entity().downgrade();
             let payload = cx.entity().downgrade();
@@ -270,6 +274,9 @@ impl Render for Shell {
                     .on_drop::<Seed>(cx.listener(move |shell, _: &Seed, window, cx| {
                         shell.land_own_drag(side, window, cx);
                     }))
+                    .when(side == 0, |div| Shell::aim_rail_on_drag_move(div, cx))
+                    // A pane with no rows yet keeps the list floor, which stays opaque under glass.
+                    .when(!host.drawn_list, |div| div.bg(theme.background))
                     .children(lists.areas[side].take())
                     .on_mouse_down(
                         MouseButton::Left,
@@ -282,6 +289,7 @@ impl Render for Shell {
                     )
                     .when(host.drawn_list, |div| {
                         div.child(list)
+                            .children(blocks)
                             .child(crate::input::surface(cx.entity(), side))
                     })
                     .when(host.drawn_list && renaming[side].is_some(), |div| {
@@ -324,7 +332,7 @@ impl Render for Shell {
         if let Some(viewport) = viewport {
             return div()
                 .size_full()
-                .bg(background)
+                .bg(super::glass::body_ground(background, window, cx))
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key))
                 .on_modifiers_changed(cx.listener(Self::run_card_modifiers))
@@ -354,6 +362,7 @@ impl Render for Shell {
                 panes,
                 composition::Content {
                     paths,
+                    glass: super::glass::Grounds::for_window(window, self.focus_side, cx),
                     headers: lists.headers,
                     status,
                     labels: &self.labels,
@@ -368,7 +377,7 @@ impl Render for Shell {
                     .map(|_| self.visual.probe.clone()),
             )
             .children(self.dual_divider(&geometry, palette, cx))
-            .bg(background)
+            .bg(super::glass::body_ground(background, window, cx))
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key))
             .on_modifiers_changed(cx.listener(Self::run_card_modifiers))

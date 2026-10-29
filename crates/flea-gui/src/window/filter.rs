@@ -23,7 +23,14 @@ mod tests;
 mod views_tests;
 
 // ui/js/Focus.js LEAVES_LINE and the pane's own moves: under a filter each one steps through the drawn rows.
-const MOVES: [&str; 6] = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp"];
+const MOVES: [&str; 6] = [
+    "cursorDown",
+    "cursorUp",
+    "cursorFirst",
+    "cursorLast",
+    "pageDown",
+    "pageUp",
+];
 
 pub(crate) struct Runtime {
     pub owner: Filter,
@@ -111,6 +118,8 @@ impl PaneSeam for Seam<'_> {
     fn focus_list(&mut self) {}
     fn refill(&mut self) {
         self.pane.requests.initial_first = None;
+        // The last Columns frame may still describe only the filtered rows.
+        self.pane.scroll_extent = None;
         self.pane.reveal_cursor();
     }
 }
@@ -118,7 +127,10 @@ impl PaneSeam for Seam<'_> {
 impl crate::window::pane::PaneHost {
     /// A new numbering: a new folder drops the filter, a re-read or sort of this one asks the standing query again.
     pub(crate) fn filter_follow(&mut self, before: &str) {
-        let mut seam = Seam { pane: &mut self.pane, selected: &mut self.selected };
+        let mut seam = Seam {
+            pane: &mut self.pane,
+            selected: &mut self.selected,
+        };
         let asked = if before != seam.pane.path() {
             self.filter.owner.abandon(&mut seam);
             None
@@ -147,7 +159,13 @@ impl Shell {
         let query = host.filter.owner.query().to_owned();
         let listing = host.pane.held.listing;
         let before = host.filter.owner.drawn(listing).cloned();
-        let asked = change(&mut host.filter.owner, &mut Seam { pane: &mut host.pane, selected: &mut host.selected });
+        let asked = change(
+            &mut host.filter.owner,
+            &mut Seam {
+                pane: &mut host.pane,
+                selected: &mut host.selected,
+            },
+        );
         let owner = &host.filter.owner;
         if owner.query() != query {
             host.filter.key_at = wall_ms();
@@ -159,7 +177,9 @@ impl Shell {
             host.filter.narrowed_at = wall_ms().max(host.filter.key_at);
         }
         if let (Some(asked), Some(backend)) = (asked, &host.backend) {
-            if let Err(error) = backend.line(wire::request(asked.id, &asked.query).trim_end().to_owned()) {
+            if let Err(error) =
+                backend.line(wire::request(asked.id, &asked.query).trim_end().to_owned())
+            {
                 host.stopped = true;
                 host.record_error(error, &self.locale);
             }
@@ -181,13 +201,21 @@ impl Shell {
             self.slots.strips[side] = None;
             return;
         }
-        let folder = std::path::Path::new(&host.path).file_name().and_then(|name| name.to_str()).unwrap_or("/");
-        host.filter.strip.borrow_mut().text = present::strip(owner, listing, folder, &self.locale.catalog);
+        let folder = std::path::Path::new(&host.path)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("/");
+        host.filter.strip.borrow_mut().text =
+            present::strip(owner, listing, folder, &self.locale.catalog);
         if let Some(counts) = owner.counts(listing) {
             host.status = present::status(&counts, &self.locale.catalog).into();
         }
         let state = Rc::clone(&host.filter.strip);
-        let view = host.filter.view.get_or_insert_with(|| cx.new(|_| StripView { state })).clone();
+        let view = host
+            .filter
+            .view
+            .get_or_insert_with(|| cx.new(|_| StripView { state }))
+            .clone();
         view.update(cx, |_, cx| cx.notify());
         self.slots.strips[side] = Some(view.into());
         self.slots.strip_height = strip::HEIGHT;
@@ -214,7 +242,12 @@ impl Shell {
     }
 
     /// "/" and the actions a standing filter owns: steps through the drawn rows and Ctrl+A over its exact rows.
-    pub(crate) fn filter_action(&mut self, action: &str, window: &mut Window, cx: &mut Context<Self>) -> bool {
+    pub(crate) fn filter_action(
+        &mut self,
+        action: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
         if !self.filter_claims(action, cx) {
             return false;
         }
@@ -225,116 +258,70 @@ impl Shell {
         match action {
             // Search takes the pane: a standing filter closes first, and search goes on.
             "search" => {
-                self.filter_update(side, |filter, pane| { filter.close(pane); None }, cx);
+                self.filter_update(
+                    side,
+                    |filter, pane| {
+                        filter.close(pane);
+                        None
+                    },
+                    cx,
+                );
                 self.search_action(action, window, cx)
             }
             "filter" => {
                 if host.pane.busy() || host.stopped {
                     return true;
                 }
-                self.filter_update(side, |filter, _| { filter.start(); None }, cx);
+                self.filter_update(
+                    side,
+                    |filter, _| {
+                        filter.start();
+                        None
+                    },
+                    cx,
+                );
                 window.focus(&self.focus, cx);
                 true
             }
             "selectAll" => {
-                self.filter_update(side, |filter, pane| { filter.select_all(pane); None }, cx);
+                self.filter_update(
+                    side,
+                    |filter, pane| {
+                        filter.select_all(pane);
+                        None
+                    },
+                    cx,
+                );
                 true
             }
             _ => {
                 let page = (host.pane.visible_rows() / 2).max(1) as isize;
-                self.filter_update(side, |filter, pane| {
-                    match action {
-                        "cursorDown" => filter.step(1, pane),
-                        "cursorUp" => filter.step(-1, pane),
-                        "pageDown" => filter.step(page, pane),
-                        "pageUp" => filter.step(-page, pane),
-                        "cursorFirst" => filter.set_cursor_view(0, pane),
-                        _ => filter.set_cursor_view(isize::MAX, pane),
-                    }
-                    None
-                }, cx);
+                self.filter_update(
+                    side,
+                    |filter, pane| {
+                        match action {
+                            "cursorDown" => filter.step(1, pane),
+                            "cursorUp" => filter.step(-1, pane),
+                            "pageDown" => filter.step(page, pane),
+                            "pageUp" => filter.step(-page, pane),
+                            "cursorFirst" => filter.set_cursor_view(0, pane),
+                            _ => filter.set_cursor_view(isize::MAX, pane),
+                        }
+                        None
+                    },
+                    cx,
+                );
                 if let Some(host) = self.panes[side].as_mut() {
-                    host.input.selection.follow(&mut host.selected, host.pane.cursor);
+                    host.input
+                        .selection
+                        .follow(&mut host.selected, host.pane.cursor);
                     host.input.keyboard();
                 }
-                true
-            }
-        }
-    }
-
-    /// The query line's keys while it has the caret, and Escape while a filter stands, ahead of search and marks.
-    pub(crate) fn filter_key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) -> bool {
-        let side = self.focus_side;
-        let Some(host) = &self.panes[side] else {
-            return false;
-        };
-        let owner = &host.filter.owner;
-        if !owner.up() || host.search.owner.active() {
-            return false;
-        }
-        if !owner.typing() {
-            let plain = crate::window::input::modifiers(event.keystroke.modifiers) == 0;
-            if !(plain && event.keystroke.key == "escape") {
-                return false;
-            }
-            if !host.selected.is_empty() {
-                if let Some(host) = self.panes[side].as_mut() {
-                    host.input.selection.clear(&mut host.selected);
-                    host.nav.landed = None;
-                    host.input.pulled = None;
-                    host.input.keyboard();
-                }
-                self.keyboard.disarm();
-                cx.notify();
-                return true;
-            }
-            self.filter_update(side, |filter, pane| { filter.escape(pane); None }, cx);
-            return true;
-        }
-        let preset = self.launch.settings.data.get("keys").and_then(flea::jsondoc::Json::as_str).unwrap_or("default").to_owned();
-        let key = match keys::classify(&preset, event, window.modifiers()) {
-            Classified::Paste => {
-                let text = cx.read_from_clipboard().and_then(|item| item.text()).unwrap_or_default();
-                self.filter_update(side, |filter, pane| filter.typed(&text, pane), cx);
-                return true;
-            }
-            Classified::Key(key) => key,
-        };
-        // Enter on the line opens a single exact match, so one keystroke after the query reaches the file.
-        let single = matches!(key, LineKey::Enter)
-            && owner.asked().is_none()
-            && owner.drawn(host.pane.held.listing).is_some_and(|drawn| drawn.narrowed.exact.len() == 1);
-        let mut consumed = true;
-        self.filter_update(side, |filter, pane| {
-            let (took, asked) = filter.line_key(key, pane);
-            consumed = took;
-            asked
-        }, cx);
-        if single {
-            self.input_action("open", window, cx);
-        }
-        consumed
-    }
-
-    /// A `filtered` line for this pane: the answer in force lands whole, a stale one is dropped, a broken one is a protocol error.
-    pub(crate) fn filter_line(&mut self, side: usize, line: &str, cx: &mut Context<Self>) -> bool {
-        if !line.contains("\"filtered\"") {
-            return false;
-        }
-        let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
-            return false;
-        };
-        match wire::read(line, host.filter.owner.live()) {
-            Ok(Line::Other) => false,
-            Ok(Line::Stale) => true,
-            Ok(Line::Answer(answer)) => {
-                self.filter_update(side, |filter, pane| { let _ = filter.receive(answer, pane); None }, cx);
-                true
-            }
-            Err(detail) => {
-                host.record_error(crate::backend::Failure { key: "window.backend_protocol", detail }, &self.locale);
                 true
             }
         }
     }
 }
+
+#[path = "filter_input.rs"]
+mod input;

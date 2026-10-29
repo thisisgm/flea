@@ -252,10 +252,12 @@ pub(crate) fn delete_body(
     }
 }
 
-pub(super) fn caption(text: String, ink: Hsla) -> Div {
+// The caption token, as the title and buttons follow the text size; the line keeps the board's 1.5 ratio.
+pub(super) fn caption(scene: &Scene, text: String, ink: Hsla) -> Div {
+    let m = Metrics::new(scene.typeface);
     div()
-        .text_size(px(card::EXPLAIN_SIZE))
-        .line_height(px(card::EXPLAIN_LINE))
+        .text_size(px(m.caption))
+        .line_height(relative(card::EXPLAIN_LINE / card::EXPLAIN_SIZE))
         .text_color(ink)
         .child(text)
 }
@@ -310,7 +312,7 @@ pub(super) fn dialog_snapshot(
             });
             let body = vec![
                 list.into_any_element(),
-                caption(note.clone(), palette.foreground).into_any_element(),
+                caption(scene, note.clone(), palette.foreground).into_any_element(),
             ];
             let buttons = collide::FAT_BUTTONS
                 .iter()
@@ -335,10 +337,12 @@ pub(super) fn dialog_snapshot(
             let enabled = !busy && trash::delete_enabled(review, emptying);
             // A menu's refresh shows the working note in place of the reviewed facts, as v0.3.12 does.
             let body = if *busy {
-                vec![
-                    caption(delete_body(catalog, review, *scope, true), palette.muted)
-                        .into_any_element(),
-                ]
+                vec![caption(
+                    scene,
+                    delete_body(catalog, review, *scope, true),
+                    palette.muted,
+                )
+                .into_any_element()]
             } else {
                 vec![div()
                     .text_size(px(card::BODY_SIZE))
@@ -380,6 +384,13 @@ pub(super) fn dialog_snapshot(
             busy,
             ..
         } => super::copy_to::card(scene, window, *moving, path, *focus, *busy),
+        Dialog::NewFile {
+            name,
+            focus,
+            busy,
+            error,
+            ..
+        } => super::new_file::card(scene, window, name, *focus, *busy, error),
     };
     Some(card)
 }

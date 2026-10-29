@@ -11,7 +11,7 @@ use gpui::{px, FontId, TextSystem};
 use std::{
     collections::HashMap,
     io::Read as _,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{mpsc, Arc},
     thread,
 };
@@ -36,6 +36,10 @@ pub struct TextMeasure {
 const WIDTHS_KEPT: usize = 65_536;
 
 impl TextMeasure {
+    pub(super) fn reader(&self) -> Self {
+        Self::new(Arc::clone(&self.text), self.faces.clone())
+    }
+
     pub fn new(text: Arc<TextSystem>, faces: Faces) -> Self {
         TextMeasure {
             text,
@@ -147,6 +151,8 @@ pub struct Parse {
     pub words: md::Words,
     /// Hand the first blocks over ahead of the rest, for a document with nothing drawn yet.
     pub head: bool,
+    pub max_bytes: u64,
+    pub previous: Option<Arc<str>>,
 }
 
 pub struct Lay {
@@ -165,6 +171,9 @@ pub struct Lay {
 }
 
 pub enum Reply {
+    Verified {
+        seq: u64,
+    },
     Read {
         seq: u64,
         read: Read,
@@ -206,7 +215,7 @@ pub fn prefix(blocks: &[Block]) -> Vec<Counter> {
 
 /// The two threads and the channel their replies land on.
 pub struct Workers {
-    parse: mpsc::Sender<(u64, PathBuf, Parse)>,
+    parse: mpsc::Sender<(u64, PathBuf, Parse, bool)>,
     lay: mpsc::Sender<Lay>,
     pub replies: async_channel::Receiver<Reply>,
 }
@@ -231,8 +240,8 @@ impl Workers {
         }
     }
 
-    pub fn load(&self, seq: u64, path: PathBuf, parse: Parse) {
-        let _ = self.parse.send((seq, path, parse));
+    pub fn load(&self, seq: u64, path: PathBuf, parse: Parse, remote: bool) {
+        let _ = self.parse.send((seq, path, parse, remote));
     }
 
     pub fn lay(&self, job: Lay) {
@@ -240,18 +249,18 @@ impl Workers {
     }
 }
 
-fn read(path: &PathBuf) -> Read {
-    let Ok(file) = std::fs::File::open(path) else {
+fn read(path: &Path, limit: u64) -> Read {
+    let Some(file) = flea::backend::regfile::open_regular(path) else {
         return Read::Failed;
     };
-    if file.metadata().is_ok_and(|meta| meta.len() > MAX_BYTES) {
+    if file.metadata().is_ok_and(|meta| meta.len() > limit) {
         return Read::Large;
     }
     let mut bytes = Vec::new();
-    if file.take(MAX_BYTES + 1).read_to_end(&mut bytes).is_err() {
+    if file.take(limit + 1).read_to_end(&mut bytes).is_err() {
         return Read::Failed;
     }
-    if bytes.len() as u64 > MAX_BYTES {
+    if bytes.len() as u64 > limit {
         return Read::Large;
     }
     let text: Arc<str> = String::from_utf8_lossy(&bytes).into();
@@ -259,11 +268,26 @@ fn read(path: &PathBuf) -> Read {
     Read::Text(text, starts)
 }
 
-fn parse_loop(inbox: mpsc::Receiver<(u64, PathBuf, Parse)>, outbox: async_channel::Sender<Reply>) {
+fn parse_loop(
+    inbox: mpsc::Receiver<(u64, PathBuf, Parse, bool)>,
+    outbox: async_channel::Sender<Reply>,
+) {
     while let Ok(first) = inbox.recv() {
         // Only the newest load matters: one queued behind it is for a file no longer shown.
-        let (seq, path, parse) = inbox.try_iter().last().unwrap_or(first);
-        let read = read(&path);
+        let (seq, path, parse, remote) = inbox.try_iter().last().unwrap_or(first);
+        let limit = if remote {
+            flea::ui_logic_pv2::code_view::REMOTE_GATE
+        } else {
+            MAX_BYTES
+        };
+        let read = read(&path, limit.min(parse.max_bytes));
+        if matches!(&read, Read::Text(text, _) if parse.previous.as_ref().is_some_and(|previous| previous.as_ref() == text.as_ref()))
+        {
+            if outbox.send_blocking(Reply::Verified { seq }).is_err() {
+                return;
+            }
+            continue;
+        }
         let text = match &read {
             Read::Text(text, _) => Some(Arc::clone(text)),
             _ => None,

@@ -41,7 +41,7 @@ pub(super) fn open_with<'a>(
 }
 
 // The native window's own root, which mounts the menu layer and the deferred cards and takes the right click before the panes.
-pub(super) fn open_root<'a>(
+pub(crate) fn open_root<'a>(
     cx: &'a mut TestAppContext,
     keys: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
@@ -95,6 +95,31 @@ fn build<'a>(
     root: bool,
     places: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    build_at(cx, settings, select, root, places, "/files")
+}
+
+pub(super) fn open_root_at<'a>(
+    cx: &'a mut TestAppContext,
+    path: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
+    build_at(
+        cx,
+        r#""keys":"default","view":"list""#,
+        None,
+        true,
+        "",
+        path,
+    )
+}
+
+fn build_at<'a>(
+    cx: &'a mut TestAppContext,
+    settings: &str,
+    select: Option<&str>,
+    root: bool,
+    places: &str,
+    path: &str,
+) -> (Entity<Shell>, &'a mut VisualTestContext) {
     let document = flea::jsondoc::parse(&format!(
         r#"{{{settings},"places":{{"rail":"shown","showHome":true,"showTrash":true{places}}}}}"#
     ))
@@ -103,7 +128,7 @@ fn build<'a>(
     let launch = Launch::resolve(
         Settings::from_json(document),
         Arguments {
-            path: Some("/files".into()),
+            path: Some(path.into()),
             select: select.map(str::to_owned),
         },
         &home,
@@ -180,7 +205,7 @@ pub(super) fn row(name: &str, dir: bool) -> RowFacts {
 }
 
 // The backend's answer to the listing out, then the frames and time a swap needs to commit it.
-pub(super) fn land(
+pub(crate) fn land(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
     path: &str,

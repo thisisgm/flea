@@ -1,11 +1,11 @@
 //! Cold review probes with production timer state updates and explicitly driven frames.
-use crate::window::columns_tests::host::{change, context, document, frame, open};
+use crate::window::columns_tests::host::{advance, change, context, document, frame, open};
 use crate::{
     columns::{geometry::Slot, TrackState},
     state::Shell,
     window::startup::View,
 };
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 // Run the timer's production state update without driving GPUI's automatic frame executor.
 fn tick(shell: &mut Shell) {
@@ -22,7 +22,11 @@ fn review_r2_cap_draws_a_loading_tile_in_the_unanswered_child() {
     let mut cx = context();
     let (window, _requests) = open(&mut cx, "/srv/a/b/c");
     frame(&mut cx, window);
-    std::thread::sleep(Duration::from_millis(crate::pane::swap::CAP_MS + 20));
+    advance(
+        &mut cx,
+        window,
+        Duration::from_millis(crate::pane::swap::CAP_MS + 20),
+    );
     change(&mut cx, window, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
         let now = host.pane.now();
@@ -96,7 +100,11 @@ fn review_r2_loading_minimum_starts_at_the_first_drawn_tile() {
         asked_first = shell.panes[0].as_ref().unwrap().pane.first_count();
     });
     frame(&mut cx, window);
-    std::thread::sleep(Duration::from_millis(crate::pane::swap::CAP_MS + 20));
+    advance(
+        &mut cx,
+        window,
+        Duration::from_millis(crate::pane::swap::CAP_MS + 20),
+    );
     change(&mut cx, window, |shell, _, _| {
         tick(shell);
         let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
@@ -111,8 +119,11 @@ fn review_r2_loading_minimum_starts_at_the_first_drawn_tile() {
             "model construction impersonated a drawn tile"
         );
     });
-    std::thread::sleep(Duration::from_millis(80));
-    let first_draw = Instant::now();
+    advance(&mut cx, window, Duration::from_millis(80));
+    let mut first_draw = 0;
+    change(&mut cx, window, |shell, _, _| {
+        first_draw = shell.panes[0].as_ref().unwrap().pane.now();
+    });
     frame(&mut cx, window);
     change(&mut cx, window, |shell, window, cx| {
         let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
@@ -156,11 +167,11 @@ fn review_r2_loading_minimum_starts_at_the_first_drawn_tile() {
             "the reply initially obeys the model minimum"
         );
     });
-    std::thread::sleep(Duration::from_millis(40));
+    advance(&mut cx, window, Duration::from_millis(40));
     change(&mut cx, window, |shell, _, _| tick(shell));
     frame(&mut cx, window);
     change(&mut cx, window, |shell, _, _| {
-        let elapsed = first_draw.elapsed().as_millis();
+        let elapsed = u128::from(shell.panes[0].as_ref().unwrap().pane.now() - first_draw);
         assert!(
             elapsed < u128::from(crate::pane::swap::MIN_SHOW_MS),
             "proof invalid under this load: {elapsed}ms already elapsed"
@@ -175,7 +186,11 @@ fn review_r2_loading_minimum_starts_at_the_first_drawn_tile() {
         assert_eq!(parent.state, TrackState::Loading,
             "the tile has drawn for only {elapsed}ms, less than MIN_SHOW_MS 100, but already released to {parent:?}");
     });
-    std::thread::sleep(Duration::from_millis(crate::pane::swap::MIN_SHOW_MS + 10));
+    advance(
+        &mut cx,
+        window,
+        Duration::from_millis(crate::pane::swap::MIN_SHOW_MS + 10),
+    );
     change(&mut cx, window, |shell, _, _| tick(shell));
     frame(&mut cx, window);
     change(&mut cx, window, |shell, _, _| {
@@ -204,7 +219,11 @@ fn review_r3_render_expiry_does_not_cancel_the_only_release() {
         asked_first = shell.panes[0].as_ref().unwrap().pane.first_count();
     });
     frame(&mut cx, window);
-    std::thread::sleep(Duration::from_millis(crate::pane::swap::CAP_MS + 20));
+    advance(
+        &mut cx,
+        window,
+        Duration::from_millis(crate::pane::swap::CAP_MS + 20),
+    );
     change(&mut cx, window, |shell, _, _| tick(shell));
     frame(&mut cx, window);
     change(&mut cx, window, |shell, window, cx| {
@@ -243,7 +262,11 @@ fn review_r3_render_expiry_does_not_cancel_the_only_release() {
             TrackState::Loading
         );
     });
-    std::thread::sleep(Duration::from_millis(crate::pane::swap::MIN_SHOW_MS + 20));
+    advance(
+        &mut cx,
+        window,
+        Duration::from_millis(crate::pane::swap::MIN_SHOW_MS + 20),
+    );
     // A real window draw wins the UI dispatch race with the scheduled release callback.
     frame(&mut cx, window);
     let mut observed = TrackState::Rows;
@@ -319,7 +342,11 @@ fn review_r3_entry_cap_follows_the_current_requested_child() {
             "/srv/a/b/c/d02"
         ));
     });
-    std::thread::sleep(Duration::from_millis(crate::pane::swap::CAP_MS + 20));
+    advance(
+        &mut cx,
+        window,
+        Duration::from_millis(crate::pane::swap::CAP_MS + 20),
+    );
     change(&mut cx, window, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
         let now = host.pane.now();

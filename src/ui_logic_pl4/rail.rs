@@ -27,6 +27,8 @@ pub enum Kind {
     Favorite,
     Tag,
     Share,
+    Dropbox,
+    Cloud,
     Volume,
     Disk,
     Phone,

@@ -33,10 +33,13 @@ struct Origin {
 }
 
 pub struct Network {
+    pub(crate) sources: cloud::Sources,
     pub service: Entity<Service>,
     pub card: Entity<NetworkView>,
     pub shares: Entity<ShareView>,
     pub rows: Vec<RailEntry>,
+    /// Bumped by each rebuild and each saved bookmark write, so a read a newer one superseded never publishes its rows.
+    pub rows_generation: u64,
     /// True once rows were rebuilt from a gio listing and a mountinfo read.
     pub built: bool,
     pub listing: Listing,
@@ -81,29 +84,6 @@ fn bookmarks_path() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".config"))
         .join("gtk-3.0/bookmarks")
-}
-
-/// The rows the rail draws for the listing's shares; fstype and release identity stay on the join's own rows.
-pub fn section(rows: &[RailEntry], shown: bool) -> Vec<RailSection> {
-    if !shown || rows.is_empty() {
-        return Vec::new();
-    }
-    vec![RailSection {
-        heading: Heading::Key("places.heading.network"),
-        rows: rows
-            .iter()
-            .map(|row| rail::RailEntry {
-                group: Group::Network,
-                kind: Kind::Share,
-                label: row.label.clone(),
-                path: row.path.clone(),
-                uri: row.uri.clone(),
-                mounted: Some(row.mounted),
-                glyph: "server",
-                ..rail::RailEntry::default()
-            })
-            .collect(),
-    }]
 }
 
 pub(crate) fn shown(state: &Json) -> bool {
@@ -185,19 +165,6 @@ impl Shell {
                 window.focus(&shell.focus, cx);
                 cx.notify();
             }),
-            cx.subscribe(
-                &cx.entity(),
-                |shell, _, reply: &crate::g2::mn1::join::ProducerReply, cx| {
-                    let Some(network) = shell.network() else {
-                        return;
-                    };
-                    let card = network.card.clone();
-                    let origin = card.read(cx).model.origin;
-                    if shell.network_side(origin) == Some(reply.side) {
-                        card.update(cx, |card, cx| card.line(&reply.line, cx));
-                    }
-                },
-            ),
         ];
         let poll = cx.spawn(async move |this, cx| loop {
             let _ = this.update(cx, |shell, cx| shell.network_tick(cx));
@@ -207,10 +174,12 @@ impl Shell {
         });
         if let Some(join) = &mut self.rail {
             join.network = Some(Network {
+                sources: cloud::Sources::default(),
                 service,
                 card,
                 shares,
                 rows: Vec::new(),
+                rows_generation: 0,
                 built: false,
                 listing: Listing::new(),
                 mountinfo_ready: false,
@@ -343,6 +312,35 @@ impl Shell {
         }
     }
 
+    /// A remote Favorite opens like its NETWORK share: one mount request, then the path it reaches opens (Places.openEntry).
+    pub(crate) fn favourite_remote_activate(
+        &mut self,
+        side: usize,
+        entry: &rail::RailEntry,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.ensure_network(window, cx);
+        let origin = self.network_origin(side);
+        let Some(network) = self.network() else {
+            return;
+        };
+        let service = network.service.clone();
+        let request = crate::g2::pl2::mount::Request {
+            id: 0,
+            uri: entry.path.clone(),
+            label: entry.label.clone(),
+            origin,
+            mounted: entry.mounted == Some(true),
+            authenticated: false,
+            password: crate::g2::pl1::secret::Secret::new(),
+        };
+        service.update(cx, |service, cx| {
+            let now = service.now(cx);
+            service.open_share(request, now, cx)
+        });
+    }
+
     /// Unmount releases the row's own identity: FUSE by its path, a lent kernel mount by its exact file URI.
     pub(crate) fn network_unmount(&mut self, row: &RailEntry, origin: u64, cx: &mut Context<Self>) {
         let Some(network) = self.network() else {
@@ -378,6 +376,13 @@ mod path;
 #[path = "network_rows.rs"]
 mod rows;
 
+#[path = "network_cloud.rs"]
+mod cloud;
+
 #[cfg(test)]
 #[path = "network_tests.rs"]
 pub(crate) mod tests;
+
+#[path = "network_section.rs"]
+mod section_rows;
+pub use section_rows::section;

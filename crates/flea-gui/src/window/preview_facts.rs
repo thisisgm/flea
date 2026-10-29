@@ -94,7 +94,11 @@ impl SelectionPreview {
             _ => 0,
         };
         facts::Extra {
-            pages: if pages > 0 { pages.to_string() } else { String::new() },
+            pages: if pages > 0 {
+                pages.to_string()
+            } else {
+                String::new()
+            },
             owner: frame
                 .facts
                 .as_ref()
@@ -109,34 +113,25 @@ impl SelectionPreview {
             return Vec::new();
         }
         if frame.kind == Kind::Multi {
-            let subject = &frame.subject;
-            let mut rows = vec![(
-                self.catalog.tr("dialogs.file.properties.contains"),
-                self.catalog
-                    .trn("items.count", subject.selected_count as i64),
-            )];
-            if subject.selected.len() == subject.selected_count
-                && subject.selected.iter().all(|row| !row.dir)
-            {
-                if let Some(bytes) = subject
-                    .selected
-                    .iter()
-                    .try_fold(0_u64, |sum, row| sum.checked_add(row.size))
-                {
-                    rows.push((
-                        self.catalog.tr("dialogs.file.properties.combined"),
-                        self.catalog.locale().format_size(bytes),
-                    ));
-                }
-            }
-            return rows;
+            return facts::multi_facts(
+                &super::selection_preview::multi::rows(&frame.subject),
+                Some(frame.subject.selected_count),
+                &self.catalog,
+            )
+            .into_iter()
+            .map(|fact| (fact.label, fact.value))
+            .collect();
         }
         let row = &frame.subject.row;
         if let Mounted::Model(model) = &frame.mounted {
             let words = crate::row::format::Words::from_catalog(&self.catalog);
             let size = words.locale.format_size(row.size);
             let modified = crate::row::format::date_text(row.mtime, &words);
-            let kind = if row.kind.is_empty() { &row.icon } else { &row.kind };
+            let kind = if row.kind.is_empty() {
+                &row.icon
+            } else {
+                &row.kind
+            };
             let groups = model.read(cx).facts(flea::ui_logic_pv4::facts::FileFacts {
                 kind,
                 size: &size,

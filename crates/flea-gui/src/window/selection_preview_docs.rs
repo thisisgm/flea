@@ -24,14 +24,14 @@ pub enum Doc {
 
 /// The theme and type the views draw with, read once per mount.
 pub(crate) struct Look {
+    pub text_limit: u64,
+    pub remote: bool,
     pub theme: crate::palette::Theme,
     pub face: crate::list::Typeface,
     pub metrics: crate::list::Metrics,
     pub muted: gpui::Hsla,
     pub mark: Mark,
 }
-/// The views' line pitch, as a multiple of the caption size.
-const LINE_PITCH: f32 = 1.3;
 /// The opacity of an archive's "and more" line.
 const MORE_OPACITY: f32 = 0.6;
 /// A row's vertical pad as a multiple of the base size, 6 px at base 12.
@@ -39,9 +39,9 @@ const ROW_PAD_Y: f32 = 6. / 12.;
 
 impl Look {
     fn row(&self) -> f32 {
-        (f32::from(self.face.caption) * LINE_PITCH).round()
+        pv2::line_pitch(f32::from(self.face.caption))
     }
-    fn code(&self, numbered: bool) -> CodeView {
+    pub(super) fn code(&self, numbered: bool) -> CodeView {
         let m = &self.metrics;
         let mut view = CodeView::new(
             SLOT,
@@ -116,15 +116,20 @@ impl Doc {
     ) -> Option<Self> {
         let path = subject.path();
         let size = subject.row.size;
-        Some(match kind {
-            Kind::Text | Kind::Code => Doc::Code(cx.new(|cx| {
-                let mut view = look.code(kind == Kind::Code);
-                view.set_host(Some(Box::new(wire.clone())), cx);
-                view.set_catalog(catalog.clone(), cx);
-                view.set_active(true, cx);
-                view.set_subject(&path, size, false, None, cx);
-                view
-            })),
+        let remote = look.remote;
+        if matches!(
+            kind,
+            Kind::Text | Kind::Code | Kind::Markdown | Kind::Table | Kind::Html
+        ) && size > look.text_limit
+        {
+            return Some(Doc::Code(super::text::code(
+                kind, subject, look, wire, catalog, cx,
+            )));
+        }
+        let doc = match kind {
+            Kind::Text | Kind::Code => {
+                Doc::Code(super::text::code(kind, subject, look, wire, catalog, cx))
+            }
             Kind::Markdown => Doc::Markdown(cx.new(|cx| {
                 let m = &look.metrics;
                 let tokens = Tokens {
@@ -158,6 +163,7 @@ impl Doc {
                 };
                 let mut view = MarkdownView::new(palette, tokens, faces, SLOT, catalog, cx);
                 view.set_code_host(Box::new(wire.clone()), cx);
+                view.source.truncate = remote;
                 view.set_scale(window);
                 view.set_active(true, cx);
                 view.set_path(Some(path.clone().into()), cx);
@@ -167,7 +173,9 @@ impl Doc {
                 let (face, palette) = look.table();
                 let mut view = CsvView::new(false, face, palette);
                 view.set_host(Box::new(wire.clone()));
-                view.set_path(&path, cx);
+                if !remote {
+                    view.set_path(&path, cx);
+                }
                 view
             })),
             Kind::Html => Doc::Html(cx.new(|cx| {
@@ -192,7 +200,9 @@ impl Doc {
                     })),
                 );
                 view.set_catalog(catalog.clone(), cx);
-                view.set_path(&path, size, false, cx);
+                if !remote {
+                    view.set_path(&path, size, false, cx);
+                }
                 view.set_active(true, cx);
                 view
             })),
@@ -236,7 +246,11 @@ impl Doc {
                 view
             })),
             _ => return None,
-        })
+        };
+        if remote {
+            super::text::read_document(&doc, &path, size, look.text_limit, cx);
+        }
+        Some(doc)
     }
 
     pub(crate) fn observe(&self, cx: &mut Context<SelectionPreview>) -> Subscription {
@@ -326,35 +340,6 @@ impl Doc {
         }
     }
 
-    /// The one sentence a failed read draws in the frame's error state.
-    pub(crate) fn failure(&self, catalog: &flea::i18n::I18n, cx: &gpui::App) -> Option<String> {
-        match self {
-            Doc::Code(view) => view.read(cx).fail_sentence(catalog),
-            Doc::Markdown(view) => view
-                .read(cx)
-                .status_sentence()
-                .filter(|_| view.read(cx).doc.status == pv2::markdown::Status::Unreadable)
-                .map(str::to_owned),
-            Doc::Html(view) => view.read(cx).fail_sentence(catalog, cx),
-            Doc::Archive(view) => view.read(cx).fail_sentence(catalog),
-            Doc::Office(view) => view.read(cx).failure(catalog).map(|f| f.sentence),
-            Doc::Table(_) => None,
-        }
-    }
-
-    /// The lines the frame shows, for the column's text readers.
-    pub(crate) fn lines(&self, cx: &gpui::App) -> Vec<String> {
-        match self {
-            Doc::Code(view) => view.read(cx).lines.plain_lines(),
-            Doc::Archive(view) => view
-                .read(cx)
-                .meta
-                .as_ref()
-                .map_or(Vec::new(), |m| m.names.iter().map(|(n, _)| n.clone()).collect()),
-            _ => Vec::new(),
-        }
-    }
-
     /// PreviewScroll.qml pageBy: one viewport height down or up, never past either end, a code view by whole lines.
     pub(crate) fn page(&self, direction: i64, frame: f32, cx: &mut gpui::App) {
         let by = |own: f32| direction as f32 * if own > 0. { own } else { frame };
@@ -363,7 +348,9 @@ impl Doc {
             Doc::Markdown(view) => view.update(cx, |view, cx| view.scroll_by(by(view.frame.1), cx)),
             // The table's viewport is the body under its header; layout clamps the scroll to the table's ends.
             Doc::Table(view) => view.update(cx, |view, cx| {
-                view.scroll.1 += f64::from(by((view.frame.1 - view.feed.geometry.head_height).max(0.) as f32));
+                view.scroll.1 += f64::from(by(
+                    (view.frame.1 - view.feed.geometry.head_height).max(0.) as f32
+                ));
                 cx.notify();
             }),
             Doc::Html(view) => view.update(cx, |view, cx| match view.source.clone() {

@@ -29,6 +29,7 @@ impl RouteHost for Host<'_, '_> {
         self.picker.activate_row(index, self.cx);
     }
     fn say_route(&mut self, said: Said, loud: bool) {
+        self.picker.chrome.reopen_path = true;
         let text = said.text(&self.picker.locale.catalog);
         self.picker.say(text, loud, self.cx);
     }
@@ -164,6 +165,10 @@ impl Picker {
     pub(super) fn path_out(&mut self, out: Out, cx: &mut Context<Self>) {
         match out {
             Out::Open { path, .. } => {
+                let view = self.browse.path_view(cx);
+                self.chrome.restore = Some(view.read(cx).focus.clone());
+                self.chrome.restore_path = Some(view.read(cx).entry.text.clone());
+                self.chrome.reopen_path = false;
                 self.browse.route.asked = path.clone();
                 self.browse.route.leaf.clear();
                 let hidden = self.req.hidden.unwrap_or(false);
@@ -179,7 +184,8 @@ impl Picker {
                 self.browse.focus_filename = self.browse.filename.is_some();
                 cx.notify();
             }
-            Out::Network(_) | Out::Focus(_) | Out::ReadHistory => {}
+            Out::ReadHistory => self.read_jump_history(cx),
+            Out::Network(_) | Out::Focus(_) => {}
         }
     }
 }

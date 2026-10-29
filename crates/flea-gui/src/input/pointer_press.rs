@@ -5,15 +5,15 @@ use gpui::{Context, MouseButton, MouseDownEvent, Window};
 
 impl Shell {
     pub(crate) fn input_blocked(&self, cx: &gpui::App) -> bool {
+        self.wheel_blocked(cx) || self.jobs_card_showing(cx)
+    }
+    /// `input_blocked` without the Jobs card: a wheel beside that non-modal card still moves its track.
+    pub(crate) fn wheel_blocked(&self, cx: &gpui::App) -> bool {
         self.lifecycle.phase() != crate::window::lifecycle::Phase::Open
-            || self.card_holds_keyboard(cx)
+            || self.modal_card_holds_keyboard(cx)
             || self.menu_opened()
             || self.menu.presentation.at.is_some()
             || self.input.blocked
-            || self
-                .overlay
-                .as_ref()
-                .is_some_and(|overlay| overlay.read_with(cx, |overlay, _| overlay.model.open()))
     }
     pub(crate) fn pointer_down(
         &mut self,
@@ -32,7 +32,12 @@ impl Shell {
         let Some(frame) = host.input.frame else {
             return;
         };
-        if host.pane.busy() || frame.listing != host.pane.held.listing {
+        if host.pane.busy() {
+            let text = self.locale.catalog.tr("pane.busy");
+            self.status_note(&text, cx);
+            return;
+        }
+        if frame.listing != host.pane.held.listing {
             return;
         }
         // A directory column owns its lane; let its overlay receive this press.
@@ -56,6 +61,7 @@ impl Shell {
         if frame.in_lane(event.position)
             && frame.max_scroll() > 0.5
             && event.button == MouseButton::Left
+            && !columns_shown
         {
             let bar = Bar::new(frame);
             let (_, y) = frame.local(event.position);

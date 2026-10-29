@@ -19,17 +19,17 @@
     },
     "native-contract": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/plans/g2plan/NATIVE.md",
+      "path": "${FLEA_RELEASE_ROOT}/plans/g2plan/NATIVE.md",
       "sha256": "8ce25db932f36f94e40a65317250a5ce6ecbf2e24d5a5824a0fe655d5ca602d9"
     },
     "capture-register": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/plans/g2plan/CAPTURES.tsv",
+      "path": "${FLEA_RELEASE_ROOT}/plans/g2plan/CAPTURES.tsv",
       "sha256": "cde62c329fc48bdcd39759d2eb6f049fac133477a9c2c033aa79e906f1f423eb"
     },
     "changes": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/CHANGES.md",
+      "path": "${FLEA_VISUAL_DESIGN}/CHANGES.md",
       "sha256": "ed33f44c03e360808f9c7e231c7600b7ce2b1c5674ad225ccef259501e83958e"
     },
     "design": {
@@ -44,17 +44,17 @@
     },
     "pv2-md-review": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/reviews/rev-g2-pv2-md-r3.md",
+      "path": "${FLEA_RELEASE_ROOT}/reviews/rev-g2-pv2-md-r3.md",
       "sha256": "e9573960cc487a9295810f83b8de797d6fb37df32391cef440dbcbedbf9bd8cd"
     },
     "b6-review": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/reviews/rev-bench-b6-r2.md",
+      "path": "${FLEA_RELEASE_ROOT}/reviews/rev-bench-b6-r2.md",
       "sha256": "3e2390171e104d189e0dfc17bcdc19994888187d44b41927108471914cb0a3a6"
     },
     "pele-receipt": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/native/pele/pelew5/ui-cap_markdown_pele.log",
+      "path": "${FLEA_RELEASE_ROOT}/native/pele/pelew5/ui-cap_markdown_pele.log",
       "sha256": "7bee2570100f2541888468abb22705476bd4dc87e8d4c46210898b830c3d0986"
     },
     "capture-recipes": {
@@ -96,197 +96,197 @@
     },
     "preview-column-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/preview-column.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/preview-column.png",
       "sha256": "3c4aa70892d6fee9893ca2b4b67e491ff5364f37e1b4f49d8c234e74a7e24728"
     },
     "preview-column-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/preview-column.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/preview-column.html",
       "sha256": "9e681229d0a3f614e12a777c6076e158fc265775d51bada27d87eb80b7c5e8ab"
     },
     "preview-column-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/cols-preview-markdown-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/cols-preview-markdown-1100x700.png",
       "sha256": "e1d64c5f9df7c2959729a0b52856e7107330dcb86f2023b36974a2b92b52eed5"
     },
     "cols-preview-markdown-crlf-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/cols-preview-markdown-crlf.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/cols-preview-markdown-crlf.png",
       "sha256": "d41524100734d0451b441d84daab87c8781b3d9f592c561f2cb6c3951adcd4c5"
     },
     "cols-preview-markdown-crlf-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/cols-preview-markdown-crlf.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/cols-preview-markdown-crlf.html",
       "sha256": "2c8c491e233733f28f04069fa4718d735470cf16ef1b27b756da1f41f69c64cc"
     },
     "cols-preview-markdown-crlf-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/cols-preview-markdown-crlf-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/cols-preview-markdown-crlf-1100x700.png",
       "sha256": "30ba6273f9f24b87859226eff44df0ed1a4e55158032147438bfde6cfe741990"
     },
     "cols-preview-markdown-facts-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/cols-preview-markdown-facts.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/cols-preview-markdown-facts.png",
       "sha256": "894d985b962a6e685d378fa01fda413119fd7fd3948fc008fbdb308600c0a9f8"
     },
     "cols-preview-markdown-facts-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/cols-preview-markdown-facts.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/cols-preview-markdown-facts.html",
       "sha256": "939f0706c07b33f016255be2b9bca84af3d842fa84237975ce1775b9f2f3fc88"
     },
     "cols-preview-markdown-facts-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/cols-preview-markdown-facts-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/cols-preview-markdown-facts-1100x700.png",
       "sha256": "9ff8e4875559c6737272ee38858d829770ef37d5ff681760dc1659d14beb4e34"
     },
     "ql-markdown-badges-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-badges.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-badges.png",
       "sha256": "89ab15ca27792534c4f7427abb86fc0816b30da76cebab24a7d4556c2a93b914"
     },
     "ql-markdown-badges-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-badges.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-badges.html",
       "sha256": "81f9403ebdeed94aa68e4c60a9936d531ab0815900ff0da3895b78e6512c4232"
     },
     "ql-markdown-badges-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-badges-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-badges-1100x700.png",
       "sha256": "20c3ffa59502eb0a4f76cc5d6b7012d9ce0086ee2123c5e71022f08a5b7e3f33"
     },
     "ql-markdown-bar-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-bar.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-bar.png",
       "sha256": "6e6a4c53ee5ea439cc3be17deaaaa00ddd9e483eceba43c310a870bd0246d3b4"
     },
     "ql-markdown-bar-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-bar.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-bar.html",
       "sha256": "b8fafb747cf20d63179209c973fef169b0d6b1abad6f5099dcb3eec81fe5c6e5"
     },
     "ql-markdown-bar-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-bar-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-bar-1100x700.png",
       "sha256": "475ec24de398e04060472210a21c0782addc80401d21206493989a206d69ab1b"
     },
     "ql-markdown-closefocus-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-closefocus.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-closefocus.png",
       "sha256": "733c036e4d2e0b546b32f565555d744e84bca99030cbf0e72fdd0d8a691e959a"
     },
     "ql-markdown-closefocus-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-closefocus.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-closefocus.html",
       "sha256": "c6cd0bc0fa56923c4de08c12488703ef75c61f0afb0f6c5b8070c02580a0541c"
     },
     "ql-markdown-closefocus-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-closefocus-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-closefocus-1100x700.png",
       "sha256": "023f069598f9c35dfd321acf523aee514c92134b8a1ece336d54e2d826368eb1"
     },
     "ql-markdown-crlf-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-crlf.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-crlf.png",
       "sha256": "0142dd7734c60780bcde6f171b89e1f2d2a1e3f50174c40d3bb9e1832b41b511"
     },
     "ql-markdown-crlf-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-crlf.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-crlf.html",
       "sha256": "2ad51dfabe924e17e8a75b96527d398dbd0d552ed470be6664fd7008909760ae"
     },
     "ql-markdown-crlf-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-crlf-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-crlf-1100x700.png",
       "sha256": "ebc96c2be6877d85d0a0563952b6b698b65c88b2113d038bd8c41013dff50a37"
     },
     "ql-markdown-figures-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-figures.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-figures.png",
       "sha256": "261fb08d9c4eab04d2de0f318f46da937a5fa36683576829fcdaccb63abc73ee"
     },
     "ql-markdown-figures-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-figures.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-figures.html",
       "sha256": "3ac546c84928725a54647a79f30666d6c7167e4b3ab4c29ffb0fac79ab20282b"
     },
     "ql-markdown-figures-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-figures-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-figures-1100x700.png",
       "sha256": "a0a5b711acabefba35cb1ac366be6d5244820a47a73342b4814cad6dc5181ef0"
     },
     "ql-markdown-html-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-html.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-html.png",
       "sha256": "55d69300b6a151ed6e409fda1404c17195a8d90a0ba5bff54f9365329857b9ee"
     },
     "ql-markdown-html-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-html.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-html.html",
       "sha256": "c11ff03ce3bdd271ab7bca19a8645eee44c187613589ec97140f2d3d1346f5ad"
     },
     "ql-markdown-html-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-html-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-html-1100x700.png",
       "sha256": "f1e3742c28abe9f831fe36a3939b719d392c7db6ee5ee504d7e1f9af0abe5fec"
     },
     "ql-markdown-nesting-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-nesting.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-nesting.png",
       "sha256": "cf97cd6bd46b8f730f3770bc7b211ccd56810e44fd50c845517bda448a8e77a7"
     },
     "ql-markdown-nesting-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-nesting.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-nesting.html",
       "sha256": "bd6b3fee20c5421fd70707d8cb68b2b63acd56fb39a91491c39d2c287f0e65ec"
     },
     "ql-markdown-nesting-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-nesting-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-nesting-1100x700.png",
       "sha256": "33cd2fb646c407d62b80c7cc6dd7a58c5cb2306a07ebb4d646a4a9234ad17a48"
     },
     "ql-markdown-source-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-source.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-source.png",
       "sha256": "7561c39bc1a9b7853825fcb426d11f5f7b8316aff77c18ce9b6d51cc37729867"
     },
     "ql-markdown-source-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-source.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-source.html",
       "sha256": "165e209938ca294687f754f36071f6b7f1d7a42b0cef4f36496f4c034627cd76"
     },
     "ql-markdown-source-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-source-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-source-1100x700.png",
       "sha256": "abdecbff2b08770adb4f35020acbdfd7c302de17d07b0382d9fba08bb6e39a59"
     },
     "ql-markdown-tables-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-tables.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-tables.png",
       "sha256": "b037925e54ce8a9f11452dda7695123f1615fda9bcff2e329bdf315207ef9faf"
     },
     "ql-markdown-tables-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown-tables.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-tables.html",
       "sha256": "adb028443dd622bd6925d92e6d2f1f6be846a9acb7905d1c1863c83273bededa"
     },
     "ql-markdown-tables-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-tables-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-tables-1100x700.png",
       "sha256": "2d9fd729e0b4738d60da5cce0d910f5a28d232b28cc69d309e0e949e45b0e7e7"
     },
     "ql-markdown-png": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown.png",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown.png",
       "sha256": "2c99f9e9e28db59c6eff1e90da9fc930444b1a0d4820011799cb8284f1f78c8c"
     },
     "ql-markdown-html": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/boards/ql-markdown.html",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown.html",
       "sha256": "c97a52583691f4d7dfdb1c57ac2ead192c9ae1e2521e8f94f2b5a464390bc44a"
     },
     "ql-markdown-before": {
       "kind": "file",
-      "path": "/home/gm/flea-ops/claude/releases/0.4.0/design-hig/before/ql-markdown-1100x700.png",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-1100x700.png",
       "sha256": "3bd05e4def5a493da3642f7ca0544962b49f63a77b7c8e9e9fcac0de9c5c271b"
     },
     "markdown-tables/adjacent": {

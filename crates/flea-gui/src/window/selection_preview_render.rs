@@ -240,17 +240,9 @@ impl Render for SelectionPreview {
                             .child(element),
                     )
                 }
-                _ if frame.kind == Kind::Multi => media.child(
-                    div()
-                        .size_full()
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .child(
-                            self.catalog
-                                .trn("items.count", frame.subject.selected_count as i64),
-                        ),
-                ),
+                _ if frame.kind == Kind::Multi => {
+                    media.child(multi::stack(&frame.subject, mark_size, roles.muted_frame))
+                }
                 _ if moving.is_some() => media.children(moving),
                 _ if fitted.is_some() => media.children(fitted),
                 _ if frame.kind == Kind::Symlink => media.child(state_mark(
@@ -322,7 +314,7 @@ impl Render for SelectionPreview {
                 .line_height(px(name_row))
                 .child(if frame.kind == Kind::Multi {
                     self.catalog
-                        .trn("items.count", frame.subject.selected_count as i64)
+                        .trn("preview.selected", frame.subject.selected_count as i64)
                 } else {
                     frame.subject.row.name.clone()
                 }),

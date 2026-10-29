@@ -12,6 +12,8 @@ use gpui::{
 use std::collections::HashMap;
 use std::rc::Rc;
 
+#[path = "rail_drop.rs"]
+mod rail_drop;
 #[path = "tab_drop.rs"]
 mod tab_drop;
 
@@ -107,6 +109,8 @@ pub struct Drags {
     /// The marker tag and serial of each window's current lift, shared with its file client.
     held: HashMap<u64, Held>,
     serial: u64,
+    /// The rail row each window's held drag rests on.
+    aims: HashMap<u64, rail_drop::Aim>,
 }
 
 impl Drags {
@@ -178,6 +182,7 @@ impl Shell {
         let key = window_key(window);
         // A drag that lifts nothing must never land an earlier drag's rows.
         cx.default_global::<Drags>().take(key);
+        self.clear_rail_aim(window, cx);
         let Some(host) = self.panes[side].as_ref() else {
             return false;
         };
@@ -231,6 +236,7 @@ impl Shell {
     pub fn escape_file_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
         let key = window_key(window);
         let lifted = cx.default_global::<Drags>().take(key).is_some();
+        self.clear_rail_aim(window, cx);
         lifted && cx.stop_active_drag(window)
     }
 
@@ -241,10 +247,12 @@ impl Shell {
         drags.take(key);
         drags.clients.remove(&key);
         drags.held.remove(&key);
+        drags.aims.remove(&key);
     }
 
     /// The drag ended over this window: a drop that never left the slop is the tap pointer_up already handled.
     pub fn land_own_drag(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+        self.clear_rail_aim(window, cx);
         let key = window_key(window);
         let Some(lift) = cx.default_global::<Drags>().take(key) else {
             return;
@@ -308,6 +316,25 @@ impl Shell {
             _ => &[],
         };
         let dest = pane_spot(host, point, carried);
+        // Recent stands on "/" with no folder of its own, so a drop on its blank ground lands nowhere.
+        if host.recent.on && dest == host.path {
+            return;
+        }
+        self.land_into(side, dest, owned, window, cx);
+    }
+
+    // The folder is resolved: read the disk facts off the UI thread, then decide and ask op1.
+    fn land_into(
+        &mut self,
+        side: usize,
+        dest: String,
+        owned: Owned,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes[side].as_ref() else {
+            return;
+        };
         let path = host.path.clone();
         let first = owned.first_source();
         let read_dest = dest.clone();

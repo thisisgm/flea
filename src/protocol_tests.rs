@@ -1,6 +1,31 @@
 use super::*;
 
 #[test]
+fn tag_metadata_preserves_absence_empty_and_names_without_accepting_wrong_types() {
+    let line = |suffix: &str| {
+        format!(
+            r#"{{"t":"rows","start":0,"listing":1,"rows":[{{"n":"a","d":false,"s":0,"m":0,"p":33188,"i":"file"{suffix}}}]}}"#
+        )
+    };
+    for (suffix, expected) in [
+        ("", None),
+        (r#", "tg":[]"#, Some(vec![])),
+        (
+            r#", "tg":["Red","Custom"]"#,
+            Some(vec!["Red".into(), "Custom".into()]),
+        ),
+    ] {
+        let Reply::Rows { rows, .. } = parse_reply(&line(suffix)).unwrap() else {
+            panic!("rows")
+        };
+        assert_eq!(rows[0].tags, expected);
+    }
+    for suffix in [r#", "tg":false"#, r#", "tg":[1]"#] {
+        assert!(parse_reply(&line(suffix)).is_err());
+    }
+}
+
+#[test]
 fn list_paths_cannot_inject_another_line_or_field() {
     let path = "/files/a\"b\nnext\\file";
     let mut wire = Vec::new();
@@ -78,6 +103,7 @@ fn parses_the_initial_pair_and_preserves_escaped_names() {
             mode: 16877,
             icon: "folder".into(),
             kind: "Folder".into(),
+            tags: Some(vec!["n".into()]),
             ..RowFacts::default()
         },
     ];
@@ -176,5 +202,24 @@ fn a_write_failure_is_returned_to_the_caller() {
     assert_eq!(
         Request::Quit.write_to(&mut Closed).unwrap_err().kind(),
         io::ErrorKind::BrokenPipe
+    );
+}
+
+#[test]
+fn pb_rest_z_pairs_name_absolute_rows_and_skip_rows_outside_the_answer() {
+    let line = r#"{"t":"rows","start":10,"listing":3,"rows":[{"n":"a","d":true,"s":0,"m":0,"p":0,"i":"folder"},{"n":"c","d":true,"s":0,"m":0,"p":0,"i":"folder"}],"z":[[11,96],[3,5]]}"#;
+    let Ok(Reply::Rows { rows, .. }) = parse_reply(line) else {
+        panic!("rows reply expected");
+    };
+    assert_eq!(rows[0].inline, None);
+    assert_eq!(rows[1].inline, Some(96));
+}
+
+#[test]
+fn pb_rest_malformed_z_pair_refuses_the_whole_answer() {
+    let line = r#"{"t":"rows","start":0,"listing":3,"rows":[{"n":"a","d":true,"s":0,"m":0,"p":0,"i":"folder"}],"z":[[0]]}"#;
+    assert_eq!(
+        parse_reply(line),
+        Err("z must hold [row,bytes] pairs".to_string())
     );
 }

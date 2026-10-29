@@ -1,5 +1,5 @@
 // ASCII candidates expose folded letters without allocating or expanding each byte to a Letter.
-use super::{fold, Letter, Matcher, State, EXACT, NAME, PREFIX, TYPO, WORD};
+use super::{fold, Letter, Matcher, State, EXACT, NAME, PENDING_NAME, PREFIX, TYPO, TYPO_EDIT, WORD};
 
 pub(crate) trait Text: Copy {
     fn len(self) -> usize;
@@ -38,6 +38,7 @@ pub(super) fn name(matcher: &Matcher, query: &[u8], bytes: &[u8], letters: &mut 
         if query.get(matched).copied() == Some(hay.lower(at) as u8) { matched += 1; }
     }
     if matched == query.len() {
+        if matcher.defer { return Some(PENDING_NAME); }
         fold(bytes, letters);
         state.reset();
         state.advance(&matcher.needle, letters, true);
@@ -50,5 +51,5 @@ pub(super) fn name(matcher: &Matcher, query: &[u8], bytes: &[u8], letters: &mut 
             matcher.distance(letters, edits)
         }
     };
-    distance.map(|distance| TYPO - distance as i32 * 1000)
+    distance.map(|distance| TYPO - distance as i32 * TYPO_EDIT)
 }

@@ -12,9 +12,7 @@ use crate::window::dispatch::Order;
 use crate::window::navigate::Step;
 use flea::i18n::I18n;
 use flea::jsondoc::Json;
-use gpui::{
-    AnyView, AppContext, Context, Entity, EventEmitter, Subscription, Window,
-};
+use gpui::{AnyView, AppContext, Context, Entity, EventEmitter, Subscription, Window};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -145,9 +143,23 @@ impl Shell {
         }
     }
 
+    /// A device release in flight holds the rail up, as PaneRail.qml releaseHold does, and lets go when the child ends.
+    fn hold_rail_for_release(&mut self, cx: &mut Context<Self>) {
+        let Some(join) = &self.rail else {
+            return;
+        };
+        let releasing = join.devices.read(cx).devices.releasing();
+        if join.host.read(cx).rail.wants().releasing != releasing {
+            join.host
+                .update(cx, |host, cx| host.releasing(releasing, cx));
+        }
+    }
+
     /// A row's request is applied once the frame can still run: opens route through the pane's own step.
     pub(crate) fn route_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.settle_rail_drag(window, cx);
         self.route_device_events(window, cx);
+        self.hold_rail_for_release(cx);
         if let Some(held) = self
             .rail
             .as_mut()
@@ -234,30 +246,64 @@ impl Shell {
                     self.focus_pane(side, cx);
                     self.trash_action("openTrash", window, cx);
                 }
+                // The device source's notify is lost inside Shell::render, so its events would wait for an unrelated frame.
                 Event::Activate(entry)
                     if entry.group == flea::ui_logic_pl4::rail::Group::Device =>
                 {
-                    let owned = self.rail.as_ref().map(|join| {
-                        join.devices
-                            .update(cx, |source, cx| source.activate(&entry, side, cx))
+                    let event = Event::Activate(entry);
+                    cx.defer_in(window, move |shell, window, cx| {
+                        shell.device_request(Request { side, id, event }, window, cx)
                     });
-                    match owned {
-                        Some(Activation::Handled) => {}
-                        Some(Activation::Phone(phone)) => self.open_phone(side, &phone, window, cx),
-                        _ => cx.emit(Request {
-                            side,
-                            id,
-                            event: Event::Activate(entry),
-                        }),
-                    }
                 }
-                Event::Release(entry) => self.release_rail_row(side, &entry, cx),
+                // A remote Favorite mounts its share as a NETWORK row does, then its path opens.
+                Event::Activate(entry)
+                    if matches!(
+                        entry.kind,
+                        flea::ui_logic_pl4::rail::Kind::Favourite
+                            | flea::ui_logic_pl4::rail::Kind::Favorite
+                    ) && entry.path.contains("://")
+                        && !entry.path.starts_with("file://") =>
+                {
+                    self.favourite_remote_activate(side, &entry, window, cx);
+                }
+                Event::Release(entry) => {
+                    let event = Event::Release(entry);
+                    cx.defer_in(window, move |shell, window, cx| {
+                        shell.device_request(Request { side, id, event }, window, cx)
+                    });
+                }
+                Event::Recent(visits) => self.recent_completed(side, visits, window, cx),
                 event => self.dispatch(Order::Place(Request { side, id, event }), window, cx),
             }
         }
     }
 
-    pub(crate) fn settle_rail(&mut self, cx: &mut Context<Self>) {
+    /// A device row's Return or release, run after the draw that drained it.
+    fn device_request(&mut self, request: Request, window: &mut Window, cx: &mut Context<Self>) {
+        let Request { side, id, event } = request;
+        match event {
+            Event::Activate(entry) => {
+                let owned = self.rail.as_ref().map(|join| {
+                    join.devices
+                        .update(cx, |source, cx| source.activate(&entry, side, cx))
+                });
+                match owned {
+                    Some(Activation::Handled) => {}
+                    Some(Activation::Phone(phone)) => self.open_phone(side, &phone, window, cx),
+                    _ => cx.emit(Request {
+                        side,
+                        id,
+                        event: Event::Activate(entry),
+                    }),
+                }
+            }
+            Event::Release(entry) => self.release_rail_row(side, &entry, cx),
+            _ => {}
+        }
+    }
+
+    pub(crate) fn settle_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.tags_sync(window, cx);
         let path = self.panes[self.focus_side]
             .as_ref()
             .map(|host| host.path.clone());
@@ -355,11 +401,11 @@ mod u08;
 mod device_tests;
 
 #[cfg(test)]
-#[path = "rail_reveal_tests.rs"]
-mod reveal_tests;
-#[cfg(test)]
 #[path = "network_readers_tests.rs"]
 mod network_readers;
+#[cfg(test)]
+#[path = "rail_reveal_tests.rs"]
+mod reveal_tests;
 
 #[path = "../g2/pl1/rail_events.rs"]
 mod device_events;

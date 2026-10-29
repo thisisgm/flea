@@ -41,6 +41,20 @@ impl Shell {
         self.run_navigation(side, window, cx);
     }
 
+    // PaneWire.qml onTransferDone: the folder the transfer finished in is read again, even when nothing else asked for it.
+    pub(crate) fn transfer_refresh(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
+            return;
+        };
+        let _ = host.nav.refresh_after_transfer(&mut host.pane);
+        self.run_navigation(side, window, cx);
+    }
+
     // True when the reply answered the retry ask, whether or not anything was still there to mark.
     pub(crate) fn retry_located(
         &mut self,

@@ -343,7 +343,9 @@ mod window_tests {
     }
 
     #[gpui::test]
-    fn m9_g1rows_05_shell_external_folder_map_keeps_the_live_tab_order(cx: &mut TestAppContext) {
+    fn m9_g1rows_05_shell_external_folder_map_applies_the_new_settings_order(
+        cx: &mut TestAppContext,
+    ) {
         let (backend, _requests) = Backend::test_channel();
         let cx = cx.add_empty_window();
         let entity = cx.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
@@ -367,8 +369,8 @@ mod window_tests {
                 assert_eq!(
                     host.nav.order,
                     Order {
-                        key: "size",
-                        desc: false
+                        key: "kind",
+                        desc: true
                     }
                 );
                 assert_eq!(
@@ -388,7 +390,7 @@ mod window_tests {
                         .view
                         .order
                         .key,
-                    "size"
+                    "kind"
                 );
             })
         });

@@ -25,6 +25,12 @@ const CHECK: f32 = 16.;
 #[path = "tag_tests.rs"]
 mod tag_tests;
 
+#[cfg(test)]
+thread_local! {
+    // Test-only receipt of each card frame a MenuElement painted in a real draw.
+    pub(crate) static PAINTED: RefCell<Vec<Bounds<Pixels>>> = const { RefCell::new(Vec::new()) };
+}
+
 /// The roles a menu paints with, read from the pane's palette until the theme tokens land.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MenuInk {
@@ -59,11 +65,23 @@ pub struct MenuElement {
     menu: Rc<RefCell<Menu>>,
     // The compositor's corner radius, which the window module reads from Hyprland.
     radius: Pixels,
+    faded: bool,
 }
 
 impl MenuElement {
     pub fn new(menu: Rc<RefCell<Menu>>, radius: Pixels) -> Self {
-        Self { menu, radius }
+        Self {
+            menu,
+            radius,
+            faded: false,
+        }
+    }
+    pub fn fading(menu: Rc<RefCell<Menu>>, radius: Pixels) -> Self {
+        Self {
+            menu,
+            radius,
+            faded: true,
+        }
     }
 }
 
@@ -215,6 +233,9 @@ fn paint_row(
         }
         edge = x - px(GAP);
     }
+    if let Some(state) = line.tag_state {
+        super::tag_checks::paint(state, edge, top, label_ink, window, cx);
+    }
     let Some(label) = line.painted_label() else {
         return;
     };
@@ -239,6 +260,8 @@ fn paint_card(
 ) {
     let f = card.frame;
     let frame = Bounds::new(origin + point(px(f.x), px(f.y)), size(px(f.w), px(f.h)));
+    #[cfg(test)]
+    PAINTED.with(|painted| painted.borrow_mut().push(frame));
     window.paint_quad(quad(
         frame,
         radius,
@@ -357,12 +380,19 @@ impl Element for MenuElement {
         cx: &mut App,
     ) {
         let menu = self.menu.borrow();
-        let Some(card) = &menu.card else { return };
+        let card = if self.faded {
+            menu.faded.as_ref().map(|faded| &faded.flyout.card)
+        } else {
+            menu.card.as_ref()
+        };
+        let Some(card) = card else { return };
         let ink = *ink;
         window.paint_layer(bounds, |window| {
-            let lit = menu.flyout.as_ref().and_then(|f| f.parent);
+            let lit = (!self.faded)
+                .then(|| menu.flyout.as_ref().and_then(|f| f.parent))
+                .flatten();
             paint_card(card, lit, self.radius, &ink, bounds.origin, window, cx);
-            if let Some(flyout) = &menu.flyout {
+            if let Some(flyout) = menu.flyout.as_ref().filter(|_| !self.faded) {
                 paint_card(
                     &flyout.card,
                     None,

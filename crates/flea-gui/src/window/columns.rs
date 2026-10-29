@@ -15,35 +15,48 @@ mod edge;
 mod input;
 #[path = "columns_keys.rs"]
 mod keys;
+#[path = "columns_menu.rs"]
+mod menu;
 pub use input::BackgroundMenu;
 #[path = "columns_gestures.rs"]
 mod gestures;
-pub(crate) use gestures::{drop_spot, on_name};
+pub(crate) use gestures::{drop_spot, hover_at, on_name};
 #[path = "columns_events.rs"]
 mod events;
+#[cfg(test)]
+#[path = "columns_scroll_lane_tests.rs"]
+mod lane_tests;
+#[path = "columns_loading.rs"]
+mod loading;
 #[path = "columns_readers.rs"]
 pub(crate) mod readers;
 #[path = "columns_render.rs"]
 mod render;
 #[path = "columns_requested.rs"]
 mod requested;
-pub(crate) use requested::requested;
 #[path = "columns_scroll.rs"]
 mod scroll;
-
+#[path = "columns_scroll_bar.rs"]
+mod scroll_bar;
+#[path = "columns_scroll_input.rs"]
+mod scroll_input;
 #[cfg(test)]
-#[path = "columns_scroll_tests.rs"]
+#[path = "columns_scroll_state_tests.rs"]
 mod scroll_tests;
+#[path = "columns_shown.rs"]
+mod shown;
+pub(crate) use requested::requested;
 
 #[cfg(test)]
 #[path = "columns_review_r2_tests.rs"]
 mod review_r2;
 
 pub(crate) struct Columns {
+    pub row_menu: Option<crate::columns::menu::NeighbourMenu>,
     pub area: Area,
     pub preview_hosted: bool,
     pub painters: Painters,
-    bars: [scroll::ColumnBar; 5],
+    pub(crate) scroll: [scroll::Scrolling; 5],
     pub heroes: [Option<Entity<EmptyHero>>; 5],
     pub notices: [Option<Entity<StateMessage>>; 5],
     pub loading: [Option<std::rc::Rc<crate::feedback::spinner::Crawl>>; 5],
@@ -55,6 +68,8 @@ pub(crate) struct Columns {
     pub entering: bool,
     arm_entry: bool,
     pub counters: Counters,
+    /// The track row under the pointer, drawn as the hover plate of its row.
+    pub hover: Option<gestures::Hover>,
     path: String,
     seen: Option<Seen>,
     held: std::rc::Rc<crate::list::pane::Held>,
@@ -90,6 +105,7 @@ impl Columns {
     fn new(width: f32, height: f32, settings: &super::startup::Settings) -> Self {
         let share = f64::from(super::selection_preview::host::share(&settings.data));
         Self {
+            row_menu: None,
             area: Area::new(
                 width,
                 height,
@@ -99,7 +115,7 @@ impl Columns {
             ),
             preview_hosted: false,
             painters: Painters::default(),
-            bars: Default::default(),
+            scroll: Default::default(),
             heroes: Default::default(),
             notices: Default::default(),
             loading: Default::default(),
@@ -110,6 +126,7 @@ impl Columns {
             entering: false,
             arm_entry: true,
             counters: Counters::default(),
+            hover: None,
             path: String::new(),
             seen: None,
             held: Default::default(),
@@ -260,29 +277,6 @@ fn flush(host: &mut PaneHost, locale: &super::locale::Snapshot) {
 }
 
 impl Shell {
-    /// The search strip's height over a Columns pane, which draws it in the header slot List leaves it.
-    pub(crate) fn columns_search_strip(&self, side: usize) -> f32 {
-        self.panes[side]
-            .as_ref()
-            .filter(|host| self.view == View::Columns && host.search.owner.active())
-            .map_or(0., |host| {
-                crate::list::Metrics::for_typeface(&host.list.borrow().typeface).header
-            })
-    }
-
-    /// The view whose content this frame draws: an entry into Columns still waiting on its columns draws the List.
-    pub(crate) fn shown_view(&self) -> View {
-        let entering = self.panes[0]
-            .as_ref()
-            .and_then(|host| host.columns.as_ref())
-            .is_some_and(|columns| columns.entering);
-        if self.view == View::Columns && entering {
-            View::List
-        } else {
-            self.view
-        }
-    }
-
     pub(crate) fn sync_columns(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let geometry = self.geometry(window);
         let visible = self.view == View::Columns;
@@ -360,13 +354,13 @@ impl Shell {
             columns.held = held;
             let was_visible = columns.area.visible;
             if !visible {
+                columns.scroll = Default::default();
                 columns.area.set_visible(false, &pane, ports, now);
                 columns.area.drawn.clear();
                 columns.timer = None;
                 columns.entering = false;
                 columns.arm_entry = true;
                 columns.painters.park();
-                columns.bars = Default::default();
                 for since in &columns.loading_since {
                     since.set(None);
                 }

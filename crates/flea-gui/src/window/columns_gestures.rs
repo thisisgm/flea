@@ -3,7 +3,7 @@ use super::PaneHost;
 use crate::{
     columns::{
         geometry::{Slot, LANE, NAME_X},
-        TrackRows,
+        TrackRows, TrackView,
     },
     state::Shell,
 };
@@ -16,18 +16,22 @@ pub(super) fn surface(
     cx: &mut Context<Shell>,
 ) -> impl IntoElement {
     crate::input::surface_with(cx.entity(), side, move |shell, bounds| {
+        let grow = shell.grows[side];
         let host = shell.panes[side].as_mut()?;
         let total = host.filter.shown_total(host.pane.held.total);
+        let row = crate::list::pane::ROW_HEIGHT;
         let frame = crate::input::Frame {
             bounds,
-            row: crate::list::pane::ROW_HEIGHT,
+            row,
             lane: LANE,
-            content: total as f32 * crate::list::pane::ROW_HEIGHT,
+            content: grow.content(total, row),
             scroll: host.pane.scroll_y,
             listing: host.pane.held.listing,
             total,
             columns: 1,
             cell_width: f32::from(bounds.size.width) - LANE,
+            grow,
+            cell_origin: (0., 0.),
         };
         host.input
             .prepare(frame, &mut host.selected, &mut host.pane.cursor);
@@ -83,6 +87,60 @@ pub(crate) fn on_name(host: &PaneHost, row: usize, x: Pixels) -> bool {
     x >= left && x < left + width
 }
 
+/// A hovered row, read from its track's path and rows and the active listing: a swap of any of them drops it.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Hover {
+    pub slot: Slot,
+    pub index: usize,
+    path: String,
+    rows: TrackRows,
+    listing: usize,
+}
+
+impl Hover {
+    /// Whether the hovered track still shows the same path and rows, under the same active listing.
+    pub(crate) fn holds(&self, tracks: &Rc<[TrackView]>, listing: usize) -> bool {
+        self.listing == listing
+            && tracks.iter().any(|view| {
+                view.slot == self.slot && view.path == self.path && view.rows == self.rows
+            })
+    }
+}
+
+/// The row under the pointer on a drawn track, never the lane, a gap below the rows or a hidden listing.
+pub(crate) fn hover_at(host: &PaneHost, point: Point<Pixels>) -> Option<Hover> {
+    let columns = host.columns.as_ref()?;
+    let tracks = columns.area.tracks();
+    tracks.iter().enumerate().find_map(|(at, view)| {
+        let paint = columns.painters.get(view.slot)?.borrow();
+        let drawn = paint.drawn.as_ref()?;
+        if !view.enabled
+            || !Rc::ptr_eq(&drawn.tracks, tracks)
+            || drawn.at != at
+            || !drawn.bounds.contains(&point)
+            || point.x >= drawn.bounds.right() - px(LANE)
+            || matches!(view.rows, TrackRows::Preview)
+            || drawn
+                .held
+                .as_ref()
+                .is_none_or(|held| held.listing != host.pane.held.listing)
+        {
+            return None;
+        }
+        let position = ((f32::from(point.y - drawn.bounds.top()) + drawn.scroll)
+            / crate::list::pane::ROW_HEIGHT)
+            .floor() as usize;
+        let index = drawn.row_at(position)?;
+        crate::columns::element::row_at(&view.rows, drawn.held.as_deref(), index).map(|_| Hover {
+            slot: view.slot,
+            index,
+            path: view.path.clone(),
+            rows: view.rows.clone(),
+            listing: host.pane.held.listing,
+        })
+    })
+}
+
 pub(crate) fn drop_spot(
     host: &PaneHost,
     point: Point<Pixels>,
@@ -105,9 +163,10 @@ pub(crate) fn drop_spot(
         {
             return None;
         }
-        let position = ((f32::from(point.y - drawn.bounds.top()) + drawn.scroll)
-            / crate::list::pane::ROW_HEIGHT)
-            .floor() as usize;
+        let position = drawn.grow.position_at(
+            f32::from(point.y - drawn.bounds.top()) + drawn.scroll,
+            crate::list::pane::ROW_HEIGHT,
+        );
         let row = (point.x < drawn.bounds.right() - px(LANE))
             .then_some(drawn.row_at(position))
             .flatten();

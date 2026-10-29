@@ -43,6 +43,11 @@ pub(crate) struct Index {
     pub(crate) dirs_scored: std::sync::atomic::AtomicUsize,
     #[cfg(test)]
     pub(crate) paths_scored: std::sync::atomic::AtomicUsize,
+    // Name and path DP evaluations, the work the head-bounded ranking defers.
+    #[cfg(test)]
+    pub(crate) name_dp: std::sync::atomic::AtomicUsize,
+    #[cfg(test)]
+    pub(crate) path_dp: std::sync::atomic::AtomicUsize,
 }
 
 pub(crate) fn index_bytes(index: &Index) -> usize {
@@ -72,6 +77,10 @@ impl Index {
             dirs_scored: std::sync::atomic::AtomicUsize::new(0),
             #[cfg(test)]
             paths_scored: std::sync::atomic::AtomicUsize::new(0),
+            #[cfg(test)]
+            name_dp: std::sync::atomic::AtomicUsize::new(0),
+            #[cfg(test)]
+            path_dp: std::sync::atomic::AtomicUsize::new(0),
         }
     }
 
@@ -140,6 +149,16 @@ impl Index {
 
     pub(crate) fn is_dir(&self, row: usize) -> bool {
         self.kinds[row / 8] & (1 << (row % 8)) != 0
+    }
+
+    // The row's folder as a slot of a per-folder table: its directory block, or the last slot for the scope's top.
+    pub(crate) fn folder_slot(&self, row: usize) -> usize {
+        let parent = self.rows[row].parent;
+        if parent == EMPTY { self.blocks.len() } else { parent as usize }
+    }
+
+    pub(crate) fn folder_slots(&self) -> usize {
+        self.blocks.len() + 1
     }
 
     pub(crate) fn push(&mut self, path: impl AsRef<OsStr>, is_dir: bool) -> bool {
@@ -219,7 +238,7 @@ pub(crate) struct Scratch {
 
 #[path = "searchscore.rs"]
 mod scoring;
-pub(crate) use scoring::{score_cached, QueryScratch};
+pub(crate) use scoring::{boundary, class, class_counts, hide_typos, last_class, resolve, resolve_head, score_cached, QueryScratch};
 #[cfg(test)]
 pub(crate) use scoring::score_all;
 
@@ -252,7 +271,7 @@ mod coverage_tests;
 
 #[cfg(test)]
 #[path = "searchfixture_tests.rs"]
-mod fixture_tests;
+pub(crate) mod fixture_tests;
 
 #[cfg(test)]
 #[path = "searchlatency_tests.rs"]

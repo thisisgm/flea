@@ -35,6 +35,57 @@ pub(crate) struct Look {
 }
 
 impl Look {
+    pub(super) fn markdown(
+        &self,
+        path: &str,
+        wire: Option<&Wire>,
+        catalog: &I18n,
+        prepare: Option<(f32, f32)>,
+        window: &Window,
+        cx: &mut Context<MarkdownView>,
+    ) -> MarkdownView {
+        let t = &self.theme;
+        let tokens = Tokens {
+            body: f32::from(self.face.body),
+            theme_body: f32::from(self.face.body),
+            caption: card::CAPTION,
+            gap: card::GAP,
+            hairline: 1.,
+            row_pad_x: card::PAD,
+            row_pad_y: (6. * f32::from(self.face.base) / 12.).round(),
+            mark: card::CHROME_MARK,
+            state_mark: card::MARK,
+            column: false,
+        };
+        let palette = pv2::markdown::Palette {
+            background: t.background,
+            code: t.background,
+            surface: t.surface,
+            foreground: t.foreground,
+            bright: t.foreground_bright,
+            muted: self.muted,
+            figure_muted: t.muted,
+            muted_frame: t.muted_frame,
+            accent_frame: t.accent_frame,
+            inks: t.code_inks,
+        };
+        let faces = Faces {
+            family: self.face.font.family.to_string(),
+            ..Faces::omarchy_default()
+        };
+        let mut view = MarkdownView::new(palette, tokens, faces, SLOT, catalog, cx);
+        if let Some(wire) = wire {
+            view.set_code_host(Box::new(wire.clone()), cx);
+        }
+        if let Some(frame) = prepare {
+            view.configure_prepare(frame);
+        }
+        view.set_scale(window);
+        view.set_active(true, cx);
+        view.set_path(Some(path.into()), cx);
+        view
+    }
+
     fn code(&self, numbered: bool) -> CodeView {
         let t = &self.theme;
         let mut view = CodeView::new(
@@ -74,7 +125,7 @@ impl Look {
             TableFace {
                 font: self.face.font.clone(),
                 caption: px(card::CAPTION),
-                line: card::TEXT_LINE,
+                line: pv2::line_pitch(card::CAPTION),
                 row_padding_x: card::PAD,
                 hairline: 1.,
             },
@@ -128,43 +179,9 @@ impl Mounting<'_> {
                 view.set_subject(path, size, false, None, cx);
                 view
             })),
-            Mount::Markdown => View::Markdown(cx.new(|cx| {
-                let t = &look.theme;
-                let tokens = Tokens {
-                    body: f32::from(look.face.body),
-                    theme_body: f32::from(look.face.body),
-                    caption: card::CAPTION,
-                    gap: card::GAP,
-                    hairline: 1.,
-                    row_pad_x: card::PAD,
-                    row_pad_y: (6. * f32::from(look.face.base) / 12.).round(),
-                    mark: card::CHROME_MARK,
-                    state_mark: card::MARK,
-                    column: false,
-                };
-                let palette = pv2::markdown::Palette {
-                    background: t.background,
-                    code: t.surface,
-                    surface: t.surface,
-                    foreground: t.foreground,
-                    bright: t.foreground_bright,
-                    muted: look.muted,
-                    figure_muted: t.muted,
-                    muted_frame: t.muted_frame,
-                    accent_frame: t.accent_frame,
-                    inks: t.code_inks,
-                };
-                let faces = Faces {
-                    family: look.face.font.family.to_string(),
-                    ..Faces::omarchy_default()
-                };
-                let mut view = MarkdownView::new(palette, tokens, faces, SLOT, catalog, cx);
-                view.set_code_host(Box::new(wire.clone()), cx);
-                view.set_scale(window);
-                view.set_active(true, cx);
-                view.set_path(Some(path.into()), cx);
-                view
-            })),
+            Mount::Markdown => View::Markdown(
+                cx.new(|cx| look.markdown(path, Some(wire), catalog, None, window, cx)),
+            ),
             Mount::Table => View::Table(cx.new(|cx| {
                 let (face, palette) = look.table();
                 let mut view = CsvView::new(true, face, palette);
@@ -258,7 +275,6 @@ impl Mounting<'_> {
                     size_ratio,
                 };
                 let metrics = pv2::font::Metrics {
-                    bar: card::BAR,
                     font: look.face.font.clone(),
                     caption: px(card::CAPTION),
                 };
@@ -318,5 +334,26 @@ impl Mounting<'_> {
             path: path.to_owned(),
             page: 0,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // v0.3.12 CsvTable.qml: a grid row is the font's 16 px height plus 6 px above and below (28 px), the header 16 px plus
+    // 8 px above and below and the 1 px rule (33 px).
+    #[test]
+    fn quick_look_table_rows_keep_the_v0312_pitch() {
+        let look = Look {
+            theme: crate::palette::Theme::default(),
+            face: crate::list::Typeface::omarchy_default(),
+            muted: gpui::Hsla::default(),
+            mark: (gpui::SharedString::default(), &[]),
+        };
+        let (face, _) = look.table();
+        let geometry = face.geometry(true);
+        assert_eq!(geometry.row_height, 28.);
+        assert_eq!(geometry.head_height, 33.);
     }
 }

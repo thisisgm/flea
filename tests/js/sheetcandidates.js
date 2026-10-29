@@ -107,11 +107,11 @@ function run(check) {
         check(name + " keeps the key row the board draws", runs.length === 1 ? runs[0].section : -1, 0)
     })
     var perm = SheetQuery.rank(realActions.concat(realMenus), "perm").map(function (row) { return row.keys + " " + row.label })
-    check("perm lists delete permanently once, then Permissions", perm.join("|"), "shift-delete delete permanently| Permissions")
+    check("perm lists delete permanently once, then Permissions", perm.join("|"), "shift-delete Delete permanently| Permissions")
     var trash = SheetQuery.rank(realActions.concat(realMenus), "trash").filter(function (row) {
         return row.action === "trash" || row.menuAction === "trash" })
     check("trash lists the file menu's Move to Trash once", trash.length, 1)
-    check("and keeps the key's own wording when both match", trash[0].label, "trash")
+    check("and keeps the key's own wording when both match", trash[0].label, "Move to Trash")
     // One row per action, but a word only the menu's wording holds still finds it, under its key and in the wording that matched.
     var trashKey = realActions.filter(function (row) { return row.action === "trash" })[0]
     var viaMenu = SheetQuery.rank(realActions.concat(realMenus), "move to trash")
@@ -216,7 +216,7 @@ function run(check) {
         SheetQuery.menuCandidates(Menu.listingEntries({ hasRow: true, hiddenActions: [], selectionCount: 2, rowMode: 0o100644, selectionModes: [0o100644, 0o100644] }),
             function (a) { return Keymap.hintFor(a) }))).filter(function (row) { return row.action === "rename" || row.menuAction === "rename" })
     check("a multi-row Rename is still one row", multi.length, 1)
-    check("it keeps the key row's wording", multi[0].label, "rename")
+    check("it keeps the key row's wording", multi[0].label, "Rename")
     check("it follows the menu: enabled over several rows", multi[0].disabled, false)
     check("and Enter runs it as its key row", SheetQuery.dispatch(multi[0]).kind, "action")
 }

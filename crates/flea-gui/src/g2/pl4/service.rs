@@ -80,6 +80,8 @@ fn run_bounded(exe: &PathBuf, wire: &str, wait: Duration) -> (Option<i32>, Strin
 }
 
 pub struct Places {
+    /// Tags seen in accepted listings during this window's session, retained when a folder is left.
+    pub tags_in_use: [bool; 7],
     pub catalog: Arc<I18n>,
     /// The flea binary `--favourites` runs through, so every caller shares the CLI's lock and re-read.
     pub exe: PathBuf,
@@ -98,6 +100,7 @@ pub struct Places {
 impl Places {
     pub fn new(catalog: Arc<I18n>, exe: PathBuf) -> Self {
         Self {
+            tags_in_use: [false; 7],
             catalog,
             exe,
             favourites: Favourites::default(),

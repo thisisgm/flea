@@ -9,13 +9,15 @@ use super::paint::{
 };
 use super::tracks::{TrackRows, TrackView};
 use crate::grid::element::pictures::{paint_in_slot, Pictures};
-use crate::list::pane::{visible_rows, Held, ROW_HEIGHT};
+use crate::list::pane::{visible_rows, Grow, Held, ROW_HEIGHT};
 use crate::palette::Theme;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,
     InspectorElementId, IntoElement, LayoutId, Pixels, Style, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc};
+#[path = "tags.rs"]
+mod tags;
 
 mod options;
 
@@ -32,6 +34,7 @@ pub struct TrackElement {
     words: Rc<crate::row::format::Words>,
     languages: bool,
     shown: Option<Rc<[usize]>>,
+    tag_slot: bool,
     locating: bool,
     query: Rc<str>,
 }
@@ -62,6 +65,7 @@ impl TrackElement {
             words,
             languages: true,
             shown: None,
+            tag_slot: false,
             locating: false,
             query: "".into(),
         }
@@ -83,7 +87,11 @@ impl TrackElement {
     }
 }
 
-fn row_at<'a>(rows: &'a TrackRows, held: Option<&'a Held>, index: usize) -> Option<Row<'a>> {
+pub(crate) fn row_at<'a>(
+    rows: &'a TrackRows,
+    held: Option<&'a Held>,
+    index: usize,
+) -> Option<Row<'a>> {
     match rows {
         TrackRows::Peek(rows) => rows.get(index).map(Row::Peek),
         TrackRows::Listing => held?.row(index).map(Row::Listing),
@@ -136,13 +144,21 @@ impl Element for TrackElement {
         let mut paint = self.paint.borrow_mut();
         let advance = f32::from(paint.body_advance(window));
         let view = &self.tracks[self.at];
+        // A refused rename grows the active track's edited row and moves the rows below it down.
+        let grow = if view.slot == Slot::Active {
+            self.focus.grow
+        } else {
+            Grow::default()
+        };
         paint.drawn = Some(super::paint::Drawn {
             bounds,
+            focus: Rc::clone(&self.focus),
             tracks: Rc::clone(&self.tracks),
             at: self.at,
             scroll: self.scroll_y,
             held: self.held.clone(),
             shown: self.shown.clone(),
+            grow,
         });
         let width = f32::from(bounds.size.width);
         let shows_size = view.slot == Slot::Active;
@@ -150,8 +166,10 @@ impl Element for TrackElement {
             font: paint.typeface.font.clone(),
             body: paint.typeface.body,
             caption: paint.typeface.caption,
-            plain_cells: name_budget(width, shows_size, false, advance),
-            chevron_cells: name_budget(width, shows_size, true, advance),
+            plain_cells: name_budget(width, shows_size, false, advance)
+                .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
+            chevron_cells: name_budget(width, shows_size, true, advance)
+                .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
             clip_cells: ((GAP + CLIP) / advance.max(1.)).ceil() as usize,
             size: shows_size,
             languages: self.languages,
@@ -162,8 +180,7 @@ impl Element for TrackElement {
         };
         let height = f32::from(bounds.size.height);
         let total = self.total();
-        let first = (self.scroll_y.max(0.) / ROW_HEIGHT).floor() as usize;
-        let last = (((self.scroll_y.max(0.) + height) / ROW_HEIGHT).ceil() as usize).min(total);
+        let (first, last) = grow.span(self.scroll_y.max(0.), height, ROW_HEIGHT, total);
         // An empty clipboard costs one question a frame, never one a row.
         let clip = self.clip.as_ref().filter(|clip| !clip.is_empty());
         let held = self.held.as_deref();
@@ -235,17 +252,26 @@ impl Element for TrackElement {
         cx: &mut App,
     ) {
         let palette = *palette;
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let paint = self.paint.borrow();
+        let focus = &paint.drawn.as_ref().expect("prepainted track").focus;
         let view = &self.tracks[self.at];
         let held = self.held.as_deref();
         let active = view.slot == Slot::Active;
         let width = f32::from(bounds.size.width);
         let left = bounds.origin.x;
+        let grow = paint
+            .drawn
+            .as_ref()
+            .map_or(Grow::default(), |drawn| drawn.grow);
         let top_of = |at: usize| {
-            bounds.origin.y + px((paint.first + at) as f32 * ROW_HEIGHT - self.scroll_y.max(0.))
+            bounds.origin.y + px(grow.top(paint.first + at, ROW_HEIGHT) - self.scroll_y.max(0.))
         };
-        let row_box =
-            |top: Pixels, w: f32| Bounds::new(point(left, top), size(px(w), px(ROW_HEIGHT)));
+        // The edited row's plate and edge take its band, so the refusal sits on the row's own ground.
+        let row_box = |top: Pixels, w: f32, at: usize| {
+            let height = grow.height(paint.first + at, ROW_HEIGHT);
+            Bounds::new(point(left, top), size(px(w), px(height)))
+        };
         window.paint_quad(fill(bounds, palette.background));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (at, (index, prepared, _)) in paint.visible.iter().enumerate() {
@@ -253,13 +279,13 @@ impl Element for TrackElement {
                     continue;
                 }
                 let top = top_of(at);
-                let cursor = active && self.focus.cursor == Some(*index);
+                let cursor = active && focus.cursor == Some(*index);
                 let lifted = !cursor && self.lifted(view, held, *index);
-                if let Some(plate) = self.focus.plate(&palette, view.slot, *index, lifted) {
-                    window.paint_quad(fill(row_box(top, width), plate));
+                if let Some(plate) = focus.plate(&palette, view.slot, *index, lifted) {
+                    window.paint_quad(fill(row_box(top, width, at), plate));
                 }
-                if self.focus.edge(view.slot, *index) {
-                    window.paint_quad(fill(row_box(top, EDGE), palette.edge()));
+                if focus.edge(view.slot, *index) {
+                    window.paint_quad(fill(row_box(top, EDGE, at), palette.edge()));
                 }
                 if let Some(prepared) = prepared {
                     let chevron = prepared.dir && (cursor || lifted);
@@ -285,7 +311,7 @@ impl Element for TrackElement {
                 {
                     let Some(prepared) = prepared else { continue };
                     let top = top_of(at);
-                    let cursor = active && self.focus.cursor == Some(*index);
+                    let cursor = active && focus.cursor == Some(*index);
                     let lifted = !cursor && self.lifted(view, held, *index);
                     let chevron = prepared.dir && (cursor || lifted);
                     let inks = palette.row_ink(*clip, cursor, lifted, view.dim);
@@ -316,6 +342,7 @@ impl Element for TrackElement {
                     let name = prepared.name_for(chevron, cursor);
                     let name_x = left + px(geometry.name_x);
                     paint_line(name, name_x, top, inks.name, window);
+                    let mut name_width = f32::from(name.line().width);
                     if let Some(location) = prepared.location.as_ref() {
                         let gap = GAP + if *clip != Clip::None { GAP + CLIP } else { 0. };
                         let bright = cursor
@@ -327,6 +354,18 @@ impl Element for TrackElement {
                             name_x + name.line().width + px(gap),
                             top,
                             if bright { inks.name } else { palette.muted },
+                            window,
+                        );
+                        name_width += gap + f32::from(location.line().width);
+                    }
+                    if let Some(Row::Listing(facts)) = row_at(&view.rows, held, *index) {
+                        tags::paint(
+                            facts,
+                            point(left, top),
+                            name_width,
+                            geometry,
+                            *clip,
+                            &theme,
                             window,
                         );
                     }

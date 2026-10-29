@@ -8,7 +8,7 @@ import statistics
 import time
 import uuid
 
-from contracts import classify_rank
+from contracts import classify_file_rank, classify_rank
 
 from fixtures import checked_mutation
 
@@ -93,7 +93,7 @@ class Measurements:
             meaning='collection completion is not quality approval; only performance.tsv filters ineligible instances'), indent=2) + '\n')
 
 
-def record_query(rows, context, result, target, full_rank=False, audit=None):
+def record_query(rows, context, result, target, full_rank=False, audit=None, *, folders):
     if result.get('n') is None and not result.get('head_verified'):
         raise ValueError('result head lacks complete match-count evidence')
     rank, rank_status = classify_rank(result['paths'], target, audit, complete=full_rank or (result.get('n') == len(result['paths'])))
@@ -113,6 +113,9 @@ def record_query(rows, context, result, target, full_rank=False, audit=None):
     rank, status = classify_rank(paths, target, audit, complete=full_rank or (result.get('n') == len(paths)))
     rows.row(context, 'intended_rank_full' if full_rank else 'intended_rank_top_k', rank, 'rank', status,
              'censored means found beyond head; miss means absent from full audit; unresolved awaits audit')
+    file_rank, file_status = classify_file_rank(paths, folders, target, audit, complete=full_rank or (result.get('n') == len(paths)))
+    rows.row(context, 'intended_file_rank_full' if full_rank else 'intended_file_rank_top_k', file_rank, 'rank', file_status,
+             'rank among file rows; folders ahead of the target are not counted')
     rows.row(context, 'target_reciprocal_rank', 1 / rank if rank > 0 else 0, 'ratio', status)
     rows.row(context, 'target_recall_at_k', int(target in paths), 'ratio', status)
     for metric in ['cpu_us', 'client_cpu_us', 'decode_cpu_us', 'response_bytes', 'core_reply_us']:

@@ -108,6 +108,7 @@ impl Permissions {
                     lift: 0.,
                 });
                 return Card {
+                    language: i18n.language().to_owned(),
                     title,
                     esc: tr("dialogs.file.esc"),
                     width: WIDTH,
@@ -124,7 +125,7 @@ impl Permissions {
             }),
             _ => {}
         }
-        if self.several() {
+        if self.several() && self.phase != Phase::Reading {
             body.push(self.grid(i18n));
             if self.summary().mixed {
                 body.push(Self::note(tr("dialogs.file.permissions.mixed")));
@@ -238,6 +239,7 @@ impl Permissions {
             });
         }
         Card {
+            language: i18n.language().to_owned(),
             title,
             esc: tr("dialogs.file.esc"),
             width: WIDTH,

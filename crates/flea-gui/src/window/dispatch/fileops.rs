@@ -1,6 +1,6 @@
 //! The file operations family: duplicate, Move to Trash, the dd pair, Delete permanently and New Folder, from keys and menu rows.
 use super::Order;
-use crate::{g2::mn1::join::Chosen, state::Shell};
+use crate::{g2::mn1::join::Chosen, state::Shell, window::input::Dispatch};
 use flea::{
     json::escape,
     keys::{sequence::Seat, Context as Keys},
@@ -34,6 +34,18 @@ impl Held {
     /// Focus.js: any action but the second d ends the pair, including one a key-only handler takes.
     pub(crate) fn disarm(&mut self) {
         self.arm.disarm();
+    }
+
+    /// Focus.js: every listing key but the second d ends the dd arm, an unbound one too, before any handler can take it.
+    pub(crate) fn end_for_listing_key(&mut self, listing: bool, dispatch: &Dispatch) {
+        if listing
+            && !matches!(
+                dispatch,
+                Dispatch::Composition | Dispatch::Action("trashArm")
+            )
+        {
+            self.disarm();
+        }
     }
 }
 
@@ -70,7 +82,10 @@ impl Shell {
     fn fileops_menu(&mut self, chosen: &Chosen, _: &mut Window, cx: &mut Context<Self>) -> bool {
         let captured = &chosen.captured;
         let side = captured.side;
-        let row_action = matches!(chosen.action.as_str(), "trash" | "duplicate" | "deletePermanently");
+        let row_action = matches!(
+            chosen.action.as_str(),
+            "trash" | "duplicate" | "deletePermanently"
+        );
         let wanted = match chosen.action.as_str() {
             _ if row_action => captured.ready && !captured.background,
             "newFolder" => captured.background,
@@ -112,8 +127,46 @@ impl Shell {
         self.fileops_send(side, line, cx);
     }
 
+    /// Whether a dd arm or a vim pair is live before this key ends it; Focus.js escapeCancelsArm reads it first.
+    pub(crate) fn escape_arm_live(&self, seat: Seat) -> bool {
+        let pending = self.keyboard.pending();
+        self.operations.fileops.armed_at() > 0 || pending.is_some_and(|(_, held)| held == seat)
+    }
+
+    /// Focus.js escapeCancelsArm: with escape-up on, Escape ends a live dd arm or vim pair and stops, before it climbs.
+    pub(crate) fn escape_cancels_arm(&mut self, arm_live: bool, cx: &mut Context<Self>) -> bool {
+        if !arm_live || !self.escape_up_on() {
+            return false;
+        }
+        self.operations.fileops.disarm();
+        self.keyboard.disarm();
+        self.status_messages(cx, |messages, now| messages.owner_stamp(0, now));
+        cx.notify();
+        cx.stop_propagation();
+        true
+    }
+
+    /// Focus.js trashRefused: where gio has no Trash, a trash key refuses and names the key that still deletes.
+    fn trash_refused(&mut self, side: usize, cx: &mut Context<Self>) -> bool {
+        let Some(host) = self.panes[side].as_ref() else {
+            return false;
+        };
+        if flea::ui_logic_pl1::mounts::trashable(&host.path, None) {
+            return false;
+        }
+        let text = self.locale.catalog.tr("feedback.no_trash");
+        self.status_messages(cx, |messages, now| {
+            messages.say_placed(&text, Hint::Deletes, now)
+        });
+        cx.notify();
+        true
+    }
+
     // Ops.js trash: the marked rows, or the cursor while the filter draws it; none says why.
     fn fileops_trash(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
+        if self.trash_refused(side, cx) {
+            return;
+        }
         let (listing, rows, menu) = match chosen {
             Some(chosen) => (
                 chosen.captured.listing,
@@ -134,8 +187,25 @@ impl Shell {
         self.fileops_send(side, line, cx);
     }
 
+    /// A row drag released on the rail's Trash (TrashDrop.drop): dd's request by path, with dd's cursor anchor while the rows are still listed.
+    pub(crate) fn trash_dropped(
+        &mut self,
+        side: usize,
+        line: String,
+        rows: &[usize],
+        current: bool,
+        cx: &mut Context<Self>,
+    ) {
+        let anchor = current.then(|| self.deletion_capture(side, rows)).flatten();
+        self.operations.fileops.trash_anchors[side].push_back(anchor);
+        self.fileops_send(side, line, cx);
+    }
+
     // Trash.js arm: the first press says what a second press inside ARM_MS does, the second trashes.
     fn fileops_arm(&mut self, side: usize, seat: Seat, cx: &mut Context<Self>) {
+        if self.trash_refused(side, cx) {
+            return;
+        }
         let Some(host) = self.panes[side].as_ref() else {
             return;
         };
@@ -211,6 +281,15 @@ impl Shell {
 
     // Ops.js newFolder: no name, so the backend takes the first free one.
     fn fileops_new_folder(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
+        // Focus.js:271: Recent holds no folder, so the refusal lands before any mkdir.
+        if self.panes[side].as_ref().is_some_and(|host| host.recent.on) {
+            let text = self.locale.catalog.tr("places.recent.new_folder_refused");
+            if let Some(host) = self.panes[side].as_mut() {
+                host.status = text.into();
+            }
+            cx.notify();
+            return;
+        }
         let path = match chosen {
             Some(chosen) => chosen.captured.path.clone(),
             None => match self.panes[side].as_ref() {
@@ -264,7 +343,13 @@ impl Shell {
         self.operations.fileops.arrival[side] = None;
     }
 
-    pub(super) fn fileops_say(&mut self, side: usize, text: &str, error: bool, cx: &mut Context<Self>) {
+    pub(crate) fn fileops_say(
+        &mut self,
+        side: usize,
+        text: &str,
+        error: bool,
+        cx: &mut Context<Self>,
+    ) {
         if let Some(host) = self.panes[side].as_mut() {
             host.status = text.to_owned().into();
         }
@@ -276,7 +361,9 @@ impl Shell {
 
     pub(super) fn fileops_preset(&self) -> String {
         let keys = self.launch.settings.data.get("keys");
-        keys.and_then(flea::jsondoc::Json::as_str).unwrap_or("default").to_owned()
+        keys.and_then(flea::jsondoc::Json::as_str)
+            .unwrap_or("default")
+            .to_owned()
     }
 }
 
@@ -285,5 +372,8 @@ pub(super) fn join(base: &str, name: &str) -> String {
 }
 
 fn numbers(rows: &[usize]) -> String {
-    rows.iter().map(usize::to_string).collect::<Vec<_>>().join(",")
+    rows.iter()
+        .map(usize::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
 }

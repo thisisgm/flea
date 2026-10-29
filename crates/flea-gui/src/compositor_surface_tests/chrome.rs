@@ -193,6 +193,7 @@ impl Render for Scroller {
                             bounds,
                             &host.list.borrow().drawn.metrics,
                             &host.pane,
+                            host.list.borrow().drawn.grow,
                         ),
                         palette,
                     ))

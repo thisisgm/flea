@@ -16,6 +16,8 @@ fn row(name: &str, dir: bool) -> RowFacts {
         link: None,
         real_modes: true,
         kind: String::new(),
+        inline: None,
+        tags: None,
     }
 }
 
@@ -24,8 +26,16 @@ fn row(name: &str, dir: bool) -> RowFacts {
 fn rev_r4_a_valid_request_name_seeds_the_field_and_return_probes_it() {
     let mut field = SaveField::new("report.txt");
     field.set_folder("/d");
-    assert_eq!(field.asked_name(), "report.txt", "the field draws the request name");
-    assert_eq!(field.accept(), SaveCheck::Probe, "the field draws report.txt yet Return asks for a name");
+    assert_eq!(
+        field.asked_name(),
+        "report.txt",
+        "the field draws the request name"
+    );
+    assert_eq!(
+        field.accept(),
+        SaveCheck::Probe,
+        "the field draws report.txt yet Return asks for a name"
+    );
 }
 
 // PickerWindow.qml:257 probes [path, saveName]; the seeded name is what the window probes and then saves.
@@ -43,7 +53,11 @@ fn rev_r4_the_seeded_name_is_probed_and_saved() {
     );
     let key = field.probe_key();
     field.set_exists(&key, false);
-    assert_eq!(field.accept(), SaveCheck::Ready, "an absent seeded name is never written");
+    assert_eq!(
+        field.accept(),
+        SaveCheck::Ready,
+        "an absent seeded name is never written"
+    );
 }
 
 // r1-11 stands with the seed: emptying the seeded field asks for a name.
@@ -64,10 +78,17 @@ fn rev_r4_a_cleared_query_is_no_filter_before_its_answer_lands() {
     assert!(list.landed(gen, 9));
     assert!(list.held_rows(gen, 0, vec![row("Docs", true), row("notes.txt", false)]));
     list.filter_line("tes");
-    assert!(list.receive(gen, r#"{"t":"filtered","id":1,"query":"tes","n":9,"rows":[7],"ms":0.010}"#));
+    assert!(list.receive(
+        gen,
+        r#"{"t":"filtered","id":1,"query":"tes","n":9,"rows":[7],"ms":0.010}"#
+    ));
     assert!(list.facts().filtered.is_some(), "the tes answer lands");
     list.filter_line("");
-    assert_eq!(list.escape(), Escape::Cancel, "the cleared query still makes the first esc clear a filter");
+    assert_eq!(
+        list.escape(),
+        Escape::Cancel,
+        "the cleared query still makes the first esc clear a filter"
+    );
 }
 
 // tests/js/picker.js:169 "s from an inherited kind order starts over at name" (sanity, expected to pass).

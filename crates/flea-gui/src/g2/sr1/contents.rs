@@ -2,7 +2,7 @@
 use super::run::RUN_WASH;
 #[path = "contents_text.rs"]
 mod text;
-use crate::list::{mark_bounds, Typeface, END_W, LABEL_X, PAD_X};
+use crate::list::{mark_bounds, RowStates, Typeface, END_W, LABEL_X, PAD_X};
 use crate::row;
 use flea::protocol::RowFacts;
 use gpui::{
@@ -38,6 +38,7 @@ pub struct Palette {
     pub muted: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
+    pub marked: Hsla,
 }
 
 impl Palette {
@@ -51,6 +52,7 @@ impl Palette {
             muted: list.muted,
             accent: list.accent,
             accent_frame: list.accent_frame,
+            marked: list.marked,
         }
     }
     /// The lifted block's edge, drawn in the accent frame.
@@ -148,8 +150,7 @@ impl ContentsState {
 pub struct ContentsElement {
     held: Rc<Held>,
     scroll_y: f32,
-    cursor: usize,
-    hover: Option<usize>,
+    rows: RowStates,
     palette: Palette,
     state: Rc<RefCell<ContentsState>>,
 }
@@ -162,19 +163,25 @@ impl ContentsElement {
         palette: Palette,
         state: Rc<RefCell<ContentsState>>,
     ) -> Self {
+        let rows = RowStates::cursor_only(held.listing, cursor);
         Self {
             held,
             scroll_y,
-            cursor,
-            hover: None,
+            rows,
             palette,
             state,
         }
     }
 
+    /// The same listing-scoped selection, focus and pointer snapshot as the underlying list.
+    pub fn with_states(mut self, rows: RowStates) -> Self {
+        self.rows = rows;
+        self
+    }
+
     /// The block under the pointer, which the window's hover tracking names at the join.
     pub fn hovered(mut self, index: Option<usize>) -> Self {
-        self.hover = index;
+        self.rows.hovered = index;
         self
     }
 }
@@ -261,7 +268,7 @@ impl Element for ContentsElement {
             };
             let key = Key {
                 listing: self.held.listing,
-                lifted: index == self.cursor,
+                lifted: self.rows.row(index, self.held.listing).cursor,
                 cells,
                 scale: window.scale_factor().to_bits(),
                 languages: state.languages,
@@ -300,19 +307,33 @@ impl Element for ContentsElement {
         window.paint_quad(fill(bounds, palette.background));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (index, prepared) in &state.visible {
-                let lifted = *index == self.cursor;
+                let row = self.rows.row(*index, self.held.listing);
+                let lifted = row.lifted();
                 let top = bounds.origin.y + px(*index as f32 * BLOCK_H - self.scroll_y);
-                if lifted {
-                    // The block wears the cursor rung down both lines.
+                let wash = if row.drop_target || (row.cursor && self.rows.focused) {
+                    Some(palette.accent.opacity(CURSOR_WASH))
+                } else if row.cursor {
+                    Some(palette.foreground.opacity(crate::list::GREY_CURSOR))
+                } else if row.selected {
+                    Some(if self.rows.focused {
+                        palette.marked
+                    } else {
+                        palette.foreground.opacity(crate::list::TRACK)
+                    })
+                } else if row.hovered {
+                    Some(palette.foreground.opacity(HOVER))
+                } else {
+                    None
+                };
+                if let Some(wash) = wash {
                     let block = Bounds::new(point(left, top), size(bounds.size.width, px(BLOCK_H)));
-                    window.paint_quad(fill(block, palette.accent.opacity(CURSOR_WASH)));
+                    window.paint_quad(fill(block, wash));
+                }
+                if row.drop_target || (row.cursor && self.rows.focused) {
                     window.paint_quad(fill(
                         Bounds::new(point(left, top), size(px(EDGE_W), px(BLOCK_H))),
                         palette.edge(),
                     ));
-                } else if self.hover == Some(*index) {
-                    let block = Bounds::new(point(left, top), size(bounds.size.width, px(BLOCK_H)));
-                    window.paint_quad(fill(block, palette.foreground.opacity(HOVER)));
                 }
                 let (ink, meta) = if lifted {
                     (palette.foreground, palette.foreground)
@@ -325,7 +346,7 @@ impl Element for ContentsElement {
                     palette.muted
                 };
                 let (key, data) = prepared.mark.svg();
-                let mark_ink = if lifted || self.hover == Some(*index) {
+                let mark_ink = if lifted {
                     palette.foreground
                 } else {
                     palette.metadata_frame

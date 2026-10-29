@@ -140,7 +140,7 @@ impl Shell {
         let landing = Landing {
             path: &host.path,
             list_in_flight: busy,
-            recent: flea::ui_logic_pk1::is_recent(host.pane.place()),
+            recent: host.recent.on || flea::ui_logic_pk1::is_recent(host.pane.place()),
             stamp: core::stamp_at(now).unwrap_or(core::Stamp {
                 year: 1970,
                 month: 1,

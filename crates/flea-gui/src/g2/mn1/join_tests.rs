@@ -182,7 +182,7 @@ fn u06_live_menu_readers_keep_unknown_capabilities_refused(cx: &mut TestAppConte
     }
     assert_eq!(
         read(cx, handle, "contextMenuFocusState").code,
-        3,
-        "an unimplemented reader keeps its capability refusal"
+        0,
+        "with no menu open the focus reader answers its idle shape"
     );
 }

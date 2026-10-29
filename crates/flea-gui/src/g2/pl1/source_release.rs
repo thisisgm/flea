@@ -42,6 +42,22 @@ impl Source {
             .cloned()
     }
 
+    /// The drawn device row's own entry, which its rail menu reads its rows from.
+    pub fn device_row(&self, row: &places::RailEntry) -> Option<RailEntry> {
+        self.owned(row)
+    }
+
+    /// A rail menu's Unmount, Eject or phone Unmount, against the row its key names now.
+    pub fn release_by(
+        &mut self,
+        action: RailAction,
+        key: &str,
+        side: usize,
+        cx: &mut Context<Self>,
+    ) {
+        self.run(action, key, side, cx);
+    }
+
     /// One click on the eject mark, or Return on its keyboard frame, as Sidebar.ejectRow: the row's own release.
     pub fn release_row(&mut self, row: &places::RailEntry, side: usize, cx: &mut Context<Self>) {
         let Some(entry) = self.owned(row) else {
@@ -75,7 +91,9 @@ impl Source {
             },
             // A share belongs to the network owner, which answers its own release.
             (true, Some(row)) if row.group == places::Group::Network => return,
-            (true, Some(row)) => Release::Say(Note::new("device.nothing_to_release", &[&row.label])),
+            (true, Some(row)) => {
+                Release::Say(Note::new("device.nothing_to_release", &[&row.label]))
+            }
             (true, None) => release(Some((&[], None)), directory, true, system, false),
             (false, _) if !self.active => {
                 // A hidden rail lists once and resolves against that answer, as ui/PaneRail.qml ejectHidden.

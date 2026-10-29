@@ -41,6 +41,13 @@ impl Shell {
                     Some(call) => call,
                     None => return,
                 };
+                if self.network_mountinfo_call(&request, &answer, cx) {
+                    return;
+                }
+                if let Some(reply) = self.trash_focus_call(&request, window, cx) {
+                    let _ = answer.try_send(crate::ipc::server::Answer { reply, quit: false });
+                    return;
+                }
                 let Some(host) = &self.panes[self.focus_side] else {
                     return;
                 };
@@ -132,6 +139,9 @@ impl Shell {
                     hidden: host.nav.folders.borrow().hidden,
                     cx,
                 };
+                let favourites = crate::ipc::favourites::FavouritesAdapter {
+                    host: &self.settings,
+                };
                 let status = crate::ipc::status::StatusAdapter { shell: self, cx };
                 let dual = self.dual_adapter(window, cx);
                 let drag = crate::ipc::dual::DragGeometry { shell: self };
@@ -173,6 +183,7 @@ impl Shell {
                     board: &self.clipboard.board,
                 };
                 let geometry = self.geometry(window);
+                let recent = crate::ipc::recent::RecentAdapter(&host.recent);
                 let shown = crate::window::network::shown(&self.launch.settings.data);
                 let network = self
                     .rail
@@ -242,23 +253,61 @@ impl Shell {
                 let devices = crate::ipc::devices::DeviceAdapter {
                     source: self.rail.as_ref().map(|join| join.devices.read(cx)),
                 };
-                let thumbnails = crate::ipc::thumbnails::Thumbnails { host };
+                let thumbnails = crate::ipc::thumbnails::Thumbnails {
+                    host,
+                    mode: crate::grid::element::pictures::policy::Policy::read(
+                        &self.launch.settings.data,
+                    )
+                    .mode,
+                };
+                let preview_text = crate::ipc::preview_text::PreviewText {
+                    shell: self,
+                    window,
+                    cx,
+                };
                 let archive_cards = crate::ipc::archive_cards::ArchiveAdapter { shell: self };
                 let output_cards = crate::ipc::output_cards::OutputAdapter { shell: self, cx };
-                let dialog_cards = crate::ipc::dialog_cards::DialogAdapter { shell: self, cx };
-                let feedback = crate::ipc::window_feedback::FeedbackAdapter { shell: self, cx };
+                let dialog_cards = crate::ipc::dialog_cards::DialogAdapter {
+                    shell: self,
+                    cx,
+                    input_ready: states.focused && !host.pane.busy(),
+                };
+                let feedback = crate::ipc::window_feedback::FeedbackAdapter {
+                    shell: self,
+                    cx,
+                    view: focus.view.unwrap_or(""),
+                    pane_focused: self.focus.is_focused(window),
+                    list_focused: states.focused,
+                    drop_active: states.drop_target.is_some(),
+                };
+                let archive_preview =
+                    crate::ipc::fileops_preview::PreviewAdapter { shell: self, cx };
                 let column_preview =
                     crate::ipc::columns_preview::ColumnsPreview { preview: &preview };
-                let adapters: [&dyn crate::ipc::Adapter; 34] = [
+                let glass = super::super::glass::Reader { window, cx };
+                let preview_scroll = crate::ipc::preview_scroll::PreviewScroll {
+                    look: look.view,
+                    cx,
+                };
+                let preview_look = crate::ipc::preview_look::PreviewLook {
+                    look: look.view,
+                    cx,
+                };
+                let adapters: [&dyn crate::ipc::Adapter; 41] = [
+                    &glass,
                     &column_preview,
                     &drag,
                     &providers,
                     &network_result,
+                    &preview_scroll,
+                    &preview_look,
                     &thumbnails,
+                    &preview_text,
                     &look,
                     &rename,
                     &search,
                     &query,
+                    &recent,
                     &delivery,
                     &rail,
                     &focus,
@@ -268,6 +317,7 @@ impl Shell {
                     &dual,
                     &status,
                     &settings,
+                    &favourites,
                     &trash,
                     &omi,
                     &columns,
@@ -283,15 +333,16 @@ impl Shell {
                     &output_cards,
                     &dialog_cards,
                     &feedback,
+                    &archive_preview,
                     &rows,
                 ];
                 let count = if matches!(
                     host.drawn_view,
                     Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
                 ) {
-                    34
+                    41
                 } else {
-                    33
+                    40
                 };
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =

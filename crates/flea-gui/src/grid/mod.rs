@@ -23,6 +23,8 @@ mod join_transition_tests;
 #[cfg(test)]
 mod join_window_tests;
 pub mod layout;
+#[cfg(test)]
+mod pagekeys_tests;
 pub(crate) mod pane_view;
 #[cfg(test)]
 mod rev_u10_r1_tests;

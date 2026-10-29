@@ -71,6 +71,9 @@ pub fn open_with(
         .child(frame)
         .child(super::card::text(&label, look::BODY, look.foreground))
         .on_hover(cx.listener(|ql, hovered: &bool, _, cx| {
+            if !ql.is_open() {
+                return;
+            }
             let now = hovered.then_some(Hit::OpenWith);
             if ql.hovered != now {
                 ql.hovered = now;
@@ -80,6 +83,9 @@ pub fn open_with(
         .on_mouse_down(
             MouseButton::Left,
             cx.listener(|ql, _, _, cx| {
+                if !ql.is_open() {
+                    return;
+                }
                 ql.pressed = Some(Hit::OpenWith);
                 cx.notify();
             }),

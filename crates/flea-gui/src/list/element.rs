@@ -1,112 +1,29 @@
 //! The List Element: one custom Element for the whole pane, fixed-height rows painted as quads, marks and pre-shaped lines.
+pub use super::painted_row::{DropLine, Shown};
 pub use super::row_text::drawn_name;
-use super::row_text::{bold_name, prepare, run_of};
+use super::row_text::{bold_name, prepare};
 use super::{
     columns::{Column, Layout},
     pane::Held,
-    ListState, Metrics, Palette, RowState, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM,
-    GREY_CURSOR, HOVER, MATCH_WASH, TRACK,
+    ListState, Metrics, Palette, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM, GREY_CURSOR,
+    HOVER, MATCH_WASH, TRACK,
 };
-use crate::grid::element::{pictures::paint_in_slot, Thumbnail};
 use crate::palette::Theme;
 use crate::row::{
-    cache::{Extra, Prepared, Shaping},
+    cache::{Extra, Shaping},
     format,
-    marks::{ClipMark, Mark},
+    marks::ClipMark,
 };
 use gpui::{
-    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
-    GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels,
-    SharedString, Style, TransformationMatrix, Window,
+    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,
+    GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, SharedString, Style,
+    TransformationMatrix, Window,
 };
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
 // Row.qml's loading bar draws at a fifth of the muted frame, so scrolling reads as loading.
 const LOADING: f32 = 0.2;
-const LOADING_WIDTH: f32 = 0.3;
-
-/// The drag owner's caption for a drop target row, shaped once per label, face and size.
-pub struct DropLine {
-    label: SharedString,
-    font: Font,
-    size: Pixels,
-    run: GlyphRun,
-}
-
-impl DropLine {
-    fn shaped<'a>(
-        slot: &'a mut Option<DropLine>,
-        label: &SharedString,
-        font: &Font,
-        size: Pixels,
-        window: &Window,
-    ) -> &'a GlyphRun {
-        if !slot
-            .as_ref()
-            .is_some_and(|line| line.label == *label && line.font == *font && line.size == size)
-        {
-            let run = GlyphRun::new(window.text_system().layout_line(
-                label,
-                size,
-                &[run_of(label.len(), font)],
-                None,
-            ));
-            *slot = Some(DropLine {
-                label: label.clone(),
-                font: font.clone(),
-                size,
-                run,
-            });
-        }
-        &slot.as_ref().expect("shaped above").run
-    }
-}
-
-/// One visible row this frame: its index, its shaped lines once held, its clipboard mark and its states.
-#[derive(Clone)]
-pub struct Shown {
-    pub index: usize,
-    /// The position the row is drawn at: its index, or its place in a filter's drawn rows.
-    pub view: usize,
-    pub prepared: Option<Rc<Prepared>>,
-    pub clip: Option<ClipMark>,
-    pub state: RowState,
-    /// The thumbnail drawn in the mark slot, lent while the row's facts match the answer.
-    pub picture: Option<Arc<Thumbnail>>,
-}
-
-impl Shown {
-    fn name_line(&self) -> Option<&GlyphRun> {
-        let prepared = self.prepared.as_ref()?;
-        Some(
-            prepared
-                .bold
-                .get()
-                .filter(|_| self.state.cursor)
-                .unwrap_or(&prepared.name),
-        )
-    }
-
-    fn name_slot(&self, mut name: Bounds<Pixels>, metrics: &Metrics) -> Bounds<Pixels> {
-        if self.clip.is_some() {
-            name.size.width = (name.size.width - px(metrics.gap + metrics.clip)).max(px(0.));
-        }
-        name
-    }
-
-    /// The clipboard bounds used by paint, following the same run and mask as the visible name.
-    pub fn clip_bounds(&self, name: Bounds<Pixels>, metrics: &Metrics) -> Option<Bounds<Pixels>> {
-        if self.state.renaming {
-            return None;
-        }
-        Some(self.clip?.bounds(
-            self.name_slot(name, metrics),
-            self.name_line()?.line().width,
-            px(metrics.clip),
-            px(metrics.gap),
-        ))
-    }
-}
+pub use super::loading::loading_bar;
 
 // The list surface's fixed row height: the scroll model and every reader share it from here.
 pub const ROW_HEIGHT: f32 = 31.;
@@ -183,23 +100,6 @@ fn cells(width: f32, advance: f32) -> usize {
     }
 }
 
-/// Row.qml's loading bar for a row the pane does not hold yet: 30 percent of the row, caption high, right of the mark slot.
-pub fn loading_bar(
-    left: Pixels,
-    top: Pixels,
-    metrics: &Metrics,
-    row_width: f32,
-    caption: f32,
-) -> Bounds<Pixels> {
-    Bounds::new(
-        point(
-            left + px(metrics.label_x()),
-            top + px((metrics.row - caption) / 2.),
-        ),
-        size(px(row_width * LOADING_WIDTH), px(caption)),
-    )
-}
-
 /// Paints a prepared line from the tiles its glyph run kept, so a row already seen costs no lookup per glyph.
 pub(super) fn paint_line(
     run: &GlyphRun,
@@ -215,7 +115,7 @@ pub(super) fn paint_line(
     let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
-fn paint_mark(
+pub(super) fn paint_mark(
     key: SharedString,
     data: &'static [u8],
     at: gpui::Point<Pixels>,
@@ -339,10 +239,10 @@ impl Element for ListElement {
             (index, x, width, cells)
         });
         let height = f32::from(bounds.size.height);
-        let first = (self.scroll_y / metrics.row).floor().max(0.) as usize;
         let drawn_total = self.shown.as_ref().map_or(held.total, |rows| rows.len());
-        let last =
-            (((self.scroll_y + height) / metrics.row).ceil().max(0.) as usize).min(drawn_total);
+        // A refused rename grows its row and moves the rows below it down by the band.
+        let grow = self.states.grow;
+        let (first, last) = grow.span(self.scroll_y, height, metrics.row, drawn_total);
         rows.begin(
             &shaping,
             ((height / metrics.row).ceil() as usize).max(1) * CACHE_SCREENS,
@@ -414,8 +314,9 @@ impl Element for ListElement {
             scroll_y: self.scroll_y,
             listing: held.listing,
             frames: drawn.frames + 1,
+            grow,
             drop: drop_box.map(|(index, x, width, _)| {
-                let top = bounds.origin.y + px(index as f32 * metrics.row - self.scroll_y);
+                let top = bounds.origin.y + px(grow.top(index, metrics.row) - self.scroll_y);
                 (
                     index,
                     Bounds::new(
@@ -454,11 +355,13 @@ impl Element for ListElement {
             row_width,
             caption,
         } = *frame;
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let state = self.state.borrow();
         let view = &state.view;
         let left = bounds.origin.x;
         let row = metrics.row;
-        let top_of = |index: usize| bounds.origin.y + px(index as f32 * row - self.scroll_y);
+        let grow = state.drawn.grow;
+        let top_of = |at: usize| bounds.origin.y + px(grow.top(at, row) - self.scroll_y);
         let focused = self.states.focused;
         window.paint_quad(fill(bounds, palette.background));
         window.with_content_mask(
@@ -468,7 +371,8 @@ impl Element for ListElement {
             |window| {
                 for shown in &state.visible {
                     let top = top_of(shown.view);
-                    let ground = Bounds::new(point(left, top), size(bounds.size.width, px(row)));
+                    let height = px(grow.height(shown.view, row));
+                    let ground = Bounds::new(point(left, top), size(bounds.size.width, height));
                     let s = shown.state;
                     // The cursor draws its rung alone on a marked row, so no plate stacks into a brighter band.
                     // drag-cut-move: a drop target takes the cursor's accent wash and edge whichever window holds the keyboard.
@@ -533,54 +437,22 @@ impl Element for ListElement {
                 window.paint_layer(bounds, |window| {
                     for shown in &state.visible {
                         let lifted = shown.state.lifted();
-                        // drag-cut-move: a cut row ghosts its mark alone, so its name and cells keep their contrast.
-                        let dim = if shown.clip == Some(ClipMark::Cut) {
-                            CUT_DIM
-                        } else {
-                            1.
-                        };
                         let top = top_of(shown.view);
-                        // Row.qml: a thumbnail fills the mark slot, a Dual pane's at the mark's own size, fitted whole.
-                        if let Some(picture) = &shown.picture {
-                            let side = if view.dual {
-                                metrics.mark
-                            } else {
-                                metrics.slot
-                            };
-                            let slot = Bounds::new(
-                                point(
-                                    left + px(metrics.pad + (metrics.slot - side) / 2.),
-                                    top + px((row - side) / 2.),
-                                ),
-                                size(px(side), px(side)),
-                            );
-                            paint_in_slot(picture, slot, window);
-                            marks_painted += 1;
-                            pictures_painted += 1;
-                        }
-                        let at = point(
-                            left + px(metrics.pad + (metrics.slot - metrics.mark) / 2.),
-                            top + px((row - metrics.mark) / 2.),
+                        let (marks, pictures) = super::picker::paint_icon(
+                            shown,
+                            view,
+                            metrics,
+                            palette,
+                            (left, top, self.held.row(shown.index)),
+                            window,
+                            cx,
                         );
-                        // Row.qml keeps Icons.FALLBACK, the file mark, beside a loading row's bar.
-                        let mark = shown
-                            .prepared
-                            .as_ref()
-                            .map_or(Mark::File, |prepared| prepared.mark);
-                        if shown.picture.is_none() {
-                            let (key, data) = mark.svg();
-                            let ink = if lifted {
-                                palette.foreground
-                            } else {
-                                palette.metadata_frame
-                            };
-                            paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
-                            marks_painted += 1;
-                        }
+                        marks_painted += marks;
+                        pictures_painted += pictures;
                         let Some(prepared) = &shown.prepared else {
                             continue;
                         };
-                        let meta = if lifted {
+                        let meta = if lifted || view.picker.is_some() {
                             palette.foreground
                         } else {
                             palette.metadata
@@ -662,6 +534,7 @@ impl Element for ListElement {
                             }
                         }
                     });
+                    super::tags::paint(&state, &self.held, bounds, &theme, window);
                     // RowDropTarget.qml: the label is an accent caption at the row's right padding, in place of the hidden cells.
                     if let (Some((_, caption)), Some(line)) = (state.drawn.drop, &state.drop_line) {
                         paint_line(

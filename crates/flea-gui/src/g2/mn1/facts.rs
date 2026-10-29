@@ -53,6 +53,9 @@ impl Shell {
             .collect::<Vec<_>>();
         let image = flea::ui_logic_op4::output::Kind::Image;
         MenuContext {
+            tag_submenu: (!background)
+                .then(|| self.tag_entries_for(side, rows))
+                .flatten(),
             has_row: !background,
             selection_count: if background {
                 background_count(host)
@@ -99,6 +102,20 @@ impl Shell {
             self.output.extract[side],
         );
         context.update_version = self.menu_update_version();
+        if let Some(host) = &self.panes[side] {
+            context.storage_class = host.sizes.class().unwrap_or_default().into();
+        }
+        let preview = self.launch.settings.data.get("preview");
+        let flag = |key| {
+            preview
+                .and_then(|preview| preview.get(key))
+                .and_then(Json::as_bool)
+        };
+        context.thumbs = flea::ui_logic_mn1::build::ThumbPrefs {
+            network: flag("thumbNetwork") == Some(true),
+            phone: flag("thumbPhone") == Some(true),
+            usb: flag("thumbUsb") != Some(false),
+        };
     }
 }
 

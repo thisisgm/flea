@@ -24,16 +24,56 @@ impl TrashPane {
         }));
     }
 
+    /// One backend line on this session: a trashbrowse reply or a trashthumbed answer.
+    pub fn line(&mut self, text: &str, cx: &mut Context<Self>) {
+        let Ok(message) = jsondoc::parse(text) else {
+            return;
+        };
+        match message.get("t").and_then(Json::as_str) {
+            Some("trashbrowse") => {
+                if let Some(reply) = Reply::read(message) {
+                    if reply.id == self.host.view.request_id
+                        && reply.op == self.host.view.pending_op
+                        && reply.ok
+                        && matches!(reply.op.as_str(), "list" | "window")
+                    {
+                        self.rows_request = reply.id;
+                    }
+                    let now = if self.host.sweeping() {
+                        super::super::join_sweep::wall_ms()
+                    } else {
+                        self.now()
+                    };
+                    if let Some(flea::ui_logic_pl3::host::Swept::Finished { day, .. }) =
+                        self.host.receive(&reply, &self.catalog, now)
+                    {
+                        self.outside.swept(day);
+                    }
+                }
+            }
+            Some("trashthumbed") => {
+                let id = message.get("id").and_then(Json::as_f64).unwrap_or(0.) as u64;
+                let file = message.get("file").and_then(Json::as_str).unwrap_or("");
+                self.host.view.thumbnailed(id, file);
+            }
+            _ => return,
+        }
+        self.pump(cx);
+    }
+
     /// The pipe failed before its current request could answer; retain rows and release the in-flight guard.
     pub(crate) fn transport_failed(&mut self, cx: &mut Context<Self>) {
         let view = &self.host.view;
-        if !view.busy() {
+        let Some((id, op)) = self.host.sweep_request().or_else(|| {
+            view.busy()
+                .then_some((view.request_id, view.pending_op.as_str()))
+        }) else {
             return;
-        }
+        };
         let line = flea::ui_logic_pl3::rows::Line::new("trashbrowse")
             .text("t", "trashbrowse")
-            .number("id", view.request_id)
-            .text("op", &view.pending_op)
+            .number("id", id)
+            .text("op", op)
             .flag("ok", false)
             .text("error", &self.catalog.tr("trash.error.action"))
             .finish();

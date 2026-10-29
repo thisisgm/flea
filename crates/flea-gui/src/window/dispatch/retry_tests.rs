@@ -60,6 +60,8 @@ fn failed_sources_are_marked_again_and_the_line_goes_when_the_cursor_moves(
     let (shell, cx) = open(cx, "default");
     land(&shell, cx, "/files", home(), 1);
     receive(&shell, cx, BackendEvent::Operations(DONE.into()));
+    // The transfer's refresh listing lands first; the retry asks once the folder is idle (ui/PaneWire.qml locateRetry).
+    land(&shell, cx, "/files", home(), 2);
     let id = asked(&shell, cx).expect("the idle folder asks where the failed sources are");
     let line = shell.read_with(cx, |shell, _| {
         flea::ui_logic_op1::lines::retry_selection_line(
@@ -89,8 +91,10 @@ fn a_re_read_before_the_answer_marks_nothing(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
     land(&shell, cx, "/files", home(), 1);
     receive(&shell, cx, BackendEvent::Operations(DONE.into()));
-    let id = asked(&shell, cx).expect("the retry asked");
+    // The transfer's refresh listing lands first; the retry asks once the folder is idle (ui/PaneWire.qml locateRetry).
     land(&shell, cx, "/files", home(), 2);
+    let id = asked(&shell, cx).expect("the retry asked");
+    land(&shell, cx, "/files", home(), 3);
     receive(&shell, cx, answer(id));
     assert_eq!(marks(&shell, cx), (Vec::new(), 0, String::new()));
     let next = asked(&shell, cx).expect("the same folder still owes its retry selection");

@@ -35,6 +35,7 @@ impl Producer {
             return;
         }
         let saved = saved_places(&self.state);
+        let in_use = self.places.read(cx).tags_in_use;
         let rows = home_entries(&self.home, &self.dirs, home_glyph);
         let records = &self.places.read(cx).favourites.records;
         let mut favourites = stored_entries(records, &self.home);
@@ -53,7 +54,7 @@ impl Producer {
                 &rows,
                 saved.shown,
                 favourites,
-                &[false; 7],
+                &in_use,
                 self.tail
                     .iter()
                     .filter_map(|section| {
@@ -85,6 +86,24 @@ impl Producer {
         self.rebuild(cx);
     }
 
+    /// A committed listing adds only the tags it actually carries; the rail keeps their session union.
+    pub fn tags_seen(&mut self, seen: &[bool; 7], cx: &mut Context<Self>) {
+        if !seen
+            .iter()
+            .zip(self.places.read(cx).tags_in_use)
+            .any(|(seen, used)| *seen && !used)
+        {
+            return;
+        }
+        self.places.update(cx, |places, cx| {
+            for (used, seen) in places.tags_in_use.iter_mut().zip(seen) {
+                *used |= *seen;
+            }
+            cx.notify();
+        });
+        self.rebuild(cx);
+    }
+
     #[cfg(test)]
     pub(crate) fn fixture_home(&mut self, home: &str, dirs: &str, cx: &mut Context<Self>) {
         self.home = home.to_owned();
@@ -93,12 +112,31 @@ impl Producer {
         self.rebuild(cx);
     }
 
+    /// The desktop's recent-files history, named from the environment the way the Recent row reads it.
+    pub fn history_file(&self) -> String {
+        flea::ui_logic_pl4::recent::history_path(
+            &std::env::var("XDG_DATA_HOME").unwrap_or_default(),
+            &self.home,
+        )
+    }
+
     pub fn read_recent(&mut self, path: String, cx: &mut Context<Self>) {
         // Places accepts only its newest read; a new ask cancels the older pending ticket.
         self.recent_pending = Some(self.request(Event::Recent(Vec::new())));
         self.history_seen = self.places.read(cx).history_reads;
         self.places
             .update(cx, |places, cx| places.reread_history(path, cx));
+    }
+
+    /// A navigation on the side whose ticket asked drops that ask, so its late reply finds no ticket.
+    pub fn cancel_recent(&mut self, side: usize) {
+        if self
+            .recent_pending
+            .as_ref()
+            .is_some_and(|ticket| ticket.side == side)
+        {
+            self.recent_pending = None;
+        }
     }
 
     pub fn replace_sections(&mut self, sections: Vec<RailSection>, cx: &mut Context<Self>) {

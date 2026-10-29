@@ -120,9 +120,64 @@ struct TitleKey {
     scale: f32,
 }
 
+const ELLIPSIS: &str = "\u{2026}";
+
 struct Title {
     run: GlyphRun,
     text: String,
+    // The title cut to the cell it is wider than, or None while the whole title fits.
+    cut: Option<Cut>,
+}
+
+// A title cut for one cell width: the head and an ellipsis, shaped once for that width.
+struct Cut {
+    width: f32,
+    run: GlyphRun,
+    text: String,
+}
+
+impl Title {
+    /// The run and text a cell draws: the whole title, or its cut head once the cell is narrower.
+    fn drawn(&self) -> (&GlyphRun, &str) {
+        match &self.cut {
+            Some(cut) => (&cut.run, &cut.text),
+            None => (&self.run, &self.text),
+        }
+    }
+
+    /// Text.ElideRight for a cell `width` wide: the longest head that fits beside an ellipsis, shaped only when the width changes.
+    fn fit(&mut self, width: f32, key: &TitleKey, window: &Window) {
+        if f32::from(self.run.line().width) <= width {
+            self.cut = None;
+            return;
+        }
+        if self.cut.as_ref().is_some_and(|cut| cut.width == width) {
+            return;
+        }
+        let shape = |text: &str| {
+            GlyphRun::new(window.text_system().layout_line(
+                text,
+                key.caption,
+                &[title_run(text.len(), &key.font)],
+                None,
+            ))
+        };
+        let line = self.run.line();
+        let ellipsis = f32::from(shape(ELLIPSIS).line().width);
+        let head = self
+            .text
+            .char_indices()
+            .map(|(at, _)| at)
+            .take_while(|at| f32::from(line.x_for_index(*at)) + ellipsis <= width)
+            .last()
+            .unwrap_or(0);
+        let text = format!("{}{ELLIPSIS}", &self.text[..head]);
+        self.cut = Some(Cut {
+            width,
+            run: shape(&text),
+            text,
+        });
+    }
 }
 
 struct Titles {
@@ -169,13 +224,34 @@ impl HeaderState {
         match column {
             None => {
                 // A Dual pane sets the name over the row labels, not the padding.
-                let x = if dual { layout.name.x } else { metrics.pad };
+                let x = if dual {
+                    layout.name.x
+                } else {
+                    metrics.pad + (layout.name.x - metrics.label_x()).max(0.)
+                };
                 Some(Cell {
                     x,
                     width: (layout.name.right() - x).max(0.),
                 })
             }
             Some(column) => layout.cell(column),
+        }
+    }
+
+    /// Fits each drawn title to its own cell, so a title too wide for its cell ends in an ellipsis instead of clipping its head.
+    fn fit_titles(&mut self, layout: &Layout, metrics: &Metrics, dual: bool, window: &Window) {
+        let Some(Titles { key, name, columns }) = self.titles.as_mut() else {
+            return;
+        };
+        for column in words::CELLS {
+            let Some(cell) = Self::title_cell(layout, metrics, column, dual) else {
+                continue;
+            };
+            let title = match column {
+                None => &mut *name,
+                Some(column) => &mut columns[column.slot()],
+            };
+            title.fit(cell.width, key, window);
         }
     }
 }
@@ -283,167 +359,5 @@ impl IntoElement for HeaderElement {
     }
 }
 
-impl Element for HeaderElement {
-    type RequestLayoutState = ();
-    type PrepaintState = HeaderFrame;
-
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
-    }
-
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
-        let height = element_height(&self.state.borrow().typeface);
-        let style = Style {
-            size: size(relative(1.).into(), px(height).into()),
-            flex_shrink: 0.,
-            ..Style::default()
-        };
-        (window.request_layout(style, None, cx), ())
-    }
-
-    fn prepaint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) -> HeaderFrame {
-        let mut state = self.state.borrow_mut();
-        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
-        let palette = state.palette(window, theme);
-        let width = f32::from(bounds.size.width);
-        let (metrics, tokens, mut layout) = state.layout(width, window);
-        let drag = state.header.drag;
-        if let Some(column) = drag.column {
-            // The preview moves the header alone; the rows keep the stored layout until the one write on release.
-            layout = layout.previewing(
-                column,
-                drag.preview,
-                &tokens,
-                (width - metrics.lane).max(0.),
-            );
-        }
-        let key = TitleKey {
-            order: state.view.order,
-            font: state.typeface.font.clone().bold(),
-            caption: state.typeface.caption,
-            scale: window.scale_factor(),
-        };
-        let ListState { view, header, .. } = &mut *state;
-        if header
-            .titles
-            .as_ref()
-            .is_none_or(|titles| titles.key != key)
-        {
-            let text = window.text_system();
-            let shape = |column: Option<Column>| {
-                let title = words::painted(view, column);
-                Title {
-                    run: GlyphRun::new(text.layout_line(
-                        &title,
-                        key.caption,
-                        &[title_run(title.len(), &key.font)],
-                        None,
-                    )),
-                    text: title,
-                }
-            };
-            header.painted_titles = titles(view);
-            header.titles = Some(Titles {
-                name: shape(None),
-                columns: Column::ALL.map(|column| shape(Some(column))),
-                key,
-            });
-            header.drawn.shaped += 1;
-        }
-        header.drawn = HeaderDrawn {
-            bounds,
-            layout,
-            frames: header.drawn.frames + 1,
-            shaped: header.drawn.shaped,
-        };
-        let active = !view.dual && !view.searching;
-        HeaderFrame {
-            palette,
-            metrics,
-            layout,
-            line: drag
-                .column
-                .or(header.hot)
-                .filter(|column| active && layout.shown(*column)),
-        }
-    }
-
-    fn paint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        frame: &mut HeaderFrame,
-        window: &mut Window,
-        _: &mut App,
-    ) {
-        let HeaderFrame {
-            palette,
-            metrics,
-            layout,
-            line,
-        } = *frame;
-        let state = self.state.borrow();
-        let Some(titles) = &state.header.titles else {
-            return;
-        };
-        let left = bounds.origin.x;
-        let top = bounds.origin.y;
-        window.paint_quad(fill(bounds, palette.foreground.opacity(NORMAL)));
-        let rule = Bounds::new(
-            point(left, top + bounds.size.height - px(metrics.hairline)),
-            size(bounds.size.width, px(metrics.hairline)),
-        );
-        window.paint_quad(fill(rule, palette.foreground.opacity(HAIRLINE)));
-        // The board's padding sits above the titles, so their line box is the header less that padding.
-        let text_top = top + px(metrics.header_top);
-        let text_height = metrics.header - metrics.header_top;
-        let dual = state.view.dual;
-        window.paint_layer(bounds, |window| {
-            for column in words::CELLS {
-                let Some(cell) = HeaderState::title_cell(&layout, &metrics, column, dual) else {
-                    continue;
-                };
-                let title = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);
-                let run = &title.run;
-                let x = match column {
-                    Some(Column::Size | Column::Date) => left + px(cell.right()) - run.line().width,
-                    _ => left + px(cell.x),
-                };
-                let mask = Bounds::new(
-                    point(left + px(cell.x), top),
-                    size(px(cell.width), bounds.size.height),
-                );
-                window.with_content_mask(Some(ContentMask { bounds: mask }), |window| {
-                    paint_line(run, x, text_top, text_height, palette.metadata, window);
-                });
-            }
-        });
-        // ResizeHandle.qml's accent line: one hairline on the column's left edge while its zone is hovered or dragged.
-        if let Some(cell) = line.and_then(|column| layout.cell(column)) {
-            let edge = Bounds::new(
-                point(left + px(cell.x), top),
-                size(px(metrics.hairline), bounds.size.height),
-            );
-            window.paint_quad(fill(edge, palette.accent));
-        }
-    }
-}
+#[path = "header_element.rs"]
+mod element;

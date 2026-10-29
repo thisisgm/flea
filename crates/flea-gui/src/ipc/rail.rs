@@ -61,6 +61,8 @@ pub(super) fn kind_name(kind: Kind) -> &'static str {
         Kind::Favorite => "favorite",
         Kind::Tag => "tag",
         Kind::Share => "share",
+        Kind::Dropbox => "dropbox",
+        Kind::Cloud => "cloud",
         Kind::Volume => "volume",
         Kind::Disk => "disk",
         Kind::Phone => "phone",
@@ -188,7 +190,7 @@ impl RailAdapter<'_> {
             whole(width),
             whole(placement.inset),
             whole(self.geometry.chrome.width),
-            host.rail.mode() == crate::rail::Mode::Overlay && shown,
+            host.rail.revealed(),
             whole(placement.rail.x)
         ))
     }
@@ -354,25 +356,39 @@ impl Adapter for RailAdapter<'_> {
                 .is_some_and(|producer| self.shown() && producer.field_shown())
                 .to_string(),
             // One line per entry, "label|group|kind|mounted", in ui/Ipc.qml's shape.
-            "networkEntries" => self
-                .entries()
-                .iter()
-                .filter(|entry| entry.group == Group::Network)
-                .map(|entry| {
-                    format!(
-                        "{}|{}|{}|{}",
-                        entry.label,
-                        group_name(entry.group),
-                        kind_name(entry.kind),
-                        entry.mounted.unwrap_or(false)
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("\n"),
+            "networkEntries" => {
+                let catalog = self.producer().map(|producer| &producer.catalog);
+                self.entries()
+                    .iter()
+                    .filter(|entry| entry.group == Group::Network)
+                    .map(|entry| {
+                        let label = catalog.map_or_else(
+                            || entry.label.to_string(),
+                            |catalog| {
+                                crate::g2::pl4::content::row_label(catalog, entry).to_string()
+                            },
+                        );
+                        format!(
+                            "{}|{}|{}|{}",
+                            label,
+                            group_name(entry.group),
+                            kind_name(entry.kind),
+                            entry.mounted.unwrap_or(false)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            }
             "networkBuilt" => self.network.ready().to_string(),
+            // The row whose eject mark holds the pointer, by index (rail/rows.rs RowsModel.mark_hovered, set from producer_view.rs).
+            "railMarkHovered" => self
+                .producer()
+                .is_some_and(|producer| {
+                    index().is_some_and(|row| producer.model.borrow().mark_hovered == Some(row))
+                })
+                .to_string(),
             "networkMarkGeometry" => self.mark_geometry().unwrap_or_default(),
             "networkMarkCentre" => self.mark_centre().unwrap_or_default(),
-            // U27 installs recentMode with the actual Recent listing owner.
             _ => return None,
         };
         Some(Reply::value(value))

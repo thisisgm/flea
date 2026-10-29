@@ -141,19 +141,28 @@ macro_rules! unavailable_reader {
     };
 }
 
-unavailable_reader!(ipc_menu_dialog_requires_a_mounted_owner, "menuDialogState");
-unavailable_reader!(ipc_open_with_requires_a_mounted_owner, "openWithState");
-unavailable_reader!(ipc_permissions_requires_a_mounted_owner, "permissionsState");
-unavailable_reader!(ipc_run_card_requires_a_mounted_owner, "runCardState");
-unavailable_reader!(
-    ipc_menu_focus_requires_an_oracle_active_item_contract,
-    "contextMenuFocusState"
+closed_reader!(
+    ipc_menu_dialog_closed_without_a_card,
+    "menuDialogState",
+    "{\"opened\":false}"
 );
+closed_reader!(
+    ipc_open_with_closed_without_a_card,
+    "openWithState",
+    "{\"opened\":false}"
+);
+closed_reader!(
+    ipc_run_card_closed_without_a_card,
+    "runCardState",
+    "{\"opened\":false}"
+);
+closed_reader!(
+    ipc_archive_cards_closed_without_a_card,
+    "archiveCardsState",
+    "{\"opened\":false}"
+);
+
 unavailable_reader!(ipc_flash_closed_requires_a_built_lifetime, "flashState");
-unavailable_reader!(
-    ipc_archive_cards_require_retained_lifetime_and_eye_bounds,
-    "archiveCardsState"
-);
 
 #[path = "reader_port_a_live_tests.rs"]
 mod live;

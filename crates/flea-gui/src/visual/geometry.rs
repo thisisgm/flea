@@ -129,11 +129,14 @@ pub(crate) fn rows(
             continue;
         };
         let index = shown.index;
-        let top = bounds.origin.y + px(index as f32 * row - scroll);
+        let top = bounds.origin.y + px(state.drawn.grow.top(shown.view, row) - scroll);
         let id = format!("{surface}-row-{index}");
         let rect = Bounds::new(
             point(bounds.origin.x, top),
-            size(bounds.size.width, px(row)),
+            size(
+                bounds.size.width,
+                px(state.drawn.grow.height(shown.view, row)),
+            ),
         );
         probe.push(&id, &surface, "row", rect, "", window);
         let rect_at = |x, y, width, height| {

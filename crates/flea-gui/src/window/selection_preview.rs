@@ -19,10 +19,12 @@ use std::{
     time::Instant,
 };
 
+#[path = "selection_preview_doc_readers.rs"]
+mod doc_readers;
 #[path = "selection_preview_docs.rs"]
 pub(crate) mod docs;
-#[path = "selection_preview_wire.rs"]
-pub(crate) mod wire;
+#[path = "selection_preview_fitted.rs"]
+mod fitted;
 #[path = "selection_preview_frames.rs"]
 mod frame_feedback;
 #[path = "selection_preview_host.rs"]
@@ -31,18 +33,22 @@ pub(crate) mod host;
 mod lifetime;
 #[path = "selection_preview_load.rs"]
 mod load;
+#[path = "selection_preview_loading.rs"]
+mod loading;
+#[path = "selection_preview_multi.rs"]
+pub(crate) mod multi;
+#[path = "selection_preview_picture.rs"]
+pub(crate) mod picture;
 #[path = "selection_preview_play.rs"]
 mod play;
 #[path = "selection_preview_readers.rs"]
 pub(crate) mod readers;
-#[path = "selection_preview_fitted.rs"]
-mod fitted;
-#[path = "selection_preview_loading.rs"]
-mod loading;
 #[path = "selection_preview_render.rs"]
 pub(crate) mod render;
-#[path = "selection_preview_picture.rs"]
-pub(crate) mod picture;
+#[path = "selection_preview_text.rs"]
+mod text;
+#[path = "selection_preview_wire.rs"]
+pub(crate) mod wire;
 
 static NEXT: AtomicU64 = AtomicU64::new(1);
 fn token() -> u64 {
@@ -90,12 +96,21 @@ impl Kind {
     pub(crate) fn tall(self) -> bool {
         matches!(
             self,
-            Self::Text | Self::Code | Self::Markdown | Self::Table | Self::Html | Self::Archive | Self::Pdf
+            Self::Text
+                | Self::Code
+                | Self::Markdown
+                | Self::Table
+                | Self::Html
+                | Self::Archive
+                | Self::Pdf
         )
     }
     /// PreviewColumn.qml wantsThumb: the states whose frame draws a thumbnail when one exists.
     pub(crate) fn thumbed(self) -> bool {
-        matches!(self, Self::Image | Self::Video | Self::Audio | Self::Symlink | Self::Facts)
+        matches!(
+            self,
+            Self::Image | Self::Video | Self::Audio | Self::Symlink | Self::Facts
+        )
     }
     /// The row's Facts.js state, then the document view its name picks.
     pub(crate) fn state(self) -> State {
@@ -119,7 +134,10 @@ impl Kind {
         if state == State::Symlink {
             return Self::Symlink;
         }
-        if matches!(ext, "stl" | "3mf" | "obj" | "ply" | "amf" | "gcode" | "gco" | "bgcode") {
+        if matches!(
+            ext,
+            "stl" | "3mf" | "obj" | "ply" | "amf" | "gcode" | "gco" | "bgcode"
+        ) {
             return Self::Model;
         }
         if flea::ui_logic_pv2::office::Group::of(&name).is_some() {
@@ -226,6 +244,7 @@ pub(crate) struct Frame {
     pub animation_source: Option<gpui::Resource>,
     pub failed: bool,
     pub manual: bool,
+    pub remote: bool,
     pub _watch: Option<Subscription>,
 }
 

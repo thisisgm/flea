@@ -35,6 +35,7 @@ pub struct Listing {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Command {
     List(Listing),
+    ListPaths(Listing, Vec<String>),
     Window {
         start: usize,
         count: usize,
@@ -146,7 +147,7 @@ impl Navigator {
 
     fn emit(&mut self, command: Command) {
         match &command {
-            Command::List(_) => self.counters.lists += 1,
+            Command::List(_) | Command::ListPaths(..) => self.counters.lists += 1,
             Command::Window { .. } => self.counters.windows += 1,
             Command::Sort { .. } => self.counters.sorts += 1,
             Command::Locate { .. } | Command::LocateMany { .. } => self.counters.locates += 1,

@@ -67,6 +67,9 @@ impl Shell {
         if blocked || host.pane.busy() {
             host.input.cancel(&mut host.selected, &mut host.pane.cursor);
             host.input.hovered = None;
+            if let Some(columns) = host.columns.as_mut() {
+                columns.hover = None;
+            }
             return;
         }
         let Some(mut frame) = host.input.frame else {
@@ -78,6 +81,9 @@ impl Shell {
             host.input.in_lane,
             host.input.hovered,
             host.input.pointer_origin,
+            host.columns
+                .as_ref()
+                .and_then(|columns| columns.hover.clone()),
         );
         host.input.in_lane = hovered && frame.in_lane(event.position);
         if let Some(press) = &mut host.input.press {
@@ -107,6 +113,11 @@ impl Shell {
         } else if moved {
             host.input.pointer_origin = true;
             host.input.hovered = hovered.then(|| host.input.hit(event.position)).flatten();
+            // The gesture surface sits on the active track only, so a peek track's row reads the window's move by its bounds.
+            let hover = crate::window::columns::hover_at(host, event.position);
+            if let Some(columns) = host.columns.as_mut() {
+                columns.hover = hover;
+            }
         }
         // Only a changed hover, lane or live gesture draws differently, so other motion repaints nothing.
         let drawn = before
@@ -114,6 +125,9 @@ impl Shell {
                 host.input.in_lane,
                 host.input.hovered,
                 host.input.pointer_origin,
+                host.columns
+                    .as_ref()
+                    .and_then(|columns| columns.hover.clone()),
             )
             || host.input.grab.is_some()
             || host.input.band.is_some();
@@ -188,13 +202,7 @@ impl Shell {
                 return;
             }
             press.event.click_count = count;
-            let single_click = self
-                .launch
-                .settings
-                .data
-                .get("openMode")
-                .and_then(flea::jsondoc::Json::as_str)
-                == Some("single");
+            let single_click = self.launch.settings.single_click_open();
             if event.button == MouseButton::Left && single_click && count != 1 {
                 return;
             }

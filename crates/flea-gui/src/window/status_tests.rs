@@ -95,7 +95,7 @@ fn u05_idle_readers_use_live_footer_without_enabling_unowned_verbs(cx: &mut Test
     ] {
         assert_eq!(read(cx, window, name), Reply::value(expected), "{name}");
     }
-    assert_eq!(read(cx, window, "thumbnailPolicyState").code, 3);
+    assert_eq!(read(cx, window, "thumbnailPolicyState").code, 0);
     let layers = json(cx, window, "stateLayers");
     assert_eq!(layers.get("empty").and_then(|v| v.as_bool()), Some(false));
     assert_eq!(layers.get("message").and_then(|v| v.as_bool()), Some(false));
@@ -236,6 +236,8 @@ fn u05_footer_reports_painted_counts_filesystem_and_real_activity_owner(cx: &mut
             shell.receive(
                 0,
                 crate::backend::Event::Filesystem(crate::backend::status::Filesystem {
+                    class: String::new(),
+                    tagable: None,
                     path: "/files".into(),
                     name: "btrfs".into(),
                     free: 442_000_000_000,
@@ -274,6 +276,8 @@ fn u05_footer_reports_painted_counts_filesystem_and_real_activity_owner(cx: &mut
             shell.receive(
                 0,
                 crate::backend::Event::Filesystem(crate::backend::status::Filesystem {
+                    class: String::new(),
+                    tagable: None,
                     path: "/old".into(),
                     name: "cifs".into(),
                     free: 0,

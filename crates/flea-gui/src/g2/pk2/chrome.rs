@@ -11,7 +11,7 @@ use crate::grid::{
 };
 use crate::list::{pane::Held, Typeface};
 use crate::path::{
-    suggestions::Unranked,
+    rank::Jump,
     view::{Inputs, PathView},
 };
 use crate::rail::{
@@ -43,7 +43,7 @@ pub struct PathBar {
 impl PathBar {
     pub fn new(i18n: &I18n, cx: &mut Context<Self>) -> Self {
         let catalog = Arc::new(i18n.clone());
-        let path = cx.new(|cx| PathView::new(catalog, Box::new(Unranked), cx));
+        let path = cx.new(|cx| PathView::new(catalog, Box::new(Jump::default()), cx));
         Self { path }
     }
 
@@ -58,7 +58,10 @@ impl PathBar {
 
 impl Render for PathBar {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div().size_full().debug_selector(|| "pk2-path".into()).child(self.path.clone())
+        div()
+            .size_full()
+            .debug_selector(|| "pk2-path".into())
+            .child(self.path.clone())
     }
 }
 
@@ -69,7 +72,8 @@ pub struct RailPanel {
 
 impl RailPanel {
     pub fn new(mode: Mode, width: f32, cx: &mut Context<Self>) -> Self {
-        let build: Build = Box::new(|_: &mut Window, cx: &mut App| AnyView::from(cx.new(|_| Places)));
+        let build: Build =
+            Box::new(|_: &mut Window, cx: &mut App| AnyView::from(cx.new(|_| Places)));
         let host = cx.new(|cx| Host::new(mode, width, build, cx));
         Self { host }
     }
@@ -81,7 +85,10 @@ impl RailPanel {
 
 impl Render for RailPanel {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div().size_full().debug_selector(|| "pk2-rail".into()).child(self.host.clone())
+        div()
+            .size_full()
+            .debug_selector(|| "pk2-rail".into())
+            .child(self.host.clone())
     }
 }
 
@@ -144,15 +151,18 @@ impl Render for TileGrid {
             Overlay::default(),
             self.state.clone(),
         );
-        div().size_full().debug_selector(|| "pk2-tiles".into()).child(element)
+        div()
+            .size_full()
+            .debug_selector(|| "pk2-tiles".into())
+            .child(element)
     }
 }
 
 /// Chip menu: mn1 card, All files; file face, no chip face.
 pub struct ChipMenu {
-    menu: Rc<RefCell<Menu>>,
-    catalog: I18n,
-    typeface: Typeface,
+    pub(super) menu: Rc<RefCell<Menu>>,
+    pub(super) catalog: I18n,
+    pub(super) typeface: Typeface,
 }
 
 impl ChipMenu {
@@ -168,7 +178,12 @@ impl ChipMenu {
     pub fn open(&mut self, chips: &[Chip], at: (f32, f32), window: &Window) {
         let entries: Vec<Entry> = chips
             .iter()
-            .map(|chip| Entry::leaf(format!("chip:{}", chip.index), Text::Data(chip.label.clone())))
+            .map(|chip| {
+                let action = format!("chip:{}", chip.index);
+                let mut entry = Entry::leaf(action.clone(), Text::Data(chip.label.clone()));
+                entry.action = action.into();
+                entry
+            })
             .collect();
         let env = Env {
             catalog: &self.catalog,
@@ -178,7 +193,9 @@ impl ChipMenu {
             inset: 4.,
         };
         let work = work_area(window);
-        self.menu.borrow_mut().open(Face::File, entries, at, work, "chips", &env, window);
+        self.menu
+            .borrow_mut()
+            .open(Face::File, entries, at, work, "chips", &env, window);
     }
 
     pub fn opened(&self) -> bool {
@@ -209,10 +226,25 @@ impl ChipMenu {
 }
 
 impl Render for ChipMenu {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .size_full()
             .debug_selector(|| "pk2-chip-menu".into())
-            .child(MenuElement::new(self.menu.clone(), px(8.)))
+            .on_mouse_down(
+                gpui::MouseButton::Left,
+                cx.listener(|menu, event: &gpui::MouseDownEvent, window, cx| {
+                    menu.press(
+                        f32::from(event.position.x),
+                        f32::from(event.position.y),
+                        window,
+                        cx,
+                    );
+                    cx.stop_propagation();
+                }),
+            )
+            .child(MenuElement::new(
+                self.menu.clone(),
+                px(crate::compositor::corner(cx)),
+            ))
     }
 }

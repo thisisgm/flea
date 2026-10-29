@@ -3,14 +3,18 @@ use crate::{backend::Backend, ipc::server::Event, state::tests::shell_with};
 use flea::ipc::wire::{Reply, Request};
 use gpui::{AppContext, TestAppContext};
 
-#[path = "columns_test_host.rs"]
-pub(super) mod host;
-#[path = "columns_pointer_tests.rs"]
-mod pointer;
 #[path = "columns_gesture_tests.rs"]
 mod gestures;
+#[path = "columns_test_host.rs"]
+pub(super) mod host;
+#[path = "columns_hover_tests.rs"]
+mod hover;
+#[path = "columns_pointer_tests.rs"]
+mod pointer;
 #[path = "columns_review_tests.rs"]
 mod review;
+#[path = "columns_scroll_tests.rs"]
+pub(crate) mod scroll;
 #[path = "columns_state_tests.rs"]
 mod state;
 #[path = "columns_wheel_tests.rs"]

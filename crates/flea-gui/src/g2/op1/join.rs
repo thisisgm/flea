@@ -188,12 +188,18 @@ impl Shell {
         let Some(view) = self.operation_overlay(side, window, cx) else {
             return;
         };
-        let taken = view.update(cx, |overlay, cx| overlay.line(line, cx));
+        let (taken, landed) = view.update(cx, |overlay, cx| {
+            let taken = overlay.line(line, cx);
+            (taken, overlay.model.new_file_landed.take())
+        });
         cx.emit(OperationReply {
             side,
             line: line.into(),
             taken,
         });
+        if let Some(path) = landed {
+            self.new_file_created(side, path, window, cx);
+        }
         self.show_operation(&view, cx);
         self.flush_operations(side, cx);
     }
@@ -233,6 +239,7 @@ impl Shell {
         } else if let Some(notice) = notice {
             if let Some(host) = self.panes[side].as_mut() {
                 host.status = notice.text.clone().into();
+                host.operation_line = None;
             }
             cx.emit(OperationUpdate {
                 side,
@@ -299,8 +306,10 @@ impl Shell {
         }
         if let Some(message) = said.last() {
             host.status = message.text.clone().into();
+            host.operation_line = Some(message.text.clone());
         } else if !sticky.is_empty() {
             host.status = sticky.clone().into();
+            host.operation_line = None;
         }
         changed |= host.status != before;
         let spent_cut = spent_cut && sent;

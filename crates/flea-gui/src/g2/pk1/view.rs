@@ -104,14 +104,51 @@ impl Picker {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.answered() {
+            return;
+        }
         self.browse.window = Some(window.window_handle());
         // The shared path entry answers its own keys; what it lets through is typed into it, never into the chooser.
         let path = self.browse.path_view(cx);
         if path.read(cx).holds_keyboard(window) {
             return;
         }
+        if event.keystroke.key == "enter" {
+            self.record_submission_focus(window, cx);
+        }
+        if self.parity_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
         let key = event.keystroke.key.as_str();
-        // The save field takes the keyboard from the list, and Escape still refuses from there.
+        if let Some(filename) = self.browse.filename.clone() {
+            if filename.read(cx).focus.is_focused(window) {
+                let result = filename.update(cx, |field, cx| field.key(event, cx));
+                match &result {
+                    FieldKey::Edited(text) => self.save_name_edited(text.clone(), cx),
+                    FieldKey::Enter => self.accept(cx),
+                    FieldKey::Tab => window.focus(&self.focus, cx),
+                    FieldKey::Moved | FieldKey::Ignored => {}
+                }
+                if result != FieldKey::Ignored {
+                    cx.stop_propagation();
+                    return;
+                }
+                if key != "escape" || filename.read(cx).entry.marked.is_some() {
+                    return;
+                }
+            }
+        }
+        let typing = self.find.owner.typing();
+        if typing {
+            if self.find_key(event, window, cx) {
+                cx.stop_propagation();
+                return;
+            }
+            if self.find.owner.typing() {
+                return;
+            }
+        }
         if key == "escape" {
             cx.stop_propagation();
             if self.find_escape(cx) {
@@ -121,18 +158,6 @@ impl Picker {
                 self.cancel(cx);
             }
             return;
-        }
-        if let Some(filename) = self.browse.filename.clone() {
-            if filename.read(cx).focus.is_focused(window) {
-                cx.stop_propagation();
-                match filename.update(cx, |field, cx| field.key(event, cx)) {
-                    FieldKey::Edited(text) => self.save_name_edited(text, cx),
-                    FieldKey::Enter => self.accept(cx),
-                    FieldKey::Tab => window.focus(&self.focus, cx),
-                    FieldKey::Moved | FieldKey::Ignored => {}
-                }
-                return;
-            }
         }
         if self.find_key(event, window, cx) {
             cx.stop_propagation();
@@ -188,11 +213,21 @@ impl Picker {
 impl Render for Picker {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.place_focus(window, cx);
+        self.submission_focus(window, cx);
+        self.read_control_focus(window);
+        self.chrome.probe.clear();
+        let focused = self.focus.is_focused(window) || self.find.owner.typing();
+        self.browse
+            .listing
+            .update(cx, |listing, _| listing.set_focused(focused));
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
+        self.browse
+            .listing
+            .update(cx, |listing, _| listing.set_selection_fill(palette.marked));
         let reviewing = self.accept_state().collision_review();
         let available = if reviewing {
             logic::replace_allowed(&self.accept_state())
@@ -262,7 +297,7 @@ impl Render for Picker {
             .px(px(SIDE))
             .border_t_1()
             .border_color(rule)
-            .child(div().flex_1().children(self.filter.clone()))
+            .child(self.answer_leading(&palette, window, cx))
             .child(
                 answer(
                     "picker-cancel",
@@ -273,6 +308,11 @@ impl Render for Picker {
                     &self.drawn,
                     Slot::Cancel,
                 )
+                .rounded(px(crate::compositor::corner(cx)))
+                .track_focus(&self.chrome.cancel)
+                .when(self.chrome.cancel.is_focused(window), |button| {
+                    button.border_color(palette.foreground)
+                })
                 .on_click(cx.listener(|picker, _: &ClickEvent, _, cx| picker.cancel(cx))),
             )
             .child(
@@ -285,12 +325,20 @@ impl Render for Picker {
                     &self.drawn,
                     Slot::Answer,
                 )
+                .rounded(px(crate::compositor::corner(cx)))
+                .track_focus(&self.chrome.answer)
+                .when(self.chrome.answer.is_focused(window), |button| {
+                    button.border_color(palette.foreground)
+                })
                 // A refused answer is drawn and its press does nothing, as DialogButton.qml says.
                 .on_click(cx.listener(
-                    move |picker, _: &ClickEvent, _, cx| match (available, reviewing) {
-                        (false, _) => {}
-                        (true, true) => picker.replace(cx),
-                        (true, false) => picker.accept(cx),
+                    move |picker, _: &ClickEvent, window, cx| {
+                        picker.record_submission_focus(window, cx);
+                        match (available, reviewing) {
+                            (false, _) => {}
+                            (true, true) => picker.replace(cx),
+                            (true, false) => picker.accept(cx),
+                        }
                     },
                 )),
             );
@@ -312,7 +360,14 @@ impl Render for Picker {
                     .flex_1()
                     .overflow_hidden()
                     .whitespace_nowrap()
-                    .children(message.map(|message| message.text)),
+                    .children(message.as_ref().map(|message| message.text.clone()))
+                    .when(message.is_none(), |view| {
+                        view.child(
+                            div()
+                                .debug_selector(|| "picker-selection-status".into())
+                                .child(self.selection_status()),
+                        )
+                    }),
             )
             .child(div().flex_none().whitespace_nowrap().child(self.hints()));
         div()
@@ -340,6 +395,13 @@ impl Render for Picker {
             )
             .child(answers)
             .child(footer)
+            .children(self.chrome.menu_view.clone().map(|menu| {
+                div()
+                    .absolute()
+                    .size_full()
+                    .debug_selector(|| "picker-filter-menu".into())
+                    .child(menu)
+            }))
             .children(self.drawn.probe(Slot::Window, [0.; 4]))
     }
 }

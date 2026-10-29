@@ -1,7 +1,6 @@
 //! Snapshot retirement, backend validation and captured choices delivered to their producer owners.
 use super::{join::Chosen, menu::Outcome};
 use crate::{
-    backend::Failure,
     state::Shell,
     window::{dispatch::Order, navigate::Step},
 };
@@ -17,74 +16,19 @@ pub(crate) fn string<'a>(value: &'a Json, key: &str) -> &'a str {
 }
 
 impl Shell {
-    pub(crate) fn menu_send(&mut self, side: usize, line: String, cx: &mut Context<Self>) {
-        let Some(host) = self.panes[side].as_mut() else {
-            return;
-        };
-        let result = host
-            .backend
-            .as_ref()
-            .ok_or_else(|| Failure {
-                key: "window.backend_stopped",
-                detail: String::new(),
-            })
-            .and_then(|backend| backend.line(line));
-        if let Err(error) = result {
-            host.record_error(error, &self.locale);
-            self.menu.pending = None;
-            self.menu.activating = false;
-            self.menu.reading = false;
-            self.menu.menu.borrow_mut().close();
-            self.menu.captured = None;
-            self.menu.presentation.cancel();
-            self.keyboard.context = flea::keys::Context::Listing;
-            host.nav.gate.menu_open = false;
-            host.nav.gate.menu_pending = false;
-            let sentence = host.status.to_string();
-            self.menu_notice(side, sentence, cx);
-            cx.notify();
-        }
-    }
-
-    pub(crate) fn menu_refuse(&mut self, key: &str, cx: &mut Context<Self>) {
-        let side = self
-            .menu
-            .captured
-            .as_ref()
-            .map_or(self.focus_side, |c| c.side);
-        self.menu_notice(side, self.locale.catalog.tr(key), cx);
-    }
-
-    pub(crate) fn menu_notice(&mut self, side: usize, sentence: String, cx: &mut Context<Self>) {
-        if let Some(host) = &mut self.panes[side] {
-            host.status = sentence.clone().into();
-        }
-        self.status_messages(cx, |messages, now| {
-            messages.say(
-                &sentence,
-                true,
-                "",
-                flea::ui_logic_fb1::status::Hint::None,
-                now,
-            );
-        });
-        cx.notify();
-    }
-
-    /// Why no menu opened, when nothing failed: a foreground notice with the dismiss key after it.
-    pub(crate) fn menu_explain(&mut self, sentence: String, cx: &mut Context<Self>) {
-        self.status_messages(cx, |messages, now| {
-            messages.explain(&sentence, flea::ui_logic_fb1::status::Hint::Dismiss, now);
-        });
-        cx.notify();
-    }
-
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.menu.place = None;
+        self.menu.tags.retire();
+        let place = self.menu.place.take().is_some();
+        let rail = self.menu.rail.take().is_some();
+        if place || rail {
+            self.rail_menu_hold(false, cx);
+        }
         self.providers_menu_closed();
         self.menu.menu.borrow_mut().close();
         self.menu.presentation.cancel();
         self.menu.flyout = None;
+        self.menu.header = false;
+        self.menu.tags_reading = false;
         self.menu.pending = None;
         self.menu.from_sheet = false;
         self.menu.activating = false;
@@ -111,6 +55,10 @@ impl Shell {
         }
         self.keyboard.context = flea::keys::Context::Listing;
         self.keyboard.disarm();
+        if rail {
+            window.focus(&self.dual_focus.rail, cx);
+            self.keyboard.context = flea::keys::Context::Rail;
+        }
         cx.notify();
     }
 
@@ -135,7 +83,14 @@ impl Shell {
             self.menu_outcome(Outcome::Refused("menu.refusal.moved"), window, cx);
             return;
         }
-        if refresh::validate_choice(&self.menu_entries(), &action, &leaf, false).is_err() {
+        if refresh::validate_choice(
+            &self.menu_choice_entries(&action, &leaf),
+            &action,
+            &leaf,
+            false,
+        )
+        .is_err()
+        {
             self.menu_outcome(Outcome::Refused("menu.refusal.unavailable"), window, cx);
             return;
         }
@@ -153,7 +108,10 @@ impl Shell {
             }
             // Dropbox rows name the account root the backend already took as this menu's destination.
             let dest = if matches!(action.as_str(), "dropbox" | "sharelink") {
-                format!(",\"dest\":\"{}\"", escape(&self.provider_destination(capture.side)))
+                format!(
+                    ",\"dest\":\"{}\"",
+                    escape(&self.provider_destination(capture.side))
+                )
             } else {
                 String::new()
             };
@@ -189,7 +147,7 @@ impl Shell {
         let Ok(reply) = flea::jsondoc::parse(line) else {
             return false;
         };
-        if self.actions_reply(side, line, cx) {
+        if self.actions_reply(side, line, cx) || self.menu_tag_line(side, &reply, window, cx) {
             return true;
         }
         if self.menu_discovery_reply(side, line, &reply, window, cx) {
@@ -242,6 +200,12 @@ impl Shell {
                     })
                     .collect();
                 self.menu.context.compare_kinds = Some(capture.kinds.clone());
+                self.menu.context.tag_submenu = None;
+                if self.menu.tags.asking.is_none() {
+                    self.ask_tag_states(true, cx);
+                } else if self.menu.flyout == Some("tags") {
+                    self.menu.tags_reading = true;
+                }
                 if self.menu.pending.is_some() {
                     self.activate_menu(window, cx);
                 } else {
@@ -286,7 +250,8 @@ impl Shell {
                     .filter_map(Json::as_str)
                     .map(str::to_owned)
                     .collect();
-                if refresh::validate_choice(&self.menu_entries(), action, leaf, false).is_err() {
+                let live = self.menu_choice_entries(action, leaf);
+                if refresh::validate_choice(&live, action, leaf, false).is_err() {
                     self.menu_outcome(Outcome::Refused("menu.refusal.unavailable"), window, cx);
                 } else {
                     self.deliver_menu(paths, window, cx);
@@ -306,11 +271,14 @@ impl Shell {
             return;
         };
         let side = capture.side;
+        if self.header_menu_choose(&action, window, cx) {
+            return;
+        }
         if self.deliver_actions(&capture, &action, &leaf, paths.clone(), window, cx) {
             return;
         }
         let step = match action.as_str() {
-            "open" if !self.menu.context.row_is_file => {
+            "open" if !self.menu.context.row_is_file && capture.rows.len() <= 1 => {
                 paths.first().map(|path| Step::Open(path.clone()))
             }
             "toggleHidden" => Some(Step::ToggleHidden),
@@ -323,6 +291,10 @@ impl Shell {
             let _ = self.step(side, step, window, cx);
         } else if action == "makeExecutable" {
             self.make_executable(&capture, &paths, window, cx);
+        } else if action == "addToShelf" {
+            self.menu_shelve(&capture, &paths, window, cx);
+        } else if action == "tags" && !capture.background {
+            self.menu_tag(&capture, &leaf, window, cx);
         } else if self.clipboard_menu(&capture, &action, &leaf, &paths, window, cx) {
         } else if action == "runScript" {
             let request = format!(
@@ -335,7 +307,9 @@ impl Shell {
                     .collect::<Vec<_>>()
                     .join(",")
             );
-            self.menu.actions.run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
+            self.menu
+                .actions
+                .run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
             self.menu_send(side, request, cx);
             self.retire_menu(window, cx);
         } else {

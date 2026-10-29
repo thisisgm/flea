@@ -222,159 +222,106 @@ fn jobs_padding_never_wheels_the_covered_active_column() {
     );
 }
 
-#[test]
-fn jobs_whitespace_blocks_columns_left_and_right_press_but_keeps_cancel() {
-    for button in [MouseButton::Left, MouseButton::Right] {
-        let (mut cx, handle, mut received) = open(View::Columns);
-        start(&mut cx, handle);
-        reset(&mut cx, handle);
-        let jobs = bounds(&mut cx, handle, "op1-jobs");
-        let rule = bounds(&mut cx, handle, "op1-jobs-rule-1");
-        let job = bounds(&mut cx, handle, "op1-job-13");
-        let points = [
-            point(jobs.left() + px(5.), jobs.top() + px(5.)),
-            point(jobs.left() + px(5.), rule.center().y),
-            point(jobs.left() + px(5.), job.bottom() - px(10.)),
-        ];
-        for at in points {
-            let row = column_row(&mut cx, handle, at);
-            press(&mut cx, handle, at, button);
-            update(&mut cx, handle, |shell, _, _| {
-                let host = shell.panes[0].as_ref().unwrap();
-                assert_eq!(
-                    (host.pane.cursor, host.selected.as_slice()),
-                    (0, &[0][..]),
-                    "covered press changed Columns: button={button:?}, point={at:?}"
-                );
-            });
-            let packet = received();
-            assert!(
-                packet.is_none(),
-                "covered right press must not request a menu snapshot: button={button:?}, point={at:?}, packet={packet:?}"
-            );
-            fold(&mut cx, handle);
-            press(&mut cx, handle, at, button);
-            update(&mut cx, handle, |shell, _, _| {
-                assert_eq!(
-                    shell.panes[0].as_ref().unwrap().pane.cursor,
-                    row,
-                    "folded control must change the real covered cursor"
-                );
-            });
-            if button == MouseButton::Right {
-                let packet = received();
-                assert!(
-                    packet
-                        .as_deref()
-                        .is_some_and(|line| line.contains("\"op\":\"snapshot\"")),
-                    "folded control: button={button:?}, point={at:?}, packet={packet:?}"
-                );
-            }
-            reset(&mut cx, handle);
-            while received().is_some() {}
-            fold(&mut cx, handle);
+/// The track a wheel reaches in this view: the Columns Active track or the List, as drawn.
+fn track(cx: &mut TestAppContext, handle: Handle, view: View) -> Bounds<Pixels> {
+    update(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        let bounds = if view == View::Columns {
+            let paint = host
+                .columns
+                .as_ref()
+                .unwrap()
+                .painters
+                .get(Slot::Active)
+                .unwrap()
+                .borrow();
+            paint.drawn.as_ref().unwrap().bounds
+        } else {
+            host.list.borrow().drawn.bounds
+        };
+        bounds
+    })
+}
+
+fn moving(cx: &mut TestAppContext, handle: Handle, view: View) -> bool {
+    update(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        if view == View::Columns {
+            host.columns.as_ref().unwrap().scroll[Slot::Active.index()]
+                .input
+                .moving()
+        } else {
+            host.input.moving()
         }
-        let outside = point(jobs.left() + px(5.), jobs.top() - px(20.));
-        let row = column_row(&mut cx, handle, outside);
-        press(&mut cx, handle, outside, button);
-        update(&mut cx, handle, |shell, _, _| {
-            assert_eq!(
-                shell.panes[0].as_ref().unwrap().pane.cursor,
-                row,
-                "outside-card press must still reach Columns"
-            );
-        });
-        if button == MouseButton::Right {
-            let packet = received();
-            assert!(
-                packet
-                    .as_deref()
-                    .is_some_and(|line| line.contains("\"op\":\"snapshot\"")),
-                "outside control: button={button:?}, point={outside:?}, packet={packet:?}"
-            );
+    })
+}
+
+/// Hands one wheel to the view's own handler; an open menu or card occludes the track at the window level.
+fn wheel_handler(cx: &mut TestAppContext, handle: Handle, view: View, at: Point<Pixels>) {
+    let event = ScrollWheelEvent {
+        position: at,
+        delta: ScrollDelta::Lines(point(0., -3.)),
+        modifiers: Modifiers::none(),
+        touch_phase: gpui::TouchPhase::Moved,
+    };
+    update(cx, handle, |shell, window, cx| {
+        if view == View::Columns {
+            shell.columns_scroll_wheel(0, &event, cx)
+        } else {
+            shell.pointer_wheel(0, &event, window, cx)
         }
-        reset(&mut cx, handle);
-        while received().is_some() {}
-        let cancel = point(job.right() - px(5.), job.bottom() - px(10.));
-        press(&mut cx, handle, cancel, MouseButton::Left);
-        assert_eq!(
-            received().as_deref(),
-            Some(r#"{"c":"jobs","op":"cancel","id":13}"#),
-            "real Cancel: button=Left, point={cancel:?}"
-        );
-        assert!(received().is_none());
-    }
+    });
 }
 
 #[test]
-fn jobs_padding_blocks_grid_press_at_a_measured_tile_overlap() {
-    let (mut cx, handle, _received) = open(View::Grid);
-    start(&mut cx, handle);
-    reset(&mut cx, handle);
-    let jobs = bounds(&mut cx, handle, "op1-jobs");
-    let (at, row) = update(&mut cx, handle, |shell, _, _| {
-        let grid = shell.panes[0].as_ref().unwrap().grid.as_ref().unwrap();
-        let state = grid.state.borrow();
-        let padding = [
-            (
-                jobs.left() + px(3.),
-                jobs.top() + px(3.),
-                jobs.left() + px(12.),
-                jobs.bottom() - px(3.),
-            ),
-            (
-                jobs.right() - px(12.),
-                jobs.top() + px(3.),
-                jobs.right() - px(3.),
-                jobs.bottom() - px(3.),
-            ),
-            (
-                jobs.left() + px(3.),
-                jobs.top() + px(3.),
-                jobs.right() - px(3.),
-                jobs.top() + px(12.),
-            ),
-            (
-                jobs.left() + px(3.),
-                jobs.bottom() - px(12.),
-                jobs.right() - px(3.),
-                jobs.bottom() - px(3.),
-            ),
-        ];
-        state
-            .drawn()
-            .iter()
-            .filter_map(|tile| {
-                let left = state.bounds.left() + px(tile.slot.x);
-                let right = left + px(tile.slot.width);
-                let top = state.bounds.top() + px(tile.slot.y);
-                let bottom = top + px(tile.slot.height);
-                padding.iter().find_map(|&(l, t, r, b)| {
-                    let x = l.max(left + px(1.));
-                    let y = t.max(top + px(1.));
-                    (x < r.min(right) && y < b.min(bottom) && tile.listing != 0)
-                        .then_some((point(x, y), tile.listing))
-                })
-            })
-            .next()
-            .expect("real Grid tile must overlap card padding")
-    });
-    press(&mut cx, handle, at, MouseButton::Left);
-    update(&mut cx, handle, |shell, _, _| {
-        let host = shell.panes[0].as_ref().unwrap();
-        assert_eq!((host.pane.cursor, host.selected.as_slice()), (0, &[0][..]));
-    });
-    fold(&mut cx, handle);
-    press(&mut cx, handle, at, MouseButton::Left);
-    update(&mut cx, handle, |shell, _, _| {
-        let host = shell.panes[0].as_ref().unwrap();
-        assert_eq!(
-            (host.pane.cursor, host.selected.as_slice()),
-            (row, &[row][..]),
-            "folded control must select the covered real Grid tile"
+fn wheel_under_an_open_menu_leaves_the_track_still() {
+    for view in [View::List, View::Columns] {
+        let (mut cx, handle, mut received) = open(view);
+        reset(&mut cx, handle);
+        let track = track(&mut cx, handle, view);
+        let press_at = track.center();
+        press(&mut cx, handle, press_at, MouseButton::Right);
+        assert!(
+            received().is_some_and(|line| line.contains("\"op\":\"snapshot\"")),
+            "{view:?}: a right press asks for the menu snapshot"
         );
-    });
+        // The backend answers the snapshot and the applications list, as the menu tests do.
+        update(&mut cx, handle, |shell, window, cx| {
+            let captured = shell.menu.captured.as_ref().expect("a captured menu");
+            let (side, id) = (captured.side, captured.id);
+            shell.receive(
+                side,
+                Event::Producer(format!(
+                    r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[]}}"#
+                )),
+                window,
+                cx,
+            );
+            shell.receive(
+                side,
+                Event::Producer(format!(
+                    r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[]}}"#
+                )),
+                window,
+                cx,
+            );
+        });
+        assert!(
+            update(&mut cx, handle, |shell, _, _| shell.menu_opened()),
+            "{view:?}: the answered snapshot opens the menu"
+        );
+        let at = point(track.left() + px(5.), track.top() + px(30.));
+        wheel_handler(&mut cx, handle, view, at);
+        assert_eq!(
+            scroll(&mut cx, handle),
+            0.,
+            "{view:?}: a wheel under an open menu moved the track"
+        );
+    }
 }
+
+#[path = "jobs_track_input_tests.rs"]
+mod extracted;
 
 #[path = "jobs_modal_tests.rs"]
 mod modal;

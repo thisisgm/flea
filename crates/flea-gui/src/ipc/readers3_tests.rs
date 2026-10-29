@@ -1,0 +1,301 @@
+//! FIX-READERS3 (EY-228): readers v0.3.12 answers that GPUI used to refuse, reached through the production Root dispatch.
+use crate::{
+    backend::Backend,
+    g2::op3::openwith::OpenWith,
+    state::{tests::shell_with, Shell},
+    window::{open_with::Open as OpenWithOpen, root::Root},
+};
+use flea::{
+    ipc::wire::{Reply, Request},
+    jsondoc::{self, Json},
+};
+use gpui::{AppContext, Context, TestAppContext, Window, WindowBackgroundAppearance, WindowHandle};
+
+fn open(cx: &mut TestAppContext) -> WindowHandle<Root> {
+    let (backend, _receive) = Backend::test_channel();
+    cx.add_window(|_, cx| Root {
+        shell: cx.new(|cx| shell_with(backend, cx)),
+    })
+}
+
+fn update<R>(
+    cx: &mut TestAppContext,
+    handle: WindowHandle<Root>,
+    change: impl FnOnce(&mut Shell, &mut Window, &mut Context<Shell>) -> R,
+) -> R {
+    handle
+        .update(cx, |root, window, cx| {
+            root.shell.update(cx, |shell, cx| change(shell, window, cx))
+        })
+        .unwrap()
+}
+
+fn read(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str, args: &[&str]) -> Reply {
+    let (answer, receive) = std::sync::mpsc::sync_channel(1);
+    let arguments = args.iter().map(|argument| (*argument).to_owned()).collect();
+    update(cx, handle, |shell, window, cx| {
+        shell.ipc(
+            super::server::Event::Call {
+                request: Request::Call {
+                    target: "flea".into(),
+                    function: name.into(),
+                    arguments,
+                },
+                answer,
+            },
+            window,
+            cx,
+        )
+    });
+    receive.try_recv().unwrap().reply
+}
+
+fn value(
+    cx: &mut TestAppContext,
+    handle: WindowHandle<Root>,
+    name: &str,
+    args: &[&str],
+    expected: &str,
+) {
+    assert_eq!(
+        read(cx, handle, name, args),
+        Reply::value(expected),
+        "{name}"
+    );
+}
+
+fn json(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str) -> Json {
+    let reply = read(cx, handle, name, &[]);
+    assert_eq!(reply.code, 0, "{name}: {reply:?}");
+    jsondoc::parse(reply.stdout.trim()).unwrap()
+}
+
+// An open card refuses with the painted geometry it cannot report, and names exactly those fields.
+fn refused(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str, fields: &str) {
+    let reply = read(cx, handle, name, &[]);
+    assert_eq!(reply.code, 3, "{name}: {reply:?}");
+    assert!(
+        reply.stderr.starts_with(&format!(
+            "FLEA_IPC_ERROR flea.{name} unavailable fields: {fields} "
+        )),
+        "{reply:?}"
+    );
+}
+
+#[gpui::test]
+fn ipc_readers3_mode_is_always_browse(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "mode", &[], "browse");
+}
+
+#[gpui::test]
+fn ipc_readers3_recent_from_is_idle_without_recent(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "recentFrom", &[], "");
+}
+
+#[gpui::test]
+fn ipc_readers3_menu_dialog_state_is_closed_without_a_card(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "menuDialogState", &[], "{\"opened\":false}");
+}
+
+#[gpui::test]
+fn ipc_readers3_open_with_card_refuses_its_geometry(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "openWithState", &[], "{\"opened\":false}");
+    update(cx, handle, |shell, _, _| {
+        let (card, _effects) = OpenWith::open(1, "photo.png");
+        shell.open_with = Some(OpenWithOpen {
+            side: 0,
+            id: 1,
+            card,
+        });
+    });
+    refused(
+        cx,
+        handle,
+        "openWithState",
+        "rect, titleRuleRect, searchRect, listRect, rowRect, controls",
+    );
+    refused(
+        cx,
+        handle,
+        "menuDialogState",
+        "rect, controls, confirmation",
+    );
+}
+
+#[gpui::test]
+fn ipc_readers3_run_card_refuses_its_geometry(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "runCardState", &[], "{\"opened\":false}");
+    update(cx, handle, |shell, _, cx| {
+        shell.open_run_card(
+            0,
+            "/files/run.sh".into(),
+            r#"{"ask":"run","kind":"script","size":9420,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":11,"mtimeNs":12,"target":"/real/tool.sh"}"#.into(),
+            false,
+            cx,
+        )
+    });
+    update(cx, handle, |shell, _, _| {
+        assert!(shell.run_card.is_some(), "the run card opens");
+    });
+    refused(cx, handle, "runCardState", "rect, controls");
+    refused(
+        cx,
+        handle,
+        "menuDialogState",
+        "rect, controls, confirmation",
+    );
+}
+
+#[gpui::test]
+fn ipc_readers3_archive_cards_read_closed_then_refuse_their_eye_geometry(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "archiveCardsState", &[], "{\"opened\":false}");
+    update(cx, handle, |shell, _, _| {
+        shell.operations.archive.extract.open(
+            "/files/private.7z",
+            "/files/out",
+            "",
+            &shell.locale.catalog,
+        );
+    });
+    refused(
+        cx,
+        handle,
+        "archiveCardsState",
+        "compressCapture.eye, extractCapture.eye",
+    );
+}
+
+#[gpui::test]
+fn ipc_readers3_favourites_saving_reads_idle_at_rest(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "favouritesSaving", &[], "false");
+}
+
+#[gpui::test]
+fn ipc_readers3_permissions_input_ready_follows_list_focus(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let state = json(cx, handle, "permissionsState");
+    assert_eq!(state.get("opened").and_then(Json::as_bool), Some(false));
+    assert_eq!(
+        state.get("inputReady").and_then(Json::as_bool),
+        Some(false),
+        "an unfocused list takes no input"
+    );
+    update(cx, handle, |shell, window, cx| {
+        window.focus(&shell.focus, cx)
+    });
+    let state = json(cx, handle, "permissionsState");
+    assert_eq!(
+        state.get("inputReady").and_then(Json::as_bool),
+        Some(true),
+        "the focused list with no listing in flight takes input"
+    );
+}
+
+#[gpui::test]
+fn ipc_readers3_context_menu_focus_reports_an_open_menu(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let state = json(cx, handle, "contextMenuFocusState");
+    assert_eq!(state.get("opened").and_then(Json::as_bool), Some(false));
+    update(cx, handle, |shell, window, cx| {
+        shell.open_menu(0, None, (40., 40.), window, cx)
+    });
+    update(cx, handle, |shell, _, _| {
+        assert!(shell.menu.menu.borrow().opened(), "the pane opened a menu");
+    });
+    // GPUI keeps no menu focus holder and no QML focus item, so origin and activeItem refuse while the menu is open.
+    refused(cx, handle, "contextMenuFocusState", "origin, activeItem");
+}
+
+#[gpui::test]
+fn ipc_readers3_glass_reads_once_the_window_is_mounted(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    assert_eq!(read(cx, handle, "glass", &[]).code, 3);
+    update(cx, handle, |_, window, cx| {
+        crate::window::glass::mount(&*window, WindowBackgroundAppearance::Opaque, cx)
+    });
+    let state = json(cx, handle, "glass");
+    assert_eq!(state.get("clear").and_then(Json::as_bool), Some(false));
+    assert_eq!(state.get("listAlpha").and_then(Json::as_f64), Some(1.));
+    assert!(state.get("window").and_then(Json::as_str).is_some());
+}
+
+#[gpui::test]
+fn ipc_readers3_share_browser_is_idle_and_reports_pane_list_areas(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "shareBrowserRect", &[], "");
+    let state = json(cx, handle, "shareBrowserState");
+    assert_eq!(state.get("active").and_then(Json::as_bool), Some(false));
+    assert_eq!(state.get("owner").and_then(Json::as_f64), Some(-1.));
+    assert_eq!(state.get("rect").and_then(Json::as_str), Some(""));
+    assert_eq!(state.get("baseUri").and_then(Json::as_str), Some(""));
+    assert_eq!(state.get("cursor").and_then(Json::as_f64), Some(-1.));
+    assert!(matches!(state.get("paneRects"), Some(Json::Arr(_))));
+}
+
+#[gpui::test]
+fn ipc_readers3_row_thumb_ready_is_false_without_a_row(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "rowThumbReady", &["0"], "false");
+}
+
+#[gpui::test]
+fn ipc_readers3_listing_drop_is_inactive_without_a_drag(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "listingDropActive", &[], "false");
+}
+
+#[gpui::test]
+fn ipc_readers3_rail_mark_is_never_hovered_by_idle_gpui(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    value(cx, handle, "railMarkHovered", &["0"], "false");
+}
+
+#[gpui::test]
+fn ipc_readers3_context_menu_focus_closed_shape(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let state = json(cx, handle, "contextMenuFocusState");
+    assert_eq!(state.get("opened").and_then(Json::as_bool), Some(false));
+    assert_eq!(state.get("menu").and_then(Json::as_bool), Some(false));
+    assert_eq!(state.get("origin").and_then(Json::as_bool), Some(false));
+    assert_eq!(state.get("activeItem").and_then(Json::as_str), Some(""));
+    for key in ["view", "pane", "list"] {
+        assert!(
+            state.get(key).is_some(),
+            "{key} is part of the v0.3.12 shape"
+        );
+    }
+}
+
+#[gpui::test]
+fn ipc_readers3_thumbnail_policy_idle_shape(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let state = json(cx, handle, "thumbnailPolicyState");
+    for key in [
+        "view",
+        "mode",
+        "files",
+        "pending",
+        "contentY",
+        "cursor",
+        "previewIndex",
+        "previewPath",
+        "previewReady",
+    ] {
+        assert!(
+            state.get(key).is_some(),
+            "{key} is part of the v0.3.12 shape"
+        );
+    }
+    assert_eq!(state.get("previewIndex").and_then(Json::as_f64), Some(-1.));
+    assert_eq!(
+        state.get("previewReady").and_then(Json::as_bool),
+        Some(false)
+    );
+}

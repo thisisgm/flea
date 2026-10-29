@@ -169,7 +169,8 @@ pub fn can_not_show(i18n: &flea::i18n::I18n) -> Subject {
         mode: 0o100644,
         state: State::Unsupported,
         shape: Shape::unknown(State::Unsupported),
-        body: Body::cannot_show(i18n, State::Unsupported, false, false, Vec::new()).expect("no preview kind"),
+        body: Body::cannot_show(i18n, State::Unsupported, false, false, Vec::new())
+            .expect("no preview kind"),
     }
 }
 
@@ -202,6 +203,14 @@ pub fn host(cx: &mut TestAppContext, subject: Subject, arm: Arm) -> Host<'_> {
     cx.simulate_mouse_move(point(px(-1.), px(-1.)), None, Modifiers::none());
     let look = root.read_with(cx, |root, _| root.look.clone());
     look.update(cx, |look, cx| look.open(subject, true, cx));
+    cx.run_until_parked();
+    // Geometry and pointer fixtures begin after the opening reveal has settled.
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(180));
+    cx.update(|window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+    });
     cx.run_until_parked();
     *seen.borrow_mut() = Seen::default();
     (cx, seen, look, events)

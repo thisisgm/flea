@@ -8,11 +8,10 @@ use crate::grid::{
     Shown,
 };
 use crate::palette::Theme;
-use crate::row::marks::ClipMark;
 use gpui::{
     fill, outline, point, px, relative, size, App, BorderStyle, Bounds, ContentMask, Corners,
-    Element, ElementId, GlobalElementId, GlyphRun, Hsla, InspectorElementId, LayoutId, Pixels,
-    Style, TextRun, TransformationMatrix, Window,
+    Element, ElementId, GlobalElementId, InspectorElementId, LayoutId, Pixels, Style,
+    TransformationMatrix, Window,
 };
 use std::rc::Rc;
 
@@ -23,45 +22,16 @@ const HOVER: f32 = 0.08;
 const MATCH_WASH: f32 = 0.14;
 const CUT: f32 = 0.55;
 
-fn bounds_of(origin: gpui::Point<Pixels>, rect: Rect) -> Bounds<Pixels> {
-    Bounds::new(
-        point(origin.x + px(rect.x), origin.y + px(rect.y)),
-        size(px(rect.width), px(rect.height)),
-    )
-}
+#[path = "ground.rs"]
+mod ground;
+pub(super) use ground::bounds_of;
+use ground::{baseline, label_run, plate};
 
-fn label_run(text: &str, state: &GridState, size: Pixels, window: &Window) -> GlyphRun {
-    let run = TextRun {
-        len: text.len(),
-        font: state.font.clone(),
-        color: Hsla::default(),
-        background_color: None,
-        underline: None,
-        strikethrough: None,
-    };
-    GlyphRun::new(window.text_system().layout_line(text, size, &[run], None))
-}
-
-// A run's baseline inside a fixed-height caption line, centred on the line box.
-fn baseline(run: &GlyphRun, top: Pixels, line: f32, window: &Window) -> Pixels {
-    let layout = run.line();
-    window.pixel_snap(top + (px(line) - layout.ascent - layout.descent) / 2. + layout.ascent)
-}
-
-// The tile's own ground: the plate it sits on over the pane, which a cut picture fades toward.
-fn plate(drawn: &Drawn, ink: &Ink) -> Option<Hsla> {
-    if drawn.cursor {
-        Some(ink.accent.opacity(CURSOR_WASH))
-    } else if drawn.selected {
-        Some(ink.foreground.opacity(MARK_PLATE))
-    } else if drawn.hovered {
-        Some(ink.foreground.opacity(HOVER))
-    } else {
-        None
-    }
-}
-
-fn caption_line<'a>(state: &'a GridState, drawn: &'a Drawn, at: usize) -> Option<&'a tile::Line> {
+pub(super) fn caption_line<'a>(
+    state: &'a GridState,
+    drawn: &'a Drawn,
+    at: usize,
+) -> Option<&'a tile::Line> {
     let plain = drawn.tile.as_ref()?.lines.get(at)?;
     Some(
         state
@@ -71,44 +41,6 @@ fn caption_line<'a>(state: &'a GridState, drawn: &'a Drawn, at: usize) -> Option
             .and_then(|bold| bold.lines[at].as_ref())
             .unwrap_or(plain),
     )
-}
-
-impl Drawn {
-    /// The clipboard bounds paint uses, after the actual last drawn caption line, including its fallback face.
-    pub fn clip_bounds(&self, state: &GridState) -> Option<Rect> {
-        if self.editing {
-            return None;
-        }
-        let clip = self.clip.as_ref()?;
-        let metrics = state.layout.as_ref()?.metrics;
-        let last = self.lines.checked_sub(1)?;
-        let width = caption_line(state, self, last)?.centred;
-        let name = bounds_of(
-            point(px(0.), px(0.)),
-            Rect {
-                y: self.caption.y + last as f32 * metrics.caption_line,
-                height: metrics.caption_line,
-                ..self.caption
-            },
-        );
-        let mark = if clip.cut {
-            ClipMark::Cut
-        } else {
-            ClipMark::Copy
-        }
-        .bounds(
-            name,
-            px((self.caption.width + width) / 2.),
-            px(metrics.clip_mark),
-            px(metrics.gap),
-        );
-        Some(Rect {
-            x: f32::from(mark.origin.x),
-            y: f32::from(mark.origin.y),
-            width: f32::from(mark.size.width),
-            height: f32::from(mark.size.height),
-        })
-    }
 }
 
 impl GridElement {
@@ -317,6 +249,7 @@ impl GridElement {
                 );
             }
         });
+        super::tags::paint(self.held.row(drawn.listing), drawn, origin, window, cx);
         if let (Some(clip), Some(mark)) = (&drawn.clip, drawn.clip_bounds(state)) {
             let _ = window.paint_svg(
                 bounds_of(origin, mark),
@@ -412,10 +345,15 @@ impl Element for GridElement {
                         .as_ref()
                         .map_or(drawn.cell, |layout| layout.frame(drawn.cell)),
                 );
-                if let Some(ground) = plate(drawn, &ink) {
+                if let Some(ground) = plate(
+                    drawn,
+                    &ink,
+                    self.focus.focused(),
+                    self.focus.selection_fill(),
+                ) {
                     window.paint_quad(fill(frame, ground));
                 }
-                if drawn.cursor {
+                if drawn.cursor && self.focus.focused() {
                     window.paint_quad(outline(frame, ink.accent_frame, BorderStyle::Solid));
                 }
                 if drawn.drop.is_some() {
@@ -464,8 +402,13 @@ impl Element for GridElement {
             for drawn in state.drawn.iter().filter(|drawn| {
                 drawn.picture.is_some() && drawn.clip.as_ref().is_some_and(|clip| clip.cut)
             }) {
-                let ground =
-                    plate(drawn, &ink).map_or(ink.background, |plate| ink.background.blend(plate));
+                let ground = plate(
+                    drawn,
+                    &ink,
+                    self.focus.focused(),
+                    self.focus.selection_fill(),
+                )
+                .map_or(ink.background, |plate| ink.background.blend(plate));
                 let slot = bounds_of(origin, drawn.slot);
                 window.paint_layer(slot, |window| {
                     window.paint_quad(fill(slot, ground.opacity(1. - CUT)))

@@ -21,6 +21,13 @@ fn listed(f: &mut Fixture, names: &[&str]) {
 }
 
 fn press(f: &mut Fixture, key: &str, text: Option<&str>) {
+    if let Some(text) = text {
+        if text != "/" && f.read(|picker| picker.find.owner.typing()) {
+            f.cx.simulate_input(text);
+            f.cx.run_until_parked();
+            return;
+        }
+    }
     let keystroke = Keystroke {
         key: key.into(),
         key_char: text.map(Into::into),

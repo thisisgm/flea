@@ -239,7 +239,11 @@ class LayoutTests(unittest.TestCase):
         # Carry25 binds X to carry in the GUI listing; it is the one other row the baseline predates.
         carry = [r for r in common if r["action"] == "carry"]
         self.assertEqual([(r["table"], r["key"], r["mods"]) for r in carry], [("preset", "X", "text")])
-        self.assertEqual([r for r in common if r["action"] not in ("openAgent", "carry") and r not in text_size],
+        # Stage13 adds the reviewed Ctrl+G contents-search chord to the shared listing layer.
+        contents = [r for r in common if r["action"] == "searchContents"]
+        self.assertEqual([(r["table"], r["key"], r["mods"], r["contexts"], r["frontend"])
+                          for r in contents], [("ctrl", "G", "ctrl", ["listing", "rail"], "all")])
+        self.assertEqual([r for r in common if r["action"] not in ("openAgent", "carry", "searchContents") and r not in text_size],
                          [{k: v for k, v in r.items() if k != "id"} for r in baseline])
 
     def test_i50_layout_unreachable_fails(self):

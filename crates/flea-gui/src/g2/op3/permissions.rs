@@ -96,7 +96,7 @@ impl Permissions {
             text: String::new(),
             set: 0,
             clear: 0,
-            focus: Stop::Apply,
+            focus: Stop::Cancel,
             phase: Phase::Reading,
             error: String::new(),
             applied: Vec::new(),
@@ -142,14 +142,17 @@ impl Permissions {
     }
 
     fn stops(&self) -> Vec<Stop> {
+        if self.phase != Phase::Ready || !self.changeable() {
+            return vec![Stop::Cancel];
+        }
         let mut stops: Vec<Stop> = (0..9).map(Stop::Box).collect();
         if !self.several() {
             stops.push(Stop::Octal);
         }
-        if self.phase != Phase::Applying {
-            stops.push(Stop::Cancel);
+        stops.push(Stop::Cancel);
+        if self.can_apply() {
+            stops.push(Stop::Apply);
         }
-        stops.push(Stop::Apply);
         stops
     }
 
@@ -217,8 +220,11 @@ impl Permissions {
     }
 
     pub fn key(&mut self, key: Key) -> Vec<Effect> {
+        if self.phase == Phase::Applying {
+            return Vec::new();
+        }
         if matches!(self.phase, Phase::Stopped(_)) {
-            return if matches!(key, Key::Escape | Key::Enter) {
+            return if matches!(key, Key::Escape | Key::Enter | Key::Space) {
                 vec![Effect::Close]
             } else {
                 Vec::new()
@@ -233,14 +239,15 @@ impl Permissions {
             (Key::Escape, _) => return self.close(),
             (Key::Tab, _) => self.focus = stops[(at + 1) % stops.len()],
             (Key::Backtab, _) => self.focus = stops[(at + stops.len() - 1) % stops.len()],
-            (Key::Enter, Stop::Cancel) => return self.close(),
-            (Key::Enter, _) => return self.apply(),
+            (Key::Enter | Key::Space, Stop::Cancel) => return self.close(),
+            (Key::Enter | Key::Space, Stop::Apply) => return self.apply(),
+            (Key::Enter, Stop::Octal) if self.can_apply() => self.focus = Stop::Apply,
             (Key::Space, Stop::Box(b)) => self.toggle(b),
             (Key::Left, Stop::Box(b)) if b % 3 > 0 => self.focus = Stop::Box(b - 1),
             (Key::Right, Stop::Box(b)) if b % 3 < 2 => self.focus = Stop::Box(b + 1),
             (Key::Up, Stop::Box(b)) if b >= 3 => self.focus = Stop::Box(b - 3),
             (Key::Down, Stop::Box(b)) if b < 6 => self.focus = Stop::Box(b + 3),
-            (Key::Left | Key::Right, Stop::Cancel) => self.focus = Stop::Apply,
+            (Key::Left | Key::Right, Stop::Cancel) if self.can_apply() => self.focus = Stop::Apply,
             (Key::Left | Key::Right, Stop::Apply) if self.phase != Phase::Applying => {
                 self.focus = Stop::Cancel
             }
@@ -255,10 +262,16 @@ impl Permissions {
     /// The backend went away: before Apply the card cannot read, during Apply the change may not have finished.
     pub fn stopped(&mut self) {
         self.phase = Phase::Stopped(self.phase == Phase::Applying);
+        self.focus = Stop::Cancel;
     }
 
     /// Sample input: an inspect reply fills the grid; an apply reply closes with a status line and a pane reread.
     pub fn reply(&mut self, i18n: &I18n, reply: &Json) -> Vec<Effect> {
+        if matches!(self.phase, Phase::Stopped(_)) {
+            return Vec::new();
+        }
+        let opening =
+            self.phase == Phase::Reading && self.error.is_empty() && self.refused.is_empty();
         let ok = reply.get("ok").and_then(Json::as_bool) == Some(true);
         let id = number(reply, "id");
         match reply.get("op").and_then(Json::as_str) {
@@ -329,6 +342,7 @@ impl Permissions {
                 }
                 self.phase = Phase::Ready;
                 self.error = logic::refusal(i18n, &text(reply, "error"));
+                self.focus = Stop::Cancel;
             }
             Some("applyMany") if id == self.id && self.phase == Phase::Applying => {
                 // One batch is one reply; a refusal keeps the card open with the reason, and a rollback that failed leaves some items changed.
@@ -347,8 +361,16 @@ impl Permissions {
             }
             _ => {}
         }
+        if self.phase == Phase::Ready && (opening || !self.changeable()) {
+            self.focus = if self.can_apply() {
+                Stop::Apply
+            } else {
+                Stop::Cancel
+            };
+        }
         Vec::new()
     }
 }
 
 mod draw;
+pub mod host;

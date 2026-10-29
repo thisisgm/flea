@@ -1,6 +1,10 @@
 //! Additional entry-cap and dispatch-order controls over the retained independent review probes.
 use super::*;
-use crate::{columns::TrackRows, list::pane::Move, window::columns_tests::host::row};
+use crate::{
+    columns::TrackRows,
+    list::pane::Move,
+    window::columns_tests::host::{advance, row},
+};
 
 #[test]
 fn entry_retargets_without_restarting_its_original_cap() {
@@ -47,7 +51,11 @@ fn entry_retargets_without_restarting_its_original_cap() {
             .landing
             .waiting("/srv/a/b/c/d01", "/srv/a/b/c"));
     });
-    std::thread::sleep(Duration::from_millis(crate::pane::swap::CAP_MS + 20));
+    advance(
+        &mut cx,
+        window,
+        Duration::from_millis(crate::pane::swap::CAP_MS + 20),
+    );
     change(&mut cx, window, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
         let columns = host.columns.as_ref().unwrap();
@@ -117,7 +125,11 @@ fn entry_cap_preserves_file_and_absent_child_slots() {
                 .drawn
                 .contains(&"/srv/a/b/c/file.txt".to_owned()));
         });
-        std::thread::sleep(Duration::from_millis(crate::pane::swap::CAP_MS + 20));
+        advance(
+            &mut cx,
+            window,
+            Duration::from_millis(crate::pane::swap::CAP_MS + 20),
+        );
         change(&mut cx, window, |shell, _, _| tick(shell));
         frame(&mut cx, window);
         change(&mut cx, window, |shell, _, _| {
@@ -156,7 +168,11 @@ fn minimum_release_rebuilds_for_both_dispatch_orders_without_another_reply() {
             asked_first = shell.panes[0].as_ref().unwrap().pane.first_count();
         });
         frame(&mut cx, window);
-        std::thread::sleep(Duration::from_millis(crate::pane::swap::CAP_MS + 20));
+        advance(
+            &mut cx,
+            window,
+            Duration::from_millis(crate::pane::swap::CAP_MS + 20),
+        );
         change(&mut cx, window, |shell, _, _| tick(shell));
         frame(&mut cx, window);
         let mut minimum = None;
@@ -208,7 +224,11 @@ fn minimum_release_rebuilds_for_both_dispatch_orders_without_another_reply() {
             );
             requests = columns.area.peek_requests;
         });
-        std::thread::sleep(Duration::from_millis(crate::pane::swap::MIN_SHOW_MS + 20));
+        advance(
+            &mut cx,
+            window,
+            Duration::from_millis(crate::pane::swap::MIN_SHOW_MS + 20),
+        );
         if timer_first {
             change(&mut cx, window, |shell, window, cx| {
                 tick(shell);

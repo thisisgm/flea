@@ -1,7 +1,7 @@
 //! The window's footer joins the pane count and disk facts around fb1's message service.
 use crate::{
     g2::fb1::{
-        line::{ArmLost, MessageLine},
+        line::{ArmLost, MessageLine, NoticeEnded},
         observe::Paint,
     },
     list::{Metrics, Palette, Typeface},
@@ -100,6 +100,14 @@ impl Shell {
                     cx.notify();
                 }
             }));
+            // The notice channel's own clock ends the operation line that a listing keeps.
+            let ended = cx.subscribe(&line, |shell, _, _: &NoticeEnded, cx| {
+                for host in shell.panes.iter_mut().flatten() {
+                    host.end_operation_line();
+                }
+                cx.notify();
+            });
+            self.surfaces[0].notice_watch = Some(ended);
         }
         footer
     }
@@ -126,6 +134,13 @@ impl Shell {
             .render(&self.locale.catalog);
         self.status_messages(cx, |messages, now| {
             messages.say(&sentence, operation != "sort", "", Hint::None, now)
+        });
+    }
+
+    /// Says a translated sentence in the footer as a note, for input the pane holds or cannot act on.
+    pub(crate) fn status_note(&mut self, text: &str, cx: &mut Context<Self>) {
+        self.status_messages(cx, |messages, now| {
+            messages.say(text, false, "", Hint::None, now)
         });
     }
 
@@ -303,7 +318,7 @@ impl Render for Footer {
             .flex_none()
             .border(self.border_width)
             // HIG list and rail-favorites: the status bar stands on --surface under its --hair edge.
-            .bg(theme.surface)
+            .bg(super::glass::ground(theme.surface, window, cx))
             .font_family(typeface.font.family)
             .text_size(typeface.caption)
             .text_color(ink.foreground)

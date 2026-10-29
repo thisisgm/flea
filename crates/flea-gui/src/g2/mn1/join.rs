@@ -58,9 +58,11 @@ impl gpui::EventEmitter<ProducerReply> for Shell {}
 
 #[derive(Default)]
 pub struct Joined {
+    pub tags: super::tags::Tags,
     pub(crate) place: Option<super::place_host::Place>,
     pub menu: Rc<RefCell<Menu>>,
     pub captured: Option<Captured>,
+    pub(crate) rail: Option<crate::window::dispatch::rail_menu::Target>,
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
     pub(crate) from_sheet: bool,
@@ -79,11 +81,15 @@ pub struct Joined {
     pub(crate) providers: crate::g2::sd1::join::Senders,
     /// The flyout c or P asked for, opened once the cursor menu draws.
     pub flyout: Option<&'static str>,
+    pub header: bool,
+    pub tags_reading: bool,
+    // A test's stand-in for the `flea shelf add` call; None runs the real one.
+    pub shelve: Option<super::owners::ShelfAdd>,
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
 
-fn identity(host: &PaneHost, side: usize, background: bool) -> String {
+pub(crate) fn identity(host: &PaneHost, side: usize, background: bool) -> String {
     format!(
         "{side}:{}:{}:{:?}:{}:{background}",
         host.path, host.pane.held.listing, host.selected, host.pane.cursor
@@ -100,6 +106,9 @@ impl Shell {
     }
 
     pub(crate) fn menu_identity(&self) -> String {
+        if self.menu.rail.is_some() {
+            return String::new();
+        }
         if let Some(place) = &self.menu.place {
             return place.key.clone();
         }
@@ -127,21 +136,39 @@ impl Shell {
     }
 
     pub(crate) fn menu_entries(&self) -> Vec<Entry> {
+        self.menu_entries_keeping("")
+    }
+
+    /// The live rows a chosen leaf is checked against: MenuContext.js validateChoice keeps a hidden row whose flyout c or P opened alone.
+    pub(crate) fn menu_choice_entries(&self, action: &str, leaf: &str) -> Vec<Entry> {
+        let lone = !leaf.is_empty() && !flea::ui_logic_mn1::rows::flyout_entries(action).is_empty();
+        self.menu_entries_keeping(if lone { action } else { "" })
+    }
+
+    fn menu_entries_keeping(&self, keep: &str) -> Vec<Entry> {
+        if let Some(target) = &self.menu.rail {
+            return target.rows();
+        }
         if let Some(entries) = self.place_menu_entries() {
             return entries;
         }
         let Some(capture) = &self.menu.captured else {
             return Vec::new();
         };
+        if self.menu.header {
+            return self.header_menu_entries(capture.side);
+        }
+        let mut hidden = if self.menu.from_sheet {
+            Vec::new()
+        } else {
+            self.menu_hidden()
+        };
+        hidden.retain(|id| id != keep);
         self.listing_menu_entries(
             capture.side,
             capture.background,
             self.menu.context.clone(),
-            if self.menu.from_sheet {
-                Vec::new()
-            } else {
-                self.menu_hidden()
-            },
+            hidden,
         )
     }
 
@@ -162,6 +189,9 @@ impl Shell {
             }
         }
         context.hidden = hidden;
+        if !self.can_tag(side) {
+            context.hidden.push("tags".into());
+        }
         if !background {
             self.provider_context(side, &host.path, &mut context);
         }
@@ -207,8 +237,21 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.open_menu_with(side, row, at, false, window, cx);
+    }
+
+    pub(crate) fn open_menu_with(
+        &mut self,
+        side: usize,
+        row: Option<usize>,
+        at: (f32, f32),
+        header: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.retire_menu(window, cx);
         self.observe_menu(window, cx);
+        self.menu.header = header;
         // A locked pane draws the hero, never rows, so its menu is the folder's whatever rows it still holds.
         let row = row.filter(|_| self.locked_folder(side).is_none());
         let Some(host) = &mut self.panes[side] else {
@@ -263,6 +306,7 @@ impl Shell {
         self.menu.context =
             self.listing_menu_context(side, &capture.rows, capture.cursor, background);
         self.menu.captured = Some(capture.clone());
+        self.ask_tag_states(false, cx);
         self.check_menu_shebang(window, cx);
         self.archive_menu_context(side);
         self.menu.presentation.at = Some(at);

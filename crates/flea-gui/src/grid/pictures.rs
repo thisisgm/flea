@@ -5,7 +5,7 @@ mod decor;
 #[path = "pictures/faded_tests.rs"]
 mod faded_tests;
 #[path = "pictures/policy.rs"]
-mod policy;
+pub(crate) mod policy;
 #[path = "pictures/readers.rs"]
 mod readers;
 #[path = "pictures/surface.rs"]

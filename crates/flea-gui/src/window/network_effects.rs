@@ -161,19 +161,8 @@ impl Shell {
         let Some(network) = self.network() else {
             return;
         };
-        let (card, service, runner) = (
-            network.card.clone(),
-            network.service.clone(),
-            network.runner.clone(),
-        );
-        let origin = card.read(cx).model.origin;
+        let (service, runner) = (network.service.clone(), network.runner.clone());
         match effect {
-            dialog::Effect::Wire(line) => {
-                let side = self.network_side(origin).unwrap_or(self.focus_side);
-                if let Some(backend) = self.panes[side].as_ref().and_then(|h| h.backend.as_ref()) {
-                    let _ = backend.line(line.clone());
-                }
-            }
             dialog::Effect::Save {
                 id,
                 uri,
@@ -253,7 +242,7 @@ impl Shell {
         let Some(path) = self.network().map(|network| network.bookmarks.clone()) else {
             return;
         };
-        let replies = bookmarks::submit(path, edit);
+        let replies = bookmarks::submit(path, edit.clone());
         // The writer's own thread answers a blocking receive on a background task, so no foreign thread wakes the UI executor.
         let written = cx.background_spawn(async move {
             replies
@@ -263,6 +252,9 @@ impl Shell {
         let task = cx.spawn(async move |this, cx| {
             let result = written.await;
             let _ = this.update(cx, |shell, cx| {
+                if result.is_ok() {
+                    shell.network_saved(cx);
+                }
                 let detail = match &result {
                     Ok(_) => String::new(),
                     Err(failure) => shell.locale.catalog.tr(failure.key()),

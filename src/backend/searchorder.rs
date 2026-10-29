@@ -112,7 +112,7 @@ pub(crate) fn rank_cmp(index: &Index, a: &(i32, usize), b: &(i32, usize)) -> Cmp
         .then_with(|| path_order(index, a.1, b.1))
 }
 
-// The best `window` hits in rank order, the rest unranked; the integer key and its exact path tie-break select in place.
+// The best `window` hits in rank order, the rest unranked; `cmp` orders score descending first, as `rank_cmp` does, and `key` never orders two rows against `cmp`.
 pub(crate) fn select_head<K, F, C>(hits: &mut Vec<(i32, usize)>, window: usize, key: F, cmp: C) -> Vec<(i32, usize)>
 where
     K: Ord,
@@ -122,13 +122,32 @@ where
     #[cfg(test)]
     let cut_started = std::time::Instant::now();
     if window > 0 && window < hits.len() {
-        hits.select_nth_unstable_by(window - 1, |a, b| key(a).cmp(&key(b)).then_with(|| cmp(a, b)));
+        // Rank order is score first, so every row above the window's last score is in the head and every row below it is out.
+        let last = hits.select_nth_unstable_by(window - 1, |a, b| b.0.cmp(&a.0)).1.0;
+        let above = to_front(&mut hits[..window], |hit| hit.0 > last);
+        let tied = window + to_front(&mut hits[window..], |hit| hit.0 == last);
+        if tied > window {
+            hits[above..tied].select_nth_unstable_by(window - 1 - above, |a, b| key(a).cmp(&key(b)).then_with(|| cmp(a, b)));
+        }
     }
     #[cfg(test)]
     CUT.with(|time| time.set(cut_started.elapsed()));
     let rest = hits.split_off(window.min(hits.len()));
     hits.sort_by(&cmp);
+    debug_assert!(hits.windows(2).all(|pair| pair[0].0 >= pair[1].0), "select_head needs a score-first cmp");
     rest
+}
+
+// Moves the rows `keep` accepts to the front, in place, and returns how many there are.
+fn to_front(rows: &mut [(i32, usize)], keep: impl Fn(&(i32, usize)) -> bool) -> usize {
+    let mut kept = 0;
+    for at in 0..rows.len() {
+        if keep(&rows[at]) {
+            rows.swap(kept, at);
+            kept += 1;
+        }
+    }
+    kept
 }
 
 #[cfg(test)]

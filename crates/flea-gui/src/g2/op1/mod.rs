@@ -8,6 +8,7 @@ pub mod host;
 pub mod ipc;
 mod line;
 pub mod model;
+mod new_file;
 pub mod palette;
 pub mod press;
 pub mod view;

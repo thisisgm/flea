@@ -83,8 +83,7 @@ fn paint(
             0.
         } else {
             bar.moved[i].map_or(0., |at| {
-                ((1300. - now.saturating_duration_since(at).as_millis() as f32) / 300.)
-                    .clamp(0., 1.)
+                scroll::fade(now.saturating_duration_since(at).as_millis() as f32)
             })
         };
         if !wide && !bar.scroll.moving[i] && opacity > 0. {

@@ -19,7 +19,9 @@ pub(super) fn run(
     let Order::Action(event) = order else {
         return false;
     };
-    if shell.filter_action(event.action, window, cx) {
+    if shell.search_action(event.action, window, cx)
+        || shell.filter_action(event.action, window, cx)
+    {
         return true;
     }
     let side = shell.focus_side;
@@ -40,22 +42,29 @@ pub(super) fn run(
         return false;
     };
     let searching = host.search.owner.active();
+    // Focus.js:188-190: a filter or a search still standing is the owner Escape and o belong to, so Recent answers them only with none up.
+    let owned = searching
+        || host.filter.owner.up()
+        || host.pane.state.search
+        || host.pane.swap.session.open
+        || !host.pane.state.query.is_empty();
     let step = match event.action {
         // Focus.js:147-148: both sort keys go quiet while a search owns the header.
         "sortNext" | "sortReverse" if searching => return true,
         "sortNext" => Step::SortNext,
         "sortReverse" => Step::SortReverse,
-        // Focus.js:143-144: reveal means something only on a search result; the search runs it there.
-        "reveal" => return true,
-        "escape" if shell.escape_climbs() => Step::Up,
-        // Focus.js:188-190: a filter or a search still standing is the owner Escape belongs to.
-        "escape"
-            if host.pane.state.search
-                || host.pane.swap.session.open
-                || !host.pane.state.query.is_empty() =>
-        {
-            return false
+        // Focus.js:143-144: reveal means something only on a search result or a Recent row; the search runs it there.
+        "reveal" if host.recent.on && !owned => {
+            shell.recent_reveal(side, window, cx);
+            return true;
         }
+        "reveal" => return true,
+        "escape" if host.recent.on && !owned => {
+            let _ = shell.step(side, Step::Back, window, cx);
+            return true;
+        }
+        "escape" if shell.escape_climbs() => Step::Up,
+        "escape" if owned => return false,
         // Pane.qml escapePressed: with no mark left, Escape clears the notice; StatusBar.qml took a standing error first.
         "escape" => {
             shell.status_messages(cx, |messages, now| {
@@ -98,18 +107,22 @@ impl Shell {
         self.dispatch(Order::Action(event), window, cx);
     }
 
+    /// The escapeUp setting: with it on, Escape cancels a live arm or pair first and then climbs.
+    pub(crate) fn escape_up_on(&self) -> bool {
+        flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["escapeUp"])
+    }
+
     /// Focus.js escapeUp: Escape climbs only with the setting on and nothing else owning the key; a landed row is no mark.
     pub(crate) fn escape_climbs(&self) -> bool {
-        if !flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["escapeUp"]) {
+        if !self.escape_up_on() {
             return false;
         }
         let Some(host) = self.panes[self.focus_side].as_ref() else {
             return false;
         };
-        let landed = host
-            .nav
-            .landed
-            .is_some_and(|(listing, row)| listing == host.pane.held.listing && host.selected == [row]);
+        let landed = host.nav.landed.is_some_and(|(listing, row)| {
+            listing == host.pane.held.listing && host.selected == [row]
+        });
         !host.pane.busy()
             && !host.search.owner.active()
             && host.pane.state.query.is_empty()

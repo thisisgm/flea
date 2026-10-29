@@ -1,8 +1,9 @@
 //! What a track paints with: the palette rungs, the focus snapshot, the clip marks and each slot's retained paint state.
 use super::cache::{Prepared, TrackCache};
-use super::geometry::Slot;
+use super::geometry::{Slot, MARK_SLOT, PAD_X};
 use super::tracks::TrackView;
 use crate::grid::element::Thumbnail;
+use crate::list::pane::ROW_HEIGHT;
 use crate::list::Typeface;
 use crate::navigation::sort::{DirSizes, Size};
 use crate::palette::Theme;
@@ -101,6 +102,9 @@ pub struct Focus {
     /// Marked listing indices, sorted.
     pub selected: Rc<[usize]>,
     pub hover: Option<(Slot, usize)>,
+    /// The listing row a rename edits, and the rename band's Grow on the active track.
+    pub renaming: Option<usize>,
+    pub grow: crate::list::pane::Grow,
 }
 
 impl Focus {
@@ -184,6 +188,19 @@ impl TrackPaint {
     }
 
     /// The indices this frame paints, for a test and the IPC rects.
+    /// The mark slot the last frame placed a visible row's thumbnail in, as window pixels (x, y, side), the side square.
+    pub fn slot_box(&self, index: usize) -> Option<(f32, f32, f32)> {
+        let drawn = self.drawn.as_ref()?;
+        let at = self.visible.iter().position(|(row, _, _)| *row == index)?;
+        let top = f32::from(drawn.bounds.origin.y) + (self.first + at) as f32 * ROW_HEIGHT
+            - drawn.scroll.max(0.);
+        Some((
+            f32::from(drawn.bounds.origin.x) + PAD_X,
+            top + (ROW_HEIGHT - MARK_SLOT) / 2.,
+            MARK_SLOT,
+        ))
+    }
+
     pub fn visible(&self) -> impl Iterator<Item = usize> + '_ {
         self.visible
             .iter()
@@ -238,6 +255,8 @@ impl TrackPaint {
 /// The last frame's geometry and snapshot, shared by hit testing and IPC.
 pub struct Drawn {
     pub bounds: gpui::Bounds<Pixels>,
+    /// The focus snapshot consumed by this frame's row painter.
+    pub focus: Rc<Focus>,
     /// The tracks the frame drew and this one's place among them: a frame copies no track.
     pub tracks: Rc<[TrackView]>,
     pub at: usize,
@@ -245,6 +264,8 @@ pub struct Drawn {
     pub held: Option<Rc<crate::list::pane::Held>>,
     /// A standing filter's drawn rows on the active track, None while every row is drawn.
     pub shown: Option<Rc<[usize]>>,
+    /// The refused rename's band this track drew with; only the active track ever grows.
+    pub grow: crate::list::pane::Grow,
 }
 
 impl Drawn {

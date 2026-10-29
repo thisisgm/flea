@@ -23,6 +23,14 @@ fn rect(bounds: Option<Bounds<Pixels>>) -> String {
         })
         .unwrap_or_default()
 }
+fn centre(bounds: Bounds<Pixels>) -> String {
+    let centre = bounds.center();
+    format!(
+        "{} {}",
+        f32::from(centre.x).round(),
+        f32::from(centre.y).round()
+    )
+}
 impl Reader<'_> {
     pub(crate) fn value(&self, function: &str, arguments: &[String]) -> Option<String> {
         let view = self.view.filter(|v| self.active && v.visible);
@@ -55,7 +63,10 @@ impl Reader<'_> {
             "columnMediaPlaying" => player
                 .is_some_and(|p| p.state.playback == flea::ui_logic_pv3::player::Playback::Playing)
                 .to_string(),
-            "columnMediaPosition" => player.map_or(-1, |p| p.position).to_string(),
+            // PreviewColumn.qml mediaPosition answers 0 while no player is mounted; -1 is only no column at all.
+            "columnMediaPosition" => view
+                .map_or(-1, |_| player.map_or(0, |p| p.position))
+                .to_string(),
             "columnManualHold" => frame.is_some_and(|f| f.manual).to_string(),
             "columnThumbShown" => frame.is_some_and(|f| f.image.is_some()).to_string(),
             "columnFrameReady" => frame
@@ -79,7 +90,9 @@ impl Reader<'_> {
                             return Kind::Facts.name().into();
                         }
                         // PreviewColumn.qml previewState: Error only where Facts.js draws it, never for a failed picture.
-                        if self.view.is_some_and(|v| v.state(f, self.cx) == flea::ui_logic_pv1::kinds::State::Error) {
+                        if self.view.is_some_and(|v| {
+                            v.state(f, self.cx) == flea::ui_logic_pv1::kinds::State::Error
+                        }) {
                             "error".into()
                         } else {
                             f.kind.name().into()
@@ -93,11 +106,17 @@ impl Reader<'_> {
                 .unwrap_or_default(),
             "columnTextLines" => frame.map_or(String::new(), |f| doc_lines(f, self.cx).join("|")),
             "previewText" => frame.map_or(String::new(), |f| doc_lines(f, self.cx).join("\n")),
-            "columnArchiveNames" => frame
-                .and_then(|f| f.facts.as_ref())
-                .map_or(String::new(), |m| {
-                    m.names.iter().map(|e| e.name.as_str()).collect::<Vec<_>>().join("|")
-                }),
+            "columnArchiveNames" => {
+                frame
+                    .and_then(|f| f.facts.as_ref())
+                    .map_or(String::new(), |m| {
+                        m.names
+                            .iter()
+                            .map(|e| e.name.as_str())
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    })
+            }
             "previewSurfaceRect" => rect(view.and_then(|v| *v.rect.borrow())),
             "columnFrameRect" => rect(view.and_then(|v| *v.frame_rect.borrow())),
             "columnPictureRect" | "previewPictureRect" => rect(
@@ -111,15 +130,14 @@ impl Reader<'_> {
                     .and(view)
                     .and_then(|v| *v.frame_rect.borrow()),
             ),
-            "columnStripCentre" | "columnPlayCentre" => view
+            "columnStripCentre" => view
                 .and_then(|v| *v.play_rect.borrow())
-                .map_or(String::new(), |b| {
-                    format!(
-                        "{} {}",
-                        (f32::from(b.left()) + 12.).round(),
-                        f32::from(b.center().y).round()
-                    )
-                }),
+                .map_or(String::new(), centre),
+            // The play mark's own box, painted by the strip, and only while the strip is drawn.
+            "columnPlayCentre" => view
+                .and_then(|v| *v.play_rect.borrow())
+                .and(view.and_then(|v| v.caches.strip.borrow().play))
+                .map_or(String::new(), centre),
             // ColumnsArea.qml factsLine: "Kind=MPEG-4 video|Duration=1:12|...".
             "previewFacts" => frame.zip(view).map_or(String::new(), |(f, v)| {
                 v.facts(f, self.cx)
@@ -135,9 +153,10 @@ impl Reader<'_> {
                     .collect::<Vec<_>>()
                     .join("\n")
             }),
+            // Without a preview class the pane's own fsinfo class answers, so the reader falls through.
             "storageClass" => view
                 .and_then(|v| v.class.as_ref())
-                .map_or(String::new(), |(_, class)| class.clone()),
+                .map(|(_, class)| class.clone())?,
             "previewSwapState" => view.map_or(String::new(), swap_state),
             _ => return None,
         })
