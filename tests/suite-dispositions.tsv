@@ -477,3 +477,4 @@ xwsettings	active	Q	native	G2 Settings	suite:xwsettings
 xwstate	active	Q	native	G2 Drag/clipboard/windows	suite:xwstate
 xwtab-norm	sourced	Q	native	G2 Previews	suite:xwtab-norm
 xwtab-scan	active	Q	core	G2 Drag/clipboard/windows	suite:xwtab-scan
+opr-recipe	active	P	same	G0.10	suite:opr-recipe

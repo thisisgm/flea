@@ -712,7 +712,7 @@ check "the three openers hand off to three programs by name" "3" "$(printf '%s\n
 for handoff in $handoffs; do
   package=$(handoff_package "$handoff")
   check "$handoff is a handoff this suite knows the package for" "1" "$([ -n "$package" ] && echo 1 || echo 0)"
-  check "PKGBUILD depends on $package, which ships $handoff" "1" "$(grep -c "^depends=.*'$package'" PKGBUILD)"
+  check "PKGBUILD depends on $package, which ships $handoff" "1" "$( (. ./PKGBUILD && printf '%s\n' "${depends[@]}") | grep -cxF "$package")"
 done
 
 # The stub qs is what exec_qs launched, so it inherits huge pages off; --open must hand them back.

@@ -31,11 +31,13 @@ for name in root flea flea-git flea-bin; do
             flea-bin) tree="$srcdir/$_pkgname-$pkgver-linux-$CARCH" ;;
         esac
         mkdir -p "$tree"
-        for data in ui tools packaging shelf LICENSE THIRD-PARTY-LICENSES.txt; do
+        for data in ui tools packaging shelf LICENSE THIRD-PARTY-LICENSES.txt Makefile; do
             ln -s "$repo/$data" "$tree/$data"
         done
         cp "$srcdir/target/release/flea" "$tree/flea"
         cp "$srcdir/target/release/flea-gui" "$tree/flea-gui"
+        # The root recipe's make install reads the binaries from the source tree's own target/.
+        cp -r "$srcdir/target" "$tree/target"
         cd "$srcdir"
         package
     )

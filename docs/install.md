@@ -44,19 +44,26 @@ the move keeps them.
 ```
 git clone https://github.com/thisisgm/flea.git
 cd flea
-makepkg -si
+mkdir -p ../flea-build
+cp PKGBUILD ../flea-build/
+pkgver=$(. ./PKGBUILD && echo "$pkgver")
+git archive --prefix="flea-$pkgver/" -o "../flea-build/flea-v$pkgver.tar.gz" HEAD
+(cd ../flea-build && makepkg -fCsi --skipchecksums)
 ```
 
-Three lines, and the third one is the whole build: `-s` pulls in anything missing from `depends`
-and `makedepends`, and `-i` hands the finished package to pacman.
-
-`source=()` is empty on purpose, and it is worth saying why, because it is not obvious: with no
-source array makepkg builds from `$startdir`, the directory the PKGBUILD sits in. So a fresh clone
-is the source, and so is a checkout you are editing. `build()` reads that directory in place and
-redirects `CARGO_TARGET_DIR` into makepkg's own source directory so a package build never disturbs
-the tree's `target/` under a benchmark. `check()` runs `cargo test --release`, so a package that
-builds is a package whose suite passed. **Build from a clean tree:** the checkout is the source, so
-uncommitted edits are what gets packaged.
+The repository's `PKGBUILD` is the Omarchy Package Repository's recipe, the same text apart from the
+release fields, so a local build is the build the repository makes. Its `source` is the release
+tarball. `git archive` writes that tarball from the checkout under the same name into `flea-build`,
+and makepkg uses a source file it finds beside the `PKGBUILD` instead of downloading one. The build
+runs there and not in the clone because makepkg unpacks into a `src/` beside the `PKGBUILD`, and the
+clone's `src/` is Flea's own code. `-f` builds again when the version has not changed, where makepkg
+would otherwise install the package it already has, and `-C` empties the previous build's `src/`
+first, so a file deleted since then is not packaged. `--skipchecksums` is needed because the
+recipe's checksum is a placeholder that only a release replaces; the tarball is your own commit, so
+git already vouches for it. `-s` pulls in anything missing from `depends` and `makedepends`, and
+`-i` hands the finished package to pacman. `check()` runs the test suites, so a package that builds
+is a package whose suites passed. **The last commit is the source:** `git archive` packages `HEAD`,
+so commit an edit before you build it.
 
 ## What lands on disk
 

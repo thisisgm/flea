@@ -1,7 +1,6 @@
 use super::super::*;
 use crate::backend::testdir::TestDir;
 use crate::backend::thumbcache::{uri_for, Cache};
-use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
 fn write(home: &Path, name: &str, body: &[u8]) -> PathBuf {
@@ -21,39 +20,6 @@ fn write(home: &Path, name: &str, body: &[u8]) -> PathBuf {
 }
 
 fn fixture(home: &Path) -> (Vec<PathBuf>, Vec<Vec<PathBuf>>, Vec<PathBuf>) {
-    let gio = write(
-        home,
-        "bin/gio",
-        br#"#!/usr/bin/python3
-import os, pathlib, sys, urllib.parse
-root = pathlib.Path(os.environ['HOME'])
-assert root.is_absolute() and (root / '.flea-test-sandbox').is_file()
-files = root / 'data/Trash/files'
-names = sorted(p.name for p in files.iterdir() if p.is_file())
-args = sys.argv[1:]
-def uri(name): return 'trash:///' + urllib.parse.quote(name)
-if args[:2] == ['trash', '--list']:
-    for name in names: print(uri(name) + '\t' + str(root / 'original' / name))
-elif args[0] == 'list':
-    for name in names: print(uri(name) + '  trash::deletion-date=2026-10-18T09:00:00')
-elif args[0] == 'info':
-    for target in [arg for arg in args[1:] if arg.startswith('trash:///')]:
-        print('uri: ' + target)
-        name = urllib.parse.unquote(urllib.parse.urlsplit(target).path).lstrip('/')
-        path = files / name
-        meta = path.lstat()
-        print('  standard::size: ' + str(meta.st_size))
-        print('  standard::type: 1')
-        print('  standard::icon: image-x-generic')
-        print('  standard::target-uri: ' + path.as_uri())
-        print('  trash::deletion-date: 2026-10-18T09:00:00')
-        print('  id::file: l' + str(meta.st_dev) + ':' + str(meta.st_ino))
-        print('  id::filesystem: local')
-else:
-    raise SystemExit('Unexpected gio request: ' + repr(args))
-"#,
-    );
-    std::fs::set_permissions(&gio, std::fs::Permissions::from_mode(0o755)).unwrap();
     let cache = Cache::new();
     let mut payloads = Vec::new();
     let mut remove = Vec::new();
@@ -145,11 +111,14 @@ fn run_case(case: &str, test: &str) {
             .args(["--exact", test, "--nocapture"])
             .env("FLEA_TRASH_PURGE_CASE", case)
             .env("HOME", &home)
+            // Checked in, not written into HOME: package check() keeps TMPDIR on noexec /dev/shm.
             .env(
                 "PATH",
                 format!(
                     "{}:{}",
-                    home.join("bin").display(),
+                    Path::new(env!("CARGO_MANIFEST_DIR"))
+                        .join("src/backend/trashbrowse/fixtures/bin")
+                        .display(),
                     std::env::var("PATH").unwrap()
                 ),
             );

@@ -204,7 +204,7 @@ check "a box with no presenter is the failure status" "2" "$rc"
 check "and one sentence saying nothing was updated" "flea: Omarchy's updater could not be started, so nothing was updated" "$out"
 
 # The presenter ships in the omarchy package, which PKGBUILD must depend on or the row opens nothing.
-check "PKGBUILD depends on omarchy, which ships $presenter" "1" "$(grep -c "^depends=.*'omarchy'" PKGBUILD)"
+check "PKGBUILD depends on omarchy, which ships $presenter" "1" "$( (. ./PKGBUILD && printf '%s\n' "${depends[@]}") | grep -cxF omarchy)"
 
 sandbox_remove "$D"
 [ "$fail" -eq 0 ] && echo "update: all checks passed"
