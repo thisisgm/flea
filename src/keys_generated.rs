@@ -127,8 +127,12 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("all", "text", "0", "0", "zoomFit", "preview", "all", 0, 16, "keys.label.7099df1aef55", true),
     Binding::new("all", "text", "e", "e", "expand", "pdf", "all", 0, 32, "keys.label.07548c2c6511", true),
     Binding::new("all", "none", "Escape", "escape", "escape", "editor", "all", 0, 128, "keys.label.bd0b7be215ce", true),
-    Binding::new("all", "text", "F", "F", "previewPageForward", "listing", "gui", 0, 1, "keys.action.previewPageForward", true),
-    Binding::new("all", "text", "B", "B", "previewPageBack", "listing", "gui", 0, 1, "keys.action.previewPageBack", true),
+    Binding::new("all", "text", "F", "F", "previewPageForward", "listing,preview,pdf", "gui", 0, 49, "keys.action.previewPageForward", true),
+    Binding::new("all", "text", "B", "B", "previewPageBack", "listing,preview,pdf", "gui", 0, 49, "keys.action.previewPageBack", true),
+    Binding::new("all", "ctrl", "D", "ctrl-d", "pageDown", "preview,pdf", "gui", 1, 48, "keys.label.72a825fc6b84", true),
+    Binding::new("all", "ctrl", "U", "ctrl-u", "pageUp", "preview,pdf", "gui", 1, 48, "keys.label.43f41b59d842", true),
+    Binding::new("all", "none", "PageDown", "pagedown", "pageDown", "preview,pdf", "gui", 0, 48, "keys.label.72a825fc6b84", true),
+    Binding::new("all", "none", "PageUp", "pageup", "pageUp", "preview,pdf", "gui", 0, 48, "keys.label.43f41b59d842", true),
 ];
 
 #[rustfmt::skip]

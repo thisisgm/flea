@@ -1,6 +1,7 @@
 //! Documents in the preview: the PDF surface, rendered in process with a page cache, for the column's stack and Quick Look.
 mod cache;
 pub mod markdown;
+mod paging;
 pub mod poppler;
 pub mod render;
 pub mod surface;

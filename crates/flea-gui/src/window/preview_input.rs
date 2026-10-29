@@ -100,13 +100,16 @@ impl Shell {
                 }
             }
             "previewPageForward" | "previewPageBack" | "parent" | "pageForward" | "seekBack"
-            | "seekForward"
+            | "seekForward" | "pageDown" | "pageUp"
                 if matches!(event.action, "previewPageForward" | "previewPageBack")
                     || (preview.read(cx).focus.is_focused(window)
                         && (!matches!(event.action, "seekBack" | "seekForward")
                             || column_pdf(&preview, cx).is_some())) =>
             {
-                let step = if matches!(event.action, "parent" | "previewPageBack" | "seekBack") {
+                let step = if matches!(
+                    event.action,
+                    "parent" | "previewPageBack" | "seekBack" | "pageUp"
+                ) {
                     -1
                 } else {
                     1

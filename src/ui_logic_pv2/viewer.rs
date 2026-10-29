@@ -73,9 +73,9 @@ impl Action {
             "focusPrevious" => Action::FocusPrevious,
             "open" => Action::Open,
             "preview" => Action::Preview,
-            "seekBack" => Action::SeekBack,
+            "seekBack" | "previewPageBack" | "pageUp" => Action::SeekBack,
             "parent" => Action::Parent,
-            "seekForward" => Action::SeekForward,
+            "seekForward" | "previewPageForward" | "pageDown" => Action::SeekForward,
             "pageForward" => Action::PageForward,
             "zoomOut" => Action::ZoomOut,
             "zoomIn" => Action::ZoomIn,
@@ -84,6 +84,15 @@ impl Action {
             "cursorUp" => Action::CursorUp,
             _ => return None,
         })
+    }
+}
+
+/// Document paging aliases from the key table; cursor and media keys keep their own rules.
+pub fn page_direction(action: &str) -> Option<i64> {
+    match action {
+        "previewPageForward" | "pageDown" => Some(1),
+        "previewPageBack" | "pageUp" => Some(-1),
+        _ => None,
     }
 }
 
