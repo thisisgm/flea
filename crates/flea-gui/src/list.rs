@@ -5,21 +5,27 @@ pub mod columns;
 pub mod element;
 pub mod header;
 mod hit;
+mod loading;
 mod locale;
 mod measure;
 mod metrics;
+mod painted_row;
 mod palette;
 #[cfg(test)]
 mod palette_tests;
 mod row_text;
+mod tags;
 pub use measure::Density;
 pub use metrics::Metrics;
 pub(crate) use metrics::{CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
 #[cfg(test)]
 mod gh315_filter_tests;
 #[cfg(test)]
+mod gh315_filter_views_tests;
+#[cfg(test)]
 mod gh333_tests;
 pub mod pane;
+pub mod picker;
 #[cfg(test)]
 mod probe_tests;
 pub mod seam;
@@ -79,6 +85,8 @@ pub struct RowStates {
     pub selected: Option<Rc<[usize]>>,
     pub hovered: Option<usize>,
     pub renaming: Option<usize>,
+    /// The rename band's Grow for this side this render: the edited row grows and the rows below move down.
+    pub grow: pane::Grow,
     pub drop_target: Option<usize>,
     /// The drag owner's caption for the drop target, the label Drag.js names: move here, copy here or link here.
     pub drop_label: Option<SharedString>,
@@ -139,10 +147,15 @@ pub struct ListView {
     pub switched: Switched,
     pub stored: StoredWidths,
     pub lang_marks: bool,
+    pub tags_shown: bool,
     /// A filter or search's needle, whose run each name marks.
     pub query: String,
     pub searching: bool,
+    /// A contents search draws each row as a block, its row and first matching line, so rows take the block height.
+    pub contents: bool,
     pub dual: bool,
+    pub picker: Option<bool>,
+    pub picker_directory: bool,
     pub clip: ClipMarks,
     pub order: Order,
     /// Highlight today's dates: today's local midnight while the setting is on.
@@ -163,9 +176,13 @@ impl Default for ListView {
             switched: Switched::default(),
             stored: StoredWidths::default(),
             lang_marks: true,
+            tags_shown: false,
             query: String::new(),
             searching: false,
+            contents: false,
             dual: false,
+            picker: None,
+            picker_directory: false,
             clip: ClipMarks::default(),
             order: Order::default(),
             today: None,
@@ -223,6 +240,8 @@ pub struct Drawn {
     pub drop: Option<(usize, Bounds<Pixels>)>,
     /// Rows drawn as Row.qml's loading bar because the pane does not hold them yet.
     pub loading: usize,
+    /// The refused rename's band this frame: the edited row's grown height and the rows below it moved down.
+    pub grow: pane::Grow,
 }
 
 impl Default for Drawn {
@@ -238,6 +257,7 @@ impl Default for Drawn {
             frames: 0,
             drop: None,
             loading: 0,
+            grow: pane::Grow::default(),
         }
     }
 }

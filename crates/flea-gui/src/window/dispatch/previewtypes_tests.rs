@@ -1,5 +1,7 @@
 //! F and B page a shown document, and p, m and the strip's play mark play media, through the production Shell.
-pub(super) use super::previewtypes_fixture_tests::{answer, ask, field, file, local, meta, open, open_at, open_with_preview, pump};
+pub(super) use super::previewtypes_fixture_tests::{
+    answer, ask, field, file, local, meta, open, open_at, open_with_preview, pump,
+};
 use crate::{
     g2::pv3::{
         engine::{self, FeedSender, Playback, Request},
@@ -66,7 +68,10 @@ fn a_code_row_asks_the_code_engine_and_f_and_b_page_it(cx: &mut TestAppContext) 
     cx.simulate_keystrokes("shift-f->F");
     pump(cx);
     let paged = code_top(&shell, cx);
-    assert!(paged > 1, "F pages the code by its frame height, not one row: {paged}");
+    assert!(
+        paged > 1,
+        "F pages the code by its frame height, not one row: {paged}"
+    );
     cx.simulate_keystrokes("shift-b->B");
     pump(cx);
     assert_eq!(code_top(&shell, cx), 0, "B pages back to the top");
@@ -114,7 +119,11 @@ impl Playback for Playing {
 }
 impl Decoder {
     fn at(&self, ms: i64) {
-        self.feed.borrow().as_ref().expect("playing").event(Event::Position(ms));
+        self.feed
+            .borrow()
+            .as_ref()
+            .expect("playing")
+            .event(Event::Position(ms));
     }
 }
 
@@ -125,12 +134,20 @@ fn position(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> i64 {
 #[gpui::test]
 fn p_the_play_mark_and_m_play_and_mute_a_column_clip(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "/files");
-    let rows = vec![file("clip.mp4", "video-x-generic", "MPEG-4 video", 0o100644)];
+    let rows = vec![file(
+        "clip.mp4",
+        "video-x-generic",
+        "MPEG-4 video",
+        0o100644,
+    )];
     super::test_shell::land(&shell, cx, "/files", rows, 1);
     let decoder = Decoder::default();
     let backend: Rc<dyn engine::Backend> = Rc::new(decoder.clone());
     cx.update(|_, cx| {
-        let preview = shell.read(cx).selection_preview(0).expect("the column is mounted");
+        let preview = shell
+            .read(cx)
+            .selection_preview(0)
+            .expect("the column is mounted");
         preview.update(cx, |view, _| view.set_media_backend(backend));
     });
     let lines = local(&shell, cx, "/files");
@@ -144,7 +161,11 @@ fn p_the_play_mark_and_m_play_and_mute_a_column_clip(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("ctrl-tab");
     cx.simulate_keystrokes("p");
     pump(cx);
-    assert_eq!(*decoder.started.borrow(), 1, "p builds the player and starts it");
+    assert_eq!(
+        *decoder.started.borrow(),
+        1,
+        "p builds the player and starts it"
+    );
     assert_eq!(read(&shell, cx, "columnMediaPlaying", &[]), "true");
     decoder.at(700);
     pump(cx);
@@ -160,10 +181,17 @@ fn p_the_play_mark_and_m_play_and_mute_a_column_clip(cx: &mut TestAppContext) {
     assert_eq!(decoder.commands.borrow().last(), Some(&Command::Pause));
     cx.simulate_keystrokes("p");
     pump(cx);
-    assert_eq!(read(&shell, cx, "columnMediaPlaying", &[]), "true", "p resumes");
+    assert_eq!(
+        read(&shell, cx, "columnMediaPlaying", &[]),
+        "true",
+        "p resumes"
+    );
     decoder.at(1900);
     pump(cx);
-    assert!(position(&shell, cx) > 700, "the clock moves on after the resume");
+    assert!(
+        position(&shell, cx) > 700,
+        "the clock moves on after the resume"
+    );
     let muted = |cx: &mut VisualTestContext| cx.update(|_, cx| MediaSound::get(cx).muted);
     assert!(!muted(cx));
     cx.simulate_keystrokes("m");
@@ -177,11 +205,19 @@ fn p_the_play_mark_and_m_play_and_mute_a_column_clip(cx: &mut TestAppContext) {
 #[gpui::test]
 fn a_column_focused_before_its_clip_draws_takes_the_media_keys(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "/files");
-    let rows = vec![file("clip.mp4", "video-x-generic", "MPEG-4 video", 0o100644)];
+    let rows = vec![file(
+        "clip.mp4",
+        "video-x-generic",
+        "MPEG-4 video",
+        0o100644,
+    )];
     super::test_shell::land(&shell, cx, "/files", rows, 1);
     let backend: Rc<dyn engine::Backend> = Rc::new(Decoder::default());
     cx.update(|_, cx| {
-        let preview = shell.read(cx).selection_preview(0).expect("the column is mounted");
+        let preview = shell
+            .read(cx)
+            .selection_preview(0)
+            .expect("the column is mounted");
         preview.update(cx, |view, _| view.set_media_backend(backend));
     });
     let lines = local(&shell, cx, "/files");
@@ -193,7 +229,98 @@ fn a_column_focused_before_its_clip_draws_takes_the_media_keys(cx: &mut TestAppC
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "video");
     cx.simulate_keystrokes("m");
     pump(cx);
-    assert!(cx.update(|_, cx| MediaSound::get(cx).muted), "m mutes the clip drawn after the focus");
+    assert!(
+        cx.update(|_, cx| MediaSound::get(cx).muted),
+        "m mutes the clip drawn after the focus"
+    );
+}
+
+// EY-206: the play mark and the strip are two drawn boxes, and a paused clip at its start reads position 0 as Ipc.qml's mediaPosition does.
+#[gpui::test]
+fn ey206_strip_centres_come_from_drawn_boxes_and_a_paused_clip_reads_zero(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "/files");
+    let rows = vec![file(
+        "clip.mp4",
+        "video-x-generic",
+        "MPEG-4 video",
+        0o100644,
+    )];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    let decoder = Decoder::default();
+    let backend: Rc<dyn engine::Backend> = Rc::new(decoder.clone());
+    cx.update(|_, cx| {
+        let preview = shell
+            .read(cx)
+            .selection_preview(0)
+            .expect("the column is mounted");
+        preview.update(cx, |view, _| view.set_media_backend(backend));
+    });
+    let lines = local(&shell, cx, "/files");
+    meta(&shell, cx, &lines, r#","w":2,"h":2,"ms":2000"#);
+    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    pump(cx);
+    assert_eq!(read(&shell, cx, "columnPlayerLoaded", &[]), "false");
+    assert_eq!(
+        position(&shell, cx),
+        0,
+        "a clip with no player yet reads position 0"
+    );
+    cx.simulate_keystrokes("ctrl-tab");
+    cx.simulate_keystrokes("p");
+    pump(cx);
+    let centre = read(&shell, cx, "columnPlayCentre", &[]);
+    press(cx, &centre, 1);
+    pump(cx);
+    assert_eq!(
+        read(&shell, cx, "columnMediaPlaying", &[]),
+        "false",
+        "the play mark pauses"
+    );
+    assert_eq!(
+        position(&shell, cx),
+        0,
+        "a paused clip at its start reads position 0"
+    );
+    let strip = cx
+        .update(|_, cx| {
+            let preview = shell
+                .read(cx)
+                .selection_preview(0)
+                .expect("the column is mounted");
+            let view = preview.read(cx);
+            let strip = *view.play_rect.borrow();
+            strip.zip(view.caches.strip.borrow().play)
+        })
+        .expect("the strip and its play mark are drawn");
+    let (strip, play) = strip;
+    let (left, width) = (f32::from(strip.left()), f32::from(strip.size.width));
+    let at = |value: String| -> (f32, f32) {
+        let mut values = value.split_whitespace().map(|v| v.parse::<f32>().unwrap());
+        (values.next().unwrap(), values.next().unwrap())
+    };
+    let (play_x, play_y) = at(read(&shell, cx, "columnPlayCentre", &[]));
+    let (strip_x, strip_y) = at(read(&shell, cx, "columnStripCentre", &[]));
+    assert!(
+        strip_x > left && (strip_x - (left + width / 2.)).abs() <= 1.,
+        "the strip centre is the middle of the drawn strip: {strip_x} in {strip:?}"
+    );
+    assert!(
+        left < play_x && play_x < left + width / 4.,
+        "the play centre is the drawn play mark, one slot at the strip's left: {play_x} in {strip:?}"
+    );
+    assert!(
+        play_x < strip_x,
+        "the play mark is not the strip's middle: {play_x} {strip_x}"
+    );
+    let painted = f32::from(play.left()) + f32::from(play.size.width) / 2.;
+    assert!(
+        (play_x - painted).abs() <= 1.,
+        "the play centre is the middle of the painted play box: {play_x} in {play:?}"
+    );
+    assert!(
+        (play_y - strip_y).abs() <= 1.,
+        "both sit on the strip's middle row"
+    );
 }
 
 /// The plain lines of the drawn frame's code view, and whether a pending frame waits behind it.
@@ -202,7 +329,9 @@ fn drawn_code(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (Vec<String>
         let preview = shell.selection_preview(0).expect("the column is mounted");
         let preview = preview.read(cx);
         match preview.drawn.as_ref().map(|frame| &frame.mounted) {
-            Some(Mounted::Doc(Doc::Code(code))) => (code.read(cx).lines.plain_lines(), preview.pending.is_some()),
+            Some(Mounted::Doc(Doc::Code(code))) => {
+                (code.read(cx).lines.plain_lines(), preview.pending.is_some())
+            }
             _ => panic!("the code view is drawn"),
         }
     })
@@ -224,14 +353,29 @@ fn a_code_reply_for_the_pending_frame_leaves_the_drawn_lines_alone(cx: &mut Test
             r#"{{"t":"code","token":{token},"slot":"column","state":"styled","first":{first},"total":1,"lines":[[5,"fn",0," {text}()"]]}}"#
         )
     };
-    answer(&shell, cx, &reply(field(&code, "token"), field(&code, "first"), "drawn"));
+    answer(
+        &shell,
+        cx,
+        &reply(field(&code, "token"), field(&code, "first"), "drawn"),
+    );
     pump(cx);
-    assert_eq!(drawn_code(&shell, cx), (vec!["fn drawn()".to_owned()], false));
+    assert_eq!(
+        drawn_code(&shell, cx),
+        (vec!["fn drawn()".to_owned()], false)
+    );
     cx.simulate_keystrokes("down");
     let lines = pump(cx);
     let next = ask(&lines, "code").to_owned();
-    assert_ne!(field(&next, "token"), field(&code, "token"), "b.rs asks with its own token");
-    answer(&shell, cx, &reply(field(&next, "token"), field(&next, "first"), "pending"));
+    assert_ne!(
+        field(&next, "token"),
+        field(&code, "token"),
+        "b.rs asks with its own token"
+    );
+    answer(
+        &shell,
+        cx,
+        &reply(field(&next, "token"), field(&next, "first"), "pending"),
+    );
     pump(cx);
     assert_eq!(
         drawn_code(&shell, cx),

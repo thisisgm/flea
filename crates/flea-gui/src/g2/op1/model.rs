@@ -43,6 +43,15 @@ pub enum Dialog {
         focus: CopyFocus,
         busy: bool,
     },
+    // The folder's background New File row; id names its request, busy while create is out, error is the last refusal's sentence.
+    NewFile {
+        id: u64,
+        folder: String,
+        name: String,
+        focus: CopyFocus,
+        busy: bool,
+        error: String,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -58,6 +67,53 @@ impl Dialog {
             Dialog::Collide { .. } | Dialog::Fat { .. } => Kind::Collide,
             Dialog::Delete { .. } => Kind::Delete,
             Dialog::CopyTo { .. } => Kind::CopyTo,
+            Dialog::NewFile { .. } => Kind::NewFile,
+        }
+    }
+
+    // The session and draft of the dialog's text field, for each dialog with one.
+    pub(super) fn draft(&self) -> Option<(u64, &str)> {
+        match self {
+            Dialog::CopyTo { menu, path, .. } => Some((*menu, path)),
+            Dialog::NewFile { id, name, .. } => Some((*id, name)),
+            _ => None,
+        }
+    }
+
+    pub(super) fn draft_mut(&mut self) -> Option<&mut String> {
+        match self {
+            Dialog::CopyTo { path, .. } => Some(path),
+            Dialog::NewFile { name, .. } => Some(name),
+            _ => None,
+        }
+    }
+
+    // The focus of the dialog's field and its busy flag, for each dialog with a field.
+    pub(super) fn field_state(&mut self) -> Option<(&mut CopyFocus, bool)> {
+        match self {
+            Dialog::CopyTo { focus, busy, .. } | Dialog::NewFile { focus, busy, .. } => {
+                Some((focus, *busy))
+            }
+            _ => None,
+        }
+    }
+
+    // The session whose field takes typing now: focused on the field and not busy.
+    pub(super) fn typing_session(&self) -> Option<u64> {
+        match self {
+            Dialog::CopyTo {
+                menu,
+                focus: CopyFocus::Field,
+                busy: false,
+                ..
+            } => Some(*menu),
+            Dialog::NewFile {
+                id,
+                focus: CopyFocus::Field,
+                busy: false,
+                ..
+            } => Some(*id),
+            _ => None,
         }
     }
 }
@@ -102,6 +158,8 @@ pub struct Operations {
     // Each drawn job block with the row it was built from, rebuilt only when that row changes.
     pub blocks: Vec<(flea::ui_logic_op1::JobRow, jobs::Block)>,
     pub blocks_built: usize,
+    // The path of a New File that just landed; the window re-reads its folder onto it.
+    pub new_file_landed: Option<String>,
 }
 
 impl Operations {
@@ -126,6 +184,7 @@ impl Operations {
             spent_cut: false,
             held_listing: 0,
             requests: 0,
+            new_file_landed: None,
             trash_busy: false,
             changed: false,
             blocks: Vec::new(),
@@ -475,6 +534,14 @@ impl Operations {
                 // Typing and selection belong to the mounted platform input handler.
                 _ => {}
             },
+            Dialog::NewFile { focus, .. } => match key {
+                Key::Escape => self.close_new_file(),
+                Key::Activate if focus == CopyFocus::Field && name == "space" => {}
+                Key::Activate if focus == CopyFocus::Cancel => self.close_new_file(),
+                Key::Activate => self.confirm_new_file(catalog),
+                Key::Tab | Key::Backtab => self.walk_new_file_focus(key),
+                _ => {}
+            },
         }
         true
     }
@@ -494,6 +561,12 @@ impl Operations {
             }
             Press::CopyConfirm if matches!(self.dialog, Some(Dialog::CopyTo { .. })) => {
                 self.confirm_copy(catalog)
+            }
+            Press::NewFileCancel if matches!(self.dialog, Some(Dialog::NewFile { .. })) => {
+                self.close_new_file()
+            }
+            Press::NewFileConfirm if matches!(self.dialog, Some(Dialog::NewFile { .. })) => {
+                self.confirm_new_file(catalog)
             }
             Press::Job(id, action) => self.job_action(id, action),
             _ => {}
@@ -519,75 +592,7 @@ impl Operations {
     }
 
     // Each block's own button names only its job.
-    pub fn job_action(&mut self, id: u64, action: jobs::Action) {
-        if action == jobs::Action::Cancel
-            && !self
-                .jobs
-                .rows
-                .iter()
-                .any(|row| row.id == id && jobs::unfinished(row))
-        {
-            return;
-        }
-        self.outbox.push(jobs::request(action.op(), id));
-    }
-
-    pub fn cancel_emptying(&mut self) {
-        if self.emptying.running {
-            self.outbox.push(format!(
-                "{{\"c\":\"transfercancel\",\"id\":{}}}",
-                self.emptying.id
-            ));
-        }
-    }
-
-    pub fn cancel_transfer(&mut self) {
-        if self.wire.transfer.cancel_enabled() {
-            self.outbox.push(format!(
-                "{{\"c\":\"transfercancel\",\"id\":{}}}",
-                self.wire.transfer.id
-            ));
-        }
-    }
-
-    // The dd pair: the first press arms and says so, the second inside ARM_MS trashes.
-    pub fn trash_key(&mut self, catalog: &I18n, rows: usize, now: u64) -> Option<String> {
-        match self.arm.press(now) {
-            trash::Press::Armed => Some(trash::trash_prompt(catalog, &self.preset, rows)),
-            trash::Press::Act => None,
-        }
-    }
-
-    // What the IPC reader reports for the collision card.
-    pub fn collide_state(&self) -> String {
-        let quote = |s: &str| collide::text(s);
-        match &self.dialog {
-            Some(Dialog::Collide {
-                title,
-                names,
-                more,
-                merge,
-                focus,
-            }) => {
-                let names: Vec<&str> = names.iter().map(|n| n.name.as_str()).collect();
-                let buttons: Vec<String> = collide::shown(*merge)
-                    .iter()
-                    .map(|b| quote(b.wire()))
-                    .collect();
-                format!(
-                    "{{\"opened\":true,\"state\":{},\"title\":{},\"names\":{},\"more\":{},\"focus\":{},\"buttons\":[{}]}}",
-                    quote(self.collide.state()),
-                    quote(title),
-                    collide::texts(&names),
-                    quote(more),
-                    quote(focus.wire()),
-                    buttons.join(",")
-                )
-            }
-            _ => format!(
-                "{{\"opened\":false,\"state\":{}}}",
-                quote(self.collide.state())
-            ),
-        }
-    }
 }
+
+#[path = "model_jobs.rs"]
+mod jobs_state;

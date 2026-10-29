@@ -1,13 +1,35 @@
 //! Thumbnail readers describe the active painted row's source, raw file and decoder state.
-use super::Adapter;
+use super::{rows::rect_of, Adapter};
 use crate::{
     columns::{geometry::Slot, TrackRows},
+    grid::element::pictures::policy::Mode,
     window::{pane::PaneHost, startup::View},
 };
 use flea::ipc::wire::Reply;
 
 pub(crate) struct Thumbnails<'a> {
     pub host: &'a PaneHost,
+    /// The preview.thumbnails policy the pictures follow, read from the settings document.
+    pub mode: Mode,
+}
+
+// ViewState.thumbnailMode: the preview.thumbnails setting by its own name.
+fn mode_name(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Off => "off",
+        Mode::Images => "images",
+        Mode::Media => "media",
+    }
+}
+
+// Pane.viewMode: the Dual layout is two list panes, so it reports list.
+fn view_name(view: Option<View>) -> &'static str {
+    match view {
+        Some(View::List | View::Dual) => "list",
+        Some(View::Columns) => "columns",
+        Some(View::Grid) => "grid",
+        None => "",
+    }
 }
 
 impl Thumbnails<'_> {
@@ -49,8 +71,69 @@ impl Thumbnails<'_> {
     }
 }
 
+impl Thumbnails<'_> {
+    // The mark slot a drawn row's thumbnail fills, as window pixels (x, y, width, height); a Dual pane fits the mark's own side.
+    fn thumb_box(&self, index: usize) -> Option<(f32, f32, f32, f32)> {
+        match self.host.drawn_view {
+            Some(View::List | View::Dual) => {
+                let list = self.host.list.borrow();
+                let drawn = &list.drawn;
+                let shown = list.visible().iter().find(|shown| shown.index == index)?;
+                let metrics = &drawn.metrics;
+                let side = if self.host.drawn_view == Some(View::Dual) {
+                    metrics.mark
+                } else {
+                    metrics.slot
+                };
+                let left = f32::from(drawn.bounds.origin.x);
+                let top = f32::from(drawn.bounds.origin.y) + shown.view as f32 * metrics.row
+                    - drawn.scroll_y;
+                Some((
+                    left + metrics.pad + (metrics.slot - side) / 2.,
+                    top + (metrics.row - side) / 2.,
+                    side,
+                    side,
+                ))
+            }
+            Some(View::Columns) => {
+                let columns = self.host.columns.as_ref()?;
+                let paint = columns.painters.get(Slot::Active)?.borrow();
+                let (x, y, side) = paint.slot_box(index)?;
+                Some((x, y, side, side))
+            }
+            _ => None,
+        }
+    }
+}
+
 impl Adapter for Thumbnails<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        if function == "thumbnailPolicyState" {
+            return Some(Reply::value(self.policy_state()));
+        }
+        // The grid answers rowThumbRect from its own slots, so the pictures share it only in the list and columns.
+        if function == "rowThumbRect" && self.host.drawn_view != Some(View::Grid) {
+            let index = arguments
+                .first()
+                .and_then(|text| text.parse::<usize>().ok());
+            let rect = index
+                .filter(|&row| self.visible(row))
+                .and_then(|row| self.thumb_box(row))
+                .map_or_else(String::new, |(x, y, width, height)| {
+                    rect_of(x, y, width, height)
+                });
+            return Some(Reply::value(rect));
+        }
+        // The grid answers rowThumbReady from its own decoded tiles, so the pictures share it only in the list and columns.
+        if function == "rowThumbReady" && self.host.drawn_view != Some(View::Grid) {
+            let index = arguments
+                .first()
+                .and_then(|text| text.parse::<usize>().ok());
+            let held = &self.host.pane.held;
+            let visible = index.is_some_and(|row| self.visible(row));
+            let ready = index.is_some_and(|row| self.host.list.borrow().pictures.ready(held, row));
+            return Some(Reply::value((visible && ready).to_string()));
+        }
         if !matches!(
             function,
             "thumbFile" | "rowIcon" | "rowIconStatus" | "rowThumb"
@@ -90,5 +173,26 @@ impl Adapter for Thumbnails<'_> {
             _ => String::new(),
         };
         Some(Reply::value(value))
+    }
+}
+
+impl Thumbnails<'_> {
+    // The v0.3.12 keys. GPUI keeps no per-file thumbState map or preview column owner, so files, pending and the preview read idle.
+    fn policy_state(&self) -> String {
+        let content_y = match self.host.drawn_view {
+            Some(View::List | View::Dual) => self.host.list.borrow().drawn.scroll_y.round() as i64,
+            Some(View::Grid) => self
+                .host
+                .grid
+                .as_ref()
+                .map_or(0, |grid| grid.state.borrow().scroll.round() as i64),
+            _ => 0,
+        };
+        format!(
+            "{{\"view\":\"{}\",\"mode\":\"{}\",\"files\":{{}},\"pending\":[],\"contentY\":{content_y},\"cursor\":{},\"previewIndex\":-1,\"previewPath\":\"\",\"previewReady\":false}}",
+            view_name(self.host.drawn_view),
+            mode_name(self.mode),
+            self.host.pane.cursor,
+        )
     }
 }

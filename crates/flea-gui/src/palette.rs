@@ -1,3 +1,4 @@
+pub use crate::window::glass::Inputs as GlassInputs;
 use flea::colours;
 use gpui::{Global, Hsla, Rgba};
 
@@ -10,6 +11,7 @@ mod golden_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Theme {
+    pub glass: GlassInputs,
     pub background: Hsla,
     pub foreground: Hsla,
     pub foreground_bright: Hsla,
@@ -27,6 +29,8 @@ pub struct Theme {
     pub error_on_surface: Hsla,
     /// The code reply's roles 1 to 6, each the theme's own colour lifted to 4.5:1 (ui/js/CodeRuns.js inks).
     pub code_inks: [Hsla; 6],
+    /// The seven solid tag swatches on the listing ground, resolved once per theme load.
+    pub tag_listing_inks: [Hsla; 7],
     /// The shared tag palette's seven surface swatches, resolved once per theme load.
     pub tag_menu_inks: [Hsla; 7],
     /// The line numbers' ink, the metadata role lifted to 4.5:1 on both grounds.
@@ -171,16 +175,27 @@ impl Theme {
         let roles = Roles::from_core(&core);
         let hex = |value: u32| format!("#{value:06x}");
         let (ground, plane) = (hex(background), hex(surface));
-        let named: Vec<(&str, String)> = values.iter().map(|(name, value)| (*name, hex(*value))).collect();
+        let named: Vec<(&str, String)> = values
+            .iter()
+            .map(|(name, value)| (*name, hex(*value)))
+            .collect();
         let lifted = flea::ui_logic_pv2::code::inks(
-            |key| named.iter().rev().find(|(name, _)| *name == key).map(|(_, value)| value.as_str()),
+            |key| {
+                named
+                    .iter()
+                    .rev()
+                    .find(|(name, _)| *name == key)
+                    .map(|(_, value)| value.as_str())
+            },
             &ground,
             &plane,
             &hex(foreground),
         );
         let ink = |text: &str| -> Hsla {
             u32::from_str_radix(text.trim_start_matches('#'), 16)
-                .map_or(gpui::rgb(foreground).into(), |value| gpui::rgb(value).into())
+                .map_or(gpui::rgb(foreground).into(), |value| {
+                    gpui::rgb(value).into()
+                })
         };
         let metadata = Rgba::from(role(core.metadata));
         let muted = format!(
@@ -189,7 +204,9 @@ impl Theme {
             (metadata.g * 255.).round() as u8,
             (metadata.b * 255.).round() as u8
         );
-        let gutter = ink(&flea::ui_logic_pv2::code::gutter_ink(&muted, &ground, &plane));
+        let gutter = ink(&flea::ui_logic_pv2::code::gutter_ink(
+            &muted, &ground, &plane,
+        ));
         let tags = flea::ui_logic_pl4::tagtheme::tag_theme(
             |key| {
                 named
@@ -202,6 +219,8 @@ impl Theme {
             &plane,
         );
         let theme = Self {
+            tag_listing_inks: tags.colors.each_ref().map(|hex| ink(hex)),
+            glass: Default::default(),
             background: gpui::rgb(background).into(),
             foreground: gpui::rgb(foreground).into(),
             foreground_bright: role(core.foregroundBright),

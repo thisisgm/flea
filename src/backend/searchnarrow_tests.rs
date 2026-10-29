@@ -144,11 +144,14 @@ fn search_q1_session_scores_only_previous_matches_on_admitted_extensions() {
             let index = session.index.lock().unwrap();
             let rows: Vec<_> = (0..index.len()).collect();
             let mut full = score_all(&Matcher::new(now), &rows, &index);
+            assert_eq!(answer.all.len(), full.len(), "narrowing keeps every match, hidden typo rows included, for {now:?}");
+            let mut counts = class_counts(&full);
+            hide_typos(&mut full, &mut counts, Matcher::new(now).budget);
             full.sort_unstable_by(|a, b| rank_cmp(&index, a, b));
             let head: Vec<_> = full.iter().take(16).map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
             assert_eq!(answer.rows, head, "identical ranked head for {now:?}");
             assert_eq!(answer.total, full.len(), "identical recall for {now:?}");
-            previous = answer.total;
+            previous = answer.all.len();
             before = now;
         }
     }

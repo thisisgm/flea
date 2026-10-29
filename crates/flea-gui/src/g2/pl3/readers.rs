@@ -231,6 +231,8 @@ impl Adapter for TrashAdapter<'_> {
         match function {
             "trashState" => Some(Reply::value(self.state())),
             "trashRowCentre" => Some(Reply::value(self.centre(arguments))),
+            "trashControlCentre" => Some(Reply::value(self.control_centre(arguments))),
+            "trashEmptyState" => Some(Reply::value(self.empty_state())),
             "lastMessage" if self.message.is_some() => {
                 Some(Reply::value(self.message.expect("displayed message")))
             }

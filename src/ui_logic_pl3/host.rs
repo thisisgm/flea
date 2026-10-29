@@ -111,6 +111,9 @@ impl Host {
     pub fn sweeping(&self) -> bool {
         !self.stage.is_empty()
     }
+    pub fn sweep_request(&self) -> Option<(u64, &str)> {
+        self.sweeping().then_some((self.sweep_id, self.stage.as_str()))
+    }
     /// Sweep lines first, then the view's, in send order.
     pub fn drain(&mut self) -> Vec<String> {
         let mut out = std::mem::take(&mut self.out);
@@ -126,9 +129,11 @@ impl Host {
 
     /// The window and the sweep share one backend session, so a sweep starts only while the view is closed.
     pub fn sweep(&mut self, now_ms: i64, enabled: bool, swept_on: i64) {
-        if self.sweeping() || self.view.opened || !enabled || dates::day_number(now_ms) == swept_on {
+        if self.sweeping() || self.view.opened || self.view.operation_active || self.view.busy()
+            || !enabled || dates::day_number(now_ms) == swept_on {
             return;
         }
+        self.sweep_id = self.sweep_id.max(self.view.request_id);
         self.sweep_send("list", Line::new("trashbrowse").number("start", 0).number("count", SWEEP_WINDOW).flag("recover", false));
     }
 
@@ -183,6 +188,9 @@ impl Host {
     /// Every reply while a sweep is in flight is the sweep's, because the view cannot be open then.
     pub fn receive(&mut self, reply: &Reply, i18n: &I18n, now_ms: i64) -> Option<Swept> {
         if self.sweeping() {
+            if reply.id != self.sweep_id || reply.op != self.stage {
+                return Some(Swept::Continue);
+            }
             return Some(self.sweep_receive(reply, now_ms));
         }
         self.view.receive(reply, i18n);
@@ -194,6 +202,7 @@ impl Host {
             return;
         }
         self.sweep_stop();
+        self.view.request_id = self.view.request_id.max(self.sweep_id);
         if self.view.opened {
             return self.action(if action.is_empty() { "openTrash" } else { action });
         }

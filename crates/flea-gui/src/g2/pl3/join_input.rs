@@ -67,6 +67,10 @@ impl Shell {
                 _ => None,
             }
         };
+        // The window's Settings chord is not the Trash view's to operate, so it reaches the window.
+        if !menu_open && action == Some("settings") {
+            return false;
+        }
         if let Some(action) = action {
             if menu_open {
                 self.trash_menu_action(action, window, cx);
@@ -92,6 +96,17 @@ impl Shell {
         }
         if action == "windowNew" {
             self.new_window();
+            return;
+        }
+        if self.settings_action(action, window, cx) {
+            return;
+        }
+        if action == "sidebar" {
+            self.toggle_sidebar(window, cx);
+            return;
+        }
+        if action == "pathBar" {
+            self.chrome_action("pathBar", window, cx);
             return;
         }
         let Some(action) = keys::PRESET_KEYS

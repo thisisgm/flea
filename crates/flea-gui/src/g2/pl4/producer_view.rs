@@ -4,8 +4,12 @@ use super::*;
 const WHEEL_ROW_FRACTION: f32 = 0.78;
 
 impl Render for Producer {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.load(cx);
+        let model = self.model.borrow();
+        self.ime_session = model.focused.then(|| model.editor.session()).flatten();
+        self.ime_focus = self.ime_session.and_then(|_| window.focused(cx));
+        drop(model);
         let element = RailElement::new(
             Rc::clone(&self.model),
             Rc::clone(&self.laid),
@@ -13,7 +17,22 @@ impl Render for Producer {
             cx.entity(),
         );
         div()
+            .id("rail-producer")
             .size_full()
+            .hover_listener_mode(gpui::HoverListenerMode::InputModalityIndependent)
+            .on_hover(cx.listener(|producer, hovered: &bool, _, cx| {
+                if *hovered {
+                    return;
+                }
+                let mut model = producer.model.borrow_mut();
+                let changed = model.hovered.is_some() || model.mark_hovered.is_some();
+                model.hovered = None;
+                model.mark_hovered = None;
+                drop(model);
+                if changed {
+                    cx.notify();
+                }
+            }))
             .on_mouse_move(
                 cx.listener(|producer, event: &gpui::MouseMoveEvent, _, cx| {
                     producer.editor_drag(event, cx);
@@ -81,6 +100,15 @@ impl Render for Producer {
                     producer.mark_cancel();
                 }),
             )
+            // RailDrop.qml: the rows receive this window's row drags; the window resolves the row and lands it.
+            .on_drop::<crate::g2::dg2::join::Seed>({
+                let sink = self.drop_sink.clone();
+                move |_, window, cx| {
+                    if let Some(sink) = &sink {
+                        sink(window, cx);
+                    }
+                }
+            })
             .child(element)
     }
 }

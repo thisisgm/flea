@@ -5,6 +5,7 @@ use flea::ui_logic_pv2::csv_feed::{body_face, elide, RULE_OPACITY};
 use gpui::{canvas, div, fill, point, prelude::*, px, size, ContentMask, Render, TextRun};
 use std::fmt::Write as _;
 
+/// Float slack on a box's character cells: f32 glyph advances (7.2000003 for 7.2) leave a box sized to its widest cell a hair short of it.
 const FIT_SLACK_CELLS: f64 = 1e-4;
 
 impl CsvView {

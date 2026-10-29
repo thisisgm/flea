@@ -1,6 +1,8 @@
 // Query generations invalidate logical slots without clearing the index-sized backing storage.
 use super::super::{Index, EMPTY, PARALLEL_SCORE_AT, WALK_THREADS};
 use crate::backend::searchmatch::{fold, separator, Letter, Matcher, State};
+#[cfg(test)]
+use crate::backend::searchmatch::{HIT_SPAN, NAME};
 use crate::backend::searchtypo;
 
 pub(super) const NO_SCORE: i32 = i32::MIN;
@@ -24,9 +26,9 @@ pub(super) struct Directory {
     pub parent_edits: Option<bool>,
 }
 
-struct Worker {
-    letters: Vec<Letter>,
-    state: State,
+pub(super) struct Worker {
+    pub(super) letters: Vec<Letter>,
+    pub(super) state: State,
     edits: searchtypo::Scratch,
 }
 
@@ -39,6 +41,10 @@ impl Worker {
         self.state.resize(matcher.needle.len());
         for (id, score) in jobs {
             *score = matcher.name_bytes(index.names.get(*id), &mut self.letters, &mut self.state, &mut self.edits).unwrap_or(NO_SCORE);
+            #[cfg(test)]
+            if (NAME - HIT_SPAN..=NAME + HIT_SPAN).contains(&*score) {
+                index.name_dp.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            }
         }
     }
 }
@@ -49,7 +55,7 @@ pub(crate) struct QueryScratch {
     generation: u32,
     names: Vec<NameSlot>,
     jobs: Vec<(u32, i32)>,
-    workers: Vec<Worker>,
+    pub(super) workers: Vec<Worker>,
     pub(super) dirs: Vec<Directory>,
     pub(super) texts: Vec<Letter>,
     pub(super) states: Vec<State>,
@@ -60,6 +66,8 @@ pub(crate) struct QueryScratch {
     pub(super) edits: searchtypo::Scratch,
     pub(super) row_state: Option<State>,
     #[cfg(test)]
+    pub(crate) pinned_cores: Option<usize>,
+    #[cfg(test)]
     pub(crate) counters: Counters,
 }
 
@@ -69,10 +77,11 @@ pub(crate) struct Counters {
     pub names_scored: usize,
     pub directory_reach: usize,
     pub scratch_touched: usize,
+    pub resolve_largest_share: usize,
 }
 
 impl QueryScratch {
-    pub(super) fn begin(&mut self, index: &Index) {
+    pub(crate) fn begin(&mut self, index: &Index) {
         self.generation = self.generation.wrapping_add(1);
         if self.generation == 0 {
             self.names.iter_mut().for_each(|slot| slot.generation = 0);
@@ -88,7 +97,7 @@ impl QueryScratch {
         { self.counters = Counters::default(); }
     }
 
-    pub(super) fn end(&mut self) {
+    pub(crate) fn end(&mut self) {
         if self.texts.capacity() > SHRINK_ABOVE * self.texts.len() { self.texts.shrink_to(self.texts.len()); }
         if self.states.len() > SHRINK_ABOVE * self.states_used {
             self.states.truncate(self.states_used);
@@ -111,10 +120,7 @@ impl QueryScratch {
             }
         }
         if self.jobs.is_empty() { return; }
-        let threads = if self.jobs.len() < PARALLEL_SCORE_AT { 1 } else {
-            std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1).clamp(1, WALK_THREADS)
-        };
-        if self.workers.len() < threads { self.workers.resize_with(threads, Worker::new); }
+        let threads = self.threads(self.jobs.len());
         if threads == 1 {
             self.workers[0].score(matcher, index, &mut self.jobs);
         } else {
@@ -131,6 +137,20 @@ impl QueryScratch {
             self.counters.names_scored = self.jobs.len();
             index.names_scored.store(self.jobs.len(), std::sync::atomic::Ordering::Relaxed);
         }
+    }
+
+    // One thread under PARALLEL_SCORE_AT jobs, else the machine's cores up to WALK_THREADS, each with its Worker ready.
+    pub(super) fn threads(&mut self, jobs: usize) -> usize {
+        let threads = if jobs < PARALLEL_SCORE_AT { 1 } else { self.cores().clamp(1, WALK_THREADS) };
+        if self.workers.len() < threads { self.workers.resize_with(threads, Worker::new); }
+        threads
+    }
+
+    // A test may pin the core count, so the split arm runs on a one-core builder too.
+    fn cores(&self) -> usize {
+        #[cfg(test)]
+        if let Some(cores) = self.pinned_cores { return cores; }
+        std::thread::available_parallelism().map_or(1, |n| n.get())
     }
 
     pub(super) fn name(&self, id: u32) -> Option<i32> {

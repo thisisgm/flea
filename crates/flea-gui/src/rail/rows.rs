@@ -164,6 +164,8 @@ pub struct RowsModel {
     pub corner: f32,
     /// Presses on the NETWORK heading's plus; the window opens Add a Network Share once per new press.
     pub add_presses: u64,
+    /// The row a held row drag would land on and its caption (move here, copy here or link here), RailDrop.qml's cue.
+    pub drop_target: Option<(usize, gpui::SharedString)>,
 }
 
 pub struct RailElement {
@@ -249,6 +251,15 @@ pub fn rail_palette(style: &gpui::TextStyle, theme: crate::palette::Theme) -> Pa
     palette
 }
 
+/// SidebarRow.qml: a broken favourite's label takes the error ink, every other label the foreground.
+pub fn label_ink(error: bool, palette: &Palette) -> gpui::Hsla {
+    if error {
+        palette.error
+    } else {
+        palette.foreground
+    }
+}
+
 pub struct Ready {
     palette: Palette,
     headers: Vec<Rc<text::Prepared>>,
@@ -272,15 +283,18 @@ mod add;
 pub use add::add_hit;
 #[path = "element.rs"]
 mod element;
-#[path = "rename.rs"]
-mod rename;
+#[cfg(test)]
+#[path = "ground_tests.rs"]
+mod ground_tests;
+#[cfg(test)]
+#[path = "ink_tests.rs"]
+mod ink_tests;
 #[path = "layout.rs"]
 mod layout;
 #[path = "paint.rs"]
 mod paint;
-#[cfg(test)]
-#[path = "ground_tests.rs"]
-mod ground_tests;
+#[path = "rename.rs"]
+mod rename;
 
 #[cfg(test)]
 #[path = "i50_rename_tests.rs"]

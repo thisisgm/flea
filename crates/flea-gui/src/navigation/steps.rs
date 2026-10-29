@@ -174,6 +174,24 @@ impl Navigator {
         self.open_without_history(pane, &path, options, None, false)
     }
 
+    // An operation's result re-lists its folder fresh: an unfinished re-read gives up its anchor and supersedes, so nothing stays marked.
+    pub fn fresh(&mut self, pane: &mut Pane) -> Result<bool, Refusal> {
+        self.pending_select = None;
+        if self
+            .anchor
+            .take()
+            .is_some_and(|anchor| anchor.need_paths.is_some())
+        {
+            self.gate.paths_pending = false;
+        }
+        let path = pane.path().to_owned();
+        let options = Options {
+            kept_query: pane.state.query.clone(),
+            ..supersede()
+        };
+        self.open_without_history(pane, &path, options, None, false)
+    }
+
     // Hidden is a scan filter, so changing it is a fresh list back at row 0, never a sort.
     pub fn toggle_hidden(&mut self, pane: &mut Pane, failure: String) -> Result<bool, Refusal> {
         let patch = self.folders.borrow_mut().toggle_hidden();
@@ -227,6 +245,15 @@ impl Navigator {
             return self.open_without_history(pane, &waited, Options::default(), None, false);
         }
         self.reload(pane, selected)
+    }
+
+    // PaneWire.qml onTransferDone: the folder a transfer finished in is read again in place, its cursor back at the top; a search keeps its rows.
+    pub fn refresh_after_transfer(&mut self, pane: &mut Pane) -> Result<bool, Refusal> {
+        if pane.state.search {
+            return Ok(false);
+        }
+        let path = pane.path().to_owned();
+        self.open_without_history(pane, &path, Options::default(), None, false)
     }
 
     // The owed re-read: the anchor rides the list so its first rows hold the cursor's file.
@@ -323,5 +350,35 @@ impl Navigator {
                 self.landed = Some((pane.held.listing, pane.cursor));
             }
         }
+    }
+}
+
+impl Navigator {
+    /// Lists the history's paths over "/", the same request a folder takes; the reply keeps the order given.
+    pub(crate) fn list_paths(
+        &mut self,
+        pane: &mut Pane,
+        paths: &[String],
+        hold_walk: bool,
+    ) -> Result<bool, Refusal> {
+        let preserve = std::mem::replace(&mut self.preserve_sort, true);
+        let result = self.open_without_history(
+            pane,
+            "/",
+            Options {
+                supersede: true,
+                hold_walk,
+                ..Options::default()
+            },
+            None,
+            false,
+        );
+        self.preserve_sort = preserve;
+        if result == Ok(true) {
+            if let Some(Command::List(listing)) = self.out.pop() {
+                self.out.push(Command::ListPaths(listing, paths.to_vec()));
+            }
+        }
+        result
     }
 }

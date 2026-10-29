@@ -11,16 +11,26 @@ pub(crate) struct Runtime {
     pub strip: Rc<RefCell<sr1::strip::StripState>>,
     pub(super) origin: Option<crate::window::startup::View>,
     pub(super) scroll: f32,
+    /// The contents blocks' shaped state, made again when the list's words or face change.
+    pub(super) contents: Option<(
+        Rc<crate::row::format::Words>,
+        Rc<RefCell<sr1::contents::ContentsState>>,
+    )>,
 }
 
 impl Runtime {
     pub fn new(face: crate::list::Typeface) -> Self {
         Self {
-            owner: Search::new(Wire::default()),
+            // The GUI wires the contents producer, so Ctrl+G switches the strip to contents instead of doing nothing.
+            owner: Search::new(Wire {
+                contents: true,
+                ..Wire::default()
+            }),
             rows_generation: 0,
             strip: Rc::new(RefCell::new(sr1::strip::StripState::new(face))),
             origin: None,
             scroll: 0.,
+            contents: None,
         }
     }
 }

@@ -48,8 +48,8 @@ pub(crate) struct Session {
     pub(crate) matched_index_len: usize,
     pub(crate) last_matches: Vec<usize>,
     pub(crate) score_scratch: searchindex::QueryScratch,
-    // Scored but unranked matches past the head, ranked on scroll; a patch drops them because it moves row ids.
-    pub(crate) pending_rest: Option<Vec<(i32, usize)>>,
+    // Matches past the head, ranked on scroll; a patch drops them because it moves row ids.
+    pub(crate) pending_rest: Option<Rest>,
     // Directories patched while the walk ran, applied at its landing; see src/backend/searchpatch.rs.
     pub(crate) pending_patches: std::collections::BTreeSet<PathBuf>,
     pub(crate) folder_n: usize,
@@ -235,7 +235,7 @@ impl Session {
     // How many unranked matches wait past the head; production spends them through take_rest_chunk.
     #[cfg(test)]
     pub(crate) fn pending_rest_len(&self) -> usize {
-        self.pending_rest.as_ref().map(Vec::len).unwrap_or(0)
+        self.pending_rest.as_ref().map_or(0, Rest::len)
     }
 
     // Ranks and materializes the next chunk past the adopted prefix; None when nothing is held.
@@ -259,16 +259,18 @@ impl Session {
         let (rows, spent) = {
             let rest = self.pending_rest.as_mut()?;
             let index = self.index.lock().unwrap();
-            if take < rest.len() {
-                rest.select_nth_unstable_by(take - 1, |a, b| rank_cmp(&index, a, b));
-                rest[..take].sort_by(|a, b| rank_cmp(&index, a, b));
+            rest.promote(take, &index, &mut self.score_scratch);
+            let ranked = &mut rest.ranked;
+            if take < ranked.len() {
+                ranked.select_nth_unstable_by(take - 1, |a, b| rank_cmp(&index, a, b));
+                ranked[..take].sort_by(|a, b| rank_cmp(&index, a, b));
             } else {
-                rest.sort_by(|a, b| rank_cmp(&index, a, b));
+                ranked.sort_by(|a, b| rank_cmp(&index, a, b));
             }
-            let taken: Vec<(i32, usize)> = rest.drain(..take).collect();
+            let taken: Vec<(i32, usize)> = ranked.drain(..take).collect();
             let rows: Vec<(String, bool)> =
                 taken.iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
-            (rows, rest.is_empty())
+            (rows, rest.len() == 0)
         };
         if spent {
             self.pending_rest = None;
@@ -313,6 +315,10 @@ mod cache_tests;
 
 #[path = "searchanswer.rs"]
 mod answer;
+
+#[path = "searchrest.rs"]
+mod rest;
+pub(crate) use rest::Rest;
 
 #[cfg(test)]
 #[path = "searchtiming.rs"]

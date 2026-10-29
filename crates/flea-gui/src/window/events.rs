@@ -26,6 +26,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        let event = self.filesystem_flags(side, event);
+        if self.tags_event(side, &event, window, cx) {
+            return;
+        }
         let renamed = self.rename_event(side, &event, window, cx);
         self.rename_sync_gate(window, cx);
         if renamed {
@@ -33,6 +37,9 @@ impl Shell {
         }
         if let BackendEvent::Peeked(document) = &event {
             self.tab_peeked(side, document, window, cx);
+        }
+        if self.permissions_event(side, &event, window, cx) {
+            return;
         }
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained)
             && self
@@ -70,6 +77,7 @@ impl Shell {
             if let Some(parsed) = flea::ui_logic_op1::parse(line) {
                 self.operation_line(side, line, window, cx);
                 if let flea::ui_logic_op1::Event::TransferDone(done) = parsed {
+                    self.transfer_refresh(side, window, cx);
                     self.retry_failed(side, &done.retry_paths, window, cx);
                 }
             }
@@ -155,7 +163,8 @@ impl Shell {
                         host.search.rows_generation = generation;
                         host.changed(&self.locale);
                         self.surfaces[side].filesystem.enter(&host.path);
-                        self.path_labels[side] = host.path.clone().into();
+                        let name = self.locale.catalog.tr("places.row.recent");
+                        self.path_labels[side] = super::recent::path_label(host, &name);
                         self.seam.rows(&host.pane);
                         self.settle_dual(window, cx);
                         cx.notify();
@@ -169,13 +178,14 @@ impl Shell {
                         &self.locale,
                     ),
                 }
+                self.opener_archive_ready(side, window, cx);
                 return;
             }
             event => event,
         };
         match event {
             BackendEvent::Plugins(_) => unreachable!("plugins handled above"),
-            BackendEvent::FilesystemDetails { .. } => {
+            BackendEvent::FilesystemDetails { .. } | BackendEvent::FilesystemSystem { .. } => {
                 unreachable!("filesystem fanout handled above")
             }
             BackendEvent::Peeked(_) => unreachable!(),
@@ -190,8 +200,10 @@ impl Shell {
                 return;
             }
             BackendEvent::Filesystem(facts) => {
-                if self.surfaces[side].filesystem.answer(&host.path, facts) {
-                    cx.notify();
+                let supported = self.can_tag(side);
+                self.filesystem_answer(side, facts, cx);
+                if supported != self.can_tag(side) {
+                    self.refresh_tag_capability(side, window, cx);
                 }
                 return;
             }
@@ -229,7 +241,13 @@ impl Shell {
             } => {
                 let current =
                     path.is_empty() || path == host.pane.path() || path == host.pane.place();
-                let named = if path == host.path {
+                // A denied row of the shown listing is this folder, so the footer says the pane's own sentence too.
+                let listed = crate::navigation::history::parent_of(&path) == host.path;
+                let this_folder = path == host.path
+                    || (operation == "scan"
+                        && listed
+                        && flea::ui_logic_fb1::errors::denied(&operation, &message));
+                let named = if this_folder {
                     ""
                 } else {
                     path.rsplit('/').next().unwrap_or_default()
@@ -337,7 +355,8 @@ impl Shell {
                         }
                         host.changed(&self.locale);
                         self.surfaces[side].filesystem.enter(&host.path);
-                        self.path_labels[side] = host.path.clone().into();
+                        let name = self.locale.catalog.tr("places.row.recent");
+                        self.path_labels[side] = super::recent::path_label(host, &name);
                         if host.answered {
                             self.deadlines[side] = None;
                         }
@@ -372,6 +391,7 @@ impl Shell {
                 }
             }
         }
+        self.opener_archive_ready(side, window, cx);
         self.search_landed(side, false, window, cx);
         self.settle_dual(window, cx);
         self.after_navigation(side, &before, window, cx);

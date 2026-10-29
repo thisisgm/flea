@@ -7,10 +7,13 @@ pub struct Filesystem {
     pub path: String,
     pub name: String,
     pub free: u64,
+    /// The backend's storage class for the folder: network, phone, usb, or empty for local.
+    pub class: String,
+    pub tagable: Option<bool>,
 }
 
 impl Filesystem {
-    // Input: {"path":"/work","fs":"btrfs","free":442000000000}; no name with -1 or no free is unknown.
+    // Input: {"path":"/work","fs":"btrfs","free":442000000000,"class":"usb"}; no name with -1 or no free is unknown.
     pub(super) fn parse(document: &Json) -> Result<Self, String> {
         let text = |key| {
             document
@@ -21,6 +24,10 @@ impl Filesystem {
         };
         let name = match document.get("fs") {
             Some(_) => text("fs")?,
+            None => String::new(),
+        };
+        let class = match document.get("class") {
+            Some(_) => text("class")?,
             None => String::new(),
         };
         let free = match document.get("free") {
@@ -36,6 +43,8 @@ impl Filesystem {
             path: text("path")?,
             name,
             free,
+            class,
+            tagable: document.get("tagable").and_then(Json::as_bool),
         })
     }
 }

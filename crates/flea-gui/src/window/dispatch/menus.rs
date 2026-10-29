@@ -10,6 +10,12 @@ pub(super) fn run(
     window: &mut Window,
     cx: &mut Context<Shell>,
 ) -> bool {
+    // PaneMenuActions.qml open: the listing's Properties key opens the card the menu row opens, with no menu drawn.
+    if let Order::Action(event) = order {
+        return event.context == flea::keys::Context::Listing
+            && event.action == "properties"
+            && shell.properties_listing(window, cx);
+    }
     let Order::Menu(chosen) = order else {
         return false;
     };
@@ -21,7 +27,7 @@ pub(super) fn run(
             chosen.captured.ready && !chosen.captured.background && !chosen.captured.rows.is_empty()
         }
         "selectAll" | "invertSelection" | "toggleLangMarks" | "settings" | "updateFlea"
-        | "addFavourite" => true,
+        | "extThumbs" | "addFavourite" => true,
         _ => false,
     };
     if !wanted || !chosen.claim() {
@@ -54,7 +60,7 @@ pub(super) fn run(
                 cx,
             );
         }
-        "properties" => shell.open_properties_card(chosen, window, cx),
+        "properties" => shell.open_properties_card(&chosen.captured, window, cx),
         // Marks.js selectAll and invert: the rows the listing draws, so a filter narrows them.
         "selectAll" | "invertSelection" => {
             // input_action reads the focused pane, so it points at the menu's own pane for this one call.
@@ -63,19 +69,11 @@ pub(super) fn run(
             shell.focus_side = focused;
         }
         // ViewState.qml toggles langMarks, which every view reads from ui.json.
-        "toggleLangMarks" => {
-            let shown = shell
-                .launch
-                .settings
-                .data
-                .get("langMarks")
-                .and_then(Json::as_bool)
-                != Some(false);
-            shell.change_settings(edit::setting("langMarks", Json::Bool(!shown)), window, cx);
-        }
+        "toggleLangMarks" => toggle_lang_marks(shell, window, cx),
         "settings" => shell.open_settings(window, cx),
         // Focus.js updateFlea: the same run the About page's Update Flea starts.
         "updateFlea" => shell.settings_update(true, window, cx),
+        "extThumbs" => super::window::toggle_ext_thumbs(shell, chosen.captured.side, window, cx),
         // PaneMenuActions.qml: the background adds its folder, a folder row the one path its snapshot names.
         _ => {
             let path = if chosen.captured.background {
@@ -109,4 +107,16 @@ fn finish(shell: &mut Shell, chosen: &Chosen, window: &mut Window, cx: &mut Cont
         );
     }
     shell.retire_menu(window, cx);
+}
+
+// ViewState.qml toggles langMarks, which every view reads from ui.json; the menu row and the listing key share it.
+pub(super) fn toggle_lang_marks(shell: &mut Shell, window: &mut Window, cx: &mut Context<Shell>) {
+    let shown = shell
+        .launch
+        .settings
+        .data
+        .get("langMarks")
+        .and_then(Json::as_bool)
+        != Some(false);
+    shell.change_settings(edit::setting("langMarks", Json::Bool(!shown)), window, cx);
 }

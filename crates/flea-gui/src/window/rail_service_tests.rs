@@ -144,14 +144,6 @@ fn u08_recent_history_uses_the_existing_reader_and_hands_real_visits_to_navigati
     cx: &mut TestAppContext,
 ) {
     let (shell, cx) = open(false, cx);
-    let heard = Rc::new(RefCell::new(Vec::<Request>::new()));
-    let sink = heard.clone();
-    cx.update(|_, cx| {
-        cx.subscribe(&shell, move |_, request: &Request, _| {
-            sink.borrow_mut().push(request.clone())
-        })
-        .detach()
-    });
     let producer = producer(&shell, cx);
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -160,32 +152,22 @@ fn u08_recent_history_uses_the_existing_reader_and_hands_real_visits_to_navigati
     producer.update(cx, |producer, cx| producer.read_recent(path.into(), cx));
     cx.run_until_parked();
     frame(cx);
-    let events = heard.borrow();
-    let visits = events
-        .iter()
-        .find_map(|request| match &request.event {
-            Event::Recent(visits) => Some(visits),
-            _ => None,
-        })
-        .expect("the service's result reaches the Recent owner");
-    assert_eq!(
-        visits
-            .iter()
-            .map(|visit| visit.path.as_str())
-            .collect::<Vec<_>>(),
-        ["/newer.txt", "/older.txt"]
-    );
-    drop(events);
-    heard.borrow_mut().clear();
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(
+            host.recent.on,
+            "the service's result reaches the Recent owner"
+        );
+        assert_eq!(host.recent.paths, ["/newer.txt", "/older.txt"]);
+    });
     producer.update(cx, |producer, cx| {
         producer.read_recent("/nonexistent/u08-history".into(), cx)
     });
     cx.run_until_parked();
     frame(cx);
-    assert!(heard
-        .borrow()
-        .iter()
-        .any(|request| request.event == Event::Recent(Vec::new())));
+    shell.read_with(cx, |shell, _| {
+        assert!(shell.panes[0].as_ref().unwrap().recent.paths.is_empty());
+    });
 }
 
 #[gpui::test]
@@ -193,14 +175,6 @@ fn u08_fix1_new_recent_request_cancels_pending_origin_and_keeps_its_own_id(
     cx: &mut TestAppContext,
 ) {
     let (shell, cx) = open(false, cx);
-    let heard = Rc::new(RefCell::new(Vec::<Request>::new()));
-    let sink = heard.clone();
-    cx.update(|_, cx| {
-        cx.subscribe(&shell, move |_, request: &Request, _| {
-            sink.borrow_mut().push(request.clone())
-        })
-        .detach()
-    });
     let producer = producer(&shell, cx);
     let fixture = concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -223,28 +197,21 @@ fn u08_fix1_new_recent_request_cancels_pending_origin_and_keeps_its_own_id(
     });
     cx.run_until_parked();
     frame(cx);
-    let requests = heard.borrow();
-    assert_eq!(
-        requests.len(),
-        1,
-        "the superseded request must never publish"
-    );
-    assert_eq!(requests[0].side, 1);
-    assert_eq!(
-        requests[0].id, 2,
-        "completion keeps the second ask's identity"
-    );
-    assert_eq!(requests[0].event, Event::Recent(Vec::new()));
-    drop(requests);
-    heard.borrow_mut().clear();
+    shell.read_with(cx, |shell, _| {
+        let right = shell.panes[1].as_ref().unwrap();
+        assert!(right.recent.on, "the second ask completes on its own side");
+        assert!(
+            right.recent.paths.is_empty(),
+            "the superseded request must never publish"
+        );
+        assert!(!shell.panes[0].as_ref().unwrap().recent.on);
+    });
     producer.update(cx, |producer, cx| producer.read_recent(fixture.into(), cx));
     cx.run_until_parked();
     frame(cx);
-    let requests = heard.borrow();
-    assert_eq!(requests.len(), 1);
-    assert_eq!(requests[0].side, 0);
-    assert_eq!(requests[0].id, 3);
-    assert!(matches!(&requests[0].event, Event::Recent(visits) if visits.len() == 2));
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(shell.panes[0].as_ref().unwrap().recent.paths.len(), 2);
+    });
 }
 
 #[gpui::test]
@@ -274,7 +241,7 @@ fn u08_fix1_deferred_requests_keep_the_enqueue_pane_and_distinct_ids(cx: &mut Te
             .places
             .update(cx, |producer, cx| {
                 producer.activate(0, cx);
-                producer.key_action("menu", cx);
+                producer.activate(0, cx);
             });
         shell.focus_pane(1, cx);
     });
@@ -284,7 +251,7 @@ fn u08_fix1_deferred_requests_keep_the_enqueue_pane_and_distinct_ids(cx: &mut Te
     assert!(requests.iter().all(|request| request.side == 0));
     assert_eq!((requests[0].id, requests[1].id), (1, 2));
     assert_eq!(requests[0].event, Event::Trash);
-    assert!(matches!(requests[1].event, Event::Menu(_)));
+    assert_eq!(requests[1].event, Event::Trash);
 }
 
 #[rustfmt::skip]

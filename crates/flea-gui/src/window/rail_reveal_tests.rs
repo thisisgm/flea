@@ -172,6 +172,7 @@ fn share_row() -> RailEntry {
         label: "NAS".into(),
         uri: "smb://nas/share".into(),
         mounted: Some(true),
+        releasable: true,
         glyph: "server",
         ..RailEntry::default()
     }

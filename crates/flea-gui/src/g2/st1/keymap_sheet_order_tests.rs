@@ -71,6 +71,7 @@ const LOOK: &[&str] = &[
 const FIND: &[&str] = &[
     "/|Filter",
     "f / ctrl-f|Find",
+    "ctrl-g|Search contents",
     "o|Reveal",
     "s|Sort",
     "S|Reverse sort",
@@ -103,7 +104,7 @@ fn keymap_sheet_groups_draw_in_the_board_order_and_columns() {
         .collect();
     assert_eq!(
         heads,
-        [(0, "move"), (1, "look"), (1, "find"), (1, "change")],
+        [(0, "Move"), (1, "Look"), (1, "Find"), (1, "Change")],
         "MOVE fills the first column and LOOK opens the second whole"
     );
     assert_eq!(groups[0].2, MOVE);
@@ -122,8 +123,8 @@ fn keymap_sheet_rows_reader_follows_the_drawn_order() {
     }
     let read = crate::ipc::settings::sheet_rows(&sheet);
     assert_eq!(read.lines().collect::<Vec<_>>(), drawn);
-    assert!(read.contains("move\nj / down Cursor down\n"));
-    assert!(read.contains("escape Close or go back\nX Carry to another app\nlook\n"));
+    assert!(read.contains("Move\nj / down Cursor down\n"));
+    assert!(read.contains("escape Close or go back\nX Carry to another app\nLook\n"));
 }
 
 #[test]

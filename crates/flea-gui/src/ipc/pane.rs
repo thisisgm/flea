@@ -16,6 +16,10 @@ impl Adapter for PaneAdapter<'_> {
         let mark = &swap.mark;
         let value = match function {
             "listInFlight" => pane.busy().to_string(),
+            // Ipc.qml mode() is the constant "browse", which v0.3.12 never reports as anything else.
+            "mode" => "browse".into(),
+            // Recent is the history listing under flea:recent; GPUI keeps no origin for it, so recentFrom reads idle.
+            "recentFrom" => String::new(),
             "listRequests" => pane.list_requests.to_string(),
             "firstRowsAt" => pane.first_rows_at.to_string(),
             "inputToRows" => format!("{} {}", swap.input_at, swap.rows_at),

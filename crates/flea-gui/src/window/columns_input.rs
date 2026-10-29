@@ -63,6 +63,7 @@ impl Shell {
         if self.view != super::super::startup::View::Columns {
             return;
         }
+        self.columns_scroll_hold(side, event.position);
         // Carry25's card gate stops only a carry landing; a plain press keeps the gate Columns had before carry.
         let blocked = self.input_blocked(cx);
         let Some(host) = self.panes[side].as_mut().filter(|host| !host.stopped) else {
@@ -89,7 +90,7 @@ impl Shell {
                 return None;
             }
             let y = f32::from(event.position.y - drawn.bounds.origin.y) + drawn.scroll;
-            let position = (y / crate::list::pane::ROW_HEIGHT).floor() as usize;
+            let position = drawn.grow.position_at(y, crate::list::pane::ROW_HEIGHT);
             // Under a filter a position past its rows is background, never the listing row of that number.
             let index = drawn.row_at(position).unwrap_or(usize::MAX);
             let row = match &drawn.view().rows {
@@ -172,6 +173,12 @@ impl Shell {
             );
             return;
         }
+        if event.button == MouseButton::Right {
+            if let Some((name, _)) = row {
+                self.columns_neighbour_menu(side, &view.path, &name, window, cx);
+            }
+            return;
+        }
         if event.button != MouseButton::Left {
             return;
         }
@@ -213,6 +220,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         self.sync_columns(window, cx);
+        self.columns_row_menu_landed(side, window, cx);
         let Some(host) = self.panes[side].as_mut() else {
             return;
         };
@@ -229,27 +237,6 @@ impl Shell {
         event: &ScrollWheelEvent,
         cx: &mut Context<Self>,
     ) {
-        let Some(host) = self.panes[side].as_mut().filter(|host| !host.pane.busy()) else {
-            return;
-        };
-        let Some(columns) = host.columns.as_mut() else {
-            return;
-        };
-        let slot = columns.area.tracks().iter().find_map(|view| {
-            let paint = columns.painters.get(view.slot)?.borrow();
-            let drawn = paint.drawn.as_ref()?;
-            (drawn.bounds.contains(&event.position)
-                && !matches!(drawn.view().rows, TrackRows::Preview))
-            .then_some(view.slot)
-        });
-        let Some(slot) = slot else { return };
-        let dy = -f32::from(crate::input::scroll::wheel_delta(&event.delta).y);
-        if slot == Slot::Active {
-            host.pane.scroll_by(dy);
-        } else {
-            columns.area.scroll_by(slot, dy);
-        }
-        cx.stop_propagation();
-        cx.notify();
+        self.columns_scroll_wheel(side, event, cx);
     }
 }

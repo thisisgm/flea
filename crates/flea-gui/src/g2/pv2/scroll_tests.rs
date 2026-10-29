@@ -238,13 +238,19 @@ fn pb_scroll_document_html_lanes_pan_zoomed_page_and_leave_shared_corner_clear()
         Modifiers::none(),
     );
     cx.run_until_parked();
+    // A held move after the release: only a drag the release failed to end could pan here.
     VisualTestContext::from_window(handle.into(), &cx).simulate_mouse_move(
         lane,
-        None,
+        Some(MouseButton::Left),
         Modifiers::none(),
     );
     frame(&mut cx, handle);
     handle
-        .update(&mut cx, |view, _, _| assert_eq!(view.scroll_y, 0.))
+        .update(&mut cx, |view, _, _| {
+            assert_eq!(
+                view.scroll_y, 0.,
+                "the release outside the view ends the drag"
+            )
+        })
         .unwrap();
 }

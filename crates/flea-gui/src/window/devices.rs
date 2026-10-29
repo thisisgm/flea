@@ -11,6 +11,9 @@ impl Shell {
         let Some(path) = self.panes[side].as_ref().map(|host| host.path.clone()) else {
             return;
         };
+        let system_volume = system_volume
+            || (self.surfaces[side].filesystem.path == path
+                && self.surfaces[side].filesystem.system);
         let Some(join) = &self.rail else {
             return;
         };
@@ -61,7 +64,12 @@ impl Shell {
     }
 
     /// The eject mark's click or its keyboard frame names the row; the pane that asked is the one that quiesces.
-    pub(crate) fn release_rail_row(&mut self, side: usize, row: &RailEntry, cx: &mut Context<Self>) {
+    pub(crate) fn release_rail_row(
+        &mut self,
+        side: usize,
+        row: &RailEntry,
+        cx: &mut Context<Self>,
+    ) {
         if let Some(join) = &self.rail {
             let source = join.devices.clone();
             source.update(cx, |source, cx| source.release_row(row, side, cx));
@@ -86,7 +94,8 @@ impl Shell {
         });
         let home = std::env::var("HOME").unwrap_or_default();
         if on_volume && !home.is_empty() {
-            if let Err(refusal) = self.step(side, super::navigate::Step::OpenPlace(home), window, cx)
+            if let Err(refusal) =
+                self.step(side, super::navigate::Step::OpenPlace(home), window, cx)
             {
                 failed.push(self.locale.catalog.tr(refusal.key()));
             }

@@ -26,7 +26,7 @@ ORACLE = {name: {"path": path, "sha256": digest} for name, path, digest in (
     ('viewrestart', 'tests/ui.sh', 'bf0e07f1095f193236437029144e382e8ce02aeef78bbdca947d4c34b7abe17b'),
     ('dd', 'tests/ui.sh', '7fe6346dab3078a02d86fd6aeb831edcbe1e692df04aa769341f7e2db7aa0ba8'),
     ('ddclick', 'tests/ui.sh', '42d9e96d8f4379a4072004e94703a7acb3d3599fd91288e5bddd85769e972e94'),
-    ('griddrop', 'tests/ui-griddrop.sh', 'bb39f6031d7457a3debe3c3340fe7ef273dba1ad9c1b9dc235d0556c46ea5978'),
+    ('griddrop', 'tests/ui-griddrop.sh', 'f43e96365d70a3d6f066f4bbe28b9baed80f8b58093b58f71bad3c0137ffa63a'),
     ('collide', 'tests/ui.sh', 'c2c3e70f967eaf969fc9c386d1eae9a4b1a952d46901859ba7dafc0cf343c9a2'),
     ('sortrestart', 'tests/ui.sh', '939e1c6109e1fb3dd0ed51cefeab59351d6ad4de43b3de0cb366cf2a20639086'),
     ('foldersort', 'tests/ui.sh', '5092a01a3cbaf6fbc18040827e22cbb3ef80663fadad89f9e930661ec028def2'),

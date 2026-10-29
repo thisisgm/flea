@@ -50,6 +50,8 @@ pub(crate) struct Host {
     pub plugin_backends: [bool; 2],
     pub patches: store::Patches,
     pub pending: Vec<(u64, Json)>,
+    // Revisions of Favorites operations the writer has not answered yet.
+    pub favourite_writes: Vec<u64>,
     pub failed: Vec<(u64, Json)>,
     // Request revision and highest failed revision actually included in that request.
     pub retried: Vec<(u64, u64)>,
@@ -106,6 +108,10 @@ impl Shell {
     }
 
     pub(crate) fn follow_settings(&mut self, window: &Window, cx: &mut Context<Self>) {
+        #[cfg(test)]
+        if cx.has_global::<crate::state::constructor_fixture::NoSettingsWorker>() {
+            return;
+        }
         let worker = match store::Worker::start() {
             Ok(worker) => worker,
             Err(_) => return,
@@ -278,9 +284,15 @@ impl Shell {
                 self.settings.sheet = None;
                 self.settings.sheet_subscription = None;
                 self.settings.sheet_sources_subscription = None;
-                window.focus(&self.focus, cx);
+                let focus = self.overlay_return_focus(cx);
+                window.focus(&focus, cx);
+                self.focus_trash_after_sheet(window, cx);
                 if let Some(decision) = decision {
-                    self.settings_sheet_decision(decision, window, cx);
+                    if self.trash_sheet_decision(&decision, window, cx) {
+                        cx.notify();
+                    } else {
+                        self.settings_sheet_decision(decision, window, cx);
+                    }
                 }
             }
             Request::OpenSheet => self.open_sheet(window, cx),
@@ -295,6 +307,13 @@ impl Shell {
 }
 
 impl Host {
+    // A write answer through this revision settles its pending, retried and Favorites entries.
+    pub(crate) fn answered(&mut self, through: u64) {
+        self.pending.retain(|(id, _)| *id > through);
+        self.retried.retain(|(id, _)| *id > through);
+        self.favourite_writes.retain(|id| *id > through);
+    }
+
     pub(crate) fn row_states(&self, listing: usize, cursor: usize) -> crate::list::RowStates {
         let mut states = crate::list::RowStates::cursor_only(listing, cursor);
         states.focused = !self.opened && self.sheet.is_none();
@@ -304,3 +323,5 @@ impl Host {
 
 #[cfg(test)]
 mod density_prepare_tests;
+#[cfg(test)]
+mod favourites_reader_tests;

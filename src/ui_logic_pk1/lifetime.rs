@@ -29,6 +29,10 @@ pub enum Check<'a> {
         directory: bool,
         multiple: bool,
     },
+    Select {
+        paths: &'a [String],
+        directory: bool,
+    },
     Save {
         folder: &'a str,
         name: &'a str,
@@ -53,6 +57,7 @@ pub fn check_line(id: u64, check: &Check) -> String {
                 escape(path)
             )
         }
+        Check::Select { paths, directory } => format!(r#""op":"select","paths":{},"directory":{directory}"#, crate::json::string_array(paths)),
         Check::Save { folder, name } => format!(
             r#""op":"save","folder":"{}","name":"{}""#,
             escape(folder),

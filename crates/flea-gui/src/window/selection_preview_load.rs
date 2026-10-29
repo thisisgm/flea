@@ -66,11 +66,17 @@ impl SelectionPreview {
         {
             self.manual_subject = None;
         }
+        let remote = self
+            .class
+            .as_ref()
+            .is_some_and(|(_, class)| matches!(class.as_str(), "network" | "phone"));
         let same = self
             .pending
             .as_ref()
             .or(self.drawn.as_ref())
-            .is_some_and(|f| f.subject == subject && (f.manual == manual || force));
+            .is_some_and(|f| {
+                f.subject == subject && f.remote == remote && (f.manual == manual || force)
+            });
         if same && !force {
             self.poll(window, cx);
             return;
@@ -160,12 +166,16 @@ impl SelectionPreview {
             }
             Kind::Audio | Kind::Video => Mounted::Media(None),
             _ if !manual => {
+                let storage = self.class.as_ref().map_or("", |(_, class)| class.as_str());
                 let look = docs::Look {
+                    text_limit: flea::ui_logic_pv1::ask::text_limit(storage),
+                    remote: matches!(storage, "network" | "phone"),
                     theme,
                     face: self.face.clone(),
                     metrics,
                     muted: crate::list::Palette::inherited(&window.text_style(), theme).metadata,
-                    mark: crate::g2::pv1::glyph::Glyph::kind(&subject.row.icon, subject.row.mode).svg(),
+                    mark: crate::g2::pv1::glyph::Glyph::kind(&subject.row.icon, subject.row.mode)
+                        .svg(),
                 };
                 let wire = wire::Wire(self.outbox.clone());
                 match docs::Doc::mount(kind, &subject, &look, &wire, &self.catalog, window, cx) {
@@ -192,11 +202,15 @@ impl SelectionPreview {
             animation_source: None,
             failed: false,
             manual,
+            remote,
             _watch: watch,
         };
         if !manual && kind != Kind::Multi {
             // PreviewColumn.qml: the meta reply carries the line count, the media probe and an archive's own index.
-            let text = matches!(kind, Kind::Text | Kind::Code | Kind::Markdown | Kind::Table | Kind::Html);
+            let text = matches!(
+                kind,
+                Kind::Text | Kind::Code | Kind::Markdown | Kind::Table | Kind::Html
+            );
             let media = matches!(kind, Kind::Audio | Kind::Video);
             self.outbox.borrow_mut().push(format!(
                 r#"{{"c":"meta","row":{},"token":{generation},"text":{text},"media":{media},"archive":{}}}"#,
@@ -225,7 +239,10 @@ impl SelectionPreview {
         let number = |key| doc.get(key).and_then(Json::as_f64).unwrap_or(-1.) as u64;
         // A drawn document keeps asking as it scrolls, so its later replies go to it as well as the pending one.
         let mut taken = false;
-        for frame in [self.drawn.as_ref(), self.pending.as_ref()].into_iter().flatten() {
+        for frame in [self.drawn.as_ref(), self.pending.as_ref()]
+            .into_iter()
+            .flatten()
+        {
             if let Mounted::Doc(view) = &frame.mounted {
                 let path = frame.subject.path();
                 let mine = text("t") != "meta" || number("token") == frame.generation;

@@ -50,3 +50,15 @@ pub fn tag_entries() -> Vec<Entry> {
         })
         .collect()
 }
+
+// The same leaves with a checkmark on each tag in effect on every target; a mixed tag takes no mark until GM rules on its look.
+pub fn tag_entries_in_effect(states: &[crate::ui_logic_pl4::tags::State; 7]) -> Vec<Entry> {
+    tag_entries()
+        .into_iter()
+        .zip(states)
+        .map(|(entry, state)| Entry {
+            check: (*state == crate::ui_logic_pl4::tags::State::Applied).then_some(true),
+            ..entry
+        })
+        .collect()
+}

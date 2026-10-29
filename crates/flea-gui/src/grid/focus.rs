@@ -3,6 +3,14 @@
 pub trait FocusFacts {
     /// The cursor's listing row.
     fn cursor(&self) -> usize;
+    /// False while another chooser control holds the keyboard.
+    fn focused(&self) -> bool {
+        true
+    }
+    /// A chooser lends its theme-eased selection plate; other hosts keep their existing recipe.
+    fn selection_fill(&self) -> Option<gpui::Hsla> {
+        None
+    }
     fn selected(&self, listing: usize) -> bool;
     /// False while a band sweeps, so hover draws no wash.
     fn hover_shown(&self) -> bool {

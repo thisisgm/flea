@@ -16,8 +16,7 @@ use crate::{
 };
 use flea::jsondoc::Json;
 use gpui::{
-    point, px, size, AppContext, Entity, Modifiers, MouseButton, TestAppContext,
-    VisualTestContext,
+    point, px, size, AppContext, Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext,
 };
 use std::sync::Arc;
 
@@ -66,7 +65,7 @@ fn open(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
     (shell, cx)
 }
 
-fn frame(cx: &mut VisualTestContext) {
+pub(super) fn frame(cx: &mut VisualTestContext) {
     cx.update(|window, cx| {
         window.refresh();
         window.draw(cx).clear(cx);
@@ -82,12 +81,16 @@ fn home() -> Vec<flea::protocol::RowFacts> {
     ]
 }
 
-fn id_of(line: &str) -> usize {
+pub(super) fn id_of(line: &str) -> usize {
     flea::json::field_usize(line, "id").unwrap()
 }
 
 // The row menu on the cursor row, answered as the backend answers a regular file.
-fn row_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext, sent: &mut impl FnMut() -> Vec<String>) -> usize {
+fn row_menu(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+    sent: &mut impl FnMut() -> Vec<String>,
+) -> usize {
     cx.simulate_keystrokes("shift-f10");
     let asked = sent();
     let snapshot = asked
@@ -95,17 +98,27 @@ fn row_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext, sent: &mut impl F
         .find(|line| line.contains(r#""op":"snapshot""#))
         .expect("the menu takes a snapshot");
     let id = id_of(snapshot);
-    reply(shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[32768]}}"#));
+    reply(
+        shell,
+        cx,
+        &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[32768]}}"#),
+    );
     for line in sent() {
         if line.contains(r#""op":"applications""#) {
-            reply(shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[]}}"#));
+            reply(
+                shell,
+                cx,
+                &format!(
+                    r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[]}}"#
+                ),
+            );
         }
     }
     id
 }
 
 // Walks the open menu's cursor to the row with this action and presses Return on it.
-fn choose(shell: &Entity<Shell>, cx: &mut VisualTestContext, action: &str) {
+pub(super) fn choose(shell: &Entity<Shell>, cx: &mut VisualTestContext, action: &str) {
     frame(cx);
     let model = flea::jsondoc::parse(&read(shell, cx, "contextMenuModel", &[])).unwrap();
     let rows = model.as_array().unwrap();
@@ -125,16 +138,30 @@ fn choose(shell: &Entity<Shell>, cx: &mut VisualTestContext, action: &str) {
 }
 
 // The backend's validate answer for the chosen row, which delivers the choice to its family.
-fn validated(shell: &Entity<Shell>, cx: &mut VisualTestContext, sent: &mut impl FnMut() -> Vec<String>, id: usize, action: &str) {
+fn validated(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+    sent: &mut impl FnMut() -> Vec<String>,
+    id: usize,
+    action: &str,
+) {
     let asked = sent();
     assert!(
-        asked.iter().any(|line| line.contains(r#""op":"validate""#) && id_of(line) == id),
+        asked
+            .iter()
+            .any(|line| line.contains(r#""op":"validate""#) && id_of(line) == id),
         "{asked:?}"
     );
-    reply(shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"validate","ok":true,"action":"{action}","paths":["/files/notes.txt"],"dest":""}}"#));
+    reply(
+        shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"validate","ok":true,"action":"{action}","paths":["/files/notes.txt"],"dest":""}}"#
+        ),
+    );
 }
 
-fn opened(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
+pub(super) fn opened(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
     let (shell, mut cx) = open(cx);
     land(&shell, &mut cx, "/files", home(), 1);
     set_cursor(&shell, &mut cx, 2);
@@ -146,16 +173,32 @@ fn menu_move_to_trash_and_duplicate_run_on_the_captured_snapshot(cx: &mut TestAp
     let (shell, mut cx) = opened(cx);
     let cx = &mut cx;
     let mut sent = wire(&shell, cx);
-    let unavailable = shell.read_with(cx, |shell, _| shell.locale.catalog.tr("menu.refusal.unavailable"));
+    let unavailable = shell.read_with(cx, |shell, _| {
+        shell.locale.catalog.tr("menu.refusal.unavailable")
+    });
     let id = row_menu(&shell, cx, &mut sent);
     choose(&shell, cx, "trash");
     validated(&shell, cx, &mut sent, id, "trash");
-    assert_eq!(sent(), [format!(r#"{{"c":"trash","rows":[2],"menuId":{id},"listing":1}}"#)]);
-    assert_ne!(status(&shell, cx), unavailable, "the row is no longer refused");
+    assert_eq!(
+        sent(),
+        [format!(
+            r#"{{"c":"trash","rows":[2],"menuId":{id},"listing":1}}"#
+        )]
+    );
+    assert_ne!(
+        status(&shell, cx),
+        unavailable,
+        "the row is no longer refused"
+    );
     let id = row_menu(&shell, cx, &mut sent);
     choose(&shell, cx, "duplicate");
     validated(&shell, cx, &mut sent, id, "duplicate");
-    assert_eq!(sent(), [format!(r#"{{"c":"duplicate","path":"/files/notes.txt","menuId":{id}}}"#)]);
+    assert_eq!(
+        sent(),
+        [format!(
+            r#"{{"c":"duplicate","path":"/files/notes.txt","menuId":{id}}}"#
+        )]
+    );
     assert_ne!(status(&shell, cx), unavailable);
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
@@ -168,8 +211,19 @@ fn menu_delete_reviews_the_menu_snapshot_and_opens_the_permanent_card(cx: &mut T
     let id = row_menu(&shell, cx, &mut sent);
     choose(&shell, cx, "deletePermanently");
     validated(&shell, cx, &mut sent, id, "deletePermanently");
-    assert_eq!(sent(), [format!(r#"{{"c":"menuaction","op":"prepareDelete","id":{id}}}"#)]);
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"prepareDelete","ok":true,"token":9,"count":1,"bytes":12}}"#));
+    assert_eq!(
+        sent(),
+        [format!(
+            r#"{{"c":"menuaction","op":"prepareDelete","id":{id}}}"#
+        )]
+    );
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"prepareDelete","ok":true,"token":9,"count":1,"bytes":12}}"#
+        ),
+    );
     assert!(shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
@@ -181,9 +235,15 @@ fn background_new_folder_makes_a_folder_in_the_menu_folder(cx: &mut TestAppConte
     let mut sent = wire(&shell, cx);
     // Below the last row is the folder's empty space, whose menu is the background menu.
     let centre = read(&shell, cx, "rowCentre", &["2"]);
-    let mut values = centre.split_whitespace().map(|value| value.parse::<f32>().unwrap());
+    let mut values = centre
+        .split_whitespace()
+        .map(|value| value.parse::<f32>().unwrap());
     let (x, y) = (values.next().unwrap(), values.next().unwrap());
-    cx.simulate_mouse_down(point(px(x), px(y + 200.)), MouseButton::Right, Modifiers::default());
+    cx.simulate_mouse_down(
+        point(px(x), px(y + 200.)),
+        MouseButton::Right,
+        Modifiers::default(),
+    );
     cx.run_until_parked();
     choose(&shell, cx, "newFolder");
     assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files"}"#]);
@@ -201,23 +261,57 @@ fn menu_delete_closes_its_snapshot_once_while_another_review_is_finishing(cx: &m
     let pending_id = id_of(&pending[0]);
     assert!(pending[0].contains(r#""op":"snapshot""#));
     cx.simulate_keystrokes("shift-delete");
-    assert!(sent().is_empty(), "a repeated key has no menu snapshot to close");
-    let finishing = shell.read_with(cx, |shell, _| shell.locale.catalog.tr("jobs.delete.finishing"));
+    assert!(
+        sent().is_empty(),
+        "a repeated key has no menu snapshot to close"
+    );
+    let finishing = shell.read_with(cx, |shell, _| {
+        shell.locale.catalog.tr("jobs.delete.finishing")
+    });
     assert_eq!(status(&shell, cx), finishing);
     let id = row_menu(&shell, cx, &mut sent);
     assert_ne!(id, pending_id, "the menu owns a separate snapshot");
     choose(&shell, cx, "deletePermanently");
     validated(&shell, cx, &mut sent, id, "deletePermanently");
-    assert_eq!(sent(), [format!(r#"{{"c":"menuaction","op":"close","id":{id}}}"#)]);
+    assert_eq!(
+        sent(),
+        [format!(r#"{{"c":"menuaction","op":"close","id":{id}}}"#)]
+    );
     assert_eq!(status(&shell, cx), finishing);
-    assert_eq!(shell.read_with(cx, |shell, _| shell.operations.fileops.deleting[0]), Some(pending_id as u64));
+    assert_eq!(
+        shell.read_with(cx, |shell, _| shell.operations.fileops.deleting[0]),
+        Some(pending_id as u64)
+    );
     assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
     frame(cx);
-    assert!(sent().is_empty(), "deferred menu delivery must not close a claimed snapshot again");
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{pending_id},"op":"snapshot","ok":true,"kinds":[32768]}}"#));
-    assert_eq!(sent(), [format!(r#"{{"c":"menuaction","op":"prepareDelete","id":{pending_id}}}"#)]);
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{pending_id},"op":"prepareDelete","ok":true,"token":9,"count":1,"bytes":12}}"#));
-    assert!(shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)), "the original review still opens its card");
+    assert!(
+        sent().is_empty(),
+        "deferred menu delivery must not close a claimed snapshot again"
+    );
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{pending_id},"op":"snapshot","ok":true,"kinds":[32768]}}"#
+        ),
+    );
+    assert_eq!(
+        sent(),
+        [format!(
+            r#"{{"c":"menuaction","op":"prepareDelete","id":{pending_id}}}"#
+        )]
+    );
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{pending_id},"op":"prepareDelete","ok":true,"token":9,"count":1,"bytes":12}}"#
+        ),
+    );
+    assert!(
+        shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)),
+        "the original review still opens its card"
+    );
     assert!(sent().is_empty());
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

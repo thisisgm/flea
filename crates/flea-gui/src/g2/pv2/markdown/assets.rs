@@ -7,7 +7,7 @@ use gpui::{Image, ImageFormat, RenderImage, SvgRenderer};
 use std::{
     collections::HashMap,
     io::Read,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{mpsc, Arc},
     thread,
 };
@@ -63,6 +63,7 @@ enum Job {
         url: String,
         path: PathBuf,
         scale: f32,
+        limit: u64,
     },
     Svg {
         seq: u64,
@@ -132,16 +133,25 @@ fn draw(bytes: &[u8], scale: f32, svg: &SvgRenderer) -> Option<(Arc<RenderImage>
 }
 
 fn picture(
-    path: &PathBuf,
+    path: &Path,
     scale: f32,
     svg: &SvgRenderer,
+    limit: u64,
 ) -> Option<(Arc<RenderImage>, (f32, f32))> {
-    let file = std::fs::File::open(path).ok()?;
-    if file.metadata().ok()?.len() > PICTURE_MAX_BYTES {
+    let flags = if limit < PICTURE_MAX_BYTES {
+        flea::oflags::O_NOFOLLOW
+    } else {
+        0
+    };
+    let file = flea::backend::regfile::open_if_regular(path, flags).ok()?;
+    if file.metadata().ok()?.len() > limit {
         return None;
     }
     let mut bytes = Vec::new();
-    file.take(PICTURE_MAX_BYTES).read_to_end(&mut bytes).ok()?;
+    file.take(limit + 1).read_to_end(&mut bytes).ok()?;
+    if bytes.len() as u64 > limit {
+        return None;
+    }
     draw(&bytes, scale, svg)
 }
 
@@ -165,9 +175,10 @@ impl Decoder {
                             url,
                             path,
                             scale,
+                            limit,
                         } => Decoded::Picture {
                             seq,
-                            image: picture(&path, scale, &svg),
+                            image: picture(&path, scale, &svg, limit),
                             url,
                         },
                         Job::Svg {
@@ -190,11 +201,16 @@ impl Decoder {
     }
 
     pub fn picture(&self, seq: u64, url: String, path: PathBuf, scale: f32) {
+        self.picture_limited(seq, url, path, scale, PICTURE_MAX_BYTES);
+    }
+
+    pub fn picture_limited(&self, seq: u64, url: String, path: PathBuf, scale: f32, limit: u64) {
         let _ = self.jobs.send(Job::Picture {
             seq,
             url,
             path,
             scale,
+            limit,
         });
     }
 

@@ -1,6 +1,10 @@
 //! The real menu host, backend probe and permission writer cover Make executable end to end.
 #[path = "makeexec_fixture.rs"]
 mod fixture;
+#[path = "flyleaf_tests.rs"]
+mod flyleaf;
+#[path = "makeexec_menurefuse_tests.rs"]
+mod menurefuse;
 #[path = "makeexec_sw03_tests.rs"]
 mod sw03;
 use crate::g2::mn1::join_tests::read;

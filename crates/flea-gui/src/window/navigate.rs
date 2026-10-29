@@ -15,6 +15,8 @@ pub enum Step {
     MouseBack,
     Up,
     Refresh(Option<String>),
+    /// The re-list an operation's result owes: it supersedes a re-read in flight and lands on the first row with nothing marked.
+    Fresh,
     /// The re-read that keeps the cursor's row and its marks by name, with no reload notice.
     Reread,
     Reload,
@@ -36,6 +38,9 @@ impl Shell {
     ) -> Result<bool, Refusal> {
         if self.lifecycle.phase() != super::lifecycle::Phase::Open {
             return Ok(false);
+        }
+        if let Some(result) = self.recent_step(side, &step, window, cx) {
+            return result;
         }
         if matches!(step, Step::Back | Step::MouseBack)
             && self.panes[side]
@@ -65,6 +70,16 @@ impl Shell {
         if host.stopped {
             return Ok(false);
         }
+        // Pane.qml:553: Recent shows every item it lists, so the hidden toggle refuses before any write.
+        if step == Step::ToggleHidden && host.recent.on {
+            host.status = self
+                .locale
+                .catalog
+                .tr("places.recent.hidden_refused")
+                .into();
+            cx.notify();
+            return Ok(false);
+        }
         host.prepare_grid_anchor();
         let (nav, pane, selected) = (&mut host.nav, &mut host.pane, &mut host.selected);
         let result = match step {
@@ -76,6 +91,7 @@ impl Shell {
             Step::MouseBack => nav.mouse_back(pane),
             Step::Up => nav.parent(pane),
             Step::Refresh(select) => nav.refresh(pane, select),
+            Step::Fresh => nav.fresh(pane),
             Step::Reread => Ok(nav.reread(pane, selected, false, false)),
             Step::Reload => nav.reload(pane, selected),
             Step::Retry => nav.retry(pane, selected),
@@ -87,6 +103,11 @@ impl Shell {
         };
         if let Err(refusal) = &result {
             host.status = self.locale.catalog.tr(refusal.key()).into();
+            // A busy refusal also reaches the footer, where the listing's presses and keys say it.
+            if *refusal == Refusal::Busy {
+                let text = host.status.clone();
+                self.status_note(&text, cx);
+            }
         }
         self.run_navigation(side, window, cx);
         cx.notify();
@@ -216,8 +237,12 @@ impl Shell {
         host.input.selection.sync(&host.selected);
         let commands = host.nav.take();
         let mut listed = false;
+        let fresh = commands
+            .iter()
+            .any(|command| matches!(command, Command::List(_)));
         for command in &commands {
-            if let Command::List(listing) = command {
+            crate::navigation::sort::apply_own_patch(&mut self.launch.settings.data, command);
+            if let Command::List(listing) | Command::ListPaths(listing, _) = command {
                 super::columns::requested(host, listing);
                 listed = true;
                 host.waiting = false;
@@ -241,7 +266,13 @@ impl Shell {
             }
         }
         if listed {
-            self.path_labels[side] = host.path.clone().into();
+            let name = self.locale.catalog.tr("places.row.recent");
+            self.path_labels[side] = super::recent::path_label(host, &name);
+        }
+        if fresh {
+            self.cancel_recent_ask(side, cx);
+        }
+        if listed {
             self.arm_transition(side, window, cx);
             self.arm_listing_wait(side, window, cx);
         }

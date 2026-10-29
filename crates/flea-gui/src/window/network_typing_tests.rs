@@ -164,42 +164,85 @@ fn fix_nettype_space_lands_in_a_text_field(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn fix_nettype_found_hosts_never_open_a_list_by_themselves(cx: &mut TestAppContext) {
-    let (card, cx) = opened(cx);
-    cx.update(|_, cx| {
-        card.update(cx, |view, cx| {
-            let id = view.model.discovery.id.unwrap();
-            let rows = r#"{"name":"nas","source":"tailscale","uri":"smb://nas/media"}"#;
-            let line = format!(
-                r#"{{"t":"nearby","id":{id},"state":"found","rows":[{rows}],"errors":[]}}"#
-            );
-            assert!(view.line(&line, cx));
-        })
-    });
+fn fix_nettype_no_host_list_opens_on_open_typing_or_tab(cx: &mut TestAppContext) {
+    let (shell, cx, mut lines) = open(Rc::new(Recorder::default()), cx);
+    cx.update(|window, cx| shell.update(cx, |shell, cx| shell.network_add(0, window, cx)));
     frame(cx);
+    let card = card_of(&shell, cx);
+    assert!(cx.update(|_, cx| card.read(cx).model.opened));
     assert!(
-        !cx.update(|_, cx| card.read(cx).suggestions_open()),
-        "no board draws a host list under HOST on open"
+        drain(&mut lines[0])
+            .iter()
+            .all(|line| !line.contains("nearby")),
+        "opening the card starts no host discovery"
     );
+    let geometry = cx.update(|_, cx| {
+        let view = card.read(cx);
+        let drawn = view.drawn.borrow();
+        (drawn.origin, drawn.card)
+    });
     cx.simulate_input("na");
     frame(cx);
-    assert!(
-        !cx.update(|_, cx| card.read(cx).suggestions_open()),
-        "typing a matching host opens no list"
-    );
     cx.simulate_keystrokes("down");
     frame(cx);
+    let steps = cx.update(|_, cx| card.read(cx).model.ring().len());
+    for _ in 0..steps {
+        cx.simulate_keystrokes("tab");
+        frame(cx);
+        cx.update(|_, cx| {
+            let view = card.read(cx);
+            let drawn = view.drawn.borrow();
+            assert_eq!(
+                (drawn.origin, drawn.card),
+                geometry,
+                "every field keeps the card at its one height and place"
+            );
+        });
+    }
     assert!(
-        cx.update(|_, cx| card.read(cx).suggestions_open()),
-        "Down in HOST asks for the found hosts"
+        drain(&mut lines[0])
+            .iter()
+            .all(|line| !line.contains("nearby")),
+        "typing, Down and Tab ask for no host discovery"
     );
-    cx.simulate_keystrokes("escape");
-    frame(cx);
     cx.update(|_, cx| {
         let view = card.read(cx);
-        assert!(!view.suggestions_open(), "Escape closes the list first");
-        assert!(view.model.opened, "and leaves the card open");
+        assert!(view.model.opened, "the card stays open");
+        assert_eq!(&*view.model.form.host, "na", "typing lands in HOST alone");
     });
+}
+
+#[gpui::test]
+fn fix_nettype_error_line_grows_the_card_and_keeps_chips_under_the_title(cx: &mut TestAppContext) {
+    let (card, cx) = opened(cx);
+    // A whole chip row needs the card's grown height: with Dropbox installed it fits 700 px, without its footer 760 px.
+    for (dropbox, window_height, card_height) in [(true, 700., 649.), (false, 760., 728.)] {
+        cx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(window_height)));
+        cx.update(|_, cx| card.update(cx, |view, _| view.model.dropbox_installed = dropbox));
+        frame(cx);
+        cx.simulate_keystrokes("enter");
+        frame(cx);
+        cx.update(|_, cx| {
+            let view = card.read(cx);
+            assert_eq!(view.model.status, Some("network.invalid_form"));
+            assert_eq!(view.scroll, 0., "the error line never scrolls the body");
+            let drawn = view.drawn.borrow();
+            assert_eq!(drawn.card.map(|rect| rect.h), Some(card_height));
+            let chips: Vec<_> = drawn
+                .hits
+                .iter()
+                .filter(|(focus, _)| matches!(focus, dialog::Focus::Protocol(_)))
+                .collect();
+            assert_eq!(chips.len(), 5, "SMB, SFTP, FTPS, WebDAV and NFS");
+            for (_, rect) in chips {
+                assert_eq!(
+                    (rect.y, rect.h),
+                    (61., 30.),
+                    "a whole chip row sits below the title divider at y 48"
+                );
+            }
+        });
+    }
 }
 
 #[gpui::test]

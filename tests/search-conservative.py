@@ -69,7 +69,8 @@ try:
     assert "abxxefgh" in query("abcdefgh")
     assert query("render")[0] == "render"
     ranked = query("render")
-    assert ranked.index("render_more") < ranked.index("rander"), ranked
+    assert "render_more" in ranked and "rander" not in ranked, ranked
+    assert "rander" in query("rnader")
     assert "downloads/helper.txt" in query("dwnhelp")
     assert "downloads" in query("downloads")
     assert "render13" not in query("render12")

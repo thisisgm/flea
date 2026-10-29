@@ -64,6 +64,12 @@ impl Shell {
                         shell.list_header_down(side, event, window, cx);
                     }),
                 )
+                .on_mouse_down(
+                    MouseButton::Right,
+                    cx.listener(move |shell, event, window, cx| {
+                        shell.header_menu_open(side, event, window, cx);
+                    }),
+                )
                 .child(HeaderElement::new(Rc::clone(&host.list)))
                 .child(header::probe_element(side, Rc::clone(&host.list)))
                 .into_any_element(),
@@ -82,6 +88,7 @@ impl Shell {
                 host.input.pointer_origin && host.input.band.is_none() && !self.input_blocked(cx)
             }),
             renaming: self.renaming_row(side),
+            grow: self.grows[side],
             ..self
                 .settings
                 .row_states(host.pane.held.listing, host.pane.cursor)

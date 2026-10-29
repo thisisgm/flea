@@ -1,5 +1,6 @@
 //! Network form, identity and bridge rules shared by front ends, with no I/O.
 pub mod bridge;
+pub mod cloud;
 pub mod browser;
 pub mod form;
 pub mod heading;

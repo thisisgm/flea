@@ -30,7 +30,7 @@ impl Menu {
         let entry = &card.entries[row];
         let leaves = (!entry.disabled).then(|| entry.submenu.clone()).flatten();
         let action = entry.action.to_string();
-        self.flyout = None;
+        self.retire_flyout();
         if let Some(leaves) = leaves {
             self.open_flyout(Some(row), &action, leaves, env, window);
         }

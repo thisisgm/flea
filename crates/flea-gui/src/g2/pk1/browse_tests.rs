@@ -1,6 +1,23 @@
 // The production Picker on its listing child: no test subscriber, only the child's lines and real keystrokes.
 use super::*;
 
+// Opening and each typed query ask Jump (provisional, then whole); each ask is answered empty under its own id,
+// so Enter commits the typed line instead of waiting on the jump.
+fn answer_jumps(f: &mut Fixture, from: usize) {
+    let mut at = from;
+    while let Some(line) = f.listing.sent().get(at).cloned() {
+        at += 1;
+        let Some(rest) = line.strip_prefix(r#"{"c":"jump","id":"#) else {
+            continue;
+        };
+        let id = rest.split(',').next().unwrap_or_default();
+        f.listing.say(Line::Reply(format!(
+            r#"{{"t":"jumped","id":{id},"favourites":[],"zoxide":[],"recent":[],"frecency":{{}}}}"#
+        )));
+        f.cx.run_until_parked();
+    }
+}
+
 fn row(name: &str, dir: bool) -> String {
     format!(
         r#"{{"n":"{name}","d":{dir},"s":3,"m":0,"p":{},"i":"text-x-generic"}}"#,
@@ -144,8 +161,14 @@ fn a_typed_file_is_peeked_located_and_answered(cx: &mut TestAppContext) {
     f.cx.run_until_parked();
     listed(&mut f, "/d", &[("a.txt", false), ("b.txt", false)]);
     let path = f.update(|picker, cx| picker.browse.path_view(cx));
+    let asked = f.listing.sent().len();
     f.cx.update(|window, cx| path.update(cx, |view, cx| view.open(window, cx)));
+    f.cx.run_until_parked();
+    answer_jumps(&mut f, asked);
+    let asked = f.listing.sent().len();
     f.cx.simulate_input("b.txt");
+    f.cx.run_until_parked();
+    answer_jumps(&mut f, asked);
     f.cx.simulate_keystrokes("enter");
     f.cx.run_until_parked();
     assert_eq!(
@@ -196,8 +219,17 @@ fn a_typed_folder_lists_and_a_missing_path_says_so(cx: &mut TestAppContext) {
             r#"{"t":"peeked","path":"/d/sub","hidden":0,"hiddenLast":false,"first":0,"n":0,"v":1,"w":true,"mode":16877,"rows":[]}"#,
         ),
     ] {
+        // A refused folder reopens the bar with its text, so close it before the next attempt starts clean.
+        f.cx.update(|_, cx| path.update(cx, |view, cx| view.close(cx)));
+        f.cx.run_until_parked();
+        let asked = f.listing.sent().len();
         f.cx.update(|window, cx| path.update(cx, |view, cx| view.open(window, cx)));
+        f.cx.run_until_parked();
+        answer_jumps(&mut f, asked);
+        let asked = f.listing.sent().len();
         f.cx.simulate_input(typed);
+        f.cx.run_until_parked();
+        answer_jumps(&mut f, asked);
         f.cx.simulate_keystrokes("enter");
         f.cx.run_until_parked();
         f.listing.say(Line::Reply(answer.into()));
@@ -210,9 +242,9 @@ fn a_typed_folder_lists_and_a_missing_path_says_so(cx: &mut TestAppContext) {
     assert_eq!(
         f.listing.sent().last().map(String::as_str),
         Some(
-            r#"{"c":"list","path":"/d/sub","first":128,"pickerGlobs":[],"pickerMimes":[],"hidden":false}"#
+            r#"{"c":"list","path":"/d/sub","first":120,"pickerGlobs":[],"pickerMimes":[],"hidden":false}"#
         ),
-        "a peeked folder lists through the picker's own open"
+        "a peeked folder lists through the picker's own open, asking for the visible window"
     );
     assert_eq!(f.read(|picker| picker.listing.location.clone()), "/d/sub");
 }

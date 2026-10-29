@@ -124,12 +124,12 @@ fn pane_geometry(
                 let Some(position) = drawn.position_of(index) else {
                     return String::new();
                 };
+                let row = crate::list::pane::ROW_HEIGHT;
                 rect_of(
                     f32::from(bounds.origin.x),
-                    f32::from(bounds.origin.y) + position as f32 * crate::list::pane::ROW_HEIGHT
-                        - drawn.scroll,
+                    f32::from(bounds.origin.y) + drawn.grow.top(position, row) - drawn.scroll,
                     (f32::from(bounds.size.width) - crate::columns::geometry::LANE).max(0.),
-                    crate::list::pane::ROW_HEIGHT,
+                    drawn.grow.height(position, row),
                 )
             };
             (

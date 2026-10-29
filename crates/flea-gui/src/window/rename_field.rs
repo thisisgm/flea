@@ -7,8 +7,8 @@ use crate::path::{field::Line, paint::paint_run};
 use gpui::{
     fill, point, px, quad, relative, size, App, BorderStyle, Bounds, ContentMask, CursorStyle,
     DispatchPhase, Element, ElementId, ElementInputHandler, Entity, GlobalElementId, GlyphRun,
-    Hitbox, HitboxBehavior, InspectorElementId, IntoElement, LayoutId, MouseButton, MouseDownEvent,
-    Pixels, Position, Style, TextRun, Window,
+    Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, MouseButton,
+    MouseDownEvent, Pixels, Position, Style, TextRun, Window,
 };
 use std::rc::Rc;
 
@@ -21,6 +21,12 @@ pub(crate) struct Shaped {
     pub line: Line,
     error: Option<(String, Rc<GlyphRun>)>,
     pub frame: Option<Bounds<Pixels>>,
+    /// The refusal's band as the last frame drew it, and the inks the frame and the refusal drew with.
+    pub error_area: Option<Bounds<Pixels>>,
+    pub frame_ink: Option<Hsla>,
+    pub error_ink: Option<Hsla>,
+    /// The ground the refusal paints under itself, where no grown row covers its band (Grid never grows).
+    pub error_ground: Option<Bounds<Pixels>>,
     inset: Pixels,
 }
 
@@ -53,7 +59,10 @@ impl IntoElement for FieldElement {
 /// The frame, its text band and the refusal's line, in window coordinates.
 pub(crate) struct Laid {
     frame: Bounds<Pixels>,
+    frame_ink: Hsla,
     error: Option<Bounds<Pixels>>,
+    /// The ground under the refusal, where no grown row's plate covers its band.
+    ground: Option<Bounds<Pixels>>,
     /// The list's viewport: a row scrolled partly out draws and takes presses only inside it.
     clip: Bounds<Pixels>,
     hitbox: Hitbox,
@@ -61,7 +70,19 @@ pub(crate) struct Laid {
     corner: f32,
 }
 
-fn shape(window: &mut Window, text: &str, font: gpui::Font, pixels: Pixels) -> Rc<GlyphRun> {
+/// The height of a refusal's caption line, as its shaped ascent and descent.
+pub(crate) fn caption_line(
+    window: &Window,
+    text: &str,
+    font: gpui::Font,
+    pixels: Pixels,
+) -> Pixels {
+    let run = shape(window, text, font, pixels);
+    let line = run.line();
+    line.ascent + line.descent
+}
+
+fn shape(window: &Window, text: &str, font: gpui::Font, pixels: Pixels) -> Rc<GlyphRun> {
     let run = TextRun {
         len: text.len(),
         font,
@@ -120,6 +141,7 @@ impl Element for FieldElement {
         let side = self.side;
         self.shell.update(cx, |shell, cx| {
             let index = shell.renaming_row(side)?;
+            let grown = shell.grows[side].band > 0.;
             let corner = shell.corner;
             let (font, pixels, caption) = {
                 let list = shell.panes[side].as_ref()?.list.borrow();
@@ -131,7 +153,6 @@ impl Element for FieldElement {
                 clip,
                 inset,
                 below,
-                row,
             } = match shell.rename_place(side, index) {
                 Spot::At(place) => place,
                 // RenameField.qml: a row scrolled wholly out of its view drops the edit, with no commit; a view not yet drawn drops nothing.
@@ -160,6 +181,7 @@ impl Element for FieldElement {
             }
             let width = line.run.as_ref().map_or(px(0.), |run| run.line().width);
             line.scroll = line.scroll.min((width - room).max(px(0.))).max(px(0.));
+            // RenameField.qml: the refusal sits one gap under the field, at its caption line's height.
             let error = (!edit.error.is_empty()).then(|| {
                 if edit
                     .line
@@ -170,17 +192,36 @@ impl Element for FieldElement {
                     let run = shape(window, &edit.error, font, caption);
                     edit.line.error = Some((edit.error.clone(), run));
                 }
-                Bounds::new(point(frame.origin.x, below), size(frame.size.width, row))
+                let height = edit.line.error.as_ref().map_or(px(0.), |(_, run)| {
+                    let line = run.line();
+                    line.ascent + line.descent
+                });
+                Bounds::new(point(frame.origin.x, below), size(frame.size.width, height))
             });
             edit.line.frame = Some(frame);
             edit.line.inset = inset;
             let palette = crate::list::Palette::inherited(&window.text_style(), theme);
+            let ink = crate::path::paint::Ink::of(palette);
+            // RenameField.qml: a refused name takes the error role on its frame and on its refusal.
+            let frame_ink = if error.is_some() {
+                ink.error
+            } else {
+                ink.accent_frame
+            };
+            // A grown row's plate covers the band; a row that did not grow (Grid) leaves the refusal on the window ground.
+            let ground = if grown { None } else { error };
+            edit.line.error_area = error;
+            edit.line.error_ground = ground;
+            edit.line.frame_ink = Some(frame_ink);
+            edit.line.error_ink = Some(ink.error);
             Some(Laid {
                 frame,
+                frame_ink,
                 error,
+                ground,
                 clip,
                 hitbox: window.insert_hitbox(frame.intersect(&clip), HitboxBehavior::Normal),
-                ink: crate::path::paint::Ink::of(palette),
+                ink,
                 corner,
             })
         })
@@ -199,7 +240,7 @@ impl Element for FieldElement {
         let Some(laid) = laid else {
             return;
         };
-        let (ink, frame, clip) = (laid.ink, laid.frame, laid.clip);
+        let (ink, frame, frame_ink, clip) = (laid.ink, laid.frame, laid.frame_ink, laid.clip);
         window.set_cursor_style(CursorStyle::IBeam, &laid.hitbox);
         let shell = self.shell.read(cx);
         let Some(edit) = shell.rename.edit.as_ref() else {
@@ -212,7 +253,7 @@ impl Element for FieldElement {
                 px(laid.corner / 2.),
                 ink.background,
                 px(1.),
-                ink.accent_frame,
+                frame_ink,
                 BorderStyle::Solid,
             ));
             let shaped = &edit.line;
@@ -281,15 +322,17 @@ impl Element for FieldElement {
                     ));
                 }
             });
-            // The refusal takes the band under the row, on the window ground, in the error role.
+            // The refusal sits in the band under its field, in the error role, on the ground its row or the window keeps.
             if let (Some(area), Some((_, run))) = (laid.error, &shaped.error) {
-                window.paint_quad(fill(area, ink.background));
+                if let Some(ground) = laid.ground {
+                    window.paint_quad(fill(ground, ink.background));
+                }
                 paint_run(
                     run,
                     frame.origin.x,
                     area.origin.y,
                     area.size.height,
-                    ink.accent,
+                    ink.error,
                     window,
                 );
             }

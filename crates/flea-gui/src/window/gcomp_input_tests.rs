@@ -120,8 +120,8 @@ fn gcomp_every_chrome_mouse_button_preserves_both_panes_keyboard_owner(cx: &mut 
     );
     assert_eq!(
         call(cx, handle, "thumbnailPolicyState").code,
-        3,
-        "unowned readers must retain their refusal"
+        0,
+        "thumbnailPolicyState answers its v0.3.12 shape while the pane is idle"
     );
 }
 

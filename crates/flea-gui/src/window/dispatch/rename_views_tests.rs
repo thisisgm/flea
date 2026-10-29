@@ -1,14 +1,17 @@
 //! The inline rename field in Columns and Grid: F2 draws the framed field over the cursor's name with its stem selected, and typing and Enter rename.
 use super::{
-    rename_tests::{close, draw, editing, notice, ready, sent},
+    rename_tests::{close, draw, editing, notice, ready, receive, sent},
     test_shell::set_cursor,
 };
 use crate::{
+    backend::Event as BackendEvent,
     columns::geometry::{Slot, CHEVRON, GAP, LANE, NAME_X, PAD_X, SIZE_W},
     state::Shell,
-    window::startup::View,
+    window::{startup::View, u07_tests::read},
 };
-use gpui::{px, Bounds, Entity, Pixels, TestAppContext, VisualTestContext};
+use gpui::{
+    point, px, Bounds, Entity, Modifiers, MouseButton, Pixels, TestAppContext, VisualTestContext,
+};
 use std::time::Duration;
 
 fn frame(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<Bounds<Pixels>> {
@@ -344,16 +347,6 @@ fn drops_once_row_leaves(cx: &mut TestAppContext, view: View) {
     close(&shell, cx);
 }
 
-#[gpui::test]
-fn a_list_edit_drops_once_its_row_leaves_the_list(cx: &mut TestAppContext) {
-    drops_once_row_leaves(cx, View::List);
-}
-
-#[gpui::test]
-fn a_columns_edit_drops_once_its_row_leaves_the_track(cx: &mut TestAppContext) {
-    drops_once_row_leaves(cx, View::Columns);
-}
-
 fn grid_scroll(shell: &Entity<Shell>, cx: &mut VisualTestContext, to: f32) {
     shell.update(cx, |shell, _| {
         shell.panes[0]
@@ -374,3 +367,6 @@ fn list_scroll(shell: &Entity<Shell>, cx: &mut VisualTestContext, to: f32) {
     });
     draw(cx);
 }
+
+#[path = "rename_views_clash_tests.rs"]
+mod extracted;

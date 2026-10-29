@@ -10,12 +10,12 @@ use flea::{
     ipc::wire::{Reply, Request},
     protocol::RowFacts,
 };
-use gpui::{AppContext, KeyDownEvent, Keystroke, TestAppContext, WindowHandle};
+use gpui::{AppContext, KeyDownEvent, Keystroke, Modifiers, TestAppContext, WindowHandle};
 use std::time::Duration;
 
-type Handle = WindowHandle<Root>;
+pub(super) type Handle = WindowHandle<Root>;
 
-fn open(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<String>) {
+pub(super) fn open(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<String>) {
     let (backend, read) = Backend::test_lines();
     let handle = cx.add_window(|window, cx| Root {
         shell: cx.new(|cx| {
@@ -27,7 +27,7 @@ fn open(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<String>) {
     (handle, read)
 }
 
-fn edit<R>(
+pub(super) fn edit<R>(
     cx: &mut TestAppContext,
     handle: Handle,
     f: impl FnOnce(&mut Shell, &mut Window, &mut Context<Shell>) -> R,
@@ -39,7 +39,7 @@ fn edit<R>(
         .unwrap()
 }
 
-fn key(cx: &mut TestAppContext, handle: Handle, key: &str, text: Option<&str>) {
+pub(super) fn key(cx: &mut TestAppContext, handle: Handle, key: &str, text: Option<&str>) {
     edit(cx, handle, |shell, window, cx| {
         shell.key(
             &KeyDownEvent {
@@ -57,7 +57,28 @@ fn key(cx: &mut TestAppContext, handle: Handle, key: &str, text: Option<&str>) {
     });
 }
 
-fn reply(cx: &mut TestAppContext, handle: Handle, side: usize, line: &str) {
+pub(super) fn control_key(cx: &mut TestAppContext, handle: Handle, key: &str) {
+    edit(cx, handle, |shell, window, cx| {
+        shell.key(
+            &KeyDownEvent {
+                keystroke: Keystroke {
+                    key: key.into(),
+                    modifiers: Modifiers {
+                        control: true,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                is_held: false,
+                prefer_character_input: false,
+            },
+            window,
+            cx,
+        )
+    });
+}
+
+pub(super) fn reply(cx: &mut TestAppContext, handle: Handle, side: usize, line: &str) {
     edit(cx, handle, |shell, window, cx| {
         shell.receive(side, Backend::test_reply_line(line), window, cx)
     });
@@ -131,7 +152,7 @@ fn call(cx: &mut TestAppContext, handle: Handle, function: &str) -> Reply {
     })
 }
 
-fn frame(cx: &mut TestAppContext, handle: Handle) {
+pub(super) fn frame(cx: &mut TestAppContext, handle: Handle) {
     cx.update_window(handle.into(), |_, window, cx| {
         window.refresh();
         window.draw(cx).clear(cx);
@@ -176,6 +197,53 @@ fn mounted_search_key_sends_to_existing_backend_and_exposes_actual_query(cx: &mu
     assert_eq!(query.code, 0);
     assert!(query.stdout.contains(r#""searchQuery":"n""#));
     assert_eq!(call(cx, handle, "searchStamps").code, 0);
+}
+
+#[gpui::test]
+fn mounted_ctrl_g_turns_the_strip_to_contents_and_sends_only_contents_requests(
+    cx: &mut TestAppContext,
+) {
+    let (handle, mut read) = open(cx);
+    frame(cx, handle);
+    let _startup = [read(), read(), read()];
+    key(cx, handle, "f", Some("f"));
+    let opened = read().expect("the search key must enqueue searchopen");
+    assert_eq!(
+        flea::json::field_str(&opened, "c").as_deref(),
+        Some("searchopen"),
+        "actual request after the search key: {opened}",
+    );
+    control_key(cx, handle, "g");
+    edit(cx, handle, |shell, _, _| {
+        let session = &shell.panes[0].as_ref().unwrap().search.owner.session;
+        assert_eq!(
+            session.kind,
+            flea::ui_logic_sr1::Kind::Contents,
+            "Ctrl+G must switch the strip to contents",
+        );
+    });
+    for (key_name, text) in [("F", "F"), ("l", "l"), ("e", "e"), ("a", "a")] {
+        key(cx, handle, key_name, Some(text));
+    }
+    let sent: Vec<String> = std::iter::from_fn(&mut read).collect();
+    assert_eq!(
+        sent.len(),
+        4,
+        "one contents request per query key: {sent:?}"
+    );
+    for line in &sent {
+        assert_eq!(
+            flea::json::field_str(line, "c").as_deref(),
+            Some("searchcontents"),
+            "a contents strip never sends a names request: {line}",
+        );
+    }
+    assert_eq!(
+        flea::json::field_str(&sent[3], "query").as_deref(),
+        Some("Flea"),
+        "actual contents query: {}",
+        sent[3],
+    );
 }
 
 #[gpui::test]

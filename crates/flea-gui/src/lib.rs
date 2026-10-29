@@ -18,6 +18,7 @@ pub mod pane;
 pub mod path;
 pub mod presentation;
 pub mod rail;
+mod reveal;
 pub mod row;
 pub mod state;
 pub mod strips;

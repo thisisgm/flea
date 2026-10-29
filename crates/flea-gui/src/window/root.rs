@@ -53,7 +53,7 @@ impl Render for Root {
             .quick_look
             .as_ref()
             .map(|host| host.view.clone())
-            .filter(|view| view.read(cx).is_open())
+            .filter(|view| view.read(cx).visible())
             .map(|view| deferred(div().absolute().top_0().left_0().size_full().child(view)));
         // The output card draws above everything while it shows; a closed card mounts nothing.
         let output = self
@@ -99,6 +99,22 @@ impl Render for Root {
                 deferred(div().absolute().top_0().left_0().size_full().child(layer))
                     .with_priority(usize::MAX)
             });
+        // The Permissions card takes the same highest layer while it shows.
+        let permissions = self
+            .shell
+            .read(cx)
+            .permissions
+            .view
+            .clone()
+            .filter(|view| view.read(cx).opened)
+            .map(|view| {
+                view.update(cx, |view, cx| {
+                    view.corner = self.shell.read(cx).corner;
+                    view.catalog = self.shell.read(cx).locale.catalog.clone();
+                });
+                deferred(div().absolute().top_0().left_0().size_full().child(view))
+                    .with_priority(usize::MAX)
+            });
         // The archive cards and the flash view take the same highest layer while one shows.
         let archive = self
             .shell
@@ -133,6 +149,7 @@ impl Render for Root {
                     .clone()
                     .cached(StyleRefinement::default().size_full()),
             )
+            .child(crate::window::chrome_move::observer(self.shell.clone()))
             // Pane marks paint over the cached shell and below deferred surfaces.
             .child(Overlay(self.shell.clone(), false))
             .children(menu)
@@ -144,6 +161,7 @@ impl Render for Root {
             .children(properties)
             .children(run)
             .children(open_with)
+            .children(permissions)
             .children(archive)
             .children(audit)
     }

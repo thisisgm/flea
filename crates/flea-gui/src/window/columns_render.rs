@@ -15,31 +15,18 @@ impl Shell {
         window: &mut gpui::Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
+        self.advance_columns_scroll(side, window, cx);
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let no_match = self.no_match_hero(side, window, cx);
-        let stranded = self.panes[side].as_mut().is_some_and(|host| {
-            let Some(columns) = host.columns.as_mut() else {
-                return false;
-            };
-            let tracks = Rc::clone(columns.area.tracks());
-            let mut released = false;
-            for (index, bar) in columns.bars.iter_mut().enumerate() {
-                let drawn = tracks.iter().any(|view| {
-                    view.slot.index() == index && !matches!(view.rows, TrackRows::Preview)
-                });
-                if !drawn && bar.input.grab.take().is_some() {
-                    released = true;
-                }
-            }
-            released
-        });
-        if stranded {
-            self.hold_pointer(side, false, window, cx);
-        }
+        let renaming = self.renaming_row(side);
+        let grow = self.grows[side];
+        let tag_slot = self.panes[side]
+            .as_ref()
+            .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));
         let host = self.panes[side].as_mut()?;
         let columns = host.columns.as_mut()?;
         let tracks = Rc::clone(columns.area.tracks());
@@ -67,9 +54,24 @@ impl Shell {
             _ => &host.pane.state.query,
         }
         .into();
+        // A hover reads the rows drawn when it was made: a busy pane, a new track set or a new listing drops it until the pointer moves.
+        if host.pane.busy()
+            || columns
+                .hover
+                .as_ref()
+                .is_some_and(|hover| !hover.holds(&tracks, host.pane.held.listing))
+        {
+            columns.hover = None;
+        }
         let focus = Rc::new(Focus {
             cursor: (!host.pane.busy()).then_some(host.pane.cursor),
             selected: host.selected.clone().into(),
+            renaming,
+            grow,
+            hover: columns
+                .hover
+                .as_ref()
+                .map(|hover| (hover.slot, hover.index)),
             ..Focus::default()
         });
         drop(list);
@@ -112,12 +114,13 @@ impl Shell {
                 at,
                 Some(Rc::clone(&host.pane.held)),
                 Rc::clone(&focus),
-                scroll,
+                columns.scroll[view.slot.index()].input.drawn(scroll),
                 clip.clone(),
                 paint,
                 Rc::clone(&words),
             )
             .with_languages(languages);
+            element = element.with_tag_slot(view.slot == Slot::Active && tag_slot);
             if view.slot == Slot::Active {
                 element = element
                     .with_sizes(Rc::new(crate::columns::walks::Walked {
@@ -137,8 +140,13 @@ impl Shell {
                 .h_full()
                 .overflow_hidden()
                 .child(element);
-            if !matches!(view.rows, TrackRows::Preview) {
-                track = track.child(super::scroll::surface(cx.entity(), side, view.slot, palette));
+            if !matches!(view.rows, TrackRows::Preview) && view.slot != Slot::Active {
+                track = track.child(super::scroll_bar::surface(
+                    cx.entity(),
+                    side,
+                    view.slot,
+                    Rc::clone(&tracks),
+                ));
             }
             if matches!(view.rows, TrackRows::Preview) {
                 if columns.preview_hosted {
@@ -219,7 +227,15 @@ impl Shell {
                 ));
             }
             if view.slot == Slot::Active {
-                track = track.child(super::gestures::surface(side, palette, cx));
+                // The track's own bar sits above the shared gestures, so a lane press never reaches a row.
+                track = track
+                    .child(super::gestures::surface(side, palette, cx))
+                    .child(super::scroll_bar::surface(
+                        cx.entity(),
+                        side,
+                        view.slot,
+                        Rc::clone(&tracks),
+                    ));
             }
             area = area.child(track);
         }
@@ -278,66 +294,6 @@ impl Shell {
                 )
                 .into_any_element(),
         )
-    }
-
-    pub(crate) fn column_loading_marks(
-        &self,
-        window: &gpui::Window,
-        cx: &gpui::App,
-    ) -> [Option<Rc<crate::feedback::spinner::Crawl>>; 5] {
-        let mut marks = std::array::from_fn(|_| None);
-        if self.shown_view() != super::super::startup::View::Columns
-            || self.slots.covers[0].is_some()
-        {
-            return marks;
-        }
-        let Some(columns) = self.panes[0]
-            .as_ref()
-            .and_then(|host| host.columns.as_ref())
-        else {
-            return marks;
-        };
-        let theme = cx
-            .try_global::<crate::palette::Theme>()
-            .copied()
-            .unwrap_or_default();
-        let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        for track in columns
-            .area
-            .tracks()
-            .iter()
-            .filter(|track| track.state == TrackState::Loading)
-        {
-            if let Some(mark) = &columns.loading[track.slot.index()] {
-                mark.show(true, palette.accent_frame);
-                marks[track.slot.index()] = Some(Rc::clone(mark));
-            }
-        }
-        marks
-    }
-
-    pub(crate) fn paint_column_loading(&self, window: &mut gpui::Window, _cx: &gpui::App) {
-        if self.shown_view() != super::super::startup::View::Columns
-            || self.slots.covers[0].is_some()
-        {
-            return;
-        }
-        let Some(columns) = self.panes[0]
-            .as_ref()
-            .and_then(|host| host.columns.as_ref())
-        else {
-            return;
-        };
-        for track in columns
-            .area
-            .tracks()
-            .iter()
-            .filter(|track| track.state == TrackState::Loading)
-        {
-            if let Some(mark) = &columns.loading[track.slot.index()] {
-                mark.paint(window);
-            }
-        }
     }
 }
 

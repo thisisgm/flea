@@ -278,6 +278,15 @@ impl Adapter for StatusAdapter<'_> {
         if let Some(value) = self.empty(function) {
             return Some(Reply::value(value));
         }
+        // The shown folder's fsinfo class, empty until its answer lands or for a local folder.
+        if function == "storageClass" {
+            let facts = &self.shell.surfaces[self.shell.focus_side].filesystem.facts;
+            return Some(Reply::value(
+                facts
+                    .as_ref()
+                    .map_or(String::new(), |facts| facts.class.clone()),
+            ));
+        }
         if !matches!(
             function,
             "lastMessage"

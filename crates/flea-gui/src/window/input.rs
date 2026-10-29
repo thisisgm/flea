@@ -66,6 +66,16 @@ impl Shell {
         if self.card_takes_text(event, window, cx) {
             return;
         }
+        if let Some(view) = self
+            .permissions
+            .view
+            .clone()
+            .filter(|view| view.read(cx).opened)
+        {
+            view.update(cx, |view, cx| view.key(event, window, cx));
+            cx.stop_propagation();
+            return;
+        }
         // Every modal key belongs to the card; a cardless Escape still reaches the window.
         if let Some(overlay) = self.overlay.clone() {
             let modal = overlay.read_with(cx, |card, cx| card.modal(cx));
@@ -223,6 +233,7 @@ impl Shell {
             self.keyboard.context = preview.read(cx).key_context();
         }
         let pair_armed = self.keyboard.pair_armed(name, seat);
+        let arm_live = self.escape_arm_live(seat);
         let resolved = self.keyboard.resolve(name, event, window.modifiers(), seat);
         let dispatch = if resolved == Dispatch::Composition {
             resolved
@@ -231,15 +242,10 @@ impl Shell {
                 .map(Dispatch::Action)
                 .unwrap_or(resolved)
         };
-        // Focus.js: every listing key but the second d ends the dd arm, an unbound one too, before any handler can take it.
-        if self.keyboard.context == flea::keys::Context::Listing
-            && !matches!(
-                dispatch,
-                Dispatch::Composition | Dispatch::Action("trashArm")
-            )
-        {
-            self.operations.fileops.disarm();
-        }
+        let listing = self.keyboard.context == flea::keys::Context::Listing;
+        self.operations
+            .fileops
+            .end_for_listing_key(listing, &dispatch);
         let action = match dispatch {
             Dispatch::Unbound => {
                 if self.keyboard.context == flea::keys::Context::Listing
@@ -276,6 +282,9 @@ impl Shell {
             Dispatch::Action(action) => action,
         };
         let busy = host.pane.busy();
+        if action == "escape" && self.escape_cancels_arm(arm_live, cx) {
+            return;
+        }
         if matches!(action, "focusNext" | "focusPrevious")
             && self.dual_tab(action == "focusNext", window, cx)
         {
@@ -290,6 +299,7 @@ impl Shell {
         }
         if self.keyboard.context == flea::keys::Context::Listing && requests::swallows(busy, action)
         {
+            self.status_note(&self.locale.catalog.tr("pane.busy"), cx);
             self.hold_cursor_key(action);
             cx.stop_propagation();
             return;
@@ -331,7 +341,7 @@ impl Shell {
             return true;
         }
         if action == "menu" {
-            self.menu_keyboard_open(window, cx);
+            self.cursor_menu_key(window, cx);
         } else if action == "autofitColumns" {
             self.fit_list_columns(window, cx);
         } else if action == "pathBar" {

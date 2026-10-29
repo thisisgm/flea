@@ -10,6 +10,9 @@ use gpui::{AppContext, Context, TestAppContext, VisualTestContext, Window, Windo
 #[path = "filter_views_columns_tests.rs"]
 mod columns;
 
+#[path = "filter_exit_columns_tests.rs"]
+mod columns_exit;
+
 type Handle = WindowHandle<Root>;
 
 fn open(cx: &mut TestAppContext) -> Handle {

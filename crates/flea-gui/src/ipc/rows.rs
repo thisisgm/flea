@@ -32,9 +32,14 @@ fn drawn_row_box(list: &ListState, index: usize) -> (f32, f32, f32, f32) {
     let drawn = &list.drawn;
     let bounds = drawn.bounds;
     let row = drawn.metrics.row;
-    let y = f32::from(bounds.origin.y) + index as f32 * row - drawn.scroll_y;
+    let y = f32::from(bounds.origin.y) + drawn.grow.top(index, row) - drawn.scroll_y;
     let width = (f32::from(bounds.size.width) - drawn.metrics.lane).max(0.);
-    (f32::from(bounds.origin.x), y, width, row)
+    (
+        f32::from(bounds.origin.x),
+        y,
+        width,
+        drawn.grow.height(index, row),
+    )
 }
 
 /// Ipc.qml rowRect for any pane's list: the row's box while that list draws it, else empty.

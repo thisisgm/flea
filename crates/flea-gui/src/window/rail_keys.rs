@@ -35,18 +35,7 @@ impl Shell {
             event_input(event, window.modifiers()),
         );
         if action == Match::Action("sidebar") {
-            if join.host.read(cx).rail.mode() == Mode::Overlay {
-                return Some(true);
-            }
-            let hide = join.host.read(cx).rail.mode() != Mode::Hidden;
-            let patch = Json::Obj(vec![(
-                "places".into(),
-                Json::Obj(vec![(
-                    "rail".into(),
-                    Json::Str(if hide { "hidden" } else { "shown" }.into()),
-                )]),
-            )]);
-            self.change_settings(patch, window, cx);
+            self.toggle_sidebar(window, cx);
             return Some(true);
         }
         if matches!(action, Match::Action(name) if matches!(name,
@@ -61,13 +50,15 @@ impl Shell {
             return None;
         }
         if action == Match::Action("addNetwork") {
-            let event = crate::window::input::ActionEvent::bare("addNetwork", flea::keys::Context::Rail);
+            let event =
+                crate::window::input::ActionEvent::bare("addNetwork", flea::keys::Context::Rail);
             self.dispatch(Order::Action(event), window, cx);
             return Some(true);
         }
         producer.update(cx, |producer, _| producer.side = self.focus_side);
         let stroke = &event.keystroke;
-        let plain = !(stroke.modifiers.control || stroke.modifiers.alt || stroke.modifiers.platform);
+        let plain =
+            !(stroke.modifiers.control || stroke.modifiers.alt || stroke.modifiers.platform);
         if producer.update(cx, |producer, cx| producer.mark_key(&stroke.key, plain, cx)) {
             return Some(true);
         }
@@ -91,5 +82,21 @@ impl Shell {
             }
         }
         Some(true)
+    }
+
+    pub(crate) fn toggle_sidebar(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(join) = &self.rail else { return };
+        if join.host.read(cx).rail.mode() == Mode::Overlay {
+            return;
+        }
+        let hide = join.host.read(cx).rail.mode() != Mode::Hidden;
+        let patch = Json::Obj(vec![(
+            "places".into(),
+            Json::Obj(vec![(
+                "rail".into(),
+                Json::Str(if hide { "hidden" } else { "shown" }.into()),
+            )]),
+        )]);
+        self.change_settings(patch, window, cx);
     }
 }

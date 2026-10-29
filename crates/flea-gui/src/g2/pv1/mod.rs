@@ -11,6 +11,7 @@ pub mod doc;
 mod doc_card;
 mod doc_keys;
 pub mod glyph;
+mod lifetime;
 pub mod look;
 mod photo;
 mod photo_frames;
@@ -92,6 +93,9 @@ impl SvgPicture {
 }
 
 pub struct QuickLook {
+    pub(crate) motion: crate::reveal::Reveal,
+    pub(crate) closing: Option<Subject>,
+    close_task: Option<gpui::Task<()>>,
     pub(crate) languages: bool,
     pub(crate) i18n: Arc<I18n>,
     pub(crate) look: Option<Look>,
@@ -124,6 +128,9 @@ impl EventEmitter<Event> for QuickLook {}
 impl QuickLook {
     pub fn new(i18n: Arc<I18n>) -> Self {
         Self {
+            motion: Default::default(),
+            closing: None,
+            close_task: None,
             languages: true,
             i18n,
             look: None,
@@ -153,6 +160,15 @@ impl QuickLook {
     pub fn set_look(&mut self, look: Look, cx: &mut Context<Self>) {
         self.look = Some(look);
         cx.notify();
+    }
+
+    /// The roles the card draws with: the host's when it set them, else the theme's inherited roles.
+    pub(crate) fn look(&self, style: &gpui::TextStyle, theme: crate::palette::Theme) -> Look {
+        self.look.unwrap_or_else(|| Look::of_text(style, theme))
+    }
+
+    pub(crate) fn visible(&self) -> bool {
+        self.subject.is_some() || self.closing.is_some()
     }
 
     pub fn is_open(&self) -> bool {
@@ -197,6 +213,18 @@ impl QuickLook {
 
     /// Opens on a subject; revealed is false while the swap still holds the card back.
     pub fn open(&mut self, subject: Subject, revealed: bool, cx: &mut Context<Self>) {
+        self.close_task = None;
+        if let Some(closing) = self.closing.take() {
+            self.expanded = false;
+            self.strip_shown = false;
+            if let Some(old) = closing
+                .body
+                .doc()
+                .filter(|old| subject.body.doc().is_none_or(|new| new.id() != old.id()))
+            {
+                old.close(cx);
+            }
+        }
         let moved = self
             .subject
             .as_ref()
@@ -223,32 +251,11 @@ impl QuickLook {
         cx.notify();
     }
 
-    /// close() in Preview.qml: every per-subject flag goes, so the next open starts clean.
-    pub fn close(&mut self, cx: &mut Context<Self>) {
-        let Some(subject) = self.subject.take() else {
-            return;
-        };
-        self.doc_watch = None;
-        if let Some(doc) = subject.body.doc() {
-            doc.close(cx);
-        }
-        self.ground.reset();
-        self.retire_svg(cx);
-        self.zoom = 1.;
-        self.revealed = false;
-        self.expanded = false;
-        self.strip_shown = false;
-        self.focused = None;
-        self.hovered = None;
-        self.pressed = None;
-        self.chrome_armed = false;
-        self.scroll = Scroll::default();
-        cx.emit(Event::Closed);
-        cx.notify();
-    }
-
     /// One pointer event the shield already consumed: the viewport's wheel, lane and knob first, then the ground's policy.
     pub fn pointer(&mut self, hand: Hand, cx: &mut Context<Self>) {
+        if self.subject.is_none() {
+            return;
+        }
         let Hand {
             pointer,
             at,

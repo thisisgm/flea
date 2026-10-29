@@ -154,7 +154,8 @@ impl Element for RailElement {
             .rows
             .iter_mut()
             .map(|row| {
-                row.detail_color = crate::ipc::rows::colour(palette.metadata);
+                let ink = super::paint::detail_ink(&model, row.index, &palette);
+                row.detail_color = crate::ipc::rows::colour(ink);
                 cache.get(
                     &row.detail,
                     self.detail_face.caption,
@@ -213,7 +214,10 @@ impl Element for RailElement {
         let model = self.model.borrow();
         let laid = self.laid.borrow();
         self.attach_rename(&model, &laid, bounds, window, cx);
-        window.paint_quad(fill(bounds, palette.background));
+        window.paint_quad(fill(
+            bounds,
+            crate::window::glass::rail_ground(palette.background, window, cx),
+        ));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (header, text) in laid.headers.iter().zip(&ready.headers) {
                 text.paint(
@@ -244,7 +248,8 @@ impl Element for RailElement {
                 {
                     continue;
                 }
-                if model.hovered == Some(row.index) {
+                let cue = super::paint::is_cue(&model, row.index);
+                if model.hovered == Some(row.index) && !cue {
                     window.paint_quad(fill(
                         box_of(row.rect),
                         palette.foreground.opacity(crate::list::HOVER),
@@ -252,7 +257,9 @@ impl Element for RailElement {
                 }
                 let keyboard = model.focused && !model.pointer_focus;
                 let highlighted = if keyboard { model.cursor } else { model.lit };
-                if highlighted == Some(row.index) {
+                if cue {
+                    super::paint::paint_cue(row, &palette, window);
+                } else if highlighted == Some(row.index) {
                     let plate = if keyboard {
                         palette.accent.opacity(crate::list::CURSOR_WASH)
                     } else {
@@ -333,14 +340,20 @@ impl Element for RailElement {
                                 ));
                             }
                         }
-                        label.paint(origin, rect.y, rect.height, palette.foreground, window);
+                        label.paint(
+                            origin,
+                            rect.y,
+                            rect.height,
+                            super::label_ink(row.error, &palette),
+                            window,
+                        );
                     },
                 );
                 ready.details[at].paint(
                     row.detail_rect.x,
                     row.detail_rect.y,
                     row.detail_rect.height,
-                    palette.metadata,
+                    super::paint::detail_ink(&model, row.index, &palette),
                     window,
                 );
                 if row.eject {

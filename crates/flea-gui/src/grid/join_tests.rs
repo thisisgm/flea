@@ -164,7 +164,7 @@ fn u10_live_grid_caption_and_rect_exist_only_for_painted_tiles(cx: &mut TestAppC
     assert_eq!(call(cx, handle, "rowRect", &["-1"]), Reply::value(""));
     assert_eq!(
         call(cx, handle, "thumbnailPolicyState", &[]).code,
-        3,
-        "unimplemented readers retain refusal"
+        0,
+        "the thumbnail policy reader answers beside the drawn Grid"
     );
 }

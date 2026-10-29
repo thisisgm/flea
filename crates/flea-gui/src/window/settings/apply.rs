@@ -83,6 +83,9 @@ impl Shell {
                 },
             ));
             let favourite = operation.is_some();
+            self.settings
+                .favourite_writes
+                .extend(favourite.then_some(revision));
             if worker.writes.send((revision, saving, operation)).is_err() {
                 self.settings_save_error(cx);
             }
@@ -123,8 +126,7 @@ impl Shell {
                             .cloned(),
                     );
                 }
-                self.settings.pending.retain(|(id, _)| *id > through);
-                self.settings.retried.retain(|(id, _)| *id > through);
+                self.settings.answered(through);
                 self.settings_save_error(cx);
             }
             store::Update::Loaded {
@@ -153,8 +155,7 @@ impl Shell {
                         });
                     }
                 }
-                self.settings.pending.retain(|(id, _)| *id > through);
-                self.settings.retried.retain(|(id, _)| *id > through);
+                self.settings.answered(through);
                 // Folder choices the folder writer has not finished stay as this window chose them.
                 let owed = self
                     .panes
@@ -261,6 +262,7 @@ impl Shell {
                 view.update(cx, |view, cx| view.refresh(cx));
             }
         }
+        self.sync_trash_sheet(cx);
         if relist {
             self.settings.relist = [true, true];
         }
@@ -343,7 +345,7 @@ impl Shell {
             if host.nav.busy(&host.pane) {
                 continue;
             }
-            if host.nav.reread(&mut host.pane, &host.selected, true, false) {
+            if host.nav.reread_preferences(&mut host.pane, &host.selected) {
                 self.settings.relist[side] = false;
                 self.run_navigation(side, window, cx);
             }

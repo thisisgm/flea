@@ -4,7 +4,7 @@ use super::*;
 pub(super) fn paint_mark(
     row: &LaidRow,
     palette: &Palette,
-    digit: Option<&text::Prepared>,
+    _digit: Option<&text::Prepared>,
     metrics: &RailMetrics,
     window: &mut Window,
     cx: &mut App,
@@ -20,25 +20,9 @@ pub(super) fn paint_mark(
                 ),
                 size(px(metrics.tag), px(metrics.tag)),
             );
-            if let Some(colour) = tag.fill {
-                window.paint_quad(fill(box_, colour));
-            } else if let Some(digit) = digit {
-                window.paint_quad(gpui::quad(
-                    box_,
-                    px(0.),
-                    palette.background,
-                    px(2.),
-                    palette.foreground,
-                    gpui::BorderStyle::Solid,
-                ));
-                digit.paint(
-                    f32::from(box_.origin.x) + (metrics.tag - digit.width) / 2.,
-                    f32::from(box_.origin.y),
-                    metrics.tag,
-                    palette.foreground,
-                    window,
-                );
-            }
+            let mut colour = tag.fill.unwrap_or(palette.foreground);
+            colour.a = 1.;
+            window.paint_quad(fill(box_, colour));
         }
         RowMark::Square(square) => {
             use flea::ui_logic_pl4::rail::Square;
@@ -63,7 +47,10 @@ pub(super) fn paint_mark(
                 let _ = window.paint_svg(
                     Bounds::new(
                         point(px(x), px(y)),
-                        size(px(metrics.icon), px(metrics.icon)),
+                        size(
+                            px(metrics.icon * if row.glyph == "dropbox" { 1.18 } else { 1. }),
+                            px(metrics.icon),
+                        ),
                     ),
                     key,
                     Some(data),
@@ -119,4 +106,36 @@ pub(super) fn paint_eject(
             cx,
         );
     }
+}
+
+/// The row a held drag would land on (RailDrop.qml's cue).
+pub(super) fn is_cue(model: &RowsModel, index: usize) -> bool {
+    model
+        .drop_target
+        .as_ref()
+        .is_some_and(|(target, _)| *target == index)
+}
+
+/// The trailing caption's ink: the drop cue's label in the accent, any other detail in metadata.
+pub(super) fn detail_ink(model: &RowsModel, index: usize, palette: &Palette) -> gpui::Hsla {
+    if is_cue(model, index) {
+        palette.accent
+    } else {
+        palette.metadata
+    }
+}
+
+/// drag-cut-move: the drop target takes the cursor's accent wash and edge, one destination lit at a time.
+pub(super) fn paint_cue(row: &LaidRow, palette: &Palette, window: &mut Window) {
+    window.paint_quad(fill(
+        box_of(row.rect),
+        palette.accent.opacity(crate::list::CURSOR_WASH),
+    ));
+    window.paint_quad(fill(
+        Bounds::new(
+            point(px(row.rect.x), px(row.rect.y)),
+            size(px(2.), px(row.rect.height)),
+        ),
+        palette.accent_frame,
+    ));
 }

@@ -167,6 +167,11 @@ impl Settings {
         }
         (paths, named.map(|_| side))
     }
+
+    /// Settings > View "Open items with": Pane.qml reads its singleClick as this same word, so only "single" opens on one click.
+    pub fn single_click_open(&self) -> bool {
+        word(&self.data, "openMode") == "single"
+    }
 }
 
 pub fn binary() -> PathBuf {

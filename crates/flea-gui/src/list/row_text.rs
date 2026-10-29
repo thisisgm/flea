@@ -99,10 +99,18 @@ pub(super) fn prepare(
     };
     let (name, run) = drawn_name(&display, extra, &name_shaping, &view.query);
     let words = &view.words;
+    let date = || {
+        let full = format::date_text(facts.mtime, words);
+        if view.picker.is_some() {
+            full.split(' ').next().unwrap_or(&full).to_owned()
+        } else {
+            full
+        }
+    };
     Prepared {
         label: name.clone(),
         size_text: format::size_text(facts, extra.walked, words),
-        date_text: format::date_text(facts.mtime, words),
+        date_text: date(),
         location: if location.is_empty() {
             GlyphRun::new(Arc::clone(blank))
         } else {
@@ -112,7 +120,7 @@ pub(super) fn prepare(
         size: cell(Column::Size, &|| {
             format::size_text(facts, extra.walked, words)
         }),
-        date: cell(Column::Date, &|| format::date_text(facts.mtime, words)),
+        date: cell(Column::Date, &date),
         mode: cell(Column::Mode, &|| format::permissions(facts.mode)),
         // Row.kindText(): the reply's kinds[k], empty when the row names none.
         kind: cell(Column::Kind, &|| facts.kind.clone()),
