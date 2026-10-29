@@ -15,18 +15,32 @@ pub enum Dispatch {
     Action(&'static str),
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Keyboard {
     pub context: Context,
     sequence: Sequence,
     composing: bool,
+    sequence_path: String,
 }
 
 impl Keyboard {
+    pub(crate) fn capture_sequence_path(&mut self, path: &str) {
+        self.sequence_path.clear();
+        self.sequence_path.push_str(path);
+    }
+
+    pub(crate) fn sequence_path(&self) -> &str {
+        &self.sequence_path
+    }
+
     /// No caller yet: the text-input owner sets this from marked text, and Linux key events never prefer character input.
     pub fn set_composing(&mut self, composing: bool) {
         self.composing = composing;
         self.sequence.clear();
+    }
+
+    pub(crate) fn composing(&self, event: &KeyDownEvent) -> bool {
+        self.composing || event.prefer_character_input
     }
 
     pub fn disarm(&mut self) {
@@ -51,7 +65,7 @@ impl Keyboard {
         held: Modifiers,
         seat: Seat,
     ) -> Dispatch {
-        if self.composing || event.prefer_character_input {
+        if self.composing(event) {
             self.sequence.clear();
             return Dispatch::Composition;
         }

@@ -285,7 +285,7 @@ impl Shell {
                         .as_ref()
                         .is_some_and(|host| host.token == token);
                     if current && view.read(cx).is_open() && !view.read(cx).is_revealed() {
-                        view.update(cx, |view, cx| view.reveal(cx));
+                        view.update(cx, |view, cx| view.reveal_cap(cx));
                     }
                 });
             })

@@ -43,6 +43,7 @@ impl Render for QuickLook {
         if !active {
             self.subject = self.closing.take();
         }
+        self.observe_frames(window, cx);
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -74,6 +75,33 @@ impl Render for QuickLook {
         if !active {
             self.closing = self.subject.take();
         }
+        let ready = self.content_ready(cx);
+        let landed = self.observations.borrow().landed;
+        if self.revealed && ready && !landed {
+            self.observe_reveal(false, cx);
+        }
+        let frames = self.observation_frames.clone();
+        let stamp = {
+            let observed = self.observations.borrow();
+            super::observed_frames::Stamp {
+                visible: self.revealed,
+                ready,
+                holding: observed.swap.holding,
+                loading: self.revealed && !ready && observed.revealed_early,
+            }
+        };
+        overlay = overlay.child(
+            gpui::canvas(
+                |_, _, _| (),
+                move |_, _, window, _| {
+                    if let Some(id) = window.current_draw_id() {
+                        frames.borrow_mut().stage(id, stamp);
+                    }
+                },
+            )
+            .absolute()
+            .size_full(),
+        );
         overlay.into_any_element()
     }
 }

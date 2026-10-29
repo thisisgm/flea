@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "status_notice_layout_tests.rs"]
+mod layout;
+
 // EY-48: m over a folder Flea cannot read, the Locked state's pane.
 fn locked(cx: &mut TestAppContext, hidden: Option<&str>) -> WindowHandle<Shell> {
     locked_at(cx, hidden, "/files")

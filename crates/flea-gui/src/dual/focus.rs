@@ -86,6 +86,11 @@ impl Shell {
             _ => &self.focus,
         };
         window.focus(handle, cx);
+        if to == 3 {
+            self.enter_chrome(forward, window, cx);
+        } else if to == 4 {
+            self.enter_strip(forward);
+        }
         self.keyboard.context = match to {
             2 => flea::keys::Context::Rail,
             3 | 4 => flea::keys::Context::Panel,

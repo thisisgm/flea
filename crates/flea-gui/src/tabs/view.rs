@@ -215,6 +215,8 @@ impl Shell {
             .set(count < super::MAX || self.strip.bar.out_active);
         let holding = self.tab_holding();
         let visible = self.has_tabs();
+        self.strip.bar.stop_focused = visible && self.dual_focus.strip.is_focused(window);
+        self.strip.bar.focused_index = self.strip.bar.focused_index.min(count);
         {
             let mut frames = self.strip.frames.borrow_mut();
             frames.follow(holding);

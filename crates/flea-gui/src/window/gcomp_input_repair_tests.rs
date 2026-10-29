@@ -42,11 +42,14 @@ fn g70_dual_escape_returns_from_tabbed_chrome(cx: &mut TestAppContext) {
             });
             frame(cx, handle);
             key(cx, handle, if side == 0 { "shift-tab" } else { "tab" });
-            edit(cx, handle, |shell, window, _| {
+            edit(cx, handle, |shell, window, cx| {
                 assert!(
-                    shell.dual_focus.chrome.is_focused(window),
+                    shell.dual_focus.chrome.contains_focused(window, cx),
                     "G70_TAB_REACHED_CHROME"
                 );
+                let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+                let glyph = if side == 0 { 9 } else { 1 };
+                assert!(chrome.focus[glyph].is_focused(window));
                 assert_eq!(shell.keyboard.context, flea::keys::Context::Panel);
                 assert_eq!(shell.focus_side, side);
             });
@@ -58,9 +61,9 @@ fn g70_dual_escape_returns_from_tabbed_chrome(cx: &mut TestAppContext) {
                 shell.keyboard.set_composing(true);
             });
             key(cx, handle, "escape");
-            edit(cx, handle, |shell, window, _| {
+            edit(cx, handle, |shell, window, cx| {
                 assert!(
-                    shell.dual_focus.chrome.is_focused(window),
+                    shell.dual_focus.chrome.contains_focused(window, cx),
                     "G70_COMPOSITION_OWNS_ESCAPE"
                 );
                 shell.keyboard.set_composing(false);

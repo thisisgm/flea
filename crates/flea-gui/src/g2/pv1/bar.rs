@@ -251,7 +251,11 @@ pub(super) fn ring_slot(
             )));
         }
     }
-    slot.into_any_element()
+    if hit == Some(Hit::Close) {
+        super::observations::close_slot(slot, &state.observations).into_any_element()
+    } else {
+        slot.into_any_element()
+    }
 }
 
 /// Copy Patch: a bare caption word in the foreground, as the bar's marks are bare (CHANGES compare).

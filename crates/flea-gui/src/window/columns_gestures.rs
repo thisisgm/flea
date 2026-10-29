@@ -19,7 +19,7 @@ pub(super) fn surface(
         let grow = shell.grows[side];
         let host = shell.panes[side].as_mut()?;
         let total = host.filter.shown_total(host.pane.held.total);
-        let row = crate::list::pane::ROW_HEIGHT;
+        let row = host.columns_row_height();
         let frame = crate::input::Frame {
             bounds,
             row,
@@ -127,8 +127,7 @@ pub(crate) fn hover_at(host: &PaneHost, point: Point<Pixels>) -> Option<Hover> {
         {
             return None;
         }
-        let position = ((f32::from(point.y - drawn.bounds.top()) + drawn.scroll)
-            / crate::list::pane::ROW_HEIGHT)
+        let position = ((f32::from(point.y - drawn.bounds.top()) + drawn.scroll) / drawn.row_height)
             .floor() as usize;
         let index = drawn.row_at(position)?;
         crate::columns::element::row_at(&view.rows, drawn.held.as_deref(), index).map(|_| Hover {
@@ -165,7 +164,7 @@ pub(crate) fn drop_spot(
         }
         let position = drawn.grow.position_at(
             f32::from(point.y - drawn.bounds.top()) + drawn.scroll,
-            crate::list::pane::ROW_HEIGHT,
+            drawn.row_height,
         );
         let row = (point.x < drawn.bounds.right() - px(LANE))
             .then_some(drawn.row_at(position))

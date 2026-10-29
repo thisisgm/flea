@@ -80,6 +80,23 @@ fn new_file_row_opens_its_card_with_the_name_prefilled_and_sends_nothing(cx: &mu
         ),
         other => panic!("New File opens its card: {other:?}"),
     }
+    let field = flea::jsondoc::parse(&read(&shell, cx, "keyDeliveryState", &[])).unwrap();
+    assert_eq!(
+        field
+            .get("activeFocusItem")
+            .and_then(flea::jsondoc::Json::as_str),
+        Some("QQuickTextInput")
+    );
+    cx.simulate_keystrokes("tab");
+    frame(cx);
+    let button = flea::jsondoc::parse(&read(&shell, cx, "keyDeliveryState", &[])).unwrap();
+    assert_eq!(
+        button
+            .get("activeFocusItem")
+            .and_then(flea::jsondoc::Json::as_str),
+        Some("DialogButton")
+    );
+    assert!(sent().is_empty(), "focus traversal never creates a file");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

@@ -157,6 +157,7 @@ struct Overlay {
 
 impl Render for Overlay {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let scroll = self.host.input.drawn(self.host.pane.scroll_y);
         div()
             .size_full()
             .children(crate::state::Shell::contents_element(
@@ -164,6 +165,7 @@ impl Render for Overlay {
                 &flea::jsondoc::Json::Null,
                 Some(std::rc::Rc::clone(&self.held)),
                 self.rows.clone(),
+                scroll,
                 window,
                 cx,
             ))

@@ -296,7 +296,6 @@ impl Overlay {
     pub(crate) fn sync_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.sync_editor(window, cx);
     }
-    #[cfg(test)]
     pub(crate) fn focus_handle(&self) -> Option<gpui::FocusHandle> {
         self.editor.focus.clone()
     }

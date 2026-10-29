@@ -192,7 +192,7 @@ impl TrackPaint {
     pub fn slot_box(&self, index: usize) -> Option<(f32, f32, f32)> {
         let drawn = self.drawn.as_ref()?;
         let at = self.visible.iter().position(|(row, _, _)| *row == index)?;
-        let top = f32::from(drawn.bounds.origin.y) + (self.first + at) as f32 * ROW_HEIGHT
+        let top = f32::from(drawn.bounds.origin.y) + (self.first + at) as f32 * drawn.row_height
             - drawn.scroll.max(0.);
         Some((
             f32::from(drawn.bounds.origin.x) + PAD_X,
@@ -266,6 +266,7 @@ pub struct Drawn {
     pub shown: Option<Rc<[usize]>>,
     /// The refused rename's band this track drew with; only the active track ever grows.
     pub grow: crate::list::pane::Grow,
+    pub row_height: f32,
 }
 
 impl Drawn {

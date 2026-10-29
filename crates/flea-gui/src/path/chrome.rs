@@ -5,8 +5,8 @@ use super::{
 };
 use crate::{list::Palette, palette::Theme, window::startup::View};
 use gpui::{
-    canvas, div, prelude::*, px, Bounds, Context, Entity, EventEmitter, FocusHandle, KeyDownEvent,
-    MouseButton, Pixels, Point, Window,
+    canvas, div, prelude::*, px, Bounds, Context, Entity, EventEmitter, FocusHandle, MouseButton,
+    Pixels, Point, Window,
 };
 use std::{cell::RefCell, rc::Rc, time::Instant};
 
@@ -133,15 +133,6 @@ impl ChromeView {
             .flex()
             .justify_center()
             .track_focus(&self.focus[index])
-            .on_key_down(cx.listener(move |_, event: &KeyDownEvent, _, cx| {
-                if live
-                    && matches!(event.keystroke.key.as_str(), "enter" | "space")
-                    && event.keystroke.modifiers == gpui::Modifiers::none()
-                {
-                    cx.emit(ACTIONS[index]);
-                    cx.stop_propagation();
-                }
-            }))
             .hover_listener_mode(gpui::HoverListenerMode::InputModalityIndependent)
             .on_hover(cx.listener(move |view, hovered: &bool, _, cx| {
                 let mut frame = view.frame.borrow_mut();

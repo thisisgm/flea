@@ -49,6 +49,14 @@ impl Held {
     }
 }
 
+impl Held {
+    pub(crate) fn armed_at_side(&self, side: usize) -> u64 {
+        self.seat
+            .filter(|seat| seat.focus == side as u64)
+            .map_or(0, |_| self.arm.stamp)
+    }
+}
+
 pub(super) fn run(
     shell: &mut Shell,
     order: &Order,

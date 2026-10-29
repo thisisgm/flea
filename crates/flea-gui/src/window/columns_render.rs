@@ -12,6 +12,8 @@ impl Shell {
         &mut self,
         side: usize,
         mark_drawn: bool,
+        held_contents: Option<Rc<crate::g2::sr1::contents::Held>>,
+        mut rows: crate::list::RowStates,
         window: &mut gpui::Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
@@ -22,12 +24,37 @@ impl Shell {
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let no_match = self.no_match_hero(side, window, cx);
+        let blocked = self.input_blocked(cx);
         let renaming = self.renaming_row(side);
         let grow = self.grows[side];
         let tag_slot = self.panes[side]
             .as_ref()
             .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));
         let host = self.panes[side].as_mut()?;
+        let active = host.columns.as_ref()?;
+        rows.hovered = active
+            .hover
+            .as_ref()
+            .filter(|hover| {
+                !blocked
+                    && !host.pane.busy()
+                    && hover.slot == Slot::Active
+                    && hover.holds(active.area.tracks(), host.pane.held.listing)
+            })
+            .map(|hover| hover.index);
+        let contents_scroll = active.scroll[Slot::Active.index()]
+            .input
+            .drawn(host.pane.scroll_y);
+        let row_height = host.columns_row_height();
+        let mut blocks = Self::contents_element(
+            host,
+            &self.launch.settings.data,
+            held_contents,
+            rows,
+            contents_scroll,
+            window,
+            cx,
+        );
         let columns = host.columns.as_mut()?;
         let tracks = Rc::clone(columns.area.tracks());
         columns.painters.retain(&tracks);
@@ -123,6 +150,7 @@ impl Shell {
             element = element.with_tag_slot(view.slot == Slot::Active && tag_slot);
             if view.slot == Slot::Active {
                 element = element
+                    .with_row_height(row_height)
                     .with_sizes(Rc::new(crate::columns::walks::Walked {
                         list: Rc::clone(&host.list),
                         listing: host.pane.held.listing,
@@ -140,6 +168,9 @@ impl Shell {
                 .h_full()
                 .overflow_hidden()
                 .child(element);
+            if view.slot == Slot::Active {
+                track = track.children(blocks.take());
+            }
             if !matches!(view.rows, TrackRows::Preview) && view.slot != Slot::Active {
                 track = track.child(super::scroll_bar::surface(
                     cx.entity(),

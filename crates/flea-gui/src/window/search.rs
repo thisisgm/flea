@@ -9,6 +9,8 @@ use std::rc::Rc;
 
 #[path = "search_empty.rs"]
 mod empty;
+#[path = "search_keys.rs"]
+mod keys;
 #[path = "search_observe.rs"]
 mod observe;
 pub(crate) use observe::{Draw, QueryReader};
@@ -211,6 +213,17 @@ impl Shell {
         let key = StripKey::from_event(event);
         if !host.search.owner.typing() && !matches!(key, StripKey::Escape) {
             return false;
+        }
+        // Focus.js leavesLine lets non-printable cursor keys reach the listing while the query keeps typing.
+        let name = self
+            .launch
+            .settings
+            .data
+            .get("keys")
+            .and_then(flea::jsondoc::Json::as_str)
+            .unwrap_or("default");
+        if host.search.owner.typing() && keys::leaves_line(name, event, window.modifiers()) {
+            return host.search.owner.session.leaving;
         }
         let clipboard = matches!(key, StripKey::Paste)
             .then(|| cx.read_from_clipboard().and_then(|item| item.text()))

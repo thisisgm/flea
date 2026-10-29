@@ -385,6 +385,7 @@ impl SelectionPreview {
             .loading_at
             .map(|at| at + crate::pane::swap::MIN_SHOW_MS);
         if ready && minimum.is_none_or(|at| at <= now) {
+            observation::release(&mut swap, now, "landed", false);
             swap.ready = true;
             swap.holding = false;
             swap.cap = None;
@@ -400,6 +401,7 @@ impl SelectionPreview {
             return;
         }
         if !ready && swap.cap.is_some_and(|at| at <= now) {
+            observation::release(&mut swap, now, "expired", true);
             swap.fallbacks += 1;
             swap.cap = None;
             swap.holding = false;

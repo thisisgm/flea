@@ -163,7 +163,8 @@ fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut Te
                         assert!(shell.chrome.view.is_some());
                         assert!(shell.dual_tab(false, window, cx));
                         assert_eq!(shell.focus_view(window, cx), "chrome");
-                        assert!(shell.dual_focus.chrome.is_focused(window));
+                        assert!(shell.dual_focus.chrome.contains_focused(window, cx));
+                        assert!(shell.chrome.view.as_ref().unwrap().read(cx).focus[9].is_focused(window));
                     }
                     KeyContext::Preview => {
                         let pane = &mut shell.panes[0].as_mut().unwrap().pane;

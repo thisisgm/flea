@@ -77,6 +77,7 @@ impl Shell {
         data: &flea::jsondoc::Json,
         held: Option<Rc<sr1::contents::Held>>,
         rows: crate::list::RowStates,
+        scroll: f32,
         window: &Window,
         cx: &App,
     ) -> Option<gpui::AnyElement> {
@@ -104,13 +105,14 @@ impl Shell {
             &window.text_style(),
             theme,
         ));
-        let scroll = host.input.drawn(host.pane.scroll_y);
         let blocks =
             sr1::contents::ContentsElement::new(held, scroll, host.pane.cursor, palette, state)
                 .with_states(rows);
         Some(
             div()
                 .absolute()
+                .left_0()
+                .top_0()
                 .size_full()
                 .child(blocks)
                 .into_any_element(),

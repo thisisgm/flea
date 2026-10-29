@@ -37,6 +37,8 @@ mod load;
 mod loading;
 #[path = "selection_preview_multi.rs"]
 pub(crate) mod multi;
+#[path = "selection_preview_observation.rs"]
+pub(crate) mod observation;
 #[path = "selection_preview_picture.rs"]
 pub(crate) mod picture;
 #[path = "selection_preview_play.rs"]
@@ -264,6 +266,8 @@ impl Frame {
 
 #[derive(Default)]
 pub(crate) struct SwapState {
+    pub observation: observation::Swap,
+    pub clock: Option<observation::Clock>,
     pub now: u64,
     pub holding: bool,
     pub cap: Option<u64>,
@@ -276,6 +280,18 @@ pub(crate) struct SwapState {
     pub readers: std::collections::HashMap<String, String>,
 }
 
+impl SwapState {
+    fn time(&self) -> u64 {
+        self.clock.as_ref().map_or(self.now, |clock| {
+            clock
+                .executor
+                .now()
+                .saturating_duration_since(clock.origin)
+                .as_millis() as u64
+        })
+    }
+}
+
 /// Both Columns ports borrow this same retained state, so a hold survives every Area call.
 #[derive(Clone, Default)]
 pub(crate) struct Port(pub Rc<RefCell<SwapState>>);
@@ -283,8 +299,11 @@ impl ThirdSwap for Port {
     fn idle(&self) -> bool {
         !self.0.borrow().holding
     }
-    fn hold(&mut self, _: &str) {
+    fn hold(&mut self, key: &str) {
         let mut state = self.0.borrow_mut();
+        let now = state.time();
+        let holding = state.holding;
+        state.observation.hold(now, holding, key);
         if !state.holding {
             state.holds += 1;
         }
@@ -292,7 +311,7 @@ impl ThirdSwap for Port {
     }
     fn start(&mut self, _: bool) {
         let mut state = self.0.borrow_mut();
-        state.cap = Some(state.now + crate::pane::swap::CAP_MS);
+        state.cap = Some(state.time() + crate::pane::swap::CAP_MS);
     }
     fn stop_cap(&mut self) {
         let mut state = self.0.borrow_mut();
@@ -301,6 +320,8 @@ impl ThirdSwap for Port {
     }
     fn cancel(&mut self) {
         let mut state = self.0.borrow_mut();
+        let now = state.time();
+        observation::release(&mut state, now, "cancelled", false);
         state.holding = false;
         state.cap = None;
         state.folder = false;
@@ -360,7 +381,7 @@ impl SelectionPreview {
         face: crate::list::Typeface,
         cx: &mut Context<Self>,
     ) -> Self {
-        Self {
+        let view = Self {
             port,
             outbox: Rc::default(),
             pending: None,
@@ -387,7 +408,12 @@ impl SelectionPreview {
             focus: cx.focus_handle(),
             frames: Rc::default(),
             frame_feedback: None,
-        }
+        };
+        view.port.0.borrow_mut().clock = Some(observation::Clock {
+            executor: cx.background_executor().clone(),
+            origin: view.epoch,
+        });
+        view
     }
     pub(crate) fn now(&self, cx: &gpui::App) -> u64 {
         cx.background_executor()

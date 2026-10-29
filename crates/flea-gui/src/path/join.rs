@@ -94,6 +94,7 @@ impl Shell {
             self.chrome.view = Some(view);
         }
         let chrome = self.chrome.view.clone().expect("mounted chrome");
+        self.sync_chrome_stops(window);
         let path = chrome.read_with(cx, |view, _| view.path.clone());
         let host = self.panes[side].as_ref().expect("focused pane");
         let path_inputs = super::view::Inputs {

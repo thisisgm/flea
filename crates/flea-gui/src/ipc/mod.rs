@@ -1,4 +1,5 @@
 pub(crate) mod archive_cards;
+pub(crate) mod browse_state;
 pub mod chrome;
 pub mod columns;
 pub(crate) mod columns_preview;
@@ -10,6 +11,7 @@ pub(crate) mod fileops_preview;
 pub mod focus;
 pub mod grid;
 pub(crate) mod grid_rows;
+pub(crate) mod keyboard_state;
 pub mod native_window;
 pub mod navigation;
 pub(crate) mod network;
@@ -19,6 +21,7 @@ pub mod pane;
 pub mod path;
 pub(crate) mod preview_look;
 pub(crate) mod preview_scroll;
+pub(crate) mod preview_state;
 pub mod rail;
 pub(crate) mod recent;
 pub mod rows;
@@ -35,6 +38,9 @@ pub(crate) mod window_feedback;
 
 #[cfg(test)]
 mod preview_scroll_tests;
+
+#[cfg(test)]
+mod reader_port_b_tests;
 
 pub use surface::{Adapter, Surface};
 pub(crate) mod preview_text;

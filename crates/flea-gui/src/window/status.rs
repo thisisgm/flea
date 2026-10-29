@@ -270,17 +270,17 @@ impl Render for Footer {
             font_size: typeface.caption.into(),
             ..window.text_style()
         };
-        let disk_width = window
-            .text_system()
-            .layout_line(
-                &self.filesystem,
-                typeface.caption,
-                &[style.to_run(self.filesystem.len())],
-                None,
-            )
-            .width;
-        let disk_width = f32::from(disk_width).min(self.zone_width);
-        let room = (self.width - 28. - disk_width - (14. + self.zone_width + 14.)).max(0.);
+        let text_width = |text: &SharedString| {
+            let width = window
+                .text_system()
+                .layout_line(text, typeface.caption, &[style.to_run(text.len())], None)
+                .width;
+            f32::from(width).min(self.zone_width)
+        };
+        let disk_width = text_width(&self.filesystem);
+        // HIG locked-menu lets the full notice use the count zone's unpainted space.
+        let count_width = text_width(&self.counts);
+        let room = (self.width - 28. - disk_width - (14. + count_width + 14.)).max(0.);
         let text = |name, value: SharedString| {
             let element = self.painted.watch(
                 div()

@@ -217,8 +217,9 @@ impl Render for Shell {
                 }
             }
             if view == View::Columns {
+                let rows = lists.states[side].take().expect("a mounted pane");
                 panes[side] = self
-                    .render_columns(side, drawn[side], window, cx)
+                    .render_columns(side, drawn[side], contents, rows, window, cx)
                     .map(|pane| super::rename::field::with_field(pane, renaming[side], side, cx));
                 let host = self.panes[side].as_mut().unwrap();
                 host.drawn_view = panes[side].as_ref().map(|_| View::Columns);
@@ -248,11 +249,13 @@ impl Render for Shell {
                         shell: cx.entity().downgrade(),
                     }),
             );
+            let contents_scroll = host.input.drawn(host.pane.scroll_y);
             let blocks = Shell::contents_element(
                 host,
                 &self.launch.settings.data,
                 contents,
                 rows,
+                contents_scroll,
                 window,
                 cx,
             );

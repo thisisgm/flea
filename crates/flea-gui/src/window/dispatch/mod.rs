@@ -222,6 +222,8 @@ mod quick_look_reply_tests;
 #[cfg(test)]
 mod quick_look_sheet_tests;
 #[cfg(test)]
+mod quick_look_state_tests;
+#[cfg(test)]
 mod refusal_tests;
 #[cfg(test)]
 mod rename_bulk_tests;

@@ -124,8 +124,8 @@ impl Shell {
 
     /// The flyout a key asked for before the menu drew; the menu's refresh calls this once it opens.
     pub(crate) fn flyout_pending(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        // The Tags flyout opens once its tagstates answer lands, so the leaves carry their marks.
-        if self.menu.flyout == Some("tags") && self.menu.tags_reading {
+        // Keep the intent until discovery and minimum display have produced its parent card.
+        if !self.menu_opened() || (self.menu.flyout == Some("tags") && self.menu.tags_reading) {
             return;
         }
         let Some(action) = self.menu.flyout.take() else {
@@ -149,6 +149,10 @@ impl Shell {
         self.menu_outcome(outcome, window, cx);
     }
 }
+
+#[cfg(test)]
+#[path = "tags_opener_tests.rs"]
+mod tags_opener_tests;
 
 #[cfg(test)]
 mod tests {
