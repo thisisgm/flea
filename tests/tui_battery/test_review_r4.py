@@ -292,6 +292,8 @@ class Review4Tests(unittest.TestCase):
         (case / "media.json").write_text(json.dumps(pending))
         verdict = json.loads((case / "verdict.json").read_text())
         verdict["artifact_sha256"], missing = seal(case)
+        from .candidate import seal_extra
+        missing += seal_extra(case, verdict["artifact_sha256"])
         self.assertFalse(missing)
         (case / "verdict.json").write_text(json.dumps(verdict))
         review = {"approved": True, "capture_sha256": digest(case / "native.png"),

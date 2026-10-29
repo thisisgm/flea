@@ -549,7 +549,7 @@ class PreflightAndSmokeTests(unittest.TestCase):
                     "media": {"status": "PASS"}, "edges": {"status": "PASS", "sides": {}}, "pixels": {"status": "REVIEW"},
                     "visual": {"status": "BLOCKED", "reason": "controller native visual review required"}}
         code, manifest, requested = self.smoke(pending)
-        self.assertEqual(requested, ["tui-list-text"])
+        self.assertEqual(requested, ["tui-list-text", None])
         self.assertEqual([r["terminal"] for r in manifest["records"]], list(adapters.TERMINALS))
         self.assertEqual((code, manifest["status"], manifest["smoke"], manifest["native_acceptance"]), (0, "SMOKE-PASS", True, False))
         def failing(*arguments):

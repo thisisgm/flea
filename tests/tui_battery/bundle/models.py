@@ -205,14 +205,23 @@ def obj(tris, name, target):
     return text + b"#" + b" " * (pad - 2) + b"\n"
 
 
-def model_xml(objects, items, unit="millimeter"):
+def model_xml(objects, items, unit="millimeter", materials=None, bed=None):
     """objects: [(id, name, tris)]; items: [(object id, x, y)] as translations."""
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
            f'<model unit="{unit}" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">',
-           '<metadata name="Application">flea fixture</metadata>', "<resources>"]
+           '<metadata name="Application">flea fixture</metadata>']
+    if bed:
+        width, depth = bed
+        out += ['<metadata name="printer_model">P1S</metadata>',
+                f'<metadata name="printable_area">0x0,{width}x0,{width}x{depth},0x{depth}</metadata>']
+    out.append("<resources>")
+    if materials:
+        out += ['<basematerials id="1024"><base name="white" displaycolor="#EEEEEC"/>',
+                '<base name="orange" displaycolor="#FF6A13"/></basematerials>']
     for oid, name, tris in objects:
         vertices, faces = indexed(tris)
-        out.append(f'<object id="{oid}" name="{name}" type="model"><mesh><vertices>')
+        material = f' pid="1024" pindex="{materials[oid]}"' if materials else ""
+        out.append(f'<object id="{oid}" name="{name}" type="model"{material}><mesh><vertices>')
         out += [f'<vertex x="{x:.4f}" y="{y:.4f}" z="{z:.4f}"/>' for x, y, z in vertices]
         out.append("</vertices><triangles>")
         out += [f'<triangle v1="{a}" v2="{b}" v3="{c}"/>' for a, b, c in faces]
@@ -266,7 +275,8 @@ def benchy_3mf(target):
 
     def parts(tris):
         return [("[Content_Types].xml", CONTENT_TYPES_3MF, False), ("_rels/.rels", RELS_3MF, False),
-                ("3D/3dmodel.model", model_xml([(1, "benchy", tris)], [(1, BENCHY_AT[0], BENCHY_AT[1])]), False),
+                ("3D/3dmodel.model", model_xml([(1, "benchy", tris)], [(1, BENCHY_AT[0], BENCHY_AT[1])],
+                                            materials={1: 1}, bed=P1S_PLATE), False),
                 ("Metadata/thumbnail.png", thumb, False), ("Metadata/plate_1.png", thumb, False),
                 ("Metadata/slice_info.config", slice_info(1, "4320", "13.42"), False)]
     return threemf(parts, base, target)
@@ -309,7 +319,7 @@ def shelf_kit_3mf(target):
         objects = [(1, "bracket", shape), (2, "bracket", shape), (3, "knob", knob_tris), (4, "knob", knob_tris)]
         items = [(1, ax, ay), (2, bx, by), (3, kx, ky), (4, PLATE_PITCH + PLATE2_KNOB[0], PLATE2_KNOB[1])]
         return [("[Content_Types].xml", CONTENT_TYPES_3MF, False), ("_rels/.rels", RELS_3MF, False),
-                ("3D/3dmodel.model", model_xml(objects, items), False),
+                ("3D/3dmodel.model", model_xml(objects, items, materials={1: 0, 2: 0, 3: 1, 4: 1}, bed=P1S_PLATE), False),
                 ("Metadata/model_settings.config", model_settings([[1, 2, 3], [4]]), False),
                 ("Metadata/slice_info.config", slice_info(2, "2580", "31.80"), False),
                 ("Metadata/thumbnail.png", plate1, False), ("Metadata/plate_1.png", plate1, False),
@@ -378,7 +388,8 @@ def gcode(points):
             for p, q in zip(stations, stations[1:] + stations[:1]):
                 lines.append(f"G1 X{q[0]:.3f} Y{q[1]:.3f} E{math.dist(p, q) * e_per_mm:.5f} F1800")
     lines += ["M104 S0", "M140 S0", "M84", "; filament used [mm] = 5212.40", "; filament used [g] = 15.54",
-              "; estimated printing time (normal mode) = 1h 12m 0s", "; printer_model = MK4", "; layer_height = 0.2", ""]
+              "; estimated printing time (normal mode) = 1h 12m 0s", "; printer_model = MK4",
+              "; bed_shape = 0x0,250x0,250x210,0x210", "; layer_height = 0.2", ""]
     return "\n".join(lines).encode()
 
 

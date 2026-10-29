@@ -21,13 +21,21 @@ def supplement(path, identity, terminals, controls, calendar, surfaces=()):
     if path:
         path = absolute(path)
         manifest = json.loads((path / "manifest.json").read_text())
-        for key in ("commit", "dirty_patch_sha256", "elf_sha256", "references"):
+        for key in ("commit", "dirty_patch_sha256", "elf_sha256", "references", "untracked", "candidate_inputs"):
+            if key not in identity and key == "candidate_inputs":
+                continue
+            if key not in identity:
+                raise Blocked("supplemental expected identity lacks: " + key)
             if manifest.get("identity", {}).get(key) != identity[key]:
                 raise Blocked("supplemental evidence identity mismatch: " + key)
+        from .candidate import validate_calendar_inputs
+        validate_calendar_inputs(path, identity, manifest)
         for row in manifest.get("records", []):
             key = (row["terminal"], row["kind"], row["id"])
             if key in index:
                 raise Blocked("duplicate supplemental evidence record")
+            if key not in requested:
+                raise Blocked("unexpected supplemental evidence record: " + repr(key))
             index[key] = row
     records = []
     for terminal, kind, label in requested:
@@ -36,10 +44,19 @@ def supplement(path, identity, terminals, controls, calendar, surfaces=()):
             row = index.get((terminal, kind, label))
             if not row:
                 raise Blocked("missing controller native receipt")
+            if kind == "control":
+                from .control_native import validate_record
+                validate_record(path, row, identity)
             relative = Path(row["directory"])
             if relative.is_absolute() or ".." in relative.parts or not relative.parts:
                 raise Blocked("supplemental record directory escaped evidence bundle")
             directory = absolute(path / relative)
+            if relative.parts != (terminal, label):
+                raise Blocked("supplemental directory identifies another record")
+            if kind == "control":
+                from .candidate import validate_control_inputs, validate_operations
+                validate_control_inputs(directory, identity)
+                validate_operations(directory, row)
             hashes = row.get("sha256", {})
             for name in REQUIRED:
                 file = absolute(directory / name)
@@ -49,6 +66,8 @@ def supplement(path, identity, terminals, controls, calendar, surfaces=()):
             verdict = json.loads((directory / "verdict.json").read_text())
             if row.get("verdict_sha256") != digest(directory / "verdict.json"):
                 raise Blocked("stale supplemental verdict")
+            if kind == "calendar" and (verdict.get("terminal"), verdict.get("id")) != (terminal, label):
+                raise Blocked("calendar verdict identifies another terminal or state")
             if any(verdict.get(key) != "PASS" for key in ("behavior", "cell_geometry", "color", "native_visual")):
                 raise Blocked("supplemental evidence lacks a separate passing verdict for each gate")
             assertions = verdict.get("assertions")
@@ -61,8 +80,18 @@ def supplement(path, identity, terminals, controls, calendar, surfaces=()):
                 raise Blocked("supplemental evidence omits required control variants")
             if kind == "calendar" and verdict.get("original_driver_sha256") != calendar["driver_sha256"]:
                 raise Blocked("calendar evidence did not retain original acceptance provenance")
+            if kind == "calendar":
+                from .calendar_native import IDENTITY_FIELDS, ORIGINAL_MANIFEST_SHA256, status
+                if (status(verdict) != "PASS" or verdict.get("original_manifest_sha256") != ORIGINAL_MANIFEST_SHA256
+                        or verdict.get("selected_candidate_identity") != {k: identity[k] for k in IDENTITY_FIELDS}
+                        or any(assertions.get(k) is not True for k in
+                               ("detail-notice", "session-negatives", "after-proof-negatives"))):
+                    raise Blocked("calendar record is synthetic or lacks accepted producer identity or negative controls")
+            if kind == "surface":
+                from .candidate import validate_surface
+                validate_surface(directory, row, identity)
             commands = json.loads((directory / "commands.json").read_text())
-            if not commands or any(not isinstance(c.get("exit_code"), int) for c in commands):
+            if not commands or any(type(c.get("exit_code")) is not int for c in commands):
                 raise Blocked("supplemental control lacks real command exit codes")
             if not (directory / "pty.log").stat().st_size:
                 raise Blocked("supplemental PTY transcript is empty")
@@ -74,7 +103,7 @@ def supplement(path, identity, terminals, controls, calendar, surfaces=()):
             if verdict.get("synthetic") or verdict.get("native_capture_sha256") != hashes["native.png"]:
                 raise Blocked("supplemental evidence is synthetic or its native capture changed")
             result.update(status="PASS", source=str(directory), hashes=hashes, assertions=assertions)
-        except (Blocked, OSError, ValueError, KeyError) as error:
+        except (Blocked, OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as error:
             result["reason"] = str(error)
         records.append(result)
     return records

@@ -3,7 +3,6 @@ import json
 import os
 from pathlib import Path
 import shlex
-import signal
 import subprocess
 import sys
 import time
@@ -251,15 +250,7 @@ class Terminal:
                     pass
             return wait_for(exit_receipt, 5, "terminal exit and child reap: " + str(exit_path))
         except BaseException:
-            start = self.case / "launch-start.json"
-            if start.is_file():
-                pid = json.loads(start.read_text())["pid"]
-                if type(pid) is not int or pid <= 1:
-                    raise Blocked("invalid terminal process group in " + str(start))
-                try:
-                    os.killpg(pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
+            # The caller reaps the group under an ownership anchor; a bare pid here could name a recycled group.
             raise
         finally:
             self.adapter.close(self.commands)

@@ -39,7 +39,7 @@ def board_file(root, name="tui-list-text", text="A", decoration=""):
 
 
 def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_kind=False, references=None, frame=None, validate=None,
-         launches=None, adapters=None, capture=None):
+         launches=None, adapters=None, capture=None, seams=None):
     # Each terminal launch appends its arguments here, so a caller can tell whether the pair launched at all.
     launches = [] if launches is None else launches
     # Each Adapter construction appends its arguments here: terminal name, case directory, window identity.
@@ -77,7 +77,9 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
     def close():
         (case / "relay-exit.json").write_text(json.dumps({"candidate_exit": 0, "termios_restored": True,
                                                           "relay_termios_restored": True}))
-        return {"exit_code": exit_code}
+        receipt = {"exit_code": exit_code}
+        (case / "launch-exit.json").write_text(json.dumps(receipt))
+        return receipt
 
     def configure():
         config = case / "terminal.conf"
@@ -97,6 +99,8 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
         launches.append(args)
         for name in ("relay-spec.json", "launch-spec.json"):
             (case / name).write_text(json.dumps({"argv": ["boundary-double"]}))
+        (case / "launch-start.json").write_text(json.dumps({"pid": 2147483647, "start_ns": 1}))
+        (case / "relay-start.json").write_text(json.dumps({"stdin_tty": True, "stdout_tty": True}))
         for name in ("pty.log", "graphics.log"):
             (case / name).write_text("")
 
@@ -113,7 +117,7 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
     state = {"id": state_id, "family": "work", "requires": [], "cwd": "/fx/v/work", "steps": [], "predicate": {}}
     variant = {"id": "primary", "columns": 130, "rows": 31, "origin": [4, 9]}
     doubles = {"Adapter": lambda *a: adapters.append(a) or adapter, "Terminal": lambda *a: terminal, "build": build,
-               "font_identity": lambda *a: {}, "private_theme": lambda *a: "theme", "namespace": lambda *a: [],
+               "font_identity": lambda *a: {}, "private_theme": lambda *a: "theme", "namespace": lambda *a, **k: [],
                "settled": lambda *a, **k: snapshot, "separator": lambda *a: grid,
                "steps": lambda *a: None, "dynamic_masks": lambda *a: ([], None), "capabilities": lambda *a: {},
                "inspect_media": lambda *a, **k: ({"status": "PASS"}, None, []),
@@ -124,7 +128,7 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
         for name, double in doubles.items():
             stack.enter_context(patch.object(driver, name, double))
         result = driver.execute_pair(args, Owned(root), display, "foot", state, variant, {},
-                                     {"elf_sha256": "elf"}, {}, {}, {}, {})
+                                     {"elf_sha256": "elf"}, {}, {}, {}, seams or {})
     # A state blocked before its fixture was built has no candidate settings.
     settings = fx / "state/flea/ui.json"
     return result, json.loads(settings.read_text()) if settings.is_file() else None

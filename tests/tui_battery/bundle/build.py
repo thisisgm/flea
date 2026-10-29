@@ -410,7 +410,11 @@ def build(output, seed=None, without_rasters=False):
                                            "package in ECMA-376 Standard Encryption, AES-128, password fixture, as a 15-sector "
                                            "compound file of exactly 8192 bytes; garden-report.pdf is under PDF documents",
                        "PDF documents": "Python PDF writer with fixed Info dates; a comment block after the header pads each to size",
-                       "3D models": "Python meshes from the fixed bracket, knob and boat geometry; 3MF thumbnails by the bundle rasterizer",
+                       "3D models": "Python meshes from the fixed bracket, knob and boat geometry; 3MF thumbnails by the bundle rasterizer; "
+                                    "3MF objects carry white/orange base materials and explicit 256 by 256 mm P1S printable_area; "
+                                    "G-code carries an explicit 250 by 210 mm MK4 bed_shape. Shelf kit plate membership is "
+                                    "[bracket, bracket, orange knob] then [orange knob]; the Quick Look independent raster "
+                                    "uses those same translated meshes/materials/whole bed at isometric azimuth plus 30 degrees.",
                        "text and small files": "the bench recipe's exact bytes, written by Python"})
     manifest = {"schema": 1, "generator": "tools/flea-tui-fixture-bundle", "mtime": "2025-06-15 10:00 UTC",
                 "families": families, "provenance": provenance, "representations_omitted": omitted}
