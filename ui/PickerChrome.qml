@@ -9,7 +9,7 @@ import "js/Picker.js" as Picker
 Item {
     id: root
     // Its Jump dropdown hangs below the strip, so the chrome rises over the places and the listing while it shows.
-    z: entry.jumpShown ? 1 : 0
+    z: entry.jumpShown || hiddenButton.hovered ? 1 : 0
 
     property var picker: null
     property var submissionFocus: null
@@ -18,7 +18,7 @@ Item {
 
     readonly property bool editing: entry.editing
     readonly property var jump: entry.jump
-    function startEdit() { entry.startEdit() }
+    function startEdit() { if (root.inputLive) entry.startEdit() }
 
     function submissionChanged() {
         var window = root.Window.window
@@ -73,6 +73,8 @@ Item {
         Keys.onTabPressed: function(event) { root.picker.stepFocus(mark, (event.modifiers & Qt.ShiftModifier) !== 0) }
         Keys.onBacktabPressed: root.picker.stepFocus(mark, true)
     }
+
+    readonly property bool inputLive: !root.picker.submitting && !root.picker.backendUnavailable
 
     // One 33 px line at body: the caller's title as it came, then the requester after a middot when the portal names one.
     Item {
@@ -240,6 +242,16 @@ Item {
             path: pathLogic.basePath
             home: root.picker.home
             showHidden: root.picker.showHidden
+            // The drawn path and its padding open the same editor as Ctrl+L.
+            HoverHandler {
+                enabled: root.inputLive && !entry.editing
+                cursorShape: Qt.IBeamCursor
+            }
+            TapHandler {
+                enabled: root.inputLive && !entry.editing
+                acceptedButtons: Qt.LeftButton
+                onTapped: root.startEdit()
+            }
             onCommitLine: function (text) { pathLogic.commitTyped(text) }
             onJumpChosen: function (path) { pathLogic.ask(path) }
             onEditClosed: pathLogic.editClosed()
@@ -257,13 +269,27 @@ Item {
         }
     }
 
-    // Pointer and ctrl-1/ctrl-3 targets only; callout 12 keeps them out of the Tab walk.
+    // Pointer targets with listing-key equivalents; the established Tab walk stays unchanged.
     Row {
         id: views
         anchors.right: parent.right
         anchors.rightMargin: Theme.spacing.rowPaddingX
         anchors.verticalCenter: where.verticalCenter
         spacing: Theme.spacing.gap
+
+        Mark {
+            id: hiddenButton
+            objectName: "pickerHidden"
+            glyph: root.picker.showHidden ? "eye" : "eye-off"
+            accessName: root.picker.showHidden ? "Hide hidden files" : "Show hidden files"
+            active: root.picker.showHidden
+            activeFocusOnTab: false
+            enabled: root.inputLive
+            onActivated: {
+                root.picker.showHidden = !root.picker.showHidden
+                if (root.picker.path.length > 0) root.picker.openWithoutHistory(root.picker.path)
+            }
+        }
 
         Mark {
             id: listButton
@@ -286,10 +312,28 @@ Item {
         }
     }
 
+    Rectangle {
+        visible: hiddenButton.hovered && hiddenButton.enabled
+        x: Math.max(0, hiddenButton.mapToItem(root, hiddenButton.width, 0).x - width)
+        y: hiddenButton.mapToItem(root, 0, hiddenButton.height).y
+        width: hiddenHint.implicitWidth + 2 * Theme.spacing.gap
+        height: hiddenHint.implicitHeight + 2 * Theme.spacing.rowPaddingY
+        color: Theme.color.surface
+        Text {
+            id: hiddenHint
+            anchors.centerIn: parent
+            text: hiddenButton.accessName
+            font.family: Theme.font.family
+            font.pixelSize: Theme.font.caption
+            color: Theme.color.foreground
+            textFormat: Text.PlainText
+        }
+    }
+
     function focusItems() {
         return [backButton, upButton]
     }
     function controls() {
-        return root.focusItems().concat([listButton, gridButton]).map(function(item) { return root.picker.control(item.name, item, item.available) })
+        return root.focusItems().concat([hiddenButton, listButton, gridButton]).map(function(item) { return root.picker.control(item.name, item, item.available) })
     }
 }
