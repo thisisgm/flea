@@ -32,7 +32,8 @@ pub fn align(data: &[u8], first: usize, count: usize, delim: u8, record: Option<
     let mut end = None;
     let mut quoted = false;
     let mut field_start = true;
-    let mut at = 0;
+    // A UTF-8 BOM is a file prefix, not part of the first field.
+    let mut at = if data.starts_with(b"\xef\xbb\xbf") { 3 } else { 0 };
     loop {
         let eof = at == data.len();
         let byte = data.get(at).copied().unwrap_or(b'\n');
@@ -129,6 +130,19 @@ mod tests {
     fn code_csv_doubled_quotes_keep_the_quoted_field_open() {
         let data = "id,note\n1,\"say \"\"hi\"\"\nnext\",9\n2,last\n";
         assert_eq!(window(&reply(data, 3, 1, ",")), (2, 2));
+    }
+
+    #[test]
+    fn code_csv_bom_before_a_quoted_header_keeps_record_boundaries() {
+        for separator in [",", "\t"] {
+            let data = format!("\u{feff}\"Full\nname\"{separator}Amount\nAlice{separator}10\n");
+            let result = reply(&data, 2, 1, separator);
+            assert_eq!(window(&result), (1, 2), "the header is one multiline record");
+            assert_eq!(result.get("records").and_then(Json::as_f64), Some(2.0));
+            assert_eq!(result.get("firstRecord").and_then(Json::as_f64), Some(1.0));
+            let body = reply(&data, 3, 1, separator);
+            assert_eq!(body.get("firstRecord").and_then(Json::as_f64), Some(2.0));
+        }
     }
 
     #[test]
