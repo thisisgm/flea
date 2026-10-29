@@ -14,12 +14,20 @@ repo="$(cd "$(dirname "$0")/.." && pwd)"
 export FLEA_BIN="${FLEA_BIN:-$repo/target/release/flea}"
 flea_ipc_init "$FLEA_BIN"
 export FLEA_UI="$repo/ui"
-. "$repo/tools/flea-sandbox-guard"
 
 drag_case=${1:-all}
 if [[ "$drag_case" == headless ]]; then
   exec /bin/bash "$repo/tests/raildrop.sh"
 fi
+case "$drag_case" in
+  all|raildrop|look235)
+    PATH="${HOME:+$HOME/.local/bin:}$PATH" command -v omarchy-drive >/dev/null 2>&1 || {
+      printf 'FAIL: native drag tests require omarchy-drive (private helper); use tests/drag.sh headless for the rail-drop headless checks\n' >&2
+      exit 1
+    }
+    ;;
+esac
+. "$repo/tools/flea-sandbox-guard"
 capture_root=""
 case "$drag_case" in
   all)

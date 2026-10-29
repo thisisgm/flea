@@ -23,6 +23,8 @@ case "$ui_driver" in
 esac
 . "$repo/tools/flea-ipc"
 . "$repo/tests/lib/flea-transport.sh"
+PATH="${HOME:+$HOME/.local/bin:}$PATH" command -v omarchy-drive >/dev/null 2>&1 \
+    || fail "native UI tests require omarchy-drive (private helper); use FLEA_UI_DRIVER=headless for the supported headless cases"
 # Hard rule 9's guard owns every fixture create and delete in the native suite.
 . "$repo/tools/flea-sandbox-guard"
 

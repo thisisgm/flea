@@ -16,6 +16,16 @@ if [ "${FIELD_PROFILE:-field}" = engine ] \
   exit 1
 fi
 
+# Kitty's byte dump and child scopes are part of the measured TUI contract.
+if [ "${TUI_TERM:-kitty}" != kitty ]; then
+  printf 'FAIL: the field bench requires kitty; TUI_TERM=%s is unsupported (the bench uses Kitty --class, --dump-bytes and child scopes)\n' "$TUI_TERM" >&2
+  exit 1
+fi
+if ! PATH="${B5_BENCH_PATH:-$HOME/.local/bin:$PATH}" command -v kitty >/dev/null 2>&1; then
+  printf 'FAIL: the field bench requires kitty on the benchmark PATH; install kitty before running the TUI entrants\n' >&2
+  exit 1
+fi
+
 # This one runs from a copy outside the tree, and the guard and sibling tools are read from the copy's
 # own directory, so the copy carries all of tools/. The guard owns FIXTURE_ROOT and checks every path this script writes or deletes.
 # Exported, and overridable: tools/flea-bench-manifest is a child process that defaults to this
