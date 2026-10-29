@@ -2,7 +2,28 @@
 use super::*;
 use gpui::{ImageAssetLoader, Window};
 
+#[cfg(test)]
+#[path = "selection_preview_retention_tests.rs"]
+mod retention_tests;
+
 impl SelectionPreview {
+    pub(super) fn stop_media(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(frame) = self.drawn.as_mut() else {
+            return;
+        };
+        let Mounted::Media(player) = &mut frame.mounted else {
+            return;
+        };
+        let Some(player) = player.take() else {
+            return;
+        };
+        if let Some(image) = player.read(cx).frame.clone() {
+            if let Some(poster) = frame.image.replace(image) {
+                window.defer(cx, move |window, cx| cx.drop_image(poster, Some(window)));
+            }
+        }
+        player.update(cx, |player, cx| player.close(cx));
+    }
     pub(crate) fn dispose(
         &mut self,
         mut frame: Frame,
@@ -26,11 +47,12 @@ impl SelectionPreview {
         if let Some(source) = frame.animation_source.take() {
             cx.remove_asset::<ImageAssetLoader>(&source);
         }
+        // A window's deferred callback runs with that window lent out of App, so name it or the drop misses it.
         if let Some(image) = frame.image.take() {
-            window.defer(cx, move |_, cx| cx.drop_image(image, None));
+            window.defer(cx, move |window, cx| cx.drop_image(image, Some(window)));
         }
         if let Some(image) = frame.animation.take() {
-            window.defer(cx, move |_, cx| cx.drop_image(image, None));
+            window.defer(cx, move |window, cx| cx.drop_image(image, Some(window)));
         }
         self.retired.push(frame);
         let entity = cx.entity().downgrade();

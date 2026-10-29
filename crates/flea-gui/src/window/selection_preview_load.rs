@@ -43,16 +43,7 @@ impl SelectionPreview {
     ) {
         let Some(subject) = subject else {
             self.cancel_pending(window, cx);
-            if let Some(frame) = &mut self.drawn {
-                if let Mounted::Media(player) = &mut frame.mounted {
-                    if let Some(player) = player.take() {
-                        if let Some(image) = player.read(cx).frame.clone() {
-                            frame.image = Some(image);
-                        }
-                        player.update(cx, |player, cx| player.close(cx));
-                    }
-                }
-            }
+            self.stop_media(window, cx);
             return;
         };
         if force {
@@ -82,16 +73,7 @@ impl SelectionPreview {
             return;
         }
         self.cancel_pending(window, cx);
-        if let Some(frame) = &mut self.drawn {
-            if let Mounted::Media(player) = &mut frame.mounted {
-                if let Some(player) = player.take() {
-                    if let Some(image) = player.read(cx).frame.clone() {
-                        frame.image = Some(image);
-                    }
-                    player.update(cx, |player, cx| player.close(cx));
-                }
-            }
-        }
+        self.stop_media(window, cx);
         let now = self.now(cx);
         {
             let mut swap = self.port.0.borrow_mut();
