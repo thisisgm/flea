@@ -6,7 +6,7 @@ use gpui::{AppContext, TestAppContext};
 #[path = "columns_gesture_tests.rs"]
 mod gestures;
 #[path = "columns_test_host.rs"]
-pub(super) mod host;
+pub(crate) mod host;
 #[path = "columns_hover_tests.rs"]
 mod hover;
 #[path = "columns_pointer_tests.rs"]

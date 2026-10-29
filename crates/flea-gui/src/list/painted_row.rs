@@ -76,14 +76,14 @@ impl Shown {
         name
     }
 
-    /// The clipboard bounds used by paint, following the same run and mask as the visible name.
+    /// The clipboard bounds used by paint, in the strip reserved beside the name.
     pub fn clip_bounds(&self, name: Bounds<Pixels>, metrics: &Metrics) -> Option<Bounds<Pixels>> {
         if self.state.renaming {
             return None;
         }
+        self.prepared.as_ref()?;
         Some(self.clip?.bounds(
             self.name_slot(name, metrics),
-            self.name_line()?.line().width,
             px(metrics.clip),
             px(metrics.gap),
         ))

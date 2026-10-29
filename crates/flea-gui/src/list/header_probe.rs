@@ -28,7 +28,9 @@ pub(crate) fn element(side: usize, state: Rc<RefCell<ListState>>) -> impl IntoEl
                 let left = drawn.bounds.left();
                 let top = drawn.bounds.top();
                 let x = match column {
-                    Some(Column::Size | Column::Date) => left + px(cell.right()) - line.width,
+                    Some(Column::Size | Column::Date | Column::Kind) => {
+                        left + px(cell.right()) - line.width
+                    }
                     _ => left + px(cell.x),
                 };
                 let baseline = window.pixel_snap(

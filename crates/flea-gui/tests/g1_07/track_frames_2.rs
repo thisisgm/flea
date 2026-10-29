@@ -290,18 +290,14 @@ fn a_peek_row_with_no_clip_paints_whole_and_still() {
     set(&mut cx, window, |view| view.clip = Some(held_clip));
     frame(&mut cx, window);
     let (copied, x) = look(&mut cx, window, Slot::Parent, |paint, _, _| {
-        let width = paint
-            .prepared(0)
-            .map_or(0., |row| f32::from(row.name(false).line().width));
         (
             paint.clip(0),
-            cells(314., false, false).clip_x(width)
-                - (46. + width.min(314. - 14. - 14. - 46. - 9. - 12.) + 9.),
+            cells(314., false, false).clip_x() - (314. - 14. - 14. - 12. - 12.),
         )
     });
     c.eq(
         288,
-        "a copied row's mark sits one gap after its name",
+        "a copied row's mark sits in its reserved slot",
         (copied, x),
         (Clip::Copy, 0.),
     );

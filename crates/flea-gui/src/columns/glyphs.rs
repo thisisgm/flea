@@ -9,6 +9,8 @@ pub(super) fn paint_line(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, wi
     let line = run.line();
     let baseline =
         window.pixel_snap(top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
+    #[cfg(test)]
+    crate::bfx_cols_tests::record_line(run, x, baseline);
     let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
@@ -47,6 +49,8 @@ pub(super) fn paint_svg(
     window: &mut Window,
     cx: &mut App,
 ) {
+    #[cfg(test)]
+    crate::bfx_cols_tests::record_mark(glyph.0, bounds);
     let _ = window.paint_svg(
         bounds,
         SharedString::new_static(glyph.0),

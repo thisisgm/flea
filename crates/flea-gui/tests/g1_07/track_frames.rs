@@ -405,8 +405,9 @@ fn a_long_name_takes_its_track_budget_in_every_track() {
     frame(&mut cx, window);
     let (clipped, mark) = look(&mut cx, window, Slot::Active, |paint, advance, window| {
         let take = ((GAP + CLIP) / advance).ceil() as usize;
-        let want = middle_elide(LONG, name_budget(366., true, false, advance) - take);
-        let geometry = cells(366., true, false);
+        // A clipped row elides to the chevron budget, so its mark keeps one slot with or without a chevron.
+        let want = middle_elide(LONG, name_budget(366., true, true, advance) - take);
+        let geometry = cells(366., true, true);
         let slot = geometry.name_right - geometry.name_x - GAP - CLIP;
         let fits = paint.prepared(0).is_some_and(|row| {
             says(window, row.name(false), &want) && f32::from(row.name(false).line().width) <= slot

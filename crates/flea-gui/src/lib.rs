@@ -28,3 +28,6 @@ pub mod window;
 
 #[cfg(test)]
 mod theme_gate;
+
+#[cfg(test)]
+mod bfx_cols_tests;

@@ -277,10 +277,15 @@ pub fn cells(track_width: f32, shows_size: bool, chevron: bool) -> Cells {
 }
 
 impl Cells {
-    /// The clip mark's x: one gap after the drawn name, which never runs into the mark's own slot.
-    pub fn clip_x(&self, name_width: f32) -> f32 {
-        let slot = self.name_right - self.name_x - GAP - super::paint::CLIP;
-        self.name_x + name_width.min(slot) + GAP
+    /// The clipboard slot's left edge, clear of the name and the metadata.
+    pub fn clip_x(&self) -> f32 {
+        self.name_right
+            - super::paint::CLIP
+            - if self.chevron_x.is_none() {
+                CHEVRON
+            } else {
+                0.
+            }
     }
 }
 
