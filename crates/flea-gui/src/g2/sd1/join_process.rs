@@ -125,3 +125,7 @@ fn exit_code(status: &std::process::ExitStatus) -> i32 {
         .or_else(|| status.signal().map(|signal| 128 + signal))
         .unwrap_or(-1)
 }
+
+#[cfg(test)]
+#[path = "bfx_net_process_tests.rs"]
+mod bfx_net_tests;

@@ -24,6 +24,8 @@ pub mod view;
 mod words;
 
 #[cfg(test)]
+mod bfx_net_tests;
+#[cfg(test)]
 mod child_tests;
 #[cfg(test)]
 mod dialog_tests;

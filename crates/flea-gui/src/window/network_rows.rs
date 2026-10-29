@@ -43,7 +43,8 @@ impl Shell {
                 return;
             };
             match effect {
-                Listed::Kill => network.listing_slot.kill(),
+                // The timed-out exit still has to release Listing::running and admit the next poll.
+                Listed::Kill => network.listing_slot.stop(),
                 Listed::Listed => self.network_rows(cx),
                 Listed::Start(job) => {
                     let handle = network.runner.start(job);

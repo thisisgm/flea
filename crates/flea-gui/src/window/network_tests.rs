@@ -8,6 +8,8 @@ use gpui::{AnyView, TestAppContext, VisualTestContext};
 
 #[path = "network_alias_tests.rs"]
 mod alias_tests;
+#[path = "network_bfx_net_tests.rs"]
+mod bfx_net_tests;
 
 #[derive(Default)]
 struct Recorder {
