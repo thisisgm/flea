@@ -1,16 +1,24 @@
 //! One child process per job, run off the UI thread; its start and its outcome come back over a channel.
 use super::secret::Secret;
 use async_channel::{Receiver, Sender};
-use std::io::{Read, Write};
+use std::fs::File;
+use std::io::{ErrorKind, Read, Write};
+use std::os::fd::{AsRawFd, OwnedFd};
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// The most output kept from one stream; the rest is drained and dropped.
 pub const OUTPUT_CAP: usize = 1 << 20;
+
+/// How long a killed job waits for its pipes to close before it closes them from its own end.
+const ABANDON_AFTER: Duration = Duration::from_secs(1);
+
+/// The longest one wait for output lasts, so a kill lands within one wait.
+const WAIT: Duration = Duration::from_millis(5);
 
 /// A command line, its added environment, and bytes for its stdin that are never on argv.
 #[derive(Debug, Default)]
@@ -240,8 +248,22 @@ fn run(mut job: Job, control: &Control, send: &Sender<Event>) {
         }
         secret.clear();
     }
-    let out = child.stdout.take().map(|s| thread::spawn(move || drain(s)));
-    let err = child.stderr.take().map(|s| thread::spawn(move || drain(s)));
+    let mut pipes = [
+        Pipe::new(child.stdout.take()),
+        Pipe::new(child.stderr.take()),
+    ];
+    // Pipes close before the leader is reaped, so a kill never names a group id the kernel has freed.
+    let mut killed = None;
+    while pipes.iter().any(Pipe::open) {
+        if control.kill.load(Ordering::SeqCst) {
+            kill_group(child.id());
+            // A pipe held outside the group outlives the kill, so this end closes it instead.
+            if killed.get_or_insert_with(Instant::now).elapsed() >= ABANDON_AFTER {
+                break;
+            }
+        }
+        read_ready(&mut pipes);
+    }
     let status = loop {
         if control.kill.load(Ordering::SeqCst) {
             kill_group(child.id());
@@ -253,22 +275,29 @@ fn run(mut job: Job, control: &Control, send: &Sender<Event>) {
             Err(_) => break None,
         }
     };
-    let collect = |reader: Option<thread::JoinHandle<String>>| {
-        reader.and_then(|r| r.join().ok()).unwrap_or_default()
-    };
+    let [stdout, stderr] = pipes.map(Pipe::into_text);
     let outcome = Outcome {
         code: status.and_then(|s| s.code()).unwrap_or(-1),
-        stdout: collect(out),
-        stderr: collect(err),
+        stdout,
+        stderr,
     };
     let _ = send.send_blocking(Event::Exited(outcome));
 }
 
+#[repr(C)]
+struct PollFd {
+    fd: i32,
+    events: i16,
+    revents: i16,
+}
+
 extern "C" {
     fn kill(pid: i32, sig: i32) -> i32;
+    fn poll(fds: *mut PollFd, count: usize, timeout: i32) -> i32;
 }
 
 const SIGKILL: i32 = 9;
+const POLLIN: i16 = 1;
 
 /// SIGKILL to the child's group; a pid that is not a real leader above 1 is never signalled.
 fn kill_group(pid: u32) {
@@ -281,15 +310,62 @@ fn kill_group(pid: u32) {
     }
 }
 
-fn drain(mut stream: impl Read) -> String {
-    let mut kept = Vec::new();
-    let mut chunk = [0u8; 8192];
-    while let Ok(n) = stream.read(&mut chunk) {
-        if n == 0 {
-            break;
+/// One output pipe of a job and what it printed, kept up to OUTPUT_CAP.
+struct Pipe {
+    file: Option<File>,
+    kept: Vec<u8>,
+}
+
+impl Pipe {
+    fn new(stream: Option<impl Into<OwnedFd>>) -> Self {
+        Self {
+            file: stream.map(|stream| File::from(stream.into())),
+            kept: Vec::new(),
         }
-        let room = OUTPUT_CAP.saturating_sub(kept.len());
-        kept.extend_from_slice(&chunk[..n.min(room)]);
     }
-    String::from_utf8_lossy(&kept).into_owned()
+
+    fn open(&self) -> bool {
+        self.file.is_some()
+    }
+
+    /// Reads once after poll marks the pipe ready; end of file or a read error closes it.
+    fn read(&mut self) {
+        let Some(file) = self.file.as_mut() else {
+            return;
+        };
+        let mut chunk = [0u8; 8192];
+        match file.read(&mut chunk) {
+            Ok(n) if n > 0 => {
+                let room = OUTPUT_CAP.saturating_sub(self.kept.len());
+                self.kept.extend_from_slice(&chunk[..n.min(room)]);
+            }
+            Err(error) if error.kind() == ErrorKind::Interrupted => {}
+            _ => self.file = None,
+        }
+    }
+
+    fn into_text(self) -> String {
+        String::from_utf8_lossy(&self.kept).into_owned()
+    }
+}
+
+/// Waits up to WAIT for an open pipe to have output or close, then reads each that does.
+fn read_ready(pipes: &mut [Pipe; 2]) {
+    // poll(2) skips a record whose fd is negative, so a closed pipe stays in place as -1.
+    let mut fds = pipes.each_ref().map(|pipe| PollFd {
+        fd: pipe.file.as_ref().map_or(-1, |file| file.as_raw_fd()),
+        events: POLLIN,
+        revents: 0,
+    });
+    // SAFETY: fds is a live array of two records, and each open fd stays owned by its pipe for the call.
+    let ready = unsafe { poll(fds.as_mut_ptr(), fds.len(), WAIT.as_millis() as i32) };
+    if ready < 0 {
+        thread::sleep(WAIT);
+        return;
+    }
+    for (pipe, fd) in pipes.iter_mut().zip(fds) {
+        if fd.revents != 0 {
+            pipe.read();
+        }
+    }
 }
