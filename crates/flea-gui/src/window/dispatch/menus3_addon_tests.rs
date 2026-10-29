@@ -64,12 +64,7 @@ fn ey177_open_draws_no_enter_hint_when_key_hints_are_on(cx: &mut TestAppContext)
     let shown = actions(&shell, cx);
     let hints = read(&shell, cx, "contextMenuHints", &[]);
     let hints = hints.split('|').collect::<Vec<_>>();
-    for (action, hint) in [
-        ("open", ""),
-        ("cut", "x"),
-        ("copy", "y"),
-        ("rename", "r"),
-    ] {
+    for (action, hint) in [("open", ""), ("cut", "x"), ("copy", "y"), ("rename", "r")] {
         let index = shown.iter().position(|row| row == action).unwrap();
         assert_eq!(hints[index], hint, "the painted hint for {action}");
     }
