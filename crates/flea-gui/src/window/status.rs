@@ -189,7 +189,7 @@ impl Shell {
                 host.path.clone(),
                 host.state_text.message.clone(),
                 host.retry_text(),
-                host.search.owner.status(catalog).0,
+                crate::g2::sr1::Search::status(&host.search.owner, catalog).0,
             )
         };
         let revision = self.locale.revision;

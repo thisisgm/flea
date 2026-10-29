@@ -31,9 +31,15 @@ impl Sandbox {
 impl Drop for Sandbox {
     fn drop(&mut self) {
         // Hard rule 9: an absolute root, inside the unit's scratch, that still holds its marker.
-        let Ok(parent) = fs::canonicalize(scratch()) else { return };
+        let Ok(parent) = fs::canonicalize(scratch()) else {
+            return;
+        };
         let root = &self.0;
-        if root.is_absolute() && root.starts_with(&parent) && root != &parent && root.join(".flea-test-sandbox").is_file() {
+        if root.is_absolute()
+            && root.starts_with(&parent)
+            && root != &parent
+            && root.join(".flea-test-sandbox").is_file()
+        {
             let _ = fs::remove_dir_all(root);
         }
     }
@@ -78,23 +84,42 @@ fn mn2_r2_the_agent_runs_detached_in_the_folder_with_its_argv() {
         .spawn()
         .expect("the piped helper spawns");
     let out = helper.wait_with_output().expect("the helper exits");
-    assert!(out.status.success(), "the helper drove the agent: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "the helper drove the agent: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let record = fs::read_to_string(root.0.join("record")).expect("the fixture recorded");
     let mut lines = record.lines();
     let cwd = folder.canonicalize().unwrap();
-    assert_eq!(lines.next(), cwd.to_str(), "the folder is the working directory");
+    assert_eq!(
+        lines.next(),
+        cwd.to_str(),
+        "the folder is the working directory"
+    );
     let group = lines.next().expect("the fixture's group");
     assert_ne!(group, own_group(), "the agent leads its own process group");
     let fds: Vec<_> = (0..3).map(|_| lines.next()).collect();
-    assert_eq!(fds, [Some("/dev/null"), Some("/dev/null"), Some("/dev/null")], "fds 0, 1 and 2 are null");
-    assert_eq!(lines.collect::<Vec<_>>(), ["agent", "--pick"], "argv runs with no shell in front");
+    assert_eq!(
+        fds,
+        [Some("/dev/null"), Some("/dev/null"), Some("/dev/null")],
+        "fds 0, 1 and 2 are null"
+    );
+    assert_eq!(
+        lines.collect::<Vec<_>>(),
+        ["agent", "--pick"],
+        "argv runs with no shell in front"
+    );
 }
 
 // Re-executed by the stdio test with piped stdio on every fd: it spawns the agent from fds that are never /dev/null, so only `launch_argv` nulling them reads back null.
 #[test]
 #[ignore]
 fn mn2_launch_helper_spawn_from_pipes() {
-    let (Ok(program), Ok(folder)) = (std::env::var("MN2_FIXTURE_PROGRAM"), std::env::var("MN2_FIXTURE_FOLDER")) else {
+    let (Ok(program), Ok(folder)) = (
+        std::env::var("MN2_FIXTURE_PROGRAM"),
+        std::env::var("MN2_FIXTURE_FOLDER"),
+    ) else {
         return;
     };
     let argv = [program, "agent".into(), "--pick".into()];
@@ -117,7 +142,10 @@ fn int2_the_reaped_launch_runs_the_agent_and_says_a_failed_spawn() {
     let root = Sandbox::new();
     let program = fixture(&root.0);
     let argv = [program.display().to_string(), "agent".to_string()];
-    assert!(launch_reaped(&argv, &root.0.join("removed")).is_err(), "a failed spawn is an error to say");
+    assert!(
+        launch_reaped(&argv, &root.0.join("removed")).is_err(),
+        "a failed spawn is an error to say"
+    );
     launch_reaped(&argv, &root.0).expect("the reaper and the agent start");
     let record = root.0.join("record");
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);

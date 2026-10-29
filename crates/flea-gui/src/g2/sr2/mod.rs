@@ -3,7 +3,6 @@ pub mod filter;
 pub mod keys;
 pub mod present;
 pub mod strip;
-pub mod wire;
 #[cfg(test)]
 mod tests_flow;
 #[cfg(test)]
@@ -12,6 +11,7 @@ mod tests_scope;
 mod tests_strip;
 #[cfg(test)]
 mod tests_wire;
+pub mod wire;
 
 use gpui::{Context, IntoElement, Render, Window};
 use std::{cell::RefCell, rc::Rc};

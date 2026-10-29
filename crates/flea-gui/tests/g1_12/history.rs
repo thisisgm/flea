@@ -30,8 +30,14 @@ fn the_recent_history_reads_as_recent_js_reads_it() {
         "/x/data/recently-used.xbel".into(),
     );
     // Recent.js re-adds the slash after trimming, so a data home of "/" stays absolute.
-    assert_eq!(history_path(Some("/"), HOME), std::path::PathBuf::from("/recently-used.xbel"));
-    assert_eq!(history_path(Some("//"), HOME), std::path::PathBuf::from("/recently-used.xbel"));
+    assert_eq!(
+        history_path(Some("/"), HOME),
+        std::path::PathBuf::from("/recently-used.xbel")
+    );
+    assert_eq!(
+        history_path(Some("//"), HOME),
+        std::path::PathBuf::from("/recently-used.xbel")
+    );
     let local = [
         ("file:///home/gm/a.png", "/home/gm/a.png"),
         ("file:///home/gm/a%20b%23c.png", "/home/gm/a b#c.png"),

@@ -55,7 +55,10 @@ fn mn2_a_stale_listing_never_reaches_the_rows() {
         .expect("a one-path menu discovers");
     actions.receive(r#"{"t":"actions","id":9,"actions":[{"id":"action:old.toml","name":"Old","mode":"background","selection":"many","script":false}],"errors":[],"error":""}"#);
     assert!(actions.actions_entry(&[]).is_none());
-    assert!(actions.take_said().is_empty(), "a superseded reply says nothing");
+    assert!(
+        actions.take_said().is_empty(),
+        "a superseded reply says nothing"
+    );
 }
 
 #[test]
@@ -298,7 +301,11 @@ fn mn2_every_emitted_mark_is_drawn_or_handed_to_the_join(cx: &mut TestAppContext
     use std::path::PathBuf;
     struct Root;
     impl Render for Root {
-        fn render(&mut self, _: &mut gpui::Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
+        fn render(
+            &mut self,
+            _: &mut gpui::Window,
+            _: &mut gpui::Context<Self>,
+        ) -> impl IntoElement {
             div()
         }
     }
@@ -326,13 +333,18 @@ fn mn2_every_emitted_mark_is_drawn_or_handed_to_the_join(cx: &mut TestAppContext
                 typeface: &typeface,
                 inset: 4.,
             };
-            let built = lines::build(&entries, &env, window, flea::ui_logic_mn1::fit::MENU_W, 1100.);
+            let built = lines::build(
+                &entries,
+                &env,
+                window,
+                flea::ui_logic_mn1::fit::MENU_W,
+                1100.,
+            );
             assert_eq!(built.lines.len(), entries.len());
             for (entry, line) in entries.iter().zip(built.lines.iter()) {
                 let Some(name) = entry.glyph else { continue };
                 let drawn = matches!(line.lead, Lead::Cut(_));
-                let handed = rows::mark_path(name).is_some()
-                    || crate::g2::mn1::glyphs::known(name);
+                let handed = rows::mark_path(name).is_some() || crate::g2::mn1::glyphs::known(name);
                 assert!(drawn || handed, "{name} draws nowhere");
                 if entry.id.as_ref() == "openAgent" {
                     assert!(handed, "the bot mark reaches the join");
@@ -348,13 +360,21 @@ fn mn2_every_emitted_mark_is_drawn_or_handed_to_the_join(cx: &mut TestAppContext
 #[test]
 fn int3_only_a_held_run_has_its_refusal_said_once() {
     let mut actions = Actions::default();
-    let refused = r#"{"t":"actionstarted","requestId":9,"ok":false,"error":"empty terminal action"}"#;
+    let refused =
+        r#"{"t":"actionstarted","requestId":9,"ok":false,"error":"empty terminal action"}"#;
     actions.receive(refused);
-    assert!(actions.take_said().is_empty(), "a run this window never sent is not said");
+    assert!(
+        actions.take_said().is_empty(),
+        "a run this window never sent is not said"
+    );
     actions.run_sent(9);
     actions.receive(r#"{"t":"actionstarted","requestId":9,"id":40,"ok":true,"error":""}"#);
     assert!(actions.take_said().is_empty(), "a started run is quiet");
     actions.receive(refused);
     actions.receive(refused);
-    assert_eq!(actions.take_said().len(), 1, "a held run's refusal is said once");
+    assert_eq!(
+        actions.take_said().len(),
+        1,
+        "a held run's refusal is said once"
+    );
 }

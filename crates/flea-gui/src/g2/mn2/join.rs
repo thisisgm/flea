@@ -56,10 +56,22 @@ impl Shell {
 
     // The detached spawn, reaped off the UI thread; only a failure to start says anything.
     fn open_agent(&mut self, side: usize, folder: &str, cx: &mut Context<Self>) {
-        let result = match self.menu.agent.clone() {
-            Some(launch) => launch(Path::new(folder)),
-            None => super::launch::launch_agent_reaped(Path::new(folder)),
-        };
+        if let Some(launch) = self.menu.agent.clone() {
+            self.agent_launched(side, launch(Path::new(folder)), cx);
+            return;
+        }
+        let folder = Path::new(folder).to_owned();
+        let launched = cx
+            .background_executor()
+            .spawn(async move { super::launch::launch_agent_reaped(&folder) });
+        cx.spawn(async move |this, cx| {
+            let result = launched.await;
+            let _ = this.update(cx, |shell, cx| shell.agent_launched(side, result, cx));
+        })
+        .detach();
+    }
+
+    fn agent_launched(&mut self, side: usize, result: std::io::Result<()>, cx: &mut Context<Self>) {
         if let Err(error) = result {
             let sentence = self
                 .locale
@@ -70,7 +82,12 @@ impl Shell {
     }
 
     // Run and preview replies belong to the menu's Actions model; Jobs lines after the handshake stay with OP1.
-    pub(crate) fn actions_reply(&mut self, side: usize, line: &str, cx: &mut Context<Self>) -> bool {
+    pub(crate) fn actions_reply(
+        &mut self,
+        side: usize,
+        line: &str,
+        cx: &mut Context<Self>,
+    ) -> bool {
         let Ok(reply) = jsondoc::parse(line) else {
             return false;
         };

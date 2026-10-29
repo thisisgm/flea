@@ -60,8 +60,12 @@ pub fn column(view: Column, look: &Look) -> AnyElement {
         Frame::Picture { path, w, h } => {
             let room_w = f64::from(view.width - 2. * look::COLUMN_INSET - 2.);
             // The host's raster draws when it has one; a vector without one draws nothing, never img(path).
-            let vector = path.file_name().and_then(|n| n.to_str()).is_some_and(is_vector_name);
-            let fit = super::body::fit_painted(room_w, f64::from(look::COLUMN_FRAME - 2.), w, h, vector);
+            let vector = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(is_vector_name);
+            let fit =
+                super::body::fit_painted(room_w, f64::from(look::COLUMN_FRAME - 2.), w, h, vector);
             let (pw, ph) = fit.map_or((0., 0.), |f| (f.w as f32, f.h as f32));
             let source = view
                 .raster

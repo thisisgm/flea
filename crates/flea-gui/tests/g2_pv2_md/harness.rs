@@ -2,7 +2,7 @@
 use super::Root;
 use flea::i18n::{I18n, Paths};
 use flea_gui::g2::pv2::markdown::{figures, Faces, MarkdownView, Palette, Tokens};
-use gpui::{hsla, AppContext as _, Hsla, TestAppContext, WindowHandle};
+use gpui::{AppContext as _, TestAppContext, WindowHandle};
 use std::{
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
@@ -22,23 +22,19 @@ pub const TOKENS: Tokens = Tokens {
     column: false,
 };
 
-fn grey(lightness: f32) -> Hsla {
-    hsla(0., 0., lightness, 1.)
-}
-
 pub fn palette() -> Palette {
-    let hue = |h: f32| hsla(h, 0.7, 0.6, 1.);
+    let theme = flea_gui::palette::Theme::default();
     Palette {
-        background: grey(0.08),
-        code: grey(0.12),
-        surface: grey(0.14),
-        foreground: grey(0.85),
-        bright: grey(0.95),
-        figure_muted: grey(0.7),
-        muted: grey(0.6),
-        muted_frame: grey(0.4),
-        accent_frame: hue(0.6),
-        inks: [hue(0.0), hue(0.33), hue(0.16), hue(0.6), hue(0.8), hue(0.5)],
+        background: theme.background,
+        code: theme.background,
+        surface: theme.surface,
+        foreground: theme.foreground,
+        bright: theme.foreground_bright,
+        figure_muted: theme.muted,
+        muted: theme.metadata,
+        muted_frame: theme.metadata_frame,
+        accent_frame: theme.accent_frame,
+        inks: theme.code_inks,
     }
 }
 

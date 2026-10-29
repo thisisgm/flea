@@ -236,14 +236,7 @@ impl ArchiveView {
         let head = !self.column;
         let frame = Rc::new(Frame {
             name: head.then(|| text(name, m.name, full, Elide::Middle)),
-            line: head.then(|| {
-                text(
-                    archive::line(&catalog, meta),
-                    m.caption,
-                    full,
-                    Elide::End,
-                )
-            }),
+            line: head.then(|| text(archive::line(&catalog, meta), m.caption, full, Elide::End)),
             rows: archive::entries(meta, shown)
                 .iter()
                 .map(|(entry, dir)| (*dir, text(entry.clone(), m.caption, beside, Elide::End)))

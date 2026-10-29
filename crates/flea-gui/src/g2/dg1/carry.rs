@@ -201,7 +201,9 @@ impl Shell {
 
     // The footer's notice for a riding carry, remembered by serial so its end withdraws exactly it.
     fn carry_say(&mut self, window: u64, cx: &mut gpui::Context<Self>) {
-        let Some((text, _hint)) = cx.global::<Carrying>().carry.status(&self.locale.catalog) else {
+        let Some((text, _hint)) =
+            Carry::status(&cx.global::<Carrying>().carry, &self.locale.catalog)
+        else {
             return;
         };
         let lifted = cx

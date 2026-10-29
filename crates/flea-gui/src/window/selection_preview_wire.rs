@@ -1,6 +1,9 @@
 //! The backend lines the column's mounted views ask through, and the replies they read back.
 use super::*;
-use crate::g2::pv2::{self, markdown::{CodeAnswer, CodeSource, CodeState}};
+use crate::g2::pv2::{
+    self,
+    markdown::{CodeAnswer, CodeSource, CodeState},
+};
 use flea::{
     json::escape,
     ui_logic_pv2::code_view::{self, Answer, Source},

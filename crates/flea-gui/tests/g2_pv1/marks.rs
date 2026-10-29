@@ -150,7 +150,7 @@ fn a_model_name_in_another_doc_view_keeps_its_kind_mark(cx: &mut TestAppContext)
         let theme = flea_gui::g2::pv2::font::Theme {
             foreground: "#c0caf5".into(),
             surface: "#1a1b26".into(),
-            muted: gpui::hsla(0., 0., 0.6, 1.),
+            muted: flea_gui::palette::Theme::default().muted,
             size_ratio: 1.,
         };
         let metrics = flea_gui::g2::pv2::font::Metrics {

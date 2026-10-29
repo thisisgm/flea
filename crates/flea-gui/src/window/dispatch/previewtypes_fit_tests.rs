@@ -25,10 +25,21 @@ fn assert_fits(shell: &gpui::Entity<crate::state::Shell>, cx: &mut VisualTestCon
     let (column_bottom, name_top) = (f32::from(column.bottom()), f32::from(name.top()));
     let (name_bottom, facts_top) = (f32::from(name.bottom()), f32::from(facts.top()));
     let facts_bottom = f32::from(facts.bottom());
-    assert!(frame <= name_top + 0.5, "{at}: the frame ends above the name: {frame} > {name_top}");
-    assert!(name_bottom <= facts_top + 0.5, "{at}: the facts sit under the name: {name_bottom} > {facts_top}");
+    assert!(
+        frame <= name_top + 0.5,
+        "{at}: the frame ends above the name: {frame} > {name_top}"
+    );
+    assert!(
+        name_bottom <= facts_top + 0.5,
+        "{at}: the facts sit under the name: {name_bottom} > {facts_top}"
+    );
     let pad = shell.read_with(cx, |shell, cx| {
-        let face = shell.selection_preview(0).expect("the column is mounted").read(cx).face.clone();
+        let face = shell
+            .selection_preview(0)
+            .expect("the column is mounted")
+            .read(cx)
+            .face
+            .clone();
         crate::list::Metrics::for_typeface(&face).pad
     });
     assert!(
@@ -38,9 +49,16 @@ fn assert_fits(shell: &gpui::Entity<crate::state::Shell>, cx: &mut VisualTestCon
 }
 
 #[gpui::test]
-fn a_code_preview_keeps_its_name_and_facts_inside_the_column_at_every_height(cx: &mut TestAppContext) {
+fn a_code_preview_keeps_its_name_and_facts_inside_the_column_at_every_height(
+    cx: &mut TestAppContext,
+) {
     let (shell, cx) = open_at(cx, "/files", Some(14.));
-    let rows = vec![file("code-rs.rs", "text-x-rust", "Rust source code", 0o100644)];
+    let rows = vec![file(
+        "code-rs.rs",
+        "text-x-rust",
+        "Rust source code",
+        0o100644,
+    )];
     super::test_shell::land(&shell, cx, "/files", rows, 1);
     let lines = local(&shell, cx, "/files");
     meta(&shell, cx, &lines, r#","lines":3"#);
@@ -63,7 +81,11 @@ fn a_code_preview_keeps_its_name_and_facts_inside_the_column_at_every_height(cx:
             assert_fits(&shell, cx, &format!("{facts} {w}x{h}"));
             if facts == "compact" {
                 let line = bounds(cx, "column-preview-facts").size.height;
-                assert_eq!(f32::from(line), 18., "the board's compact facts line is 18 px");
+                assert_eq!(
+                    f32::from(line),
+                    18.,
+                    "the board's compact facts line is 18 px"
+                );
             }
         }
         cx.simulate_keystrokes("i->i");
@@ -86,20 +108,48 @@ fn video_facts_take_the_board_pitch_and_the_frame_draws_no_play_mark(cx: &mut Te
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "video");
     let count = read(&shell, cx, "previewFacts", &[]).split('|').count();
     assert!(count >= 5, "Kind, Size, Modified, Duration and Pixels");
-    const ROWS: [&str; 5] = ["column-preview-fact-0", "column-preview-fact-1", "column-preview-fact-2", "column-preview-fact-3", "column-preview-fact-4"];
-    let tops: Vec<f32> = ROWS.iter().map(|row| f32::from(bounds(cx, row).top())).collect();
+    const ROWS: [&str; 5] = [
+        "column-preview-fact-0",
+        "column-preview-fact-1",
+        "column-preview-fact-2",
+        "column-preview-fact-3",
+        "column-preview-fact-4",
+    ];
+    let tops: Vec<f32> = ROWS
+        .iter()
+        .map(|row| f32::from(bounds(cx, row).top()))
+        .collect();
     for (row, pair) in ROWS.iter().zip(tops.windows(2)) {
-        assert_eq!(f32::from(bounds(cx, row).size.height), 18., "{row} is 18 px tall");
-        assert_eq!(pair[1] - pair[0], 21., "fact rows are 21 px apart: {tops:?}");
+        assert_eq!(
+            f32::from(bounds(cx, row).size.height),
+            18.,
+            "{row} is 18 px tall"
+        );
+        assert_eq!(
+            pair[1] - pair[0],
+            21.,
+            "fact rows are 21 px apart: {tops:?}"
+        );
     }
-    let label = f32::from(bounds(cx, "column-preview-value-0").left()) - f32::from(bounds(cx, ROWS[0]).left());
+    let label = f32::from(bounds(cx, "column-preview-value-0").left())
+        - f32::from(bounds(cx, ROWS[0]).left());
     assert_eq!(label, 71., "values start at the board's 71 px label column");
     let name = bounds(cx, "column-preview-name");
-    assert_eq!(f32::from(name.size.height), 20., "the name is the board's 20 px line");
-    let poster = Picture::Video { frame: None, poster: true };
+    assert_eq!(
+        f32::from(name.size.height),
+        20.,
+        "the name is the board's 20 px line"
+    );
+    let poster = Picture::Video {
+        frame: None,
+        poster: true,
+    };
     assert_eq!(
         crate::window::selection_preview::render::column_picture(poster),
-        Picture::Video { frame: None, poster: false },
+        Picture::Video {
+            frame: None,
+            poster: false
+        },
         "the column frame carries no play mark"
     );
 }

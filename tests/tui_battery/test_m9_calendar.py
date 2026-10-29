@@ -36,7 +36,10 @@ DATE = "2025-06-15 10:00"
 
 
 def boards():
-    return Path(os.environ.get("FLEA_BATTERY_BOARDS", "/home/gm/flea-ops/claude/releases/0.4.0/design-hig"))
+    value = os.environ.get("FLEA_BATTERY_BOARDS")
+    if not value:
+        raise Blocked("FLEA_BATTERY_BOARDS is unset: set it to the design-hig directory that holds boards/")
+    return Path(value)
 
 
 def board_snapshot(name):

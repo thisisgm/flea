@@ -5,7 +5,14 @@ use flea::keys::{self, Context, Frontend, Input, Match};
 use gpui::{KeyDownEvent, Modifiers};
 
 // ui/js/Focus.js LEAVES_LINE: the cursor keys commit the line and then move the list.
-const LEAVES_LINE: [&str; 6] = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp"];
+const LEAVES_LINE: [&str; 6] = [
+    "cursorDown",
+    "cursorUp",
+    "cursorFirst",
+    "cursorLast",
+    "pageDown",
+    "pageUp",
+];
 
 /// A key the line owns, read through the generated key table for the listing; Paste asks the caller for the clipboard.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

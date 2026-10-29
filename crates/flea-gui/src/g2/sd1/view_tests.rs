@@ -7,8 +7,9 @@ use crate::list::Palette;
 use flea::ui_logic_mn1::fit::ROW;
 use flea::ui_logic_sd1::share::ShareBrowser;
 use gpui::{
-    div, point, prelude::*, px, size, Bounds, Context, Hsla, IntoElement, Modifiers, MouseButton, Render, ScrollDelta,
-    ScrollWheelEvent, TestAppContext, TouchPhase, VisualTestContext, Window, WindowHandle,
+    div, point, prelude::*, px, size, Bounds, Context, IntoElement, Modifiers, MouseButton, Render,
+    ScrollDelta, ScrollWheelEvent, TestAppContext, TouchPhase, VisualTestContext, Window,
+    WindowHandle,
 };
 use std::{cell::Cell, cell::RefCell, rc::Rc};
 
@@ -33,32 +34,27 @@ impl Render for Frame {
 
 // The theme roles the overlay reads, in the test's own colours: ink on a dark ground with the accent.
 fn palette() -> Palette {
-    let ink = Hsla { h: 0., s: 0., l: 0.9, a: 1. };
-    let accent = Hsla { h: 0.6, s: 0.8, l: 0.5, a: 1. };
-    Palette {
-        background: Hsla { h: 0., s: 0., l: 0.1, a: 1. },
-        foreground: ink,
-        muted: ink,
-        error: ink,
-        error_on_surface: ink,
-        metadata: ink.opacity(0.6),
-        metadata_frame: ink.opacity(0.4),
-        accent,
-        accent_frame: accent,
-        symlink: ink,
-        executable: ink,
-        marked: ink,
-        muted_frame: ink,
-    }
+    Palette::inherited(
+        &gpui::TextStyle::default(),
+        crate::palette::Theme::from_text(
+            "background='#1a1b26'\nforeground='#a9b1d6'\naccent='#7aa2f7'",
+        ),
+    )
 }
 
-type Parts = (WindowHandle<Frame>, Rc<RefCell<ShareBrowser>>, Rc<RefCell<ShapedShares>>, Rc<RefCell<Probe>>);
+type Parts = (
+    WindowHandle<Frame>,
+    Rc<RefCell<ShareBrowser>>,
+    Rc<RefCell<ShapedShares>>,
+    Rc<RefCell<Probe>>,
+);
 
 fn open(cx: &mut TestAppContext) -> Parts {
     let browser = Rc::new(RefCell::new(ShareBrowser::default()));
     let rows = Rc::new(RefCell::new(ShapedShares::default()));
     let probe = Rc::new(RefCell::new(Probe::default()));
-    let (held_browser, held_rows, held_probe) = (Rc::clone(&browser), Rc::clone(&rows), Rc::clone(&probe));
+    let (held_browser, held_rows, held_probe) =
+        (Rc::clone(&browser), Rc::clone(&rows), Rc::clone(&probe));
     let window = cx.open_window(size(px(900.), px(200.)), |_, _| Frame {
         browser: held_browser,
         rows: held_rows,
@@ -93,7 +89,10 @@ fn a_shut_overlay_draws_nothing_and_reports_no_rect() {
     let (window, _, _, probe) = open(&mut cx);
     frame(&mut cx, window);
     let probe = probe.borrow();
-    assert!(probe.bounds.is_none(), "a shut overlay is invisible, so it has no rect");
+    assert!(
+        probe.bounds.is_none(),
+        "a shut overlay is invisible, so it has no rect"
+    );
     assert_eq!(probe.painted, 0);
     assert_eq!(probe.picked, None);
 }
@@ -118,11 +117,19 @@ fn the_pointer_lifts_the_row_under_it_and_never_moves_the_pick() {
     open_browser(&browser, &["media", "docs"]);
     let mut visual = VisualTestContext::from_window(window.into(), &cx);
     draw(&mut visual);
-    visual.simulate_mouse_move(point(px(450.), px(ROW as f32 * 1.5)), None, Modifiers::none());
+    visual.simulate_mouse_move(
+        point(px(450.), px(ROW as f32 * 1.5)),
+        None,
+        Modifiers::none(),
+    );
     draw(&mut visual);
     let probe = probe.borrow();
     assert_eq!(probe.hovered, Some(1));
-    assert_eq!(probe.picked, Some(0), "hover lifts a row, the cursor stays where the keys left it");
+    assert_eq!(
+        probe.picked,
+        Some(0),
+        "hover lifts a row, the cursor stays where the keys left it"
+    );
 }
 
 // The listing under the overlay, counting any press or wheel that reaches it past the opaque ground.
@@ -144,11 +151,17 @@ impl Render for Under {
             bench_typeface(),
             palette(),
         );
-        let (left, right, wheels) = (Rc::clone(&self.left), Rc::clone(&self.right), Rc::clone(&self.wheels));
+        let (left, right, wheels) = (
+            Rc::clone(&self.left),
+            Rc::clone(&self.right),
+            Rc::clone(&self.wheels),
+        );
         div()
             .size_full()
             .on_mouse_down(MouseButton::Left, move |_, _, _| left.set(left.get() + 1))
-            .on_mouse_down(MouseButton::Right, move |_, _, _| right.set(right.get() + 1))
+            .on_mouse_down(MouseButton::Right, move |_, _, _| {
+                right.set(right.get() + 1)
+            })
             .on_scroll_wheel(move |_, _, _| wheels.set(wheels.get() + 1))
             .child(overlay)
     }
@@ -159,9 +172,19 @@ impl Render for Under {
 fn r2_h_the_open_overlay_takes_its_own_clicks_wheel_and_hover() {
     let mut cx = real_cx();
     let browser = Rc::new(RefCell::new(ShareBrowser::default()));
-    let (left, right, wheels) = (Rc::new(Cell::new(0)), Rc::new(Cell::new(0)), Rc::new(Cell::new(0)));
+    let (left, right, wheels) = (
+        Rc::new(Cell::new(0)),
+        Rc::new(Cell::new(0)),
+        Rc::new(Cell::new(0)),
+    );
     let probe = Rc::new(RefCell::new(Probe::default()));
-    let (b, l, r, w, p) = (Rc::clone(&browser), Rc::clone(&left), Rc::clone(&right), Rc::clone(&wheels), Rc::clone(&probe));
+    let (b, l, r, w, p) = (
+        Rc::clone(&browser),
+        Rc::clone(&left),
+        Rc::clone(&right),
+        Rc::clone(&wheels),
+        Rc::clone(&probe),
+    );
     let window = cx.open_window(size(px(900.), px(300.)), |_, _| Under {
         browser: b,
         rows: Rc::new(RefCell::new(ShapedShares::default())),
@@ -170,7 +193,11 @@ fn r2_h_the_open_overlay_takes_its_own_clicks_wheel_and_hover() {
         right: r,
         wheels: w,
     });
-    browser.borrow_mut().open("smb://nas", "nas", &["media".to_string(), "docs".to_string()]);
+    browser.borrow_mut().open(
+        "smb://nas",
+        "nas",
+        &["media".to_string(), "docs".to_string()],
+    );
     let mut visual = VisualTestContext::from_window(window.into(), &cx);
     draw(&mut visual);
     assert_eq!(probe.borrow().painted, 2, "the overlay is drawn");
@@ -217,7 +244,11 @@ fn a_still_frame_shapes_nothing_and_a_new_list_shapes_once() {
     frame(&mut cx, window);
     assert_eq!(rows.borrow().reshapes, 1);
     frame(&mut cx, window);
-    assert_eq!(rows.borrow().reshapes, 1, "an unchanged list is not shaped again");
+    assert_eq!(
+        rows.borrow().reshapes,
+        1,
+        "an unchanged list is not shaped again"
+    );
     open_browser(&browser, &["media", "docs", "archive"]);
     frame(&mut cx, window);
     assert_eq!(rows.borrow().reshapes, 2, "a changed list is shaped once");
@@ -230,7 +261,11 @@ fn a_pointer_height_maps_to_its_row_and_misses_above_and_below() {
     let row = ROW as f32;
     assert_eq!(row_at(bounds, px(10.), 2), Some(0));
     assert_eq!(row_at(bounds, px(10. + row), 2), Some(1));
-    assert_eq!(row_at(bounds, px(10. + 2. * row), 2), None, "past the last share");
+    assert_eq!(
+        row_at(bounds, px(10. + 2. * row), 2),
+        None,
+        "past the last share"
+    );
     assert_eq!(row_at(bounds, px(4.), 2), None, "above the overlay");
 }
 
@@ -242,8 +277,17 @@ fn the_ipc_readers_answer_the_drawn_overlay() {
     frame(&mut cx, window);
     let browser_ref = browser.borrow();
     let probe_ref = probe.borrow();
-    let adapter = BrowserAdapter { browser: &browser_ref, probe: &probe_ref, origin: (0., 0.) };
-    let answer = |function: &str| adapter.call(function, &[]).expect("the reader is answered").stdout;
+    let adapter = BrowserAdapter {
+        browser: &browser_ref,
+        probe: &probe_ref,
+        origin: (0., 0.),
+    };
+    let answer = |function: &str| {
+        adapter
+            .call(function, &[])
+            .expect("the reader is answered")
+            .stdout
+    };
     assert_eq!(answer("shareBrowserOpen"), "true\n");
     assert_eq!(answer("shareBrowserEntries"), "media\ndocs\n");
     assert_eq!(answer("shareBrowserCursor"), "0\n");
@@ -256,122 +300,6 @@ fn the_ipc_readers_answer_the_drawn_overlay() {
 }
 
 // The listing beneath the overlay, counting the pointer motion and hover reaching it past the ground.
-struct MotionUnder {
-    browser: Rc<RefCell<ShareBrowser>>,
-    rows: Rc<RefCell<ShapedShares>>,
-    probe: Rc<RefCell<Probe>>,
-    moves: Rc<Cell<usize>>,
-    hovered: Rc<Cell<bool>>,
-}
 
-impl Render for MotionUnder {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        let overlay = ShareBrowserElement::new(
-            Rc::clone(&self.browser),
-            Rc::clone(&self.rows),
-            Rc::clone(&self.probe),
-            bench_typeface(),
-            palette(),
-        );
-        let (moves, hovered) = (Rc::clone(&self.moves), Rc::clone(&self.hovered));
-        div()
-            .id("under")
-            .size_full()
-            .on_mouse_move(move |_, _, _| moves.set(moves.get() + 1))
-            .on_hover(move |now: &bool, _, _| hovered.set(*now))
-            .child(overlay)
-    }
-}
-
-type MotionParts = (VisualTestContext, Rc<RefCell<ShareBrowser>>, Rc<RefCell<Probe>>, Rc<Cell<usize>>, Rc<Cell<bool>>);
-
-fn open_motion() -> MotionParts {
-    let mut cx = real_cx();
-    let browser = Rc::new(RefCell::new(ShareBrowser::default()));
-    let probe = Rc::new(RefCell::new(Probe::default()));
-    let (moves, hovered) = (Rc::new(Cell::new(0)), Rc::new(Cell::new(false)));
-    let (b, p, m, h) = (Rc::clone(&browser), Rc::clone(&probe), Rc::clone(&moves), Rc::clone(&hovered));
-    let window = cx.open_window(size(px(900.), px(300.)), |_, _| MotionUnder {
-        browser: b,
-        rows: Rc::new(RefCell::new(ShapedShares::default())),
-        probe: p,
-        moves: m,
-        hovered: h,
-    });
-    let visual = VisualTestContext::from_window(window.into(), &cx);
-    (visual, browser, probe, moves, hovered)
-}
-
-// r3-2: ui/ShareBrowser.qml's ground has hoverEnabled: true, so no motion or hover reaches the listing beneath.
-#[test]
-fn r3_a_the_open_overlay_keeps_motion_and_hover_from_the_listing_beneath() {
-    let (mut visual, browser, probe, moves, hovered) = open_motion();
-    draw(&mut visual);
-    visual.simulate_mouse_move(point(px(450.), px(250.)), None, Modifiers::none());
-    draw(&mut visual);
-    let control = (moves.get(), hovered.get());
-    assert!(control.0 > 0 && control.1, "control: a move over the shut overlay reaches the listing {control:?}");
-    browser.borrow_mut().open("smb://nas", "nas", &["media".to_string(), "docs".to_string()]);
-    draw(&mut visual);
-    let before = moves.get();
-    visual.simulate_mouse_move(point(px(400.), px(260.)), None, Modifiers::none());
-    draw(&mut visual);
-    visual.simulate_mouse_move(point(px(450.), px(ROW as f32 * 1.5)), None, Modifiers::none());
-    draw(&mut visual);
-    let seen = (moves.get() - before, hovered.get(), probe.borrow().hovered);
-    assert_eq!(seen, (0, false, Some(1)), "motion or hover reached the listing beneath the open overlay: {seen:?}");
-}
-
-// r3-1: ui/MenuRow.qml ReleaseWithinBounds: a press alone or dragged off its row picks nothing.
-#[test]
-fn r3_b_a_press_alone_or_dragged_off_picks_no_share() {
-    let (mut visual, browser, probe, _, _) = open_motion();
-    browser.borrow_mut().open("smb://nas", "nas", &["media".to_string(), "docs".to_string()]);
-    draw(&mut visual);
-    let row = point(px(450.), px(ROW as f32 * 1.5));
-    visual.simulate_mouse_move(row, None, Modifiers::none());
-    draw(&mut visual);
-    visual.simulate_mouse_down(row, MouseButton::Left, Modifiers::none());
-    draw(&mut visual);
-    let after_press = (browser.borrow().cursor, probe.borrow().pick.clone());
-    let gap = point(px(450.), px(250.));
-    visual.simulate_mouse_move(gap, Some(MouseButton::Left), Modifiers::none());
-    visual.simulate_mouse_up(gap, MouseButton::Left, Modifiers::none());
-    draw(&mut visual);
-    let after_release = (browser.borrow().cursor, probe.borrow().pick.clone());
-    assert_eq!(
-        (after_press.clone(), after_release.clone()),
-        ((0, None), (0, None)),
-        "a press picked before its release: after press {after_press:?}, after an off-row release {after_release:?}"
-    );
-    visual.simulate_mouse_move(row, None, Modifiers::none());
-    draw(&mut visual);
-    visual.simulate_mouse_down(row, MouseButton::Left, Modifiers::none());
-    draw(&mut visual);
-    visual.simulate_mouse_up(row, MouseButton::Left, Modifiers::none());
-    draw(&mut visual);
-    assert_eq!(
-        (browser.borrow().cursor, probe.borrow().pick.clone()),
-        (1, Some(("smb://nas/docs/".to_string(), "docs".to_string()))),
-        "a release over the row the press started on picks its share"
-    );
-}
-
-// r3-5: the mountable view draws the overlay for its Slots.states side, so the G1 mount shows the shares.
-#[test]
-fn r3_e_the_mountable_view_draws_the_overlay_for_its_slot() {
-    let mut cx = real_cx();
-    let browser = Rc::new(RefCell::new(ShareBrowser::default()));
-    let rows = Rc::new(RefCell::new(ShapedShares::default()));
-    let probe = Rc::new(RefCell::new(Probe::default()));
-    let (b, r, p) = (Rc::clone(&browser), Rc::clone(&rows), Rc::clone(&probe));
-    let window = cx.open_window(size(px(900.), px(200.)), |_, _| {
-        ShareBrowserView::new(b, r, p, bench_typeface(), palette())
-    });
-    browser.borrow_mut().open("smb://nas", "nas", &["media".to_string(), "docs".to_string()]);
-    frame(&mut cx, window);
-    let probe = probe.borrow();
-    assert!(probe.bounds.is_some(), "the mounted view has a rect for its slot");
-    assert_eq!(probe.painted, 2, "one server-marked row per share");
-    assert_eq!(probe.picked, Some(0), "the keyboard cursor is the pick");
-}
+#[path = "view_motion_tests.rs"]
+mod motion;

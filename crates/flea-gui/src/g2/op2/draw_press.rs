@@ -1,9 +1,9 @@
 //! The step's current mouse gesture, released once and cancelled independently of its paint state.
 use super::draw_flash::{CancelTap, FlashTaps};
 use gpui::{
-    prelude::*, App, Bounds, Context, Div, Element, ElementId, Entity, GlobalElementId, InspectorElementId,
-    IntoElement, LayoutId, MouseButton, MouseDownEvent, MouseExitEvent, MouseMoveEvent, MouseUpEvent, Pixels, Stateful,
-    Subscription, Window,
+    prelude::*, App, Bounds, Context, Div, Element, ElementId, Entity, GlobalElementId,
+    InspectorElementId, IntoElement, LayoutId, MouseButton, MouseDownEvent, MouseExitEvent,
+    MouseMoveEvent, MouseUpEvent, Pixels, Stateful, Subscription, Window,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -31,7 +31,13 @@ impl Gesture {
                 let _ = weak.update(cx, |gesture: &mut Self, cx| gesture.cancel(window, cx));
             }
         });
-        Self { down: None, released: None, cancel: None, _activation: activation, _escape: escape }
+        Self {
+            down: None,
+            released: None,
+            cancel: None,
+            _activation: activation,
+            _escape: escape,
+        }
     }
 
     fn cancel(&mut self, window: &mut Window, cx: &mut App) {
@@ -56,7 +62,10 @@ pub(super) struct PressButton {
 }
 
 fn owner(slot: &OwnerSlot) -> Entity<Gesture> {
-    slot.borrow().as_ref().expect("the press owner is installed before input").clone()
+    slot.borrow()
+        .as_ref()
+        .expect("the press owner is installed before input")
+        .clone()
 }
 
 impl PressButton {
@@ -85,19 +94,28 @@ impl PressButton {
                 button = button
                     .on_mouse_down(MouseButton::Left, move |event, window, cx| {
                         if window.captured_hitbox().is_none() {
-                            owner(&down_slot).update(cx, |gesture, _| gesture.down = Some(event.clone()));
+                            owner(&down_slot)
+                                .update(cx, |gesture, _| gesture.down = Some(event.clone()));
                             down(event, window, cx);
                         }
                     })
                     .on_mouse_up(MouseButton::Left, move |event, window, cx| {
-                        let began_here = owner(&up_slot).update(cx, |gesture, _| gesture.released.take().is_some());
+                        let began_here = owner(&up_slot)
+                            .update(cx, |gesture, _| gesture.released.take().is_some());
                         if began_here {
                             fire(event, window, cx);
                         }
                     });
             }
         }
-        Self { button, owner: slot, taps: taps.clone(), available, pressed, animating }
+        Self {
+            button,
+            owner: slot,
+            taps: taps.clone(),
+            available,
+            pressed,
+            animating,
+        }
     }
 }
 
@@ -139,11 +157,13 @@ impl Element for PressButton {
         window: &mut Window,
         cx: &mut App,
     ) -> Self::PrepaintState {
-        let state =
-            window.with_element_state(id.expect("the action has an id"), |state: Option<Entity<Gesture>>, window| {
+        let state = window.with_element_state(
+            id.expect("the action has an id"),
+            |state: Option<Entity<Gesture>>, window| {
                 let state = state.unwrap_or_else(|| cx.new(|cx| Gesture::new(window, cx)));
                 (state.clone(), state)
-            });
+            },
+        );
         *self.owner.borrow_mut() = Some(state.clone());
         state.update(cx, |gesture, cx| {
             gesture.cancel = self.taps.cancel.clone();
@@ -151,7 +171,8 @@ impl Element for PressButton {
                 gesture.cancel(window, cx);
             }
         });
-        self.button.prepaint(id, inspector, bounds, layout, window, cx)
+        self.button
+            .prepaint(id, inspector, bounds, layout, window, cx)
     }
 
     fn paint(
@@ -180,8 +201,9 @@ impl Element for PressButton {
                         gesture.cancel(window, cx);
                     }
                     let down = gesture.down.take();
-                    gesture.released =
-                        down.filter(|down| down.button == MouseButton::Left && event.button == MouseButton::Left);
+                    gesture.released = down.filter(|down| {
+                        down.button == MouseButton::Left && event.button == MouseButton::Left
+                    });
                     if let Some(up) = &up {
                         up(event, window, cx);
                     }
@@ -191,7 +213,8 @@ impl Element for PressButton {
         let move_state = state.clone();
         window.on_mouse_event(move |event: &MouseMoveEvent, phase, window, cx| {
             if phase.capture()
-                && (event.pressed_button != Some(MouseButton::Left) || window.captured_hitbox().is_some())
+                && (event.pressed_button != Some(MouseButton::Left)
+                    || window.captured_hitbox().is_some())
             {
                 move_state.update(cx, |gesture, cx| gesture.cancel(window, cx));
             }
@@ -202,7 +225,8 @@ impl Element for PressButton {
                 exit_state.update(cx, |gesture, cx| gesture.cancel(window, cx));
             }
         });
-        self.button.paint(id, inspector, bounds, layout, prepaint, window, cx);
+        self.button
+            .paint(id, inspector, bounds, layout, prepaint, window, cx);
         if self.animating {
             window.request_animation_frame();
         }

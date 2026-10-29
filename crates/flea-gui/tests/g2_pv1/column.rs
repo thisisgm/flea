@@ -159,7 +159,9 @@ fn rasterize(cx: &mut TestAppContext, w: u32, h: u32) -> Arc<RenderImage> {
     let bytes = std::fs::read(repo("docs/images/glyphs.svg")).unwrap();
     let parsed = renderer.parse_svg(&bytes).unwrap();
     let at = size(DevicePixels(w as i32), DevicePixels(h as i32));
-    renderer.render_parsed(&parsed, SvgSize::ExactSize(at)).unwrap()
+    renderer
+        .render_parsed(&parsed, SvgSize::ExactSize(at))
+        .unwrap()
 }
 
 #[gpui::test]
@@ -211,7 +213,10 @@ fn a_vector_without_a_host_raster_draws_no_file(cx: &mut TestAppContext) {
         facts: facts(&[]),
     };
     let cx = draw(cx, view);
-    assert!(cx.debug_bounds("pv1-column-picture").is_some(), "the frame reserves the fit");
+    assert!(
+        cx.debug_bounds("pv1-column-picture").is_some(),
+        "the frame reserves the fit"
+    );
     let res = Resource::Path(Arc::from(path.as_path()));
     assert!(
         !cx.update(|_, cx| cx.has_asset::<ImgResourceLoader>(&res)),

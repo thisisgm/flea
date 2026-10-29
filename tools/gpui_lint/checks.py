@@ -145,6 +145,8 @@ def source_checks(units, policy):
         scopes = environments(ts)
         allowed = allowed_hex_tokens(unit, policy.get("non_color_hex_constants", []))
         signatures = {id(token) for function in unit["functions"] for token in function.signature}
+        image_shadowed = any(t.value in ("mod", "struct", "enum", "type", "trait", "union")
+                             and ts[j + 1].value == "image" for j, t in enumerate(ts[:-1]))
         for i, token in enumerate(ts):
             if unit["path"] in surfaces and token.kind == "number" and COLOR_HEX.fullmatch(digits(token.value)) and i not in allowed:
                 errors.append(f"{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception")
@@ -160,7 +162,8 @@ def source_checks(units, policy):
             # A bare call under a gpui glob is gpui's unless the scope declares that name; a method or fn declaration is not a call.
             if environment.glob and following == "(" and len(path) == 1 and path[0] not in environment.items and path[0] not in environment.lets and not (i and ts[i - 1].value in (".", "fn")):
                 path = ("gpui", path[0])
-            constructor = following in ("(", "{") and (name in COLOR_CALLS or any(p in COLOR_TYPES for p in path))
+            image_pixel = path[:2] in (("image", "Rgb"), ("image", "Rgba")) and not image_shadowed
+            constructor = not image_pixel and following in ("(", "{") and (name in COLOR_CALLS or any(p in COLOR_TYPES for p in path))
             gpui_symbol = path[0] == "gpui" or path[0].startswith("gpui_") or any(p in COLOR_TYPES for p in path)
             # A named colour is a call, a constant or a function value; a variant of a type that is not a colour type is not one.
             named = gpui_symbol and name.lower() in COLOR_NAMES and not any(p[0].isupper() and p not in COLOR_TYPES for p in path[:-1])

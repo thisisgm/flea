@@ -11,7 +11,8 @@ use std::path::{Path, PathBuf};
 pub(super) struct Root(pub(super) PathBuf);
 impl Root {
     pub(super) fn new(tag: &str) -> Self {
-        let path = std::env::temp_dir().join(format!("flea-previewtypes-{tag}-{}", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("flea-previewtypes-{tag}-{}", std::process::id()));
         std::fs::create_dir_all(&path).unwrap();
         std::fs::write(path.join(".flea-test-sandbox"), b"").unwrap();
         Self(path)
@@ -20,7 +21,10 @@ impl Root {
 impl Drop for Root {
     fn drop(&mut self) {
         let path: &Path = &self.0;
-        if path.is_absolute() && path.parent().is_some() && path.join(".flea-test-sandbox").is_file() {
+        if path.is_absolute()
+            && path.parent().is_some()
+            && path.join(".flea-test-sandbox").is_file()
+        {
             let _ = std::fs::remove_dir_all(path);
         }
     }
@@ -66,7 +70,10 @@ fn markdown_csv_html_archive_symlink_and_data_rows_draw_their_own_preview(cx: &m
     let lines = local(&shell, cx, &dir);
     assert_eq!(doc_name(&shell, cx), "table");
     let table = ask(&lines, "code").to_owned();
-    assert!(table.contains(r#""csv":","#) && table.contains("data.csv"), "{table}");
+    assert!(
+        table.contains(r#""csv":","#) && table.contains("data.csv"),
+        "{table}"
+    );
     meta(&shell, cx, &lines, r#","lines":2"#);
     answer(
         &shell,
@@ -84,7 +91,10 @@ fn markdown_csv_html_archive_symlink_and_data_rows_draw_their_own_preview(cx: &m
     let lines = pump(cx);
     assert_eq!(doc_name(&shell, cx), "html");
     let html = ask(&lines, "html");
-    assert!(html.contains(r#""slot":"column""#) && html.contains("page.html"), "{html}");
+    assert!(
+        html.contains(r#""slot":"column""#) && html.contains("page.html"),
+        "{html}"
+    );
 
     // An archive lists the names its meta reply carries, with the entry count in the facts.
     cx.simulate_keystrokes("down");
@@ -99,9 +109,15 @@ fn markdown_csv_html_archive_symlink_and_data_rows_draw_their_own_preview(cx: &m
     );
     pump(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "archive");
-    assert_eq!(read(&shell, cx, "columnArchiveNames", &[]), "docs|a.txt|b.txt");
+    assert_eq!(
+        read(&shell, cx, "columnArchiveNames", &[]),
+        "docs|a.txt|b.txt"
+    );
     let facts = read(&shell, cx, "previewFacts", &[]);
-    assert!(facts.starts_with("Kind=Zip archive|") && facts.contains("|Entries=3"), "{facts}");
+    assert!(
+        facts.starts_with("Kind=Zip archive|") && facts.contains("|Entries=3"),
+        "{facts}"
+    );
 
     // A symlink states its Kind, Target and what it points at.
     cx.simulate_keystrokes("down");
@@ -111,7 +127,12 @@ fn markdown_csv_html_archive_symlink_and_data_rows_draw_their_own_preview(cx: &m
     pump(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "symlink");
     let facts = read(&shell, cx, "previewFacts", &[]);
-    for fact in ["Kind=Symbolic link|", "Target=/elsewhere/photo.png|", "Points at=File|", "Mode="] {
+    for fact in [
+        "Kind=Symbolic link|",
+        "Target=/elsewhere/photo.png|",
+        "Points at=File|",
+        "Mode=",
+    ] {
         assert!(facts.contains(fact), "{fact} in {facts}");
     }
 
@@ -124,8 +145,14 @@ fn markdown_csv_html_archive_symlink_and_data_rows_draw_their_own_preview(cx: &m
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "unsupported");
     assert_eq!(read(&shell, cx, "columnFailure", &[]), "");
     let facts = read(&shell, cx, "previewFacts", &[]);
-    assert!(facts.starts_with("Kind=Data|") && facts.contains("|Mode="), "{facts}");
-    assert!(!facts.contains("Lines"), "a Data row counts no lines: {facts}");
+    assert!(
+        facts.starts_with("Kind=Data|") && facts.contains("|Mode="),
+        "{facts}"
+    );
+    assert!(
+        !facts.contains("Lines"),
+        "a Data row counts no lines: {facts}"
+    );
 
     // Markdown reads and parses the file itself and draws the rendered document; last, so its decoder thread outlives the walk.
     cx.simulate_keystrokes("down");
@@ -147,7 +174,10 @@ fn f_and_b_page_a_table_by_its_viewport_height(cx: &mut TestAppContext) {
     let lines = local(&shell, cx, "/files");
     let table = ask(&lines, "code").to_owned();
     meta(&shell, cx, &lines, r#","lines":200"#);
-    let body = (0..200).map(|n| format!(r#"[0,"{n},x"]"#)).collect::<Vec<_>>().join(",");
+    let body = (0..200)
+        .map(|n| format!(r#"[0,"{n},x"]"#))
+        .collect::<Vec<_>>()
+        .join(",");
     answer(
         &shell,
         cx,
@@ -170,11 +200,18 @@ fn f_and_b_page_a_table_by_its_viewport_height(cx: &mut TestAppContext) {
         })
     };
     let (top, height) = scroll(cx);
-    assert!(top == 0. && height > 0., "the table starts at its top in a laid-out frame: {top} {height}");
+    assert!(
+        top == 0. && height > 0.,
+        "the table starts at its top in a laid-out frame: {top} {height}"
+    );
     cx.simulate_keystrokes("shift-f->F");
     pump(cx);
     // PreviewScroll.qml pageBy moves contentY by the viewport's own height, so no row is skipped unseen.
-    assert_eq!(scroll(cx).0, height, "F moves the table by one viewport height");
+    assert_eq!(
+        scroll(cx).0,
+        height,
+        "F moves the table by one viewport height"
+    );
     cx.simulate_keystrokes("shift-b->B");
     pump(cx);
     assert_eq!(scroll(cx).0, 0., "B pages back to the top");
@@ -191,18 +228,30 @@ fn f_and_b_page_a_table_by_its_viewport_height(cx: &mut TestAppContext) {
             _ => panic!("the table is drawn"),
         }
     });
-    assert!(end > 2. * height, "the table is taller than two viewports: {end} {height}");
+    assert!(
+        end > 2. * height,
+        "the table is taller than two viewports: {end} {height}"
+    );
     for _ in 0..40 {
         cx.simulate_keystrokes("shift-f->F");
         pump(cx);
     }
-    assert_eq!(scroll(cx).0, end, "F past the end stops with the last row on the bottom edge");
+    assert_eq!(
+        scroll(cx).0,
+        end,
+        "F past the end stops with the last row on the bottom edge"
+    );
 }
 
 #[gpui::test]
 fn an_empty_text_file_draws_the_document_glyph_in_the_column(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "/files");
-    let rows = vec![file("empty.txt", "text-plain", "Plain text document", 0o100644)];
+    let rows = vec![file(
+        "empty.txt",
+        "text-plain",
+        "Plain text document",
+        0o100644,
+    )];
     super::test_shell::land(&shell, cx, "/files", rows, 1);
     let lines = local(&shell, cx, "/files");
     let code = ask(&lines, "code").to_owned();
@@ -239,130 +288,35 @@ fn an_image_that_fails_to_decode_keeps_its_image_facts(cx: &mut TestAppContext) 
     pump(cx);
     let failed = shell.read_with(cx, |shell, cx| {
         let preview = shell.selection_preview(0).expect("the column is mounted");
-        preview.read(cx).drawn.as_ref().is_some_and(|frame| frame.failed)
+        preview
+            .read(cx)
+            .drawn
+            .as_ref()
+            .is_some_and(|frame| frame.failed)
     });
     assert!(failed, "the broken picture is a failed frame");
     // PreviewColumn.qml failure covers only text, PDF, HTML and archive reads, so the facts stay the image's.
     let facts = read(&shell, cx, "previewFacts", &[]);
-    assert!(facts.contains("|Modified=") && facts.contains("|Pixels="), "{facts}");
-    // The column's own state and Kind readers; previewState and previewKind are the Quick Look's.
-    assert_eq!(read(&shell, cx, "previewColumnState", &[]), "image", "the state stays the row's kind");
-    assert!(facts.starts_with("Kind=PNG image|"), "Kind is the row's description: {facts}");
-    assert_eq!(read(&shell, cx, "columnFailure", &[]), "", "a failed picture draws no read failure");
-}
-
-#[gpui::test]
-fn a_markdown_fence_colour_reply_reaches_the_column_and_releases_the_first_screen(
-    cx: &mut TestAppContext,
-) {
-    // The markdown parse thread is real, so its wake comes from outside the deterministic scheduler.
-    cx.executor().allow_parking();
-    let root = Root::new("mdfence");
-    let dir = root.0.to_string_lossy().into_owned();
-    let text = "# Fence\n\n```python\ndef sweep():\n    return 1\n```\n";
-    std::fs::write(root.0.join("fence.md"), text).unwrap();
-    let (shell, cx) = open(cx, &dir);
-    let rows = vec![file(
-        "fence.md",
-        "text-markdown",
-        "Markdown document",
-        0o100644,
-    )];
-    super::test_shell::land(&shell, cx, &dir, rows, 1);
-    let mut lines = local(&shell, cx, &dir);
-    meta(&shell, cx, &lines, r#","lines":6"#);
-    // The fence asks once the parse thread hands back its blocks, under its own slot; the reply echoes it (EY-34).
-    for _ in 0..40 {
-        lines.extend(pump(cx));
-        if lines.iter().any(|line| line.contains(r#""c":"code""#)) {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(50));
-    }
-    let fence = ask(&lines, "code").to_owned();
-    assert!(fence.contains(r#""slot":"column:fence:0""#), "{fence}");
-    let state = |cx: &mut VisualTestContext| {
-        shell.read_with(cx, |shell, cx| {
-            let preview = shell.selection_preview(0).expect("the column is mounted");
-            let preview = preview.read(cx);
-            match preview
-                .pending
-                .as_ref()
-                .or(preview.drawn.as_ref())
-                .map(|frame| &frame.mounted)
-            {
-                Some(Mounted::Doc(Doc::Markdown(view))) => {
-                    let doc = &view.read(cx).doc;
-                    (doc.fences.get(&0).is_some_and(|f| f.done), doc.shown)
-                }
-                _ => panic!("the markdown document is mounted"),
-            }
-        })
-    };
-    // A named fence holds the first screen with no time limit, so only its reply can release it.
-    assert_eq!(
-        state(cx),
-        (false, false),
-        "the first screen holds for the fence"
-    );
-    answer(
-        &shell,
-        cx,
-        &format!(
-            r#"{{"t":"code","token":{},"slot":"column:fence:0","state":"styled","first":1,"total":2,"lines":[[5,"def sweep():"],[0,"    return 1"]]}}"#,
-            field(&fence, "token")
-        ),
-    );
-    pump(cx);
-    let (done, shown) = state(cx);
-    assert!(done, "the column takes the fence's colour reply");
     assert!(
-        shown,
-        "the first screen stops holding once its fence is coloured"
+        facts.contains("|Modified=") && facts.contains("|Pixels="),
+        "{facts}"
+    );
+    // The column's own state and Kind readers; previewState and previewKind are the Quick Look's.
+    assert_eq!(
+        read(&shell, cx, "previewColumnState", &[]),
+        "image",
+        "the state stays the row's kind"
+    );
+    assert!(
+        facts.starts_with("Kind=PNG image|"),
+        "Kind is the row's description: {facts}"
+    );
+    assert_eq!(
+        read(&shell, cx, "columnFailure", &[]),
+        "",
+        "a failed picture draws no read failure"
     );
 }
 
-#[gpui::test]
-fn the_column_markdown_keeps_its_chips_on_the_surface_and_its_page_on_the_window_ground(
-    cx: &mut TestAppContext,
-) {
-    // The Markdown parse thread is real, so its wake comes from outside the deterministic scheduler.
-    cx.executor().allow_parking();
-    let root = Root::new("mdground");
-    let dir = root.0.to_string_lossy().into_owned();
-    std::fs::write(root.0.join("notes.md"), "# Notes\n\nPress `Ctrl` + `C`.\n").unwrap();
-    let theme = crate::palette::Theme::from_text("background='#111c18'\ndark_background='#0c1512'");
-    assert_ne!(
-        theme.background, theme.surface,
-        "distinct grounds expose a swap"
-    );
-    cx.update(|cx| cx.set_global(theme));
-    let (shell, cx) = open(cx, &dir);
-    let rows = vec![file(
-        "notes.md",
-        "text-markdown",
-        "Markdown document",
-        0o100644,
-    )];
-    super::test_shell::land(&shell, cx, &dir, rows, 1);
-    local(&shell, cx, &dir);
-    pump(cx);
-    let (code, background) = shell.read_with(cx, |shell, cx| {
-        let preview = shell.selection_preview(0).expect("the column is mounted");
-        let preview = preview.read(cx);
-        let frame = preview.pending.as_ref().or(preview.drawn.as_ref());
-        let Some(Mounted::Doc(Doc::Markdown(view))) = frame.map(|frame| &frame.mounted) else {
-            panic!("the Markdown document is mounted")
-        };
-        let view = view.read(cx);
-        (view.palette.code, view.palette.background)
-    });
-    assert_eq!(
-        code, theme.surface,
-        "the column's chips and fences stay on the surface"
-    );
-    assert_eq!(
-        background, theme.background,
-        "the column's page stays on the window ground"
-    );
-}
+#[path = "previewtypes_markdown_tests.rs"]
+mod markdown;

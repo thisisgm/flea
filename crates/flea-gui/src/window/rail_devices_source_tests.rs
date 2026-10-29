@@ -50,7 +50,9 @@ fn rail_devices_empty_optical_drive_is_hidden(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn rail_devices_locked_row_opens_the_unlock_card_and_a_phone_opens_through_gvfs(cx: &mut TestAppContext) {
+fn rail_devices_locked_row_opens_the_unlock_card_and_a_phone_opens_through_gvfs(
+    cx: &mut TestAppContext,
+) {
     let (shell, service, cx) = open("{}", cx);
     service.answer(
         "lsblk",
@@ -99,15 +101,34 @@ fn rail_devices_locked_row_opens_the_unlock_card_and_a_phone_opens_through_gvfs(
     });
     frame(cx);
     shell.read_with(cx, |shell, cx| {
-        let unlock = shell.rail.as_ref().unwrap().unlock.as_ref().expect("the locked row built the unlock card");
-        let card = unlock.view.read(cx).host.card.as_ref().expect("the card opened");
+        let unlock = shell
+            .rail
+            .as_ref()
+            .unwrap()
+            .unlock
+            .as_ref()
+            .expect("the locked row built the unlock card");
+        let card = unlock
+            .view
+            .read(cx)
+            .host
+            .card
+            .as_ref()
+            .expect("the card opened");
         assert!(card.opened, "the locked row opens the unlock card");
         assert_eq!(
-            (card.device.as_str(), card.label.as_str(), card.crypto.as_str()),
+            (
+                card.device.as_str(),
+                card.label.as_str(),
+                card.crypto.as_str()
+            ),
             ("/dev/sdb1", "Backup", "LUKS"),
             "the card names the row it opened over"
         );
-        assert!(shell.card_holds_keyboard(cx), "the open card holds the keyboard");
+        assert!(
+            shell.card_holds_keyboard(cx),
+            "the open card holds the keyboard"
+        );
     });
     assert_eq!(
         service.jobs.borrow().len(),
@@ -117,7 +138,10 @@ fn rail_devices_locked_row_opens_the_unlock_card_and_a_phone_opens_through_gvfs(
     cx.simulate_keystrokes("escape");
     frame(cx);
     shell.read_with(cx, |shell, cx| {
-        assert!(!shell.card_holds_keyboard(cx), "Escape closes the card and hands the keyboard back");
+        assert!(
+            !shell.card_holds_keyboard(cx),
+            "Escape closes the card and hands the keyboard back"
+        );
     });
     producer.update(cx, |producer, cx| {
         producer.side = 0;

@@ -122,20 +122,18 @@ impl Shell {
             return;
         };
         let service = network.service.clone();
-        let read = cx.background_spawn({
-            let path = path.clone();
-            async move {
-                match std::fs::read_dir(&path) {
-                    Ok(entries) => (
-                        entries
-                            .filter_map(Result::ok)
-                            .take(count)
-                            .map(|entry| entry.file_name().to_string_lossy().into_owned())
-                            .collect::<Vec<_>>(),
-                        false,
-                    ),
-                    Err(_) => (Vec::new(), true),
-                }
+        let reading_path = path.clone();
+        let read = cx.background_executor().spawn(async move {
+            match std::fs::read_dir(&reading_path) {
+                Ok(entries) => (
+                    entries
+                        .filter_map(Result::ok)
+                        .take(count)
+                        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+                        .collect::<Vec<_>>(),
+                    false,
+                ),
+                Err(_) => (Vec::new(), true),
             }
         });
         let task = cx.spawn(async move |_, cx| {
@@ -244,7 +242,7 @@ impl Shell {
         };
         let replies = bookmarks::submit(path, edit.clone());
         // The writer's own thread answers a blocking receive on a background task, so no foreign thread wakes the UI executor.
-        let written = cx.background_spawn(async move {
+        let written = cx.background_executor().spawn(async move {
             replies
                 .recv_blocking()
                 .unwrap_or(Err(bookmarks::Failure::Write))

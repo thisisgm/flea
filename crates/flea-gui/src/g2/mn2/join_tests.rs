@@ -52,7 +52,8 @@ fn update<R>(
 ) -> R {
     handle
         .update(cx, |root, window, cx| {
-            root.shell.update(cx, |shell, cx| callback(shell, window, cx))
+            root.shell
+                .update(cx, |shell, cx| callback(shell, window, cx))
         })
         .unwrap()
 }
@@ -109,18 +110,38 @@ fn discovered(cx: &mut TestAppContext, fixture: &mut Fixture, listing_id: Option
     let handle = fixture.handle;
     VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes("m");
     let id = flea::json::field_usize(&next(fixture, "snapshot"), "id").unwrap() as u64;
-    receive(cx, handle, &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[]}}"#));
+    receive(
+        cx,
+        handle,
+        &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[]}}"#),
+    );
     let validate = next(fixture, "validate");
     assert!(validate.contains("__menuScripts"), "{validate}");
-    receive(cx, handle, &format!(r#"{{"t":"menuaction","id":{id},"op":"validate","ok":true,"action":"__menuScripts","paths":["/files/a.jpg"]}}"#));
+    receive(
+        cx,
+        handle,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"validate","ok":true,"action":"__menuScripts","paths":["/files/a.jpg"]}}"#
+        ),
+    );
     let list = next(fixture, "list");
     assert!(list.contains("\"paths\":[\"/files/a.jpg\"]"), "{list}");
     let answered = listing_id.unwrap_or(id);
-    receive(cx, handle, &format!(r#"{{"t":"actions","id":{answered},{LISTING}}}"#));
+    receive(
+        cx,
+        handle,
+        &format!(r#"{{"t":"actions","id":{answered},{LISTING}}}"#),
+    );
     if answered == id {
         let apps = next(fixture, "applications");
         assert!(apps.contains(&format!("\"id\":{id}")), "{apps}");
-        receive(cx, handle, &format!(r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[]}}"#));
+        receive(
+            cx,
+            handle,
+            &format!(
+                r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[]}}"#
+            ),
+        );
     }
     id
 }
@@ -131,18 +152,30 @@ fn m9_integ_agent_and_custom_action_use_captured_menu_origin(cx: &mut TestAppCon
     let handle = fixture.handle;
     let id = discovered(cx, &mut fixture, None);
     let shown = ids(cx, handle);
-    assert!(shown.iter().any(|id| id == "actions"), "Actions takes Run Script's place: {shown:?}");
+    assert!(
+        shown.iter().any(|id| id == "actions"),
+        "Actions takes Run Script's place: {shown:?}"
+    );
     assert!(!shown.iter().any(|id| id == "runScript"), "{shown:?}");
-    assert!(!shown.iter().any(|id| id == "openAgent"), "the file menu never asks for the agent row");
+    assert!(
+        !shown.iter().any(|id| id == "openAgent"),
+        "the file menu never asks for the agent row"
+    );
     fire(cx, handle, "actions", "action:resize.toml");
     let validate = next(&mut fixture, "validate");
-    assert!(validate.contains("\"action\":\"actions:action:resize.toml\""), "{validate}");
-    let reply = format!(r#"{{"t":"menuaction","id":{id},"op":"validate","ok":true,"action":"actions:action:resize.toml","paths":["/files/a.jpg"]}}"#);
+    assert!(
+        validate.contains("\"action\":\"actions:action:resize.toml\""),
+        "{validate}"
+    );
+    let reply = format!(
+        r#"{{"t":"menuaction","id":{id},"op":"validate","ok":true,"action":"actions:action:resize.toml","paths":["/files/a.jpg"]}}"#
+    );
     receive(cx, handle, &reply);
     receive(cx, handle, &reply);
     let run = next(&mut fixture, "run");
     assert!(
-        run.contains("\"action\":\"action:resize.toml\"") && run.contains("\"paths\":[\"/files/a.jpg\"]"),
+        run.contains("\"action\":\"action:resize.toml\"")
+            && run.contains("\"paths\":[\"/files/a.jpg\"]"),
         "the leaf runs over the validated capture: {run}"
     );
     let mut more = Vec::new();
@@ -154,13 +187,26 @@ fn m9_integ_agent_and_custom_action_use_captured_menu_origin(cx: &mut TestAppCon
         "a duplicate validation runs nothing: {more:?}"
     );
     let request = flea::json::field_usize(&run, "id").unwrap();
-    receive(cx, handle, &format!(r#"{{"t":"actionstarted","requestId":{request},"id":40,"ok":true,"error":""}}"#));
+    receive(
+        cx,
+        handle,
+        &format!(r#"{{"t":"actionstarted","requestId":{request},"id":40,"ok":true,"error":""}}"#),
+    );
     let quiet = status(cx, handle);
-    receive(cx, handle, &format!(r#"{{"t":"actionstarted","requestId":{request},"ok":false,"error":"Action exited with 3."}}"#));
+    receive(
+        cx,
+        handle,
+        &format!(
+            r#"{{"t":"actionstarted","requestId":{request},"ok":false,"error":"Action exited with 3."}}"#
+        ),
+    );
     let said = status(cx, handle);
     assert_ne!(said, quiet, "a refused run is said on the status bar");
     let expected = update(cx, handle, |shell, _, _| {
-        shell.locale.catalog.tr_args(flea::ui_logic_mn2::wire::EXITED_KEY, &["3"])
+        shell
+            .locale
+            .catalog
+            .tr_args(flea::ui_logic_mn2::wire::EXITED_KEY, &["3"])
     });
     assert_eq!(said, expected);
 }
@@ -174,7 +220,9 @@ fn m9_integ_a_stale_listing_or_a_moved_capture_runs_nothing(cx: &mut TestAppCont
         !ids(cx, handle).iter().any(|id| id == "actions"),
         "a listing under another id is not this menu's"
     );
-    update(cx, handle, |shell, window, cx| shell.retire_menu(window, cx));
+    update(cx, handle, |shell, window, cx| {
+        shell.retire_menu(window, cx)
+    });
     let mut fixture2 = fixture;
     let id2 = discovered(cx, &mut fixture2, None);
     assert_ne!(id, id2);
@@ -183,14 +231,21 @@ fn m9_integ_a_stale_listing_or_a_moved_capture_runs_nothing(cx: &mut TestAppCont
         shell.panes[0].as_mut().unwrap().path = "/elsewhere".into();
     });
     fire(cx, handle, "actions", "action:resize.toml");
-    let moved = update(cx, handle, |shell, _, _| shell.locale.catalog.tr("menu.refusal.moved"));
-    assert_eq!(status(cx, handle), moved, "the moved capture says the identity refusal");
+    let moved = update(cx, handle, |shell, _, _| {
+        shell.locale.catalog.tr("menu.refusal.moved")
+    });
+    assert_eq!(
+        status(cx, handle),
+        moved,
+        "the moved capture says the identity refusal"
+    );
     let mut sent = Vec::new();
     while let Some(line) = (fixture2.requests)() {
         sent.push(line);
     }
     assert!(
-        sent.iter().all(|line| !line.contains("\"op\":\"run\"") && !line.contains("actions:action")),
+        sent.iter()
+            .all(|line| !line.contains("\"op\":\"run\"") && !line.contains("actions:action")),
         "a capture whose folder moved validates and runs nothing: {sent:?}"
     );
 }
@@ -209,11 +264,22 @@ fn m9_integ_open_in_agent_runs_once_in_the_captured_folder(cx: &mut TestAppConte
         shell.open_menu(0, None, (10., 10.), window, cx);
     });
     let shown = ids(cx, handle);
-    let terminal = shown.iter().position(|id| id == "openTerminal").expect("Open in Terminal");
-    assert_eq!(shown.get(terminal + 1).map(String::as_str), Some("openAgent"), "{shown:?}");
+    let terminal = shown
+        .iter()
+        .position(|id| id == "openTerminal")
+        .expect("Open in Terminal");
+    assert_eq!(
+        shown.get(terminal + 1).map(String::as_str),
+        Some("openAgent"),
+        "{shown:?}"
+    );
     fire(cx, handle, "openAgent", "");
     fire(cx, handle, "openAgent", "");
-    assert_eq!(*launched.borrow(), [PathBuf::from("/files")], "one launch, in the captured folder");
+    assert_eq!(
+        *launched.borrow(),
+        [PathBuf::from("/files")],
+        "one launch, in the captured folder"
+    );
     assert!(!update(cx, handle, |shell, _, _| shell.menu_opened()));
     VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes("shift-a");
     assert_eq!(
@@ -227,7 +293,9 @@ fn m9_integ_open_in_agent_runs_once_in_the_captured_folder(cx: &mut TestAppConte
 fn m9_integ_open_in_agent_ships_off(cx: &mut TestAppContext) {
     let fixture = open(cx, "{}");
     let handle = fixture.handle;
-    update(cx, handle, |shell, window, cx| shell.open_menu(0, None, (10., 10.), window, cx));
+    update(cx, handle, |shell, window, cx| {
+        shell.open_menu(0, None, (10., 10.), window, cx)
+    });
     let shown = ids(cx, handle);
     assert!(shown.iter().any(|id| id == "openTerminal"));
     assert!(!shown.iter().any(|id| id == "openAgent"), "{shown:?}");

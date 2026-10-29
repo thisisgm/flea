@@ -18,7 +18,9 @@ pub struct SubstringMatcher {
 
 impl SubstringMatcher {
     pub fn of(query: &str) -> Self {
-        Self { query: query.to_owned() }
+        Self {
+            query: query.to_owned(),
+        }
     }
 }
 
@@ -177,7 +179,9 @@ impl Listing {
         if self.pending || self.cause.is_some() || self.total() == 0 {
             return None;
         }
-        Some(format!(r#"{{"c":"window","start":{start},"count":{count}}}"#))
+        Some(format!(
+            r#"{{"c":"window","start":{start},"count":{count}}}"#
+        ))
     }
 
     // Reads one reply line; an unparsable line fails.
@@ -185,7 +189,9 @@ impl Listing {
         match parse_reply(line) {
             Ok(Reply::Listed { total, .. }) => self.landed(generation, total),
             Ok(Reply::Rows { start, rows, .. }) => self.held_rows(generation, start, rows),
-            Ok(Reply::Error { operation, message, .. }) => self.worker_error(generation, &operation, &message),
+            Ok(Reply::Error {
+                operation, message, ..
+            }) => self.worker_error(generation, &operation, &message),
             Ok(Reply::Other) => self.filtered_answer(generation, line),
             Err(_) => self.fail(generation, Cause::Protocol),
         }
@@ -247,7 +253,12 @@ impl Listing {
         if let Some(first) = rows.first() {
             self.cursor = *first;
         }
-        self.filtered = Some(Filtered { query, id, total, rows });
+        self.filtered = Some(Filtered {
+            query,
+            id,
+            total,
+            rows,
+        });
         self.pending_filter = None;
         true
     }
@@ -268,7 +279,11 @@ impl Listing {
 
     pub fn held_rows(&mut self, generation: u64, start: usize, rows: Vec<RowFacts>) -> bool {
         let total = self.total();
-        if generation != self.generation || self.pending || self.cause.is_some() || start.checked_add(rows.len()).is_none_or(|end| end > total) {
+        if generation != self.generation
+            || self.pending
+            || self.cause.is_some()
+            || start.checked_add(rows.len()).is_none_or(|end| end > total)
+        {
             return false;
         }
         self.held = Rc::new(Held {
@@ -362,7 +377,10 @@ impl Listing {
     }
 
     pub fn facts(&self) -> Facts {
-        let at = self.cursor.checked_sub(self.held.start).and_then(|at| self.held.rows.get(at));
+        let at = self
+            .cursor
+            .checked_sub(self.held.start)
+            .and_then(|at| self.held.rows.get(at));
         Facts {
             location: self.location.clone(),
             total: self.total(),

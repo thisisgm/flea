@@ -209,6 +209,11 @@ impl QuickLook {
             .children(self.scroll.bars(look));
         parts.push(content.into_any_element());
         if let Some(caption) = caption {
+            let ground = if self.zoom > 1. {
+                look.surface
+            } else {
+                look.background
+            };
             parts.push(
                 div()
                     .debug_selector(|| "pv1-caption".into())
@@ -217,11 +222,7 @@ impl QuickLook {
                     .left_0()
                     .right_0()
                     .h(px(look::BAR))
-                    .bg(if self.zoom > 1. {
-                        look.surface
-                    } else {
-                        look.background
-                    })
+                    .bg(ground)
                     .flex()
                     .items_center()
                     .justify_center()

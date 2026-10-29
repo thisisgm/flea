@@ -6,7 +6,14 @@ use super::tests::{buttons, english, fields, notes, said, sent};
 use super::Effect;
 
 fn compress() -> Compress {
-    Compress::open(vec!["/fx/v/work/notes.txt".into()], "/fx/v/work", "work", 0, &["7z", "zip"]).0
+    Compress::open(
+        vec!["/fx/v/work/notes.txt".into()],
+        "/fx/v/work",
+        "work",
+        0,
+        &["7z", "zip"],
+    )
+    .0
 }
 
 fn typed(card: &mut Compress, i18n: &flea::i18n::I18n, secret: &str) {
@@ -20,9 +27,23 @@ fn compress_opens_with_the_boards_order_and_password_focused() {
     let i18n = english();
     let card = compress();
     let drawn = card.card(&i18n);
-    assert_eq!((drawn.title.as_str(), drawn.width), ("Compress 1 Item", 590.));
-    let Block::Chips(Chips { options, current, focused, label }) = &drawn.body[0] else { panic!("chips first") };
-    assert_eq!((options.join("|").as_str(), *current, *focused), ("7z|zip", 0, false));
+    assert_eq!(
+        (drawn.title.as_str(), drawn.width),
+        ("Compress 1 Item", 590.)
+    );
+    let Block::Chips(Chips {
+        options,
+        current,
+        focused,
+        label,
+    }) = &drawn.body[0]
+    else {
+        panic!("chips first")
+    };
+    assert_eq!(
+        (options.join("|").as_str(), *current, *focused),
+        ("7z|zip", 0, false)
+    );
     assert_eq!(label.as_str(), "Format");
     assert_eq!(
         fields(&drawn),
@@ -47,7 +68,10 @@ fn compress_submit_reaches_the_wire_and_clears_the_pair() {
     assert_eq!(lines.len(), 1);
     assert!(lines[0].contains(r#""password":"s3cret""#), "{}", lines[0]);
     assert!(lines[0].contains(r#""encryptNames":true"#), "{}", lines[0]);
-    assert_eq!(said(&effects), vec![("Compressing 1 item to .7z".to_string(), false)]);
+    assert_eq!(
+        said(&effects),
+        vec![("Compressing 1 item to .7z".to_string(), false)]
+    );
     assert!(!card.opened());
     assert_eq!(card.password_len(), 0);
 }
@@ -60,7 +84,15 @@ fn compress_formats_rename_the_name_and_mask_header_encryption() {
     card.key(&i18n, Key::Backtab);
     card.key(&i18n, Key::Right);
     let drawn = card.card(&i18n);
-    let Block::Chips(Chips { options, current, focused, .. }) = &drawn.body[0] else { panic!("chips") };
+    let Block::Chips(Chips {
+        options,
+        current,
+        focused,
+        ..
+    }) = &drawn.body[0]
+    else {
+        panic!("chips")
+    };
     assert_eq!((*current, options.len(), *focused), (1, 2, true));
     assert_eq!(fields(&drawn)[0].1, "notes.zip");
     card.key(&i18n, Key::Left);
@@ -93,13 +125,19 @@ fn compress_empty_and_mismatched_pairs_ask_in_sentences() {
     let mut card = compress();
     let effects = card.press(&i18n, CompressStop::Compress);
     assert!(sent(&effects).is_empty());
-    assert_eq!(notes(&card.card(&i18n)), vec![("Type a password first.".into(), Ink::Error)]);
+    assert_eq!(
+        notes(&card.card(&i18n)),
+        vec![("Type a password first.".into(), Ink::Error)]
+    );
     typed(&mut card, &i18n, "s3cret");
     card.key(&i18n, Key::Tab);
     typed(&mut card, &i18n, "other");
     let effects = card.press(&i18n, CompressStop::Compress);
     assert!(sent(&effects).is_empty());
-    assert_eq!(notes(&card.card(&i18n)), vec![("Passwords do not match.".into(), Ink::Error)]);
+    assert_eq!(
+        notes(&card.card(&i18n)),
+        vec![("Passwords do not match.".into(), Ink::Error)]
+    );
     assert!(card.opened());
 }
 
@@ -128,12 +166,17 @@ fn compress_encrypt_switch_answers_only_on_7z() {
     let i18n = english();
     let mut card = compress();
     let drawn = card.card(&i18n);
-    assert!(matches!(&drawn.body[4], Block::CheckLine(CheckLine { checked: true, label, .. }) if label == "Encrypt file names"));
+    assert!(
+        matches!(&drawn.body[4], Block::CheckLine(CheckLine { checked: true, label, .. }) if label == "Encrypt file names")
+    );
     card.key(&i18n, Key::Backtab);
     card.key(&i18n, Key::Backtab);
     card.key(&i18n, Key::Right);
     let drawn = card.card(&i18n);
-    assert!(!drawn.body.iter().any(|block| matches!(block, Block::CheckLine(_))));
+    assert!(!drawn
+        .body
+        .iter()
+        .any(|block| matches!(block, Block::CheckLine(_))));
 }
 
 #[test]
@@ -143,20 +186,35 @@ fn compress_pointer_entries_answer_without_the_key_walk() {
     card.pick_format(1);
     let drawn = card.card(&i18n);
     assert_eq!(fields(&drawn)[0].1, "notes.zip");
-    assert!(!drawn.body.iter().any(|block| matches!(block, Block::CheckLine(_))), "zip hides the header switch");
+    assert!(
+        !drawn
+            .body
+            .iter()
+            .any(|block| matches!(block, Block::CheckLine(_))),
+        "zip hides the header switch"
+    );
     card.pick_format(0);
     let before = card.card(&i18n);
-    assert!(before.body.iter().any(|block| matches!(block, Block::CheckLine(_))));
+    assert!(before
+        .body
+        .iter()
+        .any(|block| matches!(block, Block::CheckLine(_))));
     card.toggle_encrypt();
     let after = card.card(&i18n);
     assert!(
-        after.body.iter().any(|block| matches!(block, Block::CheckLine(CheckLine { checked: false, .. }))),
+        after
+            .body
+            .iter()
+            .any(|block| matches!(block, Block::CheckLine(CheckLine { checked: false, .. }))),
         "a tap flips the switch"
     );
     card.focus(CompressStop::Cancel);
-    assert_eq!(card.key(&i18n, Key::Enter), vec![Effect::Close], "a focused Cancel closes on Enter");
+    assert_eq!(
+        card.key(&i18n, Key::Enter),
+        vec![Effect::Close],
+        "a focused Cancel closes on Enter"
+    );
 }
-
 
 #[test]
 fn compress_close_clears_without_sending() {
@@ -170,7 +228,6 @@ fn compress_close_clears_without_sending() {
     assert!(sent(&card.press(&i18n, CompressStop::Compress)).is_empty());
 }
 
-
 #[test]
 fn compress_enter_on_focused_cancel_closes_without_sending() {
     let i18n = english();
@@ -181,7 +238,11 @@ fn compress_enter_on_focused_cancel_closes_without_sending() {
     card.key(&i18n, Key::Tab);
     card.key(&i18n, Key::Tab);
     let effects = card.key(&i18n, Key::Enter);
-    assert_eq!(effects, vec![Effect::Close], "Enter on Cancel closes, never commits");
+    assert_eq!(
+        effects,
+        vec![Effect::Close],
+        "Enter on Cancel closes, never commits"
+    );
     assert!(!card.opened());
     assert_eq!(card.password_len(), 0);
 }
@@ -196,7 +257,11 @@ fn compress_space_on_focused_cancel_closes_without_sending() {
     card.key(&i18n, Key::Tab);
     card.key(&i18n, Key::Tab);
     let effects = card.key(&i18n, Key::Space);
-    assert_eq!(effects, vec![Effect::Close], "Space on Cancel closes, never commits");
+    assert_eq!(
+        effects,
+        vec![Effect::Close],
+        "Space on Cancel closes, never commits"
+    );
     assert!(!card.opened());
 }
 
@@ -211,132 +276,12 @@ fn compress_space_on_focused_compress_commits() {
     card.key(&i18n, Key::Tab);
     card.key(&i18n, Key::Tab);
     let effects = card.key(&i18n, Key::Space);
-    assert_eq!(sent(&effects).len(), 1, "Space on Compress commits like Enter");
+    assert_eq!(
+        sent(&effects).len(),
+        1,
+        "Space on Compress commits like Enter"
+    );
 }
 
-
-
-#[test]
-fn holding_the_eye_reveals_each_compress_secret_field() {
-    let i18n = english();
-    let mut card = compress();
-    typed(&mut card, &i18n, "s3cret");
-    card.eye_press(CompressStop::Password);
-    let drawn = card.card(&i18n);
-    let Block::Field(password) = &drawn.body[2] else { panic!("password field") };
-    assert!(password.revealed, "the password eye is held");
-    assert_eq!(password.drawn(), "s3cret", "holding the eye shows the password");
-    let Block::Field(confirm) = &drawn.body[3] else { panic!("confirm field") };
-    assert!(!confirm.revealed, "the other eye is not held with it");
-    assert_eq!(confirm.drawn(), "", "the confirm field stays empty and masked");
-    card.eye_release(CompressStop::Password);
-    let drawn = card.card(&i18n);
-    let Block::Field(password) = &drawn.body[2] else { panic!("password field") };
-    assert_eq!(password.drawn(), "••••••", "releasing the eye masks it again");
-    card.eye_press(CompressStop::Confirm);
-    let drawn = card.card(&i18n);
-    let Block::Field(confirm) = &drawn.body[3] else { panic!("confirm field") };
-    assert!(confirm.revealed, "the confirm field has its own held eye");
-}
-
-#[test]
-fn revealed_secret_draws_its_value() {
-    use super::cards::Field;
-    let field = Field {
-            input: None,
-        label: None,
-        value: "s3cret".into(),
-        placeholder: String::new(),
-        secret: true,
-        held: 0,
-        revealed: true,
-        eye: true,
-        error: false,
-        focused: true,
-    };
-    assert_eq!(field.drawn(), "s3cret", "holding the eye shows the text");
-}
-
-#[test]
-fn compress_dest_joins_the_pane_base() {
-    let i18n = english();
-    let mut card = Compress::open(vec!["/base/sub/a.txt".into()], "/base", "work", 0, &["7z"]).0;
-    typed(&mut card, &i18n, "s3cret");
-    card.key(&i18n, Key::Tab);
-    typed(&mut card, &i18n, "s3cret");
-    let effects = card.press(&i18n, CompressStop::Compress);
-    let lines = sent(&effects);
-    assert_eq!(lines.len(), 1);
-    assert!(lines[0].contains(r#""dest":"/base/a.7z""#), "the archive lands in the pane base: {}", lines[0]);
-}
-
-#[test]
-fn compress_dest_at_the_root_never_doubles_the_slash() {
-    let i18n = english();
-    let mut card = Compress::open(vec!["/a.txt".into()], "/", "", 0, &["7z"]).0;
-    typed(&mut card, &i18n, "s3cret");
-    card.key(&i18n, Key::Tab);
-    typed(&mut card, &i18n, "s3cret");
-    let effects = card.press(&i18n, CompressStop::Compress);
-    let lines = sent(&effects);
-    assert_eq!(lines.len(), 1);
-    assert!(lines[0].contains(r#""dest":"/a.7z""#), "the root joins as the oracle does: {}", lines[0]);
-}
-
-#[test]
-fn secret_field_debug_never_prints_the_value() {
-    use super::cards::Field;
-    let field = Field {
-            input: None,
-        label: None,
-        value: "s3cret".into(),
-        placeholder: String::new(),
-        secret: true,
-        held: 0,
-        revealed: true,
-        eye: true,
-        error: false,
-        focused: true,
-    };
-    let printed = format!("{field:?}");
-    assert!(!printed.contains("s3cret") && printed.contains("<6 chars>"), "a secret prints its length: {printed}");
-    let plain = Field { secret: false, ..field };
-    assert!(format!("{plain:?}").contains("s3cret"), "a plain field prints its value");
-}
-
-#[test]
-fn focused_chip_frames_in_the_accent() {
-    use super::draw::chip_frame;
-    let ink = |l: f32| gpui::hsla(0.5, 0.2, l, 1.);
-    let t = super::cards::Tokens {
-        surface: ink(0.1),
-        ground: ink(0.1),
-        fg: ink(0.9),
-        muted: ink(0.6),
-        muted_frame: ink(0.4),
-        accent: ink(0.7),
-        accent_frame: ink(0.75),
-        error: ink(0.7),
-        rule: ink(0.3),
-    };
-    assert_eq!(chip_frame(&t, true, true), t.accent_frame, "the chosen chip frames in accent while focused");
-    assert_eq!(chip_frame(&t, true, false), t.fg, "the chosen chip frames in foreground at rest");
-    assert_eq!(chip_frame(&t, false, true), t.muted_frame, "an unchosen chip stays muted while focused");
-}
-
-#[test]
-fn compress_zip_tab_from_confirm_skips_the_hidden_switch() {
-    let i18n = english();
-    let mut card = compress();
-    card.key(&i18n, Key::Backtab);
-    card.key(&i18n, Key::Backtab);
-    card.key(&i18n, Key::Right);
-    for _ in 0..3 {
-        card.key(&i18n, Key::Tab);
-    }
-    assert!(fields(&card.card(&i18n))[2].2, "the walk reaches Confirm on zip");
-    card.key(&i18n, Key::Tab);
-    let drawn = card.card(&i18n);
-    assert!(!drawn.body.iter().any(|block| matches!(block, Block::CheckLine(_))), "zip draws no Encrypt switch");
-    assert!(buttons(&drawn).starts_with("Cancel@"), "Tab from Confirm lands on Cancel: {}", buttons(&drawn));
-}
+#[path = "card_secret_tests.rs"]
+mod secrets;

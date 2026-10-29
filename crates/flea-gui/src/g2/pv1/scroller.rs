@@ -171,7 +171,8 @@ impl Scroll {
         let mut dragged = None;
         if let Some((axis, grab)) = self.drag {
             let (content, viewport) = view.extent(axis);
-            let handle = View::along(axis, local) - View::along(axis, view.lane(axis).origin) - grab;
+            let handle =
+                View::along(axis, local) - View::along(axis, view.lane(axis).origin) - grab;
             let to = scroll::position_for_handle(handle, content, viewport, view.track(axis));
             if self.set(axis, to) {
                 changed = true;
@@ -195,7 +196,10 @@ impl Scroll {
         let mut start = scroll::handle_offset(self.at(axis), content, viewport, track);
         if on < start || on > start + length {
             start = scroll::jump_offset(on, length, scroll::travel(track, content, viewport));
-            self.set(axis, scroll::position_for_handle(start, content, viewport, track));
+            self.set(
+                axis,
+                scroll::position_for_handle(start, content, viewport, track),
+            );
         }
         self.drag = Some((axis, on - start));
         Some(axis)
@@ -259,8 +263,20 @@ impl Scroll {
             let (lw, lh) = (f(lane.size.width), f(lane.size.height));
             let inset = scroll::KNOB_INSET_PX;
             let (x, y, w, h, selector) = match axis {
-                Axis::Vertical => (lx + lw - inset - knob, ly + offset, knob, length, "pv1-scroll-knob"),
-                Axis::Horizontal => (lx + offset, ly + lh - inset - knob, length, knob, "pv1-scroll-knob-x"),
+                Axis::Vertical => (
+                    lx + lw - inset - knob,
+                    ly + offset,
+                    knob,
+                    length,
+                    "pv1-scroll-knob",
+                ),
+                Axis::Horizontal => (
+                    lx + offset,
+                    ly + lh - inset - knob,
+                    length,
+                    knob,
+                    "pv1-scroll-knob-x",
+                ),
             };
             if wide {
                 out.push(

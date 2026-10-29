@@ -80,6 +80,10 @@ impl element::Decor for GridMarks {
     fn clip_row(&self, _listing: usize, row: Option<&RowFacts>) -> Option<element::Clip> {
         let mark = self.marks.mark(&self.base, &row?.name)?;
         let (key, svg) = mark.svg();
-        Some(element::Clip { cut: mark == ClipMark::Cut, key, svg })
+        Some(element::Clip {
+            cut: mark == ClipMark::Cut,
+            key,
+            svg,
+        })
     }
 }

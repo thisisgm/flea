@@ -74,5 +74,9 @@ fn probe_timeouts_name_the_bound_that_killed_them() {
         ..Outcome::default()
     };
     let line = probe_failure("lsblk", &long).unwrap();
-    assert_eq!(line.matches('q').count(), STDERR_CHARS, "stderr is cut at STDERR_CHARS");
+    assert_eq!(
+        line.matches('q').count(),
+        STDERR_CHARS,
+        "stderr is cut at STDERR_CHARS"
+    );
 }

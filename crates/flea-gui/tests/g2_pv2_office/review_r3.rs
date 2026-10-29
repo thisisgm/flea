@@ -166,7 +166,10 @@ fn pv2_review_r3_sideways_frame_over_long_cells_draws_only_what_it_shows(cx: &mu
             }
             (total, longest)
         });
-        println!("REV-R3 long cells at {step}px, advance {adv}: {total} characters drawn, longest {}", longest.chars().count());
+        println!(
+            "REV-R3 long cells at {step}px, advance {adv}: {total} characters drawn, longest {}",
+            longest.chars().count()
+        );
         assert!(
             longest.chars().count() <= budgeted,
             "a drawn cell holds {} characters though the frame shows {budgeted}",
@@ -188,7 +191,14 @@ fn pv2_review_r3_sideways_frame_over_long_cells_draws_only_what_it_shows(cx: &mu
         windows[0].contains(&windows[4][..10]),
         "the new window's head was visible before the step"
     );
-    let tail: String = windows[0].chars().rev().take(10).collect::<Vec<_>>().into_iter().rev().collect();
+    let tail: String = windows[0]
+        .chars()
+        .rev()
+        .take(10)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
     assert!(
         windows[4].contains(&tail),
         "the old window's tail stays visible after the step"

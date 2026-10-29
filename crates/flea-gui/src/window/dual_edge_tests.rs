@@ -159,6 +159,10 @@ fn owner_parity_dual_edge_hides_under_cover_and_for_absent_pane(cx: &mut TestApp
         .unwrap();
 }
 
+fn overlay_ground() -> gpui::Hsla {
+    crate::palette::Theme::from_text("background='#123456'").background
+}
+
 struct OverlayGround;
 
 impl gpui::Render for OverlayGround {
@@ -168,7 +172,7 @@ impl gpui::Render for OverlayGround {
         _: &mut gpui::Context<Self>,
     ) -> impl gpui::IntoElement {
         use gpui::Styled;
-        gpui::div().size_full().bg(gpui::rgb(0x123456))
+        gpui::div().size_full().bg(overlay_ground())
     }
 }
 
@@ -211,7 +215,7 @@ fn the_focused_dual_edge_paints_below_an_overlapping_overlay_rail(cx: &mut TestA
             .expect("the full-pane edge is painted");
         let ground = quads
             .iter()
-            .find(|quad| quad.background == Background::from(gpui::rgb(0x123456)))
+            .find(|quad| quad.background == Background::from(overlay_ground()))
             .expect("the overlay rail paints its ground");
         assert!(
             edge.bounds.intersects(&ground.bounds),

@@ -42,7 +42,11 @@ pub struct Drawn {
 impl Drawn {
     /// The rows a view draws: the exact ones, or with none the close ones in rank order.
     pub fn rows(&self) -> &[usize] {
-        if self.narrowed.exact.is_empty() { &self.narrowed.close } else { &self.narrowed.exact }
+        if self.narrowed.exact.is_empty() {
+            &self.narrowed.close
+        } else {
+            &self.narrowed.exact
+        }
     }
 }
 
@@ -97,7 +101,9 @@ impl Filter {
 
     /// The answer in force for this numbering; None with no query, or while an answer for a new numbering is out.
     pub fn drawn(&self, listing: usize) -> Option<&Rc<Drawn>> {
-        self.drawn.as_ref().filter(|drawn| !self.query.is_empty() && drawn.listing == listing)
+        self.drawn
+            .as_ref()
+            .filter(|drawn| !self.query.is_empty() && drawn.listing == listing)
     }
 
     /// The match list views read, None meaning the identity.
@@ -107,7 +113,8 @@ impl Filter {
 
     /// The strip's numbers, once an answer for this numbering stands; while a newer query is out they stay the drawn answer's.
     pub fn counts(&self, listing: usize) -> Option<Counts> {
-        self.drawn(listing).map(|drawn| Counts::of(&drawn.narrowed, drawn.tested, Scope::Folder))
+        self.drawn(listing)
+            .map(|drawn| Counts::of(&drawn.narrowed, drawn.tested, Scope::Folder))
     }
 
     /// "/" gives the query line the keyboard; nothing narrows until something is typed.
@@ -121,7 +128,11 @@ impl Filter {
             return None;
         }
         self.next_id += 1;
-        let asked = Asked { id: self.next_id, query: self.query.clone(), listing: pane.listing() };
+        let asked = Asked {
+            id: self.next_id,
+            query: self.query.clone(),
+            listing: pane.listing(),
+        };
         self.asked = Some(asked.clone());
         Some(asked)
     }
@@ -182,7 +193,10 @@ impl Filter {
 
     /// Ctrl+A on the line marks every exact row shown, never a close one, and hands the keyboard to the list.
     pub fn select_all(&mut self, pane: &mut dyn PaneSeam) {
-        let exact = self.drawn(pane.listing()).map(|drawn| drawn.narrowed.exact.clone()).unwrap_or_default();
+        let exact = self
+            .drawn(pane.listing())
+            .map(|drawn| drawn.narrowed.exact.clone())
+            .unwrap_or_default();
         if !exact.is_empty() {
             pane.mark(&exact);
         }
@@ -233,14 +247,20 @@ impl Filter {
             query: answer.query,
             listing: answer.listing,
             tested: answer.total,
-            narrowed: Narrowed { exact: answer.exact.unwrap_or_default(), close: answer.close },
+            narrowed: Narrowed {
+                exact: answer.exact.unwrap_or_default(),
+                close: answer.close,
+            },
         });
         let rows = drawn.rows();
         let hidden = logic::pruned(&pane.selected(), Some(rows));
         if !hidden.is_empty() {
             pane.unmark(&hidden);
         }
-        if let Some(to) = pane.cursor().and_then(|cursor| logic::cursor_after(Some(rows), cursor)) {
+        if let Some(to) = pane
+            .cursor()
+            .and_then(|cursor| logic::cursor_after(Some(rows), cursor))
+        {
             pane.set_cursor(to);
             pane.show_view(0);
         }
@@ -281,7 +301,16 @@ impl Filter {
     }
 
     /// The rows an action takes, or why it takes none.
-    pub fn targets(&self, pane: &dyn PaneSeam, loaded: impl Fn(usize) -> bool) -> Result<Vec<usize>, Refusal> {
-        logic::targets(&pane.selected(), self.shown(pane.listing()), pane.cursor(), loaded)
+    pub fn targets(
+        &self,
+        pane: &dyn PaneSeam,
+        loaded: impl Fn(usize) -> bool,
+    ) -> Result<Vec<usize>, Refusal> {
+        logic::targets(
+            &pane.selected(),
+            self.shown(pane.listing()),
+            pane.cursor(),
+            loaded,
+        )
     }
 }

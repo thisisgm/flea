@@ -9,7 +9,11 @@ fn painted_radii(
     wash: Option<&'static str>,
 ) {
     let frame = visual.debug_bounds("op2-flash-frame").unwrap();
-    let wash = wash.map(|selector| visual.debug_bounds(selector).expect("the requested wash is drawn"));
+    let wash = wash.map(|selector| {
+        visual
+            .debug_bounds(selector)
+            .expect("the requested wash is drawn")
+    });
     window
         .update(visual, |_, window, _| {
             let scale = window.scale_factor();
@@ -24,7 +28,11 @@ fn painted_radii(
                 border.corner_radii.bottom_left,
                 border.corner_radii.bottom_right,
             ] {
-                assert_eq!(value.0, radius * scale, "each painted frame corner uses the live radius");
+                assert_eq!(
+                    value.0,
+                    radius * scale,
+                    "each painted frame corner uses the live radius"
+                );
             }
             if let Some(bounds) = wash {
                 let fill = quads
@@ -38,7 +46,10 @@ fn painted_radii(
                     fill.corner_radii.bottom_left,
                     fill.corner_radii.bottom_right,
                 ] {
-                    assert_eq!(value.0, inner, "each wash corner follows the matching inner radius");
+                    assert_eq!(
+                        value.0, inner,
+                        "each wash corner follows the matching inner radius"
+                    );
                 }
             }
         })
@@ -49,9 +60,12 @@ fn painted_radii(
 fn r7_painted_radii_follow_every_action_state_and_device_scale() {
     for radius in [0., 8.] {
         for scale in [1., 2.] {
-            for make in
-                [LiveFlash::live_flash_action, LiveFlash::live_cancel, LiveFlash::failed_end, LiveFlash::done_end]
-            {
+            for make in [
+                LiveFlash::live_flash_action,
+                LiveFlash::live_cancel,
+                LiveFlash::failed_end,
+                LiveFlash::done_end,
+            ] {
                 let mut cx = real_cx();
                 cx.update(|cx| cx.set_reduce_motion(true));
                 let window = cx.open_window(size(px(1100.), px(700.)), |window, _| {
@@ -73,13 +87,25 @@ fn r7_painted_radii_follow_every_action_state_and_device_scale() {
                 visual.simulate_mouse_down(action.center(), MouseButton::Left, Modifiers::none());
                 visual.run_until_parked();
                 painted_radii(&mut visual, window, radius, Some("op2-flash-wash-press"));
-                visual.simulate_mouse_move(point(px(20.), px(20.)), Some(MouseButton::Left), Modifiers::none());
+                visual.simulate_mouse_move(
+                    point(px(20.), px(20.)),
+                    Some(MouseButton::Left),
+                    Modifiers::none(),
+                );
                 visual.run_until_parked();
                 painted_radii(&mut visual, window, radius, None);
-                visual.simulate_mouse_move(action.center(), Some(MouseButton::Left), Modifiers::none());
+                visual.simulate_mouse_move(
+                    action.center(),
+                    Some(MouseButton::Left),
+                    Modifiers::none(),
+                );
                 visual.run_until_parked();
                 painted_radii(&mut visual, window, radius, Some("op2-flash-wash-press"));
-                visual.simulate_mouse_up(point(px(-10.), px(-10.)), MouseButton::Left, Modifiers::none());
+                visual.simulate_mouse_up(
+                    point(px(-10.), px(-10.)),
+                    MouseButton::Left,
+                    Modifiers::none(),
+                );
                 visual.run_until_parked();
                 painted_radii(&mut visual, window, radius, None);
             }

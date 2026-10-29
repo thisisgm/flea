@@ -5,7 +5,11 @@ use crate::path::split;
 fn the_strip_draws_parents_plus_leaf() {
     for path in ["/winprobe", "/a/b/winprobe", "/fx/v/work/notes.txt"] {
         let (parents, leaf) = split(path);
-        assert_eq!(format!("{parents}{leaf}"), path, "the strip draws {path} whole");
+        assert_eq!(
+            format!("{parents}{leaf}"),
+            path,
+            "the strip draws {path} whole"
+        );
     }
 }
 

@@ -3,7 +3,12 @@ use super::*;
 use std::future::Future;
 
 /// Waits for the named subscription (OEM or settings textSize) to deliver base, failing after 3 s of real time.
-pub(super) fn wait_for_base(cx: &mut TestAppContext, handle: Handle, base: u32, subscription: &str) {
+pub(super) fn wait_for_base(
+    cx: &mut TestAppContext,
+    handle: Handle,
+    base: u32,
+    subscription: &str,
+) {
     let shell = handle.update(cx, |root, _, _| root.shell.clone()).unwrap();
     let (send, received) = async_channel::bounded(1);
     let observer = cx.update(|cx| {
@@ -37,7 +42,10 @@ pub(super) fn wait_for_base(cx: &mut TestAppContext, handle: Handle, base: u32, 
             .await
         });
         executor.forbid_parking();
-        assert!(delivered, "the actual {subscription} subscription did not deliver {base}");
+        assert!(
+            delivered,
+            "the actual {subscription} subscription did not deliver {base}"
+        );
     }
     drop(observer);
     assert_eq!(

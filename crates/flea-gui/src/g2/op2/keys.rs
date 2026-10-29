@@ -35,7 +35,12 @@ pub fn key_of(event: &KeyDownEvent) -> Option<Key> {
         "escape" => Key::Escape,
         "space" if plain => Key::Space,
         "backspace" => Key::Backspace,
-        _ if plain => Key::Text(stroke.key_char.clone().filter(|c| !c.chars().any(char::is_control))?),
+        _ if plain => Key::Text(
+            stroke
+                .key_char
+                .clone()
+                .filter(|c| !c.chars().any(char::is_control))?,
+        ),
         _ => return None,
     })
 }

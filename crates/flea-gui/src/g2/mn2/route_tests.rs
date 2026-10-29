@@ -37,9 +37,22 @@ fn press(cx: &mut TestAppContext, entries: &[Entry], keys: &[&str]) -> Outcome {
                 typeface: &typeface,
                 inset: 4.,
             };
-            let work = Rect { x: 0., y: 0., w: 1100., h: 700. };
+            let work = Rect {
+                x: 0.,
+                y: 0.,
+                w: 1100.,
+                h: 700.,
+            };
             let mut menu = Menu::default();
-            menu.open(Face::File, entries.to_vec(), (40., 40.), work, "a", &env, window);
+            menu.open(
+                Face::File,
+                entries.to_vec(),
+                (40., 40.),
+                work,
+                "a",
+                &env,
+                window,
+            );
             let mut last = Outcome::Nothing;
             for key in keys {
                 last = menu.act(key, Some(entries), "a", &env, window);
@@ -74,7 +87,9 @@ fn listed(actions: &mut Actions) {
 }
 
 #[gpui::test]
-fn mn2_r2_a_preview_leaf_reaches_the_host_as_a_preview_and_a_run_leaf_as_a_run(cx: &mut TestAppContext) {
+fn mn2_r2_a_preview_leaf_reaches_the_host_as_a_preview_and_a_run_leaf_as_a_run(
+    cx: &mut TestAppContext,
+) {
     let mut actions = Actions::default();
     listed(&mut actions);
     let entries = vec![actions.actions_entry(&[]).expect("the Actions row")];
@@ -83,7 +98,11 @@ fn mn2_r2_a_preview_leaf_reaches_the_host_as_a_preview_and_a_run_leaf_as_a_run(c
     let Outcome::Fire { action, leaf } = outcome else {
         panic!("a flyout leaf fires, got {outcome:?}");
     };
-    assert_eq!(action, rows::FIRE, "the menu fires under the parent row's verb");
+    assert_eq!(
+        action,
+        rows::FIRE,
+        "the menu fires under the parent row's verb"
+    );
     assert_eq!(leaf, "action:inspect.toml");
     assert_eq!(
         actions.choose(&leaf, vec!["/fx/a.jpg".into()], "/fx/a.jpg".into()),
@@ -97,7 +116,10 @@ fn mn2_r2_a_preview_leaf_reaches_the_host_as_a_preview_and_a_run_leaf_as_a_run(c
     let Outcome::Fire { action, leaf } = outcome else {
         panic!("a flyout leaf fires, got {outcome:?}");
     };
-    assert_eq!((action.as_str(), leaf.as_str()), (rows::FIRE, "action:resize.toml"));
+    assert_eq!(
+        (action.as_str(), leaf.as_str()),
+        (rows::FIRE, "action:resize.toml")
+    );
     assert_eq!(
         actions.choose(&leaf, vec!["/fx/a.jpg".into()], "/fx/a.jpg".into()),
         Some(Sent::Run(
@@ -109,7 +131,10 @@ fn mn2_r2_a_preview_leaf_reaches_the_host_as_a_preview_and_a_run_leaf_as_a_run(c
 #[gpui::test]
 fn mn2_r2_a_chosen_plugin_row_names_its_plugin_and_action(cx: &mut TestAppContext) {
     let mut actions = Actions::default();
-    actions.set_contributions(vec![contribution("a.sums", "Verify A"), contribution("b.sums", "Verify B")]);
+    actions.set_contributions(vec![
+        contribution("a.sums", "Verify A"),
+        contribution("b.sums", "Verify B"),
+    ]);
     let items = [Item {
         mime: "text/plain".into(),
         folder: false,
@@ -128,7 +153,11 @@ fn mn2_r2_a_chosen_plugin_row_names_its_plugin_and_action(cx: &mut TestAppContex
     );
     assert_eq!(actions.plugin_choice("b.sums:run"), Some(("b.sums", "run")));
     assert_eq!(actions.plugin_choice("a.sums:run"), Some(("a.sums", "run")));
-    assert_eq!(actions.plugin_choice("c.sums:run"), None, "an unheld plugin names nothing");
+    assert_eq!(
+        actions.plugin_choice("c.sums:run"),
+        None,
+        "an unheld plugin names nothing"
+    );
 }
 
 #[test]
@@ -136,7 +165,11 @@ fn mn2_r2_a_choice_the_listing_no_longer_names_is_said_stale() {
     let mut actions = Actions::default();
     listed(&mut actions);
     assert_eq!(
-        actions.choose("action:gone.toml", vec!["/fx/a.jpg".into()], "/fx/a.jpg".into()),
+        actions.choose(
+            "action:gone.toml",
+            vec!["/fx/a.jpg".into()],
+            "/fx/a.jpg".into()
+        ),
         None
     );
     assert_eq!(

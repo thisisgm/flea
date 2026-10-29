@@ -11,9 +11,9 @@ use std::{cell::RefCell, rc::Rc, time::Duration};
 
 /// A 4 by 4 PNG, the cover the thumbnailer would have cached.
 const COVER: [u8; 73] = [
-    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 4, 0, 0, 0, 4, 8, 2, 0, 0,
-    0, 38, 147, 9, 41, 0, 0, 0, 16, 73, 68, 65, 84, 120, 156, 99, 56, 81, 161, 1, 71, 12, 196, 113,
-    0, 83, 82, 22, 129, 25, 170, 14, 207, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 4, 0, 0, 0, 4, 8, 2, 0,
+    0, 0, 38, 147, 9, 41, 0, 0, 0, 16, 73, 68, 65, 84, 120, 156, 99, 56, 81, 161, 1, 71, 12, 196,
+    113, 0, 83, 82, 22, 129, 25, 170, 14, 207, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
 ];
 
 /// An audio-only decoder that answers play and pause, so the column's player runs without a process.
@@ -23,7 +23,10 @@ struct Playing(Sound);
 impl engine::Backend for Sound {
     fn start(&self, _: &Request) -> Result<(Box<dyn Playback>, engine::Feed), String> {
         let (sender, feed) = engine::feed();
-        sender.event(Event::Loaded { video: false, duration_ms: 4000 });
+        sender.event(Event::Loaded {
+            video: false,
+            duration_ms: 4000,
+        });
         sender.event(Event::Playing);
         *self.0.borrow_mut() = Some(sender);
         Ok((Box::new(Playing(self.clone())), feed))
@@ -76,12 +79,19 @@ fn an_mp3_cover_stays_in_the_frame_through_play_pause_and_seek(cx: &mut TestAppC
     let sound = Sound::default();
     let backend: Rc<dyn engine::Backend> = Rc::new(sound.clone());
     cx.update(|_, cx| {
-        let preview = shell.read(cx).selection_preview(0).expect("the column is mounted");
+        let preview = shell
+            .read(cx)
+            .selection_preview(0)
+            .expect("the column is mounted");
         preview.update(cx, |view, _| view.set_media_backend(backend));
     });
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","ms":4000"#);
-    answer(&shell, cx, &format!(r#"{{"t":"thumbed","row":0,"file":"{}"}}"#, cover.display()));
+    answer(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"thumbed","row":0,"file":"{}"}}"#, cover.display()),
+    );
     settle(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "audio");
     assert!(cover_drawn(cx), "the cover draws before play");
@@ -97,7 +107,10 @@ fn an_mp3_cover_stays_in_the_frame_through_play_pause_and_seek(cx: &mut TestAppC
     cx.simulate_keystrokes("right");
     settle(cx);
     let sent = sound.1.borrow().clone();
-    assert!(sent.iter().any(|c| matches!(c, Command::Seek(_))), "right seeks: {sent:?}");
+    assert!(
+        sent.iter().any(|c| matches!(c, Command::Seek(_))),
+        "right seeks: {sent:?}"
+    );
     assert!(cover_drawn(cx), "the cover stays after a seek");
 }
 

@@ -32,7 +32,14 @@ pub enum Peeked {
     Stale,
 }
 
-pub fn peeked(asked: &str, path: &str, read_failed: bool, mode: u32, saving: bool, folder_mode: bool) -> Peeked {
+pub fn peeked(
+    asked: &str,
+    path: &str,
+    read_failed: bool,
+    mode: u32,
+    saving: bool,
+    folder_mode: bool,
+) -> Peeked {
     if path != asked {
         return Peeked::Stale;
     }

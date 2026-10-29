@@ -15,13 +15,13 @@ mod card_tests;
 #[cfg(test)]
 mod draw_flash_tests;
 #[cfg(test)]
-mod draw_step_tests;
+mod draw_motion_tests;
 #[cfg(test)]
 mod draw_press_tests;
 #[cfg(test)]
-mod draw_motion_tests;
-#[cfg(test)]
 mod draw_radius_tests;
+#[cfg(test)]
+mod draw_step_tests;
 #[cfg(test)]
 mod draw_tests;
 #[cfg(test)]
@@ -43,10 +43,7 @@ pub enum Effect {
     /// The card is done and leaves the shell.
     Close,
     /// A status line; the sticky line while its send went out at once, an error sentence otherwise.
-    Say {
-        text: String,
-        error: bool,
-    },
+    Say { text: String, error: bool },
     /// The running flash joins the pane's transfer the way a copy's does, while the view is closed.
     HandTransfer(cards::JobBlock),
     /// The handed run ended while hidden: the pane's Jobs card closes the block by id, as JobsSink does.
@@ -63,9 +60,16 @@ pub fn busy_sentence(i18n: &flea::i18n::I18n) -> String {
 }
 
 /// The host's guard before opening either password card, as ArchiveCards.cardBusy answers.
-pub fn card_busy(compress_opened: bool, extract_opened: bool, i18n: &flea::i18n::I18n) -> Option<Effect> {
+pub fn card_busy(
+    compress_opened: bool,
+    extract_opened: bool,
+    i18n: &flea::i18n::I18n,
+) -> Option<Effect> {
     if compress_opened || extract_opened {
-        Some(Effect::Say { text: busy_sentence(i18n), error: true })
+        Some(Effect::Say {
+            text: busy_sentence(i18n),
+            error: true,
+        })
     } else {
         None
     }

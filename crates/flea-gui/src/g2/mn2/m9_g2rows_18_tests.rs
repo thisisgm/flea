@@ -64,6 +64,38 @@ fn m9_g2rows_18_agent_key_and_menu_use_same_captured_folder(cx: &mut TestAppCont
 }
 
 #[gpui::test]
+fn m9_g2rows_18_agent_start_failure_arrives_from_the_background_launch(cx: &mut TestAppContext) {
+    let fixture = open(cx, SHOWN);
+    let handle = fixture.handle;
+    // No launcher is injected, so the real argv runs; a device is no working directory, so the child fails before exec.
+    update(cx, handle, |shell, window, cx| {
+        shell.panes[0].as_mut().unwrap().path = "/dev/null".into();
+        shell.open_menu(0, None, (10., 10.), window, cx);
+    });
+    let quiet = status(cx, handle);
+    fire(cx, handle, "openAgent", "");
+    assert_eq!(
+        status(cx, handle),
+        quiet,
+        "the launch waits for the background executor, so the menu returns before it is said"
+    );
+    cx.run_until_parked();
+    let refused = std::io::Error::from_raw_os_error(20).to_string();
+    let sentence = update(cx, handle, |shell, _, _| {
+        shell
+            .locale
+            .catalog
+            .tr_args(crate::g2::mn2::model::START_KEY, &[&refused])
+    });
+    assert_ne!(sentence, quiet);
+    assert_eq!(
+        status(cx, handle),
+        sentence,
+        "the background launch reports its start failure"
+    );
+}
+
+#[gpui::test]
 fn m9_g2rows_18_actions_match_and_capture_full_selection(cx: &mut TestAppContext) {
     for (rows, selected) in [
         (vec![2], vec!["/files/a.jpg"]),

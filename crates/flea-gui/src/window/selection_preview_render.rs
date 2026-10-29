@@ -1,6 +1,6 @@
 //! The approved media frame, optional transport, name and compact or full facts.
-use super::*;
 pub(crate) use super::fitted::column_picture;
+use super::*;
 use crate::g2::pv3::{
     self,
     strip::StripElement,

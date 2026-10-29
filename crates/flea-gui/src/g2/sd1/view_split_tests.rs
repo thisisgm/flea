@@ -5,29 +5,18 @@ use crate::list::Palette;
 use flea::ui_logic_mn1::fit::ROW;
 use flea::ui_logic_sd1::share::ShareBrowser;
 use gpui::{
-    div, point, prelude::*, px, size, Context, Hsla, IntoElement, Modifiers, MouseButton, Render, VisualTestContext,
-    Window,
+    div, point, prelude::*, px, size, Context, IntoElement, Modifiers, MouseButton, Render,
+    VisualTestContext, Window,
 };
 use std::{cell::Cell, cell::RefCell, rc::Rc};
 
 fn palette() -> Palette {
-    let ink = Hsla { h: 0., s: 0., l: 0.9, a: 1. };
-    let accent = Hsla { h: 0.6, s: 0.8, l: 0.5, a: 1. };
-    Palette {
-        background: Hsla { h: 0., s: 0., l: 0.1, a: 1. },
-        foreground: ink,
-        muted: ink,
-        error: ink,
-        error_on_surface: ink,
-        metadata: ink.opacity(0.6),
-        metadata_frame: ink.opacity(0.4),
-        accent,
-        accent_frame: accent,
-        symlink: ink,
-        executable: ink,
-        marked: ink,
-        muted_frame: ink,
-    }
+    Palette::inherited(
+        &gpui::TextStyle::default(),
+        crate::palette::Theme::from_text(
+            "background='#1a1b26'\nforeground='#a9b1d6'\naccent='#7aa2f7'",
+        ),
+    )
 }
 
 // A window with the other pane on the left (300 px) and the overlay over the right listing slot.
@@ -52,7 +41,14 @@ impl Render for Split {
             .flex()
             .flex_row()
             .size_full()
-            .child(div().w(px(300.)).h_full().on_mouse_down(MouseButton::Left, move |_, _, _| presses.set(presses.get() + 1)))
+            .child(
+                div()
+                    .w(px(300.))
+                    .h_full()
+                    .on_mouse_down(MouseButton::Left, move |_, _, _| {
+                        presses.set(presses.get() + 1)
+                    }),
+            )
             .child(div().flex_1().h_full().child(overlay))
     }
 }
@@ -78,7 +74,11 @@ fn r4_a_a_press_that_started_off_the_overlay_never_picks_a_row() {
         probe: p,
         presses: n,
     });
-    browser.borrow_mut().open("smb://nas", "nas", &["media".to_string(), "docs".to_string()]);
+    browser.borrow_mut().open(
+        "smb://nas",
+        "nas",
+        &["media".to_string(), "docs".to_string()],
+    );
     let mut visual = VisualTestContext::from_window(window.into(), &cx);
     draw(&mut visual);
     assert_eq!(probe.borrow().painted, 2, "the overlay is drawn");
@@ -95,8 +95,16 @@ fn r4_a_a_press_that_started_off_the_overlay_never_picks_a_row() {
     draw(&mut visual);
     visual.simulate_mouse_up(row, left, none);
     draw(&mut visual);
-    let control = (browser.borrow().cursor, probe.borrow().pick.clone(), presses.get());
-    assert_eq!(control, (0, None, 1), "control: a pane press released over a row picked {control:?}");
+    let control = (
+        browser.borrow().cursor,
+        probe.borrow().pick.clone(),
+        presses.get(),
+    );
+    assert_eq!(
+        control,
+        (0, None, 1),
+        "control: a pane press released over a row picked {control:?}"
+    );
     // A press on row 1, dragged off the overlay and released on the other pane, picks nothing.
     visual.simulate_mouse_move(row, None, none);
     draw(&mut visual);
@@ -106,7 +114,11 @@ fn r4_a_a_press_that_started_off_the_overlay_never_picks_a_row() {
     draw(&mut visual);
     visual.simulate_mouse_up(pane, left, none);
     draw(&mut visual);
-    let dragged_off = (browser.borrow().cursor, probe.borrow().pick.clone(), probe.borrow().pressed);
+    let dragged_off = (
+        browser.borrow().cursor,
+        probe.borrow().pick.clone(),
+        probe.borrow().pressed,
+    );
     // The control's gesture again: a press on the other pane released over row 1.
     visual.simulate_mouse_down(pane, left, none);
     draw(&mut visual);

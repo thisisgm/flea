@@ -78,21 +78,35 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
     cx.simulate_keystrokes("ctrl-shift-n");
     assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files"}"#]);
     let before = lists(&shell, cx);
-    reply(&shell, cx, r#"{"t":"made","ok":true,"path":"/files/New Folder"}"#);
-    assert_eq!(notice(&shell, cx), lines::made(&catalog, "default", "/files/New Folder"));
+    reply(
+        &shell,
+        cx,
+        r#"{"t":"made","ok":true,"path":"/files/New Folder"}"#,
+    );
+    assert_eq!(
+        notice(&shell, cx),
+        lines::made(&catalog, "default", "/files/New Folder")
+    );
     assert!(notice(&shell, cx).contains("New Folder"));
     assert_eq!(lists(&shell, cx), before + 1, "the folder is read again");
     let select = shell.read_with(cx, |shell, _| {
         shell.panes[0].as_ref().unwrap().nav.pending_select.clone()
     });
-    assert_eq!(select.as_deref(), Some("/files/New Folder"), "the new folder lands under the cursor");
+    assert_eq!(
+        select.as_deref(),
+        Some("/files/New Folder"),
+        "the new folder lands under the cursor"
+    );
     land(&shell, cx, "/files", home(), 2);
     // Ops.js trash: the marked rows, cleared once the backend answers.
     shell.update(cx, |shell, _| {
         shell.panes[0].as_mut().unwrap().selected = vec![0, 2]
     });
     cx.simulate_keystrokes("delete");
-    assert_eq!(sent(), [r#"{"c":"trash","rows":[0,2],"menuId":0,"listing":2}"#]);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"trash","rows":[0,2],"menuId":0,"listing":2}"#]
+    );
     reply(&shell, cx, r#"{"t":"trashed","ok":2,"failed":0}"#);
     assert_eq!(
         status(&shell, cx),
@@ -140,8 +154,15 @@ fn duplicate_sends_the_cursor_row_and_lands_on_the_copy(cx: &mut TestAppContext)
     let mut sent = wire(&shell, cx);
     set_cursor(&shell, cx, 2);
     hit(cx, "mac", "duplicate");
-    assert_eq!(sent(), [r#"{"c":"duplicate","path":"/files/notes.txt","menuId":0}"#]);
-    reply(&shell, cx, r#"{"t":"duplicated","ok":true,"path":"/files/notes copy.txt"}"#);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"duplicate","path":"/files/notes.txt","menuId":0}"#]
+    );
+    reply(
+        &shell,
+        cx,
+        r#"{"t":"duplicated","ok":true,"path":"/files/notes copy.txt"}"#,
+    );
     let catalog = catalog(&shell, cx);
     let line = catalog.tr_args("jobs.done.duplicated", &["notes copy.txt"]);
     assert_eq!(notice(&shell, cx), lines::with_undo(&catalog, "mac", line));
@@ -162,16 +183,29 @@ fn the_dd_pair_arms_then_trashes_and_a_move_or_the_clock_ends_the_arm(cx: &mut T
     set_cursor(&shell, cx, 2);
     cx.simulate_keystrokes("d");
     assert_eq!(sent(), Vec::<String>::new(), "the first d only arms");
-    assert_eq!(status(&shell, cx), trash::trash_prompt(&catalog, "default", 1));
+    assert_eq!(
+        status(&shell, cx),
+        trash::trash_prompt(&catalog, "default", 1)
+    );
     cx.simulate_keystrokes("d");
-    assert_eq!(sent(), [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]
+    );
     // Any other listing action ends the pair, even one another family claims that keeps the seat: Forward with no forward history.
     cx.simulate_keystrokes("d");
     hit(cx, "default", "historyForward");
     cx.simulate_keystrokes("d");
-    assert_eq!(sent(), Vec::<String>::new(), "the d after Forward arms again");
+    assert_eq!(
+        sent(),
+        Vec::<String>::new(),
+        "the d after Forward arms again"
+    );
     cx.simulate_keystrokes("d");
-    assert_eq!(sent(), [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]
+    );
     // A cursor move between the presses ends the pair: the d after it arms again on the new row.
     cx.simulate_keystrokes("d up d");
     assert_eq!(sent(), Vec::<String>::new());
@@ -182,12 +216,17 @@ fn the_dd_pair_arms_then_trashes_and_a_move_or_the_clock_ends_the_arm(cx: &mut T
     cx.simulate_keystrokes("d");
     assert_eq!(sent(), Vec::<String>::new());
     cx.simulate_keystrokes("d");
-    assert_eq!(sent(), [r#"{"c":"trash","rows":[1],"menuId":0,"listing":1}"#]);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"trash","rows":[1],"menuId":0,"listing":1}"#]
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
 #[gpui::test]
-fn a_key_only_handler_or_an_unbound_key_between_the_presses_ends_the_dd_pair(cx: &mut TestAppContext) {
+fn a_key_only_handler_or_an_unbound_key_between_the_presses_ends_the_dd_pair(
+    cx: &mut TestAppContext,
+) {
     let (shell, cx) = open(cx, "default");
     land(&shell, cx, "/files", home(), 1);
     let mut sent = wire(&shell, cx);
@@ -202,7 +241,10 @@ fn a_key_only_handler_or_an_unbound_key_between_the_presses_ends_the_dd_pair(cx:
     cx.simulate_keystrokes("f12 d");
     assert!(!trashed(&sent()), "the d after an unbound key arms again");
     cx.simulate_keystrokes("d");
-    assert_eq!(sent(), [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
@@ -237,11 +279,22 @@ fn a_new_listing_between_the_presses_ends_the_dd_pair(cx: &mut TestAppContext) {
         let pane = &shell.panes[0].as_ref().unwrap().pane;
         (pane.held.listing, pane.cursor)
     });
-    assert_eq!((listing, cursor), (2, 2), "the new listing is held with the cursor on the armed row");
+    assert_eq!(
+        (listing, cursor),
+        (2, 2),
+        "the new listing is held with the cursor on the armed row"
+    );
     cx.simulate_keystrokes("d");
-    assert_eq!(sent(), Vec::<String>::new(), "the d on the new listing arms again");
+    assert_eq!(
+        sent(),
+        Vec::<String>::new(),
+        "the d on the new listing arms again"
+    );
     cx.simulate_keystrokes("d");
-    assert_eq!(sent(), [r#"{"c":"trash","rows":[2],"menuId":0,"listing":2}"#]);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"trash","rows":[2],"menuId":0,"listing":2}"#]
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
@@ -262,54 +315,15 @@ fn a_stopped_backend_ends_the_delete_in_flight(cx: &mut TestAppContext) {
     let stopped = catalog.tr_args("window.backend_stopped", &[""]);
     let deleting = shell.read_with(cx, |shell, _| shell.operations.fileops.deleting[0]);
     assert_eq!(deleting, None, "the stop ended the delete in flight");
-    assert_ne!(status(&shell, cx), stopped, "only the second Shift+Delete says the backend stopped");
+    assert_ne!(
+        status(&shell, cx),
+        stopped,
+        "only the second Shift+Delete says the backend stopped"
+    );
     cx.simulate_keystrokes("shift-delete");
     assert_eq!(status(&shell, cx), stopped);
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
-#[gpui::test]
-fn shift_delete_reviews_its_own_snapshot_and_opens_the_permanent_card(cx: &mut TestAppContext) {
-    let (shell, cx) = open(cx, "default");
-    land(&shell, cx, "/files", home(), 1);
-    let mut sent = wire(&shell, cx);
-    set_cursor(&shell, cx, 2);
-    cx.simulate_keystrokes("shift-delete");
-    let snapshot = sent();
-    assert_eq!(snapshot.len(), 1);
-    let id = flea::json::field_usize(&snapshot[0], "id").unwrap();
-    assert_eq!(
-        snapshot[0],
-        format!(r#"{{"c":"menuaction","op":"snapshot","id":{id},"listing":1,"rows":[2],"cursor":2}}"#)
-    );
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[32768]}}"#));
-    assert_eq!(sent(), [format!(r#"{{"c":"menuaction","op":"prepareDelete","id":{id}}}"#)]);
-    assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"prepareDelete","ok":true,"token":77,"count":1,"bytes":12}}"#));
-    assert!(
-        shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)),
-        "the permanent-delete card is up"
-    );
-    // The card's Delete sends the reviewed token on the same snapshot.
-    cx.simulate_keystrokes("tab enter");
-    let deleted = sent();
-    assert!(
-        deleted.iter().any(|line| line == &format!(r#"{{"c":"menuaction","op":"delete","id":{id},"token":77}}"#)),
-        "{deleted:?}"
-    );
-    shell.update(cx, |shell, _| shell.stop_for_app_quit());
-}
-
-#[gpui::test]
-fn a_refused_review_says_why_and_closes_its_snapshot(cx: &mut TestAppContext) {
-    let (shell, cx) = open(cx, "default");
-    land(&shell, cx, "/files", home(), 1);
-    let mut sent = wire(&shell, cx);
-    cx.simulate_keystrokes("shift-delete");
-    let id = flea::json::field_usize(&sent()[0], "id").unwrap();
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":false,"error":"Selected items changed; reopen the menu."}}"#));
-    assert_eq!(sent(), [format!(r#"{{"c":"menuaction","op":"close","id":{id}}}"#)]);
-    assert_eq!(status(&shell, cx), "Selected items changed; reopen the menu.");
-    assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
-    shell.update(cx, |shell, _| shell.stop_for_app_quit());
-}
+#[path = "fileops_review_tests.rs"]
+mod review;

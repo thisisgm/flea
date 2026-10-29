@@ -50,17 +50,37 @@ impl Clipboard {
             return Some(vec![core::recent_paste(i18n)]);
         }
         match verb {
-            Verb::Copy => Some(self.take(i18n, backend, false, paths, rows, take, wire, sink, owner)),
+            Verb::Copy => {
+                Some(self.take(i18n, backend, false, paths, rows, take, wire, sink, owner))
+            }
             Verb::Cut => Some(self.take(i18n, backend, true, paths, rows, take, wire, sink, owner)),
-            Verb::Paste => {
-                Some(self.paste(i18n, backend, core::PendingPaste::transfer(landing.path), landing, wire, sink, owner))
-            }
-            Verb::MovePaste => {
-                Some(self.paste(i18n, backend, core::PendingPaste::forced_move(landing.path), landing, wire, sink, owner))
-            }
-            Verb::Link(kind) => {
-                Some(self.paste(i18n, backend, core::PendingPaste::link(landing.path, kind), landing, wire, sink, owner))
-            }
+            Verb::Paste => Some(self.paste(
+                i18n,
+                backend,
+                core::PendingPaste::transfer(landing.path),
+                landing,
+                wire,
+                sink,
+                owner,
+            )),
+            Verb::MovePaste => Some(self.paste(
+                i18n,
+                backend,
+                core::PendingPaste::forced_move(landing.path),
+                landing,
+                wire,
+                sink,
+                owner,
+            )),
+            Verb::Link(kind) => Some(self.paste(
+                i18n,
+                backend,
+                core::PendingPaste::link(landing.path, kind),
+                landing,
+                wire,
+                sink,
+                owner,
+            )),
         }
     }
 }

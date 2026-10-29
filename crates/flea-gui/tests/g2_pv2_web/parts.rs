@@ -1,7 +1,7 @@
 //! The shared test parts: theme snapshots, a recording backend, and the frame helpers every view test uses.
 use flea::i18n::I18n;
 use flea_gui::g2::pv2::code::{self, Mark};
-use gpui::{hsla, px, App, AppContext as _, Render, SharedString, TestAppContext, WindowHandle};
+use gpui::{px, App, AppContext as _, Render, SharedString, TestAppContext, WindowHandle};
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 pub const SVG: &[u8] = b"<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><rect width='16' height='16'/></svg>";
@@ -23,7 +23,7 @@ pub fn typeface() -> code::Typeface {
 }
 
 pub fn palette() -> code::Palette {
-    let ink = hsla(0., 0., 0.9, 1.);
+    let ink = flea_gui::palette::Theme::default().foreground;
     code::Palette {
         foreground: ink,
         muted: ink.opacity(0.6),
