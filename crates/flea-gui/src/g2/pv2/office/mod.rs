@@ -200,6 +200,9 @@ impl OfficeView {
 
     /// One key-table action: `[` and `]` turn sheets, j and k scroll a sheet, pages take the PDF viewer's actions.
     pub fn action(&mut self, name: &str, cx: &mut Context<Self>) -> bool {
+        if let Some(direction) = viewer::page_direction(name) {
+            return self.page(direction, cx);
+        }
         if self.office.state != State::Ready {
             return false;
         }

@@ -1,6 +1,10 @@
 //! The one place the window runs what a producer hands it: key and pointer actions, menu choices and rail requests.
 mod clipboard;
 mod deletion;
+#[cfg(test)]
+mod document_keys_fixture;
+#[cfg(test)]
+mod document_keys_tests;
 mod fileops;
 mod fileops_wire;
 mod listing;

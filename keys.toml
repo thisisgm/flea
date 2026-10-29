@@ -2572,7 +2572,7 @@ keys = "F"
 action = "previewPageForward"
 label = "Page preview forward"
 frontend = "gui"
-context = "listing"
+context = "listing,preview,pdf"
 
 [[preset]]
 name = "all"
@@ -2582,7 +2582,48 @@ keys = "B"
 action = "previewPageBack"
 label = "Page preview back"
 frontend = "gui"
-context = "listing"
+context = "listing,preview,pdf"
+
+# The focused document owns its paging keys; the listing keeps its shared bindings.
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "D"
+keys = "ctrl-d"
+action = "pageDown"
+label = "Page down"
+frontend = "gui"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "U"
+keys = "ctrl-u"
+action = "pageUp"
+label = "Page up"
+frontend = "gui"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "PageDown"
+keys = "pagedown"
+action = "pageDown"
+label = "Page down"
+frontend = "gui"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "PageUp"
+keys = "pageup"
+action = "pageUp"
+label = "Page up"
+frontend = "gui"
+context = "preview,pdf"
 
 # Terminal-only bindings; the GUI generator reads the shared tables above.
 

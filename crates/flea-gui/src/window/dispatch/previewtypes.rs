@@ -5,7 +5,7 @@ use crate::{
     state::Shell,
     window::selection_preview::{Mounted, SelectionPreview},
 };
-use flea::{keys::Context as Keys, ui_logic_pv3::player::MediaKey};
+use flea::{keys::Context as Keys, ui_logic_pv2::viewer, ui_logic_pv3::player::MediaKey};
 use gpui::{Context, Entity, Window};
 
 pub(super) fn run(
@@ -18,17 +18,19 @@ pub(super) fn run(
         return false;
     };
     let action = event.action;
-    let page = match action {
-        "previewPageForward" => 1,
-        "previewPageBack" => -1,
-        "playPause" | "mute" | "seekBack" | "seekForward" => 0,
-        _ => return false,
-    };
+    let page = viewer::page_direction(action);
+    if page.is_none() && !matches!(action, "playPause" | "mute" | "seekBack" | "seekForward") {
+        return false;
+    }
     let Some(preview) = shown(shell, event.seat.listing, cx) else {
         return false;
     };
-    let ran = if page != 0 {
-        preview.update(cx, |view, cx| view.page(page, cx))
+    let focused = preview.read(cx).focus.is_focused(window);
+    let ran = if let Some(direction) = page {
+        if matches!(action, "pageDown" | "pageUp") && !focused {
+            return false;
+        }
+        preview.update(cx, |view, cx| view.page(direction, cx))
     } else if preview.read(cx).focus.is_focused(window) {
         preview.update(cx, |view, cx| view.media_key(action, window, cx))
     } else {
@@ -61,7 +63,7 @@ impl SelectionPreview {
         }
     }
 
-    /// F and B page a shown document by its viewport's height; a PDF falls through to the preview family's turn.
+    /// Page the mounted document; a PDF falls through to the preview family's turn.
     fn page(&mut self, direction: i64, cx: &mut Context<Self>) -> bool {
         if self.pending.is_some() {
             return false;
@@ -72,7 +74,10 @@ impl SelectionPreview {
         let Mounted::Doc(doc) = &frame.mounted else {
             return false;
         };
-        let height = self.frame_rect.borrow().map_or(0., |b| f32::from(b.size.height));
+        let height = self
+            .frame_rect
+            .borrow()
+            .map_or(0., |b| f32::from(b.size.height));
         doc.page(direction, height, cx);
         cx.notify();
         true

@@ -14,7 +14,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-./tools/flea-keymap-gen "$tmp" || { echo "FAIL the generator did not run"; exit 1; }
+./tools/flea-keymap-gen "$tmp" --rust "$probe_dir/keys_generated.rs" || { echo "FAIL the generator did not run"; exit 1; }
+if ! cmp -s src/keys_generated.rs "$probe_dir/keys_generated.rs"; then
+  echo "FAIL src/keys_generated.rs is stale, run ./tools/flea-keymap-gen"
+  exit 1
+fi
+echo "ok   src/keys_generated.rs matches keys.toml"
 
 # SettingsKeys.html says conflicts fail the build, and until now they did not: a second mac ctrl-1
 # claiming viewGrid emitted two overlay rows, exited 0, and let the first silently win. The broken
@@ -52,6 +57,10 @@ fi
 cp tests/keysheet.qml "$probe_dir/keysheet.qml" || exit 1
 QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_FORCE_STDERR_LOGGING=1 \
   qml6 "$probe_dir/keysheet.qml" || exit 1
+
+cp tests/keymap-document.qml "$probe_dir/keymap-document.qml" || exit 1
+QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_FORCE_STDERR_LOGGING=1 \
+  qml6 "$probe_dir/keymap-document.qml" || exit 1
 
 {
   echo "import QtQuick"

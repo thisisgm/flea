@@ -4,7 +4,7 @@ use crate::g2::pv2::PdfView;
 use flea::ui_logic_pv1::keys::SEEK_MS;
 use flea::ui_logic_pv2::{
     html::View as Shown,
-    viewer::{Action, Effect, CONTROLS},
+    viewer::{page_direction, Action, Effect, CONTROLS},
 };
 use flea::ui_logic_pv3::player::MediaKey;
 use gpui::{App, Entity};
@@ -82,6 +82,19 @@ impl Doc {
     pub fn action(&self, name: &str, cx: &mut App) -> Outcome {
         if let Some(pdf) = self.pages(cx) {
             return pdf_action(&pdf, name, cx);
+        }
+        if let Some(direction) = page_direction(name) {
+            match &self.view {
+                View::Code(view) => view.update(cx, |view, cx| view.page(direction, 0., cx)),
+                View::Markdown(view) => view.update(cx, |view, cx| view.page(direction, 0., cx)),
+                View::Html(view) => view.update(cx, |view, cx| view.page(direction, 0., cx)),
+                View::Table(view) => view.update(cx, |view, cx| view.page(direction, cx)),
+                View::Office(view) => {
+                    view.update(cx, |view, cx| view.page(direction, cx));
+                }
+                _ => return Outcome::Ignored,
+            }
+            return Outcome::Taken;
         }
         let taken = |taken: bool| {
             if taken {

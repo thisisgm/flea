@@ -290,3 +290,21 @@ fn viewer_strip_matches_the_boards() {
     assert_eq!(counter(0, 3), Some((1, 3)), "the count reads 1 / 3");
     assert_eq!(counter(0, 0), None, "no count before the pages are known");
 }
+
+#[test]
+fn bfx_keys_pdf_aliases_turn_pages_in_both_viewers() {
+    use super::*;
+    for (name, delta) in [
+        ("previewPageForward", 1),
+        ("previewPageBack", -1),
+        ("pageDown", 1),
+        ("pageUp", -1),
+    ] {
+        let action = Action::from_name(name).expect("document paging action");
+        assert_eq!(Viewer::default().action(action, 1, 3), Effect::Turn(delta));
+        assert_eq!(column_action(action), Effect::Turn(delta));
+    }
+    assert_eq!(Action::from_name("seekBack"), Some(Action::SeekBack));
+    assert_eq!(Action::from_name("seekForward"), Some(Action::SeekForward));
+    assert_eq!(Action::from_name("nextSheet"), None);
+}

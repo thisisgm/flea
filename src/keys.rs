@@ -5,6 +5,10 @@ pub mod presentation;
 pub mod sequence;
 pub use generated::*;
 
+#[cfg(test)]
+#[path = "keys_document_tests.rs"]
+mod document_tests;
+
 pub const PRESETS: [&str; 4] = ["default", "vim", "mac", "windows"];
 pub const CONTROL: u8 = 1;
 pub const SHIFT: u8 = 2;
