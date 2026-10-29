@@ -21,6 +21,8 @@ pub mod launch;
 pub mod navigation;
 pub mod picker;
 pub mod process;
+pub mod rail;
+mod rail_view;
 pub mod reply;
 mod restore;
 mod route;
@@ -38,3 +40,7 @@ mod tests;
 
 #[cfg(test)]
 mod parity_tests;
+#[cfg(test)]
+mod rail_press_tests;
+#[cfg(test)]
+mod rail_tests;

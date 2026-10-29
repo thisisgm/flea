@@ -4,6 +4,10 @@ mod discovery;
 pub mod element;
 #[cfg(test)]
 mod elide_tests;
+#[cfg(test)]
+mod grow_tests;
+#[cfg(test)]
+mod menured_tests;
 mod facts;
 pub mod glyphs;
 mod header;

@@ -100,6 +100,8 @@ pub struct Picker {
     pub(super) drawn: super::drawn::Drawn,
     // The name filter "/" opens over the listing.
     pub(super) find: super::find::Find,
+    // The places rail beside the listing, one flat list as picker-open draws it.
+    pub rail: super::rail::Rail,
 }
 
 pub struct Children {
@@ -161,7 +163,12 @@ impl Picker {
             browse,
             drawn: super::drawn::Drawn::default(),
             find: super::find::Find::new(typeface),
+            rail: super::rail::Rail::new(home, cx.focus_handle()),
         };
+        picker.chrome.rail_focus = Some(picker.rail.focus.clone());
+        // Back to Recent lists it again, now that the rail can open it.
+        picker.chrome.recent_back = Some(|picker, cx| picker.open_folder(logic::RECENT, cx));
+        picker.rebuild_rail(cx);
         picker.body = Some(picker.browse.body(cx));
         picker.filter = picker.browse.filename.clone().map(AnyView::from);
         let start = picker.listing.location.clone();

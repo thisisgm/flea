@@ -14,6 +14,7 @@ pub(super) struct Preferences {
 impl Picker {
     pub(crate) fn apply_settings(&mut self, data: &Json, cx: &mut Context<Self>) {
         self.jump_settings(data, cx);
+        self.rail_favourites(data, cx);
         self.chrome.preset = data
             .get("keys")
             .and_then(Json::as_str)

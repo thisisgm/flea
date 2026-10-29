@@ -416,35 +416,6 @@ pub fn extract_entry(entry: &mut Entry, p: &Context, count: usize) -> bool {
     true
 }
 
-// The state words an errored provider row says: fixed values, never a provider's reason.
-pub fn taildrop_word(p: &Context) -> &'static str {
-    if !p.row_is_file {
-        "menu.state.files_only"
-    } else if p.taildrop_code == "signedOut" {
-        "menu.state.signed_out"
-    } else if p.taildrop_code == "noPeers" {
-        "menu.state.no_devices"
-    } else {
-        "menu.state.offline"
-    }
-}
-
-pub fn localsend_word(p: &Context) -> &'static str {
-    if p.row_is_file {
-        "menu.state.no_devices"
-    } else {
-        "menu.state.files_only"
-    }
-}
-
-pub fn dropbox_word(p: &Context) -> &'static str {
-    if p.dropbox_code == "signedOut" {
-        "menu.state.signed_out"
-    } else {
-        "menu.state.not_running"
-    }
-}
-
 fn class_key(storage_class: &str) -> Option<&'static str> {
     match storage_class {
         "network" => Some("menu.class.network"),

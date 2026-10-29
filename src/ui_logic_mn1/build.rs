@@ -270,7 +270,7 @@ fn count_label(e: &mut Entry, count: usize, many: &'static str) {
     }
 }
 
-fn provider(e: &mut Entry, brand: Brand, peers: &[Peer], reading: bool, word: &'static str) {
+fn provider(e: &mut Entry, brand: Brand, peers: &[Peer], reading: bool) {
     e.brand = Some(brand);
     e.glyph = None;
     e.submenu = Some(
@@ -280,11 +280,8 @@ fn provider(e: &mut Entry, brand: Brand, peers: &[Peer], reading: bool, word: &'
             .collect(),
     );
     e.disabled = reading || peers.is_empty();
-    // A provider that cannot answer reads red with one state word, never its reason.
-    if e.disabled && !reading {
-        e.errored = true;
-        e.hint = Some(Text::Key(word));
-    }
+    // A provider that cannot answer reads red with no state word, so the menu keeps its size (GM 2026-10-29).
+    e.errored = e.disabled && !reading;
 }
 
 fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
@@ -442,13 +439,7 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         } else {
             &[]
         };
-        provider(
-            e,
-            Brand::Tailscale,
-            peers,
-            p.taildrop_refreshing,
-            rows::taildrop_word(p),
-        );
+        provider(e, Brand::Tailscale, peers, p.taildrop_refreshing);
     }
     if action == "localsend" {
         if !p.localsend_installed {
@@ -459,7 +450,6 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
             Brand::LocalSend,
             &p.localsend_peers,
             p.localsend_checking,
-            rows::localsend_word(p),
         );
     }
     if action == "dropbox" || action == "sharelink" {
@@ -477,10 +467,7 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
             e.brand = Some(Brand::Dropbox);
             e.glyph = None;
         }
-        if e.disabled && !p.dropbox_refreshing {
-            e.errored = true;
-            e.hint = Some(Text::Key(rows::dropbox_word(p)));
-        }
+        e.errored = e.disabled && !p.dropbox_refreshing;
     }
     if action == "sort" {
         e.submenu = Some(rows::sort_entries(p.has_folder_sort, &p.sort_by));

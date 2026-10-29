@@ -38,8 +38,8 @@ Large directories stay responsive: the window loads rows and requests thumbnails
 - **Desktop integration.** Default file manager, “Show in folder” and Open/Save dialogs.
 - **Your settings.** Omarchy text sizes, configurable menus and Default, Vim, Mac or Windows keys.
 
-A menu row that cannot act says why beside its label (offline, signed out, no devices), and muted
-text keeps a 4.5:1 contrast against its background.
+An app row that cannot act (Taildrop, LocalSend, Dropbox) draws its label in the theme's red and
+keeps the menu at its width, and muted text keeps a 4.5:1 contrast against its background.
 
 An iPhone appears once it has been unlocked and trusted on this machine. AFC then uses the pairing
 record, so the screen does not need unlocking each time.
