@@ -181,6 +181,7 @@ var PATHS = {
     // The three basic clipboard rows the context menu grew with its visibility settings. Lucide's
     // scissors and clipboard both carry arcs; these are the cut's own square handles and square tray.
     "scissors": "M5 3l14 14 M19 3L5 17 M2 17h5v5H2z M17 17h5v5h-5z",
+    "text-select": "M4 3v3M4 18v3M20 3v3M20 18v3M3 4h3M18 4h3M3 20h3M18 20h3M8 8h8M12 8v8M9 16h6",
     "copy": "M9 8h12v13H9z M4 16V3h13",
     "clipboard": "M9 2h6v4H9z M6 4H3v18h18V4h-3 M8 12h8 M8 16h5",
     // The Keys section's rail mark: the key caps are the same zero-length-line dots the list mark uses.

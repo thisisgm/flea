@@ -1,6 +1,6 @@
 .import "markdown-mark.js" as Mark
 
-// Every text Quick Look bar draws the language mark, name, muted count and close alone.
+// Every text Quick Look bar draws the language mark, name, muted count, text actions and close.
 function barError(g, tokens) {
     if (!g)
         return "the pane exposes no bar geometry";
@@ -27,23 +27,23 @@ function barError(g, tokens) {
         return "the name and count do not use the caption size";
     if (String(g.name.color) !== tokens.foreground || String(g.lines.color) !== tokens.muted)
         return "the name or count uses the wrong ink";
-    return pressError(g.bar, g.close);
+    return pressError(g.bar, g.close, g.select, g.copy);
 }
 
-// Every press target belongs to close, including handlers owned by a hidden child.
-function pressError(bar, close) {
+// Every press target belongs to a declared text action or close, including hidden handlers.
+function pressError(bar, close, select, copy) {
     var stack = [bar], strays = [];
     while (stack.length) {
         var item = stack.pop();
         var owned = item.data || [];
         for (var i = 0; i < owned.length; i++) {
-            if (owned[i].acceptedButtons !== undefined && !isWithin(item, close))
+            if (owned[i].acceptedButtons !== undefined && !isWithin(item, close) && !isWithin(item, select) && !isWithin(item, copy))
                 strays.push(String(item));
             if (owned[i].data !== undefined)
                 stack.push(owned[i]);
         }
     }
-    return strays.length ? "the bar holds a press target besides close: " + strays.join(", ") : "";
+    return strays.length ? "the bar holds a press target outside the text actions and close: " + strays.join(", ") : "";
 }
 
 function isWithin(item, ancestor) {
@@ -72,8 +72,8 @@ function nameRoomError(g, tokens) {
         return "the long name never elided";
     if (!g.countShown)
         return "the count is hidden while its room is measured";
-    var rightGap = g.close.x - (g.lines.x + g.lines.implicitWidth);
-    return rightGap === tokens.gap ? "" : "the count ends " + rightGap + " px before close, want " + tokens.gap;
+    var rightGap = (g.trail !== undefined ? g.trail : g.close.x) - (g.lines.x + g.lines.implicitWidth);
+    return rightGap === tokens.gap ? "" : "the count ends " + rightGap + " px before the controls, want " + tokens.gap;
 }
 
 function plainBarError(g, tokens) {
@@ -86,7 +86,7 @@ function plainBarError(g, tokens) {
         return "the plain bar hides its count";
     if (!(g.mark.x < g.name.x && g.name.x < g.lines.x && g.lines.x < g.close.x))
         return "the bar does not read mark, name, count, close from left to right";
-    return nameRoomError(g, tokens) || pressError(g.bar, g.close);
+    return nameRoomError(g, tokens) || pressError(g.bar, g.close, g.select, g.copy);
 }
 
 // Checker controls reject hidden counts and wrong order using the same live geometry as the positive check.

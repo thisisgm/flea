@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import "." as Flea
 import "js/CodeRuns.js" as CodeRuns
@@ -190,6 +192,8 @@ Item {
 
             Text {
                 id: fenceText
+                property var selectionEditor: null
+                property var linkGate: null
                 anchors.fill: parent
                 anchors.leftMargin: view.preview.fencePadX
                 anchors.rightMargin: view.preview.fencePadX

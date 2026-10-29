@@ -13,6 +13,7 @@ import "js/PreviewSettle.js" as PreviewSettle
 import "js/PreviewSwap.js" as PreviewSwap
 import "js/Swap.js" as Swap
 import "js/QuickLookRect.js" as QuickLookRect
+import "js/Focus.js" as Focus
 
 // The overlay lives inside the Flea window, Finder's Quick Look shape: a second window breaks omarchy-drive focus flea and every test that narrows on it.
 Item {
@@ -25,6 +26,10 @@ Item {
     property bool active: false
     // shell.qml wires the pane in: the archive pane asks the backend about the cursor row and nothing else here reads it.
     property var pane: null
+    // Selection editors live beside Pane; bubble unhandled keys back to its dispatcher.
+    Keys.onPressed: function(event) {
+        event.accepted = root.active && root.pane !== null ? Focus.handleKey(event, root.pane, root.pane.sidebar) : false
+    }
     property string path: ""
     property string iconName: ""
     property string kindName: ""

@@ -1,5 +1,8 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import qs.Commons
+import "." as Flea
 import "js/CodeRuns.js" as CodeRuns
 
 // The lines of one file or text, coloured by the backend's code engine, asked a screen-and-margin at a time; a network file's `text` is the caller's.
@@ -192,6 +195,14 @@ Item {
         text: "0"
     }
 
+    Flea.PreviewTextSelection {
+        anchors.fill: parent
+        document: root
+        textRoot: view.contentItem
+        visible: root.active
+        z: 2
+    }
+
     ListView {
         id: view
         anchors.fill: parent
@@ -226,6 +237,7 @@ Item {
             // corner: file contents are arbitrary text, so every run is escaped and the string holds only the font tags written here.
             Text {
                 id: body
+                property var selectionEditor: null
                 x: root.numbered ? root.gutterWidth : 0
                 width: line.width - x
                 leftPadding: 2 * metrics.advanceWidth

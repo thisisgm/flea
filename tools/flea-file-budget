@@ -163,13 +163,13 @@ ui/PaneMenuActions.qml 527
 ui/PaneWire.qml 602
 ui/PermissionsDialog.qml 658
 ui/PickerWindow.qml 846
-ui/Preview.qml 1010
+ui/Preview.qml 1015
 ui/PreviewColumn.qml 559
 ui/DeviceMounts.qml 540
 ui/js/Facts.js 402
 ui/PreviewPdf.qml 482
 ui/PickerChrome.qml 295
-ui/PreviewMarkdown.qml 668
+ui/PreviewMarkdown.qml 683
 tests/markdown-code.qml 477
 ui/Row.qml 469
 ui/SettingsPanel.qml 547

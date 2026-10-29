@@ -398,7 +398,7 @@ ShellRoot {
         var g = pane.barGeometry ? pane.barGeometry() : null
         var tokens = shell.barTokens()
         shell.check(Bar.barError(g, tokens), "Quick Look bar order")
-        shell.check(Bar.pressError(g.bar, g.close), "Quick Look close is the only bar control")
+        shell.check(Bar.pressError(g.bar, g.close, g.select, g.copy), "Quick Look press targets belong to selection, copy and close")
         shell.check(Bar.nameRoomError(longNamePane.barGeometry ? longNamePane.barGeometry() : null, tokens), "Quick Look name takes the freed room")
         shell.check(Mark.visibilityControlError(plainBar.geometry(), tokens,
             function (g, t) { return Bar.plainBarChecks(g, longNamePane.barGeometry(), t) }), "Quick Look bar without the segment keeps its count one gap before close")

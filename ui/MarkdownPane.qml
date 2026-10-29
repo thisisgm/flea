@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import "." as Flea
 
@@ -56,6 +58,16 @@ Item {
         countLabel: root.contentReady ? root.lineLabel : ""
         closeFocused: root.closeFocused
         onCloseRequested: root.closeRequested()
+        textActions: Component {
+            Flea.PreviewTextActions {
+                target: root
+                topInset: bar.height
+                path: root.path
+                available: root.active && root.contentReady && !doc.tooLarge && !doc.readFailed
+                sourceText: root.rawText
+                maxBytes: root.maxBytes
+            }
+        }
     }
 
     Flea.PreviewMarkdown {

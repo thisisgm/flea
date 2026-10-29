@@ -225,3 +225,9 @@ PickerLifecycle 1.0 PickerLifecycle.qml
 ArchiveCompressDialog 1.0 ArchiveCompressDialog.qml
 ArchivePasswordDialog 1.0 ArchivePasswordDialog.qml
 ArchiveCards 1.0 ArchiveCards.qml
+
+PreviewTextActions 1.0 PreviewTextActions.qml
+SelectablePreviewText 1.0 SelectablePreviewText.qml
+PreviewSelectionDocument 1.0 PreviewSelectionDocument.qml
+PreviewTextSelection 1.0 PreviewTextSelection.qml
+BoundedPreviewRead 1.0 BoundedPreviewRead.qml

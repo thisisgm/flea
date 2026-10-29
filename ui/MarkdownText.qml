@@ -80,6 +80,9 @@ Text {
     topPadding: root.cellPad + root.lift
     bottomPadding: root.cellPad + root.lead - root.lift - root.stretch
 
+    // A native document is created only after a selection press in the rendered view.
+    property var selectionEditor: null
+
     FontMetrics {
         id: metrics
         font: root.font

@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell.Io
 import qs.Commons
@@ -89,6 +91,16 @@ Item {
         countLabel: root.body !== null && root.body.settled ? root.countText() : ""
         closeFocused: root.closeFocused
         onCloseRequested: root.closeRequested()
+        textActions: Component {
+            Flea.PreviewTextActions {
+                target: root
+                topInset: bar.height
+                path: root.path
+                directSelection: !root.numbered && !root.csv
+                available: root.active && root.status === "ready" && !root.binary
+                maxBytes: root.maxBytes
+            }
+        }
     }
 
     Flea.CodeLines {

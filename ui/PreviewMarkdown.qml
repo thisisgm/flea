@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell.Io
 import "." as Flea
@@ -9,6 +11,7 @@ import "js/MarkdownPrepared.js" as Prepared
 Item {
     id: root
 
+    readonly property alias renderedSelection: renderedSelection
     property bool active: false
     property string path: ""
     property int size: 0
@@ -597,6 +600,16 @@ Item {
         bodyPx: root.bodyPx
     }
 
+    Flea.PreviewTextSelection {
+        id: renderedSelection
+        anchors.fill: parent
+        document: root
+        textRoot: body.contentItem
+        enabled: root.active
+        visible: body.visible
+        z: 2
+    }
+
     // Render only visible blocks and a bounded cache, even for a 1 MiB document.
     ListView {
         id: body
@@ -640,6 +653,8 @@ Item {
         }
 
         delegate: Flea.MarkdownBlockView {
+            required property var modelData
+            required property int index
             block: modelData
             blockIndex: index
             blockCount: root.blockList.length

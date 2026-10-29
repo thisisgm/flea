@@ -121,6 +121,9 @@ If you previously pinned another directory handler, restore that handler explici
 
 **Space** opens Quick Look from any view. Page through a PDF, play media or inspect an archive. `+` and `-` zoom an image, `0` returns it to fit, and media has a volume track beside its seek bar. Archive contents list for 7z, ISO images and packages, and a password archive asks for its password.
 
+Drag over plain text to select it directly in Quick Look, then press `Ctrl+C` to copy; `Ctrl+A` selects the entire text file. Rendered Markdown also supports selecting and copying its displayed text. Its **Select text** button opens the read-only source view. **Copy all text** preserves the file's source, including Markdown syntax and trailing newlines. Text selection uses the preview's file-size limit; scrolling stays on the wheel, touchpad and scroll bar.
+
+
 <p align="center">
   <img src="docs/images/pdf.png" alt="PDF preview with page navigation">
 </p>
