@@ -22,6 +22,7 @@ pub struct Words {
     pub name: String,
     pub mode: String,
     pub size: String,
+    pub unknown_size: String,
     pub modified: String,
     pub kind: String,
     /// Set once the words come from a catalog snapshot, whose thread already warmed the zone.
@@ -36,6 +37,7 @@ impl Words {
             name: catalog.tr("window.column_name"),
             mode: catalog.tr("list.column_mode"),
             size: catalog.tr("window.column_size"),
+            unknown_size: catalog.tr("dialogs.file.properties.unknown"),
             modified: catalog.tr("window.column_modified"),
             kind: catalog.tr("list.column_kind"),
             ready: true,
@@ -53,6 +55,7 @@ pub fn size_text(row: &RowFacts, walked: Option<Size>, words: &Words) -> String 
     }
     match walked {
         None => NO_SIZE_YET.into(),
+        Some(size) if size.partial && size.bytes == 0 => words.unknown_size.clone(),
         Some(size) => {
             let bytes = words.locale.format_size(size.bytes);
             if size.partial {

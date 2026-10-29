@@ -22,6 +22,54 @@ fn facts(card: &Card) -> Vec<(&str, &str, &str)> {
 }
 
 #[test]
+fn bfx_172_1_properties_first_size_never_shows_the_directory_entry() {
+    let i18n = english();
+    let (mut properties, _) = Properties::open(9, &[0]);
+    let effects = properties.reply(
+        &i18n,
+        &parse(r#"{"op":"properties","id":9,"ok":true,"directory":true,"bytes":4096}"#)
+            .unwrap(),
+    );
+    assert_eq!(
+        sent(&effects),
+        [r#"{"c":"menuaction","op":"contents","id":9}"#]
+    );
+    let card = properties.card(&i18n);
+    assert_eq!(
+        facts(&card)[2],
+        ("Size", "Unknown", " \u{b7} counting\u{2026}")
+    );
+    properties.reply(&i18n, &parse(r#"{"op":"contents","id":9,"ok":true,"bytes":13,"items":1,"done":true,"partial":false}"#).unwrap());
+    assert_eq!(
+        facts(&properties.card(&i18n))[2],
+        ("Size", "13 B (13 bytes)", "")
+    );
+}
+
+#[test]
+fn bfx_172_2_properties_partial_zero_settles_unknown_but_exact_zero_is_empty() {
+    let i18n = english();
+    for partial in [true, false] {
+        let (mut properties, _) = Properties::open(9, &[0]);
+        properties.reply(
+            &i18n,
+            &parse(r#"{"op":"properties","id":9,"ok":true,"directory":true,"bytes":4096}"#)
+                .unwrap(),
+        );
+        properties.reply(&i18n, &parse(&format!(r#"{{"op":"contents","id":9,"ok":true,"bytes":0,"items":0,"done":true,"partial":{partial}}}"#)).unwrap());
+        let card = properties.card(&i18n);
+        assert_eq!(
+            facts(&card)[2],
+            (
+                "Size",
+                if partial { "Unknown" } else { "0 B (0 bytes)" },
+                ""
+            )
+        );
+    }
+}
+
+#[test]
 fn m9_g2rows_05_three_item_properties_uses_aggregate() {
     let i18n = english();
     let (mut properties, _) = Properties::open(9, &[0, 2, 4]);

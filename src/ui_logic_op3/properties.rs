@@ -60,9 +60,9 @@ pub struct Walk {
     pub done: bool,
 }
 
-/// The walk's first floor is the folder's own entry.
-pub fn begin(facts: &Facts) -> Walk {
-    Walk { bytes: facts.bytes, ..Walk::default() }
+/// A folder starts without counted content; its entry size is not a recursive total.
+pub fn begin(_facts: &Facts) -> Walk {
+    Walk::default()
 }
 
 /// A cancelled or refused walk ends as the floor already counted, so the card never counts forever.
@@ -91,13 +91,17 @@ fn tail(i18n: &I18n, counting: bool) -> String {
     if counting { i18n.tr("dialogs.file.properties.counting") } else { String::new() }
 }
 
-/// Sample input: a file's own 13 bytes, or a folder's walk; a partial walk stays a floor when done.
+/// A file's own bytes or a folder's walk; incomplete zero is unknown, positive partial bytes remain a floor.
 pub fn size(i18n: &I18n, bytes: u64, walk: Option<Walk>) -> Line {
     let shown = walk.map_or(bytes, |w| w.bytes);
     let key = if floor(walk) { "dialogs.file.properties.size_floor" } else { "dialogs.file.properties.size" };
     let locale = i18n.locale();
     Line {
-        value: i18n.tr_args(key, &[&locale.format_size(shown), &locale.format_count(shown as i64)]),
+        value: if shown == 0 && floor(walk) {
+            i18n.tr("dialogs.file.properties.unknown")
+        } else {
+            i18n.tr_args(key, &[&locale.format_size(shown), &locale.format_count(shown as i64)])
+        },
         tail: tail(i18n, walk.is_some_and(|w| !w.done)),
     }
 }
@@ -226,12 +230,18 @@ impl Several {
     }
 }
 
-/// Kinds, Combined, Newest and Oldest only; Combined is a floor until a whole walk ends.
+/// Kinds, Combined, Newest and Oldest only; incomplete Combined is unknown at zero, otherwise a floor.
 pub fn several_pairs(i18n: &I18n, several: &Several) -> Vec<Pair> {
     let exact = several.done && !several.partial;
     let size = i18n.locale().format_size(several.bytes);
     let combined = Line {
-        value: if exact { size } else { i18n.tr_args("dialogs.file.properties.combined_floor", &[&size]) },
+        value: if !exact && several.bytes == 0 {
+            i18n.tr("dialogs.file.properties.unknown")
+        } else if exact {
+            size
+        } else {
+            i18n.tr_args("dialogs.file.properties.combined_floor", &[&size])
+        },
         tail: tail(i18n, !several.done),
     };
     vec![

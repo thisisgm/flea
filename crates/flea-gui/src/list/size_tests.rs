@@ -66,3 +66,33 @@ fn size_cells_print_one_localized_text_in_the_list_and_the_columns() {
     );
     assert!(words.locale.format_size(22_100).contains(','));
 }
+
+#[test]
+fn bfx_172_2_partial_zero_size_cells_are_unknown() {
+    let words = german_words();
+    let folder = flea::protocol::RowFacts {
+        dir: true,
+        size: 4096,
+        ..Default::default()
+    };
+    for (bytes, partial, expected) in [
+        (0, true, "Unknown".to_string()),
+        (0, false, words.locale.format_size(0)),
+        (13, true, format!(">{}", words.locale.format_size(13))),
+    ] {
+        let walk = Some(Size { bytes, partial });
+        assert_eq!(size_text(&folder, walk, &words), expected);
+        assert_eq!(cache::size_text(&folder, walk, &words), expected);
+        assert_eq!(
+            sets::cell_text(
+                "size",
+                &folder,
+                None,
+                None,
+                Some((bytes, partial)),
+                &words,
+            ),
+            expected
+        );
+    }
+}
