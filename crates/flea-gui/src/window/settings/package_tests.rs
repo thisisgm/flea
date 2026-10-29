@@ -17,7 +17,7 @@ Validated By    : None
 ";
 
 // The build-date answer from v0.3.12's SettingsAbout.js and tests/js/settingsabout.js.
-const AUR_INFO: &str = "Name            : flea-bin
+const CUSTOM_INFO: &str = "Name            : flea-bin
 Version         : 0.3.4-1
 Packager        : Unknown Packager
 Build Date      : Wed Sep 23 12:40:50 2026
@@ -47,7 +47,7 @@ fn settings_about_provenance_parses_local_package_fields() {
         }
     );
     assert_eq!(
-        about::package_facts(AUR_INFO),
+        about::package_facts(CUSTOM_INFO),
         about::PackageFacts {
             package: "flea-bin 0.3.4-1".into(),
             built: "Wed Sep 23 12:40:50 2026".into(),
@@ -78,14 +78,26 @@ fn settings_about_provenance_applies_owned_package_fields() {
         ),
         (
             "flea-bin",
-            AUR_INFO,
-            "settings.about.source_aur",
+            CUSTOM_INFO,
+            "settings.about.source_local",
+            "flea-bin 0.3.4-1",
+        ),
+        (
+            "flea-bin",
+            "Name : flea-bin\nVersion : 0.3.4-1\nValidated By : Signature\n",
+            "settings.about.source_local",
             "flea-bin 0.3.4-1",
         ),
         (
             "flea-git",
+            "Name : flea-git\nVersion : r123-1\nValidated By : Signature\n",
+            "settings.about.source_local",
+            "flea-git r123-1",
+        ),
+        (
+            "flea-git",
             "Name : flea-git\nVersion : r123-1\n",
-            "settings.about.source_git",
+            "settings.about.source_local",
             "flea-git r123-1",
         ),
     ] {

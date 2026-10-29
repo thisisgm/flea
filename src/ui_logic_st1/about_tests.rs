@@ -3,7 +3,7 @@ use crate::ui_logic_st1::rows::{focusable, Kind, Row};
 use crate::ui_logic_st1::test_support::say;
 use crate::ui_logic_st1::update::{self, Status};
 
-const FLEA_BIN_QI: &str = "Name            : flea-bin\nVersion         : 0.3.4-1\nPackager        : Unknown Packager\n\
+const LOCAL_QI: &str = "Name            : flea\nVersion         : 0.3.4-1\nPackager        : Unknown Packager\n\
     Build Date      : Wed Sep 23 12:40:50 2026\nInstall Script  : No\nValidated By    : None\n";
 
 fn answered_status(line: &str) -> Status {
@@ -92,10 +92,10 @@ fn a_running_check_is_muted_inert_and_still_a_stop() {
 }
 
 #[test]
-fn a_rolling_build_is_a_fact_the_cursor_steps_over() {
+fn an_unchecked_build_is_a_local_fact_the_cursor_steps_over() {
     let rows = about(answered_status("unchecked git - -"));
     let row = find(&rows, "updateFlea");
-    assert_eq!(format!("{:?}|{}|{}", row.kind, say(&row.value), focusable(row)), "Fact|flea-git · rolling|false");
+    assert_eq!(format!("{:?}|{}|{}", row.kind, say(&row.value), focusable(row)), "Fact|Built from source|false");
 }
 
 #[test]
@@ -117,7 +117,7 @@ fn the_restart_note_is_in_the_accent_and_takes_no_cursor() {
 
 #[test]
 fn offline_explains_itself_in_the_foreground() {
-    let rows = about(answered_status("failed aur 0.3.3-1 -"));
+    let rows = about(answered_status("failed opr 0.3.3-1 -"));
     let note = hint_with_prefix(&rows, "Offline");
     assert_eq!(format!("{}|{:?}", say(&note.label), note.role), "Offline: Omarchy update still opens|Foreground");
 }
@@ -234,22 +234,22 @@ fn the_file_manager_row_elides_its_head_and_takes_the_handler() {
 }
 
 #[test]
-fn the_flea_bin_query_reads_as_its_package_build_and_no_signature() {
+fn the_local_query_reads_as_its_package_build_and_no_signature() {
     assert_eq!(
-        package_facts(FLEA_BIN_QI),
-        PackageFacts { package: "flea-bin 0.3.4-1".to_owned(), built: "Wed Sep 23 12:40:50 2026".to_owned(), signed: false }
+        package_facts(LOCAL_QI),
+        PackageFacts { package: "flea 0.3.4-1".to_owned(), built: "Wed Sep 23 12:40:50 2026".to_owned(), signed: false }
     );
 }
 
 #[test]
-fn an_aur_flea_bin_says_so() {
-    assert_eq!(say(&installed_from("flea-bin", false)), "AUR, flea-bin");
+fn a_former_binary_package_is_local() {
+    assert_eq!(say(&installed_from("flea-bin", false)), "Local package");
 }
 
 #[test]
 fn the_kind_the_update_row_reads_is_the_same_one() {
-    let answer = answered_status("current aur 0.3.4-1 0.3.4-1");
-    assert_eq!(format!("{}|{}", answer.kind, install_kind("flea-bin", false)), "aur|aur");
+    let answer = answered_status("unchecked local 0.3.4-1 -");
+    assert_eq!(format!("{}|{}", answer.kind, install_kind("flea-bin", false)), "local|local");
 }
 
 #[test]
@@ -263,8 +263,10 @@ fn the_same_name_unsigned_is_a_local_build() {
 }
 
 #[test]
-fn flea_git_is_the_aur_rolling_build() {
-    assert_eq!(say(&installed_from("flea-git", false)), "AUR, flea-git");
+fn a_former_git_package_is_local_even_when_signed() {
+    assert_eq!(say(&installed_from("flea-git", false)), "Local package");
+    assert_eq!(say(&installed_from("flea-git", true)), "Local package");
+    assert_eq!(say(&installed_from("flea-bin", true)), "Local package");
 }
 
 #[test]
@@ -299,12 +301,8 @@ fn const_str<'a>(src: &'a str, name: &str) -> Option<&'a str> {
 }
 
 #[test]
-fn the_three_package_names_are_src_update_rs_own() {
-    let src = include_str!("../update.rs");
-    assert_eq!(
-        [OPR_PACKAGE, AUR_PACKAGE, GIT_PACKAGE],
-        [const_str(src, "OPR_PACKAGE"), const_str(src, "AUR_PACKAGE"), const_str(src, "GIT_PACKAGE")].map(|name| name.unwrap_or(""))
-    );
+fn the_opr_package_name_is_src_update_rs_own() {
+    assert_eq!(Some(OPR_PACKAGE), const_str(include_str!("../update.rs"), "OPR_PACKAGE"));
 }
 
 #[test]

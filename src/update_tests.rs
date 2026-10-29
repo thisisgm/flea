@@ -16,9 +16,6 @@ Version         : 0.3.3-1
 Validated By    : None
 ";
 
-// An AUR RPC v5 info answer in the live shape: a null OutOfDate, an exponent Popularity and every other field left in.
-const AUR_ANSWER: &str = r#"{"resultcount":1,"results":[{"Conflicts":["flea","flea-git"],"Depends":["qt6-base","quickshell"],"Description":"Fast, keyboard-first file manager for Omarchy (prebuilt binary)","FirstSubmitted":1790150000,"ID":1987654,"Keywords":[],"LastModified":1790160000,"License":["MIT"],"Maintainer":"flea-release","Name":"flea-bin","NumVotes":0,"OutOfDate":null,"PackageBase":"flea-bin","PackageBaseID":1234567,"Popularity":2.3e-05,"Provides":["flea=0.3.4"],"Submitter":"flea-release","URL":"https://github.com/thisisgm/flea","URLPath":"/cgit/aur.git/snapshot/flea-bin.tar.gz","Version":"0.3.4-1"}],"type":"multiinfo","version":5}"#;
-
 #[test]
 fn the_owner_is_the_one_package_name_pacman_printed() {
     assert_eq!(owner_from("flea\n"), Some("flea".to_string()));
@@ -44,9 +41,10 @@ fn package_info_reads_the_version_and_whether_a_signature_validated_it() {
 fn the_kind_follows_the_owner_and_only_a_signed_flea_is_opr() {
     assert_eq!(kind_for("flea", true), Kind::Opr);
     assert_eq!(kind_for("flea", false), Kind::Local, "a local makepkg build carries OPR's name and no signature");
-    assert_eq!(kind_for("flea-bin", false), Kind::Aur);
-    assert_eq!(kind_for("flea-git", false), Kind::Git);
-    assert_eq!(kind_for("flea-git", true), Kind::Git);
+    assert_eq!(kind_for("flea-bin", false), Kind::Local);
+    assert_eq!(kind_for("flea-bin", true), Kind::Local);
+    assert_eq!(kind_for("flea-git", false), Kind::Local);
+    assert_eq!(kind_for("flea-git", true), Kind::Local);
     assert_eq!(kind_for("my-flea", true), Kind::Local, "a name Flea never shipped under has no known updater");
 }
 
@@ -58,19 +56,6 @@ fn checkupdates_names_the_new_version_of_the_package_asked_about_and_no_other() 
     assert_eq!(checkupdates_version("flea-git 0.3.2-1 -> 0.3.3-1\n", "flea"), None, "a prefix is not the package");
     assert_eq!(checkupdates_version("flea 0.3.2-1 -> 0.3.3-1 [ignored]\n", "flea"), None, "an IgnorePkg line is no offer");
     assert_eq!(checkupdates_version("", "flea"), None);
-}
-
-#[test]
-fn the_aur_answer_names_the_version_of_the_one_package_asked_for() {
-    assert_eq!(aur_version(AUR_ANSWER, "flea-bin"), Some("0.3.4-1".to_string()));
-    assert_eq!(aur_version(AUR_ANSWER, "flea-git"), None, "a result for another package is no answer");
-    let none = r#"{"resultcount":0,"results":[],"type":"multiinfo","version":5}"#;
-    assert_eq!(aur_version(none, "flea-bin"), None);
-    let refused = r#"{"error":"Incorrect request type specified.","resultcount":0,"results":[],"type":"error","version":5}"#;
-    assert_eq!(aur_version(refused, "flea-bin"), None);
-    assert_eq!(aur_version("<html>502 Bad Gateway</html>", "flea-bin"), None);
-    let numeric = r#"{"results":[{"Name":"flea-bin","Version":3}]}"#;
-    assert_eq!(aur_version(numeric, "flea-bin"), None, "a version that is not a string is no answer");
 }
 
 #[test]
@@ -102,9 +87,9 @@ fn a_newer_offer_is_available_and_anything_else_is_current() {
     assert_eq!(newer.state, State::Available);
     assert_eq!(newer.line(), "available opr 0.3.2-1 0.3.3-1");
     assert_eq!(newer.status(), AVAILABLE);
-    let same = decide(Kind::Aur, installed.clone(), "0.3.2-1".to_string(), Some(Ordering::Equal));
-    assert_eq!((same.line(), same.status()), ("current aur 0.3.2-1 0.3.2-1".to_string(), NOTHING_TO_INSTALL));
-    let older = decide(Kind::Aur, installed.clone(), "0.3.1-1".to_string(), Some(Ordering::Less));
+    let same = decide(Kind::Opr, installed.clone(), "0.3.2-1".to_string(), Some(Ordering::Equal));
+    assert_eq!((same.line(), same.status()), ("current opr 0.3.2-1 0.3.2-1".to_string(), NOTHING_TO_INSTALL));
+    let older = decide(Kind::Opr, installed.clone(), "0.3.1-1".to_string(), Some(Ordering::Less));
     assert_eq!(older.state, State::Current, "a mirror behind the installed build offers nothing");
     let unknown = decide(Kind::Opr, installed, "0.3.3-1".to_string(), None);
     assert_eq!((unknown.line(), unknown.status()), ("failed opr 0.3.2-1 0.3.3-1".to_string(), FAILED));
@@ -117,16 +102,16 @@ fn a_source_that_could_not_be_asked_fails_and_one_with_nothing_newer_is_current(
     assert_eq!((down.line(), down.status()), ("failed opr 0.3.2-1 -".to_string(), FAILED));
     let quiet = from_source(Kind::Opr, installed, Ok(None));
     assert_eq!((quiet.line(), quiet.status()), ("current opr 0.3.2-1 -".to_string(), NOTHING_TO_INSTALL));
-    let unreadable = from_source(Kind::Aur, None, Ok(Some("0.3.3-1".to_string())));
-    assert_eq!(unreadable.line(), "failed aur - -", "an installed version that is not one cannot be compared");
-    let hostile = from_source(Kind::Aur, Some("0.3.2-1".to_string()), Ok(Some("0.3.3-1 $(reboot)".to_string())));
-    assert_eq!(hostile.line(), "failed aur 0.3.2-1 -", "network text that is not a version never reaches the line");
+    let unreadable = from_source(Kind::Opr, None, Ok(Some("0.3.3-1".to_string())));
+    assert_eq!(unreadable.line(), "failed opr - -", "an installed version that is not one cannot be compared");
+    let hostile = from_source(Kind::Opr, Some("0.3.2-1".to_string()), Ok(Some("0.3.3-1 $(reboot)".to_string())));
+    assert_eq!(hostile.line(), "failed opr 0.3.2-1 -", "network text that is not a version never reaches the line");
 }
 
 #[test]
 fn a_build_no_release_describes_is_unchecked_and_names_its_kind() {
-    let rolling = unchecked(Kind::Git, None);
-    assert_eq!((rolling.line(), rolling.status()), ("unchecked git - -".to_string(), NOTHING_TO_INSTALL));
+    let local = unchecked(Kind::Local, None);
+    assert_eq!((local.line(), local.status()), ("unchecked local - -".to_string(), NOTHING_TO_INSTALL));
     assert_eq!(unchecked(Kind::Local, Some("0.3.3-1".to_string())).line(), "unchecked local 0.3.3-1 -");
     assert_eq!(unchecked(Kind::Unowned, None).line(), "unchecked unowned - -");
 }

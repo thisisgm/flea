@@ -41,7 +41,7 @@ fn settings_about_owned_build_with_failed_query_names_source_and_unknown_package
     let rows = drawn("flea-bin");
     assert_eq!(
         row(&rows, "settings.about.installed_from").value,
-        Text::Key("settings.about.source_aur")
+        Text::Key("settings.about.source_local")
     );
     assert_eq!(
         row(&rows, "settings.about.package").value,
@@ -89,7 +89,7 @@ fn probed(owner: &str, answer: &str, cx: &mut gpui::TestAppContext) -> (Drawn, D
     });
     entity.update(cx, |shell, cx| {
         shell.settings.update = update::Status {
-            kind: "aur".to_owned(),
+            kind: "opr".to_owned(),
             ..update::idle()
         };
         shell.sync_settings_update(cx);
