@@ -4,12 +4,10 @@ mod discovery;
 pub mod element;
 #[cfg(test)]
 mod elide_tests;
-#[cfg(test)]
-mod grow_tests;
-#[cfg(test)]
-mod menured_tests;
 mod facts;
 pub mod glyphs;
+#[cfg(test)]
+mod grow_tests;
 mod header;
 pub(crate) mod host_input;
 pub mod ipc;
@@ -19,6 +17,8 @@ mod join_tests;
 mod keys;
 pub mod lines;
 pub mod menu;
+#[cfg(test)]
+mod menured_tests;
 mod notice;
 mod owners;
 mod place_host;
