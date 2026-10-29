@@ -24,25 +24,16 @@
   <img src="docs/images/release-0.3.0-themes.gif" alt="Flea 0.3.0 cycling through ten Omarchy themes, with the iPhone on the Devices rail and a photo in the preview column">
 </p>
 
-Flea combines a Rust backend with a Quickshell interface that follows your Omarchy theme.
-Large directories stay responsive: the window loads rows and requests thumbnails as you need them.
-
-- **Four views.** List, columns, grid and two panes side by side, with tabs and natural filename sorting.
-- **Quick Look.** Press Space for images, PDFs, text, media, 3D model thumbnails and archive contents.
-- **File operations.** Copy, move, rename, trash, compress and extract, with an undo journal. Rename several files in one card. Pasting a folder onto one with the same name merges them, and undo reverts the merge. Opening a script, a program or an AppImage asks first: Run, Run in terminal or Open as text. Properties counts a folder's size and items.
-- **Tags.** Seven tags in your theme's colours, set with `T` and the keys 1 to 7, listed in the sidebar and found with `tag:red`.
-- **Search.** Ranked results replace the listing as you type. Esc returns to the folder and the cursor; Enter keeps the results.
+- **Four views.** List, columns, grid and two panes, with tabs and natural sorting.
+- **Quick Look.** Space previews images, PDFs, text, media, archives and 3D model thumbnails.
+- **File operations.** Copy, move, rename, trash, compress and extract, with undo. Rename many files at once.
+- **Tags.** Seven tags in your theme's colours, set with `T` then `1` to `7`, found with `tag:red`.
+- **Search.** Ranked results as you type.
 - **Network and sharing.** SMB, SFTP, FTPS, WebDAV, NFS, Dropbox and Taildrop.
-- **Devices.** USB drives, phones and cameras over MTP, PTP and AFC, mounted from the rail. An encrypted drive unlocks from its rail row and locks again when you unmount it.
-- **Disk images.** Write an ISO or IMG to a USB drive, plain, compressed or inside a zip; Flea reads every byte back to verify it.
+- **Devices.** USB and encrypted drives, phones and cameras, mounted from the sidebar.
+- **Disk images.** Write an ISO or IMG to a USB drive, even compressed or zipped, and verify every byte.
 - **Desktop integration.** Default file manager, “Show in folder” and Open/Save dialogs.
-- **Your settings.** Omarchy text sizes, configurable menus and Default, Vim, Mac or Windows keys.
-
-A menu row that cannot act says why beside its label (offline, signed out, no devices), and muted
-text keeps a 4.5:1 contrast against its background.
-
-An iPhone appears once it has been unlocked and trusted on this machine. AFC then uses the pairing
-record, so the screen does not need unlocking each time.
+- **Your settings.** Omarchy text sizes, configurable menus, and Default, Vim, Mac or Windows keys.
 
 ## Install
 
@@ -53,21 +44,11 @@ file manager, file chooser and the app opened by **Super+Shift+F**:
 omarchy pkg add flea && flea --default
 ```
 
-Omarchy reviews, builds and signs each tagged release for x86_64 and aarch64, and it reaches the
-repository a day or more after the tag.
+Run `flea --default` from a terminal in your session so file dialogs switch at once. `flea --default off`
+undoes it, and Settings > About has the same switch. To try Flea without changing your defaults, run
+only `omarchy pkg add flea`. Updates come with `omarchy update`.
 
-Run `flea --default` in a terminal inside your session: it restarts xdg-desktop-portal, so file
-dialogs switch at once. To try Flea without changing your defaults, run only the install.
-`flea --default off` undoes it, and Settings, About switches either way.
-
-Update through Omarchy:
-
-```bash
-omarchy update
-```
-
-If you installed `flea-bin` or `flea-git` from the AUR, move to the Omarchy package. Run this and
-answer `y` when pacman asks to remove the AUR package:
+On an AUR `flea-bin` or `flea-git` install, run this and answer `y` when pacman asks to remove it:
 
 ```bash
 sudo pacman -S flea
@@ -91,48 +72,47 @@ flea --default off
 omarchy pkg drop flea
 ```
 
-If you previously pinned another directory handler, restore that handler explicitly.
 [Installation details](docs/install.md) cover dependencies, desktop integration and removal.
 
 </details>
 
 ## Views
 
-**List** for file details. **Grid** for photos and clips. **Columns** for browsing folders with a preview beside them.
-**Two panes** show two folders side by side (`Ctrl+4`). Drag the divider to resize them, double-click it to make them equal, and Flea remembers the split. An optional setting remembers List, Columns or Grid for each folder.
+**List** for details, **grid** for photos and clips, **columns** for browsing with a preview, and
+**two panes** (`Ctrl+4`) for two folders side by side. Flea can remember the view for each folder.
 
 <p align="center">
   <img src="docs/images/grid.png" width="49%" alt="Grid view with image and video thumbnails">
   <img src="docs/images/list.png" width="49%" alt="Columns view with the preview column, file details and the iPhone on the Devices rail">
 </p>
 
-**Space** opens Quick Look from any view. Page through a PDF, play media or inspect an archive. `+` and `-` zoom an image, `0` returns it to fit, and media has a volume track beside its seek bar. Archive contents list for 7z, ISO images and packages, and a password archive asks for its password.
+**Space** opens Quick Look in any view. Page through a PDF, play media, zoom an image with `+` and
+`-`, or look inside an archive, ISO image or package.
 
 <p align="center">
   <img src="docs/images/pdf.png" alt="PDF preview with page navigation">
 </p>
 
-**The shelf** sits in the Omarchy bar: send files to it from any menu, drag them out into any app, and pin the ones you reuse. **Phones** are Devices rows over MTP, AFC and PTP.
+**The shelf** in the Omarchy bar holds files you send to it from any menu. Drag them out into any
+app, or pin the ones you reuse.
 
-**Dragging** moves within one device and copies between devices. Hold Ctrl to copy, Shift to move, or Ctrl with Shift to link through the Paste as links card; Flea reads these keys when the drag starts. A drag into another app offers copy, or move with Shift, or a link with Ctrl and Shift, and that app does the work: Flea deletes nothing afterwards. A terminal gets the path.
-
-**Dragging to Trash**: drop rows on the rail's Trash row and they go to the trash, the same as `dd`, and `z` puts them back. Only a drag that started in that Flea window is taken, so another app's files are never deleted by a drop.
+**Dragging** moves files within a device and copies them across devices. Hold Ctrl to copy, Shift to
+move, or both to link. Drop files on Trash in the sidebar to trash them, and `z` brings them back.
+Drag a file into a terminal to paste its path.
 
 <p align="center">
   <img src="docs/images/shelf.png" width="49%" alt="The shelf card open over Flea, with thumbnails, pins and the last three screenshots">
   <img src="docs/images/iphone.png" width="49%" alt="An iPhone camera roll browsed over AFC, with HEIC thumbnails and a preview">
 </p>
 
-**Background opacity** comes from a theme's `shell.toml`, or from `~/.config/omarchy/shell.toml` for every theme:
+**Transparency** follows Omarchy's Window Transparency (Trigger > Appearance > Window
+Transparency). To set Flea's own, give a value from 0 to 1 in a theme's `shell.toml`, or in
+`~/.config/omarchy/shell.toml` for every theme:
 
 ```toml
 [flea]
 background-alpha = 0.34
 ```
-
-Values run from 0 to 1, and the default is 1. The listing, the rail and the bars let the desktop through at that value; text, icons, thumbnails, menus, dialogs and Quick Look stay opaque. With Auto-hide sidebar on, the rail stays opaque, because it opens over the listing.
-
-With no value set, Flea follows Omarchy's Window Transparency (Trigger > Appearance > Window Transparency). Transparent draws Flea the way Omarchy draws its own file browser, Glassy frosts the listing, the rail and the bars, and Opaque is solid. A switch shows on an open Flea window without a restart.
 
 ## Performance
 
@@ -239,18 +219,18 @@ Press **?** for the full keymap, or **,** to change settings.
 | Select / extend selection | `v` / `Shift` + arrows |
 | Copy / cut / paste | `y` `x` `p`, or `Ctrl+C` `Ctrl+X` `Ctrl+V` |
 | Rename / trash / undo / redo | `r` or `F2` / `dd` or `Delete` / `z` / `Ctrl+Shift+Z` |
-| Tag the selection | `T`, then `1`–`7` |
+| Tag the selection | `T`, then `1` to `7` |
 | New folder | `Ctrl+Shift+N` |
 | Search / filter the list | `f` / `/` |
 | Enter a path, or jump to a folder by name | `:` or `Ctrl+L`, then a path or a name |
 | List / columns / grid / two panes | `Ctrl+1` / `Ctrl+2` / `Ctrl+3` / `Ctrl+4` |
 | Next / previous area | `Tab` / `Shift+Tab` |
-| New tab / close tab / switch tab | `t` / `w` / `1`–`9` |
+| New tab / close tab / switch tab | `t` / `w` / `1` to `9` |
 | Open terminal / context menu | `Ctrl+T` / `m` |
 | Show hidden files | `.` |
 | Zoom an image in Quick Look / fit | `+` `-` / `0` |
 
-The Windows preset uses `Ctrl+Shift+1/2/3/4` for views and `Ctrl+Y` for redo. Menu visibility does not disable shortcuts.
+The Windows preset uses `Ctrl+Shift+1/2/3/4` for views and `Ctrl+Y` for redo.
 See [the full key table](keys.toml) for preset bindings and pointer actions.
 
 ## Build
@@ -265,13 +245,8 @@ FLEA_UI="$PWD/ui" ./target/release/flea --gui
 
 Pass a directory to open it, or `--select <path>` to reveal a file.
 
-```bash
-./tests/run-all.sh
-```
-
-The headless runner builds both profiles and reports suites that need a display, credentials
-or a package. [The test suites](tests/) cover file operations, previews, persistence and input;
-[the protocol guide](docs/protocol.md) documents the backend.
+`./tests/run-all.sh` runs the headless suites, and [the protocol guide](docs/protocol.md) documents
+the backend.
 
 ## Support
 
@@ -283,6 +258,5 @@ If this saved you an afternoon, you can
 
 [MIT](LICENSE).
 
-Language marks: the logos baked into `ui/js/LangMarkPaths.js` are the simple-icons geometry
-(CC0 1.0, https://github.com/simple-icons/simple-icons; the `.svg` sources carry no version
-stamp) and remain their owners' trademarks.
+The language marks in `ui/js/LangMarkPaths.js` use [simple-icons](https://github.com/simple-icons/simple-icons)
+geometry (CC0 1.0) and remain their owners' trademarks.
