@@ -128,33 +128,46 @@ fn search_q1_session_scores_only_previous_matches_on_admitted_extensions() {
     *session.index.lock().unwrap() = index;
     session.priors = None;
     let mut gen = 0;
-    let mut narrowed = 0;
-    for query in QUERIES {
+    let (mut narrowed, mut rescored) = (0, 0);
+    // rendr extends the strict answer for rend into one that needs typos, which takes the rescore arm.
+    for query in QUERIES.into_iter().chain(["rendr"]) {
         let mut before = "";
-        let mut previous = 0;
+        let (mut previous, mut previous_typos) = (0, true);
         for (at, c) in query.char_indices() {
             let now = &query[..at + c.len_utf8()];
             gen += 1;
             let answer = session.query(gen, now, 16).unwrap();
+            // Matches that left out hidden typo rows narrow the strict pass; an answer that shows typos then scores the index too.
             let expected = if !before.is_empty() && Matcher::can_narrow(before, now) {
                 narrowed += 1;
-                previous
+                if !previous_typos && answer.typos { rescored += 1; previous + session.indexed() } else { previous }
             } else { session.indexed() };
             assert_eq!(session.counters.rows_scored, expected, "{before:?} to {now:?}");
             let index = session.index.lock().unwrap();
             let rows: Vec<_> = (0..index.len()).collect();
             let mut full = score_all(&Matcher::new(now), &rows, &index);
-            assert_eq!(answer.all.len(), full.len(), "narrowing keeps every match, hidden typo rows included, for {now:?}");
+            let typo_rows = full.iter().filter(|hit| class(hit.0) == CLASSES - 1).count();
+            let real = full.iter().any(|hit| class(hit.0) <= class(crate::backend::searchmatch::WORD));
+            assert_eq!(answer.typos, !real || Matcher::new(now).budget == 0, "typo rows are skipped exactly when hidden, for {now:?}");
+            let kept = if answer.typos { full.len() } else { full.len() - typo_rows };
+            assert_eq!(answer.all.len(), kept, "narrowing keeps every match it could show, for {now:?}");
             let mut counts = class_counts(&full);
             hide_typos(&mut full, &mut counts, Matcher::new(now).budget);
-            full.sort_unstable_by(|a, b| rank_cmp(&index, a, b));
+            if now.contains('/') {
+                let mut pairs: Vec<_> = full.iter().map(|&hit| (hit, hit.0)).collect();
+                family_oracle::order(&index, &mut pairs);
+                full = pairs.into_iter().map(|pair| pair.0).collect();
+            } else { full.sort_unstable_by(|a, b| rank_cmp(&index, a, b)); }
             let head: Vec<_> = full.iter().take(16).map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
             assert_eq!(answer.rows, head, "identical ranked head for {now:?}");
             assert_eq!(answer.total, full.len(), "identical recall for {now:?}");
             previous = answer.all.len();
+            previous_typos = answer.typos;
             before = now;
         }
     }
+    println!("FS4_NARROW narrowed={narrowed} rescored={rescored}");
+    assert!(rescored > 0, "a strict answer followed by a typo answer must take the rescore arm");
     // Nonzero-budget admission must be exercised even before can_narrow is changed.
     session.query(gen + 1, "redner_", 16).unwrap();
     let previous = session.last_matches.len();

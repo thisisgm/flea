@@ -5,7 +5,7 @@ use crate::backend::searchprior::alloc_tests::count_allocations;
 use crate::backend::searchsession::FIRST_WINDOW_DEFAULT;
 use crate::backend::sort::name_order;
 use std::cell::Cell;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 const QUERIES: [&str; 5] = ["render_frame.rs", "redner_frame.rs", "editor/src/components/render", ".svg", "archive/2024/client/reports/quarterly"];
 // std's selection measured 1.9 to 2.4 compares per hit on the cut fixture; 8 leaves room for its worst-case fallback.
@@ -40,7 +40,7 @@ fn assert_heads_match_q2(count: usize) {
             let mut hits = score_cached(&Matcher::new(text), &rows, &index, &mut scratch);
             let window = hits.len().min(FIRST_WINDOW_DEFAULT);
             let expected = q2_head(&index, &paths, &hits, window);
-            select_head(&mut hits, window, |hit| (std::cmp::Reverse(hit.0), index.path_len(hit.1)), |a, b| rank_cmp(&index, a, b));
+            select_head(&mut hits, window, |hit| index.path_len(hit.1), |a, b| rank_cmp(&index, a, b));
             assert_eq!(hits, expected, "{count} rows, query {text:?}");
         }
     }
@@ -99,8 +99,10 @@ fn search_q3_cut_has_no_path_builds_and_linear_comparison_bound() {
         }
         index.reconstructed.store(0, Ordering::Relaxed);
         let compares = Cell::new(0usize);
+        // One thread: a split length pass allocates its threads, which this gate does not count.
+        CUT_THREADS_PINNED.with(|pinned| pinned.set(Some(1)));
         let (rest, allocations) = count_allocations(|| select_head(&mut hits, window,
-            |hit| (std::cmp::Reverse(hit.0), index.path_len(hit.1)),
+            |hit| index.path_len(hit.1),
             |a, b| { compares.set(compares.get() + 1); rank_cmp(&index, a, b) }));
         let levels = (usize::BITS - window.leading_zeros()) as usize;
         let bound = SELECT_COMPARES_PER_HIT * count + HEAD_SORT_COMPARES_PER_LEVEL * window * levels;
@@ -126,19 +128,74 @@ fn search_cut_keys_only_the_rows_tied_at_the_heads_last_score() {
     expected.sort_by(|a, b| rank_cmp(&index, a, b));
     let last = expected[window - 1].0;
     assert_eq!(expected[window].0, last, "the window splits the rows of its last score, so the tied select runs");
-    let (keyed_tied, keyed_elsewhere) = (Cell::new(0usize), Cell::new(0usize));
+    let (keyed_tied, keyed_elsewhere) = (AtomicUsize::new(0), AtomicUsize::new(0));
     let rest = select_head(&mut hits, window, |hit| {
         let keyed = if hit.0 == last { &keyed_tied } else { &keyed_elsewhere };
-        keyed.set(keyed.get() + 1);
-        (std::cmp::Reverse(hit.0), index.path_len(hit.1))
+        keyed.fetch_add(1, Ordering::Relaxed);
+        index.path_len(hit.1)
     }, |a, b| rank_cmp(&index, a, b));
-    assert!(keyed_tied.get() > 0, "the rows tied at the head's last score were keyed");
+    assert!(keyed_tied.load(Ordering::Relaxed) > 0, "the rows tied at the head's last score were keyed");
     assert_eq!(hits, expected[..window], "the head is the first window of the full rank order");
     let mut actual: Vec<_> = hits.iter().chain(&rest).copied().collect();
     actual.sort_unstable();
     expected.sort_unstable();
     assert_eq!(actual, expected, "the head and the rest hold every hit once");
-    assert_eq!(keyed_elsewhere.get(), 0, "only rows tied at the head's last score need a path length");
+    assert_eq!(keyed_elsewhere.load(Ordering::Relaxed), 0, "only rows tied at the head's last score need a path length");
+}
+
+#[test]
+fn search_cut_orders_tied_rows_past_the_counted_lengths_by_the_full_comparator() {
+    // Paths both sides of the counted lengths, tied on score, with the cut landing among the longest.
+    let mut index = Index::new();
+    let window = FIRST_WINDOW_DEFAULT;
+    let count = 4 * window;
+    for row in 0..count {
+        let depth = if row % 8 == 0 { 1 } else { 110 + row % 7 };
+        assert!(index.push(format!("{}f{row:05}", "abcdefghi/".repeat(depth)), false));
+    }
+    for score in [7, -1] {
+        let mut hits: Vec<_> = (0..count).map(|row| (score, row)).collect();
+        let mut expected = hits.clone();
+        expected.sort_by(|a, b| rank_cmp(&index, a, b));
+        assert!(index.path_len(expected[window].1) > CUT_LENGTHS, "the cut lands among the longest rows");
+        let rest = select_head(&mut hits, window, |hit| index.path_len(hit.1), |a, b| rank_cmp(&index, a, b));
+        assert_eq!(hits, expected[..window], "score {score}");
+        let mut actual: Vec<_> = hits.iter().chain(&rest).copied().collect();
+        actual.sort_unstable();
+        expected.sort_unstable();
+        assert_eq!(actual, expected, "the head and the rest hold every hit once");
+    }
+}
+
+// A tie large enough to split its length pass across threads selects the same head and rest as one thread.
+#[test]
+fn search_fs4_split_length_pass_selects_as_one_thread() {
+    let mut index = Index::new();
+    let window = FIRST_WINDOW_DEFAULT;
+    let count = 3 * PARALLEL_CUT_AT + 7;
+    for row in 0..count {
+        let name = if row % 5 == 0 { format!("caf\u{e9}_{row}") } else { format!("f{row}") };
+        assert!(index.push(format!("{}/{name}", "d/".repeat(row % 13)), false));
+    }
+    let mut seed = 17u64;
+    let mut hits: Vec<_> = (0..count).map(|row| (i32::from(row % 3 != 0), row)).collect();
+    for at in (1..hits.len()).rev() {
+        seed = seed.wrapping_mul(LCG_MULTIPLIER).wrapping_add(1);
+        hits.swap(at, (seed >> u32::BITS) as usize % (at + 1));
+    }
+    let mut results = Vec::new();
+    for threads in [1, 4, 5] {
+        CUT_THREADS_PINNED.with(|pinned| pinned.set(Some(threads)));
+        let mut head = hits.clone();
+        let mut rest = select_head(&mut head, window, |hit| index.path_len(hit.1), |a, b| rank_cmp(&index, a, b));
+        rest.sort_unstable();
+        results.push((head, rest));
+    }
+    CUT_THREADS_PINNED.with(|pinned| pinned.set(None));
+    let mut expected = hits.clone();
+    expected.sort_by(|a, b| rank_cmp(&index, a, b));
+    assert_eq!(results[0].0, expected[..window], "one thread selects the rank order's first window");
+    assert!(results.iter().all(|result| *result == results[0]), "every thread count selects the same head and the same rest");
 }
 
 #[path = "searchphases_probe.rs"]
