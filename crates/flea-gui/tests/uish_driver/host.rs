@@ -3,9 +3,7 @@ use super::{
     input,
     wire::{object, text, word, STEP, WAIT},
 };
-use flea::{
-    jsondoc::{self, Json},
-};
+use flea::jsondoc::{self, Json};
 use flea_gui::{
     ipc::server::Server,
     palette::Theme,

@@ -3,12 +3,10 @@ use super::{
     model::{Action, Card, Focus, Model},
     seam::OutputError,
 };
-use flea::{
-    ui_logic_op4::{
-        composition,
-        output::Kind,
-        selection::{Selection, Source},
-    },
+use flea::ui_logic_op4::{
+    composition,
+    output::Kind,
+    selection::{Selection, Source},
 };
 use std::{
     path::{Path, PathBuf},

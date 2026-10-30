@@ -10,8 +10,12 @@ fn gcomp36_removed_settings_row_rejects_right_and_middle_from_retained_paint(
             flea::jsondoc::parse(r#"{"places":{"showHome":true,"showTrash":true}}"#).unwrap();
         let (parent, view) = cx.add_window_view(|_, cx| SizedProducer {
             producer: cx.new(|cx| {
-                let mut producer =
-                    Producer::new(Arc::new(crate::test_catalogs::english()), &state, "/bin/false".into(), cx);
+                let mut producer = Producer::new(
+                    Arc::new(crate::test_catalogs::english()),
+                    &state,
+                    "/bin/false".into(),
+                    cx,
+                );
                 // The real rail host enables polling before its producer can load.
                 producer.set_polling(true, cx);
                 producer

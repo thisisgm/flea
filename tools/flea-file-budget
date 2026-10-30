@@ -138,7 +138,7 @@ src/gui.rs 480
 src/tui/actions.rs 1114
 src/tui/hold_tests.rs 427
 src/tui/input.rs 455
-src/tui/model.rs 1286
+src/tui/model.rs 1292
 src/tui/mod.rs 459
 src/tui/render.rs 260
 src/uischema.rs 619

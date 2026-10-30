@@ -52,7 +52,11 @@ fn u13_join_mounted_editor_paint_mask_selection_caret_hit_and_ime_matrix() {
                     window.set_rem_size(px(base));
                     let palette =
                         CardPalette::from_theme(&window.text_style(), Theme::default(), 8.);
-                    Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
+                    Overlay::new(
+                        Arc::new(crate::test_catalogs::english()),
+                        palette,
+                        "default",
+                    )
                 });
                 cx.simulate_resize(size(px(width), px(700.)));
                 view.update(cx, |view, cx| view.copy_to(71, moving, &path, cx));

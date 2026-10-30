@@ -50,7 +50,11 @@ fn the_check_restarts_a_full_interval_when_the_trash_view_frees(cx: &mut TestApp
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
+        Overlay::new(
+            Arc::new(crate::test_catalogs::english()),
+            palette,
+            "default",
+        )
     });
     overlay.update(vcx, |o, cx| {
         o.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), cx)

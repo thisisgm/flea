@@ -17,7 +17,12 @@ fn i50_producer_stale_composition_refused(cx: &mut TestAppContext) {
         }],
     }];
     let (producer, visual) = cx.add_window_view(|_, cx| {
-        Producer::from_sections(Arc::new(crate::test_catalogs::english()), sections, "/bin/false".into(), cx)
+        Producer::from_sections(
+            Arc::new(crate::test_catalogs::english()),
+            sections,
+            "/bin/false".into(),
+            cx,
+        )
     });
     visual.update(|window, cx| {
         producer.update(cx, |producer, cx| {
@@ -65,7 +70,12 @@ fn i50_producer_live_composition_utf16_and_enter(cx: &mut TestAppContext) {
         let focus = cx.focus_handle();
         window.focus(&focus, cx);
         let producer = cx.new(|cx| {
-            Producer::from_sections(Arc::new(crate::test_catalogs::english()), sections, "/bin/false".into(), cx)
+            Producer::from_sections(
+                Arc::new(crate::test_catalogs::english()),
+                sections,
+                "/bin/false".into(),
+                cx,
+            )
         });
         producer.update(cx, |producer, cx| {
             producer.model.borrow_mut().focused = true;

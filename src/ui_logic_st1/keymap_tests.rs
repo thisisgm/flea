@@ -60,9 +60,13 @@ fn preview_paging_letters_are_shift_keys() {
         key(preset, "B", "B", SHIFT, "previewPageBack");
         key(preset, "F", "f", NONE, "search");
         key_in(preset, "F", "f", NONE, "copydirpath", Context::Menu, Frontend::Gui);
-        for context in [Context::Preview, Context::Pdf, Context::Media] {
-            key_in(preset, "F", "F", SHIFT, "", context, Frontend::Gui);
-            key_in(preset, "B", "B", SHIFT, "", context, Frontend::Gui);
+        for (context, forward, back) in [
+            (Context::Preview, "previewPageForward", "previewPageBack"),
+            (Context::Pdf, "previewPageForward", "previewPageBack"),
+            (Context::Media, "", ""),
+        ] {
+            key_in(preset, "F", "F", SHIFT, forward, context, Frontend::Gui);
+            key_in(preset, "B", "B", SHIFT, back, context, Frontend::Gui);
         }
         let paging = binding_rows(preset, Frontend::Gui)
             .filter(|row| row.mods == "text" && (row.key == "F" || row.key == "B"))

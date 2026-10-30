@@ -62,7 +62,8 @@ impl MenuPane for Bg {
         }
     }
     fn say_busy(&mut self) {
-        self.said.push(crate::test_catalogs::english().tr("pane.busy"));
+        self.said
+            .push(crate::test_catalogs::english().tr("pane.busy"));
     }
     fn open_background_menu(&mut self, at: (f32, f32)) {
         self.opened.push(at);

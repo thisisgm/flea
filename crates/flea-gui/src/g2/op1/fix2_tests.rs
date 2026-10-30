@@ -25,7 +25,11 @@ fn overlay(cx: &mut TestAppContext) -> (gpui::Entity<Overlay>, &mut gpui::Visual
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
+        Overlay::new(
+            Arc::new(crate::test_catalogs::english()),
+            palette,
+            "default",
+        )
     });
     vcx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
     (overlay, vcx)
