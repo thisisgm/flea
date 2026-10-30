@@ -341,6 +341,20 @@ fn the_greyed_flash_step_still_takes_the_keyboard_cursor() {
         live.flash.context_press().is_empty(),
         "Enter on a greyed Flash sends nothing"
     );
+    // A chosen drive under a refused image: only the live guard keeps Enter from flashing it.
+    let mut refused = not_an_image();
+    for _ in 0..3 {
+        refused.flash.move_cursor(1);
+    }
+    let seen = refused.flash.view(&refused.i18n);
+    assert!(
+        seen.step.cursor && seen.drives[0].selected && !seen.step.live,
+        "{seen:?}"
+    );
+    assert!(
+        refused.flash.context_press().is_empty(),
+        "Enter on a greyed Flash over a chosen drive sends nothing"
+    );
     let (_cx, mut visual, _) = drawn(live);
     let step = rect(at(&mut visual, "op2-flash-step"));
     assert_eq!(

@@ -12,11 +12,12 @@ impl Shell {
             && (side == 0 || self.view == View::Dual)
     }
 
-    /// The flash pane holds the keys while its own pane has them, never while the rail or the other dual pane does.
+    /// The flash pane holds the keys while its own pane is drawn and has them, never while the rail or the other pane does.
     pub(crate) fn flash_has_keys(&self, window: &Window, cx: &App) -> bool {
-        self.operations.archive.flash.shown()
+        let side = self.operations.archive.flash_side;
+        self.flash_covers(side)
             && matches!(self.focus_view(window, cx), "list" | "")
-            && (self.view != View::Dual || self.focus_side == self.operations.archive.flash_side)
+            && (self.view != View::Dual || self.focus_side == side)
     }
 
     /// FlashHost.qml onFocusRailRequested: Tab from the flash pane hands the keys to the rail.

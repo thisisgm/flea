@@ -165,12 +165,10 @@ impl Render for Shell {
             let Some(host) = self.panes[side].as_mut() else {
                 continue;
             };
-            if side == 1 && self.view != View::Dual {
-                host.drawn_view = None;
-                host.drawn_list = false;
-                continue;
-            }
-            if self.slots.covers[side].is_some() || flashed[side] {
+            if (side == 1 && self.view != View::Dual)
+                || self.slots.covers[side].is_some()
+                || flashed[side]
+            {
                 host.drawn_view = None;
                 host.drawn_list = false;
                 continue;
