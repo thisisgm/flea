@@ -49,6 +49,9 @@ Column {
     readonly property bool hasCursor: row.card.cursorIndex === row.index
     implicitHeight: Math.max(name.implicitHeight, trailing.implicitHeight) + Style.spacing.rowPaddingX
 
+    // Passive, so it stays hovered over the row's own buttons, which the row's MouseArea does not.
+    HoverHandler { id: liftHover }
+
     Rectangle {
       anchors.fill: parent
       color: lift.hasCursor ? Util.alpha(row.card.accent, Style.selectedFillAlpha)
@@ -198,6 +201,18 @@ Column {
         font.pixelSize: Style.font.caption
         horizontalAlignment: Text.AlignRight
         textFormat: Text.PlainText
+      }
+
+      // Copy to Clipboard, only while the pointer is on the row: the chosen rows when any are chosen,
+      // else this row, the way a drag from it carries them; the files themselves, never their paths.
+      ShelfActionButton {
+        id: clipButton
+        Layout.alignment: Qt.AlignVCenter
+        visible: liftHover.hovered
+        path: Model.ACTION_GLYPHS.clipboard
+        tooltipText: Model.actionTip("Copy to Clipboard", "shift + c", row.card.keyHints)
+        foreground: row.card.foreground
+        onClicked: row.card.clipRequested(Model.carryPaths(row.card.chosen, row.card.rows, row.index))
       }
 
       // Rules 3 and 6: a capture keeps the width and spends it on nothing, so the sizes line up.

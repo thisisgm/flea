@@ -1,4 +1,5 @@
 // flea --clip-own: the detached owner behind one copy; it prints ready, then serves sends until cancelled.
+use super::content;
 use super::control;
 use super::format;
 use super::owner;
@@ -100,10 +101,12 @@ pub fn run() -> i32 {
 
 fn run_inner() -> Result<(), String> {
     let payload = read_capped_stdin()?;
-    let (op, token, paths) = split_payload(&payload)?;
+    let (op, token, paths, with_content) = split_payload(&payload)?;
+    // Read before the connection, so a slow disk never holds a compositor round trip open.
+    let content = if with_content { content::read(&paths) } else { None };
     let mut conn = Conn::connect()?;
     control::handshake(&mut conn)?;
-    let mut owner = owner::own_on(conn, &op, &paths, &token)?;
+    let mut owner = owner::own_with(conn, &op, &paths, &token, content)?;
     println!("ready");
     use std::io::Write;
     std::io::stdout().flush().map_err(|e| format!("the ready line could not be written ({})", e))?;
@@ -113,8 +116,9 @@ fn run_inner() -> Result<(), String> {
     Ok(())
 }
 
-// Sample input: "copy\0ab12...(32 hex)\0/tmp/a\0/tmp/b\0" gives ("copy", the token, ["/tmp/a", "/tmp/b"]).
-fn split_payload(payload: &[u8]) -> Result<(String, String, Vec<String>), String> {
+// Sample input: "copy\0ab12...(32 hex)\0/tmp/a\0/tmp/b\0" gives ("copy", the token, ["/tmp/a", "/tmp/b"], false);
+// "copy\0ab12...\0+content\0/tmp/a.png\0" asks for that file's own bytes beside the path list.
+pub(crate) fn split_payload(payload: &[u8]) -> Result<(String, String, Vec<String>, bool), String> {
     let mut parts: Vec<&[u8]> = payload.split(|b| *b == 0).collect();
     if parts.last() == Some(&b"".as_slice()) {
         parts.pop();
@@ -130,12 +134,16 @@ fn split_payload(payload: &[u8]) -> Result<(String, String, Vec<String>), String
     if !format::is_token(token) {
         return Err("the clipboard token is 32 hex chars".to_string());
     }
+    let (with_content, paths) = match paths {
+        [flag, rest @ ..] if *flag == content::FLAG.as_bytes() => (true, rest),
+        _ => (false, paths),
+    };
     let mut out = Vec::with_capacity(paths.len());
     for p in paths {
         out.push(std::str::from_utf8(p).map_err(|_| "a clipboard path is not text".to_string())?.to_string());
     }
     format::check_selection(op, &out)?;
-    Ok((op.to_string(), token.to_string(), out))
+    Ok((op.to_string(), token.to_string(), out, with_content))
 }
 
 // One copy's owner, detached into its own session; the copy outlives the window that made it.
@@ -145,6 +153,13 @@ pub fn spawn_owner(op: &str, paths: &[String]) -> Result<String, String> {
     spawn_owner_with(&exe, op, paths, |rx| rx.recv_timeout(OWNER_READY_WAIT))
 }
 
+// A copy that also offers the one file's own bytes, for the shelf's Copy to Clipboard.
+pub fn spawn_owner_content(paths: &[String]) -> Result<String, String> {
+    format::check_selection("copy", paths)?;
+    let exe = std::env::current_exe().map_err(|e| format!("the clipboard owner could not start ({})", e))?;
+    spawn_owner_as(&exe, "copy", paths, true, |rx| rx.recv_timeout(OWNER_READY_WAIT))
+}
+
 const OWNER_READY_WAIT: Duration = Duration::from_secs(2);
 // The owner's first stdout line: whether the read finished, and what it held.
 type Ready = (bool, String);
@@ -152,6 +167,14 @@ type Ready = (bool, String);
 // The program and the ready wait are parameters so a test starts a real child and ends its wait at once.
 pub(crate) fn spawn_owner_with(
     exe: &std::path::Path, op: &str, paths: &[String],
+    ready: impl FnOnce(&std::sync::mpsc::Receiver<Ready>) -> Result<Ready, std::sync::mpsc::RecvTimeoutError>,
+) -> Result<String, String> {
+    spawn_owner_as(exe, op, paths, false, ready)
+}
+
+// The one spawn behind both: with_content puts the content flag ahead of the paths in the payload.
+pub(crate) fn spawn_owner_as(
+    exe: &std::path::Path, op: &str, paths: &[String], with_content: bool,
     ready: impl FnOnce(&std::sync::mpsc::Receiver<Ready>) -> Result<Ready, std::sync::mpsc::RecvTimeoutError>,
 ) -> Result<String, String> {
     let token = format::make_token()?;
@@ -175,6 +198,10 @@ pub(crate) fn spawn_owner_with(
         let _ = child.wait();
     };
     let mut payload = format!("{}\0{}\0", op, token).into_bytes();
+    if with_content {
+        payload.extend_from_slice(content::FLAG.as_bytes());
+        payload.push(0);
+    }
     for p in paths {
         payload.extend_from_slice(p.as_bytes());
         payload.push(0);

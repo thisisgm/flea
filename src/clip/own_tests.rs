@@ -193,3 +193,14 @@ fn an_exited_owner_clear_uses_the_verified_selection_result() {
     assert!(called.get(), "an exited owner must fall through to the verified clear");
     assert_eq!(line, r#"{"t":"clip","op":"clear","ok":true,"cleared":true}"#);
 }
+
+#[test]
+fn the_content_flag_rides_ahead_of_the_paths_and_is_never_a_path() {
+    let token = "ab12cd34ab12cd34ab12cd34ab12cd34";
+    let plain = format!("copy\0{}\0/tmp/a\0", token);
+    assert_eq!(split_payload(plain.as_bytes()).unwrap(), ("copy".into(), token.into(), vec!["/tmp/a".to_string()], false));
+    let flagged = format!("copy\0{}\0{}\0/tmp/a.png\0", token, crate::clip::content::FLAG);
+    assert_eq!(split_payload(flagged.as_bytes()).unwrap(), ("copy".into(), token.into(), vec!["/tmp/a.png".to_string()], true));
+    let alone = format!("copy\0{}\0{}\0", token, crate::clip::content::FLAG);
+    assert!(split_payload(alone.as_bytes()).is_err(), "a flag with no path is still a copy of nothing");
+}

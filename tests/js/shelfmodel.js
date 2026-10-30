@@ -248,6 +248,15 @@ function run(check) {
   check("the other three actions say what they did",
         Run.zippedText(4) + "|" + Run.copiedPathsText(4) + "|" + Run.sentText(1, "macbookair"),
         "Zipped 4 items into one archive|Copied 4 paths|Sent 1 item to macbookair")
+  check("copy to clipboard says the files went, not their paths, and groups its count",
+        Run.clippedText(1) + "|" + Run.clippedText(1204) + "|" + Run.clippedText(0),
+        "Copied 1 item to the clipboard|Copied 1,204 items to the clipboard|")
+  check("a refused clipboard copy names its cause, without the flea: prefix",
+        Run.clipFailedText("flea: this compositor does not offer clipboard access\n") + "|" + Run.clipFailedText(""),
+        "The items could not be copied to the clipboard: this compositor does not offer clipboard access."
+        + "|The items could not be copied to the clipboard.")
+  check("the clipboard mark is the one Flea's own menus draw", Shelf.ACTION_GLYPHS.clipboard,
+        "M9 2h6v4H9z M6 4H3v18h18V4h-3 M8 12h8 M8 16h5")
   check("the flyout says what is about to happen to how many",
         Run.flyoutTitle("move", 4) + "|" + Run.flyoutTitle("send", 1), "Move 4 items to|Send 1 item to")
   check("a destination is named by its leaf, because the flyout said the whole path",

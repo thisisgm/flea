@@ -171,6 +171,10 @@ Panel {
     if (paths.length === 0) {
       return
     }
+    if (id === "clipboard") {
+      doing.clip(paths)
+      return
+    }
     if (id === "paths") {
       Quickshell.clipboardText = doing.yank(paths)
       root.error = ""
@@ -429,6 +433,7 @@ Panel {
             root.menu = true
           }
           onActionRequested: function (id) { root.actOn(id) }
+          onClipRequested: function (paths) { doing.clip(paths) }
           onCancelRequested: doing.cancelRun()
           run: doing.run
           onLiftRequested: {

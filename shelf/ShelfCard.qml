@@ -78,6 +78,8 @@ Item {
   signal removeRequested(int index)
   signal pinRequested(int index)
   signal openRequested(string path)
+  // Copy to Clipboard, from a row's hover button or shift + c: the chosen rows, or that one row.
+  signal clipRequested(var paths)
   // The card is carrying the pile out, which is the one time it must not hold the keyboard.
   signal carried(bool carrying)
   signal captureAddRequested(int index)
@@ -188,6 +190,8 @@ Item {
       root.removeRequested(at)
     } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && at >= 0) {
       root.openRequested(items[at].path)
+    } else if (event.key === Qt.Key_C && shift && at >= 0) {
+      root.clipRequested(Model.carryPaths(root.chosen, items, at))
     } else if (event.key === Qt.Key_Tab && root.stripShown) {
       root.stripIndex = 0
     } else if (root.actionFor(event.key).length > 0) {
@@ -201,7 +205,7 @@ Item {
   // Every action carries a key, and this is the same table read backwards.
   function actionFor(key) {
     for (var i = 0; i < root.actions.length; i++) {
-      if (key === root.actions[i].key.toUpperCase().charCodeAt(0)) {
+      if (!root.actions[i].chord && key === root.actions[i].key.toUpperCase().charCodeAt(0)) {
         return root.actions[i].id
       }
     }
@@ -294,14 +298,19 @@ Item {
   readonly property real slotSize: Math.round(Style.font.bodySmall * 1.8)
   // Actions rule 3: Send is absent entirely on a box with no Tailscale, not greyed and not empty.
   property bool sendable: true
+  // Copy to Clipboard leads the strip only while a row is chosen, the files it copies; its id is
+  // also its glyph's name. Its key is a chord, so actionFor never reads it.
   readonly property var actions: [
+    { id: "clipboard", label: "Copy to Clipboard", key: "shift + c", chord: true },
     { id: "move", label: "Move", key: "m" },
     { id: "copy", label: "Copy", key: "c" },
     { id: "zip", label: "Zip", key: "a" },
     { id: "send", label: "Send", key: "t" },
     { id: "paths", label: "Paths", key: "y" },
     { id: "pin", label: "Pin", key: "p" }
-  ].filter(function (action) { return action.id !== "send" || root.sendable })
+  ].filter(function (action) {
+    return (action.id !== "send" || root.sendable) && (action.id !== "clipboard" || root.chosenCount > 0)
+  })
 
   // Rule 6: the same key both ways, so the button says which way it goes for the row under the cursor.
   function labelFor(action) {

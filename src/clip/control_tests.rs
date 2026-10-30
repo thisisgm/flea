@@ -1,6 +1,6 @@
 // End to end against a fake compositor on a UnixListener in the test's own sandbox; connect_to reads no env.
 use super::*;
-use crate::clip::owner::{own_on, serve_owner};
+use crate::clip::owner::{own_with, serve_owner};
 use crate::clip::receive::receive_type_with;
 use crate::clip::testutil::{advertise, over, serve, watchdog, WATCHDOG_MS};
 use std::collections::HashMap;
@@ -45,7 +45,7 @@ fn the_ext_manager_owns_and_serves_every_type_until_cancelled() {
         move || {
             let mut conn = Conn::connect_to(&path).unwrap();
             handshake(&mut conn).unwrap();
-            let mut owner = own_on(conn, "cut", &paths, &token).unwrap();
+            let mut owner = own_with(conn, "cut", &paths, &token, None).unwrap();
             serve_owner(&mut owner).unwrap();
         }
     });

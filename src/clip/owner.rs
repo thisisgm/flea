@@ -61,17 +61,22 @@ pub struct Owner {
 }
 
 // A source offering every type and holding the selection; serve_owner answers its sends.
-pub fn own_on(mut conn: Conn, op: &str, paths: &[String], token: &str) -> Result<Owner, String> {
+// With content, one file's own type and bytes are offered first, ahead of the path list.
+pub fn own_with(mut conn: Conn, op: &str, paths: &[String], token: &str, content: Option<(String, Vec<u8>)>) -> Result<Owner, String> {
     let mut bytes = HashMap::new();
     let mut offered = Vec::new();
+    if let Some((mime, body)) = content {
+        offered.push(mime.clone());
+        bytes.insert(mime, body);
+    }
     for (mime, body) in format::payloads(op, paths, token) {
-        offered.push(mime);
+        offered.push(mime.to_string());
         bytes.insert(mime.to_string(), body);
     }
     let mut payload = Vec::new();
     wire::put_u32(&mut payload, OWNER_SOURCE);
     conn.send(MANAGER, MANAGER_CREATE_SOURCE, &payload, &[])?;
-    for mime in offered {
+    for mime in &offered {
         payload.clear();
         wire::put_string(&mut payload, mime);
         conn.send(OWNER_SOURCE, SOURCE_OFFER, &payload, &[])?;
