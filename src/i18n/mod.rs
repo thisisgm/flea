@@ -71,6 +71,16 @@ fn stamp(path: &Path) -> Option<Stamp> {
     })
 }
 
+// Omarchy's English word for each omarchy: reference in en/flea.json, drawn when Omarchy ships no catalog for it (4.0.x has no shell strings).
+const OMARCHY_ENGLISH: [(&str, &str); 6] = [
+    ("shell.common.cancel", "Cancel"),
+    ("shell.common.apply", "Apply"),
+    ("shell.network.passphrase", "Passphrase"),
+    ("shell.dock.open", "Open"),
+    ("keybindings.Network", "Network"),
+    ("keybindings.Mute", "Mute"),
+];
+
 #[derive(Clone)]
 pub struct I18n {
     paths: Paths,
@@ -135,6 +145,7 @@ impl I18n {
             self.omarchy_english.get(kind)?, self.omarchy_translated.get(kind)?,
             key, self.language(), count,
         )
+        .or_else(|| OMARCHY_ENGLISH.iter().find(|(name, _)| *name == reference).map(|(_, word)| *word))
     }
 
     // Includes missing files, so creation, removal, replacement and same-length edits all trigger reload.

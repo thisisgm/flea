@@ -133,6 +133,49 @@ fn omarchy_words_include_flat_keys_menu_fields_key_names_and_english_fallback() 
     assert_eq!(i.tr("omarchy:../outside"), "omarchy:../outside");
 }
 
+// EY-317: Omarchy 4.0.x ships no shell strings, so each omarchy: reference draws Omarchy's English word, never its key.
+const OMARCHY_REFERENCES: [(&str, &str); 17] = [
+    ("dialogs.output.cancel", "Cancel"), ("archive.cancel", "Cancel"),
+    ("device.unlock.passphrase", "Passphrase"), ("device.menu.open", "Open"),
+    ("device.unlock.cancel", "Cancel"), ("picker.portal.cancel", "Cancel"),
+    ("places.heading.network", "Network"), ("plugins.add.cancel", "Cancel"),
+    ("jobs.button.cancel", "Cancel"), ("card.cancel", "Cancel"),
+    ("trash.confirm.cancel", "Cancel"), ("send.rclone.cancel", "Cancel"),
+    ("dialogs.file.cancel", "Cancel"), ("dialogs.file.apply", "Apply"),
+    ("network.cancel", "Cancel"), ("keys.label.8dd6857baf02", "Mute"),
+    ("keys.action.mute", "Mute"),
+];
+
+#[test]
+fn omarchy_references_draw_english_words_without_omarchy_catalogs() {
+    let english = include_str!("../../i18n/en/flea.json");
+    assert_eq!(english.matches("\"omarchy:").count(), OMARCHY_REFERENCES.len(), "every omarchy: reference is pinned here");
+    let f = Fixture::new();
+    f.write("config/omarchy/language", "de");
+    // No Omarchy root at all, as on 4.0.x: no locales.json, so the roster is English only and the locale stays en.
+    let i = I18n::load(f.paths());
+    assert_eq!(i.language(), "en");
+    for (key, word) in OMARCHY_REFERENCES {
+        assert_eq!(i.tr(key), word, "{key}");
+    }
+    f.registry();
+    let i = I18n::load(f.paths());
+    for (key, word) in OMARCHY_REFERENCES {
+        assert_eq!(i.tr(key), word, "{key} with a roster and no shell catalog");
+    }
+    f.write("omarchy/default/i18n/en/shell.json", r#"{"common.cancel":"Dismiss","common.apply":"Apply"}"#);
+    f.write("omarchy/default/i18n/de/shell.json", r#"{"common.apply":"Anwenden"}"#);
+    f.write("omarchy/default/i18n/en/keybindings.json", r#"{"Mute":"Mute"}"#);
+    f.write("omarchy/default/i18n/de/keybindings.json", r#"{"Mute":"Stumm"}"#);
+    let i = I18n::load(f.paths());
+    assert_eq!(i.language(), "de");
+    assert_eq!(i.tr("card.cancel"), "Dismiss", "Omarchy's English word wins");
+    assert_eq!(i.tr("dialogs.file.apply"), "Anwenden", "Omarchy's translation wins");
+    assert_eq!(i.tr("keys.action.mute"), "Stumm");
+    assert_eq!(i.tr("device.menu.open"), "Open");
+    assert_eq!(i.tr("omarchy:shell.missing"), "omarchy:shell.missing", "an unlisted reference stays identifiable");
+}
+
 #[test]
 fn watcher_follows_creation_atomic_replacement_removal_and_catalog_updates() {
     let f = Fixture::new();
