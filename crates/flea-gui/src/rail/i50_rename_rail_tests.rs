@@ -1,11 +1,9 @@
 //! The rail field only attaches while its own row holds the keyboard.
 use super::{draw, TestAppContext, VisualTestContext};
 use crate::g2::pl4::producer::Producer;
-use flea::{
-    ui_logic_pl4::{
-        order::{Heading, RailSection},
-        rail::{Group, Kind, RailEntry},
-    },
+use flea::ui_logic_pl4::{
+    order::{Heading, RailSection},
+    rail::{Group, Kind, RailEntry},
 };
 use gpui::{div, prelude::*, AppContext, Context, Entity, FocusHandle, Window};
 use std::{path::PathBuf, sync::Arc};

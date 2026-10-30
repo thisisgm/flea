@@ -4,9 +4,7 @@ use super::{
     model::{Action, Card, Focus},
     tests::selected,
 };
-use flea::{
-    ui_logic_op4::{composition::Layout, output::Kind},
-};
+use flea::ui_logic_op4::{composition::Layout, output::Kind};
 use gpui::{EntityInputHandler, TestAppContext};
 use std::sync::Arc;
 

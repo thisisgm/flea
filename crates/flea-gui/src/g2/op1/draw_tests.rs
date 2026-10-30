@@ -30,7 +30,11 @@ fn open_card(
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
+        Overlay::new(
+            Arc::new(crate::test_catalogs::english()),
+            palette,
+            "default",
+        )
     });
     vcx.simulate_resize(gpui::size(gpui::px(width), gpui::px(height)));
     overlay.update(vcx, |o, cx| {

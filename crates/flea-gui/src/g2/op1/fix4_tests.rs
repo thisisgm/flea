@@ -128,5 +128,8 @@ fn a_busy_menu_card_takes_no_delete_press() {
 // The working note is the catalogue's own sentence, the one v0.3.12 shows.
 #[test]
 fn the_working_note_reads_as_v0312_has_it() {
-    assert_eq!(crate::test_catalogs::english().tr("jobs.working"), "Working\u{2026}");
+    assert_eq!(
+        crate::test_catalogs::english().tr("jobs.working"),
+        "Working\u{2026}"
+    );
 }

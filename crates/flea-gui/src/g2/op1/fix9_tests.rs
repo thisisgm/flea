@@ -31,7 +31,11 @@ fn open<'a>(
         window.set_rem_size(px(14.));
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let palette = CardPalette::from_list(&Palette::inherited(&window.text_style(), theme), 8.);
-        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
+        Overlay::new(
+            Arc::new(crate::test_catalogs::english()),
+            palette,
+            "default",
+        )
     });
     cx.simulate_resize(size(px(1100.), px(700.)));
     view.update(cx, |view, cx| view.copy_to(0, false, path, cx));

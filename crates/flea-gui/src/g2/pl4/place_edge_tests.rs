@@ -26,8 +26,12 @@ fn place_quads(cx: &mut TestAppContext, focused: bool) -> (Theme, Vec<Quad>, f32
     let state = flea::jsondoc::parse(r#"{"places":{"showHome":true,"showTrash":true}}"#).unwrap();
     let (parent, view) = cx.add_window_view(|_, cx| {
         Sized(cx.new(|cx| {
-            let mut producer =
-                Producer::new(Arc::new(crate::test_catalogs::english()), &state, "/bin/false".into(), cx);
+            let mut producer = Producer::new(
+                Arc::new(crate::test_catalogs::english()),
+                &state,
+                "/bin/false".into(),
+                cx,
+            );
             producer.set_polling(true, cx);
             producer
         }))

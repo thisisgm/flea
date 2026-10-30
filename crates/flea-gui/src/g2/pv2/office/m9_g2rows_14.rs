@@ -88,7 +88,10 @@ fn m9_g2rows_14_office_thumbnail_and_ready_page_share_geometry(cx: &mut TestAppC
         view.update(cx, |view, window, cx| {
             view.set_thumbnail(path, image(dimensions.0, dimensions.1), cx);
             let thumb = view.thumb_rect(frame).unwrap();
-            let bar = view.bar(&crate::test_catalogs::english(), cx).strip.unwrap();
+            let bar = view
+                .bar(&crate::test_catalogs::english(), cx)
+                .strip
+                .unwrap();
             assert!(bar.counter.is_none());
             assert!(bar
                 .items

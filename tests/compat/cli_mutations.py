@@ -12,8 +12,12 @@ root = sandbox.make("cli-mutants-")
 shutil.copytree(repo / "src", root / "src")
 for name in ("ui", "shelf", "keys.toml", "i18n"):
     (root / name).symlink_to(repo / name, target_is_directory=(repo / name).is_dir())
-version = next(line for line in (repo / "Cargo.toml").read_text().splitlines() if line.startswith("version ="))
-(root / "Cargo.toml").write_text('[package]\nname = "flea"\n' + version + '\nedition = "2021"\n[workspace]\n[dependencies]\n[features]\nflash-test-seam = []\n')
+manifest = (repo / "Cargo.toml").read_text()
+version = next(line for line in manifest.splitlines() if line.startswith("version ="))
+# The scratch crate takes the root crate's own dependencies at their locked versions, so it builds offline.
+dependencies = manifest.split("\n[dependencies]\n", 1)[1].split("\n[", 1)[0]
+(root / "Cargo.toml").write_text('[package]\nname = "flea"\n' + version + '\nedition = "2021"\n[workspace]\n[dependencies]\n' + dependencies + '\n[features]\nflash-test-seam = []\n')
+shutil.copyfile(repo / "Cargo.lock", root / "Cargo.lock")
 mutants = [
     ("unknown", "usage.rs", '    exit(2)\n}', '    exit(0)\n}'),
     ("backend", "main.rs", 'if args.iter().any(|a| a == "--backend") {', 'if false {'),

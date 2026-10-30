@@ -90,7 +90,11 @@ fn the_busy_menu_card_draws_cancel_only(cx: &mut TestAppContext) {
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
+        Overlay::new(
+            Arc::new(crate::test_catalogs::english()),
+            palette,
+            "default",
+        )
     });
     vcx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
     overlay.update(vcx, |o, cx| {

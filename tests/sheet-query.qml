@@ -199,7 +199,7 @@ ShellRoot {
         var labels = sheet.queryResults.map(function (row) { return row.label })
         root.expect("delete permanently lists once", labels.filter(function (l) { return l.toLowerCase() === "delete permanently" }).length === 1, labels.join("|"))
         // The IPC reader the native capture asserts on lists the same rows, a disabled one marked.
-        root.expect("the sheet reads back its results", root.rowsOf().indexOf("shift-delete delete permanently") >= 0 && root.rowsOf().indexOf(" Permissions") >= 0, root.rowsOf().join("|"))
+        root.expect("the sheet reads back its results", root.rowsOf().indexOf("shift-delete Delete permanently") >= 0 && root.rowsOf().indexOf(" Permissions") >= 0, root.rowsOf().join("|"))
         // Item 3: the board's query line, the prompt in the cap column and the field on the label column.
         var prompts = root.texts("?")
         root.expect("a muted ? prompt is drawn", prompts.length === 1 && prompts[0].color.toString() === Flea.Theme.color.muted.toString(), prompts.length)

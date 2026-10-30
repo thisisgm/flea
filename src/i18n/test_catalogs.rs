@@ -29,6 +29,14 @@ pub fn english() -> I18n {
 
 /// english() as the flea library's type, for the flea binary, whose own i18n module is a separate copy.
 pub fn library_english() -> flea::i18n::I18n {
-    let Paths { omarchy, language_file, catalogs } = english_paths();
-    flea::i18n::I18n::load(flea::i18n::Paths { omarchy, language_file, catalogs })
+    let Paths {
+        omarchy,
+        language_file,
+        catalogs,
+    } = english_paths();
+    flea::i18n::I18n::load(flea::i18n::Paths {
+        omarchy,
+        language_file,
+        catalogs,
+    })
 }

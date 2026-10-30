@@ -71,11 +71,11 @@ omarchy-drive() {
             if [ "$1" = path ]; then printf '%s\n' "$route_reply"; else rows_reply "$@"; fi ;;
         key)
             [ "$2" = --window ] || return 1
-            if [ "$3" = flea ] && [ "$ambiguous" = yes ]; then
-                printf "omarchy-drive: 'flea' matches 2 windows: com.thisisgm.flea,com.thisisgm.flea, narrow it\n" >&2
+            if [ "$3" = com.thisisgm.flea ] && [ "$ambiguous" = yes ]; then
+                printf "omarchy-drive: 'com.thisisgm.flea' matches 2 windows: com.thisisgm.flea,com.thisisgm.flea, narrow it\n" >&2
                 return 3
             fi
-            case "$3" in flea | 0xa1 | 0xb2) ;; *) return 1 ;; esac
+            case "$3" in com.thisisgm.flea | 0xa1 | 0xb2) ;; *) return 1 ;; esac
             if [ "$4" = "$refuse_key" ]; then printf 'omarchy-drive: key refused\n' >&2; return 3; fi
             printf '%s\n' "$4" >> "$box/keys.ok" ;;
         hotkey) ;;
@@ -182,7 +182,7 @@ key --window com.thisisgm.flea j" ] \
 ambiguous=yes
 reset_drive
 out=$(seek_row_named b1.txt 2>&1)
-[ "$out" = "omarchy-drive: 'flea' matches 2 windows: com.thisisgm.flea,com.thisisgm.flea, narrow it
+[ "$out" = "omarchy-drive: 'com.thisisgm.flea' matches 2 windows: com.thisisgm.flea,com.thisisgm.flea, narrow it
 FAIL: seek_row_named: key g was refused on the way to b1.txt, so no key can move the cursor" ] && [ "$(grep -c '^key ' "$box/argv")" = 1 ] \
     && ok "an ambiguous class ends the seek on its first key, not after forty tries" || bad "an ambiguous class must end the seek at once, got: $out / $(grep -c '^key ' "$box/argv") keys"
 

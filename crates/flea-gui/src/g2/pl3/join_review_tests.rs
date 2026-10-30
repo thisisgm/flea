@@ -187,11 +187,9 @@ fn u32_reopening_on_another_pane_keeps_an_active_operations_producer() {
 #[test]
 fn u32_external_confirmation_takeover_ends_the_previous_cards_session() {
     use crate::g2::op1::model::{Dialog, Operations};
-    use flea::{
-        ui_logic_op1::{
-            confirm::Source,
-            trash::{Button, Review, Scope},
-        },
+    use flea::ui_logic_op1::{
+        confirm::Source,
+        trash::{Button, Review, Scope},
     };
     let review = |token: &str, count| Review {
         count: Some(count),

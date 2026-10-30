@@ -25,7 +25,11 @@ pub fn selected(kind: Kind, names: &[&str]) -> Selection {
 }
 fn draft(action: Action, kind: Kind, names: &[&str]) -> Model {
     let mut m = Model::default();
-    assert!(m.open(action, selected(kind, names), &crate::test_catalogs::english()));
+    assert!(m.open(
+        action,
+        selected(kind, names),
+        &crate::test_catalogs::english()
+    ));
     m
 }
 fn checked(m: &mut Model) {

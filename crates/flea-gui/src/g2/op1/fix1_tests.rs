@@ -5,10 +5,7 @@ use super::palette::CardPalette;
 use super::tests::{request, trash_source};
 use flea::ui_logic_op1::{confirm::Source, trash};
 use gpui::{KeyDownEvent, Keystroke, TestAppContext};
-use std::cell::Cell;
-use std::rc::Rc;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{cell::Cell, rc::Rc, sync::Arc, time::Duration};
 
 fn review(token: &str) -> trash::Review {
     trash::Review {
@@ -26,7 +23,11 @@ fn overlay(cx: &mut TestAppContext) -> (gpui::Entity<Overlay>, &mut gpui::Visual
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
+        Overlay::new(
+            Arc::new(crate::test_catalogs::english()),
+            palette,
+            "default",
+        )
     });
     vcx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
     (overlay, vcx)
