@@ -107,8 +107,7 @@ impl Plan {
         plan
     }
 
-    // The longest common subsequence of query and name, bit-parallel (Crochemore et al.): every edit, a swap included, costs the query
-    // at most one letter of it, so a name it leaves more than the budget short of the query cannot match.
+    // Bit-parallel LCS of query and name: each edit, a swap included, costs at most one letter of it, so a short LCS cannot match.
     fn common(&self, hay: impl Text) -> usize {
         let width = self.goal - 1;
         let mut v = width;

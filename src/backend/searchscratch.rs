@@ -184,8 +184,7 @@ impl QueryScratch {
         }
     }
 
-    // With a strict matcher, names score without edits and the ones only an edit could match wait for fill_typos; returns the names
-    // that hold the query exactly, as their prefix or at a word start.
+    // A strict matcher leaves names only an edit could match to fill_typos; returns how many hold the query exactly, as prefix or word start.
     pub(super) fn names(&mut self, matcher: &Matcher, strict: Option<&Matcher>, rows: &[usize], index: &Index) -> usize {
         // Distinct candidates as many as the rows are every row, so every name a row holds is in the table.
         self.whole = rows.len() == index.len() && rows.len() >= PARALLEL_SCORE_AT;

@@ -25,8 +25,7 @@ pub(crate) fn score_cached(matcher: &Matcher, rows: &[usize], index: &Index, scr
     hits
 }
 
-// Pass 1 that does typo work only when its typo rows can show: a typo row is listed only when no basename holds the query exactly, as
-// its prefix or at a word start, so a strict pass that finds such a row is the answer. True when the hits hold every typo match too.
+// Pass 1, with typo work only when no basename holds the query exactly, as prefix or at a word start; true when hits hold every typo match.
 pub(crate) fn score_shown(matcher: &Matcher, rows: &[usize], index: &Index, scratch: &mut QueryScratch) -> (Vec<(i32, usize)>, bool) {
     if matcher.budget == 0 { return (score_cached(matcher, rows, index, scratch), true); }
     #[cfg(test)]
@@ -251,8 +250,7 @@ fn bound(parent: &State, len: usize, from: usize) -> i32 {
     NAME + hit.clamp(-HIT_SPAN, HIT_SPAN)
 }
 
-// bound for a basename that holds the whole needle: each split's parent column plus the most the basename adds after it, capped
-// by bound's run of word starts from the basename's first byte.
+// bound for a basename holding the whole needle: each split's parent column plus its lift, capped by bound's run of word starts.
 fn lift_bound(parent: &State, len: usize, lift: i32) -> i32 {
     let first = BOUNDARY_BONUS + BASENAME_BONUS;
     let later = RUN_BONUS + first;
@@ -272,8 +270,7 @@ fn path_bound<P: Parents>(matcher: &Matcher, index: &Index, parents: &mut P, let
     bound(state, len, held_suffix(matcher, index.names.get(entry.name), letters))
 }
 
-// Where the longest needle suffix a basename holds starts, matching the needle backwards from its end; an ASCII name is read
-// as bytes, any other is folded first.
+// Where the longest needle suffix a basename holds starts, matched backwards; only a non-ASCII name is folded first.
 fn held_suffix(matcher: &Matcher, name: &[u8], letters: &mut Vec<Letter>) -> usize {
     let mut from = matcher.needle.len();
     if name.is_ascii() {
@@ -292,7 +289,7 @@ fn held_suffix(matcher: &Matcher, name: &[u8], letters: &mut Vec<Letter>) -> usi
 // Exact scores for marked rows by score_cached's DP; on a subsequence match best[] only decays by one a letter, so it always hits.
 pub(crate) fn resolve(matcher: &Matcher, index: &Index, scratch: &mut QueryScratch, hits: &mut [(i32, usize)]) {
     let pending = hits.iter().filter(|hit| hit.0 < 0).count();
-    // Every parent state is ready and only read from here on, so the rows split across the name scorer's threads.
+    // Each thread builds the parent states it reads, so the rows split across the name scorer's threads.
     let threads = scratch.threads(pending);
     let owned = scratch.lend_names();
     if threads == 1 {

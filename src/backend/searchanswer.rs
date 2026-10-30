@@ -39,7 +39,7 @@ impl Session {
         { self.counters.phases.score = phase_started.elapsed(); }
         #[cfg(test)]
         { self.counters.rows_scored = scored; }
-        // Every match stays addressable for narrowing, whatever the window holds, hidden typo rows included.
+        // Every match stays addressable for narrowing, whatever the window holds; a strict answer leaves out the typo rows it skipped.
         let (all, mut hits, below, hidden) = if fuzzy.defer {
             #[cfg(test)]
             let phase_started = Instant::now();
@@ -85,6 +85,10 @@ impl Session {
         let window = count.min(shown);
         #[cfg(test)]
         let compares = std::cell::Cell::new(0usize);
+        #[cfg(test)]
+        let raw_before = index.reconstructed.load(Ordering::Relaxed);
+        #[cfg(test)]
+        let phase_started = Instant::now();
         let order = searchindex::RankOrder::new(&index, &hits, terms.text.contains('/'));
         let cmp = |a: &(i32, usize), b: &(i32, usize)| {
             #[cfg(test)]
@@ -92,10 +96,6 @@ impl Session {
             order.cmp(&index, a, b)
         };
         // The score and anchor length lead the shared head/rest order.
-        #[cfg(test)]
-        let raw_before = index.reconstructed.load(Ordering::Relaxed);
-        #[cfg(test)]
-        let phase_started = Instant::now();
         let rest = select_head(&mut hits, window, |hit| order.key(&index, hit).1, cmp);
         #[cfg(test)]
         {

@@ -58,23 +58,25 @@ fn typo(matcher: &Matcher, bytes: &[u8], letters: &mut Vec<Letter>, edits: &mut 
     distance.map(|distance| TYPO - distance as i32 * TYPO_EDIT)
 }
 
+// A name byte or a query letter is one bit of a u64 mask.
+const MASK_BITS: usize = u64::BITS as usize;
+
 // Per-letter position masks of one name and the DP columns over them, kept by each name worker.
 pub(crate) struct Bits {
-    masks: [u64; 64],
-    prev: [i32; 64],
-    cur: [i32; 64],
-    lift_prev: [i32; 64],
-    lift_cur: [i32; 64],
+    masks: [u64; MASK_BITS],
+    prev: [i32; MASK_BITS],
+    cur: [i32; MASK_BITS],
+    lift_prev: [i32; MASK_BITS],
+    lift_cur: [i32; MASK_BITS],
 }
 
 impl Bits {
-    pub(crate) fn new() -> Self { Self { masks: [0; 64], prev: [0; 64], cur: [0; 64], lift_prev: [0; 64], lift_cur: [0; 64] } }
+    pub(crate) fn new() -> Self {
+        Self { masks: [0; MASK_BITS], prev: [0; MASK_BITS], cur: [0; MASK_BITS], lift_prev: [0; MASK_BITS], lift_cur: [0; MASK_BITS] }
+    }
 }
 
-// A PENDING_NAME name's basename-only score, and `lift`: the most the basename adds to a path DP column that matched one or
-// more query letters in the parent (its first basename letter's place counts against it as the column's decay).
-// Held as two i16 halves, so a name slot stays small: a name of at most 64 bytes scores within NAME +- 1,200 and lifts within
-// +- 1,200, and the lift of a one-letter query is NONE.
+// A PENDING_NAME name's basename score and lift (the most it adds to a parent's DP column) as i16 within +- 1,200; one letter lifts NONE.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct Own {
     hit: i16,
@@ -100,12 +102,11 @@ impl Own {
 // A dead DP cell, low enough that a gap or run added to it stays far under every live one.
 const NONE: i32 = i32::MIN / 4;
 
-// `name` for a name of at most 64 bytes, read once into a position mask per query letter: the score `name` gives, and with
-// defer a subsequence's basename score too (the score PENDING_NAME). None for a longer name, which takes `name`.
+// `name` for a name of at most MASK_BITS bytes, read once into a mask per query letter; with defer a subsequence gets its Own.
 pub(super) fn name_own(matcher: &Matcher, lanes: &[u64; 256], bytes: &[u8], letters: &mut Vec<Letter>, edits: &mut crate::backend::searchtypo::Scratch,
     bits: &mut Bits) -> Option<(Option<i32>, Option<Own>)> {
     let m = matcher.needle.len();
-    if m == 0 || bytes.len() > 64 { return None; }
+    if m == 0 || bytes.len() > MASK_BITS { return None; }
     bits.masks[..m].fill(0);
     let mut starts = 0u64;
     for (at, &byte) in bytes.iter().enumerate() {
@@ -125,10 +126,7 @@ pub(super) fn name_own(matcher: &Matcher, lanes: &[u64; 256], bytes: &[u8], lett
     })
 }
 
-// The class `name` finds from the masks (EXACT or PREFIX for a run at 0, WORD for a run at a later word start), else the
-// basename DP advance_lanes runs: a letter's bonus plus the best of its previous letter's run or earlier match less the gap.
-// Beside it runs the lift DP, whose chains start at any letter after the first, at minus their place. None when the masks hold
-// no subsequence; the lift is NONE for a one-letter query.
+// The run class `name` finds, else advance_lanes' basename DP and the lift DP (NONE for one letter); None for no subsequence.
 fn scored(m: usize, starts: u64, len: usize, bits: &mut Bits) -> Option<(i32, i32)> {
     let Bits { masks, prev, cur, lift_prev, lift_cur } = bits;
     let masks = &masks[..m];
@@ -151,8 +149,7 @@ fn scored(m: usize, starts: u64, len: usize, bits: &mut Bits) -> Option<(i32, i3
     }
     for pair in masks.windows(2) {
         let (before, now) = (pair[0], pair[1]);
-        // Earlier matches of the previous letter fold into `best` as the scan passes them, each offset by its place; a lift chain
-        // may also start here, as if an earlier letter at -1 scored 0.
+        // Earlier matches of the previous letter fold into `best` offset by their place; a lift chain may start here at 0.
         let (mut earlier, mut best, mut lift_best) = (before, NONE, 0);
         let mut each = now;
         while each != 0 {

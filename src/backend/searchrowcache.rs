@@ -14,8 +14,7 @@ use std::time::Instant;
 
 pub(crate) const ROW_CAP: usize = 350;
 const WATCH_CAP: usize = 350;
-// A window whose rows differ from the last window's by more than this is read cold: arming costs a watch call per path, more
-// than the facts it would save while typing moves the rows. A window close to the last one arms, so a steady answer reuses its rows.
+// A window moving more rows than this reads cold, since arming costs a watch call per path; a steady window arms and reuses its rows.
 const ARM_LIMIT: usize = 32;
 const BYTE_CAP: usize = 2 * 1024 * 1024;
 pub(crate) const READ_BUFFER_BYTES: usize = 8192;
@@ -221,9 +220,7 @@ impl Cache {
         self.recount();
     }
 
-    // True when more than ARM_LIMIT rows joined or left since the last window, or when a window of at most ARM_LIMIT rows would
-    // first have to unarm more than ARM_LIMIT rows. A cold window is read in one pass and leaves the armed set, its facts and both
-    // queues for the next warm window to drain.
+    // Cold past ARM_LIMIT moved rows, or when a small window would unarm more; a cold read leaves the armed state to the next warm window.
     fn cold(&mut self, listing: &Listing, start: usize, end: usize) -> bool {
         use std::hash::{BuildHasher, BuildHasherDefault};
         let hasher = BuildHasherDefault::<std::collections::hash_map::DefaultHasher>::default();
