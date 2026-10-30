@@ -178,7 +178,7 @@ struct Scroller {
 }
 impl Render for Scroller {
     fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        let palette = Palette::inherited(&window.text_style(), crate::palette::Theme::default());
+        let palette = Palette::inherited(&window.text_style(), super::theme());
         div()
             .relative()
             .w(px(300.))

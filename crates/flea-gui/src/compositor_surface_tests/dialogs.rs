@@ -13,8 +13,7 @@ impl pl1::process::Runner for Idle {
 struct Operations(Card, gpui::Entity<crate::state::Shell>, f32);
 impl Render for Operations {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let palette =
-            crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
+        let palette = crate::list::Palette::inherited(&window.text_style(), super::theme());
         let face = crate::list::Typeface {
             body: px(self.2),
             ..crate::list::Typeface::omarchy_default()
@@ -158,8 +157,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         }
     }
     let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
-        let palette =
-            crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
+        let palette = crate::list::Palette::inherited(&window.text_style(), super::theme());
         let view = cx.new(|_| {
             op1::host::Overlay::new(
                 Arc::default(),

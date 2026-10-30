@@ -136,6 +136,7 @@ impl Shell {
                 _drain: drain,
             });
         }
+        self.restyle_quick_look(window, cx);
         self.quick_look_release();
         let languages = self
             .launch

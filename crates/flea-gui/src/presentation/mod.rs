@@ -5,6 +5,13 @@ mod face_cache;
 pub(crate) mod fixture;
 pub(crate) mod fonts;
 #[cfg(test)]
+mod frame_census;
+#[cfg(test)]
+pub(crate) mod frame_gate;
+#[cfg(test)]
+mod frame_gate_tests;
+pub mod frames;
+#[cfg(test)]
 mod regression_tests;
 mod service;
 mod source;

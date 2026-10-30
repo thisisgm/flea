@@ -30,7 +30,7 @@ impl Picker {
                     .border_color(if focused {
                         palette.foreground
                     } else {
-                        palette.metadata_frame
+                        crate::presentation::frames::Frames::from_palette(palette, 0.).ink
                     })
                     .child(self.locale.catalog.tr("picker.browser.new_folder"))
                     .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
@@ -59,7 +59,7 @@ impl Picker {
                     .border_color(if focused {
                         palette.foreground
                     } else {
-                        palette.metadata_frame
+                        crate::presentation::frames::Frames::from_palette(palette, 0.).ink
                     })
                     .child(self.filter_label())
                     .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())

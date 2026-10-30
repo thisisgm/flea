@@ -223,11 +223,13 @@ impl Tokens {
             ground: palette.background,
             fg: palette.foreground,
             muted: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted_frame: crate::presentation::frames::Frames::from_palette(palette, 0.).ink,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
             error: palette.accent,
-            rule: palette.metadata_frame.opacity(RULE_WASH),
+            rule: crate::presentation::frames::Frames::from_palette(palette, 0.)
+                .ink
+                .opacity(RULE_WASH),
         }
     }
 

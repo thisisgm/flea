@@ -29,7 +29,8 @@ pub fn checkbox(
     let ink = if checked {
         palette.accent_frame
     } else {
-        palette.metadata_frame
+        crate::presentation::frames::Frames::from_palette(palette, crate::compositor::corner(cx))
+            .ink
     };
     let mut frame = outline(bounds, ink, BorderStyle::Solid);
     frame.border_widths = px(2.).into();

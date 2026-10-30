@@ -64,7 +64,7 @@ fn answer(
         .border_color(if lit {
             palette.accent_frame
         } else {
-            palette.metadata_frame
+            crate::presentation::frames::Frames::from_palette(palette, 0.).ink
         })
         .when(lit, |button| button.bg(palette.accent.opacity(WASH)))
         .when(!available, |button| button.opacity(REFUSED))

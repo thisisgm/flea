@@ -171,12 +171,7 @@ impl Shell {
                 );
             });
         }
-        if let Some(view) = &self.overlay {
-            view.update(cx, |view, cx| {
-                view.palette.radius = corner;
-                cx.notify();
-            });
-        }
+        self.restyle_frames(window, cx);
         if let Some(view) = &self.chrome.view {
             let path = view.read(cx).path.clone();
             path.update(cx, |view, cx| {

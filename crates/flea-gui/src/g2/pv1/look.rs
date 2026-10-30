@@ -22,7 +22,7 @@ pub struct Look {
 }
 
 impl Look {
-    /// Until the theme tokens reach the GUI: the inherited palette's nearest roles and square corners.
+    /// Frame ink comes from the shared presentation roles; the host supplies live geometry.
     pub fn inherited(palette: &Palette) -> Self {
         Self {
             background: palette.background,
@@ -31,7 +31,7 @@ impl Look {
             bright: palette.foreground,
             muted: palette.metadata,
             meta: palette.metadata,
-            muted_frame: palette.metadata_frame,
+            muted_frame: crate::presentation::frames::Frames::from_palette(palette, 0.).ink,
             error: palette.error,
             green: palette.foreground,
             cyan: palette.foreground,
@@ -45,6 +45,13 @@ impl Look {
         let mut look = Self::inherited(&Palette::inherited(style, theme));
         look.surface = theme.surface;
         look
+    }
+
+    pub fn with_frames(mut self, frames: crate::presentation::frames::Frames) -> Self {
+        self.muted_frame = frames.ink;
+        self.corner = px(frames.radius);
+        self.control_corner = self.corner;
+        self
     }
 
     /// var(--hair): the foreground at 12%.

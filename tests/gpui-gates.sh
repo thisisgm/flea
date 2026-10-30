@@ -11,13 +11,13 @@ export CARGO_TARGET_DIR="$root/target"
 export CARGO_PROFILE_DEV_DEBUG=line-tables-only CARGO_PROFILE_TEST_DEBUG=line-tables-only
 
 gate() {
-  local name=$1 rc
+  local name=$1
   shift
   "$@" > "$root/$name.log" 2>&1
-  rc=$?
+  gate_rc=$?
   cat "$root/$name.log"
-  printf 'GATE %s rc=%s\n' "$name" "$rc"
-  [ "$rc" -eq 0 ] || failed=1
+  printf 'GATE %s rc=%s\n' "$name" "$gate_rc"
+  [ "$gate_rc" -eq 0 ] || failed=1
 }
 
 gate fmt-crates cargo fmt --package flea-gui -- --check
@@ -35,6 +35,15 @@ if [ -f "$root/clippy/clippy-gui.log" ]; then
   tail -20 "$root/clippy/clippy-gui.log"
 fi
 gate gpui-lint tools/flea-gpui-lint
+gate frame-gate cargo test --locked -p flea-gui --lib vf_frames -- --nocapture
+# A name filter that matches fewer tests still exits 0, so a passing run must report every frame test.
+frame_tests=34
+# test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 3083 filtered out; finished in 1.45s
+if [ "$gate_rc" -eq 0 ] && ! grep -q "^test result: ok\. $frame_tests passed; 0 failed; 0 ignored;" "$root/frame-gate.log"; then
+  result=$(grep '^test result:' "$root/frame-gate.log")
+  echo "FAIL frame-gate exited 0 but expected $frame_tests passed frame tests, got: ${result:-no test result line}"
+  failed=1
+fi
 gate gate-regressions python3 -B tests/gpui_gates_regressions.py
 
 # Only the private copy is mutated, and it takes every top-level input except VCS, build and scratch state, so the wrapper judges the same tree.

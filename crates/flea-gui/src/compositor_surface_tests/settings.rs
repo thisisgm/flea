@@ -29,6 +29,23 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         corner,
         &[18.],
     );
+    for section in flea::ui_logic_st1::pages::SECTIONS {
+        let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
+            shell.open_settings(window, cx);
+            shell.settings.panel.clone().unwrap()
+        });
+        view.update(vcx, |view, cx| {
+            view.panel.show_section(section.id);
+            cx.notify();
+        });
+        frames(
+            &format!("settings-{}", section.id),
+            &shell,
+            vcx,
+            corner,
+            &[18.],
+        );
+    }
     let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.open_settings(window, cx);
         let view = shell.settings.panel.clone().unwrap();
@@ -68,7 +85,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     });
     let listing = wire::listing_line(&Listing { id: 1, plugins });
     let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
-        let theme = crate::palette::Theme::default();
+        let theme = super::theme();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let view = cx.new(|cx| {
             st2::view::PluginsPane::new(

@@ -14,7 +14,7 @@ use gpui::{Entity, VisualTestContext};
 
 const PATCH: &str = "--- /files/notes-a.txt\n+++ /files/notes-b.txt\n@@ -1,3 +1,3 @@\n Compare fixture\n-line three\n+line three changed in b\n line four\n";
 
-fn pair(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+pub(super) fn pair(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     let rows = vec![
         file("notes-a.txt", "text-plain"),
         file("notes-b.txt", "text-plain"),
@@ -38,7 +38,7 @@ fn select(shell: &Entity<Shell>, cx: &mut VisualTestContext, rows: &[usize]) {
 }
 
 // Opens Compare through the Shell's own entry point and answers its one ask with `state`.
-fn compare(
+pub(super) fn compare(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
     requests: &mut Lines,

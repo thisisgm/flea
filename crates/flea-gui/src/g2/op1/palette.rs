@@ -33,17 +33,18 @@ impl CardPalette {
     }
 
     pub fn from_list(palette: &Palette, radius: f32) -> Self {
+        let frames = crate::presentation::frames::Frames::from_palette(palette, radius);
         Self {
             background: palette.background,
             surface: palette.background,
             foreground: palette.foreground,
             muted: palette.muted,
-            muted_frame: palette.muted_frame,
+            muted_frame: frames.ink,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
             error: palette.error,
             error_on_surface: palette.error_on_surface,
-            radius,
+            radius: frames.radius,
         }
     }
 
