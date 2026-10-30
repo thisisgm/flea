@@ -278,6 +278,7 @@ pub fn run(words: &[String]) -> Result<(), String> {
     });
     gpui_platform::application().run(move |cx: &mut App| {
         let options = WindowOptions {
+            app_id: Some(crate::window::APP_ID.into()),
             window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
                 None,
                 size(px(CARD.0), px(CARD.1)),

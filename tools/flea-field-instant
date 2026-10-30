@@ -608,7 +608,7 @@ def scroll_point(view, region, left):
 
 def external_clients(clients, owned):
     """The mapped clients that are not Flea's: Flea's are of class S.FLEA_CLASS and owned by a pid under the launched process."""
-    return [c for c in clients if c.get("mapped", True) and not (c.get("class") in (S.FLEA_CLASS, "flea") and c.get("pid") in owned)]
+    return [c for c in clients if c.get("mapped", True) and not (c.get("class") == S.FLEA_CLASS and c.get("pid") in owned)]
 
 
 class ExternalWindow(Exception):

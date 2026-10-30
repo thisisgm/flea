@@ -2,6 +2,7 @@
 pub mod chip_input;
 pub mod chrome;
 pub mod listing;
+mod pointer;
 pub mod route;
 pub mod save;
 pub mod surface;

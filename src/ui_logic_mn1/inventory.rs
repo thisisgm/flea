@@ -161,6 +161,13 @@ pub const INVENTORY: &[Spec] = &[
     ),
     spec("taildrop", "menu.row.taildrop", "tailscale", "F", "share"),
     spec("localsend", "menu.row.localsend", "localsend", "F", "share"),
+    spec(
+        "sendRclone",
+        "send.rclone.row",
+        "cloud-upload",
+        "F",
+        "share",
+    ),
     spec("dropbox", "menu.row.dropbox", "dropbox", "F", "share"),
     spec("sharelink", "menu.row.share_link", "network", "F", "share"),
     spec(

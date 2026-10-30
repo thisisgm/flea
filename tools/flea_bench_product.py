@@ -231,7 +231,8 @@ def flea_binary(arm):
 
 
 def window_class(arm):
-    return "flea" if frontend(arm) == "gpui" else "com.thisisgm.flea"
+    frontend(arm)
+    return "com.thisisgm.flea"
 
 
 def output(argv):

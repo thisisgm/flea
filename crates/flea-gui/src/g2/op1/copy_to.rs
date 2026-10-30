@@ -16,6 +16,7 @@ pub(super) fn card(
     path: &str,
     focus: CopyFocus,
     busy: bool,
+    send: Option<&crate::g2::sd2::seams::Card>,
 ) -> Div {
     let (palette, catalog) = (scene.palette, scene.catalog);
     let m = Metrics::new(scene.typeface);
@@ -42,7 +43,13 @@ pub(super) fn card(
     };
     // The field name keeps its source case in the catalog and draws in capitals, as the boards' CSS does.
     let tracked = Tracked {
-        text: catalog.tr("jobs.copyto.field").to_uppercase().into(),
+        text: send
+            .map_or_else(
+                || catalog.tr("jobs.copyto.field"),
+                |card| card.field_label.clone(),
+            )
+            .to_uppercase()
+            .into(),
         size: m.caption,
         line: m.label_line,
         track: card::FIELD_LABEL_TRACK,
@@ -57,22 +64,33 @@ pub(super) fn card(
                 .debug_selector(|| "op1-field-label-text".into())
                 .child(tracked),
         );
-    let body = vec![div()
+    let mut body = vec![div()
         .flex()
         .flex_col()
         .child(label)
         .child(field)
         .into_any_element()];
-    let confirm = catalog.tr(if moving {
-        "jobs.button.move"
-    } else {
-        "jobs.button.copy"
-    });
+    if let Some(error) = send.and_then(|card| card.error.as_ref()) {
+        body.push(super::view::caption(scene, error.clone(), palette.error).into_any_element());
+    }
+    let confirm = send.map_or_else(
+        || {
+            catalog.tr(if moving {
+                "jobs.button.move"
+            } else {
+                "jobs.button.copy"
+            })
+        },
+        |card| card.primary.clone(),
+    );
     let buttons = vec![
         button(
             scene,
             Press::CopyCancel,
-            catalog.tr("jobs.button.cancel"),
+            send.map_or_else(
+                || catalog.tr("jobs.button.cancel"),
+                |card| card.cancel.clone(),
+            ),
             state(false, focus == CopyFocus::Cancel, false, false),
         ),
         button(
@@ -83,14 +101,19 @@ pub(super) fn card(
                 true,
                 focus == CopyFocus::Confirm,
                 false,
-                busy || !Operations::copy_enabled(path),
+                busy || send.map_or(!Operations::copy_enabled(path), |card| !card.can_submit),
             ),
         ),
     ];
-    let title = catalog.tr(if moving {
-        "jobs.copyto.moveto"
-    } else {
-        "jobs.copyto.title"
-    });
+    let title = send.map_or_else(
+        || {
+            catalog.tr(if moving {
+                "jobs.copyto.moveto"
+            } else {
+                "jobs.copyto.title"
+            })
+        },
+        |card| card.title.clone(),
+    );
     super::view::shell(scene, Kind::CopyTo, window, title, body, buttons)
 }

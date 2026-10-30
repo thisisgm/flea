@@ -1072,7 +1072,7 @@ check('bare bound control accepts named helper arguments',
 check('bare bound control accepts a named bound and a comment',
       bare_bounds('for _ in $(seq 1 "$n"); do\n' + LUA_PREFIX + 'window.move({ x = $px, y = $py })\n# seq 1 40') == [])
 probe_text = (ROOT / 'tests/probes/layer-drop-bottom.sh').read_text()
-ui_branch = [UI[UI.index('# Sample input: {"pid":101,"address":"0xa","class":"flea"'):UI.index('xwdrag_geometry() {')],
+ui_branch = [UI[UI.index('# Sample input: {"pid":101,"address":"0xa","class":"com.thisisgm.flea"'):UI.index('xwdrag_geometry() {')],
              UI[UI.index('xwtab_logs=('):UI.index('# The cursor parks on row 0 above the card')]]
 for label, text in (('probe', probe_text), ('ui.sh helpers', ui_branch[0]), ('ui.sh xwtab case', ui_branch[1])):
     check(label + ' puts a sample input above every parser', unsampled_parsers(text) == [], str(unsampled_parsers(text)))

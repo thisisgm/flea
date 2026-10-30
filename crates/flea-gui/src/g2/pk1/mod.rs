@@ -43,6 +43,8 @@ mod tests;
 #[cfg(test)]
 mod parity_tests;
 #[cfg(test)]
+mod pointer_row_tests;
+#[cfg(test)]
 mod pointer_state_tests;
 #[cfg(test)]
 mod pointer_tests;

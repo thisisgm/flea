@@ -275,7 +275,7 @@ ipc() {
 hyprctl() {
     case "$1" in
         clients) printf '%s\n' '[{"pid":4242,"address":"0xabc","at":[12,42],"size":[2536,1386],"floating":false,"focusHistoryID":0},{"pid":7,"address":"0xdef"}]' ;;
-        activewindow) printf '%s\n' '{"address":"0xabc","class":"flea","title":"x"}' ;;
+        activewindow) printf '%s\n' '{"address":"0xabc","class":"com.thisisgm.flea","title":"x"}' ;;
     esac
 }
 evidence=$(expect_evidence lastMessage 'Copied 2 items · z undoes' '')
@@ -289,7 +289,7 @@ if [ "$(printf '%s\n' "$evidence" | wc -l)" -eq 1 ] && [ "${evidence%% *}" = DRA
         and (.collideState | test("observer exit 3"))
         and (.clients | length) == 1 and .clients[0].address == "0xabc" and .clients[0].floating == false
         and .clients[0].focus == 0 and .clients[0].at == [12, 42] and .clients[0].size == [2536, 1386]
-        and .activeWindow.class == "flea"' >/dev/null; then
+        and .activeWindow.class == "com.thisisgm.flea"' >/dev/null; then
     ok "a failed read prints one JSON line with the transfer, status, tab, pane and window facts"
 else
     bad "the failed-read evidence is not one complete JSON line: $evidence"

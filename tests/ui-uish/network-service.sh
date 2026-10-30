@@ -83,7 +83,7 @@ EOS
     settle
     [[ "$(ipc networkFocus)" == "Password" ]] \
         || fail "networktimeout: Password did not follow Username, focus is $(ipc networkFocus)"
-    printf '%s' "fixture-password" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "fixture-password" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
         || fail "networktimeout: typed password is not masked"
     key -k Return >/dev/null

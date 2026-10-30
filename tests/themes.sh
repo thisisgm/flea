@@ -104,7 +104,7 @@ no_muted_caption="#9299ae"
 
 ipc() { flea_ipc_drive -p "$flea_ui/boot" flea "$@"; }
 # Filtered to the window under test, as tests/ui.sh does: an unfiltered send goes wherever focus is.
-key() { omarchy-drive key --window flea "$@" >/dev/null; }
+key() { omarchy-drive key --window com.thisisgm.flea "$@" >/dev/null; }
 window_xy() { hyprctl clients -j | jq -r --arg c "$class" '[.[]|select(.class==$c)][0] | "\(.at[0]) \(.at[1])"'; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 

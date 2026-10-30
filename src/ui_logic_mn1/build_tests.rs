@@ -15,16 +15,16 @@ fn st(change: impl FnOnce(&mut Context)) -> Context {
 fn inventory_order_and_default_menus() {
     let i18n = english();
     let file = listing_entries(&state());
-    // 0.4.0 adds Print and Combine Images to the 57 rows v0.3.12 shipped.
+    // 0.4.0 adds Print, Combine Images and Send with rclone to the 57 rows v0.3.12 shipped.
     check(
-        "Menus and Places inventory has 57 actions",
+        "Menus and Places inventory has 60 actions",
         INVENTORY.len(),
-        59,
+        60,
     );
     check(
         "inventory storage ids are unique",
         INVENTORY.iter().map(|s| s.id).collect::<HashSet<_>>().len(),
-        59,
+        60,
     );
     check("default image menu matches Menus specimen", actions(&file),
         "open,openWith,run,openAsText,trash,cut,copy,paste,duplicate,rename,compress,convert,flashDrive,addToShelf,taildrop,dropbox,tags,toggleHidden,toggleLangMarks".into());

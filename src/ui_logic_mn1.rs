@@ -22,6 +22,8 @@ pub mod places;
 #[cfg(test)]
 mod places_tests;
 pub mod refresh;
+#[cfg(test)]
+mod rclone_tests;
 pub mod rows;
 #[cfg(test)]
 mod rows_tests;

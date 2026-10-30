@@ -62,7 +62,7 @@ rows_reply() {
         *) return 1 ;;
     esac
 }
-# Records every argv; a --window flea key is refused with exit 3 and the driver's own text while two windows match.
+# Records every argv; a --window com.thisisgm.flea key is refused with exit 3 and the driver's own text while two windows match.
 omarchy-drive() {
     printf '%s\n' "$*" >> "$box/argv"
     case "$1" in
@@ -175,9 +175,9 @@ active=11
 ambiguous=no
 reset_drive
 out=$(seek_row_named b1.txt 2>&1)
-[ -z "$out" ] && [ "$(grep '^key ' "$box/argv")" = "key --window flea g
-key --window flea j" ] \
-    && ok "with no pid set the seek sends today's class route" || bad "an unset pid must keep the --window flea route, got: $out / $(paste -sd'|' "$box/argv")"
+[ -z "$out" ] && [ "$(grep '^key ' "$box/argv")" = "key --window com.thisisgm.flea g
+key --window com.thisisgm.flea j" ] \
+    && ok "with no pid set the seek sends today's class route" || bad "an unset pid must keep the --window com.thisisgm.flea route, got: $out / $(paste -sd'|' "$box/argv")"
 
 ambiguous=yes
 reset_drive

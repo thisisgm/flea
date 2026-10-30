@@ -63,12 +63,18 @@ impl KeyboardState<'_> {
                             focus: CopyFocus::Field,
                             ..
                         }
+                        | Dialog::SendTo {
+                            focus: CopyFocus::Field,
+                            ..
+                        }
                         | Dialog::NewFile {
                             focus: CopyFocus::Field,
                             ..
                         },
                     ) => "QQuickTextInput",
-                    Some(Dialog::CopyTo { .. } | Dialog::NewFile { .. }) => "DialogButton",
+                    Some(
+                        Dialog::CopyTo { .. } | Dialog::SendTo { .. } | Dialog::NewFile { .. },
+                    ) => "DialogButton",
                     Some(Dialog::Collide { .. }) => "CollideConfirm",
                     Some(Dialog::Fat { .. }) => "FatNamesConfirm",
                     Some(Dialog::Delete { .. }) => "TrashConfirm",

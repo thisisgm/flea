@@ -360,10 +360,7 @@ impl Render for Picker {
             .track_focus(&self.focus)
             .key_context("Picker")
             .on_key_down(cx.listener(Self::key))
-            .on_mouse_down(
-                MouseButton::Left,
-                cx.listener(|picker, _, window, cx| window.focus(&picker.focus, cx)),
-            )
+            .on_mouse_down(MouseButton::Left, cx.listener(Self::row_pointer))
             .child(title)
             .child(
                 div()

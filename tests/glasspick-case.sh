@@ -202,7 +202,7 @@ STUB
     FLEA_IPC_HELPER=flea_ipc_helper_stub
     omarchy-drive() {
         [[ "$1 $2" != 'window center' ]] || return 0
-        if [[ "$1 $2 $3" == 'key --window flea' ]]; then
+        if [[ "$1 $2 $3" == 'key --window com.thisisgm.flea' ]]; then
             printf 'ambiguous selector flea: 3 fixture windows\n' >&2
             return 1
         fi

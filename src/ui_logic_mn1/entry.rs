@@ -184,4 +184,5 @@ pub const MARK_NAMES: &[&str] = &[
     "undo",
     "bot",
     "zap",
+    "cloud-upload",
 ];

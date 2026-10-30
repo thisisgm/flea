@@ -1,6 +1,7 @@
 //! Confirmation, transfers and Jobs: one host, one dialog shell, the cards and the Jobs strip.
 mod cards;
 mod copy_to;
+mod dialog;
 mod feedback;
 mod geometry;
 pub mod glyph;
@@ -11,6 +12,7 @@ pub mod model;
 mod new_file;
 pub mod palette;
 pub mod press;
+mod rclone;
 pub mod view;
 
 #[cfg(test)]
