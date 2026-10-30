@@ -37,7 +37,7 @@ fn open(cx: &mut TestAppContext) -> (Entity<Shell>, VisualTestContext) {
     );
     let locale = Snapshot {
         revision: 1,
-        catalog: Arc::new(flea::i18n::I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let (_sender, events) = async_channel::unbounded();
     cx.update(|cx| {

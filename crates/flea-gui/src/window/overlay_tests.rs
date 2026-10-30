@@ -31,7 +31,7 @@ fn open_startup(cx: &mut TestAppContext) -> WindowHandle<Root> {
         let (_events_tx, events) = async_channel::bounded(1);
         let locale = Snapshot {
             revision: 1,
-            catalog: Arc::new(flea::i18n::I18n::default()),
+            catalog: Arc::new(crate::test_catalogs::english()),
         };
         let settings = Settings::from_json(flea::jsondoc::parse("{}").unwrap());
         let launch = Launch::resolve(

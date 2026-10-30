@@ -1,6 +1,5 @@
 //! tests/js/columns.js runColumnMenu head: ColumnMenu.js's path rule, busy gate and the neighbour background routing.
 use super::check::Checks;
-use flea::i18n::I18n;
 use flea_gui::columns::menu::{
     can_arm, direct_open, same_path, Background, Busy, Navigator as MenuPane, Route,
 };
@@ -63,7 +62,7 @@ impl MenuPane for Bg {
         }
     }
     fn say_busy(&mut self) {
-        self.said.push(I18n::default().tr("pane.busy"));
+        self.said.push(crate::test_catalogs::english().tr("pane.busy"));
     }
     fn open_background_menu(&mut self, at: (f32, f32)) {
         self.opened.push(at);

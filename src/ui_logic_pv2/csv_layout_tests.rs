@@ -61,7 +61,7 @@ fn csv_row_number() {
 // tests/js/csv.js rowCount: the count reads through the catalog's plural, and grouping is the locale's.
 #[test]
 fn csv_row_count_reads_through_the_catalog() {
-    let i18n = crate::i18n::I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     assert_eq!(i18n.trn("document.csv_rows", 1), "1 row", "one row reads as one row");
     assert_eq!(i18n.trn("document.csv_rows", 24), "24 rows", "24 rows reads as 24 rows");
     assert_eq!(i18n.trn("document.csv_rows", 0), "0 rows", "no row reads as 0 rows");

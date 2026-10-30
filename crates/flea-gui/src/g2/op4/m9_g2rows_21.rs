@@ -5,7 +5,7 @@ use super::{
     tests::selected,
     wire,
 };
-use flea::{i18n::I18n, jsondoc, ui_logic_op4::output::Kind};
+use flea::{jsondoc, ui_logic_op4::output::Kind};
 use gpui::TestAppContext;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
@@ -15,16 +15,16 @@ fn ready(model: &mut Model) {
         Card::Combine(c) => c.pending.unwrap(),
         Card::Print(p) => {
             let id = p.pending.unwrap().request;
-            assert!(model.line(&format!(r#"{{"t":"printoptions","id":{id},"ok":true,"destinations":[{{"name":"Office","default":true}}],"printer":"Office","duplex":true,"twoSided":false,"color":true,"grayscale":false}}"#), &I18n::default()));
+            assert!(model.line(&format!(r#"{{"t":"printoptions","id":{id},"ok":true,"destinations":[{{"name":"Office","default":true}}],"printer":"Office","duplex":true,"twoSided":false,"color":true,"grayscale":false}}"#), &crate::test_catalogs::english()));
             return;
         }
     };
-    model.checked(ticket, Ok(()), &I18n::default());
+    model.checked(ticket, Ok(()), &crate::test_catalogs::english());
 }
 
 #[test]
 fn m9_g2rows_21_output_cards_keep_captured_selection() {
-    let catalog = I18n::default();
+    let catalog = crate::test_catalogs::english();
     for (action, command) in [
         (Action::Print, "print"),
         (Action::Convert, "convertbatch"),
@@ -86,7 +86,7 @@ fn m9_g2rows_21_convert_and_combine_validate_output_artifacts() {
 
 #[gpui::test]
 fn m9_g2rows_21_print_options_refusal_and_cancel_use_existing_wire(cx: &mut TestAppContext) {
-    let catalog = I18n::default();
+    let catalog = crate::test_catalogs::english();
     let mut print = Model::default();
     assert!(print.open(
         Action::Print,
@@ -137,7 +137,7 @@ fn m9_g2rows_21_print_options_refusal_and_cancel_use_existing_wire(cx: &mut Test
                     crate::palette::Theme::default(),
                     8.,
                 );
-                OutputView::new(Arc::new(I18n::default()), palette, cx)
+                OutputView::new(Arc::new(crate::test_catalogs::english()), palette, cx)
             });
             let sent = Rc::new(RefCell::new(Vec::new()));
             let capture = sent.clone();

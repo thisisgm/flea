@@ -58,7 +58,7 @@ fn u13_fix3_relative_copy_is_available_but_submission_still_refuses() {
         "availability follows nonempty text"
     );
     assert!(!Operations::copy_enabled(""));
-    let catalog = flea::i18n::I18n::default();
+    let catalog = crate::test_catalogs::english();
     let mut model = Operations::new("default");
     model.copy_to(71, false, "work");
     model.key(&catalog, "enter", false);

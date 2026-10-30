@@ -27,7 +27,7 @@ fn open(cx: &mut TestAppContext, select: Option<&str>, json: &str) -> WindowHand
     cx.add_window(|window, cx| {
         let locale = Snapshot {
             revision: 1,
-            catalog: Arc::new(flea::i18n::I18n::default()),
+            catalog: Arc::new(crate::test_catalogs::english()),
         };
         let settings = Settings::from_json(flea::jsondoc::parse(json).unwrap());
         let launch = Launch::resolve(

@@ -117,7 +117,7 @@ mod i50_tests {
     fn i50_dialog_go_to_composition_and_closed_owner(cx: &mut gpui::TestAppContext) {
         let (view, cx) = cx.add_window_view(|_, cx| {
             PathView::new(
-                std::sync::Arc::new(flea::i18n::I18n::default()),
+                std::sync::Arc::new(crate::test_catalogs::english()),
                 Box::new(crate::path::suggestions::Unranked),
                 cx,
             )

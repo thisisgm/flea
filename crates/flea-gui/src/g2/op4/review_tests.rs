@@ -4,7 +4,7 @@ use super::{
     seam::Effect,
     tests::selected,
 };
-use flea::{i18n::I18n, ui_logic_op4::output::Kind};
+use flea::ui_logic_op4::output::Kind;
 use gpui::TestAppContext;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ static GEOMETRY_SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[test]
 fn review_op4_partial_print_keeps_final_failure_visible() {
-    let catalog = I18n::default();
+    let catalog = crate::test_catalogs::english();
     let mut model = Model::default();
     assert!(model.open(
         Action::Print,
@@ -65,7 +65,7 @@ fn review_op4_keyboard_format_choice_remains_in_scrolled_body(cx: &mut TestAppCo
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )
@@ -113,7 +113,7 @@ fn review_op4_failed_convert_reveals_its_format_row(cx: &mut TestAppContext) {
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )

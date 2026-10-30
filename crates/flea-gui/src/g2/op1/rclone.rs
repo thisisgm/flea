@@ -108,7 +108,7 @@ mod tests {
         assert!(target
             .borrow_mut()
             .choose("gdrive", vec!["/owned/a.txt".into()]));
-        let catalog = I18n::default();
+        let catalog = crate::test_catalogs::english();
         let mut operations = Operations::new("default");
         operations.open_rclone(7, target.clone(), &catalog);
         if let Some(Dialog::SendTo { path, .. }) = &mut operations.dialog {

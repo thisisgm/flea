@@ -3,7 +3,7 @@ use super::{
     model::{Action, Card, Focus},
     tests::selected,
 };
-use flea::{i18n::I18n, ui_logic_op4::output::Kind};
+use flea::ui_logic_op4::output::Kind;
 use gpui::{Modifiers, TestAppContext};
 use std::sync::Arc;
 
@@ -24,7 +24,7 @@ fn op4_pointer_hover_on_a_clipped_format_row_leaves_the_body_scroll_alone(cx: &m
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )
@@ -78,7 +78,7 @@ fn tab_cycle(cx: &mut TestAppContext, action: Action, height: f32, tabs: usize) 
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )
@@ -147,7 +147,7 @@ fn op4_pointer_a_plain_click_on_a_scrolled_preview_never_reorders(cx: &mut TestA
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )

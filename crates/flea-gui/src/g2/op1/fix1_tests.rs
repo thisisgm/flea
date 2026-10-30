@@ -3,7 +3,6 @@ use super::host::Overlay;
 use super::model::{Dialog, Operations};
 use super::palette::CardPalette;
 use super::tests::{request, trash_source};
-use flea::i18n::I18n;
 use flea::ui_logic_op1::{confirm::Source, trash};
 use gpui::{KeyDownEvent, Keystroke, TestAppContext};
 use std::cell::Cell;
@@ -27,7 +26,7 @@ fn overlay(cx: &mut TestAppContext) -> (gpui::Entity<Overlay>, &mut gpui::Visual
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(I18n::default()), palette, "default")
+        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
     });
     vcx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
     (overlay, vcx)
@@ -44,7 +43,7 @@ fn job(id: u64, done: u64) -> String {
 // r1-1: even with the two sessions' counters equal, a dismissed Trash card is cancelled and a menu delete never reaches the Trash.
 #[test]
 fn a_menu_delete_goes_out_as_menuaction_and_a_dismissed_trash_card_cancels() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("1"), trash::Scope::TrashItems, trash_source(), 0);
     ops.key(&cat, "escape", false);
@@ -74,7 +73,7 @@ fn a_menu_delete_goes_out_as_menuaction_and_a_dismissed_trash_card_cancels() {
 
 #[test]
 fn a_menu_card_dismissed_closes_its_snapshot() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("1"), trash::Scope::Items, Source::Menu(6), 0);
     ops.press(&cat, super::press::Press::Delete(trash::Button::Cancel));
@@ -87,7 +86,7 @@ fn a_menu_card_dismissed_closes_its_snapshot() {
 // r1-2: a stale delete asks a fresh review with the old token as refreshToken, the dead token is never resent, a refusal is said.
 #[test]
 fn a_stale_delete_asks_a_fresh_review_and_a_refusal_is_said() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), 0);
     ops.key(&cat, "tab", false);
@@ -123,7 +122,7 @@ fn a_stale_delete_asks_a_fresh_review_and_a_refusal_is_said() {
 
 #[test]
 fn an_open_card_checks_its_review_every_2500_ms_and_a_changed_one_is_reviewed_again() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), 0);
     assert_eq!(ops.due(), Some(2500));
@@ -262,7 +261,7 @@ fn reduced_motion_asks_no_frame_for_six_spirals(cx: &mut TestAppContext) {
 // r1-5: Copy To validates through the menu snapshot and asks collisions about it; a relative path is refused out loud.
 #[test]
 fn copy_to_validates_through_the_menu_and_refuses_a_relative_path() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.copy_to(7, false, "work");
     ops.key(&cat, "enter", false);
@@ -295,7 +294,7 @@ fn copy_to_validates_through_the_menu_and_refuses_a_relative_path() {
 
 #[test]
 fn a_refused_validate_keeps_the_card_and_says_why() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.copy_to(7, false, "/home/u/work");
     ops.key(&cat, "enter", false);
@@ -313,7 +312,7 @@ fn a_refused_validate_keeps_the_card_and_says_why() {
 // r1-6: a late trashdeletestarted touches no card, and a card that replaces a collision card cancels it in the host.
 #[test]
 fn a_late_delete_start_leaves_the_collision_card_and_its_host() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("3"), trash::Scope::TrashItems, trash_source(), 0);
     ops.key(&cat, "tab", false);
@@ -334,7 +333,7 @@ fn a_late_delete_start_leaves_the_collision_card_and_its_host() {
 
 #[test]
 fn a_delete_start_for_another_request_starts_nothing() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("3"), trash::Scope::TrashItems, trash_source(), 0);
     ops.key(&cat, "tab", false);
@@ -350,7 +349,7 @@ fn a_delete_start_for_another_request_starts_nothing() {
 // r1-7
 #[test]
 fn the_whole_trash_review_names_its_button_empty_trash() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     assert_eq!(cat.tr(trash::Button::Delete.label_key(true)), "Empty Trash");
     assert_eq!(cat.tr(trash::Button::Delete.label_key(false)), "Delete");
 }
@@ -421,7 +420,7 @@ fn a_read_only_place_refuses_delete() {
 // r1-11
 #[test]
 fn space_in_the_copy_to_field_is_the_fields_and_enter_submits() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.copy_to(4, false, "/home/u/work");
     ops.key(&cat, "space", false);

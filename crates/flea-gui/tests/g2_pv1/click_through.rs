@@ -114,7 +114,7 @@ fn the_ground_only_closes_on_a_left_click_and_never_passes_one_on(cx: &mut TestA
 
 #[gpui::test]
 fn open_with_answers_inside_the_card_and_the_listing_hears_nothing(cx: &mut TestAppContext) {
-    let i18n = flea::i18n::I18n::default();
+    let i18n = crate::test_catalogs::english();
     let (cx, seen, look, events) = host(cx, can_not_show(&i18n), Arm::Fix);
     let card = card(&look, cx);
     let button = cx

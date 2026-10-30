@@ -5,7 +5,7 @@ use super::*;
 use flea_gui::g2::pv1::Hit;
 
 fn english() -> flea::i18n::I18n {
-    flea::i18n::I18n::default()
+    crate::test_catalogs::english()
 }
 
 fn centre(cx: &mut VisualTestContext, selector: &'static str) -> Point<Pixels> {

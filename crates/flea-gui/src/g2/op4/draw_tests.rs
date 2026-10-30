@@ -1,5 +1,5 @@
 use super::{host::OutputView, model::Action, tests::selected};
-use flea::{i18n::I18n, ui_logic_op4::output::Kind};
+use flea::ui_logic_op4::output::Kind;
 use gpui::TestAppContext;
 use std::sync::Arc;
 
@@ -9,7 +9,7 @@ fn op4_real_entity_draws_convert_anatomy_and_native_keys(cx: &mut TestAppContext
         let theme = crate::palette::Theme::default();
         let p = crate::list::Palette::inherited(&window.text_style(), theme);
         let palette = crate::g2::op1::palette::CardPalette::from_list(&p, 8.);
-        OutputView::new(Arc::new(I18n::default()), palette, cx)
+        OutputView::new(Arc::new(crate::test_catalogs::english()), palette, cx)
     });
     vcx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
     view.update_in(vcx, |view, window, cx| {
@@ -61,7 +61,7 @@ fn op4_print_and_combine_have_board_width_and_preview_height(cx: &mut TestAppCon
                 crate::palette::Theme::default(),
             );
             OutputView::new(
-                Arc::new(I18n::default()),
+                Arc::new(crate::test_catalogs::english()),
                 crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
                 cx,
             )
@@ -101,7 +101,7 @@ fn op4_held_images_land_atomically_and_pointer_keys_reorder_the_real_preview(
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )

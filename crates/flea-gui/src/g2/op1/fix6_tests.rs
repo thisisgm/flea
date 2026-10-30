@@ -1,7 +1,6 @@
 // Review r6's finding as a test: with both held slots full, a refused held Trash delete must still request a redraw.
 use super::model::Operations;
 use super::tests::trash_source;
-use flea::i18n::I18n;
 use flea::ui_logic_op1::{confirm::Source, trash};
 
 fn review(token: &str) -> trash::Review {
@@ -15,7 +14,7 @@ fn review(token: &str) -> trash::Review {
 // r6-1: both slots full, then the held Trash delete is refused. The error is said and a redraw is requested.
 #[test]
 fn a_refused_held_trash_delete_with_both_slots_full_requests_a_redraw() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), 0);
     ops.key(&cat, "tab", false);

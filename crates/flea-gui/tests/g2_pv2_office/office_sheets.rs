@@ -34,7 +34,7 @@ fn pv2_office_sheets_open_in_the_table_and_switch(cx: &mut TestAppContext) {
             cx.run_until_parked();
         }
     }
-    let i18n = I18n::default();
+    let i18n = crate::test_catalogs::english();
     assert!(
         view.update(cx, |v, _, cx| v.shown(cx)).unwrap(),
         "the sheet's first screen is whole"

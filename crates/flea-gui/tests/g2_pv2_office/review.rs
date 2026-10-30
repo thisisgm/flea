@@ -179,7 +179,7 @@ fn pv2_fix1_sniff_never_waits_on_a_fifo(cx: &mut TestAppContext) {
 #[gpui::test]
 fn pv2_fix1_ready_subject_that_cannot_draw_says_why(cx: &mut TestAppContext) {
     let (view, _, code) = office(cx, true);
-    let i18n = I18n::default();
+    let i18n = crate::test_catalogs::english();
     let sentence = Some(i18n.tr("document.office_failed"));
     open(cx, view, "/d/garden-report.docx");
     reply(

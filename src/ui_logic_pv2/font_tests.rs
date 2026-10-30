@@ -1,11 +1,11 @@
 use super::*;
 
 fn line(family: &str, style: &str, bytes: u64, glyphs: u64) -> String {
-    facts_line(&I18n::default(), family, style, bytes, glyphs)
+    facts_line(&crate::i18n::test_catalogs::english(), family, style, bytes, glyphs)
 }
 
 fn size(bytes: u64) -> String {
-    I18n::default().locale().format_size(bytes)
+    crate::i18n::test_catalogs::english().locale().format_size(bytes)
 }
 
 // Ported from tests/js/fontfacts.js.
@@ -120,7 +120,7 @@ fn font_page_draws_whole_on_its_own_answer() {
         "the ask carries path, colours, sizes and the sentence"
     );
     assert!(
-        !p.drawn() && p.facts_line(&I18n::default()).is_empty(),
+        !p.drawn() && p.facts_line(&crate::i18n::test_catalogs::english()).is_empty(),
         "the page is not partly up before the answer"
     );
     assert_eq!(
@@ -174,7 +174,7 @@ fn font_stale_answers_are_dropped() {
         "the slow answer is dropped"
     );
     assert_eq!(
-        p.facts_line(&I18n::default()),
+        p.facts_line(&crate::i18n::test_catalogs::english()),
         format!(
             "Hack \u{b7} Regular \u{b7} {} \u{b7} 1,500 glyphs",
             size(3000)

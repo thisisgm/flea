@@ -53,7 +53,7 @@ fn fixture(linked: bool) -> Fixture {
 
 #[gpui::test]
 fn a_large_symlink_image_fits_below_its_bar(cx: &mut TestAppContext) {
-    let mut subject = scenes::ql_symlink(&flea::i18n::I18n::default());
+    let mut subject = scenes::ql_symlink(&crate::test_catalogs::english());
     let made = fixture(true);
     if let Body::Link { path, .. } = &mut subject.body {
         *path = made.path.clone();

@@ -4,13 +4,13 @@ use super::{
     seam::Effect,
     tests::selected,
 };
-use flea::{i18n::I18n, ui_logic_op4::output::Kind};
+use flea::ui_logic_op4::output::Kind;
 use gpui::TestAppContext;
 use std::sync::Arc;
 
 #[test]
 fn fix1_print_terminal_names_all_refusals_and_deduplicates_only_the_visible_failure() {
-    let catalog = I18n::default();
+    let catalog = crate::test_catalogs::english();
     for (paths, outcomes) in [
         (vec!["a.pdf"], vec![false]),
         (vec!["a.pdf", "b.pdf"], vec![false, false]),
@@ -79,7 +79,7 @@ fn fix1_keyboard_tabs_reveal_metadata_and_pages_with_pinned_chrome(cx: &mut Test
                 crate::palette::Theme::default(),
             );
             OutputView::new(
-                Arc::new(I18n::default()),
+                Arc::new(crate::test_catalogs::english()),
                 crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
                 cx,
             )

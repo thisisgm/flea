@@ -88,7 +88,7 @@ fn m9_g2rows_14_office_thumbnail_and_ready_page_share_geometry(cx: &mut TestAppC
         view.update(cx, |view, window, cx| {
             view.set_thumbnail(path, image(dimensions.0, dimensions.1), cx);
             let thumb = view.thumb_rect(frame).unwrap();
-            let bar = view.bar(&I18n::default(), cx).strip.unwrap();
+            let bar = view.bar(&crate::test_catalogs::english(), cx).strip.unwrap();
             assert!(bar.counter.is_none());
             assert!(bar
                 .items
@@ -101,7 +101,7 @@ fn m9_g2rows_14_office_thumbnail_and_ready_page_share_geometry(cx: &mut TestAppC
                 .items
                 .retain(|(item, _, _)| !matches!(item.control, Control::ZoomIn | Control::ZoomOut));
             assert!(!disabled_zoom_controls(&missing_zoom));
-            assert!(view.failure(&I18n::default()).is_none());
+            assert!(view.failure(&crate::test_catalogs::english()).is_none());
             assert!(view.reply(
                 r#"{"t":"officepdf","id":1,"state":"ready","path":"/c/page.pdf"}"#,
                 window,
@@ -154,11 +154,11 @@ fn m9_g2rows_14_sheet_switch_and_stale_reply_preserve_identity(cx: &mut TestAppC
     view.update(cx, |view, window, cx| {
         assert!(!view.action("nextSheet", cx));
         assert!(view.reply(r#"{"t":"officesheets","id":1,"state":"ready","names":["Monthly","Savings"],"paths":["/c/monthly.csv","/c/savings.csv"]}"#, window, cx));
-        assert_eq!(view.bar(&I18n::default(), cx).sheets, vec![("Monthly".into(), true), ("Savings".into(), false)]);
+        assert_eq!(view.bar(&crate::test_catalogs::english(), cx).sheets, vec![("Monthly".into(), true), ("Savings".into(), false)]);
         view.table.update(cx, |table, _| table.feed.sent(101));
         assert!(view.action("nextSheet", cx));
         assert_eq!(view.office.sheet, 1);
-        assert_eq!(view.bar(&I18n::default(), cx).sheets, vec![("Monthly".into(), false), ("Savings".into(), true)]);
+        assert_eq!(view.bar(&crate::test_catalogs::english(), cx).sheets, vec![("Monthly".into(), false), ("Savings".into(), true)]);
         view.table.update(cx, |table, cx| {
             assert!(!table.answered(r#"{"t":"code","token":101,"state":"plain","first":1,"total":1,"lines":[[0,"wrong sheet"]]}"#, cx));
             assert!(table.feed.held.is_empty(), "the previous sheet cannot populate the new table");
@@ -188,7 +188,7 @@ fn m9_g2rows_14_sheet_switch_and_stale_reply_preserve_identity(cx: &mut TestAppC
 #[gpui::test]
 fn m9_g2rows_14_locked_unavailable_and_cancel_keep_officepdf_contract(cx: &mut TestAppContext) {
     let view = view(cx);
-    let i18n = I18n::default();
+    let i18n = crate::test_catalogs::english();
     view.update(cx, |view, window, cx| {
         view.set_path("/d/lease.docx", window, cx)
     })

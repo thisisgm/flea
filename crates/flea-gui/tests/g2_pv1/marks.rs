@@ -76,7 +76,7 @@ fn model_bar(cx: &mut TestAppContext, name: &str, icon: &str) {
             flea::ui_logic_pv4::control::Surface::QuickLook,
             Rc::new(NoWire),
             Arc::new(NoReader),
-            Arc::new(flea::i18n::I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             cx,
         )
     });

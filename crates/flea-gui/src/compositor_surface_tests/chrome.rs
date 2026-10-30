@@ -102,7 +102,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     frames("rail-rename-field", &shell, vcx, corner, &[]);
     let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         let menu = shell.menu.menu.clone();
-        let catalog = flea::i18n::I18n::default();
+        let catalog = crate::test_catalogs::english();
         let typeface = Typeface::omarchy_default();
         let env = mn1::lines::Env {
             catalog: &catalog,

@@ -177,7 +177,7 @@ pub(super) fn rooted(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTest
     );
     let locale = Snapshot {
         revision: 1,
-        catalog: std::sync::Arc::new(flea::i18n::I18n::default()),
+        catalog: std::sync::Arc::new(crate::test_catalogs::english()),
     };
     let (_sender, events) = async_channel::unbounded();
     let handle = cx.add_window(|window, cx| Root {

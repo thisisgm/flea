@@ -55,7 +55,7 @@ fn open(
         let (_sender, events) = async_channel::bounded(1);
         let locale = Snapshot {
             revision: 1,
-            catalog: Arc::new(flea::i18n::I18n::default()),
+            catalog: Arc::new(crate::test_catalogs::english()),
         };
         Shell::new(launch, locale, events, window, cx)
     })

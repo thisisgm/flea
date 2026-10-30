@@ -3,7 +3,7 @@ use super::{boards::rect, scenes, *};
 #[gpui::test]
 fn raw_picture_fit_keeps_caption_space_for_vectors_and_rasters(cx: &mut TestAppContext) {
     for vector in [true, false] {
-        let mut subject = scenes::ql_raw(&flea::i18n::I18n::default());
+        let mut subject = scenes::ql_raw(&crate::test_catalogs::english());
         let picture = if vector {
             scenes::ql_svg()
         } else {

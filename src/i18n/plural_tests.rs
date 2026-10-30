@@ -22,7 +22,7 @@ fn plural_rules_equal_omarchy_jq_for_every_roster_code_and_count_0_through_10000
         }
         result => assert!(result.expect("run jq --version").status.success(), "jq --version failed"),
     }
-    let root = Paths::default().omarchy.join("default/i18n");
+    let root = crate::i18n::test_catalogs::english_paths().omarchy.join("default/i18n");
     let (registry, rules, source) = if root.join("locales.json").exists() {
         (
             catalog::read(&root.join("locales.json")).expect("read installed Omarchy roster"),

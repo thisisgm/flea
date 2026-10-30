@@ -58,7 +58,7 @@ fn pv2_csv_quick_look_draws_the_boards_grid(cx: &mut TestAppContext) {
         Some((0., "1".into(), true)),
         "row 1's number is right-aligned in the gutter"
     );
-    let i18n = I18n::default();
+    let i18n = crate::test_catalogs::english();
     assert_eq!(
         read(cx, view, |v| v.count_text(&i18n)),
         Some("13 rows".into()),

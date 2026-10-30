@@ -66,7 +66,7 @@ fn live_member_samples(protected: bool) {
                 _ => None,
             })
             .expect("the production job reporter publishes the sample");
-        let card = flea::ui_logic_op1::jobs::block(&flea::i18n::I18n::default(), &row);
+        let card = flea::ui_logic_op1::jobs::block(&crate::i18n::test_catalogs::library_english(), &row);
         assert!((card.bar.unwrap() - expected as f64 / 15.).abs() < 1e-9);
         assert_eq!(card.head, "Extracting 2 of 2");
         assert!(card.file.starts_with("large"));

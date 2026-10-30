@@ -1,4 +1,8 @@
 //! pv1: Quick Look's host. #331 holds every pointer event on the overlay away from the listing behind it.
+#[path = "../../../src/i18n/test_catalogs.rs"]
+mod test_catalogs;
+// test_catalogs reaches the catalog types through super.
+use flea::i18n::{I18n, Paths};
 use flea::ui_logic_pv1::{kinds::State, rect::Shape};
 use flea_gui::g2::pv1::{Body, Event, QuickLook, Subject};
 use gpui::{
@@ -129,7 +133,7 @@ fn repo(path: &str) -> PathBuf {
 pub fn json() -> Subject {
     let text = std::fs::read_to_string(repo("ci/visual/schema.json")).unwrap();
     let lines: Vec<String> = text.lines().map(str::to_owned).collect();
-    let count = flea::i18n::I18n::default().trn("preview.lines", lines.len() as i64);
+    let count = crate::test_catalogs::english().trn("preview.lines", lines.len() as i64);
     Subject {
         name: "schema.json".into(),
         icon: "text-x-script".into(),
@@ -187,7 +191,7 @@ pub fn host(cx: &mut TestAppContext, subject: Subject, arm: Arm) -> Host<'_> {
     let events = Rc::new(RefCell::new(Vec::new()));
     let (held, heard) = (seen.clone(), events.clone());
     let (root, cx) = cx.add_window_view(move |_, cx| {
-        let look = cx.new(|_| QuickLook::new(Arc::new(flea::i18n::I18n::default())));
+        let look = cx.new(|_| QuickLook::new(Arc::new(crate::test_catalogs::english())));
         cx.subscribe(&look, move |_, _, event: &Event, _| {
             heard.borrow_mut().push(*event)
         })

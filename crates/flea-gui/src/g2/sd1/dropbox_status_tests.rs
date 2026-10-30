@@ -36,7 +36,7 @@ fn generation(actions: &[Action]) -> u64 {
 
 #[test]
 fn followup_provider_dropbox_readiness_rejects_stale_and_failed_daemon_answers() {
-    let i18n = I18n::default();
+    let i18n = crate::test_catalogs::english();
     let mut sender = ProviderSend::default();
     let first = generation(&open(&mut sender));
     assert!(!sender.dropbox_ready());
@@ -65,7 +65,7 @@ fn followup_provider_dropbox_readiness_rejects_stale_and_failed_daemon_answers()
 
 #[test]
 fn followup_provider_dropbox_single_flight_refresh_obeys_the_menu_lifetime() {
-    let i18n = I18n::default();
+    let i18n = crate::test_catalogs::english();
     let mut sender = ProviderSend::default();
     let first = generation(&open(&mut sender));
     assert!(

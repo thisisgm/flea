@@ -191,7 +191,7 @@ fn u07_pointer_and_keyboard_edit_the_mounted_path_and_escape_cancels(cx: &mut Te
             .unwrap()
             .status
             .to_string()),
-        flea::i18n::I18n::default().tr("path.refused_uri")
+        crate::test_catalogs::english().tr("path.refused_uri")
     );
     let sentence = "That URI names a file on another host, not a path on this machine.";
     assert_eq!(read(&shell, cx, "statusPrimary", &[]), sentence);

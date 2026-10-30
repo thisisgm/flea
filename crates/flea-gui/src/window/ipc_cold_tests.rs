@@ -31,7 +31,7 @@ fn open(cx: &mut TestAppContext) -> (WindowHandle<Shell>, async_channel::Sender<
     let handle = cx.add_window(|window, cx| {
         let locale = Snapshot {
             revision: 1,
-            catalog: Arc::new(flea::i18n::I18n::default()),
+            catalog: Arc::new(crate::test_catalogs::english()),
         };
         let settings = Settings::from_json(flea::jsondoc::parse("{}").unwrap());
         let launch = Launch::resolve(

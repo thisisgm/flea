@@ -5,7 +5,6 @@ use super::{
     tests::selected,
 };
 use flea::{
-    i18n::I18n,
     ui_logic_op4::{output::Kind, printing::Destination},
 };
 use gpui::TestAppContext;
@@ -19,7 +18,7 @@ fn op4_printer_popup_uses_shared_menu_without_resizing_or_dismissing_the_card(
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )
@@ -133,7 +132,7 @@ fn op4_printer_menu_resolves_its_inherited_roles_once_across_frames(cx: &mut Tes
     );
     let (view, vcx) = cx.add_window_view(|window, cx| {
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_theme(&window.text_style(), theme, 8.),
             cx,
         )
@@ -193,7 +192,7 @@ fn trash_font_printer_menu_opens_in_the_window_face(cx: &mut TestAppContext) {
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )

@@ -25,6 +25,26 @@ pub struct State {
     pub office: super::office::Preview,
 }
 
+#[cfg(test)]
+impl State {
+    // Tests read English only; the fields are spelled out because Self::default() would still load the host's language.
+    pub fn english() -> Self {
+        Self {
+            i18n: crate::i18n::test_catalogs::english(),
+            archive: None,
+            unshown: None,
+            unshown_mark: None,
+            code: Default::default(),
+            still: Default::default(),
+            cell: None,
+            probed: false,
+            colors: None,
+            ground: String::new(),
+            office: Default::default(),
+        }
+    }
+}
+
 // An archive's exact totals and the entries the backend named, each with its size when one is known.
 pub struct Archive {
     pub entries: usize,

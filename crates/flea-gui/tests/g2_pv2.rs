@@ -1,3 +1,7 @@
+#[path = "../../../src/i18n/test_catalogs.rs"]
+mod test_catalogs;
+// test_catalogs reaches the catalog types through super.
+use flea::i18n::{I18n, Paths};
 use std::{
     path::{Path, PathBuf},
     process::Command,

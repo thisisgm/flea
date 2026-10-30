@@ -1,6 +1,6 @@
 //! All seven network fields own platform sessions, including private composition and field changes before repaint.
 use super::{dialog::Focus, view::NetworkView};
-use flea::{i18n::I18n, ui_logic_pl2::form::Protocol};
+use flea::ui_logic_pl2::form::Protocol;
 use gpui::{EntityInputHandler, TestAppContext};
 use std::sync::Arc;
 
@@ -19,7 +19,7 @@ fn i50_dialog_field_composition_matrix_network(cx: &mut TestAppContext) {
             let p =
                 crate::list::Palette::inherited(&w.text_style(), crate::palette::Theme::default());
             NetworkView::new(
-                Arc::new(I18n::default()),
+                Arc::new(crate::test_catalogs::english()),
                 crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
                 cx,
             )

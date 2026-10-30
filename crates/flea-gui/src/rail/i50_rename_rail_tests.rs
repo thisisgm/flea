@@ -2,7 +2,6 @@
 use super::{draw, TestAppContext, VisualTestContext};
 use crate::g2::pl4::producer::Producer;
 use flea::{
-    i18n::I18n,
     ui_logic_pl4::{
         order::{Heading, RailSection},
         rail::{Group, Kind, RailEntry},
@@ -39,7 +38,7 @@ fn ready(cx: &mut TestAppContext) -> (Entity<RailFixture>, &mut VisualTestContex
         let other = cx.focus_handle();
         let producer = cx.new(|cx| {
             Producer::from_sections(
-                Arc::new(I18n::default()),
+                Arc::new(crate::test_catalogs::english()),
                 vec![RailSection {
                     heading: Heading::Plugin("Network".into()),
                     rows: vec![RailEntry {

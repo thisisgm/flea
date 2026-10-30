@@ -19,7 +19,7 @@ fn i50_dialog_password_private_unlock(cx: &mut TestAppContext) {
     let runner = Rc::new(Record::default());
     let probe = runner.clone();
     let (view, cx) = cx.add_window_view(|_, cx| {
-        UnlockView::new(Arc::new(flea::i18n::I18n::default()), runner, cx)
+        UnlockView::new(Arc::new(crate::test_catalogs::english()), runner, cx)
     });
     cx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
     view.update_in(cx, |v, w, cx| {

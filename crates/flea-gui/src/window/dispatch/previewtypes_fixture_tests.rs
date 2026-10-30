@@ -56,7 +56,7 @@ pub(super) fn open_with_preview<'a>(
     );
     let locale = Snapshot {
         revision: 1,
-        catalog: Arc::new(flea::i18n::I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let (_sender, events) = async_channel::unbounded();
     LINES.with(|slot| slot.borrow_mut().clear());

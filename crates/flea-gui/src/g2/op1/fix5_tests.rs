@@ -3,7 +3,6 @@ use super::host::Overlay;
 use super::model::Operations;
 use super::palette::CardPalette;
 use super::tests::trash_source;
-use flea::i18n::I18n;
 use flea::ui_logic_op1::{confirm::Source, trash};
 use gpui::TestAppContext;
 use std::sync::Arc;
@@ -20,7 +19,7 @@ fn review(token: &str) -> trash::Review {
 // The menu delete moved aside must not drop the held Trash delete: the seam stays true and its start lands.
 #[test]
 fn a_menu_delete_moved_aside_keeps_a_held_trash_delete() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), 0);
     ops.key(&cat, "tab", false);
@@ -46,7 +45,7 @@ fn a_menu_delete_moved_aside_keeps_a_held_trash_delete() {
 // The Trash delete moved aside must not drop the held menu delete: op1 still says its result.
 #[test]
 fn a_trash_delete_moved_aside_keeps_a_held_menu_delete() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("9"), trash::Scope::Items, Source::Menu(6), 0);
     ops.key(&cat, "tab", false);
@@ -70,7 +69,7 @@ fn a_trash_delete_moved_aside_keeps_a_held_menu_delete() {
 // r5-2: while a menu refresh is out the card carries the oracle's own title, not the review's.
 #[test]
 fn the_busy_menu_card_uses_the_oracles_title() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     assert_eq!(
         super::view::delete_title(&cat, &review("3"), true),
         "Delete permanently"
@@ -91,7 +90,7 @@ fn the_busy_menu_card_draws_cancel_only(cx: &mut TestAppContext) {
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(I18n::default()), palette, "default")
+        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
     });
     vcx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
     overlay.update(vcx, |o, cx| {

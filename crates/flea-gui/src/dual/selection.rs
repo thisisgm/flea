@@ -9,7 +9,7 @@ mod tests {
     fn host() -> PaneHost {
         let locale = Snapshot {
             revision: 1,
-            catalog: Arc::new(flea::i18n::I18n::default()),
+            catalog: Arc::new(crate::test_catalogs::english()),
         };
         PaneHost::new("/pane".into(), None, 620., &locale)
     }

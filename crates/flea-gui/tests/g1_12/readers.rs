@@ -5,7 +5,6 @@ use super::{
     view::{bar, Bar},
     HOME,
 };
-use flea::i18n::I18n;
 use flea_gui::{
     ipc::{path::PathAdapter, Adapter},
     path::{
@@ -61,7 +60,7 @@ impl Render for OffsetHost {
 
 pub fn bar_at(cx: &mut TestAppContext, ranker: Box<dyn Ranker>, inputs: Inputs, x: f32) -> Bar<'_> {
     let (host, cx) = cx.add_window_view(|_, cx| OffsetHost {
-        path: cx.new(|cx| PathView::new(Arc::new(I18n::default()), ranker, cx)),
+        path: cx.new(|cx| PathView::new(Arc::new(crate::test_catalogs::english()), ranker, cx)),
         x,
     });
     cx.simulate_resize(size(px(1100.), px(360.)));

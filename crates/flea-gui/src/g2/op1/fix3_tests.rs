@@ -50,7 +50,7 @@ fn the_check_restarts_a_full_interval_when_the_trash_view_frees(cx: &mut TestApp
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(I18n::default()), palette, "default")
+        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
     });
     overlay.update(vcx, |o, cx| {
         o.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), cx)
@@ -75,7 +75,7 @@ fn the_check_restarts_a_full_interval_when_the_trash_view_frees(cx: &mut TestApp
 // r3-2, review PROOF2 turned: a check the Trash view's request replaced keeps the card, says nothing and checks again later.
 #[test]
 fn a_replaced_check_keeps_the_card_and_says_nothing() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = checking(&cat);
     ops.line(
         &cat,
@@ -91,7 +91,7 @@ fn a_replaced_check_keeps_the_card_and_says_nothing() {
 // r3-2: on the shared counter a later request id marks the reply replaced, whatever its sentence.
 #[test]
 fn a_reply_behind_the_shared_counter_is_dropped() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = checking(&cat);
     ops.requests += 1;
     ops.line(
@@ -105,7 +105,7 @@ fn a_reply_behind_the_shared_counter_is_dropped() {
 // r3-2 with r4-2: a replaced fresh review ends the Trash confirmation quietly and sends nothing, the view's request already superseded it.
 #[test]
 fn a_replaced_review_ends_quietly() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = re_reviewing(&cat);
     let before = ops.outbox.len();
     ops.line(
@@ -120,7 +120,7 @@ fn a_replaced_review_ends_quietly() {
 // r3-2, review PROOF3 turned: a menu refresh a new menu snapshot cancelled is dropped quietly and its snapshot closed.
 #[test]
 fn a_replaced_menu_refresh_is_dropped_quietly() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("3"), trash::Scope::Items, Source::Menu(6), 0);
     ops.tick(&cat, 2500);
@@ -145,7 +145,7 @@ fn a_replaced_menu_refresh_is_dropped_quietly() {
 // r3-2: a real refusal is still said; only a replaced request is dropped.
 #[test]
 fn a_real_refusal_is_still_said() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = checking(&cat);
     ops.line(
         &cat,
@@ -162,7 +162,7 @@ fn a_real_refusal_is_still_said() {
 // r3-2 seam: the Trash view closing during a fresh review ends it, so the review landing later is never drawn.
 #[test]
 fn the_trash_view_closing_ends_a_review_out() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = re_reviewing(&cat);
     ops.trash_closed();
     assert!(ops.confirm.is_none() && !ops.trash_request_out());
@@ -177,7 +177,7 @@ fn the_trash_view_closing_ends_a_review_out() {
 // r3-2 seam: a delete already out outlives the Trash view, so its Empty Trash progress still lands.
 #[test]
 fn a_delete_out_outlives_the_trash_view() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), 0);
     ops.key(&cat, "tab", false);

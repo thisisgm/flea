@@ -69,7 +69,7 @@ pub(super) fn actual_path_baseline(path: &str) -> Pixels {
             );
             cx.new(|cx| {
                 let mut view =
-                    Overlay::new(Arc::new(flea::i18n::I18n::default()), palette, "default");
+                    Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default");
                 view.copy_to(0, false, path, cx);
                 view
             })

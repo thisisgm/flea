@@ -2,7 +2,6 @@ use super::fake::{picture, Script};
 use super::player_tests::{player, send, subject};
 use crate::g2::pv3::surface::{column_view, picture as shown, Facts};
 use crate::g2::pv3::view::Picture;
-use flea::i18n::{I18n, Paths};
 use flea::ui_logic_pv3::frame::{Command, Event};
 use flea::ui_logic_pv3::player::Status;
 use gpui::TestAppContext;
@@ -11,7 +10,7 @@ use std::rc::Rc;
 fn video_end(cx: &mut TestAppContext, column: bool) {
     let script = Rc::new(Script::default());
     let (player, awake) = player(cx, &script, None);
-    let catalog = I18n::load(Paths::default());
+    let catalog = crate::test_catalogs::english();
     player.update(cx, |player, cx| player.open(subject("clip.mp4", true), cx));
     send(
         cx,
@@ -99,7 +98,7 @@ fn pv3_columns_video_end_returns_to_poster_and_zero_clock(cx: &mut TestAppContex
 fn pv3_video_end_still_allows_seeking_replay_and_pause(cx: &mut TestAppContext) {
     let script = Rc::new(Script::default());
     let (player, _) = player(cx, &script, None);
-    let catalog = I18n::load(Paths::default());
+    let catalog = crate::test_catalogs::english();
     player.update(cx, |player, cx| player.open(subject("clip.mp4", true), cx));
     send(
         cx,

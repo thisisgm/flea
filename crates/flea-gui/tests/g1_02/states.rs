@@ -1,5 +1,5 @@
 use super::*;
-use flea::{i18n::I18n, ipc::wire};
+use flea::ipc::wire;
 use flea_gui::{
     ipc::{pane::PaneAdapter, Surface},
     pane::states::{hero_span, State},
@@ -7,7 +7,7 @@ use flea_gui::{
 
 #[test]
 fn locked_and_error_use_board_copy_and_only_the_proven_mode() {
-    let catalog = I18n::default();
+    let catalog = crate::test_catalogs::english();
     for (mode, detail) in [
         (0, ""),
         (0o40000, "---------"),
@@ -48,7 +48,7 @@ fn locked_and_error_use_board_copy_and_only_the_proven_mode() {
 
 #[test]
 fn empty_words_loop_three_cycles_without_advancing_hidden_or_reduced_states() {
-    let catalog = I18n::default();
+    let catalog = crate::test_catalogs::english();
     let mut state = State {
         kind: Kind::Empty,
         ..State::default()
@@ -78,7 +78,7 @@ fn empty_words_loop_three_cycles_without_advancing_hidden_or_reduced_states() {
 
 #[test]
 fn all_states_have_one_semantic_hero_and_no_false_permission_detail() {
-    let catalog = I18n::default();
+    let catalog = crate::test_catalogs::english();
     for kind in [
         Kind::Loading,
         Kind::Empty,
@@ -116,7 +116,7 @@ fn columns_heroes_clear_the_active_track_using_the_producers_natural_width() {
 fn adapters_report_real_snapshot_counters_and_refuse_unowned_functions() {
     let mut pane = settled();
     pane.begin("/fixture/b".into(), Options::default(), 1000);
-    let catalog = I18n::default();
+    let catalog = crate::test_catalogs::english();
     let adapter = PaneAdapter {
         pane: &pane,
         catalog: &catalog,

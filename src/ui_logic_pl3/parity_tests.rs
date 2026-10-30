@@ -5,7 +5,7 @@ use super::{
     rows::Reply,
     view::View,
 };
-use crate::{i18n::I18n, jsondoc};
+use crate::jsondoc;
 
 fn reply(id: u64, op: &str) -> Reply {
     Reply::read(
@@ -21,7 +21,7 @@ fn reply(id: u64, op: &str) -> Reply {
 fn pb_trash_sweep_drops_stale_replies_and_keeps_requests_distinct() {
     let mut host = Host::new(View::new(31.));
     let now = dates::parse_ms("2026-10-26T12:00:00Z").unwrap();
-    let catalog = I18n::default();
+    let catalog = crate::i18n::test_catalogs::english();
     host.sweep(now, true, 0);
     host.drain();
     assert_eq!(

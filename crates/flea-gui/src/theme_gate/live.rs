@@ -183,7 +183,7 @@ fn theme_gate_live_switch_whole_window() {
     );
     let locale = window::locale::Snapshot {
         revision: 1,
-        catalog: Arc::new(flea::i18n::I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let handle = cx.update(|cx| window::open(launch, locale, server.events.clone(), cx).unwrap());
     edit(&mut cx, handle, |shell, window, cx| {

@@ -91,7 +91,7 @@ fn the_cursor_keys_follow_the_listing_and_space_closes(cx: &mut TestAppContext) 
 
 #[gpui::test]
 fn the_unsupported_card_sits_where_the_board_draws_it(cx: &mut TestAppContext) {
-    let i18n = flea::i18n::I18n::default();
+    let i18n = crate::test_catalogs::english();
     let (cx, _, look, _) = host(cx, can_not_show(&i18n), Arm::Fix);
     let window = cx.update(|window, _| window.viewport_size());
     let card = look.read_with(cx, |look, _| look.card(window));

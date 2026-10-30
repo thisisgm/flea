@@ -25,7 +25,7 @@ pub fn selected(kind: Kind, names: &[&str]) -> Selection {
 }
 fn draft(action: Action, kind: Kind, names: &[&str]) -> Model {
     let mut m = Model::default();
-    assert!(m.open(action, selected(kind, names), &I18n::default()));
+    assert!(m.open(action, selected(kind, names), &crate::test_catalogs::english()));
     m
 }
 fn checked(m: &mut Model) {
@@ -34,12 +34,12 @@ fn checked(m: &mut Model) {
         Card::Combine(c) => c.pending.unwrap(),
         _ => panic!(),
     };
-    m.checked(ticket, Ok(()), &I18n::default());
+    m.checked(ticket, Ok(()), &crate::test_catalogs::english());
 }
 
 #[test]
 fn op4_convert_draft_focus_collision_and_late_check_keep_identity() {
-    let c = I18n::default();
+    let c = crate::test_catalogs::english();
     let mut m = draft(Action::Convert, Kind::Image, &["photo.png"]);
     assert!(!m.open(Action::Convert, selected(Kind::Image, &["other.png"]), &c));
     assert_eq!(
@@ -83,7 +83,7 @@ fn op4_convert_draft_focus_collision_and_late_check_keep_identity() {
 
 #[test]
 fn op4_prestart_error_and_backend_death_retire_pending_activation() {
-    let c = I18n::default();
+    let c = crate::test_catalogs::english();
     let mut m = draft(Action::Convert, Kind::Image, &["a.png"]);
     checked(&mut m);
     m.submit(&c);
@@ -106,7 +106,7 @@ fn op4_prestart_error_and_backend_death_retire_pending_activation() {
 
 #[test]
 fn op4_partial_failure_refreshes_outputs_and_cancellation_has_no_refusal() {
-    let c = I18n::default();
+    let c = crate::test_catalogs::english();
     let mut m = draft(Action::Convert, Kind::Image, &["a.png", "b.jpg"]);
     checked(&mut m);
     m.submit(&c);
@@ -163,7 +163,7 @@ fn printer_ticket(m: &Model) -> Ticket {
 
 #[test]
 fn op4_printer_query_failure_is_not_no_printer_and_options_drop_stale() {
-    let c = I18n::default();
+    let c = crate::test_catalogs::english();
     let mut m = draft(Action::Print, Kind::Pdf, &["report.pdf"]);
     let id = printer_ticket(&m).request;
     assert!(!m.line(r#"{"t":"printoptions","ok":true,"id":1}"#, &c));
@@ -192,7 +192,7 @@ fn op4_printer_query_failure_is_not_no_printer_and_options_drop_stale() {
 
 #[test]
 fn op4_print_sent_is_one_receipt_without_progress_card() {
-    let c = I18n::default();
+    let c = crate::test_catalogs::english();
     let mut m = draft(Action::Print, Kind::Pdf, &["report.pdf"]);
     let id = printer_ticket(&m).request;
     m.line(&options(id, "Brother", true, true), &c);
@@ -233,7 +233,7 @@ fn op4_print_sent_is_one_receipt_without_progress_card() {
 
 #[test]
 fn op4_combining_reorders_paths_and_name_and_keeps_jpeg_transparency_valid() {
-    let c = I18n::default();
+    let c = crate::test_catalogs::english();
     let mut m = draft(Action::Combine, Kind::Image, &["z.png", "a.jpg", "b.png"]);
     m.move_image(0, 2, &c);
     checked(&mut m);
@@ -291,7 +291,7 @@ fn op4_locale_switch_preserves_diagnostic_and_per_string_english_fallback() {
         language_file: base.join("language"),
         catalogs: vec![base],
     });
-    let en = I18n::default();
+    let en = crate::test_catalogs::english();
     let mut m = draft(Action::Convert, Kind::Image, &["photo.png"]);
     assert_eq!(m.title(&de), "photo.png umwandeln");
     assert_eq!(de.tr("dialogs.output.metadata"), "Remove metadata");
@@ -320,7 +320,7 @@ fn op4_locale_switch_preserves_diagnostic_and_per_string_english_fallback() {
 
 #[test]
 fn op4_no_printer_setup_uses_returned_argv_and_closed_checks_stay_closed() {
-    let c = I18n::default();
+    let c = crate::test_catalogs::english();
     let mut m = draft(Action::Print, Kind::Pdf, &["report.pdf"]);
     let id = printer_ticket(&m).request;
     assert!(m.line(&format!(r#"{{"t":"printoptions","id":{id},"ok":true,"destinations":[],"printer":"","duplex":false,"twoSided":false,"color":false,"grayscale":true,"setupArgv":["system-config-printer"]}}"#), &c));
@@ -344,7 +344,7 @@ fn op4_no_printer_setup_uses_returned_argv_and_closed_checks_stay_closed() {
 
 #[test]
 fn op4_pdf_ranges_limits_and_count_diagnostics_keep_their_meaning() {
-    let c = I18n::default();
+    let c = crate::test_catalogs::english();
     let mut m = draft(Action::Convert, Kind::Pdf, &["report.pdf"]);
     let ticket = match &m.card {
         Some(Card::Convert(s)) => s.count_pending.unwrap(),
