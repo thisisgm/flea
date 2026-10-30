@@ -27,6 +27,7 @@ pub(crate) struct Pane<'a> {
     pub home: &'a str,
     pub catalog: &'a I18n,
     pub notice: &'a mut Notice,
+    pub trash_dropped: &'a mut bool,
 }
 
 pub fn view_name(view: View) -> &'static str {
@@ -149,6 +150,8 @@ impl Live for Pane<'_> {
     // The preview owner subscribes to the tab action before a new listing replaces its row.
     fn close_preview(&mut self) {}
     fn drop_overlay(&mut self) -> bool {
+        // Tabs.js: Trash only covers the listing, so closing it owes no re-list.
+        *self.trash_dropped = true;
         let search = self.host.pane.state.search;
         if search {
             self.host.pane.swap.session.leaving = true;

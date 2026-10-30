@@ -166,6 +166,32 @@ pub struct RowsModel {
     pub add_presses: u64,
     /// The row a held row drag would land on and its caption (move here, copy here or link here), RailDrop.qml's cue.
     pub drop_target: Option<(usize, gpui::SharedString)>,
+    /// A Favorites row held by its reorder drag, SidebarRow.qml's DragHandler.
+    pub reorder: Option<Reorder>,
+}
+
+/// The held favourite: its rail row, its store index, the press and active heights, and where the bar lands.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Reorder {
+    pub row: usize,
+    pub from: usize,
+    pub count: usize,
+    pub press_y: f32,
+    pub start_y: Option<f32>,
+    pub line: usize,
+}
+
+impl Reorder {
+    /// The rail row the bar borders and whether it lies under that row, Sidebar.qml's boundary.
+    pub fn boundary(&self) -> Option<(usize, bool)> {
+        let first = self.row.checked_sub(self.from)?;
+        self.start_y.map(|_| {
+            (
+                first + self.line.min(self.count.saturating_sub(1)),
+                self.line >= self.count,
+            )
+        })
+    }
 }
 
 pub struct RailElement {

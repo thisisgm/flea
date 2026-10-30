@@ -301,6 +301,9 @@ mod service;
 #[path = "rail_viewport_tests.rs"]
 mod viewport;
 
+#[path = "rail_reorder_tests.rs"]
+mod reorder;
+
 #[path = "rail_overflow_tests.rs"]
 mod overflow;
 

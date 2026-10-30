@@ -105,6 +105,8 @@ impl Shell {
             pair_armed: false,
         };
         self.dispatch(Order::Action(event), window, cx);
+        // The press is the window's: a listing under it would take it for a row press refused while the folder loads.
+        cx.stop_propagation();
     }
 
     /// The escapeUp setting: with it on, Escape cancels a live arm or pair first and then climbs.

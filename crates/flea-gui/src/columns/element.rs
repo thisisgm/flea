@@ -362,7 +362,7 @@ impl Element for TrackElement {
                             location,
                             name_x + name.line().width + px(gap),
                             top,
-                            if bright { inks.name } else { palette.muted },
+                            if bright { inks.name } else { palette.metadata },
                             window,
                         );
                         name_width += gap + f32::from(location.line().width);

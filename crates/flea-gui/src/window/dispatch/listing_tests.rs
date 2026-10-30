@@ -288,6 +288,25 @@ fn the_mouse_side_buttons_go_back_forward_and_up(cx: &mut TestAppContext) {
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+// EY-312: one side button press navigates once, so no second press is refused with "A directory is already loading.".
+#[gpui::test]
+fn a_side_button_over_the_listing_says_nothing_while_its_folder_loads(cx: &mut TestAppContext) {
+    use gpui::NavigationDirection::{Back, Forward};
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", home(), 1);
+    set_cursor(&shell, cx, 1);
+    cx.simulate_keystrokes("enter");
+    land(&shell, cx, "/files/beta", vec![row("inner", true)], 2);
+    side_button(cx, Back);
+    assert_eq!(asked(&shell, cx), "/files");
+    assert_eq!(notice(&shell, cx), "", "back says nothing while its folder loads");
+    land(&shell, cx, "/files", home(), 3);
+    side_button(cx, Forward);
+    assert_eq!(asked(&shell, cx), "/files/beta");
+    assert_eq!(notice(&shell, cx), "", "forward says nothing while its folder loads");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
 fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     shell.update(cx, |shell, cx| {
         shell.status_messages(cx, |messages, _| messages.notice().to_owned())
