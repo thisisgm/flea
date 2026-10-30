@@ -34,17 +34,44 @@ fn every_properties_row_in_the_windows_and_mac_presets_opens_the_card(cx: &mut T
             sent();
             cx.simulate_event(keystroke(binding));
             cx.run_until_parked();
+            // EY-226: the snapshot names its listing and goes alone; Properties waits for its answer.
             let lines = sent();
+            let snapshot = lines
+                .iter()
+                .find(|line| line.contains(r#""op":"snapshot""#))
+                .unwrap_or_else(|| panic!("{preset} {} snapshots notes.txt: {lines:?}", binding.keys));
+            let id = flea::json::field_usize(snapshot, "id").unwrap();
             assert!(
-                lines
-                    .iter()
-                    .any(|line| line.contains(r#""op":"properties""#)),
-                "{preset} {} asks the facts of notes.txt: {lines:?}",
+                snapshot.contains(r#""listing":1,"rows":[2],"cursor":2"#),
+                "{preset} {} names the listing its row came from: {snapshot}",
                 binding.keys
             );
             assert!(
-                shell.read_with(cx, |shell, _| shell.properties.is_some()),
-                "{preset} {} opens the Properties card",
+                !lines.iter().any(|line| line.contains(r#""op":"properties""#)),
+                "{preset} {} waits for the snapshot before asking: {lines:?}",
+                binding.keys
+            );
+            reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[33188]}}"#));
+            let lines = sent();
+            assert_eq!(
+                lines,
+                [format!(r#"{{"c":"menuaction","op":"properties","id":{id}}}"#)],
+                "{preset} {} asks the facts of notes.txt once the snapshot is held",
+                binding.keys
+            );
+            reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"properties","ok":true,"path":"/files/notes.txt","kind":"File","bytes":99,"modified":0,"mode":"0644","owner":"gm","uid":1000,"gid":1000}}"#));
+            assert!(
+                shell.read_with(cx, |shell, _| shell.properties.as_ref().is_some_and(|open| open.ready())),
+                "{preset} {} shows the facts on the Properties card",
+                binding.keys
+            );
+            assert_eq!(
+                shell.read_with(cx, |shell, _| {
+                    let host = shell.panes[0].as_ref().unwrap();
+                    (host.pane.cursor, host.pane.held.row(2).map(|row| row.name.to_string()))
+                }),
+                (2, Some("notes.txt".into())),
+                "{preset} {} keeps the listing behind the card",
                 binding.keys
             );
             shell.update(cx, |shell, _| shell.stop_for_app_quit());
