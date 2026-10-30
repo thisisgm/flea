@@ -61,6 +61,7 @@ impl Shell {
         let typeface = self.active_typeface();
         let catalog = self.locale.catalog.clone();
         let keyed = self.flash_has_keys(window, cx);
+        let covered = self.flash_covers(self.operations.archive.flash_side);
         let room = f32::from(window.viewport_size().width);
         let radius = self.corner;
         self.sync_dialog_editor();
@@ -115,6 +116,10 @@ impl Shell {
                     )
                     .into_any_element(),
             );
+        }
+        // FlashHost.qml rides its pane: a flash left on the second pane stays open, unseen, while one pane shows.
+        if !covered {
+            return None;
         }
         let mut view = archive.flash.view(&catalog);
         view.focused &= keyed;

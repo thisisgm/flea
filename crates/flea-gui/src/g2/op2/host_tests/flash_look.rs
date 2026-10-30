@@ -90,6 +90,13 @@ fn seat(cx: &mut TestAppContext, handle: Handle) -> (usize, &'static str) {
     })
 }
 
+/// The listing cursor of one pane.
+fn cursor(cx: &mut TestAppContext, handle: Handle, side: usize) -> usize {
+    edit(cx, handle, |shell, _, _| {
+        shell.panes[side].as_ref().unwrap().pane.cursor
+    })
+}
+
 /// A real left click on the flash pane's empty foot.
 fn press_flash(cx: &mut TestAppContext, handle: Handle) {
     let mut visual = VisualTestContext::from_window(handle.into(), cx);
@@ -149,6 +156,11 @@ fn tab_hands_the_keys_to_the_rail_and_a_press_on_flash_takes_them_back() {
     // FlashView.qml focusNext asks FlashHost for the rail; the rail's own keys then leave the flash cursor alone.
     keys(&mut cx, handle, "tab");
     assert_eq!(seat(&mut cx, handle), (1, "rail"));
+    assert!(
+        !edit(&mut cx, handle, |shell, window, cx| shell
+            .flash_has_keys(window, cx)),
+        "the flash layer passes the rail's keys on"
+    );
     assert_eq!(
         edge_ink(&mut cx, handle).0,
         Some(muted),
@@ -178,15 +190,125 @@ fn the_other_dual_pane_keeps_its_keys_while_flash_covers_this_one() {
     let (edge, accent, muted) = edge_ink(&mut cx, handle);
     assert_eq!(edge, Some(accent));
     edit(&mut cx, handle, |shell, _, _| shell.focus_side = 1);
-    keys(&mut cx, handle, "up");
+    let before = cursor(&mut cx, handle, 1);
+    keys(&mut cx, handle, "down");
+    assert_eq!(
+        cursor(&mut cx, handle, 1),
+        before + 1,
+        "the right pane takes its own Down"
+    );
     assert_eq!(
         seat(&mut cx, handle).0,
         1,
-        "the right pane's Up never moves the flash cursor"
+        "the right pane's Down never moves the flash cursor"
     );
     assert_eq!(
         edge_ink(&mut cx, handle).0,
         Some(muted),
         "focus on the right pane leaves Flash unfocused"
+    );
+}
+
+#[test]
+fn a_flash_on_the_second_pane_lets_go_of_the_keys_while_one_pane_shows() {
+    let mut cx = crate::list::bench::real_cx();
+    let handle = opened(&mut cx, View::Dual);
+    // FlashHost.qml rides its pane: the second pane's flash hides with it and comes back with Dual.
+    edit(&mut cx, handle, |shell, window, cx| {
+        shell.operations.archive.flash_side = 1;
+        shell.set_view(View::List, window, cx);
+        assert!(shell.view == View::List && shell.focus_side == 0);
+    });
+    frame(&mut cx, handle);
+    let before = cursor(&mut cx, handle, 0);
+    keys(&mut cx, handle, "down");
+    assert_eq!(
+        seat(&mut cx, handle).0,
+        1,
+        "the unseen flash never takes the Down"
+    );
+    assert_eq!(
+        cursor(&mut cx, handle, 0),
+        before + 1,
+        "the left pane takes its own Down"
+    );
+    assert!(edit(&mut cx, handle, |shell, _, _| shell
+        .operations
+        .archive
+        .flash
+        .shown()));
+    assert!(
+        VisualTestContext::from_window(handle.into(), &cx)
+            .debug_bounds("op2-flash")
+            .is_none(),
+        "nothing draws the flash while its pane is out of view"
+    );
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.view = View::Dual;
+        shell.focus_side = 1;
+    });
+    frame(&mut cx, handle);
+    assert!(
+        VisualTestContext::from_window(handle.into(), &cx)
+            .debug_bounds("op2-flash")
+            .is_some(),
+        "the flash returns with its pane"
+    );
+}
+
+#[test]
+fn back_and_up_leave_flash_and_stop_while_forward_is_refused() {
+    use crate::window::navigate::Step;
+    for stop in [Step::Back, Step::MouseBack, Step::Up] {
+        let mut cx = crate::list::bench::real_cx();
+        let handle = opened(&mut cx, View::List);
+        edit(&mut cx, handle, |shell, window, cx| {
+            assert!(matches!(
+                shell.covered_step(0, &Step::Forward, window, cx),
+                Some(Ok(false))
+            ));
+            assert!(
+                shell.operations.archive.flash.shown(),
+                "Forward leaves Flash open"
+            );
+            // Pane.qml goBack and openParent: the step ends on the folder under Flash.
+            assert!(matches!(
+                shell.covered_step(0, &stop, window, cx),
+                Some(Ok(true))
+            ));
+            assert!(!shell.operations.archive.flash.shown());
+        });
+    }
+}
+
+#[test]
+fn a_place_and_the_strip_back_leave_flash() {
+    use crate::window::navigate::Step;
+    let mut cx = crate::list::bench::real_cx();
+    let handle = opened(&mut cx, View::List);
+    edit(&mut cx, handle, |shell, window, cx| {
+        assert!(
+            shell
+                .covered_step(0, &Step::OpenPlace("/right".into()), window, cx)
+                .is_none(),
+            "a place leaves Flash and goes on to the folder"
+        );
+        assert!(!shell.operations.archive.flash.shown());
+    });
+    let mut cx = crate::list::bench::real_cx();
+    let handle = opened(&mut cx, View::List);
+    let mut visual = VisualTestContext::from_window(handle.into(), &cx);
+    let back = visual
+        .debug_bounds("op2-flash-back")
+        .expect("the strip's Back is drawn");
+    visual.simulate_click(back.center(), gpui::Modifiers::none());
+    frame(&mut cx, handle);
+    assert!(
+        !edit(&mut cx, handle, |shell, _, _| shell
+            .operations
+            .archive
+            .flash
+            .shown()),
+        "the strip's Back leaves Flash"
     );
 }
