@@ -186,28 +186,6 @@ impl Picker {
         }
         cx.stop_propagation();
     }
-
-    // Focus and stem selection are applied with the window: a name that arrived, a review that asked, the default field.
-    fn place_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.browse.window = Some(window.window_handle());
-        let Some(filename) = self.browse.filename.clone() else {
-            return;
-        };
-        let review = self.stem_requests != self.browse.stems_seen;
-        if !self.browse.focus_filename && !review {
-            return;
-        }
-        self.browse.focus_filename = false;
-        self.browse.stems_seen = self.stem_requests;
-        let focus = filename.update(cx, |field, cx| {
-            if review {
-                field.select_stem();
-                cx.notify();
-            }
-            field.focus.clone()
-        });
-        window.focus(&focus, cx);
-    }
 }
 
 impl Render for Picker {
