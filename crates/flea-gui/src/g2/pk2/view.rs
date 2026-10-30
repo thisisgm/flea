@@ -16,6 +16,7 @@ pub struct ListingView {
     // The name filter's drawn rows, None while every row is drawn, and its strip under the column titles.
     pub(super) shown: Option<Rc<[usize]>>,
     strip: Option<AnyView>,
+    pub(super) last_tap: String,
 }
 
 impl ListingView {
@@ -45,6 +46,7 @@ impl ListingView {
             scroll_y: 0.,
             shown: None,
             strip: None,
+            last_tap: String::new(),
         }
     }
 

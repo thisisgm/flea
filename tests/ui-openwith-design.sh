@@ -28,7 +28,7 @@ openwith_open_dialog() {
 }
 
 openwith_search() {
-    printf '%s' "$1" | omarchy-drive key --window flea - >/dev/null || fail "openwith: typing $1 failed"
+    printf '%s' "$1" | omarchy-drive key --window com.thisisgm.flea - >/dev/null || fail "openwith: typing $1 failed"
     settle
 }
 

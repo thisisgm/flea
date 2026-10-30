@@ -75,12 +75,16 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         self.observe_providers(window, cx);
+        self.rclone_menu_opened(side);
         self.menu.providers.asked[side] = id;
         self.menu.providers.destination[side] = None;
         self.menu_send(side, format!("{{\"c\":\"formats\",\"id\":{id}}}"), cx);
     }
 
     pub(crate) fn providers_menu_closed(&mut self) {
+        for sender in &self.menu.rclone {
+            sender.borrow_mut().menu_closed();
+        }
         for sender in &mut self.menu.providers.sides {
             sender.menu_closed();
         }
@@ -97,6 +101,7 @@ impl Shell {
         let line = match event {
             BackendEvent::Producer(line) | BackendEvent::Operations(line) => line,
             BackendEvent::Failed(_) | BackendEvent::Drained => {
+                self.menu.rclone[side].borrow_mut().backend_ended();
                 self.menu.providers.sides[side].backend_dead();
                 self.menu.providers.asked[side] = 0;
                 self.menu.providers.destination[side] = None;
@@ -247,7 +252,7 @@ impl Shell {
     }
 
     // A provider answer under an open menu rebuilds its rows in place; before the card shows, the load path does.
-    fn provider_refresh(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn provider_refresh(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if !self.menu_opened() {
             self.refresh_menu(window, cx);
             return;

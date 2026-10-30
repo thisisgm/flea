@@ -61,7 +61,7 @@ impl Shell {
         true
     }
 
-    fn operation_overlay(
+    pub(crate) fn operation_overlay(
         &mut self,
         side: usize,
         window: &mut Window,
@@ -95,7 +95,7 @@ impl Shell {
         Some(view)
     }
 
-    fn show_operation(&mut self, view: &Entity<Overlay>, cx: &mut Context<Self>) {
+    pub(crate) fn show_operation(&mut self, view: &Entity<Overlay>, cx: &mut Context<Self>) {
         let active = Entity::read(view, cx);
         if !active.modal(cx)
             && !active.model.jobs.visible()

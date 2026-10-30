@@ -383,7 +383,22 @@ pub(super) fn dialog_snapshot(
             focus,
             busy,
             ..
-        } => super::copy_to::card(scene, window, *moving, path, *focus, *busy),
+        } => super::copy_to::card(scene, window, *moving, path, *focus, *busy, None),
+        Dialog::SendTo {
+            path,
+            focus,
+            busy,
+            card,
+            ..
+        } => {
+            let mut card = card.clone();
+            let refusal = flea::ui_logic_sd2::folder_check(path).err();
+            card.can_submit = !busy && refusal.is_none();
+            if refusal.is_some() || card.value != *path {
+                card.error = flea::ui_logic_sd2::present::card_error(scene.catalog, refusal, None);
+            }
+            super::copy_to::card(scene, window, false, path, *focus, *busy, Some(&card))
+        }
         Dialog::NewFile {
             name,
             focus,

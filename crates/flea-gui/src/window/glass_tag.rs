@@ -138,7 +138,7 @@ pub fn valid_address(text: &str) -> bool {
 }
 
 /// The addresses of this process's windows in `hyprctl clients -j` output, valid addresses only.
-/// Sample input: `[{"address":"0x55bacb0a1f80","pid":4211,"class":"flea"}]`.
+/// Sample input: `[{"address":"0x55bacb0a1f80","pid":4211,"class":"com.thisisgm.flea"}]`.
 pub fn own_addresses(json: &str, pid: u32) -> Vec<String> {
     let Ok(clients) = jsondoc::parse(json) else {
         return Vec::new();
@@ -192,7 +192,7 @@ pub fn uses_default(user_shell: &str, theme_shell: &str) -> bool {
 }
 
 /// Whether a Hyprland socket2 line asks for a pass, as a config reload or this app's window opening does.
-/// Sample input: `openwindow>>55bacb0a1f80,1,flea,Flea` or `configreloaded>>`.
+/// Sample input: `openwindow>>55bacb0a1f80,1,com.thisisgm.flea,Flea` or `configreloaded>>`.
 pub fn retags(line: &str) -> bool {
     let Some((event, data)) = line.split_once(">>") else {
         return false;

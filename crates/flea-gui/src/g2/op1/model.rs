@@ -2,7 +2,6 @@
 use super::press::Press;
 use flea::i18n::I18n;
 use flea::ui_logic_op1::{
-    card::Kind,
     collide::{self, Choice, Fat, Key, Request},
     confirm::Confirm,
     host::{Host, Step},
@@ -43,6 +42,13 @@ pub enum Dialog {
         focus: CopyFocus,
         busy: bool,
     },
+    SendTo {
+        menu: u64,
+        path: String,
+        focus: CopyFocus,
+        busy: bool,
+        card: crate::g2::sd2::seams::Card,
+    },
     // The folder's background New File row; id names its request, busy while create is out, error is the last refusal's sentence.
     NewFile {
         id: u64,
@@ -61,63 +67,6 @@ pub enum CopyFocus {
     Confirm,
 }
 
-impl Dialog {
-    pub fn kind(&self) -> Kind {
-        match self {
-            Dialog::Collide { .. } | Dialog::Fat { .. } => Kind::Collide,
-            Dialog::Delete { .. } => Kind::Delete,
-            Dialog::CopyTo { .. } => Kind::CopyTo,
-            Dialog::NewFile { .. } => Kind::NewFile,
-        }
-    }
-
-    // The session and draft of the dialog's text field, for each dialog with one.
-    pub(super) fn draft(&self) -> Option<(u64, &str)> {
-        match self {
-            Dialog::CopyTo { menu, path, .. } => Some((*menu, path)),
-            Dialog::NewFile { id, name, .. } => Some((*id, name)),
-            _ => None,
-        }
-    }
-
-    pub(super) fn draft_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Dialog::CopyTo { path, .. } => Some(path),
-            Dialog::NewFile { name, .. } => Some(name),
-            _ => None,
-        }
-    }
-
-    // The focus of the dialog's field and its busy flag, for each dialog with a field.
-    pub(super) fn field_state(&mut self) -> Option<(&mut CopyFocus, bool)> {
-        match self {
-            Dialog::CopyTo { focus, busy, .. } | Dialog::NewFile { focus, busy, .. } => {
-                Some((focus, *busy))
-            }
-            _ => None,
-        }
-    }
-
-    // The session whose field takes typing now: focused on the field and not busy.
-    pub(super) fn typing_session(&self) -> Option<u64> {
-        match self {
-            Dialog::CopyTo {
-                menu,
-                focus: CopyFocus::Field,
-                busy: false,
-                ..
-            } => Some(*menu),
-            Dialog::NewFile {
-                id,
-                focus: CopyFocus::Field,
-                busy: false,
-                ..
-            } => Some(*id),
-            _ => None,
-        }
-    }
-}
-
 // A status line the window shows, and whether it is an error.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Said {
@@ -128,6 +77,7 @@ pub struct Said {
 }
 
 pub struct Operations {
+    pub(crate) rclone_target: Option<crate::g2::sd2::join::Target>,
     pub preset: String,
     pub collide: Host,
     pub dialog: Option<Dialog>,
@@ -166,6 +116,7 @@ impl Operations {
     pub fn new(preset: &str) -> Self {
         Self {
             preset: preset.into(),
+            rclone_target: None,
             collide: Host::default(),
             dialog: None,
             wire: transfer::Wire::default(),
@@ -524,7 +475,7 @@ impl Operations {
                     }
                 }
             },
-            Dialog::CopyTo { focus, .. } => match key {
+            Dialog::CopyTo { focus, .. } | Dialog::SendTo { focus, .. } => match key {
                 Key::Escape => self.close_copy(),
                 // The field is a text input: Space types, and only Enter submits from it.
                 Key::Activate if focus == CopyFocus::Field && name == "space" => {}
@@ -556,10 +507,20 @@ impl Operations {
                 self.choose_fat(catalog, choice)
             }
             Press::Delete(button) => self.press_delete(button),
-            Press::CopyCancel if matches!(self.dialog, Some(Dialog::CopyTo { .. })) => {
+            Press::CopyCancel
+                if matches!(
+                    self.dialog,
+                    Some(Dialog::CopyTo { .. } | Dialog::SendTo { .. })
+                ) =>
+            {
                 self.close_copy()
             }
-            Press::CopyConfirm if matches!(self.dialog, Some(Dialog::CopyTo { .. })) => {
+            Press::CopyConfirm
+                if matches!(
+                    self.dialog,
+                    Some(Dialog::CopyTo { .. } | Dialog::SendTo { .. })
+                ) =>
+            {
                 self.confirm_copy(catalog)
             }
             Press::NewFileCancel if matches!(self.dialog, Some(Dialog::NewFile { .. })) => {

@@ -140,7 +140,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        // The archive and flash host answers its own lines first, so none is forwarded as an unclaimed reply.
+        // The rclone sender, then the archive and flash host, answer their own lines first, so none is forwarded as an unclaimed reply.
+        if self.rclone_line(side, line, window, cx) {
+            return true;
+        }
         if self.archive_line(side, line, window, cx) {
             return true;
         }
@@ -271,6 +274,10 @@ impl Shell {
             return;
         };
         let side = capture.side;
+        if action == "sendRclone" {
+            self.rclone_choose(&capture, &leaf, paths, window, cx);
+            return;
+        }
         if self.header_menu_choose(&action, window, cx) {
             return;
         }

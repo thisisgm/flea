@@ -170,7 +170,7 @@ impl Shell {
         true
     }
 
-    fn owner_notice(
+    pub(crate) fn owner_notice(
         &mut self,
         side: usize,
         sentence: &str,

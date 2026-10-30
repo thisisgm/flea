@@ -110,7 +110,7 @@ fn glass_tag_only_lowercase_hex_addresses_reach_a_dispatch() {
 
 #[test]
 fn glass_tag_takes_only_this_process_windows_with_valid_addresses() {
-    let json = r#"[{"address":"0x55bacb0a1f80","pid":4211,"class":"flea"},{"address":"0x2","pid":99},{"address":"0xBAD","pid":4211},{"address":"0x3","pid":"4211"},{"address":"0x4"}]"#;
+    let json = r#"[{"address":"0x55bacb0a1f80","pid":4211,"class":"com.thisisgm.flea"},{"address":"0x2","pid":99},{"address":"0xBAD","pid":4211},{"address":"0x3","pid":"4211"},{"address":"0x4"}]"#;
     assert_eq!(own_addresses(json, 4211), vec!["0x55bacb0a1f80".to_owned()]);
     assert!(own_addresses("{}", 4211).is_empty());
     assert!(own_addresses("not json", 4211).is_empty());
@@ -197,8 +197,13 @@ fn glass_tag_mode_follows_the_toggle_files() {
 #[test]
 fn glass_tag_reruns_on_config_reload_and_on_its_own_window_only() {
     assert!(retags("configreloaded>>"));
-    assert!(retags("openwindow>>55bacb0a1f80,1,flea,Flea, with commas"));
-    assert!(!retags("openwindow>>55bacb0a1f80,1,com.thisisgm.flea,Flea"));
+    assert!(retags(
+        "openwindow>>55bacb0a1f80,1,com.thisisgm.flea,Flea, with commas"
+    ));
+    assert!(!retags("openwindow>>55bacb0a1f80,1,flea,Flea"));
+    assert!(!retags(
+        "openwindow>>55bacb0a1f80,1,com.thisisgm.flea.picker,Open File"
+    ));
     assert!(!retags("activewindow>>flea,Flea"));
     assert!(!retags("configreloaded"));
 }
@@ -241,7 +246,7 @@ fn glass_tag_without_hyprctl_leaves_windows_alone_and_frees_the_tagger() {
 
 #[test]
 fn glass_tag_keeps_reading_past_a_title_that_is_not_utf8() {
-    let events: &[u8] = b"activewindow>>flea,\xff\xfe\nopenwindow>>55bacb0a1f80,1,flea,Ti\xfftle\nconfigreloaded>>\n";
+    let events: &[u8] = b"activewindow>>flea,\xff\xfe\nopenwindow>>55bacb0a1f80,1,com.thisisgm.flea,Ti\xfftle\nconfigreloaded>>\n";
     let mut passes = 0;
     read_events(events, Path::new("/tmp/hypr/sig/.socket2.sock"), || {
         passes += 1;

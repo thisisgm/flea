@@ -52,6 +52,8 @@ pub(crate) mod status;
 pub(crate) mod surfaces;
 mod transitions;
 mod unlock;
+#[cfg(test)]
+mod vf6_tests;
 
 #[cfg(test)]
 mod u07_chrome_tests;
@@ -66,7 +68,7 @@ use root::Root;
 use startup::Launch;
 
 /// The app id, which Hyprland reports as the class of this app's windows.
-pub const APP_ID: &str = "flea";
+pub const APP_ID: &str = "com.thisisgm.flea";
 
 pub fn open(
     launch: Launch,

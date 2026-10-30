@@ -24,6 +24,8 @@ mod owners;
 mod place_host;
 pub(crate) mod presentation;
 #[cfg(test)]
+mod rclone_tests;
+#[cfg(test)]
 mod review_r2_tests;
 #[cfg(test)]
 mod review_tests;

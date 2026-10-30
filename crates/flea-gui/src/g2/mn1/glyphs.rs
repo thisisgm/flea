@@ -67,6 +67,8 @@ pub(super) const CUT: &[(&str, &str, &[u8])] = &[
     // Open in Agent and Actions, from the board source (`design-hig/source/ui.py`, lucide's bot and zap cut to the Omarchy edge); the only copy of these cuts; appended so FILE keeps its index.
     ("bot", "flea-menu:bot", cut!("M12 8V4H8 M4 8h16v12H4z M2 14h2 M20 14h2 M15 13v2 M9 13v2")),
     ("zap", "flea-menu:zap", cut!("M13 2 3 14h9l-1 8 10-12h-9l1-8z")),
+    // Send with rclone, the rclone-menu board's cloud-upload, the same cut st1 draws; appended so FILE keeps its index.
+    ("cloud-upload", "flea-menu:cloud-upload", cut!("M12 13v8 M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242 M8 17l4-4 4 4")),
 ];
 
 /// The atlas key and SVG for a named mark; an unknown name draws the plain file mark, as Icons.pathFor does.

@@ -1220,7 +1220,7 @@ EOS
     key "tester" >/dev/null
     key -k Tab >/dev/null
     [[ "$(ipc networkFocus)" == "Password" ]] || fail "networkauth: Password did not follow Username"
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
         || fail "networkauth: typed password is not masked"
     shot networkauth-password-masked
@@ -1298,7 +1298,7 @@ EOS
     for _field in Port Share Domain Username Password; do key -k Tab >/dev/null; done
     [[ "$(ipc networkFocus)" == "Password" ]] \
         || fail "networkauth: missing-helper setup did not reach Password"
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     mv "$dir/bin/flea-gio-auth" "$dir/bin/flea-gio-auth.real"
     key -k Return >/dev/null
     wait_network_status "Could not connect: Flea could not ask for the password." 10
@@ -1362,7 +1362,7 @@ EOS
     for _field in Port Share Domain Username Password; do key -k Tab >/dev/null; done
     [[ "$(ipc networkFocus)" == "Password" ]] \
         || fail "networkauth: corrected-retry setup did not reach Password"
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     key -k Return >/dev/null
     wait_network_result mounted
     [[ "$(cat "$state/info-uri")" == "smb://tester@slot.test/data" ]] \
@@ -1387,7 +1387,7 @@ EOS
     key -k Tab >/dev/null
     key "tester" >/dev/null
     key -k Tab >/dev/null
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     : > "$state/fail"
     key -k Return >/dev/null
     wait_network_result failed

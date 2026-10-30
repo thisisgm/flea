@@ -97,7 +97,7 @@ private+=(DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus")
 cat > "$root/config/hyprland.lua" <<'LUA'
 hl.monitor({ output = "FLEA", mode = "2560x1440@120", position = "0x0", scale = 1 })
 hl.monitor({ output = "Virtual-1", disabled = true })
-hl.window_rule({ match = { class = "^flea$" }, float = true, center = true, size = { 1100, 700 } })
+hl.window_rule({ match = { class = "^com[.]thisisgm[.]flea$" }, float = true, center = true, size = { 1100, 700 } })
 hl.config({ animations = { enabled = false }, input = { repeat_rate = 0 },
     decoration = { rounding = 0, shadow = { enabled = false } },
     misc = { disable_hyprland_logo = true, disable_splash_rendering = true } })

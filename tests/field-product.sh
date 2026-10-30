@@ -50,7 +50,7 @@ with patch.dict(os.environ, {'FLEA_FRONTEND': 'gpui'}):
         assert argv == [arm['flea_bin'], '--gui', '/fixture with spaces']
         assert env['FLEA_FRONTEND'] == arm['frontend']
         assert Path(env['XDG_STATE_HOME']).is_relative_to(root)
-        assert S.entrant_spec(arm)['cls'] == ('flea' if arm['frontend'] == 'gpui' else S.FLEA_CLASS)
+        assert S.entrant_spec(arm)['cls'] == S.FLEA_CLASS
         N.require_seeded_view(arm, env)
     assert launches[0][1]['XDG_STATE_HOME'] != launches[1][1]['XDG_STATE_HOME']
     # The QML cache outlives the run's state, one per binary by its sha256.
@@ -66,7 +66,7 @@ with patch.dict(os.environ, {'FLEA_FRONTEND': 'gpui'}):
     assert R.search_version(['anchor'], 'flea', {}, {}, '0.4.0', 'fixture', [], identities) == 'flea 0.3.12'
     assert S.entrant_argv({'entrant': 'strata', 'strata_bin': fresh}, '/fixture', {})[0][0] == fresh
     assert S.entrant_argv({'entrant': 'strata', 'strata_bin': old}, '/fixture', {})[0][0] == old
-    assert I.external_clients([{'class': 'flea', 'pid': 7}, {'class': 'flea', 'pid': 8}], {7}) == [{'class': 'flea', 'pid': 8}]
+    assert I.external_clients([{'class': 'com.thisisgm.flea', 'pid': 7}, {'class': 'com.thisisgm.flea', 'pid': 8}], {7}) == [{'class': 'com.thisisgm.flea', 'pid': 8}]
 
 # The actual list adapter must discover the owned native instance, not invoke qs.
 proc = type('Process', (), {'pid': os.getpid()})()
@@ -86,7 +86,7 @@ env = dict(os.environ, FLEA_FRONTEND='gpui', FLEA_UI='/candidate/ui', FLEA_BIN=f
            TUI_TERM='kitty', FIXTURE='/fixture', WITH_ANCHOR='yes')
 rows = subprocess.check_output(['bash', '-c', block + '\nbuild_entrants\nprintf "%s\\n" "${ENTRANTS[@]}"'], env=env, text=True).splitlines()
 roster = {row.split('|')[0]: row.split('|', 7) for row in rows}
-assert roster['flea'][2:5] == ['flea', 'flea-gui', str(gui)]
+assert roster['flea'][2:5] == ['com.thisisgm.flea', 'flea-gui', str(gui)]
 assert 'FLEA_FRONTEND=gpui' in roster['flea'][7] and ' --gui ' in roster['flea'][7]
 assert 'FLEA_FRONTEND=qml' in roster['flea-anchor'][7]
 assert old + ' --tui ' in roster['flea-tui-anchor'][7]
@@ -95,7 +95,7 @@ cap = Path('tools/flea-bench-capability').read_text()
 cap_block = cap[cap.index('# capability roster begin'):cap.index('# capability roster end')]
 cap_env = dict(env, FLEA_REPO=str(Path.cwd()))
 cap_rows = subprocess.check_output(['bash', '-c', cap_block + '\nprintf "%s\\n" "${CAP_ROWS[@]}"'], env=cap_env, text=True).splitlines()
-assert any(row.startswith('flea|gui|flea|flea-gui|') for row in cap_rows)
+assert any(row.startswith('flea|gui|com.thisisgm.flea|flea-gui|') for row in cap_rows)
 assert any(row.startswith('strata-nightly|gui|') for row in cap_rows)
 assert all('$' not in row for row in cap_rows if '|gui|' in row)
 targets = cap[cap.index('select_process_targets() {'):cap.index('\nowned_recorded()', cap.index('select_process_targets() {'))]
@@ -465,7 +465,7 @@ anchor_tree, anchor = build('anchor', '0.3.12')
 # Front end: GPUI is the default candidate, QML the anchor, anything else refused.
 assert P.frontend({}) == 'gpui' and P.frontend({'frontend': 'qml'}) == 'qml'
 refused('a third front end', P.frontend, {'frontend': 'gtk'})
-assert P.window_class({'frontend': 'gpui'}) == 'flea' and P.window_class({'frontend': 'qml'}) == 'com.thisisgm.flea'
+assert P.window_class({'frontend': 'gpui'}) == 'com.thisisgm.flea' and P.window_class({'frontend': 'qml'}) == 'com.thisisgm.flea'
 
 # A whole build is bound: launcher, sibling, interface files, helpers, source, compiler, seams, fork pin.
 got = P.build_identity(str(cand), 'gpui', str(cand_tree))

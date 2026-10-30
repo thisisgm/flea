@@ -1,5 +1,6 @@
 //! Send with rclone (#176): the menu row and its remotes, the folder card, each send's transfer-card block and its receipt.
 //! The wire and every word come from core `flea::ui_logic_sd2`; drawing the menu, card and job blocks belongs to their hosts.
+pub(crate) mod join;
 pub mod seams;
 pub mod sweep;
 
@@ -9,7 +10,7 @@ use flea::ui_logic_sd2::{
 };
 use seams::{Card, FlyoutRow, MenuRow, Wire};
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use sweep::Sweep;
 
@@ -41,6 +42,7 @@ pub struct RcloneSend {
     /// The folder last sent to on each remote, kept until Flea closes.
     folders: HashMap<String, String>,
     card: Option<Open>,
+    cancel_on_start: HashSet<u64>,
     /// Newest first, as the card stacks jobs; each is keyed by its own request id, which never repeats.
     sends: Vec<Send>,
     sweeps: HashMap<u64, Rc<Sweep>>,
@@ -145,8 +147,20 @@ impl RcloneSend {
     }
 
     pub fn close_card(&mut self) {
+        if let Some(request) = self.card.take().and_then(|open| open.asked) {
+            self.cancel_on_start.insert(request);
+        }
+        self.settle();
+    }
+
+    /// The card leaves without a cancel, for another card taking its place: a send it asked for runs on.
+    pub(crate) fn drop_card(&mut self) {
         self.card = None;
         self.settle();
+    }
+
+    pub(crate) fn cancel_closed_card(&mut self, request: u64, wire: &dyn Wire) -> bool {
+        self.cancel_on_start.remove(&request) && self.cancel(request, wire)
     }
 
     /// Send: one request; the card closes when the backend takes it and stays with the reason when it refuses.
@@ -283,6 +297,7 @@ impl RcloneSend {
         }
         self.asking = None;
         self.visible = false;
+        self.cancel_on_start.clear();
         self.remotes.clear();
         if let Some(open) = self.card.as_mut() {
             open.asked = None;

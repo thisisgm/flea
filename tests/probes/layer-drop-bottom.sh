@@ -151,7 +151,7 @@ layerdrop_focus() {
     local i active
     hypr_window_focus "$addr" || refuse "could not focus probe window"
     for i in $(seq 1 "$layerdrop_settle_attempts"); do
-        # Sample input: {"address":"0xa","pid":101,"class":"flea"} from hyprctl activewindow -j.
+        # Sample input: {"address":"0xa","pid":101,"class":"com.thisisgm.flea"} from hyprctl activewindow -j.
         active=$(hyprctl activewindow -j 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("address", ""))' || true)
         [ "$active" = "$addr" ] && return 0
         sleep "$layerdrop_settle_poll"

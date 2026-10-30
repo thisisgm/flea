@@ -52,7 +52,7 @@ check() {
   fi
 }
 
-press() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window flea -k "$1" >/dev/null 2>&1; sleep 0.5; }
+press() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window com.thisisgm.flea -k "$1" >/dev/null 2>&1; sleep 0.5; }
 
 # rowCentre answers in window coordinates, and a Wayland client is never told where its surface is,
 # so the window origin is added here exactly as tests/ui.sh's own click_row does.
@@ -66,7 +66,7 @@ click_row() {
   read -r wx wy <<< "$(window_box)"
   LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$button" >/dev/null 2>&1
 }
-typek() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window flea "$1" >/dev/null 2>&1; sleep 0.4; }
+typek() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window com.thisisgm.flea "$1" >/dev/null 2>&1; sleep 0.4; }
 listing() { LC_ALL=C.UTF-8 LANGUAGE= ls "$SB" | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ' '; }
 
 # The cursor goes to the top first and then walks down, because a row the sort puts above the cursor

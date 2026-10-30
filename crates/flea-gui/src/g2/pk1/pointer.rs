@@ -1,7 +1,8 @@
-//! The chooser's location press and grid wheel keep the existing entry and shared zoom policy.
+//! The chooser's location press, grid wheel and row clicks keep the existing entry, zoom policy and activation contract.
 use super::Picker;
 use crate::grid::ZoomInput;
 use crate::input::{scroll, wheel_delivery};
+use flea::ui_logic_pk1::{self as logic, DoubleAction};
 use gpui::{
     Context, MouseButton, MouseDownEvent, ScrollDelta, ScrollWheelEvent, TouchPhase, Window,
 };
@@ -14,6 +15,46 @@ impl Picker {
             || self.chrome.folder_request.is_some()
             || self.chrome.menu.is_some()
             || !self.browse.route.asked.is_empty()
+    }
+
+    pub(super) fn row_pointer(
+        &mut self,
+        event: &MouseDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        window.focus(&self.focus, cx);
+        if self.backend_unavailable()
+            || self.answered()
+            || self.accept_state().submitting()
+            || self.listing.failed
+            || self.listing.state != "ready"
+            || self.chrome.menu_view.is_some()
+        {
+            return;
+        }
+        let hit = self
+            .browse
+            .listing
+            .update(cx, |view, _| view.pointer_hit(event.position));
+        let Some(hit) = hit else { return };
+        if event.modifiers.shift && self.marks_allowed() {
+            self.extend_to(hit.index, cx);
+            return;
+        }
+        self.end_range();
+        self.move_cursor(hit.index, cx);
+        if hit.checkbox {
+            self.toggle_mark(hit.index, cx);
+        } else if logic::saving(&self.req) && !hit.directory {
+            self.activate_row(hit.index, cx);
+        } else if event.click_count == 2 && logic::same_tap(&hit.first_path, &hit.path) {
+            match self.double_activate(Some(hit.directory), &hit.path, &hit.first_path, cx) {
+                DoubleAction::Open => self.open_folder(&hit.path, cx),
+                DoubleAction::Mark => self.toggle_mark(hit.index, cx),
+                _ => {}
+            }
+        }
     }
 
     pub(super) fn path_press(

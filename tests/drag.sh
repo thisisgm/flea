@@ -423,7 +423,7 @@ print("%s %s" % (hits[0]["id"], hits[0]["pid"]))
 ipc() { flea_ipc_call -i "$MYID" call flea "$@" 2>&1; }
 native_key() {
   local result=0
-  omarchy-drive key --window flea "$@" || result=$?
+  omarchy-drive key --window com.thisisgm.flea "$@" || result=$?
   (( result == 0 )) || die "native key delivery failed with status $result: $*"
 }
 # Sample input: '{"notice":""}' stays JSON; '/home/x' or an observer error becomes one JSON string.

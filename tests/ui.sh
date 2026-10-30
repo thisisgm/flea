@@ -238,7 +238,6 @@ ipc() {
 
 # Window class used by every preflight, focus check and injected keystroke.
 flea_window_class=com.thisisgm.flea
-[[ "$test_frontend" != gpui ]] || flea_window_class=flea
 
 settle() {
     sleep "$settle_s"
@@ -526,7 +525,7 @@ key() {
         omarchy-drive key --window "$addr" "$@"
         return
     fi
-    omarchy-drive key --window flea "$@"
+    omarchy-drive key --window com.thisisgm.flea "$@"
 }
 
 # omarchy-drive hotkey takes no --window and --global acts on the active window, so assert_focus is its only guard.
@@ -7483,7 +7482,7 @@ case_middleclick() {
 # One undo history for every Flea window: two live windows share one session journal, so the
 # newest entry from either is what Ctrl+Z undoes in whichever window it is pressed. The two
 # backends are separate processes sharing the suite scratch journal dir, and each window
-# is driven by its Hyprland address: --window flea refuses an ambiguous match, and qs ipc cannot
+# is driven by its Hyprland address: --window com.thisisgm.flea refuses an ambiguous match, and qs ipc cannot
 # address one instance out of two, so every assertion past the second launch reads the filesystem
 # rather than the seam. Each directory holds one file, so the cursor can only ever be row 0.
 case_xwundo() {
@@ -9299,7 +9298,7 @@ EOS
     key "tester" >/dev/null
     key -k Tab >/dev/null
     [[ "$(ipc networkFocus)" == "Password" ]] || fail "networkauth: Password did not follow Username"
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
         || fail "networkauth: typed password is not masked"
     shot networkauth-password-masked
@@ -9377,7 +9376,7 @@ EOS
     for _field in Port Share Domain Username Password; do key -k Tab >/dev/null; done
     [[ "$(ipc networkFocus)" == "Password" ]] \
         || fail "networkauth: missing-helper setup did not reach Password"
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     mv "$dir/bin/flea-gio-auth" "$dir/bin/flea-gio-auth.real"
     key -k Return >/dev/null
     wait_network_status "Could not connect: Flea could not ask for the password." 10
@@ -9441,7 +9440,7 @@ EOS
     for _field in Port Share Domain Username Password; do key -k Tab >/dev/null; done
     [[ "$(ipc networkFocus)" == "Password" ]] \
         || fail "networkauth: corrected-retry setup did not reach Password"
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     key -k Return >/dev/null
     wait_network_result mounted
     [[ "$(cat "$state/info-uri")" == "smb://tester@slot.test/data" ]] \
@@ -9466,7 +9465,7 @@ EOS
     key -k Tab >/dev/null
     key "tester" >/dev/null
     key -k Tab >/dev/null
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     : > "$state/fail"
     key -k Return >/dev/null
     wait_network_result failed
@@ -9612,7 +9611,7 @@ EOS
     settle
     [[ "$(ipc networkFocus)" == "Password" ]] \
         || fail "networktimeout: Password did not follow Username, focus is $(ipc networkFocus)"
-    printf '%s' "fixture-password" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "fixture-password" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
         || fail "networktimeout: typed password is not masked"
     key -k Return >/dev/null
@@ -9693,7 +9692,7 @@ case_networklive() {
             || fail "networklive: password field did not receive focus"
         [[ "$(ipc networkPasswordState)" == "masked|empty" ]] \
             || fail "networklive: password was populated before stdin delivery"
-        omarchy-drive key --window flea - >/dev/null
+        omarchy-drive key --window com.thisisgm.flea - >/dev/null
         [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
             || fail "networklive: password stdin was empty"
         key -k Return >/dev/null
@@ -13761,14 +13760,14 @@ xwdrag_assert_focus() {
     [[ -n "$got" ]] || fail "xwdrag: active window has no pid, wanted $want"
     [[ "$got" == "$want" ]] || fail "xwdrag: active window is $got, wanted $want"
 }
-# Targeted keystrokes carry a window address, since --window flea matches both windows at once.
+# Targeted keystrokes carry a window address, since --window com.thisisgm.flea matches both windows at once.
 xwdrag_key() {
     local addr="$1"
     shift
     omarchy-drive key --window "$addr" "$@"
 }
 
-# Sample input: {"pid":101,"address":"0xa","class":"flea","title":"Flea"} with the key pid answers 101, and a non-JSON reply answers nothing.
+# Sample input: {"pid":101,"address":"0xa","class":"com.thisisgm.flea","title":"Flea"} with the key pid answers 101, and a non-JSON reply answers nothing.
 xwdrag_active_field() {
     printf '%s' "$1" | python3 -c 'import json,sys; print(json.load(sys.stdin).get(sys.argv[1],""))' "$2" 2>/dev/null || true
 }

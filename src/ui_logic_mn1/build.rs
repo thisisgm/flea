@@ -117,6 +117,7 @@ pub struct Context {
     pub localsend_installed: bool,
     pub localsend_peers: Vec<Peer>,
     pub localsend_checking: bool,
+    pub rclone_remotes: Vec<String>,
     pub dropbox_installed: bool,
     pub dropbox_path: String,
     pub dropbox_refreshing: bool,
@@ -174,6 +175,7 @@ impl Default for Context {
             localsend_installed: false,
             localsend_peers: Vec::new(),
             localsend_checking: false,
+            rclone_remotes: Vec::new(),
             dropbox_installed: false,
             dropbox_path: String::new(),
             dropbox_refreshing: false,
@@ -428,6 +430,12 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         }
         e.submenu = Some(flyouts::open_with_entries(&p.open_with_apps));
         e.disabled = count != 1;
+    }
+    if action == "sendRclone" {
+        if p.rclone_remotes.is_empty() {
+            return false;
+        }
+        e.submenu = Some(flyouts::rclone_entries(&p.rclone_remotes));
     }
     if action == "taildrop" {
         if !p.taildrop_installed {

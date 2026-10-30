@@ -24,6 +24,7 @@ impl Operations {
 
     // A card another card replaces is answered as dismissed, so no session is left waiting on it.
     pub(super) fn clear_card(&mut self) {
+        self.detach_rclone();
         if let Some(token) = self.external_delete.take() {
             self.external_answers.push((token, None));
         }
@@ -31,7 +32,9 @@ impl Operations {
             Some(Dialog::Collide { .. }) => self.collide.chosen(Choice::Cancel),
             Some(Dialog::Fat { .. }) => self.collide.decide_fat(Fat::Cancel),
             Some(Dialog::CopyTo { menu, .. }) => Step::Send(menu_close(menu)),
-            Some(Dialog::Delete { .. } | Dialog::NewFile { .. }) | None => Step::Nothing,
+            Some(Dialog::Delete { .. } | Dialog::NewFile { .. } | Dialog::SendTo { .. }) | None => {
+                Step::Nothing
+            }
         };
         if let Step::Send(line) | Step::SendSpent(line) = step {
             self.outbox.push(line);
@@ -100,33 +103,6 @@ impl Operations {
         {
             self.outbox.push(line);
             self.dialog = None;
-        }
-    }
-
-    pub fn copy_enabled(path: &str) -> bool {
-        !path.is_empty()
-    }
-
-    pub(super) fn walk_copy_focus(&mut self, key: Key) {
-        let Some(Dialog::CopyTo {
-            focus, busy, path, ..
-        }) = &mut self.dialog
-        else {
-            return;
-        };
-        let order: &[_] = if *busy {
-            &[CopyFocus::Cancel]
-        } else if Self::copy_enabled(path) {
-            &[CopyFocus::Field, CopyFocus::Cancel, CopyFocus::Confirm]
-        } else {
-            &[CopyFocus::Field, CopyFocus::Cancel]
-        };
-        *focus = collide::walk(order, *focus, key, CopyFocus::Field);
-    }
-
-    pub(super) fn close_copy(&mut self) {
-        if let Some(Dialog::CopyTo { menu, .. }) = self.dialog.take() {
-            self.outbox.push(menu_close(menu));
         }
     }
 
@@ -214,33 +190,6 @@ impl Operations {
             *busy = false;
             *shown = error;
         }
-    }
-
-    // A full path goes to the menu's validate, whose reply names the snapshot; a relative one is refused out loud.
-    pub(super) fn confirm_copy(&mut self, catalog: &I18n) {
-        let Some(Dialog::CopyTo {
-            menu,
-            moving,
-            path,
-            busy: false,
-            ..
-        }) = self.dialog.clone()
-        else {
-            return;
-        };
-        if path.is_empty() {
-            return;
-        }
-        if !path.starts_with('/') {
-            self.say(catalog.tr("jobs.copyto.relative"), true);
-            return;
-        }
-        if let Some(Dialog::CopyTo { busy, focus, .. }) = &mut self.dialog {
-            *busy = true;
-            *focus = CopyFocus::Cancel;
-        }
-        let action = if moving { "moveTo" } else { "copyTo" };
-        self.outbox.push(format!("{{\"c\":\"menuaction\",\"op\":\"validate\",\"id\":{menu},\"action\":\"{action}\",\"dest\":{}}}", collide::text(&path)));
     }
 
     // A Trash or menu reply: the Copy To card's validate, or the permanent card's delete, check or fresh review.
@@ -356,47 +305,13 @@ impl Operations {
             self.dialog = None;
         }
     }
-
-    fn validated(&mut self, catalog: &I18n, reply: &Reply) {
-        let Some(Dialog::CopyTo {
-            menu,
-            moving,
-            busy: true,
-            ..
-        }) = self.dialog.clone()
-        else {
-            return;
-        };
-        if reply.id != menu {
-            return;
-        }
-        self.changed = true;
-        if !reply.ok {
-            if let Some(Dialog::CopyTo { busy, .. }) = &mut self.dialog {
-                *busy = false;
-            }
-            let error = if reply.error.is_empty() {
-                catalog.tr("jobs.delete.failed")
-            } else {
-                reply.error.clone()
-            };
-            self.say(error, true);
-            return;
-        }
-        self.dialog = None;
-        let request = Request::new()
-            .with("c", &collide::text("transfer"))
-            .with("op", &collide::text(if moving { "move" } else { "copy" }))
-            .with("menuId", &menu.to_string())
-            .with("dest", &collide::text(&reply.dest));
-        self.ask(catalog, &request, &[], false);
-        self.outbox.push(menu_close(menu));
-    }
 }
 
 fn menu_close(menu: u64) -> String {
     format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{menu}}}")
 }
 
+#[path = "cards_copy.rs"]
+mod copy;
 #[path = "cards_open.rs"]
 mod open;

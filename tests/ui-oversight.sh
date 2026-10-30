@@ -503,7 +503,7 @@ SH
     assert_focus
     started=$(date +%s%3N)
     # Observe concurrently with native delivery so the command's own return cannot consume the entrance.
-    timeout "$query_wait_seconds" omarchy-drive key --window flea -k Return > "$query_root/key.log" 2>&1 &
+    timeout "$query_wait_seconds" omarchy-drive key --window com.thisisgm.flea -k Return > "$query_root/key.log" 2>&1 &
     key_job=$!
     deadline=$((SECONDS + query_wait_seconds))
     while :; do

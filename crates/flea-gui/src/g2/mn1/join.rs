@@ -79,6 +79,7 @@ pub struct Joined {
     // A test's stand-in for the detached Open in Agent spawn; None spawns the real agent.
     pub agent: Option<AgentLaunch>,
     pub(crate) providers: crate::g2::sd1::join::Senders,
+    pub(crate) rclone: [Rc<RefCell<crate::g2::sd2::RcloneSend>>; 2],
     /// The flyout c or P asked for, opened once the cursor menu draws.
     pub flyout: Option<&'static str>,
     pub header: bool,
@@ -194,6 +195,12 @@ impl Shell {
         }
         if !background {
             self.provider_context(side, &host.path, &mut context);
+            context.rclone_remotes = self.menu.rclone[side]
+                .borrow()
+                .flyout()
+                .into_iter()
+                .map(|row| row.label)
+                .collect();
         }
         context.show_hidden = host.nav.folders.borrow().hidden;
         context.sort_by = host.nav.order.key.into();

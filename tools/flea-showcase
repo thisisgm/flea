@@ -554,7 +554,7 @@ dwell() {
 }
 
 # Plain keys and text go through wtype, aimed at the main window by address, which focuses it first.
-# Never with a leading "--": omarchy-drive key --window flea -- z exits clean and presses nothing.
+# Never with a leading "--": omarchy-drive key --window com.thisisgm.flea -- z exits clean and presses nothing.
 key() {
     [[ "$1" != -- ]] || fail "key: a -- argument is silently dropped, pass the text bare"
     LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window "$addr_a" "$@" >/dev/null

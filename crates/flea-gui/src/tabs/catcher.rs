@@ -72,6 +72,7 @@ impl Catchers {
 
 pub(crate) fn options(display: DisplayId) -> WindowOptions {
     WindowOptions {
+        app_id: Some(crate::window::APP_ID.into()),
         display_id: Some(display),
         window_bounds: Some(WindowBounds::Windowed(Bounds::new(
             Point::default(),

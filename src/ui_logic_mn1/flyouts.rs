@@ -62,3 +62,14 @@ pub fn tag_entries_in_effect(states: &[crate::ui_logic_pl4::tags::State; 7]) -> 
         })
         .collect()
 }
+
+// Send with rclone's flyout: one server row per configured remote, named as rclone lists it.
+pub fn rclone_entries(remotes: &[String]) -> Vec<Entry> {
+    remotes
+        .iter()
+        .map(|remote| Entry {
+            glyph: Some("server"),
+            ..Entry::leaf(remote.clone(), Text::Data(remote.clone()))
+        })
+        .collect()
+}
