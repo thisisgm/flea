@@ -40,30 +40,24 @@ pub(crate) struct Directory {
     pub stats: usize,
 }
 
-#[repr(C)]
-struct Dirent {
-    ino: u64,
-    off: i64,
-    reclen: u16,
-    dtype: u8,
-    name: [c_char; 256],
-}
+const DENTS_BYTES: usize = 32768;
+// A linux_dirent64 record: d_ino 1234 at 0, d_off at 8, d_reclen 32 at 16, d_type 8 (DT_REG) at 18, "a.txt\0" at 19, padded to 8 bytes.
+const RECLEN_AT: usize = 16;
+const TYPE_AT: usize = 18;
+const NAME_AT: usize = 19;
+const ENOENT: i32 = 2;
 
 extern "C" {
     fn open(path: *const c_char, flags: c_int, ...) -> c_int;
     fn close(fd: c_int) -> c_int;
-    fn fdopendir(fd: c_int) -> *mut std::ffi::c_void;
-    fn readdir(dir: *mut std::ffi::c_void) -> *mut Dirent;
-    fn closedir(dir: *mut std::ffi::c_void) -> c_int;
-    fn dirfd(dir: *mut std::ffi::c_void) -> c_int;
+    fn getdents64(fd: c_int, buf: *mut std::ffi::c_void, count: usize) -> isize;
     fn fstatat(fd: c_int, path: *const c_char, buf: *mut std::ffi::c_void, flags: c_int) -> c_int;
-    fn __errno_location() -> *mut c_int;
 }
 
-struct OpenDir(*mut std::ffi::c_void);
-impl Drop for OpenDir {
+struct OpenFd(c_int);
+impl Drop for OpenFd {
     fn drop(&mut self) {
-        unsafe { closedir(self.0) };
+        unsafe { close(self.0) };
     }
 }
 
@@ -118,59 +112,65 @@ pub(crate) fn bounded_observed(
     result
 }
 
+// Raw getdents64 into a stack buffer: fdopendir would add an fstat, two fcntl calls and a 32 KiB heap buffer per directory.
 fn read_observing(dir: &Path, unknown: bool, mut progress: impl FnMut(usize), follow: bool, stop: impl Fn() -> bool) -> std::io::Result<Directory> {
     let path = CString::new(dir.as_os_str().as_bytes())?;
     let flags = 0x80000 | 0x10000 | if follow { 0 } else { 0x20000 };
     let raw = unsafe { open(path.as_ptr(), flags) };
     if raw < 0 { return Err(std::io::Error::last_os_error()); }
-    let handle = OpenDir(unsafe { fdopendir(raw) });
-    if handle.0.is_null() {
-        let error = std::io::Error::last_os_error();
-        unsafe { close(raw); }
-        std::mem::forget(handle);
-        return Err(error);
-    }
-    let fd = unsafe { dirfd(handle.0) };
+    let handle = OpenFd(raw);
+    let fd = handle.0;
     let mut out = Directory { entries: Vec::new(), partial: None, #[cfg(test)] stats: 0 };
+    let mut buf = std::mem::MaybeUninit::<[u64; DENTS_BYTES / 8]>::uninit();
     loop {
         if stop() { out.partial = Some("cancelled"); return Ok(out); }
-        unsafe { *__errno_location() = 0 };
-        let entry = unsafe { readdir(handle.0) };
-        if entry.is_null() {
-            if unsafe { *__errno_location() != 0 } { out.partial.get_or_insert("unreadable"); }
+        let read = unsafe { getdents64(fd, buf.as_mut_ptr().cast(), DENTS_BYTES) };
+        if read <= 0 {
+            // As glibc's readdir does, ENOENT from a directory removed while open reads as its end.
+            if read < 0 && std::io::Error::last_os_error().raw_os_error() != Some(ENOENT) { out.partial.get_or_insert("unreadable"); }
             return Ok(out);
         }
-        if stop() { out.partial = Some("cancelled"); return Ok(out); }
-        let name = unsafe { CStr::from_ptr((*entry).name.as_ptr()) };
-        let bytes = name.to_bytes();
-        if bytes == b"." || bytes == b".." { continue; }
-        let dtype = if unknown { 0 } else { unsafe { (*entry).dtype } };
-        let kind = directory_type(dtype, || {
-            #[cfg(test)]
-            { out.stats += 1; }
-            let mut buf = [0u64; 64];
-            if unsafe { fstatat(fd, name.as_ptr(), buf.as_mut_ptr().cast(), 0x100) } != 0 {
-                return Err(std::io::Error::last_os_error());
-            }
-            #[cfg(target_arch = "x86_64")]
-            let off = 24;
-            #[cfg(not(target_arch = "x86_64"))]
-            let off = 16;
-            let mode = unsafe { std::ptr::read_unaligned(buf.as_ptr().cast::<u8>().add(off).cast::<u32>()) };
-            Ok(mode)
-        });
-        match kind {
-            Ok(is_dir) => {
-                let mut raw = Vec::new();
-                if raw.try_reserve_exact(bytes.len()).is_err() || out.entries.try_reserve(1).is_err() {
-                    out.partial = Some("allocation");
-                    return Ok(out);
+        let base = buf.as_ptr().cast::<u8>();
+        let mut at = 0;
+        while at < read as usize {
+            let entry = unsafe { base.add(at) };
+            let reclen = unsafe { std::ptr::read_unaligned(entry.add(RECLEN_AT).cast::<u16>()) } as usize;
+            if reclen == 0 { out.partial.get_or_insert("unreadable"); return Ok(out); }
+            at += reclen;
+            // glibc's readdir skips a record whose inode is 0, a deleted entry.
+            if unsafe { std::ptr::read_unaligned(entry.cast::<u64>()) } == 0 { continue; }
+            if stop() { out.partial = Some("cancelled"); return Ok(out); }
+            let name = unsafe { CStr::from_ptr(entry.add(NAME_AT).cast::<c_char>()) };
+            let bytes = name.to_bytes();
+            if bytes == b"." || bytes == b".." { continue; }
+            let dtype = if unknown { 0 } else { unsafe { *entry.add(TYPE_AT) } };
+            let kind = directory_type(dtype, || {
+                #[cfg(test)]
+                { out.stats += 1; }
+                let mut buf = [0u64; 64];
+                if unsafe { fstatat(fd, name.as_ptr(), buf.as_mut_ptr().cast(), 0x100) } != 0 {
+                    return Err(std::io::Error::last_os_error());
                 }
-                raw.extend_from_slice(bytes);
-                out.entries.push((OsString::from_vec(raw), is_dir));
-                progress(out.entries.len());
+                #[cfg(target_arch = "x86_64")]
+                let off = 24;
+                #[cfg(not(target_arch = "x86_64"))]
+                let off = 16;
+                let mode = unsafe { std::ptr::read_unaligned(buf.as_ptr().cast::<u8>().add(off).cast::<u32>()) };
+                Ok(mode)
+            });
+            match kind {
+                Ok(is_dir) => {
+                    let mut raw = Vec::new();
+                    if raw.try_reserve_exact(bytes.len()).is_err() || out.entries.try_reserve(1).is_err() {
+                        out.partial = Some("allocation");
+                        return Ok(out);
+                    }
+                    raw.extend_from_slice(bytes);
+                    out.entries.push((OsString::from_vec(raw), is_dir));
+                    progress(out.entries.len());
+                }
+                Err(_) => { out.partial.get_or_insert("unreadable"); }
             }
-            Err(_) => { out.partial.get_or_insert("unreadable"); }
         }
     }
 }
@@ -200,6 +200,33 @@ mod tests {
         unknown.sort();
         assert_eq!(normal, unknown);
         assert!(normal.contains(&(OsString::from("link"), false)));
+    }
+
+    #[test]
+    fn search_read_spans_several_getdents_buffers() {
+        let d = TestDir::new("searchmany");
+        // 1200 names of 60 bytes take about 96 KiB of dirent records, three full reads.
+        for i in 0..1200 {
+            let name = format!("{i:04}-{}", "n".repeat(55));
+            if i % 7 == 0 { d.dir(&name); } else { d.file(&name, ""); }
+        }
+        let read = read(d.path()).unwrap();
+        assert!(read.partial.is_none());
+        assert_eq!(read.stats, 0);
+        let mut got = read.entries;
+        got.sort();
+        let mut want: Vec<(OsString, bool)> = std::fs::read_dir(d.path()).unwrap()
+            .map(|entry| { let entry = entry.unwrap(); (entry.file_name(), entry.file_type().unwrap().is_dir()) })
+            .collect();
+        want.sort();
+        // The sandbox root also holds its own marker file.
+        assert_eq!(got.len(), 1201);
+        assert_eq!(got, want);
+        let forced = read_with(d.path(), true).unwrap();
+        assert_eq!(forced.stats, want.len());
+        let mut unknown = forced.entries;
+        unknown.sort();
+        assert_eq!(unknown, want);
     }
 
     #[test]

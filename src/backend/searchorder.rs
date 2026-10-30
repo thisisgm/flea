@@ -2,6 +2,10 @@
 use super::*;
 use std::iter::Peekable;
 
+#[path = "searchfamily.rs"]
+mod family;
+pub(crate) use family::RankOrder;
+
 #[cfg(test)]
 thread_local! {
     static CUT: std::cell::Cell<std::time::Duration> = const { std::cell::Cell::new(std::time::Duration::ZERO) };
@@ -112,11 +116,10 @@ pub(crate) fn rank_cmp(index: &Index, a: &(i32, usize), b: &(i32, usize)) -> Cmp
         .then_with(|| path_order(index, a.1, b.1))
 }
 
-// The best `window` hits in rank order, the rest unranked; `cmp` orders score descending first, as `rank_cmp` does, and `key` never orders two rows against `cmp`.
-pub(crate) fn select_head<K, F, C>(hits: &mut Vec<(i32, usize)>, window: usize, key: F, cmp: C) -> Vec<(i32, usize)>
+// The best `window` hits in rank order, the rest unranked; `cmp` orders score descending, then `len` ascending, as `rank_cmp` does.
+pub(crate) fn select_head<F, C>(hits: &mut Vec<(i32, usize)>, window: usize, len: F, cmp: C) -> Vec<(i32, usize)>
 where
-    K: Ord,
-    F: Fn(&(i32, usize)) -> K,
+    F: Fn(&(i32, usize)) -> usize + Sync,
     C: Fn(&(i32, usize), &(i32, usize)) -> CmpOrdering,
 {
     #[cfg(test)]
@@ -127,15 +130,89 @@ where
         let above = to_front(&mut hits[..window], |hit| hit.0 > last);
         let tied = window + to_front(&mut hits[window..], |hit| hit.0 == last);
         if tied > window {
-            hits[above..tied].select_nth_unstable_by(window - 1 - above, |a, b| key(a).cmp(&key(b)).then_with(|| cmp(a, b)));
+            cut_tied(&mut hits[above..tied], window - above, last, &len, &cmp);
         }
     }
     #[cfg(test)]
     CUT.with(|time| time.set(cut_started.elapsed()));
-    let rest = hits.split_off(window.min(hits.len()));
+    let rest = split_rest(hits, window);
     hits.sort_by(&cmp);
     debug_assert!(hits.windows(2).all(|pair| pair[0].0 >= pair[1].0), "select_head needs a score-first cmp");
     rest
+}
+
+// Lengths under this are counted one bucket each; longer rows share the last bucket and meet `cmp` there.
+const CUT_LENGTHS: usize = 1024;
+
+// The `need` best of rows tied on `score`: one length per row, held in its score slot, and only rows at the cut length meet `cmp`.
+fn cut_tied<F, C>(rows: &mut [(i32, usize)], need: usize, score: i32, len: &F, cmp: &C)
+where
+    F: Fn(&(i32, usize)) -> usize + Sync,
+    C: Fn(&(i32, usize), &(i32, usize)) -> CmpOrdering,
+{
+    let counts = count_lengths(rows, len);
+    let (mut cut, mut shorter) = (0, 0);
+    while shorter + counts[cut] < need {
+        shorter += counts[cut];
+        cut += 1;
+    }
+    let cut = cut as i32;
+    let front = to_front(rows, |hit| hit.0 < cut);
+    debug_assert_eq!(front, shorter);
+    let at_cut = front + to_front(&mut rows[front..], |hit| hit.0 == cut);
+    for hit in rows.iter_mut() { hit.0 = score; }
+    if at_cut > need {
+        rows[front..at_cut].select_nth_unstable_by(need - front - 1, cmp);
+    }
+}
+
+// Tied rows past this many read their lengths on every core, up to CUT_THREADS of them, as the scorer does.
+const PARALLEL_CUT_AT: usize = 32_768;
+const CUT_THREADS: usize = 16;
+
+#[cfg(test)]
+thread_local! {
+    pub(crate) static CUT_THREADS_PINNED: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
+fn cut_threads(rows: usize) -> usize {
+    if rows < PARALLEL_CUT_AT { return 1; }
+    #[cfg(test)]
+    if let Some(threads) = CUT_THREADS_PINNED.with(std::cell::Cell::get) { return threads; }
+    std::thread::available_parallelism().map_or(1, |n| n.get()).clamp(1, CUT_THREADS)
+}
+
+// Each row's length goes into its score slot and its count; a length read misses cache, so a large tie splits across threads.
+fn count_lengths<F: Fn(&(i32, usize)) -> usize + Sync>(rows: &mut [(i32, usize)], len: &F) -> [usize; CUT_LENGTHS + 1] {
+    let count = |rows: &mut [(i32, usize)]| {
+        let mut counts = [0usize; CUT_LENGTHS + 1];
+        for hit in rows.iter_mut() {
+            let length = len(hit).min(CUT_LENGTHS);
+            hit.0 = length as i32;
+            counts[length] += 1;
+        }
+        counts
+    };
+    let threads = cut_threads(rows.len());
+    if threads == 1 { return count(rows); }
+    let chunk = rows.len().div_ceil(threads);
+    std::thread::scope(|scope| {
+        let jobs: Vec<_> = rows.chunks_mut(chunk).map(|rows| scope.spawn(move || count(rows))).collect();
+        jobs.into_iter().fold([0usize; CUT_LENGTHS + 1], |mut all, job| {
+            for (sum, part) in all.iter_mut().zip(job.join().unwrap()) { *sum += part; }
+            all
+        })
+    })
+}
+
+// The head moves to the end, so the rest keeps its storage and only the window is copied out.
+fn split_rest(hits: &mut Vec<(i32, usize)>, window: usize) -> Vec<(i32, usize)> {
+    let window = window.min(hits.len());
+    let kept = hits.len() - window;
+    if kept <= window { return hits.split_off(window); }
+    for at in 0..window { hits.swap(at, kept + at); }
+    let head = hits.split_off(kept);
+    std::mem::replace(hits, head)
 }
 
 // Moves the rows `keep` accepts to the front, in place, and returns how many there are.

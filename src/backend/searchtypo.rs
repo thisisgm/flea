@@ -76,6 +76,7 @@ impl Scratch {
 }
 
 // Short ASCII queries use the same edit automaton packed into three bounded bit sets.
+#[derive(Clone)]
 pub(crate) struct Plan {
     equal: [u64; 128],
     letters: u64,
@@ -104,6 +105,17 @@ impl Plan {
         }
         plan.segments.push((len, bits));
         plan
+    }
+
+    // Bit-parallel LCS of query and name: each edit, a swap included, costs at most one letter of it, so a short LCS cannot match.
+    fn common(&self, hay: impl Text) -> usize {
+        let width = self.goal - 1;
+        let mut v = width;
+        for at in 0..hay.len() {
+            let u = v & self.equal.get(hay.lower(at) as usize).copied().unwrap_or(0);
+            v = (v.wrapping_add(u) | (v & !u)) & width;
+        }
+        self.goal.trailing_zeros() as usize - v.count_ones() as usize
     }
 
     // An edit cannot cross a literal, so length and missing-letter costs add across its segments.
@@ -174,7 +186,7 @@ impl Plan {
     }
 
     fn bit_distance(&self, hay: impl Text, budget: usize) -> Option<usize> {
-        if !self.possible(hay, budget) { return None; }
+        if self.common(hay) + budget < self.goal.trailing_zeros() as usize || !self.possible(hay, budget) { return None; }
         // Layer 0 holds states without a dropped query letter, layer 1 states with one, which may only end at a word end.
         let mut start = [[0u64; 3]; 2];
         start[0] = [1; 3];

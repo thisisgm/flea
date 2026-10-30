@@ -14,6 +14,8 @@ use std::time::Instant;
 
 pub(crate) const ROW_CAP: usize = 350;
 const WATCH_CAP: usize = 350;
+// A window moving more rows than this reads cold, since arming costs a watch call per path; a steady window arms and reuses its rows.
+const ARM_LIMIT: usize = 32;
 const BYTE_CAP: usize = 2 * 1024 * 1024;
 pub(crate) const READ_BUFFER_BYTES: usize = 8192;
 pub(crate) const DRAIN_READ_LIMIT: usize = 16;
@@ -62,6 +64,8 @@ pub(crate) struct Cache {
     retired: HashSet<i32>,
     entries: HashMap<PathBuf, Entry>,
     requested: HashSet<PathBuf>,
+    // A hash of each name the last window asked for, armed or cold.
+    last: HashSet<u64>,
     bytes: usize,
     #[cfg(test)]
     pub(crate) misses: usize,
@@ -216,12 +220,28 @@ impl Cache {
         self.recount();
     }
 
+    // Cold past ARM_LIMIT moved rows, or when a small window would unarm more; a cold read leaves the armed state to the next warm window.
+    fn cold(&mut self, listing: &Listing, start: usize, end: usize) -> bool {
+        use std::hash::{BuildHasher, BuildHasherDefault};
+        let hasher = BuildHasherDefault::<std::collections::hash_map::DefaultHasher>::default();
+        let rows: HashSet<u64> = (start..end.min(start + ROW_CAP)).map(|row| hasher.hash_one(listing.name(row))).collect();
+        let moved = rows.difference(&self.last).count() + self.last.difference(&rows).count();
+        let small = rows.len() <= ARM_LIMIT && self.requested.len() > rows.len() + ARM_LIMIT;
+        self.last = rows;
+        moved > ARM_LIMIT || small
+    }
+
     pub(crate) fn window(&mut self, base: &Path, listing: &Listing, start: usize, count: usize, body: &str) -> (Vec<Meta>, f64) {
         let begun = Instant::now();
         let start = start.min(listing.len());
         if count == 0 || start == listing.len() { self.clear(); return (Vec::new(), 0.0); }
-        self.begin(base, listing, start, count, body);
         let end = start.saturating_add(count).min(listing.len());
+        if self.cold(listing, start, end) {
+            #[cfg(test)]
+            { self.misses += end - start; self.counts.misses.fetch_add(end - start, std::sync::atomic::Ordering::Relaxed); }
+            return (super::meta::stat_range(base, listing, start, end - start).0, begun.elapsed().as_secs_f64() * 1000.0);
+        }
+        self.begin(base, listing, start, count, body);
         let mut metas = Vec::with_capacity(end - start);
         let mut devices = HashMap::new();
         for row in start..end {

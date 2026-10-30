@@ -265,6 +265,7 @@ impl Session {
             last_query: String::new(),
             matched_index_len: 0,
             last_matches: Vec::new(),
+            last_typos: true,
             score_scratch: crate::backend::searchindex::QueryScratch::default(),
             pending_rest: None,
             pending_patches: Default::default(),
@@ -351,6 +352,7 @@ impl Session {
                 answer.walking = false;
                 self.last_query = query;
                 self.last_matches = answer.all.clone();
+                self.last_typos = answer.typos;
                 self.last_batch = Instant::now();
                 Some(answer)
             }

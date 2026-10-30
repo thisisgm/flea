@@ -1,9 +1,8 @@
 // One live search session: the scope's snapshot index plus the standing query and its generation.
 use crate::backend::searchmatch::Matcher;
-use crate::backend::searchindex::{self, rank_cmp, select_head, Index};
+use crate::backend::searchindex::{self, select_head, Index};
 use crate::backend::searchreq::Answer;
 use crate::backend::searchwalk::WalkProbes;
-use std::cmp::Reverse;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -47,6 +46,8 @@ pub(crate) struct Session {
     pub(crate) last_query: String,
     pub(crate) matched_index_len: usize,
     pub(crate) last_matches: Vec<usize>,
+    // False when last_matches left out typo rows no answer could show, so a narrowed answer that needs typos rescores the index.
+    pub(crate) last_typos: bool,
     pub(crate) score_scratch: searchindex::QueryScratch,
     // Matches past the head, ranked on scroll; a patch drops them because it moves row ids.
     pub(crate) pending_rest: Option<Rest>,
@@ -154,6 +155,7 @@ impl Session {
         #[cfg(test)]
         let clone_started = Instant::now();
         self.last_matches = answer.all.clone();
+        self.last_typos = answer.typos;
         #[cfg(test)]
         { self.counters.phases.last_matches = clone_started.elapsed(); }
         self.last_answered_gen = gen;
@@ -197,6 +199,7 @@ impl Session {
         self.standing_while_walking = answer.walking;
         self.last_query = query;
         self.last_matches = answer.all.clone();
+        self.last_typos = answer.typos;
         self.last_batch = Instant::now();
         Some(answer)
     }
@@ -211,6 +214,7 @@ impl Session {
         answer.gen = gen;
         self.last_query = query;
         self.last_matches = answer.all.clone();
+        self.last_typos = answer.typos;
         self.last_batch = Instant::now();
         Some(answer)
     }
@@ -260,16 +264,7 @@ impl Session {
             let rest = self.pending_rest.as_mut()?;
             let index = self.index.lock().unwrap();
             rest.promote(take, &index, &mut self.score_scratch);
-            let ranked = &mut rest.ranked;
-            if take < ranked.len() {
-                ranked.select_nth_unstable_by(take - 1, |a, b| rank_cmp(&index, a, b));
-                ranked[..take].sort_by(|a, b| rank_cmp(&index, a, b));
-            } else {
-                ranked.sort_by(|a, b| rank_cmp(&index, a, b));
-            }
-            let taken: Vec<(i32, usize)> = ranked.drain(..take).collect();
-            let rows: Vec<(String, bool)> =
-                taken.iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
+            let rows = rest.take_ranked(take, &index);
             (rows, rest.len() == 0)
         };
         if spent {

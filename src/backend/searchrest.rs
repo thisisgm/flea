@@ -1,5 +1,5 @@
 // The matches past the head: the boundary classes' ranked remainder, then lower classes scored only when a scroll reaches them.
-use crate::backend::searchindex::{boundary, class, resolve, Index, QueryScratch};
+use crate::backend::searchindex::{boundary, class, resolve, Index, QueryScratch, RankOrder};
 use crate::backend::searchmatch::Matcher;
 use crate::backend::searchprior::{scale, Priors};
 use std::path::{Path, PathBuf};
@@ -25,6 +25,20 @@ impl Rest {
 
     pub(crate) fn len(&self) -> usize {
         self.ranked.len() + self.below.len()
+    }
+
+    // Re-ranking the remaining dependency graph preserves the suffix of its stable total order.
+    pub(super) fn take_ranked(&mut self, take: usize, index: &Index) -> Vec<(String, bool)> {
+        let order = RankOrder::new(index, &self.ranked, self.query.contains('/'));
+        let ranked = &mut self.ranked;
+        if take < ranked.len() {
+            ranked.select_nth_unstable_by(take - 1, |a, b| order.cmp(index, a, b));
+            ranked[..take].sort_by(|a, b| order.cmp(index, a, b));
+        } else {
+            ranked.sort_by(|a, b| order.cmp(index, a, b));
+        }
+        let taken: Vec<(i32, usize)> = ranked.drain(..take).collect();
+        taken.iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect()
     }
 
     // Whole lower classes join the ranked part, best first, until it holds `need` rows, scored as the answer would have.

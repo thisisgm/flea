@@ -143,8 +143,10 @@ impl Index {
 
     pub(crate) fn path_len(&self, row: usize) -> usize {
         let row = &self.rows[row];
-        self.blocks.text_len(row.parent) as usize + usize::from(row.parent != EMPTY)
-            + display_len(self.names.get(row.name))
+        // A name of known bytes only is ASCII, so its display length is its byte length and its bytes stay unread.
+        let name = self.names.get(row.name);
+        let name = if self.names.bits(row.name as usize) & super::searchbits::UNKNOWN == 0 { name.len() } else { display_len(name) };
+        self.blocks.text_len(row.parent) as usize + usize::from(row.parent != EMPTY) + name
     }
 
     pub(crate) fn is_dir(&self, row: usize) -> bool {
@@ -238,9 +240,11 @@ pub(crate) struct Scratch {
 
 #[path = "searchscore.rs"]
 mod scoring;
-pub(crate) use scoring::{boundary, class, class_counts, hide_typos, last_class, resolve, resolve_head, score_cached, QueryScratch};
+pub(crate) use scoring::{boundary, class, class_counts, hide_typos, last_class, resolve, resolve_head, score_cached, score_shown, QueryScratch};
 #[cfg(test)]
 pub(crate) use scoring::score_all;
+#[cfg(test)]
+pub(crate) use scoring::CLASSES;
 
 // A patch distinguishes a vanished directory from a refused or incomplete read.
 fn read_bounded(dir: &Path, body: &str, follow: bool) -> Result<Option<super::searchread::Directory>, crate::error::FleaError> {
@@ -253,9 +257,9 @@ fn read_bounded(dir: &Path, body: &str, follow: bool) -> Result<Option<super::se
 
 #[path = "searchorder.rs"]
 mod order;
-pub(crate) use order::{rank_cmp, select_head};
+pub(crate) use order::{select_head, RankOrder};
 #[cfg(test)]
-pub(crate) use order::cut_elapsed;
+pub(crate) use order::{cut_elapsed, rank_cmp};
 
 #[cfg(test)]
 #[path = "searchindex_tests.rs"]
@@ -272,6 +276,10 @@ mod coverage_tests;
 #[cfg(test)]
 #[path = "searchfixture_tests.rs"]
 pub(crate) mod fixture_tests;
+
+#[cfg(test)]
+#[path = "searchfamily_oracle_tests.rs"]
+pub(crate) mod family_oracle;
 
 #[cfg(test)]
 #[path = "searchlatency_tests.rs"]
