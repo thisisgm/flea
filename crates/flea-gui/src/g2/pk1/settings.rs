@@ -1,14 +1,30 @@
-//! The chooser follows the same persisted code-icon preference as the main window.
+//! The chooser follows shared preferences and persists its view and thumbnail choices.
 use super::Picker;
+use crate::grid::geometry::ThumbSize;
 use crate::window::settings::store::{Update, Worker};
 use flea::jsondoc::Json;
 use gpui::Context;
 
-#[derive(Default)]
 pub(super) struct Preferences {
     writes: Option<std::sync::mpsc::Sender<(u64, Json, Option<Json>)>>,
     revision: u64,
     pending: Option<String>,
+    pending_thumb: Option<(u64, ThumbSize)>,
+    unsaved_thumb: Option<ThumbSize>,
+    pub(super) ctrl_zoom: bool,
+}
+
+impl Default for Preferences {
+    fn default() -> Self {
+        Self {
+            writes: None,
+            revision: 0,
+            pending: None,
+            pending_thumb: None,
+            unsaved_thumb: None,
+            ctrl_zoom: true,
+        }
+    }
 }
 
 impl Picker {
@@ -20,9 +36,29 @@ impl Picker {
             .and_then(Json::as_str)
             .unwrap_or("default")
             .to_owned();
-        self.browse
-            .listing
-            .update(cx, |listing, cx| listing.apply_settings(data, cx));
+        let preview = data.get("preview");
+        self.preferences.ctrl_zoom = preview
+            .and_then(|preview| preview.get("ctrlZoom"))
+            .and_then(Json::as_bool)
+            != Some(false);
+        let size = self
+            .preferences
+            .pending_thumb
+            .map(|(_, size)| size)
+            .or(self.preferences.unsaved_thumb)
+            .unwrap_or_else(|| {
+                ThumbSize::named(
+                    preview
+                        .and_then(|preview| preview.get("thumbSize"))
+                        .and_then(Json::as_str)
+                        .unwrap_or("medium"),
+                )
+            });
+        self.browse.listing.update(cx, |listing, cx| {
+            listing.set_thumbnail(size);
+            listing.apply_settings(data, cx);
+        });
+        self.refill_grid(cx);
     }
 
     pub(super) fn follow_settings(&mut self, cx: &mut Context<Self>) {
@@ -37,6 +73,26 @@ impl Picker {
         let reader = cx.spawn(async move |this, cx| {
             let _worker = worker;
             while let Ok(update) = updates.recv().await {
+                if let Update::Failed { through, .. } = &update {
+                    let through = *through;
+                    if this
+                        .update(cx, |picker, cx| {
+                            let preferences = &mut picker.preferences;
+                            // A size the worker failed to save stays drawn for this chooser; the next wheel step writes again.
+                            if let Some((revision, size)) = preferences.pending_thumb {
+                                if through >= revision {
+                                    preferences.pending_thumb = None;
+                                    preferences.unsaved_thumb = Some(size);
+                                }
+                            }
+                            picker.say_key("settings.error.not_saved", true, cx);
+                        })
+                        .is_err()
+                    {
+                        break;
+                    }
+                    continue;
+                }
                 let Update::Loaded {
                     document, through, ..
                 } = update
@@ -47,6 +103,13 @@ impl Picker {
                     .update(cx, |picker, cx| {
                         if through >= picker.preferences.revision {
                             picker.preferences.pending = None;
+                        }
+                        if picker
+                            .preferences
+                            .pending_thumb
+                            .is_some_and(|(revision, _)| through >= revision)
+                        {
+                            picker.preferences.pending_thumb = None;
                         }
                         picker.apply_settings(&document, cx);
                     })
@@ -72,6 +135,26 @@ impl Picker {
             .is_ok()
         {
             self.preferences.pending = Some(mode.into());
+        } else {
+            self.say_key("settings.error.not_saved", true, cx);
+        }
+    }
+
+    pub(super) fn persist_thumbnail(&mut self, size: ThumbSize, cx: &mut Context<Self>) {
+        let Some(writes) = &self.preferences.writes else {
+            return;
+        };
+        self.preferences.revision += 1;
+        let patch = Json::Obj(vec![(
+            "preview".into(),
+            Json::Obj(vec![("thumbSize".into(), Json::Str(size.name().into()))]),
+        )]);
+        if writes
+            .send((self.preferences.revision, patch, None))
+            .is_ok()
+        {
+            self.preferences.pending_thumb = Some((self.preferences.revision, size));
+            self.preferences.unsaved_thumb = None;
         } else {
             self.say_key("settings.error.not_saved", true, cx);
         }

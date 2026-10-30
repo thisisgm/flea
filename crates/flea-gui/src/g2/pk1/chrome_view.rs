@@ -94,7 +94,19 @@ impl Render for ChromeView {
             .border_color(palette.foreground.opacity(0.12))
             .children(controls.next())
             .children(controls.next())
-            .child(div().flex_1().min_w_0().child(self.path.clone()))
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .h_full()
+                    .debug_selector(|| "picker-path-slot".into())
+                    // Capture runs before the strip's breadcrumb press, so one click opens the entry instead of navigating.
+                    .capture_any_mouse_down(move |event, window, cx| {
+                        picker.update(cx, |picker, cx| picker.path_press(event, window, cx));
+                    })
+                    .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                    .child(self.path.clone()),
+            )
             .children(controls)
     }
 }

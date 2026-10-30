@@ -1,6 +1,7 @@
 //! Picker portal and lifetime: the request, its one answer, the reply file and both read-only children.
 mod answer;
 mod answers;
+mod body;
 pub mod browse;
 pub mod chrome;
 mod chrome_view;
@@ -20,6 +21,7 @@ pub mod labels;
 pub mod launch;
 pub mod navigation;
 pub mod picker;
+mod pointer;
 pub mod process;
 pub mod rail;
 mod rail_view;
@@ -40,6 +42,10 @@ mod tests;
 
 #[cfg(test)]
 mod parity_tests;
+#[cfg(test)]
+mod pointer_state_tests;
+#[cfg(test)]
+mod pointer_tests;
 #[cfg(test)]
 mod rail_press_tests;
 #[cfg(test)]
