@@ -114,6 +114,9 @@ fn search_row_cache_is_bounded_and_clears_all_session_state() {
     let mut l = Listing::new();
     for i in 0..500 { let name = format!("a{i}.txt"); d.file(&name, "a"); l.push(&name, false); }
     let mut cache = Cache::default();
+    // The first ask moves every row onto an empty set, so it reads cold; the same window asked again arms.
+    cache.window(d.path(), &l, 0, 500, "");
+    assert!(cache.entries.is_empty() && cache.watches.is_empty());
     cache.window(d.path(), &l, 0, 500, "");
     assert_eq!(cache.entries.len(), ROW_CAP);
     assert!(cache.watches.len() <= WATCH_CAP);

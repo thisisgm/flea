@@ -12,7 +12,7 @@ fn search_match_scale_probe() {
             let mut hits = score_all(&matcher, &rows, &index);
             let matches = hits.len();
             let window = matches.min(350);
-            let _rest = select_head(&mut hits, window, |hit| (std::cmp::Reverse(hit.0), index.path_len(hit.1)), |a, b| rank_cmp(&index, a, b));
+            let _rest = select_head(&mut hits, window, |hit| index.path_len(hit.1), |a, b| rank_cmp(&index, a, b));
             println!("SEARCH_MATCH_PROBE entries={count} query={query:?} matches={matches} core_us={:.3}", start.elapsed().as_secs_f64() * 1e6);
         }
     }
@@ -44,7 +44,7 @@ fn search_fs2_query_phase_probe() {
                     clone.push(t.elapsed().as_secs_f64() * 1e3);
                     let window = hits.len().min(350);
                     let t = std::time::Instant::now();
-                    let _rest = select_head(&mut hits, window, |hit| (std::cmp::Reverse(hit.0), index.path_len(hit.1)), |a, b| rank_cmp(&index, a, b));
+                    let _rest = select_head(&mut hits, window, |hit| index.path_len(hit.1), |a, b| rank_cmp(&index, a, b));
                     select.push(t.elapsed().as_secs_f64() * 1e3);
                     full_ids = all;
                     if let Some(prev) = &previous {

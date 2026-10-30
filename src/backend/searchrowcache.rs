@@ -14,6 +14,9 @@ use std::time::Instant;
 
 pub(crate) const ROW_CAP: usize = 350;
 const WATCH_CAP: usize = 350;
+// A window whose rows differ from the last window's by more than this is read cold: arming costs a watch call per path, more
+// than the facts it would save while typing moves the rows. A window close to the last one arms, so a steady answer reuses its rows.
+const ARM_LIMIT: usize = 32;
 const BYTE_CAP: usize = 2 * 1024 * 1024;
 pub(crate) const READ_BUFFER_BYTES: usize = 8192;
 pub(crate) const DRAIN_READ_LIMIT: usize = 16;
@@ -62,6 +65,8 @@ pub(crate) struct Cache {
     retired: HashSet<i32>,
     entries: HashMap<PathBuf, Entry>,
     requested: HashSet<PathBuf>,
+    // A hash of each name the last window asked for, armed or cold.
+    last: HashSet<u64>,
     bytes: usize,
     #[cfg(test)]
     pub(crate) misses: usize,
@@ -216,12 +221,30 @@ impl Cache {
         self.recount();
     }
 
+    // True when more than ARM_LIMIT rows joined or left since the last window, or when a window of at most ARM_LIMIT rows would
+    // first have to unarm more than ARM_LIMIT rows. A cold window is read in one pass and leaves the armed set, its facts and both
+    // queues for the next warm window to drain.
+    fn cold(&mut self, listing: &Listing, start: usize, end: usize) -> bool {
+        use std::hash::{BuildHasher, BuildHasherDefault};
+        let hasher = BuildHasherDefault::<std::collections::hash_map::DefaultHasher>::default();
+        let rows: HashSet<u64> = (start..end.min(start + ROW_CAP)).map(|row| hasher.hash_one(listing.name(row))).collect();
+        let moved = rows.difference(&self.last).count() + self.last.difference(&rows).count();
+        let small = rows.len() <= ARM_LIMIT && self.requested.len() > rows.len() + ARM_LIMIT;
+        self.last = rows;
+        moved > ARM_LIMIT || small
+    }
+
     pub(crate) fn window(&mut self, base: &Path, listing: &Listing, start: usize, count: usize, body: &str) -> (Vec<Meta>, f64) {
         let begun = Instant::now();
         let start = start.min(listing.len());
         if count == 0 || start == listing.len() { self.clear(); return (Vec::new(), 0.0); }
-        self.begin(base, listing, start, count, body);
         let end = start.saturating_add(count).min(listing.len());
+        if self.cold(listing, start, end) {
+            #[cfg(test)]
+            { self.misses += end - start; self.counts.misses.fetch_add(end - start, std::sync::atomic::Ordering::Relaxed); }
+            return (super::meta::stat_range(base, listing, start, end - start).0, begun.elapsed().as_secs_f64() * 1000.0);
+        }
+        self.begin(base, listing, start, count, body);
         let mut metas = Vec::with_capacity(end - start);
         let mut devices = HashMap::new();
         for row in start..end {

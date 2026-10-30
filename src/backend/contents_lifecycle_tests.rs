@@ -78,6 +78,7 @@ fn names_query(f: &mut Fixture) {
     let answer = super::super::super::searchreq::Answer {
         gen: 2,
         all: vec![0, 1, 2],
+        typos: true,
         rows: NAMES.iter().map(|name| ((*name).into(), false)).collect(),
         total: NAMES.len(),
         indexed: NAMES.len(),

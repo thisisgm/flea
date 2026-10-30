@@ -38,6 +38,8 @@ fn search_fs3ra_typed_windows_keep_both_descriptors_and_only_change_watch_differ
         let old_dirs: HashSet<_> = cache.watches.keys().cloned().collect();
         let old_rows = cache.requested.clone();
         let before = snapshot(&counters);
+        // A window that moves past ARM_LIMIT reads cold with no watch call, so each step asks twice to arm.
+        cache.window(root.path(), rows, start, count, "");
         cache.window(root.path(), rows, start, count, "");
         let after = snapshot(&counters);
         if !matches!(step, "over-cap" | "zero") {
@@ -103,4 +105,86 @@ fn search_fs3ra_session_drop_closes_both_descriptors_on_background_threads() {
         assert_eq!(counter.closes_inline.load(Ordering::Relaxed), 0);
         assert_eq!(counter.closes_background.load(Ordering::Relaxed), 1);
     }
+}
+
+#[test]
+fn search_t11_a_window_moved_past_the_arm_limit_reads_cold_and_leaves_the_armed_rows_to_the_next_warm_window() {
+    let root = Fixture::new();
+    let names: Vec<String> = (0..120).map(|row| format!("row{row:03}")).collect();
+    for name in &names { root.file(name, "row"); }
+    let rows = listing(&names.iter().map(String::as_str).collect::<Vec<_>>());
+    let mut cache = Cache::default();
+    let counters = counts(&cache);
+    cache.window(root.path(), &rows, 0, 40, "");
+    cache.window(root.path(), &rows, 0, 40, "");
+    assert_eq!(cache.entries.len(), 40, "the window asked twice arms");
+    // Rows 20..60 move 20 rows on and 20 off, past ARM_LIMIT; an armed row written first is read fresh, never from its entry.
+    let before_cold = "written before the cold read";
+    root.file("row035", before_cold);
+    let before = snapshot(&counters);
+    let metas = cache.window(root.path(), &rows, 20, 40, "").0;
+    let after = snapshot(&counters);
+    assert_eq!(metas.len(), 40);
+    assert_eq!(metas[15].size, before_cold.len() as u64, "a cold window reads every row");
+    assert_eq!(after[ADDS] + after[REMOVES], before[ADDS] + before[REMOVES], "a cold window makes no watch call");
+    assert_eq!(after[MISSES] - before[MISSES], 40, "a cold window reads every row in one pass");
+    assert_eq!(cache.entries.len(), 40, "a cold window keeps the armed rows and caches none of the new ones");
+    let written = "written after the cold read";
+    root.file("row030", written);
+    let metas = cache.window(root.path(), &rows, 20, 40, "").0;
+    assert_eq!(metas[10].size, written.len() as u64, "an armed row written after a cold window is fresh in the next warm one");
+    assert_eq!(metas[15].size, before_cold.len() as u64, "an armed row written before a cold window is fresh in the next warm one");
+    assert!(cache.requested.contains(&root.join("row059")), "the same window asked again arms");
+    // A small move arms at once.
+    let before = snapshot(&counters);
+    cache.window(root.path(), &rows, 25, 40, "");
+    let after = snapshot(&counters);
+    assert!(after[ADDS] > before[ADDS] && cache.requested.contains(&root.join("row064")), "a move within ARM_LIMIT arms at once");
+    assert_eq!(after[MISSES] - before[MISSES], 5);
+}
+
+#[test]
+fn search_t11_a_window_close_to_a_cold_one_arms_however_far_it_is_from_the_armed_rows() {
+    let root = Fixture::new();
+    let names: Vec<String> = (0..120).map(|row| format!("row{row:03}")).collect();
+    for name in &names { root.file(name, "row"); }
+    let rows = listing(&names.iter().map(String::as_str).collect::<Vec<_>>());
+    let mut cache = Cache::default();
+    let counters = counts(&cache);
+    cache.window(root.path(), &rows, 0, 40, "");
+    cache.window(root.path(), &rows, 0, 40, "");
+    let before = snapshot(&counters);
+    cache.window(root.path(), &rows, 60, 40, "");
+    assert_eq!(snapshot(&counters)[ADDS], before[ADDS], "a window far from the last one reads cold");
+    // A steady answer after a cold one: rows 61..101 differ from 60..100 by two, so they arm though none of them was armed.
+    cache.window(root.path(), &rows, 61, 40, "");
+    assert!(snapshot(&counters)[ADDS] > before[ADDS], "a window close to the last one arms");
+    assert!(cache.requested.contains(&root.join("row100")) && !cache.requested.contains(&root.join("row000")));
+    let before = snapshot(&counters);
+    cache.window(root.path(), &rows, 61, 40, "");
+    assert_eq!(snapshot(&counters)[MISSES], before[MISSES], "the steady answer reuses every row");
+}
+
+#[test]
+fn search_t11_a_small_window_reads_cold_instead_of_unarming_a_bigger_armed_set() {
+    let root = Fixture::new();
+    let names: Vec<String> = (0..120).map(|row| format!("row{row:03}")).collect();
+    for name in &names { root.file(name, "row"); }
+    let rows = listing(&names.iter().map(String::as_str).collect::<Vec<_>>());
+    let mut cache = Cache::default();
+    let counters = counts(&cache);
+    cache.window(root.path(), &rows, 0, 80, "");
+    cache.window(root.path(), &rows, 0, 80, "");
+    assert_eq!(cache.requested.len(), 80);
+    let before = snapshot(&counters);
+    for _ in 0..3 {
+        assert_eq!(cache.window(root.path(), &rows, 0, 10, "").0.len(), 10);
+    }
+    let after = snapshot(&counters);
+    assert_eq!(after[ADDS] + after[REMOVES], before[ADDS] + before[REMOVES], "a ten-row window never unarms seventy rows");
+    assert_eq!(after[MISSES] - before[MISSES], 30, "each ask reads its ten rows");
+    // A window of more than ARM_LIMIT rows close to the last one still arms.
+    cache.window(root.path(), &rows, 0, 40, "");
+    cache.window(root.path(), &rows, 0, 40, "");
+    assert_eq!(cache.requested.len(), 40);
 }

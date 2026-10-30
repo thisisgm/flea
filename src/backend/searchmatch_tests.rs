@@ -205,3 +205,81 @@ fn search_fp1_a_typo_never_lists_a_word_two_edits_away() {
         assert!(matcher.full(b"notes/flea.txt").is_some_and(|score| score > TYPO));
     }
 }
+
+// The lane DP skips bytes that match no query position; every cell and the hit must equal fold then advance, from any carried state.
+#[test]
+fn search_lane_advance_matches_fold_advance_cell_for_cell() {
+    let alphabet = b"abcdeEDA/_-. xyzQ0";
+    let mut seed = 7u64;
+    let mut next = |bound: usize| {
+        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        (seed >> 33) as usize % bound
+    };
+    for _ in 0..20_000 {
+        let query: String = (0..1 + next(6)).map(|_| alphabet[next(alphabet.len())] as char).collect();
+        let matcher = Matcher::new(&query);
+        let len = matcher.needle.len();
+        let parent: Vec<u8> = (0..next(9)).map(|_| alphabet[next(alphabet.len())]).collect();
+        let name: Vec<u8> = (0..next(14)).map(|_| alphabet[next(alphabet.len())]).collect();
+        let mut letters = Vec::new();
+        let mut start = State::new(len);
+        fold(&parent, &mut letters);
+        start.advance(&matcher.needle, &letters, next(2) == 0);
+        for basename in [false, true] {
+            let mut want = start.clone();
+            fold(&name, &mut letters);
+            want.advance(&matcher.needle, &letters, basename);
+            let mut got = start.clone();
+            matcher.advance(&mut got, &name, &mut Vec::new(), basename);
+            let show = |s: &State| (s.best.clone(), s.end.clone(), s.hit);
+            assert_eq!(show(&got), show(&want), "query {query:?} parent {:?} name {:?} basename {basename}",
+                String::from_utf8_lossy(&parent), String::from_utf8_lossy(&name));
+        }
+    }
+}
+
+// The common-subsequence bound in front of the packed typo automaton never drops a match: random names and near misses of one- and
+// two-edit queries get the classic DP's distance, through folded letters and through ASCII bytes.
+#[test]
+fn search_fs4_typo_bound_keeps_every_match() {
+    let mut seed = 0x5146_5338_u64;
+    let mut next = |limit: usize| {
+        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        (seed >> 33) as usize % limit
+    };
+    let alphabet = b"abcdenrAEN_.-1 /";
+    let mut scratch = searchtypo::Scratch::default();
+    let (mut matched, mut checked) = (0, 0);
+    for query in ["redn", "rend", "render", "redner_f", "renderfr", "render_fr", "abcd.rs", "nerd-bad", "a1b2c3d4e", "edito"] {
+        let matcher = Matcher::new(query);
+        assert!(matcher.budget > 0, "{query:?} takes edits");
+        for _ in 0..6000 {
+            let mut name: Vec<u8> = query.as_bytes().to_vec();
+            if next(3) == 0 {
+                name = (0..1 + next(16)).map(|_| alphabet[next(alphabet.len())]).collect();
+            } else {
+                for _ in 0..1 + next(3) {
+                    let at = next(name.len() + 1);
+                    match next(4) {
+                        0 if at < name.len() => name[at] = alphabet[next(alphabet.len())],
+                        1 => name.insert(at, alphabet[next(alphabet.len())]),
+                        2 if at < name.len() && name.len() > 1 => { name.remove(at); }
+                        _ if at + 1 < name.len() => name.swap(at, at + 1),
+                        _ => {}
+                    }
+                }
+                if next(2) == 0 { name.splice(0..0, b"x_".iter().copied()); }
+            }
+            let mut folded = Vec::new();
+            fold(&name, &mut folded);
+            let expected = scratch.distance(&matcher.needle, &folded, matcher.budget);
+            assert_eq!(matcher.distance(&folded, &mut scratch), expected, "{query:?} letters {:?}", String::from_utf8_lossy(&name));
+            assert_eq!(matcher.typo.ascii_distance(ascii::Ascii(&name), matcher.budget), Some(expected),
+                "{query:?} bytes {:?}", String::from_utf8_lossy(&name));
+            matched += usize::from(expected.is_some());
+            checked += 1;
+        }
+    }
+    println!("FS4_TYPO_BOUND checked={checked} matched={matched}");
+    assert!(matched > 5_000 && checked - matched > 5_000, "both outcomes ran: {matched} of {checked}");
+}

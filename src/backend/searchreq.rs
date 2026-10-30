@@ -74,6 +74,8 @@ pub(crate) struct Answer {
     pub gen: usize,
     // Every match, whatever the window holds: narrowing scores this set, not the head.
     pub all: Vec<usize>,
+    // True when all holds every typo match too; a strict answer leaves out the typo rows it could not show.
+    pub typos: bool,
     pub rows: Vec<(String, bool)>,
     pub total: usize,
     pub indexed: usize,
