@@ -20,6 +20,11 @@ pub(crate) struct State {
     // One rerun is queued at a time, however many requests land while a pass runs.
     pub(crate) rerun: bool,
     pub(crate) tagged: BTreeSet<String>,
+    // The glass inputs the window last applied, so only a change among them asks for a pass.
+    pub(crate) followed: Option<crate::window::glass::Inputs>,
+    // Told under the lock that clears busy, so a test can tell a pass that ended from one never started.
+    #[cfg(test)]
+    pub(crate) ended: Option<std::sync::mpsc::Sender<()>>,
 }
 
 // Clears busy when the pass ends, or when its thread never starts, so a later request still runs.
@@ -33,7 +38,12 @@ impl Idle {
 
 impl Drop for Idle {
     fn drop(&mut self) {
-        self.0.lock().busy = false;
+        let mut state = self.0.lock();
+        state.busy = false;
+        #[cfg(test)]
+        if let Some(ended) = &state.ended {
+            let _ = ended.send(());
+        }
     }
 }
 
@@ -115,6 +125,13 @@ impl Tagger {
         let _ = std::thread::Builder::new()
             .name("flea-glass-tag".into())
             .spawn(move || idle.run());
+    }
+
+    /// Asks for a pass when the window's glass inputs changed, as a live shell.toml alpha edit does; Hyprland sends no event for it.
+    pub(crate) fn follow(&self, inputs: crate::window::glass::Inputs) {
+        if self.lock().followed.replace(inputs) != Some(inputs) {
+            self.retag();
+        }
     }
 
     fn rerun_later(&self) {

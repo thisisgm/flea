@@ -367,7 +367,10 @@ impl Element for ListElement {
         let grow = state.drawn.grow;
         let top_of = |at: usize| bounds.origin.y + px(grow.top(at, row) - self.scroll_y);
         let focused = self.states.focused;
-        window.paint_quad(fill(bounds, palette.background));
+        window.paint_quad(fill(
+            bounds,
+            crate::window::glass::list_ground(palette.background, window, cx),
+        ));
         window.with_content_mask(
             Some(ContentMask {
                 bounds: state.drawn.mask,

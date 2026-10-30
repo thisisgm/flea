@@ -64,6 +64,25 @@ impl Sources {
         }
     }
 
+    /// The folders that hold the inputs, and the one the theme folder is swapped into, for the waker to watch.
+    pub fn dirs(&self) -> Vec<PathBuf> {
+        let mut dirs: Vec<PathBuf> = self
+            .inputs
+            .iter()
+            .filter_map(|input| input.parent())
+            .map(Path::to_path_buf)
+            .collect();
+        dirs.extend(
+            self.inputs[0]
+                .parent()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf),
+        );
+        dirs.sort();
+        dirs.dedup();
+        dirs
+    }
+
     fn read_one(path: &Path) -> io::Result<Option<String>> {
         let mut text = String::new();
         let file = match flea::backend::regfile::open_if_regular(path, 0) {

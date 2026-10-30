@@ -261,6 +261,7 @@ impl Render for Shell {
             );
             let lifter = cx.entity().downgrade();
             let payload = cx.entity().downgrade();
+            let floor = super::glass::list_ground(theme.background, window, cx);
             panes[side] = Some(
                 div()
                     .id(("file-drag", side))
@@ -278,8 +279,8 @@ impl Render for Shell {
                         shell.land_own_drag(side, window, cx);
                     }))
                     .when(side == 0, |div| Shell::aim_rail_on_drag_move(div, cx))
-                    // A pane with no rows yet keeps the list floor, which stays opaque under glass.
-                    .when(!host.drawn_list, |div| div.bg(theme.background))
+                    // A pane with no rows yet draws the list ground its rows will draw.
+                    .when(!host.drawn_list, |div| div.bg(floor))
                     .children(lists.areas[side].take())
                     .on_mouse_down(
                         MouseButton::Left,

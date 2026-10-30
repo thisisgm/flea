@@ -302,3 +302,46 @@ fn glass_tag_records_only_the_dispatches_hyprland_ran() {
     tagger.pass();
     assert!(tagger.lock().tagged.is_empty());
 }
+
+// Turns a pass that never starts into a failure instead of a hang.
+const PASS_GUARD: Duration = Duration::from_secs(10);
+
+// A live [flea] background-alpha edit sends Hyprland no event, so the window's follow must take Flea's tag off (THEME-GLASS: native2 v0.3.12 at opacity 1, GPUI kept 0.985).
+#[test]
+fn glass_tag_follows_a_live_alpha_edit_without_a_hyprland_event() {
+    let root = crate::compositor::tests::Fixture::new();
+    let home = root.0.join("home");
+    let tagger = Tagger::new(
+        std::process::id(),
+        fake_hyprctl(&root.0),
+        Sources::under(&home, &root.0.join("state")),
+    );
+    std::fs::write(root.0.join("reply"), "ok").unwrap();
+    let (ended, passes) = std::sync::mpsc::channel();
+    tagger.lock().ended = Some(ended);
+    let automatic = super::glass::Inputs::default();
+    tagger.follow(automatic);
+    passes
+        .recv_timeout(PASS_GUARD)
+        .expect("the window's first inputs start a pass");
+    assert_eq!(tagger.lock().tagged, set(&["0x1a"]));
+    tagger.follow(automatic);
+    let running = tagger.lock().busy;
+    assert!(
+        !running && passes.try_recv().is_err(),
+        "inputs the window already applied start no pass"
+    );
+    let shell = home.join(".config/omarchy/shell.toml");
+    std::fs::create_dir_all(shell.parent().unwrap()).unwrap();
+    std::fs::write(&shell, "[flea]\nbackground-alpha = 0.6\n").unwrap();
+    tagger.follow(super::glass::Inputs {
+        automatic: false,
+        wanted_alpha: 153,
+        wanted_list_alpha: 153,
+        ..automatic
+    });
+    passes
+        .recv_timeout(PASS_GUARD)
+        .expect("a live alpha edit starts a pass though Hyprland sent no event");
+    assert!(tagger.lock().tagged.is_empty());
+}
