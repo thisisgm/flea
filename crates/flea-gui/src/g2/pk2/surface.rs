@@ -49,6 +49,70 @@ impl Default for Surface {
 }
 
 impl ListingView {
+    pub fn zoom_grid(
+        &mut self,
+        input: crate::grid::ZoomInput,
+    ) -> Option<crate::grid::geometry::ThumbSize> {
+        let mut grid = self.grid_view();
+        let focus = crate::grid::FocusSnapshot {
+            cursor: self.listing().cursor(),
+            ..Default::default()
+        };
+        let shown = self.shown.as_deref().map_or(
+            crate::grid::Shown::All(self.listing().total()),
+            crate::grid::Shown::Only,
+        );
+        let next = grid.zoom(shown, &focus, input);
+        self.scroll_y = grid.scroll;
+        self.surface.grid = grid;
+        next
+    }
+
+    pub fn set_thumbnail(&mut self, size: crate::grid::geometry::ThumbSize) {
+        if self.surface.grid.thumb == size {
+            return;
+        }
+        if self.surface.mode != "grid" {
+            self.surface.grid.thumb = size;
+            self.surface.grid.zoom_travel = 0.;
+            return;
+        }
+        let mut grid = self.grid_view();
+        let focus = crate::grid::FocusSnapshot {
+            cursor: self.listing().cursor(),
+            ..Default::default()
+        };
+        let shown = self.shown.as_deref().map_or(
+            crate::grid::Shown::All(self.listing().total()),
+            crate::grid::Shown::Only,
+        );
+        grid.reflow(shown, &focus, |grid| grid.thumb = size);
+        grid.zoom_travel = 0.;
+        self.scroll_y = grid.scroll;
+        self.surface.grid = grid;
+    }
+
+    pub fn grid_window_request(&self) -> Option<String> {
+        // GridArea.qml canAsk: a narrowing filter keeps its own rows, so only the whole listing asks for a window.
+        if self.surface.mode != "grid" || self.shown.is_some() {
+            return None;
+        }
+        let grid = self.grid_view();
+        let total = self.listing().total();
+        let layout = grid.layout(crate::grid::Shown::All(total));
+        let (first, last) = layout.viewport(grid.scroll);
+        let held = self.listing().held();
+        let (start, count) = crate::grid::geometry::drift_ask(
+            &grid.plan(&layout),
+            first,
+            last,
+            held.start,
+            held.rows.len(),
+            total,
+        )?;
+        self.listing().window_request(start, count)
+    }
+
     pub fn set_selection_fill(&mut self, fill: gpui::Hsla) {
         self.surface.selection_fill = Some(fill);
     }

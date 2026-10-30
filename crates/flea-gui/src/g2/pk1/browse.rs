@@ -9,15 +9,10 @@ use crate::path::view::{Inputs, Out, PathView};
 use flea::jsondoc::{self, Json};
 use flea::ui_logic_pk1 as logic;
 use flea::ui_logic_pk2::FilterDef;
-use gpui::{
-    div, prelude::*, px, AnyView, AnyWindowHandle, Context, Entity, IntoElement, Render,
-    Subscription, Window,
-};
+use gpui::{prelude::*, AnyView, AnyWindowHandle, Context, Entity, Subscription};
 
 // The rows a listing asks for with its folder, and the window a cursor outside them asks for.
 pub const FIRST: usize = 128;
-// The path strip's band above the listing, the picker-path board's 34 px.
-const PATH_HEIGHT: f32 = 27.;
 
 // A typed path waiting for its peek, then a typed file waiting for its row.
 #[derive(Default)]
@@ -43,37 +38,6 @@ pub struct Browse {
     pub(super) stems_seen: u64,
     _path: Subscription,
     _filename: Option<Subscription>,
-}
-
-// The body slot: the path strip over the places rail and the listing, as picker-open draws them.
-struct Body {
-    path: Entity<super::chrome_view::ChromeView>,
-    rail: Entity<super::rail_view::RailView>,
-    listing: Entity<ListingView>,
-}
-
-impl Render for Body {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .size_full()
-            .flex()
-            .flex_col()
-            .child(
-                div()
-                    .flex_none()
-                    .h(px(PATH_HEIGHT))
-                    .child(self.path.clone()),
-            )
-            .child(
-                div()
-                    .flex_1()
-                    .min_h_0()
-                    .flex()
-                    .flex_row()
-                    .child(self.rail.clone())
-                    .child(div().flex_1().overflow_hidden().child(self.listing.clone())),
-            )
-    }
 }
 
 impl Browse {
@@ -133,11 +97,15 @@ impl Browse {
         let rail = cx.new(|_| super::rail_view::RailView {
             picker: picker.clone(),
         });
-        let path = cx.new(|_| super::chrome_view::ChromeView { picker, path });
-        AnyView::from(cx.new(|_| Body {
+        let path = cx.new(|_| super::chrome_view::ChromeView {
+            picker: picker.clone(),
+            path,
+        });
+        AnyView::from(cx.new(|_| super::body::Body {
             path,
             rail,
             listing,
+            picker,
         }))
     }
 
@@ -355,6 +323,9 @@ impl Picker {
                 self.find_stamp(stamp, cx);
             }
             self.take_leaf(cx);
+            if kind == "rows" {
+                self.refill_grid(cx);
+            }
         }
     }
 

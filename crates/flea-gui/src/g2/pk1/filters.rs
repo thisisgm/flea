@@ -37,6 +37,14 @@ impl Picker {
             Some(cx.subscribe(&menu, |picker, _, chosen: &FilterChosen, cx| {
                 picker.choose_filter(chosen.0, cx)
             }));
+        // An outside click closes the card inside ChipMenu, so its notify is the picker's only sign to drop it.
+        self.chrome.filter_close = Some(cx.observe(&menu, |picker, menu, cx| {
+            if !menu.read(cx).opened() && picker.chrome.menu_view.as_ref() == Some(&menu) {
+                picker.chrome.menu_view = None;
+                picker.chrome.menu = None;
+                cx.notify();
+            }
+        }));
         self.chrome.menu_view = Some(menu);
         self.chrome.menu = Some(0);
         window.focus(&self.chrome.filter, cx);
