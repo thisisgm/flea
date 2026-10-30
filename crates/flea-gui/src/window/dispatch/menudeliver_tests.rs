@@ -13,10 +13,10 @@ use gpui::{
 const UNAVAILABLE: &str = "That action is no longer available; reopen the menu.";
 const DIR: u32 = 0o040755;
 const FILE: u32 = 0o100644;
-const REG: u32 = 32768;
+pub(super) const REG: u32 = 32768;
 const PAIR: &str = r#""a":"/files/notes.txt","b":"/files/todo.md""#;
 
-fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+pub(super) fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     // Delete and Permissions shown, Run Script hidden, so the menu asks only for snapshot and applications.
     open_root_with(
         cx,
@@ -25,7 +25,7 @@ fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     )
 }
 
-fn select(shell: &Entity<Shell>, cx: &mut VisualTestContext, rows: &[usize]) {
+pub(super) fn select(shell: &Entity<Shell>, cx: &mut VisualTestContext, rows: &[usize]) {
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         host.selected = rows.to_vec();
@@ -34,7 +34,10 @@ fn select(shell: &Entity<Shell>, cx: &mut VisualTestContext, rows: &[usize]) {
 }
 
 /// The pane's backend becomes a line recorder; every request the window sends is read back.
-fn wire(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> Vec<String> {
+pub(super) fn wire(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+) -> impl FnMut() -> Vec<String> {
     let (backend, mut read) = Backend::test_lines();
     shell.update(cx, |shell, _| {
         shell.panes[0].as_mut().unwrap().backend = Some(backend)
@@ -42,7 +45,7 @@ fn wire(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> Ve
     move || std::iter::from_fn(&mut read).collect()
 }
 
-fn open_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext, kinds: &[u32]) {
+pub(super) fn open_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext, kinds: &[u32]) {
     cx.simulate_keystrokes("shift-f10");
     answer(shell, cx, kinds);
 }
@@ -234,14 +237,14 @@ fn properties_opens_its_card_on_the_menu_row(cx: &mut TestAppContext) {
     let mut sent = wire(&shell, cx);
     open_menu(&shell, cx, &[REG]);
     choose(&shell, cx, "properties");
+    // The menu's own snapshot carries the same rows, so only what the validated choice sends is the card's.
+    sent();
     validated(&shell, cx, "properties", &["/files/notes.txt"]);
     let lines = sent();
     assert!(
         lines
             .iter()
-            .rev()
-            .find(|line| line.contains(r#""op":"snapshot""#))
-            .is_some_and(|line| line.contains(r#""listing":1"#)),
+            .any(|line| line.contains(r#""op":"snapshot""#) && line.contains(r#""listing":1"#)),
         "the card snapshots the rows it asks about under their listing: {lines:?}"
     );
     assert_ne!(status(&shell, cx), UNAVAILABLE);
@@ -267,64 +270,6 @@ fn properties_opens_its_card_on_the_menu_row(cx: &mut TestAppContext) {
     assert!(
         shell.read_with(cx, |shell, _| shell.properties.is_none()),
         "a press on the scrim cancels the card"
-    );
-    shell.update(cx, |shell, _| shell.stop_for_app_quit());
-}
-
-#[gpui::test]
-fn properties_from_the_menu_row_snapshots_its_listing_then_shows_the_facts(cx: &mut TestAppContext) {
-    // EY-201: the card's snapshot names the listing it was read from and goes alone, as the backend's one menu slot needs.
-    let (shell, cx) = open(cx);
-    land(&shell, cx, "/files", home(), 1);
-    select(&shell, cx, &[2]);
-    let mut sent = wire(&shell, cx);
-    open_menu(&shell, cx, &[REG]);
-    choose(&shell, cx, "properties");
-    validated(&shell, cx, "properties", &["/files/notes.txt"]);
-    let lines = sent();
-    let snapshot = lines
-        .iter()
-        .rev()
-        .find(|line| line.contains(r#""op":"snapshot""#))
-        .unwrap_or_else(|| panic!("the card snapshots notes.txt: {lines:?}"));
-    let id = flea::json::field_usize(snapshot, "id").unwrap();
-    assert!(
-        snapshot.contains(r#""listing":1,"rows":[2],"cursor":2"#),
-        "the card's snapshot names its listing: {snapshot}"
-    );
-    let after = lines.iter().position(|line| line == snapshot).unwrap();
-    assert!(
-        !lines[after..].iter().any(|line| line.contains(r#""op":"properties""#)),
-        "Properties waits for the snapshot's answer: {lines:?}"
-    );
-    super::menus_tests::reply(
-        &shell,
-        cx,
-        &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[{REG}]}}"#),
-    );
-    assert_eq!(
-        sent(),
-        [format!(r#"{{"c":"menuaction","op":"properties","id":{id}}}"#)]
-    );
-    super::menus_tests::reply(
-        &shell,
-        cx,
-        &format!(r#"{{"t":"menuaction","id":{id},"op":"properties","ok":true,"path":"/files/notes.txt","kind":"File","bytes":99,"modified":0,"mode":"0644","owner":"gm","uid":1000,"gid":1000}}"#),
-    );
-    assert!(
-        shell.read_with(cx, |shell, _| shell
-            .properties
-            .as_ref()
-            .is_some_and(|open| open.ready())),
-        "the card shows the facts"
-    );
-    assert_eq!(
-        shell.read_with(cx, |shell, _| {
-            let host = shell.panes[0].as_ref().unwrap();
-            (host.pane.cursor, host.pane.held.row(2).map(|row| row.name.to_string()))
-        }),
-        (2, Some("notes.txt".into())),
-        "the listing stays behind the card"
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

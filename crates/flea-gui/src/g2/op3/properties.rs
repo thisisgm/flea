@@ -100,7 +100,7 @@ impl Properties {
         }
     }
 
-    /// Sample input: the snapshot's acknowledgement, a properties reply, then a folder's contents progress lines; a reply for another id is ignored.
+    /// Sample input: {"t":"menuaction","op":"snapshot","id":9,"ok":true} or {"op":"snapshot","id":9,"ok":false,"error":"The folder changed; reopen the menu."}, then {"op":"properties","id":9,"ok":true,"directory":true,"bytes":4096} and {"op":"contents","id":9,"ok":true,"bytes":13,"items":1,"done":true,"partial":false}; a reply for another id is ignored.
     pub fn reply(&mut self, i18n: &I18n, reply: &Json) -> Vec<Effect> {
         if self.closed || reply.get("id").and_then(Json::as_f64) != Some(self.id as f64) {
             return Vec::new();

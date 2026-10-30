@@ -138,6 +138,29 @@ fn m9_g2rows_05_captured_selection_survives_cursor_change() {
 }
 
 #[test]
+fn m9_g2rows_05_refused_snapshot_says_why_and_never_asks() {
+    let i18n = english();
+    let (mut properties, _) = Properties::open(9, 1, &[0], 0);
+    let refused = parse(r#"{"t":"menuaction","op":"snapshot","id":9,"ok":false,"error":"The folder changed; reopen the menu."}"#).unwrap();
+    assert!(
+        properties.reply(&i18n, &refused).is_empty(),
+        "a refused snapshot asks no facts"
+    );
+    let why: Vec<(String, Ink)> = vec![("The folder changed; reopen the menu.".into(), Ink::Error)];
+    assert_eq!(notes(&properties.card(&i18n)), why);
+    let late = parse(r#"{"t":"menuaction","op":"snapshot","id":9,"ok":true}"#).unwrap();
+    assert!(
+        properties.reply(&i18n, &late).is_empty(),
+        "a later acknowledgement cannot ask either"
+    );
+    assert_eq!(
+        notes(&properties.card(&i18n)),
+        why,
+        "a later acknowledgement keeps the reason on the card"
+    );
+}
+
+#[test]
 fn m9_g2rows_05_close_cancels_walk_and_ignores_late_reply() {
     let i18n = english();
     for rows in [vec![0], vec![0, 2, 4]] {
