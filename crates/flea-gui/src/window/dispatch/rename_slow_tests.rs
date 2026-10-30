@@ -140,3 +140,30 @@ fn a_slow_tap_just_past_the_interval_keeps_submillisecond_precision(cx: &mut gpu
     );
     close(&shell, cx);
 }
+
+// EY-282: GridArea.qml arms the same slow click from a lone tap on the painted caption.
+#[gpui::test]
+fn a_second_slow_tap_on_a_grid_caption_opens_the_editor(cx: &mut gpui::TestAppContext) {
+    let (shell, cx, _) = ready(cx, "default");
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.set_view(crate::window::startup::View::Grid, window, cx)
+        })
+    });
+    draw(cx);
+    let caption = read(&shell, cx, "rowNameCentre", &["2"]);
+    assert!(!caption.is_empty(), "the grid paints row 2's caption");
+    press(cx, &caption, 1);
+    wait(cx, 600);
+    assert_eq!(editing(&shell, cx), None, "the first tap only selects");
+    press(cx, &caption, 1);
+    wait(cx, 500);
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx),
+        Some((2, "notes.txt".into(), "notes".into())),
+        "the slow second tap on the caption opens the rename with the stem selected"
+    );
+    assert_eq!(read(&shell, cx, "renameEditorLive", &[]), "true");
+    close(&shell, cx);
+}

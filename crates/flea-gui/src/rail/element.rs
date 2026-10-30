@@ -249,6 +249,11 @@ impl Element for RailElement {
                     continue;
                 }
                 let cue = super::paint::is_cue(&model, row.index);
+                // SidebarRow.qml held: the favourite under its reorder drag ghosts at the disabled opacity.
+                let held = model
+                    .reorder
+                    .is_some_and(|held| held.start_y.is_some() && held.row == row.index);
+                let palette = if held { super::paint::ghost(palette) } else { palette };
                 if model.hovered == Some(row.index) && !cue {
                     window.paint_quad(fill(
                         box_of(row.rect),
@@ -376,6 +381,20 @@ impl Element for RailElement {
                             size(px(metrics.dot), px(metrics.dot)),
                         ),
                         colour,
+                    ));
+                }
+            }
+            // Sidebar.qml's reorder bar: Theme.accentEdge hairlines over the boundary, one in the row above.
+            if let Some((at, below)) = model.reorder.and_then(|held| held.boundary()) {
+                if let Some(row) = laid.row(at) {
+                    let hairline = crate::list::Metrics::for_typeface(&self.typeface).hairline;
+                    let y = row.rect.y + if below { row.rect.height } else { 0. } - hairline;
+                    window.paint_quad(fill(
+                        Bounds::new(
+                            point(bounds.left(), px(y)),
+                            size(bounds.size.width, px(super::paint::ACCENT_EDGE * hairline)),
+                        ),
+                        palette.accent,
                     ));
                 }
             }

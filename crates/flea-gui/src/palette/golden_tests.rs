@@ -90,3 +90,20 @@ fn m9_integ_g05_row_inks_are_the_theme_roles_not_the_foreground() {
     assert_ne!(palette.executable, palette.foreground);
     assert_ne!(palette.symlink, palette.executable);
 }
+
+// EY-298 (c): ColumnRow.qml:79 rests an ancestor column's names in Theme.color.muted, as the columns board draws them.
+#[test]
+fn ey298_a_dimmed_columns_name_takes_the_muted_role_in_every_stock_palette() {
+    use crate::columns::paint::{Clip, Palette};
+    for ((name, stop), rows) in &cases() {
+        let theme = Theme::from_text(&colors_text(rows));
+        let palette = Palette::inherited(&gpui::TextStyle::default(), theme);
+        let dim = palette.row_ink(Clip::None, false, false, true).name;
+        assert_eq!(Some(&argb(dim)), rows.get("color.muted"), "{name}/{stop}");
+        assert_eq!(
+            palette.row_ink(Clip::None, false, true, true).name,
+            palette.foreground,
+            "{name}/{stop}: the open folder lifts to foreground"
+        );
+    }
+}

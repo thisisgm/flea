@@ -249,6 +249,9 @@ impl SelectionPreview {
                 if file.starts_with('/') {
                     frame.source = Some(std::path::PathBuf::from(file).into());
                 }
+                // PaneWire.onThumbed answers the row too: the cursor row's own thumbnail lands from the same reply.
+                cx.notify();
+                return taken;
             }
             "model3d" => {
                 if let Mounted::Model(model) = &frame.mounted {

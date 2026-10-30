@@ -29,6 +29,7 @@ pub struct Palette {
     pub background: Hsla,
     pub foreground: Hsla,
     pub muted: Hsla,
+    pub metadata: Hsla,
     pub muted_frame: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
@@ -40,7 +41,9 @@ impl Palette {
         Self {
             background: base.background,
             foreground: base.foreground,
-            muted: base.metadata,
+            // ColumnRow.qml: an ancestor's names rest in Theme.color.muted, a search location in metadata.
+            muted: base.muted,
+            metadata: base.metadata,
             muted_frame: base.muted_frame,
             accent: base.accent,
             accent_frame: base.accent_frame,

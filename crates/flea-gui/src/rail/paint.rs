@@ -139,3 +139,24 @@ pub(super) fn paint_cue(row: &LaidRow, palette: &Palette, window: &mut Window) {
         palette.accent_frame,
     ));
 }
+
+/// Theme.accentEdge, the reorder bar's thickness in hairlines.
+pub(super) const ACCENT_EDGE: f32 = 3.;
+
+/// Buttons.js DISABLED_OPACITY over every ink a rail row draws.
+pub(super) fn ghost(palette: Palette) -> Palette {
+    let fade = |mut ink: gpui::Hsla| {
+        ink.a *= 0.55;
+        ink
+    };
+    Palette {
+        foreground: fade(palette.foreground),
+        error: fade(palette.error),
+        metadata: fade(palette.metadata),
+        muted_frame: fade(palette.muted_frame),
+        executable: fade(palette.executable),
+        accent: fade(palette.accent),
+        accent_frame: fade(palette.accent_frame),
+        ..palette
+    }
+}

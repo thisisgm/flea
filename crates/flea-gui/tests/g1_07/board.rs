@@ -53,6 +53,7 @@ fn palette() -> Palette {
         muted_frame: foreground.opacity(0.4),
         accent: foreground.opacity(0.8),
         accent_frame: foreground.opacity(0.7),
+        metadata: foreground.opacity(0.6),
     }
 }
 
@@ -66,6 +67,7 @@ fn the_palette_fixture_gives_each_role_its_own_ink() {
         palette.muted_frame,
         palette.accent,
         palette.accent_frame,
+        palette.metadata,
     ];
     for (at, role) in roles.iter().enumerate() {
         assert!(
