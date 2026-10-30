@@ -12,6 +12,12 @@ GATE = REPO / "tests/gpui-gates.sh"
 CARGO = """#!/bin/bash
 # Stand-in cargo: fmt passes, and clippy reports the injected name the way the strict build does.
 [ "$1" = fmt ] && exit 0
+if [ "$1" = test ]; then
+  [ "$MODE" != font-failure ] || exit 101
+  [ "$MODE" != font-empty ] || { echo 'running 0 tests'; exit 0; }
+  echo 'FONT_GATE failed_surfaces=[]'
+  exit 0
+fi
 case "$MODE" in
   unrelated) printf 'warning: unused variable: `g10l_injected_warning`\\nerror: unrelated core compile failure\\n' ;;
   *) printf 'error: unused variable: `g10l_injected_warning`\\n' ;;
@@ -69,7 +75,9 @@ class GateShell(unittest.TestCase):
         self.write("ui/Main.qml", "import QtQuick\n")
         self.write("shelf/Shelf.qml", "import QtQuick\n")
         self.write("tests/gpui_gates_regressions.py", "raise SystemExit(0)\n")
-        env = dict(os.environ, PATH=f"{self.root / 'bin'}{os.pathsep}{os.environ['PATH']}", MODE=mode)
+        env = dict(os.environ, PATH=f"{self.root / 'bin'}{os.pathsep}{os.environ['PATH']}", MODE=mode,
+                   HOME=str(self.root), XDG_DATA_HOME=str(self.root / "data"),
+                   XDG_CONFIG_HOME=str(self.root / "config"), XDG_CACHE_HOME=str(self.root / "cache"))
         return subprocess.run(["/bin/bash", str(self.root / "tests/gpui-gates.sh")], cwd=self.root,
                               env=env, capture_output=True, text=True)
 
@@ -87,6 +95,16 @@ class GateShell(unittest.TestCase):
         p = self.run_gate("injected")
         self.assertEqual(0, p.returncode, p.stdout + p.stderr)
         self.assertIn("ok strict flea-gui warning mutant rejected", p.stdout)
+
+    def test_system_font_failure_fails_the_existing_gui_lane(self):
+        p = self.run_gate("font-failure")
+        self.assertNotEqual(0, p.returncode, p.stdout)
+        self.assertIn("GATE system-font rc=101", p.stdout)
+
+    def test_system_font_filter_matching_no_test_fails(self):
+        p = self.run_gate("font-empty")
+        self.assertNotEqual(0, p.returncode, p.stdout)
+        self.assertIn("GATE system-font has no FONT_GATE failed_surfaces=[] line", p.stdout)
 
 
 if __name__ == "__main__":

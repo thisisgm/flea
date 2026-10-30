@@ -168,6 +168,8 @@ impl Shell {
             let mut list = host.list.borrow_mut();
             list.set_typeface(face.clone());
             host.pane.set_row_height(list.file_metrics().row);
+            host.filter.strip.borrow_mut().typeface = face.clone();
+            host.search.set_typeface(face.clone());
         }
         for surface in &self.surfaces {
             surface.restyle(&face, cx);

@@ -89,7 +89,7 @@ pub fn layout(width: f32, query_w: f32, scope_w: f32, note_w: f32, way_w: f32) -
 
 /// One shaping of the strip, kept until its words, width or face change.
 pub struct Prepared {
-    key: (Words, u32, u32),
+    key: (Words, u32, u32, Typeface),
     pub query: GlyphRun,
     pub scope: GlyphRun,
     pub note: GlyphRun,
@@ -190,6 +190,7 @@ fn prepare(words: &Words, width: f32, typeface: &Typeface, window: &Window) -> P
             words.clone(),
             width.to_bits(),
             window.scale_factor().to_bits(),
+            typeface.clone(),
         ),
         query,
         scope,
@@ -264,6 +265,7 @@ impl Element for StripElement {
             prepared.key.0 == *self.words
                 && prepared.key.1 == width.to_bits()
                 && prepared.key.2 == window.scale_factor().to_bits()
+                && prepared.key.3 == state.typeface
         });
         if !fresh {
             let prepared = prepare(&self.words, width, &state.typeface, window);

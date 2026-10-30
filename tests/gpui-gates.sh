@@ -21,6 +21,12 @@ gate() {
 }
 
 gate fmt-crates cargo fmt --package flea-gui -- --check
+gate system-font cargo test --locked -p flea-gui --lib font_gate -- --nocapture
+# A filter that matches no test exits 0, so the surface verdict line must be there too.
+if ! grep -qx 'FONT_GATE failed_surfaces=\[\]' "$root/system-font.log"; then
+  echo 'GATE system-font has no FONT_GATE failed_surfaces=[] line'
+  failed=1
+fi
 gate clippy tools/flea-clippy tools/clippy-baseline.txt "$root/clippy"
 if [ -f "$root/clippy/clippy-counts.txt" ]; then
   sed 's/^/BASELINE /' "$root/clippy/clippy-counts.txt"
