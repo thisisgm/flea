@@ -19,6 +19,8 @@ mod review;
 pub(crate) mod scroll;
 #[path = "columns_state_tests.rs"]
 mod state;
+#[path = "columns_tap_tests.rs"]
+mod tap;
 #[path = "columns_wheel_tests.rs"]
 mod wheel;
 
