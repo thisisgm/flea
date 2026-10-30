@@ -21,12 +21,22 @@ impl Shell {
     }
 
     pub(super) fn trash_say(&mut self, text: &str, error: bool, cx: &mut Context<Self>) {
+        self.trash_say_detail(text, "", error, cx);
+    }
+
+    pub(super) fn trash_say_detail(
+        &mut self,
+        text: &str,
+        detail: &str,
+        error: bool,
+        cx: &mut Context<Self>,
+    ) {
         let Some(host) = &self.trash else {
             return;
         };
         host.messages.update(cx, |line, cx| {
             line.update(cx, |messages, now| {
-                messages.say(text, error, "", Hint::None, now)
+                messages.say(text, error, detail, Hint::None, now)
             });
         });
     }

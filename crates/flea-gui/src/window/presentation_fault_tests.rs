@@ -69,12 +69,17 @@ fn u01_launch_survives_font_probe_and_input_faults() {
     let slow_path = format!("{}:/usr/bin:/bin", slow.display());
     let mut refused = Vec::new();
     for (case, home, path, family) in [
-        ("no-font-helper", &plain, "/nonexistent", Some("monospace")),
+        (
+            "no-font-helper",
+            &plain,
+            "/nonexistent",
+            Some("JetBrainsMono Nerd Font"),
+        ),
         (
             "slow-font-helper",
             &plain,
             slow_path.as_str(),
-            Some("monospace"),
+            Some("JetBrainsMono Nerd Font"),
         ),
         ("directory-input", &odd, "/usr/bin:/bin", None),
         ("oversized-input", &huge, "/usr/bin:/bin", None),

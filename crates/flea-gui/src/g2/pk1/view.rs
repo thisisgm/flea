@@ -190,6 +190,7 @@ impl Picker {
 
 impl Render for Picker {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let face = crate::list::Typeface::for_window(window, cx);
         self.place_focus(window, cx);
         self.submission_focus(window, cx);
         self.read_control_focus(window);
@@ -351,6 +352,7 @@ impl Render for Picker {
         div()
             .relative()
             .size_full()
+            .font_family(face.font.family)
             .flex()
             .flex_col()
             .bg(palette.background)

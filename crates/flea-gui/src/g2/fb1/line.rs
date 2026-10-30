@@ -31,16 +31,37 @@ pub struct Drawn {
 
 impl From<Line> for Drawn {
     fn from(line: Line) -> Self {
+        // StatusBar.qml draws one line: an error's later lines join its detail strip, any other break is a space.
+        let (primary, rest) = match line.primary.split_once('\n') {
+            Some((first, rest)) if line.error => (first.to_owned(), rest.trim_end()),
+            _ => (one_line(&line.primary), ""),
+        };
+        let detail = match (rest.is_empty(), line.detail.is_empty()) {
+            (true, _) => line.detail,
+            (false, true) => rest.to_owned(),
+            (false, false) => format!("{rest}\n{}", line.detail),
+        };
         Self {
-            primary: line.primary.into(),
+            primary: primary.into(),
             error: line.error,
-            hint: line.hint.into(),
-            extra: line.extra.into(),
-            undo: line.undo.into(),
-            detail: line.detail.into(),
+            hint: one_line(&line.hint).into(),
+            extra: one_line(&line.extra).into(),
+            undo: one_line(&line.undo).into(),
+            detail: detail.into(),
             busy: line.busy,
         }
     }
+}
+
+fn one_line(text: &str) -> String {
+    if !text.contains('\n') {
+        return text.to_owned();
+    }
+    text.split('\n')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 pub struct MessageLine {
@@ -88,6 +109,11 @@ impl MessageLine {
 
     pub fn drawn(&self) -> &Drawn {
         &self.drawn
+    }
+
+    /// The face the last render drew with.
+    pub fn typeface(&self) -> &Typeface {
+        &self.typeface
     }
 
     pub fn now(&self, cx: &App) -> u64 {

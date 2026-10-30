@@ -38,8 +38,10 @@ pub struct Service {
     _stop: Arc<mpsc::Sender<()>>,
 }
 
-/// The family a launch uses when fc-match cannot answer: Omarchy's Style.qml:512-522 keeps `monospace`.
-const FALLBACK_FAMILY: &str = "monospace";
+/// The face a launch draws until fc-match answers: gpui finds no face named `monospace` and falls to sans, so this is Omarchy's default.
+pub(super) const FALLBACK_FAMILY: &str = "JetBrainsMono Nerd Font";
+/// How often the worker stats its inputs; the hung-probe test counts its margin in these.
+pub(super) const TICK: Duration = Duration::from_millis(500);
 
 fn log(what: &str, error: impl std::fmt::Display) {
     eprintln!("flea-gui: presentation {what}: {error}");
@@ -62,6 +64,13 @@ impl Service {
             log("input", failure);
         }
         let (initial, probe) = sources.resolve(&inputs, FALLBACK_FAMILY);
+        // A quick probe that missed its deadline earns one patient retry on the worker, and that retry earns none.
+        let timed_out = |probe: &Option<std::io::Error>| {
+            probe
+                .as_ref()
+                .is_some_and(|error| error.kind() == std::io::ErrorKind::TimedOut)
+        };
+        let mut retry = timed_out(&probe);
         if let Some(error) = probe {
             log("font probe", error);
         }
@@ -79,12 +88,12 @@ impl Service {
                 let _closing = Closing(worker.clone());
                 before_watch();
                 while matches!(
-                    stopping.recv_timeout(Duration::from_millis(500)),
+                    stopping.recv_timeout(TICK),
                     Err(mpsc::RecvTimeoutError::Timeout)
                 ) {
                     // One stat per input; nothing is read and no probe runs while they are unchanged.
                     let stamps = sources.stamps();
-                    if Some(stamps) == seen {
+                    if Some(stamps) == seen && !retry {
                         continue;
                     }
                     if !matches!(
@@ -98,14 +107,19 @@ impl Service {
                     }
                     // Attempt stamps suppress unchanged failures; accepted bytes move only after a stable resolve.
                     seen = Some(stamps);
+                    let patient = std::mem::take(&mut retry);
                     let changed = match sources.read() {
                         Ok(changed) => changed,
                         Err(error) => {
                             log("input", error);
-                            continue;
+                            // The retry re-asks fontconfig for the inputs already held, so a failed read cannot spend it.
+                            if !patient {
+                                continue;
+                            }
+                            inputs.clone()
                         }
                     };
-                    if changed == inputs {
+                    if changed == inputs && !patient {
                         continue;
                     }
                     let family = worker
@@ -115,7 +129,12 @@ impl Service {
                         .fonts
                         .family
                         .clone();
-                    let (snapshot, probe) = sources.resolve(&changed, &family);
+                    let (snapshot, probe) = if patient {
+                        sources.resolve_patient(&changed, &family)
+                    } else {
+                        sources.resolve(&changed, &family)
+                    };
+                    retry = !patient && timed_out(&probe);
                     if let Some(error) = probe {
                         log("font probe", error);
                     }

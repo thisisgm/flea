@@ -115,7 +115,12 @@ impl Shell {
                 == Some("path"),
             first: host.pane.first_count(),
         };
+        let face = self.active_typeface();
         path.update(cx, |view, cx| {
+            // A font-set reaches the cached path view here, so the strip repaints in the new face.
+            if view.paint.borrow_mut().set_typeface(face) {
+                cx.notify();
+            }
             if view.inputs.side != path_inputs.side || view.inputs.dual != path_inputs.dual {
                 view.close(cx);
             }

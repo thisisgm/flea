@@ -32,7 +32,10 @@ struct QueryView {
 }
 
 impl gpui::Render for QueryView {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl gpui::IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl gpui::IntoElement {
+        if cx.try_global::<crate::presentation::Fonts>().is_some() {
+            self.strip.borrow_mut().typeface = Typeface::for_window(window, cx);
+        }
         gpui::div()
             .size_full()
             .children(self.picker.upgrade().map(|picker| {

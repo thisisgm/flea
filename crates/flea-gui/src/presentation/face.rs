@@ -104,9 +104,14 @@ pub(super) fn fc_match() -> Command {
     command
 }
 
-/// Runs the probe under the 250 ms deadline and 4 KiB output cap; a child that outlives either is killed and reaped.
-pub(super) fn probe(mut command: Command) -> io::Result<String> {
-    capture(spawn(&mut command)?, Duration::from_millis(250), 4096)
+/// The quick probe's deadline at launch and on each input change, so a slow fontconfig never delays a frame or a theme.
+pub(super) const LAUNCH: Duration = Duration::from_millis(250);
+/// The worker's one retry after a quick timeout: off the UI thread, a cold fontconfig cache has time to build and answer.
+pub(super) const PATIENT: Duration = Duration::from_secs(10);
+
+/// Runs the probe under `deadline` and a 4 KiB output cap; a child that outlives either is killed and reaped.
+pub(super) fn probe_within(mut command: Command, deadline: Duration) -> io::Result<String> {
+    capture(spawn(&mut command)?, deadline, 4096)
 }
 
 #[cfg(test)]

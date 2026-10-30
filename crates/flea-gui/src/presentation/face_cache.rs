@@ -62,16 +62,26 @@ fn store(path: &Path, key: u64, family: &str) -> io::Result<()> {
 }
 
 /// The cached family when the inputs match, else one bounded probe whose answer is cached. A failed store is logged, never fatal.
+#[cfg(test)]
 pub(super) fn family(
     inputs: &[Option<String>],
     cache: &Path,
     command: impl FnOnce() -> Command,
 ) -> io::Result<String> {
+    family_within(inputs, cache, command, face::LAUNCH)
+}
+
+pub(super) fn family_within(
+    inputs: &[Option<String>],
+    cache: &Path,
+    command: impl FnOnce() -> Command,
+    deadline: std::time::Duration,
+) -> io::Result<String> {
     let key = key(inputs);
     if let Some(family) = lookup(cache, key) {
         return Ok(family);
     }
-    let family = face::probe(command())?;
+    let family = face::probe_within(command(), deadline)?;
     if let Err(error) = store(cache, key, &family) {
         eprintln!("flea-gui: font cache {}: {error}", cache.display());
     }

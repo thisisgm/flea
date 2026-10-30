@@ -299,10 +299,10 @@ impl Menu {
         Outcome::Redraw
     }
 
-    /// A provider answer under the open menu: unchanged rows rebuild nothing, a change keeps the cursor's action.
+    /// A provider answer or a face change under the open menu: unchanged rows in the same face rebuild nothing, a change keeps the cursor's action.
     pub fn refresh(&mut self, entries: Vec<Entry>, env: &Env, window: &Window) -> bool {
         let Some(card) = &self.card else { return false };
-        if card.entries == entries {
+        if card.entries == entries && card.built.typeface == *env.typeface {
             return false;
         }
         let lone = self

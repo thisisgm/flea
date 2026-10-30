@@ -168,6 +168,18 @@ impl Paint {
         }
     }
 
+    /// The window's system font and text size; a change drops every measured advance and shaped crumb.
+    pub fn set_typeface(&mut self, typeface: Typeface) -> bool {
+        if self.typeface == typeface {
+            return false;
+        }
+        self.typeface = typeface;
+        self.advances = [None; 3];
+        self.shapes = Shapes::new(SHAPES);
+        self.runs = Default::default();
+        true
+    }
+
     pub fn pixels(&self, size: Size) -> Pixels {
         pixels(&self.typeface, size)
     }

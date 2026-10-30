@@ -36,6 +36,21 @@ impl PrinterMenu {
 }
 
 impl OutputView {
+    pub(crate) fn restyle_printers(&mut self, face: &Typeface, window: &Window) {
+        let entries = self.printer_entries();
+        let env = Env {
+            catalog: &self.catalog,
+            preset: "default",
+            key_hints: false,
+            typeface: face,
+            inset: 4.,
+        };
+        self.printer_menu
+            .menu
+            .borrow_mut()
+            .refresh(entries, &env, window);
+    }
+
     fn printer_entries(&self) -> Vec<Entry> {
         let Some(Card::Print(p)) = &self.model.card else {
             return vec![];
@@ -69,7 +84,12 @@ impl OutputView {
         else {
             return;
         };
-        let face = Typeface::omarchy_default();
+        // The face the card's last render took from the window, so the menu follows the system font.
+        let face = self
+            .editor
+            .face
+            .clone()
+            .unwrap_or_else(Typeface::omarchy_default);
         let env = Env {
             catalog: &self.catalog,
             preset: "default",
@@ -131,7 +151,12 @@ impl OutputView {
             "enter" | "space" => "open",
             _ => return,
         };
-        let face = Typeface::omarchy_default();
+        // The face the card's last render took from the window, so the menu follows the system font.
+        let face = self
+            .editor
+            .face
+            .clone()
+            .unwrap_or_else(Typeface::omarchy_default);
         let env = Env {
             catalog: &self.catalog,
             preset: "default",
@@ -156,7 +181,12 @@ impl OutputView {
         window: &Window,
         cx: &mut Context<Self>,
     ) {
-        let face = Typeface::omarchy_default();
+        // The face the card's last render took from the window, so the menu follows the system font.
+        let face = self
+            .editor
+            .face
+            .clone()
+            .unwrap_or_else(Typeface::omarchy_default);
         let env = Env {
             catalog: &self.catalog,
             preset: "default",

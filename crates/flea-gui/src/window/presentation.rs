@@ -82,6 +82,21 @@ impl Shell {
         snapshot.install(cx);
         self.font_key = None;
         self.sync_font_settings(cx);
+        let face = self.active_typeface();
+        let env = self.menu_env(&face);
+        let menus = std::iter::once(&self.menu.menu).chain(
+            self.rail
+                .iter()
+                .filter_map(|join| join.network.as_ref())
+                .map(|network| &network.menu),
+        );
+        for menu in menus {
+            let entries = menu.borrow().card.as_ref().map(|card| card.entries.clone());
+            if let Some(entries) = entries {
+                menu.borrow_mut().refresh(entries, &env, window);
+            }
+        }
+        self.restyle_trash_menu(&face, window);
         let palette = crate::g2::op1::palette::CardPalette::from_theme(
             &window.text_style(),
             snapshot.theme,
@@ -97,6 +112,7 @@ impl Shell {
         if let Some(output) = &self.output.view {
             output.update(cx, |output, cx| {
                 output.palette = palette;
+                output.restyle_printers(&face, window);
                 cx.notify();
             });
         }
@@ -146,6 +162,8 @@ impl Shell {
             return;
         }
         let face = fonts.typeface(&self.launch.settings.data);
+        // Windows without the shell's root read the global, so they follow the same face.
+        cx.set_global(face.clone());
         for host in self.panes.iter_mut().flatten() {
             let mut list = host.list.borrow_mut();
             list.set_typeface(face.clone());
@@ -155,6 +173,18 @@ impl Shell {
             surface.restyle(&face, cx);
         }
         self.restyle_settings(&face, cx);
+        // Views that read the face at render keep their last frame until told, so a font-set repaints each one.
+        if let Some(trash) = &self.trash {
+            trash.pane.update(cx, |_, cx| cx.notify());
+            trash.messages.update(cx, |_, cx| cx.notify());
+        }
+        for surface in &self.surfaces {
+            if let Some(footer) = surface.footer.clone() {
+                let line = footer.read(cx).line.clone();
+                line.update(cx, |_, cx| cx.notify());
+                footer.update(cx, |_, cx| cx.notify());
+            }
+        }
         self.font_key = Some((fonts, stored));
     }
 }

@@ -183,3 +183,56 @@ fn op4_printer_menu_resolves_its_inherited_roles_once_across_frames(cx: &mut Tes
     }
     assert_eq!(resolves(), 1, "a repaint resolved the theme again");
 }
+
+#[gpui::test]
+fn trash_font_printer_menu_opens_in_the_window_face(cx: &mut TestAppContext) {
+    let mut face = crate::list::Typeface::omarchy_default();
+    face.font.family = "Noto Sans Mono".into();
+    cx.update(|cx| cx.set_global(face));
+    let (view, vcx) = cx.add_window_view(|window, cx| {
+        let p =
+            crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
+        OutputView::new(
+            Arc::new(I18n::default()),
+            crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
+            cx,
+        )
+    });
+    vcx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
+    view.update_in(vcx, |view, window, cx| {
+        view.open(
+            Action::Print,
+            selected(Kind::Pdf, &["report.pdf"]),
+            window,
+            cx,
+        );
+        let Some(Card::Print(p)) = &mut view.model.card else {
+            panic!()
+        };
+        p.queried = true;
+        p.pending = None;
+        p.printer = "Printer0".into();
+        p.printer_name = p.printer.clone();
+        p.destinations = (0..2)
+            .map(|i| Destination {
+                name: format!("Printer{i}"),
+                default: i == 0,
+            })
+            .collect();
+        cx.notify();
+    });
+    vcx.run_until_parked();
+    view.update_in(vcx, |view, window, cx| {
+        view.activate(Control::Field(Focus::Printer), window, cx)
+    });
+    vcx.run_until_parked();
+    view.read_with(vcx, |view, _| {
+        let menu = view.printer_menu.menu.borrow();
+        let card = menu.card.as_ref().expect("the printer menu opened");
+        assert_eq!(
+            card.built.typeface.font.family.as_ref(),
+            "Noto Sans Mono",
+            "the printer menu opens in the face the window draws"
+        );
+    });
+}

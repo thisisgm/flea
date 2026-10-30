@@ -37,12 +37,12 @@ pub struct Laid {
 
 #[derive(Default)]
 struct Shaped {
-    key: Option<(SharedString, Hsla, Pixels)>,
+    key: Option<(SharedString, Hsla, Pixels, gpui::Font)>,
     line: Option<ShapedLine>,
 }
 
 impl Shaped {
-    // Reshapes only when the words, ink or size change, so a frame at rest shapes nothing.
+    // Reshapes only when the words, ink, size or face change, so a frame at rest shapes nothing.
     fn get(
         &mut self,
         text: &SharedString,
@@ -51,7 +51,7 @@ impl Shaped {
         font: &gpui::Font,
         window: &Window,
     ) -> &ShapedLine {
-        let key = (text.clone(), color, size);
+        let key = (text.clone(), color, size, font.clone());
         if self.key.as_ref() != Some(&key) || self.line.is_none() {
             let run = TextRun {
                 len: text.len(),
@@ -79,8 +79,8 @@ pub struct StripState {
     query: Shaped,
     summary: Shaped,
     way_out: Shaped,
-    // The summary cut to its room: the full words and the room it was cut for, the cut words, and the ellipsis it measures.
-    cut_for: Option<(SharedString, Pixels)>,
+    // The summary cut to its room: the full words, room and face it was cut for, the cut words, and the ellipsis it measures.
+    cut_for: Option<(SharedString, Pixels, gpui::Font)>,
     cut: Option<SharedString>,
     elided: Shaped,
     ellipsis: Shaped,
@@ -188,7 +188,14 @@ impl Element for StripElement {
             laid,
             shaped,
         } = &mut *state;
-        let before = [&query.key, &summary.key, &way_out.key, &elided.key].map(Clone::clone);
+        let before = [
+            &query.key,
+            &summary.key,
+            &way_out.key,
+            &elided.key,
+            &ellipsis.key,
+        ]
+        .map(Clone::clone);
         let font = typeface.font.clone();
         let (left, top) = (bounds.origin.x, bounds.origin.y);
         let middle = |height: f32| top + px((HEIGHT - RULE - height) / 2.);
@@ -242,7 +249,7 @@ impl Element for StripElement {
                 (*cut, *cut_for) = (None, None);
             } else {
                 // FilterStrip.qml elides right: the words that fit before "esc clears", then an ellipsis, recut only when either changes.
-                if cut_for.as_ref() != Some(&(text.summary.clone(), room)) {
+                if cut_for.as_ref() != Some(&(text.summary.clone(), room, font.clone())) {
                     let dots = ellipsis
                         .get(
                             &SharedString::new_static(ELLIPSIS),
@@ -254,7 +261,7 @@ impl Element for StripElement {
                         .width();
                     let keep = full.index_for_x((room - dots).max(px(0.))).unwrap_or(0);
                     *cut = Some(format!("{}{ELLIPSIS}", text.summary[..keep].trim_end()).into());
-                    *cut_for = Some((text.summary.clone(), room));
+                    *cut_for = Some((text.summary.clone(), room, font.clone()));
                 }
                 let words = cut.clone().unwrap_or_default();
                 width = elided
@@ -268,11 +275,17 @@ impl Element for StripElement {
             point(left, top + px(HEIGHT - RULE)),
             size(bounds.size.width, px(RULE)),
         );
-        *shaped += [&query.key, &summary.key, &way_out.key, &elided.key]
-            .iter()
-            .zip(&before)
-            .filter(|(now, was)| ***now != **was)
-            .count();
+        *shaped += [
+            &query.key,
+            &summary.key,
+            &way_out.key,
+            &elided.key,
+            &ellipsis.key,
+        ]
+        .iter()
+        .zip(&before)
+        .filter(|(now, was)| ***now != **was)
+        .count();
         *laid = Some(Laid {
             mark,
             query: query_box,

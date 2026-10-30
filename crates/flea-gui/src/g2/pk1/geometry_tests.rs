@@ -198,3 +198,34 @@ fn followup_picker_cohesion_reports_the_answer_pressed_state(cx: &mut TestAppCon
         Some(false)
     );
 }
+
+#[gpui::test]
+fn trash_font_picker_listing_follows_the_live_family(cx: &mut TestAppContext) {
+    let f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    for family in ["DejaVu Sans Mono", "DejaVu Sans"] {
+        f.cx.update(|window, cx| {
+            let fonts = crate::presentation::Fonts::from_sources("", "", family.into());
+            cx.set_global(fonts.typeface(&flea::jsondoc::Json::Null));
+            cx.set_global(fonts);
+            window.refresh();
+        });
+        f.cx.update(|window, cx| {
+            window.draw(cx).clear(cx);
+        });
+        f.cx.update(|_, cx| {
+            let picker = f.picker.read(cx);
+            assert_eq!(
+                picker
+                    .browse
+                    .listing
+                    .read(cx)
+                    .drawn()
+                    .typeface
+                    .font
+                    .family
+                    .as_ref(),
+                family
+            );
+        });
+    }
+}

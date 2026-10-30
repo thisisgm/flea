@@ -122,6 +122,15 @@ impl ListPaint {
         }
     }
 
+    /// The window's system font; a change reshapes every row and measures the digit advance again.
+    pub fn set_font(&mut self, font: Font) {
+        if self.font != font {
+            self.font = font;
+            self.revision += 1;
+            self.advance = None;
+        }
+    }
+
     fn advance(&mut self, window: &Window) -> Pixels {
         if let Some(advance) = self.advance {
             return advance;
