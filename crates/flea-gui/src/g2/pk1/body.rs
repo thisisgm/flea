@@ -3,7 +3,7 @@ use super::picker::Picker;
 use crate::g2::pk2::view::ListingView;
 use gpui::{div, prelude::*, px, Context, Entity, IntoElement, Render, WeakEntity, Window};
 
-// The path strip's band above the listing, the picker-path board's 34 px.
+// The path strip's band above the listing, 27 px under the 34 px title on the picker-path board.
 const PATH_HEIGHT: f32 = 27.;
 
 // The body slot: the path strip over the places rail and the listing, as picker-open draws them.

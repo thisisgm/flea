@@ -17,8 +17,8 @@ function run(check) {
         key(preset, "F", "f", none, "search")
         key(preset, "F", "f", none, "copydirpath", "menu")
         for (var pc = 0; pc < 3; pc++) {
-            key(preset, "F", "F", shift, "", ["preview", "pdf", "media"][pc])
-            key(preset, "B", "B", shift, "", ["preview", "pdf", "media"][pc])
+            key(preset, "F", "F", shift, pc < 2 ? "previewPageForward" : "", ["preview", "pdf", "media"][pc])
+            key(preset, "B", "B", shift, pc < 2 ? "previewPageBack" : "", ["preview", "pdf", "media"][pc])
         }
         var previewRows = Keymap.bindingRows(preset, "gui").filter(function (r) { return r.text === "F" || r.text === "B" })
         check(preset + " claims each preview paging letter once", previewRows.length, 2)
