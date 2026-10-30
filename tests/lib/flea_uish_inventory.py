@@ -10,7 +10,7 @@ import sys
 
 BASE = "2faf8d099e12303cfb5a28af4a0c16c851a2cb07"
 NATIVE_TAIL_SHA256 = 'adbde831f33b613e7c0bab4e4b82ed2a17b00858d640d11fa28594ca1ba07d4d'
-# Filled from the exact base, never from an older archive's manifest.
+# Filled from the exact base, never an older archive's manifest; a body edited since is repinned here.
 ORACLE = {name: {"path": path, "sha256": digest} for name, path, digest in (
     ('cursor', 'tests/ui.sh', 'd15f81b18a714d20411d6ad34818957c9fbf07399e85c8b286ec57fd1001f644'),
     ('scroll', 'tests/ui.sh', '32ed9275187ccfdba7fbb397444e5ffce7d0b1465463d23bbc13406428d2869d'),
@@ -67,8 +67,8 @@ ORACLE = {name: {"path": path, "sha256": digest} for name, path, digest in (
     ('pdffocus', 'tests/ui-pdf.sh', 'c4d9db18e39f09e10103c5619b2e6493263a27ab940627ea036a90b29bd4f62f'),
     ('network', 'tests/ui.sh', '5095f896af4b1e26fcac768cdf702fd5e7b50aab029554e35a222eb1994eba87'),
     ('netmark', 'tests/ui.sh', '6f4ccf12c879404b7e1862eb7b60ca334d3d8d91decc80a886404baea33161e8'),
-    ('networkauth', 'tests/ui.sh', '9f06d72538339dd33786f948ba1c45158a20f5a18e363f8dce26c7d417f27411'),
-    ('networktimeout', 'tests/ui.sh', '2c4b506d7c72feb2759b5f96c9db772481d2e13cee271f50fa42aecd82f5afbc'),
+    ('networkauth', 'tests/ui.sh', '09d2daf9369dd49c7626afc1194de004dab31af5004f9a53945f8d59c2e8d1df'),
+    ('networktimeout', 'tests/ui.sh', 'ad391b4206c25a8a53b6ba5ca16cb9b5bb9b9d5cf4794133792285c5c0951a75'),
     ('gvfs', 'tests/ui.sh', '6f621fe825914b172c01f0d275b7d9c65a6dcc3858ebc44d345af714bdb162cb'),
     ('sharebrowser', 'tests/ui.sh', 'a83b586d31183def10330f3942e6936b5391390af1f88bc73fe8ad844f57198f'),
     ('unmount', 'tests/ui.sh', 'fe45769f83149f0b7351ca3f503a8f8deee03248767605c5033fad328be7062b'),
