@@ -6,6 +6,8 @@ pub(crate) mod compositor;
 mod compositor_surface_tests;
 pub mod dual;
 pub mod feedback;
+#[cfg(test)]
+mod font_gate;
 pub mod g2;
 pub mod grid;
 pub mod input;

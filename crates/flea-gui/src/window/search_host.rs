@@ -19,6 +19,14 @@ pub(crate) struct Runtime {
 }
 
 impl Runtime {
+    pub(crate) fn set_typeface(&mut self, face: crate::list::Typeface) {
+        let mut strip = self.strip.borrow_mut();
+        if strip.typeface != face {
+            strip.typeface = face;
+            self.contents = None;
+        }
+    }
+
     pub fn new(face: crate::list::Typeface) -> Self {
         Self {
             // The GUI wires the contents producer, so Ctrl+G switches the strip to contents instead of doing nothing.
