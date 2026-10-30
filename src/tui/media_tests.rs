@@ -1,7 +1,7 @@
 use super::*;
 
 fn i18n() -> crate::i18n::I18n {
-    crate::i18n::I18n::default()
+    crate::i18n::test_catalogs::english()
 }
 
 fn resting() -> Player {

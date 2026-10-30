@@ -24,7 +24,7 @@ fn x_of(cx: &mut VisualTestContext, selector: &'static str) -> f32 {
 }
 
 fn english() -> flea::i18n::I18n {
-    flea::i18n::I18n::default()
+    crate::test_catalogs::english()
 }
 
 #[gpui::test]

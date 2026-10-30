@@ -334,7 +334,7 @@ impl Render for Mount {
 }
 
 fn card(cx: &mut Context<Mount>) -> Entity<QuickLook> {
-    let look = cx.new(|_| QuickLook::new(Arc::new(flea::i18n::I18n::default())));
+    let look = cx.new(|_| QuickLook::new(Arc::new(crate::test_catalogs::english())));
     cx.observe(&look, |_, _, cx| cx.notify()).detach();
     look
 }

@@ -157,7 +157,7 @@ fn pv2_review_r2_locked_file_draws_no_sentence_before_the_sniff(cx: &mut TestApp
         .canonicalize()
         .unwrap();
     open(cx, view, path.to_str().unwrap());
-    let i18n = I18n::default();
+    let i18n = crate::test_catalogs::english();
     let first = view
         .update(cx, |v, window, cx| {
             v.reply(

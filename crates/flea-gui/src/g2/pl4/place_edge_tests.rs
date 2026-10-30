@@ -1,7 +1,6 @@
 //! The rail's current place, painted by the real producer: HIG trash and rail-favorites draw `.rr.place` as --sel with no edge.
 use super::producer::Producer;
 use crate::palette::Theme;
-use flea::i18n::I18n;
 use gpui::{div, prelude::*, Context, Hsla, Quad, TestAppContext, Window};
 use std::sync::Arc;
 
@@ -28,7 +27,7 @@ fn place_quads(cx: &mut TestAppContext, focused: bool) -> (Theme, Vec<Quad>, f32
     let (parent, view) = cx.add_window_view(|_, cx| {
         Sized(cx.new(|cx| {
             let mut producer =
-                Producer::new(Arc::new(I18n::default()), &state, "/bin/false".into(), cx);
+                Producer::new(Arc::new(crate::test_catalogs::english()), &state, "/bin/false".into(), cx);
             producer.set_polling(true, cx);
             producer
         }))

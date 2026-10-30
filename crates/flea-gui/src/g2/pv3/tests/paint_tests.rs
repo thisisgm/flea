@@ -312,7 +312,7 @@ fn pv3_the_pointer_reaches_each_strip_part_where_the_board_draws_it() {
 #[test]
 fn pv3_ey42_audio_facts_name_the_kind_and_the_size() {
     use crate::g2::pv3::surface::{facts_line, Facts};
-    let catalog = flea::i18n::I18n::default();
+    let catalog = crate::test_catalogs::english();
     let row = flea::protocol::RowFacts {
         name: "tone.ogg".into(),
         size: 6_900,

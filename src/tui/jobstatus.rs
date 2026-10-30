@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     fn extraction_job_status_keeps_the_backend_head_and_unfinished_count() {
-        let i18n = crate::i18n::I18n::default();
+        let i18n = crate::i18n::test_catalogs::english();
         assert_eq!(line(&i18n, "Extracting 7 of 18", 1), "Extracting 7 of 18");
         assert_eq!(
             line(&i18n, "Extracting 7 of 18", 3),
@@ -147,7 +147,7 @@ mod bar_tests {
         let pieces = bar(
             &theme,
             percent(&job).unwrap(),
-            &crate::i18n::I18n::default(),
+            &crate::i18n::test_catalogs::english(),
         );
         assert_eq!(pieces[0], (theme.accent.as_str(), "━".repeat(8), 2));
         assert_eq!(pieces[1], (theme.border.as_str(), "─".repeat(12), 0));
@@ -161,7 +161,7 @@ mod bar_tests {
         let job = parse(r#"{"state":"running","bytes":120,"totalBytes":100}"#).unwrap();
         assert_eq!(percent(&job), Some(100));
         let theme = super::super::theme::Theme::from_text("");
-        let i18n = crate::i18n::I18n::default();
+        let i18n = crate::i18n::test_catalogs::english();
         for (percent, filled) in [(0, 0), (2, 0), (3, 1), (40, 8), (57, 11), (100, 20), (250, 20)] {
             let pieces = bar(&theme, percent, &i18n);
             assert_eq!((pieces[0].1.chars().count(), pieces[1].1.chars().count()), (filled, 20 - filled), "{percent}");
@@ -178,6 +178,12 @@ pub(super) struct Status {
 }
 
 impl Status {
+    // Tests read English only; the fields are spelled out because Self::default() would still load the host's language.
+    #[cfg(test)]
+    pub fn english() -> Self {
+        Self { id: 0, percent: None, count: 0, i18n: crate::i18n::test_catalogs::english() }
+    }
+
     pub fn suffix(&self) -> String {
         let count = self.i18n.trn("jobs.count", self.count as i64);
         self.i18n.tr_args("jobs.suffix", &[&count])

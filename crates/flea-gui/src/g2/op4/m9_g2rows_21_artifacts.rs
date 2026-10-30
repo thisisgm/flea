@@ -4,7 +4,6 @@ use super::{
     seam::OutputError,
 };
 use flea::{
-    i18n::I18n,
     ui_logic_op4::{
         composition,
         output::Kind,
@@ -82,7 +81,7 @@ pub(super) fn check_artifacts() {
     assert!(root.is_absolute() && root.parent() == Some(parent.as_path()));
     std::fs::write(root.join(".flea-test-sandbox"), b"output artifacts").unwrap();
     let _sandbox = Sandbox(root.clone(), parent);
-    let catalog = I18n::default();
+    let catalog = crate::test_catalogs::english();
     let mut files = Vec::new();
     for (name, color) in [("z.png", "red"), ("a.png", "blue")] {
         let path = root.join(name);

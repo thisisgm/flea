@@ -289,7 +289,7 @@ mod visual_tests;
 fn a_pane_host_holds_catalog_words_from_construction_and_each_language_change() {
     let catalog = |revision| Snapshot {
         revision,
-        catalog: Arc::new(flea::i18n::I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let mut host = PaneHost::new("/files".into(), None, 620., &catalog(1));
     let words = Rc::clone(&host.list.borrow().view.words);

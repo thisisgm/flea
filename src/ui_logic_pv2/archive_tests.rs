@@ -12,7 +12,7 @@ fn meta(entries: u64, unpacked: u64, names: &[(&str, bool)]) -> Meta {
 // ql-archive board: "1 entry · 156 B unpacked" under the name.
 #[test]
 fn archive_line_reads_the_index() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     assert_eq!(
         line(&i18n, &meta(1, 156, &[("main.rs", false)])),
         "1 entry \u{b7} 156 B unpacked",
@@ -58,7 +58,7 @@ fn archive_line_reads_the_index() {
 // PreviewArchive.qml: as many rows as the frame holds less the "+ N more" line, which is always visible.
 #[test]
 fn archive_rows_are_bounded_by_the_wire_and_the_frame() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     assert_eq!(
         shown(22. * 5., 22.),
         4,

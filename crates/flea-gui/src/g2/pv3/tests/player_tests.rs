@@ -172,7 +172,7 @@ fn pv3_a_failure_shows_the_sentence_and_ends_the_decoder(cx: &mut TestAppContext
     player.update(cx, |player, cx| player.open(subject("bad.mp4", true), cx));
     send(cx, &script, Event::Failed(Failure::Unsupported));
     assert_eq!(script.dropped.get(), 1);
-    let catalog = flea::i18n::I18n::load(flea::i18n::Paths::default());
+    let catalog = crate::test_catalogs::english();
     let picture = player.read_with(cx, |player, _| shown(player, &Facts::default(), &catalog));
     assert_eq!(
         picture,

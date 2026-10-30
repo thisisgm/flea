@@ -161,7 +161,7 @@ fn gcomp_u05_r3_empty_old_answer_stays_pending_until_the_new_directory_answers(
         assert!(shell.surfaces[0].filesystem.answered);
     });
     frame(cx, handle);
-    let unknown = flea::i18n::I18n::default().tr("status.host.unknown");
+    let unknown = crate::test_catalogs::english().tr("status.host.unknown");
     assert_eq!(
         json(cx, handle, "statusFooterState")
             .get("filesystem")

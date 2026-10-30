@@ -1,7 +1,6 @@
 //! tests/js/pathbar.js, case for case: what a typed line resolves to, Tab's completion and what the bar says.
 use super::HOME;
 use flea::{
-    i18n::I18n,
     keys::{lookup, Context, Frontend, Input, CONTROL, SHIFT},
     protocol::{Reply, RowFacts},
 };
@@ -25,7 +24,7 @@ fn check<T: PartialEq + std::fmt::Debug>(line: u32, got: T, want: T) {
 
 fn said(before: &str, after: &Completion, dir: &str) -> String {
     completion_message(before, after, dir)
-        .map(|said| said.text(&I18n::default()))
+        .map(|said| said.text(&crate::test_catalogs::english()))
         .unwrap_or_default()
 }
 

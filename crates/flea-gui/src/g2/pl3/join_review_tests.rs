@@ -188,7 +188,6 @@ fn u32_reopening_on_another_pane_keeps_an_active_operations_producer() {
 fn u32_external_confirmation_takeover_ends_the_previous_cards_session() {
     use crate::g2::op1::model::{Dialog, Operations};
     use flea::{
-        i18n::I18n,
         ui_logic_op1::{
             confirm::Source,
             trash::{Button, Review, Scope},
@@ -201,7 +200,7 @@ fn u32_external_confirmation_takeover_ends_the_previous_cards_session() {
     };
     let mut operations = Operations::new("default");
     operations.confirm_delete(review("7", 1), Scope::Items, Source::Menu(17), 0);
-    operations.tick(&I18n::default(), 2500);
+    operations.tick(&crate::test_catalogs::english(), 2500);
     operations.present_external_delete(review("8", 2), Scope::TrashItems, 8);
     assert!(
         operations.confirm.is_none(),

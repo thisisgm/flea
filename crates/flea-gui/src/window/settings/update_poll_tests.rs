@@ -95,7 +95,7 @@ fn owner_parity_update_poll_child(cx: &mut TestAppContext) {
             launch,
             Snapshot {
                 revision: 1,
-                catalog: Arc::new(flea::i18n::I18n::default()),
+                catalog: Arc::new(crate::test_catalogs::english()),
             },
             events,
             cx,

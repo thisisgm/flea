@@ -76,7 +76,7 @@ fn capture(
             let palette = CardPalette::from_theme(&window.text_style(), *cx.global::<Theme>(), 8.);
             let overlay = cx.new(|cx| {
                 let mut view =
-                    Overlay::new(Arc::new(flea::i18n::I18n::default()), palette, "default");
+                    Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default");
                 view.copy_to(71, moving, &format!("/{}", "Hgjpq/".repeat(80)), cx);
                 view
             });

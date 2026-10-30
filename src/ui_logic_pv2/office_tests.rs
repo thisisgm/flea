@@ -127,7 +127,7 @@ fn office_error_inventory_projects_the_approved_sentences() {
         None,
         "a replaced request is a state"
     );
-    let i18n = crate::i18n::I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     let mut office = Office::default();
     for (err, unavailable, key, glyph) in [
         (

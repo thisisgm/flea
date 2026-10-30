@@ -65,7 +65,7 @@ fn open<'a>(
     launch.unlock = device.map(str::to_owned);
     let locale = crate::window::locale::Snapshot {
         revision: 1,
-        catalog: Arc::new(flea::i18n::I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let (_send, events) = async_channel::unbounded();
     let (shell, cx) =

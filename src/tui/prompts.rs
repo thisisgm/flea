@@ -19,6 +19,22 @@ pub struct Prompts {
     redo: Vec<Step>,
     pub trash: Option<super::trashview::TrashView>,
 }
+#[cfg(test)]
+impl Prompts {
+    // Tests read English only; the fields are spelled out because Self::default() would still load the host's language.
+    pub fn english() -> Self {
+        Self {
+            i18n: crate::i18n::test_catalogs::library_english(),
+            asked: None,
+            question: None,
+            id: 0,
+            trashing: BTreeSet::new(),
+            undo: Vec::new(),
+            redo: Vec::new(),
+            trash: None,
+        }
+    }
+}
 pub struct Paste {
     id: usize,
     op: &'static str,

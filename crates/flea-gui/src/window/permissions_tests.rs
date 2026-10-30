@@ -250,7 +250,7 @@ fn m9_permissions_button_space_and_octal_return_keep_the_shipped_control_contrac
     };
     fn ready() -> Permissions {
         let (mut card, _) = Permissions::open(4, vec!["/files/notes.txt".into()], "");
-        card.reply(&flea::i18n::I18n::default(), &flea::jsondoc::parse(
+        card.reply(&crate::test_catalogs::english(), &flea::jsondoc::parse(
             r#"{"id":4,"op":"inspect","ok":true,"path":"/files/notes.txt","mode":"0644","reason":""}"#,
         ).unwrap());
         card

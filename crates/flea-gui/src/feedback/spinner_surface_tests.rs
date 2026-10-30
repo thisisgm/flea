@@ -46,7 +46,7 @@ fn job_ipc_reports_modes_from_backend_kinds_and_failed_jobs_have_no_omi(cx: &mut
         let palette =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         Overlay::new(
-            Arc::new(flea::i18n::I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             CardPalette::from_list(&palette, 8.),
             "default",
         )
@@ -229,7 +229,7 @@ fn operation_omi_uses_the_accent_role_when_frame_ink_differs(cx: &mut TestAppCon
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         let mut palette = CardPalette::from_list(&list, 8.);
         palette.accent_frame = palette.background;
-        Overlay::new(Arc::new(flea::i18n::I18n::default()), palette, "default")
+        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
     });
     overlay.update(vcx, |overlay, cx| {
         overlay.line(&job(1, "copy", "running"), cx);

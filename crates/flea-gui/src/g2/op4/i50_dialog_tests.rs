@@ -5,7 +5,6 @@ use super::{
     tests::selected,
 };
 use flea::{
-    i18n::I18n,
     ui_logic_op4::{composition::Layout, output::Kind},
 };
 use gpui::{EntityInputHandler, TestAppContext};
@@ -24,7 +23,7 @@ fn i50_dialog_field_composition_matrix_output(cx: &mut TestAppContext) {
             let palette =
                 crate::list::Palette::inherited(&w.text_style(), crate::palette::Theme::default());
             OutputView::new(
-                Arc::new(I18n::default()),
+                Arc::new(crate::test_catalogs::english()),
                 crate::g2::op1::palette::CardPalette::from_list(&palette, 8.),
                 cx,
             )
@@ -84,7 +83,7 @@ fn i50_dialog_closed_callback_refused_output(cx: &mut TestAppContext) {
     let (view, cx) = cx.add_window_view(|w, cx| {
         let p = crate::list::Palette::inherited(&w.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )

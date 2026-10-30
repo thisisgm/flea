@@ -63,7 +63,7 @@ fn export_oracle_vectors_for_all_presets_contexts_frontends_and_masks() {
                 }
                 if context == Context::Listing {
                     let sheet =
-                        keys::presentation::sheet(preset, frontend, &flea::i18n::I18n::default());
+                        keys::presentation::sheet(preset, frontend, &crate::test_catalogs::english());
                     for (index, row) in sheet.iter().enumerate() {
                         writeln!(file, "{{\"kind\":\"sheet\",\"preset\":{},\"frontend\":{},\"index\":{},\"action\":{},\"keys\":{},\"context\":{}}}",
                             quote(preset), quote(frontend.name()), index, quote(row.action), quote(&row.keys), quote(row.context)).unwrap();

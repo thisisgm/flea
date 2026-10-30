@@ -11,7 +11,7 @@ fn pv2_office_document_converts_then_opens_in_the_pdf_viewer(cx: &mut TestAppCon
         r#"{"c":"officepdf","id":1,"path":"/d/talk.odp"}"#,
         "a presentation asks for its PDF"
     );
-    let i18n = I18n::default();
+    let i18n = crate::test_catalogs::english();
     let bar = view.update(cx, |v, _, cx| v.bar(&i18n, cx)).unwrap();
     assert_eq!(
         bar.glyph, "presentation",
@@ -120,7 +120,7 @@ fn pv2_office_failures_project_the_approved_sentences(cx: &mut TestAppContext) {
     let report = root.0.join("report.docx");
     // A real container, since a fake one falls to the unsupported card before any conversion runs.
     std::fs::write(&report, container::REAL_DOCX).unwrap();
-    let i18n = I18n::default();
+    let i18n = crate::test_catalogs::english();
     let (view, _, _) = office(cx, true);
     let cases = [
         (

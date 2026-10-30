@@ -62,7 +62,7 @@ fn walk(cx: &mut TestAppContext, busy: bool) {
     let (preview, cx) = cx.add_window_view(|_, cx| {
         let mut view = SelectionPreview::new(
             Port::default(),
-            Arc::new(flea::i18n::I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             Typeface::omarchy_default(),
             cx,
         );
@@ -158,7 +158,7 @@ fn playback_without_a_decoded_frame_keeps_its_poster_until_hide(cx: &mut TestApp
     let (preview, cx) = cx.add_window_view(|_, cx| {
         let mut view = SelectionPreview::new(
             Port::default(),
-            Arc::new(flea::i18n::I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             Typeface::omarchy_default(),
             cx,
         );

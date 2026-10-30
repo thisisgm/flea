@@ -351,7 +351,7 @@ fn a_signal_during_a_request_read_is_retried() {
         usize::MAX
     );
     let (mut client, mut server) = UnixStream::pair().unwrap();
-    let reader = thread::spawn(move || read_request(&mut server, &I18n::default()));
+    let reader = thread::spawn(move || read_request(&mut server, &crate::test_catalogs::english()));
     let thread = std::os::unix::thread::JoinHandleExt::as_pthread_t(&reader);
     for _ in 0..10 {
         thread::sleep(Duration::from_millis(20));

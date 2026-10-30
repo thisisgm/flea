@@ -31,6 +31,9 @@ pub mod window;
 #[cfg(test)]
 #[path = "../../../src/i18n/test_catalogs.rs"]
 mod test_catalogs;
+// test_catalogs reaches the catalog types through super.
+#[cfg(test)]
+use flea::i18n::{I18n, Paths};
 
 #[cfg(test)]
 mod theme_gate;

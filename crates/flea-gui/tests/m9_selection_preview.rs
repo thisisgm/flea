@@ -1,6 +1,8 @@
 //! Consumer checks enter through the real Shell, backend pipe and IPC dispatch.
 #[path = "../../../src/i18n/test_catalogs.rs"]
 mod test_catalogs;
+// test_catalogs reaches the catalog types through super.
+use flea::i18n::{I18n, Paths};
 #[path = "m9_selection_preview/geometry.rs"]
 mod geometry;
 #[path = "m9_selection_preview/host.rs"]

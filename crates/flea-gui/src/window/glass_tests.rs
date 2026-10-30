@@ -32,7 +32,7 @@ fn launch(cx: &mut TestAppContext) -> WindowHandle<super::root::Root> {
         );
         let locale = super::locale::Snapshot {
             revision: 1,
-            catalog: Arc::new(flea::i18n::I18n::default()),
+            catalog: Arc::new(crate::test_catalogs::english()),
         };
         let (_, events) = async_channel::unbounded();
         super::open(launch, locale, events, cx).expect("the production startup opens")

@@ -4,7 +4,6 @@ use super::{
     wire::{object, text, word, STEP, WAIT},
 };
 use flea::{
-    i18n::I18n,
     jsondoc::{self, Json},
 };
 use flea_gui::{
@@ -133,7 +132,7 @@ impl Host {
         );
         let locale = Snapshot {
             revision: 1,
-            catalog: Arc::new(I18n::default()),
+            catalog: Arc::new(crate::test_catalogs::english()),
         };
         let window = self
             .cx

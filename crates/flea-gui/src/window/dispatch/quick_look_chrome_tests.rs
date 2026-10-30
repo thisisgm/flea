@@ -7,7 +7,7 @@ use crate::{
     state::Shell,
     window::u07_tests::read,
 };
-use flea::{i18n::I18n, jsondoc, ui_logic_pv2::archive};
+use flea::{jsondoc, ui_logic_pv2::archive};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
 #[path = "quick_look_symlink_tests.rs"]
@@ -114,7 +114,7 @@ fn the_archive_card_opens_on_its_name_and_entries_with_no_bar(cx: &mut TestAppCo
         .into_iter()
         .map(|(text, _)| text)
         .collect();
-    let line = archive::line(&I18n::default(), &meta);
+    let line = archive::line(&crate::test_catalogs::english(), &meta);
     assert_eq!(drawn, ["pack.zip".to_string(), line, "main.rs".to_string()]);
     cx.simulate_keystrokes("escape");
     draw(cx);

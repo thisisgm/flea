@@ -11,7 +11,7 @@ pub fn mark(name: &str) -> Mark {
 }
 
 pub fn catalog() -> Arc<I18n> {
-    Arc::new(I18n::default())
+    Arc::new(crate::test_catalogs::english())
 }
 
 pub fn typeface() -> code::Typeface {

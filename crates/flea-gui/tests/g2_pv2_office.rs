@@ -1,6 +1,9 @@
 //! The CSV table and the office view as real GPUI entities in test windows: a stand-in code engine and office backend
 //! answer as the backend's wire does, and every case reads what the frame lays out and draws.
-use flea::i18n::I18n;
+#[path = "../../../src/i18n/test_catalogs.rs"]
+mod test_catalogs;
+// test_catalogs reaches the catalog types through super.
+use flea::i18n::{I18n, Paths};
 use flea::json::{escape, field_str, field_usize};
 use flea::ui_logic_pv2::csv::{self, records};
 use flea::ui_logic_pv2::office::State;

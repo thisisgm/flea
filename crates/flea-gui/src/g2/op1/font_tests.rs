@@ -4,7 +4,7 @@ use super::{
     view::{self, Pointer, Scene},
 };
 use crate::{list::Typeface, palette::Theme};
-use flea::{i18n::I18n, ui_logic_op1::card::Kind};
+use flea::ui_logic_op1::card::Kind;
 use gpui::{
     prelude::*, px, size, App, AppContext, Bounds, Context, Element, ElementId, GlobalElementId,
     InspectorElementId, LayoutId, Pixels, Render, Style, TestAppContext, TextStyle, Window,
@@ -73,7 +73,7 @@ impl Render for Card {
             frame: None,
             typeface: &typeface,
             palette: &palette,
-            catalog: &I18n::default(),
+            catalog: &crate::test_catalogs::english(),
             pointer: &Pointer::default(),
             wire: &|_, button| button,
             pinned: None,
@@ -127,7 +127,7 @@ impl Render for Caption {
             frame: None,
             typeface: &typeface,
             palette: &palette,
-            catalog: &I18n::default(),
+            catalog: &crate::test_catalogs::english(),
             pointer: &Pointer::default(),
             wire: &|_, button| button,
             pinned: None,

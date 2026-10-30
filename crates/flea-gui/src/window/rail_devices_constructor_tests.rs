@@ -35,7 +35,7 @@ fn rail_devices_real_constructor_draws_completed_devices_before_native_capture(
     let launch = Launch::resolve(Settings::from_json(state), Arguments::default(), &home);
     let locale = Snapshot {
         revision: 1,
-        catalog: Arc::new(I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let (_sender, events) = async_channel::unbounded();
     let (shell, cx) =
@@ -141,7 +141,7 @@ fn rail_devices_survive_the_network_listing_through_the_real_constructor(cx: &mu
     );
     let locale = Snapshot {
         revision: 1,
-        catalog: Arc::new(I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let (_sender, events) = async_channel::unbounded();
     let (shell, cx) =

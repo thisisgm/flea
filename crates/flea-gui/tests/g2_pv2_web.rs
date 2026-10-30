@@ -1,5 +1,9 @@
 //! The web part of the document previews as real GPUI entities: the code view, HTML, font and archive pages, each
 //! driven through a fake backend that records every ask, with count assertions on asks, lines shaped and decodes.
+#[path = "../../../src/i18n/test_catalogs.rs"]
+mod test_catalogs;
+// test_catalogs reaches the catalog types through super.
+use flea::i18n::{I18n, Paths};
 use std::{
     path::{Path, PathBuf},
     process::Command,

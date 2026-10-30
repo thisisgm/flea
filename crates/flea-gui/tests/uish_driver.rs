@@ -1,4 +1,8 @@
 //! Test-only host for the production window and IPC server; stdin carries input, never IPC mutations.
+#[path = "../../../src/i18n/test_catalogs.rs"]
+mod test_catalogs;
+// test_catalogs reaches the catalog types through super.
+use flea::i18n::{I18n, Paths};
 #[path = "uish_driver/host.rs"]
 mod host;
 #[path = "uish_driver/input.rs"]

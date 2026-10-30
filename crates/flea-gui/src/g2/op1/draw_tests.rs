@@ -2,7 +2,6 @@
 use super::host::Overlay;
 use super::palette::CardPalette;
 use super::tests::request;
-use flea::i18n::I18n;
 use flea::ui_logic_op1::{collide, confirm, trash};
 use gpui::TestAppContext;
 use std::sync::Arc;
@@ -31,7 +30,7 @@ fn open_card(
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(I18n::default()), palette, "default")
+        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
     });
     vcx.simulate_resize(gpui::size(gpui::px(width), gpui::px(height)));
     overlay.update(vcx, |o, cx| {

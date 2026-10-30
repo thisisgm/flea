@@ -7,7 +7,7 @@ use std::sync::Arc;
 fn snapshot() -> Snapshot {
     Snapshot {
         revision: 1,
-        catalog: Arc::new(flea::i18n::I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     }
 }
 

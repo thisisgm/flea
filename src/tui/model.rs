@@ -326,7 +326,11 @@ impl Model {
             menu_count: 0,
             menu_view: super::render::menu_layout::View::new(settings),
             rounded: Default::default(),
+            #[cfg(not(test))]
             i18n: Default::default(),
+            // Tests read English only, whatever the host's Omarchy language.
+            #[cfg(test)]
+            i18n: crate::i18n::test_catalogs::english(),
             editor: None,
             preset: match text(settings, "keys") {
                 "vim" => "vim",
@@ -352,8 +356,14 @@ impl Model {
             store: None,
             sheet_top: 0,
             transfer_id: 0,
+            #[cfg(not(test))]
             job_status: super::jobstatus::Status::default(),
+            #[cfg(test)]
+            job_status: super::jobstatus::Status::english(),
+            #[cfg(not(test))]
             preview_state: Default::default(),
+            #[cfg(test)]
+            preview_state: super::pane_state::State::english(),
             transfer_total: 0,
             progress_percent: None,
             transfer_moving: false,
@@ -385,7 +395,10 @@ impl Model {
             restore_selection: BTreeSet::new(),
             restore_id: 0,
             delete_marks: BTreeMap::new(),
+            #[cfg(not(test))]
             prompts: Default::default(),
+            #[cfg(test)]
+            prompts: super::prompts::Prompts::english(),
         }
     }
     pub fn open(&mut self, path: PathBuf, wire: &mut Wire) -> io::Result<()> {

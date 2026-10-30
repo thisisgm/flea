@@ -86,7 +86,7 @@ fn shell_with_listing<'a>(
     );
     let locale = Snapshot {
         revision: 1,
-        catalog: Arc::new(I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let (_sender, events) = async_channel::unbounded();
     let (shell, cx) =

@@ -30,7 +30,7 @@ fn pv2_office_a_fake_container_falls_to_unsupported_before_any_conversion(cx: &m
         asked.borrow()
     );
     let failure = view
-        .update(cx, |v, _, _| v.failure(&I18n::default()))
+        .update(cx, |v, _, _| v.failure(&crate::test_catalogs::english()))
         .unwrap()
         .expect("the fake file draws the unsupported card");
     assert_eq!(

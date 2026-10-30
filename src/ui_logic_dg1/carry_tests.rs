@@ -21,7 +21,7 @@ fn riding(carry: &mut Carry, i18n: &I18n, paths: &[&str]) {
 
 #[test]
 fn m9_g2rows_25_core_lift_resolves_rows_and_rides_until_cancel() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     let mut carry = Carry::new();
     assert_eq!(
         carry.lift(&i18n, &[], source(1, 0, 7), false),
@@ -52,7 +52,7 @@ fn m9_g2rows_25_core_lift_resolves_rows_and_rides_until_cancel() {
 
 #[test]
 fn m9_g2rows_25_core_answers_belong_to_their_asker_and_stale_listings_end() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     let mut carry = Carry::new();
     assert!(matches!(
         carry.lift(&i18n, &[0], source(1, 0, 7), false),
@@ -83,7 +83,7 @@ fn m9_g2rows_25_core_answers_belong_to_their_asker_and_stale_listings_end() {
 
 #[test]
 fn m9_g2rows_25_core_only_the_accepted_serial_ends_the_ride() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     let mut carry = Carry::new();
     riding(&mut carry, &i18n, &["/a/x"]);
     let serial = carry.riding().unwrap().serial;
@@ -102,7 +102,7 @@ fn m9_g2rows_25_core_only_the_accepted_serial_ends_the_ride() {
 
 #[test]
 fn m9_g2rows_25_core_lifecycle_ends_only_the_source_window_or_pane() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     let mut carry = Carry::new();
     riding(&mut carry, &i18n, &["/a/x"]);
     assert!(
@@ -122,7 +122,7 @@ fn m9_g2rows_25_core_lifecycle_ends_only_the_source_window_or_pane() {
 
 #[test]
 fn m9_g2rows_25_core_window_end_keeps_an_owed_answer_claimed() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     let mut carry = Carry::new();
     assert!(matches!(
         carry.lift(&i18n, &[0], source(1, 0, 7), false),
@@ -143,7 +143,7 @@ fn m9_g2rows_25_core_window_end_keeps_an_owed_answer_claimed() {
 
 #[test]
 fn m9_g2rows_25_core_cancel_drains_before_any_new_resolver() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     let mut carry = Carry::new();
     assert!(matches!(
         carry.lift(&i18n, &[0], source(1, 0, 7), false),
@@ -178,7 +178,7 @@ fn m9_g2rows_25_core_cancel_drains_before_any_new_resolver() {
 
 #[test]
 fn m9_g2rows_25_core_refused_cancelled_ask_releases_its_slot() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     let mut carry = Carry::new();
     carry.lift(&i18n, &[0], source(1, 0, 7), false);
     carry.cancel();
@@ -191,7 +191,7 @@ fn m9_g2rows_25_core_refused_cancelled_ask_releases_its_slot() {
 #[test]
 fn m9_g2rows_25_core_standing_hint_returns_after_error_and_keeps_newer_notice() {
     use crate::ui_logic_fb1::{messages::Messages, status::Hint};
-    let catalog = I18n::default();
+    let catalog = crate::i18n::test_catalogs::english();
     let mut messages = Messages::new("vim");
     messages.say("Carrying 1 item", false, "", Hint::Carry, 0);
     let serial = messages.notice_serial();

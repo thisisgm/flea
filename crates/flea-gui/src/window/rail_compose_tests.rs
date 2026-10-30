@@ -20,7 +20,7 @@ fn open<'a>(
     let launch = Launch::resolve(Settings::from_json(document), Arguments::default(), &home);
     let locale = Snapshot {
         revision: 1,
-        catalog: Arc::new(I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let (_sender, events) = async_channel::unbounded();
     // Inject only external process factories before the real constructor starts them.

@@ -135,7 +135,7 @@ fn build_at<'a>(
     );
     let locale = Snapshot {
         revision: 1,
-        catalog: Arc::new(flea::i18n::I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let (_sender, events) = async_channel::unbounded();
     SENT.with(|sent| sent.borrow_mut().clear());

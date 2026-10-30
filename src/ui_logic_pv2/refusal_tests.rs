@@ -1,10 +1,9 @@
 use super::*;
-use crate::i18n::I18n;
 
 // The fixed projected sentences, extracted from the frozen v0.3.12 files named on each class.
 #[test]
 fn refusal_classes_project_fixed_sentences() {
-    let i18n = I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     let status = |r: Refusal| r.status_key().map(|key| i18n.tr(key));
     let frame = |r: Refusal| r.frame_key().map(|key| i18n.tr(key));
     assert_eq!(

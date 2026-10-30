@@ -4,7 +4,7 @@ use crate::g2::pv3::ink::MediaInk;
 use crate::g2::pv3::player::{Inhibit, MediaPlayer, Subject};
 use crate::g2::pv3::surface::{Caches, Facts, QuickLook};
 use crate::list::bench::bench_typeface;
-use flea::i18n::{I18n, Paths};
+use flea::i18n::I18n;
 use flea::ui_logic_pv3::frame::{Event, Failure};
 use flea::ui_logic_pv3::player::{Media, Status};
 use gpui::{
@@ -187,7 +187,7 @@ fn shown(cx: &mut TestAppContext) -> (Rc<Script>, Held, Arc<RenderImage>, &mut V
     let host = Host {
         player: held.clone(),
         caches: Caches::default(),
-        catalog: I18n::load(Paths::default()),
+        catalog: crate::test_catalogs::english(),
     };
     let (_, vcx) = cx.add_window_view(|_, _| host);
     vcx.run_until_parked();

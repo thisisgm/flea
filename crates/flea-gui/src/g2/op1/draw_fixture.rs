@@ -1,6 +1,5 @@
 //! Geometry fixtures inspect slow progress after its shared hold, with every size assertion intact.
 use super::{host::Overlay, palette::CardPalette};
-use flea::i18n::I18n;
 use gpui::{TestAppContext, VisualTestContext};
 use std::{sync::Arc, time::Duration};
 
@@ -28,7 +27,7 @@ pub(super) fn open_card(
             &crate::list::Palette::inherited(&window.text_style(), theme),
             8.,
         );
-        Overlay::new(Arc::new(I18n::default()), palette, "default")
+        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
     });
     vcx.simulate_resize(gpui::size(gpui::px(width), gpui::px(height)));
     overlay.update(vcx, |o, cx| {

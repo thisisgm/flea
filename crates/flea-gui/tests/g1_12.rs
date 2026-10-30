@@ -1,4 +1,8 @@
 //! G1.12: the breadcrumb, the path entry and its suggestions, with every crumbs.js and pathbar.js case ported.
+#[path = "../../../src/i18n/test_catalogs.rs"]
+mod test_catalogs;
+// test_catalogs reaches the catalog types through super.
+use flea::i18n::{I18n, Paths};
 use flea_gui::path::view::Inputs;
 use std::fmt::Debug;
 

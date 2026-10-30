@@ -186,7 +186,7 @@ fn the_overlay_draws_every_card_and_the_jobs_block(cx: &mut TestAppContext) {
             &crate::list::Palette::inherited(&window.text_style(), theme),
             0.,
         );
-        Overlay::new(Arc::new(I18n::default()), palette, "default")
+        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
     });
     for open in 0..4 {
         handle

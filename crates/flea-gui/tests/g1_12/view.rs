@@ -4,7 +4,6 @@ use super::{
     jump::{answer, Folders},
     HOME,
 };
-use flea::i18n::I18n;
 use flea_gui::path::{
     paint::Size,
     peek_line,
@@ -112,7 +111,7 @@ impl Bar<'_> {
 
 pub fn bar(cx: &mut TestAppContext, ranker: Box<dyn Ranker>, inputs: Inputs) -> Bar<'_> {
     let (host, cx) = cx.add_window_view(|_, cx| Host {
-        path: cx.new(|cx| PathView::new(Arc::new(I18n::default()), ranker, cx)),
+        path: cx.new(|cx| PathView::new(Arc::new(crate::test_catalogs::english()), ranker, cx)),
     });
     cx.simulate_resize(size(px(1100.), px(360.)));
     let view = host.read_with(cx, |host, _| host.path.clone());

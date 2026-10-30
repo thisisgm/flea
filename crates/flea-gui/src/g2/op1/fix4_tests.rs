@@ -1,7 +1,6 @@
 // Review r4's findings as tests: a menu refresh keeps its card busy and modal, a replaced Trash review sends nothing, and a Trash delete out outlives a menu card.
 use super::model::Operations;
 use super::tests::trash_source;
-use flea::i18n::I18n;
 use flea::ui_logic_op1::{confirm::Source, trash};
 
 fn review(token: &str) -> trash::Review {
@@ -20,7 +19,7 @@ const MENU_REFRESHED: &str =
 // r4-1: while refreshDelete is out the card stays drawn and modal; Escape and Cancel close it, Delete is out of reach.
 #[test]
 fn a_menu_refresh_keeps_a_busy_card_with_cancel_live() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("3"), trash::Scope::Items, Source::Menu(6), 0);
     ops.tick(&cat, 2500);
@@ -39,7 +38,7 @@ fn a_menu_refresh_keeps_a_busy_card_with_cancel_live() {
 
 #[test]
 fn escape_closes_a_menu_refresh_card() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("3"), trash::Scope::Items, Source::Menu(6), 0);
     ops.tick(&cat, 2500);
@@ -56,7 +55,7 @@ fn escape_closes_a_menu_refresh_card() {
 // r4-1: the card comes back when the fresh review lands, and listing keys then act on the card as on any open card.
 #[test]
 fn the_menu_card_comes_back_with_its_review_and_keys_follow_it() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("3"), trash::Scope::Items, Source::Menu(6), 0);
     ops.tick(&cat, 2500);
@@ -75,7 +74,7 @@ fn the_menu_card_comes_back_with_its_review_and_keys_follow_it() {
 // r4-2: a replaced Trash review sends nothing; the Trash view's request already superseded it on the backend.
 #[test]
 fn a_replaced_trash_review_sends_nothing() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), 0);
     ops.tick(&cat, 2500);
@@ -94,7 +93,7 @@ fn a_replaced_trash_review_sends_nothing() {
 // r4-3: a menu card over a Trash delete still out leaves the delete held: the seam stays true and its start lands.
 #[test]
 fn a_menu_card_over_a_trash_delete_out_keeps_the_seam_and_its_start() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), 0);
     ops.key(&cat, "tab", false);
@@ -116,7 +115,7 @@ fn a_menu_card_over_a_trash_delete_out_keeps_the_seam_and_its_start() {
 // r4-1: Delete is out of reach while the menu's refresh is out, even by press.
 #[test]
 fn a_busy_menu_card_takes_no_delete_press() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("3"), trash::Scope::Items, Source::Menu(6), 0);
     ops.tick(&cat, 2500);
@@ -129,5 +128,5 @@ fn a_busy_menu_card_takes_no_delete_press() {
 // The working note is the catalogue's own sentence, the one v0.3.12 shows.
 #[test]
 fn the_working_note_reads_as_v0312_has_it() {
-    assert_eq!(I18n::default().tr("jobs.working"), "Working\u{2026}");
+    assert_eq!(crate::test_catalogs::english().tr("jobs.working"), "Working\u{2026}");
 }

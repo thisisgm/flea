@@ -137,7 +137,7 @@ fn multi_facts_stacks_one_mark_per_kind(cx: &mut TestAppContext) {
     let view = move || Column {
         width: 304.,
         raster: RasterState::default(),
-        name: flea::i18n::I18n::default().trn_args("preview.selected", 2, &["2"]),
+        name: crate::test_catalogs::english().trn_args("preview.selected", 2, &["2"]),
         frame: Frame::Stack(vec![
             Glyph::kind("text-x-generic", 0o100644),
             Glyph::kind("image-x-generic", 0o100644),

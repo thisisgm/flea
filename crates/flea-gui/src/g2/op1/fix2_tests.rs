@@ -25,7 +25,7 @@ fn overlay(cx: &mut TestAppContext) -> (gpui::Entity<Overlay>, &mut gpui::Visual
             .copied()
             .unwrap_or_default();
         let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
-        Overlay::new(Arc::new(I18n::default()), palette, "default")
+        Overlay::new(Arc::new(crate::test_catalogs::english()), palette, "default")
     });
     vcx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
     (overlay, vcx)
@@ -54,7 +54,7 @@ fn stale_review(cat: &I18n) -> Operations {
 // r2-1: Delete permanently or Copy To over an open FAT card leaves the host free for the next paste.
 #[test]
 fn a_card_over_the_fat_card_leaves_the_host_free() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     for replace in ["confirm_delete", "copy_to"] {
         let mut ops = Operations::new("default");
         assert!(ops.ask(&cat, &request(), &[], false));
@@ -83,7 +83,7 @@ fn a_card_over_the_fat_card_leaves_the_host_free() {
 // r2-1 with r1-6: a late delete start over an open FAT card leaves the card and its host as they were.
 #[test]
 fn a_late_delete_start_leaves_the_fat_card_and_its_host() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.ask(&cat, &request(), &[], false);
     ops.line(&cat, FAT, 0);
@@ -99,7 +99,7 @@ fn a_late_delete_start_leaves_the_fat_card_and_its_host() {
 // r2-2: Copy To opened while a fresh review is out ends that confirmation, so nothing checks or reappears later.
 #[test]
 fn a_card_opened_while_a_review_is_out_ends_the_confirmation() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = stale_review(&cat);
     ops.copy_to(7, false, "/x");
     assert!(ops.confirm.is_none());
@@ -122,7 +122,7 @@ fn a_card_opened_while_a_review_is_out_ends_the_confirmation() {
 // r2-2: a fresh review that lands while any other card is drawn is cancelled, never shown later.
 #[test]
 fn a_review_landing_under_another_card_is_cancelled() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = stale_review(&cat);
     ops.dialog = Some(Dialog::CopyTo {
         menu: 7,
@@ -139,7 +139,7 @@ fn a_review_landing_under_another_card_is_cancelled() {
 // r2-2: a delete already out keeps its session under a new card, so its reply and Empty Trash progress still land.
 #[test]
 fn a_delete_out_survives_a_new_card() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("4"), trash::Scope::TrashItems, trash_source(), 0);
     ops.key(&cat, "tab", false);
@@ -198,7 +198,7 @@ fn the_check_waits_while_the_trash_view_is_busy(cx: &mut TestAppContext) {
 // r2-5: a partly failed menu delete says the count line with the backend's sentence as its detail.
 #[test]
 fn a_partial_menu_delete_keeps_the_backends_sentence() {
-    let cat = I18n::default();
+    let cat = crate::test_catalogs::english();
     let mut ops = Operations::new("default");
     ops.confirm_delete(review("1"), trash::Scope::Items, Source::Menu(6), 0);
     ops.key(&cat, "tab", false);

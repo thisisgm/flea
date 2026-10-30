@@ -3,7 +3,7 @@ use super::{
     model::{Action, Card, Focus},
     tests::selected,
 };
-use flea::{i18n::I18n, ui_logic_op4::output::Kind};
+use flea::ui_logic_op4::output::Kind;
 use gpui::{Modifiers, TestAppContext};
 use std::sync::Arc;
 
@@ -24,7 +24,7 @@ fn op4_pointer_hover_after_a_chord_leaves_the_body_scroll_alone(cx: &mut TestApp
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )
@@ -74,7 +74,7 @@ fn op4_pointer_a_click_after_a_chord_never_reorders(cx: &mut TestAppContext) {
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )
@@ -167,7 +167,7 @@ fn op4_pointer_wheel_after_a_chord_keeps_its_offset(cx: &mut TestAppContext) {
         let p =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         OutputView::new(
-            Arc::new(I18n::default()),
+            Arc::new(crate::test_catalogs::english()),
             crate::g2::op1::palette::CardPalette::from_list(&p, 8.),
             cx,
         )

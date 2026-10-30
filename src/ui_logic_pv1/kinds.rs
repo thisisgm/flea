@@ -171,7 +171,7 @@ mod tests {
         assert_eq!(cannot_show_key(State::Unsupported, false, false), Some("preview.unsupported"));
         // a kind that previews has no sentence
         assert_eq!(cannot_show_key(State::Image, false, false), None);
-        let i18n = crate::i18n::I18n::default();
+        let i18n = crate::i18n::test_catalogs::english();
         assert_eq!(i18n.tr("preview.too_large"), "This file is too large to preview.");
         assert_eq!(i18n.tr("preview.unreadable"), "This file could not be read.");
         assert_eq!(i18n.tr("preview.unsupported"), "This file cannot be previewed.");

@@ -118,7 +118,7 @@ fn the_window_binds_the_retry_and_the_bar_gates_the_same_path_on_it(cx: &mut Tes
         bar.take(),
         [
             Out::Closed,
-            Out::Said(I18n::default().tr("path.refused_uri"))
+            Out::Said(crate::test_catalogs::english().tr("path.refused_uri"))
         ]
     );
 }

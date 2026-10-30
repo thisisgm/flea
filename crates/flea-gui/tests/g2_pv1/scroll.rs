@@ -5,7 +5,7 @@ use super::*;
 use flea::ui_logic_pv1::compare;
 
 fn english() -> flea::i18n::I18n {
-    flea::i18n::I18n::default()
+    crate::test_catalogs::english()
 }
 
 /// An 81-row patch: the hunk header and 80 context lines, three screens of a 574 px card.

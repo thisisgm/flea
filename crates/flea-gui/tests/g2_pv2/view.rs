@@ -342,7 +342,7 @@ fn pv2_quick_look_strip_reads_the_catalog_and_a_failed_open_gets_one_sentence(
     cx: &mut TestAppContext,
 ) {
     let _reaper = reaper_lock();
-    let i18n = flea::i18n::I18n::default();
+    let i18n = crate::test_catalogs::english();
     let root = root();
     let view = open(cx, false);
     draw(cx, view);

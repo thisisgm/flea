@@ -50,7 +50,7 @@ fn root_at(cx: &mut TestAppContext) -> (Entity<Shell>, Rc<FakeDevices>, &mut Vis
     );
     let locale = Snapshot {
         revision: 1,
-        catalog: Arc::new(I18n::default()),
+        catalog: Arc::new(crate::test_catalogs::english()),
     };
     let (_sender, events) = async_channel::unbounded();
     let (root, cx) = cx.add_window_view(|window, cx| crate::window::root::Root {

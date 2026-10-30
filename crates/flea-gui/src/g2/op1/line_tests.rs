@@ -6,7 +6,7 @@ use super::{
     view::{self, Pointer, Scene},
 };
 use crate::{list::Typeface, palette::Theme};
-use flea::{i18n::I18n, ui_logic_op1::card::Kind};
+use flea::ui_logic_op1::card::Kind;
 use gpui::{div, prelude::*, px, size, Context, Render, Window};
 
 struct Controls {
@@ -22,7 +22,7 @@ impl Render for Controls {
             frame: None,
             typeface: &face,
             palette: &palette,
-            catalog: &I18n::default(),
+            catalog: &crate::test_catalogs::english(),
             pointer: &Pointer::default(),
             wire: &|_, button| button,
             pinned: None,

@@ -80,7 +80,7 @@ fn the_player_starts_once_the_probe_fixes_its_box_and_an_overlay_stops_it() {
 fn an_unshown_picture_is_reported_through_the_catalog() {
     use std::time::{Duration, Instant};
     let mut m = shown("image-png", "photo.png");
-    let i18n = crate::i18n::I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     for key in ["preview.unshown", "preview.imageError"] {
         assert_ne!(i18n.tr(key), key, "the English catalog has {key}");
     }
