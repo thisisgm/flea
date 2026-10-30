@@ -30,7 +30,7 @@ impl Fonts {
         let run = TextRun {
             len: text.len(),
             font: self.faces.font(face),
-            color: gpui::white(),
+            color: crate::palette::Theme::default().foreground,
             background_color: None,
             underline: None,
             strikethrough: None,
