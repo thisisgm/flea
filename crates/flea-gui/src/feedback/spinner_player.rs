@@ -46,8 +46,11 @@ impl Mode {
     }
 }
 
+/// One Omi art grid in device pixels: a drawn side is a whole number of grids, never fewer than one.
+pub const OMI_GRID_PX: f32 = 22.;
+
 pub fn device_side(slot: f32) -> f32 {
-    slot.round().max(0.)
+    (slot.round() / OMI_GRID_PX).floor().max(1.) * OMI_GRID_PX
 }
 
 pub struct Motion {

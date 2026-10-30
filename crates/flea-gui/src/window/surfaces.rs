@@ -131,7 +131,6 @@ impl Shell {
         }
         let catalog = self.locale.catalog.clone();
         let typeface = host.list.borrow().typeface.clone();
-        let in_list = self.view == View::List;
         let metrics = if self.view == View::Grid { GRID } else { LIST };
         let facts = match kind {
             Kind::Waiting => Some(Facts::waiting(&catalog)),
@@ -155,7 +154,6 @@ impl Shell {
             hero.update(cx, |hero, cx| {
                 hero.set_typeface(typeface.clone(), cx);
                 hero.translated(&catalog);
-                hero.set_in_list(in_list, cx);
                 if entered {
                     hero.show(true, cx);
                 }

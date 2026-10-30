@@ -77,7 +77,10 @@ impl Element for Glyph {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, ()) {
-        let side = self.side;
+        let side = match self.paint {
+            Paint::Spiral { .. } => self.side.max(spinner::OMI_GRID_PX / window.scale_factor()),
+            _ => self.side,
+        };
         let style = Style {
             size: size(px(side).into(), px(side).into()),
             flex_shrink: 0.,

@@ -10,4 +10,4 @@ The native scene suite shares the capture smoke's private headless Hyprland sess
 
 The current host draws the listing element in Columns and Grid slots as well as List, and starts the second list lazily in Dual. Capturing those scenes does not establish completion of their view-specific drawing or theme fidelity. Cross-renderer comparison requires native pixel review before a baseline is approved.
 
-The native `gpui-visual-scenes` suite also runs `omi_fit.caption_case`: it captures three settled empty-folder captions with motion enabled, measures accent pixels in each PNG, and rejects any change in the mark box or its 48px slot. The geometry JSON and all three captures are retained with the scene evidence.
+The native `gpui-visual-scenes` suite also runs `omi_fit.caption_case`: it captures three settled empty-folder captions with motion enabled, measures the mark's accent pixels and the caption's ink rows under it in each PNG, and rejects any change in the mark box, its 66px slot or the caption's top and height. The geometry JSON and all three captures are retained with the scene evidence.

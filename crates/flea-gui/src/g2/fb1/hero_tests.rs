@@ -1,4 +1,4 @@
-use super::hero::{EmptyHero, BOARDS, LIST_FIRST};
+use super::hero::{EmptyHero, BOARDS};
 use super::mark::HERO;
 use super::state_tests::centred;
 use crate::list::Typeface;
@@ -183,19 +183,10 @@ fn a_moving_frame_stays_inside_the_frame_budget(cx: &mut TestAppContext) {
     assert!(median < 8.33);
 }
 
-/// The hero boards draw a 48px mark; empty.html states gap 10 and a 16.8px caption box, the others 9 and 16; phrases in capitals.
+/// The hero draws a 66px mark, and every beat in every view the beat boards' gap 9 and 16px caption line; phrases in capitals.
 #[gpui::test]
 fn the_hero_takes_the_boards_sizes_and_raises_its_phrases(cx: &mut TestAppContext) {
-    assert_eq!(
-        (
-            HERO,
-            LIST_FIRST.gap,
-            LIST_FIRST.caption_line,
-            BOARDS.gap,
-            BOARDS.caption_line
-        ),
-        (48., 10., 16.8, 9., 16.)
-    );
+    assert_eq!((HERO, BOARDS.gap, BOARDS.caption_line), (66., 9., 16.));
     let handle = open(cx);
     let phrases = read(cx, handle, |hero| hero.phrases().to_vec());
     assert_eq!(
@@ -224,7 +215,7 @@ pub(super) fn bounds<V: 'static>(
         .collect()
 }
 
-/// empty-beat, empty-rest, grid-empty and the column boards: a 48px mark, 9px, a 16px caption line, centred in the pane.
+/// empty-beat, empty-rest, grid-empty and the column boards: a 66px mark, 9px, a 16px caption line, centred in the pane.
 #[gpui::test]
 fn the_drawn_hero_has_the_boards_mark_gap_and_caption_line(cx: &mut TestAppContext) {
     cx.update(|cx| cx.set_reduce_motion(true));
@@ -234,7 +225,7 @@ fn the_drawn_hero_has_the_boards_mark_gap_and_caption_line(cx: &mut TestAppConte
     frame(cx, handle);
     let drawn = bounds(cx, handle, &["fb1-hero-mark", "fb1-hero-caption"]);
     let (mark, caption) = (drawn[0], drawn[1]);
-    assert_eq!((mark.size.width, mark.size.height), (px(48.), px(48.)));
+    assert_eq!((mark.size.width, mark.size.height), (px(HERO), px(HERO)));
     assert_eq!(caption.origin.y - mark.bottom(), px(9.));
     assert_eq!(caption.size.height, px(16.));
     let scale = handle

@@ -22,13 +22,7 @@ pub struct HeroMetrics {
     pub caption_line: f32,
 }
 
-/// empty.html, the list's first phrase: gap 10 and the caption in a 14px line box at 1.2 (16.8px).
-pub const LIST_FIRST: HeroMetrics = HeroMetrics {
-    gap: 10.,
-    caption_line: 16.8,
-};
-
-/// empty-beat, empty-rest, grid-empty and the column boards: gap 9 and a 16px caption line.
+/// empty-beat, empty-rest, grid-empty and the column boards: gap 9 and a 16px caption line, shared by every beat.
 pub const BOARDS: HeroMetrics = HeroMetrics {
     gap: 9.,
     caption_line: 16.,
@@ -39,11 +33,7 @@ impl HeroMetrics {
         let body = f32::from(face.body);
         Self {
             gap: (8. * body / 12.).round() + self.gap - BOARDS.gap,
-            caption_line: if self == LIST_FIRST {
-                body * 1.2
-            } else {
-                f32::from(face.caption) * 4. / 3.
-            },
+            caption_line: f32::from(face.caption) * 4. / 3.,
         }
     }
 }
@@ -56,7 +46,6 @@ pub struct EmptyHero {
     typeface: Typeface,
     base: Instant,
     reduced: bool,
-    in_list: bool,
     tracking: f32,
     timer: Option<(u64, Task<()>)>,
     visibility: Option<Subscription>,
@@ -86,7 +75,6 @@ impl EmptyHero {
             typeface: Typeface::omarchy_default(),
             base: cx.background_executor().now(),
             reduced: cx.reduce_motion(),
-            in_list: false,
             tracking: TRACKING,
             timer: None,
             visibility: None,
@@ -148,19 +136,9 @@ impl EmptyHero {
             .fold(super::mark::HERO, f32::max)
     }
 
-    /// The pane says whether the hero stands in the list view, where empty.html draws its first phrase.
-    pub fn set_in_list(&mut self, in_list: bool, cx: &mut Context<Self>) {
-        self.in_list = in_list;
-        cx.notify();
-    }
-
-    /// The list draws empty.html's numbers until a beat's swap lands, unseen; every other view draws the shared ones.
+    /// Every view and every beat draws one caption line, so a rotation never moves the caption.
     pub fn metrics(&self) -> HeroMetrics {
-        if self.in_list && !self.rotation.landed() {
-            LIST_FIRST.at(&self.typeface)
-        } else {
-            BOARDS.at(&self.typeface)
-        }
+        BOARDS.at(&self.typeface)
     }
 
     /// A pane's hero: under the window root its overlay paints this caption above the cached pane, so a fade never renders the hero.
@@ -302,9 +280,7 @@ impl Render for EmptyHero {
                 )
             })
             .fold(0., f32::max);
-        let mark_side = (f32::from(self.typeface.body_small) * 3.7).round();
-        // Reserve the first caption stack so later line metrics cannot recenter Omi.
-        let anchor = if self.in_list { LIST_FIRST } else { BOARDS }.at(&self.typeface);
+        let mark_side = super::mark::HERO;
         let root = div()
             .relative()
             .size_full()
@@ -318,7 +294,7 @@ impl Render for EmptyHero {
                         .flex()
                         .flex_col()
                         .items_center()
-                        .h(px(mark_side + anchor.gap + anchor.caption_line))
+                        .h(px(mark_side + metrics.gap + metrics.caption_line))
                         .flex_shrink_0()
                         .gap(px(metrics.gap))
                         .mt(px(2. * frame.offset))

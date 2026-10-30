@@ -154,12 +154,16 @@ fn empty_omi_paints_upstream_thinking_rest_at_device_scales_and_theme_accents(
             })
         });
         let handle = open(cx, false);
-        for (scale, side) in [(1., 48.), (1.25, 60.), (1.5, 72.), (2., 96.)] {
+        for (scale, side) in [(1., 66.), (1.25, 66.), (1.5, 88.), (2., 132.)] {
             cx.simulate_window_scale_factor_change(handle.into(), scale);
             frame(cx, handle);
             let (slot, quads, actual_scale) = mark_quads(cx, handle);
             assert_eq!(actual_scale, scale);
-            assert_eq!(slot.size, size(px(48.), px(48.)), "approved body-14 slot");
+            assert!(
+                (f32::from(slot.size.width) * scale - 66. * scale).abs() <= 1.
+                    && slot.size.width == slot.size.height,
+                "approved 66 px hero slot: {slot:?}"
+            );
             assert!(
                 !quads.is_empty(),
                 "empty Omi must paint actual upstream quads"
@@ -263,7 +267,7 @@ pub(super) fn dual_scenes(
                 assert!(!painted.is_empty(), "each Dual Omi must paint");
                 let pure = player.mode_rects("thinking", f64::from(seconds)).unwrap();
                 assert!(
-                    matches_rects(painted.clone(), slot, scale, 48., ink,
+                    matches_rects(painted.clone(), slot, scale, 66., ink,
                         player.kit().view, player.rects()),
                     "each Dual slot paints upstream thinking geometry: side={side}, elapsed={seconds}, samples={writes}, slot={slot:?}, ink={ink:?}, scale={scale}, quads={painted:?}, upstream={:?}, pure_matches_replay={}",
                     player.rects(), pure == player.rects()

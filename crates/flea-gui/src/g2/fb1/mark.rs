@@ -6,8 +6,8 @@ use gpui::{
     Window,
 };
 
-/// The hero mark's side, board States at 48.
-pub const HERO: f32 = 48.;
+/// The hero mark's side, three whole 22 px Omi grids.
+pub const HERO: f32 = 66.;
 /// A failure or no-match mark's side, board States at 40.
 pub const STATE: f32 = 40.;
 /// The spiral's centreline length in grid units.

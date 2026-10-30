@@ -1,7 +1,6 @@
 use super::caption::{origins, PAINTED, TRACKING};
 use super::hero::EmptyHero;
 use super::hero_tests::{bounds, frame, open, read, run};
-use super::state_tests::{centred, snapped};
 use crate::list::Typeface;
 use flea::ui_logic_fb1::empty::ROTATE_MS;
 use flea::ui_logic_fb1::{CLOSE_MS, OPEN_MS};
@@ -10,13 +9,10 @@ use gpui::{
     WindowHandle,
 };
 
-/// A reduced-motion hero drawn in a 908x619 window, in the list view or not; returns the window's scale.
-pub(super) fn drawn(cx: &mut TestAppContext, in_list: bool) -> (WindowHandle<EmptyHero>, f32) {
+/// A reduced-motion hero drawn in a 908x619 window; returns the window's scale.
+pub(super) fn drawn(cx: &mut TestAppContext) -> (WindowHandle<EmptyHero>, f32) {
     cx.update(|cx| cx.set_reduce_motion(true));
     let handle = open(cx);
-    handle
-        .update(cx, |hero, _, cx| hero.set_in_list(in_list, cx))
-        .unwrap();
     cx.simulate_window_resize(handle.into(), size(px(908.), px(619.)));
     frame(cx, handle);
     frame(cx, handle);
@@ -64,7 +60,7 @@ pub(super) fn painted<V: 'static>(cx: &mut TestAppContext, handle: WindowHandle<
 /// `.statecap` letter-spacing 1.2px: paint places every glyph 1.2px further than the last, and the box grows by 1.2px per glyph.
 #[gpui::test]
 fn the_drawn_caption_tracks_every_glyph_by_the_boards_1_2px(cx: &mut TestAppContext) {
-    let (handle, scale) = drawn(cx, false);
+    let (handle, scale) = drawn(cx);
     let phrase = read(cx, handle, |hero| hero.phrases()[0].clone());
     let line = shaped(cx, handle, phrase.clone());
     let plain = origins(&line, px(0.));
@@ -91,74 +87,34 @@ fn the_drawn_caption_tracks_every_glyph_by_the_boards_1_2px(cx: &mut TestAppCont
     );
 }
 
-/// RULING (controller, 02:10): empty.html, the list's first phrase, draws gap 10 and its 16.8px caption box.
+/// One caption line for every beat (CTL2 2026-10-30): the first phrase and each beat draw gap 9 and a 16px line, and the caption never moves.
 #[gpui::test]
-fn the_list_hero_before_its_first_beat_draws_empty_html_gap_10(cx: &mut TestAppContext) {
-    let (handle, scale) = drawn(cx, true);
-    let drawn = bounds(cx, handle, &["fb1-hero-mark", "fb1-hero-caption"]);
-    let (mark, caption) = (drawn[0], drawn[1]);
-    assert_eq!(caption.origin.y - mark.bottom(), px(10.));
-    assert_eq!(caption.size.height, snapped(16.8, scale));
-    assert_eq!(mark.center().x, px(454.));
-    centred(caption.center().x, 454., scale);
-}
-
-/// empty-beat and empty-rest are the same list hero after a beat, so they draw their own gap 9 and 16px line.
-#[gpui::test]
-fn the_list_hero_after_a_beat_draws_the_beat_boards_gap_9(cx: &mut TestAppContext) {
-    let handle = open(cx);
-    handle
-        .update(cx, |hero, _, cx| hero.set_in_list(true, cx))
-        .unwrap();
-    cx.simulate_window_resize(handle.into(), size(px(908.), px(619.)));
-    run(cx, handle, ROTATE_MS + 2400);
-    assert_eq!(read(cx, handle, |hero| hero.rotation().beats()), 1);
-    let drawn = bounds(cx, handle, &["fb1-hero-mark", "fb1-hero-caption"]);
-    assert_eq!(drawn[1].origin.y - drawn[0].bottom(), px(9.));
-    assert_eq!(drawn[1].size.height, px(16.));
-}
-
-/// The list's switch to 9/16 happens only as the first beat's swap lands: caption out, mark undrawn, as the OEM phraseSwap swaps at opacity 0.
-#[gpui::test]
-fn the_list_heros_first_beat_never_moves_an_opaque_hero(cx: &mut TestAppContext) {
+fn every_beat_draws_one_caption_line_and_the_caption_never_moves(cx: &mut TestAppContext) {
     let t0 = cx.executor().now();
     let handle = open(cx);
-    handle
-        .update(cx, |hero, _, cx| hero.set_in_list(true, cx))
-        .unwrap();
     cx.simulate_window_resize(handle.into(), size(px(908.), px(619.)));
     run(cx, handle, 400);
-    let mut last = None;
-    let mut moves = 0;
-    while cx
+    let first = bounds(cx, handle, &["fb1-hero-mark", "fb1-hero-caption"]);
+    assert_eq!(first[1].origin.y - first[0].bottom(), px(9.));
+    assert_eq!(first[1].size.height, px(16.));
+    assert_eq!(first[0].center().x, px(454.));
+    while (cx
         .executor()
         .now()
         .saturating_duration_since(t0)
-        .as_millis() as u64
-        <= ROTATE_MS + CLOSE_MS + OPEN_MS
+        .as_millis() as u64)
+        <= 2 * ROTATE_MS + CLOSE_MS + OPEN_MS
     {
         frame(cx, handle);
-        let now = cx
-            .executor()
-            .now()
-            .saturating_duration_since(t0)
-            .as_millis() as u64;
-        let (landed, drawn) = read(cx, handle, |hero| {
-            (hero.rotation().landed(), hero.rotation().frame(now))
-        });
         let parts = bounds(cx, handle, &["fb1-hero-mark", "fb1-hero-caption"]);
-        let geometry = (parts[0].origin.y, parts[1].origin.y, parts[1].size.height);
-        if last.is_some_and(|was| was != geometry) {
-            moves += 1;
-            assert!(landed, "{now}ms: the hero moved before its swap landed");
-            assert!(
-                drawn.caption < 0.25 && drawn.mark_drawn == 0. && drawn.phrase == 1,
-                "{now}ms: the hero moved while drawn: {drawn:?}"
-            );
-        }
-        last = Some(geometry);
+        assert_eq!(
+            (parts[0].origin.y, parts[1].origin.y, parts[1].size.height),
+            (first[0].origin.y, first[1].origin.y, first[1].size.height),
+            "the hero moved"
+        );
     }
-    assert_eq!(moves, 1, "one unseen switch to the beat boards' 9/16");
-    let parts = bounds(cx, handle, &["fb1-hero-mark", "fb1-hero-caption"]);
-    assert_eq!(parts[1].origin.y - parts[0].bottom(), px(9.));
+    assert!(
+        read(cx, handle, |hero| hero.rotation().beats()) >= 2,
+        "two beats rotated"
+    );
 }
