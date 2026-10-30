@@ -29,6 +29,8 @@ pub struct Properties {
     id: u64,
     count: usize,
     closed: bool,
+    /// Set once the Properties request is out, so a repeated snapshot answer cannot ask twice.
+    asked: bool,
     shown: Shown,
     /// The facts view's extra pairs (photo, codecs) and the MIME database's kind word, filled by their own producers.
     extras: Vec<(String, String)>,
@@ -41,20 +43,20 @@ impl Properties {
             id,
             count,
             closed: false,
+            asked: false,
             shown: Shown::Asking,
             extras: Vec::new(),
             mime_kind: String::new(),
         }
     }
 
-    /// Sends the snapshot and the Properties request at once, snapshot first; Properties may come back busy.
-    pub fn open(id: u64, rows: &[usize]) -> (Self, Vec<Effect>) {
+    /// Sends the snapshot alone; Properties follows its acknowledgement, since the backend's one menu slot refuses a second queued request.
+    pub fn open(id: u64, listing: usize, rows: &[usize], cursor: usize) -> (Self, Vec<Effect>) {
         (
             Self::new(id, rows.len()),
-            vec![
-                Effect::Send(logic::snapshot_request(id, rows)),
-                Effect::Send(logic::properties_request(id)),
-            ],
+            vec![Effect::Send(logic::snapshot_request(
+                id, listing, rows, cursor,
+            ))],
         )
     }
 
@@ -64,7 +66,10 @@ impl Properties {
             return None;
         }
         Some((
-            Self::new(captured.id, captured.rows.len()),
+            Self {
+                asked: true,
+                ..Self::new(captured.id, captured.rows.len())
+            },
             vec![Effect::Send(logic::properties_request(captured.id))],
         ))
     }
@@ -95,7 +100,7 @@ impl Properties {
         }
     }
 
-    /// Sample input: a properties reply, then a folder's contents progress lines; a reply for another id is ignored.
+    /// Sample input: {"t":"menuaction","op":"snapshot","id":9,"ok":true} or {"op":"snapshot","id":9,"ok":false,"error":"The folder changed; reopen the menu."}, then {"op":"properties","id":9,"ok":true,"directory":true,"bytes":4096} and {"op":"contents","id":9,"ok":true,"bytes":13,"items":1,"done":true,"partial":false}; a reply for another id is ignored.
     pub fn reply(&mut self, i18n: &I18n, reply: &Json) -> Vec<Effect> {
         if self.closed || reply.get("id").and_then(Json::as_f64) != Some(self.id as f64) {
             return Vec::new();
@@ -103,6 +108,13 @@ impl Properties {
         let ok = reply.get("ok").and_then(Json::as_bool) == Some(true);
         let error = reply.get("error").and_then(Json::as_str).unwrap_or("");
         match (reply.get("op").and_then(Json::as_str), &mut self.shown) {
+            (Some("snapshot"), Shown::Asking) if !self.asked && !ok => {
+                self.shown = Shown::Refused(logic::refusal(i18n, error))
+            }
+            (Some("snapshot"), Shown::Asking) if !self.asked => {
+                self.asked = true;
+                return vec![Effect::Send(logic::properties_request(self.id))];
+            }
             (Some("properties"), _) if !ok => {
                 self.shown = Shown::Refused(logic::refusal(i18n, error))
             }

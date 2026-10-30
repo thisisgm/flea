@@ -127,7 +127,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         "unlock hover wash must inset and clamp the compositor radius"
     );
     let catalog = crate::g2::op3::tests::english();
-    let (mut properties, _) = crate::g2::op3::properties::Properties::open(5, &[2]);
+    let (mut properties, _) = crate::g2::op3::properties::Properties::open(5, 1, &[2], 0);
     properties.reply(&catalog, &flea::jsondoc::parse(r#"{"op":"properties","id":5,"ok":true,"path":"/files/a","kind":"File","bytes":99,"modified":0,"mode":"0644","owner":"test","uid":1000,"gid":1000}"#).unwrap());
     let run = crate::g2::op3::runcard::RunCard::open(&catalog, "flea", "/files/run.sh", r#"{"ask":"run","kind":"script","size":21,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":1,"mtimeNs":2,"target":"/files/run.sh"}"#).unwrap();
     let bulk =

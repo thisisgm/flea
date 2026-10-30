@@ -23,6 +23,13 @@ pub(crate) struct Open {
     _reply: Subscription,
 }
 
+#[cfg(test)]
+impl Open {
+    pub(crate) fn ready(&self) -> bool {
+        self.card.ready()
+    }
+}
+
 impl Shell {
     /// The listing's Properties key, PaneMenuActions.qml open: the card asks for the rows the menu row would take, with no menu drawn.
     pub(crate) fn properties_listing(
@@ -84,7 +91,12 @@ impl Shell {
                 }
             },
         );
-        let (card, effects) = Properties::open(captured.id, &captured.rows);
+        let (card, effects) = Properties::open(
+            captured.id,
+            captured.listing,
+            &captured.rows,
+            captured.cursor,
+        );
         self.properties = Some(Open {
             side,
             card,

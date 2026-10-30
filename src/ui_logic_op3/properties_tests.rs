@@ -176,6 +176,6 @@ fn the_backends_fixed_refusals_map_to_the_cards_own_words() {
     }
     assert_eq!(refusal(&i18n, "Could not read the link: gone."), "Could not read the link: gone.", "an unknown sentence stays the backend's");
     assert_eq!(refusal(&i18n, ""), "That action could not be completed.");
-    assert_eq!(snapshot_request(7, &[0, 2, 4]), r#"{"c":"menuaction","op":"snapshot","id":7,"rows":[0,2,4]}"#);
+    assert_eq!(snapshot_request(7, 3, &[0, 2, 4], 2), r#"{"c":"menuaction","op":"snapshot","id":7,"listing":3,"rows":[0,2,4],"cursor":2}"#);
     assert_eq!(properties_request(7), r#"{"c":"menuaction","op":"properties","id":7}"#);
 }

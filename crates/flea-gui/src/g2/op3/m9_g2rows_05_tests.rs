@@ -24,7 +24,7 @@ fn facts(card: &Card) -> Vec<(&str, &str, &str)> {
 #[test]
 fn bfx_172_1_properties_first_size_never_shows_the_directory_entry() {
     let i18n = english();
-    let (mut properties, _) = Properties::open(9, &[0]);
+    let (mut properties, _) = Properties::open(9, 1, &[0], 0);
     let effects = properties.reply(
         &i18n,
         &parse(r#"{"op":"properties","id":9,"ok":true,"directory":true,"bytes":4096}"#).unwrap(),
@@ -49,7 +49,7 @@ fn bfx_172_1_properties_first_size_never_shows_the_directory_entry() {
 fn bfx_172_2_properties_partial_zero_settles_unknown_but_exact_zero_is_empty() {
     let i18n = english();
     for partial in [true, false] {
-        let (mut properties, _) = Properties::open(9, &[0]);
+        let (mut properties, _) = Properties::open(9, 1, &[0], 0);
         properties.reply(
             &i18n,
             &parse(r#"{"op":"properties","id":9,"ok":true,"directory":true,"bytes":4096}"#)
@@ -71,7 +71,7 @@ fn bfx_172_2_properties_partial_zero_settles_unknown_but_exact_zero_is_empty() {
 #[test]
 fn m9_g2rows_05_three_item_properties_uses_aggregate() {
     let i18n = english();
-    let (mut properties, _) = Properties::open(9, &[0, 2, 4]);
+    let (mut properties, _) = Properties::open(9, 1, &[0, 2, 4], 0);
     assert!(!properties.ready());
     properties.set_extras(vec![("Camera".into(), "cursor photo".into())], "JPEG image");
     assert!(properties.reply(&i18n, &parse(SUMMARY).unwrap()).is_empty());
@@ -96,15 +96,17 @@ fn m9_g2rows_05_three_item_properties_uses_aggregate() {
 fn m9_g2rows_05_captured_selection_survives_cursor_change() {
     let i18n = english();
     let mut selection = vec![0, 2, 4];
-    let (mut properties, effects) = Properties::open(9, &selection);
+    let (mut properties, effects) = Properties::open(9, 1, &selection, 4);
     selection.clear();
     selection.push(7);
     assert_eq!(
         sent(&effects),
-        [
-            r#"{"c":"menuaction","op":"snapshot","id":9,"rows":[0,2,4]}"#,
-            r#"{"c":"menuaction","op":"properties","id":9}"#,
-        ]
+        [r#"{"c":"menuaction","op":"snapshot","id":9,"listing":1,"rows":[0,2,4],"cursor":4}"#]
+    );
+    let acknowledged = parse(r#"{"t":"menuaction","op":"snapshot","id":9,"ok":true}"#).unwrap();
+    assert_eq!(
+        sent(&properties.reply(&i18n, &acknowledged)),
+        [r#"{"c":"menuaction","op":"properties","id":9}"#]
     );
     let pending = properties.card(&i18n);
     let other = parse(&SUMMARY.replace("\"id\":9", "\"id\":10")).unwrap();
@@ -136,10 +138,33 @@ fn m9_g2rows_05_captured_selection_survives_cursor_change() {
 }
 
 #[test]
+fn m9_g2rows_05_refused_snapshot_says_why_and_never_asks() {
+    let i18n = english();
+    let (mut properties, _) = Properties::open(9, 1, &[0], 0);
+    let refused = parse(r#"{"t":"menuaction","op":"snapshot","id":9,"ok":false,"error":"The folder changed; reopen the menu."}"#).unwrap();
+    assert!(
+        properties.reply(&i18n, &refused).is_empty(),
+        "a refused snapshot asks no facts"
+    );
+    let why: Vec<(String, Ink)> = vec![("The folder changed; reopen the menu.".into(), Ink::Error)];
+    assert_eq!(notes(&properties.card(&i18n)), why);
+    let late = parse(r#"{"t":"menuaction","op":"snapshot","id":9,"ok":true}"#).unwrap();
+    assert!(
+        properties.reply(&i18n, &late).is_empty(),
+        "a later acknowledgement cannot ask either"
+    );
+    assert_eq!(
+        notes(&properties.card(&i18n)),
+        why,
+        "a later acknowledgement keeps the reason on the card"
+    );
+}
+
+#[test]
 fn m9_g2rows_05_close_cancels_walk_and_ignores_late_reply() {
     let i18n = english();
     for rows in [vec![0], vec![0, 2, 4]] {
-        let (mut properties, _) = Properties::open(9, &rows);
+        let (mut properties, _) = Properties::open(9, 1, &rows, 0);
         let first = if rows.len() == 1 {
             r#"{"op":"properties","id":9,"ok":true,"directory":true,"bytes":4096}"#
         } else {
