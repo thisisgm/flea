@@ -4,8 +4,34 @@ use super::{
     prose, Ctx, Geometry, Item, Voice, CELL_GAP, CELL_PAD, FALLBACK_GLYPH_EM, OVERFLOW_PX,
 };
 use crate::ui_logic_pv2::markdown::markdown_fit::table_fit;
-use crate::ui_logic_pv2::markdown::markdown_flow::{Face, Ink};
+use crate::ui_logic_pv2::markdown::markdown_flow::{Face, Ink, Measure, SLACK};
 use crate::ui_logic_pv2::markdown::markdown_model::{Align, CellAlign, Table};
+
+struct CellMeasure<'a>(&'a mut dyn Measure);
+
+impl Measure for CellMeasure<'_> {
+    fn width(&mut self, text: &str, face: Face, px: f32) -> f32 {
+        self.0.table_width(text, face, px)
+    }
+
+    fn extent(&mut self, face: Face, px: f32) -> (f32, f32) {
+        self.0.extent(face, px)
+    }
+}
+
+fn shaped_cell(markup: &str, voice: &Voice, width: f32, ctx: &mut Ctx) -> Geometry {
+    let mut measure = CellMeasure(&mut *ctx.measure);
+    let mut cell = Ctx {
+        metrics: ctx.metrics,
+        measure: &mut measure,
+        assets: ctx.assets,
+        counter: ctx.counter,
+        remote: ctx.remote,
+    };
+    let geometry = prose(markup, Some(voice), 0, width, &mut cell);
+    ctx.counter = cell.counter;
+    geometry
+}
 
 /// The widest line a markup draws in the bold body face, unwrapped: what a column's measure text asks of it.
 pub fn natural_width(markup: &str, ctx: &mut Ctx) -> f32 {
@@ -19,7 +45,7 @@ pub fn natural_width(markup: &str, ctx: &mut Ctx) -> f32 {
         ink: Ink::Foreground,
         align: None,
     };
-    let laid = prose(markup, Some(&voice), 0, f32::INFINITY, ctx);
+    let laid = shaped_cell(markup, &voice, f32::INFINITY, ctx);
     laid.items
         .iter()
         .map(|item| match item {
@@ -56,7 +82,8 @@ pub fn widths(table: &Table, avail: f32, ctx: &mut Ctx) -> Vec<f32> {
     };
     let natural: Vec<f64> = column_px
         .iter()
-        .map(|w| f64::from(w.ceil() + CELL_GAP))
+        // The placer's own slack, so accumulated advances cannot add a whole pixel to an integer width.
+        .map(|w| f64::from((w - SLACK).max(0.0).ceil() + CELL_GAP))
         .collect();
     let minimum: Vec<f64> = (0..columns)
         .map(|c| {
@@ -65,19 +92,11 @@ pub fn widths(table: &Table, avail: f32, ctx: &mut Ctx) -> Vec<f32> {
         .collect();
     // A wide glyph takes two, so no column goes under two glyphs of text.
     let least = f64::from(CELL_GAP + (2.0 * glyph).ceil());
-    let mut fitted = if avail > 0.0 {
+    let fitted = if avail > 0.0 {
         table_fit(&natural, &minimum, f64::from(avail), least)
     } else {
         natural
     };
-    // Quick Look wraps oversized text tokens once the columns can fit their two-glyph floor.
-    if !ctx.metrics.column
-        && table.pictures.iter().all(String::is_empty)
-        && fitted.iter().sum::<f64>() > f64::from(avail)
-        && least * columns as f64 <= f64::from(avail)
-    {
-        fitted = table_fit(&fitted, &vec![0.0; columns], f64::from(avail), least);
-    }
     fitted.into_iter().map(|w| w as f32).collect()
 }
 
@@ -113,7 +132,7 @@ fn row(
             ink: if head { Ink::Bright } else { Ink::Foreground },
             align: align_of(table, c),
         };
-        let laid = prose(cell, Some(&voice), 0, (column - CELL_GAP).max(0.0), ctx);
+        let laid = shaped_cell(cell, &voice, (column - CELL_GAP).max(0.0), ctx);
         laid_cells.push((laid, x));
         x += column;
     }

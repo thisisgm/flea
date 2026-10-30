@@ -63,6 +63,11 @@ impl Tokens {
     }
 
     pub fn inset_y(&self) -> f32 {
+        self.metrics().inset_y()
+    }
+
+    /// Source retains its existing line viewport and padding.
+    pub fn source_inset_y(&self) -> f32 {
         self.gap + self.row_pad_y
     }
 }
@@ -390,3 +395,6 @@ impl MarkdownView {
         self.scale = window.scale_factor();
     }
 }
+
+#[cfg(test)]
+mod table_layout_tests;

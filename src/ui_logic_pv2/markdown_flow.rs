@@ -65,6 +65,10 @@ pub struct Look {
 /// The host's text system: an advance and a face's extent at a size.
 pub trait Measure {
     fn width(&mut self, text: &str, face: Face, px: f32) -> f32;
+    /// A table cell uses the same complete shaped run that its painter draws.
+    fn table_width(&mut self, text: &str, face: Face, px: f32) -> f32 {
+        self.width(text, face, px)
+    }
     /// The ascent and descent, both positive.
     fn extent(&mut self, face: Face, px: f32) -> (f32, f32);
 }
@@ -223,7 +227,7 @@ use toks::{tokens, Seg, Tok, Tokens};
 #[path = "markdown_flow_lines.rs"]
 mod lines;
 
-pub use lines::centred_baseline;
+pub use lines::{centred_baseline, SLACK};
 
 /// The paragraph's pieces laid at a width: words wrap at spaces, and a word wider than the width breaks anywhere.
 pub fn flow(

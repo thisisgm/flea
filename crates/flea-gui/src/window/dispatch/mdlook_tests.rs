@@ -227,7 +227,7 @@ fn mdlook_ey160_small_images_fill_the_card_and_large_fit_is_preserved(cx: &mut T
 }
 
 #[gpui::test]
-fn mdlook_ey163_wide_table_headers_wrap_inside_their_columns(cx: &mut TestAppContext) {
+fn mdlook_ey163_wide_table_scrolls_with_whole_headers(cx: &mut TestAppContext) {
     let root = root();
     let header = (0..4)
         .map(|i| format!("Column{i}_with_a_long_header"))
@@ -248,8 +248,8 @@ fn mdlook_ey163_wide_table_headers_wrap_inside_their_columns(cx: &mut TestAppCon
         .collect();
     assert_eq!(heads.len(), 4);
     assert!(
-        heads.iter().all(|(_, _, laid)| laid.lines.len() > 1),
-        "long header tokens wrap within their columns"
+        heads.iter().all(|(_, _, laid)| laid.lines.len() == 1),
+        "each column holds its longest header token whole, as v0.3.12 does"
     );
     for (index, (_, _, laid)) in heads.iter().enumerate() {
         let shown: String = laid
@@ -267,14 +267,18 @@ fn mdlook_ey163_wide_table_headers_wrap_inside_their_columns(cx: &mut TestAppCon
         assert_eq!(shown, format!("Column{index}_with_a_long_header"));
     }
     view.read_with(cx, |view, _| {
-        for block in view.doc.laid.iter().flatten() {
-            for item in &block.geometry.items {
-                assert!(
-                    !matches!(item, Item::Table { content, width, .. } if content > width),
-                    "text table fits the card"
-                );
-            }
-        }
+        let overflowing = view
+            .doc
+            .laid
+            .iter()
+            .flatten()
+            .flat_map(|block| &block.geometry.items)
+            .filter(|item| matches!(item, Item::Table { content, width, .. } if content > width))
+            .count();
+        assert_eq!(
+            overflowing, 1,
+            "a table wider than the card scrolls sideways instead of splitting its tokens"
+        );
     });
     close(&shell, cx);
 }

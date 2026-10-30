@@ -92,7 +92,7 @@ impl MarkdownView {
         }
         let src = &mut self.source;
         let f = src.frame;
-        let (x0, y0) = (t.inset_x(), t.inset_y());
+        let (x0, y0) = (t.inset_x(), t.source_inset_y());
         let clip = (x0, y0, f.width, f.height);
         let at = build.ops.len();
         build.ops.push(Op::Clip { rect: clip, len: 0 });
