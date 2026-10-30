@@ -208,17 +208,27 @@ class LayoutTests(unittest.TestCase):
         single = self.row("g", action="immediate", layer="shared")
         rows = [sequence, single]
         measured = layouts.measure(rows, self.events["us"], self.events["us"], self.policy)
-        self.assertEqual(measured["collisions"][0]["kind"], "sequence-prefix")
-        self.assertEqual(measured["collisions"][0]["witnesses"], ["AC05:0"])
+        # The vim preset row wins over shared g in the resolver, so this is shadowing, not a collision.
+        self.assertEqual(measured["collisions"], [])
+        layouts.classify_collisions(measured, layouts.measure([], self.events["us"], self.events["us"], self.policy), rows, [])
+        self.assertEqual({(f["rule"], f["binding"], f["by"]) for f in measured["shadowing_findings"]},
+                         {("added-bound", "immediate", "sequence")})
+        self.assertTrue(all(f["witnesses"] == ["AC05:0"] for f in measured["shadowing_findings"]))
+        def findings():
+            group = layouts.measure(rows, self.events["us"], self.events["us"], self.policy)
+            layouts.classify_collisions(group, layouts.measure([], self.events["us"], self.events["us"], self.policy), rows, [])
+            return group["collisions"], group["shadowing_findings"]
         single["layer"] = "mac"
-        self.assertEqual(layouts.measure(rows, self.events["us"], self.events["us"], self.policy)["collisions"], [])
+        self.assertEqual(findings(), ([], []))
         single["layer"], single["contexts"] = "shared", ["editor"]
-        self.assertEqual(layouts.measure(rows, self.events["us"], self.events["us"], self.policy)["collisions"], [])
+        self.assertEqual(findings(), ([], []))
         single["contexts"], single["frontend"], sequence["frontend"] = ["listing"], "tui", "gui"
-        self.assertEqual(layouts.measure(rows, self.events["us"], self.events["us"], self.policy)["collisions"], [])
+        self.assertEqual(findings(), ([], []))
         measured["index"] = 0
-        normalized = layouts.normalized_toml([sequence], [measured])
-        self.assertIn("g0:listing:AC05:0", normalized)
+        normalized = layouts.tomllib.loads(layouts.normalized_toml([sequence], [measured]))["preset"]
+        self.assertEqual({(r["frontend"], r["key"], r["mods"], r["action"], r["context"]) for r in normalized},
+                         {(frontend, "g", "text", "sequence", context) for frontend in ("gui", "tui")
+                          for context in ("g0:vim:listing:", "g0:vim:listing::pair:sequence")})
         canonical = layouts.bindings(ROOT / "keys.toml")
         self.assertEqual({r["layer"] for r in canonical}, {"shared", "digits", "all", "default", "vim", "mac", "windows", "yazi"})
         self.assertEqual(sum(r["table"] == "tui" for r in canonical), 110)
@@ -305,6 +315,22 @@ class LayoutTests(unittest.TestCase):
             group["cells"].pop()
         matrix["summary"] = layouts.summarize(matrix)
         self.assertTrue(any("canonical inventory differs" in message for message in layouts.check_matrix(matrix, 1)))
+
+    def test_i50_layout_scope_checks_fail(self):
+        matrix = self.valid_matrix()
+        layout = matrix["layouts"][0]
+        group, baseline = layout["groups"][0], layout["baseline_groups"][0]
+        matrix["provenance"]["resolvers"] = [dict(layouts.identity(ROOT / "src/keys.rs"), sha256="0" * 64)]
+        group["preservation_findings"], group["shadowing_findings"], baseline["script"] = [{}], [{}], "nonlatin"
+        group["variants"][0]["current_gui_status"] = "unreachable"
+        group["scopes"].append(dict(frontend="gui", preset="default", context="listing", state="", shadowed=[], cells=[0]))
+        messages = layouts.check_matrix(matrix, 1)
+        for expected in ("Stale resolver identity", "stored baseline differs", "1 baseline actions shadowed", "1 unapproved overrides",
+                         "legacy Python GUI model has unreachable rows", "normalized candidate differs from effective scopes"):
+            self.assertTrue(any(expected in message for message in messages), (expected, messages))
+        matrix = self.valid_matrix()
+        del matrix["layouts"][0]["groups"][0]["scopes"]
+        self.assertTrue(any("no effective scopes" in message for message in layouts.check_matrix(matrix, 1)))
 
     def test_i50_layout_all_active_groups_required(self):
         matrix = self.valid_matrix("ru")

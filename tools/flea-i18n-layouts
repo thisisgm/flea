@@ -3,7 +3,7 @@
 
 generate writes a self-contained matrix and per-layout lint inputs/results beside it.
 check fails on incomplete coverage, punctuation conflicts, collisions or unreachable rows.
-lint runs the existing design linter on physical event paths for candidate and baseline.
+lint runs the existing design linter on canonical identities in effective resolver scopes.
 This is a source-analysis tool, not a replacement for native input/protocol evidence.
 """
 
@@ -37,6 +37,8 @@ NAMED = {"BackSpace", "Tab", "ISO_Left_Tab", "Return", "Escape", "Delete", "Inse
 OVERRIDES = {"colemak": ("us", "colemak"), "bg-cp1251": ("bg,us", "phonetic,"),
              "cz": ("cz,us", "qwerty,"), "de_CH-latin1": ("ch", ""),
              "kyrgyz": ("kg,us", ""), "no-latin1": ("no", ""), "pl": ("pl", ""), "ua": ("ua,us", "")}
+REFUSAL = "unsupported:"
+RESOLVERS = ["src/keys.rs", "src/tui/keymap.rs", "src/tui/actions.rs", "src/tui/keymap_additive_tests.rs"]
 
 
 def digest(data):
@@ -341,12 +343,6 @@ def current_matches(stroke, event):
     return actual["mods"] == modmask(stroke["mods"]) and actual["key"] == expected
 
 
-def overlap(a, b):
-    return (bool(set(a["contexts"]) & set(b["contexts"])) and
-            (a["frontend"] == b["frontend"] or "all" in (a["frontend"], b["frontend"])) and
-            (a["layer"] == b["layer"] or a["layer"] in ("all", "shared", "digits") or b["layer"] in ("all", "shared", "digits")))
-
-
 def frontend_contexts(row, frontend):
     if row["frontend"] not in ("all", frontend):
         return set()
@@ -356,26 +352,68 @@ def frontend_contexts(row, frontend):
     return contexts
 
 
-def collisions(rows, cells):
+def resolver_priority(row, preset, frontend):
+    if row["layer"] not in (preset, "all", "shared", "digits"):
+        return None
+    layer = {preset: 0, "all": 1, "shared": 2, "digits": 3}[row["layer"]]
+    return layer, 0 if frontend == "tui" and row["table"] == "tui" else 1
+
+
+def effective_scopes(rows, us_events):
+    """Apply canonical resolver precedence before a layout can change a chord's spelling."""
+    canonical = [set(paths(r["strokes"][0], us_events, us_events, "latin")[0]) for r in rows]
+    presets = sorted({"default", "vim", "mac", "windows", "yazi"} |
+                     {r["layer"] for r in rows} - {"shared", "all", "digits"})
+    scopes = []
+    for frontend, preset, context in itertools.product(("gui", "tui"), presets, CONTEXTS):
+        if frontend == "gui" and preset == "yazi":
+            continue
+        candidates = [i for i, r in enumerate(rows) if context in frontend_contexts(r, frontend)
+                      and resolver_priority(r, preset, frontend) is not None]
+        root = [i for i in candidates if not rows[i]["prefix"]]
+        ranks = {}
+        for i in root:
+            for event in canonical[i]:
+                rank = resolver_priority(rows[i], preset, frontend)
+                ranks[event] = min(ranks.get(event, rank), rank)
+        live = [i for i in root if not canonical[i] or any(
+            ranks[e] == resolver_priority(rows[i], preset, frontend) for e in canonical[i])]
+        shadowed = []
+        for i in root:
+            winners = [j for j in root if resolver_priority(rows[j], preset, frontend) < resolver_priority(rows[i], preset, frontend)
+                       and canonical[i] & canonical[j]]
+            if winners:
+                shadowed.append(dict(binding=rows[i]["id"], by=[rows[j]["id"] for j in winners],
+                                     witnesses=sorted(set().union(*(canonical[i] & canonical[j] for j in winners)))))
+        scopes.append(dict(frontend=frontend, preset=preset, context=context, state="", indices=live, shadowed=shadowed))
+        for arm in sorted({rows[i]["action"] for i in live if rows[i]["action"].startswith("prefix:")}):
+            suffixes = [i for i in candidates if rows[i]["table"] == "tui" and rows[i]["layer"] == preset
+                        and rows[i]["prefix"] == arm.removeprefix("prefix:")]
+            scopes.append(dict(frontend=frontend, preset=preset, context=context, state=arm, indices=suffixes, shadowed=[]))
+    return scopes
+
+
+def collisions(rows, cells, precedence=None):
+    """Compare effective claims within one frontend, preset, context and prefix state."""
+    ranks, shadows = precedence or (None, set())
     results = []
     for i, a in enumerate(rows):
         for j in range(i + 1, len(rows)):
             b = rows[j]
-            scopes = {f: sorted(frontend_contexts(a, f) & frontend_contexts(b, f)) for f in ("gui", "tui")}
-            if not overlap(a, b) or not any(scopes.values()) or a["completes"] == b["completes"]:
+            if a["completes"] == b["completes"]:
                 continue
             left, right = cells[i]["paths"], cells[j]["paths"]
-            size = min(len(left), len(right))
             shared = [sorted(set(x) & set(y)) for x, y in zip(left, right)]
-            if not size or not all(shared):
+            if not shared or not all(shared):
                 continue
-            shorter = a if len(left) < len(right) else b
-            if len(left) != len(right) and shorter["action"].startswith("prefix:"):
-                continue
+            if ranks and ranks[i] != ranks[j] and {(a["id"], b["id"]), (b["id"], a["id"])} & shadows:
+                low, high = (left, right) if ranks[i] > ranks[j] else (right, left)
+                # The resolver picks the higher row on a canonical shadow; only a lower row left with no path collides.
+                if all(set(x) - set(y) for x, y in zip(low, high)):
+                    continue
             results.append(dict(a=a["id"], b=b["id"], kind="sequence-prefix" if len(left) != len(right) else "chord",
-                                witnesses=[p[0] for p in shared], frontend=[a["frontend"], b["frontend"]],
-                                contexts=scopes,
-                                layers=[a["layer"], b["layer"]], actions=[a["action"], b["action"]]))
+                                witnesses=[p[0] for p in shared], layers=[a["layer"], b["layer"]],
+                                actions=[a["action"], b["action"]]))
     return results
 
 
@@ -398,16 +436,18 @@ def collision_identity(collision, rows):
         row = by_id[binding]
         return json.dumps({k: v for k, v in row.items() if k != "id"}, sort_keys=True)
     return (tuple(sorted([stamp(collision["a"]), stamp(collision["b"])])), collision["kind"],
-            tuple(collision["witnesses"]))
+            tuple(collision["witnesses"]), json.dumps(collision.get("scope"), sort_keys=True))
 
 
 def classify_collisions(candidate, baseline, rows, baseline_rows):
+    candidate["preservation_findings"] = preservation_findings(rows, baseline_rows, candidate, baseline)
+    candidate["shadowing_findings"] = shadowing_findings(rows, baseline_rows, candidate)
     known = {collision_identity(c, baseline_rows) for c in baseline["collisions"]}
     for collision in candidate["collisions"]:
         collision["baseline"] = "present" if collision_identity(collision, rows) in known else "absent"
 
 
-def measure(rows, events, us_events, policy):
+def measure_scope(rows, events, us_events, policy, fixed_prefix=None, precedence=None):
     events = events if isinstance(events, Events) else Events(events)
     us_events = us_events if isinstance(us_events, Events) else Events(us_events)
     script = letter_group(events)
@@ -421,12 +461,16 @@ def measure(rows, events, us_events, policy):
     printed, position = policy["punctuation"]["order"]
     measured = [{choice: [paths(s, events, us_events, script, choice) for s in row["strokes"]] for choice in (printed, position)}
                 for row in rows]
-    punct = [any(is_punctuation(s) for s in row["strokes"]) for row in rows]
+    if fixed_prefix is not None:
+        for row, alternatives in zip(rows, measured):
+            for candidate in alternatives.values():
+                candidate[0] = (fixed_prefix, "scoped-prefix")
+    punct = [any(is_punctuation(s) for s in (row["strokes"][-1:] if row["prefix"] else row["strokes"])) for row in rows]
     choice = [printed if not p or (script == "latin" and all(path for path, _ in m[printed])) else position
               for p, m in zip(punct, measured)]
     rejected = [set() for _ in rows]
     while True:
-        found = collisions(rows, [dict(paths=[path for path, _ in m[c]]) for m, c in zip(measured, choice)])
+        found = collisions(rows, [dict(paths=[path for path, _ in m[c]]) for m, c in zip(measured, choice)], precedence)
         involved = {binding for c in found for binding in (c["a"], c["b"])}
         switch = [i for i, row in enumerate(rows) if punct[i] and choice[i] == printed and row["id"] in involved]
         if not switch:
@@ -441,7 +485,7 @@ def measure(rows, events, us_events, policy):
         failing = punct[i] and (row["id"] in involved or (bool(rejected[i]) and not reachable))
         detail = {}
         if punct[i]:
-            rule = ("c" if script == "nonlatin" else "d" if failing else
+            rule = ("d" if failing else "c" if script == "nonlatin" else
                     "a" if choice[i] == printed else "b")
             if rule == "b" and not rejected[i]:
                 rejected[i].add("printed-character-needs-altgr-or-absent")
@@ -464,40 +508,154 @@ def measure(rows, events, us_events, policy):
     return {"script": script, "cells": cells, "collisions": found}
 
 
-def normalized_toml(rows, groups):
-    lines, merged = [], {}
+def scope_cells(group, frontend, preset, context, state=""):
+    """Return observations for exactly one effective resolver state."""
+    scope = next((s for s in group["scopes"] if (s["frontend"], s["preset"], s["context"], s["state"]) ==
+                  (frontend, preset, context, state)), None)
+    return [group["variants"][i] for i in scope["cells"]] if scope else []
+
+
+def measure(rows, events, us_events, policy):
+    events, us_events = Events(events), Events(us_events)
+    script = letter_group(events)
+    result = dict(script=script, cells=[], scopes=[], variants=[], collisions=[])
+    interned, cache = {}, {}
+    for scope in effective_scopes(rows, us_events):
+        indices = scope.pop("indices")
+        selected = [rows[i] for i in indices]
+        fixed = None
+        if scope["state"]:
+            arms = scope_cells(result, scope["frontend"], scope["preset"], scope["context"])
+            arm_ids = {r["id"] for r in rows if r["action"] == scope["state"]}
+            fixed = sorted({p for c in arms if c["binding"] in arm_ids for p in c["paths"][0]})
+        ranks = tuple(resolver_priority(rows[i], scope["preset"], scope["frontend"]) for i in indices)
+        shadows = {(s["binding"], by) for s in scope["shadowed"] for by in s["by"]}
+        signature = tuple(indices), tuple(fixed or []), ranks
+        if signature not in cache:
+            cache[signature] = measure_scope(selected, events, us_events, policy, fixed, (ranks, shadows))
+        measured = cache[signature]
+        scope["cells"] = []
+        for cell in measured["cells"]:
+            stamp = json.dumps(cell, sort_keys=True)
+            if stamp not in interned:
+                interned[stamp] = len(result["variants"])
+                result["variants"].append(cell)
+            scope["cells"].append(interned[stamp])
+        result["scopes"].append(scope)
+        for collision in measured["collisions"]:
+            result["collisions"].append(dict(collision, scope=scope_identity(scope)))
     for row in rows:
-        for group in groups:
-            cell = next(c for c in group["cells"] if c["binding"] == row["id"])
-            strokes = cell["paths"]
-            for depth, options in enumerate(strokes):
-                prefixes = itertools.product(*strokes[:depth]) if depth else [()]
-                for prefix in prefixes:
-                    for option in options or [f"UNREACHABLE:{row['id']}:{depth}"]:
-                        action = ("prefix:" + row["prefix"] if row["prefix"] else row["action"]) if depth == 0 else row["completes"]
-                        for frontend in ("gui", "tui"):
-                            contexts = [f"g{group['index']}:{context}:" + "/".join(prefix)
-                                        for context in sorted(frontend_contexts(row, frontend))]
-                            if not contexts:
-                                continue
-                            physical, _, held = option.partition(":")
-                            if held.isdigit():
-                                mask = int(held)
-                                mods = "".join(w for w in ("super", "ctrl", "alt", "shift") if mask & MODS[w]) or "none"
-                                key = {"RTRN": "Return", "KPEN": "Enter", "SPCE": "Space", "ESC": "Escape", "TAB": "Tab"}.get(physical, physical)
-                                key += ":AltGr" if mask & MODS["altgr"] else ""
-                            else:
-                                mods, key = "none", option
-                            values = dict(name=row["layer"], mods=mods, key=key, keys=option,
-                                          action=action, context=",".join(contexts), frontend=frontend)
-                            signature = tuple((k, v) for k, v in values.items() if k != "context")
-                            if signature in merged:
-                                previous = set(merged[signature]["context"].split(","))
-                                values["context"] = ",".join(sorted(previous | set(contexts)))
-                            merged[signature] = values
+        variants = [c for c in result["variants"] if c["binding"] == row["id"]]
+        if len(variants) == 1:
+            result["cells"].append(variants[0])
+        else:
+            result["cells"].append(dict(binding=row["id"], paths=[], rules=[], punctuation={},
+                                        status="scope-dependent" if variants else "shadowed",
+                                        current_gui_status="scoped", terminal_limits=terminal_limits(row)))
+    return result
+
+
+def canonical_spelling(stroke):
+    key, mods = character(stroke["key"]), stroke["mods"]
+    if mods == "text":
+        return key, mods
+    if mods == "shift" and len(key) == 1 and key.isascii() and key.isalpha():
+        return key.upper(), "text"
+    key = {"ISO_Left_Tab": "Tab", "Prior": "PageUp", "Next": "PageDown", "space": "Space"}.get(key, key)
+    if stroke["key"] == "Backtab" and "shift" not in mods:
+        mods = ("" if mods == "none" else mods) + "shift"
+    return key, mods
+
+
+def scope_identity(scope):
+    return {key: scope[key] for key in ("frontend", "preset", "context", "state")}
+
+
+def yazi_replacement(scope):
+    return (scope["frontend"], scope["preset"], scope["context"]) == ("tui", "yazi", "listing")
+
+
+def refusals(rows, groups):
+    """Refusal rows hold a key only to explain an unavailable action; they are listed, never linted as commands."""
+    by_id = {r["id"]: r for r in rows}
+    return [dict(binding=cell["binding"], action=by_id[cell["binding"]]["action"], group=group["index"],
+                 scope=scope_identity(scope), paths=cell["paths"])
+            for group in groups for scope in group["scopes"] for cell in (group["variants"][i] for i in scope["cells"])
+            if by_id.get(cell["binding"], {}).get("action", "").startswith(REFUSAL)]
+
+
+def normalized_toml(rows, groups):
+    """Lint canonical identity per effective scope; a refusal binds no command, so refusals() reports it instead."""
+    lines, merged = [], {}
+    by_id = {r["id"]: r for r in rows}
+    for group in groups:
+        for scope in group["scopes"]:
+            for index in scope["cells"]:
+                cell = group["variants"][index]
+                if cell["binding"] not in by_id:
+                    continue
+                row = by_id[cell["binding"]]
+                depth = len(row["strokes"]) - 1 if scope["state"] else 0
+                key, mods = canonical_spelling(row["strokes"][depth])
+                state = scope["state"]
+                context = f"g{group['index']}:{scope['preset']}:{scope['context']}:{state.encode().hex()}"
+                action = row["completes"] if depth else row["action"]
+                if action.startswith(REFUSAL):
+                    continue
+                values = dict(name=scope["preset"], mods=mods, key=key, keys=key,
+                              action=action, context=context, frontend=scope["frontend"])
+                stamp = tuple(values.items())
+                merged[stamp] = values
+                if not state and len(row["strokes"]) > 1 and not row["completes"].startswith(REFUSAL):
+                    key, mods = canonical_spelling(row["strokes"][-1])
+                    values = dict(values, key=key, mods=mods, keys=key, action=row["completes"],
+                                  context=context + ":pair:" + row["action"])
+                    merged[tuple(values.items())] = values
     for values in merged.values():
         lines += ["[[preset]]"] + [f"{k} = {json.dumps(v)}" for k, v in values.items()] + [""]
     return "\n".join(lines)
+
+
+def preservation_findings(rows, baseline_rows, group, baseline):
+    """The opt-in Yazi listing replacement never excuses old-mode or overlay action loss."""
+    by_id, before = {r["id"]: r for r in rows}, {r["id"]: r for r in baseline_rows}
+    findings = []
+    for scope in baseline["scopes"]:
+        if yazi_replacement(scope):
+            continue
+        current = scope_cells(group, scope["frontend"], scope["preset"], scope["context"], scope["state"])
+        depth = -1 if scope["state"] else 0
+        live = {(canonical_spelling(by_id[c["binding"]]["strokes"][depth]),
+                 by_id[c["binding"]]["action"], by_id[c["binding"]]["completes"]) for c in current}
+        for index in scope["cells"]:
+            cell = baseline["variants"][index]
+            row = before[cell["binding"]]
+            stamp = canonical_spelling(row["strokes"][depth]), row["action"], row["completes"]
+            if stamp not in live:
+                findings.append(dict(rule="baseline-action-shadowed", severity="blocking", binding=row["id"],
+                                     action=row["action"], scope=scope_identity(scope)))
+    return findings
+
+
+def shadowing_findings(rows, baseline_rows, group):
+    """New declarations must not accidentally override, or hide behind, another action."""
+    def stamp(row):
+        return json.dumps({k: v for k, v in row.items() if k != "id"}, sort_keys=True)
+    shipped = {stamp(row) for row in baseline_rows}
+    by_id = {r["id"]: r for r in rows}
+    findings = []
+    for scope in group["scopes"]:
+        if yazi_replacement(scope):
+            continue
+        for shadow in scope["shadowed"]:
+            a = by_id[shadow["binding"]]
+            for binding in shadow["by"]:
+                b = by_id[binding]
+                if a["action"] != b["action"] and (stamp(a) not in shipped or stamp(b) not in shipped):
+                    findings.append(dict(rule="added-bound", severity="blocking", binding=a["id"], by=b["id"],
+                                         actions=[a["action"], b["action"]], witnesses=shadow["witnesses"],
+                                         scope=scope_identity(scope)))
+    return findings
 
 
 def lint_layout(matrix, layout, output, linter):
@@ -514,9 +672,27 @@ def lint_layout(matrix, layout, output, linter):
             report = json.loads(result.stdout)
         except ValueError:
             report = {"error": result.stderr or result.stdout}
-        report.update(exit_code=result.returncode, command=args, candidate=identity(candidate), baseline=identity(baseline))
+        preservation = [dict(f, group=g["index"]) for g, old in zip(layout["groups"], layout["baseline_groups"])
+                        for f in preservation_findings(matrix["bindings"], matrix["baseline_bindings"], g, old)]
+        preservation += [dict(f, group=g["index"]) for g in layout["groups"]
+                         for f in shadowing_findings(matrix["bindings"], matrix["baseline_bindings"], g)]
+        physical = [dict(c, rule="layout-collision", severity="blocking", group=g["index"])
+                    for g in layout["groups"] for c in g["collisions"]]
+        physical += [dict(rule=c["status"], severity="blocking", group=g["index"], binding=c["binding"],
+                          scope=scope_identity(s))
+                     for g in layout["groups"] for s in g["scopes"] for i in s["cells"]
+                     if (c := g["variants"][i])["status"] != "reachable"]
+        report["refusals"] = refusals(matrix["bindings"], layout["groups"])
+        report["linter_exit_code"] = result.returncode
+        report["linter_total"] = report.get("total")
+        report["normalization"] = "canonical-identity-in-effective-scope; physical-findings-from-matrix"
+        report.setdefault("findings", []).extend(preservation + physical)
+        report["counts"] = dict(Counter(f["rule"] for f in report["findings"]))
+        report["total"] = len(report["findings"])
+        report.update(exit_code=result.returncode or int(bool(preservation or physical)), command=args,
+                      candidate=identity(candidate), baseline=identity(baseline))
         write_json(folder / f"{choice}.result.json", report)
-        reports[choice] = {"exit_code": result.returncode, "result": str(folder / f"{choice}.result.json"),
+        reports[choice] = {"exit_code": report["exit_code"], "result": str(folder / f"{choice}.result.json"),
                            "sha256": digest((folder / f"{choice}.result.json").read_bytes()), "total": report.get("total")}
     return reports
 
@@ -536,10 +712,8 @@ def generate(args):
     if args.require_layouts is not None and args.require_layouts != len(entries):
         raise ValueError(f"Pinned installer has {len(entries)} entries, not {args.require_layouts}")
     rows, baseline = bindings(args.keys), bindings(args.baseline)
-    reference = command(["git", "-C", str(Path(args.baseline).parent), "rev-parse", "HEAD"])
-    if reference != policy["source_contract"]["reference_commit"]:
-        raise ValueError(f"Wrong reference tree: {reference}")
-    reference_bytes = subprocess.run(["git", "-C", str(Path(args.baseline).parent), "show", reference + ":keys.toml"],
+    reference = policy["source_contract"]["reference_commit"]
+    reference_bytes = subprocess.run(["git", "-C", str(ROOT), "show", reference + ":keys.toml"],
                                      capture_output=True, check=True).stdout
     if reference_bytes != Path(args.baseline).read_bytes():
         raise ValueError("Reference keys.toml differs from the pinned tag")
@@ -558,6 +732,9 @@ def generate(args):
                   installer=dict(source=identity(omarchy / sources[0]), model_map=identity(args.model_map),
                                  entries=[[e["id"], e["installer_row"]] for e in entries]),
                   bindings=rows, baseline_bindings=baseline, us_events=us_events, layouts=[], errors=[])
+    matrix["provenance"]["resolvers"] = [identity(ROOT / path) for path in RESOLVERS]
+    matrix["analysis"] = {"policy_selection": "effective-frontend-preset-context-prefix",
+                          "current_gui": "legacy-python-model; not native or published-fork acceptance"}
     library_path = next(Path(line.split()[-1]) for line in Path("/proc/self/maps").read_text().splitlines()
                         if "/libxkbcommon.so" in line and Path(line.split()[-1]).is_file())
     matrix["provenance"]["libxkbcommon"] = identity(library_path)
@@ -593,12 +770,20 @@ def generate(args):
 
 def summarize(matrix):
     groups = [g for layout in matrix["layouts"] for g in layout["groups"]]
+    scoped = [g["variants"][i] for g in groups for s in g.get("scopes", []) for i in s["cells"]]
+    gui = [g["variants"][i] for g in groups for s in g.get("scopes", []) if s["frontend"] == "gui" for i in s["cells"]]
     return dict(layouts=len(matrix["layouts"]), groups=len(groups), bindings=len(matrix["bindings"]),
                 cells=sum(len(g["cells"]) for g in groups), statuses=dict(Counter(c["status"] for g in groups for c in g["cells"])),
+                scoped_cells=len(scoped), scoped_statuses=dict(Counter(c["status"] for c in scoped)),
                 punctuation_rules=dict(Counter(c["punctuation"]["rule"] for g in groups for c in g["cells"] if c["punctuation"])),
                 current_gui_statuses=dict(Counter(c["current_gui_status"] for g in groups for c in g["cells"])),
+                legacy_gui_model_statuses=dict(Counter(c["current_gui_status"] for c in gui)),
                 collisions=sum(len(g["collisions"]) for g in groups),
                 collision_baseline=dict(Counter(c["baseline"] for g in groups for c in g["collisions"])),
+                refusal_bindings=sorted({r["binding"] for g in groups if "scopes" in g for r in refusals(matrix["bindings"], [g])}),
+                refusal_cells=sum(len(refusals(matrix["bindings"], [g])) for g in groups if "scopes" in g),
+                baseline_actions_shadowed=sum(len(g.get("preservation_findings", [])) for g in groups),
+                unapproved_overrides=sum(len(g.get("shadowing_findings", [])) for g in groups),
                 lint_errors=sum(r["exit_code"] != 0 for l in matrix["layouts"] for r in l.get("lint", {}).values()),
                 unknown_keymaps=len(matrix["errors"]))
 
@@ -647,7 +832,13 @@ def check_matrix(matrix, required=None):
             inventory = "bindings" if name == "keys" else "baseline_bindings"
             if matrix[inventory] != bindings(recorded["path"]):
                 errors.append(f"{name}: canonical inventory differs from identity-checked source")
+    for recorded in matrix.get("provenance", {}).get("resolvers", []):
+        if not Path(recorded["path"]).is_file() or digest(Path(recorded["path"]).read_bytes()) != recorded["sha256"]:
+            errors.append(f"Stale resolver identity: {recorded['path']}")
     for layout in matrix["layouts"]:
+        if any("scopes" not in g or "variants" not in g for g in layout["groups"] + layout.get("baseline_groups", [])):
+            errors.append(f"{layout['id']}: groups carry no effective scopes; regenerate the matrix with this tool")
+            continue
         entry = expected_entries.get(layout["id"])
         if entry:
             if any(layout.get(field) != value for field, value in entry.items()):
@@ -687,6 +878,11 @@ def check_matrix(matrix, required=None):
                     source = receipt[kind]
                     if not Path(source["path"]).is_file() or digest(Path(source["path"]).read_bytes()) != source["sha256"]:
                         errors.append(f"{layout['id']}: stale normalized {kind}")
+                    else:
+                        rows = matrix["bindings"] if kind == "candidate" else matrix["baseline_bindings"]
+                        groups = layout["groups"] if kind == "candidate" else layout["baseline_groups"]
+                        if Path(source["path"]).read_text() != normalized_toml(rows, groups):
+                            errors.append(f"{layout['id']}: normalized {kind} differs from effective scopes")
         for group in layout["groups"]:
             cells = group["cells"]
             if {c["binding"] for c in cells} != required_ids or len(cells) != len(required_ids):
@@ -695,20 +891,28 @@ def check_matrix(matrix, required=None):
                 measured = measure(matrix["bindings"], group["events"], matrix["us_events"], matrix["policy"])
                 old = measure(matrix["baseline_bindings"], group["events"], matrix["us_events"], matrix["policy"])
                 classify_collisions(measured, old, matrix["bindings"], matrix["baseline_bindings"])
-                if any(group.get(name) != measured[name] for name in ("cells", "script", "collisions")):
+                if any(group.get(name) != measured[name] for name in ("cells", "script", "collisions", "scopes", "variants", "preservation_findings", "shadowing_findings")):
                     errors.append(f"{layout['id']}/{group['index']}: stored findings differ from measured events")
+                baseline = next((g for g in layout["baseline_groups"] if g["index"] == group["index"]), {})
+                if any(baseline.get(name) != old[name] for name in ("cells", "script", "collisions", "scopes", "variants")):
+                    errors.append(f"{layout['id']}/{group['index']}: stored baseline differs from measured events")
             else:
                 errors.append(f"{layout['id']}/{group['index']}: missing measured events")
+            cells = group.get("variants", cells)
             counts = Counter(c["status"] for c in cells)
             if any(int(path.rpartition(":")[2]) & MODS["altgr"] for c in cells for stroke in c["paths"] for path in stroke):
                 errors.append(f"{layout['id']}/{group['index']}: an AltGr chord dispatches a command")
             if counts["unreachable"] or counts["punctuation-conflict"]:
                 errors.append(f"{layout['id']}/{group['index']}: {dict(counts)}")
+            if group.get("preservation_findings"):
+                errors.append(f"{layout['id']}/{group['index']}: {len(group['preservation_findings'])} baseline actions shadowed")
+            if group.get("shadowing_findings"):
+                errors.append(f"{layout['id']}/{group['index']}: {len(group['shadowing_findings'])} unapproved overrides")
             if group["collisions"]:
                 errors.append(f"{layout['id']}/{group['index']}: {len(group['collisions'])} collisions")
-            if any(c["current_gui_status"] != "reachable" for c in cells if
-                   next(r for r in matrix["bindings"] if r["id"] == c["binding"])["frontend"] != "tui"):
-                errors.append(f"{layout['id']}/{group['index']}: current GUI mapping has unreachable rows")
+            if any(group["variants"][i]["current_gui_status"] != "reachable" for s in group["scopes"]
+                   if s["frontend"] == "gui" for i in s["cells"]):
+                errors.append(f"{layout['id']}/{group['index']}: legacy Python GUI model has unreachable rows (runtime acceptance owed)")
     if matrix.get("summary") != summarize(matrix):
         errors.append("Summary does not match matrix cells")
     return errors
