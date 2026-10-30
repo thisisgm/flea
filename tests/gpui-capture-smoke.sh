@@ -85,6 +85,7 @@ python3 -B "$helper" controls "$root" | tee "$logs/controls.log"
 printf 'one\n' > "$root/fixture/alpha.txt"
 printf 'two\n' > "$root/fixture/beta.txt"
 touch -d '2025-06-15 10:00:00 UTC' "$root/fixture/"*.txt
+"${private[@]}" "$ipc" --ui-state '{"display":{"textSize":{"mode":14}},"updates":{"autoCheck":false}}' >/dev/null
 setsid "${private[@]}" dbus-daemon --session --nofork --address="unix:path=$runtime/bus" > "$logs/dbus.log" 2>&1 &
 owned+=("$!")
 for ((attempt=0; attempt<100; attempt++)); do

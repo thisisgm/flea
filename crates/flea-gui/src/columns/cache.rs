@@ -63,6 +63,7 @@ pub struct Prepared {
     /// A folder's name at the chevron budget, None when it fits both.
     pub chevron: Option<GlyphRun>,
     pub size: Option<GlyphRun>,
+    pub size_label: String,
     pub location: Option<GlyphRun>,
     pub label: String,
     pub location_label: String,
@@ -251,15 +252,13 @@ fn prepare(
     let chevron = chevron.map(|text| shape_name(text, run, shaping, window));
     let (chevron, chevron_match) =
         chevron.map_or((None, None), |(glyphs, matched)| (Some(glyphs), matched));
-    let size = match row {
-        Row::Listing(facts) if shaping.size => Some(shape(
-            &size_text(facts, walk, &shaping.words),
-            &shaping.font,
-            shaping.caption,
-            window,
-        )),
+    let size_label = match row {
+        Row::Listing(facts) if shaping.size => Some(size_text(facts, walk, &shaping.words)),
         _ => None,
     };
+    let size = size_label
+        .as_ref()
+        .map(|label| shape(label, &shaping.font, shaping.caption, window));
     Prepared {
         plain,
         location: (!location_label.is_empty())
@@ -268,6 +267,7 @@ fn prepare(
         location_label,
         chevron,
         size,
+        size_label: size_label.unwrap_or_default(),
         mark: row.mark(shaping.languages),
         dir: row.dir(),
         matches: [plain_match, chevron_match],

@@ -17,6 +17,7 @@ import stat
 import sys
 
 from . import png
+from .compositor import TOOL, command_matches, keymaps
 from .adapters import TERMINALS
 from .case_identity import artifacts, verify
 from .evidence import Blocked, absolute, digest, output_root, save
@@ -336,28 +337,16 @@ def cyrillic(case, proof):
         raise Blocked("Cyrillic control needs an extended Cyrillic key reported with its base-layout key")
     commands = load(case / "commands.json")  # sealed by native_case; stdout readbacks come from here
     key_start = commands[proof["dispatch"]["command"]]["start_ns"]
-    switches = [c for c in commands if hyprctl(c, "switchxkblayout") and c["exit_code"] == 0
+    switches = [c for c in commands if command_matches(c, "switchxkblayout") and c["exit_code"] == 0
                 and c.get("stdout", "").strip() == "ok" and c["end_ns"] <= key_start]
     if not switches:
-        raise Blocked("Cyrillic control needs a successful hyprctl switchxkblayout with stdout ok before the key")
+        raise Blocked(f"Cyrillic control needs a successful {TOOL} switchxkblayout with stdout ok before the key")
     switch = switches[-1]
     readbacks = [(c, keymaps(c)) for c in commands]
     before = [km for c, km in readbacks if km is not None and c["end_ns"] <= switch["start_ns"]]
     after = [km for c, km in readbacks if km is not None and switch["end_ns"] <= c["start_ns"] and c["end_ns"] <= key_start]
     if not before or not after or not any(name in after[0] and after[0][name] != keymap for name, keymap in before[-1].items()):
-        raise Blocked("Cyrillic control needs hyprctl -j devices readbacks before and after the switch with a changed keymap")
-
-
-def hyprctl(command, subcommand):
-    return Path(command["argv"][0]).name == "hyprctl" and command["argv"][1:2] == [subcommand]
-
-
-def keymaps(command):
-    """Active keymap per keyboard from a successful hyprctl -j devices readback, else None."""
-    if (Path(command["argv"][0]).name != "hyprctl" or command["argv"][1:] not in (["-j", "devices"], ["devices", "-j"])
-            or command["exit_code"] != 0):
-        return None
-    return {k["name"]: k["active_keymap"] for k in json.loads(command.get("stdout", "{}")).get("keyboards", [])}
+        raise Blocked(f"Cyrillic control needs {TOOL} -j devices readbacks before and after the switch with a changed keymap")
 
 
 def signal_dispatch(case, anchors):

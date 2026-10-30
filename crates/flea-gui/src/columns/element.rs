@@ -1,8 +1,6 @@
 //! One custom Element per drawn track: fixed rows painted as quads, marks and prepared glyph runs, no layout node per row.
 use super::cache::{Row, Shaping};
-use super::geometry::{
-    cells, mark_box, name_budget, Slot, CHEVRON, DIVIDER, GAP, MARK_SLOT, PAD_X,
-};
+use super::geometry::{cells, mark_box, name_budget, picture_box, Slot, CHEVRON, DIVIDER, GAP};
 use super::glyphs::{paint_line, paint_svg, CHEVRON_SVG, COPY_SVG, SCISSORS_SVG};
 use super::paint::{
     Clip, ClipMarks, Focus, FolderSizes, Palette, TrackPaint, CACHE_SCREENS, CLIP, CUT, EDGE,
@@ -289,7 +287,7 @@ impl Element for TrackElement {
                 }
                 let top = top_of(at);
                 let cursor = active && focus.cursor == Some(*index);
-                let lifted = !cursor && self.lifted(view, held, *index);
+                let lifted = !cursor && lifted_row(view, held, *index);
                 if let Some(plate) = focus.plate(&palette, view.slot, *index, lifted) {
                     window.paint_quad(fill(row_box(top, width, at), plate));
                 }
@@ -321,15 +319,16 @@ impl Element for TrackElement {
                     let Some(prepared) = prepared else { continue };
                     let top = top_of(at);
                     let cursor = active && focus.cursor == Some(*index);
-                    let lifted = !cursor && self.lifted(view, held, *index);
+                    let lifted = !cursor && lifted_row(view, held, *index);
                     let chevron = prepared.dir && (cursor || lifted);
                     let inks = palette.row_ink(*clip, cursor, lifted, view.dim);
                     let geometry = cells(width, active, chevron);
                     // ColumnRow.qml: a thumbnail fills the whole mark slot, fitted whole, in place of the glyph.
                     if let Some(picture) = picture {
+                        let (slot_x, slot_y, side) = picture_box();
                         let slot = Bounds::new(
-                            point(left + px(PAD_X), top + px((ROW_HEIGHT - MARK_SLOT) / 2.)),
-                            size(px(MARK_SLOT), px(MARK_SLOT)),
+                            point(left + px(slot_x), top + px(slot_y)),
+                            size(px(side), px(side)),
                         );
                         paint_in_slot(picture, slot, window);
                         pictures_painted += 1;
@@ -421,10 +420,9 @@ impl Element for TrackElement {
     }
 }
 
-impl TrackElement {
-    fn lifted(&self, view: &TrackView, held: Option<&Held>, index: usize) -> bool {
-        view.lifted.as_deref().is_some_and(|name| {
-            row_at(&view.rows, held, index).is_some_and(|row| row.name() == name)
-        })
-    }
+/// The row a track lifts, the one named on the path to the active track; the capture probe reads the same rule.
+pub(crate) fn lifted_row(view: &TrackView, held: Option<&Held>, index: usize) -> bool {
+    view.lifted
+        .as_deref()
+        .is_some_and(|name| row_at(&view.rows, held, index).is_some_and(|row| row.name() == name))
 }

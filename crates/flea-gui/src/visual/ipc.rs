@@ -130,11 +130,17 @@ impl Shell {
         // Registered here, outside a frame, because a Wayland window cannot take its first presented-frame callback while it draws.
         let weak = cx.entity().downgrade();
         self.visual.presented = Some(window.observe_frame_presented(cx, move |window, cx| {
-            let _ = weak.update(cx, |shell, _| shell.visual_presented(window));
+            let _ = weak.update(cx, |shell, cx| {
+                if shell.visual_presented(window) {
+                    cx.notify();
+                }
+            });
         }));
         self.launch.paths = [spec.path.clone(), spec.path.clone()];
         self.launch.settings.view = spec.view;
-        self.set_view(spec.view, window, cx);
+        if self.view != spec.view || self.dual_pending {
+            self.set_view(spec.view, window, cx);
+        }
         self.focus_side = 0;
         let height = self.geometry(window).rows_height(
             spec.view == crate::window::startup::View::Dual,

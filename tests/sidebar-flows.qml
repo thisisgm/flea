@@ -238,12 +238,12 @@ ShellRoot {
         function () {
             if (pane.viewMode !== "list" || !ready(fixture)) return false
             var s = root.openSheet()
-            s.query = "path"
+            s.query = "go to folder"
             s.resultCursor = s.queryResults.findIndex(function(r) { return r.action === "pathBar" })
-            check("control: sheet offers Path", s.resultCursor >= 0, true)
+            check("control: sheet offers Go to folder", s.resultCursor >= 0, true)
             s.activateResult()
             var chrome = root.find(body, "ChromeBar")
-            check("sheet-window-action: Path opens its real field", chrome.editing, true)
+            check("sheet-window-action: Go to folder opens its real field", chrome.editing, true)
             if (chrome.editing) driver.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
             return true
         },

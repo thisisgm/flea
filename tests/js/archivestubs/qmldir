@@ -13,3 +13,4 @@ Process 1.0 Process.qml
 SplitParser 1.0 SplitParser.qml
 CardFrame 1.0 CardFrame.qml
 Reveal 1.0 CardFrame.qml
+singleton UserDirs 1.0 UserDirs.qml

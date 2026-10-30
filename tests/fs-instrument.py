@@ -48,6 +48,41 @@ class Instrument(unittest.TestCase):
             self.assertIn(target, paths)
         self.assertEqual(str(corpus.DEFAULT_ROOT), '/home/gm/flea-work/bench-corpora')
 
+    def archive_manifest(self, text):
+        import corpus
+        with mock.patch.object(pathlib.Path, 'exists', return_value=False), \
+                mock.patch.object(pathlib.Path, 'read_text', return_value=text), \
+                mock.patch.object(corpus.subprocess, 'run', side_effect=AssertionError('archive ran git')):
+            return corpus.source_manifest(pathlib.Path('/source-archive'))
+
+    def test_source_archive_manifest_accepts_the_packaged_inventory(self):
+        import corpus
+        packaged = corpus.SOURCE_MANIFEST.read_text()
+        self.assertEqual(self.archive_manifest(packaged), [tuple(item) for item in json.loads(packaged)])
+
+    def test_source_archive_manifest_rejects_a_short_inventory(self):
+        with self.assertRaisesRegex(ValueError, r'source-manifest\.json lists 0 entries, expected 4902'):
+            self.archive_manifest('[]')
+
+    def test_source_archive_manifest_rejects_a_renamed_path_at_full_count(self):
+        import corpus
+        items = json.loads(corpus.SOURCE_MANIFEST.read_text())
+        items[0][0] += '.renamed'
+        with self.assertRaisesRegex(ValueError, r'source-manifest\.json digest [0-9a-f]{64}, expected ' + corpus.SOURCE_DIGEST):
+            self.archive_manifest(json.dumps(items))
+
+    def test_git_checkout_reads_its_own_history(self):
+        import corpus
+        items = json.loads(corpus.SOURCE_MANIFEST.read_text())
+        tree = {'d': b'040000 tree 0', 'f': b'100644 blob 0'}
+        stdout = b'\0'.join(tree[kind] + b'\t' + name.encode() for name, kind in items) + b'\0'
+        reply = mock.Mock(stdout=stdout)
+        with mock.patch.object(pathlib.Path, 'exists', return_value=True), \
+                mock.patch.object(pathlib.Path, 'read_text', side_effect=AssertionError('checkout read the package')), \
+                mock.patch.object(corpus.subprocess, 'run', return_value=reply) as run:
+            self.assertEqual(corpus.source_manifest(pathlib.Path('/checkout')), [tuple(item) for item in items])
+        self.assertEqual(run.call_args.args[0], ['git', '-C', '/checkout', 'ls-tree', '-r', '-t', '-z', corpus.COMMIT])
+
     def test_alternating_pairs(self):
         import campaign
         for run in range(4):

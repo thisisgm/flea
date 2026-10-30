@@ -26,12 +26,10 @@ command -v magick >/dev/null || { echo "themes.sh: magick is not installed, and 
 [ -x "$flea_bin" ] || { echo "themes.sh: no candidate at $flea_bin"; exit 1; }
 eval "$(omarchy-drive env)"
 
+. "$repo/tests/lib/stock-themes.sh"
 # The pure suite pins the same list; a theme shipped since then reddens here rather than being skipped.
-# Sample input, the block this reads out of tests/js/themes.js:
-#   var THEMES = ["catppuccin", "catppuccin-latte", "ethereal",
-#                 "everforest", ...]
-installed=$(ls -1 "$themes_dir" | sort | tr '\n' ' ')
-pinned=$(sed -n '/^var THEMES = \[/,/\]$/p' tests/js/themes.js | grep -o '"[a-z0-9-]*"' | tr -d '"' | sort | tr '\n' ' ')
+installed=$(stock_themes_installed "$themes_dir" | tr '\n' ' ')
+pinned=$(stock_themes_pinned tests/js/themes.js | tr '\n' ' ')
 if [ "$installed" != "$pinned" ]; then
     printf 'FAIL the installed themes are not the ones tests/js/themes.js pins\n  installed: %s\n  pinned:    %s\n' "$installed" "$pinned"
     failures=$((failures + 1))

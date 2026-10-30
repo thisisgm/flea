@@ -24,6 +24,8 @@ SPECIMENS = {
 CURSOR, CONTROL = '.0-cursor.ini', '.1-ink.ini'
 # Columns has no row rectangle reader under GPUI yet (FLEA_IPC_NOT_PORTED flea.rowRect); its marks are proven natively.
 VIEWS = ('list', 'grid')
+# Grid answers empty row names until its first paint, so the rows are judged once, from that first painted frame.
+FIRST_PAINT_POLLS, FIRST_PAINT_STEP = 100, .05
 
 
 def mark_box(call, window, index, view):
@@ -62,6 +64,12 @@ def run(root, logs, Window, call, wait, grab, command, windows):
             wait(window, 'total', str(rows))
             wait(window, 'pendingRequests', '0')
             wait(window, 'viewMode', view)
+            for attempt in range(FIRST_PAINT_POLLS):
+                if call(window, 'visibleRowName', 0):
+                    break
+                time.sleep(FIRST_PAINT_STEP)
+            else:
+                raise ValueError(f'codeicons-{offset}-{view}: no row painted after {FIRST_PAINT_POLLS} polls')
             names = [call(window, 'visibleRowName', index) for index in range(rows)]
             codeicons.require(sorted(names) == sorted([CURSOR, CONTROL] + [SPECIMENS[s] for s in group]), f'unexpected rows {names}')
             codeicons.require(names[0] == CURSOR and call(window, 'cursor') == '0', f'generic cursor row must lead: {names}')
