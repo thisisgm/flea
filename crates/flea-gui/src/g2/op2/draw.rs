@@ -308,12 +308,3 @@ impl super::cards::DialogShell for StandIn {
             .into_any_element()
     }
 }
-
-impl StandIn {
-    pub(super) fn section(&self, draw: &Draw, text: &str) -> Div {
-        draw.text(CAPTION)
-            .font_weight(FontWeight::BOLD)
-            .text_color(draw.t.muted)
-            .child(text.to_uppercase())
-    }
-}

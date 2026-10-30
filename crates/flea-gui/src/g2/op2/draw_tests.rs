@@ -48,6 +48,7 @@ impl Render for FlashProbe {
             view: &self.view,
             i18n: &self.i18n,
             palette: &palette,
+            chrome: theme.chrome(),
             typeface: &typeface,
             radius: self.radius,
             taps: &super::draw_flash::FlashTaps::default(),

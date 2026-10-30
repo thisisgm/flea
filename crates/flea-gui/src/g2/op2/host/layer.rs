@@ -1,5 +1,6 @@
 //! The keys and the highest layer the open card or flash view holds.
 use super::*;
+use gpui::px;
 
 impl Shell {
     /// The open card or the flash view holds every key; Escape and the card's own keys answer, the rest stop here.
@@ -11,6 +12,16 @@ impl Shell {
     ) -> bool {
         if !self.operations.archive.showing() {
             return false;
+        }
+        // A pane cover, not a modal: the rail or the other dual pane keeps its keys while it holds focus.
+        if !self.operations.archive.card_open() {
+            if !self.flash_has_keys(window, cx) {
+                return false;
+            }
+            if keys::key_of(event) == Some(keys::Key::Tab) && self.flash_to_rail(window, cx) {
+                cx.stop_propagation();
+                return true;
+            }
         }
         if self.dialog_key(event, cx) {
             return true;
@@ -33,7 +44,7 @@ impl Shell {
         true
     }
 
-    /// The cards over a scrim, or the flash view over the window, drawn on the highest layer while showing.
+    /// The cards over a scrim, or the flash view over its pane's slot, drawn on the highest layer while showing.
     pub(crate) fn archive_layer(
         &mut self,
         window: &mut Window,
@@ -49,6 +60,7 @@ impl Shell {
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let typeface = self.active_typeface();
         let catalog = self.locale.catalog.clone();
+        let keyed = self.flash_has_keys(window, cx);
         let room = f32::from(window.viewport_size().width);
         let radius = self.corner;
         self.sync_dialog_editor();
@@ -104,7 +116,8 @@ impl Shell {
                     .into_any_element(),
             );
         }
-        let view = archive.flash.view(&catalog);
+        let mut view = archive.flash.view(&catalog);
+        view.focused &= keyed;
         let drives = (0..view.drives.len())
             .map(|at| {
                 Rc::new(
@@ -120,6 +133,12 @@ impl Shell {
                 ) as ClickTap
             })
             .collect();
+        let back: ClickTap = Rc::new(cx.listener(
+            |shell: &mut Shell, _: &ClickEvent, window, cx| {
+                let effects = shell.operations.archive.flash.close();
+                shell.archive_effects(shell.operations.archive.flash_side, effects, window, cx);
+            },
+        ));
         let image: ClickTap = Rc::new(cx.listener(
             |shell: &mut Shell, _: &ClickEvent, window, cx| {
                 let effects = shell.operations.archive.flash.choose_image();
@@ -166,6 +185,7 @@ impl Shell {
         });
         let cancel: CancelTap = Rc::new(move |window, cx| released(&(), window, cx));
         let taps = FlashTaps {
+            back: Some(back),
             image: Some(image),
             drives,
             step: Some(step),
@@ -174,6 +194,9 @@ impl Shell {
             up: Some(up),
             cancel: Some(cancel),
         };
+        // The flash covers its pane's slot as Trash does, so the rail and the status bar stay drawn.
+        let slot = self.geometry(window).panes[self.operations.archive.flash_side];
+        let archive = &mut self.operations.archive;
         let now = cx.background_executor().now();
         let reduced = cx.reduce_motion();
         let press = *archive.flash.press_anim(now);
@@ -184,6 +207,7 @@ impl Shell {
             view: &view,
             i18n: &catalog,
             palette: &palette,
+            chrome: theme.chrome(),
             typeface: &typeface,
             radius,
             taps: &taps,
@@ -195,11 +219,19 @@ impl Shell {
         Some(
             div()
                 .id("op2-flash-layer")
+                .debug_selector(|| "op2-flash-layer".into())
                 .absolute()
-                .top_0()
-                .left_0()
-                .size_full()
+                .left(px(slot.x))
+                .top(px(slot.y))
+                .w(px(slot.width))
+                .h(px(slot.height))
                 .occlude()
+                .on_mouse_down(
+                    MouseButton::Left,
+                    cx.listener(|shell: &mut Shell, _: &MouseDownEvent, window, cx| {
+                        shell.flash_take_keys(window, cx)
+                    }),
+                )
                 .child(drawn)
                 .into_any_element(),
         )

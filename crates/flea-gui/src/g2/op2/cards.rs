@@ -211,7 +211,7 @@ pub(super) struct Tokens {
     pub(super) muted_frame: Hsla,
     pub(super) accent: Hsla,
     pub(super) accent_frame: Hsla,
-    /// The palette carries no error role yet, so an error wears the accent until it does.
+    /// The theme's error role, as an erase warning or a refused field draws it.
     pub(super) error: Hsla,
     pub(super) rule: Hsla,
 }
@@ -226,7 +226,7 @@ impl Tokens {
             muted_frame: crate::presentation::frames::Frames::from_palette(palette, 0.).ink,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
-            error: palette.accent,
+            error: palette.error,
             rule: crate::presentation::frames::Frames::from_palette(palette, 0.)
                 .ink
                 .opacity(RULE_WASH),

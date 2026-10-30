@@ -291,6 +291,7 @@ impl Render for LiveFlash {
                 view: &seen,
                 i18n: &self.i18n,
                 palette: &palette,
+                chrome: theme.chrome(),
                 typeface: &typeface,
                 radius: self.radius,
                 taps: &taps,
@@ -306,6 +307,7 @@ impl Render for LiveFlash {
             cx.notify();
         }));
         let taps = FlashTaps {
+            back: None,
             image: Some(image),
             drives,
             step: Some(step),
@@ -318,6 +320,7 @@ impl Render for LiveFlash {
             view: &seen,
             i18n: &self.i18n,
             palette: &palette,
+            chrome: theme.chrome(),
             typeface: &typeface,
             radius: self.radius,
             taps: &taps,
@@ -331,3 +334,6 @@ impl Render for LiveFlash {
 
 #[path = "draw_flash_pointer_tests.rs"]
 mod pointer;
+
+#[path = "draw_flash_look_tests.rs"]
+mod look;

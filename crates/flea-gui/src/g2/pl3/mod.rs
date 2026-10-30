@@ -8,7 +8,7 @@ mod elide;
 mod fix_tests;
 #[cfg(test)]
 mod flow_tests;
-mod glyph;
+pub(crate) mod glyph;
 #[cfg(test)]
 mod hover_tests;
 pub mod ink;

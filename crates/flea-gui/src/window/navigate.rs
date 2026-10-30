@@ -39,7 +39,7 @@ impl Shell {
         if self.lifecycle.phase() != super::lifecycle::Phase::Open {
             return Ok(false);
         }
-        if let Some(result) = self.recent_step(side, &step, window, cx) {
+        if let Some(result) = self.covered_step(side, &step, window, cx) {
             return result;
         }
         if matches!(step, Step::Back | Step::MouseBack)

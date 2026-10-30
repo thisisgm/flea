@@ -3,6 +3,7 @@ pub mod cards;
 pub mod compress;
 pub mod draw;
 pub mod draw_flash;
+mod draw_flash_rows;
 mod draw_press;
 pub mod draw_step;
 pub mod extract;
