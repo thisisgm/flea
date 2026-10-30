@@ -7,19 +7,37 @@ pub fn argv(spec: &Spec, input: &Path, output: &Path, size: u32) -> Option<(Path
     let abs = std::fs::canonicalize(input).ok()?;
     // %i and %u are two spellings of the one input the sandbox bound, so the URI is built here and never handed in; see AGENTS.md "Thumbnail cache".
     let child_uri = uri_for(&abs);
+    let input = abs.to_string_lossy();
+    let output = output.to_string_lossy();
+    let size = size.to_string();
     let mut out = Vec::with_capacity(spec.exec.len());
-    for tok in spec.exec.iter() {
-        // corner: only a whole-token placeholder substitutes, which is every one the shipped field uses; see AGENTS.md "Thumbnailer specs".
-        let t = match tok.as_str() {
-            "%i" => abs.to_string_lossy().to_string(),
-            "%u" => child_uri.clone(),
-            "%o" => output.to_string_lossy().to_string(),
-            "%s" => size.to_string(),
-            other => other.to_string(),
-        };
-        out.push(t);
+    for (index, tok) in spec.exec.iter().enumerate() {
+        // The validated program is literal; only its arguments contain field codes.
+        out.push(if index == 0 { tok.clone() } else { expand(tok, &input, &child_uri, &output, &size) });
     }
     Some((abs, out))
+}
+
+// Scan once so percent signs inside a replacement remain filename bytes, never another field code.
+fn expand(token: &str, input: &str, uri: &str, output: &str, size: &str) -> String {
+    let mut out = String::with_capacity(token.len());
+    let mut chars = token.chars();
+    while let Some(ch) = chars.next() {
+        if ch != '%' {
+            out.push(ch);
+            continue;
+        }
+        match chars.next() {
+            Some('i') => out.push_str(input),
+            Some('u') => out.push_str(uri),
+            Some('o') => out.push_str(output),
+            Some('s') => out.push_str(size),
+            Some('%') => out.push('%'),
+            Some(other) => { out.push('%'); out.push(other); }
+            None => out.push('%'),
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -110,5 +128,78 @@ mod tests {
         assert_eq!(abs.to_string_lossy(), got[1]);
         assert!(got[1].contains("/real/clip.jpg"));
         assert!(!got[1].contains("/link/"));
+    }
+
+    #[test]
+    fn f3d_options_expand_embedded_and_repeated_placeholders() {
+        let a = Aliases::from_str("");
+        // F3D's packaged Exec uses --output=%o and --resolution=%s,%s.
+        let t = spec_for("/bin/sh --output=%o --resolution=%s,%s %i --uri=%u");
+        let s = t.for_mime("image/jpeg", &a).unwrap();
+        let dir = TestDir::new("thumbargv-f3d");
+        let input = dir.file("white model.stl", "solid model\nendsolid model\n");
+        let output = dir.join("rendered model.png");
+        let (abs, got) = argv(s, &input, &output, 256).unwrap();
+        assert_eq!(got, vec![
+            "/bin/sh".to_string(), format!("--output={}", output.display()),
+            "--resolution=256,256".to_string(), abs.to_string_lossy().to_string(),
+            format!("--uri={}", uri_for(&abs)),
+        ]);
+    }
+
+    #[test]
+    fn replacements_are_literal_and_are_never_expanded_again() {
+        let a = Aliases::from_str("");
+        let dir = TestDir::new("thumbargv-literal");
+        let program = dir.script("record-args", "#!/bin/sh\nprintf '%s\\0' \"$@\"\n");
+        let t = spec_for(&format!("{} --input=%i --output=%o --uri=%u %%i %x tail% %%%%s", program.display()));
+        let s = t.for_mime("image/jpeg", &a).unwrap();
+        let input = dir.file("雪 %o $(touch canary); 'quote' \"double\".stl", "");
+        let output = dir.join("output %s.png");
+        let (abs, got) = argv(s, &input, &output, 256).unwrap();
+        assert_eq!(got[1], format!("--input={}", abs.display()));
+        assert_eq!(got[2], format!("--output={}", output.display()));
+        assert_eq!(got[3], format!("--uri={}", uri_for(&abs)));
+        assert_eq!(&got[4..], &["%i", "%x", "tail%", "%%s"]);
+        let child = std::process::Command::new(&got[0]).args(&got[1..]).current_dir(dir.path()).output().unwrap();
+        assert!(child.status.success());
+        assert_eq!(child.stdout, format!("{}\0", got[1..].join("\0")).as_bytes());
+        assert!(!dir.join("canary").exists());
+    }
+
+    #[test]
+    fn an_embedded_input_and_uri_still_name_the_sandbox_bind() {
+        let a = Aliases::from_str("");
+        let t = spec_for("/bin/sh --input=%i --uri=%u");
+        let s = t.for_mime("image/jpeg", &a).unwrap();
+        let dir = TestDir::new("thumbargv-embedded-link");
+        let input = dir.file("real.stl", "");
+        std::os::unix::fs::symlink(&input, dir.join("link.stl")).unwrap();
+        let (abs, got) = argv(s, &dir.join("link.stl"), &dir.join("out.png"), 256).unwrap();
+        assert_eq!(abs, input.canonicalize().unwrap());
+        assert_eq!(got[1], format!("--input={}", abs.display()));
+        assert_eq!(got[2], format!("--uri={}", uri_for(&abs)));
+    }
+
+    #[test]
+    fn the_validated_program_is_not_a_placeholder_template() {
+        let dir = TestDir::new("thumbargv-program");
+        let program = dir.script("decoder-%s", "#!/bin/sh\nexit 0\n");
+        let a = Aliases::from_str("");
+        let t = spec_for(&format!("{} --input=%i", program.display()));
+        let s = t.for_mime("image/jpeg", &a).unwrap();
+        let input = dir.file("model.stl", "");
+        let (_, got) = argv(s, &input, &dir.join("out.png"), 256).unwrap();
+        assert_eq!(got[0], program.to_string_lossy());
+    }
+
+    #[test]
+    fn failures_from_whole_token_expansion_are_retried() {
+        let a = Aliases::from_str("");
+        let t = spec_for("/bin/sh --output=%o --resolution=%s,%s %i");
+        let spec = t.for_mime("image/jpeg", &a).unwrap();
+        let old_table = format!("image/jpeg\0{}", spec.exec.join("\0"));
+        let old_fingerprint = format!("{:016x}", crate::backend::xxh64::hash(old_table.as_bytes()));
+        assert_ne!(t.fingerprint(), old_fingerprint);
     }
 }

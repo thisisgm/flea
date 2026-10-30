@@ -5395,6 +5395,14 @@ run, nor does a script whose interpreter line names a program outside `/usr`; `#
 and `#!/bin/sh` resolve. `worker_shape` matches the file name, so it accepts the same specs as
 before.
 
+`argv` expands field codes inside each already-tokenised argument, including repeated codes
+such as F3D's `--resolution=%s,%s`, without a shell or another tokenisation pass. The executable
+validated at load stays literal. `%%` produces one percent, unknown codes and a trailing `%`
+stay literal, and replacement bytes are never scanned again. The table fingerprint includes
+an expansion-version salt so failures cached before this support are retried; valid thumbnails
+remain reusable. This moves the scoped `src/backend/thumbspec.rs` ceiling from 479 to 480 lines,
+re-derived with `wc -l`, for the salt, with no global limit change.
+
 `argv`, in `backend/thumbargv.rs`, substitutes four placeholders: `%i` the input path, `%u` its
 `file://` URI, `%o` the output path and `%s` the pixel size. The input is put through `canonicalize` first, so a
 relative path or one carrying `..` reaches the child absolute and cannot be read as a flag.
@@ -7597,9 +7605,10 @@ names have twins carrying the same MIME type.
   a system thumbnailer beat the user's own, which is backwards. `sorted_by_path` is a
   separate function so a test can prove the ordering without depending on what `read_dir`
   returned.
-- `thumbspec.rs`: only a whole-token placeholder substitutes, so `--input=%i` would be
-  passed through literally. Every one of the nine shipped files writes its placeholders as
-  standalone tokens, so nothing on this box needs the embedded form.
+- `thumbargv.rs`: argument field codes expand wherever they occur, so F3D's packaged
+  `--output=%o` and `--resolution=%s,%s` work alongside standalone codes. Expansion scans
+  once, treats `%%` as a literal percent, leaves unknown codes unchanged and never expands
+  filename bytes again. The validated executable stays literal.
 - `thumbspec.rs`: `fields` reads `Exec`, `TryExec` and `MimeType` only inside
   `[Thumbnailer Entry]`, and a duplicate key inside that group is last-wins. All nine shipped
   files open with that group and carry no other, so the group test costs nothing here and
