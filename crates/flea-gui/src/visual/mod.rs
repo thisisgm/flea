@@ -5,7 +5,10 @@ mod corner_tests;
 pub(crate) mod geometry;
 mod ipc;
 #[cfg(test)]
+mod persistence_tests;
+#[cfg(test)]
 mod tests;
+mod views;
 
 use crate::{ipc::server::Answer, state::Shell, window::startup::View};
 use flea::{ipc::wire::Reply, jsondoc::Json};
@@ -76,14 +79,25 @@ impl Shell {
         window.presented_frames()
     }
 
-    /// Work whose answer still draws a frame: the shown panes' requests and the path bar's asks and history reads.
+    /// Work whose answer still draws a frame: shown panes, Columns neighbours and path-bar reads.
     pub(crate) fn pending_requests(&self) -> usize {
         self.panes
             .iter()
             .enumerate()
             .filter(|(side, _)| *side == 0 || self.view == View::Dual)
             .filter_map(|(_, host)| host.as_ref())
-            .map(|host| host.pane.pending() + usize::from(host.error.is_some() || host.stopped))
+            .map(|host| {
+                host.pane.pending()
+                    + usize::from(host.error.is_some() || host.stopped)
+                    + host.columns.as_ref().map_or(0, |columns| {
+                        if self.view == View::Columns {
+                            columns.area.peeks.pending.len()
+                                + usize::from(columns.area.next_deadline().is_some())
+                        } else {
+                            0
+                        }
+                    })
+            })
             .sum::<usize>()
             + self.chrome.waiting
             + self.chrome.jumps.iter().sum::<usize>()
@@ -195,14 +209,12 @@ impl Shell {
                     return;
                 }
                 let live = shell.visual_live(window, cx);
-                let drawn = shell.panes[shell.focus_side]
-                    .as_ref()
-                    .and_then(|host| host.list.borrow().drawn_cursor);
+                let drawn = shell.visual_drawn_cursor();
                 let Some(pending) = shell.visual.pending.as_ref() else {
                     return;
                 };
                 // A receipt names only a frame whose rows drew the scene's cursor.
-                if drawn != Some(pending.spec.cursor) {
+                if drawn != Some(pending.spec.cursor) || shell.pending_requests() != 0 {
                     cx.notify();
                     return;
                 }
@@ -215,33 +227,42 @@ impl Shell {
                     cx.notify();
                     return;
                 }
+                shell.visual_view_geometry(&probe, window);
                 shell.visual.awaiting = Some(Awaiting {
                     committed: frames.committed,
                     revision,
                     live,
                     probe,
                 });
-                shell.visual_presented(window);
+                if shell.visual_presented(window) {
+                    cx.notify();
+                }
             });
         });
     }
 
-    /// Issues the receipt when the compositor reports the awaited frame itself presented, never a later one.
-    pub(crate) fn visual_presented(&mut self, window: &Window) {
+    /// Issues only the latest committed frame; true asks the caller to redraw a scene superseded by a cached frame.
+    pub(crate) fn visual_presented(&mut self, window: &Window) -> bool {
         let Some(frames) = self.presented_frames(window) else {
-            return;
+            return false;
         };
         let ready = self.visual.awaiting.as_ref().is_some_and(|awaiting| {
-            awaiting.revision == self.visual.revision && frames.presented == awaiting.committed
+            awaiting.revision == self.visual.revision
+                && frames.presented == awaiting.committed
+                && frames.committed == awaiting.committed
         });
         if !ready {
-            return;
+            return self.visual.pending.is_some()
+                && self.pending_requests() == 0
+                && self.visual.awaiting.as_ref().is_some_and(|awaiting| {
+                    frames.presented == frames.committed && frames.committed > awaiting.committed
+                });
         }
         self.visual.presented = None;
         let (Some(awaiting), Some(pending)) =
             (self.visual.awaiting.take(), self.visual.pending.take())
         else {
-            return;
+            return false;
         };
         let receipt = pending.spec.receipt(frames.presented, &awaiting.live);
         self.visual.probe = awaiting.probe;
@@ -251,6 +272,7 @@ impl Shell {
             reply: Reply::value(flea::jsondoc::render(&receipt).trim_end()),
             quit: false,
         });
+        false
     }
 }
 

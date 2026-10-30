@@ -30,13 +30,14 @@ chmod 700 "$test_root/runtime"
 stock=${FLEA_THEME_STOCK_DIR:-/usr/share/omarchy/themes}
 [[ -d $stock ]] || { echo "FAIL gpui-theme-gate: missing stock inventory $stock" >&2; exit 1; }
 # Same inventory as theme-contrast.sh: 22 stable or 23 dev themes, plus Cool Dawn and Sunset.
+fixture_palettes=2
 expected=24
 [[ ! -f $stock/starship/colors.toml ]] || expected=25
 count=0
 for palette in "$stock"/*/; do
     if [[ -f ${palette}colors.toml ]]; then count=$((count + 1)); fi
 done
-[[ $((count + 2)) == "$expected" ]] || { echo "FAIL gpui-theme-gate: stock inventory changed ($count plus 2 fixtures, expected $expected)" >&2; exit 1; }
+[[ $((count + fixture_palettes)) == "$expected" ]] || { echo "FAIL gpui-theme-gate: stock inventory changed ($count plus $fixture_palettes fixtures, expected $expected)" >&2; exit 1; }
 export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$repo/target}
 # Build while the operator HOME is still available to rustup; no app is started here.
 cargo build --offline --locked -p flea --bin flea
@@ -46,4 +47,5 @@ cargo test --offline --locked -p flea-gui --lib theme_gate --no-run
 export FLEA_BIN="$CARGO_TARGET_DIR/debug/flea" FLEA_THEME_GATE_ROOT="$test_root" FLEA_THEME_STOCK_DIR="$stock"
 cargo test --offline --locked -p flea-gui --lib theme_gate --config "target.'cfg(all())'.runner = ['/bin/bash', '$repo/tests/gpui-theme-gate.sh', '--runner']" \
     -- --ignored --nocapture --test-threads=1
-printf 'GPUI_THEME_GATE PASS stock=%s contrast and live atomic replacement\n' "$expected"
+printf 'GPUI_THEME_GATE_CASES stock=%s fixtures=%s palettes=%s\n' "$count" "$fixture_palettes" "$expected"
+printf 'GPUI_THEME_GATE PASS stock=%s contrast and live atomic replacement\n' "$count"

@@ -12,6 +12,7 @@ from unittest.mock import patch
 from . import control_native as native, png
 from .case_identity import ARTIFACTS, configuration
 from .cells import Screen
+from .compositor import TOOL
 from .evidence import Blocked, MARKER, digest
 from .receipts import supplement
 
@@ -419,10 +420,10 @@ class M9ControlTests(unittest.TestCase):
                      events=[4, 5], hex=letter.hex())
 
         def readback(start, end, keymap):
-            return {"argv": ["hyprctl", "-j", "devices"], "start_ns": start, "end_ns": end, "exit_code": 0,
+            return {"argv": [TOOL, "-j", "devices"], "start_ns": start, "end_ns": end, "exit_code": 0,
                     "stdout": json.dumps({"keyboards": [{"name": "kb", "active_keymap": keymap}]})}
 
-        switch = {"argv": ["hyprctl", "switchxkblayout", "current", "1"], "start_ns": 50, "end_ns": 60, "exit_code": 0, "stdout": "ok\n"}
+        switch = {"argv": [TOOL, "switchxkblayout", "current", "1"], "start_ns": 50, "end_ns": 60, "exit_code": 0, "stdout": "ok\n"}
         before, after = readback(20, 25, "English (US)"), readback(70, 75, "Russian")
         key = self.shortcut("", "a", 100)
         self.log(proof, rows, [before, switch, after, key])
@@ -434,7 +435,7 @@ class M9ControlTests(unittest.TestCase):
             ("no readback before the switch", [dict(before, exit_code=1), switch, after, key]),
             ("switch exit 1", [before, dict(switch, exit_code=1), after, key]),
             ("switch stdout not ok", [before, dict(switch, stdout="error\n"), after, key]),
-            ("true instead of hyprctl", [before, dict(switch, argv=["/usr/bin/true", "switchxkblayout", "current", "1"]), after, key]),
+            ("true instead of the compositor", [before, dict(switch, argv=["/usr/bin/true", "switchxkblayout", "current", "1"]), after, key]),
         )
         for name, commands in variants:
             with self.subTest(variant=name):
@@ -776,7 +777,7 @@ class M9ControlTests(unittest.TestCase):
         proof.update(dispatch=dict(source="compositor", command=1, mods="", key="a", deadline_ns=200), events=[4], hex=letter.hex())
         self.log(proof, rows, [layout, self.shortcut("", "a", 100)])
         native.native_case(proof, self.identity, "foot", "keys-emission")
-        with self.assertRaisesRegex(Blocked, "hyprctl"):
+        with self.assertRaisesRegex(Blocked, f"needs a successful {TOOL} switchxkblayout with stdout ok before the key"):
             native.check_proof("Cyrillic-base-layout", "keys-emission", proof, self.case(proof))
 
     def test_m9_controls_r2_f5_stale_control_cannot_accept_fabricated_current_reply(self):
@@ -909,7 +910,7 @@ class M9ControlTests(unittest.TestCase):
         rows = [(10, "output", b"\x1b_Gi=7,a=q;AAAA\x1b\\\x1b[c\x1b[?u"), (20, "terminal-input", b"\x1b[?0u"),
                 (25, "candidate-input", b"\x1b[?0u"), (30, "output", b"\x1b[>29u"),
                 (120, "terminal-input", letter), (140, "candidate-input", letter)]
-        layout = dict(argv=["hyprctl", "switchxkblayout", "current", "1"], start_ns=50, end_ns=60, exit_code=0, stdout="error\n")
+        layout = dict(argv=[TOOL, "switchxkblayout", "current", "1"], start_ns=50, end_ns=60, exit_code=0, stdout="error\n")
         proof.update(dispatch=dict(source="compositor", command=1, mods="", key="a", deadline_ns=200), events=[4], hex=letter.hex())
         self.log(proof, rows, [layout, self.shortcut("", "a", 100)])
         self.anchor(proof, "layout.json", dict(before="x", after="y", ns=80))

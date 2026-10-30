@@ -1,6 +1,6 @@
 # Theme golden table
 
-`tests/fixtures/theme-golden.tsv` comes from a successful Quickshell export on minipc using frozen Flea v0.3.12 `ui/` and live Omarchy Commons. Its 23 palettes are the shipped names in Omarchy commit `bf9ee5c`; personal-only palettes are excluded. The exported stock rows are retained verbatim. Every case includes its palette and shell inputs so the Rust test needs no installed themes.
+`tests/fixtures/theme-golden.tsv` uses frozen Flea v0.3.12 `ui/` and live Omarchy Commons. It covers the 23 current stock palettes, with Osaka Jade replaced by Jade Horse and Starship included. Jade Horse and Starship were generated with this exporter from CI image `6a8df67c49bb` (Omarchy tree digest `2b04c259704d`); the missing read-only color helper came from the verified `omarchy-4.5.0rc2-1` edge package. Other rows retain the original minipc export from Omarchy commit `bf9ee5c` verbatim. Every case includes its palette and shell inputs, so the Rust test needs no installed themes.
 
 On the controller's Omarchy machine, run:
 

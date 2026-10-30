@@ -14,6 +14,20 @@ if [ "$#" -eq 1 ]; then
   esac
 fi
 
+. tests/lib/stock-themes.sh
+stock_inventory() {
+  local installed pinned
+  installed=$(stock_themes_installed "$1")
+  pinned=$(stock_themes_pinned tests/js/themes.js)
+  if [ -z "$pinned" ] || [ "$installed" != "$pinned" ]; then
+    printf 'FAIL js stock theme inventory differs\ninstalled: %s\npinned: %s\n' "$installed" "$pinned"
+    return 1
+  fi
+}
+if [ "$#" -eq 0 ] || [ "$1" = themes ]; then
+  stock_inventory /usr/share/omarchy/themes || exit 1
+fi
+
 if ! command -v qml6 >/dev/null; then
   echo "js.sh: qml6 is not installed, cannot run the pure JavaScript suites"
   exit 1

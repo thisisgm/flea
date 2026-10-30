@@ -242,6 +242,8 @@ fn painted(shell: &Shell, view: View) -> usize {
 
 #[path = "row_pictures_tests/asks.rs"]
 mod asks;
+#[path = "row_pictures_tests/capture.rs"]
+mod capture;
 #[path = "row_pictures_tests/draws.rs"]
 mod draws;
 

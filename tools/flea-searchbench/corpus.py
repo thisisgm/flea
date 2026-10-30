@@ -16,6 +16,8 @@ from contracts import identities
 DEFAULT_ROOT = Path('/home/gm/flea-work/bench-corpora')
 COMMIT = '0ebbcffae14609a3663c90db6d5f73c5e86c97a4'
 SOURCE_DIGEST = '13e5fe5a7904f9a5474d5fa915968d42070060d8741bc26a01423c05b3cefaa9'
+SOURCE_COUNT = 4902
+SOURCE_MANIFEST = HERE / 'source-manifest.json'
 SOURCE_QUERIES = [
     ('exact', 'fuzzy.rs', 'src/backend/fuzzy.rs'),
     ('typo', 'fzuzy.rs', 'src/backend/fuzzy.rs'),
@@ -35,7 +37,21 @@ def identity_digest(items):
     return digest.hexdigest()
 
 
+def checked_source(result, origin):
+    if len(result) != SOURCE_COUNT:
+        raise ValueError(f'pinned source manifest differs: {origin} lists {len(result)} entries, expected {SOURCE_COUNT}')
+    digest = identity_digest(result)
+    if digest != SOURCE_DIGEST:
+        raise ValueError(f'pinned source manifest differs: {origin} digest {digest}, expected {SOURCE_DIGEST}')
+    return result
+
+
 def source_manifest(repo):
+    # A source archive has no Git history, so it reads COMMIT's inventory packaged beside this file.
+    if not (Path(repo) / '.git').exists():
+        # Sample input: [["Cargo.lock", "f"], ["src", "d"], ["src/main.rs", "f"]]
+        packaged = [tuple(item) for item in json.loads(SOURCE_MANIFEST.read_text())]
+        return checked_source(packaged, SOURCE_MANIFEST)
     records = subprocess.run(['git', '-C', str(repo), 'ls-tree', '-r', '-t', '-z', COMMIT],
                              check=True, capture_output=True).stdout.split(b'\0')
     result = []
@@ -46,9 +62,7 @@ def source_manifest(repo):
             continue
         result.append((os.fsdecode(name), 'd' if kind == b'tree' else 'f'))
     result.sort()
-    if len(result) != 4902 or identity_digest(result) != SOURCE_DIGEST:
-        raise ValueError('pinned source manifest differs')
-    return result
+    return checked_source(result, f'git ls-tree {COMMIT}')
 
 
 def source_fixture(root, repo):

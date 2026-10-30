@@ -80,29 +80,13 @@ if os.environ['FAKE_SCENARIO'] == 'crash':
 time.sleep(120)
 '''
 
-HYPRCTL = r'''#!/usr/bin/env python3
-import json, os, sys
-from pathlib import Path
-state = Path(os.environ['FAKE_STATE'])
-argv = sys.argv[1:]
-gui = json.loads((state / 'gui.json').read_text()) if (state / 'gui.json').exists() else None
-rows = [dict(address='0xold', pid=1, mapped=True, **{'class': 'other'})]
-if gui:
-    rows.append(dict(address='0xf1ea', pid=gui['pid'], mapped=True, **{'class': 'flea'}))
-    if os.environ['FAKE_SCENARIO'] == 'twowin':
-        rows.append(dict(address='0xbad', pid=gui['pid'] + 1, mapped=True, **{'class': 'other'}))
-if argv == ['clients', '-j']:
-    print(json.dumps(rows))
-elif argv[:1] == ['dispatch']:
-    assert argv[1] == 'hl.dsp.focus({ window = "address:0xf1ea" })', argv
-    if os.environ['FAKE_SCENARIO'] == 'nofocus':
-        print('error: refused'); sys.exit(0)
-    (state / 'focused').write_text('0xf1ea'); print('ok')
-elif argv == ['activewindow', '-j']:
-    print(json.dumps(dict(address=(state / 'focused').read_text() if (state / 'focused').exists() else '0xold')))
-else:
-    sys.exit(2)
-'''
+FAKE_COMPOSITORS = HERE / 'fixtures/hypr-dispatch.json'
+FAKE_COMPOSITOR = 'bench-offline-compositor'
+# The fake compositor matches the exact selector the source scan refuses, so it lives in that scan's refusal corpus.
+fakes = [row['code'] for row in json.loads(FAKE_COMPOSITORS.read_text()) if row['name'] == FAKE_COMPOSITOR]
+if len(fakes) != 1:
+    raise ValueError(f'{FAKE_COMPOSITORS} holds {len(fakes)} {FAKE_COMPOSITOR} entries, expected 1')
+HYPRCTL = fakes[0]
 
 WTYPE = r'''#!/usr/bin/env python3
 import json, os, sys, time

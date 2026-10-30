@@ -46,7 +46,7 @@ fn recorded_floor(name: &str) -> u16 {
         "starship" => 236,
         "cool-dawn" => 232,
         "catppuccin-latte" | "everforest" | "flexoki-light" | "gruvbox" | "hackerman"
-        | "kanagawa" | "lumon" | "lupine" | "miasma" | "nord" | "osaka-jade" | "retro-82"
+        | "jade-horse" | "kanagawa" | "lumon" | "lupine" | "miasma" | "nord" | "retro-82"
         | "ristretto" | "rose-pine" | "solitude" | "tokyo-night" => 255,
         _ => panic!("{name}: stock inventory changed, no recorded QML glass floor"),
     }

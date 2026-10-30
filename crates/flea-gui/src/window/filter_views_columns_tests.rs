@@ -4,8 +4,10 @@ use crate::{
     backend::Backend,
     columns::geometry::Slot,
     state::Shell,
+    visual::geometry::Probe,
     window::{columns_tests::host, startup::View},
 };
+use flea::jsondoc::Json;
 use gpui::{Context, VisualTestContext, Window};
 
 fn active_rows(shell: &Shell) -> Vec<usize> {
@@ -103,6 +105,60 @@ fn ey10_ey12_columns_keep_their_columns_under_the_no_match_headline() {
         "four columns put the headline in the active span"
     );
     assert_eq!(f32::from(slot.size.width), pane.width - active);
+}
+
+/// The ids of every role the capture probe reads from the frame drawn last.
+fn probed(shell: &Shell, window: &Window) -> Vec<String> {
+    let probe = Probe::default();
+    shell.visual_view_geometry(&probe, window);
+    let data = probe.json(&Json::Null);
+    data.get("roles")
+        .and_then(Json::as_array)
+        .unwrap()
+        .iter()
+        .filter_map(|role| role.get("id").and_then(Json::as_str).map(str::to_owned))
+        .collect()
+}
+
+#[test]
+fn ey12_capture_reads_no_track_the_no_match_headline_replaced() {
+    let mut cx = host::context();
+    let (window, _requests) = host::open_at(&mut cx, "/srv/a/b/c", 2100., 4);
+    host::change(&mut cx, window, |shell, window, cx| {
+        host::settle(shell, window, cx)
+    });
+    host::frame(&mut cx, window);
+    let child = format!("columns-0-{}", Slot::Child.index());
+    let before = window
+        .update(&mut cx, |shell, window, _| probed(shell, window))
+        .unwrap();
+    assert!(
+        before.iter().any(|id| id.starts_with(&child)),
+        "the child track painted before the filter: {before:?}"
+    );
+    host::change(&mut cx, window, |shell, _, cx| {
+        filter(shell, "zzz", 2, 3, "", cx)
+    });
+    host::frame(&mut cx, window);
+    window
+        .update(&mut cx, |shell, window, _| {
+            let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+            assert!(
+                columns
+                    .painters
+                    .get(Slot::Child)
+                    .is_some_and(|paint| paint.borrow().drawn.is_some()),
+                "the replaced track still holds the frame it drew before the filter"
+            );
+            let after = probed(shell, window);
+            assert!(
+                after.iter().all(|id| !id.starts_with(&child)),
+                "HIG cols-filter-nomatch: nothing stands right of the active column: {after:?}"
+            );
+            let active = format!("columns-0-{}", Slot::Active.index());
+            assert!(after.iter().any(|id| id.starts_with(&active)));
+        })
+        .unwrap();
 }
 
 fn line(shell: &mut Shell, text: &str, window: &mut Window, cx: &mut Context<Shell>) {

@@ -2,10 +2,12 @@
 import copy
 import json
 from pathlib import Path
+import re
 import shutil
 import struct
 import tempfile
 import unittest
+from unittest import mock
 import zlib
 
 import scenes
@@ -60,6 +62,65 @@ class Sidecars(unittest.TestCase):
             mutate(data)
             with self.assertRaisesRegex(ValueError, error):
                 scenes.validate(data, self.receipt, self.image)
+
+    def test_grid_captions_have_no_trailing_value_on_the_board(self):
+        data = copy.deepcopy(self.data)
+        receipt = dict(self.receipt, scene='g1-01-grid-r0', view='grid')
+        data['receipt'] = receipt
+        data['roles'] = [row for row in data['roles'] if row['role'] != 'value']
+        scenes.validate(data, receipt, self.image)
+        for role in ('glyph', 'ink', 'label'):
+            broken = copy.deepcopy(data)
+            broken['roles'] = [row for row in broken['roles'] if row['role'] != role]
+            with self.assertRaisesRegex(ValueError, 'missing native roles'):
+                scenes.validate(broken, receipt, self.image)
+        data['receipt'] = self.receipt
+        with self.assertRaisesRegex(ValueError, 'missing native roles'):
+            scenes.validate(data, self.receipt, self.image)
+
+    def test_a_list_receipt_cannot_claim_grid_to_omit_its_values(self):
+        data = copy.deepcopy(self.data)
+        receipt = dict(self.receipt, view='grid')
+        data['receipt'] = receipt
+        data['roles'] = [row for row in data['roles'] if row['role'] != 'value']
+        with self.assertRaisesRegex(ValueError, 'native view mismatch'):
+            scenes.validate(data, receipt, self.image)
+
+    def test_columns_require_sizes_on_the_active_track_only(self):
+        data = copy.deepcopy(self.data)
+        receipt = dict(self.receipt, scene='g1-01-columns-r0', view='columns')
+        data['receipt'] = receipt
+        data['roles'][0]['id'] = 'columns-0-3'
+        data['roles'][1]['parent'] = 'columns-0-3'
+        peek = dict(data['roles'][0], id='columns-0-2')
+        data['roles'].append(peek)
+        for row in copy.deepcopy(data['roles'][1:6]):
+            row['id'] += '-peek'
+            row['parent'] = 'columns-0-2' if row['role'] == 'row' else row['parent'] + '-peek'
+            if row['role'] != 'value':
+                data['roles'].append(row)
+        scenes.validate(data, receipt, self.image)
+        second = copy.deepcopy(data['roles'][1:6])
+        for row in second:
+            row['id'] += '-next'
+            if row['role'] != 'row':
+                row['parent'] += '-next'
+            if row['role'] != 'value':
+                data['roles'].append(row)
+        with self.assertRaisesRegex(ValueError, 'incomplete row roles'):
+            scenes.validate(data, receipt, self.image)
+        data['roles'] = [row for row in data['roles'] if not row['id'].endswith('-next') and row['role'] != 'value']
+        with self.assertRaisesRegex(ValueError, 'missing native roles'):
+            scenes.validate(data, receipt, self.image)
+
+    def test_the_active_track_id_follows_the_painter_slot_order(self):
+        geometry = (Path(__file__).resolve().parents[2] / 'crates/flea-gui/src/columns/geometry.rs').read_text()
+        active = re.search(r'Self::Active => (\d+),', geometry)
+        self.assertIsNotNone(active, 'Slot::index() no longer names Active')
+        for side in ('0', '1'):
+            self.assertTrue(scenes.COLUMNS_ACTIVE_TRACK.fullmatch(f'columns-{side}-{active.group(1)}'))
+        for slot in {'0', '1', '2', '3', '4'} - {active.group(1)}:
+            self.assertIsNone(scenes.COLUMNS_ACTIVE_TRACK.fullmatch(f'columns-0-{slot}'))
 
     def test_registered_manifest_and_its_rejection_controls(self):
         source = Path(__file__).with_name('scenes') / 'g1-01.json'
@@ -159,6 +220,27 @@ class Sidecars(unittest.TestCase):
                 target.write_text(json.dumps(dict(version=1, scenes=[scene])))
                 with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
                     scenes.manifest(target)
+
+
+class Quiet(unittest.TestCase):
+    def wait(self, frames, pending):
+        replies = {'presentedFrame': iter(frames), 'pendingRequests': iter(pending)}
+        with mock.patch.object(scenes.time, 'sleep') as sleep:
+            scenes.wait_quiet(lambda function: next(replies[function]))
+        return sleep.call_count
+
+    def test_a_still_frame_with_no_pending_request_is_quiet(self):
+        self.assertEqual(self.wait(['4', '5', '5'], ['0', '0']), 2)
+
+    def test_a_still_frame_blames_the_pending_request(self):
+        frames = ['5'] * (scenes.QUIET_LIMIT + 1)
+        with self.assertRaisesRegex(ValueError, r'presentedFrame held at 5, pendingRequests 1$'):
+            self.wait(frames, ['1'] * scenes.QUIET_LIMIT)
+
+    def test_a_moving_frame_is_named(self):
+        frames = [str(frame) for frame in range(scenes.QUIET_LIMIT + 1)]
+        with self.assertRaisesRegex(ValueError, rf'presentedFrame moved to {scenes.QUIET_LIMIT}, pendingRequests 0$'):
+            self.wait(frames, ['0'] * scenes.QUIET_LIMIT)
 
 
 if __name__ == '__main__':

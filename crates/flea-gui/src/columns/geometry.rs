@@ -33,6 +33,11 @@ pub fn mark_box() -> (f32, f32, f32) {
     )
 }
 
+/// A row thumbnail's square from the row's left and top: the whole mark slot, centred on the row.
+pub fn picture_box() -> (f32, f32, f32) {
+    (PAD_X, (ROW_HEIGHT - MARK_SLOT) / 2., MARK_SLOT)
+}
+
 /// cappedLimit: a stored number clamps to 2..5, and anything that is not a number reads as the shipped default.
 pub fn capped_limit(limit: Option<f64>) -> usize {
     let Some(n) = limit.map(f64::floor) else {

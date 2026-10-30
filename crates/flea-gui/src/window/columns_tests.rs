@@ -3,6 +3,8 @@ use crate::{backend::Backend, ipc::server::Event, state::tests::shell_with};
 use flea::ipc::wire::{Reply, Request};
 use gpui::{AppContext, TestAppContext};
 
+#[path = "columns_capture_tests.rs"]
+mod capture;
 #[path = "columns_gesture_tests.rs"]
 mod gestures;
 #[path = "columns_test_host.rs"]

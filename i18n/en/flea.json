@@ -2095,6 +2095,21 @@
   "drag.copy_to": "Copy %1 to %2",
   "drag.link_to": "Link %1 to %2",
   "drag.move_to": "Move %1 to %2 · ctrl copies, shift moves",
+  "tui.find.invalid_response": "The search response could not be used safely. Try Find again.",
+  "tui.find.scope_hint": "%1 · tab changes scope",
+  "tui.find.status": "Find “%1” %2",
+  "dialogs.output.cancelled": "Printing cancelled. Sent: %1. Not sent: %2.",
+  "dialogs.output.error.print_busy": "A print is still being sent. Wait for it to finish.",
+  "dialogs.output.error.printer_reply": "The printer response was invalid.",
+  "tui.operation.search_busy": "Wait for search to settle before a file operation",
+  "tui.convert.cancelled": {
+    "one": "Conversion cancelled; %1 output created.",
+    "other": "Conversion cancelled; %1 outputs created."
+  },
+  "tui.convert.failed": {
+    "one": "Conversion failed after %1 output: %2",
+    "other": "Conversion failed after %1 outputs: %2"
+  },
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",
@@ -2318,20 +2333,5 @@
   "keys.menu": "Menu",
   "keys.openTerminal": "Open terminal",
   "keys.openAgent": "Open agent here",
-  "keys.print": "Print…",
-  "tui.find.invalid_response": "The search response could not be used safely. Try Find again.",
-  "tui.find.scope_hint": "%1 · tab changes scope",
-  "tui.find.status": "Find “%1” %2",
-  "dialogs.output.cancelled": "Printing cancelled. Sent: %1. Not sent: %2.",
-  "dialogs.output.error.print_busy": "A print is still being sent. Wait for it to finish.",
-  "dialogs.output.error.printer_reply": "The printer response was invalid.",
-  "tui.operation.search_busy": "Wait for search to settle before a file operation",
-  "tui.convert.cancelled": {
-    "one": "Conversion cancelled; %1 output created.",
-    "other": "Conversion cancelled; %1 outputs created."
-  },
-  "tui.convert.failed": {
-    "one": "Conversion failed after %1 output: %2",
-    "other": "Conversion failed after %1 outputs: %2"
-  }
+  "keys.print": "Print…"
 }

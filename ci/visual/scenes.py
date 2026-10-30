@@ -9,16 +9,34 @@ from pathlib import Path
 import re
 import struct
 import sys
+import time
 
 ROOT = Path(__file__).resolve().parent
+# Board columns.png sizes only the active track; the id's last field is Slot::Active.index() in crates/flea-gui/src/columns/geometry.rs.
+COLUMNS_ACTIVE_TRACK = re.compile(r'columns-[01]-3')
 # The card scenes that carry no reference pair, each bound to the board ci/visual/g2/op1.json names for it.
 CARD_BOARDS = {'g2.op1.copyto.r8': 'copyto', 'g2.op1.copyto.r0': 'copyto',
                'g2.op1.copyto-empty.r8': 'copyto-empty', 'g2.op1.copyto-empty.r0': 'copyto-empty'}
+# Startup presents frames no backend request counts, and one after the receipt voids it; this readiness wait accepts nothing.
+QUIET_SECONDS = 1
+QUIET_LIMIT = 20
 
 
 def require(condition, message):
     if not condition:
         raise ValueError(message)
+
+
+def wait_quiet(read):
+    previous = read('presentedFrame')
+    for attempt in range(QUIET_LIMIT):
+        time.sleep(QUIET_SECONDS)
+        current, pending = read('presentedFrame'), read('pendingRequests')
+        if current == previous and pending == '0':
+            return
+        moved, previous = current != previous, current
+    state = 'moved to' if moved else 'held at'
+    raise ValueError(f'native startup not quiet after {QUIET_LIMIT * QUIET_SECONDS} s: presentedFrame {state} {current}, pendingRequests {pending}')
 
 
 def manifest(path):
@@ -75,7 +93,14 @@ def validate(sidecar, receipt, png):
     require(nodes, 'empty sidecar')
     ids = {node['id']: node for node in nodes}
     require(len(ids) == len(nodes), 'duplicate native role id')
-    require({'surface', 'row', 'glyph', 'ink', 'label', 'value'} <= {node['role'] for node in nodes}, 'missing native roles')
+    registered = {scene['id']: scene['view'] for scene in manifest(ROOT / 'scenes')}
+    view = registered.get(receipt.get('scene'))
+    require(view is not None and receipt.get('view', view) == view, 'native view mismatch')
+    required = {'surface', 'row', 'glyph', 'ink', 'label'}
+    # Board grid.png captions carry no size, so a grid row has no value role.
+    if view != 'grid':
+        required.add('value')
+    require(required <= {node['role'] for node in nodes}, 'missing native roles')
     for node in nodes:
         require(node['role'] in ('surface', 'row', 'glyph', 'ink', 'label', 'value', 'check', 'hint'), 'unknown native role')
         require(node['scale'] == 1 and isinstance(node['text'], str), 'invalid role text or scale')
@@ -92,7 +117,10 @@ def validate(sidecar, receipt, png):
         if node['role'] == 'row':
             require(ids[parent]['role'] == 'surface', 'row without surface')
             roles = {n['role'] for n in nodes if n['parent'] == node['id']}
-            require({'glyph', 'label', 'value'} <= roles, 'incomplete row roles')
+            row_roles = {'glyph', 'label'}
+            if view in ('list', 'dual') or (view == 'columns' and COLUMNS_ACTIVE_TRACK.fullmatch(parent)):
+                row_roles.add('value')
+            require(row_roles <= roles, 'incomplete row roles')
     return ids
 
 

@@ -60,6 +60,11 @@ def wait(window, function, expected):
     raise ValueError(f'{function} did not reach {expected}')
 
 
+def require_frame(window, name, what, expected, actual):
+    if actual != expected:
+        raise ValueError(f'{name}: {what} {expected}->{actual}: {call(window, "sceneState")}')
+
+
 def grab(window, out):
     clients = json.loads(run('hyprctl', 'clients', '-j'))
     item = capture.client(clients, window.pid)
@@ -103,6 +108,7 @@ try:
         windows.append(window)
         wait(window, 'total', '2')
         wait(window, 'pendingRequests', '0')
+        scenes.wait_quiet(lambda function: call(window, function))
         settings = dict(path=str(root / 'fixture'), width=1100, height=700)
         receipt = json.loads(call(window, 'scene', window.pid, name, json.dumps(settings)))
         scenes.require(receipt['window'] == window.pid and receipt['scene'] == name and receipt['frame'] > 0, 'missing scene receipt')
@@ -120,7 +126,7 @@ try:
             else:
                 raise ValueError('a sceneState view that differs from the scene was accepted')
         frame = int(call(window, 'presentedFrame'))
-        scenes.require(frame == receipt['frame'], 'stale presented receipt')
+        require_frame(window, name, 'stale presented receipt', receipt['frame'], frame)
         sidecar = json.loads(call(window, 'nativeGeometry', window.pid, name, frame))
         before = logs / f'{name}-noise.png'
         image = logs / f'{name}.png'
@@ -134,7 +140,7 @@ try:
         else:
             raise ValueError(f'{name} unstable after 20 pairs')
         scenes.require(item['at'] == final['at'] and item['size'] == final['size'], 'native rect moved')
-        scenes.require(int(call(window, 'presentedFrame')) == frame, 'frame changed during capture')
+        require_frame(window, name, 'frame changed during capture', frame, int(call(window, 'presentedFrame')))
         scenes.require(call(window, 'pendingRequests') == '0', 'backend request still pending after capture')
         digest = scenes.wrapper(sidecar, receipt, image, logs / f'{name}.html')
         (logs / f'{name}-receipt.json').write_text(json.dumps(receipt, indent=2))
@@ -164,8 +170,10 @@ try:
         view='list', density='compact', display=dict(textSize=dict(mode=14)))))
     empty = root / 'omi-empty'
     empty.mkdir()
+    # Capture mode forces reduced motion, which stops the caption rotation this case measures.
     window = Window.start(empty, parent=root, frontend='gpui',
-                          log=logs / 'omi-caption-app.log', timeout=15)
+                          log=logs / 'omi-caption-app.log', timeout=15,
+                          wrap=('/usr/bin/env', 'FLEA_GPUI_CAPTURE=0'))
     windows.append(window)
     wait(window, 'total', '0')
     omi_fit.caption_case(window, call, grab, logs)

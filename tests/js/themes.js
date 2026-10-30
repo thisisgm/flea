@@ -2,12 +2,10 @@
 .import "../../ui/js/Contrast.js" as Contrast
 .import "sourcefixture.js" as Source
 
-// The stock themes installed under /usr/share/omarchy/themes, read live rather than fixtured, so a
-// palette that changes under a theme update is caught here. tests/themes.sh compares this list with
-// the directory itself, which is where a newly shipped theme reddens.
+// Live stock palettes; js.sh compares every installed colors.toml against this complete inventory.
 var THEMES = ["catppuccin", "catppuccin-latte", "ethereal", "everforest", "flexoki-light", "gruvbox",
-              "hackerman", "kanagawa", "last-horizon", "lumon", "lupine", "matte-black", "miasma",
-              "nord", "osaka-jade", "retro-82", "ristretto", "rose-pine", "solitude", "tokyo-night",
+              "hackerman", "jade-horse", "kanagawa", "last-horizon", "lumon", "lupine", "matte-black", "miasma",
+              "nord", "retro-82", "ristretto", "rose-pine", "solitude", "starship", "tokyo-night",
               "vantablack", "white"]
 var THEME_DIR = "file:///usr/share/omarchy/themes/"
 
@@ -154,7 +152,7 @@ function run(check) {
     errorOnSurfaceSamples(check)
     // A truncated table would iterate few times and report every check it did run as green, so the
     // table's own size is checked first; tests/themes.sh compares it with the directory itself.
-    check("the table still names the themes this box ships", THEMES.length >= 22, true)
+    check("the table still names the 23 stock themes this box ships", THEMES.length, 23)
     for (var i = 0; i < THEMES.length; i++) {
         var name = THEMES[i]
         var got = read(THEME_DIR + name + "/colors.toml")
