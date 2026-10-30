@@ -1,4 +1,8 @@
-use super::{source::Sources, Snapshot};
+use super::{
+    source::Sources,
+    wake::{self, Signal},
+    Snapshot,
+};
 use async_channel::{Receiver, Sender};
 use std::{
     sync::{mpsc, Arc, Mutex, PoisonError},
@@ -32,30 +36,56 @@ impl Drop for Closing {
     }
 }
 
+// Dropped with the last Service clone, so the worker stops at once though the waker still holds a sender.
+struct Stop(mpsc::Sender<Signal>);
+
+impl Drop for Stop {
+    fn drop(&mut self) {
+        let _ = self.0.send(Signal::Stop);
+    }
+}
+
 #[derive(Clone)]
 pub struct Service {
     state: Arc<Mutex<State>>,
-    _stop: Arc<mpsc::Sender<()>>,
+    _stop: Arc<Stop>,
 }
 
 /// The face a launch draws until fc-match answers: gpui finds no face named `monospace` and falls to sans, so this is Omarchy's default.
 pub(super) const FALLBACK_FAMILY: &str = "JetBrainsMono Nerd Font";
-/// How often the worker stats its inputs; the hung-probe test counts its margin in these.
+/// How often the worker stats its inputs when no folder event woke it; the hung-probe test counts its margin in these.
 pub(super) const TICK: Duration = Duration::from_millis(500);
+
+// How long inputs must hold still before they are read; Omarchy's swap and an editor's save each land well inside it.
+const SETTLE: Duration = Duration::from_millis(20);
 
 fn log(what: &str, error: impl std::fmt::Display) {
     eprintln!("flea-gui: presentation {what}: {error}");
 }
 
+// Waits up to `pause`, or only until a wake when `woken` ends it; false once the service stopped.
+fn waited(signals: &mpsc::Receiver<Signal>, pause: Duration, woken: bool) -> bool {
+    let until = std::time::Instant::now() + pause;
+    loop {
+        match signals.recv_timeout(until.saturating_duration_since(std::time::Instant::now())) {
+            Ok(Signal::Wake) if woken => return true,
+            Ok(Signal::Wake) => {}
+            Err(mpsc::RecvTimeoutError::Timeout) => return true,
+            Ok(Signal::Stop) | Err(mpsc::RecvTimeoutError::Disconnected) => return false,
+        }
+    }
+}
+
 impl Service {
     /// Never refuses a launch: an unreadable input counts as absent and a failed font probe keeps the fallback family, each logged, so the first frame is already complete.
     pub fn start() -> (Self, Snapshot) {
-        Self::start_with(Sources::current(), || {})
+        Self::start_with(Sources::current(), TICK, || {})
     }
 
     // `before_watch` runs on the worker before its first poll; a test passes one that panics.
     pub(super) fn start_with(
         sources: Sources,
+        tick: Duration,
         before_watch: impl FnOnce() + Send + 'static,
     ) -> (Self, Snapshot) {
         let mut seen = Some(sources.stamps());
@@ -82,27 +112,28 @@ impl Service {
         }));
         let worker = state.clone();
         let (stop, stopping) = mpsc::channel();
+        wake::start(sources.dirs(), tick, stop.clone());
         let spawned = thread::Builder::new()
             .name("flea-presentation".into())
             .spawn(move || {
                 let _closing = Closing(worker.clone());
                 before_watch();
-                while matches!(
-                    stopping.recv_timeout(TICK),
-                    Err(mpsc::RecvTimeoutError::Timeout)
-                ) {
+                // Set when an input moved during the settle, so it is stat'ed again without waiting for a wake.
+                let mut again = false;
+                loop {
+                    if !std::mem::take(&mut again) && !waited(&stopping, tick, true) {
+                        return;
+                    }
                     // One stat per input; nothing is read and no probe runs while they are unchanged.
                     let stamps = sources.stamps();
                     if Some(stamps) == seen && !retry {
                         continue;
                     }
-                    if !matches!(
-                        stopping.recv_timeout(Duration::from_millis(50)),
-                        Err(mpsc::RecvTimeoutError::Timeout)
-                    ) {
+                    if !waited(&stopping, SETTLE, false) {
                         return;
                     }
                     if sources.stamps() != stamps {
+                        again = true;
                         continue;
                     }
                     // Attempt stamps suppress unchanged failures; accepted bytes move only after a stable resolve.
@@ -173,7 +204,7 @@ impl Service {
         (
             Self {
                 state,
-                _stop: Arc::new(stop),
+                _stop: Arc::new(Stop(stop)),
             },
             initial,
         )
@@ -207,6 +238,70 @@ mod tests {
     use super::{Service, Sources};
     use std::{path::PathBuf, sync::mpsc, time::Duration};
 
+    // A tick no test run reaches, so only a folder event can make the worker publish.
+    const UNREACHED_TICK: Duration = Duration::from_secs(3600);
+    // Turns a swap the worker never saw into a failure instead of a hang.
+    const GUARD: Duration = Duration::from_secs(10);
+
+    // Omarchy swaps the whole theme folder; its wake alone publishes the swapped-in theme, never the gap (THEME-GLASS, native2 GPUI 475 ms, v0.3.12 27 ms).
+    #[test]
+    fn theme_glass_a_theme_folder_swap_publishes_the_swapped_in_theme() {
+        let fixture = crate::presentation::fixture::Fixture::new("swap");
+        let dir = fixture.path().to_path_buf();
+        let theme = dir.join("current/theme");
+        let colors =
+            |background: &str| format!("background = \"{background}\"\nforeground = \"#c0c0c0\"\n");
+        fixture.write(&theme.join("colors.toml"), colors("#101010"));
+        let inputs = [
+            theme.join("colors.toml"),
+            theme.join("shell.toml"),
+            dir.join("config/shell.toml"),
+            dir.join("fontconfig/fonts.conf"),
+            dir.join("fontconfig/conf.d/im.conf"),
+            dir.join("toggles/window-opaque.lua"),
+            dir.join("toggles/window-glassy.lua"),
+        ];
+        let (service, _) = Service::start_with(
+            Sources::at(inputs, dir.join("fc-match")),
+            UNREACHED_TICK,
+            || {},
+        );
+        let reader = service.subscribe();
+        let (forward, published) = mpsc::channel();
+        std::thread::spawn(move || {
+            while let Ok(snapshot) = reader.recv_blocking() {
+                if forward.send(snapshot.theme.background).is_err() {
+                    return;
+                }
+            }
+        });
+        published
+            .recv_timeout(GUARD)
+            .expect("the reader got no first snapshot");
+        for (round, background) in ["#202020", "#303030", "#404040", "#505050"]
+            .into_iter()
+            .enumerate()
+        {
+            let next = dir.join(format!("next-{round}"));
+            fixture.write(&next.join("colors.toml"), colors(background));
+            fixture.check(&theme).unwrap();
+            std::fs::rename(&theme, dir.join(format!("old-{round}"))).unwrap();
+            std::fs::rename(&next, &theme).unwrap();
+            let want = crate::palette::Theme::from_text_observed(&colors(background))
+                .0
+                .background;
+            assert_eq!(
+                published
+                    .recv_timeout(GUARD)
+                    .expect("a theme folder swap published nothing without a stat tick"),
+                want,
+                "swap {round} published something other than {background}"
+            );
+        }
+        drop(service);
+        fixture.cleanup();
+    }
+
     // The window's presentation reader ends when the worker dies, and a later subscribe still answers.
     #[test]
     fn m9_integ_g05_presentation_worker_exit_closes_every_reader() {
@@ -214,7 +309,8 @@ mod tests {
             std::array::from_fn(|_| PathBuf::from("/proc/self/flea-m9-absent-input")),
             PathBuf::from("/proc/self/flea-m9-no-cache/entry"),
         );
-        let (service, initial) = Service::start_with(sources, || panic!("the watcher dies"));
+        let (service, initial) =
+            Service::start_with(sources, super::TICK, || panic!("the watcher dies"));
         let reader = service.subscribe();
         let (report, outcome) = mpsc::channel();
         std::thread::spawn(move || {

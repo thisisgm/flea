@@ -80,6 +80,7 @@ impl Shell {
             return;
         }
         snapshot.install(cx);
+        super::glass_tag::follow(snapshot.theme.glass);
         self.font_key = None;
         self.sync_font_settings(cx);
         let face = self.active_typeface();

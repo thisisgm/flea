@@ -17,6 +17,7 @@ mod service;
 mod source;
 #[cfg(test)]
 mod trash_font_tests;
+mod wake;
 pub use fonts::Fonts;
 pub use service::Service;
 pub use source::Snapshot;

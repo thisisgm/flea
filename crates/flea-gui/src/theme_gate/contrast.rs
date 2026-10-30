@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 
 // HIG rail-favorites and plugin-rail-section draw --muted-frame marks unlifted on --surface.
 const LIGHT_SURFACE_FRAME: [&str; 4] = ["catppuccin-latte", "flexoki-light", "lupine", "rose-pine"];
+const LIGHT_SURFACE_WAIVED: [&str; 2] = ["secondary_button", "rail_plus"];
 
 fn rgb(colour: Hsla) -> [f64; 3] {
     let c: Rgba = colour.into();
@@ -36,7 +37,7 @@ fn contrast(ink: Hsla, ground: Hsla) -> f64 {
     ratio(over(ink, rgb(ground)), rgb(ground))
 }
 
-// Recorded opaque glass floors from tests/theme-contrast.qml::glassFloors, including both fixtures.
+// Opaque glass floors recorded from tests/theme-contrast.qml::glassFloors, both fixtures included; a theme QML never recorded gets 255.
 fn recorded_floor(name: &str) -> u16 {
     match name {
         "catppuccin" | "last-horizon" | "matte-black" | "sunset" => 253,
@@ -48,8 +49,14 @@ fn recorded_floor(name: &str) -> u16 {
         "catppuccin-latte" | "everforest" | "flexoki-light" | "gruvbox" | "hackerman"
         | "jade-horse" | "kanagawa" | "lumon" | "lupine" | "miasma" | "nord" | "retro-82"
         | "ristretto" | "rose-pine" | "solitude" | "tokyo-night" => 255,
-        _ => panic!("{name}: stock inventory changed, no recorded QML glass floor"),
+        _ => 255,
     }
+}
+
+#[test]
+fn theme_gate_a_theme_qml_never_recorded_keeps_the_opaque_floor() {
+    assert_eq!(recorded_floor("osaka-jade"), 255);
+    assert_eq!(recorded_floor("starship"), 236);
 }
 
 #[test]
@@ -77,7 +84,7 @@ fn theme_gate_stock_contrast_floors() {
                 .or_insert(got);
             // Float conversion may move an exact ratio by a few millionths, never by one 8-bit step.
             if got + 0.00001 < need {
-                if ["secondary_button", "rail_plus"].contains(&role)
+                if LIGHT_SURFACE_WAIVED.contains(&role)
                     && LIGHT_SURFACE_FRAME.contains(&name.as_str())
                     && got + 0.00001 >= 2.66
                 {
@@ -218,8 +225,14 @@ fn theme_gate_stock_contrast_floors() {
             contrast(theme.foreground.opacity(0.5), theme.background)
         );
     }
+    // Each installed light-surface theme waives each LIGHT_SURFACE_WAIVED role once.
+    let light = super::palettes()
+        .iter()
+        .filter(|(name, _)| LIGHT_SURFACE_FRAME.contains(&name.as_str()))
+        .count();
     assert_eq!(
-        surface_frame_allowances, 8,
+        surface_frame_allowances,
+        LIGHT_SURFACE_WAIVED.len() * light,
         "light-surface muted-frame allowance count changed"
     );
     assert!(

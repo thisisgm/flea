@@ -155,9 +155,9 @@ impl Adapter for Reader<'_> {
             crate::ipc::rows::colour(theme.background)
         };
         let alpha = alpha(self.window, self.cx);
-        // listAlpha is the List and Columns floor, which this unit keeps opaque.
+        let list = list_alpha(self.window, self.cx);
         Some(Reply::value(format!(
-            "{{\"clear\":{},\"mode\":\"{mode}\",\"focused\":{},\"automatic\":{},\"alpha\":{alpha},\"listAlpha\":1,\"foreground\":\"{}\",\"muted\":\"{}\",\"metadata\":\"{}\",\"window\":\"{window}\",\"early\":{},\"material\":false,\"requestedAlpha\":{},\"requestedListAlpha\":{}}}",
+            "{{\"clear\":{},\"mode\":\"{mode}\",\"focused\":{},\"automatic\":{},\"alpha\":{alpha},\"listAlpha\":{list},\"foreground\":\"{}\",\"muted\":\"{}\",\"metadata\":\"{}\",\"window\":\"{window}\",\"early\":{},\"material\":false,\"requestedAlpha\":{},\"requestedListAlpha\":{}}}",
             mounted.clear, self.window.is_window_active(), inputs.automatic,
             crate::ipc::rows::colour(theme.foreground), crate::ipc::rows::colour(theme.muted),
             crate::ipc::rows::colour(theme.metadata), mounted.clear,
@@ -172,11 +172,36 @@ pub(crate) fn alpha(window: &Window, cx: &App) -> f32 {
         .and_then(|windows| windows.0.get(&window.window_handle().window_id()))
         .is_some_and(|mounted| mounted.clear);
     let inputs = cx.try_global::<Theme>().copied().unwrap_or_default().glass;
-    if !clear || (inputs.automatic && inputs.mode == Mode::Glassy) {
-        1.
+    if clear {
+        fraction(inputs.wanted_alpha)
     } else {
-        f32::from(inputs.wanted_alpha) / 255.
+        1.
     }
+}
+
+// Glass alphas are bytes, 255 opaque, and gpui paints a fraction.
+fn fraction(alpha: u8) -> f32 {
+    f32::from(alpha) / f32::from(u8::MAX)
+}
+
+// The List, Columns and preview panes' alpha, Glass.qml's listAlpha: automatic glassy lifts it to the text floor.
+fn list_alpha(window: &Window, cx: &App) -> f32 {
+    if alpha(window, cx) < 1. {
+        fraction(
+            cx.try_global::<Theme>()
+                .copied()
+                .unwrap_or_default()
+                .glass
+                .wanted_list_alpha,
+        )
+    } else {
+        1.
+    }
+}
+
+pub(crate) fn list_ground(mut color: gpui::Hsla, window: &Window, cx: &App) -> gpui::Hsla {
+    color.a *= list_alpha(window, cx);
+    color
 }
 
 pub(crate) fn ground(mut color: gpui::Hsla, window: &Window, cx: &App) -> gpui::Hsla {

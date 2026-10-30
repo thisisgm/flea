@@ -274,13 +274,24 @@ fn op_glass_automatic_glassy_reads_a_list_floor_above_its_pane_alpha(cx: &mut Te
     let value = read_glass(cx, "op-glass-automatic", &[(6, "")]);
     assert_eq!(value.get("mode").and_then(Json::as_str), Some("glassy"));
     assert_eq!(value.get("automatic").and_then(Json::as_bool), Some(true));
-    assert_eq!(value.get("alpha").and_then(Json::as_f64), Some(1.));
     assert_eq!(value.get("material").and_then(Json::as_bool), Some(false));
     let alpha = value.get("requestedAlpha").and_then(Json::as_f64).unwrap();
     let list = value
         .get("requestedListAlpha")
         .and_then(Json::as_f64)
         .unwrap();
+    // Glass.qml draws the chrome at the automatic alpha and the panes at the lifted list floor (THEME-GLASS native2).
+    let drawn = |key: &str| value.get(key).and_then(Json::as_f64).unwrap();
+    assert!(
+        (drawn("alpha") - alpha).abs() < 1e-6,
+        "automatic glassy chrome draws {}",
+        drawn("alpha")
+    );
+    assert!(
+        (drawn("listAlpha") - list).abs() < 1e-6,
+        "automatic glassy panes draw {}",
+        drawn("listAlpha")
+    );
     assert!(
         alpha < 1.,
         "automatic glassy keeps a translucent pane: {alpha}"
@@ -301,7 +312,7 @@ fn op_glass_toggle_files_are_index_five_opaque_and_index_six_glassy(cx: &mut Tes
 }
 
 #[gpui::test]
-fn op_glass_list_and_columns_panes_keep_the_opaque_list_floor(cx: &mut TestAppContext) {
+fn op_glass_list_and_columns_panes_draw_the_user_alpha(cx: &mut TestAppContext) {
     let fixture = install(
         cx,
         "op-glass-columns",
@@ -326,14 +337,15 @@ fn op_glass_list_and_columns_panes_keep_the_opaque_list_floor(cx: &mut TestAppCo
                 .copied()
                 .unwrap_or_default()
                 .background;
+            // v0.3.12 Pane.qml draws Glass.listBackground, the user's alpha, so the wallpaper shows through the panes too.
             let (opaque, translucent) = background_grounds(window, background);
-            assert!(
-                opaque > 0,
-                "a List pane with no rows must paint the opaque list floor"
-            );
             assert_eq!(
-                translucent, 0,
-                "a List pane with no rows must paint no translucent ground"
+                opaque, 0,
+                "a List pane with no rows must not paint an opaque ground"
+            );
+            assert!(
+                translucent > 0,
+                "a List pane with no rows must paint the translucent list ground"
             );
         })
         .unwrap();
@@ -357,13 +369,10 @@ fn op_glass_list_and_columns_panes_keep_the_opaque_list_floor(cx: &mut TestAppCo
                 .unwrap_or_default()
                 .background;
             let (opaque, translucent) = background_grounds(window, background);
+            assert_eq!(opaque, 0, "no Columns track may paint an opaque ground");
             assert!(
-                opaque > 0,
-                "the Columns tracks must paint the opaque list floor"
-            );
-            assert_eq!(
-                translucent, 0,
-                "no Columns track may paint a translucent ground"
+                translucent > 0,
+                "the Columns tracks must paint the translucent list ground"
             );
         })
         .unwrap();

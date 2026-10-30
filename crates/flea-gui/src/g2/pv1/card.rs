@@ -174,7 +174,11 @@ impl QuickLook {
                 .border_color(look.muted_frame)
                 .rounded(look.corner)
         } else {
-            surface.bg(look.background)
+            surface.bg(crate::window::glass::list_ground(
+                look.background,
+                window,
+                cx,
+            ))
         };
         let mark_of = subject.mark_with_languages(self.languages);
         let children: Vec<AnyElement> = match shown.as_ref() {

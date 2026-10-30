@@ -7,7 +7,7 @@ use crate::presentation::fonts::{shell_value, uncomment};
 use flea::jsondoc::{self, Json};
 use std::collections::BTreeSet;
 
-pub use events::start;
+pub use events::{follow, start};
 
 /// The Hyprland tag Omarchy's transparency hotkey sets; Omarchy's own rule then draws the window at its Transparent opacity.
 pub const TAG: &str = "transparent";

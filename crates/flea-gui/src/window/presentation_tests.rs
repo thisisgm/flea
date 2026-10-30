@@ -219,3 +219,44 @@ fn u01_presentation_early_relist_commit_anchors_nonzero_rows_at_the_live_height(
             .is_some());
     }
 }
+
+// Hyprland sends no event for a live glass edit, so the window is the tagger's only way to hear it (THEME-GLASS D2).
+#[gpui::test]
+fn theme_glass_a_new_presentation_hands_its_glass_inputs_to_the_tagger(cx: &mut TestAppContext) {
+    let (backend, _) = Backend::test_channel();
+    let handle = cx.add_window(|_, cx| super::root::Root {
+        shell: cx.new(|cx| shell_with(backend, cx)),
+    });
+    let (mut theme, parsed) = Theme::from_text_observed("foreground='#123456'");
+    theme.glass = super::glass::Inputs {
+        automatic: false,
+        wanted_alpha: 153,
+        wanted_list_alpha: 153,
+        ..Default::default()
+    };
+    super::glass_tag::events::HANDED.with(|handed| handed.set(None));
+    handle
+        .update(cx, |root, window, cx| {
+            root.shell.update(cx, |shell, cx| {
+                let fonts = crate::presentation::Fonts::from_sources(
+                    "",
+                    "",
+                    shell.active_typeface().font.family.to_string(),
+                );
+                shell.apply_presentation(
+                    crate::presentation::Snapshot {
+                        theme,
+                        parsed,
+                        fonts,
+                    },
+                    window,
+                    cx,
+                );
+            });
+        })
+        .unwrap();
+    assert_eq!(
+        super::glass_tag::events::HANDED.with(std::cell::Cell::get),
+        Some(theme.glass)
+    );
+}

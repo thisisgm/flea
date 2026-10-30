@@ -5,6 +5,10 @@ use std::ffi::{OsStr, OsString};
 use std::io::{BufRead, BufReader};
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+
+// The process's one tagger, so the window can ask it for a pass when its glass inputs change.
+static TAGGER: OnceLock<Tagger> = OnceLock::new();
 
 // Hyprland names its event socket this way inside its instance directory.
 const SOCKET_NAME: &str = ".socket2.sock";
@@ -23,14 +27,34 @@ pub fn start() {
         return;
     };
     let socket = socket2_path(std::env::var_os("XDG_RUNTIME_DIR").as_deref(), &signature);
-    let tagger = Tagger::new(
-        std::process::id(),
-        OsString::from("hyprctl"),
-        Sources::from_env(),
-    );
+    let tagger = TAGGER
+        .get_or_init(|| {
+            Tagger::new(
+                std::process::id(),
+                OsString::from("hyprctl"),
+                Sources::from_env(),
+            )
+        })
+        .clone();
     let _ = std::thread::Builder::new()
         .name("flea-glass-events".into())
         .spawn(move || listen(&tagger, &socket));
+}
+
+#[cfg(test)]
+thread_local! {
+    // The inputs this thread's window last handed over, so a test sees the hand-off without Hyprland.
+    pub(crate) static HANDED: std::cell::Cell<Option<crate::window::glass::Inputs>> =
+        const { std::cell::Cell::new(None) };
+}
+
+/// Hands the window's applied glass inputs to the tagger; nothing happens off Hyprland, where none was started.
+pub fn follow(inputs: crate::window::glass::Inputs) {
+    #[cfg(test)]
+    HANDED.with(|handed| handed.set(Some(inputs)));
+    if let Some(tagger) = TAGGER.get() {
+        tagger.follow(inputs);
+    }
 }
 
 // The first pass covers a window already open; after that each config reload or own window opening asks again.
