@@ -48,7 +48,7 @@ impl Runs {
         let run = TextRun {
             len: text.len(),
             font: faces.font(face),
-            color: gpui::white(),
+            color: crate::palette::Theme::default().foreground,
             background_color: None,
             underline: None,
             strikethrough: None,
