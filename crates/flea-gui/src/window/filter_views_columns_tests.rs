@@ -276,3 +276,68 @@ fn ey12_columns_search_that_finds_nothing_keeps_the_columns() {
         "the columns start under the search strip"
     );
 }
+
+/// The active track's right hairline and the Child track's rows, as the area last laid them out.
+fn third(shell: &Shell) -> (Option<f32>, bool) {
+    let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+    let tracks = columns.area.tracks();
+    let active = tracks.iter().find(|track| track.slot == Slot::Active);
+    let child = tracks.iter().find(|track| track.slot == Slot::Child);
+    (
+        active.and_then(|track| track.divider_x()),
+        child.is_some_and(|track| !matches!(track.rows, crate::columns::TrackRows::Blank)),
+    )
+}
+
+#[test]
+fn ey318_no_match_on_a_file_cursor_drops_the_third_column_once_its_hold_ends() {
+    let mut cx = host::context();
+    let (window, _requests) = host::open(&mut cx, "/srv/a/b/c");
+    host::change(&mut cx, window, |shell, window, cx| {
+        host::settle(shell, window, cx);
+        let host = shell.panes[0].as_mut().unwrap();
+        host.pane.held = std::rc::Rc::new(crate::list::pane::Held {
+            listing: 3,
+            total: 2,
+            start: 0,
+            rows: vec![host::row("d01", true), host::row("notes.txt", false)],
+        });
+        host.changed(&shell.locale);
+        host.pane.cursor = 1;
+        shell.sync_columns(window, cx);
+    });
+    host::frame(&mut cx, window);
+    let rest = window.update(&mut cx, |shell, _, _| third(shell)).unwrap();
+    assert!(
+        rest.0.is_some(),
+        "a file cursor stands a third column at rest"
+    );
+    // Entering Columns on a file holds its preview until it lands, and the filter answer arrives under that hold.
+    host::change(&mut cx, window, |shell, _, cx| {
+        let port = &mut shell.panes[0].as_mut().unwrap().preview_port;
+        crate::columns::preview_host::ThirdSwap::hold(port, "/srv/a/b/c\n1");
+        filter(shell, "zzz", 2, 3, "", cx)
+    });
+    host::frame(&mut cx, window);
+    let held = window.update(&mut cx, |shell, _, _| third(shell)).unwrap();
+    assert!(
+        held.0.is_some(),
+        "the live hold keeps the third column through the answer"
+    );
+    // The file's preview hold ends by its cap or its landing, which no Columns event follows.
+    host::change(&mut cx, window, |shell, _, _| {
+        let port = &mut shell.panes[0].as_mut().unwrap().preview_port;
+        crate::columns::preview_host::ThirdSwap::cancel(port);
+    });
+    host::frame(&mut cx, window);
+    window
+        .update(&mut cx, |shell, _, cx| {
+            assert_eq!(footer(shell, cx).0, "0 of 2 shown");
+            assert_eq!(
+                third(shell),
+                (None, false),
+                "HIG cols-filter-nomatch: no third column and no hairline right of the active one"
+            );
+        })
+        .unwrap();
+}
