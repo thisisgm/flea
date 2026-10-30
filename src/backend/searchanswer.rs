@@ -15,16 +15,26 @@ impl Session {
         let priors = self.priors;
         let index = self.index.lock().unwrap();
         // Only complete, unchanged extensions with stable matching rules can reuse their previous candidates.
-        let candidates: Vec<usize> = if narrow && index.partial.is_none() && index.len() == self.matched_index_len {
-            self.last_matches.clone()
-        } else {
-            (0..index.len()).collect()
-        };
+        let narrowed = narrow && index.partial.is_none() && index.len() == self.matched_index_len;
+        let candidates: Vec<usize> = if narrowed { self.last_matches.clone() } else { (0..index.len()).collect() };
         #[cfg(test)]
-        let scored = candidates.len();
+        let mut scored = candidates.len();
         #[cfg(test)]
         let phase_started = Instant::now();
-        let mut hits = searchindex::score_cached(&fuzzy, &candidates, &index, &mut self.score_scratch);
+        let (mut hits, typos) = if fuzzy.defer {
+            match searchindex::score_shown(&fuzzy, &candidates, &index, &mut self.score_scratch) {
+                // Matches that left out their typo rows hold none to narrow to, so an answer that shows typos scores the index.
+                (_, true) if narrowed && !self.last_typos => {
+                    let every: Vec<usize> = (0..index.len()).collect();
+                    #[cfg(test)]
+                    { scored += every.len(); }
+                    searchindex::score_shown(&fuzzy, &every, &index, &mut self.score_scratch)
+                }
+                shown => shown,
+            }
+        } else {
+            (searchindex::score_cached(&fuzzy, &candidates, &index, &mut self.score_scratch), true)
+        };
         #[cfg(test)]
         { self.counters.phases.score = phase_started.elapsed(); }
         #[cfg(test)]
@@ -75,17 +85,18 @@ impl Session {
         let window = count.min(shown);
         #[cfg(test)]
         let compares = std::cell::Cell::new(0usize);
+        let order = searchindex::RankOrder::new(&index, &hits, terms.text.contains('/'));
         let cmp = |a: &(i32, usize), b: &(i32, usize)| {
             #[cfg(test)]
             compares.set(compares.get() + 1);
-            rank_cmp(&index, a, b)
+            order.cmp(&index, a, b)
         };
-        // Score then path length, the rank order's first two fields, compared as one integer key.
+        // The score and anchor length lead the shared head/rest order.
         #[cfg(test)]
         let raw_before = index.reconstructed.load(Ordering::Relaxed);
         #[cfg(test)]
         let phase_started = Instant::now();
-        let rest = select_head(&mut hits, window, |hit| (Reverse(hit.0), index.path_len(hit.1)), cmp);
+        let rest = select_head(&mut hits, window, |hit| order.key(&index, hit).1, cmp);
         #[cfg(test)]
         {
             self.counters.phases.select = phase_started.elapsed();
@@ -112,6 +123,7 @@ impl Session {
         Answer {
             gen: 0,
             all,
+            typos,
             rows,
             total,
             indexed,

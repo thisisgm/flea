@@ -1,5 +1,6 @@
 // Head-bounded ranking must answer, head and rest alike, exactly what scoring every row and sorting every match answers.
 use crate::backend::searchindex::{fixture_tests, rank_cmp, score_cached, Index, QueryScratch};
+use crate::backend::searchindex::family_oracle;
 use crate::backend::searchmatch::{Matcher, ALIGNED, EXACT, HIT_SPAN, NAME, PREFIX, SHADOW_TYPO, TYPO, WORD};
 use crate::backend::searchprior::alloc_tests::fixture_priors;
 use crate::backend::searchsession::{Session, FIRST_WINDOW_DEFAULT};
@@ -7,6 +8,9 @@ use crate::backend::testdir::TestDir;
 use std::collections::BTreeSet;
 use std::os::unix::ffi::OsStrExt;
 use std::sync::atomic::Ordering;
+
+#[path = "searcha42_tests.rs"]
+mod a42;
 
 const QUERIES: [&str; 5] = ["render_frame.rs", "redner_frame.rs", "editor/src/components/render", ".svg", "archive/2024/client/reports/quarterly"];
 const CHUNK: usize = FIRST_WINDOW_DEFAULT;
@@ -56,17 +60,21 @@ struct Reference {
 fn reference(session: &Session, text: &str) -> Reference {
     let index = session.index.lock().unwrap();
     let rows: Vec<usize> = (0..index.len()).collect();
-    let text = crate::backend::searchtags::Tags::terms(text).text;
+    let terms = crate::backend::searchtags::Tags::terms(text);
+    let text = terms.text;
     let mut raw = score_cached(&Matcher::new(&text), &rows, &index, &mut QueryScratch::default());
-    let all: Vec<usize> = raw.iter().map(|&(_, row)| row).collect();
     // Shadow rows never show, and typo rows only when no basename holds the query exactly, as its prefix or at a word start.
     let real = raw.iter().any(|hit| tier(hit.0) <= tier(WORD));
+    // An untagged answer skips the typo rows it would hide, so its match list holds none of them.
+    let skipped = real && terms.tags.is_empty() && Matcher::new(&text).budget > 0;
+    let all: Vec<usize> = raw.iter().filter(|hit| !skipped || tier(hit.0) < TIERS - 1).map(|&(_, row)| row).collect();
     if Matcher::new(&text).budget > 0 { raw.retain(|hit| tier(hit.0) < TIERS - 1 || (!real && hit.0 > SHADOW_TYPO)); }
     let mut ranked = raw.clone();
     crate::backend::searchprior::scale(session.priors, &session.scope, &session.folder, &index, &mut ranked, all.len());
     let applied = ranked.iter().zip(&raw).any(|(ranked, raw)| ranked.0 != raw.0);
     let mut pairs: Vec<_> = ranked.iter().copied().zip(raw.iter().map(|hit| hit.0)).collect();
-    pairs.sort_by(|a, b| rank_cmp(&index, &a.0, &b.0));
+    if text.contains('/') { family_oracle::order(&index, &mut pairs); }
+    else { pairs.sort_by(|a, b| rank_cmp(&index, &a.0, &b.0)); }
     Reference {
         all,
         order: pairs.iter().map(|&((_, row), _)| (index.path(row), index.is_dir(row))).collect(),
