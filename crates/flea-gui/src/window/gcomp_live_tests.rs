@@ -69,11 +69,17 @@ fn assert_received_surfaces(
         visual.debug_bounds("fb1-hero-mark").unwrap().size.width,
         px(hero_mark)
     );
+    // Every beat draws the caption size's 4/3 line: 10, 12 and 13 px captions at bases 12, 14 and 16.
+    let caption_size = match base {
+        12 => 10.,
+        14 => 12.,
+        _ => 13.,
+    };
     let caption = visual.debug_bounds("fb1-hero-caption").unwrap().size.height;
     assert_eq!(
         caption,
         edit(cx, handle, |_, window, _| window
-            .pixel_snap(px(base as f32 * 1.2)))
+            .pixel_snap(px(caption_size * 4. / 3.)))
     );
     edit(cx, handle, |shell, window, cx| {
         let pane = &mut shell.panes[0].as_mut().unwrap().pane;
@@ -171,9 +177,9 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
         shell.follow_settings(window, cx);
     });
     for (base, hero_mark, lock_mark, card_width) in [
-        (12, 41., 34., 473.),
-        (14, 48., 40., 552.),
-        (16, 56., 47., 630.),
+        (12, 66., 34., 473.),
+        (14, 66., 40., 552.),
+        (16, 66., 47., 630.),
     ] {
         populate(&mut cx, handle, base as usize + 100);
         fixture.write(&font_file, format!("[font]\nbase-size={base}\n"));
@@ -189,9 +195,9 @@ fn gcomp_oem_delivery_scales_received_empty_locked_and_copy_surfaces() {
         );
     }
     for (base, hero_mark, lock_mark, card_width) in [
-        (12, 41., 34., 473.),
-        (14, 48., 40., 552.),
-        (16, 56., 47., 630.),
+        (12, 66., 34., 473.),
+        (14, 66., 40., 552.),
+        (16, 66., 47., 630.),
     ] {
         populate(&mut cx, handle, base as usize + 200);
         let document = edit(&mut cx, handle, |shell, _, _| {

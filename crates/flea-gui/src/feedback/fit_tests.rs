@@ -1,4 +1,4 @@
-//! Omi retains each old spinner's slot, regardless of adjacent caption geometry.
+//! Omi draws whole 22 px grids in fixed slots, regardless of adjacent caption geometry.
 use super::{
     spinner,
     spinner_tests::{frame, load, open, shell},
@@ -50,27 +50,34 @@ fn painted_box(window: &Window, mark: &spinner::Crawl) -> [f32; 4] {
     )
 }
 
+fn near(actual: f32, want: f32) -> bool {
+    (actual - want).abs() < 0.001
+}
+
 #[test]
-fn omi_fit_preserves_old_surface_sizes_and_snaps_every_edge() {
-    for scale in [1., 1.25, 1.5, 2.] {
-        // Pre-Omi: loading and menu 48, empty hero 48 at text size 14, jobs 16.
-        for (surface, side) in [
-            ("loading", 48.),
-            ("menu", 48.),
-            ("empty", 48.),
-            ("job", 16.),
+fn omi_fit_draws_whole_22_pixel_grids_and_snaps_every_edge() {
+    // GM 2026-10-30: heroes 66 px, cards at least 22 device px, device side a multiple of 22.
+    for (scale, hero, card) in [
+        (1., 66., 22.),
+        (1.25, 66., 22.),
+        (1.5, 88., 22.),
+        (2., 132., 22.),
+    ] {
+        for (surface, side, want) in [
+            ("loading", spinner::HERO, hero),
+            ("menu", spinner::HERO, hero),
+            ("empty", crate::g2::fb1::mark::HERO, hero),
+            ("job", f32::max(16., 22. / scale), card),
         ] {
             let slot = Bounds::new(point(px(100.3), px(200.7)), size(px(side), px(side)));
             let drawn = view_rect(slot, scale).scale(scale);
-            assert_eq!(
-                drawn.size.width.0,
-                (side * scale).round(),
-                "{surface} at {scale}"
+            assert!(
+                near(drawn.size.width.0, want),
+                "{surface} at {scale}: {drawn:?}"
             );
-            assert_eq!(
-                drawn.size.height.0,
-                (side * scale).round(),
-                "{surface} at {scale}"
+            assert!(
+                near(drawn.size.height.0, want),
+                "{surface} at {scale}: {drawn:?}"
             );
             for edge in [
                 drawn.left().0,
@@ -78,7 +85,7 @@ fn omi_fit_preserves_old_surface_sizes_and_snaps_every_edge() {
                 drawn.right().0,
                 drawn.bottom().0,
             ] {
-                assert_eq!(edge, edge.round(), "{surface} at {scale}");
+                assert!(near(edge, edge.round()), "{surface} at {scale}");
             }
         }
     }
@@ -116,7 +123,7 @@ impl Render for Surfaces {
 }
 
 #[gpui::test]
-fn omi_fit_real_menu_and_job_slots_keep_their_pre_omi_sizes(cx: &mut TestAppContext) {
+fn omi_fit_real_menu_and_job_slots_take_hero_and_card_floor_sizes(cx: &mut TestAppContext) {
     for mode in [
         spinner::Mode::Thinking,
         spinner::Mode::Working,
@@ -124,16 +131,29 @@ fn omi_fit_real_menu_and_job_slots_keep_their_pre_omi_sizes(cx: &mut TestAppCont
         spinner::Mode::Download,
     ] {
         let handle = cx.add_window(|_, _| Surfaces(mode));
-        for scale in [1., 1.25, 1.5, 2.] {
+        for (scale, hero) in [(1., 66.), (1.25, 66.), (1.5, 88.), (2., 132.)] {
             cx.simulate_window_scale_factor_change(handle.into(), scale);
             frame(cx, handle);
             let mut visual = gpui::VisualTestContext::from_window(handle.into(), cx);
-            for (selector, side) in [("fit-menu", 48.), ("fit-job", 16.)] {
+            for (selector, side, drawn) in [
+                ("fit-menu", spinner::HERO, hero),
+                ("fit-job", f32::max(16., 22. / scale), 22.),
+            ] {
                 let slot = visual.debug_bounds(selector).unwrap();
+                // Layout snaps the slot to device pixels, so 66 px at 1.25 lays out as 82 device px.
+                let laid = f32::from(slot.size.width) * scale;
+                assert!(
+                    (laid - side * scale).abs() <= 1.,
+                    "{selector} {mode:?} {scale}: {slot:?}"
+                );
                 assert_eq!(
-                    slot.size,
-                    size(px(side), px(side)),
+                    slot.size.width, slot.size.height,
                     "{selector} {mode:?} {scale}"
+                );
+                let painted = view_rect(slot, scale).scale(scale).size.width.0;
+                assert!(
+                    near(painted, drawn),
+                    "{selector} {mode:?} {scale}: {painted}"
                 );
             }
         }
@@ -174,7 +194,7 @@ fn omi_fit_loading_does_not_follow_message_line_count(cx: &mut TestAppContext) {
                 "painted message {message}"
             );
         }
-        assert_eq!(mark.slot().size, size(px(48.), px(48.)));
+        assert_eq!(mark.slot().size, size(px(spinner::HERO), px(spinner::HERO)));
     }
 }
 
@@ -228,6 +248,55 @@ fn omi_fit_empty_does_not_follow_rotating_caption_metrics(cx: &mut TestAppContex
                     );
                 }
             });
+        }
+        shell(cx, handle, |shell, _, cx| {
+            assert!(shell
+                .surfaces
+                .iter()
+                .filter_map(|surface| surface.hero.as_ref())
+                .any(|hero| hero.read(cx).rotation().index() >= 2));
+        });
+    }
+}
+
+#[gpui::test]
+fn omi_fit_empty_caption_line_holds_across_beats(cx: &mut TestAppContext) {
+    for view in [View::List, View::Grid, View::Columns, View::Dual] {
+        let (handle, _keep) = open(cx, view == View::Dual);
+        cx.simulate_window_resize(handle.into(), size(px(1100.), px(700.)));
+        shell(cx, handle, |shell, window, cx| {
+            window.set_rem_size(px(14.));
+            shell.view = view;
+            for host in shell.panes.iter_mut().flatten() {
+                host.pane.state.kind = Kind::Empty;
+                host.changed(&shell.locale);
+            }
+            cx.notify();
+        });
+        // The caption's top and line box, per hero; its width follows the phrase.
+        let line = |cx: &mut TestAppContext| {
+            shell(cx, handle, |shell, _, cx| {
+                shell
+                    .surfaces
+                    .iter()
+                    .filter_map(|surface| surface.hero.as_ref())
+                    .map(|hero| {
+                        let caption = hero.read(cx).painted.get("caption").unwrap().bounds;
+                        (caption.origin.y, caption.size.height)
+                    })
+                    .collect::<Vec<_>>()
+            })
+        };
+        for _ in 0..150 {
+            frame(cx, handle);
+        }
+        let first = line(cx);
+        assert!(!first.is_empty(), "{view:?} mounts a hero");
+        for beat in 1..3 {
+            for _ in 0..175 {
+                frame(cx, handle);
+            }
+            assert_eq!(line(cx), first, "{view:?} caption moved on beat {beat}");
         }
         shell(cx, handle, |shell, _, cx| {
             assert!(shell

@@ -26,15 +26,9 @@ impl EmptyHero {
         }
         let now = now_ms(self.base, cx);
         self.sync_motion(now, cx);
-        let metrics = self.metrics();
         self.rotation.advance(now);
         let frame = self.rotation.frame(now);
         self.shown_frame = Some(frame);
-        if self.metrics() != metrics {
-            let hero = cx.entity_id();
-            bump(&self.counters.frames);
-            window.on_next_frame(move |_, cx| cx.notify(hero));
-        }
         if self.rotation.entering() {
             self.timer = None;
         } else if self.rotation.caption_animating() {

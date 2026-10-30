@@ -6,13 +6,13 @@ use gpui::{
     InspectorElementId, IntoElement, LayoutId, Pixels, Style, Window,
 };
 pub(crate) use player::request_frame;
-pub use player::{device_side, Mode, Motion};
+pub use player::{device_side, Mode, Motion, OMI_GRID_PX};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
 };
 
-pub const HERO: f32 = 48.;
+pub const HERO: f32 = 66.;
 pub const GAP: f32 = 9.;
 
 /// Animation, an undrawn floor, or a fixed time in seconds into the mode.

@@ -7,7 +7,7 @@ use super::{
 use gpui::{px, size, TestAppContext};
 
 #[gpui::test]
-fn fix9_hero_follows_body_small_and_caption_steps(cx: &mut TestAppContext) {
+fn fix9_hero_caption_follows_text_size_and_the_mark_stays_66(cx: &mut TestAppContext) {
     cx.update(|cx| cx.set_reduce_motion(true));
     let view = cx.add_window(|window, cx| {
         window.set_rem_size(px(14.));
@@ -17,9 +17,9 @@ fn fix9_hero_follows_body_small_and_caption_steps(cx: &mut TestAppContext) {
     });
     cx.simulate_window_resize(view.into(), size(px(908.), px(619.)));
     for (base, mark, line) in [
-        (12_f32, 41., 10_f32 * 4. / 3.),
-        (14., 48., 16.),
-        (16., 56., 13. * 4. / 3.),
+        (12_f32, 66., 10_f32 * 4. / 3.),
+        (14., 66., 16.),
+        (16., 66., 13. * 4. / 3.),
     ] {
         view.update(cx, |_, window, cx| {
             window.set_rem_size(px(base));
