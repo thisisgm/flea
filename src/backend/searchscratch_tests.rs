@@ -157,10 +157,10 @@ fn search_fs4_split_row_pass_matches_the_one_thread_pass() {
             }
         }
     }
+    assert_eq!(split.row_workers.len(), 4, "the four-core scratch took the split arms");
 }
 
-// The strict-first pass returns the full pass where typo rows could show, and elsewhere the full pass without its typo rows, which
-// hide_typos would drop because a basename holds the query exactly, as its prefix or at a word start.
+// The strict-first pass is the full pass where typo rows could show, and elsewhere the full pass less the typo rows hide_typos drops.
 #[test]
 fn search_fs4_strict_pass_matches_the_full_pass_wherever_typos_could_show() {
     use crate::backend::searchindex::{class, score_shown, CLASSES};
@@ -172,8 +172,10 @@ fn search_fs4_strict_pass_matches_the_full_pass_wherever_typos_could_show() {
         "\u{4e2d}\u{6587}/redne.txt", "r\u{e9}dner.md", "renderer/frame_redner.rs"] {
         assert!(hand.push(path, false));
     }
+    // Digit rows take the hand index to the whole-table arm, whose name table holds parent-only names such as abxd and redner.
+    for pad in 0..searchindex::PARALLEL_SCORE_AT { assert!(hand.push(format!("{pad:04}"), false)); }
     hand.finish();
-    let queries = ["render_frame.rs", "redner_frame.rs", "editor/src/components/render", "editor/src/components/redner", "edtor/src/comp",
+    let queries = ["abxd", "redner", "render_frame.rs", "redner_frame.rs", "editor/src/components/render", "editor/src/components/redner", "edtor/src/comp",
         "archve/2024/clent", "redn", "redne", "rendr", "edito", "caf\u{e8}", "cafe", "abxd/leaf", "abdc/leaf", "quarterly", "quartrely",
         ".svg", "zzzz", "r\u{e9}dne", "frame"];
     let (mut strict, mut full_answers) = (0, 0);
@@ -185,7 +187,9 @@ fn search_fs4_strict_pass_matches_the_full_pass_wherever_typos_could_show() {
                 for matcher in [Matcher::new(query), Matcher::deferred(query)] {
                     for cores in [Some(1), None] {
                         let full = score_cached(&matcher, rows, index, &mut QueryScratch { pinned_cores: cores, ..QueryScratch::default() });
-                        let (shown, typos) = score_shown(&matcher, rows, index, &mut QueryScratch { pinned_cores: cores, ..QueryScratch::default() });
+                        let mut shown_scratch = QueryScratch { pinned_cores: cores, ..QueryScratch::default() };
+                        let (shown, typos) = score_shown(&matcher, rows, index, &mut shown_scratch);
+                        assert_eq!(shown_scratch.whole, rows.len() == index.len(), "{query:?} whole-table arm, rows={}", rows.len());
                         let real = full.iter().any(|hit| class(hit.0) <= class(WORD));
                         assert_eq!(typos, !real || matcher.budget == 0, "{query:?} rows={}", rows.len());
                         let expected: Vec<_> = if typos { full.clone() } else { full.iter().copied().filter(|hit| class(hit.0) < CLASSES - 1).collect() };
@@ -253,8 +257,7 @@ fn search_t10_name_own_is_name_bytes_and_the_dp() {
     assert!(owned > 5_000 && lifts > 500, "deferred passes read own scores: {owned}, checked lifts: {lifts}");
 }
 
-// The lift by enumeration: every chain of the needle from a later letter on through the name, as the path DP scores it after a
-// parent column of 0: minus its first place, then each letter's bonus and a run's bonus or a gap's cost.
+// The lift by enumeration: each chain of a later needle suffix through the name, scored as the path DP scores it after a parent column of 0.
 fn brute_lift(name: &[u8], needle: &[u8]) -> Option<i32> {
     use crate::backend::searchmatch::{separator, BASENAME_BONUS, BOUNDARY_BONUS, RUN_BONUS};
     fn walk(name: &[u8], rest: &[u8], last: Option<usize>, score: i32, best: &mut Option<i32>) {
@@ -286,7 +289,7 @@ fn search_t10_resolve_with_own_scores_is_the_path_dp() {
     }
     hand.finish();
     let queries = ["e", "ed", "edit", "red", "r", "a", ".", "x", "caf\u{e9}", "render", "frame", "rxd", "xe", "xedx", "edito", "redn", "d/x"];
-    let (mut saved, mut lifted) = (0, false);
+    let (mut saved, mut lifted, mut shared) = (0, false, false);
     for index in [&synthetic, &hand] {
         let all: Vec<_> = (0..index.len()).collect();
         let few: Vec<_> = all.iter().copied().step_by(7).collect();
@@ -301,6 +304,7 @@ fn search_t10_resolve_with_own_scores_is_the_path_dp() {
                     index.path_dp.store(0, Ordering::Relaxed);
                     resolve(&deferred, index, &mut scratch, &mut hits);
                     let path_dps = index.path_dp.swap(0, Ordering::Relaxed);
+                    shared |= cores == Some(4) && scratch.counters.resolve_largest_share > 0;
                     hits.sort_unstable_by_key(|hit| hit.1);
                     exact.sort_unstable_by_key(|hit| hit.1);
                     assert_eq!(hits, exact, "{query:?} cores={cores:?} rows={}", rows.len());
@@ -313,6 +317,7 @@ fn search_t10_resolve_with_own_scores_is_the_path_dp() {
     }
     assert!(saved > 10_000, "own scores replaced path DPs: {saved}");
     assert!(lifted, "a parent that holds the needle lifted a basename above its own score");
+    assert!(shared, "the four-core scratch resolved rows across threads");
 }
 
 // An ASCII basename read as bytes holds the same needle suffix its folded letters hold.

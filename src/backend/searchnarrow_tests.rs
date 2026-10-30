@@ -129,7 +129,8 @@ fn search_q1_session_scores_only_previous_matches_on_admitted_extensions() {
     session.priors = None;
     let mut gen = 0;
     let (mut narrowed, mut rescored) = (0, 0);
-    for query in QUERIES {
+    // rendr extends the strict answer for rend into one that needs typos, which takes the rescore arm.
+    for query in QUERIES.into_iter().chain(["rendr"]) {
         let mut before = "";
         let (mut previous, mut previous_typos) = (0, true);
         for (at, c) in query.char_indices() {
@@ -166,6 +167,7 @@ fn search_q1_session_scores_only_previous_matches_on_admitted_extensions() {
         }
     }
     println!("FS4_NARROW narrowed={narrowed} rescored={rescored}");
+    assert!(rescored > 0, "a strict answer followed by a typo answer must take the rescore arm");
     // Nonzero-budget admission must be exercised even before can_narrow is changed.
     session.query(gen + 1, "redner_", 16).unwrap();
     let previous = session.last_matches.len();

@@ -1,6 +1,10 @@
 use super::*;
 use crate::backend::searchtypo;
 
+// Multiplier and increment of the tests' linear congruential generator (Knuth's MMIX constants).
+const LCG_MULTIPLIER: u64 = 6364136223846793005;
+const LCG_INCREMENT: u64 = 1442695040888963407;
+
 fn chars(bytes: &[u8]) -> Vec<char> {
     String::from_utf8_lossy(bytes).chars().collect()
 }
@@ -167,7 +171,7 @@ fn search_edit_budgets_and_narrowing_are_conservative() {
 fn search_bit_edits_match_the_reference_at_both_budgets_and_word_boundaries() {
     let mut seed = 2u64;
     let mut next = |alphabet: &[u8]| {
-        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        seed = seed.wrapping_mul(LCG_MULTIPLIER).wrapping_add(1);
         alphabet[(seed >> 32) as usize % alphabet.len()] as char
     };
     let mut folded = Vec::new();
@@ -212,7 +216,7 @@ fn search_lane_advance_matches_fold_advance_cell_for_cell() {
     let alphabet = b"abcdeEDA/_-. xyzQ0";
     let mut seed = 7u64;
     let mut next = |bound: usize| {
-        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        seed = seed.wrapping_mul(LCG_MULTIPLIER).wrapping_add(1);
         (seed >> 33) as usize % bound
     };
     for _ in 0..20_000 {
@@ -238,13 +242,12 @@ fn search_lane_advance_matches_fold_advance_cell_for_cell() {
     }
 }
 
-// The common-subsequence bound in front of the packed typo automaton never drops a match: random names and near misses of one- and
-// two-edit queries get the classic DP's distance, through folded letters and through ASCII bytes.
+// The LCS bound in front of the typo automaton never drops a match: random names and near misses get the classic DP's distance.
 #[test]
 fn search_fs4_typo_bound_keeps_every_match() {
     let mut seed = 0x5146_5338_u64;
     let mut next = |limit: usize| {
-        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        seed = seed.wrapping_mul(LCG_MULTIPLIER).wrapping_add(LCG_INCREMENT);
         (seed >> 33) as usize % limit
     };
     let alphabet = b"abcdenrAEN_.-1 /";

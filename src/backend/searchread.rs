@@ -40,8 +40,12 @@ pub(crate) struct Directory {
     pub stats: usize,
 }
 
-// linux_dirent64: d_ino at 0, d_reclen at 16, d_type at 18, the NUL-terminated name at 19.
 const DENTS_BYTES: usize = 32768;
+// A linux_dirent64 record: d_ino 1234 at 0, d_off at 8, d_reclen 32 at 16, d_type 8 (DT_REG) at 18, "a.txt\0" at 19, padded to 8 bytes.
+const RECLEN_AT: usize = 16;
+const TYPE_AT: usize = 18;
+const NAME_AT: usize = 19;
+const ENOENT: i32 = 2;
 
 extern "C" {
     fn open(path: *const c_char, flags: c_int, ...) -> c_int;
@@ -123,23 +127,23 @@ fn read_observing(dir: &Path, unknown: bool, mut progress: impl FnMut(usize), fo
         let read = unsafe { getdents64(fd, buf.as_mut_ptr().cast(), DENTS_BYTES) };
         if read <= 0 {
             // As glibc's readdir does, ENOENT from a directory removed while open reads as its end.
-            if read < 0 && std::io::Error::last_os_error().raw_os_error() != Some(2) { out.partial.get_or_insert("unreadable"); }
+            if read < 0 && std::io::Error::last_os_error().raw_os_error() != Some(ENOENT) { out.partial.get_or_insert("unreadable"); }
             return Ok(out);
         }
         let base = buf.as_ptr().cast::<u8>();
         let mut at = 0;
         while at < read as usize {
             let entry = unsafe { base.add(at) };
-            let reclen = unsafe { std::ptr::read_unaligned(entry.add(16).cast::<u16>()) } as usize;
+            let reclen = unsafe { std::ptr::read_unaligned(entry.add(RECLEN_AT).cast::<u16>()) } as usize;
             if reclen == 0 { out.partial.get_or_insert("unreadable"); return Ok(out); }
             at += reclen;
             // glibc's readdir skips a record whose inode is 0, a deleted entry.
             if unsafe { std::ptr::read_unaligned(entry.cast::<u64>()) } == 0 { continue; }
             if stop() { out.partial = Some("cancelled"); return Ok(out); }
-            let name = unsafe { CStr::from_ptr(entry.add(19).cast::<c_char>()) };
+            let name = unsafe { CStr::from_ptr(entry.add(NAME_AT).cast::<c_char>()) };
             let bytes = name.to_bytes();
             if bytes == b"." || bytes == b".." { continue; }
-            let dtype = if unknown { 0 } else { unsafe { *entry.add(18) } };
+            let dtype = if unknown { 0 } else { unsafe { *entry.add(TYPE_AT) } };
             let kind = directory_type(dtype, || {
                 #[cfg(test)]
                 { out.stats += 1; }

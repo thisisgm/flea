@@ -110,9 +110,7 @@ impl State {
         }
     }
 
-    // advance over ASCII bytes, given which query positions each byte matches: a byte matching none only ages every best
-    // by one, never under DEAD, and clears every run end, so bests are kept offset by the letter count and only matching
-    // bytes are visited.
+    // advance over ASCII bytes: a byte matching no query position only ages bests by one, so bests stay offset by the letter count.
     fn advance_lanes(&mut self, lanes: &[u64; 256], len: usize, bytes: &[u8], basename: bool) {
         let mut last = usize::MAX;
         for (at, &byte) in bytes.iter().enumerate() {
@@ -235,8 +233,7 @@ impl Matcher {
         self.distance(letters, edits).map(|distance| TYPO - distance as i32 * TYPO_EDIT)
     }
 
-    // name_bytes' typo arm alone, for a name a strict matcher already found holding the query neither exactly, as its prefix, at a word
-    // start nor as a subsequence.
+    // name_bytes' typo arm alone, for a name in which a strict matcher found no exact, prefix, word or subsequence match.
     pub(crate) fn typo_bytes(&self, bytes: &[u8], letters: &mut Vec<Letter>, edits: &mut super::searchtypo::Scratch) -> Option<i32> {
         let packed = self.ascii.as_ref().filter(|_| bytes.is_ascii()).and_then(|_| self.typo.ascii_distance(ascii::Ascii(bytes), self.budget));
         let distance = match packed {
