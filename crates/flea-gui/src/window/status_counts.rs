@@ -44,6 +44,20 @@ pub(super) fn trash(shell: &Shell, cx: &App) -> Option<Snapshot> {
     })
 }
 
+/// WindowBody.qml flashCount: the flash pane counts its drives, 2 drives, and selects nothing.
+pub(super) fn flash(shell: &Shell) -> Option<Snapshot> {
+    if !shell.flash_covers(shell.focus_side) {
+        return None;
+    }
+    let flash = &shell.operations.archive.flash;
+    Some(Snapshot {
+        kind: Kind::Ready,
+        total: flash.drive_count(),
+        selected: 0,
+        text: flash.drives_line(&shell.locale.catalog),
+    })
+}
+
 pub(super) fn folder(host: &PaneHost, catalog: &I18n) -> Snapshot {
     let kind = host.pane.state.kind;
     let held = &host.pane.held;

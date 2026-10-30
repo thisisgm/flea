@@ -22,6 +22,7 @@ use gpui::{
 use std::{process::Command, rc::Rc, time::Instant};
 
 mod chosen;
+mod cover;
 mod layer;
 mod reply;
 

@@ -151,6 +151,9 @@ impl Shell {
         };
         let trash = counts::trash(self, cx);
         let in_trash = trash.is_some();
+        let flash = trash.is_none().then(|| counts::flash(self)).flatten();
+        let in_flash = flash.is_some();
+        let trash = trash.or(flash);
         let counts::Snapshot {
             kind,
             total,
@@ -177,9 +180,13 @@ impl Shell {
             !fs.answered,
         );
         // HIG search.png: the landed receipt stands before the disk facts while search lives.
-        let (path, state_message, retry, search) = if in_trash {
+        let (path, state_message, retry, search) = if in_trash || in_flash {
             (
-                catalog.tr("trash.title"),
+                catalog.tr(if in_trash {
+                    "trash.title"
+                } else {
+                    "archive.flash.title"
+                }),
                 String::new(),
                 String::new(),
                 String::new(),

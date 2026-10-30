@@ -150,6 +150,7 @@ impl Render for Shell {
         }
         let mut panes: [Option<AnyElement>; 2] = [None, None];
         let renaming = [0, 1].map(|side| self.renaming_row(side));
+        let flashed = [0, 1].map(|side| self.flash_covers(side));
         // Contents blocks take the block height before the frames are built, so scroll, keys and hit-test agree.
         self.sync_contents_rows();
         let mut lists = self.prepare_lists(
@@ -169,7 +170,7 @@ impl Render for Shell {
                 host.drawn_list = false;
                 continue;
             }
-            if self.slots.covers[side].is_some() {
+            if self.slots.covers[side].is_some() || flashed[side] {
                 host.drawn_view = None;
                 host.drawn_list = false;
                 continue;

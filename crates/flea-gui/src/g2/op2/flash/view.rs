@@ -122,6 +122,7 @@ impl Flash {
                 line,
                 action: words.action.clone(),
                 live: self.live(),
+                resting: !running && self.runner.ending.is_none() && !self.live(),
                 running,
                 hint: ending.map(|ending| ending.hint.clone()).unwrap_or_default(),
                 cursor: self.cursor == self.flash_row(),
@@ -202,6 +203,8 @@ pub struct StepRow {
     pub line: String,
     pub action: String,
     pub live: bool,
+    /// FlashStepRow.qml: at rest with no live Flash, the mark and the erase line dim.
+    pub resting: bool,
     pub running: bool,
     pub hint: String,
     pub cursor: bool,

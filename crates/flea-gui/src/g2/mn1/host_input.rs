@@ -95,6 +95,7 @@ impl Shell {
         if self.input_blocked(cx)
             || (side == 1 && self.view != View::Dual)
             || self.slots.covers[side].is_some()
+            || self.flash_covers(side)
         {
             return;
         }

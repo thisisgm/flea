@@ -12,6 +12,7 @@ fn framed_step(live: bool, cursor: bool, end_primary: bool, hover: bool, pressed
         line: String::new(),
         action: "Flash".into(),
         live,
+        resting: false,
         running: false,
         hint: String::new(),
         cursor,

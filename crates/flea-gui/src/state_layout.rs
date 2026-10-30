@@ -32,7 +32,7 @@ impl Shell {
         for pane in &mut geometry.panes {
             pane.height = (pane.height - detail).max(0.);
         }
-        if view != View::Dual && self.slots.covers[0].is_some() {
+        if view != View::Dual && (self.slots.covers[0].is_some() || self.flash_covers(0)) {
             geometry.cover_single();
         }
         geometry
