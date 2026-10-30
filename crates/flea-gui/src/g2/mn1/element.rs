@@ -51,14 +51,15 @@ pub struct MenuInk {
 
 impl MenuInk {
     pub fn from_palette(palette: &Palette) -> Self {
+        let frames = crate::presentation::frames::Frames::from_palette(palette, 0.);
         Self {
             surface: palette.background,
-            frame: palette.muted_frame,
-            rule: palette.muted_frame.opacity(RULE),
+            frame: frames.ink,
+            rule: frames.ink.opacity(RULE),
             wash: palette.foreground.opacity(WASH),
             label: palette.foreground,
             muted: palette.muted,
-            mark: palette.metadata_frame,
+            mark: frames.ink,
             error: palette.error,
             tags: [palette.foreground; 7],
         }
@@ -206,6 +207,8 @@ fn paint_row(
     let label_ink = if red { ink.error } else { ink.label }.opacity(dim);
     let mark_ink = if red { ink.error } else { ink.mark }.opacity(dim);
     paint_lead(&line.lead, mark_ink, ink, left, top, window, cx);
+    #[cfg(test)]
+    crate::presentation::frame_gate::mark(&line.id, mark_ink, cx);
     // Trailing parts end on one edge: the chevron's column, which a state word keeps, then the key, then the word.
     let mut edge = right - px(PAD_X);
     if line.has_trailing_column() {

@@ -121,11 +121,9 @@ impl Render for SelectionPreview {
             .relative()
             .w_full()
             .border_1()
-            .border_color(if empty {
-                roles.muted_frame
-            } else {
-                roles.metadata_frame
-            })
+            .border_color(
+                crate::presentation::frames::Frames::from_palette(&roles, self.corner).ink,
+            )
             .rounded(px(self.corner))
             .overflow_hidden()
             .child(frame_probe)

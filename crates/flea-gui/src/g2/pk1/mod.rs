@@ -52,3 +52,6 @@ mod pointer_tests;
 mod rail_press_tests;
 #[cfg(test)]
 mod rail_tests;
+
+#[cfg(test)]
+mod frame_gate_tests;

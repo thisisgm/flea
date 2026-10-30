@@ -1,6 +1,7 @@
 """Gate-shell regressions: the strict flea-gui mutant is judged only through tools/flea-clippy."""
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -13,9 +14,20 @@ CARGO = """#!/bin/bash
 # Stand-in cargo: fmt passes, and clippy reports the injected name the way the strict build does.
 [ "$1" = fmt ] && exit 0
 if [ "$1" = test ]; then
-  [ "$MODE" != font-failure ] || exit 101
-  [ "$MODE" != font-empty ] || { echo 'running 0 tests'; exit 0; }
-  echo 'FONT_GATE failed_surfaces=[]'
+  case " $* " in
+    *" font_gate "*)
+      [ "$MODE" != font-failure ] || exit 101
+      [ "$MODE" != font-empty ] || { echo 'running 0 tests'; exit 0; }
+      echo 'FONT_GATE failed_surfaces=[]' ;;
+    *)
+      case "$MODE" in
+        frame) echo 'test result: FAILED. SHORT_TESTS passed; 2 failed; 0 ignored; 0 measured; 3083 filtered out'; exit 101 ;;
+        short) echo 'test result: ok. SHORT_TESTS passed; 0 failed; 0 ignored; 0 measured; 3085 filtered out' ;;
+        surplus) echo 'test result: ok. SURPLUS_TESTS passed; 0 failed; 0 ignored; 0 measured; 3082 filtered out' ;;
+        empty) ;;
+        *) echo 'test result: ok. FRAME_TESTS passed; 0 failed; 0 ignored; 0 measured; 3083 filtered out' ;;
+      esac ;;
+  esac
   exit 0
 fi
 case "$MODE" in
@@ -24,6 +36,19 @@ case "$MODE" in
 esac
 exit 101
 """
+# The stand-in reports the pinned count, two fewer for a short or failing run, one more for a surplus, and none when empty.
+# frame_tests=34
+PIN = re.search(r"^frame_tests=(\d+)$", GATE.read_text(), re.M)
+if PIN is None:
+    raise SystemExit(f"{GATE}: no frame_tests=N line pins the frame-gate test count")
+FRAME_TESTS = int(PIN.group(1))
+CARGO = CARGO.replace("SHORT_TESTS", str(FRAME_TESTS - 2)).replace("SURPLUS_TESTS", str(FRAME_TESTS + 1))
+CARGO = CARGO.replace("FRAME_TESTS", str(FRAME_TESTS))
+
+
+def count_failure(got):
+    return f"FAIL frame-gate exited 0 but expected {FRAME_TESTS} passed frame tests, got: {got}"
+
 
 WRAPPER = """#!/bin/bash
 # Stand-in tools/flea-clippy: the control tree is clean, and the mutant tree behaves as MODE says.
@@ -80,6 +105,31 @@ class GateShell(unittest.TestCase):
                    XDG_CONFIG_HOME=str(self.root / "config"), XDG_CACHE_HOME=str(self.root / "cache"))
         return subprocess.run(["/bin/bash", str(self.root / "tests/gpui-gates.sh")], cwd=self.root,
                               env=env, capture_output=True, text=True)
+
+    def test_frame_failure_fails_the_existing_rust_gate(self):
+        p = self.run_gate("frame")
+        self.assertNotEqual(0, p.returncode, p.stdout)
+        self.assertIn("GATE frame-gate rc=101", p.stdout)
+        self.assertNotIn("FAIL frame-gate exited 0", p.stdout)
+
+    def test_short_frame_run_fails_the_gate(self):
+        p = self.run_gate("short")
+        self.assertNotEqual(0, p.returncode, p.stdout)
+        self.assertIn("GATE frame-gate rc=0", p.stdout)
+        self.assertIn(count_failure(f"test result: ok. {FRAME_TESTS - 2} passed;"), p.stdout)
+
+    def test_surplus_frame_run_names_the_reported_count(self):
+        p = self.run_gate("surplus")
+        self.assertNotEqual(0, p.returncode, p.stdout)
+        self.assertIn(count_failure(f"test result: ok. {FRAME_TESTS + 1} passed;"), p.stdout)
+
+    def test_frame_run_without_a_result_line_fails_and_continues(self):
+        p = self.run_gate("empty")
+        self.assertNotEqual(0, p.returncode, p.stdout)
+        self.assertIn(count_failure("no test result line"), p.stdout)
+        self.assertIn("GATE gate-regressions rc=0", p.stdout)
+        later = p.stdout.index("GATE gate-regressions rc=0")
+        self.assertLess(p.stdout.index(count_failure("no test result line")), later, p.stdout)
 
     def test_silent_wrapper_cannot_accept_the_strict_gui_mutant(self):
         p = self.run_gate("silent")

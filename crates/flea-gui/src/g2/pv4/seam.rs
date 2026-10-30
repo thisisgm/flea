@@ -53,11 +53,12 @@ fn rgb(color: Hsla) -> [f32; 3] {
 
 /// The view's palette from the window's roles: the foreground's two shades, the muted hairlines and the frame edge.
 pub fn palette(roles: &crate::list::Palette, ground: Hsla) -> Palette {
+    let frame = crate::presentation::frames::Frames::from_palette(roles, 0.).ink;
     Palette {
         ground: rgb(ground),
         foreground: rgb(roles.foreground),
         muted: rgb(roles.metadata),
-        frame: rgb(roles.metadata_frame),
+        frame: rgb(frame),
     }
 }
 
@@ -66,5 +67,19 @@ pub struct CacheReader;
 impl ModelReader for CacheReader {
     fn read(&self, file: &Path, _: &Data) -> Result<Scene, String> {
         flea::preview_model::read(file)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// The fixture tells muted_frame from metadata_frame, so an edge drawn from another role fails.
+    #[test]
+    fn the_frame_edge_takes_the_shared_frame_ink() {
+        let theme = crate::presentation::frame_gate::theme();
+        let roles = crate::list::Palette::inherited(&gpui::TextStyle::default(), theme);
+        let frames = crate::presentation::frames::Frames::from_palette(&roles, 0.);
+        let ink = super::rgb(frames.ink);
+        assert_ne!(ink, super::rgb(roles.metadata_frame));
+        assert_eq!(super::palette(&roles, theme.background).frame, ink);
     }
 }

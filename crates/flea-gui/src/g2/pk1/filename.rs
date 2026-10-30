@@ -171,11 +171,12 @@ impl Render for Filename {
             .whitespace_nowrap()
             .text_size(px(TEXT))
             .text_color(palette.foreground)
+            .rounded(px(crate::compositor::corner(cx)))
             .border_1()
             .border_color(if focused {
                 palette.accent_frame
             } else {
-                palette.metadata_frame
+                crate::presentation::frames::Frames::from_palette(&palette, 0.).ink
             })
             .track_focus(&self.focus)
             .on_click(

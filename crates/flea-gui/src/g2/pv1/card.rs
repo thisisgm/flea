@@ -48,7 +48,14 @@ impl Render for QuickLook {
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
-        let look = self.look(&window.text_style(), theme);
+        let mut look = self.look(&window.text_style(), theme);
+        if self.look.is_none() {
+            let palette = crate::list::Palette::inherited(&window.text_style(), theme);
+            look = look.with_frames(crate::presentation::frames::Frames::from_palette(
+                &palette,
+                crate::compositor::corner(cx),
+            ));
+        }
         let mut card = self.card(window.viewport_size());
         card.origin.y += px(motion.rise);
         match self.viewport(card, window) {

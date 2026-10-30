@@ -97,30 +97,7 @@ impl Shell {
             }
         }
         self.restyle_trash_menu(&face, window);
-        let palette = crate::g2::op1::palette::CardPalette::from_theme(
-            &window.text_style(),
-            snapshot.theme,
-            self.corner,
-        );
-        if let Some(overlay) = &self.overlay {
-            overlay.update(cx, |overlay, cx| {
-                overlay.palette = palette;
-                cx.notify();
-            });
-        }
-        // Cards built once and kept keep their construction palette unless the switch hands them the new one.
-        if let Some(output) = &self.output.view {
-            output.update(cx, |output, cx| {
-                output.palette = palette;
-                output.restyle_printers(&face, window);
-                cx.notify();
-            });
-        }
-        if let Some(network) = self.rail.as_ref().and_then(|join| join.network.as_ref()) {
-            let (card, shares) = (network.card.clone(), network.shares.clone());
-            card.update(cx, |card, cx| card.set_palette(palette, cx));
-            shares.update(cx, |shares, cx| shares.set_palette(palette, cx));
-        }
+        self.restyle_frames(window, cx);
         window.refresh();
         cx.notify();
     }

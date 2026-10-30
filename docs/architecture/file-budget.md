@@ -1594,3 +1594,6 @@ The QML menu's unavailable-app rows draw red with no state word, and the review 
 Navigation: [architecture index](README.md),
 [load-bearing rules](../../AGENTS.md#the-seven-load-bearing-rules).
 Source paths in this reference are relative to the repository root.
+
+VF-FRAMES keeps the global caps unchanged. The menu element's scoped ceiling moves from 415 to 418 lines, re-derived with `wc -l`, for the shared frame-role read and its disabled test-only glyph-paint receipt. The receipt records the ink actually passed to the mounted menu glyph painter.
+The retained Quick Look host moves from 400 to 401 lines for the shared palette refresh on first mount and reopening. Its exact scoped ceiling is 401. The gate records parent-identical debt separately.
