@@ -15,7 +15,10 @@ for name in ("ui", "shelf", "keys.toml", "i18n"):
 manifest = (repo / "Cargo.toml").read_text()
 version = next(line for line in manifest.splitlines() if line.startswith("version ="))
 # The scratch crate takes the root crate's own dependencies at their locked versions, so it builds offline.
-dependencies = manifest.split("\n[dependencies]\n", 1)[1].split("\n[", 1)[0]
+# Sample input: '\n[dependencies]\nfoldhash = "0.2.0"\n\n[features]' answers 'foldhash = "0.2.0"\n'.
+_, header, rest = manifest.partition("\n[dependencies]\n")
+assert header, f"no [dependencies] table in {repo / 'Cargo.toml'}"
+dependencies = rest.split("\n[", 1)[0]
 (root / "Cargo.toml").write_text('[package]\nname = "flea"\n' + version + '\nedition = "2021"\n[workspace]\n[dependencies]\n' + dependencies + '\n[features]\nflash-test-seam = []\n')
 shutil.copyfile(repo / "Cargo.lock", root / "Cargo.lock")
 mutants = [
