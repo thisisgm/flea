@@ -51,7 +51,7 @@ fn drawn(cx: &mut TestAppContext, card: Card, body: f32) -> (Bounds<Pixels>, Vec
 
 fn properties_file() -> Card {
     let i18n = english();
-    let (mut card, _) = super::properties::Properties::open(5, &[2]);
+    let (mut card, _) = super::properties::Properties::open(5, 1, &[2], 0);
     card.set_extras(Vec::new(), "Plain text document");
     card.reply(&i18n, &flea::jsondoc::parse(r#"{"op":"properties","id":5,"ok":true,"path":"/fx/v/work/notes.txt","kind":"File","bytes":99,"modified":0,"mode":"0644","owner":"gm","uid":1000,"gid":1000}"#).unwrap());
     card.card(&i18n)
@@ -115,7 +115,7 @@ fn a_larger_body_grows_the_card_and_its_buttons(cx: &mut TestAppContext) {
 
 fn properties_of(id: u64, reply: &str, more: &[&str]) -> Card {
     let i18n = english();
-    let (mut card, _) = super::properties::Properties::open(id, &[0]);
+    let (mut card, _) = super::properties::Properties::open(id, 1, &[0], 0);
     card.set_extras(Vec::new(), "Plain text document");
     for line in std::iter::once(reply).chain(more.iter().copied()) {
         card.reply(&i18n, &flea::jsondoc::parse(line).unwrap());

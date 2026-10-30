@@ -91,22 +91,34 @@ fn u06_live_menu_waits_for_snapshot_and_routes_the_captured_choice_once(cx: &mut
     let reply = format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"validate\",\"ok\":true,\"action\":\"properties\",\"paths\":[\"/files/a\"]}}");
     receive(cx, handle, &reply);
     receive(cx, handle, &reply);
-    // The card owner re-takes the snapshot and asks its facts once; a duplicate reply delivers nothing again.
+    // The card owner re-takes the snapshot once, then asks its facts once it is held; a duplicate reply delivers nothing again.
     let mut sent = Vec::new();
     while let Some(line) = (fixture.requests)() {
         sent.push(line);
     }
     assert_eq!(
         sent.iter()
-            .filter(|line| line.contains("\"op\":\"properties\""))
+            .filter(|line| line.contains("\"op\":\"snapshot\"")
+                && line.contains("\"listing\":2,\"rows\":[0]"))
             .count(),
         1,
-        "a duplicate backend reply cannot deliver again: {sent:?}"
+        "the card re-takes the captured rows once, under their listing: {sent:?}"
     );
     assert!(
-        sent.iter()
-            .any(|line| line.contains("\"op\":\"snapshot\"") && line.contains("\"rows\":[0]")),
-        "the card re-takes the captured rows: {sent:?}"
+        !sent.iter().any(|line| line.contains("\"op\":\"properties\"")),
+        "Properties waits for the snapshot's answer: {sent:?}"
+    );
+    let held = format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"snapshot\",\"ok\":true,\"kinds\":[33188]}}");
+    receive(cx, handle, &held);
+    receive(cx, handle, &held);
+    let mut sent = Vec::new();
+    while let Some(line) = (fixture.requests)() {
+        sent.push(line);
+    }
+    assert_eq!(
+        sent,
+        [format!("{{\"c\":\"menuaction\",\"op\":\"properties\",\"id\":{id}}}")],
+        "a duplicate backend reply cannot ask again"
     );
 }
 
@@ -174,8 +186,8 @@ fn u06_live_menu_owned_choice_is_delivered_and_snapshot_retired(cx: &mut TestApp
     );
     assert!(
         sent.iter()
-            .any(|line| line.contains("\"op\":\"properties\"")),
-        "the card owner is delivered the choice: {sent:?}"
+            .any(|line| line.contains("\"op\":\"snapshot\"") && line.contains("\"listing\":2")),
+        "the card owner is delivered the choice and snapshots its rows: {sent:?}"
     );
     update(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();

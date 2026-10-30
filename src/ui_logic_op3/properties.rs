@@ -284,8 +284,8 @@ pub fn facts_request(id: u64) -> String {
     format!(r#"{{"c":"menuaction","op":"facts","id":{id}}}"#)
 }
 
-/// The snapshot that captures the selection before Properties asks; rows resolve against the held listing.
-pub fn snapshot_request(id: u64, rows: &[usize]) -> String {
+/// The snapshot that captures the selection before Properties asks; it names the listing its rows were read from, as the menu's does.
+pub fn snapshot_request(id: u64, listing: usize, rows: &[usize], cursor: usize) -> String {
     let rows: Vec<String> = rows.iter().map(usize::to_string).collect();
-    format!(r#"{{"c":"menuaction","op":"snapshot","id":{id},"rows":[{}]}}"#, rows.join(","))
+    format!(r#"{{"c":"menuaction","op":"snapshot","id":{id},"listing":{listing},"rows":[{}],"cursor":{cursor}}}"#, rows.join(","))
 }

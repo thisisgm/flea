@@ -13,10 +13,10 @@ use gpui::{
 const UNAVAILABLE: &str = "That action is no longer available; reopen the menu.";
 const DIR: u32 = 0o040755;
 const FILE: u32 = 0o100644;
-const REG: u32 = 32768;
+pub(super) const REG: u32 = 32768;
 const PAIR: &str = r#""a":"/files/notes.txt","b":"/files/todo.md""#;
 
-fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+pub(super) fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     // Delete and Permissions shown, Run Script hidden, so the menu asks only for snapshot and applications.
     open_root_with(
         cx,
@@ -25,7 +25,7 @@ fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     )
 }
 
-fn select(shell: &Entity<Shell>, cx: &mut VisualTestContext, rows: &[usize]) {
+pub(super) fn select(shell: &Entity<Shell>, cx: &mut VisualTestContext, rows: &[usize]) {
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         host.selected = rows.to_vec();
@@ -34,7 +34,10 @@ fn select(shell: &Entity<Shell>, cx: &mut VisualTestContext, rows: &[usize]) {
 }
 
 /// The pane's backend becomes a line recorder; every request the window sends is read back.
-fn wire(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> Vec<String> {
+pub(super) fn wire(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+) -> impl FnMut() -> Vec<String> {
     let (backend, mut read) = Backend::test_lines();
     shell.update(cx, |shell, _| {
         shell.panes[0].as_mut().unwrap().backend = Some(backend)
@@ -42,7 +45,7 @@ fn wire(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> Ve
     move || std::iter::from_fn(&mut read).collect()
 }
 
-fn open_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext, kinds: &[u32]) {
+pub(super) fn open_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext, kinds: &[u32]) {
     cx.simulate_keystrokes("shift-f10");
     answer(shell, cx, kinds);
 }
@@ -234,13 +237,15 @@ fn properties_opens_its_card_on_the_menu_row(cx: &mut TestAppContext) {
     let mut sent = wire(&shell, cx);
     open_menu(&shell, cx, &[REG]);
     choose(&shell, cx, "properties");
+    // The menu's own snapshot carries the same rows, so only what the validated choice sends is the card's.
+    sent();
     validated(&shell, cx, "properties", &["/files/notes.txt"]);
     let lines = sent();
     assert!(
         lines
             .iter()
-            .any(|line| line.contains(r#""op":"properties""#)),
-        "the card asks its facts: {lines:?}"
+            .any(|line| line.contains(r#""op":"snapshot""#) && line.contains(r#""listing":1"#)),
+        "the card snapshots the rows it asks about under their listing: {lines:?}"
     );
     assert_ne!(status(&shell, cx), UNAVAILABLE);
     cx.update(|window, _| window.refresh());
