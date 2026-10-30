@@ -1,6 +1,8 @@
 //! Open With, the run card, Permissions, Properties and bulk rename: card models over core's ui_logic_op3, drawn through the dialog shell seam.
 pub mod bulkrename;
 #[cfg(test)]
+mod card_props_tests;
+#[cfg(test)]
 mod card_tests;
 pub mod keys;
 pub mod lane;

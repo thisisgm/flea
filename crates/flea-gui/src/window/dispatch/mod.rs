@@ -138,6 +138,8 @@ mod listing_pointer_tests;
 #[cfg(test)]
 mod listing_tests;
 #[cfg(test)]
+mod menudeliver_props_tests;
+#[cfg(test)]
 mod menudeliver_tests;
 #[cfg(test)]
 mod menudraw_tests;
