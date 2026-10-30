@@ -226,3 +226,35 @@ fn the_status_line_draws_an_error_in_the_red_lifted_on_the_surface(cx: &mut Test
         .unwrap();
     assert_eq!(ink, Some(palette.error_on_surface));
 }
+
+#[test]
+fn trash_font_a_drawn_status_line_never_carries_a_line_break() {
+    use super::line::Drawn;
+    use flea::ui_logic_fb1::messages::Line;
+    let error = Drawn::from(Line {
+        primary: "Deleted 0 of 1 item · 1 failed\nlocked failed: denied".into(),
+        error: true,
+        detail: "second failed: denied".into(),
+        ..Default::default()
+    });
+    assert_eq!(error.primary.as_ref(), "Deleted 0 of 1 item · 1 failed");
+    assert_eq!(
+        error.detail.as_ref(),
+        "locked failed: denied\nsecond failed: denied",
+        "an error's later lines lead its detail strip"
+    );
+    let notice = Drawn::from(Line {
+        primary: "Copied\n2 items".into(),
+        hint: "esc\ndismisses".into(),
+        extra: " · searching".into(),
+        ..Default::default()
+    });
+    assert_eq!(notice.primary.as_ref(), "Copied 2 items");
+    assert_eq!(notice.hint.as_ref(), "esc dismisses");
+    assert_eq!(
+        notice.extra.as_ref(),
+        " · searching",
+        "single-line text is untouched"
+    );
+    assert!(notice.detail.is_empty());
+}

@@ -3,7 +3,6 @@ use super::Network;
 use crate::{
     g2::mn1::{element::MenuElement, menu::Face, menu::Outcome},
     g2::pl2::{bookmarks, menus},
-    list::Typeface,
     state::Shell,
     window::{
         dispatch::Order,
@@ -47,7 +46,7 @@ impl Shell {
         };
         drop(laid);
         let size = window.viewport_size();
-        let typeface = Typeface::omarchy_default();
+        let typeface = self.active_typeface();
         let entries = menus::rows(&row);
         let env = self.menu_env(&typeface);
         let Some(network) = self.rail.as_ref().and_then(|join| join.network.as_ref()) else {
@@ -178,7 +177,7 @@ impl Shell {
         let menu = network.menu.clone();
         let shares = network.shares.clone();
         if menu.borrow().opened() {
-            let typeface = Typeface::omarchy_default();
+            let typeface = self.active_typeface();
             let env = self.menu_env(&typeface);
             let outcome = menu.borrow_mut().act(action, None, "", &env, window);
             self.network_menu_outcome(outcome, window, cx);
@@ -241,7 +240,7 @@ impl Shell {
                     .left_0()
                     .size_full()
                     .on_mouse_move(cx.listener(|shell, event: &MouseMoveEvent, window, cx| {
-                        let typeface = Typeface::omarchy_default();
+                        let typeface = shell.active_typeface();
                         let env = shell.menu_env(&typeface);
                         if let Some(network) = shell.rail.as_ref().and_then(|j| j.network.as_ref())
                         {
@@ -278,7 +277,7 @@ impl Shell {
         else {
             return;
         };
-        let typeface = Typeface::omarchy_default();
+        let typeface = self.active_typeface();
         let env = self.menu_env(&typeface);
         let outcome = menu.borrow_mut().click(
             event.position.x.into(),

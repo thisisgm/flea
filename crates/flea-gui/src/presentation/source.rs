@@ -23,6 +23,8 @@ impl Snapshot {
 }
 
 pub(super) type Inputs = [Option<String>; 7];
+/// The most bytes one input may hold; a larger file is refused, never cut.
+pub(super) const INPUT_CAP: usize = 65536;
 pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; 7];
 
 /// The seven files a presentation reads, and where the resolved font family is cached.
@@ -69,8 +71,8 @@ impl Sources {
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(error),
         };
-        file.take(65537).read_to_string(&mut text)?;
-        if text.len() > 65536 {
+        file.take(INPUT_CAP as u64 + 1).read_to_string(&mut text)?;
+        if text.len() > INPUT_CAP {
             return Err(io::ErrorKind::InvalidData.into());
         }
         Ok(Some(text))
@@ -117,7 +119,12 @@ impl Sources {
 
     /// The snapshot for these inputs. A probe that fails keeps `fallback` for the family and is returned for the log.
     pub fn resolve(&self, input: &Inputs, fallback: &str) -> (Snapshot, Option<io::Error>) {
-        self.resolve_with(input, fallback, super::face::fc_match)
+        self.resolve_with(input, fallback, super::face::fc_match, super::face::LAUNCH)
+    }
+
+    /// The retry's resolve after a quick probe timed out: the same inputs, with time for a cold fontconfig cache to answer.
+    pub fn resolve_patient(&self, input: &Inputs, fallback: &str) -> (Snapshot, Option<io::Error>) {
+        self.resolve_with(input, fallback, super::face::fc_match, super::face::PATIENT)
     }
 
     fn resolve_with(
@@ -125,6 +132,7 @@ impl Sources {
         input: &Inputs,
         fallback: &str,
         probe: impl FnOnce() -> std::process::Command,
+        deadline: std::time::Duration,
     ) -> (Snapshot, Option<io::Error>) {
         let text = |at: usize| input[at].as_deref().unwrap_or("");
         let (mut theme, parsed) = Theme::from_text_observed(text(0));
@@ -135,10 +143,11 @@ impl Sources {
             input[5].is_some(),
             input[6].is_some(),
         );
-        let (family, failure) = match super::face_cache::family(&input[3..5], &self.cache, probe) {
-            Ok(family) => (family, None),
-            Err(error) => (fallback.to_owned(), Some(error)),
-        };
+        let (family, failure) =
+            match super::face_cache::family_within(&input[3..5], &self.cache, probe, deadline) {
+                Ok(family) => (family, None),
+                Err(error) => (fallback.to_owned(), Some(error)),
+            };
         let snapshot = Snapshot {
             theme,
             parsed,
@@ -205,11 +214,16 @@ mod tests {
         fixture.write(&file, "three");
         assert_ne!(first, one.stamps());
         let inputs = one.read().unwrap();
-        let (snapshot, failure) = one.resolve_with(&inputs, "monospace", || {
-            let mut command = Command::new("/bin/sh");
-            command.args(["-c", "exit 1"]);
-            command
-        });
+        let (snapshot, failure) = one.resolve_with(
+            &inputs,
+            "monospace",
+            || {
+                let mut command = Command::new("/bin/sh");
+                command.args(["-c", "exit 1"]);
+                command
+            },
+            super::super::face::LAUNCH,
+        );
         assert_eq!(snapshot.fonts.family, "monospace");
         assert_eq!(failure.unwrap().kind(), io::ErrorKind::InvalidData);
         fixture.cleanup();

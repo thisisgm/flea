@@ -170,7 +170,26 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
     let settings = crate::window::startup::load_settings()
         .map(|settings| settings.data)
         .unwrap_or_else(|_| flea::uistate::from_file("{}"));
+    // The chooser draws in the system font as the window does, so it resolves fontconfig's family before its first frame.
+    let (fonts, presentation) = crate::presentation::Service::start();
     gpui_platform::application().run(move |cx: &mut App| {
+        presentation.install(cx);
+        cx.set_global(presentation.fonts.typeface(&settings));
+        let updates = fonts.subscribe();
+        let settled = settings.clone();
+        cx.spawn(async move |cx| {
+            // The service watches only while it is held, so the reader keeps it for the window's life.
+            let _watching = fonts;
+            while let Ok(snapshot) = updates.recv().await {
+                let face = snapshot.fonts.typeface(&settled);
+                cx.update(|cx| {
+                    snapshot.install(cx);
+                    cx.set_global(face);
+                    cx.refresh_windows();
+                });
+            }
+        })
+        .detach();
         match open(launch, locale.clone(), children(), cx) {
             Ok(window) => {
                 let _ = window.update(cx, |picker, _, cx| {

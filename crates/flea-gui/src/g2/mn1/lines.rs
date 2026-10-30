@@ -143,6 +143,7 @@ pub struct Env<'a> {
 pub struct Built {
     pub lines: Vec<Line>,
     pub widest: f32,
+    pub typeface: Typeface,
 }
 
 impl Built {
@@ -305,7 +306,11 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
             }
         })
         .collect();
-    let mut built = Built { lines, widest };
+    let mut built = Built {
+        lines,
+        widest,
+        typeface: env.typeface.clone(),
+    };
     built.wrap(fit::flyout_width(minimum, widest, maximum), env, window);
     built
 }

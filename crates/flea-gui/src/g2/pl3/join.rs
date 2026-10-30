@@ -17,7 +17,8 @@ pub(super) enum Effect {
     Send(String),
     Card(Option<Card>),
     Menu(Vec<Item>, At),
-    Status(String, bool),
+    /// A sentence for the one-line bar, the detail for the strip under it, and whether it is an error.
+    Status(String, String, bool),
     Arm(String),
     Dismiss,
     Count(usize),
@@ -42,20 +43,18 @@ impl Outside for OutsideHost {
         self.0.borrow_mut().push(Effect::Menu(items, at));
     }
     fn status(&mut self, text: String, error: bool) {
-        self.0.borrow_mut().push(Effect::Status(text, error));
+        self.0
+            .borrow_mut()
+            .push(Effect::Status(text, String::new(), error));
     }
     fn arm(&mut self, text: String) {
         self.0.borrow_mut().push(Effect::Arm(text));
     }
     fn result(&mut self, headline: String, detail: String, error: bool) {
-        self.status(
-            if detail.is_empty() {
-                headline
-            } else {
-                format!("{headline}\n{detail}")
-            },
-            error,
-        );
+        // TrashHost.qml's operationResult: the headline stays on the bar, each failure goes to the detail strip under it.
+        self.0
+            .borrow_mut()
+            .push(Effect::Status(headline, detail, error));
     }
     fn escape_taken(&mut self) -> bool {
         if !self.1.replace(false) {
@@ -322,7 +321,9 @@ impl Shell {
                 }
                 Effect::Card(card) => self.trash_card(card, window, cx),
                 Effect::Menu(items, at) => self.open_trash_menu(items, at, window, cx),
-                Effect::Status(text, error) => self.trash_say(&text, error, cx),
+                Effect::Status(text, detail, error) => {
+                    self.trash_say_detail(&text, &detail, error, cx)
+                }
                 Effect::Arm(text) => self.trash_arm(&text, cx),
                 Effect::Dismiss => self.trash_dismiss(cx),
                 Effect::Count(total) => {

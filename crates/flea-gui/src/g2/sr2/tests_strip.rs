@@ -292,3 +292,32 @@ fn a_summary_too_long_for_its_room_elides_right(cx: &mut TestAppContext) {
         "a sentence that fits draws whole"
     );
 }
+
+// A system font change reshapes every line and recuts the elided summary, so no width measured in the old face survives.
+#[gpui::test]
+fn a_font_change_reshapes_every_line_and_recuts_the_summary(cx: &mut TestAppContext) {
+    let long = format!("0 of 9 shown \u{b7} {}", "close ".repeat(120));
+    let (state, handle) = open(
+        cx,
+        StripText {
+            summary: long.into(),
+            ..typing("ntoes", true)
+        },
+    );
+    frame(cx, handle);
+    let shaped = state.borrow().shaped;
+    state.borrow_mut().typeface.font.family = "DejaVu Serif".into();
+    frame(cx, handle);
+    // The ellipsis is shaped only by a recut, so its reshape is what proves the summary was cut again in the new face.
+    assert_eq!(
+        state.borrow().shaped,
+        shaped + 5,
+        "the query, summary, way out, ellipsis and elided summary reshape in the new face"
+    );
+    frame(cx, handle);
+    assert_eq!(
+        state.borrow().shaped,
+        shaped + 5,
+        "and a frame at rest after it shapes nothing"
+    );
+}

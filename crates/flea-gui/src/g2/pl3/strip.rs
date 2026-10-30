@@ -256,6 +256,9 @@ impl TrashPane {
 impl Render for TrashPane {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.evict(window, cx);
+        // Every Trash label draws in the system font the list follows, never a family fixed at mount.
+        let face = crate::list::Typeface::for_window(window, cx);
+        self.paint.borrow_mut().set_font(face.font);
         let ink = self.paint.borrow().ink;
         if self.presentation_loading {
             self.loading_at

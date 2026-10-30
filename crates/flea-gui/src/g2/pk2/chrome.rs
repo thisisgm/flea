@@ -226,7 +226,29 @@ impl ChipMenu {
 }
 
 impl Render for ChipMenu {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if cx.try_global::<crate::presentation::Fonts>().is_some() {
+            let face = Typeface::for_window(window, cx);
+            if self.typeface != face {
+                self.typeface = face;
+                let entries = self
+                    .menu
+                    .borrow()
+                    .card
+                    .as_ref()
+                    .map(|card| card.entries.clone());
+                if let Some(entries) = entries {
+                    let env = Env {
+                        catalog: &self.catalog,
+                        preset: "default",
+                        key_hints: true,
+                        typeface: &self.typeface,
+                        inset: 4.,
+                    };
+                    self.menu.borrow_mut().refresh(entries, &env, window);
+                }
+            }
+        }
         div()
             .size_full()
             .debug_selector(|| "pk2-chip-menu".into())

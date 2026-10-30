@@ -37,6 +37,20 @@ fn menu_env<'a>(
 }
 
 impl Shell {
+    pub(crate) fn restyle_trash_menu(&self, face: &Typeface, window: &Window) {
+        let Some(host) = &self.trash else { return };
+        let entries = host
+            .menu
+            .borrow()
+            .card
+            .as_ref()
+            .map(|card| card.entries.clone());
+        if let Some(entries) = entries {
+            let env = menu_env(&self.locale.catalog, &self.launch.settings.data, face);
+            host.menu.borrow_mut().refresh(entries, &env, window);
+        }
+    }
+
     pub(super) fn open_trash_menu(
         &mut self,
         items: Vec<Item>,
@@ -45,6 +59,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let geometry = self.geometry(window);
+        let typeface = self.active_typeface();
         let Some(host) = &mut self.trash else {
             return;
         };
@@ -62,7 +77,6 @@ impl Shell {
                 },
             })
             .collect();
-        let typeface = Typeface::omarchy_default();
         let env = menu_env(&self.locale.catalog, &self.launch.settings.data, &typeface);
         let size = window.viewport_size();
         let rect = geometry.panes[host.side];
@@ -141,7 +155,7 @@ impl Shell {
         let Some(host) = &self.trash else {
             return;
         };
-        let typeface = Typeface::omarchy_default();
+        let typeface = self.active_typeface();
         let env = menu_env(&self.locale.catalog, &self.launch.settings.data, &typeface);
         let outcome = host.menu.borrow_mut().act(action, None, "", &env, window);
         self.trash_menu_outcome(outcome, window, cx);
@@ -162,7 +176,7 @@ impl Shell {
                     let Some(host) = &shell.trash else {
                         return;
                     };
-                    let typeface = Typeface::omarchy_default();
+                    let typeface = shell.active_typeface();
                     let env = menu_env(
                         &shell.locale.catalog,
                         &shell.launch.settings.data,
@@ -205,7 +219,7 @@ impl Shell {
         let Some(host) = &self.trash else {
             return;
         };
-        let typeface = Typeface::omarchy_default();
+        let typeface = self.active_typeface();
         let env = menu_env(&self.locale.catalog, &self.launch.settings.data, &typeface);
         let outcome = host.menu.borrow_mut().click(
             event.position.x.into(),

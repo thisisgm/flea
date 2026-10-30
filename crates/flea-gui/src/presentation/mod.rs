@@ -8,6 +8,8 @@ pub(crate) mod fonts;
 mod regression_tests;
 mod service;
 mod source;
+#[cfg(test)]
+mod trash_font_tests;
 pub use fonts::Fonts;
 pub use service::Service;
 pub use source::Snapshot;

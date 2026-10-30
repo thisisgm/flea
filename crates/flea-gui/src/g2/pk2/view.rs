@@ -150,7 +150,12 @@ impl ListingView {
 }
 
 impl Render for ListingView {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if cx.try_global::<crate::presentation::Fonts>().is_some() {
+            self.state
+                .borrow_mut()
+                .set_typeface(Typeface::for_window(window, cx));
+        }
         let failure = self.listing.failure_line(&self.i18n);
         let body = self.surface_element();
         div()

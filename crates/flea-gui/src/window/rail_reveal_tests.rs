@@ -282,3 +282,28 @@ fn reveal_with_no_share_draws_no_network_as_docked_does(cx: &mut TestAppContext)
         "the revealed rail lists the docked rail's sections in order"
     );
 }
+
+#[gpui::test]
+fn trash_font_network_menu_opens_in_the_list_face(cx: &mut TestAppContext) {
+    let recorder = Rc::new(Recorder::default());
+    let (shell, cx) = open(r#"{"places":{}}"#, recorder.clone(), cx);
+    let listings = recorder.listings();
+    recorder.answer(listings[0], SHARE_OUTPUT);
+    frame(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        let host = shell.panes[shell.focus_side]
+            .as_ref()
+            .expect("the focused pane is mounted");
+        host.list.borrow_mut().typeface.font.family = "Noto Sans Mono".into();
+        let side = shell.focus_side;
+        shell.network_menu(side, &share_row(), window, cx);
+        let network = shell.rail.as_ref().unwrap().network.as_ref().unwrap();
+        let menu = network.menu.borrow();
+        let card = menu.card.as_ref().expect("the NETWORK row's menu opened");
+        assert_eq!(
+            card.built.typeface.font.family.as_ref(),
+            "Noto Sans Mono",
+            "the NETWORK menu opens in the list's face"
+        );
+    });
+}

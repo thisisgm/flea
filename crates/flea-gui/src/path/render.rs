@@ -15,6 +15,10 @@ use gpui::{
 impl Render for PathView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let view = cx.entity();
+        // The path bar follows the system font and text size the list follows.
+        self.paint
+            .borrow_mut()
+            .set_typeface(crate::list::Typeface::for_window(window, cx));
         let probe = self.probe.clone();
         let root = div().size_full().relative();
         if self.entry.editing {
