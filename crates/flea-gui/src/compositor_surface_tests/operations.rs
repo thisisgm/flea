@@ -1,4 +1,4 @@
-//! All operation-card owners mount with the compositor update and retained-palette path.
+//! Every operation-card owner mounts as production does: op1 and op4 retain a palette, the archive layer reads one each render.
 use super::{frames, mounted};
 use crate::{
     g2::{op1, op2, op4},
@@ -12,7 +12,12 @@ use flea::{
     },
 };
 use gpui::{prelude::*, px, size, AppContext, Context, Entity, Render, TestAppContext, Window};
-use std::sync::Arc;
+
+// Each card mounts rounded, and frames then checks the live update to square and back.
+const ROUNDED: f32 = 8.;
+const CARD_WINDOW: (f32, f32) = (1100., 800.);
+// The output cards cap their scrolling body by the window height.
+const OUTPUT_WINDOW: (f32, f32) = (1100., 900.);
 
 fn operations(cx: &mut TestAppContext) {
     use op1::model::{CopyFocus, Dialog};
@@ -100,59 +105,63 @@ fn operations(cx: &mut TestAppContext) {
         ),
     ];
     for (name, dialog) in cards {
-        let (shell, view, cx) = mounted(cx, 8., |shell, window, cx| {
+        let (shell, view, cx) = mounted(cx, ROUNDED, |shell, window, cx| {
             let theme = super::theme();
             let palette =
                 op1::palette::CardPalette::from_theme(&window.text_style(), theme, shell.corner);
-            let view = cx.new(|_| op1::host::Overlay::new(Arc::default(), palette, "default"));
+            let catalog = shell.locale.catalog.clone();
+            let view = cx.new(|_| op1::host::Overlay::new(catalog, palette, "default"));
             shell.overlay = Some(view.clone());
             view
         });
-        cx.simulate_resize(size(px(1100.), px(800.)));
+        cx.simulate_resize(size(px(CARD_WINDOW.0), px(CARD_WINDOW.1)));
         view.update(cx, |view, cx| {
             view.model.dialog = Some(dialog);
             cx.notify();
         });
-        frames(name, &shell, cx, 8., &[]);
+        frames(name, &shell, cx, ROUNDED, &[]);
     }
 }
 
-struct Archive(op2::cards::Card, Entity<Shell>);
-impl Render for Archive {
+// The production owner builds the card, palette, room and corner, as the root view asks it to.
+struct ArchiveLayer(Entity<Shell>, &'static str);
+impl Render for ArchiveLayer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        use op2::cards::DialogShell;
-        let palette = crate::list::Palette::inherited(&window.text_style(), super::theme());
-        op2::draw::StandIn.present(
-            &self.0,
-            &palette,
-            &crate::list::Typeface::omarchy_default(),
-            1100.,
-            self.1.read(cx).corner,
-        )
+        let name = self.1;
+        self.0
+            .update(cx, |shell, cx| shell.archive_layer(window, cx))
+            .unwrap_or_else(|| panic!("{name} must open its archive card"))
     }
+}
+
+fn archive_card(cx: &mut TestAppContext, name: &'static str, open: impl FnOnce(&mut Shell)) {
+    let (shell, _, cx) = mounted(cx, ROUNDED, |shell, _, cx| {
+        open(shell);
+        let shell = cx.entity();
+        cx.new(|_| ArchiveLayer(shell, name))
+    });
+    cx.simulate_resize(size(px(CARD_WINDOW.0), px(CARD_WINDOW.1)));
+    frames(name, &shell, cx, ROUNDED, &[]);
 }
 
 fn archives(cx: &mut TestAppContext) {
-    let catalog = crate::test_catalogs::english();
-    let (compress, _) = op2::compress::Compress::open(
-        vec!["/files/a".into()],
-        "/files",
-        "files",
-        1,
-        &["7z", "zip"],
-    );
-    let mut extract = op2::extract::Extract::closed();
-    extract.open("/files/archive.7z", "/files", "", &catalog);
-    for (name, card) in [
-        ("compress-password", compress.card(&catalog)),
-        ("extract-password", extract.card(&catalog)),
-    ] {
-        let (shell, _, cx) = mounted(cx, 8., |_, _, cx| {
-            let shell = cx.entity();
-            cx.new(|_| Archive(card, shell))
-        });
-        frames(name, &shell, cx, 8., &[18.]);
-    }
+    archive_card(cx, "compress-password", |shell| {
+        let (compress, _) = op2::compress::Compress::open(
+            vec!["/files/a".into()],
+            "/files",
+            "files",
+            1,
+            &["7z", "zip"],
+        );
+        shell.operations.archive.compress = Some(compress);
+    });
+    archive_card(cx, "extract-password", |shell| {
+        let catalog = shell.locale.catalog.clone();
+        let archive = &mut shell.operations.archive;
+        archive
+            .extract
+            .open("/files/archive.7z", "/files", "", &catalog);
+    });
 }
 
 fn outputs(cx: &mut TestAppContext) {
@@ -161,17 +170,18 @@ fn outputs(cx: &mut TestAppContext) {
         ("convert", op4::model::Action::Convert),
         ("combine", op4::model::Action::Combine),
     ] {
-        let (shell, view, cx) = mounted(cx, 8., |shell, window, cx| {
+        let (shell, view, cx) = mounted(cx, ROUNDED, |shell, window, cx| {
             let palette = op1::palette::CardPalette::from_theme(
                 &window.text_style(),
                 super::theme(),
                 shell.corner,
             );
-            let view = cx.new(|cx| op4::host::OutputView::new(Arc::default(), palette, cx));
+            let catalog = shell.locale.catalog.clone();
+            let view = cx.new(|cx| op4::host::OutputView::new(catalog, palette, cx));
             shell.output.view = Some(view.clone());
             view
         });
-        cx.simulate_resize(size(px(1100.), px(900.)));
+        cx.simulate_resize(size(px(OUTPUT_WINDOW.0), px(OUTPUT_WINDOW.1)));
         cx.update(|window, cx| {
             view.update(cx, |view, cx| {
                 let selection = Selection {
@@ -188,7 +198,7 @@ fn outputs(cx: &mut TestAppContext) {
                 assert!(view.open(action, selection, window, cx));
             })
         });
-        frames(name, &shell, cx, 8., &[18.]);
+        frames(name, &shell, cx, ROUNDED, &[]);
     }
 }
 
