@@ -75,6 +75,11 @@ impl Metrics {
         self.board(if self.column { 18.0 } else { 20.0 })
     }
 
+    /// The rendered document's inset down: 18 board pixels in Quick Look, 20 in the column.
+    pub fn inset_y(&self) -> f32 {
+        self.board(if self.column { 20.0 } else { 18.0 })
+    }
+
     /// Headings are 20 and 15 board pixels; deeper levels take the body.
     pub fn heading_px(&self, level: u8) -> f32 {
         match level {

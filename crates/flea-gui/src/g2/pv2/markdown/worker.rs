@@ -28,12 +28,16 @@ pub struct TextMeasure {
     ids: HashMap<Face, FontId>,
     widths: HashMap<(Face, u32, char), f32>,
     extents: HashMap<(Face, u32), (f32, f32)>,
-    /// Characters shaped so far, each one once per face and size.
+    tables: table_measure::Runs,
+    /// Characters shaped so far, in cached individual glyphs or complete table runs.
     pub shaped: usize,
 }
 
 // A long-lived measure holds every character it met; past this many it starts over.
 const WIDTHS_KEPT: usize = 65_536;
+
+#[path = "table_measure.rs"]
+mod table_measure;
 
 impl TextMeasure {
     pub(super) fn reader(&self) -> Self {
@@ -41,12 +45,14 @@ impl TextMeasure {
     }
 
     pub fn new(text: Arc<TextSystem>, faces: Faces) -> Self {
+        let tables = table_measure::Runs::new(Arc::clone(&text));
         TextMeasure {
             text,
             faces,
             ids: HashMap::new(),
             widths: HashMap::new(),
             extents: HashMap::new(),
+            tables,
             shaped: 0,
         }
     }
@@ -67,6 +73,14 @@ impl TextMeasure {
 }
 
 impl Measure for TextMeasure {
+    fn table_width(&mut self, text: &str, face: Face, size: f32) -> f32 {
+        let (width, shaped) = self.tables.width(text, face, size, &self.faces);
+        if shaped {
+            self.shaped += text.chars().count();
+        }
+        width
+    }
+
     fn width(&mut self, text: &str, face: Face, size: f32) -> f32 {
         let id = self.id(face);
         if self.widths.len() > WIDTHS_KEPT {

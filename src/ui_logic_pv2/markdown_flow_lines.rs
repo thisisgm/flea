@@ -5,7 +5,7 @@ use crate::ui_logic_pv2::markdown::markdown_fit::picture_fit;
 use crate::ui_logic_pv2::markdown::Align;
 
 // A width this far past the limit still fits, so a measure's rounding never wraps a word that fits.
-const SLACK: f32 = 0.01;
+pub const SLACK: f32 = 0.01;
 
 struct Placer<'m> {
     base: Base,

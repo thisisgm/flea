@@ -372,7 +372,7 @@ impl MarkdownView {
         let advance = measure.width("0", Face::Regular, t.body);
         let frame = Frame {
             width: (width - 2. * t.inset_x()).max(0.),
-            height: (height - 2. * t.inset_y()).max(0.),
+            height: (height - 2. * t.source_inset_y()).max(0.),
             body: t.body,
             caption: t.caption,
             line: (ascent + descent).round(),
