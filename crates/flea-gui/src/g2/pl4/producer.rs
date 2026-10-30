@@ -5,6 +5,8 @@ mod producer_eject;
 mod producer_ime;
 #[path = "producer_input.rs"]
 mod producer_input;
+#[path = "producer_reorder.rs"]
+mod producer_reorder;
 #[path = "producer_sources.rs"]
 mod producer_sources;
 #[path = "producer_view.rs"]
@@ -381,6 +383,9 @@ impl Producer {
         self.model.borrow_mut().pointer_focus = true;
         self.cancel_rename(cx);
         match event.button {
+            MouseButton::Left if self.reorder_press(index, &entry, f32::from(event.position.y)) => {
+                cx.notify()
+            }
             MouseButton::Left => self.activate(index, cx),
             MouseButton::Right => {
                 self.model.borrow_mut().cursor = Some(index);

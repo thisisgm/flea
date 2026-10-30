@@ -29,6 +29,8 @@ pub(crate) struct Host {
     pub remember: Remember,
     pub menu: Option<MenuAsk>,
     pub notice: [Notice; 2],
+    /// Tabs.js dropOverlay closes a side's Trash; the shell closes it once the tab action lands.
+    pub trash_dropped: [bool; 2],
     pub view: Option<Entity<super::view::Strip>>,
     pub launch: transfer::Launch,
     pub timer: Option<Task<()>>,
@@ -59,6 +61,7 @@ impl Host {
             remember: Remember::seeded(&settings.data),
             menu: None,
             notice: Default::default(),
+            trash_dropped: Default::default(),
             view: None,
             launch: transfer::Launch::read(|key| std::env::var(key).ok(), path),
             timer: None,
@@ -84,6 +87,7 @@ struct World<'a> {
     home: &'a str,
     catalog: &'a flea::i18n::I18n,
     notice: &'a mut [Notice; 2],
+    trash_dropped: &'a mut [bool; 2],
 }
 
 impl Panes for World<'_> {
@@ -100,6 +104,7 @@ impl Panes for World<'_> {
                 home: self.home,
                 catalog: self.catalog,
                 notice: &mut self.notice[side],
+                trash_dropped: &mut self.trash_dropped[side],
             },
         );
         true
@@ -120,6 +125,8 @@ impl Shell {
 
     pub(crate) fn with_tabs<R>(&mut self, f: impl FnOnce(&mut Bar, &mut dyn Panes) -> R) -> R {
         let strip = &mut self.strip;
+        // Only the action this call runs may close a Trash; a flag no tabs_changed consumed is stale.
+        strip.trash_dropped = Default::default();
         let mut world = World {
             tabs: &mut strip.tabs,
             panes: &mut self.panes,
@@ -128,6 +135,7 @@ impl Shell {
             home: &strip.home,
             catalog: &self.locale.catalog,
             notice: &mut strip.notice,
+            trash_dropped: &mut strip.trash_dropped,
         };
         strip.bar.set_pane(&mut world, Some(self.focus_side));
         let value = f(&mut strip.bar, &mut world);
@@ -190,6 +198,11 @@ impl Shell {
     }
 
     pub(crate) fn tabs_changed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        for side in 0..2 {
+            if std::mem::take(&mut self.strip.trash_dropped[side]) {
+                self.drop_trash(side, window, cx);
+            }
+        }
         self.resolve_held_tab();
         if !self.strip.bar.out_active {
             self.strip.catchers.close(cx);
