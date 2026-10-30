@@ -66,7 +66,11 @@ fn favourites(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext
 }
 
 // The rail row and drawn centre of the favourite labelled `label`.
-fn centre(shell: &Entity<Shell>, label: &str, cx: &mut VisualTestContext) -> (usize, gpui::Point<gpui::Pixels>, f32) {
+fn centre(
+    shell: &Entity<Shell>,
+    label: &str,
+    cx: &mut VisualTestContext,
+) -> (usize, gpui::Point<gpui::Pixels>, f32) {
     producer(shell, cx).read_with(cx, |producer, _| {
         let index = producer
             .entries()
@@ -84,7 +88,9 @@ fn centre(shell: &Entity<Shell>, label: &str, cx: &mut VisualTestContext) -> (us
 }
 
 fn place(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
-    shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.place().to_owned())
+    shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().pane.place().to_owned()
+    })
 }
 
 #[gpui::test]
@@ -99,20 +105,39 @@ fn ey311_dragging_a_favourite_above_another_moves_it_and_opens_nothing(cx: &mut 
     cx.simulate_mouse_move(lifted, Some(MouseButton::Left), Modifiers::none());
     cx.simulate_mouse_move(over, Some(MouseButton::Left), Modifiers::none());
     frame(cx);
-    let boundary = producer(&shell, cx)
-        .read_with(cx, |producer, _| producer.model.borrow().reorder.and_then(|held| held.boundary()));
-    assert_eq!(boundary, Some((docs, false)), "the bar lies over Docs's top edge while A is held");
+    let boundary = producer(&shell, cx).read_with(cx, |producer, _| {
+        producer
+            .model
+            .borrow()
+            .reorder
+            .and_then(|held| held.boundary())
+    });
+    assert_eq!(
+        boundary,
+        Some((docs, false)),
+        "the bar lies over Docs's top edge while A is held"
+    );
     cx.simulate_mouse_up(over, MouseButton::Left, Modifiers::none());
     cx.run_until_parked();
     frame(cx);
     let wire = recorder.wire();
     assert!(
-        wire.contains(r#""op":"move""#) && wire.contains(r#""index":1"#) && wire.contains(r#""to":0"#),
+        wire.contains(r#""op":"move""#)
+            && wire.contains(r#""index":1"#)
+            && wire.contains(r#""to":0"#),
         "the release moves favourite 1 to 0 through the store: {wire:?} said {:?}",
         producer(&shell, cx).read_with(cx, |producer, cx| producer.places.read(cx).said.clone())
     );
-    assert_ne!(place(&shell, cx), "/w/A", "a reorder drag never opens its row");
-    assert!(producer(&shell, cx).read_with(cx, |producer, _| producer.model.borrow().reorder.is_none()));
+    assert_ne!(
+        place(&shell, cx),
+        "/w/A",
+        "a reorder drag never opens its row"
+    );
+    assert!(producer(&shell, cx).read_with(cx, |producer, _| producer
+        .model
+        .borrow()
+        .reorder
+        .is_none()));
 }
 
 #[gpui::test]
@@ -121,9 +146,94 @@ fn ey311_a_still_press_on_a_favourite_opens_it_on_release(cx: &mut TestAppContex
     let (_, at, _) = centre(&shell, "A", cx);
     cx.simulate_mouse_move(at, None, Modifiers::none());
     cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
-    cx.simulate_mouse_move(at - point(px(0.), px(4.)), Some(MouseButton::Left), Modifiers::none());
-    cx.simulate_mouse_up(at - point(px(0.), px(4.)), MouseButton::Left, Modifiers::none());
+    cx.simulate_mouse_move(
+        at - point(px(0.), px(4.)),
+        Some(MouseButton::Left),
+        Modifiers::none(),
+    );
+    cx.simulate_mouse_up(
+        at - point(px(0.), px(4.)),
+        MouseButton::Left,
+        Modifiers::none(),
+    );
     frame(cx);
-    assert_eq!(place(&shell, cx), "/w/A", "a press under the drag distance is a click");
+    assert_eq!(
+        place(&shell, cx),
+        "/w/A",
+        "a press under the drag distance is a click"
+    );
     assert_eq!(recorder.wire(), "", "a click writes nothing");
+}
+
+// Twice a row's centre x lies past its right edge, so this point is level with `at` and off the rail.
+fn past_the_rail(at: gpui::Point<gpui::Pixels>) -> gpui::Point<gpui::Pixels> {
+    point(at.x * 2. + px(200.), at.y)
+}
+
+#[gpui::test]
+fn ey311_a_drag_released_past_the_rail_still_moves_the_favourite(cx: &mut TestAppContext) {
+    let (shell, cx, recorder) = favourites(cx);
+    let (_, at, row) = centre(&shell, "A", cx);
+    cx.simulate_mouse_move(at, None, Modifiers::none());
+    cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
+    let lifted = at - point(px(0.), px(12.));
+    let over = lifted - point(px(0.), px(row));
+    cx.simulate_mouse_move(lifted, Some(MouseButton::Left), Modifiers::none());
+    cx.simulate_mouse_move(over, Some(MouseButton::Left), Modifiers::none());
+    cx.simulate_mouse_move(
+        past_the_rail(over),
+        Some(MouseButton::Left),
+        Modifiers::none(),
+    );
+    cx.simulate_mouse_up(past_the_rail(over), MouseButton::Left, Modifiers::none());
+    cx.run_until_parked();
+    frame(cx);
+    let wire = recorder.wire();
+    assert!(
+        wire.contains(r#""op":"move""#)
+            && wire.contains(r#""index":1"#)
+            && wire.contains(r#""to":0"#),
+        "a drag released past the rail lands where the bar was: {wire:?}"
+    );
+    assert_ne!(
+        place(&shell, cx),
+        "/w/A",
+        "a reorder drag never opens its row"
+    );
+    assert!(producer(&shell, cx).read_with(cx, |producer, _| producer
+        .model
+        .borrow()
+        .reorder
+        .is_none()));
+}
+
+#[gpui::test]
+fn ey311_a_still_press_released_past_the_rail_opens_nothing(cx: &mut TestAppContext) {
+    let (shell, cx, recorder) = favourites(cx);
+    let (_, at, _) = centre(&shell, "A", cx);
+    let before = place(&shell, cx);
+    cx.simulate_mouse_move(at, None, Modifiers::none());
+    cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
+    cx.simulate_mouse_move(
+        past_the_rail(at),
+        Some(MouseButton::Left),
+        Modifiers::none(),
+    );
+    cx.simulate_mouse_up(past_the_rail(at), MouseButton::Left, Modifiers::none());
+    cx.run_until_parked();
+    frame(cx);
+    assert_eq!(
+        place(&shell, cx),
+        before,
+        "a press released off its row is no click"
+    );
+    assert_eq!(
+        recorder.wire(),
+        "",
+        "a press that never dragged writes nothing"
+    );
+    assert!(
+        producer(&shell, cx).read_with(cx, |producer, _| producer.model.borrow().reorder.is_none()),
+        "the held favourite is let go"
+    );
 }

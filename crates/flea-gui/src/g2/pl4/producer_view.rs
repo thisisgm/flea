@@ -101,7 +101,11 @@ impl Render for Producer {
                     producer.editor_dragging = false;
                     producer.mark_cancel();
                     // A drag released past the rail still lands; a press that never dragged opens nothing.
-                    let dragged = producer.model.borrow().reorder.is_some_and(|held| held.start_y.is_some());
+                    let dragged = producer
+                        .model
+                        .borrow()
+                        .reorder
+                        .is_some_and(|held| held.start_y.is_some());
                     if dragged {
                         producer.reorder_release(f32::from(event.position.y), cx);
                     } else {

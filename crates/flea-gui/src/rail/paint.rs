@@ -146,7 +146,7 @@ pub(super) const ACCENT_EDGE: f32 = 3.;
 /// Buttons.js DISABLED_OPACITY over every ink a rail row draws.
 pub(super) fn ghost(palette: Palette) -> Palette {
     let fade = |mut ink: gpui::Hsla| {
-        ink.a *= 0.55;
+        ink.a *= crate::g2::pv1::look::DISABLED;
         ink
     };
     Palette {
