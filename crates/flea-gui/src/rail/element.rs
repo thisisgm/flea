@@ -253,7 +253,11 @@ impl Element for RailElement {
                 let held = model
                     .reorder
                     .is_some_and(|held| held.start_y.is_some() && held.row == row.index);
-                let palette = if held { super::paint::ghost(palette) } else { palette };
+                let palette = if held {
+                    super::paint::ghost(palette)
+                } else {
+                    palette
+                };
                 if model.hovered == Some(row.index) && !cue {
                     window.paint_quad(fill(
                         box_of(row.rect),

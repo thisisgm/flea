@@ -124,7 +124,9 @@ fn a_columns_cursor_row_draws_its_thumbnail_beside_the_preview(cx: &mut TestAppC
     for _ in 0..3 {
         settle(cx, handle, 300);
     }
-    let previewed = read(cx, handle, |shell| shell.panes[0].as_ref().unwrap().preview.clone())
+    let previewed = read(cx, handle, |shell| {
+        shell.panes[0].as_ref().unwrap().preview.clone()
+    })
     .expect("the Columns preview column is mounted");
     let subject = cx.read(|cx| {
         let view = previewed.read(cx);

@@ -45,7 +45,13 @@ impl Producer {
             held.start_y = Some(y);
         }
         if let Some(start) = held.start_y {
-            held.line = rail_reorder(f64::from(y - start), held.from, self.row_height(), held.count).line;
+            held.line = rail_reorder(
+                f64::from(y - start),
+                held.from,
+                self.row_height(),
+                held.count,
+            )
+            .line;
         }
         if model.reorder != Some(held) {
             model.reorder = Some(held);
@@ -61,9 +67,21 @@ impl Producer {
         };
         match held.start_y {
             Some(start) => {
-                let to = rail_reorder(f64::from(y - start), held.from, self.row_height(), held.count).to;
+                let to = rail_reorder(
+                    f64::from(y - start),
+                    held.from,
+                    self.row_height(),
+                    held.count,
+                )
+                .to;
                 if to != held.from {
-                    self.write_favourite(&Operation::Move { index: held.from, to }, cx);
+                    self.write_favourite(
+                        &Operation::Move {
+                            index: held.from,
+                            to,
+                        },
+                        cx,
+                    );
                 }
                 cx.notify();
             }
