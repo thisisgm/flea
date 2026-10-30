@@ -211,3 +211,37 @@ fn dates_keep_fixed_fields_and_use_digits_without_mutating_global_locale() {
     assert!(persian.chars().all(|c| ('۰'..='۹').contains(&c) || "- :".contains(c)));
     assert_eq!(fa.format_date(i64::MAX), None);
 }
+
+// A test reading the repo's i18n/ sees every shipped catalog, so its English expectations break when a language lands.
+#[test]
+fn no_test_loads_the_shipped_catalog_dir() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    // Split so this file never matches itself; cargo runs tests from the package root, so cwd and relative forms name i18n/ too.
+    let manifest = concat!("CARGO_MANIFEST_", "DIR\")");
+    let cwd = concat!("current_dir", "().unwrap()");
+    let mut banned = Vec::new();
+    for tail in ["i18n", "../../i18n"] {
+        banned.push(format!("{manifest}).join(\"{tail}\")"));
+        banned.push(format!("{manifest},\"/{tail}\")"));
+        banned.push(format!("{cwd}.join(\"{tail}\")"));
+        banned.push(format!("Path::new(\"{tail}\")"));
+        banned.push(format!("PathBuf::from(\"{tail}\")"));
+    }
+    let mut dirs = vec![root.join("src"), root.join("crates"), root.join("tests")];
+    let mut found = Vec::new();
+    while let Some(dir) = dirs.pop() {
+        for entry in fs::read_dir(&dir).unwrap().flatten() {
+            let path = entry.path();
+            if path.is_dir() && path.file_name().is_some_and(|name| name != "target") {
+                dirs.push(path);
+            } else if path.extension().is_some_and(|ext| ext == "rs") {
+                let text: String = fs::read_to_string(&path).unwrap().split_whitespace().collect();
+                if banned.iter().any(|pattern| text.contains(pattern.as_str())) {
+                    found.push(path.strip_prefix(root).unwrap().display().to_string());
+                }
+            }
+        }
+    }
+    found.sort();
+    assert!(found.is_empty(), "load test_catalogs::english_only() or a fixture catalog instead of the repo's i18n/: {found:?}");
+}

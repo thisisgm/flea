@@ -9,7 +9,7 @@ use flea::ui_logic_mn1::{
     Entry, Text,
 };
 use gpui::{div, prelude::*, Context as GpuiContext, Render, TestAppContext, Window, WindowHandle};
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 struct Host;
 
@@ -28,7 +28,7 @@ const WIDE: Rect = Rect {
 const INSET: f32 = 4.;
 
 fn with<R>(cx: &mut TestAppContext, f: impl FnOnce(&mut Menu, &Env, &Window) -> R) -> R {
-    let catalogs = vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")];
+    let catalogs = vec![crate::test_catalogs::english_only()];
     let catalog = I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent".into(),

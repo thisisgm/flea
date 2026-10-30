@@ -16,7 +16,7 @@ pub(super) fn english() -> I18n {
     I18n::load(Paths {
         omarchy: PathBuf::from("/nonexistent"),
         language_file: PathBuf::from("/nonexistent/language"),
-        catalogs: vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n")],
+        catalogs: vec![crate::i18n::test_catalogs::english_only()],
     })
 }
 

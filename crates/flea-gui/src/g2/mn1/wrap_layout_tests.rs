@@ -22,7 +22,7 @@ use flea::{
     },
 };
 use gpui::{div, font, prelude::*, px, Context, Render, TestAppContext, Window, WindowHandle};
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 struct Host(Rc<RefCell<Menu>>);
 
@@ -38,7 +38,7 @@ fn catalog() -> I18n {
     I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent".into(),
-        catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     })
 }
 

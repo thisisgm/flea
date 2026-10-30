@@ -8,7 +8,7 @@ use gpui::{
     div, font, prelude::*, px, size, AppContext, Bounds, Context, Entity, FontWeight, Pixels,
     Render, TestAppContext, TextRun, VisualTestContext, Window, WindowHandle,
 };
-use std::{path::Path, time::Duration};
+use std::time::Duration;
 
 pub(super) const FRAME: u64 = 16;
 
@@ -16,7 +16,7 @@ pub(super) fn english() -> I18n {
     I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent/language".into(),
-        catalogs: vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     })
 }
 
@@ -273,18 +273,7 @@ impl Render for CaptionHost {
 #[gpui::test]
 fn caption_observer_uses_the_painted_font_size_and_tracking(cx: &mut TestAppContext) {
     let root = super::test_root::root();
-    std::fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
-    std::fs::write(
-        root.join("omarchy/default/i18n/locales.json"),
-        r#"{"en":{},"ja":{"name":"Japanese"}}"#,
-    )
-    .unwrap();
-    std::fs::write(root.join("language"), "ja").unwrap();
-    let caseless = I18n::load(Paths {
-        omarchy: root.join("omarchy"),
-        language_file: root.join("language"),
-        catalogs: vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
-    });
+    let caseless = super::test_root::caseless(&root);
     assert_eq!(caseless.language(), "ja");
     cx.update(|cx| cx.set_reduce_motion(true));
     let handle = cx.add_window(|window, cx| {

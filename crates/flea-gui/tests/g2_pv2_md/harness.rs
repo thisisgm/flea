@@ -43,7 +43,7 @@ pub fn catalog(root: &Root) -> I18n {
     I18n::load(Paths {
         omarchy: root.join("omarchy"),
         language_file: root.join("language"),
-        catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     })
 }
 

@@ -2,9 +2,8 @@ use super::caption::{origins, tracking_for, Tracked, TRACKING};
 use super::caption_tests::{painted, shaped};
 use super::hero::EmptyHero;
 use super::hero_tests::frame;
-use super::test_root::root;
+use super::test_root::{caseless, root};
 use crate::list::{bench::allocations, Typeface};
-use flea::i18n::{I18n, Paths};
 use gpui::{
     div, point, prelude::*, px, size, App, Bounds, Context, Element, ElementId, FontWeight,
     GlobalElementId, InspectorElementId, IntoElement, LayoutId, Pixels, Render, ShapedLine,
@@ -148,18 +147,7 @@ fn a_caseless_language_draws_the_caption_untracked(cx: &mut TestAppContext) {
         assert_eq!(tracking_for(code), tracking, "{code}");
     }
     let root = root();
-    std::fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
-    std::fs::write(
-        root.join("omarchy/default/i18n/locales.json"),
-        r#"{"en":{},"ja":{"name":"Japanese"}}"#,
-    )
-    .unwrap();
-    std::fs::write(root.join("language"), "ja").unwrap();
-    let catalog = I18n::load(Paths {
-        omarchy: root.join("omarchy"),
-        language_file: root.join("language"),
-        catalogs: vec![std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
-    });
+    let catalog = caseless(&root);
     assert_eq!(catalog.language(), "ja");
     cx.update(|cx| cx.set_reduce_motion(true));
     let handle = cx.add_window(|window, cx| {

@@ -14,7 +14,7 @@ use flea::ui_logic_mn1::{
 use gpui::{
     div, prelude::*, px, Context as GpuiContext, Render, TestAppContext, Window, WindowHandle,
 };
-use std::{cell::RefCell, path::PathBuf, rc::Rc, time::Duration};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 struct Host {
     menu: Rc<RefCell<Menu>>,
@@ -36,7 +36,7 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> Self {
-        let catalogs = vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")];
+        let catalogs = vec![crate::test_catalogs::english_only()];
         let paths = Paths {
             omarchy: "/nonexistent".into(),
             language_file: "/nonexistent".into(),

@@ -105,7 +105,7 @@ fn tui_print_held_find_refuses_every_entry_without_dispatching() {
                     language_file: root.join("language"),
                     catalogs: vec![
                         root.join("catalog"),
-                        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n"),
+                        crate::i18n::test_catalogs::english_only(),
                     ],
                 });
                 start(&mut m, &mut w, in_contents);

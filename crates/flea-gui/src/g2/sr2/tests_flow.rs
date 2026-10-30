@@ -125,7 +125,7 @@ pub(super) fn english() -> flea::i18n::I18n {
     flea::i18n::I18n::load(flea::i18n::Paths {
         omarchy: root.join("nonexistent-omarchy"),
         language_file: root.join("nonexistent-language"),
-        catalogs: vec![root.join("i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     })
 }
 

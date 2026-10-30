@@ -285,7 +285,7 @@ fn pl2_real_entity_and_element_draw_all_protocols(cx: &mut gpui::TestAppContext)
     use crate::{g2::op1::palette::CardPalette, list::Palette, palette::Theme};
     use flea::i18n::{I18n, Paths};
     use gpui::prelude::*;
-    use std::{path::PathBuf, sync::Arc, time::Duration};
+    use std::{sync::Arc, time::Duration};
     let root = super::store_tests::Root::new();
     let omarchy = root.0.join("omarchy");
     std::fs::create_dir_all(omarchy.join("default/i18n/en")).unwrap();
@@ -297,7 +297,7 @@ fn pl2_real_entity_and_element_draw_all_protocols(cx: &mut gpui::TestAppContext)
     let catalog = Arc::new(I18n::load(Paths {
         omarchy,
         language_file: "/nonexistent".into(),
-        catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     }));
     let handle = cx.add_window(|_, cx| {
         let p = Palette::inherited(&gpui::TextStyle::default(), Theme::default());

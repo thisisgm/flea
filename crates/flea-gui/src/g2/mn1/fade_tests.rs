@@ -76,7 +76,7 @@ fn open(app: &mut HeadlessAppContext, radius: f32) -> (WindowHandle<Host>, Rc<Re
             let catalog = I18n::load(Paths {
                 omarchy: "/nonexistent".into(),
                 language_file: "/nonexistent".into(),
-                catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+                catalogs: vec![crate::test_catalogs::english_only()],
             });
             let env = Env {
                 catalog: &catalog,

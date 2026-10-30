@@ -47,7 +47,7 @@ fn german_numbers_take_the_comma_and_an_untranslated_string_falls_back_to_englis
     let i = I18n::load(Paths {
         omarchy: root.0.join("omarchy"),
         language_file: language,
-        catalogs: vec![root.0.join("i18n"), Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n")],
+        catalogs: vec![root.0.join("i18n"), crate::i18n::test_catalogs::english_only()],
     });
     assert_eq!(i.language(), "de");
     assert_eq!(facts::size_mm(&i, [60., 40., 40.]), "60,0 × 40,0 × 40,0 mm");
