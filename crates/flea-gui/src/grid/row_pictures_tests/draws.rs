@@ -97,3 +97,56 @@ fn a_cut_row_draws_its_picture_faded_once_and_reuses_the_copy() {
         "the faded copy keeps the source facts"
     );
 }
+
+// EY-298 (b): the preview column's thumb for the cursor row shares its answer, so the row still draws its own thumbnail.
+#[gpui::test]
+fn a_columns_cursor_row_draws_its_thumbnail_beside_the_preview(cx: &mut TestAppContext) {
+    let (handle, mut lines) = open(cx, View::Columns, "{}");
+    first_settle(cx, handle, &mut lines);
+    handle
+        .update(cx, |shell, _, cx| {
+            let host = shell.panes[0].as_mut().unwrap();
+            host.pane.cursor = 1;
+            host.selected = vec![1];
+            cx.notify();
+        })
+        .unwrap();
+    // The column waits on the folder's class before it follows the cursor, as PreviewColumn.qml does.
+    let class = Backend::test_reply_line(
+        r#"{"t":"fsinfo","path":"/files","fs":"tmpfs","dev":1,"total":100,"free":90,"class":"local"}"#,
+    );
+    for _ in 0..2 {
+        settle(cx, handle, 300);
+    }
+    handle
+        .update(cx, |shell, window, cx| shell.receive(0, class, window, cx))
+        .unwrap();
+    for _ in 0..3 {
+        settle(cx, handle, 300);
+    }
+    let previewed = read(cx, handle, |shell| {
+        shell.panes[0].as_ref().unwrap().preview.clone()
+    })
+    .expect("the Columns preview column is mounted");
+    let subject = cx.read(|cx| {
+        let view = previewed.read(cx);
+        view.pending
+            .as_ref()
+            .or(view.drawn.as_ref())
+            .map(|frame| frame.subject.index)
+    });
+    assert_eq!(subject, Some(1), "the preview follows the cursor row");
+    let event = Backend::test_reply_line(&thumbed(1, PICTURE));
+    handle
+        .update(cx, |shell, window, cx| shell.receive(0, event, window, cx))
+        .unwrap();
+    cx.run_until_parked();
+    step(cx, handle);
+    cx.run_until_parked();
+    step(cx, handle);
+    assert_eq!(
+        read(cx, handle, |shell| picture_at(shell, View::Columns, 1)),
+        Some((1280, 64)),
+        "the cursor row draws its thumbnail, not its kind glyph"
+    );
+}

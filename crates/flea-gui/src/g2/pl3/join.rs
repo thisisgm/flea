@@ -252,6 +252,20 @@ impl Shell {
         true
     }
 
+    /// Tabs.js dropOverlay: a tab opened or switched on Trash's side closes it, and the keyboard returns to the window.
+    pub(crate) fn drop_trash(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(pane) = self
+            .trash
+            .as_ref()
+            .filter(|host| host.side == side && host.pane.read(cx).view().opened)
+            .map(|host| host.pane.clone())
+        else {
+            return;
+        };
+        pane.update(cx, |pane, cx| pane.close(cx));
+        self.flush_trash(window, cx);
+    }
+
     pub fn trash_count(&self) -> usize {
         self.trash.as_ref().map_or(0, |host| host.count)
     }

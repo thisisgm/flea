@@ -140,3 +140,75 @@ fn a_slow_tap_just_past_the_interval_keeps_submillisecond_precision(cx: &mut gpu
     );
     close(&shell, cx);
 }
+
+// EY-282: GridArea.qml arms the same slow click from a lone tap on the painted caption.
+#[gpui::test]
+fn a_second_slow_tap_on_a_grid_caption_opens_the_editor(cx: &mut gpui::TestAppContext) {
+    let (shell, cx, _) = ready(cx, "default");
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.set_view(crate::window::startup::View::Grid, window, cx)
+        })
+    });
+    draw(cx);
+    let caption = read(&shell, cx, "rowNameCentre", &["2"]);
+    assert!(!caption.is_empty(), "the grid paints row 2's caption");
+    press(cx, &caption, 1);
+    wait(cx, 600);
+    assert_eq!(editing(&shell, cx), None, "the first tap only selects");
+    press(cx, &caption, 1);
+    wait(cx, 500);
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx),
+        Some((2, "notes.txt".into(), "notes".into())),
+        "the slow second tap on the caption opens the rename with the stem selected"
+    );
+    assert_eq!(read(&shell, cx, "renameEditorLive", &[]), "true");
+    close(&shell, cx);
+}
+
+// EY-282: a slow second tap on the grid icon, off the painted caption, ends the slow click instead.
+#[gpui::test]
+fn a_second_slow_tap_on_a_grid_icon_never_renames(cx: &mut gpui::TestAppContext) {
+    let (shell, cx, _) = ready(cx, "default");
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.set_view(crate::window::startup::View::Grid, window, cx)
+        })
+    });
+    draw(cx);
+    let other = read(&shell, cx, "rowNameCentre", &["1"]);
+    let caption = read(&shell, cx, "rowNameCentre", &["2"]);
+    let slot: Vec<f32> = read(&shell, cx, "rowThumbRect", &["2"])
+        .split_whitespace()
+        .map(|value| value.parse().unwrap())
+        .collect();
+    let icon = format!("{} {}", slot[0] + slot[2] / 2., slot[1] + slot[3] / 2.);
+    press(cx, &other, 1);
+    wait(cx, 600);
+    assert_eq!(read(&shell, cx, "cursor", &[]), "1");
+    press(cx, &icon, 1);
+    wait(cx, 600);
+    assert_eq!(
+        read(&shell, cx, "cursor", &[]),
+        "2",
+        "the icon press lands on row 2"
+    );
+    press(cx, &caption, 1);
+    wait(cx, 600);
+    assert_eq!(
+        editing(&shell, cx),
+        None,
+        "the caption tap only arms the slow click"
+    );
+    press(cx, &icon, 1);
+    wait(cx, 500);
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx),
+        None,
+        "a slow tap on the icon only selects"
+    );
+    close(&shell, cx);
+}

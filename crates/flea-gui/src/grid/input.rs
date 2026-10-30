@@ -222,6 +222,19 @@ impl Shell {
         else {
             return;
         };
+        // GridArea.qml onTapped: a lone left tap on the painted caption arms the slow click, any other tap ends it.
+        let tap =
+            (event.button == gpui::MouseButton::Left).then(|| crate::window::rename::slow::Tap {
+                row,
+                on_name: event.click_count == 1
+                    && drawn.painted.contains(f32::from(at.x), f32::from(at.y)),
+                modifiers: event.modifiers,
+                was_sole: crate::input::slow::was_sole_selection(
+                    host.selected.len(),
+                    host.selected.binary_search(&row).is_ok(),
+                    host.pane.cursor == row,
+                ),
+            });
         drop(state);
         let old = host.pane.cursor;
         match binding.effect {
@@ -265,6 +278,9 @@ impl Shell {
                 pair_armed: false,
             };
             self.dispatch(Order::Action(event), window, cx);
+        }
+        if let Some(tap) = tap {
+            self.slow_tap(side, tap, window, cx);
         }
         cx.notify();
     }
