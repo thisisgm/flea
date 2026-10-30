@@ -7,7 +7,7 @@ pub(super) fn english() -> I18n {
     I18n::load(Paths {
         omarchy: PathBuf::from("/nonexistent/omarchy"),
         language_file: PathBuf::from("/nonexistent/language"),
-        catalogs: vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n")],
+        catalogs: vec![crate::i18n::test_catalogs::english_only()],
     })
 }
 
@@ -104,7 +104,7 @@ fn a_translated_catalog_takes_its_own_words_digits_and_english_fallback() {
     let de = I18n::load(Paths {
         omarchy: root.0.join("omarchy"),
         language_file: root.0.join("language"),
-        catalogs: vec![root.0.join("catalogs"), Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n")],
+        catalogs: vec![root.0.join("catalogs"), crate::i18n::test_catalogs::english_only()],
     });
     assert_eq!(de.language(), "de");
     assert_eq!(note(&de, 1204, false, false, false), "1.204 gefunden");

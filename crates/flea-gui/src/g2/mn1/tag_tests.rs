@@ -24,7 +24,7 @@ use flea::{
     ui_logic_pl4::tags::NAMES,
 };
 use gpui::{div, prelude::*, px, Context, Render, TestAppContext, Window};
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 struct Host(Rc<RefCell<Menu>>);
 
@@ -44,7 +44,7 @@ fn ey154_tag_rows_paint_distinct_shared_swatches_after_theme_changes(cx: &mut Te
     let catalog = I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent".into(),
-        catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     });
     let typeface = Typeface::omarchy_default();
     let env = Env {

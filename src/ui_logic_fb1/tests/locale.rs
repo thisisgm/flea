@@ -5,7 +5,6 @@ use crate::ui_logic_fb1::errors::sentence;
 use crate::ui_logic_fb1::messages::Messages;
 use crate::ui_logic_fb1::reload_line;
 use crate::ui_logic_fb1::status::Hint;
-use std::path::Path;
 
 /// One witness for the unit's strings: German, a key German lacks, plural and arguments, and a live switch back.
 #[test]
@@ -22,7 +21,7 @@ fn feedback_follows_a_live_language_change_with_per_string_fallback() {
         r#"{"feedback.error.unread_named":"%1 konnte nicht gelesen werden.","feedback.reload":{"one":"Neu geladen · %1 Element geändert","other":"Neu geladen · %1 Elemente geändert"},"feedback.hint.undo":"%1 macht rückgängig","feedback.empty.phrase_1":"Noch nichts hier"}"#,
     );
     root.file("language", "de");
-    let english = Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n");
+    let english = crate::i18n::test_catalogs::english_only();
     let mut catalog = I18n::load(Paths {
         omarchy: root.join("omarchy"),
         language_file: root.join("language"),

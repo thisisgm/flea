@@ -12,7 +12,6 @@ use flea::{
     },
 };
 use gpui::{div, prelude::*, Context as GpuiContext, Render, TestAppContext, Window};
-use std::path::PathBuf;
 
 struct Host;
 
@@ -42,7 +41,7 @@ fn the_file_menu_and_copy_as_grow_to_their_widest_row_in_every_window(cx: &mut T
     let catalog = I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent".into(),
-        catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     });
     let typeface = Typeface::omarchy_default();
     let env = Env {

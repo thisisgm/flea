@@ -1,6 +1,6 @@
 use super::{store_tests::Root, words::Words};
 use flea::i18n::{I18n, Paths};
-use std::{fs, path::PathBuf};
+use std::fs;
 
 #[test]
 fn pl2_live_language_fallback_arguments_and_locale_headings() {
@@ -38,10 +38,7 @@ fn pl2_live_language_fallback_arguments_and_locale_headings() {
     let mut catalog = I18n::load(Paths {
         omarchy,
         language_file: language.clone(),
-        catalogs: vec![
-            catalogs,
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n"),
-        ],
+        catalogs: vec![catalogs, crate::test_catalogs::english_only()],
     });
     let words = Words::new(&catalog);
     assert_eq!(words.title, "Netzwerkfreigabe hinzufügen");

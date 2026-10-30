@@ -9,7 +9,6 @@ use flea::{
     ui_logic_mn1::{fit::Rect, Entry, Text},
 };
 use gpui::{div, prelude::*, Context, Render, TestAppContext, Window};
-use std::path::PathBuf;
 
 struct Host;
 
@@ -25,7 +24,7 @@ fn open_in(width: f32, cx: &mut TestAppContext) -> Menu {
     let catalog = I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent".into(),
-        catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     });
     let typeface = Typeface::omarchy_default();
     let env = Env {

@@ -83,7 +83,7 @@ impl Host {
         let catalog = flea::i18n::I18n::load(flea::i18n::Paths {
             omarchy: none.clone(),
             language_file: none,
-            catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+            catalogs: vec![crate::test_catalogs::english_only()],
         });
         let locale = Snapshot {
             revision: 1,

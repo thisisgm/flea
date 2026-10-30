@@ -1,4 +1,6 @@
 //! Consumer checks enter through the real Shell, backend pipe and IPC dispatch.
+#[path = "../../../src/i18n/test_catalogs.rs"]
+mod test_catalogs;
 #[path = "m9_selection_preview/geometry.rs"]
 mod geometry;
 #[path = "m9_selection_preview/host.rs"]

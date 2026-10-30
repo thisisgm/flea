@@ -3,12 +3,12 @@ use super::facts::{self, FileFacts};
 use super::scene::{self, bed_from_metadata, decimate, plate_rect, PlateRect, Scene, Segment};
 use super::wire::{self, State};
 use crate::i18n::{I18n, Paths};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 // English from the source catalog alone: no Omarchy roster and no language file, so nothing is written.
 pub(super) fn english() -> I18n {
     let none = PathBuf::from("/nonexistent/flea-pv4");
-    I18n::load(Paths { omarchy: none.clone(), language_file: none, catalogs: vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n")] })
+    I18n::load(Paths { omarchy: none.clone(), language_file: none, catalogs: vec![crate::i18n::test_catalogs::english_only()] })
 }
 
 /// An axis-aligned box as an STL carries it: twelve triangles, each with its own three corners.

@@ -29,6 +29,10 @@ mod visual;
 pub mod window;
 
 #[cfg(test)]
+#[path = "../../../src/i18n/test_catalogs.rs"]
+mod test_catalogs;
+
+#[cfg(test)]
 mod theme_gate;
 
 #[cfg(test)]

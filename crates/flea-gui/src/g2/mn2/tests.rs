@@ -298,7 +298,6 @@ fn mn2_every_emitted_mark_is_drawn_or_handed_to_the_join(cx: &mut TestAppContext
     use flea::i18n::{I18n, Paths};
     use flea::ui_logic_mn2::rows;
     use gpui::{div, prelude::*, Render};
-    use std::path::PathBuf;
     struct Root;
     impl Render for Root {
         fn render(
@@ -323,7 +322,7 @@ fn mn2_every_emitted_mark_is_drawn_or_handed_to_the_join(cx: &mut TestAppContext
             let catalog = I18n::load(Paths {
                 omarchy: "/nonexistent".into(),
                 language_file: "/nonexistent".into(),
-                catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+                catalogs: vec![crate::test_catalogs::english_only()],
             });
             let typeface = Typeface::omarchy_default();
             let env = Env {

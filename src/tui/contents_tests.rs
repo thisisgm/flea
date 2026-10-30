@@ -233,6 +233,6 @@ pub(super) fn catalog(root: &super::contents_process_tests::Root) -> flea::i18n:
     flea::i18n::I18n::load(flea::i18n::Paths {
         omarchy: root.0.join("omarchy"),
         language_file: root.0.join("language"),
-        catalogs: vec![base, std::env::current_dir().unwrap().join("i18n")],
+        catalogs: vec![base, crate::i18n::test_catalogs::english_only()],
     })
 }

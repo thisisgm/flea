@@ -8,7 +8,6 @@ use flea::i18n::{I18n, Paths};
 use gpui::{div, point, prelude::*, px, Context, Entity, Render, Window};
 use std::{
     cell::{Cell, RefCell},
-    path::PathBuf,
     rc::Rc,
     sync::Arc,
 };
@@ -25,7 +24,7 @@ pub(super) fn catalog() -> (super::store_tests::Root, Arc<I18n>) {
     let catalog = Arc::new(I18n::load(Paths {
         omarchy,
         language_file: "/nonexistent".into(),
-        catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     }));
     (root, catalog)
 }

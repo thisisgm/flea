@@ -9,7 +9,6 @@ use flea::ui_logic_mn1::fit::Rect;
 use flea::ui_logic_mn2::plugins::{Contribution, Item, Menu as Where, When};
 use flea::ui_logic_mn2::rows;
 use gpui::{div, prelude::*, Render, TestAppContext};
-use std::path::PathBuf;
 
 struct Root;
 
@@ -27,7 +26,7 @@ fn press(cx: &mut TestAppContext, entries: &[Entry], keys: &[&str]) -> Outcome {
             let catalog = I18n::load(Paths {
                 omarchy: "/nonexistent".into(),
                 language_file: "/nonexistent".into(),
-                catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+                catalogs: vec![crate::test_catalogs::english_only()],
             });
             let typeface = Typeface::omarchy_default();
             let env = Env {

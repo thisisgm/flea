@@ -54,7 +54,7 @@ fn an_extraction_sample_carries_its_time_left_onto_the_card() {
     let catalog = I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent".into(),
-        catalogs: vec![std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("i18n")],
+        catalogs: vec![crate::i18n::test_catalogs::english_only()],
     });
     let block = jobs::block(&catalog, &job);
     assert_eq!(block.head, "Extracting 7 of 18");

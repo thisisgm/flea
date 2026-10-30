@@ -5,14 +5,14 @@ use super::{words, Clip, EntryHandle, Out, PasteAsk, Queue, Said, Session, TakeO
 use crate::i18n::{I18n, Paths};
 use crate::ui_logic_mn1::copyas::Format;
 use std::cell::RefCell;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 
 pub fn english() -> I18n {
     I18n::load(Paths {
         omarchy: PathBuf::from("/nonexistent/omarchy"),
         language_file: PathBuf::from("/nonexistent/language"),
-        catalogs: vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n")],
+        catalogs: vec![crate::i18n::test_catalogs::english_only()],
     })
 }
 

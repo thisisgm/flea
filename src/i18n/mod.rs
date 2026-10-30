@@ -185,6 +185,8 @@ impl I18n {
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
+pub(crate) mod test_catalogs;
+#[cfg(test)]
 mod plural_tests;
 #[cfg(test)]
 mod load_tests;

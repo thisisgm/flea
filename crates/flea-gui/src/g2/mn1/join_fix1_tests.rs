@@ -14,7 +14,7 @@ use flea::{
     ui_logic_mn1::{fit::Rect, Entry, Text},
 };
 use gpui::{div, prelude::*, Context, Render, TestAppContext, VisualTestContext, Window};
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 const WIDE: Rect = Rect {
     x: 0.,
@@ -35,7 +35,7 @@ fn catalog() -> I18n {
     I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent".into(),
-        catalogs: vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     })
 }
 

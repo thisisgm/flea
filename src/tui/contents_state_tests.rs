@@ -237,7 +237,7 @@ fn tui_contents_prompt_strings_use_the_catalog_delta_overlay() {
         language_file: root.0.join("language"),
         catalogs: vec![
             root.0.join("catalog"),
-            std::env::current_dir().unwrap().join("i18n"),
+            crate::i18n::test_catalogs::english_only(),
         ],
     };
     let (mut w, reader) = wire::echo_wire();

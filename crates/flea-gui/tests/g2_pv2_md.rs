@@ -1,3 +1,5 @@
+#[path = "../../../src/i18n/test_catalogs.rs"]
+mod test_catalogs;
 use std::{
     path::{Path, PathBuf},
     process::Command,

@@ -4,13 +4,13 @@ use super::{Clipboard, Landing, Take};
 use flea::i18n::{I18n, Paths};
 use flea::ui_logic_dg1::{PasteAsk, Stamp};
 use std::cell::RefCell;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 fn english() -> I18n {
     I18n::load(Paths {
         omarchy: PathBuf::from("/nonexistent/omarchy"),
         language_file: PathBuf::from("/nonexistent/language"),
-        catalogs: vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+        catalogs: vec![crate::test_catalogs::english_only()],
     })
 }
 

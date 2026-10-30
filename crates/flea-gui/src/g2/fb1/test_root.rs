@@ -1,4 +1,5 @@
 //! A marked scratch root for fb1 tests that write files, made by mktemp under .superpowers as g1_04.rs Root is.
+use flea::i18n::{I18n, Paths};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -44,4 +45,20 @@ pub(super) fn root() -> Root {
     assert!(root.is_absolute());
     std::fs::write(root.join(".flea-test-sandbox"), "g2-fb1\n").unwrap();
     Root(root)
+}
+
+/// Japanese with no Japanese catalog: Latin fallback text under a caseless language pins case and tracking to the language.
+pub(super) fn caseless(root: &Path) -> I18n {
+    std::fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
+    std::fs::write(
+        root.join("omarchy/default/i18n/locales.json"),
+        r#"{"en":{},"ja":{"name":"Japanese"}}"#,
+    )
+    .unwrap();
+    std::fs::write(root.join("language"), "ja").unwrap();
+    I18n::load(Paths {
+        omarchy: root.join("omarchy"),
+        language_file: root.join("language"),
+        catalogs: vec![crate::test_catalogs::english_only()],
+    })
 }

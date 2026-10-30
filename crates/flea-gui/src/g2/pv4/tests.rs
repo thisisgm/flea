@@ -100,7 +100,7 @@ impl ModelReader for Boxes {
 
 fn english() -> Arc<I18n> {
     let none = std::path::PathBuf::from("/nonexistent/flea-pv4");
-    let catalogs = vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("../../i18n")];
+    let catalogs = vec![crate::test_catalogs::english_only()];
     Arc::new(I18n::load(flea::i18n::Paths {
         omarchy: none.clone(),
         language_file: none,

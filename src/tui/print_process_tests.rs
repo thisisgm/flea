@@ -304,7 +304,7 @@ fn tui_print_real_backend_and_private_setup_recorder() {
         .env("HOME", dir.dir("home"))
         .env(
             "FLEA_I18N",
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n"),
+            crate::i18n::test_catalogs::english_only(),
         )
         .env("LC_ALL", "C.UTF-8")
         .env("CUPS_SERVER", dir.join("private-cups.sock"))
