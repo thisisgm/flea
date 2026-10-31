@@ -72,3 +72,76 @@ fn ey325_an_unfocused_empty_secret_field_draws_its_eye_at_the_right() {
         "the empty field's eye sits at the right edge, not after its text: {state}"
     );
 }
+
+// The eye one capture answers, never the other card's.
+fn capture_eye(state: &str, capture: &str) -> String {
+    let doc = flea::jsondoc::parse(state.trim()).unwrap();
+    doc.get(capture)
+        .and_then(|capture| capture.get("eye"))
+        .and_then(Json::as_str)
+        .expect("the capture names its eye")
+        .to_owned()
+}
+
+// archiveCardsState inside the caller's own update, before the frame that update's end draws.
+fn read_now(shell: &mut Shell, window: &mut Window, cx: &mut Context<Shell>) -> String {
+    let (answer, receive) = std::sync::mpsc::sync_channel(1);
+    let request = Request::Call {
+        target: "flea".into(),
+        function: "archiveCardsState".into(),
+        arguments: vec![],
+    };
+    shell.ipc(Event::Call { request, answer }, window, cx);
+    receive.try_recv().unwrap().reply.stdout
+}
+
+#[test]
+fn ey325_a_card_reads_no_eye_before_it_paints() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, _requests, _other) = start(&mut cx);
+    choose(
+        &mut cx,
+        handle,
+        42,
+        "compress",
+        "compressPassword",
+        &["/files/notes.txt"],
+    );
+    let compress = call(&mut cx, handle, "archiveCardsState");
+    assert!(
+        eye_x(&compress) > card_middle(&mut cx, handle),
+        "{compress}"
+    );
+    keys(&mut cx, handle, "escape");
+    choose(&mut cx, handle, 43, "extract", "", &["/files/photos.7z"]);
+    receive(&mut cx, handle, 0, r#"{"t":"archivestarted","id":7}"#);
+    receive(&mut cx, handle, 0, r#"{"t":"extractstarted","id":7}"#);
+    // The encrypted answer opens the extract card and the read lands in the same update, before its first frame.
+    let unpainted = edit(&mut cx, handle, |shell, window, cx| {
+        let line = r#"{"t":"archivedone","id":7,"ok":false,"verified":true,"err":"encrypted","path":"/files/photos.7z","dest":"/files/photos"}"#;
+        shell.receive(0, Backend::test_reply_line(line), window, cx);
+        read_now(shell, window, cx)
+    });
+    assert!(unpainted.contains("\"extractOpened\":true"), "{unpainted}");
+    assert_eq!(
+        capture_eye(&unpainted, "extractCapture"),
+        "",
+        "the compress card's eye never answers for the extract card: {unpainted}"
+    );
+    frame(&mut cx, handle);
+    let painted = call(&mut cx, handle, "archiveCardsState");
+    assert!(eye_x(&painted) > card_middle(&mut cx, handle), "{painted}");
+    // The other way round: a compress card opened after the painted extract card.
+    keys(&mut cx, handle, "escape");
+    let unpainted = edit(&mut cx, handle, |shell, window, cx| {
+        let compress = chosen(44, "compress", "compressPassword", &["/files/notes.txt"]);
+        assert!(shell.archive_chosen(&compress, window, cx));
+        read_now(shell, window, cx)
+    });
+    assert!(unpainted.contains("\"compressOpened\":true"), "{unpainted}");
+    assert_eq!(
+        capture_eye(&unpainted, "compressCapture"),
+        "",
+        "the extract card's eye never answers for the compress card: {unpainted}"
+    );
+}

@@ -42,4 +42,9 @@ fn an_encrypted_extract_draws_no_failed_block() {
     );
     held.update(row(5, "no space left on device"));
     assert_eq!(held.blocks().map(|r| r.id).collect::<Vec<_>>(), vec![5]);
+    // A wrong password asks again on the card; only an extract is hidden, never another job's failure.
+    assert_eq!(jobs::state(&row(6, "wrong-password")), jobs::State::Done);
+    let mut other = row(7, "encrypted");
+    other.kind = "compress".into();
+    assert_eq!(jobs::state(&other), jobs::State::Failed);
 }

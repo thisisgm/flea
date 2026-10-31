@@ -159,8 +159,15 @@ fn choose(
     leaf: &str,
     paths: &[&str],
 ) -> Rc<Cell<bool>> {
-    let claimed = Rc::new(Cell::new(false));
-    let chosen = Chosen {
+    let chosen = chosen(id, action, leaf, paths);
+    let claimed = chosen.claimed.clone();
+    edit(cx, handle, |_, _, cx| cx.emit(chosen));
+    frame(cx, handle);
+    claimed
+}
+
+fn chosen(id: u64, action: &str, leaf: &str, paths: &[&str]) -> Chosen {
+    Chosen {
         captured: Captured {
             side: 0,
             listing: 3,
@@ -176,11 +183,8 @@ fn choose(
         action: action.into(),
         leaf: leaf.into(),
         paths: paths.iter().map(|path| (*path).to_owned()).collect(),
-        claimed: claimed.clone(),
-    };
-    edit(cx, handle, |_, _, cx| cx.emit(chosen));
-    frame(cx, handle);
-    claimed
+        claimed: Rc::new(Cell::new(false)),
+    }
 }
 
 /// The production window with a test backend on each side and a chooser that answers one image.

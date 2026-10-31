@@ -166,6 +166,8 @@ unavailable_reader!(ipc_flash_closed_requires_a_built_lifetime, "flashState");
 
 #[path = "reader_port_a_live_tests.rs"]
 mod live;
+#[path = "reader_port_a_unlock_tests.rs"]
+mod unlock;
 
 #[gpui::test]
 fn ipc_status_busy_reads_live_footer(cx: &mut TestAppContext) {

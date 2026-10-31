@@ -108,10 +108,10 @@ fn ey328_header_cell_centre_sits_on_the_painted_title() {
         let (x, width): (f32, f32) = (x.parse().unwrap(), width.parse().unwrap());
         let centre = ask(&mut cx, handle, "headerCellCentre", &[name]);
         let at = centre.split(' ').next().unwrap().parse::<f32>().unwrap() - left;
-        // The title's middle sits within 40 px of the edge it is set on, never at the middle of a wide cell.
+        // The title's middle sits within 40 px of the edge it is set on, and never at the cell's middle.
         let edge = if from_right { x + width - at } else { at - x };
         assert!(
-            (from_right || width > 120.) && (0. ..=40.).contains(&edge),
+            (0. ..=40.).contains(&edge) && edge + 1. < width / 2.,
             "{name}: centre {at} in cell {x}|{width}"
         );
     }
