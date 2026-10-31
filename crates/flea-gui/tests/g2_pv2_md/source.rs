@@ -1,7 +1,7 @@
 //! Source and fences: lines asked a screen at a time from the code engine or drawn plain, CRLF ends dropped, and fences that hold the first screen until coloured.
-use super::harness::{draw, first_screen, open, show, until, with, Helper};
+use super::harness::{draw, first_screen, open, open_with, show, until, with, Helper, TOKENS};
 use super::{file, root};
-use flea_gui::g2::pv2::markdown::{CodeAnswer, CodeHost, CodeSource, CodeState, View};
+use flea_gui::g2::pv2::markdown::{CodeAnswer, CodeHost, CodeSource, CodeState, Tokens, View};
 use gpui::TestAppContext;
 use std::{cell::RefCell, rc::Rc};
 
@@ -254,4 +254,48 @@ fn md_a_document_nested_past_the_limit_shows_its_source_behind_a_notice(cx: &mut
         Some("This file nests deeper than 32 levels, so Flea shows its source.")
     );
     assert_eq!(total, 1);
+}
+
+#[gpui::test]
+fn md_source_board_row_never_draws_under_a_larger_face(cx: &mut TestAppContext) {
+    let root = root();
+    let path = file(&root, "large.md", b"# Title\n\nA line.\n");
+    let large = Tokens {
+        body: 20.,
+        theme_body: 20.,
+        ..TOKENS
+    };
+    let line = |source_line, cx: &mut TestAppContext| {
+        let view = open_with(
+            cx,
+            &root,
+            Helper::Draws,
+            Tokens {
+                source_line,
+                ..large
+            },
+        );
+        draw(cx, view);
+        first_screen(cx, view, &path);
+        view.update(cx, |v, _, cx| v.set_view(View::Source, cx))
+            .unwrap();
+        until(
+            cx,
+            view,
+            "the Source lines",
+            |_| {},
+            |v| v.source.laid_chars > 0,
+        );
+        with(cx, view, |v| v.source.frame.line)
+    };
+    let face = line(None, cx);
+    assert!(
+        face > 20.,
+        "a 20 px face is taller than the board's 20 px row: {face}"
+    );
+    assert_eq!(
+        line(Some(20.), cx),
+        face,
+        "the board's row gives way to the face's extent"
+    );
 }

@@ -229,8 +229,7 @@ impl Shell {
         }
     }
 
-    /// One bookmarks edit off the UI thread; a card save answers the card, a rail edit answers the pane.
-    /// `said` is what the bar reads once the edit changed the file, then once the file already lacked it.
+    /// One bookmarks edit off the UI thread; a card save answers the card, a rail edit answers the pane, with `said` read once the file changed, then once it already lacked the line.
     pub(crate) fn network_save(
         &mut self,
         edit: bookmarks::Edit,

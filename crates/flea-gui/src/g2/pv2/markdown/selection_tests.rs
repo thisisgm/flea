@@ -34,6 +34,7 @@ fn tokens(column: bool) -> Tokens {
         row_pad_y: 7.,
         mark: 16.,
         state_mark: 40.,
+        source_line: None,
         column,
     }
 }

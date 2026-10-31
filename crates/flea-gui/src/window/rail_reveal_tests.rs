@@ -365,6 +365,42 @@ fn network_row_menu_answers_the_menu_readers_under_the_row(cx: &mut TestAppConte
     assert_eq!(
         drawn.1,
         row + 14.,
-        "the keyboard menu opens at the row's mark column"
+        "the keyboard menu opens at the stock face's mark column, as rail-menu-network draws it"
+    );
+    // Until the next frame the rail's rows keep the face they were laid with, so the menu keeps their mark column.
+    let (row, x) = shell.update_in(cx, |shell, window, cx| {
+        let network = shell.rail.as_ref().unwrap().network.as_ref().unwrap();
+        network.menu.borrow_mut().close();
+        let host = shell.panes[shell.focus_side].as_ref().unwrap();
+        host.list.borrow_mut().typeface.base = px(20.);
+        let side = shell.focus_side;
+        shell.network_menu(side, &share_row(), window, cx);
+        let row = producer.read(cx).laid.borrow().row(index).unwrap().rect.x;
+        let network = shell.rail.as_ref().unwrap().network.as_ref().unwrap();
+        let menu = network.menu.borrow();
+        (row, menu.card.as_ref().expect("the menu reopened").frame.x)
+    });
+    assert_eq!(
+        x,
+        row + 14.,
+        "a face the rail has not laid yet leaves the keyboard menu at the laid mark column"
+    );
+    // A 20 px face lays the rail's mark 20 px in, so the menu must follow the face rather than a fixed offset.
+    frame(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        let side = shell.focus_side;
+        shell.network_menu(side, &share_row(), window, cx);
+    });
+    frame(cx);
+    let (row, x) = shell.read_with(cx, |shell, cx| {
+        let row = producer.read(cx).laid.borrow().row(index).unwrap().rect.x;
+        let network = shell.rail.as_ref().unwrap().network.as_ref().unwrap();
+        let menu = network.menu.borrow();
+        (row, menu.card.as_ref().expect("the menu reopened").frame.x)
+    });
+    assert_eq!(
+        x,
+        row + 20.,
+        "the keyboard menu opens at a 20 px face's mark column"
     );
 }

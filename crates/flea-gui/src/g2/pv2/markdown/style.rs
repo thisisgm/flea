@@ -39,7 +39,7 @@ pub struct Tokens {
     pub mark: f32,
     /// The state mark's size, which a refused Source draws.
     pub state_mark: f32,
-    /// Source's row where a board fixes it, the code view's own (ql-markdown-source: 20); None takes the face's extent.
+    /// Source's row where a board fixes it, the code view's own (ql-markdown-source: 20), never under the face's extent; None takes the extent.
     pub source_line: Option<f32>,
     /// True for the preview column's document; Quick Look's is false.
     pub column: bool,
