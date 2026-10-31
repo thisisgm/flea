@@ -121,6 +121,7 @@ pub(super) struct Worker<'a> {
     wake: UnixStream,
     wake_open: bool,
     closing: Arc<Mutex<Closing>>,
+    folders: Arc<Mutex<super::Writable>>,
     output: &'a async_channel::Sender<Event>,
     bytes: Vec<u8>,
     eof: bool,
@@ -131,6 +132,7 @@ impl<'a> Worker<'a> {
         requests: Receiver<Control>,
         wake: UnixStream,
         closing: Arc<Mutex<Closing>>,
+        folders: Arc<Mutex<super::Writable>>,
         output: &'a async_channel::Sender<Event>,
     ) -> Self {
         Self {
@@ -138,6 +140,7 @@ impl<'a> Worker<'a> {
             wake,
             wake_open: true,
             closing,
+            folders,
             output,
             bytes: Vec::new(),
             eof: false,
@@ -293,6 +296,10 @@ impl<'a> Worker<'a> {
             Ok(event) => event,
             Err(error) => Event::Failed(failure("window.backend_protocol", error)),
         };
+        // The folder fact lands before its listed event, so a menu built on that landing reads it.
+        if let Some((folder, writable)) = transport::listed_folder(&event, line) {
+            self.folders.lock().unwrap().record(folder, writable);
+        }
         if let Some(changed) = transport::reload_changed(&event, line) {
             let _ = self.output.try_send(Event::ReloadChanged(changed));
         }

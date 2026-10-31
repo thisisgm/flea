@@ -6,7 +6,15 @@ use crate::{
 };
 use gpui::{point, px, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 
-fn reread(cx: &mut TestAppContext, watched: bool) {
+// What re-reads the folder: F5, the folder watch, or a settings relist such as the hidden-files toggle (EY-340).
+#[derive(Clone, Copy, PartialEq)]
+enum Trigger {
+    Reload,
+    Watch,
+    Hidden,
+}
+
+fn reread(cx: &mut TestAppContext, trigger: Trigger) {
     let (handle, _requests) = open(cx);
     handle
         .update(cx, |shell, window, cx| {
@@ -61,7 +69,7 @@ fn reread(cx: &mut TestAppContext, watched: bool) {
             )
         })
         .unwrap();
-    if watched {
+    if trigger == Trigger::Watch {
         handle
             .update(cx, |shell, window, cx| {
                 shell.receive(
@@ -75,6 +83,14 @@ fn reread(cx: &mut TestAppContext, watched: bool) {
         cx.executor()
             .advance_clock(std::time::Duration::from_millis(401));
         cx.run_until_parked();
+    } else if trigger == Trigger::Hidden {
+        handle
+            .update(cx, |shell, window, cx| {
+                let patch = flea::jsondoc::parse(r#"{"hidden":true}"#).unwrap();
+                let data = flea::uistate::patched(&shell.launch.settings.data, &patch).unwrap();
+                shell.apply_settings(data, window, cx);
+            })
+            .unwrap();
     } else {
         VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes("f5");
     }
@@ -156,10 +172,15 @@ fn reread(cx: &mut TestAppContext, watched: bool) {
 
 #[gpui::test]
 fn pb_path_grid_reload_preserves_the_cursor_tile_offset(cx: &mut TestAppContext) {
-    reread(cx, false);
+    reread(cx, Trigger::Reload);
 }
 
 #[gpui::test]
 fn pb_path_grid_watch_preserves_the_cursor_tile_offset(cx: &mut TestAppContext) {
-    reread(cx, true);
+    reread(cx, Trigger::Watch);
+}
+
+#[gpui::test]
+fn ey340_grid_hidden_toggle_preserves_the_cursor_tile_offset(cx: &mut TestAppContext) {
+    reread(cx, Trigger::Hidden);
 }

@@ -15,6 +15,7 @@ pub fn svg(name: &str) -> Option<(SharedString, &'static [u8])> {
         "history" => ("flea-rail:history", cut!("M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5")),
         "trash" => ("flea-rail:trash", cut!("M3 6h18 M8 6V3h8v3 M6 6l1.2 15h9.6L18 6 M10 10v7 M14 10v7")),
         "drive" => ("flea-rail:drive", cut!("M6 4h12l4 8v8H2v-8z M2 12h20 M6 16L6.01 16 M10 16L10.01 16")),
+        "lock" => ("flea-rail:lock", cut!("M4 11h16v10H4z M8 11V7a4 4 0 0 1 8 0v4 M12 15h.01")),
         "folder-git-2" => ("flea-rail:folder-git-2", cut!("M18 19a5 5 0 0 1-5-5v8 M9 20H2V3h6l2 2h12v5 M11 12A2 2 0 1 0 15 12A2 2 0 1 0 11 12Z M18 19A2 2 0 1 0 22 19A2 2 0 1 0 18 19Z")),
         "server" => (
             "flea-rail:server",

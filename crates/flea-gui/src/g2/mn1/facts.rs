@@ -90,6 +90,11 @@ impl Shell {
             clipboard_available,
             clipboard_watch_failed,
             can_link,
+            // Menu.js greys New Folder, New File, Paste and every writing row where the backend cannot write the folder.
+            dir_writable: host
+                .backend
+                .as_ref()
+                .is_none_or(|backend| backend.dir_writable(host.pane.path())),
             ..MenuContext::default()
         }
     }

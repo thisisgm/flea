@@ -24,6 +24,12 @@ impl PaneHost {
         self.nav.viewport = self.grid_anchor_viewport();
     }
 
+    /// A settings relist (hidden files, sort, grouping) holds the Grid cursor tile's viewport row, as a reload does.
+    pub(crate) fn reread_preferences(&mut self) -> bool {
+        self.prepare_grid_anchor();
+        self.nav.reread_preferences(&mut self.pane, &self.selected)
+    }
+
     pub(super) fn restore_grid_anchor(&mut self) {
         let Some((listing, cursor, offset)) = self.nav.grid_landing else {
             return;

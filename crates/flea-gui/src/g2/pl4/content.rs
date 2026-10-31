@@ -35,6 +35,8 @@ pub struct DrawnRow {
     pub releasable: bool,
     /// A favourite's diagnostic, carried for its tooltip; the row still draws.
     pub error: Option<SharedString>,
+    /// A device's size in the locale's SI form, empty when lsblk gave none; places.driveSize shows it.
+    pub size: SharedString,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -112,6 +114,11 @@ fn row(catalog: &I18n, theme: &TagTheme, entry: &RailEntry) -> DrawnRow {
         mounted: entry.mounted,
         releasable: entry.releasable,
         error,
+        size: entry
+            .size
+            .filter(|_| entry.group == Group::Device)
+            .map(|bytes| catalog.locale().format_size(bytes).into())
+            .unwrap_or_default(),
     }
 }
 

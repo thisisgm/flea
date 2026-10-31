@@ -92,6 +92,8 @@ pub struct RailEntry {
     pub square: Square,
     // The device unit's Eject.releasable verdict: the row's slot draws the eject mark instead of its square.
     pub releasable: bool,
+    // A device's byte size from lsblk, which SidebarRow.qml prints when places.driveSize is on.
+    pub size: Option<u64>,
     // The plugin section a row belongs to and the row's own id there, empty for built-in rows.
     pub section: String,
     pub id: String,
