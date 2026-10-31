@@ -445,21 +445,22 @@ impl Element for ListElement {
                     ));
                 }
                 // One layer for every mark and glyph, so the scene orders the whole list once rather than once a line.
-                let (mut marks_painted, mut cells_painted, mut pictures_painted, mut checks_painted) = (0, 0, 0, 0);
+                let (
+                    mut marks_painted,
+                    mut cells_painted,
+                    mut pictures_painted,
+                    mut checks_painted,
+                ) = (0, 0, 0, 0);
                 window.paint_layer(bounds, |window| {
                     for shown in &state.visible {
                         let lifted = shown.state.lifted();
                         let top = top_of(shown.view);
                         let origin = (left, top, self.held.row(shown.index));
-                        checks_painted += super::picker::paint_check(shown, view, metrics, palette, origin, window, cx);
+                        checks_painted += super::picker::paint_check(
+                            shown, view, metrics, palette, origin, window, cx,
+                        );
                         let (marks, pictures) = super::picker::paint_icon(
-                            shown,
-                            view,
-                            metrics,
-                            palette,
-                            origin,
-                            window,
-                            cx,
+                            shown, view, metrics, palette, origin, window, cx,
                         );
                         marks_painted += marks;
                         pictures_painted += pictures;

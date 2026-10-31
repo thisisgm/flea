@@ -53,7 +53,10 @@ fn tree_outline_keys_open_once_and_enter_keeps_navigating(cx: &mut TestAppContex
         (list.painted_marks.get(), list.painted_checks.get())
     });
     assert!(checks.0 > 0, "the outline frame painted its rows");
-    assert_eq!(checks.1, 0, "a nested file outside the chooser paints no check slot");
+    assert_eq!(
+        checks.1, 0,
+        "a nested file outside the chooser paints no check slot"
+    );
     sent();
     key(cx, "ctrl-right");
     assert!(
@@ -352,7 +355,13 @@ fn tree_outline_nested_chevron_keeps_its_pressed_mark_and_toggles_on_release(
 #[gpui::test]
 fn tree_outline_lone_selection_keeps_following_the_cursor_after_open(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
-    land(&shell, cx, "/files", vec![row("A", true), row("end.txt", false)], 1);
+    land(
+        &shell,
+        cx,
+        "/files",
+        vec![row("A", true), row("end.txt", false)],
+        1,
+    );
     // The --select launch landing: A is a lone mark the cursor carries.
     shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
@@ -364,11 +373,21 @@ fn tree_outline_lone_selection_keeps_following_the_cursor_after_open(cx: &mut Te
     folder.open = true;
     let mut child = row("A/child.txt", false);
     child.depth = 1;
-    land(&shell, cx, "/files", vec![folder, child, row("end.txt", false)], 2);
+    land(
+        &shell,
+        cx,
+        "/files",
+        vec![folder, child, row("end.txt", false)],
+        2,
+    );
     key(cx, "down");
     let (cursor, selected) = shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
         (host.pane.cursor, host.selected.clone())
     });
-    assert_eq!((cursor, selected), (1, vec![1]), "the lone selection follows the cursor into the open folder");
+    assert_eq!(
+        (cursor, selected),
+        (1, vec![1]),
+        "the lone selection follows the cursor into the open folder"
+    );
 }

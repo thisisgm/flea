@@ -101,7 +101,8 @@ pub(super) fn paint_icon(
     cx: &mut App,
 ) -> (usize, usize) {
     let (left, top, row) = origin;
-    let offset = leading(view, &metrics) + row.map_or(0., |row| super::outline::indent(row, &metrics));
+    let offset =
+        leading(view, &metrics) + row.map_or(0., |row| super::outline::indent(row, &metrics));
     let dim = if shown.clip == Some(ClipMark::Cut) {
         super::CUT_DIM
     } else {
@@ -127,9 +128,8 @@ pub(super) fn paint_icon(
         left + px(metrics.pad + offset + (metrics.slot - metrics.mark) / 2.),
         top + px((metrics.row - metrics.mark) / 2.),
     );
-    if let Some((_, key, data)) = row
-        .filter(|_| view.picker.is_none())
-        .and_then(|row| super::outline::glyph(row, shown.state.hovered))
+    if let Some((_, key, data)) =
+        row.and_then(|row| super::outline::chevron(view, row, shown.state.hovered))
     {
         let ink = if shown.state.lifted() {
             palette.foreground
