@@ -114,9 +114,6 @@ impl Dialog {
         self.save_new = false;
         self.retry = true;
         self.replace = replace.then_some(address.uri);
-        if replace {
-            self.status = Some("network.edit_prompt");
-        }
         if self.unacknowledged.as_ref().is_some_and(|(old, _, _)| {
             flea::ui_logic_pl2::mounts::normalize(old) == flea::ui_logic_pl2::mounts::normalize(uri)
         }) {
