@@ -26,7 +26,6 @@ pub struct ListingFacts {
     pub cursor_file: Option<String>,
     pub chip: i64,
     pub save_name: String,
-    pub path_bar_open: bool,
 }
 
 impl ListingFacts {
@@ -43,7 +42,6 @@ impl ListingFacts {
             cursor_file: None,
             chip: logic::current_chip(req),
             save_name: logic::initial_save_name(req).to_owned(),
-            path_bar_open: false,
         }
     }
     pub fn row(&self, index: usize) -> Option<&str> {
@@ -98,6 +96,8 @@ pub struct Picker {
     // The folder, path strip and Filename the listing child feeds.
     pub browse: super::browse::Browse,
     pub(super) drawn: super::drawn::Drawn,
+    // A column title pressed in List and not yet released, and where the press was.
+    pub(super) header_tap: Option<(&'static str, gpui::Point<gpui::Pixels>)>,
     // The name filter "/" opens over the listing.
     pub(super) find: super::find::Find,
     // The places rail beside the listing, one flat list as picker-open draws it.
@@ -162,6 +162,7 @@ impl Picker {
             stem_requests: 0,
             browse,
             drawn: super::drawn::Drawn::default(),
+            header_tap: None,
             find: super::find::Find::new(typeface),
             rail: super::rail::Rail::new(home, cx.focus_handle()),
         };
@@ -232,6 +233,12 @@ impl Picker {
         if locale.revision != self.locale.revision {
             self.labels = Labels::new(&locale.catalog, &self.req);
             self.locale = locale;
+            self.rebuild_rail(cx);
+            if let Some(network) = &self.rail.network {
+                network.shares.update(cx, |shares, cx| {
+                    shares.set_catalog(self.locale.catalog.clone(), cx)
+                });
+            }
             cx.notify();
         }
     }
@@ -323,6 +330,7 @@ impl Picker {
                     self.write_reply(text, cx);
                 }
                 Effect::QuitChildren => {
+                    self.stop_places(cx);
                     self.checks.quit();
                     self.listing_child.quit();
                 }

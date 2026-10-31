@@ -1,4 +1,4 @@
-//! The chooser's places rail as picker-open draws it: one flat list with no headings, Recent, favourites, Home and its folders, then the drives.
+//! The chooser's flat places rail: Recent, favourites, Home and its folders, network, drives and phones.
 use super::Picker;
 use crate::g2::pl1::source::{Activation, Event, Source};
 use crate::g2::pl4::content::row_label;
@@ -16,7 +16,7 @@ use gpui::{prelude::*, Context, Entity, FocusHandle, SharedString, Subscription,
 // picker-open: Theme.space(172) at body 14 beside its 1 px rule.
 pub const WIDTH: f32 = 200.;
 
-/// PickerPlaces.qml's entries: Recent unless saving, the favourites, Home and the XDG folders, then the drives; this dialog mounts no share or phone.
+/// PickerPlaces.qml's entries, including the network and phone rows after the places.
 pub fn entries(
     offer_recent: bool,
     favourites: &[Json],
@@ -27,11 +27,7 @@ pub fn entries(
     offer_recent
         .then(recent_entry)
         .into_iter()
-        .chain(
-            stored_entries(favourites, home)
-                .into_iter()
-                .filter(|row| row.error.is_some() || local_path(&row.path).is_some()),
-        )
+        .chain(stored_entries(favourites, home))
         .chain(home_entries(
             home,
             dirs,
@@ -41,7 +37,7 @@ pub fn entries(
             devices
                 .iter()
                 .flat_map(|section| &section.rows)
-                .filter(|row| row.group == Group::Device && row.kind != Kind::Phone)
+                .filter(|row| matches!(row.group, Group::Network | Group::Device))
                 .cloned(),
         )
         .collect()
@@ -57,7 +53,8 @@ pub struct Rail {
     dirs: String,
     // The history file Recent lists, read off the UI thread on each visit.
     pub history: String,
-    devices: Option<Entity<Source>>,
+    pub(super) devices: Option<Entity<Source>>,
+    pub(super) network: Option<super::network::Network>,
     // The drive a press is waiting on, so only its own mount opens the folder.
     pub(super) awaiting: String,
     pub(super) recent_read: Option<Task<()>>,
@@ -77,6 +74,7 @@ impl Rail {
             dirs: String::new(),
             history: recent::history_path(&data_home, home),
             devices: None,
+            network: None,
             awaiting: String::new(),
             recent_read: None,
             _devices: None,
@@ -87,12 +85,19 @@ impl Rail {
 
 impl Picker {
     pub(super) fn rebuild_rail(&mut self, cx: &mut Context<Self>) {
-        let sections = self
+        let mut sections = self
             .rail
-            .devices
+            .network
             .as_ref()
-            .map(|source| source.read(cx).sections.clone())
+            .map(|n| n.rows.clone())
             .unwrap_or_default();
+        sections.extend(
+            self.rail
+                .devices
+                .as_ref()
+                .map(|source| source.read(cx).picker_sections())
+                .unwrap_or_default(),
+        );
         let rail = &mut self.rail;
         rail.entries = entries(
             !logic::saving(&self.req),
@@ -121,7 +126,7 @@ impl Picker {
                     return;
                 }
                 let paths: Vec<String> = visits.into_iter().map(|visit| visit.path).collect();
-                let line = crate::g2::pk2::Listing::paths_line(&paths, view.window_size());
+                let line = view.listing().paths_line(&paths, view.window_size());
                 if picker.send_listing(&line) {
                     picker.browse.in_flight += 1;
                 }
@@ -157,10 +162,12 @@ impl Picker {
         );
         #[cfg(test)]
         let (runner, hostname) = crate::g2::pl1::source::fixture::services(cx);
+        self.start_network(runner.clone(), cx);
         let source = cx.new(|_| Source::new(runner, hostname, state));
         self.rail._devices = Some(cx.observe(&source, |picker, _, cx| picker.device_changed(cx)));
         source.update(cx, |source, cx| source.set_polling(true, cx));
         self.rail.devices = Some(source);
+        self.read_network(cx);
         self.rebuild_rail(cx);
     }
 
@@ -201,7 +208,14 @@ impl Picker {
                 _ => {}
             }
         }
+        self.read_network(cx);
         self.rebuild_rail(cx);
+    }
+
+    pub(super) fn refresh_mounts(&mut self, cx: &mut Context<Self>) {
+        if let Some(source) = self.rail.devices.clone() {
+            source.update(cx, |source, cx| source.poll_mounts(cx));
+        }
     }
 
     /// PickerPlaces.qml choose(): a place opens in the listing, a drive mounts first; a favourite's diagnostic is said instead.
@@ -214,6 +228,7 @@ impl Picker {
         };
         self.rail.cursor = index;
         self.rail.awaiting.clear();
+        self.cancel_network(cx);
         if let Some(error) = entry.error.as_ref() {
             let text = match error {
                 flea::ui_logic_pl4::rail::FavouriteError::Record(record) => {
@@ -222,6 +237,14 @@ impl Picker {
                 flea::ui_logic_pl4::rail::FavouriteError::Status(line) => line.clone(),
             };
             return self.say(text, true, cx);
+        }
+        if entry.group == Group::Network || entry.kind == Kind::Phone {
+            if entry.kind != Kind::Phone && entry.path.starts_with('/') {
+                self.open_folder(&entry.path, cx);
+            } else {
+                self.open_network(&entry, cx);
+            }
+            return;
         }
         if entry.group == Group::Device {
             if entry.mounted == Some(true) && entry.path.starts_with('/') {
@@ -242,6 +265,8 @@ impl Picker {
         }
         if let Some(path) = local_path(&entry.path) {
             self.open_folder(&path, cx);
+        } else if entry.path.contains("://") {
+            self.open_network(&entry, cx);
         }
     }
 
@@ -252,6 +277,9 @@ impl Picker {
         window: &Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.network_key(event, cx) {
+            return true;
+        }
         if !self.rail.focus.is_focused(window) {
             return false;
         }
@@ -284,7 +312,7 @@ fn labels(catalog: &I18n, entries: &[RailEntry]) -> Vec<SharedString> {
         .collect()
 }
 
-// A favourite is a path, ~ already resolved, or a file:// URI naming one; a share address is not this dialog's to mount.
+// Local favourites resolve before a remote URI is handed to the network opener.
 fn local_path(path: &str) -> Option<String> {
     if path.starts_with('/') {
         return Some(path.to_owned());

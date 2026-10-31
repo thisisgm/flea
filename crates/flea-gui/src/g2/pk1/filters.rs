@@ -32,7 +32,23 @@ impl Picker {
             .unwrap_or_else(crate::list::Typeface::omarchy_default);
         let menu = cx.new(|_| ChipMenu::new((*self.locale.catalog).clone(), face));
         let height = f32::from(window.viewport_size().height);
-        menu.update(cx, |menu, _| menu.open(&chips, (14., height - 86.), window));
+        let at = self
+            .chrome
+            .probe
+            .bounds("picker-filter")
+            .map_or((14., height - 86.), |bounds| {
+                let fit = flea::ui_logic_mn1::fit::ROW as f32 * chips.len() as f32
+                    + 2. * flea::ui_logic_mn1::fit::PAD as f32;
+                // The probe sits inside the trigger's 1 px frame; the menu meets its outer edge.
+                (
+                    f32::from(bounds.left()) - 1.,
+                    f32::from(bounds.top()) - 1. - fit,
+                )
+            });
+        menu.update(cx, |menu, _| {
+            menu.open(&chips, at, window);
+            menu.select_chip(&chips, self.listing.chip, window);
+        });
         self.chrome.filter_subscription =
             Some(cx.subscribe(&menu, |picker, _, chosen: &FilterChosen, cx| {
                 picker.choose_filter(chosen.0, cx)

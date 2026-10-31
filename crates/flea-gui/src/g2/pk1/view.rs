@@ -12,14 +12,14 @@ use gpui::{
 // The picker boards' sizes (picker-open, picker-save): title band, answer band, status bar, DialogButton.
 const TITLE_HEIGHT: f32 = 34.;
 const ANSWERS_HEIGHT: f32 = 59.;
-const STATUS_HEIGHT: f32 = 27.;
-const BUTTON_HEIGHT: f32 = 30.;
-const SIDE: f32 = 14.;
-const GAP: f32 = 9.;
-const BUTTON_SIDE: f32 = 9.;
-const TEXT: f32 = 14.;
-const STATUS_TEXT: f32 = 12.;
-// The bands' rules: foreground at 24%; a refused button draws at 55%; the default carries a 14% accent wash.
+pub(super) const STATUS_HEIGHT: f32 = 27.;
+pub(super) const BUTTON_HEIGHT: f32 = 30.;
+pub(super) const SIDE: f32 = 14.;
+pub(super) const GAP: f32 = 9.;
+pub(super) const BUTTON_SIDE: f32 = 9.;
+pub(super) const TEXT: f32 = 14.;
+pub(super) const STATUS_TEXT: f32 = 12.;
+// The bands' rules: foreground at 24%; a refused button draws its muted ink at 55%, as DialogButton.qml does; the default carries a 14% accent wash.
 const RULE: f32 = 0.24;
 const REFUSED: f32 = 0.55;
 const WASH: f32 = 0.14;
@@ -59,7 +59,11 @@ fn answer(
         .h(px(BUTTON_HEIGHT))
         .px(px(BUTTON_SIDE))
         .text_size(px(TEXT))
-        .text_color(palette.foreground)
+        .text_color(if available {
+            palette.foreground
+        } else {
+            palette.muted
+        })
         .border_1()
         .border_color(if lit {
             palette.accent_frame
@@ -85,17 +89,6 @@ impl Picker {
     // Only a plain answer carries the default's accent frame and wash.
     pub fn answer_is_default(&self) -> bool {
         !self.accept_state().collision_review()
-    }
-
-    pub fn hints(&self) -> SharedString {
-        if self.backend_unavailable() {
-            self.labels.hints_unavailable.clone()
-        } else if self.find.holds_query() {
-            // While a query stands, esc clears it, so the hint says so (picker-filter board).
-            self.labels.hints_filtered.clone()
-        } else {
-            self.labels.hints.clone()
-        }
     }
 
     pub(super) fn key(
@@ -223,7 +216,6 @@ impl Render for Picker {
                 .is_some_and(|loaded| loaded.0),
             sizes: (TEXT, STATUS_TEXT + 1.),
         });
-        let message = self.message.clone();
         let rule = palette.foreground.opacity(RULE);
         // Only a portal identity follows the title, in caption size after a muted dot, the way PickerChrome.qml draws it.
         let requester = self.labels.requester.clone().map(|requester| {
@@ -240,7 +232,10 @@ impl Render for Picker {
                 )
                 .child(div().min_w_0().text_ellipsis().child(requester))
         });
+        // The title, answer and status bands sit on the surface, a step off the pane, as the boards and PickerChrome.qml draw them.
+        let surface = theme.surface;
         let title = div()
+            .debug_selector(|| "picker-title-band".into())
             .relative()
             .children(self.drawn.probe(Slot::Title, [0., 0., 1., 0.]))
             .flex_none()
@@ -248,6 +243,7 @@ impl Render for Picker {
             .items_center()
             .h(px(TITLE_HEIGHT))
             .px(px(SIDE))
+            .bg(surface)
             .border_b_1()
             .border_color(rule)
             .child(
@@ -265,7 +261,26 @@ impl Render for Picker {
                     )
                     .children(requester),
             );
+        // Where the Save As field would be cut, the caller's filter takes its own row above the answers.
+        let filter_row = if self.filter_stacks(window, cx) {
+            self.filter_trigger(&palette, window, cx).map(|trigger| {
+                div()
+                    .debug_selector(|| "picker-filter-row".into())
+                    .flex_none()
+                    .flex()
+                    .items_center()
+                    .h(px(ANSWERS_HEIGHT))
+                    .px(px(SIDE))
+                    .bg(surface)
+                    .border_t_1()
+                    .border_color(rule)
+                    .child(trigger)
+            })
+        } else {
+            None
+        };
         let answers = div()
+            .debug_selector(|| "picker-answers-band".into())
             .flex_none()
             .flex()
             .flex_row()
@@ -274,6 +289,7 @@ impl Render for Picker {
             .gap(px(GAP))
             .h(px(ANSWERS_HEIGHT))
             .px(px(SIDE))
+            .bg(surface)
             .border_t_1()
             .border_color(rule)
             .child(self.answer_leading(&palette, window, cx))
@@ -321,34 +337,7 @@ impl Render for Picker {
                     },
                 )),
             );
-        let footer = div()
-            .relative()
-            .children(self.drawn.probe(Slot::Footer, [1., 0., 0., 0.]))
-            .flex_none()
-            .flex()
-            .flex_row()
-            .items_center()
-            .h(px(STATUS_HEIGHT))
-            .px(px(SIDE))
-            .text_size(px(STATUS_TEXT))
-            .text_color(palette.foreground)
-            .border_t_1()
-            .border_color(rule)
-            .child(
-                div()
-                    .flex_1()
-                    .overflow_hidden()
-                    .whitespace_nowrap()
-                    .children(message.as_ref().map(|message| message.text.clone()))
-                    .when(message.is_none(), |view| {
-                        view.child(
-                            div()
-                                .debug_selector(|| "picker-selection-status".into())
-                                .child(self.selection_status()),
-                        )
-                    }),
-            )
-            .child(div().flex_none().whitespace_nowrap().child(self.hints()));
+        let footer = self.footer(&palette, theme, rule, window, cx);
         div()
             .relative()
             .size_full()
@@ -361,6 +350,7 @@ impl Render for Picker {
             .key_context("Picker")
             .on_key_down(cx.listener(Self::key))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::row_pointer))
+            .on_mouse_up(MouseButton::Left, cx.listener(Self::header_release))
             .child(title)
             .child(
                 div()
@@ -370,6 +360,7 @@ impl Render for Picker {
                     .children(self.body.clone())
                     .children(self.drawn.probe(Slot::Body, [0.; 4])),
             )
+            .children(filter_row)
             .child(answers)
             .child(footer)
             .children(self.chrome.menu_view.clone().map(|menu| {

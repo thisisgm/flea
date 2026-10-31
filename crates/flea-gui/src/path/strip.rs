@@ -1,5 +1,5 @@
 //! A crumb strip's fitted pieces, where a press lands on them, and the one gesture the strip answers.
-use super::crumbs::{crumbs, fit_crumbs, Alias, Crumb};
+use super::crumbs::{crumbs, fit_crumbs, fit_start, Alias, Crumb};
 
 /// Where a press lands: a crumb by index, or the strip's ground where no crumb is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,6 +35,7 @@ pub struct Strip {
     /// How many times this strip built its crumbs; a hidden strip builds none.
     pub built: u64,
     plain: bool,
+    start: bool,
 }
 
 impl Strip {
@@ -49,9 +50,32 @@ impl Strip {
 
     /// budget is the room in characters, as the oracle's fit counts it; place then lays the crumbs out in pixels.
     pub fn fit(&mut self, path: &str, home: &str, alias: Option<&Alias>, budget: usize) -> bool {
-        if self.plain {
+        self.fit_crumbs(path, home, alias, budget, false)
+    }
+
+    /// The picker's strip: parents elide from the left and the leaf stays whole, as PickerChrome.qml draws it.
+    pub fn fit_start(
+        &mut self,
+        path: &str,
+        home: &str,
+        alias: Option<&Alias>,
+        budget: usize,
+    ) -> bool {
+        self.fit_crumbs(path, home, alias, budget, true)
+    }
+
+    fn fit_crumbs(
+        &mut self,
+        path: &str,
+        home: &str,
+        alias: Option<&Alias>,
+        budget: usize,
+        start: bool,
+    ) -> bool {
+        if self.plain || self.start != start {
             self.clear();
             self.plain = false;
+            self.start = start;
         }
         let (kept_path, kept_home, kept_alias, kept_budget) = &self.key;
         if self.revision > 0
@@ -63,7 +87,12 @@ impl Strip {
             return false;
         }
         self.key = (path.to_owned(), home.to_owned(), alias.cloned(), budget);
-        self.crumbs = fit_crumbs(crumbs(path, home, alias), budget);
+        let list = crumbs(path, home, alias);
+        self.crumbs = if start {
+            fit_start(list, budget)
+        } else {
+            fit_crumbs(list, budget)
+        };
         self.edges.clear();
         self.revision += 1;
         self.built += 1;

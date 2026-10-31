@@ -124,6 +124,8 @@ pub(super) fn redraw(cx: &mut VisualTestContext) -> Vec<Sample> {
 
 fn open<'a>(cx: &'a mut TestAppContext, base: f32, path: &str) -> &'a mut VisualTestContext {
     init(cx);
+    // A window without a Shell root takes the installed face, so the text size rides on it.
+    cx.update(|cx| cx.set_global(bench_typeface().at_base(base as u32)));
     let (view, cx) = cx.add_window_view(|window, _| {
         window.set_rem_size(px(base));
         let palette = CardPalette::from_theme(&window.text_style(), Theme::default(), 8.);

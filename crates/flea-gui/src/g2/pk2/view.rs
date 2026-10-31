@@ -2,7 +2,7 @@
 use super::listing::{Cause, Listing};
 use super::save::SaveField;
 use crate::list::header::HeaderElement;
-use crate::list::{element::ROW_HEIGHT, ListState, Typeface};
+use crate::list::{Density, ListState, Typeface};
 use flea::i18n::I18n;
 use gpui::{div, prelude::*, AnyView, Context, IntoElement, Render, Window};
 use std::{cell::RefCell, rc::Rc};
@@ -17,14 +17,19 @@ pub struct ListingView {
     pub(super) shown: Option<Rc<[usize]>>,
     strip: Option<AnyView>,
     pub(super) last_tap: String,
+    pub(super) picture_policy: crate::grid::element::pictures::Policy,
 }
 
 impl ListingView {
-    pub fn apply_settings(&mut self, data: &flea::jsondoc::Json, cx: &mut Context<Self>) {
+    pub fn apply_settings(&mut self, data: &flea::jsondoc::Json, cx: &mut Context<Self>) -> bool {
+        let changed = self.listing.apply_settings(data);
+        self.picture_policy = crate::grid::element::pictures::Policy::read(data);
+        self.state.borrow_mut().view.order = self.listing.order();
         self.state.borrow_mut().view.set_lang_marks(
             data.get("langMarks").and_then(flea::jsondoc::Json::as_bool) != Some(false),
         );
         cx.notify();
+        changed
     }
 
     #[cfg(test)]
@@ -38,15 +43,20 @@ impl ListingView {
     }
 
     pub fn new(i18n: I18n, typeface: Typeface) -> Self {
+        let mut state = ListState::new(typeface);
+        state.density = Density::Normal;
         Self {
             listing: Listing::default(),
             surface: Default::default(),
             i18n,
-            state: Rc::new(RefCell::new(ListState::new(typeface))),
+            state: Rc::new(RefCell::new(state)),
             scroll_y: 0.,
             shown: None,
             strip: None,
             last_tap: String::new(),
+            picture_policy: crate::grid::element::pictures::Policy::read(
+                &flea::jsondoc::Json::Null,
+            ),
         }
     }
 
@@ -79,6 +89,7 @@ impl ListingView {
 
     pub fn open(&mut self, path: &str) {
         self.listing.open(path);
+        self.state.borrow_mut().view.order = self.listing.order();
     }
 
     pub fn generation(&self) -> u64 {
@@ -118,11 +129,12 @@ impl ListingView {
             return;
         }
         let height = f32::from(self.state.borrow().drawn.bounds.size.height);
-        let top = self.cursor_view() as f32 * ROW_HEIGHT;
+        let row_height = self.state.borrow().file_metrics().row;
+        let top = self.cursor_view() as f32 * row_height;
         if top < self.scroll_y {
             self.scroll_y = top;
-        } else if height > 0. && top + ROW_HEIGHT > self.scroll_y + height {
-            self.scroll_y = top + ROW_HEIGHT - height;
+        } else if height > 0. && top + row_height > self.scroll_y + height {
+            self.scroll_y = top + row_height - height;
         }
     }
 
@@ -158,6 +170,7 @@ impl Render for ListingView {
                 .borrow_mut()
                 .set_typeface(Typeface::for_window(window, cx));
         }
+        self.sync_pictures(window, cx);
         let failure = self.listing.failure_line(&self.i18n);
         let body = self.surface_element();
         div()

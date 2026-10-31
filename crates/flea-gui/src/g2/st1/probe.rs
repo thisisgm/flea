@@ -11,20 +11,23 @@ impl Probe {
     }
 
     pub fn attach(&self, div: Div, id: impl Into<String>) -> Div {
+        div.child(self.mark(id))
+    }
+
+    /// The box its positioned parent was laid out in, recorded under `id`.
+    pub fn mark(&self, id: impl Into<String>) -> impl IntoElement {
         let probe = self.clone();
         let id = id.into();
-        div.child(
-            canvas(
-                move |bounds, _, _| {
-                    probe.0.borrow_mut().insert(id, bounds);
-                },
-                |_, _, _, _| {},
-            )
-            .absolute()
-            .left_0()
-            .top_0()
-            .size_full(),
+        canvas(
+            move |bounds, _, _| {
+                probe.0.borrow_mut().insert(id, bounds);
+            },
+            |_, _, _, _| {},
         )
+        .absolute()
+        .left_0()
+        .top_0()
+        .size_full()
     }
 
     /// As attach, and also the content mask the box is painted under, as `<id>:mask`.

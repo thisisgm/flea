@@ -83,10 +83,15 @@ fn m9_integ_picker_save_enter_transfers_name_and_selects_stem(cx: &mut TestAppCo
         f.read(|picker| (picker.listing.state, picker.listing.names.clone())),
         ("ready", vec!["report.txt".to_owned(), "sub".to_owned()])
     );
-    assert!(
-        f.checks.sent().is_empty(),
-        "nothing is probed before a name changes"
+    assert_eq!(
+        f.checks.sent(),
+        [r#"{"op":"save","folder":"/d","name":"untitled.txt","c":"picker","id":1}"#],
+        "the supplied name is probed once the start folder lands"
     );
+    f.checks.say(Line::Reply(
+        r#"{"t":"picker","id":1,"op":"save","ok":true,"review":1,"path":"/d/untitled.txt","collision":false}"#.into(),
+    ));
+    f.settle(|f| f.read(|picker| picker.accept_state().save_ready()));
     focus_list(&mut f);
     f.cx.simulate_keystrokes("enter");
     f.cx.run_until_parked();
@@ -101,12 +106,12 @@ fn m9_integ_picker_save_enter_transfers_name_and_selects_stem(cx: &mut TestAppCo
         "Filename takes the keyboard with the stem selected"
     );
     assert_eq!(
-        f.checks.sent(),
-        [r#"{"op":"save","folder":"/d","name":"report.txt","c":"picker","id":1}"#],
+        f.checks.sent()[1..],
+        [r#"{"op":"save","folder":"/d","name":"report.txt","c":"picker","id":2}"#],
         "the transferred name is probed through the checks child"
     );
     f.checks.say(Line::Reply(
-        r#"{"t":"picker","id":1,"op":"save","ok":true,"review":1,"path":"/d/report.txt","collision":true}"#.into(),
+        r#"{"t":"picker","id":2,"op":"save","ok":true,"review":1,"path":"/d/report.txt","collision":true}"#.into(),
     ));
     f.settle(|f| f.read(|picker| picker.accept_state().save_ready()));
     f.cx.simulate_keystrokes("right");
@@ -124,7 +129,7 @@ fn m9_integ_picker_save_enter_transfers_name_and_selects_stem(cx: &mut TestAppCo
     );
     assert_eq!(
         f.checks.sent().len(),
-        1,
+        2,
         "a review answers nothing until Replace"
     );
     assert!(f.written().is_none());
@@ -242,7 +247,7 @@ fn a_typed_folder_lists_and_a_missing_path_says_so(cx: &mut TestAppContext) {
     assert_eq!(
         f.listing.sent().last().map(String::as_str),
         Some(
-            r#"{"c":"list","path":"/d/sub","first":120,"pickerGlobs":[],"pickerMimes":[],"hidden":false}"#
+            r#"{"c":"list","path":"/d/sub","first":110,"pickerGlobs":[],"pickerMimes":[],"hidden":false}"#
         ),
         "a peeked folder lists through the picker's own open, asking for the visible window"
     );

@@ -54,6 +54,7 @@ impl Element for HeaderElement {
         }
         let key = TitleKey {
             order: state.view.order,
+            recent: state.view.recent,
             font: state.typeface.font.clone().bold(),
             caption: state.typeface.caption,
             scale: window.scale_factor(),

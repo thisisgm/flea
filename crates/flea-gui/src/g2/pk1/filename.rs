@@ -1,5 +1,6 @@
 //! Save As: the name field in the answer row, its stem selected whenever a name arrives or a review asks.
 use super::text::{Drawn, EntryHost, Input};
+use crate::g2::fb1::caption::Tracked;
 use crate::g2::pk2::view::SaveView;
 use crate::list::Palette;
 use crate::path::entry::Entry;
@@ -13,9 +14,12 @@ use std::cell::RefCell;
 // picker-save board: the label 9 px before the field, a 30 px field on the button row, text 9 px in.
 const GAP: f32 = 9.;
 const HEIGHT: f32 = 30.;
+pub(super) const WIDTH: f32 = 300.;
 const INSET: f32 = 9.;
 const TEXT: f32 = 14.;
-const LABEL: f32 = 12.;
+pub(super) const LABEL: f32 = 12.;
+// The label's caption line, which the row centres.
+const LABEL_LINE: f32 = 16.;
 
 // What one key did to the field, for the picker to act on.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,19 +36,28 @@ pub struct Filename {
     pub focus: FocusHandle,
     pub save: Entity<SaveView>,
     label: SharedString,
+    // The board's caption tracking, 1.2 px, none for a caseless script.
+    tracking: f32,
     drawn: RefCell<Drawn>,
     pub(super) probe: crate::g2::st1::probe::Probe,
     pub(super) focused: bool,
 }
 
 impl Filename {
-    pub fn new(seed: &str, label: String, save: Entity<SaveView>, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        seed: &str,
+        label: String,
+        tracking: f32,
+        save: Entity<SaveView>,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let mut field = Self {
             entry: Entry::default(),
             drawn: RefCell::default(),
             focus: cx.focus_handle(),
             save,
             label: label.to_uppercase().into(),
+            tracking,
             probe: Default::default(),
             focused: false,
         };
@@ -161,7 +174,9 @@ impl Render for Filename {
             .attach(div().relative(), "field")
             .id("picker-filename")
             .debug_selector(|| "pk1-filename".into())
-            .flex_1()
+            // picker-save's 300 px, giving way only where a narrow chooser leaves less.
+            .w(px(WIDTH))
+            .flex_shrink_1()
             .min_w_0()
             .flex()
             .items_center()
@@ -182,21 +197,24 @@ impl Render for Filename {
             .on_click(
                 cx.listener(|field, _: &ClickEvent, window, cx| window.focus(&field.focus, cx)),
             )
-            .child(Input::new(cx.entity(), face));
+            .child(Input::new(cx.entity(), face.clone()));
         div()
             .flex()
             .flex_row()
             .items_center()
             .gap(px(GAP))
+            .flex_1()
             .min_w_0()
             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-            .child(
-                div()
-                    .flex_none()
-                    .text_size(px(LABEL))
-                    .text_color(palette.metadata)
-                    .child(self.label.clone()),
-            )
+            // picker-save's caption: muted ink, letter-spaced as every board caption is.
+            .child(div().flex_none().child(Tracked {
+                text: self.label.clone(),
+                font: face.font,
+                size: px(LABEL),
+                line: px(LABEL_LINE),
+                tracking: px(self.tracking),
+                color: palette.muted,
+            }))
             .child(field)
     }
 }

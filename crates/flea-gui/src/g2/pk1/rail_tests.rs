@@ -23,7 +23,7 @@ fn drive(label: &str, kind: Kind, mounted: bool) -> RailEntry {
 }
 
 #[test]
-fn the_rail_is_recent_then_favourites_then_home_then_drives_with_no_phone_or_share() {
+fn the_rail_is_recent_then_favourites_then_home_then_drives_and_phones() {
     let favourites = jsondoc::parse(
         r#"[{"label":"Work","path":"~/Work"},{"label":"NAS","path":"smb://nas/share"},{"label":"Notes","path":"file:///srv/notes"}]"#,
     )
@@ -42,11 +42,13 @@ fn the_rail_is_recent_then_favourites_then_home_then_drives_with_no_phone_or_sha
         [
             "flea:recent",
             "/h/Work",
+            "smb://nas/share",
             "file:///srv/notes",
             "/h",
-            "/run/media/usb"
+            "/run/media/usb",
+            "/run/media/phone"
         ],
-        "one list in PickerPlaces.qml's order; this dialog mounts no share or phone"
+        "one list in PickerPlaces.qml's order, including remote favourites and phones"
     );
     let saving = entries(false, &[], "/h", "", &[]);
     assert_eq!(

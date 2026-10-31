@@ -121,6 +121,8 @@ pub struct Overlay {
     pub query: SharedString,
     pub drop: Option<(usize, DropKind)>,
     pub renaming: Option<usize>,
+    /// Rows named by path (the chooser's Recent) caption with their last segment only.
+    pub leaf: bool,
 }
 
 /// The roles a tile draws with, derived from the inherited text style until the theme tokens land, as the list does.

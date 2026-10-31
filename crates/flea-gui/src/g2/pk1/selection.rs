@@ -53,6 +53,11 @@ impl Picker {
         true
     }
 
+    #[cfg(test)]
+    pub(super) fn range_anchor(&self) -> Option<usize> {
+        self.selection.anchor
+    }
+
     pub fn end_range(&mut self) {
         self.selection.anchor = None;
         self.selection.last = None;

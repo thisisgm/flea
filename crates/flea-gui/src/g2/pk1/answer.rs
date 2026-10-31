@@ -134,7 +134,7 @@ impl Picker {
         cx.notify();
     }
 
-    fn probe_save(&mut self) {
+    pub(super) fn probe_save(&mut self) {
         let listing = &self.listing;
         if self.backend_unavailable()
             || !logic::saving(&self.req)
@@ -195,6 +195,7 @@ impl Picker {
                 self.finish_ok(&[logic::file_uri(&result.path)], cx);
             }
         }
+        self.relist_settings(cx);
         cx.notify();
     }
 

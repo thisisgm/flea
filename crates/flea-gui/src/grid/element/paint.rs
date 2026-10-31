@@ -95,7 +95,7 @@ impl GridElement {
             let tile = match row {
                 Some(facts) => {
                     Some(tiles.get_or_prepare(listing, facts, (per_line, lines), || {
-                        tile::prepare(facts, per_line, lines, &shaping, window)
+                        tile::prepare_for(&self.overlay, facts, per_line, lines, &shaping, window)
                     }))
                 }
                 None => tiles.kept(listing),

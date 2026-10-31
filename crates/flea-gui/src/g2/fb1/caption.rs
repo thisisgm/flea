@@ -26,10 +26,16 @@ pub fn tracking_for(language: &str) -> f32 {
     }
 }
 
+/// What a Tracked caption painted: its text, ink, tracking and box, for tests.
+#[cfg(test)]
+pub type Inked = (SharedString, Hsla, Pixels, Bounds<Pixels>);
+
 #[cfg(test)]
 thread_local! {
     /// Test hook: while armed, paint records each glyph's x from the caption's left edge.
     pub static PAINTED: std::cell::RefCell<Option<Vec<Pixels>>> = const { std::cell::RefCell::new(None) };
+    /// Test hook: while armed, every Tracked caption records its text, ink, tracking and box as it paints.
+    pub static INKED: std::cell::RefCell<Option<Vec<Inked>>> = const { std::cell::RefCell::new(None) };
 }
 
 /// One line of `text` with `tracking` after every glyph, as CSS letter-spacing lays it out, in a `line` box.
@@ -145,6 +151,12 @@ impl Element for Tracked {
         window: &mut Window,
         _: &mut App,
     ) {
+        #[cfg(test)]
+        INKED.with_borrow_mut(|inked| {
+            if let Some(inked) = inked {
+                inked.push((self.text.clone(), self.color, self.tracking, bounds));
+            }
+        });
         paint_line(
             shaped,
             bounds.origin,

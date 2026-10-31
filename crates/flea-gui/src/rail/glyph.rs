@@ -11,6 +11,7 @@ pub fn svg(name: &str) -> Option<(SharedString, &'static [u8])> {
     let (key, data): (&'static str, &'static str) = match name {
         "dropbox" => ("flea-rail:dropbox", r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1.18 1" fill="currentColor"><path d="M.295 0 .59 .188 .295 .376 0 .188Z M.885 0 1.18 .188 .885 .376 .59 .188Z M.295 .376 .59 .564 .295 .752 0 .564Z M.885 .376 1.18 .564 .885 .752 .59 .564Z M.59 .624 .885 .812 .59 1 .295 .812Z"/></svg>"#),
         "house" => ("flea-rail:house", cut!("M3 21V10l9-7 9 7v11h-6v-8H9v8H3z")),
+        "network" => ("flea-rail:network", cut!("M9 2h6v6H9z M2 16h6v6H2z M16 16h6v6h-6z M12 8v4 M5 16v-4h14v4")),
         "history" => ("flea-rail:history", cut!("M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5")),
         "trash" => ("flea-rail:trash", cut!("M3 6h18 M8 6V3h8v3 M6 6l1.2 15h9.6L18 6 M10 10v7 M14 10v7")),
         "drive" => ("flea-rail:drive", cut!("M6 4h12l4 8v8H2v-8z M2 12h20 M6 16L6.01 16 M10 16L10.01 16")),

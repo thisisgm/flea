@@ -179,6 +179,32 @@ impl Source {
         std::mem::take(&mut *self.events.borrow_mut())
     }
 
+    /// PickerPlaces shares one GIO poll between its network rows and phones.
+    pub fn mount_listing(&self) -> &str {
+        &self.listing.text
+    }
+
+    /// PickerPlaces always offers devices, independently of the main window's section toggles.
+    pub fn picker_sections(&self) -> Vec<RailSection> {
+        vec![RailSection {
+            heading: Heading::Key("settings.places.devices"),
+            rows: self
+                .devices
+                .entries
+                .iter()
+                .chain(&self.phones.entries)
+                .map(rail_row)
+                .collect(),
+        }]
+    }
+
+    pub fn poll_mounts(&mut self, cx: &mut Context<Self>) {
+        let now = self.now(cx);
+        let effects = self.listing.poll(now);
+        self.listing_effects(effects, cx);
+        self.arm(cx);
+    }
+
     /// Resolve the current row by identity; a vanished device never activates the next row instead.
     pub fn activate(
         &mut self,

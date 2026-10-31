@@ -48,6 +48,10 @@ fn u13_join_mounted_editor_paint_mask_selection_caret_hit_and_ime_matrix() {
             for width in [1100., 360.] {
                 let mut app = real_app();
                 init(&mut app);
+                app.update(|cx| {
+                    let face = cx.global::<Typeface>().clone().at_base(base as u32);
+                    cx.set_global(face);
+                });
                 let (view, cx) = app.add_window_view(|window, _| {
                     window.set_rem_size(px(base));
                     let palette =

@@ -23,10 +23,16 @@ const EDGE: f32 = 2.;
 const DOT_INSET: f32 = 2.;
 const TEXT: f32 = 14.;
 
-// SidebarRow.qml showsDot: a removable volume carries its mount square; the internal disk and every place do not.
-fn dot(entry: &RailEntry) -> Option<bool> {
-    (entry.group == Group::Device && entry.kind == Kind::Volume)
-        .then(|| entry.mounted.unwrap_or(false))
+// SidebarRow.qml showsDot: shares, removable volumes and phones carry a mount square.
+pub(super) fn dot(entry: &RailEntry) -> Option<bool> {
+    ((entry.group == Group::Network && entry.kind != Kind::Dropbox)
+        || (entry.group == Group::Device && matches!(entry.kind, Kind::Volume | Kind::Phone)))
+    .then(|| entry.mounted.unwrap_or(false))
+}
+
+// The probe id a rail row's laid-out box is kept under, read back by the controls reader.
+pub(super) fn rail_row(index: usize) -> String {
+    format!("picker-rail-row-{index}")
 }
 
 /// The rail's own view beside the listing; it reads the picker and draws, and every press goes back to it.
@@ -82,6 +88,7 @@ impl Render for RailView {
                     )
                 })
                 .when(place, |row| row.bg(palette.foreground.opacity(PLACE_FILL)))
+                .child(owner.chrome.probe.mark(rail_row(index)))
                 .children(glyph::svg(entry.glyph).map(|(key, data)| {
                     div().flex_none().child(Glyph {
                         paint: Paint::Svg(key, data),
