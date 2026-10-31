@@ -78,7 +78,7 @@ fn mount(
                 tokens,
                 faces.clone(),
                 if column { "column" } else { "look" },
-                &flea::i18n::I18n::default(),
+                &crate::test_catalogs::english(),
                 cx,
             );
             let raw: Arc<str> = raw.into();
@@ -141,7 +141,7 @@ fn mount(
 fn gm_prevsel_markdown_rendered_and_source_drag_copy_in_columns_and_quick_look() {
     for column in [true, false] {
         for source in [false, true] {
-            let (mut cx, handle, view) = mount(
+            let (cx, handle, view) = mount(
                 column,
                 source,
                 "# Héllo **world**\r\n\r\nSecond\tparagraph\r\n",
@@ -162,7 +162,7 @@ fn gm_prevsel_markdown_rendered_and_source_drag_copy_in_columns_and_quick_look()
                     point(last.bounds.right(), last.bounds.center().y),
                 )
             });
-            let mut visual = VisualTestContext::from_window(handle.into(), &mut cx);
+            let mut visual = VisualTestContext::from_window(handle.into(), &cx);
             visual.simulate_mouse_down(start, MouseButton::Left, Modifiers::none());
             visual.simulate_mouse_move(end, Some(MouseButton::Left), Modifiers::none());
             visual.simulate_mouse_up(end, MouseButton::Left, Modifiers::none());
@@ -232,9 +232,9 @@ fn gm_prevsel_a_press_builds_only_the_text_it_can_reach() {
     let raw: String = (0..3000).map(|n| format!("line {n}\n")).collect();
     for source in [false, true] {
         let blocks = (0..300)
-            .map(|n| Block::run(&format!("paragraph {n}")))
+            .map(|n| Block::run(format!("paragraph {n}")))
             .collect();
-        let (mut cx, handle, view) = mount(true, source, &raw, blocks);
+        let (cx, handle, view) = mount(true, source, &raw, blocks);
         let (start, end) = view.read_with(&cx, |view, _| {
             let spans = &view.selection.spans;
             assert!(spans.len() > 2 && spans.len() < 100, "{}", spans.len());
@@ -243,7 +243,7 @@ fn gm_prevsel_a_press_builds_only_the_text_it_can_reach() {
                 point(spans[1].bounds.right(), spans[1].bounds.center().y),
             )
         });
-        let mut visual = VisualTestContext::from_window(handle.into(), &mut cx);
+        let mut visual = VisualTestContext::from_window(handle.into(), &cx);
         visual.simulate_mouse_down(start, MouseButton::Left, Modifiers::none());
         visual.simulate_mouse_move(end, Some(MouseButton::Left), Modifiers::none());
         visual.simulate_mouse_up(end, MouseButton::Left, Modifiers::none());
@@ -262,14 +262,14 @@ fn gm_prevsel_a_press_builds_only_the_text_it_can_reach() {
 fn gm_prevsel_a_long_drag_cuts_only_the_shown_text_per_move() {
     let raw: String = (0..300).map(|n| format!("paragraph {n}\n\n")).collect();
     let blocks = (0..300)
-        .map(|n| Block::run(&format!("paragraph {n}")))
+        .map(|n| Block::run(format!("paragraph {n}")))
         .collect();
-    let (mut cx, handle, view) = mount(true, false, &raw, blocks);
+    let (cx, handle, view) = mount(true, false, &raw, blocks);
     let start = view.read_with(&cx, |view, _| {
         let first = &view.selection.spans[0];
         point(first.bounds.left(), first.bounds.center().y)
     });
-    let mut visual = VisualTestContext::from_window(handle.into(), &mut cx);
+    let mut visual = VisualTestContext::from_window(handle.into(), &cx);
     visual.simulate_mouse_down(start, MouseButton::Left, Modifiers::none());
     view.update(&mut visual, |view, cx| view.scroll_rows(100_000, cx));
     visual.update(|window, cx| {
