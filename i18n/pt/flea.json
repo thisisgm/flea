@@ -2254,6 +2254,8 @@
   "keys.action.tabMoveRight": "Mover separador para a direita",
   "keys.action.windowNew": "Nova janela",
   "keys.action.escape": "Fechar ou voltar",
+  "keys.action.openInPlace": "Abrir no local",
+  "keys.action.closeInPlace": "Fechar no local",
   "keys.action.viewList": "Vista de lista",
   "keys.action.viewColumns": "Vista de colunas",
   "keys.action.viewGrid": "Vista de grelha",

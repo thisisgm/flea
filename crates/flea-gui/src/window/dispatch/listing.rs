@@ -25,6 +25,16 @@ pub(super) fn run(
         return true;
     }
     let side = shell.focus_side;
+    if event.context == Keys::Listing && matches!(event.action, "openInPlace" | "closeInPlace") {
+        shell.outline_action(
+            side,
+            event.action == "openInPlace",
+            crate::window::outline::Input::Key,
+            window,
+            cx,
+        );
+        return true;
+    }
     // WindowBody.qml: the side buttons belong to the window, decided by Nav.js mouseBack and MouseNav.js forward.
     let pointer = match event.action {
         "backOrParent" => Some(Step::MouseBack),

@@ -912,6 +912,8 @@
   "keys.action.duplicate": "අනුපිටපත් කරන්න",
   "keys.action.eject": "නික්මවන්න",
   "keys.action.escape": "වසන්න හෝ ආපසු යන්න",
+  "keys.action.openInPlace": "ස්ථානයේම විවෘත කරන්න",
+  "keys.action.closeInPlace": "ස්ථානයේම වසන්න",
   "keys.action.expand": "විහිදුවන්න",
   "keys.action.extendDown": "පහළට තේරීම දිගු කරන්න",
   "keys.action.extendUp": "ඉහළට තේරීම දිගු කරන්න",

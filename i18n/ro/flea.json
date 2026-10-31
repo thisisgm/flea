@@ -938,6 +938,8 @@
   "keys.action.duplicate": "Duplică",
   "keys.action.eject": "Ejectează",
   "keys.action.escape": "Închide sau revino",
+  "keys.action.openInPlace": "Deschide pe loc",
+  "keys.action.closeInPlace": "Închide pe loc",
   "keys.action.expand": "Extinde",
   "keys.action.extendDown": "Extinde în jos",
   "keys.action.extendUp": "Extinde în sus",

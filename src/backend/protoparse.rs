@@ -5,6 +5,10 @@ use crate::json::{field_bool, field_str, field_str_array, field_usize, field_usi
 // Sample input: {"c":"list","path":"/home/gm","first":350,"hidden":false}
 pub fn parse_request(line: &str) -> Request {
     match field_str(line, "c").as_deref() {
+        Some("outline") => Request::Outline {
+            row: field_usize(line, "row"), open: field_bool(line, "open"),
+            enabled: crate::jsondoc::parse(line).ok().and_then(|doc| doc.get("enabled").and_then(crate::jsondoc::Json::as_bool)), first: field_usize(line, "first").unwrap_or(350),
+        },
         Some("nearby") => Request::Nearby {
             op: field_str(line, "op").unwrap_or_default(),
             id: field_usize(line, "id").unwrap_or(0),

@@ -956,6 +956,8 @@
   "keys.action.duplicate": "Дуплирај",
   "keys.action.eject": "Избаци",
   "keys.action.escape": "Затвори или иди назад",
+  "keys.action.openInPlace": "Отвори на месту",
+  "keys.action.closeInPlace": "Затвори на месту",
   "keys.action.expand": "Прошири",
   "keys.action.extendDown": "Прошири избор надоле",
   "keys.action.extendUp": "Прошири избор нагоре",

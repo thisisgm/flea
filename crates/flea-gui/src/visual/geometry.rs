@@ -129,6 +129,10 @@ pub(crate) fn rows(
             continue;
         };
         let index = shown.index;
+        let indent = state
+            .drawn_rows
+            .row(index)
+            .map_or(0., |row| list::outline::indent(row, &metrics));
         let top = bounds.origin.y + px(state.drawn.grow.top(shown.view, row) - scroll);
         let id = format!("{surface}-row-{index}");
         let rect = Bounds::new(
@@ -149,7 +153,7 @@ pub(crate) fn rows(
             &format!("{id}-glyph"),
             &id,
             "glyph",
-            rect_at(metrics.pad, 0., metrics.slot, row),
+            rect_at(metrics.pad + indent, 0., metrics.slot, row),
             "",
             window,
         );
@@ -157,14 +161,14 @@ pub(crate) fn rows(
             &format!("{id}-ink"),
             &format!("{id}-glyph"),
             "ink",
-            list::mark_bounds_at(bounds.origin.x, top, &metrics),
+            list::mark_bounds_at(bounds.origin.x + px(indent), top, &metrics),
             "",
             window,
         );
         for (role, x, line, text) in [
             (
                 "label",
-                Some(layout.name.x),
+                Some(layout.name.x + indent),
                 &prepared.name,
                 prepared.label.as_str(),
             ),

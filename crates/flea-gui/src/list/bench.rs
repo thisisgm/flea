@@ -50,6 +50,8 @@ pub fn allocations() -> u64 {
 
 fn row(name: String, icon: &str, size: u64, dir: bool) -> RowFacts {
     RowFacts {
+        depth: 0,
+        open: false,
         name,
         dir,
         size,

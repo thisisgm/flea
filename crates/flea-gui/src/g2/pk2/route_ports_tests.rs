@@ -294,6 +294,8 @@ fn landed_two() -> Listing {
         0,
         vec![
             RowFacts {
+                depth: 0,
+                open: false,
                 name: "Docs".into(),
                 dir: true,
                 size: 0,
@@ -307,6 +309,8 @@ fn landed_two() -> Listing {
                 tags: None,
             },
             RowFacts {
+                depth: 0,
+                open: false,
                 name: "a.txt".into(),
                 dir: false,
                 size: 0,

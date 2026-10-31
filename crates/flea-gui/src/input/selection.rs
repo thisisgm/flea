@@ -22,6 +22,9 @@ impl Selection {
         }
         self.snapshot = (!rows.is_empty()).then(|| Rc::from(rows));
     }
+    pub fn is_lone(&self) -> bool {
+        self.lone
+    }
     pub fn reset(&mut self) {
         *self = Self::default();
     }

@@ -2156,6 +2156,8 @@
   "keys.action.tabMoveRight": "Lap áthelyezése jobbra",
   "keys.action.windowNew": "Új ablak",
   "keys.action.escape": "Bezárás vagy visszalépés",
+  "keys.action.openInPlace": "Megnyitás helyben",
+  "keys.action.closeInPlace": "Bezárás helyben",
   "keys.action.viewList": "Listanézet",
   "keys.action.viewColumns": "Oszlopnézet",
   "keys.action.viewGrid": "Rácsnézet",

@@ -982,6 +982,8 @@
   "keys.action.duplicate": "Powiel",
   "keys.action.eject": "Wysuń",
   "keys.action.escape": "Zamknij lub wróć",
+  "keys.action.openInPlace": "Otwórz w miejscu",
+  "keys.action.closeInPlace": "Zamknij w miejscu",
   "keys.action.expand": "Rozwiń",
   "keys.action.extendDown": "Rozszerz zaznaczenie w dół",
   "keys.action.extendUp": "Rozszerz zaznaczenie w górę",

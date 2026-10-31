@@ -868,6 +868,8 @@
   "keys.action.duplicate": "製作副本",
   "keys.action.eject": "退出",
   "keys.action.escape": "關閉或返回",
+  "keys.action.openInPlace": "就地展開",
+  "keys.action.closeInPlace": "就地收合",
   "keys.action.expand": "展開",
   "keys.action.extendDown": "向下延伸選取",
   "keys.action.extendUp": "向上延伸選取",

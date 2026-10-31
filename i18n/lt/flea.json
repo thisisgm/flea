@@ -938,6 +938,8 @@
   "keys.action.duplicate": "Sukurti kopiją",
   "keys.action.eject": "Išstumti",
   "keys.action.escape": "Uždaryti arba grįžti",
+  "keys.action.openInPlace": "Atidaryti vietoje",
+  "keys.action.closeInPlace": "Uždaryti vietoje",
   "keys.action.expand": "Išplėsti",
   "keys.action.extendDown": "Išplėsti pasirinkimą žemyn",
   "keys.action.extendUp": "Išplėsti pasirinkimą aukštyn",

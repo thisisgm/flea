@@ -2058,6 +2058,8 @@
   "keys.action.tabMoveRight": "Alih tab ke kanan",
   "keys.action.windowNew": "Tetingkap baharu",
   "keys.action.escape": "Tutup atau kembali",
+  "keys.action.openInPlace": "Buka di tempat",
+  "keys.action.closeInPlace": "Tutup di tempat",
   "keys.action.viewList": "Paparan senarai",
   "keys.action.viewColumns": "Paparan lajur",
   "keys.action.viewGrid": "Paparan grid",

@@ -334,6 +334,9 @@ impl Shell {
             }
             self.dual_cancel(cx);
         }
+        if (previous == View::List) != (view == View::List) {
+            self.outline_mode(view, window, cx);
+        }
         self.sync_columns(window, cx);
         self.sync_trash_presentation(window, cx);
         for side in 0..2 {

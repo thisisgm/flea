@@ -2027,6 +2027,8 @@
   "keys.action.tabMoveRight": "标签页右移",
   "keys.action.windowNew": "新建窗口",
   "keys.action.escape": "关闭或返回",
+  "keys.action.openInPlace": "就地展开",
+  "keys.action.closeInPlace": "就地收起",
   "keys.action.viewList": "列表视图",
   "keys.action.viewColumns": "分栏视图",
   "keys.action.viewGrid": "网格视图",

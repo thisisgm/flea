@@ -29,6 +29,7 @@ pub enum Request {
     Git {
         line: String,
     },
+    Outline { row: Option<usize>, open: bool, enabled: Option<bool>, first: usize },
     List {
         path: String,
         first: usize,

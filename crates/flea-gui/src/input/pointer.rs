@@ -155,6 +155,14 @@ impl Shell {
             return;
         }
         let blocked = self.input_blocked(cx);
+        let outline = self.panes[side]
+            .as_ref()
+            .and_then(|host| host.input.press.as_ref())
+            .filter(|press| {
+                self.outline_hit(side, press.row, press.event.position.x)
+                    && self.outline_hit(side, press.row, event.position.x)
+            })
+            .map(|press| press.row);
         let Some(host) = &mut self.panes[side] else {
             return;
         };
@@ -199,6 +207,19 @@ impl Shell {
             }
             let count = host.input.tap_count(&press);
             if count == 0 {
+                return;
+            }
+            if event.button == MouseButton::Left && outline == Some(press.row) {
+                let open = !host.pane.held.row(press.row).is_some_and(|row| row.open);
+                host.pane.cursor = press.row;
+                self.outline_action(
+                    side,
+                    open,
+                    crate::window::outline::Input::Chevron,
+                    window,
+                    cx,
+                );
+                cx.stop_propagation();
                 return;
             }
             press.event.click_count = count;

@@ -118,6 +118,9 @@ impl Gate {
                 let _ = answers.send(Event::List(Done { result }));
                 return;
             }
+            if let Ok(listed) = &result {
+                for &wd in &listed.listing.outline_watches { let _ = answers.send(Event::AbandonWatch(wd)); }
+            }
             // Let go for a newer list: nothing is answered, and the watch this scan armed goes back to the loop.
             let wd = match &result { Ok(listed) => listed.watch_wd, Err(failed) => failed.watch_wd };
             if wd >= 0 {
@@ -223,6 +226,12 @@ pub enum Started {
     Remote,
 }
 
+// An open child mount can block even when its outline root is local.
+pub(crate) fn threaded(path: &Path, line: &str, body: &str) -> bool {
+    super::iomount::is_remote(path, body) || crate::json::field_str_array(line, "outlinePaths")
+        .iter().map(Path::new).any(|child| child.starts_with(path) && super::iomount::is_remote(child, body))
+}
+
 // Classifies once, so the local path costs no more than v0.3.8's inline call.
 pub fn start(out: &mut impl Write, st: &mut State, pool: &Pool, watch: &mut Watch, gate: &mut Gate,
              job: Job, mime: Arc<super::mime::Db>) -> Started {
@@ -231,7 +240,7 @@ pub fn start(out: &mut impl Write, st: &mut State, pool: &Pool, watch: &mut Watc
         forget_rows(st, pool);
     }
     let body = super::iomount::mount_body();
-    if !super::iomount::is_remote(Path::new(&job.path), &body) {
+    if !threaded(Path::new(&job.path), &job.line, &body) {
         // A local scan runs inline and a panic ends the process, as v0.3.8 did.
         let fd = watch.raw_fd();
         let tx = gate.answers();
@@ -254,6 +263,7 @@ pub fn finish<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, w
         Ok(listed) => {
             watch.set_incoming(listed.watch_wd, listed.watch_mount.clone());
             watch.commit();
+            watch.commit_outline(listed.listing.outline_watches.clone());
             // Said once per listing, because a folder nobody can watch goes stale in silence.
             if watch.refused() {
                 eprintln!("flea: {} will not follow outside changes, inotify refused a watch on it", path);

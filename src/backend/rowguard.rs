@@ -5,7 +5,7 @@ use crate::error::FleaError;
 use crate::json::{field_str, field_usize};
 
 // The requests whose rows resolve to files something then acts on; thumb, dirsize, meta, tagstates and window only read.
-const GUARDED: [&str; 8] = ["trash", "transfer", "paths", "menuaction", "collisions", "mergecollisions", "link", "settags"];
+const GUARDED: [&str; 9] = ["outline", "trash", "transfer", "paths", "menuaction", "collisions", "mergecollisions", "link", "settags"];
 
 // The numbering a backend's first listing answers in, which State::new starts one below and a prewarm file stands in for.
 pub const FIRST_LISTING: u64 = 1;
@@ -42,7 +42,8 @@ pub fn refusal(line: &str, generation: u64) -> Option<String> {
     if command == "menuaction" {
         return Some(menu_actions::response(line, Err(STALE_MENU.into())));
     }
-    Some(error_line(&FleaError { where_: "stale".into(), path: command, msg: STALE.into() }))
+    let where_ = if command == "outline" { "outline" } else { "stale" };
+    Some(error_line(&FleaError { where_: where_.into(), path: command, msg: STALE.into() }))
 }
 
 #[cfg(test)]

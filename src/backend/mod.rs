@@ -17,6 +17,7 @@ mod rcloneproc;
 mod rclonerun;
 
 pub mod listing;
+pub mod outline;
 pub mod filter;
 #[cfg(test)]
 mod filter_tests;
@@ -378,3 +379,7 @@ mod jobs_tests;
 mod jobs_regression_tests;
 #[cfg(test)]
 mod jobs_extract_eta_tests;
+
+#[cfg(test)]
+#[path = "tree_outline_tests.rs"]
+mod tree_outline_tests;

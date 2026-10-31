@@ -289,6 +289,7 @@ impl Element for ListElement {
             };
             let (prepared, _extra, clip) =
                 rows.get_or_prepare_marked(index, facts, revision, drop, resolve, |extra| {
+                    let shaping = super::outline::shaping(&shaping, facts, &metrics, advance.body);
                     prepare(facts, extra, &shaping, view, &layout, blank, window)
                 });
             if marks.cursor && prepared.run.is_some() {
@@ -423,8 +424,12 @@ impl Element for ListElement {
                         continue;
                     };
                     let line = prepared.name.line();
-                    let x = left + px(layout.name.x);
-                    let limit = x + px(layout.name.width);
+                    let step = self
+                        .held
+                        .row(shown.index)
+                        .map_or(0., |row| super::outline::indent(row, &metrics));
+                    let x = left + px(layout.name.x + step);
+                    let limit = left + px(layout.name.x + layout.name.width);
                     let height = line.ascent + line.descent;
                     let y = top + (px(row) - height) / 2.;
                     let Some((run_start, run_end)) =
@@ -440,17 +445,19 @@ impl Element for ListElement {
                     ));
                 }
                 // One layer for every mark and glyph, so the scene orders the whole list once rather than once a line.
-                let (mut marks_painted, mut cells_painted, mut pictures_painted) = (0, 0, 0);
+                let (mut marks_painted, mut cells_painted, mut pictures_painted, mut checks_painted) = (0, 0, 0, 0);
                 window.paint_layer(bounds, |window| {
                     for shown in &state.visible {
                         let lifted = shown.state.lifted();
                         let top = top_of(shown.view);
+                        let origin = (left, top, self.held.row(shown.index));
+                        checks_painted += super::picker::paint_check(shown, view, metrics, palette, origin, window, cx);
                         let (marks, pictures) = super::picker::paint_icon(
                             shown,
                             view,
                             metrics,
                             palette,
-                            (left, top, self.held.row(shown.index)),
+                            origin,
                             window,
                             cx,
                         );
@@ -507,6 +514,11 @@ impl Element for ListElement {
                             if shown.state.renaming {
                                 continue;
                             }
+                            let names = super::outline::name_slot(
+                                names,
+                                self.held.row(shown.index),
+                                &metrics,
+                            );
                             let ink = palette.name(prepared.ink, shown.state.lifted());
                             let line = shown.name_line().expect("prepared above");
                             let name_mask = ContentMask {
@@ -565,6 +577,8 @@ impl Element for ListElement {
                             point(names.origin.x, top_of(shown.view)),
                             size(names.size.width, px(row)),
                         );
+                        let name =
+                            super::outline::name_slot(name, self.held.row(shown.index), &metrics);
                         let Some(mark) = shown.clip_bounds(name, &metrics) else {
                             continue;
                         };
@@ -583,6 +597,7 @@ impl Element for ListElement {
                 state.painted_marks.set(marks_painted);
                 state.painted_cells.set(cells_painted);
                 state.painted_pictures.set(pictures_painted);
+                state.painted_checks.set(checks_painted);
             },
         );
         if let Some(draw) = &self.search_feedback {

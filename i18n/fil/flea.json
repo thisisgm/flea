@@ -894,6 +894,8 @@
   "keys.action.duplicate": "Doblehin",
   "keys.action.eject": "I-eject",
   "keys.action.escape": "Isara o bumalik",
+  "keys.action.openInPlace": "Buksan dito mismo",
+  "keys.action.closeInPlace": "Isara dito mismo",
   "keys.action.expand": "Palawakin",
   "keys.action.extendDown": "Palawigin ang pagpili pababa",
   "keys.action.extendUp": "Palawigin ang pagpili pataas",

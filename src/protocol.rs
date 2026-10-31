@@ -50,6 +50,8 @@ impl Request<'_> {
 /// The fields of one `rows` entry a list row draws, read from docs/protocol.md "rows".
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RowFacts {
+    pub depth: usize,
+    pub open: bool,
     pub name: String,
     pub dir: bool,
     pub size: u64,
@@ -155,6 +157,8 @@ fn row_facts(row: &Json, kinds: &[Json]) -> Result<RowFacts, String> {
         Some(value) => value.as_bool().ok_or("x must be a boolean")?,
     };
     Ok(RowFacts {
+        depth: row.get("depth").map(|_| uint(row, "depth")).transpose()?.unwrap_or(0),
+        open: row.get("open").and_then(Json::as_bool).unwrap_or(false),
         tags: row
             .get("tg")
             .map(|value| {

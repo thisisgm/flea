@@ -42,6 +42,8 @@ fn landed() -> Listing {
         0,
         vec![
             RowFacts {
+                depth: 0,
+                open: false,
                 name: "Docs".into(),
                 dir: true,
                 size: 0,
@@ -55,6 +57,8 @@ fn landed() -> Listing {
                 tags: None,
             },
             RowFacts {
+                depth: 0,
+                open: false,
                 name: "a.txt".into(),
                 dir: false,
                 size: 0,

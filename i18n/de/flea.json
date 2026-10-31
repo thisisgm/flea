@@ -2156,6 +2156,8 @@
   "keys.action.tabMoveRight": "Tab nach rechts verschieben",
   "keys.action.windowNew": "Neues Fenster",
   "keys.action.escape": "Schließen oder zurück",
+  "keys.action.openInPlace": "An Ort und Stelle öffnen",
+  "keys.action.closeInPlace": "An Ort und Stelle schließen",
   "keys.action.viewList": "Listenansicht",
   "keys.action.viewColumns": "Spaltenansicht",
   "keys.action.viewGrid": "Rasteransicht",

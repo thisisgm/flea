@@ -938,6 +938,8 @@
   "keys.action.duplicate": "Dublēt",
   "keys.action.eject": "Izstumt",
   "keys.action.escape": "Aizvērt vai atgriezties",
+  "keys.action.openInPlace": "Atvērt vietā",
+  "keys.action.closeInPlace": "Aizvērt vietā",
   "keys.action.expand": "Izvērst",
   "keys.action.extendDown": "Paplašināt atlasi lejup",
   "keys.action.extendUp": "Paplašināt atlasi augšup",

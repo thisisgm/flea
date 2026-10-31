@@ -87,9 +87,9 @@ fn queried(query: &str) -> Vec<String> {
         .collect()
 }
 
-// Headings match in caps::heading's capitals; only the 0.4.0 keys still unbound in the window are left over, A opens the agent and ctrl-g searches contents.
+// Headings match in caps::heading's capitals; A opens the agent and ctrl-g searches contents.
 #[test]
-fn the_resting_sheet_draws_every_keymap_board_string_but_the_new_keys() {
+fn the_resting_sheet_draws_every_keymap_board_string() {
     let sheet = Sheet::new("default", english(), Sources::default());
     let mut drawn = vec![
         sheet.catalog.tr("keys.action.keymapSheet"),
@@ -111,10 +111,7 @@ fn the_resting_sheet_draws_every_keymap_board_string_but_the_new_keys() {
             !drawn.iter().any(|piece| piece == text) && !headings.contains(&text.to_uppercase())
         })
         .collect();
-    assert_eq!(
-        left,
-        ["ctrl-right", "Open in place", "ctrl-left", "Close in place"]
-    );
+    assert!(left.is_empty(), "{left:?}");
 }
 
 #[test]

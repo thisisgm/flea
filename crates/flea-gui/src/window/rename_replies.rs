@@ -137,9 +137,13 @@ impl Shell {
             .as_ref()
             .is_none_or(|host| host.pane.cursor != edit.index);
         let folder = parent(&edit.source).trim_end_matches('/');
-        let here = self.panes[side]
-            .as_ref()
-            .is_some_and(|host| host.pane.path().trim_end_matches('/') == folder);
+        let here = self.panes[side].as_ref().is_some_and(|host| {
+            host.pane.path().trim_end_matches('/') == folder
+                || (host.pane.held.listing == edit.listing
+                    && host.pane.held.row(edit.index).is_some_and(|row| {
+                        row.depth > 0 && super::join(host.pane.path(), &row.name) == edit.source
+                    }))
+        });
         self.rename_sync_gate(window, cx);
         if here {
             // A cursor a key moved off the renamed row keeps its own row through an anchored re-read (PaneWire.qml refreshRename).

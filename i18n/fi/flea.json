@@ -894,6 +894,8 @@
   "keys.action.duplicate": "Luo kaksoiskappale",
   "keys.action.eject": "Poista turvallisesti",
   "keys.action.escape": "Sulje tai palaa",
+  "keys.action.openInPlace": "Avaa paikallaan",
+  "keys.action.closeInPlace": "Sulje paikallaan",
   "keys.action.expand": "Laajenna",
   "keys.action.extendDown": "Laajenna valintaa alas",
   "keys.action.extendUp": "Laajenna valintaa ylös",

@@ -34,6 +34,8 @@ pub struct Span {
 
 #[derive(Debug, Clone)]
 pub struct Listing {
+    pub outline_open: std::collections::BTreeSet<String>,
+    pub outline_watches: Vec<i32>,
     pub names: String,
     pub spans: Vec<Span>,
     // Empty for readdir listings; the gvfs path fills it, so local rows pay no store.
@@ -51,7 +53,7 @@ impl Listing {
         names.reserve(NAME_RESERVE_BYTES);
         let mut spans = Vec::new();
         spans.reserve(SPAN_RESERVE);
-        Listing { names, spans, gio_meta: Vec::new(), gio_targets: Vec::new(), base_dev: 0, thread_hint: OnceLock::new() }
+        Listing { outline_open: Default::default(), outline_watches: Vec::new(), names, spans, gio_meta: Vec::new(), gio_targets: Vec::new(), base_dev: 0, thread_hint: OnceLock::new() }
     }
 
     // corner: u32 offsets cap the arena at 4 GiB of names, see AGENTS.md.

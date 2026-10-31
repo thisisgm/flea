@@ -169,8 +169,9 @@ fn rows_line_body(
         };
         // The icon is escaped like every other field: the escape is the contract, not an optimisation.
         let row_at = s.len();
+        let outline = super::outline::row_fields(l, start + i);
         s.push_str(&format!(
-            r#"{{"n":"{}","d":{},"s":{},"m":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}}}"#,
+            r#"{{"n":"{}","d":{},"s":{},"m":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}}}"#,
             escape(name),
             is_dir,
             m.size,
@@ -183,6 +184,7 @@ fn rows_line_body(
             dev,
             tg,
             appimage,
+            outline,
             if real_modes { "" } else { r#","x":false"# }
         ));
         if let Some(cache) = cache.as_deref_mut() {

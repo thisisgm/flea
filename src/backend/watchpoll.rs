@@ -107,7 +107,11 @@ fn poll_once(
     }
 }
 
+type OpenFolder = Arc<Mutex<(PathBuf, i64)>>;
+type Children = Arc<Mutex<HashMap<PathBuf, OpenFolder>>>;
+
 pub struct Poller {
+    children: Children,
     state: Arc<Mutex<(PathBuf, i64)>>,
     startup: super::lazy::Lazy<()>,
 }
@@ -124,6 +128,8 @@ impl Poller {
         stat: impl Fn(&Path) -> i64 + Send + Sync + 'static,
     ) -> Self {
         let state = Arc::new(Mutex::new((PathBuf::new(), 0i64)));
+        let children: Children = Arc::default();
+        let extra = children.clone();
         let wedged: Wedged = Arc::new(Mutex::new(HashMap::new()));
         let (at, held) = (Arc::clone(&state), Arc::clone(&wedged));
         let classify: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(classify);
@@ -138,10 +144,15 @@ impl Poller {
                     }
                     // The thread owns one iteration's wedge check, deadline pair and apply.
                     poll_once(&open, &at, &held, &classify, &stat, Duration::from_secs(STAT_TIMEOUT_SECS), &tx);
+                    let children: Vec<OpenFolder> = extra.lock().unwrap_or_else(|p| p.into_inner()).values().cloned().collect();
+                    for state in children {
+                        let path = state.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
+                        poll_once(&path, &state, &held, &classify, &stat, Duration::from_secs(STAT_TIMEOUT_SECS), &tx);
+                    }
                 }
             }).expect("could not start watch poller");
         });
-        Self { state, startup }
+        Self { children, state, startup }
     }
 
     pub fn set(&self, path: PathBuf) {
@@ -149,7 +160,17 @@ impl Poller {
         *self.state.lock().unwrap_or_else(|p| p.into_inner()) = (path, 0);
     }
 
+    pub fn set_children(&self, paths: impl IntoIterator<Item = PathBuf>) {
+        let wanted: Vec<PathBuf> = paths.into_iter().collect();
+        let mut children = self.children.lock().unwrap_or_else(|p| p.into_inner());
+        children.retain(|path, _| wanted.contains(path));
+        for path in wanted {
+            children.entry(path.clone()).or_insert_with(|| Arc::new(Mutex::new((path, 0))));
+        }
+    }
+
     pub fn clear(&self) {
+        self.children.lock().unwrap_or_else(|p| p.into_inner()).clear();
         *self.state.lock().unwrap_or_else(|p| p.into_inner()) = (PathBuf::new(), 0);
     }
 }
@@ -164,6 +185,25 @@ mod tests {
     const MISSES: Duration = Duration::from_millis(50);
     // A gate the test holds is released at its end; this bound only ends a hold the test never released.
     const HOLD: Duration = Duration::from_secs(30);
+
+    #[test]
+    fn tree_outline_remote_children_use_the_existing_poll_and_release_on_collapse() {
+        let (tx, rx) = super::super::events::channel();
+        let poller = Poller::with_hooks(tx.clone(), |_| "network", |_| 1);
+        let path = PathBuf::from("/root/child");
+        poller.set_children([path.clone()]);
+        let state = poller.children.lock().unwrap().get(&path).unwrap().clone();
+        let wedged: Wedged = Arc::default();
+        let class: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(|_| "network");
+        let first: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new(|_| 1);
+        poll_once(&path, &state, &wedged, &class, &first, ANSWERS, &tx);
+        assert!(rx.try_recv().is_err());
+        let changed: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new(|_| 2);
+        poll_once(&path, &state, &wedged, &class, &changed, ANSWERS, &tx);
+        assert!(matches!(rx.recv_timeout(ANSWERS), Ok(Event::PollChanged(found)) if found == path));
+        poller.set_children([]);
+        assert!(poller.children.lock().unwrap().is_empty());
+    }
 
     #[test]
     fn a_phone_or_network_class_is_polled_and_local_is_not() {

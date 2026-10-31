@@ -912,6 +912,8 @@
   "keys.action.duplicate": "நகல் உருவாக்கு",
   "keys.action.eject": "வெளியேற்று",
   "keys.action.escape": "மூடு அல்லது பின்செல்",
+  "keys.action.openInPlace": "இங்கேயே திற",
+  "keys.action.closeInPlace": "இங்கேயே மூடு",
   "keys.action.expand": "விரி",
   "keys.action.extendDown": "தேர்வைக் கீழே நீட்டு",
   "keys.action.extendUp": "தேர்வை மேலே நீட்டு",

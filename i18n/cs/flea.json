@@ -938,6 +938,8 @@
   "keys.action.duplicate": "Vytvořit kopii",
   "keys.action.eject": "Vysunout",
   "keys.action.escape": "Zavřít nebo přejít zpět",
+  "keys.action.openInPlace": "Otevřít na místě",
+  "keys.action.closeInPlace": "Zavřít na místě",
   "keys.action.expand": "Rozbalit",
   "keys.action.extendDown": "Rozšířit výběr dolů",
   "keys.action.extendUp": "Rozšířit výběr nahoru",

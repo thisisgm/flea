@@ -1151,6 +1151,8 @@
   "settings.menus.duplicate": "Dupliceren",
   "step.duplicate": "Dupliceren",
   "keys.action.escape": "Sluiten of teruggaan",
+  "keys.action.openInPlace": "Ter plekke openen",
+  "keys.action.closeInPlace": "Ter plekke sluiten",
   "keys.escape": "Sluiten of teruggaan",
   "keys.action.extendDown": "Selectie omlaag uitbreiden",
   "keys.action.extendUp": "Selectie omhoog uitbreiden",
