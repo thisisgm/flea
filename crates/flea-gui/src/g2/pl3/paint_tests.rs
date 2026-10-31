@@ -65,8 +65,8 @@ fn trash_rows_ground_as_the_boards_draw_them() {
             let paint = pane.paint.borrow();
             assert_eq!(
                 paint.ground(0),
-                Some(ink.mark_fill),
-                "a marked row off the cursor takes the marked plate"
+                Some(ink.foreground.opacity(0.35)),
+                "a marked row off the cursor takes the list pane's translucent marked plate"
             );
             assert_eq!(
                 paint.ground(1),

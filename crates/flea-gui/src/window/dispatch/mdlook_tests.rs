@@ -311,3 +311,21 @@ fn mdlook_ey163_table_headers_wrap_at_words_before_splitting_tokens(cx: &mut Tes
     assert_eq!(wrapped, 4);
     close(&shell, cx);
 }
+
+#[gpui::test]
+fn mdlook_ey332_source_sets_lines_on_the_code_views_row(cx: &mut TestAppContext) {
+    let root = root();
+    let (shell, cx, view) = markdown(cx, &root.0, "# Release notes\n\nA line.\n");
+    cx.update(|_, cx| {
+        view.update(cx, |view, cx| {
+            view.set_view(crate::g2::pv2::markdown::View::Source, cx)
+        })
+    });
+    draw(cx);
+    assert_eq!(
+        view.read_with(cx, |view, _| view.source.frame.line),
+        crate::g2::pv1::look::TEXT_LINE,
+        "ql-markdown-source and ql-code both set lines 20 apart"
+    );
+    close(&shell, cx);
+}

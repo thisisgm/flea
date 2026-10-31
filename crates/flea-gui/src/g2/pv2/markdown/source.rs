@@ -375,7 +375,7 @@ impl MarkdownView {
             height: (height - 2. * t.source_inset_y()).max(0.),
             body: t.body,
             caption: t.caption,
-            line: (ascent + descent).round(),
+            line: t.source_line.unwrap_or((ascent + descent).round()),
             advance,
             notice: (cap_ascent + cap_descent).round() + self.tokens.metrics().block_gap(),
             wrap: self.wrap,

@@ -222,6 +222,7 @@ fn md_tables_document_insets_match_the_two_board_surfaces() {
             row_pad_y: 7.,
             mark: 16.,
             state_mark: 40.,
+            source_line: None,
             column,
         };
         assert_eq!(tokens.inset_y(), if column { 20. } else { 18. });

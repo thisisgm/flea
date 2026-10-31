@@ -142,6 +142,7 @@ impl Doc {
                     row_pad_y: (ROW_PAD_Y * f32::from(look.face.base)).round(),
                     mark: m.mark,
                     state_mark: crate::window::preview_facts::state_mark_size(&look.face),
+                    source_line: None,
                     column: true,
                 };
                 let t = &look.theme;

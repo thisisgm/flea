@@ -19,6 +19,7 @@ pub const TOKENS: Tokens = Tokens {
     row_pad_y: 6.,
     mark: 16.,
     state_mark: 37.,
+    source_line: None,
     column: false,
 };
 

@@ -55,6 +55,7 @@ impl Look {
             row_pad_y: (6. * f32::from(self.face.base) / 12.).round(),
             mark: card::CHROME_MARK,
             state_mark: card::MARK,
+            source_line: Some(card::TEXT_LINE),
             column: false,
         };
         let palette = pv2::markdown::Palette {
