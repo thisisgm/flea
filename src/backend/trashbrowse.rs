@@ -147,8 +147,16 @@ fn answer(output: std::io::Result<std::process::Output>) -> Result<String, Refus
 
 // Sample input: "trash:///a.txt\t/home/gm/a.txt\n"; malformed framing must not silently lose an item.
 fn parse_list(text: &str) -> Result<Vec<Item>, Refusal> {
-    let mut items = Vec::new();
+    let mut items: Vec<Item> = Vec::new();
     for line in text.lines() {
+        // An original path holding a newline wraps onto the next line; a line that opens no new trash:/// uri continues it.
+        if !line.starts_with("trash:///") {
+            if let Some(last) = items.last_mut() {
+                last.original.push('\n');
+                last.original.push_str(line);
+                continue;
+            }
+        }
         let (uri, original) = line
             .split_once('\t')
             .ok_or_else(|| unreadable("The Trash helper returned an unreadable listing."))?;
@@ -732,6 +740,12 @@ mod refusal_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn parse_list_joins_an_original_path_wrapped_by_a_newline() {
+        let items = parse_list("trash:///a\t/home/x/P5)\nlines.append(\ntrash:///b\t/home/x/b\n").unwrap();
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].original, "/home/x/P5)\nlines.append(");
+    }
     #[test]
     fn malformed_or_duplicate_listing_fails_closed() {
         assert!(parse_list("").unwrap().is_empty());
