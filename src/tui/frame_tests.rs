@@ -70,6 +70,15 @@ pub fn model() -> Model {
     crate::tui::layout::prepare(&mut m);
     m
 }
+// Turkish key group and Greek print words from a read-only fixture, so heading tests do not depend on which catalogs ship.
+pub fn caps_language(code: &str) -> crate::i18n::I18n {
+    let fixture = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/tui/fixtures/caps");
+    crate::i18n::I18n::load(crate::i18n::Paths {
+        omarchy: fixture.clone(),
+        language_file: fixture.join(format!("language-{code}")),
+        catalogs: vec![fixture.join("catalog")],
+    })
+}
 #[test]
 fn t3_frame_matches_reference_columns_names_sizes_and_rules() {
     let m = model();

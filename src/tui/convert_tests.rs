@@ -6,7 +6,7 @@ use super::{
     model::Model,
     render::{
         self,
-        frame_tests::{grid, model},
+        frame_tests::{caps_language, grid, model},
     },
     theme::Theme,
     wire::{self, Wire},
@@ -75,6 +75,17 @@ fn tui_convert_pdf_ranges_and_outputs_are_real() {
     let (mut w, reader) = wire::echo_wire();
     let m = opened(&mut w, "garden-report.pdf");
     assert!(frame(&m).contains("PAGES"));
+    wire::finish(w, reader);
+}
+#[test]
+fn tui_convert_pdf_heading_drops_the_greek_accent() {
+    super::convert_process_tests::scenario("pdf");
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = opened(&mut w, "garden-report.pdf");
+    m.i18n = caps_language("el");
+    let shown = frame(&m);
+    // Plain to_uppercase draws ΣΕΛΊΔΕΣ.
+    assert!(shown.contains("ΣΕΛΙΔΕΣ"), "{shown}");
     wire::finish(w, reader);
 }
 #[test]

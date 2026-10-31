@@ -60,7 +60,7 @@ fn body(m: &Model) -> Vec<Vec<Part>> {
         return vec![vec![(0, tr("dialogs.output.no_printer"), false, false)]];
     }
     let mut rows = vec![Vec::new(); 7];
-    rows[0].push((0, tr("dialogs.output.printer").to_uppercase(), true, false));
+    rows[0].push((0, m.heading("dialogs.output.printer"), true, false));
     let printer = if f.query.is_some() || (!f.queried && f.paths.is_empty()) {
         tr("menu.loading")
     } else {
@@ -85,12 +85,12 @@ fn body(m: &Model) -> Vec<Vec<Part>> {
         .unwrap_or(0)
         + 2;
     rows[1].push((chevron, "⌄".into(), true, true));
-    rows[3].push((0, tr("dialogs.output.copies").to_uppercase(), true, false));
+    rows[3].push((0, m.heading("dialogs.output.copies"), true, false));
     rows[4].push((0, f.copies.clone(), false, true));
     if f.paged {
         rows[3].push((
             FIELD_COLUMN,
-            tr("dialogs.output.pages").to_uppercase(),
+            m.heading("dialogs.output.pages"),
             true,
             false,
         ));

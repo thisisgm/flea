@@ -217,6 +217,11 @@ fn bulk_done_line(completed: usize, cancelled: bool) -> String {
     format!("{} {} · Undo reverts one", if cancelled { "Stopped after renaming" } else { "Renamed" }, super::render::items(completed))
 }
 impl Model {
+    /// A catalog string as a heading in capitals, cased the way the active language writes them (Turkish dotted I).
+    pub fn heading(&self, key: &str) -> String {
+        flea::ui_logic_st1::caps::heading(&self.i18n.tr(key), self.i18n.language())
+    }
+
     pub fn new(path: PathBuf, settings: &Json) -> Self {
         let preview = settings.get("preview").unwrap_or(&Json::Null);
         Self {
