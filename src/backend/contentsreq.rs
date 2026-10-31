@@ -148,10 +148,12 @@ pub fn done(
             let unsafe_n = st.contents.held.as_ref().map_or(0, |held| {
                 held.matches.iter().filter(|hit| !hit.operable).count()
             });
+            let partial = st.contents.held.as_ref().is_some_and(|held| held.partial);
+            let reason = if partial { "unreadable" } else { "" };
             super::run::say(
                 out,
                 &format!(
-                    r#"{{"t":"searched","n":{n},"scanned":{scanned},"ms":{ms:.3},"cancelled":false,"gen":{},"walking":false,"nonoperable":{unsafe_n}}}"#,
+                    r#"{{"t":"searched","n":{n},"scanned":{scanned},"ms":{ms:.3},"cancelled":false,"gen":{},"walking":false,"partial":{partial},"partial_reason":"{reason}","nonoperable":{unsafe_n}}}"#,
                     ask.gen
                 ),
             );

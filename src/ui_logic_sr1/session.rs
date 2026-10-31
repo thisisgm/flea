@@ -307,6 +307,12 @@ impl Session {
         vec![Effect::RestartSettle]
     }
 
+    // A contents failure lands its gen as an empty finished walk: the drawn rows stay and the strip stops scanning.
+    pub fn contents_failed(&mut self, gen: u64, now: u64) -> Vec<Effect> {
+        if self.kind != Kind::Contents { return Vec::new(); }
+        self.searched(&Line::Searched { n: 0, scanned: 0, ms: 0., cancelled: false, gen, walking: false, partial: None }, now)
+    }
+
     // The first rows of the newest gen landed, the stopwatch's middle stamp.
     pub fn rows_landed(&mut self, gen: u64, now: u64) {
         if self.accepts(gen) && self.stamps.first_rows_at == 0 {

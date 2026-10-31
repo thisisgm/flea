@@ -222,7 +222,7 @@ pub fn sentence(place: &str, message: &str, named: &str) -> Sentence {
             Sentence::key("menu.refusal.empty_clipboard")
         }
         "transfer" | "archive" | "convert" | "link" | "linktarget" | "rename-stranded"
-        | "pasteimage" => passthrough(message),
+        | "pasteimage" | "searchcontents" => passthrough(message),
         _ => Sentence::key(GENERIC),
     }
 }

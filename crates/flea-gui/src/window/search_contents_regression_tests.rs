@@ -226,3 +226,36 @@ fn g12_vfix_local_opener_refuses_inoperable_and_missing_contents_identity(cx: &m
         assert_eq!(seen[0][1], "--open");
     });
 }
+
+// EY-333: a contents failure for the newest gen stops the strip scanning and says why; an older gen's is dropped.
+#[gpui::test]
+fn ey333_contents_failure_settles_the_newest_gen_and_says_why(cx: &mut TestAppContext) {
+    let (handle, _read) = contents_needle(cx);
+    let failed = |gen: u64| {
+        format!(
+            r#"{{"t":"error","where":"searchcontents","path":"/files","msg":"Contents search failed: ripgrep is unavailable.", "gen":{gen}}}"#
+        )
+    };
+    let total = edit(cx, handle, |shell, _, _| {
+        shell.panes[0].as_ref().unwrap().pane.held.total
+    });
+    reply(cx, handle, 0, &failed(5));
+    edit(cx, handle, |shell, _, _| {
+        let session = &shell.panes[0].as_ref().unwrap().search.owner.session;
+        assert!(session.running, "an older gen's failure is dropped");
+    });
+    reply(cx, handle, 0, &failed(6));
+    frame(cx, handle);
+    edit(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        let session = &host.search.owner.session;
+        assert!(!session.running, "the strip stops scanning");
+        assert_eq!((session.answered, session.total), (6, 0));
+        assert_eq!(host.pane.state.kind, crate::pane::states::Kind::Ready);
+        assert_eq!(host.pane.held.total, total, "the drawn rows stay");
+    });
+    assert_eq!(
+        super::super::tests::call(cx, handle, "lastMessage"),
+        flea::ipc::wire::Reply::value("Contents search failed: ripgrep is unavailable.")
+    );
+}

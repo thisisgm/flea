@@ -185,6 +185,15 @@ impl Search {
         Ok(true)
     }
 
+    /// A contents failure line: true when it answered the newest gen, which then stops scanning.
+    pub fn contents_failed(&mut self, line: &str, host: &mut dyn Host) -> bool {
+        let gen = flea::json::field_usize(line, "gen").unwrap_or(0) as u64;
+        let effects = self.session.contents_failed(gen, host.pane().now);
+        let settled = !effects.is_empty();
+        self.apply(effects, host);
+        settled
+    }
+
     /// The newest gen's first rows were drawn.
     pub fn rows_drawn(&mut self, gen: usize, now: u64) {
         self.session.rows_landed(gen as u64, now);

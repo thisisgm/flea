@@ -248,6 +248,23 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> bool {
         let kind = flea::json::field_str(line, "t");
+        if kind.as_deref() == Some("error")
+            && flea::json::field_str(line, "where").as_deref() == Some("searchcontents")
+        {
+            let mut settled = false;
+            self.search_update(
+                side,
+                None,
+                |search, host| settled = search.contents_failed(line, host),
+                window,
+                cx,
+            );
+            if settled {
+                let message = flea::json::field_str(line, "msg").unwrap_or_default();
+                self.status_refused("searchcontents", &message, "", cx);
+            }
+            return true;
+        }
         if !matches!(
             kind.as_deref(),
             Some("searchopened" | "searchclosed" | "searched" | "searching" | "contentsmatches")
