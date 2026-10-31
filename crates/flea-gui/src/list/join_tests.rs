@@ -95,6 +95,28 @@ fn ask(
     reply.stdout.trim_end_matches('\n').into()
 }
 
+// EY-328: the right click a header case aims at the Name title lands on that title, as Header.qml's title item does.
+#[test]
+fn ey328_header_cell_centre_sits_on_the_painted_title() {
+    let mut cx = bench::real_cx();
+    let handle = open(&mut cx);
+    frame(&mut cx, handle);
+    let left: f32 = ask(&mut cx, handle, "headerLeft", &[]).parse().unwrap();
+    for (name, from_right) in [("name", false), ("size", true)] {
+        let rect = ask(&mut cx, handle, "headerCellRect", &[name]);
+        let (x, width) = rect.split_once('|').unwrap();
+        let (x, width): (f32, f32) = (x.parse().unwrap(), width.parse().unwrap());
+        let centre = ask(&mut cx, handle, "headerCellCentre", &[name]);
+        let at = centre.split(' ').next().unwrap().parse::<f32>().unwrap() - left;
+        // The title's middle sits within 40 px of the edge it is set on, never at the middle of a wide cell.
+        let edge = if from_right { x + width - at } else { at - x };
+        assert!(
+            (from_right || width > 120.) && (0. ..=40.).contains(&edge),
+            "{name}: centre {at} in cell {x}|{width}"
+        );
+    }
+}
+
 #[test]
 fn u04_header_and_rows_share_the_live_painted_layout_and_dispatch() {
     let mut cx = bench::real_cx();

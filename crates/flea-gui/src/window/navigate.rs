@@ -63,21 +63,17 @@ impl Shell {
         if leaves {
             self.search_leave(side, window, cx);
         }
+        // Pane.qml:553: Recent shows every item it lists, so the hidden toggle refuses before any write.
+        if step == Step::ToggleHidden
+            && self.recent_refuses(side, "places.recent.hidden_refused", cx)
+        {
+            return Ok(false);
+        }
         let failure = self.locale.catalog.tr("navigation.save_failed");
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return Ok(false);
         };
         if host.stopped {
-            return Ok(false);
-        }
-        // Pane.qml:553: Recent shows every item it lists, so the hidden toggle refuses before any write.
-        if step == Step::ToggleHidden && host.recent.on {
-            host.status = self
-                .locale
-                .catalog
-                .tr("places.recent.hidden_refused")
-                .into();
-            cx.notify();
             return Ok(false);
         }
         host.prepare_grid_anchor();

@@ -329,9 +329,11 @@ impl Adapter for RowsAdapter<'_> {
                 let name = arguments.first()?;
                 let bounds = self.header_box();
                 let metrics = &list.drawn.metrics;
-                // The title's line box is the header less the board's top padding, the box the header paints its titles in.
+                // Header.qml's title item: the painted title's own span, in the header less the board's top padding.
+                let column = (name != "name").then(|| Column::from_key(name)).flatten();
                 self.header_cell(name)
                     .map(|cell| {
+                        let cell = list.header.title_span(column, cell);
                         let top = f32::from(bounds.origin.y) + metrics.header_top;
                         centre_of(
                             f32::from(bounds.origin.x) + cell.x,

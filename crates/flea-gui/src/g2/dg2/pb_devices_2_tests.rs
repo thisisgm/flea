@@ -17,7 +17,7 @@ pub(super) fn tabs(shell: &mut crate::state::Shell, dest: &str) {
     });
 }
 
-fn tab_point(shell: &crate::state::Shell) -> Point<Pixels> {
+pub(super) fn tab_point(shell: &crate::state::Shell) -> Point<Pixels> {
     let bounds = shell.strip.bounds.get().expect("the tab strip painted");
     let width = shell.strip.snapshot.as_ref().unwrap().frame.tab_width;
     point(

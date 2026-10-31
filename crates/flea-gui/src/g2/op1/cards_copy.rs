@@ -43,7 +43,7 @@ impl Operations {
         }
     }
 
-    // A full path goes to the menu's validate, whose reply names the snapshot; a relative one is refused out loud.
+    // A full path goes to the menu's validate, whose reply names the snapshot; a relative one is refused on the card.
     pub(in super::super) fn confirm_copy(&mut self, catalog: &I18n) {
         if self.submit_rclone() {
             return;
@@ -62,12 +62,18 @@ impl Operations {
             return;
         }
         if !path.starts_with('/') {
-            self.say(catalog.tr("jobs.copyto.relative"), true);
+            if let Some(Dialog::CopyTo { error, .. }) = &mut self.dialog {
+                *error = catalog.tr("jobs.copyto.relative");
+            }
             return;
         }
-        if let Some(Dialog::CopyTo { busy, focus, .. }) = &mut self.dialog {
+        if let Some(Dialog::CopyTo {
+            busy, focus, error, ..
+        }) = &mut self.dialog
+        {
             *busy = true;
             *focus = CopyFocus::Cancel;
+            error.clear();
         }
         let action = if moving { "moveTo" } else { "copyTo" };
         self.outbox.push(format!("{{\"c\":\"menuaction\",\"op\":\"validate\",\"id\":{menu},\"action\":\"{action}\",\"dest\":{}}}", collide::text(&path)));
@@ -88,15 +94,14 @@ impl Operations {
         }
         self.changed = true;
         if !reply.ok {
-            if let Some(Dialog::CopyTo { busy, .. }) = &mut self.dialog {
+            if let Some(Dialog::CopyTo { busy, error, .. }) = &mut self.dialog {
                 *busy = false;
+                *error = if reply.error.is_empty() {
+                    catalog.tr("jobs.delete.failed")
+                } else {
+                    reply.error.clone()
+                };
             }
-            let error = if reply.error.is_empty() {
-                catalog.tr("jobs.delete.failed")
-            } else {
-                reply.error.clone()
-            };
-            self.say(error, true);
             return;
         }
         self.dialog = None;

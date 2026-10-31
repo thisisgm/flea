@@ -94,6 +94,22 @@ impl Shell {
         }
     }
 
+    /// Says Recent's refusal of a folder-only action in the footer; false while the side is not in Recent.
+    pub(crate) fn recent_refuses(
+        &mut self,
+        side: usize,
+        key: &str,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.panes[side].as_ref().is_some_and(|host| host.recent.on) {
+            return false;
+        }
+        let text = self.locale.catalog.tr(key);
+        self.status_note(&text, cx);
+        cx.notify();
+        true
+    }
+
     pub(crate) fn recent_open(
         &mut self,
         side: usize,

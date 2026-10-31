@@ -238,6 +238,20 @@ impl HeaderState {
         }
     }
 
+    /// The span a title paints inside its cell, the whole cell until titles are shaped.
+    pub fn title_span(&self, column: Option<Column>, cell: Cell) -> Cell {
+        let width = self.titles.as_ref().map_or(cell.width, |titles| {
+            let title = column.map_or(&titles.name, |column| &titles.columns[column.slot()]);
+            f32::from(title.drawn().0.line().width).min(cell.width)
+        });
+        let x = if right_aligned(column) {
+            cell.right() - width
+        } else {
+            cell.x
+        };
+        Cell { x, width }
+    }
+
     /// Fits each drawn title to its own cell, so a title too wide for its cell ends in an ellipsis instead of clipping its head.
     fn fit_titles(&mut self, layout: &Layout, metrics: &Metrics, dual: bool, window: &Window) {
         let Some(Titles { key, name, columns }) = self.titles.as_mut() else {
@@ -292,6 +306,11 @@ impl ListState {
         })?;
         self.write_width(column, fitted)
     }
+}
+
+/// Size, Modified and Kind set their titles on the cell's right edge, the others on its left.
+pub fn right_aligned(column: Option<Column>) -> bool {
+    matches!(column, Some(Column::Size | Column::Date | Column::Kind))
 }
 
 fn title_run(len: usize, font: &Font) -> TextRun {
