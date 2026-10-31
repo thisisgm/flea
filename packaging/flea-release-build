@@ -43,6 +43,10 @@ case "${1:-}" in
       compgen -G "$source" >/dev/null || {
         echo "flea-release-build: flea-bin installs $source, absent from the tarball" >&2; missing=1; }
     done <<< "$sources"
+    # package()'s catalog loop is no install line, so each catalog is compared with the checkout's own.
+    for catalog in "$repo"/i18n/*/flea.json; do
+      cmp -s "$catalog" "${catalog#"$repo/"}" || { echo "flea-release-build: the tarball lacks ${catalog#"$repo/"} or carries another copy" >&2; missing=1; }
+    done
     for program in flea flea-gui; do
       [ -x "$program" ] || { echo "flea-release-build: $program is not executable" >&2; missing=1; }
     done

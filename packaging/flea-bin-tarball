@@ -73,6 +73,7 @@ install -Dm644 "$repo"/ui/vendor/*.mjs -t "$root/ui/vendor"
 install -Dm644 "$repo"/ui/vendor/LICENSES/* -t "$root/ui/vendor/LICENSES"
 install -Dm644 "$repo/ui/boot/shell.qml" "$repo/ui/boot/picker.qml" "$repo/ui/boot/fleatab.qml" "$repo/ui/boot/tabtearoff.qml" -t "$root/ui/boot"
 install -Dm644 "$repo/shelf/manifest.json" "$repo/shelf/README.md" "$repo"/shelf/*.qml "$repo"/shelf/*.js -t "$root/shelf"
+for catalog in "$repo"/i18n/*/flea.json; do install -Dm644 "$catalog" "$root/${catalog#"$repo/"}"; done
 
 # Owner, order, modes, mtime and gzip's own header are fixed, so the same tree and binary give the same bytes.
 mtime=${SOURCE_DATE_EPOCH:-}

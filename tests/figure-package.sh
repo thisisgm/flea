@@ -9,6 +9,13 @@ mkdir -p "$SANDBOX_ROOT"
 box=$(mktemp -d "$SANDBOX_ROOT/flea-figure-package.XXXXXX")
 printf 'figure package regression\n' > "$box/$SANDBOX_MARKER"
 trap 'sandbox_remove "$box"' EXIT
+# flea-bin's tree is the real binary tarball, staged around a stub binary that prints the version, as tests/third-party-licenses.py does.
+arch=$(uname -m)
+version=$(. packaging/flea-bin/PKGBUILD && printf '%s' "$pkgver")
+mkdir -p "$box/stub"
+printf '#include <stdio.h>\nint main(void) { puts("%s"); return 0; }\n' "$version" | cc -x c -o "$box/stub/flea" -
+cp "$box/stub/flea" "$box/stub/flea-gui"
+TMPDIR="$box" SOURCE_DATE_EPOCH=1 packaging/flea-bin-tarball "$box/stub/flea" "$version" "$arch" "$box/stub" >/dev/null
 for name in root flea flea-git flea-bin; do
     (
         if [ "$name" = root ]; then
@@ -21,7 +28,7 @@ for name in root flea flea-git flea-bin; do
         printf '%s\n' "${license[@]}" > "$box/$name.licenses"
         srcdir="$box/$name/src"
         pkgdir="$box/$name/pkg"
-        CARCH=x86_64
+        CARCH=$arch
         mkdir -p "$srcdir/target/release"
         printf 'package binary fixture\n' > "$srcdir/target/release/flea"
         printf 'GUI package binary fixture\n' > "$srcdir/target/release/flea-gui"
@@ -31,9 +38,13 @@ for name in root flea flea-git flea-bin; do
             flea-bin) tree="$srcdir/$_pkgname-$pkgver-linux-$CARCH" ;;
         esac
         mkdir -p "$tree"
-        for data in ui tools packaging shelf LICENSE THIRD-PARTY-LICENSES.txt Makefile; do
-            ln -s "$repo/$data" "$tree/$data"
-        done
+        if [ "$name" = flea-bin ]; then
+            tar -xzf "$box/stub/flea-v$pkgver-linux-$CARCH.tar.gz" -C "$srcdir"
+        else
+            for data in ui tools packaging shelf i18n LICENSE THIRD-PARTY-LICENSES.txt Makefile; do
+                ln -s "$repo/$data" "$tree/$data"
+            done
+        fi
         cp "$srcdir/target/release/flea" "$tree/flea"
         cp "$srcdir/target/release/flea-gui" "$tree/flea-gui"
         # The root recipe's make install reads the binaries from the source tree's own target/.
@@ -73,6 +84,16 @@ if tracked_shelf.returncode == 0 and tracked_shelf.stdout:
 else:
     shelf_files = {path.relative_to(source_shelf).as_posix() for path in source_shelf.rglob("*")
                     if path.is_file() and not path.is_symlink() and not any(part.startswith(".") or part == "__pycache__" for part in path.relative_to(source_shelf).parts)}
+# Every catalog git tracks as i18n/<code>/flea.json (a tree without git: every such file), the only i18n/ files the runtime reads.
+source_i18n = pathlib.Path(sys.argv[2]) / "i18n"
+tracked_i18n = subprocess.run(["git", "-C", sys.argv[2], "ls-files", "-z", "--", "i18n"], capture_output=True)
+# Sample input: b"i18n/de/flea.json\0i18n/rtl-policy.json\0" gives {"de/flea.json"}.
+if tracked_i18n.returncode == 0 and tracked_i18n.stdout:
+    catalogs = {name.removeprefix("i18n/") for name in tracked_i18n.stdout.decode().split("\0")
+                if re.fullmatch(r"i18n/[^/]+/flea\.json", name) and (source_i18n.parent / name).is_file()}
+else:
+    catalogs = {path.relative_to(source_i18n).as_posix() for path in source_i18n.glob("*/flea.json") if path.is_file()}
+print(f"catalogs checked: {len(catalogs)}")
 # Every file that can name a /usr/lib/flea helper: tracked sources plus the packaging registrations.
 repo_root = pathlib.Path(sys.argv[2])
 notices = (repo_root / "THIRD-PARTY-LICENSES.txt").read_bytes()
@@ -179,6 +200,24 @@ for package in ("root", "flea", "flea-git", "flea-bin"):
         checks += 1
         failures += 1
         print(f"FAIL {package}: shelf/{relative} is not installed")
+    i18n = root / package / "pkg/usr/share/flea/i18n"
+    checks += 1
+    if not catalogs:
+        failures += 1
+        print(f"FAIL {package}: no i18n/<code>/flea.json was found, so the catalog check would hold nothing")
+    for relative in sorted(catalogs):
+        checks += 1
+        installed = i18n / relative
+        if not installed.is_file() or installed.read_bytes() != (source_i18n / relative).read_bytes():
+            failures += 1
+            print(f"FAIL {package}: /usr/share/flea/i18n/{relative} is missing or differs from i18n/{relative}")
+    # Only <code>/flea.json is read at run time; README.md and the policy files are build and test data.
+    for path in sorted(i18n.rglob("*")):
+        relative = path.relative_to(i18n).as_posix()
+        if not path.is_dir() and not re.fullmatch(r"[^/]+/flea\.json", relative):
+            checks += 1
+            failures += 1
+            print(f"FAIL {package}: /usr/share/flea/i18n/{relative} is not a catalog the runtime reads")
     helpers = root / package / "pkg/usr/lib/flea"
     for name in sorted(helper_names):
         checks += 1
