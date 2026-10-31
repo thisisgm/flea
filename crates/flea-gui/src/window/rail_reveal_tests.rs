@@ -307,3 +307,64 @@ fn trash_font_network_menu_opens_in_the_list_face(cx: &mut TestAppContext) {
         );
     });
 }
+
+#[gpui::test]
+fn network_row_menu_answers_the_menu_readers_under_the_row(cx: &mut TestAppContext) {
+    let recorder = Rc::new(Recorder::default());
+    let (shell, cx) = open(r#"{"places":{}}"#, recorder.clone(), cx);
+    recorder.answer(recorder.listings()[0], SHARE_OUTPUT);
+    frame(cx);
+    let producer = shell.read_with(cx, |shell, _| shell.rail.as_ref().unwrap().places.clone());
+    let index = producer.read_with(cx, |producer, _| {
+        producer
+            .entries()
+            .iter()
+            .position(|entry| entry.group == Group::Network)
+            .expect("the NETWORK row")
+    });
+    shell.update_in(cx, |shell, window, cx| {
+        producer.update(cx, |producer, cx| producer.set_cursor(index, cx));
+        producer.read(cx).model.borrow_mut().pointer_focus = false;
+        let side = shell.focus_side;
+        shell.network_menu(side, &share_row(), window, cx);
+    });
+    frame(cx);
+    let read = |name: &str, cx: &mut VisualTestContext| {
+        crate::window::u07_tests::read(&shell, cx, name, &[])
+    };
+    assert_eq!(read("contextMenuVisible", cx), "true");
+    let drawn = shell.read_with(cx, |shell, _| {
+        let network = shell.rail.as_ref().unwrap().network.as_ref().unwrap();
+        let menu = network.menu.borrow();
+        let card = menu.card.as_ref().expect("the NETWORK row's menu opened");
+        (
+            card.built
+                .lines
+                .iter()
+                .map(|line| {
+                    line.label
+                        .as_ref()
+                        .map_or("-", |label| label.text.as_str())
+                        .to_owned()
+                })
+                .collect::<Vec<_>>()
+                .join("|"),
+            card.frame.x,
+        )
+    });
+    assert!(
+        drawn.0.contains("Rename"),
+        "the share's own rows: {}",
+        drawn.0
+    );
+    assert_eq!(read("contextMenuEntries", cx), drawn.0);
+    assert_eq!(read("contextMenuCursor", cx), "0");
+    let row = producer.read_with(cx, |producer, _| {
+        producer.laid.borrow().row(index).unwrap().rect.x
+    });
+    assert_eq!(
+        drawn.1,
+        row + 14.,
+        "the keyboard menu opens at the row's mark column"
+    );
+}

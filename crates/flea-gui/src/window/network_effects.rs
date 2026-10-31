@@ -178,7 +178,7 @@ impl Shell {
                         label: label.clone(),
                     },
                 };
-                self.network_save(edit, Some(*id), cx);
+                self.network_save(edit, Some(*id), None, cx);
             }
             dialog::Effect::Closed => {
                 window.focus(&self.focus, cx);
@@ -230,10 +230,12 @@ impl Shell {
     }
 
     /// One bookmarks edit off the UI thread; a card save answers the card, a rail edit answers the pane.
+    /// `said` is what the bar reads once the edit changed the file, then once the file already lacked it.
     pub(crate) fn network_save(
         &mut self,
         edit: bookmarks::Edit,
         id: Option<u64>,
+        said: Option<[String; 2]>,
         cx: &mut Context<Self>,
     ) {
         let side = self.focus_side;
@@ -264,8 +266,14 @@ impl Shell {
                             card.update(cx, |card, cx| card.saved(id, result.is_ok(), &detail, cx));
                         }
                     }
-                    None if result.is_err() => shell.network_say(side, detail, true, cx),
-                    None => {}
+                    None => match (result, said) {
+                        (Err(_), _) => shell.network_say(side, detail, true, cx),
+                        (Ok(changed), Some([written, unchanged])) => {
+                            let text = if changed { written } else { unchanged };
+                            shell.network_say(side, text, false, cx);
+                        }
+                        (Ok(_), None) => {}
+                    },
                 }
                 shell.network_list(cx);
             });

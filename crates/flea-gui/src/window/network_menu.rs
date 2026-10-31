@@ -38,7 +38,7 @@ impl Shell {
         let laid = producer.laid.borrow();
         let pointer = producer.model.borrow().pointer_focus;
         let at = match producer.cursor().and_then(|index| laid.row(index)) {
-            Some(drawn) if !pointer => (drawn.label_rect.x, drawn.rect.y + drawn.rect.height),
+            Some(drawn) if !pointer => (drawn.rect.x + 14., drawn.rect.y + drawn.rect.height),
             _ => {
                 let mouse = window.mouse_position();
                 (f32::from(mouse.x), f32::from(mouse.y))
@@ -100,7 +100,26 @@ impl Shell {
         match action.as_str() {
             "open" => self.network_activate(side, &entry, window, cx),
             "unmount" => self.network_unmount(&row, origin, cx),
-            "remove" => self.network_save(bookmarks::Edit::Remove { uri: row.uri }, None, cx),
+            "remove" => {
+                // Mounts.WORDS: a mounted share stays on the rail until it is unmounted, saved or not.
+                let catalog = &self.locale.catalog;
+                let label = [row.label.as_str()];
+                let forgotten = if row.mounted {
+                    "network.forgotten_stays"
+                } else {
+                    "network.forgotten"
+                };
+                let said = [
+                    catalog.tr_args(forgotten, &label),
+                    catalog.tr_args("network.not_saved", &label),
+                ];
+                self.network_save(
+                    bookmarks::Edit::Remove { uri: row.uri },
+                    None,
+                    Some(said),
+                    cx,
+                )
+            }
             "editPlace" => {
                 if let Some(network) = self.network() {
                     let card = network.card.clone();
