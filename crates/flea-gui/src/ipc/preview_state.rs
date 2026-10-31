@@ -132,7 +132,7 @@ impl PreviewState<'_> {
 }
 
 impl Adapter for PreviewState<'_> {
-    fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
+    fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         let pdf = self.pdf();
         let value = match function {
             "previewPdfPage" => pdf.map_or(-1, |pdf| pdf.surface.page as i64).to_string(),
@@ -148,6 +148,9 @@ impl Adapter for PreviewState<'_> {
                 .and_then(|pdf| pdf.viewer.as_ref())
                 .map_or_else(String::new, |viewer| viewer.expanded.to_string()),
             "previewSelectionState" => return self.selection(),
+            "htmlState" => {
+                return Some(self.html_state(arguments.first().is_some_and(|c| c == "true")))
+            }
             "previewCloseState" => return Some(self.close()),
             "previewSwapState" => return Some(self.swap()),
             _ => return None,

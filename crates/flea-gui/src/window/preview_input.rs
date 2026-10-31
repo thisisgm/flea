@@ -118,7 +118,8 @@ impl Shell {
                     pdf.update(cx, |pdf, cx| pdf.turn(step, cx));
                 }
             }
-            _ => return false,
+            // SelectionPreview.qml accepts every key: one the focused column cannot use is silent, never refused.
+            _ => return preview.read(cx).focus.is_focused(window),
         }
         self.sync_selection_previews(window, cx);
         cx.notify();

@@ -191,7 +191,7 @@ fn mdlook_ey158_figures_use_the_muted_ink_and_unfilled_ground(cx: &mut TestAppCo
 }
 
 #[gpui::test]
-fn mdlook_ey160_small_images_fill_the_card_and_large_fit_is_preserved(cx: &mut TestAppContext) {
+fn mdlook_ey330_small_images_stay_one_to_one_and_large_ones_fit(cx: &mut TestAppContext) {
     let root = root();
     let (shell, cx, mut requests) = opened_at(cx, &root.0);
     png(&root.0.join("logo.png"), 96, 48);
@@ -217,7 +217,8 @@ fn mdlook_ey160_small_images_fill_the_card_and_large_fit_is_preserved(cx: &mut T
         let card = cx.debug_bounds("pv1-card").unwrap();
         let picture = cx.debug_bounds("pv1-picture").unwrap();
         let (w, h) = (f32::from(card.size.width), f32::from(card.size.height));
-        let factor = (w / sw as f32).min(h / sh as f32);
+        // PreviewImage.qml fitScale caps at 1: a small picture keeps its own size, a large one fits.
+        let factor = (w / sw as f32).min(h / sh as f32).min(1.);
         assert!((f32::from(picture.size.width) - (sw as f32 * factor).round()).abs() < 1.);
         assert!((f32::from(picture.size.height) - (sh as f32 * factor).round()).abs() < 1.);
         cx.simulate_keystrokes("escape");

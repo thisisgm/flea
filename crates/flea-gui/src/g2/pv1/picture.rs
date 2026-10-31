@@ -21,21 +21,11 @@ impl QuickLook {
             _ => return None,
         };
         let room_h = h - top - bottom;
-        let (fit_w, fit_h) = if matches!(self.subject.as_ref()?.body, Body::Image { .. })
-            && sw > 0.
-            && sh > 0.
-            && sw < w
-            && sh < room_h
-        {
-            let scale = (w / sw).min(room_h / sh);
-            (sw * scale, sh * scale)
-        } else {
-            (sw, sh)
-        };
+        // PreviewImage.qml fitScale(..., 1): a raster picture is never enlarged; a small one draws 1:1, centred.
         let mut fit = if painted {
-            fit_painted_path(w, room_h, fit_w, fit_h, path)
+            fit_painted_path(w, room_h, sw, sh, path)
         } else {
-            fit_rounded_path(w, room_h, fit_w, fit_h, path)
+            fit_rounded_path(w, room_h, sw, sh, path)
         }?;
         fit.y += top;
         Some((path, fit, (sw, sh)))
