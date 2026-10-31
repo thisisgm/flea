@@ -78,6 +78,8 @@ impl Shell {
                 menu,
                 &reported,
             );
+            // A new card reads no eye until it paints, never the last card's.
+            self.operations.archive.eye.set(None);
             self.operations.archive.compress = Some(card);
             self.operations.archive.card_side = side;
             self.operations.archive.card_menu = Some(menu);

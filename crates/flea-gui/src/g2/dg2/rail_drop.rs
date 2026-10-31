@@ -1,5 +1,4 @@
-//! A row drag held over or released on a rail place (RailDrop.qml, RailTrashRow.qml): a place takes the transfer a folder row takes, Trash takes dd's trash request.
-//! The same aim follows the drag over a pane's folder rows (RowDropTarget.qml) and the tabs (DropInto.qml, whose rest switches the tab).
+//! A row drag held over or released on a rail place (RailDrop.qml, RailTrashRow.qml), aimed too at a pane's folder rows (RowDropTarget.qml) and the tabs (DropInto.qml): a place takes the transfer a folder row takes, Trash takes dd's trash request.
 use super::*;
 use flea::ui_logic_dg2::{drop_label, line_to, rail_destination, PasteAsk, RailKind, Verb};
 use flea::ui_logic_pl3::dropping;

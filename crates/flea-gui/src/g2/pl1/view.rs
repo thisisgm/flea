@@ -86,6 +86,8 @@ impl UnlockView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        // A new card reads no geometry until it paints, never the last card's.
+        self.probes.clear();
         self.host
             .open_for(device, label, size, fstype, self.rail.as_ref());
         window.focus(&self.focus, cx);
@@ -93,6 +95,7 @@ impl UnlockView {
     }
 
     pub fn open_for_device(&mut self, device: &str, window: &mut Window, cx: &mut Context<Self>) {
+        self.probes.clear();
         self.host.open_for_device(device, self.rail.as_ref());
         window.focus(&self.focus, cx);
         self.apply(Vec::new(), cx);
