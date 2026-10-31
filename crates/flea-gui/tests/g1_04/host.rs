@@ -24,6 +24,7 @@ fn generated_actions_reach_the_window_and_respect_context_and_preset(cx: &mut Te
                 ..Default::default()
             },
             is_keypad: false,
+            us_key: None,
         },
         is_held: false,
         prefer_character_input: false,
@@ -151,6 +152,7 @@ fn press(
             key_char: text.map(str::to_owned),
             modifiers,
             is_keypad: false,
+            us_key: None,
         },
         is_held: false,
         prefer_character_input: false,

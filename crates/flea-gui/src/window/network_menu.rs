@@ -6,10 +6,10 @@ use crate::{
     state::Shell,
     window::{
         dispatch::Order,
-        input::{event_input, ActionEvent},
+        input::{event_lookup, ActionEvent},
     },
 };
-use flea::keys::{self, Context as KeyContext, Frontend, Match};
+use flea::keys::{Context as KeyContext, Match};
 use flea::ui_logic_mn1::fit::Rect;
 use flea::ui_logic_pl4::rail;
 use gpui::{
@@ -151,12 +151,7 @@ impl Shell {
         } else {
             KeyContext::Listing
         };
-        let Match::Action(action) = keys::lookup(
-            preset,
-            context,
-            Frontend::Gui,
-            event_input(event, window.modifiers()),
-        ) else {
+        let Match::Action(action) = event_lookup(preset, context, event, window.modifiers()) else {
             return true;
         };
         let event = ActionEvent::bare(action, context);

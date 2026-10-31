@@ -297,11 +297,26 @@ class LayoutTests(unittest.TestCase):
         self.assertTrue(cell["current_gui_paths"][0])
         self.assertEqual(cell["paths"], [["AD11:0"]])
         self.assertEqual(cell["current_gui_status"], "unreachable")
+        # The fork's US position answers a digit first, so AZERTY's & key runs tab 1.
         row = self.row("1", action="tab1", layer="digits")
         cell = layouts.measure([row], self.events["fr"], self.events["us"], self.policy)["cells"][0]
-        self.assertTrue(cell["current_gui_paths"][0])
         self.assertEqual(cell["paths"], [["AE01:0"]])
-        self.assertEqual(cell["current_gui_status"], "unreachable")
+        self.assertIn("AE01:0", cell["current_gui_paths"][0])
+        self.assertEqual(cell["current_gui_status"], "reachable")
+        # Rule b: AZERTY's printed - is tab 6, so zoomOut answers at the US - position, AE11, where ) is unbound.
+        rows = [self.row("-", action="zoomOut"), self.row("6", action="tab6", layer="digits")]
+        cells = self.punct("fr", rows)
+        self.assertEqual((cells["zoomOut"]["status"], cells["zoomOut"]["punctuation"]["rule"]), ("reachable", "b"))
+        self.assertEqual(cells["zoomOut"]["paths"], [["AE11:0"]])
+        self.assertIn("AE11:0", cells["zoomOut"]["current_gui_paths"][0])
+        self.assertNotIn("AE06:0", cells["zoomOut"]["current_gui_paths"][0])
+        self.assertFalse(any(cells["zoomOut"]["current_gui_missing_policy_paths"]))
+        # AltGr+AE11 is text input, so it never falls back to the US position.
+        self.assertNotIn("AE11:16", cells["zoomOut"]["current_gui_paths"][0])
+        # AZERTY's Shift+M sits at the US : key, but an ASCII letter matches only where printed.
+        cell = self.punct("fr", [self.row(":", action="pathBar")])["pathBar"]
+        self.assertFalse(any(cell["current_gui_missing_policy_paths"]))
+        self.assertNotIn("AC10:1", cell["current_gui_paths"][0])
         row = self.row("F5", mods="none", action="reload")
         cell = layouts.measure([row], self.events["de"], self.events["us"], self.policy)["cells"][0]
         self.assertFalse(any(cell["current_gui_missing_policy_paths"]))

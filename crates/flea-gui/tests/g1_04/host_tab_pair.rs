@@ -25,6 +25,7 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
                 ..Default::default()
             },
             is_keypad: false,
+            us_key: None,
         },
         is_held: false,
         prefer_character_input: false,

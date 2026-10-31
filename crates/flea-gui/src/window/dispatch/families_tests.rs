@@ -26,6 +26,7 @@ fn slash_add_network_and_an_unclaimed_network_key_take_their_families(cx: &mut T
             key_char: Some("/".into()),
             modifiers: Modifiers::none(),
             is_keypad: false,
+            us_key: None,
         },
         is_held: false,
         prefer_character_input: false,

@@ -16,6 +16,7 @@ pub(super) fn event(key: &str, text: Option<&str>, mask: u8) -> KeyDownEvent {
                 ..Default::default()
             },
             is_keypad: mask & KEYPAD != 0,
+            us_key: None,
         },
         is_held: false,
         prefer_character_input: false,

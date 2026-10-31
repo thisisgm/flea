@@ -334,6 +334,82 @@ def current_gui(event):
             "mods": held & 15}
 
 
+# X keycodes of the US digit row AE01 to AE12, and of the letter rows AD01 to AD10, AC01 to AC09 and AB01 to AB07.
+US_DIGIT_ROW = range(10, 22)
+US_LETTER_KEYS = [*range(24, 34), *range(38, 47), *range(52, 59)]
+US_ROWS = {**{code: pair for code, pair in zip(US_DIGIT_ROW, zip("1234567890-=", "!@#$%^&*()_+"))},
+           **{code: (letter, letter.upper()) for code, letter in zip(US_LETTER_KEYS, "qwertyuiopasdfghjklzxcvbnm")},
+           **{code: tuple(pair) for code, pair in
+              {34: "[{", 35: "]}", 47: ";:", 48: "'\"", 49: "`~", 51: "\\|", 59: ",<", 60: ".>", 61: "/?"}.items()}}
+
+
+def us_key(code, shift):
+    """The fork's Keystroke::us_key: the US character at a main-block position, Shift applied except to letters."""
+    lower, upper = US_ROWS.get(code, ("", ""))
+    return upper if shift and not lower.isalpha() else lower
+
+
+def group_prints(events):
+    """Characters the group types on a base or Shift level, the levels reached without AltGr."""
+    return {e["symbol_text"] for e in events if e["held"] in (0, MODS["shift"]) and e["symbol_text"]
+            and not e["keysym"].startswith("KP_")}
+
+
+# Ctrl+a types 0x01, 0x60 below a, and text below 0x20 or DEL types nothing, as the fork names them.
+CONTROL_LETTERS, CONTROL_TO_LOWERCASE = range(0x01, 0x1b), 0x60
+FIRST_PRINTABLE, DELETE = 0x20, 0x7f
+
+
+def fork_gui(event, latin, prints):
+    """Flea's GUI forms for one event on fork 0298abf6: the printed form, then the US-position form and whether it goes first."""
+    text, sym, held, code = event["text"], event["keysym"], event["held"], event["code"]
+    symbol_text, shift = event["symbol_text"], bool(held & MODS["shift"])
+    if sym in NAMED or sym == "space":
+        key = SPECIAL.get(sym.lower(), sym.lower())
+    elif sym.startswith("KP_"):
+        key = sym[3:].lower()
+    elif len(symbol_text) == 1 and symbol_text.isascii() and symbol_text.isprintable() and symbol_text != " ":
+        key = symbol_text.lower()
+    else:
+        fallback = (text.lower() if len(text) == 1 and text.isascii() and text.isprintable() and text != " " else
+                    chr(ord(text) + CONTROL_TO_LOWERCASE) if len(text) == 1 and ord(text) in CONTROL_LETTERS else
+                    us_key(code, shift))
+        key = fallback if fallback and not (latin and fallback in prints) else sym.lower()
+    us = us_key(code, shift)
+    if us and not latin:
+        key = us
+    typed = text if text and ord(text[0]) >= FIRST_PRINTABLE and ord(text[0]) != DELETE else ""
+    printed = {"key": key, "text": typed, "mods": held & 15}
+    if not us or held & MODS["altgr"]:
+        return printed, None
+    lower, upper = US_ROWS[code]
+    nonlatin = key == us and bool(typed) and typed.lower() != key
+    letter, digit = lower.isalpha(), lower.isdigit()
+    # ASCII only: rule b sends Ctrl+= to Italian ì and Ctrl+- to Icelandic ö, and a dead key's name is no letter.
+    ascii_letter = len(typed or key) == 1 and (typed or key).isascii() and (typed or key).isalpha()
+    if not nonlatin and (letter or ascii_letter):
+        return printed, None
+    shifted = shift if letter else us == upper
+    position = {"key": lower if digit or letter or not shifted else upper, "text": upper if shifted else lower,
+                "mods": held & 15}
+    return printed, (position, digit or nonlatin)
+
+
+def fork_forms(rows, events):
+    """The forms Flea's lookup_either tries for each event: the first form, and the second only when the first is unbound."""
+    script = letter_group(events)
+    prints = group_prints(events)
+    strokes = [s for row in rows for s in row["strokes"]]
+    texts = {character(s["key"]) for s in strokes if s["mods"] == "text"}
+    keys = {(modmask(s["mods"]), SPECIAL.get(character(s["key"]).lower(), character(s["key"]).lower()))
+            for s in strokes if s["mods"] != "text"}
+    bound = lambda form: (not form["mods"] & ~MODS["shift"] and form["text"] in texts) or (form["mods"], form["key"]) in keys
+    for event in events:
+        printed, position = fork_gui(event, script == "latin", prints)
+        order = [printed] if position is None else ([position[0], printed] if position[1] else [printed, position[0]])
+        yield event, order[:1] if bound(order[0]) else order
+
+
 def current_matches(stroke, event):
     actual = current_gui(event)
     target = character(stroke["key"])
@@ -453,11 +529,11 @@ def measure_scope(rows, events, us_events, policy, fixed_prefix=None, precedence
     script = letter_group(events)
     has_altgr = any(event["keysym"] in ("ISO_Level3_Shift", "Mode_switch") for event in events)
     current_key, current_text = defaultdict(list), defaultdict(list)
-    for event in events:
-        actual = current_gui(event)
-        current_key[(actual["mods"], actual["key"])].append(event["id"])
-        if not actual["mods"] & ~MODS["shift"]:
-            current_text[actual["text"]].append(event["id"])
+    for event, tried in fork_forms(rows, events):
+        for actual in tried:
+            current_key[(actual["mods"], actual["key"])].append(event["id"])
+            if not actual["mods"] & ~MODS["shift"]:
+                current_text[actual["text"]].append(event["id"])
     printed, position = policy["punctuation"]["order"]
     measured = [{choice: [paths(s, events, us_events, script, choice) for s in row["strokes"]] for choice in (printed, position)}
                 for row in rows]
@@ -734,7 +810,7 @@ def generate(args):
                   bindings=rows, baseline_bindings=baseline, us_events=us_events, layouts=[], errors=[])
     matrix["provenance"]["resolvers"] = [identity(ROOT / path) for path in RESOLVERS]
     matrix["analysis"] = {"policy_selection": "effective-frontend-preset-context-prefix",
-                          "current_gui": "legacy-python-model; not native or published-fork acceptance"}
+                          "current_gui": "fork-0298abf6-python-model: US position first for digits and non-Latin groups, else printed first; not native acceptance"}
     library_path = next(Path(line.split()[-1]) for line in Path("/proc/self/maps").read_text().splitlines()
                         if "/libxkbcommon.so" in line and Path(line.split()[-1]).is_file())
     matrix["provenance"]["libxkbcommon"] = identity(library_path)
