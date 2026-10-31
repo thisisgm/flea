@@ -81,12 +81,14 @@ FocusScope {
     }
     onSearchQueryChanged: if (root.nativeActive) { root.nativeModel.search(root.searchQuery) }
 
-    Loader {
-        id: nativeLoader
-        source: "NativeDir.qml"
-        active: true
+    // Only a launch that found the built plugin makes the model; without it the import would warn, and no
+    // placeholder object is made either, so a plugin-less start keeps its pinned object count.
+    property var nativeModel: null
+    function makeNativeModel() {
+        if (Quickshell.env("FLEA_NATIVE") !== "1") return
+        var component = Qt.createComponent("NativeDir.qml")
+        if (component.status === Component.Ready) root.nativeModel = component.createObject(root)
     }
-    readonly property var nativeModel: nativeLoader.status === Loader.Ready ? nativeLoader.item : null
     readonly property bool nativeActive: root.nativeModel !== null && root.path.length > 0 && root.recentMode.length === 0 && root.searchMode.length === 0 && !root.trash.opened
     onBackendChanged: Ops.checkZip(root)
     // Issue 27's state-file key: with it on a cursor step past an end comes round; ui/js/Focus.js step is the only reader.
@@ -247,9 +249,7 @@ FocusScope {
     // The rows serialize on the first read after they change, never inside the landing turn; rows are only replaced
     // whole, so the array the text came from tells a stale text whatever order the handlers run in.
     readonly property var rowsIdentity: ({ rows: null, text: "" })
-    onRowsChanged: { root.rowsIdentity.rows = null; root.rowsIdentity.text = ""; Ops.checkZip(root)
-        // A watcher or manual re-list changes rows; the native scan has to follow.
-        if (root.nativeActive) root.nativeModel.refresh() }
+    onRowsChanged: { root.rowsIdentity.rows = null; root.rowsIdentity.text = ""; Ops.checkZip(root) }
     // Notifies whenever an input of menuSelectionIdentity() does, and serializes nothing.
     readonly property var menuSelectionInputs: [root.path, root.held, root.selectionVersion, root.cursorIndex,
         root.total, root.listInFlight, root.rows]
@@ -364,7 +364,7 @@ FocusScope {
 
     // "list", "columns" or "grid"; the chrome's own buttons write it and the views read it.
     property string viewMode: "list"
-    Component.onCompleted: root.viewMode = root.desiredView(root.path)
+    Component.onCompleted: { root.viewMode = root.desiredView(root.path); root.makeNativeModel() }
     // A view switch takes the filter with it; only chooseView() and adoptView() persist, so a restored view writes nothing.
     onViewModeChanged: Filter.close(root)
     // The folder a view belongs to; a search, Recent or Trash standing over it is not that folder.
@@ -593,9 +593,11 @@ FocusScope {
             var nRow = root.nativeModel.get(index)
             // The native scan is independent of the backend's sort and grouping, so it is trusted only
             // where it names the same file; its k is an icon class, so the backend's kind index is kept.
+            // Fields only the backend fills (tg and the like) carry over; k is the backend's kind index.
             if (nRow && nRow.n !== undefined && nRow.n.length > 0 && bRow && bRow.n === nRow.n) {
-                nRow.k = bRow.k
-                return nRow
+                var merged = Object.assign({}, bRow, nRow)
+                merged.k = bRow.k
+                return merged
             }
         }
         return bRow

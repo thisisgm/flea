@@ -78,27 +78,23 @@ fn natural_cmp(a: &str, b: &str) -> Ordering {
 
     while let (Some(&ca), Some(&cb)) = (a_chars.peek(), b_chars.peek()) {
         if ca.is_ascii_digit() && cb.is_ascii_digit() {
-            let mut num_a: u64 = 0;
+            // Digit runs compare by significant length, then digit by digit, so no run is too long to order.
+            let mut run_a = String::new();
             while let Some(&c) = a_chars.peek() {
-                if let Some(d) = c.to_digit(10) {
-                    num_a = num_a.saturating_mul(10).saturating_add(d as u64);
-                    a_chars.next();
-                } else {
-                    break;
-                }
+                if !c.is_ascii_digit() { break; }
+                run_a.push(c);
+                a_chars.next();
             }
-
-            let mut num_b: u64 = 0;
+            let mut run_b = String::new();
             while let Some(&c) = b_chars.peek() {
-                if let Some(d) = c.to_digit(10) {
-                    num_b = num_b.saturating_mul(10).saturating_add(d as u64);
-                    b_chars.next();
-                } else {
-                    break;
-                }
+                if !c.is_ascii_digit() { break; }
+                run_b.push(c);
+                b_chars.next();
             }
+            let sig_a = run_a.trim_start_matches('0');
+            let sig_b = run_b.trim_start_matches('0');
 
-            match num_a.cmp(&num_b) {
+            match sig_a.len().cmp(&sig_b.len()).then_with(|| sig_a.cmp(sig_b)) {
                 Ordering::Equal => continue,
                 non_eq => return non_eq,
             }
@@ -309,5 +305,18 @@ fn flea_native_clone_dir(dir: *const FleaDirectory) -> *mut FleaDirectory {
             entries: (*dir).entries.clone(),
         });
         Box::into_raw(cloned)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::natural_cmp;
+    use std::cmp::Ordering;
+
+    #[test]
+    fn long_digit_runs_order_by_value() {
+        assert_eq!(natural_cmp("file99999999999999999999", "file100000000000000000000"), Ordering::Less);
+        assert_eq!(natural_cmp("a2", "a10"), Ordering::Less);
+        assert_eq!(natural_cmp("a007", "a7"), Ordering::Equal);
     }
 }

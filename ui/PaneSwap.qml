@@ -171,6 +171,9 @@ Item {
         root.pane.held = start
         root.pane.rows = RecentMode.stampRows(root.pane, items)
         root.pane.kindNames = kinds
+        // A landed listing (open, re-list or watcher) is the only time the folder changed; scroll windows reuse the scan.
+        if (root.pane.nativeActive)
+            root.pane.nativeModel.refresh()
         root.applyListed(reply.total, reply.readMs, reply.sortMs, reply.path, reply.changed)
         if (sizes)
             root.pane.dirSizeState = sizes

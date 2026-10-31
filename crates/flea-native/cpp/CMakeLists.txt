@@ -23,3 +23,10 @@ target_link_libraries(fleanative PRIVATE
     dl
     pthread
 )
+
+# build.sh copies the plugin and libfleanative.so side by side into ui/modules/FleaNative, so both
+# look beside themselves (and one up, for the build tree's layout) rather than in this build directory.
+set_target_properties(fleanative fleanativeplugin PROPERTIES
+    BUILD_RPATH "$ORIGIN;$ORIGIN/.."
+    INSTALL_RPATH "$ORIGIN"
+)

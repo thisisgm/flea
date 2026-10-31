@@ -56,12 +56,12 @@ src/backend/collide_replace_tests.rs 492
 src/backend/proto.rs 473
 src/backend/sandbox.rs 401
 src/backend/thumbworker.rs 961
-src/backend/trashbrowse.rs 1025
+src/backend/trashbrowse.rs 1044
 src/backend/rawpreview_tests.rs 427
 src/backend/trashdelete.rs 987
 src/clip/watch_end_tests.rs 405
 src/gvfsprefetch_tests.rs 398
-src/gui.rs 518
+src/gui.rs 522
 src/tui/actions.rs 1058
 src/tui/hold_tests.rs 427
 src/tui/input.rs 455
@@ -158,7 +158,7 @@ ui/NetworkDialog.qml 435
 ui/NetworkForm.qml 426
 ui/NetworkMounts.qml 913
 ui/OpenWithDialog.qml 613
-ui/Pane.qml 1256
+ui/Pane.qml 1269
 ui/PaneMenuActions.qml 527
 ui/PaneWire.qml 602
 ui/PermissionsDialog.qml 658
