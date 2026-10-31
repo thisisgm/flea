@@ -230,13 +230,14 @@ fn with_area<R>(
             }
         }
         columns.area.landing.tick(now);
-        if swap.idle()
-            && pane.cursor_row.is_some_and(|row| !row.dir)
-            && (columns.area.host.shown.is_dir || !columns.area.host.shown.has_row)
-        {
+        let file = pane.cursor_row.is_some_and(|row| !row.dir);
+        let held = &columns.area.host.shown;
+        // A hold that ends unseen still shows the row as it stands: a file, or none once a filter matches nothing.
+        let none = shown.as_deref().is_some_and(<[usize]>::is_empty) && held.has_row;
+        if swap.idle() && ((file && (held.is_dir || !held.has_row)) || (!file && none)) {
             columns.area.host.show_cursor_row(
                 crate::columns::preview_host::Cursor {
-                    row: true,
+                    row: file,
                     is_dir: false,
                     child: "",
                 },
