@@ -594,8 +594,14 @@ FocusScope {
             // The native scan is independent of the backend's sort and grouping, so it is trusted only
             // where it names the same file; its k is an icon class, so the backend's kind index is kept.
             // The backend row wins every field it has (k, t, tg and any fresher metadata); the scan fills only gaps.
-            if (nRow && nRow.n !== undefined && nRow.n.length > 0 && bRow && bRow.n === nRow.n)
-                return Object.assign({}, nRow, bRow)
+            // A link target is kept only while the merged row is still a symlink: a link replaced by a
+            // plain file between the two scans otherwise kept its old " -> target" until the next re-list.
+            if (nRow && nRow.n !== undefined && nRow.n.length > 0 && bRow && bRow.n === nRow.n) {
+                var merged = Object.assign({}, nRow, bRow)
+                if (bRow.l === undefined && !Format.isSymlink(merged.p))
+                    delete merged.l
+                return merged
+            }
         }
         return bRow
     }
