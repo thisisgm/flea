@@ -171,6 +171,9 @@ Item {
         root.pane.held = start
         root.pane.rows = RecentMode.stampRows(root.pane, items)
         root.pane.kindNames = kinds
+        // A re-list of the same folder (manual or watcher) rescans; a new folder is rescanned by Pane's onPathChanged.
+        if (root.pane.nativeActive && reply.path === root.pane.path)
+            root.pane.nativeModel.refresh()
         root.applyListed(reply.total, reply.readMs, reply.sortMs, reply.path, reply.changed)
         if (sizes)
             root.pane.dirSizeState = sizes

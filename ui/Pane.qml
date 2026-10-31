@@ -65,7 +65,31 @@ FocusScope {
     property string flashZipAsked: ""
     onCursorIndexChanged: Ops.checkZip(root)
     onSelectionVersionChanged: Ops.checkZip(root)
-    onPathChanged: Ops.checkZip(root)
+    onPathChanged: {
+        Ops.checkZip(root)
+        if (root.nativeActive) {
+            root.nativeModel.path = root.path
+            root.nativeModel.showHidden = root.showHidden
+        }
+    }
+    onShowHiddenChanged: if (root.nativeActive) { root.nativeModel.showHidden = root.showHidden }
+    // Leaving Recent, Trash or a search: the model kept whatever it last got, so hand it the current folder again.
+    onNativeActiveChanged: if (root.nativeActive) {
+        root.nativeModel.showHidden = root.showHidden
+        root.nativeModel.path = root.path
+        root.nativeModel.refresh()
+    }
+    onSearchQueryChanged: if (root.nativeActive) { root.nativeModel.search(root.searchQuery) }
+
+    // Only a launch that found the built plugin makes the model; without it the import would warn, and no
+    // placeholder object is made either, so a plugin-less start keeps its pinned object count.
+    property var nativeModel: null
+    function makeNativeModel() {
+        if (Quickshell.env("FLEA_NATIVE") !== "1") return
+        var component = Qt.createComponent("NativeDir.qml")
+        if (component.status === Component.Ready) root.nativeModel = component.createObject(root)
+    }
+    readonly property bool nativeActive: root.nativeModel !== null && root.path.length > 0 && root.recentMode.length === 0 && root.searchMode.length === 0 && !root.trash.opened
     onBackendChanged: Ops.checkZip(root)
     // Issue 27's state-file key: with it on a cursor step past an end comes round; ui/js/Focus.js step is the only reader.
     readonly property bool wrapAtEnds: ViewState.state.wrapAtEnds === true
@@ -340,7 +364,7 @@ FocusScope {
 
     // "list", "columns" or "grid"; the chrome's own buttons write it and the views read it.
     property string viewMode: "list"
-    Component.onCompleted: root.viewMode = root.desiredView(root.path)
+    Component.onCompleted: { root.viewMode = root.desiredView(root.path); root.makeNativeModel() }
     // A view switch takes the filter with it; only chooseView() and adoptView() persist, so a restored view writes nothing.
     onViewModeChanged: Filter.close(root)
     // The folder a view belongs to; a search, Recent or Trash standing over it is not that folder.
@@ -564,9 +588,22 @@ FocusScope {
 
     function rowFor(index) {
         var offset = index - root.held
-        if (offset < 0 || offset >= root.rows.length)
-            return null
-        return root.rows[offset]
+        var bRow = offset >= 0 && offset < root.rows.length ? root.rows[offset] : null
+        if (root.nativeActive && root.nativeModel && root.nativeModel.count > 0) {
+            var nRow = root.nativeModel.get(index)
+            // The native scan is independent of the backend's sort and grouping, so it is trusted only
+            // where it names the same file; its k is an icon class, so the backend's kind index is kept.
+            // The backend row wins every field it has (k, t, tg and any fresher metadata); the scan fills only gaps.
+            // A link target is kept only while the merged row is still a symlink: a link replaced by a
+            // plain file between the two scans otherwise kept its old " -> target" until the next re-list.
+            if (nRow && nRow.n !== undefined && nRow.n.length > 0 && bRow && bRow.n === nRow.n) {
+                var merged = Object.assign({}, nRow, bRow)
+                if (bRow.l === undefined && !Format.isSymlink(merged.p))
+                    delete merged.l
+                return merged
+            }
+        }
+        return bRow
     }
 
     // The list's own delegate, which is what every reader of a rendered row cell needs; only the

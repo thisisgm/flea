@@ -58,7 +58,7 @@ Item {
     property bool recenting: false
     readonly property bool searching: !root.filtering && root.searchQuery.length > 0 && root.row !== null && root.row.n.length > 0
     readonly property bool locating: root.searching || root.recenting
-    readonly property string displayName: root.row ? (root.locating ? Match.base(root.row.n) : root.row.n) : ""
+    readonly property string displayName: root.row ? (root.locating ? Match.base(root.row.n) : root.row.n).replace(/\n/g, "\u21b5").replace(/\t/g, "\u21e5") : "" // one mark per newline or tab keeps the row one line and the match offsets
     // FleaWindow.html and ThemeRoles.html both spell it "shell -> /usr/share/omarchy".
     readonly property string linkMark: root.row && root.row.l ? " -> " + root.row.l : ""
     // The name, then a link's target; a folder carries no slash, its glyph and the folders-first order already say it.
