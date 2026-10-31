@@ -65,7 +65,7 @@ fn list_place(list: &ListState, index: usize) -> Spot {
     let depth = list
         .drawn_rows
         .row(index)
-        .map_or(0., |row| row.depth as f32 * (metrics.slot + metrics.gap));
+        .map_or(0., |row| crate::list::outline::indent(row, &metrics));
     let frame = Bounds::new(
         point(
             drawn.bounds.origin.x + px(drawn.layout.name.x + depth),

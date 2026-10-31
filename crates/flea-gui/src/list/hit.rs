@@ -16,9 +16,10 @@ impl ListState {
         };
         let left = self.drawn.bounds.origin.x
             + px(self.drawn.layout.name.x
-                + self.drawn_rows.row(index).map_or(0., |row| {
-                    row.depth as f32 * (self.drawn.metrics.slot + self.drawn.metrics.gap)
-                }));
+                + self
+                    .drawn_rows
+                    .row(index)
+                    .map_or(0., |row| super::outline::indent(row, &self.drawn.metrics)));
         x >= left && x < left + px(width)
     }
 }

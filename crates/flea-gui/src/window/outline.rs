@@ -7,6 +7,13 @@ pub(crate) enum Input {
     Chevron,
 }
 
+/// An outline line waits for the re-list of the folder it was made for, and only that one.
+pub(crate) struct Request {
+    pub(super) folder: String,
+    pub(super) line: String,
+    pub(super) mode: bool,
+}
+
 impl Shell {
     pub(crate) fn outline_action(
         &mut self,
@@ -43,17 +50,22 @@ impl Shell {
         host.outline_used = true;
         host.outline_lone = (host.input.selection.is_lone() && host.selected.len() == 1)
             .then_some(host.pane.held.listing);
-        host.outline_request = Some(format!(
-            "{{\"c\":\"outline\",\"row\":{},\"open\":{open},\"listing\":{},\"first\":{}}}",
-            host.pane.cursor,
-            host.pane.held.listing,
-            host.pane.first_count()
-        ));
+        host.outline_request = Some(Request {
+            folder: host.pane.path().to_owned(),
+            line: format!(
+                "{{\"c\":\"outline\",\"row\":{},\"open\":{open},\"listing\":{},\"first\":{}}}",
+                host.pane.cursor,
+                host.pane.held.listing,
+                host.pane.first_count()
+            ),
+            mode: false,
+        });
         if !host
             .nav
             .reread(&mut host.pane, &host.selected, false, false)
         {
             host.outline_request = None;
+            host.outline_lone = None;
             return;
         }
         self.run_navigation(side, window, cx);
@@ -71,16 +83,15 @@ impl Shell {
             return false;
         }
         let list = host.list.borrow();
-        let Some(facts) = list
+        let metrics = list.drawn.metrics;
+        let Some(slot) = list
             .drawn_rows
             .row(row)
-            .filter(|facts| facts.dir && (facts.open || facts.link.is_none()))
+            .and_then(|facts| crate::list::outline::chevron_left(&list.view, facts, &metrics))
         else {
             return false;
         };
-        let metrics = list.drawn.metrics;
-        let left = list.drawn.bounds.origin.x
-            + gpui::px(metrics.pad + crate::list::outline::indent(facts, &metrics));
+        let left = list.drawn.bounds.origin.x + gpui::px(slot);
         x >= left && x < left + gpui::px(metrics.slot)
     }
 
@@ -93,13 +104,22 @@ impl Shell {
             if !host.outline_used {
                 continue;
             }
-            host.outline_request = Some(format!(
-                "{{\"c\":\"outline\",\"enabled\":{enabled},\"first\":{}}}",
-                host.pane.first_count()
-            ));
+            host.outline_request = Some(Request {
+                folder: host.pane.path().to_owned(),
+                line: format!(
+                    "{{\"c\":\"outline\",\"enabled\":{enabled},\"first\":{}}}",
+                    host.pane.first_count()
+                ),
+                mode: true,
+            });
             if host.pane.busy() || host.search.owner.active() || host.pane.state.search {
-                if let (Some(backend), Some(line)) = (&host.backend, host.outline_request.take()) {
-                    let _ = backend.line(line);
+                let sent = match (&host.backend, host.outline_request.take()) {
+                    (Some(backend), Some(request)) => backend.line(request.line),
+                    _ => Ok(()),
+                };
+                if let Err(error) = sent {
+                    host.stopped = true;
+                    host.record_error(error, &self.locale);
                 }
             } else if host
                 .nav
@@ -115,7 +135,10 @@ impl Shell {
 
 // An in-place open or close re-lists by identity; a lone mark stays the one a plain move carries.
 pub(super) fn keep_lone(host: &mut super::pane::PaneHost) {
-    if host.outline_lone.is_some_and(|left| left != host.pane.held.listing) {
+    if host
+        .outline_lone
+        .is_some_and(|left| left != host.pane.held.listing)
+    {
         host.outline_lone = None;
         if let [row] = host.selected[..] {
             host.input.selection.only(&mut host.selected, row);
@@ -127,11 +150,23 @@ pub(super) fn send_navigation(
     host: &mut super::pane::PaneHost,
     command: &crate::navigation::Command,
 ) -> Option<Result<(), crate::backend::Failure>> {
+    let request = match command {
+        crate::navigation::Command::List(listing) => host
+            .outline_request
+            .take()
+            .map(|request| (request.folder == listing.path, request)),
+        _ => None,
+    };
     let backend = host.backend.as_ref()?;
-    if matches!(command, crate::navigation::Command::List(_)) {
-        if let Some(line) = host.outline_request.take() {
-            return Some(backend.line(line));
+    match request {
+        Some((true, request)) => return Some(backend.line(request.line)),
+        // A list of another folder drops a row toggle; a view switch still reaches the backend before it.
+        Some((false, request)) if request.mode => {
+            if let Err(error) = backend.line(request.line) {
+                return Some(Err(error));
+            }
         }
+        _ => {}
     }
     Some(backend.command(command))
 }

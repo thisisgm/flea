@@ -9,7 +9,7 @@ use gpui::{SharedString, Task};
 use std::{cell::RefCell, rc::Rc};
 
 pub(crate) struct PaneHost {
-    pub outline_request: Option<String>,
+    pub outline_request: Option<super::outline::Request>,
     pub outline_used: bool,
     /// The listing an in-place open or close left while its one mark was a lone mark the cursor carries.
     pub outline_lone: Option<usize>,

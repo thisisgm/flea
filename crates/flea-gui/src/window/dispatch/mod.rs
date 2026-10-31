@@ -324,3 +324,6 @@ mod gm_prevsel_tests;
 
 #[cfg(test)]
 mod outline_tests;
+
+#[cfg(test)]
+mod outline_mode_tests;

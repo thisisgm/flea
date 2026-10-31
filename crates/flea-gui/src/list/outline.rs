@@ -1,10 +1,25 @@
 //! TreeRows is the one sanctioned depth step and uses the ordinary mark slot.
-use super::Metrics;
+use super::{ListView, Metrics};
 use flea::protocol::RowFacts;
 use gpui::SharedString;
 
 pub fn indent(row: &RowFacts, metrics: &Metrics) -> f32 {
     row.depth as f32 * (metrics.slot + metrics.gap)
+}
+
+/// A chooser never opens in place, so it draws no chevron and takes no chevron click.
+pub fn chevron(
+    view: &ListView,
+    row: &RowFacts,
+    hovered: bool,
+) -> Option<(&'static str, SharedString, &'static [u8])> {
+    view.picker.is_none().then(|| glyph(row, hovered)).flatten()
+}
+
+/// The left edge of the mark slot a row's chevron is drawn in, as paint_icon places it.
+pub fn chevron_left(view: &ListView, row: &RowFacts, metrics: &Metrics) -> Option<f32> {
+    (view.picker.is_none() && row.dir && (row.open || row.link.is_none()))
+        .then(|| metrics.pad + indent(row, metrics))
 }
 
 pub fn glyph(row: &RowFacts, hovered: bool) -> Option<(&'static str, SharedString, &'static [u8])> {
@@ -88,6 +103,26 @@ mod tests {
         row.dir = true;
         row.open = false;
         row.link = Some("/elsewhere".into());
-        assert!(glyph(&row, true).is_none(), "a symlinked folder never opens in place");
+        assert!(
+            glyph(&row, true).is_none(),
+            "a symlinked folder never opens in place"
+        );
+        assert!(chevron_left(&ListView::default(), &row, &metrics).is_none());
+    }
+
+    #[test]
+    fn tree_outline_chooser_draws_and_hits_no_chevron() {
+        let row = RowFacts {
+            dir: true,
+            depth: 1,
+            ..Default::default()
+        };
+        let metrics = Metrics::at(px(14.));
+        let mut view = ListView::default();
+        assert_eq!(chevron(&view, &row, true).unwrap().0, "chevron-right");
+        assert_eq!(chevron_left(&view, &row, &metrics), Some(metrics.pad + 32.));
+        view.picker = Some(true);
+        assert!(chevron(&view, &row, true).is_none());
+        assert!(chevron_left(&view, &row, &metrics).is_none());
     }
 }

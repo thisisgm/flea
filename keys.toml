@@ -707,13 +707,6 @@ char = "]"
 action = "tabNext"
 sheet = false
 
-# KeymapSheet.html rule 1: a binding gets a group and the sheet reads it. The group is named by
-# action rather than written on every binding, because one action is spelled four different ways
-# across the presets and its group is the same in all four; the generator fails the build if an
-# action the listing binds is missing here or named twice. The order is the order the sheet draws,
-# and the heading is the key with its first letter capitalised.
-# Move is where the cursor, the pane or the window goes. Look is what is drawn and how big. Find
-# narrows or orders what is already listed. Change writes something, or opens the surface that does.
 [[preset]]
 name = "all"
 mods = "ctrl"
@@ -732,6 +725,13 @@ action = "closeInPlace"
 context = "listing"
 frontend = "gui"
 
+# KeymapSheet.html rule 1: a binding gets a group and the sheet reads it. The group is named by
+# action rather than written on every binding, because one action is spelled four different ways
+# across the presets and its group is the same in all four; the generator fails the build if an
+# action the listing binds is missing here or named twice. The order is the order the sheet draws,
+# and the heading is the key with its first letter capitalised.
+# Move is where the cursor, the pane or the window goes. Look is what is drawn and how big. Find
+# narrows or orders what is already listed. Change writes something, or opens the surface that does.
 [sheetgroups]
 move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open",
         "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview",
