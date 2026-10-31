@@ -25,6 +25,7 @@ ShellRoot {
     readonly property string dir: Quickshell.env("STUB_DIR")
     readonly property string clip: Quickshell.env("MEDIASESSION_MEDIA") + "/clip.mp4"
     readonly property string tone: Quickshell.env("MEDIASESSION_MEDIA") + "/tone.ogg"
+    readonly property string nextClip: Quickshell.env("MEDIASESSION_MEDIA") + "/next.mp4"
 
     function log(line) { console.log("MEDIASESSION " + line) }
     function quit() { Quickshell.execDetached(["kill", String(Quickshell.processId)]) }
@@ -80,6 +81,24 @@ ShellRoot {
         var item = mediaComponent.createObject(holder, { path: path, kind: kind })
         item.positionChanged.connect(function () { shell.positionTicks++ })
         return item
+    }
+
+    // The preview column's player does not start on its own: one handed a second clip has to load it and stay stopped.
+    function stepIdleFollow() {
+        shell.media = shell.make(shell.clip, "video")
+        shell.waitFor("the idle player loads the clip", function () { return shell.media.poster })
+    }
+
+    function stepIdleFollowLoad() {
+        shell.media.path = shell.nextClip
+        shell.waitFor("the idle player loads the next clip", function () { return shell.media.poster && shell.media.position === 0 })
+    }
+
+    function stepIdleFollowStill() {
+        shell.check("idle player, next clip: still stopped", shell.media.status, "stopped")
+        shell.check("idle player, next clip: no helper process", shell.lines("starts.log").length, 0)
+        shell.media.destroy()
+        shell.media = null
     }
 
     function stepBefore() {
@@ -194,6 +213,20 @@ ShellRoot {
         })
     }
 
+    // Down in Quick Look follows to the next row: the same PreviewMedia takes the new path, and the next clip has to play as the first did.
+    function stepQuickLookNext() {
+        shell.media = quick.surfaceItem()
+        quick.follow(shell.nextClip, "video-x-generic", 1000, "MPEG-4 video", "")
+        shell.waitFor("Quick Look plays the next clip", function () {
+            var item = quick.surfaceItem()
+            return item !== null && item.path === shell.nextClip && item.status === "playing"
+        })
+    }
+
+    function stepQuickLookNextPlaying() {
+        shell.check("Quick Look next clip: the same player took the new path", quick.surfaceItem() === shell.media, true)
+    }
+
     function stepQuickLookPlaying() {
         var item = quick.surfaceItem()
         shell.check("Quick Look playing: the inhibitor is on", item.keepsAwake, true)
@@ -202,11 +235,30 @@ ShellRoot {
         shell.waitFor("closing Quick Look ends the helper", function () { return shell.stubGone(3) })
     }
 
+    // A Stop that lands while the next clip loads is the listener's choice: that clip loads and stays stopped.
+    function stepStopWhileLoading() {
+        shell.media = mediaComponent.createObject(holder, { path: shell.clip, kind: "video", autoStart: true })
+        shell.waitFor("the autostart player plays", function () { return shell.media.status === "playing" })
+    }
+
+    function stepStopWhileLoadingNext() {
+        shell.media.path = shell.nextClip
+        shell.media.remote("Stop")
+        shell.waitFor("the stopped player settles on the next clip", function () { return shell.media.poster || shell.media.status === "playing" })
+    }
+
+    function stepStopWhileLoadingStill() {
+        shell.check("Stop while loading: the next clip stays stopped", shell.media.status, "stopped")
+        shell.media.destroy()
+        shell.media = null
+    }
+
     readonly property var script: [
-        shell.stepBefore, shell.stepPlaying, shell.stepFirstLine, shell.stepNoTickLines, shell.stepPaused,
+        shell.stepIdleFollow, shell.stepIdleFollowLoad, shell.stepIdleFollowStill, shell.stepBefore, shell.stepPlaying, shell.stepFirstLine, shell.stepNoTickLines, shell.stepPaused,
         shell.stepPausedLine, shell.stepSeekLine, shell.stepSetPosition, shell.stepRelativeSeek, shell.stepResumed,
         shell.stepStopped, shell.stepClosed, shell.stepAudio, shell.stepAudioLine, shell.stepQuickLook,
-        shell.stepQuickLookPlaying
+        shell.stepQuickLookNext, shell.stepQuickLookNextPlaying, shell.stepQuickLookPlaying,
+        shell.stepStopWhileLoading, shell.stepStopWhileLoadingNext, shell.stepStopWhileLoadingStill
     ]
 
     function finish() {

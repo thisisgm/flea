@@ -32,6 +32,7 @@ printf '{}\n' > "$test_root/state/flea/ui.json" || exit 1
 # A 4 s clip with a picture and a sound, and a 4 s tone with neither a picture nor a cover.
 ffmpeg -v error -f lavfi -i testsrc=size=64x64:rate=10:duration=4 -f lavfi -i sine=frequency=440:duration=4 \
     -c:v mpeg4 -c:a aac -shortest "$test_root/media/clip.mp4" || { echo "FAIL ffmpeg could not make the clip"; exit 1; }
+cp "$test_root/media/clip.mp4" "$test_root/media/next.mp4" || exit 1
 ffmpeg -v error -f lavfi -i sine=frequency=440:duration=4 -c:a libvorbis "$test_root/media/tone.ogg" \
     || { echo "FAIL ffmpeg could not make the tone"; exit 1; }
 
