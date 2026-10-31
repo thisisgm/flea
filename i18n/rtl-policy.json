@@ -10,8 +10,8 @@
   ],
   "source": {
     "repository": "https://github.com/omacom/omarchy",
-    "sha": "03ff1eff3812933f7088484533784d2f63eaf19a",
-    "tag": "v4.5.0-rc1",
+    "sha": "5978d93ae7da0a325b7493501911e3f1266cadd3",
+    "tag": "v4.5.0-rc2",
     "final_release": false
   },
   "native_reference": {
@@ -51,133 +51,133 @@
       "line": 18,
       "sha256": "dbe622637c2ee6acb320c0ba6f02cc2eb6338642ae71aa2a8e10e93a5f3beace",
       "excerpt": "  \"ar\": {\n    \"name\": \"العربية\",\n    \"englishName\": \"Arabic\",\n    \"formatLocale\": \"ar-AE\",\n    \"locale\": \"ar_AE.UTF-8\",\n    \"direction\": \"rtl\",\n    \"decimal\": \".\",\n    \"zeroDigit\": \"0\"\n  },\n  \"fi\": {",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/default/i18n/locales.json#L18"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/default/i18n/locales.json#L18"
     },
     "direction": {
       "path": "shell/Commons/I18n.qml",
-      "line": 84,
-      "sha256": "eb21c9c4e8c3509832e8807fd0d0b681e9881ce5632a913927e9235c8eab2ee5",
-      "excerpt": "    root.rightToLeft = entry.direction === \"rtl\"",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Commons/I18n.qml#L84"
+      "line": 29,
+      "sha256": "ef01debf0303e3081630dbd4736b308a362f8454ae74417ff044a225156b233c",
+      "excerpt": "  readonly property bool rightToLeft: localeSettings.direction === \"rtl\"",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Commons/I18n.qml#L29"
     },
     "reading_key": {
       "path": "shell/Commons/Util.qml",
       "line": 125,
       "sha256": "f252d02a43c9ae10d394e1a2e9349a74a81e1c83021314299b182d58c21f3cf6",
       "excerpt": "  function readingKey(event, vim) {\n    var key = event.key\n    if (vim && (key === Qt.Key_H || event.text === \"h\")) key = Qt.Key_Left\n    else if (vim && (key === Qt.Key_L || event.text === \"l\")) key = Qt.Key_Right\n    if (I18n.rightToLeft) {\n      if (key === Qt.Key_Left) return Qt.Key_Right\n      if (key === Qt.Key_Right) return Qt.Key_Left\n    }\n    return key\n  }",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Commons/Util.qml#L125"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Commons/Util.qml#L125"
     },
     "overlay": {
       "path": "shell/Ui/OverlayWindow.qml",
       "line": 94,
       "sha256": "563753469de1ae53bb595ddfb0b45803615ca7000ecf05d823a50b7dd4da1e9d",
       "excerpt": "    property: \"LayoutMirroring.enabled\"\n    value: Commons.I18n.rightToLeft\n  }\n  Binding {\n    target: window.contentItem\n    property: \"LayoutMirroring.childrenInherit\"\n    value: true",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Ui/OverlayWindow.qml#L94"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/OverlayWindow.qml#L94"
     },
     "popup": {
       "path": "shell/Ui/PopupCard.qml",
-      "line": 169,
-      "sha256": "eecbf7dba4ba1b0e63643b20607b3a29d993ce2ed9e8af77444a383e5163c485",
+      "line": 192,
+      "sha256": "7138ab57505734e74084f8af1816206b3db0c6bc659f1f83a419638238b2d550",
       "excerpt": "      LayoutMirroring.enabled: Commons.I18n.rightToLeft\n      LayoutMirroring.childrenInherit: true",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Ui/PopupCard.qml#L169"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/PopupCard.qml#L192"
     },
     "panel": {
       "path": "shell/Ui/KeyboardPanel.qml",
-      "line": 431,
-      "sha256": "7a5dc2284b1990b2bf53a806221458c6a64ea538cb92b4787dca846c7cc33a54",
+      "line": 558,
+      "sha256": "e8e0779598c9aaec0fb084a98c60178ab4fcfee87664a41e30f8e481684c4af9",
       "excerpt": "      LayoutMirroring.enabled: Commons.I18n.rightToLeft\n      LayoutMirroring.childrenInherit: true",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Ui/KeyboardPanel.qml#L431"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/KeyboardPanel.qml#L558"
     },
     "key_catcher": {
       "path": "shell/Ui/PanelKeyCatcher.qml",
       "line": 78,
       "sha256": "f39fe259bd811ef3be00834a888dfe4ba003b4148738e495708c2070a914c27f",
       "excerpt": "    var right = event.key === Qt.Key_Right || event.text === \"l\"\n    var left = event.key === Qt.Key_Left || event.text === \"h\"\n    if (LayoutMirroring.enabled ? left : right) {\n      moveRequested(1, 0); event.accepted = true; return\n    }\n    if (LayoutMirroring.enabled ? right : left) {\n      moveRequested(-1, 0); event.accepted = true; return\n    }\n    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Ui/PanelKeyCatcher.qml#L78"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/PanelKeyCatcher.qml#L78"
     },
     "slider": {
       "path": "shell/Ui/PanelSlider.qml",
       "line": 47,
       "sha256": "b1cf37e74a65133ff0e272233860cb4b6635ccd5f11a83c014a072888d583a54",
       "excerpt": "  function trackX(fraction) {\n    return track.width * (root.mirrored ? 1 - fraction : fraction)\n  }",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Ui/PanelSlider.qml#L47"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/PanelSlider.qml#L47"
     },
     "slider_pointer": {
       "path": "shell/Ui/PanelSlider.qml",
       "line": 118,
       "sha256": "b1cf37e74a65133ff0e272233860cb4b6635ccd5f11a83c014a072888d583a54",
       "excerpt": "    function valueFromX(x) {\n      var clamped = Math.max(0, Math.min(track.width, root.mirrored ? track.width - x : x))\n      var raw = root.minimum + (clamped / track.width) * root.range\n      if (root.integer) raw = Math.round(raw)\n      return Math.max(root.minimum, Math.min(root.maximum, raw))\n    }",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Ui/PanelSlider.qml#L118"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/PanelSlider.qml#L118"
     },
     "toggle": {
       "path": "shell/Ui/ToggleSwitch.qml",
       "line": 97,
       "sha256": "ee2419357a064767d4b6de3b3c341f92ebfce7c8cd9b4b294eb9a6de48f6e167",
       "excerpt": "      x: root.checked !== root.mirrored ? track.width - width - root.knobInset : root.knobInset",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Ui/ToggleSwitch.qml#L97"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/ToggleSwitch.qml#L97"
     },
     "image": {
       "path": "shell/Ui/SizedImage.qml",
       "line": 35,
       "sha256": "e7c2a140de06e5aa4a3e7bbf6588428ed3f687b257efa6dded6a63e2c384e0f8",
       "excerpt": "  readonly property int effectiveHorizontalAlignment: !LayoutMirroring.enabled ? horizontalAlignment\n    : horizontalAlignment === Image.AlignLeft ? Image.AlignRight\n    : horizontalAlignment === Image.AlignRight ? Image.AlignLeft\n    : horizontalAlignment",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/Ui/SizedImage.qml#L35"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/SizedImage.qml#L35"
     },
     "menu_navigation": {
       "path": "shell/plugins/menu/Menu.qml",
-      "line": 1334,
-      "sha256": "71ca02fce852fbe39385456a20d81839393f71a1aa98497faafb049eb4f0224e",
+      "line": 1344,
+      "sha256": "f76b25be69e80fbb139d29ca8e4bca8a98078f559d203750c3ced0f86f6d5f21",
       "excerpt": "          } else if ((event.key === Qt.Key_Backspace || Util.readingKey(event) === Qt.Key_Left) && !root.filterText) {\n            root.goBack()\n            event.accepted = true\n          } else if (event.key === Qt.Key_Up) {\n            root.select(-1)\n            event.accepted = true\n          } else if (event.key === Qt.Key_Down) {\n            root.select(1)\n            event.accepted = true\n          } else if (event.key === Qt.Key_PageUp) {\n            root.select(-6)\n            event.accepted = true\n          } else if (event.key === Qt.Key_PageDown) {\n            root.select(6)\n            event.accepted = true\n          } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || Util.readingKey(event) === Qt.Key_Right) {\n            if (root.dmenuActive) {\n              if (root.mode === \"input\") root.applyDmenuSelection(root.filterText)",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/plugins/menu/Menu.qml#L1334"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/menu/Menu.qml#L1344"
     },
     "menu_arrow": {
       "path": "shell/plugins/menu/Menu.qml",
-      "line": 1594,
-      "sha256": "71ca02fce852fbe39385456a20d81839393f71a1aa98497faafb049eb4f0224e",
+      "line": 1604,
+      "sha256": "f76b25be69e80fbb139d29ca8e4bca8a98078f559d203750c3ced0f86f6d5f21",
       "excerpt": "                  text: row.kind === \"menu\" || row.kind === \"link\" ? (Commons.I18n.rightToLeft ? \"‹\" : \"›\") : \"\"",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/plugins/menu/Menu.qml#L1594"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/menu/Menu.qml#L1604"
     },
     "crumbs": {
       "path": "shell/plugins/menu/Menu.qml",
-      "line": 1563,
-      "sha256": "71ca02fce852fbe39385456a20d81839393f71a1aa98497faafb049eb4f0224e",
+      "line": 1573,
+      "sha256": "f76b25be69e80fbb139d29ca8e4bca8a98078f559d203750c3ced0f86f6d5f21",
       "excerpt": "                  text: Commons.I18n.rightToLeft && row.kind !== \"dmenu\" ? row.detail.replace(/ › /g, \" ‹ \") : row.detail",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/plugins/menu/Menu.qml#L1563"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/menu/Menu.qml#L1573"
     },
     "dock": {
       "path": "shell/plugins/dock/DockWindow.qml",
       "line": 16,
-      "sha256": "f141b27cd7d042cb7afe3cd70fab69d4cf7bd0470368273b50d1ccd5ead17095",
+      "sha256": "7fd7fb9442c2f0c13036d1c97958e9a935529eafb2a201b14336fc897da76308",
       "excerpt": "  Binding { target: window.contentItem; property: \"LayoutMirroring.enabled\"; value: Commons.I18n.rightToLeft }\n  Binding { target: window.contentItem; property: \"LayoutMirroring.childrenInherit\"; value: true }",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/plugins/dock/DockWindow.qml#L16"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/dock/DockWindow.qml#L16"
     },
     "dock_strip": {
       "path": "shell/plugins/dock/DockWindow.qml",
       "line": 266,
-      "sha256": "f141b27cd7d042cb7afe3cd70fab69d4cf7bd0470368273b50d1ccd5ead17095",
+      "sha256": "7fd7fb9442c2f0c13036d1c97958e9a935529eafb2a201b14336fc897da76308",
       "excerpt": "    LayoutMirroring.enabled: false\n    LayoutMirroring.childrenInherit: true",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/plugins/dock/DockWindow.qml#L266"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/dock/DockWindow.qml#L266"
     },
     "media": {
       "path": "shell/plugins/services/media/BarWidget.qml",
       "line": 199,
-      "sha256": "5cc6a995c32f78a38cc5afce57ec1ccef07eb303998070d8631f7936d5662c78",
+      "sha256": "ce306a3b6d2308c948b0acf08fcf7fa651d69a6d8d5b672b3e004d1c165748a2",
       "excerpt": "        LayoutMirroring.enabled: false\n        LayoutMirroring.childrenInherit: true",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/plugins/services/media/BarWidget.qml#L199"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/services/media/BarWidget.qml#L199"
     },
     "weather": {
       "path": "shell/plugins/panels/weather/Panel.qml",
-      "line": 572,
-      "sha256": "a324b226f0d9eda3d2f4d01c061b5856e0659ba3eff21748a905fd68f4c7bbe1",
+      "line": 605,
+      "sha256": "55dfe63d84b5421a5e3cad0f619bc3e0a5b3b495a972b44af0fe3a32269ed829",
       "excerpt": "            LayoutMirroring.enabled: false",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/plugins/panels/weather/Panel.qml#L572"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/panels/weather/Panel.qml#L605"
     },
     "qr": {
       "path": "shell/plugins/panels/wifiqr/Panel.qml",
       "line": 291,
       "sha256": "92da41453df61c4aff27119a15959743ddcc54fe87718c5c086320de97424f7b",
       "excerpt": "              LayoutMirroring.enabled: false",
-      "url": "https://github.com/omacom/omarchy/blob/03ff1eff3812933f7088484533784d2f63eaf19a/shell/plugins/panels/wifiqr/Panel.qml#L291"
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/panels/wifiqr/Panel.qml#L291"
     }
   },
   "roles": {

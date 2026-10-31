@@ -215,7 +215,7 @@ class LayoutScopeTests(unittest.TestCase):
         receipt, report = self.lint([old, alias], [old])
         self.assertEqual(receipt["exit_code"], 0, report)
         self.assertEqual(hashlib.sha256((ROOT / "i18n/keyboard-policy.json").read_bytes()).hexdigest(),
-                         "96fa9eb5834e8118da875678d34c138a0d5c3f8841e7617817983c174fb1b61b")
+                         "0b9d2f13d1447eda82798c6bf5c3b1c1782962f5b47ef7c591736e1735520f55")
 
 
 if __name__ == "__main__":

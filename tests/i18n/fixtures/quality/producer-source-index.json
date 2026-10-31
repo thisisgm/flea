@@ -101,8 +101,8 @@
     }
   },
   "missing_callsite_handoffs": [],
-  "reference_checkout_path": "/home/gm/flea-work/omarchy-450rc1/src",
-  "reference_checkout_sha": "03ff1eff3812933f7088484533784d2f63eaf19a",
+  "reference_checkout_path": "/home/gm/flea-work/omarchy-450rc2",
+  "reference_checkout_sha": "5978d93ae7da0a325b7493501911e3f1266cadd3",
   "references": {
     "omarchy:shell.common.cancel": {
       "aliases": [

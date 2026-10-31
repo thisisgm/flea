@@ -175,7 +175,7 @@ fn main<'a>() { let brace = '}'; tr(r##"omarchy:keybindings.Close window"##); }
         self.assertIn("plural.jq", self.run_tool("--check-installed", status=1).stderr)
 
     def test_i50_roster_rc_not_final(self):
-        self.pin["upstream"]["tag"] = "v4.5.0-rc1"
+        self.pin["upstream"]["tag"] = "v4.5.0-rc2"
         self.write(self.root / "pin.json", self.pin)
         self.assertIn("final Omarchy v4.5.0 pin required", self.run_tool("--require-final-pin", status=1).stderr)
         # This synthetic identity exercises the final-tag schema, not upstream tag verification.

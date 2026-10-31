@@ -105,7 +105,7 @@ class LayoutTests(unittest.TestCase):
         extracted = layouts.installer_entries(FIXTURES / "omarchy", FIXTURES / "kbd-model-map")
         self.assertEqual(extracted, source["entries"])
         self.assertEqual(len({r["id"] for r in extracted}), len(extracted))
-        pinned = {"03ff1eff3812933f7088484533784d2f63eaf19a": 52}
+        pinned = {"03ff1eff3812933f7088484533784d2f63eaf19a": 52, "5978d93ae7da0a325b7493501911e3f1266cadd3": 52}
         self.assertEqual(len(extracted), pinned[source["omarchy_commit"]])
 
     def test_i50_punctuation_rule_a_printed(self):
