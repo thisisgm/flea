@@ -300,6 +300,7 @@ def read_known(path):
         with open(path, encoding="utf-8") as f:
             text = f.read()
     except FileNotFoundError:
+        print(f"NOTE no recorded allowlist at {path}; every failure is judged")
         return known
     except (OSError, UnicodeDecodeError) as e:
         die(f"cannot read {path}: {e}")

@@ -122,3 +122,42 @@ fn quick_look_html_state_follows_r_to_source(cx: &mut TestAppContext) {
         shell.update(cx, |shell, _| shell.stop_for_app_quit());
     });
 }
+
+// htmlState(true) answers for the focused pane's column HTML, the column half of IpcPreviewState.htmlState.
+#[gpui::test]
+fn column_html_state_answers_the_column(cx: &mut TestAppContext) {
+    use super::document_keys_fixture as fixture;
+    crate::g2::pv2::render::without_threads(|| {
+        cx.executor().allow_parking();
+        let root = fixture::Root::new();
+        let dir = root.0.to_string_lossy().into_owned();
+        let text = (0..61).map(|n| format!("<p>{n}</p>\n")).collect::<String>();
+        std::fs::write(root.0.join("index.html"), &text).unwrap();
+        let (shell, cx) = open(cx, &dir);
+        super::test_shell::land(
+            &shell,
+            cx,
+            &dir,
+            vec![file("index.html", "text-html", "HTML document", 0o100644)],
+            1,
+        );
+        let lines = local(&shell, cx, &dir);
+        meta(&shell, cx, &lines, r#","lines":61"#);
+        let column = fixture::view(&shell, cx, false);
+        fixture::seed(&column, &text, cx);
+        fixture::ready(&column, cx);
+        let state = flea::jsondoc::parse(&read(&shell, cx, "htmlState", &["true"])).unwrap();
+        assert_eq!(state.get("column"), Some(&Json::Bool(true)), "{state:?}");
+        assert_eq!(state.get("visible"), Some(&Json::Bool(true)));
+        assert_eq!(state.get("view").and_then(Json::as_str), Some("rendered"));
+        assert_eq!(state.get("mark").and_then(Json::as_str), Some("html"));
+        let path = state.get("path").and_then(Json::as_str).unwrap_or_default();
+        assert!(path.ends_with("index.html"), "{path}");
+        assert_eq!(
+            read(&shell, cx, "htmlState", &["false"]),
+            "{}",
+            "no card is open"
+        );
+        shell.update(cx, |shell, _| shell.stop_for_app_quit());
+    });
+}

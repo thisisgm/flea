@@ -3090,14 +3090,17 @@ Their cancellation or close receipt follows cleanup and names the newest request
 generation, including a request waiting for an older worker to stop. Older or
 duplicate generations and stale completion tickets publish nothing. Replacement
 queries serialize after cleanup. Navigation discards the old worker's result.
-A file or folder under the root that ripgrep cannot read is skipped, as the names
-walk skips it: when ripgrep still finishes its walk and writes its summary, the
-snapshot publishes what it read and the terminal `searched` carries `partial:true`
-with `partial_reason:"unreadable"`.
-On missing ripgrep, sandbox refusal, any other exit failure, malformed output,
-output limits or the 30-second wall deadline, the backend emits a generation-keyed
-`error` and preserves the previous listing, with no success receipt. The GUI ends
-that generation's walk with nothing found and says the error's sentence in the footer.
+A file or folder that ripgrep cannot open or read, the root included, is skipped
+as the names walk skips it: when ripgrep exits 2 after writing its summary and
+every line it wrote to stderr names a path with its OS error (`(os error 13)`),
+the snapshot publishes what it read and the terminal `searched` carries
+`partial:true` with `partial_reason:"unreadable"`. Any other stderr line makes the
+exit a failure.
+On missing ripgrep, a sandbox that refuses to start, any other exit failure,
+malformed output, output limits or the 30-second wall deadline, the backend emits
+a generation-keyed `error` and preserves the previous listing, with no success
+receipt. The GUI ends that generation's walk with nothing found and says the
+error's sentence in the footer.
 Retained match data and a single pending rg JSON record each have an independent
 64 MiB bound. Both stores may coexist, in addition to transient parser and wire
 allocations. Exceeding either bound fails the request rather than returning an
