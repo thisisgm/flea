@@ -135,3 +135,76 @@ fn pb_network_2_opened_share_draws_its_saved_label_as_a_root_crumb(cx: &mut Test
     std::fs::remove_dir_all(&sandbox).unwrap();
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[gpui::test]
+fn ey324_remove_from_network_forgets_the_saved_line_and_says_so(cx: &mut TestAppContext) {
+    use crate::window::dispatch::test_shell::{land, open_root};
+    let (shell, cx) = open_root(cx, "default");
+    land(&shell, cx, "/files", Vec::new(), 1);
+    shell.update(cx, |shell, cx| {
+        shell.network_publish(Some(vec![share()]), cx)
+    });
+    frame(cx);
+    cx.executor().allow_parking();
+    let scratch =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.superpowers/FIX-NETPLACE");
+    std::fs::create_dir_all(&scratch).unwrap();
+    let output = std::process::Command::new("mktemp")
+        .args(["-d", "--"])
+        .arg(scratch.join("marks.XXXXXXXX"))
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let sandbox = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
+    assert!(sandbox.is_absolute());
+    std::fs::write(sandbox.join(".flea-test-sandbox"), b"").unwrap();
+    let marks = sandbox.join("bookmarks");
+    std::fs::write(
+        &marks,
+        "sftp://user@host/folder NAS\nsmb://keep/share Keep\n",
+    )
+    .unwrap();
+    shell.update_in(cx, |shell, window, cx| {
+        shell.network().unwrap().bookmarks = marks.clone();
+        let producer = shell.rail.as_ref().unwrap().places.clone();
+        let entries = producer.read(cx).entries();
+        let index = entries
+            .iter()
+            .position(|row| row.group == Group::Network)
+            .unwrap();
+        producer.update(cx, |producer, cx| producer.set_cursor(index, cx));
+        let side = shell.focus_side;
+        shell.network_menu(side, &entries[index], window, cx);
+    });
+    frame(cx);
+    assert_eq!(
+        read(&shell, cx, "contextMenuEntries", &[]),
+        "Rename|Edit Address…|-|Remove from Network"
+    );
+    for _ in 0..4 {
+        if read(&shell, cx, "contextMenuCursor", &[]) == "3" {
+            break;
+        }
+        cx.simulate_keystrokes("down");
+        frame(cx);
+    }
+    assert_eq!(read(&shell, cx, "contextMenuCursor", &[]), "3");
+    cx.simulate_keystrokes("enter");
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    while read(&shell, cx, "lastMessage", &[]) != "NAS is forgotten" {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "Remove from Network says the place is forgotten"
+        );
+        frame(cx);
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "false");
+    assert_eq!(
+        std::fs::read_to_string(&marks).unwrap(),
+        "smb://keep/share Keep\n"
+    );
+    assert!(sandbox.is_absolute() && sandbox.join(".flea-test-sandbox").is_file());
+    std::fs::remove_dir_all(&sandbox).unwrap();
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

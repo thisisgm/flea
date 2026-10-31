@@ -171,6 +171,12 @@ impl Shell {
                     held: &host.pane.held,
                     states: &states,
                 };
+                let network_menu = crate::ipc::network::NetworkMenu(
+                    self.rail
+                        .as_ref()
+                        .and_then(|join| join.network.as_ref())
+                        .map(|network| &*network.menu),
+                );
                 let menu = crate::g2::mn1::ipc::JoinedAdapter {
                     joined: &self.menu,
                     identity: self.menu_identity(),
@@ -302,7 +308,7 @@ impl Shell {
                     window,
                     cx,
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 43] = [
+                let adapters: [&dyn crate::ipc::Adapter; 44] = [
                     &glass,
                     &column_preview,
                     &preview_state,
@@ -334,6 +340,7 @@ impl Shell {
                     &columns,
                     &preview,
                     &grid,
+                    &network_menu,
                     &menu,
                     &view,
                     &operations,

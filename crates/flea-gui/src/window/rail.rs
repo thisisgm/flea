@@ -214,7 +214,7 @@ impl Shell {
                         uri: entry.uri.clone(),
                         label,
                     };
-                    self.network_save(edit, None, cx);
+                    self.network_save(edit, None, None, cx);
                 }
                 Event::Focus => {
                     if side == self.focus_side {
