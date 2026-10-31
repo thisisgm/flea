@@ -100,7 +100,9 @@ fn opened(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &mut VisualT
     deliver(
         &shell,
         cx,
-        &format!(r#"{{"t":"menuaction","id":{snapshot},"op":"snapshot","ok":true,"kinds":[33188]}}"#),
+        &format!(
+            r#"{{"t":"menuaction","id":{snapshot},"op":"snapshot","ok":true,"kinds":[33188]}}"#
+        ),
     );
     let lines = sent();
     assert_eq!(

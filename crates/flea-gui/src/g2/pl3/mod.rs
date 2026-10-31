@@ -31,8 +31,6 @@ mod join_status;
 mod join_sweep;
 #[cfg(test)]
 mod join_tests;
-#[cfg(test)]
-mod trash_tab_tests;
 pub mod list;
 #[cfg(test)]
 mod list_readiness_tests;
@@ -48,6 +46,8 @@ pub mod seams;
 mod strip;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod trash_tab_tests;
 
 #[cfg(test)]
 mod join_atomic_tests;

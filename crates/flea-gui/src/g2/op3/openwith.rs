@@ -295,7 +295,10 @@ impl OpenWith {
 
     /// Open submits only with an application under the cursor and no launch already out.
     pub fn can_open(&self) -> bool {
-        let chosen = self.catalogue.as_ref().and_then(|c| logic::chosen(c, &self.rows, self.cursor));
+        let chosen = self
+            .catalogue
+            .as_ref()
+            .and_then(|c| logic::chosen(c, &self.rows, self.cursor));
         chosen.is_some() && !self.opening
     }
 

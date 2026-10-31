@@ -6,7 +6,9 @@ use crate::state::Shell;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
 #[gpui::test]
-fn properties_from_the_menu_row_snapshots_its_listing_then_shows_the_facts(cx: &mut TestAppContext) {
+fn properties_from_the_menu_row_snapshots_its_listing_then_shows_the_facts(
+    cx: &mut TestAppContext,
+) {
     // EY-201: the card's snapshot names the listing it was read from and goes alone, as the backend's one menu slot needs.
     let (shell, cx) = open(cx);
     land(&shell, cx, "/files", home(), 1);
@@ -28,7 +30,9 @@ fn properties_from_the_menu_row_snapshots_its_listing_then_shows_the_facts(cx: &
         "the card's snapshot names its listing: {snapshot}"
     );
     assert!(
-        !lines.iter().any(|line| line.contains(r#""op":"properties""#)),
+        !lines
+            .iter()
+            .any(|line| line.contains(r#""op":"properties""#)),
         "Properties waits for the snapshot's answer: {lines:?}"
     );
     super::menus_tests::reply(
@@ -38,12 +42,16 @@ fn properties_from_the_menu_row_snapshots_its_listing_then_shows_the_facts(cx: &
     );
     assert_eq!(
         sent(),
-        [format!(r#"{{"c":"menuaction","op":"properties","id":{id}}}"#)]
+        [format!(
+            r#"{{"c":"menuaction","op":"properties","id":{id}}}"#
+        )]
     );
     super::menus_tests::reply(
         &shell,
         cx,
-        &format!(r#"{{"t":"menuaction","id":{id},"op":"properties","ok":true,"path":"/files/notes.txt","kind":"File","bytes":99,"modified":0,"mode":"0644","owner":"gm","uid":1000,"gid":1000}}"#),
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"properties","ok":true,"path":"/files/notes.txt","kind":"File","bytes":99,"modified":0,"mode":"0644","owner":"gm","uid":1000,"gid":1000}}"#
+        ),
     );
     assert!(
         shell.read_with(cx, |shell, _| shell
@@ -55,7 +63,10 @@ fn properties_from_the_menu_row_snapshots_its_listing_then_shows_the_facts(cx: &
     assert_eq!(
         shell.read_with(cx, |shell, _| {
             let host = shell.panes[0].as_ref().unwrap();
-            (host.pane.cursor, host.pane.held.row(2).map(|row| row.name.to_string()))
+            (
+                host.pane.cursor,
+                host.pane.held.row(2).map(|row| row.name.to_string()),
+            )
         }),
         (2, Some("notes.txt".into())),
         "the listing stays behind the card"
@@ -87,7 +98,9 @@ fn properties_on<'a>(
         .expect("the card snapshots notes.txt");
     for line in [
         format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[{REG}]}}"#),
-        format!(r#"{{"t":"menuaction","id":{id},"op":"properties","ok":true,"path":"{path}","kind":"File","bytes":99,"modified":0,"mode":"0644","owner":"gm","uid":1000,"gid":1000{extra}}}"#),
+        format!(
+            r#"{{"t":"menuaction","id":{id},"op":"properties","ok":true,"path":"{path}","kind":"File","bytes":99,"modified":0,"mode":"0644","owner":"gm","uid":1000,"gid":1000{extra}}}"#
+        ),
     ] {
         super::menus_tests::reply(&shell, cx, &line);
     }
@@ -104,12 +117,14 @@ fn properties_kind_is_the_mime_word_the_listing_holds(cx: &mut TestAppContext) {
     let kind = shell.read_with(cx, |shell, _| {
         let card = shell.properties.as_ref().unwrap().card().card(&catalog);
         card.body.iter().find_map(|block| match block {
-            crate::g2::op3::shell::Block::Facts(facts) => facts.iter().find_map(|fact| match fact {
-                crate::g2::op3::shell::Fact::Text { name, value, .. } if name == "Kind" => {
-                    Some(value.clone())
-                }
-                _ => None,
-            }),
+            crate::g2::op3::shell::Block::Facts(facts) => {
+                facts.iter().find_map(|fact| match fact {
+                    crate::g2::op3::shell::Fact::Text { name, value, .. } if name == "Kind" => {
+                        Some(value.clone())
+                    }
+                    _ => None,
+                })
+            }
             _ => None,
         })
     });
@@ -122,7 +137,9 @@ fn properties_wraps_a_long_path_inside_the_card(cx: &mut TestAppContext) {
     // FIX-PROPS-2: a long Path wraps inside the value column, never past the card.
     let path = format!("/files/{}notes.txt", "a-rather-long-folder-name/".repeat(8));
     let (shell, cx) = properties_on(cx, "Plain text document", &path, "");
-    let card = cx.debug_bounds("op3-card").expect("the Properties card is drawn");
+    let card = cx
+        .debug_bounds("op3-card")
+        .expect("the Properties card is drawn");
     let value = cx
         .debug_bounds("op3-fact-value-0")
         .expect("the Path value is drawn");
@@ -137,7 +154,10 @@ fn properties_wraps_a_long_path_inside_the_card(cx: &mut TestAppContext) {
         f32::from(value.size.height) >= 48.,
         "the long Path wraps over more than one line: {value:?}"
     );
-    assert_eq!(next.origin.x, value.origin.x, "every value starts on one column");
+    assert_eq!(
+        next.origin.x, value.origin.x,
+        "every value starts on one column"
+    );
     assert!(
         next.origin.y >= value.origin.y + value.size.height,
         "the next fact sits below the wrapped Path: {next:?} after {value:?}"
@@ -148,13 +168,25 @@ fn properties_wraps_a_long_path_inside_the_card(cx: &mut TestAppContext) {
 #[gpui::test]
 fn properties_tags_lead_with_solid_squares(cx: &mut TestAppContext) {
     // EY-335: each known tag draws its 14 px square before its name (HIG properties-tagged.png); a name Flea does not know has none.
-    let (shell, cx) = properties_on(cx, "Plain text document", "/files/notes.txt", r#","tags":["Red","Blue","work"]"#);
+    let (shell, cx) = properties_on(
+        cx,
+        "Plain text document",
+        "/files/notes.txt",
+        r#","tags":["Red","Blue","work"]"#,
+    );
     for selector in ["op3-tag-square-0", "op3-tag-square-1"] {
         let square = cx
             .debug_bounds(selector)
             .unwrap_or_else(|| panic!("{selector} draws its square"));
-        assert_eq!((f32::from(square.size.width), f32::from(square.size.height)), (14., 14.), "{selector}");
+        assert_eq!(
+            (f32::from(square.size.width), f32::from(square.size.height)),
+            (14., 14.),
+            "{selector}"
+        );
     }
-    assert!(cx.debug_bounds("op3-tag-square-2").is_none(), "an unknown tag name draws no square");
+    assert!(
+        cx.debug_bounds("op3-tag-square-2").is_none(),
+        "an unknown tag name draws no square"
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

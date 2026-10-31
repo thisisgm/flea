@@ -13,8 +13,18 @@ fn another_application_on_the_row_menu_opens_the_open_with_card(cx: &mut TestApp
     let mut sent = wire(&shell, cx);
     cx.simulate_keystrokes("shift-f10");
     let id = shell.read_with(cx, |shell, _| shell.menu.captured.as_ref().unwrap().id);
-    deliver(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[{REG}]}}"#));
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[{{"id":"nvim.desktop","label":"Neovim","icon":"nvim","default":true}}]}}"#));
+    deliver(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[{REG}]}}"#),
+    );
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[{{"id":"nvim.desktop","label":"Neovim","icon":"nvim","default":true}}]}}"#
+        ),
+    );
     // Enter on Open With opens its flyout; Down passes the separator to the tail row.
     choose(&shell, cx, "openWith");
     cx.simulate_keystrokes("down enter");
@@ -41,19 +51,30 @@ fn another_application_on_the_row_menu_opens_the_open_with_card(cx: &mut TestApp
         "the card's snapshot names its listing: {snapshot}"
     );
     assert!(
-        !lines.iter().any(|line| line.contains(r#""op":"applications""#)),
+        !lines
+            .iter()
+            .any(|line| line.contains(r#""op":"applications""#)),
         "the catalogue waits for the snapshot's answer: {lines:?}"
     );
     let card = shell.read_with(cx, |shell, _| shell.open_with.as_ref().map(|open| open.id));
     let card = card.expect("the Open With card opens");
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{card},"op":"snapshot","ok":true,"kinds":[{REG}]}}"#));
+    reply(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"menuaction","id":{card},"op":"snapshot","ok":true,"kinds":[{REG}]}}"#),
+    );
     assert_eq!(
         sent(),
-        [format!(r#"{{"c":"menuaction","op":"applications","id":{card},"installed":true}}"#)]
+        [format!(
+            r#"{{"c":"menuaction","op":"applications","id":{card},"installed":true}}"#
+        )]
     );
     let title = shell.read_with(cx, |shell, _| {
         let catalog = crate::g2::op3::tests::english();
-        shell.open_with.as_ref().map(|open| open.card.card(&catalog).title)
+        shell
+            .open_with
+            .as_ref()
+            .map(|open| open.card.card(&catalog).title)
     });
     assert_eq!(title.as_deref(), Some("Open notes.txt With"));
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
@@ -69,8 +90,18 @@ fn launch(
     let mut sent = wire(shell, cx);
     cx.simulate_keystrokes("shift-f10");
     let id = shell.read_with(cx, |shell, _| shell.menu.captured.as_ref().unwrap().id);
-    deliver(shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[{REG}]}}"#));
-    reply(shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[{{"id":"nvim.desktop","label":"Neovim","icon":"nvim","default":true}}]}}"#));
+    deliver(
+        shell,
+        cx,
+        &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[{REG}]}}"#),
+    );
+    reply(
+        shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[{{"id":"nvim.desktop","label":"Neovim","icon":"nvim","default":true}}]}}"#
+        ),
+    );
     choose(shell, cx, "openWith");
     cx.simulate_keystrokes("enter");
     settle(cx);
@@ -91,14 +122,22 @@ fn an_application_on_the_row_menu_launches_on_the_menus_snapshot(cx: &mut TestAp
         "the application leaf is claimed: {lines:?}"
     );
     assert!(
-        lines.contains(&format!(r#"{{"c":"menuaction","op":"openWith","id":{id},"application":"nvim.desktop"}}"#)),
+        lines.contains(&format!(
+            r#"{{"c":"menuaction","op":"openWith","id":{id},"application":"nvim.desktop"}}"#
+        )),
         "the launch names the menu's snapshot and the application: {lines:?}"
     );
     assert!(
         !lines.iter().any(|line| line.contains(r#""op":"close""#)),
         "a close before the answer would cancel the launch: {lines:?}"
     );
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"openWith","ok":false,"error":"Neovim could not start."}}"#));
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"openWith","ok":false,"error":"Neovim could not start."}}"#
+        ),
+    );
     assert_eq!(status(&shell, cx), "Neovim could not start.");
     assert_eq!(
         sent(),
@@ -113,7 +152,11 @@ fn quiet_answer(cx: &mut TestAppContext, answer: &str) {
     let (shell, cx) = open(cx);
     let (mut sent, id, _) = launch(&shell, cx);
     let before = status(&shell, cx);
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"openWith",{answer}}}"#));
+    reply(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"menuaction","id":{id},"op":"openWith",{answer}}}"#),
+    );
     assert_eq!(status(&shell, cx), before, "{answer}");
     assert_eq!(
         sent(),
@@ -130,7 +173,10 @@ fn a_launched_application_says_nothing_and_frees_the_snapshot(cx: &mut TestAppCo
 
 #[gpui::test]
 fn a_cancelled_launch_says_nothing_and_frees_the_snapshot(cx: &mut TestAppContext) {
-    quiet_answer(cx, r#""ok":false,"error":"Menu request cancelled.","cancelled":true"#);
+    quiet_answer(
+        cx,
+        r#""ok":false,"error":"Menu request cancelled.","cancelled":true"#,
+    );
 }
 
 #[gpui::test]
@@ -138,8 +184,16 @@ fn a_launch_on_the_other_side_keeps_this_sides_answer(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx);
     let (mut sent, id, _) = launch(&shell, cx);
     // Each side holds its own launch, so the other pane's launch cannot take this side's answer.
-    shell.update(cx, |shell, cx| shell.open_with_application(1, id + 1, "nvim.desktop", cx));
-    reply(&shell, cx, &format!(r#"{{"t":"menuaction","id":{id},"op":"openWith","ok":false,"error":"Neovim could not start."}}"#));
+    shell.update(cx, |shell, cx| {
+        shell.open_with_application(1, id + 1, "nvim.desktop", cx)
+    });
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"openWith","ok":false,"error":"Neovim could not start."}}"#
+        ),
+    );
     assert_eq!(status(&shell, cx), "Neovim could not start.");
     assert_eq!(
         sent(),

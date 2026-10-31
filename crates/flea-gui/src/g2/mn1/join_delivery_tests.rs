@@ -105,10 +105,14 @@ fn u06_live_menu_waits_for_snapshot_and_routes_the_captured_choice_once(cx: &mut
         "the card re-takes the captured rows once, under their listing: {sent:?}"
     );
     assert!(
-        !sent.iter().any(|line| line.contains("\"op\":\"properties\"")),
+        !sent
+            .iter()
+            .any(|line| line.contains("\"op\":\"properties\"")),
         "Properties waits for the snapshot's answer: {sent:?}"
     );
-    let held = format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"snapshot\",\"ok\":true,\"kinds\":[33188]}}");
+    let held = format!(
+        "{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"snapshot\",\"ok\":true,\"kinds\":[33188]}}"
+    );
     receive(cx, handle, &held);
     receive(cx, handle, &held);
     let mut sent = Vec::new();
@@ -117,7 +121,9 @@ fn u06_live_menu_waits_for_snapshot_and_routes_the_captured_choice_once(cx: &mut
     }
     assert_eq!(
         sent,
-        [format!("{{\"c\":\"menuaction\",\"op\":\"properties\",\"id\":{id}}}")],
+        [format!(
+            "{{\"c\":\"menuaction\",\"op\":\"properties\",\"id\":{id}}}"
+        )],
         "a duplicate backend reply cannot ask again"
     );
 }

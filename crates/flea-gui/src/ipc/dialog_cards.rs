@@ -80,7 +80,10 @@ fn open_with_state(card: &OpenWith) -> String {
         ("Open", Stop::Open, card.can_open()),
     ]
     .map(|(name, stop, enabled)| {
-        format!(r#"{{"name":"{name}","focused":{},"enabled":{enabled}}}"#, card.focus == stop)
+        format!(
+            r#"{{"name":"{name}","focused":{},"enabled":{enabled}}}"#,
+            card.focus == stop
+        )
     })
     .join(",");
     format!(

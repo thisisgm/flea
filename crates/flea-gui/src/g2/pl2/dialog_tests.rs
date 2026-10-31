@@ -5,7 +5,10 @@ use super::dialog::{Dialog, Effect};
 fn pl2_edit_address_is_armed_until_its_own_successful_changed_mount() {
     let mut d = Dialog::default();
     d.open_location("smb://nas:445/share/", "Saved", true);
-    assert_eq!(d.status, None, "Edit Address opens with no status line, as v0.3.12 draws it");
+    assert_eq!(
+        d.status, None,
+        "Edit Address opens with no status line, as v0.3.12 draws it"
+    );
     d.submit();
     let id = d.request;
     let uri = d.pending_uri.clone();
