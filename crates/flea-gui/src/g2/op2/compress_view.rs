@@ -27,6 +27,7 @@ impl Compress {
             .iter()
             .position(|f| *f == self.format)
             .unwrap_or(0);
+        let (password_error, confirm_error) = self.field_errors();
         let mut body = vec![
             Block::Chips(Chips {
                 options: self.formats.clone(),
@@ -51,7 +52,7 @@ impl Compress {
                 &self.password,
                 "",
                 self.focus == Stop::Password,
-                !error.is_empty() && self.password.is_empty(),
+                password_error,
                 self.held_password,
             )),
             Block::Field(field(
@@ -59,7 +60,7 @@ impl Compress {
                 &self.confirm,
                 "",
                 self.focus == Stop::Confirm,
-                !error.is_empty() && !self.matched(),
+                confirm_error,
                 self.held_confirm,
             )),
         ];

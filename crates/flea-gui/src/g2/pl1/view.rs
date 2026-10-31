@@ -22,6 +22,8 @@ pub struct UnlockView {
     pub(super) input_active: bool,
     pub(super) input_palette: Option<crate::g2::op1::palette::CardPalette>,
     pub rail: Option<RailView>,
+    /// What the card last painted and the pointer holds, for unlockState.
+    pub probes: super::probes::Probes,
     catalog: Arc<I18n>,
     text: CardText,
     runner: Rc<dyn Runner>,
@@ -36,6 +38,9 @@ pub struct UnlockView {
 
 impl EventEmitter<HostEvent> for UnlockView {}
 
+#[path = "view_reading.rs"]
+mod reading;
+
 impl UnlockView {
     pub fn new(catalog: Arc<I18n>, runner: Rc<dyn Runner>, cx: &mut Context<Self>) -> Self {
         Self {
@@ -44,6 +49,7 @@ impl UnlockView {
             input_active: false,
             input_palette: None,
             rail: None,
+            probes: Default::default(),
             catalog,
             text: CardText::default(),
             runner,
@@ -300,6 +306,7 @@ impl Render for UnlockView {
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key));
         let Some(state) = self.host.card.as_ref().filter(|c| c.opened) else {
+            self.probes.clear();
             return root;
         };
         let theme = cx
@@ -329,7 +336,16 @@ impl Render for UnlockView {
             .items_center()
             .justify_center()
             .child(super::card::card_with_input(
-                state, &self.text, &ink, width, scale, press, input,
+                state,
+                &self.text,
+                &ink,
+                width,
+                scale,
+                press,
+                Some(super::card::Mounted {
+                    input,
+                    probes: &self.probes,
+                }),
             ))
     }
 }

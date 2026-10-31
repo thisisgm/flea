@@ -300,3 +300,27 @@ impl Extract {
         self.error = None;
     }
 }
+
+impl Extract {
+    /// The extract half of archiveCardsState in ArchivePasswordDialog.qml's fields; eye is the painted eye centre "x y".
+    pub fn reading(&self, eye: &str) -> String {
+        let focus = match self.focus {
+            Stop::Password => 0,
+            Stop::Cancel => 1,
+            Stop::Extract => 2,
+        };
+        let error = self.error.as_deref().unwrap_or("");
+        format!(
+            "\"extractOpened\":{},\"extractLeaf\":\"{}\",\"extractError\":\"{}\",\"extractFocus\":{},\"extractCapture\":{{\"filled\":{},\"fieldError\":{},\"revealed\":{},\"eye\":\"{}\"}},\"canExtract\":{}",
+            self.opened,
+            flea::json::escape(&self.leaf),
+            flea::json::escape(error),
+            focus,
+            !self.password.is_empty() || self.held_marks > 0,
+            !error.is_empty(),
+            self.held_eye,
+            flea::json::escape(eye),
+            self.opened && !self.password.is_empty(),
+        )
+    }
+}

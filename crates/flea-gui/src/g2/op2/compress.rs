@@ -323,6 +323,7 @@ fn join(base: &str, name: &str) -> String {
 }
 
 mod ime;
+mod reader;
 
 #[path = "compress_view.rs"]
 mod view;

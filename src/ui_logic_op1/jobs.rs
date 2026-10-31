@@ -14,10 +14,16 @@ pub enum State {
 pub fn state(row: &JobRow) -> State {
     match row.state.as_str() {
         "waiting" => State::Waiting,
+        // An encrypted archive asks through the password card, so its extract never reads as a failure (EY-326).
+        "failed" if row.kind == "extract" && asks_password(&row.reason) => State::Done,
         "failed" => State::Failed,
         "done" => State::Done,
         _ => State::Running,
     }
+}
+
+fn asks_password(reason: &str) -> bool {
+    !crate::ui_logic_op2::archive::done_action(false, reason).is_empty()
 }
 
 pub fn unfinished(row: &JobRow) -> bool {

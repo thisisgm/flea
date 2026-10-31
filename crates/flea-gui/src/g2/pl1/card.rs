@@ -1,6 +1,7 @@
 //! The unlock card as the board draws it: title and esc, a hairline, the drive line, the field, one note line and two buttons.
 use super::ink::CardInk;
 use super::mark::{Mark, DRIVE, EYE};
+use super::probes::{observe, ButtonProbe, Probes};
 use super::unlock::{Card, Part, Phase};
 use super::words::say;
 use flea::i18n::I18n;
@@ -76,6 +77,12 @@ pub fn card(
     card_with_input(card, text, ink, window_width, scale, press, None)
 }
 
+/// What only the mounted view supplies: the text input while typing, and the probes unlockState reads.
+pub(super) struct Mounted<'a> {
+    pub input: Option<(gpui::Entity<super::view::UnlockView>, crate::list::Typeface)>,
+    pub probes: &'a Probes,
+}
+
 pub(super) fn card_with_input(
     card: &Card,
     text: &CardText,
@@ -83,8 +90,12 @@ pub(super) fn card_with_input(
     window_width: f32,
     scale: f32,
     press: Press,
-    input: Option<(gpui::Entity<super::view::UnlockView>, crate::list::Typeface)>,
+    mounted: Option<Mounted<'_>>,
 ) -> impl IntoElement {
+    let (input, probes) = match mounted {
+        Some(Mounted { input, probes }) => (input, Some(probes)),
+        None => (None, None),
+    };
     let k = move |v: f32| px(v * scale);
     let note_error = card.note.as_ref().is_some_and(|(_, e)| *e);
     let field_frame = if card.field.error {
@@ -97,7 +108,8 @@ pub(super) fn card_with_input(
     let unlocking = card.phase == Phase::Unlocking;
     let available = card.unlock_available();
     let dots: String = "\u{2022}".repeat(card.field.dots());
-    div()
+    let probe = |pick: fn(&Probes) -> ButtonProbe| probes.map(pick);
+    observe(div(), probes.map(|p| p.card.clone()))
         .id("g2-pl1-unlock-card")
         .flex()
         .flex_col()
@@ -191,7 +203,12 @@ pub(super) fn card_with_input(
                             )
                         }))
                         .child(div().flex_1().when(!unlocking, |d| d.w(px(0.)).flex_none()))
-                        .child(Mark::new(EYE, 13. * scale, ink.frame)),
+                        .child(observe(
+                            div()
+                                .flex_none()
+                                .child(Mark::new(EYE, 13. * scale, ink.frame)),
+                            probes.map(|p| p.eye.clone()),
+                        )),
                 ),
         )
         .child(
@@ -218,7 +235,10 @@ pub(super) fn card_with_input(
                     true,
                     card.focus == Some(Part::Cancel),
                     Look { ink, scale },
-                    press.cancel,
+                    Act {
+                        click: press.cancel,
+                        probe: probe(|p| p.cancel.clone()),
+                    },
                 ))
                 .child(button(
                     "g2-pl1-unlock",
@@ -227,7 +247,10 @@ pub(super) fn card_with_input(
                     available,
                     card.focus == Some(Part::Unlock),
                     Look { ink, scale },
-                    press.unlock,
+                    Act {
+                        click: press.unlock,
+                        probe: probe(|p| p.unlock.clone()),
+                    },
                 )),
         )
 }
@@ -277,6 +300,12 @@ struct Look<'a> {
     scale: f32,
 }
 
+/// A button's click and, in the mounted view, where it paints and what the pointer holds on it.
+struct Act {
+    click: Click,
+    probe: Option<ButtonProbe>,
+}
+
 /// The board's framed button: accent frame over a 14% wash when primary, foreground frame on focus, 8% hover, 14% press.
 fn button(
     id: &'static str,
@@ -285,9 +314,10 @@ fn button(
     enabled: bool,
     focused: bool,
     look: Look,
-    click: Click,
+    act: Act,
 ) -> impl IntoElement {
     let Look { ink, scale } = look;
+    let Act { click, probe } = act;
     let k = move |v: f32| px(v * scale);
     let (frame, ring) = button_frame(primary, enabled, focused, ink);
     let wash = button_wash(primary, enabled, ink);
@@ -302,14 +332,27 @@ fn button(
             d.group_hover(id, move |s| s.opacity(1.).bg(c))
         })
         .when_some(wash.press, |d, c| d.group_active(id, move |s| s.bg(c)));
-    let pointer = div()
+    let mut pointer = div()
         .id(id)
         .group(id)
         .absolute()
         .inset_0()
         .child(pointer_wash);
-    div()
-        .relative()
+    let painted = probe.as_ref().map(|p| p.painted.clone());
+    if let Some(probe) = probe {
+        let (hovered, down, up, out) = (
+            probe.hovered,
+            probe.pressed.clone(),
+            probe.pressed.clone(),
+            probe.pressed,
+        );
+        pointer = pointer
+            .on_hover(move |over, _, _| hovered.set(*over))
+            .on_mouse_down(gpui::MouseButton::Left, move |_, _, _| down.set(true))
+            .on_mouse_up(gpui::MouseButton::Left, move |_, _, _| up.set(false))
+            .on_mouse_up_out(gpui::MouseButton::Left, move |_, _, _| out.set(false));
+    }
+    observe(div(), painted)
         .h(k(FIELD_H))
         .px(k(9.))
         .flex()

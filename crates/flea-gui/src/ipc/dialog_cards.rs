@@ -29,18 +29,13 @@ impl Adapter for DialogAdapter<'_> {
                 .and_then(|rail| rail.network.as_ref())
                 .is_some_and(|network| network.card.read(self.cx).model.opened)
                 .to_string(),
-            "unlockState" => {
-                let open = self
-                    .shell
-                    .rail
-                    .as_ref()
-                    .and_then(|rail| rail.unlock.as_ref())
-                    .is_some_and(|unlock| unlock.view.read(self.cx).host.opened());
-                if open {
-                    return Some(Reply::error(3, "FLEA_IPC_ERROR flea.unlockState unavailable fields: rect, controls, eye (UnlockView does not record painted control bounds or pointer feedback)"));
-                }
-                "{\"opened\":false}".into()
-            }
+            "unlockState" => self
+                .shell
+                .rail
+                .as_ref()
+                .and_then(|rail| rail.unlock.as_ref())
+                .and_then(|unlock| unlock.view.read(self.cx).reading())
+                .unwrap_or_else(|| "{\"opened\":false}".into()),
             // The menu actions' card is Open With or the run card; with neither open the Root has no dialog to describe.
             "menuDialogState" => {
                 if self.shell.open_with.is_some() || self.shell.run_card.is_some() {

@@ -16,7 +16,20 @@ impl Adapter for ArchiveAdapter<'_> {
                 if !archive.card_open() {
                     return Some(Reply::value("{\"opened\":false}"));
                 }
-                return Some(Reply::error(3, "FLEA_IPC_ERROR flea.archiveCardsState unavailable fields: compressCapture.eye, extractCapture.eye (neither card records painted eye bounds)"));
+                // v0.3.12's shape; the eye centre is where the open card's password eye last painted.
+                let eye = archive.eye.get().map_or(String::new(), |b| {
+                    let (x, y) = (f32::from(b.origin.x), f32::from(b.origin.y));
+                    super::rows::centre_of(x, y, f32::from(b.size.width), f32::from(b.size.height))
+                });
+                let compress = archive.compress.as_ref().map_or_else(
+                    || "\"compressOpened\":false,\"compressCount\":0,\"compressFormat\":\"\",\"compressError\":\"\",\"compressFocus\":-1,\"canCompress\":false,\"compressCapture\":null".to_string(),
+                    |card| card.reading(if card.opened() { &eye } else { "" }),
+                );
+                let extract =
+                    archive
+                        .extract
+                        .reading(if archive.extract.opened() { &eye } else { "" });
+                format!("{{\"opened\":true,{compress},{extract}}}")
             }
             "flashState" => {
                 let flash = &archive.flash;
