@@ -18,62 +18,14 @@ pub use doc::{Doc, Status};
 pub use figures::{FigureDone, FigureHost};
 pub use flea::ui_logic_pv2::markdown::markdown_keys::{Effect, View};
 pub use source::Answer;
-pub use style::{Faces, Palette};
+pub use style::{Faces, Palette, Tokens};
 pub use worker::{line_starts, TextMeasure, MAX_BYTES};
 pub use words::Words;
 
 use flea::i18n::I18n;
-use flea::ui_logic_pv2::markdown::{markdown_keys, markdown_layout::Metrics};
+use flea::ui_logic_pv2::markdown::markdown_keys;
 use gpui::{Context, Entity, Subscription, Task, Window};
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
-
-/// The host's scaled theme tokens a document lays out with.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Tokens {
-    /// The document's body: the theme's body in Quick Look, its small body in the column.
-    pub body: f32,
-    pub theme_body: f32,
-    pub caption: f32,
-    pub gap: f32,
-    pub hairline: f32,
-    pub row_pad_x: f32,
-    pub row_pad_y: f32,
-    /// The chrome mark's size.
-    pub mark: f32,
-    /// The state mark's size, which a refused Source draws.
-    pub state_mark: f32,
-    /// True for the preview column's document; Quick Look's is false.
-    pub column: bool,
-}
-
-impl Tokens {
-    pub fn metrics(&self) -> Metrics {
-        Metrics {
-            body: self.body,
-            theme_body: self.theme_body,
-            caption: self.caption,
-            gap: self.gap,
-            hairline: self.hairline,
-            row_pad_x: self.row_pad_x,
-            mark: self.mark,
-            column: self.column,
-        }
-    }
-
-    /// The document's inset across: the row padding and the control padding, less the frame's hairline.
-    pub fn inset_x(&self) -> f32 {
-        self.row_pad_x + self.row_pad_y - self.hairline
-    }
-
-    pub fn inset_y(&self) -> f32 {
-        self.metrics().inset_y()
-    }
-
-    /// Source retains its existing line viewport and padding.
-    pub fn source_inset_y(&self) -> f32 {
-        self.gap + self.row_pad_y
-    }
-}
 
 /// What a code ask names: the file when the backend may read it, or text the view holds with its name and language.
 #[derive(Clone, Debug, PartialEq)]

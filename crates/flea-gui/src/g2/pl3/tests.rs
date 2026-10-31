@@ -108,7 +108,6 @@ pub(super) fn ink() -> Ink {
         muted_frame: foreground.opacity(0.45),
     };
     Ink {
-        mark_fill: foreground.opacity(0.3),
         muted_frame: foreground.opacity(0.42),
         ..Ink::interim(&palette, px(8.))
     }

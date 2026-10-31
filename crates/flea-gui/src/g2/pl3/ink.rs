@@ -29,7 +29,7 @@ impl Ink {
             muted_frame: palette.muted_frame,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
-            mark_fill: palette.metadata_frame,
+            mark_fill: palette.marked,
             error: palette.error,
             radius,
         }

@@ -1,5 +1,8 @@
-//! The Markdown view's theme roles and faces: each ink a laid run names, and the font each face of the document draws in.
-use flea::ui_logic_pv2::markdown::markdown_flow::{Face, Ink};
+//! The Markdown view's theme roles, faces and tokens: each ink a laid run names, the font each face of the document draws in, and the scaled sizes it lays out with.
+use flea::ui_logic_pv2::markdown::{
+    markdown_flow::{Face, Ink},
+    markdown_layout::Metrics,
+};
 use gpui::{font, Font, Hsla, Rgba};
 
 /// The theme roles a document draws with, from the host's Omarchy theme.
@@ -19,6 +22,56 @@ pub struct Palette {
     pub accent_frame: Hsla,
     /// The code reply's roles 1 to 6: red, green, yellow, blue, magenta and cyan.
     pub inks: [Hsla; 6],
+}
+
+/// The host's scaled theme tokens a document lays out with.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Tokens {
+    /// The document's body: the theme's body in Quick Look, its small body in the column.
+    pub body: f32,
+    pub theme_body: f32,
+    pub caption: f32,
+    pub gap: f32,
+    pub hairline: f32,
+    pub row_pad_x: f32,
+    pub row_pad_y: f32,
+    /// The chrome mark's size.
+    pub mark: f32,
+    /// The state mark's size, which a refused Source draws.
+    pub state_mark: f32,
+    /// Source's row where a board fixes it, the code view's own (ql-markdown-source: 20); None takes the face's extent.
+    pub source_line: Option<f32>,
+    /// True for the preview column's document; Quick Look's is false.
+    pub column: bool,
+}
+
+impl Tokens {
+    pub fn metrics(&self) -> Metrics {
+        Metrics {
+            body: self.body,
+            theme_body: self.theme_body,
+            caption: self.caption,
+            gap: self.gap,
+            hairline: self.hairline,
+            row_pad_x: self.row_pad_x,
+            mark: self.mark,
+            column: self.column,
+        }
+    }
+
+    /// The document's inset across: the row padding and the control padding, less the frame's hairline.
+    pub fn inset_x(&self) -> f32 {
+        self.row_pad_x + self.row_pad_y - self.hairline
+    }
+
+    pub fn inset_y(&self) -> f32 {
+        self.metrics().inset_y()
+    }
+
+    /// Source retains its existing line viewport and padding.
+    pub fn source_inset_y(&self) -> f32 {
+        self.gap + self.row_pad_y
+    }
 }
 
 /// A table rule's and the bar hairline's wash over the foreground.
