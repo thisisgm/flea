@@ -68,3 +68,4 @@ b645e82c1313de73e3e8bfe7153ec86508e44105	body holds 1 line(s), want 2 to 4
 c2cf69c9ede5132e0b39621955abbfb71d98aead	body holds 1 line(s), want 2 to 4
 2faf8d099e12303cfb5a28af4a0c16c851a2cb07	subject holds 62 char(s), want at most 60
 2faf8d099e12303cfb5a28af4a0c16c851a2cb07	body holds 1 line(s), want 2 to 4
+7edab91fdd764fcfc3b120aca764a4e342604db6	subject holds 63 char(s), want at most 60
