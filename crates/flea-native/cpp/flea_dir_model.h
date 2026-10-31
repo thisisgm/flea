@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <QAbstractListModel>
 #include <QString>
 #include <QVariantMap>
@@ -90,6 +92,7 @@ private:
     bool m_showHidden = false;
     int m_sortBy = 0; // 0: name, 1: size, 2: date
     bool m_sortDesc = false;
+    QString m_query;
 
     FleaDirectory* m_rawDir = nullptr;
     FleaDirectory* m_activeDir = nullptr;

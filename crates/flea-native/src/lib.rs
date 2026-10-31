@@ -158,7 +158,8 @@ pub unsafe extern "C" fn flea_native_scan(
         let meta = entry.metadata().ok();
 
         let (size, mtime, mode, is_dir) = if let Some(ref m) = meta {
-            (m.len(), m.mtime(), m.mode(), m.is_dir())
+            let points_at_dir = is_symlink && fs::metadata(entry.path()).map_or(false, |t| t.is_dir());
+            (m.len(), m.mtime(), m.mode(), m.is_dir() || points_at_dir)
         } else {
             let is_d = file_type.as_ref().map_or(false, |ft| ft.is_dir());
             (0, 0, 0, is_d)
@@ -205,7 +206,8 @@ pub unsafe extern "C" fn flea_native_scan(
             1 => a.size.cmp(&b.size),
             2 => a.mtime.cmp(&b.mtime),
             _ => natural_cmp(&a.name, &b.name),
-        };
+        }
+        .then_with(|| a.name.cmp(&b.name));
         if sort_desc {
             ord.reverse()
         } else {
@@ -274,7 +276,7 @@ pub unsafe extern "C" fn flea_native_filter(
         return flea_native_clone_dir(dir);
     }
     let query_str = match CStr::from_ptr(c_query).to_str() {
-        Ok(s) => s.to_ascii_lowercase(),
+        Ok(s) => s.to_lowercase(),
         Err(_) => return flea_native_clone_dir(dir),
     };
 
@@ -284,7 +286,7 @@ pub unsafe extern "C" fn flea_native_filter(
 
     let mut filtered_entries = Vec::new();
     for entry in &(*dir).entries {
-        if entry.name.to_ascii_lowercase().contains(&query_str) {
+        if entry.name.to_lowercase().contains(&query_str) {
             filtered_entries.push(entry.clone());
         }
     }

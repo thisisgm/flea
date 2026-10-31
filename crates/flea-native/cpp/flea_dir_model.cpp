@@ -91,7 +91,9 @@ QVariantMap FleaDirModel::get(int index) const {
 
     map["n"] = QString::fromUtf8(e.name ? e.name : "");
     map["d"] = e.is_dir;
-    map["l"] = QString::fromUtf8(e.target ? e.target : "");
+    if (e.is_link) {
+        map["l"] = QString::fromUtf8(e.target ? e.target : "");
+    }
     map["s"] = static_cast<qulonglong>(e.size);
     map["m"] = static_cast<qlonglong>(e.mtime);
     map["p"] = e.mode;
@@ -134,6 +136,7 @@ void FleaDirModel::refresh() {
 }
 
 void FleaDirModel::search(const QString& query) {
+    m_query = query;
     if (!m_rawDir) return;
 
     beginResetModel();
@@ -179,6 +182,11 @@ void FleaDirModel::rescan() {
     }
     m_rawDir = newDir;
     m_activeDir = newDir;
+    if (m_rawDir && !m_query.isEmpty()) {
+        QByteArray qba = m_query.toUtf8();
+        FleaDirectory* filtered = flea_native_filter(m_rawDir, qba.constData());
+        if (filtered) m_activeDir = filtered;
+    }
     endResetModel();
     emit countChanged();
 }
