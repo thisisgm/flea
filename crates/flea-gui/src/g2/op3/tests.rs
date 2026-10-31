@@ -61,7 +61,8 @@ pub(super) const APPLICATIONS: &str = r#"{"t":"menuaction","id":4,"op":"applicat
 
 pub(crate) fn open_with() -> OpenWith {
     let mut card = OpenWith::open(4, "notes.txt");
-    let held = parse(r#"{"t":"menuaction","id":4,"op":"snapshot","ok":true,"kinds":[33188]}"#).unwrap();
+    let held =
+        parse(r#"{"t":"menuaction","id":4,"op":"snapshot","ok":true,"kinds":[33188]}"#).unwrap();
     // The catalogue is asked once the snapshot is held, and a repeated answer asks nothing more.
     assert_eq!(
         sent(&card.reply(&english(), &held)),

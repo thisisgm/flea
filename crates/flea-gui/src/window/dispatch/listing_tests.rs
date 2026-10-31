@@ -300,11 +300,19 @@ fn a_side_button_over_the_listing_says_nothing_while_its_folder_loads(cx: &mut T
     land(&shell, cx, "/files/beta", vec![row("inner", true)], 2);
     side_button(cx, Back);
     assert_eq!(asked(&shell, cx), "/files");
-    assert_eq!(notice(&shell, cx), "", "back says nothing while its folder loads");
+    assert_eq!(
+        notice(&shell, cx),
+        "",
+        "back says nothing while its folder loads"
+    );
     land(&shell, cx, "/files", home(), 3);
     side_button(cx, Forward);
     assert_eq!(asked(&shell, cx), "/files/beta");
-    assert_eq!(notice(&shell, cx), "", "forward says nothing while its folder loads");
+    assert_eq!(
+        notice(&shell, cx),
+        "",
+        "forward says nothing while its folder loads"
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

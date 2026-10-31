@@ -35,7 +35,10 @@ fn properties_shows_a_files_facts_on_the_boards_lines_with_close_the_focused_def
         sent(&effects),
         vec![r#"{"c":"menuaction","op":"snapshot","id":5,"listing":3,"rows":[2],"cursor":2}"#]
     );
-    let acknowledged = card.reply(&i18n, &parse(r#"{"t":"menuaction","op":"snapshot","id":5,"ok":true,"kinds":[33188]}"#).unwrap());
+    let acknowledged = card.reply(
+        &i18n,
+        &parse(r#"{"t":"menuaction","op":"snapshot","id":5,"ok":true,"kinds":[33188]}"#).unwrap(),
+    );
     assert_eq!(
         sent(&acknowledged),
         vec![r#"{"c":"menuaction","op":"properties","id":5}"#]

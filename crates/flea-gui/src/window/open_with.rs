@@ -134,7 +134,11 @@ impl Shell {
                 .unwrap_or_else(|| self.locale.catalog.tr("dialogs.file.openwith.open_failed"));
             self.menu_notice(side, error, cx);
         }
-        self.menu_send(side, format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{id}}}"), cx);
+        self.menu_send(
+            side,
+            format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{id}}}"),
+            cx,
+        );
         true
     }
 

@@ -9,8 +9,8 @@ mod paint;
 mod selection;
 mod source;
 pub mod style;
-mod worker;
 mod words;
+mod worker;
 
 pub use asks::FIGURE_HOLD_MS;
 pub use assets::{Art, Snapshot};
@@ -19,8 +19,8 @@ pub use figures::{FigureDone, FigureHost};
 pub use flea::ui_logic_pv2::markdown::markdown_keys::{Effect, View};
 pub use source::Answer;
 pub use style::{Faces, Palette, Tokens};
-pub use worker::{line_starts, TextMeasure, MAX_BYTES};
 pub use words::Words;
+pub use worker::{line_starts, TextMeasure, MAX_BYTES};
 
 use flea::i18n::I18n;
 use flea::ui_logic_pv2::markdown::markdown_keys;
