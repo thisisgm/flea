@@ -1,7 +1,7 @@
 {
   "fork": {
     "url": "https://github.com/thisisgm/gpui-omarchy",
-    "rev": "0298abf6a28c5f78d2e32d53d157ec85188686f5"
+    "rev": "2dc476e445fb27a572dd0f53e6887a20c86cde51"
   },
   "ui_callbacks": [
     "flea_gui::window::open",
