@@ -2450,6 +2450,8 @@
   "keys.action.tabMoveRight": "Bog cluaisín ar dheis",
   "keys.action.windowNew": "Fuinneog nua",
   "keys.action.escape": "Dún nó téigh siar",
+  "keys.action.openInPlace": "Oscail san áit",
+  "keys.action.closeInPlace": "Dún san áit",
   "keys.action.viewList": "Amharc liosta",
   "keys.action.viewColumns": "Amharc colún",
   "keys.action.viewGrid": "Amharc greille",

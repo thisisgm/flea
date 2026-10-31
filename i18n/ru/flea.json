@@ -1000,6 +1000,8 @@
   "keys.action.duplicate": "Создать дубликат",
   "keys.action.eject": "Извлечь",
   "keys.action.escape": "Закрыть или назад",
+  "keys.action.openInPlace": "Открыть на месте",
+  "keys.action.closeInPlace": "Закрыть на месте",
   "keys.action.expand": "Развернуть",
   "keys.action.extendDown": "Расширить выделение вниз",
   "keys.action.extendUp": "Расширить выделение вверх",

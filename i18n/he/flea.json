@@ -938,6 +938,8 @@
   "keys.action.duplicate": "שכפול",
   "keys.action.eject": "הוצאה",
   "keys.action.escape": "סגירה או חזרה",
+  "keys.action.openInPlace": "פתיחה במקום",
+  "keys.action.closeInPlace": "סגירה במקום",
   "keys.action.expand": "הרחבה",
   "keys.action.extendDown": "הרחבת הבחירה למטה",
   "keys.action.extendUp": "הרחבת הבחירה למעלה",

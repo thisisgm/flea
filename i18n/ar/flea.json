@@ -1088,6 +1088,8 @@
   "keys.action.duplicate": "تكرار",
   "keys.action.eject": "إخراج",
   "keys.action.escape": "إغلاق أو عودة",
+  "keys.action.openInPlace": "فتح المجلد في مكانه",
+  "keys.action.closeInPlace": "إغلاق المجلد في مكانه",
   "keys.action.expand": "توسيع",
   "keys.action.extendDown": "توسيع للأسفل",
   "keys.action.extendUp": "توسيع للأعلى",

@@ -894,6 +894,8 @@
   "keys.action.duplicate": "Δημιουργία αντιγράφου",
   "keys.action.eject": "Εξαγωγή",
   "keys.action.escape": "Κλείσιμο ή επιστροφή",
+  "keys.action.openInPlace": "Άνοιγμα επί τόπου",
+  "keys.action.closeInPlace": "Κλείσιμο επί τόπου",
   "keys.action.expand": "Ανάπτυξη",
   "keys.action.extendDown": "Επέκταση επιλογής κάτω",
   "keys.action.extendUp": "Επέκταση επιλογής πάνω",

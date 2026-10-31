@@ -938,6 +938,8 @@
   "keys.action.duplicate": "Duplicar",
   "keys.action.eject": "Ejetar",
   "keys.action.escape": "Fechar ou voltar",
+  "keys.action.openInPlace": "Abrir no lugar",
+  "keys.action.closeInPlace": "Fechar no lugar",
   "keys.action.expand": "Expandir",
   "keys.action.extendDown": "Estender para baixo",
   "keys.action.extendUp": "Estender para cima",

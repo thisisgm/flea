@@ -830,6 +830,8 @@
   "keys.action.duplicate": "複製",
   "keys.action.eject": "取り出す",
   "keys.action.escape": "閉じる・戻る",
+  "keys.action.openInPlace": "その場で開く",
+  "keys.action.closeInPlace": "その場で閉じる",
   "keys.action.expand": "拡大表示",
   "keys.action.extendDown": "下へ選択範囲を拡張",
   "keys.action.extendUp": "上へ選択範囲を拡張",

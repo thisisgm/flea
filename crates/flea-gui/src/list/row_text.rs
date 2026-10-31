@@ -31,14 +31,15 @@ pub fn drawn_name(
     shaping: &Shaping,
     query: &str,
 ) -> (String, Option<(usize, usize)>) {
-    let name = row::decorated_name(facts);
+    let display = super::outline::display(facts);
+    let name = row::decorated_name(&display);
     let budget = if extra.clipped {
         shaping.clip_cells
     } else {
         shaping.name_cells
     };
     let budget = extra.drop.map_or(budget, |drop| drop.min(budget));
-    let Some((start, end)) = format::match_run(&facts.name, query) else {
+    let Some((start, end)) = format::match_run(&display.name, query) else {
         return (row::middle_elide(&name, budget).into_owned(), None);
     };
     let (drawn, kept) = match row::right_elide(&name, budget) {

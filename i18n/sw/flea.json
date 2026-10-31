@@ -912,6 +912,8 @@
   "keys.action.duplicate": "Rudufu",
   "keys.action.eject": "Toa kwa usalama",
   "keys.action.escape": "Funga au rudi nyuma",
+  "keys.action.openInPlace": "Fungua papo hapo",
+  "keys.action.closeInPlace": "Funga papo hapo",
   "keys.action.expand": "Panua",
   "keys.action.extendDown": "Panua uteuzi chini",
   "keys.action.extendUp": "Panua uteuzi juu",

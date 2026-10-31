@@ -62,12 +62,19 @@ fn list_place(list: &ListState, index: usize) -> Spot {
         .find(|shown| shown.index == index)
         .map_or(index, |shown| shown.view);
     let top = drawn.bounds.origin.y + px(drawn.grow.top(position, row) - drawn.scroll_y);
+    let depth = list
+        .drawn_rows
+        .row(index)
+        .map_or(0., |row| row.depth as f32 * (metrics.slot + metrics.gap));
     let frame = Bounds::new(
         point(
-            drawn.bounds.origin.x + px(drawn.layout.name.x),
+            drawn.bounds.origin.x + px(drawn.layout.name.x + depth),
             top + px((row - metrics.slot) / 2.),
         ),
-        size(px(drawn.layout.name.width.max(0.)), px(metrics.slot)),
+        size(
+            px((drawn.layout.name.width - depth).max(0.)),
+            px(metrics.slot),
+        ),
     );
     let place = Place {
         frame,

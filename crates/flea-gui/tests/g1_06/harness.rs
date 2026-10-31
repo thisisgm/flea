@@ -57,6 +57,8 @@ pub fn metrics() -> Metrics {
 
 pub fn row(name: &str, icon: &str, size: u64, dir: bool) -> RowFacts {
     RowFacts {
+        depth: 0,
+        open: false,
         name: name.into(),
         dir,
         size,

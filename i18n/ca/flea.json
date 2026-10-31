@@ -938,6 +938,8 @@
   "keys.action.duplicate": "Duplica",
   "keys.action.eject": "Expulsa",
   "keys.action.escape": "Tanca o torna enrere",
+  "keys.action.openInPlace": "Obre al lloc",
+  "keys.action.closeInPlace": "Tanca al lloc",
   "keys.action.expand": "Amplia la vista",
   "keys.action.extendDown": "Amplia la selecció avall",
   "keys.action.extendUp": "Amplia la selecció amunt",

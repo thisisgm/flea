@@ -912,6 +912,8 @@
   "keys.action.duplicate": "অনুলিপি তৈরি করুন",
   "keys.action.eject": "বের করুন",
   "keys.action.escape": "বন্ধ করুন বা ফিরে যান",
+  "keys.action.openInPlace": "এখানেই খুলুন",
+  "keys.action.closeInPlace": "এখানেই বন্ধ করুন",
   "keys.action.expand": "প্রসারিত করুন",
   "keys.action.extendDown": "নিচে নির্বাচন বাড়ান",
   "keys.action.extendUp": "উপরে নির্বাচন বাড়ান",

@@ -58,6 +58,39 @@ pub fn checkbox(
     }
 }
 
+// Only a chooser row of the chosen kind draws a check slot; a nested row's depth step is never one.
+pub(super) fn paint_check(
+    shown: &Shown,
+    view: &ListView,
+    metrics: Metrics,
+    palette: Palette,
+    origin: (Pixels, Pixels, Option<&flea::protocol::RowFacts>),
+    window: &mut Window,
+    cx: &mut App,
+) -> usize {
+    let (left, top, row) = origin;
+    let check = leading(view, &metrics);
+    if check <= 0.
+        || !row.is_some_and(|row| {
+            flea::ui_logic_pk2::directory(row.dir, row.mode, &row.icon) == view.picker_directory
+        })
+    {
+        return 0;
+    }
+    let side = check - metrics.gap;
+    checkbox(
+        Bounds::new(
+            point(left + px(metrics.pad), top + px((metrics.row - side) / 2.)),
+            size(px(side), px(side)),
+        ),
+        shown.state.selected,
+        &palette,
+        window,
+        cx,
+    );
+    1
+}
+
 pub(super) fn paint_icon(
     shown: &Shown,
     view: &ListView,
@@ -68,24 +101,7 @@ pub(super) fn paint_icon(
     cx: &mut App,
 ) -> (usize, usize) {
     let (left, top, row) = origin;
-    let offset = leading(view, &metrics);
-    if offset > 0.
-        && row.is_some_and(|row| {
-            flea::ui_logic_pk2::directory(row.dir, row.mode, &row.icon) == view.picker_directory
-        })
-    {
-        let side = offset - metrics.gap;
-        checkbox(
-            Bounds::new(
-                point(left + px(metrics.pad), top + px((metrics.row - side) / 2.)),
-                size(px(side), px(side)),
-            ),
-            shown.state.selected,
-            &palette,
-            window,
-            cx,
-        );
-    }
+    let offset = leading(view, &metrics) + row.map_or(0., |row| super::outline::indent(row, &metrics));
     let dim = if shown.clip == Some(ClipMark::Cut) {
         super::CUT_DIM
     } else {
@@ -111,6 +127,18 @@ pub(super) fn paint_icon(
         left + px(metrics.pad + offset + (metrics.slot - metrics.mark) / 2.),
         top + px((metrics.row - metrics.mark) / 2.),
     );
+    if let Some((_, key, data)) = row
+        .filter(|_| view.picker.is_none())
+        .and_then(|row| super::outline::glyph(row, shown.state.hovered))
+    {
+        let ink = if shown.state.lifted() {
+            palette.foreground
+        } else {
+            palette.metadata_frame
+        };
+        paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
+        return (1, 0);
+    }
     let mark = shown
         .prepared
         .as_ref()

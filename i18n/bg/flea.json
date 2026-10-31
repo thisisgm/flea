@@ -912,6 +912,8 @@
   "keys.action.duplicate": "Дублирай",
   "keys.action.eject": "Извади",
   "keys.action.escape": "Затвори или се върни назад",
+  "keys.action.openInPlace": "Отвори на място",
+  "keys.action.closeInPlace": "Затвори на място",
   "keys.action.expand": "Разгъни",
   "keys.action.extendDown": "Разшири надолу",
   "keys.action.extendUp": "Разшири нагоре",

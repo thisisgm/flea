@@ -2204,6 +2204,8 @@
   "keys.action.tabMoveRight": "Move tab right",
   "keys.action.windowNew": "New window",
   "keys.action.escape": "Close or go back",
+  "keys.action.openInPlace": "Open in place",
+  "keys.action.closeInPlace": "Close in place",
   "keys.action.viewList": "List view",
   "keys.action.viewColumns": "Columns view",
   "keys.action.viewGrid": "Grid view",

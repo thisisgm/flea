@@ -17,7 +17,7 @@ fn drawn() -> Vec<(usize, String, Vec<String>)> {
         .collect()
 }
 
-// keymap.html with ctrl-right Open in place, ctrl-left Close in place and ctrl-g Search contents left out: no preset binds them yet.
+// The sheet follows keymap.html, including the List outline actions.
 const MOVE: &[&str] = &[
     "j / down|Cursor down",
     "k / up|Cursor up",
@@ -61,6 +61,8 @@ const LOOK: &[&str] = &[
     "+|Zoom in",
     "-|Zoom out",
     "e|Expand",
+    "ctrl-right|Open in place",
+    "ctrl-left|Close in place",
     "m|Mute",
     "ctrl-shift-plus|Larger text",
     "ctrl-shift-minus|Smaller text",

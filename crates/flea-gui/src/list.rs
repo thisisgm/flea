@@ -9,6 +9,7 @@ mod loading;
 mod locale;
 mod measure;
 mod metrics;
+pub(crate) mod outline;
 mod painted_row;
 mod palette;
 #[cfg(test)]
@@ -300,6 +301,8 @@ pub struct ListState {
     pub painted_cells: Cell<usize>,
     /// Thumbnails the last paint drew in mark slots.
     pub painted_pictures: Cell<usize>,
+    /// Chooser check slots the last paint drew.
+    pub painted_checks: Cell<usize>,
     /// The pane's one thumbnail lender, shared by Grid tiles, List rows and the active Columns track.
     pub pictures: Rc<crate::grid::element::pictures::Pictures>,
 }
@@ -326,6 +329,7 @@ impl ListState {
             painted_marks: Cell::new(0),
             painted_cells: Cell::new(0),
             painted_pictures: Cell::new(0),
+            painted_checks: Cell::new(0),
             pictures: Rc::default(),
         }
     }

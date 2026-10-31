@@ -1000,6 +1000,8 @@
   "keys.action.duplicate": "Podvoji",
   "keys.action.eject": "Izvrzi",
   "keys.action.escape": "Zapri ali pojdi nazaj",
+  "keys.action.openInPlace": "Odpri na mestu",
+  "keys.action.closeInPlace": "Zapri na mestu",
   "keys.action.expand": "Razširi",
   "keys.action.extendDown": "Razširi izbor navzdol",
   "keys.action.extendUp": "Razširi izbor navzgor",

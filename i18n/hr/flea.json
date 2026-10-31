@@ -938,6 +938,8 @@
   "keys.action.duplicate": "Dupliciraj",
   "keys.action.eject": "Izbaci",
   "keys.action.escape": "Zatvori ili natrag",
+  "keys.action.openInPlace": "Otvori na mjestu",
+  "keys.action.closeInPlace": "Zatvori na mjestu",
   "keys.action.expand": "Proširi",
   "keys.action.extendDown": "Proširi odabir dolje",
   "keys.action.extendUp": "Proširi odabir gore",

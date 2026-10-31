@@ -2156,6 +2156,8 @@
   "keys.action.tabMoveRight": "Liiguta vahekaart paremale",
   "keys.action.windowNew": "Uus aken",
   "keys.action.escape": "Sulge või mine tagasi",
+  "keys.action.openInPlace": "Ava kohapeal",
+  "keys.action.closeInPlace": "Sulge kohapeal",
   "keys.action.viewList": "Loendivaade",
   "keys.action.viewColumns": "Veeruvaade",
   "keys.action.viewGrid": "Ruudustikuvaade",

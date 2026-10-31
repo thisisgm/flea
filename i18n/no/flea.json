@@ -894,6 +894,8 @@
   "keys.action.duplicate": "Dupliser",
   "keys.action.eject": "Løs ut",
   "keys.action.escape": "Lukk eller gå tilbake",
+  "keys.action.openInPlace": "Åpne på stedet",
+  "keys.action.closeInPlace": "Lukk på stedet",
   "keys.action.expand": "Utvid",
   "keys.action.extendDown": "Utvid utvalget nedover",
   "keys.action.extendUp": "Utvid utvalget oppover",

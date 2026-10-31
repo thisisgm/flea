@@ -714,13 +714,31 @@ sheet = false
 # and the heading is the key with its first letter capitalised.
 # Move is where the cursor, the pane or the window goes. Look is what is drawn and how big. Find
 # narrows or orders what is already listed. Change writes something, or opens the surface that does.
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Right"
+keys = "ctrl-right"
+action = "openInPlace"
+context = "listing"
+frontend = "gui"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Left"
+keys = "ctrl-left"
+action = "closeInPlace"
+context = "listing"
+frontend = "gui"
+
 [sheetgroups]
 move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open",
         "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview",
         "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape",
         "carry"]
 look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
-        "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
+        "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
 find = ["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
@@ -968,6 +986,8 @@ tabMoveLeft = "Move tab left"
 tabMoveRight = "Move tab right"
 windowNew = "New window"
 escape = "Close or go back"
+openInPlace = "Open in place"
+closeInPlace = "Close in place"
 viewList = "List view"
 viewColumns = "Columns view"
 viewGrid = "Grid view"

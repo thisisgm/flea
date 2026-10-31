@@ -240,7 +240,7 @@ fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tabl
         // A network folder's mtime moved, which inotify never delivers; only the open path counts, and while a scan is out it waits for the scan's answer.
         Event::PollChanged(path) if gate.holds() => gate.hold(Event::PollChanged(path)),
         Event::PollChanged(path) => {
-            if path == st.base {
+            if super::outline::watched(&st.listing, &st.base, &path) {
                 say(out, &changed_line(&st.base));
             }
         }
@@ -319,8 +319,9 @@ fn land<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: 
     if listwork::finish(out, st, tb, pool, watch, landed) {
         // After the rows, because a statfs beside gio's own listing slows it on the share.
         fsinfo.list_arrived(Path::new(&path), &st.listing);
-        // The open folder alone is polled, so a remote change arrives without inotify.
+        // Every open outline folder uses the same remote poll path as its root.
         poller.set(PathBuf::from(path));
+        poller.set_children(st.listing.outline_open.iter().map(|name| st.base.join(name)));
     }
 }
 
@@ -440,12 +441,23 @@ fn handle_line(
             super::trashbrowse::request(out, ops, line);
         }
         // A local list lands inline here, a remote one as Event::List; both land through finish.
+        Request::Outline { row, open, enabled, first } => {
+            if let Some(enabled) = enabled.filter(|_| st.held != Held::List) {
+                st.outline.disabled = !enabled;
+                return Control::Continue;
+            }
+            if let Some(line) = super::outline::request(st, row, open, enabled, first) {
+                return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate);
+            }
+            say(out, &error_line(&FleaError { where_: "outline".into(), path: st.base.to_string_lossy().into_owned(), msg: "the folder is no longer available to open in place".into() }));
+        }
         Request::List { path, first, hidden, want_changed } => {
             #[cfg(test)]
             super::renametiming::mark("dispatch_list");
             // The session goes first; start then ends the walk and forgets its rows before the scan.
             close_search_session(st);
-            let job = listwork::Job { path, first, line: line.to_string(), hidden, want_changed, session: None };
+            let line = st.outline.list(line);
+            let job = listwork::Job { path, first, line, hidden, want_changed, session: None };
             if let listwork::Started::Inline(landed) = listwork::start(out, st, pool, watch, gate, job, Arc::clone(&tb.mime)) {
                 land(out, st, tb, pool, watch, fsinfo, poller, *landed);
             }
@@ -583,6 +595,7 @@ fn handle_line(
             }
         }
         Request::Sort { by, desc: _, anchor } => {
+            st.outline.sort(line);
             close_search_session(st);
             // The walk owns the listing sort would reorder, so it ends first rather than racing it.
             if finish_search(out, st, true) {
@@ -824,96 +837,9 @@ fn note_tag_writes(st: &mut State, written: &[PathBuf]) {
     }
 }
 
-// One past the last adopted row, so a request naming only held rows spends nothing.
-fn rows_end(rows: &[usize]) -> usize {
-    rows.iter().copied().max().map(|last| last.saturating_add(1)).unwrap_or(0)
-}
-
-// One past the last row a request can read; no wildcard arm, so a new request must classify its rows to compile.
-fn rows_needed(request: &Request) -> usize {
-    match request {
-        Request::Window { count: 0, .. } => 0,
-        Request::Window { start, count } => start.saturating_add(*count),
-        Request::MenuAction { rows, .. }
-        | Request::Thumb { rows, .. }
-        | Request::DirSize { rows, .. }
-        | Request::Transfer { rows, .. }
-        | Request::Collisions { rows, .. }
-        | Request::Link { rows, .. }
-        | Request::Trash { rows, .. }
-        | Request::Paths { rows } => rows_end(rows),
-        Request::ImagePaths(ask) => ask
-            .rows
-            .as_ref()
-            .map_or(usize::MAX, |rows| rows_end(rows))
-            .max(ask.start.saturating_add(1)),
-        Request::Meta { row, .. } | Request::Owner { row, .. } => row.saturating_add(1),
-        // Tags apply to and read held rows; the bulk rename names paths, never rows.
-        Request::SetTags { rows, .. } | Request::TagStates { rows, .. } => rows_end(rows),
-        Request::BulkRename { .. } => 0,
-        // A path lookup can name any match, and a sort reorders the whole set.
-        Request::Locate { .. } | Request::LocateMany { .. } | Request::Sort { .. } | Request::Filter { .. } => usize::MAX,
-        // A listing request replaces what it reads; the session lifecycle answers fresh, not from adopted rows.
-        Request::List { .. }
-        | Request::ListPaths { .. }
-        | Request::Search { .. }
-        | Request::SearchContents { .. }
-        | Request::SearchCancel
-        | Request::SearchOpen { .. }
-        | Request::SearchQuery { .. }
-        | Request::SearchClose => 0,
-        // A viewport map, not the listing: these rows index work already queued.
-        Request::ThumbCancel { .. } | Request::DirSizeCancel => 0,
-        // Operations carry paths or no rows; their rows were resolved by their own earlier ask.
-        Request::Rclone { .. }
-        | Request::Jobs { .. }
-        | Request::Actions { .. }
-        | Request::TransferCancel { .. }
-        | Request::Rename { .. }
-        | Request::Duplicate { .. }
-        | Request::MkDir { .. }
-        | Request::NewFile { .. }
-        | Request::Undo
-        | Request::Redo
-        | Request::PermissionsBatch { .. }
-        | Request::LinkTarget { .. }
-        | Request::Archive { .. }
-        | Request::Convert { .. }
-        | Request::PrintConvert(_)
-        | Request::PasteImage(_) => 0,
-        // Lines, dialogs and the clipboard name paths or nothing, never a row index.
-        Request::Shebang { .. }
-        | Request::Code(_)
-        | Request::Html(_)
-        | Request::Model3d(_)
-        | Request::Compare(_)
-        | Request::FsInfo
-        | Request::Peek { .. }
-        | Request::PdfCopy { .. }
-        | Request::OfficePdf { .. }
-        | Request::FontLook(_)
-        | Request::Formats { .. }
-        | Request::Permissions { .. }
-        | Request::Picker { .. }
-        | Request::LocalSend { .. }
-        | Request::Nearby { .. }
-        | Request::NetworkAddress { .. }
-        | Request::Plugins { .. }
-        | Request::TrashBrowse { .. }
-        | Request::TrashThumb { .. }
-        | Request::TrashThumbCancel { .. }
-        | Request::Jump { .. }
-        | Request::Devs { .. }
-        | Request::Flash(_)
-        | Request::ClipSet { .. }
-        | Request::ClipGet
-        | Request::ClipClear { .. }
-        | Request::ClipWatch
-        | Request::Quit
-        | Request::Git { .. }
-        | Request::Unknown => 0,
-    }
-}
+#[path = "run_rows.rs"]
+mod row_needs;
+use row_needs::rows_needed;
 
 // Appends held rest rows in the answer's order and never renumbers; true when rows joined, so a miss can retry.
 fn extend_search_listing(st: &mut State, end: usize) -> bool {

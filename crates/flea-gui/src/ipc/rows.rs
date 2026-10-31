@@ -145,10 +145,13 @@ impl RowsAdapter<'_> {
         let line = prepared.name.line();
         let height = f32::from(line.ascent + line.descent);
         let content = f32::from(line.width);
+        let depth = self.held.row(index).map_or(0., |row| {
+            crate::list::outline::indent(row, &self.list.drawn.metrics)
+        });
         Some((
-            x + layout.name.x,
+            x + layout.name.x + depth,
             y + (row - height) / 2.,
-            layout.name.width,
+            (layout.name.width - depth).max(0.),
             height,
             content,
         ))
@@ -173,6 +176,9 @@ impl RowsAdapter<'_> {
     fn row_value(&self, function: &str, index: usize) -> Option<String> {
         let facts = self.held.row(index);
         let view = &self.list.view;
+        if let Some(value) = super::outline::row(function, self.shown(index).and(facts)) {
+            return Some(value);
+        }
         let value = match function {
             "rowAt" => self
                 .shown(index)
@@ -200,7 +206,7 @@ impl RowsAdapter<'_> {
                 .shown(index)
                 .filter(|shown| shown.prepared.is_some())
                 .and_then(|_| self.list.rows.facts(index))
-                .map(row::decorated_name)
+                .map(|facts| row::decorated_name(&crate::list::outline::display(facts)))
                 .unwrap_or_default(),
             "rowSizeText" => self
                 .shown(index)
@@ -219,7 +225,11 @@ impl RowsAdapter<'_> {
             "rowGlyph" => self
                 .shown(index)
                 .map(|shown| {
-                    if shown.prepared.is_none() {
+                    if let Some((name, _, _)) =
+                        facts.and_then(|row| crate::list::outline::glyph(row, shown.state.hovered))
+                    {
+                        name.to_owned()
+                    } else if shown.prepared.is_none() {
                         Mark::File.name().to_owned()
                     } else {
                         self.list
@@ -320,6 +330,7 @@ impl Adapter for RowsAdapter<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         let list = self.list;
         let value = match function {
+            "outlineState" => super::outline::state(list),
             "headerTitles" => list.header.painted_titles.clone(),
             "headerCellRect" => self
                 .header_cell(arguments.first()?)

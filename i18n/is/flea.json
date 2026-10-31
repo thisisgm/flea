@@ -894,6 +894,8 @@
   "keys.action.duplicate": "Tvírita",
   "keys.action.eject": "Kasta út",
   "keys.action.escape": "Loka eða fara til baka",
+  "keys.action.openInPlace": "Opna á staðnum",
+  "keys.action.closeInPlace": "Loka á staðnum",
   "keys.action.expand": "Víkka",
   "keys.action.extendDown": "Víkka val niður",
   "keys.action.extendUp": "Víkka val upp",

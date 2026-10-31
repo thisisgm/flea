@@ -28,6 +28,10 @@ pub const LIFECYCLE: &[Function] = &[
 ];
 
 pub const VISUAL: &[Function] = &[
+    function!("flea", "outlineState", "string", &[]),
+    function!("flea", "rowDepth", "int", &[("i", "int")]),
+    function!("flea", "rowExpanded", "bool", &[("i", "int")]),
+    function!("flea", "rowRelativePath", "string", &[("i", "int")]),
     function!("flea", "omiState", "string", &[]),
     function!(
         "flea",

@@ -956,6 +956,8 @@
   "keys.action.duplicate": "Duplikovať",
   "keys.action.eject": "Vysunúť",
   "keys.action.escape": "Zavrieť alebo prejsť späť",
+  "keys.action.openInPlace": "Otvoriť na mieste",
+  "keys.action.closeInPlace": "Zavrieť na mieste",
   "keys.action.expand": "Rozšíriť",
   "keys.action.extendDown": "Rozšíriť výber nadol",
   "keys.action.extendUp": "Rozšíriť výber nahor",

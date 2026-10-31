@@ -26,6 +26,7 @@ mod locale_tests;
 pub mod navigate;
 pub mod network;
 pub(crate) mod open_with;
+pub(crate) mod outline;
 pub(crate) mod output;
 pub mod overlay;
 pub(crate) mod pane;

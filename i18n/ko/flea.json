@@ -2096,6 +2096,8 @@
   "keys.tabMoveRight": "탭 오른쪽으로 이동",
   "keys.action.windowNew": "새 창",
   "keys.action.escape": "닫기 또는 뒤로",
+  "keys.action.openInPlace": "제자리에서 열기",
+  "keys.action.closeInPlace": "제자리에서 닫기",
   "keys.escape": "닫기 또는 뒤로",
   "keys.action.viewList": "목록 보기",
   "keys.action.viewColumns": "열 보기",

@@ -321,3 +321,6 @@ mod railrecent_dual_tests;
 
 #[cfg(test)]
 mod gm_prevsel_tests;
+
+#[cfg(test)]
+mod outline_tests;

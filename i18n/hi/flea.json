@@ -894,6 +894,8 @@
   "keys.action.duplicate": "प्रतिलिपि बनाएँ",
   "keys.action.eject": "बाहर निकालें",
   "keys.action.escape": "बंद करें या वापस जाएँ",
+  "keys.action.openInPlace": "यहीं खोलें",
+  "keys.action.closeInPlace": "यहीं बंद करें",
   "keys.action.expand": "विस्तृत करें",
   "keys.action.extendDown": "चयन नीचे बढ़ाएँ",
   "keys.action.extendUp": "चयन ऊपर बढ़ाएँ",

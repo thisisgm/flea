@@ -912,6 +912,8 @@
   "keys.action.duplicate": "Duplicera",
   "keys.action.eject": "Mata ut",
   "keys.action.escape": "Stäng eller gå tillbaka",
+  "keys.action.openInPlace": "Öppna på plats",
+  "keys.action.closeInPlace": "Stäng på plats",
   "keys.action.expand": "Utöka",
   "keys.action.extendDown": "Utöka markeringen nedåt",
   "keys.action.extendUp": "Utöka markeringen uppåt",

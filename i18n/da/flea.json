@@ -894,6 +894,8 @@
   "keys.action.duplicate": "Dupliker",
   "keys.action.eject": "Skub ud",
   "keys.action.escape": "Luk eller gå tilbage",
+  "keys.action.openInPlace": "Åbn på stedet",
+  "keys.action.closeInPlace": "Luk på stedet",
   "keys.action.expand": "Udvid",
   "keys.action.extendDown": "Udvid nedad",
   "keys.action.extendUp": "Udvid opad",

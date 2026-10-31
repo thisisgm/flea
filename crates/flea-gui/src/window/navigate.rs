@@ -159,6 +159,7 @@ impl Shell {
                 host.input.selection.only(&mut host.selected, row);
             }
         }
+        super::outline::keep_lone(host);
         if let Some(changed) = host.nav.reloaded.take() {
             let notice = crate::strips::status_host::reloaded(&self.locale.catalog, changed);
             self.status_messages(cx, |messages, now| {
@@ -244,10 +245,10 @@ impl Shell {
                 host.waiting = false;
                 host.changed(&self.locale);
             }
-            let Some(backend) = &host.backend else {
+            let Some(sent) = super::outline::send_navigation(host, command) else {
                 continue;
             };
-            if let Err(error) = backend.command(command) {
+            if let Err(error) = sent {
                 if host.pane.fail("backend", "", "", 0, host.pane.now()) {
                     self.surfaces[side].refuse(crate::window::surfaces::Refusal {
                         operation: "backend".into(),

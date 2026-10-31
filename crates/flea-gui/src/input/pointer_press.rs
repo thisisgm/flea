@@ -25,6 +25,10 @@ impl Shell {
         if self.input_blocked(cx) {
             return;
         }
+        let outline = self.panes[side]
+            .as_ref()
+            .and_then(|host| host.input.hit(event.position))
+            .filter(|&row| self.outline_hit(side, row, event.position.x));
         let columns_shown = self.shown_view() == crate::window::startup::View::Columns;
         let Some(host) = &mut self.panes[side] else {
             return;
@@ -45,6 +49,10 @@ impl Shell {
             return;
         }
         host.input.keyboard();
+        if event.button == MouseButton::Left && outline.is_some() {
+            host.input.pointer_origin = true;
+            host.input.hovered = outline;
+        }
         // Every press starts its own gesture, so no earlier press can lift rows for this one.
         host.input.press = None;
         host.input.hold(&mut host.pane);
