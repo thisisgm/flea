@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "omarchy_commit": "03ff1eff3812933f7088484533784d2f63eaf19a",
+  "omarchy_commit": "5978d93ae7da0a325b7493501911e3f1266cadd3",
   "sources": [
     {
-      "path": "/home/gm/flea-work/omarchy-450rc1/src/install/provisioning/setup-form.sh",
-      "sha256": "5d3bd6443ebc63efec95b686ee0ae7a3717d0ebdd2829820b5fa0d95f089e029"
+      "path": "/home/gm/flea-work/omarchy-450rc2/install/provisioning/setup-form.sh",
+      "sha256": "e1ca1e3de6b8a3bc68077923997eccd84560f717772dcda70070269172039825"
     },
     {
-      "path": "/home/gm/flea-work/omarchy-450rc1/src/default/input-methods/typing_setup.py",
-      "sha256": "627b693e123fe4b40b6947bdea0783807e3be347c9ba085c862252aede7406e4"
+      "path": "/home/gm/flea-work/omarchy-450rc2/default/input-methods/typing_setup.py",
+      "sha256": "4a5dfc4059c0d5e2744dda526ce1cdf67b9ec374ef5fec4a1d61ccc9c27fd5d6"
     },
     {
-      "path": "/home/gm/flea-work/omarchy-450rc1/src/bin/omarchy-provision-owner",
-      "sha256": "eefb93212d412caa54435211acb39fe5b3aad2633587c518fa68d013bd7bf577"
+      "path": "/home/gm/flea-work/omarchy-450rc2/bin/omarchy-provision-owner",
+      "sha256": "3fa80e6f9cb20c89fbe3bf32e06c48d4aa12c40b4768902345905b0c180c8c5f"
     }
   ],
   "model_map": {

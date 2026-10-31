@@ -2,8 +2,8 @@
   "schema": 1,
   "upstream": {
     "repository": "https://github.com/omacom/omarchy.git",
-    "tag": "v4.5.0-rc1",
-    "commit": "03ff1eff3812933f7088484533784d2f63eaf19a"
+    "tag": "v4.5.0-rc2",
+    "commit": "5978d93ae7da0a325b7493501911e3f1266cadd3"
   },
   "fixtures": {
     "locales.json": {

@@ -2,7 +2,7 @@
 
 `installer.json` preserves every literal installer row, without merging duplicate
 US layouts used by different input methods. It records source hashes at Omarchy
-`03ff1eff3812933f7088484533784d2f63eaf19a` (v4.5.0-rc1). `omarchy/install/provisioning/setup-form.sh`
+`5978d93ae7da0a325b7493501911e3f1266cadd3` (v4.5.0-rc2). `omarchy/install/provisioning/setup-form.sh`
 is that exact file, so `i50_layout_count_pinned` extracts the list without the
 checkout. The count is read from the source; the test pins 52 for this commit only.
 A new pin adds its commit and count to the test and regenerates this fixture.

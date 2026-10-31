@@ -7,7 +7,7 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE_SHA = "03ff1eff3812933f7088484533784d2f63eaf19a"
+SOURCE_SHA = "5978d93ae7da0a325b7493501911e3f1266cadd3"
 SOURCE_PATHS = {
     "default/i18n/locales.json", "shell/Commons/I18n.qml", "shell/Commons/Util.qml",
     *[f"shell/Ui/{name}.qml" for name in (
@@ -32,7 +32,7 @@ class RtlPolicyTests(unittest.TestCase):
         policy = self.policy()
         self.assertEqual(policy["schema"], 1)
         self.assertEqual(policy["source"]["sha"], SOURCE_SHA)
-        self.assertEqual(policy["source"]["tag"], "v4.5.0-rc1")
+        self.assertEqual(policy["source"]["tag"], "v4.5.0-rc2")
         self.assertEqual(policy["status"], "provisional-source-contract")
         self.assertEqual(policy["native_reference"]["status"], "owed")
         self.assertEqual(policy["native_reference"]["languages"], ["ar", "he"])
