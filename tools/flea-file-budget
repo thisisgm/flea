@@ -29,7 +29,7 @@ src/backend/gvfslist.rs 513
 src/backend/imagesize.rs 559
 src/backend/iomount.rs 634
 src/backend/localsend.rs 432
-src/backend/menu_actions.rs 674
+src/backend/menu_actions.rs 685
 src/backend/menu_registry.rs 569
 src/backend/meta.rs 550
 src/backend/metareq.rs 541
@@ -95,7 +95,7 @@ tests/js/network.js 307
 tests/js/ops.js 574
 tests/js/slowclick.js 309
 tests/js/settings.js 398
-tests/js/tap.js 401
+tests/js/tap.js 429
 tests/js/uistate.js 489
 tests/js/watch.js 541
 tests/js/xwwatch.js 299
@@ -134,10 +134,10 @@ ui/Backend.qml 606
 ui/MenuActionDialog.qml 396
 ui/ChromeBar.qml 352
 ui/ColumnsArea.qml 594
-ui/ColumnPane.qml 461
+ui/ColumnPane.qml 469
 ui/ContextMenu.qml 740
 ui/ConvertDialog.qml 456
-ui/GridArea.qml 665
+ui/GridArea.qml 672
 ui/Ipc.qml 993
 tests/gridprebuild.qml 457
 tests/code-column.qml 416
@@ -146,7 +146,7 @@ tests/preview-layout-loop.qml 408
 tests/preview-scroll.qml 523
 tests/columnsprebuild.qml 416
 ui/KeymapSheet.qml 551
-ui/List.qml 480
+ui/List.qml 487
 tests/listprebuild.qml 410
 tests/poolpark.qml 419
 tests/touchpad-edge.qml 438
@@ -158,7 +158,7 @@ ui/NetworkDialog.qml 435
 ui/NetworkForm.qml 426
 ui/NetworkMounts.qml 913
 ui/OpenWithDialog.qml 613
-ui/Pane.qml 1235
+ui/Pane.qml 1258
 ui/PaneMenuActions.qml 527
 ui/PaneWire.qml 602
 ui/PermissionsDialog.qml 658
@@ -185,8 +185,8 @@ ui/js/Anchor.js 379
 ui/js/ColumnsCarry.js 103
 ui/js/Devices.js 440
 ui/js/Filter.js 284
-ui/js/Focus.js 492
-ui/js/Keymap.js 370
+ui/js/Focus.js 494
+ui/js/Keymap.js 371
 ui/js/Nav.js 328
 ui/js/Markdown.js 135
 ui/js/MdBlocks.js 437

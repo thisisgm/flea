@@ -175,9 +175,12 @@ ListView {
             onTapped: function (eventPoint, button) {
                 if (button === Qt.MiddleButton)
                     Tap.tappedTab(root.pane.rowFor(listingIndex), root.pane.path, root.pane)
-                else if (button === Qt.RightButton)
-                    Tap.tappedMenu(listingIndex, eventPoint, root.pane, root.menu)
-                else {
+                else if (button === Qt.RightButton) {
+                    if (tap.point.modifiers & Qt.AltModifier)
+                        Tap.tappedWheel(cell.listingIndex, root.pane, eventPoint.scenePosition)
+                    else
+                        Tap.tappedMenu(listingIndex, eventPoint, root.pane, root.menu)
+                } else {
                     var wasSole = root.pane.slowClickWasSole(listingIndex)
                     Tap.tapped(listingIndex, tap.tapCount, tap.point.modifiers, root.pane)
                     Tap.slowTap(root.pane, tap.tapCount === 1 && Tap.onName(cell.nameItem(), cell, eventPoint.position, false),
@@ -205,9 +208,13 @@ ListView {
     // background menu. Tap.onBackground says the point missed every delegate, which is what leaves a
     // right click on a row to that row's own handler above.
     TapHandler {
+        id: backgroundTap
         acceptedButtons: Qt.RightButton
         onTapped: function (eventPoint) {
-            if (Tap.onBackground(root, eventPoint))
+            if (!Tap.onBackground(root, eventPoint)) return
+            if (backgroundTap.point.modifiers & Qt.AltModifier)
+                Tap.tappedWheel(-1, root.pane, eventPoint.scenePosition)
+            else
                 root.menu.openBackground(eventPoint.scenePosition)
         }
     }

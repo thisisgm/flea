@@ -169,6 +169,7 @@ import "uistate.js" as UiStateSuite
 import "unlock.js" as UnlockSuite
 import "update.js" as UpdateSuite
 import "watch.js" as WatchSuite
+import "wheel.js" as WheelSuite
 import "xwwatch.js" as XwWatchSuite
 import "xwanchor-races.js" as XwAnchorRacesSuite
 import "renameview.js" as RenameViewSuite
@@ -222,7 +223,8 @@ Item {
             ["trash", TrashSuite], ["trashdrop", TrashDropSuite], ["tap", TapSuite], ["marquee", MarqueeSuite], ["tabs", TabsSuite], ["tabcatcher", TabCatcherSuite], ["tabs-switch", TabsSwitchSuite], ["tabmove", TabMoveSuite], ["tabrestore", TabRestoreSuite], ["shelfmodel", ShelfModelSuite],
             ["mdgates", MdGatesSuite],
             ["themes", ThemesSuite], ["thumbs", ThumbsSuite], ["extthumbs", ExtThumbsSuite], ["transfer", TransferSuite], ["uistate", UiStateSuite], ["unlock", UnlockSuite], ["update", UpdateSuite],
-            ["watch", WatchSuite], ["xwwatch", XwWatchSuite], ["xwanchor-races", XwAnchorRacesSuite], ["renameview", RenameViewSuite], ["xwrl4", Xwrl4Suite], ["gvfsbridge", GvfsBridgeSuite]
+            ["watch", WatchSuite], ["xwwatch", XwWatchSuite], ["xwanchor-races", XwAnchorRacesSuite], ["renameview", RenameViewSuite], ["xwrl4", Xwrl4Suite], ["gvfsbridge", GvfsBridgeSuite],
+            ["wheel", WheelSuite]
         ]
         var argv = Qt.application.arguments
         var only = ""

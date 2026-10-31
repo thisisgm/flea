@@ -124,6 +124,20 @@ function onBackground(view, eventPoint) {
     return view.indexAt(eventPoint.position.x, eventPoint.position.y) < 0
 }
 
+// Alt+right-click is Tangerine's own pointer gesture for the wheel, kept beside its click contract.
+// The row under the pointer takes the cursor and the wheel opens there; the action set itself reads
+// the selection, exactly as the menu's rows do. A background press leaves the selection standing.
+function tappedWheel(index, root, scenePoint) {
+    if (index >= 0) {
+        var picked = root.selectedIndices()
+        if (picked.length > 0 && picked.indexOf(index) < 0)
+            root.clearSelection()
+        root.setCursor(index, 0)
+    }
+    root.cancelSlowClick()
+    root.openActionWheel(scenePoint)
+}
+
 // A neighbour column in the columns view is a peek with no cursor of its own, so its rows answer a
 // verb rather than acting. One tap on a directory makes it the pane's listing, which is the column
 // view's own reveal and not an open; only a second tap opens a file. A peeked row belongs to another

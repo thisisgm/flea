@@ -73,6 +73,7 @@ Divider 1.0 Divider.qml
 EscapeHint 1.0 EscapeHint.qml
 ContextMenu 1.0 ContextMenu.qml
 MenuHost 1.0 MenuHost.qml
+ActionWheel 1.0 ActionWheel.qml
 KeymapSheet 1.0 KeymapSheet.qml
 KeymapSheetResult 1.0 KeymapSheetResult.qml
 SettingsPanel 1.0 SettingsPanel.qml

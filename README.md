@@ -227,6 +227,7 @@ Press **?** for the full keymap, or **,** to change settings.
 | Next / previous area | `Tab` / `Shift+Tab` |
 | New tab / close tab / switch tab | `t` / `w` / `1` to `9` |
 | Open terminal / context menu | `Ctrl+T` / `m` |
+| Action wheel on the cursor or selection | `W`, or `Alt` + right-click |
 | Show hidden files | `.` |
 | Zoom an image in Quick Look / fit | `+` `-` / `0` |
 
