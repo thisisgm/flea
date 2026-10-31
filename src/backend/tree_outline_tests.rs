@@ -209,10 +209,11 @@ fn tree_outline_watch_notices_a_child_and_collapse_keeps_the_root_watch() {
     let (tx, rx) = events::channel();
     let mut watch = Watch::start(tx);
     watch.begin(dir.path());
-    watch.commit();
+    watch.commit(Vec::new());
     let wd = Watch::add_raw(watch.raw_fd(), &child);
     assert!(wd >= 0);
-    watch.commit_outline(vec![wd]);
+    watch.begin(dir.path());
+    watch.commit(vec![wd]);
     dir.file("A/new.txt", "new");
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
     let mut changed = false;
@@ -225,7 +226,8 @@ fn tree_outline_watch_notices_a_child_and_collapse_keeps_the_root_watch() {
         }
     }
     assert!(changed && watch.is_current(wd));
-    watch.commit_outline(Vec::new());
+    watch.begin(dir.path());
+    watch.commit(Vec::new());
     assert!(!watch.is_current(wd));
     dir.file("root.txt", "root");
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);

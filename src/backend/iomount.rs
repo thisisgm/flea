@@ -290,6 +290,18 @@ pub struct ListErr {
     pub mode: u32,
     pub watch_wd: i32,
 }
+// The loop gave up first, so every descriptor the scan armed, expanded children included, goes back for its guarded drop.
+fn hand_back_late(out: &Result<ListOut, ListErr>, tx: &super::events::Sender<super::events::Event>) {
+    if let Ok(done) = out {
+        for &wd in &done.listing.outline_watches {
+            let _ = tx.send(super::events::Event::AbandonWatch(wd));
+        }
+    }
+    let wd = match out { Ok(done) => done.watch_wd, Err(failed) => failed.watch_wd };
+    if wd >= 0 {
+        let _ = tx.send(super::events::Event::AbandonWatch(wd));
+    }
+}
 // Sample request: {"c":"list","path":"/hung/dir","first":350,"hidden":false} on an nfs mount.
 // Eight inputs: the request fields plus the mount table they classify against.
 #[allow(clippy::too_many_arguments)]
@@ -305,18 +317,7 @@ pub fn list_dir(
 ) -> Result<ListOut, ListErr> {
     let path_buf = std::path::PathBuf::from(&path);
     let late_tx = loop_tx.clone();
-    call_with_flag(&path_buf, body, "scan", CALL_DEADLINE, STUCK_TTL, move |out: Result<ListOut, ListErr>| {
-        // The loop gave up first, so the late descriptor goes back for its guarded drop on the loop.
-        if let Ok(done) = &out {
-            for &wd in &done.listing.outline_watches {
-                let _ = late_tx.send(super::events::Event::AbandonWatch(wd));
-            }
-        }
-        let wd = match &out { Ok(done) => done.watch_wd, Err(failed) => failed.watch_wd };
-        if wd >= 0 {
-            let _ = late_tx.send(super::events::Event::AbandonWatch(wd));
-        }
-    }, move || {
+    call_with_flag(&path_buf, body, "scan", CALL_DEADLINE, STUCK_TTL, move |out: Result<ListOut, ListErr>| hand_back_late(&out, &late_tx), move || {
         let base = std::path::PathBuf::from(&path);
         let wd = super::watch::Watch::add_raw(fd, &base);
         match super::scan::scan(&path, hidden) {
@@ -330,6 +331,7 @@ pub fn list_dir(
                     }
                 };
                 let (child_read, child_sort) = super::outline::expand(&mut l, &base, hidden, &line, mime.clone(), fd, loop_tx.clone());
+                // Child rows shift every row after them, so sizes keyed by row index would land on the wrong rows.
                 if !l.outline_open.is_empty() { sized.clear(); }
                 let dev = super::fsinfo::dev_of(&base);
                 let writable = super::ops::dir_writable(&base);

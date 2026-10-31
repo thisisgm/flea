@@ -262,8 +262,7 @@ pub fn finish<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, w
     let landed = match done.result {
         Ok(listed) => {
             watch.set_incoming(listed.watch_wd, listed.watch_mount.clone());
-            watch.commit();
-            watch.commit_outline(listed.listing.outline_watches.clone());
+            watch.commit(listed.listing.outline_watches.clone());
             // Said once per listing, because a folder nobody can watch goes stale in silence.
             if watch.refused() {
                 eprintln!("flea: {} will not follow outside changes, inotify refused a watch on it", path);

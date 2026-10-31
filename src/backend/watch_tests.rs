@@ -114,9 +114,7 @@ fn saw_a_create(fd: c_int, wd: c_int) -> bool {
     false
 }
 
-// inotify_add_watch answers the descriptor the folder already holds, so an abandoned re-list of the
-// directory on screen must not remove it. This one carries a real descriptor because the two below
-// run at fd -1, where drop_one makes no syscall and the guard therefore has nothing to show.
+// An abandoned re-list of the open folder aliases onto its descriptor; a real fd, since at -1 drop_one makes no syscall.
 #[test]
 fn an_abandoned_re_list_of_the_same_folder_keeps_its_watch() {
     let sandbox = crate::backend::testdir::TestDir::new("watch-abandon");
@@ -124,7 +122,7 @@ fn an_abandoned_re_list_of_the_same_folder_keeps_its_watch() {
     assert!(fd >= 0, "this box has no inotify to test with");
     let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
     w.begin(sandbox.path());
-    w.commit();
+    w.commit(Vec::new());
     let live = w.wd;
     assert!(live >= 0, "the sandbox could not be watched");
 
@@ -145,7 +143,7 @@ fn a_second_begin_of_one_folder_keeps_the_watch_it_arms() {
     let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
     w.begin(sandbox.path());
     w.begin(sandbox.path());
-    w.commit();
+    w.commit(Vec::new());
     assert!(w.wd >= 0, "the sandbox could not be watched");
     sandbox.file("after-a-second-begin.txt", "x");
     assert!(saw_a_create(fd, w.wd), "the second begin removed the watch it had just armed");
@@ -184,7 +182,7 @@ fn a_late_re_list_of_the_open_folder_keeps_its_watch() {
     assert!(fd >= 0, "this box has no inotify to test with");
     let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
     w.begin(sandbox.path());
-    w.commit();
+    w.commit(Vec::new());
     let live = w.wd;
     assert!(live >= 0, "the sandbox could not be watched");
     let late = Watch::add_raw(fd, sandbox.path());
@@ -203,7 +201,7 @@ fn abandon_wd_removes_only_a_watch_that_is_not_live() {
     assert!(fd >= 0, "this box has no inotify to test with");
     let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
     w.begin(a.path());
-    w.commit();
+    w.commit(Vec::new());
     let live = w.wd;
     assert!(live >= 0, "the sandbox could not be watched");
     let other = Watch::add_raw(fd, b.path());
@@ -229,7 +227,7 @@ fn an_abandoned_scan_leaves_the_current_watch_alone() {
 #[test]
 fn a_committed_scan_takes_over_from_the_old_watch() {
     let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: 9, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
-    w.commit();
+    w.commit(Vec::new());
     assert!(w.is_current(9));
     assert!(!w.is_current(7));
 }
@@ -239,7 +237,7 @@ fn a_committed_scan_takes_over_from_the_old_watch() {
 fn set_incoming_captures_the_mount_commit_takes() {
     let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
     w.set_incoming(7, Path::new("/media/stick").to_path_buf());
-    w.commit();
+    w.commit(Vec::new());
     assert!(w.is_current(7));
     assert_eq!(w.mount, Path::new("/media/stick"), "the watch reports against a dead mountpoint");
 }
@@ -283,3 +281,6 @@ fn the_changed_line_names_its_directory() {
         r#"{"t":"changed","path":"/tmp/a \"b\""}"#
     );
 }
+
+#[path = "watch_outline_tests.rs"]
+mod outline;

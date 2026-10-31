@@ -50,7 +50,7 @@ extern "C" {
     fn read(fd: c_int, buf: *mut c_void, count: usize) -> isize;
 }
 
-// One directory at a time plus the one a scan is reading; a negative descriptor is nothing watched.
+// The open directory, its expanded children and the one a scan is reading; a negative descriptor is nothing watched.
 pub struct Watch {
     outline: Vec<i32>,
     fd: std::sync::OnceLock<c_int>,
@@ -79,51 +79,35 @@ impl Watch {
         self.set_incoming(self.add(path), live_mount_of(path));
     }
 
-    // A re-list answers the descriptor the folder already had, so dropping it would unwatch it.
-    pub fn commit_outline(&mut self, descriptors: Vec<i32>) {
-        for &wd in &self.outline {
-            if wd != self.wd && !descriptors.contains(&wd) { self.drop_one(wd); }
-        }
-        self.outline = descriptors;
-    }
-    pub fn commit(&mut self) {
-        if self.incoming != self.wd && !self.outline.contains(&self.wd) {
-            self.drop_one(self.wd);
-        }
+    // The folder and its expanded children land together, so going up or in keeps a descriptor the new listing reuses.
+    pub fn commit(&mut self, outline: Vec<i32>) {
+        let retired: Vec<c_int> = std::iter::once(self.wd).chain(std::mem::replace(&mut self.outline, outline)).collect();
         self.wd = self.incoming;
         self.incoming = -1;
         if !self.incoming_mount.as_os_str().is_empty() {
             self.mount = std::mem::take(&mut self.incoming_mount);
         }
+        retired.into_iter().for_each(|wd| self.retire(wd));
     }
 
     // The scan failed, so the listing did not move and neither does its watch, aliased or not.
     pub fn abandon(&mut self) {
-        if self.incoming != self.wd {
-            self.drop_one(self.incoming);
-        }
+        self.retire(self.incoming);
         self.incoming = -1;
         self.incoming_mount = std::path::PathBuf::new();
     }
 
     // A failed scan armed its watch on the worker, so the loop removes that descriptor too; an aliased re-list stays.
     pub fn abandon_wd(&mut self, wd: c_int) {
-        if wd >= 0 && wd != self.wd && !self.outline.contains(&wd) {
-            self.drop_one(wd);
-        }
+        self.retire(wd);
         self.abandon();
     }
 
+    // Nothing lands after a stop, so every descriptor goes, the aliased ones included.
     pub fn stop(&mut self) {
-        self.commit_outline(Vec::new());
-        self.drop_one(self.wd);
-        if self.incoming != self.wd {
-            self.drop_one(self.incoming);
-        }
-        self.wd = -1;
-        self.incoming = -1;
+        self.abandon();
+        self.commit(Vec::new());
         self.mount = std::path::PathBuf::new();
-        self.incoming_mount = std::path::PathBuf::new();
     }
 
     // Sample input: open "/media/stick/photos" with mount "/media/stick" starts "/media".
@@ -160,9 +144,11 @@ impl Watch {
             fd
         })
     }
-    // The worker's descriptor becomes the incoming watch the commit takes over.
+    // The worker's descriptor becomes the incoming watch the commit takes over; the one it replaces goes only if unused.
     pub(crate) fn set_incoming(&mut self, wd: c_int, mount: std::path::PathBuf) {
-        self.drop_one(self.incoming);
+        if self.incoming != wd {
+            self.retire(self.incoming);
+        }
         self.incoming = wd;
         self.incoming_mount = mount;
     }
@@ -176,6 +162,12 @@ impl Watch {
             Err(_) => -1,
         }
     }
+    // inotify answers one descriptor per directory however often it is added, so a descriptor still in use stays.
+    fn retire(&self, wd: c_int) {
+        if !self.is_current(wd) {
+            self.drop_one(wd);
+        }
+    }
     fn drop_one(&self, wd: c_int) {
         if let Some(&fd) = self.fd.get().filter(|&&fd| fd >= 0 && wd >= 0) {
             unsafe { inotify_rm_watch(fd, wd) };
@@ -187,9 +179,14 @@ impl Watch {
         self.fd.get().is_some_and(|&fd| fd >= 0) && self.wd < 0
     }
 
-    // A removed watch's own IN_IGNORED arrives late, so only a matching descriptor is this folder's.
+    // A removed watch's own IN_IGNORED arrives late, so only a matching descriptor is the listing's, open folder or expanded child.
     pub fn is_current(&self, wd: i32) -> bool {
         wd >= 0 && (wd == self.wd || self.outline.contains(&wd))
+    }
+
+    // Only the open folder's own descriptor moves the pane when its volume goes; a child's re-lists it.
+    pub fn is_open_folder(&self, wd: i32) -> bool {
+        wd >= 0 && wd == self.wd
     }
 }
 

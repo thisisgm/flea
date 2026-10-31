@@ -74,7 +74,7 @@ fn m9_g2rows_01_review_failed_and_cancelled_search_preserves_watch() {
         let mut f = Fixture::new();
         let mut watch = Watch::start(f.tx.clone());
         watch.begin(&f.root);
-        watch.commit();
+        watch.commit(Vec::new());
         f.st.base = f.root.clone();
         f.st.held = Held::List;
         f.st.contents.program = Some(f.root.join("missing-rg"));
