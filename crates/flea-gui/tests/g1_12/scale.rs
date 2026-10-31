@@ -6,6 +6,7 @@ use super::{
 use flea_gui::{
     list::Typeface,
     path::{paint::Size, scale::Scale, suggestions::Popup},
+    presentation::Fonts,
 };
 use gpui::{px, TestAppContext};
 
@@ -130,5 +131,31 @@ fn the_field_and_the_popup_follow_the_text_size(cx: &mut TestAppContext) {
         (f32::from(field), popup.y, popup.height, popup.scale.row),
         (18., 40., 172., 52.),
         "the field and the popup at body 20"
+    );
+}
+
+#[gpui::test]
+fn the_launch_fonts_hand_the_field_the_windows_face_over_the_callers(cx: &mut TestAppContext) {
+    let mut bar = ranked(cx, "o");
+    let caller = Typeface {
+        body: px(20.),
+        body_small: px(18.),
+        caption: px(17.),
+        ..Typeface::omarchy_default()
+    };
+    let window_face = bar.update(|view, window, cx| {
+        view.paint.borrow_mut().typeface = caller.clone();
+        cx.set_global(Fonts::from_sources("", "", "monospace".into()));
+        cx.notify();
+        Typeface::for_window(window, cx)
+    });
+    assert_ne!(
+        window_face, caller,
+        "the window's face must differ for the check to bite"
+    );
+    assert_eq!(
+        bar.read(|view| view.paint.borrow().typeface.clone()),
+        window_face,
+        "with the launch's fonts installed the field takes the window's face"
     );
 }
