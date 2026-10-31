@@ -158,11 +158,20 @@ fn f_and_b_page_rendered_markdown_by_its_viewport_height(cx: &mut TestAppContext
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","lines":800"#);
     let deadline = Instant::now() + Duration::from_secs(10);
+    // The swap draws the document only once the parse thread answers, so an undrawn column is still loading.
     let tall = |cx: &mut VisualTestContext| {
-        let view = markdown(&shell, cx);
-        cx.read(|cx| {
-            view.read(cx).content_height() > 3. * view.read(cx).frame.1
-                && view.read(cx).frame.1 > 0.
+        let drawn = shell.read_with(cx, |shell, cx| {
+            let preview = shell.selection_preview(0)?;
+            match preview.read(cx).drawn.as_ref().map(|frame| &frame.mounted) {
+                Some(Mounted::Doc(Doc::Markdown(view))) => Some(view.clone()),
+                _ => None,
+            }
+        });
+        drawn.is_some_and(|view| {
+            cx.read(|cx| {
+                view.read(cx).content_height() > 3. * view.read(cx).frame.1
+                    && view.read(cx).frame.1 > 0.
+            })
         })
     };
     while !tall(cx) {
