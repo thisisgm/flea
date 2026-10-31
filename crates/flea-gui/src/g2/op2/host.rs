@@ -1,6 +1,5 @@
 //! The window's archive and flash host: menu choices open the cards, every effect reaches the origin backend, replies return by request.
 use super::{
-    cards::DialogShell,
     compress::{self, Compress},
     draw::StandIn,
     draw_flash::{CancelTap, ClickTap, DownTap, FlashFrame, FlashTaps, HoverTap, StepTap, UpTap},
@@ -54,6 +53,8 @@ pub(crate) struct Archive {
     /// The image chooser, `flea flash choose` by default; a test swaps it for a fixture command.
     pub(crate) chooser: fn() -> Command,
     pub(crate) picking: Option<Task<()>>,
+    /// Where the open card's password eye last painted, for archiveCardsState.
+    pub(crate) eye: super::draw::EyeProbe,
     epoch: Option<Instant>,
 }
 
@@ -71,6 +72,7 @@ impl Default for Archive {
             handed: None,
             chooser: chooser_command,
             picking: None,
+            eye: Default::default(),
             epoch: None,
         }
     }

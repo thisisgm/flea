@@ -82,7 +82,8 @@ impl Shell {
                     }
                 }
             }
-            let drawn = StandIn.present(&card, &palette, &typeface, room, radius);
+            let eye = Some(archive.eye.clone());
+            let drawn = StandIn.present_probed(&card, &palette, &typeface, room, radius, eye);
             let ground = cx.listener(|shell: &mut Shell, _: &MouseDownEvent, window, cx| {
                 let archive = &mut shell.operations.archive;
                 let side = archive.card_side;

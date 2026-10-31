@@ -9,6 +9,7 @@ pub mod keys;
 pub mod listing;
 pub mod mark;
 pub mod phones;
+pub mod probes;
 pub mod process;
 pub mod seams;
 pub mod secret;

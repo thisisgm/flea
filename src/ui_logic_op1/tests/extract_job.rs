@@ -20,3 +20,26 @@ fn a_running_extract_block_reads_as_the_extracting_board_draws_it() {
     assert!((block.bar.unwrap() - 3.7 / 9.7).abs() < 1e-9);
     assert_eq!(block.buttons, vec![Action::Cancel]);
 }
+
+// EY-326: an extract the backend ends as encrypted opens the password card, so the Jobs card draws no failure for it.
+#[test]
+fn an_encrypted_extract_draws_no_failed_block() {
+    let row = |id: u64, reason: &str| {
+        let line = format!(
+            r#"{{"t":"job","job":{{"id":{id},"kind":"extract","head":"Extracting locked.7z","file":"","done":0,"total":1,"state":"failed","reason":"{reason}","output":[],"undo":false,"cancelled":false}},"unfinished":0}}"#
+        );
+        let Some(Event::Job { job, .. }) = parse(&line) else {
+            panic!("not a job line");
+        };
+        job
+    };
+    let mut held = jobs::Jobs::default();
+    held.update(row(4, "encrypted"));
+    assert_eq!(jobs::state(&held.rows[0]), jobs::State::Done);
+    assert!(
+        !held.visible(),
+        "the password card asks; no failed block is drawn"
+    );
+    held.update(row(5, "no space left on device"));
+    assert_eq!(held.blocks().map(|r| r.id).collect::<Vec<_>>(), vec![5]);
+}

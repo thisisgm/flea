@@ -4,7 +4,13 @@ use super::draw_step::{DISABLED_OPACITY, WASH_PRESS};
 use super::flash::SEL_FORMAT_LABEL;
 use crate::g2::op3::shell::glyph;
 use crate::list::{Palette, Typeface};
-use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight, Hsla, Pixels};
+use gpui::{
+    canvas, div, prelude::*, px, relative, AnyElement, Bounds, Div, FontWeight, Hsla, Pixels,
+};
+use std::{cell::Cell, rc::Rc};
+
+/// Where the first secret field's eye painted, for archiveCardsState's eye centre.
+pub type EyeProbe = Rc<Cell<Option<Bounds<Pixels>>>>;
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
 pub struct StandIn;
@@ -71,6 +77,32 @@ impl Draw<'_> {
     }
 
     pub(super) fn field(&self, field: &Field) -> Div {
+        self.field_probed(field, None)
+    }
+
+    /// The eye glyph, recording its painted bounds into the probe when one is given.
+    fn eye(&self, probe: Option<EyeProbe>) -> Div {
+        let eye = div().flex_none().relative().child(glyph(
+            Glyph::Eye,
+            super::cards::EYE * self.s,
+            self.t.muted_frame,
+        ));
+        match probe {
+            Some(probe) => eye.child(
+                canvas(
+                    |_, _, _| {},
+                    move |painted, _, _, _| probe.set(Some(painted)),
+                )
+                .absolute()
+                .top_0()
+                .left_0()
+                .size_full(),
+            ),
+            None => eye,
+        }
+    }
+
+    fn field_probed(&self, field: &Field, probe: Option<EyeProbe>) -> Div {
         let t = self.t;
         let caret = || div().w(px(1.)).h(self.px(CARET)).flex_none().bg(t.fg);
         let mut line = div()
@@ -113,7 +145,7 @@ impl Draw<'_> {
                 self.typeface,
             ));
             if field.eye {
-                line = line.child(glyph(Glyph::Eye, super::cards::EYE * self.s, t.muted_frame));
+                line = line.child(self.eye(probe));
             }
             return match &field.label {
                 Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
@@ -121,7 +153,13 @@ impl Draw<'_> {
             };
         }
         let drawn = field.drawn();
-        let mut text = div().flex().items_center().min_w_0().overflow_hidden();
+        // The text takes the free width, so the eye sits at the right edge whatever the field holds.
+        let mut text = div()
+            .flex()
+            .flex_1()
+            .items_center()
+            .min_w_0()
+            .overflow_hidden();
         if drawn.is_empty() {
             if field.focused {
                 text = text.child(caret());
@@ -142,7 +180,7 @@ impl Draw<'_> {
         }
         line = line.child(text);
         if field.eye {
-            line = line.child(glyph(Glyph::Eye, super::cards::EYE * self.s, t.muted_frame));
+            line = line.child(self.eye(probe));
         }
         match &field.label {
             Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
@@ -182,9 +220,12 @@ impl Draw<'_> {
             )
     }
 
-    fn block(&self, block: &Block) -> AnyElement {
+    fn block(&self, block: &Block, probe: &mut Option<EyeProbe>) -> AnyElement {
         match block {
             Block::Chips(chips) => self.chips(chips).into_any_element(),
+            Block::Field(field) if field.secret && field.eye => {
+                self.field_probed(field, probe.take()).into_any_element()
+            }
             Block::Field(field) => self.field(field).into_any_element(),
             Block::CheckLine(check) => self.checkline(check).into_any_element(),
             Block::Note { text, ink } => {
@@ -241,6 +282,21 @@ impl super::cards::DialogShell for StandIn {
         room: f32,
         radius: f32,
     ) -> AnyElement {
+        self.present_probed(card, palette, typeface, room, radius, None)
+    }
+}
+
+impl StandIn {
+    /// The card with the first secret field's eye bounds recorded into the probe.
+    pub fn present_probed(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        room: f32,
+        radius: f32,
+        mut probe: Option<EyeProbe>,
+    ) -> AnyElement {
         let s = f32::from(typeface.body) / BOARD_BODY;
         let draw = Draw {
             t: Tokens::of(palette),
@@ -287,7 +343,7 @@ impl super::cards::DialogShell for StandIn {
             .child(head)
             .child(draw.hairline());
         for block in &card.body {
-            frame = frame.child(draw.block(block));
+            frame = frame.child(draw.block(block, &mut probe));
         }
         let mut buttons = div()
             .mt(draw.px(ABOVE_BUTTONS))

@@ -152,7 +152,7 @@ fn ipc_readers3_run_card_refuses_its_geometry(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn ipc_readers3_archive_cards_read_closed_then_refuse_their_eye_geometry(cx: &mut TestAppContext) {
+fn ipc_readers3_archive_cards_read_closed_then_answer_the_open_card(cx: &mut TestAppContext) {
     let handle = open(cx);
     value(cx, handle, "archiveCardsState", &[], "{\"opened\":false}");
     update(cx, handle, |shell, _, _| {
@@ -163,12 +163,20 @@ fn ipc_readers3_archive_cards_read_closed_then_refuse_their_eye_geometry(cx: &mu
             &shell.locale.catalog,
         );
     });
-    refused(
-        cx,
-        handle,
-        "archiveCardsState",
-        "compressCapture.eye, extractCapture.eye",
-    );
+    // EY-325: the open card answers v0.3.12's shape instead of refusing, so a lane can wait on it.
+    let reply = read(cx, handle, "archiveCardsState", &[]);
+    assert_eq!(reply.code, 0, "{reply:?}");
+    for part in [
+        "\"opened\":true",
+        "\"compressOpened\":false",
+        "\"compressCapture\":null",
+        "\"extractOpened\":true",
+        "\"extractLeaf\":\"private.7z\"",
+        "\"extractFocus\":0",
+        "\"canExtract\":false",
+    ] {
+        assert!(reply.stdout.contains(part), "{part} in {}", reply.stdout);
+    }
 }
 
 #[gpui::test]
