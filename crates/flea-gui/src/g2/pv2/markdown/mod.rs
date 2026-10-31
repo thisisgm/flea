@@ -10,6 +10,7 @@ mod selection;
 mod source;
 pub mod style;
 mod worker;
+mod words;
 
 pub use asks::FIGURE_HOLD_MS;
 pub use assets::{Art, Snapshot};
@@ -19,9 +20,10 @@ pub use flea::ui_logic_pv2::markdown::markdown_keys::{Effect, View};
 pub use source::Answer;
 pub use style::{Faces, Palette};
 pub use worker::{line_starts, TextMeasure, MAX_BYTES};
+pub use words::Words;
 
 use flea::i18n::I18n;
-use flea::ui_logic_pv2::markdown::{markdown_keys, markdown_layout::Metrics, NESTING_LIMIT};
+use flea::ui_logic_pv2::markdown::{markdown_keys, markdown_layout::Metrics};
 use gpui::{Context, Entity, Subscription, Task, Window};
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
@@ -121,30 +123,6 @@ pub struct Bar {
     pub views: [(View, String, bool); 2],
     pub close: String,
     pub close_focused: bool,
-}
-
-/// The sentences the view writes, from the catalog.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Words {
-    pub remote: Arc<str>,
-    pub deep: String,
-    pub too_large: String,
-    pub unreadable: String,
-    pub binary: String,
-    pub large: String,
-}
-
-impl Words {
-    pub fn of(i18n: &I18n) -> Self {
-        Words {
-            remote: i18n.tr("document.markdown_remote_image").into(),
-            deep: i18n.tr_args("document.markdown_too_deep", &[&NESTING_LIMIT.to_string()]),
-            too_large: i18n.tr("document.markdown_too_large"),
-            unreadable: i18n.tr("document.markdown_unreadable"),
-            binary: i18n.tr("document.markdown_binary"),
-            large: i18n.tr("document.markdown_large"),
-        }
-    }
 }
 
 /// Counts the suites read in place of a clock: what was parsed where, laid, shaped and drawn.
