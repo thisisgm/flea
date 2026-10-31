@@ -212,11 +212,11 @@ pub(crate) fn qs_command(target: PathBuf) -> Command {
     } else {
         apply_renderer(&mut cmd, automatic_renderer(crate::vkprobecache::usable()));
     }
-    // FleaNative is a built plugin that a fresh clone or a package may not carry: only a ui/ whose
-    // modules/FleaNative holds the plugin goes on the import path, and FLEA_NATIVE tells the panes so,
-    // since importing a missing module warns on every launch.
-    if let Some(modules) = target.ancestors().skip(1).map(|dir| dir.join("modules"))
-        .find(|modules| modules.join("FleaNative").join("libfleanativeplugin.so").is_file())
+    // FleaNative is a built plugin a fresh clone or package may lack: only this ui root (the entry's folder, or the one
+    // above boot/, never a further ancestor) with the plugin goes on the import path, and FLEA_NATIVE tells the panes.
+    let ui = target.parent().and_then(|dir| if dir.file_name().is_some_and(|name| name == "boot") { dir.parent() } else { Some(dir) });
+    if let Some(modules) = ui.map(|ui| ui.join("modules"))
+        .filter(|modules| modules.join("FleaNative").join("libfleanativeplugin.so").is_file())
     {
         let current = std::env::var("QML_IMPORT_PATH").unwrap_or_default();
         let new_val = if current.is_empty() {

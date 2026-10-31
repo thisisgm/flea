@@ -593,12 +593,9 @@ FocusScope {
             var nRow = root.nativeModel.get(index)
             // The native scan is independent of the backend's sort and grouping, so it is trusted only
             // where it names the same file; its k is an icon class, so the backend's kind index is kept.
-            // Fields only the backend fills (tg and the like) carry over; k is the backend's kind index.
-            if (nRow && nRow.n !== undefined && nRow.n.length > 0 && bRow && bRow.n === nRow.n) {
-                var merged = Object.assign({}, bRow, nRow)
-                merged.k = bRow.k
-                return merged
-            }
+            // The backend row wins every field it has (k, t, tg and any fresher metadata); the scan fills only gaps.
+            if (nRow && nRow.n !== undefined && nRow.n.length > 0 && bRow && bRow.n === nRow.n)
+                return Object.assign({}, nRow, bRow)
         }
         return bRow
     }
