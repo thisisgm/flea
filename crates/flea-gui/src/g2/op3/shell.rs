@@ -30,6 +30,9 @@ pub const GRID_HEAD_LINE: f32 = CAPTION * 1.2;
 /// Properties' fact lines and the air between its two columns.
 pub const FACT_LINE: f32 = 24.;
 pub const FACT_GAP: f32 = 18.;
+/// Properties' tag line: the air from a tag's square to its name, and from one tag to the next.
+pub const TAG_LEAD: f32 = 7.;
+pub const TAG_GAP: f32 = 14.;
 /// Bulk rename's name lines and the error line held under them.
 pub const NAME_LINE: f32 = 31.;
 pub const ERROR_LINE: f32 = 16.;
@@ -255,6 +258,7 @@ struct Tokens {
     accent_frame: Hsla,
     error: Hsla,
     rule: Hsla,
+    tags: [Hsla; 7],
 }
 
 impl Tokens {
@@ -269,6 +273,7 @@ impl Tokens {
             accent_frame: palette.accent_frame,
             error: palette.error,
             rule: palette.muted_frame.opacity(RULE),
+            tags: palette.tags,
         }
     }
 
@@ -279,6 +284,11 @@ impl Tokens {
             Ink::MutedFrame => self.muted_frame,
             Ink::Error => self.error,
         }
+    }
+
+    /// A known tag name's square ink, the theme's surface ink at the tag's own index; another name has none.
+    fn tag_ink(&self, name: &str) -> Option<Hsla> {
+        flea::ui_logic_pl4::tags::index_of(name).map(|index| self.tags[index])
     }
 }
 
@@ -313,6 +323,7 @@ mod blocks;
 #[cfg(test)]
 mod caption_tests;
 mod draw;
+mod facts;
 mod glyph;
 pub use draw::StandIn;
 pub use glyph::glyph;
@@ -326,4 +337,22 @@ fn op3_error_ink_is_the_error_role() {
         "fixture must tell the two roles apart"
     );
     assert_eq!(Tokens::of(&palette).ink(Ink::Error), palette.error);
+}
+
+#[test]
+fn op3_tag_squares_take_the_theme_surface_inks() {
+    let theme = crate::palette::Theme::default();
+    let mut palette = Palette::inherited(&gpui::TextStyle::default(), theme);
+    assert_eq!(Tokens::of(&palette).tags, theme.tag_menu_inks);
+    // Seven distinct inks, so a square drawn in another tag's ink cannot pass.
+    palette.tags = std::array::from_fn(|at| gpui::hsla(at as f32 / 7., 0.5, 0.5, 1.));
+    let tokens = Tokens::of(&palette);
+    for (at, name) in flea::ui_logic_pl4::tags::NAMES.iter().enumerate() {
+        assert_eq!(tokens.tag_ink(name), Some(palette.tags[at]), "{name}");
+    }
+    assert_eq!(
+        tokens.tag_ink("work"),
+        None,
+        "a name Flea does not know has no square"
+    );
 }

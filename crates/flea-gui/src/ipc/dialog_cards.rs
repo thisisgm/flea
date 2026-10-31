@@ -1,6 +1,9 @@
 //! Dialog readers distinguish observable closed cards from unavailable window owners.
 use super::Adapter;
-use crate::state::Shell;
+use crate::{
+    g2::op3::openwith::{OpenWith, Stop},
+    state::Shell,
+};
 use flea::ipc::wire::Reply;
 use gpui::App;
 
@@ -43,15 +46,11 @@ impl Adapter for DialogAdapter<'_> {
                 }
                 "{\"opened\":false}".into()
             }
-            "openWithState" => {
-                if self.shell.open_with.is_some() {
-                    return Some(open_card(
-                        function,
-                        "rect, titleRuleRect, searchRect, listRect, rowRect, controls",
-                    ));
-                }
-                "{\"opened\":false}".into()
-            }
+            // The card's model facts the design CI drives; every other ui/Ipc.qml field is named under unavailable, as a refusal would.
+            "openWithState" => match &self.shell.open_with {
+                Some(open) => open_with_state(&open.card),
+                None => "{\"opened\":false}".into(),
+            },
             "runCardState" => {
                 if self.shell.run_card.is_some() {
                     return Some(open_card(function, "rect, controls"));
@@ -67,4 +66,28 @@ impl Adapter for DialogAdapter<'_> {
         };
         Some(Reply::value(value))
     }
+}
+
+/// The ui/Ipc.qml openWithState fields this reader does not send: the painted bounds GPUI does not record, and the catalogue facts it does not carry yet.
+const OPEN_WITH_UNAVAILABLE: &str = "busy, kind, mime, name, error, rows, rect, rowHeight, eyebrowHeight, titleRuleRect, searchRect, gap, searchTrail, listRect, rowRect, controls[].visible, controls[].hovered, controls[].pressed, controls[].centre, controls[].rect";
+
+fn open_with_state(card: &OpenWith) -> String {
+    let controls = [
+        ("Field", Stop::Search, true),
+        ("Applications", Stop::List, true),
+        ("Always", Stop::Always, true),
+        ("Cancel", Stop::Cancel, true),
+        ("Open", Stop::Open, card.can_open()),
+    ]
+    .map(|(name, stop, enabled)| {
+        format!(r#"{{"name":"{name}","focused":{},"enabled":{enabled}}}"#, card.focus == stop)
+    })
+    .join(",");
+    format!(
+        r#"{{"opened":true,"committing":{},"always":{},"search":"{}","cursor":{},"controls":[{controls}],"unavailable":"{OPEN_WITH_UNAVAILABLE}"}}"#,
+        card.opening(),
+        card.always,
+        flea::json::escape(&card.query),
+        card.cursor
+    )
 }

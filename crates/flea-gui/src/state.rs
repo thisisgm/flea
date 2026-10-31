@@ -79,6 +79,8 @@ pub struct Shell {
     pub(crate) opener: [crate::window::dispatch::opener::Lane; 2],
     pub(crate) run_card: Option<crate::window::run_card::Open>,
     pub(crate) open_with: Option<crate::window::open_with::Open>,
+    /// Each side's menu id of a flyout application launch whose answer is still out.
+    pub(crate) open_with_launch: [Option<u64>; 2],
 }
 
 pub(crate) use crate::window::locale::labels;
@@ -158,6 +160,7 @@ impl Shell {
             opener: Default::default(),
             run_card: None,
             open_with: None,
+            open_with_launch: [None; 2],
             dual_focus,
             dual_pending: false,
             dual_written: None,

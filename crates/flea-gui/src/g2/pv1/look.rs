@@ -152,6 +152,7 @@ mod tests {
             executable: ink(0x808080),
             marked: ink(0x808080),
             muted_frame: ink(0x808080),
+            tags: [ink(0x808080); 7],
         };
         assert_eq!(Look::inherited(&palette).error, palette.error);
     }

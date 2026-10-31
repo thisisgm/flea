@@ -28,6 +28,10 @@ impl Open {
     pub(crate) fn ready(&self) -> bool {
         self.card.ready()
     }
+
+    pub(crate) fn card(&self) -> &Properties {
+        &self.card
+    }
 }
 
 impl Shell {
@@ -91,12 +95,22 @@ impl Shell {
                 }
             },
         );
-        let (card, effects) = Properties::open(
+        let (mut card, effects) = Properties::open(
             captured.id,
             captured.listing,
             &captured.rows,
             captured.cursor,
         );
+        // Kind prints the MIME database's word the listing already holds for the row, as the preview column does.
+        if let [row] = captured.rows[..] {
+            let held = self.panes[side]
+                .as_ref()
+                .filter(|host| host.pane.held.listing == captured.listing)
+                .and_then(|host| host.pane.held.row(row));
+            if let Some(held) = held {
+                card.set_extras(Vec::new(), &held.kind);
+            }
+        }
         self.properties = Some(Open {
             side,
             card,

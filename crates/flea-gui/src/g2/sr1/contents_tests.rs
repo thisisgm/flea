@@ -127,6 +127,7 @@ fn distinct_palette() -> ListPalette {
         executable: foreground.opacity(0.75),
         marked: foreground.opacity(0.35),
         muted_frame: foreground.opacity(0.45),
+        tags: theme.tag_menu_inks,
     }
 }
 
