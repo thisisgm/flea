@@ -261,6 +261,20 @@ pub fn lookup(name: &str, context: Context, frontend: Frontend, input: Input<'_>
     Match::Unbound
 }
 
+/// Looks up `first`, then `second` when `first` is unbound: a key's two paths in the keyboard policy's order.
+pub fn lookup_either(
+    name: &str,
+    context: Context,
+    frontend: Frontend,
+    first: Input<'_>,
+    second: Option<Input<'_>>,
+) -> Match {
+    match (lookup(name, context, frontend, first), second) {
+        (Match::Unbound, Some(second)) => lookup(name, context, frontend, second),
+        (found, _) => found,
+    }
+}
+
 pub fn binding_rows(name: &str, frontend: Frontend) -> impl Iterator<Item = &'static Binding> {
     let name = preset(name);
     PRESET_KEYS.iter().chain(SHARED_KEYS).filter(move |row| {

@@ -23,6 +23,7 @@ fn typed(cx: &mut TestAppContext, fixture: &Fixture, text: &str) {
                 ..gpui::Modifiers::default()
             },
             is_keypad: false,
+            us_key: None,
         },
         is_held: false,
         prefer_character_input: false,

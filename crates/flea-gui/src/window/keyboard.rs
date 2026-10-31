@@ -69,7 +69,7 @@ impl Keyboard {
             self.sequence.clear();
             return Dispatch::Composition;
         }
-        match keys::lookup(name, self.context, Frontend::Gui, event_input(event, held)) {
+        match event_lookup(name, self.context, event, held) {
             Match::Unbound => {
                 self.sequence.clear();
                 Dispatch::Unbound
@@ -93,9 +93,94 @@ pub fn modifiers(modifiers: Modifiers) -> u8 {
         | (u8::from(modifiers.platform) * keys::SUPER)
 }
 
+/// The event's binding in i18n/keyboard-policy.json order: the US position first for digits and non-Latin groups, else the printed key.
+pub fn event_lookup(name: &str, context: Context, event: &KeyDownEvent, held: Modifiers) -> Match {
+    let printed = event_input(event, held);
+    match position_input(event, held) {
+        Some((position, true)) => {
+            keys::lookup_either(name, context, Frontend::Gui, position, Some(printed))
+        }
+        position => keys::lookup_either(
+            name,
+            context,
+            Frontend::Gui,
+            printed,
+            position.map(|(input, _)| input),
+        ),
+    }
+}
+
+// The US main-block keys, unshifted and with Shift, at the same index.
+const US_UNSHIFTED: &str = "1234567890-=[];'`\\,./abcdefghijklmnopqrstuvwxyz";
+const US_SHIFTED: &str = "!@#$%^&*()_+{}:\"~|<>?ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+/// The key at the event's US position and whether it is tried first; `None` off the main block, for an AltGr press, and on a Latin group at a US letter key or for a printed ASCII letter, which match only where printed.
+fn position_input(event: &KeyDownEvent, held: Modifiers) -> Option<(Input<'static>, bool)> {
+    // An AltGr press is text input, so its character never falls back to the key under it.
+    if event.prefer_character_input {
+        return None;
+    }
+    let stroke = &event.keystroke;
+    let us = stroke.us_key.as_deref()?;
+    let index = (0..US_UNSHIFTED.len())
+        .find(|&i| us == &US_UNSHIFTED[i..=i] || us == &US_SHIFTED[i..=i])?;
+    let (lower, upper) = (&US_UNSHIFTED[index..=index], &US_SHIFTED[index..=index]);
+    let typed = stroke.key_char.as_deref().unwrap_or("");
+    // The fork reports the US key itself on a non-Latin group, so its typed character differs from the key.
+    let nonlatin = stroke.key == us
+        && !typed.is_empty()
+        && !typed
+            .chars()
+            .flat_map(char::to_lowercase)
+            .eq(stroke.key.chars());
+    let letter = lower.bytes().all(|byte| byte.is_ascii_lowercase());
+    let digit = lower.bytes().all(|byte| byte.is_ascii_digit());
+    // ASCII only: rule b sends Ctrl+= to Italian ì and Ctrl+- to Icelandic ö, and a dead key's name is no letter.
+    let mut printed = (if typed.is_empty() { &stroke.key } else { typed }).chars();
+    let ascii_letter = printed
+        .next()
+        .is_some_and(|first| first.is_ascii_alphabetic())
+        && printed.next().is_none();
+    if !nonlatin && (letter || ascii_letter) {
+        return None;
+    }
+    let shifted = if letter {
+        held.shift || stroke.modifiers.shift
+    } else {
+        us == upper
+    };
+    let text = if shifted { upper } else { lower };
+    let key = table_key(
+        if digit || letter || !shifted {
+            lower
+        } else {
+            upper
+        },
+        false,
+    );
+    let modifiers = event_input(event, held).modifiers;
+    Some((
+        Input {
+            key,
+            text,
+            modifiers,
+        },
+        digit || nonlatin,
+    ))
+}
+
 pub fn event_input(event: &KeyDownEvent, held: Modifiers) -> Input<'_> {
     let keypad = event.keystroke.is_keypad;
-    let key = match event.keystroke.key.as_str() {
+    Input {
+        key: table_key(&event.keystroke.key, keypad),
+        text: event.keystroke.key_char.as_deref().unwrap_or(""),
+        modifiers: event_modifiers(event, held),
+    }
+}
+
+// The key table's name for a fork key name.
+fn table_key(key: &str, keypad: bool) -> &str {
+    match key {
         "enter" => "Return",
         "[" => "BracketLeft",
         "]" => "BracketRight",
@@ -115,19 +200,18 @@ pub fn event_input(event: &KeyDownEvent, held: Modifiers) -> Input<'_> {
         "decimal" if keypad => "Period",
         "equal" if keypad => "Equal",
         key => key,
-    };
+    }
+}
+
+fn event_modifiers(event: &KeyDownEvent, held: Modifiers) -> u8 {
     let mut mask = modifiers(event.keystroke.modifiers);
     if held.shift && caseless(&event.keystroke.key) {
         mask |= keys::SHIFT;
     }
-    if keypad {
+    if event.keystroke.is_keypad {
         mask |= keys::KEYPAD;
     }
-    Input {
-        key,
-        text: event.keystroke.key_char.as_deref().unwrap_or(""),
-        modifiers: mask,
-    }
+    mask
 }
 
 // The Linux keystroke builder clears Shift on exactly these keys: one character with no case.
@@ -194,3 +278,7 @@ pub fn paste_into(text: &str, type_text: impl FnOnce(&str)) -> bool {
     }
     true
 }
+
+#[cfg(test)]
+#[path = "keyboard_us_position_tests.rs"]
+mod us_position_tests;

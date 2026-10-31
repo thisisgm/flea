@@ -60,6 +60,7 @@ fn dispatch_pointer_hints_and_sequences_allocate_nothing_with_positive_control()
         keystroke: gpui::Keystroke {
             key: "y".into(),
             key_char: Some("y".into()),
+            us_key: Some("y".into()),
             ..Default::default()
         },
         is_held: false,
@@ -71,6 +72,7 @@ fn dispatch_pointer_hints_and_sequences_allocate_nothing_with_positive_control()
             key_char: Some(">".into()),
             modifiers: gpui::Modifiers::control(),
             is_keypad: false,
+            us_key: Some(">".into()),
         },
         is_held: false,
         prefer_character_input: false,

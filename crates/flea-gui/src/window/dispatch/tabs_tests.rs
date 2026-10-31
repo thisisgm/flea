@@ -176,12 +176,18 @@ fn every_strip_binding_runs_the_tab_model_on_the_production_shell(cx: &mut TestA
 }
 
 fn digit(cx: &mut VisualTestContext, text: &str) {
+    key_at(cx, text, None);
+}
+
+// A press as the fork reports it, with `us` the US key at the same position.
+fn key_at(cx: &mut VisualTestContext, text: &str, us: Option<&str>) {
     cx.simulate_event(KeyDownEvent {
         keystroke: Keystroke {
             key: text.into(),
             key_char: Some(text.into()),
             modifiers: Modifiers::none(),
             is_keypad: false,
+            us_key: us.map(Into::into),
         },
         is_held: false,
         prefer_character_input: false,
@@ -215,6 +221,9 @@ fn a_digit_selects_its_tab_and_a_missing_tab_is_named_until_the_count_changes(
     cx.simulate_keystrokes("t");
     assert_eq!(strip(&shell, cx).0, "3");
     assert_eq!(message(&shell, cx), "");
+    // AZERTY types & at the US 1 key, and the window's dispatch still selects the first tab.
+    key_at(cx, "&", Some("1"));
+    assert_eq!(strip(&shell, cx).1, "0");
     close(&shell, cx);
 }
 

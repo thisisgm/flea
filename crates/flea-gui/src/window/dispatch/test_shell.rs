@@ -294,6 +294,7 @@ pub(super) fn keypad_enter(cx: &mut VisualTestContext) {
             key_char: None,
             modifiers: Modifiers::none(),
             is_keypad: true,
+            us_key: None,
         },
         is_held: false,
         prefer_character_input: false,
@@ -320,6 +321,9 @@ pub(super) fn keystroke(binding: &keys::Binding) -> KeyDownEvent {
         key => key.to_lowercase(),
     };
     let mask = binding.mask;
+    // A main-block key on a US layout reports itself as its US position, as the fork does.
+    let us_key =
+        (key.len() == 1 && key.bytes().all(|byte| byte.is_ascii_graphic())).then(|| key.clone());
     KeyDownEvent {
         keystroke: Keystroke {
             key,
@@ -333,6 +337,7 @@ pub(super) fn keystroke(binding: &keys::Binding) -> KeyDownEvent {
                 function: false,
             },
             is_keypad: binding.key == "Enter",
+            us_key,
         },
         is_held: false,
         prefer_character_input: false,

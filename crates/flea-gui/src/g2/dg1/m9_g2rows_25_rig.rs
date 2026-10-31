@@ -102,6 +102,7 @@ pub(super) fn press(
                 ..Modifiers::none()
             },
             is_keypad: false,
+            us_key: None,
         },
         is_held: false,
         prefer_character_input: false,

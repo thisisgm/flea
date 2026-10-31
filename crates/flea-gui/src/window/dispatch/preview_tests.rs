@@ -298,6 +298,7 @@ fn every_key_that_opens_quick_look_opens_it_in_every_view(cx: &mut TestAppContex
                 ..Modifiers::none()
             },
             is_keypad: false,
+            us_key: None,
         },
         is_held: false,
         prefer_character_input: false,

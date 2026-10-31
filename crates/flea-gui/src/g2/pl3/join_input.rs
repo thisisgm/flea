@@ -3,10 +3,10 @@ use crate::{
     state::Shell,
     window::{
         dispatch::Order,
-        input::{event_input, ActionEvent},
+        input::{event_input, event_lookup, ActionEvent},
     },
 };
-use flea::keys::{self, Context as KeyContext, Frontend, Match};
+use flea::keys::{self, Context as KeyContext, Match};
 use gpui::{Context, KeyDownEvent, Window};
 
 impl Shell {
@@ -53,15 +53,15 @@ impl Shell {
         } else if input.modifiers == 0 && input.key.eq_ignore_ascii_case("f5") {
             Some("reload")
         } else {
-            match keys::lookup(
+            match event_lookup(
                 preset,
                 if menu_open {
                     KeyContext::Menu
                 } else {
                     KeyContext::Listing
                 },
-                Frontend::Gui,
-                input,
+                event,
+                window.modifiers(),
             ) {
                 Match::Action(action) => Some(action),
                 _ => None,

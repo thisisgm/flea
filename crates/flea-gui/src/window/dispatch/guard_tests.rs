@@ -100,6 +100,7 @@ fn every_bound_listing_action_has_a_handler_or_a_named_family(cx: &mut TestAppCo
                 key_char: Some(digit.text.into()),
                 modifiers: Modifiers::none(),
                 is_keypad: false,
+                us_key: None,
             },
             is_held: false,
             prefer_character_input: false,

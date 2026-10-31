@@ -111,14 +111,9 @@ impl Shell {
             .and_then(Json::as_str)
             .unwrap_or("default");
         // A tab switch the card does not bind closes it, and the key then runs where it was bound.
-        let input = crate::window::input::event_input(event, window.modifiers());
-        let card = flea::keys::lookup(
-            name,
-            self.keyboard.context,
-            flea::keys::Frontend::Gui,
-            input,
-        );
-        let listing = flea::keys::lookup(name, Keys::Listing, flea::keys::Frontend::Gui, input);
+        let held = window.modifiers();
+        let card = crate::window::input::event_lookup(name, self.keyboard.context, event, held);
+        let listing = crate::window::input::event_lookup(name, Keys::Listing, event, held);
         // [ and ] bind only while a workbook of two or more sheets shows; any other card leaves them unbound.
         let sheet_key = matches!(
             card,
