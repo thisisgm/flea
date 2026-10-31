@@ -229,13 +229,16 @@ impl Shell {
             .and_then(flea::jsondoc::Json::as_str)
             .unwrap_or("default");
         // Focus.js keyContext reads the live preview on every key, so a frame drawn after the focus moved still counts.
-        if let Some(preview) = host
+        let column_focused = if let Some(preview) = host
             .preview
             .as_ref()
             .filter(|p| p.read(cx).focus.is_focused(window))
         {
             self.keyboard.context = preview.read(cx).key_context();
-        }
+            true
+        } else {
+            false
+        };
         let pair_armed = self.keyboard.pair_armed(name, seat);
         let arm_live = self.escape_arm_live(seat);
         let resolved = self.keyboard.resolve(name, event, window.modifiers(), seat);
@@ -292,8 +295,9 @@ impl Shell {
         if listing && action == "escape" && self.escape_cancels_arm(arm_live, cx) {
             return;
         }
+        // SelectionPreview.qml accepts Tab and Shift+Tab, so a focused column preview keeps the keyboard.
         if matches!(action, "focusNext" | "focusPrevious")
-            && self.dual_tab(action == "focusNext", window, cx)
+            && (column_focused || self.dual_tab(action == "focusNext", window, cx))
         {
             cx.stop_propagation();
             return;

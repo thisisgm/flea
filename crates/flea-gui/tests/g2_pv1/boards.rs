@@ -67,14 +67,53 @@ fn small_picture(vector: bool) -> Subject {
 }
 
 #[gpui::test]
-fn ql_small_svg_and_small_png_fill_the_card(cx: &mut TestAppContext) {
+fn ql_small_svg_fills_the_card_and_small_png_keeps_its_size(cx: &mut TestAppContext) {
     // EY-64: a 60x40 vector in the 902x574 card fills along the limiting axis, aspect kept.
     let (cx, _, _, _) = host(cx, small_picture(true), Arm::Fix);
     assert_eq!(rect(cx, "pv1-card"), (99., 63., 902., 574.));
     assert_eq!(rect(cx, "pv1-picture"), (120., 63., 861., 574.));
-    // v0.3.12 scales a small raster up the same way.
+    // EY-330: v0.3.12 PreviewImage.qml never enlarges a raster; it draws 1:1, centred.
     let (cx, _, _, _) = host(cx, small_picture(false), Arm::Fix);
-    assert_eq!(rect(cx, "pv1-picture"), (120., 63., 861., 574.));
+    assert_eq!(rect(cx, "pv1-picture"), (99. + 421., 63. + 267., 60., 40.));
+}
+
+fn sized(w: f64, h: f64, vector: bool) -> Subject {
+    let mut subject = small_picture(vector);
+    if let Body::Image { w: sw, h: sh, .. } = &mut subject.body {
+        (*sw, *sh) = (w, h);
+    }
+    (subject.shape.w, subject.shape.h) = (w, h);
+    subject
+}
+
+#[gpui::test]
+fn ql_picture_size_matrix_never_enlarges_a_raster(cx: &mut TestAppContext) {
+    // Geometry matrix (EY-330): source class x window size; a raster fits down or stays 1:1, a vector fills.
+    let sources = [(60., 40.), (800., 600.), (600., 2000.), (4000., 3000.)];
+    for (window_w, window_h) in [(1100., 700.), (2560., 1400.)] {
+        for (sw, sh) in sources {
+            for vector in [false, true] {
+                let (cx, _, _, _) = host(cx, sized(sw, sh, vector), Arm::Fix);
+                cx.simulate_resize(size(px(window_w), px(window_h)));
+                cx.update(|window, cx| {
+                    window.refresh();
+                    window.draw(cx).clear(cx);
+                });
+                cx.run_until_parked();
+                let (_, _, cw, ch) = rect(cx, "pv1-card");
+                let (_, _, w, h) = rect(cx, "pv1-picture");
+                let fit = (cw as f64 / sw).min(ch as f64 / sh);
+                let scale = if vector { fit } else { fit.min(1.) };
+                let cell = format!("{sw}x{sh} vector={vector} in {window_w}x{window_h}");
+                assert!((w as f64 - sw * scale).abs() <= 1., "{cell}: width {w}");
+                assert!((h as f64 - sh * scale).abs() <= 1., "{cell}: height {h}");
+                assert!(
+                    vector || (w as f64) <= sw && (h as f64) <= sh,
+                    "{cell}: enlarged"
+                );
+            }
+        }
+    }
 }
 
 // A symlink whose name and picture are a 60x40 vector or raster, drawn under the link bar.

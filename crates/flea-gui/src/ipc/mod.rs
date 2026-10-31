@@ -19,6 +19,7 @@ pub(crate) mod network_mountinfo;
 pub(crate) mod output_cards;
 pub mod pane;
 pub mod path;
+pub(crate) mod preview_html;
 pub(crate) mod preview_look;
 pub(crate) mod preview_scroll;
 pub(crate) mod preview_state;
