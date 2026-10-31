@@ -141,7 +141,11 @@ pub unsafe extern "C" fn flea_native_scan(
 
     let mut entries = Vec::new();
 
-    for entry in read_dir.flatten() {
+    for entry in read_dir {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => return std::ptr::null_mut(),
+        };
         let file_name = entry.file_name();
         let name = file_name.to_string_lossy().into_owned();
 
