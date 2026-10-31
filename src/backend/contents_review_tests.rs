@@ -326,10 +326,15 @@ fn ey333_unreadable_folder_keeps_the_other_matches() {
     let locked = f.root.join("Locked");
     std::fs::create_dir(&locked).unwrap();
     std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
-    assert!(std::fs::read_dir(&locked).is_err(), "the test needs a folder this user cannot read");
+    if std::fs::read_dir(&locked).is_ok() {
+        // Root bypasses the mode, so this fixture cannot deny anything here; the scripted exit 2 below covers it.
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+        return;
+    }
     f.out.clear();
     f.search(false, 2, 10);
     f.finish();
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
     assert_eq!(f.st.listing.len(), 2);
     assert_eq!(f.st.listing.name(0), "Docs/notes.txt");
     assert_eq!(f.st.listing.name(1), "notes.txt");
@@ -338,4 +343,44 @@ fn ey333_unreadable_folder_keeps_the_other_matches() {
     assert!(line.contains(r#""n":2"#) && line.contains(r#""gen":2"#), "{line}");
     assert!(line.contains(r#""partial":true,"partial_reason":"unreadable""#), "{line}");
     assert!(complete.contains(r#""partial":false"#), "{complete}");
+}
+
+// Exit 2 after the summary is a partial walk only when every stderr line names a skipped path with its OS error.
+#[test]
+fn ey333_exit_two_is_partial_only_for_skipped_paths() {
+    let summary = r#"{"type":"summary","data":{"stats":{"searches":1}}}"#;
+    let denied = "rg: ./Locked: Permission denied (os error 13)\n";
+    for (gen, stderr, partial) in [
+        (1, format!("{denied}rg: ./Gone: No such file or directory (os error 2)\n"), true),
+        (2, denied.trim_end().to_owned(), true),
+        (3, format!("{denied}rg: ./x: some other failure\n"), false),
+        (4, format!("{denied}rg: unfinished (os error 13"), false),
+        (5, String::new(), false),
+        (6, format!("{denied}rg: No space left on device (os error 28)\n"), false),
+    ] {
+        let mut f = Fixture::new();
+        let tool = f.root.join("exit-two-rg");
+        let mut writer = std::process::Command::new("/bin/sh")
+            .args(["-c", "cat > \"$1\" && chmod 755 \"$1\"", "sh"])
+            .arg(&tool)
+            .stdin(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let lines = stderr.replace('\n', "\\n");
+        let script = format!("#!/bin/sh\nprintf '%s\\n' '{summary}'\nprintf '{lines}' >&2\nexit 2\n");
+        writer.stdin.take().unwrap().write_all(script.as_bytes()).unwrap();
+        assert!(writer.wait().unwrap().success());
+        f.st.contents.program = Some(tool);
+        f.search(false, gen, 10);
+        if partial {
+            f.finish();
+        } else {
+            f.until("error");
+        }
+        let text = f.text();
+        assert!(text.contains(&format!(r#""gen":{gen}"#)), "case {gen}: {text}");
+        assert_eq!(text.contains(r#""t":"searched""#), partial, "case {gen}: {text}");
+        let skipped = text.contains(r#""partial":true,"partial_reason":"unreadable""#);
+        assert_eq!(skipped, partial, "case {gen}: {text}");
+    }
 }

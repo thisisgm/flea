@@ -231,20 +231,27 @@ fn g12_vfix_local_opener_refuses_inoperable_and_missing_contents_identity(cx: &m
 #[gpui::test]
 fn ey333_contents_failure_settles_the_newest_gen_and_says_why(cx: &mut TestAppContext) {
     let (handle, _read) = contents_needle(cx);
-    let failed = |gen: u64| {
+    let failed = |gen: u64, why: &str| {
         format!(
-            r#"{{"t":"error","where":"searchcontents","path":"/files","msg":"Contents search failed: ripgrep is unavailable.", "gen":{gen}}}"#
+            r#"{{"t":"error","where":"searchcontents","path":"/files","msg":"Contents search failed: {why}.", "gen":{gen}}}"#
         )
     };
     let total = edit(cx, handle, |shell, _, _| {
         shell.panes[0].as_ref().unwrap().pane.held.total
     });
-    reply(cx, handle, 0, &failed(5));
+    let before = super::super::tests::call(cx, handle, "lastMessage");
+    reply(cx, handle, 0, &failed(5, "an older gen"));
+    frame(cx, handle);
     edit(cx, handle, |shell, _, _| {
         let session = &shell.panes[0].as_ref().unwrap().search.owner.session;
         assert!(session.running, "an older gen's failure is dropped");
     });
-    reply(cx, handle, 0, &failed(6));
+    assert_eq!(
+        super::super::tests::call(cx, handle, "lastMessage"),
+        before,
+        "an older gen's failure says nothing"
+    );
+    reply(cx, handle, 0, &failed(6, "ripgrep is unavailable"));
     frame(cx, handle);
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();

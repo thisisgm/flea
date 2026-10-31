@@ -42,6 +42,20 @@ fn nonblocking(fd: i32) -> std::io::Result<()> {
     Ok(())
 }
 
+/// rg's line for a path it could not open or read names the path, then the OS error: "rg: ./Locked: Permission denied (os error 13)".
+fn skipped_path(line: &[u8]) -> bool {
+    let Some(code) = line.strip_prefix(b"rg: ").and_then(|rest| rest.strip_suffix(b")")) else {
+        return false;
+    };
+    let Some(at) = code.windows(10).rposition(|part| part == b"(os error ") else {
+        return false;
+    };
+    let digits = &code[at + 10..];
+    // A line with no path before its first ": ", as "rg: No space left on device (os error 28)", is rg's own failure.
+    let named = code[..at].windows(2).position(|part| part == b": ").is_some_and(|end| end > 0);
+    named && !digits.is_empty() && digits.iter().all(u8::is_ascii_digit)
+}
+
 fn program() -> Result<PathBuf, String> {
     std::env::var_os("PATH")
         .into_iter()
@@ -205,6 +219,9 @@ fn collect(
     let mut pending = Vec::new();
     let mut checked = 0;
     let mut errors = Vec::new();
+    // The stderr line still arriving, and whether a finished one named anything but a path rg skipped.
+    let mut line = Vec::new();
+    let mut foreign = false;
     let mut hits: HashMap<Vec<u8>, Hit> = HashMap::new();
     let mut bytes = 0usize;
     let mut summary = None;
@@ -270,6 +287,14 @@ fn collect(
                 if errors.len() < ERROR_LIMIT {
                     errors.extend_from_slice(&chunk[..n.min(ERROR_LIMIT - errors.len())]);
                 }
+                for byte in &chunk[..n] {
+                    if *byte == b'\n' {
+                        foreign |= !skipped_path(&line);
+                        line.clear();
+                    } else if line.len() < ERROR_LIMIT {
+                        line.push(*byte);
+                    }
+                }
             }
             Err(error)
                 if matches!(
@@ -281,10 +306,11 @@ fn collect(
         if eof && err_eof {
             if let Some(status) = child.child.try_wait().map_err(|error| error.to_string())? {
                 *reaped = true;
-                // Exit 2 after the summary is a finished walk that skipped paths it could not read, as the names walk does.
+                foreign |= !line.is_empty() && !skipped_path(&line);
+                // Exit 2 after the summary, with only skipped-path lines, is a finished walk that skipped what it could not read, as the names walk does.
                 let skipped = match status.code() {
                     Some(0 | 1) if errors.is_empty() => Some(false),
-                    Some(2) => Some(true),
+                    Some(2) if !errors.is_empty() && !foreign => Some(true),
                     _ => None,
                 };
                 if let (Some(skipped), Some(searches), true) = (skipped, summary, pending.is_empty()) {

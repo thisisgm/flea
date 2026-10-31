@@ -87,6 +87,28 @@ expect_grep "commit-rules flags a recorded failure that is gone" "$root/fix/know
 printf '%s body needs one blank line after the subject\n' "$SHA" > "$root/known/flea-commit-rules.known"
 "$root/known/flea-commit-rules" "$root/fix/body.z" "$root/out" > "$root/fix/known-bad.out" 2>&1
 check "commit-rules refuses a malformed known line" 2 $?
+# Sample input (malformed known lines): an uppercase sha, the same line twice, a sha with a blank rule.
+UPPER=${SHA^^}
+for bad in upper twice blank; do
+  case $bad in
+    upper) printf '%s\tbody holds a blank line\n' "$UPPER" ;;
+    twice) printf '%s\tbody holds a blank line\n%s\tbody holds a blank line\n' "$SHA" "$SHA" ;;
+    blank) printf '%s\t \n' "$SHA" ;;
+  esac > "$root/known/flea-commit-rules.known"
+  "$root/known/flea-commit-rules" "$root/fix/good.z" "$root/out" > "$root/fix/known-$bad.out" 2>&1
+  check "commit-rules refuses a known line: $bad" 2 $?
+  expect_grep "commit-rules names the $bad known line" "$root/fix/known-$bad.out" "want one unique 40-hex sha, a tab and the failure it records"
+done
+mkdir -p "$root/bare" && cp "$repo/tools/flea-commit-rules" "$root/bare/flea-commit-rules"
+"$root/bare/flea-commit-rules" "$root/fix/good.z" "$root/out" > "$root/fix/bare.out" 2>&1
+check "commit-rules judges without an allowlist" 0 $?
+expect_grep "commit-rules says the allowlist is absent" "$root/fix/bare.out" "NOTE no recorded allowlist at $root/bare/flea-commit-rules.known"
+# The shipped checker reads the shipped allowlist: a recorded sha with a clean message reports its line stale.
+shipped=$(grep -m 1 -v -e '^#' -e '^$' "$repo/tools/flea-commit-rules.known")
+zrec "${shipped%%$'\t'*}" GM gianmarcomorales@icloud.com GM gianmarcomorales@icloud.com "" "$GOOD_B" > "$root/fix/shipped.z"
+"$repo/tools/flea-commit-rules" "$root/fix/shipped.z" "$root/out" > "$root/fix/shipped.out" 2>&1
+check "commit-rules reads the allowlist shipped beside it" 1 $?
+expect_grep "commit-rules names the shipped known line" "$root/fix/shipped.out" "known line no longer fails: ${shipped#*$'\t'}"
 
 ATTR_B=$'fix(hooks): a fine subject\n\nFirst body line.\nGenerated with Claude.\n'
 zrec "$SHA" GM gianmarcomorales@icloud.com GM gianmarcomorales@icloud.com "" "$ATTR_B" > "$root/fix/attr.z"
