@@ -180,7 +180,7 @@ fn search_watch_closing_search_preserves_the_real_pane_and_peek_watches() {
     let (tx, rx) = crate::backend::events::channel();
     let mut pane = crate::backend::watch::Watch::start(tx.clone());
     pane.begin(d.path());
-    pane.commit();
+    pane.commit(Vec::new());
     let mut peek = crate::backend::peekwatch::PeekWatch::start(tx);
     let wd = crate::backend::watch::Watch::add_raw(peek.raw_fd(), d.path());
     assert!(wd >= 0);

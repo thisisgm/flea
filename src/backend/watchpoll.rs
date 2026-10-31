@@ -110,6 +110,28 @@ fn poll_once(
 type OpenFolder = Arc<Mutex<(PathBuf, i64)>>;
 type Children = Arc<Mutex<HashMap<PathBuf, OpenFolder>>>;
 
+// One round of the thread: the open folder, then each expanded remote child, each behind its own wedge and deadline.
+fn poll_round(
+    open: &OpenFolder,
+    children: &Children,
+    wedged: &Wedged,
+    classify: &Arc<dyn Fn(&Path) -> &'static str + Send + Sync>,
+    stat: &Arc<dyn Fn(&Path) -> i64 + Send + Sync>,
+    timeout: Duration,
+    tx: &Sender<Event>,
+) {
+    let path = open.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
+    if path.as_os_str().is_empty() {
+        return;
+    }
+    poll_once(&path, open, wedged, classify, stat, timeout, tx);
+    let children: Vec<OpenFolder> = children.lock().unwrap_or_else(|p| p.into_inner()).values().cloned().collect();
+    for state in children {
+        let path = state.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
+        poll_once(&path, &state, wedged, classify, stat, timeout, tx);
+    }
+}
+
 pub struct Poller {
     children: Children,
     state: Arc<Mutex<(PathBuf, i64)>>,
@@ -138,17 +160,7 @@ impl Poller {
             std::thread::Builder::new().name("flea-watchpoll".into()).spawn(move || {
                 loop {
                     std::thread::sleep(Duration::from_secs(POLL_SECS));
-                    let open = at.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
-                    if open.as_os_str().is_empty() {
-                        continue;
-                    }
-                    // The thread owns one iteration's wedge check, deadline pair and apply.
-                    poll_once(&open, &at, &held, &classify, &stat, Duration::from_secs(STAT_TIMEOUT_SECS), &tx);
-                    let children: Vec<OpenFolder> = extra.lock().unwrap_or_else(|p| p.into_inner()).values().cloned().collect();
-                    for state in children {
-                        let path = state.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
-                        poll_once(&path, &state, &held, &classify, &stat, Duration::from_secs(STAT_TIMEOUT_SECS), &tx);
-                    }
+                    poll_round(&at, &extra, &held, &classify, &stat, Duration::from_secs(STAT_TIMEOUT_SECS), &tx);
                 }
             }).expect("could not start watch poller");
         });
@@ -186,23 +198,33 @@ mod tests {
     // A gate the test holds is released at its end; this bound only ends a hold the test never released.
     const HOLD: Duration = Duration::from_secs(30);
 
+    // Rounds driven here, never the thread: the open folder is set on the state directly, since set starts the thread.
     #[test]
     fn tree_outline_remote_children_use_the_existing_poll_and_release_on_collapse() {
+        use std::sync::atomic::AtomicI64;
         let (tx, rx) = super::super::events::channel();
         let poller = Poller::with_hooks(tx.clone(), |_| "network", |_| 1);
+        *poller.state.lock().unwrap() = (PathBuf::from("/root"), 0);
         let path = PathBuf::from("/root/child");
         poller.set_children([path.clone()]);
-        let state = poller.children.lock().unwrap().get(&path).unwrap().clone();
-        let wedged: Wedged = Arc::default();
+        let child_mtime = Arc::new(AtomicI64::new(1));
         let class: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(|_| "network");
-        let first: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new(|_| 1);
-        poll_once(&path, &state, &wedged, &class, &first, ANSWERS, &tx);
-        assert!(rx.try_recv().is_err());
-        let changed: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new(|_| 2);
-        poll_once(&path, &state, &wedged, &class, &changed, ANSWERS, &tx);
-        assert!(matches!(rx.recv_timeout(ANSWERS), Ok(Event::PollChanged(found)) if found == path));
+        let stat: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new({
+            let child_mtime = Arc::clone(&child_mtime);
+            move |p| if p == Path::new("/root") { 5 } else { child_mtime.load(Ordering::Relaxed) }
+        });
+        let wedged: Wedged = Arc::default();
+        poll_round(&poller.state, &poller.children, &wedged, &class, &stat, ANSWERS, &tx);
+        assert!(rx.try_recv().is_err(), "the first round baselines the open folder and the child silently");
+        child_mtime.store(2, Ordering::Relaxed);
+        poll_round(&poller.state, &poller.children, &wedged, &class, &stat, ANSWERS, &tx);
+        assert!(matches!(rx.try_recv(), Ok(Event::PollChanged(found)) if found == path), "the round polls the expanded child");
+        assert!(rx.try_recv().is_err(), "and the open folder, which did not move, says nothing");
         poller.set_children([]);
         assert!(poller.children.lock().unwrap().is_empty());
+        child_mtime.store(3, Ordering::Relaxed);
+        poll_round(&poller.state, &poller.children, &wedged, &class, &stat, ANSWERS, &tx);
+        assert!(rx.try_recv().is_err(), "a collapsed child is never polled again");
     }
 
     #[test]

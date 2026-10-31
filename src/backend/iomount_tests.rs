@@ -238,6 +238,31 @@ fn a_failed_scan_hands_back_the_watch_it_armed() {
     };
     assert!(failed.watch_wd >= 0, "the loop must remove what the worker armed");
 }
+// A scan the loop gave up on armed its expanded children too, so their descriptors go back with the folder's.
+#[test]
+fn a_late_scan_hands_back_its_expanded_children_with_the_folder() {
+    let sandbox = crate::backend::testdir::TestDir::new("listlate");
+    let child = sandbox.dir("child");
+    let (tx, rx) = crate::backend::events::channel::<crate::backend::events::Event>();
+    let watch = crate::backend::watch::Watch::start(tx.clone());
+    let mime = std::sync::Arc::new(crate::backend::mime::Db::load());
+    let line = format!(r#"{{"c":"list","outlinePaths":["{}"]}}"#, crate::json::escape(&child.to_string_lossy()));
+    let done = match list_dir(sandbox.path().to_string_lossy().to_string(), false, 10, line, mime, watch.raw_fd(), tx.clone(), &mount_body()) {
+        Ok(done) => done,
+        Err(failed) => panic!("a directory lists: {}", failed.error.msg),
+    };
+    let mut armed = done.listing.outline_watches.clone();
+    armed.push(done.watch_wd);
+    assert!(armed.len() == 2 && armed.iter().all(|&wd| wd >= 0), "the folder and its expanded child are both armed: {armed:?}");
+    hand_back_late(&Ok(done), &tx);
+    let error = FleaError { where_: "scan".to_string(), path: String::new(), msg: String::new() };
+    hand_back_late(&Err(ListErr { error, mode: 0, watch_wd: -1 }), &tx);
+    let back: Vec<i32> = rx.try_iter().filter_map(|event| match event {
+        crate::backend::events::Event::AbandonWatch(wd) => Some(wd),
+        _ => None,
+    }).collect();
+    assert_eq!(back, armed, "every armed descriptor goes back once, and a failure that armed none sends nothing");
+}
 #[test]
 fn a_list_dir_carries_the_mount_its_worker_computed() {
     test_reset();
