@@ -62,6 +62,8 @@ package() {
   install -Dm644 ui/boot/shell.qml ui/boot/picker.qml ui/boot/fleatab.qml ui/boot/tabtearoff.qml -t "$pkgdir/usr/share/flea/ui/boot"
   # The bar plugin ships as data, flat, for the Enable shelf switch to copy into the user's plugin directory.
   install -Dm644 shelf/manifest.json shelf/README.md shelf/*.qml shelf/*.js -t "$pkgdir/usr/share/flea/shelf"
+  # Only the catalogs, which src/i18n/mod.rs reads from /usr/share/flea/i18n; the rest of i18n/ is build and test data.
+  for catalog in i18n/*/flea.json; do install -Dm644 "$catalog" "$pkgdir/usr/share/flea/$catalog"; done
   # The package's own version on the copy, which is what the switch compares with the user's.
   sed -i "s/^  \"version\": \"[^\"]*\",\$/  \"version\": \"$pkgver-$pkgrel\",/" "$pkgdir/usr/share/flea/shelf/manifest.json"
   grep -qF "  \"version\": \"$pkgver-$pkgrel\"," "$pkgdir/usr/share/flea/shelf/manifest.json" || { echo "$pkgname: /usr/share/flea/shelf/manifest.json does not carry the version $pkgver-$pkgrel" >&2; return 1; }

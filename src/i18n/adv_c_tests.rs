@@ -70,6 +70,22 @@ fn adv_c_f8_installed_binary_ignores_home_and_build_catalogs() {
 }
 
 #[test]
+fn installed_prefix_catalog_translates_with_flea_i18n_unset() {
+    let f = Fixture::new();
+    f.registry();
+    f.write("config/omarchy/language", "de\n");
+    f.write("prefix/share/flea/i18n/de/flea.json", include_str!("../../i18n/de/flea.json"));
+    let roots = catalog_dirs(None, Some(&f.path("prefix/bin/flea")), &f.path("build"), false);
+    assert_eq!(roots[0], f.path("prefix/share/flea/i18n"));
+    // Only that root, so a catalog the host keeps in /usr/share/flea/i18n cannot answer for it.
+    let i = I18n::load(Paths {
+        omarchy: f.path("omarchy"), language_file: f.path("config/omarchy/language"), catalogs: roots[..1].to_vec(),
+    });
+    assert_eq!(i.language(), "de");
+    assert_eq!(i.tr_args("plugins.error.unknown", &["x"]), "Kein Plugin heißt x");
+}
+
+#[test]
 fn adv_c_f8_source_catalogs_require_debug_or_that_trees_target() {
     let source = Path::new("/build/flea");
     let external = Path::new("/opt/flea/bin/flea");
