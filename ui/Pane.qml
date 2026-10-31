@@ -79,8 +79,6 @@ FocusScope {
         root.nativeModel.path = root.path
         root.nativeModel.refresh()
     }
-    // A watcher or manual re-list changes rows; the native scan has to follow.
-    onRowsChanged: if (root.nativeActive) { root.nativeModel.refresh() }
     onSearchQueryChanged: if (root.nativeActive) { root.nativeModel.search(root.searchQuery) }
 
     Loader {
@@ -249,7 +247,9 @@ FocusScope {
     // The rows serialize on the first read after they change, never inside the landing turn; rows are only replaced
     // whole, so the array the text came from tells a stale text whatever order the handlers run in.
     readonly property var rowsIdentity: ({ rows: null, text: "" })
-    onRowsChanged: { root.rowsIdentity.rows = null; root.rowsIdentity.text = ""; Ops.checkZip(root) }
+    onRowsChanged: { root.rowsIdentity.rows = null; root.rowsIdentity.text = ""; Ops.checkZip(root)
+        // A watcher or manual re-list changes rows; the native scan has to follow.
+        if (root.nativeActive) root.nativeModel.refresh() }
     // Notifies whenever an input of menuSelectionIdentity() does, and serializes nothing.
     readonly property var menuSelectionInputs: [root.path, root.held, root.selectionVersion, root.cursorIndex,
         root.total, root.listInFlight, root.rows]
