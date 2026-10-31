@@ -219,52 +219,6 @@ impl Draw<'_> {
         grid
     }
 
-    fn facts(&self, facts: &[Fact]) -> Div {
-        let t = self.t;
-        let line = |size: f32| {
-            self.text(size)
-                .h(self.px(FACT_LINE))
-                .line_height(self.px(FACT_LINE))
-                .flex()
-                .items_center()
-        };
-        let mut names = div().flex().flex_col().flex_none();
-        let mut values = div().flex().flex_col().flex_1().min_w_0();
-        for fact in facts {
-            let (name, value) = match fact {
-                Fact::Text { name, value, tail } => {
-                    let value = line(BOARD_BODY).text_color(t.fg).child(value.clone());
-                    (
-                        name,
-                        if tail.is_empty() {
-                            value
-                        } else {
-                            value.child(div().text_color(t.muted).child(tail.clone()))
-                        },
-                    )
-                }
-                Fact::Tags { name, tags } => {
-                    let mut value = line(BOARD_BODY).text_color(t.fg);
-                    for (at, tag) in tags.iter().enumerate() {
-                        // The tag's 14 px colour mark fills this slot once the tag ink reaches the palette.
-                        let gap = if at + 1 < tags.len() { 14. } else { 0. };
-                        value = value
-                            .child(div().size(self.px(14.)).flex_none())
-                            .child(div().ml(self.px(7.)).mr(self.px(gap)).child(tag.clone()));
-                    }
-                    (name, value)
-                }
-            };
-            names = names.child(line(CAPTION).text_color(t.muted).child(name.clone()));
-            values = values.child(value);
-        }
-        div()
-            .flex()
-            .gap(self.px(FACT_GAP))
-            .child(names)
-            .child(values)
-    }
-
     pub(super) fn block(&self, block: &Block) -> AnyElement {
         let t = self.t;
         match block {

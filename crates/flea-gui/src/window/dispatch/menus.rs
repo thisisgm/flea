@@ -26,12 +26,25 @@ pub(super) fn run(
         "properties" => {
             chosen.captured.ready && !chosen.captured.background && !chosen.captured.rows.is_empty()
         }
+        // Menu.js OPEN_WITH_OTHER opens the Open With card on the one row; any other leaf names the application to launch.
+        "openWith" => {
+            !chosen.leaf.is_empty()
+                && chosen.captured.ready
+                && !chosen.captured.background
+                && chosen.captured.rows.len() == 1
+        }
         "selectAll" | "invertSelection" | "toggleLangMarks" | "settings" | "updateFlea"
         | "extThumbs" | "addFavourite" => true,
         _ => false,
     };
     if !wanted || !chosen.claim() {
         return false;
+    }
+    // PaneMenuActions.qml: an application leaf launches on the menu's own snapshot, which closes on its answer.
+    if chosen.action == "openWith" && chosen.leaf != flea::ui_logic_mn1::rows::OPEN_WITH_OTHER {
+        shell.retire_menu(window, cx);
+        shell.open_with_application(chosen.captured.side, chosen.captured.id, &chosen.leaf, cx);
+        return true;
     }
     finish(shell, chosen, window, cx);
     match chosen.action.as_str() {
@@ -61,6 +74,12 @@ pub(super) fn run(
             );
         }
         "properties" => shell.open_properties_card(&chosen.captured, window, cx),
+        "openWith" => {
+            if !shell.open_with_captured(&chosen.captured, cx) {
+                let refusal = shell.locale.catalog.tr("dialogs.file.open.unlisted");
+                shell.menu_notice(chosen.captured.side, refusal, cx);
+            }
+        }
         // Marks.js selectAll and invert: the rows the listing draws, so a filter narrows them.
         "selectAll" | "invertSelection" => {
             // input_action reads the focused pane, so it points at the menu's own pane for this one call.

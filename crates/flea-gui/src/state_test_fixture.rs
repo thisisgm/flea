@@ -97,6 +97,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         opener: Default::default(),
         run_card: None,
         open_with: None,
+        open_with_launch: [None; 2],
         dual_focus: crate::dual::focus::Focus::new(cx),
         dual_pending: false,
         dual_written: None,

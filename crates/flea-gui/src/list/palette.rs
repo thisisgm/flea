@@ -18,6 +18,8 @@ pub struct Palette {
     pub executable: Hsla,
     pub marked: Hsla,
     pub muted_frame: Hsla,
+    /// The seven tag inks a surface draws its solid tag squares in.
+    pub tags: [Hsla; 7],
 }
 
 impl Palette {
@@ -46,6 +48,7 @@ impl Palette {
             executable: roles.executable,
             marked: foreground.opacity(MARK_FILL),
             muted_frame: roles.muted_frame,
+            tags: theme.tag_menu_inks,
         }
     }
 

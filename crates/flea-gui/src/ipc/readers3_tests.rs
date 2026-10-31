@@ -101,22 +101,24 @@ fn ipc_readers3_menu_dialog_state_is_closed_without_a_card(cx: &mut TestAppConte
 }
 
 #[gpui::test]
-fn ipc_readers3_open_with_card_refuses_its_geometry(cx: &mut TestAppContext) {
+fn ipc_readers3_open_with_card_reports_its_model_without_geometry(cx: &mut TestAppContext) {
     let handle = open(cx);
     value(cx, handle, "openWithState", &[], "{\"opened\":false}");
     update(cx, handle, |shell, _, _| {
-        let (card, _effects) = OpenWith::open(1, "photo.png");
+        let card = OpenWith::open(1, "photo.png");
         shell.open_with = Some(OpenWithOpen {
             side: 0,
             id: 1,
             card,
         });
     });
-    refused(
+    // The design CI tabs through these controls; every field the reader does not send is named, so a probe that reads one fails on its name.
+    value(
         cx,
         handle,
         "openWithState",
-        "rect, titleRuleRect, searchRect, listRect, rowRect, controls",
+        &[],
+        r#"{"opened":true,"committing":false,"always":false,"search":"","cursor":0,"controls":[{"name":"Field","focused":true,"enabled":true},{"name":"Applications","focused":false,"enabled":true},{"name":"Always","focused":false,"enabled":true},{"name":"Cancel","focused":false,"enabled":true},{"name":"Open","focused":false,"enabled":false}],"unavailable":"busy, kind, mime, name, error, rows, rect, rowHeight, eyebrowHeight, titleRuleRect, searchRect, gap, searchTrail, listRect, rowRect, controls[].visible, controls[].hovered, controls[].pressed, controls[].centre, controls[].rect"}"#,
     );
     refused(
         cx,

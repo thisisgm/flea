@@ -43,13 +43,15 @@ pub struct OpenWith {
     pub always: bool,
     pub focus: Stop,
     opening: bool,
+    /// Set once the catalogue request is out, so a repeated snapshot answer cannot ask twice.
+    asked: bool,
     error: Option<String>,
 }
 
 impl OpenWith {
-    /// The card opens on the list with the search live, and asks for both catalogues at once.
-    pub fn open(id: u64, name: &str) -> (Self, Vec<Effect>) {
-        let card = Self {
+    /// The card opens on the list with the search live and asks both catalogues once its snapshot is held, since the backend's one menu slot refuses a second queued request.
+    pub fn open(id: u64, name: &str) -> Self {
+        Self {
             id,
             name: name.to_string(),
             catalogue: None,
@@ -60,9 +62,9 @@ impl OpenWith {
             always: false,
             focus: Stop::Search,
             opening: false,
+            asked: false,
             error: None,
-        };
-        (card, vec![Effect::Send(logic::applications_request(id))])
+        }
     }
 
     fn applications(&self) -> usize {
@@ -184,6 +186,12 @@ impl OpenWith {
         }
         let ok = reply.get("ok").and_then(Json::as_bool) == Some(true);
         match reply.get("op").and_then(Json::as_str) {
+            Some("snapshot") if self.asked => {}
+            Some("snapshot") if ok => {
+                self.asked = true;
+                return vec![Effect::Send(logic::applications_request(self.id))];
+            }
+            Some("snapshot") => self.error = Some(i18n.tr("dialogs.file.openwith.list_failed")),
             Some("applications") if ok => {
                 let catalogue = Catalogue::from_reply(reply);
                 self.cursor = catalogue
@@ -261,11 +269,6 @@ impl OpenWith {
                 lift: 0.,
             });
         }
-        let chosen = self
-            .catalogue
-            .as_ref()
-            .and_then(|c| logic::chosen(c, &self.rows, self.cursor))
-            .is_some();
         Card {
             language: i18n.language().to_owned(),
             title: logic::title(i18n, &self.name),
@@ -284,10 +287,21 @@ impl OpenWith {
                     label: i18n.tr("dialogs.file.openwith.open"),
                     primary: true,
                     focused: self.focus == Stop::Open,
-                    enabled: chosen && !self.opening,
+                    enabled: self.can_open(),
                 },
             ],
         }
+    }
+
+    /// Open submits only with an application under the cursor and no launch already out.
+    pub fn can_open(&self) -> bool {
+        let chosen = self.catalogue.as_ref().and_then(|c| logic::chosen(c, &self.rows, self.cursor));
+        chosen.is_some() && !self.opening
+    }
+
+    /// Whether a launch is out and its answer not yet in.
+    pub fn opening(&self) -> bool {
+        self.opening
     }
 
     /// Only the rows the viewport shows are built, seven applications from the first row the cursor keeps in view.

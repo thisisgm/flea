@@ -44,6 +44,40 @@ impl Shell {
             self.opener_say(side, unlisted, true, cx);
             return;
         };
+        self.open_with_row(side, listing, at, &name, cx);
+    }
+
+    /// The row menu's Another Application leaf: the card opens on the one row the menu captured, as the opener's ask does.
+    pub(crate) fn open_with_captured(
+        &mut self,
+        captured: &crate::g2::mn1::join::Captured,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let [at] = captured.rows[..] else {
+            return false;
+        };
+        let name = self.panes[captured.side]
+            .as_ref()
+            .filter(|host| host.pane.held.listing == captured.listing)
+            .and_then(|host| host.pane.held.row(at))
+            .map(|row| row.name.clone());
+        let Some(name) = name else {
+            return false;
+        };
+        self.dismiss_cards(cx);
+        self.open_with_row(captured.side, captured.listing, at, &name, cx);
+        true
+    }
+
+    /// Snapshots one listing row under a fresh menu id and opens the card on it; the card asks its catalogue once the snapshot is held.
+    fn open_with_row(
+        &mut self,
+        side: usize,
+        listing: usize,
+        at: usize,
+        name: &str,
+        cx: &mut Context<Self>,
+    ) {
         self.menu.sequence += 1;
         let id = self.menu.sequence;
         let snapshot = format!(
@@ -53,19 +87,67 @@ impl Shell {
         if !self.open_with_send(side, snapshot, cx) {
             return;
         }
-        let (card, effects) = OpenWith::open(id, &name);
-        self.open_with = Some(Open { side, id, card });
-        self.open_with_effects(effects, cx);
+        self.open_with = Some(Open {
+            side,
+            id,
+            card: OpenWith::open(id, name),
+        });
         cx.notify();
     }
 
-    /// One backend line the open card owns: its applications catalogue or its openWith answer, under its own id.
+    /// A flyout application: the backend launches it on the menu's snapshot `id`, as v0.3.12 sends openWith with the chosen id.
+    pub(crate) fn open_with_application(
+        &mut self,
+        side: usize,
+        id: u64,
+        application: &str,
+        cx: &mut Context<Self>,
+    ) {
+        let launch = format!(
+            "{{\"c\":\"menuaction\",\"op\":\"openWith\",\"id\":{id},\"application\":\"{}\"}}",
+            flea::json::escape(application)
+        );
+        self.open_with_launch[side] = Some(id);
+        self.menu_send(side, launch, cx);
+    }
+
+    /// Sample input: {"t":"menuaction","id":7,"op":"openWith","ok":false,"error":"Neovim could not start."}, with "cancelled":true when a newer menu took the slot; a failure says why, then the snapshot is freed.
+    fn open_with_launched(&mut self, side: usize, line: &str, cx: &mut Context<Self>) -> bool {
+        let Some(id) = self.open_with_launch[side] else {
+            return false;
+        };
+        let Ok(reply) = flea::jsondoc::parse(line) else {
+            return false;
+        };
+        let field = |key| reply.get(key).and_then(flea::jsondoc::Json::as_bool);
+        if reply.get("op").and_then(flea::jsondoc::Json::as_str) != Some("openWith")
+            || reply.get("id").and_then(flea::jsondoc::Json::as_f64) != Some(id as f64)
+        {
+            return false;
+        }
+        self.open_with_launch[side] = None;
+        if field("ok") != Some(true) && field("cancelled") != Some(true) {
+            let error = reply
+                .get("error")
+                .and_then(flea::jsondoc::Json::as_str)
+                .map(str::to_string)
+                .unwrap_or_else(|| self.locale.catalog.tr("dialogs.file.openwith.open_failed"));
+            self.menu_notice(side, error, cx);
+        }
+        self.menu_send(side, format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{id}}}"), cx);
+        true
+    }
+
+    /// One backend line the open card owns: its snapshot's answer, its applications catalogue or its openWith answer, under its own id.
     pub(crate) fn open_with_line(
         &mut self,
         side: usize,
         line: &str,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.open_with_launched(side, line, cx) {
+            return true;
+        }
         let Some(open) = self.open_with.as_ref() else {
             return false;
         };
@@ -78,7 +160,7 @@ impl Shell {
         if reply.get("id").and_then(flea::jsondoc::Json::as_f64) != Some(open.id as f64)
             || !matches!(
                 reply.get("op").and_then(flea::jsondoc::Json::as_str),
-                Some("applications" | "openWith")
+                Some("snapshot" | "applications" | "openWith")
             )
         {
             return false;

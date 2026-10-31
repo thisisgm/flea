@@ -60,11 +60,14 @@ pub(super) fn sent(effects: &[Effect]) -> Vec<String> {
 pub(super) const APPLICATIONS: &str = r#"{"t":"menuaction","id":4,"op":"applications","ok":true,"path":"/fx/v/work/notes.txt","kind":"Plain text document","mime":"text/plain","applications":[{"id":"nvim.desktop","label":"Neovim","icon":"nvim","default":true}],"installed":[{"id":"xfce4-about.desktop","label":"About Xfce","icon":"org.xfce.about","default":false},{"id":"bssh.desktop","label":"Avahi SSH Server Browser","icon":"network-wired","default":false},{"id":"bvnc.desktop","label":"Avahi VNC Server Browser","icon":"network-wired","default":false},{"id":"avahi-discover.desktop","label":"Avahi Zeroconf Browser","icon":"network-wired","default":false},{"id":"basecamp.desktop","label":"Basecamp","icon":"","default":false},{"id":"btop.desktop","label":"btop++","icon":"btop","default":false},{"id":"chromium.desktop","label":"Chromium","icon":"chromium","default":false}]}"#;
 
 pub(crate) fn open_with() -> OpenWith {
-    let (mut card, effects) = OpenWith::open(4, "notes.txt");
+    let mut card = OpenWith::open(4, "notes.txt");
+    let held = parse(r#"{"t":"menuaction","id":4,"op":"snapshot","ok":true,"kinds":[33188]}"#).unwrap();
+    // The catalogue is asked once the snapshot is held, and a repeated answer asks nothing more.
     assert_eq!(
-        sent(&effects),
+        sent(&card.reply(&english(), &held)),
         vec![r#"{"c":"menuaction","op":"applications","id":4,"installed":true}"#]
     );
+    assert!(card.reply(&english(), &held).is_empty());
     card.reply(&english(), &parse(APPLICATIONS).unwrap());
     card
 }

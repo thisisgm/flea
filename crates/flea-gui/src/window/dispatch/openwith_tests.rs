@@ -66,7 +66,7 @@ fn quit(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) {
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
-// The card opens on mystery.xyz and asks the backend for its snapshot and then its applications, under one id.
+// The card opens on mystery.xyz, asks the backend for its snapshot, and its applications once that is held, under one id.
 fn opened(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &mut VisualTestContext, u64) {
     let (shell, cx) = shell(cx);
     set_cursor(&shell, cx, 1);
@@ -81,8 +81,7 @@ fn opened(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &mut VisualT
         ["/files/mystery.xyz"],
         "Enter hands the unclaimed file to flea --open"
     );
-    let lines = sent();
-    let id_of = |op: &str| {
+    let id_of = |lines: &[String], op: &str| {
         lines
             .iter()
             .filter_map(|line| flea::jsondoc::parse(line).ok())
@@ -90,9 +89,22 @@ fn opened(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &mut VisualT
             .and_then(|doc| doc.get("id").and_then(flea::jsondoc::Json::as_f64))
             .map(|id| id as u64)
     };
-    let snapshot = id_of("snapshot").expect("the card snapshots its row first");
+    let lines = sent();
+    let snapshot = id_of(&lines, "snapshot").expect("the card snapshots its row first");
+    // SW-03: the backend's one menu slot refuses a second queued request, so the catalogue waits for the snapshot.
     assert_eq!(
-        id_of("applications"),
+        id_of(&lines, "applications"),
+        None,
+        "the applications ask waits for the snapshot's answer: {lines:?}"
+    );
+    deliver(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"menuaction","id":{snapshot},"op":"snapshot","ok":true,"kinds":[33188]}}"#),
+    );
+    let lines = sent();
+    assert_eq!(
+        id_of(&lines, "applications"),
         Some(snapshot),
         "the applications ask carries the snapshot's id"
     );

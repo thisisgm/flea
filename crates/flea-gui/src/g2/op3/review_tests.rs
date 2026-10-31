@@ -147,3 +147,22 @@ fn review_r1_3_the_permissions_busy_sentence_comes_from_the_catalogue() {
         "the plan's Strings line names this sentence; shown raw: {shown:?}"
     );
 }
+
+#[test]
+fn review_fix_props_2_a_refused_snapshot_asks_no_catalogue_and_says_so() {
+    let i18n = english();
+    let mut card = super::openwith::OpenWith::open(4, "notes.txt");
+    let refused = parse(r#"{"t":"menuaction","id":4,"op":"snapshot","ok":false,"error":"The folder changed; reopen the menu."}"#).unwrap();
+    assert_eq!(
+        card.reply(&i18n, &refused),
+        Vec::<Effect>::new(),
+        "no catalogue on a snapshot the backend refused"
+    );
+    let shown = notes(&card.card(&i18n));
+    assert!(
+        shown
+            .iter()
+            .any(|(t, _)| t == "The list of applications could not be read."),
+        "the card says why its list stays empty: {shown:?}"
+    );
+}
