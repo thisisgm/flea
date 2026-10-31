@@ -299,7 +299,7 @@ Item {
                 id: tip
                 anchors.centerIn: parent
                 width: parent.width - 2 * Theme.spacing.gap
-                text: root.row ? root.row.n : ""
+                text: root.row ? root.row.n.replace(/\n/g, "\u21b5").replace(/\t/g, "\u21e5") : ""
                 color: Theme.color.foreground
                 font.family: Theme.font.family
                 font.pixelSize: Theme.font.caption
