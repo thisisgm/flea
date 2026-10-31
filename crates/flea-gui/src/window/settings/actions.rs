@@ -20,15 +20,7 @@ impl Shell {
             "keymapSheet" => self.open_sheet(window, cx),
             "toggleHidden" => {
                 // Pane.qml:553: Recent shows every item it lists, so the hidden setting stays put under it.
-                if self.panes[self.focus_side]
-                    .as_ref()
-                    .is_some_and(|host| host.recent.on)
-                {
-                    let text = self.locale.catalog.tr("places.recent.hidden_refused");
-                    if let Some(host) = self.panes[self.focus_side].as_mut() {
-                        host.status = text.into();
-                    }
-                    cx.notify();
+                if self.recent_refuses(self.focus_side, "places.recent.hidden_refused", cx) {
                     return true;
                 }
                 let hidden = !pages::is_true(&self.launch.settings.data, &["hidden"]);

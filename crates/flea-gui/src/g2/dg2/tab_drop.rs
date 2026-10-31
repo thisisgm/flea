@@ -3,9 +3,9 @@ use super::*;
 use crate::tabs::bar::Hit;
 
 pub(super) struct Destination {
-    side: usize,
-    identity: u64,
-    path: String,
+    pub(super) side: usize,
+    pub(super) identity: u64,
+    pub(super) path: String,
 }
 
 impl Shell {

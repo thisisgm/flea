@@ -63,10 +63,11 @@ fn u13_fix3_relative_copy_is_available_but_submission_still_refuses() {
     model.copy_to(71, false, "work");
     model.key(&catalog, "enter", false);
     assert!(model.open() && model.outbox.is_empty());
-    assert_eq!(
-        model.said.last().map(|s| (s.text.as_str(), s.error)),
-        Some(("Enter a full folder path, starting with /.", true))
-    );
+    assert!(matches!(
+        &model.dialog,
+        Some(Dialog::CopyTo { error, .. }) if error == "Enter a full folder path, starting with /."
+    ));
+    assert!(model.said.is_empty(), "the refusal stays on the card");
 }
 
 #[gpui::test]
@@ -101,16 +102,11 @@ fn u13_fix3_selection_replacement_and_literal_hjkl(cx: &mut TestAppContext) {
     assert_eq!(state(&view, &visual).1, CopyFocus::Confirm);
     visual.simulate_keystrokes("enter");
     assert_eq!(state(&view, &visual).0, "relative");
-    let status = handle
-        .update(&mut visual, |root, _, cx| {
-            Entity::read(&root.shell, cx).panes[0]
-                .as_ref()
-                .unwrap()
-                .status
-                .to_string()
-        })
-        .unwrap();
-    assert_eq!(status, "Enter a full folder path, starting with /.");
+    assert!(view.read_with(&visual, |v, _| matches!(
+        &v.model.dialog,
+        Some(Dialog::CopyTo { error, .. }) if error == "Enter a full folder path, starting with /."
+    )));
+    assert!(view.read_with(&visual, |v, _| v.model.said.is_empty()));
 }
 
 #[gpui::test]

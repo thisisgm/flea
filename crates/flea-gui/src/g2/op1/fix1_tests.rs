@@ -266,10 +266,11 @@ fn copy_to_validates_through_the_menu_and_refuses_a_relative_path() {
     let mut ops = Operations::new("default");
     ops.copy_to(7, false, "work");
     ops.key(&cat, "enter", false);
-    assert_eq!(
-        ops.said.last().map(|s| (s.text.as_str(), s.error)),
-        Some(("Enter a full folder path, starting with /.", true))
-    );
+    assert!(matches!(
+        &ops.dialog,
+        Some(Dialog::CopyTo { error, .. }) if error == "Enter a full folder path, starting with /."
+    ));
+    assert!(ops.said.is_empty(), "the refusal stays on the card");
     assert!(ops.open() && ops.outbox.is_empty());
     let mut ops = Operations::new("default");
     ops.copy_to(7, true, "/home/u/work");
@@ -300,14 +301,11 @@ fn a_refused_validate_keeps_the_card_and_says_why() {
     ops.copy_to(7, false, "/home/u/work");
     ops.key(&cat, "enter", false);
     ops.line(&cat, r#"{"t":"menuaction","id":7,"op":"validate","ok":false,"error":"The items changed; select them again."}"#, 0);
-    assert_eq!(
-        ops.said.last().map(|s| s.text.as_str()),
-        Some("The items changed; select them again.")
-    );
     assert!(matches!(
-        ops.dialog,
-        Some(Dialog::CopyTo { busy: false, .. })
+        &ops.dialog,
+        Some(Dialog::CopyTo { busy: false, error, .. }) if error == "The items changed; select them again."
     ));
+    assert!(ops.said.is_empty(), "the refusal stays on the card");
 }
 
 // r1-6: a late trashdeletestarted touches no card, and a card that replaces a collision card cancels it in the host.

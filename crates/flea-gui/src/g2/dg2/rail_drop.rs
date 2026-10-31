@@ -1,4 +1,5 @@
 //! A row drag held over or released on a rail place (RailDrop.qml, RailTrashRow.qml): a place takes the transfer a folder row takes, Trash takes dd's trash request.
+//! The same aim follows the drag over a pane's folder rows (RowDropTarget.qml) and the tabs (DropInto.qml, whose rest switches the tab).
 use super::*;
 use flea::ui_logic_dg2::{drop_label, line_to, rail_destination, PasteAsk, RailKind, Verb};
 use flea::ui_logic_pl3::dropping;
@@ -14,14 +15,37 @@ pub(super) enum Place {
     Trash,
 }
 
-/// The rail row a held drag rests on, the pane that receives it, and the disk facts once read.
+/// What a held drag rests on: a rail row, a folder row of the pane, or a tab of the strip.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) enum Spot {
+    Rail(usize),
+    Row(usize),
+    Tab(usize),
+}
+
+/// The spot a held drag rests on, the pane that receives it, and the disk facts once read.
 pub(super) struct Aim {
-    row: usize,
+    spot: Spot,
     side: usize,
     name: String,
     place: Place,
     facts: Option<Facts>,
     serial: u64,
+    // The caption a folder row draws while the drag rests on it, once the verb is known.
+    label: Option<gpui::SharedString>,
+}
+
+/// The folder row of `side` a held drag rests on in this window, with its caption.
+pub(crate) fn row_cue(
+    window: &Window,
+    cx: &App,
+    side: usize,
+) -> Option<(usize, gpui::SharedString)> {
+    let aim = cx.try_global::<Drags>()?.aims.get(&window_key(window))?;
+    match aim.spot {
+        Spot::Row(row) if aim.side == side => Some((row, aim.label.clone()?)),
+        _ => None,
+    }
 }
 
 impl Shell {
@@ -82,6 +106,54 @@ impl Shell {
         Some((row, side, name, place))
     }
 
+    // DropInto.qml on a tab, then RowDropTarget.qml on a folder row the drag does not carry.
+    fn pane_target(
+        &self,
+        point: Point<gpui::Pixels>,
+        lift: &Lift,
+    ) -> Option<(Spot, usize, String, Place)> {
+        if let Some(tab) = self.file_tab_destination(point) {
+            let index = self.strip.tabs[tab.side].resolve(tab.identity)?;
+            return (!tab.path.is_empty()).then(|| {
+                (
+                    Spot::Tab(index),
+                    tab.side,
+                    tab.path.clone(),
+                    Place::Folder(tab.path),
+                )
+            });
+        }
+        let side = (0..self.panes.len()).find(|side| {
+            self.panes[*side]
+                .as_ref()
+                .and_then(|host| host.input.frame)
+                .is_some_and(|frame| frame.bounds.contains(&point))
+        })?;
+        let host = self.panes[side].as_ref()?;
+        if host.pane.busy()
+            || !matches!(
+                host.drawn_view,
+                Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
+            )
+        {
+            return None;
+        }
+        let row = host.input.hit(point)?;
+        let own = lift.side == side && lift.listing == host.pane.held.listing;
+        if own && lift.rows.contains(&row) {
+            return None;
+        }
+        let name = host
+            .pane
+            .held
+            .row(row)
+            .filter(|facts| facts.dir)?
+            .name
+            .clone();
+        let dest = row_spot(host, Some(row), &[]);
+        Some((Spot::Row(row), side, name, Place::Folder(dest)))
+    }
+
     /// Every move of a held row drag reaches this listener wherever the pointer is, so one pane carries it.
     pub(crate) fn aim_rail_on_drag_move(
         div: gpui::Stateful<gpui::Div>,
@@ -106,14 +178,18 @@ impl Shell {
         let target = cx
             .try_global::<Drags>()
             .and_then(|drags| drags.lifts.get(&key))
-            .and_then(|lift| self.rail_target(point, lift, cx));
-        let Some((row, side, name, place)) = target else {
+            .and_then(|lift| {
+                self.rail_target(point, lift, cx)
+                    .map(|(row, side, name, place)| (Spot::Rail(row), side, name, place))
+                    .or_else(|| self.pane_target(point, lift))
+            });
+        let Some((spot, side, name, place)) = target else {
             self.clear_rail_aim(window, cx);
             return;
         };
         let drags = cx.default_global::<Drags>();
         if let Some(aim) = drags.aims.get(&key) {
-            if aim.row == row && aim.side == side && aim.place == place {
+            if aim.spot == spot && aim.side == side && aim.place == place {
                 self.say_rail_aim(window, cx);
                 return;
             }
@@ -131,14 +207,16 @@ impl Shell {
         drags.aims.insert(
             key,
             Aim {
-                row,
+                spot,
                 side,
                 name,
                 place,
                 facts: None,
                 serial,
+                label: None,
             },
         );
+        self.rest_on_tab(spot, window, cx);
         self.say_rail_aim(window, cx);
         // RailDrop.qml asks for the place's device before the verb is said; a later aim supersedes this answer.
         if let Some(dest) = folder {
@@ -199,8 +277,37 @@ impl Shell {
                 ))
             }),
         };
-        let row = aim.row;
-        self.show_rail_cue(said.map(|(label, line)| (row, label, line)), cx);
+        let spot = aim.spot;
+        if let Some(aim) = cx.global_mut::<Drags>().aims.get_mut(&key) {
+            aim.label = said.as_ref().map(|(label, _)| label.clone().into());
+        }
+        let rail = match spot {
+            Spot::Rail(row) => Some(row),
+            Spot::Row(_) | Spot::Tab(_) => None,
+        };
+        self.show_rail_cue(rail, said, cx);
+    }
+
+    // TabBar.qml hoverSwitch: a drag resting on another tab selects it once the switch delay has passed.
+    fn rest_on_tab(&mut self, spot: Spot, window: &mut Window, cx: &mut Context<Self>) {
+        let Spot::Tab(index) = spot else {
+            self.strip.bar.hover_exited();
+            return;
+        };
+        let now = self.tab_now();
+        self.strip.bar.hover_entered(index, true, now);
+        let wait = std::time::Duration::from_millis(crate::tabs::bar::HOVER_SWITCH_MS);
+        cx.spawn_in(window, async move |this, cx| {
+            cx.background_executor().timer(wait).await;
+            let _ = this.update_in(cx, |shell, window, cx| {
+                let now = shell.tab_now();
+                if shell.with_tabs(|bar, panes| bar.hover_tick(panes, now)) {
+                    shell.tabs_changed(window, cx);
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
     }
 
     /// The drag left the rail or ended: no row stays lit and the drag's line leaves the status bar.
@@ -211,7 +318,8 @@ impl Shell {
             .is_some_and(|drags| drags.aims.contains_key(&key));
         if held {
             cx.global_mut::<Drags>().aims.remove(&key);
-            self.show_rail_cue(None, cx);
+            self.strip.bar.hover_exited();
+            self.show_rail_cue(None, None, cx);
         }
     }
 
@@ -222,11 +330,16 @@ impl Shell {
         }
     }
 
-    fn show_rail_cue(&mut self, cue: Option<(usize, String, String)>, cx: &mut Context<Self>) {
+    fn show_rail_cue(
+        &mut self,
+        rail: Option<usize>,
+        cue: Option<(String, String)>,
+        cx: &mut Context<Self>,
+    ) {
         if let Some(join) = &self.rail {
-            let target = cue
-                .as_ref()
-                .map(|(row, label, _)| (*row, gpui::SharedString::from(label.clone())));
+            let target = rail
+                .zip(cue.as_ref())
+                .map(|(row, (label, _))| (row, gpui::SharedString::from(label.clone())));
             join.places.update(cx, |producer, cx| {
                 let mut model = producer.model.borrow_mut();
                 if model.drop_target != target {
@@ -236,7 +349,7 @@ impl Shell {
                 }
             });
         }
-        let line = cue.map(|(_, _, line)| line).unwrap_or_default();
+        let line = cue.map(|(_, line)| line).unwrap_or_default();
         self.status_messages(cx, |messages, now| {
             // FileDrag.say: a running transfer keeps the bar; an empty line always leaves.
             if line.is_empty() || !messages.activities().iter().any(|entry| entry.running) {

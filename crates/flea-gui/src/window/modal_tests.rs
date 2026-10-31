@@ -237,7 +237,11 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
             );
             assert_eq!(window.focused(cx), Some(handle), "nothing else is focused");
             let Some(Dialog::CopyTo {
-                path, focus, busy, ..
+                path,
+                focus,
+                busy,
+                error,
+                ..
             }) = &card.model.dialog
             else {
                 panic!("the Copy To card remains open after {key}");
@@ -254,10 +258,8 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
             );
             assert_eq!(*busy, submitted, "only Return on a full path submits");
             if key == "enter" && expected_path == "j" {
-                let notices = notices.borrow();
-                let said = notices.last().expect("relative paths are refused");
-                assert!(said.error);
-                assert_eq!(said.text, card.catalog.tr("jobs.copyto.relative"));
+                assert_eq!(*error, card.catalog.tr("jobs.copyto.relative"));
+                assert!(notices.borrow().is_empty(), "the refusal stays on the card");
             }
             assert_eq!(
                 delivered.len(),

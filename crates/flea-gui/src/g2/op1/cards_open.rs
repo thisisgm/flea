@@ -39,6 +39,7 @@ impl Operations {
             path: path.into(),
             focus: CopyFocus::Field,
             busy: false,
+            error: String::new(),
         });
     }
 

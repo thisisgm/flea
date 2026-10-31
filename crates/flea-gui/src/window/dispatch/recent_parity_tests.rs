@@ -1,4 +1,7 @@
-use super::test_shell::{land, open_root, row, sent, status};
+use super::{
+    railrecent_tests::{frame, read},
+    test_shell::{land, open_root, row, sent},
+};
 use crate::state::Shell;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
@@ -17,8 +20,9 @@ fn pb_recent_hidden_toggle_refuses_without_changing_preferences(cx: &mut TestApp
     let (shell, cx) = open_root(cx, "default");
     recent(&shell, cx);
     cx.simulate_keystrokes("ctrl-shift-.");
+    frame(cx);
     assert_eq!(
-        status(&shell, cx),
+        read(&shell, cx, "statusPrimary"),
         "Recent shows every item it lists, hidden ones included"
     );
     shell.read_with(cx, |shell, _| {
@@ -33,8 +37,9 @@ fn pb_recent_new_folder_key_refuses_before_mkdir(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     recent(&shell, cx);
     cx.simulate_keystrokes("ctrl-shift-n");
+    frame(cx);
     assert_eq!(
-        status(&shell, cx),
+        read(&shell, cx, "statusPrimary"),
         "Recent cannot hold a new folder. Open a folder first"
     );
     assert!(!sent().iter().any(|line| line.contains("mkdir")));

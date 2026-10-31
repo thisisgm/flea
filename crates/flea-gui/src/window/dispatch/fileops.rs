@@ -279,12 +279,7 @@ impl Shell {
     // Ops.js newFolder: no name, so the backend takes the first free one.
     fn fileops_new_folder(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         // Focus.js:271: Recent holds no folder, so the refusal lands before any mkdir.
-        if self.panes[side].as_ref().is_some_and(|host| host.recent.on) {
-            let text = self.locale.catalog.tr("places.recent.new_folder_refused");
-            if let Some(host) = self.panes[side].as_mut() {
-                host.status = text.into();
-            }
-            cx.notify();
+        if self.recent_refuses(side, "places.recent.new_folder_refused", cx) {
             return;
         }
         let path = match chosen {

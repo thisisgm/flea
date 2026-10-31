@@ -9,6 +9,7 @@ use super::{
 use flea::ui_logic_op1::card::{self, Kind};
 use gpui::{div, prelude::*, px, Div};
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn card(
     scene: &Scene,
     window: (f32, f32),
@@ -16,6 +17,7 @@ pub(super) fn card(
     path: &str,
     focus: CopyFocus,
     busy: bool,
+    error: &str,
     send: Option<&crate::g2::sd2::seams::Card>,
 ) -> Div {
     let (palette, catalog) = (scene.palette, scene.catalog);
@@ -70,8 +72,11 @@ pub(super) fn card(
         .child(label)
         .child(field)
         .into_any_element()];
-    if let Some(error) = send.and_then(|card| card.error.as_ref()) {
-        body.push(super::view::caption(scene, error.clone(), palette.error).into_any_element());
+    let error = send
+        .and_then(|card| card.error.clone())
+        .or_else(|| (!error.is_empty()).then(|| error.to_owned()));
+    if let Some(error) = error {
+        body.push(super::view::caption(scene, error, palette.error).into_any_element());
     }
     let confirm = send.map_or_else(
         || {

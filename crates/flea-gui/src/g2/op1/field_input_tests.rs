@@ -2,7 +2,7 @@
 use super::{
     field_tests::{open, state},
     host::Overlay,
-    model::CopyFocus,
+    model::{CopyFocus, Dialog},
 };
 use crate::{backend::Event, window::root::Root};
 use gpui::{
@@ -167,20 +167,11 @@ fn u13_fix3_disabled_and_busy_controls_never_submit_or_edit(cx: &mut TestAppCont
         state(&view, &visual),
         ("/".into(), CopyFocus::Cancel, false)
     );
-    assert!(
-        view.read_with(&visual, |v, _| v.model.said.is_empty()),
-        "notice must be published through the shell"
-    );
-    let status = handle
-        .update(&mut visual, |root, _, cx| {
-            Entity::read(&root.shell, cx).panes[0]
-                .as_ref()
-                .unwrap()
-                .status
-                .to_string()
-        })
-        .unwrap();
-    assert_eq!(status, "Destination refused.");
+    assert!(view.read_with(&visual, |v, _| v.model.said.is_empty()));
+    assert!(view.read_with(&visual, |v, _| matches!(
+        &v.model.dialog,
+        Some(Dialog::CopyTo { error, .. }) if error == "Destination refused."
+    )));
     click(&mut visual, "op1-button-0");
     assert!(!view.read_with(&visual, |v, _| v.model.open()));
     assert_eq!(

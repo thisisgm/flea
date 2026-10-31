@@ -41,6 +41,8 @@ pub enum Dialog {
         path: String,
         focus: CopyFocus,
         busy: bool,
+        // v0.3.12 MenuActionDialog errorText: the last refusal, drawn under the field until the next submit.
+        error: String,
     },
     SendTo {
         menu: u64,

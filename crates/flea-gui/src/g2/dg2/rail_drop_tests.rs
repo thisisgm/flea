@@ -69,7 +69,12 @@ fn rail_centre(
 }
 
 // Press on a listing row and carry it over a rail row, still held.
-fn hold(vcx: &mut VisualTestContext, from: Point<Pixels>, to: Point<Pixels>, keys: Modifiers) {
+pub(super) fn hold(
+    vcx: &mut VisualTestContext,
+    from: Point<Pixels>,
+    to: Point<Pixels>,
+    keys: Modifiers,
+) {
     vcx.simulate_mouse_move(from, None, Modifiers::default());
     vcx.simulate_mouse_down(from, MouseButton::Left, Modifiers::default());
     vcx.simulate_mouse_move(

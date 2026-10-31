@@ -41,6 +41,7 @@ fn operations(cx: &mut TestAppContext) {
                 path: "/files".into(),
                 focus: CopyFocus::Field,
                 busy: false,
+                error: String::new(),
             },
         ),
         (

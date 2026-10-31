@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 #[path = "rail_drop.rs"]
-mod rail_drop;
+pub(crate) mod rail_drop;
 #[path = "tab_drop.rs"]
 mod tab_drop;
 

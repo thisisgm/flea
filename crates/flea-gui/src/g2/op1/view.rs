@@ -382,8 +382,9 @@ pub(super) fn dialog_snapshot(
             path,
             focus,
             busy,
+            error,
             ..
-        } => super::copy_to::card(scene, window, *moving, path, *focus, *busy, None),
+        } => super::copy_to::card(scene, window, *moving, path, *focus, *busy, error, None),
         Dialog::SendTo {
             path,
             focus,
@@ -397,7 +398,7 @@ pub(super) fn dialog_snapshot(
             if refusal.is_some() || card.value != *path {
                 card.error = flea::ui_logic_sd2::present::card_error(scene.catalog, refusal, None);
             }
-            super::copy_to::card(scene, window, false, path, *focus, *busy, Some(&card))
+            super::copy_to::card(scene, window, false, path, *focus, *busy, "", Some(&card))
         }
         Dialog::NewFile {
             name,

@@ -134,6 +134,7 @@ fn a_review_landing_under_another_card_is_cancelled() {
         path: "/x".into(),
         focus: super::model::CopyFocus::Field,
         busy: false,
+        error: String::new(),
     });
     ops.line(&cat, FRESH, 100);
     assert!(ops.confirm.is_none() && matches!(ops.dialog, Some(Dialog::CopyTo { .. })));
