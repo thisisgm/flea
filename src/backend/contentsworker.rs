@@ -156,7 +156,7 @@ fn execute(
     if !reaped {
         jail::kill_tree(&mut child);
     }
-    let Some((mut hits, scanned)) = result? else {
+    let Some((mut hits, scanned, partial)) = result? else {
         return Ok(None);
     };
     hits.sort_by(|a, b| a.path.cmp(&b.path));
@@ -188,6 +188,7 @@ fn execute(
         dev: meta.dev(),
         writable: super::super::ops::dir_writable(root),
         ms: started.elapsed().as_secs_f64() * 1000.,
+        partial,
     }))
 }
 
@@ -196,7 +197,7 @@ fn collect(
     stop: &AtomicBool,
     started: Instant,
     reaped: &mut bool,
-) -> Result<Option<(Vec<Hit>, usize)>, String> {
+) -> Result<Option<(Vec<Hit>, usize, bool)>, String> {
     let mut stdout = child.child.stdout.take().ok_or("missing ripgrep stdout")?;
     let mut stderr = child.child.stderr.take().ok_or("missing ripgrep stderr")?;
     nonblocking(stdout.as_raw_fd()).map_err(|error| error.to_string())?;
@@ -280,12 +281,14 @@ fn collect(
         if eof && err_eof {
             if let Some(status) = child.child.try_wait().map_err(|error| error.to_string())? {
                 *reaped = true;
-                if matches!(status.code(), Some(0 | 1))
-                    && summary.is_some()
-                    && pending.is_empty()
-                    && errors.is_empty()
-                {
-                    return Ok(Some((hits.into_values().collect(), summary.unwrap_or(0))));
+                // Exit 2 after the summary is a finished walk that skipped paths it could not read, as the names walk does.
+                let skipped = match status.code() {
+                    Some(0 | 1) if errors.is_empty() => Some(false),
+                    Some(2) => Some(true),
+                    _ => None,
+                };
+                if let (Some(skipped), Some(searches), true) = (skipped, summary, pending.is_empty()) {
+                    return Ok(Some((hits.into_values().collect(), searches, skipped)));
                 }
                 return Err(format!(
                     "ripgrep {status}: {}",

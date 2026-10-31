@@ -7,6 +7,10 @@ use std::io::{self, Write};
 
 pub(super) fn parse(line: &str) -> Result<Event, String> {
     match parse_reply(line)? {
+        // A contents search failure keeps its gen, so the search settles only the query it answers.
+        Reply::Error { operation, .. } if operation == "searchcontents" => {
+            Ok(Event::Producer(line.to_owned()))
+        }
         Reply::Error {
             operation,
             path,

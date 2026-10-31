@@ -193,6 +193,7 @@ fn m9_g2rows_01_cancel_reaps_and_stale_generation_is_ignored() {
         dev: 0,
         writable: false,
         ms: 0.,
+        partial: false,
     };
     f.event(Event::Contents(super::super::contents::Done {
         ticket: 1,

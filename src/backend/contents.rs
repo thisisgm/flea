@@ -77,6 +77,8 @@ pub struct Snapshot {
     pub dev: u64,
     pub writable: bool,
     pub ms: f64,
+    /// Some path under the root could not be read, so the matches cover only what could.
+    pub partial: bool,
 }
 
 pub enum Outcome {

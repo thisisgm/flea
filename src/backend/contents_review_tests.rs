@@ -306,3 +306,36 @@ fn m9_g2rows_01_review_minified_line_does_not_discard_other_files() {
     assert_eq!(f.st.listing.len(), 2);
     assert_eq!(f.st.contents.held.as_ref().unwrap().matches[0].line, line);
 }
+
+// An unreadable folder under the root is skipped like the names walk skips it, never a failed search.
+#[test]
+fn ey333_unreadable_folder_keeps_the_other_matches() {
+    use std::os::unix::fs::PermissionsExt;
+    let mut f = Fixture::new();
+    std::fs::write(f.root.join("notes.txt"), "plain needle\n").unwrap();
+    std::fs::create_dir(f.root.join("Docs")).unwrap();
+    std::fs::write(f.root.join("Docs/notes.txt"), "line\nnested needle\n").unwrap();
+    f.search(false, 1, 10);
+    f.finish();
+    let searched = |f: &Fixture| {
+        let text = f.text();
+        let line = text.lines().find(|line| field_str(line, "t").as_deref() == Some("searched"));
+        line.unwrap().to_owned()
+    };
+    let complete = searched(&f);
+    let locked = f.root.join("Locked");
+    std::fs::create_dir(&locked).unwrap();
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+    assert!(std::fs::read_dir(&locked).is_err(), "the test needs a folder this user cannot read");
+    f.out.clear();
+    f.search(false, 2, 10);
+    f.finish();
+    assert_eq!(f.st.listing.len(), 2);
+    assert_eq!(f.st.listing.name(0), "Docs/notes.txt");
+    assert_eq!(f.st.listing.name(1), "notes.txt");
+    assert!(f.text().contains(r#""lineNo":2,"line":"nested needle""#));
+    let line = searched(&f);
+    assert!(line.contains(r#""n":2"#) && line.contains(r#""gen":2"#), "{line}");
+    assert!(line.contains(r#""partial":true,"partial_reason":"unreadable""#), "{line}");
+    assert!(complete.contains(r#""partial":false"#), "{complete}");
+}

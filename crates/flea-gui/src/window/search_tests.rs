@@ -133,7 +133,7 @@ fn answer(
     );
 }
 
-fn call(cx: &mut TestAppContext, handle: Handle, function: &str) -> Reply {
+pub(super) fn call(cx: &mut TestAppContext, handle: Handle, function: &str) -> Reply {
     edit(cx, handle, |shell, window, cx| {
         let (send, receive) = std::sync::mpsc::sync_channel(1);
         shell.ipc(
