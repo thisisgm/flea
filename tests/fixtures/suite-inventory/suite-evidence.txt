@@ -526,4 +526,8 @@ bench-gate-provenance|^BENCH_GATE_PROVENANCE PASS$|1
 fs-instrument|^fs-instrument: PASS$|1
 native-runtime|^NATIVE RUNTIME PASS [1-9][0-9]* adapter/display pairs and [1-9][0-9]* executable guards$|1
 native-runtime|^ARCHIVE SCENES PASS submitted mismatch and lit primary focus$|1
+bench-b3-capture|^BENCH_B3_CAPTURE PASS controls=23$|1
+bench-raw-corpus-contract|^PASS bench-raw-corpus-contract: all offline checks passed$|1
+prove-ci-runner|^PROVE_02_PASS checks=[1-9][0-9]* failed=0$|1
+tool-preflight|^tool-preflight: PASS$|1
 opr-recipe|^opr-recipe: PASS recipes match outside release metadata and Maintainer$|1

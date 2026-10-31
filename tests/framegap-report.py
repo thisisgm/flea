@@ -36,7 +36,7 @@ def validate(text, expected_sides):
             raise ValueError("a frame is missing a side or repeats a side")
     if not frames or 4 * len(frames) != expected_sides:
         raise ValueError("the pre-clip frame-side inventory changed")
-    # Sample input: "qml: FRAMEGAP DONE checks=4648 failed=0 controls=96 controlMiss=0 focusMiss=0".
+    # Sample input: "qml: FRAMEGAP DONE checks=4672 failed=0 controls=96 controlMiss=0 focusMiss=0".
     totals = re.findall(r"FRAMEGAP DONE checks=(\d+) failed=\d+ controls=\d+ controlMiss=\d+ focusMiss=\d+", text)
     if len(totals) != 1 or int(totals[0]) != rows:
         raise ValueError("the raw frame rows disagree with the sole completion tally")
