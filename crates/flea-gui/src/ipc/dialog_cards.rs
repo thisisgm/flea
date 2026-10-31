@@ -63,10 +63,11 @@ impl Adapter for DialogAdapter<'_> {
                 }
                 "{\"opened\":false}".into()
             }
-            // The Permissions card is not mounted in the window, so only the rest input state remains.
-            "permissionsState" => {
-                format!("{{\"opened\":false,\"inputReady\":{}}}", self.input_ready)
-            }
+            // An open card answers its own state; a closed one only the list's rest input state.
+            "permissionsState" => match self.shell.permissions_state(self.cx) {
+                Some(state) => flea::jsondoc::render(&state).trim_end().to_owned(),
+                None => format!("{{\"opened\":false,\"inputReady\":{}}}", self.input_ready),
+            },
             _ => return None,
         };
         Some(Reply::value(value))

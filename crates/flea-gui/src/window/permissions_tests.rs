@@ -3,6 +3,8 @@
 mod fixture;
 #[path = "permissions_guard_tests.rs"]
 mod guards;
+#[path = "permissions_reader_tests.rs"]
+mod reader;
 use crate::g2::op3::permissions::Stop;
 use fixture::*;
 use gpui::{TestAppContext, VisualTestContext};

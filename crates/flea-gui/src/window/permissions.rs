@@ -57,6 +57,12 @@ impl Shell {
             .is_some_and(|view| view.read(cx).opened)
     }
 
+    /// The open card's permissionsState, or None while no card is open.
+    pub(crate) fn permissions_state(&self, cx: &App) -> Option<Json> {
+        let view = self.permissions.view.as_ref()?.read(cx);
+        view.opened.then(|| view.model.state())
+    }
+
     fn open_permissions(&mut self, chosen: &Chosen, window: &mut Window, cx: &mut Context<Self>) {
         let capture = &chosen.captured;
         let side = capture.side;
@@ -206,8 +212,9 @@ impl Shell {
                     )
                 });
             }
+            // WindowBody.qml refresh("", true): a mode change keeps the cursor's row and the marks.
             Effect::Refresh => {
-                let _ = self.step(side, Step::Refresh(None), window, cx);
+                let _ = self.step(side, Step::Reread, window, cx);
             }
             Effect::Launch(_) | Effect::EditNames { .. } => {
                 unreachable!("Permissions emits only backend and presentation effects")
