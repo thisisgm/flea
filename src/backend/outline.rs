@@ -1,5 +1,5 @@
 //! Session expansions compose ordinary directory listings into one row numbering.
-use super::{listing::Listing, state::State};
+use super::{dirsize::DirSize, listing::Listing, state::State};
 use crate::jsondoc::Json;
 use std::{
     collections::BTreeSet,
@@ -13,6 +13,7 @@ pub struct Session {
     pub last: String,
 }
 
+// Sample input: {"c":"list","path":"/home/gm","first":350,"outlinePaths":["/home/gm/A"]}
 fn object(line: &str) -> Vec<(String, Json)> {
     match crate::jsondoc::parse(line) {
         Ok(Json::Obj(fields)) => fields,
@@ -25,6 +26,7 @@ fn set(fields: &mut Vec<(String, Json)>, key: &str, value: Json) {
     fields.push((key.into(), value));
 }
 
+// render puts each member on its own line and escapes every string, so trimming lines drops only layout.
 fn encode(fields: Vec<(String, Json)>) -> String {
     crate::jsondoc::render(&Json::Obj(fields))
         .lines()
@@ -48,6 +50,7 @@ impl Session {
         encode(fields)
     }
 
+    // Sample input: {"c":"sort","by":"size","desc":true,"foldersFirst":true,"anchor":"/home/gm/A"}
     pub fn sort(&mut self, line: &str) {
         let mut fields = object(&self.last);
         for (key, value) in object(line) {
@@ -68,13 +71,13 @@ pub fn request(
     open: bool,
     enabled: Option<bool>,
     first: usize,
-) -> Option<String> {
+) -> Result<String, String> {
     if st.held != super::state::Held::List {
-        return None;
+        return Err("open in place needs a folder listing".into());
     }
     let anchor = if let Some(row) = row {
         if row >= st.listing.len() || !st.listing.is_dir(row) {
-            return None;
+            return Err(format!("row {row} is not a folder in this listing"));
         }
         let path = st.base.join(st.listing.name(row));
         if open {
@@ -84,7 +87,10 @@ pub fn request(
         }
         Some(path)
     } else {
-        st.outline.disabled = !enabled?;
+        let Some(enabled) = enabled else {
+            return Err("an outline request names a row or enabled".into());
+        };
+        st.outline.disabled = !enabled;
         None
     };
     let mut fields = object(&st.outline.last);
@@ -95,6 +101,8 @@ pub fn request(
         Json::Str(st.base.to_string_lossy().into_owned()),
     );
     set(&mut fields, "first", Json::Num(first.to_string()));
+    // The last listing's select is stale here, and a select starts the first window at its row.
+    fields.retain(|(name, _)| name != "select");
     if let Some(anchor) = anchor {
         set(
             &mut fields,
@@ -102,14 +110,13 @@ pub fn request(
             Json::Str(anchor.to_string_lossy().into_owned()),
         );
     }
-    Some(encode(fields))
+    Ok(encode(fields))
 }
 
-fn append(out: &mut Listing, from: &Listing, index: usize, prefix: &str) {
+fn append(out: &mut Listing, from: &Listing, index: usize, prefix: &str) -> usize {
     let name = format!("{prefix}{}", from.name(index));
     let off = out.names.len() as u32;
-    out.push(&name, from.is_dir(index));
-    out.spans.last_mut().unwrap().is_symlink = from.spans[index].is_symlink;
+    let row = out.push_entry(&name, from.is_dir(index), from.spans[index].is_symlink);
     if let Some(meta) = from.gio_for(index) {
         out.gio_meta.push(super::listing::GioMeta {
             name_off: off,
@@ -123,6 +130,7 @@ fn append(out: &mut Listing, from: &Listing, index: usize, prefix: &str) {
             target: target.to_owned(),
         });
     }
+    row
 }
 
 pub fn expand(
@@ -134,11 +142,13 @@ pub fn expand(
     fd: i32,
     tx: super::events::Sender<super::events::Event>,
 ) -> (f64, f64) {
+    // Sample input: {"c":"list","path":"/home/gm","outlinePaths":["/home/gm/A","/home/gm/A/B","/srv/C"]}
     let paths: BTreeSet<PathBuf> = crate::json::field_str_array(line, "outlinePaths")
         .into_iter()
         .map(PathBuf::from)
         .collect();
-    if paths.is_empty() {
+    // The session remembers folders open elsewhere, and a listing holding none of them is left as it was read.
+    if !paths.iter().any(|path| path.parent() == Some(base)) {
         return (0., 0.);
     }
     let mut out = Listing::new();
@@ -214,15 +224,16 @@ pub fn ordered(
     base: &Path,
     mime: &super::mime::Db,
     line: &str,
-) -> Result<(f64, f64, Vec<Option<super::dirsize::DirSize>>), &'static str> {
+) -> Result<(f64, f64, Vec<Option<DirSize>>), &'static str> {
     let mut groups = std::collections::BTreeMap::<String, Listing>::new();
     for i in 0..listing.len() {
         let name = listing.name(i);
+        // Sample input: "A", "A/b.txt" and "A/B/c.txt", grouped under "", "A" and "A/B".
         let (parent, leaf) = name.rsplit_once('/').unwrap_or(("", name));
         let group = groups.entry(parent.to_owned()).or_insert_with(Listing::new);
         let before = group.names.len();
-        append(group, listing, i, "");
-        let span = group.spans.last_mut().unwrap();
+        let row = append(group, listing, i, "");
+        let span = &mut group.spans[row];
         span.off += (name.len() - leaf.len()) as u32;
         span.len = leaf.len() as u32;
         // Offsets remain stable for cached GIO metadata while the span names only its leaf.
@@ -239,15 +250,20 @@ pub fn ordered(
     }
     let mut pass = 0.;
     let mut sort = 0.;
+    let mut seeds = std::collections::BTreeMap::<String, Vec<Option<DirSize>>>::new();
     for (parent, group) in &mut groups {
-        let (p, s, _) = super::ordering::request(group, &base.join(parent), mime, line)?;
+        let (p, s, seed) = super::ordering::request(group, &base.join(parent), mime, line)?;
         pass += p;
         sort += s;
+        seeds.insert(parent.clone(), seed);
     }
+    // Each group's walked sizes follow its rows into the one numbering, so the sizes answered after the sort need no walk of their own.
     fn flatten(
         parent: &str,
         groups: &std::collections::BTreeMap<String, Listing>,
+        seeds: &std::collections::BTreeMap<String, Vec<Option<DirSize>>>,
         out: &mut Listing,
+        sized: &mut Vec<Option<DirSize>>,
     ) {
         let Some(group) = groups.get(parent) else {
             return;
@@ -259,16 +275,21 @@ pub fn ordered(
         };
         for i in 0..group.len() {
             append(out, group, i, &prefix);
-            flatten(&format!("{prefix}{}", group.name(i)), groups, out);
+            sized.push(seeds.get(parent).and_then(|seed| seed.get(i).copied().flatten()));
+            flatten(&format!("{prefix}{}", group.name(i)), groups, seeds, out, sized);
         }
     }
     let mut out = Listing::new();
+    let mut sized = Vec::new();
     out.base_dev = listing.base_dev;
     out.outline_open = listing.outline_open.clone();
     out.outline_watches = listing.outline_watches.clone();
-    flatten("", &groups, &mut out);
+    flatten("", &groups, &seeds, &mut out, &mut sized);
     *listing = out;
-    Ok((pass, sort, Vec::new()))
+    if sized.iter().all(Option::is_none) {
+        sized.clear();
+    }
+    Ok((pass, sort, sized))
 }
 
 pub fn watched(listing: &Listing, base: &Path, path: &Path) -> bool {

@@ -226,6 +226,7 @@ pub enum Started {
     Remote,
 }
 
+// Sample input: {"c":"list","path":"/home/gm","outlinePaths":["/home/gm/NAS/share"]}
 // An open child mount can block even when its outline root is local.
 pub(crate) fn threaded(path: &Path, line: &str, body: &str) -> bool {
     super::iomount::is_remote(path, body) || crate::json::field_str_array(line, "outlinePaths")

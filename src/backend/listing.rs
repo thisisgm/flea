@@ -58,14 +58,20 @@ impl Listing {
 
     // corner: u32 offsets cap the arena at 4 GiB of names, see AGENTS.md.
     pub fn push(&mut self, name: &str, is_dir: bool) {
+        self.push_entry(name, is_dir, false);
+    }
+
+    // The new row's index, so a caller adjusting its span never looks it up again.
+    pub fn push_entry(&mut self, name: &str, is_dir: bool, is_symlink: bool) -> usize {
         let off = self.names.len() as u32;
         self.names.push_str(name);
         self.spans.push(Span {
             off,
             len: (self.names.len() as u32) - off,
             is_dir,
-            is_symlink: false,
+            is_symlink,
         });
+        self.spans.len() - 1
     }
 
     pub fn name(&self, i: usize) -> &str {
