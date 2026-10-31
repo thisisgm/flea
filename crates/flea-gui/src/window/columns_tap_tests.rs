@@ -89,6 +89,12 @@ fn opened() -> Vec<Vec<String>> {
 }
 
 const OPEN: [&str; 2] = ["--open", "/srv/a/b/c/notes.txt"];
+/// The double-click interval the slow rename waits out (rename_slow_policy.rs).
+const INTERVAL: u64 = crate::input::slow::DOUBLE_CLICK_MS;
+/// Half again the interval: the next tap is a fresh one, and an armed rename has fired.
+const PAST: u64 = INTERVAL * 3 / 2;
+/// A quarter of the interval: an armed rename is still pending.
+const INSIDE: u64 = INTERVAL / 4;
 
 #[test]
 fn ey319_columns_double_click_on_a_file_opens_it_and_never_renames() {
@@ -97,7 +103,7 @@ fn ey319_columns_double_click_on_a_file_opens_it_and_never_renames() {
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
     tap(&mut vcx, at, 1);
     tap(&mut vcx, at, 2);
-    wait(&mut vcx, 600);
+    wait(&mut vcx, PAST);
     assert_eq!(
         editing(handle, &mut vcx),
         None,
@@ -114,20 +120,20 @@ fn ey146_columns_slow_second_click_on_the_selected_name_renames() {
     let (handle, at, _lines) = columns(&mut cx);
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
     tap(&mut vcx, at, 1);
-    wait(&mut vcx, 600);
+    wait(&mut vcx, PAST);
     assert_eq!(
         editing(handle, &mut vcx),
         None,
         "the first tap only selects"
     );
     tap(&mut vcx, at, 1);
-    wait(&mut vcx, 100);
+    wait(&mut vcx, INSIDE);
     assert_eq!(
         editing(handle, &mut vcx),
         None,
         "the rename waits out the interval"
     );
-    wait(&mut vcx, 400);
+    wait(&mut vcx, INTERVAL);
     assert_eq!(editing(handle, &mut vcx).as_deref(), Some("notes"));
     assert!(opened().is_empty(), "a slow click never opens");
 }
@@ -138,9 +144,9 @@ fn ey319_columns_double_click_cancels_a_pending_slow_rename_and_opens() {
     let (handle, at, _lines) = columns(&mut cx);
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
     tap(&mut vcx, at, 1);
-    wait(&mut vcx, 600);
+    wait(&mut vcx, PAST);
     tap(&mut vcx, at, 1);
-    wait(&mut vcx, 100);
+    wait(&mut vcx, INSIDE);
     let armed = handle
         .update(&mut vcx, |shell, _, _| {
             shell
@@ -152,7 +158,7 @@ fn ey319_columns_double_click_cancels_a_pending_slow_rename_and_opens() {
         .unwrap();
     assert!(armed, "the slow second tap armed its rename");
     tap(&mut vcx, at, 2);
-    wait(&mut vcx, 600);
+    wait(&mut vcx, PAST);
     assert_eq!(
         editing(handle, &mut vcx),
         None,
