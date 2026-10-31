@@ -132,11 +132,7 @@ impl Producer {
         producer.state = state.clone();
         producer.home = std::env::var("HOME").unwrap_or_default();
         producer.loaded = false;
-        producer.model.borrow_mut().trash_count_shown = state
-            .get("places")
-            .and_then(|p| p.get("trashCount"))
-            .and_then(Json::as_bool)
-            == Some(true);
+        producer.model.borrow_mut().adopt_places(state);
         producer.places.update(cx, |places, _| {
             places
                 .favourites
@@ -248,11 +244,7 @@ impl Producer {
     /// A language or settings change rebuilds the rows in place and drops any editor on a vanished row.
     pub fn adopt_state(&mut self, state: &Json, cx: &mut Context<Self>) {
         self.state = state.clone();
-        self.model.borrow_mut().trash_count_shown = state
-            .get("places")
-            .and_then(|p| p.get("trashCount"))
-            .and_then(Json::as_bool)
-            == Some(true);
+        self.model.borrow_mut().adopt_places(state);
         self.places
             .update(cx, |places, cx| places.adopt_state(state, cx));
         self.rebuild(cx);

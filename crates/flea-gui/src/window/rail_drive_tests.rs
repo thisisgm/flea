@@ -20,6 +20,15 @@ const BLOCKS: &str = r#"{"blockdevices":[
 ]}"#;
 
 fn root_at(cx: &mut TestAppContext) -> (Entity<Shell>, Rc<FakeDevices>, &mut VisualTestContext) {
+    root_with(cx, r#"{"rail":"shown","sidebarWidth":192}"#, BLOCKS)
+}
+
+// The window over a places object and an lsblk answer of the test's own.
+fn root_with<'a>(
+    cx: &'a mut TestAppContext,
+    places: &str,
+    blocks: &str,
+) -> (Entity<Shell>, Rc<FakeDevices>, &'a mut VisualTestContext) {
     let service = Rc::new(FakeDevices::default());
     let runner = service.clone();
     cx.update(|cx| {
@@ -36,9 +45,9 @@ fn root_at(cx: &mut TestAppContext) -> (Entity<Shell>, Rc<FakeDevices>, &mut Vis
             hostname: "minipc\n".into(),
         });
     });
-    let state = jsondoc::parse(
-        r#"{"view":"list","keys":"default","places":{"rail":"shown","sidebarWidth":192}}"#,
-    )
+    let state = jsondoc::parse(&format!(
+        r#"{{"view":"list","keys":"default","places":{places}}}"#
+    ))
     .unwrap();
     let launch = Launch::resolve(
         Settings::from_json(state),
@@ -59,7 +68,7 @@ fn root_at(cx: &mut TestAppContext) -> (Entity<Shell>, Rc<FakeDevices>, &mut Vis
     let shell = root.read_with(cx, |root, _| root.shell.clone());
     cx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
     cx.run_until_parked();
-    service.answer("lsblk", 0, BLOCKS);
+    service.answer("lsblk", 0, blocks);
     service.answer("gio", 0, "");
     frame(cx);
     cx.executor().advance_clock(Duration::from_millis(900));
@@ -194,3 +203,6 @@ fn raildrive_device_menu_eject_runs_on_the_stick(cx: &mut TestAppContext) {
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[path = "rail_drive_rows_tests.rs"]
+mod rows;

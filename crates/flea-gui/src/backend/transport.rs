@@ -69,6 +69,24 @@ pub(super) fn reload_changed(event: &Event, line: &str) -> Option<usize> {
     }
 }
 
+// A listed line's folder and its "w"; a line without "w" reads writable, as Backend.qml defaults.
+pub(super) fn listed_folder(event: &Event, line: &str) -> Option<(String, bool)> {
+    let (Event::Reply(Reply::Listed { path, .. })
+    | Event::Session {
+        reply: Reply::Listed { path, .. },
+        ..
+    }) = event
+    else {
+        return None;
+    };
+    let writable = jsondoc::parse(line)
+        .ok()?
+        .get("w")
+        .and_then(jsondoc::Json::as_bool)
+        != Some(false);
+    Some((path.clone(), writable))
+}
+
 pub(super) fn write_rows(
     output: &mut impl Write,
     command: &str,

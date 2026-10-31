@@ -113,6 +113,33 @@ pub struct Backend {
     drained: Receiver<()>,
     /// Backend.qml thumbRequests: every thumb line this backend was sent.
     thumbs: std::sync::atomic::AtomicUsize,
+    /// Each recently listed folder's "w", which Backend.qml keeps as dirWritable.
+    folders: Arc<Mutex<Writable>>,
+}
+
+/// The "w" of the last folders a backend listed, so a listing of another folder never answers for this one.
+#[derive(Default)]
+pub(crate) struct Writable(Vec<(String, bool)>);
+
+impl Writable {
+    // A pane shows one folder; the rest only cover a swap or a stale session answer landing after it.
+    const KEPT: usize = 16;
+
+    pub(crate) fn record(&mut self, folder: String, writable: bool) {
+        self.0.retain(|(path, _)| *path != folder);
+        if self.0.len() == Self::KEPT {
+            self.0.remove(0);
+        }
+        self.0.push((folder, writable));
+    }
+
+    /// A folder no kept listed line names reads writable, Backend.qml's default.
+    pub(crate) fn of(&self, folder: &str) -> bool {
+        self.0
+            .iter()
+            .find(|(path, _)| path == folder)
+            .is_none_or(|(_, writable)| *writable)
+    }
 }
 
 fn command() -> Command {
@@ -144,6 +171,10 @@ impl Backend {
             self.formats_requests.fetch_add(1, Ordering::Relaxed);
         }
         self.send(Control::Line(line))
+    }
+    /// Backend.qml dirWritable for this folder; a folder no listed line has named yet reads writable.
+    pub fn dir_writable(&self, path: &str) -> bool {
+        self.folders.lock().unwrap().of(path)
     }
     pub(crate) fn formats_requests(&self) -> usize {
         self.formats_requests.load(Ordering::Relaxed)
@@ -190,12 +221,14 @@ impl Backend {
         listener.set_nonblocking(true)?;
         let closing = Arc::new(Mutex::new(Closing::Open));
         let state = closing.clone();
+        let folders = Arc::new(Mutex::new(Writable::default()));
+        let listed = folders.clone();
         let (output, replies) = async_channel::unbounded();
         let (done, drained) = async_channel::bounded(1);
         thread::Builder::new()
             .name("flea-backend".into())
             .spawn(move || {
-                let worker = worker::Worker::new(receiver, listener, state, &output);
+                let worker = worker::Worker::new(receiver, listener, state, listed, &output);
                 if let Err(error) = worker.run(command, first_line) {
                     let _ = output.try_send(Event::Failed(error));
                 }
@@ -210,6 +243,7 @@ impl Backend {
             replies,
             drained,
             thumbs: Default::default(),
+            folders,
         })
     }
 

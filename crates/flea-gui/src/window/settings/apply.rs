@@ -345,7 +345,7 @@ impl Shell {
             if host.nav.busy(&host.pane) {
                 continue;
             }
-            if host.nav.reread_preferences(&mut host.pane, &host.selected) {
+            if host.reread_preferences() {
                 self.settings.relist[side] = false;
                 self.run_navigation(side, window, cx);
             }

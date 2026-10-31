@@ -87,7 +87,12 @@ pub(super) fn layout(
                 .map(|(_, label)| label.to_string());
             let dropbox = row.kind == flea::ui_logic_pl4::rail::Kind::Dropbox;
             let dot = cue.is_none() && !dropbox && indicator_slot(row.group, row.kind);
-            let slot_width = if dot { metrics.slot } else { 0. };
+            // RailDetails: a drive size ends on one x for every device row, the slot kept after it with or without a square.
+            let size = cue.is_none()
+                && model.drive_size_shown
+                && row.group == flea::ui_logic_pl4::rail::Group::Device
+                && !row.size.is_empty();
+            let slot_width = if dot || size { metrics.slot } else { 0. };
             let detail = if let Some(cue) = cue {
                 cue
             } else if row.kind == flea::ui_logic_pl4::rail::Kind::Trash
@@ -95,6 +100,8 @@ pub(super) fn layout(
                 && model.trash_count > 0
             {
                 model.trash_count.to_string()
+            } else if size {
+                row.size.to_string()
             } else {
                 String::new()
             };
@@ -105,15 +112,10 @@ pub(super) fn layout(
             } else {
                 detail_run.width
             };
-            let right = width
-                - metrics.pad
-                - slot_width
-                - detail_width
-                - if slot_width > 0. || detail_width > 0. {
-                    metrics.gap
-                } else {
-                    0.
-                };
+            // SidebarRow.qml: the label ends one gap before the detail, and the detail one gap before a slot.
+            let slot_gap = if slot_width > 0. { metrics.gap } else { 0. };
+            let detail_gap = if detail_width > 0. { metrics.gap } else { 0. };
+            let right = width - metrics.pad - slot_width - slot_gap - detail_width - detail_gap;
             let label_left =
                 metrics.pad + metrics.icon * if dropbox { 1.18 } else { 1. } + metrics.gap;
             let label_width = (right - label_left).max(0.);
@@ -127,7 +129,7 @@ pub(super) fn layout(
                 label_height,
             );
             let detail_rect = Rect::new(
-                width - metrics.pad - detail_width,
+                width - metrics.pad - slot_width - slot_gap - detail_width,
                 top + (metrics.row - detail_run.height) / 2.,
                 detail_width,
                 detail_run.height,

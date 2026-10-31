@@ -327,6 +327,7 @@ fn rail_row(entry: &RailEntry) -> places::RailEntry {
         device: entry.device.clone(),
         mounted: Some(entry.mounted),
         releasable: flea::ui_logic_pl1::eject::releasable(entry),
+        size: entry.size,
         glyph: match entry.glyph.as_str() {
             "lock" => "lock",
             "smartphone" => "smartphone",

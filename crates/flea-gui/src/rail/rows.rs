@@ -152,6 +152,8 @@ pub struct RowsModel {
     pub pointer_focus: bool,
     pub trash_count: u64,
     pub trash_count_shown: bool,
+    /// places.driveSize: each DEVICES row prints its size before the trailing slot.
+    pub drive_size_shown: bool,
     pub scroll: f32,
     cache: text::Cache,
     pub hovered: Option<usize>,
@@ -243,6 +245,19 @@ impl RowsModel {
         self.editor_line
             .as_ref()
             .map_or(0, |line| line.index_for(x))
+    }
+
+    /// Sidebar.qml's places flags: the Trash count and the drive sizes show only when set true.
+    pub fn adopt_places(&mut self, state: &flea::jsondoc::Json) {
+        let places = state.get("places");
+        let flag = |key| {
+            places
+                .and_then(|p| p.get(key))
+                .and_then(flea::jsondoc::Json::as_bool)
+                == Some(true)
+        };
+        self.trash_count_shown = flag("trashCount");
+        self.drive_size_shown = flag("driveSize");
     }
 
     pub fn shape_misses(&self) -> u64 {
