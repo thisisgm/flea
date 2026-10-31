@@ -32,6 +32,10 @@ pub fn svg(name: &str) -> Option<(SharedString, &'static [u8])> {
             "flea-st1:checkmark",
             r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 12l5 5 9-10"/></svg>"##,
         ),
+        "chevron-down" => (
+            "flea-st1:chevron-down",
+            r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M6 9l6 6 6-6"/></svg>"##,
+        ),
         "chevron-right" => (
             "flea-st1:chevron-right",
             r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M9 18l6-6-6-6"/></svg>"##,

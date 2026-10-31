@@ -96,6 +96,14 @@ pub(super) fn prepare(
         }
         location
     } else {
+        if view.recent {
+            display.to_mut().name = facts
+                .name
+                .rsplit('/')
+                .next()
+                .unwrap_or(&facts.name)
+                .to_owned();
+        }
         String::new()
     };
     let (name, run) = drawn_name(&display, extra, &name_shaping, &view.query);

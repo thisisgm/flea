@@ -1,18 +1,81 @@
 //! Picker actions reuse the generated key table and the shared list/grid cursor rules.
 use super::Picker;
-use crate::window::input::Dispatch;
+use crate::{navigation::folder_state::Order, window::input::Dispatch};
+use flea::ui_logic_pk2::sort;
 use gpui::{Context, KeyDownEvent, Window};
 
 impl Picker {
-    pub(super) fn listing_action(
-        &mut self,
-        action: &str,
-        event: &KeyDownEvent,
-        cx: &mut Context<Self>,
-    ) -> bool {
-        self.chrome
-            .listing_action
-            .is_some_and(|run| run(self, action, event, cx))
+    // PickerList.qml and PickerGrid.qml's shared rows: g g, G, s, S and the period.
+    pub(super) fn listing_action(&mut self, action: &str, cx: &mut Context<Self>) -> bool {
+        let current = || self.browse.listing.read(cx).listing().order();
+        match action {
+            "cursorFirst" | "cursorLast" => self.shown_edge(action == "cursorLast", cx),
+            "pageDown" | "pageUp" => {
+                let rows = self.browse.listing.read(cx).list_visible_rows() as isize;
+                self.shown_step(if action == "pageDown" { rows } else { -rows }, cx);
+            }
+            "sortNext" => {
+                let order = current();
+                let next = sort::picker_next_order(&sort::PickerOrder {
+                    key: order.key.into(),
+                    desc: false,
+                });
+                let key = sort::PICKER_ORDERS
+                    .into_iter()
+                    .find(|key| *key == next.key)
+                    .expect("picker_next_order names one of PICKER_ORDERS");
+                self.request_sort(Order { key, desc: false }, cx);
+            }
+            "sortReverse" => {
+                let order = current();
+                self.request_sort(
+                    Order {
+                        key: order.key,
+                        desc: !order.desc,
+                    },
+                    cx,
+                );
+            }
+            // PickerList.qml is disabled while submitting or without a backend, so the period re-lists nothing then.
+            "toggleHidden" if !self.backend_unavailable() && !self.accept_state().submitting() => {
+                self.req.hidden = Some(!self.req.hidden.unwrap_or(self.preferences.hidden));
+                let path = self.listing.location.clone();
+                self.open_folder(&path, cx);
+            }
+            _ => return false,
+        }
+        true
+    }
+
+    // PickerList.qml moveCursor walks the rows a standing filter shows, so g and G land on a shown row.
+    fn shown_edge(&mut self, last: bool, cx: &mut Context<Self>) {
+        let shown = self.browse.listing.read(cx).shown().map(<[usize]>::to_vec);
+        let total = shown.as_ref().map_or(self.listing.total, Vec::len);
+        if total == 0 {
+            return;
+        }
+        let at = if last { total - 1 } else { 0 };
+        let target = shown.map_or(at, |rows| rows[at]);
+        self.end_range();
+        self.move_cursor(target, cx);
+    }
+
+    // PickerList.qml moveCursor(±visibleRows): a page clamps to the first or last shown row.
+    fn shown_step(&mut self, delta: isize, cx: &mut Context<Self>) {
+        let shown = self.browse.listing.read(cx).shown().map(<[usize]>::to_vec);
+        let total = shown.as_ref().map_or(self.listing.total, Vec::len);
+        if total == 0 {
+            return;
+        }
+        let from = shown.as_ref().map_or(self.listing.cursor, |rows| {
+            rows.iter()
+                .position(|row| *row == self.listing.cursor)
+                .unwrap_or(0)
+        });
+        let at = flea::ui_logic_pk2::page_target(from, delta, total);
+        let target = shown.map_or(at, |rows| rows[at]);
+        self.end_range();
+        self.move_cursor(target, cx);
     }
 
     pub(super) fn parity_key(
@@ -93,10 +156,12 @@ impl Picker {
         } else if action == "selectAll" && !text_focus {
             self.select_all(cx);
         } else if key == "space" && !text_focus {
-            self.toggle_mark(self.listing.cursor, cx);
+            if !self.name_from_row(self.listing.cursor, cx) {
+                self.toggle_mark(self.listing.cursor, cx);
+            }
         } else if self.browse.listing.read(cx).view_mode() == "grid" && !text_focus {
             return self.grid_key(action, key, chord.shift && self.selection_permitted(), cx)
-                || self.listing_action(action, event, cx);
+                || self.listing_action(action, cx);
         } else if matches!(action, "extendDown" | "extendUp") && !text_focus {
             let to = if action == "extendDown" {
                 self.listing
@@ -108,7 +173,7 @@ impl Picker {
             };
             self.extend_to(to, cx);
         } else {
-            return self.listing_action(action, event, cx);
+            return self.listing_action(action, cx);
         }
         true
     }

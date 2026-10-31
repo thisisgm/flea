@@ -17,6 +17,8 @@ pub trait PickerGeometry {
     fn row_centre(&self, index: usize) -> String;
     fn cohesion_controls(&self) -> String;
     fn save_field_centre(&self) -> String;
+    // Whether the shared location entry is open, read from the drawn path view.
+    fn path_bar_open(&self) -> bool;
     // The snapshot members only drawn surfaces know (jump, geometry, focus, theme), as `"key":value` pairs.
     fn snapshot_members(&self) -> String;
 }
@@ -173,7 +175,6 @@ impl Picker {
                 .message
                 .as_ref()
                 .map_or_else(String::new, |message| message.text.to_string()),
-            ("pathBarOpen", _) => listing.path_bar_open.to_string(),
             ("checks", _) => self.checks_json(),
             ("markedUris", _) => self.uris_json(),
             ("controls", Some(geometry)) => geometry.controls(),
@@ -181,6 +182,7 @@ impl Picker {
                 .map(|index| geometry.row_centre(index))
                 .unwrap_or_default(),
             ("cohesionControls", Some(geometry)) => geometry.cohesion_controls(),
+            ("pathBarOpen", Some(geometry)) => geometry.path_bar_open().to_string(),
             ("saveState", Some(geometry)) => format!(
                 r#"{{"name":{},"path":{},"collision":{},"error":{},"field":{}}}"#,
                 quoted(&listing.save_name),

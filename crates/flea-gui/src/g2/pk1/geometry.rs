@@ -98,7 +98,7 @@ impl Live<'_> {
                 ("name", &state.view.words.name),
                 ("mode", &state.view.words.mode),
                 ("size", &state.view.words.size),
-                ("mtime", &state.view.words.modified),
+                ("date", &state.view.words.modified),
                 ("kind", &state.view.words.kind),
             ] {
                 if let Some(cell) = crate::ipc::rows::header_cell(
@@ -133,6 +133,26 @@ impl Live<'_> {
                     true,
                 ));
             }
+        }
+        // PickerPlaces.qml controls(): every rail row last, refused while it errs, submits or has no backend.
+        let rail = &self.picker.rail;
+        let idle = !self.picker.accept_state().submitting() && !self.picker.backend_unavailable();
+        let rail_focused = self.picker.chrome.focused == Some("picker-rail");
+        for (index, entry) in rail.entries.iter().enumerate() {
+            let Some(bounds) = self
+                .picker
+                .chrome
+                .probe
+                .bounds(&super::rail_view::rail_row(index))
+            else {
+                continue;
+            };
+            controls.push(control(
+                rail.labels.get(index).map_or("", |label| label.as_ref()),
+                bounds,
+                rail_focused && rail.cursor == index,
+                entry.error.is_none() && idle,
+            ));
         }
         controls
     }
@@ -214,6 +234,14 @@ impl PickerGeometry for Live<'_> {
         .into()
     }
 
+    fn path_bar_open(&self) -> bool {
+        self.picker
+            .browse
+            .path_view(self.cx)
+            .read(self.cx)
+            .editing()
+    }
+
     fn save_field_centre(&self) -> String {
         self.picker
             .browse
@@ -237,6 +265,10 @@ impl PickerGeometry for Live<'_> {
         if let Json::Obj(members) = &mut value {
             members.retain(|(key, _)| key != "controls");
             members.push(("controls".into(), Json::Arr(self.controls_value())));
+            members.push(("pathBarOpen".into(), Json::Bool(self.path_bar_open())));
+            let order = self.picker.browse.listing.read(self.cx).listing().order();
+            members.push(("sortBy".into(), Json::Str(order.key.into())));
+            members.push(("sortDesc".into(), Json::Bool(order.desc)));
             members.push((
                 "view".into(),
                 Json::Str(self.picker.browse.listing.read(self.cx).view_mode().into()),

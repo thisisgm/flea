@@ -24,6 +24,9 @@ use flea::ui_logic_pk2::request::Chip;
 use gpui::{div, prelude::*, px, AnyView, App, Context, Entity, IntoElement, Render, Window};
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
+// The chip menu card keeps this far inside its window.
+pub(super) const MENU_INSET: f32 = 4.;
+
 /// The work area is the opening window, so the card fits.
 fn work_area(window: &Window) -> Rect {
     let viewport = window.viewport_size();
@@ -190,7 +193,7 @@ impl ChipMenu {
             preset: "default",
             key_hints: true,
             typeface: &self.typeface,
-            inset: 4.,
+            inset: MENU_INSET,
         };
         let work = work_area(window);
         self.menu
@@ -243,7 +246,7 @@ impl Render for ChipMenu {
                         preset: "default",
                         key_hints: true,
                         typeface: &self.typeface,
-                        inset: 4.,
+                        inset: MENU_INSET,
                     };
                     self.menu.borrow_mut().refresh(entries, &env, window);
                 }

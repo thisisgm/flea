@@ -3,6 +3,7 @@ mod answer;
 mod answers;
 mod body;
 pub mod browse;
+mod browse_reply;
 pub mod chrome;
 mod chrome_view;
 mod drawn;
@@ -12,7 +13,9 @@ mod find;
 mod find_input;
 mod focus;
 mod folder;
+mod footer;
 mod geometry;
+mod header;
 mod ime;
 pub mod ipc;
 mod jump;
@@ -20,6 +23,7 @@ mod keys;
 pub mod labels;
 pub mod launch;
 pub mod navigation;
+mod network;
 pub mod picker;
 mod pointer;
 pub mod process;
@@ -41,6 +45,22 @@ mod i50_ime_tests;
 mod tests;
 
 #[cfg(test)]
+mod c2_tests;
+#[cfg(test)]
+mod cohesion_tests;
+#[cfg(test)]
+mod corner_tests;
+#[cfg(test)]
+mod ey263_field_tests;
+#[cfg(test)]
+mod ey302_footer_tests;
+#[cfg(test)]
+mod ey313_tests;
+#[cfg(test)]
+mod face_tests;
+#[cfg(test)]
+mod header_tests;
+#[cfg(test)]
 mod parity_tests;
 #[cfg(test)]
 mod pointer_row_tests;
@@ -49,9 +69,23 @@ mod pointer_state_tests;
 #[cfg(test)]
 mod pointer_tests;
 #[cfg(test)]
+mod rail2_tests;
+#[cfg(test)]
 mod rail_press_tests;
 #[cfg(test)]
 mod rail_tests;
+#[cfg(test)]
+mod save_click_space_tests;
+#[cfg(test)]
+mod save_enabled_tests;
 
 #[cfg(test)]
+mod board_parity_tests;
+#[cfg(test)]
 mod frame_gate_tests;
+#[cfg(test)]
+mod recent_parity_tests;
+#[cfg(test)]
+mod save_layout_tests;
+#[cfg(test)]
+mod settings_parity_tests;

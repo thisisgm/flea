@@ -38,6 +38,11 @@ struct Frame {
     foreground: Option<Hsla>,
     themed: bool,
     sizes: (f32, f32),
+    // The family the title's text inherits from the window, so every chrome run draws in it.
+    family: SharedString,
+    // The ink the answer's label inherits from its button, read only by the C2 tests.
+    #[cfg(test)]
+    answer_ink: Option<Hsla>,
     pointers: [(bool, bool); 2],
 }
 
@@ -73,9 +78,9 @@ impl Drawn {
         self.0.borrow_mut().armed = true;
     }
 
-    // Only the snapshot reads the painted boxes.
+    // Only these reads wait for a painted frame.
     pub(super) fn reads_frame(request: &Request) -> bool {
-        matches!(request, Request::Call { target, function, .. } if target == "fleapicker" && matches!(function.as_str(), "snapshot" | "controls" | "rowCentre" | "cohesionControls" | "saveState"))
+        matches!(request, Request::Call { target, function, .. } if target == "fleapicker" && matches!(function.as_str(), "snapshot" | "controls" | "rowCentre" | "cohesionControls" | "saveState" | "pathBarOpen"))
     }
 
     // Runs `answer` after the next frame whose probes have all recorded.
@@ -101,7 +106,7 @@ impl Drawn {
         let drawn = self.clone();
         Some(
             canvas(
-                move |bounds, _, cx| {
+                move |bounds, window, cx| {
                     let [top, right, bottom, left] = border.map(px);
                     let outer = Bounds::new(
                         point(bounds.origin.x - left, bounds.origin.y - top),
@@ -111,6 +116,13 @@ impl Drawn {
                         ),
                     );
                     drawn.record(slot, outer);
+                    if slot == Slot::Title {
+                        drawn.0.borrow_mut().family = window.text_style().font_family;
+                    }
+                    #[cfg(test)]
+                    if slot == Slot::Answer {
+                        drawn.0.borrow_mut().answer_ink = Some(window.text_style().color);
+                    }
                     if slot == Slot::Window {
                         let waiting = std::mem::take(&mut drawn.0.borrow_mut().waiting);
                         for answer in waiting {
@@ -125,6 +137,11 @@ impl Drawn {
             .top(px(0.))
             .size_full(),
         )
+    }
+
+    #[cfg(test)]
+    pub(super) fn answer_ink(&self) -> Option<Hsla> {
+        self.0.borrow().answer_ink
     }
 
     fn record(&self, slot: Slot, bounds: Bounds<Pixels>) {
@@ -232,6 +249,9 @@ impl PickerGeometry for Drawn {
     fn save_field_centre(&self) -> String {
         String::new()
     }
+    fn path_bar_open(&self) -> bool {
+        false
+    }
     // Only the boxes a frame painted: a surface the chooser has not mounted reports nothing.
     fn snapshot_members(&self) -> String {
         let frame = self.0.borrow();
@@ -247,7 +267,7 @@ impl PickerGeometry for Drawn {
         format!(
             concat!(
                 r#""controls":{},"bodySmall":{},"body":{},"width":{},"height":{},"#,
-                r#""themeLoaded":{},"themeForeground":"{}","#,
+                r#""themeLoaded":{},"themeForeground":"{}","family":"{}","#,
                 r#""geometry":{{"chrome":{},"footer":{},"list":{}}}"#
             ),
             self.controls_json(),
@@ -257,6 +277,7 @@ impl PickerGeometry for Drawn {
             height,
             self.0.borrow().themed,
             foreground,
+            escape(&self.0.borrow().family),
             title,
             footer,
             list,

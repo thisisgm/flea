@@ -17,7 +17,18 @@ const SIGKILL: i32 = 9;
 const REAP_POLL: Duration = Duration::from_millis(5);
 pub(super) const CHECKS: &[&str] = &["picker", "formats", "mkdir"];
 pub(super) const LISTING: &[&str] = &[
-    "list", "window", "filter", "peek", "locate", "sort", "paths", "jump",
+    "list",
+    "listpaths",
+    "window",
+    "filter",
+    "peek",
+    "locate",
+    "sort",
+    "paths",
+    "jump",
+    "thumb",
+    "thumbcancel",
+    "fsinfo",
 ];
 
 #[derive(Clone, Debug, PartialEq, Eq)]

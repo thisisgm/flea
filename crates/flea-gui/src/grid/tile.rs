@@ -68,6 +68,28 @@ fn shaped(
     }
 }
 
+/// A tile under this frame's overlay: a path-named row captions its last segment, still keyed by its whole name.
+pub fn prepare_for(
+    overlay: &super::element::Overlay,
+    row: &RowFacts,
+    per_line: usize,
+    count: usize,
+    shaping: &Shaping,
+    window: &Window,
+) -> Tile {
+    if !overlay.leaf {
+        return prepare(row, per_line, count, shaping, window);
+    }
+    let leaf = RowFacts {
+        name: row.name.rsplit('/').next().unwrap_or(&row.name).to_owned(),
+        ..row.clone()
+    };
+    Tile {
+        name: row.name.clone(),
+        ..prepare(&leaf, per_line, count, shaping, window)
+    }
+}
+
 /// Breaks the name for this many cells and lines and shapes each line; a dead budget hands the whole name over as one line.
 pub fn prepare(
     row: &RowFacts,

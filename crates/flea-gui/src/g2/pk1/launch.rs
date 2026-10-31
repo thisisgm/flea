@@ -82,6 +82,39 @@ pub fn open(
     .map_err(|error| error.to_string())
 }
 
+// The rounding reader and the corners it publishes; the service stops when this is dropped.
+pub(super) type CornerSource = (
+    Option<crate::compositor::Service>,
+    async_channel::Receiver<f32>,
+);
+
+// The chooser is its own process, so it reads Hyprland's rounding and follows reloads as the Shell's settings service does.
+pub(super) fn corner_source(socket: Option<PathBuf>, command: PathBuf) -> CornerSource {
+    let (send, corners) = async_channel::unbounded();
+    let shown = command.display().to_string();
+    let service = crate::compositor::Service::at(socket, command, move |corner| {
+        send.send_blocking(corner).is_ok()
+    })
+    .map_err(|error| {
+        eprintln!("flea: the chooser's rounding reader for {shown} did not start: {error}")
+    })
+    .ok();
+    (service, corners)
+}
+
+// Each rounding the source reads becomes the chooser's corner global; the reader holds the service for the window's life.
+pub(super) fn follow_corner((service, corners): CornerSource, cx: &mut App) -> Task<()> {
+    cx.spawn(async move |cx| {
+        let _service = service;
+        while let Ok(corner) = corners.recv().await {
+            cx.update(|cx| {
+                cx.set_global(crate::compositor::Corner(corner));
+                cx.refresh_windows();
+            });
+        }
+    })
+}
+
 // A language change reaches the open window's words without a frame-time catalog read.
 pub fn follow_locale(service: &Service, cx: &mut Context<Picker>) -> Task<()> {
     let updates = service.subscribe();
@@ -175,6 +208,11 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
     gpui_platform::application().run(move |cx: &mut App| {
         presentation.install(cx);
         cx.set_global(presentation.fonts.typeface(&settings));
+        follow_corner(
+            corner_source(crate::compositor::socket(), "hyprctl".into()),
+            cx,
+        )
+        .detach();
         let updates = fonts.subscribe();
         let settled = settings.clone();
         cx.spawn(async move |cx| {

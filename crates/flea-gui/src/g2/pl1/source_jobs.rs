@@ -88,7 +88,10 @@ impl Source {
                     );
                     self.slots[Child::Gio.index()].stop();
                 }
-                ListingEffect::Listed => self.phones.rebuild(&self.listing.text),
+                ListingEffect::Listed => {
+                    self.phones.rebuild(&self.listing.text);
+                    cx.notify();
+                }
             }
         }
     }

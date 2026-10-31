@@ -229,3 +229,104 @@ fn trash_font_picker_listing_follows_the_live_family(cx: &mut TestAppContext) {
         });
     }
 }
+
+#[gpui::test]
+fn picker_gm_path_bar_open_reads_the_drawn_entry(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d/sub"}"#, None);
+    super::super::pointer_tests::seed(&mut f);
+    let open = |f: &mut Fixture| {
+        let call = endpoint(f, "pathBarOpen", &[]).stdout.trim().to_owned();
+        let snapshot = flea::jsondoc::parse(&endpoint(f, "snapshot", &[]).stdout).unwrap();
+        let member = snapshot
+            .get("pathBarOpen")
+            .and_then(|value| value.as_bool());
+        (call, member)
+    };
+    assert_eq!(open(&mut f), ("false".into(), Some(false)));
+    super::super::pointer_tests::path_click(&mut f, false);
+    assert_eq!(
+        open(&mut f),
+        ("true".into(), Some(true)),
+        "the opened entry answers open"
+    );
+    f.cx.simulate_keystrokes("escape");
+    f.cx.run_until_parked();
+    assert_eq!(
+        open(&mut f),
+        ("false".into(), Some(false)),
+        "Escape closes it again"
+    );
+}
+
+// EY-329: the visual lane clicks Recent by its `controls` centre, as PickerPlaces.qml controls() lists every rail row.
+#[gpui::test]
+fn ey329_controls_list_the_rail_rows_and_recent_opens_from_its_centre(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    seeded(&mut f);
+    let reply = endpoint(&mut f, "controls", &[]);
+    let controls = flea::jsondoc::parse(&reply.stdout).unwrap();
+    let recent = controls
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|control| control.get("name").and_then(|name| name.as_str()) == Some("Recent"))
+        .unwrap_or_else(|| panic!("Recent is among the controls: {}", reply.stdout))
+        .clone();
+    assert_eq!(
+        recent.get("enabled").and_then(|on| on.as_bool()),
+        Some(true)
+    );
+    let centre: Vec<f32> = recent
+        .get("centre")
+        .and_then(|centre| centre.as_str())
+        .unwrap()
+        .split_whitespace()
+        .map(|part| part.parse().unwrap())
+        .collect();
+    assert_eq!(centre.len(), 2, "Recent has a drawn centre: {recent:?}");
+    f.cx.simulate_click(
+        gpui::point(gpui::px(centre[0]), gpui::px(centre[1])),
+        gpui::Modifiers::none(),
+    );
+    f.cx.run_until_parked();
+    assert_eq!(
+        endpoint(&mut f, "recent", &[]).stdout.trim(),
+        "true",
+        "the press at Recent's centre opens Recent"
+    );
+}
+
+// EY-329: the lane presses ":" and types "Doc"; the entry opens on the drawn folder and takes the letters.
+#[gpui::test]
+fn ey329_colon_opens_the_path_entry_and_typing_lands_in_it(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    seeded(&mut f);
+    let focus = f.read(|picker| picker.focus.clone());
+    f.cx.update(|window, cx| window.focus(&focus, cx));
+    f.cx.run_until_parked();
+    f.cx.simulate_input(":");
+    f.cx.run_until_parked();
+    assert_eq!(endpoint(&mut f, "pathBarOpen", &[]).stdout.trim(), "true");
+    let path = f.update(|picker, cx| picker.browse.path_view(cx));
+    let entry = |f: &mut Fixture| {
+        f.cx.update(|_, cx| {
+            let entry = &path.read(cx).entry;
+            (entry.text.clone(), entry.selected.clone())
+        })
+    };
+    assert_eq!(
+        entry(&mut f),
+        ("/d/".to_owned(), 0..3),
+        "the entry opens on the drawn folder, all of it selected, and the colon stays out"
+    );
+    f.cx.simulate_input("Doc");
+    f.cx.run_until_parked();
+    assert_eq!(
+        entry(&mut f),
+        ("Doc".to_owned(), 3..3),
+        "the typed letters replace the selected folder"
+    );
+}
+
+#[path = "ey329_rail_tests.rs"]
+mod ey329_rail_tests;

@@ -2,10 +2,7 @@
 use super::Picker;
 use gpui::{Context, Entity, FocusHandle};
 
-type ListingAction = fn(&mut Picker, &str, &gpui::KeyDownEvent, &mut Context<Picker>) -> bool;
-
 pub struct Chrome {
-    pub listing_action: Option<ListingAction>,
     pub keyboard: crate::window::input::Keyboard,
     pub preset: String,
     pub recent_back: Option<fn(&mut Picker, &mut Context<Picker>)>,
@@ -35,7 +32,6 @@ pub struct Chrome {
 impl Chrome {
     pub fn new(cx: &mut Context<Picker>) -> Self {
         Self {
-            listing_action: None,
             keyboard: Default::default(),
             preset: "default".into(),
             recent_back: None,
@@ -76,7 +72,9 @@ impl Picker {
         self.persist_picker_view(mode, cx);
     }
 
+    // Any view set before the settings land wins over the remembered one.
     pub fn set_view(&mut self, mode: &str, cx: &mut Context<Self>) {
+        self.preferences.view_chosen = true;
         self.browse.listing.update(cx, |listing, cx| {
             listing.set_view(mode);
             cx.notify();

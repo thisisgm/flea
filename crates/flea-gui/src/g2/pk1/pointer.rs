@@ -33,6 +33,9 @@ impl Picker {
         {
             return;
         }
+        if self.header_press(event, cx) {
+            return;
+        }
         let hit = self
             .browse
             .listing
@@ -48,6 +51,8 @@ impl Picker {
             self.toggle_mark(hit.index, cx);
         } else if logic::saving(&self.req) && !hit.directory {
             self.activate_row(hit.index, cx);
+            // A row click names Filename but keeps the keyboard on the listing, as v0.3.12 does.
+            self.browse.focus_filename = false;
         } else if event.click_count == 2 && logic::same_tap(&hit.first_path, &hit.path) {
             match self.double_activate(Some(hit.directory), &hit.path, &hit.first_path, cx) {
                 DoubleAction::Open => self.open_folder(&hit.path, cx),

@@ -96,16 +96,17 @@ pub struct Facts {
 
 #[derive(Default)]
 pub struct Listing {
-    location: String,
+    pub(super) location: String,
     generation: u64,
     pending: bool,
     cause: Option<Cause>,
     said: String,
     held: Rc<Held>,
     cursor: usize,
-    filter: Option<FilterDef>,
-    chip: i64,
-    show_hidden: bool,
+    pub(super) filter: Option<FilterDef>,
+    pub(super) chip: i64,
+    pub(super) show_hidden: bool,
+    pub(super) folders: Option<crate::navigation::folder_state::Folders>,
     filter_seq: usize,
     pending_filter: Option<PendingFilter>,
     filtered: Option<Filtered>,
@@ -127,6 +128,10 @@ impl Listing {
         });
     }
 
+    pub fn location(&self) -> &str {
+        &self.location
+    }
+
     pub fn generation(&self) -> u64 {
         self.generation
     }
@@ -143,34 +148,16 @@ impl Listing {
         self.cursor
     }
 
-    pub fn set_filter(&mut self, filter: Option<FilterDef>, chip: i64) {
-        self.filter = filter;
-        self.chip = chip;
-    }
-
-    pub fn set_hidden(&mut self, show: bool) {
-        self.show_hidden = show;
-    }
-
-    // The list request; caller chip and hidden ride along.
-    pub fn request_line(&self, first: usize) -> String {
-        format!(
-            r#"{{"c":"list","path":"{}","first":{},{}}}"#,
-            escape(&self.location),
-            first,
-            core::list_fields(self.filter.as_ref(), self.show_hidden)
-        )
-    }
-
     // Recent's request: the history's paths, newest first, listed under the base "/".
-    pub fn paths_line(paths: &[String], first: usize) -> String {
+    pub fn paths_line(&self, paths: &[String], first: usize) -> String {
         let paths: Vec<String> = paths
             .iter()
             .map(|path| format!("\"{}\"", escape(path)))
             .collect();
         format!(
-            r#"{{"c":"listpaths","paths":[{}],"first":{first}}}"#,
-            paths.join(",")
+            r#"{{"c":"listpaths","paths":[{}],"first":{first},{}}}"#,
+            paths.join(","),
+            core::list_fields(self.filter.as_ref(), self.show_hidden)
         )
     }
 
@@ -364,7 +351,7 @@ impl Listing {
         }
     }
 
-    fn state(&self) -> &'static str {
+    pub fn state(&self) -> &'static str {
         if let Some(ref cause) = self.cause {
             cause.state()
         } else if self.pending {

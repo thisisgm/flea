@@ -53,6 +53,19 @@ fn read(command: &mut Command) -> f32 {
         })
 }
 
+// Hyprland's event socket for this session, absent outside one.
+pub(crate) fn socket() -> Option<PathBuf> {
+    std::env::var_os("XDG_RUNTIME_DIR")
+        .filter(|value| !value.is_empty())
+        .zip(std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").filter(|value| !value.is_empty()))
+        .map(|(runtime, signature)| {
+            PathBuf::from(runtime)
+                .join("hypr")
+                .join(signature)
+                .join(".socket2.sock")
+        })
+}
+
 #[derive(Default)]
 struct Control {
     stopped: bool,
@@ -70,16 +83,7 @@ impl Service {
     pub(crate) fn start(
         publish: impl FnMut(f32) -> bool + Send + 'static,
     ) -> std::io::Result<Self> {
-        let socket = std::env::var_os("XDG_RUNTIME_DIR")
-            .filter(|value| !value.is_empty())
-            .zip(std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").filter(|value| !value.is_empty()))
-            .map(|(runtime, signature)| {
-                PathBuf::from(runtime)
-                    .join("hypr")
-                    .join(signature)
-                    .join(".socket2.sock")
-            });
-        Self::at(socket, PathBuf::from("hyprctl"), publish)
+        Self::at(socket(), PathBuf::from("hyprctl"), publish)
     }
 
     pub(crate) fn at(

@@ -1,6 +1,8 @@
 //! A pane's production pictures and the Grid's marks: Thumbs.js's viewport asks from the Grid, the List or the active Columns track, the thumbed answers decoded off the UI thread, and LangMarks.js's slugs.
 #[path = "pictures/decor.rs"]
 mod decor;
+#[path = "pictures/demand.rs"]
+pub(crate) mod demand;
 #[cfg(test)]
 #[path = "pictures/faded_tests.rs"]
 mod faded_tests;
@@ -9,7 +11,7 @@ pub(crate) mod policy;
 #[path = "pictures/readers.rs"]
 mod readers;
 #[path = "pictures/surface.rs"]
-mod surface;
+pub(crate) mod surface;
 #[path = "pictures/wire.rs"]
 mod wire;
 
@@ -79,7 +81,7 @@ impl Slot {
 
 // The asks one settle covers: a change to any of these starts the settle again.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct Key {
+pub(crate) struct Key {
     listing: usize,
     span: (usize, usize),
     // A List filter's drawn view positions and the identity of its shown rows, Filter.cut; None asks the whole span.

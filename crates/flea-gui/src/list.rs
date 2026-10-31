@@ -16,6 +16,7 @@ mod palette;
 mod palette_tests;
 mod row_text;
 mod tags;
+mod text_revision;
 pub use measure::Density;
 pub use metrics::Metrics;
 pub(crate) use metrics::{CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
@@ -157,6 +158,8 @@ pub struct ListView {
     pub dual: bool,
     pub picker: Option<bool>,
     pub picker_directory: bool,
+    /// The picker's Recent history: each row names its leaf, and no title carries a sort arrow (picker-recent-list).
+    pub recent: bool,
     pub clip: ClipMarks,
     pub order: Order,
     /// Highlight today's dates: today's local midnight while the setting is on.
@@ -184,6 +187,7 @@ impl Default for ListView {
             dual: false,
             picker: None,
             picker_directory: false,
+            recent: false,
             clip: ClipMarks::default(),
             order: Order::default(),
             today: None,
@@ -203,25 +207,6 @@ impl ListView {
         self.set_lang_marks(lang_marks(data));
         self.today = (data.get("highlightToday").and_then(Json::as_bool) == Some(true))
             .then_some(today_start);
-    }
-
-    pub fn set_searching(&mut self, searching: bool) {
-        if self.searching != searching {
-            self.searching = searching;
-            self.text += 1;
-        }
-    }
-
-    pub fn set_query(&mut self, query: &str) {
-        if self.query != query {
-            self.query.clear();
-            self.query.push_str(query);
-            self.text += 1;
-        }
-    }
-
-    pub fn text_revision(&self) -> u64 {
-        self.text
     }
 }
 

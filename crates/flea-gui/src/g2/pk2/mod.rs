@@ -3,8 +3,10 @@ pub mod chip_input;
 pub mod chrome;
 pub mod listing;
 mod pointer;
+pub(crate) mod pictures;
 pub mod route;
 pub mod save;
+mod settings;
 pub mod surface;
 pub mod view;
 

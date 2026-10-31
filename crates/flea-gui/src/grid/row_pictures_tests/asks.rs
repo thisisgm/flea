@@ -159,3 +159,37 @@ fn a_filter_that_hides_every_row_cancels_the_asks_still_waiting(cx: &mut TestApp
         Vec::<usize>::new()
     );
 }
+
+#[gpui::test]
+fn a_stopped_pane_lets_its_asks_go_without_counting_a_cancel(cx: &mut TestAppContext) {
+    let (handle, mut lines) = open(cx, View::List, "{}");
+    let first = asked(&first_settle(cx, handle, &mut lines));
+    assert!(!first.is_empty(), "the drawn files are asked");
+    handle
+        .update(cx, |shell, _, _| {
+            shell.panes[0].as_mut().unwrap().stopped = true
+        })
+        .unwrap();
+    step(cx, handle);
+    let counters = read(cx, handle, |shell| pictures(shell).counters());
+    assert_eq!(
+        counters.cancelled, 0,
+        "a stopped backend is never counted a cancel it cannot send"
+    );
+    assert!(
+        drained(&mut lines).is_empty(),
+        "a stopped pane writes nothing"
+    );
+    handle
+        .update(cx, |shell, _, _| {
+            shell.panes[0].as_mut().unwrap().stopped = false
+        })
+        .unwrap();
+    step(cx, handle);
+    settle(cx, handle, 120);
+    assert_eq!(
+        asked(&drained(&mut lines)),
+        first,
+        "the released rows are asked again once the backend is back"
+    );
+}

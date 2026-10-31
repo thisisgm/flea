@@ -11,6 +11,7 @@ impl Picker {
             ("picker-cancel", &self.chrome.cancel),
             ("picker-answer", &self.chrome.answer),
             ("picker-new-folder", &self.chrome.new_folder),
+            ("picker-rail", &self.rail.focus),
         ]
         .into_iter()
         .find(|(_, focus)| focus.is_focused(window))

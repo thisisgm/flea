@@ -113,6 +113,7 @@ impl Shell {
                 .get("addressBar")
                 .and_then(flea::jsondoc::Json::as_str)
                 == Some("path"),
+            elide_start: false,
             first: host.pane.first_count(),
         };
         let face = self.active_typeface();

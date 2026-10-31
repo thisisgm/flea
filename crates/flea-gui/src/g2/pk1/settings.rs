@@ -1,4 +1,4 @@
-//! The chooser follows shared preferences and persists its view and thumbnail choices.
+//! The chooser restores its view, follows the browser's persisted listing preferences and persists its view and thumbnail choices.
 use super::Picker;
 use crate::grid::geometry::ThumbSize;
 use crate::window::settings::store::{Update, Worker};
@@ -6,6 +6,9 @@ use flea::jsondoc::Json;
 use gpui::Context;
 
 pub(super) struct Preferences {
+    pub(super) hidden: bool,
+    pub(super) view_chosen: bool,
+    relist: bool,
     writes: Option<std::sync::mpsc::Sender<(u64, Json, Option<Json>)>>,
     revision: u64,
     pending: Option<String>,
@@ -17,6 +20,9 @@ pub(super) struct Preferences {
 impl Default for Preferences {
     fn default() -> Self {
         Self {
+            hidden: false,
+            view_chosen: false,
+            relist: false,
             writes: None,
             revision: 0,
             pending: None,
@@ -54,11 +60,34 @@ impl Picker {
                         .unwrap_or("medium"),
                 )
             });
-        self.browse.listing.update(cx, |listing, cx| {
+        let hidden = self.req.hidden.unwrap_or(self.preferences.hidden);
+        self.preferences.hidden = data.get("hidden").and_then(Json::as_bool) == Some(true);
+        if !self.preferences.view_chosen && self.preferences.pending.is_none() {
+            self.set_view(
+                data.get("pickerView")
+                    .and_then(Json::as_str)
+                    .unwrap_or("list"),
+                cx,
+            );
+        }
+        let changed = self.browse.listing.update(cx, |listing, cx| {
             listing.set_thumbnail(size);
-            listing.apply_settings(data, cx);
+            listing.apply_settings(data, cx)
         });
+        if changed || hidden != self.req.hidden.unwrap_or(self.preferences.hidden) {
+            self.preferences.relist = true;
+        }
+        self.relist_settings(cx);
         self.refill_grid(cx);
+    }
+
+    // A submission in flight keeps its listing, so a settings re-list waits until it ends unanswered.
+    pub(super) fn relist_settings(&mut self, cx: &mut Context<Self>) {
+        if self.preferences.relist && !self.accept_state().submitting() && !self.answered() {
+            self.preferences.relist = false;
+            let path = self.listing.location.clone();
+            self.open_folder(&path, cx);
+        }
     }
 
     pub(super) fn follow_settings(&mut self, cx: &mut Context<Self>) {
@@ -136,6 +165,20 @@ impl Picker {
         {
             self.preferences.pending = Some(mode.into());
         } else {
+            self.say_key("settings.error.not_saved", true, cx);
+        }
+    }
+
+    // A title tap's sort, written as the browser's folder and default sort.
+    pub(super) fn persist_sort(&mut self, patch: Json, cx: &mut Context<Self>) {
+        let Some(writes) = &self.preferences.writes else {
+            return;
+        };
+        self.preferences.revision += 1;
+        if writes
+            .send((self.preferences.revision, patch, None))
+            .is_err()
+        {
             self.say_key("settings.error.not_saved", true, cx);
         }
     }

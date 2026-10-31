@@ -267,3 +267,36 @@ pub fn fit_crumbs(list: Vec<Crumb>, budget: usize) -> Vec<Crumb> {
     }
     elide_leaf(shown, budget)
 }
+
+// PickerChrome.qml's strip: a path too long gives up its parents from the left, a character at a time, and keeps the leaf whole.
+pub fn fit_start(list: Vec<Crumb>, budget: usize) -> Vec<Crumb> {
+    if list.len() < 2 || crumb_chars(&list) <= budget {
+        return elide_leaf(list, budget);
+    }
+    let count = list.len();
+    let leaf = list[count - 1].clone();
+    // A leaf that fills the strip leaves its parents no width, so it is drawn alone.
+    if leaf.chars() >= budget {
+        return elide_leaf(vec![leaf], budget);
+    }
+    // The ellipsis takes one character of the room the leaf leaves.
+    let mut room = budget.saturating_sub(leaf.chars()).saturating_sub(1);
+    let mut kept = Vec::new();
+    for crumb in list[..count - 1].iter().rev() {
+        if crumb.chars() <= room {
+            room -= crumb.chars();
+            kept.push(crumb.clone());
+            continue;
+        }
+        // The first parent that does not fit whole keeps its tail behind the ellipsis and still opens where it names.
+        let tail: String = crumb.text.chars().skip(crumb.chars() - room).collect();
+        kept.push(Crumb {
+            text: format!("{ELLIPSIS}{tail}"),
+            ..crumb.clone()
+        });
+        break;
+    }
+    kept.reverse();
+    kept.push(leaf);
+    elide_leaf(kept, budget)
+}

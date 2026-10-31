@@ -302,7 +302,7 @@ fn caption_observer_uses_the_painted_font_size_and_tracking(cx: &mut TestAppCont
     ] {
         handle
             .update(cx, |host, window, cx| {
-                cx.set_global(face.clone());
+                cx.set_global(face.clone().at_base(base as u32));
                 window.set_rem_size(px(base));
                 host.hero.update(cx, |hero, cx| {
                     hero.translated(&catalog);

@@ -143,6 +143,11 @@ impl ListingView {
         self.surface.state.clone()
     }
 
+    #[cfg(test)]
+    pub fn list_state(&self) -> Rc<RefCell<crate::list::ListState>> {
+        self.state.clone()
+    }
+
     pub fn set_marks(&mut self, paths: Rc<HashSet<String>>, allowed: bool) {
         self.surface.marks = paths;
         self.surface.marks_allowed = allowed;
@@ -156,6 +161,13 @@ impl ListingView {
 }
 
 impl ListingView {
+    /// PickerList.qml visibleRows: the rows the list body holds, a part row counting as one.
+    pub fn list_visible_rows(&self) -> usize {
+        let state = self.state.borrow();
+        let height = f32::from(state.drawn.bounds.size.height);
+        ((height / state.file_metrics().row).ceil() as usize).max(1)
+    }
+
     pub fn window_size(&self) -> usize {
         let bounds = self.state.borrow().drawn.bounds;
         if f32::from(bounds.size.width) == 0. {
@@ -164,7 +176,8 @@ impl ListingView {
         let grid = self.grid_view();
         let layout = grid.layout(crate::grid::Shown::All(self.listing().total()));
         flea::ui_logic_pk2::window_size(
-            (f32::from(bounds.size.height) / crate::list::element::ROW_HEIGHT).ceil() as usize,
+            (f32::from(bounds.size.height) / self.state.borrow().file_metrics().row).ceil()
+                as usize,
             layout.visible_rows(),
             layout.columns,
         )
@@ -198,7 +211,9 @@ impl ListingView {
         use gpui::{canvas, div, point, prelude::*, px, size, Bounds};
         let held = self.listing().held();
         let selected = self.selected_indices();
+        let recent = flea::ui_logic_pk2::is_recent(&self.listing().facts().location);
         if self.surface.mode == "list" {
+            self.state.borrow_mut().view.set_recent(recent);
             let states = RowStates {
                 listing: held.listing,
                 cursor: Some(self.listing().cursor()),
@@ -224,7 +239,10 @@ impl ListingView {
             view,
             focus,
             decor,
-            Overlay::default(),
+            Overlay {
+                leaf: recent,
+                ..Overlay::default()
+            },
             self.surface.state.clone(),
         );
         let state = self.surface.state.clone();

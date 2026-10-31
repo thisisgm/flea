@@ -27,6 +27,8 @@ pub struct Inputs {
     pub show_hidden: bool,
     pub blocked: bool,
     pub address_path: bool,
+    /// The picker's strip elides its parents from the left and keeps the leaf whole.
+    pub elide_start: bool,
     /// The focused pane's window size, which the peek behind Tab asks for.
     pub first: usize,
 }
@@ -158,6 +160,8 @@ impl PathView {
         let alias = alias_at(path, &self.inputs.aliases);
         if slot == 0 && self.inputs.address_path {
             self.strips[slot].fit_path(path, &self.inputs.home, budget);
+        } else if slot == 0 && self.inputs.elide_start {
+            self.strips[slot].fit_start(path, &self.inputs.home, alias.as_ref(), budget);
         } else {
             self.strips[slot].fit(path, &self.inputs.home, alias.as_ref(), budget);
         }

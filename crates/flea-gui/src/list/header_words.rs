@@ -28,7 +28,7 @@ pub fn titles(view: &ListView) -> String {
 pub(super) fn painted(view: &ListView, column: Option<Column>) -> String {
     let word = label(view, column);
     match super::sort_key(column) {
-        Some(sorted) if sorted == view.order.key => {
+        Some(sorted) if sorted == view.order.key && !view.recent => {
             crate::navigation::sort::title(word, view.order.desc)
         }
         _ => word.to_owned(),

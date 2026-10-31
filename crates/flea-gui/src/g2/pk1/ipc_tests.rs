@@ -17,6 +17,9 @@ impl ipc::PickerGeometry for Drawn {
     fn save_field_centre(&self) -> String {
         "5 6".into()
     }
+    fn path_bar_open(&self) -> bool {
+        true
+    }
     fn snapshot_members(&self) -> String {
         r#""view":"list""#.into()
     }
@@ -65,7 +68,6 @@ fn every_reader_answers_from_the_windows_state(cx: &mut TestAppContext) {
             names: vec!["a.txt".into(), "b \"q\".txt".into()],
             cursor: 11,
             state: "ready",
-            path_bar_open: true,
             save_name: "n".into(),
             ..picker.listing.clone()
         };

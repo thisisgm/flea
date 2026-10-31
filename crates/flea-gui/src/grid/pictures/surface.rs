@@ -13,7 +13,7 @@ pub(super) enum Surface {
 }
 
 // The rows one surface draws: a listing span, and for a List filter its shown rows with the drawn view positions, end exclusive.
-pub(super) struct Want {
+pub(crate) struct Want {
     pub span: (usize, usize),
     pub only: Option<(Rc<[usize]>, usize, usize)>,
 }

@@ -77,3 +77,13 @@ fn a_changed_theme_reads_the_palette_again_without_restyle() {
     );
     assert_eq!(list.borrow().palette_reads, 2);
 }
+
+impl super::ListState {
+    /// The names the last frame drew, row by row.
+    pub fn drawn_names(&self) -> Vec<String> {
+        self.visible
+            .iter()
+            .filter_map(|shown| shown.prepared.as_ref().map(|row| row.label.clone()))
+            .collect()
+    }
+}

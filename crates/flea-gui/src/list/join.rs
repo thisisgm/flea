@@ -1,7 +1,7 @@
 //! Joins the retained List/header Elements to the live shell's input, settings and writer.
 use crate::{
     list::{
-        columns::{self, Column, StoredWidths, Switched},
+        columns::{Column, StoredWidths, Switched},
         header, HeaderElement, Metrics, RowStates,
     },
     state::Shell,
@@ -13,9 +13,6 @@ use gpui::{
     MouseMoveEvent, Window,
 };
 use std::rc::Rc;
-
-// Qt's startDragDistance: a press that travels farther is a drag, never a tap (Header.qml's TapHandler).
-const TAP_SLOP: f32 = 10.;
 
 #[path = "join_frame.rs"]
 mod frame;
@@ -134,7 +131,7 @@ impl Shell {
             }
         } else {
             // Header.qml sorts from a TapHandler: remember the title now, sort on the release.
-            let key = title_key(&layout, &metrics, x, list.view.dual);
+            let key = header::title_key(&layout, &metrics, x, list.view.dual);
             list.header.press = (!key.is_empty()).then(|| {
                 (
                     key,
@@ -166,7 +163,7 @@ impl Shell {
             if let Some((_, x, y)) = list.header.press {
                 let travel =
                     (f32::from(event.position.x) - x).hypot(f32::from(event.position.y) - y);
-                if event.pressed_button != Some(MouseButton::Left) || travel > TAP_SLOP {
+                if event.pressed_button != Some(MouseButton::Left) || travel > header::TAP_SLOP {
                     list.header.press = None;
                 }
             }
@@ -266,8 +263,9 @@ impl Shell {
                         (f32::from(event.position.x) - x).hypot(f32::from(event.position.y) - y);
                     let at = f32::from(event.position.x - list.header.drawn.bounds.left());
                     let layout = list.header.drawn.layout;
-                    if travel <= TAP_SLOP
-                        && title_key(&layout, &list.drawn.metrics, at, list.view.dual) == key
+                    if travel <= header::TAP_SLOP
+                        && header::title_key(&layout, &list.drawn.metrics, at, list.view.dual)
+                            == key
                     {
                         tap = Some(key);
                     }
@@ -350,28 +348,6 @@ impl Shell {
             host.nav.writer.borrow_mut().write(patch, failure);
         }
     }
-}
-
-/// The sort key of the title under x, empty over the mode column and the padding (in Dual also over the mark slot and gap).
-fn title_key(layout: &columns::Layout, metrics: &Metrics, x: f32, dual: bool) -> &'static str {
-    Column::ALL
-        .into_iter()
-        .find(|column| {
-            layout
-                .cell(*column)
-                .is_some_and(|cell| x >= cell.x && x < cell.right())
-        })
-        .map(|column| match column {
-            Column::Mode => "",
-            Column::Size => "size",
-            Column::Date => "mtime",
-            Column::Kind => "kind",
-        })
-        .unwrap_or_else(|| {
-            header::HeaderState::title_cell(layout, metrics, None, dual)
-                .filter(|cell| x >= cell.x && x < cell.right())
-                .map_or("", |_| "name")
-        })
 }
 
 /// Several width patches as the one patch a fit writes; None when no column changed.
