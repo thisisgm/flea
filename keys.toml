@@ -502,6 +502,12 @@ action = "factsToggle"
 char = "w"
 action = "tabClose"
 
+# Tangerine's drag wheel, moved to the one key a native drag can still hear. W is free in every
+# preset; it opens the same six actions on the cursor row or the selection.
+[[text]]
+char = "W"
+action = "actionWheel"
+
 
 [[text]]
 char = "y"
@@ -655,7 +661,8 @@ find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "rel
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect",
           "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
-          "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
+          "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags",
+          "actionWheel"]
 
 # The digit range, expanded by the generator into tab1 through tab9.
 [digits]
@@ -821,6 +828,11 @@ action = "menu"
 label = "menu"
 
 [[sheet]]
+keys = "W"
+action = "actionWheel"
+label = "action wheel"
+
+[[sheet]]
 keys = "^e"
 action = "eject"
 label = "eject"
@@ -874,7 +886,7 @@ label = "keys"
 #                   whose segments are their own targets, both drawn by ui/Crumb.qml
 # press  the button, then any modifier before it, then "x2" for the second tap of a double click
 # row    which rows the line covers: any, dir, file, parent, inert, place, renaming or result
-# does   backOrParent commitRename extendSelect forward goToCrumb menu nothing open openTab pathBar reveal selectOnly toggleSelect
+# does   backOrParent commitRename extendSelect forward goToCrumb menu nothing open openTab pathBar reveal selectOnly toggleSelect wheel
 #
 # Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
 # opens on one tap, as Finder's own sidebar does and as every other rail in Omarchy does, which is
@@ -966,6 +978,15 @@ press = "right"
 row = "any"
 does = "menu"
 label = "open the context menu at the pointer, on the selection the row is in"
+
+# Tangerine's wheel was raised with a modifier held during a drag; Flea's native drag owns no key
+# events, so the same pointer gesture is Alt+right-click on a row.
+[[pointer]]
+where = "listing"
+press = "alt right"
+row = "any"
+does = "wheel"
+label = "open the action wheel at the pointer, on the selection the row is in"
 
 # Middle click opens a directory in a new tab, the way a browser opens a link, and it is the mirror
 # of ui/TabBar.qml closing a tab on the same button. It moves neither the cursor nor the selection,

@@ -279,7 +279,7 @@ impl Snapshot {
                 cursor.current()?;
                 return Ok(format!(r#""action":"{}","paths":["{}"]"#, escape(&action), escape(&cursor.path.to_string_lossy())));
             }
-            let needs_paths = op == "validate" || matches!(action.as_str(), "copy" | "cut" | "compare" | "copypath" | "copyAs" | "copyPath" | "copyName" | "copyStem" | "copydirpath" | "copyUri" | "copyQuoted" | "showOriginal" | "makeExecutable" | "pasteAs" | "pasteLink" | "pasteAbsoluteLink" | "pasteHardLink" | "addFavourite" | "localsend") || action.starts_with("compress:") || action.starts_with("runScript:") || action.starts_with("localsend:") || action.starts_with("copyAs:") || action.starts_with("pasteAs:");
+            let needs_paths = op == "validate" || matches!(action.as_str(), "copy" | "cut" | "compare" | "copypath" | "copyAs" | "copyPath" | "copyName" | "copyStem" | "copydirpath" | "copyUri" | "copyQuoted" | "showOriginal" | "makeExecutable" | "pasteAs" | "pasteLink" | "pasteAbsoluteLink" | "pasteHardLink" | "addFavourite" | "addToShelf" | "localsend") || action.starts_with("compress:") || action.starts_with("runScript:") || action.starts_with("localsend:") || action.starts_with("copyAs:") || action.starts_with("pasteAs:");
             let paths: Vec<String> = if needs_paths { self.items.iter().map(|i| format!(r#""{}""#, escape(&i.path.to_string_lossy()))).collect() } else { Vec::new() };
             return Ok(format!(r#""action":"{}","paths":[{}],"dest":"{}""#,
                 escape(&action), paths.join(","),
@@ -552,6 +552,17 @@ mod tests {
         assert!(snapshot.handle(r#"{"op":"validate","id":3}"#, vec![]).contains("Selected item changed"));
         assert!(snapshot.handle(r#"{"op":"activate","id":3,"action":"addFavourite"}"#, vec![]).contains("Selected item changed"));
         assert_eq!(std::fs::read_to_string(path).unwrap(), "replacement");
+    }
+    #[test]
+    fn add_to_shelf_activation_echoes_every_snapshot_path() {
+        let sandbox = TestDir::new("menu-shelf");
+        let first = sandbox.file("first", "one");
+        let second = sandbox.file("second", "two");
+        let mut snapshot = Snapshot::default();
+        let paths = vec![first.to_string_lossy().into_owned(), second.to_string_lossy().into_owned()];
+        assert!(snapshot.handle(r#"{"op":"snapshot","id":9}"#, paths).contains(r#""ok":true"#));
+        let reply = snapshot.handle(r#"{"op":"activate","id":9,"action":"addToShelf"}"#, vec![]);
+        assert!(reply.contains(&format!(r#""paths":["{}","{}"]"#, first.display(), second.display())), "{reply}");
     }
     #[test]
     fn create_file_refuses_collisions_traversal_and_symlinks() {

@@ -271,10 +271,15 @@ Item {
 
         // Empty space below the last row, the same rule ui/List.qml carries: the pane's own column answers at once while a peek navigates to its drawn directory first and opens its menu once the rows land.
         TapHandler {
+            id: backgroundTap
             acceptedButtons: Qt.RightButton
             onTapped: function (eventPoint) {
                 if (!Tap.onBackground(view, eventPoint))
                     return
+                if (root.pane !== null && (backgroundTap.point.modifiers & Qt.AltModifier)) {
+                    Tap.tappedWheel(-1, root.pane, eventPoint.scenePosition)
+                    return
+                }
                 if (root.pane !== null)
                     root.backgroundMenuRequested(eventPoint)
                 else
@@ -332,9 +337,12 @@ Item {
                         if (cell.listingIndex < 0 || !cell.row) return
                         if (button === Qt.MiddleButton)
                             root.tabRequested(cell.row)
-                        else if (button === Qt.RightButton)
-                            root.menuRequested(cell.listingIndex, eventPoint)
-                        else
+                        else if (button === Qt.RightButton) {
+                            if (tap.point.modifiers & Qt.AltModifier)
+                                Tap.tappedWheel(cell.listingIndex, root.pane, eventPoint.scenePosition)
+                            else
+                                root.menuRequested(cell.listingIndex, eventPoint)
+                        } else
                             root.picked(cell.listingIndex, tap.tapCount, tap.point.modifiers, Tap.onName(cell.nameItem(), cell, eventPoint.position, false))
                         return
                     }

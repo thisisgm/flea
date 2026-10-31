@@ -244,6 +244,8 @@ function act(action, root, menuId, paths) {
         if (!root.openCursorMenu())
             root.message("No item under the cursor to open a menu on", false)
         return
+    // Tangerine's drag wheel, on the key this listing can hear: W opens it on the cursor or selection.
+    case "actionWheel": root.openActionWheel(); return
     // The run card's own entrances; see ui/js/Nav.js runCursor.
     case "run": Nav.runCursor(root, root.opener, "open"); return
     case "openAsText": Nav.runCursor(root, root.opener, "openText"); return

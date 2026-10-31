@@ -148,6 +148,9 @@ FocusScope {
     property bool listInFlight: false
     property bool listedSeen: false
     readonly property bool menuVisible: menu.opened
+    // The action wheel is a modal overlay of its own; its pane owns the one instance, built on first ask.
+    property var actionWheel: null
+    readonly property bool actionWheelOpened: root.actionWheel !== null && root.actionWheel.opened
     // The keyboard-highlighted menu row, so a test can drive the menu without OCR.
     readonly property int menuCursor: menu.cursor
     // What the header case reads over IPC, the same alias idiom Row.qml uses for its icon.
@@ -1178,6 +1181,26 @@ FocusScope {
         if (at < 0) { root.message("That file is no longer listed.", true); return }
         menuActions.snapshot([at])
         menuActions.open("openWith", menuActions.requestId)
+    }
+
+    // The one ui/ActionWheel.qml this pane owns, built the first time W or the pointer asks for it.
+    // It stays unbuilt in a pane that never opens one, which is what keeps the first frame census flat.
+    function actionWheelOverlay() {
+        if (root.actionWheel) return root.actionWheel
+        var made = Qt.createComponent("ActionWheel.qml")
+        if (made.status !== Component.Ready) throw new Error("ActionWheel.qml did not load: " + made.errorString())
+        root.actionWheel = made.createObject(root, { pane: root, parent: root.overlayParent || root })
+        return root.actionWheel
+    }
+    // A wheel with no row behind it would list actions that all have nothing to act on, so it refuses
+    // in the status strip the way the menu's own keyboard entrance does.
+    function openActionWheel(scenePoint) {
+        if (root.cursorRow === null && root.selectionCount() === 0) {
+            root.message("No item under the cursor for the action wheel", false)
+            return
+        }
+        var wheel = root.actionWheelOverlay()
+        wheel.openAt(scenePoint)
     }
 
     // The one ui/ContextMenu.qml this pane owns, for ui/Ipc.qml: entries, flyout and row geometry

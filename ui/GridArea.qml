@@ -269,9 +269,12 @@ GridView {
                     if (cell.listingIndex < 0) return
                     if (button === Qt.MiddleButton)
                         Tap.tappedTab(root.pane.rowFor(cell.listingIndex), root.pane.path, root.pane)
-                    else if (button === Qt.RightButton)
-                        Tap.tappedMenu(cell.listingIndex, eventPoint, root.pane, root.menu)
-                    else {
+                    else if (button === Qt.RightButton) {
+                        if (tap.point.modifiers & Qt.AltModifier)
+                            Tap.tappedWheel(cell.listingIndex, root.pane, eventPoint.scenePosition)
+                        else
+                            Tap.tappedMenu(cell.listingIndex, eventPoint, root.pane, root.menu)
+                    } else {
                         var wasSole = root.pane.slowClickWasSole(cell.listingIndex)
                         Tap.tapped(cell.listingIndex, tap.tapCount, tap.point.modifiers, root.pane)
                         // The slow click renames on the pane's timer; a double click opens through tapped() above instead.
@@ -393,9 +396,13 @@ GridView {
     // The space past the last tile is the directory's own, the same rule ui/List.qml carries: a
     // tile's right click belongs to its delegate, and tileAt is what tells the two apart.
     TapHandler {
+        id: backgroundTap
         acceptedButtons: Qt.RightButton
         onTapped: function (eventPoint) {
-            if (root.tileAt(eventPoint.position.x, eventPoint.position.y) < 0)
+            if (root.tileAt(eventPoint.position.x, eventPoint.position.y) >= 0) return
+            if (backgroundTap.point.modifiers & Qt.AltModifier)
+                Tap.tappedWheel(-1, root.pane, eventPoint.scenePosition)
+            else
                 root.menu.openBackground(eventPoint.scenePosition)
         }
     }

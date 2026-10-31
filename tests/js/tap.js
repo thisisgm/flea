@@ -38,6 +38,8 @@ function pane() {
         toggleSelectAt: function (i) { this.cursor = i; this.did.push("toggleSelect") },
         extendSelectionTo: function (i) { this.cursor = i; this.did.push("extendSelect") },
         act: function (action) { this.did.push(action) },
+        wheel: 0,
+        openActionWheel: function () { this.wheel += 1 },
         cancelled: 0,
         cancelSlowClick: function () { this.cancelled += 1 }
     }
@@ -59,6 +61,7 @@ function press(text) {
         taps: text.indexOf("x2") >= 0 ? 2 : 1,
         modifiers: (text.indexOf("ctrl") >= 0 ? Qt.ControlModifier : 0)
                  | (text.indexOf("shift") >= 0 ? Qt.ShiftModifier : 0)
+                 | (text.indexOf("alt") >= 0 ? Qt.AltModifier : 0)
     }
 }
 
@@ -101,6 +104,10 @@ function driveListing(row) {
         return joined ? "openTab" : "nothing"
     }
     if (p.button === Qt.RightButton) {
+        if (p.modifiers & Qt.AltModifier) {
+            Tap.tappedWheel(2, sink)
+            return sink.wheel === 1 ? "wheel" : "nothing"
+        }
         var raised = menu()
         Tap.tappedMenu(2, eventPoint(), sink, raised)
         if (raised.at !== "7,9")
@@ -144,8 +151,8 @@ function countWhere(where) {
 function run(check) {
     var rows = Keymap.POINTER
     // The denominator first: an empty table would pass every loop below by having nothing in it.
-    check("the pointer table reached the tests at all", rows.length, 25)
-    check("the table declares the listing's clicks", countWhere("listing"), 12)
+    check("the pointer table reached the tests at all", rows.length, 26)
+    check("the table declares the listing's clicks", countWhere("listing"), 13)
     check("the table declares the middle column's own click", countWhere("column"), 1)
     check("the table declares the neighbour columns' clicks", countWhere("neighbour"), 5)
     check("the table declares the rail's clicks", countWhere("rail"), 3)
@@ -179,7 +186,7 @@ function run(check) {
                   driveNeighbour(rows[i]), rows[i].does)
         }
     }
-    check("every listing row of the table was driven", drivenListing, 12)
+    check("every listing row of the table was driven", drivenListing, 13)
     check("every middle column row of the table was driven", drivenColumn, 1)
     check("every neighbour row of the table was driven", drivenNeighbour, 5)
 
@@ -390,6 +397,27 @@ function run(check) {
     check("a right click inside the selection leaves it whole, as Finder does",
           inside.selectedIndices().join(","), "1,2,3")
     check("and still moves the cursor to the pressed row", inside.cursor, 2)
+
+    // Alt+right-click is the wheel's pointer entrance. It follows the menu's selection rule, because
+    // the six petals act through the same pane routes, then opens the wheel at the pointer.
+    var wheelOutside = pane()
+    wheelOutside.picked = [1, 2, 3]
+    Tap.tappedWheel(50, wheelOutside)
+    check("an alt right click outside the selection drops it before the wheel opens",
+          wheelOutside.selectedIndices().join(","), "")
+    check("and moves the cursor to the row the wheel will name", wheelOutside.cursor, 50)
+    check("and opens exactly one wheel", wheelOutside.wheel, 1)
+    var wheelInside = pane()
+    wheelInside.picked = [1, 2, 3]
+    Tap.tappedWheel(2, wheelInside)
+    check("an alt right click inside the selection leaves it whole", wheelInside.selectedIndices().join(","), "1,2,3")
+    check("and still opens the wheel", wheelInside.wheel, 1)
+    var wheelGround = pane()
+    wheelGround.picked = [1, 2, 3]
+    Tap.tappedWheel(-1, wheelGround)
+    check("an alt right click on the ground keeps the selection standing", wheelGround.selectedIndices().join(","), "1,2,3")
+    check("and leaves the cursor where it was", wheelGround.cursor, -1)
+    check("but still opens the wheel", wheelGround.wheel, 1)
 
     // A delegate can outlive the row it was built for by a frame, which is why every reader of
     // pane.rows in this tree guards; the column's tap is a reader like any other.

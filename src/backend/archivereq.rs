@@ -204,8 +204,15 @@ pub fn start_convert(out: &mut impl Write, ops: &mut Ops, input: PathBuf, dest: 
     let result = match &selection {
         Ok(items) => check_convert(&input, &dest, items.as_deref()),
         Err(error) => Err(error.clone()),
-    }.and_then(|collision| if collision || convert::available() { Ok(collision) }
-        else { Err("ImageMagick is not installed. Install it to convert images.".into()) });
+    }.and_then(|collision| if collision || convert::available_for(&input, &dest) { Ok(collision) }
+        else {
+            let msg = if convert::is_media(&input) || convert::is_media(&dest) {
+                "FFmpeg is not installed. Install it to convert media files."
+            } else {
+                "ImageMagick is not installed. Install it to convert images."
+            };
+            Err(msg.into())
+        });
     let collision = matches!(result, Ok(true));
     let error = if collision { collision_message(&dest) } else { result.as_ref().err().cloned().unwrap_or_default() };
     if check {
@@ -386,6 +393,17 @@ mod tests {
             assert!(!crate::json::field_bool(&reply, "ok"));
             assert!(reply.contains("ImageMagick is not installed. Install it to convert images."));
             assert!(!destination.exists());
+        }
+        let media_src = d.file("video.mp4", "source");
+        let media_dst = d.join("audio.mp3");
+        for check in [true, false] {
+            let mut output = Vec::new();
+            start_convert(&mut output, &mut ops, media_src.clone(), media_dst.clone(), false, 0, 76, check);
+            let reply = String::from_utf8(output).unwrap();
+            assert_eq!(crate::json::field_usize(&reply, "requestId"), Some(76));
+            assert!(!crate::json::field_bool(&reply, "ok"));
+            assert!(reply.contains("FFmpeg is not installed. Install it to convert media files."));
+            assert!(!media_dst.exists());
         }
     }
 }
