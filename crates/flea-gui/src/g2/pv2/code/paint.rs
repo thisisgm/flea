@@ -108,10 +108,13 @@ impl CodeView {
         };
         if let Some((laid, out)) = &self.laid {
             if *laid == key {
-                return Rc::clone(out);
+                let out = Rc::clone(out);
+                self.selection_frame(bounds, &out);
+                return out;
             }
         }
         let out = Rc::new(self.build(&key.shaping, window));
+        self.selection_frame(bounds, &out);
         self.laid = Some((key, Rc::clone(&out)));
         out
     }
@@ -194,6 +197,22 @@ impl CodeView {
                         &piece.run,
                         ink,
                     );
+                    if let Some(part) = self.selection.part(shaped.line, piece.start, piece.len) {
+                        let accent = cx
+                            .try_global::<crate::palette::Theme>()
+                            .copied()
+                            .unwrap_or_default()
+                            .accent;
+                        crate::g2::pv2::selection::paint(
+                            &piece.run,
+                            point(origin.x + text_left + piece.x, y),
+                            Bounds::new(point(origin.x, top), size(bounds.size.width, row)),
+                            part,
+                            accent,
+                            self.palette.foreground,
+                            window,
+                        );
+                    }
                 }
             }
         });
@@ -282,12 +301,12 @@ impl Render for CodeView {
             .relative()
             .size_full()
             .on_scroll_wheel(cx.listener(|view, event, _, cx| view.wheel(event, cx)))
-            .on_mouse_move(cx.listener(|view, event: &gpui::MouseMoveEvent, _, cx| {
-                view.scroll_pointer(
-                    event.position,
-                    event.pressed_button == Some(gpui::MouseButton::Left),
-                    cx,
-                );
+            .on_mouse_move(
+                cx.listener(|view, event, window, cx| view.text_motion(event, window, cx)),
+            )
+            .on_mouse_down_out(cx.listener(|view, _: &gpui::MouseDownEvent, _, cx| {
+                view.selection.clear();
+                cx.notify();
             }))
             .on_hover(cx.listener(|view, hovered: &bool, _, cx| {
                 if !hovered && view.scroll.lane.take().is_some() {
@@ -296,13 +315,14 @@ impl Render for CodeView {
             }))
             .on_mouse_down(
                 gpui::MouseButton::Left,
-                cx.listener(|view, event: &gpui::MouseDownEvent, _, cx| {
-                    view.scroll_press(event.position, cx);
+                cx.listener(|view, event: &gpui::MouseDownEvent, window, cx| {
+                    view.text_press(event, window, cx);
                 }),
             )
             .on_mouse_up(
                 gpui::MouseButton::Left,
                 cx.listener(|view, _, _, cx| {
+                    view.selection.release(cx);
                     if view.scroll.release() {
                         cx.notify();
                     }
@@ -311,6 +331,7 @@ impl Render for CodeView {
             .on_mouse_up_out(
                 gpui::MouseButton::Left,
                 cx.listener(|view, _, _, cx| {
+                    view.selection.release(cx);
                     if view.scroll.release() {
                         cx.notify();
                     }

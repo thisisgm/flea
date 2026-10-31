@@ -17,6 +17,8 @@ pub fn shaped_bytes() -> usize {
 
 /// One coloured piece of a row: its ink index (0 the foreground, 1 to 6 bat's colours) and its x from the text's left.
 pub struct Piece {
+    pub start: usize,
+    pub len: usize,
     pub ink: usize,
     pub x: Pixels,
     pub run: GlyphRun,
@@ -24,6 +26,7 @@ pub struct Piece {
 
 /// One row of a line as shaped, and the gutter number on the line's first row.
 pub struct Shaped {
+    pub line: usize,
     pub pieces: Vec<Piece>,
     pub number: Option<GlyphRun>,
 }
@@ -320,18 +323,43 @@ pub fn shape_row(
                 shaping.body,
             );
             let width = run.line().width;
-            pieces.push(Piece { ink: *ink, x, run });
+            pieces.push(Piece {
+                start: from,
+                len: to - from,
+                ink: *ink,
+                x,
+                run,
+            });
             x += width;
         }
     }
     if prepared.cut {
         let run = glyphs(window, "\u{2026}", &shaping.font, shaping.body);
         let ink = pieces.last().map_or(0, |piece| piece.ink);
-        pieces.push(Piece { ink, x, run });
+        pieces.push(Piece {
+            start: range.end,
+            len: 0,
+            ink,
+            x,
+            run,
+        });
     }
-    let number = (shaping.numbered && row == 0)
+    let gutter = (shaping.numbered && row == 0)
         .then(|| glyphs(window, &number.to_string(), &shaping.font, shaping.caption));
-    Shaped { pieces, number }
+    if pieces.is_empty() {
+        pieces.push(Piece {
+            start: range.start,
+            len: 0,
+            ink: 0,
+            x,
+            run: glyphs(window, "", &shaping.font, shaping.body),
+        });
+    }
+    Shaped {
+        line: number.saturating_sub(1),
+        pieces,
+        number: gutter,
+    }
 }
 
 /// A role's ink slot; 0 and any unknown role are the foreground.

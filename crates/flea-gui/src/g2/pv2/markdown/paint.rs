@@ -97,6 +97,7 @@ pub enum Op {
         color: Hsla,
     },
     Text {
+        selected: Option<usize>,
         x: f32,
         baseline: f32,
         run: Rc<GlyphRun>,
@@ -153,6 +154,8 @@ pub struct Pointer {
 // Gathers one frame's ops from laid blocks.
 struct Build<'a> {
     ops: &'a mut Vec<Op>,
+    selection: &'a mut crate::g2::pv2::selection::Selection,
+    text_id: usize,
     hits: &'a mut Vec<Hit>,
     glyphs: &'a mut Glyphs,
     palette: &'a Palette,
@@ -189,6 +192,7 @@ impl MarkdownView {
             self.source_pump(cx);
             self.release_hold(cx);
         }
+        self.selection_start_frame(cx);
         self.ops.clear();
         self.hits.clear();
         self.glyphs.start();
@@ -220,6 +224,8 @@ impl MarkdownView {
         let visible = self.visible();
         let mut build = Build {
             ops: &mut self.ops,
+            selection: &mut self.selection,
+            text_id: 0,
             hits: &mut self.hits,
             glyphs: &mut self.glyphs,
             palette: &self.palette,
@@ -242,6 +248,7 @@ impl MarkdownView {
             };
             build.block = i;
             build.table = 0;
+            build.text_id = 0;
             build.first.tables +=
                 usize::from(matches!(build.doc.blocks().get(i), Some(Block::Table(_))));
             build.items(&laid.geometry.items, x0, top + at);
@@ -265,13 +272,13 @@ impl MarkdownView {
                         }),
                         |window| {
                             for op in &self.ops[from..to] {
-                                draw(op, &rect, window, cx);
+                                draw(self, op, &rect, window, cx);
                             }
                         },
                     );
                     i = to;
                 } else {
-                    draw(&self.ops[i], &rect, window, cx);
+                    draw(self, &self.ops[i], &rect, window, cx);
                     i += 1;
                 }
             }
@@ -280,6 +287,7 @@ impl MarkdownView {
 }
 
 fn draw(
+    view: &MarkdownView,
     op: &Op,
     rect: &impl Fn((f32, f32, f32, f32)) -> Bounds<Pixels>,
     window: &mut Window,
@@ -288,13 +296,23 @@ fn draw(
     match op {
         Op::Quad { rect: r, color } => window.paint_quad(fill(rect(*r), *color)),
         Op::Text {
+            selected,
             x,
             baseline,
             run,
             color,
         } => {
             let at = rect((*x, *baseline, 0., 0.)).origin;
-            let _ = window.paint_glyph_run(point(at.x, window.pixel_snap(at.y)), run, *color);
+            let at = point(at.x, window.pixel_snap(at.y));
+            let _ = window.paint_glyph_run(at, run, *color);
+            if let Some(index) = selected {
+                let accent = cx
+                    .try_global::<crate::palette::Theme>()
+                    .copied()
+                    .unwrap_or_default()
+                    .accent;
+                view.selection_run(*index, run, at, accent, window);
+            }
         }
         Op::Mark {
             rect: r,
@@ -330,11 +348,33 @@ impl Render for MarkdownView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let (laid, painted) = (cx.entity(), cx.entity());
         div()
+            .id("pv2-markdown-view")
             .size_full()
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(|view, event, window, cx| view.text_press(event, window, cx)),
+            )
+            .on_mouse_move(
+                cx.listener(|view, event, window, cx| view.text_motion(event, window, cx)),
+            )
+            .on_mouse_down_out(cx.listener(|view, _: &gpui::MouseDownEvent, _, cx| {
+                view.selection.clear();
+                cx.notify();
+            }))
+            .on_mouse_up_out(
+                MouseButton::Left,
+                cx.listener(|view, _, _, cx| {
+                    view.text_release(cx);
+                }),
+            )
             .on_scroll_wheel(cx.listener(|view, event, _, cx| view.wheel(event, cx)))
             .on_mouse_up(
                 MouseButton::Left,
-                cx.listener(|view, event, _, cx| view.click(event, cx)),
+                cx.listener(|view, event: &gpui::MouseUpEvent, _, cx| {
+                    if view.text_release(cx) && !event.modifiers.shift && event.click_count == 1 {
+                        view.click(event, cx);
+                    }
+                }),
             )
             .child(
                 canvas(

@@ -86,10 +86,12 @@ impl CodeView {
         }
     }
 
-    pub(super) fn scroll_press(&mut self, at: Point<Pixels>, cx: &mut Context<Self>) {
+    pub(super) fn scroll_press(&mut self, at: Point<Pixels>, cx: &mut Context<Self>) -> bool {
         if self.scroll.press(at).is_some() {
             self.follow_scroll(cx);
+            return true;
         }
+        false
     }
 
     /// Scrolls by rows of the body line, walking line heights so a wrapped line scrolls through its rows.

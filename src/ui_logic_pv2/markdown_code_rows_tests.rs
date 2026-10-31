@@ -63,11 +63,15 @@ fn a_line_that_fits_keeps_its_runs_and_their_places() {
         lines,
         vec![vec![
             Piece {
+                start: 0,
+                len: 2,
                 x: 0.0,
                 role: 5,
                 text: "fn".into()
             },
             Piece {
+                start: 2,
+                len: 2,
                 x: 20.0,
                 role: 0,
                 text: " x".into()
@@ -93,6 +97,8 @@ fn an_unwrapped_line_ends_in_an_ellipsis_in_the_ink_it_is_cut_in() {
     assert_eq!(
         lines[0][1],
         Piece {
+            start: 3,
+            len: 1,
             x: 30.0,
             role: 2,
             text: "d\u{2026}".into()
@@ -109,11 +115,15 @@ fn an_unwrapped_line_ends_in_an_ellipsis_in_the_ink_it_is_cut_in() {
         cut_at_run[0],
         vec![
             Piece {
+                start: 0,
+                len: 4,
                 x: 0.0,
                 role: 1,
                 text: "abcd".into()
             },
             Piece {
+                start: 4,
+                len: 0,
                 x: 40.0,
                 role: 2,
                 text: "\u{2026}".into()
@@ -131,4 +141,14 @@ fn a_wrapped_line_breaks_after_a_lone_space_and_anywhere_in_a_long_word() {
     // Two spaces hold together, so the words either side of them never part there.
     let held = row_lines(&runs(&[(0, "ab  cd")]), 40.0, true, 14.0, &mut Mono);
     assert_eq!(texts(&held), vec!["ab  ", "cd"]);
+}
+
+#[test]
+fn gm_prevsel_source_spans_retain_offsets_after_a_hidden_wrap_space_and_elision() {
+    let lines = row_lines(&runs(&[(0, "ab cd ef")]), 50., true, 14., &mut Mono);
+    assert_eq!(lines[1][0].start, 6);
+    assert_eq!(lines[1][0].len, 2);
+    let cut = row_lines(&runs(&[(0, "abcdefgh")]), 50., false, 14., &mut Mono);
+    assert_eq!(cut[0][0].len, 4);
+    assert_eq!(cut[0][0].text, "abcd\u{2026}");
 }

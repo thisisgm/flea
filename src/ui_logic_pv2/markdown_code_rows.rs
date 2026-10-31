@@ -34,6 +34,8 @@ pub fn plain_row(text: &str, starts: &[usize], n: usize) -> Option<Vec<(i64, Str
 /// One piece of a drawn line: where it starts, its ink role and its text.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Piece {
+    pub start: usize,
+    pub len: usize,
     pub x: f32,
     pub role: i64,
     pub text: String,
@@ -41,6 +43,7 @@ pub struct Piece {
 
 // One character of a line with its role, its advance and whether a wrap may follow it.
 struct Cell {
+    byte: usize,
     c: char,
     role: i64,
     width: f32,
@@ -53,17 +56,20 @@ fn cells(runs: &[(i64, String)], px: f32, measure: &mut dyn Measure) -> Vec<Cell
         .flat_map(|(role, text)| text.chars().map(move |c| (c, *role)))
         .collect();
     let mut out = Vec::with_capacity(line.len());
+    let mut byte = 0;
     for (i, &(c, role)) in line.iter().enumerate() {
         // Only one space between two other characters may wrap; a run of spaces holds together.
         let lone =
             c == ' ' && i > 0 && i + 1 < line.len() && line[i - 1].0 != ' ' && line[i + 1].0 != ' ';
         let width = measure.width(c.encode_utf8(&mut [0; 4]), Face::Regular, px);
         out.push(Cell {
+            byte,
             c,
             role,
             width,
             breaks: lone,
         });
+        byte += c.len_utf8();
     }
     out
 }
@@ -74,8 +80,13 @@ fn pieces(cells: &[Cell]) -> Vec<Piece> {
     let mut x = 0.0;
     for cell in cells {
         match out.last_mut() {
-            Some(last) if last.role == cell.role => last.text.push(cell.c),
+            Some(last) if last.role == cell.role => {
+                last.text.push(cell.c);
+                last.len += cell.c.len_utf8();
+            }
             _ => out.push(Piece {
+                start: cell.byte,
+                len: cell.c.len_utf8(),
                 x,
                 role: cell.role,
                 text: cell.c.to_string(),
@@ -115,6 +126,8 @@ pub fn row_lines(
         match line.last_mut() {
             Some(last) if last.role == role => last.text.push_str(ELLIPSIS),
             _ => line.push(Piece {
+                start: cells.get(kept).map_or(0, |cell| cell.byte),
+                len: 0,
                 x,
                 role,
                 text: ELLIPSIS.to_string(),
@@ -151,6 +164,7 @@ pub fn row_lines(
             .filter(|_| cut < cells.len() && cells[cut - 1].breaks)
         {
             last.text.pop();
+            last.len -= 1;
             if last.text.is_empty() {
                 line.pop();
             }

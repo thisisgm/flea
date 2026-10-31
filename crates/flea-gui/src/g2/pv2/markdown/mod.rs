@@ -6,6 +6,7 @@ mod doc;
 pub mod figures;
 mod loading;
 mod paint;
+mod selection;
 mod source;
 pub mod style;
 mod worker;
@@ -180,6 +181,8 @@ pub struct FirstFrame {
 }
 
 pub struct MarkdownView {
+    pub selection: crate::g2::pv2::selection::Selection,
+    selection_stamp: Option<(u64, u64, u64, usize, bool, bool)>,
     pub palette: Palette,
     pub tokens: Tokens,
     pub faces: Faces,
@@ -212,7 +215,7 @@ pub struct MarkdownView {
     tables: HashMap<paint::TableId, f32>,
     pointer: paint::Pointer,
     /// The view's top left in the window, for pointer events.
-    bounds: (f32, f32),
+    pub(crate) bounds: (f32, f32),
     hold_timer: Option<Task<()>>,
     origin: std::time::Instant,
     _tasks: Vec<Task<()>>,
@@ -251,6 +254,8 @@ impl MarkdownView {
         });
         let measure = TextMeasure::new(cx.text_system().clone(), faces.clone());
         MarkdownView {
+            selection: Default::default(),
+            selection_stamp: None,
             palette,
             tokens,
             faces,
@@ -314,6 +319,7 @@ impl MarkdownView {
 
     pub fn set_view(&mut self, view: View, cx: &mut Context<Self>) {
         if self.view != view {
+            self.selection.clear();
             self.view = view;
             self.pump(cx);
             cx.notify();

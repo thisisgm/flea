@@ -125,6 +125,8 @@ pub enum Atom {
 /// One drawn line: its top inside the paragraph, its height and its baseline from its top.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Line {
+    /// Text between this visual row and the next: a source break, soft-wrap space, or no separator.
+    pub after: &'static str,
     pub top: f32,
     pub height: f32,
     pub baseline: f32,
@@ -147,6 +149,9 @@ impl Laid {
 
     /// Stacks another laid paragraph under this one, `gap` below it.
     pub fn append(&mut self, other: Laid, gap: f32) {
+        if let Some(last) = self.lines.last_mut() {
+            last.after = "\n";
+        }
         let top = if self.lines.is_empty() {
             0.0
         } else {
