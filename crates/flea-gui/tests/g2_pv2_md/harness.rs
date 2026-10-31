@@ -84,6 +84,15 @@ done
 
 // The parse, layout and picture threads are real, so their wakes come from outside the deterministic scheduler.
 pub fn open(cx: &mut TestAppContext, root: &Root, mode: Helper) -> WindowHandle<MarkdownView> {
+    open_with(cx, root, mode, TOKENS)
+}
+
+pub fn open_with(
+    cx: &mut TestAppContext,
+    root: &Root,
+    mode: Helper,
+    tokens: Tokens,
+) -> WindowHandle<MarkdownView> {
     cx.executor().allow_parking();
     let script = helper(root, mode);
     cx.update(|cx| {
@@ -94,7 +103,7 @@ pub fn open(cx: &mut TestAppContext, root: &Root, mode: Helper) -> WindowHandle<
     cx.add_window(|_, cx| {
         MarkdownView::new(
             palette(),
-            TOKENS,
+            tokens,
             Faces::omarchy_default(),
             "look",
             &i18n,

@@ -368,6 +368,8 @@ impl MarkdownView {
         let t = self.tokens;
         let measure = self.source.measure();
         let (ascent, descent) = measure.extent(Face::Regular, t.body);
+        // A board's row never draws under the face's extent, so a large text size keeps its lines apart.
+        let face_line = (ascent + descent).round();
         let (cap_ascent, cap_descent) = measure.extent(Face::Regular, t.caption);
         let advance = measure.width("0", Face::Regular, t.body);
         let frame = Frame {
@@ -375,7 +377,7 @@ impl MarkdownView {
             height: (height - 2. * t.source_inset_y()).max(0.),
             body: t.body,
             caption: t.caption,
-            line: t.source_line.unwrap_or((ascent + descent).round()),
+            line: t.source_line.map_or(face_line, |row| row.max(face_line)),
             advance,
             notice: (cap_ascent + cap_descent).round() + self.tokens.metrics().block_gap(),
             wrap: self.wrap,

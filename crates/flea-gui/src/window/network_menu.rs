@@ -37,8 +37,10 @@ impl Shell {
         let producer = join.places.read(cx);
         let laid = producer.laid.borrow();
         let pointer = producer.model.borrow().pointer_focus;
+        // The rail lays each row's mark at its face's list pad, so a keyboard menu opens at the mark column.
+        let mark_x = crate::list::Metrics::for_typeface(&producer.typeface).pad;
         let at = match producer.cursor().and_then(|index| laid.row(index)) {
-            Some(drawn) if !pointer => (drawn.rect.x + 14., drawn.rect.y + drawn.rect.height),
+            Some(drawn) if !pointer => (drawn.rect.x + mark_x, drawn.rect.y + drawn.rect.height),
             _ => {
                 let mouse = window.mouse_position();
                 (f32::from(mouse.x), f32::from(mouse.y))
@@ -101,17 +103,17 @@ impl Shell {
             "open" => self.network_activate(side, &entry, window, cx),
             "unmount" => self.network_unmount(&row, origin, cx),
             "remove" => {
-                // Mounts.WORDS: a mounted share stays on the rail until it is unmounted, saved or not.
+                // Mounts.WORDS: a mounted share stays on the rail until it is unmounted, saved or not; an unmounted place leaves it either way.
                 let catalog = &self.locale.catalog;
                 let label = [row.label.as_str()];
-                let forgotten = if row.mounted {
-                    "network.forgotten_stays"
+                let (forgotten, absent) = if row.mounted {
+                    ("network.forgotten_stays", "network.not_saved")
                 } else {
-                    "network.forgotten"
+                    ("network.forgotten", "network.forgotten")
                 };
                 let said = [
                     catalog.tr_args(forgotten, &label),
-                    catalog.tr_args("network.not_saved", &label),
+                    catalog.tr_args(absent, &label),
                 ];
                 self.network_save(
                     bookmarks::Edit::Remove { uri: row.uri },

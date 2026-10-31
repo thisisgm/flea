@@ -136,14 +136,17 @@ fn pb_network_2_opened_share_draws_its_saved_label_as_a_root_crumb(cx: &mut Test
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
-#[gpui::test]
-fn ey324_remove_from_network_forgets_the_saved_line_and_says_so(cx: &mut TestAppContext) {
+/// Fires Remove from Network on the row by keyboard over a sandboxed bookmarks file; answers the menu rows and the file after.
+fn remove_from_network(
+    cx: &mut TestAppContext,
+    row: RailEntry,
+    saved: &str,
+    said: &str,
+) -> (String, String) {
     use crate::window::dispatch::test_shell::{land, open_root};
     let (shell, cx) = open_root(cx, "default");
     land(&shell, cx, "/files", Vec::new(), 1);
-    shell.update(cx, |shell, cx| {
-        shell.network_publish(Some(vec![share()]), cx)
-    });
+    shell.update(cx, |shell, cx| shell.network_publish(Some(vec![row]), cx));
     frame(cx);
     cx.executor().allow_parking();
     let scratch =
@@ -159,11 +162,7 @@ fn ey324_remove_from_network_forgets_the_saved_line_and_says_so(cx: &mut TestApp
     assert!(sandbox.is_absolute());
     std::fs::write(sandbox.join(".flea-test-sandbox"), b"").unwrap();
     let marks = sandbox.join("bookmarks");
-    std::fs::write(
-        &marks,
-        "sftp://user@host/folder NAS\nsmb://keep/share Keep\n",
-    )
-    .unwrap();
+    std::fs::write(&marks, saved).unwrap();
     shell.update_in(cx, |shell, window, cx| {
         shell.network().unwrap().bookmarks = marks.clone();
         let producer = shell.rail.as_ref().unwrap().places.clone();
@@ -177,34 +176,89 @@ fn ey324_remove_from_network_forgets_the_saved_line_and_says_so(cx: &mut TestApp
         shell.network_menu(side, &entries[index], window, cx);
     });
     frame(cx);
-    assert_eq!(
-        read(&shell, cx, "contextMenuEntries", &[]),
-        "Rename|Edit Address…|-|Remove from Network"
-    );
-    for _ in 0..4 {
-        if read(&shell, cx, "contextMenuCursor", &[]) == "3" {
+    let rows = read(&shell, cx, "contextMenuEntries", &[]);
+    let remove = rows
+        .split('|')
+        .position(|row| row == "Remove from Network")
+        .expect("the share's menu offers Remove from Network")
+        .to_string();
+    for _ in 0..8 {
+        if read(&shell, cx, "contextMenuCursor", &[]) == remove {
             break;
         }
         cx.simulate_keystrokes("down");
         frame(cx);
     }
-    assert_eq!(read(&shell, cx, "contextMenuCursor", &[]), "3");
+    assert_eq!(read(&shell, cx, "contextMenuCursor", &[]), remove);
     cx.simulate_keystrokes("enter");
     let deadline = std::time::Instant::now() + Duration::from_secs(10);
-    while read(&shell, cx, "lastMessage", &[]) != "NAS is forgotten" {
+    while read(&shell, cx, "lastMessage", &[]) != said {
         assert!(
             std::time::Instant::now() < deadline,
-            "Remove from Network says the place is forgotten"
+            "Remove from Network says: {said}"
         );
         frame(cx);
         std::thread::sleep(Duration::from_millis(10));
     }
     assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "false");
-    assert_eq!(
-        std::fs::read_to_string(&marks).unwrap(),
-        "smb://keep/share Keep\n"
-    );
+    let after = std::fs::read_to_string(&marks).unwrap();
     assert!(sandbox.is_absolute() && sandbox.join(".flea-test-sandbox").is_file());
     std::fs::remove_dir_all(&sandbox).unwrap();
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
+    (rows, after)
+}
+
+fn mounted_share() -> RailEntry {
+    RailEntry {
+        mounted: true,
+        path: "/mounted/share".into(),
+        ..share()
+    }
+}
+
+#[gpui::test]
+fn ey324_remove_from_network_forgets_the_saved_line_and_says_so(cx: &mut TestAppContext) {
+    let (rows, after) = remove_from_network(
+        cx,
+        share(),
+        "sftp://user@host/folder NAS\nsmb://keep/share Keep\n",
+        "NAS is forgotten",
+    );
+    assert_eq!(rows, "Rename|Edit Address…|-|Remove from Network");
+    assert_eq!(after, "smb://keep/share Keep\n");
+}
+
+#[gpui::test]
+fn ey324_removing_a_mounted_share_says_it_stays_until_unmounted(cx: &mut TestAppContext) {
+    let (_, after) = remove_from_network(
+        cx,
+        mounted_share(),
+        "sftp://user@host/folder NAS\nsmb://keep/share Keep\n",
+        "NAS is forgotten, and stays in the sidebar until it is unmounted",
+    );
+    assert_eq!(after, "smb://keep/share Keep\n");
+}
+
+#[gpui::test]
+fn ey324_removing_an_unmounted_place_already_gone_says_it_is_forgotten(cx: &mut TestAppContext) {
+    let (_, after) =
+        remove_from_network(cx, share(), "smb://keep/share Keep\n", "NAS is forgotten");
+    assert_eq!(
+        after, "smb://keep/share Keep\n",
+        "a file that lacks the line is left as it was"
+    );
+}
+
+#[gpui::test]
+fn ey324_removing_an_unsaved_mount_says_it_was_not_saved(cx: &mut TestAppContext) {
+    let (_, after) = remove_from_network(
+        cx,
+        mounted_share(),
+        "smb://keep/share Keep\n",
+        "NAS is not saved, and stays in the sidebar until it is unmounted",
+    );
+    assert_eq!(
+        after, "smb://keep/share Keep\n",
+        "a file that lacks the line is left as it was"
+    );
 }
