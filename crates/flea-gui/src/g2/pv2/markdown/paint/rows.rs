@@ -25,6 +25,8 @@ impl MarkdownView {
         };
         let mut build = Build {
             ops: &mut self.ops,
+            selection: &mut self.selection,
+            text_id: 0,
             hits: &mut self.hits,
             glyphs: &mut self.glyphs,
             palette: &self.palette,
@@ -77,6 +79,7 @@ impl MarkdownView {
                 let x = ((w - f32::from(line.width)) / 2.).round();
                 let baseline = y + t.state_mark + t.gap + f32::from(line.ascent);
                 build.ops.push(Op::Text {
+                    selected: None,
                     x,
                     baseline,
                     run,
@@ -119,12 +122,26 @@ impl MarkdownView {
                             .get(&number, Face::Regular, f.caption, build.faces, window);
                     let x = x0 + gutter - f32::from(run.line().width);
                     build.ops.push(Op::Text {
+                        selected: None,
                         x,
                         baseline: y + cap_ascent,
                         run,
                         color: muted,
                     });
                     let lines = src.lines(n).unwrap_or_default();
+                    if lines.iter().all(Vec::is_empty) {
+                        let run = build
+                            .glyphs
+                            .get("", Face::Regular, f.body, build.faces, window);
+                        super::super::selection::span(
+                            build.selection,
+                            n - 1,
+                            0,
+                            x0 + text_x,
+                            y + ascent,
+                            &run,
+                        );
+                    }
                     for (k, line) in lines.iter().enumerate() {
                         for piece in line {
                             chars += piece.text.chars().count();
@@ -138,6 +155,12 @@ impl MarkdownView {
                                 baseline,
                                 color,
                             );
+                            if piece.len > 0 {
+                                build.select_last(n - 1, piece.start);
+                                if let Some(span) = build.selection.spans.last_mut() {
+                                    span.len = piece.len;
+                                }
+                            }
                         }
                     }
                 }

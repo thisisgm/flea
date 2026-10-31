@@ -33,7 +33,7 @@ impl Placer<'_> {
     }
 
     // Closes the line: aligns it, sets its baseline and height, and lays the chip grounds behind its text.
-    fn end(&mut self) {
+    fn end(&mut self, after: &'static str) {
         let used = self.atoms.iter().map(atom_end).fold(0.0, f32::max);
         let shift = match self.base.align {
             Some(Align::Center) => ((self.width - used) / 2.0).round().max(0.0),
@@ -56,6 +56,7 @@ impl Placer<'_> {
         let top = self.laid.height;
         let height = self.above + self.below;
         self.laid.lines.push(Line {
+            after,
             top,
             height,
             baseline,
@@ -138,7 +139,7 @@ impl Placer<'_> {
     fn word(&mut self, segs: Vec<Seg>) {
         let width: f32 = segs.iter().map(|s| s.width).sum();
         if !self.fits(width) {
-            self.end();
+            self.end(if self.pending.is_some() { " " } else { "" });
         }
         self.space();
         if self.x + width <= self.width + SLACK {
@@ -169,7 +170,7 @@ impl Placer<'_> {
                         width: piece_width,
                     });
                     piece_width = 0.0;
-                    self.end();
+                    self.end("");
                 }
                 piece.push(c);
                 piece_width += w;
@@ -194,7 +195,7 @@ impl Placer<'_> {
     ) {
         let (width, height) = picture_fit(width, height, self.width);
         if !self.fits(width) {
-            self.end();
+            self.end(if self.pending.is_some() { " " } else { "" });
         }
         self.space();
         self.above = self.above.max(height);
@@ -211,7 +212,7 @@ impl Placer<'_> {
 
     fn formula(&mut self, index: usize, at: FormulaBox) {
         if !self.fits(at.width) {
-            self.end();
+            self.end(if self.pending.is_some() { " " } else { "" });
         }
         self.space();
         self.above = self.above.max(at.above);
@@ -299,7 +300,7 @@ pub(super) fn place(toks: Vec<Tok>, base: &Base, width: f32, measure: &mut dyn M
                 drawn = true;
             }
             Tok::Break => {
-                p.end();
+                p.end("\n");
                 drawn = false;
             }
             Tok::Gap(gap) => {
@@ -309,7 +310,7 @@ pub(super) fn place(toks: Vec<Tok>, base: &Base, width: f32, measure: &mut dyn M
         }
     }
     if drawn || !p.empty() {
-        p.end();
+        p.end("");
     }
     p.laid
 }

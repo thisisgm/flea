@@ -15,6 +15,26 @@ const UNDERLINE_EM: f32 = 0.1;
 const STRIKE_EM: f32 = 0.27;
 
 impl Build<'_> {
+    pub(super) fn select_last(&mut self, id: usize, byte: usize) {
+        if let Some(Op::Text {
+            x,
+            baseline,
+            run,
+            selected,
+            ..
+        }) = self.ops.last_mut()
+        {
+            *selected = Some(super::super::selection::span(
+                self.selection,
+                id,
+                byte,
+                *x,
+                *baseline,
+                run,
+            ));
+        }
+    }
+
     fn quad(&mut self, rect: (f32, f32, f32, f32), color: Hsla) {
         self.ops.push(Op::Quad { rect, color });
     }
@@ -31,6 +51,7 @@ impl Build<'_> {
         let run = self.glyphs.get(text, face, size, self.faces, self.window);
         let width = f32::from(run.line().width);
         self.ops.push(Op::Text {
+            selected: None,
             x,
             baseline,
             run,
@@ -41,9 +62,23 @@ impl Build<'_> {
     }
 
     fn laid(&mut self, laid: &Laid, x0: f32, y0: f32) {
-        for line in &laid.lines {
+        let id = super::super::selection::chunk(self.block, self.text_id);
+        self.text_id += 1;
+        let mut byte = 0;
+        for (i, line) in laid.lines.iter().enumerate() {
+            if i > 0 {
+                byte += laid.lines[i - 1].after.len();
+            }
             let top = y0 + line.top;
             if top > self.height || top + line.height < 0. {
+                byte += line
+                    .atoms
+                    .iter()
+                    .map(|atom| match atom {
+                        Atom::Text { text, .. } => text.len(),
+                        _ => 0,
+                    })
+                    .sum::<usize>();
                 continue;
             }
             let base = top + line.baseline;
@@ -73,6 +108,8 @@ impl Build<'_> {
                         let (x, baseline, color) =
                             (x0 + x, base + look.shift, self.palette.ink(&look.ink));
                         self.text(text, look.face, look.px, x, baseline, color);
+                        self.select_last(id, byte);
+                        byte += text.len();
                         if look.underline {
                             self.quad(
                                 (
@@ -242,7 +279,14 @@ impl Build<'_> {
                     let rect = (x0 + x, y0 + y, *width, *height);
                     let at = self.ops.len();
                     self.ops.push(Op::Clip { rect, len: 0 });
+                    let old_clip = self.selection.clip;
+                    let clip = gpui::Bounds::new(
+                        gpui::point(gpui::px(rect.0), gpui::px(rect.1)),
+                        gpui::size(gpui::px(rect.2), gpui::px(rect.3)),
+                    );
+                    self.selection.clip = old_clip.intersect(&clip);
                     self.items(items, x0 + x - shift, y0 + y);
+                    self.selection.clip = old_clip;
                     let len = self.ops.len() - at - 1;
                     self.ops[at] = Op::Clip { rect, len };
                     self.hits.push(Hit::Table { rect, id, most });
@@ -267,6 +311,7 @@ pub(super) fn centred(
     let baseline =
         ((h - f32::from(line.ascent + line.descent)) / 2.).round() + f32::from(line.ascent);
     build.ops.push(Op::Text {
+        selected: None,
         x,
         baseline,
         run,

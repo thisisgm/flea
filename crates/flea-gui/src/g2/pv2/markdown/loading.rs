@@ -53,6 +53,7 @@ impl MarkdownView {
     }
 
     pub(super) fn load(&mut self, cx: &mut Context<Self>) {
+        self.selection.clear();
         let seq = self.doc.seq + 1;
         self.confirming = false;
         self.doc.reset(seq);

@@ -3,6 +3,8 @@
 pub mod bar;
 pub mod paint;
 mod scroll;
+mod selection;
+mod selection_source;
 pub mod shape;
 
 pub use bar::{KindBar, ViewWords};
@@ -58,6 +60,9 @@ pub type Mark = (SharedString, &'static [u8]);
 type PreparedLines = (Option<(usize, bool)>, Lru<usize, Rc<Prepared>>);
 
 pub struct CodeView {
+    pub selection: crate::g2::pv2::selection::Selection,
+    selection_original: Option<Option<crate::g2::pv2::selection::Lines>>,
+    selection_read: Option<gpui::Task<()>>,
     pub lines: Lines,
     host: Option<Box<dyn CodeHost>>,
     pub slot: &'static str,
@@ -107,6 +112,9 @@ impl CodeView {
         mark: Mark,
     ) -> Self {
         CodeView {
+            selection: Default::default(),
+            selection_original: None,
+            selection_read: None,
             lines: Lines::new(1),
             host: None,
             slot,
@@ -140,6 +148,9 @@ impl CodeView {
 
     /// The backend that colours the lines; None leaves the caller's own text drawn plain.
     pub fn set_host(&mut self, host: Option<Box<dyn CodeHost>>, cx: &mut Context<Self>) {
+        self.selection.clear();
+        self.selection_original = None;
+        self.selection_read = None;
         self.lines.engine = host.is_some();
         self.host = host;
         self.lines.fresh();
@@ -163,6 +174,9 @@ impl CodeView {
         text: Option<String>,
         cx: &mut Context<Self>,
     ) {
+        self.selection.clear();
+        self.selection_original = None;
+        self.selection_read = None;
         self.size = size;
         self.read_failed = false;
         self.top = 0;
@@ -178,6 +192,10 @@ impl CodeView {
     }
 
     pub fn set_active(&mut self, active: bool, cx: &mut Context<Self>) {
+        if !active {
+            self.selection.clear();
+            self.selection_read = None;
+        }
         self.active = active;
         self.lines.set_active(active && self.size <= self.max_bytes);
         self.flush(cx);
@@ -185,6 +203,8 @@ impl CodeView {
 
     /// The caller's read of a remote file failed.
     pub fn set_read_failed(&mut self, cx: &mut Context<Self>) {
+        self.selection.clear();
+        self.selection_read = None;
         self.read_failed = true;
         self.revision += 1;
         cx.notify();
@@ -227,6 +247,9 @@ impl CodeView {
     /// One `code` reply from the host; any other token is dropped.
     pub fn reply(&mut self, reply: Reply, cx: &mut Context<Self>) {
         if self.lines.answered(reply) {
+            if self.refusal().is_some() {
+                self.selection.clear();
+            }
             self.flush(cx);
         }
     }

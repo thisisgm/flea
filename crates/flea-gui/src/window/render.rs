@@ -337,9 +337,9 @@ impl Render for Shell {
                 .size_full()
                 .bg(super::glass::body_ground(background, window, cx))
                 .track_focus(&self.focus)
-                .on_key_down(cx.listener(Self::key))
+                .on_key_down(cx.listener(Self::key_with_preview))
                 .on_modifiers_changed(cx.listener(Self::run_card_modifiers))
-                .capture_any_mouse_down(cx.listener(Self::middle_tab_pointer))
+                .capture_any_mouse_down(cx.listener(Self::capture_press))
                 .child(
                     div()
                         .w(viewport.width)
@@ -382,11 +382,11 @@ impl Render for Shell {
             .children(self.dual_divider(&geometry, palette, cx))
             .bg(super::glass::body_ground(background, window, cx))
             .track_focus(&self.focus)
-            .on_key_down(cx.listener(Self::key))
+            .on_key_down(cx.listener(Self::key_with_preview))
             .on_modifiers_changed(cx.listener(Self::run_card_modifiers))
             .on_scroll_wheel(cx.listener(Self::wheel))
             .capture_any_mouse_down(cx.listener(Self::side_button))
-            .capture_any_mouse_down(cx.listener(Self::middle_tab_pointer))
+            .capture_any_mouse_down(cx.listener(Self::capture_press))
             .child(Self::list_header_input(cx)),
             cx,
         )

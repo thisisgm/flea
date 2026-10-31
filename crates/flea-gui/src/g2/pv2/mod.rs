@@ -4,6 +4,7 @@ pub mod markdown;
 mod paging;
 pub mod poppler;
 pub mod render;
+pub mod selection;
 pub mod surface;
 pub mod view;
 // The web part: the code view, HTML, font and archive pages.
