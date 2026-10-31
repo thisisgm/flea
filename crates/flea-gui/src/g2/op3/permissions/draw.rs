@@ -5,7 +5,7 @@ use flea::i18n::I18n;
 use flea::ui_logic_op3::permissions::BoxValue;
 
 impl Permissions {
-    fn boxes(&self) -> Vec<Tri> {
+    pub(super) fn boxes(&self) -> Vec<Tri> {
         let summary = self.summary();
         let bits = if self.several() {
             0
