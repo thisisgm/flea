@@ -14,6 +14,9 @@ CODE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z]{2})?\Z")
 CATEGORIES = {"zero", "one", "two", "few", "many", "other"}
 KINDS = {"shell", "menu", "cli", "keybindings"}
 HASH = re.compile(r"[0-9a-f]{12}\Z")
+ISOLATES = {"\u2066", "\u2068"}
+RIGHT_TO_LEFT_ISOLATE = "\u2067"
+POP_ISOLATE = "\u2069"
 
 
 # Sample input: [("label", "Open"), ("count", {"other": "%1 files"})] are decoded JSON members.
@@ -66,6 +69,32 @@ def check_reference(reference, omarchy):
     forms(catalog[key], reference)
 
 
+# Sample input: "\u2068%1\u2069 of %2" returns ["%2"], the holes outside a closed LRI or FSI run.
+# rtl-policy.json text_runs names only those two, so a hole whose innermost run is RLI is bare too.
+def bare_holes(text):
+    runs, bare = [], []
+    for match in re.finditer(r"%[1-9][0-9]*|[\u2066-\u2069]", text):
+        mark = match.group()
+        if mark in ISOLATES:
+            runs.append([])
+        elif mark == RIGHT_TO_LEFT_ISOLATE:
+            runs.append(None)
+        elif mark == POP_ISOLATE:
+            if runs:
+                runs.pop()
+        elif runs and runs[-1] is not None:
+            runs[-1].append(mark)
+        else:
+            bare.append(mark)
+    return bare + [hole for run in runs if run for hole in run]
+
+
+# Sample input: {"rtl_languages": ["ar", "he"]} lists the catalogs whose holes must be isolated.
+def rtl_languages(root):
+    path = root / "rtl-policy.json"
+    return set(read(path)["rtl_languages"]) if path.exists() else set()
+
+
 # Sample input: "" or {"one":"","other":"%1 files"} has no complete translation to record.
 def empty_translation(value):
     if isinstance(value, str):
@@ -88,6 +117,7 @@ def current_hashes(root, omarchy, references, allow_empty=False):
             raise ValueError(f"en:{key}: placeholders differ between plural forms")
         placeholders[key] = expected
     manifest = {}
+    right_to_left = rtl_languages(root)
     for path in sorted(root.glob("*/flea.json")):
         code = path.parent.name
         if not CODE.fullmatch(code):
@@ -105,6 +135,8 @@ def current_hashes(root, omarchy, references, allow_empty=False):
             for text in forms(value, f"{code}:{key}"):
                 if set(HOLES.findall(text)) != placeholders[key]:
                     raise ValueError(f"{code}:{key}: placeholder parity failed")
+                if code in right_to_left and bare_holes(text):
+                    raise ValueError(f"{code}:{key}: right-to-left placeholder {bare_holes(text)[0]} is not isolated")
                 if text.startswith("omarchy:"):
                     references.add(text)
             section[f"flea:{key}"] = source_hash(english[key])

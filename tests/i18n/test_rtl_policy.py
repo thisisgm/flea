@@ -1,9 +1,13 @@
 """Shared RTL policy and pinned Omarchy source contract."""
 import hashlib
+import importlib.machinery
+import importlib.util
 import json
 import os
 from pathlib import Path
 import subprocess
+import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -83,6 +87,50 @@ class RtlPolicyTests(unittest.TestCase):
             lines = content.decode().splitlines()
             count = len(entry["excerpt"].splitlines())
             self.assertEqual("\n".join(lines[entry["line"] - 1:entry["line"] - 1 + count]), entry["excerpt"])
+
+
+class RtlHoleIsolationTests(unittest.TestCase):
+    """flea-i18n-manifest refuses a placeholder outside an isolate run in an rtl_languages catalog."""
+
+    def check(self, text, rtl=("ar",)):
+        with tempfile.TemporaryDirectory(prefix="flea-rtl-holes.") as box:
+            root = Path(box)
+            for code, value in (("en", "Open %1 in %2"), ("ar", text), ("de", "%1 in %2 öffnen")):
+                (root / code).mkdir()
+                (root / code / "flea.json").write_text(json.dumps({"open": value}, ensure_ascii=False), encoding="utf-8")
+            subprocess.run([sys.executable, "-B", str(ROOT / "tools/flea-i18n-manifest"), "--i18n-dir", str(root)],
+                           check=True, capture_output=True)
+            (root / "rtl-policy.json").write_text(json.dumps({"rtl_languages": list(rtl)}), encoding="utf-8")
+            return subprocess.run([sys.executable, "-B", str(ROOT / "tools/flea-i18n-manifest"), "--check",
+                                   "--i18n-dir", str(root)], capture_output=True, text=True)
+
+    def test_i50_rtl_isolated_holes_pass(self):
+        for text in ("افتح \u2068%1\u2069 في \u2068%2\u2069", "\u2066%1 / %2\u2069", "\u2068%1%2\u2069",
+                     "\u2067\u2068%1\u2069\u2069 \u2068%2\u2069"):
+            result = self.check(text)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_i50_rtl_bare_hole_fails(self):
+        for text, hole in (("افتح \u2068%1\u2069 في %2", "%2"), ("افتح \u2068%1 في %2", "%1"),
+                           ("\u2069%1 \u2068%2\u2069", "%1"), ("\u2067%1\u2069 \u2068%2\u2069", "%1"),
+                           ("\u2068%1 \u2067%2\u2069\u2069", "%2"), ("\u2067%1 \u2068%2\u2069", "%1")):
+            result = self.check(text)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn(f"ar:open: right-to-left placeholder {hole} is not isolated", result.stderr)
+
+    def test_i50_rtl_hole_rule_only_for_rtl_languages(self):
+        self.assertEqual(self.check("افتح %1 في %2", rtl=()).returncode, 0)
+
+    def test_i50_rtl_repo_catalogs_isolate_every_hole(self):
+        loader = importlib.machinery.SourceFileLoader("flea_i18n_manifest", str(ROOT / "tools/flea-i18n-manifest"))
+        manifest = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+        loader.exec_module(manifest)
+        codes = manifest.rtl_languages(ROOT / "i18n")
+        self.assertEqual(codes, {"ar", "fa", "he", "ur"})
+        for code in sorted(codes):
+            for key, value in manifest.read(ROOT / "i18n" / code / "flea.json").items():
+                for text in manifest.forms(value, f"{code}:{key}"):
+                    self.assertEqual(manifest.bare_holes(text), [], f"{code}:{key}")
 
 
 if __name__ == "__main__":
