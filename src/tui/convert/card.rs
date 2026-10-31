@@ -112,7 +112,7 @@ fn body(m: &Model, width: usize) -> Vec<Line> {
         });
         if f.kind == Kind::Pdf {
             rows.push(Line {
-                text: m.i18n.tr("dialogs.output.pages").to_uppercase(),
+                text: m.heading("dialogs.output.pages"),
                 kind: 3,
             });
             rows.push(Line {

@@ -6,7 +6,7 @@ use super::{
     model::Model,
     render::{
         self,
-        frame_tests::{grid, model},
+        frame_tests::{caps_language, grid, model},
     },
     theme::Theme,
     wire::{self, count, text, Wire},
@@ -104,6 +104,20 @@ fn tui_print_action_opens_real_card() {
     assert!(!super::layout::focused(&m));
     let requests = drain(&mut w);
     assert!(!requests.iter().any(|v| text(v, "c") == "print"));
+    wire::finish(w, reader);
+}
+
+#[test]
+fn tui_print_headings_drop_the_greek_accents() {
+    let (mut w, reader) = wire::echo_wire();
+    let (mut m, query) = opened(&mut w);
+    options(&mut m, &mut w, query, true);
+    m.i18n = caps_language("el");
+    let shown = frame(&m);
+    // Plain to_uppercase draws ΕΚΤΥΠΩΤΉΣ, ΑΝΤΊΓΡΑΦΑ and ΣΕΛΊΔΕΣ.
+    for expected in ["ΕΚΤΥΠΩΤΗΣ", "ΑΝΤΙΓΡΑΦΑ", "ΣΕΛΙΔΕΣ"] {
+        assert!(shown.contains(expected), "missing {expected}: {shown}");
+    }
     wire::finish(w, reader);
 }
 

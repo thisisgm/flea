@@ -1,5 +1,5 @@
 use super::*;
-use crate::tui::render::{cards::tests::{at, role, screen, PALETTE}, frame_tests::model};
+use crate::tui::render::{cards::tests::{at, role, screen, PALETTE}, frame_tests::{caps_language, model}};
 
 const PRESETS: [&str; 5] = ["default", "vim", "mac", "windows", "yazi"];
 // The board's sheet from column 9 of rows 5 to 26, trailing blanks trimmed.
@@ -136,4 +136,16 @@ fn hints_name_the_first_key_without_ctrl_or_alt() {
         ("default", "print", ""), ("default", "open", "enter"), ("default", "openTerminal", ""), ("default", "unknown", "")] {
         assert_eq!(super::hint(&map, preset, action), hint, "{preset} {action}");
     }
+}
+
+#[test]
+fn turkish_headings_keep_the_dotted_capital_i() {
+    let mut m = model();
+    m.i18n = caps_language("tr");
+    assert_eq!(m.i18n.language(), "tr");
+    assert_eq!(m.i18n.tr("keys.group.change"), "değiştir");
+    let headings: Vec<String> = groups(&m, &Map::load()).into_iter().flatten()
+        .filter_map(|line| if let Line::Heading(text) = line { Some(text) } else { None }).collect();
+    // Plain to_uppercase draws DEĞIŞTIR.
+    assert_eq!(headings, ["HAREKET", "GÖRÜNÜM", "BUL", "DEĞİŞTİR"]);
 }
