@@ -7,7 +7,7 @@ pub fn parse_request(line: &str) -> Request {
     match field_str(line, "c").as_deref() {
         Some("outline") => Request::Outline {
             row: field_usize(line, "row"), open: field_bool(line, "open"),
-            enabled: crate::jsondoc::parse(line).ok().and_then(|doc| doc.get("enabled").and_then(crate::jsondoc::Json::as_bool)), first: field_usize(line, "first").unwrap_or(350),
+            enabled: crate::jsondoc::parse(line).ok().and_then(|doc| doc.get("enabled").and_then(crate::jsondoc::Json::as_bool)), first: field_usize(line, "first").unwrap_or(crate::backend::searchsession::FIRST_WINDOW_DEFAULT),
         },
         Some("nearby") => Request::Nearby {
             op: field_str(line, "op").unwrap_or_default(),

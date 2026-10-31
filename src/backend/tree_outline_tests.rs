@@ -266,7 +266,7 @@ fn tree_outline_remote_child_uses_the_existing_scan_worker_even_under_a_local_ro
 }
 
 #[test]
-fn tree_outline_refused_child_watch_is_said_and_the_folder_still_opens() {
+fn tree_outline_refused_child_watch_is_detected_and_the_folder_still_opens() {
     use std::os::fd::AsRawFd;
     let dir = TestDir::new("tree-outline-refused");
     dir.dir("A");
@@ -296,4 +296,66 @@ fn tree_outline_refused_child_watch_is_said_and_the_folder_still_opens() {
     assert!(crate::backend::outline::watch_refused(plain.as_raw_fd(), -1));
     assert!(!crate::backend::outline::watch_refused(-1, -1));
     assert!(!crate::backend::outline::watch_refused(plain.as_raw_fd(), 3));
+}
+
+#[test]
+fn tree_outline_size_sort_seeds_each_folder_size_at_its_outline_row() {
+    let dir = TestDir::new("tree-outline-sized");
+    dir.dir("A");
+    dir.dir("A/B");
+    dir.file("A/B/big", &"x".repeat(65536));
+    dir.file("A/own", &"x".repeat(32768));
+    dir.dir("C");
+    dir.file("C/small", "x");
+    let mut listing = listed(&dir, &["A"], "").listing;
+    let line = r#"{"c":"sort","by":"size","desc":true}"#;
+    let (_, _, sized) = crate::backend::ordering::request(&mut listing, dir.path(), &Db::load(), line).unwrap();
+    assert_eq!(sized.len(), listing.len(), "one seed per row of the outline numbering");
+    let row = |name: &str| (0..listing.len()).find(|&r| listing.name(r) == name).unwrap();
+    let size = |name: &str| sized[row(name)].unwrap().bytes;
+    assert!(size("A") > size("A/B") && size("A/B") > size("C"), "each folder's own walked size sits at its own row");
+}
+
+#[test]
+fn tree_outline_requests_reach_the_list_parser_and_refusals_name_their_cause() {
+    use crate::backend::{dirsizeworker::Worker, outline, proto::{parse_request, Request}, state::State};
+    let dir = TestDir::new("tree-outline-wire");
+    dir.dir("A \"quoted\"");
+    dir.file("f.txt", "f");
+    let (tx, _) = events::channel();
+    let mut state = State::new(Worker::new(tx));
+    state.base = dir.path().to_owned();
+    state.listing = listed(&dir, &[], "").listing;
+    let base = dir.path().to_string_lossy().into_owned();
+    state.outline.last = format!(r#"{{"c":"list","path":"{}"}}"#, crate::json::escape(&base));
+    let folder = dir.join("A \"quoted\"").to_string_lossy().into_owned();
+    let opened = outline::request(&mut state, Some(0), true, None, 32).unwrap();
+    let line = state.outline.list(&opened);
+    let Request::List { path, first, .. } = parse_request(&line) else { panic!("not a list request: {line}") };
+    assert_eq!((path.as_str(), first), (base.as_str(), 32));
+    assert_eq!(crate::json::field_str_array(&line, "outlinePaths"), std::slice::from_ref(&folder));
+    assert_eq!(crate::json::field_str(&line, "select"), Some(folder));
+    let toggled = outline::request(&mut state, None, false, Some(false), 32).unwrap();
+    assert_eq!(crate::json::field_str(&toggled, "select"), None, "a view toggle carries no select from the last listing");
+    assert_eq!(outline::request(&mut state, Some(1), true, None, 32), Err("row 1 is not a folder in this listing".into()));
+    assert_eq!(outline::request(&mut state, None, false, None, 32), Err("an outline request names a row or enabled".into()));
+}
+
+#[test]
+fn tree_outline_a_link_inside_an_open_folder_stays_a_link_through_a_sort() {
+    let dir = TestDir::new("tree-outline-link");
+    dir.dir("A");
+    dir.dir("A/target");
+    dir.file("A/plain", "x");
+    std::os::unix::fs::symlink(dir.join("A/plain"), dir.join("A/link")).unwrap();
+    let mut listing = listed(&dir, &["A"], "").listing;
+    let line = r#"{"c":"sort","by":"name","desc":true}"#;
+    crate::backend::ordering::request(&mut listing, dir.path(), &Db::load(), line).unwrap();
+    let names: Vec<&str> = (0..listing.len()).map(|row| listing.name(row)).collect();
+    let mut every = names.clone();
+    every.sort();
+    assert_eq!((names[0], every), ("A", vec!["A", "A/link", "A/plain", "A/target"]), "rows keep their full names under their parent");
+    let link = names.iter().position(|&name| name == "A/link").unwrap();
+    assert!(listing.spans[link].is_symlink, "the copied row keeps the link bit through expand and the group sort");
+    assert!(!listing.spans[names.iter().position(|&name| name == "A/plain").unwrap()].is_symlink);
 }
