@@ -214,6 +214,10 @@ impl Extract {
         self.held_eye = false;
     }
 
+    pub fn eye_held(&self) -> bool {
+        self.held_eye
+    }
+
     /// The extracting card op1's Jobs card draws from one `job` line of kind extract.
     pub fn job_block(
         i18n: &I18n,
@@ -274,7 +278,8 @@ impl Extract {
                     primary: true,
                     focused: self.focus == Stop::Extract,
                     enabled: true,
-                    available: !self.password.is_empty(),
+                    // A wrong answer's bullets are text the field holds, so Extract stays available over them.
+                    available: !self.password.is_empty() || self.held_marks > 0,
                 },
             ],
         }

@@ -157,6 +157,7 @@ impl Shell {
                 ""
             };
             self.operations.archive.eye.set(None);
+            self.operations.archive.confirm_eye.set(None);
             let effects = self
                 .operations
                 .archive

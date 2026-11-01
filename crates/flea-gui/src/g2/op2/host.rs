@@ -53,8 +53,10 @@ pub(crate) struct Archive {
     /// The image chooser, `flea flash choose` by default; a test swaps it for a fixture command.
     pub(crate) chooser: fn() -> Command,
     pub(crate) picking: Option<Task<()>>,
-    /// Where the open card's password eye last painted, for archiveCardsState.
+    /// Where the open card's password eye last painted, for the pointer and archiveCardsState.
     pub(crate) eye: super::draw::EyeProbe,
+    /// Where Compress's confirm eye last painted, for the pointer.
+    pub(crate) confirm_eye: super::draw::EyeProbe,
     epoch: Option<Instant>,
 }
 
@@ -73,6 +75,7 @@ impl Default for Archive {
             chooser: chooser_command,
             picking: None,
             eye: Default::default(),
+            confirm_eye: Default::default(),
             epoch: None,
         }
     }
