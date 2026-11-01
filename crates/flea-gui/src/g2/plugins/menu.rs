@@ -303,7 +303,11 @@ impl Shell {
         self.menu.plugin_runtime.selection = None;
     }
 
-    fn load_menu_mimes(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn menu_mimes_loaded(&self) -> bool {
+        self.menu.plugin_runtime.mimes.is_some()
+    }
+
+    pub(crate) fn load_menu_mimes(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.menu.plugin_runtime.mimes.is_some() || self.menu.plugin_runtime.loading.is_some() {
             return;
         }
