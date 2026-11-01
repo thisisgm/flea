@@ -85,8 +85,12 @@ impl Shell {
                 && !self.wheel_blocked(cx)
                 && (!self.jobs_card_showing(cx) || self.extraction_progress(side, cx)),
             selected: host.input.selection.snapshot.clone(),
+            // A held drag is a platform drag in v0.3.12, which delivers no hover, so no row lights under it.
             hovered: host.input.hovered.filter(|_| {
-                host.input.pointer_origin && host.input.band.is_none() && !self.input_blocked(cx)
+                host.input.pointer_origin
+                    && host.input.band.is_none()
+                    && !cx.has_active_drag()
+                    && !self.input_blocked(cx)
             }),
             renaming: self.renaming_row(side),
             grow: self.grows[side],
