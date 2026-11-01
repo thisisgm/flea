@@ -4,6 +4,9 @@ use super::tests::fixture::{fixture, Fixture};
 use flea::ui_logic_pl4::rail::{Group, Kind, RailEntry};
 use gpui::{KeyUpEvent, Keystroke, TestAppContext};
 
+// Past the row's side padding and place glyph, so a click lands on the label and not the trailing mark.
+const LABEL_X: f32 = 30.;
+
 fn seed(f: &mut Fixture) {
     f.listing.say(Line::Reply(
         r#"{"t":"listed","n":2,"v":1,"w":true,"path":"/d"}"#.into(),
@@ -98,7 +101,7 @@ fn ey497_a_mounted_removable_drive_ends_in_the_eject_mark(cx: &mut TestAppContex
         "a click on the eject mark opens nothing, as SidebarRow.qml's row tap skips it in the chooser"
     );
     let row = f.cx.debug_bounds("picker-rail-row-0").unwrap();
-    let label = row.origin + gpui::point(gpui::px(30.), row.size.height / 2.);
+    let label = row.origin + gpui::point(gpui::px(LABEL_X), row.size.height / 2.);
     f.cx.simulate_click(label, gpui::Modifiers::none());
     f.cx.run_until_parked();
     assert_eq!(
@@ -132,4 +135,57 @@ fn ey509_a_click_on_recent_from_the_rail_moves_the_keyboard_to_the_files(cx: &mu
         }),
         "the files take the keyboard after a rail choice, as picker-recent-list draws"
     );
+}
+
+// Enter on a rail folder hands the keyboard on as PickerWindow.qml focusDefault does: the files, or Filename in a save.
+#[gpui::test]
+fn ey509_enter_on_a_rail_folder_hands_the_keyboard_to_the_default_field(cx: &mut TestAppContext) {
+    for save in [false, true] {
+        let request = if save {
+            r#"{"mode":"save","name":"untitled.txt","folder":"/d"}"#
+        } else {
+            r#"{"folder":"/d"}"#
+        };
+        let mut f = fixture(cx, request, None);
+        f.cx.run_until_parked();
+        seed(&mut f);
+        let rail = f.read(|picker| picker.rail.focus.clone());
+        f.cx.update(|window, cx| window.focus(&rail, cx));
+        f.update(|picker, cx| {
+            picker.rail.cursor = picker
+                .rail
+                .entries
+                .iter()
+                .position(|entry| entry.path == "/home/test")
+                .expect("the rail offers Home");
+            cx.notify();
+        });
+        f.cx.run_until_parked();
+        press(&mut f, "enter");
+        assert_eq!(
+            f.read(|picker| picker.listing.location.clone()),
+            "/home/test",
+            "save {save}"
+        );
+        let picker = f.picker.clone();
+        let (files, filename, on_rail) = f.cx.update(|window, cx| {
+            let picker = picker.read(cx);
+            let filename = picker
+                .browse
+                .filename
+                .as_ref()
+                .is_some_and(|field| field.read(cx).focus.is_focused(window));
+            (
+                picker.focus.is_focused(window),
+                filename,
+                picker.rail.focus.is_focused(window),
+            )
+        });
+        assert!(!on_rail, "save {save}: the rail gives up the keyboard");
+        assert_eq!(
+            (files, filename),
+            (!save, save),
+            "the files in an open, Filename in a save"
+        );
+    }
 }
