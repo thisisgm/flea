@@ -1,5 +1,4 @@
 //! The menu facts: the cursor rows' context, the rows Settings hides, the backend's archive answer and the Update Flea hint.
-use super::join::flag;
 use crate::{state::Shell, window::pane::PaneHost};
 use flea::{
     jsondoc::Json,
@@ -22,14 +21,10 @@ impl Shell {
                     .map(str::to_owned)
                     .collect::<Vec<_>>()
             });
+        // Add to Shelf follows any shelf plugin switched on and ready, the built-in Shelf (shelf.enabled) or one added.
         inventory::effective_hidden(
             stored.as_deref(),
-            self.launch
-                .settings
-                .data
-                .get("shelf")
-                .is_some_and(|s| flag(s, "enabled"))
-                && self.declared_menu_plugins("shelf").next().is_some(),
+            self.declared_menu_plugins("shelf").next().is_some(),
         )
     }
 

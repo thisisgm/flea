@@ -186,6 +186,7 @@ impl Shell {
                                 .is_some_and(|capture| !capture.background)
                             {
                                 host.prepare("send-target", cx);
+                                host.prepare("shelf", cx);
                             }
                         });
                     }
@@ -265,6 +266,7 @@ impl Shell {
                 .is_some_and(|capture| !capture.background)
             {
                 host.prepare("send-target", cx);
+                host.prepare("shelf", cx);
             }
         });
         self.menu.plugin_runtime.target_due.clear();
