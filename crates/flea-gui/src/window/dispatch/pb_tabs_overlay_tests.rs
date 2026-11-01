@@ -97,12 +97,22 @@ fn pb_tabs_an_accepted_tab_change_closes_quick_look_from_any_source(cx: &mut Tes
 
 #[gpui::test]
 fn pb_tabs_an_accepted_tab_change_leaves_a_typed_search(cx: &mut TestAppContext) {
-    // (keys typed, query still live): a live query, then an erased one that only owes its relist.
-    for (keys, live) in [("x", true), ("x backspace", false)] {
+    use flea::ui_logic_sr1::{Kind, Scope, Wire};
+    // (keys, Everywhere contents, live): an erased query only owes a relist; Everywhere contents is live and owes none.
+    for (keys, everywhere, live) in [("x backspace", false, false), ("x", true, true)] {
         let (shell, cx) = open_root(cx, "default");
         land(&shell, cx, "/files", vec![row("a.txt", false)], 1);
         act(&shell, cx, |shell, window, cx| {
-            assert!(shell.search_action("search", window, cx))
+            assert!(shell.search_action("search", window, cx));
+            if everywhere {
+                let session = &mut shell.panes[0].as_mut().unwrap().search.owner.session;
+                session.wire = Wire {
+                    everywhere: true,
+                    contents: true,
+                };
+                session.scope = Scope::Everywhere;
+                session.kind = Kind::Contents;
+            }
         });
         cx.simulate_keystrokes(keys);
         shell.read_with(cx, |shell, _| {
@@ -110,9 +120,10 @@ fn pb_tabs_an_accepted_tab_change_leaves_a_typed_search(cx: &mut TestAppContext)
             let owner = &host.search.owner;
             assert!(owner.active(), "{keys}: the fixture opens a search");
             assert_eq!(owner.session.live(), live, "{keys}: query live");
-            assert!(
+            assert_eq!(
                 owner.session.gen > owner.session.opened_gen,
-                "{keys}: the typed query owes a relist"
+                !everywhere,
+                "{keys}: relist owed"
             );
             assert!(!host.pane.state.search, "{keys}: no results landed");
         });
