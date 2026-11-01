@@ -130,8 +130,10 @@ fn a_deferred_trash_landing_drops_when_navigation_leaves_the_folder(cx: &mut Tes
         })
     });
     settle(cx);
+    assert_eq!(asked(&shell, cx), "/files");
     let before = lists(&shell, cx);
     land(&shell, cx, "/files", without_notes(), 3);
+    assert!(!busy(&shell, cx), "the listing back in /files landed");
     assert_eq!(
         lists(&shell, cx),
         before,
