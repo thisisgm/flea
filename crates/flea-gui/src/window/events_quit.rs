@@ -4,6 +4,7 @@ use crate::state::Shell;
 impl Shell {
     // Platform quit closes each backend's stdin and lets go of it, so its EOF cleanup outlives this process.
     pub(crate) fn stop_for_app_quit(&mut self) {
+        self.plugin_input = None;
         self.lifecycle.begin_close();
         self.stop_tabs();
         self.stop_settings();

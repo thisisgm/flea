@@ -1,5 +1,6 @@
 //! Plugins: the manifest, its settings schema, where its state lives, the backend wire and the Settings rows drawn for it.
 pub mod builtin;
+pub mod contributions;
 pub mod manifest;
 pub mod pages;
 pub mod schema;

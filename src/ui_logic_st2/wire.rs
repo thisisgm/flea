@@ -143,6 +143,7 @@ fn plugin_json(p: &Plugin) -> Json {
         ("source", source), ("origin", origin), ("enabled", Json::Bool(p.enabled)),
         ("failure", failure), ("detail", detail),
         ("schema", Json::Arr(m.schema.iter().map(field_json).collect())),
+        ("blocks", Json::Obj(m.blocks.clone())),
         ("settings", Json::Obj(p.settings.iter().map(|(k, v)| (k.clone(), v.to_json())).collect())),
         ("shelf", p.shelf.as_ref().map_or(Json::Null, shelf_json)),
     ])
@@ -218,6 +219,7 @@ fn plugin(doc: &Json) -> Result<Plugin, String> {
         id: text(doc, "id")?, name: text(doc, "name")?, version: text(doc, "version")?, author: text(doc, "author")?,
         license: text(doc, "license")?, description: text(doc, "description")?, kinds: text_list(doc, "kinds")?,
         run: String::new(), mark: String::new(), glyph: text(doc, "glyph")?, access: text_list(doc, "access")?, schema,
+        blocks: doc.get("blocks").and_then(Json::as_object).unwrap_or(&[]).to_vec(),
     };
     Ok(Plugin {
         manifest, source,

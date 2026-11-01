@@ -73,8 +73,21 @@ pub(super) const CUT: &[(&str, &str, &[u8])] = &[
     ("copy-x", "flea-menu:copy-x", cut!("M9 8h12v13H9z M4 16V3h13 M12 11.5l6 6 M18 11.5l-6 6")),
 ];
 
+// The cuts mn2 hands the join as data (Verify Checksum's hash), drawn with the same stroke as CUT.
+static HANDED: std::sync::LazyLock<Vec<(&'static str, String, String)>> = std::sync::LazyLock::new(
+    || {
+        flea::ui_logic_mn2::rows::MARKS
+        .iter()
+        .map(|(id, d)| (*id, format!("flea-menu:{id}"), format!(r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="{d}"/></svg>"#)))
+        .collect()
+    },
+);
+
 /// The atlas key and SVG for a named mark; an unknown name draws the plain file mark, as Icons.pathFor does.
 pub fn mark(name: &str) -> (SharedString, &'static [u8]) {
+    if let Some((_, key, svg)) = HANDED.iter().find(|(id, _, _)| *id == name) {
+        return (key.clone().into(), svg.as_bytes());
+    }
     let (_, key, data) = CUT
         .iter()
         .find(|(id, _, _)| *id == name)
@@ -83,7 +96,7 @@ pub fn mark(name: &str) -> (SharedString, &'static [u8]) {
 }
 
 pub fn known(name: &str) -> bool {
-    MARK_NAMES.contains(&name)
+    MARK_NAMES.contains(&name) || HANDED.iter().any(|(id, _, _)| *id == name)
 }
 
 const FILE: usize = 16;

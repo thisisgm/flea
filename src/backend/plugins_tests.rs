@@ -22,6 +22,7 @@ pub(super) fn env(dir: &TestDir) -> Env {
         store: Store::at(&dir.join("state"), &dir.join("config")),
         pile: dir.join("state/omarchy/flea-shelf/shelf.json"),
         shelf_sync: synced,
+        plugin_manager: PathBuf::from("omarchy"),
         ready_deadline: Duration::from_millis(1500),
         git_deadline: Duration::from_secs(30),
     }
@@ -224,4 +225,19 @@ fn st2_backend_a_request_it_cannot_read_is_refused_with_its_id() {
     assert!(matches!(wire::parse(&lines[0]), Ok(Reply::Outcome(Outcome { id: 6, error: Some(ref e), .. })) if e.code == "request" && e.detail == "format"));
     let (done, _) = ask(&env, &format!(r#"{{"c":"plugins","op":"validate","id":7,"source":"{}"}}"#, plugin(&dir, "v", "me.valid", READY).display()));
     assert_eq!(done.map(|o| (o.plugin, o.error)), Some(("me.valid".into(), None)));
+}
+
+#[test]
+fn plugin_runtime_builtin_shelf_requests_move_the_bar_each_way() {
+    let dir = TestDir::new("plugin-runtime-builtin-shelf");
+    let env = env(&dir);
+    let (done, _) = ask(&env, r#"{"c":"plugins","op":"enable","id":1,"plugin":"flea.shelf"}"#);
+    assert_eq!(code(done), "");
+    SYNCED.with(|s| s.borrow_mut().clear());
+    for (id, action) in [(2, "enable"), (3, "disable")] {
+        let line = format!(r#"{{"c":"plugins","op":"runtime","id":{id},"plugin":"flea.shelf","request":{{"op":"shelf","action":"{action}"}}}}"#);
+        let reply = handle(&line, &env);
+        assert!(reply[0].contains(r#""ok":true"#), "{action}: {reply:?}");
+    }
+    assert_eq!(SYNCED.with(|s| s.borrow().clone()), [true, false], "the Shelf's own requests switch the bar");
 }

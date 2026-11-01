@@ -3,12 +3,10 @@ use super::regfile;
 use crate::oflags::O_NOFOLLOW;
 use flea::ui_logic_st2::manifest::Invalid;
 use std::fs;
-use std::io::{self, BufRead, BufReader, Read, Write};
+use std::io::{self, Read, Write};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 // A plugin is a manifest, an executable and a few assets; a tree past these bounds is not one.
@@ -246,69 +244,4 @@ pub fn entry(folder: &Path, run: &str) -> Result<PathBuf, Invalid> {
         return Err(bad());
     }
     Ok(path)
-}
-
-// The protocol's first exchange: hello out, ready back within the deadline; the executable is then let go.
-pub fn start_check(
-    folder: &Path,
-    run: &str,
-    hello: &str,
-    deadline: Duration,
-) -> Result<(), Invalid> {
-    let started = Instant::now();
-    let path = entry(folder, run)?;
-    let failed = || Invalid::new("start", run);
-    let mut child = Command::new(&path)
-        .current_dir(folder)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|_| Invalid::new("exec", run))?;
-    let mut stdin = child.stdin.take().ok_or_else(failed)?;
-    let stdout = child.stdout.take().ok_or_else(failed)?;
-    let (tx, rx) = mpsc::channel();
-    std::thread::spawn(move || {
-        for line in BufReader::new(stdout).lines() {
-            let Ok(line) = line else { break };
-            let ready = flea::jsondoc::parse(&line)
-                .ok()
-                .and_then(|d| d.get("op").and_then(|o| o.as_str()).map(|o| o == "ready"))
-                == Some(true);
-            if ready {
-                let _ = tx.send(());
-                break;
-            }
-        }
-    });
-    // Hello goes out on its own thread, so a plugin that never reads cannot hold the request past the deadline.
-    let (stop, stopped) = mpsc::channel::<()>();
-    let hello = format!("{hello}\n");
-    std::thread::spawn(move || {
-        if stdin
-            .write_all(hello.as_bytes())
-            .and_then(|_| stdin.flush())
-            .is_ok()
-        {
-            let _ = stopped.recv();
-        }
-    });
-    let answered = rx
-        .recv_timeout(deadline.saturating_sub(started.elapsed()))
-        .is_ok();
-    // Closing input is the executable's cue to stop; one that ignores it, or never answered, is killed.
-    drop(stop);
-    let _ = finish(
-        child,
-        if answered {
-            Duration::from_secs(1)
-        } else {
-            Duration::ZERO
-        },
-    );
-    if answered {
-        Ok(())
-    } else {
-        Err(failed())
-    }
 }

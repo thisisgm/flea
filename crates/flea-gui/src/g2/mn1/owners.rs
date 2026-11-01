@@ -1,4 +1,4 @@
-//! Rows the file menu runs itself: Add to Shelf as one `flea shelf add` call, a Tags leaf as one settags toggle, and an Open With leaf.
+//! Validated Shelf choices use the plugin host; Tags choices use one settags toggle; Open With uses its captured choice.
 use super::{delivery::string, join::Captured};
 use crate::state::Shell;
 use flea::{
@@ -10,21 +10,6 @@ use std::path::Path;
 
 /// Runs one shelf add over its paths: Ok, or the shelf's own last stderr line ("" when it said nothing).
 pub type ShelfAdd = fn(&[String]) -> Result<(), String>;
-
-// PaneMenuActions.qml shelver: the same `flea shelf add` a drop onto the card makes.
-fn shelf_add(paths: &[String]) -> Result<(), String> {
-    let output = std::process::Command::new(crate::window::startup::binary())
-        .args(["shelf", "add"])
-        .args(paths)
-        .output()
-        .map_err(|_| String::new())?;
-    if output.status.success() {
-        return Ok(());
-    }
-    let said = String::from_utf8_lossy(&output.stderr);
-    let last = said.trim().lines().last().unwrap_or("");
-    Err(last.strip_prefix("flea: ").unwrap_or(last).to_owned())
-}
 
 impl Shell {
     // PaneMenuActions.qml targets: a menu without a selection means the cursor row under the listing's base.
@@ -53,14 +38,22 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let side = capture.side;
-        let paths = self.menu_targets(capture, paths);
+        let paths = if self.menu.shelve.is_some() {
+            self.menu_targets(capture, paths)
+        } else {
+            paths.to_vec()
+        };
         self.retire_menu(window, cx);
         if paths.is_empty() {
             let sentence = self.locale.catalog.tr("menu.shelf.nothing");
             self.owner_notice(side, &sentence, true, Hint::None, cx);
             return;
         }
-        let add = self.menu.shelve.unwrap_or(shelf_add);
+        if self.menu.shelve.is_none() {
+            self.plugin_shelve(side, paths, window, cx);
+            return;
+        }
+        let add = self.menu.shelve.unwrap();
         let count = paths.len();
         cx.spawn_in(window, async move |this, cx| {
             let result = cx

@@ -45,6 +45,11 @@ mod owner;
 pub(crate) mod picture;
 #[path = "selection_preview_play.rs"]
 mod play;
+#[path = "selection_preview_plugin.rs"]
+pub(crate) mod plugin;
+#[cfg(test)]
+#[path = "selection_preview_plugin_tests.rs"]
+mod plugin_tests;
 #[path = "selection_preview_quality.rs"]
 mod quality;
 #[path = "selection_preview_readers.rs"]
@@ -380,4 +385,6 @@ pub struct SelectionPreview {
     pub(crate) focus: gpui::FocusHandle,
     pub(crate) frames: Rc<RefCell<frame_feedback::Frames>>,
     pub(crate) frame_feedback: Option<Subscription>,
+    // The plugin host watch and the last frame generation a previewer was asked about.
+    pub(crate) previewer: (Option<Subscription>, u64),
 }

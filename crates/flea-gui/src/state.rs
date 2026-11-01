@@ -39,6 +39,8 @@ pub struct Shell {
     pub(crate) surfaces: [crate::window::surfaces::Surfaces; 2],
     pub(crate) settings: crate::window::settings::Host,
     pub(crate) menu: crate::g2::mn1::join::Joined,
+    pub(crate) plugins: crate::g2::plugins::Join,
+    pub(crate) plugin_input: Option<crate::g2::plugins::input::Open>,
     pub(crate) operations: crate::g2::op1::join::Sessions,
     pub(crate) rename: crate::window::rename::Join,
     pub(crate) properties: Option<crate::window::properties::Open>,
@@ -132,6 +134,8 @@ impl Shell {
             panes: [None, None],
             surfaces: Default::default(),
             menu: Default::default(),
+            plugins: Default::default(),
+            plugin_input: None,
             overlay: None,
             quick_look: None,
             output: Default::default(),
@@ -194,6 +198,13 @@ impl Shell {
             shell.ensure_ipc_reader(window, cx);
         }
         shell.follow_frame_feedback(window, cx);
+        cx.spawn_in(window, async move |this, cx| {
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(1))
+                .await;
+            let _ = this.update_in(cx, |shell, window, cx| shell.follow_plugins(window, cx));
+        })
+        .detach();
         if let Some(device) = shell.launch.unlock.take() {
             shell.open_unlock_device(&device, window, cx);
         }

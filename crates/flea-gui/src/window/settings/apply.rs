@@ -258,9 +258,7 @@ impl Shell {
             });
         }
         if plugins_changed {
-            if let Some(view) = &self.settings.plugins {
-                view.update(cx, |view, cx| view.refresh(cx));
-            }
+            self.plugins_settings_changed(cx);
         }
         self.sync_trash_sheet(cx);
         if relist {

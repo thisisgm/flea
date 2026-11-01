@@ -61,5 +61,6 @@ pub fn command(args: &[String]) -> i32 {
             _ => {}
         }
     }
+    crate::backend::pluginruntime::shutdown();
     code
 }

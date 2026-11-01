@@ -65,6 +65,14 @@ pub mod pluginadd;
 pub mod pluginfs;
 pub mod plugingit;
 mod pluginops;
+pub(crate) mod pluginruntime;
+mod pluginpreview;
+#[cfg(test)]
+mod pluginpreview_tests;
+pub mod pluginhost;
+mod pluginshelf;
+#[cfg(test)]
+mod pluginruntime_tests;
 #[cfg(test)]
 mod plugins_tests;
 #[cfg(test)]
@@ -173,6 +181,9 @@ pub mod localsendtext;
 pub mod permissions;
 pub mod picker;
 pub mod menu_actions;
+#[cfg(test)]
+#[path = "menu_snapshot_names_tests.rs"]
+mod menu_snapshot_names_tests;
 mod menu_slot;
 pub(crate) mod menu_registry;
 mod menu_registry_work;

@@ -165,7 +165,12 @@ pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
         Some(jsondoc::Json::Str(kind)) if kind == "fsinfo" => Some(Event::Filesystem(
             super::status::Filesystem::parse(&document)?,
         )),
-        Some(jsondoc::Json::Str(kind)) if matches!(kind.as_str(), "plugins" | "pluginop") => {
+        Some(jsondoc::Json::Str(kind))
+            if matches!(
+                kind.as_str(),
+                "plugins" | "pluginop" | "pluginruntime" | "pluginprogress"
+            ) =>
+        {
             Some(Event::Plugins(line.into()))
         }
         Some(jsondoc::Json::Str(kind)) if kind == "peeked" => Some(Event::Peeked(document)),

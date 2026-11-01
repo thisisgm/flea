@@ -106,6 +106,9 @@ fn main() {
             exit(2);
         }
     };
+    if args.get(1).map(String::as_str) == Some("--plugin-host") {
+        exit(backend::pluginhost::run());
+    }
 
     // IPC owns its arguments, including strings that spell another mode flag.
     if args.get(1).map(String::as_str) == Some("ipc") {
@@ -123,7 +126,9 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--backend") {
-        exit(backend::run::run());
+        let code = backend::run::run();
+        backend::pluginruntime::shutdown();
+        exit(code);
     }
 
     if args.get(1).map(String::as_str) == Some("--preview-raster") {

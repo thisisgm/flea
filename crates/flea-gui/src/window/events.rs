@@ -29,6 +29,9 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let event = self.backend_line(event);
+        let Some(event) = self.plugin_place_event(side, event) else {
+            return;
+        };
         let event = self.filesystem_flags(side, event);
         // PaneWire.qml onFailed: a dead backend with a rename out names the rename, in the state slot and the bar.
         let rename_out = matches!(event, BackendEvent::Failed(_))
@@ -126,11 +129,7 @@ impl Shell {
         if self.columns_event(side, &event, window, cx) {
             return;
         }
-        if let BackendEvent::TrashLine(line) = &event {
-            if self.operation_view(side).is_some() {
-                self.operation_line(side, line, window, cx);
-            }
-            self.trash_line(side, line, cx);
+        if self.trash_event(side, &event, window, cx) {
             return;
         }
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained) {

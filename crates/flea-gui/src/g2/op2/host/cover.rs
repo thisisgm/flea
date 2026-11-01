@@ -56,6 +56,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<Result<bool, Refusal>> {
+        if let Some(done) = self.plugin_step(side, step, window, cx) {
+            return Some(done);
+        }
         if self.flash_covers(side) {
             let stops = match step {
                 Step::Back | Step::MouseBack | Step::Up => true,

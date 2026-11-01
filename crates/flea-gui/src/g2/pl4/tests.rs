@@ -147,15 +147,16 @@ fn plugin_rail_section_board_adds_syncthing_after_devices() {
             "SYNCTHING:Photos,Notes,Music"
         ]
     );
-    let marks: Vec<RowMark> = drawn[3].rows.iter().map(|r| r.mark).collect();
+    let marks: Vec<(RowMark, Option<bool>)> =
+        drawn[3].rows.iter().map(|r| (r.mark, r.mounted)).collect();
     assert_eq!(
         marks,
         [
-            RowMark::Square(Square::On),
-            RowMark::Square(Square::On),
-            RowMark::Square(Square::Off)
+            (RowMark::None, Some(true)),
+            (RowMark::None, Some(true)),
+            (RowMark::None, Some(false))
         ],
-        "synced green, paused off"
+        "each row keeps its glyph; the trailing square is synced green, paused off"
     );
 }
 

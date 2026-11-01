@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "example.checksums",
+  "name": "Checksums",
+  "version": "1.0.0",
+  "author": "Flea contributors",
+  "license": "MIT",
+  "description": "Calculate SHA-256 for the selected files.",
+  "kinds": [
+    "menu-action"
+  ],
+  "menuActions": [
+    {
+      "id": "sha256",
+      "label": "Verify Checksum…",
+      "glyph": "hash",
+      "when": {
+        "minItems": 1,
+        "maxItems": 512,
+        "folders": false
+      },
+      "input": {
+        "key": "checksum",
+        "title": "Verify Checksum",
+        "label": "Checksum",
+        "submit": "Verify",
+        "placeholder": "",
+        "maxChars": 128
+      }
+    }
+  ],
+  "access": [
+    "selection"
+  ],
+  "entryPoints": {
+    "run": "plugin.py"
+  }
+}

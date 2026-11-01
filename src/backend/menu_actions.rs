@@ -144,7 +144,7 @@ impl Drop for MenuActions {
 }
 
 #[derive(Clone, Default)]
-struct Snapshot {
+pub(super) struct Snapshot {
     id: usize,
     items: Vec<Selected>,
     cursor: Option<Selected>,
@@ -344,7 +344,7 @@ impl Snapshot {
         Ok(())
     }
     #[cfg(test)]
-    fn handle(&mut self, line: &str, paths: Vec<String>) -> String {
+    pub(super) fn handle(&mut self, line: &str, paths: Vec<String>) -> String {
         self.handle_request(line, paths, None, &Registry::default(), &Cancellation::default())
     }
 }

@@ -1,6 +1,6 @@
 //! The window's provider sends: one ProviderSend per pane backend, its rows reaching mn1 through the menu Context.
 use super::{
-    seams::{Action, ProviderState, Wire},
+    seams::{Action, Wire},
     ProviderSend,
 };
 use crate::{backend::Backend, backend::Event as BackendEvent, state::Shell};
@@ -11,9 +11,8 @@ use flea::{
     ui_logic_op1::collide::{self, Request},
     ui_logic_sd1::{
         dropbox,
-        providers::{self, Role, PLUGIN_DROPBOX, PLUGIN_LOCALSEND, PLUGIN_TAILSCALE},
+        providers::{self, Role},
     },
-    ui_logic_st2::{builtin, store},
 };
 use gpui::{Context, Subscription, Window};
 #[path = "join_process.rs"]
@@ -39,24 +38,6 @@ impl Wire for Pipe<'_> {
     fn send(&self, line: String) -> bool {
         self.0.is_some_and(|backend| backend.line(line).is_ok())
     }
-}
-
-// The st2 switch for each provider plugin, read from ui.json with its shipped default.
-pub(crate) fn provider_states(settings: &Json) -> Vec<ProviderState> {
-    let shipped = builtin::manifests();
-    [PLUGIN_TAILSCALE, PLUGIN_LOCALSEND, PLUGIN_DROPBOX]
-        .iter()
-        .map(|id| {
-            let on = shipped
-                .iter()
-                .any(|(manifest, on)| manifest.id == *id && *on);
-            ProviderState {
-                plugin: (*id).into(),
-                enabled: store::enabled(settings, id, on),
-                failed: false,
-            }
-        })
-        .collect()
 }
 
 fn now_ms() -> u64 {
@@ -85,9 +66,7 @@ impl Shell {
         for sender in &self.menu.rclone {
             sender.borrow_mut().menu_closed();
         }
-        for sender in &mut self.menu.providers.sides {
-            sender.menu_closed();
-        }
+        self.retire_plugin_menu();
     }
 
     // Sample input: {"t":"menuaction","id":7,"op":"providerDestination","ok":true} (dead backend: sends lost).
@@ -117,6 +96,9 @@ impl Shell {
             _ => 0,
         };
         let kind = reply.get("t").and_then(Json::as_str).unwrap_or("");
+        if self.plugin_selection_reply(side, &reply) {
+            self.provider_refresh(window, cx);
+        }
         let asked = self.menu.providers.asked[side];
         if kind == "formats" && asked != 0 && id == asked {
             self.menu.providers.asked[side] = 0;
@@ -183,7 +165,7 @@ impl Shell {
         self.menu.providers.account[side] =
             dropbox::account(info.unwrap_or(""), error.unwrap_or(""));
         facts.dropbox_ready &= !self.menu.providers.account[side].path.is_empty();
-        let states = provider_states(&self.launch.settings.data);
+        let states = self.declared_provider_states();
         let hidden = self.menu_hidden();
         let backend = self.panes[side]
             .as_ref()
@@ -222,15 +204,19 @@ impl Shell {
     // The provider rows mn1 draws, from this side's sender: rows show only when usable and on.
     pub(crate) fn provider_context(&self, side: usize, folder: &str, context: &mut MenuContext) {
         let sender = &self.menu.providers.sides[side];
-        context.taildrop_installed = sender.row_on(Role::Tailscale);
+        let declared = |role: Role| {
+            self.declared_menu_plugins("send-target")
+                .any(|p| p.manifest.id == role.plugin_id())
+        };
+        context.taildrop_installed = sender.row_on(Role::Tailscale) && declared(Role::Tailscale);
         context.taildrop_peers = sender.peers_for(Role::Tailscale);
         context.taildrop_refreshing = sender.taildrop_refreshing();
         context.taildrop_code = sender.taildrop_code().into();
-        context.localsend_installed = sender.row_on(Role::LocalSend);
+        context.localsend_installed = sender.row_on(Role::LocalSend) && declared(Role::LocalSend);
         context.localsend_peers = sender.peers_for(Role::LocalSend);
         context.localsend_checking = sender.localsend_checking() && !sender.localsend_answered();
         let account = &self.menu.providers.account[side];
-        context.dropbox_installed = sender.row_on(Role::Dropbox);
+        context.dropbox_installed = sender.row_on(Role::Dropbox) && declared(Role::Dropbox);
         context.dropbox_refreshing = sender.db.checking
             || (!account.path.is_empty() && self.menu.providers.destination[side].is_none());
         context.dropbox_path = match self.menu.providers.destination[side] {
@@ -318,9 +304,17 @@ impl Shell {
                     &catalog,
                 )
             }
-            "taildrop" => {
-                self.menu.providers.sides[side].send_taildrop(&chosen.leaf, &chosen.paths, &catalog)
-            }
+            "taildrop" => chosen
+                .paths
+                .iter()
+                .flat_map(|path| {
+                    self.menu.providers.sides[side].send_taildrop(
+                        &chosen.leaf,
+                        std::slice::from_ref(path),
+                        &catalog,
+                    )
+                })
+                .collect(),
             "sharelink" => {
                 let path = if chosen.paths.len() == 1 {
                     chosen.paths[0].as_str()
@@ -353,5 +347,14 @@ impl Shell {
             cx,
         );
         self.provider_actions(side, actions, window, cx);
+    }
+}
+
+#[cfg(test)]
+impl Shell {
+    pub(crate) fn plugin_fixture_dropbox(&mut self, generation: u64, stdout: &str) {
+        self.menu.providers.sides[0].dropbox_done(generation, 0, stdout, "", &self.locale.catalog);
+        self.menu.providers.account[0].path = "/Dropbox".into();
+        self.menu.providers.destination[0] = Some(true);
     }
 }

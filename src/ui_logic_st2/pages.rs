@@ -1,5 +1,5 @@
 //! The rows Settings draws for Plugins: the installed list, one plugin's page and the Add card's state.
-use super::builtin::{self, SHELF};
+use super::builtin;
 use super::schema::{Kind, Value};
 use super::wire::{Plugin, Source};
 use crate::i18n::I18n;
@@ -182,8 +182,8 @@ fn update_value(update: &Update, i18n: &I18n) -> (String, bool) {
 pub fn page_rows(plugin: &Plugin, update: &Update, i18n: &I18n) -> Vec<Row> {
     let mut rows = vec![Row::Description { text: description(plugin, i18n) }];
     let id = &plugin.manifest.id;
-    match (id.as_str(), &plugin.shelf) {
-        (SHELF, Some(input)) => rows.extend(super::shelf::rows(input, i18n)),
+    match &plugin.shelf {
+        Some(input) => rows.extend(super::shelf::rows(input, i18n)),
         _ => {
             rows.push(Row::Group { id: format!("{id}:enabled"), label: name(plugin, i18n), switch: Some(plugin.enabled), action: None });
             rows.extend(schema_rows(plugin));

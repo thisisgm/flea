@@ -20,7 +20,11 @@ impl Render for Root {
             shell.observe_operations(window, cx);
             shell.observe_output(window, cx);
             shell.focus_operation_mount(window, cx);
-            if shell.card_holds_keyboard(cx) && shell.menu.captured.is_some() {
+            // A plugin action's own input card keeps the menu's validated capture leased until it closes.
+            if shell.card_holds_keyboard(cx)
+                && shell.plugin_input.is_none()
+                && shell.menu.captured.is_some()
+            {
                 shell.retire_menu(window, cx);
             }
             shell.menu_frame(window, cx);
@@ -76,6 +80,13 @@ impl Render for Root {
                     .with_priority(usize::MAX)
             });
         // The Properties card takes the same highest layer while it shows.
+        let plugin_input = self
+            .shell
+            .update(cx, |shell, cx| shell.plugin_input_layer(window, cx))
+            .map(|layer| {
+                deferred(div().absolute().top_0().left_0().size_full().child(layer))
+                    .with_priority(usize::MAX)
+            });
         let properties = self
             .shell
             .update(cx, |shell, cx| shell.properties_layer(window, cx))
@@ -166,6 +177,7 @@ impl Render for Root {
             .children(overlay)
             .children(output)
             .children(bulk)
+            .children(plugin_input)
             .children(properties)
             .children(run)
             .children(open_with)

@@ -261,6 +261,7 @@ impl Shell {
 
     /// A new ask replaces the card that shows; an Open With card closes as Escape closes it, expiring its snapshot.
     pub(crate) fn dismiss_cards(&mut self, cx: &mut Context<Self>) {
+        self.cancel_plugin_input(cx);
         self.run_card = None;
         if let Some(open) = self.open_with.as_mut() {
             let effects = open.card.key(Key::Escape);

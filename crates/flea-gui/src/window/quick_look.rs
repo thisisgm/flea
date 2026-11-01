@@ -190,7 +190,6 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let catalog = self.locale.catalog.clone();
         let state = kinds::quick_look_kind(&row.icon, &row.name, false);
         let token = token();
         let subject = |state, body| Subject {
@@ -240,9 +239,7 @@ impl Shell {
                 )
             }
             _ => {
-                let body =
-                    Body::cannot_show(&catalog, State::Unsupported, false, false, Vec::new())
-                        .expect("an unsupported kind has a sentence");
+                let body = self.quick_look_unsupported(row, &path, token, window, cx);
                 (subject(State::Unsupported, body), true, None, Ask::Nothing)
             }
         };

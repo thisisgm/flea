@@ -70,6 +70,24 @@ fn open(
     receive: &mut impl FnMut() -> Option<String>,
 ) -> Captured {
     shell.update_in(cx, |shell, window, cx| {
+        shell.follow_plugins(window, cx);
+        let host = shell.plugins.host.clone().unwrap();
+        host.update(cx, |host, _| {
+            if host.plugins.is_empty() {
+                host.plugins = flea::ui_logic_st2::builtin::manifests()
+                    .into_iter()
+                    .map(|(manifest, enabled)| flea::ui_logic_st2::wire::Plugin {
+                        manifest,
+                        enabled,
+                        source: flea::ui_logic_st2::wire::Source::Builtin,
+                        failure: None,
+                        mark_path: String::new(),
+                        settings: Vec::new(),
+                        shelf: None,
+                    })
+                    .collect();
+            }
+        });
         shell.open_menu(side, Some(0), (10., 10.), window, cx)
     });
     let asked = with(&drain(receive), "\"c\":\"formats\"");

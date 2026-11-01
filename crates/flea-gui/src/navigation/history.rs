@@ -80,6 +80,13 @@ pub fn trim_slash(path: &str) -> &str {
 
 pub fn parent_of(path: &str) -> &str {
     let text = trim_slash(path);
+    if let Some(rest) = text.strip_prefix("plugin://") {
+        if let Some(slash) = rest.find('/') {
+            if !rest[slash + 1..].contains('/') {
+                return &path[.."plugin://".len() + slash + 1];
+            }
+        }
+    }
     match text.rfind('/') {
         Some(0) | None => "/",
         Some(cut) => &text[..cut],

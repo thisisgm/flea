@@ -80,6 +80,7 @@ pub struct Joined {
     pub shebang: super::shebang::Shebang,
     // Open in Agent and the Actions flyout keep their listing, replies and refusals here.
     pub actions: crate::g2::mn2::model::Actions,
+    pub(crate) plugin_runtime: crate::g2::plugins::menu::Menus,
     // A test's stand-in for the detached Open in Agent spawn; None spawns the real agent.
     pub agent: Option<AgentLaunch>,
     pub(crate) providers: crate::g2::sd1::join::Senders,
@@ -235,6 +236,11 @@ impl Shell {
                 entries.insert(at, row);
             }
         }
+        let plugin_rows = self.plugin_action_rows(side, background, &context.hidden);
+        if !plugin_rows.is_empty() {
+            crate::g2::plugins::menu::insert_actions(&mut entries, plugin_rows);
+        }
+        self.plugin_send_rows(&mut entries, background, &context.hidden);
         entries
     }
 
@@ -362,6 +368,9 @@ impl Shell {
         };
         self.menu.context = self.captured_menu_context(&capture);
         self.menu.captured = Some(capture.clone());
+        if !header {
+            self.prepare_plugin_menu(window, cx);
+        }
         self.ask_tag_states(false, cx);
         self.check_menu_shebang(window, cx);
         self.archive_menu_context(side);

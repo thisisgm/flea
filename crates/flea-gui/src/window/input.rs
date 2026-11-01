@@ -103,6 +103,9 @@ impl Shell {
         if self.properties_key(event, window, cx) {
             return;
         }
+        if self.plugin_input_key(event, window, cx) {
+            return;
+        }
         // The run card holds every key while it shows.
         if self.run_card_key(event, window, cx) {
             cx.stop_propagation();

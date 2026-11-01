@@ -4,6 +4,10 @@ use std::os::unix::net::UnixStream;
 use std::sync::{atomic::AtomicUsize, mpsc, Arc, Mutex};
 
 impl Backend {
+    pub(crate) fn test_output(&self) -> async_channel::Sender<Event> {
+        self.plugin_output.clone()
+    }
+
     pub(crate) fn test_reply_line(line: &str) -> Event {
         transport::parse(line).expect("valid fixture wire")
     }
@@ -36,10 +40,12 @@ impl Backend {
     pub(super) fn test_controls() -> (Self, mpsc::Receiver<Control>) {
         let (requests, receiver) = mpsc::channel();
         let (wake, _) = UnixStream::pair().unwrap();
-        let (_, replies) = async_channel::unbounded();
+        let (plugin_output, replies) = async_channel::unbounded();
         let (_, drained) = async_channel::bounded(1);
         (
             Self {
+                plugin_route: Default::default(),
+                plugin_output,
                 formats_requests: AtomicUsize::new(0),
                 requests,
                 closing: Arc::new(Mutex::new(Closing::Open)),
@@ -56,7 +62,7 @@ impl Backend {
     pub(crate) fn test_operation_channel() -> (Self, impl FnMut() -> Option<String>) {
         let (requests, receiver) = mpsc::channel();
         let (wake, _) = UnixStream::pair().unwrap();
-        let (_, replies) = async_channel::unbounded();
+        let (plugin_output, replies) = async_channel::unbounded();
         let (_, drained) = async_channel::bounded(1);
         let receive = move || match receiver.try_recv().ok()? {
             Control::Line(line) => Some(line),
@@ -64,6 +70,8 @@ impl Backend {
         };
         (
             Self {
+                plugin_route: Default::default(),
+                plugin_output,
                 formats_requests: AtomicUsize::new(0),
                 requests,
                 closing: Arc::new(Mutex::new(Closing::Open)),

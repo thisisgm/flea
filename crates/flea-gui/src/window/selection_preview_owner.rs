@@ -36,6 +36,7 @@ impl SelectionPreview {
             focus: cx.focus_handle(),
             frames: Rc::default(),
             frame_feedback: None,
+            previewer: (None, 0),
         };
         view.port.0.borrow_mut().clock = Some(observation::Clock {
             executor: cx.background_executor().clone(),

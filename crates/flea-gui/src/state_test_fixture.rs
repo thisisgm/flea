@@ -70,6 +70,8 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         panes: [Some(host), None],
         surfaces: Default::default(),
         menu: Default::default(),
+        plugins: Default::default(),
+        plugin_input: None,
         overlay: None,
         quick_look: None,
         output: Default::default(),

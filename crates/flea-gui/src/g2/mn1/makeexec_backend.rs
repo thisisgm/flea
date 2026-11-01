@@ -11,8 +11,7 @@ use std::{
     time::Duration,
 };
 
-#[path = "makeexec_foldhash.rs"]
-mod foldhash;
+use crate::g2::mn1::foldhash;
 
 pub struct Process {
     child: Child,

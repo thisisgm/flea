@@ -12,6 +12,7 @@ use std::sync::{
 };
 use std::thread;
 use std::time::{Duration, Instant};
+pub(crate) mod plugin_route;
 mod transport;
 pub use transport::list_line;
 
@@ -107,6 +108,8 @@ enum Control {
 }
 
 pub struct Backend {
+    plugin_route: std::sync::OnceLock<plugin_route::Route>,
+    plugin_output: async_channel::Sender<Event>,
     formats_requests: AtomicUsize,
     requests: Sender<Control>,
     closing: Arc<Mutex<Closing>>,
@@ -230,6 +233,7 @@ impl Backend {
         let listed = folders.clone();
         let (output, replies) = async_channel::unbounded();
         let (done, drained) = async_channel::bounded(1);
+        let plugin_output = output.clone();
         thread::Builder::new()
             .name("flea-backend".into())
             .spawn(move || {
@@ -241,6 +245,8 @@ impl Backend {
                 let _ = done.try_send(());
             })?;
         Ok(Self {
+            plugin_route: Default::default(),
+            plugin_output,
             formats_requests: AtomicUsize::new(0),
             requests,
             closing,
@@ -322,6 +328,11 @@ impl Backend {
         let closing = self.closing.lock().unwrap();
         if *closing != Closing::Open {
             return Err(failure("window.backend_stopped", ""));
+        }
+        if let Some(route) = self.plugin_route.get() {
+            if route.intercept(&control)? {
+                return Ok(());
+            }
         }
         let thumb = matches!(&control, Control::Line(line) if line.starts_with(r#"{"c":"thumb","#));
         self.requests
