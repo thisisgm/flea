@@ -150,11 +150,17 @@ impl Shell {
             return;
         }
         let face = self.active_typeface();
+        let menu_open = join
+            .network
+            .as_ref()
+            .is_some_and(|network| network.menu.borrow().opened());
         join.places.update(cx, |producer, cx| {
             producer.side = self.focus_side;
             let mut model = producer.model.borrow_mut();
-            let changed = model.focused != held || producer.typeface != face;
+            let changed =
+                model.focused != held || model.menu_open != menu_open || producer.typeface != face;
             model.focused = held;
+            model.menu_open = menu_open;
             model.corner = self.corner;
             drop(model);
             if !held {

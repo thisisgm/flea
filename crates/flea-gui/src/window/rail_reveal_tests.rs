@@ -1,4 +1,6 @@
 //! The auto-hide reveal draws NETWORK as the docked rail does: the first reveal lists the shares at once.
+#[path = "rail_menu_presentation_tests.rs"]
+mod menu_presentation;
 use super::*;
 use crate::backend::Backend;
 use crate::g2::pl1::process::{Event as Proc, Handle, Job, Outcome, Runner};

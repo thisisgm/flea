@@ -248,7 +248,6 @@ impl Element for RailElement {
                 {
                     continue;
                 }
-                let cue = super::paint::is_cue(&model, row.index);
                 // SidebarRow.qml held: the favourite under its reorder drag ghosts at the disabled opacity.
                 let held = model
                     .reorder
@@ -258,36 +257,7 @@ impl Element for RailElement {
                 } else {
                     palette
                 };
-                if model.hovered == Some(row.index) && !cue {
-                    window.paint_quad(fill(
-                        box_of(row.rect),
-                        palette.foreground.opacity(crate::list::HOVER),
-                    ));
-                }
-                let keyboard = model.focused && !model.pointer_focus;
-                let highlighted = if keyboard { model.cursor } else { model.lit };
-                // SidebarRow.qml: with the keyboard on the row's eject mark, the row behind it reads as the grey cursor.
-                let wash = keyboard && !model.mark_focused;
-                if cue {
-                    super::paint::paint_cue(row, &palette, window);
-                } else if highlighted == Some(row.index) {
-                    let plate = if wash {
-                        palette.accent.opacity(crate::list::CURSOR_WASH)
-                    } else {
-                        palette.foreground.opacity(crate::list::GREY_CURSOR)
-                    };
-                    window.paint_quad(fill(box_of(row.rect), plate));
-                    // HIG rail-favorites: only .rr.cur, the rail holding the keyboard, draws the accent edge.
-                    if wash {
-                        window.paint_quad(fill(
-                            Bounds::new(
-                                point(px(row.rect.x), px(row.rect.y)),
-                                size(px(2.), px(row.rect.height)),
-                            ),
-                            palette.accent_frame,
-                        ));
-                    }
-                }
+                super::paint::paint_ground(row, &model, &palette, window);
                 super::paint::paint_mark(
                     row,
                     &palette,
