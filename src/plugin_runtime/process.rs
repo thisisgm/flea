@@ -12,6 +12,7 @@ const F_GETFL: i32 = 3;
 const F_SETFL: i32 = 4;
 const PR_SET_PDEATHSIG: i32 = 1;
 const SIGKILL: i32 = 9;
+const TIMED_OUT: &str = "plugin timed out";
 const RLIMIT_AS: i32 = 9;
 const RLIMIT_NOFILE: i32 = 7;
 
@@ -88,8 +89,17 @@ impl Process {
         };
         nonblocking(process.input.as_raw_fd())?;
         nonblocking(process.output.as_raw_fd())?;
-        process.write(&config.hello, deadline, stop)?;
-        protocol::ready(&process.read(deadline, stop)?)?;
+        let hello = |error: String| {
+            if error == TIMED_OUT {
+                protocol::HELLO_TIMEOUT.to_string()
+            } else {
+                error
+            }
+        };
+        process
+            .write(&config.hello, deadline, stop)
+            .map_err(hello)?;
+        protocol::ready(&process.read(deadline, stop).map_err(hello)?)?;
         Ok(process)
     }
 
@@ -151,7 +161,7 @@ fn check(deadline: Instant, stop: &AtomicBool) -> Result<(), String> {
         return Err("plugin stopped".into());
     }
     if Instant::now() >= deadline {
-        return Err("plugin timed out".into());
+        return Err(TIMED_OUT.into());
     }
     Ok(())
 }

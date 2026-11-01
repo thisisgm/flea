@@ -2,7 +2,10 @@
 use super::plugins::{self, Env, Installed};
 use flea::jsondoc::Json;
 use flea::plugin_runtime::{protocol, Config, Reply, Runtime};
-use flea::ui_logic_st2::{manifest::Invalid, wire};
+use flea::ui_logic_st2::{
+    manifest::{Invalid, Manifest},
+    wire,
+};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -29,7 +32,16 @@ pub(super) fn start(env: &Env, found: &Installed) -> Result<(), Invalid> {
     }
     session(env, found)?
         .ensure_ready()
-        .map_err(|e| Invalid::new("start", e))
+        .map_err(|e| start_failure(&found.plugin.manifest, e))
+}
+
+// plugins.invalid.start names the plugin for a hello timeout; every other runtime failure keeps its error as %1.
+fn start_failure(manifest: &Manifest, error: String) -> Invalid {
+    if error == protocol::HELLO_TIMEOUT {
+        Invalid::new("start", manifest.name.clone())
+    } else {
+        Invalid::new("start", error)
+    }
 }
 
 fn session(env: &Env, found: &Installed) -> Result<Runtime, Invalid> {
@@ -85,15 +97,15 @@ fn session_at(
     Ok(runtime)
 }
 
-pub(super) fn failure(env: &Env, id: &str) -> Option<Invalid> {
+pub(super) fn failure(env: &Env, manifest: &Manifest) -> Option<Invalid> {
     RUNNING
         .lock()
         .unwrap_or_else(|p| p.into_inner())
         .live
         .as_ref()?
-        .get(&key(env, id))?
+        .get(&key(env, &manifest.id))?
         .failure()
-        .map(|e| Invalid::new("start", e))
+        .map(|e| start_failure(manifest, e))
 }
 
 pub(super) fn stop(env: &Env, id: &str) {
@@ -189,7 +201,13 @@ fn request_with_progress(
     } else {
         session(env, &found)?
             .request_stream(message.clone(), progress)
-            .map_err(|e| Invalid::new(if e == "plugin busy" { "busy" } else { "start" }, e))
+            .map_err(|e| {
+                if e == "plugin busy" {
+                    Invalid::new("busy", e)
+                } else {
+                    start_failure(&found.plugin.manifest, e)
+                }
+            })
     };
     if let Err(error) = &result {
         if !matches!(error.code, "busy" | "request") && error.detail != "plugin stopped" {
@@ -225,7 +243,7 @@ pub(super) fn settings(env: &Env, id: &str) {
         ("settings".into(), settings),
     ])) {
         if e != "plugin busy" {
-            plugins::record_start(id, Err(Invalid::new("start", e)));
+            plugins::record_start(id, Err(start_failure(&found.plugin.manifest, e)));
         }
     }
     stop(env, id);
