@@ -133,7 +133,9 @@ fn plugin_runtime_protocol_data_matches_all_six_kinds() {
 #[test]
 fn plugin_runtime_progress_arrives_before_completion_and_shutdown_cancels_a_hang() {
     let dir = TestDir::new("plugin-progress");
-    let runtime = Runtime::new(config(&dir, "#!/bin/sh\nread hello\necho '{\"op\":\"ready\"}'\nread run\necho '{\"op\":\"progress\",\"done\":1,\"total\":2,\"message\":\"first\"}'\nsleep 30\n"));
+    let mut config = config(&dir, "#!/bin/sh\nread hello\necho '{\"op\":\"ready\"}'\nread run\necho '{\"op\":\"progress\",\"done\":1,\"total\":2,\"message\":\"first\"}'\nsleep 30\n");
+    config.request_timeout = Duration::from_secs(5);
+    let runtime = Runtime::new(config);
     runtime.ensure_ready().unwrap();
     let cancel = runtime.clone();
     let mut seen = Vec::new();
@@ -145,10 +147,26 @@ fn plugin_runtime_progress_arrives_before_completion_and_shutdown_cancels_a_hang
             cancel.shutdown();
         },
     );
-    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "plugin stopped");
     assert_eq!(seen.len(), 1);
     assert!(started.elapsed() < Duration::from_secs(2));
     assert!(protocol::response(&json(r#"{"op":"progress","done":3,"total":2}"#), "done").is_err());
+}
+
+#[test]
+fn plugin_runtime_invalid_requests_do_not_kill_the_child_or_charge_restart_budget() {
+    let dir = TestDir::new("plugin-request-refusals");
+    let script = format!("#!/bin/sh\necho $$ >> '{}/starts'\n{}", dir.path().display(), ECHO.trim_start_matches("#!/bin/sh\n"));
+    let runtime = Runtime::new(config(&dir, &script));
+    runtime.ensure_ready().unwrap();
+    let pid = std::fs::read_to_string(dir.join("starts")).unwrap();
+    for _ in 0..4 {
+        assert_eq!(runtime.request(json(r#"{"op":"unknown"}"#)).unwrap_err(), "unknown plugin operation");
+        assert!(runtime.failure().is_none());
+        assert!(std::path::Path::new(&format!("/proc/{}", pid.trim())).exists());
+    }
+    assert_eq!(runtime.request(json(r#"{"op":"run","action":"run","paths":[]}"#)).unwrap().message.get("op").and_then(Json::as_str), Some("done"));
+    assert_eq!(std::fs::read_to_string(dir.join("starts")).unwrap(), pid);
 }
 
 #[test]

@@ -34,9 +34,14 @@ for line in sys.stdin:
             answer = {"op": "done"}
     elif op == "delete":
         for path in request["paths"]:
+            path = path.rstrip("/") or "/"
             parent, name = path.rsplit("/", 1)
             parent = parent or "/"
-            entries[parent] = [row for row in entries.get(parent, []) if row["name"] != name]
+            if parent in entries:
+                entries[parent] = [row for row in entries[parent] if row["name"] != name]
+            for folder in list(entries):
+                if folder == path or folder.startswith(path + "/"):
+                    del entries[folder]
         answer = {"op": "done"}
     elif op in ("copy", "move"):
         destination = request["dest"].rstrip("/") or "/"

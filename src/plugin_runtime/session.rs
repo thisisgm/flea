@@ -130,9 +130,18 @@ impl Runtime {
                     {
                         Ok(Event::Progress(message)) => progress(message),
                         Ok(Event::Finished(result)) => return result,
-                        Err(_) => {
-                            self.0.stop.store(true, Ordering::Release);
-                            return Err("plugin worker timed out".to_string());
+                        Err(error) => {
+                            let stopped = self.0.stop.swap(true, Ordering::AcqRel);
+                            return Err(match (stopped, error) {
+                                (true, _) => "plugin stopped",
+                                (false, mpsc::RecvTimeoutError::Disconnected) => {
+                                    "plugin worker disconnected"
+                                }
+                                (false, mpsc::RecvTimeoutError::Timeout) => {
+                                    "plugin worker timed out"
+                                }
+                            }
+                            .to_string());
                         }
                     }
                 }
@@ -211,41 +220,50 @@ fn work(
         if stop.load(Ordering::Acquire) {
             break;
         }
-        let expected = call
+        let expected = match call
             .message
             .as_ref()
             .map(|r| protocol::operation(&config.manifest, r))
-            .transpose();
-        let result = match expected {
-            Err(e) => Err(e),
-            Ok(expected) => {
-                while failures
-                    .front()
-                    .is_some_and(|at| at.elapsed() > Duration::from_secs(60))
-                {
-                    failures.pop_front();
-                }
-                if process.is_none() && failures.len() >= 3 {
-                    Err("plugin restart budget exhausted".into())
-                } else {
-                    let started = if process.is_none() {
-                        Process::start(&config, &stop).map(|p| {
-                            process = Some(p);
-                        })
-                    } else {
-                        Ok(())
-                    };
-                    started.and_then(|_| {
-                        exchange(
-                            process.as_mut().unwrap(),
-                            call.message.as_ref(),
-                            expected,
-                            &config,
-                            &stop,
-                            &call.answer,
-                        )
+            .transpose()
+        {
+            Ok(expected) => expected,
+            Err(error) => {
+                send(
+                    &call.answer,
+                    Event::Finished(Err(error)),
+                    Instant::now() + Duration::from_secs(1),
+                    &stop,
+                );
+                continue;
+            }
+        };
+        let result = {
+            while failures
+                .front()
+                .is_some_and(|at| at.elapsed() > Duration::from_secs(60))
+            {
+                failures.pop_front();
+            }
+            if process.is_none() && failures.len() >= 3 {
+                Err("plugin restart budget exhausted".into())
+            } else {
+                let started = if process.is_none() {
+                    Process::start(&config, &stop).map(|p| {
+                        process = Some(p);
                     })
-                }
+                } else {
+                    Ok(())
+                };
+                started.and_then(|_| {
+                    exchange(
+                        process.as_mut().unwrap(),
+                        call.message.as_ref(),
+                        expected,
+                        &config,
+                        &stop,
+                        &call.answer,
+                    )
+                })
             }
         };
         if let Err(error) = &result {
@@ -320,3 +338,7 @@ fn send(
         thread::sleep(Duration::from_millis(5));
     }
 }
+
+#[cfg(test)]
+#[path = "session_call_tests.rs"]
+mod call_tests;

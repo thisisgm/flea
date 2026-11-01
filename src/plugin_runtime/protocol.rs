@@ -25,6 +25,7 @@ pub const OPERATIONS: [(&str, &str, &str); 12] = [
     ("settings", "", "done"),
 ];
 
+// Sample input: br#"{"op":"ready"}"#.
 pub fn parse(line: &[u8]) -> Result<Json, String> {
     if line.len() > MAX_MESSAGE {
         return Err("plugin message exceeds 64 KiB".into());

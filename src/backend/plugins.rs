@@ -266,8 +266,11 @@ pub fn check_start(env: &Env, found: &Installed) {
     }
 }
 
-fn refusal(line: &str, error: Invalid) -> String {
+pub(super) fn refusal(line: &str, error: Invalid) -> String {
     let doc = jsondoc::parse(line).unwrap_or(Json::Null);
+    if doc.get("op").and_then(Json::as_str) == Some("runtime") {
+        return super::pluginruntime::refusal(&doc, error);
+    }
     let text = |k: &str| doc.get(k).and_then(Json::as_str).unwrap_or("").to_string();
     let id = doc
         .get("id")
