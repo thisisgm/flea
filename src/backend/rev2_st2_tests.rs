@@ -4,10 +4,9 @@ use super::plugins::{installed, Env};
 use super::plugins_tests::{ask, code, env, get, plugin, READY};
 use super::testdir::TestDir;
 use flea::ui_logic_st2::wire::Source;
-use std::os::unix::fs::{symlink, OpenOptionsExt};
+use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::Duration;
 
 fn git(dir: &Path, args: &[&str]) {
     let status = Command::new("git")
@@ -77,28 +76,21 @@ fn rev2_st2_a_git_add_whose_tree_carries_a_source_file_lists_as_git_and_updates(
 
 #[test]
 fn rev2_st2_an_add_answers_when_the_cloned_source_file_links_to_a_fifo() {
+    if super::fifotest::isolated("backend::rev2_st2_tests::rev2_st2_an_add_answers_when_the_cloned_source_file_links_to_a_fifo") {
+        return;
+    }
     let dir = TestDir::new("rev2-st2-fifo");
     let env: Env = env(&dir);
     let fifo = dir.join("pipe");
     mkfifo(&fifo);
     let up = upstream(&dir, |p| symlink(&fifo, p).unwrap());
     let line = add_line(&up);
-    let (tx, rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        let _ = tx.send(ask(&env, &line).0.map(|o| o.error.is_none()));
-    });
-    let answered = rx.recv_timeout(Duration::from_secs(5));
-    let held = answered.is_err();
-    if held {
-        // Lets the stuck read see end of file, so the request thread finishes before the sandbox is removed.
-        let writer = std::fs::OpenOptions::new()
-            .write(true)
-            .custom_flags(crate::oflags::O_NONBLOCK)
-            .open(&fifo);
-        drop(writer);
-        let _ = rx.recv_timeout(Duration::from_secs(5));
-    }
-    eprintln!("REV2 add of a repo whose .flea-source links to a fifo: held the request (and CHANGING) past 5 s: {held}");
+    // Waits on the answer or on the request reading the fifo, never on a clock other tests share through CHANGING.
+    let held = super::fifotest::answers_or_holds(&fifo, super::fifotest::Access::Read, move || {
+        ask(&env, &line);
+    })
+    .is_none();
+    eprintln!("REV2 add of a repo whose .flea-source links to a fifo: held the request (and CHANGING) on the fifo: {held}");
     assert!(
         !held,
         "the add request never answered: its closing listing reads the cloned .flea-source fifo"

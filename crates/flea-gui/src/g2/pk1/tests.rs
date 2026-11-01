@@ -265,12 +265,70 @@ fn the_labels_follow_the_request_and_the_marks(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn real_stalled_children_are_reaped_after_a_cancel(cx: &mut TestAppContext) {
+    const CHILD: &str = "FLEA_PICKER_REAP_TEST_CHILD";
+    const TEST: &str = "g2::pk1::tests::real_stalled_children_are_reaped_after_a_cancel";
+    if std::env::var(CHILD).as_deref() != Ok(TEST) {
+        struct ReplyRoot(std::path::PathBuf);
+        impl Drop for ReplyRoot {
+            fn drop(&mut self) {
+                let path = &self.0;
+                if path.is_absolute()
+                    && !path.as_os_str().is_empty()
+                    && path.starts_with("/dev/shm")
+                    && path.join(".flea-test-sandbox").is_file()
+                {
+                    std::fs::remove_dir_all(path).expect("remove the private reply root");
+                }
+            }
+        }
+        // Reaping is measured on tmpfs, so the guard never includes a shared disk's reply fsync.
+        let made = std::process::Command::new("mktemp")
+            .args(["-d", "/dev/shm/flea-picker-reap.XXXXXX"])
+            .output()
+            .expect("a private tmpfs reply root");
+        assert!(made.status.success(), "tmpfs reply root: {:?}", made.status);
+        let path = std::path::PathBuf::from(String::from_utf8(made.stdout).unwrap().trim());
+        assert!(path.is_absolute() && path.starts_with("/dev/shm"));
+        std::fs::write(path.join(".flea-test-sandbox"), "").unwrap();
+        let reply_root = ReplyRoot(path);
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", TEST, "--nocapture"])
+            .env(CHILD, TEST)
+            .env("TMPDIR", &reply_root.0)
+            .status()
+            .expect("the isolated picker reap test");
+        assert!(status.success(), "isolated picker reap test: {status}");
+        return;
+    }
+
+    struct TimedChild {
+        child: process::PickerProcess,
+        began: std::rc::Rc<std::cell::Cell<Option<Instant>>>,
+    }
+    impl PickerChild for TimedChild {
+        fn send(&self, line: &str) -> bool {
+            self.child.send(line)
+        }
+        fn quit(&self) {
+            if self.began.get().is_none() {
+                self.began.set(Some(Instant::now()));
+            }
+            self.child.quit();
+        }
+        fn lines(&self) -> async_channel::Receiver<Line> {
+            self.child.lines()
+        }
+    }
+    let began = std::rc::Rc::new(std::cell::Cell::new(None));
     let stalled = || {
         let mut command = std::process::Command::new("/bin/sh");
         command
             .arg("-c")
             .arg(r#"printf '{"t":"blocked"}\n'; exec sleep 30"#);
-        Box::new(process::PickerProcess::start(command)) as Box<dyn PickerChild>
+        Box::new(TimedChild {
+            child: process::PickerProcess::start(command),
+            began: began.clone(),
+        }) as Box<dyn PickerChild>
     };
     let mut f = fixture(
         cx,
@@ -280,13 +338,18 @@ fn real_stalled_children_are_reaped_after_a_cancel(cx: &mut TestAppContext) {
             listing: stalled(),
         }),
     );
-    let began = Instant::now();
     f.update(|picker, cx| picker.cancel(cx));
+    // Record the first quit before synchronous teardown; missing quits must still fail within the guard.
+    f.settle(|f| began.get().is_some() || f.exits.get() != 0);
+    assert!(
+        began.get().is_some(),
+        "cancellation exited without quitting either child"
+    );
     f.settle(|f| f.exits.get() == 1);
     assert!(
-        began.elapsed() < Duration::from_secs(2),
+        began.get().unwrap().elapsed() < Duration::from_secs(2),
         "the stalled children held the exit {:?}",
-        began.elapsed()
+        began.get().unwrap().elapsed()
     );
     assert_eq!(f.written().as_deref(), Some(r#"{"response":1}"#));
 }

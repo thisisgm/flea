@@ -1,12 +1,19 @@
 """Shell adapter for the owned Flea transport."""
 import argparse
+import fcntl
 import json
 import os
 from pathlib import Path
+import stat
 import subprocess
 import sys
 
 from flea_transport import REPO, TransportError, Window, load, private, qml_listing, qml_metadata
+
+
+def append_to_log(fd):
+    if stat.S_ISREG(os.fstat(fd).st_mode):
+        fcntl.fcntl(fd, fcntl.F_SETFL, fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_APPEND)
 
 
 def windows(parent, pending=False):
@@ -92,6 +99,9 @@ def main():
             command.pop(0)
         if not command:
             raise TransportError("missing launch command")
+        # The window has its own append handle, so this handle must append too to preserve its diagnostics.
+        for fd in (1, 2):
+            append_to_log(fd)
         Window.start(os.environ.get("FLEA_PATH", str(REPO)), parent=os.environ["FLEA_TEST_WINDOWS_ROOT"],
                      binary=None if Path(command[0]).name in ("qs", "quickshell") else command[0],
                      command=command, ui=os.environ.get("FLEA_UI"),
