@@ -171,20 +171,20 @@ pub fn resolve(m: &Model, map: &Map, snapshot: &flea::keys::display::KeycapSnaps
         let canonical = spelling(map, &m.preset, row);
         if canonical.is_empty() { continue; }
         let text = if canonical == "1–9" {
-            format!("{}–{}", snapshot.label("1")?, snapshot.label("9")?)
+            format!("{}–{}", snapshot.legend("1")?, snapshot.legend("9")?)
         } else { label(&canonical, snapshot)? };
         labels.insert(canonical, text);
     }
     Ok(labels)
 }
-// New editor chords compose existing immutable keycap atoms; an unavailable atom still fails the epoch.
+// New editor chords compose existing immutable keycap atoms; an ambiguous atom keeps its canonical legend, an unavailable one still fails the epoch.
 fn label(canonical: &str, snapshot: &flea::keys::display::KeycapSnapshot) -> Result<String, flea::keys::display::KeycapError> {
     canonical.split(" / ").map(|alternative| alternative.split(' ').map(|part| {
-        match snapshot.label(part) {
+        match snapshot.legend(part) {
             Ok(label) => Ok(label.to_owned()),
             Err(flea::keys::display::KeycapError::UnknownChord(_)) if matches!(part, "alt-b" | "alt-f" | "alt-d" | "ctrl-left" | "ctrl-right" | "ctrl-backspace") => {
                 let (modifier, key) = part.split_once('-').unwrap();
-                snapshot.label(key).map(|key| format!("{modifier}-{key}"))
+                snapshot.legend(key).map(|key| format!("{modifier}-{key}"))
             }
             Err(error) => Err(error),
         }

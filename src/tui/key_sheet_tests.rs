@@ -236,6 +236,7 @@ fn yazi_sequence_keycaps_relabel_each_part_of_the_sequence() {
         let snapshot = flea::keys::display::KeycapSnapshot::new(layout, variant, Some(0), 7).unwrap();
         let mut m = model();
         m.preset = "yazi".into();
+        // The layout's ambiguous '-' keeps its canonical legend; it no longer withholds the sequences.
         m.set_keycaps(snapshot, &map).unwrap();
         assert_eq!(m.keycap_labels[", a"], sort, "{layout}");
         assert_eq!(m.keycap_labels["t t"], "t t", "{layout}");
@@ -284,4 +285,84 @@ fn i50_keycap_words_stay_omarchys_in_a_non_latin_and_an_rtl_language() {
             assert!(beside, "{code}: {keys} beside {words}\n{rows}");
         }
     }
+}
+
+// The per-chord rule from the strict core label: an ambiguous atom keeps its own spelling, any other atom is relabelled.
+fn i50_ambig_expected(canonical: &str, snapshot: &flea::keys::display::KeycapSnapshot, ambiguous: &mut usize) -> String {
+    let mut atom = |part: &str| {
+        if snapshot.ambiguous().contains(&part) { *ambiguous += 1; return part.to_owned(); }
+        snapshot.label(part).map(str::to_owned).unwrap_or_else(|_| {
+            let (modifier, key) = part.split_once('-').unwrap();
+            format!("{modifier}-{}", snapshot.label(key).unwrap())
+        })
+    };
+    if canonical == "1–9" { return format!("{}–{}", atom("1"), atom("9")); }
+    canonical.split(" / ").map(|alternative| alternative.split(' ').map(&mut atom).collect::<Vec<_>>().join(" ")).collect::<Vec<_>>().join(" / ")
+}
+
+#[test]
+fn i50_ambig_de_and_fr_relabel_every_resolvable_chord_and_keep_ambiguous_ones_canonical() {
+    let map = Map::load();
+    for layout in ["de", "fr"] {
+        let snapshot = flea::keys::display::KeycapSnapshot::new(layout, None, Some(0), 11).unwrap();
+        let (mut ambiguous, mut relabelled) = (0, 0);
+        for preset in PRESETS {
+            let mut m = model();
+            m.preset = preset.into();
+            m.set_keycaps(snapshot, &map).unwrap_or_else(|error| panic!("{preset} {layout}: {error}"));
+            assert_eq!(m.keycaps, Some(snapshot));
+            for row in ROWS.iter().filter(|row| listed(row, preset)) {
+                let canonical = spelling(&map, preset, row);
+                if canonical.is_empty() { continue; }
+                let expected = i50_ambig_expected(&canonical, &snapshot, &mut ambiguous);
+                relabelled += usize::from(expected != canonical);
+                assert_eq!(m.keycap_labels[&canonical], expected, "{preset} {layout} {canonical}");
+            }
+            let hints = crate::tui::keymap::Hints::new(&map, preset);
+            for (shown, canonical) in [(&m.hints.keys, &hints.keys), (&m.hints.load_preview, &hints.load_preview), (&m.hints.delete_permanently, &hints.delete_permanently), (&m.hints.trash, &hints.trash), (&m.hints.undo, &hints.undo)] {
+                if canonical.is_empty() { continue; }
+                assert_eq!(shown, &i50_ambig_expected(&lowercase(canonical), &snapshot, &mut ambiguous), "{preset} {layout} hint {canonical}");
+            }
+        }
+        assert!(ambiguous > 0, "{layout}: no ambiguous chord on any sheet, the rule went unexercised");
+        assert!(relabelled > 0, "{layout}: no chord relabelled");
+    }
+}
+
+#[test]
+fn i50_ambig_sequence_parts_relabel_independently() {
+    let dash = Map::parse("[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \",\"\naction = \"prefix:,\"\ncontext = \"listing\"\n\n[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"-\"\naction = \"tabNew\"\ncontext = \"listing\"\nprefix = \",\"\n");
+    for (layout, variant, expected) in [("fr", None, "; -"), ("de", None, ", -"), ("us", Some("dvorak"), "w -")] {
+        let snapshot = flea::keys::display::KeycapSnapshot::new(layout, variant, Some(0), 12).unwrap();
+        assert!(snapshot.ambiguous().contains(&"-"), "{layout}");
+        let mut m = model();
+        m.preset = "yazi".into();
+        m.set_keycaps(snapshot, &dash).unwrap();
+        assert_eq!(m.keycap_labels[", -"], expected, "{layout}");
+    }
+}
+
+#[test]
+fn i50_ambig_relabel_keeps_the_canonical_ids_and_an_unavailable_chord_still_keeps_the_last_epoch() {
+    let map = Map::load();
+    for preset in PRESETS {
+        let mut m = model();
+        m.preset = preset.into();
+        m.set_keycaps(flea::keys::display::KeycapSnapshot::new("us", None, Some(0), 1).unwrap(), &map).unwrap();
+        let ids = m.keycap_labels.keys().cloned().collect::<std::collections::BTreeSet<_>>();
+        for layout in ["de", "fr"] {
+            m.set_keycaps(flea::keys::display::KeycapSnapshot::new(layout, None, Some(0), 2).unwrap(), &map).unwrap();
+            assert_eq!(m.keycap_labels.keys().cloned().collect::<std::collections::BTreeSet<_>>(), ids, "{preset} {layout}");
+        }
+    }
+    // The delivered I50-11 table marks '~' unavailable on jp, the one unavailable chord it holds, so a sheet showing it still refuses the whole epoch.
+    let tilde = Map::parse("[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"~\"\naction = \"tabNew\"\ncontext = \"listing\"\n");
+    let mut m = model();
+    m.preset = "yazi".into();
+    m.set_keycaps(flea::keys::display::KeycapSnapshot::new("fr", None, Some(0), 3).unwrap(), &tilde).unwrap();
+    let before = (m.keycaps, m.keycap_labels.clone(), m.hints.keys.clone());
+    let jp = flea::keys::display::KeycapSnapshot::new("jp", None, Some(0), 4).unwrap();
+    assert_eq!(jp.label("~"), Err(flea::keys::display::KeycapError::UnavailableChord("~".into())), "precondition: the table's unavailable chord");
+    assert_eq!(m.set_keycaps(jp, &tilde), Err(flea::keys::display::KeycapError::UnavailableChord("~".into())));
+    assert_eq!((m.keycaps, m.keycap_labels.clone(), m.hints.keys.clone()), before, "a failed snapshot keeps its complete epoch");
 }
