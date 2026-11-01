@@ -35,8 +35,8 @@ jobs:
             'run: packaging/flea-release-build build' \
             'run: packaging/flea-release-build stage' \
             'run: packaging/flea-release-build check' \
-            'versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD)' \
-            'aur_pkgbuilds=(packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD packaging/flea-git/PKGBUILD)'; do
+            'versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD)' \
+            'if ! diff <(closure PKGBUILD) <(closure packaging/flea-bin/PKGBUILD); then'; do
             grep -qF -- "$line" .github/workflows/release.yml \
               || { echo "::error::release.yml no longer runs: $line; update candidate.yml with it"; exit 1; }
           done
@@ -54,8 +54,7 @@ jobs:
               echo "::error::$1 is '$2' but Cargo.toml says '$3'"; fail=1
             fi
           }
-          versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD)
-          aur_pkgbuilds=(packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD packaging/flea-git/PKGBUILD)
+          versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD)
           for pkgbuild in "${versioned_pkgbuilds[@]}"; do
             # Sample input: PKGBUILD line `pkgver=0.3.3`.
             check "$pkgbuild pkgver" "$(grep -m1 '^pkgver=' "$pkgbuild" | cut -d= -f2)" "$version"
@@ -63,16 +62,10 @@ jobs:
           closure() {
             bash -c 'source "./$1"; printf "%s\n" "depends:" "${depends[@]}" "optdepends:" "${optdepends[@]}"' _ "$1"
           }
-          # Sample input: from `package() {` to the next line that is exactly `}`, minus comments, blank lines, the cd line and the binary line.
-          body() { sed -n '/^package() {/,/^}/p' "$1" | grep -v -E '^[[:space:]]*(#|$)|^  cd |/usr/bin/flea(-gui)?"$'; }
-          for pkgbuild in "${aur_pkgbuilds[@]}"; do
-            if ! diff <(closure PKGBUILD) <(closure "$pkgbuild"); then
-              echo "::error::$pkgbuild's depends or optdepends differ from PKGBUILD's"; fail=1
-            fi
-            if ! diff <(body PKGBUILD) <(body "$pkgbuild"); then
-              echo "::error::$pkgbuild's package() has drifted from PKGBUILD's"; fail=1
-            fi
-          done
+          # flea-bin packages the release's prebuilt binary, so it needs exactly what the root package needs.
+          if ! diff <(closure PKGBUILD) <(closure packaging/flea-bin/PKGBUILD); then
+            echo "::error::packaging/flea-bin/PKGBUILD's depends or optdepends differ from PKGBUILD's"; fail=1
+          fi
           [ "$fail" -eq 0 ] || exit 1
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "verified candidate $version at $GITHUB_SHA"
