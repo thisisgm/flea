@@ -11,9 +11,7 @@ use std::{cell::RefCell, time::Duration};
 // Open Mode is read at launch, so the single-click tests seed it in their launch settings.
 const SINGLE: &str = r#""keys":"default","view":"list","openMode":"single""#;
 
-fn ready_single<'a>(
-    cx: &'a mut TestAppContext,
-) -> (Entity<Shell>, &'a mut VisualTestContext, Lines) {
+fn ready_single(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, Lines) {
     let (shell, cx) = open_with(cx, SINGLE, None);
     land(
         &shell,
