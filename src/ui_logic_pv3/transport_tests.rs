@@ -99,6 +99,10 @@ fn pv3_the_end_is_heard_when_playback_reaches_it() {
         None,
         "the decoder drained, the sink still plays"
     );
+    assert!(
+        !transport.play(),
+        "Play cannot rewind before audible completion"
+    );
     assert_eq!(
         transport.paused(true),
         Some(Event::Ended),
@@ -106,10 +110,91 @@ fn pv3_the_end_is_heard_when_playback_reaches_it() {
     );
 }
 
-// A seek to the end while paused raises eof-reached with no pause change, so the end is heard at once.
+#[test]
+fn pv3_a_requested_pause_during_the_buffered_tail_resumes_without_rewinding() {
+    let mut transport = playing();
+    assert_eq!(transport.ended(true), None);
+    transport.pause();
+    assert_eq!(transport.paused(true), Some(Event::Paused));
+    assert!(!transport.play(), "resume preserves the unheard tail");
+    assert_eq!(transport.paused(false), Some(Event::Playing));
+    assert_eq!(transport.paused(true), Some(Event::Ended));
+    assert!(transport.play(), "natural completion still rewinds on Play");
+}
+
+#[test]
+fn pv3_a_requested_pause_before_eof_does_not_suppress_a_later_end() {
+    let mut transport = playing();
+    transport.pause();
+    assert_eq!(transport.paused(true), Some(Event::Paused));
+    assert!(!transport.play());
+    assert_eq!(transport.paused(false), Some(Event::Playing));
+    assert_eq!(transport.ended(true), None);
+    assert_eq!(transport.paused(true), Some(Event::Ended));
+}
+
+#[test]
+fn pv3_decoder_eof_after_a_requested_pause_keeps_the_unheard_tail() {
+    let mut transport = playing();
+    transport.pause();
+    assert_eq!(transport.paused(true), Some(Event::Paused));
+    assert_eq!(
+        transport.ended(true),
+        None,
+        "late decoder EOF is not audible completion"
+    );
+    transport.pause();
+    assert_eq!(
+        transport.ended(true),
+        None,
+        "a repeated Pause preserves its provenance"
+    );
+    assert!(!transport.play(), "resume must not rewind the unheard tail");
+    assert_eq!(transport.paused(false), Some(Event::Playing));
+    assert_eq!(transport.paused(true), Some(Event::Ended));
+}
+
+#[test]
+fn pv3_play_request_before_unpause_ack_keeps_late_eof_from_ending_the_tail() {
+    let mut transport = playing();
+    transport.pause();
+    assert_eq!(transport.paused(true), Some(Event::Paused));
+    assert!(!transport.play());
+    assert_eq!(
+        transport.ended(true),
+        None,
+        "Play has not been observed yet"
+    );
+    assert_eq!(transport.paused(false), Some(Event::Playing));
+    assert_eq!(transport.paused(true), Some(Event::Ended));
+}
+
+#[test]
+fn pv3_a_seek_that_mpv_does_not_accept_preserves_manual_pause() {
+    let mut transport = playing();
+    transport.pause();
+    assert_eq!(transport.paused(true), Some(Event::Paused));
+    assert_eq!(transport.seek(1000), Some(1000));
+    assert_eq!(
+        transport.ended(true),
+        None,
+        "a rejected seek cannot consume pause intent"
+    );
+    assert!(!transport.play());
+}
+
+// A paused endpoint seek ends when native seek completion confirms its position, without requiring another pause change.
 #[test]
 fn pv3_reaching_the_end_while_paused_ends_at_once() {
     let mut transport = playing();
+    transport.pause();
     assert_eq!(transport.paused(true), Some(Event::Paused));
-    assert_eq!(transport.ended(true), Some(Event::Ended));
+    transport.pause();
+    assert_eq!(transport.seek(2000), Some(2000));
+    transport.seek_accepted();
+    assert_eq!(transport.ended(true), None);
+    assert_eq!(
+        transport.seek_completed(true, true, true),
+        Some(Event::Ended)
+    );
 }

@@ -133,7 +133,7 @@ src/backend/durable.rs 809
 src/backend/dirsize.rs 422
 src/backend/durable_tests.rs 1396
 src/backend/jump_tests.rs 487
-src/backend/renamecompat.rs 728
+src/backend/renamecompat.rs 738
 src/backend/gvfslist.rs 513
 src/backend/imagesize.rs 559
 src/backend/iomount.rs 634

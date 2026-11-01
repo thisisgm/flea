@@ -7,6 +7,7 @@ use flea::ui_logic_sr1::Wire;
 use std::{cell::RefCell, rc::Rc};
 pub(crate) struct Runtime {
     pub owner: Search,
+    pub input: Option<gpui::Entity<sr1::input::QueryInput>>,
     pub rows_generation: usize,
     pub strip: Rc<RefCell<sr1::strip::StripState>>,
     pub(super) origin: Option<crate::window::startup::View>,
@@ -34,6 +35,7 @@ impl Runtime {
                 contents: true,
                 ..Wire::default()
             }),
+            input: None,
             rows_generation: 0,
             strip: Rc::new(RefCell::new(sr1::strip::StripState::new(face))),
             origin: None,
@@ -88,5 +90,35 @@ impl Host for Pending<'_> {
     }
     fn publish(&mut self, session: PaneSession) {
         self.session = Some(session);
+    }
+}
+
+impl crate::state::Shell {
+    pub(crate) fn search_input(
+        &mut self,
+        side: usize,
+        cx: &mut gpui::Context<Self>,
+    ) -> Option<gpui::Entity<sr1::input::QueryInput>> {
+        use gpui::AppContext;
+        let host = self.panes[side].as_mut()?;
+        let generation = host.search.owner.entry.borrow().session()?;
+        if host
+            .search
+            .input
+            .as_ref()
+            .is_none_or(|input| input.read(cx).generation != generation)
+        {
+            let strip = host.search.strip.borrow();
+            let input = sr1::input::QueryInput::new(
+                cx.weak_entity(),
+                side,
+                generation,
+                host.search.owner.entry.clone(),
+                strip.edit.line.clone(),
+                strip.edit.input_bounds.clone(),
+            );
+            host.search.input = Some(cx.new(|_| input));
+        }
+        host.search.input.clone()
     }
 }

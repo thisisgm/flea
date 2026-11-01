@@ -151,6 +151,10 @@ impl PathView {
             cx.stop_propagation();
             return;
         }
+        if self.entry.marked.is_some() {
+            cx.stop_propagation();
+            return;
+        }
         // A held Enter stands for the line as it was, so nothing typed after it changes what it opens; Escape still closes.
         if self.jump.enter_waiting && key != "escape" {
             cx.stop_propagation();

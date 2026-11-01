@@ -166,3 +166,64 @@ fn first_rows_at_stamps_the_first_non_empty_rows_once_in_wall_clock_ms() {
     });
     assert_eq!(pane.first_rows_at, first, "later rows keep the first stamp");
 }
+
+#[test]
+fn vf_readers_input_to_rows_reads_zero_until_an_input() {
+    let read = |pane: &Pane| {
+        let catalog = crate::test_catalogs::english();
+        let adapter = crate::ipc::pane::PaneAdapter {
+            pane,
+            catalog: &catalog,
+        };
+        crate::ipc::Adapter::call(&adapter, "inputToRows", &[])
+    };
+    let mut pane = Pane::new("/srv".into(), 640.);
+    let path = pane.path.clone();
+    assert!(!pane
+        .receive_at(Reply::Listed { path, total: 3 }, 120)
+        .unwrap());
+    assert!(pane
+        .receive_at(
+            Reply::Rows {
+                start: 0,
+                rows: rows(3),
+                listing: 1
+            },
+            126
+        )
+        .unwrap());
+    assert_eq!(
+        read(&pane),
+        Some(flea::ipc::wire::Reply::value("0 0")),
+        "the launch listing is no input (v0.3.12 PaneSwap.qml)"
+    );
+    assert!(pane.begin("/other".into(), Options::default(), 1000));
+    let listing = pane
+        .swap
+        .pending
+        .as_ref()
+        .map(|_| pane.greatest_listing + 1)
+        .unwrap();
+    assert!(!pane
+        .receive_at(
+            Reply::Listed {
+                path: "/other".into(),
+                total: 3
+            },
+            1100
+        )
+        .unwrap());
+    let _ = pane.receive_at(
+        Reply::Rows {
+            start: 0,
+            rows: rows(3),
+            listing,
+        },
+        1126,
+    );
+    let _ = pane.tick(1126);
+    assert_eq!(
+        read(&pane),
+        Some(flea::ipc::wire::Reply::value("1000 1126"))
+    );
+}

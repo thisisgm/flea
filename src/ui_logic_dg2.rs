@@ -181,13 +181,18 @@ pub fn offer(copy: bool, shift: bool) -> (bool, bool, Verb) {
 
 /// The pane message for a lift whose selection reaches past the rows the window holds (FileDrag.cannotLeave): the drag line with no folder name and the reach note.
 pub fn too_wide(i18n: &I18n, count: usize, copy: bool, shift: bool) -> String {
+    i18n.tr_args(TOO_WIDE, &[&line_to_folder(i18n, count, copy, shift)])
+}
+
+/// The status line while a lift rests on no folder (Drag.line with no name, FileDrag.startOffer): the verb its keys ask for and the count.
+pub fn line_to_folder(i18n: &I18n, count: usize, copy: bool, shift: bool) -> String {
     let items = i18n.trn("items.count", count as i64);
     let key = match (copy, shift) {
         (true, true) => LINK_TO_FOLDER,
         (true, false) => COPY_TO_FOLDER,
         _ => MOVE_TO_FOLDER,
     };
-    i18n.tr_args(TOO_WIDE, &[&i18n.tr_args(key, &[&items])])
+    i18n.tr_args(key, &[&items])
 }
 
 /// The status line while a drag rests on a named folder (Drag.line with a name): the verb, the count and the folder.

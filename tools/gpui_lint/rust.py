@@ -23,22 +23,60 @@ def functions(ts, module, path, owns_directory=False):
     source = Path(path)
     directory = source.parent if owns_directory or source.name == "mod.rs" else source.with_suffix("")
 
+    # Sample: `#![allow(dead_code)] #![cfg(test)]` applies to the entire enclosing scope.
+    def inner_test(start, end):
+        at = start
+        while at + 2 < end and [t.value for t in ts[at:at + 3]] == ["#", "!", "["]:
+            close = matched[at + 2]
+            if [t.value for t in ts[at + 3:close]] == ["cfg", "(", "test", ")"]:
+                return True
+            at = close + 1
+        return False
+
+    # Sample: `cfg_attr(unix, path="shared.rs")`; unknown conditions retain both possible product paths.
+    def conditional_paths(attribute):
+        if attribute[:2] != ["cfg_attr", "("] or attribute[-1:] != [")"]:
+            return [], False
+        parts, start, depth = [], 2, 0
+        for at in range(2, len(attribute) - 1):
+            if attribute[at] in ("(", "["):
+                depth += 1
+            elif attribute[at] in (")", "]"):
+                depth -= 1
+            elif attribute[at] == "," and depth == 0:
+                parts.append(attribute[start:at])
+                start = at + 1
+        parts.append(attribute[start:-1])
+        paths, default_test = [], False
+        for meta in parts[1:]:
+            if meta[:2] == ["path", "="] and len(meta) == 3:
+                paths.append((meta[2][1:-1], parts[0] == ["test"]))
+                default_test = default_test or parts[0] == ["not", "(", "test", ")"]
+            else:
+                nested, _ = conditional_paths(meta)
+                paths.extend((path, test or parts[0] == ["test"]) for path, test in nested)
+        return paths, default_test
+
     def walk(start, end, scope, inherited=None, child_module=False, test=False, folder=directory, inline=False):
+        test = test or inner_test(start, end)
         aliases = scope_aliases(ts[start:end], inherited or {}, child_module)
         i = start
         # Sample: `#[cfg(test)]` and `#[path = "other/bridge.rs"]` lexed as `#`, `[`, ..., `]` before an item.
         # A #[cfg(test)] item never compiles into the product, so it is no UI path; #[path] names its file.
-        test_only, target = False, None
+        test_only, target, conditional, default_test = False, None, [], False
         while i < end:
             value = ts[i].value
             if value == "#" and i + 1 < end and ts[i + 1].value == "[":
                 attribute = [t.value for t in ts[i + 2:matched[i + 1]]]
-                test_only = test_only or attribute == ["cfg", "(", "test", ")"]
+                test_only = test_only or attribute in (["cfg", "(", "test", ")"], ["test"])
                 if attribute[:2] == ["path", "="] and len(attribute) == 3:
                     target = attribute[2][1:-1]
+                alternatives, fallback_test = conditional_paths(attribute)
+                conditional.extend(alternatives)
+                default_test = default_test or fallback_test
                 i = matched[i + 1] + 1
             elif value == ";":
-                test_only, target = False, None
+                test_only, target, conditional, default_test = False, None, [], False
                 i += 1
             elif ts[i].kind == "ident" and value in ("impl", "mod", "fn"):
                 opening = i + 1
@@ -48,13 +86,14 @@ def functions(ts, module, path, owns_directory=False):
                     opening += 1
                 if opening == end or ts[opening].value != "{":
                     if value == "mod":
-                        if target is not None:
-                            choices = [(folder if inline else source.parent) / target]
-                        else:
-                            child = folder / ts[i + 1].value
-                            choices = [child.with_suffix(".rs"), child / "mod.rs"]
-                        file_mods.append(([str(p) for p in choices], test or test_only, target is not None))
-                    test_only, target = False, None
+                        for chosen, branch_test in [(target, default_test), *conditional]:
+                            if chosen is not None:
+                                choices = [(folder if inline else source.parent) / chosen]
+                            else:
+                                child = folder / ts[i + 1].value
+                                choices = [child.with_suffix(".rs"), child / "mod.rs"]
+                            file_mods.append(([str(p) for p in choices], test or test_only or branch_test, chosen is not None))
+                    test_only, target, conditional, default_test = False, None, [], False
                     i = opening + 1
                     continue
                 closing = matched[opening]
@@ -62,16 +101,17 @@ def functions(ts, module, path, owns_directory=False):
                 if value == "fn":
                     found.append(Function("::".join((*scope, header[0])), module, path,
                                           ts[i].line, ts[opening + 1:closing], aliases,
-                                          ts[i + 1:opening], test or test_only))
+                                          ts[i + 1:opening], test or test_only or inner_test(opening + 1, closing)))
                 elif value == "mod":
-                    child = ((folder if inline else source.parent) / target
-                             if target is not None else folder / header[0])
-                    walk(opening + 1, closing, (*scope, header[0]), aliases, True,
-                         test or test_only, child, True)
+                    for chosen, branch_test in [(target, default_test), *conditional]:
+                        child = ((folder if inline else source.parent) / chosen
+                                 if chosen is not None else folder / header[0])
+                        walk(opening + 1, closing, (*scope, header[0]), aliases, True,
+                             test or test_only or branch_test, child, True)
                 else:
                     if "for" in header:
                         name = header[header.index("for") + 1]
-                        if "Element" in header[:header.index("for")] and not (test or test_only):
+                        if "Element" in header[:header.index("for")] and not (test or test_only or inner_test(opening + 1, closing)):
                             elements.add(name)
                     else:
                         # Skip impl generics before its target type.
@@ -87,10 +127,10 @@ def functions(ts, module, path, owns_directory=False):
                     if name:
                         walk(opening + 1, closing, (*scope, name), aliases,
                              test=test or test_only, folder=folder, inline=inline)
-                test_only, target = False, None
+                test_only, target, conditional, default_test = False, None, [], False
                 i = closing + 1
             elif value == "{":
-                test_only, target = False, None
+                test_only, target, conditional, default_test = False, None, [], False
                 i = matched[i] + 1
             elif value in ("(", "["):
                 i = matched[i] + 1
@@ -98,7 +138,14 @@ def functions(ts, module, path, owns_directory=False):
                 i += 1
 
     walk(0, len(ts), tuple(module.split("::")))
-    return found, elements, file_mods
+    merged = {}
+    for function in found:
+        key = function.symbol, function.path, function.line
+        if key in merged:
+            merged[key].test = merged[key].test and function.test
+        else:
+            merged[key] = function
+    return list(merged.values()), elements, file_mods
 
 
 def generic_end(ts, index):

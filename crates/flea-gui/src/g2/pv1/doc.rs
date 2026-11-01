@@ -307,10 +307,18 @@ impl Doc {
         }
     }
 
-    /// The sentence a refused code read draws in the calm card: the binary sentence, or v0.3.12's too-large caption; None while the read answers or plays.
+    /// The sentence the calm card draws: a refused code read's binary sentence or v0.3.12's too-large caption, or an office file Flea cannot convert; None otherwise.
     pub fn calm_sentence(&self, i18n: &I18n, cx: &App) -> Option<String> {
-        let View::Code(view) = &self.view else {
-            return None;
+        let view = match &self.view {
+            View::Code(view) => view,
+            View::Office(view) => {
+                return view
+                    .read(cx)
+                    .failure(i18n)
+                    .filter(|f| !f.error_tone)
+                    .map(|f| f.sentence)
+            }
+            _ => return None,
         };
         match view.read(cx).refusal()? {
             Refusal::Binary => Some(i18n.tr("preview.unsupported")),

@@ -163,6 +163,9 @@ impl Picker {
 
     // What the shared path entry asks: a committed folder or file is peeked first, Tab's peek goes to the child.
     pub(super) fn path_out(&mut self, out: Out, cx: &mut Context<Self>) {
+        if self.answered() {
+            return;
+        }
         match out {
             Out::Open { path, .. } => {
                 let view = self.browse.path_view(cx);

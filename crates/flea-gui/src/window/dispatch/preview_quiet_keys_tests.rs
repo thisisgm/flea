@@ -101,6 +101,15 @@ fn quick_look_html_state_follows_r_to_source(cx: &mut TestAppContext) {
         );
         let lines = local(&shell, cx, &dir);
         meta(&shell, cx, &lines, r#","lines":61"#);
+        let column = fixture::view(&shell, cx, false);
+        fixture::seed(&column, &text, cx);
+        fixture::ready(&column, cx);
+        let column_state = flea::jsondoc::parse(&read(&shell, cx, "htmlState", &["true"])).unwrap();
+        assert_eq!(
+            column_state.get("facts").and_then(Json::as_str),
+            Some("HTML document · 600 B · 61 lines"),
+            "the reader reports the compact facts the mounted HTML column draws"
+        );
         cx.simulate_keystrokes("space");
         pump(cx);
         let look = fixture::view(&shell, cx, true);
@@ -116,6 +125,7 @@ fn quick_look_html_state_follows_r_to_source(cx: &mut TestAppContext) {
         );
         assert_eq!(rendered.get("visible"), Some(&Json::Bool(true)));
         assert_eq!(rendered.get("mark").and_then(Json::as_str), Some("html"));
+        assert_eq!(rendered.get("facts").and_then(Json::as_str), Some(""));
         cx.simulate_keystrokes("r");
         pump(cx);
         assert_eq!(state(cx).get("view").and_then(Json::as_str), Some("source"));

@@ -2,7 +2,7 @@
 use super::cards::*;
 use super::draw_step::{DISABLED_OPACITY, WASH_PRESS};
 use super::flash::SEL_FORMAT_LABEL;
-use crate::g2::op3::shell::glyph;
+use crate::g2::op3::shell::{card_heading, glyph};
 use crate::list::{Palette, Typeface};
 use gpui::{
     canvas, div, prelude::*, px, relative, AnyElement, Bounds, Div, FontWeight, Hsla, Pixels,
@@ -306,27 +306,17 @@ impl StandIn {
             r: radius,
         };
         let t = draw.t;
-        let head = draw
-            .text(TITLE)
-            .flex()
-            .items_center()
-            .gap(draw.px(ROW_GAP))
-            .font_weight(FontWeight::BOLD)
-            .text_color(t.fg)
-            .child(
-                div()
-                    .min_w_0()
-                    .overflow_hidden()
-                    .text_ellipsis()
-                    .child(card.title.clone()),
-            )
-            .child(
-                draw.text(CAPTION)
-                    .ml_auto()
-                    .font_weight(FontWeight::NORMAL)
-                    .text_color(t.muted)
-                    .child(card.esc.clone()),
-            );
+        let head = card_heading(
+            &card.title,
+            &card.esc,
+            draw.text(TITLE)
+                .font_weight(FontWeight::BOLD)
+                .text_color(t.fg),
+            draw.text(CAPTION)
+                .font_weight(FontWeight::NORMAL)
+                .text_color(t.muted),
+            draw.px(ROW_GAP),
+        );
         let mut frame = div()
             .debug_selector(|| "op2-card".into())
             .w(px(scaled(card.width, f32::from(typeface.body), room)))

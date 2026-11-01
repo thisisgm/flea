@@ -139,11 +139,17 @@ impl Live<'_> {
         let idle = !self.picker.accept_state().submitting() && !self.picker.backend_unavailable();
         let rail_focused = self.picker.chrome.focused == Some("picker-rail");
         for (index, entry) in rail.entries.iter().enumerate() {
+            let id = format!("rail:{index}");
             let Some(bounds) = self
                 .picker
                 .chrome
                 .probe
-                .bounds(&super::rail_view::rail_row(index))
+                .bounds(&id)
+                .zip(self.picker.chrome.probe.bounds(&format!("{id}:mask")))
+                .map(|(bounds, mask)| bounds.intersect(&mask))
+                .filter(|bounds| {
+                    bounds.size.width > gpui::px(0.) && bounds.size.height > gpui::px(0.)
+                })
             else {
                 continue;
             };
