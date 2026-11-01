@@ -143,6 +143,8 @@ pub struct Paint {
     /// The suggestion rows the last frame laid and painted, 0 while no popup draws.
     pub drawn: usize,
     pub field_origin: Pixels,
+    /// The face and size the field's line was shaped in; set_typeface leaves PathView.line alone, so prepaint reshapes on a change.
+    pub(super) field_style: Option<(gpui::Font, Pixels)>,
     /// Each strip's shaped crumbs and the popup's shaped pieces, kept across frames so a redraw reuses their buffers.
     pub runs: [Vec<Rc<GlyphRun>>; 3],
     pub pieces: Vec<Piece>,
@@ -163,6 +165,7 @@ impl Paint {
             popup: None,
             drawn: 0,
             field_origin: px(0.),
+            field_style: None,
             runs: Default::default(),
             pieces: Vec::new(),
         }
