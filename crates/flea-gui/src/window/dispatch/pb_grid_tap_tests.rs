@@ -1,4 +1,4 @@
-//! Grid and Columns pointer parity through the mounted native routes.
+//! Grid and Columns pointer and Return parity through the mounted native routes.
 use super::{
     pb_grid_tests::{at, switch, tap},
     rename_tests::{close, draw, editing, ready, sent, Lines},
@@ -171,6 +171,32 @@ fn pb_grid_columns_single_click_opens_the_active_folder_on_the_first_tap(cx: &mu
         drawn.bounds.origin + point(px(40.), px(crate::list::pane::ROW_HEIGHT / 2.))
     });
     super::pb_grid_tests::tap(cx, point, 1, Modifiers::none());
+    assert_eq!(asked(&shell, cx), "/files/alpha");
+    close(&shell, cx);
+}
+
+// Grid Enter: Return opens the Grid cursor's row, a folder in the pane and a file through the opener once.
+#[gpui::test]
+fn pb_grid_return_opens_the_cursor_row(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "default");
+    shell.update(cx, |shell, _| shell.opener[0].launch = record);
+    OPENED.with(|opened| opened.borrow_mut().clear());
+    land(
+        &shell,
+        cx,
+        "/files",
+        vec![row("alpha", true), row("notes.txt", false)],
+        1,
+    );
+    switch(&shell, cx, View::Grid);
+    set_cursor(&shell, cx, 1);
+    cx.simulate_keystrokes("enter");
+    draw(cx);
+    let opened = OPENED.with(|opened| opened.borrow().clone());
+    assert_eq!(opened.len(), 1);
+    assert_eq!(opened[0][1..], ["--open", "/files/notes.txt"]);
+    set_cursor(&shell, cx, 0);
+    cx.simulate_keystrokes("enter");
     assert_eq!(asked(&shell, cx), "/files/alpha");
     close(&shell, cx);
 }
