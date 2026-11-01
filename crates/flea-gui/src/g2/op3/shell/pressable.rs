@@ -18,7 +18,7 @@ impl StandIn {
         let live = Live {
             wire: &wire,
             surface: None,
-            entry: None,
+            mount: None,
             probe: None,
         };
         present(card, palette, typeface, corner, room, Some(&live))
@@ -42,7 +42,7 @@ impl Probed<'_> {
         let live = Live {
             wire: &wire,
             surface: None,
-            entry: None,
+            mount: None,
             probe: Some(self.0),
         };
         present(card, palette, typeface, corner, room, Some(&live))

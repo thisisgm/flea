@@ -115,9 +115,8 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
-        // The Open With card holds every key while it shows.
+        // The Open With card holds every key while it shows; its search's typed text keeps propagating.
         if self.open_with_key(event, window, cx) {
-            cx.stop_propagation();
             return;
         }
         // The rename editor and the bulk rename card hold every key while open.

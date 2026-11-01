@@ -132,27 +132,35 @@ impl Draw<'_> {
         if let Some(mark) = field.glyph {
             line = line.child(glyph(mark, 14. * self.s, t.muted));
         }
-        if let Some(input) = &field.input {
-            line = line.child(crate::g2::op1::field::mount(
-                input.clone(),
-                div().relative().flex_1().min_w_0().h_full().when(
-                    field.value.is_empty() && !field.placeholder.is_empty(),
-                    |slot| {
-                        slot.child(
-                            div()
-                                .absolute()
-                                .left(px(1.))
-                                .top_0()
-                                .h_full()
-                                .flex()
-                                .items_center()
-                                .text_color(t.muted)
-                                .child(field.placeholder.clone()),
-                        )
-                    },
-                ),
-                self.typeface,
-            ));
+        let slot = || {
+            div().relative().flex_1().min_w_0().h_full().when(
+                field.value.is_empty() && !field.placeholder.is_empty(),
+                |slot| {
+                    slot.child(
+                        div()
+                            .absolute()
+                            .left(px(1.))
+                            .top_0()
+                            .h_full()
+                            .flex()
+                            .items_center()
+                            .text_color(t.muted)
+                            .child(field.placeholder.clone()),
+                    )
+                },
+            )
+        };
+        // A Shell card names its input; a live card's own entity mounts its focused field.
+        let mounted = match (&field.input, self.mount) {
+            (Some(input), _) => Some(
+                crate::g2::op1::field::mount(input.clone(), slot(), self.typeface)
+                    .into_any_element(),
+            ),
+            (None, Some(mount)) if field.focused => Some(mount(slot())),
+            _ => None,
+        };
+        if let Some(mounted) = mounted {
+            line = line.child(mounted);
             return match &field.label {
                 Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
                 None => line,
@@ -176,23 +184,6 @@ impl Draw<'_> {
                         .child(field.placeholder.clone()),
                 );
             }
-        } else if let Some(entry) = self
-            .entry
-            .filter(|entry| field.focused && entry.text == field.value)
-        {
-            let selected = entry.selected.clone();
-            text = text.child(field.value[..selected.start].to_owned());
-            if selected.is_empty() {
-                text = text.child(caret());
-            } else {
-                text = text.child(
-                    div()
-                        .debug_selector(|| "op3-selection".into())
-                        .bg(t.accent.opacity(flea::ui_logic_op1::card::FIELD_WASH))
-                        .child(field.value[selected.clone()].to_owned()),
-                );
-            }
-            text = text.child(field.value[selected.end..].to_owned());
         } else {
             text = text.child(field.value.clone());
             if field.focused {
@@ -258,18 +249,18 @@ impl DialogShell for Interactive<'_> {
         let live = Live {
             wire: self.wire,
             surface: Some(self.surface),
-            entry: Some(self.entry),
+            mount: self.mount,
             probe: None,
         };
         present(card, palette, typeface, corner, room, Some(&live))
     }
 }
 
-/// The one live path every card takes: its wired controls, and the window's surface and text entry where it has them.
+/// The one live path every card takes: its wired controls, and the window's surface and mounted field where it has them.
 struct Live<'a> {
     wire: &'a Wire,
     surface: Option<Hsla>,
-    entry: Option<&'a crate::path::entry::Entry>,
+    mount: Option<&'a Mount>,
     probe: Option<&'a crate::g2::st1::probe::Probe>,
 }
 
@@ -289,7 +280,7 @@ fn present(
         typeface,
         language: &card.language,
         wire: live.map(|live| live.wire),
-        entry: live.and_then(|live| live.entry),
+        mount: live.and_then(|live| live.mount),
         probe: live.and_then(|live| live.probe),
     };
     if let Some(surface) = live.and_then(|live| live.surface) {

@@ -3,6 +3,8 @@
 mod fixture;
 #[path = "permissions_guard_tests.rs"]
 mod guards;
+#[path = "permissions_ime_tests.rs"]
+mod ime;
 #[path = "permissions_reader_tests.rs"]
 mod reader;
 use crate::g2::op3::permissions::Stop;
@@ -317,14 +319,14 @@ fn m9_permissions_octal_paints_the_caret_and_selection_at_the_edited_position(
     let mut visual = VisualTestContext::from_window(handle.into(), cx);
     visual.simulate_keystrokes("home");
     let start = visual
-        .debug_bounds("op3-caret")
+        .debug_bounds("op1-caret")
         .expect("visible octal caret");
     visual.simulate_keystrokes("end");
-    let end = visual.debug_bounds("op3-caret").unwrap();
+    let end = visual.debug_bounds("op1-caret").unwrap();
     assert!(end.origin.x > start.origin.x + gpui::px(20.));
     visual.simulate_keystrokes("shift-left");
     let selected = visual
-        .debug_bounds("op3-selection")
+        .debug_bounds("op1-selection")
         .expect("visible selected digit");
     assert!(selected.size.width > gpui::px(1.));
 }
