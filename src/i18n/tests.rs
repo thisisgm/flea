@@ -286,6 +286,11 @@ fn dates_keep_fixed_fields_and_use_digits_without_mutating_global_locale() {
 // A test reading the repo's i18n/ sees every shipped catalog, so its English expectations break when a language lands.
 #[test]
 fn no_test_loads_the_shipped_catalog_dir() {
+    // Tests whose subject is the shipped translations themselves, each with its reason.
+    const ALLOWED: &[(&str, &str)] = &[
+        ("crates/flea-gui/src/g2/st1/sheet_keycap_tests.rs", "I50-24 checks key sheet labels against each shipped catalog's keycap words"),
+        ("crates/flea-gui/src/row/fit_tests.rs", "I50-26 measures that the shipped translations fit their rows"),
+    ];
     // Split so this file never matches itself; cargo runs tests from the package root, so cwd and relative forms name i18n/ too.
     let manifest = concat!("CARGO_MANIFEST_", "DIR\")");
     let cwd = concat!("current_dir", "().unwrap()");
@@ -302,7 +307,10 @@ fn no_test_loads_the_shipped_catalog_dir() {
         .filter(|(_, text)| banned.iter().any(|pattern| text.contains(pattern.as_str())))
         .map(|(path, _)| path)
         .collect();
-    assert!(found.is_empty(), "load test_catalogs::english_only() or a fixture catalog instead of the repo's i18n/: {found:?}");
+    let unexpected: Vec<_> = found.iter().filter(|path| !ALLOWED.iter().any(|(allowed, _)| allowed == path)).collect();
+    assert!(unexpected.is_empty(), "load test_catalogs::english_only() or a fixture catalog instead of the repo's i18n/, or allow the file with a reason: {unexpected:?}");
+    let stale: Vec<_> = ALLOWED.iter().map(|(path, _)| *path).filter(|path| !found.iter().any(|seen| seen == path)).collect();
+    assert!(stale.is_empty(), "allowed files no longer load the repo's i18n/: {stale:?}");
 }
 
 // Sample output: ("src/plugincli.rs", "usecrate::i18n::I18n;..."), the repo-relative path and its whitespace-free text.
