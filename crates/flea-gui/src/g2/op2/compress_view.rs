@@ -82,6 +82,7 @@ impl Compress {
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,
             body,
+            body_layout: crate::g2::op2::cards::BodyLayout::Compress,
             buttons: vec![
                 Button {
                     label: i18n.tr("archive.cancel"),

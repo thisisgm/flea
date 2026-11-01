@@ -13,6 +13,7 @@ use flea::{
 use gpui::{AppContext, Context, TestAppContext, VisualTestContext, Window, WindowHandle};
 use std::{cell::Cell, rc::Rc};
 
+mod compress_geometry;
 mod extract;
 mod flash;
 mod flash_look;
