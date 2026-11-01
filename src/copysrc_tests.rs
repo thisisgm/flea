@@ -83,7 +83,7 @@ const WRITTEN: [(&str, &str, usize); 35] = [
     ("shelfplaces.rs", "{} was not written, so the chooser answered nothing: {}", 2),
     ("shelfzip.rs", "flea: those items have no folder in common to archive them from", 1),
     ("shelfzip.rs", "flea: the staged archive stayed behind at {}: {}", 1),
-    ("terminal.rs", "flea: that folder could not be opened in a terminal; check that it still exists", 2),
+    ("terminal.rs", "flea: that folder could not be opened in a terminal; check that it still exists", 1),
     ("uistatecli.rs", "flea: the shelf plugin was not installed ({})", 1),
     ("uistatecli.rs", "flea: the shelf plugin was not removed ({})", 1),
     ("update.rs", "pacman could not find the package that installed Flea", 1),
