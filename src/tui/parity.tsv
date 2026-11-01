@@ -5,7 +5,7 @@ mgr	"<C-[>"	"escape"	listing	["<Esc>"]	escape	different	The equivalent action us
 mgr	"q"	"quit"	listing	["q"]	quit	bound	The equivalent action uses the resolved Flea handler	yazi-003	yazi
 mgr	"Q"	"quit --no-cwd-file"	listing	["Q"]	quitNoCwd	bound	The equivalent action uses the resolved Flea handler	yazi-004	yazi
 mgr	"<C-c>"	"close"	listing	["<C-c>"]	tabClose	bound	The equivalent action uses the resolved Flea handler	yazi-005	yazi
-mgr	"<C-z>"	"suspend"	mgr	[]		unsupported	Process suspension is unavailable; quit and relaunch the terminal interface	yazi-006	yazi
+mgr	"<C-z>"	"suspend"	listing	["<C-z>"]	suspend	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-006	yazi
 mgr	"k"	"arrow prev"	listing	["k"]	cursorUp	bound	The equivalent action uses the resolved Flea handler	yazi-007	yazi
 mgr	"j"	"arrow next"	listing	["j"]	cursorDown	bound	The equivalent action uses the resolved Flea handler	yazi-008	yazi
 mgr	"<Up>"	"arrow prev"	listing	["k"]	cursorUp	different	The equivalent action uses the resolved Flea handler	yazi-009	yazi
@@ -44,9 +44,9 @@ mgr	"y"	"yank"	listing	["y"]	copy	bound	The equivalent action uses the resolved 
 mgr	"x"	"yank --cut"	listing	["x"]	cut	bound	The equivalent action uses the resolved Flea handler	yazi-042	yazi
 mgr	"p"	"paste"	listing	["p"]	paste	bound	The equivalent action uses the resolved Flea handler	yazi-043	yazi
 mgr	"P"	"paste --force"	mgr	[]		unsupported	Forced overwrite is unavailable; paste with p and answer the collision prompt	yazi-044	yazi
-mgr	"-"	"link"	mgr	[]		unsupported	Creating links is unavailable in this terminal build	yazi-045	yazi
-mgr	"_"	"link --relative"	mgr	[]		unsupported	Creating relative links is unavailable in this terminal build	yazi-046	yazi
-mgr	"<C-->"	"hardlink"	mgr	[]		unsupported	Creating hard links is unavailable in this terminal build	yazi-047	yazi
+mgr	"-"	"link"	listing	["-"]	pasteAbsoluteLink	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-045	yazi
+mgr	"_"	"link --relative"	listing	["_"]	pasteLink	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-046	yazi
+mgr	"<C-->"	"hardlink"	listing	["<C-->"]	pasteHardLink	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-047	yazi
 mgr	"Y"	"unyank"	listing	["Y"]	clearClipboard	bound	The equivalent action uses the resolved Flea handler	yazi-048	yazi
 mgr	"X"	"unyank"	listing	["Y"]	clearClipboard	different	X remains unbound for the window-only Carry action; Y clears the internal clipboard	yazi-049	yazi
 mgr	"d"	"remove"	listing	["d"]	trash	bound	The equivalent action uses the resolved Flea handler	yazi-050	yazi
@@ -64,26 +64,26 @@ mgr	"z"	"plugin fzf"	mgr	[]		unsupported	Fuzzy-finder plugins are unavailable; f
 mgr	"Z"	"plugin zoxide"	mgr	[]		unsupported	Directory ranking plugins are unavailable; use g then Space to enter a path	yazi-062	yazi
 mgr	["m", "s"]	"linemode size"	mgr	[]		unsupported	Direct mode selection is refused; four presses of I from Size shows Size in the detail column. I cycles Size, Modified, Mode and Owner.	yazi-063	yazi
 mgr	["m", "p"]	"linemode permissions"	mgr	[]		unsupported	Direct mode selection is refused; two presses of I from Size shows Mode in the detail column. I cycles Size, Modified, Mode and Owner.	yazi-064	yazi
-mgr	["m", "b"]	"linemode btime"	mgr	[]		unsupported	Birth-time detail is not exposed by the TUI; TUI17 will implement it. I cycles the existing Size, Modified, Mode and Owner fields.	yazi-065	yazi
+mgr	["m", "b"]	"linemode btime"	listing	["m", "b"]	detailBirth	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-065	yazi
 mgr	["m", "m"]	"linemode mtime"	mgr	[]		unsupported	Direct mode selection is refused; one press of I from Size shows Modified in the detail column. I cycles Size, Modified, Mode and Owner.	yazi-066	yazi
 mgr	["m", "o"]	"linemode owner"	mgr	[]		unsupported	Direct mode selection is refused; three presses of I from Size shows Owner in the detail column. I cycles Size, Modified, Mode and Owner.	yazi-067	yazi
-mgr	["m", "n"]	"linemode none"	mgr	[]		unsupported	The detail column has no hidden/off mode; TUI17 will implement it. I cycles the four existing detail fields.	yazi-068	yazi
-mgr	["c", "c"]	"copy path"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build	yazi-069	yazi
-mgr	["c", "C"]	"copy url"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build	yazi-070	yazi
-mgr	["c", "d"]	"copy dirpath"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build	yazi-071	yazi
-mgr	["c", "D"]	"copy dirurl"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build	yazi-072	yazi
-mgr	["c", "f"]	"copy filename"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build	yazi-073	yazi
-mgr	["c", "n"]	"copy name_without_ext"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build	yazi-074	yazi
+mgr	["m", "n"]	"linemode none"	listing	["m", "n"]	detailOff	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-068	yazi
+mgr	["c", "c"]	"copy path"	listing	["c", "c"]	copyPath	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-069	yazi
+mgr	["c", "C"]	"copy url"	listing	["c", "C"]	copyUri	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-070	yazi
+mgr	["c", "d"]	"copy dirpath"	listing	["c", "d"]	copydirpath	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-071	yazi
+mgr	["c", "D"]	"copy dirurl"	listing	["c", "D"]	copyDirUri	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-072	yazi
+mgr	["c", "f"]	"copy filename"	listing	["c", "f"]	copyName	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-073	yazi
+mgr	["c", "n"]	"copy name_without_ext"	listing	["c", "n"]	copyStem	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-074	yazi
 mgr	"f"	"filter --smart"	listing	["f"]	filter	bound	The equivalent action uses the resolved Flea handler	yazi-075	yazi
 mgr	"/"	"find --smart"	mgr	[]		unsupported	/ opens the live filename filter; matching rows remain visible rather than moving a find cursor through the unfiltered listing.	yazi-076	yazi
-mgr	"?"	"find --previous --smart"	mgr	[]		unsupported	Reverse find traversal is unavailable; f filters the held rows	yazi-077	yazi
-mgr	"n"	"find_arrow"	mgr	[]		unsupported	Find-next traversal is unavailable; f filters the held rows	yazi-078	yazi
+mgr	"?"	"find --previous --smart"	listing	["?"]	findPrevious	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-077	yazi
+mgr	"n"	"find_arrow"	listing	["n"]	findNext	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-078	yazi
 mgr	"N"	"find_arrow --previous"	mgr	[]		unsupported	N opens New Folder; reverse find traversal is absent, while f opens the live filename filter.	yazi-079	yazi
 mgr	[",", "m"]	["sort mtime --reverse=no", "linemode mtime"]	mgr	[]		unsupported	The sequence sorts modified time but leaves the current detail column unchanged; I cycles Size, Modified, Mode and Owner.	yazi-080	yazi
 mgr	[",", "M"]	["sort mtime --reverse=yes", "linemode mtime"]	mgr	[]		unsupported	The sequence sorts modified time but leaves the current detail column unchanged; I cycles Size, Modified, Mode and Owner.	yazi-081	yazi
-mgr	[",", "b"]	["sort btime --reverse=no", "linemode btime"]	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build	yazi-082	yazi
-mgr	[",", "B"]	["sort btime --reverse=yes", "linemode btime"]	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build	yazi-083	yazi
-mgr	[",", "e"]	"sort extension --reverse=no"	mgr	[]		unsupported	This sort order is unavailable; use alphabetical, size or modified-time sorting	yazi-084	yazi
+mgr	[",", "b"]	["sort btime --reverse=no", "linemode btime"]	listing	[",", "b"]	sortBirth	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-082	yazi
+mgr	[",", "B"]	["sort btime --reverse=yes", "linemode btime"]	listing	[",", "B"]	sortBirthReverse	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-083	yazi
+mgr	[",", "e"]	"sort extension --reverse=no"	listing	[",", "e"]	sortExtension	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-084	yazi
 mgr	[",", "E"]	"sort extension --reverse=yes"	mgr	[]		unsupported	The prefix consumes its unbound extension-sort suffix and reports no action; ,A provides existing natural Name descending order instead.	yazi-085	yazi
 mgr	[",", "a"]	"sort alphabetical --reverse=no"	mgr	[]		unsupported	The sequence requests Flea's case-insensitive natural Name order; a separate letter-by-letter alphabetical sort is absent.	yazi-086	yazi
 mgr	[",", "A"]	"sort alphabetical --reverse=yes"	mgr	[]		unsupported	The sequence requests Flea's case-insensitive natural Name order; a separate letter-by-letter alphabetical sort is absent.	yazi-087	yazi
@@ -91,13 +91,13 @@ mgr	[",", "n"]	"sort natural --reverse=no"	listing	[",", "a"]	sortName	different
 mgr	[",", "N"]	"sort natural --reverse=yes"	listing	[",", "A"]	sortNameReverse	different	Flea Name order compares digit runs numerically and folds ASCII case; ,a and ,A reach its natural ascending and descending handlers.	yazi-089	yazi
 mgr	[",", "s"]	["sort size --reverse=no", "linemode size"]	mgr	[]		unsupported	The sequence sorts size but leaves the current detail column unchanged; I cycles Size, Modified, Mode and Owner.	yazi-090	yazi
 mgr	[",", "S"]	["sort size --reverse=yes", "linemode size"]	mgr	[]		unsupported	The sequence sorts size but leaves the current detail column unchanged; I cycles Size, Modified, Mode and Owner.	yazi-091	yazi
-mgr	[",", "r"]	"sort random --reverse=no"	mgr	[]		unsupported	This sort order is unavailable; use alphabetical, size or modified-time sorting	yazi-092	yazi
+mgr	[",", "r"]	"sort random --reverse=no"	listing	[",", "r"]	sortRandom	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-092	yazi
 mgr	["g", "h"]	"cd ~"	listing	["g", "h"]	goHome	bound	The equivalent action uses the resolved Flea handler	yazi-093	yazi
 mgr	["g", "c"]	"cd ~/.config"	listing	["g", "c"]	goConfig	bound	The equivalent action uses the resolved Flea handler	yazi-094	yazi
 mgr	["g", "d"]	"cd ~/Downloads"	listing	["g", "d"]	goDownloads	bound	The equivalent action uses the resolved Flea handler	yazi-095	yazi
 mgr	["g", "t"]	"plugin trash"	listing	["g", "t"]	openTrash	bound	The equivalent action uses the resolved Flea handler	yazi-096	yazi
 mgr	["g", "<Space>"]	"cd --interactive"	listing	["g", "<Space>"]	pathBar	bound	The equivalent action uses the resolved Flea handler	yazi-097	yazi
-mgr	["g", "f"]	"follow"	mgr	[]		unsupported	Following a file to its folder is available only through reveal in a search listing	yazi-098	yazi
+mgr	["g", "f"]	"follow"	listing	["g", "f"]	followLink	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-098	yazi
 mgr	["t", "t"]	"tab_create --current"	listing	["t", "t"]	tabNew	bound	The equivalent action uses the resolved Flea handler	yazi-099	yazi
 mgr	["t", "r"]	"tab_rename --interactive"	mgr	[]		unsupported	Custom tab names are unavailable; tabs show their folders	yazi-100	yazi
 mgr	"1"	"tab_switch 0"	listing	["1"]	tab1	bound	The equivalent action uses the resolved Flea handler	yazi-101	yazi
@@ -178,10 +178,10 @@ input	"w"	"forward"	input	[]		unsupported	Inserts literal "w" in the field; inse
 input	"W"	"forward wide"	input	[]		unsupported	Inserts literal "W" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-176	yazi
 input	"e"	"forward --end-of-word"	input	[]		unsupported	Inserts literal "e" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-177	yazi
 input	"E"	"forward wide --end-of-word"	input	[]		unsupported	Inserts literal "E" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-178	yazi
-input	"<A-b>"	"backward lean"	input	[]		unsupported	Consumes Alt word-motion input without moving the field cursor; word traversal is absent and no listing action runs.	yazi-179	yazi
-input	"<A-f>"	"forward lean --end-of-word"	input	[]		unsupported	Consumes Alt word-motion input without moving the field cursor; word traversal is absent and no listing action runs.	yazi-180	yazi
-input	"<C-Left>"	"backward lean"	input	[]		unsupported	Moves one character inside the field, without word traversal; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-181	yazi
-input	"<C-Right>"	"forward lean --end-of-word"	input	[]		unsupported	Moves one character inside the field, without word traversal; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-182	yazi
+input	"<A-b>"	"backward lean"	editor	["<A-b>"]	backward lean	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-179	yazi
+input	"<A-f>"	"forward lean --end-of-word"	editor	["<A-f>"]	forward lean --end-of-word	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-180	yazi
+input	"<C-Left>"	"backward lean"	editor	["<C-Left>"]	backward lean	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-181	yazi
+input	"<C-Right>"	"forward lean --end-of-word"	editor	["<C-Right>"]	forward lean --end-of-word	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-182	yazi
 input	"0"	"move bol"	editor	["<Home>"]	move bol	different	Insert-only prompts use the terminal editing key directly	yazi-183	yazi
 input	"$"	"move eol"	editor	["<End>"]	move eol	different	Insert-only prompts use the terminal editing key directly	yazi-184	yazi
 input	"_"	"move first-char"	input	[]		unsupported	Inserts literal "_" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-185	yazi
@@ -194,12 +194,12 @@ input	"<Backspace>"	"backspace"	editor	["<Backspace>"]	backspace	bound	Insert-on
 input	"<Delete>"	"backspace --under"	editor	["<Delete>"]	backspace --under	bound	Insert-only prompts use the terminal editing key directly	yazi-192	yazi
 input	"<C-h>"	"backspace"	editor	["<Backspace>"]	backspace	different	Insert-only prompts use the terminal editing key directly	yazi-193	yazi
 input	"<C-d>"	"backspace --under"	editor	["<Delete>"]	backspace --under	different	Insert-only prompts use the terminal editing key directly	yazi-194	yazi
-input	"<C-u>"	"kill bol"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-195	yazi
-input	"<C-k>"	"kill eol"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-196	yazi
-input	"<C-w>"	"kill backward"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-197	yazi
-input	"<A-d>"	"kill forward"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-198	yazi
-input	"<C-Backspace>"	"kill backward"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-199	yazi
-input	"<C-Delete>"	"kill forward"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-200	yazi
+input	"<C-u>"	"kill bol"	editor	["<C-u>"]	kill bol	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-195	yazi
+input	"<C-k>"	"kill eol"	editor	["<C-k>"]	kill eol	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-196	yazi
+input	"<C-w>"	"kill backward"	editor	["<C-w>"]	kill backward	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-197	yazi
+input	"<A-d>"	"kill forward"	editor	["<A-d>"]	kill forward	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-198	yazi
+input	"<C-Backspace>"	"kill backward"	editor	["<C-Backspace>"]	kill backward	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-199	yazi
+input	"<C-Delete>"	"kill forward"	editor	["<C-Delete>"]	kill forward	bound	Implemented through the TUI17 handler; parity17_tests and the source citations in the unit evidence verify the result.	yazi-200	yazi
 input	"d"	"delete --cut"	input	[]		unsupported	Inserts literal "d" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-201	yazi
 input	"D"	["delete --cut", "move eol"]	input	[]		unsupported	Inserts literal "D" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-202	yazi
 input	"c"	"delete --cut --insert"	input	[]		unsupported	Inserts literal "c" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-203	yazi

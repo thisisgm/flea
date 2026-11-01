@@ -15,6 +15,10 @@ pub const FLEA: &str = "application/x-flea-clip";
 
 // Every type an owner offers with its bytes, in the order they are served; KDE only on a cut.
 pub fn payloads(op: &str, paths: &[String], token: &str) -> Vec<(&'static str, Vec<u8>)> {
+    if op == "text" {
+        let body = paths.first().map_or(&b""[..], |s| s.as_bytes());
+        return [PLAIN_UTF8, PLAIN, UTF8_STRING].into_iter().map(|mime| (mime, body.to_vec())).collect();
+    }
     let mut out = vec![
         (FLEA, build_flea(op, token)),
         (GNOME, build_gnome(op, paths)),
@@ -40,6 +44,10 @@ pub fn is_token(token: &str) -> bool {
 
 // What clipSet and the CLI accept, in the order both sides check them.
 pub fn check_selection(op: &str, paths: &[String]) -> Result<(), String> {
+    if op == "text" {
+        return if paths.len() == 1 && !paths[0].contains('\0') { Ok(()) }
+            else { Err("the text clipboard needs one NUL-free value".into()) };
+    }
     if !is_op(op) {
         return Err("the clipboard operation must be copy or cut".to_string());
     }

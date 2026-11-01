@@ -100,7 +100,7 @@ fn tui_ground_is_the_terminal_default_background_in_every_frame_and_erase() {
         let mut m = model();
         m.filter = "o".into();
         let washed = assert_ground(&case("filtered listing"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]), false);
-        if depth == Depth::Truecolor { assert!(washed.contains(&parameters(&theme.match_fill)), "the filter lost its match plate"); }
+        if depth == Depth::Truecolor { assert!(!washed.contains(&parameters(&theme.match_fill)), "filter matches must keep each row's own background"); }
         let mut m = model();
         m.total = 0; m.rows.clear(); m.path.push("Empty");
         assert_ground(&case("empty folder"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]), false);

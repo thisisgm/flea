@@ -82,7 +82,7 @@ fn tui_model3d_fix2_manual_model_row_drops_previous_picture() {
         let mut m = model(&root);
         m.preview_auto = false;
         m.total = 2;
-        m.rows.insert(1, Row { name: "next.png".into(), directory: false, size: 23, mode: 0o100644, link: String::new(), kind: "PNG image".into(), thumbnail: true, modified: 0, icon: "image-png".into() });
+        m.rows.insert(1, Row { name: "next.png".into(), directory: false, size: 23, mode: 0o100644, link: String::new(), kind: "PNG image".into(), thumbnail: true, modified: 0, birth: None, icon: "image-png".into() });
         m.cursor = 1;
         preview::load(&mut m, true);
         m.media_probe = Some((2, 2, 0));

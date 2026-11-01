@@ -35,6 +35,7 @@ pub fn parse_request(line: &str) -> Request {
             id: field_usize(line, "id").unwrap_or(0),
         },
         Some("link") => Request::Link {
+            held: crate::jsondoc::parse(line).ok().and_then(|v| v.get("held").cloned()),
             // Anything that is not "absolute" or "hard" is a relative link, never an absolute path by accident.
             op: field_str(line, "op").unwrap_or_default(),
             paths: field_str_array(line, "paths"),
@@ -43,6 +44,7 @@ pub fn parse_request(line: &str) -> Request {
             collide: crate::backend::collide::Ask::parse(line),
         },
         Some("linktarget") => Request::LinkTarget {
+            expected: field_str(line, "target"),
             path: field_str(line, "path").unwrap_or_default(),
             id: field_usize(line, "id").unwrap_or(0),
         },
@@ -250,6 +252,7 @@ pub fn parse_request(line: &str) -> Request {
             sheets: c == "officesheets",
         },
         Some("peek") => Request::Peek {
+            details: field_bool(line, "details"),
             path: field_str(line, "path").unwrap_or_default(),
             first: field_usize(line, "first").unwrap_or(0),
             hidden: field_bool(line, "hidden"),

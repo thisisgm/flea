@@ -51,7 +51,36 @@ const ROWS: &[Row] = &[
     ("change", &["openTerminal"], "keys.openTerminal", &["ctrl-t"]),
     ("change", &["openAgent"], "keys.openAgent", &["A"]),
     ("change", &["print"], "keys.print", &["ctrl-p"]),
+    ("move", &["suspend"], "keys.tui17.suspend", &["ctrl-z"]),
+    ("move", &["followLink"], "keys.tui17.followLink", &["g f"]),
+    ("look", &["detailBirth"], "keys.tui17.detailBirth", &["m b"]),
+    ("look", &["detailOff"], "keys.tui17.detailOff", &["m n"]),
+    ("find", &["findPrevious"], "keys.tui17.findPrevious", &["?"]),
+    ("find", &["findNext"], "keys.tui17.findNext", &["n"]),
+    ("find", &["sortBirth"], "keys.tui17.sortBirth", &[", b"]),
+    ("find", &["sortBirthReverse"], "keys.tui17.sortBirthReverse", &[", B"]),
+    ("find", &["sortExtension"], "keys.tui17.sortExtension", &[", e"]),
+    ("find", &["sortRandom"], "keys.tui17.sortRandom", &[", r"]),
+    ("change", &["copyPath"], "keys.tui17.copyPath", &["c c", "ctrl-shift-c"]),
+    ("change", &["copyUri"], "keys.tui17.copyUri", &["c C"]),
+    ("change", &["copydirpath"], "keys.tui17.copydirpath", &["c d", "Y"]),
+    ("change", &["copyDirUri"], "keys.tui17.copyDirUri", &["c D"]),
+    ("change", &["copyName"], "keys.tui17.copyName", &["c f"]),
+    ("change", &["copyStem"], "keys.tui17.copyStem", &["c n"]),
+    ("change", &["pasteAbsoluteLink"], "keys.tui17.pasteAbsoluteLink", &["-"]),
+    ("change", &["pasteLink"], "keys.tui17.pasteLink", &["_"]),
+    ("change", &["pasteHardLink"], "keys.tui17.pasteHardLink", &["ctrl-minus"]),
+    ("change", &["wordBackward"], "keys.tui17.wordBackward", &["alt-b", "ctrl-left"]),
+    ("change", &["wordForward"], "keys.tui17.wordForward", &["alt-f", "ctrl-right"]),
+    ("change", &["killBol"], "keys.tui17.killBol", &["ctrl-u"]),
+    ("change", &["killEol"], "keys.tui17.killEol", &["ctrl-k"]),
+    ("change", &["killBackward"], "keys.tui17.killBackward", &["ctrl-w", "ctrl-backspace"]),
+    ("change", &["killForward"], "keys.tui17.killForward", &["alt-d", "ctrl-delete"]),
+
 ];
+fn context(actions: &[&str]) -> &'static str {
+    if actions.iter().any(|a| a.starts_with("word") || a.starts_with("kill")) { "editor" } else { "listing" }
+}
 const GROUPS: [&str; 4] = ["move", "look", "find", "change"];
 // At most three columns, four cells apart.
 const COLUMNS: usize = 3;
@@ -75,11 +104,18 @@ fn keys(spelled: &str) -> Vec<Key> {
 }
 // The spelling as this preset binds it to one of the row's actions: a letter that arms its action prints doubled, "dd" prints "d" where one press acts.
 fn bound(map: &Map, preset: &str, actions: &[&str], spelled: &str) -> Option<String> {
+    if let Some((first, tail)) = spelled.split_once(' ') {
+        return keys(first).iter().find_map(|first| {
+            let arm = map.in_context(first, preset, context(actions));
+            let prefix = arm.strip_prefix("prefix:")?;
+            keys(tail).iter().any(|key| actions.contains(&map.sequence(prefix, key, preset, context(actions)).as_str())).then(|| spelled.to_owned())
+        });
+    }
     let first = spelled.chars().next()?;
     let doubled = spelled.chars().count() == 2 && spelled.chars().all(|c| c == first);
     let probe = if doubled { first.to_string() } else { spelled.to_owned() };
     keys(&probe).iter().find_map(|key| {
-        let found = map.action(key, preset);
+        let found = map.in_context(key, preset, context(actions));
         actions.iter().find_map(|action| if found == *action { Some(probe.clone()) }
             else if found == format!("{action}Arm") { Some(format!("{first}{first}")) }
             else if found.strip_prefix("prefix:").is_some_and(|prefix| map.sequence(prefix, key, preset, "listing") == *action) { Some(format!("{first} {first}")) }
@@ -94,13 +130,15 @@ pub(crate) fn lowercase(chord: &str) -> String {
     if mods.is_empty() { name } else { format!("{}-{}", mods.to_lowercase().replace('+', "-"), name) }
 }
 // The keys a row prints: the window's spellings this preset binds, else the preset's own first key for the row.
+fn listed(row: &Row, preset: &str) -> bool { preset == "yazi" || !row.2.starts_with("keys.tui17.") }
 fn spelling(map: &Map, preset: &str, row: &Row) -> String {
+    if !listed(row, preset) { return String::new(); }
     if row.1 == ["tab1"] { return if bound(map, preset, row.1, "1").is_some() { "1–9".into() } else { String::new() }; }
     let mut keys: Vec<String> = Vec::new();
     for spelled in row.3.iter().filter_map(|spelled| bound(map, preset, row.1, spelled)) {
         if !keys.contains(&spelled) { keys.push(spelled); }
     }
-    if keys.is_empty() { keys.extend(row.1.iter().find_map(|action| map.chord(action, preset, "listing")).map(|chord| lowercase(&chord))); }
+    if keys.is_empty() { keys.extend(row.1.iter().find_map(|action| map.chord(action, preset, context(row.1))).map(|chord| lowercase(&chord))); }
     keys.join(" / ")
 }
 // A menu row's key hint: the first key the row's action answers to without Ctrl or Alt.
@@ -116,7 +154,7 @@ fn groups(m: &Model, map: &Map) -> Vec<Vec<Line>> {
     GROUPS.iter().map(|group| {
         // The catalog keeps headings as the key table generator writes them; the sheet draws them in capitals, as the GUI sheet does.
         let mut lines = vec![Line::Heading(m.heading(&format!("keys.group.{group}")))];
-        let answered = |row: &&Row| row.1.iter().any(|action| *action == "tab1" || crate::tui::keymap::supported(action));
+        let answered = |row: &&Row| listed(row, &m.preset) && row.1.iter().any(|action| *action == "tab1" || crate::tui::keymap::supported(action));
         lines.extend(ROWS.iter().filter(|row| row.0 == *group).filter(answered).filter_map(|row| {
             let canonical = spelling(map, &m.preset, row);
             let keys = m.keycap_labels.get(&canonical).cloned().unwrap_or(canonical);
@@ -129,15 +167,28 @@ fn groups(m: &Model, map: &Map) -> Vec<Vec<Line>> {
 #[allow(dead_code, reason = "called by the retained I50-11 snapshot consumer")]
 pub fn resolve(m: &Model, map: &Map, snapshot: &flea::keys::display::KeycapSnapshot) -> Result<std::collections::HashMap<String, String>, flea::keys::display::KeycapError> {
     let mut labels = std::collections::HashMap::new();
-    for row in ROWS {
+    for row in ROWS.iter().filter(|row| listed(row, &m.preset)) {
         let canonical = spelling(map, &m.preset, row);
         if canonical.is_empty() { continue; }
         let text = if canonical == "1–9" {
             format!("{}–{}", snapshot.label("1")?, snapshot.label("9")?)
-        } else { flea::keys::display::chord_label(&canonical, snapshot)?.text };
+        } else { label(&canonical, snapshot)? };
         labels.insert(canonical, text);
     }
     Ok(labels)
+}
+// New editor chords compose existing immutable keycap atoms; an unavailable atom still fails the epoch.
+fn label(canonical: &str, snapshot: &flea::keys::display::KeycapSnapshot) -> Result<String, flea::keys::display::KeycapError> {
+    canonical.split(" / ").map(|alternative| alternative.split(' ').map(|part| {
+        match snapshot.label(part) {
+            Ok(label) => Ok(label.to_owned()),
+            Err(flea::keys::display::KeycapError::UnknownChord(_)) if matches!(part, "alt-b" | "alt-f" | "alt-d" | "ctrl-left" | "ctrl-right" | "ctrl-backspace") => {
+                let (modifier, key) = part.split_once('-').unwrap();
+                snapshot.label(key).map(|key| format!("{modifier}-{key}"))
+            }
+            Err(error) => Err(error),
+        }
+    }).collect::<Result<Vec<_>, _>>().map(|parts| parts.join(" "))).collect::<Result<Vec<_>, _>>().map(|parts| parts.join(" / "))
 }
 // Groups fill a column in order and the next group starts a new one when it would not fit whole.
 fn pack(groups: &[Vec<Line>], capacity: usize) -> Vec<Vec<Line>> {

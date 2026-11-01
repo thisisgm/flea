@@ -31,9 +31,9 @@ pub(super) fn single(item: &Selected, meta: &Metadata) -> Result<String, String>
     let target = if meta.file_type().is_symlink() {
         std::fs::read_link(&item.path).map_err(|e| format!("Could not read the link: {}.", crate::error::io_message(&e)))?.to_string_lossy().to_string()
     } else { String::new() };
-    Ok(format!(r#""path":"{}","kind":"{}","directory":{},"symlink":{},"target":"{}","bytes":{},"modified":{},"mode":"{:04o}","owner":"{}","uid":{},"gid":{},"tags":{},"photo":{}"#,
+    Ok(format!(r#""path":"{}","kind":"{}","directory":{},"symlink":{},"target":"{}","bytes":{},"modified":{},"birth":{},"mode":"{:04o}","owner":"{}","uid":{},"gid":{},"tags":{},"photo":{}"#,
         escape(&item.path.to_string_lossy()), kind, meta.is_dir(), meta.file_type().is_symlink(), escape(&target),
-        meta.len(), meta.mtime(), meta.mode() & 0o7777, escape(&super::owner::name(meta.uid())), meta.uid(), meta.gid(), super::tags::names_json(&item.path),
+        meta.len(), meta.mtime(), super::birthtime::json(&item.path), meta.mode() & 0o7777, escape(&super::owner::name(meta.uid())), meta.uid(), meta.gid(), super::tags::names_json(&item.path),
         super::metareq::photo_json(&super::metareq::photo(&item.path, true))))
 }
 

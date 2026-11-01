@@ -135,6 +135,13 @@ impl Editor {
             self.cursor = self.value.len();
             return;
         }
+        let old_length = self.value.len();
+        if self.word_command(key) {
+            self.editable_end = self.editable_end + self.value.len() - old_length;
+            self.error.clear();
+            self.error_text = None;
+            return;
+        }
         let start = self.cursor.min(self.anchor);
         let end = self.cursor.max(self.anchor);
         let previous = self.value[..self.cursor]
@@ -195,6 +202,33 @@ impl Editor {
         self.editable_end = self.editable_end + self.value.len() - old_length;
         self.error.clear();
         self.error_text = None;
+    }
+    fn word_command(&mut self, key: &Key) -> bool {
+        use super::editor_words::{backward, forward, kill_length};
+        let mods = key.mods.as_str();
+        let motion = match (mods, key.name.as_str()) {
+            ("alt", "B") | ("ctrl" | "ctrlshift", "Left") => Some(false),
+            ("alt", "F") | ("ctrl" | "ctrlshift", "Right") => Some(true),
+            _ => None,
+        };
+        if let Some(right) = motion {
+            self.cursor = if right { forward(&self.value, self.cursor, self.editable_end) }
+                else { backward(&self.value, self.cursor) };
+            if mods != "ctrlshift" { self.anchor = self.cursor; }
+            return true;
+        }
+        let range = match (mods, key.name.as_str()) {
+            ("ctrl", "U") => 0..self.cursor,
+            ("ctrl", "K") => self.cursor..self.editable_end,
+            ("ctrl", "W" | "Backspace") => self.cursor - kill_length(self.value[..self.cursor].chars().rev())..self.cursor,
+            ("alt", "D") | ("ctrl", "Delete") => self.cursor..self.cursor + kill_length(self.value[self.cursor..self.editable_end].chars()),
+            _ => return false,
+        };
+        let range = if self.cursor != self.anchor { self.cursor.min(self.anchor)..self.cursor.max(self.anchor) } else { range };
+        self.cursor = range.start;
+        self.anchor = self.cursor;
+        self.value.replace_range(range, "");
+        true
     }
     /// Draws the status-row field and returns its cells and caret cell; unsafe characters are filtered at paint time, so the stored name stays whole.
     pub fn field(

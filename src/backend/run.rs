@@ -11,7 +11,7 @@ use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
 use crate::backend::peekwatch::PeekWatch;
 use crate::backend::metareq::spawn as spawn_meta;
-use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_permissions_batch, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_link, start_link_target, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
+use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_permissions_batch, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::dirsizereq::{queue_dirsizes, seed_answered, start_next, report_done as report_dirsize};
 use crate::backend::events::{spawn_op_forwarder, Event, Sender};
@@ -479,7 +479,7 @@ fn handle_line(
             listpaths::answer(out, st, pool, tb, &paths, first, line)
         }
         Request::Filter { query, id } => {
-            let line = super::filter::filtered_line(&st.listing, &query, id);
+            let line = super::findnames::requested(&st.listing, &query, id, line);
             say(out, &super::rowguard::stamped(line, st.generation));
         }
         Request::Window { start, count } => {
@@ -695,11 +695,11 @@ fn handle_line(
         Request::ClipGet => super::clipreq::request_get(ops.tx.clone()),
         Request::ClipClear { token, cut } => super::clipreq::request_clear(ops.tx.clone(), token, cut),
         Request::ClipWatch => super::clipreq::request_watch(ops.tx.clone(), &mut st.clip_watching, None),
-        Request::Link { op, paths, rows, dest, collide } => {
+        Request::Link { held, op, paths, rows, dest, collide } => {
             let named = resolve_rows(paths, &rows, &st.base, &st.listing);
-            start_link(out, ops, &op, named, &dest, collide)
+            super::linkheld::start(out, ops, held, &op, named, &dest, collide)
         }
-        Request::LinkTarget { path, id } => start_link_target(ops, &path, id),
+        Request::LinkTarget { path, id, expected } => super::linkheld::target(ops, &path, id, expected),
         Request::PermissionsBatch { paths, modes, id } => do_permissions_batch(out, ops, paths, modes, id),
         Request::TransferCancel { id } => cancel_transfer(out, ops, id),
         Request::Trash { paths, rows, menu_id, request } => {
@@ -735,14 +735,14 @@ fn handle_line(
         }
         Request::Redo => start_redo(out, ops),
         // Never touches st.listing, which is the whole point: a column is not the pane's own listing.
-        Request::Peek { path, first, hidden, hidden_last, focus, watch, keep, by, desc } => {
+        Request::Peek { path, first, details, hidden, hidden_last, focus, watch, keep, by, desc } => {
             if watch && !keep.is_empty() { peeks.keep(keep.into_iter().map(PathBuf::from).collect()) }
             let order = match super::peek::Order::wire(hidden_last, by.as_deref(), desc) {
                 Ok(order) => order,
                 // A key this wire never defined answers the sort's own error, never a name-order column.
                 Err(msg) => { say(out, &error_line(&FleaError { where_: "sort".to_string(), path: by.unwrap_or_default(), msg: msg.to_string() })); return Control::Continue }
             };
-            let line = super::peek::answer(&path, first, hidden, order, focus, watch.then(|| (peeks.raw_fd(), loop_tx.clone())), tb);
+            let line = super::peek::answer(&path, (first, details), hidden, order, focus, watch.then(|| (peeks.raw_fd(), loop_tx.clone())), tb);
             say(out, &line)
         }
         // A compress names absolute paths and no path; an extract names the one archive in path.
@@ -794,8 +794,7 @@ fn handle_line(
             let written = super::tagsreq::handle(out, ops, st, tags);
             note_tag_writes(st, &written);
         }
-        Request::Paths { rows } =>
-            say(out, &paths_line(&resolve_rows(Vec::new(), &rows, &st.base, &st.listing))),
+        Request::Paths { rows } => super::linkheld::request(out, ops.tx.clone(), resolve_rows(Vec::new(), &rows, &st.base, &st.listing), st.generation, crate::json::field_bool(line, "hold"), crate::json::field_usize(line, "id").unwrap_or(0)),
         Request::ImagePaths(ask) => say(
             out,
             &paths_line(&super::viewerpaths::ordered(

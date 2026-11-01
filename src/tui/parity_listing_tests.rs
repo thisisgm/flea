@@ -14,6 +14,9 @@ pub(super) fn press(m: &mut Model, keys: &[Key], map: &Map, w: &mut wire::Wire) 
 
 pub(super) fn listing_action(keys: &[Key], action: &str, preset: &str, map: &Map) {
     LISTING_CHECKS.with(|count| count.set(count.get() + 1));
+    if matches!(action, "suspend" | "pasteAbsoluteLink" | "pasteLink" | "pasteHardLink" | "detailBirth" | "detailOff" | "copyPath" | "copyUri" | "copydirpath" | "copyDirUri" | "copyName" | "copyStem" | "findPrevious" | "findNext" | "sortBirth" | "sortBirthReverse" | "sortExtension" | "sortRandom" | "followLink") {
+        return crate::tui::parity17_tests::listing_case(keys, action);
+    }
     let (mut w, reader) = wire::echo_wire();
     let mut m = listing(&mut w, preset);
     let mut expected_cursor = None;

@@ -228,15 +228,28 @@ pub fn delete_key(m: &mut Model, key: &Key, wire: &mut Wire) -> io::Result<()> {
 
 // Properties: the window's facts as a muted label column beside each value, closed by its default Close button.
 pub fn properties_reply(m: &mut Model, value: &Json) {
+    let mime_kind = m.rows.values().chain(m.selected_rows.values()).find(|row| m.path.join(&row.name) == std::path::Path::new(text(value, "path")))
+        .map(|row| row.kind.clone()).unwrap_or_default();
+    let mut value = value.clone();
+    if value.get("mimeKind").is_none() && !mime_kind.is_empty() {
+        if let Json::Obj(fields) = &mut value { fields.push(("mimeKind".into(), word(&mime_kind))); }
+    }
     m.menu_view.properties_source = Some((m.action_id, value.clone()));
-    m.properties = Some(properties(value, &m.i18n));
+    m.properties = Some(properties(&value, &m.i18n));
 }
 pub fn properties(value: &Json, i18n: &I18n) -> Vec<(String, String)> {
     let fact = |key: &str, value: String| (i18n.tr(key), value);
     let bytes = count(value, "bytes");
+    let kind = match text(value, "kind") {
+        "File" | "Directory" | "Symbolic link" | "Special file" => flea::ui_logic_op3::properties::kind_word(
+            i18n, &flea::ui_logic_op3::properties::Facts {
+                kind: text(value, "kind").into(), directory: flag(value, "directory"), ..Default::default()
+            }, text(value, "mimeKind")),
+        description => description.into(),
+    };
     let mut facts = vec![
         fact("properties.path", text(value, "path").into()),
-        fact("properties.kind", text(value, "kind").into()),
+        fact("properties.kind", kind),
         fact("properties.size", i18n.trn_args("properties.bytes", bytes as i64, &[&i18n.locale().format_size(bytes as u64)])),
         fact("properties.permissions", text(value, "mode").into()),
         fact("properties.owner", i18n.tr_args("properties.ownerValue", &[text(value, "owner"), &count(value, "uid").to_string()])),
@@ -244,6 +257,10 @@ pub fn properties(value: &Json, i18n: &I18n) -> Vec<(String, String)> {
     ];
     let modified = crate::tui::calendar::localized_value(value.get("modified").unwrap_or(&Json::Null), i18n.locale());
     if !modified.is_empty() { facts.insert(3, fact("properties.modified", modified)); }
+    if value.get("birth").is_some() {
+        let birth = crate::tui::calendar::localized_value(value.get("birth").unwrap(), i18n.locale());
+        facts.insert(3, fact("properties.birth", if birth.is_empty() { i18n.tr("pane.unavailable") } else { birth }));
+    }
     let deleted = crate::tui::calendar::localized_value(value.get("deleted").unwrap_or(&Json::Null), i18n.locale());
     if !deleted.is_empty() { facts.push(fact("properties.deleted", deleted)); }
     if flag(value, "symlink") { facts.push(fact("properties.target", text(value, "target").into())); }

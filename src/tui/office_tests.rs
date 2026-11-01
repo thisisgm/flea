@@ -16,6 +16,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[path = "office_test_container.rs"]
+mod container_fixture;
+pub(super) use container_fixture::container;
+
 pub(super) const DOCX: &str = "garden-report.docx";
 // How long a test waits to show that no request went out.
 pub(super) const NO_REQUEST_WINDOW: Duration = Duration::from_millis(100);
@@ -117,7 +121,7 @@ pub(super) fn row(name: &str, kind: &str, icon: &str) -> Row {
         link: String::new(),
         kind: kind.into(),
         thumbnail: false,
-        modified: 0,
+        modified: 0, birth: None,
         icon: icon.into(),
     }
 }
@@ -211,7 +215,7 @@ fn tui_office_ready_pdf_keeps_original_identity() {
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
-    std::fs::write(&source, b"docx bytes").unwrap();
+    std::fs::write(&source, container(b"docx bytes")).unwrap();
     std::fs::write(&converted, pdf(3, "Spring report 2025", "Sam Ellis")).unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
     let (mut wire, reader) = wire::echo_wire();
@@ -260,7 +264,7 @@ fn tui_office_cancel_ignores_late_ready() {
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("late.pdf");
-    std::fs::write(&source, b"docx bytes").unwrap();
+    std::fs::write(&source, container(b"docx bytes")).unwrap();
     std::fs::write(root.path("notes.txt"), b"notes\n").unwrap();
     std::fs::write(&converted, pdf(1, "", "")).unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
@@ -314,7 +318,7 @@ fn tui_office_cache_tracks_changed_source() {
     let source = root.path(DOCX);
     let first_pdf = root.path("first.pdf");
     let second_pdf = root.path("second.pdf");
-    std::fs::write(&source, b"docx bytes").unwrap();
+    std::fs::write(&source, container(b"docx bytes")).unwrap();
     std::fs::write(&first_pdf, pdf(1, "", "")).unwrap();
     std::fs::write(&second_pdf, pdf(2, "", "")).unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
@@ -331,7 +335,7 @@ fn tui_office_cache_tracks_changed_source() {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
         m.preview_state.office.source.is_some()
     });
-    std::fs::write(&source, b"docx bytes, edited in place with more bytes").unwrap();
+    std::fs::write(&source, container(b"docx bytes, edited in place with more bytes")).unwrap();
     settle(|| {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
         m.pdf.is_none()

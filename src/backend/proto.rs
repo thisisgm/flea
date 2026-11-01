@@ -102,7 +102,7 @@ pub enum Request {
     // The status bar's filesystem line for the directory the pane is on.
     FsInfo,
     // A read-only look at a directory that is not the current listing; the columns view's ancestors.
-    Peek { path: String, first: usize, hidden: bool, hidden_last: bool, focus: String, watch: bool, keep: Vec<String>, by: Option<String>, desc: bool },
+    Peek { path: String, first: usize, details: bool, hidden: bool, hidden_last: bool, focus: String, watch: bool, keep: Vec<String>, by: Option<String>, desc: bool },
     // A PDF fetched into a session-private copy under a deadline, so a hung mount never freezes the window.
     PdfCopy { id: usize, slot: String, path: String },
     // An office document converted once to a cached PDF by LibreOffice, or with sheets a spreadsheet to one CSV per sheet.
@@ -119,11 +119,11 @@ pub enum Request {
     Formats { id: usize },
     Permissions { line: String },
     // Paste as links: one symlink or hard link per source inside dest; see docs/protocol.md "link".
-    Link { op: String, paths: Vec<String>, rows: Vec<usize>, dest: String,
+    Link { held: Option<crate::jsondoc::Json>, op: String, paths: Vec<String>, rows: Vec<usize>, dest: String,
            collide: super::collide::Ask },
     // Show original: where a symlink's target lives, the same path Show in
     // folder uses; see docs/protocol.md "linktarget".
-    LinkTarget { path: String, id: usize },
+    LinkTarget { path: String, id: usize, expected: Option<String> },
     // Permissions for the whole selection: one Entry holds every path the
     // Apply changed, so one undo restores them all; see docs/protocol.md
     // "permissionsBatch".

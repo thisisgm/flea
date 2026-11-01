@@ -31,19 +31,19 @@ fn tui_office_failure_and_missing_metadata_are_truthful() {
     let cases: [(&str, Vec<u8>, &str, &str); 4] = [
         (
             "note.odt",
-            vec![b'x'; 33],
+            container(&[b'x'; 33]),
             r#""err":"LibreOffice is not installed on this box.","unavailable":true"#,
             KEYS[0],
         ),
         (
             "lease.docx",
-            b"docx bytes".to_vec(),
+            container(b"docx bytes"),
             r#""err":"encrypted","locked":true"#,
             KEYS[1],
         ),
         (
             "broken.odt",
-            vec![b'x'; 33],
+            container(&[b'x'; 33]),
             r#""err":"the converter wrote no PDF""#,
             KEYS[2],
         ),
@@ -113,7 +113,7 @@ fn tui_office_failure_and_missing_metadata_are_truthful() {
     }
     let root = Fixture::new();
     let converted = root.path("bare.pdf");
-    std::fs::write(root.path(DOCX), b"docx bytes").unwrap();
+    std::fs::write(root.path(DOCX), container(b"docx bytes")).unwrap();
     std::fs::write(&converted, pdf(3, "", "")).unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
     let (mut wire, reader) = wire::echo_wire();

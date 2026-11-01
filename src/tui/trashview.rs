@@ -81,7 +81,7 @@ pub fn receive(m: &mut Model, value: &Json) {
         };
         let name = original.rsplit('/').next().unwrap_or(original).to_owned();
         m.rows.insert(start + offset, Row { name, directory, size: count(row, "size"), mode: if directory { 0o40755 } else { 0o100644 },
-            link: String::new(), kind, thumbnail: false, modified: 0, icon: icon.into() });
+            link: String::new(), kind, thumbnail: false, modified: 0, birth: None, icon: icon.into() });
         view.items.insert(start + offset, (original.into(), text(row, "deleted").into()));
     }
     m.cursor = m.cursor.min(m.total.saturating_sub(1));

@@ -346,6 +346,15 @@ matches. A later nonempty window uses the normal complete row format below.
 
 ### filter
 
+TUI traversal sends `"traverse":true` on the same name-only request and receives
+`{"t":"found","id":7,"query":"^note","rows":[0,2],"error":"","listing":1}`.
+It uses smart-case regular expressions and retains the full listing and selection.
+An invalid pattern returns its diagnostic in `error`. The client accepts only its
+latest id, query and listing generation. Initial traversal includes a matching
+current row; subsequent next/previous steps exclude it and wrap. Its state is
+separate from the live filter.
+
+
 `{"c":"filter","query":"<string>","id":<uint>}`
 
 Example: `{"c":"filter","query":".PNG","id":7}`
@@ -376,7 +385,21 @@ requests only windows needed for the displayed matches and refills its viewport 
 `{"c":"sort","by":"<string>","desc":<bool>,"foldersFirst":<bool>,"groupByKind":<bool>,"hiddenLast":<bool>}`
 
 Example: `{"c":"sort","by":"size","desc":true}`
-Re-sorts the current listing by `by` and answers a `listed` line. The four orders are:
+The TUI retains creation-time, extension and random orders for the running session
+and navigation, without writing them into the shared four-sort settings schema.
+Re-sorts the current listing by `by` and answers a `listed` line. The orders are:
+
+- `"btime"` requests optional Linux `statx(STATX_BTIME)` for each entry without
+  following symlinks. The returned mask must include `STATX_BTIME`. Unsupported,
+  inaccessible or missing timestamps stay unavailable, never substituted with ctime
+  or mtime. Like yazi's optional-time comparison, unavailable sorts before known
+  times ascending and after them descending; equal times use the name tie-break.
+- `"extension"` reads only existing filename extension bytes, without MIME lookups
+  or a metadata pass. Directories retain name order.
+- `"random"` materializes one random rank per entry before comparing and installs
+  the resulting permutation for that listing generation. Window reads do not
+  reshuffle it and require no per-entry metadata. Both name-only orders report
+  `read:0.0`. Existing anchors and listing-generation replacement still apply.
 
 - `"name"` works on phase-1 data alone: `read` is `0.0` and `sort` is the sort.
 - `"size"` and `"mtime"` pay the metadata pass first, one `lstat` per row of the whole
@@ -1128,6 +1151,18 @@ refuses it, because a clipboard has no recorded source to replay.
 
 ### link
 
+TUI copy requests `paths` with `"hold":true` and a request `id`. Replies echo the id and listing generation,
+including failed identity captures, so a delayed failure cannot clear a newer copy request.
+Successful replies include `held`, one source identity per path. The identity stores absolute
+`path`, decimal-string `dev`, `ino`, `kind`, and `born` (null or a two-string
+seconds/nanoseconds array), preserving integer precision. Capture runs off the
+backend loop with the existing mount deadline. The client retains it through
+navigation and collision confirmation. The link request carries that same `held`
+array. The link worker checks each source against it before any destination action;
+a missing or changed source fails without creating its link. Existing clients may
+omit `held`. Every successful link still records the existing journal step.
+
+
 `{"c":"link","op":"<string>","paths":["<string>",...],"dest":"<string>"}`
 
 Example: `{"c":"link","op":"relative","paths":["/home/gm/a.png"],"dest":"/home/gm/Pictures"}`
@@ -1169,6 +1204,11 @@ sentence, and a hard link to a folder is refused outright. A `dest` that is miss
 or cannot be written answers a single `error` line with `where` of `link` and nothing is started.
 
 ### linktarget
+
+The optional `target` string is the selected link's held readlink value. If the
+worker reads a different value, it refuses rather than following the replacement.
+TUI replies must also match the held request id, source path and listing generation.
+
 
 `{"c":"linktarget","path":"<string>","id":<uint>}`
 
@@ -1840,6 +1880,14 @@ Rail hover requests include a positive `id`, echoed in the answer, so leaving or
 
 ### clipSet
 
+`"op":"text"` uses the same queued detached owner with `paths` containing exactly
+one NUL-free text value. It offers only `text/plain;charset=utf-8`, `text/plain` and
+`UTF8_STRING`, with no file URI list, copy/cut marker or file token. It never changes
+the TUI's copied-file selection. TUI copy-as-text joins held selected paths, URIs,
+parent paths/URIs, filenames or stems with newlines. URI encoding preserves UTF-8
+bytes and escapes every byte outside the unreserved set and slash.
+
+
 `{"c":"clipSet","op":"copy"|"cut","paths":[<string>,...]}`
 
 Owns the system clipboard for those files, so another Flea window (or Nautilus, or
@@ -2065,6 +2113,16 @@ added plus removed rows between the two scans, so a rename counts 2 against a ne
 A first listing and a navigation carry no `changed`, and a client reads a missing one as unknown rather than 0.
 
 ### rows
+
+Each viewport row also carries `b`, an optional creation timestamp as Unix seconds
+or null. The source is Linux `statx(STATX_BTIME)`, with no-follow and no-automount
+flags and the returned mask checked. Missing support stays null. It is read only
+in the existing bounded viewport metadata worker, except an explicit creation-time
+sort. Serialization performs no extra filesystem read. Cached GIO rows without
+a creation-time fact report null. TUI Creation
+detail displays a localized date or the localized unavailable value. Properties'
+single-item `menuaction` payload carries the same optional value as `birth`.
+
 
 `{"t":"rows","start":<uint>,"rows":[{"n":<string>,"d":<bool>,"s":<uint>,"m":<int>,"p":<uint>,"i":<string>,"t":<bool>,"k":<uint>[,"l":<string>][,"v":<uint>][,"tg":[<string>,...]][,"a":true][,"x":false]},...],"kinds":[<string>,...],"ms":<float>,"listing":<uint>}`
 
@@ -2926,6 +2984,14 @@ refused the same way: `{"t":"archivedone","id":<uint>,"ok":false,"verified":true
 <leaf> needs <needed>, and <target> has <free> free."}`, where `<target>` is the name of the folder the
 extract lands in, or `/` for the root. An index that cannot be read refuses nothing, because unknown is not evidence
 the extract cannot fit.
+
+A `peek` request with `"details":true` is used by TUI folder previews. Only returned
+rows, already limited by `first` and `PEEK_CAP`, pay one no-follow metadata read
+inside the existing bounded mount worker. Their `s` (entry bytes) and `p` (mode)
+fields let the TUI draw child sizes. A vanished or unreadable entry carries zero
+mode and size, which the TUI leaves unavailable. The default is false: ancestor,
+network and other existing peeks keep their name-only path and perform no
+per-entry metadata reads.
 
 One `peek` field is worth naming ahead of that section, because it is new. A `peeked` line whose scan
 failed carries `"failed":true`, with `"mode":<uint>` beside it under the same rule the `error` line

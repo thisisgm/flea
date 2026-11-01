@@ -32,7 +32,7 @@ pub(super) fn model(root: &Fixture) -> Model {
     m.height = 28;
     m.columns = 130;
     m.total = 1;
-    m.rows.insert(0, Row { name: "part.obj".into(), directory: false, size: OBJ.len(), mode: 0o100644, link: String::new(), kind: "OBJ 3D model".into(), thumbnail: false, modified: 0, icon: "application-octet-stream".into() });
+    m.rows.insert(0, Row { name: "part.obj".into(), directory: false, size: OBJ.len(), mode: 0o100644, link: String::new(), kind: "OBJ 3D model".into(), thumbnail: false, modified: 0, birth: None, icon: "application-octet-stream".into() });
     m.preview_state.cell = Some((8, 16));
     m.preview_state.colors = Some(crate::tui::chafa::ColorMode::Truecolor);
     m.model3d.spool = Some(root.0.clone());

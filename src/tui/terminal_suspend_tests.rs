@@ -13,6 +13,14 @@ fn review_suspend_child() {
         assert_eq!(result.unwrap_err().to_string(), crate::tui::words::error(EDITOR_INTERRUPTED).to_string());
         return;
     }
+    if std::env::var("FLEA_T1_REVIEW_SUSPEND_MODE").as_deref() == Ok("key") {
+        let (mut wire, reader) = crate::tui::wire::echo_wire();
+        let mut model = crate::tui::action_key_tests::listing(&mut wire, "yazi");
+        crate::tui::actions::key(&mut model, &crate::tui::input::Key::named("Z", "ctrl"), &crate::tui::keymap::Map::load(), &mut wire).unwrap();
+        assert!(model.parity17.suspend);
+        terminal.request_suspend();
+        crate::tui::wire::finish(wire, reader);
+    }
     while !terminal.stopped() {
         let bytes = terminal.read(-1, 20).unwrap();
         let _ = terminal.decode(&bytes, false).unwrap();
@@ -119,3 +127,18 @@ fn termination_during_the_editor_return_ends_the_rename_as_interrupted() { inter
 
 #[test]
 fn a_second_termination_during_the_exit_restore_still_restores_the_terminal() { interrupted_transition("exit", true); }
+
+#[test]
+fn tui_parity_suspend_key_restores_and_resumes_through_the_terminal_lifecycle() {
+    let root=TestDir::new("tui17-suspend-key");
+    let mut session=suspension::Session::start(root.path(),"key",None);
+    session.read_until(b"REVIEW_READY");
+    assert!(session.wait_stopped()); session.read_until(LEAVE);
+    assert_eq!(suspension::mode(&session.slave),session.saved);
+    let pops=session.transcript.windows(super::super::capabilities::KEYBOARD_DISABLE.len()).filter(|p| *p == super::super::capabilities::KEYBOARD_DISABLE).count();
+    assert_eq!(pops,1);
+    session.signal(SIGCONT); session.read_until(b"REVIEW_RESUMED");
+    assert!(session.transcript.windows(ENTER.len()).filter(|p| *p==ENTER).count()>=2);
+    session.signal(SIGTERM); assert!(session.finish().success());
+    assert_eq!(suspension::mode(&session.slave),session.saved);
+}

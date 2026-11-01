@@ -32,7 +32,7 @@ pub(super) fn short_path(path: &std::path::Path) -> String {
 }
 fn sort_label(m: &Model) -> String {
     if let Some(sort) = super::trashview::sort(m) { return sort; }
-    let name = match m.sort.as_str() { "size" => "window.column_size", "mtime" | "date" => "window.column_modified", "kind" => "list.column_kind", _ => "window.column_name" };
+    let name = match m.sort.as_str() { "size" => "window.column_size", "mtime" | "date" => "window.column_modified", "kind" => "list.column_kind", "btime" => "properties.birth", "extension" => "tui.sort.extension", "random" => "tui.sort.random", _ => "window.column_name" };
     format!("{} {}", m.i18n.tr(name), if m.reverse { "▾" } else { "▴" })
 }
 // The leading non-tab span preserves the existing mouse hit map; tab() refuses its sentinel index.

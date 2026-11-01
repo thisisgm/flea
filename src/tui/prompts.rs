@@ -43,6 +43,7 @@ pub struct Paste {
     fat: Option<&'static str>,
     total: usize,
     name: String,
+    held: Vec<crate::backend::linkheld::Identity>,
 }
 struct Step { op: &'static str, paths: Vec<PathBuf> }
 
@@ -261,8 +262,12 @@ pub fn paste(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     if m.clipboard.is_empty() { m.say_key("paste.nothing"); return Ok(()); }
     if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key("paste.waiting"); return Ok(()); }
     m.prompts.id = m.prompts.id.wrapping_add(1).max(1);
-    let paste = Paste { id: m.prompts.id, op: if m.cut || action == "movePaste" { "move" } else { "copy" }, paths: m.clipboard.clone(),
-        dest: m.path.clone(), fat: None, total: 0, name: String::new() };
+    let paste = Paste { id: m.prompts.id, op: match action { "pasteLink" => "relative", "pasteAbsoluteLink" => "absolute", "pasteHardLink" => "hard", _ if m.cut || action == "movePaste" => "move", _ => "copy" }, paths: m.clipboard.clone(),
+        dest: m.path.clone(), fat: None, total: 0, name: String::new(), held: m.parity17.copied.clone() };
+    if matches!(paste.op, "relative" | "absolute" | "hard") && paste.held.len() != paste.paths.len() {
+        m.fail_key("tui.editor.selected_item_changed_reopen_rename");
+        return Ok(());
+    }
     ask_collisions(&paste, w)?;
     m.prompts.asked = Some(paste);
     Ok(())
@@ -291,8 +296,10 @@ pub fn collided(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<()> {
     Ok(())
 }
 fn transfer(paste: Paste, collide: &str, w: &mut Wire) -> io::Result<()> {
-    let mut fields = vec![("c", word("transfer")), ("op", word(paste.op)), ("paths", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),
+    let linked = matches!(paste.op, "relative" | "absolute" | "hard");
+    let mut fields = vec![("c", word(if linked { "link" } else { "transfer" })), ("op", word(paste.op)), ("paths", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),
         ("dest", word(&paste.dest.to_string_lossy())), ("collide", word(collide)), ("collideId", number(paste.id))];
+    if linked { fields.push(("held", crate::backend::linkheld::encode(&paste.held))); }
     if let Some(fat) = paste.fat { fields.push(("fat", word(fat))); }
     w.send(fields)
 }

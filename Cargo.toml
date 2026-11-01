@@ -22,6 +22,9 @@ path = "src/lib.rs"
 [dependencies]
 # Seeded per process and per table; already in the lock through hashbrown, so no new crate version.
 foldhash = "0.2.0"
+regex = "1.13.1"
+regex-syntax = "0.8.11"
+unicode-normalization = "0.1.25"
 
 [features]
 # Bench-only: the flasher's loop-device seam for a marked root, never enabled by packaging or any default build.

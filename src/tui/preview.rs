@@ -172,6 +172,7 @@ fn meta(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {
         m.preview_children = Some(m.preview_path.clone());
         wire.send(vec![
             ("c", word("peek")),
+            ("details", Json::Bool(true)),
             ("path", word(&m.preview_path.to_string_lossy())),
             ("first", number(m.height)),
             ("hidden", Json::Bool(m.hidden)),
@@ -213,7 +214,7 @@ mod tests {
                 link: String::new(),
                 kind: "Plain text document".into(),
                 thumbnail: false,
-                modified: 0,
+                modified: 0, birth: None,
                 icon: "text-x-generic".into(),
             },
         );
@@ -259,7 +260,7 @@ context = "listing"
         let d = TestDir::new("tui-preview-hint");
         d.file("note.txt", "body");
         let mut m = Model::new(d.path().into(), &Json::Null);
-        let row = Row { name: "note.txt".into(), directory: false, size: 4, mode: 0o100644, link: String::new(), kind: "Plain text document".into(), thumbnail: false, modified: 0, icon: "text-x-generic".into() };
+        let row = Row { name: "note.txt".into(), directory: false, size: 4, mode: 0o100644, link: String::new(), kind: "Plain text document".into(), thumbnail: false, modified: 0, birth: None, icon: "text-x-generic".into() };
         m.rows.insert(0, row);
         m.preview_visible = true;
         m.preview_auto = false;
@@ -284,7 +285,7 @@ context = "listing"
         std::os::unix::fs::symlink(d.join("real.txt"), d.join("link")).unwrap();
         assert_eq!(read_text(&d.file("blob.bin", "ab\0cd"), &AtomicBool::new(false)).unwrap(), "");
         let mut m = Model::new(d.path().into(), &Json::Null);
-        let row = |name: &str, icon: &str, link: &str| Row { name: name.into(), directory: false, size: 11, mode: 0o100644, link: link.into(), kind: "Data".into(), thumbnail: false, modified: 0, icon: icon.into() };
+        let row = |name: &str, icon: &str, link: &str| Row { name: name.into(), directory: false, size: 11, mode: 0o100644, link: link.into(), kind: "Data".into(), thumbnail: false, modified: 0, birth: None, icon: icon.into() };
         let settle = |m: &mut Model| {
             let started = std::time::Instant::now();
             while m.preview_reader.outstanding(m.preview_generation) {

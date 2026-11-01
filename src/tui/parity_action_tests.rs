@@ -6,6 +6,9 @@ fn press(model: &mut Model, keys: &[Key], map: &Map, wire: &mut wire::Wire) {
 }
 
 pub(super) fn editor(keys: &[Key], action: &str, map: &Map) {
+    if matches!(action, "backward lean" | "forward lean --end-of-word" | "kill bol" | "kill eol" | "kill backward" | "kill forward") {
+        return crate::tui::parity17_tests::editor_action(keys, action);
+    }
     let (mut wire, reader) = wire::echo_wire();
     let mut model = listing(&mut wire, "yazi");
     let mut editor = Editor::new("filter", "abc".into(), model.path.clone());
