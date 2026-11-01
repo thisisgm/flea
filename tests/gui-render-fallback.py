@@ -16,6 +16,11 @@ CASES = ("vulkan", "no-vulkan-icd", "device-create-failure", "gl-only", "neither
 ROOT = Path(sys.argv[1])
 assert ROOT.is_absolute() and (ROOT / ".flea-test-sandbox").is_file()
 REPO = Path.cwd()
+# Sample input: pub const APP_ID: &str = "com.thisisgm.flea";
+APP_IDS = re.findall(r'(?m)^pub const APP_ID: &str = "([^"\n]+)";$',
+                     (REPO / "crates/flea-gui/src/window/mod.rs").read_text())
+assert len(APP_IDS) == 1, "window source must define exactly one APP_ID"
+APP_ID = APP_IDS[0]
 RUNS = int(os.environ.get("FLEA_RENDER_RUNS", "3"))
 assert 2 <= RUNS <= 10
 SESSION = {}
@@ -71,6 +76,20 @@ def manifest():
             if Path(library).name == "libvulkan_lvp.so":
                 return document, library, path
     fail("vulkan-swrast (Lavapipe) is missing; no packages were changed")
+
+
+
+def mapped_surface(server, surface_id):
+    if surface_id is None:
+        return False
+    surface = rf"wl_surface[#@]{surface_id}"
+    # Sample input: get_xdg_surface(new id xdg_surface#29, wl_surface#23)
+    xdg = re.search(r"get_xdg_surface\(new id xdg_surface[#@](\d+), " + surface + r"\)", server)
+    if xdg is None:
+        return False
+    top = re.search(rf"xdg_surface[#@]{xdg[1]}\.get_toplevel\(new id xdg_toplevel[#@](\d+)\)", server)
+    return bool(top and re.search(surface + r"\.attach\(wl_buffer", server) and
+                re.search(rf'xdg_toplevel[#@]{top[1]}\.set_app_id\("{re.escape(APP_ID)}"\)', server))
 
 
 def run_case(case, run, document, journal, entry, lavapipe, egl_vendor):
@@ -153,8 +172,7 @@ def run_case(case, run, document, journal, entry, lavapipe, egl_vendor):
             process.stderr.close()
         text = "".join(rows)
     server = (ROOT / "compositor.log").read_bytes()[server_start:].decode(errors="replace")
-    mapped = bool(surface_id[0] and re.search(rf"wl_surface[#@]{surface_id[0]}\.attach\(wl_buffer", server)
-                  and 'set_app_id("flea")' in server)
+    mapped = mapped_surface(server, surface_id[0])
     adapter = next((row.strip() for row in rows if row.startswith("flea-render:")), "none")
     if "so the shell starts on OpenGL" in text:
         fail(f"{case}: Qt downgrade ran on the GPUI path")
