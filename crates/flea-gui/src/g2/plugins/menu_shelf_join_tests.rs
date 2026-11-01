@@ -34,25 +34,26 @@ fn add_to_shelf_adds_a_file_and_a_folder(cx: &mut TestAppContext) {
         });
         let validate = fixture.choose(cx, "addToShelf", "").unwrap();
         fixture.validated(cx, &validate, &[root.join(name)]);
-        wait(cx, |cx| {
-            update(cx, fixture.handle, |shell, _, _| {
-                shell.panes[0].as_ref().unwrap().status.as_str() == "Added it to the shelf"
+        let shelved = || {
+            let pile = std::fs::read_to_string(root.join("state/omarchy/flea-shelf/shelf.json"))
+                .unwrap_or_default();
+            jsondoc::parse(&pile).ok().is_some_and(|pile| {
+                pile.get("items")
+                    .and_then(Json::as_array)
+                    .is_some_and(|items| {
+                        items.iter().any(|item| {
+                            item.get("path").and_then(Json::as_str) == root.join(name).to_str()
+                        })
+                    })
             })
+        };
+        // The first add leaves the same status, so the second waits on its own path.
+        wait(cx, |cx| {
+            shelved()
+                && update(cx, fixture.handle, |shell, _, _| {
+                    shell.panes[0].as_ref().unwrap().status.as_str() == "Added it to the shelf"
+                })
         });
-        let pile =
-            std::fs::read_to_string(root.join("state/omarchy/flea-shelf/shelf.json")).unwrap();
-        let pile = jsondoc::parse(&pile).unwrap();
-        let paths = pile
-            .get("items")
-            .and_then(Json::as_array)
-            .unwrap()
-            .iter()
-            .filter_map(|item| item.get("path").and_then(Json::as_str))
-            .collect::<Vec<_>>();
-        assert!(
-            paths.contains(&root.join(name).to_str().unwrap()),
-            "{paths:?}"
-        );
     }
     stop(cx, &fixture);
 }
