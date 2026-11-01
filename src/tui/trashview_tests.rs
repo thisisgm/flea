@@ -230,3 +230,30 @@ fn tui_fix_1101_p2_trashed_long_text_scrolls_to_its_last_line() {
     assert!(shown("60 row 60") && shown("39 row 39") && !shown("38 row 38"), "the scroll stops with the last line on the last body row:\n{}", rows.join("\n"));
     finish(w, reader);
 }
+
+// tui-trash-view: only text previews under the Trash facts, so a trashed picture, model or archive draws nothing there.
+#[test]
+fn tui_fix_1101_trashed_non_text_draws_nothing_under_the_facts() {
+    let theme = Theme::from_text("");
+    for (name, icon) in [("pic.png", "image-png"), ("chair.stl", "model-stl"), ("pack.zip", "application-x-package")] {
+        let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash-non-text");
+        let backing = root.file(name, "\u{89}PNG\r\n\u{1a}\n");
+        let (mut w, reader) = echo_wire();
+        let mut m = opened(&mut w);
+        m.preview_visible = true;
+        let listed = LISTED.replace("old-draft.txt", name).replace(r#""icon":"text-plain""#, &format!(r#""icon":"{icon}","content":"{}""#, backing.display()));
+        m.receive(parse(&listed).unwrap(), &mut w).unwrap();
+        crate::tui::preview::load(&mut m, false);
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(1));
+            crate::tui::preview::poll(&mut m);
+        }
+        crate::tui::preview::layout(&mut m);
+        let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
+        let below: Vec<String> = rows[6..29].iter().map(|row| row.chars().skip(81).collect::<String>().trim().to_owned()).collect();
+        assert!(below.iter().all(String::is_empty), "{name}: {below:?}");
+        assert!(m.image_file.is_none(), "{name}");
+        finish(w, reader);
+    }
+}
