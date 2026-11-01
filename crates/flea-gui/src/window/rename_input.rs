@@ -2,7 +2,7 @@
 use super::Shell;
 use crate::path::{
     entry::Entry,
-    field::{ime_bounds, ime_index},
+    field::{ime_bounds, ime_box, ime_index},
 };
 use gpui::{Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
 use std::ops::Range;
@@ -114,9 +114,8 @@ impl EntityInputHandler for Shell {
             ));
         }
         let edit = self.rename.edit.as_ref()?;
-        let mut frame = edit.line.frame?;
-        frame.origin.x = edit.line.origin() + edit.line.line.scroll;
-        Some(ime_bounds(&edit.line.line, entry, &range, frame))
+        let text = ime_box(edit.line.frame?, edit.line.origin() + edit.line.line.scroll);
+        Some(ime_bounds(&edit.line.line, entry, &range, text))
     }
     fn character_index_for_point(
         &mut self,

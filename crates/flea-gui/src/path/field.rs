@@ -14,6 +14,11 @@ use gpui::{
 use std::ops::Range;
 use std::rc::Rc;
 
+mod ime;
+pub use ime::{ime_bounds, ime_box, ime_index};
+#[cfg(test)]
+pub(crate) mod marks;
+
 // Board path-bar: the frame sits 2 px under the strip's top and 1 px over its rule; the text, wash and caret follow Scale.
 pub const TOP: f32 = 2.;
 pub const BOTTOM: f32 = 1.;
@@ -187,26 +192,6 @@ fn right_of(glyphs: impl Iterator<Item = Glyph>, x: Pixels, width: Pixels) -> Pi
         .fold(width, |a, b| a.min(b))
 }
 
-/// The input method's rectangle for a UTF-16 range; `text` is the box whose left edge is where unscrolled text starts.
-pub fn ime_bounds(
-    line: &Line,
-    entry: &Entry,
-    range: &Range<usize>,
-    text: Bounds<Pixels>,
-) -> Bounds<Pixels> {
-    let (from, to) = line.entry_span(entry, &entry.ime_range(range));
-    let left = text.left() - line.scroll;
-    Bounds::from_corners(
-        point(left + from, text.top()),
-        point(left + to, text.bottom()),
-    )
-}
-
-/// The UTF-16 offset nearest x, measured from where unscrolled text starts.
-pub fn ime_index(line: &Line, entry: &Entry, x: Pixels) -> usize {
-    entry.offset_to_utf16(entry.from_display(line.index_for(x + line.scroll)))
-}
-
 pub struct FieldElement {
     view: Entity<PathView>,
 }
@@ -348,8 +333,9 @@ impl Element for FieldElement {
         // A path is file content: its line, wash and caret keep their order in a mirrored window.
         window.with_unmirrored(frame, |window| {
             window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
-                if !entry.selected.is_empty() {
-                    let (from, to) = line.entry_span(entry, &entry.selected);
+                let washed = entry.washed();
+                if let Some(selected) = &washed {
+                    let (from, to) = line.entry_span(entry, selected);
                     let (from, to) = (origin + from, origin + to);
                     window.paint_quad(fill(wash_box(frame, from, to, &scale), ink.wash(SELECTION)));
                 }
@@ -375,7 +361,7 @@ impl Element for FieldElement {
                     ));
                 }
                 // Selected text shows no caret, as the board draws it.
-                if entry.selected.is_empty() {
+                if washed.is_none() {
                     window.paint_quad(fill(
                         caret_box(
                             frame,

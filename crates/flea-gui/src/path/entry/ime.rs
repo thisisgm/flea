@@ -32,6 +32,14 @@ impl Entry {
         self.marked.as_ref().map(|range| self.range_to_utf16(range))
     }
 
+    /// The selection a field washes; the input method's highlight inside its composition is none, so the caret stays at its end.
+    pub fn washed(&self) -> Option<Range<usize>> {
+        let converting = self.marked.as_ref().is_some_and(|marked| {
+            marked.start <= self.selected.start && self.selected.end <= marked.end
+        });
+        (!self.selected.is_empty() && !converting).then(|| self.selected.clone())
+    }
+
     /// Surrounding text for the input method; a private line answers nothing.
     pub fn ime_text(
         &self,

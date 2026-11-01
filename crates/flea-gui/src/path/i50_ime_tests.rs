@@ -145,7 +145,10 @@ fn i50_path_preedit_bounds(cx: &mut TestAppContext) {
         let caret = view
             .bounds_for_range(end..end, Default::default(), window, cx)
             .unwrap();
-        assert!(caret.top() >= frame.top() && caret.bottom() <= frame.bottom());
+        assert_eq!(
+            (caret.top(), caret.bottom()),
+            (frame.top() - px(3.), frame.bottom() + px(3.))
+        );
         assert!(caret.left() >= frame.left() && caret.left() <= frame.right());
         assert_eq!(
             view.character_index_for_point(caret.origin, window, cx),
@@ -155,7 +158,9 @@ fn i50_path_preedit_bounds(cx: &mut TestAppContext) {
             view.line.borrow().run.as_ref().unwrap().line().font_size,
             view.paint.borrow().pixels(Size::Field)
         );
-        window.set_rem_size(px(20.));
+        // A host without installed fonts keeps the face its caller sets, so the size change goes through Paint.
+        let face = Typeface::omarchy_default().at_base(20);
+        view.paint.borrow_mut().set_typeface(face);
         cx.notify();
     });
     bar.host.update(bar.visual, |host, cx| {
@@ -174,7 +179,10 @@ fn i50_path_preedit_bounds(cx: &mut TestAppContext) {
         let caret = view
             .bounds_for_range(end..end, Default::default(), window, cx)
             .unwrap();
-        assert!(caret.top() >= frame.top() && caret.bottom() <= frame.bottom());
+        assert_eq!(
+            (caret.top(), caret.bottom()),
+            (frame.top() - px(3.), frame.bottom() + px(3.))
+        );
         assert!(caret.left() >= frame.left() && caret.left() <= frame.right());
         assert_eq!(
             view.character_index_for_point(caret.origin, window, cx),
@@ -182,10 +190,10 @@ fn i50_path_preedit_bounds(cx: &mut TestAppContext) {
         );
     });
     let run = bar.read(|view| view.line.borrow().run.clone().unwrap());
-    bar.update(|_, _, cx| {
+    bar.update(|view, _, cx| {
         let mut face = Typeface::omarchy_default();
         face.font.weight = gpui::FontWeight::BOLD;
-        cx.set_global(face);
+        view.paint.borrow_mut().set_typeface(face);
         cx.notify();
     });
     assert!(!Rc::ptr_eq(
@@ -335,3 +343,6 @@ fn i50_path_reopened_owner_refuses_old_handler(cx: &mut TestAppContext) {
         }]
     );
 }
+
+#[path = "i50_mozc_tests.rs"]
+mod mozc;
