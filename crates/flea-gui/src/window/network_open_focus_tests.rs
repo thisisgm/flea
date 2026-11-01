@@ -350,3 +350,25 @@ fn railnet_older_bridge_open_cannot_take_new_origin_claim(cx: &mut TestAppContex
         "new origin retains and lands its own claim"
     );
 }
+
+#[gpui::test]
+fn railnet_a_bridge_starting_note_keeps_the_rail_open_claim(cx: &mut TestAppContext) {
+    use crate::g2::pl2::mount::Effect;
+    let recorder = Rc::new(Recorder::default());
+    let (shell, cx, _lines) = root(recorder.clone(), cx);
+    publish(&shell, false, cx);
+    enter_share(&shell, cx);
+    let (_, origin) = flight(&shell, cx);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let note = flea::ui_logic_pl1::Note::new("network.bridge_starting", &["share"]);
+            shell.network_service(&Effect::Say { note, origin }, window, cx);
+        })
+    });
+    answer_mount(&recorder, MOUNT, cx);
+    assert_eq!(place(&shell, 0, cx), MOUNT);
+    assert!(
+        listed(&shell, cx),
+        "an opening note is not the end of the open"
+    );
+}
