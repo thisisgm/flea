@@ -61,6 +61,8 @@ impl Presentation {
 
 impl Shell {
     pub(crate) fn observe_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        // A host that builds its card before this call, as the rail's does, calls keycaps::watch itself first.
+        super::keycaps::watch(cx);
         if self.menu.presentation.observer.is_none() {
             let weak = cx.entity().downgrade();
             self.menu.presentation.observer =

@@ -68,6 +68,8 @@ pub fn open(
     cx.open_window(options, |window, cx| {
         // Set again on the live window, so every platform's toplevel carries the caller's title.
         window.set_window_title(&title);
+        // The picker's menus draw the active keyboard group's keycaps from the first frame.
+        crate::g2::mn1::keycaps::watch(cx);
         let picker =
             cx.new(|cx| Picker::new(launch.req, launch.reply, &launch.home, locale, children, cx));
         let weak = picker.downgrade();

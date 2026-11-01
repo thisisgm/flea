@@ -35,6 +35,8 @@ mod session_tests;
 pub mod sheet;
 #[cfg(test)]
 mod sheet_board_tests;
+#[cfg(test)]
+mod sheet_keycap_tests;
 mod sheet_menus;
 #[cfg(test)]
 mod sheet_scroll_tests;

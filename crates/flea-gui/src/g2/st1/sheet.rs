@@ -1,11 +1,13 @@
 //! The keyboard sheet: every key of the preset in its groups, and a query that narrows them to ranked rows.
 use super::seams::Request;
+use crate::g2::mn1::keycaps;
 use flea::i18n::I18n;
-use flea::keys::{presentation, Frontend, SheetGroup, SHEET_GROUPS};
+use flea::keys::{display::KeycapSnapshot, presentation, Frontend, SheetGroup, SHEET_GROUPS};
 use flea::ui_logic_st1::{
     sheet::{self, Candidate, Decision, MenuEntry, RailEntry},
     sheetkeys::{sheet_key, step_cursor, SheetKey},
 };
+use std::collections::HashMap;
 use std::sync::Arc;
 
 /// The sources a query reads. Menus, rail places and recent files are seams for the menu, rail and recents contracts.
@@ -32,6 +34,12 @@ pub struct Sheet {
     pub scroll: f32,
     /// Up or Down moved the highlight, so the next frame brings it into view.
     pub moved: bool,
+    /// The active keyboard group, or none where its keycaps are unknown and the canonical legends draw.
+    pub keycaps: Option<KeycapSnapshot>,
+    // Each canonical chord the rows hold, as the group's keycaps draw it; resolved here, never in paint.
+    caps: HashMap<String, String>,
+    // Each ranked result's keys as drawn, isolated in a right-to-left catalog.
+    drawn: Vec<String>,
 }
 
 // GPUI key names to the names the sheet's key decision reads.
@@ -54,7 +62,7 @@ fn named(key: &str) -> &str {
 impl Sheet {
     pub fn new(preset: &str, catalog: Arc<I18n>, sources: Sources) -> Self {
         let rows = presentation::sheet(preset, Frontend::Gui, &catalog);
-        Self {
+        let mut sheet = Self {
             preset: preset.into(),
             query: String::new(),
             cursor: 0,
@@ -66,14 +74,57 @@ impl Sheet {
             decided: None,
             scroll: 0.,
             moved: false,
+            keycaps: None,
+            caps: HashMap::new(),
+            drawn: Vec::new(),
+        };
+        sheet.relabel();
+        sheet
+    }
+
+    /// A keyboard group switch relabels the keys and ranks the query again, keeping the rows and the highlighted result.
+    pub fn set_keycaps(&mut self, keycaps: Option<KeycapSnapshot>) {
+        if self.keycaps != keycaps {
+            self.keycaps = keycaps;
+            self.rerank();
         }
     }
 
+    /// The keys a row's canonical chord draws on the active group.
+    pub fn cap<'a>(&'a self, keys: &'a str) -> &'a str {
+        self.caps.get(keys).map_or(keys, String::as_str)
+    }
+
+    /// The keys ranked result `index` draws; its candidate already carries the group's keycaps.
+    pub fn result_keys(&self, index: usize) -> &str {
+        self.drawn.get(index).map_or("", String::as_str)
+    }
+
+    fn relabel(&mut self) {
+        let rtl = self.catalog.locale().right_to_left;
+        let chord = |keys: &str, keycaps| keycaps::chord(keys, keycaps, rtl);
+        let rows = self
+            .rows
+            .iter()
+            .map(|row| (row.keys.clone(), chord(&row.keys, self.keycaps.as_ref())));
+        self.caps = rows.collect();
+        self.drawn = self
+            .ranked
+            .iter()
+            .map(|row| chord(&row.keys, None))
+            .collect();
+    }
+
     pub fn set_catalog(&mut self, catalog: Arc<I18n>) {
-        let (cursor, scroll) = (self.cursor, self.scroll);
-        let selected = self.ranked.get(cursor).cloned();
         self.rows = presentation::sheet(&self.preset, Frontend::Gui, &catalog);
         self.catalog = catalog;
+        self.rerank();
+    }
+
+    // Ranks the query again and keeps the highlighted result where it still ranks.
+    fn rerank(&mut self) {
+        let (cursor, scroll) = (self.cursor, self.scroll);
+        let selected = self.ranked.get(cursor).cloned();
         self.requery();
         self.cursor = selected
             .and_then(|selected| {
@@ -138,6 +189,10 @@ impl Sheet {
             &self.sources.recent,
             &self.sources.home,
         ));
+        // The query matches the keys as the active group draws them, so a typed keycap finds its row.
+        for candidate in &mut all {
+            candidate.keys = keycaps::chord(&candidate.keys, self.keycaps.as_ref(), false);
+        }
         all
     }
 
@@ -152,6 +207,7 @@ impl Sheet {
         } else {
             sheet::rank(&self.candidates(), &self.query, &self.catalog)
         };
+        self.relabel();
         self.cursor = 0;
         self.scroll = 0.;
     }

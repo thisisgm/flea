@@ -6,6 +6,7 @@ use super::probe::Probe;
 use super::seams::{Ink, Request};
 use super::sheet::Sheet;
 use super::view::SettingsView;
+use crate::g2::mn1::keycaps;
 use crate::list::Typeface;
 use flea::ui_logic_st1::{caps, sheet::match_of};
 use gpui::{
@@ -39,13 +40,17 @@ pub struct SheetView {
     pub corner: f32,
     /// The scrolled body and its content as the latest frame laid them out.
     pub probe: Probe,
+    // A keyboard group switch while the sheet is open relabels its keys at once.
+    _layout: gpui::Subscription,
 }
 
 impl EventEmitter<Request> for SheetView {}
 
 impl SheetView {
-    pub fn new(sheet: Sheet, cx: &mut Context<Self>) -> Self {
+    pub fn new(mut sheet: Sheet, cx: &mut Context<Self>) -> Self {
+        sheet.set_keycaps(keycaps::watch(cx));
         Self {
+            _layout: keycaps::follow(cx, |view: &mut Self, caps| view.sheet.set_keycaps(caps)),
             sheet,
             editor: Editor::default(),
             focus: cx.focus_handle(),
@@ -105,7 +110,7 @@ impl SheetView {
                     .flex()
                     .items_center()
                     .gap(px(GAP))
-                    .child(self.keys(&row.keys, None, false, ink))
+                    .child(self.keys(self.sheet.cap(&row.keys), None, false, ink))
                     .child(
                         div()
                             .debug_selector(move || format!("sheet-label-{index}-{at}"))
@@ -183,8 +188,9 @@ impl SheetView {
             let lifted = index == self.sheet.cursor;
             let label = row.label.resolve(catalog);
             let label_run = match_of(&label, query).map(|run| (run.start, run.length));
+            let keys = self.sheet.result_keys(index);
             let key_run = if label_run.is_none() {
-                match_of(&row.keys, query).map(|run| (run.start, run.length))
+                match_of(keys, query).map(|run| (run.start, run.length))
             } else {
                 None
             };
@@ -229,7 +235,7 @@ impl SheetView {
                     view.sheet.point(index, true);
                     view.flush(cx);
                 }))
-                .child(dim(self.keys(&row.keys, key_run, lifted, ink)))
+                .child(dim(self.keys(keys, key_run, lifted, ink)))
                 .child(dim(wording))
                 .when(row.disabled && !reason.is_empty(), |line| {
                     line.child(
