@@ -260,17 +260,31 @@ fn a_sort_asks_again_against_the_new_numbering_and_the_old_answer_never_lands() 
 }
 
 #[test]
-fn only_the_answer_to_the_request_in_force_lands() {
+fn only_answers_to_requests_in_flight_land() {
     let (mut filter, mut pane) = (Filter::default(), Stub::new());
     let first = filter.typed("s", &mut pane).unwrap();
     let second = filter.typed("c", &mut pane).unwrap();
+    let third = filter.typed("r", &mut pane).unwrap();
+    assert_eq!(
+        filter.receive(pane.answer(&second), &mut pane),
+        Ok(()),
+        "an earlier keystroke's answer still narrows, as Filter.js does on every key"
+    );
+    assert_eq!(
+        filter.drawn(1).map(|drawn| drawn.query.as_str()),
+        Some("sc")
+    );
     assert_eq!(
         filter.receive(pane.answer(&first), &mut pane),
         Err(Refused::Stale),
-        "a superseded keystroke's answer is stale"
+        "an answer older than one that landed is stale"
     );
-    assert_eq!(filter.shown(1), None, "and draws nothing");
-    let mut wrong = pane.answer(&second);
+    assert_eq!(
+        filter.asked().map(|asked| asked.id),
+        Some(third.id),
+        "the newest keystroke is still awaited"
+    );
+    let mut wrong = pane.answer(&third);
     wrong.query = "s".into();
     assert_eq!(
         filter.receive(wrong, &mut pane),
@@ -279,7 +293,7 @@ fn only_the_answer_to_the_request_in_force_lands() {
     );
     filter.close(&mut pane);
     assert_eq!(
-        filter.receive(pane.answer(&second), &mut pane),
+        filter.receive(pane.answer(&third), &mut pane),
         Err(Refused::Stale),
         "a cancelled request's answer is stale"
     );
@@ -349,3 +363,46 @@ fn issue_92_the_cursor_follows_the_rows_the_filter_draws() {
 
 #[path = "tests_query_keys.rs"]
 mod query_keys;
+
+// EY-372: Filter.js narrows on every keystroke, so where the cursor ends never depends on how fast the keys came.
+#[test]
+fn ey372_every_keystroke_answer_moves_the_cursor_whatever_the_typing_speed() {
+    let names = [
+        "folder-a0",
+        "notes.md",
+        "archive.tar.bz2",
+        "archive-zip.zip",
+    ]
+    .map(String::from)
+    .to_vec();
+    let run = |fast: bool| {
+        let (mut filter, mut pane) = (Filter::default(), Stub::of(names.clone()));
+        filter.start();
+        let mut asked = Vec::new();
+        for _ in 0..3 {
+            let ask = filter.typed("z", &mut pane).unwrap();
+            if fast {
+                asked.push(ask);
+            } else {
+                filter.receive(pane.answer(&ask), &mut pane).unwrap();
+            }
+        }
+        for ask in asked {
+            filter.receive(pane.answer(&ask), &mut pane).unwrap();
+        }
+        assert_eq!(filter.shown(1), Some(&[][..]), "zzz matches nothing");
+        assert!(filter.escape(&mut pane));
+        pane.cursor
+    };
+    let slow = run(false);
+    assert_ne!(
+        slow,
+        Some(0),
+        "a z the folder lacks moves the cursor off it, as in v0.3.12"
+    );
+    assert_eq!(
+        run(true),
+        slow,
+        "the same keys land the same row when typed fast"
+    );
+}

@@ -76,7 +76,8 @@ pub struct Filter {
     query: String,
     typing: bool,
     next_id: u64,
-    asked: Option<Asked>,
+    // Every keystroke's request still awaited, oldest first; Filter.js narrows on each one.
+    asked: Vec<Asked>,
     drawn: Option<Rc<Drawn>>,
 }
 
@@ -87,12 +88,13 @@ impl Filter {
     pub fn typing(&self) -> bool {
         self.typing
     }
+    /// The newest request in flight.
     pub fn asked(&self) -> Option<&Asked> {
-        self.asked.as_ref()
+        self.asked.last()
     }
-    /// The id an answer must carry to land, for `wire::read`; None while nothing is asked.
+    /// The oldest id still awaited, for `wire::read`; None while nothing is asked.
     pub fn live(&self) -> Option<u64> {
-        self.asked.as_ref().map(|asked| asked.id)
+        self.asked.first().map(|asked| asked.id)
     }
     /// FilterStrip's `up`: the line has the caret or a query stands.
     pub fn up(&self) -> bool {
@@ -133,13 +135,13 @@ impl Filter {
             query: self.query.clone(),
             listing: pane.listing(),
         };
-        self.asked = Some(asked.clone());
+        self.asked.push(asked.clone());
         Some(asked)
     }
 
     // The match list goes and the unfiltered viewport refills; marks the filter already pruned stay as they are.
     fn clear(&mut self, pane: &mut dyn PaneSeam) {
-        self.asked = None;
+        self.asked.clear();
         if self.drawn.take().is_some() {
             pane.refill();
         }
@@ -235,14 +237,22 @@ impl Filter {
         }
     }
 
-    /// An answer lands whole or not at all; marks it hides drop out, and a hidden cursor takes the first row standing.
+    /// An answer to any awaited keystroke lands whole or not at all, in order, retiring the requests before it.
+    /// Marks it hides drop out, and a hidden cursor takes the first row standing.
     pub fn receive(&mut self, answer: Answer, pane: &mut dyn PaneSeam) -> Result<(), Refused> {
-        let asked = self.asked.as_ref().ok_or(Refused::Stale)?;
-        let current = answer.id == asked.id && answer.query == asked.query;
-        if !current || answer.listing != asked.listing || answer.listing != pane.listing() {
+        let at = self
+            .asked
+            .iter()
+            .position(|asked| asked.id == answer.id)
+            .ok_or(Refused::Stale)?;
+        let asked = &self.asked[at];
+        if answer.query != asked.query
+            || answer.listing != asked.listing
+            || answer.listing != pane.listing()
+        {
             return Err(Refused::Stale);
         }
-        self.asked = None;
+        self.asked.drain(..=at);
         let drawn = Rc::new(Drawn {
             query: answer.query,
             listing: answer.listing,
