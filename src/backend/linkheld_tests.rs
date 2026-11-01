@@ -30,7 +30,12 @@ fn held_paths_reply_is_one_stamped_protocol_line() {
 fn failed_held_paths_reply_keeps_its_request_and_listing() {
     let root = TestDir::new("tui17-held-error");
     let (tx, rx) = channel();
-    paths(tx, vec![root.join("missing").to_string_lossy().into_owned()], 9, 7);
+    paths(
+        tx,
+        vec![root.join("missing").to_string_lossy().into_owned()],
+        9,
+        7,
+    );
     let OpMsg::Meta { line } = rx.recv_timeout(Duration::from_secs(10)).unwrap() else {
         panic!("held path failure did not return metadata");
     };

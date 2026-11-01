@@ -174,7 +174,14 @@ impl Messages {
     }
 
     /// An operation line that already ends in the undo advice: the advice leaves the sentence for its own timed target, as Status.js hintOf splits it (EY-360).
-    pub fn say_receipt(&mut self, catalog: &crate::i18n::I18n, text: &str, error: bool, detail: &str, now: u64) {
+    pub fn say_receipt(
+        &mut self,
+        catalog: &crate::i18n::I18n,
+        text: &str,
+        error: bool,
+        detail: &str,
+        now: u64,
+    ) {
         let (text, hint) = if error {
             (text.to_owned(), Hint::None)
         } else {

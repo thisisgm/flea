@@ -143,13 +143,34 @@ fn the_preview_column_h1_holds_8_px_under_before_a_paragraph() {
 #[test]
 fn vf_more_column_paragraph_keeps_and_on_the_first_line_at_board_width() {
     // The 276 px frame leaves 234 px after its border and two 20 px insets.
-    let geometry = stacked_at("A **bold** claim, `inline code` and a [link](https://example.test).\n", column(), 234.0);
-    let lines: Vec<String> = geometry.items.iter().filter_map(|item| match item {
-        lay::Item::Text { laid, .. } => Some(laid.lines.iter().map(|line| line.atoms.iter().filter_map(|atom| match atom {
-            super::markdown_flow::Atom::Text { text, .. } => Some(text.as_str()),
+    let geometry = stacked_at(
+        "A **bold** claim, `inline code` and a [link](https://example.test).\n",
+        column(),
+        234.0,
+    );
+    let lines: Vec<String> = geometry
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            lay::Item::Text { laid, .. } => Some(
+                laid.lines
+                    .iter()
+                    .map(|line| {
+                        line.atoms
+                            .iter()
+                            .filter_map(|atom| match atom {
+                                super::markdown_flow::Atom::Text { text, .. } => {
+                                    Some(text.as_str())
+                                }
+                                _ => None,
+                            })
+                            .collect::<String>()
+                    })
+                    .collect::<Vec<_>>(),
+            ),
             _ => None,
-        }).collect::<String>()).collect::<Vec<_>>()),
-        _ => None,
-    }).flatten().collect();
+        })
+        .flatten()
+        .collect();
     assert_eq!(lines, ["A bold claim, inline code and", "a link."]);
 }

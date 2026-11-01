@@ -106,13 +106,18 @@ pub fn paths(replies: Sender<OpMsg>, paths: Vec<String>, generation: u64, id: us
                 let mut line = super::proto::paths_line(&paths);
                 line.insert_str(
                     line.len() - 1,
-                    &format!(",\"id\":{id},\"held\":{}", crate::jsondoc::render(&encode(&held)).replace('\n', "")),
+                    &format!(
+                        ",\"id\":{id},\"held\":{}",
+                        crate::jsondoc::render(&encode(&held)).replace('\n', "")
+                    ),
                 );
                 super::rowguard::stamped(line, generation)
             }
             Err(msg) => {
                 let mut line = super::proto::error_line(&crate::error::FleaError {
-                    where_: "paths".into(), path: String::new(), msg,
+                    where_: "paths".into(),
+                    path: String::new(),
+                    msg,
                 });
                 line.insert_str(line.len() - 1, &format!(",\"id\":{id}"));
                 super::rowguard::stamped(line, generation)
