@@ -347,6 +347,7 @@ impl OpenWith {
                         tail,
                         cursor,
                         mark,
+                        icon: app.icon,
                     }
                 }
             });

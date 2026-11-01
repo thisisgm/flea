@@ -247,7 +247,8 @@ pub fn apply_select(pane: &mut Pane, target: &str, selected: &mut Vec<usize>) ->
         return false;
     };
     pane.cursor = pane.held.start + at;
-    pane.reveal_cursor();
+    // Nav.js applyPendingSelect lands through setCursor, which keeps ScrollOff's three rows of context (EY-363).
+    pane.reveal_cursor_keeping(3);
     pane.requests.initial_first = Some((pane.scroll_y / pane.row_height()).floor() as usize);
     selected.clear();
     selected.push(pane.cursor);

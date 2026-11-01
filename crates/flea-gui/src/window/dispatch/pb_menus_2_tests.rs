@@ -188,3 +188,46 @@ fn pb_menus_2_standalone_code_icons_action_writes_the_shared_setting(cx: &mut Te
     }
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// EY-363: v0.3.12 Nav.js applyPendingSelect lands through setCursor, so the revealed target keeps three rows of context under it.
+#[gpui::test]
+fn show_original_keeps_three_rows_of_context_under_the_revealed_target(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root(cx, "default");
+    land(&shell, cx, "/files", vec![link()], 1);
+    let request = show_original(&shell, cx);
+    let id = request.get("id").and_then(Json::as_f64).unwrap() as u64;
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"linktarget","id":{id},"path":"/files/link","directory":"/target","name":"item-40"}}"#
+        ),
+    );
+    let rows = (0..80)
+        .map(|at| entry(&format!("item-{at:02}"), FILE))
+        .collect();
+    land(&shell, cx, "/target", rows, 2);
+    let (cursor, scroll, row, height) = shell.read_with(cx, |shell, _| {
+        let pane = &shell.panes[0].as_ref().unwrap().pane;
+        (
+            pane.cursor,
+            pane.scroll_y,
+            pane.row_height(),
+            pane.viewport_height(),
+        )
+    });
+    assert_eq!(cursor, 40);
+    assert!(
+        height < 40. * row,
+        "the fixture overflows the window: {height}"
+    );
+    assert!(
+        (cursor + 4) as f32 * row <= scroll + height + 0.01,
+        "rows 41 to 43 stay whole under the target: scroll {scroll}, row {row}, height {height}"
+    );
+    assert!(
+        cursor as f32 * row >= scroll + 3. * row - 0.01,
+        "the target keeps its context above as well"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

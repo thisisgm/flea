@@ -121,6 +121,7 @@ pub enum AppRow {
         tail: String,
         cursor: Cursor,
         mark: Option<Glyph>,
+        icon: String,
     },
 }
 
