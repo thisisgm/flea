@@ -59,7 +59,12 @@ impl Shell {
         }
         let home = std::env::var("HOME").unwrap_or_default();
         let scope = search.session.scope;
-        let root = flea::ui_logic_sr1::Session::scope_root(&host.path, &home, scope)?;
+        let folder = if search.session.from.is_empty() {
+            &host.path
+        } else {
+            &search.session.from
+        };
+        let root = flea::ui_logic_sr1::Session::scope_root(folder, &home, scope)?;
         let held = &host.pane.held;
         let place = sr1::matches::Place {
             root: &root,

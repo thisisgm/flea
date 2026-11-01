@@ -1,5 +1,6 @@
 //! One row's cells as ui/Row.qml and ui/js/Format.js print them, built only when a row enters the viewport.
 pub mod cache;
+mod elide;
 pub mod format;
 #[cfg(test)]
 mod language_tests;
@@ -8,6 +9,8 @@ pub mod tags;
 
 use flea::protocol::RowFacts;
 use std::borrow::Cow;
+
+pub use elide::elide_around;
 
 const S_IFMT: u32 = 0o170000;
 const S_IFLNK: u32 = 0o120000;
@@ -108,19 +111,29 @@ pub fn middle_elide(text: &str, max_cells: usize) -> Cow<'_, str> {
 
 /// MatchText's ElideRight for a name holding a match run: the head keeps every cell it can and the tail becomes one ellipsis.
 pub fn right_elide(text: &str, max_cells: usize) -> Cow<'_, str> {
-    if text.len() <= max_cells || units(text).map(|unit| unit.1).sum::<usize>() <= max_cells {
-        return text.into();
+    match cut(text, max_cells) {
+        Some((end, _)) => format!("{}\u{2026}", &text[..end]).into(),
+        None => text.into(),
+    }
+}
+
+/// ElideRight's cut byte and preceding cells, stopping at overflow; None when the whole text fits.
+fn cut(text: &str, max_cells: usize) -> Option<(usize, usize)> {
+    if text.len() <= max_cells {
+        return None;
     }
     let budget = max_cells.saturating_sub(1);
-    let (mut used, mut end) = (0, 0);
+    let (mut used, mut found) = (0, None);
     for (at, cells) in units(text) {
-        if used + cells > budget {
-            end = at;
-            break;
+        if found.is_none() && used + cells > budget {
+            found = Some((at, used));
         }
         used += cells;
+        if used > max_cells {
+            return found;
+        }
     }
-    format!("{}\u{2026}", &text[..end]).into()
+    None
 }
 
 #[cfg(test)]

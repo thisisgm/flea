@@ -1,9 +1,11 @@
 //! The production pane owns SR1; its effects join the existing navigation and backend queues.
+use super::startup::View;
 use crate::{
     g2::sr1::{Host, HostPane, Search, StripKey},
     pane::swap::Options,
     state::Shell,
 };
+use flea::ui_logic_sr1::Kind;
 use gpui::{Context, KeyDownEvent, Window};
 
 #[path = "search_header.rs"]
@@ -20,8 +22,14 @@ pub(crate) use observe::{Draw, QueryReader};
 #[path = "search_contents_tests.rs"]
 mod contents_tests;
 #[cfg(test)]
+#[path = "search_grid_tests.rs"]
+mod grid_tests;
+#[cfg(test)]
 #[path = "search_presented_tests.rs"]
 mod presented_tests;
+#[cfg(test)]
+#[path = "search_scope_tests.rs"]
+mod scope_tests;
 #[cfg(test)]
 #[path = "search_tests.rs"]
 mod tests;
@@ -69,6 +77,7 @@ impl Shell {
             effects: Vec::new(),
             session: None,
         };
+        let was = (host.search.owner.active(), host.search.owner.session.kind);
         change(&mut host.search.owner, &mut pending);
         if let Some(session) = pending.session {
             host.pane.swap.session = session;
@@ -118,11 +127,20 @@ impl Shell {
         }
         let active = host.search.owner.active();
         host.nav.gate.search = active;
+        let kind = host.search.owner.session.kind;
+        // A contents result is a List block (HIG search-contents); a names search keeps Grid's tiles.
+        if active && was != (true, kind) {
+            match kind {
+                Kind::Contents if self.view == View::Grid => self.view = View::List,
+                Kind::Names if host.search.origin == Some(View::Grid) => self.view = View::Grid,
+                _ => {}
+            }
+        }
         if !active {
             if let Some(view) = host.search.origin.take() {
                 host.pane.scroll_y = host.search.scroll;
                 host.pane.scroll_by(0.);
-                if self.view == super::startup::View::List {
+                if self.view == View::List {
                     self.view = view;
                 }
             }
@@ -173,15 +191,9 @@ impl Shell {
             if host.pane.busy() {
                 return true;
             }
+            // Every view keeps itself: Columns per HIG cols4-hero-search, Grid's tiles per v0.3.12 GridArea.
             host.search.origin = Some(self.view);
             host.search.scroll = host.pane.scroll_y;
-            // HIG cols4-hero-search: Columns searches in its active column and keeps the columns before it.
-            if !matches!(
-                self.view,
-                super::startup::View::Dual | super::startup::View::Columns
-            ) {
-                self.view = super::startup::View::List;
-            }
         }
         self.search_update(
             side,

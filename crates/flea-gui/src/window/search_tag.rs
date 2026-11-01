@@ -26,9 +26,6 @@ impl Shell {
             let host = self.panes[side].as_mut().expect("checked pane");
             host.search.origin = Some(self.view);
             host.search.scroll = host.pane.scroll_y;
-            if !matches!(self.view, View::Dual | View::Columns) {
-                self.view = View::List;
-            }
         }
         self.focus_pane(side, cx);
         self.rail_focus(false, cx);

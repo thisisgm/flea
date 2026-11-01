@@ -268,6 +268,11 @@ impl Search {
     pub fn words(&self, i18n: &I18n, path: &str, home: &str, shares_skipped: bool) -> strip::Words {
         let session = &self.session;
         let empty = session.query.is_empty();
+        let path = if session.from.is_empty() {
+            path
+        } else {
+            &session.from
+        };
         let root = Session::scope_root(path, home, session.scope);
         strip::Words {
             query: session.query.clone(),

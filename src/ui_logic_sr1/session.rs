@@ -184,6 +184,9 @@ impl Session {
 
     // Tab moves to the next scope, opens it at once and re-sends the standing query.
     pub fn rescope(&mut self, pane: &Pane) -> Vec<Effect> {
+        // Landed search rows use their scope root; rescope keeps the folder that opened the search.
+        let from = self.from.clone();
+        let pane = &Pane { path: if from.is_empty() { pane.path } else { &from }, ..*pane };
         let mut out = Vec::new();
         self.scope = self.next_scope();
         self.send_open(pane, &mut out);
