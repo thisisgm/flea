@@ -281,6 +281,8 @@ fn ipc_executor_is_cold_until_first_answer_and_then_serves_the_committed_pane(
     );
 }
 
+#[path = "visual/language_state_tests.rs"]
+mod visual_language_tests;
 #[path = "visual/state_tests.rs"]
 mod visual_tests;
 
