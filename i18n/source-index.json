@@ -119327,7 +119327,7 @@
     },
     {
       "excerpt": "Reply::error(3, format!(\"FLEA_IPC_NOT_PORTED flea.{function}\"))",
-      "line": 155,
+      "line": 157,
       "literal": "FLEA_IPC_NOT_PORTED flea.{function}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/preview_look.rs",
@@ -119336,7 +119336,7 @@
     },
     {
       "excerpt": "source: \"graph TD; A-->B\".into(),",
-      "line": 199,
+      "line": 201,
       "literal": "graph TD; A-->B",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/preview_look.rs",
@@ -130118,7 +130118,7 @@
     },
     {
       "excerpt": "std::os::unix::fs::symlink(\"absent\", root.join(\"link\")).unwrap();",
-      "line": 65,
+      "line": 73,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/birthtime.rs",
@@ -130127,7 +130127,25 @@
     },
     {
       "excerpt": "let link = get(&root.join(\"link\"));",
-      "line": 66,
+      "line": 74,
+      "literal": "link",
+      "owner": "controller",
+      "path": "src/backend/birthtime.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "std::os::unix::fs::symlink(\"absent\", root.join(\"link\")).unwrap();",
+      "line": 84,
+      "literal": "link",
+      "owner": "controller",
+      "path": "src/backend/birthtime.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "for path in [root.join(\"link\"), root.path().to_path_buf()] {",
+      "line": 85,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/birthtime.rs",
@@ -241804,7 +241822,7 @@
     "crates/flea-gui/src/g2/pv2/markdown/asks.rs": "ca9ea3726997ca014640fd8f29baca5d0aba47ec8bc38904f310b4e1eeaa7ffa",
     "crates/flea-gui/src/g2/pv2/markdown/asks/hold.rs": "e859a20cd88e370c2dc938e7239bdb32ae54272bae73bced7f2b5a70da7a5a67",
     "crates/flea-gui/src/g2/pv2/markdown/assets.rs": "d499c2c7587193e4a4916c078c7b529c28674990464ce2b5306fdef1fab69319",
-    "crates/flea-gui/src/g2/pv2/markdown/doc.rs": "9c3ec48403c11ee0efd8ec846adb3971bfa3051db447a66503abd4992a09364f",
+    "crates/flea-gui/src/g2/pv2/markdown/doc.rs": "c8195facdc9fc4a4f753637d93d2457441bdb3549ea76074acbef32f069da7c3",
     "crates/flea-gui/src/g2/pv2/markdown/figures.rs": "5627274b99a681a088749377480b6551c79b11e1ab02714df032257a19b7e6bf",
     "crates/flea-gui/src/g2/pv2/markdown/loading.rs": "b05bd8248abedd579c7c5d5da4885cfea8cf7903a606cdd7e53fea53f96f0f89",
     "crates/flea-gui/src/g2/pv2/markdown/mod.rs": "aefdcee9961cbd46a9a5a63c1de8ff412e40905362190eefa26d586d620700d8",
@@ -242006,7 +242024,7 @@
     "crates/flea-gui/src/ipc/path.rs": "d479c395eb8b4392aa3ef6ec9d9685cd2b34d48079c9168ed843ee2938319ecd",
     "crates/flea-gui/src/ipc/pb_ipc_fixture.rs": "6467b1af2c662e8781cd45f0431e0f06b5dff650c595c8fa131f882feebd04a3",
     "crates/flea-gui/src/ipc/preview_html.rs": "281f9b24aa9ec40803e5856a1d4300fa942dfb19177a6d94a707d727da584397",
-    "crates/flea-gui/src/ipc/preview_look.rs": "b91476d022a59afa68f00ba500cb05f86573c694239f778adccc962e44321812",
+    "crates/flea-gui/src/ipc/preview_look.rs": "474d6c34a25528f0232151da662799aaff41d06fc96d660711834227649fdbd5",
     "crates/flea-gui/src/ipc/preview_quality.rs": "915dbfc822f998ee9d333f63a8e2b6c826906bfeefb1c220dae0374b0c296f71",
     "crates/flea-gui/src/ipc/preview_scroll.rs": "471a5b9007b8cb86adf2536499f7920c9d1ecfd10eabf084383f1eb63ef20310",
     "crates/flea-gui/src/ipc/preview_state.rs": "f373783185c7277df00b807244a4584d26af8725648817be36367deb2ab5de38",
@@ -242408,7 +242426,7 @@
     "src/backend/archivereq.rs": "820e4b6c7ca564a6ac7d566dc3cc198a4e2d459b670bdc2c86b2c14e0644a8c1",
     "src/backend/archivespec.rs": "9569e3ab8cc5fa96ddbfd9e245a6ce757399de7fe7b289f97962b443cf13f99a",
     "src/backend/archivework.rs": "ef6da55536164ff5ccafbf4aca1f19a4750b15d4a1f67a19871c07d4ec01a14a",
-    "src/backend/birthtime.rs": "d2c787a7186e5873ef096158633c38265f211dbb4b11a406684fe410546e0a09",
+    "src/backend/birthtime.rs": "37044ae66d3fcfa27cd7a70612ee68c485336c555eb9817f1823f4ebd4845baf",
     "src/backend/bulkrename.rs": "dee03d179cfaa66deea1afeadcae922ee4b072ef5060c0105521a33274fde7e6",
     "src/backend/child.rs": "d15fb999aa1540c66feabf5f8c53618ed0cfe0bf00fc6421cc8ae95b36ffa919",
     "src/backend/clipreq.rs": "d3b67ba002230d2573d0581172dcb2841487aec730a9d97411c88a030a47d301",
@@ -242538,7 +242556,7 @@
     "src/backend/menutags_states.rs": "0d7336c0413ef3fe537837c52676e36b98ecf7bb30489895a481785abe4af68a",
     "src/backend/merge.rs": "4cae27be50e5fbc9581b2fa85506bf83580e547f3ed735e19b5414064756c47b",
     "src/backend/mergeapply.rs": "f86919bdda29b138942d134bdfaebe96210867032e0081ef558cff516e0035db",
-    "src/backend/meta.rs": "c373e0e250f02154f2df3a4e39e7918d13c08aba8bcf9cb8e281f87bb7143cd1",
+    "src/backend/meta.rs": "e1b2e8b7b514f8b3ae24b527aeb894010ca57377e2e4fb1346373dc61c6f5f73",
     "src/backend/metareq.rs": "1eb1dcb134c20df244092f49eb43bcff679740b4e20176fad67c53d9b8e8ec14",
     "src/backend/metarow.rs": "7aa447b2e60755e1c6df3514b514b9bfbeba34b63fb5b1d41209ee6192a7ce22",
     "src/backend/metasort.rs": "b147824816ec8aa7b2428fba5d6d8a70ab6f338bc64f2b5218d548bb0850239c",
@@ -243857,12 +243875,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "663ce3bf14818df592e383d2826145c8c73e56cc",
-  "source_sha": "663ce3bf14818df592e383d2826145c8c73e56cc",
+  "source_ref_sha": "627281d7be05a3239b3ca56aca16fcf45112101c",
+  "source_sha": "627281d7be05a3239b3ca56aca16fcf45112101c",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1287,
-      "missing_literal_candidates": 5755,
+      "missing_literal_candidates": 5757,
       "source_files": 827
     },
     "generated/tooling": {
