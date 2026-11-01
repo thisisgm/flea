@@ -97,29 +97,36 @@ fn pb_tabs_an_accepted_tab_change_closes_quick_look_from_any_source(cx: &mut Tes
 
 #[gpui::test]
 fn pb_tabs_an_accepted_tab_change_leaves_a_typed_search(cx: &mut TestAppContext) {
-    let (shell, cx) = open_root(cx, "default");
-    land(&shell, cx, "/files", vec![row("a.txt", false)], 1);
-    act(&shell, cx, |shell, window, cx| {
-        assert!(shell.search_action("search", window, cx))
-    });
-    cx.simulate_keystrokes("x");
-    shell.read_with(cx, |shell, _| {
-        let owner = &shell.panes[0].as_ref().unwrap().search.owner;
-        assert!(owner.active(), "the fixture opens a search");
-        assert!(
-            owner.session.gen > owner.session.opened_gen,
-            "the typed query owes a relist"
-        );
-    });
-    act(&shell, cx, |shell, window, cx| {
-        assert!(shell.tab_action("tabNew", window, cx))
-    });
-    assert_eq!(count(&shell, cx), 2);
-    shell.read_with(cx, |shell, _| {
-        let host = shell.panes[0].as_ref().unwrap();
-        // Search.leave keeps the results strip until the next listing lands, so the session is leaving, not off.
-        assert!(host.search.owner.session.leaving, "the tab change leaves the search");
-        assert!(!host.search.owner.typing());
-        assert!(!host.pane.state.search);
-    });
+    // (keys typed, query still live): a live query, then an erased one that only owes its relist.
+    for (keys, live) in [("x", true), ("x backspace", false)] {
+        let (shell, cx) = open_root(cx, "default");
+        land(&shell, cx, "/files", vec![row("a.txt", false)], 1);
+        act(&shell, cx, |shell, window, cx| {
+            assert!(shell.search_action("search", window, cx))
+        });
+        cx.simulate_keystrokes(keys);
+        shell.read_with(cx, |shell, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            let owner = &host.search.owner;
+            assert!(owner.active(), "{keys}: the fixture opens a search");
+            assert_eq!(owner.session.live(), live, "{keys}: query live");
+            assert!(
+                owner.session.gen > owner.session.opened_gen,
+                "{keys}: the typed query owes a relist"
+            );
+            assert!(!host.pane.state.search, "{keys}: no results landed");
+        });
+        act(&shell, cx, |shell, window, cx| {
+            assert!(shell.tab_action("tabNew", window, cx))
+        });
+        assert_eq!(count(&shell, cx), 2);
+        shell.read_with(cx, |shell, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            // Search.leave keeps a live query's strip until the next listing lands; an erased one closes at once.
+            let owner = &host.search.owner;
+            assert_eq!(owner.session.leaving, live, "{keys}: leaving");
+            assert_eq!(owner.active(), live, "{keys}: still drawn");
+            assert!(!owner.typing(), "{keys}");
+        });
+    }
 }
