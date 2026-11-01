@@ -14,6 +14,34 @@ fn on_a_copy_fallback_mount<T>(run: impl FnOnce() -> T) -> T {
     outcome
 }
 
+// Only a publish that took the copy meets this cancel, raised after the copy's first chunk, so it pins the branch.
+fn cancelled_mid_copy(
+    d: &TestDir,
+    run: impl FnOnce(&AtomicBool) -> Result<(), FleaError>,
+) -> String {
+    let names = || {
+        let mut all: Vec<_> = std::fs::read_dir(d.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        all.sort();
+        all
+    };
+    let before = names();
+    let cancel = AtomicBool::new(false);
+    crate::backend::copyfile::test_cancel_after_write(true);
+    let outcome = on_a_copy_fallback_mount(|| run(&cancel));
+    crate::backend::copyfile::test_cancel_after_write(false);
+    assert_eq!(
+        names(),
+        before,
+        "the cancel left no stage, partial copy or destination behind"
+    );
+    outcome
+        .expect_err("a publish through the copy stops at the cancel")
+        .msg
+}
+
 fn stages_left(d: &TestDir) -> usize {
     std::fs::read_dir(d.path())
         .unwrap()
@@ -99,6 +127,12 @@ fn a_compress_onto_a_mount_that_refuses_noreplace_for_files_publishes_through_th
         0,
         "the staging directory goes once the copy is published"
     );
+    let cut = d.join("cut.zip");
+    let names = ["src".to_string()];
+    let msg = cancelled_mid_copy(&d, |cancel| {
+        compress(&formats, d.path(), &names, "zip", &cut, cancel, None)
+    });
+    assert_eq!(msg, "cancelled");
 }
 
 #[test]
@@ -119,6 +153,11 @@ fn a_convert_onto_a_mount_that_refuses_noreplace_for_files_publishes_through_the
         stages_left(&d),
         0,
         "the staging directory goes once the copy is published"
+    );
+    let cut = d.join("cut.png");
+    assert_eq!(
+        cancelled_mid_copy(&d, |cancel| convert_one(&input, &cut, false, cancel)),
+        "cancelled"
     );
 }
 

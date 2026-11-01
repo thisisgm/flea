@@ -183,6 +183,15 @@ fn pv3_a_seek_that_mpv_does_not_accept_preserves_manual_pause() {
     assert!(!transport.play());
 }
 
+// An eof that lands on a pause nobody asked for is the end, and the next Play rewinds.
+#[test]
+fn pv3_an_eof_after_an_unrequested_pause_ends_and_rewinds() {
+    let mut transport = playing();
+    assert_eq!(transport.paused(true), Some(Event::Paused));
+    assert_eq!(transport.ended(true), Some(Event::Ended));
+    assert!(transport.play(), "Play after the end starts over");
+}
+
 // A paused endpoint seek ends when native seek completion confirms its position, without requiring another pause change.
 #[test]
 fn pv3_reaching_the_end_while_paused_ends_at_once() {
