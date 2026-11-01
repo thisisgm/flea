@@ -1,6 +1,7 @@
 // Chooser defects from the eyes sweep, each held to what the v0.3.12 arm does in the same steps.
 use super::process::Line;
 use super::tests::fixture::{fixture, Fixture};
+use flea::ui_logic_pl4::rail::{Group, Kind, RailEntry};
 use gpui::{KeyUpEvent, Keystroke, TestAppContext};
 
 fn seed(f: &mut Fixture) {
@@ -51,4 +52,40 @@ fn ey500_a_keyboard_pick_closes_the_filter_menu(cx: &mut TestAppContext) {
             "{opener}: no Filter menu is drawn after the pick"
         );
     }
+}
+
+#[gpui::test]
+fn ey497_a_mounted_removable_drive_ends_in_the_eject_mark(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    f.cx.run_until_parked();
+    let drive = |label: &str, releasable: bool| RailEntry {
+        group: Group::Device,
+        kind: Kind::Volume,
+        label: label.into(),
+        path: format!("/run/media/{label}"),
+        device: format!("/dev/{label}"),
+        mounted: Some(true),
+        releasable,
+        glyph: "drive",
+        ..RailEntry::default()
+    };
+    f.update(|picker, cx| {
+        picker.rail.entries = vec![drive("FLEAEXFAT", true), drive("vda2", false)];
+        picker.rail.labels = vec!["FLEAEXFAT".into(), "vda2".into()];
+        cx.notify();
+    });
+    f.cx.run_until_parked();
+    assert!(
+        f.cx.debug_bounds("picker-rail-eject-0").is_some(),
+        "a mounted removable drive ends in the eject mark"
+    );
+    assert!(
+        f.cx.debug_bounds("picker-rail-dot-0").is_none(),
+        "the eject mark stands in the square's own slot"
+    );
+    assert!(
+        f.cx.debug_bounds("picker-rail-dot-1").is_some()
+            && f.cx.debug_bounds("picker-rail-eject-1").is_none(),
+        "a fixed drive keeps its mounted square"
+    );
 }

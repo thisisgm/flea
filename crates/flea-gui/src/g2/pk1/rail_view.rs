@@ -53,6 +53,7 @@ impl Render for RailView {
         let palette = Palette::inherited(&window.text_style(), theme);
         let focused = owner.rail.focus.is_focused(window);
         let current = owner.listing.location.as_str();
+        let caption = crate::list::Typeface::for_window(window, cx).caption;
         let rows = owner.rail.entries.iter().enumerate().map(|(index, entry)| {
             let label = owner.rail.labels.get(index).cloned().unwrap_or_default();
             // The keyboard's row takes the accent wash and edge; otherwise the folder the listing stands on takes the grey fill.
@@ -106,15 +107,33 @@ impl Render for RailView {
                         .child(label),
                 )
                 .children(dot(entry).map(|mounted| {
-                    div()
-                        .flex_none()
-                        .mr(px(DOT_INSET))
-                        .size(px(DOT))
-                        .bg(if mounted {
-                            palette.executable
+                    // SidebarRow.qml RailEject: a releasable row draws the eject mark in the square's own slot.
+                    if entry.releasable {
+                        let ink = if cursor {
+                            palette.foreground
                         } else {
-                            palette.muted_frame.opacity(UNMOUNTED)
-                        })
+                            palette.muted_frame
+                        };
+                        div()
+                            .flex_none()
+                            .debug_selector(move || format!("picker-rail-eject-{index}"))
+                            .children(glyph::svg("eject").map(|(key, data)| Glyph {
+                                paint: Paint::Svg(key, data),
+                                side: f32::from(caption),
+                                ink,
+                            }))
+                    } else {
+                        div()
+                            .flex_none()
+                            .debug_selector(move || format!("picker-rail-dot-{index}"))
+                            .mr(px(DOT_INSET))
+                            .size(px(DOT))
+                            .bg(if mounted {
+                                palette.executable
+                            } else {
+                                palette.muted_frame.opacity(UNMOUNTED)
+                            })
+                    }
                 }))
                 .on_mouse_down(MouseButton::Left, move |_, _, cx| {
                     handle.update(cx, |picker, cx| {
