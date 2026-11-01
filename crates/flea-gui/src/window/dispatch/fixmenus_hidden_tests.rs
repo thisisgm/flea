@@ -14,7 +14,7 @@ use gpui::{Entity, TestAppContext, VisualTestContext};
 const FILE: u32 = 0o100644;
 
 #[gpui::test]
-fn fixmenus_ey385_background_show_hidden_keeps_the_cursor_row_as_the_key_does(
+fn fixmenus_ey385_background_show_hidden_relists_fresh_as_the_key_does(
     cx: &mut TestAppContext,
 ) {
     let (shell, cx) = open_root(cx, "default");
@@ -29,7 +29,16 @@ fn fixmenus_ey385_background_show_hidden_keeps_the_cursor_row_as_the_key_does(
         .captured
         .as_ref()
         .is_some_and(|capture| capture.background)));
+    sent();
     choose(&shell, cx, "toggleHidden");
+    let lists: Vec<_> = sent()
+        .into_iter()
+        .filter(|line| line.contains(r#""c":"list""#))
+        .collect();
+    assert!(
+        lists.len() == 1 && lists[0].contains(r#""hidden":true"#),
+        "the menu re-lists the folder with hidden files shown: {lists:?}"
+    );
     shell.read_with(cx, |shell, _| {
         assert!(pages::is_true(&shell.launch.settings.data, &["hidden"]));
         let host = shell.panes[0].as_ref().unwrap();
