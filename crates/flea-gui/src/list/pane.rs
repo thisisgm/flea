@@ -210,8 +210,18 @@ impl Pane {
         ((self.height / self.row_height).ceil() as usize).max(1)
     }
     pub fn set_height(&mut self, height: f32) {
+        let top = self.cursor as f32 * self.row_height;
+        let follow = height > 0.
+            && height < self.height
+            && self.cursor < self.held.total
+            && top >= self.scroll_y
+            && top + self.row_height <= self.scroll_y + self.height;
         self.height = height;
         self.scroll_by(0.);
+        // The first header/footer layout can shrink a viewport after --select already revealed its row.
+        if follow {
+            self.reveal_cursor();
+        }
     }
     pub fn busy(&self) -> bool {
         self.swap.busy()

@@ -28,6 +28,11 @@ pub(crate) struct GridHost {
 }
 
 impl GridHost {
+    /// Explicit cursor actions reveal their target even when its identity is unchanged.
+    pub(crate) fn refollow(&mut self) {
+        self.followed = None;
+    }
+
     pub(crate) fn band_ready(&self) -> bool {
         self.next_view.is_none() && !self.view.landing_wait
     }

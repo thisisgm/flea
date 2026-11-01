@@ -256,3 +256,104 @@ fn navigation_selection_already_reaches_footer(cx: &mut TestAppContext) {
     rows(cx, handle, 0, 2);
     assert_selected(cx, handle, 0);
 }
+
+// SW-18: a deep --select target is revealed on the first drawn frame, as v0.3.12's Show in folder does.
+#[gpui::test]
+fn sw18_launch_select_reveals_a_deep_row(cx: &mut TestAppContext) {
+    const DEEP: usize = 1500;
+    const TOTAL: usize = 2000;
+    for view in ["list", "columns"] {
+        let handle = open(cx, view, 0, Some(TARGET));
+        deliver(
+            cx,
+            handle,
+            0,
+            Reply::Listed {
+                path: "/files".into(),
+                total: TOTAL,
+            },
+        );
+        // The backend answers a deep select with the first rows around it (docs/protocol.md list select).
+        let first = handle
+            .update(cx, |shell, _, _| {
+                shell.panes[0]
+                    .as_ref()
+                    .unwrap()
+                    .pane
+                    .swap
+                    .pending
+                    .as_ref()
+                    .unwrap()
+                    .first
+            })
+            .unwrap();
+        let start = (DEEP - first / 2).min(TOTAL - first);
+        let rows = (start..start + first)
+            .map(|at| RowFacts {
+                name: if at == DEEP {
+                    "notes.txt".into()
+                } else {
+                    format!("item-{at:04}")
+                },
+                size: 99,
+                icon: "text-plain".into(),
+                ..Default::default()
+            })
+            .collect();
+        deliver(
+            cx,
+            handle,
+            0,
+            Reply::Rows {
+                start,
+                listing: 1,
+                rows,
+            },
+        );
+        for phase in ["initial", "after Columns entry"] {
+            if phase != "initial" {
+                cx.executor()
+                    .advance_clock(Duration::from_millis(crate::pane::swap::CAP_MS + 1));
+            }
+            frame(cx, handle);
+            handle
+                .update(cx, |shell, _, _| {
+                    let host = shell.panes[0].as_ref().unwrap();
+                    assert_eq!(host.pane.cursor, DEEP, "{view}");
+                    assert_eq!(host.selected, [DEEP], "{view}");
+                    let (top, row, shown) =
+                        if shell.shown_view() == crate::window::startup::View::Columns {
+                            let columns = host.columns.as_ref().unwrap();
+                            let paint = columns
+                                .painters
+                                .get(crate::columns::geometry::Slot::Active)
+                                .unwrap()
+                                .borrow();
+                            let drawn = paint.drawn.as_ref().unwrap();
+                            (
+                                DEEP as f32 * drawn.row_height - drawn.scroll,
+                                drawn.row_height,
+                                f32::from(drawn.bounds.size.height),
+                            )
+                        } else {
+                            let list = host.list.borrow();
+                            let drawn = &list.drawn;
+                            (
+                                DEEP as f32 * drawn.metrics.row - drawn.scroll_y,
+                                drawn.metrics.row,
+                                f32::from(drawn.mask.size.height),
+                            )
+                        };
+                    assert!(shown > 0., "{view} {phase}: a viewport was painted");
+                    assert!(
+                        top >= 0. && top + row <= shown,
+                        "{view} {phase}: row top {top} outside {shown}"
+                    );
+                    if view == "columns" && phase != "initial" {
+                        assert_eq!(shell.shown_view(), crate::window::startup::View::Columns);
+                    }
+                })
+                .unwrap();
+        }
+    }
+}

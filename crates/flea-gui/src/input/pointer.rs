@@ -188,7 +188,7 @@ impl Shell {
                     host.pane.cursor = last;
                 }
             } else if !band.additive {
-                host.selected.clear();
+                host.input.selection.ground(&mut host.selected);
             }
             host.input.selection.changed(&host.selected);
             host.input.pulled = None;

@@ -80,6 +80,10 @@ impl Shell {
         let Some(host) = &mut self.panes[self.focus_side] else {
             return false;
         };
+        // Empty Escape still cancels a ground click, then falls through to the listing's notice or climb.
+        if action == "escape" && host.selected.is_empty() {
+            host.input.selection.reset();
+        }
         match action {
             "toggleSelect" if host.pane.cursor < host.pane.held.total => {
                 if !host

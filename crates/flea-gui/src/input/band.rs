@@ -4,6 +4,8 @@ use gpui::{Context, Window};
 use std::time::{Duration, Instant};
 
 pub const EDGE_RATE: f32 = 3. * 24. * 4.;
+const ROW_DRAG_BAND: f32 = 37.;
+const ROW_DRAG_STEP: Duration = Duration::from_millis(100);
 
 pub fn update_band(
     frame: Frame,
@@ -128,6 +130,70 @@ impl super::PaneInput {
 }
 
 impl Shell {
+    /// FileDrag.qml and HoverTimers.qml scroll a held row lift by one row per 100 ms at an edge.
+    pub(crate) fn advance_row_drag(
+        &mut self,
+        side: usize,
+        frame: Frame,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let active = cx.has_active_drag() && !self.input_blocked(cx);
+        let Some(host) = &mut self.panes[side] else {
+            return;
+        };
+        let last = host.input.row_drag_at.take();
+        if !active
+            || host.pane.busy()
+            || host.input.band.is_some()
+            || !host
+                .input
+                .press
+                .as_ref()
+                .is_some_and(|press| press.listing == frame.listing)
+        {
+            return;
+        }
+        let (x, y) = frame.local(window.mouse_position());
+        if x < 0.
+            || x >= f32::from(frame.bounds.size.width) - frame.lane
+            || y < -frame.row
+            || y > frame.viewport() + frame.row
+            || frame.viewport() < 2. * ROW_DRAG_BAND
+        {
+            return;
+        }
+        let direction = if y < ROW_DRAG_BAND {
+            -1.
+        } else if y > frame.viewport() - ROW_DRAG_BAND {
+            1.
+        } else {
+            return;
+        };
+        let now = cx.background_executor().now();
+        host.input.row_drag_at = Some(now);
+        let seconds = last.map_or(0., |at| {
+            now.saturating_duration_since(at)
+                .min(ROW_DRAG_STEP)
+                .as_secs_f32()
+        });
+        host.pane.scroll_to(
+            (host.pane.scroll_y + direction * frame.row * seconds / ROW_DRAG_STEP.as_secs_f32())
+                .clamp(0., frame.max_scroll()),
+        );
+        if host.pane.scroll_y != frame.scroll {
+            host.input
+                .scrolled(host.pane.scroll_y, &mut host.pane.cursor);
+            host.input.moved(now);
+            cx.notify();
+        }
+        if (direction < 0. && host.pane.scroll_y > 0.)
+            || (direction > 0. && host.pane.scroll_y < frame.max_scroll())
+        {
+            window.request_animation_frame();
+        }
+    }
+
     /// One deadline wake for the bar's hold and fade end; presented frames drive the motion between.
     pub(crate) fn arm_input_tick(
         &mut self,
