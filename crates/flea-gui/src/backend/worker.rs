@@ -277,25 +277,29 @@ impl<'a> Worker<'a> {
         for end in previous..self.bytes.len() {
             if self.bytes[end] == b'\n' {
                 let line = &self.bytes[start..end];
-                self.line(line.strip_suffix(b"\r").unwrap_or(line))?;
+                self.line(line.strip_suffix(b"\r").unwrap_or(line));
                 start = end + 1;
             }
         }
         if self.eof && start < self.bytes.len() {
-            self.line(&self.bytes[start..])?;
+            self.line(&self.bytes[start..]);
             start = self.bytes.len();
         }
         self.bytes.drain(..start);
         Ok(count != 0)
     }
 
-    fn line(&self, bytes: &[u8]) -> Result<(), Failure> {
-        let line =
-            std::str::from_utf8(bytes).map_err(|error| failure("window.backend_read", error))?;
-        let event = match transport::parse(line) {
-            Ok(event) => event,
-            Err(error) => Event::Failed(failure("window.backend_protocol", error)),
+    fn line(&self, bytes: &[u8]) {
+        let line = match std::str::from_utf8(bytes) {
+            Ok(line) => line,
+            Err(error) => {
+                let _ = self
+                    .output
+                    .try_send(Event::Garbled(failure("window.backend_protocol", error)));
+                return;
+            }
         };
+        let event = wire_event(line);
         // The folder fact lands before its listed event, so a menu built on that landing reads it.
         if let Some((folder, writable)) = transport::listed_folder(&event, line) {
             self.folders
@@ -307,7 +311,6 @@ impl<'a> Worker<'a> {
             let _ = self.output.try_send(Event::ReloadChanged(changed));
         }
         let _ = self.output.try_send(event);
-        Ok(())
     }
 
     fn wait(
@@ -361,5 +364,13 @@ impl<'a> Worker<'a> {
             }
         }
         Ok(())
+    }
+}
+
+// One reply line as the pane receives it; a line that is not protocol stays one bad line.
+pub(super) fn wire_event(line: &str) -> Event {
+    match transport::parse(line) {
+        Ok(event) => event,
+        Err(error) => Event::Garbled(failure("window.backend_protocol", error)),
     }
 }

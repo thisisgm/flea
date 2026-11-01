@@ -86,8 +86,9 @@ fn ey65_locked_folder_shows_unknown_when_its_listing_is_refused(cx: &mut TestApp
     assert_eq!(filesystem(cx, handle), "unknown");
 }
 
+// EY-465: a dead backend answers no fsinfo, so the disk fact stays empty (v0.3.12 fsAnswered is set only by fsinfo).
 #[gpui::test]
-fn ey65_failed_backend_shows_unknown_with_no_disk_facts(cx: &mut TestAppContext) {
+fn ey465_failed_backend_leaves_the_unanswered_disk_fact_empty(cx: &mut TestAppContext) {
     let handle = open(cx);
     cx.simulate_window_resize(handle.into(), gpui::size(gpui::px(1100.), gpui::px(700.)));
     frame(cx, handle);
@@ -106,7 +107,7 @@ fn ey65_failed_backend_shows_unknown_with_no_disk_facts(cx: &mut TestAppContext)
         .unwrap();
     frame(cx, handle);
     assert_eq!(read(cx, handle, "statusError"), Reply::value("true"));
-    assert_eq!(filesystem(cx, handle), "unknown");
+    assert_eq!(filesystem(cx, handle), "");
 }
 
 #[gpui::test]

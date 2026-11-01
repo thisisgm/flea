@@ -8,6 +8,11 @@ impl Backend {
         transport::parse(line).expect("valid fixture wire")
     }
 
+    /// Any wire line, valid or not, mapped as the reader thread maps it.
+    pub(crate) fn test_wire_line(line: &str) -> Event {
+        super::worker::wire_event(line)
+    }
+
     pub(crate) fn test_channel() -> (Self, impl FnMut() -> Option<(usize, usize)>) {
         let (backend, receiver) = Self::test_controls();
         let receive = move || loop {

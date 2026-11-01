@@ -329,3 +329,46 @@ fn the_rename_field_resolves_bidi_levels_on_each_reshape(cx: &mut TestAppContext
     );
     close(&shell, cx);
 }
+
+// EY-464: a backend that dies with the rename out says the rename sentence in the pane's state slot too (PaneWire.qml onFailed).
+#[gpui::test]
+fn ey464_a_backend_that_dies_with_a_rename_out_names_the_rename_in_the_state_slot(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx, _lines) = ready(cx, "default");
+    cx.simulate_keystrokes("f2");
+    draw(cx);
+    cx.simulate_input("draft");
+    cx.simulate_keystrokes("enter");
+    receive(
+        &shell,
+        cx,
+        BackendEvent::Failed(crate::backend::Failure {
+            key: "window.backend_eof",
+            detail: String::new(),
+        }),
+    );
+    draw(cx);
+    let (stopped, drawn, error) = shell.update(cx, |shell, cx| {
+        let stopped = shell.locale.catalog.tr("jobs.rename.stopped");
+        let drawn = shell.surfaces[0]
+            .facts(cx)
+            .map(|facts| facts.sentence.to_string());
+        let errors = shell.status_messages(cx, |messages, _| {
+            messages
+                .errors()
+                .iter()
+                .map(|e| e.text.clone())
+                .collect::<Vec<_>>()
+        });
+        (stopped, drawn, errors)
+    });
+    assert_eq!(
+        drawn.as_deref(),
+        Some(stopped.as_str()),
+        "the state slot names the rename"
+    );
+    assert_eq!(error, [stopped], "the status bar says that sentence alone");
+    assert_eq!(editing(&shell, cx), None, "the editor is closed");
+    close(&shell, cx);
+}

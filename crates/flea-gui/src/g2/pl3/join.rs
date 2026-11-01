@@ -19,6 +19,7 @@ pub(super) enum Effect {
     Menu(Vec<Item>, At),
     /// A sentence for the one-line bar, the detail for the strip under it, and whether it is an error.
     Status(String, String, bool),
+    MonitorFailed(String),
     Arm(String),
     Dismiss,
     Count(usize),
@@ -65,6 +66,9 @@ impl Outside for OutsideHost {
     }
     fn count(&mut self, total: usize) {
         self.0.borrow_mut().push(Effect::Count(total));
+    }
+    fn monitor_failed(&mut self, text: String) {
+        self.0.borrow_mut().push(Effect::MonitorFailed(text));
     }
     fn focus_rail(&mut self) {
         self.0.borrow_mut().push(Effect::FocusRail);
@@ -338,6 +342,7 @@ impl Shell {
                 Effect::Status(text, detail, error) => {
                     self.trash_say_detail(&text, &detail, error, cx)
                 }
+                Effect::MonitorFailed(text) => self.trash_monitor_failed(&text, cx),
                 Effect::Arm(text) => self.trash_arm(&text, cx),
                 Effect::Dismiss => self.trash_dismiss(cx),
                 Effect::Count(total) => {

@@ -148,7 +148,7 @@ impl TrashPane {
     pub fn heard(&mut self, heard: Heard, cx: &mut Context<Self>) {
         match heard {
             Heard::Count(total) => self.outside.count(total as usize),
-            Heard::Failed(key) => self.outside.status(self.catalog.tr(key), true),
+            Heard::Failed(key) => self.outside.monitor_failed(self.catalog.tr(key)),
             Heard::Changed => {
                 self.host.view.source_changed();
                 self.pump(cx);

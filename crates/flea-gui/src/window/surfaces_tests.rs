@@ -336,3 +336,6 @@ fn a_backend_failure_after_a_listing_draws_its_own_sentence(cx: &mut TestAppCont
         "the generic sentence draws in the state slot"
     );
 }
+
+#[path = "surfaces_backend_fault_tests.rs"]
+mod backend_faults;

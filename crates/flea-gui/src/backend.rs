@@ -51,6 +51,8 @@ pub enum Event {
         mode: u32,
     },
     Failed(Failure),
+    /// One invalid reply line; the session continues, but a listing in flight fails as v0.3.12's parse refusal.
+    Garbled(Failure),
     Drained,
     Changed {
         path: String,

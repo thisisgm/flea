@@ -92,3 +92,57 @@ while IFS= read -r line; do :; done
     backend.close_stdin();
     backend.drained().recv_blocking().unwrap();
 }
+
+// EY-468: a child line that is not protocol does not fail the pane, and the next reply still lands.
+#[test]
+fn a_garbled_child_line_is_not_a_backend_failure_and_the_next_reply_lands() {
+    let mut command = Command::new("/bin/bash");
+    command.args([
+        "-c",
+        r#"IFS= read -r line
+printf '%s\n' 'harness: this line is not backend protocol' '{"t":"listed","path":"/files","n":4}'
+while IFS= read -r line; do :; done
+"#,
+    ]);
+    let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let first = backend.replies.recv_blocking().unwrap();
+    assert!(
+        matches!(first, Event::Garbled(_)),
+        "one bad line is not a dead backend: {first:?}"
+    );
+    let second = backend.replies.recv_blocking().unwrap();
+    assert!(
+        matches!(
+            &second,
+            Event::Reply(flea::protocol::Reply::Listed { path, total: 4 }) if path == "/files"
+        ),
+        "the reply after it still lands: {second:?}"
+    );
+    backend.close_stdin();
+    backend.drained().recv_blocking().unwrap();
+}
+
+#[test]
+fn ey468_a_non_utf8_child_line_is_garbled_and_the_next_reply_lands() {
+    let mut command = Command::new("/bin/bash");
+    command.args([
+        "-c",
+        r#"IFS= read -r line
+printf '\377\n%s\n' '{"t":"listed","path":"/files","n":4}'
+while IFS= read -r line; do :; done
+"#,
+    ]);
+    let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let first = backend.replies.recv_blocking().unwrap();
+    assert!(
+        matches!(first, Event::Garbled(_)),
+        "bad bytes are one garbled line: {first:?}"
+    );
+    let second = backend.replies.recv_blocking().unwrap();
+    assert!(
+        matches!(&second, Event::Reply(flea::protocol::Reply::Listed { path, total: 4 }) if path == "/files"),
+        "the valid reply after bad bytes still lands: {second:?}"
+    );
+    backend.close_stdin();
+    backend.drained().recv_blocking().unwrap();
+}

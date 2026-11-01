@@ -30,6 +30,8 @@ pub(crate) struct Surfaces {
     pub(crate) hero: Option<Entity<EmptyHero>>,
     notice: Option<Entity<StateMessage>>,
     refusal: Option<Refusal>,
+    /// A catalog key that names the refusal instead of its own sentence: a rename the dead backend may not have finished.
+    said: Option<&'static str>,
     shown: Option<(Kind, View, u64)>,
 }
 
@@ -81,7 +83,24 @@ impl Surfaces {
     /// A refused listing lands its message; the next sync redraws the state even when the kind stays put.
     pub(crate) fn refuse(&mut self, refusal: Refusal) {
         self.refusal = Some(refusal);
+        self.said = None;
         self.shown = None;
+    }
+
+    /// PaneWire.qml onFailed: a sentence that replaces the refusal's own, in the state slot and as its state message.
+    pub(crate) fn refuse_saying(&mut self, refusal: Refusal, said: &'static str) {
+        self.refuse(refusal);
+        self.said = Some(said);
+    }
+
+    /// The failed pane's state sentence, as its state slot draws it.
+    pub(crate) fn refused(&self, catalog: &flea::i18n::I18n) -> Option<Facts> {
+        let refusal = self.refusal.as_ref()?;
+        let mut facts = Facts::failed(&refusal.operation, &refusal.message, refusal.mode, catalog);
+        if let Some(said) = self.said {
+            facts.sentence = catalog.tr(said).into();
+        }
+        Some(facts)
     }
 }
 
@@ -128,15 +147,14 @@ impl Shell {
         surfaces.shown = Some(key);
         if !matches!(kind, Kind::Locked | Kind::Error) {
             surfaces.refusal = None;
+            surfaces.said = None;
         }
         let catalog = self.locale.catalog.clone();
         let typeface = host.list.borrow().typeface.clone();
         let metrics = if self.view == View::Grid { GRID } else { LIST };
         let facts = match kind {
             Kind::Waiting => Some(Facts::waiting(&catalog)),
-            Kind::Locked | Kind::Error => surfaces.refusal.as_ref().map(|refusal| {
-                Facts::failed(&refusal.operation, &refusal.message, refusal.mode, &catalog)
-            }),
+            Kind::Locked | Kind::Error => surfaces.refused(&catalog),
             _ => None,
         };
         let mut view: Option<AnyView> = None;

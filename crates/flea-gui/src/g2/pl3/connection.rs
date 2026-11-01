@@ -11,7 +11,7 @@ impl TrashPane {
             let Ok((_monitor, heard)) = started else {
                 let _ = this.update(cx, |pane, cx| {
                     pane.outside
-                        .status(pane.catalog.tr("trash.monitor.watch_failed"), true);
+                        .monitor_failed(pane.catalog.tr("trash.monitor.watch_failed"));
                     cx.notify();
                 });
                 return;

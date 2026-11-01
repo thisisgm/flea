@@ -85,6 +85,7 @@ fn real_backend_pipes_drain_on_quit_and_report_unexpected_eof() {
             match backend.replies.try_recv() {
                 Ok(Event::Drained) => break,
                 Ok(Event::Failed(error)) => failures.push(error.key),
+                Ok(Event::Garbled(error)) => panic!("unexpected garbled reply: {error:?}"),
                 Ok(Event::Operations(_))
                 | Ok(Event::Producer(_))
                 | Ok(Event::Plugins(_))
