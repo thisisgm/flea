@@ -34,6 +34,9 @@ fn ready_single<'a>(
     (shell, cx, Box::new(lines))
 }
 
+// Past the slow-click interval, so an armed rename would have fired; the caption control is rename_slow_tests.
+const PAST_SLOW: Duration = Duration::from_millis(crate::input::slow::DOUBLE_CLICK_MS + 200);
+
 #[gpui::test]
 fn pb_grid_icon_and_drag_releases_never_arm_slow_rename(cx: &mut TestAppContext) {
     let (shell, cx, _lines) = ready(cx, "default");
@@ -41,19 +44,27 @@ fn pb_grid_icon_and_drag_releases_never_arm_slow_rename(cx: &mut TestAppContext)
     let icon = at(&shell, cx, 2, false);
     for _ in 0..2 {
         tap(cx, icon, 1, Modifiers::none());
-        cx.executor().advance_clock(Duration::from_millis(600));
+        cx.executor().advance_clock(PAST_SLOW);
+        draw(cx);
+        assert_eq!(editing(&shell, cx), None, "an icon tap never renames");
     }
     let name = at(&shell, cx, 2, true);
     tap(cx, name, 1, Modifiers::none());
-    cx.executor().advance_clock(Duration::from_millis(600));
+    cx.executor().advance_clock(PAST_SLOW);
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx),
+        None,
+        "the first caption tap only records"
+    );
     cx.simulate_mouse_down(name, MouseButton::Left, Modifiers::none());
     let away = name + point(px(20.), px(0.));
     cx.simulate_mouse_move(away, Some(MouseButton::Left), Modifiers::none());
     cx.simulate_mouse_move(name, Some(MouseButton::Left), Modifiers::none());
     cx.simulate_mouse_up(name, MouseButton::Left, Modifiers::none());
-    cx.executor().advance_clock(Duration::from_millis(600));
+    cx.executor().advance_clock(PAST_SLOW);
     draw(cx);
-    assert_eq!(editing(&shell, cx), None);
+    assert_eq!(editing(&shell, cx), None, "a drag release never renames");
     close(&shell, cx);
 }
 
@@ -82,6 +93,13 @@ fn pb_grid_single_click_opens_a_file_once_and_modifiers_only_select(cx: &mut Tes
         },
     );
     assert!(OPENED.with(|opened| opened.borrow().is_empty()));
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(
+            shell.panes[0].as_ref().unwrap().selected,
+            [2],
+            "a modified tap selects the file"
+        )
+    });
     tap(cx, name, 1, Modifiers::none());
     tap(cx, name, 2, Modifiers::none());
     draw(cx);

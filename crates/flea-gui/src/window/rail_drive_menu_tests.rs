@@ -10,22 +10,36 @@ const PHONE: &str = "Volume(0): Pixel 8\n  Type: GProxyVolume (GProxyVolumeMonit
 const UNMOUNTED_PHONE: &str = "Volume(0): Pixel 8\n  Type: GProxyVolume (GProxyVolumeMonitorMTP)\n  activation_root=mtp://pixel/\n  can_mount=1\n";
 const PLACES: &str = r#"{"rail":"shown","sidebarWidth":192}"#;
 
-// Runs the menu row under the cursor after `keys`, and lets its job start.
-fn choose(keys: &str, cx: &mut VisualTestContext) {
+// Runs the menu row under the cursor after `keys`, lets its job start, and proves the menu took the Enter.
+fn choose(shell: &Entity<Shell>, keys: &str, cx: &mut VisualTestContext) {
     cx.simulate_keystrokes(keys);
     for _ in 0..3 {
         frame(cx);
     }
+    assert!(
+        menu_rows(shell, cx).is_empty(),
+        "the chosen row closes the menu"
+    );
+}
+
+// Opens the device menu by `keys` and asserts its rows were painted in a native frame.
+fn open_painted(shell: &Entity<Shell>, keys: &str, cx: &mut VisualTestContext) -> Vec<String> {
+    crate::g2::mn1::element::PAINTED.with(|painted| painted.borrow_mut().clear());
+    cx.simulate_keystrokes(keys);
+    native_frames(cx);
+    assert!(
+        crate::g2::mn1::element::PAINTED.with(|painted| !painted.borrow().is_empty()),
+        "{keys} paints the device menu"
+    );
+    menu_rows(shell, cx)
 }
 
 #[gpui::test]
 fn raildrive_menu_named_key_on_a_mounted_stick_paints_the_device_menu(cx: &mut TestAppContext) {
     let (shell, _service, cx) = root_at(cx);
     walk_to_stick(&shell, cx);
-    cx.simulate_keystrokes("menu");
-    native_frames(cx);
     assert_eq!(
-        menu_rows(&shell, cx),
+        open_painted(&shell, "menu", cx),
         ["open", "unmountVolume", "eject", "flashImage"],
         "the Menu key opens the device menu"
     );
@@ -36,10 +50,8 @@ fn raildrive_menu_named_key_on_a_mounted_stick_paints_the_device_menu(cx: &mut T
 fn raildrive_shift_f10_on_a_mounted_stick_paints_the_device_menu(cx: &mut TestAppContext) {
     let (shell, _service, cx) = root_at(cx);
     walk_to_stick(&shell, cx);
-    cx.simulate_keystrokes("shift-f10");
-    native_frames(cx);
     assert_eq!(
-        menu_rows(&shell, cx),
+        open_painted(&shell, "shift-f10", cx),
         ["open", "unmountVolume", "eject", "flashImage"],
         "Shift+F10 opens the device menu"
     );
@@ -52,7 +64,7 @@ fn raildrive_device_menu_unmount_runs_on_the_stick(cx: &mut TestAppContext) {
     walk_to_stick(&shell, cx);
     cx.simulate_keystrokes("m");
     native_frames(cx);
-    choose("down enter", cx);
+    choose(&shell, "down enter", cx);
     let jobs = argv_lines(&service);
     assert!(
         jobs.iter()
@@ -73,7 +85,7 @@ fn raildrive_device_menu_mount_runs_on_an_unmounted_stick(cx: &mut TestAppContex
         ["mountVolume", "flashImage"],
         "an unmounted stick offers Mount"
     );
-    choose("enter", cx);
+    choose(&shell, "enter", cx);
     let jobs = argv_lines(&service);
     assert!(
         jobs.iter().any(|job| job == "gio mount -d /dev/sdc1"),
@@ -93,7 +105,7 @@ fn raildrive_device_menu_unmount_runs_on_a_mounted_phone(cx: &mut TestAppContext
         ["open", "unmountPhone"],
         "a mounted phone offers Unmount"
     );
-    choose("down enter", cx);
+    choose(&shell, "down enter", cx);
     let jobs = argv_lines(&service);
     assert!(
         jobs.iter().any(|job| job == "gio mount -u mtp://pixel/"),
@@ -126,7 +138,7 @@ fn raildrive_device_menu_mount_opens_an_unmounted_phone_through_gvfs(cx: &mut Te
         !before.iter().any(|job| job == mount),
         "no mount runs before the choice: {before:?}"
     );
-    choose("enter", cx);
+    choose(&shell, "enter", cx);
     let jobs = argv_lines(&network);
     assert!(
         jobs.iter().any(|job| job == mount),
