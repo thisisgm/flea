@@ -219,3 +219,161 @@ fn quick_look_state_video_strip_retires_hidden_paint_geometry(cx: &mut TestAppCo
     assert!(!paused_again.contains(r#""mute":"""#));
     close(&shell, cx);
 }
+
+// EY-238: every reader the sa11 preview scenes ask answers a value on each Quick Look kind and on the closed card, as IpcPreviewState.qml does.
+#[gpui::test]
+fn ey238_preview_readers_answer_on_every_kind(cx: &mut TestAppContext) {
+    const READERS: &[&str] = &[
+        "previewDuration",
+        "previewEndGap",
+        "previewSelectionState",
+        "previewExpanded",
+        "previewPdfPage",
+        "previewPdfFocus",
+        "previewPdfZoom",
+        "previewSliderCentre",
+        "previewMarkdownView",
+        "previewFigures",
+        "previewTextLength",
+        "previewCloseState",
+        "previewStrip",
+        "previewScrollY",
+        "columnMarkdownView",
+        "previewArchiveNames",
+    ];
+    let (shell, cx, _requests, _script) = mounted(cx);
+    let mut unanswered = Vec::new();
+    for name in [
+        "",
+        "notes.txt",
+        "main.rs",
+        "readme.md",
+        "clip.mp4",
+        "book.pdf",
+        "pack.zip",
+    ] {
+        if !name.is_empty() {
+            open_kind(&shell, cx, name);
+        }
+        for reader in READERS {
+            cx.run_until_parked();
+            let reply = crate::window::u07_tests::reply(&shell, cx, reader, &[]);
+            if reply.code != 0 {
+                unanswered.push(format!("{name}:{reader}:{}", reply.stderr.trim()));
+            }
+        }
+        if !name.is_empty() {
+            cx.simulate_keystrokes("escape");
+            draw(cx);
+        }
+    }
+    assert!(unanswered.is_empty(), "unanswered readers: {unanswered:#?}");
+    assert_eq!(
+        read(&shell, cx, "previewStrip", &[]),
+        r#"{"visible":false,"muted":false,"mute":""}"#,
+        "a closed card draws no strip"
+    );
+    assert_eq!(read(&shell, cx, "previewTextLength", &[]), "0");
+    close(&shell, cx);
+}
+
+// EY-238: text and code, including HTML Source, count UTF-16 units from owned text or joined backend lines.
+#[gpui::test]
+fn ey238_preview_text_length_counts_utf16_on_text_code_and_html(cx: &mut TestAppContext) {
+    use flea::ui_logic_pv2::{
+        code_view::{Answer, Lines, Reply},
+        html::View as HtmlView,
+    };
+    let (shell, cx, _requests, _script) = mounted(cx);
+    for name in ["notes.txt", "main.rs", "page.html"] {
+        open_kind(&shell, cx, name);
+        let code = match mounted_view(&shell, cx) {
+            View::Code(code) => code,
+            View::Html(html) => {
+                html.update(cx, |view, cx| view.set_view(HtmlView::Source, cx));
+                cx.read(|cx| {
+                    html.read(cx)
+                        .source
+                        .clone()
+                        .expect("HTML Source mounts code")
+                })
+            }
+            _ => panic!("{name} mounts text or HTML Source"),
+        };
+        code.update(cx, |view, _| {
+            view.lines.text = Some("a\u{1f600}\n\u{03b2}".into());
+        });
+        assert_eq!(
+            read(&shell, cx, "previewTextLength", &[]),
+            "5",
+            "{name}: owned text counts surrogate pairs and newlines"
+        );
+        code.update(cx, |view, _| {
+            view.lines = Lines::new(0);
+            view.lines.sent(9);
+            assert!(view.lines.answered(Reply {
+                token: 9,
+                state: Answer::Styled,
+                first: 1,
+                total: 2,
+                lines: vec![vec![(0, "a\u{1f600}".into())], vec![(0, "\u{03b2}".into())]],
+            }));
+        });
+        assert_eq!(
+            read(&shell, cx, "previewTextLength", &[]),
+            "5",
+            "{name}: held lines include their joining newline"
+        );
+        code.update(cx, |view, _| view.lines.text = Some(String::new()));
+        assert_eq!(read(&shell, cx, "previewTextLength", &[]), "0");
+        cx.simulate_keystrokes("escape");
+        draw(cx);
+    }
+    close(&shell, cx);
+}
+
+// EY-238: previewFigures names each top-level figure block of the open Markdown card instead of answering unported.
+#[gpui::test]
+fn ey238_preview_figures_reads_the_open_markdown_figures(cx: &mut TestAppContext) {
+    use flea::ui_logic_pv2::markdown::{
+        markdown_layout::{Counter, FigureState},
+        Block, Figure, FigureKind,
+    };
+    use std::sync::Arc;
+    let (shell, cx, _requests, _script) = mounted(cx);
+    open_kind(&shell, cx, "readme.md");
+    let View::Markdown(markdown) = mounted_view(&shell, cx) else {
+        panic!("readme.md mounts the Markdown view")
+    };
+    let figure = Block::Figure(Figure {
+        kind: FigureKind::Mermaid,
+        source: "graph TD; A-->B".into(),
+        display: true,
+    });
+    let run = Block::Run {
+        text: "text".into(),
+        maths: Vec::new(),
+    };
+    let counter = |figure| Counter {
+        figure,
+        ..Counter::default()
+    };
+    markdown.update(cx, |view, _| {
+        view.doc.status = Status::Ready;
+        view.doc.complete = true;
+        view.doc.parsed.blocks = Arc::new(vec![run, figure.clone(), figure]);
+        view.doc.parsed.prefix = Arc::new(vec![counter(0), counter(0), counter(1), counter(2)]);
+        let mut assets = (*view.doc.assets).clone();
+        assets.figures.insert(1, FigureState::Failed);
+        view.doc.assets = Arc::new(assets);
+    });
+    assert_eq!(
+        read(&shell, cx, "previewFigures", &[]),
+        "1=deferred,2=failed",
+        "each figure block reads by its index, with the state its drawing reached"
+    );
+    cx.simulate_keystrokes("escape");
+    draw(cx);
+    assert_eq!(read(&shell, cx, "previewFigures", &[]), "");
+    close(&shell, cx);
+}

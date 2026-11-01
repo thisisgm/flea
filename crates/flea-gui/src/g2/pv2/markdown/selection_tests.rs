@@ -36,6 +36,7 @@ fn tokens(column: bool) -> Tokens {
         state_mark: 40.,
         source_line: None,
         column,
+        source_line: None,
     }
 }
 fn palette() -> Palette {
