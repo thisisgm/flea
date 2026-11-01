@@ -1361,7 +1361,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "failure.key()",
-      "line": 296,
+      "line": 299,
       "path": "crates/flea-gui/src/window/network_effects.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1856,7 +1856,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 241,
+      "line": 242,
       "path": "src/tui/cards.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1866,7 +1866,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 337,
+      "line": 338,
       "path": "src/tui/cards.rs",
       "pattern": null,
       "possible_keys": [],
@@ -21547,7 +21547,7 @@
       "call_sites": [
         {
           "excerpt": "Button { label: m.i18n.tr(\"card.cancel\"), default: true, focused: !focus, enabled: true },",
-          "line": 165,
+          "line": 166,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -21569,14 +21569,14 @@
       "call_sites": [
         {
           "excerpt": "let close = button_width(&m.i18n.tr(\"card.close\"));",
-          "line": 285,
+          "line": 286,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "buttons(out, theme, &card, &[Button { label: m.i18n.tr(\"card.close\"), default: true, focused: true, enabled: true }]);",
-          "line": 300,
+          "line": 301,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -21598,7 +21598,7 @@
       "call_sites": [
         {
           "excerpt": "Button { label: m.i18n.tr(\"card.delete\"), default: false, focused: focus, enabled: token != 0 },",
-          "line": 166,
+          "line": 167,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -21620,21 +21620,21 @@
       "call_sites": [
         {
           "excerpt": "let esc = m.i18n.tr(\"card.esc\");",
-          "line": 132,
+          "line": 133,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let need = rows.iter().map(|row| text_width(row)).max().unwrap_or(0).max(text_width(&title) + 2 + text_width(&m.i18n.tr(\"card.esc\")))",
-          "line": 172,
+          "line": 173,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": ".max(text_width(&m.i18n.tr(\"properties.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 287,
+          "line": 288,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22181,7 +22181,7 @@
       "call_sites": [
         {
           "excerpt": "let body = if token == 0 { m.i18n.tr(\"delete.inspecting\") } else { m.i18n.trn(\"delete.body\", count) };",
-          "line": 160,
+          "line": 161,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22212,7 +22212,7 @@
       "call_sites": [
         {
           "excerpt": "let body = if token == 0 { m.i18n.tr(\"delete.inspecting\") } else { m.i18n.trn(\"delete.body\", count) };",
-          "line": 160,
+          "line": 161,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22234,7 +22234,7 @@
       "call_sites": [
         {
           "excerpt": "(m.i18n.trn(\"delete.title\", count), rows, [",
-          "line": 164,
+          "line": 165,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -52078,7 +52078,7 @@
         },
         {
           "excerpt": "let output = m.i18n.tr(\"dialogs.output.output\");",
-          "line": 342,
+          "line": 355,
           "path": "src/tui/convert/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -78951,7 +78951,7 @@
         },
         {
           "excerpt": "facts.insert(3, fact(\"properties.birth\", if birth.is_empty() { i18n.tr(\"pane.unavailable\") } else { birth }));",
-          "line": 262,
+          "line": 263,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -89352,7 +89352,7 @@
       "call_sites": [
         {
           "excerpt": "facts.insert(3, fact(\"properties.birth\", if birth.is_empty() { i18n.tr(\"pane.unavailable\") } else { birth }));",
-          "line": 262,
+          "line": 263,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89388,7 +89388,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.size\", i18n.trn_args(\"properties.bytes\", bytes as i64, &[&i18n.locale().format_size(bytes as u64)])),",
-          "line": 253,
+          "line": 254,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -89422,7 +89422,7 @@
       "call_sites": [
         {
           "excerpt": "if !deleted.is_empty() { facts.push(fact(\"properties.deleted\", deleted)); }",
-          "line": 265,
+          "line": 266,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89444,7 +89444,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.group\", i18n.tr_args(\"properties.groupValue\", &[&count(value, \"gid\").to_string()])),",
-          "line": 256,
+          "line": 257,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89466,7 +89466,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.group\", i18n.tr_args(\"properties.groupValue\", &[&count(value, \"gid\").to_string()])),",
-          "line": 256,
+          "line": 257,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -89490,7 +89490,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.kind\", kind),",
-          "line": 252,
+          "line": 253,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89534,7 +89534,7 @@
       "call_sites": [
         {
           "excerpt": "if !modified.is_empty() { facts.insert(3, fact(\"properties.modified\", modified)); }",
-          "line": 259,
+          "line": 260,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89556,7 +89556,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.owner\", i18n.tr_args(\"properties.ownerValue\", &[text(value, \"owner\"), &count(value, \"uid\").to_string()])),",
-          "line": 255,
+          "line": 256,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89592,7 +89592,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.owner\", i18n.tr_args(\"properties.ownerValue\", &[text(value, \"owner\"), &count(value, \"uid\").to_string()])),",
-          "line": 255,
+          "line": 256,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -89617,7 +89617,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.path\", text(value, \"path\").into()),",
-          "line": 251,
+          "line": 252,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89639,7 +89639,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.permissions\", text(value, \"mode\").into()),",
-          "line": 254,
+          "line": 255,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89661,7 +89661,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.size\", i18n.trn_args(\"properties.bytes\", bytes as i64, &[&i18n.locale().format_size(bytes as u64)])),",
-          "line": 253,
+          "line": 254,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89683,7 +89683,7 @@
       "call_sites": [
         {
           "excerpt": "if flag(value, \"symlink\") { facts.push(fact(\"properties.target\", text(value, \"target\").into())); }",
-          "line": 266,
+          "line": 267,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89705,14 +89705,14 @@
       "call_sites": [
         {
           "excerpt": ".max(text_width(&m.i18n.tr(\"properties.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 287,
+          "line": 288,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "frame(out, m, theme, &card, &m.i18n.tr(\"properties.title\"));",
-          "line": 293,
+          "line": 294,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90331,21 +90331,21 @@
       "call_sites": [
         {
           "excerpt": "return Err(super::message(\"search.contents.limit\", \"\"));",
-          "line": 256,
+          "line": 268,
           "path": "src/backend/contentsworker.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
         },
         {
           "excerpt": "return Err(super::message(\"search.contents.limit\", \"\"));",
-          "line": 263,
+          "line": 275,
           "path": "src/backend/contentsworker.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
         },
         {
           "excerpt": "return Err(super::message(\"search.contents.limit\", \"\"));",
-          "line": 279,
+          "line": 291,
           "path": "src/backend/contentsworker.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -90367,14 +90367,14 @@
       "call_sites": [
         {
           "excerpt": ".ok_or_else(|| super::message(\"search.contents.missing\", \"\"))",
-          "line": 72,
+          "line": 84,
           "path": "src/backend/contentsworker.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
         },
         {
           "excerpt": "return Err(super::message(\"search.contents.missing\", \"\"));",
-          "line": 138,
+          "line": 150,
           "path": "src/backend/contentsworker.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -90396,7 +90396,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(super::message(\"search.contents.timeout\", \"\"));",
-          "line": 241,
+          "line": 253,
           "path": "src/backend/contentsworker.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -107194,9 +107194,9 @@
       "surface": "gui"
     },
     {
-      "excerpt": "\"a suppressed hint must be published when the transfer ends\"",
+      "excerpt": "\"a hint suppressed during a transfer publishes on the next refresh after it ends\"",
       "line": 366,
-      "literal": "a suppressed hint must be published when the transfer ends",
+      "literal": "a hint suppressed during a transfer publishes on the next refresh after it ends",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/dg2/feedback.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -111038,7 +111038,7 @@
     },
     {
       "excerpt": "return Err(\"mpv_create failed\".into());",
-      "line": 60,
+      "line": 63,
       "literal": "mpv_create failed",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -111047,7 +111047,7 @@
     },
     {
       "excerpt": "let pause = if options.autoplay { \"no\" } else { \"yes\" };",
-      "line": 62,
+      "line": 65,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -111056,7 +111056,7 @@
     },
     {
       "excerpt": "(\"keep-open\", \"yes\"),",
-      "line": 76,
+      "line": 79,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -111065,17 +111065,8 @@
     },
     {
       "excerpt": "let result = check(created, \"render create\").and_then(|()| {",
-      "line": 104,
+      "line": 107,
       "literal": "render create",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "set(api, handle, \"pause\", \"yes\")?;",
-      "line": 170,
-      "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -111091,8 +111082,17 @@
       "surface": "gui"
     },
     {
+      "excerpt": "set(api, handle, \"pause\", \"yes\")?;",
+      "line": 176,
+      "literal": "yes",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "Command::Mute(muted) => set(api, handle, \"mute\", if muted { \"yes\" } else { \"no\" })?,",
-      "line": 180,
+      "line": 183,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -111101,7 +111101,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea-media: seek dropped: {error}\");",
-      "line": 208,
+      "line": 211,
       "literal": "flea-media: seek dropped: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -111110,7 +111110,7 @@
     },
     {
       "excerpt": "check(event.error, \"command reply\")?;",
-      "line": 211,
+      "line": 214,
       "literal": "command reply",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -111119,7 +111119,7 @@
     },
     {
       "excerpt": "Err(error) => eprintln!(\"flea-media: seek dropped: {error}\"),",
-      "line": 282,
+      "line": 292,
       "literal": "flea-media: seek dropped: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -111128,7 +111128,7 @@
     },
     {
       "excerpt": "\"frame info\",",
-      "line": 298,
+      "line": 308,
       "literal": "frame info",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -130855,8 +130855,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "at > 0 && digits > 0 && tail[digits..].starts_with(b\": error parsing glob \")",
+      "line": 74,
+      "literal": ": error parsing glob ",
+      "owner": "controller",
+      "path": "src/backend/contentsworker.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let mut stdout = child.child.stdout.take().ok_or(\"missing ripgrep stdout\")?;",
-      "line": 221,
+      "line": 233,
       "literal": "missing ripgrep stdout",
       "owner": "controller",
       "path": "src/backend/contentsworker.rs",
@@ -130865,7 +130874,7 @@
     },
     {
       "excerpt": "let mut stderr = child.child.stderr.take().ok_or(\"missing ripgrep stderr\")?;",
-      "line": 222,
+      "line": 234,
       "literal": "missing ripgrep stderr",
       "owner": "controller",
       "path": "src/backend/contentsworker.rs",
@@ -170717,7 +170726,7 @@
     },
     {
       "excerpt": "let mut cancel = key.name == \"Escape\";",
-      "line": 191,
+      "line": 192,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170726,7 +170735,7 @@
     },
     {
       "excerpt": "else if key.mods.is_empty() && key.name == \"Down\" { deletion.scroll = (card.top + 1).min(most); }",
-      "line": 206,
+      "line": 207,
       "literal": "Down",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170735,7 +170744,7 @@
     },
     {
       "excerpt": "else if (matches!(key.name.as_str(), \"Tab\" | \"Backtab\") && matches!(key.mods.as_str(), \"\" | \"shift\"))",
-      "line": 207,
+      "line": 208,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170744,7 +170753,7 @@
     },
     {
       "excerpt": "else if (matches!(key.name.as_str(), \"Tab\" | \"Backtab\") && matches!(key.mods.as_str(), \"\" | \"shift\"))",
-      "line": 207,
+      "line": 208,
       "literal": "Backtab",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170753,7 +170762,7 @@
     },
     {
       "excerpt": "|| (key.mods.is_empty() && (matches!(key.name.as_str(), \"Right\" | \"Left\") || matches!(key.text.as_str(), \"h\" | \"l\"))) {",
-      "line": 208,
+      "line": 209,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170762,7 +170771,7 @@
     },
     {
       "excerpt": "|| (key.mods.is_empty() && (matches!(key.name.as_str(), \"Right\" | \"Left\") || matches!(key.text.as_str(), \"h\" | \"l\"))) {",
-      "line": 208,
+      "line": 209,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170771,7 +170780,7 @@
     },
     {
       "excerpt": "\"Left\" => rtl, \"Right\" => !rtl,",
-      "line": 210,
+      "line": 211,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170780,7 +170789,7 @@
     },
     {
       "excerpt": "\"Left\" => rtl, \"Right\" => !rtl,",
-      "line": 210,
+      "line": 211,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170789,7 +170798,7 @@
     },
     {
       "excerpt": "} else if key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\") { activate = true; }",
-      "line": 214,
+      "line": 215,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170798,7 +170807,7 @@
     },
     {
       "excerpt": "} else if key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\") { activate = true; }",
-      "line": 214,
+      "line": 215,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170807,7 +170816,7 @@
     },
     {
       "excerpt": "} else if key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\") { activate = true; }",
-      "line": 214,
+      "line": 215,
       "literal": "Space",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170816,7 +170825,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_op3::properties::kind_word(",
-      "line": 244,
+      "line": 245,
       "literal": "File",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170825,7 +170834,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_op3::properties::kind_word(",
-      "line": 244,
+      "line": 245,
       "literal": "Directory",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170834,7 +170843,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_op3::properties::kind_word(",
-      "line": 244,
+      "line": 245,
       "literal": "Symbolic link",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170843,7 +170852,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_op3::properties::kind_word(",
-      "line": 244,
+      "line": 245,
       "literal": "Special file",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -170852,7 +170861,7 @@
     },
     {
       "excerpt": "if flag(value, \"symlink\") { facts.push(fact(\"properties.target\", text(value, \"target\").into())); }",
-      "line": 266,
+      "line": 267,
       "literal": "symlink",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -241378,7 +241387,7 @@
     "crates/flea-gui/src/columns/geometry.rs": "6a97f5504823f947d188fd8f00162b3955b5abd06b790f932428cc9f38afb1f7",
     "crates/flea-gui/src/columns/glyphs.rs": "ea1c2314c9c07ca189c31fda7500086a206a00c5c0bf7676dd3e721c7738d87d",
     "crates/flea-gui/src/columns/landing.rs": "0a326fe2e1b911928bfb73d379de3feae99f06cc559843890d0e1a0640e70246",
-    "crates/flea-gui/src/columns/menu.rs": "fb3b2a963a26f33d33c6f7604757abf1bf011c5bccb19993ff6e11cc55d29c00",
+    "crates/flea-gui/src/columns/menu.rs": "4934aea16c44806e0cadba46f6d2ccdde9b40736cb3b861951e6f1faecff506b",
     "crates/flea-gui/src/columns/mod.rs": "32a9695df1ca998ea63eca6e800b56e29fa92d9cadaf9a632435fb76c729c4bb",
     "crates/flea-gui/src/columns/paint.rs": "e622022ea68b542628281f92e0c695944ccf8d8238cb7ac7ef038d284929d28c",
     "crates/flea-gui/src/columns/peeks.rs": "ca25bfcf5130915a7573740ad3b85056a72b7a169676cb2d0cb9be0eb6d57a10",
@@ -241436,7 +241445,7 @@
     "crates/flea-gui/src/g2/dg2/crumb_drop.rs": "e667cfbf11f199374e9612c6dc4e08ca65d865aa1098ceaaa36b42e86f87cd0b",
     "crates/flea-gui/src/g2/dg2/drags.rs": "db56ece6a2ee7f9bf034612b16ea104b20c003b47bc446566017fa4bae42031f",
     "crates/flea-gui/src/g2/dg2/facts.rs": "c902532907f1cf3a3c52f73296a204f7257c7e77d9616c212fb37c6910b4ffd2",
-    "crates/flea-gui/src/g2/dg2/feedback.rs": "a48bfd551ca65e600d637dd3603618799caa38f494fa42b9a164c01e36b6c7a5",
+    "crates/flea-gui/src/g2/dg2/feedback.rs": "579c75848093c4aed27fbb9306ee7d846105c573dd13a1d1cb732c57eef9bebd",
     "crates/flea-gui/src/g2/dg2/feedback_keys.rs": "16e4e042928fff298d1fec9e3337a9017bf9203eab4df2222458328ff0c93ffe",
     "crates/flea-gui/src/g2/dg2/files.rs": "89408854fa78e096af29076a00a76cbbd060f1121e5baa17bc2fec992dee51dc",
     "crates/flea-gui/src/g2/dg2/flock.rs": "daa59c4e090a822581193d46bed0652fd4bc2d93e406fccc6f451ae02eda87b3",
@@ -241866,7 +241875,7 @@
     "crates/flea-gui/src/g2/pv3/glyphs.rs": "2ec013de1b46b6205f467687250f092ba33517b40c99f290a5a330344c473223",
     "crates/flea-gui/src/g2/pv3/helper/dl.rs": "ef99b9dc258671076c2bdbda6edf9dad4576084c6e5545e85af6c562d7b841bc",
     "crates/flea-gui/src/g2/pv3/helper/mod.rs": "1d7c7596ad82b61c4ecb386e3e097500000062fdab6cb42b7cb6cc401705af09",
-    "crates/flea-gui/src/g2/pv3/helper/mpv.rs": "88c9bbe0da2bffda491a7693fac72a932f9a0be41dfb47eac3faaf58aaba7057",
+    "crates/flea-gui/src/g2/pv3/helper/mpv.rs": "815cf79e696c99777f282b8fb701ca785690926b533e11e3c2113bfe66751e81",
     "crates/flea-gui/src/g2/pv3/helper/mpv_api.rs": "3f183dfa026f6bb946e3186c20d17143e48c535dd0ee1dc0945cb06e0460d10a",
     "crates/flea-gui/src/g2/pv3/helper/mpv_property.rs": "24257732f433bc28b1733534669facc4858255b1eeede35547d3fc44d3cc1097",
     "crates/flea-gui/src/g2/pv3/helper/mpv_state.rs": "d1685dd54f825b727ad84432e67ff1e2f57af63230127e2a4962b70256e332e8",
@@ -242220,7 +242229,7 @@
     "crates/flea-gui/src/visual/mod.rs": "deb29ee97df17003b128d6f250cf7477aaa2dd5bce84442f5018d2bcfc7a85f6",
     "crates/flea-gui/src/visual/views.rs": "1eea37826b3d28c788108e9a403ec6b4f30742db5825b2e1ec60626db34fe463",
     "crates/flea-gui/src/window/chrome_move.rs": "c4abb39be5a67ee21f0f51a60d928ba201d05869dd7814072f548f286f17f44a",
-    "crates/flea-gui/src/window/columns.rs": "de5c017fb5d712aeb7e22ce0e67455f1764af606c107705269000d3fdf8089fb",
+    "crates/flea-gui/src/window/columns.rs": "3dbb266a9041b3a176d79ed19604d2b1fb316247fdf4bf2ee9814026d2867df3",
     "crates/flea-gui/src/window/columns_edge.rs": "f8372037bb5a5262c8007259804dc287d16d8c70bd232884bd7f750f02f0c20f",
     "crates/flea-gui/src/window/columns_events.rs": "a71c651cb8bc924a4a837753ca925e283a55a1b6e899fc1cd884ddb7f69de023",
     "crates/flea-gui/src/window/columns_gestures.rs": "345f923fffa50aec8016064d91bebdfc2e7ca21a6a267363034ea7ccba77ffbb",
@@ -242231,7 +242240,7 @@
     "crates/flea-gui/src/window/columns_readers.rs": "c55cf7159f056efc4c320c138ea8651b2b21516b5744ea595dea84291b2da6cf",
     "crates/flea-gui/src/window/columns_render.rs": "867b0a3b2fab6a83e13745989fcb47e724bd605904c4d9a5317ab11861a1eb07",
     "crates/flea-gui/src/window/columns_render/render_tile.rs": "5cbfa9db43f9659f48ee82621aba4f225dcd0388e9561d2220bfe74c5f4a552d",
-    "crates/flea-gui/src/window/columns_requested.rs": "d066f387f4235bf1e6c4cfe7564289c1ba45b9fcd80a16c5348572654217ad33",
+    "crates/flea-gui/src/window/columns_requested.rs": "1b262b2f9b3c99874b96596264a1c70ae300b17575b7e0670c2afc70a854bb63",
     "crates/flea-gui/src/window/columns_review_r3_controls.rs": "6703fec356c5e5df3f16c9e7f60968c44dc26ba353df23e6bd38197cac9c3d5e",
     "crates/flea-gui/src/window/columns_scroll.rs": "7d157feeacf1ac9f24fdbdb9db67c48e6cba51ba122150e278b35019465d1029",
     "crates/flea-gui/src/window/columns_scroll_bar.rs": "d6c2c8010a8e302b474bc3101e66c20e41c3c987ae3aa5e8e631a3d3d2341a40",
@@ -242310,7 +242319,7 @@
     "crates/flea-gui/src/window/navigate.rs": "ad3b04616b378b25d37f80a098e6f5418fc0335f8e2438cde7a6f0bc229d1973",
     "crates/flea-gui/src/window/network.rs": "df0c222c72ef3f3618c4c2a7ab0903b407074307c5fad5165a7325c7fc8067c1",
     "crates/flea-gui/src/window/network_cloud.rs": "c9e57bf2de77b95a802982b1621bcd53723ff14938aaedb2c7fde6405609509c",
-    "crates/flea-gui/src/window/network_effects.rs": "3be1cce9735ef37ba1ed67ab829071f3d78fe9507ae49ca02df47b1407739965",
+    "crates/flea-gui/src/window/network_effects.rs": "4ce9728f59331c4e7a6cb1233db2bcefc7fe3f9b1cb19879e87318b1ade9fbba",
     "crates/flea-gui/src/window/network_menu.rs": "7e24e0e49fa81c7d384ffda182dc663bb69b5be4fd83858605da55d2ee9d25c6",
     "crates/flea-gui/src/window/network_path.rs": "af7651e220a367059dd7c158191a9b69efed3294fc133f9d22dca24852970c9b",
     "crates/flea-gui/src/window/network_rows.rs": "45d735956a6375a218662143146d58af9224ba4d77f2c01419f388c4ee70f29b",
@@ -242450,7 +242459,7 @@
     "src/backend/contentsorder.rs": "6fdec3f2d13d31a4002739ca136508393265f5300158512e2d3ee53fd5537002",
     "src/backend/contentsparse.rs": "8725aa6220a2f3a58dcf0af042ffa85bbdce009ab2d380a36865c7ade3155eb9",
     "src/backend/contentsreq.rs": "e6374039283c2d1329944446294a2eb1e12aaa5cb6f301d6991023f49975e36a",
-    "src/backend/contentsworker.rs": "6978e3f8986913028907db9621a21b1c09922bc903e031090c830c7d20f1731d",
+    "src/backend/contentsworker.rs": "58ec8b3b6e42c41ce7ad3f38b932b67c735277c15b7edd69f0a2ce552f812ca0",
     "src/backend/convert.rs": "27d3f89a9dc475631c26fddcd19c620bfda88146d137e90fec1b89cfe211cd0f",
     "src/backend/convertbatch.rs": "e950fde424b374595336d7a6d70e45e8645f6a7df9298786c60e7e8f83dbcd5d",
     "src/backend/copyfile.rs": "c4b61adce91b28a0e822127a4ffa08a7028d489fd9d35bbef97c7b4735149b43",
@@ -242900,7 +242909,7 @@
     "src/tui/batch.rs": "79ae57c24af694b2f1cf643a348d4eae9ca47d85d6f54c40cc8980587c146b3f",
     "src/tui/calendar.rs": "203b5d1b559f78cae42cfdb6f2dc4bce95b437579db485f63615a3fb9eb96230",
     "src/tui/capabilities.rs": "a8790641f17557c0e34c7b417b5d321bb6f8ebb8e1becd0ab37060b947596eb9",
-    "src/tui/cards.rs": "060a1abafaf514725e637e734af6ebd1f390f16624c688e1db6a654bae16785c",
+    "src/tui/cards.rs": "554f3dd312e6f83a6e435dd60f3c14d7d8dd0f9cbb192464072062f61998387b",
     "src/tui/cards/words.rs": "fdff477f46d3b5c62f9ffa99d50144ff653885144051b0a83c09d9c5a6517aba",
     "src/tui/cells.rs": "4ab3db4d9b9a9aeda042195883abec1913fb710267e7cae9ef48f48c4a2c515b",
     "src/tui/chafa.rs": "8f0a06ee01069e36e703619ed6c5770d6764fab464aec587c8919e705c5ccbf0",
@@ -242915,7 +242924,7 @@
     "src/tui/completion.rs": "e0ee7b5b1f3e935735c63c913b1edee5f657c48b58b3000e9a7aa2fcd62b08b8",
     "src/tui/contents.rs": "c52db6f4b4567caf96f12354a24a897b9516602d30d2ce0a922ed365f2ecb2ec",
     "src/tui/convert.rs": "cac577640a064368ebe30b53444d209c7232341004b3af8cac187e053b2bb7ce",
-    "src/tui/convert/card.rs": "855867802d5e6e076797247ac6befaf74b2aeebec5f52126d1cd600746f7f0ff",
+    "src/tui/convert/card.rs": "7f4bcffe78e21ae6436ac7b8fd23a26de0e47c884e32febbf768b0c3d8f9c0ac",
     "src/tui/convert/input.rs": "0e102c2c5c1afe0d1d4290ba7f6ccfb1883b30d207cf79c50f9da1c5205bb154",
     "src/tui/convert/replies.rs": "bcde36c7a1338d6208bd25ef7ff46279b2b431057a23074ea5305428e4e644e0",
     "src/tui/cwd.rs": "841f27783ae071620015378cea677de784cf83ef31e900686d0c178a0bdd263d",
@@ -243353,7 +243362,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "b8588d29e614154d95233ca5460f6f546233991f1774848d97bab58102400fb4",
+    "tools/flea-file-budget": "a8d5e872dc76373dae9a6043793c6e29393df71125eff8affece9d80d73e27c9",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -243884,12 +243893,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "81365805c39e04081e69e67b87c73fc1b7492a09",
-  "source_sha": "81365805c39e04081e69e67b87c73fc1b7492a09",
+  "source_ref_sha": "4754f3a2928e2907d3fdeab651b3c6f00a3e0027",
+  "source_sha": "4754f3a2928e2907d3fdeab651b3c6f00a3e0027",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1287,
-      "missing_literal_candidates": 5758,
+      "missing_literal_candidates": 5759,
       "source_files": 827
     },
     "generated/tooling": {
