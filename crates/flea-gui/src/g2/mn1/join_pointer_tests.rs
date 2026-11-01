@@ -18,6 +18,7 @@ fn key(cx: &mut TestAppContext, handle: WindowHandle<Root>, value: &str) {
 
 #[gpui::test]
 fn u06_live_menu_pointer_mount_paint_hover_disabled_and_outside_press(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let mut fixture = open(cx);
     let handle = fixture.handle;
     frame(cx, handle);

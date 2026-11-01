@@ -183,6 +183,7 @@ fn check_painted(card: &super::menu::Card, row: usize, vertical: bool) {
 #[test]
 fn fix3_real_font_columns_with_and_without_submenu_follow_the_frozen_recipe() {
     let mut cx = real_cx();
+    cx.update(|cx| cx.set_reduce_motion(true));
     let menu = Rc::new(RefCell::new(Menu::default()));
     let shared = Rc::clone(&menu);
     let handle = cx.add_window(move |_, _| Host(shared));
@@ -270,6 +271,7 @@ fn fix3_real_font_columns_with_and_without_submenu_follow_the_frozen_recipe() {
 #[test]
 fn fix3_real_font_default_refusals_paint_whole_at_edges_refresh_and_flyout() {
     let mut cx = real_cx();
+    cx.update(|cx| cx.set_reduce_motion(true));
     let menu = Rc::new(RefCell::new(Menu::default()));
     let shared = Rc::clone(&menu);
     let handle = cx.add_window(move |_, _| Host(shared));

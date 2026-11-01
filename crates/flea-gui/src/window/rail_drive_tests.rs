@@ -185,6 +185,7 @@ fn raildrive_return_on_a_mounted_stick_opens_its_mount(cx: &mut TestAppContext) 
 
 #[gpui::test]
 fn raildrive_menu_key_on_a_mounted_stick_paints_the_device_menu(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let (shell, _service, cx) = root_at(cx);
     let stick = walk_to_stick(&shell, cx);
     crate::g2::mn1::element::PAINTED.with(|painted| painted.borrow_mut().clear());

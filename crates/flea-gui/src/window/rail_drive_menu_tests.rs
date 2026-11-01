@@ -36,6 +36,7 @@ fn open_painted(shell: &Entity<Shell>, keys: &str, cx: &mut VisualTestContext) -
 
 #[gpui::test]
 fn raildrive_menu_named_key_on_a_mounted_stick_paints_the_device_menu(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let (shell, _service, cx) = root_at(cx);
     walk_to_stick(&shell, cx);
     assert_eq!(
@@ -48,6 +49,7 @@ fn raildrive_menu_named_key_on_a_mounted_stick_paints_the_device_menu(cx: &mut T
 
 #[gpui::test]
 fn raildrive_shift_f10_on_a_mounted_stick_paints_the_device_menu(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let (shell, _service, cx) = root_at(cx);
     walk_to_stick(&shell, cx);
     assert_eq!(

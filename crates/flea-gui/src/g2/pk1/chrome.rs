@@ -19,6 +19,8 @@ pub struct Chrome {
     pub backing: bool,
     pub menu: Option<usize>,
     pub menu_view: Option<Entity<crate::g2::pk2::chrome::ChipMenu>>,
+    // The last chip menu, kept drawn through its 140 ms close fade.
+    pub menu_closing: Option<Entity<crate::g2::pk2::chrome::ChipMenu>>,
     pub filter_subscription: Option<gpui::Subscription>,
     pub filter_close: Option<gpui::Subscription>,
     pub folder_request: Option<String>,
@@ -50,6 +52,7 @@ impl Chrome {
             backing: false,
             menu: None,
             menu_view: None,
+            menu_closing: None,
             filter_subscription: None,
             filter_close: None,
             folder_request: None,

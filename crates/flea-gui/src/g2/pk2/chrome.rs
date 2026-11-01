@@ -205,6 +205,15 @@ impl ChipMenu {
         self.menu.borrow().opened()
     }
 
+    pub fn visible(&self) -> bool {
+        self.menu.borrow().visible()
+    }
+
+    #[cfg(test)]
+    pub fn card_opacity(&self) -> f32 {
+        self.menu.borrow().fades.card_frame.opacity
+    }
+
     // Test hook: the card's frame, held inside its window.
     #[cfg(test)]
     pub fn card_frame(&self) -> Option<Rect> {
@@ -252,6 +261,11 @@ impl Render for ChipMenu {
                 }
             }
         }
+        let card = MenuElement::new(self.menu.clone(), px(crate::compositor::corner(cx)));
+        // A closing card fades out without taking the pointer.
+        if !self.opened() {
+            return div().size_full().child(card);
+        }
         div()
             .size_full()
             .debug_selector(|| "pk2-chip-menu".into())
@@ -267,9 +281,6 @@ impl Render for ChipMenu {
                     cx.stop_propagation();
                 }),
             )
-            .child(MenuElement::new(
-                self.menu.clone(),
-                px(crate::compositor::corner(cx)),
-            ))
+            .child(card)
     }
 }

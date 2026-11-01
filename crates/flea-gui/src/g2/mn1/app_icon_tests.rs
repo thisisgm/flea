@@ -21,6 +21,7 @@ impl Render for Host {
 
 #[gpui::test]
 fn vf_more_open_with_paints_the_desktop_entry_icon(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let path =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/vf-more-app-icon.png");
     let icon = path.to_string_lossy().into_owned();

@@ -1,4 +1,4 @@
-//! The tags flyout's actual paint uses each tag's surface ink, including on low-chroma palettes.
+//! The tags flyout's actual paint uses each tag's surface ink, including on low-chroma palettes, through every phase of the open fade.
 use super::MenuElement;
 use crate::{
     g2::{
@@ -23,8 +23,8 @@ use flea::{
     },
     ui_logic_pl4::tags::NAMES,
 };
-use gpui::{div, prelude::*, px, Context, Render, TestAppContext, Window};
-use std::{cell::RefCell, rc::Rc};
+use gpui::{div, prelude::*, px, Context, Quad, Render, TestAppContext, Window, WindowHandle};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 struct Host(Rc<RefCell<Menu>>);
 
@@ -36,11 +36,14 @@ impl Render for Host {
     }
 }
 
-#[gpui::test]
-fn ey154_tag_rows_paint_distinct_shared_swatches_after_theme_changes(cx: &mut TestAppContext) {
+fn host(cx: &mut TestAppContext) -> (WindowHandle<Host>, Rc<RefCell<Menu>>) {
     let menu = Rc::new(RefCell::new(Menu::default()));
     let shared = Rc::clone(&menu);
-    let handle = cx.add_window(move |_, _| Host(shared));
+    (cx.add_window(move |_, _| Host(shared)), menu)
+}
+
+// Opens the file menu with its tags flyout, as a right click and menuRight do.
+fn open_tags(cx: &mut TestAppContext, handle: WindowHandle<Host>, menu: &Rc<RefCell<Menu>>) {
     let catalog = I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent".into(),
@@ -92,6 +95,55 @@ fn ey154_tag_rows_paint_distinct_shared_swatches_after_theme_changes(cx: &mut Te
             assert_eq!(menu.flyout.as_ref().unwrap().card.built.lines.len(), 7);
         })
         .unwrap();
+}
+
+// Every quad one real draw put in the scene.
+fn draw(cx: &mut TestAppContext, handle: WindowHandle<Host>) -> (Vec<Quad>, f32) {
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+        (window.painted_quads(), window.scale_factor())
+    })
+    .unwrap()
+}
+
+fn squares(cx: &mut TestAppContext, handle: WindowHandle<Host>) -> Vec<Quad> {
+    let (mut squares, scale) = draw(cx, handle);
+    squares.retain(|quad| {
+        (quad.bounds.size.width.0 / scale - 14.).abs() < 0.01
+            && (quad.bounds.size.height.0 / scale - 14.).abs() < 0.01
+    });
+    squares.sort_by(|a, b| a.bounds.origin.y.0.total_cmp(&b.bounds.origin.y.0));
+    squares
+}
+
+fn alpha(quad: &Quad) -> f32 {
+    quad.background.as_solid().unwrap().a
+}
+
+// The menu card's own surface: the largest quad the draw holds.
+fn card_alpha(cx: &mut TestAppContext, handle: WindowHandle<Host>) -> Option<f32> {
+    let (quads, _) = draw(cx, handle);
+    quads
+        .iter()
+        .max_by(|a, b| {
+            let area = |q: &Quad| q.bounds.size.width.0 * q.bounds.size.height.0;
+            area(a).total_cmp(&area(b))
+        })
+        .map(alpha)
+}
+
+fn out_cubic(t: f32) -> f32 {
+    1. - (1. - t).powi(3)
+}
+
+#[gpui::test]
+fn ey154_tag_rows_paint_distinct_shared_swatches_after_theme_changes(cx: &mut TestAppContext) {
+    let (handle, menu) = host(cx);
+    open_tags(cx, handle, &menu);
+    // The swatches are judged once the 180 ms open fade has settled.
+    draw(cx, handle);
+    cx.executor().advance_clock(Duration::from_millis(200));
     let mut first_inks = Vec::new();
     for (background, surface, foreground, red, orange) in [
         ("#1c120d", "#150d0a", "#c7b59a", "#d65a4f", "#e19763"),
@@ -116,18 +168,7 @@ fn ey154_tag_rows_paint_distinct_shared_swatches_after_theme_changes(cx: &mut Te
                 .join("\n")
         );
         cx.update(|cx| cx.set_global(Theme::from_text(&text)));
-        let (mut squares, scale) = cx
-            .update_window(handle.into(), |_, window, cx| {
-                window.refresh();
-                window.draw(cx).clear(cx);
-                (window.painted_quads(), window.scale_factor())
-            })
-            .unwrap();
-        squares.retain(|quad| {
-            (quad.bounds.size.width.0 / scale - 14.).abs() < 0.01
-                && (quad.bounds.size.height.0 / scale - 14.).abs() < 0.01
-        });
-        squares.sort_by(|a, b| a.bounds.origin.y.0.total_cmp(&b.bounds.origin.y.0));
+        let squares = squares(cx, handle);
         assert_eq!(squares.len(), 7, "every tag paints one solid square");
         let inks: Vec<_> = squares
             .iter()
@@ -159,4 +200,81 @@ fn ey154_tag_rows_paint_distinct_shared_swatches_after_theme_changes(cx: &mut Te
         first_inks.windows(2).all(|pair| pair[0] != pair[1]),
         "theme changes repaint the swatches"
     );
+}
+
+#[gpui::test]
+fn ey154_tag_squares_draw_once_through_the_open_fade(cx: &mut TestAppContext) {
+    let (handle, menu) = host(cx);
+    open_tags(cx, handle, &menu);
+    // The first frame stands at opacity 0: nothing is drawn, rather than four invisible strips per quad.
+    let (quads, _) = draw(cx, handle);
+    assert!(quads.is_empty(), "an unseen frame draws no quad");
+    assert!(
+        menu.borrow().opened(),
+        "the menu owns the keys from its first frame"
+    );
+    cx.executor().advance_clock(Duration::from_millis(90));
+    let during = squares(cx, handle);
+    assert_eq!(during.len(), 7, "one square per tag during the fade");
+    for quad in &during {
+        assert!(
+            (alpha(quad) - out_cubic(0.5)).abs() < 1e-3,
+            "{}",
+            alpha(quad)
+        );
+    }
+    cx.executor().advance_clock(Duration::from_millis(110));
+    let after = squares(cx, handle);
+    assert_eq!(after.len(), 7, "one square per tag after the fade");
+    assert!(after.iter().all(|quad| alpha(quad) == 1.));
+}
+
+#[gpui::test]
+fn menu_close_fades_for_140ms_and_a_reopen_continues_from_there(cx: &mut TestAppContext) {
+    let (handle, menu) = host(cx);
+    open_tags(cx, handle, &menu);
+    draw(cx, handle);
+    cx.executor().advance_clock(Duration::from_millis(200));
+    assert_eq!(card_alpha(cx, handle), Some(1.));
+    menu.borrow_mut().close();
+    assert!(!menu.borrow().opened() && menu.borrow().visible());
+    assert_eq!(card_alpha(cx, handle), Some(1.));
+    cx.executor().advance_clock(Duration::from_millis(70));
+    let stood = 1. - out_cubic(0.5);
+    let closing = card_alpha(cx, handle).unwrap();
+    assert!((closing - stood).abs() < 1e-3, "{closing}");
+    open_tags(cx, handle, &menu);
+    let reopened = card_alpha(cx, handle).unwrap();
+    assert!(
+        (reopened - stood).abs() < 1e-3,
+        "a reopen starts where the close stood: {reopened}"
+    );
+    cx.executor().advance_clock(Duration::from_millis(90));
+    let rising = card_alpha(cx, handle).unwrap();
+    assert!(
+        (rising - (stood + (1. - stood) * out_cubic(0.5))).abs() < 1e-3,
+        "{rising}"
+    );
+    menu.borrow_mut().close();
+    card_alpha(cx, handle);
+    cx.executor().advance_clock(Duration::from_millis(140));
+    assert_eq!(
+        card_alpha(cx, handle),
+        None,
+        "a closed card is gone after 140 ms"
+    );
+    assert!(!menu.borrow().visible());
+}
+
+#[gpui::test]
+fn menu_fades_snap_under_reduced_motion(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
+    let (handle, menu) = host(cx);
+    open_tags(cx, handle, &menu);
+    let squares = squares(cx, handle);
+    assert_eq!(squares.len(), 7);
+    assert!(squares.iter().all(|quad| alpha(quad) == 1.));
+    menu.borrow_mut().close();
+    assert_eq!(card_alpha(cx, handle), None);
+    assert!(!menu.borrow().visible());
 }

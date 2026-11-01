@@ -53,6 +53,8 @@ mod wrap;
 mod zip;
 
 #[cfg(test)]
+mod close_fade_tests;
+#[cfg(test)]
 mod join_delivery_tests;
 #[cfg(test)]
 mod join_pointer_tests;

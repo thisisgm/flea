@@ -379,6 +379,12 @@ impl Render for Picker {
             .children(save_line)
             .child(answers)
             .child(footer)
+            .children(
+                self.chrome
+                    .menu_closing
+                    .clone()
+                    .map(|menu| div().absolute().size_full().child(menu)),
+            )
             .children(self.chrome.menu_view.clone().map(|menu| {
                 div()
                     .absolute()
