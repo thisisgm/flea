@@ -63,6 +63,11 @@ fn pb_grid_icon_and_drag_releases_never_arm_slow_rename(cx: &mut TestAppContext)
     cx.executor().advance_clock(PAST_SLOW);
     draw(cx);
     assert_eq!(editing(&shell, cx), None, "a drag release never renames");
+    // FileDrag.qml liftBegan cancels the slow click, so the next caption tap only records again.
+    tap(cx, name, 1, Modifiers::none());
+    cx.executor().advance_clock(PAST_SLOW);
+    draw(cx);
+    assert_eq!(editing(&shell, cx), None, "the lift ended the slow click");
     tap(cx, name, 1, Modifiers::none());
     cx.executor().advance_clock(PAST_SLOW);
     draw(cx);
