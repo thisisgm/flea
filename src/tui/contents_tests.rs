@@ -236,3 +236,104 @@ pub(super) fn catalog(root: &super::contents_process_tests::Root) -> flea::i18n:
         catalogs: vec![base, crate::i18n::test_catalogs::english_only()],
     })
 }
+
+#[test]
+fn tui_contents_names_failure_restores_find_and_displays_error() {
+    for (where_, path) in [
+        ("search", "/mount"),
+        ("scan", "/listing"),
+        ("sort", "/listing"),
+        ("contentsidentity", "searchopen"),
+        ("contentsidentity", "searchquery"),
+        ("read", "stdin"),
+    ] {
+        for tagged in [true, false] {
+            let (mut w, reader) = wire::echo_wire();
+            let mut m = listing(&mut w, "default");
+            actions::act(&mut m, "search", &mut w).unwrap();
+            m.editor.as_mut().unwrap().replace("needle".into());
+            press(&mut m, &mut w, Key::named("Enter", ""));
+            let sent = drain(&mut w);
+            let ask = sent.iter().find(|v| text(v, "c") == "searchquery").unwrap();
+            let gen = count(ask, "gen");
+            assert!(gen > 0 && m.find.waiting);
+            let error = |gen| {
+                Json::Obj(vec![
+                    ("t".into(), wire::word("error")),
+                    ("where".into(), wire::word(where_)),
+                    ("path".into(), wire::word(path)),
+                    ("gen".into(), wire::number(gen)),
+                    ("msg".into(), wire::word("/mount is not responding.")),
+                ])
+            };
+            let mut failure = error(gen);
+            if !tagged {
+                if let Json::Obj(fields) = &mut failure {
+                    fields.retain(|(key, _)| key != "gen");
+                }
+            }
+            m.receive(failure, &mut w).unwrap();
+            assert!(!m.find.waiting, "{where_} must release the held frame");
+            assert!(!m.searching && m.search.is_empty(), "{where_}");
+            assert_eq!(m.error, "/mount is not responding.", "{where_}");
+            let frame = plain(&render::frame(
+                &m,
+                &Theme::from_text(""),
+                &Map::load(),
+                120,
+                15,
+                Duration::ZERO,
+            ));
+            assert!(frame.contains("/mount is not responding."), "{where_}");
+            assert_eq!(
+                m.current_path(),
+                Some("/listing/folder".into()),
+                "navigation survives {where_}"
+            );
+            actions::act(&mut m, "copy", &mut w).unwrap();
+            assert!(
+                drain(&mut w).iter().any(|v| text(v, "c") == "paths"),
+                "{where_} keeps actions guarded"
+            );
+            m.error.clear();
+            actions::act(&mut m, "search", &mut w).unwrap();
+            m.editor.as_mut().unwrap().replace("new query".into());
+            press(&mut m, &mut w, Key::named("Enter", ""));
+            drain(&mut w);
+            m.receive(error(gen), &mut w).unwrap();
+            assert!(m.find.waiting && m.error.is_empty(), "stale {where_}");
+            wire::finish(w, reader);
+        }
+    }
+}
+
+#[test]
+fn tui_contents_find_error_routing_preserves_unrelated_failures() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = listing(&mut w, "default");
+    for where_ in ["search", "scan", "sort", "read"] {
+        receive(
+            &mut m,
+            &mut w,
+            &format!(
+                r#"{{"t":"error","where":"{where_}","path":"/listing","msg":"ordinary failure"}}"#
+            ),
+        );
+        assert!(
+            m.error.contains("ordinary failure"),
+            "idle {where_} was swallowed"
+        );
+        m.error.clear();
+    }
+    actions::act(&mut m, "search", &mut w).unwrap();
+    m.editor.as_mut().unwrap().replace("needle".into());
+    press(&mut m, &mut w, Key::named("Enter", ""));
+    receive(
+        &mut m,
+        &mut w,
+        r#"{"t":"error","where":"contentsidentity","path":"menuaction","msg":"unrelated operation failed"}"#,
+    );
+    assert!(m.find.waiting, "an unrelated operation cannot cancel Find");
+    assert!(m.error.contains("unrelated operation failed"));
+    wire::finish(w, reader);
+}
