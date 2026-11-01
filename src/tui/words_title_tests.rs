@@ -227,3 +227,23 @@ fn ey_tui_typedtitle_name_title_keeps_the_replaced_bytes() {
         );
     }
 }
+
+// A cut just after a whole run leaves that run's isolate closed; the ellipsis marks the run cut after it.
+#[test]
+fn ey_tui_typedtitle_cut_after_a_whole_run_keeps_the_ellipsis_outside_its_isolate() {
+    let header = vec![prose("اختير "), number("12"), prose(" عناصر.")];
+    assert_eq!(
+        typed("", &header, 9, true, true),
+        "\x1b[1mاختير \u{2066}12\u{2069}\u{2026}\x1b[22m"
+    );
+    let named = vec![name("ab"), prose(" cd")];
+    assert_eq!(
+        typed("", &named, 3, true, true),
+        "\x1b[1m\u{2068}ab\u{2069}\u{2026}\x1b[22m"
+    );
+    let cut_inside = vec![name("abc"), prose(" d")];
+    assert_eq!(
+        typed("", &cut_inside, 3, true, true),
+        "\x1b[1m\u{2068}ab\u{2026}\u{2069}\x1b[22m"
+    );
+}
