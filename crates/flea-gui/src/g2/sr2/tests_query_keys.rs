@@ -244,8 +244,8 @@ fn filter040_ctrl_a_marks_every_row_shown_and_drops_the_caret() {
     let (mut filter, mut pane) = (Filter::default(), Stub::of(many));
     filter.start();
     type_into(&mut filter, &mut pane, "item-7?.txt");
-    let (consumed, _) = filter.line_key(LineKey::SelectAll, &mut pane);
-    assert!(consumed);
+    // The list's Ctrl+A over the standing filter.
+    filter.select_all(&mut pane);
     assert_eq!(
         pane.picks(),
         (69..79).collect::<Vec<_>>(),
@@ -265,6 +265,38 @@ fn filter040_ctrl_a_marks_every_row_shown_and_drops_the_caret() {
         pane.picked.is_empty(),
         "typing after Ctrl+A narrows again and drops the marks it hides"
     );
+}
+
+/// EY-115: Ctrl+A leaves the typed line as it was, so Backspace edits the query and typing extends it.
+#[test]
+fn fixchrome_ey115_ctrl_a_on_the_query_line_keeps_the_line() {
+    let (mut filter, mut pane) = (Filter::default(), Stub::new());
+    filter.start();
+    type_into(&mut filter, &mut pane, "nt");
+    let (consumed, asked) = filter.line_key(LineKey::SelectAll, &mut pane);
+    assert!(
+        consumed && asked.is_none(),
+        "the line takes Ctrl+A and asks nothing"
+    );
+    assert!(pane.picked.is_empty(), "no row is marked");
+    assert!(
+        filter.typing() && filter.query() == "nt",
+        "the caret and the query stay"
+    );
+    assert_eq!(pane.focused, 0, "the list never takes the keyboard");
+    let (consumed, _) = filter.line_key(LineKey::Backspace, &mut pane);
+    assert!(consumed && filter.typing(), "Backspace stays on the line");
+    assert_eq!(filter.query(), "n");
+    let mut empty = Filter::default();
+    let mut other = Stub::new();
+    empty.start();
+    empty.line_key(LineKey::SelectAll, &mut other);
+    empty.line_key(LineKey::Backspace, &mut other);
+    assert!(
+        empty.up() && empty.query().is_empty(),
+        "an empty strip stays open"
+    );
+    assert_eq!(other.focused, 0);
 }
 
 // Issue 164 and PR 317: Escape clears the filter first and keeps the marks; a second Escape is the list's, which deselects.

@@ -46,6 +46,11 @@ pub struct Control {
     pub bounds: Option<Bounds<Pixels>>,
     #[cfg(test)]
     pub mark_bounds: Option<Bounds<Pixels>>,
+    #[cfg(test)]
+    pub mark_ink: Option<gpui::Hsla>,
+    /// The sprite's drawn width in device pixels: its snapped bounds times its transform's scale.
+    #[cfg(test)]
+    pub mark_drawn: Option<f32>,
     pub visible: bool,
     pub enabled: bool,
     pub focused: bool,

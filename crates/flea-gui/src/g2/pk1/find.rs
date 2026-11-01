@@ -297,6 +297,11 @@ impl Picker {
         let mut consumed = true;
         self.find_update(
             |filter, pane| {
+                // The chooser's find line has no v0.3.12 strip behind it, so its Ctrl+A still marks the matches.
+                if matches!(key, LineKey::SelectAll) {
+                    filter.select_all(pane);
+                    return None;
+                }
                 let (took, asked) = filter.line_key(key, pane);
                 consumed = took;
                 asked

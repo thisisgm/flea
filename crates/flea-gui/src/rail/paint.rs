@@ -63,7 +63,8 @@ pub(super) fn paint_mark(
                 ),
                 size(px(metrics.tag), px(metrics.tag)),
             );
-            let mut colour = tag.fill.unwrap_or(palette.foreground);
+            // GM's tags ruling: always the tag's own solid colour, never the text ink or a digit.
+            let mut colour = tag.fill.unwrap_or(palette.tags[tag.index]);
             colour.a = 1.;
             window.paint_quad(fill(box_, colour));
         }

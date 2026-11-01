@@ -175,7 +175,7 @@ impl StandIn {
             t.fg
         };
         let mut step_row = self
-            // FlashStepRow.qml:46: the greyed row dims its cursor too; the button keeps its own single dim.
+            // FlashStepRow.qml:46: the greyed row dims its cursor, its line and the button inside it, over the button's own dim.
             .dimmed_plate(
                 &draw,
                 step.cursor,
@@ -205,7 +205,14 @@ impl StandIn {
                     ),
             );
         if let Some(action) = action {
-            step_row = step_row.child(div().ml(draw.px(ROW_GAP)).flex_none().child(action));
+            step_row = step_row.child(
+                div()
+                    .debug_selector(|| "op2-flash-step-action".into())
+                    .ml(draw.px(ROW_GAP))
+                    .flex_none()
+                    .when(step.resting, |d| d.opacity(DISABLED_OPACITY))
+                    .child(action),
+            );
         }
         column = column
             .child(self.title(&draw, ink.caption, &i18n.tr("archive.flash.step"), 2))

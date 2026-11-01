@@ -1,11 +1,19 @@
 //! The toolbar's drawn marks: the SVG glyph, the focused ink and the press tween.
 use super::chrome::Frame;
-use gpui::{canvas, div, prelude::*, px, Bounds, Div};
+use gpui::{canvas, div, prelude::*, px, Div};
 use std::{cell::RefCell, rc::Rc, time::Instant};
 
 /// ui/js/Buttons.js:21 and :22: a pressed chrome mark scales to 0.96 over 150 ms, OutCubic (ui/ChromeButton.qml:50-59).
 const PRESS_SCALE: f32 = 0.96;
 const PRESS_MS: f32 = 150.;
+
+/// The width paint_svg draws in device pixels: gpui's own edge snap, then the transform's scale.
+#[cfg(test)]
+fn drawn_width(window: &gpui::Window, bounds: gpui::Bounds<gpui::Pixels>, scale: f32) -> f32 {
+    f32::from(window.pixel_snap(bounds.right()) - window.pixel_snap(bounds.left()))
+        * window.scale_factor()
+        * scale
+}
 
 /// ui/ChromeButton.qml:85-87: a focused, live mark lifts to the foreground, the same ink as its ring.
 pub fn mark_ink(
@@ -93,26 +101,26 @@ pub fn mark_sized(
                 if moving {
                     window.request_animation_frame();
                 }
-                let size = gpui::size(bounds.size.width * scale, bounds.size.height * scale);
-                let bounds = Bounds::new(
-                    gpui::point(
-                        bounds.origin.x + (bounds.size.width - size.width) / 2.,
-                        bounds.origin.y + (bounds.size.height - size.height) / 2.,
-                    ),
-                    size,
-                );
+                // paint_svg snaps bounds to whole device pixels, so the press scales the sprite instead (EY-486).
+                let factor = window.scale_factor();
+                let centre = bounds.center();
+                let transform = gpui::TransformationMatrix::unit()
+                    .translate(centre.scale(factor))
+                    .scale(gpui::size(scale, scale))
+                    .translate(centre.scale(-factor));
                 #[cfg(test)]
                 {
-                    frame.borrow_mut().controls[index].mark_bounds = Some(bounds);
+                    let size = gpui::size(bounds.size.width * scale, bounds.size.height * scale);
+                    let mut frame = frame.borrow_mut();
+                    frame.controls[index].mark_bounds = Some(gpui::Bounds::new(
+                        centre - gpui::point(size.width / 2., size.height / 2.),
+                        size,
+                    ));
+                    frame.controls[index].mark_ink = Some(ink);
+                    frame.controls[index].mark_drawn =
+                        Some(drawn_width(window, bounds, transform.rotation_scale[0][0]));
                 }
-                let _ = window.paint_svg(
-                    bounds,
-                    key,
-                    Some(data),
-                    gpui::TransformationMatrix::unit(),
-                    ink,
-                    cx,
-                );
+                let _ = window.paint_svg(bounds, key, Some(data), transform, ink, cx);
             },
         )
         .size_full(),

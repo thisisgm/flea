@@ -33,15 +33,8 @@ use gpui::{Context, Window};
 
 pub(crate) use fileops::Held as FileOps;
 
-/// What a producer hands the window to run.
-pub(crate) enum Order {
-    Action(ActionEvent),
-    Menu(Chosen),
-    Place(crate::g2::pl4::producer::Request),
-    Device(crate::g2::pl1::source::Request),
-    /// A key the network menu or share browser resolved while one of them is open.
-    Network(ActionEvent),
-}
+mod order;
+pub(crate) use order::Order;
 
 /// A family runs the orders it owns and answers whether it ran this one.
 type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
@@ -135,6 +128,8 @@ mod fixcards_compare_tests;
 mod fixmenus_hidden_tests;
 #[cfg(test)]
 mod fixmenus_tests;
+#[cfg(test)]
+mod fixchrome_ey522_tests;
 #[cfg(test)]
 mod frame_gate_tests;
 #[cfg(test)]

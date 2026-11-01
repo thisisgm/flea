@@ -186,6 +186,7 @@ fn tag_marks_board_draws_swatches_in_the_lifted_colours() {
         tags.rows[0].mark,
         RowMark::Tag(TagMark {
             fill: ink("#dc9c36"),
+            index: 2,
             digit: "3",
             fallback: false
         })
@@ -285,6 +286,7 @@ fn rail_favorites_and_tags_menu_rows() {
         *tag,
         Some(TagMark {
             fill: ink("#d65a4f"),
+            index: 0,
             digit: "1",
             fallback: false
         }),
