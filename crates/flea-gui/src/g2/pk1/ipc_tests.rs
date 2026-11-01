@@ -175,14 +175,34 @@ fn malformed_calls_and_other_targets_are_refused(cx: &mut TestAppContext) {
         call(&mut f, "nope", &[], None),
         Reply::value("Function not found.")
     );
-    let other = Request::Call {
-        target: "flea".into(),
-        function: "path".into(),
-        arguments: vec![],
+    // Only fleapicker is loaded, so main-window calls receive Quickshell's no-target line.
+    for function in ["path", "cursor", "total", "viewMode", "focusView", "nope"] {
+        let other = Request::Call {
+            target: "flea".into(),
+            function: function.into(),
+            arguments: vec![],
+        };
+        assert_eq!(
+            f.read(|picker| picker.ipc(other, Some(&Drawn)).reply),
+            Reply::value("Target not found."),
+            "flea.{function}"
+        );
+    }
+    for function in ["path", "cursor", "total"] {
+        assert_eq!(
+            call(&mut f, function, &[], Some(&Drawn)).code,
+            0,
+            "fleapicker.{function}"
+        );
+    }
+    let tab = Request::Call {
+        target: "fleatab".into(),
+        function: "taken".into(),
+        arguments: vec!["1".into()],
     };
     assert_eq!(
-        f.read(|picker| picker.ipc(other, None).reply),
-        Reply::error(3, "FLEA_IPC_NOT_PORTED flea.path")
+        f.read(|picker| picker.ipc(tab, None).reply),
+        Reply::error(3, "FLEA_IPC_NOT_PORTED fleatab.taken")
     );
     let quit = Request::Call {
         target: "fleapicker".into(),

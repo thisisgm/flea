@@ -233,6 +233,11 @@ impl Shell {
             .map(Lift::payload)
     }
 
+    /// This window's lift while its drag is in flight, for the dragState reader.
+    pub(crate) fn file_drag_lift<'a>(&self, window: &Window, cx: &'a App) -> Option<&'a Lift> {
+        cx.try_global::<Drags>()?.lifts.get(&window_key(window))
+    }
+
     /// Escape during this window's own drag: the drag ends where it started and nothing moves.
     pub fn escape_file_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
         let key = window_key(window);

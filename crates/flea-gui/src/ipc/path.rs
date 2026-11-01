@@ -105,6 +105,18 @@ impl Adapter for PathAdapter<'_> {
             "crumbText" => self.crumb_text(0),
             "crumbCentre" if view.editing() || view.inputs.dual => String::new(),
             "crumbCentre" => self.crumb_centre(0, index(0)),
+            // The nearest crumb drawn as that folder name ("~" is home), so a scene aims at a folder without counting crumbs.
+            "crumbCentreOf" if view.editing() || view.inputs.dual => String::new(),
+            "crumbCentreOf" => self.crumb_centre(
+                0,
+                arguments.first().and_then(|label| {
+                    view.strips[0].crumbs().iter().rposition(|crumb| {
+                        !crumb.elided
+                            && (crumb.text == *label
+                                || crumb.text.strip_suffix('/') == Some(label.as_str()))
+                    })
+                }),
+            ),
             "elisionCentre" if view.editing() || view.inputs.dual => String::new(),
             "elisionCentre" => self.crumb_centre(
                 0,

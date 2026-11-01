@@ -117,11 +117,12 @@ impl Shell {
         }
     }
 
+    /// Keep the completed strip only while the pane holds old rows; the loading fallback exposes the new tab.
     pub(crate) fn tab_holding(&self) -> bool {
         self.view != View::Dual
             && self.panes[self.focus_side]
                 .as_ref()
-                .is_some_and(|host| host.pane.busy())
+                .is_some_and(|host| host.pane.busy() && host.pane.swap.holding)
     }
 
     pub(crate) fn tab_hit(&self, position: Point<Pixels>) -> Hit {
