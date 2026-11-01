@@ -115,7 +115,10 @@ pub fn announce(stored: Stored, omarchy_base: u32, reset: &str) -> Text {
     if reset.is_empty() {
         Text::args("settings.textsize.override_alone", vec![px])
     } else {
-        Text::args("settings.textsize.override", vec![px, Text::data(reset)])
+        Text::args(
+            "settings.textsize.override",
+            vec![px, Text::Keycap(reset.into())],
+        )
     }
 }
 

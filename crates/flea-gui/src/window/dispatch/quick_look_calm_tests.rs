@@ -210,3 +210,44 @@ fn tab_then_return_on_the_calm_card_opens_the_chooser_through_the_keys(cx: &mut 
     );
     close(&shell, cx);
 }
+
+// EY-341: an office file Flea cannot convert draws ql-unsupported's calm card, while a failed conversion keeps its bar.
+#[gpui::test]
+fn an_unsupported_office_file_draws_the_calm_card(cx: &mut TestAppContext) {
+    for (reply, expected) in [
+        (
+            r#""state":"failed","err":"LibreOffice is not installed on this box.","unavailable":true"#,
+            Some(Body::CannotShow {
+                sentence: "This file cannot be previewed.".into(),
+                error: false,
+                controls: Vec::new(),
+            }),
+        ),
+        (r#""state":"failed","err":"convert failed""#, None),
+    ] {
+        let (shell, cx, mut requests) = opened(cx);
+        land(
+            &shell,
+            cx,
+            "/files",
+            vec![row("alpha", true), file("letter.odt", "x-office-document")],
+            1,
+        );
+        set_cursor(&shell, cx, 1);
+        // The office view's PDF renderer starts no thread, so no reply reaches the scheduler from outside it.
+        crate::g2::pv2::render::without_threads(|| press(cx, "space"));
+        let ask = sent(&mut requests, "officepdf");
+        let id = ask
+            .last()
+            .and_then(|doc| doc.get("id"))
+            .and_then(Json::as_f64)
+            .expect("the office file asks for its pages") as u64;
+        answer(
+            &shell,
+            cx,
+            format!(r#"{{"t":"officepdf","id":{id},{reply}}}"#),
+        );
+        assert_eq!(calm(&shell, cx), expected, "{reply}");
+        close(&shell, cx);
+    }
+}

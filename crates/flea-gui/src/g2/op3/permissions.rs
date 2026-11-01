@@ -1,4 +1,6 @@
 //! The Permissions card: one item's grid and octal field, or several items' mixed boxes, opening with Apply focused.
+mod painted;
+
 use super::{
     keys::{edit, Key},
     Effect,

@@ -22,11 +22,19 @@ impl Shell {
             .entry(key)
             .or_default()
             .clone();
+        let (ended, receive_end) = async_channel::unbounded();
+        cx.spawn_in(window, async move |this, cx| {
+            while receive_end.recv().await.is_ok() {
+                let _ = this.update_in(cx, |shell, window, cx| shell.settle_row_drag(window, cx));
+            }
+        })
+        .detach();
         let registration = shared.register(Rc::new(Files {
             window: key,
             send,
             held,
             hover,
+            ended: Some(ended),
         }));
         cx.global_mut::<Drags>().clients.insert(key, registration);
         cx.spawn_in(window, async move |this, cx| {

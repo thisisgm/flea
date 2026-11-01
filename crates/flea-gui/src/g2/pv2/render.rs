@@ -83,6 +83,8 @@ const CLOSING: DocId = DocId::MAX;
 thread_local! {
     // Set while a test builds surfaces it answers by hand, so no reply reaches its scheduler from another thread.
     static INERT: Cell<bool> = const { Cell::new(false) };
+    // The same for Markdown's parse, layout and picture workers, for a test that sets their documents itself.
+    pub(crate) static MARKDOWN_INERT: Cell<bool> = const { Cell::new(false) };
 }
 
 /// Runs `make` with renderers that start no thread, for tests that feed their surfaces every reply themselves.
@@ -91,6 +93,15 @@ pub fn without_threads<R>(make: impl FnOnce() -> R) -> R {
     INERT.set(true);
     let made = make();
     INERT.set(false);
+    made
+}
+
+/// Runs `make` with Markdown workers that start no thread, for tests that set each document's state by hand.
+#[cfg(test)]
+pub fn without_markdown_threads<R>(make: impl FnOnce() -> R) -> R {
+    MARKDOWN_INERT.set(true);
+    let made = make();
+    MARKDOWN_INERT.set(false);
     made
 }
 

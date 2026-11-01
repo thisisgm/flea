@@ -10,7 +10,6 @@ use crate::backend::archivework::{
     is_empty_dir, run_boxed_cancellable, run_boxed_cancellable_capped, Work,
 };
 use crate::backend::convert;
-use crate::backend::ops::rename_noreplace;
 use crate::backend::opsreq::op_err;
 use crate::error::{from_io, FleaError};
 use std::path::{Path, PathBuf};
@@ -66,7 +65,7 @@ pub fn compress(formats: &Formats, parent: &Path, names: &[String], format: &str
     if staged.symlink_metadata().is_err() {
         return Err(op_err("archive", format, "the archive tool wrote nothing"));
     }
-    rename_noreplace(&staged, dest)
+    publish(&staged, dest, cancel)
 }
 
 // Staged like compress and convert: the tool writes into a private work directory and the finished
@@ -205,13 +204,13 @@ pub(crate) fn extract_reporting(
     if let Some((id, tx)) = report {
         progress.sample(&staged, id, tx, true);
     }
-    publish_extract(&staged, dest)?;
+    publish(&staged, dest, cancel)?;
     Ok(verified)
 }
 
-// The staged tree is a directory, so fuse.rclone's EINVAL (issue 370) takes the issue-282 copy fallback, still no-clobber.
-fn publish_extract(staged: &Path, dest: &Path) -> Result<(), FleaError> {
-    crate::backend::renamecompat::rename_path(staged, dest)
+// Issue 370: fuse.rclone refuses a directory and fuse.megafs any RENAME_NOREPLACE, so those take the exclusive copy, which the cancel stops.
+fn publish(staged: &Path, dest: &Path, cancel: &AtomicBool) -> Result<(), FleaError> {
+    crate::backend::renamecompat::rename_cancellable(staged, dest, cancel)
 }
 
 pub fn convert_one(input: &Path, dest: &Path, strip: bool, cancel: &AtomicBool) -> Result<(), FleaError> {
@@ -234,7 +233,7 @@ pub fn convert_one(input: &Path, dest: &Path, strip: bool, cancel: &AtomicBool) 
     if staged.symlink_metadata().is_err() {
         return Err(op_err("convert", &name, "the converter wrote nothing"));
     }
-    rename_noreplace(&staged, dest)
+    publish(&staged, dest, cancel)
 }
 
 // A compress names absolute paths, which all share a parent because a selection comes from one

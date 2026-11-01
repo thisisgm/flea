@@ -8,6 +8,7 @@ use gpui::Context;
 impl Picker {
     fn composing(&self, cx: &gpui::App) -> bool {
         self.find.entry.marked.is_some()
+            || self.browse.path_view(cx).read(cx).entry.marked.is_some()
             || self
                 .browse
                 .filename

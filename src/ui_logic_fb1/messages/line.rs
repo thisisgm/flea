@@ -44,7 +44,7 @@ impl Messages {
             let dismiss = if self.errors[0].text == state_message {
                 String::new()
             } else {
-                catalog.tr_args("feedback.hint.dismiss", &[DISMISS_KEY])
+                catalog.tr_args("feedback.hint.dismiss", &[&catalog.keycap(DISMISS_KEY)])
             };
             [dismiss, hint_rest]
                 .into_iter()

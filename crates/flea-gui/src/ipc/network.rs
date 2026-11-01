@@ -363,11 +363,15 @@ impl Adapter for NetworkAdapter<'_> {
 }
 
 /// The NETWORK row menu answers the shared menu readers while open, ahead of the pane's own closed menu.
-pub struct NetworkMenu<'a>(pub Option<&'a std::cell::RefCell<crate::g2::mn1::menu::Menu>>);
+pub struct NetworkMenu<'a> {
+    pub menu: Option<&'a std::cell::RefCell<crate::g2::mn1::menu::Menu>>,
+    pub catalog: &'a flea::i18n::I18n,
+    pub pointer: (f32, f32),
+}
 
 impl Adapter for NetworkMenu<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
-        let menu = self.0?.borrow();
+        let menu = self.menu?.borrow();
         if !menu.opened() {
             return None;
         }
@@ -375,6 +379,6 @@ impl Adapter for NetworkMenu<'_> {
             menu: &menu,
             origin: (0., 0.),
         }
-        .call(function, arguments)
+        .rail_call(function, arguments, self.catalog, self.pointer)
     }
 }

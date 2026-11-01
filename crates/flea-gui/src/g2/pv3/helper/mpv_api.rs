@@ -129,3 +129,31 @@ pub fn command(api: &Api, handle: Handle, words: &[&str]) -> Result<(), String> 
 pub fn set(api: &Api, handle: Handle, name: &str, value: &str) -> Result<(), String> {
     command(api, handle, &["set", name, value])
 }
+
+/// A restart can be queued from an earlier seek; only current completed playback certifies its endpoint.
+pub fn completed_seek(api: &Api, handle: Handle, target: i64) -> Option<(bool, bool, bool)> {
+    if get_flag(api, handle, "seeking")? {
+        return None;
+    }
+    let paused = get_flag(api, handle, "pause")?;
+    let eof = get_flag(api, handle, "eof-reached")?;
+    let duration = get_double(api, handle, "duration")? * 1000.;
+    // A paused video can land on its final frame before duration without raising decoder EOF.
+    let at_end = duration > 0. && target as f64 >= duration.round();
+    Some((paused, eof, at_end))
+}
+
+pub fn get_flag(api: &Api, handle: Handle, name: &str) -> Option<bool> {
+    let name = text(name);
+    let mut value: c_int = 0;
+    // SAFETY: a flag property is an int read into a live int of the same size.
+    let status = unsafe {
+        (api.get_property)(
+            handle,
+            name.as_ptr(),
+            FORMAT_FLAG,
+            (&mut value as *mut c_int).cast(),
+        )
+    };
+    (status >= 0).then_some(value != 0)
+}

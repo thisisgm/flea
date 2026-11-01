@@ -3,7 +3,7 @@ use super::{Permissions, Phase, Stop};
 use crate::{
     g2::op3::{
         keys::{key_of, Key},
-        shell::{Card, Control, DialogShell, Interactive},
+        shell::{Card, Control, Interactive},
         Effect,
     },
     list::{Palette, Typeface},
@@ -26,6 +26,8 @@ pub struct View {
     pub catalog: Arc<I18n>,
     pub corner: f32,
     pub opened: bool,
+    pub(crate) probe: crate::ipc::card_geometry::CardGeometry,
+    pub(crate) painted: Option<Card>,
     focus: FocusHandle,
     editor: crate::path::entry::Entry,
     clock: Clock,
@@ -48,6 +50,8 @@ impl View {
             catalog,
             corner,
             opened: true,
+            probe: Default::default(),
+            painted: None,
             focus: cx.focus_handle(),
             editor: crate::path::entry::Entry::default(),
             clock: Clock::default(),
@@ -207,18 +211,20 @@ impl Render for View {
                 cx.stop_propagation();
             })
         };
+        self.painted = snapshot.clone();
         let card = snapshot.map(|snapshot| {
             Interactive {
                 wire: &wire,
                 surface: theme.surface,
                 entry: &self.editor,
             }
-            .present(
+            .present_observed(
                 &snapshot,
                 &palette,
                 &typeface,
                 self.corner,
                 f32::from(window.viewport_size().width),
+                &self.probe,
             )
         });
         div()

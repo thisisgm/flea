@@ -1,0 +1,11 @@
+{
+  "feedback.hint.undo": "%1 واگرد می‌کند",
+  "keys.escape": "بستن یا بازگشت",
+  "keys.redo": "انجام دوباره",
+  "keys.title": "میانبرهای صفحه‌کلید",
+  "keys.undo": "واگرد",
+  "places.tag.undo_hint": " · %1 واگرد می‌کند",
+  "settings.hint.load_key": "%1 انتخاب فعلی را بارگذاری می‌کند.",
+  "settings.hint.text_keys": "%1 و %2 بین اندازه‌ها حرکت می‌کنند؛ %3 دوباره از Omarchy پیروی می‌کند.",
+  "settings.textsize.override": "اندازهٔ متن %1. %2 دوباره از Omarchy پیروی می‌کند"
+}

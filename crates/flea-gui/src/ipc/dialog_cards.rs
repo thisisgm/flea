@@ -46,6 +46,11 @@ impl Adapter for DialogAdapter<'_> {
                 .unwrap_or_else(|| "{\"opened\":false}".into()),
             // The menu actions' card is Open With, the run card or Delete permanently's review; with none open the Root has no dialog to describe.
             "menuDialogState" => {
+                if let Some(open) = &self.shell.properties {
+                    return Some(Reply::value(
+                        open.card.ipc_state(&self.shell.locale.catalog, &open.probe),
+                    ));
+                }
                 if self.shell.open_with.is_some() || self.shell.run_card.is_some() {
                     return Some(open_card(function, "rect, controls, confirmation"));
                 }
@@ -62,7 +67,10 @@ impl Adapter for DialogAdapter<'_> {
             },
             "runCardState" => self.shell.run_card.as_ref().map_or_else(
                 || "{\"opened\":false}".into(),
-                |open| open.card.ipc_state(&self.shell.locale.catalog, &open.probe),
+                |open| {
+                    open.card
+                        .ipc_state(&self.shell.locale.catalog, &open.probe.probe)
+                },
             ),
             // An open card answers its own state; a closed one only the list's rest input state.
             "permissionsState" => match self.shell.permissions_state(self.cx) {

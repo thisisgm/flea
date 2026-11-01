@@ -237,11 +237,8 @@ impl Shell {
             }
             cx.notify();
         }
-        let settled = changed && host.answered;
         let path_changed = host.pane.path() != before;
-        if side == 0 && settled {
-            self.ensure_ipc_reader(window, cx);
-        }
+        self.ipc_listing_answered(side, window, cx);
         if timer || changed || path_changed {
             self.search_landed(side, false, window, cx);
             self.settle_dual(window, cx);
@@ -260,6 +257,22 @@ impl Shell {
             let loading = host.pane.state.kind == crate::pane::states::Kind::Loading;
             host.pane.swap.mark_shown(shown && loading, host.pane.now());
             self.arm_transition(side, window, cx);
+        }
+    }
+
+    /// Pane zero answered or stopped, so the window's IPC readers open (v0.3.12 answers calls once its first listing lands).
+    pub(crate) fn ipc_listing_answered(
+        &mut self,
+        side: usize,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) {
+        if side == 0
+            && self.panes[0]
+                .as_ref()
+                .is_some_and(|host| host.answered || host.stopped)
+        {
+            self.ensure_ipc_reader(window, cx);
         }
     }
 }
