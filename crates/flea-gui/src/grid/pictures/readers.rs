@@ -68,6 +68,17 @@ impl Pictures {
         Some((refinement.requested.as_ref()?.size, refinement.ready))
     }
 
+    /// Source decodes of the row's refined file, for the decodes-per-open reader.
+    pub(crate) fn quality_decodes(&self, row: usize) -> usize {
+        let map = self.map.borrow();
+        map.refinements
+            .get(&row)
+            .and_then(|refinement| refinement.requested.as_ref())
+            .map_or(0, |request| {
+                crate::preview_quality::reuse::decodes(&request.path)
+            })
+    }
+
     pub(crate) fn file(&self, held: &Held, row: usize) -> String {
         let map = self.map.borrow();
         match map.current(held, row) {

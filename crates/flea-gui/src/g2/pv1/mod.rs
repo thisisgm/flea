@@ -19,12 +19,18 @@ pub(crate) mod photo;
 pub(crate) mod photo_frames;
 mod photo_png;
 mod photo_png_first;
+pub(crate) mod photo_source;
+#[cfg(test)]
+mod photo_source_tests;
 #[cfg(test)]
 mod photo_tests;
 mod picture;
 #[cfg(test)]
 mod quality_tests;
 pub(crate) mod raster;
+mod resize;
+#[cfg(test)]
+mod reuse_tests;
 mod sample;
 pub mod scroller;
 pub mod shield;
@@ -224,6 +230,13 @@ impl QuickLook {
             picture.quality.requested.as_ref()?.size,
             picture.quality.ready,
         ))
+    }
+
+    /// Source decodes of the open picture's file, for the decodes-per-open reader.
+    pub(crate) fn quality_decodes(&self) -> usize {
+        self.svg.as_ref().map_or(0, |picture| {
+            crate::preview_quality::reuse::decodes(&picture.path)
+        })
     }
 
     /// An injected rasterizer for #336's tests; unset, the app's SVG renderer runs.

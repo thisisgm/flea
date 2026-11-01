@@ -195,6 +195,8 @@ mod preview_quality_tests;
 #[cfg(test)]
 mod preview_quiet_keys_tests;
 #[cfg(test)]
+mod preview_reuse_tests;
+#[cfg(test)]
 mod preview_tests;
 #[cfg(test)]
 mod previewtypes_cover_tests;

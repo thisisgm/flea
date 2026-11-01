@@ -115,11 +115,33 @@ fn ql_picture_size_matrix_never_enlarges_a_raster(cx: &mut TestAppContext) {
                 assert!((w as f64 - sw * scale).abs() <= 1., "{cell}: width {w}");
                 assert!((h as f64 - sh * scale).abs() <= 1., "{cell}: height {h}");
                 assert!(
-                    vector || (w as f64) <= sw && (h as f64) <= sh,
+                    vector || (w as f64) * device <= sw && (h as f64) * device <= sh,
                     "{cell}: enlarged"
                 );
             }
         }
+    }
+}
+
+#[gpui::test]
+fn ql_native_pixels_survive_an_odd_centered_room(cx: &mut TestAppContext) {
+    for (sw, sh) in [(60., 40.), (3., 3.)] {
+        let (cx, _, _, _) = host(cx, sized(sw, sh, false), Arm::Fix);
+        cx.update(|window, _| window.set_scale_factor(1.));
+        cx.simulate_resize(size(px(1101.), px(701.)));
+        cx.update(|window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        });
+        cx.run_until_parked();
+        let (_, _, width, _) = rect(cx, "pv1-card");
+        assert_eq!(
+            (width.round() as u32) % 2,
+            1,
+            "fixture card must have odd device width"
+        );
+        assert_own_pixels(cx, "pv1-picture", (sw as f32, sh as f32));
+        assert_centred(cx, "pv1-picture", "pv1-card");
     }
 }
 
