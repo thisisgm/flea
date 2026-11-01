@@ -289,3 +289,42 @@ fn readers3_row_thumb_ready_and_rect_follow_the_drawn_thumbnail(cx: &mut TestApp
         );
     }
 }
+
+// EY-188: Grid and Columns answer rowClipMark from the drawn row and the pane's clipboard marks, as the List does.
+#[gpui::test]
+fn ey188_row_clip_mark_answers_in_grid_and_columns(cx: &mut TestAppContext) {
+    for view in [View::Grid, View::Columns] {
+        let (handle, mut lines) = open(cx, view, "{}");
+        first_settle(cx, handle, &mut lines);
+        assert_eq!(
+            ipc(cx, handle, "rowClipMark", 1),
+            Reply::value(""),
+            "{view:?}"
+        );
+        for (moving, mark) in [(false, "copy"), (true, "scissors")] {
+            handle
+                .update(cx, |shell, _, _| {
+                    let host = shell.panes[0].as_ref().unwrap();
+                    let mut list = host.list.borrow_mut();
+                    list.view.clip.set(&["/files/photo.png".to_owned()], moving);
+                    list.view.clip.scope("/files");
+                })
+                .unwrap();
+            assert_eq!(
+                ipc(cx, handle, "rowClipMark", 1),
+                Reply::value(mark),
+                "{view:?}"
+            );
+            assert_eq!(
+                ipc(cx, handle, "rowClipMark", 2),
+                Reply::value(""),
+                "{view:?}"
+            );
+        }
+        assert_eq!(
+            ipc(cx, handle, "rowClipMark", 99999),
+            Reply::value("unavailable"),
+            "{view:?}: a row the frame did not draw"
+        );
+    }
+}

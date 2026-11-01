@@ -117,3 +117,56 @@ fn pb_scroll_preview_reader_is_mounted_and_closed_returns_minus_one(cx: &mut Tes
     });
     assert_eq!(reply, Reply::value("-1"));
 }
+
+#[gpui::test]
+fn ey260_preview_table_answers_an_object_from_quick_look_never_the_column_facts(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let (backend, _requests) = Backend::test_channel();
+    let (shell, cx) = cx.add_window_view(|window, cx| {
+        let entity = cx.new(|cx| shell_with(backend, cx));
+        entity.update(cx, |shell, cx| {
+            let pane = &mut shell.panes[0].as_mut().unwrap().pane;
+            let mut rows = pane.held.rows.clone();
+            rows[0].name = "readme.md".into();
+            rows[0].icon = "text-markdown".into();
+            pane.held = std::rc::Rc::new(crate::list::pane::Held {
+                listing: pane.held.listing,
+                total: pane.held.total,
+                start: pane.held.start,
+                rows,
+            });
+            assert!(shell.open_quick_look(0, window, cx));
+        });
+        Root { shell: entity }
+    });
+    let shell = shell.read_with(cx, |root, _| root.shell.clone());
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let read = |shell: &mut crate::state::Shell,
+                        window: &mut gpui::Window,
+                        cx: &mut gpui::Context<crate::state::Shell>| {
+                let (answer, receive) = std::sync::mpsc::sync_channel(1);
+                shell.ipc(
+                    crate::ipc::server::Event::Call {
+                        request: Request::Call {
+                            target: "flea".into(),
+                            function: "previewTable".into(),
+                            arguments: vec![],
+                        },
+                        answer,
+                    },
+                    window,
+                    cx,
+                );
+                receive.try_recv().unwrap().reply
+            };
+            // No table overflows the card's document yet, so the contract's empty object answers.
+            assert_eq!(read(shell, window, cx), Reply::value("{}"));
+            let look = shell.quick_look.as_ref().unwrap().view.clone();
+            look.update(cx, |look, cx| look.close(cx));
+            assert_eq!(read(shell, window, cx), Reply::value("{}"));
+        })
+    });
+}

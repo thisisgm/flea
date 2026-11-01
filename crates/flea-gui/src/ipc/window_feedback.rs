@@ -93,13 +93,12 @@ impl Adapter for FeedbackAdapter<'_> {
                 }
             }
             "listingDropActive" => self.drop_active.to_string(),
-            // An open row menu takes the keyboard, so menu follows opened. GPUI keeps no menu focus holder and no QML item to name, so origin and activeItem refuse while a menu is open and read idle when shut.
+            // An open row menu takes the keyboard, so menu follows opened and the opener (origin) holds no focus.
+            // GPUI has no QML focus item to name, so activeItem stays empty.
             "contextMenuFocusState" => {
-                if self.shell.menu.menu.borrow().opened() {
-                    return Some(Reply::error(3, "FLEA_IPC_ERROR flea.contextMenuFocusState unavailable fields: origin, activeItem (GPUI keeps no menu focus holder or QML focus item for an open menu)"));
-                }
+                let opened = self.shell.menu.menu.borrow().opened();
                 format!(
-                    "{{\"opened\":false,\"view\":\"{}\",\"menu\":false,\"pane\":{},\"list\":{},\"origin\":false,\"activeItem\":\"\"}}",
+                    "{{\"opened\":{opened},\"view\":\"{}\",\"menu\":{opened},\"pane\":{},\"list\":{},\"origin\":false,\"activeItem\":\"\"}}",
                     flea::json::escape(self.view),
                     self.pane_focused,
                     self.list_focused,

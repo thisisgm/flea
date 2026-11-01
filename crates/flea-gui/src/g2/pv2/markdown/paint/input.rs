@@ -27,7 +27,9 @@ impl MarkdownView {
         }
         let at = self.local(event.position);
         let table = self.hits.iter().find_map(|hit| match hit {
-            Hit::Table { rect, id, most } if *most > 0. && inside(*rect, at) => Some((*id, *most)),
+            Hit::Table { rect, id, most, .. } if *most > 0. && inside(*rect, at) => {
+                Some((*id, *most))
+            }
             _ => None,
         });
         let (shift, control) = (event.modifiers.shift, event.modifiers.control);
@@ -98,6 +100,40 @@ impl MarkdownView {
                 Hit::Table { .. } => None,
             })
             .collect()
+    }
+
+    /// IpcPreviewState.previewTable: the first sideways table's shift, its rect and its first body row's, in window pixels, or `{}`.
+    pub fn table_state(&self) -> String {
+        use flea::jsondoc::Json;
+        let (ox, oy) = self.bounds;
+        let rect = |(x, y, w, h): (f32, f32, f32, f32)| {
+            let r = |n: f32| n.round();
+            Json::Str(format!("{} {} {} {}", r(ox + x), r(oy + y), r(w), r(h)))
+        };
+        let table = (self.shown_view() == View::Rendered)
+            .then(|| {
+                self.hits.iter().find_map(|hit| match hit {
+                    Hit::Table {
+                        rect,
+                        id,
+                        most,
+                        row,
+                    } if *most > 0. => Some((rect, id, most, row)),
+                    _ => None,
+                })
+            })
+            .flatten();
+        let fields = table.map_or_else(Vec::new, |(view, id, most, row)| {
+            let shift = self.tables.get(id).copied().unwrap_or(0.).clamp(0., *most);
+            vec![
+                ("scrollX".into(), Json::Num(shift.round().to_string())),
+                ("view".into(), rect(*view)),
+                ("row".into(), row.map_or(Json::Str(String::new()), rect)),
+            ]
+        });
+        flea::jsondoc::render(&Json::Obj(fields))
+            .trim_end()
+            .to_owned()
     }
 
     fn scroll_to(&mut self, top: f32, cx: &mut Context<Self>) {

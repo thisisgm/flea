@@ -106,6 +106,44 @@ impl Thumbnails<'_> {
     }
 }
 
+impl Thumbnails<'_> {
+    // ui/Ipc.qml rowClipMark: "unavailable" for a row the frame did not draw, else "", "copy" or "scissors".
+    fn clip_mark(&self, index: usize) -> &'static str {
+        let name = match self.host.drawn_view {
+            Some(View::Grid) => self.host.grid.as_ref().and_then(|grid| {
+                let state = grid.state.borrow();
+                state.drawn_row(index).and_then(|row| row.name())?;
+                let held = state.frame_held.as_deref()?;
+                held.row(index).map(|row| row.name.clone())
+            }),
+            Some(View::Columns) => self.host.columns.as_ref().and_then(|columns| {
+                let paint = columns.painters.get(Slot::Active)?.borrow();
+                paint.prepared(index)?;
+                let drawn = paint.drawn.as_ref()?;
+                if !matches!(drawn.view().rows, TrackRows::Listing)
+                    || drawn.view().path != self.host.path
+                {
+                    return None;
+                }
+                drawn
+                    .held
+                    .as_deref()?
+                    .row(index)
+                    .map(|row| row.name.clone())
+            }),
+            _ => None,
+        };
+        let Some(name) = name else {
+            return "unavailable";
+        };
+        match self.host.list.borrow().view.clip.mark_for(&name) {
+            None => "",
+            Some(crate::row::marks::ClipMark::Copy) => "copy",
+            Some(crate::row::marks::ClipMark::Cut) => "scissors",
+        }
+    }
+}
+
 impl Adapter for Thumbnails<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         if function == "thumbnailPolicyState" {
@@ -133,6 +171,17 @@ impl Adapter for Thumbnails<'_> {
             let visible = index.is_some_and(|row| self.visible(row));
             let ready = index.is_some_and(|row| self.host.list.borrow().pictures.ready(held, row));
             return Some(Reply::value((visible && ready).to_string()));
+        }
+        // The List answers rowClipMark from its drawn rows; Grid and Columns read the drawn row through the pane's clipboard marks.
+        if function == "rowClipMark"
+            && matches!(self.host.drawn_view, Some(View::Grid | View::Columns))
+        {
+            let index = arguments
+                .first()
+                .and_then(|text| text.parse::<usize>().ok());
+            return Some(Reply::value(
+                index.map_or("unavailable", |row| self.clip_mark(row)),
+            ));
         }
         if !matches!(
             function,

@@ -140,3 +140,35 @@ fn gh364_down_starts_a_fresh_autoplay_video_and_accepts_its_picture_and_clock(
     }
     close(&shell, cx);
 }
+
+// EY-435: an open Quick Look video reads previewMediaLoaded true, and previewPosition proves a seek key moved the clock.
+#[gpui::test]
+fn ey435_quick_look_media_loaded_and_seek_keys_move_the_position(cx: &mut TestAppContext) {
+    use flea::ui_logic_pv1::keys::SEEK_MS;
+    let (shell, cx, _requests, script) = mounted(cx);
+    open_kind(&shell, cx, "clip.mp4");
+    for event in [
+        Event::Loaded {
+            video: true,
+            duration_ms: 20_000,
+        },
+        Event::Playing,
+        Event::Position(1_000),
+    ] {
+        assert!(script.feeds.borrow()[0].event(event));
+    }
+    draw(cx);
+    assert_eq!(read(&shell, cx, "previewMediaLoaded", &[]), "true");
+    let before: i64 = read(&shell, cx, "previewPosition", &[]).parse().unwrap();
+    cx.simulate_keystrokes("right");
+    draw(cx);
+    let forward: i64 = read(&shell, cx, "previewPosition", &[]).parse().unwrap();
+    assert_eq!(forward, before + SEEK_MS, "seekForward");
+    cx.simulate_keystrokes("left");
+    draw(cx);
+    let back: i64 = read(&shell, cx, "previewPosition", &[]).parse().unwrap();
+    assert_eq!(back, before, "seekBack");
+    open_kind(&shell, cx, "notes.txt");
+    assert_eq!(read(&shell, cx, "previewMediaLoaded", &[]), "false");
+    close(&shell, cx);
+}

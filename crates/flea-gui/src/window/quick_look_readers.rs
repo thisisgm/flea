@@ -268,6 +268,10 @@ impl Adapter for Reader<'_> {
             "previewState" => self.state(),
             "previewPosition" => self.position().to_string(),
             "previewDuration" => self.duration().to_string(),
+            // IpcPreviewState previewMediaLoaded reads the card's player while it is open; a shut card leaves the column's.
+            "previewMediaLoaded" if self.open().is_some() => {
+                matches!(self.view(), Some(View::Media(_))).to_string()
+            }
             "previewEndGap" => self.end_gap().to_string(),
             "previewMarkdownView" => self
                 .markdown()

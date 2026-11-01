@@ -137,6 +137,8 @@ pub enum Hit {
         rect: (f32, f32, f32, f32),
         id: TableId,
         most: f32,
+        /// The first body row across the whole content width, where the sideways shift puts it.
+        row: Option<(f32, f32, f32, f32)>,
     },
 }
 
