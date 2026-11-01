@@ -232,16 +232,17 @@ def build_plan(contract, roster, languages, catalog_root=REPO / 'i18n', commit=N
             case(f'catalog.{code}.{end}', 'catalog', end, ['I50-02', view[end], *catalog], language=code, **keys)
     surfaces = contract['surfaces']
     for code in (c for c in contract['fit_languages'] if c in codes):
+        catalog = ['CATALOGS'] if code in absent else []
         for surface in surfaces:
             for state in surface['states']:
                 if surface['frontend'] == 'tui':
-                    case(f'fit.{code}.{surface["id"]}.{state}', 'fit', 'tui', [view['tui']], language=code, surface=surface['id'], state=state)
+                    case(f'fit.{code}.{surface["id"]}.{state}', 'fit', 'tui', [view['tui'], *catalog], language=code, surface=surface['id'], state=state)
                     continue
                 for theme in contract['themes']:
                     for rounding in contract['rounding']:
                         spelled = f'{code}.{surface["id"]}.{state}.{theme}.r{rounding}'
                         unregistered = gui == 'SCENE-LANG' or f'i50.fit.{spelled}' not in scenes
-                        case(f'fit.{spelled}', 'fit', 'gui', [gui] if unregistered else [], language=code,
+                        case(f'fit.{spelled}', 'fit', 'gui', [gui, *catalog] if unregistered else catalog, language=code,
                              surface=surface['id'], state=state, theme=theme, rounding=rounding, scene=f'i50.fit.{spelled}')
     # I50-07 publishes every entry and engine case; without its inventory the plan holds one owed slot, never a guess.
     if inventory:
