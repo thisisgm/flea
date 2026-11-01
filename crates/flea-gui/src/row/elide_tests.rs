@@ -1,6 +1,7 @@
 //! EY-437: v0.3.12 MatchText keeps a late match run in view; the cut moves before the run, inside the name's cells.
-use super::{cells, elide_around};
+use super::elide_around;
 use crate::row::cache::{Extra, Shaping};
+use crate::row::cell_count as cells;
 use flea::protocol::RowFacts;
 
 const LATE: &str = "a-long-file-name-with-early-words-and-late-punctuation-[native2-late].txt";
@@ -105,7 +106,7 @@ fn ey437_list_draws_a_late_filter_run_whole_inside_the_name() {
             clipped,
             ..Extra::default()
         };
-        let (drawn, run) = crate::list::element::drawn_name(&facts, extra, &shaping, RUN);
+        let (drawn, run) = crate::list::element::drawn_name(&facts, extra, &shaping, RUN, None);
         assert_eq!(drawn, expected);
         let (start, end) = run.expect("the filter run is marked");
         assert_eq!(&drawn[start..end], RUN);
@@ -127,8 +128,11 @@ fn ey437_drawn_name_cost_per_keystroke() {
     let shaping = Shaping {
         name_cells: 24,
         clip_cells: 20,
+        advance: 8.4,
         ..Shaping::default()
     };
+    // A monospace stand-in for the shaper, so the probe times the glyph fit's search and not the font.
+    let width = |text: &str| text.chars().count() as f32 * 8.4;
     for query in ["[native2-late]", "a-long", "zzz"] {
         let mut costs: Vec<f64> = (0..400)
             .map(|_| {
@@ -139,6 +143,7 @@ fn ey437_drawn_name_cost_per_keystroke() {
                         Extra::default(),
                         &shaping,
                         query,
+                        Some(&width),
                     ));
                 }
                 started.elapsed().as_secs_f64() * 1e6

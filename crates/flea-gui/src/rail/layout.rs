@@ -31,11 +31,16 @@ pub(super) fn layout(
         } else {
             let top_padding = (f32::from(typeface.caption) * HEADING_LEAD).ceil()
                 + if first { 0. } else { metrics.panel_gap };
+            let tracking = if section.caseless {
+                0.
+            } else {
+                HEADING_TRACKING
+            };
             let run = cache.get(
                 &section.heading,
                 typeface.caption,
                 width - 2. * metrics.pad,
-                HEADING_TRACKING,
+                tracking,
                 typeface,
                 window,
             );
@@ -65,6 +70,7 @@ pub(super) fn layout(
                 rect,
                 top_padding,
                 font_size: f32::from(typeface.caption),
+                tracking,
                 add,
             });
             y += rect.height;
@@ -250,7 +256,7 @@ impl RailElement {
                     &h.text,
                     self.typeface.caption,
                     laid.width - 2. * metrics.pad,
-                    HEADING_TRACKING,
+                    h.tracking,
                     &self.typeface,
                     window,
                 )

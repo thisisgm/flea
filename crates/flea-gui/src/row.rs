@@ -1,6 +1,8 @@
 //! One row's cells as ui/Row.qml and ui/js/Format.js print them, built only when a row enters the viewport.
 pub mod cache;
 mod elide;
+#[cfg(test)]
+pub(crate) mod fit_tests;
 pub mod format;
 #[cfg(test)]
 mod language_tests;
@@ -9,6 +11,7 @@ pub mod tags;
 
 use flea::protocol::RowFacts;
 use std::borrow::Cow;
+use unicode_segmentation::UnicodeSegmentation;
 
 pub use elide::elide_around;
 
@@ -78,11 +81,74 @@ pub fn cells_of(ch: char) -> usize {
     }
 }
 
-/// Format.js charsOf(): each char with its cells, a combining mark riding with the char before it.
+/// Format.js charsOf() cells, cut only between grapheme clusters, so a Thai vowel or a Devanagari sign is never cut from its letter.
 fn units(text: &str) -> impl Iterator<Item = (usize, usize)> + '_ {
-    text.char_indices()
-        .filter(|&(at, ch)| at == 0 || !('\u{300}'..='\u{36f}').contains(&ch))
-        .map(|(at, ch)| (at, cells_of(ch)))
+    text.grapheme_indices(true)
+        .map(|(at, unit)| (at, unit_cells(unit)))
+}
+
+/// A cluster's cells as Format.js counts its chars: a U+0300 to U+036F mark rides free, every other char keeps its cells.
+pub(crate) fn unit_cells(unit: &str) -> usize {
+    let cells: usize = unit
+        .chars()
+        .filter(|ch| !('\u{300}'..='\u{36f}').contains(ch))
+        .map(cells_of)
+        .sum();
+    cells.max(1)
+}
+
+/// A text's Format.js cells, summed over its units.
+pub fn cell_count(text: &str) -> usize {
+    units(text).map(|unit| unit.1).sum()
+}
+
+/// The largest cell budget whose elision `fits` once shaped, searched from the cell recipe's own budget, so glyph widths decide where the cells only guess.
+pub fn fit_budget(budget: usize, total: usize, fits: impl Fn(usize) -> bool) -> usize {
+    let budget = budget.min(total);
+    // The whole name draws no ellipsis, so it can fit where one cell less does not.
+    if budget < total && fits(total) {
+        return total;
+    }
+    let (mut low, mut high) = if fits(budget) {
+        if budget == total || !fits(budget + 1) {
+            return budget;
+        }
+        (budget + 1, total)
+    } else if budget == 0 {
+        return 0;
+    } else {
+        (0, budget - 1)
+    };
+    while low < high {
+        let mid = low + (high - low).div_ceil(2);
+        if fits(mid) {
+            low = mid;
+        } else {
+            high = mid - 1;
+        }
+    }
+    low
+}
+
+// Shaped advances sum in f32, so a name exactly its cells wide may read a hair over them.
+const FIT_SLACK: f32 = 0.01;
+
+/// A name elided by `elide` at the largest budget whose shaped `width` fits the cells' pixels, so a CJK name is not cut early and a wide script never runs past its cells; no width or advance keeps the cell budget.
+pub fn fitted<'a, T>(
+    name: &str,
+    budget: usize,
+    advance: f32,
+    width: Option<&dyn Fn(&str) -> f32>,
+    elide: impl Fn(usize) -> (Cow<'a, str>, T),
+) -> (Cow<'a, str>, T) {
+    let room = budget as f32 * advance;
+    let budget = match width.filter(|_| advance > 0.) {
+        Some(width) => fit_budget(budget, cell_count(name), |cells| {
+            width(&elide(cells).0) <= room + FIT_SLACK
+        }),
+        None => budget,
+    };
+    elide(budget)
 }
 
 /// Format.middleElide(): the head takes the odd cell, so a 49-cell budget keeps 24 and 24.

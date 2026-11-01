@@ -4,8 +4,15 @@ use super::{
     seams::{Ink, Request},
     view::SettingsView,
 };
-use flea::ui_logic_st1::caps;
-use gpui::{div, prelude::*, px, Context, Div, FontWeight, MouseButton, SharedString};
+use crate::g2::fb1::caption::caseless;
+use flea::ui_logic_st1::{
+    caps,
+    rows::{Kind, Row},
+};
+use gpui::{
+    div, prelude::*, px, Context, Div, Font, FontWeight, MouseButton, Pixels, SharedString,
+    TextRun, Window,
+};
 
 impl SettingsView {
     /// The head: the title's sliders mark in its own ink, the pane's name, esc and the close mark.
@@ -63,6 +70,15 @@ impl SettingsView {
             )
     }
 
+    /// A heading's letter spacing: the boards' 0.14em, or none in a caseless language, whose tracking would cut its script apart.
+    pub(super) fn heading_spacing(&self) -> f32 {
+        if caseless(self.panel.catalog.language()) {
+            0.
+        } else {
+            f32::from(self.typeface.caption) * 0.14
+        }
+    }
+
     /// A heading in the capitals its language writes, spaced as the boards space it; a typed run keeps its wash.
     pub(super) fn heading(
         &self,
@@ -71,33 +87,139 @@ impl SettingsView {
         lifted: bool,
         ink: &Ink,
     ) -> Div {
-        let language = self.panel.catalog.language();
-        let upper = |text: &str| caps::heading(text, language);
-        let spacing = f32::from(self.typeface.caption) * 0.14;
-        let Some((start, length)) = run else {
-            return washed(&upper(label), None, lifted, ink.wash14, spacing);
+        let (text, run) = heading_text(label, run, self.panel.catalog.language());
+        washed(&text, run, lifted, ink.wash14, self.heading_spacing())
+    }
+}
+
+/// A heading as its language writes it, with its typed run in characters: capitals, or in a caseless language the plain string, even where a string falls back to English.
+pub(super) fn heading_text(
+    label: &str,
+    run: Option<(usize, usize)>,
+    language: &str,
+) -> (String, Option<(usize, usize)>) {
+    if caseless(language) {
+        return (label.to_owned(), run);
+    }
+    let upper = |text: &str| caps::heading(text, language);
+    let Some((start, length)) = run else {
+        return (upper(label), None);
+    };
+    // Capitals can change a run's length, as ß does, so each part is set in capitals on its own.
+    let at = |chars: usize| {
+        label
+            .char_indices()
+            .nth(chars)
+            .map_or(label.len(), |(byte, _)| byte)
+    };
+    let (from, to) = (at(start), at(start + length));
+    let (head, piece, tail) = (
+        upper(&label[..from]),
+        upper(&label[from..to]),
+        upper(&label[to..]),
+    );
+    let run = (head.chars().count(), piece.chars().count());
+    (format!("{head}{piece}{tail}"), Some(run))
+}
+
+impl SettingsView {
+    /// One line of `text` at `size` in the pane's face, as shaped widths decide every fit.
+    pub(super) fn shaped(&self, text: String, size: Pixels, window: &Window) -> f32 {
+        shaped_in(&self.typeface.font, text, size, window)
+    }
+
+    /// A control row's room, with its label's longest word kept whole even in the bold a lifted search run draws.
+    pub(super) fn room(&self, row: &Row, segment: bool, width: f32, window: &Window) -> g::Room {
+        let catalog = &self.panel.catalog;
+        let bold = Font {
+            weight: FontWeight::BOLD,
+            ..self.typeface.font.clone()
         };
-        // Capitals can change a run's length, as ß does, so each part is set in capitals on its own.
+        let label = row.label.resolve(catalog);
+        let word = super::wrap::unbroken(&label)
+            .into_iter()
+            .map(|word| shaped_in(&bold, word.to_owned(), self.typeface.body, window))
+            .fold(0., f32::max);
+        g::control_room(
+            row,
+            segment,
+            width,
+            self.panel.scale,
+            word,
+            |text| self.shaped(text.resolve(catalog), self.typeface.body, window),
+            |text| self.shaped(text.resolve(catalog), self.typeface.caption, window),
+        )
+    }
+
+    /// A control row's label lines: one, or as GPUI wraps it in the room its control leaves, never elided; `bold` is a search hit's run in characters, shaped in the bold the lifted hit draws.
+    pub(super) fn label_lines(
+        &self,
+        row: &Row,
+        bold: Option<(usize, usize)>,
+        width: f32,
+        window: &Window,
+    ) -> usize {
+        let segment = row.kind == Kind::Choice && self.fits(row, width, window);
+        let room = self.room(row, segment, width, window).label;
+        let label = row.label.resolve(&self.panel.catalog);
         let at = |chars: usize| {
             label
                 .char_indices()
                 .nth(chars)
                 .map_or(label.len(), |(byte, _)| byte)
         };
-        let (from, to) = (at(start), at(start + length));
-        let (head, piece, tail) = (
-            upper(&label[..from]),
-            upper(&label[from..to]),
-            upper(&label[to..]),
+        let (from, to) = bold.map_or((0, 0), |(start, length)| (at(start), at(start + length)));
+        let run = |len: usize, weight: FontWeight| TextRun {
+            len,
+            font: Font {
+                weight,
+                ..self.typeface.font.clone()
+            },
+            color: Default::default(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        let runs: Vec<TextRun> = [
+            run(from, self.typeface.font.weight),
+            run(to - from, FontWeight::BOLD),
+            run(label.len() - to, self.typeface.font.weight),
+        ]
+        .into_iter()
+        .filter(|run| run.len > 0)
+        .collect();
+        let one = window.text_system().shape_line(
+            SharedString::from(label.clone()),
+            self.typeface.body,
+            &runs,
+            None,
         );
-        let run = (head.chars().count(), piece.chars().count());
-        washed(
-            &format!("{head}{piece}{tail}"),
-            Some(run),
-            lifted,
-            ink.wash14,
-            spacing,
-        )
+        if f32::from(one.width) <= room {
+            return 1;
+        }
+        window
+            .text_system()
+            .shape_text(
+                label.into(),
+                self.typeface.body,
+                &runs,
+                Some(px(room.max(1.))),
+                None,
+            )
+            .map(|lines| {
+                lines
+                    .iter()
+                    .map(|line| line.wrap_boundaries().len() + 1)
+                    .sum()
+            })
+            .unwrap_or_else(|error| {
+                // A label that cannot be shaped is measured as one line, and the log names the row and the cause.
+                eprintln!(
+                    "flea-gui: Settings row {} label did not shape at {room}px: {error}",
+                    row.id
+                );
+                1
+            })
     }
 }
 
@@ -121,4 +243,23 @@ impl SettingsView {
                     .child(card)
             })
     }
+}
+
+/// One line of `text` at `size` in `font`.
+fn shaped_in(font: &Font, text: String, size: Pixels, window: &Window) -> f32 {
+    let text = SharedString::from(text);
+    let run = TextRun {
+        len: text.len(),
+        font: font.clone(),
+        color: Default::default(),
+        background_color: None,
+        underline: None,
+        strikethrough: None,
+    };
+    f32::from(
+        window
+            .text_system()
+            .shape_line(text, size, &[run], None)
+            .width,
+    )
 }

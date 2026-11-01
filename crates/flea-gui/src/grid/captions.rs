@@ -1,12 +1,13 @@
 //! Grid-only captions, ui/js/GridNames.js: Flea's own two-line wrap and elide, and the match run per drawn line.
-use crate::row::cells_of;
+use crate::row::unit_cells;
 use std::{borrow::Cow, ops::Range};
+use unicode_segmentation::UnicodeSegmentation;
 
 /// A caption break stays behind a separator, so a word is never split when a break fits.
 const BREAKS: [char; 4] = [' ', '-', '_', '.'];
 const ELLIPSIS: &str = "\u{2026}";
 
-// One Format.js charsOf element: its bytes and cells, a combining mark riding with the char before it.
+// One grapheme cluster: its bytes and its Format.js cells, so a break never cuts a tall script's mark from its letter.
 #[derive(Clone, Copy)]
 struct Unit {
     start: usize,
@@ -15,22 +16,13 @@ struct Unit {
 }
 
 fn units(text: &str) -> Vec<Unit> {
-    let mut out: Vec<Unit> = Vec::with_capacity(text.len());
-    for (at, ch) in text.char_indices() {
-        let end = at + ch.len_utf8();
-        if ('\u{300}'..='\u{36f}').contains(&ch) {
-            if let Some(last) = out.last_mut() {
-                last.end = end;
-                continue;
-            }
-        }
-        out.push(Unit {
+    text.grapheme_indices(true)
+        .map(|(at, unit)| Unit {
             start: at,
-            end,
-            cells: cells_of(ch),
-        });
-    }
-    out
+            end: at + unit.len(),
+            cells: unit_cells(unit),
+        })
+        .collect()
 }
 
 // A unit is one separator alone, never a separator carrying a combining mark.

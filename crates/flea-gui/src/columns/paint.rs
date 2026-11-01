@@ -265,14 +265,17 @@ impl TrackPaint {
         if let Some(advance) = self.advance {
             return advance;
         }
-        let text = window.text_system();
-        let id = text.resolve_font(&self.typeface.font);
-        let advance = text
-            .advance(id, self.typeface.body, '0')
-            .map_or(self.typeface.body * 0.6, |advance| advance.width);
+        let advance = digit_advance(&self.typeface.font, self.typeface.body, window);
         self.advance = Some(advance);
         advance
     }
+}
+
+/// One advance of "0" in `font` at `size`, six tenths of the size when the face has no digit.
+pub fn digit_advance(font: &gpui::Font, size: Pixels, window: &Window) -> Pixels {
+    let text = window.text_system();
+    text.advance(text.resolve_font(font), size, '0')
+        .map_or(size * 0.6, |advance| advance.width)
 }
 
 /// The last frame's geometry and snapshot, shared by hit testing and IPC.

@@ -8,7 +8,7 @@ impl Rows<'_> {
         let ink = self.role_ink(row.role);
         // A wrapping hint is placed unit by unit so a key chord never breaks; elided hints and typed runs keep the label.
         let text = if row.elide_right || line.run.is_some() {
-            self.label(line, ink).map(|text| {
+            self.label(line, ink, false).map(|text| {
                 if row.elide_right {
                     text.w_full().whitespace_nowrap().text_ellipsis()
                 } else {
