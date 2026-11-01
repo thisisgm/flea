@@ -62,6 +62,38 @@ impl SelectionPreview {
         )
     }
 
+    /// The board's label column, widened to the widest label and a space when one passes it, at most half the table and never under the board's.
+    pub(crate) fn label_column(
+        &self,
+        kind: Kind,
+        facts: &[(String, String)],
+        table: f32,
+        window: &gpui::Window,
+    ) -> f32 {
+        let measure = |text: &str| {
+            let font = self.face.font.clone();
+            crate::g2::fb1::caption::measure(
+                text.to_owned().into(),
+                font,
+                self.face.caption,
+                gpui::px(0.),
+                window,
+            )
+        };
+        let board = self.fact_grid(kind).1;
+        let widest = facts
+            .iter()
+            .map(|(label, _)| measure(label))
+            .fold(0., f32::max);
+        if widest <= board {
+            return board;
+        }
+        (widest + measure(" "))
+            .ceil()
+            .min((table / 2.).floor())
+            .max(board)
+    }
+
     /// Facts.js tallHeight for a tall kind, else the 16 by 10 frame every other state shares.
     pub(crate) fn frame_size(&self, kind: Kind, facts: usize) -> (f32, f32) {
         let metrics = crate::list::Metrics::for_typeface(&self.face);

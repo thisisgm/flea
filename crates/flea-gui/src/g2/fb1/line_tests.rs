@@ -1,7 +1,7 @@
 use super::hero_tests::{english, frame, run};
 use super::line::{ArmLost, MessageLine};
 use flea::ui_logic_fb1::messages::MESSAGE_MS;
-use flea::ui_logic_fb1::status::Hint;
+use flea::ui_logic_fb1::status::{Hint, SEP};
 use gpui::{
     point, px, size, Modifiers, MouseButton, TestAppContext, VisualTestContext, WindowHandle,
 };
@@ -204,6 +204,60 @@ fn a_click_on_the_undo_target_runs_undo_once(cx: &mut TestAppContext) {
     vcx.simulate_mouse_move(point(px(1.), px(1.)), MouseButton::Left, Modifiers::none());
     vcx.simulate_mouse_up(point(px(1.), px(1.)), MouseButton::Left, Modifiers::none());
     assert_eq!(undone.get(), 1);
+}
+
+/// StatusBar.qml: a retry line sharing the lane gives way first, so the notice stays whole until the rest is down to " · …".
+#[gpui::test]
+fn a_notice_stays_whole_while_the_retry_line_beside_it_gives_way(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    handle
+        .update(cx, |line, _, cx| {
+            line.set_retry_line("Retry selected: zz-locked.txt", cx);
+            line.update(cx, |m, now| {
+                m.say("Copied 3 of 4 items · 1 failed", false, "", Hint::None, now)
+            })
+        })
+        .unwrap();
+    let floor = handle
+        .update(cx, |line, window, _| {
+            let font = line.typeface().font.clone();
+            let caption = line.typeface().caption;
+            let rest = format!("{SEP}\u{2026}").into();
+            super::caption::measure(rest, font, caption, px(0.), window)
+        })
+        .unwrap();
+    let mut lane = |width: f32| {
+        cx.simulate_window_resize(handle.into(), size(px(width), px(24.)));
+        frame(cx, handle);
+        frame(cx, handle);
+        handle
+            .update(cx, |line, _, _| {
+                let part = |name| line.painted.get(name).expect("drawn");
+                (part("primary"), part("extra"))
+            })
+            .unwrap()
+    };
+    let width = |part: &super::observe::Text| f32::from(part.bounds.size.width);
+    let (primary, extra) = lane(1000.);
+    assert!(width(&primary) >= primary.implicit_width && width(&extra) >= extra.implicit_width);
+    let (notice, rest) = (primary.implicit_width, extra.implicit_width);
+    let (primary, extra) = lane((notice + rest / 2.).round());
+    assert!(
+        width(&primary) >= notice,
+        "the notice is whole beside the retry line: {} of {notice}",
+        width(&primary)
+    );
+    assert!(width(&extra) < rest, "the retry line gives way");
+    let (primary, extra) = lane((notice / 2.).round());
+    assert!(
+        width(&primary) < notice,
+        "a lane narrower than the notice elides it"
+    );
+    assert!(
+        width(&extra) >= floor,
+        "the retry line keeps its \" · …\" while the notice elides: {} of {floor}",
+        width(&extra)
+    );
 }
 
 #[gpui::test]
