@@ -251,17 +251,19 @@ fn tui_fix_1101_trashed_non_text_draws_nothing_under_the_facts() {
         m.preview_visible = true;
         let listed = LISTED.replace("old-draft.txt", name).replace(r#""icon":"text-plain""#, &format!(r#""icon":"{icon}","content":"{}""#, backing.display()));
         m.receive(parse(&listed).unwrap(), &mut w).unwrap();
+        assert_eq!(content(&m), Some(backing.clone()), "{name}: the row names its backing");
         crate::tui::preview::load(&mut m, false);
-        let deadline = std::time::Instant::now() + Duration::from_secs(2);
-        while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
-            std::thread::sleep(Duration::from_millis(1));
-            crate::tui::preview::poll(&mut m);
-        }
+        assert_eq!(m.preview_path, backing, "{name}");
+        assert!(!m.preview_reader.outstanding(m.preview_generation), "{name}: the kind gate reads nothing");
+        drain(&mut w);
+        let mut graphics = crate::tui::graphics::Graphics::new();
+        crate::tui::stage::step(&mut m, &mut graphics, &mut crate::tui::stage::Shown::default(), &mut w, (130, 31), false, &mut String::new()).unwrap();
+        assert!(m.image_file.is_none() && graphics.bytes.is_empty(), "{name}: no picture is placed in Trash");
+        assert!(requests(&drain(&mut w), "thumb").is_empty(), "{name}: no thumbnail is asked for");
         crate::tui::preview::layout(&mut m);
         let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
         let below: Vec<String> = rows[6..29].iter().map(|row| row.chars().skip(81).collect::<String>().trim().to_owned()).collect();
         assert!(below.iter().all(String::is_empty), "{name}: {below:?}");
-        assert!(m.image_file.is_none(), "{name}");
         finish(w, reader);
     }
 }
