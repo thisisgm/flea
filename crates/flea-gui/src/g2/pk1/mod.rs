@@ -90,6 +90,8 @@ mod board_parity_tests;
 #[cfg(test)]
 mod frame_gate_tests;
 #[cfg(test)]
+mod gm338_hidden_tests;
+#[cfg(test)]
 mod recent_parity_tests;
 #[cfg(test)]
 mod save_layout_tests;

@@ -24,6 +24,17 @@ pub(super) struct Followed {
     pub(super) single_click: bool,
 }
 
+// The saved Show Hidden Files setting read before the window opens, so the first listing already carries it.
+pub struct HiddenSeed(pub bool);
+
+impl gpui::Global for HiddenSeed {}
+
+impl HiddenSeed {
+    pub fn read(data: &Json) -> Self {
+        Self(data.get("hidden").and_then(Json::as_bool) == Some(true))
+    }
+}
+
 impl Default for Preferences {
     fn default() -> Self {
         Self {
@@ -72,8 +83,8 @@ impl Picker {
                         .unwrap_or("medium"),
                 )
             });
-        let hidden = self.req.hidden.unwrap_or(self.preferences.followed.hidden);
-        self.preferences.followed.hidden = data.get("hidden").and_then(Json::as_bool) == Some(true);
+        let hidden = self.show_hidden();
+        self.preferences.followed.hidden = HiddenSeed::read(data).0;
         if !self.preferences.view_chosen && self.preferences.pending.is_none() {
             self.set_view(
                 data.get("pickerView")
@@ -86,11 +97,16 @@ impl Picker {
             listing.set_thumbnail(size);
             listing.apply_settings(data, cx)
         });
-        if changed || hidden != self.req.hidden.unwrap_or(self.preferences.followed.hidden) {
+        if changed || hidden != self.show_hidden() {
             self.preferences.relist = true;
         }
         self.relist_settings(cx);
         self.refill_grid(cx);
+    }
+
+    // The portal's flag or the window's own toggle outranks the browser's Show Hidden Files.
+    pub(super) fn show_hidden(&self) -> bool {
+        self.req.hidden.unwrap_or(self.preferences.followed.hidden)
     }
 
     // A submission in flight keeps its listing, so a settings re-list waits until it ends unanswered.

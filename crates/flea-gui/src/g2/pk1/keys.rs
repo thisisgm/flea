@@ -39,8 +39,7 @@ impl Picker {
             }
             // PickerList.qml is disabled while submitting or without a backend, so the period re-lists nothing then.
             "toggleHidden" if !self.backend_unavailable() && !self.accept_state().submitting() => {
-                self.req.hidden =
-                    Some(!self.req.hidden.unwrap_or(self.preferences.followed.hidden));
+                self.req.hidden = Some(!self.show_hidden());
                 let path = self.listing.location.clone();
                 self.open_folder(&path, cx);
             }
