@@ -1347,6 +1347,7 @@
   "network.retry": "আবার চেষ্টা করুন",
   "network.retry_title": "নেটওয়ার্ক শেয়ারে সংযোগ দিন",
   "network.save_committed": "%1",
+  "network.save_busy": "পছন্দের তালিকার একটি পরিবর্তন এখনো সংরক্ষণ হচ্ছে। এই অবস্থানটি সংরক্ষণ করতে আবার চেষ্টা করুন।",
   "network.save_failed": "%1",
   "network.saved_read_failed": "সংরক্ষিত অবস্থান পড়া যায়নি, তাই কিছু বদলায়নি।",
   "network.saved_remove_read_failed": "সংরক্ষিত অবস্থান পড়া যায়নি, তাই কোনো অবস্থান সরানো হয়নি।",

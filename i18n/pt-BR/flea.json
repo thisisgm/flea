@@ -1363,6 +1363,7 @@
   "network.retry": "Tentar novamente",
   "network.retry_title": "Conectar a um compartilhamento de rede",
   "network.save_committed": "%1",
+  "network.save_busy": "Uma alteração nos Favoritos ainda está sendo salva. Tente novamente para salvar este local.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Não foi possível ler os locais salvos, por isso nada foi alterado.",
   "network.saved_remove_read_failed": "Não foi possível ler os locais salvos, por isso nada foi esquecido.",

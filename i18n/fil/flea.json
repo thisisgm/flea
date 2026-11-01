@@ -1315,6 +1315,7 @@
   "network.retry": "Subukan muli",
   "network.retry_title": "Kumonekta sa network share",
   "network.save_committed": "%1",
+  "network.save_busy": "Sine-save pa ang pagbabago sa Mga Paborito. Subukan muli para i-save ang lokasyong ito.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Hindi mabasa ang mga na-save na lokasyon, kaya walang binago.",
   "network.saved_remove_read_failed": "Hindi mabasa ang mga na-save na lokasyon, kaya walang kinalimutan.",

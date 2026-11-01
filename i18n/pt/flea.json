@@ -1952,6 +1952,7 @@
   "network.password_needed": "Introduz a palavra-passe para montar este local.",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "Ainda está a ser guardada uma alteração aos Favoritos. Tenta novamente para guardar esta localização.",
   "network.backend_died": "Não foi possível ligar: não foi possível abrir o local de rede.",
   "network.another_opening": "Outro local de rede ainda está a abrir. Tenta novamente quando abrir",
   "network.refused": "Não foi possível ligar: o servidor recusou a ligação.",

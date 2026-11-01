@@ -1869,6 +1869,7 @@
   "network.password_needed": "Selle asukoha haakimiseks sisesta parool.",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "Lemmikute muudatuse salvestamine kestab veel. Selle asukoha salvestamiseks proovi uuesti.",
   "network.backend_died": "Ühendamine ebaõnnestus: võrguasukohta ei õnnestunud avada.",
   "network.another_opening": "Teise võrguasukoha avamine kestab veel. Proovi pärast selle avanemist uuesti",
   "network.refused": "Ühendamine ebaõnnestus: server keeldus ühendusest.",

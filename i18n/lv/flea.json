@@ -1363,6 +1363,7 @@
   "network.retry": "Mēģināt vēlreiz",
   "network.retry_title": "Savienoties ar tīkla koplietojumu",
   "network.save_committed": "%1",
+  "network.save_busy": "Izlases izmaiņa vēl tiek saglabāta. Mēģiniet vēlreiz, lai saglabātu šo atrašanās vietu.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Saglabātās vietas nevarēja nolasīt, tāpēc nekas netika mainīts.",
   "network.saved_remove_read_failed": "Saglabātās vietas nevarēja nolasīt, tāpēc nekas netika aizmirsts.",

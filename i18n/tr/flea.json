@@ -1350,6 +1350,7 @@
   "network.retry": "Yeniden dene",
   "network.retry_title": "Ağ paylaşımına bağlan",
   "network.save_committed": "%1",
+  "network.save_busy": "Bir sık kullanılanlar değişikliği hâlâ kaydediliyor. Bu konumu kaydetmek için yeniden deneyin.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Kayıtlı konumlar okunamadığı için hiçbir şey değiştirilmedi.",
   "network.saved_remove_read_failed": "Kayıtlı konumlar okunamadığı için hiçbir şey unutulmadı.",

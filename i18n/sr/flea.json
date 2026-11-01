@@ -1395,6 +1395,7 @@
   "network.retry": "Покушај поново",
   "network.retry_title": "Повежи се на дељени мрежни ресурс",
   "network.save_committed": "%1",
+  "network.save_busy": "Промена омиљених ставки се још чува. Покушајте поново да сачувате ову локацију.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Није могуће прочитати сачувана места, па ништа није промењено.",
   "network.saved_remove_read_failed": "Није могуће прочитати сачувана места, па ништа није заборављено.",

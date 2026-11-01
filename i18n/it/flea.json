@@ -1363,6 +1363,7 @@
   "network.retry": "Riprova",
   "network.retry_title": "Connetti a una condivisione di rete",
   "network.save_committed": "%1",
+  "network.save_busy": "Salvataggio di una modifica ai preferiti ancora in corso. Riprova per salvare questa posizione.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Impossibile leggere le posizioni salvate, quindi non è stato modificato nulla.",
   "network.saved_remove_read_failed": "Impossibile leggere le posizioni salvate, quindi non è stato rimosso nulla.",

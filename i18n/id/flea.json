@@ -11,6 +11,7 @@
   "picker.browser.list_failed_reason": "%1",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "Perubahan Favorit masih disimpan. Coba lagi untuk menyimpan lokasi ini.",
   "dialogs.output.error.print_stopped": "Flea berhenti merespons. Periksa antrean cetak sebelum mencoba lagi.",
   "dialogs.output.esc": "esc",
   "plugins.card.esc": "esc",

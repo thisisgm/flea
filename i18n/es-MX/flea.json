@@ -1363,6 +1363,7 @@
   "network.retry": "Reintentar",
   "network.retry_title": "Conectar a un recurso compartido de red",
   "network.save_committed": "%1",
+  "network.save_busy": "Aún se está guardando un cambio en Favoritos. Reintenta para guardar esta ubicación.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "No se pudieron leer las ubicaciones guardadas, por lo que no se cambió nada.",
   "network.saved_remove_read_failed": "No se pudieron leer las ubicaciones guardadas, por lo que no se olvidó nada.",

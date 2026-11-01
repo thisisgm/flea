@@ -1869,6 +1869,7 @@
   "network.password_needed": "Gib das Passwort ein, um diesen Ort einzubinden.",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "Eine Änderung an den Favoriten wird noch gespeichert. Versuche es erneut, um diesen Ort zu speichern.",
   "network.backend_died": "Verbindung fehlgeschlagen: Der Netzwerkort konnte nicht geöffnet werden.",
   "network.another_opening": "Ein anderer Netzwerkort wird noch geöffnet. Versuche es nach dem Öffnen erneut",
   "network.refused": "Verbindung fehlgeschlagen: Der Server hat die Verbindung abgelehnt.",

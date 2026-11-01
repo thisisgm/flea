@@ -1350,6 +1350,7 @@
   "network.retry": "دوبارہ کوشش کریں",
   "network.retry_title": "نیٹ ورک شیئر سے منسلک ہوں",
   "network.save_committed": "⁨%1⁩",
+  "network.save_busy": "پسندیدہ میں تبدیلی ابھی محفوظ ہو رہی ہے۔ اس مقام کو محفوظ کرنے کے لیے دوبارہ کوشش کریں۔",
   "network.save_failed": "⁨%1⁩",
   "network.saved_read_failed": "محفوظ مقامات پڑھے نہیں جا سکے، اس لیے کچھ نہیں بدلا گیا۔",
   "network.saved_remove_read_failed": "محفوظ مقامات پڑھے نہیں جا سکے، اس لیے کچھ نہیں ہٹایا گیا۔",

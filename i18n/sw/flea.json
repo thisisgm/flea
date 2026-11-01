@@ -1347,6 +1347,7 @@
   "network.retry": "Jaribu tena",
   "network.retry_title": "Unganisha kwenye rasilimali ya pamoja ya mtandao",
   "network.save_committed": "%1",
+  "network.save_busy": "Badiliko la Vipendwa bado linahifadhiwa. Jaribu tena ili kuhifadhi eneo hili.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Maeneo yaliyohifadhiwa hayakuweza kusomwa, kwa hivyo hakuna kilichobadilishwa.",
   "network.saved_remove_read_failed": "Maeneo yaliyohifadhiwa hayakuweza kusomwa, kwa hivyo hakuna kilichosahauliwa.",

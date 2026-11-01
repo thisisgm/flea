@@ -1363,6 +1363,7 @@
   "network.retry": "Torna-ho a provar",
   "network.retry_title": "Connecta a un recurs compartit de xarxa",
   "network.save_committed": "%1",
+  "network.save_busy": "Encara s'està desant un canvi als preferits. Torna-ho a provar per desar aquesta ubicació.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "No s'han pogut llegir les ubicacions desades i no s'ha canviat res.",
   "network.saved_remove_read_failed": "No s'han pogut llegir les ubicacions desades i no se n'ha eliminat cap.",

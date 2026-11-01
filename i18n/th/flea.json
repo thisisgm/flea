@@ -1302,6 +1302,7 @@
   "network.retry": "ลองอีกครั้ง",
   "network.retry_title": "เชื่อมต่อพื้นที่แชร์เครือข่าย",
   "network.save_committed": "%1",
+  "network.save_busy": "ยังบันทึกการเปลี่ยนแปลงรายการโปรดอยู่ ลองอีกครั้งเพื่อบันทึกตำแหน่งนี้",
   "network.save_failed": "%1",
   "network.saved_read_failed": "อ่านตำแหน่งที่บันทึกไว้ไม่ได้ จึงไม่ได้เปลี่ยนแปลงอะไร",
   "network.saved_remove_read_failed": "อ่านตำแหน่งที่บันทึกไว้ไม่ได้ จึงไม่ได้นำรายการใดออก",

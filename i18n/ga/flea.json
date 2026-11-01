@@ -2118,6 +2118,7 @@
   "network.password_needed": "Cuir isteach an pasfhocal chun an suíomh seo a fheistiú.",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "Tá athrú ceanán á shábháil fós. Atriail chun an suíomh seo a shábháil.",
   "network.backend_died": "Níorbh fhéidir ceangal: níorbh fhéidir an suíomh líonra a oscailt.",
   "network.another_opening": "Tá suíomh líonra eile á oscailt fós. Bain triail eile as nuair a osclaítear é",
   "network.refused": "Níorbh fhéidir ceangal: dhiúltaigh an freastalaí don nasc.",

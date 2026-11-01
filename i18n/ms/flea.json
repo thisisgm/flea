@@ -1786,6 +1786,7 @@
   "network.password_needed": "Masukkan kata laluan untuk melekapkan lokasi ini.",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "Perubahan Kegemaran masih sedang disimpan. Cuba lagi untuk menyimpan lokasi ini.",
   "network.backend_died": "Tidak dapat menyambung: lokasi rangkaian tidak dapat dibuka.",
   "network.another_opening": "Lokasi rangkaian lain masih sedang dibuka. Cuba lagi apabila dibuka",
   "network.refused": "Tidak dapat menyambung: pelayan menolak sambungan.",

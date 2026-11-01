@@ -1395,6 +1395,7 @@
   "network.retry": "Skúsiť znova",
   "network.retry_title": "Pripojiť k sieťovému zdieľaniu",
   "network.save_committed": "%1",
+  "network.save_busy": "Zmena obľúbených sa ešte ukladá. Toto umiestnenie uložíte opakovaním.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Uložené umiestnenia sa nepodarilo prečítať, preto sa nič nezmenilo.",
   "network.saved_remove_read_failed": "Uložené umiestnenia sa nepodarilo prečítať, preto sa žiadne neodstránilo.",

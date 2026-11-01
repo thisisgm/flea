@@ -7,6 +7,7 @@ impl Mounts {
         let Some(f) = self.flight.take() else {
             return Vec::new();
         };
+        self.forget_refused(&f.request, key);
         let mut effects = completion(&f.request, Some(key));
         if f.request.id == 0 {
             effects.push(Effect::Retry {

@@ -627,6 +627,7 @@
   "dialogs.output.error.legacy": "%1",
   "feedback.error.backend": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "Een wijziging aan favorieten wordt nog opgeslagen. Probeer het opnieuw om deze locatie op te slaan.",
   "network.save_failed": "%1",
   "picker.browser.list_failed_reason": "%1",
   "send.rclone.reason": "%1",

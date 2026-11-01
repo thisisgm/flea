@@ -1302,6 +1302,7 @@
   "network.retry": "Thử lại",
   "network.retry_title": "Kết nối với tài nguyên chia sẻ mạng",
   "network.save_committed": "%1",
+  "network.save_busy": "Một thay đổi với Yêu thích vẫn đang được lưu. Thử lại để lưu vị trí này.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Không thể đọc các vị trí đã lưu nên chưa thay đổi gì.",
   "network.saved_remove_read_failed": "Không thể đọc các vị trí đã lưu nên chưa xóa vị trí nào.",
