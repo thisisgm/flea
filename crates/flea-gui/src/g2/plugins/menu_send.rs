@@ -30,6 +30,17 @@ fn builtin(action: &str) -> Option<Role> {
     }
 }
 
+/// The built-in provider a send row names, by its own verb or by the plugin-send action it is rewritten to.
+pub(crate) fn send_role(action: &str) -> Option<Role> {
+    builtin(action).or_else(|| {
+        action.strip_prefix(PREFIX).and_then(|id| {
+            [Role::Tailscale, Role::LocalSend, Role::Dropbox]
+                .into_iter()
+                .find(|r| r.plugin_id() == id)
+        })
+    })
+}
+
 impl Shell {
     pub(crate) fn plugin_provider_states(&mut self) {
         let states = self.declared_provider_states();
@@ -220,13 +231,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        let role = builtin(action).or_else(|| {
-            action.strip_prefix(PREFIX).and_then(|id| {
-                [Role::Tailscale, Role::LocalSend, Role::Dropbox]
-                    .into_iter()
-                    .find(|r| r.plugin_id() == id)
-            })
-        });
+        let role = send_role(action);
         let plugin = action
             .strip_prefix(PREFIX)
             .map(str::to_owned)

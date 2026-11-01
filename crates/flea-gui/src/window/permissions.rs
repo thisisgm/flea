@@ -60,7 +60,7 @@ impl Shell {
     /// The open card's permissionsState, or None while no card is open.
     pub(crate) fn permissions_state(&self, cx: &App) -> Option<Json> {
         let view = self.permissions.view.as_ref()?.read(cx);
-        view.opened.then(|| view.model.state())
+        view.opened.then(|| view.model.state(&view.observed))
     }
 
     fn open_permissions(&mut self, chosen: &Chosen, window: &mut Window, cx: &mut Context<Self>) {

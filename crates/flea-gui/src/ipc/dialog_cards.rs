@@ -186,14 +186,16 @@ fn menu_delete_state(overlay: &Overlay) -> Option<String> {
     };
     let control = |name: &'static str, button: Button| {
         let press = Press::Delete(button);
-        let bounds = overlay
-            .frame
-            .part(&format!("button-{}", press.code()))
-            .map(|part| part.bounds);
+        let part = overlay.frame.part(&format!("button-{}", press.code()));
+        let bounds = part.as_ref().map(|part| part.bounds);
         let visible =
             bounds.is_some_and(|b| b.size.width > gpui::px(0.) && b.size.height > gpui::px(0.));
         object([
             ("name", Json::Str(name.into())),
+            (
+                "label",
+                Json::Str(part.map_or_else(String::new, |part| part.text)),
+            ),
             ("visible", Json::Bool(visible)),
             (
                 "enabled",
@@ -212,11 +214,15 @@ fn menu_delete_state(overlay: &Overlay) -> Option<String> {
             ("rect", Json::Str(rect(bounds))),
         ])
     };
-    // v0.3.12 hands the reply's numeric token through; a token that is not a number stays a string.
-    let token = review
-        .token
-        .parse::<u64>()
-        .map_or_else(|_| Json::Str(review.token.clone()), number);
+    // v0.3.12 hands the reply's numeric token through (snapshot.token || 0, so none reads 0); a token that is not a number stays a string.
+    let token = if review.token.is_empty() {
+        number(0)
+    } else {
+        review
+            .token
+            .parse::<u64>()
+            .map_or_else(|_| Json::Str(review.token.clone()), number)
+    };
     let count = review.count.unwrap_or(0);
     let catalog = &overlay.catalog;
     let card = Json::Str(rect(overlay.frame.part("card").map(|part| part.bounds)));

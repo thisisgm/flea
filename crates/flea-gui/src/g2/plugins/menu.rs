@@ -28,6 +28,7 @@ mod prompt;
 mod selection;
 #[path = "menu_send.rs"]
 mod send;
+pub(crate) use send::send_role;
 #[cfg(test)]
 #[path = "menu_tests.rs"]
 mod tests;

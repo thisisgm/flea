@@ -19,62 +19,21 @@ const DELETE_EXPIRED: &str = "The delete confirmation expired; confirm again.";
 
 #[path = "menu_selection.rs"]
 mod selection;
+#[path = "menu_worker.rs"]
+mod worker;
 
 pub struct MenuActions {
     slot: Arc<MenuSlot>,
+    catalogue: Arc<MenuSlot>,
     replies: Sender<OpMsg>,
     snapshot: Arc<Mutex<Snapshot>>,
     cancellation: Mutex<Cancellation>,
     registry: Registry,
+    catalogue_registry: Registry,
     requested_id: AtomicUsize,
     restoration: Arc<Mutex<(usize, Vec<Selected>)>>,
 }
 impl MenuActions {
-    pub fn new(replies: Sender<OpMsg>) -> Self {
-        // One pending request bounds repeated activation while an application registry query runs.
-        let slot = Arc::new(MenuSlot::default());
-        let output = replies.clone();
-        let queued = Arc::clone(&slot);
-        let snapshot = Arc::new(Mutex::new(Snapshot::default()));
-        let published = Arc::clone(&snapshot);
-        let registry = Registry::default();
-        let queries = registry.clone();
-        let restoration = Arc::new(Mutex::new((0, Vec::new())));
-        let completed = Arc::clone(&restoration);
-        std::thread::spawn(move || {
-            let _close = CloseOnExit(Arc::clone(&queued));
-            while let Some((line, paths, cursor, cancel)) = queued.take() {
-                let mut state = published.lock().unwrap().clone();
-                if field_str(&line, "op").as_deref() == Some("properties") && state.items.len() != 1 {
-                    if super::menuproperties::serve(&line, state.id, &state.items, &output, &cancel) { continue; } else { break; }
-                }
-                if field_str(&line, "op").as_deref() == Some("contents") {
-                    if super::menucontents::serve(&line, state.id, &state.items, &output, &cancel) { continue; } else { break; }
-                }
-                if field_str(&line, "op").as_deref() == Some("facts") {
-                    if super::menufacts::serve(&line, state.id, &state.items, &output, &cancel) { continue; } else { break; }
-                }
-                let mut reply = if cancel.check().is_ok() {
-                    state.handle_request(&line, paths, cursor.as_deref(), &queries, &cancel)
-                } else { response(&line, Err("Menu request cancelled.".into())) };
-                if cancel.check().is_err() && field_str(&line, "op").as_deref() != Some("delete") {
-                    reply.insert_str(reply.len() - 1, r#", "cancelled":true"#);
-                }
-                if field_str(&line, "op").as_deref() == Some("delete") {
-                    // Close expires mutation immediately; the completed operation still identifies survivors for reselection.
-                    *completed.lock().unwrap() = (state.id, state.items.clone());
-                }
-                if matches!(field_str(&line, "op").as_deref(), Some("snapshot" | "close" | "prepareDelete" | "refreshDelete" | "delete" | "providerDestination" | "activate")) {
-                    publish_snapshot(published.lock().unwrap(), state, &cancel);
-                }
-                let message = if field_str(&line, "op").as_deref() == Some("delete") {
-                    OpMsg::MenuDeleteDone { line: reply }
-                } else { OpMsg::Meta { line: reply } };
-                if output.send(message).is_err() { break; }
-            }
-        });
-        Self { slot, replies, snapshot, cancellation: Mutex::new(Cancellation::default()), registry, requested_id: AtomicUsize::new(0), restoration }
-    }
     pub(crate) fn retain_survivors(&self, id: usize, matches: &mut Vec<(&str, usize)>) -> Result<(), String> {
         let restoration = self.restoration.lock().map_err(|_| MENU_STOPPED)?;
         if id == 0 || restoration.0 != id { return Err("The items changed; select them again.".into()); }
@@ -109,7 +68,7 @@ impl MenuActions {
             *cancellation = cancellation.next();
             self.requested_id.store(if op == "snapshot" { id } else { 0 }, Ordering::Relaxed);
             *self.snapshot.lock().unwrap() = Snapshot::default();
-            if let Err(error) = self.registry.cancel() {
+            if let Some(error) = [self.registry.cancel(), self.catalogue_registry.cancel()].into_iter().find_map(Result::err) {
                 let _ = self.replies.send(OpMsg::Meta { line: response(&line, Err(error)) });
                 return false;
             }
@@ -118,7 +77,7 @@ impl MenuActions {
                 return false;
             }
         }
-        let refusal = match self.slot.send((line, paths, cursor, cancellation.clone())) {
+        let refusal = match (if op == "applications" { &self.catalogue } else { &self.slot }).send((line, paths, cursor, cancellation.clone())) {
             Sent::Queued => return true,
             Sent::Displaced(older) => {
                 let mut reply = response(&older.0, Err("Menu request cancelled.".into()));
@@ -139,7 +98,10 @@ impl Drop for MenuActions {
     fn drop(&mut self) {
         self.cancellation.lock().unwrap().next();
         self.slot.close();
-        if let Err(error) = self.registry.cancel() { eprintln!("flea: {}", error); }
+        self.catalogue.close();
+        for registry in [&self.registry, &self.catalogue_registry] {
+            if let Err(error) = registry.cancel() { eprintln!("flea: {}", error); }
+        }
     }
 }
 
@@ -390,10 +352,12 @@ mod tests {
         let (tx, rx) = std::sync::mpsc::channel();
         let menu = MenuActions {
             slot: Arc::new(MenuSlot::default()),
+            catalogue: Arc::new(MenuSlot::default()),
             replies: tx,
             snapshot: Arc::new(Mutex::new(Snapshot::default())),
             cancellation: Mutex::new(Cancellation::default()),
             registry: Registry::default(),
+            catalogue_registry: Registry::default(),
             requested_id: AtomicUsize::new(0),
             restoration: Arc::new(Mutex::new((0, Vec::new()))),
         };

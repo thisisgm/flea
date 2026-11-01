@@ -47,7 +47,9 @@ pub fn card(view: &OutputView, room: (f32, f32), cx: &mut Context<OutputView>) -
         _ => 552.,
     };
     let bleed = matches!(card, Card::Convert(s) if s.kind != Kind::Office);
-    let title = div()
+    let title = view
+        .observed
+        .title(div())
         .debug_selector(|| "op4-title".into())
         .flex()
         .items_center()
@@ -106,7 +108,8 @@ pub fn card(view: &OutputView, room: (f32, f32), cx: &mut Context<OutputView>) -
         ));
     let max_body = flea::ui_logic_op1::card::frame(19.2, f32::MAX, room.1).body;
     Some(
-        div()
+        view.observed
+            .card(div())
             .debug_selector(|| "op4-card".into())
             .w(px(width.min((room.0 - 32.).max(0.))))
             .p(px(16.))

@@ -87,6 +87,7 @@ impl Shell {
                 .favourite_writes
                 .extend(favourite.then_some(revision));
             if worker.writes.send((revision, saving, operation)).is_err() {
+                self.finish_network_favourite(revision, Err(""), cx);
                 self.settings_save_error(cx);
             }
             if favourite {
@@ -107,9 +108,24 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         match update {
+            store::Update::FavouriteCommitted { through } => {
+                self.finish_committed_favourite(through, cx)
+            }
+            store::Update::FavouriteFailed { through, detail } => {
+                self.finish_network_favourite(through, Err(&detail), cx);
+                self.receive_settings(
+                    store::Update::Failed {
+                        through,
+                        keep: false,
+                    },
+                    window,
+                    cx,
+                );
+            }
             store::Update::Unreadable => self.settings_error("settings.error.unreadable", cx),
             store::Update::Corner(corner) => self.apply_corner(corner, window, cx),
             store::Update::Failed { through, keep } => {
+                self.finish_network_favourite(through, Err(""), cx);
                 if self
                     .settings
                     .favourite_focus
@@ -167,6 +183,7 @@ impl Shell {
                 let patches = owed.iter().chain(saving.map(|(_, patch)| patch));
                 store::keep_own(&mut document, &self.launch.settings.data, patches);
                 self.apply_settings(document, window, cx);
+                self.finish_network_favourite(through, Ok(""), cx);
                 if self
                     .settings
                     .favourite_focus
@@ -216,6 +233,7 @@ impl Shell {
         ]
         .iter()
         .any(|key| old.get(key) != data.get(key));
+        let hidden_changed = old.get("hidden") != data.get("hidden");
         let newest = self.launch.settings.newest.clone();
         let mut settings = Settings::from_json(data.clone());
         settings.newest = newest.clone();
@@ -267,6 +285,9 @@ impl Shell {
         self.sync_trash_sheet(cx);
         if relist {
             self.settings.relist = [true, true];
+            if hidden_changed {
+                self.settings.relist_fresh = [true, true];
+            }
         }
         self.settle_settings(window, cx);
         cx.notify();
@@ -329,29 +350,6 @@ impl Shell {
             Json::Obj(vec![("view".into(), Json::Str(name.into()))])
         };
         self.change_settings(patch, window, cx);
-    }
-
-    pub(crate) fn settle_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        for side in 0..2 {
-            if !self.settings.relist[side] {
-                continue;
-            }
-            let Some(host) = &mut self.panes[side] else {
-                self.settings.relist[side] = false;
-                continue;
-            };
-            if host.stopped {
-                self.settings.relist[side] = false;
-                continue;
-            }
-            if host.nav.busy(&host.pane) {
-                continue;
-            }
-            if host.reread_preferences() {
-                self.settings.relist[side] = false;
-                self.run_navigation(side, window, cx);
-            }
-        }
     }
 
     pub(crate) fn settings_folder_arrived(&mut self, _window: &mut Window, cx: &mut Context<Self>) {

@@ -245,10 +245,10 @@ PY
     state=""
     while (( SECONDS < deadline )); do
         state=$(ipc statusActivityState) || fail "operations: extract-card observation failed"
-        jq -e '.transferCard.visible and (.transferCard.byteLine == "") and (.transferCard.cancel.visible and .transferCard.cancel.enabled) and (.activities[0].text | startswith("Extracting · slow.zip"))' <<< "$state" >/dev/null && break
+        jq -e '.transferCard.visible and (.transferCard.byteLine == "") and (.transferCard.cancel.visible and .transferCard.cancel.enabled) and (.transferCard.headline == "Extracting") and (.transferCard.sourceLine == "slow.zip")' <<< "$state" >/dev/null && break
         sleep 0.05
     done
-    jq -e '.transferCard.visible and (.transferCard.byteLine == "") and (.transferCard.cancel.visible and .transferCard.cancel.enabled) and (.activities[0].text | startswith("Extracting · slow.zip"))' <<< "$state" >/dev/null \
+    jq -e '.transferCard.visible and (.transferCard.byteLine == "") and (.transferCard.cancel.visible and .transferCard.cancel.enabled) and (.transferCard.headline == "Extracting") and (.transferCard.sourceLine == "slow.zip")' <<< "$state" >/dev/null \
         || fail "operations: no live no-byte Extracting card before the deadline: $state"
     printf 'OPERATIONS extract-card=%s\n' "$state"
     shot operations-extracting

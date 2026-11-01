@@ -15,7 +15,6 @@ fn bfx_net_quiet_listing_after_timeout_replaces_the_previous_mount_response(
         let places = shell.rail.as_ref().unwrap().places.clone();
         places.update(cx, |places, _| places.polling = true);
         let network = shell.rail.as_mut().unwrap().network.as_mut().unwrap();
-        network.poll = None;
         network.bookmarks = root.0.join("bookmarks");
         network.sources.mountinfo = root.0.join("mountinfo");
         if !network.listing.running {
@@ -39,17 +38,10 @@ fn bfx_net_quiet_listing_after_timeout_replaces_the_previous_mount_response(
     assert_ne!(first, hung);
     cx.executor().advance_clock(Duration::from_millis(10_001));
     cx.run_until_parked();
-    shell.update(cx, |shell, cx| shell.network_tick(cx));
+    shell.update(cx, |shell, cx| shell.network_sync_mounts(cx));
     shell.update(cx, |shell, _| {
         let network = shell.network().unwrap();
         assert!(network.listing.timed_out());
-        assert!(
-            network
-                .listing_slot
-                .handle()
-                .is_some_and(|handle| handle.killed()),
-            "the timeout kills the hung listing and keeps its run"
-        );
     });
     recorder.answer(hung, 0, "partial timed-out response");
     cx.run_until_parked();

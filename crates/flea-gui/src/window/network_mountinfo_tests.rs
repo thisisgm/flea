@@ -50,6 +50,12 @@ fn call(
 }
 
 fn root(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+    cx.update(|cx| {
+        cx.set_global(crate::g2::pl1::source::fixture::Services {
+            runner: crate::window::network::default_runner(),
+            hostname: "testhost".into(),
+        })
+    });
     let (backend, _) = Backend::test_lines();
     let (root, cx) = cx.add_window_view(|window, cx| crate::window::root::Root {
         shell: cx.new(|cx| {
@@ -81,7 +87,16 @@ fn pb_network_mountinfo_rebuilds_root_rows_without_replacing_gio(cx: &mut TestAp
         call(&shell, "flea", "networkFocus", &[], cx),
         Reply::value("Host")
     );
-    shell.update(cx, |shell, _| {
+    shell.update(cx, |shell, cx| {
+        shell
+            .rail
+            .as_ref()
+            .unwrap()
+            .devices
+            .update(cx, |source, _| {
+                source.fixture_mount_listing().text =
+                    "Mount(0): Saved share -> smb://nas/share\n".into();
+            });
         let network = shell.network().unwrap();
         network.listing.text = "Mount(0): Saved share -> smb://nas/share\n".into();
     });

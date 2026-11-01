@@ -78,6 +78,9 @@ impl Source {
     }
 
     pub(super) fn listing_effects(&mut self, effects: Vec<ListingEffect>, cx: &mut Context<Self>) {
+        if !effects.is_empty() {
+            cx.notify();
+        }
         for effect in effects {
             match effect {
                 ListingEffect::Start(job) => self.start(Child::Gio, job, cx),
@@ -126,8 +129,10 @@ impl Source {
         let now = self.now(cx);
         match child {
             Child::Gio => {
+                self.listing_generation += 1;
                 let effects = self.listing.exited(&outcome, now);
                 self.listing_effects(effects, cx);
+                cx.notify();
             }
             Child::Phone => {
                 let effects = self.phones.exited(&outcome);

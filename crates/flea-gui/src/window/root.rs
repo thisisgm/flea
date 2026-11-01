@@ -21,7 +21,7 @@ impl Render for Root {
             shell.observe_output(window, cx);
             shell.focus_operation_mount(window, cx);
             // A plugin action's own input card keeps the menu's validated capture leased until it closes.
-            if shell.card_holds_keyboard(cx)
+            if shell.modal_card_holds_keyboard(cx)
                 && shell.plugins.input.is_none()
                 && shell.menu.captured.is_some()
             {

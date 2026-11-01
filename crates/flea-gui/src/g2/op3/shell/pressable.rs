@@ -17,6 +17,7 @@ impl StandIn {
         let wire = pressable(card, press);
         let live = Live {
             wire: &wire,
+            frame: None,
             surface: None,
             entry: None,
             probe: None,
@@ -42,6 +43,7 @@ impl Probed<'_> {
         let wire = pressable(card, press);
         let live = Live {
             wire: &wire,
+            frame: None,
             surface: None,
             entry: None,
             probe: Some(self.0),

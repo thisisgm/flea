@@ -64,8 +64,8 @@ pub fn rows(entry: &RailEntry) -> Vec<Entry> {
                 Some(RailAction::Rename) => ("rename", "network.rename", "rename"),
                 Some(RailAction::EditPlace) => ("editPlace", "network.edit_address", "sliders"),
                 Some(RailAction::Remove) => ("remove", "network.remove", "minus"),
-                Some(RailAction::Unmount) => ("unmount", "device.menu.unmount", "eject"),
-                _ => ("open", "device.menu.open", "folder"),
+                Some(RailAction::Unmount) => ("unmount", "device.menu.unmount", "drive"),
+                _ => ("open", "device.menu.open", "folder-open"),
             };
             Entry::row(id, Text::Key(key), glyph)
         })

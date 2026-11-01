@@ -1,6 +1,67 @@
 use super::*;
 use crate::backend::testdir::TestDir;
 
+#[test]
+fn uish_misc_action_ack_precedes_even_an_immediately_failed_job() {
+    let root = TestDir::new("uish-action-order");
+    let path = root.join("selected.txt");
+    std::fs::write(&path, "selected").unwrap();
+    let action = Action {
+        id: "script:failed.sh".into(),
+        script: true,
+        manifest: Manifest {
+            name: "Failed".into(),
+            mime: vec!["*/*".into()],
+            selection: "many".into(),
+            mode: "background".into(),
+            run: vec!["/usr/bin/false".into()],
+        },
+    };
+    let (send, replies) = std::sync::mpsc::channel();
+    let mut ops = crate::backend::opsdispatch::Ops::new(send);
+    let mut output = Vec::new();
+    ready(
+        &mut output,
+        &mut ops,
+        7,
+        Ok((action, vec![path.to_string_lossy().into()])),
+    );
+    loop {
+        let reply = replies
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .expect("the failed job must finish");
+        let done = matches!(reply, OpMsg::JobDone { .. });
+        crate::backend::opsdispatch::report_op(&mut output, &mut ops, reply);
+        if done {
+            break;
+        }
+    }
+    let text = String::from_utf8(output).unwrap();
+    let lines: Vec<_> = text
+        .lines()
+        .map(|line| crate::jsondoc::parse(line).unwrap())
+        .collect();
+    assert_eq!(
+        lines[0].get("t").and_then(crate::jsondoc::Json::as_str),
+        Some("actionstarted")
+    );
+    let failed = lines
+        .iter()
+        .position(|line| {
+            line.get("t").and_then(crate::jsondoc::Json::as_str) == Some("job")
+                && line
+                    .get("job")
+                    .and_then(|job| job.get("state"))
+                    .and_then(crate::jsondoc::Json::as_str)
+                    == Some("failed")
+        })
+        .expect("the terminal failed job was written");
+    assert!(
+        failed > 0,
+        "the acknowledgement precedes every job line: {text}"
+    );
+}
+
 // The flyout's script rows come from here, not from the oracle-shape port: executable scripts list under the actions sorted by name, each label the file name without its extension.
 #[test]
 fn scripts_list_sorted_by_name_with_the_stem_as_the_label() {
@@ -16,7 +77,8 @@ fn scripts_list_sorted_by_name_with_the_stem_as_the_label() {
     )
     .unwrap();
     for name in ["ocr.sh", "convert-to-webp", "upload-to-s3.py"] {
-        std::fs::set_permissions(scripts.join(name), std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::fs::set_permissions(scripts.join(name), std::fs::Permissions::from_mode(0o755))
+            .unwrap();
     }
     let (loaded, _) = load_from(root.path());
     let rows: Vec<(&str, &str)> = loaded
@@ -61,7 +123,14 @@ fn unrelated_directory_entries_cannot_hide_manifest_truncation() {
         let listed = std::fs::read_dir(&actions)
             .unwrap()
             .take(MAX_MANIFESTS)
-            .filter(|entry| entry.as_ref().unwrap().path().extension().is_some_and(|e| e == "toml"))
+            .filter(|entry| {
+                entry
+                    .as_ref()
+                    .unwrap()
+                    .path()
+                    .extension()
+                    .is_some_and(|e| e == "toml")
+            })
             .count();
         let (loaded, errors) = load_from(root.path());
         assert_eq!(

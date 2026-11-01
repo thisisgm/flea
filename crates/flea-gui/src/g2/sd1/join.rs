@@ -28,6 +28,7 @@ pub(crate) struct Senders {
     // The Dropbox account the facts named, and whether the backend took it as the menu's destination.
     pub(super) account: [dropbox::Account; 2],
     pub(super) destination: [Option<bool>; 2],
+    pub(super) activation: Option<super::activation::Activation>,
     chosen: Option<Subscription>,
 }
 
@@ -57,12 +58,11 @@ impl Shell {
     ) {
         self.observe_providers(window, cx);
         self.rclone_menu_opened(side);
-        self.menu.providers.asked[side] = id;
-        self.menu.providers.destination[side] = None;
-        self.menu_send(side, format!("{{\"c\":\"formats\",\"id\":{id}}}"), cx);
+        self.provider_query(side, id, cx);
     }
 
     pub(crate) fn providers_menu_closed(&mut self) {
+        self.menu.providers.activation = None;
         for sender in &self.menu.rclone {
             sender.borrow_mut().menu_closed();
         }
@@ -84,6 +84,15 @@ impl Shell {
                 self.menu.providers.sides[side].backend_dead();
                 self.menu.providers.asked[side] = 0;
                 self.menu.providers.destination[side] = None;
+                if self
+                    .menu
+                    .providers
+                    .activation
+                    .as_ref()
+                    .is_some_and(|a| a.side == side)
+                {
+                    self.menu.providers.activation = None;
+                }
                 return false;
             }
             _ => return false,
@@ -167,15 +176,17 @@ impl Shell {
         facts.dropbox_ready &= !self.menu.providers.account[side].path.is_empty();
         let states = self.declared_provider_states();
         let hidden = self.menu_hidden();
+        let only = self.menu.providers.activation_role(side);
         let backend = self.panes[side]
             .as_ref()
             .and_then(|host| host.backend.as_ref());
-        let actions = self.menu.providers.sides[side].menu_opened(
+        let actions = self.menu.providers.sides[side].menu_refresh(
             &Pipe(backend),
             &facts,
             Some(&states),
             &hidden,
             now_ms(),
+            only,
         );
         self.provider_actions(side, actions, window, cx);
         let path = self.menu.providers.account[side].path.clone();
@@ -186,7 +197,9 @@ impl Shell {
             .filter(|c| c.side == side && !c.background);
         if let (Some(capture), false) = (
             capture,
-            path.is_empty() || !self.menu.providers.sides[side].row_on(Role::Dropbox),
+            path.is_empty()
+                || !self.menu.providers.sides[side].row_on(Role::Dropbox)
+                || !self.menu.providers.destination_needed(side),
         ) {
             self.menu_send(
                 side,
@@ -241,6 +254,7 @@ impl Shell {
     pub(crate) fn provider_refresh(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if !self.menu_opened() {
             self.refresh_menu(window, cx);
+            self.provider_activation_ready(window, cx);
             return;
         }
         let Some(side) = self.menu.captured.as_ref().map(|c| c.side) else {
@@ -257,6 +271,7 @@ impl Shell {
         if changed {
             cx.notify();
         }
+        self.provider_activation_ready(window, cx);
     }
 
     fn observe_providers(&mut self, window: &mut Window, cx: &mut Context<Self>) {

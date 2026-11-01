@@ -41,7 +41,9 @@ impl ResultState {
             Effect::Run { .. } | Effect::Peek { .. } | Effect::EnsureBridge { .. } => {
                 Some(Self::Resolving)
             }
-            Effect::Open { .. } | Effect::OpenFile { .. } => Some(Self::Mounted),
+            Effect::Open { .. } | Effect::OpenFile { .. } | Effect::Shares { .. } => {
+                Some(Self::Mounted)
+            }
             Effect::Completed {
                 error: Some(key), ..
             }
@@ -69,17 +71,15 @@ impl crate::ipc::Adapter for Adapter<'_> {
     }
 }
 
-/// Starting connections use an activity, waits and completed unmounts use notices, and failures use errors.
+/// Waits and completed unmounts use notices and failures use errors; a starting connection arrives as Effect::Starting.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SayRole {
-    Opening,
     Notice,
     Error,
 }
 
 pub fn say_role(key: &str) -> SayRole {
     match key {
-        "network.bridge_starting" => SayRole::Opening,
         "network.another_opening" | "network.unmounted" => SayRole::Notice,
         _ => SayRole::Error,
     }

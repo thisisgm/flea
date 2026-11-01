@@ -1,6 +1,40 @@
 //! Row readers retire their painted snapshot with the old surface.
 use super::*;
 
+#[test]
+fn uish_misc_empty_directory_background_readers_follow_each_painted_view() {
+    for view in [View::List, View::Grid, View::Columns] {
+        let mut cx = context();
+        let (window, _requests) = open(&mut cx, view);
+        ready(&mut cx, window, "empty", 0);
+        cx.executor()
+            .advance_clock(std::time::Duration::from_millis(401));
+        cx.run_until_parked();
+        draw(&mut cx, window);
+        let area = call(&mut cx, window, "listAreaRect", &[]);
+        let point = call(&mut cx, window, "listingBackgroundCentre", &[]);
+        assert_eq!(point.code, 0, "{view:?}: {point:?}");
+        let area: Vec<f32> = area
+            .stdout
+            .split_whitespace()
+            .map(|v| v.parse().unwrap())
+            .collect();
+        let point: Vec<f32> = point
+            .stdout
+            .split_whitespace()
+            .map(|v| v.parse().unwrap())
+            .collect();
+        assert_eq!(area.len(), 4, "{view:?}");
+        assert_eq!(point.len(), 2, "{view:?}");
+        assert!(area[2] > 0. && area[3] > 0., "{view:?}: {area:?}");
+        assert!((point[0] - (area[0] + area[2] / 2.)).abs() <= 1.);
+        assert!((point[1] - (area[1] + area[3] / 2.)).abs() <= 1.);
+        window
+            .update(&mut cx, |shell, _, _| shell.stop_for_app_quit())
+            .unwrap();
+    }
+}
+
 fn surface_after_painted_rows(view: View, kind: Kind) {
     let mut cx = context();
     let (window, _requests) = open(&mut cx, view);

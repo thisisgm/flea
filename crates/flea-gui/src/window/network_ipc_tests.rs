@@ -242,8 +242,8 @@ fn m9_net_ipc_card_readers_read_the_open_card_and_its_painted_frame(cx: &mut Tes
     );
     assert_eq!(
         call(&shell, "networkFocus", &[], cx),
-        "",
-        "a chip is not a field"
+        "Host",
+        "a pointer protocol change preserves the active Host field"
     );
     click(&call(&shell, "networkChipCentre", &["NFS"], cx), cx);
     assert_eq!(

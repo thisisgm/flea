@@ -36,7 +36,10 @@ impl Shell {
                     .map(|row| Path::new(&capture.path).join(&row.name))
                     .map(|path| path.to_string_lossy().into_owned())
                     .unwrap_or_default();
-                let sent = self.menu.actions.choose(leaf, paths, cursor);
+                let sent = self
+                    .menu
+                    .actions
+                    .choose_on(capture.side, leaf, paths, cursor);
                 if let Some(Sent::Run(line) | Sent::Preview(line)) = sent {
                     self.menu_send(capture.side, line, cx);
                 }
@@ -98,22 +101,33 @@ impl Shell {
         let Ok(reply) = jsondoc::parse(line) else {
             return false;
         };
+        // A Jobs line stays OP1's; the model only reads whether a held script's job failed.
+        if reply.get("t").and_then(Json::as_str) == Some("job") {
+            self.menu.actions.receive_on(side, line);
+            self.actions_said(side, cx);
+            return false;
+        }
         if !matches!(
             reply.get("t").and_then(Json::as_str),
             Some("actionstarted" | "actionpreview")
         ) {
             return false;
         }
-        self.menu.actions.receive(line);
+        self.menu.actions.receive_on(side, line);
         self.actions_said(side, cx);
         true
     }
 
     // Every sentence the model holds reaches the status bar once, through its catalog key.
     pub(crate) fn actions_said(&mut self, side: usize, cx: &mut Context<Self>) {
-        for Said::Key { key, args } in self.menu.actions.take_said() {
-            let args: Vec<&str> = args.iter().map(String::as_str).collect();
-            let sentence = self.locale.catalog.tr_args(key, &args);
+        for said in self.menu.actions.take_said() {
+            let sentence = match said {
+                Said::Key { key, args } => {
+                    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+                    self.locale.catalog.tr_args(key, &args)
+                }
+                Said::Line(line) => line,
+            };
             self.menu_notice(side, sentence, cx);
         }
     }

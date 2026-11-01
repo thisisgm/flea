@@ -43,7 +43,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        if self.input_blocked(cx) {
+        if self.wheel_blocked(cx) {
             return true;
         }
         if let Some(host) = &mut self.panes[self.focus_side] {

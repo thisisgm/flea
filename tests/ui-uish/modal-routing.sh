@@ -201,17 +201,12 @@ case_menu() {
     : > "$dir/b.txt"
     : > "$dir/c.txt"
     : > "$dir/plain.txt"
-    # Five more rows than this case used to need: with the six basic actions drawn, Rename is the
-    # eighth menu row and no list row lay under it on a five-row listing, which the check below says
-    # out loud rather than passing on a click that hit nothing.
-    : > "$dir/z1.txt"
-    : > "$dir/z2.txt"
-    : > "$dir/z3.txt"
-    : > "$dir/z4.txt"
-    : > "$dir/z5.txt"
+    # Fifteen filler rows keep a list row beneath Rename after the menu's Move to Trash group.
+    local z
+    for z in $(seq 1 15); do : > "$dir/z$z.txt"; done
     seed_ui_state "$state" '{"view":"list","keys":"default"}'
     launch "$dir"
-    wait_listing 10
+    wait_listing 20
     local row_height row_padding_x centre cx cy wx wy ww wh row_left beneath_y metrics
     metrics=$(ipc metrics) || fail "menu: metrics unavailable"
     read -r _body _caption row_padding_x row_height <<< "$metrics"
@@ -436,4 +431,27 @@ case_wheelunder() {
     settle
     printf 'WHEELUNDER menu=ok settings=ok keymap=ok network=ok\n'
     kill_flea
+}
+
+# The HIG card dismisses through Cancel; every checkbox still receives a native click over the listing.
+clickthrough_permissions() {
+    local dir="$1" parked="$2" box name centre mode
+    local -a boxes
+    key m >/dev/null
+    settle
+    menu_seek Permissions
+    key -k Return >/dev/null
+    clickthrough_wait permissionsState '.opened and (.busy == false) and .editable' "Permissions did not open editable on row 0"
+    rows_run_under "$(ipc permissionsState | jq -r '.rect')" "the Permissions card"
+    # Sample reader row: "Owner read<TAB>612 388".
+    mapfile -t boxes < <(ipc permissionsState | jq -r '.controls[] | select(.bit != null) | [.name, .centre] | @tsv')
+    [[ "${#boxes[@]}" == 9 ]] || fail "clickthrough: Permissions drew ${#boxes[@]} checkboxes, not nine"
+    for box in "${boxes[@]}"; do
+        IFS=$'\t' read -r name centre <<< "$box"
+        mode=$(ipc permissionsState | jq -r '.mode')
+        clickthrough_click "$centre" "$name checkbox" "$dir" "$parked"
+        [[ "$(ipc permissionsState | jq -r '.mode')" != "$mode" ]] || fail "clickthrough: the $name checkbox did not take its click"
+    done
+    clickthrough_click "$(ipc permissionsState | jq -r '.controls[] | select(.name == "Cancel") | .centre')" "Permissions Cancel button" "$dir" "$parked"
+    clickthrough_wait permissionsState '.opened | not' "Cancel did not close Permissions"
 }

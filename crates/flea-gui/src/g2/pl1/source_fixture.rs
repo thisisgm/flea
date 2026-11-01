@@ -13,3 +13,9 @@ pub(crate) fn services(cx: &gpui::App) -> (Rc<dyn Runner>, Option<String>) {
         .map(|services| (services.runner.clone(), Some(services.hostname.clone())))
         .unwrap_or_else(|| (Rc::new(EmptyRunner), Some("testhost".into())))
 }
+
+impl Source {
+    pub(crate) fn fixture_mount_listing(&mut self) -> &mut Listing {
+        &mut self.listing
+    }
+}

@@ -1,6 +1,7 @@
 //! The Actions menu lifecycle (discovery, preview, run, refusals): one menu open sends one `actions list` with the menu's own snapshot, a preview names the cursor row alone, a choice sends `run`, the Jobs card owns every line after the handshake, and preview state belongs to preview rendering, never the menu.
+use flea::jsondoc::{self, Json};
 use flea::ui_logic_mn1::entry::Entry;
-use flea::ui_logic_mn2::{plugins, rows, wire};
+use flea::ui_logic_mn2::{plugins, rows, scripts, wire};
 
 // A sentence the status bar says: a catalog key, with the backend's or OS diagnostic only ever as an argument, never as the sentence.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -9,6 +10,8 @@ pub enum Said {
         key: &'static str,
         args: Vec<String>,
     },
+    /// A failed script's own last output line, already a whole sentence (Scripts.qml Model.failure).
+    Line(String),
 }
 
 // The line a chosen leaf sends: a preview names the cursor row, a run names the selection.
@@ -32,7 +35,10 @@ pub struct Actions {
     pending_preview: Option<usize>,
     preview: Option<String>,
     contributions: Vec<plugins::Contribution>,
-    runs: Vec<usize>,
+    runs: Vec<(usize, usize)>,
+    // Script runs by request id, then by the job id their start answered, so a failed job says the script's own line.
+    script_runs: Vec<(usize, usize, String)>,
+    script_jobs: Vec<(usize, usize, String)>,
     said: Vec<Said>,
 }
 
@@ -70,28 +76,55 @@ impl Actions {
 
     // A choice on the Actions flyout: the run goes out under its own id, which the host sends.
     pub fn run(&mut self, leaf: &str, paths: Vec<String>) -> String {
+        self.run_on(0, leaf, paths)
+    }
+
+    pub fn run_on(&mut self, side: usize, leaf: &str, paths: Vec<String>) -> String {
         self.next += 1;
-        self.run_sent(self.next);
+        self.run_named_on(side, self.next, leaf);
         wire::run_request(self.next, leaf, &paths)
+    }
+
+    // A run under its leaf: a script leaf (script:NAME) is followed to its job, whose failure says the script's last line.
+    pub fn run_named(&mut self, id: usize, leaf: &str) {
+        self.run_named_on(0, id, leaf);
+    }
+
+    pub fn run_named_on(&mut self, side: usize, id: usize, leaf: &str) {
+        self.run_sent_on(side, id);
+        if let Some(name) = leaf.strip_prefix("script:") {
+            hold(&mut self.script_runs, (side, id, name.to_owned()));
+        }
     }
 
     // A run this window sent, under its id: mn2's own or mn1's runScript; only a held id's refusal is said.
     pub fn run_sent(&mut self, id: usize) {
-        if self.runs.len() == HELD_RUNS {
-            self.runs.remove(0);
-        }
-        self.runs.push(id);
+        self.run_sent_on(0, id);
+    }
+
+    fn run_sent_on(&mut self, side: usize, id: usize) {
+        hold(&mut self.runs, (side, id));
     }
 
     // A flyout choice on the Actions row: the leaf's mode, read off the listing this menu was built from, routes it (preview names the cursor row, run names the selection), and a leaf that listing no longer names is said stale and sends nothing.
     pub fn choose(&mut self, leaf: &str, paths: Vec<String>, cursor: String) -> Option<Sent> {
+        self.choose_on(0, leaf, paths, cursor)
+    }
+
+    pub fn choose_on(
+        &mut self,
+        side: usize,
+        leaf: &str,
+        paths: Vec<String>,
+        cursor: String,
+    ) -> Option<Sent> {
         let previews = self
             .listing
             .as_ref()
             .and_then(|listing| rows::leaf_previews(listing, leaf));
         match previews {
             Some(true) => Some(Sent::Preview(self.preview(leaf, cursor))),
-            Some(false) => Some(Sent::Run(self.run(leaf, paths))),
+            Some(false) => Some(Sent::Run(self.run_on(side, leaf, paths))),
             None => {
                 self.say(Some(wire::STALE_KEY), Vec::new(), "");
                 None
@@ -127,6 +160,10 @@ impl Actions {
 
     // Every backend line the host reads reaches here; mn2 keeps its own ids and ignores every other family.
     pub fn receive(&mut self, line: &str) {
+        self.receive_on(0, line);
+    }
+
+    pub fn receive_on(&mut self, side: usize, line: &str) {
         if let Some(back) = wire::parse_listing(line) {
             if self.pending_list == Some(back.id) {
                 self.pending_list = None;
@@ -153,11 +190,72 @@ impl Actions {
             return;
         }
         if let Some(started) = wire::parse_started(line) {
-            let held = self.runs.iter().position(|id| *id == started.request);
+            let held = self
+                .runs
+                .iter()
+                .position(|&(origin, id)| origin == side && id == started.request);
+            let script = self
+                .script_runs
+                .iter()
+                .position(|&(origin, id, _)| origin == side && id == started.request)
+                .map(|at| self.script_runs.remove(at).2);
             if let (Some(at), false) = (held, started.ok) {
                 self.runs.remove(at);
                 self.say_refusal(&started.error);
+            } else if let (Some(_), Some(name)) = (held, script) {
+                hold(&mut self.script_jobs, (side, started.id, name));
             }
+            return;
+        }
+        self.job_failed(side, line);
+    }
+
+    // Sample: {"t":"job","job":{"id":40,"state":"failed","output":["no such page"],"reason":"Action exited with exit status: 2.","cancelled":false}}.
+    fn job_failed(&mut self, side: usize, line: &str) {
+        let Ok(doc) = jsondoc::parse(line) else {
+            return;
+        };
+        if doc.get("t").and_then(Json::as_str) != Some("job") {
+            return;
+        }
+        let Some(job) = doc.get("job") else {
+            return;
+        };
+        let id = job.get("id").and_then(Json::as_f64).unwrap_or(0.0) as usize;
+        let Some(at) = self
+            .script_jobs
+            .iter()
+            .position(|&(origin, held, _)| origin == side && held == id)
+        else {
+            return;
+        };
+        let state = job.get("state").and_then(Json::as_str).unwrap_or("");
+        if job.get("cancelled").and_then(Json::as_bool) == Some(true) || state == "done" {
+            self.script_jobs.remove(at);
+            return;
+        }
+        if state != "failed" {
+            return;
+        }
+        let name = self.script_jobs.remove(at).2;
+        let output: Vec<&str> = job
+            .get("output")
+            .and_then(Json::as_array)
+            .map(|lines| lines.iter().filter_map(Json::as_str).collect())
+            .unwrap_or_default();
+        let reason = job.get("reason").and_then(Json::as_str).unwrap_or("");
+        // Sample reason: "Action exited with exit status: 2."; the status is its last number.
+        let code = reason
+            .rsplit(|c: char| !c.is_ascii_digit())
+            .find(|word| !word.is_empty())
+            .and_then(|word| word.parse().ok())
+            .unwrap_or(1);
+        match scripts::failure(&name, &output.join("\n"), code) {
+            scripts::Failure::Line(line) => self.said.push(Said::Line(line)),
+            scripts::Failure::Exited { name, code } => self.said.push(Said::Key {
+                key: scripts::EXITED_KEY,
+                args: vec![name, code.to_string()],
+            }),
         }
     }
 
@@ -227,4 +325,12 @@ impl Actions {
     pub fn preview_text(&self) -> Option<&str> {
         self.preview.as_deref()
     }
+}
+
+// Keeps the newest HELD_RUNS entries, as the run ids are kept.
+fn hold<T>(list: &mut Vec<T>, entry: T) {
+    if list.len() == HELD_RUNS {
+        list.remove(0);
+    }
+    list.push(entry);
 }

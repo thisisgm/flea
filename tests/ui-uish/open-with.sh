@@ -141,7 +141,7 @@ case_makeexec() {
     launch "$dir"
     wait_listing 2
 
-    # build.sh: the row is present after Move to Trash's group; the menu-row board hides Add to Favorites on files.
+    # build.sh: the row sits with Open, before Move to Trash's group (CTL2 2026-10-31); the menu-row board hides Add to Favorites on files.
     seek_row_named "build.sh"
     click_row "$(ipc cursor)" right
     local entries="" deadline=$(( $(date +%s%3N) + async_wait_ms ))
@@ -153,8 +153,8 @@ case_makeexec() {
     printf 'MAKEEXEC build entries=%s\n' "$entries"
     [[ "$entries" == *"Make Executable"* ]] \
         || fail "makeexec: build.sh offers no Make Executable row, got $entries"
-    [[ "${entries%%Make Executable*}" == *"Move to Trash"* ]] \
-        || fail "makeexec: Make Executable is not after Move to Trash's group in $entries"
+    [[ "${entries%%Make Executable*}" != *"Move to Trash"* && "${entries%%Make Executable*}" == "Open|"* ]] \
+        || fail "makeexec: Make Executable is not in Open's group, before Move to Trash, in $entries"
     menu_seek "Make Executable"
     key -k Return >/dev/null
     local mode="" deadline2=$(( $(date +%s%3N) + async_wait_ms ))

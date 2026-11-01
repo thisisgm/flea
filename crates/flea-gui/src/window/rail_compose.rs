@@ -15,7 +15,7 @@ pub fn mount(catalog: Arc<I18n>, state: &Json, side: usize, cx: &mut Context<She
     mount_with_source(catalog, state, side, runner, hostname, seed, cx)
 }
 
-pub(super) fn mount_with_source(
+pub(crate) fn mount_with_source(
     catalog: Arc<I18n>,
     state: &Json,
     side: usize,

@@ -4,7 +4,7 @@ use std::{
     fs::{self, OpenOptions},
     io::{Read, Write},
     os::unix::{
-        fs::{OpenOptionsExt, PermissionsExt},
+        fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt},
         io::AsRawFd,
     },
     path::{Path, PathBuf},
@@ -74,6 +74,12 @@ fn write(path: &Path, edit: &Edit) -> Result<bool, Failure> {
         Err(_) => return Err(read_failure(edit)),
     };
     let parent = target.parent().ok_or(Failure::Write)?;
+    // A first save creates the GTK config folder, as GTK's own file chooser does.
+    fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(parent)
+        .map_err(|_| Failure::Write)?;
     let lock = OpenOptions::new()
         .read(true)
         .write(true)

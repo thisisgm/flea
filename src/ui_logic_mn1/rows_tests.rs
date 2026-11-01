@@ -102,10 +102,14 @@ fn make_executable_and_capabilities() {
         .is_none(),
         true,
     );
+    let rows = exe(&|p| p.selection_modes = vec![0o100644]);
+    let at = rows
+        .iter()
+        .position(|r| !r.separator && r.action == "makeExecutable")
+        .unwrap();
     check(
-        "it sits where hidden Permissions would sit before it",
-        actions(&exe(&|p| p.selection_modes = vec![0o100644]))
-            .contains("permissions,makeExecutable"),
+        "it sits with Open, in the first group before Move to Trash's",
+        rows[0].action == "open" && rows[..at].iter().all(|r| !r.separator),
         true,
     );
     check(

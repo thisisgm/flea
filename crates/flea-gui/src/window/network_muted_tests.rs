@@ -12,7 +12,7 @@ fn ey439_a_busy_notice_keeps_the_existing_connection_activity(cx: &mut TestAppCo
             let catalog = shell.locale.catalog.clone();
             let opening = catalog.tr_args("network.bridge_starting", &["share"]);
             shell.network_service(
-                &Effect::Say {
+                &Effect::Starting {
                     note: Note::new("network.bridge_starting", &["share"]),
                     origin,
                 },
@@ -47,7 +47,7 @@ fn ey439_a_busy_notice_keeps_the_existing_connection_activity(cx: &mut TestAppCo
             shell.status_messages(cx, |messages, now| messages.dismiss(now));
             let stale = shell.network_origin(0);
             shell.network_service(
-                &Effect::Say {
+                &Effect::Starting {
                     note: Note::new("network.bridge_starting", &["share"]),
                     origin: stale,
                 },
@@ -89,7 +89,7 @@ fn ey439_an_unrelated_unmount_failure_keeps_the_connection_activity(cx: &mut Tes
             let unmount = shell.network_origin(0);
             assert_ne!(opening, unmount, "each dispatch receives its own origin");
             shell.network_service(
-                &Effect::Say {
+                &Effect::Starting {
                     note: Note::new("network.bridge_starting", &["share"]),
                     origin: opening,
                 },

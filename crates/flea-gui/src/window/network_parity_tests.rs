@@ -46,7 +46,20 @@ fn pb_network_2_tls_label_keeps_the_shipped_sentence(cx: &mut TestAppContext) {
 #[gpui::test]
 fn pb_network_2_opened_share_draws_its_saved_label_as_a_root_crumb(cx: &mut TestAppContext) {
     use crate::window::dispatch::test_shell::{land, open_root};
+    let recorder = Rc::new(Recorder::default());
+    cx.update(|cx| {
+        cx.set_global(crate::g2::pl1::source::fixture::Services {
+            runner: recorder.clone(),
+            hostname: "testhost".into(),
+        })
+    });
     let (shell, cx) = open_root(cx, "default");
+    let first = *recorder
+        .find("-li")
+        .last()
+        .expect("the shared mount listing");
+    recorder.answer(first, 0, "Mount(0): NAS -> sftp://user@host/folder\n");
+    cx.run_until_parked();
     land(&shell, cx, "/files", Vec::new(), 1);
     shell.update(cx, |shell, cx| {
         shell.network_publish(Some(vec![share()]), cx)

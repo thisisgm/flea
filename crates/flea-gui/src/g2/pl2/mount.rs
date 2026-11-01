@@ -75,6 +75,14 @@ pub enum Effect {
         note: Note,
         origin: u64,
     },
+    /// The bridge's Starting line, which stands with the busy mark until Settled.
+    Starting {
+        note: Note,
+        origin: u64,
+    },
+    Settled {
+        origin: u64,
+    },
 }
 
 #[derive(Debug)]
@@ -205,7 +213,8 @@ impl Mounts {
             Phase::Auth => self.fail(match out.code {
                 124 => "network.no_answer",
                 -1 | 126 | 127 => "network.no_prompt",
-                _ => "network.password_refused",
+                77 => "network.password_refused",
+                _ => "network.failed",
             }),
             Phase::Info => {
                 let f = self.flight.as_mut().unwrap();

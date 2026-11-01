@@ -4,6 +4,30 @@ use gpui::{AppContext, TestAppContext, VisualTestContext};
 use std::time::Duration;
 
 #[gpui::test]
+fn uish_misc_phone_folder_menu_uses_the_same_trash_guard_as_the_key(cx: &mut TestAppContext) {
+    let fixture = open(cx);
+    fixture
+        .handle
+        .update(cx, |root, _, cx| {
+            root.shell.update(cx, |shell, _| {
+                shell.panes[0].as_mut().unwrap().path =
+                    "/run/user/1000/gvfs/mtp:host=Phone/DCIM".into();
+                let context = shell.listing_menu_context(0, &[0], 0, false);
+                assert!(!context.can_trash);
+                assert!(!flea::ui_logic_mn1::build::listing_entries(&context)
+                    .iter()
+                    .any(|entry| entry.action == "trash"));
+                shell.panes[0].as_mut().unwrap().path = "/fixture/gvfs/mtp:host=Phone/DCIM".into();
+                assert!(
+                    shell.listing_menu_context(0, &[0], 0, false).can_trash,
+                    "an ordinary folder named gvfs remains trashable"
+                );
+            })
+        })
+        .unwrap();
+}
+
+#[gpui::test]
 fn u06_live_menu_discovery_publishes_one_complete_inventory(cx: &mut TestAppContext) {
     let mut fixture = open(cx);
     let handle = fixture.handle;
@@ -127,4 +151,101 @@ fn u06_live_menu_minimum_inventory_keeps_unhideable_actions_usable(cx: &mut Test
             assert_eq!(shell.keyboard.context, flea::keys::Context::Listing);
         })
         .unwrap();
+}
+
+#[gpui::test]
+fn uish_misc_a_catalogue_that_never_answers_does_not_keep_the_menu_shut(cx: &mut TestAppContext) {
+    let mut fixture = open(cx);
+    let handle = fixture.handle;
+    handle
+        .update(cx, |root, _, cx| {
+            root.shell.update(cx, |shell, _| {
+                shell.launch.settings.data =
+                    flea::jsondoc::parse("{\"menu\":{\"hidden\":[\"runScript\"]}}").unwrap();
+            })
+        })
+        .unwrap();
+    VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes("m");
+    let snapshot = (fixture.requests)().unwrap();
+    let id = flea::json::field_usize(&snapshot, "id").unwrap();
+    receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"snapshot\",\"ok\":true,\"kinds\":[32768]}}"));
+    assert!((fixture.requests)()
+        .unwrap()
+        .contains("\"op\":\"applications\""));
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_millis(
+        super::discovery::APPLICATIONS_WAIT_MS - 1,
+    ));
+    cx.run_until_parked();
+    assert_eq!(read(cx, handle, "contextMenuVisible").stdout, "false\n");
+    cx.executor().advance_clock(Duration::from_millis(1));
+    cx.run_until_parked();
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+        assert!(window.simulate_next_frame(cx) > 0);
+    })
+    .unwrap();
+    cx.executor().advance_clock(Duration::from_millis(200));
+    cx.run_until_parked();
+    assert_eq!(read(cx, handle, "contextMenuVisible").stdout, "true\n");
+    assert!(read(cx, handle, "contextMenuModel")
+        .stdout
+        .contains("rename"));
+}
+
+#[gpui::test]
+fn uish_misc_script_jobs_keep_their_backend_side(cx: &mut gpui::TestAppContext) {
+    let fixture = open(cx);
+    let handle = fixture.handle;
+    handle
+        .update(cx, |root, _, cx| {
+            root.shell.update(cx, |shell, _| {
+                shell.view = crate::window::startup::View::Dual;
+                shell.panes[1] = Some(crate::window::pane::PaneHost::new(
+                    "/right".into(),
+                    None,
+                    620.,
+                    &shell.locale,
+                ));
+                let _ = shell
+                    .menu
+                    .actions
+                    .run("script:left.sh", vec!["/files/a".into()]);
+            })
+        })
+        .unwrap();
+    let deliver = |cx: &mut gpui::TestAppContext, side, line: &str| {
+        handle
+            .update(cx, |root, _, cx| {
+                root.shell.update(cx, |shell, cx| {
+                    shell.actions_reply(side, line, cx);
+                })
+            })
+            .unwrap();
+    };
+    deliver(
+        cx,
+        0,
+        r#"{"t":"actionstarted","requestId":1,"id":40,"ok":true,"error":""}"#,
+    );
+    deliver(
+        cx,
+        1,
+        r#"{"t":"job","job":{"id":40,"state":"failed","output":["right failure"]}}"#,
+    );
+    assert_eq!(
+        read(cx, handle, "lastMessage").stdout.trim(),
+        "",
+        "right backend's colliding job id must not consume the left script"
+    );
+    deliver(
+        cx,
+        0,
+        r#"{"t":"job","job":{"id":40,"state":"failed","output":["left failure"]}}"#,
+    );
+    assert_eq!(
+        read(cx, handle, "lastMessage").stdout.trim(),
+        "left.sh \u{b7} left failure"
+    );
 }

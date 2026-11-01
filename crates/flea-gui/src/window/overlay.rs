@@ -36,7 +36,7 @@ impl Shell {
                 .is_some_and(|overlay| overlay.read_with(cx, |card, cx| card.modal(cx)))
     }
 
-    /// The Jobs card: it holds the keyboard and blocks presses on it, but never a wheel beside it.
+    /// The non-modal Jobs card blocks listing presses, but leaves listing keys and wheels beside it available.
     pub(crate) fn jobs_card_showing(&self, cx: &App) -> bool {
         self.overlay
             .as_ref()

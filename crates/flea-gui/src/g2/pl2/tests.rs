@@ -42,8 +42,8 @@ fn pl2_dialog_mounts_once_and_refuses_stale_or_wrong_endpoint() {
         .is_empty());
     assert!(d.opened && d.retry && d.failed_connect && !d.saving);
     assert!(
-        d.password.is_empty(),
-        "handoff and failure leave no dialog secret"
+        d.password.expose() == b"fixture-password",
+        "the open Retry form retains its masked draft"
     );
 }
 
@@ -205,7 +205,10 @@ fn pl2_auth_secret_stays_off_argv_and_errors_use_status() {
         (124, "network.no_answer"),
         (126, "network.no_prompt"),
         (127, "network.no_prompt"),
-        (1, "network.password_refused"),
+        (-1, "network.no_prompt"),
+        (77, "network.password_refused"),
+        (1, "network.failed"),
+        (60, "network.failed"),
     ] {
         let mut m = Mounts::default();
         let mut r = request("smb://gm@nas/share");

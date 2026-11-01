@@ -45,8 +45,9 @@ impl Reader<'_> {
         });
         let error_height = if error { band } else { 0. };
         let selected = edit.map_or("", |edit| &edit.entry.text[edit.entry.selected.clone()]);
+        let listing_state = host.map_or("", |host| host.pane.state.kind.name());
         format!(
-            "{{\"index\":{},\"pending\":{},\"error\":\"{}\",\"text\":\"{}\",\"cursor\":{cursor},\"cursorName\":\"{}\",\"loading\":{},\"focused\":{},\"rowHeight\":{},\"normalRowHeight\":{row},\"fieldHeight\":{field},\"errorHeight\":{error_height},\"editorTop\":{editor_top},\"editorBottom\":{},\"viewportHeight\":{area},\"selectedText\":\"{}\",\"centre\":\"{centre}\"}}",
+            "{{\"index\":{},\"pending\":{},\"error\":\"{}\",\"text\":\"{}\",\"cursor\":{cursor},\"cursorName\":\"{}\",\"loading\":{},\"listingState\":\"{listing_state}\",\"focused\":{},\"rowHeight\":{},\"normalRowHeight\":{row},\"fieldHeight\":{field},\"errorHeight\":{error_height},\"editorTop\":{editor_top},\"editorBottom\":{},\"viewportHeight\":{area},\"selectedText\":\"{}\",\"centre\":\"{centre}\"}}",
             shell.renaming_row(side).map_or(-1, |row| row as i64),
             edit.is_some_and(|edit| edit.pending.is_some()),
             escape(edit.map_or("", |edit| &edit.error)),

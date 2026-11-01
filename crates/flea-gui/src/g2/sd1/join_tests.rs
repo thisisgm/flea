@@ -10,6 +10,8 @@ use flea::ui_logic_sd1::providers::Role;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::{cell::Cell, rc::Rc};
 
+#[path = "activation_tests.rs"]
+mod activation_tests;
 #[path = "provider_state_tests.rs"]
 mod state_tests;
 

@@ -66,6 +66,9 @@ pub fn provider(providers: &[Provider], role: Role) -> Option<&Provider> {
 // The backend's providers facts as one GPUI snapshot; malformed input never panics, it errs.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Facts {
+    pub tailscale_installed: bool,
+    pub localsend_installed: bool,
+    pub dropbox_installed: bool,
     pub tailscale_command: String,
     // Tailscale is on PATH but cannot run (not executable, a dangling link); v0.3.12 keeps its row, unavailable.
     pub tailscale_unusable: bool,
@@ -88,6 +91,9 @@ pub fn parse_facts(raw: &str) -> Result<Facts, String> {
             .to_string()
     };
     Ok(Facts {
+        tailscale_installed: data.get("taildrop").and_then(|facts| facts.get("installed")).and_then(Json::as_bool) == Some(true),
+        localsend_installed: data.get("localsend").and_then(|facts| facts.get("installed")).and_then(Json::as_bool) == Some(true),
+        dropbox_installed: data.get("dropbox").and_then(|facts| facts.get("installed")).and_then(Json::as_bool) == Some(true),
         tailscale_command: command("taildrop"),
         tailscale_unusable: data
             .get("taildrop")

@@ -42,6 +42,65 @@ fn followup_network_result_tracks_idle_mount_resolve_and_success(cx: &mut TestAp
 }
 
 #[gpui::test]
+fn uish_misc_bare_server_result_finishes_when_share_listing_arrives(cx: &mut TestAppContext) {
+    for (names, expected) in [("old-share\n", "mounted"), ("", "failed")] {
+        let recorder = Rc::new(Recorder::default());
+        let (shell, cx, _) = open(recorder.clone(), cx);
+        let producer = cx.update(|_, cx| shell.read(cx).rail.as_ref().unwrap().places.clone());
+        cx.update(|_, cx| {
+            shell.update(cx, |shell, cx| {
+                let mut entry = share();
+                entry.uri = "smb://shares-one.test/".into();
+                shell.network_publish(Some(vec![entry]), cx);
+            });
+            producer.update(cx, |producer, cx| {
+                let index = producer
+                    .entries()
+                    .iter()
+                    .position(|entry| entry.group == Group::Network)
+                    .unwrap();
+                producer.side = 0;
+                producer.activate(index, cx);
+            });
+        });
+        frame(cx);
+        let mount = recorder.mounts()[0];
+        recorder.answer(mount, 0, "");
+        cx.run_until_parked();
+        let info = *recorder.find("info").last().unwrap();
+        recorder.answer(info, 1, "");
+        cx.run_until_parked();
+        let listing = *recorder.find("list").last().unwrap();
+        assert_eq!(
+            recorder.jobs.borrow()[listing].argv,
+            ["gio", "list", "--", "smb://shares-one.test/"]
+        );
+        assert_eq!(result(&shell, cx), Reply::value("resolving"));
+        recorder.answer(listing, 0, names);
+        cx.run_until_parked();
+        assert_eq!(result(&shell, cx), Reply::value(expected));
+        cx.update(|_, cx| {
+            let browser = &shell
+                .read(cx)
+                .rail
+                .as_ref()
+                .unwrap()
+                .network
+                .as_ref()
+                .unwrap()
+                .shares
+                .read(cx)
+                .model;
+            assert_eq!(browser.open, !names.is_empty());
+            if !names.is_empty() {
+                assert_eq!(browser.names, ["old-share"]);
+                assert_eq!(browser.uri, "smb://shares-one.test/");
+            }
+        });
+    }
+}
+
+#[gpui::test]
 fn followup_network_result_keeps_cancelled_and_missing_credential(cx: &mut TestAppContext) {
     let recorder = Rc::new(Recorder::default());
     let (shell, cx, _) = open(recorder, cx);

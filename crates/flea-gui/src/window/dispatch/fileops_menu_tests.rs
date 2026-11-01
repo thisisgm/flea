@@ -246,8 +246,8 @@ fn bfx325_menu_trash_without_trash_reviews_before_permanent_delete(cx: &mut Test
     set_cursor(&shell, cx, 2);
     let mut sent = wire(&shell, cx);
     let id = row_menu(&shell, cx, &mut sent);
-    choose(&shell, cx, "trash");
-    validated(&shell, cx, &mut sent, id, "trash");
+    choose(&shell, cx, "deletePermanently");
+    validated(&shell, cx, &mut sent, id, "deletePermanently");
     assert_eq!(
         sent(),
         [format!(

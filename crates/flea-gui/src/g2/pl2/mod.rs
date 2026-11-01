@@ -26,6 +26,8 @@ mod words;
 #[cfg(test)]
 mod bfx_net_tests;
 #[cfg(test)]
+mod bridge_line_tests;
+#[cfg(test)]
 mod child_tests;
 #[cfg(test)]
 mod dialog_tests;

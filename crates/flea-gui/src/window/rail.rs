@@ -49,7 +49,7 @@ pub struct Join {
 
 pub use compose::mount;
 #[cfg(test)]
-use compose::mount_with_source;
+pub(crate) use compose::mount_with_source;
 
 impl Shell {
     /// Polling follows the host's one gate, so a hidden or withdrawn rail asks its producer for nothing.
@@ -63,9 +63,8 @@ impl Shell {
                     .update(cx, |producer, cx| producer.set_polling(polling, cx));
                 join.devices
                     .update(cx, |source, cx| source.set_polling(polling, cx));
-                // A reveal lists the shares now, as the devices poll does; the five second tick would leave NETWORK out until then.
+                // A reveal asks the plugin sections now; the devices poll above already lists the shares.
                 if polling {
-                    self.network_list(cx);
                     self.plugin_rail_poll(cx);
                 }
             }

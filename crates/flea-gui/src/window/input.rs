@@ -90,14 +90,13 @@ impl Shell {
             if modal
                 || (event.keystroke.key == "escape" && modifiers(event.keystroke.modifiers) == 0)
             {
-                let showing = overlay.read_with(cx, |card, cx| card.showing(cx));
-                overlay.update(cx, |card, cx| card.key(event, window, cx));
+                let taken = overlay.update(cx, |card, cx| card.dispatch_key(event, window, cx));
                 let still = overlay.read_with(cx, |card, cx| card.showing(cx));
                 if !still {
                     self.overlay = None;
                 }
                 cx.notify();
-                if showing {
+                if taken {
                     cx.stop_propagation();
                     return;
                 }
@@ -176,17 +175,17 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
-        if !self.input_blocked(cx)
+        if !self.wheel_blocked(cx)
             && (self.chrome_key(event, window, cx) || self.filter_key(event, window, cx))
         {
             cx.stop_propagation();
             return;
         }
-        if !self.input_blocked(cx) && self.search_key(event, window, cx) {
+        if !self.wheel_blocked(cx) && self.search_key(event, window, cx) {
             cx.stop_propagation();
             return;
         }
-        if self.input_blocked(cx) {
+        if self.wheel_blocked(cx) {
             cx.stop_propagation();
             return;
         }
