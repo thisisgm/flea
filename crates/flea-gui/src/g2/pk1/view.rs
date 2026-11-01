@@ -41,6 +41,7 @@ fn answer(
     let outside = drawn.clone();
     div()
         .id(id)
+        .debug_selector(move || id.into())
         .relative()
         .children(drawn.probe(slot, [1.; 4]))
         .on_hover(move |hovered, _, _| hover.pointer(slot, Some(*hovered), None))
