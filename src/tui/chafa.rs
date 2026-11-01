@@ -84,7 +84,7 @@ impl Job {
             return Err(refused());
         }
         if !sandbox::available() {
-            return Err(io::Error::other("Preview sandbox is unavailable"));
+            return Err(super::preview::words::issue("actions.preview.no_sandbox", "Preview sandbox is unavailable"));
         }
         let cancel = Arc::new(AtomicBool::new(false));
         let stopped = cancel.clone();
@@ -159,14 +159,14 @@ fn geometry(columns: usize, rows: usize) -> io::Result<()> {
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "Preview rectangle exceeds its limit",
+            super::preview::words::Fault::new("tui.preview.rectangle", "Preview rectangle exceeds its limit"),
         ));
     }
     Ok(())
 }
 
 fn refused() -> io::Error {
-    io::Error::other("Image preview could not be shown")
+    super::preview::words::issue("preview.unshown", "Image preview could not be shown")
 }
 
 // No decoder escape survives this boundary: only typed colours and known single-cell symbols leave it.

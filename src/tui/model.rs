@@ -155,6 +155,11 @@ pub struct Model {
     // Whether Hyprland rounds its windows, so a card or menu frame rounds its corners to match.
     pub rounded: std::sync::Arc<std::sync::atomic::AtomicBool>,
     pub i18n: crate::i18n::I18n,
+    pub locale_revision: u64,
+    pub keycaps: Option<flea::keys::display::KeycapSnapshot>,
+    pub keycap_labels: std::collections::HashMap<String, String>,
+    pub words: super::words::Held,
+    pub search_scanned: usize,
     pub editor: Option<super::editor::Editor>,
     pub preset: String,
     pub hints: super::keymap::Hints,
@@ -204,6 +209,7 @@ pub struct Model {
     pub launches: Vec<(String, std::process::Child)>,
     pub bulk: Option<super::batch::Batch>,
     pub deletion: Option<Deletion>,
+    pub combining: super::combine::State,
     pub converting: super::convert::State,
     pub printing: super::print::State,
     pub restore_marks: BTreeMap<PathBuf, Row>,
@@ -213,13 +219,18 @@ pub struct Model {
     pub prompts: super::prompts::Prompts,
 }
 // "Renamed 1 item · Undo reverts one", the bulk completion line next_rename reports.
+#[cfg(test)]
 fn bulk_done_line(completed: usize, cancelled: bool) -> String {
-    format!("{} {} · Undo reverts one", if cancelled { "Stopped after renaming" } else { "Renamed" }, super::render::items(completed))
+    super::words::Text::Plural(if cancelled { "tui.model.bulk_stopped" } else { "tui.model.bulk_done" }, completed, vec![]).to_string()
 }
 impl Model {
     pub fn new(path: PathBuf, settings: &Json) -> Self {
         let preview = settings.get("preview").unwrap_or(&Json::Null);
-        Self {
+        #[cfg(not(test))]
+        let i18n = crate::i18n::I18n::default();
+        #[cfg(test)]
+        let i18n = crate::i18n::test_catalogs::english();
+        let mut model = Self {
             font_marks: true,
             force_text_marks: false,
             disk_path: PathBuf::new(),
@@ -331,6 +342,11 @@ impl Model {
             // Tests read English only, whatever the host's Omarchy language.
             #[cfg(test)]
             i18n: crate::i18n::test_catalogs::english(),
+            locale_revision: 0,
+            keycaps: None,
+            keycap_labels: Default::default(),
+            words: Default::default(),
+            search_scanned: 0,
             editor: None,
             preset: match text(settings, "keys") {
                 "vim" => "vim",
@@ -389,6 +405,7 @@ impl Model {
             launches: Vec::new(),
             bulk: None,
             deletion: None,
+            combining: super::combine::State::default(),
             converting: super::convert::State::default(),
             printing: super::print::State::default(),
             restore_marks: BTreeMap::new(),
@@ -399,7 +416,11 @@ impl Model {
             prompts: Default::default(),
             #[cfg(test)]
             prompts: super::prompts::Prompts::english(),
-        }
+        };
+        model.prompts.i18n = i18n.clone();
+        model.i18n = i18n;
+        model.taildrop.refresh_locale(&model.i18n);
+        model
     }
     pub fn open(&mut self, path: PathBuf, wire: &mut Wire) -> io::Result<()> {
         if self.pending.is_some() {
@@ -439,7 +460,7 @@ impl Model {
     }
     pub fn row_size(&self, index: usize, row: &Row) -> String {
         let (bytes, partial) = self.folder_sizes.get(&index).copied().unwrap_or((row.size, row.directory));
-        format!("{}{}", if partial { ">" } else { "" }, super::render::bytes(bytes))
+        format!("{}{}", if partial { ">" } else { "" }, self.i18n.locale().format_size(bytes as u64))
     }
     pub fn request_sizes(&mut self, wire: &mut Wire, now: std::time::Instant) -> io::Result<()> {
         if self.pending.is_none() && self.search.is_empty() && self.fs_requested.as_ref() != Some(&self.path) {
@@ -563,14 +584,14 @@ impl Model {
     pub fn next_rename(&mut self, wire: &mut Wire) -> io::Result<()> {
         let Some(batch) = self.bulk.take() else { return Ok(()); };
         if batch.send_next(wire, self.action_id)? {
-            self.transfer = format!("Renaming {} of {}", super::render::grouped(batch.completed + 1), super::render::grouped(batch.total));
+            self.transfer_text(super::words::args("tui.model.renaming", vec![super::words::Text::Count(batch.completed + 1), super::words::Text::Count(batch.total)]));
             self.menu_action = "bulkRename".into();
             self.bulk = Some(batch);
         } else {
             self.transfer.clear();
             self.menu_action.clear();
-            self.say(if batch.completed == 0 { if batch.cancelled { "Rename cancelled" } else { "No names changed" }.into() }
-                else { bulk_done_line(batch.completed, batch.cancelled) });
+            self.say_text(if batch.completed == 0 { super::words::Text::Key(if batch.cancelled { "tui.model.rename_cancelled" } else { "tui.model.no_names_changed" }) }
+                else { super::words::Text::Plural(if batch.cancelled { "tui.model.bulk_stopped" } else { "tui.model.bulk_done" }, batch.completed, vec![]) });
             self.restore_path = batch.last;
             wire.send(vec![("c", word("menuaction")), ("op", word("close")), ("id", number(self.action_id))])?;
             self.refresh(wire)?;
@@ -595,7 +616,7 @@ impl Model {
                 if let Some(row) = self.restore_marks.remove(&path) { self.selected_rows.insert(index as usize, row); }
             }
             if let Some(index) = self.selected.first() { self.cursor = *index; }
-        } else { self.fail(format!("Could not restore deletion selection: {}", text(value, "error"))); }
+        } else { self.fail_text(super::words::args("tui.model.restore_deletion", vec![text(value, "error").into()])); }
         self.restore_selection.clear();
         self.restore_marks.clear();
         self.menu_action.clear();
@@ -612,26 +633,28 @@ impl Model {
         self.menu_action.clear();
         self.menu = false;
         self.message.clear();
-        self.fail("Taildrop cancelled; selection changed".into());
+        self.fail_key("tui.model.taildrop_cancelled_selection_changed");
         true
     }
     pub fn advance_taildrop(&mut self, wire: &mut Wire) -> io::Result<()> {
         if self.menu_action != "taildropRefresh" || self.taildrop.loading() { return Ok(()); }
         let current = self.taildrop_target.as_ref().and_then(|peer| self.taildrop.current_peer(peer));
         if current.is_none() || !self.taildrop.error.is_empty() {
-            let reason = if self.taildrop.error.is_empty() { "Taildrop device is unreachable".into() }
-                else { self.taildrop.error.clone() };
+            let reason = if self.taildrop.error.is_empty() { super::words::Text::Key("tui.model.taildrop_device_is_unreachable") }
+                else { super::words::Text::Data(self.taildrop.error.clone()) };
             self.taildrop_target = None;
             self.menu_action.clear();
             self.message.clear();
-            self.fail(reason);
+            self.fail_text(reason);
             return wire.send(vec![("c", word("menuaction")), ("op", word("close")), ("id", number(self.action_id))]);
         }
         self.taildrop_target = current;
         self.menu_action = "taildrop".into();
         wire.send(vec![("c", word("menuaction")), ("op", word("validate")), ("id", number(self.action_id)), ("action", word("taildrop"))])
     }
+    #[cfg(test)]
     pub fn say(&mut self, message: String) {
+        self.words.clear_message();
         self.message = message;
         self.message_at = std::time::Instant::now();
     }
@@ -643,12 +666,19 @@ impl Model {
         }
     }
     pub fn fail(&mut self, error: String) {
-        if error.is_empty() { return; }
-        if self.error.is_empty() { self.error = error; }
-        else if error != self.error && !self.errors.contains(&error) { self.errors.push_back(error); }
+        if let Some(slot) = self.enqueue_error(error) { self.words.error(slot, None); }
+    }
+    pub(super) fn enqueue_error(&mut self, error: String) -> Option<super::words::ErrorSlot> {
+        self.words.sync_errors(self.errors.len());
+        if error.is_empty() { return None; }
+        if self.error.is_empty() { self.error = error; Some(super::words::ErrorSlot::Current) }
+        else if error != self.error && !self.errors.contains(&error) { self.errors.push_back(error); Some(super::words::ErrorSlot::Queued) }
+        else { None }
     }
     pub fn dismiss_error(&mut self) {
+        self.words.sync_errors(self.errors.len());
         self.error = self.errors.pop_front().unwrap_or_default();
+        self.words.dismiss_error();
     }
     pub fn shown(&self) -> Vec<usize> { super::filter::shown(self) }
     pub fn filter_count(&self) -> usize { super::filter::count_shown(self) }
@@ -742,6 +772,7 @@ impl Model {
         }
     }
     pub fn receive(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
+        if super::combine::receive(self, &value, wire)? { return Ok(()); }
         if super::convert::receive(self, &value, wire)? { return Ok(()); }
         if super::print::receive(self, &value, wire)? { return Ok(()); }
         if super::contents::receive(self, &value, wire)? { return Ok(()); }
@@ -893,36 +924,6 @@ impl Model {
                     && self.current_path().as_ref() == Some(&self.preview_path)
                 {
                     self.media_probe = Some((count(&value, "w"), count(&value, "h"), count(&value, "ms")));
-                    for (label, value) in [
-                        (
-                            "Dimensions",
-                            if count(&value, "w") > 0 && count(&value, "h") > 0 {
-                                format!("{} × {}", count(&value, "w"), count(&value, "h"))
-                            } else {
-                                String::new()
-                            },
-                        ),
-                        (
-                            "Duration",
-                            if count(&value, "ms") > 0 {
-                                super::media::clock(count(&value, "ms") as f64 / 1000.0)
-                            } else {
-                                String::new()
-                            },
-                        ),
-                        (
-                            "Rate",
-                            if count(&value, "rate") > 0 {
-                                format!("{} kHz", count(&value, "rate") as f64 / 1000.0)
-                            } else {
-                                String::new()
-                            },
-                        ),
-                    ] {
-                        if !value.is_empty() {
-                            self.preview_metadata.push(format!("{} · {}", label, value));
-                        }
-                    }
                     super::pane_state::meta(self, &value);
                     self.preview_width = 0;
                 }
@@ -935,13 +936,12 @@ impl Model {
                     && self.current_path().as_ref() == self.preview_children.as_ref()
                 {
                     self.preview_rows_generation = self.preview_generation;
-                    self.preview_refusal = if !flag(&value, "failed") { String::new() }
-                        else if count(&value, "mode") > 0 && count(&value, "mode") & 0o444 == 0 { "You don’t have permission to open this folder.".into() }
-                        else { "This folder could not be read.".into() };
                     self.preview_rows = value.get("rows").and_then(Json::as_array).unwrap_or(&[]).iter().take(self.height).map(|row| Row::parse(row, &[])).collect();
+                    super::preview::peeked(self, &value);
                     self.preview.truncate(2);
                     if flag(&value, "failed") {
-                        self.preview.push("This folder could not be read.".into());
+                        let key = self.preview_state.refusal.unwrap_or("pane.unread");
+                        super::preview::set_text(self, super::words::Text::Key(key));
                     } else {
                         for row in value.get("rows").and_then(Json::as_array).unwrap_or(&[]) {
                             self.preview.push(format!(
@@ -950,8 +950,8 @@ impl Model {
                                 text(row, "n")
                             ));
                         }
-                        if count(&value, "n") == 0 {
-                            self.preview.push("Empty folder".into());
+                        if count(&value, "n") == 0 && self.preview_rows.is_empty() {
+                            super::preview::set_text(self, super::words::Text::Key("tui.model.empty_folder"));
                         }
                     }
                     self.preview_width = 0;
@@ -1004,7 +1004,7 @@ impl Model {
                 if self.choose_pending {
                     self.choose_pending = false;
                     if paths.len() != self.choose_count || paths.iter().any(|p| !std::path::Path::new(p).is_absolute() || p.contains(['\n', '\r'])) {
-                        self.fail("The selection changed or cannot be written one path per line; choose it again".into());
+                        self.fail_key("tui.model.the_selection_changed_or_cannot_be_written_one_path_per_line_choose_it");
                     } else {
                         self.chosen = Some(paths.clone());
                         self.quit = true;
@@ -1013,7 +1013,7 @@ impl Model {
                 if self.pending_clipboard {
                     self.pending_clipboard = false;
                     self.clipboard = paths;
-                    self.say(super::prompts::clipboard(self));
+                    self.say_text(super::prompts::clipboard_text(self));
                 }
             }
             "searching" | "searched" => {
@@ -1022,7 +1022,8 @@ impl Model {
                 }
                 self.total = count(&value, "n");
                 self.searching = text(&value, "t") == "searching";
-                self.search = super::prompts::found(self, count(&value, "scanned"));
+                self.search_scanned = count(&value, "scanned");
+                self.search = super::prompts::found(self, self.search_scanned);
                 if !self.searching {
                     // Ranking changes every index; no action may use the discovery-order window.
                     self.invalidate_rows();
@@ -1042,15 +1043,7 @@ impl Model {
                 self.transfer_total = count(&value, "n");
                 self.transfer_moving = flag(&value, "moving");
                 if self.job_status.id == 0 {
-                    self.transfer = format!(
-                        "{} 0 of {}",
-                        if self.transfer_moving {
-                            "Moving"
-                        } else {
-                            "Copying"
-                        },
-                        self.transfer_total
-                    );
+                    self.transfer_text(super::words::args(if self.transfer_moving { "jobs.transfer.moving" } else { "jobs.transfer.copying" }, vec![super::words::Text::Count(0), super::words::Text::Count(self.transfer_total)]));
                 }
             }
             "transferprogress" => {
@@ -1060,16 +1053,7 @@ impl Model {
                         let done = count(&value, "index") as u128 * total as u128 + count(&value, "bytes").min(total) as u128;
                         super::jobstatus::ratio(done, total as u128 * self.transfer_total as u128)
                     });
-                    self.transfer = format!(
-                        "{} {} of {}",
-                        if self.transfer_moving {
-                            "Moving"
-                        } else {
-                            "Copying"
-                        },
-                        count(&value, "index") + 1,
-                        self.transfer_total
-                    );
+                    self.transfer_text(super::words::args(if self.transfer_moving { "jobs.transfer.moving" } else { "jobs.transfer.copying" }, vec![super::words::Text::Count(count(&value, "index") + 1), super::words::Text::Count(self.transfer_total)]));
                 }
             }
             "transferitem" => {
@@ -1079,9 +1063,9 @@ impl Model {
             }
             "renamed" if self.bulk.is_some() && self.menu_action == "bulkRename" => {
                 let result = if flag(&value, "ok") { self.bulk.as_mut().unwrap().complete(text(&value, "path")) }
-                    else { Err(io::Error::other("Bulk rename stopped: a rename could not finish")) };
+                    else { Err(super::words::error("tui.model.bulk_rename_stopped_a_rename_could_not_finish")) };
                 if let Err(error) = result {
-                    self.fail(error.to_string());
+                    self.fail_io(&error);
                     self.bulk.as_mut().unwrap().cancelled = true;
                 }
                 self.next_rename(wire)?;
@@ -1110,7 +1094,7 @@ impl Model {
                     return Ok(());
                 }
                 let line = super::prompts::receipt(self, &value);
-                self.say(line);
+                if !line.is_empty() { self.say_text(super::prompts::receipt_text(self, &value)); }
                 if matches!(operation, "renamed" | "made" | "duplicated") {
                     self.restore_path = Some(PathBuf::from(text(&value, "path")));
                     self.editor = None;
@@ -1128,33 +1112,33 @@ impl Model {
                 if flag(&value, "ok") {
                     self.editor = None;
                     super::prompts::record(self, "newfile", vec![PathBuf::from(text(&value, "path"))]);
-                    self.say(super::prompts::undoable(self, self.prompts.i18n.tr("receipt.fileCreated")));
+                    self.say_text(super::prompts::undoable_text(self, super::words::Text::Key("receipt.fileCreated")));
                     self.restore_path = Some(PathBuf::from(text(&value, "path")));
                     self.refresh(wire)?;
                 } else if let Some(editor) = &mut self.editor {
                     editor.pending = false;
-                    editor.error = text(&value, "error").into();
+                    editor.fail_data(text(&value, "error").into());
                 }
             }
             "menuaction" if text(&value, "op") == "delete" && count(&value, "id") == self.action_id => {
                 if !matches!(self.menu_action.as_str(), "deleteRunning" | "deleteCancelling") { return Ok(()); }
                 if flag(&value, "stale") && self.menu_action == "deleteRunning" {
-                    self.say("Selection changed; confirm again".into());
+                    self.say_key("tui.model.selection_changed_confirm_again");
                     self.refresh_deletion(wire)?;
                     return Ok(());
                 }
                 self.menu_action.clear();
                 self.deletion = None;
                 if !flag(&value, "ok") {
-                    if flag(&value, "cancelled") { self.say("Deletion cancelled".into()); }
+                    if flag(&value, "cancelled") { self.say_key("tui.model.deletion_cancelled"); }
                     else { self.fail(text(&value, "error").into()); }
                 } else if flag(&value, "stale") {
-                    self.say("Deletion cancelled".into());
+                    self.say_key("tui.model.deletion_cancelled");
                 } else {
-                    self.say(format!("Deleted {} of {} {}{}", super::render::grouped(count(&value, "deleted")), super::render::grouped(self.menu_count),
-                        if self.menu_count == 1 { "item" } else { "items" },
-                        if flag(&value, "cancelled") { " · Cancelled".into() } else { String::new() }));
-                    if count(&value, "failed") > 0 { self.fail(format!("{} failed · {}", super::render::grouped(count(&value, "failed")), text(&value, "error"))); }
+                    let mut line = vec![super::words::Text::Plural("tui.model.deleted", self.menu_count, vec![super::words::Text::Count(count(&value, "deleted"))])];
+                    if flag(&value, "cancelled") { line.push(super::words::Text::Key("tui.model.deleted_cancelled")); }
+                    self.say_text(super::words::Text::Joined(line));
+                    if count(&value, "failed") > 0 { self.fail_text(super::words::args("tui.model.deleted_failed", vec![super::words::Text::Count(count(&value, "failed")), text(&value, "error").into()])); }
                     let remaining: BTreeSet<PathBuf> = value.get("remaining").and_then(Json::as_array).unwrap_or(&[]).iter().filter_map(Json::as_str).map(PathBuf::from).collect();
                     self.restore_marks = std::mem::take(&mut self.delete_marks);
                     self.restore_marks.retain(|path, _| remaining.contains(path));
@@ -1186,7 +1170,7 @@ impl Model {
                 } else if (text(&value, "op") == "prepareDelete" && self.menu_action == "deletePrepare")
                     || (text(&value, "op") == "refreshDelete" && self.menu_action == "deleteRefresh") {
                     let token = count(&value, "token");
-                    if token == 0 { return Err(io::Error::other("Deletion could not be confirmed; try again")); }
+                    if token == 0 { return Err(super::words::error("tui.model.deletion_could_not_be_confirmed_try_again")); }
                     self.menu_count = count(&value, "count");
                     self.deletion = Some(Deletion { token, count: self.menu_count, destructive: false, scroll: 0 });
                     self.menu_action = "deleteConfirm".into();
@@ -1198,11 +1182,11 @@ impl Model {
                     let action = std::mem::take(&mut self.menu_action);
                     if action == "bulk" {
                         if paths.len() != self.menu_count {
-                            self.fail("Bulk rename selection is incomplete; select the items again".into());
+                            self.fail_key("tui.model.bulk_rename_selection_is_incomplete_select_the_items_again");
                         } else {
                             match super::batch::Batch::new(paths.into_iter().map(PathBuf::from).collect()) {
                                 Ok(batch) => { self.bulk = Some(batch); self.menu_action = "bulkEditor".into(); }
-                                Err(error) => self.fail(error.to_string()),
+                                Err(error) => self.fail_io(&error),
                             }
                         }
                         if self.menu_action != "bulkEditor" {
@@ -1210,7 +1194,7 @@ impl Model {
                         }
                     } else if action == "open" {
                         if !paths.iter().any(|path| PathBuf::from(path) == self.menu_path) {
-                            self.fail("Could not open selected file".into());
+                            self.fail_key("tui.model.could_not_open_selected_file");
                         } else if self.menu_directory {
                             if self.pending.is_some() { self.menu_action = "openWaiting".into(); }
                             else {
@@ -1218,17 +1202,17 @@ impl Model {
                                 super::actions::navigate(self, path, wire)?;
                             }
                         } else if crate::open::open(&self.menu_path.to_string_lossy()) != 0 {
-                            self.fail("Could not open selected file".into());
+                            self.fail_key("tui.model.could_not_open_selected_file");
                         }
                     } else if action == "taildrop" {
                         self.message.clear();
                         if let Some(peer) = self.taildrop_target.take() {
                             if self.menu_count == 0 || paths.len() < self.menu_count {
-                                self.fail("Taildrop: selection is incomplete".into());
+                                self.fail_key("tui.model.taildrop_selection_is_incomplete");
                             } else {
                                 match self.taildrop.send(&peer, &paths[..self.menu_count]) {
-                                    Ok(()) => self.say(format!("Sending to {}", peer.label)),
-                                    Err(error) => self.fail(format!("Taildrop: {}", crate::error::io_message(&error))),
+                                    Ok(()) => self.say_text(super::words::args("tui.model.sending", vec![peer.label.clone().into()])),
+                                    Err(error) => self.fail_io(&error),
                                 }
                             }
                         }
@@ -1242,18 +1226,19 @@ impl Model {
                 } else if text(&value, "op") == "snapshot" {
                     wire.send(vec![("c", word("menuaction")), ("op", word("properties")), ("id", number(self.action_id))])?;
                 } else if text(&value, "op") == "properties" {
-                    self.properties = Some(super::render::cards::properties(&value, &self.i18n));
+                    super::render::cards::properties_reply(self, &value);
                 }
             }
             "trashbrowse" => super::trashview::receive(self, &value),
             "collisions" | "fatnames" => super::prompts::collided(self, &value, wire)?,
             "error" => {
-                let held = self.editor.as_mut().filter(|editor| editor.kind == text(&value, "where")).map(|editor| { editor.pending = false; editor.error = text(&value, "msg").into(); }).is_some();
-                if !held { self.fail(if text(&value, "where") == "scan" {
-                    if text(&value, "msg") == "permission denied" { "You don’t have permission to open this folder.".into() }
-                    else { text(&value, "msg").into() }
+                let held = self.editor.as_mut().filter(|editor| editor.kind == text(&value, "where")).map(|editor| { editor.pending = false; editor.fail_data(text(&value, "msg").into()); }).is_some();
+                if !held {
+                    if text(&value, "where") == "scan" && text(&value, "msg") == "permission denied" {
+                        self.fail_key("pane.locked");
+                    } else if text(&value, "where") == "scan" { self.fail(text(&value, "msg").into()); }
+                    else { self.fail(format!("{}: {}", text(&value, "where"), text(&value, "msg"))); }
                 }
-                    else { format!("{}: {}", text(&value, "where"), text(&value, "msg")) }); }
                 if text(&value, "where") == "rename" && self.bulk.is_some() {
                     self.bulk.as_mut().unwrap().cancelled = true;
                     self.next_rename(wire)?;

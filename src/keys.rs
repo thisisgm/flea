@@ -1,4 +1,5 @@
 //! Static key bindings shared by native frontends and their presentation surfaces.
+pub mod display;
 #[path = "keys_generated.rs"]
 mod generated;
 pub mod presentation;

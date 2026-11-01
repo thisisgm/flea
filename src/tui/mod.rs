@@ -36,7 +36,12 @@ mod icons;
 mod editor;
 mod empty;
 mod prompts;
+mod combine;
 mod convert;
+#[cfg(test)]
+mod combine_tests;
+#[cfg(test)]
+mod combine_process_tests;
 mod print;
 #[cfg(test)]
 mod convert_tests;
@@ -77,6 +82,7 @@ mod taildrop;
 mod terminal;
 mod launch;
 mod wait;
+mod words;
 mod hold;
 #[cfg(test)]
 #[path = "hold_tests.rs"]
@@ -148,7 +154,10 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         let mut hold = hold::Hold::new();
         let mut last_input = std::time::Instant::now();
         let timeout = wait::input_timeout();
+        preview::refresh_locale(&mut model);
+        render::cards::refresh_locale(&mut model);
         while !model.quit && !terminal.stopped() {
+            model.refresh_frame_locale();
             hold.sync(&model, std::time::Instant::now());
             while let Ok(event) = wire.events.try_recv() {
                 match event {
@@ -156,16 +165,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                     Err(e) => return Err(io::Error::other(e)),
                 }
             }
-            let mut launch_errors = Vec::new();
-            model.launches.retain_mut(|(name, child)| match child.try_wait() {
-                Ok(Some(status)) => {
-                    if !status.success() { launch_errors.push(format!("{} could not finish ({})", name, status)); }
-                    false
-                }
-                Ok(None) => true,
-                Err(error) => { launch_errors.push(format!("Could not observe {}: {}", name, crate::error::io_message(&error))); false }
-            });
-            for error in launch_errors { model.fail(error); }
+            model.poll_launches();
             if let Some(path) = model.edit_file.take() {
                 graphics.clear();
                 model.player = None;
@@ -174,7 +174,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                     Ok(()) => {}
                     Err(error) => {
                         if !terminal.ready() { return Err(error); }
-                        model.fail(crate::error::io_message(&error));
+                        model.fail_io(&error);
                     }
                 }
                 model.refresh(&mut wire)?;
@@ -195,7 +195,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                     }
                     Err(error) => {
                         if !terminal.ready() { if terminal.stopped() { break; } return Err(error); }
-                        model.fail(crate::error::io_message(&error));
+                        model.fail_io(&error);
                         model.menu_action.clear();
                         wire.send(vec![("c", wire::word("menuaction")), ("op", wire::word("close")), ("id", wire::number(model.action_id))])?;
                     }
@@ -214,19 +214,20 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             model.model3d_palette = graphics::palette(&style.theme);
             detail::prepare(&mut model, &mut wire)?;
             convert::poll(&mut model);
+            combine::poll(&mut model);
             model.taildrop.poll();
             model.advance_taildrop(&mut wire)?;
-            if let Some(result) = model.taildrop.sent.take() {
+            if let Some(result) = model.taildrop.take_sent() {
                 match result {
-                    Ok(message) => model.say(message),
-                    Err(error) => model.fail(error),
+                    Ok(message) => model.say_text(message),
+                    Err(error) => model.fail_text(error),
                 }
             }
             completion::land(&mut model);
             model.expire_message(std::time::Instant::now());
-            let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some() || model.prompts.question.is_some() || (model.printing.card.is_some() || model.converting.card.is_some());
-            if (model.menu || model.deletion.is_some() || (model.printing.card.is_some() || model.converting.card.is_some())) != menu_tracking {
-                menu_tracking = model.menu || model.deletion.is_some() || (model.printing.card.is_some() || model.converting.card.is_some());
+            let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some() || model.prompts.question.is_some() || (model.printing.card.is_some() || model.converting.card.is_some() || model.combining.card.is_some());
+            if (model.menu || model.deletion.is_some() || (model.printing.card.is_some() || model.converting.card.is_some() || model.combining.card.is_some())) != menu_tracking {
+                menu_tracking = model.menu || model.deletion.is_some() || (model.printing.card.is_some() || model.converting.card.is_some() || model.combining.card.is_some());
                 print!("{}", if menu_tracking { "\x1b[?1003h" } else { "\x1b[?1003l\x1b[?1002h" });
                 std::io::Write::flush(&mut std::io::stdout())?;
             }
@@ -248,7 +249,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                     started.elapsed(),
                     &mut frame,
                 )?;
-                let writing = changed && !overlay;
+                let writing = changed && (!overlay || model.combining.card.is_some());
                 let (image, take) = frame_image(model.pdf.as_ref(), &graphics.bytes, writing);
                 let transmit = if take { std::mem::take(&mut graphics.transmit) } else { Vec::new() };
                 // Lowercase d=i drops the placements and keeps kitty's stored copy, so a redraw never re-sends the picture.
@@ -281,7 +282,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             for key in terminal.decode(&bytes, wait::escape_due(bytes.is_empty(), last_input.elapsed(), timeout))? {
                 let key = if model.editor.is_some() { std::borrow::Cow::Borrowed(&key) } else { key.for_action() };
                 if let Err(e) = actions::key(&mut model, &key, &map, &mut wire) {
-                    model.fail(crate::error::io_message(&e));
+                    model.fail_io(&e);
                 }
             }
             model.capabilities = terminal.decoder.negotiation.detected;

@@ -58,6 +58,16 @@ fn every_printed_key_reaches_its_action_in_every_preset() {
                 assert!(row.1.iter().all(|action| map.chord(action, preset, "listing").is_none()), "{preset} {:?} binds a key the sheet leaves out", row.1);
             }
             for spelled in printed.split(" / ").filter(|spelled| !spelled.is_empty()) {
+                if spelled.contains(' ') {
+                    let mut parts = spelled.split(' ');
+                    let first = keys(parts.next().unwrap()).remove(0);
+                    let tail = keys(parts.next().unwrap()).remove(0);
+                    let action = map.action(&first, preset);
+                    let prefix = action.strip_prefix("prefix:").unwrap();
+                    assert!(row.1.contains(&map.sequence(prefix, &tail, preset, "listing").as_str()));
+                    assert!(parts.next().is_none());
+                    continue;
+                }
                 let first = spelled.chars().next().unwrap();
                 let doubled = spelled.chars().count() == 2 && spelled.chars().all(|c| c == first);
                 let probe = if doubled { first.to_string() } else { spelled.to_owned() };
@@ -148,4 +158,90 @@ fn turkish_headings_keep_the_dotted_capital_i() {
         .filter_map(|line| if let Line::Heading(text) = line { Some(text) } else { None }).collect();
     // Plain to_uppercase draws DEĞIŞTIR.
     assert_eq!(headings, ["HAREKET", "GÖRÜNÜM", "BUL", "DEĞİŞTİR"]);
+}
+
+#[test]
+fn tui_words_review_binding_columns_are_never_clipped_to_key_width() {
+    let map = Map::load();
+    let mut m = model();
+    for preset in PRESETS {
+        for columns in 12..=300 {
+            for height in [1, 12, 27] {
+                m.preset = preset.into();
+                (m.columns, m.height) = (columns, height);
+                let sheet = sheet(&m, &map);
+                let card = card(&m, &map);
+                let mut offset = 0;
+                for column in &sheet.columns {
+                    let (key, label) = widths(column);
+                    let width = key + 2 + label;
+                    let room = width.min(card.content().saturating_sub(offset));
+                    if column.iter().any(|line| matches!(line, Line::Binding(..))) {
+                        assert_eq!(room, width, "{preset} {columns}x{height}: a binding column is complete");
+                        assert!(room >= key + 2, "the two separator cells are included in the packer's budget");
+                    }
+                    offset += width + GAP;
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn yazi_prefix_routes_are_shown_as_sequences_without_changing_other_presets() {
+    let map = Map::load();
+    assert_eq!(spelling(&map, "yazi", row("tabNew")), "t t");
+    assert_eq!(spelling(&map, "yazi", row("cursorFirst")), "g g / home");
+    assert_eq!(spelling(&map, "yazi", row("sortNext")), ", a");
+    assert!(spelling(&map, "yazi", row("sortReverse")).is_empty(), "Name descending does not reverse an arbitrary active sort");
+    for preset in ["default", "vim", "mac", "windows"] {
+        assert_eq!(spelling(&map, preset, row("tabNew")), "t");
+    }
+}
+
+#[test]
+fn explicit_layout_snapshots_keep_sequence_parts_and_protocol_pairs_complete() {
+    let map = Map::load();
+    for preset in PRESETS {
+        let mut m = model();
+        m.preset = preset.into();
+        let mut usable = 0;
+        for (layout, variant) in [("us", None), ("ru", None), ("fr", None), ("us", Some("dvorak"))] {
+            let snapshot = flea::keys::display::KeycapSnapshot::new(layout, variant, Some(0), 7).unwrap();
+            let before = (m.keycaps, m.keycap_labels.clone());
+            match m.set_keycaps(snapshot, &map) {
+                Ok(()) => {
+                    usable += 1;
+                    for row in ROWS {
+                        let canonical = spelling(&map, preset, row);
+                        if canonical.is_empty() { continue; }
+                        let expected = if canonical == "1–9" { format!("{}–{}", snapshot.label("1").unwrap(), snapshot.label("9").unwrap()) }
+                            else { flea::keys::display::chord_label(&canonical, &snapshot).unwrap().text };
+                        assert_eq!(m.keycap_labels[&canonical], expected, "{preset} {layout} {canonical}");
+                    }
+                }
+                Err(_) => assert_eq!((m.keycaps, m.keycap_labels.clone()), before, "failed snapshot must retain its complete epoch"),
+            }
+        }
+        assert!(usable > 0, "{preset}: no complete layout snapshot");
+    }
+}
+
+#[test]
+fn yazi_sequence_keycaps_relabel_each_part_of_the_sequence() {
+    let map = Map::load();
+    // Letters keep their caps in both layouts, so only a comma after the prefix shows the second part relabelled.
+    let comma = Map::parse("[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \",\"\naction = \"prefix:,\"\ncontext = \"listing\"\n\n[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \",\"\naction = \"tabNew\"\ncontext = \"listing\"\nprefix = \",\"\n");
+    for (layout, variant, sort, tail) in [("fr", None, "; a", "; ;"), ("us", Some("dvorak"), "w a", "w w")] {
+        let snapshot = flea::keys::display::KeycapSnapshot::new(layout, variant, Some(0), 7).unwrap();
+        let mut m = model();
+        m.preset = "yazi".into();
+        m.set_keycaps(snapshot, &map).unwrap();
+        assert_eq!(m.keycap_labels[", a"], sort, "{layout}");
+        assert_eq!(m.keycap_labels["t t"], "t t", "{layout}");
+        let mut m = model();
+        m.preset = "yazi".into();
+        m.set_keycaps(snapshot, &comma).unwrap();
+        assert_eq!(m.keycap_labels[", ,"], tail, "{layout}");
+    }
 }

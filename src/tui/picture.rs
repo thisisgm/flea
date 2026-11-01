@@ -21,7 +21,7 @@ pub fn stack(m: &Model, area: &Area) -> ((usize, usize), Vec<Slot>) {
     let kind = pane_state::kind(row);
     let details: Vec<Slot> = if area.card { Vec::new() } else {
         let limit = if kind == Kind::Model3d { area.height.saturating_sub(5) } else { 3 };
-        m.preview_metadata.iter().enumerate().filter(|(_, line)| !line.starts_with("Modified · ")).map(|(index, _)| Slot::Detail(index)).take(limit).collect()
+        m.preview_metadata.iter().enumerate().filter(|(index, line)| super::pane::metadata_visible(m, *index, line)).map(|(index, _)| Slot::Detail(index)).take(limit).collect()
     };
     let lead = |mut tail: Vec<Slot>, rest: Vec<Slot>| {
         if !rest.is_empty() {
@@ -131,7 +131,8 @@ pub fn place(m: &Model) -> Place {
     let room = (area.width(), model_room(m, kind, area.width(), available_rows, area.card));
     let (columns, rows) = if rows == 0 { room } else { (columns, rows) };
     let offset = if area.card { room.0.saturating_sub(columns) / 2 } else { 0 };
-    Place { cells: (columns, rows), room, left: x0 + offset + 1, top }
+    let left = if m.quicklook { x0 + offset } else { super::layout::visual_start(m, x0 + offset, columns) };
+    Place { cells: (columns, rows), room, left: left + 1, top }
 }
 
 // The body area, its first content column (zero-based) and its first body row (one-based) in the pane or the card.

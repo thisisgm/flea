@@ -21,6 +21,7 @@ pub struct Pdf {
     pub png: Vec<u8>,
     pub revision: usize,
     pub error: String,
+    pub failure: Option<super::preview::words::Text>,
     pub columns: usize,
     pub rows: usize,
     pub pixels: (usize, usize),
@@ -62,6 +63,7 @@ impl Pdf {
             png: Vec::new(),
             revision: 0,
             error: String::new(),
+            failure: None,
             columns,
             rows,
             pixels,
@@ -108,7 +110,9 @@ impl Pdf {
         let mut changed = false;
         if let Some(info) = &self.info {
             if let Ok(result) = info.result.try_recv() {
+                let failure = result.as_ref().err().map(|error| info.failure(error.clone()));
                 self.info = None;
+                if failure.is_some() { self.failure = failure; }
                 match result {
                     Ok(bytes) => {
                         let text = String::from_utf8_lossy(&bytes);
@@ -123,7 +127,9 @@ impl Pdf {
         }
         if let Some(image) = &self.image {
             if let Ok(result) = image.result.try_recv() {
+                let failure = result.as_ref().err().map(|error| image.failure(error.clone()));
                 self.image = None;
+                if failure.is_some() { self.failure = failure; }
                 match result {
                     Ok(bytes) => {
                         self.shown = size(&bytes);
@@ -183,7 +189,7 @@ impl Pdf {
     // Page 1 of 12 · 100%, the page line over the controls.
     pub fn page_line(&self, i18n: &crate::i18n::I18n) -> String {
         let pages = if self.pages == 0 { "?".into() } else { i18n.locale().format_count(self.pages as i64) };
-        i18n.tr_args("pdf.page", &[&i18n.locale().format_count(self.page as i64), &pages, &self.zoom.to_string()])
+        i18n.tr_args("pdf.page", &[&i18n.locale().format_count(self.page as i64), &pages, &i18n.locale().format_count(self.zoom as i64)])
     }
     pub fn control_at(&self, cell: usize, quicklook: bool, columns: usize) -> Option<(usize, bool)> {
         toolbar(self.control, false, quicklook, columns).1.get(cell).copied().flatten()

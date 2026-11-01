@@ -8,6 +8,12 @@ extern "C" {
     fn wcwidth(c: i32) -> i32;
 }
 
+pub fn mirrors(role: &str) -> bool {
+    static POLICY: std::sync::OnceLock<Option<crate::jsondoc::Json>> = std::sync::OnceLock::new();
+    POLICY.get_or_init(|| crate::jsondoc::parse(include_str!("../../i18n/rtl-policy.json")).ok())
+        .as_ref().and_then(|doc| doc.get("roles")).and_then(|roles| roles.get(role))
+        .and_then(|role| role.get("action")).and_then(crate::jsondoc::Json::as_str) == Some("mirror")
+}
 pub fn safe(c: char) -> bool {
     !c.is_control()
         && !matches!(c, '\u{2028}'..='\u{202e}' | '\u{2066}'..='\u{206f}' | '\u{200e}' | '\u{200f}' | '\u{061c}')
@@ -87,7 +93,7 @@ pub fn width(c: char) -> usize {
         0x0300..=0x036f | 0x0483..=0x0489 | 0x0591..=0x05bd | 0x05bf | 0x05c1..=0x05c2 | 0x05c4..=0x05c5 | 0x05c7
         | 0x0610..=0x061a | 0x064b..=0x065f | 0x0670 | 0x06d6..=0x06dc | 0x06df..=0x06e4 | 0x06e7..=0x06e8 | 0x06ea..=0x06ed
         | 0x0897..=0x089f | 0x08ca..=0x08e1 | 0x08e3..=0x08ff | 0x1ab0..=0x1aff | 0x1dc0..=0x1dff | 0x200b..=0x200d
-        | 0x2060 | 0x20d0..=0x20ff | 0x302a..=0x302d | 0x3099..=0x309a | 0x3164 | 0xfe00..=0xfe0f | 0xfe20..=0xfe2f | 0xfeff
+        | 0x2060 | 0x2066..=0x2069 | 0x20d0..=0x20ff | 0x302a..=0x302d | 0x3099..=0x309a | 0x3164 | 0xfe00..=0xfe0f | 0xfe20..=0xfe2f | 0xfeff
         | 0xe0020..=0xe007f | 0xe0100..=0xe01ef => 0,
         0x1100..=0x115f | 0x2329..=0x232a | 0x2e80..=0xa4cf | 0xac00..=0xd7a3 | 0xf900..=0xfaff | 0xfe10..=0xfe19 | 0xfe30..=0xfe6f | 0xff01..=0xff60 | 0xffe0..=0xffe6 | 0x20000..=0x3fffd => 2,
         // The rest of glibc 2.41's C.UTF-8 wide set, which a C locale answers -1 for.
@@ -251,6 +257,7 @@ pub struct RowStyle {
     pub dimmed: bool,
     pub quiet: bool,
     pub parent: bool,
+    pub rtl: bool,
 }
 pub fn row(
     entry: &Row,
@@ -308,24 +315,19 @@ pub fn row(
     if columns == 0 {
         return out;
     }
-    if style.cursor && style.focused && theme.depth != Depth::Sixteen {
-        out.push_str(&theme.accent);
-        out.push('▎');
-        out.push_str(ink);
-    } else {
-        out.push(' ');
-    }
-    if columns < 4 {
-        out.push_str(&ellipsis(&entry.name, columns - 1));
+    let edge = if style.cursor && style.focused && theme.depth != Depth::Sixteen {
+        format!("{}{}{}", theme.accent, if style.rtl { "▕" } else { "▎" }, ink)
+    } else { " ".into() };
+    if columns < 4 + usize::from(style.rtl) {
+        let name = ellipsis(&entry.name, columns - 1);
+        if style.rtl { out.push_str(&isolate(Run::Name, &name)); out.push_str(&edge); }
+        else { out.push_str(&edge); out.push_str(&name); }
         out.push_str(&base);
         return out;
     }
-    out.push_str(meta);
-    out.push_str(icons::row(entry, marks));
-    out.push(' ');
-    out.push_str(ink);
-    let size = size.filter(|s| text_width(s) + 6 <= columns);
-    let name_width = columns - 3 - size.map_or(1, |s| text_width(s) + 3);
+    let mark = format!("{meta}{} {ink}", icons::row(entry, marks));
+    let size = size.filter(|s| text_width(s) + 6 + usize::from(style.rtl) <= columns);
+    let name_width = columns - 3 - size.map_or(1, |s| text_width(s) + 3) - usize::from(style.rtl);
     // A search result's name is its path under the search; it prints its name, then its folder in the metadata ink.
     let (folder, leaf) = entry.name.rsplit_once('/').unwrap_or(("", &entry.name));
     let display_name = fit(leaf, text_width(leaf));
@@ -338,27 +340,34 @@ pub fn row(
     } else {
         ellipsis(&format!(" → {}", clean(&entry.link)), target_width)
     };
+    let mut label = String::new();
     if let Some((start, end)) = match_range(&name, query) {
-        out.push_str(&name[..start]);
-        out.push_str("\x1b[1m");
-        out.push_str(&theme.match_fill);
-        out.push_str(&name[start..end]);
-        out.push_str(&reset);
-        out.push_str(&name[end..]);
-    } else {
-        out.push_str(&name);
-    }
-    if !target.is_empty() {
+        label.push_str(&name[..start]);
+        label.push_str("\x1b[1m");
+        label.push_str(&theme.match_fill);
+        label.push_str(&name[start..end]);
+        label.push_str(&reset);
+        label.push_str(&name[end..]);
+    } else { label.push_str(&name); }
+    if style.rtl {
+        if let Some(size) = size { out.push_str(&format!("  {meta}{} ", isolate(Run::Number, size))); }
+        else { out.push(' '); }
         out.push_str(meta);
-        out.push_str(&target);
-    }
-    if let Some(size) = size {
-        out.push(' ');
-        out.push_str(meta);
-        out.push_str(size);
-        out.push_str("  ");
+        out.push_str(&isolate(Run::Name, &target));
+        out.push_str(ink);
+        // Isolate trusted styling around the already sanitized name without reversing its bytes.
+        out.push('\u{2068}');
+        out.push_str(&label);
+        out.push('\u{2069}');
+        out.push_str(&format!(" {meta}{} {ink}", icons::row(entry, marks)));
+        out.push_str(&edge);
     } else {
-        out.push(' ');
+        out.push_str(&edge);
+        out.push_str(&mark);
+        out.push_str(&label);
+        if !target.is_empty() { out.push_str(meta); out.push_str(&target); }
+        if let Some(size) = size { out.push_str(&format!(" {meta}{size}  ")); }
+        else { out.push(' '); }
     }
     out.push_str(&base);
     out

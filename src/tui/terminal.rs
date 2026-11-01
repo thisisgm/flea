@@ -19,12 +19,12 @@ const SIGWINCH: i32 = 28;
 const SIGTTOU: i32 = 22;
 const INPUT_READ_BYTES: usize = 4096;
 // The shown faults of the stty calls: raw mode at the start and the terminal handed back at the end, then the same two around the editor.
-const PREPARE_FAILED: &str = "The terminal could not be prepared";
-const RESTORE_FAILED: &str = "The terminal could not be restored";
-const PREPARE_FOR_EDITOR_FAILED: &str = "The terminal could not be prepared for the editor";
-const RESTORE_AFTER_EDITOR_FAILED: &str = "The terminal could not be restored after the editor";
+const PREPARE_FAILED: &str = "tui.terminal.the_terminal_could_not_be_prepared";
+const RESTORE_FAILED: &str = "tui.terminal.the_terminal_could_not_be_restored";
+const PREPARE_FOR_EDITOR_FAILED: &str = "tui.terminal.the_terminal_could_not_be_prepared_for_the_editor";
+const RESTORE_AFTER_EDITOR_FAILED: &str = "tui.terminal.the_terminal_could_not_be_restored_after_the_editor";
 // Any editor handoff ends with this when a stop lands inside the editor or while either stty around it runs.
-const EDITOR_INTERRUPTED: &str = "Editor interrupted";
+const EDITOR_INTERRUPTED: &str = "tui.terminal.editor_interrupted";
 #[repr(C)]
 struct WindowSize {
     rows: u16,
@@ -34,7 +34,7 @@ struct WindowSize {
 }
 // The editor's exit as the bulk rename sees it: a nonzero status ends the rename with the status shown.
 fn editor_result(status: std::process::ExitStatus) -> io::Result<()> {
-    if status.success() { Ok(()) } else { Err(io::Error::other(format!("The editor could not finish ({})", status))) }
+    if status.success() { Ok(()) } else { Err(io::Error::other(super::words::args("tui.terminal.editor_status", vec![status.to_string().into()]))) }
 }
 pub use super::launch::terminal as launch;
 extern "C" {
@@ -99,7 +99,7 @@ impl Terminal {
             shm_directory: shm_directory.to_owned(),
         };
         if terminal.saved.is_empty() {
-            return Err(io::Error::other(PREPARE_FAILED));
+            return Err(super::words::error(PREPARE_FAILED));
         }
         raw(PREPARE_FAILED)?;
         STOP.store(false, Ordering::Relaxed);
@@ -125,12 +125,12 @@ impl Terminal {
     pub fn run_command(&mut self, command: Command) -> io::Result<()> {
         // A stop that lands while either stty runs ends the edit as interrupted, and Drop restores the terminal.
         if let Err(error) = self.restore(PREPARE_FOR_EDITOR_FAILED) {
-            return Err(if self.stopped() { io::Error::other(EDITOR_INTERRUPTED) } else { error });
+            return Err(if self.stopped() { super::words::error(EDITOR_INTERRUPTED) } else { error });
         }
         let result = match EditorJob::start(command) {
             Ok(mut editor) => {
             let result = loop {
-                if self.stopped() { break Err(io::Error::other(EDITOR_INTERRUPTED)); }
+                if self.stopped() { break Err(super::words::error(EDITOR_INTERRUPTED)); }
                 match editor.status() {
                     Ok(Some(status)) => break editor_result(status),
                     Err(error) => break Err(error),
@@ -144,7 +144,7 @@ impl Terminal {
             Err(error) => Err(error),
         };
         if let Err(error) = raw(RESTORE_AFTER_EDITOR_FAILED) {
-            return Err(if self.stopped() { io::Error::other(EDITOR_INTERRUPTED) } else { error });
+            return Err(if self.stopped() { super::words::error(EDITOR_INTERRUPTED) } else { error });
         }
         self.start_screen()?;
         result
@@ -277,7 +277,7 @@ fn shm_query(dir: &Path, name: &str, id: u32) -> Option<String> {
 fn stty_result(status: std::process::ExitStatus, fault: &'static str) -> io::Result<()> {
     // A stop signal sent to the job kills its stty too, so that death marks the stop before any thread's handler runs.
     if matches!(status.signal(), Some(SIGINT | SIGTERM | SIGHUP)) { STOP.store(true, Ordering::Relaxed); }
-    if status.success() { Ok(()) } else { Err(io::Error::other(fault)) }
+    if status.success() { Ok(()) } else { Err(super::words::error(fault)) }
 }
 fn raw(fault: &'static str) -> io::Result<()> {
     stty_result(Command::new("stty").args(["raw", "-echo", "min", "0", "time", "0"]).status()?, fault)

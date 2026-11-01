@@ -4,6 +4,7 @@ use super::pane_state::{self, Kind};
 use super::still::{Key, Source};
 use super::wire::{self, Wire};
 use super::{media, pdf, picture};
+use super::preview::words::{self, Text};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -21,6 +22,18 @@ impl Shown {
 
 // One input-loop pass over the preview's decoders and player; answers where a terminal picture is placed, one-based.
 pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire: &mut Wire, size: (usize, usize), overlay: bool, frame: &mut String) -> io::Result<(usize, usize)> {
+    if model.combining.card.is_some() {
+        model.player = None;
+        model.pdf = None;
+        model.model3d.stop(wire)?;
+        model.preview_state.still.clear();
+        model.image_file = None;
+        if let Some(index) = model.thumb_index.take() {
+            wire.send(vec![("c", wire::word("thumbcancel")), ("rows", crate::jsondoc::Json::Arr(vec![wire::number(index)]))])?;
+        }
+        shown.forget();
+        return Ok(super::combine::step(model, graphics, frame));
+    }
     let visible = model.converting.card.is_none() && model.printing.card.is_none() && (model.preview_visible || model.quicklook) && model.selected.len() < 2;
     let current = model.current_path().filter(|_| super::prompts::previewed(model));
     let content = pane_state::content(model);
@@ -74,7 +87,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
                         model.player = Some(player);
                     }
                     Err(e) => {
-                        model.fail(format!("Media preview: {}", crate::error::io_message(&e)));
+                        words::fail(model, Text::Args("tui.preview.media_error", vec![words::from_io(&e)]));
                         model.preview_failed = Some(path.clone());
                     }
                 }
@@ -126,6 +139,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
     }
     still(model, graphics.protocol, visible && preview_allowed, place.room);
     if let Some(player) = &mut model.player {
+        player.ensure_locale(&model.preview_state.i18n);
         if let Some((w, h, milliseconds)) = model.media_probe {
             player.probe(milliseconds);
             if let Some(pixels) = pixels.filter(|_| player.at_rest()) {
@@ -139,15 +153,16 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
         player.poster_up = player.at_rest() && graphics.shows(&player.path);
     }
     if visible && graphics.protocol != Protocol::None && pixels.is_none() && (is_media || paged || model.image_file.is_some()) && model.preview_failed != current {
-        model.fail("Inline preview unavailable: terminal did not report pixel dimensions".into());
+        words::fail(model, Text::Key("tui.preview.no_pixels"));
         model.preview_failed = current.clone();
     }
     if graphics.accept() {
         frame.clear();
     }
     if !graphics.error.is_empty() {
-        let sentence = model.preview_state.i18n.tr_args("preview.imageError", &[&std::mem::take(&mut graphics.error)]);
-        model.fail(sentence);
+        let raw = std::mem::take(&mut graphics.error);
+        let error = graphics.failure.take().unwrap_or(Text::Data(raw));
+        words::fail(model, Text::Args("preview.imageError", vec![error]));
     }
     if let Some(player) = &mut model.player {
         player.poll();
@@ -156,10 +171,12 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
         }
     }
     if model.player.as_ref().is_some_and(|p| !p.error.is_empty()) {
-        let error = model.player.take().unwrap().error.clone();
-        model.fail(error);
+        let mut player = model.player.take().unwrap();
+        let error = player.failure.take().unwrap_or(Text::Data(player.error.clone()));
+        words::fail(model, error);
     }
     let mut polled = false;
+    let mut page_failure = None;
     if let Some(pdf) = &mut model.pdf {
         let pixels = page_pixels.unwrap_or((0, 0));
         if (pdf.columns, pdf.rows) != place.room || pdf.pixels != pixels {
@@ -172,9 +189,10 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
         }
         let error = std::mem::take(&mut pdf.error);
         if !error.is_empty() {
-            model.fail(error);
+            page_failure = Some(pdf.failure.take().unwrap_or(Text::Data(error)));
         }
     }
+    if let Some(error) = page_failure { words::fail(model, error); }
     if polled {
         super::office::facts(model);
     }
@@ -210,10 +228,10 @@ fn still(model: &mut Model, protocol: Protocol, shown: bool, room: (usize, usize
     state.still.poll();
     let error = std::mem::take(&mut state.still.error);
     if !error.is_empty() {
-        let i18n = &model.preview_state.i18n;
-        let error = if error == super::still::UNSHOWN { i18n.tr(&error) } else { error };
-        let sentence = i18n.tr_args("preview.imageError", &[&error]);
-        model.fail(sentence);
+        let failure = model.preview_state.still.failure.take();
+        let error = if error == super::still::UNSHOWN { Text::Key(super::still::UNSHOWN) }
+            else { failure.unwrap_or(Text::Data(error)) };
+        words::fail(model, Text::Args("preview.imageError", vec![error]));
     }
 }
 

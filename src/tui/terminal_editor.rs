@@ -37,7 +37,7 @@ impl EditorJob {
         if result == 0 { return Ok(None); }
         let status = std::process::ExitStatus::from_raw(status);
         if status.stopped_signal().is_some() {
-            return Err(io::Error::other("Editor suspended; editing cancelled"));
+            return Err(crate::tui::words::error("tui.terminal_editor.editor_suspended_editing_cancelled"));
         }
         self.finished = true;
         Ok(Some(status))

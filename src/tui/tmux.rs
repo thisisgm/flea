@@ -34,7 +34,7 @@ impl Transport {
     }
     pub fn write_packet(self, out: &mut impl Write, bytes: &[u8]) -> io::Result<()> {
         if self != Self::Direct && (bytes.starts_with(b"\x1b_") || bytes.starts_with(b"\x1bP")) && !bytes.ends_with(b"\x1b\\") {
-            return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Graphics packet has no string terminator"));
+            return Err(io::Error::new(io::ErrorKind::UnexpectedEof, super::words::Text::Key("tui.tmux.graphics_packet_has_no_string_terminator")));
         }
         match self {
             Self::Direct => out.write_all(bytes),
@@ -70,7 +70,7 @@ fn write_graphics_with(transport: Transport, out: &mut impl Write, bytes: &[u8])
         out.write_all(&rest[..start])?;
         rest = &rest[start..];
         let end = rest.windows(2).position(|p| p == b"\x1b\\").map(|i| i + 2)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "Graphics packet has no string terminator"))?;
+            .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, super::words::Text::Key("tui.tmux.graphics_packet_has_no_string_terminator")))?;
         transport.write_packet(out, &rest[..end])?;
         rest = &rest[end..];
     }

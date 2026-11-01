@@ -10,6 +10,43 @@ use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
 const AIR: usize = 2;
 const PROPERTIES_WIDTH: usize = 44;
 
+#[path = "cards/words.rs"]
+pub(crate) mod words;
+
+pub fn rtl(m: &Model) -> bool { m.i18n.locale().right_to_left && crate::tui::cells::mirrors("panels") }
+pub fn column(m: &Model, card: &Card, offset: usize, width: usize) -> usize {
+    card.left() + if rtl(m) { card.content().saturating_sub(offset + width) } else { offset }
+}
+pub fn direction(m: &Model, mut card: Card) -> Card {
+    if rtl(m) {
+        let end = card.left() + card.content();
+        let left = card.left();
+        for (x, _, width) in &mut card.buttons { *x = end.saturating_sub(*x - left + *width); }
+    }
+    card
+}
+pub fn field_text(m: &Model, text: &str, width: usize) -> String {
+    let text = crate::tui::cells::clean(text);
+    if rtl(m) {
+        let shown = crate::tui::cells::ellipsis(&text, width);
+        format!("{}{}", " ".repeat(width.saturating_sub(text_width(&shown))), shown)
+    } else { fit(&text, width) }
+}
+
+// The event loop supplies one locale identity before card projection and hit testing.
+pub fn refresh_locale(m: &mut Model) {
+    crate::tui::print::refresh_locale(m);
+    crate::tui::convert::refresh_locale(m);
+    crate::tui::combine::refresh_locale(m);
+    crate::tui::jobstatus::refresh_locale(m);
+    m.taildrop.refresh_locale(&m.i18n);
+    if let Some((id, source)) = &m.menu_view.properties_source {
+        if *id == m.action_id && m.properties.as_ref().is_some_and(|facts| !facts.is_empty()) {
+            m.properties = Some(properties(source, &m.i18n));
+        }
+    }
+}
+
 // Corners round only while Hyprland rounds, the compositor's own setting read when an overlay opens.
 pub fn corners(m: &Model) -> [&'static str; 4] {
     if m.rounded.load(Ordering::Relaxed) { ["╭", "╮", "╰", "╯"] } else { ["┌", "┐", "└", "┘"] }
@@ -72,6 +109,7 @@ pub fn layout(columns: usize, lines: usize, need: usize, body: usize, buttons: &
     let (end, row) = (card.left() + content, card.y + 4 + shown);
     let mut right = end;
     for (index, &w) in buttons.iter().enumerate().rev() {
+        let w = w.min(content);
         if inline { card.buttons.insert(0, (right.saturating_sub(w), row, w)); right = right.saturating_sub(w + 2); }
         else { card.buttons.insert(0, (end.saturating_sub(w), row + index, w)); }
     }
@@ -93,8 +131,14 @@ pub fn frame(out: &mut String, m: &Model, theme: &Theme, card: &Card, title: &st
     let content = card.content();
     let esc = m.i18n.tr("card.esc");
     let room = content.saturating_sub(text_width(&esc) + 2);
-    out.push_str(&format!("\x1b[{};{}H{}{}{}", card.y + 2, card.left() + 1, base, name_title("", title, if room > 0 { room } else { content }), base));
-    if room > 0 { out.push_str(&format!("  {}{}{}", theme.muted, esc, base)); }
+    let title_width = if room > 0 { room } else { content };
+    let title_x = column(m, card, 0, title_width);
+    let padding = if rtl(m) { title_width.saturating_sub(text_width(title)) } else { 0 };
+    out.push_str(&format!("\x1b[{};{}H{}{}{}{}", card.y + 2, title_x + 1, base, " ".repeat(padding), name_title("", title, title_width - padding), base));
+    if room > 0 {
+        let x = column(m, card, title_width + 2, text_width(&esc));
+        out.push_str(&format!("\x1b[{};{}H{}{}{}", card.y + 2, x + 1, theme.muted, esc, base));
+    }
     out.push_str(&format!("\x1b[{};{}H{}{}{}", card.y + 3, card.left() + 1, theme.rule, "─".repeat(content), base));
 }
 pub fn buttons(out: &mut String, theme: &Theme, card: &Card, buttons: &[Button]) {
@@ -127,19 +171,20 @@ pub fn delete_card(m: &Model) -> Card {
     let widths: Vec<usize> = buttons.iter().map(|b| button_width(&b.label)).collect();
     let need = rows.iter().map(|row| text_width(row)).max().unwrap_or(0).max(text_width(&title) + 2 + text_width(&m.i18n.tr("card.esc")))
         .max(widths.iter().sum::<usize>() + 2);
-    layout(m.columns, m.height + crate::tui::layout::CHROME_ROWS, need, rows.len(), &widths, m.deletion.as_ref().map_or(0, |d| d.scroll))
+    direction(m, layout(m.columns, m.height + crate::tui::layout::CHROME_ROWS, need, rows.len(), &widths, m.deletion.as_ref().map_or(0, |d| d.scroll)))
 }
 pub fn draw_delete(out: &mut String, m: &Model, theme: &Theme) {
     let (title, rows, labels) = delete_text(m);
     let card = delete_card(m);
     frame(out, m, theme, &card, &title);
     for (i, row) in rows.iter().skip(card.top).take(card.shown).enumerate() {
-        out.push_str(&format!("\x1b[{};{}H{}{}", card.y + 4 + i, card.left() + 1, theme.base(), fit(row, card.content())));
+        out.push_str(&format!("\x1b[{};{}H{}{}", card.y + 4 + i, card.left() + 1, theme.base(), field_text(m, row, card.content())));
     }
     buttons(out, theme, &card, &labels);
 }
 pub fn delete_key(m: &mut Model, key: &Key, wire: &mut Wire) -> io::Result<()> {
     let card = delete_card(m);
+    let rtl = rtl(m) && crate::tui::cells::mirrors("navigation");
     let most = delete_text(m).1.len().saturating_sub(card.shown);
     let token = m.deletion.as_ref().map_or(0, |d| d.token);
     let mut activate = false;
@@ -162,8 +207,8 @@ pub fn delete_key(m: &mut Model, key: &Key, wire: &mut Wire) -> io::Result<()> {
         else if (matches!(key.name.as_str(), "Tab" | "Backtab") && matches!(key.mods.as_str(), "" | "shift"))
             || (key.mods.is_empty() && (matches!(key.name.as_str(), "Right" | "Left") || matches!(key.text.as_str(), "h" | "l"))) {
             deletion.destructive = token != 0 && match key.name.as_str() {
-                "Left" => false, "Right" => true,
-                _ if key.text == "h" => false, _ if key.text == "l" => true,
+                "Left" => rtl, "Right" => !rtl,
+                _ if key.text == "h" => rtl, _ if key.text == "l" => !rtl,
                 _ => !deletion.destructive,
             };
         } else if key.mods.is_empty() && matches!(key.name.as_str(), "Return" | "Enter" | "Space") { activate = true; }
@@ -182,20 +227,24 @@ pub fn delete_key(m: &mut Model, key: &Key, wire: &mut Wire) -> io::Result<()> {
 }
 
 // Properties: the window's facts as a muted label column beside each value, closed by its default Close button.
+pub fn properties_reply(m: &mut Model, value: &Json) {
+    m.menu_view.properties_source = Some((m.action_id, value.clone()));
+    m.properties = Some(properties(value, &m.i18n));
+}
 pub fn properties(value: &Json, i18n: &I18n) -> Vec<(String, String)> {
     let fact = |key: &str, value: String| (i18n.tr(key), value);
     let bytes = count(value, "bytes");
     let mut facts = vec![
         fact("properties.path", text(value, "path").into()),
         fact("properties.kind", text(value, "kind").into()),
-        fact("properties.size", i18n.trn_args("properties.bytes", bytes as i64, &[&crate::tui::render::bytes(bytes)])),
+        fact("properties.size", i18n.trn_args("properties.bytes", bytes as i64, &[&i18n.locale().format_size(bytes as u64)])),
         fact("properties.permissions", text(value, "mode").into()),
         fact("properties.owner", i18n.tr_args("properties.ownerValue", &[text(value, "owner"), &count(value, "uid").to_string()])),
         fact("properties.group", i18n.tr_args("properties.groupValue", &[&count(value, "gid").to_string()])),
     ];
-    let modified = crate::tui::calendar::value(value.get("modified").unwrap_or(&Json::Null));
+    let modified = crate::tui::calendar::localized_value(value.get("modified").unwrap_or(&Json::Null), i18n.locale());
     if !modified.is_empty() { facts.insert(3, fact("properties.modified", modified)); }
-    let deleted = crate::tui::calendar::value(value.get("deleted").unwrap_or(&Json::Null));
+    let deleted = crate::tui::calendar::localized_value(value.get("deleted").unwrap_or(&Json::Null), i18n.locale());
     if !deleted.is_empty() { facts.push(fact("properties.deleted", deleted)); }
     if flag(value, "symlink") { facts.push(fact("properties.target", text(value, "target").into())); }
     facts
@@ -219,7 +268,7 @@ pub fn properties_card(m: &Model) -> Card {
     let close = button_width(&m.i18n.tr("card.close"));
     let need = rows.iter().map(|(_, value)| label + text_width(value)).max().unwrap_or(0).max(PROPERTIES_WIDTH)
         .max(text_width(&m.i18n.tr("properties.title")) + 2 + text_width(&m.i18n.tr("card.esc")));
-    layout(m.columns, m.height + crate::tui::layout::CHROME_ROWS, need, rows.len(), &[close], m.sheet_top)
+    direction(m, layout(m.columns, m.height + crate::tui::layout::CHROME_ROWS, need, rows.len(), &[close], m.sheet_top))
 }
 pub fn draw_properties(out: &mut String, m: &Model, theme: &Theme) {
     let card = properties_card(m);
@@ -227,7 +276,9 @@ pub fn draw_properties(out: &mut String, m: &Model, theme: &Theme) {
     frame(out, m, theme, &card, &m.i18n.tr("properties.title"));
     for (i, (name, value)) in rows.iter().skip(card.top).take(card.shown).enumerate() {
         let room = card.content().saturating_sub(label);
-        out.push_str(&format!("\x1b[{};{}H{}{}{}{}{}", card.y + 4 + i, card.left() + 1, theme.base(), theme.muted, fit(name, label.min(card.content())), theme.foreground, fit(value, room)));
+        let name_x = column(m, &card, 0, label.min(card.content()));
+        let value_x = column(m, &card, label, room);
+        out.push_str(&format!("\x1b[{};{}H{}{}{}\x1b[{};{}H{}{}", card.y + 4 + i, name_x + 1, theme.base(), theme.muted, field_text(m, name, label.min(card.content())), card.y + 4 + i, value_x + 1, theme.foreground, crate::tui::cells::isolate(crate::tui::cells::Run::Name, &field_text(m, value, room))));
     }
     buttons(out, theme, &card, &[Button { label: m.i18n.tr("card.close"), default: true, focused: true, enabled: true }]);
 }
@@ -269,3 +320,6 @@ impl Model {
         flea::ui_logic_st1::caps::heading(&self.i18n.tr(key), self.i18n.language())
     }
 }
+#[cfg(test)]
+#[path = "cards_words_tests.rs"]
+pub(crate) mod words_tests;

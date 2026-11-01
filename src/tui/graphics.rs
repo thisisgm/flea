@@ -70,6 +70,7 @@ pub struct Graphics {
     // Kitty's one transmission of the image; each changed frame after it only re-places the stored copy.
     pub transmit: Vec<u8>,
     pub error: String,
+    pub failure: Option<super::preview::words::Text>,
     pub columns: usize,
     pub rows: usize,
     pixels: (usize, usize),
@@ -84,6 +85,7 @@ impl Graphics {
             bytes: Vec::new(),
             transmit: Vec::new(),
             error: String::new(),
+            failure: None,
             columns: 0,
             rows: 0,
             pixels: (0, 0),
@@ -151,6 +153,7 @@ impl Graphics {
         let Ok(result) = job.result.try_recv() else {
             return false;
         };
+        self.failure = result.as_ref().err().map(|error| job.failure(error.clone()));
         self.job = None;
         match result {
             Ok(bytes) => {
@@ -173,6 +176,7 @@ impl Graphics {
         self.bytes.clear();
         self.transmit.clear();
         self.error.clear();
+        self.failure = None;
         self.identity = PathBuf::new();
     }
     fn retire(&mut self) {

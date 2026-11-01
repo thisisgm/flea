@@ -175,6 +175,7 @@ pub(super) struct Status {
     pub percent: Option<usize>,
     pub count: usize,
     i18n: crate::i18n::I18n,
+    head: String,
 }
 
 impl Status {
@@ -202,7 +203,7 @@ pub(super) fn receive(model: &mut super::model::Model, value: &crate::jsondoc::J
     use super::wire::{count, text};
     use crate::jsondoc::Json;
     let status = &mut model.job_status;
-    status.i18n.poll_changed();
+    status.i18n = model.i18n.clone();
     if text(value, "t") == "jobs" {
         status.id = count(value, "newest");
         status.count = count(value, "unfinished");
@@ -211,20 +212,32 @@ pub(super) fn receive(model: &mut super::model::Model, value: &crate::jsondoc::J
             .and_then(Json::as_array)
             .and_then(|jobs| jobs.iter().find(|job| count(job, "id") == status.id))
             .and_then(percent);
-        model.transfer = line(&status.i18n, text(value, "head"), status.count);
+        status.head = text(value, "head").into();
+        model.transfer = line(&status.i18n, &status.head, status.count);
     } else if let Some(job) = value.get("job") {
         if count(job, "id") == status.id {
             status.percent = percent(job);
             status.count = count(value, "unfinished");
-            model.transfer = if matches!(text(job, "state"), "waiting" | "running") {
-                line(&status.i18n, text(job, "head"), status.count)
+            status.head = if matches!(text(job, "state"), "waiting" | "running") {
+                text(job, "head").into()
             } else {
                 String::new()
+            };
+            model.transfer = if status.head.is_empty() { String::new() } else {
+                line(&status.i18n, &status.head, status.count)
             };
         }
         // A failed extraction says why, whichever job owns the status row.
         if text(job, "kind") == "extract" && text(job, "state") == "failed" {
             model.fail(text(job, "reason").into());
         }
+    }
+}
+
+pub(super) fn refresh_locale(model: &mut super::model::Model) {
+    let status = &mut model.job_status;
+    status.i18n = model.i18n.clone();
+    if status.id != 0 && !status.head.is_empty() {
+        model.transfer = line(&status.i18n, &status.head, status.count);
     }
 }

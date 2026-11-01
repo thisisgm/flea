@@ -12,10 +12,10 @@ pub fn run(terminal: &mut Terminal, path: &Path) -> io::Result<()> {
 
 pub(super) fn command(editor: Option<&str>, visual: Option<&str>, path: &Path) -> io::Result<Command> {
     let selected = editor.filter(|s| !s.trim().is_empty()).or_else(|| visual.filter(|s| !s.trim().is_empty()))
-        .ok_or_else(|| io::Error::other("Set $EDITOR or $VISUAL to edit a file in this terminal"))?;
+        .ok_or_else(|| super::words::error("tui.external_editor.set_editor_or_visual_to_edit_a_file_in_this_terminal"))?;
     let args = arguments(selected)?;
     let meta = path.metadata()?;
-    if !path.is_absolute() || !meta.is_file() { return Err(io::Error::other("Only a regular file can be edited")); }
+    if !path.is_absolute() || !meta.is_file() { return Err(super::words::error("tui.external_editor.only_a_regular_file_can_be_edited")); }
     let mut command = Command::new(&args[0]);
     command.args(&args[1..]).arg("--").arg(path);
     Ok(command)
@@ -44,9 +44,9 @@ fn arguments(text: &str) -> io::Result<Vec<String>> {
             started = true;
         }
     }
-    if quote.is_some() || escaped { return Err(io::Error::other("The editor command has an unfinished quote or escape")); }
+    if quote.is_some() || escaped { return Err(super::words::error("tui.external_editor.the_editor_command_has_an_unfinished_quote_or_escape")); }
     if started { args.push(word); }
-    if args.first().map_or(true, String::is_empty) { return Err(io::Error::other("The editor command needs a program")); }
+    if args.first().map_or(true, String::is_empty) { return Err(super::words::error("tui.external_editor.the_editor_command_needs_a_program")); }
     Ok(args)
 }
 

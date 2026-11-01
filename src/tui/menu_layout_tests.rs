@@ -144,9 +144,10 @@ fn provider_rows_show_only_while_installed_and_say_why_they_cannot_act() {
     let state = |m: &Model| { let rows = entries(m, &map); let row = row(&rows, "taildrop").unwrap().clone(); (row.ink, row.trail, row.chevron) };
     assert_eq!(state(&m), (Ink::Plain, String::new(), true));
     m.taildrop.peers.clear();
-    for (error, word) in [("signed out", "signed out"), ("no peers", "no devices"), ("Tailscale reported an error", "offline")] {
-        m.taildrop.error = error.into();
-        assert_eq!(state(&m), (Ink::Unavailable, word.into(), false), "{error}");
+    m.taildrop.refresh_locale(&m.i18n);
+    for (status, word) in [("NeedsLogin", "signed out"), ("Running", "no devices"), ("Stopped", "offline")] {
+        m.taildrop.status(&crate::jsondoc::parse(&format!(r#"{{"BackendState":"{status}","Self":{{"Capabilities":["https://tailscale.com/cap/file-sharing"]}}}}"#)).unwrap());
+        assert_eq!(state(&m), (Ink::Unavailable, word.into(), false), "{status}");
     }
     m.menu_directory = true;
     assert_eq!(state(&m), (Ink::Unavailable, "files only".into(), false));

@@ -46,6 +46,7 @@ pub struct Still {
     // The last grid for this file, held across a page-key swap until the new key's grid lands.
     fallback: Option<Grid>,
     pub error: String,
+    pub failure: Option<super::preview::words::Text>,
     places: Places,
 }
 
@@ -100,6 +101,7 @@ impl Still {
                     self.start(Source::Bytes(bytes));
                 }
                 Ok(Err(error)) => {
+                    self.failure = Some(stage.failure(error.clone()));
                     self.stage = None;
                     self.fallback = None;
                     self.error = error;
@@ -109,6 +111,7 @@ impl Still {
                     self.stage = None;
                     self.fallback = None;
                     self.error = UNSHOWN.into();
+                    self.failure = Some(super::preview::words::Text::Key(UNSHOWN));
                 }
             }
         }
@@ -128,6 +131,7 @@ impl Still {
             }
             Err(error) => {
                 self.fallback = None;
+                self.failure = Some(super::preview::words::from_io(&error));
                 self.error = crate::error::io_message(&error);
                 false
             }
@@ -144,6 +148,7 @@ impl Still {
         self.fallback = None;
         self.key = None;
         self.error.clear();
+        self.failure = None;
         self.retiring.retain(|r| matches!(r.try_recv(), Err(TryRecvError::Empty)));
         self.retiring_stages.retain(|r| matches!(r.try_recv(), Err(TryRecvError::Empty)));
     }
@@ -190,7 +195,7 @@ fn decode(source: Source, cells: (usize, usize), colors: ColorMode, places: Plac
     let (input, _spooled) = match source {
         Source::File(path) => (super::job::held(&path)?, None),
         Source::Bytes(bytes) => spool(&bytes, places.spool).map(|(file, spooled)| (file, Some(spooled)))?,
-        Source::Poster(..) => return Err(io::Error::other(UNSHOWN)),
+        Source::Poster(..) => return Err(super::preview::words::issue(UNSHOWN, "Preview could not be shown")),
     };
     let job = match places.search {
         Some(search) => chafa::Job::start_on(input, cells.0, cells.1, colors, &search)?,
@@ -201,12 +206,12 @@ fn decode(source: Source, cells: (usize, usize), colors: ColorMode, places: Plac
         // This worker is off the input loop, so a cancel waits here until chafa is killed and reaped.
         if cancel.load(Ordering::Relaxed) {
             job.cancel();
-            return Err(io::Error::other("Preview cancelled"));
+            return Err(super::preview::words::issue("tui.preview.cancelled", "Preview cancelled"));
         }
         match job.result.recv_timeout(POLL) {
             Ok(grid) => return grid.map(Some),
             Err(RecvTimeoutError::Timeout) => {}
-            Err(RecvTimeoutError::Disconnected) => return Err(io::Error::other(UNSHOWN)),
+            Err(RecvTimeoutError::Disconnected) => return Err(super::preview::words::issue(UNSHOWN, "Preview could not be shown")),
         }
     }
 }
@@ -227,7 +232,7 @@ pub(super) fn spool(bytes: &[u8], directory: Option<PathBuf>) -> io::Result<(Fil
     use std::os::unix::fs::OpenOptionsExt;
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let directory = directory.or_else(|| qualifying_dirs(&candidate_dirs(current_uid()), &[], current_uid()).into_iter().next())
-        .ok_or_else(|| io::Error::other(UNSHOWN))?;
+        .ok_or_else(|| super::preview::words::issue(UNSHOWN, "Preview could not be shown"))?;
     let path = directory.join(format!("still-{}-{}.png", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
     let mut file = std::fs::OpenOptions::new().read(true).write(true).create_new(true).mode(0o600).custom_flags(crate::oflags::O_NOFOLLOW).open(&path)?;
     let spooled = Spooled(path);

@@ -1,5 +1,6 @@
 //! Convert is an adapter to the shared batch service and its held menu identities.
 mod card;
+use super::{render::cards::words::Held, words::Text};
 mod input;
 mod replies;
 use super::{
@@ -38,6 +39,7 @@ pub struct Form {
     pub focus: usize,
     pub scroll: usize,
     pub error: String,
+    error_words: Option<Held>,
     info: Option<super::job::Job>,
     edit_fresh: bool,
 }
@@ -93,7 +95,7 @@ pub fn open(m: &mut Model, w: &mut Wire, from_menu: bool) -> io::Result<()> {
         return Ok(());
     }
     if super::contents::guarded(m) || m.searching || m.pending_clipboard || !offered(m) {
-        m.fail(m.i18n.tr("dialogs.output.error.convert_kind"));
+        m.fail_text(Text::Key("dialogs.output.error.convert_kind"));
         return Ok(());
     }
     m.dismiss_error();
@@ -114,6 +116,7 @@ pub fn open(m: &mut Model, w: &mut Wire, from_menu: bool) -> io::Result<()> {
         focus: 0,
         scroll: 0,
         error: String::new(),
+        error_words: None,
         info: None,
         edit_fresh: true,
     });
@@ -155,7 +158,12 @@ pub fn submit(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     let f = m.converting.card.as_mut().unwrap();
     let pages = Pages::parse(&f.pages);
     if pages.as_ref().is_err() {
-        f.error = m.i18n.tr("dialogs.output.error.pages");
+        Held::set(
+            &mut f.error,
+            &mut f.error_words,
+            Text::Key("dialogs.output.error.pages"),
+            &m.i18n,
+        );
         return Ok(());
     }
     if f.kind == Kind::Pdf {
@@ -163,7 +171,12 @@ pub fn submit(m: &mut Model, w: &mut Wire) -> io::Result<()> {
             return Ok(());
         };
         if pages.as_ref().unwrap().selected(n).is_err() {
-            f.error = m.i18n.trn("dialogs.output.error.document_pages", n as i64);
+            Held::set(
+                &mut f.error,
+                &mut f.error_words,
+                Text::Plural("dialogs.output.error.document_pages", n as usize, vec![]),
+                &m.i18n,
+            );
             return Ok(());
         }
     }
@@ -199,7 +212,7 @@ pub fn submit(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     });
     m.converting.card = None;
     m.menu_action = "convertSubmitting".into();
-    m.transfer = m.i18n.tr("dialogs.output.converting");
+    m.transfer_text(Text::Key("dialogs.output.converting"));
     w.send(fields)
 }
 pub fn poll(m: &mut Model) {
@@ -224,6 +237,18 @@ pub fn poll(m: &mut Model) {
         })
         .filter(|n| (1..=flea::ui_logic_op4::pages::MAX_PAGES).contains(n));
     if f.count.is_none() {
-        f.error = m.i18n.tr("dialogs.output.error.page_count");
+        Held::set(
+            &mut f.error,
+            &mut f.error_words,
+            Text::Key("dialogs.output.error.page_count"),
+            &m.i18n,
+        );
+    }
+}
+
+// Geometry and painting read the same frame locale after this synchronous refresh.
+pub fn refresh_locale(m: &mut Model) {
+    if let Some(f) = &mut m.converting.card {
+        Held::refresh(&mut f.error, &mut f.error_words, &m.i18n);
     }
 }

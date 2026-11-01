@@ -9,7 +9,7 @@ pub fn plain(text: &str) -> String {
     while let Some(c) = chars.next() {
         if c == '\x1b' {
             if chars.next() == Some('[') { for c in chars.by_ref() { if ('@'..='~').contains(&c) { break; } } }
-        } else { out.push(c); }
+        } else if !matches!(c, '\u{2066}'..='\u{2069}') { out.push(c); }
     }
     out
 }
@@ -32,6 +32,7 @@ pub fn grid(text: &str, columns: usize, lines: usize) -> Vec<String> {
                 args.push(code);
             }
         } else if y < lines && x < columns {
+            if matches!(c, '\u{2066}'..='\u{2069}') { continue; }
             let width = crate::tui::cells::width(c);
             if width == 0 { if x > 0 { cells[y][x - 1].push(c); } }
             else {
@@ -147,7 +148,7 @@ fn t3_empty_and_locked_states_match_reference_cells_without_preview_side_effects
     m.pending = Some(m.preview_path.clone());
     m.receive(crate::jsondoc::parse(r#"{"t":"error","where":"scan","path":"/fx/v/work/Locked","msg":"permission denied"}"#).unwrap(), &mut w).unwrap();
     let rows = grid(&render::frame(&m, &theme, &map, 130, 31, Duration::ZERO), 130, 31);
-    assert!(rows[30].contains("9 items  You don’t have permission to open this folder."));
+    assert!(rows[30].contains("9 items  You don’t have permission to open this folder."), "{}", rows[30]);
     assert!(!rows[30].contains("dismiss"));
     assert_eq!(m.path, std::path::Path::new("/fx/v/work"));
     drop(w); reader.join().unwrap();
@@ -381,3 +382,6 @@ pub fn isolated_test(name: &str, extra: &[(&str, &str)]) -> bool {
     assert!(String::from_utf8_lossy(&output.stdout).contains("test result: ok. 1 passed;"), "isolated test {name} ran no test");
     true
 }
+
+#[path = "frame_isolate_join_tests.rs"]
+mod isolate_join;

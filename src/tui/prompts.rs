@@ -1,5 +1,5 @@
 // The status row's prompts and receipts, the paste question, and the undo steps an undo of a trash lands the cursor on.
-use super::{cells::{ellipsis, fit, text_width}, editor::Editor, input::Key, model::Model, render::grouped, theme::Theme,
+use super::{cells::{ellipsis, fit, text_width}, editor::Editor, input::Key, model::Model, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
 use flea::{i18n::I18n, ui_logic_sr1::{scope_label, Kind, Session}};
@@ -89,7 +89,7 @@ fn after<'a>(m: &Model, editor: &Editor, theme: &'a Theme) -> (String, &'a str, 
     }
 }
 fn shown(m: &Model) -> String {
-    m.prompts.i18n.tr_args("filter.shown", &[&grouped(m.filter_count()), &grouped(m.total)])
+    m.prompts.i18n.tr_args("filter.shown", &[&m.i18n.locale().format_count(m.filter_count() as i64), &m.i18n.locale().format_count(m.total as i64)])
 }
 fn scope(m: &Model, contents: bool) -> String {
     let folder = m.editor.as_ref().filter(|e| e.kind == "search").map_or(&m.path, |e| &e.path);
@@ -111,8 +111,8 @@ pub fn lead<'a>(m: &Model, theme: &'a Theme, count: String) -> Vec<(&'a str, Str
 }
 // Find's status: what it found, and what it has scanned only while it is still walking.
 pub fn found(m: &Model, scanned: usize) -> String {
-    if m.searching { m.prompts.i18n.tr_args("find.scanning", &[&grouped(m.total), &grouped(scanned)]) }
-    else { m.prompts.i18n.tr_args("find.found", &[&grouped(m.total)]) }
+    if m.searching { m.prompts.i18n.tr_args("find.scanning", &[&m.i18n.locale().format_count(m.total as i64), &m.i18n.locale().format_count(scanned as i64)]) }
+    else { m.prompts.i18n.tr_args("find.found", &[&m.i18n.locale().format_count(m.total as i64)]) }
 }
 fn hint(m: &Model) -> String {
     if m.hints.undo.is_empty() { String::new() } else { format!(" {}", m.prompts.i18n.tr_args("receipt.undoes", &[&m.hints.undo])) }
@@ -132,16 +132,21 @@ pub fn message<'a>(m: &Model, theme: &'a Theme) -> Vec<(&'a str, String, usize)>
         None => vec![(theme.foreground.as_str(), m.message.clone(), 2)],
     }
 }
+#[cfg(test)]
+#[allow(dead_code)]
 pub fn clipboard(m: &Model) -> String {
     m.prompts.i18n.trn(if m.cut { "clipboard.cut" } else { "clipboard.copied" }, m.clipboard.len() as i64)
 }
 // The first trash press says what the second does, "it" for one item and "them" for a selection.
-pub fn trash_arm(m: &Model, arm: &str) -> String {
+#[cfg(test)]
+pub fn trash_arm(m: &Model, arm: &str) -> String { trash_arm_text(m, arm).render(&m.i18n) }
+pub fn trash_arm_text(m: &Model, arm: &str) -> super::words::Text {
     let many = m.selected.len() > 1;
     let key = match (many, m.hints.trash.is_empty()) {
         (false, false) => "trash.armOne", (true, false) => "trash.armMany", (false, true) => "trash.armOneAlone", (true, true) => "trash.armManyAlone",
     };
-    m.prompts.i18n.tr_args(key, &[arm, &m.hints.trash])
+    let arm = m.keycaps.and_then(|snapshot| snapshot.label(arm).ok()).unwrap_or(arm);
+    super::words::args(key, vec![arm.into(), m.hints.trash.clone().into()])
 }
 // Sends a trash of the selection or the cursor row under a request id, so its answer is recorded once and names what moved.
 pub fn trash(m: &mut Model, w: &mut Wire) -> io::Result<()> {
@@ -151,13 +156,13 @@ pub fn trash(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     m.prompts.trashing.insert(request);
     w.send(vec![("c", word("trash")), ("id", number(request)), ("rows", m.indices())])
 }
-fn step(i18n: &I18n, op: &str) -> Option<String> {
+fn step_key(op: &str) -> Option<&'static str> {
     let key = match op {
         "trash" => "step.trash", "rename" | "bulkrename" => "step.rename", "duplicate" => "step.duplicate", "mkdir" => "step.mkdir",
         "newfile" => "step.newfile", "copy" => "step.copy", "move" => "step.move", "merge" => "step.merge", "link" => "step.link",
         "permissions" => "step.permissions", _ => return None,
     };
-    Some(i18n.tr(key))
+    Some(key)
 }
 pub fn record(m: &mut Model, op: &'static str, paths: Vec<PathBuf>) {
     m.prompts.undo.push(Step { op, paths });
@@ -174,8 +179,8 @@ pub fn receipt(m: &mut Model, value: &Json) -> String {
         "duplicated" => { record(m, "duplicate", vec![path]); undoable(m, m.prompts.i18n.tr("receipt.duplicated")) }
         "undone" | "redone" => {
             let undone = text(value, "t") == "undone";
-            let line = match step(i18n, text(value, "op")) {
-                Some(step) => i18n.tr_args(if undone { "receipt.undid" } else { "receipt.redid" }, &[&step]),
+            let line = match step_key(text(value, "op")) {
+                Some(step) => i18n.tr_args(if undone { "receipt.undid" } else { "receipt.redid" }, &[&i18n.tr(step)]),
                 None => i18n.tr(if undone { "receipt.undidLast" } else { "receipt.redidLast" }),
             };
             let (from, to) = if undone { (&mut m.prompts.undo, &mut m.prompts.redo) } else { (&mut m.prompts.redo, &mut m.prompts.undo) };
@@ -194,7 +199,8 @@ pub fn receipt(m: &mut Model, value: &Json) -> String {
             if failed > 0 {
                 let why = text(value, "err").trim_end_matches('.');
                 let sentence = if why.is_empty() { i18n.trn("trash.failed", failed as i64) } else { i18n.trn_args("trash.failedWhy", failed as i64, &[why]) };
-                m.fail(sentence);
+                let _ = sentence;
+                m.fail_text(super::words::Text::Plural(if why.is_empty() { "trash.failed" } else { "trash.failedWhy" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));
             }
             // An answer whose request this client no longer waits on records nothing, so no undo step is taken twice.
             if !m.prompts.trashing.remove(&count(value, "id")) || ok == 0 { return String::new(); }
@@ -205,20 +211,55 @@ pub fn receipt(m: &mut Model, value: &Json) -> String {
         }
         _ => {
             let mut line = i18n.trn(if m.transfer_moving { "receipt.moved" } else { "receipt.copied" }, ok as i64);
-            if skipped > 0 { line.push_str(&format!(" {}", i18n.tr_args("receipt.skipped", &[&grouped(skipped)]))); }
-            if failed > 0 { line.push_str(&format!(" {}", i18n.tr_args("receipt.failed", &[&grouped(failed)]))); }
+            if skipped > 0 { line.push_str(&format!(" {}", i18n.tr_args("receipt.skipped", &[&i18n.locale().format_count(skipped as i64)]))); }
+            if failed > 0 { line.push_str(&format!(" {}", i18n.tr_args("receipt.failed", &[&i18n.locale().format_count(failed as i64)]))); }
             if flag(value, "cancelled") { line.push_str(&format!(" {}", i18n.tr("receipt.cancelled"))); }
-            if failed > 0 { m.fail(i18n.trn("transfer.failed", failed as i64)); }
+            if failed > 0 { m.fail_text(super::words::Text::Plural("transfer.failed", failed, vec![])); }
             if ok == 0 { return line; }
             record(m, if m.transfer_moving { "move" } else { "copy" }, Vec::new());
             undoable(m, line)
         }
     }
 }
+pub fn undoable_text(m: &Model, line: super::words::Text) -> super::words::Text {
+    use super::words::{Text, args};
+    if m.hints.undo.is_empty() { line } else { Text::Joined(vec![line, Text::from(" "), args("receipt.undoes", vec![Text::from(m.hints.undo.clone())])]) }
+}
+pub fn clipboard_text(m: &Model) -> super::words::Text {
+    super::words::Text::Plural(if m.cut { "clipboard.cut" } else { "clipboard.copied" }, m.clipboard.len(), vec![])
+}
+pub fn receipt_text(m: &Model, value: &Json) -> super::words::Text {
+    use super::words::{Text, args};
+    let (ok, failed, skipped) = (count(value, "ok"), count(value, "failed"), count(value, "skipped"));
+    let line = match text(value, "t") {
+        "renamed" => Text::Key("receipt.renamed"),
+        "made" => Text::Key("receipt.made"),
+        "duplicated" => Text::Key("receipt.duplicated"),
+        "trashed" => Text::Plural("receipt.trashed", ok, vec![]),
+        "undone" | "redone" => {
+            let undone = text(value, "t") == "undone";
+            let line = match step_key(text(value, "op")) {
+                Some(step) => args(if undone { "receipt.undid" } else { "receipt.redid" }, vec![Text::Key(step)]),
+                None => Text::Key(if undone { "receipt.undidLast" } else { "receipt.redidLast" }),
+            };
+            return if undone { line } else { undoable_text(m, line) };
+        }
+        _ => {
+            let mut parts = vec![Text::Plural(if m.transfer_moving { "receipt.moved" } else { "receipt.copied" }, ok, vec![])];
+            for (key, count) in [("receipt.skipped", skipped), ("receipt.failed", failed)] {
+                if count > 0 { parts.extend([Text::from(" "), args(key, vec![Text::Count(count)])]); }
+            }
+            if flag(value, "cancelled") { parts.extend([Text::from(" "), Text::Key("receipt.cancelled")]); }
+            let line = Text::Joined(parts);
+            return if ok == 0 { line } else { undoable_text(m, line) };
+        }
+    };
+    undoable_text(m, line)
+}
 // Paste asks which names already exist before anything is written; a second paste waits for the first question's answer.
 pub fn paste(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
-    if m.clipboard.is_empty() { m.say(m.prompts.i18n.tr("paste.nothing")); return Ok(()); }
-    if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail(m.prompts.i18n.tr("paste.waiting")); return Ok(()); }
+    if m.clipboard.is_empty() { m.say_key("paste.nothing"); return Ok(()); }
+    if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key("paste.waiting"); return Ok(()); }
     m.prompts.id = m.prompts.id.wrapping_add(1).max(1);
     let paste = Paste { id: m.prompts.id, op: if m.cut || action == "movePaste" { "move" } else { "copy" }, paths: m.clipboard.clone(),
         dest: m.path.clone(), fat: None, total: 0, name: String::new() };

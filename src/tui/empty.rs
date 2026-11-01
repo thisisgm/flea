@@ -1,6 +1,7 @@
 use super::cells::{centered, fit};
 use std::time::Duration;
 
+#[cfg(test)]
 pub(super) const PHRASES: [&str; 3] = ["NOTHING HERE YET", "A VERY TIDY FOLDER", "QUIET IN HERE"];
 pub(super) const ROTATE_MS: u128 = 2800;
 // The Codicons search mark, the one the window's no-match notice draws.
@@ -20,9 +21,14 @@ pub(super) fn shown(m: &super::model::Model, columns: usize, lines: usize) -> bo
     columns >= 12 && lines > super::render::CHROME_ROWS && m.total == 0 && m.pending.is_none() && super::trashview::settled(m)
 }
 // Captions loop while the empty folder is shown; each appearance supplies a fresh elapsed clock.
+#[cfg(test)]
 pub fn line(y: usize, height: usize, width: usize, marks: bool, elapsed: Duration) -> String {
-    let phrase = PHRASES[(elapsed.as_millis() / ROTATE_MS % PHRASES.len() as u128) as usize];
-    notice(y, height, width, if marks { super::icons::FOLDER } else { "›" }, phrase)
+    localized(y, height, width, marks, elapsed, &crate::i18n::I18n::default())
+}
+pub fn localized(y: usize, height: usize, width: usize, marks: bool, elapsed: Duration, i18n: &crate::i18n::I18n) -> String {
+    let keys = ["pane.empty.initial", "pane.empty.beat_one", "pane.empty.rest"];
+    let phrase = i18n.tr(keys[(elapsed.as_millis() / ROTATE_MS % keys.len() as u128) as usize]);
+    notice(y, height, width, if marks { super::icons::FOLDER } else { "›" }, &phrase)
 }
 
 #[cfg(test)]

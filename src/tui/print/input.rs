@@ -44,6 +44,8 @@ pub fn key(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
         return Ok(());
     }
     let card = geometry(m);
+    let column = super::card::field_column(m, crate::tui::render::cards::room(m.columns));
+    let rtl = crate::tui::render::cards::rtl(m);
     let f = m.printing.card.as_mut().unwrap();
     if let Some(p) = &key.pointer {
         if p.released || !card.contains(p.x, p.y) {
@@ -87,7 +89,12 @@ pub fn key(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                 }
                 return Ok(());
             }
-            let right = p.x > card.left() + FIELD_COLUMN;
+            let logical = if rtl {
+                card.left() + card.content() - p.x.saturating_sub(card.left()) + 1
+            } else {
+                p.x
+            };
+            let right = logical > card.left() + column;
             let focus = match (row, right) {
                 (1, _) => Some(0),
                 (4, false) => Some(1),

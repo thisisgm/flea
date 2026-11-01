@@ -238,7 +238,6 @@ fn controlled_converter(root: &Path) {
     let bwrap = root.join("bin/bwrap");
     let script = r#"#!/bin/sh
 set -eu
-# sample: --ro-bind /input /input --tmpfs /tmp -- /usr/bin/magick /input/photo.png /output.jpg
 while test "$#" -gt 0; do
  case "$1" in
   --ro-bind|--ro-bind-try|--ro-bind-fd|--bind|--symlink|--setenv) shift 3 ;;
@@ -257,9 +256,7 @@ set -eu
 root=${FLEA_TUI_CONVERT_ROOT:?}
 case "$root" in /*) test -f "$root/.flea-test-sandbox" ;; *) exit 98 ;; esac
 if test -f "$root/refuse"; then printf 'fixture converter refusal\n' >&2; exit 1; fi
-marker="$root/.held-$$"
-printf '%s\n' "$$" > "$marker"
-/usr/bin/mv -- "$marker" "$root/held"
+printf '%s\n' "$$" > "$root/held"
 exec /bin/sleep 300
 "#;
     std::fs::write(&magick, script).unwrap();

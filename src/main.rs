@@ -10,7 +10,7 @@ mod heap;
 mod hyprkeys;
 // GPUI L units wire the catalog API after their surfaces land.
 #[cfg_attr(not(test), allow(dead_code))]
-mod i18n;
+use flea::i18n;
 mod icdexclude;
 mod imageopen;
 mod json;

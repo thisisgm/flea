@@ -22,9 +22,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-const PAGES: &str = "document.office_pages";
-const SHEETS: &str = "document.office_sheets";
-const SLIDES: &str = "document.office_slides";
 const TITLE: &str = "document.office_title";
 const AUTHOR: &str = "document.office_author";
 // How long a checked identity waits before the next freshness check, which runs on a worker.
@@ -325,8 +322,9 @@ fn sniff(path: &Path, cancel: &AtomicBool, gate: &Gate) -> Result<bool, String> 
 }
 
 // The failure recipe the shared state draws, one sentence and Open With, or nothing for every state that draws a page.
-fn project(m: &mut Model) {
+pub fn project(m: &mut Model) {
     let projection = m.preview_state.office.doc.projection();
+    m.preview_state.unshown_key = projection.map(|p| p.key);
     m.preview_state.unshown = projection.map(|p| Unshown {
         sentence: m.preview_state.i18n.tr(p.key),
         open_with: p.open_with,
@@ -355,32 +353,19 @@ pub fn ready_pdf(state: &State) -> Option<PathBuf> {
 
 // The count of pages, sheets or slides, then the title and author of the converted PDF as facts rows; a converter that wrote no title or author gives none.
 pub fn facts(m: &mut Model) {
+    super::preview::words::metadata(m);
+}
+pub fn append_facts(m: &mut Model) {
     let office = office_row(m);
+    let Some(pdf) = m.pdf.as_ref().filter(|_| office) else { return };
     let i18n = &m.preview_state.i18n;
-    let labels = [PAGES, SHEETS, SLIDES, TITLE, AUTHOR].map(|key| i18n.tr(key));
-    m.preview_metadata.retain(|line| {
-        !labels.iter().any(|label| {
-            line.strip_prefix(label.as_str())
-                .is_some_and(|rest| rest.starts_with(" · "))
-        })
-    });
-    let Some(pdf) = m.pdf.as_ref().filter(|_| office) else {
-        return;
-    };
     let mut rows = Vec::new();
     if let Some((key, count)) = m.preview_state.office.doc.count(pdf.pages) {
-        rows.push((key, i18n.locale().format_count(count as i64)));
+        rows.push((key, i18n.locale().format_count(count as i64), true));
     }
-    if !pdf.title.is_empty() {
-        rows.push((TITLE, pdf.title.clone()));
-    }
-    if !pdf.author.is_empty() {
-        rows.push((AUTHOR, pdf.author.clone()));
-    }
-    for (key, value) in rows {
-        m.preview_metadata
-            .push(format!("{} · {value}", i18n.tr(key)));
-    }
+    if !pdf.title.is_empty() { rows.push((TITLE, pdf.title.clone(), false)); }
+    if !pdf.author.is_empty() { rows.push((AUTHOR, pdf.author.clone(), false)); }
+    for (key, value, number) in rows { super::preview::words::push(m, key, value, number); }
 }
 
 #[cfg(test)]

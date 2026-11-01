@@ -114,6 +114,7 @@ pub fn receive(m: &mut Model, value: &crate::jsondoc::Json) {
             state.file = Some(file.into());
             state.data = Some(data);
             m.preview_state.unshown = None;
+            m.preview_state.unshown_key = None;
             details(m);
         }
         ReplyState::Failed { .. } | ReplyState::Cancelled => failure(m),
@@ -122,10 +123,16 @@ pub fn receive(m: &mut Model, value: &crate::jsondoc::Json) {
 fn failure(m: &mut Model) {
     m.model3d.failed = true;
     m.model3d.ready = None;
+    m.preview_state.unshown_key = Some("model3d.cannot_preview");
     m.preview_state.unshown = Some(Unshown { sentence: m.preview_state.i18n.tr("model3d.cannot_preview"), open_with: true });
     m.preview_width = 0;
 }
 fn details(m: &mut Model) {
+    super::preview::words::metadata(m);
+    m.preview_width = 0;
+}
+pub fn append_facts(m: &mut Model) {
+    if !m.rows.get(&m.cursor).is_some_and(|row| super::pane_state::kind(row) == super::pane_state::Kind::Model3d) { return; }
     let Some(data) = &m.model3d.data else { return };
     let i18n = &m.preview_state.i18n;
     let facts = data.plates.get(m.model3d.controls.plate).filter(|_| data.plates.len() > 1).map_or(&data.facts, |p| &p.facts);
@@ -151,9 +158,16 @@ fn details(m: &mut Model) {
         }
         if let Some(weight) = data.slicer.weight_g { rows.push(("weight", i18n.tr_args("model3d.value.g", &[&i18n.locale().format_number(weight, 1)]))); }
     }
-    m.preview_metadata.retain(|s| s.starts_with("Modified · "));
     for (key, value) in rows {
-        m.preview_metadata.push(format!("{} · {value}", i18n.tr(&format!("model3d.fact.{key}"))));
+        let key = match key {
+            "dimensions" => "model3d.fact.dimensions", "triangles" => "model3d.fact.triangles",
+            "objects" => "model3d.fact.objects", "plates" => "model3d.fact.plates",
+            "printer" => "model3d.fact.printer", "filament" => "model3d.fact.filament",
+            "layer_height" => "model3d.fact.layer_height", "print_time" => "model3d.fact.print_time",
+            _ => "model3d.fact.weight",
+        };
+        let number = !matches!(key, "model3d.fact.printer" | "model3d.fact.filament");
+        super::preview::words::push(m, key, value, number);
     }
     m.preview_width = 0;
 }

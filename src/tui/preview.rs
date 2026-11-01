@@ -6,11 +6,14 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::{atomic::{AtomicBool, Ordering}, mpsc::{self, Receiver}, Arc};
 
+pub mod words;
+use words::Text;
+
 const TEXT_BYTES: u64 = 1024 * 1024;
 #[derive(Default)]
 pub struct Reader {
     pending: Option<(PathBuf, usize)>,
-    running: Option<(usize, Arc<AtomicBool>, Receiver<Result<String, String>>)>,
+    running: Option<(usize, Arc<AtomicBool>, Receiver<Result<String, &'static str>>)>,
 }
 impl Reader {
     fn request(&mut self, path: PathBuf, generation: usize) {
@@ -36,12 +39,12 @@ impl Reader {
         std::thread::spawn(move || { let _ = tx.send(read_text(&path, &stopped)); });
         self.running = Some((generation, cancel, receiver));
     }
-    fn poll(&mut self) -> Option<(usize, Result<String, String>)> {
+    fn poll(&mut self) -> Option<(usize, Result<String, &'static str>)> {
         let (generation, cancel, receiver) = self.running.as_ref()?;
         let result = match receiver.try_recv() {
             Ok(result) => result,
             Err(mpsc::TryRecvError::Empty) => return None,
-            Err(mpsc::TryRecvError::Disconnected) => Err("Text preview reader stopped.".into()),
+            Err(mpsc::TryRecvError::Disconnected) => Err("tui.preview.text_reader_stopped"),
         };
         let generation = *generation;
         let accepted = !cancel.load(Ordering::Relaxed);
@@ -53,22 +56,22 @@ impl Reader {
 impl Drop for Reader {
     fn drop(&mut self) { self.cancel(); }
 }
-fn read_text(path: &Path, cancel: &AtomicBool) -> Result<String, String> {
-    const READ_FAILED: &str = "This file could not be read.";
+fn read_text(path: &Path, cancel: &AtomicBool) -> Result<String, &'static str> {
+    const READ_FAILED: &str = "preview.unreadable";
     let before = path.symlink_metadata().map_err(|_| READ_FAILED)?;
     let mut file = regfile::open_if_regular(path, O_NOFOLLOW).map_err(|_| READ_FAILED)?;
     if !file.metadata().is_ok_and(|after| before.dev() == after.dev() && before.ino() == after.ino()) {
-        return Err("Selected item changed".into());
+        return Err("tui.preview.changed");
     }
     let mut bytes = Vec::new();
     let mut chunk = [0; 8192];
     loop {
-        if cancel.load(Ordering::Relaxed) { return Err("Preview cancelled".into()); }
+        if cancel.load(Ordering::Relaxed) { return Err("tui.preview.cancelled"); }
         let count = file.read(&mut chunk).map_err(|_| READ_FAILED)?;
         if count == 0 { break; }
         // Data with a NUL in its first chunk is binary, so the rest of it is never read.
         if bytes.is_empty() && chunk[..count].contains(&0) { return Ok(String::new()); }
-        if bytes.len() as u64 + count as u64 > TEXT_BYTES { return Err("This file is too large to preview.".into()); }
+        if bytes.len() as u64 + count as u64 > TEXT_BYTES { return Err("preview.tooLarge"); }
         bytes.extend_from_slice(&chunk[..count]);
     }
     if bytes.contains(&0) { return Ok(String::new()); }
@@ -103,25 +106,21 @@ pub fn load(m: &mut Model, force: bool) {
     m.media_probe = None;
     m.preview_children = None;
     super::pane_state::reset(&mut m.preview_state);
+    words::metadata(m);
     let Some(row) = m.rows.get(&m.cursor) else {
         return;
     };
     m.preview.push(row.name.clone());
     m.preview
-        .push(format!("{} · {}", row.kind, super::render::bytes(row.size)));
-    let modified = super::render::modified(row.modified);
-    if !modified.is_empty() {
-        m.preview_metadata.push(format!("Modified · {modified}"));
-    }
-    let i18n = &m.preview_state.i18n;
+        .push(format!("{} · {}", row.kind, m.preview_state.i18n.locale().format_size(row.size as u64)));
     if !m.preview_loaded {
         if !m.hints.load_preview.is_empty() {
-            m.preview.push(i18n.tr_args("preview.loadHint", &[&m.hints.load_preview]));
+            set_text(m, Text::Args("preview.loadHint", vec![Text::Data(super::cells::clean(&m.hints.load_preview))]));
         }
         return;
     }
     if row.directory {
-        m.preview.push("Folder".into());
+        set_text(m, Text::Key("preview.points.folder"));
         return;
     }
     // Text reads as text, and so does data that holds no NUL; a link reads its target, which the reader opens without following.
@@ -130,10 +129,10 @@ pub fn load(m: &mut Model, force: bool) {
         return;
     }
     if row.size as u64 > TEXT_BYTES && row.link.is_empty() {
-        if text { m.preview.push(i18n.tr("preview.tooLarge")); }
+        if text { set_text(m, Text::Key("preview.tooLarge")); }
         return;
     }
-    m.preview.push(i18n.tr("preview.loading"));
+    set_text(m, Text::Key("preview.loading"));
     let content = super::pane_state::content(m).unwrap_or(path);
     m.preview_reader.request(content, m.preview_generation);
 }
@@ -142,8 +141,8 @@ pub fn poll(m: &mut Model) {
     if generation != m.preview_generation { return; }
     m.preview.truncate(2);
     match result {
-        Ok(body) => { m.preview.push(String::new()); m.preview_body = body; }
-        Err(error) => m.preview.push(error),
+        Ok(body) => { m.preview_state.text = None; m.preview.push(String::new()); m.preview_body = body; }
+        Err(error) => set_text(m, Text::Key(error)),
     }
     m.preview_width = 0;
 }
@@ -244,7 +243,7 @@ mod tests {
         std::os::unix::fs::symlink(d.join("note.txt"), d.join("link")).unwrap();
         m.rows.get_mut(&0).unwrap().name = "link".into();
         load(&mut m, true);
-        assert_eq!(read_text(&d.join("link"), &AtomicBool::new(false)).unwrap_err(), "This file could not be read.");
+        assert_eq!(read_text(&d.join("link"), &AtomicBool::new(false)).unwrap_err(), "preview.unreadable");
     }
     // The hint under an unloaded preview names the key the keymap binds, and says nothing when none is bound.
     #[test]
@@ -325,3 +324,41 @@ context = "listing"
         assert_eq!(receiver.recv_timeout(std::time::Duration::from_secs(5)).unwrap().unwrap(), "current body");
     }
 }
+
+// Receives the controller's frozen frame locale; implemented by the preview projection transaction.
+pub fn refresh_locale(m: &mut Model) {
+    m.preview_state.i18n = m.i18n.clone();
+    if let Some(Text::Args("preview.loadHint", values)) = &mut m.preview_state.text {
+        *values = vec![Text::Data(super::cells::clean(&m.hints.load_preview))];
+    }
+    if let Some(text) = m.preview_state.text.clone() { set_text(m, text); }
+    if let Some(key) = m.preview_state.refusal {
+        m.preview_refusal = m.preview_state.i18n.tr(key);
+    }
+    if let Some(key) = m.preview_state.unshown_key {
+        if let Some(unshown) = &mut m.preview_state.unshown { unshown.sentence = m.preview_state.i18n.tr(key); }
+    }
+    words::metadata(m);
+    if let Some(player) = &mut m.player { player.refresh_locale(&m.preview_state.i18n); }
+    m.preview_width = 0;
+    super::pane::prepare(m);
+}
+pub fn set_text(m: &mut Model, text: Text) {
+    m.preview.truncate(2);
+    m.preview.push(text.render(&m.preview_state.i18n));
+    m.preview_state.text = Some(text);
+    m.preview_width = 0;
+}
+// Called after an accepted peek reply, retaining its semantic refusal independently of rendered words.
+pub fn peeked(m: &mut Model, value: &crate::jsondoc::Json) {
+    m.preview_state.refusal = if !super::wire::flag(value, "failed") { None }
+        else if super::wire::count(value, "mode") > 0 && super::wire::count(value, "mode") & 0o444 == 0 { Some("pane.locked") }
+        else { Some("pane.unread") };
+    m.preview_refusal = m.preview_state.refusal.map(|key| m.preview_state.i18n.tr(key)).unwrap_or_default();
+    m.preview_state.text = None;
+    m.preview_width = 0;
+}
+
+#[cfg(test)]
+#[path = "preview_locale_tests.rs"]
+mod locale_tests;

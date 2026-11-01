@@ -33,7 +33,7 @@ impl Process {
         let input = regfile::open_if_regular(path, O_NOFOLLOW)?;
         let after = input.metadata()?;
         if before.dev() != after.dev() || before.ino() != after.ino() {
-            return Err(io::Error::other("Selected item changed"));
+            return Err(super::preview::words::issue("tui.preview.changed", "Selected item changed"));
         }
         let directory = temporary()?;
         let endpoint = directory.join("ipc");
@@ -78,6 +78,13 @@ fn spawn_relayed(
 }
 #[cfg(test)]
 impl Process {
+    // A reaped, harmless child lets the player's normal poll path observe a completed process.
+    pub fn finished() -> Self {
+        let mut child = Command::new("/usr/bin/true").env_clear().stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().expect("true starts");
+        child.wait().expect("true is reaped");
+        let input = File::open("/dev/null").expect("/dev/null opens");
+        Self { child, directory: PathBuf::from("/nonexistent"), _input: input, poster: Arc::new(AtomicBool::new(false)), forwarder: None }
+    }
     // A stand-in child for a player whose mpv has started but not yet connected.
     pub fn idle() -> Self {
         let child = Command::new("sleep").arg("30").stdout(Stdio::null()).spawn().expect("sleep starts");
@@ -271,9 +278,7 @@ fn temporary() -> io::Result<PathBuf> {
         .args(["-d", "/tmp/flea-tui-XXXXXX"])
         .output()?;
     if !output.status.success() {
-        return Err(io::Error::other(
-            "Could not create preview socket directory",
-        ));
+        return Err(super::preview::words::issue("tui.preview.socket_create", "Could not create preview socket directory"));
     }
     let path = PathBuf::from(String::from_utf8_lossy(&output.stdout).trim());
     if !path.is_absolute()
@@ -282,9 +287,7 @@ fn temporary() -> io::Result<PathBuf> {
             .file_name()
             .is_some_and(|p| p.to_string_lossy().starts_with("flea-tui-"))
     {
-        return Err(io::Error::other(
-            "Preview socket directory is outside its sandbox",
-        ));
+        return Err(super::preview::words::issue("tui.preview.socket_sandbox", "Preview socket directory is outside its sandbox"));
     }
     OpenOptions::new()
         .write(true)

@@ -29,6 +29,11 @@ pub struct Player {
     pub poster_up: bool,
     pub control: usize,
     pub error: String,
+    pub failure: Option<super::preview::words::Text>,
+    label_cells: usize,
+    locale_ready: bool,
+    buffering_label: String,
+    locale: crate::i18n::Locale,
     pub geometry: (usize, usize, usize, usize),
     pub pixels: (usize, usize),
     pub resume: Option<(f64, bool)>,
@@ -72,6 +77,11 @@ impl Player {
             poster_up: false,
             control: 0,
             error: String::new(),
+            failure: None,
+            label_cells: 5,
+            locale_ready: false,
+            buffering_label: String::new(),
+            locale: crate::i18n::Locale::default(),
             geometry,
             pixels,
             resume: None,
@@ -111,7 +121,7 @@ impl Player {
         let socket = self
             .socket
             .as_mut()
-            .ok_or_else(|| io::Error::other("Media preview is still loading"))?;
+            .ok_or_else(|| super::preview::words::issue("tui.preview.media_waiting", "Media preview is still loading"))?;
         socket.write_all(jsondoc::render(&value).replace('\n', "").as_bytes())?;
         socket.write_all(b"\n")
     }
@@ -124,6 +134,7 @@ impl Player {
                 Ok(false) => return,
                 Ok(true) => {}
                 Err(e) => {
+                    self.failure = Some(super::preview::words::from_io(&e));
                     self.error = crate::error::io_message(&e);
                     return;
                 }
@@ -142,10 +153,12 @@ impl Player {
                 }
             }
             if text(&value, "event") == "end-file" && text(&value, "reason") == "error" {
+                self.failure = Some(super::preview::words::Text::Key("media.unplayable"));
                 self.error = "Could not play selected media".into();
             }
         }
         if self.process.as_mut().is_some_and(|p| p.child.try_wait().ok().flatten().is_some()) {
+            self.failure = Some(super::preview::words::Text::Key("tui.preview.media_stopped"));
             self.error = "Media preview stopped".into();
         }
     }
@@ -153,7 +166,7 @@ impl Player {
         const STARTUP_LIMIT: Duration = Duration::from_secs(3);
         let Some(process) = self.process.as_mut() else { return Ok(false) };
         if process.child.try_wait()?.is_some() || self.started.elapsed() > STARTUP_LIMIT {
-            return Err(io::Error::other("mpv could not start the inline preview"));
+            return Err(super::preview::words::issue("tui.preview.media_start", "mpv could not start the inline preview"));
         }
         let socket = match UnixStream::connect(process.directory.join("ipc")) {
             Ok(socket) => socket,
@@ -259,43 +272,53 @@ impl Player {
             word("absolute-percent"),
         ])
     }
-    fn track(&self, columns: usize) -> (usize, usize) {
-        const PLAY_WIDTH: usize = 7;
-        const CONTROL_GAP: usize = 2;
-        let clocks = format!("{} / {}", clock(self.position), clock(self.duration));
-        let start = PLAY_WIDTH + CONTROL_GAP;
-        (
-            start,
-            columns
-                .saturating_sub(start + CONTROL_GAP + clocks.len())
-                .max(1),
-        )
+    pub fn ensure_locale(&mut self, i18n: &crate::i18n::I18n) {
+        if !self.locale_ready { self.refresh_locale(i18n); }
     }
-    // The controls as inked runs: brackets and the diamond only while the preview holds the keyboard.
+    pub fn refresh_locale(&mut self, i18n: &crate::i18n::I18n) {
+        self.locale_ready = true;
+        self.label_cells = ["media.play", "media.pause"].into_iter().map(|key| super::cells::text_width(&i18n.tr(key))).max().unwrap_or(0).max(5);
+        self.locale = i18n.locale().clone();
+        self.buffering_label = i18n.tr("media.buffering");
+    }
+    pub fn play_width(&self) -> usize { self.label_cells + 2 }
+    fn track(&self, columns: usize) -> (usize, usize) {
+        let start = (self.play_width() + 2).min(columns);
+        let room = columns - start;
+        let reserved = super::cells::text_width(&self.tail()).min(room.saturating_sub(1));
+        (start, room - reserved)
+    }
+    fn tail(&self) -> String {
+        let buffering = if self.buffering { format!(" · {}", self.buffering_label) } else { String::new() };
+        format!("  {}{buffering}", self.clocks())
+    }
+    fn clocks(&self) -> String {
+        format!("{} / {}", clock_with_locale(self.position, &self.locale), clock_with_locale(self.duration, &self.locale))
+    }
+    // The same locale projection sets both label cells and the pointer's play/track boundary.
     pub fn runs(&self, columns: usize, focused: bool, i18n: &crate::i18n::I18n) -> Vec<(Ink, String)> {
         if self.socket.is_none() && self.error.is_empty() && !self.probed {
-            return vec![(Ink::Meta, i18n.tr("media.loading"))];
+            let label = i18n.tr("media.loading");
+            return vec![(Ink::Meta, super::cells::ellipsis(&label, super::cells::text_width(&label).min(columns)))];
         }
-        let (_, length) = self.track(columns);
-        let ratio = if self.duration > 0.0 {
-            (self.position / self.duration).clamp(0.0, 1.0)
-        } else {
-            0.0
-        };
+        let (start, length) = self.track(columns);
+        let play = self.play_width().min(columns);
+        let ratio = if self.duration > 0.0 { (self.position / self.duration).clamp(0.0, 1.0) } else { 0.0 };
         let position = (ratio * length.saturating_sub(1) as f64).round() as usize;
         let mark = if focused && self.control == 1 { "◆" } else { "●" };
-        let bracket = |text: &'static str| if focused && self.control == 0 { text } else { " " };
         let label = i18n.tr(if self.paused { "media.play" } else { "media.pause" });
+        let bracket = |text| if focused && self.control == 0 { text } else { " " };
+        let button = if play < 2 { super::cells::fit(&label, play) }
+            else { format!("{}{}{}", bracket("["), super::cells::ellipsis(&label, play - 2), bracket("]")) };
         let mut runs = vec![
-            (Ink::Foreground, format!("{}{label:<5}{}  ", bracket("["), bracket("]"))),
-            (Ink::Frame, "─".repeat(position)),
-            (Ink::Foreground, mark.into()),
+            (Ink::Foreground, format!("{button}{}", " ".repeat(start - play))),
+            (Ink::Frame, "─".repeat(position.min(length))),
+            (Ink::Foreground, if length > 0 { mark.into() } else { String::new() }),
             (Ink::Frame, "─".repeat(length.saturating_sub(position + 1))),
-            (Ink::Muted, format!("  {} / {}", clock(self.position), clock(self.duration))),
         ];
-        if self.buffering {
-            runs.push((Ink::Muted, format!(" · {}", i18n.tr("media.buffering"))));
-        }
+        let clock_room = columns - start - length;
+        let clocks = super::cells::ellipsis(&self.tail(), clock_room);
+        runs.push((Ink::Muted, clocks));
         runs
     }
     #[cfg(test)]
@@ -316,6 +339,10 @@ pub fn resume_for(playback: Option<&(PathBuf, f64, bool)>, path: &Path) -> Optio
 fn rest_target(position: f64, duration: f64, seconds: i32) -> f64 {
     let target = (position + seconds as f64).max(0.0);
     if duration > 0.0 { target.min(duration) } else { target }
+}
+pub fn localized_clock(seconds: f64, i18n: &crate::i18n::I18n) -> String { clock_with_locale(seconds, i18n.locale()) }
+fn clock_with_locale(seconds: f64, locale: &crate::i18n::Locale) -> String {
+    clock(seconds).split(':').map(|part| locale.localize_number(part)).collect::<Vec<_>>().join(":")
 }
 pub fn clock(seconds: f64) -> String {
     let seconds = seconds.max(0.0) as u64;

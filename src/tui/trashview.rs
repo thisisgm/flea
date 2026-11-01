@@ -18,6 +18,7 @@ pub struct TrashView {
     loaded: bool,
     items: BTreeMap<usize, (String, String)>,
     kinds: crate::backend::kind::Kinds,
+    kind_keys: BTreeMap<usize, &'static str>,
 }
 // Opens Trash from the folder on screen, or lists it again when it is already open.
 pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
@@ -25,7 +26,7 @@ pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
         if m.searching { w.send(vec![("c", word("searchcancel"))])?; }
         let back = m.search_from.take().unwrap_or_else(|| m.path.clone());
         let view = TrashView { id: 0, back, cursor: m.cursor, top: m.top, current: m.current_path(), loaded: false, items: BTreeMap::new(),
-            kinds: crate::backend::kind::Kinds::new() };
+            kind_keys: BTreeMap::new(), kinds: crate::backend::kind::Kinds::new() };
         m.invalidate_rows();
         m.filter.clear();
         m.search.clear();
@@ -37,7 +38,7 @@ pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
         m.prompts.trash = Some(view);
     } else {
         m.invalidate_rows();
-        if let Some(view) = &mut m.prompts.trash { view.items.clear(); }
+        if let Some(view) = &mut m.prompts.trash { view.items.clear(); view.kind_keys.clear(); }
     }
     request(m, "list", 0, w)
 }
@@ -73,8 +74,10 @@ pub fn receive(m: &mut Model, value: &Json) {
         let original = text(row, "original");
         let directory = flag(row, "directory");
         let icon = text(row, "icon");
-        let kind = if directory { m.prompts.i18n.tr("trash.kindFolder") } else {
-            icon.split_once('-').and_then(|(major, minor)| view.kinds.comment(&format!("{major}/{minor}"))).unwrap_or_else(|| m.prompts.i18n.tr("trash.kindFile"))
+        let external = (!directory).then(|| icon.split_once('-').and_then(|(major, minor)| view.kinds.comment(&format!("{major}/{minor}")))).flatten();
+        let kind = match external {
+            Some(kind) => kind,
+            None => { let key = if directory { "trash.kindFolder" } else { "trash.kindFile" }; view.kind_keys.insert(start + offset, key); m.i18n.tr(key) }
         };
         let name = original.rsplit('/').next().unwrap_or(original).to_owned();
         m.rows.insert(start + offset, Row { name, directory, size: count(row, "size"), mode: if directory { 0o40755 } else { 0o100644 },
@@ -82,6 +85,10 @@ pub fn receive(m: &mut Model, value: &Json) {
         view.items.insert(start + offset, (original.into(), text(row, "deleted").into()));
     }
     m.cursor = m.cursor.min(m.total.saturating_sub(1));
+}
+pub fn refresh_locale(m: &mut Model) {
+    let Some(view) = &m.prompts.trash else { return; };
+    for (index, key) in &view.kind_keys { if let Some(row) = m.rows.get_mut(index) { row.kind = m.i18n.tr(key); } }
 }
 // Leaves Trash for the folder it was opened from, with that folder's cursor, scroll and cursor row.
 fn leave(m: &mut Model, w: &mut Wire) -> io::Result<()> {
@@ -119,7 +126,7 @@ pub fn refuses(m: &mut Model, key: &Key, map: &Map, armed: &str, w: &mut Wire) -
         action if LOOKS.contains(&action) || action.starts_with("prefix:") => Ok(false),
         _ => {
             m.key_arm.clear();
-            m.fail(m.prompts.i18n.tr("trash.viewOnly"));
+            m.fail_key("trash.viewOnly");
             Ok(true)
         }
     }
@@ -135,7 +142,7 @@ pub fn sort(m: &Model) -> Option<String> { m.prompts.trash.as_ref().map(|_| m.pr
 // A Trash row's detail column is the date it went in.
 pub fn detail(m: &Model, index: usize, entry: &Row) -> String {
     match m.prompts.trash.as_ref() {
-        Some(view) => view.items.get(&index).map(|(_, deleted)| super::calendar::value(&Json::Str(deleted.clone()))).unwrap_or_default(),
+        Some(view) => view.items.get(&index).map(|(_, deleted)| super::calendar::localized_value(&Json::Str(deleted.clone()), m.i18n.locale())).unwrap_or_default(),
         None => super::detail::value(m, index, entry),
     }
 }
@@ -157,8 +164,8 @@ pub fn preview(m: &Model, y: usize, width: usize, theme: &Theme) -> Option<Strin
             let mark = if m.marks() { format!("{} ", icons::row(row, true)) } else { String::new() };
             name_title(&mark, &row.name, width)
         }
-        1 => format!("{}{}", theme.meta, ellipsis(&format!("{} · {}", row.kind, super::render::bytes(row.size)), width)),
-        2 => format!("{}{}", theme.meta, ellipsis(&i18n.tr_args("trash.deleted", &[&super::calendar::value(&Json::Str(deleted.clone()))]), width)),
+        1 => format!("{}{}", theme.meta, ellipsis(&format!("{} · {}", row.kind, m.i18n.locale().format_size(row.size as u64)), width)),
+        2 => format!("{}{}", theme.meta, ellipsis(&i18n.tr_args("trash.deleted", &[&super::calendar::localized_value(&Json::Str(deleted.clone()), m.i18n.locale())]), width)),
         3 => format!("{}{}", theme.meta, ellipsis(&i18n.tr_args("trash.original", &[&location]), width)),
         _ => fit("", width),
     })
