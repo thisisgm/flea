@@ -326,7 +326,7 @@ Item {
         return Columns.autofitWidth(widths, root.currentWidthOf(key))
     }
 
-    // A double click fits one column and ends the drag, so the release after doubleClicked writes nothing back; F4 fits every drawn one.
+    // A double click fits one column and ends the drag, so the release after doubleClicked writes nothing back; F4 fits every switched-on one, a column dropped for width included (#333).
     function autofitColumn(key) {
         root.dragKey = ""
         root.dragMoved = false
@@ -353,8 +353,11 @@ Item {
             root.releaseFit()
             return
         }
+        // What this view draws at any width: hidden columns and Recent's absent Mode and Kind stay out,
+        // a column dropped only for width is fitted so it can come back (#333).
+        var drawable = Theme.columns(Number.MAX_SAFE_INTEGER, root.hiddenCols, root.dateWidth, root.recent, root.dualMode)
         for (var i = 0; i < keys.length; i++) {
-            if (!root.cols[keys[i]])
+            if (!drawable[keys[i]])
                 continue
             var next = root.fittedWidth(keys[i])
             if (next >= 0 && obj[keys[i]] !== Columns.clampListWidth(next)) {
