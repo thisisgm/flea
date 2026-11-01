@@ -115,6 +115,7 @@ ListView {
                     root.picker.toggleMark(cell.listingIndex)
                 else if (second && Picker.sameTap(firstPath, cell.rowPath))
                     root.picker.doubleActivate(cell.listingIndex, cell.rowPath, firstPath)
+                root.picker.adoptSaveName(cell.listingIndex)
             }
         }
     }

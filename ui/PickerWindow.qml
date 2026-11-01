@@ -283,6 +283,16 @@ ShellRoot {
         function selectAll() { selection.all() }
         function endRange() { selection.endRange() }
 
+        // Only an explicit file tap adopts a name; cursor moves and relists must keep the user's draft.
+        function adoptSaveName(index) {
+            if (!win.saving || win.folderMode || win.req.multiple || win.backendUnavailable || win.submitting
+                    || win.answered || win.pendingListings > 0 || win.listingFailed || win.listingState !== "ready") return
+            var row = win.rowFor(index)
+            if (!row || Picker.directory(row)) return
+            win.saveName = row.n
+            save.selectStem()
+        }
+
         // Enter walks folders and submits the checked files, or the cursor file when none are checked.
         function activate(index) {
             var row = win.rowFor(index)
