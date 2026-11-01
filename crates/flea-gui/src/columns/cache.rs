@@ -140,6 +140,7 @@ pub struct Shaping {
 }
 
 struct Entry {
+    cells: (usize, usize),
     facts: Facts,
     clipped: bool,
     walk: Option<Size>,
@@ -294,7 +295,10 @@ impl TrackCache {
         self.clock += 1;
         let clock = self.clock;
         if let Some(entry) = self.entries.get_mut(&index).filter(|entry| {
-            entry.clipped == clipped && entry.walk == walk && row.matches(&entry.facts)
+            entry.clipped == clipped
+                && entry.walk == walk
+                && row.matches(&entry.facts)
+                && entry.cells == (shaping.plain_cells, shaping.chevron_cells)
         }) {
             entry.used = clock;
             self.hits += 1;
@@ -308,6 +312,7 @@ impl TrackCache {
         self.entries.insert(
             index,
             Entry {
+                cells: (shaping.plain_cells, shaping.chevron_cells),
                 facts: row.owned(),
                 clipped,
                 walk,

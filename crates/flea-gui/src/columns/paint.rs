@@ -99,6 +99,7 @@ impl Palette {
 /// The focus and selection the active track paints, G1.05's read-only snapshot; peek tracks read only the hover.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Focus {
+    pub drop: Option<(Slot, usize, gpui::SharedString)>,
     pub cursor: Option<usize>,
     /// The pane does not hold the keyboard, so the cursor draws Omarchy's grey rung without the edge.
     pub grey: bool,
@@ -113,11 +114,23 @@ pub struct Focus {
 }
 
 impl Focus {
+    pub(super) fn dropping(&self, slot: Slot, index: usize) -> bool {
+        self.drop
+            .as_ref()
+            .is_some_and(|(target_slot, row, _)| *target_slot == slot && *row == index)
+    }
     /// The plate under one row: the grey or accent cursor first, then a marked row, then a lifted or hovered one.
     pub fn plate(&self, palette: &Palette, slot: Slot, index: usize, lifted: bool) -> Option<Hsla> {
         let active = slot == Slot::Active;
         let cursor = active && self.cursor == Some(index);
         match () {
+            _ if self
+                .drop
+                .as_ref()
+                .is_some_and(|(target_slot, row, _)| *target_slot == slot && *row == index) =>
+            {
+                Some(palette.accent.opacity(WASH))
+            }
             _ if cursor && self.grey => Some(palette.foreground.opacity(SELECTION)),
             _ if cursor => Some(palette.accent.opacity(WASH)),
             _ if active && self.selected.binary_search(&index).is_ok() => {
@@ -130,9 +143,12 @@ impl Focus {
         }
     }
 
-    /// The 2 px accent edge stands only beside the cursor of a pane that holds the keyboard.
+    /// The 2 px accent edge marks a drop target or the focused pane's cursor.
     pub fn edge(&self, slot: Slot, index: usize) -> bool {
-        slot == Slot::Active && self.cursor == Some(index) && !self.grey
+        self.drop
+            .as_ref()
+            .is_some_and(|(target_slot, row, _)| *target_slot == slot && *row == index)
+            || (slot == Slot::Active && self.cursor == Some(index) && !self.grey)
     }
 }
 
@@ -162,6 +178,7 @@ impl FolderSizes for DirSizes {
 
 /// Paint state one track keeps across frames: its shaped rows, the face's advance and this frame's rows.
 pub struct TrackPaint {
+    pub(super) drop_line: Option<crate::list::painted_row::DropLine>,
     pub drawn: Option<Drawn>,
     pub typeface: Typeface,
     pub cache: TrackCache,
@@ -189,6 +206,7 @@ impl TrackPaint {
             painted_pictures: Default::default(),
             first: 0,
             painted: None,
+            drop_line: None,
         }
     }
 

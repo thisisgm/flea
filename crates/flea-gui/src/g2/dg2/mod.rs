@@ -281,3 +281,12 @@ mod drop_aim_tests;
 mod grid_drop_tests;
 #[cfg(test)]
 mod pb_devices_2_tests;
+
+#[cfg(test)]
+mod vf3_tests;
+
+#[cfg(test)]
+mod vf3_spring_cases;
+
+#[cfg(test)]
+mod vf3_wide_tests;

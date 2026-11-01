@@ -249,6 +249,16 @@ impl Shell {
         .then_some(origin.side)
     }
 
+    /// The pane's state surface, withheld while the share browser covers it, as WindowBody.qml hides it in v0.3.12.
+    pub(crate) fn pane_state_view(&self, side: usize, cx: &gpui::App) -> Option<gpui::AnyView> {
+        let Some(network) = self.rail.as_ref().and_then(|join| join.network.as_ref()) else {
+            return self.slots.states[side].clone();
+        };
+        let browser = network.shares.read(cx);
+        let covered = browser.visible() && self.network_side(browser.model.origin) == Some(side);
+        self.slots.states[side].clone().filter(|_| !covered)
+    }
+
     /// Opens Add a Network Share for this pane; the shipped addNetwork key and the rail's plus both land here.
     pub(crate) fn network_add(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
         self.ensure_network(window, cx);

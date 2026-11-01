@@ -25,6 +25,7 @@ pub(super) struct Files {
     pub(super) window: u64,
     pub(super) send: async_channel::Sender<Arrived>,
     pub(super) held: Held,
+    pub(super) hover: Rc<RefCell<Option<Arrived>>>,
 }
 
 // A tab lift is the tab strip's alone, whatever else it offers.
@@ -53,9 +54,6 @@ impl Client for Files {
         if native.window != self.window || !carries_files(native.types) {
             return None;
         }
-        if !native.dropped {
-            return Some(true);
-        }
         let text = |mime: &str| {
             native
                 .get(mime)
@@ -66,7 +64,7 @@ impl Client for Files {
         let own = text(ROWS_MIME)
             .and_then(|marker| flea::ui_logic_dg2::Marker::parse(&marker))
             .is_some_and(|marker| current.as_deref() == Some(marker.instance.as_str()));
-        if own && native.get(URILIST).is_some() {
+        if native.dropped && own && native.get(URILIST).is_some() {
             return Some(true);
         }
         let arrived = Arrived {
@@ -80,6 +78,11 @@ impl Client for Files {
             ctrl: native.ctrl,
             shift: native.shift,
         };
+        if !native.dropped {
+            *self.hover.borrow_mut() = Some(arrived);
+            return Some(true);
+        }
+        self.hover.borrow_mut().take();
         Some(self.send.try_send(arrived).is_ok())
     }
 

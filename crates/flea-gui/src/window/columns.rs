@@ -20,7 +20,7 @@ mod menu;
 pub use input::BackgroundMenu;
 #[path = "columns_gestures.rs"]
 mod gestures;
-pub(crate) use gestures::{drop_spot, hover_at, on_name};
+pub(crate) use gestures::{drop_spot, hover_at, on_name, spring_spot};
 #[path = "columns_events.rs"]
 mod events;
 #[cfg(test)]

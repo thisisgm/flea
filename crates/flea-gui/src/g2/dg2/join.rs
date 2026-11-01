@@ -12,10 +12,23 @@ use gpui::{
 use std::collections::HashMap;
 use std::rc::Rc;
 
+#[path = "crumb_drop.rs"]
+mod crumb_drop;
+#[path = "owned.rs"]
+mod owned;
 #[path = "rail_drop.rs"]
 pub(crate) mod rail_drop;
+#[path = "spring.rs"]
+mod spring;
 #[path = "tab_drop.rs"]
 mod tab_drop;
+use owned::Owned;
+#[path = "arrival.rs"]
+mod arrival;
+#[path = "feedback.rs"]
+mod feedback;
+#[path = "wide.rs"]
+mod wide;
 
 struct HostRows<'a>(&'a PaneHost);
 
@@ -72,35 +85,6 @@ impl Render for Flock {
     }
 }
 
-// What waits for the facts: this window's own lift or an arrived native drop.
-enum Owned {
-    Own { lift: Lift, ctrl: bool, shift: bool },
-    Native(Arrived),
-}
-
-impl Owned {
-    fn first_source(&self) -> Option<String> {
-        match self {
-            Self::Own { lift, .. } => lift.paths.as_ref()?.first().cloned(),
-            Self::Native(arrived) => arrived.urls.iter().find_map(|url| core::file_path(url)),
-        }
-    }
-
-    fn dropping(&self) -> Dropping<'_> {
-        match self {
-            Self::Own { lift, ctrl, shift } => Dropping::own(lift, *ctrl, *shift),
-            Self::Native(arrived) => Dropping::native(
-                arrived.marker.as_deref(),
-                &arrived.urls,
-                arrived.plain.as_deref(),
-                arrived.ctrl,
-                arrived.shift,
-                arrived.action,
-            ),
-        }
-    }
-}
-
 /// Each window's live lift and router registration, held beside the Shell rather than in it.
 #[derive(Default)]
 pub struct Drags {
@@ -111,6 +95,12 @@ pub struct Drags {
     serial: u64,
     /// The rail row each window's held drag rests on.
     aims: HashMap<u64, rail_drop::Aim>,
+    rests: HashMap<u64, spring::Rest>,
+    hovers: HashMap<u64, Rc<std::cell::RefCell<Option<Arrived>>>>,
+    cue: Option<(u64, feedback::Cue)>,
+    cue_lines: std::collections::HashSet<u64>,
+    asks: HashMap<(u64, usize), wide::Ask>,
+    waiting: HashMap<(u64, usize), wide::Waiting>,
 }
 
 impl Drags {
@@ -156,10 +146,17 @@ impl Shell {
             .or_default()
             .clone();
         let shared = router::shared(cx);
+        let hover = cx
+            .global_mut::<Drags>()
+            .hovers
+            .entry(key)
+            .or_default()
+            .clone();
         let registration = shared.register(Rc::new(Files {
             window: key,
             send,
             held,
+            hover,
         }));
         cx.global_mut::<Drags>().clients.insert(key, registration);
         cx.spawn_in(window, async move |this, cx| {
@@ -172,7 +169,7 @@ impl Shell {
         .detach();
     }
 
-    /// The drag's start: lift the rows the press carries, or nothing when the press is not a live left press on a row; a selection reaching past the held rows refuses with its line.
+    /// The drag's start: lift the rows the press carries, or nothing when the press is not a live left press on a row; a selection reaching past the held rows asks the backend for its paths.
     pub fn begin_file_drag(
         &mut self,
         side: usize,
@@ -182,6 +179,8 @@ impl Shell {
         let key = window_key(window);
         // A drag that lifts nothing must never land an earlier drag's rows.
         cx.default_global::<Drags>().take(key);
+        self.clear_file_rest(window, cx);
+        self.clear_file_cue(window, cx);
         self.clear_rail_aim(window, cx);
         let Some(host) = self.panes[side].as_ref() else {
             return false;
@@ -210,7 +209,7 @@ impl Shell {
         ) else {
             return false;
         };
-        if lifted.paths.is_none() {
+        if lifted.paths.is_none() && !self.ask_lift_paths(side, &lifted, window, cx) {
             let text = core::too_wide(
                 &self.locale.catalog,
                 lifted.rows.len(),
@@ -238,22 +237,16 @@ impl Shell {
     pub fn escape_file_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
         let key = window_key(window);
         let lifted = cx.default_global::<Drags>().take(key).is_some();
+        self.clear_file_rest(window, cx);
+        self.clear_file_cue(window, cx);
         self.clear_rail_aim(window, cx);
-        lifted && cx.stop_active_drag(window)
-    }
-
-    /// The window closes: its lift and its router registration go with it.
-    pub fn forget_file_drags(&mut self, window: &Window, cx: &mut App) {
-        let key = window_key(window);
-        let drags = cx.default_global::<Drags>();
-        drags.take(key);
-        drags.clients.remove(&key);
-        drags.held.remove(&key);
-        drags.aims.remove(&key);
+        lifted && window.cancel_drag(cx)
     }
 
     /// The drag ended over this window: a drop that never left the slop is the tap pointer_up already handled.
     pub fn land_own_drag(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+        self.clear_file_cue(window, cx);
+        self.clear_file_rest(window, cx);
         self.clear_rail_aim(window, cx);
         let key = window_key(window);
         let Some(lift) = cx.default_global::<Drags>().take(key) else {
@@ -272,23 +265,6 @@ impl Shell {
         self.land_at(side, window.mouse_position(), owned, window, cx);
     }
 
-    fn land_arrived(&mut self, arrived: Arrived, window: &mut Window, cx: &mut Context<Self>) {
-        let point = gpui::point(gpui::px(arrived.position.0), gpui::px(arrived.position.1));
-        if self.file_tab_destination(point).is_some() {
-            self.land_at(self.focus_side, point, Owned::Native(arrived), window, cx);
-            return;
-        }
-        let side = (0..self.panes.len()).find(|side| {
-            self.panes[*side]
-                .as_ref()
-                .and_then(|host| host.input.frame)
-                .is_some_and(|frame| frame.bounds.contains(&point))
-        });
-        if let Some(side) = side {
-            self.land_at(side, point, Owned::Native(arrived), window, cx);
-        }
-    }
-
     fn land_at(
         &mut self,
         side: usize,
@@ -297,8 +273,15 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.input_blocked(cx) {
+            return;
+        }
+        if let Some((side, dest)) = self.file_crumb_destination(point, cx) {
+            self.land_crumb(side, dest, owned, window, cx);
+            return;
+        }
         if let Some(tab) = self.file_tab_destination(point) {
-            self.land_file_tab(tab, owned, window, cx);
+            self.land_then(self.focus_side, wide::Then::Tab(tab), owned, window, cx);
             return;
         }
         let Some(host) = self.panes[side].as_ref() else {
@@ -322,7 +305,7 @@ impl Shell {
         if host.recent.on && dest == host.path {
             return;
         }
-        self.land_into(side, dest, owned, window, cx);
+        self.land_then(side, wide::Then::Into(dest), owned, window, cx);
     }
 
     // The folder is resolved: read the disk facts off the UI thread, then decide and ask op1.
@@ -403,4 +386,11 @@ impl Shell {
 /// The Flock view a pane's on_drag renders.
 pub fn flock(cx: &mut App) -> gpui::Entity<Flock> {
     cx.new(|_| Flock)
+}
+
+#[cfg(test)]
+pub(super) fn pending_drop(window: &Window, side: usize, cx: &App) -> bool {
+    cx.global::<Drags>()
+        .waiting
+        .contains_key(&(window_key(window), side))
 }

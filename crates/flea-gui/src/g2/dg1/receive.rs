@@ -20,11 +20,13 @@ impl Shell {
             }
             Event::Producer(line) => self.clipboard_line(side, line, window, cx),
             Event::Paths(paths) => {
-                self.carry_paths(side, paths, window, cx)
+                self.drag_paths(side, paths, window, cx)
+                    || self.carry_paths(side, paths, window, cx)
                     || self.clipboard_paths(side, paths, window, cx)
             }
             Event::Refused { operation, .. } if operation == "paths" => {
-                self.carry_paths_failed(side, window, cx)
+                self.drag_paths_failed(side, window, cx)
+                    || self.carry_paths_failed(side, window, cx)
                     || self.clipboard_paths_failed(side, window, cx)
             }
             _ => false,

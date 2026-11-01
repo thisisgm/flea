@@ -57,3 +57,5 @@ mod reader_port_a_tests;
 mod reader_port_c_tests;
 #[cfg(test)]
 mod readers3_tests;
+#[cfg(test)]
+mod vf3_tests;

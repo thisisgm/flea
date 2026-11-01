@@ -253,6 +253,7 @@ impl PaneHost {
         locale: &crate::window::locale::Snapshot,
         renaming: Option<usize>,
         focused: bool,
+        dropping: Option<(usize, super::element::DropKind)>,
     ) -> AnyElement {
         self.grid_ready(size, data, locale);
         let grid = self.grid.as_mut().expect("a Grid host");
@@ -265,6 +266,7 @@ impl PaneHost {
         if grid.overlay.query.as_ref() != query {
             grid.overlay.query = query.to_owned().into();
         }
+        grid.overlay.drop = dropping;
         let filtered = self.filter.shown.clone();
         let shown = filtered
             .as_deref()

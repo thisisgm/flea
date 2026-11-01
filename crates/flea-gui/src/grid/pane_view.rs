@@ -1,4 +1,5 @@
 //! One Grid pane's element: the tile Element under the pane's pointer routing and swap overlay.
+use crate::g2::dg2::join::{flock, Seed};
 use crate::{
     feedback::spinner,
     g2::dg2::join::{flock, Seed},
@@ -22,6 +23,7 @@ pub(crate) struct PaneInputs<'a> {
     pub states: Option<AnyView>,
     /// The row whose name the rename field covers, so its tile drops its own caption.
     pub renaming: Option<usize>,
+    pub drop: Option<(usize, crate::grid::element::DropKind)>,
 }
 
 impl PaneHost {
@@ -39,6 +41,7 @@ impl PaneHost {
             input.locale,
             input.renaming,
             input.focused,
+            input.drop,
         );
         let palette = *input.palette;
         let scroller = crate::input::grid_surface(cx.entity(), side, move |shell, bounds| {

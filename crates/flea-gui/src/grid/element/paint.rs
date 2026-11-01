@@ -363,8 +363,7 @@ impl Element for GridElement {
                 }
                 if drawn.drop.is_some() {
                     let cell = bounds_of(origin, drawn.cell);
-                    window.paint_quad(fill(cell, ink.accent.opacity(HOVER)));
-                    window.paint_quad(outline(cell, ink.accent, BorderStyle::Solid));
+                    super::drop::paint(cell, &ink, window);
                 }
                 for wash in drawn.washes.iter().flatten() {
                     let at = Rect {

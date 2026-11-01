@@ -29,23 +29,8 @@ impl Shell {
     }
 }
 
-impl Shell {
-    pub(crate) fn sync_footer_owner(&mut self, cx: &mut Context<Self>) {
-        let external_line = self
-            .trash
-            .as_ref()
-            .filter(|host| host.side == self.focus_side && self.slots.covers[host.side].is_some())
-            .map(|host| host.messages.clone());
-        self.footer(cx).update(cx, |footer, cx| {
-            if footer.external_line.as_ref().map(|line| line.entity_id())
-                != external_line.as_ref().map(|line| line.entity_id())
-            {
-                footer.external_line = external_line;
-                cx.notify();
-            }
-        });
-    }
-}
+#[path = "render_footer.rs"]
+mod footer;
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -149,6 +134,7 @@ impl Render for Shell {
         for side in 0..2 {
             self.sync_surfaces(side, cx);
         }
+        let drop_cues = [0, 1].map(|side| self.file_grid_cue(side, window, cx));
         let mut panes: [Option<AnyElement>; 2] = [None, None];
         let renaming = [0, 1].map(|side| self.renaming_row(side));
         let flashed = [0, 1].map(|side| self.flash_covers(side));
@@ -163,6 +149,7 @@ impl Render for Shell {
         for side in 0..2 {
             let search_empty = self.search_empty(side, window, cx);
             let contents = self.contents_blocks(side).map(Rc::new);
+            let state_view = self.pane_state_view(side, cx);
             let Some(host) = self.panes[side].as_mut() else {
                 continue;
             };
@@ -194,8 +181,9 @@ impl Render for Shell {
                     palette: &palette,
                     marked: drawn[side],
                     focused: lists.states[side].as_ref().is_some_and(|rows| rows.focused),
-                    states: self.slots.states[side].clone(),
+                    states: state_view.clone(),
                     renaming: renaming[side],
+                    drop: drop_cues[side],
                 };
                 panes[side] = Some(super::rename::field::with_field(
                     host.grid_pane(input, window, cx),
@@ -300,7 +288,7 @@ impl Render for Shell {
                     .when(host.drawn_list && renaming[side].is_some(), |div| {
                         div.child(super::rename::field::FieldElement::new(cx.entity(), side))
                     })
-                    .children(self.slots.states[side].clone())
+                    .children(state_view)
                     .when(drawn[side], |div| {
                         div.child(
                             gpui::div()
@@ -336,7 +324,7 @@ impl Render for Shell {
         }
         self.remember_paint(window, cx);
         if let Some(viewport) = viewport {
-            return div()
+            return Self::file_drag_events(div(), cx)
                 .size_full()
                 .bg(super::glass::body_ground(background, window, cx))
                 .track_focus(&self.focus)
@@ -361,7 +349,7 @@ impl Render for Shell {
                     .map(|host| host.status.clone())
             })
             .unwrap_or_default();
-        Self::dual_events(
+        let body = Self::dual_events(
             composition::render(
                 &geometry,
                 &self.slots,
@@ -393,11 +381,12 @@ impl Render for Shell {
             .capture_any_mouse_down(cx.listener(Self::capture_press))
             .child(Self::list_header_input(cx)),
             cx,
-        )
-        .children(self.settings_surface())
-        .children(self.trash_menu_layer(cx))
-        .children(self.network_layers(cx))
-        .children(self.carry_flock(window, cx))
-        .children(self.unlock_layer(cx))
+        );
+        Self::file_drag_events(body, cx)
+            .children(self.settings_surface())
+            .children(self.trash_menu_layer(cx))
+            .children(self.network_layers(cx))
+            .children(self.carry_flock(window, cx))
+            .children(self.unlock_layer(cx))
     }
 }
