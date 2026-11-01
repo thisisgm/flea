@@ -38,6 +38,8 @@ done
 (( count > 0 )) || { echo "FAIL gpui-theme-gate: no stock palettes in $stock" >&2; exit 1; }
 expected=$((count + fixture_palettes))
 export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$repo/target}
+# Line tables only, as every other flea-gui lib-test suite builds, keep this build inside the CI lane memory bound.
+export CARGO_PROFILE_DEV_DEBUG=line-tables-only CARGO_PROFILE_TEST_DEBUG=line-tables-only
 # Build while the operator HOME is still available to rustup; no app is started here.
 cargo build --offline --locked -p flea --bin flea
 cargo test --offline --locked -p flea-gui --lib theme_gate --no-run
