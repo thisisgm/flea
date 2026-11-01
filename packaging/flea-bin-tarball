@@ -55,7 +55,7 @@ cleanup() {
 trap cleanup EXIT
 root="$stage/$name"
 
-# The source PKGBUILD's package() file set, path for path: a path missing here fails the workflow's makepkg proof.
+# flea-bin's package() file set, path for path: a path missing here fails flea-release-build check.
 umask 022
 install -Dm755 "$binary" "$root/flea"
 install -Dm755 "$gui" "$root/flea-gui"
