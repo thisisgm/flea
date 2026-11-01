@@ -98,7 +98,7 @@ g2.pl4.plugin-rail-section.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 
 g2.pl4.rail-favorites.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
 g2.pl4.tag-marks.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
 g2.pl4.tags-menu.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
-# Native-undriven I50 language fit scenes: <id> BLOCKED <owner>: <reason>; tools/flea-i18n-native plans them and tests/i18n/test_visual_coverage.py keeps this list exact.
+# Native-undriven I50 language fit scenes: <id> BLOCKED <owner>: <reason>; tools/flea-i18n-native plans the ids and tests/i18n/test_visual_coverage.py keeps the ids exact; owner and reason are hand-written.
 i50.fit.ar.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
 i50.fit.ar.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
 i50.fit.ar.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
