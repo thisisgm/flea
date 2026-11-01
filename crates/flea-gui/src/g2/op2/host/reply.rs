@@ -123,11 +123,7 @@ impl Shell {
         if let Some(view) = self.operation_view(side) {
             let id = done.id;
             view.update(cx, |overlay, cx| {
-                let transfer = &overlay.model.wire.transfer;
-                if transfer.extract && transfer.id == id {
-                    overlay.model.wire.transfer = Default::default();
-                    overlay.model.sticky.clear();
-                    overlay.model.changed = true;
+                if overlay.model.extract_done(id) {
                     cx.notify();
                 }
             });

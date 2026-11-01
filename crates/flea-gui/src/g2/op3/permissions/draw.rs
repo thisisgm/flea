@@ -127,9 +127,8 @@ impl Permissions {
         }
         if self.several() && self.phase != Phase::Reading {
             body.push(self.grid(i18n));
-            if self.summary().mixed {
-                body.push(Self::note(tr("dialogs.file.permissions.mixed")));
-            }
+            // PermissionsDialog.qml's scopeLabel says it on every several-item card, mixed boxes or not.
+            body.push(Self::note(tr("dialogs.file.permissions.mixed")));
             let note = self.store.note_text(i18n, &self.paths);
             if !note.is_empty() {
                 body.push(Self::note(note));
