@@ -317,6 +317,8 @@ impl SelectionPreview {
         let Some(frame) = self.pending.as_mut() else {
             return;
         };
+        // A sharp picture that is already decoded wins over a thumbnail that lands in the same poll.
+        Self::early_picture(frame, (width, height), window, cx);
         if frame.image.is_none() {
             if let Some(source) = &frame.source {
                 if let Some(loaded) = window.use_asset::<ImageAssetLoader>(source, cx) {
@@ -363,7 +365,10 @@ impl SelectionPreview {
                 frame.failed |= doc.failure(&self.catalog, cx).is_some();
                 doc.ready(cx)
             }
-            _ => frame.thumb_answered && (frame.source.is_none() || frame.image.is_some()),
+            _ => {
+                (frame.quality.ready && frame.image.is_some())
+                    || frame.thumb_answered && (frame.source.is_none() || frame.image.is_some())
+            }
         };
         let ready =
             frame.manual || frame.kind == Kind::Multi || (frame.meta.is_some() && renderer_ready);

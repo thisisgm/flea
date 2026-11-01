@@ -80,7 +80,22 @@ pub(super) fn decode(
     // A renamed SVG must not bypass the bounded vector parser by reaching a pixbuf loader.
     let format = image::guess_format(&magic[..read]).map_err(|_| ())?;
     if format == image::ImageFormat::Png {
+        crate::preview_quality::reuse::decoded(path);
         return super::photo_png_first::decode(file, target, current);
+    }
+    // A JPEG decodes sharp here, already the refinement's pixels; the pixbuf loader is its fallback.
+    if format == image::ImageFormat::Jpeg {
+        let identity = super::photo_source::identity(&file.metadata().map_err(|_| ())?);
+        let handle = file.try_clone().map_err(|_| ())?;
+        let sharp = super::photo_frames::static_image(path, handle, format, target, current);
+        if let Ok(image) = sharp {
+            crate::preview_quality::reuse::offer(path, target, identity, &image);
+            return Ok(image);
+        }
+        if !current() {
+            return Err(());
+        }
+        file.seek(SeekFrom::Start(0)).map_err(|_| ())?;
     }
     // PNG/JPEG bound decode memory; animations and rare-codec fallbacks retain their source buffers.
     if matches!(format, image::ImageFormat::Gif | image::ImageFormat::WebP) {
@@ -90,10 +105,12 @@ pub(super) fn decode(
             target,
             current,
         )? {
+            crate::preview_quality::reuse::decoded(path);
             return Ok(animation);
         }
         file.seek(SeekFrom::Start(0)).map_err(|_| ())?;
     }
+    crate::preview_quality::reuse::decoded(path);
     // The decoder opens the pinned regular handle, so a path swapped for a FIFO cannot hold the worker.
     let pinned = CString::new(format!("/proc/self/fd/{}", file.as_raw_fd())).map_err(|_| ())?;
     let edge = w.max(h) as c_int;
@@ -107,7 +124,7 @@ pub(super) fn decode(
         if decoded.is_null() {
             // Preserve GPUI's other raster formats when this system has no pixbuf loader for one.
             file.seek(SeekFrom::Start(0)).map_err(|_| ())?;
-            return super::photo_frames::static_image(file, format, target);
+            return super::photo_frames::static_image(path, file, format, target, current);
         }
         let decoded = Picture::of(decoded)?;
         let upright = Picture::of(gdk_pixbuf_apply_embedded_orientation(decoded.0))?;
@@ -163,6 +180,7 @@ pub(crate) fn decode_sharp(
     file.seek(SeekFrom::Start(0)).map_err(|_| ())?;
     let format = image::guess_format(&magic[..read]).map_err(|_| ())?;
     if format == image::ImageFormat::Png {
+        crate::preview_quality::reuse::decoded(path);
         return super::photo_png::decode(file, target, current);
     }
     if matches!(format, image::ImageFormat::Gif | image::ImageFormat::WebP) {
@@ -172,6 +190,7 @@ pub(crate) fn decode_sharp(
             target,
             current,
         )? {
+            crate::preview_quality::reuse::decoded(path);
             return Ok(image);
         }
         file.seek(SeekFrom::Start(0)).map_err(|_| ())?;
@@ -179,5 +198,5 @@ pub(crate) fn decode_sharp(
     if !current() {
         return Err(());
     }
-    super::photo_frames::static_image(file, format, target)
+    super::photo_frames::static_image(path, file, format, target, current)
 }

@@ -3,6 +3,7 @@ mod frame_edges;
 mod helper;
 mod readiness;
 mod render;
+pub(crate) mod reuse;
 pub(crate) use readiness::{media_ready, pdf_ready};
 #[cfg(test)]
 mod tests;
@@ -51,15 +52,28 @@ impl Asset for Loader {
     ) -> impl std::future::Future<Output = Self::Output> + Send + 'static {
         let renderer = cx.svg_renderer();
         let wake = request.wake.clone();
+        // A request queued behind a decode of the same file keeps that decode for its own size.
+        let source = crate::g2::pv1::photo_source::hold(&request.path);
         let pool = PERMITS.with(Clone::clone);
         async move {
+            let _source = source;
             let result = async move {
                 pool.1.recv().await.map_err(|_| ())?;
                 let _held = Permit(pool.0);
                 if !request.current.load(Ordering::Acquire) {
                     return Err(());
                 }
+                let identity = reuse::file_identity(&request.path);
                 let image = render::run(&request, renderer);
+                if let Ok(image) = &image {
+                    reuse::keep(
+                        &request.path,
+                        request.version,
+                        request.size,
+                        image,
+                        identity,
+                    );
+                }
                 if let Ok(mut seed) = request.seed.lock() {
                     seed.take();
                 }
@@ -127,6 +141,7 @@ pub(crate) struct Refinement {
     pub ready: bool,
     pub basis: Basis,
     notification: Option<gpui::Task<()>>,
+    primed: Option<Arc<RenderImage>>,
 }
 impl Refinement {
     pub fn clear(&mut self, cx: &mut App) {
@@ -137,6 +152,7 @@ impl Refinement {
     pub fn cancel(&mut self) {
         self.ready = false;
         self.notification = None;
+        self.primed = None;
         if let Some(request) = self.requested.take() {
             request.current.store(false, Ordering::Release);
             // A drop during thread teardown has no App left to sweep, so its request is let go.
@@ -178,28 +194,50 @@ impl Refinement {
                 wake,
                 seed: Arc::new(Mutex::new(seed)),
             };
+            // The first decode, or a kept refinement of this file version, already drew these exact device pixels.
+            let identity = reuse::file_identity(&request.path);
+            self.primed = reuse::take(&request.path, request.size).or_else(|| {
+                reuse::kept(&request.path, request.version)
+                    .filter(|(size, _)| *size == request.size)
+                    .map(|(_, image)| image)
+            });
+            if let Some(image) = &self.primed {
+                reuse::keep(
+                    &request.path,
+                    request.version,
+                    request.size,
+                    image,
+                    identity,
+                );
+            }
             let key = request.clone();
-            self.notification = Some(cx.spawn(async move |this, cx| {
-                if receive.recv().await.is_err() {
-                    return;
-                }
-                while key.current.load(Ordering::Acquire) {
-                    let ready = this.update(cx, |_, cx| {
-                        let ready = cx.fetch_asset::<Loader>(&key).is_some();
-                        if ready {
-                            cx.notify();
-                        }
-                        ready
-                    });
-                    if !matches!(ready, Ok(false)) {
-                        break;
+            self.notification = self.primed.is_none().then(|| {
+                cx.spawn(async move |this, cx| {
+                    if receive.recv().await.is_err() {
+                        return;
                     }
-                    cx.background_executor()
-                        .timer(std::time::Duration::from_millis(1))
-                        .await;
-                }
-            }));
+                    while key.current.load(Ordering::Acquire) {
+                        let ready = this.update(cx, |_, cx| {
+                            let ready = cx.fetch_asset::<Loader>(&key).is_some();
+                            if ready {
+                                cx.notify();
+                            }
+                            ready
+                        });
+                        if !matches!(ready, Ok(false)) {
+                            break;
+                        }
+                        cx.background_executor()
+                            .timer(std::time::Duration::from_millis(1))
+                            .await;
+                    }
+                })
+            });
             self.requested = Some(request);
+        }
+        if let Some(image) = &self.primed {
+            self.ready = true;
+            return Some(Ok(image.clone()));
         }
         let loaded = cx.fetch_asset::<Loader>(self.requested.as_ref().unwrap());
         self.ready = matches!(loaded, Some(Ok(_)));

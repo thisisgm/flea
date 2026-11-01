@@ -16,10 +16,11 @@ fn answer(
     decoded: (u32, u32),
     requested: Option<((u32, u32), bool)>,
     scale: f32,
+    decodes: usize,
 ) -> Reply {
     let (target, refined) = requested.unwrap_or(((0, 0), false));
     Reply::value(format!(
-        r#"{{"surface":"{surface}","kind":"{kind}","decoded":[{},{}],"requested":[{},{}],"refined":{refined},"scale":{scale}}}"#,
+        r#"{{"surface":"{surface}","kind":"{kind}","decoded":[{},{}],"requested":[{},{}],"refined":{refined},"scale":{scale},"decodes":{decodes}}}"#,
         decoded.0, decoded.1, target.0, target.1
     ))
 }
@@ -41,7 +42,7 @@ impl PreviewState<'_> {
                         .and_then(|shown| shown.images.first().map(|(image, _)| image)),
                     _ => None,
                 };
-                return answer("look", doc.kind(), dimensions(image), None, scale);
+                return answer("look", doc.kind(), dimensions(image), None, scale, 0);
             }
             if look.subject().is_some_and(|subject| {
                 matches!(
@@ -55,15 +56,16 @@ impl PreviewState<'_> {
                     dimensions(look.svg_raster().as_ref()),
                     look.quality_pixels(),
                     scale,
+                    look.quality_decodes(),
                 );
             }
         }
         let Some(host) = self.shell.panes[self.shell.focus_side].as_ref() else {
-            return answer("none", "", (0, 0), None, scale);
+            return answer("none", "", (0, 0), None, scale, 0);
         };
         if self.shell.shown_view() == View::Grid {
             let Some(grid) = host.grid.as_ref() else {
-                return answer("grid", "", (0, 0), None, scale);
+                return answer("grid", "", (0, 0), None, scale, 0);
             };
             let state = grid.state.borrow();
             let decoded = state
@@ -76,13 +78,17 @@ impl PreviewState<'_> {
                 decoded,
                 host.list.borrow().pictures.quality_pixels(host.pane.cursor),
                 scale,
+                host.list
+                    .borrow()
+                    .pictures
+                    .quality_decodes(host.pane.cursor),
             );
         }
         let Some(view) = host.preview.as_ref().map(|view| view.read(self.cx)) else {
-            return answer("none", "", (0, 0), None, scale);
+            return answer("none", "", (0, 0), None, scale, 0);
         };
         let Some(frame) = view.drawn.as_ref() else {
-            return answer("column", "", (0, 0), None, scale);
+            return answer("column", "", (0, 0), None, scale, 0);
         };
         let image = match &frame.mounted {
             Mounted::Pdf(pdf) => pdf
@@ -94,17 +100,16 @@ impl PreviewState<'_> {
             }
             _ => frame.image.as_ref(),
         };
-        let requested = frame
-            .quality
-            .requested
-            .as_ref()
-            .map(|request| (request.size, frame.quality.ready));
+        let request = frame.quality.requested.as_ref();
         answer(
             "column",
             frame.kind.name(),
             dimensions(image),
-            requested,
+            request.map(|request| (request.size, frame.quality.ready)),
             scale,
+            request.map_or(0, |request| {
+                crate::preview_quality::reuse::decodes(&request.path)
+            }),
         )
     }
 }
