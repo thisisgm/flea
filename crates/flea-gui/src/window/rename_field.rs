@@ -250,8 +250,9 @@ impl Element for FieldElement {
             // A file name keeps its order in a mirrored window: line, washes and caret move as one.
             window.with_unmirrored(frame, |window| {
                 window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
-                    if !entry.selected.is_empty() {
-                        let (from, to) = line.entry_span(entry, &entry.selected);
+                    let washed = entry.washed();
+                    if let Some(selected) = &washed {
+                        let (from, to) = line.entry_span(entry, selected);
                         let (from, to) = (origin + from, origin + to);
                         window.paint_quad(fill(
                             Bounds::new(
@@ -295,7 +296,7 @@ impl Element for FieldElement {
                             ink.foreground,
                         ));
                     }
-                    if entry.selected.is_empty() {
+                    if washed.is_none() {
                         let at = origin + line.entry_caret(entry, entry.cursor());
                         window.paint_quad(fill(
                             Bounds::new(
