@@ -29,6 +29,7 @@ impl HtmlView {
         window: &Window,
         cx: &mut Context<Self>,
     ) -> (Vec<Arc<RenderImage>>, Option<Rc<GlyphRun>>) {
+        self.bounds = Some(bounds);
         self.frame = (f32::from(bounds.size.width), f32::from(bounds.size.height));
         let laid = (self.frame.0, self.frame.1, window.scale_factor());
         if self.laid != Some(laid) {

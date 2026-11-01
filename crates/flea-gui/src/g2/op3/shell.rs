@@ -301,6 +301,7 @@ struct Draw<'a> {
     language: &'a str,
     wire: Option<&'a Wire>,
     entry: Option<&'a crate::path::entry::Entry>,
+    probe: Option<&'a crate::g2::st1::probe::Probe>,
 }
 
 /// The controls whose pointer activation a live card serves through its model.
@@ -328,7 +329,7 @@ mod facts;
 #[cfg(test)]
 mod facts_tests;
 mod glyph;
-pub use draw::StandIn;
+pub use draw::{Probed, StandIn};
 pub use glyph::glyph;
 
 #[test]

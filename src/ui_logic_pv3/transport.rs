@@ -60,22 +60,27 @@ impl Transport {
         Event::Stopped
     }
 
-    /// What a change of the pause flag tells the GUI: a pause that comes from a stop or the end is not news.
+    /// What a change of the pause flag tells the GUI: a stop's own pause is not news, and the end's pause is the end.
     pub fn paused(&mut self, paused: bool) -> Option<Event> {
         self.paused = paused;
         if !self.loaded {
             return None;
         }
         if paused {
-            return (!self.stopped && !self.ended).then_some(Event::Paused);
+            return match (self.stopped, self.ended) {
+                (true, _) => None,
+                (false, true) => Some(Event::Ended),
+                (false, false) => Some(Event::Paused),
+            };
         }
         self.stopped = false;
         Some(Event::Playing)
     }
 
-    /// What a change of the end flag tells the GUI.
+    /// What a change of the end flag tells the GUI: mpv sets it once the decoder drains, while buffered audio still plays,
+    /// so the end is heard when keep-open parks the clip paused, or at once when it was already paused.
     pub fn ended(&mut self, ended: bool) -> Option<Event> {
         self.ended = ended;
-        ended.then_some(Event::Ended)
+        (ended && self.paused && self.loaded && !self.stopped).then_some(Event::Ended)
     }
 }

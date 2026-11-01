@@ -152,7 +152,7 @@ fn uish_open_with_card_reports_v0312_model_facts(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn ipc_readers3_run_card_refuses_its_geometry(cx: &mut TestAppContext) {
+fn ipc_readers3_run_card_reports_its_geometry(cx: &mut TestAppContext) {
     let handle = open(cx);
     value(cx, handle, "runCardState", &[], "{\"opened\":false}");
     update(cx, handle, |shell, _, cx| {
@@ -167,7 +167,32 @@ fn ipc_readers3_run_card_refuses_its_geometry(cx: &mut TestAppContext) {
     update(cx, handle, |shell, _, _| {
         assert!(shell.run_card.is_some(), "the run card opens");
     });
-    refused(cx, handle, "runCardState", "rect, controls");
+    // RunCard.qml's runCardState: the ask, its buttons, the default and the painted boxes.
+    let state = json(cx, handle, "runCardState");
+    let text = |key: &str| state.get(key).and_then(Json::as_str).map(str::to_owned);
+    assert_eq!(text("kind").as_deref(), Some("script"));
+    assert_eq!(text("focus").as_deref(), Some("terminal"));
+    assert_eq!(text("default").as_deref(), Some("terminal"));
+    assert!(
+        text("rect").is_some_and(|rect| rect.split(' ').count() == 4),
+        "{state:?}"
+    );
+    let controls = state
+        .get("controls")
+        .and_then(Json::as_array)
+        .expect("controls");
+    let names: Vec<_> = controls
+        .iter()
+        .filter_map(|control| control.get("name").and_then(Json::as_str))
+        .collect();
+    assert_eq!(names, ["cancel", "text", "terminal"]);
+    assert!(
+        controls.iter().all(|control| control
+            .get("centre")
+            .and_then(Json::as_str)
+            .is_some_and(|centre| centre.split(' ').count() == 2)),
+        "{state:?}"
+    );
     refused(
         cx,
         handle,

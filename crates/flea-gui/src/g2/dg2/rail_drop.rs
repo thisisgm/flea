@@ -369,7 +369,7 @@ impl Shell {
         self.settle_file_feedback(window, cx);
         if !cx.has_active_drag() {
             self.clear_file_rest(window, cx);
-            self.clear_rail_aim(window, cx);
+            self.settle_row_drag(window, cx);
         }
     }
 
