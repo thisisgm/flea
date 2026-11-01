@@ -8,6 +8,8 @@ pub const MAX_ROWS: usize = 256;
 pub const MAX_PROGRESS: usize = 128;
 pub const MAX_PROGRESS_BYTES: usize = 1024 * 1024;
 pub const MAX_SELECTION: usize = 512;
+// The one start failure plugins.invalid.start's sentence describes, so the owner names the plugin for it.
+pub const HELLO_TIMEOUT: &str = "plugin did not answer hello in time";
 pub const CONTRACT: &str = include_str!("../../docs/plugin-protocol.json");
 
 pub const OPERATIONS: [(&str, &str, &str); 12] = [
