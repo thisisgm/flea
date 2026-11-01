@@ -63,3 +63,37 @@ fn pb_tabs_control_boxes_follow_the_painted_slots_and_device_scale() {
         assert_eq!([rect.x0, rect.y0, rect.x1, rect.y1], expected);
     }
 }
+
+#[gpui::test]
+fn pb_tabs_a_press_on_each_control_taps_that_tab_or_new_tab(cx: &mut gpui::TestAppContext) {
+    use crate::window::dispatch::test_shell::{land, open_root};
+    let (shell, cx) = open_root(cx, "default");
+    let row = flea::protocol::RowFacts {
+        name: "a.txt".into(),
+        ..Default::default()
+    };
+    land(&shell, cx, "/files", vec![row], 1);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            assert!(shell.tab_action("tabNew", window, cx));
+            assert!(shell.tab_action("tabNew", window, cx));
+        })
+    });
+    cx.run_until_parked();
+    let weak = shell.downgrade();
+    // (control index, current tab after, tab count after): two tabs by identity, then New tab.
+    for (index, current, count) in [(0, 0, 3), (2, 2, 3), (3, 3, 4)] {
+        cx.update(|window, cx| {
+            shell.update(cx, |shell, cx| {
+                let controls = accessibility::Controls::new(weak.clone(), shell)
+                    .expect("a strip of three tabs has controls");
+                shell.tab_a11y_press(controls.press(index), window, cx);
+            })
+        });
+        cx.run_until_parked();
+        shell.read_with(cx, |shell, _| {
+            assert_eq!(shell.strip.tabs[0].count(), count, "control {index}");
+            assert_eq!(shell.strip.tabs[0].current(), current, "control {index}");
+        });
+    }
+}
