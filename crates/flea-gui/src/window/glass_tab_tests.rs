@@ -82,7 +82,10 @@ fn ey430_opaque_strip_paints_surface_under_a_background_plate(cx: &mut TestAppCo
     draw(handle, cx);
     handle
         .update(cx, |root, window, cx| {
-            assert!(crate::window::glass::alpha(window, cx) >= 1., "the control: no glass");
+            assert!(
+                crate::window::glass::alpha(window, cx) >= 1.,
+                "the control: no glass"
+            );
             let theme = cx
                 .try_global::<crate::palette::Theme>()
                 .copied()
@@ -100,29 +103,37 @@ fn ey430_opaque_strip_paints_surface_under_a_background_plate(cx: &mut TestAppCo
                 + frame.slots[frame.current] as f32 * frame.tab_width;
             let scale = window.scale_factor();
             let quads = window.painted_quads();
+            // The scene keeps quads in draw order, so a later index paints on top.
             let painted = |x: f32, width: f32, color: gpui::Hsla| {
-                quads.iter().any(|quad| {
+                quads.iter().position(|quad| {
                     (quad.bounds.origin.x.as_f32() - x * scale).abs() < 0.5
                         && (quad.bounds.origin.y.as_f32() - f32::from(strip.top()) * scale).abs()
                             < 0.5
                         && (quad.bounds.size.width.as_f32() - width * scale).abs() < 0.5
-                        && quad.background.as_solid().is_some_and(|got| {
-                            gpui::Rgba::from(got) == gpui::Rgba::from(color)
-                        })
+                        && quad
+                            .background
+                            .as_solid()
+                            .is_some_and(|got| gpui::Rgba::from(got) == gpui::Rgba::from(color))
                 })
             };
-            assert!(
-                painted(f32::from(strip.left()), f32::from(strip.size.width), theme.surface),
-                "the whole strip is theme.surface"
-            );
-            assert!(
-                !painted(f32::from(strip.left()), f32::from(strip.size.width), theme.background),
+            let surface = painted(
+                f32::from(strip.left()),
+                f32::from(strip.size.width),
+                theme.surface,
+            )
+            .expect("the whole strip is theme.surface");
+            assert_eq!(
+                painted(
+                    f32::from(strip.left()),
+                    f32::from(strip.size.width),
+                    theme.background
+                ),
+                None,
                 "the strip is never the window background"
             );
-            assert!(
-                painted(plate_x, frame.tab_width, theme.background),
-                "the current tab paints its own background plate"
-            );
+            let plate = painted(plate_x, frame.tab_width, theme.background)
+                .expect("the current tab paints its own background plate");
+            assert!(plate > surface, "the plate paints over the strip surface");
             root.shell.update(cx, |shell, _| shell.stop_for_app_quit());
         })
         .unwrap();
