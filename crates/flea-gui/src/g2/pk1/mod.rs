@@ -34,6 +34,7 @@ mod restore;
 mod route;
 pub mod selection;
 mod settings;
+mod size;
 mod text;
 mod view;
 
@@ -64,6 +65,8 @@ mod ey372_single_click_tests;
 mod ey377_list_wheel_tests;
 #[cfg(test)]
 mod face_tests;
+#[cfg(test)]
+mod fix_picker_2b_tests;
 #[cfg(test)]
 mod fixlogic_ey485_tests;
 #[cfg(test)]

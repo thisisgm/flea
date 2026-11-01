@@ -1,8 +1,13 @@
 //! The picker's bare chrome marks surround its shared path strip.
+use super::body::PATH_HEIGHT;
+use super::view::{GAP, SIDE};
 use super::Picker;
 use crate::{g2::pk2::chrome::PathBar, list::Palette};
-use gpui::{div, prelude::*, px, Context, Entity, Render, WeakEntity, Window};
+use gpui::{div, prelude::*, Context, Entity, Render, WeakEntity, Window};
 use std::{cell::RefCell, rc::Rc};
+
+// picker-path: each bare chrome mark takes a 24 px slot the strip's height.
+const MARK_WIDTH: f32 = 24.;
 
 pub struct ChromeView {
     pub picker: WeakEntity<Picker>,
@@ -20,6 +25,7 @@ impl Render for ChromeView {
             .copied()
             .unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
+        let size = super::size::Size::of(window, cx);
         let frame = Rc::new(RefCell::new(crate::path::chrome::Frame::default()));
         let mode = owner.browse.listing.read(cx).view_mode();
         let buttons = [
@@ -49,8 +55,8 @@ impl Render for ChromeView {
                 .attach(div().relative(), id)
                 .id(id)
                 .debug_selector(move || id.into())
-                .w(px(24.))
-                .h(px(27.))
+                .w(size.px(MARK_WIDTH))
+                .h(size.px(PATH_HEIGHT))
                 .flex_none()
                 .flex()
                 .items_center()
@@ -93,8 +99,8 @@ impl Render for ChromeView {
             .size_full()
             .flex()
             .items_center()
-            .gap(px(9.))
-            .px(px(14.))
+            .gap(size.px(GAP))
+            .px(size.px(SIDE))
             .border_b_1()
             .border_color(palette.foreground.opacity(0.12))
             .children(controls.next())

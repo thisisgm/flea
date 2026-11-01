@@ -32,6 +32,8 @@ pub struct Surface {
     pub marks_allowed: bool,
     pub focused: bool,
     pub selection_fill: Option<gpui::Hsla>,
+    // The listing whose held rows carried a tag: the folder-wide tag slot stays latched for it, as the window's slot does.
+    tagged: Option<usize>,
 }
 
 impl Default for Surface {
@@ -44,6 +46,7 @@ impl Default for Surface {
             marks_allowed: false,
             focused: true,
             selection_fill: None,
+            tagged: None,
         }
     }
 }
@@ -252,8 +255,15 @@ impl ListingView {
         let held = self.listing().held();
         let selected = self.selected_indices();
         let recent = flea::ui_logic_pk2::is_recent(&self.listing().facts().location);
+        if held.rows.iter().any(|row| row.tags.is_some()) {
+            self.surface.tagged = Some(held.listing);
+        }
         if self.surface.mode == "list" {
-            self.state.borrow_mut().view.set_recent(recent);
+            {
+                let mut state = self.state.borrow_mut();
+                state.view.set_recent(recent);
+                state.view.tags_shown = self.surface.tagged == Some(held.listing);
+            }
             let states = RowStates {
                 listing: held.listing,
                 cursor: Some(self.listing().cursor()),
