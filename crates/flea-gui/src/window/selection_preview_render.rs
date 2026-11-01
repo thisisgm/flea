@@ -86,6 +86,8 @@ impl Render for SelectionPreview {
             .font_family(self.face.font.family.clone())
             .text_size(self.face.caption)
             .track_focus(&self.focus)
+            // SelectionPreview.qml takes the keyboard from focusPreview alone; a click leaves the listing focused.
+            .capture_any_mouse_down(|_, window, _| window.prevent_default())
             .debug_selector(|| "column-preview".into())
             .child(outer);
         // A pending document lays out unseen at its frame's size, so the view sends the asks its first screen needs.

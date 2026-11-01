@@ -20,9 +20,9 @@ pub struct Counters {
     pub retired: usize,
 }
 
-/// Paints a lent picture whole inside a row's mark slot, the way Row.qml and ColumnRow.qml fit it.
+/// Paints a lent picture whole inside a row's mark slot: a picture larger than the slot fits it, a smaller one keeps its own pixels.
 pub fn paint_in_slot(picture: &Thumbnail, slot: Bounds<Pixels>, window: &mut Window) {
-    let fit = ObjectFit::Contain.get_bounds(slot, picture.image.size(0));
+    let fit = slot_rect(slot, picture.decoded(), window.scale_factor());
     let _ = window.paint_image(
         slot,
         fit,
@@ -31,6 +31,31 @@ pub fn paint_in_slot(picture: &Thumbnail, slot: Bounds<Pixels>, window: &mut Win
         0,
         false,
     );
+}
+
+/// A raster that fits keeps one texel per device pixel on the device grid, never enlarged (GM 2026-10-31); a larger one fits whole.
+pub(crate) fn slot_rect(slot: Bounds<Pixels>, pixels: (u32, u32), scale: f32) -> Bounds<Pixels> {
+    let (w, h) = crate::preview_quality::own_size(pixels, scale.into());
+    if w > f32::from(slot.size.width) || h > f32::from(slot.size.height) {
+        return ObjectFit::Contain.get_bounds(
+            slot,
+            gpui::size(
+                gpui::DevicePixels(pixels.0 as i32),
+                gpui::DevicePixels(pixels.1 as i32),
+            ),
+        );
+    }
+    let at = |start: Pixels, room: Pixels, own: f32| {
+        let device = ((f32::from(start) + (f32::from(room) - own) / 2.) * scale).round();
+        gpui::px(device / scale)
+    };
+    Bounds::new(
+        gpui::point(
+            at(slot.origin.x, slot.size.width, w),
+            at(slot.origin.y, slot.size.height, h),
+        ),
+        gpui::size(gpui::px(w), gpui::px(h)),
+    )
 }
 
 // The decoded picture with every texel's straight alpha scaled, Row.qml's dimOpacity, since GPUI keeps element opacity crate-private.

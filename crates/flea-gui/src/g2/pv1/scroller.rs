@@ -91,6 +91,10 @@ pub struct Scroll {
     pub lane: Option<Axis>,
     /// A knob held by the pointer, and where on it the press landed.
     pub drag: Option<(Axis, f64)>,
+    /// A zoomed picture held by the pointer: where the press landed and the position it started from.
+    pub pan: Option<(Point<Pixels>, f64, f64)>,
+    /// A zoom step's centre as fractions of the content, applied to the next frame's viewport.
+    pub anchor: Option<(f64, f64)>,
     pub view: Option<View>,
     /// The diff's longest line in px, measured once per subject.
     pub widest: Option<f64>,
@@ -127,6 +131,10 @@ impl Scroll {
     /// This frame's viewport; a resize or an expand keeps the position inside the new bounds.
     pub fn fit(&mut self, view: View) {
         self.view = Some(view);
+        if let Some((fx, fy)) = self.anchor.take() {
+            self.x = fx * view.content_w - f(view.bounds.size.width) / 2.;
+            self.y = fy * view.content_h - f(view.bounds.size.height) / 2.;
+        }
         let (y, x) = (self.y, if view.sideways { self.x } else { 0. });
         self.set(Axis::Vertical, y);
         self.set(Axis::Horizontal, x);
@@ -165,7 +173,7 @@ impl Scroll {
         let mut changed = lane != self.lane;
         self.lane = lane;
         // A release the window never saw: the first move without the button ends the drag, as the lane's onCanceled does.
-        if !held && self.drag.take().is_some() {
+        if !held && (self.drag.take().is_some() | self.pan.take().is_some()) {
             changed = true;
         }
         let mut dragged = None;
@@ -206,7 +214,49 @@ impl Scroll {
     }
 
     pub fn release(&mut self) -> bool {
-        self.drag.take().is_some()
+        let panned = self.pan.take().is_some();
+        self.drag.take().is_some() || panned
+    }
+
+    /// The viewport point under the centre, as fractions of the content; a step not yet drawn keeps its own.
+    pub fn centre(&self) -> (f64, f64) {
+        self.anchor
+            .or_else(|| {
+                self.view.map(|view| {
+                    (
+                        (self.x + f(view.bounds.size.width) / 2.) / view.content_w,
+                        (self.y + f(view.bounds.size.height) / 2.) / view.content_h,
+                    )
+                })
+            })
+            .unwrap_or((0.5, 0.5))
+    }
+
+    /// A left press on a viewport whose content overflows takes hold of the content, as a Flickable's drag does.
+    pub fn grab(&mut self, at: Point<Pixels>) -> bool {
+        let Some(view) = self.view.filter(|view| view.bounds.contains(&at)) else {
+            return false;
+        };
+        if !AXES.into_iter().any(|axis| view.scrolls(axis)) {
+            return false;
+        }
+        self.pan = Some((at, self.x, self.y));
+        true
+    }
+
+    /// The held content follows the pointer; returns the axes it moved.
+    pub fn pan_to(&mut self, at: Point<Pixels>) -> Vec<Axis> {
+        let Some((from, x, y)) = self.pan else {
+            return Vec::new();
+        };
+        let mut moved = Vec::new();
+        for (axis, start) in [(Axis::Vertical, y), (Axis::Horizontal, x)] {
+            let to = start - (View::along(axis, at) - View::along(axis, from));
+            if self.set(axis, to) {
+                moved.push(axis);
+            }
+        }
+        moved
     }
 
     /// Marks an axis moving and returns the generation its hold timer must still match.

@@ -8,7 +8,6 @@ use std::time::Duration;
 
 // v0.3.12 CompareView.qml:33: Preview's status stays "loading" until the backend answers the diff.
 #[gpui::test]
-#[ignore = "EY-502 lands with FIX-PREVIEW's shared loading mark (EY-528)"]
 fn fixcards_ey502_a_held_compare_reply_reads_loading_after_the_hold(cx: &mut gpui::TestAppContext) {
     let (shell, cx, mut requests) = opened(cx);
     pair(&shell, cx);
