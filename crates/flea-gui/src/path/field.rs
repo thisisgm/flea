@@ -338,45 +338,48 @@ impl Element for FieldElement {
         );
         let caret_top = band_top(frame, scale.caret);
         let entry = &view.entry;
-        window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
-            if !entry.selected.is_empty() {
-                let (from, to) = line.entry_span(entry, &entry.selected);
-                let (from, to) = (origin + from, origin + to);
-                window.paint_quad(fill(wash_box(frame, from, to, &scale), ink.wash(SELECTION)));
-            }
-            if let Some(run) = &line.run {
-                paint_run(
-                    run,
-                    origin,
-                    frame.origin.y,
-                    frame.size.height,
-                    ink.foreground,
-                    window,
-                );
-            }
-            if let Some(marked) = &entry.marked {
-                let (from, to) = line.entry_span(entry, marked);
-                let (from, to) = (origin + from, origin + to);
-                window.paint_quad(fill(
-                    Bounds::new(
-                        point(from, caret_top + px(scale.caret - 1.)),
-                        size(to - from, px(1.)),
-                    ),
-                    ink.foreground,
-                ));
-            }
-            // Selected text shows no caret, as the board draws it.
-            if entry.selected.is_empty() {
-                window.paint_quad(fill(
-                    caret_box(
-                        frame,
+        // A path is file content: its line, wash and caret keep their order in a mirrored window.
+        window.with_unmirrored(frame, |window| {
+            window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
+                if !entry.selected.is_empty() {
+                    let (from, to) = line.entry_span(entry, &entry.selected);
+                    let (from, to) = (origin + from, origin + to);
+                    window.paint_quad(fill(wash_box(frame, from, to, &scale), ink.wash(SELECTION)));
+                }
+                if let Some(run) = &line.run {
+                    paint_run(
+                        run,
                         origin,
-                        line.entry_caret(entry, entry.cursor()),
-                        &scale,
-                    ),
-                    ink.foreground,
-                ));
-            }
+                        frame.origin.y,
+                        frame.size.height,
+                        ink.foreground,
+                        window,
+                    );
+                }
+                if let Some(marked) = &entry.marked {
+                    let (from, to) = line.entry_span(entry, marked);
+                    let (from, to) = (origin + from, origin + to);
+                    window.paint_quad(fill(
+                        Bounds::new(
+                            point(from, caret_top + px(scale.caret - 1.)),
+                            size(to - from, px(1.)),
+                        ),
+                        ink.foreground,
+                    ));
+                }
+                // Selected text shows no caret, as the board draws it.
+                if entry.selected.is_empty() {
+                    window.paint_quad(fill(
+                        caret_box(
+                            frame,
+                            origin,
+                            line.entry_caret(entry, entry.cursor()),
+                            &scale,
+                        ),
+                        ink.foreground,
+                    ));
+                }
+            })
         });
         drop(line);
         view.line.borrow_mut().registered = view.entry.session();

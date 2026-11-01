@@ -234,7 +234,14 @@ fn paint_row(
     let mut edge = right - px(metrics.pad_x);
     if line.has_trailing_column() {
         if line.chevron {
-            let (key, data) = glyphs::mark("chevron-right");
+            let (key, data) = if window.layout_mirrored() {
+                (
+                    gpui::SharedString::new_static(glyphs::CHEVRON_LEFT.0),
+                    glyphs::CHEVRON_LEFT.1,
+                )
+            } else {
+                glyphs::mark("chevron-right")
+            };
             let bounds = Bounds::new(
                 point(
                     edge - px(metrics.chevron),

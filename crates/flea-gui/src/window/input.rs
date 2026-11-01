@@ -250,11 +250,17 @@ impl Shell {
         };
         let pair_armed = self.keyboard.pair_armed(name, seat);
         let arm_live = self.escape_arm_live(seat);
-        let resolved = self.keyboard.resolve(name, event, window.modifiers(), seat);
+        let resolved = self.keyboard.resolve(
+            name,
+            event,
+            window.modifiers(),
+            window.layout_mirrored(),
+            seat,
+        );
         let dispatch = if resolved == Dispatch::Composition {
             resolved
         } else {
-            self.grid_sideways(event)
+            self.grid_sideways(event, window.layout_mirrored())
                 .map(Dispatch::Action)
                 .unwrap_or(resolved)
         };

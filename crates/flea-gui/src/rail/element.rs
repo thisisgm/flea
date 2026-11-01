@@ -283,53 +283,61 @@ impl Element for RailElement {
                 } else {
                     rect.x
                 };
-                window.with_content_mask(
-                    Some(ContentMask {
-                        bounds: box_of(rect),
-                    }),
-                    |window| {
-                        if row.editor.is_some() {
-                            let from = origin + model.editor_x(model.editor.selected.start);
-                            let to = origin + model.editor_x(model.editor.selected.end);
-                            if !model.editor.selected.is_empty() {
-                                window.paint_quad(fill(
-                                    box_of(Rect::new(
-                                        from,
-                                        rect.y + 2.,
-                                        to - from,
-                                        rect.height - 4.,
-                                    )),
-                                    palette.accent.opacity(0.24),
-                                ));
-                            } else {
-                                window.paint_quad(fill(
-                                    box_of(Rect::new(from, rect.y + 3., 1., rect.height - 6.)),
-                                    palette.foreground,
-                                ));
+                let paint_label = |window: &mut Window| {
+                    window.with_content_mask(
+                        Some(ContentMask {
+                            bounds: box_of(rect),
+                        }),
+                        |window| {
+                            if row.editor.is_some() {
+                                let from = origin + model.editor_x(model.editor.selected.start);
+                                let to = origin + model.editor_x(model.editor.selected.end);
+                                if !model.editor.selected.is_empty() {
+                                    window.paint_quad(fill(
+                                        box_of(Rect::new(
+                                            from,
+                                            rect.y + 2.,
+                                            to - from,
+                                            rect.height - 4.,
+                                        )),
+                                        palette.accent.opacity(0.24),
+                                    ));
+                                } else {
+                                    window.paint_quad(fill(
+                                        box_of(Rect::new(from, rect.y + 3., 1., rect.height - 6.)),
+                                        palette.foreground,
+                                    ));
+                                }
+                                if let Some(marked) = &model.editor.marked {
+                                    let from = origin + model.editor_x(marked.start);
+                                    let to = origin + model.editor_x(marked.end);
+                                    window.paint_quad(fill(
+                                        box_of(Rect::new(
+                                            from,
+                                            rect.y + rect.height - 3.,
+                                            to - from,
+                                            1.,
+                                        )),
+                                        palette.foreground,
+                                    ));
+                                }
                             }
-                            if let Some(marked) = &model.editor.marked {
-                                let from = origin + model.editor_x(marked.start);
-                                let to = origin + model.editor_x(marked.end);
-                                window.paint_quad(fill(
-                                    box_of(Rect::new(
-                                        from,
-                                        rect.y + rect.height - 3.,
-                                        to - from,
-                                        1.,
-                                    )),
-                                    palette.foreground,
-                                ));
-                            }
-                        }
-                        label.paint(
-                            origin,
-                            rect.y,
-                            rect.height,
-                            super::label_ink(row.error, &palette),
-                            window,
-                        );
-                    },
-                );
+                            label.paint(
+                                origin,
+                                rect.y,
+                                rect.height,
+                                super::label_ink(row.error, &palette),
+                                window,
+                            );
+                        },
+                    )
+                };
+                // The editor's name, wash and caret keep their order in a mirrored window.
+                if row.editor.is_some() {
+                    window.with_unmirrored(box_of(rect), paint_label);
+                } else {
+                    paint_label(window);
+                }
                 ready.details[at].paint(
                     row.detail_rect.x,
                     row.detail_rect.y,

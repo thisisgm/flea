@@ -1,6 +1,9 @@
 //! Logical-leading geometry for the source contract in i18n/rtl-policy.json.
 use flea::i18n::Locale;
-use gpui::{Bounds, Pixels, Point};
+use gpui::{
+    AnyElement, App, Bounds, Element, GlobalElementId, InspectorElementId, IntoElement, LayoutId,
+    Pixels, Point, Window,
+};
 
 /// Direction is captured with the locale epoch, never inferred from a file's text.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -72,6 +75,83 @@ impl Direction {
     }
 }
 
+/// Back points to logical leading, so a mirrored window draws the toolbar's back arrow pointing right.
+pub const ARROW_RIGHT: (&str, &[u8]) = (
+    "flea-chrome:arrow-right",
+    br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 12h14 M12 5l7 7-7 7"/></svg>"#,
+);
+
+/// A disclosure chevron points to logical trailing, so a mirrored window draws it pointing left.
+pub fn trailing_chevron(mirrored: bool) -> &'static str {
+    if mirrored {
+        "chevron-left"
+    } else {
+        "chevron-right"
+    }
+}
+
+/// Keeps an editable line, file content or media transport left to right, moved whole to its mirrored place.
+pub struct Unmirrored(AnyElement);
+
+pub fn unmirrored(child: impl IntoElement) -> Unmirrored {
+    Unmirrored(child.into_any_element())
+}
+
+impl IntoElement for Unmirrored {
+    type Element = Self;
+
+    fn into_element(self) -> Self {
+        self
+    }
+}
+
+impl Element for Unmirrored {
+    type RequestLayoutState = ();
+    type PrepaintState = ();
+
+    fn id(&self) -> Option<gpui::ElementId> {
+        None
+    }
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+        None
+    }
+
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        (self.0.request_layout(window, cx), ())
+    }
+
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        self.0.prepaint(window, cx);
+    }
+
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        window.with_unmirrored(bounds, |window| self.0.paint(window, cx));
+    }
+}
+
 /// Isolate sanitized name/path display text before shaping, never backend path bytes or paint.
 pub fn isolate_auto(text: &str) -> String {
     isolate_display(text, '\u{2068}')
@@ -95,6 +175,9 @@ fn isolate_display(text: &str, opening: char) -> String {
     output
 }
 
+#[cfg(test)]
+#[path = "locale_geometry_mirror_tests.rs"]
+mod mirror_tests;
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -181,6 +181,7 @@ fn i50_dialog_tab_preedit_owner(cx: &mut TestAppContext) {
                 is_held: false,
                 prefer_character_input: false,
             },
+            w,
             cx,
         );
         s.replace_text_in_range(None, "late", w, cx);

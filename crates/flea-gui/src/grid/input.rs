@@ -3,12 +3,19 @@ use super::{arrow, host::GridHost, Arrow, Shown};
 use crate::{
     list::pane::page_items,
     state::Shell,
-    window::{input::modifiers, startup::View},
+    window::{
+        input::{modifiers, reading},
+        startup::View,
+    },
 };
 use gpui::{Context, KeyDownEvent, MouseDownEvent, MouseMoveEvent, Window};
 
 impl Shell {
-    pub(crate) fn grid_sideways(&self, event: &KeyDownEvent) -> Option<&'static str> {
+    pub(crate) fn grid_sideways(
+        &self,
+        event: &KeyDownEvent,
+        mirrored: bool,
+    ) -> Option<&'static str> {
         if self.view != View::Grid
             || self.keyboard.context != flea::keys::Context::Listing
             || modifiers(event.keystroke.modifiers) != 0
@@ -17,8 +24,12 @@ impl Shell {
             return None;
         }
         match (
-            event.keystroke.key.as_str(),
-            event.keystroke.key_char.as_deref(),
+            reading(event.keystroke.key.as_str(), mirrored),
+            event
+                .keystroke
+                .key_char
+                .as_deref()
+                .map(|text| reading(text, mirrored)),
         ) {
             ("left", _) | (_, Some("h")) => Some("cursorLeft"),
             ("right", _) | (_, Some("l")) => Some("cursorRight"),

@@ -59,6 +59,7 @@ impl Drawn {
         text.rect.x -= scroll;
         let mut add = |x: f32, w: f32, h: f32, y: f32, ink| {
             self.boxes.push(BoxPaint {
+                field: Some(focus),
                 rect: Rect { x, y, w, h },
                 fill: ink,
                 border: ink,

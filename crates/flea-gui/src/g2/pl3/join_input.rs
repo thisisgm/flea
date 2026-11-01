@@ -62,6 +62,7 @@ impl Shell {
                 },
                 event,
                 window.modifiers(),
+                window.layout_mirrored(),
             ) {
                 Match::Action(action) => Some(action),
                 _ => None,

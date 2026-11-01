@@ -199,7 +199,7 @@ impl Draw<'_> {
                 text = text.child(caret());
             }
         }
-        let line = line.child(text);
+        let line = line.child(crate::locale_geometry::unmirrored(text));
         match &field.label {
             Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
             None => line,

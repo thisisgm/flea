@@ -320,19 +320,25 @@ impl Element for StripElement {
             cx,
         );
         let line_height = px(HEIGHT - RULE);
-        if let Some(line) = &state.query.line {
-            let _ = line.paint(
-                laid.query.origin,
-                line_height,
-                TextAlign::Left,
-                None,
-                window,
-                cx,
-            );
-        }
-        if let Some(caret) = laid.caret {
-            window.paint_quad(fill(caret, palette.accent));
-        }
+        // The query and its caret stay together in a mirrored window.
+        let query = laid
+            .caret
+            .map_or(laid.query, |caret| laid.query.union(&caret));
+        window.with_unmirrored(query, |window| {
+            if let Some(line) = &state.query.line {
+                let _ = line.paint(
+                    laid.query.origin,
+                    line_height,
+                    TextAlign::Left,
+                    None,
+                    window,
+                    cx,
+                );
+            }
+            if let Some(caret) = laid.caret {
+                window.paint_quad(fill(caret, palette.accent));
+            }
+        });
         let summary_line = if state.cut.is_some() {
             &state.elided.line
         } else {

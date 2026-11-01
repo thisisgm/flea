@@ -29,7 +29,7 @@ pub(super) fn resolve(
     input: &KeyDownEvent,
     seat: Seat,
 ) -> Dispatch {
-    keyboard.resolve(name, input, input.keystroke.modifiers, seat)
+    keyboard.resolve(name, input, input.keystroke.modifiers, false, seat)
 }
 
 #[test]

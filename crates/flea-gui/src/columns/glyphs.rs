@@ -31,6 +31,7 @@ macro_rules! glyph {
 
 // Lucide's chevron-right, copy, scissors and move-horizontal in the Omarchy cut ui/js/Icons.js carries.
 pub const CHEVRON_SVG: (&str, &[u8]) = glyph!("flea-mark:chevron-right", "M9 18l6-6-6-6");
+pub const CHEVRON_LEFT_SVG: (&str, &[u8]) = glyph!("flea-mark:chevron-left", "M15 18l-6-6 6-6");
 pub const COPY_SVG: (&str, &[u8]) = glyph!("flea-mark:copy", "M9 8h12v13H9z M4 16V3h13");
 pub const SCISSORS_SVG: (&str, &[u8]) = glyph!(
     "flea-mark:scissors",

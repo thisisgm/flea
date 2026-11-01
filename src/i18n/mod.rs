@@ -91,6 +91,7 @@ pub struct I18n {
     omarchy_english: HashMap<&'static str, Catalog>,
     omarchy_translated: HashMap<&'static str, Catalog>,
     watched: Vec<(PathBuf, Option<Stamp>)>,
+    paragraphs: bool,
 }
 
 impl Default for I18n {
@@ -103,6 +104,7 @@ impl I18n {
             paths, roster: Vec::new(), locale: Locale::default(),
             english: Catalog::new(), translated: Catalog::new(),
             omarchy_english: HashMap::new(), omarchy_translated: HashMap::new(), watched: Vec::new(),
+            paragraphs: false,
         };
         result.reload();
         result
@@ -111,7 +113,18 @@ impl I18n {
     pub fn language(&self) -> &str { &self.locale.code }
     pub fn locale(&self) -> &Locale { &self.locale }
     pub fn roster(&self) -> &[Locale] { &self.roster }
-    pub fn tr(&self, key: &str) -> String { self.resolve(key, None).unwrap_or(key).into() }
+    pub fn tr(&self, key: &str) -> String {
+        let line = self.resolve(key, None).unwrap_or(key);
+        self.paragraph(line, line.into())
+    }
+
+    /// The GUI shapes each line as one bidi paragraph and asks for the locale's direction; the TUI never does.
+    pub fn mark_paragraphs(&mut self) { self.paragraphs = true; }
+
+    // An RTL line opening in Latin outside its placeholders ("Flea نے %1") reads right to left, as an RLM sets.
+    fn paragraph(&self, template: &str, line: String) -> String {
+        if self.paragraphs && self.locale.right_to_left && opens_latin(template) { format!("\u{200f}{line}") } else { line }
+    }
 
     pub fn tr_args(&self, key: &str, args: &[&str]) -> String {
         substitute(&self.tr(key), args)
@@ -124,7 +137,8 @@ impl I18n {
         let number = self.locale.format_count(count);
         let mut values = vec![number.as_str()];
         values.extend_from_slice(args);
-        substitute(self.resolve(key, Some(count)).unwrap_or(key), &values)
+        let line = self.resolve(key, Some(count)).unwrap_or(key);
+        self.paragraph(line, substitute(line, &values))
     }
 
     fn resolve<'a>(&'a self, key: &'a str, count: Option<i64>) -> Option<&'a str> {
@@ -191,6 +205,34 @@ impl I18n {
             self.omarchy_translated.insert(kind, catalog::load(&translated, kind == "menu"));
         }
     }
+}
+
+// Placeholders and isolates are skipped: their text takes its own direction inside the line.
+fn opens_latin(template: &str) -> bool {
+    const HEBREW_TO_ARABIC_EXTENDED: std::ops::RangeInclusive<char> = '\u{0590}'..='\u{08ff}';
+    const ALPHABETIC_AND_ARABIC_PRESENTATION: std::ops::RangeInclusive<char> = '\u{fb1d}'..='\u{fdff}';
+    const ARABIC_PRESENTATION_B: std::ops::RangeInclusive<char> = '\u{fe70}'..='\u{feff}';
+    const HISTORIC_RTL: std::ops::RangeInclusive<char> = '\u{10800}'..='\u{10fff}';
+    const MENDE_TO_ARABIC_MATH: std::ops::RangeInclusive<char> = '\u{1e800}'..='\u{1efff}';
+    let rtl = |c: char| HEBREW_TO_ARABIC_EXTENDED.contains(&c)
+        || ALPHABETIC_AND_ARABIC_PRESENTATION.contains(&c) || ARABIC_PRESENTATION_B.contains(&c)
+        || HISTORIC_RTL.contains(&c) || MENDE_TO_ARABIC_MATH.contains(&c);
+    let (mut first, mut depth, mut chars) = (None, 0usize, template.chars().peekable());
+    while let Some(c) = chars.next() {
+        match c {
+            '%' => while chars.next_if(char::is_ascii_digit).is_some() {},
+            '\u{2066}'..='\u{2068}' => depth += 1,
+            '\u{2069}' => depth = depth.saturating_sub(1),
+            c if depth == 0 && c.is_alphabetic() => match first {
+                None if rtl(c) => return false,
+                None => first = Some(c),
+                Some(_) if rtl(c) => return true,
+                Some(_) => {}
+            },
+            _ => {}
+        }
+    }
+    false
 }
 
 #[cfg(test)]

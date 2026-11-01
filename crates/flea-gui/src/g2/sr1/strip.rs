@@ -314,24 +314,34 @@ impl Element for StripElement {
             palette.accent,
             cx,
         );
-        paint_line(
-            &prepared.query,
-            left + px(boxes.query_x),
-            top,
-            palette.foreground,
-            height,
-            window,
+        // The query and its caret stay together in a mirrored window.
+        let query = Bounds::new(
+            point(left + px(boxes.query_x), top),
+            size(
+                px(boxes.caret_x + CARET_W * scale - boxes.query_x),
+                px(height),
+            ),
         );
-        if self.words.typing {
-            let caret = Bounds::new(
-                point(
-                    left + px(boxes.caret_x),
-                    top + px((height - CARET_H * scale) / 2.),
-                ),
-                size(px(CARET_W * scale), px(CARET_H * scale)),
+        window.with_unmirrored(query, |window| {
+            paint_line(
+                &prepared.query,
+                left + px(boxes.query_x),
+                top,
+                palette.foreground,
+                height,
+                window,
             );
-            window.paint_quad(fill(caret, palette.accent));
-        }
+            if self.words.typing {
+                let caret = Bounds::new(
+                    point(
+                        left + px(boxes.caret_x),
+                        top + px((height - CARET_H * scale) / 2.),
+                    ),
+                    size(px(CARET_W * scale), px(CARET_H * scale)),
+                );
+                window.paint_quad(fill(caret, palette.accent));
+            }
+        });
         if boxes.scope_w > 0. {
             paint_line(
                 &prepared.scope,

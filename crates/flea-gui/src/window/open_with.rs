@@ -203,11 +203,10 @@ impl Shell {
         if self.open_with.is_none() {
             return false;
         }
-        let Some(key) = key_of(event) else {
+        let Some(key) = key_of(event).map(|key| key.read(window.layout_mirrored())) else {
             cx.notify();
             return true;
         };
-        let _ = window;
         let effects = self.open_with.as_mut().expect("an open card").card.key(key);
         self.open_with_effects(effects, cx);
         true

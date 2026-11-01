@@ -37,6 +37,7 @@ impl Drawn {
         };
 
         self.boxes.push(BoxPaint {
+            field: None,
             rect,
             fill: p
                 .ink(look.wash)
@@ -52,6 +53,7 @@ impl Drawn {
         if let Some(ink) = p.ink(look.overlay) {
             let inset = look.frame_width;
             self.boxes.push(BoxPaint {
+                field: None,
                 rect: Rect {
                     x: rect.x + inset,
                     y: rect.y + inset,

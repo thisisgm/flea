@@ -330,6 +330,7 @@ impl Element for ListElement {
             scroll_y: self.scroll_y,
             listing: held.listing,
             frames: drawn.frames + 1,
+            mirrored: window.layout_mirrored(),
             grow,
             drop: drop_box.map(|(index, x, width, _)| {
                 let top = bounds.origin.y + px(grow.top(index, metrics.row) - self.scroll_y);

@@ -15,6 +15,8 @@ impl Render for Root {
         #[cfg(test)]
         super::frame_feedback::perf_tests::root_built();
         self.shell.update(cx, |shell, cx| {
+            // Root renders first in every frame, so the whole frame paints in one direction.
+            window.set_layout_mirrored(shell.mirrored());
             shell.presentation.activity.draws += 1;
             shell.sync_font_settings(cx);
             shell.observe_operations(window, cx);

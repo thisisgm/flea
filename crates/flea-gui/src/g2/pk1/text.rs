@@ -186,57 +186,60 @@ impl<T: EntryHost> Element for Input<T> {
         let filter = self.strip.is_some();
         let band = if filter { FILTER_BAND } else { FIELD_BAND };
         let top = bounds.top() + (bounds.size.height - px(band)) / 2.;
-        window.with_content_mask(Some(ContentMask { bounds }), |window| {
-            if filter {
-                window.paint_quad(fill(bounds, palette.background));
-            }
-            if active && !entry.selected.is_empty() {
-                let (from, to) = line.entry_span(entry, &entry.selected);
-                window.paint_quad(fill(
-                    Bounds::new(point(origin + from, top), size(to - from, px(band))),
-                    palette.accent.opacity(WASH),
-                ));
-            }
-            if let Some(run) = &line.run {
-                crate::path::paint::paint_run(
-                    run,
-                    origin,
-                    bounds.top(),
-                    bounds.size.height,
-                    palette.foreground,
-                    window,
-                );
-            }
-            if active {
-                if let Some(marked) = &entry.marked {
-                    let (from, to) = line.entry_span(entry, marked);
+        // An editable line keeps its text, selection and caret together in a mirrored window.
+        window.with_unmirrored(bounds, |window| {
+            window.with_content_mask(Some(ContentMask { bounds }), |window| {
+                if filter {
+                    window.paint_quad(fill(bounds, palette.background));
+                }
+                if active && !entry.selected.is_empty() {
+                    let (from, to) = line.entry_span(entry, &entry.selected);
                     window.paint_quad(fill(
-                        Bounds::new(
-                            point(origin + from, top + px(band - 1.)),
-                            size(to - from, px(1.)),
-                        ),
+                        Bounds::new(point(origin + from, top), size(to - from, px(band))),
+                        palette.accent.opacity(WASH),
+                    ));
+                }
+                if let Some(run) = &line.run {
+                    crate::path::paint::paint_run(
+                        run,
+                        origin,
+                        bounds.top(),
+                        bounds.size.height,
                         palette.foreground,
-                    ));
-                }
-                if entry.selected.is_empty() {
-                    let height = if filter { 13. } else { 16. };
-                    let caret = Bounds::new(
-                        point(
-                            origin + line.entry_caret(entry, entry.cursor()) + px(1.),
-                            bounds.top() + (bounds.size.height - px(height)) / 2.,
-                        ),
-                        size(px(if filter { 2. } else { 1. }), px(height)),
+                        window,
                     );
-                    window.paint_quad(fill(
-                        caret,
-                        if filter {
-                            palette.accent
-                        } else {
-                            palette.foreground
-                        },
-                    ));
                 }
-            }
+                if active {
+                    if let Some(marked) = &entry.marked {
+                        let (from, to) = line.entry_span(entry, marked);
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(origin + from, top + px(band - 1.)),
+                                size(to - from, px(1.)),
+                            ),
+                            palette.foreground,
+                        ));
+                    }
+                    if entry.selected.is_empty() {
+                        let height = if filter { 13. } else { 16. };
+                        let caret = Bounds::new(
+                            point(
+                                origin + line.entry_caret(entry, entry.cursor()) + px(1.),
+                                bounds.top() + (bounds.size.height - px(height)) / 2.,
+                            ),
+                            size(px(if filter { 2. } else { 1. }), px(height)),
+                        );
+                        window.paint_quad(fill(
+                            caret,
+                            if filter {
+                                palette.accent
+                            } else {
+                                palette.foreground
+                            },
+                        ));
+                    }
+                }
+            })
         });
         let focus = host.focus().clone();
         drawn.line.registered = active.then(|| entry.session()).flatten();
