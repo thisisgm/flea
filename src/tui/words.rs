@@ -82,13 +82,19 @@ impl Held {
             ErrorSlot::Queued => self.errors.push_back(text),
         }
     }
-    pub(super) fn retract_errors(&mut self, errors: &mut std::collections::VecDeque<String>, gone: &[(String, bool)]) {
+    pub(super) fn retract_errors(
+        &mut self,
+        errors: &mut std::collections::VecDeque<String>,
+        gone: &[(String, bool)],
+    ) {
         self.sync_errors(errors.len());
         let mut retained = std::collections::VecDeque::new();
         errors.retain(|error| {
             let text = self.errors.pop_front().flatten();
             let keep = !gone.iter().any(|(posted, _)| posted == error);
-            if keep { retained.push_back(text); }
+            if keep {
+                retained.push_back(text);
+            }
             keep
         });
         self.errors = retained;
@@ -290,7 +296,9 @@ impl super::model::Model {
             return false;
         }
         self.prompts.i18n = self.i18n.clone();
-        let old_errors: Vec<String> = std::iter::once(self.error.clone()).chain(self.errors.iter().cloned()).collect();
+        let old_errors: Vec<String> = std::iter::once(self.error.clone())
+            .chain(self.errors.iter().cloned())
+            .collect();
         self.words.refresh(
             &self.i18n,
             &mut self.message,
@@ -298,9 +306,13 @@ impl super::model::Model {
             &mut self.errors,
             &mut self.transfer,
         );
-        let new_errors: Vec<String> = std::iter::once(self.error.clone()).chain(self.errors.iter().cloned()).collect();
+        let new_errors: Vec<String> = std::iter::once(self.error.clone())
+            .chain(self.errors.iter().cloned())
+            .collect();
         for (posted, _) in &mut self.preview_errors {
-            if let Some(index) = old_errors.iter().position(|old| old == posted) { *posted = new_errors[index].clone(); }
+            if let Some(index) = old_errors.iter().position(|old| old == posted) {
+                *posted = new_errors[index].clone();
+            }
         }
         super::trashview::refresh_locale(self);
         self.words.refresh_launches(&self.i18n, &mut self.launches);

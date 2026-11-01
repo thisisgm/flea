@@ -54,7 +54,10 @@ impl Identity {
         let file = job::held(path)?;
         let metadata = file.metadata()?;
         if !container::real(&file, path, metadata.len()) {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "the Office container is malformed"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "the Office container is malformed",
+            ));
         }
         let stamp = stamp(&metadata);
         Ok(Self {
@@ -363,15 +366,23 @@ pub fn facts(m: &mut Model) {
 }
 pub fn append_facts(m: &mut Model) {
     let office = office_row(m);
-    let Some(pdf) = m.pdf.as_ref().filter(|_| office) else { return };
+    let Some(pdf) = m.pdf.as_ref().filter(|_| office) else {
+        return;
+    };
     let i18n = &m.preview_state.i18n;
     let mut rows = Vec::new();
     if let Some((key, count)) = m.preview_state.office.doc.count(pdf.pages) {
         rows.push((key, i18n.locale().format_count(count as i64), true));
     }
-    if !pdf.title.is_empty() { rows.push((TITLE, pdf.title.clone(), false)); }
-    if !pdf.author.is_empty() { rows.push((AUTHOR, pdf.author.clone(), false)); }
-    for (key, value, number) in rows { super::preview::words::push(m, key, value, number); }
+    if !pdf.title.is_empty() {
+        rows.push((TITLE, pdf.title.clone(), false));
+    }
+    if !pdf.author.is_empty() {
+        rows.push((AUTHOR, pdf.author.clone(), false));
+    }
+    for (key, value, number) in rows {
+        super::preview::words::push(m, key, value, number);
+    }
 }
 
 #[cfg(test)]

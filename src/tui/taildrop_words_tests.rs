@@ -1,4 +1,3 @@
-
 use super::*;
 fn ready() -> Taildrop {
     let mut taildrop = Taildrop::new();
@@ -166,10 +165,7 @@ fn provider_state_overrides_stale_peer_eligibility() {
         1
     );
     let empty = jsondoc::parse(&fixture.replace(r#""Online":true"#, r#""Online":false"#)).unwrap();
-    assert_eq!(
-        available_peers(&empty).err(),
-        Some("menu.state.noDevices")
-    );
+    assert_eq!(available_peers(&empty).err(), Some("menu.state.noDevices"));
 }
 
 #[test]

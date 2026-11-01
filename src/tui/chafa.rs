@@ -84,7 +84,10 @@ impl Job {
             return Err(refused());
         }
         if !sandbox::available() {
-            return Err(super::preview::words::issue("actions.preview.no_sandbox", "Preview sandbox is unavailable"));
+            return Err(super::preview::words::issue(
+                "actions.preview.no_sandbox",
+                "Preview sandbox is unavailable",
+            ));
         }
         let cancel = Arc::new(AtomicBool::new(false));
         let stopped = cancel.clone();
@@ -159,7 +162,10 @@ fn geometry(columns: usize, rows: usize) -> io::Result<()> {
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            super::preview::words::Fault::new("tui.preview.rectangle", "Preview rectangle exceeds its limit"),
+            super::preview::words::Fault::new(
+                "tui.preview.rectangle",
+                "Preview rectangle exceeds its limit",
+            ),
         ));
     }
     Ok(())

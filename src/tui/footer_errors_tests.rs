@@ -25,7 +25,10 @@ fn a_retry_that_fails_again_is_read_for_the_full_error_time() {
     m.error_at = m.error_at.checked_sub(Duration::from_secs(7)).unwrap();
     m.fail("Denied".into());
     m.expire_message(std::time::Instant::now() + Duration::from_secs(2));
-    assert_eq!(m.error, "Denied", "the retry's failure cleared on the first one's clock");
+    assert_eq!(
+        m.error, "Denied",
+        "the retry's failure cleared on the first one's clock"
+    );
 }
 
 // Expiration must advance the semantic label together with its rendered footer string.
@@ -37,7 +40,13 @@ fn expiry_preserves_the_next_errors_semantic_projection() {
     m.fail_text(Text::Key("pane.unavailable"));
     m.expire_message(m.error_at + Duration::from_secs(9));
     m.error = "stale projection".into();
-    m.words.refresh(&m.i18n, &mut m.message, &mut m.error, &mut m.errors, &mut m.transfer);
+    m.words.refresh(
+        &m.i18n,
+        &mut m.message,
+        &mut m.error,
+        &mut m.errors,
+        &mut m.transfer,
+    );
     assert_eq!(m.error, m.i18n.tr("pane.unavailable"));
 }
 
@@ -52,7 +61,13 @@ fn preview_retraction_preserves_the_remaining_queue_projection() {
     m.retract_preview_errors(true);
     m.dismiss_error();
     m.error = "stale projection".into();
-    m.words.refresh(&m.i18n, &mut m.message, &mut m.error, &mut m.errors, &mut m.transfer);
+    m.words.refresh(
+        &m.i18n,
+        &mut m.message,
+        &mut m.error,
+        &mut m.errors,
+        &mut m.transfer,
+    );
     assert_eq!(m.error, m.i18n.tr("pane.unavailable"));
     assert!(m.errors.is_empty());
 }

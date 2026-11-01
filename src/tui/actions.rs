@@ -279,7 +279,10 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         return Ok(());
     }
     if (m.pending.is_some() || m.held || m.name_filter.waiting)
-        && !matches!(action, "quit" | "quitNoCwd" | "escape" | "keymapSheet" | "suspend")
+        && !matches!(
+            action,
+            "quit" | "quitNoCwd" | "escape" | "keymapSheet" | "suspend"
+        )
     {
         return Ok(());
     }
@@ -301,7 +304,13 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "menu"
                 | "properties"
                 | "factsToggle"
-                | "copyPath" | "copyUri" | "copydirpath" | "copyDirUri" | "copyName" | "copyStem" | "followLink"
+                | "copyPath"
+                | "copyUri"
+                | "copydirpath"
+                | "copyDirUri"
+                | "copyName"
+                | "copyStem"
+                | "followLink"
                 | "toggleSelect"
                 | "selectNext"
                 | "selectAll"
@@ -323,8 +332,16 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "rename"
                 | "copy"
                 | "cut"
-                | "pasteLink" | "pasteAbsoluteLink" | "pasteHardLink"
-                | "copyPath" | "copyUri" | "copydirpath" | "copyDirUri" | "copyName" | "copyStem" | "followLink"
+                | "pasteLink"
+                | "pasteAbsoluteLink"
+                | "pasteHardLink"
+                | "copyPath"
+                | "copyUri"
+                | "copydirpath"
+                | "copyDirUri"
+                | "copyName"
+                | "copyStem"
+                | "followLink"
         )
     {
         m.fail_key("tui.operation.search_busy");
@@ -345,7 +362,11 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "reveal"
                 | "toggleSelect"
                 | "editFile"
-                | "copyPath" | "copyUri" | "copyName" | "copyStem" | "followLink"
+                | "copyPath"
+                | "copyUri"
+                | "copyName"
+                | "copyStem"
+                | "followLink"
         )
     {
         return Ok(());
@@ -369,7 +390,9 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     ) {
         m.sort_anchor = None;
     }
-    if super::parity17::act(m, action, w)? { return Ok(()); }
+    if super::parity17::act(m, action, w)? {
+        return Ok(());
+    }
     match action {
         "print" => super::print::open(m, w, false)?,
         "convert" => super::convert::open(m, w, false)?,
@@ -529,14 +552,20 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             ))
         }
         "copy" | "cut" => {
-            if m.pending_clipboard || m.parity17.copy_text.is_some() || m.taildrop_target.is_some() {
+            if m.pending_clipboard || m.parity17.copy_text.is_some() || m.taildrop_target.is_some()
+            {
                 return Ok(());
             }
             m.cut = action == "cut";
             m.pending_clipboard = true;
             m.parity17.copy_id = m.parity17.copy_id.wrapping_add(1).max(1);
             m.parity17.copy_listing = w.listing;
-            w.send(vec![("c", word("paths")), ("rows", m.indices()), ("hold", Json::Bool(true)), ("id", super::wire::number(m.parity17.copy_id))])?;
+            w.send(vec![
+                ("c", word("paths")),
+                ("rows", m.indices()),
+                ("hold", Json::Bool(true)),
+                ("id", super::wire::number(m.parity17.copy_id)),
+            ])?;
         }
         "clearClipboard" => {
             m.clipboard.clear();
@@ -592,7 +621,8 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         }
         "detailNext" => super::detail::cycle(m),
         "sortNext" | "sortReverse" | "sortName" | "sortNameReverse" | "sortDate"
-        | "sortDateReverse" | "sortSize" | "sortSizeReverse" | "sortBirth" | "sortBirthReverse" | "sortExtension" | "sortRandom" => {
+        | "sortDateReverse" | "sortSize" | "sortSizeReverse" | "sortBirth" | "sortBirthReverse"
+        | "sortExtension" | "sortRandom" => {
             super::sort_actions::act(m, action, w)?;
         }
         "tabNew" => {

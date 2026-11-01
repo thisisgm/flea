@@ -51,14 +51,16 @@ pub fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     w.send(request)?;
     m.sort_anchor = anchor;
     m.invalidate_rows();
-    if crate::uischema::SORT_KEYS.contains(&m.sort.as_str()) { super::actions::save(
-        "sort",
-        Json::Obj(vec![
-            ("key".into(), word(&m.sort)),
-            ("reverse".into(), Json::Bool(m.reverse)),
-        ]),
-        m,
-    ); }
+    if crate::uischema::SORT_KEYS.contains(&m.sort.as_str()) {
+        super::actions::save(
+            "sort",
+            Json::Obj(vec![
+                ("key".into(), word(&m.sort)),
+                ("reverse".into(), Json::Bool(m.reverse)),
+            ]),
+            m,
+        );
+    }
     Ok(())
 }
 

@@ -108,11 +108,26 @@ fn a_delayed_copy_failure_cannot_clear_a_newer_copy_request() {
     actions::act(&mut m, "copyUri", &mut w).unwrap();
     drain(&mut w);
     let id = m.parity17.copy_id;
-    m.receive(parse(&format!(r#"{{"t":"error","where":"paths","id":{},"listing":6,"msg":"old source changed"}}"#, id - 1)), &mut w).unwrap();
+    m.receive(
+        parse(&format!(
+            r#"{{"t":"error","where":"paths","id":{},"listing":6,"msg":"old source changed"}}"#,
+            id - 1
+        )),
+        &mut w,
+    )
+    .unwrap();
     assert_eq!(m.parity17.copy_text, Some("url"));
     assert!(m.error.is_empty());
-    m.receive(parse(&format!(r#"{{"t":"paths","id":{id},"listing":7,"paths":["/listing/file"]}}"#)), &mut w).unwrap();
-    assert!(drain(&mut w).iter().any(|reply| text(reply,"c") == "clipSet"));
+    m.receive(
+        parse(&format!(
+            r#"{{"t":"paths","id":{id},"listing":7,"paths":["/listing/file"]}}"#
+        )),
+        &mut w,
+    )
+    .unwrap();
+    assert!(drain(&mut w)
+        .iter()
+        .any(|reply| text(reply, "c") == "clipSet"));
     wire::finish(w, reader);
 }
 
