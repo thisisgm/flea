@@ -123,6 +123,18 @@ impl Operations {
         self.jobs.snapshot(jobs)
     }
 
+    // An extract ends on its archive line, never a transfer reply, so that line ends the card and lets the held job row land.
+    pub fn extract_done(&mut self, id: u64) -> bool {
+        if !self.wire.transfer.extract || self.wire.transfer.id != id {
+            return false;
+        }
+        self.wire.transfer = Default::default();
+        self.release_transfer_job();
+        self.sticky.clear();
+        self.changed = true;
+        true
+    }
+
     pub(super) fn release_transfer_job(&mut self) {
         if let Some(job) = self.pending_transfer_job.take() {
             self.jobs.update(job);
