@@ -69,3 +69,26 @@ fn tui_convert_wide_output_label_preserves_every_path_character() {
     assert!(frame(&m).contains("输出 /fx/v/work/photo (converted).jpg"));
     wire::finish(w, reader);
 }
+// tui-convert and tui-convert-pdf: each format mark sits on Output's column, and a page range names its last file alone.
+#[test]
+fn tui_convert_rows_and_page_range_match_the_boards() {
+    let (mut w, reader) = wire::echo_wire();
+    let m = validated_after_moving(&mut w, "photo.png");
+    let text = frame(&m);
+    let lines: Vec<&str> = text.lines().collect();
+    let column = |line: &str, needle: &str| line.find(needle).map(|at| line[..at].chars().count());
+    let output = lines.iter().find_map(|line| column(line, "Output")).unwrap();
+    let jpeg = lines.iter().find(|line| line.contains("JPEG")).unwrap();
+    assert_eq!(column(jpeg, "▎"), Some(output - 2), "{jpeg}");
+    let frame_edge = column(jpeg, "▎").unwrap() - 1;
+    assert_eq!(jpeg.chars().nth(frame_edge), Some('│'), "the edge takes the first air cell: {jpeg}");
+    assert_eq!(column(jpeg, "\u{eaea} JPEG"), Some(output), "{jpeg}");
+    let pdf = lines.iter().find(|line| line.contains(" PDF")).unwrap();
+    assert_eq!(column(pdf, "\u{eaeb} PDF"), Some(output), "{pdf}");
+    let mut m = validated_after_moving(&mut w, "report.pdf");
+    m.converting.card.as_mut().unwrap().count = Some(3);
+    let text = frame(&m);
+    let to = text.lines().find(|line| line.contains("(page 3).png")).unwrap();
+    assert!(to.contains("to report (page 3).png") && !to.contains("/fx/v/work/report (page 3)"), "{to}");
+    wire::finish(w, reader);
+}

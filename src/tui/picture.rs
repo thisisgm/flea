@@ -17,7 +17,13 @@ pub enum Slot {
 
 // The picture's size in cells and the rows under it, laid out by kind so the box never moves as decoders start.
 pub fn stack(m: &Model, area: &Area) -> ((usize, usize), Vec<Slot>) {
-    let Some(row) = m.rows.get(&m.cursor) else { return ((0, 0), Vec::new()) };
+    let (cells, _, tail) = laid(m, area);
+    (cells, tail)
+}
+
+// The stack and the room its picture fits into, the room counted before an empty picture gives up its blank row.
+fn laid(m: &Model, area: &Area) -> ((usize, usize), usize, Vec<Slot>) {
+    let Some(row) = m.rows.get(&m.cursor) else { return ((0, 0), area.height.saturating_sub(usize::from(area.card)), Vec::new()) };
     let kind = pane_state::kind(row);
     let details: Vec<Slot> = if area.card { Vec::new() } else {
         let limit = if kind == Kind::Model3d { area.height.saturating_sub(5) } else { 3 };
@@ -43,7 +49,7 @@ pub fn stack(m: &Model, area: &Area) -> ((usize, usize), Vec<Slot>) {
     if cells.1 == 0 && tail.first() == Some(&Slot::Blank) {
         tail.remove(0);
     }
-    (cells, tail)
+    (cells, room, tail)
 }
 
 fn model_room(m: &Model, kind: Kind, columns: usize, rows: usize, card: bool) -> usize {
@@ -125,10 +131,9 @@ pub struct Place {
 
 pub fn place(m: &Model) -> Place {
     let (area, x0, top) = frame(m);
-    let ((columns, rows), tail) = stack(m, &area);
-    let available_rows = area.height.saturating_sub(tail.len() + usize::from(area.card));
-    let kind = m.rows.get(&m.cursor).map_or(Kind::Data, pane_state::kind);
-    let room = (area.width(), model_room(m, kind, area.width(), available_rows, area.card));
+    // The room stays put when a half-block grid lands, so the decode it keys is never asked again for a room one row off.
+    let ((columns, rows), room, _) = laid(m, &area);
+    let room = (area.width(), room);
     let (columns, rows) = if rows == 0 { room } else { (columns, rows) };
     let offset = if area.card { room.0.saturating_sub(columns) / 2 } else { 0 };
     let left = if m.quicklook { x0 + offset } else { super::layout::visual_start(m, x0 + offset, columns) };

@@ -73,3 +73,29 @@ fn a_wrapped_part_keeps_its_offset_into_the_source_line_and_fits_its_width() {
 fn text_width_of(painted: &str) -> usize {
     crate::tui::cells::text_width(&plain(painted))
 }
+
+// Q2: bat gives `=` an ink, but the board keeps an operator in the foreground beside its coloured keyword and number.
+#[test]
+fn an_operator_alone_keeps_the_foreground_as_the_code_board_draws_it() {
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = model();
+    m.preview_body = "let x = 1;".into();
+    request(&mut m, &mut wire).unwrap();
+    wire.events.recv_timeout(Duration::from_secs(5)).unwrap().unwrap();
+    reply(&mut m, &mut wire, 1, r#"[[5,"let",0," x ",5,"=",0," ",3,"1",0,";"]]"#);
+    assert_eq!(m.preview_state.code.lines[0], vec![(5, 3), (0, 3), (0, 1), (0, 1), (3, 1), (0, 1)]);
+    wire::finish(wire, reader);
+}
+
+// bat 0.26 --theme=ansi inks a diff's lone `+` green, its lone `-` red and a doc comment's ` *` green: those keep their ink.
+#[test]
+fn a_marker_made_of_operator_signs_keeps_its_own_ink() {
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = model();
+    m.preview_body = "+\n-\n *\na && b".into();
+    request(&mut m, &mut wire).unwrap();
+    wire.events.recv_timeout(Duration::from_secs(5)).unwrap().unwrap();
+    reply(&mut m, &mut wire, 1, r#"[[2,"+"],[1,"-"],[2," *"],[0,"a ",5,"&&",0," b"]]"#);
+    assert_eq!(m.preview_state.code.lines, vec![vec![(2, 1)], vec![(1, 1)], vec![(2, 2)], vec![(0, 2), (0, 2), (0, 2)]]);
+    wire::finish(wire, reader);
+}

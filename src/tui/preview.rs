@@ -86,15 +86,19 @@ pub fn load(m: &mut Model, force: bool) {
     if m.selected.len() > 1 || (!m.preview_visible && !m.quicklook) {
         m.preview_reader.cancel();
         m.preview_path.clear();
+        m.retract_preview_errors(true);
         return;
     }
     let Some(path) = m.current_path() else {
         return;
     };
-    if !force && path == m.preview_path {
+    // A Markdown document Quick Look read rests on its head again once Quick Look closes.
+    let read_for_quicklook = !m.quicklook && markdown(&path) && (!m.preview_body.is_empty() || m.preview_reader.outstanding(m.preview_generation));
+    if !force && path == m.preview_path && !read_for_quicklook {
         return;
     }
     m.preview_reader.cancel();
+    m.retract_preview_errors(path != m.preview_path);
     m.preview_path = path.clone();
     m.preview_loaded = force || m.preview_auto || m.quicklook;
     m.preview_generation = m.preview_generation.wrapping_add(1);
@@ -128,6 +132,10 @@ pub fn load(m: &mut Model, force: bool) {
     if super::pane_state::kind(row) == super::pane_state::Kind::Model3d || !text && super::pane_state::kind(row) != super::pane_state::Kind::Data {
         return;
     }
+    // A Markdown document rests on its head in the pane, as v0.3.12 and the TUI boards draw todo.md; Quick Look still reads it.
+    if !m.quicklook && markdown(std::path::Path::new(&row.name)) {
+        return;
+    }
     if row.size as u64 > TEXT_BYTES && row.link.is_empty() {
         if text { set_text(m, Text::Key("preview.tooLarge")); }
         return;
@@ -135,6 +143,9 @@ pub fn load(m: &mut Model, force: bool) {
     set_text(m, Text::Key("preview.loading"));
     let content = super::pane_state::content(m).unwrap_or(path);
     m.preview_reader.request(content, m.preview_generation);
+}
+fn markdown(path: &std::path::Path) -> bool {
+    path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown"))
 }
 pub fn poll(m: &mut Model) {
     let Some((generation, result)) = m.preview_reader.poll() else { return };
@@ -323,6 +334,36 @@ context = "listing"
         let (generation, _, receiver) = reader.running.take().unwrap();
         assert_eq!(generation, 2);
         assert_eq!(receiver.recv_timeout(std::time::Duration::from_secs(5)).unwrap().unwrap(), "current body");
+    }
+    // Q3: the TUI boards and v0.3.12 rest todo.md on its head in the pane with its 48 B of text unread; Quick Look still reads it.
+    #[test]
+    fn a_markdown_document_rests_on_its_head_in_the_pane() {
+        let d = TestDir::new("tui-preview-markdown");
+        d.file("todo.md", "# Todo\n");
+        let mut m = crate::tui::render::frame_tests::model();
+        m.path = d.path().into();
+        let row = m.rows.get_mut(&7).unwrap();
+        (row.name, row.icon, row.kind, row.size) = ("todo.md".into(), "text-markdown".into(), "Markdown document".into(), 48);
+        let head = vec!["todo.md".to_string(), "Markdown document · 48 B".to_string()];
+        load(&mut m, true);
+        assert_eq!(m.preview, head, "the pane asked for the document's text");
+        for answered in [false, true] {
+            m.quicklook = true;
+            load(&mut m, true);
+            assert_eq!(m.preview[2], m.preview_state.i18n.tr("preview.loading"), "Quick Look asked the reader for the document");
+            let started = std::time::Instant::now();
+            while answered && m.preview_body.is_empty() {
+                poll(&mut m);
+                assert!(started.elapsed() < std::time::Duration::from_secs(5), "Quick Look's read did not finish");
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            // Each case closes Quick Look through one arm: the read still out, or the body it answered with.
+            assert_eq!((m.preview_reader.outstanding(m.preview_generation), m.preview_body.is_empty()), (!answered, !answered));
+            m.quicklook = false;
+            load(&mut m, false);
+            assert_eq!((&m.preview, m.preview_body.as_str()), (&head, ""), "Quick Look closed with its read answered: {answered}");
+            assert!(!m.preview_reader.outstanding(m.preview_generation), "the pane kept Quick Look's read in flight");
+        }
     }
 }
 

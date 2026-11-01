@@ -147,9 +147,9 @@ fn a_selected_folder_is_the_target_not_the_cursor_file() {
     assert!(!entries(&m, &Map::load()).iter().flatten().any(|row| row.id == "print"), "a folder target has no Print");
     wire::finish(w, reader);
 }
-// The same folder target makes Taildrop say files only, because a folder cannot be sent.
+// The same folder target leaves Taildrop unavailable, red with no state word (GM 2026-10-29), because a folder cannot be sent.
 #[test]
-fn a_selected_folder_makes_taildrop_say_files_only() {
+fn a_selected_folder_makes_taildrop_unavailable() {
     let (mut w, reader) = wire::echo_wire();
     let mut m = model();
     m.selected = [1].into_iter().collect();
@@ -159,7 +159,7 @@ fn a_selected_folder_makes_taildrop_say_files_only() {
     answer(&mut m, &mut w, r#"{"t":"formats","id":ID,"archive":["zip"],"providers":{"taildrop":{"installed":true}}}"#);
     let rows = entries(&m, &Map::load());
     let taildrop = rows.iter().flatten().find(|row| row.id == "taildrop").expect("Taildrop is offered");
-    assert_eq!(taildrop.trail, m.i18n.tr("menu.state.filesOnly"));
+    assert_eq!((taildrop.ink, taildrop.trail.as_str(), taildrop.chevron), (crate::tui::render::menu_layout::Ink::Unavailable, "", false));
     wire::finish(w, reader);
 }
 // The Dropbox move is judged on the target: a file outside the root stays movable under a cursor on the root folder.

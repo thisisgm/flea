@@ -76,6 +76,7 @@ mod jobstatus;
 mod keymap;
 mod media;
 mod model;
+mod footer_errors;
 mod office;
 mod model3d;
 mod mpv;

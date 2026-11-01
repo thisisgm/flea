@@ -32,7 +32,7 @@ fn placement_anchors_under_the_row_and_flips_or_clamps_at_every_edge() {
     m.menu_path = m.row_path(m.rows.get(&24).unwrap());
     let p = place(&m, &entries(&m, &map));
     assert_eq!((p.y, p.rows), (13, 11), "on the body's last rows it opens above, its bottom edge touching the row");
-    m.columns = 40;
+    m.columns = 34;
     assert_eq!(place(&m, &entries(&m, &map)).x, 7, "at the right edge it slides left to fit");
 }
 

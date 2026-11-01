@@ -34,26 +34,28 @@ fn menu_matches_its_board_rows_marks_and_inks() {
     let theme = Theme::from_text(PALETTE);
     let m = opened();
     let (rows, ink, _) = screen(&m, &theme);
-    assert_eq!(at(&rows, 10, 29, 33), format!("┌{}┐", "─".repeat(31)));
-    assert_eq!(at(&rows, 22, 29, 33), format!("└{}┘", "─".repeat(31)));
+    // GM 2026-10-29: the signed-out Dropbox row carries no state word, so the menu is as wide as its longest row, Send with Taildrop.
+    let right = 29 + 25 + 1;
+    assert_eq!(at(&rows, 10, 29, 27), format!("┌{}┐", "─".repeat(25)));
+    assert_eq!(at(&rows, 22, 29, 27), format!("└{}┘", "─".repeat(25)));
     for (y, mark, label, trail) in [(11, OPEN, "Open", ""), (12, WINDOW, "Open With", CHEVRON), (13, PRINTER, "Print…", ""),
-        (15, ARCHIVE, "Compress", CHEVRON), (17, TAILSCALE, "Send with Taildrop", CHEVRON), (18, DROPBOX, "Move to Dropbox", "signed out"),
+        (15, ARCHIVE, "Compress", CHEVRON), (17, TAILSCALE, "Send with Taildrop", CHEVRON), (18, DROPBOX, "Move to Dropbox", ""),
         (20, EYE, "Show Hidden Files", ""), (21, TRASH, "Open Trash", "")] {
-        assert_eq!((at(&rows, y, 29, 1), at(&rows, y, 61, 1)), ("│".into(), "│".into()), "row {y}");
+        assert_eq!((at(&rows, y, 29, 1), at(&rows, y, right, 1)), ("│".into(), "│".into()), "row {y}");
         assert_eq!(at(&rows, y, 30, 3), format!(" {mark} "), "row {y}");
         assert_eq!(at(&rows, y, 33, label.chars().count()), label);
         let n = trail.chars().count();
-        assert_eq!(at(&rows, y, 60 - n, n + 1), format!("{trail} "), "row {y} ends one cell inside the frame");
+        assert_eq!(at(&rows, y, right - 1 - n, n + 1), format!("{trail} "), "row {y} ends one cell inside the frame");
     }
     for y in [14, 16, 19] {
-        assert_eq!(at(&rows, y, 30, 31), format!(" {} ", "─".repeat(29)));
+        assert_eq!(at(&rows, y, 30, 25), format!(" {} ", "─".repeat(23)));
         assert_eq!(ink[y][31].0, role(&theme.rule));
     }
     assert_eq!(ink[10][29].0, role(&theme.frame));
-    assert!((30..=60).all(|x| ink[11][x].1 == role(&theme.tab)), "the cursor washes the row's interior");
-    assert_eq!((ink[11][29].1.clone(), ink[11][61].1.clone(), ink[12][40].1.clone()), (role(&theme.background), role(&theme.background), role(&theme.background)), "and draws no edge");
-    assert_eq!((ink[11][31].0.clone(), ink[11][33].0.clone(), ink[12][59].0.clone()), (role(&theme.frame), role(&theme.foreground), role(&theme.muted)));
-    assert_eq!((ink[18][31].0.clone(), ink[18][33].0.clone(), ink[18][50].0.clone()), (role(&theme.unavailable), role(&theme.unavailable), role(&theme.unavailable_word)));
+    assert!((30..right).all(|x| ink[11][x].1 == role(&theme.tab)), "the cursor washes the row's interior");
+    assert_eq!((ink[11][29].1.clone(), ink[11][right].1.clone(), ink[12][40].1.clone()), (role(&theme.background), role(&theme.background), role(&theme.background)), "and draws no edge");
+    assert_eq!((ink[11][31].0.clone(), ink[11][33].0.clone(), ink[12][right - 2].0.clone()), (role(&theme.frame), role(&theme.foreground), role(&theme.muted)));
+    assert_eq!((ink[18][31].0.clone(), ink[18][33].0.clone()), (role(&theme.unavailable), role(&theme.unavailable)), "an unavailable row is red alone");
 }
 
 #[test]
@@ -84,12 +86,12 @@ fn taildrop_submenu_titles_its_machines_at_the_parent_width_and_escape_returns()
     crate::tui::actions::key(&mut m, &Key::named("Right", ""), &map, &mut w).unwrap();
     assert_eq!(m.menu_view.sub, Sub::Taildrop);
     let (rows, ink, _) = screen(&m, &theme);
-    assert_eq!(at(&rows, 10, 29, 33), format!("┌{}┐", "─".repeat(31)), "as wide as the menu it came from");
+    assert_eq!(at(&rows, 10, 29, 27), format!("┌{}┐", "─".repeat(25)), "as wide as the menu it came from");
     assert_eq!((at(&rows, 11, 31, 8), ink[11][31].0.clone()), ("TAILDROP".into(), role(&theme.muted)));
     assert_eq!(at(&rows, 12, 30, 7), format!(" {MACHINE} east"));
     assert_eq!(at(&rows, 13, 30, 13), format!(" {MACHINE} macbookair"));
     assert_eq!(at(&rows, 14, 29, 1), "└");
-    assert!((30..=60).all(|x| ink[12][x].1 == role(&theme.tab)));
+    assert!((30..=54).all(|x| ink[12][x].1 == role(&theme.tab)));
     assert_eq!(hit(&m, &map, 40, 12), Some(None), "the title is no row");
     assert_eq!(hit(&m, &map, 40, 14), Some(Some(1)));
     crate::tui::actions::key(&mut m, &Key::named("Escape", ""), &map, &mut w).unwrap();
@@ -145,12 +147,12 @@ fn provider_rows_show_only_while_installed_and_say_why_they_cannot_act() {
     assert_eq!(state(&m), (Ink::Plain, String::new(), true));
     m.taildrop.peers.clear();
     m.taildrop.refresh_locale(&m.i18n);
-    for (status, word) in [("NeedsLogin", "signed out"), ("Running", "no devices"), ("Stopped", "offline")] {
+    for status in ["NeedsLogin", "Running", "Stopped"] {
         m.taildrop.status(&crate::jsondoc::parse(&format!(r#"{{"BackendState":"{status}","Self":{{"Capabilities":["https://tailscale.com/cap/file-sharing"]}}}}"#)).unwrap());
-        assert_eq!(state(&m), (Ink::Unavailable, word.into(), false), "{status}");
+        assert_eq!(state(&m), (Ink::Unavailable, String::new(), false), "{status}");
     }
     m.menu_directory = true;
-    assert_eq!(state(&m), (Ink::Unavailable, "files only".into(), false));
+    assert_eq!(state(&m), (Ink::Unavailable, String::new(), false));
     m.menu_directory = false;
     m.taildrop.peers = vec![peer("east")];
     m.menu_ready = false;
@@ -189,5 +191,5 @@ fn menu_corners_round_while_hyprland_rounds() {
     let m = opened();
     m.rounded.store(true, std::sync::atomic::Ordering::Relaxed);
     let (rows, _, _) = screen(&m, &theme);
-    assert_eq!((at(&rows, 10, 29, 1), at(&rows, 10, 61, 1), at(&rows, 22, 29, 1), at(&rows, 22, 61, 1)), ("╭".into(), "╮".into(), "╰".into(), "╯".into()));
+    assert_eq!((at(&rows, 10, 29, 1), at(&rows, 10, 55, 1), at(&rows, 22, 29, 1), at(&rows, 22, 55, 1)), ("╭".into(), "╮".into(), "╰".into(), "╯".into()));
 }

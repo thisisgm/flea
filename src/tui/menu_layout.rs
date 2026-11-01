@@ -112,7 +112,8 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
                 if v.taildrop { share.push(taildrop(m, tr("menu.taildrop"))); }
                 if let Some(account) = v.dropbox.as_ref().filter(|root| m.menu_view.paths.is_empty() || !m.menu_view.paths.iter().all(|path| within(root, path))) {
                     let mut row = Entry::new("dropbox", DROPBOX, tr("menu.dropbox"), wait(Ink::Plain));
-                    if !account.starts_with('/') { row.ink = Ink::Unavailable; row.trail = tr(account); }
+                    // GM 2026-10-29: an unavailable app row is red alone, with no state word, so the menu keeps its size.
+                    if !account.starts_with('/') { row.ink = Ink::Unavailable; }
                     share.push(row);
                 }
             }
@@ -127,7 +128,7 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
     for group in groups.into_iter().filter(|group| !group.is_empty()) {
         if !out.is_empty() { out.push(None); }
         for mut row in group {
-            if v.hints && row.id != "combine" && row.trail.is_empty() && !row.chevron {
+            if v.hints && row.id != "combine" && row.trail.is_empty() && !row.chevron && row.ink != Ink::Unavailable {
                 row.trail = if row.id == "convert" && map.action(&crate::tui::input::Key::character('F', ""), &m.preset).is_empty() { "F".into() } else { super::key_sheet::hint(map, &m.preset, match row.id.as_str() { "delete" => "deletePermanently", id => id }) };
                 row.trail = m.keycap_labels.get(&row.trail).cloned().unwrap_or(row.trail);
                 row.keycap = !row.trail.is_empty();
@@ -137,23 +138,13 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
     }
     out
 }
-// Send with Taildrop: a folder cannot be sent, a check or send in flight waits, and an answer with no machine says which state it is in.
+// Send with Taildrop: a folder cannot be sent and an answer with no machine leaves it unavailable, red with no state word (GM 2026-10-29); a check or send in flight waits.
 fn taildrop(m: &Model, label: String) -> Entry {
     let mut row = Entry { chevron: true, ..Entry::new("taildrop", TAILSCALE, label, Ink::Plain) };
     let busy = m.taildrop.loading();
-    let word = if m.menu_directory { Some(m.i18n.tr("menu.state.filesOnly")) }
-        else if !busy && m.taildrop.peers.is_empty() { Some(state(m)) }
-        else { None };
-    match word {
-        Some(word) => { row.ink = Ink::Unavailable; row.trail = word; row.chevron = false; }
-        None if busy || !m.menu_ready => row.ink = Ink::Dim,
-        None => {}
-    }
+    if m.menu_directory || (!busy && m.taildrop.peers.is_empty()) { row.ink = Ink::Unavailable; row.chevron = false; }
+    else if busy || !m.menu_ready { row.ink = Ink::Dim; }
     row
-}
-// Taildrop's own error as the window's state word, never the provider's sentence.
-fn state(m: &Model) -> String {
-    m.i18n.tr(m.taildrop.state_key())
 }
 fn within(root: &str, path: &str) -> bool {
     root.len() > 1 && root.starts_with('/') && (path == root || path.strip_prefix(root).is_some_and(|rest| rest.starts_with('/')))

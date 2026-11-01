@@ -91,6 +91,9 @@ impl Process {
         let input = File::open("/dev/null").expect("/dev/null opens");
         Self { child, directory: PathBuf::from("/nonexistent"), _input: input, poster: Arc::new(AtomicBool::new(false)), forwarder: None }
     }
+    pub fn id(&self) -> u32 {
+        self.child.id()
+    }
 }
 impl Drop for Process {
     fn drop(&mut self) {

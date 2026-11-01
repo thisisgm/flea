@@ -312,7 +312,9 @@ pub fn step(m: &mut Model, graphics: &mut Graphics, wire: &mut Wire, room: (usiz
         if graphics.protocol == super::graphics::Protocol::None {
             if let Some(colors) = m.preview_state.colors {
                 let key = super::still::Key { path: key.path.clone(), generation, page: (m.model3d.renders, 0, 0), cells: room, colors };
-                m.preview_state.still.want(key, || Some(super::still::Source::File(path)));
+                // chafa refuses the render's PPM as an unknown format, so the half-block path hands it the same pixels as QOI.
+                let (width, height) = still.key.pixels;
+                m.preview_state.still.want(key, || Some(super::still::Source::Bytes(super::still::qoi(&still.rgba, width, height))));
                 if m.preview_state.still.poll() { frame.clear(); }
                 if !m.preview_state.still.error.is_empty() { failure(m); }
             }

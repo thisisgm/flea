@@ -89,3 +89,15 @@ fn the_page_controls_wait_for_the_first_page_and_take_the_pointer_there() {
     m.quicklook = true;
     assert_eq!(control_row(&m), Some((8, 12, 106)));
 }
+
+// D8: the half-block decode is keyed by the room, so the room must not shrink by the blank row the landed grid brings back.
+#[test]
+fn a_half_block_picture_keeps_the_room_its_decode_was_keyed_by() {
+    let mut m = shown("image-png", "photo.png");
+    m.capabilities.graphics = Protocol::None;
+    let before = place(&m).room;
+    let key = Key { path: m.path.join("photo.png"), generation: m.preview_generation, page: (0, 0, 0), cells: before, colors: ColorMode::Truecolor };
+    m.preview_state.still.hold(key, grid(48, 14));
+    assert_eq!(stack(&m, &pane(&m)).0, (48, 14));
+    assert_eq!(place(&m).room, before, "the room moved when the grid landed, so the decode restarts and the picture never stays");
+}
