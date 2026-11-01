@@ -375,3 +375,6 @@ fn u04_preference_marks_are_normalized_before_list_membership() {
         })
         .unwrap();
 }
+
+#[path = "fixreaders_steering_tests.rs"]
+mod fixreaders;

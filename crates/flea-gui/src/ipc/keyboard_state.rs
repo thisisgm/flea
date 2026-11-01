@@ -31,7 +31,7 @@ impl KeyboardState<'_> {
     }
 
     // Comparison rule: type part only, without a QObject address or generated QML type identity.
-    fn focus_type(&self) -> &'static str {
+    pub(crate) fn focus_type(&self) -> &'static str {
         if self.window.focused(self.cx).is_none() {
             return "null";
         }

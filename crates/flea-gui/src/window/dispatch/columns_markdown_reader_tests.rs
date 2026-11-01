@@ -20,9 +20,13 @@ fn pb_columns1_markdown_view_reader_is_mounted_in_the_normal_root(cx: &mut TestA
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "");
 }
 
-#[gpui::test]
-fn pb_columns1_markdown_view_reader_follows_ready_document_source_and_visibility(
+/// A sandboxed notes.md landed in the column, once its Markdown view is mounted and ready.
+fn ready_markdown(
     cx: &mut TestAppContext,
+) -> (
+    gpui::Entity<crate::state::Shell>,
+    &mut gpui::VisualTestContext,
+    gpui::Entity<crate::g2::pv2::markdown::MarkdownView>,
 ) {
     let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
@@ -72,6 +76,14 @@ fn pb_columns1_markdown_view_reader_follows_ready_document_source_and_visibility
         );
         std::thread::yield_now();
     };
+    (shell, cx, markdown)
+}
+
+#[gpui::test]
+fn pb_columns1_markdown_view_reader_follows_ready_document_source_and_visibility(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx, markdown) = ready_markdown(cx);
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "rendered");
     markdown.update(cx, |markdown, cx| {
         markdown.set_view(crate::g2::pv2::markdown::View::Source, cx)
@@ -87,4 +99,23 @@ fn pb_columns1_markdown_view_reader_follows_ready_document_source_and_visibility
     });
     host::pump(cx);
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "");
+}
+
+// Judge R: previewBlockKinds(column) reads the column's Markdown for true (or 1) and Quick Look's for false, as IpcPreviewState does.
+#[gpui::test]
+fn fixreaders_preview_block_kinds_true_reads_the_column_markdown(cx: &mut TestAppContext) {
+    let (shell, cx, _markdown) = ready_markdown(cx);
+    assert_eq!(
+        read(&shell, cx, "previewBlockKinds", &["true"]),
+        r#"["heading","run"]"#
+    );
+    assert_eq!(
+        read(&shell, cx, "previewBlockKinds", &["1"]),
+        r#"["heading","run"]"#
+    );
+    // Quick Look is closed, so the overlay arm has no document.
+    assert_eq!(read(&shell, cx, "previewBlockKinds", &["false"]), "");
+    assert_eq!(read(&shell, cx, "previewBlockKinds", &["0"]), "");
+    assert!(read(&shell, cx, "previewBlockKinds", &[])
+        .starts_with("Too few arguments provided (1 required but 0 were provided.)"));
 }

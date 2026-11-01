@@ -79,6 +79,23 @@ impl Pictures {
             })
     }
 
+    /// Ipc.qml thumbnailPolicyState's thumbState.file: each current row's answer by row, None while its ask waits, "cache-asked" for a cache-only ask.
+    pub(crate) fn policy_files(&self, held: &Held) -> Vec<(usize, Option<String>)> {
+        let map = self.map.borrow();
+        let mut rows: Vec<usize> = map.slots.keys().copied().collect();
+        rows.sort_unstable();
+        rows.into_iter()
+            .filter_map(|row| match map.current(held, row)? {
+                Slot::Asked { cache: true, .. } => Some((row, Some("cache-asked".into()))),
+                Slot::Asked { .. } => Some((row, None)),
+                Slot::Decoding { file, .. }
+                | Slot::Ready { file, .. }
+                | Slot::Failed { file, .. } => Some((row, Some(file.clone()))),
+                Slot::Refused | Slot::Missed => None,
+            })
+            .collect()
+    }
+
     pub(crate) fn file(&self, held: &Held, row: usize) -> String {
         let map = self.map.borrow();
         match map.current(held, row) {

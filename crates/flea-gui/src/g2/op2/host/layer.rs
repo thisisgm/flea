@@ -235,7 +235,10 @@ impl Shell {
             down: Some(down),
             up: Some(up),
             cancel: Some(cancel),
+            action_probe: Some(self.operations.archive.flash_action.clone()),
         };
+        // A hidden step action paints nothing, so the last frame's action is forgotten first.
+        self.operations.archive.flash_action.set(None);
         // The flash covers its pane's slot as Trash does, so the rail and the status bar stay drawn.
         let slot = self.geometry(window).panes[self.operations.archive.flash_side];
         let archive = &mut self.operations.archive;

@@ -14,7 +14,7 @@ import sys
 import tempfile
 import time
 
-from flea_transport import MARKER, REPO, TransportError, exchange, group_members, owned, private
+from flea_transport import MARKER, REPO, TransportError, drain_timeout, exchange, group_members, owned, private
 from flea_transport_lifecycle import drain, identity, subreaper
 
 MAX_TIMEOUT_S = 30
@@ -35,6 +35,8 @@ def deadline_seconds(value):
 class Host:
     def __init__(self, driver, *, timeout=10):
         self.timeout = deadline_seconds(timeout)
+        # Read before the spawn, so a bad FLEA_TEST_DRAIN_TIMEOUT fails with no child to reap.
+        self.drain_s = drain_timeout()
         driver = Path(driver).resolve(strict=True)
         if not os.access(driver, os.X_OK):
             raise TransportError("headless driver is not executable")
@@ -193,8 +195,10 @@ class Host:
         if self.process.stdin and not self.process.stdin.closed:
             self.process.stdin.close()
         try:
+            # An owned stop waits out the driver draining its windows; a forced stop keeps the short grace.
             result = drain(self.process, self.record, lambda: group_members(self.record),
-                           lambda pid: owned(pid, self.record), terminate=terminate, grace=TEARDOWN_GRACE_S,
+                           lambda pid: owned(pid, self.record), terminate=terminate,
+                           grace=TEARDOWN_GRACE_S if terminate else self.drain_s,
                            whole_group=terminate)
             if not terminate and (result["forced"] or result["returncode"] != 0):
                 raise TransportError(f"headless host failed owned teardown: {result}")

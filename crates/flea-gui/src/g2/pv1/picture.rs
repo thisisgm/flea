@@ -188,6 +188,10 @@ impl QuickLook {
             .top(px(y as f32))
             .w(px(logical_w))
             .h(px(logical_h))
+            .child(super::observations::bounds(
+                &self.observations,
+                |observed, bounds| observed.picture = Some(bounds),
+            ))
             .debug_selector(|| "pv1-picture".into());
         if let Some(image) = raster.image.clone() {
             picture = picture.child(img(image).size_full().object_fit(ObjectFit::Fill));
@@ -208,6 +212,11 @@ impl QuickLook {
             .right_0()
             .bottom(px(bottom))
             .overflow_hidden()
+            .child(super::observations::bounds(
+                &self.observations,
+                |observed, bounds| observed.surface = Some(bounds),
+            ))
+            .debug_selector(|| "pv1-surface".into())
             .child(
                 div()
                     .absolute()

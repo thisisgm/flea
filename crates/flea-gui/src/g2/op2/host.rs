@@ -57,6 +57,8 @@ pub(crate) struct Archive {
     pub(crate) eye: super::draw::EyeProbe,
     /// Where Compress's confirm eye last painted, for the pointer.
     pub(crate) confirm_eye: super::draw::EyeProbe,
+    /// Which step action the flash pane last painted and where, for flashControlCentre.
+    pub(crate) flash_action: super::draw_flash::ActionProbe,
     epoch: Option<Instant>,
 }
 
@@ -76,6 +78,7 @@ impl Default for Archive {
             picking: None,
             eye: Default::default(),
             confirm_eye: Default::default(),
+            flash_action: Default::default(),
             epoch: None,
         }
     }

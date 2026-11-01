@@ -13,6 +13,9 @@ mod columns;
 #[path = "filter_exit_columns_tests.rs"]
 mod columns_exit;
 
+#[path = "fixreaders_filter_tests.rs"]
+mod fixreaders;
+
 type Handle = WindowHandle<Root>;
 
 fn open(cx: &mut TestAppContext) -> Handle {

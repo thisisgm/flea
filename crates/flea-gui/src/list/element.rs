@@ -188,6 +188,7 @@ impl Element for ListElement {
         state.drawn_cursor = self.states.cursor;
         state.drawn_focused = self.states.focused;
         state.drawn_rows = Rc::clone(&self.held);
+        state.drawn_filter = self.shown.clone();
         let held = &*self.held;
         let ListState {
             typeface,

@@ -10,7 +10,7 @@ pub(crate) struct Reader<'a> {
     pub cx: &'a App,
     pub window: &'a gpui::Window,
 }
-fn rect(bounds: Option<Bounds<Pixels>>) -> String {
+pub(crate) fn rect(bounds: Option<Bounds<Pixels>>) -> String {
     bounds
         .map(|bounds| {
             format!(
@@ -23,7 +23,7 @@ fn rect(bounds: Option<Bounds<Pixels>>) -> String {
         })
         .unwrap_or_default()
 }
-fn centre(bounds: Bounds<Pixels>) -> String {
+pub(crate) fn centre(bounds: Bounds<Pixels>) -> String {
     let centre = bounds.center();
     format!(
         "{} {}",
@@ -51,8 +51,9 @@ impl Reader<'_> {
                 if arguments.first().is_some_and(|overlay| overlay == "true") {
                     return None;
                 }
-                view.zip(pdf)
-                    .map_or("null".into(), |(v, p)| pdf_state(v, p, self.window))
+                view.zip(pdf).map_or("null".into(), |(v, p)| {
+                    pdf_state(v, p, self.window, self.cx)
+                })
             }
             "columnPdfPages" => pdf.map_or(0, |p| p.surface.page_count()).to_string(),
             "columnPdfPage" => pdf.map_or(-1, |p| p.surface.page as i64).to_string(),
@@ -184,7 +185,7 @@ fn doc_lines(frame: &Frame, cx: &App) -> Vec<String> {
     }
 }
 
-fn pdf_state(view: &SelectionPreview, pdf: &PdfView, window: &gpui::Window) -> String {
+fn pdf_state(view: &SelectionPreview, pdf: &PdfView, window: &gpui::Window, cx: &App) -> String {
     use flea::jsondoc::Json;
     let s = &pdf.surface;
     let number = |n: f64| Json::Num(n.to_string());
@@ -208,7 +209,11 @@ fn pdf_state(view: &SelectionPreview, pdf: &PdfView, window: &gpui::Window) -> S
         ("pages".into(), number(s.page_count() as f64)),
         ("page".into(), number(s.page as f64)),
         ("scrollY".into(), number(s.view_top)),
-        ("focused".into(), Json::Bool(view.focus.is_focused(window))),
+        // PreviewColumn.qml activeFocus: the column or the PDF inside it holds the keyboard.
+        (
+            "focused".into(),
+            Json::Bool(view.focus.contains_focused(window, cx)),
+        ),
         ("loading".into(), Json::Bool(s.render_busy())),
         ("frame".into(), Json::Str(rect(*view.frame_rect.borrow()))),
         ("lastPage".into(), Json::Str(last_rect)),

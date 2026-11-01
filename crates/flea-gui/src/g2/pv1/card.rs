@@ -20,6 +20,7 @@ use std::{borrow::Cow, rc::Rc};
 impl Render for QuickLook {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.window = Some(window.window_handle());
+        self.forget_painted_bounds();
         for image in std::mem::take(&mut self.retired) {
             let _ = window.drop_image(image);
         }
@@ -220,6 +221,10 @@ impl QuickLook {
                             .into_any_element()
                     });
                     let pane = pane(look::TEXT_TOP, look::PAD, look::TEXT_VIEW_BOTTOM)
+                        .child(super::observations::bounds(
+                            &self.observations,
+                            |observed, bounds| observed.surface = Some(bounds),
+                        ))
                         .children(rows)
                         .children(self.scroll.bars(look));
                     parts.push(pane.into_any_element());

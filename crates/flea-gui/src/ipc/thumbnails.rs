@@ -226,8 +226,31 @@ impl Adapter for Thumbnails<'_> {
 }
 
 impl Thumbnails<'_> {
-    // The v0.3.12 keys. GPUI keeps no per-file thumbState map or preview column owner, so files, pending and the preview read idle.
+    // The v0.3.12 keys; files and pending come from the shared picture map, and GPUI keeps no preview column owner, so the preview reads idle.
     fn policy_state(&self) -> String {
+        let answers = self
+            .host
+            .list
+            .borrow()
+            .pictures
+            .policy_files(&self.host.pane.held);
+        let files = answers
+            .iter()
+            .map(|(row, file)| {
+                let value = file.as_ref().map_or_else(
+                    || "null".to_owned(),
+                    |file| format!("\"{}\"", flea::json::escape(file)),
+                );
+                format!("\"{row}\":{value}")
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let pending = answers
+            .iter()
+            .filter(|(_, file)| file.as_deref().is_none_or(|file| file == "cache-asked"))
+            .map(|(row, _)| row.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
         let content_y = match self.host.drawn_view {
             Some(View::List | View::Dual) => self.host.list.borrow().drawn.scroll_y.round() as i64,
             Some(View::Grid) => self
@@ -238,7 +261,7 @@ impl Thumbnails<'_> {
             _ => 0,
         };
         format!(
-            "{{\"view\":\"{}\",\"mode\":\"{}\",\"files\":{{}},\"pending\":[],\"contentY\":{content_y},\"cursor\":{},\"previewIndex\":-1,\"previewPath\":\"\",\"previewReady\":false}}",
+            "{{\"view\":\"{}\",\"mode\":\"{}\",\"files\":{{{files}}},\"pending\":[{pending}],\"contentY\":{content_y},\"cursor\":{},\"previewIndex\":-1,\"previewPath\":\"\",\"previewReady\":false}}",
             view_name(self.host.drawn_view),
             mode_name(self.mode),
             self.host.pane.cursor,

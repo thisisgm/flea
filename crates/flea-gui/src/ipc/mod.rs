@@ -13,6 +13,7 @@ pub mod focus;
 pub mod grid;
 pub(crate) mod grid_rows;
 pub(crate) mod keyboard_state;
+pub(crate) mod main_cohesion;
 pub mod native_window;
 pub mod navigation;
 pub(crate) mod network;
@@ -44,6 +45,8 @@ pub(crate) mod window_feedback;
 #[cfg(test)]
 mod preview_scroll_tests;
 
+#[cfg(test)]
+mod fixreaders_tests;
 #[cfg(test)]
 mod reader_port_b_tests;
 

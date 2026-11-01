@@ -330,3 +330,63 @@ fn ey329_colon_opens_the_path_entry_and_typing_lands_in_it(cx: &mut TestAppConte
 
 #[path = "ey329_rail_tests.rs"]
 mod ey329_rail_tests;
+
+#[gpui::test]
+fn vf_readers_picker_recent_has_painted_control(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    seeded(&mut f);
+    f.update(|picker, cx| picker.start_places(&flea::jsondoc::Json::Obj(vec![]), cx));
+    f.cx.run_until_parked();
+    let reply = endpoint(&mut f, "controls", &[]);
+    let controls = flea::jsondoc::parse(&reply.stdout).unwrap();
+    let recent: Vec<_> = controls
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|c| c.get("name").and_then(flea::jsondoc::Json::as_str) == Some("Recent"))
+        .collect();
+    assert_eq!(
+        recent.len(),
+        1,
+        "the painted row has exactly one control: {controls:?}"
+    );
+    let recent = recent[0];
+    assert!(!recent
+        .get("centre")
+        .and_then(flea::jsondoc::Json::as_str)
+        .unwrap()
+        .is_empty());
+    f.update(|picker, cx| picker.accept(cx));
+    f.cx.run_until_parked();
+    assert!(f.read(|picker| picker.accept_state().submitting()));
+    let reply = endpoint(&mut f, "controls", &[]);
+    let controls = flea::jsondoc::parse(&reply.stdout).unwrap();
+    let recent: Vec<_> = controls
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|c| c.get("name").and_then(flea::jsondoc::Json::as_str) == Some("Recent"))
+        .collect();
+    assert_eq!(recent.len(), 1);
+    assert_eq!(
+        recent[0]
+            .get("enabled")
+            .and_then(flea::jsondoc::Json::as_bool),
+        Some(false)
+    );
+}
+
+#[gpui::test]
+fn vf_readers_picker_path_follows_the_live_entry(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    seeded(&mut f);
+    let focus = f.read(|picker| picker.focus.clone());
+    f.cx.update(|window, cx| window.focus(&focus, cx));
+    f.cx.simulate_keystrokes("ctrl-l");
+    assert_eq!(endpoint(&mut f, "pathBarOpen", &[]), Reply::value("true"));
+    f.cx.simulate_keystrokes("escape");
+    assert_eq!(endpoint(&mut f, "pathBarOpen", &[]), Reply::value("false"));
+}
+
+#[path = "fixreaders_geometry_tests.rs"]
+mod fixreaders;

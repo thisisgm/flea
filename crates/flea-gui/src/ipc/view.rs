@@ -31,6 +31,33 @@ impl<'a> ViewAdapter<'a> {
     }
 }
 
+/// Ipc.qml readers that go through pane.itemFor(i), the List delegate at view position i, not at listing row i.
+const VIEW_POSITION_READERS: [&str; 13] = [
+    "rowNamePx",
+    "rowClipMark",
+    "rowNameColor",
+    "rowCellColor",
+    "rowDateColor",
+    "rowCellOverflow",
+    "rowSizeText",
+    "columnSet",
+    "rowIcon",
+    "rowIconStatus",
+    "rowNameText",
+    "rowGlyph",
+    "rowAt",
+];
+
+// Filter.js at(): under a standing filter view position i draws listing row shown[i]; past the matches it is no row.
+pub(crate) fn listing_row(function: &str, at: usize, filter: Option<&[usize]>) -> usize {
+    match filter {
+        Some(shown) if VIEW_POSITION_READERS.contains(&function) => {
+            shown.get(at).copied().unwrap_or(usize::MAX)
+        }
+        _ => at,
+    }
+}
+
 impl MountedView<'_> {
     fn rows(&self, function: &str, index: usize, held: Option<&Held>, visible: bool) -> Reply {
         let row = held.filter(|_| visible).and_then(|held| held.row(index));
@@ -51,6 +78,14 @@ impl Adapter for MountedView<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         if function == "dirSizeRequests" {
             return Some(Reply::value(self.host.sizes.requests.to_string()));
+        }
+        // GPUI-only: v0.3.12 counted only the asks, so a scroll's cancellation could not be read.
+        if function == "dirSizeCancels" {
+            return Some(Reply::value(self.host.sizes.cancels.to_string()));
+        }
+        // GPUI-only: tests/ui-dirsortstale.sh adds this reader to a copied v0.3.12 Ipc.qml as JSON.stringify(pane.dirSizeState).
+        if function == "dirSizeState" {
+            return Some(Reply::value(self.host.sizes.dir_sizes().json()));
         }
         if function == "thumbRequests" {
             let sent = self

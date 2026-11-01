@@ -178,6 +178,8 @@ fn remove_from_network(
         shell.network_menu(side, &entries[index], window, cx);
     });
     frame(cx);
+    // 1610 (EY-280): the share's open row menu reads as visible.
+    assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "true");
     let rows = read(&shell, cx, "contextMenuEntries", &[]);
     let remove = rows
         .split('|')

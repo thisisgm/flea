@@ -66,7 +66,13 @@ fn pb_scroll_preview_reader_reads_rendered_and_source_positions(cx: &mut TestApp
                 );
                 receive.try_recv().unwrap().reply
             };
-            assert_eq!(read(shell, window, cx), Reply::value("28"));
+            // Rendered answers PreviewMarkdown.qml's contentY, which rests at minus the body's top inset.
+            let inset = markdown.read(cx).tokens.inset_y();
+            assert!(inset > 0.);
+            assert_eq!(
+                read(shell, window, cx),
+                Reply::value(((27.5 - inset + 0.5_f32).floor()).to_string())
+            );
             markdown.update(cx, |view, cx| {
                 let text: Arc<str> = "line\n".repeat(100).into();
                 let starts = Arc::new(markdown::line_starts(&text));
