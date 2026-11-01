@@ -55,6 +55,10 @@ fn column() -> Metrics {
 
 // The document laid out at 600 px, as the stack draws it.
 fn stacked(source: &str, metrics: Metrics) -> Geometry {
+    stacked_at(source, metrics, 600.0)
+}
+
+fn stacked_at(source: &str, metrics: Metrics, width: f32) -> Geometry {
     let words = Words::english();
     let ctx = Ctx {
         dir: "/doc",
@@ -71,7 +75,7 @@ fn stacked(source: &str, metrics: Metrics) -> Geometry {
         counter: Counter::default(),
         remote: "%1",
     };
-    lay::stack(&parsed, 600.0, &mut laid)
+    lay::stack(&parsed, width, &mut laid)
 }
 
 const TABLE: &str = "| A | B |\n|---|---|\n| c | d |\n";
@@ -134,4 +138,18 @@ fn the_preview_column_h1_holds_8_px_under_before_a_paragraph() {
     // 22 px paragraph "A paragraph before the fences."
     let geometry = stacked("# CRLF notes\n\nA paragraph before the fences.\n", column());
     assert_eq!(geometry.height, 28.0 + 8.0 + 22.0);
+}
+
+#[test]
+fn vf_more_column_paragraph_keeps_and_on_the_first_line_at_board_width() {
+    // The 276 px frame leaves 234 px after its border and two 20 px insets.
+    let geometry = stacked_at("A **bold** claim, `inline code` and a [link](https://example.test).\n", column(), 234.0);
+    let lines: Vec<String> = geometry.items.iter().filter_map(|item| match item {
+        lay::Item::Text { laid, .. } => Some(laid.lines.iter().map(|line| line.atoms.iter().filter_map(|atom| match atom {
+            super::markdown_flow::Atom::Text { text, .. } => Some(text.as_str()),
+            _ => None,
+        }).collect::<String>()).collect::<Vec<_>>()),
+        _ => None,
+    }).flatten().collect();
+    assert_eq!(lines, ["A bold claim, inline code and", "a link."]);
 }

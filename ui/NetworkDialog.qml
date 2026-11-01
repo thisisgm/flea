@@ -196,7 +196,7 @@ Item {
     function formPasswordState() { return form.passwordState() }
     function formPasswordEyeCentre() { return form.passwordEyeCentre() }
     function formPasswordHint() { return form.passwordHintText }
-    function formNote() { return form.protocol === "NFS" ? "No password needed: the NFS server trusts this computer" : "" }
+    function formNote() { return form.protocol === "NFS" ? "No password needed. The NFS server trusts this computer." : "" }
     function formAction() {
         if (root.saveCommitted) return "Close"
         if (root.saving) return "Saving…"

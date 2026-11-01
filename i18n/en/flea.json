@@ -1876,7 +1876,7 @@
   "network.password": "Password",
   "network.host_hint": "nas.local",
   "network.password_hint": "The password is not saved.",
-  "network.nfs_hint": "No password needed: the NFS server trusts this computer",
+  "network.nfs_hint": "No password needed. The NFS server trusts this computer.",
   "network.mounts_as": "Mounts as %1",
   "network.cancel": "omarchy:shell.common.cancel",
   "network.connect": "Connect and Save",

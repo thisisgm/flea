@@ -81,7 +81,8 @@ impl Shell {
         RowStates {
             focused: side == self.focus_side
                 && self.focus.is_focused(window)
-                && !self.input_blocked(cx),
+                && !self.wheel_blocked(cx)
+                && (!self.jobs_card_showing(cx) || self.extraction_progress(side, cx)),
             selected: host.input.selection.snapshot.clone(),
             hovered: host.input.hovered.filter(|_| {
                 host.input.pointer_origin && host.input.band.is_none() && !self.input_blocked(cx)

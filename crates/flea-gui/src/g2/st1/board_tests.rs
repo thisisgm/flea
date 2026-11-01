@@ -13,7 +13,7 @@ use flea::ui_logic_st1::{
 };
 
 // The shipped menu.hidden of src/uischema.rs DEFAULTS, which the boards draw; the store hands Settings normalised state.
-const SHIPPED_HIDDEN: &str = r#"{"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent","actions"]}}"#;
+const SHIPPED_HIDDEN: &str = r#"{"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent"]}}"#;
 
 fn open(document: &str, facts: Facts, section: &'static str) -> Panel {
     let mut state = parse(SHIPPED_HIDDEN).expect("defaults parse");

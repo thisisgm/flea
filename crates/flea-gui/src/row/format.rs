@@ -107,7 +107,18 @@ pub fn match_run(hay: &str, needle: &str) -> Option<(usize, usize)> {
             folded.push(low);
         }
     }
-    let at = folded.find(&lower)?;
+    let Some(at) = folded.find(&lower) else {
+        let close = flea::ui_logic_sr2::matcher::Matcher::new(needle)?.close(hay)?;
+        let start = close.runs.first()?.start;
+        let last = close.runs.last()?;
+        let end = last.start + last.len;
+        let byte = |at| {
+            hay.char_indices()
+                .nth(at)
+                .map_or(hay.len(), |(byte, _)| byte)
+        };
+        return Some((byte(start), byte(end)));
+    };
     let chars_before = folded[..at].chars().count();
     let chars_in = lower.chars().count();
     let start = *starts.get(chars_before)?;
@@ -178,6 +189,15 @@ pub fn is_recent(mtime: i64, today_start: i64) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn vf_more_close_match_bolds_the_matched_prefix() {
+        assert_eq!(super::match_run("notes.txt", "ntoes"), Some((0, 5)));
+        assert_eq!(super::match_run("Notes.TXT", "notes"), Some((0, 5)));
+        assert_eq!(super::match_run("notes.txt", "zzzzz"), None);
+        let (start, end) = super::match_run("\u{e9}notes.txt", "\u{e9}ntoes").unwrap();
+        assert_eq!(&"\u{e9}notes.txt"[start..end], "\u{e9}notes");
+    }
+
     use super::*;
 
     #[test]

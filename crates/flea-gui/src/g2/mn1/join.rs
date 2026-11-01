@@ -59,6 +59,8 @@ impl gpui::EventEmitter<ProducerReply> for Shell {}
 
 #[derive(Default)]
 pub struct Joined {
+    pub(crate) text: Option<(usize, u64)>,
+    pub(crate) text_paste: bool,
     pub tags: super::tags::Tags,
     pub(crate) place: Option<super::place_host::Place>,
     pub menu: Rc<RefCell<Menu>>,
@@ -153,6 +155,9 @@ impl Shell {
     fn menu_entries_keeping(&self, keep: &str) -> Vec<Entry> {
         if let Some(rows) = self.tab_menu_entries() {
             return rows;
+        }
+        if self.menu.text.is_some() {
+            return self.rename_menu_entries();
         }
         if let Some(target) = &self.menu.rail {
             return target.rows();

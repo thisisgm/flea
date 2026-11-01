@@ -57,7 +57,7 @@ pub const DEFAULTS: &str = r#"{
   "display": { "textSize": { "mode": "system" }, "hyprlandIcons": false },
   "menu": { "hidden": ["delete", "openTerminal", "placeMenu", "runScript",
             "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs",
-            "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "actions"] },
+            "invertSelection", "extThumbs", "run", "openAsText", "openAgent"] },
   "updates": { "autoCheck": true },
   "plugins": {},
   "stateVersion": 4
@@ -415,8 +415,8 @@ mod tests {
             .collect();
         assert_eq!(
             hidden,
-            // Directive 38: every feature this release adds ships with its own id hidden, so a fresh ui.json behaves as 0.2.1 did; placeMenu is the Places rows' own menu, openAgent (CHANGES 655) and actions (DESIGN-040) ship off.
-            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "actions"]
+            // HIG CHANGES keeps Actions on while Run Script and Open in Agent remain off.
+            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent"]
         );
     }
 

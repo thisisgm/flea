@@ -19,10 +19,15 @@ pub fn newer_than_known(found: &Json) -> bool {
 // The file as found carries the stamp: the merged document already holds the shipped one in its place.
 pub fn migrated(found: &Json, merged: Json) -> Json {
     let stored = stored_version(found);
+    // Only a stored list the merge kept is a saved list; one that fell back is the shipped default.
+    let hidden = |doc: &Json| doc.get("menu").and_then(|menu| menu.get("hidden")).cloned();
+    let stored_menu = hidden(found).is_some() && hidden(found) == hidden(&merged);
     let mut state = merged;
     for (version, step) in STEPS {
         if stored < *version {
-            state = with_key(step(state), STATE_VERSION, Json::Num(format!("{}", version)));
+            // Menu migrations apply to a saved list, never the current unset default.
+            let next = if *version >= 2.0 && !stored_menu { state } else { step(state) };
+            state = with_key(next, STATE_VERSION, Json::Num(format!("{}", version)));
         }
     }
     state

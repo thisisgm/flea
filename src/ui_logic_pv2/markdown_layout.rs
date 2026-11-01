@@ -136,7 +136,7 @@ impl Metrics {
             ink,
             line: Metrics::line(px),
             align,
-            chip_pad: (self.board(4.0) * px / self.body).round(),
+            chip_pad: (self.board(if self.column { 3.0 } else { 4.0 }) * px / self.body).round(),
             chip_tall: (self.board(20.0) * px / self.body).round(),
             script_px: (px * 9.0 / BOARD_BODY).round(),
             sub_shift: (px * 2.0 / BOARD_BODY).round(),

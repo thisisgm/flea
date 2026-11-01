@@ -341,6 +341,7 @@ impl Element for FieldElement {
         let focus = shell.focus.clone();
         let active = !shell.operations.archive.showing()
             && shell.rename.bulk.is_none()
+            && shell.menu.text.is_none()
             && focus.is_focused(window);
         if active {
             window.handle_input(&focus, ElementInputHandler::new(frame, entity.clone()), cx);
@@ -352,10 +353,22 @@ impl Element for FieldElement {
         });
         // Tap.js: a press anywhere else commits the open rename first and then does its own work.
         window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
-            if phase != DispatchPhase::Capture || event.button != MouseButton::Left {
+            if phase != DispatchPhase::Capture
+                || !matches!(event.button, MouseButton::Left | MouseButton::Right)
+            {
                 return;
             }
             entity.update(cx, |shell, cx| {
+                if shell.menu.text.is_some() {
+                    return;
+                }
+                if event.button == MouseButton::Right {
+                    if frame.intersect(&clip).contains(&event.position) {
+                        shell.rename_menu_open(event, window, cx);
+                        cx.stop_propagation();
+                    }
+                    return;
+                }
                 let Some(edit) = shell.rename.edit.as_mut().filter(|edit| edit.entry.editing)
                 else {
                     return;

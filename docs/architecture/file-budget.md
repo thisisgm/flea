@@ -1589,6 +1589,8 @@ The search worker repair routes the walk landing and a held refresh through the 
 
 The QML menu's unavailable-app rows draw red with no state word, and the review of that change moves `tests/menu-fit.qml` from 448 to 453, re-derived with `wc -l`, because the errored scenes now check that a drawn permissions word still counts toward its row's wanted width and that every unavailable app row fits `Theme.menuWidth`. Global limits are unchanged.
 
+VF-MORE keeps scoped ceilings for the existing menu, rename and navigation owners: `crates/flea-gui/src/g2/mn1/element.rs` 424, `crates/flea-gui/src/window/rename_field.rs` 414, `crates/flea-gui/src/navigation/mod.rs` 406, `crates/flea-gui/src/navigation/steps.rs` 408, `crates/flea-gui/src/navigation/landing.rs` 425, `crates/flea-gui/src/window/events.rs` 417. These additions carry desktop icons, the shared text-menu route and a selected refresh with a tagged far-row locate. Global limits and unrelated baseline debts are unchanged.
+
 ---
 
 Navigation: [architecture index](README.md),

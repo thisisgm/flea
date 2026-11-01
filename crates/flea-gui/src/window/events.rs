@@ -293,6 +293,18 @@ impl Shell {
                     return;
                 };
                 let taken = match located.id {
+                    Some(id)
+                        if host.nav.take_selected(
+                            &mut host.pane,
+                            &located.directory,
+                            id,
+                            located.ok,
+                            &located.matches,
+                            &mut host.selected,
+                        ) =>
+                    {
+                        true
+                    }
                     Some(id) => host.nav.take_located_many(
                         &host.pane,
                         &located.directory,

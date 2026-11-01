@@ -270,6 +270,9 @@ mod trash_ipc_tests;
 mod trash_parity_tests;
 #[cfg(test)]
 mod u_settings_tests;
+mod vf_more_refresh_tests;
+#[cfg(test)]
+mod vf_more_tests;
 
 #[cfg(test)]
 mod tags_races_tests;

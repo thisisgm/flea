@@ -14,6 +14,7 @@ mod tests;
 
 // Session ids are unique in the process, so a reset Entry never reuses an id a retained callback holds.
 static SESSIONS: AtomicU64 = AtomicU64::new(1);
+const UNDO_LIMIT: usize = 64;
 
 /// What a commit asks of the window once the bar has closed.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -46,6 +47,7 @@ pub struct Entry {
     pub generation: u64,
     /// A password: the platform never reads its text, and paint shows one bullet per character.
     pub private: bool,
+    history: Vec<(String, Range<usize>, bool)>,
 }
 
 impl Entry {
@@ -63,6 +65,7 @@ impl Entry {
         self.selected = 0..self.text.len();
         self.reversed = false;
         self.marked = None;
+        self.history.clear();
         self.revision += 1;
         self.generation = SESSIONS.fetch_add(1, Ordering::Relaxed);
         true
@@ -94,6 +97,7 @@ impl Entry {
         self.pending = None;
         self.cached = None;
         self.marked = None;
+        self.history.clear();
         if self.private {
             self.text.clear();
             self.selected = 0..0;
@@ -267,6 +271,7 @@ impl Entry {
     }
 
     pub fn replace(&mut self, range: Option<Range<usize>>, text: &str) {
+        self.remember();
         let range = self.target(range);
         self.text.replace_range(range.clone(), text);
         let end = range.start + text.len();
@@ -283,6 +288,7 @@ impl Entry {
         text: &str,
         selected: Option<Range<usize>>,
     ) {
+        self.remember();
         let range = self.target(range);
         self.text.replace_range(range.clone(), text);
         self.marked = (!text.is_empty()).then(|| range.start..range.start + text.len());
@@ -293,6 +299,31 @@ impl Entry {
             .unwrap_or(range.start + text.len()..range.start + text.len());
         self.reversed = false;
         self.revision += 1;
+    }
+
+    fn remember(&mut self) {
+        // A composition is one edit; only its first preedit saves the preceding line.
+        if !self.private && self.marked.is_none() {
+            if self.history.len() == UNDO_LIMIT {
+                self.history.remove(0);
+            }
+            self.history
+                .push((self.text.clone(), self.selected.clone(), self.reversed));
+        }
+    }
+
+    pub fn can_undo(&self) -> bool {
+        !self.history.is_empty()
+    }
+
+    pub fn undo(&mut self) {
+        if let Some((text, selected, reversed)) = self.history.pop() {
+            self.text = text;
+            self.selected = selected;
+            self.reversed = reversed;
+            self.marked = None;
+            self.revision += 1;
+        }
     }
 
     fn target(&self, range: Option<Range<usize>>) -> Range<usize> {

@@ -1206,7 +1206,7 @@ EOS
     settle
     [[ "$(ipc networkTitle)" == "Add a network share" ]] || fail "networkauth: NFS moved the title"
     [[ "$(ipc networkFields)" == "Label|Host|Port|Export" ]] || fail "networkauth: NFS fields are $(ipc networkFields)"
-    [[ "$(ipc networkNote)" == "No password needed: the NFS server trusts this computer" ]] \
+    [[ "$(ipc networkNote)" == "No password needed. The NFS server trusts this computer." ]] \
         || fail "networkauth: NFS note is $(ipc networkNote)"
     [[ -z "$(ipc networkPasswordHint)" ]] || fail "networkauth: NFS shows the password hint $(ipc networkPasswordHint)"
 
