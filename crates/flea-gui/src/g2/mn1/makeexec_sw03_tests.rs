@@ -95,7 +95,7 @@ fn record_failing(argv: &[String]) -> crate::g2::op3::lane::Exit {
     (Some(1), String::new())
 }
 
-// SW-03: Open in Terminal and Open as Text launch v0.3.12's argv and say v0.3.12's failure sentence.
+// SW-03: Open in Terminal and Open as Text launch the row's argv and say v0.3.12's failure sentence.
 #[gpui::test]
 fn sw03_terminal_and_text_rows_launch_their_argv(cx: &mut TestAppContext) {
     for (action, flag, failed) in [
@@ -141,14 +141,10 @@ fn sw03_terminal_and_text_rows_launch_their_argv(cx: &mut TestAppContext) {
             .into_owned();
         fixture.receive(cx, &format!("{{\"t\":\"menuaction\",\"id\":{},\"op\":\"validate\",\"ok\":true,\"action\":\"{action}\",\"paths\":[\"{}\"]}}", number(&validate), flea::json::escape(&file)));
         cx.run_until_parked();
-        let target = if action == "openTerminal" {
-            fixture.root.to_string_lossy().into_owned()
-        } else {
-            file
-        };
+        // #373: the row itself reaches flea --terminal, which opens a file row's own folder.
         let launched = LAUNCHED.lock().unwrap().clone();
         assert_eq!(launched.len(), 1, "{action}: {launched:?}");
-        assert_eq!(launched[0][1..], [flag.to_owned(), target], "{action}");
+        assert_eq!(launched[0][1..], [flag.to_owned(), file], "{action}");
         assert_eq!(
             read(cx, fixture.handle, "lastMessage").stdout.trim(),
             failed,
