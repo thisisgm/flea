@@ -108,7 +108,7 @@ impl Queue {
         TakeOut::Wait
     }
 
-    // The backend answered askPaths: only the newest choice publishes, as publish refuses a superseded sequence, and a landing whose listing moved or is reloading is dropped and said stale; the host calls step after either to serve what is queued.
+    // The backend answered askPaths: only the newest choice publishes, as publish refuses a superseded sequence, and a landing whose listing moved or is reloading is dropped with the backend's stale refusal, as v0.3.12 says it for a sent request; the host calls step after either to serve what is queued.
     pub fn resolved(&mut self, i18n: &I18n, list: Vec<String>, view: View<'_>) -> Option<Result<Publish, Said>> {
         let pending = self.pending.take()?;
         if pending.sequence != self.sequence {
@@ -117,7 +117,7 @@ impl Queue {
         }
         if pending.path != view.path || pending.listing != view.listing || view.list_in_flight {
             self.queue.retain(|request| request.sequence != pending.sequence);
-            return Some(Err(Said { text: words::stale(i18n), error: false, paste_hint: false }));
+            return Some(Err(words::landed_stale(i18n)));
         }
         let found = self
             .queue

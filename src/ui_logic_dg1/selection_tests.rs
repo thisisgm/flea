@@ -105,8 +105,22 @@ fn a_landing_whose_listing_moved_is_dropped_and_said_stale() {
         pane.resolved(&en, paths(&["/dest/A"]));
         assert!(pane.sent.is_empty(), "a stale landing publishes nothing");
         assert!(pane.current().is_empty());
-        assert_eq!(pane.said.last().unwrap().text, super::words::stale(&en));
+        assert_eq!(*pane.said.last().unwrap(), super::words::landed_stale(&en));
         assert!(!pane.queue.pending());
         assert_eq!(pane.queue.queued(), 0);
     }
+}
+
+// EY-490: a sent copy landing on a moved listing says Errors.js's stale refusal in error ink, as v0.3.12 does.
+#[test]
+fn fixlogic_ey490_a_sent_copy_landing_on_a_moved_listing_says_the_stale_error() {
+    let en = english();
+    let mut pane = Pane::new();
+    pane.clip(&en, false, None, vec![0]);
+    pane.listing += 1;
+    pane.resolved(&en, paths(&["/dest/A"]));
+    let said = pane.said.last().expect("a refusal is said");
+    assert_eq!(said.text, "The listing changed before that arrived, so nothing was done.");
+    assert!(said.error, "error ink");
+    assert!(pane.sent.is_empty() && pane.current().is_empty(), "nothing is copied");
 }

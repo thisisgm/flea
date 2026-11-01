@@ -279,6 +279,20 @@ impl Render for Picker {
         } else {
             None
         };
+        // PickerSave.qml's status line, above Cancel and the answer, in the error ink.
+        let save_line = self.save_status().map(|line| {
+            div()
+                .debug_selector(|| "picker-save-line".into())
+                .flex_none()
+                .px(px(SIDE))
+                .pt(px(GAP))
+                .bg(surface)
+                .border_t_1()
+                .border_color(rule)
+                .text_size(px(STATUS_TEXT))
+                .text_color(palette.error_on_surface)
+                .child(line)
+        });
         let answers = div()
             .debug_selector(|| "picker-answers-band".into())
             .flex_none()
@@ -290,8 +304,9 @@ impl Render for Picker {
             .h(px(ANSWERS_HEIGHT))
             .px(px(SIDE))
             .bg(surface)
-            .border_t_1()
-            .border_color(rule)
+            .when(save_line.is_none(), |band| {
+                band.border_t_1().border_color(rule)
+            })
             .child(self.answer_leading(&palette, window, cx))
             .child(
                 answer(
@@ -361,6 +376,7 @@ impl Render for Picker {
                     .children(self.drawn.probe(Slot::Body, [0.; 4])),
             )
             .children(filter_row)
+            .children(save_line)
             .child(answers)
             .child(footer)
             .children(self.chrome.menu_view.clone().map(|menu| {
