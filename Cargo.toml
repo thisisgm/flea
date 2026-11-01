@@ -13,8 +13,8 @@ resolver = "2"
 
 [workspace.dependencies]
 # Keep both fork revisions together here; members inherit these declarations.
-gpui = { package = "gpui-pre", git = "https://github.com/thisisgm/gpui-omarchy", rev = "b8a22d6b10c6896981810d53caf2c00bceacfaf4" }
-gpui_platform = { package = "gpui-pre-platform", git = "https://github.com/thisisgm/gpui-omarchy", rev = "b8a22d6b10c6896981810d53caf2c00bceacfaf4", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
+gpui = { package = "gpui-pre", git = "https://github.com/thisisgm/gpui-omarchy", rev = "5a512c6e7d941638bc117ae467de0b5a07263ea0" }
+gpui_platform = { package = "gpui-pre-platform", git = "https://github.com/thisisgm/gpui-omarchy", rev = "5a512c6e7d941638bc117ae467de0b5a07263ea0", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
 
 [lib]
 path = "src/lib.rs"
