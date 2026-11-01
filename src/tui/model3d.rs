@@ -351,3 +351,6 @@ pub(super) mod tests;
 #[cfg(test)]
 #[path = "model3d_transport_tests.rs"]
 mod transport_tests;
+#[cfg(test)]
+#[path = "model3d_fixtui3d_tests.rs"]
+mod fixtui3d_tests;

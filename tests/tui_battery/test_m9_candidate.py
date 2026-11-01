@@ -234,10 +234,10 @@ class CandidateTests(unittest.TestCase):
             model = ET.fromstring(archive.read("3D/3dmodel.model"))
             namespace = {"m": "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"}
             bases = model.findall("m:resources/m:basematerials/m:base", namespace)
-            self.assertEqual([b.attrib["displaycolor"] for b in bases], ["#EEEEEC", "#FF6A13"])
+            self.assertEqual([b.attrib["displaycolor"] for b in bases], ["#FF6A13"])
             objects = model.findall("m:resources/m:object", namespace)
-            self.assertEqual([o.attrib["pindex"] for o in objects], ["0", "0", "1", "1"])
-            self.assertTrue(all(o.attrib["pid"] == "1024" for o in objects))
+            self.assertEqual([(o.attrib.get("pid"), o.attrib.get("pindex")) for o in objects],
+                             [(None, None), (None, None), ("1024", "0"), ("1024", "0")])
             metadata = {m.attrib["name"]: m.text for m in model.findall("m:metadata", namespace)}
             self.assertEqual(metadata["printable_area"], "0x0,256x0,256x256,0x256")
             settings = ET.fromstring(archive.read("Metadata/model_settings.config"))
