@@ -130,8 +130,7 @@ pub(super) fn paint_icon(
     );
     if let Some((_, key, data)) = row.and_then(|row| {
         super::outline::chevron(view, row, shown.state.hovered, window.layout_mirrored())
-    })
-    {
+    }) {
         let ink = if shown.state.lifted() {
             palette.foreground
         } else {

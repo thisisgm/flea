@@ -135,7 +135,10 @@ mod tests {
         };
         let metrics = Metrics::at(px(14.));
         let mut view = ListView::default();
-        assert_eq!(chevron(&view, &row, true, false).unwrap().0, "chevron-right");
+        assert_eq!(
+            chevron(&view, &row, true, false).unwrap().0,
+            "chevron-right"
+        );
         assert_eq!(chevron(&view, &row, true, true).unwrap().0, "chevron-left");
         assert_eq!(chevron_left(&view, &row, &metrics), Some(metrics.pad + 32.));
         view.picker = Some(true);

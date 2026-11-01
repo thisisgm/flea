@@ -116,7 +116,9 @@ impl Shell {
         let card = self
             .keyboard
             .lookup(name, self.keyboard.context, event, held, mirrored);
-        let listing = self.keyboard.lookup(name, Keys::Listing, event, held, mirrored);
+        let listing = self
+            .keyboard
+            .lookup(name, Keys::Listing, event, held, mirrored);
         // [ and ] bind only while a workbook of two or more sheets shows; any other card leaves them unbound.
         let sheet_key = matches!(
             card,

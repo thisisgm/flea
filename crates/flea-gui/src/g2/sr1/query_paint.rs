@@ -72,7 +72,10 @@ impl StripElement {
         let mut right =
             bounds.left() + line.run.as_ref().map_or(px(0.), |run| run.line().width) - line.scroll;
         if input.read(cx).focused(window, cx) {
-            for edge in [draw.caret, draw.marked, draw.selection].into_iter().flatten() {
+            for edge in [draw.caret, draw.marked, draw.selection]
+                .into_iter()
+                .flatten()
+            {
                 right = right.max(edge.right());
             }
         }
