@@ -192,6 +192,57 @@ fn pb_trash_scrollbar_shows_on_use_and_lane_moves_only_trash() {
     });
 }
 
+// EY-310: Trash's sheet lists the listing keys Trash answers itself, and a sheet row runs in Trash.
+#[test]
+fn ey310_trash_sheet_lists_and_runs_the_keys_trash_answers() {
+    let mut cx = real_cx();
+    let window = root(&mut cx);
+    opened(&mut cx, window);
+    cx.simulate_keystrokes(window.into(), "?");
+    shell(&mut cx, window, |shell, _, cx| {
+        let sheet = &shell.settings.sheet.as_ref().unwrap().read(cx).sheet;
+        let drawn: Vec<&str> = sheet
+            .groups()
+            .iter()
+            .flat_map(|(_, _, rows)| rows.iter().map(|row| row.action))
+            .collect();
+        for own in [
+            "cursorDown",
+            "cursorUp",
+            "cursorFirst",
+            "cursorLast",
+            "toggleSelect",
+            "selectAll",
+            "deletePermanently",
+            "tabNew",
+            "keymapSheet",
+        ] {
+            assert!(
+                drawn.contains(&own),
+                "the Trash sheet draws {own}: {drawn:?}"
+            );
+        }
+        for foreign in ["copy", "paste", "rename", "trash", "open", "filter"] {
+            assert!(
+                !drawn.contains(&foreign),
+                "the Trash sheet leaves out {foreign}"
+            );
+        }
+    });
+    cx.simulate_keystrokes(window.into(), "l a s t space i t e m enter");
+    cx.run_until_parked();
+    shell(&mut cx, window, |shell, window, cx| {
+        assert!(shell.settings.sheet.is_none());
+        let pane = shell.trash.as_ref().unwrap().pane.read(cx);
+        assert_eq!(
+            pane.view().cursor,
+            1,
+            "Last item from the sheet moves Trash's cursor"
+        );
+        assert!(pane.focus.is_focused(window));
+    });
+}
+
 #[test]
 fn pb_trash_sheet_has_only_borrowed_keys_and_its_live_trash_menu() {
     let mut cx = real_cx();

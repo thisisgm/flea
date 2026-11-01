@@ -1376,7 +1376,7 @@
   "trash.confirm.cancel": "omarchy:shell.common.cancel",
   "trash.menu.open": "Open",
   "trash.menu.restore": "Restore",
-  "trash.menu.delete": "Delete permanently",
+  "trash.menu.delete": "Delete Permanently…",
   "trash.menu.restore_all": "Restore All",
   "trash.menu.empty": "Empty Trash…",
   "trash.drop.line": {
