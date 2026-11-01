@@ -89,3 +89,29 @@ fn ey497_a_mounted_removable_drive_ends_in_the_eject_mark(cx: &mut TestAppContex
         "a fixed drive keeps its mounted square"
     );
 }
+
+// EY-509: PickerWindow.qml onChosen calls focusDefault, so a place opened from the rail hands the keyboard to the files.
+#[gpui::test]
+fn ey509_a_click_on_recent_from_the_rail_moves_the_keyboard_to_the_files(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    f.cx.run_until_parked();
+    seed(&mut f);
+    let rail = f.read(|picker| picker.rail.focus.clone());
+    f.cx.update(|window, cx| window.focus(&rail, cx));
+    f.cx.run_until_parked();
+    let recent = f.cx.debug_bounds("picker-rail-row-0").unwrap().center();
+    f.cx.simulate_click(recent, gpui::Modifiers::none());
+    f.cx.run_until_parked();
+    assert_eq!(
+        f.read(|picker| picker.listing.location.clone()),
+        flea::ui_logic_pk1::RECENT
+    );
+    let picker = f.picker.clone();
+    assert!(
+        f.cx.update(|window, cx| {
+            let picker = picker.read(cx);
+            picker.focus.is_focused(window) && !picker.rail.focus.is_focused(window)
+        }),
+        "the files take the keyboard after a rail choice, as picker-recent-list draws"
+    );
+}
