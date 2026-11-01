@@ -22,24 +22,13 @@ impl Model {
             Some(super::words::ErrorSlot::Queued)
         } else { None }
     }
-    pub fn fail_preview_text(&mut self, text: super::words::Text) {
+    pub fn fail_preview(&mut self, text: super::words::Text) {
         self.remember_preview_error(text.render(&self.i18n), false);
         self.fail_text(text);
     }
-    pub fn fail_page_text(&mut self, text: super::words::Text) {
+    pub fn fail_page(&mut self, text: super::words::Text) {
         self.remember_preview_error(text.render(&self.i18n), true);
         self.fail_text(text);
-    }
-    pub fn fail_preview(&mut self, error: String) {
-        self.post_preview_error(error, false);
-    }
-    // A reload of the same file keeps its page, so the page is not asked again and its error stays until the file changes.
-    pub fn fail_page(&mut self, error: String) {
-        self.post_preview_error(error, true);
-    }
-    fn post_preview_error(&mut self, error: String, page: bool) {
-        self.remember_preview_error(error.clone(), page);
-        self.fail(error);
     }
     fn remember_preview_error(&mut self, error: String, page: bool) {
         if !error.is_empty() && !self.preview_errors.iter().any(|(posted, _)| *posted == error) { self.preview_errors.push((error, page)); }

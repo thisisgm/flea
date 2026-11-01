@@ -72,4 +72,5 @@ pub fn metadata(m: &mut Model) {
     crate::tui::model3d::append_facts(m);
 }
 
+#[cfg(test)]
 pub fn fail(m: &mut Model, message: Text) { m.fail_text(message); }

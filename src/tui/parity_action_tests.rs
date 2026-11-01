@@ -133,7 +133,7 @@ fn manager_refusal(row: &[&str], keys: &[Key], map: &Map) {
             "yazi-065" | "yazi-068" => assert_eq!(reason, "Specific detail modes are unavailable in this terminal build"),
             _ => assert_eq!(reason, row[7], "{} {}", row[0], row[1]),
         }
-        let expected = super::super::refusal_text(&found).render(&crate::i18n::I18n::default());
+        let expected = super::super::refusal_text(&found).render(&crate::i18n::test_catalogs::english());
         refusal(keys, &expected, map);
         if let Some(field) = reason.strip_prefix("detail:") { super::listing_checks::detail_route(field, map); }
         if reason == "Specific detail modes are unavailable in this terminal build" { super::listing_checks::listing_action(&[Key::character('I', "")], "detailNext", "yazi", map); }
@@ -153,7 +153,7 @@ fn manager_refusal(row: &[&str], keys: &[Key], map: &Map) {
         assert_eq!(found, action, "the intentional alternative changed: {}", row[1]);
         if row[8] == "yazi-032" { super::listing_checks::listing_action(&[Key::named("Down", "shift")], "extendDown", "yazi", map); }
         if action.is_empty() {
-            let reason = crate::i18n::I18n::default().tr("tui.actions.no_action_for_that_key_sequence");
+            let reason = crate::i18n::test_catalogs::english().tr("tui.actions.no_action_for_that_key_sequence");
             refusal(&alternate, &reason, map);
         } else {
             super::listing_checks::listing_action(&alternate, if action == "openAgent" { "newFile" } else { action }, "yazi", map);
