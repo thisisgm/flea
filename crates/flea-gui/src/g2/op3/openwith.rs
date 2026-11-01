@@ -21,6 +21,8 @@ pub const VIEWPORT_HEIGHT: f32 = VIEWPORT_ROWS as f32 * shell::APP_ROW
     + shell::FIRST_EYEBROW_AIR
     + shell::LATER_EYEBROW_AIR
     + 2.;
+/// The list's closing hairline, drawn under the viewport rows and inside its fixed height.
+const LIST_RULE: f32 = 1.;
 
 /// Search opens holding the keys, the cursor row grey behind it; the list, the checkbox and the two buttons follow.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -245,14 +247,15 @@ impl OpenWith {
             body.push(Block::Apps(
                 vec![AppRow::Empty {
                     text: logic::no_match(i18n, &self.query),
-                    height: VIEWPORT_HEIGHT - 1.,
+                    height: VIEWPORT_HEIGHT - LIST_RULE,
                 }],
                 0.,
             ));
         } else {
             let (rows, shown) = self.shown(i18n, kind);
             let chrome: f32 = rows.iter().map(AppRow::chrome).sum();
-            let filler = (VIEWPORT_HEIGHT - 1. - shown as f32 * shell::APP_ROW - chrome).max(0.);
+            let filler =
+                (VIEWPORT_HEIGHT - LIST_RULE - shown as f32 * shell::APP_ROW - chrome).max(0.);
             body.push(Block::Apps(rows, filler));
         }
         let always = Check {

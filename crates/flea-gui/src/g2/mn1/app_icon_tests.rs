@@ -55,7 +55,7 @@ fn vf_more_open_with_paints_the_desktop_entry_icon(cx: &mut TestAppContext) {
                 &env,
                 window,
             );
-            // The row's own mark size, as the menu host asks for its visible rows.
+            // Only the menu painter is pinned here; openwith_icon_tests drives the flyout request path.
             let slot = menu.borrow().card.as_ref().unwrap().built.metrics.slot;
             app_icons::load([icon.clone()], slot, window, cx);
         })
