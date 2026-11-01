@@ -1,7 +1,10 @@
-//! Rows the file menu runs itself: Add to Shelf as one `flea shelf add` call, and a Tags leaf as one settags toggle.
+//! Rows the file menu runs itself: Add to Shelf as one `flea shelf add` call, a Tags leaf as one settags toggle, and an Open With leaf.
 use super::{delivery::string, join::Captured};
 use crate::state::Shell;
-use flea::{json::escape, jsondoc::Json, ui_logic_fb1::status::Hint, ui_logic_pl4::tags};
+use flea::{
+    json::escape, jsondoc::Json, ui_logic_fb1::status::Hint, ui_logic_mn1::rows::OPEN_WITH_OTHER,
+    ui_logic_pl4::tags,
+};
 use gpui::{Context, Window};
 use std::path::Path;
 
@@ -79,6 +82,75 @@ impl Shell {
             });
         })
         .detach();
+    }
+
+    // PaneMenuActions.qml validateActivation: a flyout application launches through the registry op the card submits, and the tail row opens the card.
+    pub(super) fn menu_open_with(
+        &mut self,
+        capture: &Captured,
+        leaf: &str,
+        paths: &[String],
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let side = capture.side;
+        if leaf == OPEN_WITH_OTHER {
+            let path = self.menu_targets(capture, paths).into_iter().next();
+            self.retire_menu(window, cx);
+            if let Some(path) = path {
+                self.open_open_with(side, path, cx);
+            }
+            return;
+        }
+        // The launch reads the menu's snapshot, so the snapshot stays open until its answer closes it.
+        self.menu_send(
+            side,
+            format!(
+                "{{\"c\":\"menuaction\",\"op\":\"openWith\",\"id\":{},\"application\":\"{}\"}}",
+                capture.id,
+                escape(leaf)
+            ),
+            cx,
+        );
+        self.menu.launching.push((side, capture.id));
+        self.menu.captured = None;
+        self.retire_menu(window, cx);
+        self.free_menu_gate(side, window, cx);
+    }
+
+    /// The answer to a flyout launch: close its snapshot, and say why when the application did not open.
+    pub(super) fn menu_launched(
+        &mut self,
+        side: usize,
+        id: u64,
+        reply: &Json,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let Some(at) = self
+            .menu
+            .launching
+            .iter()
+            .position(|&launch| launch == (side, id))
+        else {
+            return false;
+        };
+        self.menu.launching.remove(at);
+        self.menu_send(
+            side,
+            format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{id}}}"),
+            cx,
+        );
+        let flag = |key| reply.get(key).and_then(Json::as_bool) == Some(true);
+        if !flag("ok") && !flag("cancelled") {
+            let said = string(reply, "error");
+            let sentence = if said.is_empty() {
+                self.locale.catalog.tr("dialogs.file.openwith.open_failed")
+            } else {
+                said.to_owned()
+            };
+            self.owner_notice(side, &sentence, true, Hint::None, cx);
+        }
+        true
     }
 
     // Only a validated choice completes the current menu's activation; a legacy Order::Menu write cannot release it.

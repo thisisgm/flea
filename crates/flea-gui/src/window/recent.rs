@@ -94,14 +94,17 @@ impl Shell {
         }
     }
 
-    /// Says Recent's refusal of a folder-only action in the footer; false while the side is not in Recent.
+    /// Refuses folder-only actions in Recent, whether opened from the rail or through a `recent:` place.
     pub(crate) fn recent_refuses(
         &mut self,
         side: usize,
         key: &str,
         cx: &mut Context<Self>,
     ) -> bool {
-        if !self.panes[side].as_ref().is_some_and(|host| host.recent.on) {
+        if !self.panes[side]
+            .as_ref()
+            .is_some_and(|host| host.recent.on || flea::ui_logic_pk1::is_recent(host.pane.place()))
+        {
             return false;
         }
         let text = self.locale.catalog.tr(key);
