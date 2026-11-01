@@ -1,13 +1,12 @@
 //! Draws the Settings card over its ground: the head, the rail with its search field, and the pane's rows or results.
 use super::draw::{Line, Rows};
 use super::geometry::{self as g, Scale, BORDER, FADE, PAD_X, RAIL_W};
-use super::marks::{self, mark, washed};
+use super::marks::{self, mark};
 use super::panel::{Panel, Press, Side};
 use super::seams::{Ink, Request};
 use crate::list::Typeface;
 use crate::window::input::reading;
 use flea::ui_logic_st1::{
-    caps,
     pages::SECTIONS,
     rows::{Kind, Row},
     visible,
@@ -355,43 +354,6 @@ impl SettingsView {
                         )
                     }),
             )
-    }
-
-    /// A heading in the capitals its language writes, spaced as the boards space it; a typed run keeps its wash.
-    pub(super) fn heading(
-        &self,
-        label: &str,
-        run: Option<(usize, usize)>,
-        lifted: bool,
-        ink: &Ink,
-    ) -> Div {
-        let language = self.panel.catalog.language();
-        let upper = |text: &str| caps::heading(text, language);
-        let spacing = f32::from(self.typeface.caption) * 0.14;
-        let Some((start, length)) = run else {
-            return washed(&upper(label), None, lifted, ink.wash14, spacing);
-        };
-        // Capitals can change a run's length, as ß does, so each part is set in capitals on its own.
-        let at = |chars: usize| {
-            label
-                .char_indices()
-                .nth(chars)
-                .map_or(label.len(), |(byte, _)| byte)
-        };
-        let (from, to) = (at(start), at(start + length));
-        let (head, piece, tail) = (
-            upper(&label[..from]),
-            upper(&label[from..to]),
-            upper(&label[to..]),
-        );
-        let run = (head.chars().count(), piece.chars().count());
-        washed(
-            &format!("{head}{piece}{tail}"),
-            Some(run),
-            lifted,
-            ink.wash14,
-            spacing,
-        )
     }
 }
 
