@@ -191,7 +191,7 @@ fn st2_backend_a_hello_timeout_names_the_plugin_and_an_early_exit_keeps_its_erro
     let (_, listing) = ask(&env, r#"{"c":"plugins","op":"enable","id":2,"plugin":"me.silent"}"#);
     let silent = get(&listing, "me.silent").failure.clone().unwrap();
     assert_eq!((silent.code, silent.detail.as_str()), ("start", "Tool"));
-    let i18n = flea::i18n::I18n::default();
+    let i18n = crate::i18n::test_catalogs::library_english();
     assert_eq!(i18n.tr_args(&silent.key(), &[&silent.detail]), "Tool did not answer hello within five seconds");
     let (_, listing) = ask(&env, r#"{"c":"plugins","op":"enable","id":3,"plugin":"me.gone"}"#);
     let gone = get(&listing, "me.gone").failure.clone().unwrap();
