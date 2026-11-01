@@ -1657,7 +1657,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&self",
-      "line": 116,
+      "line": 140,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1667,7 +1667,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&self",
-      "line": 129,
+      "line": 153,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1677,7 +1677,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 130,
+      "line": 154,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1687,7 +1687,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&self",
-      "line": 143,
+      "line": 167,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1697,7 +1697,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 143,
+      "line": 167,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1707,7 +1707,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&self",
-      "line": 145,
+      "line": 169,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2510,7 +2510,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 80,
+      "line": 84,
       "path": "src/tui/trashview.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2520,7 +2520,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 91,
+      "line": 95,
       "path": "src/tui/trashview.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2552,6 +2552,36 @@
       "expression": "key",
       "line": 25,
       "path": "src/tui/words.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 20,
+      "path": "src/tui/words_title.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 56,
+      "path": "src/tui/words_title.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 57,
+      "path": "src/tui/words_title.rs",
       "pattern": null,
       "possible_keys": [],
       "surface": "tui"
@@ -41675,7 +41705,7 @@
         },
         {
           "excerpt": "Some(\"dialogs.output.error.copies\")",
-          "line": 243,
+          "line": 246,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -45406,7 +45436,7 @@
         },
         {
           "excerpt": "\"dialogs.output.error.operation\",",
-          "line": 230,
+          "line": 233,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -46632,7 +46662,7 @@
         },
         {
           "excerpt": "Some(\"dialogs.output.error.pages\")",
-          "line": 245,
+          "line": 248,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -47235,7 +47265,7 @@
       "call_sites": [
         {
           "excerpt": "Some(\"dialogs.output.error.print_busy\")",
-          "line": 111,
+          "line": 113,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -47540,7 +47570,7 @@
         },
         {
           "excerpt": "Some(\"dialogs.output.error.print_kind\")",
-          "line": 121,
+          "line": 123,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -53914,7 +53944,7 @@
       "call_sites": [
         {
           "excerpt": "m.launches.push((m.i18n.tr(\"dialogs.output.setup\"), child));",
-          "line": 225,
+          "line": 228,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -64138,7 +64168,7 @@
       "call_sites": [
         {
           "excerpt": "Some(\"jobs.target.busy\")",
-          "line": 119,
+          "line": 121,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -86919,11 +86949,11 @@
     "preview.fact.combined": {
       "call_sites": [
         {
-          "excerpt": "let facts = selection_bytes(m).map(|n| format!(\"{} · {}\", m.preview_state.i18n.tr(\"preview.fact.combined\"), m.preview_state.i18n.locale().format_size(n as u64))).unwrap_or_default();",
-          "line": 205,
+          "excerpt": "let facts = selection_bytes(m).map(|n| [Text::Key(\"preview.fact.combined\").spans(i18n), vec![(None, \" · \".into())], Text::Size(n).spans(i18n)].concat()).unwrap_or_default();",
+          "line": 206,
           "path": "src/tui/pane.rs",
           "surface": "tui",
-          "usage": "translated-call"
+          "usage": "key-declaration"
         },
         {
           "excerpt": "pair(i18n, \"preview.fact.combined\", mark(size(i18n, bytes))),",
@@ -86934,7 +86964,7 @@
         }
       ],
       "context": "preview.fact.combined: src/ui_logic_pv1/facts.rs:337",
-      "coverage": "existing-translated-call",
+      "coverage": "occurrence-needs-owner-verification",
       "english": "Combined",
       "kind": "text",
       "omarchy_reference": null,
@@ -88560,11 +88590,11 @@
           "usage": "translated-call"
         },
         {
-          "excerpt": "name_title(&mark, &m.preview_state.i18n.trn(\"preview.selected\", m.selected.len() as i64), width)",
-          "line": 203,
+          "excerpt": "typed(&mark, &Text::Plural(\"preview.selected\", m.selected.len(), vec![]).spans(i18n), width, i18n.locale().right_to_left, true)",
+          "line": 204,
           "path": "src/tui/pane.rs",
           "surface": "tui",
-          "usage": "translated-call"
+          "usage": "key-declaration"
         }
       ],
       "context": "preview.selected: caller missing; source owner must identify the surface",
@@ -90316,7 +90346,7 @@
         },
         {
           "excerpt": "Some(\"search.contents.identity\")",
-          "line": 115,
+          "line": 117,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -98784,7 +98814,7 @@
       "call_sites": [
         {
           "excerpt": "super::words::Text::Key(\"step.link\"),",
-          "line": 200,
+          "line": 194,
           "path": "src/tui/parity17.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -99757,7 +99787,7 @@
       "call_sites": [
         {
           "excerpt": "2 => format!(\"{}{}\", theme.meta, ellipsis(&i18n.tr_args(\"trash.deleted\", &[&super::calendar::localized_value(&Json::Str(deleted.clone()), m.i18n.locale())]), width)),",
-          "line": 168,
+          "line": 177,
           "path": "src/tui/trashview.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -100202,7 +100232,7 @@
       "call_sites": [
         {
           "excerpt": "None => { let key = if directory { \"trash.kindFolder\" } else { \"trash.kindFile\" }; view.kind_keys.insert(start + offset, key); m.i18n.tr(key) }",
-          "line": 80,
+          "line": 84,
           "path": "src/tui/trashview.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100224,7 +100254,7 @@
       "call_sites": [
         {
           "excerpt": "None => { let key = if directory { \"trash.kindFolder\" } else { \"trash.kindFile\" }; view.kind_keys.insert(start + offset, key); m.i18n.tr(key) }",
-          "line": 80,
+          "line": 84,
           "path": "src/tui/trashview.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100414,7 +100444,7 @@
       "call_sites": [
         {
           "excerpt": "3 => format!(\"{}{}\", theme.meta, ellipsis(&i18n.tr_args(\"trash.original\", &[&location]), width)),",
-          "line": 169,
+          "line": 178,
           "path": "src/tui/trashview.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -100438,7 +100468,7 @@
       "call_sites": [
         {
           "excerpt": "pub fn place(m: &Model) -> Option<String> { m.prompts.trash.as_ref().map(|_| m.prompts.i18n.tr(\"trash.place\")) }",
-          "line": 140,
+          "line": 144,
           "path": "src/tui/trashview.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -100544,7 +100574,7 @@
       "call_sites": [
         {
           "excerpt": "pub fn sort(m: &Model) -> Option<String> { m.prompts.trash.as_ref().map(|_| m.prompts.i18n.tr(\"trash.sort\")) }",
-          "line": 141,
+          "line": 145,
           "path": "src/tui/trashview.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -100688,7 +100718,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"trash.viewOnly\");",
-          "line": 129,
+          "line": 133,
           "path": "src/tui/trashview.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102218,8 +102248,8 @@
     "tui.frame.combined": {
       "call_sites": [
         {
-          "excerpt": "if y == 1 { return layout::selection_bytes(m).map(|total| super::words::args(\"tui.frame.combined\", vec![super::words::Text::Size(total)]).render(&m.i18n)).unwrap_or_default(); }",
-          "line": 139,
+          "excerpt": "if y == 1 { return layout::selection_bytes(m).map(|total| super::words::args(\"tui.frame.combined\", vec![Text::Size(total)]).spans(&m.i18n)).unwrap_or_default(); }",
+          "line": 146,
           "path": "src/tui/render.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102304,15 +102334,15 @@
     "tui.frame.outside": {
       "call_sites": [
         {
-          "excerpt": "if y == m.selected_rows.len() + 3 && m.selected_rows.len() < m.selected.len() { return m.i18n.trn(\"tui.frame.outside\", (m.selected.len() - m.selected_rows.len()) as i64); }",
-          "line": 142,
+          "excerpt": "if y == m.selected_rows.len() + 3 && m.selected_rows.len() < m.selected.len() { return count(\"tui.frame.outside\", m.selected.len() - m.selected_rows.len()); }",
+          "line": 148,
           "path": "src/tui/render.rs",
           "surface": "tui",
-          "usage": "translated-call"
+          "usage": "key-declaration"
         }
       ],
       "context": "tui.frame.outside: src/tui/render.rs:142",
-      "coverage": "existing-translated-call",
+      "coverage": "occurrence-needs-owner-verification",
       "english": {
         "one": "%1 marked item outside loaded rows",
         "other": "%1 marked items outside loaded rows"
@@ -102337,15 +102367,15 @@
     "tui.frame.selected": {
       "call_sites": [
         {
-          "excerpt": "if y == 0 { return m.i18n.trn(\"tui.frame.selected\", m.selected.len() as i64); }",
-          "line": 138,
+          "excerpt": "if y == 0 { return count(\"tui.frame.selected\", m.selected.len()); }",
+          "line": 145,
           "path": "src/tui/render.rs",
           "surface": "tui",
-          "usage": "translated-call"
+          "usage": "key-declaration"
         }
       ],
       "context": "tui.frame.selected: src/tui/render.rs:138",
-      "coverage": "existing-translated-call",
+      "coverage": "occurrence-needs-owner-verification",
       "english": {
         "one": "%1 item selected",
         "other": "%1 items selected"
@@ -103037,14 +103067,14 @@
         },
         {
           "excerpt": "Some(\"tui.operation.search_busy\")",
-          "line": 113,
+          "line": 115,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "Some(\"tui.operation.search_busy\")",
-          "line": 117,
+          "line": 119,
           "path": "src/tui/print.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104890,7 +104920,7 @@
         },
         {
           "excerpt": "modified: locale.catalog.tr(\"window.column_modified\").into(),",
-          "line": 19,
+          "line": 22,
           "path": "crates/flea-gui/src/window/locale.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -104940,7 +104970,7 @@
         },
         {
           "excerpt": "name: locale.catalog.tr(\"window.column_name\").into(),",
-          "line": 17,
+          "line": 20,
           "path": "crates/flea-gui/src/window/locale.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -104976,7 +105006,7 @@
         },
         {
           "excerpt": "size: locale.catalog.tr(\"window.column_size\").into(),",
-          "line": 18,
+          "line": 21,
           "path": "crates/flea-gui/src/window/locale.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -105077,7 +105107,7 @@
       "call_sites": [
         {
           "excerpt": "locale.catalog.tr_args(\"window.open_failed\", &[&error])",
-          "line": 250,
+          "line": 251,
           "path": "crates/flea-gui/src/g2/pk1/launch.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -120404,6 +120434,24 @@
       "surface": "gui"
     },
     {
+      "excerpt": ".map_err(|_| \"text epoch timed out\".to_owned())?",
+      "line": 96,
+      "literal": "text epoch timed out",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/presentation/epoch.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "eprintln!(\"flea-gui: text epoch for {locale}: {error}\");",
+      "line": 106,
+      "literal": "flea-gui: text epoch for {locale}: {error}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/presentation/epoch.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "let mut stdout = owned.child.stdout.take().expect(\"piped font output\");",
       "line": 50,
       "literal": "piped font output",
@@ -122718,7 +122766,7 @@
     },
     {
       "excerpt": "let mut state = worker_state.lock().expect(\"catalog subscribers\");",
-      "line": 88,
+      "line": 98,
       "literal": "catalog subscribers",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/locale.rs",
@@ -122727,7 +122775,7 @@
     },
     {
       "excerpt": "let mut state = self.state.lock().expect(\"catalog subscribers\");",
-      "line": 140,
+      "line": 150,
       "literal": "catalog subscribers",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/locale.rs",
@@ -122736,7 +122784,7 @@
     },
     {
       "excerpt": ".expect(\"catalog subscribers\")",
-      "line": 157,
+      "line": 167,
       "literal": "catalog subscribers",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/locale.rs",
@@ -166251,7 +166299,7 @@
     },
     {
       "excerpt": "static KEYCAP_DEFAULTS: &[(&str, &str)] = &[(\"+\", \"+\"), (\",\", \",\"), (\",A\", \",A\"), (\",B\", \",B\"), (\",M\", \",M\"), (\",S\", \",S\"), (\",a\", \",a\"), (\",b\", \",b\"), (\",e\", \",e\"), (\",m\", \",m\"), (\",n\", \",n\"), (\",r\", \",r\"), (\",s\", \",s\"), (\"-\", \"-\"), (\".\", \".\"), (\"/\", \"/\"), (\"0\", \"0\"), (\"1\", \"1\"), (\"2\", \"2\"), (\"3\", \"3\"), (\"4\", \"4\"), (\"5\", \"5\"), (\"6\", \"6\"), (\"7\", \"7\"), (\"8\", \"8\"), (\"9\", \"9\"), (\":\", \":\"), (\";\", \";\"), (\"?\", \"?\"), (\"A\", \"A\"), (\"B\", \"B\"), (\"C\", \"C\"), (\"D\", \"D\"), (\"E\", \"E\"), (\"F\", \"F\"), (\"G\", \"G\"), (\"H\", \"H\"), (\"I\", \"I\"), (\"J\", \"J\"), (\"K\", \"K\"), (\"L\", \"L\"), (\"M\", \"M\"), (\"N\", \"N\"), (\"O\", \"O\"), (\"P\", \"P\"), (\"Q\", \"Q\"), (\"S\", \"S\"), (\"T\", \"T\"), (\"U\", \"U\"), (\"V\", \"V\"), (\"X\", \"X\"), (\"Y\", \"Y\"), (\"Z\", \"Z\"), (\"[\", \"[\"), (\"]\", \"]\"), (\"_\", \"_\"), (\"a\", \"a\"), (\"alt-enter\", \"alt-enter\"), (\"alt-left\", \"alt-left\"), (\"alt-p\", \"alt-p\"), (\"alt-return\", \"alt-enter\"), (\"alt-right\", \"alt-right\"), (\"alt-up\", \"alt-up\"), (\"b\", \"b\"), (\"backspace\", \"backspace\"), (\"c\", \"c\"), (\"cC\", \"cC\"), (\"cD\", \"cD\"), (\"cc\", \"cc\"), (\"cd\", \"cd\"), (\"cf\", \"cf\"), (\"cn\", \"cn\"), (\"ctrl-0\", \"ctrl-0\"), (\"ctrl-1\", \"ctrl-1\"), (\"ctrl-2\", \"ctrl-2\"), (\"ctrl-3\", \"ctrl-3\"), (\"ctrl-4\", \"ctrl-4\"), (\"ctrl-[\", \"ctrl-[\"), (\"ctrl-a\", \"ctrl-a\"), (\"ctrl-b\", \"ctrl-b\"), (\"ctrl-c\", \"ctrl-c\"), (\"ctrl-comma\", \"ctrl-,\"), (\"ctrl-d\", \"ctrl-d\"), (\"ctrl-delete\", \"ctrl-delete\"), (\"ctrl-down\", \"ctrl-down\"), (\"ctrl-e\", \"ctrl-e\"), (\"ctrl-enter\", \"ctrl-enter\"), (\"ctrl-equal\", \"ctrl-=\"), (\"ctrl-f\", \"ctrl-f\"), (\"ctrl-g\", \"ctrl-g\"), (\"ctrl-h\", \"ctrl-h\"), (\"ctrl-insert\", \"ctrl-insert\"), (\"ctrl-k\", \"ctrl-k\"), (\"ctrl-l\", \"ctrl-l\"), (\"ctrl-minus\", \"ctrl--\"), (\"ctrl-n\", \"ctrl-n\"), (\"ctrl-p\", \"ctrl-p\"), (\"ctrl-pagedown\", \"ctrl-pagedown\"), (\"ctrl-pageup\", \"ctrl-pageup\"), (\"ctrl-plus\", \"ctrl-+\"), (\"ctrl-r\", \"ctrl-r\"), (\"ctrl-s\", \"ctrl-s\"), (\"ctrl-shift-.\", \"ctrl-shift-.\"), (\"ctrl-shift-0\", \"ctrl-shift-0\"), (\"ctrl-shift-1\", \"ctrl-shift-1\"), (\"ctrl-shift-2\", \"ctrl-shift-2\"), (\"ctrl-shift-3\", \"ctrl-shift-3\"), (\"ctrl-shift-4\", \"ctrl-shift-4\"), (\"ctrl-shift-c\", \"ctrl-shift-c\"), (\"ctrl-shift-equal\", \"ctrl-shift-=\"), (\"ctrl-shift-greater\", \"ctrl-shift->\"), (\"ctrl-shift-minus\", \"ctrl-shift--\"), (\"ctrl-shift-n\", \"ctrl-shift-n\"), (\"ctrl-shift-pagedown\", \"ctrl-shift-pagedown\"), (\"ctrl-shift-pageup\", \"ctrl-shift-pageup\"), (\"ctrl-shift-plus\", \"ctrl-shift-+\"), (\"ctrl-shift-underscore\", \"ctrl-shift-_\"), (\"ctrl-shift-z\", \"ctrl-shift-z\"), (\"ctrl-space\", \"ctrl-space\"), (\"ctrl-t\", \"ctrl-t\"), (\"ctrl-tab\", \"ctrl-tab\"), (\"ctrl-u\", \"ctrl-u\"), (\"ctrl-up\", \"ctrl-up\"), (\"ctrl-v\", \"ctrl-v\"), (\"ctrl-w\", \"ctrl-w\"), (\"ctrl-x\", \"ctrl-x\"), (\"ctrl-y\", \"ctrl-y\"), (\"ctrl-z\", \"ctrl-z\"), (\"d\", \"d\"), (\"dd\", \"dd\"), (\"delete\", \"delete\"), (\"down\", \"down\"), (\"e\", \"e\"), (\"end\", \"end\"), (\"enter\", \"enter\"), (\"escape\", \"escape\"), (\"f\", \"f\"), (\"f1\", \"f1\"), (\"f2\", \"f2\"), (\"f4\", \"f4\"), (\"f5\", \"f5\"), (\"g\", \"g\"), (\"gc\", \"gc\"), (\"gd\", \"gd\"), (\"gf\", \"gf\"), (\"gg\", \"gg\"), (\"gh\", \"gh\"), (\"gspace\", \"g space\"), (\"gt\", \"gt\"), (\"h\", \"h\"), (\"home\", \"home\"), (\"i\", \"i\"), (\"j\", \"j\"), (\"k\", \"k\"), (\"l\", \"l\"), (\"left\", \"left\"), (\"m\", \"m\"), (\"mb\", \"mb\"), (\"menu\", \"menu\"), (\"mm\", \"mm\"), (\"mn\", \"mn\"), (\"mo\", \"mo\"), (\"mp\", \"mp\"), (\"ms\", \"ms\"), (\"n\", \"n\"), (\"o\", \"o\"), (\"p\", \"p\"), (\"pagedown\", \"pagedown\"), (\"pageup\", \"pageup\"), (\"pp\", \"pp\"), (\"q\", \"q\"), (\"r\", \"r\"), (\"return\", \"enter\"), (\"right\", \"right\"), (\"s\", \"s\"), (\"shift-backtab\", \"shift-tab\"), (\"shift-delete\", \"shift-delete\"), (\"shift-down\", \"shift-down\"), (\"shift-enter\", \"shift-enter\"), (\"shift-f10\", \"shift-f10\"), (\"shift-insert\", \"shift-insert\"), (\"shift-pagedown\", \"shift-pagedown\"), (\"shift-pageup\", \"shift-pageup\"), (\"shift-tab\", \"shift-tab\"), (\"shift-up\", \"shift-up\"), (\"space\", \"space\"), (\"super-[\", \"super-[\"), (\"super-]\", \"super-]\"), (\"super-a\", \"super-a\"), (\"super-alt-v\", \"super-alt-v\"), (\"super-bracketleft\", \"super-[\"), (\"super-bracketright\", \"super-]\"), (\"super-c\", \"super-c\"), (\"super-d\", \"super-d\"), (\"super-i\", \"super-i\"), (\"super-n\", \"super-n\"), (\"super-shift-.\", \"super-shift-.\"), (\"super-shift-greater\", \"super-shift->\"), (\"super-shift-z\", \"super-shift-z\"), (\"super-v\", \"super-v\"), (\"super-z\", \"super-z\"), (\"superalt-v\", \"super-alt-v\"), (\"supershift-greater\", \"super-shift->\"), (\"supershift-period\", \"super-shift-.\"), (\"supershift-z\", \"super-shift-z\"), (\"t\", \"t\"), (\"tab\", \"tab\"), (\"tr\", \"tr\"), (\"tt\", \"tt\"), (\"u\", \"u\"), (\"up\", \"up\"), (\"v\", \"v\"), (\"w\", \"w\"), (\"x\", \"x\"), (\"y\", \"y\"), (\"yy\", \"yy\"), (\"z\", \"z\"), (\"{\", \"{\"), (\"}\", \"}\"), (\"~\", \"~\")];",
-      "line": 183,
+      "line": 217,
       "literal": "2",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166260,7 +166308,7 @@
     },
     {
       "excerpt": "static KEYCAP_DEFAULTS: &[(&str, &str)] = &[(\"+\", \"+\"), (\",\", \",\"), (\",A\", \",A\"), (\",B\", \",B\"), (\",M\", \",M\"), (\",S\", \",S\"), (\",a\", \",a\"), (\",b\", \",b\"), (\",e\", \",e\"), (\",m\", \",m\"), (\",n\", \",n\"), (\",r\", \",r\"), (\",s\", \",s\"), (\"-\", \"-\"), (\".\", \".\"), (\"/\", \"/\"), (\"0\", \"0\"), (\"1\", \"1\"), (\"2\", \"2\"), (\"3\", \"3\"), (\"4\", \"4\"), (\"5\", \"5\"), (\"6\", \"6\"), (\"7\", \"7\"), (\"8\", \"8\"), (\"9\", \"9\"), (\":\", \":\"), (\";\", \";\"), (\"?\", \"?\"), (\"A\", \"A\"), (\"B\", \"B\"), (\"C\", \"C\"), (\"D\", \"D\"), (\"E\", \"E\"), (\"F\", \"F\"), (\"G\", \"G\"), (\"H\", \"H\"), (\"I\", \"I\"), (\"J\", \"J\"), (\"K\", \"K\"), (\"L\", \"L\"), (\"M\", \"M\"), (\"N\", \"N\"), (\"O\", \"O\"), (\"P\", \"P\"), (\"Q\", \"Q\"), (\"S\", \"S\"), (\"T\", \"T\"), (\"U\", \"U\"), (\"V\", \"V\"), (\"X\", \"X\"), (\"Y\", \"Y\"), (\"Z\", \"Z\"), (\"[\", \"[\"), (\"]\", \"]\"), (\"_\", \"_\"), (\"a\", \"a\"), (\"alt-enter\", \"alt-enter\"), (\"alt-left\", \"alt-left\"), (\"alt-p\", \"alt-p\"), (\"alt-return\", \"alt-enter\"), (\"alt-right\", \"alt-right\"), (\"alt-up\", \"alt-up\"), (\"b\", \"b\"), (\"backspace\", \"backspace\"), (\"c\", \"c\"), (\"cC\", \"cC\"), (\"cD\", \"cD\"), (\"cc\", \"cc\"), (\"cd\", \"cd\"), (\"cf\", \"cf\"), (\"cn\", \"cn\"), (\"ctrl-0\", \"ctrl-0\"), (\"ctrl-1\", \"ctrl-1\"), (\"ctrl-2\", \"ctrl-2\"), (\"ctrl-3\", \"ctrl-3\"), (\"ctrl-4\", \"ctrl-4\"), (\"ctrl-[\", \"ctrl-[\"), (\"ctrl-a\", \"ctrl-a\"), (\"ctrl-b\", \"ctrl-b\"), (\"ctrl-c\", \"ctrl-c\"), (\"ctrl-comma\", \"ctrl-,\"), (\"ctrl-d\", \"ctrl-d\"), (\"ctrl-delete\", \"ctrl-delete\"), (\"ctrl-down\", \"ctrl-down\"), (\"ctrl-e\", \"ctrl-e\"), (\"ctrl-enter\", \"ctrl-enter\"), (\"ctrl-equal\", \"ctrl-=\"), (\"ctrl-f\", \"ctrl-f\"), (\"ctrl-g\", \"ctrl-g\"), (\"ctrl-h\", \"ctrl-h\"), (\"ctrl-insert\", \"ctrl-insert\"), (\"ctrl-k\", \"ctrl-k\"), (\"ctrl-l\", \"ctrl-l\"), (\"ctrl-minus\", \"ctrl--\"), (\"ctrl-n\", \"ctrl-n\"), (\"ctrl-p\", \"ctrl-p\"), (\"ctrl-pagedown\", \"ctrl-pagedown\"), (\"ctrl-pageup\", \"ctrl-pageup\"), (\"ctrl-plus\", \"ctrl-+\"), (\"ctrl-r\", \"ctrl-r\"), (\"ctrl-s\", \"ctrl-s\"), (\"ctrl-shift-.\", \"ctrl-shift-.\"), (\"ctrl-shift-0\", \"ctrl-shift-0\"), (\"ctrl-shift-1\", \"ctrl-shift-1\"), (\"ctrl-shift-2\", \"ctrl-shift-2\"), (\"ctrl-shift-3\", \"ctrl-shift-3\"), (\"ctrl-shift-4\", \"ctrl-shift-4\"), (\"ctrl-shift-c\", \"ctrl-shift-c\"), (\"ctrl-shift-equal\", \"ctrl-shift-=\"), (\"ctrl-shift-greater\", \"ctrl-shift->\"), (\"ctrl-shift-minus\", \"ctrl-shift--\"), (\"ctrl-shift-n\", \"ctrl-shift-n\"), (\"ctrl-shift-pagedown\", \"ctrl-shift-pagedown\"), (\"ctrl-shift-pageup\", \"ctrl-shift-pageup\"), (\"ctrl-shift-plus\", \"ctrl-shift-+\"), (\"ctrl-shift-underscore\", \"ctrl-shift-_\"), (\"ctrl-shift-z\", \"ctrl-shift-z\"), (\"ctrl-space\", \"ctrl-space\"), (\"ctrl-t\", \"ctrl-t\"), (\"ctrl-tab\", \"ctrl-tab\"), (\"ctrl-u\", \"ctrl-u\"), (\"ctrl-up\", \"ctrl-up\"), (\"ctrl-v\", \"ctrl-v\"), (\"ctrl-w\", \"ctrl-w\"), (\"ctrl-x\", \"ctrl-x\"), (\"ctrl-y\", \"ctrl-y\"), (\"ctrl-z\", \"ctrl-z\"), (\"d\", \"d\"), (\"dd\", \"dd\"), (\"delete\", \"delete\"), (\"down\", \"down\"), (\"e\", \"e\"), (\"end\", \"end\"), (\"enter\", \"enter\"), (\"escape\", \"escape\"), (\"f\", \"f\"), (\"f1\", \"f1\"), (\"f2\", \"f2\"), (\"f4\", \"f4\"), (\"f5\", \"f5\"), (\"g\", \"g\"), (\"gc\", \"gc\"), (\"gd\", \"gd\"), (\"gf\", \"gf\"), (\"gg\", \"gg\"), (\"gh\", \"gh\"), (\"gspace\", \"g space\"), (\"gt\", \"gt\"), (\"h\", \"h\"), (\"home\", \"home\"), (\"i\", \"i\"), (\"j\", \"j\"), (\"k\", \"k\"), (\"l\", \"l\"), (\"left\", \"left\"), (\"m\", \"m\"), (\"mb\", \"mb\"), (\"menu\", \"menu\"), (\"mm\", \"mm\"), (\"mn\", \"mn\"), (\"mo\", \"mo\"), (\"mp\", \"mp\"), (\"ms\", \"ms\"), (\"n\", \"n\"), (\"o\", \"o\"), (\"p\", \"p\"), (\"pagedown\", \"pagedown\"), (\"pageup\", \"pageup\"), (\"pp\", \"pp\"), (\"q\", \"q\"), (\"r\", \"r\"), (\"return\", \"enter\"), (\"right\", \"right\"), (\"s\", \"s\"), (\"shift-backtab\", \"shift-tab\"), (\"shift-delete\", \"shift-delete\"), (\"shift-down\", \"shift-down\"), (\"shift-enter\", \"shift-enter\"), (\"shift-f10\", \"shift-f10\"), (\"shift-insert\", \"shift-insert\"), (\"shift-pagedown\", \"shift-pagedown\"), (\"shift-pageup\", \"shift-pageup\"), (\"shift-tab\", \"shift-tab\"), (\"shift-up\", \"shift-up\"), (\"space\", \"space\"), (\"super-[\", \"super-[\"), (\"super-]\", \"super-]\"), (\"super-a\", \"super-a\"), (\"super-alt-v\", \"super-alt-v\"), (\"super-bracketleft\", \"super-[\"), (\"super-bracketright\", \"super-]\"), (\"super-c\", \"super-c\"), (\"super-d\", \"super-d\"), (\"super-i\", \"super-i\"), (\"super-n\", \"super-n\"), (\"super-shift-.\", \"super-shift-.\"), (\"super-shift-greater\", \"super-shift->\"), (\"super-shift-z\", \"super-shift-z\"), (\"super-v\", \"super-v\"), (\"super-z\", \"super-z\"), (\"superalt-v\", \"super-alt-v\"), (\"supershift-greater\", \"super-shift->\"), (\"supershift-period\", \"super-shift-.\"), (\"supershift-z\", \"super-shift-z\"), (\"t\", \"t\"), (\"tab\", \"tab\"), (\"tr\", \"tr\"), (\"tt\", \"tt\"), (\"u\", \"u\"), (\"up\", \"up\"), (\"v\", \"v\"), (\"w\", \"w\"), (\"x\", \"x\"), (\"y\", \"y\"), (\"yy\", \"yy\"), (\"z\", \"z\"), (\"{\", \"{\"), (\"}\", \"}\"), (\"~\", \"~\")];",
-      "line": 183,
+      "line": 217,
       "literal": "2",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166269,7 +166317,7 @@
     },
     {
       "excerpt": "static KEYCAP_DEFAULTS: &[(&str, &str)] = &[(\"+\", \"+\"), (\",\", \",\"), (\",A\", \",A\"), (\",B\", \",B\"), (\",M\", \",M\"), (\",S\", \",S\"), (\",a\", \",a\"), (\",b\", \",b\"), (\",e\", \",e\"), (\",m\", \",m\"), (\",n\", \",n\"), (\",r\", \",r\"), (\",s\", \",s\"), (\"-\", \"-\"), (\".\", \".\"), (\"/\", \"/\"), (\"0\", \"0\"), (\"1\", \"1\"), (\"2\", \"2\"), (\"3\", \"3\"), (\"4\", \"4\"), (\"5\", \"5\"), (\"6\", \"6\"), (\"7\", \"7\"), (\"8\", \"8\"), (\"9\", \"9\"), (\":\", \":\"), (\";\", \";\"), (\"?\", \"?\"), (\"A\", \"A\"), (\"B\", \"B\"), (\"C\", \"C\"), (\"D\", \"D\"), (\"E\", \"E\"), (\"F\", \"F\"), (\"G\", \"G\"), (\"H\", \"H\"), (\"I\", \"I\"), (\"J\", \"J\"), (\"K\", \"K\"), (\"L\", \"L\"), (\"M\", \"M\"), (\"N\", \"N\"), (\"O\", \"O\"), (\"P\", \"P\"), (\"Q\", \"Q\"), (\"S\", \"S\"), (\"T\", \"T\"), (\"U\", \"U\"), (\"V\", \"V\"), (\"X\", \"X\"), (\"Y\", \"Y\"), (\"Z\", \"Z\"), (\"[\", \"[\"), (\"]\", \"]\"), (\"_\", \"_\"), (\"a\", \"a\"), (\"alt-enter\", \"alt-enter\"), (\"alt-left\", \"alt-left\"), (\"alt-p\", \"alt-p\"), (\"alt-return\", \"alt-enter\"), (\"alt-right\", \"alt-right\"), (\"alt-up\", \"alt-up\"), (\"b\", \"b\"), (\"backspace\", \"backspace\"), (\"c\", \"c\"), (\"cC\", \"cC\"), (\"cD\", \"cD\"), (\"cc\", \"cc\"), (\"cd\", \"cd\"), (\"cf\", \"cf\"), (\"cn\", \"cn\"), (\"ctrl-0\", \"ctrl-0\"), (\"ctrl-1\", \"ctrl-1\"), (\"ctrl-2\", \"ctrl-2\"), (\"ctrl-3\", \"ctrl-3\"), (\"ctrl-4\", \"ctrl-4\"), (\"ctrl-[\", \"ctrl-[\"), (\"ctrl-a\", \"ctrl-a\"), (\"ctrl-b\", \"ctrl-b\"), (\"ctrl-c\", \"ctrl-c\"), (\"ctrl-comma\", \"ctrl-,\"), (\"ctrl-d\", \"ctrl-d\"), (\"ctrl-delete\", \"ctrl-delete\"), (\"ctrl-down\", \"ctrl-down\"), (\"ctrl-e\", \"ctrl-e\"), (\"ctrl-enter\", \"ctrl-enter\"), (\"ctrl-equal\", \"ctrl-=\"), (\"ctrl-f\", \"ctrl-f\"), (\"ctrl-g\", \"ctrl-g\"), (\"ctrl-h\", \"ctrl-h\"), (\"ctrl-insert\", \"ctrl-insert\"), (\"ctrl-k\", \"ctrl-k\"), (\"ctrl-l\", \"ctrl-l\"), (\"ctrl-minus\", \"ctrl--\"), (\"ctrl-n\", \"ctrl-n\"), (\"ctrl-p\", \"ctrl-p\"), (\"ctrl-pagedown\", \"ctrl-pagedown\"), (\"ctrl-pageup\", \"ctrl-pageup\"), (\"ctrl-plus\", \"ctrl-+\"), (\"ctrl-r\", \"ctrl-r\"), (\"ctrl-s\", \"ctrl-s\"), (\"ctrl-shift-.\", \"ctrl-shift-.\"), (\"ctrl-shift-0\", \"ctrl-shift-0\"), (\"ctrl-shift-1\", \"ctrl-shift-1\"), (\"ctrl-shift-2\", \"ctrl-shift-2\"), (\"ctrl-shift-3\", \"ctrl-shift-3\"), (\"ctrl-shift-4\", \"ctrl-shift-4\"), (\"ctrl-shift-c\", \"ctrl-shift-c\"), (\"ctrl-shift-equal\", \"ctrl-shift-=\"), (\"ctrl-shift-greater\", \"ctrl-shift->\"), (\"ctrl-shift-minus\", \"ctrl-shift--\"), (\"ctrl-shift-n\", \"ctrl-shift-n\"), (\"ctrl-shift-pagedown\", \"ctrl-shift-pagedown\"), (\"ctrl-shift-pageup\", \"ctrl-shift-pageup\"), (\"ctrl-shift-plus\", \"ctrl-shift-+\"), (\"ctrl-shift-underscore\", \"ctrl-shift-_\"), (\"ctrl-shift-z\", \"ctrl-shift-z\"), (\"ctrl-space\", \"ctrl-space\"), (\"ctrl-t\", \"ctrl-t\"), (\"ctrl-tab\", \"ctrl-tab\"), (\"ctrl-u\", \"ctrl-u\"), (\"ctrl-up\", \"ctrl-up\"), (\"ctrl-v\", \"ctrl-v\"), (\"ctrl-w\", \"ctrl-w\"), (\"ctrl-x\", \"ctrl-x\"), (\"ctrl-y\", \"ctrl-y\"), (\"ctrl-z\", \"ctrl-z\"), (\"d\", \"d\"), (\"dd\", \"dd\"), (\"delete\", \"delete\"), (\"down\", \"down\"), (\"e\", \"e\"), (\"end\", \"end\"), (\"enter\", \"enter\"), (\"escape\", \"escape\"), (\"f\", \"f\"), (\"f1\", \"f1\"), (\"f2\", \"f2\"), (\"f4\", \"f4\"), (\"f5\", \"f5\"), (\"g\", \"g\"), (\"gc\", \"gc\"), (\"gd\", \"gd\"), (\"gf\", \"gf\"), (\"gg\", \"gg\"), (\"gh\", \"gh\"), (\"gspace\", \"g space\"), (\"gt\", \"gt\"), (\"h\", \"h\"), (\"home\", \"home\"), (\"i\", \"i\"), (\"j\", \"j\"), (\"k\", \"k\"), (\"l\", \"l\"), (\"left\", \"left\"), (\"m\", \"m\"), (\"mb\", \"mb\"), (\"menu\", \"menu\"), (\"mm\", \"mm\"), (\"mn\", \"mn\"), (\"mo\", \"mo\"), (\"mp\", \"mp\"), (\"ms\", \"ms\"), (\"n\", \"n\"), (\"o\", \"o\"), (\"p\", \"p\"), (\"pagedown\", \"pagedown\"), (\"pageup\", \"pageup\"), (\"pp\", \"pp\"), (\"q\", \"q\"), (\"r\", \"r\"), (\"return\", \"enter\"), (\"right\", \"right\"), (\"s\", \"s\"), (\"shift-backtab\", \"shift-tab\"), (\"shift-delete\", \"shift-delete\"), (\"shift-down\", \"shift-down\"), (\"shift-enter\", \"shift-enter\"), (\"shift-f10\", \"shift-f10\"), (\"shift-insert\", \"shift-insert\"), (\"shift-pagedown\", \"shift-pagedown\"), (\"shift-pageup\", \"shift-pageup\"), (\"shift-tab\", \"shift-tab\"), (\"shift-up\", \"shift-up\"), (\"space\", \"space\"), (\"super-[\", \"super-[\"), (\"super-]\", \"super-]\"), (\"super-a\", \"super-a\"), (\"super-alt-v\", \"super-alt-v\"), (\"super-bracketleft\", \"super-[\"), (\"super-bracketright\", \"super-]\"), (\"super-c\", \"super-c\"), (\"super-d\", \"super-d\"), (\"super-i\", \"super-i\"), (\"super-n\", \"super-n\"), (\"super-shift-.\", \"super-shift-.\"), (\"super-shift-greater\", \"super-shift->\"), (\"super-shift-z\", \"super-shift-z\"), (\"super-v\", \"super-v\"), (\"super-z\", \"super-z\"), (\"superalt-v\", \"super-alt-v\"), (\"supershift-greater\", \"super-shift->\"), (\"supershift-period\", \"super-shift-.\"), (\"supershift-z\", \"super-shift-z\"), (\"t\", \"t\"), (\"tab\", \"tab\"), (\"tr\", \"tr\"), (\"tt\", \"tt\"), (\"u\", \"u\"), (\"up\", \"up\"), (\"v\", \"v\"), (\"w\", \"w\"), (\"x\", \"x\"), (\"y\", \"y\"), (\"yy\", \"yy\"), (\"z\", \"z\"), (\"{\", \"{\"), (\"}\", \"}\"), (\"~\", \"~\")];",
-      "line": 183,
+      "line": 217,
       "literal": "3",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166278,7 +166326,7 @@
     },
     {
       "excerpt": "static KEYCAP_DEFAULTS: &[(&str, &str)] = &[(\"+\", \"+\"), (\",\", \",\"), (\",A\", \",A\"), (\",B\", \",B\"), (\",M\", \",M\"), (\",S\", \",S\"), (\",a\", \",a\"), (\",b\", \",b\"), (\",e\", \",e\"), (\",m\", \",m\"), (\",n\", \",n\"), (\",r\", \",r\"), (\",s\", \",s\"), (\"-\", \"-\"), (\".\", \".\"), (\"/\", \"/\"), (\"0\", \"0\"), (\"1\", \"1\"), (\"2\", \"2\"), (\"3\", \"3\"), (\"4\", \"4\"), (\"5\", \"5\"), (\"6\", \"6\"), (\"7\", \"7\"), (\"8\", \"8\"), (\"9\", \"9\"), (\":\", \":\"), (\";\", \";\"), (\"?\", \"?\"), (\"A\", \"A\"), (\"B\", \"B\"), (\"C\", \"C\"), (\"D\", \"D\"), (\"E\", \"E\"), (\"F\", \"F\"), (\"G\", \"G\"), (\"H\", \"H\"), (\"I\", \"I\"), (\"J\", \"J\"), (\"K\", \"K\"), (\"L\", \"L\"), (\"M\", \"M\"), (\"N\", \"N\"), (\"O\", \"O\"), (\"P\", \"P\"), (\"Q\", \"Q\"), (\"S\", \"S\"), (\"T\", \"T\"), (\"U\", \"U\"), (\"V\", \"V\"), (\"X\", \"X\"), (\"Y\", \"Y\"), (\"Z\", \"Z\"), (\"[\", \"[\"), (\"]\", \"]\"), (\"_\", \"_\"), (\"a\", \"a\"), (\"alt-enter\", \"alt-enter\"), (\"alt-left\", \"alt-left\"), (\"alt-p\", \"alt-p\"), (\"alt-return\", \"alt-enter\"), (\"alt-right\", \"alt-right\"), (\"alt-up\", \"alt-up\"), (\"b\", \"b\"), (\"backspace\", \"backspace\"), (\"c\", \"c\"), (\"cC\", \"cC\"), (\"cD\", \"cD\"), (\"cc\", \"cc\"), (\"cd\", \"cd\"), (\"cf\", \"cf\"), (\"cn\", \"cn\"), (\"ctrl-0\", \"ctrl-0\"), (\"ctrl-1\", \"ctrl-1\"), (\"ctrl-2\", \"ctrl-2\"), (\"ctrl-3\", \"ctrl-3\"), (\"ctrl-4\", \"ctrl-4\"), (\"ctrl-[\", \"ctrl-[\"), (\"ctrl-a\", \"ctrl-a\"), (\"ctrl-b\", \"ctrl-b\"), (\"ctrl-c\", \"ctrl-c\"), (\"ctrl-comma\", \"ctrl-,\"), (\"ctrl-d\", \"ctrl-d\"), (\"ctrl-delete\", \"ctrl-delete\"), (\"ctrl-down\", \"ctrl-down\"), (\"ctrl-e\", \"ctrl-e\"), (\"ctrl-enter\", \"ctrl-enter\"), (\"ctrl-equal\", \"ctrl-=\"), (\"ctrl-f\", \"ctrl-f\"), (\"ctrl-g\", \"ctrl-g\"), (\"ctrl-h\", \"ctrl-h\"), (\"ctrl-insert\", \"ctrl-insert\"), (\"ctrl-k\", \"ctrl-k\"), (\"ctrl-l\", \"ctrl-l\"), (\"ctrl-minus\", \"ctrl--\"), (\"ctrl-n\", \"ctrl-n\"), (\"ctrl-p\", \"ctrl-p\"), (\"ctrl-pagedown\", \"ctrl-pagedown\"), (\"ctrl-pageup\", \"ctrl-pageup\"), (\"ctrl-plus\", \"ctrl-+\"), (\"ctrl-r\", \"ctrl-r\"), (\"ctrl-s\", \"ctrl-s\"), (\"ctrl-shift-.\", \"ctrl-shift-.\"), (\"ctrl-shift-0\", \"ctrl-shift-0\"), (\"ctrl-shift-1\", \"ctrl-shift-1\"), (\"ctrl-shift-2\", \"ctrl-shift-2\"), (\"ctrl-shift-3\", \"ctrl-shift-3\"), (\"ctrl-shift-4\", \"ctrl-shift-4\"), (\"ctrl-shift-c\", \"ctrl-shift-c\"), (\"ctrl-shift-equal\", \"ctrl-shift-=\"), (\"ctrl-shift-greater\", \"ctrl-shift->\"), (\"ctrl-shift-minus\", \"ctrl-shift--\"), (\"ctrl-shift-n\", \"ctrl-shift-n\"), (\"ctrl-shift-pagedown\", \"ctrl-shift-pagedown\"), (\"ctrl-shift-pageup\", \"ctrl-shift-pageup\"), (\"ctrl-shift-plus\", \"ctrl-shift-+\"), (\"ctrl-shift-underscore\", \"ctrl-shift-_\"), (\"ctrl-shift-z\", \"ctrl-shift-z\"), (\"ctrl-space\", \"ctrl-space\"), (\"ctrl-t\", \"ctrl-t\"), (\"ctrl-tab\", \"ctrl-tab\"), (\"ctrl-u\", \"ctrl-u\"), (\"ctrl-up\", \"ctrl-up\"), (\"ctrl-v\", \"ctrl-v\"), (\"ctrl-w\", \"ctrl-w\"), (\"ctrl-x\", \"ctrl-x\"), (\"ctrl-y\", \"ctrl-y\"), (\"ctrl-z\", \"ctrl-z\"), (\"d\", \"d\"), (\"dd\", \"dd\"), (\"delete\", \"delete\"), (\"down\", \"down\"), (\"e\", \"e\"), (\"end\", \"end\"), (\"enter\", \"enter\"), (\"escape\", \"escape\"), (\"f\", \"f\"), (\"f1\", \"f1\"), (\"f2\", \"f2\"), (\"f4\", \"f4\"), (\"f5\", \"f5\"), (\"g\", \"g\"), (\"gc\", \"gc\"), (\"gd\", \"gd\"), (\"gf\", \"gf\"), (\"gg\", \"gg\"), (\"gh\", \"gh\"), (\"gspace\", \"g space\"), (\"gt\", \"gt\"), (\"h\", \"h\"), (\"home\", \"home\"), (\"i\", \"i\"), (\"j\", \"j\"), (\"k\", \"k\"), (\"l\", \"l\"), (\"left\", \"left\"), (\"m\", \"m\"), (\"mb\", \"mb\"), (\"menu\", \"menu\"), (\"mm\", \"mm\"), (\"mn\", \"mn\"), (\"mo\", \"mo\"), (\"mp\", \"mp\"), (\"ms\", \"ms\"), (\"n\", \"n\"), (\"o\", \"o\"), (\"p\", \"p\"), (\"pagedown\", \"pagedown\"), (\"pageup\", \"pageup\"), (\"pp\", \"pp\"), (\"q\", \"q\"), (\"r\", \"r\"), (\"return\", \"enter\"), (\"right\", \"right\"), (\"s\", \"s\"), (\"shift-backtab\", \"shift-tab\"), (\"shift-delete\", \"shift-delete\"), (\"shift-down\", \"shift-down\"), (\"shift-enter\", \"shift-enter\"), (\"shift-f10\", \"shift-f10\"), (\"shift-insert\", \"shift-insert\"), (\"shift-pagedown\", \"shift-pagedown\"), (\"shift-pageup\", \"shift-pageup\"), (\"shift-tab\", \"shift-tab\"), (\"shift-up\", \"shift-up\"), (\"space\", \"space\"), (\"super-[\", \"super-[\"), (\"super-]\", \"super-]\"), (\"super-a\", \"super-a\"), (\"super-alt-v\", \"super-alt-v\"), (\"super-bracketleft\", \"super-[\"), (\"super-bracketright\", \"super-]\"), (\"super-c\", \"super-c\"), (\"super-d\", \"super-d\"), (\"super-i\", \"super-i\"), (\"super-n\", \"super-n\"), (\"super-shift-.\", \"super-shift-.\"), (\"super-shift-greater\", \"super-shift->\"), (\"super-shift-z\", \"super-shift-z\"), (\"super-v\", \"super-v\"), (\"super-z\", \"super-z\"), (\"superalt-v\", \"super-alt-v\"), (\"supershift-greater\", \"super-shift->\"), (\"supershift-period\", \"super-shift-.\"), (\"supershift-z\", \"super-shift-z\"), (\"t\", \"t\"), (\"tab\", \"tab\"), (\"tr\", \"tr\"), (\"tt\", \"tt\"), (\"u\", \"u\"), (\"up\", \"up\"), (\"v\", \"v\"), (\"w\", \"w\"), (\"x\", \"x\"), (\"y\", \"y\"), (\"yy\", \"yy\"), (\"z\", \"z\"), (\"{\", \"{\"), (\"}\", \"}\"), (\"~\", \"~\")];",
-      "line": 183,
+      "line": 217,
       "literal": "3",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166287,7 +166335,7 @@
     },
     {
       "excerpt": "static KEYCAP_DEFAULTS: &[(&str, &str)] = &[(\"+\", \"+\"), (\",\", \",\"), (\",A\", \",A\"), (\",B\", \",B\"), (\",M\", \",M\"), (\",S\", \",S\"), (\",a\", \",a\"), (\",b\", \",b\"), (\",e\", \",e\"), (\",m\", \",m\"), (\",n\", \",n\"), (\",r\", \",r\"), (\",s\", \",s\"), (\"-\", \"-\"), (\".\", \".\"), (\"/\", \"/\"), (\"0\", \"0\"), (\"1\", \"1\"), (\"2\", \"2\"), (\"3\", \"3\"), (\"4\", \"4\"), (\"5\", \"5\"), (\"6\", \"6\"), (\"7\", \"7\"), (\"8\", \"8\"), (\"9\", \"9\"), (\":\", \":\"), (\";\", \";\"), (\"?\", \"?\"), (\"A\", \"A\"), (\"B\", \"B\"), (\"C\", \"C\"), (\"D\", \"D\"), (\"E\", \"E\"), (\"F\", \"F\"), (\"G\", \"G\"), (\"H\", \"H\"), (\"I\", \"I\"), (\"J\", \"J\"), (\"K\", \"K\"), (\"L\", \"L\"), (\"M\", \"M\"), (\"N\", \"N\"), (\"O\", \"O\"), (\"P\", \"P\"), (\"Q\", \"Q\"), (\"S\", \"S\"), (\"T\", \"T\"), (\"U\", \"U\"), (\"V\", \"V\"), (\"X\", \"X\"), (\"Y\", \"Y\"), (\"Z\", \"Z\"), (\"[\", \"[\"), (\"]\", \"]\"), (\"_\", \"_\"), (\"a\", \"a\"), (\"alt-enter\", \"alt-enter\"), (\"alt-left\", \"alt-left\"), (\"alt-p\", \"alt-p\"), (\"alt-return\", \"alt-enter\"), (\"alt-right\", \"alt-right\"), (\"alt-up\", \"alt-up\"), (\"b\", \"b\"), (\"backspace\", \"backspace\"), (\"c\", \"c\"), (\"cC\", \"cC\"), (\"cD\", \"cD\"), (\"cc\", \"cc\"), (\"cd\", \"cd\"), (\"cf\", \"cf\"), (\"cn\", \"cn\"), (\"ctrl-0\", \"ctrl-0\"), (\"ctrl-1\", \"ctrl-1\"), (\"ctrl-2\", \"ctrl-2\"), (\"ctrl-3\", \"ctrl-3\"), (\"ctrl-4\", \"ctrl-4\"), (\"ctrl-[\", \"ctrl-[\"), (\"ctrl-a\", \"ctrl-a\"), (\"ctrl-b\", \"ctrl-b\"), (\"ctrl-c\", \"ctrl-c\"), (\"ctrl-comma\", \"ctrl-,\"), (\"ctrl-d\", \"ctrl-d\"), (\"ctrl-delete\", \"ctrl-delete\"), (\"ctrl-down\", \"ctrl-down\"), (\"ctrl-e\", \"ctrl-e\"), (\"ctrl-enter\", \"ctrl-enter\"), (\"ctrl-equal\", \"ctrl-=\"), (\"ctrl-f\", \"ctrl-f\"), (\"ctrl-g\", \"ctrl-g\"), (\"ctrl-h\", \"ctrl-h\"), (\"ctrl-insert\", \"ctrl-insert\"), (\"ctrl-k\", \"ctrl-k\"), (\"ctrl-l\", \"ctrl-l\"), (\"ctrl-minus\", \"ctrl--\"), (\"ctrl-n\", \"ctrl-n\"), (\"ctrl-p\", \"ctrl-p\"), (\"ctrl-pagedown\", \"ctrl-pagedown\"), (\"ctrl-pageup\", \"ctrl-pageup\"), (\"ctrl-plus\", \"ctrl-+\"), (\"ctrl-r\", \"ctrl-r\"), (\"ctrl-s\", \"ctrl-s\"), (\"ctrl-shift-.\", \"ctrl-shift-.\"), (\"ctrl-shift-0\", \"ctrl-shift-0\"), (\"ctrl-shift-1\", \"ctrl-shift-1\"), (\"ctrl-shift-2\", \"ctrl-shift-2\"), (\"ctrl-shift-3\", \"ctrl-shift-3\"), (\"ctrl-shift-4\", \"ctrl-shift-4\"), (\"ctrl-shift-c\", \"ctrl-shift-c\"), (\"ctrl-shift-equal\", \"ctrl-shift-=\"), (\"ctrl-shift-greater\", \"ctrl-shift->\"), (\"ctrl-shift-minus\", \"ctrl-shift--\"), (\"ctrl-shift-n\", \"ctrl-shift-n\"), (\"ctrl-shift-pagedown\", \"ctrl-shift-pagedown\"), (\"ctrl-shift-pageup\", \"ctrl-shift-pageup\"), (\"ctrl-shift-plus\", \"ctrl-shift-+\"), (\"ctrl-shift-underscore\", \"ctrl-shift-_\"), (\"ctrl-shift-z\", \"ctrl-shift-z\"), (\"ctrl-space\", \"ctrl-space\"), (\"ctrl-t\", \"ctrl-t\"), (\"ctrl-tab\", \"ctrl-tab\"), (\"ctrl-u\", \"ctrl-u\"), (\"ctrl-up\", \"ctrl-up\"), (\"ctrl-v\", \"ctrl-v\"), (\"ctrl-w\", \"ctrl-w\"), (\"ctrl-x\", \"ctrl-x\"), (\"ctrl-y\", \"ctrl-y\"), (\"ctrl-z\", \"ctrl-z\"), (\"d\", \"d\"), (\"dd\", \"dd\"), (\"delete\", \"delete\"), (\"down\", \"down\"), (\"e\", \"e\"), (\"end\", \"end\"), (\"enter\", \"enter\"), (\"escape\", \"escape\"), (\"f\", \"f\"), (\"f1\", \"f1\"), (\"f2\", \"f2\"), (\"f4\", \"f4\"), (\"f5\", \"f5\"), (\"g\", \"g\"), (\"gc\", \"gc\"), (\"gd\", \"gd\"), (\"gf\", \"gf\"), (\"gg\", \"gg\"), (\"gh\", \"gh\"), (\"gspace\", \"g space\"), (\"gt\", \"gt\"), (\"h\", \"h\"), (\"home\", \"home\"), (\"i\", \"i\"), (\"j\", \"j\"), (\"k\", \"k\"), (\"l\", \"l\"), (\"left\", \"left\"), (\"m\", \"m\"), (\"mb\", \"mb\"), (\"menu\", \"menu\"), (\"mm\", \"mm\"), (\"mn\", \"mn\"), (\"mo\", \"mo\"), (\"mp\", \"mp\"), (\"ms\", \"ms\"), (\"n\", \"n\"), (\"o\", \"o\"), (\"p\", \"p\"), (\"pagedown\", \"pagedown\"), (\"pageup\", \"pageup\"), (\"pp\", \"pp\"), (\"q\", \"q\"), (\"r\", \"r\"), (\"return\", \"enter\"), (\"right\", \"right\"), (\"s\", \"s\"), (\"shift-backtab\", \"shift-tab\"), (\"shift-delete\", \"shift-delete\"), (\"shift-down\", \"shift-down\"), (\"shift-enter\", \"shift-enter\"), (\"shift-f10\", \"shift-f10\"), (\"shift-insert\", \"shift-insert\"), (\"shift-pagedown\", \"shift-pagedown\"), (\"shift-pageup\", \"shift-pageup\"), (\"shift-tab\", \"shift-tab\"), (\"shift-up\", \"shift-up\"), (\"space\", \"space\"), (\"super-[\", \"super-[\"), (\"super-]\", \"super-]\"), (\"super-a\", \"super-a\"), (\"super-alt-v\", \"super-alt-v\"), (\"super-bracketleft\", \"super-[\"), (\"super-bracketright\", \"super-]\"), (\"super-c\", \"super-c\"), (\"super-d\", \"super-d\"), (\"super-i\", \"super-i\"), (\"super-n\", \"super-n\"), (\"super-shift-.\", \"super-shift-.\"), (\"super-shift-greater\", \"super-shift->\"), (\"super-shift-z\", \"super-shift-z\"), (\"super-v\", \"super-v\"), (\"super-z\", \"super-z\"), (\"superalt-v\", \"super-alt-v\"), (\"supershift-greater\", \"super-shift->\"), (\"supershift-period\", \"super-shift-.\"), (\"supershift-z\", \"super-shift-z\"), (\"t\", \"t\"), (\"tab\", \"tab\"), (\"tr\", \"tr\"), (\"tt\", \"tt\"), (\"u\", \"u\"), (\"up\", \"up\"), (\"v\", \"v\"), (\"w\", \"w\"), (\"x\", \"x\"), (\"y\", \"y\"), (\"yy\", \"yy\"), (\"z\", \"z\"), (\"{\", \"{\"), (\"}\", \"}\"), (\"~\", \"~\")];",
-      "line": 183,
+      "line": 217,
       "literal": "4",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166296,7 +166344,7 @@
     },
     {
       "excerpt": "static KEYCAP_DEFAULTS: &[(&str, &str)] = &[(\"+\", \"+\"), (\",\", \",\"), (\",A\", \",A\"), (\",B\", \",B\"), (\",M\", \",M\"), (\",S\", \",S\"), (\",a\", \",a\"), (\",b\", \",b\"), (\",e\", \",e\"), (\",m\", \",m\"), (\",n\", \",n\"), (\",r\", \",r\"), (\",s\", \",s\"), (\"-\", \"-\"), (\".\", \".\"), (\"/\", \"/\"), (\"0\", \"0\"), (\"1\", \"1\"), (\"2\", \"2\"), (\"3\", \"3\"), (\"4\", \"4\"), (\"5\", \"5\"), (\"6\", \"6\"), (\"7\", \"7\"), (\"8\", \"8\"), (\"9\", \"9\"), (\":\", \":\"), (\";\", \";\"), (\"?\", \"?\"), (\"A\", \"A\"), (\"B\", \"B\"), (\"C\", \"C\"), (\"D\", \"D\"), (\"E\", \"E\"), (\"F\", \"F\"), (\"G\", \"G\"), (\"H\", \"H\"), (\"I\", \"I\"), (\"J\", \"J\"), (\"K\", \"K\"), (\"L\", \"L\"), (\"M\", \"M\"), (\"N\", \"N\"), (\"O\", \"O\"), (\"P\", \"P\"), (\"Q\", \"Q\"), (\"S\", \"S\"), (\"T\", \"T\"), (\"U\", \"U\"), (\"V\", \"V\"), (\"X\", \"X\"), (\"Y\", \"Y\"), (\"Z\", \"Z\"), (\"[\", \"[\"), (\"]\", \"]\"), (\"_\", \"_\"), (\"a\", \"a\"), (\"alt-enter\", \"alt-enter\"), (\"alt-left\", \"alt-left\"), (\"alt-p\", \"alt-p\"), (\"alt-return\", \"alt-enter\"), (\"alt-right\", \"alt-right\"), (\"alt-up\", \"alt-up\"), (\"b\", \"b\"), (\"backspace\", \"backspace\"), (\"c\", \"c\"), (\"cC\", \"cC\"), (\"cD\", \"cD\"), (\"cc\", \"cc\"), (\"cd\", \"cd\"), (\"cf\", \"cf\"), (\"cn\", \"cn\"), (\"ctrl-0\", \"ctrl-0\"), (\"ctrl-1\", \"ctrl-1\"), (\"ctrl-2\", \"ctrl-2\"), (\"ctrl-3\", \"ctrl-3\"), (\"ctrl-4\", \"ctrl-4\"), (\"ctrl-[\", \"ctrl-[\"), (\"ctrl-a\", \"ctrl-a\"), (\"ctrl-b\", \"ctrl-b\"), (\"ctrl-c\", \"ctrl-c\"), (\"ctrl-comma\", \"ctrl-,\"), (\"ctrl-d\", \"ctrl-d\"), (\"ctrl-delete\", \"ctrl-delete\"), (\"ctrl-down\", \"ctrl-down\"), (\"ctrl-e\", \"ctrl-e\"), (\"ctrl-enter\", \"ctrl-enter\"), (\"ctrl-equal\", \"ctrl-=\"), (\"ctrl-f\", \"ctrl-f\"), (\"ctrl-g\", \"ctrl-g\"), (\"ctrl-h\", \"ctrl-h\"), (\"ctrl-insert\", \"ctrl-insert\"), (\"ctrl-k\", \"ctrl-k\"), (\"ctrl-l\", \"ctrl-l\"), (\"ctrl-minus\", \"ctrl--\"), (\"ctrl-n\", \"ctrl-n\"), (\"ctrl-p\", \"ctrl-p\"), (\"ctrl-pagedown\", \"ctrl-pagedown\"), (\"ctrl-pageup\", \"ctrl-pageup\"), (\"ctrl-plus\", \"ctrl-+\"), (\"ctrl-r\", \"ctrl-r\"), (\"ctrl-s\", \"ctrl-s\"), (\"ctrl-shift-.\", \"ctrl-shift-.\"), (\"ctrl-shift-0\", \"ctrl-shift-0\"), (\"ctrl-shift-1\", \"ctrl-shift-1\"), (\"ctrl-shift-2\", \"ctrl-shift-2\"), (\"ctrl-shift-3\", \"ctrl-shift-3\"), (\"ctrl-shift-4\", \"ctrl-shift-4\"), (\"ctrl-shift-c\", \"ctrl-shift-c\"), (\"ctrl-shift-equal\", \"ctrl-shift-=\"), (\"ctrl-shift-greater\", \"ctrl-shift->\"), (\"ctrl-shift-minus\", \"ctrl-shift--\"), (\"ctrl-shift-n\", \"ctrl-shift-n\"), (\"ctrl-shift-pagedown\", \"ctrl-shift-pagedown\"), (\"ctrl-shift-pageup\", \"ctrl-shift-pageup\"), (\"ctrl-shift-plus\", \"ctrl-shift-+\"), (\"ctrl-shift-underscore\", \"ctrl-shift-_\"), (\"ctrl-shift-z\", \"ctrl-shift-z\"), (\"ctrl-space\", \"ctrl-space\"), (\"ctrl-t\", \"ctrl-t\"), (\"ctrl-tab\", \"ctrl-tab\"), (\"ctrl-u\", \"ctrl-u\"), (\"ctrl-up\", \"ctrl-up\"), (\"ctrl-v\", \"ctrl-v\"), (\"ctrl-w\", \"ctrl-w\"), (\"ctrl-x\", \"ctrl-x\"), (\"ctrl-y\", \"ctrl-y\"), (\"ctrl-z\", \"ctrl-z\"), (\"d\", \"d\"), (\"dd\", \"dd\"), (\"delete\", \"delete\"), (\"down\", \"down\"), (\"e\", \"e\"), (\"end\", \"end\"), (\"enter\", \"enter\"), (\"escape\", \"escape\"), (\"f\", \"f\"), (\"f1\", \"f1\"), (\"f2\", \"f2\"), (\"f4\", \"f4\"), (\"f5\", \"f5\"), (\"g\", \"g\"), (\"gc\", \"gc\"), (\"gd\", \"gd\"), (\"gf\", \"gf\"), (\"gg\", \"gg\"), (\"gh\", \"gh\"), (\"gspace\", \"g space\"), (\"gt\", \"gt\"), (\"h\", \"h\"), (\"home\", \"home\"), (\"i\", \"i\"), (\"j\", \"j\"), (\"k\", \"k\"), (\"l\", \"l\"), (\"left\", \"left\"), (\"m\", \"m\"), (\"mb\", \"mb\"), (\"menu\", \"menu\"), (\"mm\", \"mm\"), (\"mn\", \"mn\"), (\"mo\", \"mo\"), (\"mp\", \"mp\"), (\"ms\", \"ms\"), (\"n\", \"n\"), (\"o\", \"o\"), (\"p\", \"p\"), (\"pagedown\", \"pagedown\"), (\"pageup\", \"pageup\"), (\"pp\", \"pp\"), (\"q\", \"q\"), (\"r\", \"r\"), (\"return\", \"enter\"), (\"right\", \"right\"), (\"s\", \"s\"), (\"shift-backtab\", \"shift-tab\"), (\"shift-delete\", \"shift-delete\"), (\"shift-down\", \"shift-down\"), (\"shift-enter\", \"shift-enter\"), (\"shift-f10\", \"shift-f10\"), (\"shift-insert\", \"shift-insert\"), (\"shift-pagedown\", \"shift-pagedown\"), (\"shift-pageup\", \"shift-pageup\"), (\"shift-tab\", \"shift-tab\"), (\"shift-up\", \"shift-up\"), (\"space\", \"space\"), (\"super-[\", \"super-[\"), (\"super-]\", \"super-]\"), (\"super-a\", \"super-a\"), (\"super-alt-v\", \"super-alt-v\"), (\"super-bracketleft\", \"super-[\"), (\"super-bracketright\", \"super-]\"), (\"super-c\", \"super-c\"), (\"super-d\", \"super-d\"), (\"super-i\", \"super-i\"), (\"super-n\", \"super-n\"), (\"super-shift-.\", \"super-shift-.\"), (\"super-shift-greater\", \"super-shift->\"), (\"super-shift-z\", \"super-shift-z\"), (\"super-v\", \"super-v\"), (\"super-z\", \"super-z\"), (\"superalt-v\", \"super-alt-v\"), (\"supershift-greater\", \"super-shift->\"), (\"supershift-period\", \"super-shift-.\"), (\"supershift-z\", \"super-shift-z\"), (\"t\", \"t\"), (\"tab\", \"tab\"), (\"tr\", \"tr\"), (\"tt\", \"tt\"), (\"u\", \"u\"), (\"up\", \"up\"), (\"v\", \"v\"), (\"w\", \"w\"), (\"x\", \"x\"), (\"y\", \"y\"), (\"yy\", \"yy\"), (\"z\", \"z\"), (\"{\", \"{\"), (\"}\", \"}\"), (\"~\", \"~\")];",
-      "line": 183,
+      "line": 217,
       "literal": "4",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166305,7 +166353,7 @@
     },
     {
       "excerpt": "static KEYCAP_DEFAULTS: &[(&str, &str)] = &[(\"+\", \"+\"), (\",\", \",\"), (\",A\", \",A\"), (\",B\", \",B\"), (\",M\", \",M\"), (\",S\", \",S\"), (\",a\", \",a\"), (\",b\", \",b\"), (\",e\", \",e\"), (\",m\", \",m\"), (\",n\", \",n\"), (\",r\", \",r\"), (\",s\", \",s\"), (\"-\", \"-\"), (\".\", \".\"), (\"/\", \"/\"), (\"0\", \"0\"), (\"1\", \"1\"), (\"2\", \"2\"), (\"3\", \"3\"), (\"4\", \"4\"), (\"5\", \"5\"), (\"6\", \"6\"), (\"7\", \"7\"), (\"8\", \"8\"), (\"9\", \"9\"), (\":\", \":\"), (\";\", \";\"), (\"?\", \"?\"), (\"A\", \"A\"), (\"B\", \"B\"), (\"C\", \"C\"), (\"D\", \"D\"), (\"E\", \"E\"), (\"F\", \"F\"), (\"G\", \"G\"), (\"H\", \"H\"), (\"I\", \"I\"), (\"J\", \"J\"), (\"K\", \"K\"), (\"L\", \"L\"), (\"M\", \"M\"), (\"N\", \"N\"), (\"O\", \"O\"), (\"P\", \"P\"), (\"Q\", \"Q\"), (\"S\", \"S\"), (\"T\", \"T\"), (\"U\", \"U\"), (\"V\", \"V\"), (\"X\", \"X\"), (\"Y\", \"Y\"), (\"Z\", \"Z\"), (\"[\", \"[\"), (\"]\", \"]\"), (\"_\", \"_\"), (\"a\", \"a\"), (\"alt-enter\", \"alt-enter\"), (\"alt-left\", \"alt-left\"), (\"alt-p\", \"alt-p\"), (\"alt-return\", \"alt-enter\"), (\"alt-right\", \"alt-right\"), (\"alt-up\", \"alt-up\"), (\"b\", \"b\"), (\"backspace\", \"backspace\"), (\"c\", \"c\"), (\"cC\", \"cC\"), (\"cD\", \"cD\"), (\"cc\", \"cc\"), (\"cd\", \"cd\"), (\"cf\", \"cf\"), (\"cn\", \"cn\"), (\"ctrl-0\", \"ctrl-0\"), (\"ctrl-1\", \"ctrl-1\"), (\"ctrl-2\", \"ctrl-2\"), (\"ctrl-3\", \"ctrl-3\"), (\"ctrl-4\", \"ctrl-4\"), (\"ctrl-[\", \"ctrl-[\"), (\"ctrl-a\", \"ctrl-a\"), (\"ctrl-b\", \"ctrl-b\"), (\"ctrl-c\", \"ctrl-c\"), (\"ctrl-comma\", \"ctrl-,\"), (\"ctrl-d\", \"ctrl-d\"), (\"ctrl-delete\", \"ctrl-delete\"), (\"ctrl-down\", \"ctrl-down\"), (\"ctrl-e\", \"ctrl-e\"), (\"ctrl-enter\", \"ctrl-enter\"), (\"ctrl-equal\", \"ctrl-=\"), (\"ctrl-f\", \"ctrl-f\"), (\"ctrl-g\", \"ctrl-g\"), (\"ctrl-h\", \"ctrl-h\"), (\"ctrl-insert\", \"ctrl-insert\"), (\"ctrl-k\", \"ctrl-k\"), (\"ctrl-l\", \"ctrl-l\"), (\"ctrl-minus\", \"ctrl--\"), (\"ctrl-n\", \"ctrl-n\"), (\"ctrl-p\", \"ctrl-p\"), (\"ctrl-pagedown\", \"ctrl-pagedown\"), (\"ctrl-pageup\", \"ctrl-pageup\"), (\"ctrl-plus\", \"ctrl-+\"), (\"ctrl-r\", \"ctrl-r\"), (\"ctrl-s\", \"ctrl-s\"), (\"ctrl-shift-.\", \"ctrl-shift-.\"), (\"ctrl-shift-0\", \"ctrl-shift-0\"), (\"ctrl-shift-1\", \"ctrl-shift-1\"), (\"ctrl-shift-2\", \"ctrl-shift-2\"), (\"ctrl-shift-3\", \"ctrl-shift-3\"), (\"ctrl-shift-4\", \"ctrl-shift-4\"), (\"ctrl-shift-c\", \"ctrl-shift-c\"), (\"ctrl-shift-equal\", \"ctrl-shift-=\"), (\"ctrl-shift-greater\", \"ctrl-shift->\"), (\"ctrl-shift-minus\", \"ctrl-shift--\"), (\"ctrl-shift-n\", \"ctrl-shift-n\"), (\"ctrl-shift-pagedown\", \"ctrl-shift-pagedown\"), (\"ctrl-shift-pageup\", \"ctrl-shift-pageup\"), (\"ctrl-shift-plus\", \"ctrl-shift-+\"), (\"ctrl-shift-underscore\", \"ctrl-shift-_\"), (\"ctrl-shift-z\", \"ctrl-shift-z\"), (\"ctrl-space\", \"ctrl-space\"), (\"ctrl-t\", \"ctrl-t\"), (\"ctrl-tab\", \"ctrl-tab\"), (\"ctrl-u\", \"ctrl-u\"), (\"ctrl-up\", \"ctrl-up\"), (\"ctrl-v\", \"ctrl-v\"), (\"ctrl-w\", \"ctrl-w\"), (\"ctrl-x\", \"ctrl-x\"), (\"ctrl-y\", \"ctrl-y\"), (\"ctrl-z\", \"ctrl-z\"), (\"d\", \"d\"), (\"dd\", \"dd\"), (\"delete\", \"delete\"), (\"down\", \"down\"), (\"e\", \"e\"), (\"end\", \"end\"), (\"enter\", \"enter\"), (\"escape\", \"escape\"), (\"f\", \"f\"), (\"f1\", \"f1\"), (\"f2\", \"f2\"), (\"f4\", \"f4\"), (\"f5\", \"f5\"), (\"g\", \"g\"), (\"gc\", \"gc\"), (\"gd\", \"gd\"), (\"gf\", \"gf\"), (\"gg\", \"gg\"), (\"gh\", \"gh\"), (\"gspace\", \"g space\"), (\"gt\", \"gt\"), (\"h\", \"h\"), (\"home\", \"home\"), (\"i\", \"i\"), (\"j\", \"j\"), (\"k\", \"k\"), (\"l\", \"l\"), (\"left\", \"left\"), (\"m\", \"m\"), (\"mb\", \"mb\"), (\"menu\", \"menu\"), (\"mm\", \"mm\"), (\"mn\", \"mn\"), (\"mo\", \"mo\"), (\"mp\", \"mp\"), (\"ms\", \"ms\"), (\"n\", \"n\"), (\"o\", \"o\"), (\"p\", \"p\"), (\"pagedown\", \"pagedown\"), (\"pageup\", \"pageup\"), (\"pp\", \"pp\"), (\"q\", \"q\"), (\"r\", \"r\"), (\"return\", \"enter\"), (\"right\", \"right\"), (\"s\", \"s\"), (\"shift-backtab\", \"shift-tab\"), (\"shift-delete\", \"shift-delete\"), (\"shift-down\", \"shift-down\"), (\"shift-enter\", \"shift-enter\"), (\"shift-f10\", \"shift-f10\"), (\"shift-insert\", \"shift-insert\"), (\"shift-pagedown\", \"shift-pagedown\"), (\"shift-pageup\", \"shift-pageup\"), (\"shift-tab\", \"shift-tab\"), (\"shift-up\", \"shift-up\"), (\"space\", \"space\"), (\"super-[\", \"super-[\"), (\"super-]\", \"super-]\"), (\"super-a\", \"super-a\"), (\"super-alt-v\", \"super-alt-v\"), (\"super-bracketleft\", \"super-[\"), (\"super-bracketright\", \"super-]\"), (\"super-c\", \"super-c\"), (\"super-d\", \"super-d\"), (\"super-i\", \"super-i\"), (\"super-n\", \"super-n\"), (\"super-shift-.\", \"super-shift-.\"), (\"super-shift-greater\", \"super-shift->\"), (\"super-shift-z\", \"super-shift-z\"), (\"super-v\", \"super-v\"), (\"super-z\", \"super-z\"), (\"superalt-v\", \"super-alt-v\"), (\"supershift-greater\", \"super-shift->\"), (\"supershift-period\", \"super-shift-.\"), (\"supershift-z\", \"super-shift-z\"), (\"t\", \"t\"), (\"tab\", \"tab\"), (\"tr\", \"tr\"), (\"tt\", \"tt\"), (\"u\", \"u\"), (\"up\", \"up\"), (\"v\", \"v\"), (\"w\", \"w\"), (\"x\", \"x\"), (\"y\", \"y\"), (\"yy\", \"yy\"), (\"z\", \"z\"), (\"{\", \"{\"), (\"}\", \"}\"), (\"~\", \"~\")];",
-      "line": 183,
+      "line": 217,
       "literal": "5",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166314,7 +166362,7 @@
     },
     {
       "excerpt": "static KEYCAP_DEFAULTS: &[(&str, &str)] = &[(\"+\", \"+\"), (\",\", \",\"), (\",A\", \",A\"), (\",B\", \",B\"), (\",M\", \",M\"), (\",S\", \",S\"), (\",a\", \",a\"), (\",b\", \",b\"), (\",e\", \",e\"), (\",m\", \",m\"), (\",n\", \",n\"), (\",r\", \",r\"), (\",s\", \",s\"), (\"-\", \"-\"), (\".\", \".\"), (\"/\", \"/\"), (\"0\", \"0\"), (\"1\", \"1\"), (\"2\", \"2\"), (\"3\", \"3\"), (\"4\", \"4\"), (\"5\", \"5\"), (\"6\", \"6\"), (\"7\", \"7\"), (\"8\", \"8\"), (\"9\", \"9\"), (\":\", \":\"), (\";\", \";\"), (\"?\", \"?\"), (\"A\", \"A\"), (\"B\", \"B\"), (\"C\", \"C\"), (\"D\", \"D\"), (\"E\", \"E\"), (\"F\", \"F\"), (\"G\", \"G\"), (\"H\", \"H\"), (\"I\", \"I\"), (\"J\", \"J\"), (\"K\", \"K\"), (\"L\", \"L\"), (\"M\", \"M\"), (\"N\", \"N\"), (\"O\", \"O\"), (\"P\", \"P\"), (\"Q\", \"Q\"), (\"S\", \"S\"), (\"T\", \"T\"), (\"U\", \"U\"), (\"V\", \"V\"), (\"X\", \"X\"), (\"Y\", \"Y\"), (\"Z\", \"Z\"), (\"[\", \"[\"), (\"]\", \"]\"), (\"_\", \"_\"), (\"a\", \"a\"), (\"alt-enter\", \"alt-enter\"), (\"alt-left\", \"alt-left\"), (\"alt-p\", \"alt-p\"), (\"alt-return\", \"alt-enter\"), (\"alt-right\", \"alt-right\"), (\"alt-up\", \"alt-up\"), (\"b\", \"b\"), (\"backspace\", \"backspace\"), (\"c\", \"c\"), (\"cC\", \"cC\"), (\"cD\", \"cD\"), (\"cc\", \"cc\"), (\"cd\", \"cd\"), (\"cf\", \"cf\"), (\"cn\", \"cn\"), (\"ctrl-0\", \"ctrl-0\"), (\"ctrl-1\", \"ctrl-1\"), (\"ctrl-2\", \"ctrl-2\"), (\"ctrl-3\", \"ctrl-3\"), (\"ctrl-4\", \"ctrl-4\"), (\"ctrl-[\", \"ctrl-[\"), (\"ctrl-a\", \"ctrl-a\"), (\"ctrl-b\", \"ctrl-b\"), (\"ctrl-c\", \"ctrl-c\"), (\"ctrl-comma\", \"ctrl-,\"), (\"ctrl-d\", \"ctrl-d\"), (\"ctrl-delete\", \"ctrl-delete\"), (\"ctrl-down\", \"ctrl-down\"), (\"ctrl-e\", \"ctrl-e\"), (\"ctrl-enter\", \"ctrl-enter\"), (\"ctrl-equal\", \"ctrl-=\"), (\"ctrl-f\", \"ctrl-f\"), (\"ctrl-g\", \"ctrl-g\"), (\"ctrl-h\", \"ctrl-h\"), (\"ctrl-insert\", \"ctrl-insert\"), (\"ctrl-k\", \"ctrl-k\"), (\"ctrl-l\", \"ctrl-l\"), (\"ctrl-minus\", \"ctrl--\"), (\"ctrl-n\", \"ctrl-n\"), (\"ctrl-p\", \"ctrl-p\"), (\"ctrl-pagedown\", \"ctrl-pagedown\"), (\"ctrl-pageup\", \"ctrl-pageup\"), (\"ctrl-plus\", \"ctrl-+\"), (\"ctrl-r\", \"ctrl-r\"), (\"ctrl-s\", \"ctrl-s\"), (\"ctrl-shift-.\", \"ctrl-shift-.\"), (\"ctrl-shift-0\", \"ctrl-shift-0\"), (\"ctrl-shift-1\", \"ctrl-shift-1\"), (\"ctrl-shift-2\", \"ctrl-shift-2\"), (\"ctrl-shift-3\", \"ctrl-shift-3\"), (\"ctrl-shift-4\", \"ctrl-shift-4\"), (\"ctrl-shift-c\", \"ctrl-shift-c\"), (\"ctrl-shift-equal\", \"ctrl-shift-=\"), (\"ctrl-shift-greater\", \"ctrl-shift->\"), (\"ctrl-shift-minus\", \"ctrl-shift--\"), (\"ctrl-shift-n\", \"ctrl-shift-n\"), (\"ctrl-shift-pagedown\", \"ctrl-shift-pagedown\"), (\"ctrl-shift-pageup\", \"ctrl-shift-pageup\"), (\"ctrl-shift-plus\", \"ctrl-shift-+\"), (\"ctrl-shift-underscore\", \"ctrl-shift-_\"), (\"ctrl-shift-z\", \"ctrl-shift-z\"), (\"ctrl-space\", \"ctrl-space\"), (\"ctrl-t\", \"ctrl-t\"), (\"ctrl-tab\", \"ctrl-tab\"), (\"ctrl-u\", \"ctrl-u\"), (\"ctrl-up\", \"ctrl-up\"), (\"ctrl-v\", \"ctrl-v\"), (\"ctrl-w\", \"ctrl-w\"), (\"ctrl-x\", \"ctrl-x\"), (\"ctrl-y\", \"ctrl-y\"), (\"ctrl-z\", \"ctrl-z\"), (\"d\", \"d\"), (\"dd\", \"dd\"), (\"delete\", \"delete\"), (\"down\", \"down\"), (\"e\", \"e\"), (\"end\", \"end\"), (\"enter\", \"enter\"), (\"escape\", \"escape\"), (\"f\", \"f\"), (\"f1\", \"f1\"), (\"f2\", \"f2\"), (\"f4\", \"f4\"), (\"f5\", \"f5\"), (\"g\", \"g\"), (\"gc\", \"gc\"), (\"gd\", \"gd\"), (\"gf\", \"gf\"), (\"gg\", \"gg\"), (\"gh\", \"gh\"), (\"gspace\", \"g space\"), (\"gt\", \"gt\"), (\"h\", \"h\"), (\"home\", \"home\"), (\"i\", \"i\"), (\"j\", \"j\"), (\"k\", \"k\"), (\"l\", \"l\"), (\"left\", \"left\"), (\"m\", \"m\"), (\"mb\", \"mb\"), (\"menu\", \"menu\"), (\"mm\", \"mm\"), (\"mn\", \"mn\"), (\"mo\", \"mo\"), (\"mp\", \"mp\"), (\"ms\", \"ms\"), (\"n\", \"n\"), (\"o\", \"o\"), (\"p\", \"p\"), (\"pagedown\", \"pagedown\"), (\"pageup\", \"pageup\"), (\"pp\", \"pp\"), (\"q\", \"q\"), (\"r\", \"r\"), (\"return\", \"enter\"), (\"right\", \"right\"), (\"s\", \"s\"), (\"shift-backtab\", \"shift-tab\"), (\"shift-delete\", \"shift-delete\"), (\"shift-down\", \"shift-down\"), (\"shift-enter\", \"shift-enter\"), (\"shift-f10\", \"shift-f10\"), (\"shift-insert\", \"shift-insert\"), (\"shift-pagedown\", \"shift-pagedown\"), (\"shift-pageup\", \"shift-pageup\"), (\"shift-tab\", \"shift-tab\"), (\"shift-up\", \"shift-up\"), (\"space\", \"space\"), (\"super-[\", \"super-[\"), (\"super-]\", \"super-]\"), (\"super-a\", \"super-a\"), (\"super-alt-v\", \"super-alt-v\"), (\"super-bracketleft\", \"super-[\"), (\"super-bracketright\", \"super-]\"), (\"super-c\", \"super-c\"), (\"super-d\", \"super-d\"), (\"super-i\", \"super-i\"), (\"super-n\", \"super-n\"), (\"super-shift-.\", \"super-shift-.\"), (\"super-shift-greater\", \"super-shift->\"), (\"super-shift-z\", \"super-shift-z\"), (\"super-v\", \"super-v\"), (\"super-z\", \"super-z\"), (\"superalt-v\", \"super-alt-v\"), (\"supershift-greater\", \"super-shift->\"), (\"supershift-period\", \"super-shift-.\"), (\"supershift-z\", \"super-shift-z\"), (\"t\", \"t\"), (\"tab\", \"tab\"), (\"tr\", \"tr\"), (\"tt\", \"tt\"), (\"u\", \"u\"), (\"up\", \"up\"), (\"v\", \"v\"), (\"w\", \"w\"), (\"x\", \"x\"), (\"y\", \"y\"), (\"yy\", \"yy\"), (\"z\", \"z\"), (\"{\", \"{\"), (\"}\", \"}\"), (\"~\", \"~\")];",
-      "line": 183,
+      "line": 217,
       "literal": "5",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166323,7 +166371,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"by\", variant: \"\", name: \"Belarusian\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 190,
+      "line": 224,
       "literal": "Belarusian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166332,7 +166380,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"be\", variant: \"\", name: \"Belgian\", overrides: &[(\",\", \";\"), (\",A\", \";A\"), (\",B\", \";B\"), (\",M\", \";M\"), (\",S\", \";S\"), (\",a\", \";a\"), (\",b\", \";b\"), (\",e\", \";e\"), (\",m\", \";m\"), (\",n\", \";n\"), (\",r\", \";r\"), (\",s\", \";s\"), (\":\", \"shift-M\"), (\";\", \"m\"), (\"?\", \"shift-+\"), (\"[\", \"^\"), (\"]\", \"$\"), (\"_\", \"shift-°\"), (\"ctrl-[\", \"ctrl-^\"), (\"ctrl-minus\", \"ctrl-)\"), (\"super-[\", \"super-^\"), (\"super-]\", \"super-$\"), (\"super-bracketleft\", \"super-^\"), (\"super-bracketright\", \"super-$\"), (\"{\", \"shift-¨\"), (\"}\", \"shift-*\"), (\"~\", \"shift-³\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \";\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 191,
+      "line": 225,
       "literal": "Belgian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166341,7 +166389,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"bg\", variant: \"phonetic\", name: \"Bulgarian (traditional phonetic)\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 192,
+      "line": 226,
       "literal": "Bulgarian (traditional phonetic)",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166350,7 +166398,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"hr\", variant: \"\", name: \"Croatian\", overrides: &[(\":\", \"shift-Č\"), (\"?\", \"shift-_\"), (\"[\", \"š\"), (\"]\", \"đ\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-š\"), (\"ctrl-equal\", \"ctrl-+\"), (\"ctrl-minus\", \"ctrl-'\"), (\"super-[\", \"super-š\"), (\"super-]\", \"super-đ\"), (\"super-bracketleft\", \"super-š\"), (\"super-bracketright\", \"super-đ\"), (\"{\", \"shift-Š\"), (\"}\", \"shift-Đ\")], ambiguous: &[\"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 193,
+      "line": 227,
       "literal": "Croatian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166359,7 +166407,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"dk\", variant: \"\", name: \"Danish\", overrides: &[(\":\", \"shift-Æ\"), (\"?\", \"shift-_\"), (\"[\", \"å\"), (\"]\", \"¨\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-å\"), (\"ctrl-equal\", \"ctrl-´\"), (\"ctrl-minus\", \"ctrl-+\"), (\"ctrl-plus\", \"ctrl-shift-`\"), (\"super-[\", \"super-å\"), (\"super-]\", \"super-¨\"), (\"super-bracketleft\", \"super-å\"), (\"super-bracketright\", \"super-¨\"), (\"{\", \"shift-Å\"), (\"}\", \"shift-^\"), (\"~\", \"shift-§\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 195,
+      "line": 229,
       "literal": "Danish",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166368,7 +166416,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"nl\", variant: \"\", name: \"Dutch\", overrides: &[(\"/\", \"-\"), (\":\", \"shift-±\"), (\"?\", \"shift-=\"), (\"ctrl-minus\", \"ctrl-/\"), (\"{\", \"shift-^\"), (\"}\", \"shift-|\"), (\"~\", \"shift-§\")], ambiguous: &[\"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 196,
+      "line": 230,
       "literal": "Dutch",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166377,7 +166425,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"ee\", variant: \"\", name: \"Estonian\", overrides: &[(\":\", \"shift-Ö\"), (\"?\", \"shift-_\"), (\"[\", \"ü\"), (\"]\", \"õ\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-ü\"), (\"ctrl-equal\", \"ctrl-´\"), (\"ctrl-minus\", \"ctrl-+\"), (\"ctrl-plus\", \"ctrl-shift-`\"), (\"super-[\", \"super-ü\"), (\"super-]\", \"super-õ\"), (\"super-bracketleft\", \"super-ü\"), (\"super-bracketright\", \"super-õ\"), (\"{\", \"shift-Ü\"), (\"}\", \"shift-Õ\"), (\"~\", \"shift-~\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 197,
+      "line": 231,
       "literal": "Estonian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166386,7 +166434,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"fi\", variant: \"\", name: \"Finnish\", overrides: &[(\":\", \"shift-Ö\"), (\"?\", \"shift-_\"), (\"[\", \"å\"), (\"]\", \"¨\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-å\"), (\"ctrl-equal\", \"ctrl-´\"), (\"ctrl-minus\", \"ctrl-+\"), (\"ctrl-plus\", \"ctrl-shift-`\"), (\"super-[\", \"super-å\"), (\"super-]\", \"super-¨\"), (\"super-bracketleft\", \"super-å\"), (\"super-bracketright\", \"super-¨\"), (\"{\", \"shift-Å\"), (\"}\", \"shift-^\"), (\"~\", \"shift-½\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 198,
+      "line": 232,
       "literal": "Finnish",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166395,7 +166443,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"fr\", variant: \"\", name: \"French\", overrides: &[(\",\", \";\"), (\",A\", \";A\"), (\",B\", \";B\"), (\",M\", \";M\"), (\",S\", \";S\"), (\",a\", \";a\"), (\",b\", \";b\"), (\",e\", \";e\"), (\",m\", \";m\"), (\",n\", \";n\"), (\",r\", \";r\"), (\",s\", \";s\"), (\":\", \"shift-M\"), (\";\", \"m\"), (\"?\", \"shift-§\"), (\"[\", \"^\"), (\"]\", \"$\"), (\"_\", \"shift-°\"), (\"ctrl-[\", \"ctrl-^\"), (\"ctrl-minus\", \"ctrl-)\"), (\"ctrl-shift-underscore\", \"ctrl-shift-°\"), (\"super-[\", \"super-^\"), (\"super-]\", \"super-$\"), (\"super-bracketleft\", \"super-^\"), (\"super-bracketright\", \"super-$\"), (\"{\", \"shift-¨\"), (\"}\", \"shift-£\")], ambiguous: &[\"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \";\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 199,
+      "line": 233,
       "literal": "French",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166404,7 +166452,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"ge\", variant: \"\", name: \"Georgian\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 202,
+      "line": 236,
       "literal": "Georgian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166413,7 +166461,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"de\", variant: \"\", name: \"German\", overrides: &[(\":\", \"shift-Ö\"), (\"?\", \"shift-_\"), (\"[\", \"ü\"), (\"]\", \"+\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-ü\"), (\"ctrl-equal\", \"ctrl-´\"), (\"ctrl-minus\", \"ctrl-ß\"), (\"super-[\", \"super-ü\"), (\"super-]\", \"super-+\"), (\"super-bracketleft\", \"super-ü\"), (\"super-bracketright\", \"super-+\"), (\"{\", \"shift-Ü\"), (\"}\", \"shift-*\"), (\"~\", \"shift-°\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 203,
+      "line": 237,
       "literal": "German",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166422,7 +166470,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"gr\", variant: \"\", name: \"Greek\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 205,
+      "line": 239,
       "literal": "Greek",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166431,7 +166479,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"il\", variant: \"\", name: \"Hebrew\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 206,
+      "line": 240,
       "literal": "Hebrew",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166440,7 +166488,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"hu\", variant: \"\", name: \"Hungarian\", overrides: &[(\"0\", \"ö\"), (\":\", \"shift-É\"), (\";\", \"é\"), (\"?\", \"shift-_\"), (\"[\", \"ő\"), (\"]\", \"ú\"), (\"_\", \"shift-Ü\"), (\"ctrl-0\", \"ctrl-ö\"), (\"ctrl-[\", \"ctrl-ő\"), (\"ctrl-minus\", \"ctrl-ü\"), (\"ctrl-plus\", \"ctrl-shift-Ó\"), (\"ctrl-shift-0\", \"ctrl-shift-Ö\"), (\"ctrl-shift-greater\", \"ctrl-shift-:\"), (\"ctrl-shift-plus\", \"ctrl-shift-Ó\"), (\"super-[\", \"super-ő\"), (\"super-]\", \"super-ú\"), (\"super-bracketleft\", \"super-ő\"), (\"super-bracketright\", \"super-ú\"), (\"super-shift-greater\", \"super-shift-:\"), (\"supershift-greater\", \"super-shift-:\"), (\"{\", \"shift-Ő\"), (\"}\", \"shift-Ú\"), (\"~\", \"shift-§\")], ambiguous: &[\"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 207,
+      "line": 241,
       "literal": "Hungarian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166449,7 +166497,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"is\", variant: \"\", name: \"Icelandic\", overrides: &[(\":\", \"shift-Æ\"), (\"?\", \"shift-Þ\"), (\"[\", \"ð\"), (\"]\", \"'\"), (\"ctrl-[\", \"ctrl-ð\"), (\"ctrl-equal\", \"ctrl--\"), (\"ctrl-minus\", \"ctrl-ö\"), (\"super-[\", \"super-ð\"), (\"super-]\", \"super-'\"), (\"super-bracketleft\", \"super-ð\"), (\"super-bracketright\", \"super-'\"), (\"{\", \"shift-Ð\"), (\"}\", \"shift-?\"), (\"~\", \"shift-¨\")], ambiguous: &[\"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 208,
+      "line": 242,
       "literal": "Icelandic",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166458,7 +166506,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"ie\", variant: \"\", name: \"Irish\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 209,
+      "line": 243,
       "literal": "Irish",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166467,7 +166515,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"it\", variant: \"\", name: \"Italian\", overrides: &[(\":\", \"shift-ç\"), (\"?\", \"shift-_\"), (\"[\", \"è\"), (\"]\", \"+\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-è\"), (\"ctrl-equal\", \"ctrl-ì\"), (\"ctrl-minus\", \"ctrl-'\"), (\"super-[\", \"super-è\"), (\"super-]\", \"super-+\"), (\"super-bracketleft\", \"super-è\"), (\"super-bracketright\", \"super-+\"), (\"{\", \"shift-é\"), (\"}\", \"shift-*\"), (\"~\", \"shift-|\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 210,
+      "line": 244,
       "literal": "Italian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166475,8 +166523,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "KeycapLayout { layout: \"jp\", variant: \"\", name: \"Japanese\", overrides: &[(\":\", \"shift-+\")], ambiguous: &[\"+\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\", \"~\"], unavailable: &[\"~\"] },",
-      "line": 211,
+      "excerpt": "KeycapLayout { layout: \"jp\", variant: \"\", name: \"Japanese\", overrides: &[(\":\", \"shift-+\")], ambiguous: &[\"+\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\", \"~\"], unavailable: &[] },",
+      "line": 245,
       "literal": "Japanese",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166485,7 +166533,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"kz\", variant: \"\", name: \"Kazakh\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 212,
+      "line": 246,
       "literal": "Kazakh",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166494,7 +166542,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"kr\", variant: \"kr104\", name: \"Korean (101/104-key compatible)\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 213,
+      "line": 247,
       "literal": "Korean (101/104-key compatible)",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166503,7 +166551,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"kg\", variant: \"\", name: \"Kyrgyz\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 214,
+      "line": 248,
       "literal": "Kyrgyz",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166512,7 +166560,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"la\", variant: \"\", name: \"Lao\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 215,
+      "line": 249,
       "literal": "Lao",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166521,7 +166569,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"lt\", variant: \"\", name: \"Lithuanian\", overrides: &[(\"0\", \"“\"), (\"1\", \"ą\"), (\"2\", \"č\"), (\"3\", \"ę\"), (\"4\", \"ė\"), (\"5\", \"į\"), (\"6\", \"š\"), (\"7\", \"ų\"), (\"8\", \"ū\"), (\"9\", \"„\"), (\"ctrl-0\", \"ctrl-“\"), (\"ctrl-1\", \"ctrl-ą\"), (\"ctrl-2\", \"ctrl-č\"), (\"ctrl-3\", \"ctrl-ę\"), (\"ctrl-4\", \"ctrl-ė\"), (\"ctrl-shift-0\", \"ctrl-shift-)\"), (\"ctrl-shift-1\", \"ctrl-shift-Ą\"), (\"ctrl-shift-2\", \"ctrl-shift-Č\"), (\"ctrl-shift-3\", \"ctrl-shift-Ę\"), (\"ctrl-shift-4\", \"ctrl-shift-Ė\")], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 217,
+      "line": 251,
       "literal": "Lithuanian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166530,7 +166578,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"lt\", variant: \"\", name: \"Lithuanian\", overrides: &[(\"0\", \"“\"), (\"1\", \"ą\"), (\"2\", \"č\"), (\"3\", \"ę\"), (\"4\", \"ė\"), (\"5\", \"į\"), (\"6\", \"š\"), (\"7\", \"ų\"), (\"8\", \"ū\"), (\"9\", \"„\"), (\"ctrl-0\", \"ctrl-“\"), (\"ctrl-1\", \"ctrl-ą\"), (\"ctrl-2\", \"ctrl-č\"), (\"ctrl-3\", \"ctrl-ę\"), (\"ctrl-4\", \"ctrl-ė\"), (\"ctrl-shift-0\", \"ctrl-shift-)\"), (\"ctrl-shift-1\", \"ctrl-shift-Ą\"), (\"ctrl-shift-2\", \"ctrl-shift-Č\"), (\"ctrl-shift-3\", \"ctrl-shift-Ę\"), (\"ctrl-shift-4\", \"ctrl-shift-Ė\")], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 217,
+      "line": 251,
       "literal": "2",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166539,7 +166587,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"lt\", variant: \"\", name: \"Lithuanian\", overrides: &[(\"0\", \"“\"), (\"1\", \"ą\"), (\"2\", \"č\"), (\"3\", \"ę\"), (\"4\", \"ė\"), (\"5\", \"į\"), (\"6\", \"š\"), (\"7\", \"ų\"), (\"8\", \"ū\"), (\"9\", \"„\"), (\"ctrl-0\", \"ctrl-“\"), (\"ctrl-1\", \"ctrl-ą\"), (\"ctrl-2\", \"ctrl-č\"), (\"ctrl-3\", \"ctrl-ę\"), (\"ctrl-4\", \"ctrl-ė\"), (\"ctrl-shift-0\", \"ctrl-shift-)\"), (\"ctrl-shift-1\", \"ctrl-shift-Ą\"), (\"ctrl-shift-2\", \"ctrl-shift-Č\"), (\"ctrl-shift-3\", \"ctrl-shift-Ę\"), (\"ctrl-shift-4\", \"ctrl-shift-Ė\")], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 217,
+      "line": 251,
       "literal": "3",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166548,7 +166596,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"lt\", variant: \"\", name: \"Lithuanian\", overrides: &[(\"0\", \"“\"), (\"1\", \"ą\"), (\"2\", \"č\"), (\"3\", \"ę\"), (\"4\", \"ė\"), (\"5\", \"į\"), (\"6\", \"š\"), (\"7\", \"ų\"), (\"8\", \"ū\"), (\"9\", \"„\"), (\"ctrl-0\", \"ctrl-“\"), (\"ctrl-1\", \"ctrl-ą\"), (\"ctrl-2\", \"ctrl-č\"), (\"ctrl-3\", \"ctrl-ę\"), (\"ctrl-4\", \"ctrl-ė\"), (\"ctrl-shift-0\", \"ctrl-shift-)\"), (\"ctrl-shift-1\", \"ctrl-shift-Ą\"), (\"ctrl-shift-2\", \"ctrl-shift-Č\"), (\"ctrl-shift-3\", \"ctrl-shift-Ę\"), (\"ctrl-shift-4\", \"ctrl-shift-Ė\")], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 217,
+      "line": 251,
       "literal": "4",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166557,7 +166605,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"lt\", variant: \"\", name: \"Lithuanian\", overrides: &[(\"0\", \"“\"), (\"1\", \"ą\"), (\"2\", \"č\"), (\"3\", \"ę\"), (\"4\", \"ė\"), (\"5\", \"į\"), (\"6\", \"š\"), (\"7\", \"ų\"), (\"8\", \"ū\"), (\"9\", \"„\"), (\"ctrl-0\", \"ctrl-“\"), (\"ctrl-1\", \"ctrl-ą\"), (\"ctrl-2\", \"ctrl-č\"), (\"ctrl-3\", \"ctrl-ę\"), (\"ctrl-4\", \"ctrl-ė\"), (\"ctrl-shift-0\", \"ctrl-shift-)\"), (\"ctrl-shift-1\", \"ctrl-shift-Ą\"), (\"ctrl-shift-2\", \"ctrl-shift-Č\"), (\"ctrl-shift-3\", \"ctrl-shift-Ę\"), (\"ctrl-shift-4\", \"ctrl-shift-Ė\")], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 217,
+      "line": 251,
       "literal": "5",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166566,7 +166614,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"mk\", variant: \"\", name: \"Macedonian\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 218,
+      "line": 252,
       "literal": "Macedonian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166575,7 +166623,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"no\", variant: \"\", name: \"Norwegian\", overrides: &[(\":\", \"shift-Ø\"), (\"?\", \"shift-_\"), (\"[\", \"å\"), (\"]\", \"¨\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-å\"), (\"ctrl-equal\", \"ctrl-\\\\\"), (\"ctrl-minus\", \"ctrl-+\"), (\"ctrl-plus\", \"ctrl-shift-`\"), (\"super-[\", \"super-å\"), (\"super-]\", \"super-¨\"), (\"super-bracketleft\", \"super-å\"), (\"super-bracketright\", \"super-¨\"), (\"{\", \"shift-Å\"), (\"}\", \"shift-^\"), (\"~\", \"shift-§\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 219,
+      "line": 253,
       "literal": "Norwegian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166584,7 +166632,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"pl\", variant: \"\", name: \"Polish\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 220,
+      "line": 254,
       "literal": "Polish",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166593,7 +166641,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"pt\", variant: \"\", name: \"Portuguese\", overrides: &[(\":\", \"shift-Ç\"), (\"?\", \"shift-_\"), (\"[\", \"+\"), (\"]\", \"´\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-+\"), (\"ctrl-equal\", \"ctrl-«\"), (\"ctrl-minus\", \"ctrl-'\"), (\"ctrl-plus\", \"ctrl-shift-»\"), (\"super-[\", \"super-+\"), (\"super-]\", \"super-´\"), (\"super-bracketleft\", \"super-+\"), (\"super-bracketright\", \"super-´\"), (\"{\", \"shift-*\"), (\"}\", \"shift-`\"), (\"~\", \"shift-|\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 221,
+      "line": 255,
       "literal": "Portuguese",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166602,7 +166650,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"ro\", variant: \"\", name: \"Romanian\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 223,
+      "line": 257,
       "literal": "Romanian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166611,7 +166659,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"ru\", variant: \"\", name: \"Russian\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 224,
+      "line": 258,
       "literal": "Russian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166620,7 +166668,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"sk\", variant: \"\", name: \"Slovak\", overrides: &[(\"/\", \"-\"), (\":\", \"shift-\\\"\"), (\"?\", \"shift-_\"), (\"[\", \"ú\"), (\"]\", \"ä\"), (\"_\", \"shift-%\"), (\"ctrl-[\", \"ctrl-ú\"), (\"ctrl-equal\", \"ctrl-´\"), (\"ctrl-minus\", \"ctrl-=\"), (\"ctrl-plus\", \"ctrl-shift-ˇ\"), (\"ctrl-shift-greater\", \"ctrl-shift-:\"), (\"super-[\", \"super-ú\"), (\"super-]\", \"super-ä\"), (\"super-bracketleft\", \"super-ú\"), (\"super-bracketright\", \"super-ä\"), (\"super-shift-greater\", \"super-shift-:\"), (\"supershift-greater\", \"super-shift-:\"), (\"{\", \"shift-/\"), (\"}\", \"shift-(\"), (\"~\", \"shift-˚\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 226,
+      "line": 260,
       "literal": "Slovak",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166629,7 +166677,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"si\", variant: \"\", name: \"Slovenian\", overrides: &[(\":\", \"shift-Č\"), (\"?\", \"shift-_\"), (\"[\", \"š\"), (\"]\", \"đ\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-š\"), (\"ctrl-equal\", \"ctrl-+\"), (\"ctrl-minus\", \"ctrl-'\"), (\"super-[\", \"super-š\"), (\"super-]\", \"super-đ\"), (\"super-bracketleft\", \"super-š\"), (\"super-bracketright\", \"super-đ\"), (\"{\", \"shift-Š\"), (\"}\", \"shift-Đ\"), (\"~\", \"shift-¨\")], ambiguous: &[\"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 227,
+      "line": 261,
       "literal": "Slovenian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166638,7 +166686,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"es\", variant: \"\", name: \"Spanish\", overrides: &[(\":\", \"shift-Ñ\"), (\"?\", \"shift-_\"), (\"[\", \"`\"), (\"]\", \"+\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-`\"), (\"ctrl-equal\", \"ctrl-¡\"), (\"ctrl-minus\", \"ctrl-'\"), (\"super-[\", \"super-`\"), (\"super-]\", \"super-+\"), (\"super-bracketleft\", \"super-`\"), (\"super-bracketright\", \"super-+\"), (\"{\", \"shift-^\"), (\"}\", \"shift-*\"), (\"~\", \"shift-ª\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 228,
+      "line": 262,
       "literal": "Spanish",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166647,7 +166695,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"latam\", variant: \"\", name: \"Spanish (Latin American)\", overrides: &[(\":\", \"shift-Ñ\"), (\"?\", \"shift-_\"), (\"_\", \"shift-?\"), (\"ctrl-equal\", \"ctrl-¿\"), (\"ctrl-minus\", \"ctrl-'\"), (\"~\", \"shift-°\")], ambiguous: &[\"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 229,
+      "line": 263,
       "literal": "Spanish (Latin American)",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166656,7 +166704,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"se\", variant: \"\", name: \"Swedish\", overrides: &[(\":\", \"shift-Ö\"), (\"?\", \"shift-_\"), (\"[\", \"å\"), (\"]\", \"¨\"), (\"_\", \"shift-?\"), (\"ctrl-[\", \"ctrl-å\"), (\"ctrl-equal\", \"ctrl-´\"), (\"ctrl-minus\", \"ctrl-+\"), (\"ctrl-plus\", \"ctrl-shift-`\"), (\"super-[\", \"super-å\"), (\"super-]\", \"super-¨\"), (\"super-bracketleft\", \"super-å\"), (\"super-bracketright\", \"super-¨\"), (\"{\", \"shift-Å\"), (\"}\", \"shift-^\"), (\"~\", \"shift-½\")], ambiguous: &[\"+\", \"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 230,
+      "line": 264,
       "literal": "Swedish",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166665,7 +166713,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"tj\", variant: \"\", name: \"Tajik\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 231,
+      "line": 265,
       "literal": "Tajik",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166674,7 +166722,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"tr\", variant: \"\", name: \"Turkish\", overrides: &[(\",\", \"ö\"), (\",A\", \"öA\"), (\",B\", \"öB\"), (\",M\", \"öM\"), (\",S\", \"öS\"), (\",a\", \"öa\"), (\",b\", \"öb\"), (\",e\", \"öe\"), (\",m\", \"öm\"), (\",n\", \"ön\"), (\",r\", \"ör\"), (\",s\", \"ös\"), (\":\", \"shift-Ş\"), (\"?\", \"shift-:\"), (\"[\", \"ğ\"), (\"]\", \"ü\"), (\"ctrl-[\", \"ctrl-ğ\"), (\"ctrl-equal\", \"ctrl--\"), (\"ctrl-minus\", \"ctrl-*\"), (\"ctrl-plus\", \"ctrl-shift-_\"), (\"ctrl-shift-plus\", \"ctrl-shift-_\"), (\"ctrl-shift-underscore\", \"ctrl-shift-?\"), (\"super-[\", \"super-ğ\"), (\"super-]\", \"super-ü\"), (\"super-bracketleft\", \"super-ğ\"), (\"super-bracketright\", \"super-ü\"), (\"{\", \"shift-Ğ\"), (\"}\", \"shift-Ü\"), (\"~\", \"shift-é\")], ambiguous: &[\"-\"], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 232,
+      "line": 266,
       "literal": "Turkish",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166683,7 +166731,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"ua\", variant: \"\", name: \"Ukrainian\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 233,
+      "line": 267,
       "literal": "Ukrainian",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166692,7 +166740,7 @@
     },
     {
       "excerpt": "KeycapLayout { layout: \"ara\", variant: \"\", name: \"Arabic\", overrides: &[], ambiguous: &[], diagnostics: &[\",\", \",A\", \",B\", \",M\", \",S\", \",a\", \",b\", \",e\", \",m\", \",n\", \",r\", \",s\", \"-\", \":\", \"?\", \"ctrl-minus\", \"ctrl-shift-minus\"], unavailable: &[] },",
-      "line": 234,
+      "line": 268,
       "literal": "Arabic",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166701,7 +166749,7 @@
     },
     {
       "excerpt": "let named = KeycapSnapshot::from_group_name(\"German\", 1, 7).unwrap();",
-      "line": 275,
+      "line": 309,
       "literal": "German",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -166710,7 +166758,7 @@
     },
     {
       "excerpt": "assert!(KeycapSnapshot::from_group_name(\"unrecorded group\", 0, 9).is_err());",
-      "line": 281,
+      "line": 315,
       "literal": "unrecorded group",
       "owner": "controller",
       "path": "src/keys/display.rs",
@@ -172622,6 +172670,15 @@
       "surface": "tui"
     },
     {
+      "excerpt": "let facts = selection_bytes(m).map(|n| [Text::Key(\"preview.fact.combined\").spans(i18n), vec![(None, \" · \".into())], Text::Size(n).spans(i18n)].concat()).unwrap_or_default();",
+      "line": 206,
+      "literal": " · ",
+      "owner": "t11",
+      "path": "src/tui/pane.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
       "excerpt": "if i > 0 { let separator = fit(\" · \", left.min(3)); left -= text_width(&separator); out.push_str(&separator); }",
       "line": 237,
       "literal": " · ",
@@ -172641,7 +172698,7 @@
     },
     {
       "excerpt": "super::prompts::record(m, \"link\", Vec::new());",
-      "line": 197,
+      "line": 191,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/parity17.rs",
@@ -173100,7 +173157,7 @@
     },
     {
       "excerpt": "default: d.get(\"default\")?.as_bool()?,",
-      "line": 263,
+      "line": 270,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/print/replies.rs",
@@ -241500,7 +241557,7 @@
     "crates/flea-gui/src/g2/pk1/jump.rs": "8c007ab74d9b52a3ce557bdc7fbf011e4ff08f5b6e18bfee35274ee3afcb4a82",
     "crates/flea-gui/src/g2/pk1/keys.rs": "597a4658f09577e927c6a5211ca7bd842e263d6783ca352699b05a4943d1e990",
     "crates/flea-gui/src/g2/pk1/labels.rs": "9900b3885dbb462e355d142ef43265b44c6e0c1ad373f3f9eb843f263964d0d3",
-    "crates/flea-gui/src/g2/pk1/launch.rs": "e5400a97921e93614f0cc8455ed4632ebac89259dc8a0d319a7bf9be4f7db39e",
+    "crates/flea-gui/src/g2/pk1/launch.rs": "863aac9d480465ec4149e9b7c45c52865ff251527989383056c94874c6ef5927",
     "crates/flea-gui/src/g2/pk1/mod.rs": "650e396d3d8960a971f01c7d3d0b6d57cf5e4fb6fb830e2e30065ba5c258b64e",
     "crates/flea-gui/src/g2/pk1/navigation.rs": "e7f70afa026ba6250034d9a07541aebd1403349d220b9ff7b91994d1bef43f2a",
     "crates/flea-gui/src/g2/pk1/network.rs": "5fa750ed2621dec8100c8de567c5db8739c1b289e7480b54e7e01814a2a4a0c9",
@@ -241965,7 +242022,7 @@
     "crates/flea-gui/src/list/text_revision.rs": "ffe2f422d576e7885af853480351c919a30ce02842bb86eb33451620c31e7cd8",
     "crates/flea-gui/src/list/typeface.rs": "538397375522dfd539c90cd508d117cd18079efe10b0f10a5b226fef2a63a4b0",
     "crates/flea-gui/src/locale_geometry.rs": "07bc4aa5d4179cdfe7d991d8235f305e45bd83c63f3f24f404439a64277e9225",
-    "crates/flea-gui/src/main.rs": "58225d72737af6296024d769fc98d2822fef576bfe1199cc56fbf3884d979c82",
+    "crates/flea-gui/src/main.rs": "6f713f95d93b2c8a2cf227c14b386b7df96a31f797b485ba23ad61d8f6b63573",
     "crates/flea-gui/src/navigation/anchor.rs": "06bc831536cc3aceb11e347a81150732ad897b48c70f0e218b98d5b19956ff59",
     "crates/flea-gui/src/navigation/folder_state.rs": "23589f778f82fc2f9c3e62b58891f20d95ba38b0a4162c0650875be4acbbcf06",
     "crates/flea-gui/src/navigation/folder_state/writer.rs": "6b7a4ee78922b601a2aa83256cbe6cfc7b2b7fe6a4b81d018b90c5dfa0ea7cfa",
@@ -242017,6 +242074,7 @@
     "crates/flea-gui/src/path/wire.rs": "7bb8f1fcd10ec2d5bf60b29625bad1bfcbc1ebf089bf055db480ed772f3fb617",
     "crates/flea-gui/src/perf/glyph_probe.rs": "3b3a527431d24b24aa9342d57bc9834f76c3c1a4e018e99860ec50d9b43fc781",
     "crates/flea-gui/src/perf/memory_probe.rs": "df9e2d0beb3d97c455c59cbd69def71801237e3e412b4806e64f1a2c1b4730cd",
+    "crates/flea-gui/src/presentation/epoch.rs": "905b0920fcc7905ce18ddb46f0c1c253b7868f70d24175e0842c86bbc5868397",
     "crates/flea-gui/src/presentation/face.rs": "917a13a173df62d9f82734657866f33fe19b32a95a70d7f57bcf08c8236cdffa",
     "crates/flea-gui/src/presentation/face_cache.rs": "887388dccd56b336da94812c3e4b9a572c5419311945fae941e28e5a8b3fdfbc",
     "crates/flea-gui/src/presentation/fixture.rs": "f41ebc8068521304f6c6fb83004ed979dc495ebb88eaa073345578d789b9bfaa",
@@ -242024,7 +242082,7 @@
     "crates/flea-gui/src/presentation/frame_census.rs": "4d469ad199332de46d03ab065db9a7fe5298e731e96c49c85bc7c597d04d24b0",
     "crates/flea-gui/src/presentation/frame_gate.rs": "4298b5315f6f714d19a060cad63fe1c2371f3181139a09e433488168e607869d",
     "crates/flea-gui/src/presentation/frames.rs": "37c6de597334cdc09af86026b79c2301f40ee5cbc14a24697a1596347dfa2547",
-    "crates/flea-gui/src/presentation/mod.rs": "19ce60c48fb151ed50f2bbef2feab9e28a61682a0108767c707b7a1f0a34a36c",
+    "crates/flea-gui/src/presentation/mod.rs": "304a683fa6ac49c9762c17076170ebe7552e2cfc570778f0201377b6ce6f42cc",
     "crates/flea-gui/src/presentation/service.rs": "72459553237f92a1c3e2069018c056661724e1d381e1a635f0f82ff36223d0be",
     "crates/flea-gui/src/presentation/source.rs": "3f4f3062dce2f8873bb183183b844038594d77b01e830199a35ff09e641746f5",
     "crates/flea-gui/src/presentation/wake.rs": "a52a67a8b6c81fa3634c32a086a3955bec3e96d1f424dcf5980fa9abfda6cc60",
@@ -242178,7 +242236,7 @@
     "crates/flea-gui/src/window/key_delivery.rs": "a3eabc49355590d327add588b22b728cf633780b120b0263a85be2741a3ac3c3",
     "crates/flea-gui/src/window/keyboard.rs": "a58590b0d697d79a850af0997fe7d13337c5cf9f6ed88d30115b7634f8a92ba1",
     "crates/flea-gui/src/window/lifecycle.rs": "689767f40d95c0995fbca9ae443a57c406bb7f37e1db1c26376d7b6ed8a2824e",
-    "crates/flea-gui/src/window/locale.rs": "5842eabdce05a5a1092260c5014b8e79f81f015e7f136ae93e4b3d930d2d5c65",
+    "crates/flea-gui/src/window/locale.rs": "db61d8c455cda0df357f3929a2e0993476fd6187722a9b2306c34b764c5bcc25",
     "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs": "b49f4e8ead91cd2bb902af7fc374950db77446671d739fba45a799ebe0ffb231",
     "crates/flea-gui/src/window/mod.rs": "b4c18301bdad9f090bc97d251636f04751b2eb5fcf7b8084015f59d696cc0bc0",
     "crates/flea-gui/src/window/navigate.rs": "ad3b04616b378b25d37f80a098e6f5418fc0335f8e2438cde7a6f0bc229d1973",
@@ -242625,8 +242683,8 @@
     "src/backend/transferitem.rs": "c7e13c100c83409b646457b2691caa7f2561473c1190fd6e0a96a53c1e6c7f0d",
     "src/backend/transferstart.rs": "1d1f3101186689ed629e8cecf924193fab6d0a90c3a6c03118d23fe0d0551e5f",
     "src/backend/trash.rs": "03d18fd162596bc3e7701dbb16432f07643e76969cfaf34c59e15ca0911396fd",
-    "src/backend/trashbrowse.rs": "ed304db273c2683ebfd23600910be98bd14c3bad808eff64f5ef88a0c0b3a3cf",
-    "src/backend/trashbrowse/details.rs": "49a39faae56bb1ed6ec2ebc55869852b4828d689cb868b80f1e9c00095a3b30d",
+    "src/backend/trashbrowse.rs": "b53b686c2b33df25d5e524fa9d77332915c8c83f067dc8b33cf8c301bc9b9c86",
+    "src/backend/trashbrowse/details.rs": "ae04d7075200ebf8eb7c5cb00de7a834b212e46c6f78d7a7e37e53ef85717e28",
     "src/backend/trashbrowse/job.rs": "33c1efbdc783f1668a293136102cae8609593a961efafb0e39f755ab273f94e2",
     "src/backend/trashdate.rs": "a6312b012015592eedd2497a52af2d53bec49e58e5deb40327ae80ce75bbd8c1",
     "src/backend/trashdelete.rs": "3573992670eb2b68b37584395cae4af48c8539b7e22d86b9e5178cdc1108cce6",
@@ -242700,7 +242758,7 @@
     "src/i18n/document.rs": "ab0dbe4ae58e689cbebca9606fb6d83e60484fd75ded25027f618ce166800729",
     "src/i18n/format.rs": "2be16c98596f0d2009c1f72035f9fc867db75d0f48c583ee3eb8602d75a7f10d",
     "src/i18n/locale.rs": "ea6ecab81ef449c47b943c92aeaf5c8f7494c9a99b79c3dca280740d06240a3a",
-    "src/i18n/mod.rs": "cc4c6efa11425941f3367877eaf77e93fcd6de0232638c04ec139319e0e91c2d",
+    "src/i18n/mod.rs": "3b9eaa46963c2ca3a3cbba52a3278297d474e04c981cdefcfa259ea3369b0aa1",
     "src/i18n/plural.rs": "36727a3843c0be06745c88e469f4f619895326d95035d7729f896353ec3b56c0",
     "src/icdexclude.rs": "d9bbd54fe2de9c928f461e36415101f47973a17f45eff71fbdc04c4b722f5e32",
     "src/icdmanifests.rs": "c2bcea2c13b9040b29227c87c0a3390f66418634254a74e73593acdca2d75f9c",
@@ -242719,7 +242777,7 @@
     "src/jsonstring.rs": "853a1de0a355febf60894f4a59a89c906f5cce18edead1dfdbd8995803fbf97d",
     "src/keys.rs": "ba8bf2e5d33b589dc888177964c7db1dfa2da8122761a9cf33b7459e2f699238",
     "src/keys/actions.rs": "77df40017ab93c547aa6ce1743bf38c82087f028d651251f30c0be10ee06c781",
-    "src/keys/display.rs": "84d5c63882bf1cf4921faff103ab3e3a6034be24b0924476d7d08373dd1fa99a",
+    "src/keys/display.rs": "22aedf88d3e4f953548d621e701467cf94c733f901ad32309d27df1c7e75a998",
     "src/keys/presentation.rs": "56571f78b8e4b3f005ab81b87d8fdfd53cab328ba4a7087e13eec5bac22d0263",
     "src/keys/sequence.rs": "30640c37710772e1267b0e472893e948f98b6113e937973e487f6b13cb421116",
     "src/keys/user.rs": "e68fafc9cfdc980a6eab6c10be357738f144e65dbddb6e58f787e42d5d085ae6",
@@ -242778,7 +242836,7 @@
     "src/tui/capabilities.rs": "a8790641f17557c0e34c7b417b5d321bb6f8ebb8e1becd0ab37060b947596eb9",
     "src/tui/cards.rs": "060a1abafaf514725e637e734af6ebd1f390f16624c688e1db6a654bae16785c",
     "src/tui/cards/words.rs": "fdff477f46d3b5c62f9ffa99d50144ff653885144051b0a83c09d9c5a6517aba",
-    "src/tui/cells.rs": "4ab3db4d9b9a9aeda042195883abec1913fb710267e7cae9ef48f48c4a2c515b",
+    "src/tui/cells.rs": "ec66547e92ef01dcbd2489861945f4cc0aad957e6a54f58eac3c4d33d316613f",
     "src/tui/chafa.rs": "8f0a06ee01069e36e703619ed6c5770d6764fab464aec587c8919e705c5ccbf0",
     "src/tui/chafa_process.rs": "e88bd7ad9d1ac18581ce19444c750572c513182a139d8a2c164ab75bd0a0cd5a",
     "src/tui/combine.rs": "59885ff0048119b3df480d9f449c8b87530a97c5c761f1877e4d22bd2be955cd",
@@ -242810,7 +242868,7 @@
     "src/tui/input.rs": "d9768c9e39f50994fde6a0bdb011fb49a9a416b0c5e53426a950dd86ec95f66a",
     "src/tui/job.rs": "76758b70e86589e8b94c2ec873cc4139cb5f513ab0c0d878ce1a84124d2a0d3b",
     "src/tui/jobstatus.rs": "bd8d2060ac8375ef73ab9199bd7a46a06ca3fe41e4380eab960aa502fb9ab4be",
-    "src/tui/key_sheet.rs": "4fecfb07d0c882928a9238b8767636b02276e9ff03b505490319a32d16b799a8",
+    "src/tui/key_sheet.rs": "b4937103bcd2645473b9d537f1661c96f366377606c223eb11065b46091eef19",
     "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
     "src/tui/keymap.rs": "c43659252066174ea7ec6c32a337d6e510a215da80441f2e8270a3d6c019b45d",
     "src/tui/launch.rs": "84cc19c56ccf2c72666c11665d34dc46e376757ca56b3135605c5bd9886ea852",
@@ -242826,35 +242884,36 @@
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
     "src/tui/office.rs": "cb3a21ae2094188ce9d82e2a2fa860290948df933e63c2710e97580027448ebf",
     "src/tui/office_container.rs": "8aba9e3af621612dc7431880c6660d741bbbe7164ea4c35b03b731c05d30638a",
-    "src/tui/pane.rs": "706512c5439ed69de1a1d8de1c229e91e668ad3461c97cab0f4a5e7f70e86755",
+    "src/tui/pane.rs": "844a4903f120678c029f719238e5509481d2a25d2099458322768e7b97549aa6",
     "src/tui/pane_state.rs": "f53061803ba9733e51c73d80310b3cf99456f71567158700b412470be9f5d522",
     "src/tui/parity.rs": "53547e7f5f58db0cf51b01e270fc9f99161d6a69b8112aea752f3c7651dc392e",
-    "src/tui/parity17.rs": "74901c33191a3f55c4581e473c41bc300b59831a1455c483010a9d9bf564a793",
+    "src/tui/parity17.rs": "93a0e09eccf96706f4aaa705829c365ee4049764f5e65da551d7e8f13429e1be",
     "src/tui/pdf.rs": "9e9b0488baee58597018aac2338e350186e63b3e718266eeca4a53798345afd6",
     "src/tui/picture.rs": "2d46d805b131a3cff2087b6600f0baf51bd724291cd507e30c941bd9e465ac12",
-    "src/tui/preview.rs": "65bbfc60497e07f7411c259684f2aec1b6db952fd0f8c33f07c18890b7293032",
+    "src/tui/preview.rs": "5c6bb14c1f880176e615c407e54b1447be76424dedd0e49b97c6736173124058",
     "src/tui/preview/words.rs": "fffb15a670278b1441167000d3d99df3ff3e7eacb89b4f7cd776183426a44824",
-    "src/tui/print.rs": "6ef74a20e37317d548d01acb04d5345fba63d167a7523e0d9c0765120f7cb1d9",
-    "src/tui/print/card.rs": "00991a3c4b40f05ce92a63dcc48e53fc2037644e795d5e9ff5c00608f74e5ecd",
+    "src/tui/print.rs": "8bf182606601615a376c570a5f102e061904977962332c5fc71a5e07df094500",
+    "src/tui/print/card.rs": "7e513d5ef0fe27901abf502bf9372ae74c97d54df86066e0de71aea4ab7174b0",
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
-    "src/tui/print/replies.rs": "e5aeb45f73991f2b605d2b0d6929ac76b5f6720e72100014f1b1be5783355e48",
+    "src/tui/print/replies.rs": "0d9558640c05dd6527bcf9f66ec702b77f9cd4c1a5afc48dd104de786766c810",
     "src/tui/prompts.rs": "73ec6423ef4c341075b1e7e1627d506c2333a405cc525caeb002452b411671b8",
-    "src/tui/render.rs": "ece742faabf5f8c85cfb0a46412ea4c268a18dc55a86e1b8df8579817619405b",
+    "src/tui/render.rs": "1241219e3909119c90d3115088c37b3d5cc2b1af2f8072d579ae9f76a1edd0b3",
     "src/tui/sort_actions.rs": "10962bd7e3d0e4cd0bff680ba7c492d779f39625865f3b60c8181c1606119586",
     "src/tui/stage.rs": "0f1265d38041eb3ae29357f69c8bd1808f0d512d119f4173c64c127f9351449b",
     "src/tui/still.rs": "9f016dcd1608776cf1c78ebf45c564052d300105aed5c14637d1ab2e7fb540ac",
-    "src/tui/syntax.rs": "0ddf70c3a53421813d186bb015e14df645d73c7bb9f0a97ca05229a434d6d895",
+    "src/tui/syntax.rs": "3cb79da2ee7849c2eceafec9fe22a0f162ab7de7f3d2bae9bd7760034e2c6fb4",
     "src/tui/taildrop.rs": "795357ddf6efc18710dee2539efec95aa7a63fdf81914c9fb26597b4c154e62b",
     "src/tui/terminal.rs": "d888c57b56adbbb580a9f87a400584aa0505cfd2c879c2fc96cbb8cb4106bdbc",
     "src/tui/terminal_editor.rs": "65fe77bf45b171c5ba8e33afb48943df3d1481bac3599fdb163cf96da4b710c0",
     "src/tui/terminal_suspend_fixture.rs": "ad6be04a4087cca37e4c4da82e36d75feb01f274897ff3f3a01f29d1c317f2df",
     "src/tui/theme.rs": "2ffafd81d9ebcb47d6031cd2b564330631dc369237d7101bf83f37b3c2e0d170",
     "src/tui/tmux.rs": "54f48512fd40051fc430fb8459c32ba6579ba5ff60918337558f0392ff0c6a1e",
-    "src/tui/trashview.rs": "36c536ad89e7eed6909932aa5679a8d6dfe5749f8e632254def610c557940130",
+    "src/tui/trashview.rs": "da7d4ad40ee645c857c69452b6f5384e33d4f82a06f7dd6d0898ea5c25d19e02",
     "src/tui/wait.rs": "f54f0e8409eeb694985ecb5134a8f8a4ba179ff5a72d353d1654c2f6ddd0125a",
     "src/tui/warm.rs": "570e7ede28f3d3acbec35de19986deb31a11f25ca5552e56ea608fb8b8c2da6c",
     "src/tui/wire.rs": "13ecd5d333ff3506ae14387bd97565a00b42aaf2901fb36376eebe06d6cf3a3f",
-    "src/tui/words.rs": "ccd9cc93eb832a2428519f1023094094785e30969a68fa13a8c32b0386f13ed8",
+    "src/tui/words.rs": "afc341bdb0cfe1a946a7b5147c91cb41397ef2abc230b3f97639009ce87882a7",
+    "src/tui/words_title.rs": "c5b4e8e5f90eb6fcd84928eb632204850d14c7682cec79c1a9e1a113483631a5",
     "src/ui_logic_dg1.rs": "a4b3cb7d881e7f81ee902c71ff7e39bdf368e300f4919f9062a5780b243b9390",
     "src/ui_logic_dg1/carry.rs": "4fd4c6ed7040596c8004142763f14965a5208fdbf9c9b3e8a92231978a8cc0e8",
     "src/ui_logic_dg1/clipboard.rs": "61b46d50df70a151eba8759fdb6ff7802f626416eb4364eb3e43581944929c4f",
@@ -243776,8 +243835,8 @@
     },
     "gui": {
       "keys_with_occurrences": 519,
-      "missing_literal_candidates": 2021,
-      "source_files": 1064
+      "missing_literal_candidates": 2023,
+      "source_files": 1065
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
@@ -243786,8 +243845,8 @@
     },
     "tui": {
       "keys_with_occurrences": 481,
-      "missing_literal_candidates": 368,
-      "source_files": 84
+      "missing_literal_candidates": 369,
+      "source_files": 85
     }
   },
   "unlocated_keys": [
