@@ -44,9 +44,10 @@ impl Producer {
         if held.start_y.is_none() && (y - held.press_y).abs() > START_DRAG_DISTANCE {
             held.start_y = Some(y);
         }
-        if let Some(start) = held.start_y {
+        // DragHandler's translation counts from the press, so the threshold run is part of the move.
+        if held.start_y.is_some() {
             held.line = rail_reorder(
-                f64::from(y - start),
+                f64::from(y - held.press_y),
                 held.from,
                 self.row_height(),
                 held.count,
@@ -66,9 +67,9 @@ impl Producer {
             return;
         };
         match held.start_y {
-            Some(start) => {
+            Some(_) => {
                 let to = rail_reorder(
-                    f64::from(y - start),
+                    f64::from(y - held.press_y),
                     held.from,
                     self.row_height(),
                     held.count,

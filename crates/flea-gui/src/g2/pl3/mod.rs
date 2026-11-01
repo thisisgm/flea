@@ -43,6 +43,8 @@ pub mod readers;
 mod readers_controls;
 mod scrollbar;
 pub mod seams;
+#[cfg(test)]
+mod side_button_trash_tests;
 mod strip;
 #[cfg(test)]
 mod tests;

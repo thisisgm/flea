@@ -48,7 +48,8 @@ impl Shell {
         }
         self.keyboard.context = flea::keys::Context::Listing;
         self.keyboard.disarm();
-        if rail {
+        // Sidebar.qml openRailMenu: every rail row's menu closes back to the rail it opened from.
+        if place || rail {
             window.focus(&self.dual_focus.rail, cx);
             self.keyboard.context = flea::keys::Context::Rail;
         }

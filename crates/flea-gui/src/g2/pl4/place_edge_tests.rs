@@ -20,7 +20,7 @@ impl Render for Sized {
 }
 
 /// Paints the rail with the first row as the place and returns the quads inside that row.
-fn place_quads(cx: &mut TestAppContext, focused: bool) -> (Theme, Vec<Quad>, f32) {
+fn place_quads(cx: &mut TestAppContext, focused: bool, mark: bool) -> (Theme, Vec<Quad>, f32) {
     let theme = Theme::from_text(BOARD);
     cx.update(|cx| cx.set_global(theme));
     let state = flea::jsondoc::parse(r#"{"places":{"showHome":true,"showTrash":true}}"#).unwrap();
@@ -52,6 +52,7 @@ fn place_quads(cx: &mut TestAppContext, focused: bool) -> (Theme, Vec<Quad>, f32
         model.cursor = Some(first);
         model.focused = focused;
         model.pointer_focus = false;
+        model.mark_focused = mark;
         drop(model);
         cx.notify();
     });
@@ -86,7 +87,7 @@ fn edges(quads: &[Quad], ink: Hsla, scale: f32) -> usize {
 
 #[gpui::test]
 fn the_place_has_no_accent_edge_while_the_list_holds_the_keyboard(cx: &mut TestAppContext) {
-    let (theme, quads, scale) = place_quads(cx, false);
+    let (theme, quads, scale) = place_quads(cx, false, false);
     let grey = theme.foreground.opacity(crate::list::GREY_CURSOR);
     assert!(
         quads
@@ -105,10 +106,37 @@ fn the_place_has_no_accent_edge_while_the_list_holds_the_keyboard(cx: &mut TestA
 fn the_rail_cursor_keeps_its_accent_edge_while_the_rail_holds_the_keyboard(
     cx: &mut TestAppContext,
 ) {
-    let (theme, quads, scale) = place_quads(cx, true);
+    let (theme, quads, scale) = place_quads(cx, true, false);
     assert_eq!(
         edges(&quads, theme.accent_frame, scale),
         1,
         "HIG .rr.cur draws the 2px accent-frame edge"
+    );
+}
+
+// EY-105: with the keyboard on the row's eject mark, v0.3.12 turns the row behind it to the grey cursor ground.
+#[gpui::test]
+fn the_cursor_row_turns_grey_with_no_edge_while_its_eject_mark_holds_the_keyboard(
+    cx: &mut TestAppContext,
+) {
+    let (theme, quads, scale) = place_quads(cx, true, true);
+    let grey = theme.foreground.opacity(crate::list::GREY_CURSOR);
+    let wash = theme.accent.opacity(crate::list::CURSOR_WASH);
+    assert!(
+        quads
+            .iter()
+            .any(|quad| quad.background.as_solid() == Some(grey)),
+        "the row takes the grey cursor ground"
+    );
+    assert!(
+        !quads
+            .iter()
+            .any(|quad| quad.background.as_solid() == Some(wash)),
+        "the row drops the accent wash"
+    );
+    assert_eq!(
+        edges(&quads, theme.accent_frame, scale),
+        0,
+        "the mark holds the keyboard, so the row draws no accent edge"
     );
 }

@@ -266,17 +266,19 @@ impl Element for RailElement {
                 }
                 let keyboard = model.focused && !model.pointer_focus;
                 let highlighted = if keyboard { model.cursor } else { model.lit };
+                // SidebarRow.qml: with the keyboard on the row's eject mark, the row behind it reads as the grey cursor.
+                let wash = keyboard && !model.mark_focused;
                 if cue {
                     super::paint::paint_cue(row, &palette, window);
                 } else if highlighted == Some(row.index) {
-                    let plate = if keyboard {
+                    let plate = if wash {
                         palette.accent.opacity(crate::list::CURSOR_WASH)
                     } else {
                         palette.foreground.opacity(crate::list::GREY_CURSOR)
                     };
                     window.paint_quad(fill(box_of(row.rect), plate));
                     // HIG rail-favorites: only .rr.cur, the rail holding the keyboard, draws the accent edge.
-                    if keyboard {
+                    if wash {
                         window.paint_quad(fill(
                             Bounds::new(
                                 point(px(row.rect.x), px(row.rect.y)),
